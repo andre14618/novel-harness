@@ -84,6 +84,91 @@ describe("validateChapterDraft", () => {
     })
   })
 
+  // ── Validation Mode: Scene Beat Coverage ────────────────────────────────
+
+  describe("scene beat coverage (validation mode)", () => {
+    test("beats with keyword matches pass", () => {
+      const draft = makeChapterDraft(2500)
+      const outline = makeChapterOutline({
+        scenes: [
+          { description: "Kael drinks alone in a frontier tavern", characters: ["Kael"], emotionalShift: "" },
+          { description: "Rina appears at the doorway and warns Kael", characters: ["Kael", "Rina"], emotionalShift: "" },
+        ],
+      })
+      const result = validateChapterDraft(draft, outline, "validation")
+      expect(result.blockers.filter(b => b.includes("beat"))).toHaveLength(0)
+    })
+
+    test("beat with zero keyword matches is a blocker", () => {
+      const draft = makeChapterDraft(2500)
+      const outline = makeChapterOutline({
+        scenes: [
+          { description: "Kael drinks alone in a frontier tavern", characters: ["Kael"], emotionalShift: "" },
+          { description: "Dragons swarm the crystalline fortress underwater", characters: ["Kael"], emotionalShift: "" },
+        ],
+      })
+      const result = validateChapterDraft(draft, outline, "validation")
+      expect(result.blockers.some(b => b.includes("beat 2"))).toBe(true)
+    })
+
+    test("beat checks only run in validation mode", () => {
+      const draft = makeChapterDraft(2500)
+      const outline = makeChapterOutline({
+        scenes: [
+          { description: "Dragons swarm the crystalline fortress underwater", characters: ["Kael"], emotionalShift: "" },
+        ],
+      })
+      const result = validateChapterDraft(draft, outline, "drafting")
+      expect(result.blockers.filter(b => b.includes("beat"))).toHaveLength(0)
+    })
+  })
+
+  // ── Validation Mode: POV Pronoun Check ─────────────────────────────────
+
+  describe("POV pronoun check (validation mode)", () => {
+    test("third-person prose passes", () => {
+      const draft = makeChapterDraft(2500)
+      const outline = makeChapterOutline()
+      const result = validateChapterDraft(draft, outline, "validation")
+      expect(result.warnings.filter(w => w.includes("first-person")).length).toBe(0)
+    })
+
+    test("first-person narration outside dialogue warns", () => {
+      const words = Array(2500).fill("word").join(" ")
+      const draft = `I walked to the gate. I saw Kael there. I felt the wind. I heard Rina speak. I drew my sword. I charged forward. I fell. Rina watched. ${words}`
+      const outline = makeChapterOutline()
+      const result = validateChapterDraft(draft, outline, "validation")
+      expect(result.warnings.some(w => w.includes("first-person"))).toBe(true)
+    })
+
+    test("I inside dialogue is not flagged", () => {
+      const words = Array(2400).fill("word").join(" ")
+      const draft = `Kael spoke. "I will not surrender," she said. "I refuse." Rina replied, "I expected as much." ${words}`
+      const outline = makeChapterOutline()
+      const result = validateChapterDraft(draft, outline, "validation")
+      expect(result.warnings.filter(w => w.includes("first-person")).length).toBe(0)
+    })
+  })
+
+  // ── Validation Mode: Dialogue Presence ─────────────────────────────────
+
+  describe("dialogue presence (validation mode)", () => {
+    test("no dialogue warns", () => {
+      const words = Array(2500).fill("word").join(" ")
+      const draft = `Kael walked through the desert. Rina followed. ${words}`
+      const outline = makeChapterOutline()
+      const result = validateChapterDraft(draft, outline, "validation")
+      expect(result.warnings.some(w => w.includes("No dialogue"))).toBe(true)
+    })
+
+    test("normal dialogue ratio passes", () => {
+      const draft = makeChapterDraft(2500)
+      const outline = makeChapterOutline()
+      const result = validateChapterDraft(draft, outline, "validation")
+      expect(result.warnings.filter(w => w.includes("dialogue")).length).toBe(0)
+    })
+  })
+
   // ── Combined ───────────────────────────────────────────────────────────
 
   describe("combined", () => {

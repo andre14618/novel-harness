@@ -148,7 +148,7 @@ describe("runDraftingPhase", () => {
     await runDraftingPhase(novelId)
 
     const novel = getNovel(novelId)
-    expect(novel.phase).toBe("done")
+    expect(novel.phase).toBe("validation")
     expect(novel.currentChapter).toBe(2)
     expect(callCount).toBe(5)
 
@@ -164,6 +164,9 @@ describe("runNovel (state machine)", () => {
     let conceptRan = false, planningRan = false, draftingRan = false
 
     // Mock phase modules to just advance state
+    // Note: drafting goes straight to "done" to avoid mock.module poisoning
+    // the real validation module for other test files. The drafting→validation
+    // transition is tested in the drafting phase test above.
     mock.module("../src/phases/concept", () => ({
       runConceptPhase: async (id: string) => { conceptRan = true; updatePhase(id, "planning") },
     }))

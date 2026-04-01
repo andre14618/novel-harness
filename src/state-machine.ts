@@ -2,6 +2,7 @@ import { getNovel } from "./db"
 import { runConceptPhase } from "./phases/concept"
 import { runPlanningPhase } from "./phases/planning"
 import { runDraftingPhase } from "./phases/drafting"
+import { runValidationPhase } from "./phases/validation"
 import { getTokenUsage } from "./llm"
 
 export async function runNovel(novelId: string): Promise<void> {
@@ -17,6 +18,9 @@ export async function runNovel(novelId: string): Promise<void> {
         break
       case "drafting":
         await runDraftingPhase(novelId)
+        break
+      case "validation":
+        await runValidationPhase(novelId)
         break
     }
     novel = getNovel(novelId)

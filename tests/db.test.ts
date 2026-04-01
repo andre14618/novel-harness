@@ -8,6 +8,9 @@ import {
   saveChapterSummary, getRecentSummaries, saveFact, getFactsUpToChapter,
   saveCharacterState, getCharacterStatesAtChapter, saveIssue, getOpenIssues,
   resolveIssuesForChapter,
+  getApprovedDraft, unapproveChapterDraft, getFactsForChapter,
+  clearFactsForChapter, clearCharacterStatesForChapter,
+  saveValidationPass, getValidationAttempts,
 } from "../src/db"
 import {
   setupTestDB, setupTestNovel, cleanupTestDBs,
@@ -391,5 +394,119 @@ describe("issues", () => {
     resolveIssuesForChapter(novelId, 2)
     expect(getOpenIssues(novelId, 2)).toHaveLength(0)
     expect(getOpenIssues(novelId, 3)).toHaveLength(1)
+  })
+})
+
+// ── Approved Drafts ───────────────────────────────────────────────────────
+
+describe("approved drafts", () => {
+  let novelId: string
+
+  beforeEach(() => {
+    novelId = setupTestNovel()
+  })
+
+  test("getApprovedDraft returns approved draft", () => {
+    saveChapterDraft(novelId, 1, "Draft v1", 500)
+    saveChapterDraft(novelId, 1, "Draft v2", 600)
+    approveChapterDraft(novelId, 1)
+    const draft = getApprovedDraft(novelId, 1)
+    expect(draft).not.toBeNull()
+    expect(draft!.prose).toBe("Draft v2")
+    expect(draft!.wordCount).toBe(600)
+    expect(draft!.version).toBe(2)
+  })
+
+  test("getApprovedDraft returns null when none approved", () => {
+    saveChapterDraft(novelId, 1, "Draft", 500)
+    expect(getApprovedDraft(novelId, 1)).toBeNull()
+  })
+
+  test("unapproveChapterDraft reverts status", () => {
+    saveChapterDraft(novelId, 1, "Draft", 500)
+    approveChapterDraft(novelId, 1)
+    expect(getApprovedDraft(novelId, 1)).not.toBeNull()
+    unapproveChapterDraft(novelId, 1)
+    expect(getApprovedDraft(novelId, 1)).toBeNull()
+  })
+})
+
+// ── Facts (per-chapter) ───────────────────────────────────────────────────
+
+describe("facts per chapter", () => {
+  let novelId: string
+
+  beforeEach(() => {
+    novelId = setupTestNovel()
+  })
+
+  test("getFactsForChapter returns only that chapter", () => {
+    saveFact(novelId, { fact: "Fact ch1", category: "physical", establishedInChapter: 1 })
+    saveFact(novelId, { fact: "Fact ch2", category: "rule", establishedInChapter: 2 })
+    saveFact(novelId, { fact: "Another ch1", category: "knowledge", establishedInChapter: 1 })
+    const ch1Facts = getFactsForChapter(novelId, 1)
+    expect(ch1Facts).toHaveLength(2)
+    expect(ch1Facts.map(f => f.fact)).toContain("Fact ch1")
+    expect(ch1Facts.map(f => f.fact)).toContain("Another ch1")
+  })
+
+  test("clearFactsForChapter deletes only that chapter", () => {
+    saveFact(novelId, { fact: "Fact ch1", category: "physical", establishedInChapter: 1 })
+    saveFact(novelId, { fact: "Fact ch2", category: "rule", establishedInChapter: 2 })
+    clearFactsForChapter(novelId, 1)
+    expect(getFactsForChapter(novelId, 1)).toHaveLength(0)
+    expect(getFactsForChapter(novelId, 2)).toHaveLength(1)
+  })
+})
+
+// ── Character States (per-chapter clear) ──────────────────────────────────
+
+describe("character states clear", () => {
+  let novelId: string
+
+  beforeEach(() => {
+    novelId = setupTestNovel()
+  })
+
+  test("clearCharacterStatesForChapter deletes only that chapter", () => {
+    saveCharacterState(novelId, "char_kael", 1, {
+      characterId: "char_kael", chapterNumber: 1,
+      location: "Frontier", emotionalState: "bitter", knows: [], doesNotKnow: [],
+    })
+    saveCharacterState(novelId, "char_kael", 2, {
+      characterId: "char_kael", chapterNumber: 2,
+      location: "Capital", emotionalState: "angry", knows: [], doesNotKnow: [],
+    })
+    clearCharacterStatesForChapter(novelId, 1)
+    // ch1 cleared, ch2 state still visible
+    const states = getCharacterStatesAtChapter(novelId, 3)
+    expect(states).toHaveLength(1)
+    expect(states[0].location).toBe("Capital")
+  })
+})
+
+// ── Validation Passes ─────────────────────────────────────────────────────
+
+describe("validation passes", () => {
+  let novelId: string
+
+  beforeEach(() => {
+    novelId = setupTestNovel()
+  })
+
+  test("saveValidationPass + getValidationAttempts counts rewrites", () => {
+    expect(getValidationAttempts(novelId, 1)).toBe(0)
+    saveValidationPass(novelId, 1, 1, "rewritten", 2)
+    expect(getValidationAttempts(novelId, 1)).toBe(1)
+    saveValidationPass(novelId, 2, 1, "rewritten", 1)
+    expect(getValidationAttempts(novelId, 1)).toBe(2)
+  })
+
+  test("getValidationAttempts only counts rewritten status", () => {
+    saveValidationPass(novelId, 1, 1, "passed", 0)
+    saveValidationPass(novelId, 1, 2, "has_issues", 3)
+    saveValidationPass(novelId, 2, 1, "rewritten", 1)
+    expect(getValidationAttempts(novelId, 1)).toBe(1)
+    expect(getValidationAttempts(novelId, 2)).toBe(0)
   })
 })

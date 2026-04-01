@@ -25,6 +25,7 @@ export async function runPlanningPhase(novelId: string): Promise<void> {
   let result
   try {
     result = await callAgent({
+      novelId, agentName: "planning-plotter",
       systemPrompt: PLANNING_PLOTTER_PROMPT,
       userPrompt: context,
       schema: chapterOutlinesSchema,
@@ -47,6 +48,7 @@ export async function runPlanningPhase(novelId: string): Promise<void> {
   if (decision === "reject") {
     console.log("  Regenerating chapter outline...")
     const retry = await callAgent({
+      novelId, agentName: "planning-plotter-retry",
       systemPrompt: PLANNING_PLOTTER_PROMPT,
       userPrompt: context,
       schema: chapterOutlinesSchema,

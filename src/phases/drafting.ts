@@ -1,80 +1,17 @@
+import { chapterDraftSchema, continuityCheckSchema } from "../types"
 import {
-  chapterDraftSchema, continuityCheckSchema, chapterSummarySchema,
-  factExtractionSchema, characterStateUpdateSchema,
-} from "../types"
-import {
-  getNovel, getChapterOutline, getCharacters, getFactsUpToChapter,
+  getNovel, getChapterOutline, getFactsUpToChapter,
   getCharacterStatesAtChapter, saveChapterDraft, approveChapterDraft,
-  saveChapterSummary, saveFact, saveCharacterState, saveIssue,
-  resolveIssuesForChapter, updateCurrentChapter, updatePhase,
+  saveIssue, updateCurrentChapter, updatePhase,
 } from "../db"
 import { callAgent } from "../llm"
-import {
-  WRITER_AGENT_PROMPT, CONTINUITY_AGENT_PROMPT,
-  SUMMARY_EXTRACTOR_PROMPT, FACT_EXTRACTOR_PROMPT, CHARACTER_STATE_PROMPT,
-} from "../prompts"
-import {
-  buildWriterContext, buildContinuityContext,
-  buildSummaryContext, buildFactExtractionContext, buildCharacterStateContext,
-} from "../context"
+import { WRITER_AGENT_PROMPT, CONTINUITY_AGENT_PROMPT } from "../prompts"
+import { buildWriterContext, buildContinuityContext } from "../context"
 import { validateChapterDraft } from "../validation"
 import { displayPhaseHeader, displayProgress, presentForApproval, getRevisionNotes } from "../cli"
 import { log } from "../logger"
-
-async function updateStateAfterChapter(novelId: string, chapterNum: number, prose: string): Promise<void> {
-  log(novelId, "info", `Extracting state for chapter ${chapterNum}...`)
-
-  const characters = getCharacters(novelId)
-
-  // Run sequentially to avoid rate limits on free tier
-  const summaryResult = await callAgent({
-    systemPrompt: SUMMARY_EXTRACTOR_PROMPT,
-    userPrompt: buildSummaryContext(prose),
-    schema: chapterSummarySchema,
-    temperature: 0.2,
-  })
-  const factResult = await callAgent({
-    systemPrompt: FACT_EXTRACTOR_PROMPT,
-    userPrompt: buildFactExtractionContext(prose),
-    schema: factExtractionSchema,
-    temperature: 0.1,
-  })
-  const charStateResult = await callAgent({
-    systemPrompt: CHARACTER_STATE_PROMPT,
-    userPrompt: buildCharacterStateContext(prose, characters),
-    schema: characterStateUpdateSchema,
-    temperature: 0.1,
-  })
-
-  saveChapterSummary(
-    novelId, chapterNum,
-    summaryResult.output.summary,
-    summaryResult.output.keyEvents,
-  )
-
-  for (const f of factResult.output.facts) {
-    saveFact(novelId, { fact: f.fact, category: f.category, establishedInChapter: chapterNum })
-  }
-
-  for (const cs of charStateResult.output.characters) {
-    const char = characters.find(c => c.name.toLowerCase() === cs.name.toLowerCase())
-    if (char) {
-      saveCharacterState(novelId, char.id, chapterNum, {
-        characterId: char.id,
-        chapterNumber: chapterNum,
-        location: cs.location,
-        emotionalState: cs.emotionalState,
-        knows: cs.knows,
-        doesNotKnow: cs.doesNotKnow,
-      })
-    }
-  }
-
-  resolveIssuesForChapter(novelId, chapterNum)
-
-  log(novelId, "info", `State updated: summary, ${factResult.output.facts.length} facts, ${charStateResult.output.characters.length} character states`)
-  console.log(`  State updated: summary, ${factResult.output.facts.length} facts, ${charStateResult.output.characters.length} character states`)
-}
+import { updateStateAfterChapter } from "../state-extraction"
+import { pipeline } from "../config/pipeline"
 
 export async function runDraftingPhase(novelId: string): Promise<void> {
   displayPhaseHeader("Drafting — Writing chapters")
@@ -100,7 +37,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
 
     let approved = false
     let attempts = 0
-    const maxAttempts = 3
+    const maxAttempts = pipeline.maxDraftAttempts
 
     while (!approved && attempts < maxAttempts) {
       attempts++
@@ -123,11 +60,12 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
       try {
         console.log("  Writing draft...")
         const draftResult = await callAgent({
+          novelId, agentName: "writer",
           systemPrompt: WRITER_AGENT_PROMPT,
           userPrompt: writerContext,
           schema: chapterDraftSchema,
           temperature: 0.8,
-          maxTokens: 8192,
+          maxTokens: 16384,
         })
         prose = draftResult.output.prose
         wordCount = prose.split(/\s+/).filter(Boolean).length
@@ -159,6 +97,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
         const facts = getFactsUpToChapter(novelId, ch)
         const charStates = getCharacterStatesAtChapter(novelId, ch)
         const continuityResult = await callAgent({
+          novelId, agentName: "continuity",
           systemPrompt: CONTINUITY_AGENT_PROMPT,
           userPrompt: buildContinuityContext(prose, facts, charStates),
           schema: continuityCheckSchema,
@@ -203,9 +142,10 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
         try {
           await updateStateAfterChapter(novelId, ch, prose)
         } catch (err) {
-          log(novelId, "error", `State update failed for chapter ${ch}: ${err}`)
-          console.error(`  State update error (chapter still approved): ${err instanceof Error ? err.message : err}`)
-          // Don't block — the draft is approved, state extraction can be retried
+          const msg = err instanceof Error ? err.message : String(err)
+          log(novelId, "error", `State extraction failed for chapter ${ch}: ${msg}. Facts/summaries may be incomplete for subsequent chapters.`)
+          console.error(`  ⚠ State extraction failed for chapter ${ch}: ${msg}`)
+          console.error(`    Chapter is approved but facts/summaries may be missing. Subsequent chapters may have degraded context.`)
         }
 
         updateCurrentChapter(novelId, ch + 1)
@@ -238,7 +178,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
     }
   }
 
-  updatePhase(novelId, "done")
-  log(novelId, "info", "All chapters drafted. Novel complete.")
-  console.log("\n  All chapters drafted! Novel complete.")
+  updatePhase(novelId, "validation")
+  log(novelId, "info", "All chapters drafted. Advancing to validation.")
+  console.log("\n  All chapters drafted. Advancing to Validation.\n")
 }

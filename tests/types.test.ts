@@ -97,10 +97,10 @@ describe("chapterOutlineSchema", () => {
     expect(chapterOutlineSchema.safeParse(makeChapterOutline()).success).toBe(true)
   })
 
-  test("rejects scenes missing emotionalShift", () => {
+  test("accepts scenes missing emotionalShift (has default)", () => {
     const o = makeChapterOutline()
     o.scenes = [{ description: "stuff", characters: ["Kael"] } as any]
-    expect(chapterOutlineSchema.safeParse(o).success).toBe(false)
+    expect(chapterOutlineSchema.safeParse(o).success).toBe(true)
   })
 
   test("rejects chapterNumber as string", () => {

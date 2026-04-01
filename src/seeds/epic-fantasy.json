@@ -1,0 +1,9 @@
+{
+  "premise": "In a crumbling desert city, a disgraced general discovers the empire she served is built on a lie. Now she must choose between exposing the truth — which could collapse the empire — or burying it to protect the people she still loves.",
+  "genre": "epic fantasy",
+  "characters": [
+    { "name": "Kael", "role": "protagonist", "description": "A disgraced general haunted by the siege she led. Sharp mind, bitter tongue. Exiled to the frontier after questioning the emperor's orders." },
+    { "name": "Rina", "role": "antagonist", "description": "The empire's spymaster who knows the founding lie and will kill to keep it hidden. Former comrade of Kael." },
+    { "name": "Davan", "role": "supporting", "description": "A young archivist who accidentally uncovered the documents that started everything. Idealistic, terrified, in over his head." }
+  ]
+}

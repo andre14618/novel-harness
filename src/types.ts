@@ -1,8 +1,6 @@
-import { z } from "zod"
-
 // ── Phase ──────────────────────────────────────────────────────────────────
 
-export type Phase = "concept" | "planning" | "drafting" | "done"
+export type Phase = "concept" | "planning" | "drafting" | "validation" | "done"
 
 // ── Seed Input (collected from user) ───────────────────────────────────────
 
@@ -17,127 +15,6 @@ export interface SeedInput {
   genre: string
   characters: CharacterSketch[]
 }
-
-// ── Phase 1 Outputs ────────────────────────────────────────────────────────
-
-export const locationSchema = z.object({
-  name: z.string(),
-  description: z.string(),
-})
-
-export const worldBibleSchema = z.object({
-  setting: z.string(),
-  timePeriod: z.string(),
-  rules: z.array(z.string()),
-  locations: z.array(locationSchema),
-  culture: z.string(),
-  history: z.string(),
-})
-export type WorldBible = z.infer<typeof worldBibleSchema>
-
-export const relationshipSchema = z.object({
-  characterName: z.string(),
-  nature: z.string(),
-})
-
-export const characterProfileSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  role: z.string(),
-  backstory: z.string().default(""),
-  traits: z.array(z.string()).default([]),
-  speechPattern: z.string().default(""),
-  goals: z.string().default(""),
-  fears: z.string().default(""),
-  relationships: z.array(relationshipSchema).default([]),
-})
-export type CharacterProfile = z.infer<typeof characterProfileSchema>
-
-export const characterProfilesSchema = z.object({
-  characters: z.array(characterProfileSchema),
-})
-
-export const actSchema = z.object({
-  number: z.number(),
-  name: z.string(),
-  summary: z.string(),
-  emotionalArc: z.string(),
-})
-
-export const storySpineSchema = z.object({
-  acts: z.array(actSchema),
-  centralConflict: z.string(),
-  theme: z.string(),
-  endingDirection: z.string(),
-})
-export type StorySpine = z.infer<typeof storySpineSchema>
-
-// ── Phase 2 Output ─────────────────────────────────────────────────────────
-
-export const sceneBeatSchema = z.object({
-  description: z.string(),
-  characters: z.array(z.string()).default([]),
-  emotionalShift: z.string().default(""),
-})
-export type SceneBeat = z.infer<typeof sceneBeatSchema>
-
-export const chapterOutlineSchema = z.object({
-  chapterNumber: z.number(),
-  title: z.string(),
-  povCharacter: z.string().default(""),
-  setting: z.string().default(""),
-  purpose: z.string().default(""),
-  scenes: z.array(sceneBeatSchema).default([]),
-  targetWords: z.number().default(2500),
-  charactersPresent: z.array(z.string()).default([]),
-})
-export type ChapterOutline = z.infer<typeof chapterOutlineSchema>
-
-export const chapterOutlinesSchema = z.object({
-  chapters: z.array(chapterOutlineSchema),
-})
-
-// ── Phase 3 State ──────────────────────────────────────────────────────────
-
-export const chapterDraftSchema = z.object({
-  prose: z.string(),
-})
-
-export const continuityIssueSchema = z.object({
-  severity: z.enum(["blocker", "warning", "nit"]).default("nit"),
-  description: z.string(),
-  conflictsWith: z.string().optional(),
-  suggestedFix: z.string().optional(),
-})
-export type ContinuityIssue = z.infer<typeof continuityIssueSchema>
-
-export const continuityCheckSchema = z.object({
-  issues: z.array(continuityIssueSchema),
-})
-
-export const chapterSummarySchema = z.object({
-  summary: z.string(),
-  keyEvents: z.array(z.string()).default([]),
-  emotionalState: z.string().default(""),
-  openThreads: z.array(z.string()).default([]),
-})
-
-export const factExtractionSchema = z.object({
-  facts: z.array(z.object({
-    fact: z.string(),
-    category: z.enum(["physical", "rule", "relationship", "knowledge"]),
-  })),
-})
-
-export const characterStateUpdateSchema = z.object({
-  characters: z.array(z.object({
-    name: z.string(),
-    location: z.string().default("unknown"),
-    emotionalState: z.string().default(""),
-    knows: z.array(z.string()).default([]),
-    doesNotKnow: z.array(z.string()).default([]),
-  })).default([]),
-})
 
 // ── Stored types (DB rows) ─────────────────────────────────────────────────
 
@@ -180,3 +57,22 @@ export interface ValidationResult {
   blockers: string[]
   warnings: string[]
 }
+
+// ── Backward compatibility — re-export schemas from agent directories ──────
+
+export { locationSchema } from "./schemas/shared"
+export { relationshipSchema, actSchema, sceneBeatSchema, continuityIssueSchema } from "./schemas/shared"
+export type { SceneBeat, ContinuityIssue } from "./schemas/shared"
+
+export { worldBibleSchema, type WorldBible } from "./agents/world-builder/schema"
+export { characterProfileSchema, characterProfilesSchema, type CharacterProfile } from "./agents/character-agent/schema"
+export { storySpineSchema, type StorySpine } from "./agents/plotter/schema"
+export { chapterOutlineSchema, chapterOutlinesSchema, type ChapterOutline } from "./agents/planning-plotter/schema"
+export { chapterDraftSchema } from "./agents/writer/schema"
+export { continuityCheckSchema } from "./agents/continuity/schema"
+export { chapterSummarySchema } from "./agents/summary-extractor/schema"
+export { factExtractionSchema } from "./agents/fact-extractor/schema"
+export { characterStateUpdateSchema } from "./agents/character-state/schema"
+export { crossChapterIssueSchema, crossChapterContinuitySchema } from "./agents/cross-chapter-continuity/schema"
+export { proseQualityIssueSchema, proseQualitySchema } from "./agents/prose-quality/schema"
+export { rewriterOutputSchema } from "./agents/rewriter/schema"

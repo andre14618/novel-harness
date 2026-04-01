@@ -1,7 +1,76 @@
 import { z } from "zod"
+import { logLLMCallStructured, type LLMCallLogEntry } from "./logger"
+import { getTokenCost } from "./config/pricing"
 
-const MODEL = process.env.MODEL ?? "stepfun/step-3.5-flash:free"
-const API_URL = "https://openrouter.ai/api/v1/chat/completions"
+// ── Provider Registry ─────────────────────────────────────────────────────
+
+export type ProviderName = "cerebras" | "groq" | "openrouter"
+
+interface ProviderConfig {
+  apiUrl: string
+  getApiKey: () => string
+  extraBody: () => Record<string, any>
+}
+
+const PROVIDERS: Record<ProviderName, ProviderConfig> = {
+  cerebras: {
+    apiUrl: "https://api.cerebras.ai/v1/chat/completions",
+    getApiKey: () => {
+      const key = process.env.CEREBRAS_API_KEY
+      if (!key) throw new Error("CEREBRAS_API_KEY not set in .env")
+      return key
+    },
+    extraBody: () => ({}),
+  },
+  groq: {
+    apiUrl: "https://api.groq.com/openai/v1/chat/completions",
+    getApiKey: () => {
+      const key = process.env.GROQ_API_KEY
+      if (!key) throw new Error("GROQ_API_KEY not set in .env")
+      return key
+    },
+    extraBody: () => ({}),
+  },
+  openrouter: {
+    apiUrl: "https://openrouter.ai/api/v1/chat/completions",
+    getApiKey: () => {
+      const key = process.env.OPENROUTER_API_KEY
+      if (!key) throw new Error("OPENROUTER_API_KEY not set in .env")
+      return key
+    },
+    extraBody: () => {
+      const provider = process.env.PROVIDER
+      return provider ? { provider: { order: [provider], allow_fallbacks: false } } : {}
+    },
+  },
+}
+
+const MODEL_DEFAULTS: Record<string, string> = {
+  cerebras: "qwen-3-235b-a22b-instruct-2507",
+  groq: "qwen/qwen3-32b",
+  openrouter: "qwen/qwen3-32b",
+}
+
+// Global defaults from .env
+const DEFAULT_PROVIDER = (process.env.LLM_PROVIDER ?? "openrouter") as ProviderName
+const DEFAULT_MODEL = process.env.MODEL ?? MODEL_DEFAULTS[DEFAULT_PROVIDER] ?? "qwen/qwen3-32b"
+
+function resolveProvider(override?: ProviderName): ProviderConfig {
+  const name = override ?? DEFAULT_PROVIDER
+  return PROVIDERS[name] ?? PROVIDERS.openrouter
+}
+
+function resolveModel(providerOverride?: ProviderName, modelOverride?: string): string {
+  if (modelOverride) return modelOverride
+  if (providerOverride) return MODEL_DEFAULTS[providerOverride] ?? DEFAULT_MODEL
+  return DEFAULT_MODEL
+}
+
+function resolveProviderName(override?: ProviderName): ProviderName {
+  return override ?? DEFAULT_PROVIDER
+}
+
+// ── Interfaces ────────────────────────────────────────────────────────────
 
 interface AgentConfig<T> {
   systemPrompt: string
@@ -9,6 +78,11 @@ interface AgentConfig<T> {
   schema: z.ZodSchema<T>
   temperature?: number
   maxTokens?: number
+  thinking?: boolean
+  novelId?: string
+  agentName?: string
+  provider?: ProviderName  // override global provider for this call
+  model?: string           // override global model for this call
 }
 
 interface AgentResult<T> {
@@ -16,38 +90,63 @@ interface AgentResult<T> {
   tokensUsed: { prompt: number; completion: number }
 }
 
-function getApiKey(): string {
-  const key = process.env.OPENROUTER_API_KEY
-  if (!key) throw new Error("OPENROUTER_API_KEY not set in .env")
-  return key
+interface MakeRequestResult {
+  content: string
+  usage: { prompt_tokens: number; completion_tokens: number }
+  totalLatencyMs: number
+  httpAttempts: number
+  retryErrors: Array<{ status: number; delay: number }>
 }
 
-export function extractJSON(raw: string): string {
-  // Try 1: raw string is valid JSON
-  try {
-    JSON.parse(raw)
-    return raw
-  } catch {}
+// ── Agent Module Interface ────────────────────────────────────────────────
 
-  // Try 2: extract from ```json ... ``` code blocks
+export interface AgentModule<T> {
+  prompt: string
+  schema: z.ZodSchema<T>
+  config: {
+    name: string
+    temperature: number
+    maxTokens: number
+    thinking: boolean
+    provider?: ProviderName  // per-agent provider override
+    model?: string           // per-agent model override
+  }
+}
+
+export async function runAgent<T>(
+  agent: AgentModule<T>,
+  userPrompt: string,
+  novelId?: string,
+): Promise<AgentResult<T>> {
+  return callAgent({
+    systemPrompt: agent.prompt,
+    schema: agent.schema,
+    temperature: agent.config.temperature,
+    maxTokens: agent.config.maxTokens,
+    thinking: agent.config.thinking,
+    provider: agent.config.provider,
+    model: agent.config.model,
+    userPrompt,
+    novelId,
+    agentName: agent.config.name,
+  })
+}
+
+// ── JSON Extraction ───────────────────────────────────────────────────────
+
+export function extractJSON(raw: string): string {
+  try { JSON.parse(raw); return raw } catch {}
+
   const codeBlockMatch = raw.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/)
   if (codeBlockMatch) {
-    try {
-      JSON.parse(codeBlockMatch[1].trim())
-      return codeBlockMatch[1].trim()
-    } catch {}
+    try { JSON.parse(codeBlockMatch[1].trim()); return codeBlockMatch[1].trim() } catch {}
   }
 
-  // Try 3: find first { ... } or [ ... ]
   const braceStart = raw.indexOf("{")
   const bracketStart = raw.indexOf("[")
   let start = -1
-
-  if (braceStart >= 0 && (bracketStart < 0 || braceStart < bracketStart)) {
-    start = braceStart
-  } else if (bracketStart >= 0) {
-    start = bracketStart
-  }
+  if (braceStart >= 0 && (bracketStart < 0 || braceStart < bracketStart)) start = braceStart
+  else if (bracketStart >= 0) start = bracketStart
 
   if (start >= 0) {
     const openChar = raw[start]
@@ -58,10 +157,7 @@ export function extractJSON(raw: string): string {
       else if (raw[i] === closeChar) depth--
       if (depth === 0) {
         const candidate = raw.slice(start, i + 1)
-        try {
-          JSON.parse(candidate)
-          return candidate
-        } catch {}
+        try { JSON.parse(candidate); return candidate } catch {}
       }
     }
   }
@@ -69,36 +165,48 @@ export function extractJSON(raw: string): string {
   throw new Error(`Could not extract JSON from response:\n${raw.slice(0, 500)}`)
 }
 
+// ── HTTP Request ──────────────────────────────────────────────────────────
+
 async function makeRequest(
   systemPrompt: string,
   userPrompt: string,
   temperature: number,
   maxTokens: number,
-): Promise<{ content: string; usage: { prompt_tokens: number; completion_tokens: number } }> {
+  provider: ProviderConfig,
+  model: string,
+): Promise<MakeRequestResult> {
   const maxRetries = 3
+  const retryErrors: Array<{ status: number; delay: number }> = []
+  let httpAttempts = 0
+  const startTime = performance.now()
+
   const body = JSON.stringify({
-    model: MODEL,
+    model,
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
     ],
     temperature,
     max_tokens: maxTokens,
+    response_format: { type: "json_object" },
+    ...provider.extraBody(),
   })
   const headers = {
-    "Authorization": `Bearer ${getApiKey()}`,
+    "Authorization": `Bearer ${provider.getApiKey()}`,
     "Content-Type": "application/json",
   }
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    const res = await fetch(API_URL, { method: "POST", headers, body })
+    httpAttempts++
+    const res = await fetch(provider.apiUrl, { method: "POST", headers, body })
 
     if (res.status === 429 || res.status >= 500) {
+      const delay = (attempt + 1) * 5000
+      retryErrors.push({ status: res.status, delay })
       if (attempt === maxRetries) {
         const text = await res.text()
         throw new Error(`LLM request failed after ${maxRetries} retries: ${res.status} ${text}`)
       }
-      const delay = (attempt + 1) * 5000 // 5s, 10s, 15s
       console.log(`  [LLM] ${res.status} — retrying in ${delay / 1000}s (attempt ${attempt + 1}/${maxRetries})...`)
       await Bun.sleep(delay)
       continue
@@ -110,17 +218,20 @@ async function makeRequest(
     }
 
     const data = await res.json() as any
-    if (data.error) {
-      throw new Error(`LLM error: ${JSON.stringify(data.error)}`)
-    }
+    if (data.error) throw new Error(`LLM error: ${JSON.stringify(data.error)}`)
     return {
       content: data.choices[0].message.content,
       usage: data.usage ?? { prompt_tokens: 0, completion_tokens: 0 },
+      totalLatencyMs: performance.now() - startTime,
+      httpAttempts,
+      retryErrors,
     }
   }
 
   throw new Error("LLM request: unreachable")
 }
+
+// ── Token Tracking ────────────────────────────────────────────────────────
 
 let totalTokens = { prompt: 0, completion: 0 }
 
@@ -128,69 +239,96 @@ export function getTokenUsage() {
   return { ...totalTokens }
 }
 
+// ── callAgent ─────────────────────────────────────────────────────────────
+
 export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<T>> {
   const temperature = config.temperature ?? 0.7
   const maxTokens = config.maxTokens ?? 4096
+  const thinking = config.thinking ?? false
+  const providerName = resolveProviderName(config.provider)
+  const provider = resolveProvider(config.provider)
+  const model = resolveModel(config.provider, config.model)
 
-  console.log(`  [LLM] Calling ${MODEL} (temp=${temperature})...`)
+  // /nothink only needed for Qwen 3 on Groq/OpenRouter (Cerebras model doesn't support thinking)
+  const needsNothink = !thinking && providerName !== "cerebras"
+  console.log(`  [LLM] Calling ${model} (temp=${temperature}${needsNothink ? ", nothink" : ""})...`)
 
-  const { content, usage } = await makeRequest(
-    config.systemPrompt,
-    config.userPrompt,
-    temperature,
-    maxTokens,
-  )
+  const userPrompt = needsNothink ? `/nothink\n${config.userPrompt}` : config.userPrompt
 
-  totalTokens.prompt += usage.prompt_tokens
-  totalTokens.completion += usage.completion_tokens
-  console.log(`  [LLM] Response: ${usage.prompt_tokens}+${usage.completion_tokens} tokens`)
+  let content = ""
+  let requestResult: MakeRequestResult | null = null
+  let jsonExtractionSuccess = false
+  let jsonExtractionRetried = false
+  let zodValidationSuccess = false
+  let zodErrors: string[] = []
 
-  // Parse JSON from response
-  let jsonStr: string
   try {
-    jsonStr = extractJSON(content)
-  } catch (e) {
-    // Retry once without response_format (model might not support it)
-    console.log("  [LLM] JSON extraction failed, retrying without response_format...")
-    const retry = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${getApiKey()}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: [
-          { role: "system", content: config.systemPrompt + "\n\nIMPORTANT: Respond ONLY with valid JSON. No other text." },
-          { role: "user", content: config.userPrompt },
-        ],
-        temperature,
-        max_tokens: maxTokens,
-      }),
-    })
-    if (!retry.ok) throw new Error(`LLM retry failed: ${retry.status}`)
-    const data = await retry.json() as any
-    const retryContent = data.choices[0].message.content
-    jsonStr = extractJSON(retryContent)
-  }
+    requestResult = await makeRequest(config.systemPrompt, userPrompt, temperature, maxTokens, provider, model)
+    content = requestResult.content
 
-  // Parse with Zod
-  const parsed = JSON.parse(jsonStr)
+    totalTokens.prompt += requestResult.usage.prompt_tokens
+    totalTokens.completion += requestResult.usage.completion_tokens
+    const callCost = getTokenCost(providerName, model, requestResult.usage.prompt_tokens, requestResult.usage.completion_tokens)
+    console.log(`  [LLM] Response: ${requestResult.usage.prompt_tokens}+${requestResult.usage.completion_tokens} tokens ($${callCost.toFixed(4)})`)
 
-  if (parsed === null || parsed === undefined) {
-    throw new Error("LLM returned null/undefined instead of a JSON object")
-  }
+    let jsonStr: string
+    try {
+      jsonStr = extractJSON(content)
+      jsonExtractionSuccess = true
+    } catch (e) {
+      console.log("  [LLM] JSON extraction failed, retrying...")
+      jsonExtractionRetried = true
+      const retryResult = await makeRequest(
+        config.systemPrompt + "\n\nIMPORTANT: Respond with ONLY valid JSON. No markdown, no commentary.",
+        config.userPrompt, temperature, maxTokens, provider, model,
+      )
+      content = retryResult.content
+      jsonStr = extractJSON(content)
+      jsonExtractionSuccess = true
+    }
 
-  const result = config.schema.safeParse(parsed)
+    const parsed = JSON.parse(jsonStr)
+    if (parsed === null || parsed === undefined) throw new Error("LLM returned null/undefined instead of a JSON object")
 
-  if (!result.success) {
-    console.error("  [LLM] Zod validation failed:", result.error.issues)
-    console.error("  [LLM] Raw parsed JSON keys:", Object.keys(parsed))
-    throw new Error(`LLM output doesn't match schema: ${result.error.issues.map(i => `${i.path.join(".")}: ${i.message}`).join(", ")}`)
-  }
+    const result = config.schema.safeParse(parsed)
+    if (!result.success) {
+      zodErrors = result.error.issues.map(i => `${i.path.join(".")}: ${i.message}`)
+      console.error("  [LLM] Zod validation failed:", result.error.issues)
+      console.error("  [LLM] Raw parsed JSON keys:", Object.keys(parsed))
+      throw new Error(`LLM output doesn't match schema: ${zodErrors.join(", ")}`)
+    }
 
-  return {
-    output: result.data,
-    tokensUsed: { prompt: usage.prompt_tokens, completion: usage.completion_tokens },
+    zodValidationSuccess = true
+    return {
+      output: result.data,
+      tokensUsed: { prompt: requestResult.usage.prompt_tokens, completion: requestResult.usage.completion_tokens },
+    }
+  } finally {
+    if (config.novelId && requestResult) {
+      const latency = requestResult.totalLatencyMs
+      const completionTokens = requestResult.usage.completion_tokens
+      const tps = latency > 0 ? Math.round(completionTokens / (latency / 1000)) : 0
+
+      const entry: LLMCallLogEntry = {
+        timestamp: new Date().toISOString(),
+        agent: config.agentName ?? "unknown",
+        model,
+        provider: providerName,
+        temperature, maxTokens, thinking,
+        systemPromptLength: config.systemPrompt.length,
+        userPromptLength: config.userPrompt.length,
+        contentPreview: content.slice(0, 200),
+        promptTokens: requestResult.usage.prompt_tokens,
+        completionTokens,
+        totalLatencyMs: Math.round(latency),
+        tokensPerSec: tps,
+        jsonExtractionSuccess, jsonExtractionRetried,
+        zodValidationSuccess, zodErrors,
+        httpAttempts: requestResult.httpAttempts,
+        retryErrors: requestResult.retryErrors,
+      }
+
+      try { logLLMCallStructured(config.novelId, entry) } catch {}
+    }
   }
 }
