@@ -265,13 +265,159 @@ C: 235B single      T:2.6  W:2.7  D:3.5  Overall:2.9
 
 ---
 
+## 11. Kimi K2 Prompt Engineering Sweep (Experiment #7)
+
+**Question:** Does K2 respond differently to prompt strategies than Qwen3 32B?
+
+**Setup:** Same 5 prompt variants as Batch 1, but with Kimi K2 (1T MoE, 32B active) on Groq.
+
+**Results:**
+```
+Variant                  Telling    Dead Weight   Dialogue    OVERALL
+A3: examples             4.0        1.4           5.3         3.6  ← BEST telling
+A2: positive-only        4.6        3.0           3.6         3.7
+A4: minimal              4.8        1.8           4.9         3.8
+A1: current (NEVER)      4.9        1.8           4.0         3.6
+A5: role-framing         5.6        2.9           6.1         4.8  ← WORST
+```
+
+**Conclusions:**
+- K2 responds to **different** prompts than 32B. A3 (examples) won for K2 but had no effect on 32B.
+- K2 has inherently lower telling (4.0-4.9 range vs 32B's 5.1-6.2 range)
+- K2 has a serious dialogue problem (4.0-6.1 range vs 32B's 1.5-2.8 range)
+- Role-framing (A5) is worst on both models — consistently causes verbosity
+
+---
+
+## 12. Quality (1-10) vs Penalty Scoring Comparison (Experiment #8)
+
+**Question:** Do 1-10 quality rubrics with GPT-OSS 120B discriminate between K2 and Qwen3 32B?
+
+**Setup:** Both models on 3 seeds × 2 runs, judged by GPT-OSS 120B on BOTH the old 1-10 rubrics (Show/Tell, Dialogue, Sensory) AND the penalty rubrics (Telling, Dead Weight, Dialogue Problems).
+
+**Results — Quality (1-10, higher = better):**
+```
+Writer           Show/Tell   Dialogue   Sensory   AVG
+Qwen3 32B        6.4         6.4        7.8       6.9
+Kimi K2          6.0         6.7        8.0       6.9
+```
+
+**Results — Penalty (issue counts, lower = better):**
+```
+Writer           Telling   Dead Weight   Dialogue Probs   AVG
+Qwen3 32B        6.8       3.2           1.8              3.9
+Kimi K2          4.7       2.3           7.5              4.8
+```
+
+**Conclusions:**
+- **1-10 quality scores are identical (6.9 vs 6.9)** — GPT-OSS 120B with 1-10 rubrics cannot discriminate between models, same clustering problem as Qwen3 32B judge
+- Penalty scores DO show differences but measure problems, not quality
+- K2's "dialogue problems" score (7.5) is misleading — K2 writes much more dialogue with more subtext, giving the judge more surface area to flag
+- **1-10 absolute scoring is fundamentally broken** for comparing models or detecting quality improvements, regardless of judge model
+
+---
+
+## 13. Human Prose Comparison (not in DB — qualitative assessment)
+
+**Method:** Generated fresh dark-fantasy and romance-drama chapters from both models, read them side by side.
+
+**Qwen3 32B characteristics:**
+- Shorter output (~700-900w)
+- Lean, efficient prose
+- Narrator commentary and emotional declarations ("Her mind raced with calculations", "There would be no room for fear or doubt")
+- Dialogue is functional but on-the-nose — characters explain plot to each other
+- Less ambitious, fewer risks, fewer errors
+
+**Kimi K2 characteristics:**
+- Longer output (~1000-1600w)
+- More specific and surprising physical details ("teeth turned translucent as glass", "bare feet left wet prints though rain hadn't fallen in weeks")
+- Dialogue has genuine subtext and character voice differentiation ("Your customers wouldn't know duck confit if it bit them")
+- More ambitious scene construction, takes creative risks
+- Occasionally verbose, more dialogue = more opportunities for flagged issues
+
+**Verdict:** K2 produces objectively better fiction. The benchmark penalty scores favor 32B because it writes less text with less ambition — fewer opportunities for issues, but also less interesting prose.
+
+---
+
+## 14. Research: How Others Evaluate Fiction Quality
+
+**Sources reviewed:** EQ-Bench Creative Writing, lechmazur/writing benchmark, LitBench (arxiv 2507.00769), WritingBench (arxiv 2503.05244), HANNA benchmark, G-EVAL, LLM-as-Judge survey (arxiv 2411.15594).
+
+### Key Findings
+
+**Absolute 1-10 scoring fails universally for quality discrimination.** Every major benchmark has found that LLM judges cluster scores at 7-8 for anything competent. This is not a rubric problem or a model problem — it's fundamental to how LLMs process evaluation scales.
+
+**Pairwise comparison is the standard solution.** EQ-Bench and Chatbot Arena both use pairwise matchups (A vs B: which is better?) to build Elo/Glicko-2 rankings. This reliably discriminates quality levels that absolute scoring cannot.
+
+**But pairwise has limitations for our use case:**
+- O(n²) comparisons for ranking (expensive)
+- Tells you "A is better than B" but not "how to write better" — doesn't provide actionable feedback to the writer agent
+- Not suitable as a continuous improvement signal in a pipeline
+
+**Other techniques worth considering:**
+- **Power mean (p=0.5)** from lechmazur: penalizes weaknesses disproportionately, spreads score distribution. One-line math change.
+- **Dynamic per-chapter rubrics** from WritingBench: generate evaluation criteria specific to each scene type. 84% human alignment vs 67% for static rubrics.
+- **Panel of LLM judges (PoLL):** 3 small models > 1 large model for evaluation reliability.
+- **Anchor examples in rubrics:** showing pre-graded "3" and "8" examples calibrates the judge's scale.
+
+### Practical Conclusion
+
+The evaluation system should be split:
+1. **Deterministic flagging** (regex/rules) for known bad patterns — free, instant, feeds the rewriter with specific fix instructions. A regex for "she felt", "he realized", "it was clear that" catches the same telling issues as an LLM penalty judge.
+2. **Pairwise LLM comparison** only at decision points — "should we adopt prompt A or B?" Not every iteration.
+3. **The actual improvement lever is the writer agent itself** — prompt design, context assembly, model selection. Not the evaluation system.
+
+### Reference Links
+- [EQ-bench/creative-writing-bench](https://github.com/EQ-bench/creative-writing-bench)
+- [lechmazur/writing](https://github.com/lechmazur/writing)
+- [WritingBench](https://github.com/X-PLUG/WritingBench) / [paper](https://arxiv.org/abs/2503.05244)
+- [LitBench](https://arxiv.org/abs/2507.00769)
+- [G-EVAL](https://arxiv.org/abs/2303.16634)
+- [LLM-as-Judge survey](https://arxiv.org/abs/2411.15594)
+- [Prometheus-eval](https://github.com/prometheus-eval/prometheus-eval)
+
+---
+
 ## Best Configuration Found (as of end of session)
 
 | Parameter | Value | Evidence |
 |-----------|-------|----------|
-| **Writer prompt** | A2: positive-only techniques | Exp #4: 5.1 telling vs 6.0 baseline |
+| **Writer model** | Kimi K2 (Groq) — better prose quality | Exp #7, #8, #13: less telling, better detail, stronger dialogue subtext |
+| **Writer prompt** | A2: positive-only (32B) / A3: examples (K2) | Exp #4, #7: different models respond to different strategies |
 | **Temperature** | 0.8 | Exp #5: 0.6 and 1.0 both worse |
 | **Context structure** | Keep emotional labels | Exp #6: removing/replacing labels doesn't help |
 | **Multi-pass** | No — single pass only | Exp #2, #3: polish passes degrade quality |
-| **Writer model** | Qwen3 32B (Groq) | Exp #3: best overall despite higher telling |
-| **Judge model** | GPT-OSS 120B (Groq) | Shootout: only reliable discriminator |
+| **Issue detection** | Should be deterministic (regex), not LLM | Finding #14: regex catches same patterns as LLM penalty judge, for free |
+| **Quality assessment** | Pairwise comparison at decision points only | Finding #14: absolute 1-10 scores don't discriminate |
+| **Penalty judge** | GPT-OSS 120B (Groq) | Shootout: only reliable discriminator (but may be replaceable by regex) |
+
+## Architecture Direction (emerging from experiments)
+
+The evaluation system should separate into:
+
+1. **Deterministic issue flagging** — regex/rules for filter words, narrator commentary patterns, declared emotions. Free, instant, consistent. Feeds the rewriter agent with specific fix instructions.
+
+2. **Pairwise LLM comparison** — "which of these two passages is better?" Used only for A/B testing (comparing models, prompt variants, config changes). Not for continuous pipeline evaluation.
+
+3. **Writer agent improvement** — the actual lever. Prompt design (positive techniques > prohibitions), context assembly, model selection. The evaluation system measures; the agent config is what actually improves.
+
+## Open Questions
+
+- Should the penalty benchmark be replaced entirely by deterministic flagging + pairwise comparison?
+- K2 writes better prose but costs more ($1/$3 vs $0.29/$0.59). Is the quality difference worth 3-5x cost?
+- K2's dialogue "problem" score is an artifact of writing more dialogue — how do we normalize for output length?
+- Can we combine K2's prose quality with deterministic issue detection to get the best of both?
+- Which other models should we test? (DeepSeek V3.2, GPT-4.1-mini, etc.)
+
+## Experiment Index
+
+| # | Type | Description | Key Finding |
+|---|------|-------------|-------------|
+| 1 | message-order | Prose-before-rubric ordering | No quality change, enables caching |
+| 2 | ab-test | Single-pass vs 32B→32B polish | Rewrite passes make things worse |
+| 3 | model-ab | 32B vs 235B vs 32B→235B polish | 235B better telling, worse dead weight |
+| 4 | experiment | Prompt engineering sweep (32B) | A2 positive-only wins |
+| 5 | experiment | Temperature sweep (32B, A2) | T=0.8 optimal |
+| 6 | experiment | Context structure sweep (32B, A2) | Emotional labels fine |
+| 7 | experiment | Prompt engineering sweep (K2) | A3 examples wins (different from 32B!) |
+| 8 | quality-vs-penalty | 1-10 vs penalty scoring, K2 vs 32B | 1-10 scores identical, penalty scores differ |
