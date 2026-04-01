@@ -100,7 +100,7 @@ export const MODELS: ModelDef[] = [
     thinking: "disabled",
     maxContext: 128_000,
     providerStatus: "production",
-    notes: "Same model as Cerebras gpt-oss-120b but cheaper on Groq. Strong mid-tier option.",
+    notes: "404'd in calibration (2026-04-01) — model ID may be wrong. Check Groq docs for correct ID.",
   },
   {
     id: "llama-4-scout-17bx16e-128k",
@@ -170,11 +170,12 @@ export const MODELS: ModelDef[] = [
     params: "120B",
     pricing: { input: 0.35, output: 0.75 },
     thinking: "optional",
+    observedTps: 551,
     maxContext: 131_000,
     maxOutput: 40_000,
     rateLimit: { requestsPerMin: 1000, tokensPerMin: 1_000_000 },
     providerStatus: "production",
-    notes: "Reasoning via reasoning_effort param (default: medium). May hallucinate tool calls. Also on Groq at lower cost.",
+    notes: "0% judge discrimination (MID=STRONG). 551 tok/s observed. Reasoning via reasoning_effort param. May hallucinate tool calls.",
   },
   {
     id: "llama3.1-8b",
