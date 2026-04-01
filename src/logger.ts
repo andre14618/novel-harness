@@ -1,5 +1,5 @@
 import { appendFileSync, existsSync, mkdirSync } from "node:fs"
-import { getDB } from "./db"
+import { logLLMCall as centralLogLLMCall, createRun, type LLMCallData } from "../data/db"
 
 type LogLevel = "info" | "warn" | "error" | "checkpoint"
 
@@ -20,8 +20,22 @@ export function log(novelId: string, level: LogLevel, message: string): void {
   appendFileSync(`${dir}/harness.log`, line)
 }
 
-// ── Structured LLM Call Logging (SQLite) ─────────────────────────────────
+// ── Central DB run tracking ──────────────────────────────────────────────
 
+let currentRunId: number | null = null
+
+export function initNovelRun(novelId: string): number {
+  currentRunId = createRun("novel", novelId)
+  return currentRunId
+}
+
+export function getRunId(): number | null {
+  return currentRunId
+}
+
+// ── Structured LLM Call Logging ──────────────────────────────────────────
+
+// Keep the interface for backwards compatibility with src/llm.ts
 export interface LLMCallLogEntry {
   timestamp: string
   agent: string
@@ -46,35 +60,45 @@ export interface LLMCallLogEntry {
 }
 
 export function logLLMCallStructured(novelId: string, entry: LLMCallLogEntry): void {
-  const db = getDB()
-  db.run(
-    `INSERT INTO llm_calls (
-      novel_id, timestamp, agent, model, provider, temperature, max_tokens, thinking,
-      system_prompt_length, user_prompt_length, prompt_tokens, completion_tokens,
-      total_latency_ms, tokens_per_sec, json_extraction_success, json_extraction_retried,
-      zod_validation_success, zod_errors, http_attempts, retry_errors
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [
-      novelId,
-      entry.timestamp,
-      entry.agent,
-      entry.model,
-      entry.provider,
-      entry.temperature,
-      entry.maxTokens,
-      entry.thinking ? 1 : 0,
-      entry.systemPromptLength,
-      entry.userPromptLength,
-      entry.promptTokens,
-      entry.completionTokens,
-      Math.round(entry.totalLatencyMs),
-      entry.tokensPerSec,
-      entry.jsonExtractionSuccess ? 1 : 0,
-      entry.jsonExtractionRetried ? 1 : 0,
-      entry.zodValidationSuccess ? 1 : 0,
-      entry.zodErrors.length > 0 ? JSON.stringify(entry.zodErrors) : null,
-      entry.httpAttempts,
-      entry.retryErrors.length > 0 ? JSON.stringify(entry.retryErrors) : null,
-    ],
-  )
+  if (!currentRunId) return
+
+  // Determine phase from agent name
+  const phase = getPhaseForAgent(entry.agent)
+
+  centralLogLLMCall(currentRunId, {
+    agent: entry.agent,
+    phase,
+    model: entry.model,
+    provider: entry.provider,
+    temperature: entry.temperature,
+    maxTokens: entry.maxTokens,
+    promptTokens: entry.promptTokens,
+    completionTokens: entry.completionTokens,
+    latencyMs: entry.totalLatencyMs,
+    cost: 0, // cost is computed in callAgent already — we store tokens and can recompute
+    jsonExtractionSuccess: entry.jsonExtractionSuccess,
+    jsonExtractionRetried: entry.jsonExtractionRetried,
+    zodValidationSuccess: entry.zodValidationSuccess,
+    zodErrors: entry.zodErrors,
+    httpAttempts: entry.httpAttempts,
+    retryErrors: entry.retryErrors,
+  })
+}
+
+function getPhaseForAgent(agent: string): string {
+  const PHASE_MAP: Record<string, string> = {
+    "world-builder": "concept",
+    "character-agent": "concept",
+    "plotter": "concept",
+    "planning-plotter": "planning",
+    "writer": "drafting",
+    "continuity": "drafting",
+    "summary-extractor": "extraction",
+    "fact-extractor": "extraction",
+    "character-state": "extraction",
+    "cross-chapter-continuity": "validation",
+    "prose-quality": "validation",
+    "rewriter": "validation",
+  }
+  return PHASE_MAP[agent] ?? "unknown"
 }

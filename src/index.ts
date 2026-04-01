@@ -1,6 +1,7 @@
 import { initDB, createNovel, getNovel } from "./db"
 import { collectSeedInput, closeInput, setAutoMode } from "./cli"
 import { runNovel } from "./state-machine"
+import { initNovelRun } from "./logger"
 import type { SeedInput } from "./types"
 
 // Load seed from file — default to epic-fantasy, or pass --seed <name>
@@ -50,6 +51,10 @@ async function main() {
     createNovel(novelId, seed)
     console.log(`\nCreated novel: ${novelId}`)
   }
+
+  // Register this novel run in the central DB with current model config
+  const runId = initNovelRun(novelId)
+  console.log(`  Central DB run: ${runId}`)
 
   try {
     await runNovel(novelId)

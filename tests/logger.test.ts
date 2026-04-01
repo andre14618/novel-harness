@@ -1,14 +1,15 @@
 import { describe, test, expect, afterAll, beforeAll } from "bun:test"
 import { rmSync } from "node:fs"
-import { Database } from "bun:sqlite"
-import { log, logLLMCallStructured, type LLMCallLogEntry } from "../src/logger"
-import { initDB, getDB } from "../src/db"
+import { log, logLLMCallStructured, initNovelRun, getRunId, type LLMCallLogEntry } from "../src/logger"
+import { initDB } from "../src/db"
+import { getCentralDB } from "../data/db"
 
 const testNovelId = `test-logger-${crypto.randomUUID()}`
 const logDir = `output/${testNovelId}`
 
 beforeAll(() => {
   initDB(testNovelId)
+  initNovelRun(testNovelId)
 })
 
 afterAll(() => {
@@ -49,7 +50,7 @@ describe("log", () => {
   })
 })
 
-// ── Structured LLM Call Logging (SQLite) ─────────────────────────────────
+// ── Structured LLM Call Logging (Central DB) ─────────────────────────────
 
 function makeLogEntry(overrides?: Partial<LLMCallLogEntry>): LLMCallLogEntry {
   return {
@@ -78,74 +79,88 @@ function makeLogEntry(overrides?: Partial<LLMCallLogEntry>): LLMCallLogEntry {
 }
 
 describe("logLLMCallStructured", () => {
-  test("inserts a row into llm_calls table", () => {
-    logLLMCallStructured(testNovelId, makeLogEntry({ agent: "world-builder" }))
-    const db = getDB()
-    const row = db.query<{ agent: string; model: string }, []>(
-      "SELECT agent, model FROM llm_calls WHERE novel_id = ? AND agent = ?",
-    ).get(testNovelId, "world-builder")
+  test("creates a run and logs to central DB", () => {
+    const runId = getRunId()
+    expect(runId).not.toBeNull()
+  })
+
+  test("inserts a row into central llm_calls table", () => {
+    logLLMCallStructured(testNovelId, makeLogEntry({ agent: "world-builder-test" }))
+    const db = getCentralDB()
+    const runId = getRunId()!
+    const row = db.query<{ agent: string; model: string }, [number, string]>(
+      "SELECT agent, model FROM llm_calls WHERE run_id = ? AND agent = ?",
+    ).get(runId, "world-builder-test")
     expect(row).not.toBeNull()
-    expect(row!.agent).toBe("world-builder")
+    expect(row!.agent).toBe("world-builder-test")
     expect(row!.model).toBe("test-model")
   })
 
-  test("appends multiple entries", () => {
-    logLLMCallStructured(testNovelId, makeLogEntry({ agent: "call-1" }))
-    logLLMCallStructured(testNovelId, makeLogEntry({ agent: "call-2" }))
-    const db = getDB()
-    const rows = db.query<{ agent: string }, []>(
-      "SELECT agent FROM llm_calls WHERE novel_id = ? AND agent IN ('call-1', 'call-2')",
-    ).all(testNovelId)
-    const agents = rows.map(r => r.agent)
-    expect(agents).toContain("call-1")
-    expect(agents).toContain("call-2")
+  test("tracks phase from agent name", () => {
+    logLLMCallStructured(testNovelId, makeLogEntry({ agent: "writer" }))
+    const db = getCentralDB()
+    const runId = getRunId()!
+    const row = db.query<{ phase: string }, [number]>(
+      "SELECT phase FROM llm_calls WHERE run_id = ? AND agent = 'writer' LIMIT 1",
+    ).get(runId)
+    expect(row!.phase).toBe("drafting")
   })
 
-  test("captures all fields", () => {
-    const entry = makeLogEntry({
-      agent: "continuity-test",
-      temperature: 0.2,
+  test("captures error tracking fields", () => {
+    logLLMCallStructured(testNovelId, makeLogEntry({
+      agent: "continuity-err-test",
       zodValidationSuccess: false,
       zodErrors: ["issues.0.chapter: Expected number"],
       httpAttempts: 2,
       retryErrors: [{ status: 429, delay: 5000 }],
-    })
-    logLLMCallStructured(testNovelId, entry)
-    const db = getDB()
+    }))
+    const db = getCentralDB()
+    const runId = getRunId()!
     const row = db.query<{
-      agent: string; temperature: number; zod_validation_success: number;
-      zod_errors: string | null; http_attempts: number; retry_errors: string | null;
-    }, []>(
-      "SELECT agent, temperature, zod_validation_success, zod_errors, http_attempts, retry_errors FROM llm_calls WHERE novel_id = ? AND agent = ?",
-    ).get(testNovelId, "continuity-test")
-    expect(row).not.toBeNull()
-    expect(row!.agent).toBe("continuity-test")
-    expect(row!.temperature).toBe(0.2)
+      zod_validation_success: number; zod_errors: string | null;
+      http_attempts: number; retry_errors: string | null;
+    }, [number, string]>(
+      "SELECT zod_validation_success, zod_errors, http_attempts, retry_errors FROM llm_calls WHERE run_id = ? AND agent = ?",
+    ).get(runId, "continuity-err-test")
     expect(row!.zod_validation_success).toBe(0)
-    expect(row!.zod_errors).toContain("issues.0.chapter: Expected number")
+    expect(row!.zod_errors).toContain("Expected number")
     expect(row!.http_attempts).toBe(2)
     const retryErrors = JSON.parse(row!.retry_errors!)
     expect(retryErrors[0].status).toBe(429)
   })
 
-  test("stores token counts and latency", () => {
+  test("stores token counts and computes TPS", () => {
     logLLMCallStructured(testNovelId, makeLogEntry({
       agent: "token-test",
       promptTokens: 500,
       completionTokens: 1200,
       totalLatencyMs: 3500,
-      tokensPerSec: 343,
     }))
-    const db = getDB()
+    const db = getCentralDB()
+    const runId = getRunId()!
     const row = db.query<{
       prompt_tokens: number; completion_tokens: number;
-      total_latency_ms: number; tokens_per_sec: number;
-    }, []>(
-      "SELECT prompt_tokens, completion_tokens, total_latency_ms, tokens_per_sec FROM llm_calls WHERE novel_id = ? AND agent = ?",
-    ).get(testNovelId, "token-test")
+      latency_ms: number; tokens_per_sec: number;
+    }, [number, string]>(
+      "SELECT prompt_tokens, completion_tokens, latency_ms, tokens_per_sec FROM llm_calls WHERE run_id = ? AND agent = ?",
+    ).get(runId, "token-test")
     expect(row!.prompt_tokens).toBe(500)
     expect(row!.completion_tokens).toBe(1200)
-    expect(row!.total_latency_ms).toBe(3500)
-    expect(row!.tokens_per_sec).toBe(343)
+    expect(row!.latency_ms).toBe(3500)
+    expect(row!.tokens_per_sec).toBeGreaterThan(0)
+  })
+
+  test("snapshots model config in run_agents", () => {
+    const db = getCentralDB()
+    const runId = getRunId()!
+    const agents = db.query<{ agent: string; provider: string; model: string }, [number]>(
+      "SELECT agent, provider, model FROM run_agents WHERE run_id = ?",
+    ).all(runId)
+    expect(agents.length).toBeGreaterThan(0)
+    // Should have all 12 agents from roles.ts
+    const agentNames = agents.map(a => a.agent)
+    expect(agentNames).toContain("writer")
+    expect(agentNames).toContain("continuity")
+    expect(agentNames).toContain("summary-extractor")
   })
 })

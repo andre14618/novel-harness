@@ -1,145 +1,103 @@
-import { Database } from "bun:sqlite"
-import { existsSync, readdirSync } from "node:fs"
-import { getTokenCost } from "../models/registry"
+import {
+  getCentralDB, getCallSummary, getModelStats, getAgentStats, getPhaseStats, getRecentRuns,
+} from "../data/db"
 
-const novelId = process.argv[2]
-if (!novelId) {
-  const dirs = readdirSync("output").filter((d: string) => d.startsWith("novel-")).sort().reverse()
-  if (dirs.length === 0) { console.error("No novel runs found in output/"); process.exit(1) }
-  console.log(`Using most recent: ${dirs[0]}\n`)
-  run(dirs[0])
+const arg = process.argv[2]
+
+if (arg === "--global") {
+  globalSummary()
+} else if (arg === "--runs") {
+  listRuns(process.argv[3])
 } else {
-  run(novelId)
+  runSummary(arg)
 }
 
-function run(id: string) {
-  const dbPath = `output/${id}/novel.db`
-  if (!existsSync(dbPath)) {
-    console.error(`No database found at ${dbPath}`)
-    process.exit(1)
+function globalSummary() {
+  const db = getCentralDB()
+
+  console.log("=== GLOBAL MODEL STATS ===\n")
+  const models = getModelStats()
+  if (models.length === 0) { console.log("No LLM calls recorded yet."); return }
+
+  const header = "Provider/Model                          Calls    Cost    Avg TPS  Avg ms"
+  console.log(header)
+  console.log("-".repeat(header.length))
+  for (const m of models) {
+    console.log(`${`${m.provider}/${m.model}`.padEnd(40)} ${`${m.totalCalls}`.padStart(5)}  $${m.totalCost.toFixed(3).padStart(7)}  ${`${m.avgTps ?? "—"}`.padStart(8)}  ${`${m.avgLatencyMs ?? "—"}`.padStart(6)}`)
   }
 
-  const db = new Database(dbPath, { readonly: true })
-
-  // Check if llm_calls table exists (older novels won't have it)
-  const tableExists = db.query("SELECT name FROM sqlite_master WHERE type='table' AND name='llm_calls'").get()
-  if (!tableExists) {
-    console.error("No llm_calls table in this novel's database.")
-    console.error("This novel was created before LLM call logging moved to SQLite.")
-    process.exit(1)
+  console.log("\n=== PER-AGENT STATS ===\n")
+  const agents = getAgentStats()
+  for (const a of agents) {
+    console.log(`${a.agent.padEnd(28)} ${`${a.totalCalls}`.padStart(5)} calls  $${a.totalCost.toFixed(3).padStart(7)}  ${a.avgTps ? `${a.avgTps} tok/s` : "—"}`)
   }
 
-  const entries = db.query<{
-    agent: string; model: string; provider: string;
-    prompt_tokens: number; completion_tokens: number;
-    total_latency_ms: number; zod_validation_success: number; json_extraction_success: number;
-  }, []>(`
-    SELECT agent, model, provider, prompt_tokens, completion_tokens,
-           total_latency_ms, zod_validation_success, json_extraction_success
-    FROM llm_calls WHERE novel_id = ?
-  `).all(id)
+  console.log("\n=== PER-PHASE STATS ===\n")
+  const phases = getPhaseStats()
+  for (const p of phases) {
+    console.log(`${p.phase.padEnd(24)} ${`${p.totalCalls}`.padStart(5)} calls  $${p.totalCost.toFixed(3).padStart(7)}  ${p.avgTps ? `${p.avgTps} tok/s` : "—"}`)
+  }
+}
 
-  if (entries.length === 0) {
-    console.error("No LLM calls logged for this novel.")
-    process.exit(1)
+function listRuns(runType?: string) {
+  const type = runType ?? "novel"
+  const runs = getRecentRuns(type, 20)
+  if (runs.length === 0) { console.log(`No ${type} runs found.`); return }
+
+  console.log(`\nRecent ${type} runs:\n`)
+  for (const r of runs) {
+    const label = r.label ? ` (${r.label})` : ""
+    const ref = r.runRef ? ` [${r.runRef}]` : ""
+    console.log(`  #${r.id}  ${r.timestamp}${ref}${label}  avg: ${r.mean}`)
+  }
+}
+
+function runSummary(runIdStr?: string) {
+  const db = getCentralDB()
+
+  let runId: number
+  if (runIdStr && /^\d+$/.test(runIdStr)) {
+    runId = parseInt(runIdStr)
+  } else {
+    // Find most recent novel run, or most recent run of any type
+    const novelRef = runIdStr  // could be a novel-id like "novel-123456"
+    let row: { id: number } | null = null
+    if (novelRef) {
+      row = db.query<{ id: number }, [string]>("SELECT id FROM runs WHERE run_ref = ? ORDER BY timestamp DESC LIMIT 1").get(novelRef)
+    }
+    if (!row) {
+      row = db.query<{ id: number }, []>("SELECT id FROM runs ORDER BY timestamp DESC LIMIT 1").get()
+    }
+    if (!row) { console.error("No runs found in central DB."); process.exit(1) }
+    runId = row.id
   }
 
-  // Per-agent summary
-  const byAgent: Record<string, { calls: number; prompt: number; completion: number; cost: number; latency: number; failures: number }> = {}
+  const run = db.query<{ run_type: string; run_ref: string | null; label: string | null; timestamp: string }, [number]>(
+    "SELECT run_type, run_ref, label, timestamp FROM runs WHERE id = ?",
+  ).get(runId)
 
-  for (const e of entries) {
-    if (!byAgent[e.agent]) byAgent[e.agent] = { calls: 0, prompt: 0, completion: 0, cost: 0, latency: 0, failures: 0 }
-    const a = byAgent[e.agent]
-    a.calls++
-    a.prompt += e.prompt_tokens
-    a.completion += e.completion_tokens
-    a.cost += getTokenCost(e.provider as any, e.model, e.prompt_tokens, e.completion_tokens)
-    a.latency += e.total_latency_ms
-    if (!e.zod_validation_success || !e.json_extraction_success) a.failures++
-  }
+  if (!run) { console.error(`Run #${runId} not found.`); process.exit(1) }
 
-  let totalPrompt = 0, totalCompletion = 0, totalCost = 0, totalLatency = 0, totalCalls = 0, totalFailures = 0
+  console.log(`\nRun #${runId}: ${run.run_type}${run.run_ref ? ` [${run.run_ref}]` : ""}${run.label ? ` (${run.label})` : ""}`)
+  console.log(`Timestamp: ${run.timestamp}\n`)
 
-  console.log(`Novel: ${id}`)
-  console.log(`Calls: ${entries.length}`)
-  console.log()
+  const summary = getCallSummary(runId)
+  if (summary.length === 0) { console.log("No LLM calls for this run."); return }
 
-  const header = "Agent                     Calls  Prompt   Compl    Cost   Avg ms  Fail"
+  const header = "Agent                     Model                         Calls    Cost    TPS    Tokens"
   console.log(header)
   console.log("-".repeat(header.length))
 
-  const sorted = Object.entries(byAgent).sort((a, b) => b[1].cost - a[1].cost)
-  for (const [agent, a] of sorted) {
-    totalCalls += a.calls
-    totalPrompt += a.prompt
-    totalCompletion += a.completion
-    totalCost += a.cost
-    totalLatency += a.latency
-    totalFailures += a.failures
-
-    const avgMs = Math.round(a.latency / a.calls)
-    console.log(
-      `${agent.padEnd(25)} ${`${a.calls}`.padStart(5)}  ${`${a.prompt}`.padStart(6)}  ${`${a.completion}`.padStart(6)}  $${a.cost.toFixed(3).padStart(6)}  ${`${avgMs}`.padStart(6)}  ${a.failures > 0 ? `${a.failures}` : "-"}`
-    )
+  let totalCost = 0, totalCalls = 0, totalTokens = 0
+  for (const c of summary) {
+    totalCost += c.totalCost
+    totalCalls += c.calls
+    const tokens = c.totalPrompt + c.totalCompletion
+    totalTokens += tokens
+    const tps = c.avgTps ? `${c.avgTps}` : "—"
+    console.log(`${c.agent.padEnd(25)} ${c.model.padEnd(30)} ${`${c.calls}`.padStart(5)}  $${c.totalCost.toFixed(3).padStart(7)}  ${tps.padStart(5)}  ${`${tokens}`.padStart(8)}`)
   }
-
   console.log("-".repeat(header.length))
-  console.log(
-    `${"TOTAL".padEnd(25)} ${`${totalCalls}`.padStart(5)}  ${`${totalPrompt}`.padStart(6)}  ${`${totalCompletion}`.padStart(6)}  $${totalCost.toFixed(3).padStart(6)}  ${`${Math.round(totalLatency / totalCalls)}`.padStart(6)}  ${totalFailures > 0 ? `${totalFailures}` : "-"}`
-  )
-
+  console.log(`${"TOTAL".padEnd(56)} ${`${totalCalls}`.padStart(5)}  $${totalCost.toFixed(3).padStart(7)}         ${`${totalTokens}`.padStart(8)}`)
   console.log(`\nTotal cost: $${totalCost.toFixed(4)}`)
-  console.log(`Total tokens: ${totalPrompt + totalCompletion} (${totalPrompt} prompt + ${totalCompletion} completion)`)
-
-  // Per-phase breakdown
-  const phases: Record<string, string[]> = {
-    "Concept": ["world-builder", "character-agent", "plotter"],
-    "Planning": ["planning-plotter"],
-    "Drafting": ["writer", "continuity", "summary-extractor", "fact-extractor", "character-state"],
-    "Validation": ["cross-chapter-continuity", "prose-quality", "rewriter"],
-  }
-
-  console.log("\nPer-phase cost:")
-  for (const [phase, agents] of Object.entries(phases)) {
-    let phaseCost = 0
-    for (const agent of agents) {
-      if (byAgent[agent]) phaseCost += byAgent[agent].cost
-    }
-    if (phaseCost > 0) console.log(`  ${phase.padEnd(12)} $${phaseCost.toFixed(4)}`)
-  }
-
-  // Per-provider breakdown
-  const byProvider: Record<string, { tokens: number; cost: number }> = {}
-  for (const e of entries) {
-    const key = `${e.provider}/${e.model}`
-    if (!byProvider[key]) byProvider[key] = { tokens: 0, cost: 0 }
-    byProvider[key].tokens += e.prompt_tokens + e.completion_tokens
-    byProvider[key].cost += getTokenCost(e.provider as any, e.model, e.prompt_tokens, e.completion_tokens)
-  }
-
-  console.log("\nPer-provider cost:")
-  for (const [key, p] of Object.entries(byProvider)) {
-    console.log(`  ${key.padEnd(40)} ${p.tokens} tokens  $${p.cost.toFixed(4)}`)
-  }
-
-  // TPS summary per agent
-  const tpsData = db.query<{ agent: string; avg_tps: number; min_tps: number; max_tps: number }, []>(`
-    SELECT agent,
-           ROUND(AVG(tokens_per_sec)) as avg_tps,
-           MIN(tokens_per_sec) as min_tps,
-           MAX(tokens_per_sec) as max_tps
-    FROM llm_calls
-    WHERE novel_id = ? AND tokens_per_sec > 0
-    GROUP BY agent
-    ORDER BY avg_tps DESC
-  `).all(id)
-
-  if (tpsData.length > 0) {
-    console.log("\nTPS per agent:")
-    for (const t of tpsData) {
-      console.log(`  ${t.agent.padEnd(25)} avg: ${t.avg_tps}  min: ${t.min_tps}  max: ${t.max_tps}`)
-    }
-  }
-
-  db.close()
 }

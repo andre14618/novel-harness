@@ -6,7 +6,7 @@ AI-assisted novel creation harness — deterministic code controls flow, LLMs ar
 
 - Runtime: Bun
 - LLM: Configurable per-agent via `models/roles.ts`. Five providers: Cerebras, Groq, OpenRouter, OpenAI, DeepSeek.
-- DB: bun:sqlite (one DB per novel at `output/{novelId}/novel.db`, benchmark results at `benchmark/results/benchmark.db`)
+- DB: bun:sqlite. Central operational DB at `data/harness.db` (all LLM calls, run configs, benchmark scores). Per-novel creative content at `output/{novelId}/novel.db`.
 - Interface: CLI
 
 ## Architecture
@@ -102,6 +102,20 @@ src/db/
   validation-passes.ts ← validation pass tracking
 ```
 
+### Central data layer
+
+```
+data/
+  db.ts           ← central operational DB (all LLM calls, run configs, scores)
+  harness.db      ← the DB file (gitignored)
+```
+
+All LLM calls from both novel runs and benchmarks go here. Queryable across all runs:
+- `getModelStats()` — global per-model cost, TPS, call count
+- `getAgentStats()` — per-agent cost and performance
+- `getAgentModelScores()` — cross-run comparison of agent+model combos
+- `compareRuns()` — diff two runs (config changes, score deltas, cost)
+
 ### Config
 
 ```
@@ -131,9 +145,12 @@ BENCHMARK_JUDGES="Gemini 3 Flash,Qwen3 32B" bun benchmark/prose/run.ts  # specif
 bun benchmark/calibrate.ts                 # test all available models as judges
 CALIBRATE_MODELS="GPT-OSS,Scout" bun benchmark/calibrate.ts  # test specific models
 
-# Cost analysis
-bun scripts/cost-summary.ts               # most recent novel
-bun scripts/cost-summary.ts novel-123456   # specific novel
+# Cost & performance analysis
+bun scripts/cost-summary.ts               # most recent run
+bun scripts/cost-summary.ts 5             # specific run by ID
+bun scripts/cost-summary.ts --global      # all-time model/agent/phase stats
+bun scripts/cost-summary.ts --runs novel  # list recent novel runs
+bun scripts/cost-summary.ts --runs prose-benchmark  # list recent prose benchmarks
 ```
 
 ## Logging
