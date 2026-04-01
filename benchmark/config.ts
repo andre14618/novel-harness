@@ -13,6 +13,7 @@ export interface WriterConfig {
   apiUrl: string
   apiKey: string
   model: string
+  maxTokens: number
   extraBody?: Record<string, any>
   needsNothink?: boolean
 }
@@ -33,6 +34,7 @@ function toWriterConfig(m: ModelDef): WriterConfig {
     apiUrl: provider.apiUrl,
     apiKey: getApiKey(m.provider),
     model: m.id,
+    maxTokens: Math.min(m.maxOutput ?? 16384, 16384),
     extraBody: provider.extraBody?.(),
     needsNothink: m.needsNothink,
   }

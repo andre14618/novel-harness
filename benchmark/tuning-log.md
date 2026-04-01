@@ -454,6 +454,36 @@ Dialogue        4.9                     4.0 (-0.9)             4.0 (-0.9)
 
 ---
 
+## 16. DeepSeek V3.2 Model Comparison (Experiment #10)
+
+**Question:** Can DeepSeek V3.2 serve as a cheap/fast writer for methodology iteration?
+
+**Setup:** romance-drama × 5 runs, Tier 1 prompts, GPT-OSS 120B judge. Compared K2 (Run 19), Qwen3 32B (Run 21), DeepSeek V3.2 (Run 24).
+
+**Results:**
+```
+Model          Telling   Dead Wt   Dialogue   Overall   Cost(writer)   TPS
+K2             2.6       1.8       1.7        2.1       $0.033         214
+DeepSeek V3.2  4.8       1.2       2.8        2.9       $0.000         2865
+Qwen3 32B      5.2       1.6       2.2        3.0       $0.004         281
+```
+
+**Speed verification:** DeepSeek V3.2 genuinely runs at ~3,000 tok/s on their own API (`api.deepseek.com`). Verified via `x-ds-trace-id` response header, CloudFront routing, zero cache hits. Architecture: 685B MoE with 37B active params + FP8 KV cache + Multi-Token Prediction. No official DeepSeek source confirms this speed class; Artificial Analysis does not benchmark DeepSeek's own API.
+
+**Qualitative assessment:**
+- DeepSeek prose is competent but repetitive — both samples opened with nearly identical "stainless steel gleamed under harsh kitchen lights" + microgreens + seared scallops
+- Structurally flat — delivers information in sequence without Goal→Conflict→Disaster pattern
+- K2 visibly executes Scene/Sequel and Stasis=Death from Tier 1 prompts. DeepSeek does not.
+- K2 takes creative risks ("voice raw as unshucked oyster", "each drop a small, wet exclamation"). DeepSeek stays safe ("his breath clouding in the cool night air").
+
+**Conclusions:**
+- DeepSeek does NOT respond to methodology prompt guidance — same pattern as Qwen3 32B
+- Only K2 has the creative capacity to execute structural rules from prompt guidance
+- DeepSeek's speed makes it viable for smoke-testing planning/schema changes, not prose quality
+- Stick with K2 for all methodology iteration despite 3x cost premium
+
+---
+
 ## Open Questions
 
 - Should the penalty benchmark be replaced entirely by deterministic flagging + pairwise comparison?
@@ -477,3 +507,4 @@ Dialogue        4.9                     4.0 (-0.9)             4.0 (-0.9)
 | 7 | experiment | Prompt engineering sweep (K2) | A3 examples wins (different from 32B!) |
 | 8 | quality-vs-penalty | 1-10 vs penalty scoring, K2 vs 32B | 1-10 scores identical, penalty scores differ |
 | 9 | methodology | Writing methodology Tier 1 (6 prompt changes) | Telling -1.0, Dialogue -0.9, Dead Weight +0.6 |
+| 10 | model-comparison | DeepSeek V3.2 vs K2 vs 32B with Tier 1 prompts | DeepSeek 3000 tok/s but doesn't respond to methodology rules |

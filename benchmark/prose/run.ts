@@ -87,7 +87,7 @@ async function generateProse(writer: WriterConfig, prompt: string, runId: number
       body: JSON.stringify({
         model: writer.model,
         messages: [{ role: "system", content: WRITER_AGENT_PROMPT }, { role: "user", content: userPrompt }],
-        temperature: 0.8, max_tokens: 16384,
+        temperature: 0.8, max_tokens: writer.maxTokens,
         response_format: { type: "json_object" },
         ...writer.extraBody,
       }),
