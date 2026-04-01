@@ -124,6 +124,13 @@ bun benchmark/extraction/run.ts            # extraction quality (Completeness, A
 bun benchmark/continuity/run.ts            # continuity detection (needs fixtures/)
 bun benchmark/prose/run.ts --save-baseline # save scores as baseline
 
+# Focused seed testing
+BENCHMARK_SEEDS="romance-drama" bun benchmark/prose/run.ts
+BENCHMARK_SEEDS="romance-drama,dark-fantasy" BENCHMARK_RUNS=5 bun benchmark/prose/run.ts
+
+# Link benchmark run to an experiment (tracks what changed + why)
+EXPERIMENT_ID=9 BENCHMARK_SEEDS="romance-drama" bun benchmark/prose/run.ts
+
 # Lean iteration mode (single judge, fewer runs)
 BENCHMARK_JUDGES="Qwen3 32B" BENCHMARK_RUNS=2 bun benchmark/prose/run.ts
 
@@ -167,7 +174,7 @@ Pre-commit hook (`scripts/backup-dbs.sh`) safely backs up all SQLite DBs to `bac
 
 Prose benchmark uses **penalty-based scoring** (issue counts, lower = better). 1-10 scoring was tested extensively and cannot discriminate between "competent" and "good" prose — all judges compress to 7-9.
 
-**Writer:** Qwen3 32B (Groq) — set in `models/roles.ts` as `benchmark-writer`
+**Writer:** Kimi K2 (Groq) — set in `models/roles.ts` as `benchmark-writer`
 **Judge:** GPT-OSS 120B (Groq) — set in `models/roles.ts` as `benchmark-judge`
 
 Reliable penalty dimensions (confirmed via multi-model shootout):
@@ -177,22 +184,43 @@ Reliable penalty dimensions (confirmed via multi-model shootout):
 
 See `benchmark/tuning-log.md` for full tuning experiment results and rationale.
 
-### Current Baseline (Run 12)
+### Current Baseline (Run 16, post-methodology Tier 1)
 ```
-Telling:        5.8 issues (+-2.4)
-Dead Weight:    2.1 issues (+-1.4)
-Dialogue:       2.1 issues (+-1.9)
-Cost per cycle: ~$0.058
+Telling:        3.9 issues (+-1.8)
+Dead Weight:    1.3 issues (+-1.5)
+Dialogue:       4.9 issues (+-5.0)
+Cost per cycle: ~$0.06 (all seeds) / ~$0.03 (single seed)
 ```
+
+## Experiment Workflow
+
+**Every benchmark run that tests a change MUST be linked to an experiment in the DB.** This is how we track what changed, why, and what we concluded.
+
+```bash
+# 1. Create experiment (returns experiment ID)
+bun -e "import { createTuningExperiment } from './data/db';
+  console.log(createTuningExperiment('methodology', 'description', {config}))"
+
+# 2. Run benchmarks linked to experiment
+EXPERIMENT_ID=9 BENCHMARK_SEEDS="romance-drama" bun benchmark/prose/run.ts
+
+# 3. Record conclusion
+bun -e "import { concludeExperiment } from './data/db';
+  concludeExperiment(9, 'findings here')"
+```
+
+Tables: `tuning_experiments` (what/why/conclusion) → `runs` (experiment_id) → `generations` → `scores`
 
 ## Iterative Improvement Workflow
 
-1. `bun benchmark/prose/run.ts --save-baseline` — establish baseline
-2. `/diagnose` in Claude Code — analyze weak dimensions
-3. Make ONE change (prompt.md, context.ts, or roles.ts)
-4. `bun benchmark/prose/run.ts` — measure delta
-5. If improved: commit with scores, `--save-baseline`
-6. If flat/worse: revert, next suggestion
+1. Create experiment in DB with description + config
+2. `EXPERIMENT_ID=N BENCHMARK_SEEDS="romance-drama" bun benchmark/prose/run.ts` — focused test
+3. `/diagnose` in Claude Code — analyze weak dimensions
+4. Make ONE change (prompt.md, context.ts, or roles.ts)
+5. `EXPERIMENT_ID=N BENCHMARK_SEEDS="romance-drama" bun benchmark/prose/run.ts` — measure delta
+6. Record conclusion in DB with `concludeExperiment()`
+7. If improved: commit with scores, run all seeds to verify generalization, `--save-baseline`
+8. If flat/worse: revert, next suggestion
 
 Commit format:
 ```
@@ -200,6 +228,15 @@ Commit format:
 
 benchmark: 3.3 issues/dim (+-2.6) T:5.8 W:2.1 D:2.1
 delta: -0.5 vs baseline | 5 seeds x 3 runs | penalty mode
+experiment: #9
 ```
 
-Cost per iteration cycle: ~$0.058 (5 seeds × 3 runs, GPT-OSS 120B judge).
+Cost per iteration cycle: ~$0.03 (1 seed × 3 runs) / ~$0.06 (all seeds × 3 runs).
+
+## Writing Methodology Integration
+
+See `docs/methodology-integration-report.md` for the full report with 20 testable items.
+
+**Primary test bed:** `romance-drama` (Love genre — most rigid conventions, cleanest character arc)
+**Secondary:** `dark-fantasy` (Horror/Morality — generalization check)
+**Writer model:** Kimi K2 (methodology rules only help capable models; Qwen3 32B showed no improvement)
