@@ -171,3 +171,107 @@ Dead Weight:    2.1 issues (+-1.4)
 Dialogue:       2.1 issues (+-1.9)
 TOTAL:          3.3 issues/dim (+-2.6)
 ```
+
+---
+
+## 7. Prompt Engineering Sweep — Qwen3 32B (`batch-1-prompts.ts`, Experiment #4)
+
+**Question:** Which prompting strategy reduces telling most?
+
+**Setup:** 5 prompt variants, 5 seeds × 2 runs, GPT-OSS 120B judge, Qwen3 32B writer.
+
+**Results:**
+```
+Variant                  Telling    Dead Weight   Dialogue    OVERALL
+A2: positive-only        5.1        2.0           2.0         3.0  ← BEST
+A3: examples             5.8        2.3           1.8         3.2
+A5: role-framing         5.8        3.8           1.5         3.5
+A1: current (NEVER)      6.0        1.9           2.8         3.5
+A4: minimal (no rules)   6.2        2.0           2.2         3.5
+```
+
+**Conclusions:**
+- Positive instructions ("show through physical reactions") beat prohibitions ("NEVER summarize")
+- Examples in prompt had no effect on telling (5.8, same as baseline)
+- Role-framing ("award-winning writer") caused more verbose prose (dead weight: 3.8)
+- Minimal/no rules was worst — the model needs guidance
+- A2 wins on telling AND overall with no regressions
+
+---
+
+## 8. Temperature Sweep — Qwen3 32B (`batch-2-temperature.ts`, Experiment #5)
+
+**Question:** Does temperature affect telling with the A2 prompt?
+
+**Setup:** T=0.6, 0.8, 1.0 with A2 positive-only prompt, 5 seeds × 2 runs.
+
+**Results:**
+```
+Temp    Telling    Dead Weight   Dialogue    OVERALL
+0.6     7.4        1.8           3.9         4.4  ← WORST (rigid patterns)
+0.8     5.7        1.6           3.0         3.4  ← BEST
+1.0     5.7        3.4           2.6         3.9
+```
+
+**Conclusion:** T=0.8 is optimal. Lower temperature makes telling worse (model falls into defaults more rigidly). Higher adds dead weight.
+
+---
+
+## 9. Context Structure Sweep — Qwen3 32B (`batch-3-context.ts`, Experiment #6)
+
+**Question:** Do "Emotional shift" labels in scene beats cause telling?
+
+**Setup:** 3 context variants (emotional labels, no labels, physical cues), A2 prompt, T=0.8.
+
+**Results:**
+```
+Variant                  Telling    Dead Weight   Dialogue    OVERALL
+C1: emotional labels     4.6        1.8           2.5         3.0  ← BEST telling
+C2: no labels            4.9        2.4           1.4         2.9
+C3: physical cues        5.5        2.8           2.7         3.7  ← WORST
+```
+
+**Conclusions:**
+- Emotional labels do NOT cause telling — removing them doesn't help
+- Physical cues make prose more verbose (model tries to incorporate specific behaviors)
+- Keep current context structure
+
+---
+
+## 10. Multi-Pass Writing Tests (Experiments #2, #3)
+
+**Question:** Does a polish/rewrite pass improve quality?
+
+**Setup:** Single-pass vs two-pass (write→polish), tested with both 32B and 235B polish models.
+
+**Results (Experiment #2, 32B polish):**
+```
+A: 32B single     T:5.3  W:2.5  D:2.3  Overall:3.4
+B: 32B→32B polish T:6.3  W:2.9  D:2.2  Overall:3.8  ← WORSE
+```
+
+**Results (Experiment #3, 235B polish):**
+```
+A: 32B single       T:4.4  W:1.2  D:2.0  Overall:2.3  ← BEST overall
+B: 32B→235B polish  T:4.2  W:2.6  D:3.0  Overall:3.3  ← WORSE
+C: 235B single      T:2.6  W:2.7  D:3.5  Overall:2.9
+```
+
+**Conclusions:**
+- Rewrite passes consistently make things worse — the rewriting model introduces new issues
+- 235B has best telling (2.6) but worst dialogue (3.5) and worse dead weight (2.7 vs 1.2)
+- 32B is best overall (2.3) due to lean prose
+- Multi-pass approach is not viable with current models
+
+---
+
+## Best Configuration Found (as of end of session)
+
+| Parameter | Value | Evidence |
+|-----------|-------|----------|
+| **Writer prompt** | A2: positive-only techniques | Exp #4: 5.1 telling vs 6.0 baseline |
+| **Temperature** | 0.8 | Exp #5: 0.6 and 1.0 both worse |
+| **Context structure** | Keep emotional labels | Exp #6: removing/replacing labels doesn't help |
+| **Multi-pass** | No — single pass only | Exp #2, #3: polish passes degrade quality |
+| **Writer model** | Qwen3 32B (Groq) | Exp #3: best overall despite higher telling |
+| **Judge model** | GPT-OSS 120B (Groq) | Shootout: only reliable discriminator |
