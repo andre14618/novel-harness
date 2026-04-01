@@ -65,20 +65,26 @@ Resolution order: `models/roles.ts` → `.env` global default → fallback to `q
 
 ```
 benchmark/
-  config.ts       ← shared writer/judge model selection
-  db.ts           ← shared SQLite DB (benchmark_type field distinguishes benchmarks)
-  calibrate.ts    ← judge model calibration test
-  results/        ← benchmark.db (gitignored)
-  prose/          ← prose quality benchmark (writer agent)
-    run.ts        ← bun benchmark/prose/run.ts
-    judges/
-      show-tell.md  ← scoring rubric
-      dialogue.md
-      sensory.md
-      schema.ts
+  config.ts         ← shared writer/judge model selection
+  db.ts             ← shared SQLite DB (benchmark_type distinguishes benchmarks)
+  calibrate.ts      ← judge model calibration test
+  results/          ← benchmark.db (gitignored)
+  prose/            ← writer output quality
+    run.ts          ← bun benchmark/prose/run.ts
+    judges/         ← Show/Tell, Dialogue, Sensory
+  planning/         ← planning-plotter output quality
+    run.ts          ← bun benchmark/planning/run.ts
+    judges/         ← Beat Specificity, Dialogue Cues, Emotional Arc
+  extraction/       ← extractor accuracy and completeness
+    run.ts          ← bun benchmark/extraction/run.ts
+    judges/         ← Completeness, Accuracy
+  continuity/       ← continuity checker detection rate
+    run.ts          ← bun benchmark/continuity/run.ts
+    judges/         ← Issue Detection, Fix Quality
+    fixtures/       ← JSON test cases with planted contradictions
 ```
 
-Each benchmark type gets its own subdirectory with a `run.ts` and type-specific judges/rubrics. Shared infrastructure (DB, config, calibration) lives at the `benchmark/` root. All results go to the same SQLite DB tagged by `benchmark_type`.
+Each benchmark type has its own `run.ts`, judges/rubrics, and scoring dimensions. All share the same SQLite DB tagged by `benchmark_type`. All LLM calls are logged with cost and TPS.
 
 ### DB modules
 
@@ -112,10 +118,13 @@ bun src/index.ts --auto                    # default seed (epic-fantasy)
 bun src/index.ts --auto --seed sci-fi-thriller  # different seed
 bun src/index.ts --resume novel-123456     # resume from checkpoint
 
-# Prose benchmark (writer quality)
-bun benchmark/prose/run.ts                 # run prose benchmark (5 seeds × 3 runs × judges × 3 dims)
-bun benchmark/prose/run.ts --save-baseline # save current scores as baseline
-BENCHMARK_PROVIDER=groq bun benchmark/prose/run.ts  # use specific writer provider
+# Benchmarks
+bun benchmark/prose/run.ts                 # prose quality (Show/Tell, Dialogue, Sensory)
+bun benchmark/planning/run.ts              # planning quality (Beat Specificity, Dialogue Cues, Arc)
+bun benchmark/extraction/run.ts            # extraction quality (Completeness, Accuracy)
+bun benchmark/continuity/run.ts            # continuity detection (Detection, Fix Quality)
+bun benchmark/prose/run.ts --save-baseline # save scores as baseline (works for all types)
+BENCHMARK_PROVIDER=groq bun benchmark/prose/run.ts     # use specific provider
 BENCHMARK_JUDGES="Gemini 3 Flash,Qwen3 32B" bun benchmark/prose/run.ts  # specify judges
 
 # Judge calibration
