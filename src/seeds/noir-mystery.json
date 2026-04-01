@@ -1,0 +1,9 @@
+{
+  "premise": "A retired detective receives a letter from a murder victim — postmarked the day after her death. The letter names her killer, but the name belongs to someone who died twenty years ago.",
+  "genre": "noir mystery",
+  "characters": [
+    { "name": "Voss", "role": "protagonist", "description": "Retired homicide detective, mid-60s. Drinks black coffee, trusts no one, still carries her badge out of habit. Left the force after a case she couldn't solve." },
+    { "name": "Carla Reyes", "role": "supporting", "description": "The victim — a journalist who specialized in cold cases. Her letter is meticulous, precise, and terrified." },
+    { "name": "Harlan Cade", "role": "antagonist", "description": "The name in the letter. Officially dead since 2006. Former city councilman with connections to organized crime." }
+  ]
+}

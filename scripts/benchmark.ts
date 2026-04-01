@@ -40,7 +40,7 @@ interface RunResult {
   latencyMs: number
   tokensPerSec: number
   completionTokens: number
-  prose?: string
+  prose: string
 }
 
 interface JudgeScore {
@@ -129,7 +129,11 @@ function getJudges(): JudgeConfig[] {
 // ── Seed loading ──────────────────────────────────────────────────────────
 
 function loadSeeds(): Array<{ name: string; prompt: string }> {
-  const seedFiles = ["epic-fantasy", "sci-fi-thriller", "minimal"]
+  const { readdirSync } = require("node:fs")
+  const seedFiles = readdirSync(SEEDS_DIR)
+    .filter((f: string) => f.endsWith(".json"))
+    .map((f: string) => f.replace(".json", ""))
+    .sort()
   const seeds: Array<{ name: string; prompt: string }> = []
 
   for (const name of seedFiles) {
@@ -274,22 +278,29 @@ async function judgeProse(judge: JudgeConfig, prose: string): Promise<z.infer<ty
       ? { max_completion_tokens: 1024 }
       : { max_tokens: 1024 }
 
-    const res = await fetch(judge.apiUrl, {
-      method: "POST",
-      headers: { "Authorization": `Bearer ${judge.apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: judge.model,
-        messages: [{ role: "system", content: JUDGE_PROMPT }, { role: "user", content: prose }],
-        temperature: 0.1,
-        ...tokenParam,
-        response_format: { type: "json_object" },
-        ...judge.extraBody,
-      }),
-    })
+    let res: Response | null = null
+    for (let attempt = 0; attempt <= 2; attempt++) {
+      res = await fetch(judge.apiUrl, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${judge.apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: judge.model,
+          messages: [{ role: "system", content: JUDGE_PROMPT }, { role: "user", content: prose }],
+          temperature: 0.1,
+          ...tokenParam,
+          response_format: { type: "json_object" },
+          ...judge.extraBody,
+        }),
+      })
+      if (res.status === 429 || res.status === 503) {
+        if (attempt < 2) { await Bun.sleep(3000 * (attempt + 1)); continue }
+      }
+      break
+    }
 
-    if (!res.ok) {
-      const text = await res.text()
-      console.log(`  ! ${label} [http ${res.status}] ${text.slice(0, 100)}`)
+    if (!res!.ok) {
+      const text = await res!.text()
+      console.log(`  ! ${label} [http ${res!.status}] ${text.slice(0, 100)}`)
       return null
     }
 
@@ -334,6 +345,156 @@ async function judgeProse(judge: JudgeConfig, prose: string): Promise<z.infer<ty
   }
 }
 
+// ── Diagnostic Pass ───────────────────────────────────────────────────────
+
+const diagnosticSchema = z.object({
+  suggestions: z.array(z.object({
+    category: z.enum(["prompt", "context", "config"]),
+    targetDimension: z.string(),
+    problem: z.string(),
+    change: z.string(),
+    reasoning: z.string(),
+  })).min(1).max(3),
+})
+
+const DIAGNOSTIC_PROMPT = `You are a prompt engineer diagnosing why an LLM prose writer underperforms. You will see:
+1. The writer's system prompt
+2. The context template (how the user prompt is assembled from data)
+3. Score averages across 5 dimensions
+4. The 2 weakest prose samples with judge reasoning
+
+For each suggestion, identify ONE of these change categories:
+- "prompt": Reword an EXISTING rule in the system prompt. Do NOT add new rules.
+- "context": Restructure what data the model sees, or change the ordering/emphasis of context sections.
+- "config": Change temperature, maxTokens, or other generation parameters.
+
+Respond with ONLY valid JSON:
+{
+  "suggestions": [
+    {
+      "category": "prompt|context|config",
+      "targetDimension": "which score dimension this targets",
+      "problem": "what specifically is failing in the output",
+      "change": "the exact change to make — for prompt, quote the current text and the replacement; for context, describe the structural change; for config, state the parameter and new value",
+      "reasoning": "why this change addresses the problem"
+    }
+  ]
+}
+
+Rules:
+- Maximum 3 suggestions, prioritized by impact
+- Never suggest adding new rules to the prompt — reword or restructure existing ones
+- Be specific — "improve dialogue" is not actionable, "move speech pattern data to appear directly before scene beats" is
+- Each suggestion must target a different dimension or a different root cause`
+
+async function runDiagnostic(
+  dimAvgs: Record<string, number>,
+  allScores: JudgeScore[],
+  allRuns: RunResult[],
+): Promise<void> {
+  if (!process.env.OPENAI_API_KEY) {
+    console.log("\n  Diagnostic: skipped (no OPENAI_API_KEY)")
+    return
+  }
+
+  console.log("=".repeat(60))
+  console.log("  DIAGNOSTIC PASS (GPT-5.4)")
+  console.log("=".repeat(60))
+
+  // Load current writer prompt and context template
+  const writerPromptPath = new URL("../src/agents/writer/prompt.md", import.meta.url).pathname
+  const writerContextPath = new URL("../src/agents/writer/context.ts", import.meta.url).pathname
+  const writerPrompt = readFileSync(writerPromptPath, "utf-8")
+  const writerContext = readFileSync(writerContextPath, "utf-8")
+
+  // Find 2 weakest samples by average judge score
+  const runScores = new Map<string, number[]>()
+  for (const s of allScores) {
+    const key = `${s.seed}-${s.run}`
+    if (!runScores.has(key)) runScores.set(key, [])
+    runScores.get(key)!.push(s.total)
+  }
+  const ranked = [...runScores.entries()]
+    .map(([key, scores]) => ({ key, avg: scores.reduce((a, b) => a + b, 0) / scores.length }))
+    .sort((a, b) => a.avg - b.avg)
+
+  const weakest = ranked.slice(0, 2)
+  const weakSamples: string[] = []
+  for (const w of weakest) {
+    const [seed, runNum] = w.key.split("-")
+    const run = allRuns.find(r => r.seed === seed && r.run === parseInt(runNum) && r.passed)
+    if (run?.prose) {
+      const judges = allScores.filter(s => s.seed === seed && s.run === parseInt(runNum))
+      const judgeInfo = judges.map(j => `${j.judge}: ${j.total}/50 — "${j.reasoning}"`).join("\n")
+      weakSamples.push(`--- ${seed} run ${runNum} (avg ${w.avg.toFixed(1)}/50) ---\nJudge feedback:\n${judgeInfo}\n\nProse excerpt (first 800 chars):\n${run.prose.slice(0, 800)}`)
+    }
+  }
+
+  const dims = ["showDontTell", "dialogueQuality", "voiceConsistency", "beatAdherence", "sensoryDetail"]
+  const dimLabels = ["Show/Tell", "Dialogue", "Voice", "Beats", "Sensory"]
+  const scoresSummary = dims.map((d, i) => `${dimLabels[i]}: ${dimAvgs[d]}/10`).join(", ")
+
+  const userPrompt = `WRITER SYSTEM PROMPT (src/agents/writer/prompt.md):
+${writerPrompt}
+
+CONTEXT TEMPLATE (src/agents/writer/context.ts):
+${writerContext}
+
+DIMENSION SCORES (averaged across ${allScores.length} judge calls):
+${scoresSummary}
+
+WEAKEST SAMPLES:
+${weakSamples.join("\n\n")}
+
+Diagnose the root causes of the weak dimensions and suggest up to 3 changes.`
+
+  try {
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "gpt-5.4",
+        messages: [
+          { role: "system", content: DIAGNOSTIC_PROMPT },
+          { role: "user", content: userPrompt },
+        ],
+        temperature: 0.3,
+        max_completion_tokens: 2048,
+        response_format: { type: "json_object" },
+      }),
+    })
+
+    if (!res.ok) {
+      const text = await res.text()
+      console.log(`  Diagnostic failed: HTTP ${res.status} ${text.slice(0, 100)}`)
+      return
+    }
+
+    const data = await res.json() as any
+    const content = data.choices[0].message.content
+    const parsed = JSON.parse(extractJSON(content))
+    const result = diagnosticSchema.safeParse(parsed)
+
+    if (!result.success) {
+      console.log(`  Diagnostic failed: Zod ${result.error.issues.map(i => i.message).join("; ")}`)
+      return
+    }
+
+    for (const s of result.data.suggestions) {
+      console.log(`\n  [${s.category}] → ${s.targetDimension}`)
+      console.log(`  Problem: ${s.problem}`)
+      console.log(`  Change: ${s.change}`)
+      console.log(`  Why: ${s.reasoning}`)
+    }
+    console.log()
+
+    // Save diagnostics alongside benchmark results
+    await Bun.write(`${RESULTS_DIR}/diagnostic-${Date.now()}.json`, JSON.stringify(result.data, null, 2))
+  } catch (err) {
+    console.log(`  Diagnostic failed: ${err instanceof Error ? err.message : err}`)
+  }
+}
+
 // ── Stats ─────────────────────────────────────────────────────────────────
 
 function mean(arr: number[]): number { return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0 }
@@ -372,12 +533,12 @@ async function main() {
       for (let run = 1; run <= RUNS_PER_SEED; run++) {
         const result = await generateProse(writer, seed.prompt)
         if (!result) {
-          seedRuns.push({ seed: seed.name, run, words: 0, passed: false, latencyMs: 0, tokensPerSec: 0, completionTokens: 0 })
+          seedRuns.push({ seed: seed.name, run, words: 0, passed: false, latencyMs: 0, tokensPerSec: 0, completionTokens: 0, prose: "" })
           continue
         }
 
         const words = result.prose.split(/\s+/).length
-        seedRuns.push({ seed: seed.name, run, words, passed: true, latencyMs: result.latencyMs, tokensPerSec: result.tps, completionTokens: result.tokens })
+        seedRuns.push({ seed: seed.name, run, words, passed: true, latencyMs: result.latencyMs, tokensPerSec: result.tps, completionTokens: result.tokens, prose: result.prose })
 
         // Judge — all judges run concurrently
         const judgeResults = await Promise.all(
@@ -523,6 +684,11 @@ async function main() {
   if (process.argv.includes("--save-baseline")) {
     await Bun.write(BASELINE_PATH, JSON.stringify(benchmarkResult, null, 2))
     console.log(`  Saved as baseline: ${BASELINE_PATH}`)
+  }
+
+  // Diagnostic pass — skip with --skip-diagnostic
+  if (!process.argv.includes("--skip-diagnostic") && allScores.length > 0) {
+    await runDiagnostic(dimAvgs, allScores, allRuns)
   }
 }
 

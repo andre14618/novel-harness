@@ -82,9 +82,10 @@ bun src/index.ts --auto --seed sci-fi-thriller  # different seed
 bun src/index.ts --resume novel-123456     # resume from checkpoint
 
 # Benchmarking (iterative prompt improvement)
-bun scripts/benchmark.ts                   # run benchmark (3 seeds × 3 runs × 3 judges)
+bun scripts/benchmark.ts                   # run benchmark (5 seeds × 3 runs × 3 judges)
 bun scripts/benchmark.ts --save-baseline   # save current scores as baseline
 BENCHMARK_PROVIDER=groq bun scripts/benchmark.ts  # use specific provider
+bun scripts/benchmark.ts --skip-diagnostic # skip GPT-5.4 diagnostic pass
 
 # Model comparison
 bun scripts/compare-models.ts              # compare all available providers
@@ -115,6 +116,8 @@ Test inputs in `src/seeds/`:
 - `epic-fantasy.json` — disgraced general, empire built on a lie
 - `sci-fi-thriller.json` — generation ship, lying navigation AI
 - `minimal.json` — locksmith, door that shouldn't exist
+- `noir-mystery.json` — retired detective, letter from a murder victim
+- `historical-drama.json` — court translator in 1920s Istanbul
 
 ## Iterative Improvement Workflow
 
@@ -129,3 +132,5 @@ Test inputs in `src/seeds/`:
    delta: +2.4 vs baseline | 3 seeds × 3 runs
    ```
 5. Run `bun scripts/benchmark.ts --save-baseline` if keeping the change
+
+Benchmark costs ~$0.05/run. See `docs/iteration.md` for the full improvement pathway.
