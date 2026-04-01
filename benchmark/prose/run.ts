@@ -254,6 +254,7 @@ async function main() {
   const writer = getWriter()
   const judges = getJudges()
   const seeds = loadSeeds()
+  const experimentId = process.env.EXPERIMENT_ID ? parseInt(process.env.EXPERIMENT_ID) : undefined
 
   if (judges.length === 0) { console.error("No judge API keys found"); process.exit(1) }
 
@@ -263,9 +264,10 @@ async function main() {
   console.log(`Judge: ${judges.map(j => j.label).join(", ")}`)
   console.log(`Penalty dimensions: ${DIMENSIONS.map(d => DIMENSION_LABELS[d]).join(", ")}`)
   console.log(`Judge calls per generation: ${judges.length} x ${DIMENSIONS.length} = ${judges.length * DIMENSIONS.length}`)
+  if (experimentId) console.log(`Experiment: #${experimentId}`)
   console.log()
 
-  const runId = createRun("prose", seeds.length.toString(), `${writer.label} / ${judges.map(j => j.label).join(",")}`)
+  const runId = createRun("prose", seeds.length.toString(), `${writer.label} / ${judges.map(j => j.label).join(",")}`, experimentId)
 
   // Track all scores in memory for reporting
   const allScores: Array<{ seed: string; run: number; dim: Dimension; count: number }> = []

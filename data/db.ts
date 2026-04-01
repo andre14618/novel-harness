@@ -24,6 +24,7 @@ export function getCentralDB(): Database {
   db.exec("PRAGMA journal_mode = WAL")
   db.exec("PRAGMA foreign_keys = ON")
   migrate(db)
+  seedLintPatterns(db)
   return db
 }
 
@@ -35,7 +36,8 @@ function migrate(db: Database) {
       run_ref TEXT,
       timestamp TEXT NOT NULL DEFAULT (datetime('now')),
       model_config TEXT NOT NULL,
-      label TEXT
+      label TEXT,
+      experiment_id INTEGER REFERENCES tuning_experiments(id)
     );
 
     CREATE TABLE IF NOT EXISTS run_agents (
@@ -105,9 +107,10 @@ function migrate(db: Database) {
     CREATE TABLE IF NOT EXISTS tuning_experiments (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       timestamp TEXT NOT NULL DEFAULT (datetime('now')),
-      experiment_type TEXT NOT NULL,  -- 'probe', 'calibration', 'shootout', 'ab-test'
+      experiment_type TEXT NOT NULL,  -- 'probe', 'calibration', 'shootout', 'ab-test', 'methodology'
       description TEXT NOT NULL,
-      config TEXT NOT NULL            -- JSON: models, rubrics, samples, runs, etc.
+      config TEXT NOT NULL,           -- JSON: models, rubrics, samples, runs, etc.
+      conclusion TEXT                 -- what we learned (persisted findings)
     );
 
     -- Deterministic lint patterns (the spec — each row is a detection rule)
@@ -151,6 +154,178 @@ function migrate(db: Database) {
       failed INTEGER NOT NULL DEFAULT 0
     );
   `)
+
+  // Migrations for existing DBs
+  const addColumnIfMissing = (table: string, column: string, type: string) => {
+    const cols = db.query<{ name: string }, []>(`PRAGMA table_info(${table})`).all()
+    if (!cols.some(c => c.name === column)) {
+      db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`)
+    }
+  }
+  addColumnIfMissing("runs", "experiment_id", "INTEGER REFERENCES tuning_experiments(id)")
+  addColumnIfMissing("tuning_experiments", "conclusion", "TEXT")
+}
+
+// ── Lint pattern seeding ─────────────────────────────────────────────────
+
+function seedLintPatterns(db: Database) {
+  const count = (db.query("SELECT COUNT(*) as c FROM lint_patterns").get() as any).c
+  if (count > 0) return // already seeded
+
+  const insert = db.prepare(`
+    INSERT INTO lint_patterns (tier, category, pattern, flags, fix_template, dialogue_ok, rationale, edge_cases)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `)
+
+  const patterns: [number, string, string, string, string, number, string, string | null][] = [
+    // ── Tier 1: Filler phrases ───────────────────────────────────
+    [1, "FILLER_PHRASE", "\\b(began|started|continued|proceeded)\\s+to\\s+\\w+", "gi",
+      "Remove the revving-up verb — write the action directly.", 0,
+      "Revving-up verbs add a layer of indirection. 'She began to run' is weaker than 'She ran.' The action itself is what matters.",
+      "Gradual-onset actions like 'began to blur' or 'began to ring' may be intentional — the rewriter should judge whether the onset is meaningful. Natural in dialogue."],
+
+    [1, "FILLER_PHRASE", "\\bin order to\\b", "gi",
+      "Replace with 'to'.", 1,
+      "Always replaceable with 'to' — adds words without meaning.",
+      null],
+
+    [1, "FILLER_PHRASE", "\\bthe fact that\\b", "gi",
+      "Cut 'the fact that' — rephrase the clause directly.", 0,
+      "Nominalization that bloats sentences. 'Despite the fact that' → 'Although'. 'Aware of the fact that' → 'Aware that'. Natural in dialogue — skip in speech.",
+      null],
+
+    [1, "FILLER_PHRASE", "\\bdue to the fact that\\b", "gi",
+      "Replace with 'because'.", 1,
+      "Five words that always mean 'because'.",
+      null],
+
+    [1, "FILLER_PHRASE", "\\bin spite of the fact that\\b", "gi",
+      "Replace with 'although' or 'despite'.", 1,
+      "Six words that always mean 'although'.",
+      null],
+
+    [1, "FILLER_PHRASE", "\\bat this point in time\\b", "gi",
+      "Replace with 'now'.", 1,
+      "Five words that always mean 'now'.",
+      null],
+
+    [1, "FILLER_PHRASE", "\\bfor the purpose of\\b", "gi",
+      "Replace with 'to' or 'for'.", 1,
+      "Four words that always mean 'to' or 'for'.",
+      null],
+
+    [1, "FILLER_PHRASE", "\\bhas the ability to\\b", "gi",
+      "Replace with 'can'.", 1,
+      "Four words that always mean 'can'.",
+      null],
+
+    // ── Tier 1: Redundant body language ──────────────────────────
+    [1, "REDUNDANT_BODY", "\\bnodded\\s+(his|her|their)\\s+head", "gi",
+      "Remove redundant body part — 'nodded' is sufficient.", 0,
+      "You can only nod your head. The body part adds nothing.",
+      null],
+
+    [1, "REDUNDANT_BODY", "\\bshrugged\\s+(his|her|their)\\s+shoulders", "gi",
+      "Remove redundant body part — 'shrugged' is sufficient.", 0,
+      "You can only shrug your shoulders. The body part adds nothing.",
+      null],
+
+    [1, "REDUNDANT_BODY", "\\bblinked\\s+(his|her|their)\\s+eyes", "gi",
+      "Remove redundant body part — 'blinked' is sufficient.", 0,
+      "You can only blink your eyes. The body part adds nothing.",
+      null],
+
+    [1, "REDUNDANT_BODY", "\\bclenched\\s+(his|her|their)\\s+fists", "gi",
+      "'clenched' already implies fists unless the body part disambiguates or sets up a subsequent detail.", 0,
+      "Clenching defaults to fists. But sometimes 'fists' sets up a follow-on detail ('clenched her fists, nails digging into palms').",
+      "When 'fists' is load-bearing for a subsequent detail, the rewriter should keep it."],
+
+    [1, "REDUNDANT_BODY", "\\bsat\\s+down\\b", "gi",
+      "Remove 'down' — 'sat' implies downward.", 0,
+      "Sitting is inherently downward. 'Down' adds nothing.",
+      null],
+
+    [1, "REDUNDANT_BODY", "\\b(?:she|he|they|I|we)\\s+stood\\s+up\\b", "gi",
+      "Remove 'up' — 'stood' implies upward.", 0,
+      "Standing is inherently upward. 'Up' adds nothing.",
+      "Must have a person subject — 'hair stood up' is a different meaning."],
+
+    [1, "REDUNDANT_BODY", "\\breturned\\s+back\\b", "gi",
+      "Remove 'back' — 'returned' already means going back.", 0,
+      "Returning is inherently backward.",
+      null],
+
+    [1, "REDUNDANT_BODY", "\\brose\\s+up\\b", "gi",
+      "Remove 'up' — 'rose' implies upward.", 0,
+      "Rising is inherently upward.",
+      null],
+
+    // ── Tier 1: Redundant adverb + verb ──────────────────────────
+    [1, "REDUNDANT_ADVERB_VERB", "\\bwhispered\\s+softly\\b", "gi",
+      "Remove 'softly' — whispering is inherently soft.", 0,
+      "The adverb restates what the verb already communicates.",
+      null],
+
+    [1, "REDUNDANT_ADVERB_VERB", "\\bshouted\\s+loudly\\b", "gi",
+      "Remove 'loudly' — shouting is inherently loud.", 0,
+      "The adverb restates what the verb already communicates.",
+      null],
+
+    [1, "REDUNDANT_ADVERB_VERB", "\\bscreamed\\s+loudly\\b", "gi",
+      "Remove 'loudly' — screaming is inherently loud.", 0,
+      "The adverb restates what the verb already communicates.",
+      null],
+
+    [1, "REDUNDANT_ADVERB_VERB", "\\bmurmured\\s+softly\\b", "gi",
+      "Remove 'softly' — murmuring is inherently soft.", 0,
+      "The adverb restates what the verb already communicates.",
+      null],
+
+    [1, "REDUNDANT_ADVERB_VERB", "\\bcrept\\s+quietly\\b", "gi",
+      "Remove 'quietly' — creeping implies stealth.", 0,
+      "The adverb restates what the verb already communicates.",
+      null],
+
+    [1, "REDUNDANT_ADVERB_VERB", "\\bstrolled\\s+leisurely\\b", "gi",
+      "Remove 'leisurely' — strolling implies a leisurely pace.", 0,
+      "The adverb restates what the verb already communicates.",
+      null],
+
+    [1, "REDUNDANT_ADVERB_VERB", "\\bgripped\\s+firmly\\b", "gi",
+      "Remove 'firmly' — gripping implies firmness.", 0,
+      "The adverb restates what the verb already communicates.",
+      null],
+
+    [1, "REDUNDANT_ADVERB_VERB", "\\brushed\\s+quickly\\b", "gi",
+      "Remove 'quickly' — rushing implies speed.", 0,
+      "The adverb restates what the verb already communicates.",
+      null],
+
+    [1, "REDUNDANT_ADVERB_VERB", "\\bhurried\\s+quickly\\b", "gi",
+      "Remove 'quickly' — hurrying implies speed.", 0,
+      "The adverb restates what the verb already communicates.",
+      null],
+
+    // ── Tier 1: Empty transitions ────────────────────────────────
+    [1, "EMPTY_TRANSITION", "(?:^|(?<=\\.\\s{1,2}))And then\\b", "gm",
+      "Cut 'And then' — start with the action.", 0,
+      "Empty connector that delays the action. The reader already knows events are sequential.",
+      "Occasionally used as a deliberate dramatic beat — the rewriter should judge."],
+
+    [1, "EMPTY_TRANSITION", "(?:^|(?<=\\.\\s{1,2}))After that\\b", "gm",
+      "Cut 'After that' — start with the action.", 0,
+      "Empty connector that delays the action.",
+      null],
+
+    [1, "EMPTY_TRANSITION", "(?:^|(?<=\\.\\s{1,2}))All of a sudden\\b", "gm",
+      "Cut 'All of a sudden' — just describe what happened.", 0,
+      "Telling the reader something is sudden instead of making the prose feel sudden through pacing.",
+      null],
+  ]
+
+  for (const p of patterns) {
+    insert.run(...p)
+  }
 }
 
 // ── Run management ───────────────────────────────────────────────────────
@@ -159,12 +334,12 @@ export function snapshotModelConfig(): string {
   return JSON.stringify(AGENT_MODELS)
 }
 
-export function createRun(runType: string, runRef?: string, label?: string): number {
+export function createRun(runType: string, runRef?: string, label?: string, experimentId?: number): number {
   const db = getCentralDB()
   const config = snapshotModelConfig()
   const result = db.run(
-    "INSERT INTO runs (run_type, run_ref, model_config, label) VALUES (?, ?, ?, ?)",
-    [runType, runRef ?? null, config, label ?? null],
+    "INSERT INTO runs (run_type, run_ref, model_config, label, experiment_id) VALUES (?, ?, ?, ?, ?)",
+    [runType, runRef ?? null, config, label ?? null, experimentId ?? null],
   )
   const runId = Number(result.lastInsertRowid)
 
@@ -481,6 +656,11 @@ export function createTuningExperiment(
     [type, description, JSON.stringify(config)],
   )
   return Number(result.lastInsertRowid)
+}
+
+export function concludeExperiment(experimentId: number, conclusion: string) {
+  const db = getCentralDB()
+  db.run("UPDATE tuning_experiments SET conclusion = ? WHERE id = ?", [conclusion, experimentId])
 }
 
 export function saveTuningResult(

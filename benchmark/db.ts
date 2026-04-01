@@ -24,6 +24,7 @@ import {
   compareRuns as _compareRuns,
   getModelStats as _getModelStats,
   createTuningExperiment as _createTuningExperiment,
+  concludeExperiment as _concludeExperiment,
   saveTuningResult as _saveTuningResult,
   getTuningExperiments as _getTuningExperiments,
   getTuningResults as _getTuningResults,
@@ -49,6 +50,7 @@ export const getAgentModelScores = _getAgentModelScores
 export const compareRuns = _compareRuns
 export const getModelStats = _getModelStats
 export const createTuningExperiment = _createTuningExperiment
+export const concludeExperiment = _concludeExperiment
 export const saveTuningResult = _saveTuningResult
 export const getTuningExperiments = _getTuningExperiments
 export const getTuningResults = _getTuningResults
