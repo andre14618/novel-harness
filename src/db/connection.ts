@@ -109,5 +109,29 @@ function migrate(): void {
       created_at TEXT DEFAULT (datetime('now')),
       PRIMARY KEY (novel_id, pass_number, chapter_number)
     );
+
+    CREATE TABLE IF NOT EXISTS llm_calls (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      novel_id TEXT NOT NULL,
+      timestamp TEXT NOT NULL DEFAULT (datetime('now')),
+      agent TEXT NOT NULL,
+      model TEXT NOT NULL,
+      provider TEXT NOT NULL,
+      temperature REAL NOT NULL,
+      max_tokens INTEGER NOT NULL,
+      thinking INTEGER NOT NULL DEFAULT 0,
+      system_prompt_length INTEGER NOT NULL,
+      user_prompt_length INTEGER NOT NULL,
+      prompt_tokens INTEGER NOT NULL,
+      completion_tokens INTEGER NOT NULL,
+      total_latency_ms INTEGER NOT NULL,
+      tokens_per_sec INTEGER NOT NULL DEFAULT 0,
+      json_extraction_success INTEGER NOT NULL DEFAULT 1,
+      json_extraction_retried INTEGER NOT NULL DEFAULT 0,
+      zod_validation_success INTEGER NOT NULL DEFAULT 1,
+      zod_errors TEXT,
+      http_attempts INTEGER NOT NULL DEFAULT 1,
+      retry_errors TEXT
+    );
   `)
 }
