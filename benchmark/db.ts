@@ -28,6 +28,11 @@ import {
   saveTuningResult as _saveTuningResult,
   getTuningExperiments as _getTuningExperiments,
   getTuningResults as _getTuningResults,
+  getExperimentRuns as _getExperimentRuns,
+  getExperimentScores as _getExperimentScores,
+  getExperimentLintSummary as _getExperimentLintSummary,
+  getExperimentCost as _getExperimentCost,
+  saveExperimentSummary as _saveExperimentSummary,
 } from "../data/db"
 
 export type { DimensionAvg, LLMCallData } from "../data/db"
@@ -54,6 +59,11 @@ export const concludeExperiment = _concludeExperiment
 export const saveTuningResult = _saveTuningResult
 export const getTuningExperiments = _getTuningExperiments
 export const getTuningResults = _getTuningResults
+export const getExperimentRuns = _getExperimentRuns
+export const getExperimentScores = _getExperimentScores
+export const getExperimentLintSummary = _getExperimentLintSummary
+export const getExperimentCost = _getExperimentCost
+export const saveExperimentSummary = _saveExperimentSummary
 
 // Benchmark-specific wrapper for logging LLM calls
 export function saveLLMCall(

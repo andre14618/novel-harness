@@ -11,9 +11,14 @@ export interface Variant {
 export interface ExperimentBatch {
   name: string
   description: string
-  variants: Variant[]
+  variants?: Variant[]           // explicit variants
   runsPerSeed?: number          // default 2
   seedFilter?: string[]         // run only these seeds (by name); empty = all
+  matrix?: {                    // auto-generate variants from cartesian product
+    models?: Array<{ id: string; provider: string; label: string }>
+    prompts?: Array<{ label: string; systemPrompt: string }>
+    temperatures?: number[]
+  }
 }
 
 export interface VariantScore {

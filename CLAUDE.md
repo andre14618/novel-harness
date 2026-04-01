@@ -51,8 +51,12 @@ benchmark/
   calibrate.ts      ← judge model calibration (discrimination, consistency, TPS)
   tuning-log.md     ← persistent record of all tuning experiment conclusions
   prose/            ← writer output quality (penalty-based scoring)
-    run.ts          ← Telling, Dead Weight, Dialogue (issue counts, lower = better)
+    run.ts          ← quick-iteration benchmark (single writer config)
+    experiment-runner.ts ← unified experiment runner (multi-variant, matrix support)
+    shared.ts       ← shared functions (loadSeeds, generateProse, judgeDimension)
+    summary.ts      ← auto-generate experiment summary markdown
     judges/         ← rubric .md per dimension + schema.ts
+    experiments/    ← batch definitions (types.ts + batch-*.ts files)
   planning/         ← planning-plotter output quality
     run.ts          ← Beat Specificity, Dialogue Cues, Emotional Arc
     judges/
@@ -63,6 +67,10 @@ benchmark/
     run.ts          ← Issue Detection, Fix Quality (needs fixtures/)
     judges/
 ```
+
+**Unified experiment system:** Both `run.ts` and `experiment-runner.ts` store all results in the same tables (`generations` + `scores`). Each experiment variant gets its own `run_id` linked to a `tuning_experiment`. The experiment runner auto-lints all generated prose and auto-generates markdown summaries.
+
+**Matrix experiments:** Define model × prompt × temperature axes in `ExperimentBatch.matrix`. The runner computes the cartesian product and runs all combinations.
 
 All benchmark data goes to central `data/harness.db`. Every LLM call logged with agent, model, tokens, TPS, cost.
 
@@ -152,6 +160,13 @@ BENCHMARK_SEEDS="romance-drama,dark-fantasy" BENCHMARK_RUNS=5 bun benchmark/pros
 
 # Link benchmark run to an experiment (tracks what changed + why)
 EXPERIMENT_ID=9 BENCHMARK_SEEDS="romance-drama" bun benchmark/prose/run.ts
+
+# Experiments (multi-variant, matrix support)
+bun benchmark/prose/experiments/batch-1-prompts.ts    # run a batch experiment
+# Matrix experiments defined in batch files with ExperimentBatch.matrix:
+#   models × prompts × temperatures → auto-generates all combinations
+# All results go to generations + scores (same tables as run.ts)
+# Auto-lints prose and generates summary to tuning_experiments.summary
 
 # Lean iteration mode (single judge, fewer runs)
 BENCHMARK_JUDGES="Qwen3 32B" BENCHMARK_RUNS=2 bun benchmark/prose/run.ts

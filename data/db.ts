@@ -164,6 +164,8 @@ function migrate(db: Database) {
   }
   addColumnIfMissing("runs", "experiment_id", "INTEGER REFERENCES tuning_experiments(id)")
   addColumnIfMissing("tuning_experiments", "conclusion", "TEXT")
+  addColumnIfMissing("tuning_experiments", "summary", "TEXT")
+  addColumnIfMissing("generations", "variant_label", "TEXT")
 }
 
 // ── Lint pattern seeding ─────────────────────────────────────────────────
@@ -411,14 +413,14 @@ export function logLLMCall(runId: number, data: LLMCallData) {
 
 export function saveGeneration(
   runId: number, seed: string, attempt: number,
-  data: { prose?: string; wordCount?: number; latencyMs?: number; tokensPerSec?: number; completionTokens?: number; passed: boolean },
+  data: { prose?: string; wordCount?: number; latencyMs?: number; tokensPerSec?: number; completionTokens?: number; passed: boolean; variantLabel?: string },
 ): number {
   const db = getCentralDB()
   const result = db.run(
-    `INSERT INTO generations (run_id, seed, attempt, prose, word_count, latency_ms, tokens_per_sec, completion_tokens, passed)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO generations (run_id, seed, attempt, prose, word_count, latency_ms, tokens_per_sec, completion_tokens, passed, variant_label)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [runId, seed, attempt, data.prose ?? null, data.wordCount ?? null, data.latencyMs ?? null,
-     data.tokensPerSec ?? null, data.completionTokens ?? null, data.passed ? 1 : 0],
+     data.tokensPerSec ?? null, data.completionTokens ?? null, data.passed ? 1 : 0, data.variantLabel ?? null],
   )
   return Number(result.lastInsertRowid)
 }
@@ -706,6 +708,80 @@ export function getTuningResults(experimentId: number): Array<{
   return db.query<any, [number]>(
     "SELECT model, rubric, sample, run, score, issues, reasoning, latency_ms as latencyMs, failed FROM tuning_results WHERE experiment_id = ? ORDER BY rubric, sample, run",
   ).all(experimentId)
+}
+
+// ── Experiment queries (unified) ────────────────────────────────────────
+
+export function getExperimentRuns(experimentId: number): Array<{
+  runId: number; label: string | null; variantLabel: string | null; timestamp: string
+}> {
+  const db = getCentralDB()
+  return db.query<any, [number]>(`
+    SELECT r.id as runId, r.label, g.variant_label as variantLabel, r.timestamp
+    FROM runs r
+    LEFT JOIN generations g ON g.run_id = r.id AND g.variant_label IS NOT NULL
+    WHERE r.experiment_id = ?
+    GROUP BY r.id
+    ORDER BY r.id
+  `).all(experimentId)
+}
+
+export function getExperimentScores(experimentId: number): Array<{
+  variantLabel: string; dimension: string; avg: number; stddev: number; count: number
+}> {
+  const db = getCentralDB()
+  return db.query<any, [number]>(`
+    SELECT COALESCE(g.variant_label, r.label) as variantLabel,
+           s.dimension,
+           ROUND(AVG(s.score), 2) as avg,
+           ROUND(SQRT(AVG(s.score * s.score) - AVG(s.score) * AVG(s.score)), 2) as stddev,
+           COUNT(*) as count
+    FROM scores s
+    JOIN generations g ON g.id = s.generation_id
+    JOIN runs r ON r.id = g.run_id
+    WHERE r.experiment_id = ? AND g.passed = 1
+    GROUP BY variantLabel, s.dimension
+    ORDER BY variantLabel, s.dimension
+  `).all(experimentId)
+}
+
+export function getExperimentLintSummary(experimentId: number): Array<{
+  variantLabel: string; category: string; count: number
+}> {
+  const db = getCentralDB()
+  return db.query<any, [number]>(`
+    SELECT COALESCE(g.variant_label, r.label) as variantLabel,
+           lp.category,
+           COUNT(*) as count
+    FROM lint_issues li
+    JOIN lint_patterns lp ON lp.id = li.pattern_id
+    JOIN generations g ON g.id = li.generation_id
+    JOIN runs r ON r.id = g.run_id
+    WHERE r.experiment_id = ?
+    GROUP BY variantLabel, lp.category
+    ORDER BY variantLabel, count DESC
+  `).all(experimentId)
+}
+
+export function getExperimentCost(experimentId: number): Array<{
+  variantLabel: string; totalCost: number; totalCalls: number
+}> {
+  const db = getCentralDB()
+  return db.query<any, [number]>(`
+    SELECT r.label as variantLabel,
+           ROUND(SUM(lc.cost), 6) as totalCost,
+           COUNT(*) as totalCalls
+    FROM llm_calls lc
+    JOIN runs r ON r.id = lc.run_id
+    WHERE r.experiment_id = ?
+    GROUP BY r.label
+    ORDER BY r.label
+  `).all(experimentId)
+}
+
+export function saveExperimentSummary(experimentId: number, summary: string) {
+  const db = getCentralDB()
+  db.run("UPDATE tuning_experiments SET summary = ? WHERE id = ?", [summary, experimentId])
 }
 
 export function getPhaseStats(): Array<{
