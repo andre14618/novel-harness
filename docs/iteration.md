@@ -3,69 +3,96 @@
 ## Current Baseline
 
 ```
-No baseline set yet — run benchmark with new 3-dimension judging system to establish.
+No baseline set yet — run: BENCHMARK_JUDGES="Qwen3 32B" bun benchmark/prose/run.ts --save-baseline
 ```
 
-## Scoring Dimensions (3, scored /30 total)
+## Scoring
 
-1. **Show/Tell** — models default to exposition, narrator statements about feelings
-2. **Dialogue** — sparse, generic voices, characters sound the same
-3. **Sensory** — abstract descriptions, not grounded in setting
+3 dimensions scored by LLM judges, /30 total:
+1. **Show/Tell** — exposition vs embodied action
+2. **Dialogue** — voice distinction, subtext, naturalness
+3. **Sensory** — concrete physical grounding in setting
 
-Dropped from judging (handled by deterministic validation):
+Deterministic validation (no LLM cost) handles:
 - **Beat Adherence** — keyword coverage check in `src/validation.ts`
-- **Voice Consistency** — overlaps with Show/Tell in single-chapter benchmark; meaningful only across full novel
+- **Word count** — minimum thresholds
+- **POV/character presence** — string matching
+- **Dialogue ratio** — line counting
 
-## Improvement Levers
+## Judge Setup
 
-### Layer 1: Writer Agent Prompt (`src/agents/writer/prompt.md`)
-- Reword existing craft rules for specificity
-- Do NOT add new rules — reword or restructure existing ones
-- Prompt is currently 21 lines; keep it under 25
-- Test: `bun benchmark/prose/run.ts`
+**Iteration judge**: Qwen3 32B on Groq — only tested model with 100% discrimination at $0.04/45 calls.
+
+**Why not other models**: every model >32B tested (235B, 120B, 70B, GPT-5.4-mini) scores MID=STRONG — can't detect improvement. May be fixable with count-based rubric revisions (see Rubric Improvement below).
+
+**DeepSeek V3.2**: 67% discrimination, very cheap ($0.033), but 27 tok/s makes it impractical for iteration. Useful for async/batch comprehensive runs.
+
+## Improvement Levers (priority order)
+
+### Layer 1: Writer Prompt (`src/agents/writer/prompt.md`)
+Current: 21 lines, 6 craft rules. Each rule is independently testable.
+
+| Rule | What to test |
+|------|-------------|
+| Show don't tell (line 17) | More specific violation patterns |
+| Document rendering (line 18) | May be fine — check if it hurts word count |
+| Dialogue minimum (line 19) | Test "3 exchanges" or "every multi-char beat needs dialogue" |
+| Backstory prohibition (line 20) | More specific trigger phrases |
+| Sensory anchoring (line 21) | "Two senses per scene" or specify senses per setting |
+| Word count enforcement (line 13) | Reword — likely causes padding/filler |
 
 ### Layer 2: Context Assembly (`src/agents/writer/context.ts`)
-- **Highest-impact change identified by diagnostic:** interleave character speech patterns with scene beats instead of listing separately
-- Move craft reminders before scene beats, not after everything
-- Restructure context order: chapter header → craft reminders → scene blocks (beat + characters + speech patterns) → world rules → previous chapters
-- Test: `bun benchmark/prose/run.ts`
+Current order: header → beats → characters → states → world → history → craft reminders
+
+| Change | Rationale |
+|--------|-----------|
+| Move craft reminders before scene beats | Model forgets instructions by end of context |
+| Interleave speech patterns with scene beats | Characters listed separately from beats — model never looks back |
+| Remove redundant craft reminders | Lines 75-78 repeat prompt.md, diluting signal |
+| Reorder: header → craft → scenes → world → history | Puts instructions closer to where they matter |
 
 ### Layer 3: Planning Plotter (`src/agents/planning-plotter/prompt.md`)
 - Beat quality determines writer output quality
-- More specific beats → better prose (diagnostic confirmed)
+- More specific beats → better prose
 - Require beats to specify dialogue moments and physical actions
-- Test: full harness run (`bun src/index.ts --auto`), then benchmark the output
+- Test: `bun benchmark/planning/run.ts`
 
 ### Layer 4: Model Selection (`models/roles.ts`)
 - Change model for any agent individually
 - Test different models for writer vs extractors vs validators
-- Use `bun benchmark/calibrate.ts` to evaluate new judge models
-- Test: benchmark with changed model assignment
+- Use `bun benchmark/calibrate.ts` to evaluate new models
+- Central DB tracks which model config each run used — `compareRuns()` shows impact
 
 ### Layer 5: Upstream Agents
-- **Character Agent** — richer speech patterns lead to better dialogue
-- **World Builder** — more specific sensory details in locations lead to better anchoring
-- **Plotter** — emotional arc quality affects voice consistency
-- Test: full harness run, compare chapter output
+- **Character Agent** — richer speech patterns → better dialogue
+- **World Builder** — more specific sensory details → better anchoring
+- **Plotter** — emotional arc quality → voice consistency
 
 ### Layer 6: Validation Phase
+- Doesn't improve first-draft quality but improves final output
 - Cross-chapter continuity catches drift
 - Prose quality pass catches show/tell violations
 - Rewriter fixes flagged issues
-- These don't improve first-draft quality, but improve final output
-- Test: run harness with and without validation, compare
 
-## Improvement Workflow
+## Workflow
 
 ```
-1. Run /diagnose in Claude Code to analyze latest benchmark
-2. Pick ONE change (single variable)
-3. Edit the relevant file (prompt.md, context.ts, roles.ts, or config.ts)
-4. Run: bun benchmark/prose/run.ts
-5. Check delta vs baseline
-6. If improved: commit with scores, run --save-baseline
-7. If flat/worse: revert, try the next suggestion
+1. BENCHMARK_JUDGES="Qwen3 32B" bun benchmark/prose/run.ts --save-baseline
+2. /diagnose in Claude Code → identifies weakest dimension + suggests change
+3. Make ONE edit (single variable)
+4. BENCHMARK_JUDGES="Qwen3 32B" bun benchmark/prose/run.ts
+5. Compare delta to baseline
+6. If improved: commit with scores, --save-baseline
+7. If flat/worse: revert, try next suggestion
 ```
+
+Cost: ~$0.04/cycle. Time: ~3-5 min/cycle. 10 experiments: ~$0.40, ~45 min.
+
+### Lean mode
+```
+BENCHMARK_JUDGES="Qwen3 32B" BENCHMARK_RUNS=2 bun benchmark/prose/run.ts
+```
+3 seeds × 2 runs × 1 judge × 3 dims = 21 calls. ~$0.02/cycle.
 
 ### Commit format
 ```
@@ -75,42 +102,42 @@ benchmark: 18.5/30 (+-2.1) S:5.8 D:6.0 X:6.7
 delta: +1.4 vs baseline | 5 seeds x 3 runs
 ```
 
-## Testing Gaps to Address
+## Rubric Improvement (potential)
 
-### Agent-level tests needed
-- **Writer context assembly** — verify context.ts produces correct structure with mock DB data
-- **Planning plotter output** — verify beats contain dialogue cues and physical actions
-- **Rewriter** — verify rewrites preserve word count within 20% and address flagged issues
-- **Cross-chapter continuity** — verify it catches known contradictions in test data
+Current rubrics use vibes-based scoring ("how good is the dialogue?"). Every model >32B gives MID 8-9, same as STRONG. Count-based rubrics may fix this:
 
-### Pipeline tests needed
-- **End-to-end with validation** — verify concept→planning→drafting→validation→done completes
-- **Resume from each phase** — verify --resume works from concept, planning, drafting, validation
-- **Multi-seed consistency** — verify harness handles all 5 seeds without failure
-- **Provider failover** — verify retry logic works on 429/503 for all agents
+- "Count every instance of narrator stating an emotion. Deduct 1 point per instance from 10."
+- "Count dialogue exchanges where speaker is identifiable without tags. Score = identifiable / total."
+- "Count paragraphs with zero sensory detail. Score = 10 - (empty paragraphs × 2)."
 
-### Benchmark tests needed
-- **Judge consistency** — `bun benchmark/calibrate.ts` tests this (consistency metric)
-- **Seed diversity** — verify no seed consistently scores >5 points above/below others
-- **Judge discrimination** — `bun benchmark/calibrate.ts` tests this (WEAK < MID < STRONG)
+This makes scoring deterministic within the LLM — the model counts violations rather than assessing impressions. Test on one failing model (GPT-OSS 120B or DeepSeek) to see if discrimination improves.
 
 ## Provider Strategy
 
-| Use case | Provider | Model | Notes |
-|----------|----------|-------|-------|
-| Iteration (all agents) | Groq | Qwen3 32B | Fast, cheap, current default |
-| Quality runs | Cerebras | Qwen3 235B | Higher cost, test if quality improves |
-| Benchmark judges | OpenRouter | Gemini 3 Flash | 100% discrimination, cheapest |
-| Benchmark judges | Groq | Qwen3 32B | 100% discrimination, fast |
-| Diagnostic | Claude Code | /diagnose | In-conversation, no API cost |
+| Use case | Model | Provider | Cost/cycle | Notes |
+|----------|-------|----------|-----------|-------|
+| Iteration (all agents) | Qwen3 32B | Groq | $0.04 | Fast, cheap, proven judge |
+| Iteration (lean) | Qwen3 32B | Groq | $0.02 | 3 seeds × 2 runs |
+| Quality comparison | Qwen3 235B | Cerebras | higher | Test if prose quality improves |
+| Async judging | DeepSeek V3.2 | DeepSeek | $0.03 | Slow but cheap, 67% discrimination |
+| Batch judging | GPT-5.4-mini | OpenAI Batch | 50% off | Needs batch API implementation |
+| Diagnostic | Claude Code | /diagnose | $0.00 | Full codebase access |
 
-See `models/registry.ts` for full model catalog with pricing and specs.
+## Data Tracking
 
-## Next Steps (prioritized)
+All runs (novel + benchmark) write to `data/harness.db`:
+- `run_agents` table snapshots which model each agent used per run
+- `llm_calls` table tracks every call with tokens, TPS, cost, agent, phase
+- `compareRuns(idA, idB)` shows config diff + score diff + cost diff
+- `getAgentModelScores()` shows which model+agent combos work best
+- `bun scripts/cost-summary.ts --global` for all-time stats
 
-1. Run `bun benchmark/prose/run.ts --save-baseline` to establish new 3-dimension baseline
-2. Apply diagnostic suggestion: restructure writer context to interleave beats with character data
-3. Benchmark, save new baseline if improved
-4. Test cheaper models for extractors/validators (GPT-OSS 20B, Llama 4 Scout)
-5. Add 2 more seeds for better genre coverage
-6. Test Cerebras 235B baseline for quality ceiling comparison
+## Next Steps
+
+1. Establish prose baseline with Qwen3 32B judge
+2. Test count-based rubric revision on show-tell dimension
+3. Iterate on writer prompt (6 craft rules, one at a time)
+4. Iterate on writer context assembly order
+5. Run planning benchmark baseline
+6. Test Cerebras 235B as writer for quality ceiling comparison
+7. Build continuity fixtures for continuity benchmark

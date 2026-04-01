@@ -36,56 +36,53 @@ src/agents/{name}/
 
 ```
 models/
-  registry.ts   ← all available models, providers, pricing, specs (informational)
-  roles.ts      ← which model each agent uses (one file to change)
+  registry.ts   ← all available models, providers, pricing, specs, observed TPS
+  roles.ts      ← which model each agent uses (one file to change all assignments)
 ```
 
-Per-agent model assignment in `models/roles.ts`:
-
-```ts
-export const AGENT_MODELS = {
-  "writer":                    groqQwen32B,
-  "rewriter":                  groqQwen32B,
-  "world-builder":             groqQwen32B,
-  "character-agent":           groqQwen32B,
-  "plotter":                   groqQwen32B,
-  "planning-plotter":          groqQwen32B,
-  "summary-extractor":         groqQwen32B,
-  "fact-extractor":            groqQwen32B,
-  "character-state":           groqQwen32B,
-  "continuity":                groqQwen32B,
-  "cross-chapter-continuity":  groqQwen32B,
-  "prose-quality":             groqQwen32B,
-}
-```
-
-Resolution order: `models/roles.ts` → `.env` global default → fallback to `qwen/qwen3-32b`.
+Per-agent model assignment in `models/roles.ts`. Resolution: `roles.ts` → `.env` global default → fallback `qwen/qwen3-32b`.
 
 ### Benchmark system
 
 ```
 benchmark/
-  config.ts         ← shared writer/judge model selection
-  db.ts             ← shared SQLite DB (benchmark_type distinguishes benchmarks)
-  calibrate.ts      ← judge model calibration test
+  config.ts         ← writer/judge model selection (env-driven)
+  db.ts             ← re-exports from central data/db.ts
+  calibrate.ts      ← judge model calibration (discrimination, consistency, TPS)
   prose/            ← writer output quality
-    run.ts          ← bun benchmark/prose/run.ts
-    judges/         ← Show/Tell, Dialogue, Sensory
+    run.ts          ← Show/Tell, Dialogue, Sensory
+    judges/         ← rubric .md per dimension + schema.ts
   planning/         ← planning-plotter output quality
-    run.ts          ← bun benchmark/planning/run.ts
-    judges/         ← Beat Specificity, Dialogue Cues, Emotional Arc
+    run.ts          ← Beat Specificity, Dialogue Cues, Emotional Arc
+    judges/
   extraction/       ← extractor accuracy and completeness
-    run.ts          ← bun benchmark/extraction/run.ts
-    judges/         ← Completeness, Accuracy
+    run.ts          ← Completeness, Accuracy (uses existing novel output)
+    judges/
   continuity/       ← continuity checker detection rate
-    run.ts          ← bun benchmark/continuity/run.ts
-    judges/         ← Issue Detection, Fix Quality
-    fixtures/       ← JSON test cases with planted contradictions
+    run.ts          ← Issue Detection, Fix Quality (needs fixtures/)
+    judges/
 ```
 
-Each benchmark type has its own `run.ts`, judges/rubrics, and scoring dimensions. All share the same SQLite DB tagged by `benchmark_type`. All LLM calls are logged with cost and TPS.
+All benchmark data goes to central `data/harness.db`. Every LLM call logged with agent, model, tokens, TPS, cost.
 
-### DB modules
+### Central data layer
+
+```
+data/
+  db.ts           ← central operational DB schema + all query functions
+  harness.db      ← the DB file (gitignored)
+```
+
+Tables: `runs`, `run_agents`, `llm_calls`, `generations`, `scores`, `baselines`
+
+Key queries:
+- `getModelStats()` — global per-model cost, TPS, call count
+- `getAgentStats()` — per-agent cost and performance
+- `getAgentModelScores()` — cross-run comparison of agent+model combos
+- `compareRuns()` — diff two runs (config changes, score deltas, cost)
+- `getCallSummary()` — per-agent breakdown for a specific run
+
+### DB modules (per-novel creative content)
 
 ```
 src/db/
@@ -101,26 +98,12 @@ src/db/
   validation-passes.ts ← validation pass tracking
 ```
 
-### Central data layer
-
-```
-data/
-  db.ts           ← central operational DB (all LLM calls, run configs, scores)
-  harness.db      ← the DB file (gitignored)
-```
-
-All LLM calls from both novel runs and benchmarks go here. Queryable across all runs:
-- `getModelStats()` — global per-model cost, TPS, call count
-- `getAgentStats()` — per-agent cost and performance
-- `getAgentModelScores()` — cross-run comparison of agent+model combos
-- `compareRuns()` — diff two runs (config changes, score deltas, cost)
-
 ### Config
 
 ```
 src/config/
   pipeline.ts   ← maxDraftAttempts, maxValidationPasses, maxChapterRewrites
-  pricing.ts    ← re-exports from models/registry.ts
+  pricing.ts    ← re-exports getTokenCost from models/registry.ts
 ```
 
 ## Running
@@ -135,35 +118,33 @@ bun src/index.ts --resume novel-123456     # resume from checkpoint
 bun benchmark/prose/run.ts                 # prose quality (Show/Tell, Dialogue, Sensory)
 bun benchmark/planning/run.ts              # planning quality (Beat Specificity, Dialogue Cues, Arc)
 bun benchmark/extraction/run.ts            # extraction quality (Completeness, Accuracy)
-bun benchmark/continuity/run.ts            # continuity detection (Detection, Fix Quality)
-bun benchmark/prose/run.ts --save-baseline # save scores as baseline (works for all types)
-BENCHMARK_PROVIDER=groq bun benchmark/prose/run.ts     # use specific provider
-BENCHMARK_JUDGES="Gemini 3 Flash,Qwen3 32B" bun benchmark/prose/run.ts  # specify judges
+bun benchmark/continuity/run.ts            # continuity detection (needs fixtures/)
+bun benchmark/prose/run.ts --save-baseline # save scores as baseline
+
+# Lean iteration mode (single judge, fewer runs)
+BENCHMARK_JUDGES="Qwen3 32B" BENCHMARK_RUNS=2 bun benchmark/prose/run.ts
 
 # Judge calibration
 bun benchmark/calibrate.ts                 # test all available models as judges
-CALIBRATE_MODELS="GPT-OSS,Scout" bun benchmark/calibrate.ts  # test specific models
+CALIBRATE_MODELS="DeepSeek,Scout" bun benchmark/calibrate.ts  # test specific models
 
 # Cost & performance analysis
 bun scripts/cost-summary.ts               # most recent run
 bun scripts/cost-summary.ts 5             # specific run by ID
 bun scripts/cost-summary.ts --global      # all-time model/agent/phase stats
-bun scripts/cost-summary.ts --runs novel  # list recent novel runs
-bun scripts/cost-summary.ts --runs prose-benchmark  # list recent prose benchmarks
+bun scripts/cost-summary.ts --runs novel  # list recent runs by type
 ```
 
 ## Logging
 
-Each novel run produces:
 - `output/{novelId}/harness.log` — human-readable phase/checkpoint log
-- `output/{novelId}/llm-calls.jsonl` — structured per-call log (timing, tokens, cost, validation chain, errors)
-
-Every LLM call shows cost in real-time: `[LLM] Response: 450+1200 tokens ($0.0017)`
+- `data/harness.db` → `llm_calls` table — all LLM calls with tokens, TPS, cost, agent, phase, model
+- Every LLM call shows cost in real-time: `[LLM] Response: 450+1200 tokens ($0.0017)`
 
 ## Testing
 
 ```bash
-bun test     # 148 tests across 8 files
+bun test     # 150 tests across 8 files
 ```
 
 ## Seeds
@@ -175,19 +156,42 @@ Test inputs in `src/seeds/`:
 - `noir-mystery.json` — retired detective, letter from a murder victim
 - `historical-drama.json` — court translator in 1920s Istanbul
 
+## Backups
+
+Pre-commit hook (`scripts/backup-dbs.sh`) safely backs up all SQLite DBs to `backups/` using `sqlite3 .backup` (WAL-safe). Keeps last 20 timestamped snapshots per DB.
+
+## Judge Calibration Results
+
+Tested 2026-04-01. Only Qwen3 32B discriminates reliably at low cost:
+
+| Judge | Discrimination | Consistency | Speed | Cost (45 calls) |
+|-------|---------------|-------------|-------|-----------------|
+| **Qwen3 32B (Groq)** | **100%** | 0.3 spread | 662 tok/s | $0.040 |
+| Gemini 3 Flash (OR) | 100% | 0.0 spread | — | $0.135 |
+| DeepSeek V3.2 | 67% | 0.2 spread | 27 tok/s | $0.033 |
+| Kimi K2 (Groq) | 67% | 0.3 spread | — | — |
+| Llama 3.3 70B (Groq) | 33% | 0.0 spread | 150 tok/s | — |
+| GPT-5.4-mini (OpenAI) | 33% | 0.6 spread | — | — |
+| Qwen3 235B (Cerebras) | 33% | 0.0 spread | — | — |
+| GPT-OSS 120B (Cerebras) | 0% | 0.2 spread | 551 tok/s | — |
+
+Pattern: models >32B score MID=STRONG (can't detect improvement). May be fixable with count-based rubric revisions.
+
 ## Iterative Improvement Workflow
 
-1. Edit an agent's `prompt.md` or `context.ts`, or change a model in `models/roles.ts`
-2. Run `bun benchmark/prose/run.ts`
-3. Compare scores to baseline
-4. Run `/diagnose` in Claude Code for analysis of weak dimensions
-5. Commit with benchmark scores:
-   ```
-   [agent:writer] Add backstory prohibition rule
+1. `bun benchmark/prose/run.ts --save-baseline` — establish baseline
+2. `/diagnose` in Claude Code — analyze weak dimensions
+3. Make ONE change (prompt.md, context.ts, or roles.ts)
+4. `BENCHMARK_JUDGES="Qwen3 32B" bun benchmark/prose/run.ts` — measure delta
+5. If improved: commit with scores, `--save-baseline`
+6. If flat/worse: revert, next suggestion
 
-   benchmark: 18.5/30 (+-2.1) S:5.8 D:6.0 X:6.7
-   delta: +1.4 vs baseline | 5 seeds x 3 runs
-   ```
-6. Run `bun benchmark/prose/run.ts --save-baseline` if keeping the change
+Commit format:
+```
+[agent:writer] Description of what changed
 
-See `docs/iteration.md` for the full improvement pathway.
+benchmark: 18.5/30 (+-2.1) S:5.8 D:6.0 X:6.7
+delta: +1.4 vs baseline | 5 seeds x 3 runs
+```
+
+Cost per iteration cycle: ~$0.04 (single judge, 5 seeds × 3 runs). See `docs/iteration.md` for the full improvement pathway and `docs/batch-processing.md` for async cost reduction strategies.

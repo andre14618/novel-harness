@@ -119,18 +119,17 @@ CREATE TABLE batches (
 
 ## Priority
 
-1. **DeepSeek as judge** — easiest win, just add to config and run calibration. Automatic caching, no new code needed.
-2. **OpenAI Batch for judges** — biggest discount, moderate implementation effort.
+1. **OpenAI Batch for judges** — 50% off, moderate implementation effort. Makes GPT-5.4-mini competitive.
+2. **DeepSeek sequential judging** — automatic prefix caching, no new code. 67% discrimination (fails Dialogue). Very slow (27 tok/s) — only useful in async/batch mode.
 3. **Batch generation runs** — useful for model comparison at scale.
 4. **Batch full harness** — most complex, tackle when the simpler paths are proven.
 
-## Cost Comparison (135 judge calls, ~2K tokens each)
+## Cost Comparison (45 judge calls, ~1.5K input + ~750 output each)
 
-| Approach | Input cost | Output cost | Total | vs Real-time Gemini |
-|----------|-----------|-------------|-------|-------------------|
-| Gemini Flash (real-time) | $0.04 | $0.05 | ~$0.09 | baseline |
-| Qwen3 32B Groq (real-time) | $0.08 | $0.08 | ~$0.16 | 1.8× |
-| GPT-5.4-mini (real-time) | $0.11 | $0.22 | ~$0.33 | 3.7× |
-| GPT-5.4-mini (batch 50% off) | $0.05 | $0.11 | ~$0.16 | 1.8× |
-| DeepSeek V3.2 (cached prefix) | $0.01 | $0.06 | ~$0.07 | 0.8× |
-| DeepSeek V3.2 (batch if available) | lower | $0.06 | ~$0.04 | 0.4× |
+| Approach | Total (45 calls) | Discrimination | Speed | Notes |
+|----------|-----------------|----------------|-------|-------|
+| **Qwen3 32B Groq (real-time)** | **$0.040** | **100%** | 662 tok/s | Current best for iteration |
+| DeepSeek V3.2 (cached prefix) | $0.020 | 67% | 27 tok/s | Cheap but slow, misses Dialogue |
+| GPT-5.4-mini (real-time) | $0.090 | 33% | — | Expensive + poor discrimination |
+| GPT-5.4-mini (batch 50% off) | $0.045 | 33% | async | Still poor discrimination |
+| Gemini Flash (real-time) | $0.135 | 100% | — | Good but 3x Qwen3 cost |
