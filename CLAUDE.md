@@ -76,7 +76,7 @@ data/
   harness.db      ← the DB file (gitignored)
 ```
 
-Tables: `runs`, `run_agents`, `llm_calls`, `generations`, `scores`, `baselines`
+Tables: `runs`, `run_agents`, `llm_calls`, `generations`, `scores`, `baselines`, `lint_patterns`, `lint_issues`, `tuning_experiments`, `tuning_results`
 
 Key queries:
 - `getModelStats()` — global per-model cost, TPS, call count
@@ -84,6 +84,28 @@ Key queries:
 - `getAgentModelScores()` — cross-run comparison of agent+model combos
 - `compareRuns()` — diff two runs (config changes, score deltas, cost)
 - `getCallSummary()` — per-agent breakdown for a specific run
+
+### Deterministic lint system
+
+```
+src/lint/
+  index.ts        ← flagger engine, DB persistence, pattern management
+  test-all.ts     ← test flagger against all stored generations
+```
+
+DB-driven prose flagger — no LLM calls. Detection patterns live in `lint_patterns` table (not code), flagged issues in `lint_issues` with FK back to both the generation and the pattern that caught it.
+
+**Pattern tiers:**
+- **Tier 1** (current) — zero ambiguity: filler phrases, redundant body language, redundant adverb+verb, empty transitions
+- **Tier 2** (planned) — context-aware: filter words, declared emotions, said bookisms (outside dialogue only)
+
+**Architecture:** Flagger optimizes for recall (catch everything). Rewriter optimizes for precision (skip false positives). The `resolved` + `rewrite_result` columns on `lint_issues` track rewriter decisions per-flag. `getPatternStats()` shows per-pattern hit/skip rates for measuring precision over time.
+
+**Key functions:**
+- `lintProse(prose, tier?)` — run flagger, returns issues
+- `lintRun(runId)` — lint all generations for a run, persist to DB
+- `togglePattern(id, enabled)` — enable/disable patterns without code changes
+- `getPatternStats(runId?)` — per-pattern hit count + skip rate
 
 ### DB modules (per-novel creative content)
 
@@ -143,6 +165,9 @@ bun scripts/cost-summary.ts               # most recent run
 bun scripts/cost-summary.ts 5             # specific run by ID
 bun scripts/cost-summary.ts --global      # all-time model/agent/phase stats
 bun scripts/cost-summary.ts --runs novel  # list recent runs by type
+
+# Deterministic lint
+bun src/lint/test-all.ts                  # lint all prose runs, persist to DB, show pattern stats
 ```
 
 ## Logging
