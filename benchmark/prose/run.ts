@@ -376,7 +376,7 @@ async function main() {
   }
 
   console.log(`\n  Run ID: ${runId}`)
-  console.log(`  DB: benchmark/results/benchmark.db`)
+  console.log(`  DB: data/harness.db`)
 }
 
 main()

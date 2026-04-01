@@ -2,9 +2,9 @@ Analyze the latest benchmark results and suggest targeted improvements to the no
 
 ## Steps
 
-1. **Find the latest benchmark results.** Query the SQLite database at `benchmark/results/benchmark.db`. Get the most recent run and check if a baseline exists. If the DB doesn't exist or has no runs, tell the user to run `bun benchmark/prose/run.ts` first and stop.
+1. **Find the latest benchmark results.** Query the SQLite database at `data/harness.db`. Get the most recent run and check if a baseline exists. If the DB doesn't exist or has no runs, tell the user to run `bun benchmark/prose/run.ts` first and stop.
 
-2. **Query the benchmark DB.** Use sqlite3 or Bun to query `benchmark/results/benchmark.db`. Key queries:
+2. **Query the benchmark DB.** Use sqlite3 or Bun to query `data/harness.db`. Key queries:
    - `SELECT s.dimension, ROUND(AVG(s.score),1) as avg FROM scores s JOIN generations g ON s.generation_id=g.id WHERE g.run_id=(SELECT MAX(id) FROM runs WHERE benchmark_type='prose') AND g.passed=1 GROUP BY s.dimension` — per-dimension averages
    - `SELECT g.seed, s.dimension, ROUND(AVG(s.score),1) as avg FROM scores s JOIN generations g ON s.generation_id=g.id WHERE g.run_id=(SELECT MAX(id) FROM runs WHERE benchmark_type='prose') AND g.passed=1 GROUP BY g.seed, s.dimension` — per-seed breakdown
    - `SELECT g.id, g.seed, g.attempt, ROUND(AVG(s.score),1) as avg FROM generations g JOIN scores s ON s.generation_id=g.id WHERE g.run_id=(SELECT MAX(id) FROM runs WHERE benchmark_type='prose') AND g.passed=1 GROUP BY g.id ORDER BY avg ASC LIMIT 3` — weakest generations

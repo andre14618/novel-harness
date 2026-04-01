@@ -1,7 +1,6 @@
 node_modules/
 dist/
 output/
-benchmark/results/
 data/harness.db
 data/harness.db-shm
 data/harness.db-wal

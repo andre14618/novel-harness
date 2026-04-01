@@ -68,7 +68,6 @@ benchmark/
   config.ts         ← shared writer/judge model selection
   db.ts             ← shared SQLite DB (benchmark_type distinguishes benchmarks)
   calibrate.ts      ← judge model calibration test
-  results/          ← benchmark.db (gitignored)
   prose/            ← writer output quality
     run.ts          ← bun benchmark/prose/run.ts
     judges/         ← Show/Tell, Dialogue, Sensory
