@@ -46,11 +46,12 @@ Per-agent model assignment in `models/roles.ts`. Resolution: `roles.ts` → `.en
 
 ```
 benchmark/
-  config.ts         ← writer/judge model selection (env-driven)
+  config.ts         ← writer/judge model selection (resolves from roles.ts)
   db.ts             ← re-exports from central data/db.ts
   calibrate.ts      ← judge model calibration (discrimination, consistency, TPS)
-  prose/            ← writer output quality
-    run.ts          ← Show/Tell, Dialogue, Sensory
+  tuning-log.md     ← persistent record of all tuning experiment conclusions
+  prose/            ← writer output quality (penalty-based scoring)
+    run.ts          ← Telling, Dead Weight, Dialogue (issue counts, lower = better)
     judges/         ← rubric .md per dimension + schema.ts
   planning/         ← planning-plotter output quality
     run.ts          ← Beat Specificity, Dialogue Cues, Emotional Arc
@@ -64,6 +65,8 @@ benchmark/
 ```
 
 All benchmark data goes to central `data/harness.db`. Every LLM call logged with agent, model, tokens, TPS, cost.
+
+**Data persistence requirement:** ALL benchmark, probe, calibration, and tuning experiments MUST persist results to a database. Never write scripts that only output to stdout. Console output is for real-time monitoring; the DB is the source of truth for analysis and cross-session comparison.
 
 ### Central data layer
 
@@ -150,39 +153,44 @@ bun test     # 150 tests across 8 files
 ## Seeds
 
 Test inputs in `src/seeds/`:
-- `epic-fantasy.json` — disgraced general, empire built on a lie
+- `dark-fantasy.json` — plague doctor, cure that comes back wrong
+- `young-adult-fantasy.json` — dead familiar at a magic academy
 - `sci-fi-thriller.json` — generation ship, lying navigation AI
-- `minimal.json` — locksmith, door that shouldn't exist
-- `noir-mystery.json` — retired detective, letter from a murder victim
-- `historical-drama.json` — court translator in 1920s Istanbul
+- `romance-drama.json` — rival restaurateurs forced to share a kitchen
+- `minimal.json` — locksmith, door that shouldn't exist (sparse input stress test)
 
 ## Backups
 
 Pre-commit hook (`scripts/backup-dbs.sh`) safely backs up all SQLite DBs to `backups/` using `sqlite3 .backup` (WAL-safe). Keeps last 20 timestamped snapshots per DB.
 
-## Judge Calibration Results
+## Benchmark Scoring: Penalty Mode
 
-Tested 2026-04-01. Only Qwen3 32B discriminates reliably at low cost:
+Prose benchmark uses **penalty-based scoring** (issue counts, lower = better). 1-10 scoring was tested extensively and cannot discriminate between "competent" and "good" prose — all judges compress to 7-9.
 
-| Judge | Discrimination | Consistency | Speed | Cost (45 calls) |
-|-------|---------------|-------------|-------|-----------------|
-| **Qwen3 32B (Groq)** | **100%** | 0.3 spread | 662 tok/s | $0.040 |
-| Gemini 3 Flash (OR) | 100% | 0.0 spread | — | $0.135 |
-| DeepSeek V3.2 | 67% | 0.2 spread | 27 tok/s | $0.033 |
-| Kimi K2 (Groq) | 67% | 0.3 spread | — | — |
-| Llama 3.3 70B (Groq) | 33% | 0.0 spread | 150 tok/s | — |
-| GPT-5.4-mini (OpenAI) | 33% | 0.6 spread | — | — |
-| Qwen3 235B (Cerebras) | 33% | 0.0 spread | — | — |
-| GPT-OSS 120B (Cerebras) | 0% | 0.2 spread | 551 tok/s | — |
+**Writer:** Qwen3 32B (Groq) — set in `models/roles.ts` as `benchmark-writer`
+**Judge:** GPT-OSS 120B (Groq) — set in `models/roles.ts` as `benchmark-judge`
 
-Pattern: models >32B score MID=STRONG (can't detect improvement). May be fixable with count-based rubric revisions.
+Reliable penalty dimensions (confirmed via multi-model shootout):
+- **Telling** — filter words, declared emotions, narrator explanations. Primary target.
+- **Dead Weight** — filler phrases, redundant description, wasted sentences. Secondary target.
+- **Dialogue Problems** — on-the-nose, info dumps, uniform voice. Unreliable (inverts across runs).
+
+See `benchmark/tuning-log.md` for full tuning experiment results and rationale.
+
+### Current Baseline (Run 12)
+```
+Telling:        5.8 issues (+-2.4)
+Dead Weight:    2.1 issues (+-1.4)
+Dialogue:       2.1 issues (+-1.9)
+Cost per cycle: ~$0.058
+```
 
 ## Iterative Improvement Workflow
 
 1. `bun benchmark/prose/run.ts --save-baseline` — establish baseline
 2. `/diagnose` in Claude Code — analyze weak dimensions
 3. Make ONE change (prompt.md, context.ts, or roles.ts)
-4. `BENCHMARK_JUDGES="Qwen3 32B" bun benchmark/prose/run.ts` — measure delta
+4. `bun benchmark/prose/run.ts` — measure delta
 5. If improved: commit with scores, `--save-baseline`
 6. If flat/worse: revert, next suggestion
 
@@ -190,8 +198,8 @@ Commit format:
 ```
 [agent:writer] Description of what changed
 
-benchmark: 18.5/30 (+-2.1) S:5.8 D:6.0 X:6.7
-delta: +1.4 vs baseline | 5 seeds x 3 runs
+benchmark: 3.3 issues/dim (+-2.6) T:5.8 W:2.1 D:2.1
+delta: -0.5 vs baseline | 5 seeds x 3 runs | penalty mode
 ```
 
-Cost per iteration cycle: ~$0.04 (single judge, 5 seeds × 3 runs). See `docs/iteration.md` for the full improvement pathway and `docs/batch-processing.md` for async cost reduction strategies.
+Cost per iteration cycle: ~$0.058 (5 seeds × 3 runs, GPT-OSS 120B judge).

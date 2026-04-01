@@ -23,6 +23,10 @@ import {
   getAgentModelScores as _getAgentModelScores,
   compareRuns as _compareRuns,
   getModelStats as _getModelStats,
+  createTuningExperiment as _createTuningExperiment,
+  saveTuningResult as _saveTuningResult,
+  getTuningExperiments as _getTuningExperiments,
+  getTuningResults as _getTuningResults,
 } from "../data/db"
 
 export type { DimensionAvg, LLMCallData } from "../data/db"
@@ -44,6 +48,10 @@ export const getRecentRuns = _getRecentRuns
 export const getAgentModelScores = _getAgentModelScores
 export const compareRuns = _compareRuns
 export const getModelStats = _getModelStats
+export const createTuningExperiment = _createTuningExperiment
+export const saveTuningResult = _saveTuningResult
+export const getTuningExperiments = _getTuningExperiments
+export const getTuningResults = _getTuningResults
 
 // Benchmark-specific wrapper for logging LLM calls
 export function saveLLMCall(

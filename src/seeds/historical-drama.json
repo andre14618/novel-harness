@@ -1,9 +1,0 @@
-{
-  "premise": "A court translator in 1920s Istanbul discovers she has been unknowingly passing coded messages between two factions plotting to reshape the new republic. Both sides now need her silence.",
-  "genre": "historical drama",
-  "characters": [
-    { "name": "Leyla", "role": "protagonist", "description": "A polyglot translator at the foreign ministry. Precise, observant, politically naive. Speaks five languages but has never learned to lie." },
-    { "name": "Ismet", "role": "antagonist", "description": "A senior diplomat who has been using Leyla's translations to communicate with nationalist hardliners. Charming, paternal, ruthless when cornered." },
-    { "name": "Saoirse", "role": "supporting", "description": "An Irish journalist in Istanbul covering the republic's growing pains. Blunt, fearless, drinks too much. The only person who believes Leyla." }
-  ]
-}

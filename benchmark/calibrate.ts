@@ -16,7 +16,7 @@
 
 import { readFileSync, existsSync } from "node:fs"
 import { extractJSON } from "../src/llm"
-import { judgeScoreSchema, DIMENSIONS, DIMENSION_LABELS, type Dimension } from "./prose/judges/schema"
+import { judgeScoreSchema, CALIBRATE_DIMENSIONS as DIMENSIONS, CALIBRATE_DIMENSION_LABELS as DIMENSION_LABELS, type CalibrateDimension as Dimension } from "./prose/judges/schema"
 
 // ── Prose samples ────────────────────────────────────────────────────────
 

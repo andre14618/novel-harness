@@ -1,12 +1,12 @@
 /**
- * Benchmark writer/judge config — resolves models from the central registry.
+ * Benchmark writer/judge config.
  *
- * Writer: set via BENCHMARK_PROVIDER or BENCHMARK_MODEL env vars.
- * Judges: set via BENCHMARK_JUDGES env var ("Gemini 3 Flash,Qwen3 32B")
- *         or defaults to Gemini 3 Flash + Qwen3 32B.
+ * Models are set in models/roles.ts (benchmark-writer, benchmark-judge)
+ * alongside every other agent role. Env overrides still work for one-off tests.
  */
 
 import { MODELS, PROVIDERS, getApiKey, type ModelDef } from "../models/registry"
+import { AGENT_MODELS } from "../models/roles"
 
 export interface WriterConfig {
   label: string
@@ -50,51 +50,47 @@ function toJudgeConfig(m: ModelDef): JudgeConfig {
   }
 }
 
-// Default writer per provider
-const WRITER_DEFAULTS: Record<string, string> = {
-  groq: "qwen/qwen3-32b",
-  cerebras: "qwen-3-235b-a22b-instruct-2507",
-  openrouter: "qwen/qwen3-32b",
-  deepseek: "deepseek-chat",
-  openai: "gpt-5.4-mini",
+function resolveFromRole(role: string): ModelDef | undefined {
+  const assignment = AGENT_MODELS[role]
+  if (!assignment) return undefined
+  return MODELS.find(m => m.id === assignment.model && m.provider === assignment.provider)
 }
 
-// Default judge models (label match) — used when BENCHMARK_JUDGES not set
-const DEFAULT_JUDGES = ["Gemini 3 Flash", "Qwen3 32B"]
-
 export function getWriter(): WriterConfig {
-  const provider = process.env.BENCHMARK_PROVIDER ?? process.env.LLM_PROVIDER ?? "groq"
-  const model = process.env.BENCHMARK_MODEL
-
-  if (model) {
-    const found = MODELS.find(m => m.id === model || m.label.toLowerCase() === model.toLowerCase())
+  // Env override for one-off tests
+  const envModel = process.env.BENCHMARK_MODEL
+  if (envModel) {
+    const found = MODELS.find(m => m.id === envModel || m.label.toLowerCase() === envModel.toLowerCase())
     if (found) return toWriterConfig(found)
   }
 
-  const defaultId = WRITER_DEFAULTS[provider]
-  if (defaultId) {
-    const found = MODELS.find(m => m.id === defaultId && m.provider === provider)
-    if (found) return toWriterConfig(found)
-  }
+  // Primary: roles.ts
+  const fromRole = resolveFromRole("benchmark-writer")
+  if (fromRole) return toWriterConfig(fromRole)
 
-  throw new Error(`No writer model found for provider "${provider}". Set BENCHMARK_MODEL explicitly.`)
+  throw new Error('No benchmark-writer in roles.ts and BENCHMARK_MODEL not set.')
 }
 
 export function getJudges(): JudgeConfig[] {
+  // Env override for one-off tests
   const judgeEnv = process.env.BENCHMARK_JUDGES
-  const labels = judgeEnv
-    ? judgeEnv.split(",").map(s => s.trim().toLowerCase())
-    : DEFAULT_JUDGES.map(s => s.toLowerCase())
-
-  const judges: JudgeConfig[] = []
-  for (const label of labels) {
-    const found = MODELS.find(m => {
-      if (!m.label.toLowerCase().includes(label)) return false
-      return !!process.env[PROVIDERS[m.provider].envKey]
-    })
-    if (found) judges.push(toJudgeConfig(found))
+  if (judgeEnv) {
+    const labels = judgeEnv.split(",").map(s => s.trim().toLowerCase())
+    const judges: JudgeConfig[] = []
+    for (const label of labels) {
+      const found = MODELS.find(m => {
+        if (!m.label.toLowerCase().includes(label)) return false
+        return !!process.env[PROVIDERS[m.provider].envKey]
+      })
+      if (found) judges.push(toJudgeConfig(found))
+    }
+    if (judges.length === 0) throw new Error("No judge models found for BENCHMARK_JUDGES labels.")
+    return judges
   }
 
-  if (judges.length === 0) throw new Error("No judge models found. Set BENCHMARK_JUDGES or check API keys.")
-  return judges
+  // Primary: roles.ts
+  const fromRole = resolveFromRole("benchmark-judge")
+  if (fromRole) return [toJudgeConfig(fromRole)]
+
+  throw new Error('No benchmark-judge in roles.ts and BENCHMARK_JUDGES not set.')
 }

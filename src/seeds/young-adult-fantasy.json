@@ -1,0 +1,9 @@
+{
+  "premise": "Every student at the academy is assigned a familiar on their sixteenth birthday. Rowan's familiar arrived dead. Now it follows her anyway, and the teachers pretend they can't see it.",
+  "genre": "young adult fantasy",
+  "characters": [
+    { "name": "Rowan", "role": "protagonist", "description": "Sixteen, stubborn, too proud to ask for help. Grew up in the outer villages where magic is a rumor. Doesn't know the rules well enough to know she's breaking them." },
+    { "name": "Sable", "role": "supporting", "description": "Rowan's dead familiar — a fox made of shadow and static. Communicates through temperature drops and rearranged objects. Loyal in a way that frightens people." },
+    { "name": "Instructor Vael", "role": "antagonist", "description": "Head of bonding studies. Knows exactly what Sable is and has seen it once before. The last student who bonded like this burned down a wing of the academy." }
+  ]
+}

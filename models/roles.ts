@@ -34,6 +34,10 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "continuity":                groqQwen32B,
   "cross-chapter-continuity":  groqQwen32B,
   "prose-quality":             groqQwen32B,
+
+  // ── Benchmark roles ──────────────────────────────────────────────────
+  "benchmark-writer":          groqQwen32B,
+  "benchmark-judge":           { provider: "groq", model: "openai/gpt-oss-120b" },
 }
 
 export function getModelForAgent(agentName: string): ModelAssignment | undefined {

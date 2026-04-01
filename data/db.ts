@@ -100,6 +100,29 @@ function migrate(db: Database) {
       run_id INTEGER NOT NULL REFERENCES runs(id),
       set_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+
+    -- Tuning experiments: probes, calibrations, model shootouts
+    CREATE TABLE IF NOT EXISTS tuning_experiments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      timestamp TEXT NOT NULL DEFAULT (datetime('now')),
+      experiment_type TEXT NOT NULL,  -- 'probe', 'calibration', 'shootout', 'ab-test'
+      description TEXT NOT NULL,
+      config TEXT NOT NULL            -- JSON: models, rubrics, samples, runs, etc.
+    );
+
+    CREATE TABLE IF NOT EXISTS tuning_results (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      experiment_id INTEGER NOT NULL REFERENCES tuning_experiments(id),
+      model TEXT NOT NULL,
+      rubric TEXT NOT NULL,
+      sample TEXT NOT NULL,           -- 'WEAK', 'MID', 'STRONG', or seed name
+      run INTEGER NOT NULL,
+      score REAL,                     -- issue count or 1-10 score depending on experiment
+      issues TEXT,                    -- JSON array of issues (for penalty rubrics)
+      reasoning TEXT,
+      latency_ms INTEGER,
+      failed INTEGER NOT NULL DEFAULT 0
+    );
   `)
 }
 
@@ -418,6 +441,64 @@ export function getAgentStats(): Array<{
     GROUP BY agent
     ORDER BY totalCost DESC
   `).all()
+}
+
+// ── Tuning experiments ──────────────────────────────────────────────────
+
+export function createTuningExperiment(
+  type: string, description: string, config: Record<string, any>,
+): number {
+  const db = getCentralDB()
+  const result = db.run(
+    "INSERT INTO tuning_experiments (experiment_type, description, config) VALUES (?, ?, ?)",
+    [type, description, JSON.stringify(config)],
+  )
+  return Number(result.lastInsertRowid)
+}
+
+export function saveTuningResult(
+  experimentId: number,
+  data: {
+    model: string; rubric: string; sample: string; run: number;
+    score?: number; issues?: Array<{ quote: string; problem: string }>;
+    reasoning?: string; latencyMs?: number; failed?: boolean;
+  },
+) {
+  const db = getCentralDB()
+  db.run(
+    `INSERT INTO tuning_results (experiment_id, model, rubric, sample, run, score, issues, reasoning, latency_ms, failed)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      experimentId, data.model, data.rubric, data.sample, data.run,
+      data.score ?? null, data.issues ? JSON.stringify(data.issues) : null,
+      data.reasoning ?? null, data.latencyMs ?? null, data.failed ? 1 : 0,
+    ],
+  )
+}
+
+export function getTuningExperiments(type?: string): Array<{
+  id: number; timestamp: string; experimentType: string; description: string; config: string
+}> {
+  const db = getCentralDB()
+  if (type) {
+    return db.query<any, [string]>(
+      "SELECT id, timestamp, experiment_type as experimentType, description, config FROM tuning_experiments WHERE experiment_type = ? ORDER BY id DESC",
+    ).all(type)
+  }
+  return db.query<any, []>(
+    "SELECT id, timestamp, experiment_type as experimentType, description, config FROM tuning_experiments ORDER BY id DESC",
+  ).all()
+}
+
+export function getTuningResults(experimentId: number): Array<{
+  model: string; rubric: string; sample: string; run: number;
+  score: number | null; issues: string | null; reasoning: string | null;
+  latencyMs: number | null; failed: number
+}> {
+  const db = getCentralDB()
+  return db.query<any, [number]>(
+    "SELECT model, rubric, sample, run, score, issues, reasoning, latency_ms as latencyMs, failed FROM tuning_results WHERE experiment_id = ? ORDER BY rubric, sample, run",
+  ).all(experimentId)
 }
 
 export function getPhaseStats(): Array<{

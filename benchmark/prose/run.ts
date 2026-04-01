@@ -5,7 +5,7 @@ import { WRITER_AGENT_PROMPT } from "../../src/prompts"
 import { extractJSON } from "../../src/llm"
 import { getTokenCost } from "../../src/config/pricing"
 import { getWriter, getJudges, type WriterConfig, type JudgeConfig } from "../config"
-import { judgeScoreSchema, DIMENSIONS, DIMENSION_LABELS, type Dimension } from "./judges/schema"
+import { penaltySchema, DIMENSIONS, DIMENSION_LABELS, type Dimension } from "./judges/schema"
 import {
   getDB, createRun, saveGeneration, saveScore, saveLLMCall, getCallSummary, markBaseline,
   getRunAverages, getBaselineAverages, getOverallAvg,
@@ -146,11 +146,11 @@ async function generateProse(writer: WriterConfig, prompt: string, runId: number
   }
 }
 
-// ── Judge call (per dimension) ───────────────────────────────────────────
+// ── Judge call (penalty-based) ──────────────────────────────────────────
 
 async function judgeDimension(
   judge: JudgeConfig, dimension: Dimension, prose: string, runId: number, seed: string,
-): Promise<{ score: number; reasoning: string } | null> {
+): Promise<{ count: number; issues: Array<{ quote: string; problem: string }> } | null> {
   const rubric = JUDGE_RUBRICS[dimension]
   const start = performance.now()
 
@@ -166,7 +166,10 @@ async function judgeDimension(
         headers: { "Authorization": `Bearer ${judge.apiKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({
           model: judge.model,
-          messages: [{ role: "system", content: rubric }, { role: "user", content: prose }],
+          messages: [
+            { role: "system", content: `Here is a prose passage:\n\n${prose}\n\n---\n\n${rubric}` },
+            { role: "user", content: "Evaluate the prose above according to the rubric. Return the JSON result." },
+          ],
           temperature: 0.1,
           ...tokenParam,
           response_format: { type: "json_object" },
@@ -202,7 +205,6 @@ async function judgeDimension(
     const promptTokens = usage.prompt_tokens ?? 0
     const completionTokens = usage.completion_tokens ?? 0
 
-    // Determine provider from judge API URL
     const judgeProvider = judge.apiUrl.includes("openai.com") ? "openai"
       : judge.apiUrl.includes("groq.com") ? "groq"
       : judge.apiUrl.includes("deepseek.com") ? "deepseek"
@@ -219,13 +221,14 @@ async function judgeDimension(
     try { parsed = JSON.parse(jsonStr) }
     catch { console.log(`  ! ${judge.label}/${dimension} [parse] invalid JSON`); return null }
 
-    const result = judgeScoreSchema.safeParse(parsed)
+    const result = penaltySchema.safeParse(parsed)
     if (!result.success) {
       console.log(`  ! ${judge.label}/${dimension} [zod] ${result.error.issues.map(i => i.message).join("; ").slice(0, 120)}`)
       return null
     }
 
-    return result.data
+    // Trust issues array length over self-reported count
+    return { count: result.data.issues.length, issues: result.data.issues }
   } catch (err) {
     console.log(`  ! ${judge.label}/${dimension} [exception] ${err instanceof Error ? err.message : err}`)
     return null
@@ -235,11 +238,15 @@ async function judgeDimension(
 // ── Stats helpers ────────────────────────────────────────────────────────
 
 function mean(arr: number[]): number { return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0 }
+function stddev(arr: number[]): number {
+  if (arr.length < 2) return 0
+  const m = mean(arr)
+  return Math.sqrt(arr.reduce((s, v) => s + (v - m) ** 2, 0) / arr.length)
+}
 
 // ── Main ─────────────────────────────────────────────────────────────────
 
 async function main() {
-  // Init DB
   getDB()
 
   const writer = getWriter()
@@ -251,17 +258,18 @@ async function main() {
   console.log(`\nBenchmark: ${writer.label}`)
   console.log(`Seeds: ${seeds.map(s => s.name).join(", ")}`)
   console.log(`Runs per seed: ${RUNS_PER_SEED}`)
-  console.log(`Judges: ${judges.map(j => j.label).join(", ")}`)
-  console.log(`Dimensions: ${DIMENSIONS.map(d => DIMENSION_LABELS[d]).join(", ")}`)
-  console.log(`Judge calls per generation: ${judges.length} judges x ${DIMENSIONS.length} dimensions = ${judges.length * DIMENSIONS.length}`)
+  console.log(`Judge: ${judges.map(j => j.label).join(", ")}`)
+  console.log(`Penalty dimensions: ${DIMENSIONS.map(d => DIMENSION_LABELS[d]).join(", ")}`)
+  console.log(`Judge calls per generation: ${judges.length} x ${DIMENSIONS.length} = ${judges.length * DIMENSIONS.length}`)
   console.log()
 
-  const providerName = writer.label.toLowerCase().includes("cerebras") ? "cerebras" : "groq"
-  const runId = createRun("prose", seeds.length, RUNS_PER_SEED)
+  const runId = createRun("prose", seeds.length.toString(), `${writer.label} / ${judges.map(j => j.label).join(",")}`)
+
+  // Track all scores in memory for reporting
+  const allScores: Array<{ seed: string; run: number; dim: Dimension; count: number }> = []
 
   // ── Generate + judge all seeds ───────────────────────────────────────
 
-  // Seeds run in parallel, runs within each seed sequential
   await Promise.all(
     seeds.map(async (seed) => {
       for (let run = 1; run <= RUNS_PER_SEED; run++) {
@@ -285,12 +293,14 @@ async function main() {
         // Judge — all judges x all dimensions concurrently
         const judgeJobs = judges.flatMap(judge =>
           DIMENSIONS.map(async (dim) => {
-            const score = await judgeDimension(judge, dim, result.prose, runId, seed.name)
-            if (score) {
-              saveScore(genId, judge.label, dim, score.score, score.reasoning)
-              console.log(`  [${seed.name}:${run}] ${judge.label}/${DIMENSION_LABELS[dim]}: ${score.score}/10`)
+            const penalty = await judgeDimension(judge, dim, result.prose, runId, seed.name)
+            if (penalty) {
+              // Store issue count as score, full issues JSON as reasoning
+              saveScore(genId, judge.label, dim, penalty.count, JSON.stringify(penalty.issues))
+              allScores.push({ seed: seed.name, run, dim, count: penalty.count })
+              console.log(`  [${seed.name}:${run}] ${DIMENSION_LABELS[dim]}: ${penalty.count} issues`)
             }
-            return { judge: judge.label, dim, score }
+            return { judge: judge.label, dim, penalty }
           })
         )
         await Promise.all(judgeJobs)
@@ -301,54 +311,62 @@ async function main() {
   // ── Report ─────────────────────────────────────────────────────────────
 
   console.log("\n" + "=".repeat(60))
-  console.log("  BENCHMARK RESULTS")
+  console.log("  BENCHMARK RESULTS (penalty — lower = better)")
   console.log("=".repeat(60))
 
-  const dimAvgs = getRunAverages(runId)
-  const overall = getOverallAvg(runId)
-
   console.log(`\n  Writer: ${writer.label}`)
+  console.log(`  Judge: ${judges.map(j => j.label).join(", ")}`)
   console.log(`  Seeds: ${seeds.length} x ${RUNS_PER_SEED} runs`)
-  console.log(`  Judges: ${judges.map(j => j.label).join(", ")}`)
 
-  console.log(`\n  Per-dimension averages:`)
+  // Per-dimension averages
+  console.log(`\n  Per-dimension averages (issues per generation):`)
+  const dimStats: Array<{ dim: Dimension; avg: number; std: number }> = []
   for (const dim of DIMENSIONS) {
-    const avg = dimAvgs.find(d => d.dimension === dim)
-    if (avg) console.log(`    ${DIMENSION_LABELS[dim].padEnd(12)} ${avg.avg}/10 (+-${avg.stddev})`)
+    const counts = allScores.filter(s => s.dim === dim).map(s => s.count)
+    const avg = mean(counts)
+    const std = stddev(counts)
+    dimStats.push({ dim, avg, std })
+    console.log(`    ${DIMENSION_LABELS[dim].padEnd(14)} ${avg.toFixed(1)} issues (+-${std.toFixed(1)})`)
   }
-  console.log(`    ${"OVERALL".padEnd(12)} ${overall.mean}/30 (+-${overall.stddev})`)
+  const totalAvg = mean(allScores.map(s => s.count))
+  const totalStd = stddev(allScores.map(s => s.count))
+  console.log(`    ${"TOTAL".padEnd(14)} ${totalAvg.toFixed(1)} issues/dim (+-${totalStd.toFixed(1)})`)
 
   // Per-seed breakdown
-  const seedAvgs = getPerSeedAverages(runId)
   console.log(`\n  Per-seed breakdown:`)
   for (const seed of seeds) {
-    const seedScores = seedAvgs.filter(s => s.seed === seed.name)
-    const dimStr = seedScores.map(s => `${DIMENSION_LABELS[s.dimension as Dimension]}:${s.avg}`).join(" ")
-    const seedTotal = mean(seedScores.map(s => s.avg))
-    console.log(`    ${seed.name.padEnd(20)} ${dimStr} (avg ${seedTotal.toFixed(1)})`)
+    const seedScores = allScores.filter(s => s.seed === seed.name)
+    const dimStr = DIMENSIONS.map(dim => {
+      const counts = seedScores.filter(s => s.dim === dim).map(s => s.count)
+      return `${DIMENSION_LABELS[dim]}:${mean(counts).toFixed(1)}`
+    }).join(" ")
+    const seedAvg = mean(seedScores.map(s => s.count))
+    console.log(`    ${seed.name.padEnd(24)} ${dimStr} (avg ${seedAvg.toFixed(1)})`)
   }
 
-  // Commit-ready summary line — now on 30-point scale (3 dims x 10)
-  const dimShort = dimAvgs.map(d => {
-    const label = d.dimension === "show-tell" ? "S" : d.dimension === "dialogue" ? "D" : "X"
-    return `${label}:${d.avg}`
+  // Commit-ready summary
+  const dimShort = dimStats.map(d => {
+    const label = d.dim === "telling" ? "T" : d.dim === "dead-weight" ? "W" : "D"
+    return `${label}:${d.avg.toFixed(1)}`
   }).join(" ")
-  const summary = `benchmark: ${overall.mean}/30 (+-${overall.stddev}) ${dimShort}`
-  console.log(`\n  Commit line:\n  ${summary}\n  ${seeds.length} seeds x ${RUNS_PER_SEED} runs | ${judges.length} judges x ${DIMENSIONS.length} dims`)
+  const summary = `benchmark: ${totalAvg.toFixed(1)} issues/dim (+-${totalStd.toFixed(1)}) ${dimShort}`
+  console.log(`\n  Commit line:\n  ${summary}\n  ${seeds.length} seeds x ${RUNS_PER_SEED} runs | penalty mode`)
 
   // ── Compare to baseline ────────────────────────────────────────────────
 
-  const baselineAvgs = getBaselineAverages()
+  const baselineAvgs = getBaselineAverages("prose")
   if (baselineAvgs) {
     console.log(`\n  vs Baseline:`)
     for (const dim of DIMENSIONS) {
-      const current = dimAvgs.find(d => d.dimension === dim)
+      const current = dimStats.find(d => d.dim === dim)
       const baseline = baselineAvgs.find(d => d.dimension === dim)
       if (current && baseline) {
         const delta = Math.round((current.avg - baseline.avg) * 10) / 10
         if (Math.abs(delta) >= 0.2) {
-          const arrow = delta > 0 ? "+" : ""
-          console.log(`    ${DIMENSION_LABELS[dim]}: ${arrow}${delta} (${baseline.avg} -> ${current.avg})`)
+          // For penalties: negative delta = improvement (fewer issues)
+          const arrow = delta < 0 ? "" : "+"
+          const quality = delta < 0 ? "(better)" : "(worse)"
+          console.log(`    ${DIMENSION_LABELS[dim]}: ${arrow}${delta} issues (${baseline.avg} -> ${current.avg.toFixed(1)}) ${quality}`)
         }
       }
     }
@@ -363,7 +381,7 @@ async function main() {
     for (const c of callSummary) {
       totalCost += c.totalCost
       const tps = c.avgTps ? `${c.avgTps} tok/s` : "—"
-      console.log(`    ${c.callType.padEnd(8)} ${c.model.padEnd(35)} ${`${c.calls}`.padStart(4)} calls  $${c.totalCost.toFixed(4).padStart(8)}  ${tps.padStart(12)}  ${c.totalPrompt + c.totalCompletion} tokens`)
+      console.log(`    ${c.agent.padEnd(8)} ${c.model.padEnd(35)} ${`${c.calls}`.padStart(4)} calls  $${c.totalCost.toFixed(4).padStart(8)}  ${tps.padStart(12)}  ${c.totalPrompt + c.totalCompletion} tokens`)
     }
     console.log(`    ${"TOTAL".padEnd(44)} ${callSummary.reduce((s, c) => s + c.calls, 0).toString().padStart(4)} calls  $${totalCost.toFixed(4).padStart(8)}`)
   }
