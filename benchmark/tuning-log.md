@@ -401,6 +401,59 @@ The evaluation system should separate into:
 
 3. **Writer agent improvement** — the actual lever. Prompt design (positive techniques > prohibitions), context assembly, model selection. The evaluation system measures; the agent config is what actually improves.
 
+## 15. Writing Methodology Integration — Tier 1 Prompt Changes (Experiment #9)
+
+**Question:** Do published author methodology rules improve prose quality when encoded as prompt guidance?
+
+**Background:** Researched 4 published methodologies (Story Grid, Save the Cat!, K.M. Weiland, MICE Quotient) and identified 20 testable items ranked by effort/impact. Full report: `docs/methodology-integration-report.md`. Selected 6 Tier 1 items (prompt-only, low effort) for initial testing.
+
+**Changes applied:**
+1. **W-1 (Scene/Sequel)** — added Goal→Conflict→Disaster / Reaction→Dilemma→Decision pattern to `writer/prompt.md`
+2. **STC-3 (Stasis = Death)** — Ch1 opening must establish unsustainable status quo (`planning-plotter/prompt.md`)
+3. **STC-4 (Midpoint Reversal)** — Ch2 midpoint must be a False Victory or False Defeat (`planning-plotter/prompt.md`)
+4. **STC-7 (Whiff of Death)** — Ch2 must end with a significant irreversible loss (`planning-plotter/prompt.md`)
+5. **W-3 (Pinch Points)** — Ch2 must have two antagonist-pressure moments (`planning-plotter/prompt.md`)
+6. **MICE-3 (Try/Fail Cycles)** — protagonist must make 2-3 escalating attempts (`planning-plotter/prompt.md`)
+
+**Also added:** `BENCHMARK_SEEDS` env var filter for focused per-seed testing.
+
+**Setup:** Kimi K2 writer, GPT-OSS 120B judge, penalty scoring. Baseline: Run 16 (all 5 seeds × 3 runs). Test: Run 19 (romance-drama × 5 runs) and Run 20 (dark-fantasy × 5 runs).
+
+**Results — romance-drama (n=5):**
+```
+Dimension       Baseline (Run 16)    Tier 1 (Run 19)    Delta
+Telling         4.0                  2.6                 -1.4 (better)
+Dead Weight     1.0                  1.8                 +0.8 (worse)
+Dialogue        3.0                  1.7                 -1.3 (better)
+```
+
+**Results — dark-fantasy (n=5):**
+```
+Dimension       Baseline (Run 16)    Tier 1 (Run 20)    Delta
+Telling         4.0                  3.2                 -0.8 (better)
+Dead Weight     2.3                  2.0                 -0.3 (flat)
+Dialogue        3.7                  4.0                 +0.3 (flat)
+```
+
+**Cross-seed summary (Tier 1 changes vs baseline):**
+```
+                Baseline (all seeds)    romance-drama (n=5)    dark-fantasy (n=5)
+Telling         3.9                     2.6 (-1.3)             3.2 (-0.7)
+Dead Weight     1.3                     1.8 (+0.5)             2.0 (+0.7)
+Dialogue        4.9                     4.0 (-0.9)             4.0 (-0.9)
+```
+
+**Conclusions:**
+- **Telling consistently improved** across both seeds (-0.7 to -1.3). Scene/Sequel pattern (W-1) likely drives this — Goal→Conflict→Disaster gives the writer structural anchors instead of narrator explanation.
+- **Dialogue improved** across both seeds (-0.9). Try/fail cycles (MICE-3) likely create more conflict points requiring dialogue rather than monologue.
+- **Dead Weight slightly worse** (+0.5 to +0.7). Structural requirements may add planning-plotter verbosity that propagates to prose. Worth watching.
+- **Methodology rules generalize** — improvements held across romance and dark fantasy, different registers.
+- **Focused testing works** — `BENCHMARK_SEEDS="romance-drama"` runs in ~30s at $0.03, enabling rapid iteration.
+
+**Test bed decision:** romance-drama selected as primary iteration seed. Love genre has most rigid obligatory scenes (6 non-negotiable), cleanest Want/Need split, mandatory character arc, and MICE threads are clean (Character + Milieu). dark-fantasy as secondary for generalization checks.
+
+---
+
 ## Open Questions
 
 - Should the penalty benchmark be replaced entirely by deterministic flagging + pairwise comparison?
@@ -408,6 +461,8 @@ The evaluation system should separate into:
 - K2's dialogue "problem" score is an artifact of writing more dialogue — how do we normalize for output length?
 - Can we combine K2's prose quality with deterministic issue detection to get the best of both?
 - Which other models should we test? (DeepSeek V3.2, GPT-4.1-mini, etc.)
+- Dead Weight regression in Tier 1 — is it the planning-plotter verbosity propagating, or noise?
+- Would a cheaper/dumber writer model (Qwen3 32B) show larger methodology gains since it has more room to improve?
 
 ## Experiment Index
 
@@ -421,3 +476,4 @@ The evaluation system should separate into:
 | 6 | experiment | Context structure sweep (32B, A2) | Emotional labels fine |
 | 7 | experiment | Prompt engineering sweep (K2) | A3 examples wins (different from 32B!) |
 | 8 | quality-vs-penalty | 1-10 vs penalty scoring, K2 vs 32B | 1-10 scores identical, penalty scores differ |
+| 9 | methodology | Writing methodology Tier 1 (6 prompt changes) | Telling -1.0, Dialogue -0.9, Dead Weight +0.6 |

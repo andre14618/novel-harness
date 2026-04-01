@@ -28,9 +28,11 @@ for (const dim of DIMENSIONS) {
 // ── Seed loading ─────────────────────────────────────────────────────────
 
 function loadSeeds(): Array<{ name: string; prompt: string }> {
+  const seedFilter = process.env.BENCHMARK_SEEDS?.split(",").map(s => s.trim())
   const seedFiles = readdirSync(SEEDS_DIR)
     .filter((f: string) => f.endsWith(".json"))
     .map((f: string) => f.replace(".json", ""))
+    .filter((f: string) => !seedFilter || seedFilter.includes(f))
     .sort()
   const seeds: Array<{ name: string; prompt: string }> = []
 

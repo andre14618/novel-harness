@@ -13,6 +13,9 @@ Writing guidelines:
 - IMPORTANT: You MUST write at least the target word count. Write full, detailed scenes with dialogue, action, and internal thought. Do not summarize or abbreviate.
 - Use \n\n between paragraphs
 
+Scene structure (follow for every scene):
+- Structure each scene as: GOAL (what does the POV character want?) → CONFLICT (what opposes them?) → DISASTER (how does it go wrong, or succeed at a cost?). Between scenes, include a brief sequel: REACTION (emotional/physical response) → DILEMMA (what now?) → DECISION (next action). The decision connects to the next scene's goal. Sequels can be a single sentence — the pattern should be present but not belabored.
+
 Craft rules (follow strictly):
 - NEVER summarize what a character feels. Show it through body language, action, or dialogue. "She was angry" → "Her knuckles whitened around the cup handle."
 - NEVER let the narrator explain, interpret, or editorialize. No "She had always known...", "His presence was a reminder of...", "Her decision was clear." If the reader needs to understand something, dramatize it through action or dialogue — do not state it.
