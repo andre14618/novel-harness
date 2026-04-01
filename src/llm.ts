@@ -1,10 +1,14 @@
 import { z } from "zod"
 import { logLLMCallStructured, type LLMCallLogEntry } from "./logger"
-import { getTokenCost } from "./config/pricing"
+import {
+  PROVIDERS, getApiKey, getTokenCost, getModel,
+  type ProviderName, type ProviderDef,
+} from "../models/registry"
+import { getModelForAgent, type ModelAssignment } from "../models/roles"
 
-// ── Provider Registry ─────────────────────────────────────────────────────
+export type { ProviderName } from "../models/registry"
 
-export type ProviderName = "cerebras" | "groq" | "openrouter"
+// ── Provider resolution ──────────────────────────────────────────────────
 
 interface ProviderConfig {
   apiUrl: string
@@ -12,43 +16,21 @@ interface ProviderConfig {
   extraBody: () => Record<string, any>
 }
 
-const PROVIDERS: Record<ProviderName, ProviderConfig> = {
-  cerebras: {
-    apiUrl: "https://api.cerebras.ai/v1/chat/completions",
-    getApiKey: () => {
-      const key = process.env.CEREBRAS_API_KEY
-      if (!key) throw new Error("CEREBRAS_API_KEY not set in .env")
-      return key
-    },
-    extraBody: () => ({}),
-  },
-  groq: {
-    apiUrl: "https://api.groq.com/openai/v1/chat/completions",
-    getApiKey: () => {
-      const key = process.env.GROQ_API_KEY
-      if (!key) throw new Error("GROQ_API_KEY not set in .env")
-      return key
-    },
-    extraBody: () => ({}),
-  },
-  openrouter: {
-    apiUrl: "https://openrouter.ai/api/v1/chat/completions",
-    getApiKey: () => {
-      const key = process.env.OPENROUTER_API_KEY
-      if (!key) throw new Error("OPENROUTER_API_KEY not set in .env")
-      return key
-    },
-    extraBody: () => {
-      const provider = process.env.PROVIDER
-      return provider ? { provider: { order: [provider], allow_fallbacks: false } } : {}
-    },
-  },
+function toProviderConfig(name: ProviderName): ProviderConfig {
+  const def = PROVIDERS[name]
+  return {
+    apiUrl: def.apiUrl,
+    getApiKey: () => getApiKey(name),
+    extraBody: () => def.extraBody?.() ?? {},
+  }
 }
 
 const MODEL_DEFAULTS: Record<string, string> = {
   cerebras: "qwen-3-235b-a22b-instruct-2507",
   groq: "qwen/qwen3-32b",
   openrouter: "qwen/qwen3-32b",
+  openai: "gpt-5.4-mini",
+  deepseek: "deepseek-chat",
 }
 
 // Global defaults from .env
@@ -57,7 +39,7 @@ const DEFAULT_MODEL = process.env.MODEL ?? MODEL_DEFAULTS[DEFAULT_PROVIDER] ?? "
 
 function resolveProvider(override?: ProviderName): ProviderConfig {
   const name = override ?? DEFAULT_PROVIDER
-  return PROVIDERS[name] ?? PROVIDERS.openrouter
+  return toProviderConfig(name)
 }
 
 function resolveModel(providerOverride?: ProviderName, modelOverride?: string): string {
@@ -108,8 +90,6 @@ export interface AgentModule<T> {
     temperature: number
     maxTokens: number
     thinking: boolean
-    provider?: ProviderName  // per-agent provider override
-    model?: string           // per-agent model override
   }
 }
 
@@ -118,14 +98,17 @@ export async function runAgent<T>(
   userPrompt: string,
   novelId?: string,
 ): Promise<AgentResult<T>> {
+  // Model resolution: role assignment (models/roles.ts) → global default (.env)
+  const roleAssignment = getModelForAgent(agent.config.name)
+
   return callAgent({
     systemPrompt: agent.prompt,
     schema: agent.schema,
     temperature: agent.config.temperature,
     maxTokens: agent.config.maxTokens,
     thinking: agent.config.thinking,
-    provider: agent.config.provider,
-    model: agent.config.model,
+    provider: roleAssignment?.provider,
+    model: roleAssignment?.model,
     userPrompt,
     novelId,
     agentName: agent.config.name,

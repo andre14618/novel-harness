@@ -1,0 +1,345 @@
+import { z } from "zod"
+import { readFileSync, existsSync, readdirSync } from "node:fs"
+import { chapterDraftSchema } from "../src/types"
+import { WRITER_AGENT_PROMPT } from "../src/prompts"
+import { extractJSON } from "../src/llm"
+import { getTokenCost } from "../src/config/pricing"
+import { getWriter, getJudges, type WriterConfig, type JudgeConfig } from "./config"
+import { judgeScoreSchema, DIMENSIONS, DIMENSION_LABELS, type Dimension } from "./judges/schema"
+import {
+  getDB, createRun, saveGeneration, saveScore, markBaseline,
+  getRunAverages, getBaselineAverages, getOverallAvg,
+  getWeakestGenerations, getScoresForGeneration, getPerSeedAverages,
+} from "./db"
+
+// ── Config ───────────────────────────────────────────────────────────────
+
+const RUNS_PER_SEED = parseInt(process.env.BENCHMARK_RUNS ?? "3")
+const SEEDS_DIR = new URL("../src/seeds", import.meta.url).pathname
+
+// ── Load judge rubrics from markdown files ───────────────────────────────
+
+const JUDGE_RUBRICS: Record<Dimension, string> = {} as any
+for (const dim of DIMENSIONS) {
+  const path = new URL(`./judges/${dim}.md`, import.meta.url).pathname
+  JUDGE_RUBRICS[dim] = readFileSync(path, "utf-8")
+}
+
+// ── Seed loading ─────────────────────────────────────────────────────────
+
+function loadSeeds(): Array<{ name: string; prompt: string }> {
+  const seedFiles = readdirSync(SEEDS_DIR)
+    .filter((f: string) => f.endsWith(".json"))
+    .map((f: string) => f.replace(".json", ""))
+    .sort()
+  const seeds: Array<{ name: string; prompt: string }> = []
+
+  for (const name of seedFiles) {
+    const path = `${SEEDS_DIR}/${name}.json`
+    if (!existsSync(path)) continue
+    const seed = JSON.parse(readFileSync(path, "utf-8"))
+
+    const prompt = `CHAPTER 1: "Opening"
+POV Character: ${seed.characters[0].name}
+Setting: The primary location
+Purpose: Establish the protagonist, introduce the world, hint at the central conflict
+Target: ~1000 words
+
+SCENE BEATS (follow in order):
+1. The protagonist is shown in their current situation, revealing their state through action and environment.
+   Characters: ${seed.characters[0].name}
+   Emotional shift: stasis -> unease
+
+2. An interruption forces the protagonist to engage with the outside world. New information arrives.
+   Characters: ${seed.characters.map((c: any) => c.name).slice(0, 2).join(", ")}
+   Emotional shift: suspicion -> dread
+
+3. The protagonist processes the new information alone. The central tension is established.
+   Characters: ${seed.characters[0].name}
+   Emotional shift: disbelief -> resolve
+
+CHARACTER PROFILES:
+${seed.characters.map((c: any) => `${c.name} (${c.role}): ${c.description}`).join("\n")}
+
+Genre: ${seed.genre}
+Premise: ${seed.premise}`
+
+    seeds.push({ name, prompt })
+  }
+
+  return seeds
+}
+
+// ── Writer call ──────────────────────────────────────────────────────────
+
+async function generateProse(writer: WriterConfig, prompt: string): Promise<{
+  prose: string; latencyMs: number; tps: number; tokens: number
+} | null> {
+  const userPrompt = writer.needsNothink ? `/nothink\n${prompt}` : prompt
+  const start = performance.now()
+
+  try {
+    const res = await fetch(writer.apiUrl, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${writer.apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: writer.model,
+        messages: [{ role: "system", content: WRITER_AGENT_PROMPT }, { role: "user", content: userPrompt }],
+        temperature: 0.8, max_tokens: 16384,
+        response_format: { type: "json_object" },
+        ...writer.extraBody,
+      }),
+    })
+
+    const elapsed = performance.now() - start
+    if (!res.ok) {
+      const text = await res.text()
+      console.log(`FAIL [http ${res.status}] ${text.slice(0, 150)} `)
+      return null
+    }
+
+    const data = await res.json() as any
+    if (data.error) {
+      console.log(`FAIL [api] ${JSON.stringify(data.error).slice(0, 150)} `)
+      return null
+    }
+
+    const content = data.choices?.[0]?.message?.content
+    if (!content) {
+      console.log(`FAIL [empty] no content in response. finish_reason: ${data.choices?.[0]?.finish_reason} `)
+      return null
+    }
+
+    const usage = data.usage ?? { completion_tokens: 0 }
+
+    let jsonStr: string
+    try { jsonStr = extractJSON(content) }
+    catch { console.log(`FAIL [json] could not extract JSON. preview: ${content.slice(0, 120)} `); return null }
+
+    let parsed: any
+    try { parsed = JSON.parse(jsonStr) }
+    catch { console.log(`FAIL [parse] invalid JSON after extraction. preview: ${jsonStr.slice(0, 120)} `); return null }
+
+    const zodResult = chapterDraftSchema.safeParse(parsed)
+    if (!zodResult.success) {
+      console.log(`FAIL [zod] ${zodResult.error.issues.map(i => `${i.path}: ${i.message}`).join("; ").slice(0, 150)} `)
+      return null
+    }
+
+    return {
+      prose: parsed.prose,
+      latencyMs: Math.round(elapsed),
+      tps: Math.round(usage.completion_tokens / (elapsed / 1000)),
+      tokens: usage.completion_tokens,
+    }
+  } catch (err) {
+    console.log(`FAIL [exception] ${err instanceof Error ? err.message : err} `)
+    return null
+  }
+}
+
+// ── Judge call (per dimension) ───────────────────────────────────────────
+
+async function judgeDimension(
+  judge: JudgeConfig, dimension: Dimension, prose: string,
+): Promise<{ score: number; reasoning: string } | null> {
+  const rubric = JUDGE_RUBRICS[dimension]
+
+  try {
+    const tokenParam = judge.useMaxCompletionTokens
+      ? { max_completion_tokens: 4096 }
+      : { max_tokens: 4096 }
+
+    let res: Response | null = null
+    for (let attempt = 0; attempt <= 2; attempt++) {
+      res = await fetch(judge.apiUrl, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${judge.apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: judge.model,
+          messages: [{ role: "system", content: rubric }, { role: "user", content: prose }],
+          temperature: 0.1,
+          ...tokenParam,
+          response_format: { type: "json_object" },
+          ...judge.extraBody,
+        }),
+      })
+      if (res!.status === 429 || res!.status === 503) {
+        if (attempt < 2) { await Bun.sleep(3000 * (attempt + 1)); continue }
+      }
+      break
+    }
+
+    if (!res!.ok) {
+      const text = await res!.text()
+      console.log(`  ! ${judge.label}/${dimension} [http ${res!.status}] ${text.slice(0, 100)}`)
+      return null
+    }
+
+    const data = await res!.json() as any
+    if (data.error) {
+      console.log(`  ! ${judge.label}/${dimension} [api] ${JSON.stringify(data.error).slice(0, 100)}`)
+      return null
+    }
+
+    const content = data.choices?.[0]?.message?.content
+    if (!content) {
+      console.log(`  ! ${judge.label}/${dimension} [empty]`)
+      return null
+    }
+
+    let jsonStr: string
+    try { jsonStr = extractJSON(content) }
+    catch { console.log(`  ! ${judge.label}/${dimension} [json] extraction failed`); return null }
+
+    let parsed: any
+    try { parsed = JSON.parse(jsonStr) }
+    catch { console.log(`  ! ${judge.label}/${dimension} [parse] invalid JSON`); return null }
+
+    const result = judgeScoreSchema.safeParse(parsed)
+    if (!result.success) {
+      console.log(`  ! ${judge.label}/${dimension} [zod] ${result.error.issues.map(i => i.message).join("; ").slice(0, 120)}`)
+      return null
+    }
+
+    return result.data
+  } catch (err) {
+    console.log(`  ! ${judge.label}/${dimension} [exception] ${err instanceof Error ? err.message : err}`)
+    return null
+  }
+}
+
+// ── Stats helpers ────────────────────────────────────────────────────────
+
+function mean(arr: number[]): number { return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0 }
+
+// ── Main ─────────────────────────────────────────────────────────────────
+
+async function main() {
+  // Init DB
+  getDB()
+
+  const writer = getWriter()
+  const judges = getJudges()
+  const seeds = loadSeeds()
+
+  if (judges.length === 0) { console.error("No judge API keys found"); process.exit(1) }
+
+  console.log(`\nBenchmark: ${writer.label}`)
+  console.log(`Seeds: ${seeds.map(s => s.name).join(", ")}`)
+  console.log(`Runs per seed: ${RUNS_PER_SEED}`)
+  console.log(`Judges: ${judges.map(j => j.label).join(", ")}`)
+  console.log(`Dimensions: ${DIMENSIONS.map(d => DIMENSION_LABELS[d]).join(", ")}`)
+  console.log(`Judge calls per generation: ${judges.length} judges x ${DIMENSIONS.length} dimensions = ${judges.length * DIMENSIONS.length}`)
+  console.log()
+
+  const providerName = writer.label.toLowerCase().includes("cerebras") ? "cerebras" : "groq"
+  const runId = createRun(providerName, writer.model, seeds.length, RUNS_PER_SEED)
+
+  // ── Generate + judge all seeds ───────────────────────────────────────
+
+  // Seeds run in parallel, runs within each seed sequential
+  await Promise.all(
+    seeds.map(async (seed) => {
+      for (let run = 1; run <= RUNS_PER_SEED; run++) {
+        console.log(`[${seed.name}] Run ${run}/${RUNS_PER_SEED}...`)
+
+        const result = await generateProse(writer, seed.prompt)
+        if (!result) {
+          saveGeneration(runId, seed.name, run, { passed: false })
+          console.log(`[${seed.name}] Run ${run}: FAIL`)
+          continue
+        }
+
+        const words = result.prose.split(/\s+/).length
+        const genId = saveGeneration(runId, seed.name, run, {
+          prose: result.prose, wordCount: words, latencyMs: result.latencyMs,
+          tokensPerSec: result.tps, completionTokens: result.tokens, passed: true,
+        })
+
+        console.log(`[${seed.name}] Run ${run}: ${words}w ${result.tps}tok/s ${(result.latencyMs / 1000).toFixed(1)}s`)
+
+        // Judge — all judges x all dimensions concurrently
+        const judgeJobs = judges.flatMap(judge =>
+          DIMENSIONS.map(async (dim) => {
+            const score = await judgeDimension(judge, dim, result.prose)
+            if (score) {
+              saveScore(genId, judge.label, dim, score.score, score.reasoning)
+              console.log(`  [${seed.name}:${run}] ${judge.label}/${DIMENSION_LABELS[dim]}: ${score.score}/10`)
+            }
+            return { judge: judge.label, dim, score }
+          })
+        )
+        await Promise.all(judgeJobs)
+      }
+    })
+  )
+
+  // ── Report ─────────────────────────────────────────────────────────────
+
+  console.log("\n" + "=".repeat(60))
+  console.log("  BENCHMARK RESULTS")
+  console.log("=".repeat(60))
+
+  const dimAvgs = getRunAverages(runId)
+  const overall = getOverallAvg(runId)
+
+  console.log(`\n  Writer: ${writer.label}`)
+  console.log(`  Seeds: ${seeds.length} x ${RUNS_PER_SEED} runs`)
+  console.log(`  Judges: ${judges.map(j => j.label).join(", ")}`)
+
+  console.log(`\n  Per-dimension averages:`)
+  for (const dim of DIMENSIONS) {
+    const avg = dimAvgs.find(d => d.dimension === dim)
+    if (avg) console.log(`    ${DIMENSION_LABELS[dim].padEnd(12)} ${avg.avg}/10 (+-${avg.stddev})`)
+  }
+  console.log(`    ${"OVERALL".padEnd(12)} ${overall.mean}/30 (+-${overall.stddev})`)
+
+  // Per-seed breakdown
+  const seedAvgs = getPerSeedAverages(runId)
+  console.log(`\n  Per-seed breakdown:`)
+  for (const seed of seeds) {
+    const seedScores = seedAvgs.filter(s => s.seed === seed.name)
+    const dimStr = seedScores.map(s => `${DIMENSION_LABELS[s.dimension as Dimension]}:${s.avg}`).join(" ")
+    const seedTotal = mean(seedScores.map(s => s.avg))
+    console.log(`    ${seed.name.padEnd(20)} ${dimStr} (avg ${seedTotal.toFixed(1)})`)
+  }
+
+  // Commit-ready summary line — now on 30-point scale (3 dims x 10)
+  const dimShort = dimAvgs.map(d => {
+    const label = d.dimension === "show-tell" ? "S" : d.dimension === "dialogue" ? "D" : "X"
+    return `${label}:${d.avg}`
+  }).join(" ")
+  const summary = `benchmark: ${overall.mean}/30 (+-${overall.stddev}) ${dimShort}`
+  console.log(`\n  Commit line:\n  ${summary}\n  ${seeds.length} seeds x ${RUNS_PER_SEED} runs | ${judges.length} judges x ${DIMENSIONS.length} dims`)
+
+  // ── Compare to baseline ────────────────────────────────────────────────
+
+  const baselineAvgs = getBaselineAverages()
+  if (baselineAvgs) {
+    console.log(`\n  vs Baseline:`)
+    for (const dim of DIMENSIONS) {
+      const current = dimAvgs.find(d => d.dimension === dim)
+      const baseline = baselineAvgs.find(d => d.dimension === dim)
+      if (current && baseline) {
+        const delta = Math.round((current.avg - baseline.avg) * 10) / 10
+        if (Math.abs(delta) >= 0.2) {
+          const arrow = delta > 0 ? "+" : ""
+          console.log(`    ${DIMENSION_LABELS[dim]}: ${arrow}${delta} (${baseline.avg} -> ${current.avg})`)
+        }
+      }
+    }
+  }
+
+  // ── Save baseline if requested ─────────────────────────────────────────
+
+  if (process.argv.includes("--save-baseline")) {
+    markBaseline(runId)
+    console.log(`\n  Run ${runId} saved as baseline.`)
+  }
+
+  console.log(`\n  Run ID: ${runId}`)
+  console.log(`  DB: benchmark/results/benchmark.db`)
+}
+
+main()

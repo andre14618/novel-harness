@@ -3,17 +3,18 @@
 ## Current Baseline
 
 ```
-benchmark: 25.9/50 (±3.4) S:4.3 D:4.7 V:5.6 B:5.9 X:5.5
-Writer: Groq Qwen3 32B | 5 seeds × 3 runs | ~$0.05/benchmark
+No baseline set yet — run benchmark with new 3-dimension judging system to establish.
 ```
 
-## Weakest Dimensions (priority order)
+## Scoring Dimensions (3, scored /30 total)
 
-1. **Show/Tell: 4.3/10** — models default to exposition, narrator statements about feelings
-2. **Dialogue: 4.7/10** — sparse, generic voices, characters sound the same
-3. **Sensory: 5.5/10** — abstract descriptions, not grounded in setting
-4. **Voice: 5.6/10** — POV narration is generic, not character-specific
-5. **Beats: 5.9/10** — closest to adequate, scene structure is mostly followed
+1. **Show/Tell** — models default to exposition, narrator statements about feelings
+2. **Dialogue** — sparse, generic voices, characters sound the same
+3. **Sensory** — abstract descriptions, not grounded in setting
+
+Dropped from judging (handled by deterministic validation):
+- **Beat Adherence** — keyword coverage check in `src/validation.ts`
+- **Voice Consistency** — overlaps with Show/Tell in single-chapter benchmark; meaningful only across full novel
 
 ## Improvement Levers
 
@@ -21,13 +22,13 @@ Writer: Groq Qwen3 32B | 5 seeds × 3 runs | ~$0.05/benchmark
 - Reword existing craft rules for specificity
 - Do NOT add new rules — reword or restructure existing ones
 - Prompt is currently 21 lines; keep it under 25
-- Test: `BENCHMARK_PROVIDER=groq bun scripts/benchmark.ts`
+- Test: `bun benchmark/run.ts`
 
 ### Layer 2: Context Assembly (`src/agents/writer/context.ts`)
 - **Highest-impact change identified by diagnostic:** interleave character speech patterns with scene beats instead of listing separately
 - Move craft reminders before scene beats, not after everything
 - Restructure context order: chapter header → craft reminders → scene blocks (beat + characters + speech patterns) → world rules → previous chapters
-- Test: same benchmark
+- Test: `bun benchmark/run.ts`
 
 ### Layer 3: Planning Plotter (`src/agents/planning-plotter/prompt.md`)
 - Beat quality determines writer output quality
@@ -35,11 +36,11 @@ Writer: Groq Qwen3 32B | 5 seeds × 3 runs | ~$0.05/benchmark
 - Require beats to specify dialogue moments and physical actions
 - Test: full harness run (`bun src/index.ts --auto`), then benchmark the output
 
-### Layer 4: Config Tuning (`src/agents/writer/config.ts`)
-- Temperature: currently 0.8, diagnostic suggested 0.9 for voice distinctiveness
-- maxTokens: 16384 (adequate)
-- Provider: Groq 32B for iteration, Cerebras 235B for quality runs
-- Test: benchmark with changed config
+### Layer 4: Model Selection (`models/roles.ts`)
+- Change model for any agent individually
+- Test different models for writer vs extractors vs validators
+- Use `bun benchmark/calibrate.ts` to evaluate new judge models
+- Test: benchmark with changed model assignment
 
 ### Layer 5: Upstream Agents
 - **Character Agent** — richer speech patterns lead to better dialogue
@@ -57,21 +58,21 @@ Writer: Groq Qwen3 32B | 5 seeds × 3 runs | ~$0.05/benchmark
 ## Improvement Workflow
 
 ```
-1. Read diagnostic suggestions from last benchmark
+1. Run /diagnose in Claude Code to analyze latest benchmark
 2. Pick ONE change (single variable)
-3. Edit the relevant file (prompt.md, context.ts, or config.ts)
-4. Run: BENCHMARK_PROVIDER=groq bun scripts/benchmark.ts
+3. Edit the relevant file (prompt.md, context.ts, roles.ts, or config.ts)
+4. Run: bun benchmark/run.ts
 5. Check delta vs baseline
 6. If improved: commit with scores, run --save-baseline
-7. If flat/worse: revert, try the next diagnostic suggestion
+7. If flat/worse: revert, try the next suggestion
 ```
 
 ### Commit format
 ```
 [agent:writer] Description of what changed
 
-benchmark: 28.1/50 (±3.2) S:5.1 D:5.3 V:5.8 B:6.0 X:5.9
-delta: +2.2 vs baseline | 5 seeds × 3 runs
+benchmark: 18.5/30 (+-2.1) S:5.8 D:6.0 X:6.7
+delta: +1.4 vs baseline | 5 seeds x 3 runs
 ```
 
 ## Testing Gaps to Address
@@ -89,26 +90,27 @@ delta: +2.2 vs baseline | 5 seeds × 3 runs
 - **Provider failover** — verify retry logic works on 429/503 for all agents
 
 ### Benchmark tests needed
-- **Judge consistency** — run same prose through judges twice, verify scores within ±2
-- **Seed diversity** — verify no seed consistently scores >5 points above/below others (if so, the seed is too easy/hard)
-- **Diagnostic quality** — verify diagnostic suggestions are actionable (manual review)
+- **Judge consistency** — `bun benchmark/calibrate.ts` tests this (consistency metric)
+- **Seed diversity** — verify no seed consistently scores >5 points above/below others
+- **Judge discrimination** — `bun benchmark/calibrate.ts` tests this (WEAK < MID < STRONG)
 
 ## Provider Strategy
 
-| Use case | Provider | Model | Cost/novel |
-|----------|----------|-------|------------|
-| Prompt iteration | Groq | Qwen3 32B | $0.02 |
-| Quality runs | Cerebras | Qwen3 235B-A22B | $0.04-0.10 |
-| Benchmark judge | GPT-5.4-mini | gpt-5.4-mini | ~$0.002/call |
-| Benchmark judge | Kimi K2 | kimi-k2-instruct | ~$0.009/call |
-| Benchmark judge | Gemini 3 Flash | gemini-3-flash-preview | ~$0.002/call |
-| Diagnostic | GPT-5.4 | gpt-5.4 | ~$0.03/call |
+| Use case | Provider | Model | Notes |
+|----------|----------|-------|-------|
+| Iteration (all agents) | Groq | Qwen3 32B | Fast, cheap, current default |
+| Quality runs | Cerebras | Qwen3 235B | Higher cost, test if quality improves |
+| Benchmark judges | OpenRouter | Gemini 3 Flash | 100% discrimination, cheapest |
+| Benchmark judges | Groq | Qwen3 32B | 100% discrimination, fast |
+| Diagnostic | Claude Code | /diagnose | In-conversation, no API cost |
+
+See `models/registry.ts` for full model catalog with pricing and specs.
 
 ## Next Steps (prioritized)
 
-1. Apply diagnostic suggestion #1: restructure writer context to interleave beats with character data
-2. Apply diagnostic suggestion #2: reword the "full detailed scenes" instruction
-3. Benchmark both changes, save new baseline if improved
-4. Add 2 more seeds for better genre coverage (horror, romance?)
-5. Build agent-level tests for writer context assembly
+1. Run `bun benchmark/run.ts --save-baseline` to establish new 3-dimension baseline
+2. Apply diagnostic suggestion: restructure writer context to interleave beats with character data
+3. Benchmark, save new baseline if improved
+4. Test cheaper models for extractors/validators (GPT-OSS 20B, Llama 4 Scout)
+5. Add 2 more seeds for better genre coverage
 6. Test Cerebras 235B baseline for quality ceiling comparison

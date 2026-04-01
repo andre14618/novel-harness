@@ -5,8 +5,8 @@ AI-assisted novel creation harness — deterministic code controls flow, LLMs ar
 ## Stack
 
 - Runtime: Bun
-- LLM: Configurable per-agent. Default: Cerebras Qwen3 235B-A22B or Groq Qwen3 32B. Set `LLM_PROVIDER` in .env, override per-agent in config.ts.
-- DB: bun:sqlite (one DB per novel at `output/{novelId}/novel.db`)
+- LLM: Configurable per-agent via `models/roles.ts`. Five providers: Cerebras, Groq, OpenRouter, OpenAI, DeepSeek.
+- DB: bun:sqlite (one DB per novel at `output/{novelId}/novel.db`, benchmark results at `benchmark/results/benchmark.db`)
 - Interface: CLI
 
 ## Architecture
@@ -22,7 +22,7 @@ src/agents/{name}/
   prompt.md     ← system prompt (readable markdown, easy to edit)
   schema.ts     ← Zod output schema
   context.ts    ← builds the user prompt from DB/input data
-  config.ts     ← temperature, maxTokens, thinking, optional provider/model override
+  config.ts     ← temperature, maxTokens, thinking (task-specific tuning only)
   index.ts      ← barrel export + prompt loader
 ```
 
@@ -32,9 +32,54 @@ src/agents/{name}/
 **State extraction:** summary-extractor, fact-extractor, character-state
 **Validation phase:** cross-chapter-continuity, prose-quality, rewriter
 
-### DB modules
+### Model system
 
-Split by domain in `src/db/`:
+```
+models/
+  registry.ts   ← all available models, providers, pricing, specs (informational)
+  roles.ts      ← which model each agent uses (one file to change)
+```
+
+Per-agent model assignment in `models/roles.ts`:
+
+```ts
+export const AGENT_MODELS = {
+  "writer":                    groqQwen32B,
+  "rewriter":                  groqQwen32B,
+  "world-builder":             groqQwen32B,
+  "character-agent":           groqQwen32B,
+  "plotter":                   groqQwen32B,
+  "planning-plotter":          groqQwen32B,
+  "summary-extractor":         groqQwen32B,
+  "fact-extractor":            groqQwen32B,
+  "character-state":           groqQwen32B,
+  "continuity":                groqQwen32B,
+  "cross-chapter-continuity":  groqQwen32B,
+  "prose-quality":             groqQwen32B,
+}
+```
+
+Resolution order: `models/roles.ts` → `.env` global default → fallback to `qwen/qwen3-32b`.
+
+### Benchmark system
+
+```
+benchmark/
+  run.ts        ← main benchmark (bun benchmark/run.ts)
+  calibrate.ts  ← judge model calibration test (bun benchmark/calibrate.ts)
+  config.ts     ← writer/judge selection for benchmarks
+  db.ts         ← SQLite for benchmark history
+  judges/       ← per-dimension rubric markdown + schema
+    show-tell.md
+    dialogue.md
+    sensory.md
+    schema.ts
+  results/      ← benchmark.db (gitignored)
+```
+
+3 scoring dimensions (Show/Tell, Dialogue, Sensory) × separate judge pass per dimension. Judge rubrics are editable markdown files. Results stored in SQLite for trend queries.
+
+### DB modules
 
 ```
 src/db/
@@ -55,22 +100,7 @@ src/db/
 ```
 src/config/
   pipeline.ts   ← maxDraftAttempts, maxValidationPasses, maxChapterRewrites
-  pricing.ts    ← per-provider token pricing for cost tracking
-```
-
-### Provider system
-
-Three providers supported: `cerebras`, `groq`, `openrouter`. Set globally via `.env` or per-agent in config.ts:
-
-```ts
-// src/agents/writer/config.ts — use premium model for creative work
-export const config = {
-  name: "writer",
-  temperature: 0.8,
-  maxTokens: 16384,
-  thinking: false,
-  provider: "cerebras",  // optional override
-}
+  pricing.ts    ← re-exports from models/registry.ts
 ```
 
 ## Running
@@ -81,15 +111,15 @@ bun src/index.ts --auto                    # default seed (epic-fantasy)
 bun src/index.ts --auto --seed sci-fi-thriller  # different seed
 bun src/index.ts --resume novel-123456     # resume from checkpoint
 
-# Benchmarking (iterative prompt improvement)
-bun scripts/benchmark.ts                   # run benchmark (5 seeds × 3 runs × 3 judges)
-bun scripts/benchmark.ts --save-baseline   # save current scores as baseline
-BENCHMARK_PROVIDER=groq bun scripts/benchmark.ts  # use specific provider
-bun scripts/benchmark.ts --skip-diagnostic # skip GPT-5.4 diagnostic pass
+# Benchmarking
+bun benchmark/run.ts                       # run benchmark (5 seeds × 3 runs × judges × 3 dims)
+bun benchmark/run.ts --save-baseline       # save current scores as baseline
+BENCHMARK_PROVIDER=groq bun benchmark/run.ts  # use specific writer provider
+BENCHMARK_JUDGES="Gemini 3 Flash,Qwen3 32B" bun benchmark/run.ts  # specify judges
 
-# Model comparison
-bun scripts/compare-models.ts              # compare all available providers
-bun scripts/compare-models.ts --skip-judge # skip LLM evaluation
+# Judge calibration
+bun benchmark/calibrate.ts                 # test all available models as judges
+CALIBRATE_MODELS="GPT-OSS,Scout" bun benchmark/calibrate.ts  # test specific models
 
 # Cost analysis
 bun scripts/cost-summary.ts               # most recent novel
@@ -121,16 +151,17 @@ Test inputs in `src/seeds/`:
 
 ## Iterative Improvement Workflow
 
-1. Edit an agent's `prompt.md`
-2. Run `bun scripts/benchmark.ts`
+1. Edit an agent's `prompt.md` or `context.ts`, or change a model in `models/roles.ts`
+2. Run `bun benchmark/run.ts`
 3. Compare scores to baseline
-4. Commit with benchmark scores in the message:
+4. Run `/diagnose` in Claude Code for analysis of weak dimensions
+5. Commit with benchmark scores:
    ```
    [agent:writer] Add backstory prohibition rule
 
-   benchmark: 29.5/50 (±3.8) S:5.2 D:5.8 V:6.1 B:6.0 X:5.9
-   delta: +2.4 vs baseline | 3 seeds × 3 runs
+   benchmark: 18.5/30 (+-2.1) S:5.8 D:6.0 X:6.7
+   delta: +1.4 vs baseline | 5 seeds x 3 runs
    ```
-5. Run `bun scripts/benchmark.ts --save-baseline` if keeping the change
+6. Run `bun benchmark/run.ts --save-baseline` if keeping the change
 
-Benchmark costs ~$0.05/run. See `docs/iteration.md` for the full improvement pathway.
+See `docs/iteration.md` for the full improvement pathway.
