@@ -103,7 +103,7 @@ async function runExtractor(
     const usage = data.usage ?? { prompt_tokens: 0, completion_tokens: 0 }
     const providerName = writer.label.toLowerCase().includes("cerebras") ? "cerebras" : "groq"
     const cost = getTokenCost(providerName as any, writer.model, usage.prompt_tokens ?? 0, usage.completion_tokens ?? 0)
-    saveLLMCall(runId, "writer", writer.model, providerName, usage.prompt_tokens ?? 0, usage.completion_tokens ?? 0, Math.round(elapsed), cost, { seed: sampleName })
+    saveLLMCall(runId, "writer", extractorName, writer.model, providerName, usage.prompt_tokens ?? 0, usage.completion_tokens ?? 0, Math.round(elapsed), cost, { seed: sampleName })
 
     return { output: content, latencyMs: Math.round(elapsed) }
   } catch (err) {
@@ -162,7 +162,7 @@ async function judgeDimension(
       : judge.apiUrl.includes("cerebras.ai") ? "cerebras"
       : "openrouter"
     const cost = getTokenCost(judgeProvider as any, judge.model, usage.prompt_tokens ?? 0, usage.completion_tokens ?? 0)
-    saveLLMCall(runId, "judge", judge.model, judgeProvider, usage.prompt_tokens ?? 0, usage.completion_tokens ?? 0, Math.round(elapsed), cost, { seed: sampleName, dimension })
+    saveLLMCall(runId, "judge", null, judge.model, judgeProvider, usage.prompt_tokens ?? 0, usage.completion_tokens ?? 0, Math.round(elapsed), cost, { seed: sampleName, dimension })
 
     const jsonStr = extractJSON(content)
     const parsed = JSON.parse(jsonStr)
@@ -196,7 +196,7 @@ async function main() {
   console.log()
 
   const providerName = writer.label.toLowerCase().includes("cerebras") ? "cerebras" : "groq"
-  const runId = createRun("extraction", providerName, writer.model, samples.length, RUNS_PER_SAMPLE)
+  const runId = createRun("extraction", samples.length, RUNS_PER_SAMPLE)
 
   for (const sample of samples) {
     for (let run = 1; run <= RUNS_PER_SAMPLE; run++) {
@@ -270,7 +270,7 @@ async function main() {
   }
 
   if (process.argv.includes("--save-baseline")) {
-    markBaseline(runId)
+    markBaseline(runId, "extraction")
     console.log(`\n  Run ${runId} saved as baseline.`)
   }
 

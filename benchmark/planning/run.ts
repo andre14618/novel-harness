@@ -105,7 +105,7 @@ async function generateOutline(writer: WriterConfig, prompt: string, runId: numb
 
     const providerName = writer.label.toLowerCase().includes("cerebras") ? "cerebras" : "groq"
     const cost = getTokenCost(providerName as any, writer.model, promptTokens, completionTokens)
-    saveLLMCall(runId, "writer", writer.model, providerName, promptTokens, completionTokens, Math.round(elapsed), cost, { seed, attempt })
+    saveLLMCall(runId, "writer", "planning-plotter", writer.model, providerName, promptTokens, completionTokens, Math.round(elapsed), cost, { seed, attempt })
 
     return {
       outline: content,
@@ -167,7 +167,7 @@ async function judgeDimension(
       : judge.apiUrl.includes("cerebras.ai") ? "cerebras"
       : "openrouter"
     const cost = getTokenCost(judgeProvider as any, judge.model, usage.prompt_tokens ?? 0, usage.completion_tokens ?? 0)
-    saveLLMCall(runId, "judge", judge.model, judgeProvider, usage.prompt_tokens ?? 0, usage.completion_tokens ?? 0, Math.round(elapsed), cost, { seed, dimension })
+    saveLLMCall(runId, "judge", null, judge.model, judgeProvider, usage.prompt_tokens ?? 0, usage.completion_tokens ?? 0, Math.round(elapsed), cost, { seed, dimension })
 
     const jsonStr = extractJSON(content)
     const parsed = JSON.parse(jsonStr)
@@ -201,7 +201,7 @@ async function main() {
   console.log()
 
   const providerName = writer.label.toLowerCase().includes("cerebras") ? "cerebras" : "groq"
-  const runId = createRun("planning", providerName, writer.model, seeds.length, RUNS_PER_SEED)
+  const runId = createRun("planning", seeds.length, RUNS_PER_SEED)
 
   await Promise.all(
     seeds.map(async (seed) => {
@@ -264,7 +264,7 @@ async function main() {
   }
 
   if (process.argv.includes("--save-baseline")) {
-    markBaseline(runId)
+    markBaseline(runId, "planning")
     console.log(`\n  Run ${runId} saved as baseline.`)
   }
 

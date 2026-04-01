@@ -117,7 +117,7 @@ async function generateProse(writer: WriterConfig, prompt: string, runId: number
     // Log to benchmark DB
     const providerName = writer.label.toLowerCase().includes("cerebras") ? "cerebras" : "groq"
     const cost = getTokenCost(providerName as any, writer.model, promptTokens, completionTokens)
-    saveLLMCall(runId, "writer", writer.model, providerName, promptTokens, completionTokens, Math.round(elapsed), cost, { seed, attempt })
+    saveLLMCall(runId, "writer", "writer", writer.model, providerName, promptTokens, completionTokens, Math.round(elapsed), cost, { seed, attempt })
 
     let jsonStr: string
     try { jsonStr = extractJSON(content) }
@@ -209,7 +209,7 @@ async function judgeDimension(
       : judge.apiUrl.includes("cerebras.ai") ? "cerebras"
       : "openrouter"
     const cost = getTokenCost(judgeProvider as any, judge.model, promptTokens, completionTokens)
-    saveLLMCall(runId, "judge", judge.model, judgeProvider, promptTokens, completionTokens, Math.round(elapsed), cost, { seed, dimension })
+    saveLLMCall(runId, "judge", null, judge.model, judgeProvider, promptTokens, completionTokens, Math.round(elapsed), cost, { seed, dimension })
 
     let jsonStr: string
     try { jsonStr = extractJSON(content) }
@@ -257,7 +257,7 @@ async function main() {
   console.log()
 
   const providerName = writer.label.toLowerCase().includes("cerebras") ? "cerebras" : "groq"
-  const runId = createRun("prose", providerName, writer.model, seeds.length, RUNS_PER_SEED)
+  const runId = createRun("prose", seeds.length, RUNS_PER_SEED)
 
   // ── Generate + judge all seeds ───────────────────────────────────────
 
@@ -371,7 +371,7 @@ async function main() {
   // ── Save baseline if requested ─────────────────────────────────────────
 
   if (process.argv.includes("--save-baseline")) {
-    markBaseline(runId)
+    markBaseline(runId, "prose")
     console.log(`\n  Run ${runId} saved as baseline.`)
   }
 
