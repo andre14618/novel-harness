@@ -43,7 +43,7 @@ ${relevantChars.map(c => `${c.name} (${c.role}):
     ctx += `\n\nCHARACTER STATES (as of end of previous chapter):
 ${charStates.map(cs => `${cs.characterId}:
   Location: ${cs.location}
-  Emotional state: ${cs.emotionalState}
+  Carrying: ${cs.emotionalState} (show through behavior, NEVER state directly)
   Knows: ${cs.knows.join("; ")}
   Doesn't know: ${cs.doesNotKnow.join("; ")}`).join("\n\n")}`
   }

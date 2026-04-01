@@ -18,6 +18,7 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // ── Writers (creative prose, high output) ─────────────────────────────
   "writer":                    groqQwen32B,
   "rewriter":                  groqQwen32B,
+  "prose-polish":              groqQwen32B,
 
   // ── Planners (structured creative output) ─────────────────────────────
   "world-builder":             groqQwen32B,
