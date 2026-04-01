@@ -81,7 +81,7 @@ export const MODELS: ModelDef[] = [
   // ── Groq (fast inference, prioritize for iteration) ────────────────────
 
   {
-    id: "gpt-oss-20b-128k",
+    id: "openai/gpt-oss-20b",
     label: "GPT-OSS 20B",
     provider: "groq",
     params: "20B",
@@ -92,7 +92,7 @@ export const MODELS: ModelDef[] = [
     notes: "Cheapest fast model on Groq. Untested in harness — worth testing as extractor/validator.",
   },
   {
-    id: "gpt-oss-120b-128k",
+    id: "openai/gpt-oss-120b",
     label: "GPT-OSS 120B",
     provider: "groq",
     params: "120B",
@@ -100,10 +100,10 @@ export const MODELS: ModelDef[] = [
     thinking: "disabled",
     maxContext: 128_000,
     providerStatus: "production",
-    notes: "404'd in calibration (2026-04-01) — model ID may be wrong. Check Groq docs for correct ID.",
+    notes: "Same model as Cerebras gpt-oss-120b but cheaper on Groq.",
   },
   {
-    id: "llama-4-scout-17bx16e-128k",
+    id: "meta-llama/llama-4-scout-17b-16e-instruct",
     label: "Llama 4 Scout",
     provider: "groq",
     params: "17Bx16E MoE",
@@ -126,15 +126,16 @@ export const MODELS: ModelDef[] = [
     notes: "Current default writer model. 100% judge discrimination in calibration. Has thinking mode — use /nothink to disable.",
   },
   {
-    id: "meta-llama/llama-3.3-70b-versatile",
+    id: "llama-3.3-70b-versatile",
     label: "Llama 3.3 70B",
     provider: "groq",
     params: "70B",
     pricing: { input: 0.59, output: 0.79 },
     thinking: "disabled",
+    observedTps: 150,
     maxContext: 128_000,
     providerStatus: "production",
-    notes: "404'd in calibration (2026-04-01) — may need correct model ID. Listed on Groq pricing page.",
+    notes: "33% judge discrimination (MID=STRONG on show-tell/dialogue). Perfect consistency. 150 tok/s. Generous scorer.",
   },
   {
     id: "llama-3.1-8b-instant",
