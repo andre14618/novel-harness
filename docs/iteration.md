@@ -22,13 +22,13 @@ Dropped from judging (handled by deterministic validation):
 - Reword existing craft rules for specificity
 - Do NOT add new rules — reword or restructure existing ones
 - Prompt is currently 21 lines; keep it under 25
-- Test: `bun benchmark/run.ts`
+- Test: `bun benchmark/prose/run.ts`
 
 ### Layer 2: Context Assembly (`src/agents/writer/context.ts`)
 - **Highest-impact change identified by diagnostic:** interleave character speech patterns with scene beats instead of listing separately
 - Move craft reminders before scene beats, not after everything
 - Restructure context order: chapter header → craft reminders → scene blocks (beat + characters + speech patterns) → world rules → previous chapters
-- Test: `bun benchmark/run.ts`
+- Test: `bun benchmark/prose/run.ts`
 
 ### Layer 3: Planning Plotter (`src/agents/planning-plotter/prompt.md`)
 - Beat quality determines writer output quality
@@ -61,7 +61,7 @@ Dropped from judging (handled by deterministic validation):
 1. Run /diagnose in Claude Code to analyze latest benchmark
 2. Pick ONE change (single variable)
 3. Edit the relevant file (prompt.md, context.ts, roles.ts, or config.ts)
-4. Run: bun benchmark/run.ts
+4. Run: bun benchmark/prose/run.ts
 5. Check delta vs baseline
 6. If improved: commit with scores, run --save-baseline
 7. If flat/worse: revert, try the next suggestion
@@ -108,7 +108,7 @@ See `models/registry.ts` for full model catalog with pricing and specs.
 
 ## Next Steps (prioritized)
 
-1. Run `bun benchmark/run.ts --save-baseline` to establish new 3-dimension baseline
+1. Run `bun benchmark/prose/run.ts --save-baseline` to establish new 3-dimension baseline
 2. Apply diagnostic suggestion: restructure writer context to interleave beats with character data
 3. Benchmark, save new baseline if improved
 4. Test cheaper models for extractors/validators (GPT-OSS 20B, Llama 4 Scout)

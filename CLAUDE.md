@@ -65,19 +65,20 @@ Resolution order: `models/roles.ts` → `.env` global default → fallback to `q
 
 ```
 benchmark/
-  run.ts        ← main benchmark (bun benchmark/run.ts)
-  calibrate.ts  ← judge model calibration test (bun benchmark/calibrate.ts)
-  config.ts     ← writer/judge selection for benchmarks
-  db.ts         ← SQLite for benchmark history
-  judges/       ← per-dimension rubric markdown + schema
-    show-tell.md
-    dialogue.md
-    sensory.md
-    schema.ts
-  results/      ← benchmark.db (gitignored)
+  config.ts       ← shared writer/judge model selection
+  db.ts           ← shared SQLite DB (benchmark_type field distinguishes benchmarks)
+  calibrate.ts    ← judge model calibration test
+  results/        ← benchmark.db (gitignored)
+  prose/          ← prose quality benchmark (writer agent)
+    run.ts        ← bun benchmark/prose/run.ts
+    judges/
+      show-tell.md  ← scoring rubric
+      dialogue.md
+      sensory.md
+      schema.ts
 ```
 
-3 scoring dimensions (Show/Tell, Dialogue, Sensory) × separate judge pass per dimension. Judge rubrics are editable markdown files. Results stored in SQLite for trend queries.
+Each benchmark type gets its own subdirectory with a `run.ts` and type-specific judges/rubrics. Shared infrastructure (DB, config, calibration) lives at the `benchmark/` root. All results go to the same SQLite DB tagged by `benchmark_type`.
 
 ### DB modules
 
@@ -111,11 +112,11 @@ bun src/index.ts --auto                    # default seed (epic-fantasy)
 bun src/index.ts --auto --seed sci-fi-thriller  # different seed
 bun src/index.ts --resume novel-123456     # resume from checkpoint
 
-# Benchmarking
-bun benchmark/run.ts                       # run benchmark (5 seeds × 3 runs × judges × 3 dims)
-bun benchmark/run.ts --save-baseline       # save current scores as baseline
-BENCHMARK_PROVIDER=groq bun benchmark/run.ts  # use specific writer provider
-BENCHMARK_JUDGES="Gemini 3 Flash,Qwen3 32B" bun benchmark/run.ts  # specify judges
+# Prose benchmark (writer quality)
+bun benchmark/prose/run.ts                 # run prose benchmark (5 seeds × 3 runs × judges × 3 dims)
+bun benchmark/prose/run.ts --save-baseline # save current scores as baseline
+BENCHMARK_PROVIDER=groq bun benchmark/prose/run.ts  # use specific writer provider
+BENCHMARK_JUDGES="Gemini 3 Flash,Qwen3 32B" bun benchmark/prose/run.ts  # specify judges
 
 # Judge calibration
 bun benchmark/calibrate.ts                 # test all available models as judges
@@ -152,7 +153,7 @@ Test inputs in `src/seeds/`:
 ## Iterative Improvement Workflow
 
 1. Edit an agent's `prompt.md` or `context.ts`, or change a model in `models/roles.ts`
-2. Run `bun benchmark/run.ts`
+2. Run `bun benchmark/prose/run.ts`
 3. Compare scores to baseline
 4. Run `/diagnose` in Claude Code for analysis of weak dimensions
 5. Commit with benchmark scores:
@@ -162,6 +163,6 @@ Test inputs in `src/seeds/`:
    benchmark: 18.5/30 (+-2.1) S:5.8 D:6.0 X:6.7
    delta: +1.4 vs baseline | 5 seeds x 3 runs
    ```
-6. Run `bun benchmark/run.ts --save-baseline` if keeping the change
+6. Run `bun benchmark/prose/run.ts --save-baseline` if keeping the change
 
 See `docs/iteration.md` for the full improvement pathway.

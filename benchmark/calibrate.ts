@@ -16,7 +16,7 @@
 
 import { readFileSync, existsSync } from "node:fs"
 import { extractJSON } from "../src/llm"
-import { judgeScoreSchema, DIMENSIONS, DIMENSION_LABELS, type Dimension } from "./judges/schema"
+import { judgeScoreSchema, DIMENSIONS, DIMENSION_LABELS, type Dimension } from "./prose/judges/schema"
 
 // ── Prose samples ────────────────────────────────────────────────────────
 
@@ -158,7 +158,7 @@ function getJudgeModels(): JudgeModel[] {
 
 const RUBRICS: Record<Dimension, string> = {} as any
 for (const dim of DIMENSIONS) {
-  const path = new URL(`./judges/${dim}.md`, import.meta.url).pathname
+  const path = new URL(`./prose/judges/${dim}.md`, import.meta.url).pathname
   RUBRICS[dim] = readFileSync(path, "utf-8")
 }
 

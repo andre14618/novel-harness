@@ -18,6 +18,7 @@ function migrate(db: Database) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS runs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      benchmark_type TEXT NOT NULL DEFAULT 'prose',
       timestamp TEXT NOT NULL DEFAULT (datetime('now')),
       writer_provider TEXT NOT NULL,
       writer_model TEXT NOT NULL,
@@ -69,11 +70,11 @@ function migrate(db: Database) {
 
 // ── Write operations ─────────────────────────────────────────────────────
 
-export function createRun(writerProvider: string, writerModel: string, seedsCount: number, runsPerSeed: number): number {
+export function createRun(benchmarkType: string, writerProvider: string, writerModel: string, seedsCount: number, runsPerSeed: number): number {
   const db = getDB()
   const result = db.run(
-    "INSERT INTO runs (writer_provider, writer_model, seeds_count, runs_per_seed) VALUES (?, ?, ?, ?)",
-    [writerProvider, writerModel, seedsCount, runsPerSeed],
+    "INSERT INTO runs (benchmark_type, writer_provider, writer_model, seeds_count, runs_per_seed) VALUES (?, ?, ?, ?, ?)",
+    [benchmarkType, writerProvider, writerModel, seedsCount, runsPerSeed],
   )
   return Number(result.lastInsertRowid)
 }

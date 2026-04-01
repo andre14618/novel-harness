@@ -1,21 +1,21 @@
 import { z } from "zod"
 import { readFileSync, existsSync, readdirSync } from "node:fs"
-import { chapterDraftSchema } from "../src/types"
-import { WRITER_AGENT_PROMPT } from "../src/prompts"
-import { extractJSON } from "../src/llm"
-import { getTokenCost } from "../src/config/pricing"
-import { getWriter, getJudges, type WriterConfig, type JudgeConfig } from "./config"
+import { chapterDraftSchema } from "../../src/types"
+import { WRITER_AGENT_PROMPT } from "../../src/prompts"
+import { extractJSON } from "../../src/llm"
+import { getTokenCost } from "../../src/config/pricing"
+import { getWriter, getJudges, type WriterConfig, type JudgeConfig } from "../config"
 import { judgeScoreSchema, DIMENSIONS, DIMENSION_LABELS, type Dimension } from "./judges/schema"
 import {
   getDB, createRun, saveGeneration, saveScore, saveLLMCall, getCallSummary, markBaseline,
   getRunAverages, getBaselineAverages, getOverallAvg,
   getWeakestGenerations, getScoresForGeneration, getPerSeedAverages,
-} from "./db"
+} from "../db"
 
 // ── Config ───────────────────────────────────────────────────────────────
 
 const RUNS_PER_SEED = parseInt(process.env.BENCHMARK_RUNS ?? "3")
-const SEEDS_DIR = new URL("../src/seeds", import.meta.url).pathname
+const SEEDS_DIR = new URL("../../src/seeds", import.meta.url).pathname
 
 // ── Load judge rubrics from markdown files ───────────────────────────────
 
@@ -257,7 +257,7 @@ async function main() {
   console.log()
 
   const providerName = writer.label.toLowerCase().includes("cerebras") ? "cerebras" : "groq"
-  const runId = createRun(providerName, writer.model, seeds.length, RUNS_PER_SEED)
+  const runId = createRun("prose", providerName, writer.model, seeds.length, RUNS_PER_SEED)
 
   // ── Generate + judge all seeds ───────────────────────────────────────
 
