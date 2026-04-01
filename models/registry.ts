@@ -250,11 +250,11 @@ export const MODELS: ModelDef[] = [
     label: "Gemini 3 Flash",
     provider: "openrouter",
     params: "unknown",
-    pricing: { input: 0.15, output: 0.60 },
+    pricing: { input: 0.50, output: 3.00 },
     thinking: "disabled",
     maxContext: 1_000_000,
     maxOutput: 64_000,
-    notes: "100% discrimination in calibration. Perfect consistency. Cheapest viable judge.",
+    notes: "100% discrimination in calibration. Perfect consistency. Expensive on OpenRouter ($0.50/$3.00).",
   },
   {
     id: "qwen/qwen3-32b",
