@@ -7,7 +7,7 @@ import { getTokenCost } from "../src/config/pricing"
 import { getWriter, getJudges, type WriterConfig, type JudgeConfig } from "./config"
 import { judgeScoreSchema, DIMENSIONS, DIMENSION_LABELS, type Dimension } from "./judges/schema"
 import {
-  getDB, createRun, saveGeneration, saveScore, markBaseline,
+  getDB, createRun, saveGeneration, saveScore, saveLLMCall, getCallSummary, markBaseline,
   getRunAverages, getBaselineAverages, getOverallAvg,
   getWeakestGenerations, getScoresForGeneration, getPerSeedAverages,
 } from "./db"
@@ -72,8 +72,8 @@ Premise: ${seed.premise}`
 
 // ── Writer call ──────────────────────────────────────────────────────────
 
-async function generateProse(writer: WriterConfig, prompt: string): Promise<{
-  prose: string; latencyMs: number; tps: number; tokens: number
+async function generateProse(writer: WriterConfig, prompt: string, runId: number, seed: string, attempt: number): Promise<{
+  prose: string; latencyMs: number; tps: number; tokens: number; promptTokens: number
 } | null> {
   const userPrompt = writer.needsNothink ? `/nothink\n${prompt}` : prompt
   const start = performance.now()
@@ -110,7 +110,14 @@ async function generateProse(writer: WriterConfig, prompt: string): Promise<{
       return null
     }
 
-    const usage = data.usage ?? { completion_tokens: 0 }
+    const usage = data.usage ?? { prompt_tokens: 0, completion_tokens: 0 }
+    const promptTokens = usage.prompt_tokens ?? 0
+    const completionTokens = usage.completion_tokens ?? 0
+
+    // Log to benchmark DB
+    const providerName = writer.label.toLowerCase().includes("cerebras") ? "cerebras" : "groq"
+    const cost = getTokenCost(providerName as any, writer.model, promptTokens, completionTokens)
+    saveLLMCall(runId, "writer", writer.model, providerName, promptTokens, completionTokens, Math.round(elapsed), cost, { seed, attempt })
 
     let jsonStr: string
     try { jsonStr = extractJSON(content) }
@@ -129,8 +136,9 @@ async function generateProse(writer: WriterConfig, prompt: string): Promise<{
     return {
       prose: parsed.prose,
       latencyMs: Math.round(elapsed),
-      tps: Math.round(usage.completion_tokens / (elapsed / 1000)),
-      tokens: usage.completion_tokens,
+      tps: completionTokens > 0 ? Math.round(completionTokens / (elapsed / 1000)) : 0,
+      tokens: completionTokens,
+      promptTokens,
     }
   } catch (err) {
     console.log(`FAIL [exception] ${err instanceof Error ? err.message : err} `)
@@ -141,9 +149,10 @@ async function generateProse(writer: WriterConfig, prompt: string): Promise<{
 // ── Judge call (per dimension) ───────────────────────────────────────────
 
 async function judgeDimension(
-  judge: JudgeConfig, dimension: Dimension, prose: string,
+  judge: JudgeConfig, dimension: Dimension, prose: string, runId: number, seed: string,
 ): Promise<{ score: number; reasoning: string } | null> {
   const rubric = JUDGE_RUBRICS[dimension]
+  const start = performance.now()
 
   try {
     const tokenParam = judge.useMaxCompletionTokens
@@ -187,6 +196,20 @@ async function judgeDimension(
       console.log(`  ! ${judge.label}/${dimension} [empty]`)
       return null
     }
+
+    const usage = data.usage ?? { prompt_tokens: 0, completion_tokens: 0 }
+    const elapsed = performance.now() - start
+    const promptTokens = usage.prompt_tokens ?? 0
+    const completionTokens = usage.completion_tokens ?? 0
+
+    // Determine provider from judge API URL
+    const judgeProvider = judge.apiUrl.includes("openai.com") ? "openai"
+      : judge.apiUrl.includes("groq.com") ? "groq"
+      : judge.apiUrl.includes("deepseek.com") ? "deepseek"
+      : judge.apiUrl.includes("cerebras.ai") ? "cerebras"
+      : "openrouter"
+    const cost = getTokenCost(judgeProvider as any, judge.model, promptTokens, completionTokens)
+    saveLLMCall(runId, "judge", judge.model, judgeProvider, promptTokens, completionTokens, Math.round(elapsed), cost, { seed, dimension })
 
     let jsonStr: string
     try { jsonStr = extractJSON(content) }
@@ -244,7 +267,7 @@ async function main() {
       for (let run = 1; run <= RUNS_PER_SEED; run++) {
         console.log(`[${seed.name}] Run ${run}/${RUNS_PER_SEED}...`)
 
-        const result = await generateProse(writer, seed.prompt)
+        const result = await generateProse(writer, seed.prompt, runId, seed.name, run)
         if (!result) {
           saveGeneration(runId, seed.name, run, { passed: false })
           console.log(`[${seed.name}] Run ${run}: FAIL`)
@@ -262,7 +285,7 @@ async function main() {
         // Judge — all judges x all dimensions concurrently
         const judgeJobs = judges.flatMap(judge =>
           DIMENSIONS.map(async (dim) => {
-            const score = await judgeDimension(judge, dim, result.prose)
+            const score = await judgeDimension(judge, dim, result.prose, runId, seed.name)
             if (score) {
               saveScore(genId, judge.label, dim, score.score, score.reasoning)
               console.log(`  [${seed.name}:${run}] ${judge.label}/${DIMENSION_LABELS[dim]}: ${score.score}/10`)
@@ -329,6 +352,20 @@ async function main() {
         }
       }
     }
+  }
+
+  // ── Cost & TPS summary ─────────────────────────────────────────────────
+
+  const callSummary = getCallSummary(runId)
+  if (callSummary.length > 0) {
+    console.log(`\n  Cost & TPS breakdown:`)
+    let totalCost = 0
+    for (const c of callSummary) {
+      totalCost += c.totalCost
+      const tps = c.avgTps ? `${c.avgTps} tok/s` : "—"
+      console.log(`    ${c.callType.padEnd(8)} ${c.model.padEnd(35)} ${`${c.calls}`.padStart(4)} calls  $${c.totalCost.toFixed(4).padStart(8)}  ${tps.padStart(12)}  ${c.totalPrompt + c.totalCompletion} tokens`)
+    }
+    console.log(`    ${"TOTAL".padEnd(44)} ${callSummary.reduce((s, c) => s + c.calls, 0).toString().padStart(4)} calls  $${totalCost.toFixed(4).padStart(8)}`)
   }
 
   // ── Save baseline if requested ─────────────────────────────────────────

@@ -207,6 +207,11 @@ async function judge(
     const content = data.choices?.[0]?.message?.content
     if (!content) return null
 
+    const usage = data.usage ?? {}
+    const completionTokens = usage.completion_tokens ?? 0
+    const elapsed = performance.now() - start
+    const tps = elapsed > 0 && completionTokens > 0 ? Math.round(completionTokens / (elapsed / 1000)) : 0
+
     const jsonStr = extractJSON(content)
     const parsed = JSON.parse(jsonStr)
     const result = judgeScoreSchema.safeParse(parsed)
@@ -215,7 +220,7 @@ async function judge(
       return null
     }
 
-    return { ...result.data, latencyMs: Math.round(performance.now() - start) }
+    return { ...result.data, latencyMs: Math.round(elapsed), tps }
   } catch (err) {
     console.log(`  ! ${model.label}/${dimension} [exception] ${err instanceof Error ? err.message : err}`)
     return null
@@ -232,6 +237,7 @@ interface ScoreEntry {
   score: number
   reasoning: string
   latencyMs: number
+  tps: number
   run: number
 }
 
@@ -272,7 +278,7 @@ async function main() {
             allScores.push({
               model: model.label, sample: sample.label, tier: sample.tier,
               dimension: dim, score: result.score, reasoning: result.reasoning,
-              latencyMs: result.latencyMs, run,
+              latencyMs: result.latencyMs, tps: result.tps, run,
             })
             scores.push(`${DIMENSION_LABELS[dim]}:${result.score}`)
           } else {
@@ -372,15 +378,17 @@ async function main() {
     console.log(`     ${model.label.padEnd(16)} range: ${min}-${max} (spread: ${range})`)
   }
 
-  // 4. Latency
-  console.log("\n\n  4. LATENCY (avg ms per judgment)\n")
+  // 4. Speed (latency + TPS)
+  console.log("\n\n  4. SPEED (observed from judge calls)\n")
 
   for (const model of models) {
     const modelScores = allScores.filter(s => s.model === model.label)
     const avgLatency = modelScores.length
       ? Math.round(modelScores.reduce((a, s) => a + s.latencyMs, 0) / modelScores.length)
       : 0
-    console.log(`     ${model.label.padEnd(16)} ${avgLatency}ms avg`)
+    const tpsValues = modelScores.filter(s => s.tps > 0).map(s => s.tps)
+    const avgTps = tpsValues.length ? Math.round(tpsValues.reduce((a, b) => a + b, 0) / tpsValues.length) : 0
+    console.log(`     ${model.label.padEnd(16)} ${avgLatency}ms avg  ${avgTps > 0 ? `${avgTps} tok/s` : "no tps data"}`)
   }
 
   // 5. Grounding spot-check: print reasoning for STRONG sample, show-tell dimension, run 1
@@ -438,7 +446,10 @@ async function main() {
       ? modelScores.reduce((a, s) => a + s.latencyMs, 0) / modelScores.length
       : 99999
 
-    return { label: model.label, discrimination: correct / total, consistency: avgSpread, latency: avgLatency }
+    const tpsValues = modelScores.filter(s => s.tps > 0).map(s => s.tps)
+    const avgTps = tpsValues.length ? Math.round(tpsValues.reduce((a, b) => a + b, 0) / tpsValues.length) : 0
+
+    return { label: model.label, model: model.model, discrimination: correct / total, consistency: avgSpread, latency: avgLatency, tps: avgTps }
   }).sort((a, b) => {
     // Sort by discrimination desc, then consistency asc, then latency asc
     if (b.discrimination !== a.discrimination) return b.discrimination - a.discrimination
@@ -449,10 +460,21 @@ async function main() {
   for (const r of modelRanks) {
     const disc = `${Math.round(r.discrimination * 100)}%`
     const cons = r.consistency.toFixed(1)
-    console.log(`  ${r.label.padEnd(16)} discrimination: ${disc.padEnd(5)} consistency: +-${cons.padEnd(5)} latency: ${Math.round(r.latency)}ms`)
+    const tps = r.tps > 0 ? `${r.tps} tok/s` : "—"
+    console.log(`  ${r.label.padEnd(16)} disc: ${disc.padEnd(5)} consistency: +-${cons.padEnd(5)} ${tps.padEnd(12)} ${Math.round(r.latency)}ms`)
   }
 
   console.log(`\n  Top pick for iteration: ${modelRanks[0]?.label ?? "N/A"}`)
+
+  // Print registry update snippet for observed TPS
+  const tpsUpdates = modelRanks.filter(r => r.tps > 0)
+  if (tpsUpdates.length > 0) {
+    console.log(`\n  Observed TPS (paste into models/registry.ts):`)
+    for (const r of tpsUpdates) {
+      console.log(`    // ${r.label}: observedTps: ${r.tps},`)
+    }
+  }
+
   console.log()
 }
 

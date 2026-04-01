@@ -63,6 +63,7 @@ export interface ModelDef {
     output: number            // $ per million output tokens
   }
   thinking?: "enabled" | "disabled" | "optional"  // whether model supports thinking mode
+  observedTps?: number         // measured tokens/sec from harness runs — updated by benchmark/calibrate
   maxContext?: number          // max context window in tokens
   maxOutput?: number           // max output tokens
   rateLimit?: {               // known rate limits

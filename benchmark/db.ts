@@ -47,6 +47,23 @@ function migrate(db: Database) {
       score INTEGER NOT NULL,
       reasoning TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS llm_calls (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      run_id INTEGER REFERENCES runs(id),
+      timestamp TEXT NOT NULL DEFAULT (datetime('now')),
+      call_type TEXT NOT NULL,
+      model TEXT NOT NULL,
+      provider TEXT NOT NULL,
+      prompt_tokens INTEGER NOT NULL DEFAULT 0,
+      completion_tokens INTEGER NOT NULL DEFAULT 0,
+      latency_ms INTEGER NOT NULL DEFAULT 0,
+      tokens_per_sec INTEGER NOT NULL DEFAULT 0,
+      cost REAL NOT NULL DEFAULT 0,
+      seed TEXT,
+      dimension TEXT,
+      attempt INTEGER
+    );
   `)
 }
 
@@ -59,6 +76,37 @@ export function createRun(writerProvider: string, writerModel: string, seedsCoun
     [writerProvider, writerModel, seedsCount, runsPerSeed],
   )
   return Number(result.lastInsertRowid)
+}
+
+export function saveLLMCall(
+  runId: number | null,
+  callType: "writer" | "judge" | "calibration",
+  model: string, provider: string,
+  promptTokens: number, completionTokens: number,
+  latencyMs: number, cost: number,
+  meta?: { seed?: string; dimension?: string; attempt?: number },
+) {
+  const db = getDB()
+  const tps = latencyMs > 0 && completionTokens > 0 ? Math.round(completionTokens / (latencyMs / 1000)) : 0
+  db.run(
+    `INSERT INTO llm_calls (run_id, call_type, model, provider, prompt_tokens, completion_tokens, latency_ms, tokens_per_sec, cost, seed, dimension, attempt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [runId, callType, model, provider, promptTokens, completionTokens, Math.round(latencyMs), tps, cost, meta?.seed ?? null, meta?.dimension ?? null, meta?.attempt ?? null],
+  )
+}
+
+export function getCallSummary(runId: number): Array<{ callType: string; model: string; calls: number; totalCost: number; avgTps: number; totalPrompt: number; totalCompletion: number }> {
+  const db = getDB()
+  return db.query<{ callType: string; model: string; calls: number; totalCost: number; avgTps: number; totalPrompt: number; totalCompletion: number }, [number]>(`
+    SELECT call_type as callType, model, COUNT(*) as calls,
+           ROUND(SUM(cost), 6) as totalCost,
+           ROUND(AVG(CASE WHEN tokens_per_sec > 0 THEN tokens_per_sec END)) as avgTps,
+           SUM(prompt_tokens) as totalPrompt,
+           SUM(completion_tokens) as totalCompletion
+    FROM llm_calls WHERE run_id = ?
+    GROUP BY call_type, model
+    ORDER BY call_type, totalCost DESC
+  `).all(runId)
 }
 
 export function saveGeneration(
