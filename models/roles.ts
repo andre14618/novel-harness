@@ -13,12 +13,13 @@ export interface ModelAssignment {
 }
 
 const groqQwen32B: ModelAssignment = { provider: "groq", model: "qwen/qwen3-32b" }
+const groqKimiK2: ModelAssignment = { provider: "groq", model: "moonshotai/kimi-k2-instruct-0905" }
 
 export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // ── Writers (creative prose, high output) ─────────────────────────────
-  "writer":                    groqQwen32B,
-  "rewriter":                  groqQwen32B,
-  "prose-polish":              groqQwen32B,
+  "writer":                    groqKimiK2,
+  "rewriter":                  groqKimiK2,
+  "prose-polish":              groqKimiK2,
 
   // ── Planners (structured creative output) ─────────────────────────────
   "world-builder":             groqQwen32B,
@@ -37,7 +38,7 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "prose-quality":             groqQwen32B,
 
   // ── Benchmark roles ──────────────────────────────────────────────────
-  "benchmark-writer":          groqQwen32B,
+  "benchmark-writer":          groqKimiK2,
   "benchmark-judge":           { provider: "groq", model: "openai/gpt-oss-120b" },
 }
 

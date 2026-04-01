@@ -110,6 +110,33 @@ function migrate(db: Database) {
       config TEXT NOT NULL            -- JSON: models, rubrics, samples, runs, etc.
     );
 
+    -- Deterministic lint patterns (the spec — each row is a detection rule)
+    CREATE TABLE IF NOT EXISTS lint_patterns (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tier INTEGER NOT NULL,           -- 1=zero ambiguity, 2=context-aware, 3=needs LLM
+      category TEXT NOT NULL,          -- FILLER_PHRASE, REDUNDANT_BODY, etc.
+      pattern TEXT NOT NULL,           -- regex string (without flags)
+      flags TEXT NOT NULL DEFAULT 'gi', -- regex flags
+      fix_template TEXT NOT NULL,      -- rewrite instruction for the rewriter
+      dialogue_ok INTEGER NOT NULL DEFAULT 0,  -- 1=flag even inside dialogue
+      enabled INTEGER NOT NULL DEFAULT 1,
+      rationale TEXT,                  -- why this pattern matters (craft reason)
+      edge_cases TEXT,                 -- known false positive scenarios
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    -- Deterministic lint issues (per-instance, linked to pattern)
+    CREATE TABLE IF NOT EXISTS lint_issues (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      generation_id INTEGER NOT NULL REFERENCES generations(id),
+      pattern_id INTEGER NOT NULL REFERENCES lint_patterns(id),
+      char_offset INTEGER NOT NULL,  -- position in prose string
+      match TEXT NOT NULL,           -- the flagged text
+      sentence TEXT NOT NULL,        -- surrounding sentence for rewriter context
+      resolved INTEGER NOT NULL DEFAULT 0,  -- 0=pending, 1=rewritten, 2=skipped
+      rewrite_result TEXT            -- what the rewriter did (null until processed)
+    );
+
     CREATE TABLE IF NOT EXISTS tuning_results (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       experiment_id INTEGER NOT NULL REFERENCES tuning_experiments(id),
