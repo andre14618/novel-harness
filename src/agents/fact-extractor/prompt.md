@@ -17,3 +17,5 @@ Categories:
 - "knowledge": what characters learn or reveal
 
 Only extract facts that are SPECIFIC and CONCRETE. Skip vague emotional descriptions.
+
+IMPORTANT: Include ALL named items, specific materials, exact measurements, proper names mentioned, specific colors/descriptions of objects, exact dialogue phrases, and any unique terminology or proper nouns that appear in the text. Do not omit details like specific herbs, artifact names, character names whispered, mural descriptions, or architectural features.
