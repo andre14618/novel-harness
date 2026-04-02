@@ -33,6 +33,7 @@ import {
   getExperimentLintSummary as _getExperimentLintSummary,
   getExperimentCost as _getExperimentCost,
   saveExperimentSummary as _saveExperimentSummary,
+  deleteExperiment as _deleteExperiment,
 } from "../data/db"
 
 export type { DimensionAvg, LLMCallData } from "../data/db"
@@ -64,6 +65,7 @@ export const getExperimentScores = _getExperimentScores
 export const getExperimentLintSummary = _getExperimentLintSummary
 export const getExperimentCost = _getExperimentCost
 export const saveExperimentSummary = _saveExperimentSummary
+export const deleteExperiment = _deleteExperiment
 
 // Benchmark-specific wrapper for logging LLM calls
 export function saveLLMCall(

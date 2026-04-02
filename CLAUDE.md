@@ -251,6 +251,10 @@ bun -e "import { concludeExperiment } from './data/db';
 
 Tables: `tuning_experiments` (what/why/conclusion) → `runs` (experiment_id) → `generations` → `scores`
 
+**Experiment types:** `probe`, `calibration`, `shootout`, `ab-test`, `methodology`, `experiment`, `system-test`
+- Use `system-test` for smoke tests / system verification runs — keeps them separate from real tuning data
+- `deleteExperiment(id)` handles full cascade cleanup (scores → generations → llm_calls → runs → experiment)
+
 ## Iterative Improvement Workflow
 
 1. Create experiment in DB with description + config

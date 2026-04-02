@@ -107,7 +107,7 @@ function migrate(db: Database) {
     CREATE TABLE IF NOT EXISTS tuning_experiments (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       timestamp TEXT NOT NULL DEFAULT (datetime('now')),
-      experiment_type TEXT NOT NULL,  -- 'probe', 'calibration', 'shootout', 'ab-test', 'methodology'
+      experiment_type TEXT NOT NULL,  -- 'probe', 'calibration', 'shootout', 'ab-test', 'methodology', 'experiment', 'system-test'
       description TEXT NOT NULL,
       config TEXT NOT NULL,           -- JSON: models, rubrics, samples, runs, etc.
       conclusion TEXT                 -- what we learned (persisted findings)
@@ -782,6 +782,35 @@ export function getExperimentCost(experimentId: number): Array<{
 export function saveExperimentSummary(experimentId: number, summary: string) {
   const db = getCentralDB()
   db.run("UPDATE tuning_experiments SET summary = ? WHERE id = ?", [summary, experimentId])
+}
+
+/**
+ * Delete an experiment and all its cascading data.
+ * Handles FK order: scores/lint_issues → generations → run_agents/llm_calls → runs → experiment.
+ */
+export function deleteExperiment(experimentId: number) {
+  const db = getCentralDB()
+  const runIds = db.query<{ id: number }, [number]>(
+    "SELECT id FROM runs WHERE experiment_id = ?"
+  ).all(experimentId).map(r => r.id)
+
+  if (runIds.length > 0) {
+    const runList = runIds.join(",")
+    const genIds = db.query<{ id: number }, []>(
+      `SELECT id FROM generations WHERE run_id IN (${runList})`
+    ).all().map(g => g.id)
+
+    if (genIds.length > 0) {
+      const genList = genIds.join(",")
+      db.exec(`DELETE FROM scores WHERE generation_id IN (${genList})`)
+      db.exec(`DELETE FROM lint_issues WHERE generation_id IN (${genList})`)
+      db.exec(`DELETE FROM generations WHERE id IN (${genList})`)
+    }
+    db.exec(`DELETE FROM llm_calls WHERE run_id IN (${runList})`)
+    db.exec(`DELETE FROM run_agents WHERE run_id IN (${runList})`)
+    db.exec(`DELETE FROM runs WHERE id IN (${runList})`)
+  }
+  db.exec(`DELETE FROM tuning_experiments WHERE id = ${experimentId}`)
 }
 
 export function getPhaseStats(): Array<{
