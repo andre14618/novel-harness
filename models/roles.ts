@@ -39,7 +39,8 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
 
   // ── Benchmark roles ──────────────────────────────────────────────────
   "benchmark-writer":          groqKimiK2,
-  "benchmark-judge":           { provider: "groq", model: "openai/gpt-oss-120b" },
+  "benchmark-judge":           { provider: "groq", model: "openai/gpt-oss-120b" },  // best penalty judge (issue counting)
+  "pairwise-judge":            { provider: "deepseek", model: "deepseek-chat" },     // best pairwise judge (A/B comparison, 0% position bias)
 }
 
 export function getModelForAgent(agentName: string): ModelAssignment | undefined {

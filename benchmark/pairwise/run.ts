@@ -16,7 +16,7 @@
  */
 
 import { parseArgs } from "node:util"
-import { getJudges } from "../config"
+import { getPairwiseJudge } from "../config"
 import { getCentralDB, createTuningExperiment, savePairwiseMatchup, getPairwiseResults } from "../../data/db"
 import { runMatchup } from "./judge"
 
@@ -39,9 +39,7 @@ const seedFilter = values.seeds?.split(",").map(s => s.trim())
 
 async function main() {
   const db = getCentralDB()
-  const judges = getJudges()
-  if (judges.length === 0) { console.error("No judge configured"); process.exit(1) }
-  const judge = judges[0]
+  const judge = getPairwiseJudge()
 
   // Get run labels
   const runAInfo = db.query<any, [number]>("SELECT label FROM runs WHERE id = ?").get(runA)

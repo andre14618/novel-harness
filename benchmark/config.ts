@@ -96,3 +96,22 @@ export function getJudges(): JudgeConfig[] {
 
   throw new Error('No benchmark-judge in roles.ts and BENCHMARK_JUDGES not set.')
 }
+
+export function getPairwiseJudge(): JudgeConfig {
+  // Env override
+  const judgeEnv = process.env.BENCHMARK_JUDGES
+  if (judgeEnv) {
+    const label = judgeEnv.split(",")[0].trim().toLowerCase()
+    const found = MODELS.find(m => {
+      if (!m.label.toLowerCase().includes(label)) return false
+      return !!process.env[PROVIDERS[m.provider].envKey]
+    })
+    if (found) return toJudgeConfig(found)
+  }
+
+  // Primary: pairwise-judge role, fallback to benchmark-judge
+  const fromRole = resolveFromRole("pairwise-judge") ?? resolveFromRole("benchmark-judge")
+  if (fromRole) return toJudgeConfig(fromRole)
+
+  throw new Error('No pairwise-judge or benchmark-judge in roles.ts.')
+}
