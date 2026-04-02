@@ -11,7 +11,7 @@ import { lintRun } from "../../src/lint/index"
 import { getBatchProvider } from "../batch/providers"
 import { createBatch, addBatchRequest, updateBatchSubmitted } from "../../data/db"
 import { MODELS } from "../../models/registry"
-import type { BatchRequest } from "../batch/types"
+import { setTransport, BatchTransport } from "../../src/transport"
 
 // ── Config ───────────────────────────────────────────────────────────────
 
@@ -106,40 +106,41 @@ async function main() {
   }
 
   // ── Batch submission (if --batch) ─────────────────────────────────────
+  // Swap to BatchTransport, run judgeDimension() for each generation×dimension.
+  // judgeDimension() builds the same prompts as real-time mode — transport queues them.
 
   if (BATCH_MODE && generatedProse.length > 0) {
-    const modelDef = MODELS.find(m => m.id === BATCH_MODEL)
-    const useMaxCompletionTokens = modelDef?.useMaxCompletionTokens ?? false
+    const batchTransport = new BatchTransport(getBatchProvider(BATCH_PROVIDER), BATCH_MODEL)
+    setTransport(batchTransport)
 
-    const batchId = createBatch(runId, BATCH_PROVIDER, BATCH_MODEL)
-    const requests: BatchRequest[] = []
+    const batchModelDef = MODELS.find(m => m.id === BATCH_MODEL)
+    const batchJudge = {
+      label: batchModelDef?.label ?? BATCH_MODEL,
+      provider: (batchModelDef?.provider ?? BATCH_PROVIDER) as any,
+      model: BATCH_MODEL,
+      apiUrl: "", apiKey: "",
+      useMaxCompletionTokens: batchModelDef?.useMaxCompletionTokens,
+    }
 
+    // Queue all judge calls through the transport
     for (const gen of generatedProse) {
       for (const dim of DIMENSIONS) {
-        const customId = `gen-${gen.genId}-${dim}`
-        const rubric = JUDGE_RUBRICS[dim]
-
-        addBatchRequest(batchId, customId, gen.genId, dim)
-        requests.push({
-          customId,
-          model: BATCH_MODEL,
-          messages: [
-            { role: "system", content: `Here is a prose passage:\n\n${gen.prose}\n\n---\n\n${rubric}` },
-            { role: "user", content: "Evaluate the prose above according to the rubric. Return the JSON result." },
-          ],
-          temperature: 0.1,
-          maxTokens: 4096,
-          useMaxCompletionTokens,
-          responseFormat: { type: "json_object" },
-        })
+        await judgeDimension(batchJudge, dim, gen.prose, runId, gen.seed, `gen-${gen.genId}-${dim}`)
       }
     }
 
-    const provider = getBatchProvider(BATCH_PROVIDER)
-    const providerBatchId = await provider.submit(requests, `run-${runId} judge batch`)
-    updateBatchSubmitted(batchId, providerBatchId, `data/batches/input-*.jsonl`, requests.length)
+    // Register in DB and flush
+    const batchId = createBatch(runId, BATCH_PROVIDER, BATCH_MODEL)
+    for (const q of batchTransport.getQueue()) {
+      const parts = q.customId.match(/^gen-(\d+)-(.+)$/)
+      if (parts) addBatchRequest(batchId, q.customId, parseInt(parts[1]), parts[2])
+    }
 
-    console.log(`\n  Batch submitted: ${requests.length} judge calls via ${BATCH_PROVIDER}/${BATCH_MODEL}`)
+    const providerBatchId = await batchTransport.flush()
+    const requestCount = batchTransport.queueSize()
+    updateBatchSubmitted(batchId, providerBatchId, `data/batches/input-*.jsonl`, requestCount)
+
+    console.log(`\n  Batch submitted: ${requestCount} judge calls via ${BATCH_PROVIDER}/${BATCH_MODEL}`)
     console.log(`  Provider batch ID: ${providerBatchId}`)
     console.log(`  Local batch: #${batchId}`)
     console.log(`  Check status: bun benchmark/batch/status.ts`)

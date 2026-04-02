@@ -32,6 +32,7 @@ function resolveVariantWriter(variant: Variant): WriterConfig {
     const p = PROVIDERS[m.provider]
     return {
       label: m.label,
+      provider: m.provider,
       apiUrl: p.apiUrl,
       apiKey: getApiKey(m.provider),
       model: m.id,

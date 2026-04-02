@@ -5,50 +5,58 @@
  * alongside every other agent role. Env overrides still work for one-off tests.
  */
 
-import { MODELS, PROVIDERS, getApiKey, type ModelDef } from "../models/registry"
+import { MODELS, PROVIDERS, getApiKey, type ModelDef, type ProviderName } from "../models/registry"
 import { AGENT_MODELS } from "../models/roles"
 
 export interface WriterConfig {
   label: string
-  apiUrl: string
-  apiKey: string
+  provider: ProviderName
   model: string
   maxTokens: number
   extraBody?: Record<string, any>
   needsNothink?: boolean
+  /** @deprecated Use provider field + transport layer instead. Kept for unmigrated benchmark runners. */
+  apiUrl: string
+  /** @deprecated Use provider field + transport layer instead. Kept for unmigrated benchmark runners. */
+  apiKey: string
 }
 
 export interface JudgeConfig {
   label: string
-  apiUrl: string
-  apiKey: string
+  provider: ProviderName
   model: string
   extraBody?: Record<string, any>
   useMaxCompletionTokens?: boolean
+  /** @deprecated Use provider field + transport layer instead. Kept for unmigrated benchmark runners. */
+  apiUrl: string
+  /** @deprecated Use provider field + transport layer instead. Kept for unmigrated benchmark runners. */
+  apiKey: string
 }
 
 function toWriterConfig(m: ModelDef): WriterConfig {
-  const provider = PROVIDERS[m.provider]
+  const providerDef = PROVIDERS[m.provider]
   return {
     label: m.label,
-    apiUrl: provider.apiUrl,
-    apiKey: getApiKey(m.provider),
+    provider: m.provider,
     model: m.id,
     maxTokens: Math.min(m.maxOutput ?? 16384, 16384),
-    extraBody: provider.extraBody?.(),
+    extraBody: providerDef.extraBody?.(),
     needsNothink: m.needsNothink,
+    apiUrl: providerDef.apiUrl,
+    apiKey: getApiKey(m.provider),
   }
 }
 
 function toJudgeConfig(m: ModelDef): JudgeConfig {
-  const provider = PROVIDERS[m.provider]
+  const providerDef = PROVIDERS[m.provider]
   return {
     label: m.label,
-    apiUrl: provider.apiUrl,
-    apiKey: getApiKey(m.provider),
+    provider: m.provider,
     model: m.id,
-    extraBody: provider.extraBody?.(),
+    extraBody: providerDef.extraBody?.(),
     useMaxCompletionTokens: m.useMaxCompletionTokens,
+    apiUrl: providerDef.apiUrl,
+    apiKey: getApiKey(m.provider),
   }
 }
 

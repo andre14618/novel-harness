@@ -11,6 +11,7 @@ import { extractJSON } from "../../src/llm"
 import { getTokenCost } from "../../src/config/pricing"
 import { penaltySchema, DIMENSIONS, type Dimension } from "./judges/schema"
 import { saveLLMCall } from "../db"
+import { getTransport } from "../../src/transport"
 import type { WriterConfig, JudgeConfig } from "../config"
 
 // ── Seed loading ────────────────────────────────────────────────────────
@@ -91,48 +92,32 @@ export async function generateProse(
   temperature: number = 0.8,
 ): Promise<GenerateResult | null> {
   const finalPrompt = writer.needsNothink ? `/nothink\n${userPrompt}` : userPrompt
-  const start = performance.now()
 
   try {
-    const res = await fetch(writer.apiUrl, {
-      method: "POST",
-      headers: { "Authorization": `Bearer ${writer.apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: writer.model,
-        messages: [{ role: "system", content: systemPrompt }, { role: "user", content: finalPrompt }],
-        temperature, max_tokens: writer.maxTokens,
-        response_format: { type: "json_object" },
-        ...writer.extraBody,
-      }),
+    const response = await getTransport().execute({
+      systemPrompt,
+      userPrompt: finalPrompt,
+      model: writer.model,
+      provider: writer.provider,
+      temperature,
+      maxTokens: writer.maxTokens,
+      responseFormat: { type: "json_object" },
+      extraBody: writer.extraBody,
+      callerId: "writer",
     })
 
-    const elapsed = performance.now() - start
-    if (!res.ok) {
-      const text = await res.text()
-      console.log(`FAIL [http ${res.status}] ${text.slice(0, 150)} `)
-      return null
-    }
-
-    const data = await res.json() as any
-    if (data.error) {
-      console.log(`FAIL [api] ${JSON.stringify(data.error).slice(0, 150)} `)
-      return null
-    }
-
-    const content = data.choices?.[0]?.message?.content
+    const content = response.content
     if (!content) {
-      console.log(`FAIL [empty] no content in response. finish_reason: ${data.choices?.[0]?.finish_reason} `)
+      console.log(`FAIL [empty] no content in response`)
       return null
     }
 
-    const usage = data.usage ?? { prompt_tokens: 0, completion_tokens: 0 }
-    const promptTokens = usage.prompt_tokens ?? 0
-    const completionTokens = usage.completion_tokens ?? 0
+    const promptTokens = response.usage.prompt_tokens ?? 0
+    const completionTokens = response.usage.completion_tokens ?? 0
+    const elapsed = response.latencyMs
 
-    // Log to DB
-    const providerName = inferProvider(writer.apiUrl)
-    const cost = getTokenCost(providerName as any, writer.model, promptTokens, completionTokens)
-    saveLLMCall(runId, "writer", "writer", writer.model, providerName, promptTokens, completionTokens, Math.round(elapsed), cost, { seed, attempt })
+    const cost = getTokenCost(writer.provider, writer.model, promptTokens, completionTokens)
+    saveLLMCall(runId, "writer", "writer", writer.model, writer.provider, promptTokens, completionTokens, Math.round(elapsed), cost, { seed, attempt })
 
     let jsonStr: string
     try { jsonStr = extractJSON(content) }
@@ -165,64 +150,37 @@ export async function generateProse(
 
 export async function judgeDimension(
   judge: JudgeConfig, dimension: Dimension, prose: string, runId: number, seed: string,
+  customId?: string,
 ): Promise<{ count: number; issues: Array<{ quote: string; problem: string }> } | null> {
   const rubric = JUDGE_RUBRICS[dimension]
-  const start = performance.now()
 
   try {
-    const tokenParam = judge.useMaxCompletionTokens
-      ? { max_completion_tokens: 4096 }
-      : { max_tokens: 4096 }
+    const response = await getTransport().execute({
+      systemPrompt: `Here is a prose passage:\n\n${prose}\n\n---\n\n${rubric}`,
+      userPrompt: "Evaluate the prose above according to the rubric. Return the JSON result.",
+      model: judge.model,
+      provider: judge.provider,
+      temperature: 0.1,
+      maxTokens: 4096,
+      useMaxCompletionTokens: judge.useMaxCompletionTokens,
+      responseFormat: { type: "json_object" },
+      extraBody: judge.extraBody,
+      callerId: "penalty-judge",
+      customId,
+    })
 
-    let res: Response | null = null
-    for (let attempt = 0; attempt <= 2; attempt++) {
-      res = await fetch(judge.apiUrl, {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${judge.apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: judge.model,
-          messages: [
-            { role: "system", content: `Here is a prose passage:\n\n${prose}\n\n---\n\n${rubric}` },
-            { role: "user", content: "Evaluate the prose above according to the rubric. Return the JSON result." },
-          ],
-          temperature: 0.1,
-          ...tokenParam,
-          response_format: { type: "json_object" },
-          ...judge.extraBody,
-        }),
-      })
-      if (res!.status === 429 || res!.status === 503) {
-        if (attempt < 2) { await Bun.sleep(3000 * (attempt + 1)); continue }
-      }
-      break
-    }
-
-    if (!res!.ok) {
-      const text = await res!.text()
-      console.log(`  ! ${judge.label}/${dimension} [http ${res!.status}] ${text.slice(0, 100)}`)
-      return null
-    }
-
-    const data = await res!.json() as any
-    if (data.error) {
-      console.log(`  ! ${judge.label}/${dimension} [api] ${JSON.stringify(data.error).slice(0, 100)}`)
-      return null
-    }
-
-    const content = data.choices?.[0]?.message?.content
+    const content = response.content
     if (!content) {
       console.log(`  ! ${judge.label}/${dimension} [empty]`)
       return null
     }
 
-    const usage = data.usage ?? { prompt_tokens: 0, completion_tokens: 0 }
-    const elapsed = performance.now() - start
-    const promptTokens = usage.prompt_tokens ?? 0
-    const completionTokens = usage.completion_tokens ?? 0
+    const promptTokens = response.usage.prompt_tokens ?? 0
+    const completionTokens = response.usage.completion_tokens ?? 0
+    const elapsed = response.latencyMs
 
-    const judgeProvider = inferProvider(judge.apiUrl)
-    const cost = getTokenCost(judgeProvider as any, judge.model, promptTokens, completionTokens)
-    saveLLMCall(runId, "judge", null, judge.model, judgeProvider, promptTokens, completionTokens, Math.round(elapsed), cost, { seed, dimension })
+    const cost = getTokenCost(judge.provider, judge.model, promptTokens, completionTokens)
+    saveLLMCall(runId, "judge", null, judge.model, judge.provider, promptTokens, completionTokens, Math.round(elapsed), cost, { seed, dimension })
 
     let jsonStr: string
     try { jsonStr = extractJSON(content) }
@@ -257,12 +215,3 @@ export function stddev(arr: number[]): number {
   return Math.sqrt(arr.reduce((s, v) => s + (v - m) ** 2, 0) / arr.length)
 }
 
-// ── Provider inference ──────────────────────────────────────────────────
-
-function inferProvider(apiUrl: string): string {
-  if (apiUrl.includes("openai.com")) return "openai"
-  if (apiUrl.includes("groq.com")) return "groq"
-  if (apiUrl.includes("deepseek.com")) return "deepseek"
-  if (apiUrl.includes("cerebras.ai")) return "cerebras"
-  return "openrouter"
-}

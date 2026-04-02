@@ -5,6 +5,7 @@ import {
   type ProviderName, type ProviderDef,
 } from "../models/registry"
 import { getModelForAgent, type ModelAssignment } from "../models/roles"
+import { getTransport, type LLMResponse } from "./transport"
 
 export type { ProviderName } from "../models/registry"
 
@@ -149,6 +150,8 @@ export function extractJSON(raw: string): string {
 }
 
 // ── HTTP Request ──────────────────────────────────────────────────────────
+// Delegates to the active LLMTransport (see src/transport.ts).
+// Direct, batch, and cache-aware modes are all handled by the transport layer.
 
 async function makeRequest(
   systemPrompt: string,
@@ -157,61 +160,25 @@ async function makeRequest(
   maxTokens: number,
   provider: ProviderConfig,
   model: string,
+  providerName: ProviderName,
 ): Promise<MakeRequestResult> {
-  const maxRetries = 3
-  const retryErrors: Array<{ status: number; delay: number }> = []
-  let httpAttempts = 0
-  const startTime = performance.now()
-
-  const body = JSON.stringify({
+  const response: LLMResponse = await getTransport().execute({
+    systemPrompt,
+    userPrompt,
     model,
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
-    ],
+    provider: providerName,
     temperature,
-    max_tokens: maxTokens,
-    response_format: { type: "json_object" },
-    ...provider.extraBody(),
+    maxTokens,
+    responseFormat: { type: "json_object" },
+    extraBody: provider.extraBody(),
   })
-  const headers = {
-    "Authorization": `Bearer ${provider.getApiKey()}`,
-    "Content-Type": "application/json",
+  return {
+    content: response.content,
+    usage: response.usage,
+    totalLatencyMs: response.latencyMs,
+    httpAttempts: response.httpAttempts,
+    retryErrors: response.retryErrors,
   }
-
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    httpAttempts++
-    const res = await fetch(provider.apiUrl, { method: "POST", headers, body })
-
-    if (res.status === 429 || res.status >= 500) {
-      const delay = (attempt + 1) * 5000
-      retryErrors.push({ status: res.status, delay })
-      if (attempt === maxRetries) {
-        const text = await res.text()
-        throw new Error(`LLM request failed after ${maxRetries} retries: ${res.status} ${text}`)
-      }
-      console.log(`  [LLM] ${res.status} — retrying in ${delay / 1000}s (attempt ${attempt + 1}/${maxRetries})...`)
-      await Bun.sleep(delay)
-      continue
-    }
-
-    if (!res.ok) {
-      const text = await res.text()
-      throw new Error(`LLM request failed: ${res.status} ${text}`)
-    }
-
-    const data = await res.json() as any
-    if (data.error) throw new Error(`LLM error: ${JSON.stringify(data.error)}`)
-    return {
-      content: data.choices[0].message.content,
-      usage: data.usage ?? { prompt_tokens: 0, completion_tokens: 0 },
-      totalLatencyMs: performance.now() - startTime,
-      httpAttempts,
-      retryErrors,
-    }
-  }
-
-  throw new Error("LLM request: unreachable")
 }
 
 // ── Token Tracking ────────────────────────────────────────────────────────
@@ -246,7 +213,7 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
   let zodErrors: string[] = []
 
   try {
-    requestResult = await makeRequest(config.systemPrompt, userPrompt, temperature, maxTokens, provider, model)
+    requestResult = await makeRequest(config.systemPrompt, userPrompt, temperature, maxTokens, provider, model, providerName)
     content = requestResult.content
 
     totalTokens.prompt += requestResult.usage.prompt_tokens
@@ -263,7 +230,7 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
       jsonExtractionRetried = true
       const retryResult = await makeRequest(
         config.systemPrompt + "\n\nIMPORTANT: Respond with ONLY valid JSON. No markdown, no commentary.",
-        config.userPrompt, temperature, maxTokens, provider, model,
+        config.userPrompt, temperature, maxTokens, provider, model, providerName,
       )
       content = retryResult.content
       jsonStr = extractJSON(content)
