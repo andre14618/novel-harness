@@ -151,7 +151,7 @@ export async function runBatch(batch: ExperimentBatch) {
           const penalty = await judgeDimension(judge, dim, result.prose, runId, seed.name)
           if (penalty) {
             saveScore(genId, judge.label, dim, penalty.count, JSON.stringify(penalty.issues))
-            allScores.push({ variant: variant.label, seed: seed.name, run, dim, count: penalty.count })
+            allScores.push({ variant: variant.label, seed: seed.name, run, dim, count: penalty.count, wordCount: words })
             console.log(`    ${DIMENSION_LABELS[dim]}: ${penalty.count}`)
           }
         })
@@ -168,37 +168,61 @@ export async function runBatch(batch: ExperimentBatch) {
   console.log(`  RESULTS — ${batch.name} (lower = better)`)
   console.log(`${"=".repeat(70)}`)
 
-  const colW = 14
-  console.log(`\n  ${"Variant".padEnd(28)} ${DIMENSIONS.map(d => DIMENSION_LABELS[d].padEnd(colW)).join("")}${"OVERALL".padEnd(colW)}`)
-  console.log(`  ${"-".repeat(28 + (DIMENSIONS.length + 1) * colW)}`)
+  const per1k = (s: VariantScore) => s.wordCount > 0 ? s.count / s.wordCount * 1000 : 0
 
-  const variantOveralls: Array<{ label: string; overall: number; telling: number }> = []
+  // Raw scores table
+  const colW = 14
+  console.log(`\n  ${"Variant".padEnd(28)} ${DIMENSIONS.map(d => DIMENSION_LABELS[d].padEnd(colW)).join("")}${"OVERALL".padEnd(colW)}${"Avg Words".padEnd(colW)}`)
+  console.log(`  ${"-".repeat(28 + (DIMENSIONS.length + 2) * colW)}`)
+
+  const variantOveralls: Array<{ label: string; overall: number; telling: number; normTelling: number; normOverall: number }> = []
 
   for (const variant of variants) {
     const cols: string[] = []
-    let tellingAvg = 0
+    let tellingAvg = 0, normTellingAvg = 0
     for (const dim of DIMENSIONS) {
-      const counts = allScores.filter(s => s.variant === variant.label && s.dim === dim).map(s => s.count)
-      const avg = mean(counts)
-      const std = stddev(counts)
-      if (dim === "telling") tellingAvg = avg
+      const dimScores = allScores.filter(s => s.variant === variant.label && s.dim === dim)
+      const avg = mean(dimScores.map(s => s.count))
+      const std = stddev(dimScores.map(s => s.count))
+      if (dim === "telling") { tellingAvg = avg; normTellingAvg = mean(dimScores.map(per1k)) }
       cols.push(`${avg.toFixed(1)} ±${std.toFixed(1)}`.padEnd(colW))
     }
-    const allCounts = allScores.filter(s => s.variant === variant.label).map(s => s.count)
-    const overall = mean(allCounts)
+    const varScores = allScores.filter(s => s.variant === variant.label)
+    const overall = mean(varScores.map(s => s.count))
+    const normOverall = mean(varScores.map(per1k))
+    const avgWords = mean(varScores.map(s => s.wordCount))
     cols.push(`${overall.toFixed(1)}`.padEnd(colW))
-    variantOveralls.push({ label: variant.label, overall, telling: tellingAvg })
+    cols.push(`${avgWords.toFixed(0)}`.padEnd(colW))
+    variantOveralls.push({ label: variant.label, overall, telling: tellingAvg, normTelling: normTellingAvg, normOverall })
 
     console.log(`  ${variant.label.padEnd(28)} ${cols.join("")}`)
   }
 
+  // Normalized table
+  console.log(`\n  Normalized (issues per 1k words):`)
+  console.log(`  ${"Variant".padEnd(28)} ${DIMENSIONS.map(d => DIMENSION_LABELS[d].padEnd(colW)).join("")}${"OVERALL".padEnd(colW)}`)
+  console.log(`  ${"-".repeat(28 + (DIMENSIONS.length + 1) * colW)}`)
+
+  for (const variant of variants) {
+    const cols: string[] = []
+    for (const dim of DIMENSIONS) {
+      const dimScores = allScores.filter(s => s.variant === variant.label && s.dim === dim)
+      const normAvg = mean(dimScores.map(per1k))
+      const normStd = stddev(dimScores.map(per1k))
+      cols.push(`${normAvg.toFixed(1)} ±${normStd.toFixed(1)}`.padEnd(colW))
+    }
+    const varScores = allScores.filter(s => s.variant === variant.label)
+    cols.push(`${mean(varScores.map(per1k)).toFixed(1)}`.padEnd(colW))
+    console.log(`  ${variant.label.padEnd(28)} ${cols.join("")}`)
+  }
+
   // Ranking
-  console.log(`\n  Ranked by Telling (primary target):`)
-  const ranked = [...variantOveralls].sort((a, b) => a.telling - b.telling)
+  console.log(`\n  Ranked by Telling (raw → normalized):`)
+  const ranked = [...variantOveralls].sort((a, b) => a.normTelling - b.normTelling)
   for (let i = 0; i < ranked.length; i++) {
     const r = ranked[i]
     const marker = i === 0 ? ">>>" : "   "
-    console.log(`  ${marker} ${r.label.padEnd(28)} Telling: ${r.telling.toFixed(1)}  Overall: ${r.overall.toFixed(1)}`)
+    console.log(`  ${marker} ${r.label.padEnd(28)} Telling: ${r.telling.toFixed(1)} (${r.normTelling.toFixed(1)}/1k)  Overall: ${r.overall.toFixed(1)} (${r.normOverall.toFixed(1)}/1k)`)
   }
 
   // Per-seed for best variant
@@ -206,11 +230,12 @@ export async function runBatch(batch: ExperimentBatch) {
   console.log(`\n  Per-seed breakdown for best variant (${best.label}):`)
   for (const seed of seeds) {
     const seedScores = allScores.filter(s => s.variant === best.label && s.seed === seed.name)
+    const seedWords = mean(seedScores.map(s => s.wordCount))
     const dimStr = DIMENSIONS.map(dim => {
-      const counts = seedScores.filter(s => s.dim === dim).map(s => s.count)
-      return `${DIMENSION_LABELS[dim]}:${mean(counts).toFixed(1)}`
+      const dimScores = seedScores.filter(s => s.dim === dim)
+      return `${DIMENSION_LABELS[dim]}:${mean(dimScores.map(s => s.count)).toFixed(1)}(${mean(dimScores.map(per1k)).toFixed(1)}/1k)`
     }).join("  ")
-    console.log(`    ${seed.name.padEnd(24)} ${dimStr}`)
+    console.log(`    ${seed.name.padEnd(24)} ${dimStr}  (${seedWords.toFixed(0)}w)`)
   }
 
   // Auto-generate and persist summary

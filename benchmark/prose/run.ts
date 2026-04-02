@@ -38,7 +38,7 @@ async function main() {
   const runId = createRun("prose", seeds.length.toString(), `${writer.label} / ${judges.map(j => j.label).join(",")}`, experimentId)
 
   // Track all scores in memory for reporting
-  const allScores: Array<{ seed: string; run: number; dim: Dimension; count: number }> = []
+  const allScores: Array<{ seed: string; run: number; dim: Dimension; count: number; wordCount: number }> = []
 
   // ── Generate + judge all seeds ───────────────────────────────────────
 
@@ -68,7 +68,7 @@ async function main() {
             const penalty = await judgeDimension(judge, dim, result.prose, runId, seed.name)
             if (penalty) {
               saveScore(genId, judge.label, dim, penalty.count, JSON.stringify(penalty.issues))
-              allScores.push({ seed: seed.name, run, dim, count: penalty.count })
+              allScores.push({ seed: seed.name, run, dim, count: penalty.count, wordCount: words })
               console.log(`  [${seed.name}:${run}] ${DIMENSION_LABELS[dim]}: ${penalty.count} issues`)
             }
             return { judge: judge.label, dim, penalty }
@@ -97,30 +97,39 @@ async function main() {
   console.log(`  Judge: ${judges.map(j => j.label).join(", ")}`)
   console.log(`  Seeds: ${seeds.length} x ${RUNS_PER_SEED} runs`)
 
-  // Per-dimension averages
-  console.log(`\n  Per-dimension averages (issues per generation):`)
-  const dimStats: Array<{ dim: Dimension; avg: number; std: number }> = []
+  // Per-dimension averages (raw + normalized)
+  const per1k = (s: { count: number; wordCount: number }) => s.wordCount > 0 ? s.count / s.wordCount * 1000 : 0
+  const avgWords = mean(allScores.map(s => s.wordCount))
+
+  console.log(`\n  Per-dimension averages (raw issues | per 1k words):`)
+  const dimStats: Array<{ dim: Dimension; avg: number; std: number; normAvg: number; normStd: number }> = []
   for (const dim of DIMENSIONS) {
-    const counts = allScores.filter(s => s.dim === dim).map(s => s.count)
-    const avg = mean(counts)
-    const std = stddev(counts)
-    dimStats.push({ dim, avg, std })
-    console.log(`    ${DIMENSION_LABELS[dim].padEnd(14)} ${avg.toFixed(1)} issues (+-${std.toFixed(1)})`)
+    const dimScores = allScores.filter(s => s.dim === dim)
+    const counts = dimScores.map(s => s.count)
+    const norms = dimScores.map(per1k)
+    const avg = mean(counts), std = stddev(counts)
+    const normAvg = mean(norms), normStd = stddev(norms)
+    dimStats.push({ dim, avg, std, normAvg, normStd })
+    console.log(`    ${DIMENSION_LABELS[dim].padEnd(14)} ${avg.toFixed(1)} issues (+-${std.toFixed(1)})  |  ${normAvg.toFixed(1)}/1k (+-${normStd.toFixed(1)})`)
   }
   const totalAvg = mean(allScores.map(s => s.count))
   const totalStd = stddev(allScores.map(s => s.count))
-  console.log(`    ${"TOTAL".padEnd(14)} ${totalAvg.toFixed(1)} issues/dim (+-${totalStd.toFixed(1)})`)
+  const totalNormAvg = mean(allScores.map(per1k))
+  const totalNormStd = stddev(allScores.map(per1k))
+  console.log(`    ${"TOTAL".padEnd(14)} ${totalAvg.toFixed(1)} issues/dim (+-${totalStd.toFixed(1)})  |  ${totalNormAvg.toFixed(1)}/1k (+-${totalNormStd.toFixed(1)})`)
+  console.log(`    Avg word count: ${avgWords.toFixed(0)}`)
 
   // Per-seed breakdown
   console.log(`\n  Per-seed breakdown:`)
   for (const seed of seeds) {
     const seedScores = allScores.filter(s => s.seed === seed.name)
+    const seedWords = mean(seedScores.map(s => s.wordCount))
     const dimStr = DIMENSIONS.map(dim => {
-      const counts = seedScores.filter(s => s.dim === dim).map(s => s.count)
-      return `${DIMENSION_LABELS[dim]}:${mean(counts).toFixed(1)}`
+      const dimScores = seedScores.filter(s => s.dim === dim)
+      return `${DIMENSION_LABELS[dim]}:${mean(dimScores.map(s => s.count)).toFixed(1)}(${mean(dimScores.map(per1k)).toFixed(1)}/1k)`
     }).join(" ")
     const seedAvg = mean(seedScores.map(s => s.count))
-    console.log(`    ${seed.name.padEnd(24)} ${dimStr} (avg ${seedAvg.toFixed(1)})`)
+    console.log(`    ${seed.name.padEnd(24)} ${dimStr} (avg ${seedAvg.toFixed(1)}, ${seedWords.toFixed(0)}w)`)
   }
 
   // Commit-ready summary
@@ -128,7 +137,11 @@ async function main() {
     const label = d.dim === "telling" ? "T" : d.dim === "dead-weight" ? "W" : "D"
     return `${label}:${d.avg.toFixed(1)}`
   }).join(" ")
-  const summary = `benchmark: ${totalAvg.toFixed(1)} issues/dim (+-${totalStd.toFixed(1)}) ${dimShort}`
+  const normShort = dimStats.map(d => {
+    const label = d.dim === "telling" ? "T" : d.dim === "dead-weight" ? "W" : "D"
+    return `${label}:${d.normAvg.toFixed(1)}`
+  }).join(" ")
+  const summary = `benchmark: ${totalAvg.toFixed(1)} issues/dim (+-${totalStd.toFixed(1)}) ${dimShort} | norm: ${totalNormAvg.toFixed(1)}/1k ${normShort}`
   console.log(`\n  Commit line:\n  ${summary}\n  ${seeds.length} seeds x ${RUNS_PER_SEED} runs | penalty mode`)
 
   // ── Compare to baseline ────────────────────────────────────────────────

@@ -27,4 +27,5 @@ export interface VariantScore {
   run: number
   dim: Dimension
   count: number
+  wordCount: number
 }

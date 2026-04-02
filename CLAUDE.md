@@ -226,11 +226,13 @@ See `benchmark/tuning-log.md` for full tuning experiment results and rationale.
 
 ### Current Baseline (Run 16, post-methodology Tier 1)
 ```
-Telling:        3.9 issues (+-1.8)
-Dead Weight:    1.3 issues (+-1.5)
-Dialogue:       4.9 issues (+-5.0)
+                Raw issues    Per 1k words
+Telling:        3.9 (+-1.8)
+Dead Weight:    1.3 (+-1.5)
+Dialogue:       4.9 (+-5.0)
 Cost per cycle: ~$0.06 (all seeds) / ~$0.03 (single seed)
 ```
+Note: Normalized (per-1k) baselines not yet established — run `--save-baseline` after next full benchmark to populate.
 
 ## Experiment Workflow
 
@@ -270,7 +272,7 @@ Commit format:
 ```
 [agent:writer] Description of what changed
 
-benchmark: 3.3 issues/dim (+-2.6) T:5.8 W:2.1 D:2.1
+benchmark: 3.3 issues/dim (+-2.6) T:5.8 W:2.1 D:2.1 | norm: 3.0/1k T:5.2 W:1.9 D:1.9
 delta: -0.5 vs baseline | 5 seeds x 3 runs | penalty mode
 experiment: #9
 ```

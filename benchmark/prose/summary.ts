@@ -28,41 +28,64 @@ export function generateExperimentSummary(
   lines.push(`Seeds: ${seeds.map(s => s.name).join(", ")}`)
   lines.push(``)
 
-  // Variant × dimension table
-  lines.push(`### Scores (lower = better)`)
+  // Variant × dimension table (raw)
+  const per1k = (s: VariantScore) => s.wordCount > 0 ? s.count / s.wordCount * 1000 : 0
+
+  lines.push(`### Raw Scores (lower = better)`)
   lines.push(``)
-  const header = `| Variant | ${DIMENSIONS.map(d => DIMENSION_LABELS[d]).join(" | ")} | Overall |`
-  const sep = `|${"-".repeat(28)}|${DIMENSIONS.map(() => "-".repeat(12) + "|").join("")}${"-".repeat(10)}|`
+  const header = `| Variant | ${DIMENSIONS.map(d => DIMENSION_LABELS[d]).join(" | ")} | Overall | Avg Words |`
+  const sep = `|${"-".repeat(28)}|${DIMENSIONS.map(() => "-".repeat(12) + "|").join("")}${"-".repeat(10)}|${"-".repeat(12)}|`
   lines.push(header)
   lines.push(sep)
 
-  const variantOveralls: Array<{ label: string; overall: number; telling: number }> = []
+  const variantOveralls: Array<{ label: string; overall: number; telling: number; normTelling: number; normOverall: number }> = []
 
   for (const variant of variants) {
     const cols: string[] = []
-    let tellingAvg = 0
+    let tellingAvg = 0, normTellingAvg = 0
     for (const dim of DIMENSIONS) {
-      const counts = allScores.filter(s => s.variant === variant.label && s.dim === dim).map(s => s.count)
-      const avg = mean(counts)
-      const std = stddev(counts)
-      if (dim === "telling") tellingAvg = avg
+      const dimScores = allScores.filter(s => s.variant === variant.label && s.dim === dim)
+      const avg = mean(dimScores.map(s => s.count))
+      const std = stddev(dimScores.map(s => s.count))
+      if (dim === "telling") { tellingAvg = avg; normTellingAvg = mean(dimScores.map(per1k)) }
       cols.push(`${avg.toFixed(1)} ±${std.toFixed(1)}`)
     }
-    const allCounts = allScores.filter(s => s.variant === variant.label).map(s => s.count)
-    const overall = mean(allCounts)
-    variantOveralls.push({ label: variant.label, overall, telling: tellingAvg })
-    lines.push(`| ${variant.label} | ${cols.join(" | ")} | ${overall.toFixed(1)} |`)
+    const varScores = allScores.filter(s => s.variant === variant.label)
+    const overall = mean(varScores.map(s => s.count))
+    const normOverall = mean(varScores.map(per1k))
+    const avgWords = mean(varScores.map(s => s.wordCount))
+    variantOveralls.push({ label: variant.label, overall, telling: tellingAvg, normTelling: normTellingAvg, normOverall })
+    lines.push(`| ${variant.label} | ${cols.join(" | ")} | ${overall.toFixed(1)} | ${avgWords.toFixed(0)} |`)
+  }
+
+  // Normalized table
+  lines.push(``)
+  lines.push(`### Normalized (issues per 1k words)`)
+  lines.push(``)
+  const normHeader = `| Variant | ${DIMENSIONS.map(d => DIMENSION_LABELS[d]).join(" | ")} | Overall |`
+  const normSep = `|${"-".repeat(28)}|${DIMENSIONS.map(() => "-".repeat(12) + "|").join("")}${"-".repeat(10)}|`
+  lines.push(normHeader)
+  lines.push(normSep)
+
+  for (const variant of variants) {
+    const cols: string[] = []
+    for (const dim of DIMENSIONS) {
+      const dimScores = allScores.filter(s => s.variant === variant.label && s.dim === dim)
+      cols.push(`${mean(dimScores.map(per1k)).toFixed(1)} ±${stddev(dimScores.map(per1k)).toFixed(1)}`)
+    }
+    const varScores = allScores.filter(s => s.variant === variant.label)
+    lines.push(`| ${variant.label} | ${cols.join(" | ")} | ${mean(varScores.map(per1k)).toFixed(1)} |`)
   }
 
   // Ranking
   lines.push(``)
-  lines.push(`### Ranking (by Telling)`)
+  lines.push(`### Ranking (by Telling, normalized)`)
   lines.push(``)
-  const ranked = [...variantOveralls].sort((a, b) => a.telling - b.telling)
+  const ranked = [...variantOveralls].sort((a, b) => a.normTelling - b.normTelling)
   for (let i = 0; i < ranked.length; i++) {
     const r = ranked[i]
     const marker = i === 0 ? "**" : ""
-    lines.push(`${i + 1}. ${marker}${r.label}${marker} — Telling: ${r.telling.toFixed(1)}, Overall: ${r.overall.toFixed(1)}`)
+    lines.push(`${i + 1}. ${marker}${r.label}${marker} — Telling: ${r.telling.toFixed(1)} (${r.normTelling.toFixed(1)}/1k), Overall: ${r.overall.toFixed(1)} (${r.normOverall.toFixed(1)}/1k)`)
   }
 
   // Lint summary
