@@ -8,6 +8,7 @@
 
 import { readFileSync, existsSync, readdirSync } from "node:fs"
 import { getTokenCost } from "../../src/config/pricing"
+import { getTransport } from "../../src/transport"
 import { saveLLMCall } from "../db"
 import { judgeScoreSchema, DIMENSIONS, DIMENSION_LABELS } from "./judges/schema"
 import type { BenchmarkConfig, BenchmarkInput, GenerationResult } from "../engine"
@@ -58,47 +59,33 @@ async function generateOutline(
   writer: WriterConfig, input: BenchmarkInput, runId: number, attempt: number,
 ): Promise<GenerationResult | null> {
   const userPrompt = writer.needsNothink ? `/nothink\n${input.prompt}` : input.prompt
-  const start = performance.now()
 
   try {
-    const res = await fetch(writer.apiUrl, {
-      method: "POST",
-      headers: { "Authorization": `Bearer ${writer.apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: writer.model,
-        messages: [{ role: "system", content: PLANNER_PROMPT }, { role: "user", content: userPrompt }],
-        temperature: 0.6, max_tokens: 8192,
-        response_format: { type: "json_object" },
-        ...writer.extraBody,
-      }),
+    const response = await getTransport().execute({
+      systemPrompt: PLANNER_PROMPT,
+      userPrompt,
+      model: writer.model,
+      provider: writer.provider,
+      temperature: 0.6,
+      maxTokens: 8192,
+      responseFormat: { type: "json_object" },
+      extraBody: writer.extraBody,
+      callerId: "planning-plotter",
     })
 
-    const elapsed = performance.now() - start
-    if (!res.ok) { console.log(`FAIL [http ${res.status}]`); return null }
-
-    const data = await res.json() as any
-    if (data.error) { console.log(`FAIL [api]`); return null }
-
-    const content = data.choices?.[0]?.message?.content
+    const content = response.content
     if (!content) { console.log(`FAIL [empty]`); return null }
 
-    const usage = data.usage ?? { prompt_tokens: 0, completion_tokens: 0 }
-    const promptTokens = usage.prompt_tokens ?? 0
-    const completionTokens = usage.completion_tokens ?? 0
-
-    const providerName = writer.apiUrl.includes("cerebras.ai") ? "cerebras"
-      : writer.apiUrl.includes("groq.com") ? "groq"
-      : writer.apiUrl.includes("deepseek.com") ? "deepseek"
-      : writer.apiUrl.includes("openai.com") ? "openai"
-      : "openrouter"
-    const cost = getTokenCost(providerName as any, writer.model, promptTokens, completionTokens)
-    saveLLMCall(runId, "writer", "planning-plotter", writer.model, providerName, promptTokens, completionTokens, Math.round(elapsed), cost, { seed: input.name, attempt })
+    const promptTokens = response.usage.prompt_tokens ?? 0
+    const completionTokens = response.usage.completion_tokens ?? 0
+    const cost = getTokenCost(writer.provider, writer.model, promptTokens, completionTokens)
+    saveLLMCall(runId, "writer", "planning-plotter", writer.model, writer.provider, promptTokens, completionTokens, Math.round(response.latencyMs), cost, { seed: input.name, attempt })
 
     return {
       output: content,
       wordCount: content.split(/\s+/).length,
-      latencyMs: Math.round(elapsed),
-      tps: completionTokens > 0 ? Math.round(completionTokens / (elapsed / 1000)) : 0,
+      latencyMs: Math.round(response.latencyMs),
+      tps: completionTokens > 0 ? Math.round(completionTokens / (response.latencyMs / 1000)) : 0,
       tokens: completionTokens,
       promptTokens,
     }

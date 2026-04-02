@@ -7,6 +7,7 @@
 
 import { readFileSync, existsSync, readdirSync } from "node:fs"
 import { getTokenCost } from "../../src/config/pricing"
+import { getTransport } from "../../src/transport"
 import { saveLLMCall } from "../db"
 import { judgeScoreSchema, DIMENSIONS, DIMENSION_LABELS } from "./judges/schema"
 import type { BenchmarkConfig, BenchmarkInput, GenerationResult } from "../engine"
@@ -55,49 +56,34 @@ function loadSamples(filter?: string[]): BenchmarkInput[] {
 
 // ── Extractor call ──────────────────────────────────────────────────────
 
-function detectProvider(apiUrl: string): string {
-  if (apiUrl.includes("cerebras.ai")) return "cerebras"
-  if (apiUrl.includes("groq.com")) return "groq"
-  if (apiUrl.includes("deepseek.com")) return "deepseek"
-  if (apiUrl.includes("openai.com")) return "openai"
-  return "openrouter"
-}
-
 async function runExtractor(
   writer: WriterConfig, systemPrompt: string, prose: string,
   runId: number, extractorName: string, sampleName: string,
 ): Promise<{ output: string; latencyMs: number } | null> {
   const userPrompt = writer.needsNothink ? `/nothink\n${prose}` : prose
-  const start = performance.now()
 
   try {
-    const res = await fetch(writer.apiUrl, {
-      method: "POST",
-      headers: { "Authorization": `Bearer ${writer.apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: writer.model,
-        messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }],
-        temperature: 0.1, max_tokens: 4096,
-        response_format: { type: "json_object" },
-        ...writer.extraBody,
-      }),
+    const response = await getTransport().execute({
+      systemPrompt,
+      userPrompt,
+      model: writer.model,
+      provider: writer.provider,
+      temperature: 0.1,
+      maxTokens: 4096,
+      responseFormat: { type: "json_object" },
+      extraBody: writer.extraBody,
+      callerId: extractorName,
     })
 
-    const elapsed = performance.now() - start
-    if (!res.ok) { console.log(`  FAIL [http ${res.status}] ${extractorName}`); return null }
-
-    const data = await res.json() as any
-    if (data.error) { console.log(`  FAIL [api] ${extractorName}`); return null }
-
-    const content = data.choices?.[0]?.message?.content
+    const content = response.content
     if (!content) { console.log(`  FAIL [empty] ${extractorName}`); return null }
 
-    const usage = data.usage ?? { prompt_tokens: 0, completion_tokens: 0 }
-    const providerName = detectProvider(writer.apiUrl)
-    const cost = getTokenCost(providerName as any, writer.model, usage.prompt_tokens ?? 0, usage.completion_tokens ?? 0)
-    saveLLMCall(runId, "writer", extractorName, writer.model, providerName, usage.prompt_tokens ?? 0, usage.completion_tokens ?? 0, Math.round(elapsed), cost, { seed: sampleName })
+    const promptTokens = response.usage.prompt_tokens ?? 0
+    const completionTokens = response.usage.completion_tokens ?? 0
+    const cost = getTokenCost(writer.provider, writer.model, promptTokens, completionTokens)
+    saveLLMCall(runId, "writer", extractorName, writer.model, writer.provider, promptTokens, completionTokens, Math.round(response.latencyMs), cost, { seed: sampleName })
 
-    return { output: content, latencyMs: Math.round(elapsed) }
+    return { output: content, latencyMs: Math.round(response.latencyMs) }
   } catch (err) {
     console.log(`  FAIL [exception] ${extractorName}: ${err instanceof Error ? err.message : err}`)
     return null

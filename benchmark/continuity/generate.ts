@@ -9,6 +9,7 @@
 
 import { readFileSync, existsSync, readdirSync } from "node:fs"
 import { getTokenCost } from "../../src/config/pricing"
+import { getTransport } from "../../src/transport"
 import { saveLLMCall } from "../db"
 import { detectionScoreSchema, DIMENSIONS, DIMENSION_LABELS } from "./judges/schema"
 import type { BenchmarkConfig, BenchmarkInput, GenerationResult } from "../engine"
@@ -37,14 +38,6 @@ function loadFixtures(filter?: string[]): BenchmarkInput[] {
 
 // ── Generator (runs continuity checker) ─────────────────────────────────
 
-function detectProvider(apiUrl: string): string {
-  if (apiUrl.includes("cerebras.ai")) return "cerebras"
-  if (apiUrl.includes("groq.com")) return "groq"
-  if (apiUrl.includes("deepseek.com")) return "deepseek"
-  if (apiUrl.includes("openai.com")) return "openai"
-  return "openrouter"
-}
-
 async function runChecker(
   writer: WriterConfig, input: BenchmarkInput, runId: number, _attempt: number,
 ): Promise<GenerationResult | null> {
@@ -55,39 +48,32 @@ async function runChecker(
   ).join("\n")}`
 
   const userPrompt = writer.needsNothink ? `/nothink\n${context}` : context
-  const start = performance.now()
 
   try {
-    const res = await fetch(writer.apiUrl, {
-      method: "POST",
-      headers: { "Authorization": `Bearer ${writer.apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: writer.model,
-        messages: [{ role: "system", content: CONTINUITY_PROMPT }, { role: "user", content: userPrompt }],
-        temperature: 0.2, max_tokens: 4096,
-        response_format: { type: "json_object" },
-        ...writer.extraBody,
-      }),
+    const response = await getTransport().execute({
+      systemPrompt: CONTINUITY_PROMPT,
+      userPrompt,
+      model: writer.model,
+      provider: writer.provider,
+      temperature: 0.2,
+      maxTokens: 4096,
+      responseFormat: { type: "json_object" },
+      extraBody: writer.extraBody,
+      callerId: "cross-chapter-continuity",
     })
 
-    const elapsed = performance.now() - start
-    if (!res.ok) { console.log(`  FAIL [http ${res.status}]`); return null }
-
-    const data = await res.json() as any
-    if (data.error) { console.log(`  FAIL [api]`); return null }
-
-    const content = data.choices?.[0]?.message?.content
+    const content = response.content
     if (!content) { console.log(`  FAIL [empty]`); return null }
 
-    const usage = data.usage ?? { prompt_tokens: 0, completion_tokens: 0 }
-    const providerName = detectProvider(writer.apiUrl)
-    const cost = getTokenCost(providerName as any, writer.model, usage.prompt_tokens ?? 0, usage.completion_tokens ?? 0)
-    saveLLMCall(runId, "writer", "cross-chapter-continuity", writer.model, providerName, usage.prompt_tokens ?? 0, usage.completion_tokens ?? 0, Math.round(elapsed), cost, { seed: input.name })
+    const promptTokens = response.usage.prompt_tokens ?? 0
+    const completionTokens = response.usage.completion_tokens ?? 0
+    const cost = getTokenCost(writer.provider, writer.model, promptTokens, completionTokens)
+    saveLLMCall(runId, "writer", "cross-chapter-continuity", writer.model, writer.provider, promptTokens, completionTokens, Math.round(response.latencyMs), cost, { seed: input.name })
 
     return {
       output: content,
       wordCount: content.split(/\s+/).length,
-      latencyMs: Math.round(elapsed),
+      latencyMs: Math.round(response.latencyMs),
     }
   } catch (err) {
     console.log(`  FAIL [exception] ${err instanceof Error ? err.message : err}`)

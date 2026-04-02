@@ -68,7 +68,7 @@ export interface LLMTransport {
 let active: LLMTransport | null = null
 
 export function getTransport(): LLMTransport {
-  if (!active) active = new DirectTransport()
+  if (!active) active = new PrefixCacheTransport()
   return active
 }
 
@@ -280,11 +280,11 @@ export class PrefixCacheTransport implements LLMTransport {
 
 // ── Auto-init from env ───────────────────────────────────────────────────
 
+// Default: PrefixCacheTransport (auto-caches for providers that support it, passes
+// through to DirectTransport for those that don't). Batch mode requires explicit setup.
 const envTransport = process.env.LLM_TRANSPORT
-if (envTransport === "cache") {
-  active = new PrefixCacheTransport()
-} else if (envTransport === "batch") {
-  // Batch requires explicit setup (provider + model), so just flag it.
-  // Callers check process.env.LLM_TRANSPORT and call setTransport() with config.
+if (envTransport === "batch") {
   console.log("[transport] LLM_TRANSPORT=batch — callers must call setTransport(new BatchTransport(...))")
+} else if (envTransport === "direct") {
+  active = new DirectTransport()
 }

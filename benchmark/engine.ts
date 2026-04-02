@@ -14,6 +14,7 @@
 import { readFileSync } from "node:fs"
 import { extractJSON } from "../src/llm"
 import { getTokenCost } from "../src/config/pricing"
+import { getTransport } from "../src/transport"
 import { getWriter, getJudges, type WriterConfig, type JudgeConfig } from "./config"
 import {
   getDB, createRun, saveGeneration, saveScore, saveLLMCall, getCallSummary,
@@ -103,14 +104,6 @@ export interface BenchmarkConfig<D extends string = string> {
 
 function mean(arr: number[]): number {
   return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0
-}
-
-function detectProvider(apiUrl: string): string {
-  if (apiUrl.includes("openai.com")) return "openai"
-  if (apiUrl.includes("groq.com")) return "groq"
-  if (apiUrl.includes("deepseek.com")) return "deepseek"
-  if (apiUrl.includes("cerebras.ai")) return "cerebras"
-  return "openrouter"
 }
 
 export async function runBenchmark<D extends string>(config: BenchmarkConfig<D>): Promise<void> {
@@ -258,51 +251,34 @@ async function judgeOneDimension(
   runId: number,
   seed: string,
 ): Promise<{ score: number; reasoning: string } | null> {
-  const start = performance.now()
-
   try {
-    const tokenParam = judge.useMaxCompletionTokens
-      ? { max_completion_tokens: 4096 }
-      : { max_tokens: 4096 }
+    // Content as system prompt (shared across dimensions → cacheable prefix),
+    // rubric as user prompt (varies per dimension)
+    const response = await getTransport().execute({
+      systemPrompt: userContent,
+      userPrompt: rubric,
+      model: judge.model,
+      provider: judge.provider,
+      temperature: 0.1,
+      maxTokens: 4096,
+      useMaxCompletionTokens: judge.useMaxCompletionTokens,
+      responseFormat: { type: "json_object" },
+      extraBody: judge.extraBody,
+      callerId: "judge",
+    })
 
-    let res: Response | null = null
-    for (let attempt = 0; attempt <= 2; attempt++) {
-      res = await fetch(judge.apiUrl, {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${judge.apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: judge.model,
-          messages: [
-            { role: "system", content: userContent },
-            { role: "user", content: rubric },
-          ],
-          temperature: 0.1,
-          ...tokenParam,
-          response_format: { type: "json_object" },
-          ...judge.extraBody,
-        }),
-      })
-      if (res!.status === 429 || res!.status === 503) {
-        if (attempt < 2) { await Bun.sleep(3000 * (attempt + 1)); continue }
-      }
-      break
-    }
-
-    if (!res!.ok) { console.log(`  ! ${judge.label}/${dimension} [http ${res!.status}]`); return null }
-    const data = await res!.json() as any
-    if (data.error) { console.log(`  ! ${judge.label}/${dimension} [api error]`); return null }
-
-    const content = data.choices?.[0]?.message?.content
+    const content = response.content
     if (!content) return null
 
-    const usage = data.usage ?? { prompt_tokens: 0, completion_tokens: 0 }
-    const cacheHitTokens = usage.prompt_cache_hit_tokens ?? usage.cache_read_input_tokens ?? 0
-    const elapsed = performance.now() - start
-    const judgeProvider = detectProvider(judge.apiUrl)
-    const cost = getTokenCost(judgeProvider as any, judge.model, usage.prompt_tokens ?? 0, usage.completion_tokens ?? 0)
-    saveLLMCall(runId, "judge", null, judge.model, judgeProvider, usage.prompt_tokens ?? 0, usage.completion_tokens ?? 0, Math.round(elapsed), cost, { seed, dimension })
+    const promptTokens = response.usage.prompt_tokens ?? 0
+    const completionTokens = response.usage.completion_tokens ?? 0
+    const cost = getTokenCost(judge.provider, judge.model, promptTokens, completionTokens)
+    saveLLMCall(runId, "judge", null, judge.model, judge.provider, promptTokens, completionTokens, Math.round(response.latencyMs), cost, { seed, dimension })
+
+    // Log cache hits when provider reports them
+    const cacheHitTokens = response.usage.prompt_cache_hit_tokens ?? response.usage.cache_read_input_tokens ?? 0
     if (cacheHitTokens > 0) {
-      console.log(`  [cache] ${judge.label}/${dimension}: ${cacheHitTokens} tokens cached (${Math.round(cacheHitTokens / (usage.prompt_tokens || 1) * 100)}%)`)
+      console.log(`  [cache] ${judge.label}/${dimension}: ${cacheHitTokens} tokens cached (${Math.round(cacheHitTokens / (promptTokens || 1) * 100)}%)`)
     }
 
     const jsonStr = extractJSON(content)
