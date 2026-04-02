@@ -38,7 +38,7 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "prose-quality":             groqQwen32B,
 
   // ── Judges ───────────────────────────────────────────────────────────
-  "judge":                     { provider: "groq", model: "openai/gpt-oss-120b" },  // penalty scoring (issue counting)
+  "penalty-judge":             { provider: "groq", model: "openai/gpt-oss-120b" },  // issue counting (lower = better)
   "pairwise-judge":            { provider: "deepseek", model: "deepseek-chat" },     // A/B comparison (0% position bias)
 }
 

@@ -1,7 +1,7 @@
 /**
  * Benchmark writer/judge config.
  *
- * Models are set in models/roles.ts (writer, judge, pairwise-judge)
+ * Models are set in models/roles.ts (writer, penalty-judge, pairwise-judge)
  * alongside every other agent role. Env overrides still work for one-off tests.
  */
 
@@ -91,10 +91,10 @@ export function getJudges(): JudgeConfig[] {
   }
 
   // Primary: roles.ts
-  const fromRole = resolveFromRole("judge")
+  const fromRole = resolveFromRole("penalty-judge")
   if (fromRole) return [toJudgeConfig(fromRole)]
 
-  throw new Error('No judge in roles.ts and BENCHMARK_JUDGES not set.')
+  throw new Error('No penalty-judge in roles.ts and BENCHMARK_JUDGES not set.')
 }
 
 export function getPairwiseJudge(): JudgeConfig {
@@ -110,8 +110,8 @@ export function getPairwiseJudge(): JudgeConfig {
   }
 
   // Primary: pairwise-judge role, fallback to judge
-  const fromRole = resolveFromRole("pairwise-judge") ?? resolveFromRole("judge")
+  const fromRole = resolveFromRole("pairwise-judge") ?? resolveFromRole("penalty-judge")
   if (fromRole) return toJudgeConfig(fromRole)
 
-  throw new Error('No pairwise-judge or judge in roles.ts.')
+  throw new Error('No pairwise-judge or penalty-judge in roles.ts.')
 }

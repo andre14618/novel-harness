@@ -238,7 +238,7 @@ Pre-commit hook (`scripts/backup-dbs.sh`) safely backs up all SQLite DBs to `bac
 Prose benchmark uses **penalty-based scoring** (issue counts, lower = better). 1-10 scoring was tested extensively and cannot discriminate between "competent" and "good" prose — all judges compress to 7-9.
 
 **Writer:** Kimi K2 (Groq) — `writer` in `models/roles.ts` (shared with novel pipeline)
-**Penalty Judge:** GPT-OSS 120B (Groq) — `judge` in `models/roles.ts` (best for issue counting)
+**Penalty Judge:** GPT-OSS 120B (Groq) — `penalty-judge` in `models/roles.ts` (issue counting)
 **Pairwise Judge:** DeepSeek V3.2 — `pairwise-judge` in `models/roles.ts` (best for A/B comparison, 0% position bias)
 
 Reliable penalty dimensions (confirmed via multi-model shootout):
