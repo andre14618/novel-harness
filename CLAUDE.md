@@ -88,7 +88,6 @@ bun benchmark/prose/experiments/batch-1-prompts.ts
 bun test
 bun scripts/cost-summary.ts --global
 bun src/lint/test-all.ts
-bun benchmark/calibrate.ts
 ```
 
 ## Key env vars
@@ -116,4 +115,4 @@ Test inputs in `src/seeds/`: dark-fantasy, young-adult-fantasy, sci-fi-thriller,
 - `docs/improvement-checklist.md` — 25 improvement items across 4 capability tiers
 - `docs/methodology-integration-report.md` — writing methodology (Story Grid, Save the Cat, Weiland)
 - `docs/batch-processing.md` — batch API cost analysis and phased approach
-- `benchmark/tuning-log.md` — historical tuning experiment results
+- `docs/tuning-log.md` — historical tuning experiment results (April 2026, pre-DB)

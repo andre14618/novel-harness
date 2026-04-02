@@ -192,6 +192,9 @@ async function main() {
   const judges = getJudges()
   const seedFilter = process.env.BENCHMARK_SEEDS?.split(",").map(s => s.trim())
   const seeds = loadSeeds(seedFilter)
+  const experimentId = process.env.EXPERIMENT_ID ? parseInt(process.env.EXPERIMENT_ID) : undefined
+
+  if (!experimentId) console.log(`  (tip: set EXPERIMENT_ID to link this run to an experiment)`)
 
   if (judges.length === 0) { console.error("No judge API keys found"); process.exit(1) }
 
@@ -202,7 +205,7 @@ async function main() {
   console.log(`Dimensions: ${DIMENSIONS.map(d => DIMENSION_LABELS[d]).join(", ")}`)
   console.log()
 
-  const runId = createRun("planning", seeds.length.toString(), `${writer.label} / ${judges.map(j => j.label).join(",")}`)
+  const runId = createRun("planning", seeds.length.toString(), `${writer.label} / ${judges.map(j => j.label).join(",")}`, experimentId)
 
   await Promise.all(
     seeds.map(async (seed) => {

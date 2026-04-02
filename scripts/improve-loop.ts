@@ -325,8 +325,8 @@ async function main() {
     writeFileSync(targetFile.path, proposal.newPrompt)
     console.log(`  Applied change to ${targetFile.path}`)
 
-    // Run benchmark
-    const newRunId = await runBenchmark(targetConfig.benchmarkCmd)
+    // Run benchmark (linked to experiment)
+    const newRunId = await runBenchmark(`EXPERIMENT_ID=${expId} ${targetConfig.benchmarkCmd}`)
     if (!newRunId) {
       console.log(`  Benchmark failed. Reverting.`)
       writeFileSync(targetFile.path, originalContent)

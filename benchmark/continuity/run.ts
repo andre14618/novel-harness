@@ -208,6 +208,9 @@ async function main() {
   const fixtureFilter = process.env.BENCHMARK_FIXTURES?.split(",").map(s => s.trim())
   const fixtures = loadFixtures(fixtureFilter)
 
+  const experimentId = process.env.EXPERIMENT_ID ? parseInt(process.env.EXPERIMENT_ID) : undefined
+  if (!experimentId) console.log(`  (tip: set EXPERIMENT_ID to link this run to an experiment)`)
+
   if (judges.length === 0) { console.error("No judge API keys found"); process.exit(1) }
   if (fixtures.length === 0) {
     console.log("\nContinuity Benchmark: no fixtures found")
@@ -223,7 +226,7 @@ async function main() {
   console.log(`Judges: ${judges.map(j => j.label).join(", ")}`)
   console.log()
 
-  const runId = createRun("continuity", fixtures.length.toString(), `${writer.label} / ${judges.map(j => j.label).join(",")}`)
+  const runId = createRun("continuity", fixtures.length.toString(), `${writer.label} / ${judges.map(j => j.label).join(",")}`, experimentId)
 
   for (const fixture of fixtures) {
     for (let run = 1; run <= RUNS_PER_FIXTURE; run++) {
