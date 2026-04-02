@@ -159,19 +159,29 @@ bun src/index.ts --auto                    # default seed (epic-fantasy)
 bun src/index.ts --auto --seed sci-fi-thriller  # different seed
 bun src/index.ts --resume novel-123456     # resume from checkpoint
 
-# Benchmarks
-bun benchmark/prose/run.ts                 # prose quality (Show/Tell, Dialogue, Sensory)
+# Benchmarks (full validation — all seeds/samples)
+bun benchmark/prose/run.ts                 # prose quality (Telling, Dead Weight, Dialogue)
 bun benchmark/planning/run.ts              # planning quality (Beat Specificity, Dialogue Cues, Arc)
 bun benchmark/extraction/run.ts            # extraction quality (Completeness, Accuracy)
-bun benchmark/continuity/run.ts            # continuity detection (needs fixtures/)
+bun benchmark/continuity/run.ts            # continuity detection (Issue Detection, Fix Quality)
 bun benchmark/prose/run.ts --save-baseline # save scores as baseline
 
-# Focused seed testing
-BENCHMARK_SEEDS="romance-drama" bun benchmark/prose/run.ts
-BENCHMARK_SEEDS="romance-drama,dark-fantasy" BENCHMARK_RUNS=5 bun benchmark/prose/run.ts
+# Tight iteration mode — minimum viable data per cycle
+BENCHMARK_SEEDS="romance-drama" BENCHMARK_RUNS=2 bun benchmark/prose/run.ts
+BENCHMARK_SEEDS="romance-drama" BENCHMARK_RUNS=2 bun benchmark/planning/run.ts
+BENCHMARK_SAMPLES=2 BENCHMARK_RUNS=2 bun benchmark/extraction/run.ts
+BENCHMARK_FIXTURES="location-impossibility" BENCHMARK_RUNS=2 bun benchmark/continuity/run.ts
+
+# Agent isolation (test one extractor at a time)
+BENCHMARK_AGENT=fact-extractor BENCHMARK_SAMPLES=2 bun benchmark/extraction/run.ts
 
 # Link benchmark run to an experiment (tracks what changed + why)
 EXPERIMENT_ID=9 BENCHMARK_SEEDS="romance-drama" bun benchmark/prose/run.ts
+
+# Automated improvement loop (LLM proposes prompt changes, benchmarks, keeps/reverts)
+bun scripts/improve-loop.ts --target extraction --dimension completeness --iterations 3
+bun scripts/improve-loop.ts --target planning --dimension dialogue-cues --iterations 3
+bun scripts/improve-loop.ts --target prose --dimension telling --iterations 3 --dry-run
 
 # Experiments (multi-variant, matrix support)
 bun benchmark/prose/experiments/batch-1-prompts.ts    # run a batch experiment

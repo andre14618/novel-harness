@@ -53,21 +53,21 @@ const TARGETS: Record<string, TargetConfig> = {
       { path: "src/agents/summary-extractor/prompt.md", agentName: "summary-extractor" },
       { path: "src/agents/character-state/prompt.md", agentName: "character-state" },
     ],
-    benchmarkCmd: "BENCHMARK_RUNS=2 bun benchmark/extraction/run.ts",
+    benchmarkCmd: "BENCHMARK_RUNS=2 BENCHMARK_SAMPLES=2 bun benchmark/extraction/run.ts",
     runType: "extraction",
   },
   planning: {
     promptFiles: [
       { path: "src/agents/planning-plotter/prompt.md", agentName: "planning-plotter" },
     ],
-    benchmarkCmd: "BENCHMARK_RUNS=2 bun benchmark/planning/run.ts",
+    benchmarkCmd: "BENCHMARK_SEEDS=romance-drama BENCHMARK_RUNS=2 bun benchmark/planning/run.ts",
     runType: "planning",
   },
   continuity: {
     promptFiles: [
       { path: "src/agents/cross-chapter-continuity/prompt.md", agentName: "cross-chapter-continuity" },
     ],
-    benchmarkCmd: "BENCHMARK_RUNS=2 bun benchmark/continuity/run.ts",
+    benchmarkCmd: "BENCHMARK_FIXTURES=location-impossibility,character-knowledge-violation BENCHMARK_RUNS=2 bun benchmark/continuity/run.ts",
     runType: "continuity",
   },
   prose: {

@@ -36,10 +36,11 @@ for (const dim of DIMENSIONS) {
 
 // ── Seed loading (builds planning context from seed data) ────────────────
 
-function loadSeeds(): Array<{ name: string; prompt: string }> {
+function loadSeeds(filter?: string[]): Array<{ name: string; prompt: string }> {
   const seedFiles = readdirSync(SEEDS_DIR)
     .filter((f: string) => f.endsWith(".json"))
     .map((f: string) => f.replace(".json", ""))
+    .filter((f: string) => !filter || filter.includes(f))
     .sort()
   const seeds: Array<{ name: string; prompt: string }> = []
 
@@ -189,7 +190,8 @@ async function main() {
   getDB()
   const writer = getWriter()
   const judges = getJudges()
-  const seeds = loadSeeds()
+  const seedFilter = process.env.BENCHMARK_SEEDS?.split(",").map(s => s.trim())
+  const seeds = loadSeeds(seedFilter)
 
   if (judges.length === 0) { console.error("No judge API keys found"); process.exit(1) }
 

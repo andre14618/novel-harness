@@ -29,6 +29,8 @@ const FACT_PROMPT = readFileSync(new URL("../../src/agents/fact-extractor/prompt
 const CHAR_STATE_PROMPT = readFileSync(new URL("../../src/agents/character-state/prompt.md", import.meta.url).pathname, "utf-8")
 
 const RUNS_PER_SAMPLE = parseInt(process.env.BENCHMARK_RUNS ?? "2")
+const MAX_SAMPLES = parseInt(process.env.BENCHMARK_SAMPLES ?? "0") // 0 = all
+const AGENT_FILTER = process.env.BENCHMARK_AGENT // "fact-extractor", "summary-extractor", "character-state", or undefined for all
 
 // Load judge rubrics
 const JUDGE_RUBRICS: Record<Dimension, string> = {} as any
@@ -50,7 +52,7 @@ function loadSamples(): ProseSample[] {
     .filter(d => d.startsWith("novel-"))
     .sort()
     .reverse()
-    .slice(0, 3)  // use up to 3 most recent novels
+    .slice(0, 3)  // scan up to 3 most recent novels for chapters
 
   for (const dir of novelDirs) {
     const chapterFiles = readdirSync(`${outputDir}/${dir}`)
@@ -66,6 +68,10 @@ function loadSamples(): ProseSample[] {
     }
   }
 
+  // Apply sample limit
+  if (MAX_SAMPLES > 0 && samples.length > MAX_SAMPLES) {
+    return samples.slice(0, MAX_SAMPLES)
+  }
   return samples
 }
 
@@ -187,10 +193,11 @@ async function main() {
   if (judges.length === 0) { console.error("No judge API keys found"); process.exit(1) }
   if (samples.length === 0) { console.error("No prose samples found in output/. Run the harness first."); process.exit(1) }
 
+  const extractorLabel = AGENT_FILTER ?? "summary + fact + character-state"
   console.log(`\nExtraction Benchmark: ${writer.label}`)
-  console.log(`Samples: ${samples.length} chapters from existing novels`)
+  console.log(`Samples: ${samples.length} chapters`)
   console.log(`Runs per sample: ${RUNS_PER_SAMPLE}`)
-  console.log(`Extractors: summary, fact, character-state (all three per sample)`)
+  console.log(`Extractors: ${extractorLabel}`)
   console.log(`Judges: ${judges.map(j => j.label).join(", ")}`)
   console.log(`Dimensions: ${DIMENSIONS.map(d => DIMENSION_LABELS[d]).join(", ")}`)
   console.log()
@@ -201,11 +208,12 @@ async function main() {
     for (let run = 1; run <= RUNS_PER_SAMPLE; run++) {
       console.log(`[${sample.name}] Run ${run}/${RUNS_PER_SAMPLE}...`)
 
-      // Run all 3 extractors
+      // Run extractors (all or filtered to one)
+      const shouldRun = (name: string) => !AGENT_FILTER || AGENT_FILTER === name
       const [summary, facts, charState] = await Promise.all([
-        runExtractor(writer, SUMMARY_PROMPT, sample.prose, runId, "summary-extractor", sample.name),
-        runExtractor(writer, FACT_PROMPT, sample.prose, runId, "fact-extractor", sample.name),
-        runExtractor(writer, CHAR_STATE_PROMPT, sample.prose, runId, "character-state", sample.name),
+        shouldRun("summary-extractor") ? runExtractor(writer, SUMMARY_PROMPT, sample.prose, runId, "summary-extractor", sample.name) : null,
+        shouldRun("fact-extractor") ? runExtractor(writer, FACT_PROMPT, sample.prose, runId, "fact-extractor", sample.name) : null,
+        shouldRun("character-state") ? runExtractor(writer, CHAR_STATE_PROMPT, sample.prose, runId, "character-state", sample.name) : null,
       ])
 
       if (!summary && !facts && !charState) {

@@ -67,7 +67,7 @@ interface Fixture {
   plantedIssues: Array<{ description: string; chapter: number }>
 }
 
-function loadFixtures(): Fixture[] {
+function loadFixtures(filter?: string[]): Fixture[] {
   if (!existsSync(FIXTURES_DIR)) {
     console.log(`  No fixtures directory at ${FIXTURES_DIR}`)
     console.log(`  Create fixtures to run the continuity benchmark.`)
@@ -77,6 +77,7 @@ function loadFixtures(): Fixture[] {
   return readdirSync(FIXTURES_DIR)
     .filter(f => f.endsWith(".json"))
     .map(f => JSON.parse(readFileSync(`${FIXTURES_DIR}/${f}`, "utf-8")) as Fixture)
+    .filter(f => !filter || filter.includes(f.name))
 }
 
 // ── Continuity checker call ──────────────────────────────────────────────
@@ -204,7 +205,8 @@ async function main() {
   getDB()
   const writer = getWriter()
   const judges = getJudges()
-  const fixtures = loadFixtures()
+  const fixtureFilter = process.env.BENCHMARK_FIXTURES?.split(",").map(s => s.trim())
+  const fixtures = loadFixtures(fixtureFilter)
 
   if (judges.length === 0) { console.error("No judge API keys found"); process.exit(1) }
   if (fixtures.length === 0) {
