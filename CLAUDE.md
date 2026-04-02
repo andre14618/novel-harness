@@ -64,6 +64,10 @@ benchmark/
     submit.ts       ← CLI: submit judge calls for a run as batch
     status.ts       ← CLI: check pending batch status
     collect.ts      ← CLI: import completed batch results to scores table
+  pairwise/         ← A/B comparison for quality discrimination
+    rubric.md       ← holistic comparison rubric (show-vs-tell, craft, voice, sensory, momentum)
+    judge.ts        ← position-bias-corrected matchup engine (runs each pair twice: ab + ba)
+    run.ts          ← CLI: compare two runs by matching generations on seed
   planning/         ← planning-plotter output quality
     run.ts          ← Beat Specificity, Dialogue Cues, Emotional Arc
     judges/
@@ -182,6 +186,10 @@ BATCH_PROVIDER=openai BATCH_MODEL=gpt-5.4-mini bun benchmark/prose/run.ts --batc
 bun benchmark/batch/status.ts                              # check pending batches
 bun benchmark/batch/collect.ts                             # import completed results
 bun benchmark/batch/submit.ts --run 43 --provider openai   # submit judges for existing run
+
+# Pairwise comparison (A/B quality discrimination)
+bun benchmark/pairwise/run.ts --run-a 19 --run-b 21                   # compare two runs
+bun benchmark/pairwise/run.ts --run-a 19 --run-b 21 --seeds romance-drama  # specific seeds
 
 # Lean iteration mode (single judge, fewer runs)
 BENCHMARK_JUDGES="Qwen3 32B" BENCHMARK_RUNS=2 bun benchmark/prose/run.ts

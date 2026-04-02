@@ -167,6 +167,24 @@ function migrate(db: Database) {
       issues_json TEXT                    -- populated on collection
     );
 
+    -- Pairwise comparison: A/B matchups for quality discrimination
+    CREATE TABLE IF NOT EXISTS pairwise_matchups (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      experiment_id INTEGER REFERENCES tuning_experiments(id),
+      generation_a INTEGER NOT NULL REFERENCES generations(id),
+      generation_b INTEGER NOT NULL REFERENCES generations(id),
+      label_a TEXT NOT NULL,             -- variant/run label for A
+      label_b TEXT NOT NULL,             -- variant/run label for B
+      seed TEXT NOT NULL,
+      judge_model TEXT NOT NULL,
+      winner TEXT NOT NULL,              -- 'A', 'B', or 'tie'
+      confidence TEXT,                   -- 'strong', 'slight', or 'tie'
+      reasoning TEXT,                    -- judge's explanation
+      position TEXT NOT NULL,            -- 'ab' or 'ba' (tracks presentation order for bias detection)
+      latency_ms INTEGER,
+      timestamp TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE TABLE IF NOT EXISTS tuning_results (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       experiment_id INTEGER NOT NULL REFERENCES tuning_experiments(id),
@@ -892,6 +910,32 @@ export function deleteExperiment(experimentId: number) {
     db.exec(`DELETE FROM runs WHERE id IN (${runList})`)
   }
   db.exec(`DELETE FROM tuning_experiments WHERE id = ${experimentId}`)
+}
+
+// ── Pairwise comparison ────────────────────────────────────────────────
+
+export function savePairwiseMatchup(data: {
+  experimentId?: number; generationA: number; generationB: number;
+  labelA: string; labelB: string; seed: string; judgeModel: string;
+  winner: "A" | "B" | "tie"; confidence: "strong" | "slight" | "tie";
+  reasoning: string; position: "ab" | "ba"; latencyMs: number;
+}): number {
+  const db = getCentralDB()
+  const result = db.run(`
+    INSERT INTO pairwise_matchups (experiment_id, generation_a, generation_b, label_a, label_b, seed, judge_model, winner, confidence, reasoning, position, latency_ms)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `, [data.experimentId ?? null, data.generationA, data.generationB, data.labelA, data.labelB, data.seed, data.judgeModel, data.winner, data.confidence, data.reasoning, data.position, data.latencyMs])
+  return Number(result.lastInsertRowid)
+}
+
+export function getPairwiseResults(experimentId: number): Array<{
+  id: number; labelA: string; labelB: string; seed: string; winner: string;
+  confidence: string; reasoning: string; position: string
+}> {
+  const db = getCentralDB()
+  return db.query<any, [number]>(
+    "SELECT id, label_a as labelA, label_b as labelB, seed, winner, confidence, reasoning, position FROM pairwise_matchups WHERE experiment_id = ? ORDER BY id"
+  ).all(experimentId) as any[]
 }
 
 // ── Batch processing ───────────────────────────────────────────────────
