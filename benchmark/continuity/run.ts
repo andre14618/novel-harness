@@ -221,8 +221,7 @@ async function main() {
   console.log(`Judges: ${judges.map(j => j.label).join(", ")}`)
   console.log()
 
-  const providerName = writer.label.toLowerCase().includes("cerebras") ? "cerebras" : "groq"
-  const runId = createRun("continuity", fixtures.length, RUNS_PER_FIXTURE)
+  const runId = createRun("continuity", fixtures.length.toString(), `${writer.label} / ${judges.map(j => j.label).join(",")}`)
 
   for (const fixture of fixtures) {
     for (let run = 1; run <= RUNS_PER_FIXTURE; run++) {
@@ -275,7 +274,7 @@ async function main() {
     for (const c of callSummary) {
       totalCost += c.totalCost
       const tps = c.avgTps ? `${c.avgTps} tok/s` : "—"
-      console.log(`    ${c.callType.padEnd(8)} ${c.model.padEnd(35)} ${`${c.calls}`.padStart(4)} calls  $${c.totalCost.toFixed(4).padStart(8)}  ${tps}`)
+      console.log(`    ${c.agent.padEnd(8)} ${c.model.padEnd(35)} ${`${c.calls}`.padStart(4)} calls  $${c.totalCost.toFixed(4).padStart(8)}  ${tps}`)
     }
     console.log(`    ${"TOTAL".padEnd(44)} $${totalCost.toFixed(4).padStart(8)}`)
   }

@@ -1,0 +1,27 @@
+{
+  "name": "location-impossibility",
+  "description": "Character is locked in a cell in chapter 1 but appears freely walking the market in chapter 2 with no escape described",
+  "chapters": [
+    {
+      "number": 1,
+      "prose": "The guards shoved Kael into the cell and slammed the iron door. The lock mechanism turned with a sound like bones grinding. He pressed his palms against the cold stone wall and listened to their boots recede down the corridor.\n\nThe cell was six paces wide, four deep. A straw pallet in the corner. A bucket. A slit window too narrow for a cat, let alone a man. Through it he could see a slice of sky going dark.\n\n\"You'll rot here,\" the captain had said. \"The magistrate won't see you until the quarter-moon court. That's eighteen days.\"\n\nKael sat on the pallet. Eighteen days. He had nothing—no picks, no contacts inside, no one who knew where he'd been taken. The fortress was carved into the cliff face above the harbor. Even if he got out of the cell, there was nowhere to go but a two-hundred-foot drop into the sea.\n\nHe lay back and stared at the ceiling. Somewhere above him, water dripped in a steady rhythm."
+    },
+    {
+      "number": 2,
+      "prose": "Kael moved through the morning market with his hood up, keeping to the edges of the crowd. The fishmongers were loudest—haggling over the catch, slamming crates of ice down on the stone counters. He stopped at a bread stall and bought a round loaf with his last copper.\n\nThe bread was still warm. He tore a piece off and chewed as he walked, scanning the faces in the crowd. He needed to find Maren before the harbor master's office opened.\n\nA patrol passed—two guards in the magistrate's colors, their halberds catching the sun. Kael turned his face toward a fabric stall and pretended to examine a bolt of linen. The guards passed without stopping.\n\nHe found Maren at the south gate, sitting on an overturned crate and whittling a stick. She looked up when she saw him.\n\n\"You look terrible,\" she said.\n\n\"I need passage on a ship. Today. Anything heading east.\"\n\nMaren studied him for a long moment, then folded her knife. \"There's a merchant brig loading grain at pier six. Captain owes me. But it'll cost you more than bread money.\""
+    }
+  ],
+  "facts": [
+    { "fact": "Kael was locked in a cell in the cliff fortress above the harbor", "chapter": 1 },
+    { "fact": "The cell has an iron door with a lock mechanism", "chapter": 1 },
+    { "fact": "The magistrate won't see Kael for 18 days (quarter-moon court)", "chapter": 1 },
+    { "fact": "Kael has no picks, no contacts inside, no one knows where he is", "chapter": 1 },
+    { "fact": "The only exit from the fortress is a 200-foot drop into the sea", "chapter": 1 }
+  ],
+  "plantedIssues": [
+    {
+      "description": "Kael is locked in an inescapable cell in chapter 1 (iron door, no tools, 200ft cliff, 18-day wait) but freely walks the market in chapter 2 with no escape scene or explanation",
+      "chapter": 2
+    }
+  ]
+}

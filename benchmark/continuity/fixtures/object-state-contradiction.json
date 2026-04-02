@@ -1,0 +1,27 @@
+{
+  "name": "object-state-contradiction",
+  "description": "An object destroyed in chapter 1 is used intact in chapter 2",
+  "chapters": [
+    {
+      "number": 1,
+      "prose": "The fire reached the workshop just after midnight. Elara watched from the street as the flames climbed the timber frame, orange and white and roaring. The heat pushed her back across the cobblestones.\n\nShe thought of the astrolabe—her father's astrolabe, the brass instrument he'd spent three years building, with its hand-engraved star charts and the crystal lens he'd ground himself from a block of quartz. It was on the second-floor worktable, exactly where she'd left it that afternoon.\n\nThe second floor collapsed at twelve-thirty. The timbers fell inward with a sound like thunder, sending a column of sparks into the sky. Elara covered her face. When she looked again, the workshop was a shell—three walls still standing, the interior gutted to ash and twisted metal.\n\nBy morning, the fire brigade had soaked what remained. Elara picked through the debris with leather gloves. She found the astrolabe's base plate, warped beyond recognition, the brass melted and fused with a nail. The crystal lens had shattered—she found two fragments the size of her thumbnail. The star charts were ash.\n\nShe put the fragments in her pocket and walked away."
+    },
+    {
+      "number": 2,
+      "prose": "The captain's quarters smelled of pipe tobacco and old maps. Elara set the astrolabe on the navigation table and adjusted the alidade until it aligned with the compass rose.\n\n\"This was my father's,\" she said. \"He built it for the northern expedition. The star charts are calibrated for latitudes above the forty-second parallel.\"\n\nCaptain Hendricks leaned over the instrument, squinting through the crystal lens. \"Fine work. I haven't seen engraving this precise outside the royal observatory.\"\n\n\"He had steady hands.\" She rotated the rete to show the winter constellations. The brass caught the cabin light, each star marked with a tiny punch and its magnitude number. \"If we follow this bearing from the strait, we'll hit the channel between the ice shelves.\"\n\nHendricks straightened. \"How accurate?\"\n\n\"Within a quarter degree. He tested it against three observatory clocks before he was satisfied.\" She folded the astrolabe into its velvet-lined case and handed it to the captain. \"Guard it. It's the only one.\""
+    }
+  ],
+  "facts": [
+    { "fact": "The workshop fire destroyed the second floor where the astrolabe was kept", "chapter": 1 },
+    { "fact": "Elara found the astrolabe's base plate warped and fused with a nail", "chapter": 1 },
+    { "fact": "The crystal lens shattered — only two thumbnail-sized fragments remained", "chapter": 1 },
+    { "fact": "The star charts engraved on the astrolabe were reduced to ash", "chapter": 1 },
+    { "fact": "The astrolabe was destroyed beyond repair in the fire", "chapter": 1 }
+  ],
+  "plantedIssues": [
+    {
+      "description": "The astrolabe was destroyed in the chapter 1 fire (base plate warped, lens shattered, charts burned to ash) but appears fully intact in chapter 2 — Elara uses it for navigation, the captain examines it through the crystal lens, and the star engravings are pristine",
+      "chapter": 2
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "name": "character-knowledge-violation",
+  "description": "Character references information they couldn't possibly know — the secret was only revealed to a different character",
+  "chapters": [
+    {
+      "number": 1,
+      "prose": "Lina waited until the tavern emptied before she spoke. The fire had burned low, painting the walls in shifting orange.\n\n\"The shipment isn't grain,\" she told Dax. \"It's weapons. Crossbows and short swords, packed in false-bottom crates marked as flour from the eastern provinces.\"\n\nDax leaned back in his chair. \"How do you know this?\"\n\n\"I have a source at the customs house. He saw them repack the crates after the inspection.\"\n\n\"Does anyone else know?\"\n\n\"No. Just us. And it stays that way.\" She held his gaze until he nodded. \"If the guild finds out we know, they'll come for both of us.\"\n\nThey left through the back door, separately. Lina went north along the canal. Dax went south toward the docks. Neither of them noticed the cat sleeping on the windowsill—or the fact that the tavern's back room, where old Bram kept his accounts, had been empty all evening. No one had overheard. The secret stayed between them."
+    },
+    {
+      "number": 2,
+      "prose": "Torren found Dax at the docks the next morning, mending a net that didn't need mending.\n\n\"We need to talk about the weapons shipment,\" Torren said, keeping his voice low.\n\nDax's hands went still on the net. \"What weapons shipment?\"\n\n\"The crossbows in the grain crates. The ones coming through customs next week. Don't play stupid—I know Lina told you last night.\"\n\nDax set the net down carefully. \"Who told you?\"\n\n\"That's not important. What matters is that the guild knows too. They're sending Vasek to intercept the crates before they reach the warehouse.\"\n\n\"Vasek.\" Dax's jaw tightened. The enforcer. If Vasek was involved, someone was going to end up in the canal. \"How long have they known?\"\n\n\"Long enough to plan. You need to warn Lina. If the guild traces this back to her customs contact, he's dead and she's next.\"\n\nDax stood. The net slid off his lap into a heap on the dock. \"I'll find her.\""
+    }
+  ],
+  "facts": [
+    { "fact": "Only Lina and Dax know about the weapons shipment", "chapter": 1 },
+    { "fact": "The information came from Lina's source at the customs house", "chapter": 1 },
+    { "fact": "The prose explicitly states no one overheard their conversation", "chapter": 1 },
+    { "fact": "Torren was not present at the tavern and is not mentioned in chapter 1", "chapter": 1 }
+  ],
+  "plantedIssues": [
+    {
+      "description": "Torren knows about the weapons shipment and that Lina told Dax, but chapter 1 explicitly states no one overheard and only Lina and Dax know. Torren has no established source for this information.",
+      "chapter": 2
+    }
+  ]
+}
