@@ -1,6 +1,9 @@
-# Proposal: Author Style Mimicry for Fanfiction
+---
+status: proposal
+verified: 2026-04-02
+---
 
-**Status:** Idea — not planned for implementation yet
+# Proposal: Author Style Mimicry for Fanfiction
 
 ## Goal
 

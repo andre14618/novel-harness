@@ -1,3 +1,8 @@
+---
+status: active
+verified: 2026-04-02
+---
+
 # Benchmark Tuning Log
 
 Results from probe tests run 2026-04-01 to find the right judge model, rubric style, and dimensions for the prose benchmark.

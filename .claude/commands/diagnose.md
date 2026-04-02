@@ -34,7 +34,7 @@ Analyze the latest benchmark results and suggest targeted improvements to the no
    **Risk**: What might get worse if we make this change.
    ```
 
-7. **Compare to iteration.md.** Read `docs/iteration.md` and check whether the suggested changes align with or contradict the improvement pathway already documented. Flag any conflicts.
+7. **Compare to improvement checklist.** Read `docs/improvement-checklist.md` and check whether the suggested changes align with or contradict the improvement pathway already documented. Flag any conflicts.
 
 ## Rules
 

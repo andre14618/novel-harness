@@ -111,8 +111,11 @@ Test inputs in `src/seeds/`: dark-fantasy, young-adult-fantasy, sci-fi-thriller,
 
 ## Reference docs
 
+Each doc has a `status` frontmatter field: `active` (operational), `proposal` (not implemented), `reference` (read-once research).
+
 - `docs/commit-conventions.md` — commit message format and prefixes
 - `docs/improvement-checklist.md` — 25 improvement items across 4 capability tiers
 - `docs/methodology-integration-report.md` — writing methodology (Story Grid, Save the Cat, Weiland)
-- `docs/batch-processing.md` — batch API cost analysis and phased approach
+- `docs/batch-processing.md` — batch API cost analysis and phased approach (proposal)
+- `docs/proposal-style-mimicry.md` — author style extraction for fanfiction (proposal)
 - `docs/tuning-log.md` — historical tuning experiment results (April 2026, pre-DB)

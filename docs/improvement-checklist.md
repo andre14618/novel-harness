@@ -1,3 +1,8 @@
+---
+status: active
+verified: 2026-04-02
+---
+
 # Harness Improvement Checklist
 
 Organized by capability level required to drive the iteration loop. Each item includes what to measure, how to test, and current status.
@@ -6,13 +11,13 @@ Organized by capability level required to drive the iteration loop. Each item in
 
 These are mechanical — run a script, read numbers, change a value.
 
-- [ ] **Establish planning baselines** — Run `bun benchmark/planning/run.ts` across all seeds, record first numbers. No prompt changes needed, just measurement.
+- [x] **Establish planning baselines** — Run `bun benchmark/planning/run.ts` across all seeds, record first numbers. No prompt changes needed, just measurement.
   - Dimensions: Beat Specificity, Dialogue Cues, Emotional Arc
-  - Status: Rubrics defined, never run at scale
+  - Status: Done (commit 5a3fa67)
 
-- [ ] **Establish extraction baselines** — Run `bun benchmark/extraction/run.ts` on existing novel output.
+- [x] **Establish extraction baselines** — Run `bun benchmark/extraction/run.ts` on existing novel output.
   - Dimensions: Completeness, Accuracy
-  - Status: Rubrics defined, never run at scale
+  - Status: Done (commit 5a3fa67). Fact-extractor improved from 3.0 → 4.7 completeness (commit 335599d).
 
 - [ ] **Measure lint false positive rate** — Human review of `getPatternStats()` output. For each pattern, check 5 flagged instances: is the flag correct?
   - Status: 35 patterns, 128 total hits, 0 reviewed for precision
@@ -47,10 +52,10 @@ These follow a rigid pattern: read score → read flagged issue → add/modify r
 
 These require understanding *why* something scores poorly and making a targeted fix. The feedback loop is: read judge reasoning → identify the pattern → modify the prompt to address it.
 
-- [ ] **Writer prompt: methodology integration (Scene/Sequel)** — Add Weiland's Scene/Sequel structure to writer craft rules: GOAL→CONFLICT→DISASTER then REACTION→DILEMMA→DECISION.
+- [x] **Writer prompt: methodology integration (Scene/Sequel)** — Add Weiland's Scene/Sequel structure to writer craft rules: GOAL→CONFLICT→DISASTER then REACTION→DILEMMA→DECISION.
   - Measure: Penalty scores + pairwise comparison before/after
   - Model: Sonnet can read methodology docs, extract the rule, write the prompt addition
-  - Status: Documented in methodology report as Tier 1 item
+  - Status: Done (Experiment #9). Also added to planning-plotter: Stasis=Death (STC-3), Midpoint Reversal (STC-4), Whiff of Death (STC-7), Pinch Points (W-3), Try/Fail Cycles (MICE-3). Telling -1.0, Dialogue -0.9 avg improvement.
 
 - [ ] **Planning-plotter: Five Commandments** — Add Story Grid's per-scene checklist (Inciting Incident, Progressive Complication, Crisis, Climax, Resolution) to planning prompt.
   - Measure: Beat Specificity benchmark dimension

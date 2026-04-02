@@ -1,3 +1,8 @@
+---
+status: proposal
+verified: 2026-04-02
+---
+
 # Batch Processing for Cost Reduction
 
 ## Concept

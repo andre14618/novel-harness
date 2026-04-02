@@ -1,7 +1,11 @@
+---
+status: reference
+verified: 2026-04-02
+---
+
 # Writing Methodology Integration Report
 
 > **Date:** 2026-04-01
-> **Status:** Reference document — testable items for augmenting the novel harness with published author methodologies
 > **Scope:** Story Grid (Shawn Coyne), Save the Cat! (Jessica Brody), K.M. Weiland Scene/Sequel + Character Arcs, MICE Quotient (Mary Robinette Kowal / Orson Scott Card)
 
 ---

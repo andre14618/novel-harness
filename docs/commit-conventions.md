@@ -1,3 +1,8 @@
+---
+status: active
+verified: 2026-04-02
+---
+
 # Commit Conventions
 
 Every change gets its own commit with explicit context. The prefix indicates what changed.
