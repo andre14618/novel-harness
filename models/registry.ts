@@ -12,11 +12,50 @@
 
 export type ProviderName = "cerebras" | "groq" | "openrouter" | "openai" | "deepseek"
 
+export interface CacheStrategy {
+  /**
+   * How this provider handles prompt/prefix caching.
+   *
+   * "automatic"  — provider caches repeated prefixes with no code changes.
+   *                Sequential same-prefix calls maximize hits.
+   *                (DeepSeek: 95% input discount, OpenAI: 50% input >1024 tokens)
+   *
+   * "explicit"   — provider requires cache_control markers in the message body.
+   *                Transport must transform the request before sending.
+   *                (Anthropic: 90% input discount on cached blocks)
+   *
+   * "none"       — provider has no caching mechanism.
+   */
+  type: "automatic" | "explicit" | "none"
+
+  /** Sequential same-prefix calls improve cache hit rate. */
+  benefitsFromSequential: boolean
+
+  /** Minimum input tokens for caching to activate (provider-specific). */
+  minTokens?: number
+
+  /** Input token discount when cached (fraction, e.g. 0.95 = 95% off). */
+  discount?: number
+
+  /**
+   * Transform request for explicit caching (e.g., add cache_control blocks).
+   * Only called when type is "explicit".
+   */
+  transformRequest?: (messages: Array<{ role: string; content: any }>) => Array<{ role: string; content: any }>
+}
+
 export interface ProviderDef {
   apiUrl: string
   envKey: string              // env var name for the API key
   tier: "fast" | "standard"   // fast = Cerebras/Groq inference hardware
   extraBody?: () => Record<string, any>
+  cache?: CacheStrategy
+  /** Provider offers an async batch API (JSONL upload, collect later). */
+  batchApi?: {
+    available: boolean
+    discount: number          // fraction off, e.g. 0.50 = 50% off
+    maxWindow?: string        // max completion window, e.g. "24h", "7d"
+  }
 }
 
 export const PROVIDERS: Record<ProviderName, ProviderDef> = {
@@ -24,11 +63,23 @@ export const PROVIDERS: Record<ProviderName, ProviderDef> = {
     apiUrl: "https://api.cerebras.ai/v1/chat/completions",
     envKey: "CEREBRAS_API_KEY",
     tier: "fast",
+    cache: {
+      type: "automatic",
+      benefitsFromSequential: true,
+      minTokens: 128,  // 128-token blocks, matches segments in ephemeral memory
+      // discount rate undocumented — caching confirmed but savings unknown
+    },
   },
   groq: {
     apiUrl: "https://api.groq.com/openai/v1/chat/completions",
     envKey: "GROQ_API_KEY",
     tier: "fast",
+    cache: {
+      type: "automatic",
+      benefitsFromSequential: false,  // matches recent requests, not strictly sequential
+      discount: 0.50,
+    },
+    batchApi: { available: true, discount: 0.50, maxWindow: "7d" },
   },
   openrouter: {
     apiUrl: "https://openrouter.ai/api/v1/chat/completions",
@@ -38,16 +89,33 @@ export const PROVIDERS: Record<ProviderName, ProviderDef> = {
       const provider = process.env.PROVIDER
       return provider ? { provider: { order: [provider], allow_fallbacks: false } } : {}
     },
+    // OpenRouter proxies to underlying providers — caching depends on which
+    // provider is selected. Conservative: treat as none.
+    cache: { type: "none", benefitsFromSequential: false },
   },
   openai: {
     apiUrl: "https://api.openai.com/v1/chat/completions",
     envKey: "OPENAI_API_KEY",
     tier: "standard",
+    cache: {
+      type: "automatic",
+      benefitsFromSequential: true,
+      minTokens: 1024,   // 1024-token minimum, 128-token block increments
+      discount: 0.50,    // GPT-4o/o-series: 50%, GPT-4.1: 75%, GPT-5: 90%
+    },
+    batchApi: { available: true, discount: 0.50, maxWindow: "24h" },
   },
   deepseek: {
     apiUrl: "https://api.deepseek.com/v1/chat/completions",
     envKey: "DEEPSEEK_API_KEY",
     tier: "standard",
+    cache: {
+      type: "automatic",
+      benefitsFromSequential: true,
+      minTokens: 0,   // no minimum — any shared prefix is cached
+      discount: 0.95,  // $0.014/M vs $0.28/M
+    },
+    // DeepSeek has no batch API — cost savings come from prefix caching only
   },
 }
 

@@ -7,9 +7,11 @@
 
 import type { BatchProvider } from "./types"
 import { OpenAIBatchProvider } from "./openai"
+import { GroqBatchProvider } from "./groq"
 
 const providers: Record<string, () => BatchProvider> = {
   openai: () => new OpenAIBatchProvider(),
+  groq: () => new GroqBatchProvider(),
 }
 
 export function getBatchProvider(name: string): BatchProvider {
