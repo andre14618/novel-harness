@@ -350,11 +350,43 @@ async function main() {
       console.log(`  IMPROVED. Keeping change.`)
       currentScore = newScores.avgScore
       totalImproved++
+
+      // Auto-commit the improvement
+      const prevScore = (currentScore - delta).toFixed(1)
+      const commitMsg = [
+        `[agent:${proposal.agentName}] ${DIMENSION} ${prevScore} → ${currentScore.toFixed(1)} (${delta >= 0 ? "+" : ""}${delta})`,
+        ``,
+        proposal.explanation,
+        ``,
+        `${TARGET}/${DIMENSION}: ${currentScore.toFixed(1)}/10 | iteration ${iter}/${MAX_ITERATIONS}`,
+        `experiment: #${expId}`,
+        `improver: ${process.env.IMPROVER_MODEL ?? "kimi-k2"}`,
+      ].join("\n")
+
+      await Bun.spawn(["git", "add", targetFile.path], { stdout: "pipe", stderr: "pipe" }).exited
+      await Bun.spawn(["git", "commit", "-m", commitMsg], { stdout: "pipe", stderr: "pipe" }).exited
+      console.log(`  Committed: ${targetFile.path}`)
+
       // Clean up backup
       try { require("fs").unlinkSync(backupPath) } catch {}
     } else {
       console.log(`  No improvement. Reverting.`)
       writeFileSync(targetFile.path, originalContent)
+
+      // Commit the revert so the attempt is in history
+      const revertMsg = [
+        `[agent:${proposal.agentName}] revert: ${DIMENSION} ${currentScore.toFixed(1)} → ${newScores.avgScore.toFixed(1)} (${delta >= 0 ? "+" : ""}${delta})`,
+        ``,
+        `Reverted: ${proposal.explanation}`,
+        ``,
+        `${TARGET}/${DIMENSION}: no improvement | iteration ${iter}/${MAX_ITERATIONS}`,
+        `experiment: #${expId}`,
+      ].join("\n")
+
+      await Bun.spawn(["git", "add", targetFile.path], { stdout: "pipe", stderr: "pipe" }).exited
+      await Bun.spawn(["git", "commit", "-m", revertMsg], { stdout: "pipe", stderr: "pipe" }).exited
+      console.log(`  Committed revert: ${targetFile.path}`)
+
       try { require("fs").unlinkSync(backupPath) } catch {}
     }
   }
