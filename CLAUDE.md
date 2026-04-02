@@ -33,7 +33,7 @@ State machine: concept → planning → drafting → validation → done
 - `benchmark/batch/` — async judge calls via provider batch APIs (OpenAI first, provider-agnostic)
 - `src/lint/` — deterministic prose flagger, DB-driven patterns, no LLM calls
 
-**Central DB** (`data/db.ts`) — all experiments, runs, generations, scores, lint issues, batch tracking, pairwise matchups. The DB is the source of truth for all scores and baselines.
+**Central DB** (`data/harness.db`, schema in `data/db.ts`) — all experiments, runs, generations, scores, lint issues, batch tracking, pairwise matchups. Source of truth for all scores and baselines.
 
 ## Rules
 
