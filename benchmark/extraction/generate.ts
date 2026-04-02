@@ -145,4 +145,11 @@ export const config: BenchmarkConfig<typeof DIMENSIONS[number]> = {
   generate: generateExtraction,
   buildJudgePrompt: (input, extractedData) =>
     `ORIGINAL PROSE:\n${input.prose}\n\nEXTRACTED DATA:\n${extractedData}`,
+  promptTargets: [
+    { path: "src/agents/fact-extractor/prompt.md", agentName: "fact-extractor" },
+    { path: "src/agents/summary-extractor/prompt.md", agentName: "summary-extractor" },
+    { path: "src/agents/character-state/prompt.md", agentName: "character-state" },
+  ],
+  runCmd: "bun benchmark/extraction/run.ts",
+  daemonEnv: { BENCHMARK_RUNS: "2", BENCHMARK_SAMPLES: "2" },
 }

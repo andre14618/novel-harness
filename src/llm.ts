@@ -4,7 +4,7 @@ import {
   PROVIDERS, getApiKey, getTokenCost, getModel,
   type ProviderName, type ProviderDef,
 } from "../models/registry"
-import { getModelForAgent, type ModelAssignment } from "../models/roles"
+import { getModelForAgent, getAgentConfig, type ModelAssignment } from "../models/roles"
 import { getTransport, type LLMResponse } from "./transport"
 
 export type { ProviderName } from "../models/registry"
@@ -99,17 +99,17 @@ export async function runAgent<T>(
   userPrompt: string,
   novelId?: string,
 ): Promise<AgentResult<T>> {
-  // Model resolution: role assignment (models/roles.ts) → global default (.env)
-  const roleAssignment = getModelForAgent(agent.config.name)
+  // Centralized config (roles.ts) takes precedence over agent module config
+  const role = getAgentConfig(agent.config.name)
 
   return callAgent({
     systemPrompt: agent.prompt,
     schema: agent.schema,
-    temperature: agent.config.temperature,
-    maxTokens: agent.config.maxTokens,
-    thinking: agent.config.thinking,
-    provider: roleAssignment?.provider,
-    model: roleAssignment?.model,
+    temperature: role?.temperature ?? agent.config.temperature,
+    maxTokens: role?.maxTokens ?? agent.config.maxTokens,
+    thinking: role?.thinking ?? agent.config.thinking,
+    provider: role?.provider,
+    model: role?.model,
     userPrompt,
     novelId,
     agentName: agent.config.name,

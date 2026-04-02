@@ -22,7 +22,9 @@ import type { BatchRequest } from "../../benchmark/batch/types"
 
 const HARNESS_ROOT = process.env.HARNESS_ROOT ?? "/home/andre/apps/novel-harness"
 
-// ── Target configs (mirrors scripts/improve-loop.ts TARGETS) ────────────
+// ── Target configs (derived from benchmark registry) ────────────────────
+
+import { BENCHMARKS, getDaemonTarget } from "../../benchmark/registry"
 
 export interface TargetConfig {
   promptFiles: Array<{ path: string; agentName: string }>
@@ -30,39 +32,11 @@ export interface TargetConfig {
   runType: string
 }
 
-export const TARGETS: Record<string, TargetConfig> = {
-  extraction: {
-    promptFiles: [
-      { path: "src/agents/fact-extractor/prompt.md", agentName: "fact-extractor" },
-      { path: "src/agents/summary-extractor/prompt.md", agentName: "summary-extractor" },
-      { path: "src/agents/character-state/prompt.md", agentName: "character-state" },
-    ],
-    benchmarkCmd: "BENCHMARK_RUNS=2 BENCHMARK_SAMPLES=2 bun benchmark/extraction/run.ts",
-    runType: "extraction",
-  },
-  planning: {
-    promptFiles: [
-      { path: "src/agents/planning-plotter/prompt.md", agentName: "planning-plotter" },
-    ],
-    benchmarkCmd: "BENCHMARK_SEEDS=romance-drama BENCHMARK_RUNS=2 bun benchmark/planning/run.ts",
-    runType: "planning",
-  },
-  continuity: {
-    promptFiles: [
-      { path: "src/agents/cross-chapter-continuity/prompt.md", agentName: "cross-chapter-continuity" },
-    ],
-    benchmarkCmd: "BENCHMARK_FIXTURES=location-impossibility,character-knowledge-violation BENCHMARK_RUNS=2 bun benchmark/continuity/run.ts",
-    runType: "continuity",
-  },
-  prose: {
-    promptFiles: [
-      { path: "src/agents/writer/prompt.md", agentName: "writer" },
-    ],
-    // For async: generate prose real-time, submit judges as batch
-    benchmarkCmd: "BENCHMARK_SEEDS=romance-drama BENCHMARK_RUNS=2 bun benchmark/prose/run.ts --batch",
-    runType: "prose",
-  },
-}
+export const TARGETS: Record<string, TargetConfig> = Object.fromEntries(
+  Object.keys(BENCHMARKS)
+    .map(name => [name, getDaemonTarget(name)])
+    .filter((entry): entry is [string, TargetConfig] => entry[1] !== undefined)
+)
 
 // ── Propose a change via LLM ────────────────────────────────────────────
 

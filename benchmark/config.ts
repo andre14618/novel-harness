@@ -99,10 +99,10 @@ export function getJudges(): JudgeConfig[] {
   }
 
   // Primary: roles.ts
-  const fromRole = resolveFromRole("penalty-judge")
+  const fromRole = resolveFromRole("judge")
   if (fromRole) return [toJudgeConfig(fromRole)]
 
-  throw new Error('No penalty-judge in roles.ts and BENCHMARK_JUDGES not set.')
+  throw new Error('No "judge" in roles.ts and BENCHMARK_JUDGES not set.')
 }
 
 export function getPairwiseJudge(): JudgeConfig {
@@ -118,8 +118,8 @@ export function getPairwiseJudge(): JudgeConfig {
   }
 
   // Primary: pairwise-judge role, fallback to judge
-  const fromRole = resolveFromRole("pairwise-judge") ?? resolveFromRole("penalty-judge")
+  const fromRole = resolveFromRole("pairwise-judge") ?? resolveFromRole("judge")
   if (fromRole) return toJudgeConfig(fromRole)
 
-  throw new Error('No pairwise-judge or penalty-judge in roles.ts.')
+  throw new Error('No pairwise-judge or judge in roles.ts.')
 }

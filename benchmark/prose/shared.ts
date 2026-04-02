@@ -165,7 +165,7 @@ export async function judgeDimension(
       useMaxCompletionTokens: judge.useMaxCompletionTokens,
       responseFormat: { type: "json_object" },
       extraBody: judge.extraBody,
-      callerId: "penalty-judge",
+      callerId: "judge",
       customId,
     })
 

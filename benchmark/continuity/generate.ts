@@ -116,4 +116,9 @@ export const config: BenchmarkConfig<typeof DIMENSIONS[number]> = {
     ).join("\n\n")
     return `CHECKER OUTPUT:\n${checkerOutput}\n\nKNOWN PLANTED ISSUES:\n${plantedStr}\n\nORIGINAL PROSE (for reference):\n${proseStr}`
   },
+  promptTargets: [
+    { path: "src/agents/cross-chapter-continuity/prompt.md", agentName: "cross-chapter-continuity" },
+  ],
+  runCmd: "bun benchmark/continuity/run.ts",
+  daemonEnv: { BENCHMARK_FIXTURES: "location-impossibility,character-knowledge-violation", BENCHMARK_RUNS: "2" },
 }

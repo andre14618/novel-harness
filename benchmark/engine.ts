@@ -86,6 +86,17 @@ export interface BenchmarkConfig<D extends string = string> {
 
   /** Max score per dimension for the overall line (default: 10) */
   maxPerDimension?: number
+
+  // ── Daemon metadata (used by improvement loop + registry) ───────────
+
+  /** Agent prompts the daemon can modify to improve this benchmark. */
+  promptTargets?: Array<{ path: string; agentName: string }>
+
+  /** Shell command to run this benchmark. */
+  runCmd?: string
+
+  /** Default env overrides for daemon runs (reduced seeds/runs for speed). */
+  daemonEnv?: Record<string, string>
 }
 
 // ── Engine ──────────────────────────────────────────────────────────────
