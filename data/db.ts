@@ -171,13 +171,17 @@ function migrate(db: Database) {
 // ── Lint pattern seeding ─────────────────────────────────────────────────
 
 function seedLintPatterns(db: Database) {
-  const count = (db.query("SELECT COUNT(*) as c FROM lint_patterns").get() as any).c
-  if (count > 0) return // already seeded
-
   const insert = db.prepare(`
     INSERT INTO lint_patterns (tier, category, pattern, flags, fix_template, dialogue_ok, rationale, edge_cases)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `)
+
+  const count = (db.query("SELECT COUNT(*) as c FROM lint_patterns WHERE tier = 1").get() as any).c
+  if (count > 0) {
+    // Tier 1 already seeded — just check Tier 2
+    seedTier2Patterns(db, insert)
+    return
+  }
 
   const patterns: [number, string, string, string, string, number, string, string | null][] = [
     // ── Tier 1: Filler phrases ───────────────────────────────────
@@ -323,6 +327,56 @@ function seedLintPatterns(db: Database) {
       "Cut 'All of a sudden' — just describe what happened.", 0,
       "Telling the reader something is sudden instead of making the prose feel sudden through pacing.",
       null],
+  ]
+
+  for (const p of patterns) {
+    insert.run(...p)
+  }
+
+  seedTier2Patterns(db, insert)
+}
+
+function seedTier2Patterns(db: Database, insert: ReturnType<Database["prepare"]>) {
+  // Check if Tier 2 patterns already exist
+  const tier2Count = (db.query("SELECT COUNT(*) as c FROM lint_patterns WHERE tier = 2").get() as any).c
+  if (tier2Count > 0) return
+
+  const patterns: [number, string, string, string, string, number, string, string | null][] = [
+    // ── Tier 2: Filter words (narrator distancing) ──────────────
+    [2, "FILTER_WORD", "\\bseemed\\s+to\\b", "gi",
+      "Remove distancing — describe the action or sensation directly.", 0,
+      "'Seemed to' adds a narrator hedge between the reader and the experience. 'The rain seemed to pause' → 'The rain paused.' The POV character observes, not the narrator.",
+      "Legitimate in genuinely uncertain perception: 'He seemed to recognize her' (POV character is unsure). In dialogue, natural hedging — skip."],
+
+    [2, "FILTER_WORD", "\\bcould\\s+feel\\b", "gi",
+      "Remove 'could feel' — describe the sensation directly.", 0,
+      "'She could feel the cold' filters through ability ('could') instead of experience. 'The cold bit her fingers' or 'Her skin prickled' is direct perception.",
+      "In dialogue, natural phrasing — skip. 'Could feel' before abstract nouns ('could feel the tension') may need more than just cutting the filter."],
+
+    [2, "FILTER_WORD", "\\bcould\\s+see\\b", "gi",
+      "Remove 'could see' — describe what is seen directly.", 0,
+      "'She could see the tower' filters through ability. 'The tower rose' or 'The tower stood at the far end' is direct perception. The POV character's senses report — they don't narrate their own noticing.",
+      "Exception: emphasis on ability or constraint ('From here she could see the whole valley' — the vantage point matters). In dialogue, skip."],
+
+    [2, "FILTER_WORD", "\\bcould\\s+hear\\b", "gi",
+      "Remove 'could hear' — describe the sound directly.", 0,
+      "'She could hear boots on stone' → 'Boots scraped against stone.' Direct perception is always stronger.",
+      "Exception: emphasis on distance or effort ('She could barely hear him'). In dialogue, skip."],
+
+    [2, "FILTER_WORD", "\\bfound\\s+(herself|himself|themselves|itself)\\b", "gi",
+      "Remove 'found herself' — describe the action directly.", 0,
+      "'She found herself staring' → 'She stared.' The 'found' construction implies surprise at one's own action, but is almost always just a distancing habit.",
+      "Occasionally the surprise is intentional (genuine dissociation or absent-mindedness). Rewriter should judge."],
+
+    [2, "FILTER_WORD", "\\bcould\\s+smell\\b", "gi",
+      "Remove 'could smell' — describe the scent directly.", 0,
+      "'She could smell smoke' → 'Smoke hung in the air' or 'The sharp tang of smoke reached her.' Direct sensory is stronger.",
+      "In dialogue, skip."],
+
+    [2, "FILTER_WORD", "\\bcould\\s+taste\\b", "gi",
+      "Remove 'could taste' — describe the taste directly.", 0,
+      "'He could taste blood' → 'Blood coated his tongue' or 'Copper filled his mouth.' Direct sensory is stronger.",
+      "In dialogue, skip."],
   ]
 
   for (const p of patterns) {

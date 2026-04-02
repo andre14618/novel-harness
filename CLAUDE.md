@@ -104,8 +104,9 @@ src/lint/
 DB-driven prose flagger — no LLM calls. Detection patterns live in `lint_patterns` table (not code), flagged issues in `lint_issues` with FK back to both the generation and the pattern that caught it.
 
 **Pattern tiers:**
-- **Tier 1** (current) — zero ambiguity: filler phrases, redundant body language, redundant adverb+verb, empty transitions
-- **Tier 2** (planned) — context-aware: filter words, declared emotions, said bookisms (outside dialogue only)
+- **Tier 1** (28 patterns) — zero ambiguity: filler phrases, redundant body language, redundant adverb+verb, empty transitions
+- **Tier 2** (7 patterns) — filter words: `seemed to`, `could feel/see/hear/smell/taste`, `found herself`. All skip dialogue. ~0.94 issues/gen on Kimi K2 output.
+- **Tier 3** (planned) — said bookisms, declared emotions (0 hits on current writer — deferred until needed)
 
 **Architecture:** Flagger optimizes for recall (catch everything). Rewriter optimizes for precision (skip false positives). The `resolved` + `rewrite_result` columns on `lint_issues` track rewriter decisions per-flag. `getPatternStats()` shows per-pattern hit/skip rates for measuring precision over time.
 
