@@ -67,7 +67,7 @@ export const PROVIDERS: Record<ProviderName, ProviderDef> = {
       type: "automatic",
       benefitsFromSequential: true,
       minTokens: 128,  // 128-token blocks, matches segments in ephemeral memory
-      // discount rate undocumented — caching confirmed but savings unknown
+      discount: 0,     // Cerebras caches but does not discount — no cost savings
     },
   },
   groq: {

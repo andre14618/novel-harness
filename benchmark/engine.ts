@@ -262,8 +262,8 @@ async function judgeOneDimension(
         body: JSON.stringify({
           model: judge.model,
           messages: [
-            { role: "system", content: rubric },
-            { role: "user", content: userContent },
+            { role: "system", content: userContent },
+            { role: "user", content: rubric },
           ],
           temperature: 0.1,
           ...tokenParam,
@@ -285,10 +285,14 @@ async function judgeOneDimension(
     if (!content) return null
 
     const usage = data.usage ?? { prompt_tokens: 0, completion_tokens: 0 }
+    const cacheHitTokens = usage.prompt_cache_hit_tokens ?? usage.cache_read_input_tokens ?? 0
     const elapsed = performance.now() - start
     const judgeProvider = detectProvider(judge.apiUrl)
     const cost = getTokenCost(judgeProvider as any, judge.model, usage.prompt_tokens ?? 0, usage.completion_tokens ?? 0)
     saveLLMCall(runId, "judge", null, judge.model, judgeProvider, usage.prompt_tokens ?? 0, usage.completion_tokens ?? 0, Math.round(elapsed), cost, { seed, dimension })
+    if (cacheHitTokens > 0) {
+      console.log(`  [cache] ${judge.label}/${dimension}: ${cacheHitTokens} tokens cached (${Math.round(cacheHitTokens / (usage.prompt_tokens || 1) * 100)}%)`)
+    }
 
     const jsonStr = extractJSON(content)
     const parsed = JSON.parse(jsonStr)
