@@ -98,9 +98,9 @@ function getDimensionScores(sqliteDb: Database): Array<{
       GROUP BY s.dimension
     `).all(latestRun.id)
 
-    // Baseline scores
+    // Baseline scores (baselines table tracks run_id per benchmark_type)
     const baselineRun = sqliteDb.query<any, [string]>(
-      "SELECT id FROM runs WHERE run_type = ? AND is_baseline = 1 ORDER BY id DESC LIMIT 1"
+      "SELECT run_id as id FROM baselines WHERE benchmark_type = ?"
     ).get(runType)
 
     let baselineScores: Record<string, number> = {}
