@@ -252,4 +252,4 @@ setInterval(() => {
 
 console.log(`Orchestrator running at http://localhost:${server.port}`)
 console.log(`Dashboard: http://localhost:${server.port}/?key=${API_KEY}`)
-console.log(`Nightly improvement: ${NIGHTLY_HOUR}:00`)
+console.log(`Improvement daemon: manual trigger only`)
