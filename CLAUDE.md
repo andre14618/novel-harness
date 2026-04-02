@@ -2,12 +2,22 @@
 
 AI-assisted novel creation harness — deterministic code controls flow, LLMs are leaf-node function calls. Produces a 3-chapter short story (one chapter per act) for rapid iteration on agent tuning.
 
+## Deployment Model
+
+Code lives locally (canonical git repo). LXC 307 is the runtime — all benchmarks, novel runs, and the orchestrator run there. Local machine is the editor; LXC is the executor.
+
+- **Edit locally** → commit → `bash scripts/deploy-lxc.sh` (rsyncs to LXC)
+- **Run on LXC** via `ssh novel-harness-lxc "cd ~/apps/novel-harness && bun ..."`
+- **DB lives on LXC only** — SQLite at `data/harness.db`, Postgres for orchestrator state
+- **Results come back** via Postgres (SSH tunnel) or `bash scripts/sync-improvements.sh` (rsync prompts)
+
 ## Stack
 
 - Runtime: Bun
 - LLM: Configurable per-agent via `models/roles.ts`. Five providers: Cerebras, Groq, OpenRouter, OpenAI, DeepSeek.
-- DB: bun:sqlite. Central operational DB at `data/harness.db`. Per-novel content at `output/{novelId}/novel.db`.
-- Interface: CLI
+- DB: bun:sqlite (`data/harness.db` on LXC), Postgres (`novel_harness_orchestrator` on LXC)
+- Transport: `src/transport.ts` — pluggable layer beneath all LLM calls (direct, batch, prefix-cache)
+- Interface: CLI + orchestrator dashboard (port 3006)
 
 ## Architecture
 
@@ -20,7 +30,7 @@ State machine: concept → planning → drafting → validation → done
 - Extraction: summary-extractor, fact-extractor, character-state
 - Validation: cross-chapter-continuity, prose-quality, rewriter
 
-**Models** — `models/roles.ts` is the single place to control all agent assignments. `models/registry.ts` has all available models with pricing/specs.
+**Models** — `models/roles.ts` is the single place to control all agent assignments. `models/registry.ts` has all available models with pricing/specs and provider cache/batch config.
 
 **Benchmarks** — four benchmark suites in `benchmark/`:
 - `prose/` — penalty-based scoring (issue counts, lower = better)
@@ -30,10 +40,26 @@ State machine: concept → planning → drafting → validation → done
 
 **Evaluation tools:**
 - `benchmark/pairwise/` — A/B comparison with position-bias correction (runs each pair twice)
-- `benchmark/batch/` — async judge calls via provider batch APIs (OpenAI first, provider-agnostic)
+- `benchmark/batch/` — async judge calls via provider batch APIs (OpenAI, Groq — provider-agnostic `BatchProvider` interface in `benchmark/batch/openai-compatible.ts`)
 - `src/lint/` — deterministic prose flagger, DB-driven patterns, no LLM calls
 
-**Central DB** (`data/harness.db`, schema in `data/db.ts`) — all experiments, runs, generations, scores, lint issues, batch tracking, pairwise matchups. Source of truth for all scores and baselines.
+**Transport layer** (`src/transport.ts`) — sits beneath `callAgent()`, `generateProse()`, `judgeDimension()`:
+- `DirectTransport` — standard real-time HTTP with retries (default)
+- `BatchTransport` — queues requests, submits via provider batch API (50% off)
+- `PrefixCacheTransport` — serializes same-system-prompt calls per provider cache strategy
+- Provider caching config lives in `models/registry.ts` (`cache` + `batchApi` fields on `ProviderDef`)
+
+**Central DB** (`data/harness.db` on LXC, schema in `data/db.ts`) — all experiments, runs, generations, scores, lint issues, batch tracking, pairwise matchups. Source of truth for all scores and baselines.
+
+**Orchestrator** (`src/orchestrator/`, runs on LXC 307 at 192.168.1.108):
+- Single Bun service on port 3006 combining batch polling, improvement daemon, dashboard, and API
+- Entry point: `bun src/orchestrator/server.ts`
+- Postgres DB: `novel_harness_orchestrator` (schema in `sql/`)
+- ntfy on port 2586 (self-hosted email notifications to andre14618@gmail.com)
+- SSH: `novel-harness-lxc` (via ProxyJump proxmox)
+- Dashboard: `http://novel-harness-lxc:3006/?key=<ORCHESTRATOR_API_KEY>`
+- Autonomous improvement: diagnoses weakest dimensions, proposes prompt changes, benchmarks, keeps/reverts. Nightly at 22:00 or manual trigger.
+- Budget-capped at $0.80/night, max 15 iterations
 
 ## Rules
 
@@ -43,51 +69,43 @@ State machine: concept → planning → drafting → validation → done
 4. **Tight iteration first, full validation after.** Use env filters for focused cycles, run all seeds only when keeping a change.
 5. **One change per commit.** See `docs/commit-conventions.md` for message format.
 6. **Improvement loop auto-commits** kept changes AND reverted attempts — every attempt is in git history.
+7. **Deploy after commit.** Run `bash scripts/deploy-lxc.sh` to sync code to LXC.
 
 ## Running
 
+All benchmark/novel commands run on the LXC via SSH:
+
 ```bash
-# Novel creation
-bun src/index.ts --auto                    # default seed
-bun src/index.ts --auto --seed sci-fi-thriller
-bun src/index.ts --resume novel-123456
+# Deploy code to LXC (run after commits)
+bash scripts/deploy-lxc.sh
 
-# Benchmarks — tight iteration (minimum viable data)
-BENCHMARK_SEEDS="romance-drama" BENCHMARK_RUNS=2 bun benchmark/prose/run.ts
-BENCHMARK_SEEDS="romance-drama" BENCHMARK_RUNS=2 bun benchmark/planning/run.ts
-BENCHMARK_SAMPLES=2 BENCHMARK_RUNS=2 bun benchmark/extraction/run.ts
-BENCHMARK_FIXTURES="location-impossibility" BENCHMARK_RUNS=2 bun benchmark/continuity/run.ts
+# Novel creation (on LXC)
+ssh novel-harness-lxc "cd ~/apps/novel-harness && bun src/index.ts --auto"
+ssh novel-harness-lxc "cd ~/apps/novel-harness && bun src/index.ts --auto --seed sci-fi-thriller"
 
-# Benchmarks — full validation (all seeds/samples)
-bun benchmark/prose/run.ts
-bun benchmark/planning/run.ts
-bun benchmark/extraction/run.ts
-bun benchmark/continuity/run.ts
-bun benchmark/prose/run.ts --save-baseline
+# Benchmarks (on LXC)
+ssh novel-harness-lxc "cd ~/apps/novel-harness && BENCHMARK_SEEDS=romance-drama BENCHMARK_RUNS=2 bun benchmark/prose/run.ts"
+ssh novel-harness-lxc "cd ~/apps/novel-harness && bun benchmark/prose/run.ts --batch"
 
-# Agent isolation
-BENCHMARK_AGENT=fact-extractor BENCHMARK_SAMPLES=2 bun benchmark/extraction/run.ts
+# Orchestrator (runs as systemd service on LXC)
+ssh novel-harness-lxc "sudo systemctl status novel-harness-orchestrator"
+ssh novel-harness-lxc "curl -s http://localhost:3006/health"
 
-# Pairwise comparison
-bun benchmark/pairwise/run.ts --run-a 19 --run-b 21 --seeds romance-drama
+# Improvement daemon — manual trigger
+ssh novel-harness-lxc "curl -s -X POST http://localhost:3006/api/improvement/start -H 'x-api-key: <key>'"
+ssh novel-harness-lxc "curl -s http://localhost:3006/api/improvement/status -H 'x-api-key: <key>'"
 
-# Batch mode (async judges, 50% off)
-bun benchmark/prose/run.ts --batch
-bun benchmark/batch/status.ts
-bun benchmark/batch/collect.ts
+# View results (from local machine, requires Postgres tunnel)
+ssh -f -N -L 15432:192.168.1.108:5432 proxmox
+bun scripts/improvement-report.ts
+bun scripts/batch-status.ts
 
-# Automated improvement loop
-bun scripts/improve-loop.ts --target extraction --dimension completeness --iterations 3
-bun scripts/improve-loop.ts --target planning --dimension dialogue-cues --iterations 3
-bun scripts/improve-loop.ts --target prose --dimension telling --dry-run
+# Pull prompt changes from LXC after improvement cycle
+bash scripts/sync-improvements.sh
+git diff    # review changes before committing
 
-# Experiments (multi-variant, matrix)
-bun benchmark/prose/experiments/batch-1-prompts.ts
-
-# Utilities
+# Tests (run locally — no DB dependency)
 bun test
-bun scripts/cost-summary.ts --global
-bun src/lint/test-all.ts
 ```
 
 ## Key env vars
@@ -104,6 +122,20 @@ bun src/lint/test-all.ts
 | `BATCH_PROVIDER` | prose --batch | Batch API provider (default: openai) |
 | `BATCH_MODEL` | prose --batch | Batch judge model (default: gpt-5.4-mini) |
 | `IMPROVER_MODEL` | improve-loop | LLM that proposes prompt changes (default: kimi-k2) |
+| `LLM_TRANSPORT` | all LLM calls | Transport mode: `direct` (default), `cache`, `batch` |
+| `ORCHESTRATOR_DB_URL` | orchestrator, local scripts | Postgres connection string |
+| `IMPROVEMENT_BUDGET` | daemon | Max $/day for autonomous improvement (default: 0.80) |
+| `IMPROVEMENT_START_HOUR` | daemon | Nightly trigger hour UTC (default: 22) |
+
+## LXC 307 Infrastructure
+
+- **IP**: 192.168.1.108
+- **SSH**: `novel-harness-lxc` (ProxyJump proxmox)
+- **Services**: `novel-harness-orchestrator` (port 3006), `ntfy` (port 2586)
+- **Postgres**: `novel_harness_orchestrator` DB, role `orchestrator`
+- **App dir**: `/home/andre/apps/novel-harness`
+- **Backups**: nightly Postgres dump + container snapshot (automated on Proxmox host)
+- **Deploy**: `bash scripts/deploy-lxc.sh` (rsync + restart)
 
 ## Seeds
 
@@ -116,6 +148,6 @@ Each doc has a `status` frontmatter field: `active` (operational), `proposal` (n
 - `docs/commit-conventions.md` — commit message format and prefixes
 - `docs/improvement-checklist.md` — 25 improvement items across 4 capability tiers
 - `docs/methodology-integration-report.md` — writing methodology (Story Grid, Save the Cat, Weiland)
-- `docs/batch-processing.md` — batch API cost analysis and phased approach (proposal)
+- `docs/batch-processing.md` — batch API cost analysis and phased approach (reference, partially implemented)
 - `docs/proposal-style-mimicry.md` — author style extraction for fanfiction (proposal)
 - `docs/tuning-log.md` — historical tuning experiment results (April 2026, pre-DB)
