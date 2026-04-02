@@ -58,7 +58,7 @@ State machine: concept → planning → drafting → validation → done
 - ntfy on port 2586 (self-hosted email notifications to andre14618@gmail.com)
 - SSH: `novel-harness-lxc` (via ProxyJump proxmox)
 - Dashboard: `http://novel-harness-lxc:3006/?key=<ORCHESTRATOR_API_KEY>`
-- Autonomous improvement: diagnoses weakest dimensions, proposes prompt changes, benchmarks, keeps/reverts. Nightly at 22:00 or manual trigger.
+- Autonomous improvement: diagnoses weakest dimensions, proposes prompt changes, benchmarks, keeps/reverts. Manual trigger only (`POST /api/improvement/start`).
 - Budget-capped at $0.80/night, max 15 iterations
 
 ## Rules
@@ -121,11 +121,9 @@ bun test
 | `EXPERIMENT_ID` | prose run.ts | Link run to an experiment |
 | `BATCH_PROVIDER` | prose --batch | Batch API provider (default: openai) |
 | `BATCH_MODEL` | prose --batch | Batch judge model (default: gpt-5.4-mini) |
-| `IMPROVER_MODEL` | improve-loop | LLM that proposes prompt changes (default: kimi-k2) |
 | `LLM_TRANSPORT` | all LLM calls | Transport mode: `direct` (default), `cache`, `batch` |
 | `ORCHESTRATOR_DB_URL` | orchestrator, local scripts | Postgres connection string |
 | `IMPROVEMENT_BUDGET` | daemon | Max $/day for autonomous improvement (default: 0.80) |
-| `IMPROVEMENT_START_HOUR` | daemon | Nightly trigger hour UTC (default: 22) |
 
 ## LXC 307 Infrastructure
 

@@ -3,7 +3,7 @@
  *
  * Runs on LXC 307 (port 3006). Combines:
  * - Batch API polling (every 30 min)
- * - Improvement daemon (event-driven + nightly schedule)
+ * - Improvement daemon (manual trigger only)
  * - Dashboard (HTML status page)
  * - REST API for status queries
  *
@@ -15,6 +15,8 @@ import { resolve } from "node:path"
 import { migrate, getAllBatches, getBatchById, getRequestsForBatch, getState } from "./db"
 import { pollOnce } from "./poller"
 import { getDaemonStatus, startCycle, handleBatchComplete } from "./daemon-loop"
+import { diagnose } from "./diagnose"
+import { TARGETS } from "./improve"
 import { getTodayBudget } from "./budget"
 
 await migrate()
@@ -202,11 +204,26 @@ const server = Bun.serve({
       return Response.json(await getDaemonStatus())
     }
 
+    if (path === "/api/improvement/diagnose" && req.method === "POST") {
+      const diagnosis = await diagnose()
+      return Response.json({ diagnosis, availableTargets: Object.keys(TARGETS) })
+    }
+
     if (path === "/api/improvement/start" && req.method === "POST") {
       const status = await getDaemonStatus()
       if (status.active) return Response.json({ error: "Cycle already active", cycleId: status.cycle?.id })
-      startCycle("manual").catch(err => console.error("[daemon] Manual start error:", err))
-      return Response.json({ ok: true, status: "starting" })
+
+      const body = await req.json().catch(() => ({})) as Record<string, any>
+      const override = body.target && body.dimension
+        ? { target: body.target as string, dimension: body.dimension as string }
+        : undefined
+
+      if (override && !TARGETS[override.target]) {
+        return Response.json({ error: `Unknown target: ${override.target}`, availableTargets: Object.keys(TARGETS) }, { status: 400 })
+      }
+
+      startCycle("manual", override).catch(err => console.error("[daemon] Manual start error:", err))
+      return Response.json({ ok: true, status: "starting", target: override?.target, dimension: override?.dimension })
     }
 
     const reportMatch = path.match(/^\/api\/improvement\/report\/(\d+)$/)
@@ -232,18 +249,6 @@ setInterval(() => {
   pollOnce().catch(err => console.error("Poll error:", err))
 }, POLL_INTERVAL)
 
-// Nightly improvement trigger
-const NIGHTLY_HOUR = parseInt(process.env.IMPROVEMENT_START_HOUR ?? "22")
-setInterval(async () => {
-  const now = new Date()
-  if (now.getHours() === NIGHTLY_HOUR && now.getMinutes() === 0) {
-    const status = await getDaemonStatus()
-    if (!status.active) {
-      console.log(`[daemon] Nightly trigger at ${NIGHTLY_HOUR}:00`)
-      startCycle("scheduled").catch(err => console.error("[daemon] Nightly error:", err))
-    }
-  }
-}, 60_000)
 
 console.log(`Orchestrator running at http://localhost:${server.port}`)
 console.log(`Dashboard: http://localhost:${server.port}/?key=${API_KEY}`)

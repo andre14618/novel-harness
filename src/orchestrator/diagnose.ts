@@ -129,7 +129,7 @@ function getDimensionScores(sqliteDb: Database): Array<{
   return results
 }
 
-function getJudgeReasoning(sqliteDb: Database, target: string, dimension: string): string[] {
+export function getJudgeReasoning(sqliteDb: Database, target: string, dimension: string): string[] {
   const latestRun = sqliteDb.query<any, [string]>(
     "SELECT id FROM runs WHERE run_type = ? ORDER BY id DESC LIMIT 1"
   ).get(target)
@@ -145,6 +145,34 @@ function getJudgeReasoning(sqliteDb: Database, target: string, dimension: string
   `).all(latestRun.id, dimension)
 
   return weakest.map((w: any) => w.reasoning).filter(Boolean)
+}
+
+/**
+ * Diagnose a specific target/dimension (skip auto-selection).
+ * Used when the user has already chosen what to improve.
+ */
+export async function diagnoseFor(target: string, dimension: string): Promise<DiagnosisResult | null> {
+  let sqliteDb: Database
+  try {
+    sqliteDb = new Database(HARNESS_DB, { readonly: true })
+  } catch {
+    console.error("[diagnose] Cannot open harness DB at", HARNESS_DB)
+    return null
+  }
+
+  try {
+    const allScores = getDimensionScores(sqliteDb)
+    const match = allScores.find(s => s.target === target && s.dimension === dimension)
+    if (!match) {
+      console.log(`[diagnose] No scores found for ${target}/${dimension}`)
+      return null
+    }
+
+    const reasoning = getJudgeReasoning(sqliteDb, target, dimension)
+    return { ...match, judgeReasoning: reasoning }
+  } finally {
+    sqliteDb.close()
+  }
 }
 
 async function getRecentAttempts(hours: number): Promise<Set<string>> {

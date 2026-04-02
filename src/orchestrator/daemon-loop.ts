@@ -11,8 +11,10 @@
 import { readFileSync } from "node:fs"
 import db from "./db"
 import { createOrchestratorBatch } from "./db"
-import { diagnose } from "./diagnose"
+import { diagnose, diagnoseFor } from "./diagnose"
 import { proposeChange, applyChange, revertChange, runBenchmark, getLatestScores, TARGETS } from "./improve"
+import { createTuningExperiment, concludeExperiment } from "../../data/db"
+import { getModelForAgent } from "../../models/roles"
 import { checkBudget, recordSpend, getTodayBudget, MAX_ITERATIONS, MAX_CONSECUTIVE_FAILURES, BUDGET_ALERT_THRESHOLD } from "./budget"
 import { validateProposal } from "./guardrails"
 
@@ -25,6 +27,7 @@ const NOTIFY_EMAIL = process.env.NOTIFY_EMAIL
 
 interface ActiveCycle {
   cycleId: number
+  experimentId: number
   iterationNum: number
   target: string
   dimension: string
@@ -58,6 +61,7 @@ export async function getDaemonStatus() {
     active: !!activeCycle,
     cycle: activeCycle ? {
       id: activeCycle.cycleId,
+      experimentId: activeCycle.experimentId,
       target: activeCycle.target,
       dimension: activeCycle.dimension,
       iteration: activeCycle.iterationNum,
@@ -70,19 +74,53 @@ export async function getDaemonStatus() {
   }
 }
 
-export async function startCycle(trigger: string): Promise<void> {
+export async function startCycle(trigger: string, override?: { target: string; dimension: string }): Promise<void> {
   if (activeCycle) {
     console.log("[daemon] Cycle already active, ignoring")
     return
   }
 
-  const diagnosis = await diagnose()
+  const diagnosis = override
+    ? await diagnoseFor(override.target, override.dimension)
+    : await diagnose()
   if (!diagnosis) {
     console.log("[daemon] No improvement target found")
     return
   }
 
+  const targetConfig = TARGETS[diagnosis.target]
+  if (!targetConfig) {
+    console.log(`[daemon] Unknown target: ${diagnosis.target}`)
+    return
+  }
+
   console.log(`[daemon] Starting: ${diagnosis.target}/${diagnosis.dimension} (score: ${diagnosis.currentScore})`)
+
+  // Create experiment in SQLite — links all benchmark runs together
+  const improverModel = getModelForAgent("improver")
+  const experimentId = createTuningExperiment("improvement-daemon", `${diagnosis.target}/${diagnosis.dimension}: improve from ${diagnosis.currentScore}`, {
+    target: diagnosis.target,
+    dimension: diagnosis.dimension,
+    improverModel: improverModel?.model ?? "unknown",
+    improverProvider: improverModel?.provider ?? "unknown",
+    budgetUsd: parseFloat(process.env.IMPROVEMENT_BUDGET ?? "0.80"),
+    maxIterations: MAX_ITERATIONS,
+    trigger,
+  })
+  console.log(`[daemon] Created experiment #${experimentId}`)
+
+  // Run baseline benchmark
+  console.log(`[daemon] Running baseline benchmark...`)
+  const baselineResult = await runBenchmark(targetConfig.benchmarkCmd, experimentId)
+  if (!baselineResult) {
+    console.log("[daemon] Baseline benchmark failed, aborting")
+    concludeExperiment(experimentId, "Aborted: baseline benchmark failed")
+    return
+  }
+
+  const baselineScores = getLatestScores(diagnosis.target, diagnosis.dimension)
+  const baselineScore = baselineScores?.avgScore ?? diagnosis.currentScore
+  console.log(`[daemon] Baseline: ${baselineScore}/10 (run ${baselineResult.runId})`)
 
   const rows = await db`
     INSERT INTO improvement_cycles (trigger_type, status) VALUES (${trigger}, 'active') RETURNING id
@@ -90,13 +128,13 @@ export async function startCycle(trigger: string): Promise<void> {
   const cycleId = (rows[0] as any).id
 
   activeCycle = {
-    cycleId, iterationNum: 0,
+    cycleId, experimentId, iterationNum: 0,
     target: diagnosis.target, dimension: diagnosis.dimension,
-    currentScore: diagnosis.currentScore, baselineScore: diagnosis.currentScore,
+    currentScore: baselineScore, baselineScore,
     consecutiveFailures: 0,
   }
 
-  await notify(`Improvement cycle #${cycleId} started`, `Target: ${diagnosis.target}/${diagnosis.dimension} (${diagnosis.currentScore})\nTrigger: ${trigger}`)
+  await notify(`Improvement cycle #${cycleId} started`, `Target: ${diagnosis.target}/${diagnosis.dimension} (baseline: ${baselineScore})\nExperiment: #${experimentId}\nTrigger: ${trigger}`)
   await runIteration(diagnosis.judgeReasoning)
 }
 
@@ -218,7 +256,7 @@ async function runIteration(judgeReasoning: string[]): Promise<void> {
   `
 
   // Benchmark
-  const benchResult = await runBenchmark(targetConfig.benchmarkCmd)
+  const benchResult = await runBenchmark(targetConfig.benchmarkCmd, cycle.experimentId)
   if (!benchResult) {
     console.log("[daemon] Benchmark failed, reverting")
     revertChange(backup.filePath, backup.originalContent)
@@ -327,10 +365,30 @@ async function finishCycle(status: string, reason: string): Promise<void> {
   const cycle = activeCycle
   const totalDelta = Math.round((cycle.currentScore - cycle.baselineScore) * 10) / 10
   const budget = await getTodayBudget()
-  const summary = `${cycle.target}/${cycle.dimension}: ${cycle.baselineScore} → ${cycle.currentScore} (${totalDelta >= 0 ? "+" : ""}${totalDelta}). ${cycle.iterationNum} iters, $${budget.spent.toFixed(2)}. ${reason}`
+
+  // Run validation benchmark to confirm results outside the loop
+  const targetConfig = TARGETS[cycle.target]
+  let validationScore: number | null = null
+  if (targetConfig && cycle.iterationNum > 0) {
+    console.log(`[daemon] Running validation benchmark...`)
+    const valResult = await runBenchmark(targetConfig.benchmarkCmd, cycle.experimentId)
+    if (valResult) {
+      const valScores = getLatestScores(cycle.target, cycle.dimension)
+      validationScore = valScores?.avgScore ?? null
+      console.log(`[daemon] Validation: ${validationScore}/10 (run ${valResult.runId})`)
+    }
+  }
+
+  const valStr = validationScore !== null ? `, validation: ${validationScore}` : ""
+  const summary = `${cycle.target}/${cycle.dimension}: ${cycle.baselineScore} → ${cycle.currentScore} (${totalDelta >= 0 ? "+" : ""}${totalDelta}${valStr}). ${cycle.iterationNum} iters, $${budget.spent.toFixed(2)}. ${reason}`
 
   await db`UPDATE improvement_cycles SET status = ${status}, finished_at = now(), summary = ${summary}, total_iterations = ${cycle.iterationNum} WHERE id = ${cycle.cycleId}`
-  await notify(`Cycle #${cycle.cycleId} ${status}`, `${summary}\n\nSync: bash scripts/sync-improvements.sh`)
+
+  // Conclude the experiment in SQLite
+  concludeExperiment(cycle.experimentId, summary)
+  console.log(`[daemon] Experiment #${cycle.experimentId} concluded`)
+
+  await notify(`Cycle #${cycle.cycleId} ${status}`, `${summary}\nExperiment: #${cycle.experimentId}\n\nSync: bash scripts/sync-improvements.sh`)
   console.log(`[daemon] Cycle #${cycle.cycleId} ${status}: ${summary}`)
   activeCycle = null
 }

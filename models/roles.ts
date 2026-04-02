@@ -40,6 +40,9 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // ── Judges ───────────────────────────────────────────────────────────
   "penalty-judge":             { provider: "groq", model: "openai/gpt-oss-120b" },  // issue counting (lower = better)
   "pairwise-judge":            { provider: "deepseek", model: "deepseek-chat" },     // A/B comparison (0% position bias)
+
+  // ── Improvement daemon ──────────────────────────────────────────────
+  "improver":                  groqKimiK2,
 }
 
 export function getModelForAgent(agentName: string): ModelAssignment | undefined {

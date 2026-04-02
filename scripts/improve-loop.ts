@@ -9,14 +9,15 @@
  *   bun scripts/improve-loop.ts --target extraction --dimension completeness --iterations 3
  *   bun scripts/improve-loop.ts --target planning --dimension dialogue-cues --iterations 2
  *
- * The LLM used for proposing changes is set via IMPROVER_MODEL env var
- * (default: moonshotai/kimi-k2-instruct-0905 on Groq).
+ * The LLM used for proposing changes is set via the "improver" role
+ * in models/roles.ts (centralized model assignment).
  */
 
 import { parseArgs } from "node:util"
 import { readFileSync, writeFileSync } from "node:fs"
 import { getCentralDB, createTuningExperiment, concludeExperiment } from "../data/db"
 import { MODELS, PROVIDERS, getApiKey } from "../models/registry"
+import { getModelForAgent } from "../models/roles"
 import { extractJSON } from "../src/llm"
 
 const { values } = parseArgs({
@@ -93,9 +94,10 @@ async function proposeChange(
   baselineScore: number,
   judgeReasoning: string[],
 ): Promise<{ agentName: string; newPrompt: string; explanation: string } | null> {
-  const modelId = process.env.IMPROVER_MODEL ?? "moonshotai/kimi-k2-instruct-0905"
-  const model = MODELS.find(m => m.id === modelId)
-  if (!model) throw new Error(`Model ${modelId} not found in registry`)
+  const assignment = getModelForAgent("improver")
+  if (!assignment) throw new Error(`No model assigned for "improver" role in models/roles.ts`)
+  const model = MODELS.find(m => m.id === assignment.model && m.provider === assignment.provider)
+  if (!model) throw new Error(`Model ${assignment.model} (${assignment.provider}) not found in registry`)
 
   const provider = PROVIDERS[model.provider]
   const apiKey = getApiKey(model.provider)
@@ -251,7 +253,8 @@ async function main() {
   console.log(`${"=".repeat(60)}`)
   console.log(`  Target: ${TARGET} / ${DIMENSION}`)
   console.log(`  Max iterations: ${MAX_ITERATIONS}`)
-  console.log(`  Improver: ${process.env.IMPROVER_MODEL ?? "moonshotai/kimi-k2-instruct-0905 (default)"}`)
+  const improverAssignment = getModelForAgent("improver")
+  console.log(`  Improver: ${improverAssignment?.model ?? "unassigned"} (${improverAssignment?.provider ?? "?"})`)
   console.log(`  Dry run: ${DRY_RUN}`)
   console.log()
 
@@ -275,7 +278,7 @@ async function main() {
     baselineScore: baseline.avgScore,
     baselineRunId: baseline.runId,
     maxIterations: MAX_ITERATIONS,
-    improverModel: process.env.IMPROVER_MODEL ?? "moonshotai/kimi-k2-instruct-0905",
+    improverModel: improverAssignment?.model ?? "unassigned",
   })
 
   for (let iter = 1; iter <= MAX_ITERATIONS; iter++) {
@@ -360,7 +363,7 @@ async function main() {
         ``,
         `${TARGET}/${DIMENSION}: ${currentScore.toFixed(1)}/10 | iteration ${iter}/${MAX_ITERATIONS}`,
         `experiment: #${expId}`,
-        `improver: ${process.env.IMPROVER_MODEL ?? "kimi-k2"}`,
+        `improver: ${improverAssignment?.model ?? "kimi-k2"}`,
       ].join("\n")
 
       await Bun.spawn(["git", "add", targetFile.path], { stdout: "pipe", stderr: "pipe" }).exited
@@ -405,7 +408,7 @@ async function main() {
   concludeExperiment(expId,
     `Loop complete. ${baseline.avgScore} → ${currentScore} (${finalDelta >= 0 ? "+" : ""}${finalDelta}). ` +
     `${totalImproved}/${MAX_ITERATIONS} iterations improved. ` +
-    `Improver: ${process.env.IMPROVER_MODEL ?? "kimi-k2"}.`
+    `Improver: ${improverAssignment?.model ?? "kimi-k2"}.`
   )
 }
 

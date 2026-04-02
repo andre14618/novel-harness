@@ -14,6 +14,7 @@ import db from "./db"
 import { checkBudget, recordSpend } from "./budget"
 import { validateProposal, type Proposal } from "./guardrails"
 import { MODELS, PROVIDERS, getApiKey } from "../../models/registry"
+import { getModelForAgent } from "../../models/roles"
 import { extractJSON } from "../llm"
 import { getBatchProvider } from "../../benchmark/batch/providers"
 import { createBatch, addBatchRequest, updateBatchSubmitted } from "../../data/db"
@@ -71,9 +72,10 @@ export async function proposeChange(
   currentScore: number,
   judgeReasoning: string[],
 ): Promise<{ agentName: string; newPrompt: string; explanation: string } | null> {
-  const modelId = process.env.IMPROVER_MODEL ?? "moonshotai/kimi-k2-instruct-0905"
-  const model = MODELS.find(m => m.id === modelId)
-  if (!model) throw new Error(`Model ${modelId} not found in registry`)
+  const assignment = getModelForAgent("improver")
+  if (!assignment) throw new Error(`No model assigned for "improver" role in models/roles.ts`)
+  const model = MODELS.find(m => m.id === assignment.model && m.provider === assignment.provider)
+  if (!model) throw new Error(`Model ${assignment.model} (${assignment.provider}) not found in registry`)
 
   const provider = PROVIDERS[model.provider]
   const apiKey = getApiKey(model.provider)
@@ -175,9 +177,10 @@ export function revertChange(filePath: string, originalContent: string): void {
 
 // ── Run benchmark (writer generation, real-time) ────────────────────────
 
-export async function runBenchmark(cmd: string): Promise<{ runId: number; stdout: string } | null> {
-  console.log(`  [improve] Running: ${cmd}`)
-  const proc = Bun.spawn(["bash", "-c", cmd], {
+export async function runBenchmark(cmd: string, experimentId?: number): Promise<{ runId: number; stdout: string } | null> {
+  const fullCmd = experimentId ? `EXPERIMENT_ID=${experimentId} ${cmd}` : cmd
+  console.log(`  [improve] Running: ${fullCmd}`)
+  const proc = Bun.spawn(["bash", "-c", fullCmd], {
     stdout: "pipe", stderr: "pipe",
     cwd: HARNESS_ROOT,
     env: { ...process.env },
