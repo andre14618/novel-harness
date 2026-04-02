@@ -180,10 +180,11 @@ export function revertChange(filePath: string, originalContent: string): void {
 export async function runBenchmark(cmd: string, experimentId?: number): Promise<{ runId: number; stdout: string } | null> {
   const fullCmd = experimentId ? `EXPERIMENT_ID=${experimentId} ${cmd}` : cmd
   console.log(`  [improve] Running: ${fullCmd}`)
+  const bunPath = process.env.BUN_PATH ?? `${process.env.HOME}/.bun/bin`
   const proc = Bun.spawn(["bash", "-c", fullCmd], {
     stdout: "pipe", stderr: "pipe",
     cwd: HARNESS_ROOT,
-    env: { ...process.env },
+    env: { ...process.env, PATH: `${bunPath}:${process.env.PATH ?? "/usr/bin:/bin"}` },
   })
 
   const stdout = await new Response(proc.stdout).text()
