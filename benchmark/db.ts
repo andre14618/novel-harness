@@ -79,7 +79,7 @@ export function saveLLMCall(
 ) {
   _logLLMCall(runId, {
     agent: agent ?? callType,
-    phase: callType === "judge" ? "benchmark-judge" : "benchmark-generation",
+    phase: callType === "judge" ? "judge" : "generation",
     model,
     provider,
     promptTokens,

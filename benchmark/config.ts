@@ -1,7 +1,7 @@
 /**
  * Benchmark writer/judge config.
  *
- * Models are set in models/roles.ts (benchmark-writer, benchmark-judge)
+ * Models are set in models/roles.ts (writer, judge, pairwise-judge)
  * alongside every other agent role. Env overrides still work for one-off tests.
  */
 
@@ -67,10 +67,10 @@ export function getWriter(): WriterConfig {
   }
 
   // Primary: roles.ts
-  const fromRole = resolveFromRole("benchmark-writer")
+  const fromRole = resolveFromRole("writer")
   if (fromRole) return toWriterConfig(fromRole)
 
-  throw new Error('No benchmark-writer in roles.ts and BENCHMARK_MODEL not set.')
+  throw new Error('No writer in roles.ts and BENCHMARK_MODEL not set.')
 }
 
 export function getJudges(): JudgeConfig[] {
@@ -91,10 +91,10 @@ export function getJudges(): JudgeConfig[] {
   }
 
   // Primary: roles.ts
-  const fromRole = resolveFromRole("benchmark-judge")
+  const fromRole = resolveFromRole("judge")
   if (fromRole) return [toJudgeConfig(fromRole)]
 
-  throw new Error('No benchmark-judge in roles.ts and BENCHMARK_JUDGES not set.')
+  throw new Error('No judge in roles.ts and BENCHMARK_JUDGES not set.')
 }
 
 export function getPairwiseJudge(): JudgeConfig {
@@ -109,9 +109,9 @@ export function getPairwiseJudge(): JudgeConfig {
     if (found) return toJudgeConfig(found)
   }
 
-  // Primary: pairwise-judge role, fallback to benchmark-judge
-  const fromRole = resolveFromRole("pairwise-judge") ?? resolveFromRole("benchmark-judge")
+  // Primary: pairwise-judge role, fallback to judge
+  const fromRole = resolveFromRole("pairwise-judge") ?? resolveFromRole("judge")
   if (fromRole) return toJudgeConfig(fromRole)
 
-  throw new Error('No pairwise-judge or benchmark-judge in roles.ts.')
+  throw new Error('No pairwise-judge or judge in roles.ts.')
 }
