@@ -57,6 +57,13 @@ benchmark/
     summary.ts      ← auto-generate experiment summary markdown
     judges/         ← rubric .md per dimension + schema.ts
     experiments/    ← batch definitions (types.ts + batch-*.ts files)
+  batch/            ← async batch processing (provider-agnostic)
+    types.ts        ← BatchProvider interface, BatchRequest/Result/Status
+    providers.ts    ← provider registry (currently: openai)
+    openai.ts       ← OpenAI Batch API adapter (50% off, 24hr window)
+    submit.ts       ← CLI: submit judge calls for a run as batch
+    status.ts       ← CLI: check pending batch status
+    collect.ts      ← CLI: import completed batch results to scores table
   planning/         ← planning-plotter output quality
     run.ts          ← Beat Specificity, Dialogue Cues, Emotional Arc
     judges/
@@ -168,6 +175,13 @@ bun benchmark/prose/experiments/batch-1-prompts.ts    # run a batch experiment
 #   models × prompts × temperatures → auto-generates all combinations
 # All results go to generations + scores (same tables as run.ts)
 # Auto-lints prose and generates summary to tuning_experiments.summary
+
+# Batch mode (generate prose via Groq, judge async via OpenAI Batch API — 50% off)
+bun benchmark/prose/run.ts --batch                         # default: openai/gpt-5.4-mini
+BATCH_PROVIDER=openai BATCH_MODEL=gpt-5.4-mini bun benchmark/prose/run.ts --batch
+bun benchmark/batch/status.ts                              # check pending batches
+bun benchmark/batch/collect.ts                             # import completed results
+bun benchmark/batch/submit.ts --run 43 --provider openai   # submit judges for existing run
 
 # Lean iteration mode (single judge, fewer runs)
 BENCHMARK_JUDGES="Qwen3 32B" BENCHMARK_RUNS=2 bun benchmark/prose/run.ts

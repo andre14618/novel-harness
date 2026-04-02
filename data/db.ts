@@ -140,6 +140,33 @@ function migrate(db: Database) {
       rewrite_result TEXT            -- what the rewriter did (null until processed)
     );
 
+    -- Batch processing: async judge calls via provider batch APIs
+    CREATE TABLE IF NOT EXISTS batches (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      run_id INTEGER NOT NULL REFERENCES runs(id),
+      provider TEXT NOT NULL,             -- 'openai', 'anthropic', etc.
+      provider_batch_id TEXT,             -- provider's batch ID (set after submission)
+      status TEXT NOT NULL DEFAULT 'pending',  -- pending, submitted, processing, completed, failed, expired
+      judge_model TEXT NOT NULL,          -- model used for judging
+      request_count INTEGER NOT NULL DEFAULT 0,
+      submitted_at TEXT,
+      completed_at TEXT,
+      input_file TEXT,                    -- path to submitted JSONL (for reference)
+      output_file TEXT,                   -- path to results file
+      error TEXT                          -- error message if failed
+    );
+
+    CREATE TABLE IF NOT EXISTS batch_requests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      batch_id INTEGER NOT NULL REFERENCES batches(id),
+      custom_id TEXT NOT NULL,            -- unique ID for matching results back
+      generation_id INTEGER NOT NULL REFERENCES generations(id),
+      dimension TEXT NOT NULL,            -- 'telling', 'dead-weight', 'dialogue-problems'
+      status TEXT NOT NULL DEFAULT 'pending',  -- pending, completed, failed
+      score INTEGER,                      -- populated on collection
+      issues_json TEXT                    -- populated on collection
+    );
+
     CREATE TABLE IF NOT EXISTS tuning_results (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       experiment_id INTEGER NOT NULL REFERENCES tuning_experiments(id),
@@ -865,6 +892,86 @@ export function deleteExperiment(experimentId: number) {
     db.exec(`DELETE FROM runs WHERE id IN (${runList})`)
   }
   db.exec(`DELETE FROM tuning_experiments WHERE id = ${experimentId}`)
+}
+
+// ── Batch processing ───────────────────────────────────────────────────
+
+export function createBatch(runId: number, provider: string, judgeModel: string): number {
+  const db = getCentralDB()
+  const result = db.run(
+    "INSERT INTO batches (run_id, provider, judge_model) VALUES (?, ?, ?)",
+    [runId, provider, judgeModel],
+  )
+  return Number(result.lastInsertRowid)
+}
+
+export function addBatchRequest(batchId: number, customId: string, generationId: number, dimension: string) {
+  const db = getCentralDB()
+  db.run(
+    "INSERT INTO batch_requests (batch_id, custom_id, generation_id, dimension) VALUES (?, ?, ?, ?)",
+    [batchId, customId, generationId, dimension],
+  )
+}
+
+export function updateBatchSubmitted(batchId: number, providerBatchId: string, inputFile: string, requestCount: number) {
+  const db = getCentralDB()
+  db.run(
+    `UPDATE batches SET provider_batch_id = ?, input_file = ?, request_count = ?,
+     status = 'submitted', submitted_at = datetime('now') WHERE id = ?`,
+    [providerBatchId, inputFile, requestCount, batchId],
+  )
+}
+
+export function updateBatchStatus(batchId: number, status: string, error?: string) {
+  const db = getCentralDB()
+  const completedAt = (status === "completed" || status === "failed") ? ", completed_at = datetime('now')" : ""
+  const errorClause = error ? `, error = '${error.replace(/'/g, "''")}'` : ""
+  db.exec(`UPDATE batches SET status = '${status}'${completedAt}${errorClause} WHERE id = ${batchId}`)
+}
+
+export function updateBatchOutput(batchId: number, outputFile: string) {
+  const db = getCentralDB()
+  db.run("UPDATE batches SET output_file = ? WHERE id = ?", [outputFile, batchId])
+}
+
+export function completeBatchRequest(customId: string, score: number, issuesJson: string) {
+  const db = getCentralDB()
+  db.run(
+    "UPDATE batch_requests SET status = 'completed', score = ?, issues_json = ? WHERE custom_id = ?",
+    [score, issuesJson, customId],
+  )
+}
+
+export function failBatchRequest(customId: string) {
+  const db = getCentralDB()
+  db.run("UPDATE batch_requests SET status = 'failed' WHERE custom_id = ?", [customId])
+}
+
+export function getPendingBatches(): Array<{
+  id: number; runId: number; provider: string; providerBatchId: string; judgeModel: string; requestCount: number; status: string
+}> {
+  const db = getCentralDB()
+  return db.query(
+    "SELECT id, run_id as runId, provider, provider_batch_id as providerBatchId, judge_model as judgeModel, request_count as requestCount, status FROM batches WHERE status IN ('pending', 'submitted', 'validating', 'processing') ORDER BY id"
+  ).all() as any[]
+}
+
+export function getBatchRequests(batchId: number): Array<{
+  id: number; customId: string; generationId: number; dimension: string; status: string; score: number | null; issuesJson: string | null
+}> {
+  const db = getCentralDB()
+  return db.query<any, [number]>(
+    "SELECT id, custom_id as customId, generation_id as generationId, dimension, status, score, issues_json as issuesJson FROM batch_requests WHERE batch_id = ? ORDER BY id"
+  ).all(batchId) as any[]
+}
+
+export function getBatchForRun(runId: number): Array<{
+  id: number; provider: string; status: string; judgeModel: string; requestCount: number; submittedAt: string | null; completedAt: string | null
+}> {
+  const db = getCentralDB()
+  return db.query<any, [number]>(
+    "SELECT id, provider, status, judge_model as judgeModel, request_count as requestCount, submitted_at as submittedAt, completed_at as completedAt FROM batches WHERE run_id = ? ORDER BY id"
+  ).all(runId) as any[]
 }
 
 export function getPhaseStats(): Array<{

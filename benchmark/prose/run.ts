@@ -6,12 +6,19 @@ import {
   getRunAverages, getBaselineAverages, getOverallAvg,
   getWeakestGenerations, getScoresForGeneration, getPerSeedAverages,
 } from "../db"
-import { loadSeeds, generateProse, judgeDimension, mean, stddev } from "./shared"
+import { loadSeeds, generateProse, judgeDimension, JUDGE_RUBRICS, mean, stddev } from "./shared"
 import { lintRun } from "../../src/lint/index"
+import { getBatchProvider } from "../batch/providers"
+import { createBatch, addBatchRequest, updateBatchSubmitted } from "../../data/db"
+import { MODELS } from "../../models/registry"
+import type { BatchRequest } from "../batch/types"
 
 // ── Config ───────────────────────────────────────────────────────────────
 
 const RUNS_PER_SEED = parseInt(process.env.BENCHMARK_RUNS ?? "3")
+const BATCH_MODE = process.argv.includes("--batch")
+const BATCH_PROVIDER = process.env.BATCH_PROVIDER ?? "openai"
+const BATCH_MODEL = process.env.BATCH_MODEL ?? "gpt-5.4-mini"
 
 // ── Main ─────────────────────────────────────────────────────────────────
 
@@ -24,14 +31,18 @@ async function main() {
   const seeds = loadSeeds(seedFilter)
   const experimentId = process.env.EXPERIMENT_ID ? parseInt(process.env.EXPERIMENT_ID) : undefined
 
-  if (judges.length === 0) { console.error("No judge API keys found"); process.exit(1) }
+  if (!BATCH_MODE && judges.length === 0) { console.error("No judge API keys found"); process.exit(1) }
 
   console.log(`\nBenchmark: ${writer.label}`)
   console.log(`Seeds: ${seeds.map(s => s.name).join(", ")}`)
   console.log(`Runs per seed: ${RUNS_PER_SEED}`)
-  console.log(`Judge: ${judges.map(j => j.label).join(", ")}`)
+  if (BATCH_MODE) {
+    console.log(`Mode: BATCH (${BATCH_PROVIDER} / ${BATCH_MODEL})`)
+  } else {
+    console.log(`Judge: ${judges.map(j => j.label).join(", ")}`)
+  }
   console.log(`Penalty dimensions: ${DIMENSIONS.map(d => DIMENSION_LABELS[d]).join(", ")}`)
-  console.log(`Judge calls per generation: ${judges.length} x ${DIMENSIONS.length} = ${judges.length * DIMENSIONS.length}`)
+  if (!BATCH_MODE) console.log(`Judge calls per generation: ${judges.length} x ${DIMENSIONS.length} = ${judges.length * DIMENSIONS.length}`)
   if (experimentId) console.log(`Experiment: #${experimentId}`)
   console.log()
 
@@ -39,6 +50,9 @@ async function main() {
 
   // Track all scores in memory for reporting
   const allScores: Array<{ seed: string; run: number; dim: Dimension; count: number; wordCount: number }> = []
+
+  // Track generations for batch mode
+  const generatedProse: Array<{ genId: number; seed: string; prose: string; words: number }> = []
 
   // ── Generate + judge all seeds ───────────────────────────────────────
 
@@ -62,19 +76,23 @@ async function main() {
 
         console.log(`[${seed.name}] Run ${run}: ${words}w ${result.tps}tok/s ${(result.latencyMs / 1000).toFixed(1)}s`)
 
-        // Judge — all judges x all dimensions concurrently
-        const judgeJobs = judges.flatMap(judge =>
-          DIMENSIONS.map(async (dim) => {
-            const penalty = await judgeDimension(judge, dim, result.prose, runId, seed.name)
-            if (penalty) {
-              saveScore(genId, judge.label, dim, penalty.count, JSON.stringify(penalty.issues))
-              allScores.push({ seed: seed.name, run, dim, count: penalty.count, wordCount: words })
-              console.log(`  [${seed.name}:${run}] ${DIMENSION_LABELS[dim]}: ${penalty.count} issues`)
-            }
-            return { judge: judge.label, dim, penalty }
-          })
-        )
-        await Promise.all(judgeJobs)
+        if (BATCH_MODE) {
+          generatedProse.push({ genId, seed: seed.name, prose: result.prose, words })
+        } else {
+          // Judge — all judges x all dimensions concurrently
+          const judgeJobs = judges.flatMap(judge =>
+            DIMENSIONS.map(async (dim) => {
+              const penalty = await judgeDimension(judge, dim, result.prose, runId, seed.name)
+              if (penalty) {
+                saveScore(genId, judge.label, dim, penalty.count, JSON.stringify(penalty.issues))
+                allScores.push({ seed: seed.name, run, dim, count: penalty.count, wordCount: words })
+                console.log(`  [${seed.name}:${run}] ${DIMENSION_LABELS[dim]}: ${penalty.count} issues`)
+              }
+              return { judge: judge.label, dim, penalty }
+            })
+          )
+          await Promise.all(judgeJobs)
+        }
       }
     })
   )
@@ -87,7 +105,51 @@ async function main() {
     console.log(`\n  Lint: ${totalLintIssues} deterministic issues flagged`)
   }
 
-  // ── Report ─────────────────────────────────────────────────────────────
+  // ── Batch submission (if --batch) ─────────────────────────────────────
+
+  if (BATCH_MODE && generatedProse.length > 0) {
+    const modelDef = MODELS.find(m => m.id === BATCH_MODEL)
+    const useMaxCompletionTokens = modelDef?.useMaxCompletionTokens ?? false
+
+    const batchId = createBatch(runId, BATCH_PROVIDER, BATCH_MODEL)
+    const requests: BatchRequest[] = []
+
+    for (const gen of generatedProse) {
+      for (const dim of DIMENSIONS) {
+        const customId = `gen-${gen.genId}-${dim}`
+        const rubric = JUDGE_RUBRICS[dim]
+
+        addBatchRequest(batchId, customId, gen.genId, dim)
+        requests.push({
+          customId,
+          model: BATCH_MODEL,
+          messages: [
+            { role: "system", content: `Here is a prose passage:\n\n${gen.prose}\n\n---\n\n${rubric}` },
+            { role: "user", content: "Evaluate the prose above according to the rubric. Return the JSON result." },
+          ],
+          temperature: 0.1,
+          maxTokens: 4096,
+          useMaxCompletionTokens,
+          responseFormat: { type: "json_object" },
+        })
+      }
+    }
+
+    const provider = getBatchProvider(BATCH_PROVIDER)
+    const providerBatchId = await provider.submit(requests, `run-${runId} judge batch`)
+    updateBatchSubmitted(batchId, providerBatchId, `data/batches/input-*.jsonl`, requests.length)
+
+    console.log(`\n  Batch submitted: ${requests.length} judge calls via ${BATCH_PROVIDER}/${BATCH_MODEL}`)
+    console.log(`  Provider batch ID: ${providerBatchId}`)
+    console.log(`  Local batch: #${batchId}`)
+    console.log(`  Check status: bun benchmark/batch/status.ts`)
+    console.log(`  Collect results: bun benchmark/batch/collect.ts`)
+    console.log(`\n  Run ID: ${runId}`)
+    console.log(`  DB: data/harness.db`)
+    return
+  }
+
+  // ── Report (only in non-batch mode) ────────────────────────────────────
 
   console.log("\n" + "=".repeat(60))
   console.log("  BENCHMARK RESULTS (penalty — lower = better)")

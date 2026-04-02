@@ -5,4 +5,5 @@ backups/
 data/harness.db
 data/harness.db-shm
 data/harness.db-wal
+data/batches/
 .env
