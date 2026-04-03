@@ -8,7 +8,8 @@ Respond with ONLY valid JSON:
   "temporalMarkers": ["time references: 'three days since X', 'dawn', 'after the trial'"],
   "emotionalState": "the dominant emotional tone at chapter end, with specific character states",
   "openThreads": ["unresolved question or tension — state what is unresolved and why it matters"],
-  "knowledgeTransfers": ["WHO learned WHAT and HOW (told, observed, overheard, deduced)"]
+  "knowledgeTransfers": ["WHO learned WHAT and HOW (told, observed, overheard, deduced)"],
+  "atmosphere": ["sensory and environmental details: sounds, smells, weather, lighting, background activity, visual textures, similes used to describe physical things"]
 }
 
 ## What to capture
@@ -20,6 +21,8 @@ Respond with ONLY valid JSON:
 **Revelations**: Information revealed to characters OR to the reader. Distinguish between what characters know vs. what only the reader knows (dramatic irony).
 
 **Physical and environmental details**: Setting descriptions, object states, weather, spatial relationships between characters and locations. These are continuity-critical.
+
+**Atmospheric and sensory details**: Background sounds (music, crowd noise, nature), smells (cooking, rain, smoke), visual textures and lighting, weather conditions, and any distinctive similes or metaphors used to describe physical things ("foam like dying breath", "aligned like punctuation"). These seem stylistic but they establish the world and are checked by quality judges.
 
 **Implicit knowledge**: Things characters learned by witnessing events (not being told directly), things they could deduce from context, and changes in understanding that aren't stated outright.
 

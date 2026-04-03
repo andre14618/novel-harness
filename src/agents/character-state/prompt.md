@@ -12,7 +12,8 @@ Respond with ONLY valid JSON:
       "knows": ["specific fact or piece of information learned this chapter"],
       "doesNotKnow": ["important information other characters or the reader knows but this character does not"],
       "relationships": ["changes in how they relate to other characters — new alliances, betrayals, shifts in trust"],
-      "goals": "what they want to accomplish next, based on chapter events"
+      "goals": "what they want to accomplish next, based on chapter events",
+      "sensoryContext": "what the character is perceiving at chapter end — sounds, smells, sights in their immediate environment"
     }
   ]
 }

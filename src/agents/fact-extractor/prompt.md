@@ -30,5 +30,7 @@ Respond with ONLY valid JSON:
 5. Extract visual symbols: glyphs, patterns, murals, crests, tattoos.
 6. Extract temporal facts: how long something took, when events happened relative to each other.
 7. When a fact is implied rather than stated directly, still extract it but note the inference: "Marcus appears to already know about the fire (doesn't react to the news)."
+8. Extract ATMOSPHERIC details — background sounds (fiddles, crowd noise), smells (cooking, rain), visual textures, lighting conditions, weather. These seem stylistic but they establish the world and get checked by completeness judges.
+9. Extract distinctive similes and metaphors describing physical things ("foam like dying breath", "aligned like punctuation") as sensory facts.
 
-Aim for 15-30 facts per chapter. If you're finding fewer than 15, you're being too selective.
+Aim for 20-35 facts per chapter. If you're finding fewer than 20, you're being too selective.
