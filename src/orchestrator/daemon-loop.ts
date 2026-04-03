@@ -587,6 +587,9 @@ async function finishCycle(status: string, reason: string): Promise<void> {
 
   // All-dimensions regression check: judge existing generations on remaining dimensions.
   // Uses prefix caching — the generation content is already cached from target dimension judging.
+  // DeepSeek is the recommended judge for this step: 95% input cache discount makes judging
+  // all remaining dimensions nearly free (~$0.005 for 20 calls). Other providers work but
+  // cost 10-50x more without prefix caching. Configure the judge in models/roles.ts.
   const fullTarget = getDaemonTargetFull(cycle.target)
   let regressionReport = ""
   if (fullTarget && cycle.iterationNum > 0) {
