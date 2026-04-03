@@ -127,13 +127,16 @@ bun test
 
 ## LXC 307 Infrastructure
 
-- **IP**: 192.168.1.108
+- **IP**: 192.168.1.108 (LAN), 100.115.80.77 (Tailscale)
+- **Tailscale hostname**: `novel-harness`
 - **SSH**: `novel-harness-lxc` (ProxyJump proxmox)
 - **Services**: `novel-harness-orchestrator` (port 3006), `ntfy` (port 2586)
 - **Postgres**: `novel_harness_orchestrator` DB, role `orchestrator`
 - **App dir**: `/home/andre/apps/novel-harness`
 - **Backups**: nightly Postgres dump + container snapshot (automated on Proxmox host)
 - **Deploy**: `bash scripts/deploy-lxc.sh` (rsync + restart)
+- **Dashboard**: `http://novel-harness:3006/?key=<ORCHESTRATOR_API_KEY>`
+- **Operations panel**: `http://novel-harness:3006/panel?key=<ORCHESTRATOR_API_KEY>`
 
 ## Seeds
 
