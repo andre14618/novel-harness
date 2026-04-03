@@ -30,7 +30,7 @@ State machine: concept → planning → drafting → validation → done
 - Extraction: summary-extractor, fact-extractor, character-state
 - Validation: cross-chapter-continuity, prose-quality, rewriter
 
-**Models** — `models/roles.ts` is the single place to control all agent assignments. `models/registry.ts` has all available models with pricing/specs and provider cache/batch config.
+**Models** — `models/roles.ts` is the single place to control all agent assignments (novel pipeline, benchmarks, orchestrator). Every `callAgent()` call resolves provider/model/temperature from roles.ts via `agentName`. Benchmark-specific roles (`benchmark-writer`, `benchmark-judge`) allow independent tuning from the novel pipeline, with fallback to `writer`/`judge`. Retry agents (`*-retry`) have their own entries with higher temperature. `models/registry.ts` has all available models with pricing/specs and provider cache/batch config.
 
 **Benchmarks** — four benchmark suites in `benchmark/`:
 - `prose/` — penalty-based scoring (issue counts, lower = better)

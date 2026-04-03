@@ -45,9 +45,10 @@ These follow a rigid pattern: read score → read flagged issue → add/modify r
   - Model: Haiku can write the experiment batch config and read results
   - Status: Done (Experiment #33). Writer tested at 0.5/0.8/0.9 on romance-drama x3 runs. 0.8 wins overall (17.7/1k normalized). 0.9 best dialogue but worst telling. 0.5 wordiest. Keeping 0.8.
 
-- [ ] **Lint Tier 3 patterns** — Add said bookisms and declared emotions patterns. Currently 0 hits on stored prose (writer avoids them), but needed as guardrails.
+- [x] **Lint Tier 3 patterns** — Add said bookisms and declared emotions patterns. Currently 0 hits on stored prose (writer avoids them), but needed as guardrails.
   - Measure: Hit rate on future generations
   - Model: Haiku can write regex patterns following Tier 1/2 format
+  - Status: Done. 4 patterns added: said bookisms (fancy tags, adverb+said), declared emotions (named feelings, dead-metaphor emotion phrases). Patterns need sourcing from craft references (separate session).
 
 - [x] **Pipeline config tuning** — Test maxDraftAttempts=5, maxValidationPasses=5 on full novel runs. Measure: does more retrying improve final quality or just burn cost?
   - Measure: Final validation pass count, issue count at completion
@@ -133,10 +134,12 @@ Items that could run in an unattended loop with the right model:
 
 ## Priority Order
 
-1. ~~**Establish baselines** (Tier 0)~~ — Done
-2. ~~**Create continuity fixtures** (Tier 2)~~ — Done (5 fixtures)
-3. ~~**Methodology integration** (Tier 2)~~ — Done (Scene/Sequel, Five Commandments, Dialogue Cues)
-4. **Lint-to-prompt loop** (Tier 1) — Cheapest automated improvement
-5. **Dialogue rubric fix** (Tier 2) — Unreliable dimension hurts all experiments
-6. **Cost optimization sweep** (Tier 0) — Real cost data now available
-7. **Craft-level prompt work** (Tier 3) — Diminishing returns, save for last
+Completed: baselines, continuity fixtures, methodology integration, rubric consolidation, cost sweep, lint-to-prompt rules, temperature sweep, lint Tier 3, dialogue rubric fix, rewriter precision, pipeline config.
+
+Remaining:
+1. **Lint pattern sourcing audit** — High priority. Existing patterns need craft-reference citations. Separate session.
+2. **Lint false positive rate** (Tier 0) — Human review of flagged instances, 0 reviewed so far
+3. **Batch API routing audit** (Tier 0) — End-to-end batch testing across all call paths
+4. **Context builder enrichment** (Tier 2) — Emotional throughline, theme context, character voice
+5. **Extraction accuracy test cases** (Tier 2) — Manual fact comparison
+6. **Craft-level prompt work** (Tier 3) — Show-don't-tell, voice, pacing, genre, subtext
