@@ -13,7 +13,7 @@ echo "Installing dependencies..."
 ssh novel-harness-lxc "cd ~/apps/novel-harness && ~/.bun/bin/bun install"
 
 echo "Running migrations..."
-ssh novel-harness-lxc "cd ~/apps/novel-harness && ~/.bun/bin/bun src/orchestrator/db.ts migrate"
+ssh novel-harness-lxc "cd ~/apps/novel-harness && ~/.bun/bin/bun -e 'import { migrate } from \"./data/connection\"; await migrate()'"
 
 echo "Restarting orchestrator..."
 ssh novel-harness-lxc "sudo systemctl restart novel-harness-orchestrator"
