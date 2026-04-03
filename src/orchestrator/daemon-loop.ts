@@ -244,7 +244,8 @@ async function runIteration(judgeReasoning: string[]): Promise<void> {
   if (!activeCycle) return
   const cycle = activeCycle
 
-  const check = await checkLimits(cycle.experimentId, cycle.iterationNum, cycle.consecutiveFailures, cycle.limits)
+  const costBeforeIter = await getExperimentActualCost(cycle.experimentId)
+  const check = checkLimits(costBeforeIter, cycle.iterationNum, cycle.consecutiveFailures, cycle.limits)
   if (!check.allowed) {
     await finishCycle("completed", check.reason ?? "Limit reached")
     return
@@ -485,7 +486,7 @@ async function evaluateIterationAtomic(newScore: number, judgeReasoning: string[
   cycle.pendingProposal = undefined
 
   // Check limits for next iteration
-  const check = await checkLimits(cycle.experimentId, cycle.iterationNum, cycle.consecutiveFailures, cycle.limits)
+  const check = checkLimits(actualCost, cycle.iterationNum, cycle.consecutiveFailures, cycle.limits)
   if (!check.allowed) { await finishCycle("completed", check.reason ?? "Limit reached"); return }
 
   // Re-diagnose
@@ -548,7 +549,7 @@ async function evaluateIteration(judgeReasoning: string[]): Promise<void> {
   cycle.pendingBatchId = undefined
 
   // Check limits for next iteration
-  const check = await checkLimits(cycle.experimentId, cycle.iterationNum, cycle.consecutiveFailures, cycle.limits)
+  const check = checkLimits(actualCost, cycle.iterationNum, cycle.consecutiveFailures, cycle.limits)
   if (!check.allowed) { await finishCycle("completed", check.reason ?? "Limit reached"); return }
 
   // Re-diagnose

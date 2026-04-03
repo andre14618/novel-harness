@@ -29,25 +29,23 @@ export async function getExperimentActualCost(experimentId: number): Promise<num
   return rows.reduce((sum, r) => sum + r.totalCost, 0)
 }
 
-export async function checkLimits(
-  experimentId: number,
+export function checkLimits(
+  totalCost: number,
   iterationCount: number,
   consecutiveFailures: number,
   limits: ExperimentLimits,
-): Promise<{ allowed: boolean; reason?: string; totalCost: number }> {
-  const totalCost = await getExperimentActualCost(experimentId)
-
+): { allowed: boolean; reason?: string } {
   if (iterationCount >= limits.maxIterations) {
-    return { allowed: false, reason: `Max iterations (${limits.maxIterations})`, totalCost }
+    return { allowed: false, reason: `Max iterations (${limits.maxIterations})` }
   }
 
   if (consecutiveFailures >= limits.maxConsecutiveFailures) {
-    return { allowed: false, reason: `${limits.maxConsecutiveFailures} consecutive failures`, totalCost }
+    return { allowed: false, reason: `${limits.maxConsecutiveFailures} consecutive failures` }
   }
 
   if (limits.maxCostUsd !== null && totalCost >= limits.maxCostUsd) {
-    return { allowed: false, reason: `Cost cap reached: $${totalCost.toFixed(4)}/$${limits.maxCostUsd.toFixed(2)}`, totalCost }
+    return { allowed: false, reason: `Cost cap reached: $${totalCost.toFixed(4)}/$${limits.maxCostUsd.toFixed(2)}` }
   }
 
-  return { allowed: true, totalCost }
+  return { allowed: true }
 }

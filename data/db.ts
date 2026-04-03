@@ -835,4 +835,9 @@ export async function getPhaseStats(): Promise<Array<{
   ` as any[]
 }
 
-await seedLintPatterns()
+let _lintSeeded = false
+export async function ensureLintPatterns() {
+  if (_lintSeeded) return
+  _lintSeeded = true
+  await seedLintPatterns()
+}

@@ -10,6 +10,7 @@
  */
 
 import db from "../../data/connection"
+import { ensureLintPatterns } from "../../data/db"
 
 // ── Types ──────────────────────────────────────────────────────────────
 
@@ -74,6 +75,7 @@ function getSentenceAt(text: string, position: number): string {
 // ── Pattern loading ────────────────────────────────────────────────────
 
 async function getEnabledPatterns(tier?: number): Promise<LintPattern[]> {
+  await ensureLintPatterns()
   if (tier !== undefined) {
     return await db`
       SELECT * FROM lint_patterns WHERE enabled = true AND tier = ${tier} ORDER BY category, id

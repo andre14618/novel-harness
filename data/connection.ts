@@ -1,9 +1,10 @@
 /**
- * Shared Postgres connection.
+ * Shared Postgres connection (lazy).
  *
  * Single connection used by both the harness DB layer (data/db.ts) and the
  * orchestrator (src/orchestrator/db.ts). All tables live in one Postgres DB.
  *
+ * Connection is created on first use, not at import time.
  * Connection string: DATABASE_URL env var.
  */
 
@@ -12,9 +13,30 @@ import { readdir } from "node:fs/promises"
 import { resolve } from "node:path"
 
 const DB_URL = process.env.DATABASE_URL ?? process.env.ORCHESTRATOR_DB_URL
-if (!DB_URL) throw new Error("DATABASE_URL not set")
 
-const db = new SQL(DB_URL)
+let _db: SQL | null = null
+
+function getDB(): SQL {
+  if (!_db) {
+    if (!DB_URL) throw new Error("DATABASE_URL not set")
+    _db = new SQL(DB_URL)
+  }
+  return _db
+}
+
+// Proxy that forwards tagged template calls and property access to the lazy connection.
+// Must wrap a function so the `apply` trap fires for db`...` syntax.
+const db = new Proxy(function () {} as unknown as SQL, {
+  apply(_target, _thisArg, args) {
+    return (getDB() as any)(...args)
+  },
+  get(_target, prop) {
+    const real = getDB()
+    const val = (real as any)[prop]
+    return typeof val === "function" ? val.bind(real) : val
+  },
+})
+
 export default db
 
 // ── Migration runner ────────────────────────────────────────────────────
