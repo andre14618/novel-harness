@@ -9,6 +9,9 @@ rsync -az --delete \
   --exclude .git --exclude '.claude' \
   . novel-harness-lxc:~/apps/novel-harness/
 
+# Ensure psql-harness alias exists
+ssh novel-harness-lxc 'grep -q psql-harness ~/.bashrc 2>/dev/null || echo "alias psql-harness=\"psql \\\"\$(grep DATABASE_URL ~/apps/novel-harness/.env | cut -d= -f2-)\\\"\"" >> ~/.bashrc'
+
 echo "Installing dependencies..."
 ssh novel-harness-lxc "cd ~/apps/novel-harness && ~/.bun/bin/bun install"
 
