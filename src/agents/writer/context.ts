@@ -58,7 +58,11 @@ ${worldBible.rules.map(r => `- ${r}`).join("\n")}`
 
   if (recentSummaries.length > 0) {
     ctx += `\n\nPREVIOUS CHAPTERS:
-${recentSummaries.map(s => `Chapter ${s.chapterNumber}: ${s.summary}`).join("\n\n")}`
+${recentSummaries.map(s => {
+  let entry = `Chapter ${s.chapterNumber}: ${s.summary}`
+  if (s.emotionalState) entry += `\n   Emotional throughline: ${s.emotionalState}`
+  return entry
+}).join("\n\n")}`
   }
 
   if (openIssues.length > 0) {

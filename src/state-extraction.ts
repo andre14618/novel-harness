@@ -41,6 +41,7 @@ export async function updateStateAfterChapter(novelId: string, chapterNum: numbe
     novelId, chapterNum,
     summaryResult.output.summary,
     summaryResult.output.keyEvents,
+    summaryResult.output.emotionalState,
   )
 
   for (const f of factResult.output.facts) {

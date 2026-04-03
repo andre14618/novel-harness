@@ -1,7 +1,7 @@
 import type { ContinuityIssue } from "../../schemas/shared"
 import {
   getApprovedDraft, getChapterOutline, getFactsUpToChapter,
-  getCharacterStatesAtChapter,
+  getCharacterStatesAtChapter, getStorySpine,
 } from "../../db"
 
 export function buildContext(novelId: string, chapterNum: number, issues: ContinuityIssue[]): string {
@@ -14,7 +14,14 @@ export function buildContext(novelId: string, chapterNum: number, issues: Contin
 
   let ctx = `CHAPTER ${chapterNum}: "${outline.title}"\n`
   ctx += `POV: ${outline.povCharacter}\n`
-  ctx += `Target: ~${outline.targetWords} words\n\n`
+  ctx += `Target: ~${outline.targetWords} words\n`
+
+  try {
+    const spine = getStorySpine(novelId)
+    if (spine.theme) ctx += `Theme: ${spine.theme} — preserve and reinforce thematic resonance in rewrites\n`
+  } catch {}
+
+  ctx += "\n"
 
   ctx += "ISSUES TO FIX:\n"
   ctx += issues.map((issue, i) =>

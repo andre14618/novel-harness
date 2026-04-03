@@ -111,7 +111,7 @@ export async function runValidationPhase(novelId: string): Promise<void> {
         if (!draft) continue
 
         try {
-          const ctx = buildProseQualityContext(draft.prose, ch)
+          const ctx = buildProseQualityContext(draft.prose, ch, novelId)
           const qualityResult = await callAgent({
             novelId, agentName: "prose-quality",
             systemPrompt: PROSE_QUALITY_PROMPT,

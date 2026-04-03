@@ -68,6 +68,7 @@ function migrate(): void {
       chapter_number INTEGER NOT NULL,
       summary TEXT NOT NULL,
       key_events_json TEXT NOT NULL,
+      emotional_state TEXT NOT NULL DEFAULT '',
       PRIMARY KEY (novel_id, chapter_number)
     );
 
@@ -112,4 +113,9 @@ function migrate(): void {
 
     -- LLM call tracking moved to central data/harness.db
   `)
+
+  // Add emotional_state column to existing databases
+  try {
+    db.exec("ALTER TABLE chapter_summaries ADD COLUMN emotional_state TEXT NOT NULL DEFAULT ''")
+  } catch {}
 }

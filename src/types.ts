@@ -38,6 +38,7 @@ export interface ChapterSummary {
   chapterNumber: number
   summary: string
   keyEvents: string[]
+  emotionalState: string
 }
 
 // ── Novel State (top-level) ────────────────────────────────────────────────
