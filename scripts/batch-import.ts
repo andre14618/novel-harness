@@ -70,7 +70,7 @@ async function importBatch(orchBatchId: number) {
 
       if (!result.success) {
         console.log(`    ${req.custom_id}: zod validation failed — ${result.error.issues.map((i: any) => i.message).join(", ").slice(0, 100)}`)
-        failBatchRequest(req.custom_id)
+        await failBatchRequest(req.custom_id)
         failed++
         continue
       }
@@ -89,12 +89,12 @@ async function importBatch(orchBatchId: number) {
       const generationId = parseInt(match[1])
       const dimension = match[2]
 
-      saveScore(generationId, judgeModel, dimension, count, issuesJson)
-      completeBatchRequest(req.custom_id, count, issuesJson)
+      await saveScore(generationId, judgeModel, dimension, count, issuesJson)
+      await completeBatchRequest(req.custom_id, count, issuesJson)
       imported++
     } catch (err) {
       console.log(`    ${req.custom_id}: ${err instanceof Error ? err.message : err}`)
-      failBatchRequest(req.custom_id)
+      await failBatchRequest(req.custom_id)
       failed++
     }
   }

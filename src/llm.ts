@@ -278,7 +278,7 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
         retryErrors: requestResult.retryErrors,
       }
 
-      try { logLLMCallStructured(config.novelId, entry) } catch {}
+      try { await logLLMCallStructured(config.novelId, entry) } catch {}
     }
   }
 }

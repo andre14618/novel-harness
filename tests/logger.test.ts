@@ -7,9 +7,9 @@ import { getCentralDB } from "../data/db"
 const testNovelId = `test-logger-${crypto.randomUUID()}`
 const logDir = `output/${testNovelId}`
 
-beforeAll(() => {
+beforeAll(async () => {
   initDB(testNovelId)
-  initNovelRun(testNovelId)
+  await initNovelRun(testNovelId)
 })
 
 afterAll(() => {
@@ -84,8 +84,8 @@ describe("logLLMCallStructured", () => {
     expect(runId).not.toBeNull()
   })
 
-  test("inserts a row into central llm_calls table", () => {
-    logLLMCallStructured(testNovelId, makeLogEntry({ agent: "world-builder-test" }))
+  test("inserts a row into central llm_calls table", async () => {
+    await logLLMCallStructured(testNovelId, makeLogEntry({ agent: "world-builder-test" }))
     const db = getCentralDB()
     const runId = getRunId()!
     const row = db.query<{ agent: string; model: string }, [number, string]>(
@@ -96,8 +96,8 @@ describe("logLLMCallStructured", () => {
     expect(row!.model).toBe("test-model")
   })
 
-  test("tracks phase from agent name", () => {
-    logLLMCallStructured(testNovelId, makeLogEntry({ agent: "writer" }))
+  test("tracks phase from agent name", async () => {
+    await logLLMCallStructured(testNovelId, makeLogEntry({ agent: "writer" }))
     const db = getCentralDB()
     const runId = getRunId()!
     const row = db.query<{ phase: string }, [number]>(
@@ -106,8 +106,8 @@ describe("logLLMCallStructured", () => {
     expect(row!.phase).toBe("drafting")
   })
 
-  test("captures error tracking fields", () => {
-    logLLMCallStructured(testNovelId, makeLogEntry({
+  test("captures error tracking fields", async () => {
+    await logLLMCallStructured(testNovelId, makeLogEntry({
       agent: "continuity-err-test",
       zodValidationSuccess: false,
       zodErrors: ["issues.0.chapter: Expected number"],
@@ -129,8 +129,8 @@ describe("logLLMCallStructured", () => {
     expect(retryErrors[0].status).toBe(429)
   })
 
-  test("stores token counts and computes TPS", () => {
-    logLLMCallStructured(testNovelId, makeLogEntry({
+  test("stores token counts and computes TPS", async () => {
+    await logLLMCallStructured(testNovelId, makeLogEntry({
       agent: "token-test",
       promptTokens: 500,
       completionTokens: 1200,

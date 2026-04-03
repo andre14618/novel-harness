@@ -37,7 +37,7 @@ async function collectBatch(batchId: number, providerBatchId: string, provider: 
   const results = await batchProvider.collectResults(providerBatchId)
 
   // Get our batch requests to map results to generations
-  const requests = getBatchRequests(batchId)
+  const requests = await getBatchRequests(batchId)
   const requestMap = new Map(requests.map(r => [r.customId, r]))
 
   let imported = 0, failed = 0
@@ -50,7 +50,7 @@ async function collectBatch(batchId: number, providerBatchId: string, provider: 
     }
 
     if (!result.success || !result.content) {
-      failBatchRequest(result.customId)
+      await failBatchRequest(result.customId)
       failed++
       continue
     }
@@ -63,7 +63,7 @@ async function collectBatch(batchId: number, providerBatchId: string, provider: 
 
       if (!zodResult.success) {
         console.log(`    ! ${result.customId} [zod] ${zodResult.error.issues.map(i => i.message).join("; ").slice(0, 100)}`)
-        failBatchRequest(result.customId)
+        await failBatchRequest(result.customId)
         failed++
         continue
       }
@@ -72,19 +72,19 @@ async function collectBatch(batchId: number, providerBatchId: string, provider: 
       const issuesJson = JSON.stringify(zodResult.data.issues)
 
       // Save to scores table
-      saveScore(request.generationId, judgeModel, request.dimension as Dimension, count, issuesJson)
+      await saveScore(request.generationId, judgeModel, request.dimension as Dimension, count, issuesJson)
 
       // Update batch request
-      completeBatchRequest(result.customId, count, issuesJson)
+      await completeBatchRequest(result.customId, count, issuesJson)
       imported++
     } catch (err) {
       console.log(`    ! ${result.customId} [parse] ${err instanceof Error ? err.message : err}`)
-      failBatchRequest(result.customId)
+      await failBatchRequest(result.customId)
       failed++
     }
   }
 
-  updateBatchStatus(batchId, "completed")
+  await updateBatchStatus(batchId, "completed")
   console.log(`    Imported: ${imported} scores, Failed: ${failed}`)
 
   return true
@@ -96,21 +96,23 @@ async function main() {
   if (values.batch) {
     // Collect specific batch
     const db = getCentralDB()
-    const batch = db.query<any, [number]>(
-      "SELECT id, provider_batch_id as providerBatchId, provider, judge_model as judgeModel FROM batches WHERE id = ?"
-    ).get(parseInt(values.batch))
+    const batchRows = await db`
+      SELECT id, provider_batch_id as "providerBatchId", provider, judge_model as "judgeModel"
+      FROM batches WHERE id = ${parseInt(values.batch)}
+    ` as any[]
 
-    if (!batch) {
+    if (batchRows.length === 0) {
       console.error(`Batch #${values.batch} not found`)
       process.exit(1)
     }
 
+    const batch = batchRows[0]
     await collectBatch(batch.id, batch.providerBatchId, batch.provider, batch.judgeModel)
     return
   }
 
   // Collect all completed batches
-  const pending = getPendingBatches()
+  const pending = await getPendingBatches()
   if (pending.length === 0) {
     console.log("No pending batches to collect.")
     return

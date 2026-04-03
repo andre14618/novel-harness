@@ -46,7 +46,7 @@ async function main() {
   if (experimentId) console.log(`Experiment: #${experimentId}`)
   console.log()
 
-  const runId = createRun("prose", seeds.length.toString(), `${writer.label} / ${judges.map(j => j.label).join(",")}`, experimentId)
+  const runId = await createRun("prose", seeds.length.toString(), `${writer.label} / ${judges.map(j => j.label).join(",")}`, experimentId)
 
   // Track all scores in memory for reporting
   const allScores: Array<{ seed: string; run: number; dim: Dimension; count: number; wordCount: number }> = []
@@ -63,13 +63,13 @@ async function main() {
 
         const result = await generateProse(writer, WRITER_AGENT_PROMPT, seed.prompt, runId, seed.name, run)
         if (!result) {
-          saveGeneration(runId, seed.name, run, { passed: false })
+          await saveGeneration(runId, seed.name, run, { passed: false })
           console.log(`[${seed.name}] Run ${run}: FAIL`)
           continue
         }
 
         const words = result.prose.split(/\s+/).length
-        const genId = saveGeneration(runId, seed.name, run, {
+        const genId = await saveGeneration(runId, seed.name, run, {
           prose: result.prose, wordCount: words, latencyMs: result.latencyMs,
           tokensPerSec: result.tps, completionTokens: result.tokens, passed: true,
         })
@@ -84,7 +84,7 @@ async function main() {
             DIMENSIONS.map(async (dim) => {
               const penalty = await judgeDimension(judge, dim, result.prose, runId, seed.name)
               if (penalty) {
-                saveScore(genId, judge.label, dim, penalty.count, JSON.stringify(penalty.issues))
+                await saveScore(genId, judge.label, dim, penalty.count, JSON.stringify(penalty.issues))
                 allScores.push({ seed: seed.name, run, dim, count: penalty.count, wordCount: words })
                 console.log(`  [${seed.name}:${run}] ${DIMENSION_LABELS[dim]}: ${penalty.count} issues`)
               }
@@ -99,7 +99,7 @@ async function main() {
 
   // ── Auto-lint ─────────────────────────────────────────────────────────
 
-  const lintResults = lintRun(runId)
+  const lintResults = await lintRun(runId)
   const totalLintIssues = lintResults.reduce((s, r) => s + r.result.totalIssues, 0)
   if (totalLintIssues > 0) {
     console.log(`\n  Lint: ${totalLintIssues} deterministic issues flagged`)
@@ -130,15 +130,15 @@ async function main() {
     }
 
     // Register in DB and flush
-    const batchId = createBatch(runId, BATCH_PROVIDER, BATCH_MODEL)
+    const batchId = await createBatch(runId, BATCH_PROVIDER, BATCH_MODEL)
     for (const q of batchTransport.getQueue()) {
       const parts = q.customId.match(/^gen-(\d+)-(.+)$/)
-      if (parts) addBatchRequest(batchId, q.customId, parseInt(parts[1]), parts[2])
+      if (parts) await addBatchRequest(batchId, q.customId, parseInt(parts[1]), parts[2])
     }
 
     const providerBatchId = await batchTransport.flush()
     const requestCount = batchTransport.queueSize()
-    updateBatchSubmitted(batchId, providerBatchId, `data/batches/input-*.jsonl`, requestCount)
+    await updateBatchSubmitted(batchId, providerBatchId, `data/batches/input-*.jsonl`, requestCount)
 
     console.log(`\n  Batch submitted: ${requestCount} judge calls via ${BATCH_PROVIDER}/${BATCH_MODEL}`)
     console.log(`  Provider batch ID: ${providerBatchId}`)
@@ -209,7 +209,7 @@ async function main() {
 
   // ── Compare to baseline ────────────────────────────────────────────────
 
-  const baselineAvgs = getBaselineAverages("prose")
+  const baselineAvgs = await getBaselineAverages("prose")
   if (baselineAvgs) {
     console.log(`\n  vs Baseline:`)
     for (const dim of DIMENSIONS) {
@@ -228,7 +228,7 @@ async function main() {
 
   // ── Cost & TPS summary ─────────────────────────────────────────────────
 
-  const callSummary = getCallSummary(runId)
+  const callSummary = await getCallSummary(runId)
   if (callSummary.length > 0) {
     console.log(`\n  Cost & TPS breakdown:`)
     let totalCost = 0
@@ -243,7 +243,7 @@ async function main() {
   // ── Save baseline if requested ─────────────────────────────────────────
 
   if (process.argv.includes("--save-baseline")) {
-    markBaseline(runId, "prose")
+    await markBaseline(runId, "prose")
     console.log(`\n  Run ${runId} saved as baseline.`)
   }
 

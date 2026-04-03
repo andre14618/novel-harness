@@ -2,15 +2,12 @@
  * Automated diagnosis — finds the weakest benchmark dimension to improve.
  *
  * Extracted from .claude/commands/diagnose.md into code.
- * Queries local SQLite for scores, compares to baselines,
+ * Queries Postgres harness tables for scores, compares to baselines,
  * and selects the best improvement target.
  */
 
-import { Database } from "bun:sqlite"
-import db from "./db"
-
-const HARNESS_ROOT = process.env.HARNESS_ROOT ?? "/home/andre/apps/novel-harness"
-const HARNESS_DB = `${HARNESS_ROOT}/data/harness.db`
+import harnessDb from "../../data/connection"
+import orchDb from "./db"
 
 interface DiagnosisResult {
   target: string       // prose, planning, extraction, continuity
@@ -22,61 +19,49 @@ interface DiagnosisResult {
 }
 
 export async function diagnose(): Promise<DiagnosisResult | null> {
-  let sqliteDb: Database
-  try {
-    sqliteDb = new Database(HARNESS_DB, { readonly: true })
-  } catch {
-    console.error("[diagnose] Cannot open harness DB at", HARNESS_DB)
+  const candidates = await getDimensionScores()
+  if (candidates.length === 0) {
+    console.log("[diagnose] No benchmark scores found")
     return null
   }
 
-  try {
-    const candidates = getDimensionScores(sqliteDb)
-    if (candidates.length === 0) {
-      console.log("[diagnose] No benchmark scores found")
-      return null
+  // Filter out dimensions attempted in the last 6 hours
+  const recentAttempts = await getRecentAttempts(6)
+  const filtered = candidates.filter(c =>
+    !recentAttempts.has(`${c.target}:${c.dimension}`)
+  )
+
+  // Fall back to all candidates if everything was recently attempted
+  const pool = filtered.length > 0 ? filtered : candidates
+
+  // Rank: prioritize regressions from baseline, then lowest absolute score
+  pool.sort((a, b) => {
+    // Regressions first (negative delta = worse than baseline)
+    if (a.delta !== null && b.delta !== null) {
+      if (a.delta < 0 && b.delta >= 0) return -1
+      if (b.delta < 0 && a.delta >= 0) return 1
+      if (a.delta < 0 && b.delta < 0) return a.delta - b.delta  // more negative first
     }
+    // Then by absolute score (lower = more room for improvement)
+    // For penalty benchmarks (prose), lower is better, so higher score = worse = prioritize
+    return b.currentScore - a.currentScore
+  })
 
-    // Filter out dimensions attempted in the last 6 hours
-    const recentAttempts = await getRecentAttempts(6)
-    const filtered = candidates.filter(c =>
-      !recentAttempts.has(`${c.target}:${c.dimension}`)
-    )
+  const best = pool[0]
 
-    // Fall back to all candidates if everything was recently attempted
-    const pool = filtered.length > 0 ? filtered : candidates
+  // Get judge reasoning for the weakest generations
+  const reasoning = await getJudgeReasoning(best.target, best.dimension)
 
-    // Rank: prioritize regressions from baseline, then lowest absolute score
-    pool.sort((a, b) => {
-      // Regressions first (negative delta = worse than baseline)
-      if (a.delta !== null && b.delta !== null) {
-        if (a.delta < 0 && b.delta >= 0) return -1
-        if (b.delta < 0 && a.delta >= 0) return 1
-        if (a.delta < 0 && b.delta < 0) return a.delta - b.delta  // more negative first
-      }
-      // Then by absolute score (lower = more room for improvement)
-      // For penalty benchmarks (prose), lower is better, so higher score = worse = prioritize
-      return b.currentScore - a.currentScore
-    })
-
-    const best = pool[0]
-
-    // Get judge reasoning for the weakest generations
-    const reasoning = getJudgeReasoning(sqliteDb, best.target, best.dimension)
-
-    return {
-      ...best,
-      judgeReasoning: reasoning,
-    }
-  } finally {
-    sqliteDb.close()
+  return {
+    ...best,
+    judgeReasoning: reasoning,
   }
 }
 
-function getDimensionScores(sqliteDb: Database): Array<{
+async function getDimensionScores(): Promise<Array<{
   target: string; dimension: string; currentScore: number;
   baselineScore: number | null; delta: number | null
-}> {
+}>> {
   const results: Array<{
     target: string; dimension: string; currentScore: number;
     baselineScore: number | null; delta: number | null
@@ -85,43 +70,45 @@ function getDimensionScores(sqliteDb: Database): Array<{
   // Get latest run per benchmark type
   const benchmarkTypes = ["prose", "planning", "extraction", "continuity"]
   for (const runType of benchmarkTypes) {
-    const latestRun = sqliteDb.query<any, [string]>(
-      "SELECT id FROM runs WHERE run_type = ? ORDER BY id DESC LIMIT 1"
-    ).get(runType)
-    if (!latestRun) continue
+    const latestRuns = await harnessDb`
+      SELECT id FROM runs WHERE run_type = ${runType} ORDER BY id DESC LIMIT 1
+    ` as any[]
+    if (latestRuns.length === 0) continue
+    const latestRun = latestRuns[0]
 
     // Per-dimension averages for latest run
-    const scores = sqliteDb.query<any, [number]>(`
-      SELECT s.dimension, ROUND(AVG(s.score), 2) as avg_score
+    const scores = await harnessDb`
+      SELECT s.dimension, ROUND(AVG(s.score)::numeric, 2) as avg_score
       FROM scores s JOIN generations g ON s.generation_id = g.id
-      WHERE g.run_id = ? AND g.passed = 1
+      WHERE g.run_id = ${latestRun.id} AND g.passed = true
       GROUP BY s.dimension
-    `).all(latestRun.id)
+    ` as any[]
 
     // Baseline scores (baselines table tracks run_id per benchmark_type)
-    const baselineRun = sqliteDb.query<any, [string]>(
-      "SELECT run_id as id FROM baselines WHERE benchmark_type = ?"
-    ).get(runType)
+    const baselineRuns = await harnessDb`
+      SELECT run_id as id FROM baselines WHERE benchmark_type = ${runType}
+    ` as any[]
 
     let baselineScores: Record<string, number> = {}
-    if (baselineRun) {
-      const bScores = sqliteDb.query<any, [number]>(`
-        SELECT s.dimension, ROUND(AVG(s.score), 2) as avg_score
+    if (baselineRuns.length > 0) {
+      const bScores = await harnessDb`
+        SELECT s.dimension, ROUND(AVG(s.score)::numeric, 2) as avg_score
         FROM scores s JOIN generations g ON s.generation_id = g.id
-        WHERE g.run_id = ? AND g.passed = 1
+        WHERE g.run_id = ${baselineRuns[0].id} AND g.passed = true
         GROUP BY s.dimension
-      `).all(baselineRun.id)
-      for (const s of bScores) baselineScores[s.dimension] = s.avg_score
+      ` as any[]
+      for (const s of bScores) baselineScores[s.dimension] = parseFloat(s.avg_score)
     }
 
     for (const s of scores) {
+      const avgScore = parseFloat(s.avg_score)
       const baseline = baselineScores[s.dimension] ?? null
       results.push({
         target: runType,
         dimension: s.dimension,
-        currentScore: s.avg_score,
+        currentScore: avgScore,
         baselineScore: baseline,
-        delta: baseline !== null ? s.avg_score - baseline : null,
+        delta: baseline !== null ? avgScore - baseline : null,
       })
     }
   }
@@ -129,20 +116,20 @@ function getDimensionScores(sqliteDb: Database): Array<{
   return results
 }
 
-export function getJudgeReasoning(sqliteDb: Database, target: string, dimension: string): string[] {
-  const latestRun = sqliteDb.query<any, [string]>(
-    "SELECT id FROM runs WHERE run_type = ? ORDER BY id DESC LIMIT 1"
-  ).get(target)
-  if (!latestRun) return []
+export async function getJudgeReasoning(target: string, dimension: string): Promise<string[]> {
+  const latestRuns = await harnessDb`
+    SELECT id FROM runs WHERE run_type = ${target} ORDER BY id DESC LIMIT 1
+  ` as any[]
+  if (latestRuns.length === 0) return []
 
   // Get weakest generations for this dimension
-  const weakest = sqliteDb.query<any, [number, string]>(`
+  const weakest = await harnessDb`
     SELECT g.id, s.reasoning
     FROM scores s JOIN generations g ON s.generation_id = g.id
-    WHERE g.run_id = ? AND s.dimension = ? AND g.passed = 1 AND s.reasoning IS NOT NULL
+    WHERE g.run_id = ${latestRuns[0].id} AND s.dimension = ${dimension} AND g.passed = true AND s.reasoning IS NOT NULL
     ORDER BY s.score DESC
     LIMIT 5
-  `).all(latestRun.id, dimension)
+  ` as any[]
 
   return weakest.map((w: any) => w.reasoning).filter(Boolean)
 }
@@ -152,31 +139,19 @@ export function getJudgeReasoning(sqliteDb: Database, target: string, dimension:
  * Used when the user has already chosen what to improve.
  */
 export async function diagnoseFor(target: string, dimension: string): Promise<DiagnosisResult | null> {
-  let sqliteDb: Database
-  try {
-    sqliteDb = new Database(HARNESS_DB, { readonly: true })
-  } catch {
-    console.error("[diagnose] Cannot open harness DB at", HARNESS_DB)
+  const allScores = await getDimensionScores()
+  const match = allScores.find(s => s.target === target && s.dimension === dimension)
+  if (!match) {
+    console.log(`[diagnose] No scores found for ${target}/${dimension}`)
     return null
   }
 
-  try {
-    const allScores = getDimensionScores(sqliteDb)
-    const match = allScores.find(s => s.target === target && s.dimension === dimension)
-    if (!match) {
-      console.log(`[diagnose] No scores found for ${target}/${dimension}`)
-      return null
-    }
-
-    const reasoning = getJudgeReasoning(sqliteDb, target, dimension)
-    return { ...match, judgeReasoning: reasoning }
-  } finally {
-    sqliteDb.close()
-  }
+  const reasoning = await getJudgeReasoning(target, dimension)
+  return { ...match, judgeReasoning: reasoning }
 }
 
 async function getRecentAttempts(hours: number): Promise<Set<string>> {
-  const rows = await db`
+  const rows = await orchDb`
     SELECT DISTINCT target, dimension FROM improvement_iterations
     WHERE started_at > now() - ${hours + ' hours'}::interval
   `

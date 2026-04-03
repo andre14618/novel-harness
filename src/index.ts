@@ -53,7 +53,7 @@ async function main() {
   }
 
   // Register this novel run in the central DB with current model config
-  const runId = initNovelRun(novelId)
+  const runId = await initNovelRun(novelId)
   console.log(`  Central DB run: ${runId}`)
 
   try {

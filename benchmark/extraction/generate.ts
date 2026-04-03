@@ -81,7 +81,7 @@ async function runExtractor(
     const promptTokens = response.usage.prompt_tokens ?? 0
     const completionTokens = response.usage.completion_tokens ?? 0
     const cost = getTokenCost(writer.provider, writer.model, promptTokens, completionTokens)
-    saveLLMCall(runId, "writer", extractorName, writer.model, writer.provider, promptTokens, completionTokens, Math.round(response.latencyMs), cost, { seed: sampleName })
+    await saveLLMCall(runId, "writer", extractorName, writer.model, writer.provider, promptTokens, completionTokens, Math.round(response.latencyMs), cost, { seed: sampleName })
 
     return { output: content, latencyMs: Math.round(response.latencyMs) }
   } catch (err) {

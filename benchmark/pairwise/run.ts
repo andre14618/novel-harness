@@ -95,7 +95,7 @@ async function main() {
   }
 
   // Create experiment
-  const expId = createTuningExperiment("pairwise", `Compare Run ${runA} vs Run ${runB}`, {
+  const expId = await createTuningExperiment("pairwise", `Compare Run ${runA} vs Run ${runB}`, {
     runA, runB, labelA, labelB,
     seeds: matchingSeeds,
     pairs: pairs.length,

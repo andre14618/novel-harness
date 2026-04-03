@@ -71,7 +71,7 @@ async function main() {
   const useMaxCompletionTokens = modelDef?.useMaxCompletionTokens ?? false
 
   // Build batch requests
-  const localBatchId = createBatch(runId, providerName, model)
+  const localBatchId = await createBatch(runId, providerName, model)
   const requests: BatchRequest[] = []
   const requestMeta: Array<{ customId: string; generationId: number; dimension: string }> = []
 
@@ -83,7 +83,7 @@ async function main() {
       const customId = `gen-${gen.id}-${dim}`
       const rubric = JUDGE_RUBRICS[dim]
 
-      addBatchRequest(localBatchId, customId, gen.id, dim)
+      await addBatchRequest(localBatchId, customId, gen.id, dim)
       requestMeta.push({ customId, generationId: gen.id, dimension: dim })
 
       requests.push({
@@ -120,8 +120,8 @@ async function main() {
   const provider = getBatchProvider(providerName)
   const providerBatchId = await provider.submit(requests, `run-${runId} judge batch`)
 
-  // Update local SQLite
-  updateBatchSubmitted(localBatchId, providerBatchId, `data/batches/input-*.jsonl`, requests.length)
+  // Update local DB
+  await updateBatchSubmitted(localBatchId, providerBatchId, `data/batches/input-*.jsonl`, requests.length)
 
   console.log(`  Submitted to ${providerName}! Batch ID: ${providerBatchId}`)
   console.log(`  Local batch: #${localBatchId}`)

@@ -91,7 +91,7 @@ export async function runBatch(batch: ExperimentBatch) {
   const runsPerSeed = batch.runsPerSeed ?? 2
   const variants = expandMatrix(batch)
 
-  const expId = createTuningExperiment("experiment", batch.description, {
+  const expId = await createTuningExperiment("experiment", batch.description, {
     name: batch.name,
     variants: variants.map(v => ({ label: v.label, temperature: v.temperature ?? 0.8, model: v.model })),
     judge: judge.label,
@@ -114,7 +114,7 @@ export async function runBatch(batch: ExperimentBatch) {
 
   for (const variant of variants) {
     const writerConfig = resolveVariantWriter(variant)
-    const runId = createRun("prose", null, variant.label, expId)
+    const runId = await createRun("prose", null, variant.label, expId)
 
     console.log(`\n── Variant: ${variant.label} (Run ${runId}) ──`)
 
@@ -127,13 +127,13 @@ export async function runBatch(batch: ExperimentBatch) {
 
         const result = await generateProse(writerConfig, variant.systemPrompt, prompt, runId, seed.name, run, temperature)
         if (!result) {
-          saveGeneration(runId, seed.name, run, { passed: false, variantLabel: variant.label })
+          await saveGeneration(runId, seed.name, run, { passed: false, variantLabel: variant.label })
           console.log(`    FAIL`)
           continue
         }
 
         const words = result.prose.split(/\s+/).length
-        const genId = saveGeneration(runId, seed.name, run, {
+        const genId = await saveGeneration(runId, seed.name, run, {
           prose: result.prose, wordCount: words, latencyMs: result.latencyMs,
           tokensPerSec: result.tps, completionTokens: result.tokens,
           passed: true, variantLabel: variant.label,
@@ -142,16 +142,16 @@ export async function runBatch(batch: ExperimentBatch) {
         console.log(`    ${words}w ${result.tps}tok/s`)
 
         // Auto-lint
-        const lintResult = lintProse(result.prose)
+        const lintResult = await lintProse(result.prose)
         if (lintResult.totalIssues > 0) {
-          saveLintIssues(genId, lintResult.issues)
+          await saveLintIssues(genId, lintResult.issues)
         }
 
         // Judge all dimensions concurrently
         const judgeJobs = DIMENSIONS.map(async (dim) => {
           const penalty = await judgeDimension(judge, dim, result.prose, runId, seed.name)
           if (penalty) {
-            saveScore(genId, judge.label, dim, penalty.count, JSON.stringify(penalty.issues))
+            await saveScore(genId, judge.label, dim, penalty.count, JSON.stringify(penalty.issues))
             allScores.push({ variant: variant.label, seed: seed.name, run, dim, count: penalty.count, wordCount: words })
             console.log(`    ${DIMENSION_LABELS[dim]}: ${penalty.count}`)
           }

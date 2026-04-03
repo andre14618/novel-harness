@@ -8,14 +8,14 @@ Code lives locally (canonical git repo). LXC 307 is the runtime — all benchmar
 
 - **Edit locally** → commit → `bash scripts/deploy-lxc.sh` (rsyncs to LXC)
 - **Run on LXC** via `ssh novel-harness-lxc "cd ~/apps/novel-harness && bun ..."`
-- **DB lives on LXC only** — SQLite at `data/harness.db`, Postgres for orchestrator state
+- **DB lives on LXC only** — single Postgres DB (`novel_harness_orchestrator`) for all harness + orchestrator data
 - **Results come back** via Postgres (SSH tunnel) or `bash scripts/sync-improvements.sh` (rsync prompts)
 
 ## Stack
 
 - Runtime: Bun
 - LLM: Configurable per-agent via `models/roles.ts`. Five providers: Cerebras, Groq, OpenRouter, OpenAI, DeepSeek.
-- DB: bun:sqlite (`data/harness.db` on LXC), Postgres (`novel_harness_orchestrator` on LXC)
+- DB: Postgres (`novel_harness_orchestrator` on LXC — all harness + orchestrator tables), per-novel SQLite (`output/novel-*/novel.db`)
 - Transport: `src/transport.ts` — pluggable layer beneath all LLM calls (direct, batch, prefix-cache)
 - Interface: CLI + orchestrator dashboard (port 3006)
 
@@ -49,7 +49,7 @@ State machine: concept → planning → drafting → validation → done
 - `PrefixCacheTransport` — serializes same-system-prompt calls per provider cache strategy
 - Provider caching config lives in `models/registry.ts` (`cache` + `batchApi` fields on `ProviderDef`)
 
-**Central DB** (`data/harness.db` on LXC, schema in `data/db.ts`) — all experiments, runs, generations, scores, lint issues, batch tracking, pairwise matchups. Source of truth for all scores and baselines.
+**Central DB** (Postgres `novel_harness_orchestrator` on LXC, schema in `sql/`, connection in `data/connection.ts`) — all experiments, runs, generations, scores, lint issues, batch tracking, pairwise matchups, improvement cycles, budget. Single source of truth.
 
 **Orchestrator** (`src/orchestrator/`, runs on LXC 307 at 192.168.1.108):
 - Single Bun service on port 3006 combining batch polling, improvement daemon, dashboard, and API
@@ -122,7 +122,7 @@ bun test
 | `BATCH_PROVIDER` | prose --batch | Batch API provider (default: openai) |
 | `BATCH_MODEL` | prose --batch | Batch judge model (default: gpt-5.4-mini) |
 | `LLM_TRANSPORT` | all LLM calls | Transport mode: `direct` (default), `cache`, `batch` |
-| `ORCHESTRATOR_DB_URL` | orchestrator, local scripts | Postgres connection string |
+| `DATABASE_URL` | all (harness + orchestrator) | Postgres connection string (fallback: ORCHESTRATOR_DB_URL) |
 | `IMPROVEMENT_BUDGET` | daemon | Max $/day for autonomous improvement (default: 0.80) |
 
 ## LXC 307 Infrastructure

@@ -272,7 +272,7 @@ async function main() {
   let totalImproved = 0
 
   // Create experiment
-  const expId = createTuningExperiment("improvement-loop", `K2-driven loop: ${TARGET}/${DIMENSION}`, {
+  const expId = await createTuningExperiment("improvement-loop", `K2-driven loop: ${TARGET}/${DIMENSION}`, {
     target: TARGET,
     dimension: DIMENSION,
     baselineScore: baseline.avgScore,
@@ -405,7 +405,7 @@ async function main() {
   console.log(`  Improvements kept: ${totalImproved}/${MAX_ITERATIONS}`)
   console.log(`  Experiment: #${expId}`)
 
-  concludeExperiment(expId,
+  await concludeExperiment(expId,
     `Loop complete. ${baseline.avgScore} → ${currentScore} (${finalDelta >= 0 ? "+" : ""}${finalDelta}). ` +
     `${totalImproved}/${MAX_ITERATIONS} iterations improved. ` +
     `Improver: ${improverAssignment?.model ?? "kimi-k2"}.`

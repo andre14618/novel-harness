@@ -139,7 +139,7 @@ export async function runBenchmark<D extends string>(config: BenchmarkConfig<D>)
 
   // ── Run ─────────────────────────────────────────────────────────────
 
-  const runId = createRun(
+  const runId = await createRun(
     config.name,
     inputs.length.toString(),
     `${writer.label} / ${judges.map(j => j.label).join(",")}`,
@@ -158,11 +158,11 @@ export async function runBenchmark<D extends string>(config: BenchmarkConfig<D>)
 
         const result = await config.generate(writer, input, runId, run)
         if (!result) {
-          saveGeneration(runId, input.name, run, { passed: false })
+          await saveGeneration(runId, input.name, run, { passed: false })
           continue
         }
 
-        const genId = saveGeneration(runId, input.name, run, {
+        const genId = await saveGeneration(runId, input.name, run, {
           prose: result.output,
           wordCount: result.wordCount,
           latencyMs: result.latencyMs,
@@ -186,7 +186,7 @@ export async function runBenchmark<D extends string>(config: BenchmarkConfig<D>)
               runId, input.name,
             )
             if (score) {
-              saveScore(genId, judge.label, dim, score.score, score.reasoning)
+              await saveScore(genId, judge.label, dim, score.score, score.reasoning)
               console.log(`  [${input.name}:${run}] ${judge.label}/${config.dimensionLabels[dim]}: ${score.score}${config.scoring === "score" ? "/10" : " issues"}`)
             }
           })
@@ -205,8 +205,8 @@ export async function runBenchmark<D extends string>(config: BenchmarkConfig<D>)
   console.log(`  ${config.displayName.toUpperCase()} RESULTS`)
   console.log("=".repeat(60))
 
-  const dimAvgs = getRunAverages(runId)
-  const overall = getOverallAvg(runId)
+  const dimAvgs = await getRunAverages(runId)
+  const overall = await getOverallAvg(runId)
 
   console.log(`\n  Per-dimension averages:`)
   for (const dim of config.dimensions) {
@@ -218,7 +218,7 @@ export async function runBenchmark<D extends string>(config: BenchmarkConfig<D>)
   }
   console.log(`    ${"OVERALL".padEnd(22)} ${overall.mean}/${totalMax} (+-${overall.stddev})`)
 
-  const callSummary = getCallSummary(runId)
+  const callSummary = await getCallSummary(runId)
   if (callSummary.length > 0) {
     console.log(`\n  Cost & TPS:`)
     let totalCost = 0
@@ -231,7 +231,7 @@ export async function runBenchmark<D extends string>(config: BenchmarkConfig<D>)
   }
 
   if (process.argv.includes("--save-baseline")) {
-    markBaseline(runId, config.name)
+    await markBaseline(runId, config.name)
     console.log(`\n  Run ${runId} saved as baseline.`)
   }
 
@@ -273,7 +273,7 @@ async function judgeOneDimension(
     const promptTokens = response.usage.prompt_tokens ?? 0
     const completionTokens = response.usage.completion_tokens ?? 0
     const cost = getTokenCost(judge.provider, judge.model, promptTokens, completionTokens)
-    saveLLMCall(runId, "judge", null, judge.model, judge.provider, promptTokens, completionTokens, Math.round(response.latencyMs), cost, { seed, dimension })
+    await saveLLMCall(runId, "judge", null, judge.model, judge.provider, promptTokens, completionTokens, Math.round(response.latencyMs), cost, { seed, dimension })
 
     // Log cache hits when provider reports them
     const cacheHitTokens = response.usage.prompt_cache_hit_tokens ?? response.usage.cache_read_input_tokens ?? 0

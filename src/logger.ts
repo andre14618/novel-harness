@@ -24,8 +24,8 @@ export function log(novelId: string, level: LogLevel, message: string): void {
 
 let currentRunId: number | null = null
 
-export function initNovelRun(novelId: string): number {
-  currentRunId = createRun("novel", novelId)
+export async function initNovelRun(novelId: string): Promise<number> {
+  currentRunId = await createRun("novel", novelId)
   return currentRunId
 }
 
@@ -59,13 +59,13 @@ export interface LLMCallLogEntry {
   retryErrors: Array<{ status: number; delay: number }>
 }
 
-export function logLLMCallStructured(novelId: string, entry: LLMCallLogEntry): void {
+export async function logLLMCallStructured(novelId: string, entry: LLMCallLogEntry): Promise<void> {
   if (!currentRunId) return
 
   // Determine phase from agent name
   const phase = getPhaseForAgent(entry.agent)
 
-  centralLogLLMCall(currentRunId, {
+  await centralLogLLMCall(currentRunId, {
     agent: entry.agent,
     phase,
     model: entry.model,

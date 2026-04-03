@@ -79,7 +79,7 @@ async function generateOutline(
     const promptTokens = response.usage.prompt_tokens ?? 0
     const completionTokens = response.usage.completion_tokens ?? 0
     const cost = getTokenCost(writer.provider, writer.model, promptTokens, completionTokens)
-    saveLLMCall(runId, "writer", "planning-plotter", writer.model, writer.provider, promptTokens, completionTokens, Math.round(response.latencyMs), cost, { seed: input.name, attempt })
+    await saveLLMCall(runId, "writer", "planning-plotter", writer.model, writer.provider, promptTokens, completionTokens, Math.round(response.latencyMs), cost, { seed: input.name, attempt })
 
     return {
       output: content,

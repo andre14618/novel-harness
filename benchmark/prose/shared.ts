@@ -117,7 +117,7 @@ export async function generateProse(
     const elapsed = response.latencyMs
 
     const cost = getTokenCost(writer.provider, writer.model, promptTokens, completionTokens)
-    saveLLMCall(runId, "writer", "writer", writer.model, writer.provider, promptTokens, completionTokens, Math.round(elapsed), cost, { seed, attempt })
+    await saveLLMCall(runId, "writer", "writer", writer.model, writer.provider, promptTokens, completionTokens, Math.round(elapsed), cost, { seed, attempt })
 
     let jsonStr: string
     try { jsonStr = extractJSON(content) }
@@ -180,7 +180,7 @@ export async function judgeDimension(
     const elapsed = response.latencyMs
 
     const cost = getTokenCost(judge.provider, judge.model, promptTokens, completionTokens)
-    saveLLMCall(runId, "judge", null, judge.model, judge.provider, promptTokens, completionTokens, Math.round(elapsed), cost, { seed, dimension })
+    await saveLLMCall(runId, "judge", null, judge.model, judge.provider, promptTokens, completionTokens, Math.round(elapsed), cost, { seed, dimension })
 
     let jsonStr: string
     try { jsonStr = extractJSON(content) }

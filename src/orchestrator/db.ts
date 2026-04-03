@@ -1,51 +1,14 @@
-import { SQL } from "bun"
-import { readdir } from "node:fs/promises"
-import { resolve } from "node:path"
+/**
+ * Orchestrator DB layer.
+ *
+ * Uses the shared Postgres connection from data/connection.ts.
+ * Orchestrator-specific tables (improvement_cycles, budget_tracker, etc.)
+ * live alongside the harness tables in the same database.
+ */
 
-const DB_URL = process.env.ORCHESTRATOR_DB_URL
-if (!DB_URL) throw new Error("ORCHESTRATOR_DB_URL not set")
-
-const db = new SQL(DB_URL)
+import db from "../../data/connection"
+export { migrate } from "../../data/connection"
 export default db
-
-// ── Migration runner ────────────────────────────────────────────────────
-
-async function ensureMigrationsTable() {
-  await db`
-    CREATE TABLE IF NOT EXISTS _migrations (
-      name TEXT PRIMARY KEY,
-      applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
-    )
-  `
-}
-
-async function getAppliedMigrations(): Promise<Set<string>> {
-  const rows = await db`SELECT name FROM _migrations`
-  return new Set(rows.map((r: any) => r.name))
-}
-
-export async function migrate() {
-  await ensureMigrationsTable()
-  const applied = await getAppliedMigrations()
-  const sqlDir = resolve(import.meta.dir, "../../sql")
-
-  let files: string[]
-  try {
-    files = (await readdir(sqlDir)).filter((f) => f.endsWith(".sql")).sort()
-  } catch {
-    console.log("No sql/ directory found, skipping migrations")
-    return
-  }
-
-  for (const file of files) {
-    if (applied.has(file)) continue
-    console.log(`Applying migration: ${file}`)
-    const content = await Bun.file(resolve(sqlDir, file)).text()
-    await db.unsafe(content)
-    await db`INSERT INTO _migrations (name) VALUES (${file})`
-    console.log(`  Applied: ${file}`)
-  }
-}
 
 // ── Batch queries ───────────────────────────────────────────────────────
 
@@ -114,12 +77,4 @@ export async function createOrchestratorBatch(providerBatchId: string, provider:
 
 export async function addOrchestratorRequest(batchId: number, customId: string, generationId: number, dimension: string) {
   await db`INSERT INTO orchestrator_requests (batch_id, custom_id, generation_id, dimension) VALUES (${batchId}, ${customId}, ${generationId}, ${dimension})`
-}
-
-// ── CLI migrate ─────────────────────────────────────────────────────────
-
-if (import.meta.main && process.argv.includes("migrate")) {
-  await migrate()
-  console.log("Migrations complete.")
-  process.exit(0)
 }

@@ -98,7 +98,7 @@ export async function startCycle(trigger: string, override?: { target: string; d
 
   // Create experiment in SQLite — links all benchmark runs together
   const improverModel = getModelForAgent("improver")
-  const experimentId = createTuningExperiment("improvement-daemon", `${diagnosis.target}/${diagnosis.dimension}: improve from ${diagnosis.currentScore}`, {
+  const experimentId = await createTuningExperiment("improvement-daemon", `${diagnosis.target}/${diagnosis.dimension}: improve from ${diagnosis.currentScore}`, {
     target: diagnosis.target,
     dimension: diagnosis.dimension,
     improverModel: improverModel?.model ?? "unknown",
@@ -114,7 +114,7 @@ export async function startCycle(trigger: string, override?: { target: string; d
   const baselineResult = await runBenchmark(targetConfig.benchmarkCmd, experimentId)
   if (!baselineResult) {
     console.log("[daemon] Baseline benchmark failed, aborting")
-    concludeExperiment(experimentId, "Aborted: baseline benchmark failed")
+    await concludeExperiment(experimentId, "Aborted: baseline benchmark failed")
     return
   }
 
@@ -384,8 +384,8 @@ async function finishCycle(status: string, reason: string): Promise<void> {
 
   await db`UPDATE improvement_cycles SET status = ${status}, finished_at = now(), summary = ${summary}, total_iterations = ${cycle.iterationNum} WHERE id = ${cycle.cycleId}`
 
-  // Conclude the experiment in SQLite
-  concludeExperiment(cycle.experimentId, summary)
+  // Conclude the experiment in Postgres
+  await concludeExperiment(cycle.experimentId, summary)
   console.log(`[daemon] Experiment #${cycle.experimentId} concluded`)
 
   await notify(`Cycle #${cycle.cycleId} ${status}`, `${summary}\nExperiment: #${cycle.experimentId}\n\nSync: bash scripts/sync-improvements.sh`)

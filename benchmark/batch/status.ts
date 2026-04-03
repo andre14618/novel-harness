@@ -10,15 +10,16 @@ import { getBatchProvider } from "./providers"
 async function main() {
   getCentralDB()
 
-  const pending = getPendingBatches()
+  const pending = await getPendingBatches()
   if (pending.length === 0) {
     console.log("No pending batches.")
 
     // Also show recent completed/failed
     const db = getCentralDB()
-    const recent = db.query(
-      "SELECT id, run_id, provider, judge_model, status, request_count, submitted_at, completed_at FROM batches ORDER BY id DESC LIMIT 5"
-    ).all() as any[]
+    const recent = await db`
+      SELECT id, run_id, provider, judge_model, status, request_count, submitted_at, completed_at
+      FROM batches ORDER BY id DESC LIMIT 5
+    ` as any[]
 
     if (recent.length > 0) {
       console.log("\nRecent batches:")
@@ -39,7 +40,7 @@ async function main() {
       // Update local status
       if (status.status !== batch.status) {
         const dbStatus = status.status === "in_progress" ? "processing" : status.status
-        updateBatchStatus(batch.id, dbStatus)
+        await updateBatchStatus(batch.id, dbStatus)
       }
 
       const pct = status.requestCount > 0

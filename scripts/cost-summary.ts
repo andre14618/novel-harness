@@ -5,18 +5,16 @@ import {
 const arg = process.argv[2]
 
 if (arg === "--global") {
-  globalSummary()
+  await globalSummary()
 } else if (arg === "--runs") {
-  listRuns(process.argv[3])
+  await listRuns(process.argv[3])
 } else {
-  runSummary(arg)
+  await runSummary(arg)
 }
 
-function globalSummary() {
-  const db = getCentralDB()
-
+async function globalSummary() {
   console.log("=== GLOBAL MODEL STATS ===\n")
-  const models = getModelStats()
+  const models = await getModelStats()
   if (models.length === 0) { console.log("No LLM calls recorded yet."); return }
 
   const header = "Provider/Model                          Calls    Cost    Avg TPS  Avg ms"
@@ -27,21 +25,21 @@ function globalSummary() {
   }
 
   console.log("\n=== PER-AGENT STATS ===\n")
-  const agents = getAgentStats()
+  const agents = await getAgentStats()
   for (const a of agents) {
     console.log(`${a.agent.padEnd(28)} ${`${a.totalCalls}`.padStart(5)} calls  $${a.totalCost.toFixed(3).padStart(7)}  ${a.avgTps ? `${a.avgTps} tok/s` : "—"}`)
   }
 
   console.log("\n=== PER-PHASE STATS ===\n")
-  const phases = getPhaseStats()
+  const phases = await getPhaseStats()
   for (const p of phases) {
     console.log(`${p.phase.padEnd(24)} ${`${p.totalCalls}`.padStart(5)} calls  $${p.totalCost.toFixed(3).padStart(7)}  ${p.avgTps ? `${p.avgTps} tok/s` : "—"}`)
   }
 }
 
-function listRuns(runType?: string) {
+async function listRuns(runType?: string) {
   const type = runType ?? "novel"
-  const runs = getRecentRuns(type, 20)
+  const runs = await getRecentRuns(type, 20)
   if (runs.length === 0) { console.log(`No ${type} runs found.`); return }
 
   console.log(`\nRecent ${type} runs:\n`)
@@ -52,36 +50,38 @@ function listRuns(runType?: string) {
   }
 }
 
-function runSummary(runIdStr?: string) {
+async function runSummary(runIdStr?: string) {
   const db = getCentralDB()
 
   let runId: number
   if (runIdStr && /^\d+$/.test(runIdStr)) {
     runId = parseInt(runIdStr)
   } else {
-    // Find most recent novel run, or most recent run of any type
-    const novelRef = runIdStr  // could be a novel-id like "novel-123456"
-    let row: { id: number } | null = null
+    const novelRef = runIdStr
+    let rows: any[]
     if (novelRef) {
-      row = db.query<{ id: number }, [string]>("SELECT id FROM runs WHERE run_ref = ? ORDER BY timestamp DESC LIMIT 1").get(novelRef)
+      rows = await db`SELECT id FROM runs WHERE run_ref = ${novelRef} ORDER BY timestamp DESC LIMIT 1`
+    } else {
+      rows = []
     }
-    if (!row) {
-      row = db.query<{ id: number }, []>("SELECT id FROM runs ORDER BY timestamp DESC LIMIT 1").get()
+    if (rows.length === 0) {
+      rows = await db`SELECT id FROM runs ORDER BY timestamp DESC LIMIT 1`
     }
-    if (!row) { console.error("No runs found in central DB."); process.exit(1) }
-    runId = row.id
+    if (rows.length === 0) { console.error("No runs found in central DB."); process.exit(1) }
+    runId = (rows[0] as any).id
   }
 
-  const run = db.query<{ run_type: string; run_ref: string | null; label: string | null; timestamp: string }, [number]>(
-    "SELECT run_type, run_ref, label, timestamp FROM runs WHERE id = ?",
-  ).get(runId)
+  const runRows = await db`
+    SELECT run_type, run_ref, label, timestamp FROM runs WHERE id = ${runId}
+  ` as any[]
 
-  if (!run) { console.error(`Run #${runId} not found.`); process.exit(1) }
+  if (runRows.length === 0) { console.error(`Run #${runId} not found.`); process.exit(1) }
+  const run = runRows[0]
 
   console.log(`\nRun #${runId}: ${run.run_type}${run.run_ref ? ` [${run.run_ref}]` : ""}${run.label ? ` (${run.label})` : ""}`)
   console.log(`Timestamp: ${run.timestamp}\n`)
 
-  const summary = getCallSummary(runId)
+  const summary = await getCallSummary(runId)
   if (summary.length === 0) { console.log("No LLM calls for this run."); return }
 
   const header = "Agent                     Model                         Calls    Cost    TPS    Tokens"

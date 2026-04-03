@@ -68,7 +68,7 @@ export const saveExperimentSummary = _saveExperimentSummary
 export const deleteExperiment = _deleteExperiment
 
 // Benchmark-specific wrapper for logging LLM calls
-export function saveLLMCall(
+export async function saveLLMCall(
   runId: number,
   callType: string,
   agent: string | null,
@@ -77,7 +77,7 @@ export function saveLLMCall(
   latencyMs: number, cost: number,
   meta?: { seed?: string; dimension?: string; attempt?: number },
 ) {
-  _logLLMCall(runId, {
+  await _logLLMCall(runId, {
     agent: agent ?? callType,
     phase: callType === "judge" ? "judge" : "generation",
     model,

@@ -9,7 +9,7 @@
  *   2. Feed targeted rewrite instructions to a cheap model
  */
 
-import { getCentralDB } from "../../data/db"
+import db from "../../data/connection"
 
 // ── Types ──────────────────────────────────────────────────────────────
 
@@ -73,22 +73,21 @@ function getSentenceAt(text: string, position: number): string {
 
 // ── Pattern loading ────────────────────────────────────────────────────
 
-function getEnabledPatterns(tier?: number): LintPattern[] {
-  const db = getCentralDB()
+async function getEnabledPatterns(tier?: number): Promise<LintPattern[]> {
   if (tier !== undefined) {
-    return db.query(
-      "SELECT * FROM lint_patterns WHERE enabled = 1 AND tier = ? ORDER BY category, id"
-    ).all(tier) as LintPattern[]
+    return await db`
+      SELECT * FROM lint_patterns WHERE enabled = 1 AND tier = ${tier} ORDER BY category, id
+    ` as LintPattern[]
   }
-  return db.query(
-    "SELECT * FROM lint_patterns WHERE enabled = 1 ORDER BY tier, category, id"
-  ).all() as LintPattern[]
+  return await db`
+    SELECT * FROM lint_patterns WHERE enabled = 1 ORDER BY tier, category, id
+  ` as LintPattern[]
 }
 
 // ── Main linter ────────────────────────────────────────────────────────
 
-export function lintProse(prose: string, tier?: number): LintResult {
-  const patterns = getEnabledPatterns(tier)
+export async function lintProse(prose: string, tier?: number): Promise<LintResult> {
+  const patterns = await getEnabledPatterns(tier)
   const issues: LintIssue[] = []
 
   for (const pat of patterns) {
@@ -123,64 +122,58 @@ export function lintProse(prose: string, tier?: number): LintResult {
 
 // ── DB persistence ─────────────────────────────────────────────────────
 
-export function saveLintIssues(generationId: number, issues: LintIssue[]): void {
-  const db = getCentralDB()
-  const stmt = db.prepare(
-    `INSERT INTO lint_issues (generation_id, pattern_id, char_offset, match, sentence)
-     VALUES (?, ?, ?, ?, ?)`
-  )
+export async function saveLintIssues(generationId: number, issues: LintIssue[]): Promise<void> {
   for (const issue of issues) {
-    stmt.run(generationId, issue.patternId, issue.charOffset, issue.match, issue.sentence)
+    await db`
+      INSERT INTO lint_issues (generation_id, pattern_id, char_offset, match, sentence)
+      VALUES (${generationId}, ${issue.patternId}, ${issue.charOffset}, ${issue.match}, ${issue.sentence})
+    `
   }
 }
 
-export function getLintIssues(generationId: number) {
-  const db = getCentralDB()
-  return db.query(`
-    SELECT li.id, li.char_offset as charOffset, li.match, li.sentence,
-           li.resolved, li.rewrite_result as rewriteResult,
-           lp.id as patternId, lp.category, lp.fix_template as fixTemplate,
-           lp.rationale, lp.edge_cases as edgeCases
+export async function getLintIssues(generationId: number) {
+  return await db`
+    SELECT li.id, li.char_offset as "charOffset", li.match, li.sentence,
+           li.resolved, li.rewrite_result as "rewriteResult",
+           lp.id as "patternId", lp.category, lp.fix_template as "fixTemplate",
+           lp.rationale, lp.edge_cases as "edgeCases"
     FROM lint_issues li
     JOIN lint_patterns lp ON lp.id = li.pattern_id
-    WHERE li.generation_id = ?
+    WHERE li.generation_id = ${generationId}
     ORDER BY li.char_offset
-  `).all(generationId)
+  `
 }
 
-export function getLintSummary(runId: number): { category: string; count: number }[] {
-  const db = getCentralDB()
-  return db.query(`
+export async function getLintSummary(runId: number): Promise<{ category: string; count: number }[]> {
+  return await db`
     SELECT lp.category, COUNT(*) as count
     FROM lint_issues li
     JOIN lint_patterns lp ON lp.id = li.pattern_id
     JOIN generations g ON g.id = li.generation_id
-    WHERE g.run_id = ?
+    WHERE g.run_id = ${runId}
     GROUP BY lp.category
     ORDER BY count DESC
-  `).all(runId) as any[]
+  ` as { category: string; count: number }[]
 }
 
 /** Lint all generations for a run and persist results. Clears previous lint data for the run. */
-export function lintRun(runId: number): { generationId: number; seed: string; result: LintResult }[] {
-  const db = getCentralDB()
-
+export async function lintRun(runId: number): Promise<{ generationId: number; seed: string; result: LintResult }[]> {
   // Clear previous lint results for this run
-  db.run(`
+  await db`
     DELETE FROM lint_issues WHERE generation_id IN (
-      SELECT id FROM generations WHERE run_id = ?
+      SELECT id FROM generations WHERE run_id = ${runId}
     )
-  `, runId)
+  `
 
-  const gens = db.query(
-    "SELECT id, seed, prose FROM generations WHERE run_id = ? AND prose IS NOT NULL ORDER BY seed, attempt"
-  ).all(runId) as { id: number; seed: string; prose: string }[]
+  const gens = await db`
+    SELECT id, seed, prose FROM generations WHERE run_id = ${runId} AND prose IS NOT NULL ORDER BY seed, attempt
+  ` as { id: number; seed: string; prose: string }[]
 
   const results: { generationId: number; seed: string; result: LintResult }[] = []
 
   for (const gen of gens) {
-    const result = lintProse(gen.prose)
-    saveLintIssues(gen.id, result.issues)
+    const result = await lintProse(gen.prose)
+    await saveLintIssues(gen.id, result.issues)
     results.push({ generationId: gen.id, seed: gen.seed, result })
   }
 
@@ -189,30 +182,35 @@ export function lintRun(runId: number): { generationId: number; seed: string; re
 
 // ── Pattern management ─────────────────────────────────────────────────
 
-export function listPatterns(tier?: number): LintPattern[] {
+export async function listPatterns(tier?: number): Promise<LintPattern[]> {
   return getEnabledPatterns(tier)
 }
 
-export function togglePattern(patternId: number, enabled: boolean): void {
-  const db = getCentralDB()
-  db.run("UPDATE lint_patterns SET enabled = ? WHERE id = ?", [enabled ? 1 : 0, patternId])
+export async function togglePattern(patternId: number, enabled: boolean): Promise<void> {
+  await db`UPDATE lint_patterns SET enabled = ${enabled ? 1 : 0} WHERE id = ${patternId}`
 }
 
-export function getPatternStats(runId?: number) {
-  const db = getCentralDB()
-  const where = runId
-    ? "WHERE g.run_id = ?"
-    : ""
-  const params = runId ? [runId] : []
-  return db.query(`
+export async function getPatternStats(runId?: number) {
+  if (runId !== undefined) {
+    return await db`
+      SELECT lp.id, lp.category, lp.pattern, lp.fix_template,
+             COUNT(li.id) as hit_count,
+             SUM(CASE WHEN li.resolved = 2 THEN 1 ELSE 0 END) as skip_count
+      FROM lint_patterns lp
+      LEFT JOIN lint_issues li ON li.pattern_id = lp.id
+      LEFT JOIN generations g ON g.id = li.generation_id
+      WHERE g.run_id = ${runId}
+      GROUP BY lp.id
+      ORDER BY hit_count DESC
+    `
+  }
+  return await db`
     SELECT lp.id, lp.category, lp.pattern, lp.fix_template,
            COUNT(li.id) as hit_count,
            SUM(CASE WHEN li.resolved = 2 THEN 1 ELSE 0 END) as skip_count
     FROM lint_patterns lp
     LEFT JOIN lint_issues li ON li.pattern_id = lp.id
-    ${runId ? "LEFT JOIN generations g ON g.id = li.generation_id" : ""}
-    ${where}
     GROUP BY lp.id
     ORDER BY hit_count DESC
-  `).all(...params)
+  `
 }
