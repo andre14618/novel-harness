@@ -22,8 +22,8 @@ These are mechanical — run a script, read numbers, change a value.
 - [ ] **Measure lint false positive rate** — Human review of `getPatternStats()` output. For each pattern, check 5 flagged instances: is the flag correct?
   - Status: 35 patterns, 128 total hits, 0 reviewed for precision
 
-- [ ] **Consolidate duplicate judge rubrics** — `dialogue.md`, `telling.md`, `sensory.md` overlap with the penalty rubrics. Delete or merge redundant ones.
-  - Status: 5+ rubric files, only 3 in standard suite (telling, dead-weight, dialogue-problems)
+- [x] **Consolidate duplicate judge rubrics** — `dialogue.md`, `telling.md`, `sensory.md` overlap with the penalty rubrics. Delete or merge redundant ones.
+  - Status: Done. Deleted show-tell.md, show-tell-counted.md, dialogue.md, sensory.md (all unused legacy calibration rubrics). Removed CALIBRATE_DIMENSIONS from schema.ts. 3 active penalty rubrics remain: telling, dead-weight, dialogue-problems.
 
 - [ ] **Cost optimization sweep** — Run `bun scripts/cost-summary.ts --global`, identify most expensive agents, check if cheaper models have parity.
   - Status: Real per-call cost tracking now in llm_calls (commit 3e960ee). Per-agent cost tracked but not analyzed for savings.
@@ -35,9 +35,10 @@ These are mechanical — run a script, read numbers, change a value.
 
 These follow a rigid pattern: read score → read flagged issue → add/modify rule in prompt. A small model can do this reliably because the feedback is concrete.
 
-- [ ] **Add lint-informed rules to writer prompt** — For each high-hit lint pattern (seemed-to: 31 hits, could-see: 29, could-feel: 21), add a corresponding craft rule to `src/agents/writer/prompt.md`.
+- [x] **Add lint-informed rules to writer prompt** — For each high-hit lint pattern (seemed-to: 31 hits, could-see: 29, could-feel: 21), add a corresponding craft rule to `src/agents/writer/prompt.md`.
   - Measure: Re-run lint after prompt change, count hits
   - Model: Haiku can map "pattern X has N hits" → "add rule about X"
+  - Status: Done. Added 4 rules covering all 27 Tier 1 patterns: filler phrases, redundant adverb-verb, redundant body parts, empty transitions. Filter words were already covered.
 
 - [ ] **Temperature sweep per agent** — For each agent, run 3 temperatures (0.5, 0.7, 0.9) on same seed, compare output quality.
   - Measure: Use existing benchmark dimensions

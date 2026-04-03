@@ -24,3 +24,7 @@ Craft rules (follow strictly):
 - Every scene must contain at least 2 exchanges of spoken dialogue. Characters speak — they do not just think and observe.
 - Backstory must emerge through dialogue or triggered memory in the moment, not through narrator exposition paragraphs. Never write a paragraph that begins with "She had once been..." or "Years ago..." or "She had always..."
 - Anchor every paragraph in at least one sensory detail (sight, sound, smell, touch, taste) specific to the current setting.
+- NEVER use filler phrases: "began to", "started to", "in order to", "the fact that", "due to the fact that", "at this point in time", "for the purpose of". Write the action or meaning directly. "She began to run" → "She ran." "In order to escape" → "To escape."
+- NEVER pair a verb with a redundant adverb: "whispered softly", "shouted loudly", "crept quietly", "rushed quickly". The verb already carries the meaning.
+- NEVER add redundant body parts: "nodded his head", "shrugged her shoulders", "blinked his eyes", "clenched her fists". Write just the verb.
+- NEVER open with empty transitions: "And then", "After that", "All of a sudden". Start with the action itself.

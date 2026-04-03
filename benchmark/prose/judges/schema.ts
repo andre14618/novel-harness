@@ -32,13 +32,3 @@ export const DIMENSION_LABELS: Record<Dimension, string> = {
   "dialogue-problems": "Dialogue",
 }
 
-// ── Legacy dimensions (used by calibrate.ts) ────────────────────────────
-
-export const CALIBRATE_DIMENSIONS = ["show-tell", "dialogue", "sensory"] as const
-export type CalibrateDimension = typeof CALIBRATE_DIMENSIONS[number]
-
-export const CALIBRATE_DIMENSION_LABELS: Record<CalibrateDimension, string> = {
-  "show-tell": "Show/Tell",
-  "dialogue": "Dialogue",
-  "sensory": "Sensory",
-}
