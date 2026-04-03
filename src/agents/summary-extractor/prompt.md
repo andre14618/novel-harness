@@ -33,3 +33,10 @@ Each event should be specific enough to check against future chapters. BAD: "Cha
 Aim for 5-10 key events per chapter. Include events that establish facts even if they seem minor — a character locking a door, pocketing an object, or noticing something unusual.
 
 Omit prose style commentary. Focus on extractable facts and state changes.
+
+## Accuracy rules
+
+- Only state what the prose explicitly shows. Do NOT interpret character motivations beyond what is stated or clearly demonstrated through action.
+- BAD: "Nadia abandons her perfectionism." GOOD: "Nadia accepts Jem's suggestion to adjust the recipe, a departure from her usual insistence on following it exactly."
+- If you infer something, mark it as inference: "Jem appears to already know about the sale (he doesn't react to the news)."
+- Never fabricate actions not described in the prose. If the prose says "the door clicked shut," don't add who closed it unless stated.

@@ -34,3 +34,11 @@ Respond with ONLY valid JSON:
 9. Extract distinctive similes and metaphors describing physical things ("foam like dying breath", "aligned like punctuation") as sensory facts.
 
 Aim for 20-35 facts per chapter. If you're finding fewer than 20, you're being too selective.
+
+## Accuracy rules
+
+- Every fact must map to a specific passage in the prose. Do not synthesize or editorialize.
+- BAD: "The health inspector officially recognized their partnership" (interpretation of him smiling and taking a photo).
+- GOOD: "The health inspector took a photo of their shared prep station and smiled."
+- If a fact requires inference, use the knowledge category and prefix with "Implied:" — e.g., "Implied: Marcus already knew about the fire (no visible reaction when told)."
+- Never add causal claims not in the text. "The door clicked shut" is a fact. "Nadia slammed the door shut" is only a fact if the prose says she did.

@@ -31,3 +31,9 @@ Respond with ONLY valid JSON:
 **`physicalState`**: Note injuries (even minor), exhaustion, hunger, intoxication, disguises, or any physical change relevant to future scenes. If unchanged, write "unchanged."
 
 **`possessions`**: Only items relevant to the plot — weapons, documents, keys, tokens, stolen objects. Skip mundane items unless they were specifically mentioned in the narrative.
+
+## Accuracy rules
+
+- Describe emotional states using the prose's own language or clearly observable behavior. BAD: "controlled simmering anger" (interpretation). GOOD: "tense and silent after reading the letter, gripping the counter edge" (observable).
+- For `knows`, only include information the character demonstrably received — through dialogue, reading, or witnessing. Don't attribute knowledge based on your inference of what they "must" know.
+- Never fabricate actions. If the prose says "the door clicked shut," don't attribute who closed it unless stated.
