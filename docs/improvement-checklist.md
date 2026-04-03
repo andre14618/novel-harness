@@ -40,9 +40,10 @@ These follow a rigid pattern: read score → read flagged issue → add/modify r
   - Model: Haiku can map "pattern X has N hits" → "add rule about X"
   - Status: Done. Added 4 rules covering all 27 Tier 1 patterns: filler phrases, redundant adverb-verb, redundant body parts, empty transitions. Filter words were already covered.
 
-- [ ] **Temperature sweep per agent** — For each agent, run 3 temperatures (0.5, 0.7, 0.9) on same seed, compare output quality.
+- [x] **Temperature sweep per agent** — For each agent, run 3 temperatures (0.5, 0.7, 0.9) on same seed, compare output quality.
   - Measure: Use existing benchmark dimensions
   - Model: Haiku can write the experiment batch config and read results
+  - Status: Done (Experiment #33). Writer tested at 0.5/0.8/0.9 on romance-drama x3 runs. 0.8 wins overall (17.7/1k normalized). 0.9 best dialogue but worst telling. 0.5 wordiest. Keeping 0.8.
 
 - [ ] **Lint Tier 3 patterns** — Add said bookisms and declared emotions patterns. Currently 0 hits on stored prose (writer avoids them), but needed as guardrails.
   - Measure: Hit rate on future generations
