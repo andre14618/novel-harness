@@ -128,13 +128,11 @@ export async function startCycle(trigger: string, override?: { target: string; d
   let baselineScore: number
 
   if (useAtomic && fullTarget) {
-    const seeds = fullTarget.loadInputs(fullTarget.supportsAtomic
-      ? (fullTarget as any).daemonEnv?.BENCHMARK_SEEDS?.split(",") ?? undefined
-      : undefined
-    )
+    let seeds: ReturnType<typeof fullTarget.loadInputs> = []
+    try { seeds = fullTarget.loadInputs() } catch { /* prose throws — handled below */ }
     const seedNames = seeds.length > 0
-      ? seeds.map(s => s.name)
-      : [targetConfig.promptFiles[0]?.agentName ? "romance-drama" : "romance-drama"]
+      ? seeds.slice(0, 3).map(s => s.name)  // Use up to 3 seeds for representative scoring
+      : ["romance-drama"]
 
     const baselineGens = await Promise.all(
       seedNames.map(seedName => atomicGenerate({
@@ -278,7 +276,7 @@ async function runIteration(judgeReasoning: string[]): Promise<void> {
   )
 
   // Propose
-  const proposal = await proposeChange(currentPrompts, cycle.dimension, cycle.currentScore, judgeReasoning, improverContext)
+  const proposal = await proposeChange(currentPrompts, cycle.dimension, cycle.currentScore, judgeReasoning, improverContext, cycle.consecutiveFailures)
   if (!proposal) {
     await db`UPDATE improvement_iterations SET result = 'no-proposal', phase = 'done', finished_at = now() WHERE id = ${cycle.iterationId}`
     cycle.consecutiveFailures++
@@ -326,11 +324,10 @@ async function runIteration(judgeReasoning: string[]): Promise<void> {
     const fullTarget = getDaemonTargetFull(cycle.target)
     if (!fullTarget) { await finishCycle("failed", `Target lost: ${cycle.target}`); return }
 
-    // Determine seeds for daemon runs
-    const daemonSeeds = fullTarget.loadInputs(
-      (TARGETS[cycle.target] as any)?.daemonEnv?.BENCHMARK_SEEDS?.split(",") ?? undefined
-    )
-    const seedNames = daemonSeeds.length > 0 ? daemonSeeds.map(s => s.name) : ["romance-drama"]
+    // Determine seeds for daemon runs (up to 3 for representative scoring)
+    let daemonSeeds: ReturnType<typeof fullTarget.loadInputs> = []
+    try { daemonSeeds = fullTarget.loadInputs() } catch { /* prose throws */ }
+    const seedNames = daemonSeeds.length > 0 ? daemonSeeds.slice(0, 3).map(s => s.name) : ["romance-drama"]
 
     // Generate with prompt override (in-memory, no disk write)
     const gens = await Promise.all(
@@ -480,6 +477,19 @@ async function evaluateIterationAtomic(newScore: number, judgeReasoning: string[
     cycle.currentScore = newScore
     cycle.consecutiveFailures = 0
     await db`UPDATE improvement_cycles SET kept_count = kept_count + 1 WHERE id = ${cycle.cycleId}`
+
+    // Auto-commit kept changes
+    if (cycle.pendingProposal) {
+      try {
+        const filePath = cycle.pendingProposal.filePath
+        const commitMsg = `[daemon:${cycle.pendingProposal.agentName}] ${cycle.dimension} ${(cycle.currentScore - delta).toFixed(1)} → ${newScore.toFixed(1)} (+${delta.toFixed(1)})\n\n${cycle.pendingProposal.explanation}\n\nexperiment: #${cycle.experimentId}, cycle: #${cycle.cycleId}, iter: ${cycle.iterationNum}`
+        await Bun.spawn(["git", "add", filePath], { cwd: HARNESS_ROOT, stdout: "pipe", stderr: "pipe" }).exited
+        await Bun.spawn(["git", "commit", "-m", commitMsg], { cwd: HARNESS_ROOT, stdout: "pipe", stderr: "pipe" }).exited
+        console.log(`[daemon] Auto-committed: ${filePath}`)
+      } catch (err) {
+        console.log(`[daemon] Auto-commit failed: ${err instanceof Error ? err.message : err}`)
+      }
+    }
   } else {
     const reason = belowThreshold ? ` (below threshold ${cycle.limits.minDeltaThreshold})` : ""
     console.log(`[daemon] REVERTED: ${cycle.currentScore} → ${newScore} (${delta >= 0 ? "+" : ""}${delta})${reason}`)
@@ -545,6 +555,18 @@ async function evaluateIteration(judgeReasoning: string[]): Promise<void> {
     cycle.currentScore = newScores.avgScore
     cycle.consecutiveFailures = 0
     await db`UPDATE improvement_cycles SET kept_count = kept_count + 1 WHERE id = ${cycle.cycleId}`
+
+    // Auto-commit kept changes
+    if (cycle.backup) {
+      try {
+        const commitMsg = `[daemon] ${cycle.dimension} ${(cycle.currentScore - delta).toFixed(1)} → ${newScores.avgScore.toFixed(1)} (+${delta.toFixed(1)})\n\nexperiment: #${cycle.experimentId}, cycle: #${cycle.cycleId}, iter: ${cycle.iterationNum}`
+        await Bun.spawn(["git", "add", cycle.backup.filePath], { cwd: HARNESS_ROOT, stdout: "pipe", stderr: "pipe" }).exited
+        await Bun.spawn(["git", "commit", "-m", commitMsg], { cwd: HARNESS_ROOT, stdout: "pipe", stderr: "pipe" }).exited
+        console.log(`[daemon] Auto-committed: ${cycle.backup.filePath}`)
+      } catch (err) {
+        console.log(`[daemon] Auto-commit failed: ${err instanceof Error ? err.message : err}`)
+      }
+    }
   } else {
     const reason = belowThreshold ? ` (below threshold ${cycle.limits.minDeltaThreshold})` : ""
     console.log(`[daemon] REVERTED: ${cycle.currentScore} → ${newScores.avgScore} (${delta >= 0 ? "+" : ""}${delta})${reason}`)

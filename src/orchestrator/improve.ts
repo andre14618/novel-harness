@@ -236,6 +236,7 @@ export async function proposeChange(
   currentScore: number,
   judgeReasoning: string[],
   context?: ImproverContext,
+  consecutiveFailures: number = 0,
 ): Promise<{ agentName: string; newPrompt: string; explanation: string } | null> {
   const assignment = getModelForAgent("improver")
   if (!assignment) throw new Error(`No model assigned for "improver" role in models/roles.ts`)
@@ -318,7 +319,7 @@ ${promptSection}
 
 ${reasoningSection}${contextBlock}
 
-Propose a targeted prompt change to improve the ${dimension} score. Focus on the specific weaknesses the judge identified.`
+Propose a targeted prompt change to improve the ${dimension} score. Focus on the specific weaknesses the judge identified.${consecutiveFailures >= 2 ? `\n\nIMPORTANT: ${consecutiveFailures} previous attempts failed to improve the score. Try a fundamentally different approach — restructure the prompt, remove conflicting rules, or add concrete before/after examples instead of abstract rules.` : ""}`
 
   const needsNothink = model.needsNothink
   const finalUserPrompt = needsNothink ? `/nothink\n${userPrompt}` : userPrompt
@@ -333,7 +334,8 @@ Propose a targeted prompt change to improve the ${dimension} score. Focus on the
           { role: "system", content: systemPrompt },
           { role: "user", content: finalUserPrompt },
         ],
-        temperature: 0.7,
+        // Escalate temperature on consecutive failures to explore different proposals
+        temperature: Math.min(0.7 + consecutiveFailures * 0.1, 1.0),
         max_tokens: 8192,
         response_format: { type: "json_object" },
         ...provider.extraBody?.(),
