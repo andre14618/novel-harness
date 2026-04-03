@@ -138,4 +138,13 @@ export const config: BenchmarkConfig<typeof DIMENSIONS[number]> = {
   ],
   runCmd: "bun benchmark/extraction/run.ts",
   daemonEnv: { BENCHMARK_RUNS: "2", BENCHMARK_SAMPLES: "2" },
+  buildAgentInput: (input, agentName) => {
+    if (!agentName) return null
+    return {
+      userPrompt: input.prose,
+      temperature: 0.1,
+      maxTokens: 4096,
+      responseFormat: { type: "json_object" },
+    }
+  },
 }

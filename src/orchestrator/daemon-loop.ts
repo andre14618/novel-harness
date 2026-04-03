@@ -12,7 +12,9 @@ import { readFileSync } from "node:fs"
 import db from "./db"
 import { createOrchestratorBatch } from "./db"
 import { diagnose, diagnoseFor } from "./diagnose"
-import { proposeChange, applyChange, revertChange, runBenchmark, getLatestScores, TARGETS } from "./improve"
+import { proposeChange, applyChange, revertChange, runBenchmark, getLatestScores, TARGETS, buildImproverContext, synthesizeConclusion } from "./improve"
+import { generate as atomicGenerate, judge as atomicJudge } from "./atomic"
+import { getDaemonTargetFull } from "../../benchmark/registry"
 import { createTuningExperiment, concludeExperiment } from "../../data/db"
 import { getModelForAgent } from "../../models/roles"
 import { checkBudget, recordSpend, getTodayBudget, MAX_ITERATIONS, MAX_CONSECUTIVE_FAILURES, BUDGET_ALERT_THRESHOLD } from "./budget"
@@ -37,6 +39,10 @@ interface ActiveCycle {
   backup?: { filePath: string; originalContent: string }
   pendingBatchId?: number
   iterationId?: number
+  /** When true, uses atomic generate+judge instead of subprocess benchmark */
+  useAtomic: boolean
+  /** Proposal kept in memory for atomic mode — only written to disk when kept */
+  pendingProposal?: { agentName: string; newPrompt: string; explanation: string; filePath: string }
 }
 
 let activeCycle: ActiveCycle | null = null
@@ -94,9 +100,13 @@ export async function startCycle(trigger: string, override?: { target: string; d
     return
   }
 
-  console.log(`[daemon] Starting: ${diagnosis.target}/${diagnosis.dimension} (score: ${diagnosis.currentScore})`)
+  // Check if this benchmark supports atomic ops
+  const fullTarget = getDaemonTargetFull(diagnosis.target)
+  const useAtomic = !!fullTarget?.supportsAtomic
 
-  // Create experiment in SQLite — links all benchmark runs together
+  console.log(`[daemon] Starting: ${diagnosis.target}/${diagnosis.dimension} (score: ${diagnosis.currentScore}, atomic: ${useAtomic})`)
+
+  // Create experiment — links all benchmark runs together
   const improverModel = getModelForAgent("improver")
   const experimentId = await createTuningExperiment("improvement-daemon", `${diagnosis.target}/${diagnosis.dimension}: improve from ${diagnosis.currentScore}`, {
     target: diagnosis.target,
@@ -106,21 +116,68 @@ export async function startCycle(trigger: string, override?: { target: string; d
     budgetUsd: parseFloat(process.env.IMPROVEMENT_BUDGET ?? "0.80"),
     maxIterations: MAX_ITERATIONS,
     trigger,
+    mode: useAtomic ? "atomic" : "subprocess",
   })
   console.log(`[daemon] Created experiment #${experimentId}`)
 
-  // Run baseline benchmark
-  console.log(`[daemon] Running baseline benchmark...`)
-  const baselineResult = await runBenchmark(targetConfig.benchmarkCmd, experimentId)
-  if (!baselineResult) {
-    console.log("[daemon] Baseline benchmark failed, aborting")
-    await concludeExperiment(experimentId, "Aborted: baseline benchmark failed")
-    return
+  // Run baseline — atomic if supported, subprocess otherwise
+  console.log(`[daemon] Running baseline...`)
+  let baselineScore: number
+
+  if (useAtomic && fullTarget) {
+    const seeds = fullTarget.loadInputs(fullTarget.supportsAtomic
+      ? (fullTarget as any).daemonEnv?.BENCHMARK_SEEDS?.split(",") ?? undefined
+      : undefined
+    )
+    const seedNames = seeds.length > 0
+      ? seeds.map(s => s.name)
+      : [targetConfig.promptFiles[0]?.agentName ? "romance-drama" : "romance-drama"]
+
+    const baselineGens = await Promise.all(
+      seedNames.map(seedName => atomicGenerate({
+        benchmarkType: diagnosis.target,
+        seedName,
+        experimentId,
+      }))
+    )
+    const successfulGens = baselineGens.filter(Boolean) as NonNullable<typeof baselineGens[number]>[]
+
+    if (successfulGens.length === 0) {
+      console.log("[daemon] Baseline generation failed, aborting")
+      await concludeExperiment(experimentId, "Aborted: baseline generation failed")
+      return
+    }
+
+    const baselineJudges = await Promise.all(
+      successfulGens.map(gen => atomicJudge({
+        generationId: gen.generationId,
+        dimension: diagnosis.dimension,
+        benchmarkType: diagnosis.target,
+        seedName: undefined,
+      }))
+    )
+    const successfulJudges = baselineJudges.filter(Boolean) as NonNullable<typeof baselineJudges[number]>[]
+
+    if (successfulJudges.length === 0) {
+      console.log("[daemon] Baseline judging failed, aborting")
+      await concludeExperiment(experimentId, "Aborted: baseline judging failed")
+      return
+    }
+
+    baselineScore = successfulJudges.reduce((s, j) => s + j.score, 0) / successfulJudges.length
+    baselineScore = Math.round(baselineScore * 10) / 10
+  } else {
+    const baselineResult = await runBenchmark(targetConfig.benchmarkCmd, experimentId)
+    if (!baselineResult) {
+      console.log("[daemon] Baseline benchmark failed, aborting")
+      await concludeExperiment(experimentId, "Aborted: baseline benchmark failed")
+      return
+    }
+    const baselineScores = await getLatestScores(diagnosis.target, diagnosis.dimension)
+    baselineScore = baselineScores?.avgScore ?? diagnosis.currentScore
   }
 
-  const baselineScores = await getLatestScores(diagnosis.target, diagnosis.dimension)
-  const baselineScore = baselineScores?.avgScore ?? diagnosis.currentScore
-  console.log(`[daemon] Baseline: ${baselineScore}/10 (run ${baselineResult.runId})`)
+  console.log(`[daemon] Baseline: ${baselineScore}/10`)
 
   const rows = await db`
     INSERT INTO improvement_cycles (trigger_type, status) VALUES (${trigger}, 'active') RETURNING id
@@ -132,6 +189,7 @@ export async function startCycle(trigger: string, override?: { target: string; d
     target: diagnosis.target, dimension: diagnosis.dimension,
     currentScore: baselineScore, baselineScore,
     consecutiveFailures: 0,
+    useAtomic,
   }
 
   await notify(`Improvement cycle #${cycleId} started`, `Target: ${diagnosis.target}/${diagnosis.dimension} (baseline: ${baselineScore})\nExperiment: #${experimentId}\nTrigger: ${trigger}`)
@@ -191,7 +249,7 @@ async function runIteration(judgeReasoning: string[]): Promise<void> {
   const targetConfig = TARGETS[cycle.target]
   if (!targetConfig) { await finishCycle("failed", `Unknown target: ${cycle.target}`); return }
 
-  console.log(`[daemon] Iteration ${cycle.iterationNum}: ${cycle.target}/${cycle.dimension} (current: ${cycle.currentScore})`)
+  console.log(`[daemon] Iteration ${cycle.iterationNum}: ${cycle.target}/${cycle.dimension} (current: ${cycle.currentScore}, atomic: ${cycle.useAtomic})`)
 
   const iterRows = await db`
     INSERT INTO improvement_iterations (cycle_id, iteration_num, target, dimension, phase, baseline_score)
@@ -206,8 +264,15 @@ async function runIteration(judgeReasoning: string[]): Promise<void> {
     content: readFileSync(`${HARNESS_ROOT}/${f.path}`, "utf-8"),
   }))
 
+  // Build rich context for the improver
+  const promptFile = targetConfig.promptFiles[0]
+  const improverContext = await buildImproverContext(
+    cycle.cycleId, cycle.target, cycle.dimension,
+    promptFile?.path ?? "",
+  )
+
   // Propose
-  const proposal = await proposeChange(currentPrompts, cycle.dimension, cycle.currentScore, judgeReasoning)
+  const proposal = await proposeChange(currentPrompts, cycle.dimension, cycle.currentScore, judgeReasoning, improverContext)
   if (!proposal) {
     await db`UPDATE improvement_iterations SET result = 'no-proposal', phase = 'done', finished_at = now() WHERE id = ${cycle.iterationId}`
     cycle.consecutiveFailures++
@@ -239,7 +304,89 @@ async function runIteration(judgeReasoning: string[]): Promise<void> {
     return
   }
 
-  // Apply
+  // Store both original and proposed content for all attempts (enables conclusion diffs)
+  const originalContent = currentPrompts.find(p => p.agentName === proposal.agentName)?.content ?? ""
+  await db`
+    UPDATE improvement_iterations
+    SET phase = 'benchmarking', proposal_explanation = ${proposal.explanation},
+        agent_name = ${proposal.agentName}, file_path = ${targetFile.path},
+        proposed_content = ${proposal.newPrompt},
+        backup_content = ${originalContent}
+    WHERE id = ${cycle.iterationId}
+  `
+
+  // ── Atomic mode: generate + judge in-process, no disk writes ──────
+  if (cycle.useAtomic) {
+    const fullTarget = getDaemonTargetFull(cycle.target)
+    if (!fullTarget) { await finishCycle("failed", `Target lost: ${cycle.target}`); return }
+
+    // Determine seeds for daemon runs
+    const daemonSeeds = fullTarget.loadInputs(
+      (TARGETS[cycle.target] as any)?.daemonEnv?.BENCHMARK_SEEDS?.split(",") ?? undefined
+    )
+    const seedNames = daemonSeeds.length > 0 ? daemonSeeds.map(s => s.name) : ["romance-drama"]
+
+    // Generate with prompt override (in-memory, no disk write)
+    const gens = await Promise.all(
+      seedNames.map(seedName => atomicGenerate({
+        benchmarkType: cycle.target,
+        seedName,
+        promptOverride: proposal.newPrompt,
+        agentName: proposal.agentName,
+        experimentId: cycle.experimentId,
+      }))
+    )
+    const successfulGens = gens.filter(Boolean) as NonNullable<typeof gens[number]>[]
+
+    if (successfulGens.length === 0) {
+      console.log("[daemon] Atomic generation failed")
+      await db`UPDATE improvement_iterations SET result = 'failed', phase = 'done', finished_at = now() WHERE id = ${cycle.iterationId}`
+      cycle.consecutiveFailures++
+      if (cycle.consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+        await finishCycle("completed", "Generation failures"); return
+      }
+      await runIteration(judgeReasoning); return
+    }
+
+    // Judge only the target dimension
+    const judges = await Promise.all(
+      successfulGens.map(gen => atomicJudge({
+        generationId: gen.generationId,
+        dimension: cycle.dimension,
+        benchmarkType: cycle.target,
+      }))
+    )
+    const successfulJudges = judges.filter(Boolean) as NonNullable<typeof judges[number]>[]
+
+    if (successfulJudges.length === 0) {
+      console.log("[daemon] Atomic judging failed")
+      await db`UPDATE improvement_iterations SET result = 'failed', phase = 'done', finished_at = now() WHERE id = ${cycle.iterationId}`
+      cycle.consecutiveFailures++
+      if (cycle.consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+        await finishCycle("completed", "Judging failures"); return
+      }
+      await runIteration(judgeReasoning); return
+    }
+
+    // Compute average score
+    const newScore = Math.round(
+      (successfulJudges.reduce((s, j) => s + j.score, 0) / successfulJudges.length) * 10
+    ) / 10
+
+    // Store proposal for potential disk write if kept
+    cycle.pendingProposal = {
+      agentName: proposal.agentName,
+      newPrompt: proposal.newPrompt,
+      explanation: proposal.explanation,
+      filePath: targetFile.path,
+    }
+
+    await db`UPDATE improvement_iterations SET run_id = ${successfulGens[0].runId}, phase = 'evaluating' WHERE id = ${cycle.iterationId}`
+    await evaluateIterationAtomic(newScore, judgeReasoning)
+    return
+  }
+
+  // ── Subprocess mode: write to disk, run full benchmark ────────────
   const backup = applyChange(proposal, targetConfig)
   if (!backup) {
     await db`UPDATE improvement_iterations SET result = 'failed', phase = 'done', finished_at = now() WHERE id = ${cycle.iterationId}`
@@ -249,13 +396,11 @@ async function runIteration(judgeReasoning: string[]): Promise<void> {
   cycle.backup = backup
   await db`
     UPDATE improvement_iterations
-    SET phase = 'benchmarking', proposal_explanation = ${proposal.explanation},
-        agent_name = ${proposal.agentName}, file_path = ${targetFile.path},
-        backup_content = ${backup.originalContent}
+    SET backup_content = ${backup.originalContent},
+        proposed_content = ${proposal.newPrompt}
     WHERE id = ${cycle.iterationId}
   `
 
-  // Benchmark
   const benchResult = await runBenchmark(targetConfig.benchmarkCmd, cycle.experimentId)
   if (!benchResult) {
     console.log("[daemon] Benchmark failed, reverting")
@@ -288,6 +433,80 @@ async function runIteration(judgeReasoning: string[]): Promise<void> {
 
   // Non-prose benchmarks judge in real-time — evaluate now
   await evaluateIteration(judgeReasoning)
+}
+
+/**
+ * Evaluate an atomic iteration — score was computed in-process, no DB lookup needed.
+ * If kept, writes the proposal to disk. If reverted, nothing touches the filesystem.
+ */
+async function evaluateIterationAtomic(newScore: number, judgeReasoning: string[]): Promise<void> {
+  if (!activeCycle) return
+  const cycle = activeCycle
+
+  const delta = Math.round((newScore - cycle.currentScore) * 10) / 10
+  const improved = delta > 0
+
+  await db`
+    UPDATE improvement_iterations
+    SET new_score = ${newScore}, delta = ${delta},
+        result = ${improved ? 'kept' : 'reverted'}, phase = 'done', finished_at = now()
+    WHERE id = ${cycle.iterationId}
+  `
+
+  const iterCost = 0.011
+  await recordSpend(iterCost)
+  await db`UPDATE improvement_iterations SET cost_usd = ${iterCost} WHERE id = ${cycle.iterationId}`
+  await db`UPDATE improvement_cycles SET total_iterations = ${cycle.iterationNum}, total_cost_usd = total_cost_usd + ${iterCost} WHERE id = ${cycle.cycleId}`
+
+  if (improved && cycle.pendingProposal) {
+    console.log(`[daemon] KEPT: ${cycle.currentScore} → ${newScore} (${delta >= 0 ? "+" : ""}${delta})`)
+    // Write to disk only when keeping a change
+    const targetConfig = TARGETS[cycle.target]
+    if (targetConfig) {
+      const backup = applyChange(cycle.pendingProposal, targetConfig)
+      if (backup) {
+        // Save backup content so crash recovery can revert if needed
+        await db`UPDATE improvement_iterations SET backup_content = ${backup.originalContent} WHERE id = ${cycle.iterationId}`
+      }
+    }
+    cycle.currentScore = newScore
+    cycle.consecutiveFailures = 0
+    await db`UPDATE improvement_cycles SET kept_count = kept_count + 1 WHERE id = ${cycle.cycleId}`
+    const budget = await getTodayBudget()
+    await notify(`#${cycle.cycleId} iter ${cycle.iterationNum}: ${cycle.target}/${cycle.dimension} ${(cycle.currentScore - delta).toFixed(1)} → ${cycle.currentScore.toFixed(1)} (kept)`, `$${budget.spent.toFixed(2)} spent`)
+  } else {
+    console.log(`[daemon] REVERTED: ${cycle.currentScore} → ${newScore} (${delta >= 0 ? "+" : ""}${delta})`)
+    // No disk revert needed — prompt override was in-memory only
+    cycle.consecutiveFailures++
+  }
+
+  cycle.pendingProposal = undefined
+
+  // Budget alert
+  const budget = await getTodayBudget()
+  if (budget.spent / budget.budget >= BUDGET_ALERT_THRESHOLD) {
+    await notify(`Budget ${Math.round(budget.spent / budget.budget * 100)}%`, `$${budget.spent.toFixed(2)}/$${budget.budget.toFixed(2)}`)
+  }
+
+  // Stop conditions
+  if (cycle.iterationNum >= MAX_ITERATIONS) { await finishCycle("completed", `Max iterations (${MAX_ITERATIONS})`); return }
+  if (cycle.consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) { await finishCycle("completed", `${MAX_CONSECUTIVE_FAILURES} consecutive failures`); return }
+  if (!budget.allowed) { await finishCycle("budget-exhausted", `$${budget.spent.toFixed(2)}/$${budget.budget.toFixed(2)}`); return }
+
+  // Re-diagnose
+  const newDiagnosis = await diagnose()
+  if (newDiagnosis && (newDiagnosis.target !== cycle.target || newDiagnosis.dimension !== cycle.dimension)) {
+    console.log(`[daemon] Switching: ${cycle.target}/${cycle.dimension} → ${newDiagnosis.target}/${newDiagnosis.dimension}`)
+    cycle.target = newDiagnosis.target
+    cycle.dimension = newDiagnosis.dimension
+    cycle.currentScore = newDiagnosis.currentScore
+    // Re-check atomic support for new target
+    const newFullTarget = getDaemonTargetFull(newDiagnosis.target)
+    cycle.useAtomic = !!newFullTarget?.supportsAtomic
+    judgeReasoning = newDiagnosis.judgeReasoning
+  }
+
+  await runIteration(newDiagnosis?.judgeReasoning ?? judgeReasoning)
 }
 
 async function evaluateIteration(judgeReasoning: string[]): Promise<void> {
@@ -380,16 +599,30 @@ async function finishCycle(status: string, reason: string): Promise<void> {
   }
 
   const valStr = validationScore !== null ? `, validation: ${validationScore}` : ""
-  const summary = `${cycle.target}/${cycle.dimension}: ${cycle.baselineScore} → ${cycle.currentScore} (${totalDelta >= 0 ? "+" : ""}${totalDelta}${valStr}). ${cycle.iterationNum} iters, $${budget.spent.toFixed(2)}. ${reason}`
+  const statsSummary = `${cycle.target}/${cycle.dimension}: ${cycle.baselineScore} → ${cycle.currentScore} (${totalDelta >= 0 ? "+" : ""}${totalDelta}${valStr}). ${cycle.iterationNum} iters, $${budget.spent.toFixed(2)}. ${reason}`
 
-  await db`UPDATE improvement_cycles SET status = ${status}, finished_at = now(), summary = ${summary}, total_iterations = ${cycle.iterationNum} WHERE id = ${cycle.cycleId}`
+  // Synthesize a strategic conclusion from diffs + scores + reasoning
+  let conclusion = statsSummary
+  if (cycle.iterationNum > 0) {
+    console.log(`[daemon] Synthesizing conclusion...`)
+    const synthesized = await synthesizeConclusion(
+      cycle.cycleId, cycle.target, cycle.dimension,
+      cycle.baselineScore, cycle.currentScore,
+    )
+    if (synthesized) {
+      conclusion = `${statsSummary}\n\n${synthesized}`
+      console.log(`[daemon] Conclusion: ${synthesized.slice(0, 200)}...`)
+    }
+  }
+
+  await db`UPDATE improvement_cycles SET status = ${status}, finished_at = now(), summary = ${conclusion}, total_iterations = ${cycle.iterationNum} WHERE id = ${cycle.cycleId}`
 
   // Conclude the experiment in Postgres
-  await concludeExperiment(cycle.experimentId, summary)
+  await concludeExperiment(cycle.experimentId, conclusion)
   console.log(`[daemon] Experiment #${cycle.experimentId} concluded`)
 
-  await notify(`Cycle #${cycle.cycleId} ${status}`, `${summary}\nExperiment: #${cycle.experimentId}\n\nSync: bash scripts/sync-improvements.sh`)
-  console.log(`[daemon] Cycle #${cycle.cycleId} ${status}: ${summary}`)
+  await notify(`Cycle #${cycle.cycleId} ${status}`, `${conclusion}\nExperiment: #${cycle.experimentId}\n\nSync: bash scripts/sync-improvements.sh`)
+  console.log(`[daemon] Cycle #${cycle.cycleId} ${status}: ${statsSummary}`)
   activeCycle = null
 }
 

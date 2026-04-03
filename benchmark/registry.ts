@@ -45,3 +45,46 @@ export function getDaemonTarget(name: string): {
 export function getDaemonTargetNames(): string[] {
   return Object.keys(BENCHMARKS).filter(n => getDaemonTarget(n) !== undefined)
 }
+
+/** Extended daemon target with seeds, dimensions, and atomic support. */
+export function getDaemonTargetFull(name: string): {
+  promptFiles: Array<{ path: string; agentName: string }>
+  benchmarkCmd: string
+  runType: string
+  dimensions: readonly string[]
+  dimensionLabels: Record<string, string>
+  scoring: "score" | "penalty"
+  supportsAtomic: boolean
+  loadInputs: (filter?: string[]) => import("./engine").BenchmarkInput[]
+  buildAgentInput?: (input: import("./engine").BenchmarkInput, agentName?: string) => {
+    userPrompt: string; temperature: number; maxTokens: number;
+    responseFormat?: { type: "json_object" }
+  } | null
+  buildJudgePrompt?: (input: import("./engine").BenchmarkInput, output: string) => string
+  judgesDir: string
+  judgeSchema: import("zod").ZodSchema
+  scoreExtractor?: (parsed: any, dim: string) => number
+} | undefined {
+  const bench = BENCHMARKS[name]
+  if (!bench?.promptTargets || !bench?.runCmd) return undefined
+
+  const envPrefix = bench.daemonEnv
+    ? Object.entries(bench.daemonEnv).map(([k, v]) => `${k}=${v}`).join(" ") + " "
+    : ""
+
+  return {
+    promptFiles: bench.promptTargets,
+    benchmarkCmd: `${envPrefix}${bench.runCmd}`,
+    runType: bench.name,
+    dimensions: bench.dimensions,
+    dimensionLabels: bench.dimensionLabels,
+    scoring: bench.scoring,
+    supportsAtomic: !!bench.buildAgentInput,
+    loadInputs: bench.loadInputs,
+    buildAgentInput: bench.buildAgentInput,
+    buildJudgePrompt: bench.buildJudgePrompt,
+    judgesDir: bench.judgesDir,
+    judgeSchema: bench.judgeSchema,
+    scoreExtractor: bench.scoreExtractor,
+  }
+}

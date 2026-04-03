@@ -98,6 +98,18 @@ export interface BenchmarkConfig<D extends string = string> {
 
   /** Default env overrides for daemon runs (reduced seeds/runs for speed). */
   daemonEnv?: Record<string, string>
+
+  /**
+   * For atomic operations — build the user prompt + transport params for a
+   * single agent call. Returns null if this benchmark doesn't support atomic
+   * generation (e.g. prose, which has its own runner).
+   */
+  buildAgentInput?(input: BenchmarkInput, agentName?: string): {
+    userPrompt: string
+    temperature: number
+    maxTokens: number
+    responseFormat?: { type: "json_object" }
+  } | null
 }
 
 // ── Engine ──────────────────────────────────────────────────────────────
@@ -236,12 +248,12 @@ export async function runBenchmark<D extends string>(config: BenchmarkConfig<D>)
   }
 
   console.log(`\n  Run ID: ${runId}`)
-  console.log(`  DB: data/harness.db`)
+  console.log(`  DB: Postgres`)
 }
 
 // ── Judge call (shared) ─────────────────────────────────────────────────
 
-async function judgeOneDimension(
+export async function judgeOneDimension(
   judge: JudgeConfig,
   dimension: string,
   rubric: string,

@@ -112,4 +112,10 @@ export const config: BenchmarkConfig<typeof DIMENSIONS[number]> = {
   ],
   runCmd: "bun benchmark/planning/run.ts",
   daemonEnv: { BENCHMARK_SEEDS: "romance-drama", BENCHMARK_RUNS: "2" },
+  buildAgentInput: (input) => ({
+    userPrompt: input.prompt,
+    temperature: 0.6,
+    maxTokens: 8192,
+    responseFormat: { type: "json_object" },
+  }),
 }

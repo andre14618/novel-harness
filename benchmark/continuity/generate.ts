@@ -107,4 +107,17 @@ export const config: BenchmarkConfig<typeof DIMENSIONS[number]> = {
   ],
   runCmd: "bun benchmark/continuity/run.ts",
   daemonEnv: { BENCHMARK_FIXTURES: "location-impossibility,character-knowledge-violation", BENCHMARK_RUNS: "2" },
+  buildAgentInput: (input) => {
+    const context = `CHAPTERS:\n${input.chapters.map((c: any) =>
+      `--- Chapter ${c.number} ---\n${c.prose}`
+    ).join("\n\n")}\n\nESTABLISHED FACTS:\n${input.facts.map((f: any) =>
+      `[ch${f.chapter}] ${f.fact}`
+    ).join("\n")}`
+    return {
+      userPrompt: context,
+      temperature: 0.2,
+      maxTokens: 4096,
+      responseFormat: { type: "json_object" },
+    }
+  },
 }

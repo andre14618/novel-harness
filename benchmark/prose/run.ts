@@ -146,7 +146,7 @@ async function main() {
     console.log(`  Check status: bun benchmark/batch/status.ts`)
     console.log(`  Collect results: bun benchmark/batch/collect.ts`)
     console.log(`\n  Run ID: ${runId}`)
-    console.log(`  DB: data/harness.db`)
+    console.log(`  DB: Postgres`)
     return
   }
 
@@ -248,7 +248,7 @@ async function main() {
   }
 
   console.log(`\n  Run ID: ${runId}`)
-  console.log(`  DB: data/harness.db`)
+  console.log(`  DB: Postgres`)
 }
 
 main()
