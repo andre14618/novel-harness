@@ -21,8 +21,9 @@ export function getCentralDB() {
 async function seedLintPatterns() {
   const [tier1Row] = await db`SELECT COUNT(*) as c FROM lint_patterns WHERE tier = 1`
   if ((tier1Row as any).c > 0) {
-    // Tier 1 already seeded — just check Tier 2
+    // Tier 1 already seeded — just check Tier 2 and 3
     await seedTier2Patterns()
+    await seedTier3Patterns()
     return
   }
 
@@ -180,6 +181,7 @@ async function seedLintPatterns() {
   }
 
   await seedTier2Patterns()
+  await seedTier3Patterns()
 }
 
 async function seedTier2Patterns() {
@@ -222,6 +224,42 @@ async function seedTier2Patterns() {
       "Remove 'could taste' — describe the taste directly.", false,
       "'He could taste blood' → 'Blood coated his tongue' or 'Copper filled his mouth.' Direct sensory is stronger.",
       "In dialogue, skip."],
+  ]
+
+  for (const [tier, category, pattern, flags, fix_template, dialogue_ok, rationale, edge_cases] of patterns) {
+    await db`
+      INSERT INTO lint_patterns (tier, category, pattern, flags, fix_template, dialogue_ok, rationale, edge_cases)
+      VALUES (${tier}, ${category}, ${pattern}, ${flags}, ${fix_template}, ${dialogue_ok}, ${rationale}, ${edge_cases})
+    `
+  }
+}
+
+async function seedTier3Patterns() {
+  const [tier3Row] = await db`SELECT COUNT(*) as c FROM lint_patterns WHERE tier = 3`
+  if ((tier3Row as any).c > 0) return
+
+  const patterns: [number, string, string, string, string, boolean, string, string | null][] = [
+    // ── Tier 3: Said bookisms (dialogue tag abuse) ──────────────
+    [3, "SAID_BOOKISM", "\\b(exclaimed|proclaimed|declared|announced|stated|remarked|uttered|intoned|opined|asserted|murmured|breathed|hissed|growled|snarled|barked|snapped|chirped|quipped|mused|crooned)\\b(?=\\s|,|\\.|$)", "gi",
+      "Replace with 'said' or an action beat.", false,
+      "Fancy dialogue tags call attention to themselves and away from the dialogue. 'Said' is invisible to readers. Action beats ('She set down the cup.') do more work than any tag.",
+      "Exception: 'whispered' and 'shouted' are fine when volume matters. 'Asked' for questions. In dialogue-heavy scenes, occasional variety is natural — flag only when the tag is doing the emotion's job."],
+
+    [3, "SAID_BOOKISM", "\\bsaid\\s+(softly|loudly|quietly|angrily|sadly|happily|nervously|anxiously|cheerfully|sarcastically|bitterly|wearily|eagerly|reluctantly|firmly|gently|coldly|warmly)\\b", "gi",
+      "Cut the adverb — let dialogue or action convey tone.", false,
+      "'Said angrily' tells the reader how to hear the line instead of writing dialogue that sounds angry on its own. The adverb is a crutch for weak dialogue.",
+      "Rare exception: when the adverb contradicts the words ('Fine,' she said coldly) and the contrast is the point."],
+
+    // ── Tier 3: Declared emotions (telling feelings directly) ───
+    [3, "DECLARED_EMOTION", "\\b(she|he|they|[A-Z][a-z]+)\\s+(was|were|felt)\\s+(angry|sad|happy|afraid|scared|nervous|anxious|excited|frustrated|annoyed|furious|terrified|heartbroken|devastated|elated|thrilled|relieved|embarrassed|ashamed|guilty|jealous|lonely|confused|shocked|stunned|disgusted|horrified|delighted|overjoyed|miserable|desperate|hopeful|grateful|proud|content)\\b", "g",
+      "Show the emotion through body language, action, or dialogue instead.", false,
+      "Naming the emotion short-circuits the reader's experience. 'She was afraid' gives information. 'Her hands shook; she couldn't get the key into the lock' creates the feeling.",
+      "In rapid-fire action where pacing matters, a quick emotion label can work. In dialogue ('I'm angry'), the character is speaking — skip. Internal monologue may name emotions the character is processing."],
+
+    [3, "DECLARED_EMOTION", "\\b(a\\s+)?(wave|surge|pang|jolt|rush|stab|flash|flicker|spark|burst)\\s+of\\s+(anger|sadness|happiness|fear|grief|joy|rage|terror|panic|dread|guilt|shame|relief|hope|love|hatred|jealousy|longing|anxiety|despair|excitement|frustration)\\b", "gi",
+      "Replace the abstraction with a physical sensation or action.", false,
+      "'A wave of grief' is a cliché that names the emotion wrapped in a dead metaphor. Show the grief through what the character does or feels physically: 'Her chest caved. She sat down on the curb because her legs wouldn't hold.'",
+      "Occasionally the character is analytically noting their own emotion in internal monologue — the rewriter should judge."],
   ]
 
   for (const [tier, category, pattern, flags, fix_template, dialogue_ok, rationale, edge_cases] of patterns) {

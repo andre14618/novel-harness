@@ -25,8 +25,8 @@ These are mechanical — run a script, read numbers, change a value.
 - [x] **Consolidate duplicate judge rubrics** — `dialogue.md`, `telling.md`, `sensory.md` overlap with the penalty rubrics. Delete or merge redundant ones.
   - Status: Done. Deleted show-tell.md, show-tell-counted.md, dialogue.md, sensory.md (all unused legacy calibration rubrics). Removed CALIBRATE_DIMENSIONS from schema.ts. 3 active penalty rubrics remain: telling, dead-weight, dialogue-problems.
 
-- [ ] **Cost optimization sweep** — Run `bun scripts/cost-summary.ts --global`, identify most expensive agents, check if cheaper models have parity.
-  - Status: Real per-call cost tracking now in llm_calls (commit 3e960ee). Per-agent cost tracked but not analyzed for savings.
+- [x] **Cost optimization sweep** — Run `bun scripts/cost-summary.ts --global`, identify most expensive agents, check if cheaper models have parity.
+  - Status: Done. Analysis: Judge was most expensive ($0.80/613 calls) on groq/gpt-oss-120b, now moved to deepseek-chat ($0.058/83 calls, 10x cheaper with cache hits). Extractors were on Kimi K2 ($1/$3 per M tok), now on Qwen3 32B ($0.29/$0.59). Writer remains on Kimi K2 — candidate for Qwen3 32B swap pending quality comparison (temperature sweep or pairwise test).
 
 - [ ] **Audit batch API routing across all LLM call paths** — Verify BatchTransport works for every call path: judge calls (atomic + subprocess), improver calls, generation calls. Prose `--batch` was hardcoding gpt-5.4-mini (fixed), but batch routing is still only partially wired. Need to: (1) confirm which providers support batch APIs (OpenAI, Groq — not DeepSeek), (2) test LLM_TRANSPORT=batch end-to-end for each call type, (3) ensure batch submission + collection works. Matters more with expensive models or providers offering async batch discounts.
   - Status: Transport layer supports batch mode but untested outside prose runner
