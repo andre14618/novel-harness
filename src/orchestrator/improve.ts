@@ -178,18 +178,18 @@ export async function buildImproverContext(
           const targetScore = dimScores.find((s: any) => s.dimension === dimension)
           const others = dimScores.filter((s: any) => s.dimension !== dimension)
           if (targetScore) {
-            parts.push(`Target dimension (${dimension}): ${targetScore.avg_score}/10`)
+            parts.push(`Target dimension (${dimension}): ${targetScore.avg_score} (higher=better)`)
           }
           if (others.length > 0) {
-            parts.push(`Other dimensions (don't regress): ${others.map((s: any) => `${s.dimension}: ${s.avg_score}/10`).join(", ")}`)
+            parts.push(`Other dimensions (don't regress): ${others.map((s: any) => `${s.dimension}: ${s.avg_score}`).join(", ")}`)
           }
         }
 
         if (seedScores.length > 0) {
-          parts.push(`Per-seed scores for ${dimension}: ${seedScores.map((s: any) => `${s.seed}: ${s.avg_score}/10`).join(", ")}`)
+          parts.push(`Per-seed scores for ${dimension}: ${seedScores.map((s: any) => `${s.seed}: ${s.avg_score}`).join(", ")}`)
           const weakest = seedScores[0]
           if (seedScores.length > 1 && parseFloat(weakest.avg_score) < parseFloat(seedScores[seedScores.length - 1].avg_score) - 1) {
-            parts.push(`Weakest seed: ${weakest.seed} (${weakest.avg_score}/10) — focus improvements here`)
+            parts.push(`Weakest seed: ${weakest.seed} (${weakest.avg_score}) — focus improvements here`)
           }
         }
 
@@ -291,7 +291,7 @@ Respond with ONLY valid JSON:
 ${promptSection}
 
 ## Target Dimension: ${dimension}
-## Current Score: ${currentScore}
+## Current Score: ${currentScore} (higher=better)
 
 ## Judge Reasoning (why the score is low):
 
@@ -468,7 +468,7 @@ Be specific about the prompt engineering principles at work. Don't just restate 
 
   const userPrompt = `## Cycle Summary
 Target: ${target}/${dimension}
-Baseline: ${baselineScore}/10 → Final: ${finalScore}/10 (${finalScore >= baselineScore ? "+" : ""}${(finalScore - baselineScore).toFixed(1)})
+Baseline: ${baselineScore} → Final: ${finalScore} (${finalScore >= baselineScore ? "+" : ""}${(finalScore - baselineScore).toFixed(1)}, higher=better)
 Iterations: ${iters.length}
 
 ## Attempts

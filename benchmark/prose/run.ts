@@ -8,7 +8,8 @@ import {
 } from "../db"
 import { loadSeeds, generateProse, judgeDimension, JUDGE_RUBRICS, mean, stddev } from "./shared"
 import { lintRun } from "../../src/lint/index"
-import { getBatchProvider } from "../batch/providers"
+import { getBatchProvider, listBatchProviders } from "../batch/providers"
+import { PROVIDERS } from "../../models/registry"
 import { createBatch, addBatchRequest, updateBatchSubmitted } from "../../data/db"
 
 import { setTransport, BatchTransport } from "../../src/transport"
@@ -86,7 +87,7 @@ async function main() {
               if (penalty) {
                 await saveScore(genId, judge.label, dim, penalty.count, JSON.stringify(penalty.issues))
                 allScores.push({ seed: seed.name, run, dim, count: penalty.count, wordCount: words })
-                console.log(`  [${seed.name}:${run}] ${DIMENSION_LABELS[dim]}: ${penalty.count} issues`)
+                console.log(`  [${seed.name}:${run}] ${DIMENSION_LABELS[dim]}: ${Math.abs(penalty.count)} issues`)
               }
               return { judge: judge.label, dim, penalty }
             })
@@ -114,6 +115,16 @@ async function main() {
     const batchJudge = judges[0]
     const batchProvider = process.env.BATCH_PROVIDER ?? batchJudge.provider
     const batchModel = process.env.BATCH_MODEL ?? batchJudge.model
+
+    // Validate the provider actually supports batch API
+    const providerDef = PROVIDERS[batchProvider as keyof typeof PROVIDERS]
+    if (!providerDef?.batchApi?.available) {
+      const available = listBatchProviders()
+      console.error(`\n  Error: '${batchProvider}' does not support batch API.`)
+      console.error(`  Available batch providers: ${available.join(", ")}`)
+      console.error(`  Use BATCH_PROVIDER=${available[0]} BATCH_MODEL=<model> bun benchmark/prose/run.ts --batch`)
+      process.exit(1)
+    }
 
     const batchTransport = new BatchTransport(getBatchProvider(batchProvider), batchModel)
     setTransport(batchTransport)
@@ -155,7 +166,7 @@ async function main() {
   // ── Report (only in non-batch mode) ────────────────────────────────────
 
   console.log("\n" + "=".repeat(60))
-  console.log("  BENCHMARK RESULTS (penalty — lower = better)")
+  console.log("  PROSE BENCHMARK RESULTS")
   console.log("=".repeat(60))
 
   console.log(`\n  Writer: ${writer.label}`)
@@ -163,22 +174,24 @@ async function main() {
   console.log(`  Seeds: ${seeds.length} x ${RUNS_PER_SEED} runs`)
 
   // Per-dimension averages (raw + normalized)
-  const per1k = (s: { count: number; wordCount: number }) => s.wordCount > 0 ? s.count / s.wordCount * 1000 : 0
+  // count is negative (negated at extraction), use Math.abs for display
+  const abs = (n: number) => Math.abs(n)
+  const per1k = (s: { count: number; wordCount: number }) => s.wordCount > 0 ? abs(s.count) / s.wordCount * 1000 : 0
   const avgWords = mean(allScores.map(s => s.wordCount))
 
-  console.log(`\n  Per-dimension averages (raw issues | per 1k words):`)
+  console.log(`\n  Per-dimension averages (issues | per 1k words):`)
   const dimStats: Array<{ dim: Dimension; avg: number; std: number; normAvg: number; normStd: number }> = []
   for (const dim of DIMENSIONS) {
     const dimScores = allScores.filter(s => s.dim === dim)
-    const counts = dimScores.map(s => s.count)
+    const counts = dimScores.map(s => abs(s.count))
     const norms = dimScores.map(per1k)
     const avg = mean(counts), std = stddev(counts)
     const normAvg = mean(norms), normStd = stddev(norms)
     dimStats.push({ dim, avg, std, normAvg, normStd })
     console.log(`    ${DIMENSION_LABELS[dim].padEnd(14)} ${avg.toFixed(1)} issues (+-${std.toFixed(1)})  |  ${normAvg.toFixed(1)}/1k (+-${normStd.toFixed(1)})`)
   }
-  const totalAvg = mean(allScores.map(s => s.count))
-  const totalStd = stddev(allScores.map(s => s.count))
+  const totalAvg = mean(allScores.map(s => abs(s.count)))
+  const totalStd = stddev(allScores.map(s => abs(s.count)))
   const totalNormAvg = mean(allScores.map(per1k))
   const totalNormStd = stddev(allScores.map(per1k))
   console.log(`    ${"TOTAL".padEnd(14)} ${totalAvg.toFixed(1)} issues/dim (+-${totalStd.toFixed(1)})  |  ${totalNormAvg.toFixed(1)}/1k (+-${totalNormStd.toFixed(1)})`)
@@ -191,9 +204,9 @@ async function main() {
     const seedWords = mean(seedScores.map(s => s.wordCount))
     const dimStr = DIMENSIONS.map(dim => {
       const dimScores = seedScores.filter(s => s.dim === dim)
-      return `${DIMENSION_LABELS[dim]}:${mean(dimScores.map(s => s.count)).toFixed(1)}(${mean(dimScores.map(per1k)).toFixed(1)}/1k)`
+      return `${DIMENSION_LABELS[dim]}:${mean(dimScores.map(s => abs(s.count))).toFixed(1)}(${mean(dimScores.map(per1k)).toFixed(1)}/1k)`
     }).join(" ")
-    const seedAvg = mean(seedScores.map(s => s.count))
+    const seedAvg = mean(seedScores.map(s => abs(s.count)))
     console.log(`    ${seed.name.padEnd(24)} ${dimStr} (avg ${seedAvg.toFixed(1)}, ${seedWords.toFixed(0)}w)`)
   }
 
@@ -207,7 +220,7 @@ async function main() {
     return `${label}:${d.normAvg.toFixed(1)}`
   }).join(" ")
   const summary = `benchmark: ${totalAvg.toFixed(1)} issues/dim (+-${totalStd.toFixed(1)}) ${dimShort} | norm: ${totalNormAvg.toFixed(1)}/1k ${normShort}`
-  console.log(`\n  Commit line:\n  ${summary}\n  ${seeds.length} seeds x ${RUNS_PER_SEED} runs | penalty mode`)
+  console.log(`\n  Commit line:\n  ${summary}\n  ${seeds.length} seeds x ${RUNS_PER_SEED} runs`)
 
   // ── Compare to baseline ────────────────────────────────────────────────
 
@@ -218,11 +231,13 @@ async function main() {
       const current = dimStats.find(d => d.dim === dim)
       const baseline = baselineAvgs.find(d => d.dimension === dim)
       if (current && baseline) {
-        const delta = Math.round((current.avg - baseline.avg) * 10) / 10
+        // Both are issue counts (positive). Fewer issues = better.
+        const baselineIssues = Math.abs(baseline.avg)
+        const delta = Math.round((current.avg - baselineIssues) * 10) / 10
         if (Math.abs(delta) >= 0.2) {
           const arrow = delta < 0 ? "" : "+"
           const quality = delta < 0 ? "(better)" : "(worse)"
-          console.log(`    ${DIMENSION_LABELS[dim]}: ${arrow}${delta} issues (${baseline.avg} -> ${current.avg.toFixed(1)}) ${quality}`)
+          console.log(`    ${DIMENSION_LABELS[dim]}: ${arrow}${delta} issues (${baselineIssues} -> ${current.avg.toFixed(1)}) ${quality}`)
         }
       }
     }
