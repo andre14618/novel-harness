@@ -44,11 +44,11 @@ export async function runConceptPhase(novelId: string, seed: SeedInput): Promise
           const worldResult = await callAgent({
             novelId, agentName: "world-builder",
             systemPrompt: WORLD_BUILDER_PROMPT, userPrompt: contexts.world,
-            schema: worldBibleSchema, temperature: 0.7, maxTokens: 8192,
+            schema: worldBibleSchema,
           })
           const decision = await presentForApproval("World Bible", formatWorldBible(worldResult.output))
           if (decision === "reject") {
-            const retry = await callAgent({ novelId, agentName: "world-builder-retry", systemPrompt: WORLD_BUILDER_PROMPT, userPrompt: contexts.world, schema: worldBibleSchema, temperature: 0.8 })
+            const retry = await callAgent({ novelId, agentName: "world-builder-retry", systemPrompt: WORLD_BUILDER_PROMPT, userPrompt: contexts.world, schema: worldBibleSchema })
             saveWorldBible(novelId, retry.output)
           } else {
             saveWorldBible(novelId, worldResult.output)
@@ -75,11 +75,11 @@ export async function runConceptPhase(novelId: string, seed: SeedInput): Promise
           const charResult = await callAgent({
             novelId, agentName: "character-agent",
             systemPrompt: CHARACTER_AGENT_PROMPT, userPrompt: contexts.character,
-            schema: characterProfilesSchema, temperature: 0.7, maxTokens: 8192,
+            schema: characterProfilesSchema,
           })
           const decision = await presentForApproval("Character Profiles", formatCharacterProfiles(charResult.output.characters))
           if (decision === "reject") {
-            const retry = await callAgent({ novelId, agentName: "character-agent-retry", systemPrompt: CHARACTER_AGENT_PROMPT, userPrompt: contexts.character, schema: characterProfilesSchema, temperature: 0.8 })
+            const retry = await callAgent({ novelId, agentName: "character-agent-retry", systemPrompt: CHARACTER_AGENT_PROMPT, userPrompt: contexts.character, schema: characterProfilesSchema })
             for (const char of retry.output.characters) saveCharacter(novelId, char)
           } else {
             for (const char of charResult.output.characters) saveCharacter(novelId, char)
@@ -106,11 +106,11 @@ export async function runConceptPhase(novelId: string, seed: SeedInput): Promise
           const spineResult = await callAgent({
             novelId, agentName: "plotter",
             systemPrompt: PLOTTER_AGENT_PROMPT, userPrompt: contexts.plotter,
-            schema: storySpineSchema, temperature: 0.7, maxTokens: 8192,
+            schema: storySpineSchema,
           })
           const decision = await presentForApproval("Story Spine", formatStorySpine(spineResult.output))
           if (decision === "reject") {
-            const retry = await callAgent({ novelId, agentName: "plotter-retry", systemPrompt: PLOTTER_AGENT_PROMPT, userPrompt: contexts.plotter, schema: storySpineSchema, temperature: 0.8 })
+            const retry = await callAgent({ novelId, agentName: "plotter-retry", systemPrompt: PLOTTER_AGENT_PROMPT, userPrompt: contexts.plotter, schema: storySpineSchema })
             saveStorySpine(novelId, retry.output)
           } else {
             saveStorySpine(novelId, spineResult.output)

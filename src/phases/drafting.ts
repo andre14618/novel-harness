@@ -64,8 +64,6 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
           systemPrompt: WRITER_AGENT_PROMPT,
           userPrompt: writerContext,
           schema: chapterDraftSchema,
-          temperature: 0.8,
-          maxTokens: 16384,
         })
         prose = draftResult.output.prose
         wordCount = prose.split(/\s+/).filter(Boolean).length
@@ -101,7 +99,6 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
           systemPrompt: CONTINUITY_AGENT_PROMPT,
           userPrompt: buildContinuityContext(prose, facts, charStates),
           schema: continuityCheckSchema,
-          temperature: 0.2,
         })
         issues = continuityResult.output.issues
 

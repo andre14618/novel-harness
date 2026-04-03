@@ -29,8 +29,6 @@ export async function runPlanningPhase(novelId: string): Promise<void> {
       systemPrompt: PLANNING_PLOTTER_PROMPT,
       userPrompt: context,
       schema: chapterOutlinesSchema,
-      temperature: 0.6,
-      maxTokens: 8192,
     })
     log(novelId, "info", `Planning agent generated ${result.output.chapters.length} chapter outlines`)
   } catch (err) {
@@ -52,8 +50,6 @@ export async function runPlanningPhase(novelId: string): Promise<void> {
       systemPrompt: PLANNING_PLOTTER_PROMPT,
       userPrompt: context,
       schema: chapterOutlinesSchema,
-      temperature: 0.7,
-      maxTokens: 8192,
     })
     for (const outline of retry.output.chapters) saveChapterOutline(novelId, outline)
     updateTotalChapters(novelId, retry.output.chapters.length)

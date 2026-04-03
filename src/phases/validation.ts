@@ -76,7 +76,6 @@ export async function runValidationPhase(novelId: string): Promise<void> {
           systemPrompt: CROSS_CHAPTER_CONTINUITY_PROMPT,
           userPrompt: ctx,
           schema: crossChapterContinuitySchema,
-          temperature: 0.2,
         })
 
         const issues = llmResult.output.issues.filter(i => i.severity === "blocker" || i.severity === "warning")
@@ -118,7 +117,6 @@ export async function runValidationPhase(novelId: string): Promise<void> {
             systemPrompt: PROSE_QUALITY_PROMPT,
             userPrompt: ctx,
             schema: proseQualitySchema,
-            temperature: 0.2,
           })
 
           const issues = qualityResult.output.issues
@@ -188,8 +186,6 @@ export async function runValidationPhase(novelId: string): Promise<void> {
           systemPrompt: REWRITER_AGENT_PROMPT,
           userPrompt: ctx,
           schema: rewriterOutputSchema,
-          temperature: 0.5,
-          maxTokens: 16384,
         })
 
         const newProse = rewriteResult.output.prose

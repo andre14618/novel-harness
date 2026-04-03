@@ -192,12 +192,18 @@ export function getTokenUsage() {
 // ── callAgent ─────────────────────────────────────────────────────────────
 
 export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<T>> {
-  const temperature = config.temperature ?? 0.7
-  const maxTokens = config.maxTokens ?? 4096
-  const thinking = config.thinking ?? false
-  const providerName = resolveProviderName(config.provider)
-  const provider = resolveProvider(config.provider)
-  const model = resolveModel(config.provider, config.model)
+  // Look up agent in roles.ts — use as base, explicit config values override.
+  // Strip -retry suffix so retries use the same model as the original agent.
+  const roleName = config.agentName?.replace(/-retry$/, "")
+  const role = roleName ? getAgentConfig(roleName) : undefined
+  const temperature = config.temperature ?? role?.temperature ?? 0.7
+  const maxTokens = config.maxTokens ?? role?.maxTokens ?? 4096
+  const thinking = config.thinking ?? role?.thinking ?? false
+  const effectiveProvider = config.provider ?? role?.provider
+  const effectiveModel = config.model ?? role?.model
+  const providerName = resolveProviderName(effectiveProvider)
+  const provider = resolveProvider(effectiveProvider)
+  const model = resolveModel(effectiveProvider, effectiveModel)
 
   // /nothink only needed for Qwen 3 on Groq/OpenRouter (Cerebras model doesn't support thinking)
   const needsNothink = !thinking && providerName !== "cerebras"

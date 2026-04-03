@@ -22,21 +22,18 @@ export async function updateStateAfterChapter(novelId: string, chapterNum: numbe
       systemPrompt: SUMMARY_EXTRACTOR_PROMPT,
       userPrompt: buildSummaryContext(prose),
       schema: chapterSummarySchema,
-      temperature: 0.2,
     }),
     callAgent({
       novelId, agentName: "fact-extractor",
       systemPrompt: FACT_EXTRACTOR_PROMPT,
       userPrompt: buildFactExtractionContext(prose),
       schema: factExtractionSchema,
-      temperature: 0.1,
     }),
     callAgent({
       novelId, agentName: "character-state",
       systemPrompt: CHARACTER_STATE_PROMPT,
       userPrompt: buildCharacterStateContext(prose, characters),
       schema: characterStateUpdateSchema,
-      temperature: 0.1,
     }),
   ])
 
