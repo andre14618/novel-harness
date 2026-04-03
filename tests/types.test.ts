@@ -209,7 +209,7 @@ describe("factExtractionSchema", () => {
   })
 
   test("accepts all category values", () => {
-    for (const cat of ["physical", "rule", "relationship", "knowledge"]) {
+    for (const cat of ["physical", "rule", "relationship", "knowledge", "sensory", "temporal", "emotional"]) {
       const result = factExtractionSchema.safeParse({
         facts: [{ fact: "test", category: cat }],
       })
@@ -219,7 +219,7 @@ describe("factExtractionSchema", () => {
 
   test("rejects invalid category", () => {
     const result = factExtractionSchema.safeParse({
-      facts: [{ fact: "test", category: "emotional" }],
+      facts: [{ fact: "test", category: "magical" }],
     })
     expect(result.success).toBe(false)
   })
