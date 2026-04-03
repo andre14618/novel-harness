@@ -70,9 +70,10 @@ These require understanding *why* something scores poorly and making a targeted 
   - Measure: Dialogue Cues benchmark + downstream Dialogue Problems in prose
   - Status: Done (Experiment #30, daemon cycle #3). Dialogue-cues 4.6 → 7.0 (+2.4), validated at 8/10. Added explicit dialogue-cue scaffolding: opener with speaker/subtext, mid-beat micro-cues, emotional sting closer.
 
-- [ ] **Rewriter precision measurement** — After rewriter runs, re-judge the same dimensions. Did issues go down? Did new issues appear?
+- [x] **Rewriter precision measurement** — After rewriter runs, re-judge the same dimensions. Did issues go down? Did new issues appear?
   - Measure: Delta in penalty scores pre/post rewrite
   - Model: Sonnet can build the comparison script and interpret results
+  - Status: Done (Experiment #34). Script: benchmark/prose/rewriter-precision.ts. Results (3 runs, romance-drama): Telling -5.7, Dialogue -11.3, Dead Weight +10.0, Overall -2.3. Rewriter fixes telling/dialogue but introduces dead weight. Also tends to over-cut (578w from 1133w in one run). Rewriter prompt needs dead-weight awareness.
 
 - [ ] **Context builder enrichment** — Add previous chapter's emotional throughline to writer context. Add theme context to rewriter. Add character voice summary to prose-quality checker.
   - Measure: Pairwise comparison with/without enriched context
