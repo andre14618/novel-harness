@@ -10,15 +10,13 @@ import { loadSeeds, generateProse, judgeDimension, JUDGE_RUBRICS, mean, stddev }
 import { lintRun } from "../../src/lint/index"
 import { getBatchProvider } from "../batch/providers"
 import { createBatch, addBatchRequest, updateBatchSubmitted } from "../../data/db"
-import { MODELS } from "../../models/registry"
+
 import { setTransport, BatchTransport } from "../../src/transport"
 
 // ── Config ───────────────────────────────────────────────────────────────
 
 const RUNS_PER_SEED = parseInt(process.env.BENCHMARK_RUNS ?? "3")
 const BATCH_MODE = process.argv.includes("--batch")
-const BATCH_PROVIDER = process.env.BATCH_PROVIDER ?? "openai"
-const BATCH_MODEL = process.env.BATCH_MODEL ?? "gpt-5.4-mini"
 
 // ── Main ─────────────────────────────────────────────────────────────────
 
@@ -37,7 +35,9 @@ async function main() {
   console.log(`Seeds: ${seeds.map(s => s.name).join(", ")}`)
   console.log(`Runs per seed: ${RUNS_PER_SEED}`)
   if (BATCH_MODE) {
-    console.log(`Mode: BATCH (${BATCH_PROVIDER} / ${BATCH_MODEL})`)
+    const bp = process.env.BATCH_PROVIDER ?? judges[0]?.provider ?? "?"
+    const bm = process.env.BATCH_MODEL ?? judges[0]?.model ?? "?"
+    console.log(`Mode: BATCH (${bp} / ${bm})`)
   } else {
     console.log(`Judge: ${judges.map(j => j.label).join(", ")}`)
   }
@@ -110,27 +110,29 @@ async function main() {
   // judgeDimension() builds the same prompts as real-time mode — transport queues them.
 
   if (BATCH_MODE && generatedProse.length > 0) {
-    const batchTransport = new BatchTransport(getBatchProvider(BATCH_PROVIDER), BATCH_MODEL)
+    // Use the judge from roles.ts by default. Env overrides for one-off batch experiments.
+    const batchJudge = judges[0]
+    const batchProvider = process.env.BATCH_PROVIDER ?? batchJudge.provider
+    const batchModel = process.env.BATCH_MODEL ?? batchJudge.model
+
+    const batchTransport = new BatchTransport(getBatchProvider(batchProvider), batchModel)
     setTransport(batchTransport)
 
-    const batchModelDef = MODELS.find(m => m.id === BATCH_MODEL)
-    const batchJudge = {
-      label: batchModelDef?.label ?? BATCH_MODEL,
-      provider: (batchModelDef?.provider ?? BATCH_PROVIDER) as any,
-      model: BATCH_MODEL,
-      apiUrl: "", apiKey: "",
-      useMaxCompletionTokens: batchModelDef?.useMaxCompletionTokens,
+    const batchJudgeConfig = {
+      ...batchJudge,
+      provider: batchProvider as any,
+      model: batchModel,
     }
 
     // Queue all judge calls through the transport
     for (const gen of generatedProse) {
       for (const dim of DIMENSIONS) {
-        await judgeDimension(batchJudge, dim, gen.prose, runId, gen.seed, `gen-${gen.genId}-${dim}`)
+        await judgeDimension(batchJudgeConfig, dim, gen.prose, runId, gen.seed, `gen-${gen.genId}-${dim}`)
       }
     }
 
     // Register in DB and flush
-    const batchId = await createBatch(runId, BATCH_PROVIDER, BATCH_MODEL)
+    const batchId = await createBatch(runId, batchProvider, batchModel)
     for (const q of batchTransport.getQueue()) {
       const parts = q.customId.match(/^gen-(\d+)-(.+)$/)
       if (parts) await addBatchRequest(batchId, q.customId, parseInt(parts[1]), parts[2])
@@ -140,7 +142,7 @@ async function main() {
     const requestCount = batchTransport.queueSize()
     await updateBatchSubmitted(batchId, providerBatchId, `data/batches/input-*.jsonl`, requestCount)
 
-    console.log(`\n  Batch submitted: ${requestCount} judge calls via ${BATCH_PROVIDER}/${BATCH_MODEL}`)
+    console.log(`\n  Batch submitted: ${requestCount} judge calls via ${batchProvider}/${batchModel}`)
     console.log(`  Provider batch ID: ${providerBatchId}`)
     console.log(`  Local batch: #${batchId}`)
     console.log(`  Check status: bun benchmark/batch/status.ts`)
