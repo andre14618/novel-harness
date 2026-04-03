@@ -120,35 +120,23 @@ These require deep understanding of prose craft — knowing what makes writing w
   - Measure: New rubric + human eval. Hard to judge with LLM alone.
   - Model: Opus — this is one of the hardest prose craft skills to evaluate
 
-## Improvement Daemon Gaps
+## Improvement Daemon
 
-Bugs fixed 2026-04-03 (commit TBD): diagnose sort was inverted for score-based benchmarks (targeted best dims instead of worst), judge reasoning query returned best generations instead of worst, benchmark types were hardcoded instead of derived from registry.
+Overhaul completed 2026-04-03:
 
-Remaining design gaps, ordered by impact:
+- [x] **Scoring normalization** — Negated penalty scores at extraction boundary so higher=better everywhere. Removed all `isPenalty` branching from diagnose, daemon-loop, and atomic. Fixed diagnose sort (was targeting best dims instead of worst for score-based benchmarks) and judge reasoning query (was returning best instead of worst).
+- [x] **Statistical keep/revert threshold** — `minDeltaThreshold: 0.3` replaces the `delta > 0` noise-prone check. `maxConsecutiveFailures` raised from 3 to 5 to compensate.
+- [x] **Improver system prompt** — Replaced 8-line generic prompt with detailed guidance: scoring context, good change patterns, anti-patterns, strategy guidance for stuck cycles.
+- [x] **Improver model upgrade** — Switched from Kimi K2 on Groq to DeepSeek V3.2. Better reasoning for the analytical task of reading judge feedback and proposing prompt edits.
+- [x] **Proposal diversity** — Temperature escalation on consecutive failures (0.7 → 0.8 → 0.9 → 1.0). Strategy hint after 2+ failures telling the model to try a fundamentally different approach.
+- [x] **Auto-commit** — Daemon now auto-commits kept changes with experiment/cycle/iter metadata in both atomic and subprocess paths.
+- [x] **Seed coverage** — Atomic mode loads seeds from registry `loadInputs()` (up to 3) instead of hardcoded `["romance-drama"]`.
 
-- [ ] **Upgrade improver model** — Kimi K2 on Groq generates prompt edits, but this is a reasoning-heavy task. DeepSeek R1 or Opus via OpenRouter would produce more targeted, creative edits. The improver model is the single biggest bottleneck — everything else in the loop is mechanical.
-  - Measure: Run 5-iteration cycle with upgraded model vs Kimi K2, compare kept-change rate and score deltas
-  - Implementation: Change `improver` entry in `models/roles.ts`
-
-- [ ] **Statistical keep/revert threshold** — Current logic keeps on any `delta > 0`, which could be noise (±0.5 is common variance). Should require delta > minimum threshold or run multiple evaluations and check significance.
-  - Measure: Compare false-positive keep rate (changes that regress on re-evaluation)
-  - Implementation: `daemon-loop.ts:454/524` — require `delta >= 0.3` minimum, or run 2 eval rounds and require both positive
-  - Risk: Higher threshold = more reverts = faster cycle termination. May need to raise `maxConsecutiveFailures` from 3 to 5.
+Remaining:
 
 - [ ] **Cross-dimension regression check between iterations** — Currently only checked at cycle end. A series of small improvements to one dimension could cumulatively regress another badly.
-  - Measure: Track all-dimension scores per iteration, flag regressions > 0.5
-  - Implementation: After each kept change in `evaluateIterationAtomic()`/`evaluateIteration()`, judge all dimensions (not just target). Revert if any dimension regresses > threshold.
-  - Cost: Roughly 2-3x more judge calls per iteration. Consider only checking every 3rd iteration.
-
-- [ ] **Proposal diversity / retry strategy** — Single LLM call at temp 0.7 per iteration. When model gets stuck proposing similar failing changes, 3 consecutive failures kills the cycle. Should try: (a) generate 2-3 proposals and pick the most different from prior attempts, or (b) escalate temperature after failures, or (c) switch to a different model after 2 failures.
-  - Implementation: In `proposeChange()` (improve.ts:233), on failure streaks generate multiple candidates, score for novelty vs prior `proposed_content`.
-
-- [ ] **Daemon auto-commit** — The CLI script (`scripts/improve-loop.ts`) commits kept changes but the production daemon doesn't. Kept changes exist only on disk until manual intervention.
-  - Implementation: After `applyChange()` succeeds in `evaluateIterationAtomic()`/`evaluateIteration()`, run `git add <file> && git commit -m "[daemon] ..."`.
-  - Risk: Need to handle concurrent git operations carefully.
-
-- [ ] **Atomic mode seed coverage** — `daemon-loop.ts:333` falls back to `["romance-drama"]` as single seed. Should use at least 2-3 seeds for representative scoring.
-  - Implementation: Default to `daemonEnv.BENCHMARK_SEEDS?.split(",")` or first 3 from `loadInputs()`.
+  - Implementation: After each kept change, judge 1-2 other dimensions. Revert if any regresses > 1.0 from cycle-start baseline.
+  - Cost: 2-3x more judge calls per iteration. Consider checking every 3rd iteration only.
 
 ## Automation Candidates
 
