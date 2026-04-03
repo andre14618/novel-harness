@@ -201,9 +201,9 @@ export async function judge(input: JudgeInput): Promise<JudgeResult | null> {
   const judges = getJudges()
   const judgeConfig = judges[0]
 
-  // Score extractor
+  // Score extractor — penalty scores negated so higher=better universally
   const defaultExtractor = target.scoring === "penalty"
-    ? (parsed: any) => parsed.issues?.length ?? parsed.count ?? 0
+    ? (parsed: any) => -(parsed.issues?.length ?? parsed.count ?? 0)
     : (parsed: any) => parsed.score
   const extractScore = target.scoreExtractor ?? defaultExtractor
 
@@ -248,7 +248,9 @@ export async function judge(input: JudgeInput): Promise<JudgeResult | null> {
 
   // Save to DB
   await saveScore(input.generationId, judgeConfig.label, input.dimension, score, reasoning)
-  console.log(`[atomic:judge] gen #${input.generationId}/${input.dimension}: ${score}${target.scoring === "score" ? "/10" : " issues"}`)
+  const displayScore = target.scoring === "penalty" ? Math.abs(score) : score
+  const suffix = target.scoring === "score" ? "/10" : " issues"
+  console.log(`[atomic:judge] gen #${input.generationId}/${input.dimension}: ${displayScore}${suffix}`)
 
   return {
     score,

@@ -180,7 +180,7 @@ export async function startCycle(trigger: string, override?: { target: string; d
     baselineScore = baselineScores?.avgScore ?? diagnosis.currentScore
   }
 
-  console.log(`[daemon] Baseline: ${baselineScore}/10`)
+  console.log(`[daemon] Baseline: ${baselineScore}`)
 
   const rows = await db`
     INSERT INTO improvement_cycles (trigger_type, status, experiment_id, max_iterations, max_cost_usd)
@@ -450,6 +450,7 @@ async function evaluateIterationAtomic(newScore: number, judgeReasoning: string[
   const cycle = activeCycle
 
   const delta = Math.round((newScore - cycle.currentScore) * 10) / 10
+  // All scores are higher=better (penalty scores negated at extraction)
   const improved = delta > 0
 
   await db`
@@ -521,6 +522,7 @@ async function evaluateIteration(judgeReasoning: string[]): Promise<void> {
   }
 
   const delta = Math.round((newScores.avgScore - cycle.currentScore) * 10) / 10
+  // All scores are higher=better (penalty scores negated at extraction)
   const improved = delta > 0
 
   await db`
@@ -622,7 +624,7 @@ async function finishCycle(status: string, reason: string): Promise<void> {
           const lines: string[] = []
           for (const [dim, scores] of Object.entries(dimScores)) {
             const avg = Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) / 10
-            lines.push(`${dim}: ${avg}/10`)
+            lines.push(`${dim}: ${avg}`)
           }
           regressionReport = lines.join(", ")
           console.log(`[daemon] Other dimensions: ${regressionReport}`)

@@ -196,7 +196,8 @@ export async function judgeDimension(
       return null
     }
 
-    return { count: result.data.issues.length, issues: result.data.issues }
+    // Negated so higher=better universally (fewer issues = less negative = better)
+    return { count: -result.data.issues.length, issues: result.data.issues }
   } catch (err) {
     console.log(`  ! ${judge.label}/${dimension} [exception] ${err instanceof Error ? err.message : err}`)
     return null

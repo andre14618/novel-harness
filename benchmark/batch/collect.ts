@@ -68,7 +68,8 @@ async function collectBatch(batchId: number, providerBatchId: string, provider: 
         continue
       }
 
-      const count = zodResult.data.issues.length
+      // Negated so higher=better universally
+      const count = -zodResult.data.issues.length
       const issuesJson = JSON.stringify(zodResult.data.issues)
 
       // Save to scores table

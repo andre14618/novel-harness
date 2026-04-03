@@ -35,7 +35,8 @@ export async function diagnose(): Promise<DiagnosisResult | null> {
   // Fall back to all candidates if everything was recently attempted
   const pool = filtered.length > 0 ? filtered : candidates
 
-  // Rank: prioritize regressions from baseline, then worst absolute score
+  // Rank: prioritize regressions from baseline, then worst absolute score.
+  // All scores are higher=better (penalty scores are negated at extraction).
   pool.sort((a, b) => {
     // Regressions first (negative delta = worse than baseline)
     if (a.delta !== null && b.delta !== null) {
@@ -43,14 +44,8 @@ export async function diagnose(): Promise<DiagnosisResult | null> {
       if (b.delta < 0 && a.delta >= 0) return 1
       if (a.delta < 0 && b.delta < 0) return a.delta - b.delta  // more negative first
     }
-    // Then by worst score — accounting for scoring direction:
-    // penalty (prose): higher score = worse → prioritize higher
-    // score (planning/extraction/continuity): lower score = worse → prioritize lower
-    const aIsPenalty = BENCHMARKS[a.target]?.scoring === "penalty"
-    const bIsPenalty = BENCHMARKS[b.target]?.scoring === "penalty"
-    const aNormalized = aIsPenalty ? a.currentScore : -a.currentScore
-    const bNormalized = bIsPenalty ? b.currentScore : -b.currentScore
-    return bNormalized - aNormalized
+    // Lowest score = worst = highest priority
+    return a.currentScore - b.currentScore
   })
 
   const best = pool[0]
@@ -128,25 +123,14 @@ export async function getJudgeReasoning(target: string, dimension: string): Prom
   ` as any[]
   if (latestRuns.length === 0) return []
 
-  // Get weakest generations for this dimension
-  // For penalty benchmarks (higher = worse): ORDER BY score DESC gets worst
-  // For score benchmarks (higher = better): ORDER BY score ASC gets worst
-  const isPenalty = BENCHMARKS[target]?.scoring === "penalty"
-  const weakest = isPenalty
-    ? await harnessDb`
-        SELECT g.id, s.reasoning
-        FROM scores s JOIN generations g ON s.generation_id = g.id
-        WHERE g.run_id = ${latestRuns[0].id} AND s.dimension = ${dimension} AND g.passed = true AND s.reasoning IS NOT NULL
-        ORDER BY s.score DESC
-        LIMIT 5
-      ` as any[]
-    : await harnessDb`
-        SELECT g.id, s.reasoning
-        FROM scores s JOIN generations g ON s.generation_id = g.id
-        WHERE g.run_id = ${latestRuns[0].id} AND s.dimension = ${dimension} AND g.passed = true AND s.reasoning IS NOT NULL
-        ORDER BY s.score ASC
-        LIMIT 5
-      ` as any[]
+  // Get weakest generations — all scores are higher=better, so ASC = worst first
+  const weakest = await harnessDb`
+    SELECT g.id, s.reasoning
+    FROM scores s JOIN generations g ON s.generation_id = g.id
+    WHERE g.run_id = ${latestRuns[0].id} AND s.dimension = ${dimension} AND g.passed = true AND s.reasoning IS NOT NULL
+    ORDER BY s.score ASC
+    LIMIT 5
+  ` as any[]
 
   return weakest.map((w: any) => w.reasoning).filter(Boolean)
 }

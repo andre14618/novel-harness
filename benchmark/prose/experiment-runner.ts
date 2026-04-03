@@ -153,7 +153,7 @@ export async function runBatch(batch: ExperimentBatch) {
           if (penalty) {
             await saveScore(genId, judge.label, dim, penalty.count, JSON.stringify(penalty.issues))
             allScores.push({ variant: variant.label, seed: seed.name, run, dim, count: penalty.count, wordCount: words })
-            console.log(`    ${DIMENSION_LABELS[dim]}: ${penalty.count}`)
+            console.log(`    ${DIMENSION_LABELS[dim]}: ${Math.abs(penalty.count)} issues`)
           }
         })
         await Promise.all(judgeJobs)
@@ -166,10 +166,11 @@ export async function runBatch(batch: ExperimentBatch) {
   // ── Results ────────────────────────────────────────────────────────────
 
   console.log(`\n${"=".repeat(70)}`)
-  console.log(`  RESULTS — ${batch.name} (lower = better)`)
+  console.log(`  RESULTS — ${batch.name}`)
   console.log(`${"=".repeat(70)}`)
 
-  const per1k = (s: VariantScore) => s.wordCount > 0 ? s.count / s.wordCount * 1000 : 0
+  const abs = (n: number) => Math.abs(n)
+  const per1k = (s: VariantScore) => s.wordCount > 0 ? abs(s.count) / s.wordCount * 1000 : 0
 
   // Raw scores table
   const colW = 14
@@ -183,13 +184,13 @@ export async function runBatch(batch: ExperimentBatch) {
     let tellingAvg = 0, normTellingAvg = 0
     for (const dim of DIMENSIONS) {
       const dimScores = allScores.filter(s => s.variant === variant.label && s.dim === dim)
-      const avg = mean(dimScores.map(s => s.count))
-      const std = stddev(dimScores.map(s => s.count))
+      const avg = mean(dimScores.map(s => abs(s.count)))
+      const std = stddev(dimScores.map(s => abs(s.count)))
       if (dim === "telling") { tellingAvg = avg; normTellingAvg = mean(dimScores.map(per1k)) }
       cols.push(`${avg.toFixed(1)} ±${std.toFixed(1)}`.padEnd(colW))
     }
     const varScores = allScores.filter(s => s.variant === variant.label)
-    const overall = mean(varScores.map(s => s.count))
+    const overall = mean(varScores.map(s => abs(s.count)))
     const normOverall = mean(varScores.map(per1k))
     const avgWords = mean(varScores.map(s => s.wordCount))
     cols.push(`${overall.toFixed(1)}`.padEnd(colW))
@@ -234,7 +235,7 @@ export async function runBatch(batch: ExperimentBatch) {
     const seedWords = mean(seedScores.map(s => s.wordCount))
     const dimStr = DIMENSIONS.map(dim => {
       const dimScores = seedScores.filter(s => s.dim === dim)
-      return `${DIMENSION_LABELS[dim]}:${mean(dimScores.map(s => s.count)).toFixed(1)}(${mean(dimScores.map(per1k)).toFixed(1)}/1k)`
+      return `${DIMENSION_LABELS[dim]}:${mean(dimScores.map(s => abs(s.count))).toFixed(1)}(${mean(dimScores.map(per1k)).toFixed(1)}/1k)`
     }).join("  ")
     console.log(`    ${seed.name.padEnd(24)} ${dimStr}  (${seedWords.toFixed(0)}w)`)
   }

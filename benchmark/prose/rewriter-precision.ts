@@ -104,7 +104,7 @@ async function main() {
           await saveScore(preGenId, judge.label, dim, penalty.count, JSON.stringify(penalty.issues))
           preScores.push({ seed: seed.name, dim, count: penalty.count, wordCount: words })
           allIssues.push({ dim, issues: penalty.issues })
-          console.log(`  Pre  ${DIMENSION_LABELS[dim]}: ${penalty.count} issues`)
+          console.log(`  Pre  ${DIMENSION_LABELS[dim]}: ${Math.abs(penalty.count)} issues`)
         }
       }
 
@@ -130,7 +130,7 @@ async function main() {
         if (penalty) {
           await saveScore(postGenId, judge.label, dim, penalty.count, JSON.stringify(penalty.issues))
           postScores.push({ seed: seed.name, dim, count: penalty.count, wordCount: rewrittenWords })
-          console.log(`  Post ${DIMENSION_LABELS[dim]}: ${penalty.count} issues`)
+          console.log(`  Post ${DIMENSION_LABELS[dim]}: ${Math.abs(penalty.count)} issues`)
         }
       }
       console.log()
@@ -143,22 +143,23 @@ async function main() {
   console.log("  REWRITER PRECISION RESULTS")
   console.log("=".repeat(60))
 
-  console.log(`\n  Per-dimension (raw issues, lower = better):`)
+  console.log(`\n  Per-dimension (issue counts):`)
+  const abs = (n: number) => Math.abs(n)
   const results: Array<{ dim: string; pre: number; post: number; delta: number }> = []
   for (const dim of DIMENSIONS) {
     const pre = preScores.filter(s => s.dim === dim)
     const post = postScores.filter(s => s.dim === dim)
     if (pre.length === 0) continue
-    const preAvg = mean(pre.map(s => s.count))
-    const postAvg = mean(post.map(s => s.count))
+    const preAvg = mean(pre.map(s => abs(s.count)))
+    const postAvg = mean(post.map(s => abs(s.count)))
     const delta = postAvg - preAvg
     results.push({ dim, pre: preAvg, post: postAvg, delta })
     const arrow = delta < 0 ? "improved" : delta > 0 ? "worse" : "same"
     console.log(`    ${DIMENSION_LABELS[dim].padEnd(14)} ${preAvg.toFixed(1)} → ${postAvg.toFixed(1)} (${delta >= 0 ? "+" : ""}${delta.toFixed(1)}) ${arrow}`)
   }
 
-  const totalPre = mean(preScores.map(s => s.count))
-  const totalPost = mean(postScores.map(s => s.count))
+  const totalPre = mean(preScores.map(s => abs(s.count)))
+  const totalPost = mean(postScores.map(s => abs(s.count)))
   const totalDelta = totalPost - totalPre
   console.log(`    ${"TOTAL".padEnd(14)} ${totalPre.toFixed(1)} → ${totalPost.toFixed(1)} (${totalDelta >= 0 ? "+" : ""}${totalDelta.toFixed(1)})`)
 

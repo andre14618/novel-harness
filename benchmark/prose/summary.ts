@@ -29,9 +29,10 @@ export function generateExperimentSummary(
   lines.push(``)
 
   // Variant × dimension table (raw)
-  const per1k = (s: VariantScore) => s.wordCount > 0 ? s.count / s.wordCount * 1000 : 0
+  const abs = (n: number) => Math.abs(n)
+  const per1k = (s: VariantScore) => s.wordCount > 0 ? abs(s.count) / s.wordCount * 1000 : 0
 
-  lines.push(`### Raw Scores (lower = better)`)
+  lines.push(`### Issue Counts`)
   lines.push(``)
   const header = `| Variant | ${DIMENSIONS.map(d => DIMENSION_LABELS[d]).join(" | ")} | Overall | Avg Words |`
   const sep = `|${"-".repeat(28)}|${DIMENSIONS.map(() => "-".repeat(12) + "|").join("")}${"-".repeat(10)}|${"-".repeat(12)}|`
@@ -45,13 +46,13 @@ export function generateExperimentSummary(
     let tellingAvg = 0, normTellingAvg = 0
     for (const dim of DIMENSIONS) {
       const dimScores = allScores.filter(s => s.variant === variant.label && s.dim === dim)
-      const avg = mean(dimScores.map(s => s.count))
-      const std = stddev(dimScores.map(s => s.count))
+      const avg = mean(dimScores.map(s => abs(s.count)))
+      const std = stddev(dimScores.map(s => abs(s.count)))
       if (dim === "telling") { tellingAvg = avg; normTellingAvg = mean(dimScores.map(per1k)) }
       cols.push(`${avg.toFixed(1)} ±${std.toFixed(1)}`)
     }
     const varScores = allScores.filter(s => s.variant === variant.label)
-    const overall = mean(varScores.map(s => s.count))
+    const overall = mean(varScores.map(s => abs(s.count)))
     const normOverall = mean(varScores.map(per1k))
     const avgWords = mean(varScores.map(s => s.wordCount))
     variantOveralls.push({ label: variant.label, overall, telling: tellingAvg, normTelling: normTellingAvg, normOverall })

@@ -57,7 +57,7 @@ export interface BenchmarkConfig<D extends string = string> {
   /** Zod schema to validate judge output */
   judgeSchema: z.ZodSchema
 
-  /** Scoring mode — "score" (1-10, higher=better) or "penalty" (count, lower=better) */
+  /** Scoring mode — "score" (1-10) or "penalty" (negated issue count). Both are higher=better in DB. */
   scoring: "score" | "penalty"
 
   /** Load seeds/fixtures. Receives optional filter from BENCHMARK_SEEDS env. */
@@ -81,7 +81,7 @@ export interface BenchmarkConfig<D extends string = string> {
   /**
    * Extract the numeric score from a parsed judge response.
    * Default for "score" mode: parsed.score
-   * Default for "penalty" mode: parsed.issues?.length ?? parsed.count
+   * Default for "penalty" mode: -(parsed.issues?.length ?? parsed.count)
    */
   scoreExtractor?(parsed: any, dimension: D): number
 
@@ -158,8 +158,9 @@ export async function runBenchmark<D extends string>(config: BenchmarkConfig<D>)
     experimentId,
   )
 
+  // Penalty scores are negated so higher=better universally
   const defaultScoreExtractor = config.scoring === "penalty"
-    ? (parsed: any) => parsed.issues?.length ?? parsed.count ?? 0
+    ? (parsed: any) => -(parsed.issues?.length ?? parsed.count ?? 0)
     : (parsed: any) => parsed.score
   const extractScore = config.scoreExtractor ?? defaultScoreExtractor
 
@@ -199,7 +200,9 @@ export async function runBenchmark<D extends string>(config: BenchmarkConfig<D>)
             )
             if (score) {
               await saveScore(genId, judge.label, dim, score.score, score.reasoning)
-              console.log(`  [${input.name}:${run}] ${judge.label}/${config.dimensionLabels[dim]}: ${score.score}${config.scoring === "score" ? "/10" : " issues"}`)
+              const displayScore = config.scoring === "penalty" ? Math.abs(score.score) : score.score
+              const suffix = config.scoring === "score" ? "/10" : " issues"
+              console.log(`  [${input.name}:${run}] ${judge.label}/${config.dimensionLabels[dim]}: ${displayScore}${suffix}`)
             }
           })
         )
@@ -224,11 +227,13 @@ export async function runBenchmark<D extends string>(config: BenchmarkConfig<D>)
   for (const dim of config.dimensions) {
     const avg = dimAvgs.find(d => d.dimension === dim)
     if (avg) {
+      const displayAvg = config.scoring === "penalty" ? Math.abs(parseFloat(avg.avg)) : parseFloat(avg.avg)
       const suffix = config.scoring === "score" ? `/${maxPerDim}` : " issues"
-      console.log(`    ${config.dimensionLabels[dim].padEnd(22)} ${avg.avg}${suffix} (+-${avg.stddev})`)
+      console.log(`    ${config.dimensionLabels[dim].padEnd(22)} ${displayAvg}${suffix} (+-${avg.stddev})`)
     }
   }
-  console.log(`    ${"OVERALL".padEnd(22)} ${overall.mean}/${totalMax} (+-${overall.stddev})`)
+  const displayOverall = config.scoring === "penalty" ? Math.abs(parseFloat(overall.mean)) : parseFloat(overall.mean)
+  console.log(`    ${"OVERALL".padEnd(22)} ${displayOverall}/${totalMax} (+-${overall.stddev})`)
 
   const callSummary = await getCallSummary(runId)
   if (callSummary.length > 0) {
