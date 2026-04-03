@@ -118,7 +118,7 @@ export async function startCycle(trigger: string, override?: { target: string; d
     return
   }
 
-  const baselineScores = getLatestScores(diagnosis.target, diagnosis.dimension)
+  const baselineScores = await getLatestScores(diagnosis.target, diagnosis.dimension)
   const baselineScore = baselineScores?.avgScore ?? diagnosis.currentScore
   console.log(`[daemon] Baseline: ${baselineScore}/10 (run ${baselineResult.runId})`)
 
@@ -296,7 +296,7 @@ async function evaluateIteration(judgeReasoning: string[]): Promise<void> {
 
   await db`UPDATE improvement_iterations SET phase = 'evaluating' WHERE id = ${cycle.iterationId}`
 
-  const newScores = getLatestScores(cycle.target, cycle.dimension)
+  const newScores = await getLatestScores(cycle.target, cycle.dimension)
   if (!newScores) {
     console.log("[daemon] No scores, reverting")
     if (cycle.backup) revertChange(cycle.backup.filePath, cycle.backup.originalContent)
@@ -373,7 +373,7 @@ async function finishCycle(status: string, reason: string): Promise<void> {
     console.log(`[daemon] Running validation benchmark...`)
     const valResult = await runBenchmark(targetConfig.benchmarkCmd, cycle.experimentId)
     if (valResult) {
-      const valScores = getLatestScores(cycle.target, cycle.dimension)
+      const valScores = await getLatestScores(cycle.target, cycle.dimension)
       validationScore = valScores?.avgScore ?? null
       console.log(`[daemon] Validation: ${validationScore}/10 (run ${valResult.runId})`)
     }

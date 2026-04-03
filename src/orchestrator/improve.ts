@@ -11,6 +11,7 @@
 
 import { readFileSync, writeFileSync } from "node:fs"
 import db from "./db"
+import harnessDb from "../../data/connection"
 import { checkBudget, recordSpend } from "./budget"
 import { validateProposal, type Proposal } from "./guardrails"
 import { MODELS, PROVIDERS, getApiKey } from "../../models/registry"
@@ -175,26 +176,21 @@ export async function runBenchmark(cmd: string, experimentId?: number): Promise<
   return { runId: parseInt(runIdMatch[1]), stdout }
 }
 
-// ── Get scores from local SQLite ────────────────────────────────────────
+// ── Get scores from Postgres ────────────────────────────────────────────
 
-export function getLatestScores(runType: string, dimension: string): {
+export async function getLatestScores(runType: string, dimension: string): Promise<{
   avgScore: number; runId: number
-} | null {
-  const { Database } = require("bun:sqlite")
-  const sqliteDb = new Database(`${HARNESS_ROOT}/data/harness.db`, { readonly: true })
-  try {
-    const run = sqliteDb.query("SELECT id FROM runs WHERE run_type = ? ORDER BY id DESC LIMIT 1").get(runType) as any
-    if (!run) return null
+} | null> {
+  const runs = await harnessDb`SELECT id FROM runs WHERE run_type = ${runType} ORDER BY id DESC LIMIT 1`
+  if (runs.length === 0) return null
+  const runId = (runs[0] as any).id
 
-    const scores = sqliteDb.query(`
-      SELECT s.score FROM scores s JOIN generations g ON g.id = s.generation_id
-      WHERE g.run_id = ? AND s.dimension = ?
-    `).all(run.id, dimension) as Array<{ score: number }>
+  const scores = await harnessDb`
+    SELECT s.score FROM scores s JOIN generations g ON g.id = s.generation_id
+    WHERE g.run_id = ${runId} AND s.dimension = ${dimension}
+  ` as Array<{ score: number }>
 
-    if (scores.length === 0) return null
-    const avg = scores.reduce((s, r) => s + r.score, 0) / scores.length
-    return { avgScore: Math.round(avg * 10) / 10, runId: run.id }
-  } finally {
-    sqliteDb.close()
-  }
+  if (scores.length === 0) return null
+  const avg = scores.reduce((s, r) => s + r.score, 0) / scores.length
+  return { avgScore: Math.round(avg * 10) / 10, runId }
 }
