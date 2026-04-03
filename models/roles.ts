@@ -34,6 +34,12 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "plotter":                   { ...groqQwen32B, maxTokens: 8192 },
   "planning-plotter":          { ...groqQwen32B, temperature: 0.6, maxTokens: 8192 },
 
+  // ── Retries (higher temperature to get different output on schema failures) ──
+  "world-builder-retry":       { ...groqQwen32B, temperature: 0.8, maxTokens: 8192 },
+  "character-agent-retry":     { ...groqQwen32B, temperature: 0.8, maxTokens: 8192 },
+  "plotter-retry":             { ...groqQwen32B, temperature: 0.8, maxTokens: 8192 },
+  "planning-plotter-retry":    { ...groqQwen32B, temperature: 0.8, maxTokens: 8192 },
+
   // ── Extractors (structured extraction from prose) ─────────────────────
   "summary-extractor":         { ...groqQwen32B, temperature: 0.2 },
   "fact-extractor":            { ...groqQwen32B, temperature: 0.1 },
@@ -44,9 +50,13 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "cross-chapter-continuity":  { ...groqQwen32B, temperature: 0.2 },
   "prose-quality":             { ...groqQwen32B, temperature: 0.2 },
 
-  // ── Judges ───────────────────────────────────────────────────────────
+  // ── Judges (novel validation) ────────────────────────────────────────
   "judge":                     { ...deepseekV3, temperature: 0.1 },
   "pairwise-judge":            { ...deepseekV3, temperature: 0.1 },
+
+  // ── Benchmark (can tune independently from novel pipeline) ───────────
+  "benchmark-writer":          { ...groqKimiK2, temperature: 0.8, maxTokens: 16384 },
+  "benchmark-judge":           { ...deepseekV3, temperature: 0.1 },
 
   // ── Improvement daemon ──────────────────────────────────────────────
   "improver":                  groqKimiK2,

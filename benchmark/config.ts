@@ -74,11 +74,11 @@ export function getWriter(): WriterConfig {
     if (found) return toWriterConfig(found)
   }
 
-  // Primary: roles.ts
-  const fromRole = resolveFromRole("writer")
+  // Primary: benchmark-writer role, fallback to writer
+  const fromRole = resolveFromRole("benchmark-writer") ?? resolveFromRole("writer")
   if (fromRole) return toWriterConfig(fromRole)
 
-  throw new Error('No writer in roles.ts and BENCHMARK_MODEL not set.')
+  throw new Error('No benchmark-writer or writer in roles.ts and BENCHMARK_MODEL not set.')
 }
 
 export function getJudges(): JudgeConfig[] {
@@ -98,11 +98,11 @@ export function getJudges(): JudgeConfig[] {
     return judges
   }
 
-  // Primary: roles.ts
-  const fromRole = resolveFromRole("judge")
+  // Primary: benchmark-judge role, fallback to judge
+  const fromRole = resolveFromRole("benchmark-judge") ?? resolveFromRole("judge")
   if (fromRole) return [toJudgeConfig(fromRole)]
 
-  throw new Error('No "judge" in roles.ts and BENCHMARK_JUDGES not set.')
+  throw new Error('No benchmark-judge or judge in roles.ts and BENCHMARK_JUDGES not set.')
 }
 
 export function getPairwiseJudge(): JudgeConfig {
