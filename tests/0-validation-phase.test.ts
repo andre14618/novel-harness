@@ -1,4 +1,13 @@
-import { describe, test, expect, beforeEach, afterAll, spyOn } from "bun:test"
+import { describe, test, expect, beforeEach, afterAll, spyOn, mock } from "bun:test"
+
+// Mock Postgres modules before any imports that touch them
+mock.module("../data/connection", () => ({ default: () => [] }))
+mock.module("../data/db", () => ({
+  logLLMCall: async () => {},
+  createRun: async () => 1,
+  saveLLMCall: async () => {},
+}))
+
 import {
   getNovel, updatePhase, updateTotalChapters,
   saveWorldBible, saveCharacter, saveStorySpine, saveChapterOutline,

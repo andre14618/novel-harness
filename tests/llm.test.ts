@@ -1,5 +1,14 @@
-import { describe, test, expect, beforeAll, beforeEach, afterEach, spyOn } from "bun:test"
+import { describe, test, expect, beforeAll, beforeEach, afterEach, spyOn, mock } from "bun:test"
 import { z } from "zod"
+
+// Mock Postgres modules before any imports that touch them
+mock.module("../data/connection", () => ({ default: () => [] }))
+mock.module("../data/db", () => ({
+  logLLMCall: async () => {},
+  createRun: async () => 1,
+  saveLLMCall: async () => {},
+}))
+
 import { extractJSON, callAgent } from "../src/llm"
 import { makeLLMResponse } from "./helpers"
 

@@ -12,7 +12,6 @@
 import { readFileSync, writeFileSync } from "node:fs"
 import db from "./db"
 import harnessDb from "../../data/connection"
-import { checkBudget, recordSpend } from "./budget"
 import { validateProposal, type Proposal } from "./guardrails"
 import { MODELS, PROVIDERS, getApiKey } from "../../models/registry"
 import { getModelForAgent } from "../../models/roles"

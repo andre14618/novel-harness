@@ -5,6 +5,14 @@ import {
   makeStorySpine, makeChapterOutline, makeChapterDraft, makeLLMResponse,
 } from "./helpers"
 
+// Mock Postgres modules before any imports that touch them
+mock.module("../data/connection", () => ({ default: () => [] }))
+mock.module("../data/db", () => ({
+  logLLMCall: async () => {},
+  createRun: async () => 1,
+  saveLLMCall: async () => {},
+}))
+
 // Mock CLI module before any phase imports
 mock.module("../src/cli", () => ({
   displayPhaseHeader: () => {},

@@ -5,32 +5,9 @@
  * collects completed results, notifies on completion.
  */
 
-import { getActiveBatches, updateBatchStatus, saveRequestResult, updateState, type OrchestratorBatch } from "./db"
+import { getActiveBatches, updateBatchStatus, saveRequestResult, updateState } from "./db"
 import { getBatchProvider } from "../../benchmark/batch/providers"
 import { handleBatchComplete } from "./daemon-loop"
-
-const NOTIFY_URL = process.env.NOTIFY_URL ?? "http://localhost:2586"
-const NOTIFY_TOPIC = process.env.NOTIFY_TOPIC ?? "novel-harness-batch"
-const NOTIFY_EMAIL = process.env.NOTIFY_EMAIL
-
-async function notify(title: string, body: string) {
-  try {
-    const headers: Record<string, string> = { "Title": title }
-    if (NOTIFY_EMAIL) headers["Email"] = NOTIFY_EMAIL
-    await fetch(`${NOTIFY_URL}/${NOTIFY_TOPIC}`, { method: "POST", headers, body })
-  } catch (err) {
-    console.error("[notify] Failed:", err instanceof Error ? err.message : err)
-  }
-}
-
-async function notifyBatchComplete(batch: OrchestratorBatch, collected: number, failed: number) {
-  const status = failed > 0 ? `${collected} collected, ${failed} failed` : `${collected} collected`
-  await notify(`Batch #${batch.id} complete`, `Run ${batch.local_run_id} — ${batch.judge_model} via ${batch.provider}\n${status}`)
-}
-
-async function notifyBatchFailed(batch: OrchestratorBatch, error: string) {
-  await notify(`Batch #${batch.id} failed`, `Run ${batch.local_run_id} — ${batch.judge_model} via ${batch.provider}\nError: ${error}`)
-}
 
 export async function pollOnce(): Promise<{ polled: number; collected: number; errors: number }> {
   const batches = await getActiveBatches()
@@ -79,15 +56,12 @@ export async function pollOnce(): Promise<{ polled: number; collected: number; e
         console.log(`  Collected ${batchCollected} results for batch #${batch.id}`)
         totalCollected += batchCollected
 
-        const batchFailed = results.filter(r => !r.success).length
-        await notifyBatchComplete(batch, batchCollected, batchFailed)
-
         // Notify improvement daemon loop (in-process)
         handleBatchComplete(batch.id).catch(err =>
           console.error("[daemon] batch-complete error:", err)
         )
       } else if (["failed", "expired", "cancelled"].includes(dbStatus)) {
-        await notifyBatchFailed(batch, `Status: ${dbStatus}`)
+        console.log(`  Batch #${batch.id} ${dbStatus}`)
       }
     } catch (err) {
       console.error(`  Error polling batch #${batch.id}:`, err instanceof Error ? err.message : err)

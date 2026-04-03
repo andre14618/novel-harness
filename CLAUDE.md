@@ -49,7 +49,7 @@ State machine: concept → planning → drafting → validation → done
 - `PrefixCacheTransport` — serializes same-system-prompt calls per provider cache strategy
 - Provider caching config lives in `models/registry.ts` (`cache` + `batchApi` fields on `ProviderDef`)
 
-**Central DB** (Postgres `novel_harness_orchestrator` on LXC, schema in `sql/`, connection in `data/connection.ts`) — all experiments, runs, generations, scores, lint issues, batch tracking, pairwise matchups, improvement cycles, budget. Single source of truth.
+**Central DB** (Postgres `novel_harness_orchestrator` on LXC, schema in `sql/`, connection in `data/connection.ts`) — all experiments, runs, generations, scores, lint issues, batch tracking, pairwise matchups, improvement cycles. Single source of truth.
 
 **Orchestrator** (`src/orchestrator/`, runs on LXC 307 at 192.168.1.108):
 - Single Bun service on port 3006 combining batch polling, improvement daemon, dashboard, and API
@@ -59,7 +59,7 @@ State machine: concept → planning → drafting → validation → done
 - SSH: `novel-harness-lxc` (via ProxyJump proxmox)
 - Dashboard: `http://novel-harness-lxc:3006/?key=<ORCHESTRATOR_API_KEY>`
 - Autonomous improvement: diagnoses weakest dimensions, proposes prompt changes, benchmarks, keeps/reverts. Manual trigger only (`POST /api/improvement/start`).
-- Budget-capped at $0.80/night, max 15 iterations
+- Per-experiment limits (max iterations, optional cost cap) set at start time. Real costs tracked from llm_calls.
 
 ## Rules
 
@@ -123,7 +123,7 @@ bun test
 | `BATCH_MODEL` | prose --batch | Batch judge model (default: gpt-5.4-mini) |
 | `LLM_TRANSPORT` | all LLM calls | Transport mode: `direct` (default), `cache`, `batch` |
 | `DATABASE_URL` | all (harness + orchestrator) | Postgres connection string (fallback: ORCHESTRATOR_DB_URL) |
-| `IMPROVEMENT_BUDGET` | daemon | Max $/day for autonomous improvement (default: 0.80) |
+| `IMPROVEMENT_MAX_ITERATIONS` | daemon | Default max iterations per experiment (default: 15) |
 
 ## LXC 307 Infrastructure
 

@@ -17,7 +17,6 @@ import { pollOnce } from "./poller"
 import { getDaemonStatus, startCycle, handleBatchComplete } from "./daemon-loop"
 import { diagnose } from "./diagnose"
 import { TARGETS } from "./improve"
-import { getTodayBudget } from "./budget"
 
 await migrate()
 
@@ -71,10 +70,9 @@ const h = {'x-api-key': key}
 
 async function load() {
   try {
-    const [batches, improvement, budget, state] = await Promise.all([
+    const [batches, improvement, state] = await Promise.all([
       fetch('/api/batches?key='+key).then(r=>r.json()),
       fetch('/api/improvement/status?key='+key).then(r=>r.json()),
-      fetch('/api/budget?key='+key).then(r=>r.json()),
       fetch('/api/stats?key='+key).then(r=>r.json()),
     ])
 
@@ -86,21 +84,15 @@ async function load() {
       const c = improvement.cycle
       html += '<span class="status active">ACTIVE</span> '
       html += 'Cycle #' + c.id + ' — ' + c.target + '/' + c.dimension
-      html += '<br>Iteration ' + c.iteration + ', score: ' + c.currentScore
+      html += '<br>Iteration ' + c.iteration + '/' + c.limits.maxIterations
+      html += ', score: ' + c.currentScore
+      html += ', cost: $' + (c.actualCost ?? 0).toFixed(4)
+      if (c.limits.maxCostUsd) html += '/$' + c.limits.maxCostUsd.toFixed(2)
       html += ', failures: ' + c.consecutiveFailures
       if (c.pendingBatchId) html += '<br>Waiting for batch #' + c.pendingBatchId
     } else {
       html += '<span class="status idle">IDLE</span> No active cycle'
     }
-    html += '</div>'
-
-    // Budget
-    html += '<h2>Budget (today)</h2><div class="card">'
-    html += '$' + budget.spent.toFixed(4) + ' / $' + budget.budget.toFixed(2)
-    html += ' (' + budget.iterations + ' iterations)'
-    const pct = budget.budget > 0 ? Math.round(budget.spent / budget.budget * 100) : 0
-    html += '<br><div style="background:#0f3460;border-radius:4px;height:8px;margin-top:6px">'
-    html += '<div style="background:' + (pct > 75 ? '#e74c3c' : '#4ecca3') + ';height:8px;border-radius:4px;width:' + Math.min(pct,100) + '%"></div></div>'
     html += '</div>'
 
     // Orchestrator stats
@@ -194,11 +186,6 @@ const server = Bun.serve({
       return Response.json({ ...state, active_batches: activeBatches.length, total_batches: active.length })
     }
 
-    // ── Budget ──────────────────────────────────────────────────────
-    if (path === "/api/budget" && req.method === "GET") {
-      return Response.json(await getTodayBudget())
-    }
-
     // ── Improvement ─────────────────────────────────────────────────
     if (path === "/api/improvement/status" && req.method === "GET") {
       return Response.json(await getDaemonStatus())
@@ -222,8 +209,13 @@ const server = Bun.serve({
         return Response.json({ error: `Unknown target: ${override.target}`, availableTargets: Object.keys(TARGETS) }, { status: 400 })
       }
 
-      startCycle("manual", override).catch(err => console.error("[daemon] Manual start error:", err))
-      return Response.json({ ok: true, status: "starting", target: override?.target, dimension: override?.dimension })
+      const limits: Record<string, any> = {}
+      if (body.maxIterations != null) limits.maxIterations = parseInt(body.maxIterations)
+      if (body.maxCostUsd != null) limits.maxCostUsd = parseFloat(body.maxCostUsd)
+      if (body.maxConsecutiveFailures != null) limits.maxConsecutiveFailures = parseInt(body.maxConsecutiveFailures)
+
+      startCycle("manual", override, Object.keys(limits).length > 0 ? limits : undefined).catch(err => console.error("[daemon] Manual start error:", err))
+      return Response.json({ ok: true, status: "starting", target: override?.target, dimension: override?.dimension, limits })
     }
 
     const reportMatch = path.match(/^\/api\/improvement\/report\/(\d+)$/)

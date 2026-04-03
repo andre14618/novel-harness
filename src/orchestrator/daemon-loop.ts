@@ -17,7 +17,7 @@ import { generate as atomicGenerate, judge as atomicJudge } from "./atomic"
 import { getDaemonTargetFull } from "../../benchmark/registry"
 import { createTuningExperiment, concludeExperiment } from "../../data/db"
 import { getModelForAgent } from "../../models/roles"
-import { checkBudget, recordSpend, getTodayBudget, MAX_ITERATIONS, MAX_CONSECUTIVE_FAILURES, BUDGET_ALERT_THRESHOLD } from "./budget"
+import { type ExperimentLimits, resolveDefaults, checkLimits, getExperimentActualCost } from "./experiment-limits"
 import { validateProposal } from "./guardrails"
 
 const HARNESS_ROOT = process.env.HARNESS_ROOT ?? "/home/andre/apps/novel-harness"
@@ -36,6 +36,7 @@ interface ActiveCycle {
   currentScore: number
   baselineScore: number
   consecutiveFailures: number
+  limits: ExperimentLimits
   backup?: { filePath: string; originalContent: string }
   pendingBatchId?: number
   iterationId?: number
@@ -62,7 +63,7 @@ async function notify(title: string, body: string) {
 // ── Public API ──────────────────────────────────────────────────────────
 
 export async function getDaemonStatus() {
-  const budget = await getTodayBudget()
+  const actualCost = activeCycle ? await getExperimentActualCost(activeCycle.experimentId) : 0
   return {
     active: !!activeCycle,
     cycle: activeCycle ? {
@@ -75,12 +76,13 @@ export async function getDaemonStatus() {
       baselineScore: activeCycle.baselineScore,
       consecutiveFailures: activeCycle.consecutiveFailures,
       pendingBatchId: activeCycle.pendingBatchId,
+      limits: activeCycle.limits,
+      actualCost,
     } : null,
-    budget,
   }
 }
 
-export async function startCycle(trigger: string, override?: { target: string; dimension: string }): Promise<void> {
+export async function startCycle(trigger: string, override?: { target: string; dimension: string }, limitsConfig?: Partial<ExperimentLimits>): Promise<void> {
   if (activeCycle) {
     console.log("[daemon] Cycle already active, ignoring")
     return
@@ -107,14 +109,15 @@ export async function startCycle(trigger: string, override?: { target: string; d
   console.log(`[daemon] Starting: ${diagnosis.target}/${diagnosis.dimension} (score: ${diagnosis.currentScore}, atomic: ${useAtomic})`)
 
   // Create experiment — links all benchmark runs together
+  const limits = resolveDefaults(limitsConfig)
   const improverModel = getModelForAgent("improver")
   const experimentId = await createTuningExperiment("improvement-daemon", `${diagnosis.target}/${diagnosis.dimension}: improve from ${diagnosis.currentScore}`, {
     target: diagnosis.target,
     dimension: diagnosis.dimension,
     improverModel: improverModel?.model ?? "unknown",
     improverProvider: improverModel?.provider ?? "unknown",
-    budgetUsd: parseFloat(process.env.IMPROVEMENT_BUDGET ?? "0.80"),
-    maxIterations: MAX_ITERATIONS,
+    maxIterations: limits.maxIterations,
+    maxCostUsd: limits.maxCostUsd,
     trigger,
     mode: useAtomic ? "atomic" : "subprocess",
   })
@@ -180,7 +183,9 @@ export async function startCycle(trigger: string, override?: { target: string; d
   console.log(`[daemon] Baseline: ${baselineScore}/10`)
 
   const rows = await db`
-    INSERT INTO improvement_cycles (trigger_type, status) VALUES (${trigger}, 'active') RETURNING id
+    INSERT INTO improvement_cycles (trigger_type, status, experiment_id, max_iterations, max_cost_usd)
+    VALUES (${trigger}, 'active', ${experimentId}, ${limits.maxIterations}, ${limits.maxCostUsd})
+    RETURNING id
   `
   const cycleId = (rows[0] as any).id
 
@@ -188,7 +193,7 @@ export async function startCycle(trigger: string, override?: { target: string; d
     cycleId, experimentId, iterationNum: 0,
     target: diagnosis.target, dimension: diagnosis.dimension,
     currentScore: baselineScore, baselineScore,
-    consecutiveFailures: 0,
+    consecutiveFailures: 0, limits,
     useAtomic,
   }
 
@@ -239,9 +244,9 @@ async function runIteration(judgeReasoning: string[]): Promise<void> {
   if (!activeCycle) return
   const cycle = activeCycle
 
-  const budget = await checkBudget(0.015)
-  if (!budget.allowed) {
-    await finishCycle("budget-exhausted", `Budget: $${budget.spent.toFixed(2)}/$${(budget.spent + budget.remaining).toFixed(2)}`)
+  const check = await checkLimits(cycle.experimentId, cycle.iterationNum, cycle.consecutiveFailures, cycle.limits)
+  if (!check.allowed) {
+    await finishCycle("completed", check.reason ?? "Limit reached")
     return
   }
 
@@ -276,8 +281,8 @@ async function runIteration(judgeReasoning: string[]): Promise<void> {
   if (!proposal) {
     await db`UPDATE improvement_iterations SET result = 'no-proposal', phase = 'done', finished_at = now() WHERE id = ${cycle.iterationId}`
     cycle.consecutiveFailures++
-    if (cycle.consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
-      await finishCycle("completed", `${MAX_CONSECUTIVE_FAILURES} consecutive failures`)
+    if (cycle.consecutiveFailures >= cycle.limits.maxConsecutiveFailures) {
+      await finishCycle("completed", `${cycle.limits.maxConsecutiveFailures} consecutive failures`)
       return
     }
     await runIteration(judgeReasoning)
@@ -342,7 +347,7 @@ async function runIteration(judgeReasoning: string[]): Promise<void> {
       console.log("[daemon] Atomic generation failed")
       await db`UPDATE improvement_iterations SET result = 'failed', phase = 'done', finished_at = now() WHERE id = ${cycle.iterationId}`
       cycle.consecutiveFailures++
-      if (cycle.consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+      if (cycle.consecutiveFailures >= cycle.limits.maxConsecutiveFailures) {
         await finishCycle("completed", "Generation failures"); return
       }
       await runIteration(judgeReasoning); return
@@ -362,7 +367,7 @@ async function runIteration(judgeReasoning: string[]): Promise<void> {
       console.log("[daemon] Atomic judging failed")
       await db`UPDATE improvement_iterations SET result = 'failed', phase = 'done', finished_at = now() WHERE id = ${cycle.iterationId}`
       cycle.consecutiveFailures++
-      if (cycle.consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+      if (cycle.consecutiveFailures >= cycle.limits.maxConsecutiveFailures) {
         await finishCycle("completed", "Judging failures"); return
       }
       await runIteration(judgeReasoning); return
@@ -407,7 +412,7 @@ async function runIteration(judgeReasoning: string[]): Promise<void> {
     revertChange(backup.filePath, backup.originalContent)
     await db`UPDATE improvement_iterations SET result = 'failed', phase = 'done', finished_at = now() WHERE id = ${cycle.iterationId}`
     cycle.consecutiveFailures++
-    if (cycle.consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+    if (cycle.consecutiveFailures >= cycle.limits.maxConsecutiveFailures) {
       await finishCycle("completed", "Benchmark failures")
       return
     }
@@ -453,10 +458,9 @@ async function evaluateIterationAtomic(newScore: number, judgeReasoning: string[
     WHERE id = ${cycle.iterationId}
   `
 
-  const iterCost = 0.011
-  await recordSpend(iterCost)
-  await db`UPDATE improvement_iterations SET cost_usd = ${iterCost} WHERE id = ${cycle.iterationId}`
-  await db`UPDATE improvement_cycles SET total_iterations = ${cycle.iterationNum}, total_cost_usd = total_cost_usd + ${iterCost} WHERE id = ${cycle.cycleId}`
+  // Update with real costs from llm_calls
+  const actualCost = await getExperimentActualCost(cycle.experimentId)
+  await db`UPDATE improvement_cycles SET total_iterations = ${cycle.iterationNum}, total_cost_usd = ${actualCost} WHERE id = ${cycle.cycleId}`
 
   if (improved && cycle.pendingProposal) {
     console.log(`[daemon] KEPT: ${cycle.currentScore} → ${newScore} (${delta >= 0 ? "+" : ""}${delta})`)
@@ -472,8 +476,6 @@ async function evaluateIterationAtomic(newScore: number, judgeReasoning: string[
     cycle.currentScore = newScore
     cycle.consecutiveFailures = 0
     await db`UPDATE improvement_cycles SET kept_count = kept_count + 1 WHERE id = ${cycle.cycleId}`
-    const budget = await getTodayBudget()
-    await notify(`#${cycle.cycleId} iter ${cycle.iterationNum}: ${cycle.target}/${cycle.dimension} ${(cycle.currentScore - delta).toFixed(1)} → ${cycle.currentScore.toFixed(1)} (kept)`, `$${budget.spent.toFixed(2)} spent`)
   } else {
     console.log(`[daemon] REVERTED: ${cycle.currentScore} → ${newScore} (${delta >= 0 ? "+" : ""}${delta})`)
     // No disk revert needed — prompt override was in-memory only
@@ -482,16 +484,9 @@ async function evaluateIterationAtomic(newScore: number, judgeReasoning: string[
 
   cycle.pendingProposal = undefined
 
-  // Budget alert
-  const budget = await getTodayBudget()
-  if (budget.spent / budget.budget >= BUDGET_ALERT_THRESHOLD) {
-    await notify(`Budget ${Math.round(budget.spent / budget.budget * 100)}%`, `$${budget.spent.toFixed(2)}/$${budget.budget.toFixed(2)}`)
-  }
-
-  // Stop conditions
-  if (cycle.iterationNum >= MAX_ITERATIONS) { await finishCycle("completed", `Max iterations (${MAX_ITERATIONS})`); return }
-  if (cycle.consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) { await finishCycle("completed", `${MAX_CONSECUTIVE_FAILURES} consecutive failures`); return }
-  if (!budget.allowed) { await finishCycle("budget-exhausted", `$${budget.spent.toFixed(2)}/$${budget.budget.toFixed(2)}`); return }
+  // Check limits for next iteration
+  const check = await checkLimits(cycle.experimentId, cycle.iterationNum, cycle.consecutiveFailures, cycle.limits)
+  if (!check.allowed) { await finishCycle("completed", check.reason ?? "Limit reached"); return }
 
   // Re-diagnose
   const newDiagnosis = await diagnose()
@@ -534,18 +529,15 @@ async function evaluateIteration(judgeReasoning: string[]): Promise<void> {
     WHERE id = ${cycle.iterationId}
   `
 
-  const iterCost = 0.011
-  await recordSpend(iterCost)
-  await db`UPDATE improvement_iterations SET cost_usd = ${iterCost} WHERE id = ${cycle.iterationId}`
-  await db`UPDATE improvement_cycles SET total_iterations = ${cycle.iterationNum}, total_cost_usd = total_cost_usd + ${iterCost} WHERE id = ${cycle.cycleId}`
+  // Update with real costs from llm_calls
+  const actualCost = await getExperimentActualCost(cycle.experimentId)
+  await db`UPDATE improvement_cycles SET total_iterations = ${cycle.iterationNum}, total_cost_usd = ${actualCost} WHERE id = ${cycle.cycleId}`
 
   if (improved) {
     console.log(`[daemon] KEPT: ${cycle.currentScore} → ${newScores.avgScore} (${delta >= 0 ? "+" : ""}${delta})`)
     cycle.currentScore = newScores.avgScore
     cycle.consecutiveFailures = 0
     await db`UPDATE improvement_cycles SET kept_count = kept_count + 1 WHERE id = ${cycle.cycleId}`
-    const budget = await getTodayBudget()
-    await notify(`#${cycle.cycleId} iter ${cycle.iterationNum}: ${cycle.target}/${cycle.dimension} ${(cycle.currentScore - delta).toFixed(1)} → ${cycle.currentScore.toFixed(1)} (kept)`, `$${budget.spent.toFixed(2)} spent`)
   } else {
     console.log(`[daemon] REVERTED: ${cycle.currentScore} → ${newScores.avgScore} (${delta >= 0 ? "+" : ""}${delta})`)
     if (cycle.backup) revertChange(cycle.backup.filePath, cycle.backup.originalContent)
@@ -555,16 +547,9 @@ async function evaluateIteration(judgeReasoning: string[]): Promise<void> {
   cycle.backup = undefined
   cycle.pendingBatchId = undefined
 
-  // Budget alert
-  const budget = await getTodayBudget()
-  if (budget.spent / budget.budget >= BUDGET_ALERT_THRESHOLD) {
-    await notify(`Budget ${Math.round(budget.spent / budget.budget * 100)}%`, `$${budget.spent.toFixed(2)}/$${budget.budget.toFixed(2)}`)
-  }
-
-  // Stop conditions
-  if (cycle.iterationNum >= MAX_ITERATIONS) { await finishCycle("completed", `Max iterations (${MAX_ITERATIONS})`); return }
-  if (cycle.consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) { await finishCycle("completed", `${MAX_CONSECUTIVE_FAILURES} consecutive failures`); return }
-  if (!budget.allowed) { await finishCycle("budget-exhausted", `$${budget.spent.toFixed(2)}/$${budget.budget.toFixed(2)}`); return }
+  // Check limits for next iteration
+  const check = await checkLimits(cycle.experimentId, cycle.iterationNum, cycle.consecutiveFailures, cycle.limits)
+  if (!check.allowed) { await finishCycle("completed", check.reason ?? "Limit reached"); return }
 
   // Re-diagnose
   const newDiagnosis = await diagnose()
@@ -583,7 +568,7 @@ async function finishCycle(status: string, reason: string): Promise<void> {
   if (!activeCycle) return
   const cycle = activeCycle
   const totalDelta = Math.round((cycle.currentScore - cycle.baselineScore) * 10) / 10
-  const budget = await getTodayBudget()
+  const actualCost = await getExperimentActualCost(cycle.experimentId)
 
   // All-dimensions regression check: judge existing generations on remaining dimensions.
   // Uses prefix caching — the generation content is already cached from target dimension judging.
@@ -646,7 +631,7 @@ async function finishCycle(status: string, reason: string): Promise<void> {
   }
 
   const regStr = regressionReport ? `, other dims: ${regressionReport}` : ""
-  const statsSummary = `${cycle.target}/${cycle.dimension}: ${cycle.baselineScore} → ${cycle.currentScore} (${totalDelta >= 0 ? "+" : ""}${totalDelta}${regStr}). ${cycle.iterationNum} iters, $${budget.spent.toFixed(2)}. ${reason}`
+  const statsSummary = `${cycle.target}/${cycle.dimension}: ${cycle.baselineScore} → ${cycle.currentScore} (${totalDelta >= 0 ? "+" : ""}${totalDelta}${regStr}). ${cycle.iterationNum} iters, $${actualCost.toFixed(4)}. ${reason}`
 
   // Synthesize a strategic conclusion from diffs + scores + reasoning
   let conclusion = statsSummary
@@ -662,7 +647,7 @@ async function finishCycle(status: string, reason: string): Promise<void> {
     }
   }
 
-  await db`UPDATE improvement_cycles SET status = ${status}, finished_at = now(), summary = ${conclusion}, total_iterations = ${cycle.iterationNum} WHERE id = ${cycle.cycleId}`
+  await db`UPDATE improvement_cycles SET status = ${status}, finished_at = now(), summary = ${conclusion}, total_iterations = ${cycle.iterationNum}, total_cost_usd = ${actualCost} WHERE id = ${cycle.cycleId}`
 
   // Conclude the experiment in Postgres
   await concludeExperiment(cycle.experimentId, conclusion)
