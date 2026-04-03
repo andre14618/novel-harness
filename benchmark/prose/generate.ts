@@ -22,6 +22,6 @@ export const config: BenchmarkConfig<typeof DIMENSIONS[number]> = {
   promptTargets: [
     { path: "src/agents/writer/prompt.md", agentName: "writer" },
   ],
-  runCmd: "bun benchmark/prose/run.ts --batch",
+  runCmd: "bun benchmark/prose/run.ts",
   daemonEnv: { BENCHMARK_SEEDS: "romance-drama", BENCHMARK_RUNS: "2" },
 }
