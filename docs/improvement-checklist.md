@@ -1,6 +1,6 @@
 ---
 status: active
-verified: 2026-04-02
+verified: 2026-04-03
 ---
 
 # Harness Improvement Checklist
@@ -26,7 +26,7 @@ These are mechanical — run a script, read numbers, change a value.
   - Status: 5+ rubric files, only 3 in standard suite (telling, dead-weight, dialogue-problems)
 
 - [ ] **Cost optimization sweep** — Run `bun scripts/cost-summary.ts --global`, identify most expensive agents, check if cheaper models have parity.
-  - Status: Per-agent cost tracked but not analyzed for savings
+  - Status: Real per-call cost tracking now in llm_calls (commit 3e960ee). Per-agent cost tracked but not analyzed for savings.
 
 - [ ] **Audit batch API routing across all LLM call paths** — Verify BatchTransport works for every call path: judge calls (atomic + subprocess), improver calls, generation calls. Prose `--batch` was hardcoding gpt-5.4-mini (fixed), but batch routing is still only partially wired. Need to: (1) confirm which providers support batch APIs (OpenAI, Groq — not DeepSeek), (2) test LLM_TRANSPORT=batch end-to-end for each call type, (3) ensure batch submission + collection works. Matters more with expensive models or providers offering async batch discounts.
   - Status: Transport layer supports batch mode but untested outside prose runner
@@ -80,10 +80,10 @@ These require understanding *why* something scores poorly and making a targeted 
   - Measure: Variance reduction across 5+ runs
   - Model: Sonnet can analyze which sub-criteria cause instability
 
-- [ ] **Create continuity checker fixtures** — Write 5-10 JSON test cases with planted contradictions (timeline errors, location impossibilities, character knowledge violations).
+- [x] **Create continuity checker fixtures** — Write 5-10 JSON test cases with planted contradictions (timeline errors, location impossibilities, character knowledge violations).
   - Measure: Detection rate, false positive rate
   - Model: Sonnet can generate realistic test cases from existing novel output
-  - Status: **BLOCKER** — cannot measure continuity agents without this
+  - Status: Done (commit 5a3fa67). 5 fixtures: timeline-contradiction, location-impossibility, character-knowledge-violation, physical-description-change, object-state-contradiction.
 
 - [ ] **Extraction accuracy test cases** — Take 5 existing chapters, manually identify key facts, compare to extractor output.
   - Measure: Precision and recall of fact extraction
@@ -128,9 +128,10 @@ Items that could run in an unattended loop with the right model:
 
 ## Priority Order
 
-1. **Establish baselines** (Tier 0) — Can't improve what you can't measure
-2. **Create continuity fixtures** (Tier 2) — Unblocks two agents
-3. **Methodology integration** (Tier 2) — Highest-leverage prompt changes
+1. ~~**Establish baselines** (Tier 0)~~ — Done
+2. ~~**Create continuity fixtures** (Tier 2)~~ — Done (5 fixtures)
+3. ~~**Methodology integration** (Tier 2)~~ — Done (Scene/Sequel, Five Commandments, Dialogue Cues)
 4. **Lint-to-prompt loop** (Tier 1) — Cheapest automated improvement
 5. **Dialogue rubric fix** (Tier 2) — Unreliable dimension hurts all experiments
-6. **Craft-level prompt work** (Tier 3) — Diminishing returns, save for last
+6. **Cost optimization sweep** (Tier 0) — Real cost data now available
+7. **Craft-level prompt work** (Tier 3) — Diminishing returns, save for last
