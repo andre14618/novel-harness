@@ -60,160 +60,170 @@ export async function buildImproverContext(
   dimension: string,
   promptFilePath: string,
 ): Promise<ImproverContext> {
-  // 1. Previous attempts — ALL cycles for this target/dimension, not just current
-  let previousAttempts = ""
-  try {
-    const iters = await db`
-      SELECT ii.iteration_num, ii.proposal_explanation, ii.delta, ii.result,
-             ii.backup_content, ii.cycle_id,
-             ic.started_at::date as cycle_date
-      FROM improvement_iterations ii
-      JOIN improvement_cycles ic ON ic.id = ii.cycle_id
-      WHERE ii.target = ${target} AND ii.dimension = ${dimension}
-      AND ii.result IS NOT NULL
-      ORDER BY ii.id DESC
-      LIMIT ${MAX_CROSS_CYCLE_ATTEMPTS}
-    ` as any[]
-    if (iters.length > 0) {
-      // Group by cycle for readability
-      const byCycle = new Map<number, any[]>()
-      for (const i of iters) {
-        const list = byCycle.get(i.cycle_id) ?? []
-        list.push(i)
-        byCycle.set(i.cycle_id, list)
+  // Run all four context sections in parallel — they're independent
+  const [previousAttempts, gitDiffs, otherDimensions, experimentConclusions] = await Promise.all([
+
+    // 1. Previous attempts — ALL cycles for this target/dimension, not just current
+    (async () => {
+      try {
+        const iters = await db`
+          SELECT ii.iteration_num, ii.proposal_explanation, ii.delta, ii.result,
+                 ii.backup_content, ii.cycle_id,
+                 ic.started_at::date as cycle_date
+          FROM improvement_iterations ii
+          JOIN improvement_cycles ic ON ic.id = ii.cycle_id
+          WHERE ii.target = ${target} AND ii.dimension = ${dimension}
+          AND ii.result IS NOT NULL
+          ORDER BY ii.id DESC
+          LIMIT ${MAX_CROSS_CYCLE_ATTEMPTS}
+        ` as any[]
+        if (iters.length === 0) return ""
+
+        // Group by cycle for readability
+        const byCycle = new Map<number, any[]>()
+        for (const i of iters) {
+          const list = byCycle.get(i.cycle_id) ?? []
+          list.push(i)
+          byCycle.set(i.cycle_id, list)
+        }
+
+        const sections: string[] = []
+        for (const [cId, attempts] of byCycle) {
+          const date = attempts[0]?.cycle_date ?? "unknown"
+          const current = cId === cycleId ? " (current)" : ""
+          const lines = attempts.reverse().map((i: any) => {
+            const deltaStr = i.delta !== null ? `, ${i.delta >= 0 ? "+" : ""}${i.delta}` : ""
+            return `  ${i.result}${deltaStr}: ${i.proposal_explanation ?? "no explanation"}`
+          })
+          sections.push(`Cycle #${cId} (${date}${current}):\n${lines.join("\n")}`)
+        }
+        return sections.join("\n\n")
+      } catch (err) {
+        console.log(`[context] Previous attempts query failed: ${err instanceof Error ? err.message : err}`)
+        return ""
       }
+    })(),
 
-      const sections: string[] = []
-      for (const [cId, attempts] of byCycle) {
-        const date = attempts[0]?.cycle_date ?? "unknown"
-        const current = cId === cycleId ? " (current)" : ""
-        const lines = attempts.reverse().map((i: any) => {
-          const deltaStr = i.delta !== null ? `, ${i.delta >= 0 ? "+" : ""}${i.delta}` : ""
-          return `  ${i.result}${deltaStr}: ${i.proposal_explanation ?? "no explanation"}`
-        })
-        sections.push(`Cycle #${cId} (${date}${current}):\n${lines.join("\n")}`)
-      }
-      previousAttempts = sections.join("\n\n")
-    }
-  } catch (err) {
-    console.log(`[context] Previous attempts query failed: ${err instanceof Error ? err.message : err}`)
-  }
-
-  // 2. Git diffs — per-commit diffs for THIS file only
-  let gitDiffs = ""
-  try {
-    // Get commits that actually touched this file
-    const logProc = Bun.spawn(
-      ["git", "log", "--oneline", `-${MAX_GIT_COMMITS}`, "--follow", "--", promptFilePath],
-      { cwd: HARNESS_ROOT, stdout: "pipe", stderr: "pipe" },
-    )
-    const logOutput = await new Response(logProc.stdout).text()
-    await logProc.exited
-
-    const commits = logOutput.trim().split("\n").filter(Boolean)
-    if (commits.length > 0) {
-      const diffs: string[] = [`${commits.length} commits that changed this file:`]
-
-      // Show per-commit diffs so the improver can see what each change did
-      for (const line of commits.slice(0, MAX_GIT_COMMITS)) {
-        const sha = line.split(" ")[0]
-        const msg = line.slice(sha.length + 1)
-
-        const diffProc = Bun.spawn(
-          ["git", "diff", `${sha}~1..${sha}`, "--", promptFilePath],
+    // 2. Git diffs — per-commit diffs for THIS file only
+    (async () => {
+      try {
+        const logProc = Bun.spawn(
+          ["git", "log", "--oneline", `-${MAX_GIT_COMMITS}`, "--follow", "--", promptFilePath],
           { cwd: HARNESS_ROOT, stdout: "pipe", stderr: "pipe" },
         )
-        const diffOutput = await new Response(diffProc.stdout).text()
-        await diffProc.exited
+        const logOutput = await new Response(logProc.stdout).text()
+        await logProc.exited
 
-        // Truncate large diffs but keep enough to see the change
-        const trimmedDiff = diffOutput.trim().slice(0, 800)
-        if (trimmedDiff) {
-          diffs.push(`--- ${sha} ${msg} ---\n${trimmedDiff}`)
+        const commits = logOutput.trim().split("\n").filter(Boolean)
+        if (commits.length === 0) return ""
+
+        const diffs: string[] = [`${commits.length} commits that changed this file:`]
+
+        // Spawn all git diff processes in parallel
+        const diffResults = await Promise.all(
+          commits.slice(0, MAX_GIT_COMMITS).map(async (line) => {
+            const sha = line.split(" ")[0]
+            const msg = line.slice(sha.length + 1)
+            const diffProc = Bun.spawn(
+              ["git", "diff", `${sha}~1..${sha}`, "--", promptFilePath],
+              { cwd: HARNESS_ROOT, stdout: "pipe", stderr: "pipe" },
+            )
+            const diffOutput = await new Response(diffProc.stdout).text()
+            await diffProc.exited
+            const trimmedDiff = diffOutput.trim().slice(0, 800)
+            return trimmedDiff ? `--- ${sha} ${msg} ---\n${trimmedDiff}` : null
+          }),
+        )
+
+        for (const diff of diffResults) {
+          if (diff) diffs.push(diff)
         }
+        return diffs.join("\n\n")
+      } catch (err) {
+        console.log(`[context] Git diff failed: ${err instanceof Error ? err.message : err}`)
+        return ""
       }
-      gitDiffs = diffs.join("\n\n")
-    }
-  } catch (err) {
-    console.log(`[context] Git diff failed: ${err instanceof Error ? err.message : err}`)
-  }
+    })(),
 
-  // 3. Dimension scores — per-seed breakdown + tradeoff awareness
-  let otherDimensions = ""
-  try {
-    const latestRun = await harnessDb`
-      SELECT id FROM runs WHERE run_type = ${target} ORDER BY id DESC LIMIT 1
-    ` as any[]
-    if (latestRun.length > 0) {
-      const runId = latestRun[0].id
+    // 3. Dimension scores — per-seed breakdown + tradeoff awareness
+    (async () => {
+      try {
+        const latestRun = await harnessDb`
+          SELECT id FROM runs WHERE run_type = ${target} ORDER BY id DESC LIMIT 1
+        ` as any[]
+        if (latestRun.length === 0) return ""
+        const runId = latestRun[0].id
 
-      // Overall per-dimension averages
-      const dimScores = await harnessDb`
-        SELECT s.dimension, ROUND(AVG(s.score)::numeric, 1) as avg_score
-        FROM scores s JOIN generations g ON s.generation_id = g.id
-        WHERE g.run_id = ${runId} AND g.passed = true
-        GROUP BY s.dimension
-        ORDER BY avg_score ASC
-      ` as any[]
+        // Run both score queries in parallel
+        const [dimScores, seedScores] = await Promise.all([
+          harnessDb`
+            SELECT s.dimension, ROUND(AVG(s.score)::numeric, 1) as avg_score
+            FROM scores s JOIN generations g ON s.generation_id = g.id
+            WHERE g.run_id = ${runId} AND g.passed = true
+            GROUP BY s.dimension
+            ORDER BY avg_score ASC
+          ` as Promise<any[]>,
+          harnessDb`
+            SELECT g.seed, ROUND(AVG(s.score)::numeric, 1) as avg_score
+            FROM scores s JOIN generations g ON s.generation_id = g.id
+            WHERE g.run_id = ${runId} AND g.passed = true AND s.dimension = ${dimension}
+            GROUP BY g.seed
+            ORDER BY avg_score ASC
+          ` as Promise<any[]>,
+        ])
 
-      // Per-seed breakdown for the TARGET dimension (shows where the weak spots are)
-      const seedScores = await harnessDb`
-        SELECT g.seed, ROUND(AVG(s.score)::numeric, 1) as avg_score
-        FROM scores s JOIN generations g ON s.generation_id = g.id
-        WHERE g.run_id = ${runId} AND g.passed = true AND s.dimension = ${dimension}
-        GROUP BY g.seed
-        ORDER BY avg_score ASC
-      ` as any[]
+        const parts: string[] = []
 
-      const parts: string[] = []
-
-      if (dimScores.length > 0) {
-        const targetScore = dimScores.find((s: any) => s.dimension === dimension)
-        const others = dimScores.filter((s: any) => s.dimension !== dimension)
-        if (targetScore) {
-          parts.push(`Target dimension (${dimension}): ${targetScore.avg_score}/10`)
+        if (dimScores.length > 0) {
+          const targetScore = dimScores.find((s: any) => s.dimension === dimension)
+          const others = dimScores.filter((s: any) => s.dimension !== dimension)
+          if (targetScore) {
+            parts.push(`Target dimension (${dimension}): ${targetScore.avg_score}/10`)
+          }
+          if (others.length > 0) {
+            parts.push(`Other dimensions (don't regress): ${others.map((s: any) => `${s.dimension}: ${s.avg_score}/10`).join(", ")}`)
+          }
         }
-        if (others.length > 0) {
-          parts.push(`Other dimensions (don't regress): ${others.map((s: any) => `${s.dimension}: ${s.avg_score}/10`).join(", ")}`)
+
+        if (seedScores.length > 0) {
+          parts.push(`Per-seed scores for ${dimension}: ${seedScores.map((s: any) => `${s.seed}: ${s.avg_score}/10`).join(", ")}`)
+          const weakest = seedScores[0]
+          if (seedScores.length > 1 && parseFloat(weakest.avg_score) < parseFloat(seedScores[seedScores.length - 1].avg_score) - 1) {
+            parts.push(`Weakest seed: ${weakest.seed} (${weakest.avg_score}/10) — focus improvements here`)
+          }
         }
+
+        return parts.join("\n")
+      } catch (err) {
+        console.log(`[context] Dimension scores query failed: ${err instanceof Error ? err.message : err}`)
+        return ""
       }
+    })(),
 
-      if (seedScores.length > 0) {
-        parts.push(`Per-seed scores for ${dimension}: ${seedScores.map((s: any) => `${s.seed}: ${s.avg_score}/10`).join(", ")}`)
-        // Highlight the weakest seed
-        const weakest = seedScores[0]
-        if (seedScores.length > 1 && parseFloat(weakest.avg_score) < parseFloat(seedScores[seedScores.length - 1].avg_score) - 1) {
-          parts.push(`Weakest seed: ${weakest.seed} (${weakest.avg_score}/10) — focus improvements here`)
-        }
+    // 4. Experiment conclusions — with what was actually tried
+    (async () => {
+      try {
+        const experiments = await harnessDb`
+          SELECT id, description, conclusion, config
+          FROM tuning_experiments
+          WHERE description LIKE ${"%" + target + "%"} AND conclusion IS NOT NULL
+          ORDER BY id DESC LIMIT ${MAX_EXPERIMENT_CONCLUSIONS}
+        ` as any[]
+        if (experiments.length === 0) return ""
+
+        return experiments
+          .map((e: any, i: number) => {
+            const desc = (e.description as string).slice(0, 100)
+            const conclusion = (e.conclusion as string).slice(0, 300)
+            return `${i + 1}. [Experiment #${e.id}] ${desc}\n   Result: ${conclusion}`
+          })
+          .join("\n\n")
+      } catch (err) {
+        console.log(`[context] Experiments query failed: ${err instanceof Error ? err.message : err}`)
+        return ""
       }
-
-      otherDimensions = parts.join("\n")
-    }
-  } catch (err) {
-    console.log(`[context] Dimension scores query failed: ${err instanceof Error ? err.message : err}`)
-  }
-
-  // 4. Experiment conclusions — with what was actually tried
-  let experimentConclusions = ""
-  try {
-    const experiments = await harnessDb`
-      SELECT id, description, conclusion, config
-      FROM tuning_experiments
-      WHERE description LIKE ${"%" + target + "%"} AND conclusion IS NOT NULL
-      ORDER BY id DESC LIMIT ${MAX_EXPERIMENT_CONCLUSIONS}
-    ` as any[]
-    if (experiments.length > 0) {
-      experimentConclusions = experiments
-        .map((e: any, i: number) => {
-          const desc = (e.description as string).slice(0, 100)
-          const conclusion = (e.conclusion as string).slice(0, 300)
-          return `${i + 1}. [Experiment #${e.id}] ${desc}\n   Result: ${conclusion}`
-        })
-        .join("\n\n")
-    }
-  } catch (err) {
-    console.log(`[context] Experiments query failed: ${err instanceof Error ? err.message : err}`)
-  }
+    })(),
+  ])
 
   return { previousAttempts, gitDiffs, otherDimensions, experimentConclusions }
 }
