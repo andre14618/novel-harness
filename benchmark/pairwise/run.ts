@@ -51,11 +51,11 @@ async function main() {
 
   // Get generations for both runs, matched by seed
   const gensA = db.query<any, [number]>(
-    "SELECT id, seed, prose, word_count FROM generations WHERE run_id = ? AND passed = 1 AND prose IS NOT NULL ORDER BY seed, attempt"
+    "SELECT id, seed, prose, word_count FROM generations WHERE run_id = ? AND passed = true AND prose IS NOT NULL ORDER BY seed, attempt"
   ).all(runA) as Array<{ id: number; seed: string; prose: string; word_count: number }>
 
   const gensB = db.query<any, [number]>(
-    "SELECT id, seed, prose, word_count FROM generations WHERE run_id = ? AND passed = 1 AND prose IS NOT NULL ORDER BY seed, attempt"
+    "SELECT id, seed, prose, word_count FROM generations WHERE run_id = ? AND passed = true AND prose IS NOT NULL ORDER BY seed, attempt"
   ).all(runB) as Array<{ id: number; seed: string; prose: string; word_count: number }>
 
   // Group by seed

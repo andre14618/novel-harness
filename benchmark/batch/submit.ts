@@ -41,7 +41,7 @@ async function main() {
 
   // Get all passed generations for this run
   const generations = db.query<any, [number]>(
-    "SELECT id, seed, prose FROM generations WHERE run_id = ? AND passed = 1 AND prose IS NOT NULL ORDER BY seed, attempt"
+    "SELECT id, seed, prose FROM generations WHERE run_id = ? AND passed = true AND prose IS NOT NULL ORDER BY seed, attempt"
   ).all(runId)
 
   if (generations.length === 0) {

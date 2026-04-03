@@ -76,11 +76,11 @@ function getSentenceAt(text: string, position: number): string {
 async function getEnabledPatterns(tier?: number): Promise<LintPattern[]> {
   if (tier !== undefined) {
     return await db`
-      SELECT * FROM lint_patterns WHERE enabled = 1 AND tier = ${tier} ORDER BY category, id
+      SELECT * FROM lint_patterns WHERE enabled = true AND tier = ${tier} ORDER BY category, id
     ` as LintPattern[]
   }
   return await db`
-    SELECT * FROM lint_patterns WHERE enabled = 1 ORDER BY tier, category, id
+    SELECT * FROM lint_patterns WHERE enabled = true ORDER BY tier, category, id
   ` as LintPattern[]
 }
 
@@ -187,7 +187,7 @@ export async function listPatterns(tier?: number): Promise<LintPattern[]> {
 }
 
 export async function togglePattern(patternId: number, enabled: boolean): Promise<void> {
-  await db`UPDATE lint_patterns SET enabled = ${enabled ? 1 : 0} WHERE id = ${patternId}`
+  await db`UPDATE lint_patterns SET enabled = ${enabled} WHERE id = ${patternId}`
 }
 
 export async function getPatternStats(runId?: number) {
