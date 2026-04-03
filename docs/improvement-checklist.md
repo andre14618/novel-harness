@@ -77,9 +77,10 @@ These require understanding *why* something scores poorly and making a targeted 
   - Measure: Pairwise comparison with/without enriched context
   - Model: Sonnet can identify what's missing from context and add it
 
-- [ ] **Dialogue Problems rubric fix** — This dimension inverts across runs (+-5.0 variance). Either tighten the rubric to reduce ambiguity, or replace with a more stable measurement.
+- [x] **Dialogue Problems rubric fix** — This dimension inverts across runs (+-5.0 variance). Either tighten the rubric to reduce ambiguity, or replace with a more stable measurement.
   - Measure: Variance reduction across 5+ runs
   - Model: Sonnet can analyze which sub-criteria cause instability
+  - Status: Done. Tightened all 4 sub-criteria with concrete thresholds and examples: on-the-nose requires literal emotion naming, info dump requires both-know test, same voice requires 2+ swappable lines with 4-line minimum, said bookism restricted to verb+adverb combos. Needs benchmark runs to confirm variance reduction.
 
 - [x] **Create continuity checker fixtures** — Write 5-10 JSON test cases with planted contradictions (timeline errors, location impossibilities, character knowledge violations).
   - Measure: Detection rate, false positive rate
