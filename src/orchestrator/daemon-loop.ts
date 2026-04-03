@@ -451,7 +451,9 @@ async function evaluateIterationAtomic(newScore: number, judgeReasoning: string[
 
   const delta = Math.round((newScore - cycle.currentScore) * 10) / 10
   // All scores are higher=better (penalty scores negated at extraction)
-  const improved = delta > 0
+  // Require minimum delta to filter out noise (typical variance is ±0.5)
+  const improved = delta >= cycle.limits.minDeltaThreshold
+  const belowThreshold = delta > 0 && !improved
 
   await db`
     UPDATE improvement_iterations
@@ -479,7 +481,8 @@ async function evaluateIterationAtomic(newScore: number, judgeReasoning: string[
     cycle.consecutiveFailures = 0
     await db`UPDATE improvement_cycles SET kept_count = kept_count + 1 WHERE id = ${cycle.cycleId}`
   } else {
-    console.log(`[daemon] REVERTED: ${cycle.currentScore} → ${newScore} (${delta >= 0 ? "+" : ""}${delta})`)
+    const reason = belowThreshold ? ` (below threshold ${cycle.limits.minDeltaThreshold})` : ""
+    console.log(`[daemon] REVERTED: ${cycle.currentScore} → ${newScore} (${delta >= 0 ? "+" : ""}${delta})${reason}`)
     // No disk revert needed — prompt override was in-memory only
     cycle.consecutiveFailures++
   }
@@ -523,7 +526,8 @@ async function evaluateIteration(judgeReasoning: string[]): Promise<void> {
 
   const delta = Math.round((newScores.avgScore - cycle.currentScore) * 10) / 10
   // All scores are higher=better (penalty scores negated at extraction)
-  const improved = delta > 0
+  const improved = delta >= cycle.limits.minDeltaThreshold
+  const belowThreshold = delta > 0 && !improved
 
   await db`
     UPDATE improvement_iterations
@@ -542,7 +546,8 @@ async function evaluateIteration(judgeReasoning: string[]): Promise<void> {
     cycle.consecutiveFailures = 0
     await db`UPDATE improvement_cycles SET kept_count = kept_count + 1 WHERE id = ${cycle.cycleId}`
   } else {
-    console.log(`[daemon] REVERTED: ${cycle.currentScore} → ${newScores.avgScore} (${delta >= 0 ? "+" : ""}${delta})`)
+    const reason = belowThreshold ? ` (below threshold ${cycle.limits.minDeltaThreshold})` : ""
+    console.log(`[daemon] REVERTED: ${cycle.currentScore} → ${newScores.avgScore} (${delta >= 0 ? "+" : ""}${delta})${reason}`)
     if (cycle.backup) revertChange(cycle.backup.filePath, cycle.backup.originalContent)
     cycle.consecutiveFailures++
   }

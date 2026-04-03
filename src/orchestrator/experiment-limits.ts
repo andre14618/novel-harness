@@ -11,16 +11,19 @@ export interface ExperimentLimits {
   maxIterations: number
   maxCostUsd: number | null    // null = no cap
   maxConsecutiveFailures: number
+  minDeltaThreshold: number    // minimum score delta to keep a change (filters noise)
 }
 
 const DEFAULT_MAX_ITERATIONS = parseInt(process.env.IMPROVEMENT_MAX_ITERATIONS ?? "15")
-const DEFAULT_MAX_CONSECUTIVE_FAILURES = 3
+const DEFAULT_MAX_CONSECUTIVE_FAILURES = 5
+const DEFAULT_MIN_DELTA_THRESHOLD = 0.3
 
 export function resolveDefaults(input?: Partial<ExperimentLimits>): ExperimentLimits {
   return {
     maxIterations: input?.maxIterations ?? DEFAULT_MAX_ITERATIONS,
     maxCostUsd: input?.maxCostUsd ?? null,
     maxConsecutiveFailures: input?.maxConsecutiveFailures ?? DEFAULT_MAX_CONSECUTIVE_FAILURES,
+    minDeltaThreshold: input?.minDeltaThreshold ?? DEFAULT_MIN_DELTA_THRESHOLD,
   }
 }
 
