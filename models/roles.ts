@@ -59,7 +59,7 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "benchmark-judge":           { ...deepseekV3, temperature: 0.1 },
 
   // ── Improvement daemon ──────────────────────────────────────────────
-  "improver":                  groqKimiK2,
+  "improver":                  { ...deepseekV3, maxTokens: 8192 },
 }
 
 export function getModelForAgent(agentName: string): ModelAssignment | undefined {
