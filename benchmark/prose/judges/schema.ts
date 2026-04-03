@@ -21,7 +21,7 @@ export const penaltySchema = z.object({
 
 export type PenaltyResult = z.infer<typeof penaltySchema>
 
-// ── Dimensions — penalty rubrics (lower = better) ───────────────────────
+// ── Dimensions — penalty rubrics (issue counts, negated at extraction) ──
 
 export const DIMENSIONS = ["telling", "dead-weight", "dialogue-problems"] as const
 export type Dimension = typeof DIMENSIONS[number]
