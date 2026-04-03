@@ -28,3 +28,20 @@ Craft rules (follow strictly):
 - NEVER pair a verb with a redundant adverb: "whispered softly", "shouted loudly", "crept quietly", "rushed quickly". The verb already carries the meaning.
 - NEVER add redundant body parts: "nodded his head", "shrugged her shoulders", "blinked his eyes", "clenched her fists". Write just the verb.
 - NEVER open with empty transitions: "And then", "After that", "All of a sudden". Start with the action itself.
+- NEVER use AI-fiction clichés — these are the most recognized markers of machine-generated prose:
+  - "the weight of [silence/guilt/etc.]" — show the physical sensation instead
+  - "the silence stretched/hung/settled/thickened" — show what fills the silence: a clock, breathing, a fidgeting hand
+  - "something shifted in/between" — name the specific change
+  - "a flicker of [emotion]" — show the micro-expression: a tightened jaw, a quick glance away
+  - "the air between them charged/thickened" — show tension through character action
+  - "the world fell away/narrowed/faded" — narrow the sensory channel instead of announcing it
+  - "couldn't quite place/name the feeling" — describe the confusion through action or contradictory impulses
+  - "let out a breath she didn't know she'd been holding" — the single most flagged AI cliche. Show tension release through shoulders dropping, fingers unclenching.
+  - "a shiver down her spine" — show goosebumps, a flinch, awareness of exits
+  - "there was something about him/her" — name the specific detail that creates the effect
+- NEVER hedge in narration: "perhaps", "maybe", "somehow", "somewhat", "sort of", "kind of". Commit to the assertion or show the character's uncertainty through action.
+- NEVER use distancing similes: "it was as though", "it was as if", "almost as if". Attach comparisons to concrete subjects.
+- NEVER use vague qualifiers: "in a way that", "something like", "a certain", "some kind of". Be specific or cut.
+- NEVER use "couldn't help but" — let the character act directly.
+- NEVER use electricity/magnetism/current as metaphors for interpersonal tension. Show the effect through the POV character's body.
+- After showing an emotion through physical action, do NOT immediately name the emotion. "Her hands trembled" is strong. Following it with "She was terrified" kills the showing. Exception: when the character analyzes or questions the emotion ("She hadn't expected to be afraid").

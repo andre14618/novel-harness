@@ -21,9 +21,10 @@ export function getCentralDB() {
 async function seedLintPatterns() {
   const [tier1Row] = await db`SELECT COUNT(*) as c FROM lint_patterns WHERE tier = 1`
   if ((tier1Row as any).c > 0) {
-    // Tier 1 already seeded — just check Tier 2 and 3
+    // Tier 1 already seeded — just check Tier 2, 3, and AI tells
     await seedTier2Patterns()
     await seedTier3Patterns()
+    await seedAITellPatterns()
     return
   }
 
@@ -182,6 +183,7 @@ async function seedLintPatterns() {
 
   await seedTier2Patterns()
   await seedTier3Patterns()
+  await seedAITellPatterns()
 }
 
 async function seedTier2Patterns() {
@@ -260,6 +262,186 @@ async function seedTier3Patterns() {
       "Replace the abstraction with a physical sensation or action.", false,
       "'A wave of grief' is a cliché that names the emotion wrapped in a dead metaphor. Show the grief through what the character does or feels physically: 'Her chest caved. She sat down on the curb because her legs wouldn't hold.'",
       "Occasionally the character is analytically noting their own emotion in internal monologue — the rewriter should judge."],
+  ]
+
+  for (const [tier, category, pattern, flags, fix_template, dialogue_ok, rationale, edge_cases] of patterns) {
+    await db`
+      INSERT INTO lint_patterns (tier, category, pattern, flags, fix_template, dialogue_ok, rationale, edge_cases)
+      VALUES (${tier}, ${category}, ${pattern}, ${flags}, ${fix_template}, ${dialogue_ok}, ${rationale}, ${edge_cases})
+    `
+  }
+}
+
+async function seedAITellPatterns() {
+  const [row] = await db`SELECT COUNT(*) as c FROM lint_patterns WHERE category = 'AI_CLICHE'`
+  if ((row as any).c > 0) return
+
+  const patterns: [number, string, string, string, string, boolean, string, string | null][] = [
+    // ── AI Cliches (Tier 2) — sourced from docs/ai-tells-cliches-purple-prose.md ──
+
+    // AC-1: The Weight of [Abstract Noun]
+    [2, "AI_CLICHE", "\\bthe\\s+weight\\s+of\\s+(the\\s+)?(silence|guilt|grief|loss|responsibility|decision|moment|words|absence|truth|realization|unspoken|everything|it\\s+all|what|her|his|their)\\b", "gi",
+      "Replace the abstraction with a physical sensation — pressure in the chest, heaviness in the limbs.", true,
+      "Orwell: dead metaphors 'have lost all evocative power.' The construction adds a metaphorical frame that contributes nothing.",
+      "'The weight of her words' could be legitimate if the character is literally measuring the impact of specific words."],
+
+    // AC-2: The Silence Stretched / Hung / Settled
+    [2, "AI_CLICHE", "\\b(the\\s+|a\\s+|an?\\s+\\w+\\s+)?silence\\s+(stretched|hung|settled|thickened|filled|descended|fell|pressed|grew|lingered|deepened|dragged|swallowed|enveloped|blanketed)\\b", "gi",
+      "Cut the silence sentence, or show what the character hears in the silence: a clock, breathing, their own heartbeat.", true,
+      "AI 'is not trained to generate silence' — instead it fills pauses with description of the pause itself.",
+      "In horror or surrealist fiction, personified silence may be a deliberate genre convention."],
+
+    // AC-3: Something Shifted (In/Between)
+    [2, "AI_CLICHE", "\\bsomething\\s+(shifted|changed|passed|broke|snapped|clicked|loosened|tightened|cracked|stirred)\\s+(in|between|within|behind|across)\\b", "gi",
+      "Name what shifted — the character's understanding? Their posture? The dynamic between them?", true,
+      "The problem is not 'something' but the refusal to commit to specifics.",
+      "In mystery/thriller POV where the character genuinely cannot identify what changed."],
+
+    // AC-4: A Flicker of [Emotion]
+    [2, "AI_CLICHE", "\\ba\\s+flicker\\s+of\\s+(something|recognition|doubt|surprise|emotion|fear|hope|anger|amusement|irritation|pain|hesitation|interest|warmth|concern|understanding|uncertainty|awareness|guilt|sadness|curiosity|defiance|vulnerability|unease|discomfort)\\b", "gi",
+      "Replace with a concrete physical detail: a tightened jaw, a quick glance away, fingers curling.", true,
+      "AI models use 'flicker' at vastly higher rates than human writers. King: show, don't tell.",
+      null],
+
+    // AC-5: The Air Between/Around Them
+    [2, "AI_CLICHE", "\\bthe\\s+air\\s+(between|around|surrounding)\\s+(them|her|him|us)\\s+(felt\\s+)?(charged|shifted|thickened|crackled|hummed|grew|changed|turned|became|seemed|was)\\b", "gi",
+      "Cut the sentence. Show tension through character behavior: averted eyes, a step backward, a voice that drops.", true,
+      "Describing the air is a deflection from describing the characters.",
+      "Literal temperature change (magic systems, environmental descriptions)."],
+
+    // AC-6: Hung/Settled In the Air/Room
+    [2, "AI_CLICHE", "\\b(words?|tension|question|threat|accusation|implication|promise|truth|lie|silence|grief|sadness|anger|fear|dread|unease)\\s+(hung|settled|lingered|hovered|floated)\\s+(in|over|between|across|throughout)\\s+(the\\s+)?(air|room|space|silence|gap|void|darkness)\\b", "gi",
+      "Cut the sentence or replace with character reaction — what they do with their hands, whether they look away.", true,
+      "Orwell: a dead metaphor has 'reverted to being an ordinary word.' The 'hung in the air' construction evokes nothing.",
+      "'Smoke hung in the air' (literal) will not match because 'smoke' is not in the subject list."],
+
+    // AC-7: The World Fell Away
+    [2, "AI_CLICHE", "\\b(the\\s+world|everything(\\s+else)?|the\\s+rest\\s+of\\s+the\\s+world|reality|the\\s+room|the\\s+noise|the\\s+sounds?)\\s+(fell\\s+away|narrowed|shifted|faded|blurred|dissolved|disappeared|melted|receded|shrank|tilted|went\\s+quiet|went\\s+still|went\\s+silent|ceased\\s+to\\s+exist|ceased\\s+to\\s+matter)\\b", "gi",
+      "Show focus through sensory narrowing: what the character stops hearing, what they see in sharp detail.", true,
+      "King: show through concrete detail rather than announcing emotional states. 'The world fell away' is maximally abstract.",
+      "In fantasy/sci-fi where reality literally shifts or dissolves."],
+
+    // AC-8: Couldn't Quite Place
+    [2, "AI_CLICHE", "\\bcouldn'?t\\s+(quite\\s+)?(place|name|identify|describe|put\\s+(her|his|their|a)\\s+(finger\\s+on|words?\\s+to)|explain|articulate|define|pin\\s*down)\\b", "gi",
+      "Commit to the feeling. Show confusion through contradictory impulses or physical restlessness.", true,
+      "This construction occupies space while delivering nothing. The writer's job is to find the right word, not announce it can't be found.",
+      "Mystery/thriller where inability to identify is plot-relevant."],
+
+    // AC-9: Something About Him/Her
+    [2, "AI_CLICHE", "\\b(there\\s+was\\s+)?something\\s+about\\s+(him|her|them|his|her|their|the\\s+way)\\b", "gi",
+      "Name the 'something' — the angle of their jaw? The way they hold their coffee cup? Eye contact a beat too long?", true,
+      "Strunk & White: 'Prefer the specific to the general.' This is the general masquerading as the specific.",
+      "First-person narration where the character is genuinely processing an unclear impression."],
+
+    // AC-10: A Familiar Ache/Pang/Tug
+    [2, "AI_CLICHE", "\\b(a|the|that)\\s+(familiar|unfamiliar|old|strange|sudden|sharp|dull|deep)\\s+(ache|pang|tug|pull|twist|knot|hollow|heaviness|tightness|prickle|sting)\\s+(of|in|behind|settled|formed|bloomed|spread|radiated)\\b", "gi",
+      "Replace with the specific physical sensation and its location, grounded in this character's history.", true,
+      "King: 'Description begins in the writer's imagination, but should finish in the reader's.' This starts and finishes in abstraction.",
+      "Literary fiction with deliberate callback structure referencing a specific earlier scene."],
+
+    // AC-11: Breath Didn't Know Holding
+    [2, "AI_CLICHE", "\\b(let\\s+out|released|exhaled)\\s+(a\\s+|the\\s+)?breath\\s+(s?he|they|I|she|he)\\s+(didn'?t|hadn'?t|did\\s+not|had\\s+not)\\s+(know|realize|notice)", "gi",
+      "Cut entirely. Show tension release through a different physical channel: shoulders dropping, fingers unclenching.", true,
+      "The #1 recognized AI fiction cliche. Appears on virtually every 'fiction cliches to avoid' list.",
+      null],
+
+    // AC-12: Eyes Didn't Know Searching
+    [2, "AI_CLICHE", "\\beyes\\s+(s?he|they|I)\\s+(didn'?t|hadn'?t|did\\s+not|had\\s+not)\\s+(know|realize)\\s+(s?he'?d|they'?d|I'?d)\\s+been\\b", "gi",
+      "Cut and replace with a specific observation about the eyes or the moment of eye contact.", true,
+      "A variant of the 'didn't know they were [verb]-ing' template that distances the reader.",
+      null],
+
+    // AC-13: Voice Barely Above a Whisper
+    [2, "AI_CLICHE", "\\bvoice\\s+(was\\s+)?(barely|hardly|scarcely)\\s+(above|more\\s+than)\\s+(a\\s+)?whisper\\b", "gi",
+      "Use 'whispered' or show the listener straining to hear, leaning closer.", false,
+      "King: dialogue tags should be invisible. This construction does the work a simple 'whispered' could handle.",
+      null],
+
+    // AC-14: Tension Didn't Know Carrying
+    [2, "AI_CLICHE", "\\b(tension|tightness|stiffness|knot)\\s+(s?he|they|I)\\s+(didn'?t|hadn'?t|did\\s+not|had\\s+not)\\s+(know|realize|notice)\\s+(s?he'?d|they'?d|I'?d)\\s+been\\s+(carrying|holding|clenching)\\b", "gi",
+      "Show the release: rolling the neck, stretching fingers that had been balled, pressing palms into lower back.", true,
+      "The 'didn't know [had been doing]' template is a three-pronged AI cliche family. Cut the frame, keep the action.",
+      null],
+
+    // AC-15: Shiver Down Spine
+    [2, "AI_CLICHE", "\\b(sent|ran|crawled|crept|shot|traced)\\s+(a\\s+)?(shiver|chill|cold|tingle|thrill)\\s+(down|up|through|along)\\s+(his|her|their|my|the)\\s+(spine|back|body|arms?|neck)\\b", "gi",
+      "Replace with specific physical reaction: goosebumps, hair lifting on the neck, a sudden need to look over the shoulder.", true,
+      "Appears on virtually every 'fiction cliches to avoid' list. Too generic to create sensation.",
+      "In horror/thriller, spine-related sensations are a genre convention but still a cliche."],
+
+    // ── Hedging/Qualifying (Tier 2) — sourced from docs/ai-tells-hedging-qualifying.md ──
+
+    // HQ-1: Perhaps/Maybe in Narration
+    [2, "HEDGE_QUALIFIER", "\\b(perhaps|maybe)\\b", "gi",
+      "Remove the hedge and commit. If the character is uncertain, rephrase as a direct question or action.", true,
+      "Zinsser: 'perhaps' among qualifiers that 'whittle away the reader's trust.' AI RLHF training penalizes confident assertions, inflating hedge frequency.",
+      "Deep POV close-third where narrator voice merges with character thoughts. Test: does removing 'perhaps' change the meaning?"],
+
+    // HQ-2: It Was As Though/If
+    [2, "HEDGE_QUALIFIER", "\\bit\\s+was\\s+as\\s+(though|if)\\b", "gi",
+      "Replace with a direct simile on a concrete subject. 'It was as though the room had shrunk' → 'The walls pressed closer.'", false,
+      "Browne & King R.U.E. principle: the narrator is explaining what something resembles instead of rendering it directly.",
+      "Kafkaesque or absurdist register where the impersonal 'it' is thematic. Extremely rare."],
+
+    // HQ-3: In a Way That
+    [2, "HEDGE_QUALIFIER", "\\bin\\s+a\\s+way\\s+that\\b", "gi",
+      "Replace with a specific description. 'She spoke in a way that made him uncomfortable' → describe the specific manner.", false,
+      "Zinsser: 'in a sense' and similar constructions are clutter that 'don't mean anything.' Fiction equivalent of gesturing at meaning.",
+      "Philosophical or essayistic narration where abstraction is intentional."],
+
+    // HQ-4: Something Like/Akin To
+    [2, "HEDGE_QUALIFIER", "\\bsomething\\s+(like|akin\\s+to)\\b", "gi",
+      "Commit to the comparison or replace with concrete sensation. 'Something like grief' → 'Grief' or describe the physical sensation.", true,
+      "Stein: triage would strip 'something like' as a failed qualifier. The construction signals the writer could not find the word.",
+      "A character who genuinely cannot name what they feel — render through physical confusion instead."],
+
+    // HQ-5: Almost As If
+    [2, "HEDGE_QUALIFIER", "\\balmost\\s+as\\s+if\\b", "gi",
+      "Remove the double hedge. Choose either a direct simile or commit to the image. One comparison layer maximum.", true,
+      "Clark: stacked qualifiers compound trust erosion. The double hedge is a diagnostic marker for AI prose.",
+      null],
+
+    // HQ-6: Sort Of/Kind Of
+    [2, "HEDGE_QUALIFIER", "\\b(sort|kind)\\s+of\\b", "gi",
+      "Remove the hedge and commit. 'She kind of smiled' → 'She smiled' or find a precise verb.", true,
+      "Zinsser lists 'sort of' and 'kind of' explicitly as qualifiers to prune.",
+      "First-person narrators with a casual, conversational voice (YA, humorous fiction)."],
+
+    // HQ-7: A Certain/Some Kind Of
+    [2, "HEDGE_QUALIFIER", "\\b(a\\s+certain|some\\s+kind\\s+of)\\b", "gi",
+      "Replace with a specific description. 'A certain sadness in her eyes' → 'Her eyes were red-rimmed.'", true,
+      "'A certain' promises specificity and fails to deliver. Lukeman flags vague description as a rejection signal.",
+      "'A certain' for deliberate withholding in mystery. 'Some kind of' when POV character genuinely cannot identify the thing."],
+
+    // HQ-8: Somehow/Somewhat
+    [2, "HEDGE_QUALIFIER", "\\b(somehow|somewhat)\\b", "gi",
+      "'Somehow': show the mechanism or remove. 'Somewhat': commit to the degree or cut.", true,
+      "'Somehow' is specifically flagged as a logic gap the writer hasn't resolved. 'Somewhat' has essentially no legitimate narration use.",
+      "'Somehow' in genuine mystery narration where the mechanism is deliberately withheld as plot tension."],
+
+    // HQ-9: It/There Seemed
+    [2, "HEDGE_QUALIFIER", "\\b(it|there)\\s+seemed\\b", "gi",
+      "Remove the hedge and commit. 'It seemed darker' → 'The hallway was darker.' Show uncertainty through sensory confusion.", false,
+      "Browne & King R.U.E. principle: 'it seemed' is a filter word wearing an existential disguise.",
+      "Deliberately unreliable narration where hedging is thematic."],
+
+    // HQ-10: Couldn't Help But
+    [2, "HEDGE_QUALIFIER", "\\bcouldn't\\s+help\\s+but\\b", "gi",
+      "Remove the involuntary frame — let the character act. 'She couldn't help but smile' → 'She smiled.'", true,
+      "Tells the reader the character couldn't resist instead of showing the resistance or lack thereof.",
+      "When involuntary nature is genuinely load-bearing. Even then, 'the laugh came anyway' is stronger."],
+
+    // HQ-11: Electricity/Magnetism Between Characters
+    [2, "HEDGE_QUALIFIER", "\\b(electricity|electric\\s+current|magnetism|magnetic\\s+pull)\\b.*?\\b(between|through|crackled|coursed|flowed|passed|sparked|surged|pulsed|hummed)\\b", "gi",
+      "Replace with specific physical sensation: 'Her skin prickled where his arm brushed hers' or 'She forgot what she was saying.'", false,
+      "A recognized dead metaphor in fiction editing. Ellen Brock identifies overused similes as a signal of unrevised prose.",
+      "Literal electricity in sci-fi/fantasy settings."],
+
+    // HQ-12: Air/Atmosphere Charged/Thickened
+    [2, "HEDGE_QUALIFIER", "\\b(the\\s+)?(air|atmosphere)\\s+(between\\s+(them|her|him|us))?\\s*(thickened|shifted|changed|charged|crackled|hummed|grew\\s+(heavy|thick|tense|still))\\b", "gi",
+      "Replace with a physical sensation or behavioral change. 'The air thickened' → 'She became aware of how close he was standing.'", false,
+      "Instead of naming emotion in a character, the narrator projects it onto the environment. Characters feel things, not atmospheres.",
+      "Fantasy where atmosphere literally changes (magic). Actual weather descriptions."],
   ]
 
   for (const [tier, category, pattern, flags, fix_template, dialogue_ok, rationale, edge_cases] of patterns) {

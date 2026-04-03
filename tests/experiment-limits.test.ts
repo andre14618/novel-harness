@@ -8,14 +8,15 @@ describe("resolveDefaults", () => {
     const limits = resolveDefaults()
     expect(limits.maxIterations).toBe(15)
     expect(limits.maxCostUsd).toBeNull()
-    expect(limits.maxConsecutiveFailures).toBe(3)
+    expect(limits.maxConsecutiveFailures).toBe(5)
+    expect(limits.minDeltaThreshold).toBe(0.3)
   })
 
   test("overrides individual fields", () => {
     const limits = resolveDefaults({ maxIterations: 5, maxCostUsd: 0.50 })
     expect(limits.maxIterations).toBe(5)
     expect(limits.maxCostUsd).toBe(0.50)
-    expect(limits.maxConsecutiveFailures).toBe(3)
+    expect(limits.maxConsecutiveFailures).toBe(5)
   })
 
   test("all fields overridden", () => {

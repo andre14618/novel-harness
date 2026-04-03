@@ -13,3 +13,11 @@ Rules:
 - Keep approximately the same word count (within 20%)
 - Follow the scene beats from the original
 - Use \n\n between paragraphs
+
+IMPORTANT — do NOT introduce these problems while fixing others:
+- Do not add AI-fiction clichés: "the weight of [X]", "something shifted", "a flicker of [emotion]", "the world fell away", "the silence stretched/hung/settled", "breath didn't know they'd been holding", "a shiver down the spine", "there was something about him/her"
+- Do not add hedging language: "perhaps", "somehow", "somewhat", "it was as though", "in a way that", "sort of", "kind of", "couldn't help but"
+- Do not add filler phrases: "began to", "started to", "in order to", "the fact that"
+- Do not add narrator editorializing: "It was clear that", "She knew that", "His presence was a reminder"
+- Do not pad word count with redundant sentences or unnecessary transitions
+- When removing an issue, replace with concrete action or sensory detail — not with abstract language or clichés
