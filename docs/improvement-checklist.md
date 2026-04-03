@@ -17,10 +17,10 @@ These are mechanical — run a script, read numbers, change a value.
 
 - [x] **Establish extraction baselines** — Run `bun benchmark/extraction/run.ts` on existing novel output.
   - Dimensions: Completeness, Accuracy
-  - Status: Done (commit 5a3fa67). Fact-extractor improved from 3.0 → 4.7 completeness (commit 335599d).
+  - Status: Done (commit 5a3fa67). Fact-extractor improved from 3.0 → 4.7 completeness (commit 335599d). Full extraction overhaul 2026-04-03: completeness 4.2 → 8.0, accuracy 6.2 → 7.4 across 5 improvement cycles (experiments #36-40). All three extractor prompts enriched with structured fields, atmospheric/sensory detail capture, and anti-overreach rules.
 
 - [ ] **Measure lint false positive rate** — Human review of `getPatternStats()` output. For each pattern, check 5 flagged instances: is the flag correct?
-  - Status: 35 patterns, 128 total hits, 0 reviewed for precision
+  - Status: 66 patterns (39 original + 27 AI tells), 0 reviewed for precision
 
 - [x] **Consolidate duplicate judge rubrics** — `dialogue.md`, `telling.md`, `sensory.md` overlap with the penalty rubrics. Delete or merge redundant ones.
   - Status: Done. Deleted show-tell.md, show-tell-counted.md, dialogue.md, sensory.md (all unused legacy calibration rubrics). Removed CALIBRATE_DIMENSIONS from schema.ts. 3 active penalty rubrics remain: telling, dead-weight, dialogue-problems.
@@ -75,7 +75,7 @@ These require understanding *why* something scores poorly and making a targeted 
 - [x] **Rewriter precision measurement** — After rewriter runs, re-judge the same dimensions. Did issues go down? Did new issues appear?
   - Measure: Delta in penalty scores pre/post rewrite
   - Model: Sonnet can build the comparison script and interpret results
-  - Status: Done (Experiment #34). Script: benchmark/prose/rewriter-precision.ts. Results (3 runs, romance-drama): Telling -5.7, Dialogue -11.3, Dead Weight +10.0, Overall -2.3. Rewriter fixes telling/dialogue but introduces dead weight. Also tends to over-cut (578w from 1133w in one run). Rewriter prompt needs dead-weight awareness.
+  - Status: Done (Experiment #34). Script: benchmark/prose/rewriter-precision.ts. Results (3 runs, romance-drama): Telling -5.7, Dialogue -11.3, Dead Weight +10.0, Overall -2.3. Rewriter fixes telling/dialogue but introduces dead weight. Also tends to over-cut (578w from 1133w in one run). Rewriter prompt updated 2026-04-03 with dead-weight awareness rules (anti-cliche, anti-hedge, anti-filler, anti-editorializing, no word-count padding).
 
 - [x] **Context builder enrichment** — Add previous chapter's emotional throughline to writer context. Add theme context to rewriter. Add character voice summary to prose-quality checker.
   - Measure: Pairwise comparison with/without enriched context
@@ -100,9 +100,10 @@ These require understanding *why* something scores poorly and making a targeted 
 
 These require deep understanding of prose craft — knowing what makes writing work at a level beyond pattern-matching from judge feedback.
 
-- [ ] **Writer prompt: show-don't-tell craft rules** — Beyond mechanical rules ("don't use filter words"), improve the prompt with craft-level guidance: how to dramatize internal conflict through action, how to use environment as emotional mirror, when telling is actually the right choice.
+- [~] **Writer prompt: show-don't-tell craft rules** — Beyond mechanical rules ("don't use filter words"), improve the prompt with craft-level guidance: how to dramatize internal conflict through action, how to use environment as emotional mirror, when telling is actually the right choice.
   - Measure: Penalty scores + pairwise + human reading
   - Model: Needs genuine prose craft understanding
+  - Status: Partially done (2026-04-03). Added 17 NEVER rules covering AI cliches (dead metaphors, "didn't know they'd been holding" family), hedging (perhaps/somehow/sort of), distancing similes (it was as though), vague qualifiers, electricity metaphors, and emotional echo warning. Remaining: "when telling is the right choice" guidance, environment-as-emotional-mirror technique.
 
 - [ ] **Character voice differentiation** — Ensure each character in a scene has distinct speech patterns, vocabulary, sentence structure. Current character profiles include speech patterns but the writer doesn't consistently use them.
   - Measure: Pairwise comparison on dialogue-heavy seeds, human eval
@@ -153,12 +154,11 @@ Items that could run in an unattended loop with the right model:
 
 ## Priority Order
 
-Completed: baselines, continuity fixtures, methodology integration, rubric consolidation, cost sweep, lint-to-prompt rules, temperature sweep, lint Tier 3, dialogue rubric fix, rewriter precision, pipeline config.
+Completed: baselines, continuity fixtures, methodology integration, rubric consolidation, cost sweep, lint-to-prompt rules, temperature sweep, lint Tier 3, dialogue rubric fix, rewriter precision, pipeline config, extraction completeness overhaul (4.2→8.0), daemon overhaul (scoring normalization, keep/revert threshold, improver prompt+model, diversity, auto-commit, seeds), AI tells integration (27 lint patterns, writer/rewriter/judge rules), lint pattern sourcing (all 27 new patterns have craft-reference citations from Strunk & White, King, Orwell, Zinsser, Clark, Browne & King, Lukeman, Stein).
 
 Remaining:
-1. **Lint pattern sourcing audit** — High priority. Existing patterns need craft-reference citations. Separate session.
-2. **Lint false positive rate** (Tier 0) — Human review of flagged instances, 0 reviewed so far
-3. **Batch API routing audit** (Tier 0) — End-to-end batch testing across all call paths
-4. ~~**Context builder enrichment** (Tier 2)~~ — Done
-5. **Extraction accuracy test cases** (Tier 2) — Manual fact comparison
-6. **Craft-level prompt work** (Tier 3) — Show-don't-tell, voice, pacing, genre, subtext
+1. **Lint false positive rate** (Tier 0) — Human review of flagged instances across 66 patterns, 0 reviewed so far
+2. **Batch API routing audit** (Tier 0) — End-to-end batch testing across all call paths
+3. **Extraction accuracy test cases** (Tier 2) — Manual fact comparison, accuracy at 7.4
+4. **Cross-dimension regression check** (Daemon) — Per-iteration regression detection
+5. **Craft-level prompt work** (Tier 3) — When telling is right, voice differentiation, pacing/structure rubric, genre compliance, subtext
