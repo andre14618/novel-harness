@@ -3,162 +3,115 @@ status: active
 verified: 2026-04-03
 ---
 
-# Harness Improvement Checklist
+# Improvement To-Do
 
-Organized by capability level required to drive the iteration loop. Each item includes what to measure, how to test, and current status.
+## Concept Phase Agents (Never Improved — Highest Impact)
 
-## Tier 0: No LLM Required (Script/Config Only)
+These three agents produce the foundation every downstream agent uses. All are at 15-24 line prompts with 9-line context builders — the same state the extraction agents were in before their 4.2→8.0 overhaul. No benchmarks exist for concept quality.
 
-These are mechanical — run a script, read numbers, change a value.
+- [ ] **World-builder overhaul** — 15-line prompt, the thinnest in the system. Feeds world rules to plotter, writer, and continuity. A vague world bible means the writer invents settings and rules on the fly, creating continuity issues downstream.
+  - File: `src/agents/world-builder/prompt.md` (15 lines), `context.ts` (9 lines)
+  - Needs: structured output fields (geography, political structure, technology constraints, social customs, sensory palette), specificity guidance with examples, minimum detail thresholds
+  - Verify: run a novel, compare world bible quality before/after
 
-- [x] **Establish planning baselines** — Run `bun benchmark/planning/run.ts` across all seeds, record first numbers. No prompt changes needed, just measurement.
-  - Dimensions: Beat Specificity, Dialogue Cues, Emotional Arc
-  - Status: Done (commit 5a3fa67)
+- [ ] **Plotter overhaul** — 21-line prompt. Decides central conflict, theme, and 3-act structure for the entire novel. Has no methodology integration (unlike planning-plotter which got Scene/Sequel, Five Commandments, Stasis=Death, etc.).
+  - File: `src/agents/plotter/prompt.md` (21 lines), `context.ts` (9 lines)
+  - Needs: Story Grid obligatory scenes per genre, try/fail cycle structure, theme integration guidance, act-level turning point specificity
+  - Verify: compare plot spines before/after across multiple seeds
 
-- [x] **Establish extraction baselines** — Run `bun benchmark/extraction/run.ts` on existing novel output.
-  - Dimensions: Completeness, Accuracy
-  - Status: Done (commit 5a3fa67). Fact-extractor improved from 3.0 → 4.7 completeness (commit 335599d). Full extraction overhaul 2026-04-03: completeness 4.2 → 8.0, accuracy 6.2 → 7.4 across 5 improvement cycles (experiments #36-40). All three extractor prompts enriched with structured fields, atmospheric/sensory detail capture, and anti-overreach rules.
+- [ ] **Character-agent overhaul** — 24-line prompt. Speech patterns feed writer + prose-quality, but likely produce generic profiles. The "character voice differentiation" Tier 3 item can't be solved at the writer level — it needs to be solved here.
+  - File: `src/agents/character-agent/prompt.md` (24 lines), `context.ts` (9 lines)
+  - Needs: distinctive speech pattern examples (vocabulary, sentence structure, verbal tics, what they avoid saying), backstory-to-behavior connections, relationship dynamics with specific conflict sources
+  - Verify: pairwise comparison on dialogue-heavy seeds, check if writer produces distinct voices
 
-- [ ] **Measure lint false positive rate** — Human review of `getPatternStats()` output. For each pattern, check 5 flagged instances: is the flag correct?
-  - Status: 66 patterns (39 original + 27 AI tells), 0 reviewed for precision
+## Validation Agents (Never Improved)
 
-- [x] **Consolidate duplicate judge rubrics** — `dialogue.md`, `telling.md`, `sensory.md` overlap with the penalty rubrics. Delete or merge redundant ones.
-  - Status: Done. Deleted show-tell.md, show-tell-counted.md, dialogue.md, sensory.md (all unused legacy calibration rubrics). Removed CALIBRATE_DIMENSIONS from schema.ts. 3 active penalty rubrics remain: telling, dead-weight, dialogue-problems.
+- [ ] **Continuity checker overhaul** — 27-line prompt, no benchmark, no examples. The single-chapter variant that runs during drafting.
+  - File: `src/agents/continuity/prompt.md` (27 lines), `context.ts` (25 lines)
+  - Needs: concrete examples of each issue type, false positive guidance, severity calibration
 
-- [x] **Cost optimization sweep** — Run `bun scripts/cost-summary.ts --global`, identify most expensive agents, check if cheaper models have parity.
-  - Status: Done. Analysis: Judge was most expensive ($0.80/613 calls) on groq/gpt-oss-120b, now moved to deepseek-chat ($0.058/83 calls, 10x cheaper with cache hits). Extractors were on Kimi K2 ($1/$3 per M tok), now on Qwen3 32B ($0.29/$0.59). Writer remains on Kimi K2 — candidate for Qwen3 32B swap pending quality comparison (temperature sweep or pairwise test).
+- [ ] **Cross-chapter-continuity overhaul** — 29-line prompt. Has a benchmark and fixtures but the prompt itself has never been improved.
+  - File: `src/agents/cross-chapter-continuity/prompt.md` (29 lines), `context.ts` (37 lines)
+  - Needs: same as continuity, plus dropped-thread detection guidance and emotional continuity examples
+  - Verify: run continuity benchmark before/after
 
-- [ ] **Audit batch API routing across all LLM call paths** — Verify BatchTransport works for every call path: judge calls (atomic + subprocess), improver calls, generation calls. Prose `--batch` was hardcoding gpt-5.4-mini (fixed), but batch routing is still only partially wired. Need to: (1) confirm which providers support batch APIs (OpenAI, Groq — not DeepSeek), (2) test LLM_TRANSPORT=batch end-to-end for each call type, (3) ensure batch submission + collection works. Matters more with expensive models or providers offering async batch discounts.
-  - Status: Transport layer supports batch mode but untested outside prose runner
+- [ ] **Prose-quality overhaul** — 22-line prompt. Rubric is focused (show-don't-tell + cliche detection) but has no examples of good vs bad flags. Context was enriched with character voice profiles but prompt unchanged.
+  - File: `src/agents/prose-quality/prompt.md` (22 lines), `context.ts` (27 lines)
+  - Needs: before/after examples of each flag type, threshold guidance for "clear cases"
 
-## Tier 1: Haiku-Level (Templated Changes, Structured Feedback)
+## Prose Quality (Partially Done)
 
-These follow a rigid pattern: read score → read flagged issue → add/modify rule in prompt. A small model can do this reliably because the feedback is concrete.
+- [ ] **Show-don't-tell: when telling is right** — The writer has 17 NEVER rules for cliches/hedges but no guidance on when telling IS the correct choice (time skips, rapid-fire action, transitions between scenes). Currently the rules are all prohibitions with no permissions.
+  - File: `src/agents/writer/prompt.md`
 
-- [x] **Add lint-informed rules to writer prompt** — For each high-hit lint pattern (seemed-to: 31 hits, could-see: 29, could-feel: 21), add a corresponding craft rule to `src/agents/writer/prompt.md`.
-  - Measure: Re-run lint after prompt change, count hits
-  - Model: Haiku can map "pattern X has N hits" → "add rule about X"
-  - Status: Done. Added 4 rules covering all 27 Tier 1 patterns: filler phrases, redundant adverb-verb, redundant body parts, empty transitions. Filter words were already covered.
+- [ ] **Environment as emotional mirror** — Use setting details to reflect character emotional state without stating it. "Rain streaked the window" during grief, not "She felt sad."
+  - File: `src/agents/writer/prompt.md`
 
-- [x] **Temperature sweep per agent** — For each agent, run 3 temperatures (0.5, 0.7, 0.9) on same seed, compare output quality.
-  - Measure: Use existing benchmark dimensions
-  - Model: Haiku can write the experiment batch config and read results
-  - Status: Done (Experiment #33). Writer tested at 0.5/0.8/0.9 on romance-drama x3 runs. 0.8 wins overall (17.7/1k normalized). 0.9 best dialogue but worst telling. 0.5 wordiest. Keeping 0.8.
+- [ ] **Rewriter dead-weight regression re-test** — Rewriter prompt now has anti-cliche/anti-hedge rules (2026-04-03). Experiment #34 showed +10 dead-weight regression. Need to re-run `benchmark/prose/rewriter-precision.ts` to verify the fix.
+  - Verify: `bun benchmark/prose/rewriter-precision.ts` — dead-weight delta should be < +3
 
-- [x] **Lint Tier 3 patterns** — Add said bookisms and declared emotions patterns. Currently 0 hits on stored prose (writer avoids them), but needed as guardrails.
-  - Measure: Hit rate on future generations
-  - Model: Haiku can write regex patterns following Tier 1/2 format
-  - Status: Done. 4 patterns added: said bookisms (fancy tags, adverb+said), declared emotions (named feelings, dead-metaphor emotion phrases). Patterns need sourcing from craft references (separate session).
+## Character & Dialogue (Tier 3)
 
-- [x] **Pipeline config tuning** — Test maxDraftAttempts=5, maxValidationPasses=5 on full novel runs. Measure: does more retrying improve final quality or just burn cost?
-  - Measure: Final validation pass count, issue count at completion
-  - Model: Haiku can run and compare
-  - Status: Done (Experiment #35). Inconclusive — baseline (3/3/3) hit schema failures with 21 open issues; extended (5/5/3) converged pass 1 but had an easier novel. Keeping 3/3/3 defaults. Rewriter schema robustness is the real bottleneck, not pass count.
+- [ ] **Character voice differentiation** — Characters should have distinct speech patterns, vocabulary, sentence structure. Blocked on character-agent producing strong profiles first.
+  - Measure: pairwise comparison on dialogue-heavy seeds, human eval
+  - Depends on: character-agent overhaul
 
-## Tier 2: Sonnet-Level (Analytical Reasoning, Pattern Recognition)
+- [ ] **Subtext quality** — Dialogue should carry meaning beyond its surface. Characters talk around the real issue.
+  - Measure: new rubric + human eval. Hard to judge with LLM alone.
 
-These require understanding *why* something scores poorly and making a targeted fix. The feedback loop is: read judge reasoning → identify the pattern → modify the prompt to address it.
+## Structure & Genre (Tier 3 — Need New Rubrics)
 
-- [x] **Writer prompt: methodology integration (Scene/Sequel)** — Add Weiland's Scene/Sequel structure to writer craft rules: GOAL→CONFLICT→DISASTER then REACTION→DILEMMA→DECISION.
-  - Measure: Penalty scores + pairwise comparison before/after
-  - Model: Sonnet can read methodology docs, extract the rule, write the prompt addition
-  - Status: Done (Experiment #9). Also added to planning-plotter: Stasis=Death (STC-3), Midpoint Reversal (STC-4), Whiff of Death (STC-7), Pinch Points (W-3), Try/Fail Cycles (MICE-3). Telling -1.0, Dialogue -0.9 avg improvement.
+- [ ] **Pacing and structure rubric** — Measure narrative rhythm (tension/release, scene/sequel alternation). No benchmark dimension exists. The `docs/ai-tells-rhythm-homogeneity.md` doc has a design for 5 statistical patterns (sentence length uniformity, opening repetition, compound sentence dominance, paragraph uniformity, opening pattern repetition) but they need calibration against published fiction first.
+  - Needs: new `benchmark/prose/judges/rhythm.md` rubric, or implement `src/lint/rhythm.ts` heuristics from the doc
 
-- [x] **Planning-plotter: Five Commandments** — Add Story Grid's per-scene checklist (Inciting Incident, Progressive Complication, Crisis, Climax, Resolution) to planning prompt.
-  - Measure: Beat Specificity benchmark dimension
-  - Status: Done (already in prompt, five-commandments judge dimension added)
+- [ ] **Genre convention compliance** — Does romance-drama follow Love genre conventions? Does dark-fantasy maintain horror beats?
+  - Needs: genre-specific rubrics per Story Grid genre analysis
 
-- [x] **Planning-plotter: dialogue cue specificity** — Current beats say "characters talk." Improve to include subtext notes, power dynamics, what's unsaid.
-  - Measure: Dialogue Cues benchmark + downstream Dialogue Problems in prose
-  - Status: Done (Experiment #30, daemon cycle #3). Dialogue-cues 4.6 → 7.0 (+2.4), validated at 8/10. Added explicit dialogue-cue scaffolding: opener with speaker/subtext, mid-beat micro-cues, emotional sting closer.
+## Infrastructure
 
-- [x] **Rewriter precision measurement** — After rewriter runs, re-judge the same dimensions. Did issues go down? Did new issues appear?
-  - Measure: Delta in penalty scores pre/post rewrite
-  - Model: Sonnet can build the comparison script and interpret results
-  - Status: Done (Experiment #34). Script: benchmark/prose/rewriter-precision.ts. Results (3 runs, romance-drama): Telling -5.7, Dialogue -11.3, Dead Weight +10.0, Overall -2.3. Rewriter fixes telling/dialogue but introduces dead weight. Also tends to over-cut (578w from 1133w in one run). Rewriter prompt updated 2026-04-03 with dead-weight awareness rules (anti-cliche, anti-hedge, anti-filler, anti-editorializing, no word-count padding).
+- [ ] **Lint false positive review** — 66 patterns, 0 reviewed for precision. Run lint on 2-3 recent novels, skim flagged instances, disable patterns that are mostly wrong. Hedging patterns (perhaps/maybe, sort of/kind of) are highest FP risk in dialogue and deep POV.
 
-- [x] **Context builder enrichment** — Add previous chapter's emotional throughline to writer context. Add theme context to rewriter. Add character voice summary to prose-quality checker.
-  - Measure: Pairwise comparison with/without enriched context
-  - Model: Sonnet can identify what's missing from context and add it
-  - Status: Done (commit 097a5af). Writer gets emotionalState from previous chapter summaries (was extracted but dropped). Rewriter gets story spine theme. Prose-quality gets character speech patterns for voice checking. Also persists emotionalState to SQLite (new column + migration).
+- [ ] **Batch API routing** — Transport layer supports batch mode but untested outside prose runner. DeepSeek has no batch API (fixed: daemon no longer defaults to --batch). Batch still available for OpenAI/Groq judges via `--batch` flag with `BATCH_PROVIDER=openai`.
 
-- [x] **Dialogue Problems rubric fix** — This dimension inverts across runs (+-5.0 variance). Either tighten the rubric to reduce ambiguity, or replace with a more stable measurement.
-  - Measure: Variance reduction across 5+ runs
-  - Model: Sonnet can analyze which sub-criteria cause instability
-  - Status: Done. Tightened all 4 sub-criteria with concrete thresholds and examples: on-the-nose requires literal emotion naming, info dump requires both-know test, same voice requires 2+ swappable lines with 4-line minimum, said bookism restricted to verb+adverb combos. Needs benchmark runs to confirm variance reduction.
+- [ ] **Extraction accuracy test cases** — Ground-truth comparison for the 3 extraction agents. Accuracy at 7.4/10, judge says remaining issues are overreach (inferences presented as facts). Build 5 gold-standard extractions from existing chapters.
 
-- [x] **Create continuity checker fixtures** — Write 5-10 JSON test cases with planted contradictions (timeline errors, location impossibilities, character knowledge violations).
-  - Measure: Detection rate, false positive rate
-  - Model: Sonnet can generate realistic test cases from existing novel output
-  - Status: Done (commit 5a3fa67). 5 fixtures: timeline-contradiction, location-impossibility, character-knowledge-violation, physical-description-change, object-state-contradiction.
+- [ ] **Cross-dimension regression check** — Daemon only checks other dimensions at cycle end. Per-iteration check would catch regressions earlier.
+  - Implementation: after each kept change, judge 1-2 other dimensions. Revert if any regresses > 1.0.
+  - Cost: 2-3x more judge calls per iteration.
 
-- [ ] **Extraction accuracy test cases** — Take 5 existing chapters, manually identify key facts, compare to extractor output.
-  - Measure: Precision and recall of fact extraction
-  - Model: Sonnet can do the comparison
+- [ ] **Remove orphaned prose-polish agent** — 32-line prompt, not exported from `src/agents/index.ts`, not in the pipeline. Either integrate or delete.
 
-## Tier 3: Opus-Level (Craft Understanding, Creative Judgment)
+## Improvement Daemon (Completed 2026-04-03)
 
-These require deep understanding of prose craft — knowing what makes writing work at a level beyond pattern-matching from judge feedback.
+- [x] Scoring normalization (higher=better everywhere)
+- [x] Diagnose sort + judge reasoning bugs fixed
+- [x] Statistical keep/revert threshold (minDelta >= 0.3, maxFailures 3→5)
+- [x] Improver system prompt (scoring context, strategy guidance, anti-patterns)
+- [x] Improver model (Kimi K2 → DeepSeek V3.2)
+- [x] Proposal diversity (temperature escalation, strategy hints on failures)
+- [x] Auto-commit kept changes
+- [x] Seed coverage (up to 3 seeds from registry)
 
-- [~] **Writer prompt: show-don't-tell craft rules** — Beyond mechanical rules ("don't use filter words"), improve the prompt with craft-level guidance: how to dramatize internal conflict through action, how to use environment as emotional mirror, when telling is actually the right choice.
-  - Measure: Penalty scores + pairwise + human reading
-  - Model: Needs genuine prose craft understanding
-  - Status: Partially done (2026-04-03). Added 17 NEVER rules covering AI cliches (dead metaphors, "didn't know they'd been holding" family), hedging (perhaps/somehow/sort of), distancing similes (it was as though), vague qualifiers, electricity metaphors, and emotional echo warning. Remaining: "when telling is the right choice" guidance, environment-as-emotional-mirror technique.
+## Completed Items (Reference)
 
-- [ ] **Character voice differentiation** — Ensure each character in a scene has distinct speech patterns, vocabulary, sentence structure. Current character profiles include speech patterns but the writer doesn't consistently use them.
-  - Measure: Pairwise comparison on dialogue-heavy seeds, human eval
-  - Model: Needs understanding of voice as a literary technique
+<details>
+<summary>Expand completed items</summary>
 
-- [ ] **Pacing and structure** — Measure whether chapters have appropriate narrative rhythm (tension/release, scene/sequel alternation). No benchmark dimension exists for this yet.
-  - Measure: New rubric needed — requires craft-level rubric writing
-  - Model: Needs understanding of narrative structure
+- [x] Establish planning baselines (commit 5a3fa67)
+- [x] Establish extraction baselines → full overhaul: completeness 4.2→8.0, accuracy 6.2→7.4 (experiments #36-40)
+- [x] Consolidate duplicate judge rubrics (3 active penalty rubrics remain)
+- [x] Cost optimization sweep (judge 10x cheaper on DeepSeek, extractors on Qwen3 32B)
+- [x] Lint-informed writer rules (4 rules covering 27 Tier 1 patterns)
+- [x] Temperature sweep (writer 0.8 optimal, experiment #33)
+- [x] Lint Tier 3 patterns (said bookisms, declared emotions)
+- [x] Pipeline config tuning (3/3/3 defaults kept, experiment #35)
+- [x] Writer methodology integration — Scene/Sequel, Stasis=Death, Midpoint Reversal (experiment #9)
+- [x] Planning-plotter Five Commandments
+- [x] Planning-plotter dialogue cue specificity (4.6→7.0, experiment #30)
+- [x] Rewriter precision measurement (experiment #34, rewriter prompt updated with dead-weight awareness)
+- [x] Context builder enrichment (emotionalState, theme, character voice profiles)
+- [x] Dialogue Problems rubric fix (tightened 4 sub-criteria)
+- [x] Continuity checker fixtures (5 test cases)
+- [x] AI tells integration — 27 lint patterns (15 AI_CLICHE, 12 HEDGE_QUALIFIER), writer/rewriter/judge rules. All patterns sourced from Strunk & White, King, Orwell, Zinsser, Clark, Browne & King, Lukeman, Stein.
 
-- [ ] **Genre convention compliance** — Does romance-drama follow Love genre conventions? Does dark-fantasy maintain horror beats? Currently no genre-specific validation.
-  - Measure: Genre-specific rubrics (per Story Grid genre analysis)
-  - Model: Needs understanding of genre conventions at structural level
-
-- [ ] **Subtext quality** — Measure whether dialogue carries meaning beyond its surface. Characters should talk around the real issue, not state it directly.
-  - Measure: New rubric + human eval. Hard to judge with LLM alone.
-  - Model: Opus — this is one of the hardest prose craft skills to evaluate
-
-## Improvement Daemon
-
-Overhaul completed 2026-04-03:
-
-- [x] **Scoring normalization** — Negated penalty scores at extraction boundary so higher=better everywhere. Removed all `isPenalty` branching from diagnose, daemon-loop, and atomic. Fixed diagnose sort (was targeting best dims instead of worst for score-based benchmarks) and judge reasoning query (was returning best instead of worst).
-- [x] **Statistical keep/revert threshold** — `minDeltaThreshold: 0.3` replaces the `delta > 0` noise-prone check. `maxConsecutiveFailures` raised from 3 to 5 to compensate.
-- [x] **Improver system prompt** — Replaced 8-line generic prompt with detailed guidance: scoring context, good change patterns, anti-patterns, strategy guidance for stuck cycles.
-- [x] **Improver model upgrade** — Switched from Kimi K2 on Groq to DeepSeek V3.2. Better reasoning for the analytical task of reading judge feedback and proposing prompt edits.
-- [x] **Proposal diversity** — Temperature escalation on consecutive failures (0.7 → 0.8 → 0.9 → 1.0). Strategy hint after 2+ failures telling the model to try a fundamentally different approach.
-- [x] **Auto-commit** — Daemon now auto-commits kept changes with experiment/cycle/iter metadata in both atomic and subprocess paths.
-- [x] **Seed coverage** — Atomic mode loads seeds from registry `loadInputs()` (up to 3) instead of hardcoded `["romance-drama"]`.
-
-Remaining:
-
-- [ ] **Cross-dimension regression check between iterations** — Currently only checked at cycle end. A series of small improvements to one dimension could cumulatively regress another badly.
-  - Implementation: After each kept change, judge 1-2 other dimensions. Revert if any regresses > 1.0 from cycle-start baseline.
-  - Cost: 2-3x more judge calls per iteration. Consider checking every 3rd iteration only.
-
-## Automation Candidates
-
-Items that could run in an unattended loop with the right model:
-
-| Loop | Model | Items | Cycle |
-|------|-------|-------|-------|
-| **Lint-to-prompt** | Haiku | Run lint → find top pattern → add writer rule → re-lint | 5 min |
-| **Penalty-to-prompt** | Sonnet | Run benchmark → find weakest dim → read judge issues → modify prompt → re-run | 15 min |
-| **Pairwise A/B** | Sonnet | Make change → generate → pairwise compare → keep/revert | 10 min |
-| **Planning baseline** | Haiku | Run planning benchmark → record numbers → no changes needed | 5 min |
-| **Model swap test** | Haiku | Swap model in roles.ts → run benchmark → compare to baseline → record | 10 min |
-| **Full craft iteration** | Opus | Analyze weak dimensions → understand root cause → rewrite prompt section → test → evaluate | 30 min |
-
-## Priority Order
-
-Completed: baselines, continuity fixtures, methodology integration, rubric consolidation, cost sweep, lint-to-prompt rules, temperature sweep, lint Tier 3, dialogue rubric fix, rewriter precision, pipeline config, extraction completeness overhaul (4.2→8.0), daemon overhaul (scoring normalization, keep/revert threshold, improver prompt+model, diversity, auto-commit, seeds), AI tells integration (27 lint patterns, writer/rewriter/judge rules), lint pattern sourcing (all 27 new patterns have craft-reference citations from Strunk & White, King, Orwell, Zinsser, Clark, Browne & King, Lukeman, Stein).
-
-Remaining:
-1. **Lint false positive rate** (Tier 0) — Human review of flagged instances across 66 patterns, 0 reviewed so far
-2. **Batch API routing audit** (Tier 0) — End-to-end batch testing across all call paths
-3. **Extraction accuracy test cases** (Tier 2) — Manual fact comparison, accuracy at 7.4
-4. **Cross-dimension regression check** (Daemon) — Per-iteration regression detection
-5. **Craft-level prompt work** (Tier 3) — When telling is right, voice differentiation, pacing/structure rubric, genre compliance, subtext
+</details>
