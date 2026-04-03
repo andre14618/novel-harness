@@ -49,9 +49,10 @@ These follow a rigid pattern: read score → read flagged issue → add/modify r
   - Measure: Hit rate on future generations
   - Model: Haiku can write regex patterns following Tier 1/2 format
 
-- [ ] **Pipeline config tuning** — Test maxDraftAttempts=5, maxValidationPasses=5 on full novel runs. Measure: does more retrying improve final quality or just burn cost?
+- [x] **Pipeline config tuning** — Test maxDraftAttempts=5, maxValidationPasses=5 on full novel runs. Measure: does more retrying improve final quality or just burn cost?
   - Measure: Final validation pass count, issue count at completion
   - Model: Haiku can run and compare
+  - Status: Done (Experiment #35). Inconclusive — baseline (3/3/3) hit schema failures with 21 open issues; extended (5/5/3) converged pass 1 but had an easier novel. Keeping 3/3/3 defaults. Rewriter schema robustness is the real bottleneck, not pass count.
 
 ## Tier 2: Sonnet-Level (Analytical Reasoning, Pattern Recognition)
 
