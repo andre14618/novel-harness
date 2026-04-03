@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Novel Harness Architecture</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --card: #161b22;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --dim: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --orange: #d29922;
+    --purple: #bc8cff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 1rem;
+    margin-bottom: 2rem;
+  }
+  h1 { color: #f0f6fc; font-size: 1.6rem; font-weight: 600; }
+  .date { color: var(--accent); font-size: 1.1rem; font-family: monospace; }
+  .toc {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+  }
+  .toc a {
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 0.85rem;
+    padding: 0.3rem 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    transition: background 0.15s;
+  }
+  .toc a:hover { background: var(--card); }
+  section {
+    margin-bottom: 2.5rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  section h2 {
+    background: var(--card);
+    padding: 0.8rem 1.2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #f0f6fc;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  section h2::after { content: '\25B2'; font-size: 0.7rem; color: var(--dim); }
+  section.collapsed h2::after { content: '\25BC'; }
+  section.collapsed pre { display: none; }
+  pre {
+    padding: 1.2rem;
+    overflow-x: auto;
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    background: var(--bg);
+  }
+  .legend {
+    color: var(--dim);
+    font-size: 0.8rem;
+    padding: 0.5rem 1.2rem;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+  }
+  /* syntax highlights inside pre */
+  .hl-heading { color: var(--accent); font-weight: bold; }
+  .hl-box { color: var(--green); }
+  .hl-arrow { color: var(--orange); }
+  .hl-dim { color: var(--dim); }
+  .hl-label { color: var(--purple); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Novel Harness &mdash; Architecture</h1>
+  <!-- UPDATE THIS DATE when diagrams change -->
+  <span class="date">2026-04-03</span>
+</header>
+
+<nav class="toc">
+  <a href="#state-machine">State Machine</a>
+  <a href="#agent-call">Agent Call Flow</a>
+  <a href="#databases">Databases</a>
+  <a href="#transport">Transport &times; Providers</a>
+  <a href="#benchmarks">Benchmarks</a>
+  <a href="#daemon">Improvement Daemon</a>
+  <a href="#system">Full System</a>
+  <a href="#models">Model Map</a>
+</nav>
+
+<section id="state-machine">
+  <h2>1. Novel Creation State Machine</h2>
+  <pre>
+ <span class="hl-heading">CONCEPT</span> ────▶ <span class="hl-heading">PLANNING</span> ────▶ <span class="hl-heading">DRAFTING</span> ────▶ <span class="hl-heading">VALIDATION</span> ────▶ <span class="hl-heading">DONE</span>
+    │               │               │                │
+    ▼               ▼               ▼                ▼
+┌──────────┐  ┌───────────┐  ┌────────────────┐  ┌──────────────────┐
+│ parallel: │  │ planning- │  │ per chapter:   │  │ up to 3 passes:  │
+│           │  │ plotter   │  │                │  │                  │
+│ world-    │  │     │     │  │ writer         │  │ deterministic    │
+│ builder   │  │     ▼     │  │   │            │  │   │              │
+│ char-     │  │ chapter   │  │   ▼            │  │   ▼              │
+│ agent     │  │ outlines  │  │ continuity     │  │ cross-chapter    │
+│ plotter   │  └───────────┘  │ check          │  │ continuity       │
+│           │                 │   │            │  │   │              │
+│     │     │                 │   ▼            │  │   ▼              │
+│     ▼     │                 │ validate       │  │ prose-quality    │
+│ world     │                 │   │            │  │   │              │
+│ chars     │                 │   ▼            │  │   ▼              │
+│ spine     │                 │ extract:       │  │ rewriter (if     │
+└──────────┘                  │  summary       │  │ issues found)    │
+                              │  facts         │  │   │              │
+                              │  char-state    │  │   ▼              │
+                              │   │            │  │ loop or done     │
+                              │   ▼            │  └──────────────────┘
+                              │ next chapter   │
+                              └────────────────┘</pre>
+</section>
+
+<section id="agent-call">
+  <h2>2. Agent Call Flow</h2>
+  <pre>
+Phase function (e.g. runDraftingPhase)
+      │
+      ▼
+callAgent(systemPrompt, userPrompt, schema)          <span class="hl-dim">src/llm.ts</span>
+      │
+      ▼
+getAgentConfig(agentName)                             <span class="hl-dim">models/roles.ts</span>
+      │  <span class="hl-label">returns: provider, model, temp, maxTokens, thinking</span>
+      ▼
+makeRequest()
+      │
+      ▼
+getTransport().execute(request)
+      │
+      ├── LLM_TRANSPORT=direct ──▶ DirectTransport
+      │                                  │
+      ├── LLM_TRANSPORT=batch ───▶ BatchTransport ──▶ queue ──▶ flush to /v1/batches
+      │
+      └── default ───▶ PrefixCacheTransport
+                            │
+                            ├── provider cache beneficial? ──▶ serialize same-prefix
+                            │                                         │
+                            └── not beneficial ───────────────────────┘
+                                                                      │
+                                                                      ▼
+                                                                DirectTransport
+                                                                      │
+                                                                      ▼
+                                                             HTTP POST to provider
+                                                             retry 3x on 429/5xx
+                                                                      │
+                                                                      ▼
+                                                             parse JSON + Zod validate
+                                                                      │
+                                                                      ▼
+                                                             logLLMCall ──▶ Postgres</pre>
+</section>
+
+<section id="databases">
+  <h2>3. Two-Database Architecture</h2>
+  <pre>
+<span class="hl-heading">PER-NOVEL SQLITE</span>  output/{novelId}/novel.db  (bun:sqlite, one per novel run)
+┌─────────────────────────────────────────────────────────────────────┐
+│  novels ─── world_bibles ─── characters ─── story_spines           │
+│  chapter_outlines ─── chapter_drafts ─── chapter_summaries         │
+│  facts ─── character_states ─── issues ─── validation_passes       │
+│                                                                     │
+│  <span class="hl-dim">Creative content for a single novel run</span>                          │
+│  <span class="hl-dim">Created at novel start, read during drafting/validation</span>           │
+└─────────────────────────────────────────────────────────────────────┘
+
+<span class="hl-heading">CENTRAL POSTGRES</span>  novel_harness_orchestrator  (LXC 307)
+┌─────────────────────────────────────────────────────────────────────┐
+│  TRACKING           BENCHMARKS          IMPROVEMENT     BATCH      │
+│  ─────────          ──────────          ───────────     ─────      │
+│  runs               generations         tuning_exps    orch_       │
+│  run_agents         scores              improvement_    batches    │
+│  llm_calls          baselines             cycles       orch_       │
+│                     lint_patterns       improvement_    requests   │
+│                     lint_issues           iterations               │
+│                     pairwise_matchups   budget_tracker             │
+│                                                                     │
+│  <span class="hl-dim">All operational data across all runs. Never deleted.</span>              │
+└─────────────────────────────────────────────────────────────────────┘
+
+<span class="hl-label">Data flow:</span>
+  Novel agents ──write──▶ SQLite  (creative content)
+  Novel agents ──log────▶ Postgres (llm_calls, runs)
+  Benchmarks ───────────▶ Postgres (generations, scores)
+  Improvement daemon ───▶ Postgres (cycles, iterations, experiments)
+  Batch jobs ───────────▶ Postgres (batches, requests)</pre>
+</section>
+
+<section id="transport">
+  <h2>4. Transport &times; Provider Matrix</h2>
+  <pre>
+                  <span class="hl-heading">Groq</span>        <span class="hl-heading">DeepSeek</span>     <span class="hl-heading">OpenAI</span>      <span class="hl-heading">Cerebras</span>    <span class="hl-heading">OpenRouter</span>
+                  ────        ────────     ──────      ────────    ──────────
+Cache type:       automatic   automatic    automatic   none        none
+Sequential:       no          <span class="hl-green">YES (95%!)</span>   no          -           -
+Batch API:        yes (50%)   no           yes (50%)   no          no
+
+Transport routing:
+┌──────────────────────────┐
+│ PrefixCacheTransport     │
+│ (default)                │
+│                          │
+│  DeepSeek calls ────────▶ serialize by system prompt hash (95% cache discount)
+│  Everything else ───────▶ pass through to DirectTransport
+└──────────────────────────┘
+         │
+         ▼
+┌──────────────────────────┐
+│ DirectTransport          │──▶ HTTP POST ──▶ provider API (retry 5s, 10s, 15s)
+└──────────────────────────┘
+
+┌──────────────────────────┐
+│ BatchTransport           │──▶ queue in memory ──▶ flush() ──▶ /v1/batches
+│ (--batch flag)           │                                    (OpenAI / Groq)
+└──────────────────────────┘</pre>
+</section>
+
+<section id="benchmarks">
+  <h2>5. Benchmark System</h2>
+  <pre>
+Seeds: <span class="hl-label">romance-drama</span> | <span class="hl-label">sci-fi-thriller</span> | <span class="hl-label">dark-fantasy</span> | <span class="hl-label">young-adult-fantasy</span> | <span class="hl-label">minimal</span>
+                                  │
+                                  ▼
+                      ┌───────────────────────┐
+                      │  benchmark/engine.ts   │
+                      │  runBenchmark(config)  │
+                      └───────────┬───────────┘
+                                  │
+            ┌─────────────────────┼─────────────────────┐
+            ▼                     ▼                      ▼                   ▼
+   ┌──────────────┐    ┌──────────────┐    ┌───────────────┐    ┌──────────────┐
+   │ <span class="hl-heading">PROSE</span>        │    │ <span class="hl-heading">PLANNING</span>     │    │ <span class="hl-heading">EXTRACTION</span>    │    │ <span class="hl-heading">CONTINUITY</span>   │
+   │ penalty mode │    │ score 1-10   │    │ score 1-10    │    │ score 1-10   │
+   │              │    │              │    │               │    │              │
+   │  telling     │    │  beat spec.  │    │  completeness │    │  issue det.  │
+   │  passive     │    │  dialog cues │    │  accuracy     │    │  fix quality │
+   │  redundancy  │    │  emot. arc   │    │               │    │              │
+   └──────┬───────┘    └──────┬───────┘    └───────┬───────┘    └──────┬───────┘
+          │                   │                     │                   │
+          └───────────────────┴─────────────────────┴───────────────────┘
+                                         │
+                                  ┌──────┴──────┐
+                                  ▼             ▼
+                            Direct judge   Batch judge
+                            (real-time)    (--batch flag)
+                                  │             │
+                                  ▼             ▼
+                              Postgres      Provider API ──▶ Poller ──▶ Postgres
+                             (scores)       (async, 50% off)          (scores)</pre>
+</section>
+
+<section id="daemon">
+  <h2>6. Improvement Daemon</h2>
+  <pre>
+                       POST /api/improvement/start
+                                  │
+                                  ▼
+┌──────┐    ┌────────────┐    ┌───────────┐    ┌─────────────┐    ┌───────────┐
+│ <span class="hl-heading">IDLE</span> │───▶│ <span class="hl-heading">DIAGNOSING</span> │───▶│ <span class="hl-heading">PROPOSING</span> │───▶│<span class="hl-heading">BENCHMARKING</span>│───▶│  <span class="hl-heading">JUDGING</span>  │
+└──────┘    └────────────┘    └───────────┘    └─────────────┘    └───────────┘
+   ▲             │                  │                │                   │
+   │             │ find weakest     │ improver LLM   │ generate prose    │ batch submit
+   │             │ dimension        │ rewrites prompt │ (atomic or       │ (poll 30min)
+   │             │                  │ validate+backup │  subprocess)     │
+   │             │                  │                 │                  │
+   │        ┌────┴──────┐          │                 │            ┌─────┴─────┐
+   │        │ nothing   │          │                 │            │<span class="hl-heading">EVALUATING</span>│
+   │        │ to improve│          │                 │            └─────┬─────┘
+   │        └─────┬─────┘          │                 │                  │
+   │              │                │                 │           delta = new - baseline
+   │              ▼                │                 │                  │
+   └──────── back to IDLE         │                 │            ┌─────┴─────┐
+   │                              │                 │            ▼           ▼
+   │                              │                 │         <span class="hl-box">KEEP</span>        <span class="hl-arrow">REVERT</span>
+   │                              │                 │        git commit   restore backup
+   │                              │                 │        update       log attempt
+   │                              │                 │        baseline          │
+   └──────────────────────────────┴─────────────────┴────────────┴────────────┘
+                                                                 │
+                                                         next iteration
+                                                   <span class="hl-dim">(max N iterations, per-experiment limits)</span></pre>
+</section>
+
+<section id="system">
+  <h2>7. Full System Overview</h2>
+  <pre>
+┌─────────────────────────┐          ┌──────────────────────────────────────┐
+│   <span class="hl-heading">LOCAL MACHINE</span>         │          │   <span class="hl-heading">LXC 307</span> (192.168.1.108)           │
+│   (editor)              │          │                                      │
+│                         │  rsync   │   ┌──────────────────────────────┐  │
+│   code editing ─────────┼─────────▶│   │ <span class="hl-label">Bun Runtime</span>                  │  │
+│   git repo              │  SSH     │   │  novel creation (index.ts)   │  │
+│                         │          │   │  benchmarks (benchmark/)     │  │
+│   SSH tunnel :15432 ────┼──────────│───│                              │  │
+│   for Postgres queries  │          │   └──────────┬───────────────────┘  │
+│                         │          │              │                      │
+│   sync-improvements.sh ─┼──────────│───(rsync prompts back)             │
+│                         │          │              │                      │
+└─────────────────────────┘          │   ┌──────────▼───────────────────┐  │
+                                     │   │ <span class="hl-label">Orchestrator :3006</span>           │  │
+                                     │   │  dashboard UI                │  │
+┌─────────────────────────┐          │   │  REST API                    │  │
+│   <span class="hl-heading">LLM PROVIDERS</span>         │          │   │  batch poller (30min)        │  │
+│                         │◀─────────│───│  improvement daemon          │  │
+│   Groq (kimi-k2, qwen3)│          │   └──────────┬───────────────────┘  │
+│   DeepSeek (judge)      │          │              │                      │
+│   OpenAI (batch API)    │          │   ┌──────────▼───────────────────┐  │
+│   Cerebras              │          │   │ <span class="hl-label">Postgres</span>                     │  │
+│   OpenRouter            │          │   │ novel_harness_orchestrator   │  │
+│                         │          │   │ (all operational data)       │  │
+└─────────────────────────┘          │   └──────────────────────────────┘  │
+                                     │                                      │
+                                     │   ntfy :2586 ──▶ email alerts       │
+                                     └──────────────────────────────────────┘</pre>
+</section>
+
+<section id="models">
+  <h2>8. Model Assignment Map</h2>
+  <pre>
+<span class="hl-heading">AGENT</span>                          <span class="hl-heading">MODEL</span>                <span class="hl-heading">PROVIDER</span>
+─────                          ─────                ────────
+writer                    ───▶ kimi-k2          ───▶ Groq
+world-builder             ───▶ qwen3-32b        ───▶ Groq
+character-agent           ───▶ qwen3-32b        ───▶ Groq
+plotter                   ───▶ qwen3-32b        ───▶ Groq
+planning-plotter          ───▶ qwen3-32b        ───▶ Groq
+continuity                ───▶ qwen3-32b        ───▶ Groq
+summary-extractor         ───▶ qwen3-32b        ───▶ Groq
+fact-extractor            ───▶ qwen3-32b        ───▶ Groq
+character-state           ───▶ qwen3-32b        ───▶ Groq
+cross-chapter-continuity  ───▶ qwen3-32b        ───▶ Groq
+prose-quality             ───▶ qwen3-32b        ───▶ Groq
+rewriter                  ───▶ qwen3-32b        ───▶ Groq
+prose-polish              ───▶ qwen3-32b        ───▶ Groq
+──────────────────────────────────────────────────────────
+judge                     ───▶ deepseek-chat    ───▶ DeepSeek
+pairwise-judge            ───▶ deepseek-chat    ───▶ DeepSeek
+──────────────────────────────────────────────────────────
+improver                  ───▶ kimi-k2          ───▶ Groq</pre>
+</section>
+
+<script>
+  document.querySelectorAll('section h2').forEach(h2 => {
+    h2.addEventListener('click', () => {
+      h2.parentElement.classList.toggle('collapsed');
+    });
+  });
+</script>
+</body>
+</html>
