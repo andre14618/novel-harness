@@ -28,6 +28,9 @@ These are mechanical — run a script, read numbers, change a value.
 - [ ] **Cost optimization sweep** — Run `bun scripts/cost-summary.ts --global`, identify most expensive agents, check if cheaper models have parity.
   - Status: Per-agent cost tracked but not analyzed for savings
 
+- [ ] **Audit batch API routing across all LLM call paths** — Verify BatchTransport works for every call path: judge calls (atomic + subprocess), improver calls, generation calls. Prose `--batch` was hardcoding gpt-5.4-mini (fixed), but batch routing is still only partially wired. Need to: (1) confirm which providers support batch APIs (OpenAI, Groq — not DeepSeek), (2) test LLM_TRANSPORT=batch end-to-end for each call type, (3) ensure batch submission + collection works. Matters more with expensive models or providers offering async batch discounts.
+  - Status: Transport layer supports batch mode but untested outside prose runner
+
 ## Tier 1: Haiku-Level (Templated Changes, Structured Feedback)
 
 These follow a rigid pattern: read score → read flagged issue → add/modify rule in prompt. A small model can do this reliably because the feedback is concrete.
@@ -57,13 +60,13 @@ These require understanding *why* something scores poorly and making a targeted 
   - Model: Sonnet can read methodology docs, extract the rule, write the prompt addition
   - Status: Done (Experiment #9). Also added to planning-plotter: Stasis=Death (STC-3), Midpoint Reversal (STC-4), Whiff of Death (STC-7), Pinch Points (W-3), Try/Fail Cycles (MICE-3). Telling -1.0, Dialogue -0.9 avg improvement.
 
-- [ ] **Planning-plotter: Five Commandments** — Add Story Grid's per-scene checklist (Inciting Incident, Progressive Complication, Crisis, Climax, Resolution) to planning prompt.
+- [x] **Planning-plotter: Five Commandments** — Add Story Grid's per-scene checklist (Inciting Incident, Progressive Complication, Crisis, Climax, Resolution) to planning prompt.
   - Measure: Beat Specificity benchmark dimension
-  - Model: Sonnet can implement this from methodology report
+  - Status: Done (already in prompt, five-commandments judge dimension added)
 
-- [ ] **Planning-plotter: dialogue cue specificity** — Current beats say "characters talk." Improve to include subtext notes, power dynamics, what's unsaid.
+- [x] **Planning-plotter: dialogue cue specificity** — Current beats say "characters talk." Improve to include subtext notes, power dynamics, what's unsaid.
   - Measure: Dialogue Cues benchmark + downstream Dialogue Problems in prose
-  - Model: Sonnet can analyze weak beats and write better examples
+  - Status: Done (Experiment #30, daemon cycle #3). Dialogue-cues 4.6 → 7.0 (+2.4), validated at 8/10. Added explicit dialogue-cue scaffolding: opener with speaker/subtext, mid-beat micro-cues, emotional sting closer.
 
 - [ ] **Rewriter precision measurement** — After rewriter runs, re-judge the same dimensions. Did issues go down? Did new issues appear?
   - Measure: Delta in penalty scores pre/post rewrite
