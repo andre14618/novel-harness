@@ -120,6 +120,36 @@ These require deep understanding of prose craft — knowing what makes writing w
   - Measure: New rubric + human eval. Hard to judge with LLM alone.
   - Model: Opus — this is one of the hardest prose craft skills to evaluate
 
+## Improvement Daemon Gaps
+
+Bugs fixed 2026-04-03 (commit TBD): diagnose sort was inverted for score-based benchmarks (targeted best dims instead of worst), judge reasoning query returned best generations instead of worst, benchmark types were hardcoded instead of derived from registry.
+
+Remaining design gaps, ordered by impact:
+
+- [ ] **Upgrade improver model** — Kimi K2 on Groq generates prompt edits, but this is a reasoning-heavy task. DeepSeek R1 or Opus via OpenRouter would produce more targeted, creative edits. The improver model is the single biggest bottleneck — everything else in the loop is mechanical.
+  - Measure: Run 5-iteration cycle with upgraded model vs Kimi K2, compare kept-change rate and score deltas
+  - Implementation: Change `improver` entry in `models/roles.ts`
+
+- [ ] **Statistical keep/revert threshold** — Current logic keeps on any `delta > 0`, which could be noise (±0.5 is common variance). Should require delta > minimum threshold or run multiple evaluations and check significance.
+  - Measure: Compare false-positive keep rate (changes that regress on re-evaluation)
+  - Implementation: `daemon-loop.ts:454/524` — require `delta >= 0.3` minimum, or run 2 eval rounds and require both positive
+  - Risk: Higher threshold = more reverts = faster cycle termination. May need to raise `maxConsecutiveFailures` from 3 to 5.
+
+- [ ] **Cross-dimension regression check between iterations** — Currently only checked at cycle end. A series of small improvements to one dimension could cumulatively regress another badly.
+  - Measure: Track all-dimension scores per iteration, flag regressions > 0.5
+  - Implementation: After each kept change in `evaluateIterationAtomic()`/`evaluateIteration()`, judge all dimensions (not just target). Revert if any dimension regresses > threshold.
+  - Cost: Roughly 2-3x more judge calls per iteration. Consider only checking every 3rd iteration.
+
+- [ ] **Proposal diversity / retry strategy** — Single LLM call at temp 0.7 per iteration. When model gets stuck proposing similar failing changes, 3 consecutive failures kills the cycle. Should try: (a) generate 2-3 proposals and pick the most different from prior attempts, or (b) escalate temperature after failures, or (c) switch to a different model after 2 failures.
+  - Implementation: In `proposeChange()` (improve.ts:233), on failure streaks generate multiple candidates, score for novelty vs prior `proposed_content`.
+
+- [ ] **Daemon auto-commit** — The CLI script (`scripts/improve-loop.ts`) commits kept changes but the production daemon doesn't. Kept changes exist only on disk until manual intervention.
+  - Implementation: After `applyChange()` succeeds in `evaluateIterationAtomic()`/`evaluateIteration()`, run `git add <file> && git commit -m "[daemon] ..."`.
+  - Risk: Need to handle concurrent git operations carefully.
+
+- [ ] **Atomic mode seed coverage** — `daemon-loop.ts:333` falls back to `["romance-drama"]` as single seed. Should use at least 2-3 seeds for representative scoring.
+  - Implementation: Default to `daemonEnv.BENCHMARK_SEEDS?.split(",")` or first 3 from `loadInputs()`.
+
 ## Automation Candidates
 
 Items that could run in an unattended loop with the right model:
