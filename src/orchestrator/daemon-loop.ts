@@ -585,21 +585,65 @@ async function finishCycle(status: string, reason: string): Promise<void> {
   const totalDelta = Math.round((cycle.currentScore - cycle.baselineScore) * 10) / 10
   const budget = await getTodayBudget()
 
-  // Run validation benchmark to confirm results outside the loop
-  const targetConfig = TARGETS[cycle.target]
-  let validationScore: number | null = null
-  if (targetConfig && cycle.iterationNum > 0) {
-    console.log(`[daemon] Running validation benchmark...`)
-    const valResult = await runBenchmark(targetConfig.benchmarkCmd, cycle.experimentId)
-    if (valResult) {
-      const valScores = await getLatestScores(cycle.target, cycle.dimension)
-      validationScore = valScores?.avgScore ?? null
-      console.log(`[daemon] Validation: ${validationScore}/10 (run ${valResult.runId})`)
+  // All-dimensions regression check: judge existing generations on remaining dimensions.
+  // Uses prefix caching — the generation content is already cached from target dimension judging.
+  const fullTarget = getDaemonTargetFull(cycle.target)
+  let regressionReport = ""
+  if (fullTarget && cycle.iterationNum > 0) {
+    // Find the last kept iteration's run to get its generations
+    const lastKept = await db`
+      SELECT run_id FROM improvement_iterations
+      WHERE cycle_id = ${cycle.cycleId} AND result = 'kept' AND run_id IS NOT NULL
+      ORDER BY iteration_num DESC LIMIT 1
+    ` as any[]
+
+    if (lastKept.length > 0) {
+      const harnessDb = (await import("../../data/connection")).default
+      const gens = await harnessDb`
+        SELECT id, seed FROM generations
+        WHERE run_id = ${lastKept[0].run_id} AND passed = true
+      ` as any[]
+
+      if (gens.length > 0) {
+        const otherDimensions = fullTarget.dimensions.filter(d => d !== cycle.dimension)
+        if (otherDimensions.length > 0) {
+          console.log(`[daemon] Regression check: ${gens.length} generations × ${otherDimensions.length} dimensions`)
+
+          const judgeResults = await Promise.all(
+            gens.flatMap((gen: any) =>
+              otherDimensions.map(dim => atomicJudge({
+                generationId: gen.id,
+                dimension: dim,
+                benchmarkType: cycle.target,
+                seedName: gen.seed,
+              }))
+            )
+          )
+
+          // Aggregate per-dimension
+          const dimScores: Record<string, number[]> = {}
+          for (let i = 0; i < judgeResults.length; i++) {
+            const dim = otherDimensions[i % otherDimensions.length]
+            if (judgeResults[i]) {
+              dimScores[dim] = dimScores[dim] ?? []
+              dimScores[dim].push(judgeResults[i]!.score)
+            }
+          }
+
+          const lines: string[] = []
+          for (const [dim, scores] of Object.entries(dimScores)) {
+            const avg = Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) / 10
+            lines.push(`${dim}: ${avg}/10`)
+          }
+          regressionReport = lines.join(", ")
+          console.log(`[daemon] Other dimensions: ${regressionReport}`)
+        }
+      }
     }
   }
 
-  const valStr = validationScore !== null ? `, validation: ${validationScore}` : ""
-  const statsSummary = `${cycle.target}/${cycle.dimension}: ${cycle.baselineScore} → ${cycle.currentScore} (${totalDelta >= 0 ? "+" : ""}${totalDelta}${valStr}). ${cycle.iterationNum} iters, $${budget.spent.toFixed(2)}. ${reason}`
+  const regStr = regressionReport ? `, other dims: ${regressionReport}` : ""
+  const statsSummary = `${cycle.target}/${cycle.dimension}: ${cycle.baselineScore} → ${cycle.currentScore} (${totalDelta >= 0 ? "+" : ""}${totalDelta}${regStr}). ${cycle.iterationNum} iters, $${budget.spent.toFixed(2)}. ${reason}`
 
   // Synthesize a strategic conclusion from diffs + scores + reasoning
   let conclusion = statsSummary
