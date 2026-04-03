@@ -4,7 +4,14 @@
  * Single connection used by both the harness DB layer (data/db.ts) and the
  * orchestrator (src/orchestrator/db.ts). All tables live in one Postgres DB.
  *
- * Connection is created on first use, not at import time.
+ * Connection is created on first use via a Proxy, not at import time.
+ * This lets modules that transitively import this file load without a DB.
+ *
+ * Trade-offs:
+ * - `db instanceof SQL` returns false (proxy, not real instance). No code uses this.
+ * - Missing DATABASE_URL errors on first query, not at startup. Mitigated by
+ *   orchestrator calling migrate() immediately, and CLI commands hitting DB early.
+ *
  * Connection string: DATABASE_URL env var.
  */
 
