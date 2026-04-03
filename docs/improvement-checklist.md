@@ -77,9 +77,10 @@ These require understanding *why* something scores poorly and making a targeted 
   - Model: Sonnet can build the comparison script and interpret results
   - Status: Done (Experiment #34). Script: benchmark/prose/rewriter-precision.ts. Results (3 runs, romance-drama): Telling -5.7, Dialogue -11.3, Dead Weight +10.0, Overall -2.3. Rewriter fixes telling/dialogue but introduces dead weight. Also tends to over-cut (578w from 1133w in one run). Rewriter prompt needs dead-weight awareness.
 
-- [ ] **Context builder enrichment** — Add previous chapter's emotional throughline to writer context. Add theme context to rewriter. Add character voice summary to prose-quality checker.
+- [x] **Context builder enrichment** — Add previous chapter's emotional throughline to writer context. Add theme context to rewriter. Add character voice summary to prose-quality checker.
   - Measure: Pairwise comparison with/without enriched context
   - Model: Sonnet can identify what's missing from context and add it
+  - Status: Done (commit 097a5af). Writer gets emotionalState from previous chapter summaries (was extracted but dropped). Rewriter gets story spine theme. Prose-quality gets character speech patterns for voice checking. Also persists emotionalState to SQLite (new column + migration).
 
 - [x] **Dialogue Problems rubric fix** — This dimension inverts across runs (+-5.0 variance). Either tighten the rubric to reduce ambiguity, or replace with a more stable measurement.
   - Measure: Variance reduction across 5+ runs
@@ -140,6 +141,6 @@ Remaining:
 1. **Lint pattern sourcing audit** — High priority. Existing patterns need craft-reference citations. Separate session.
 2. **Lint false positive rate** (Tier 0) — Human review of flagged instances, 0 reviewed so far
 3. **Batch API routing audit** (Tier 0) — End-to-end batch testing across all call paths
-4. **Context builder enrichment** (Tier 2) — Emotional throughline, theme context, character voice
+4. ~~**Context builder enrichment** (Tier 2)~~ — Done
 5. **Extraction accuracy test cases** (Tier 2) — Manual fact comparison
 6. **Craft-level prompt work** (Tier 3) — Show-don't-tell, voice, pacing, genre, subtext
