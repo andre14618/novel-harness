@@ -25,11 +25,11 @@ export interface RhythmConfig {
 }
 
 export const DEFAULT_RHYTHM_CONFIG: RhythmConfig = {
-  sentenceLengthCV:          { enabled: false, windowSize: 8, stepSize: 4, threshold: 0.30 },
-  openingRepetition:         { enabled: false, minRun: 3, twoWord: true },
+  sentenceLengthCV:          { enabled: true, windowSize: 8, stepSize: 4, threshold: 0.25 },
+  openingRepetition:         { enabled: true, minRun: 3, twoWord: false },
   compoundDominance:         { enabled: false, windowSize: 10, threshold: 0.60 },
   paragraphLengthCV:         { enabled: false, windowSize: 4, tolerance: 0.20 },
-  paragraphOpeningRepetition:{ enabled: false, minRunWord: 3, minRunPattern: 4 },
+  paragraphOpeningRepetition:{ enabled: true, minRunWord: 3, minRunPattern: 4 },
 }
 
 // ── Sentence/paragraph splitting ──────────────────────────────────────────
