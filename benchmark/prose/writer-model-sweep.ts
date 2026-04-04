@@ -24,12 +24,13 @@ interface ModelVariant {
   provider: string
   model: string
   temperature: number
+  maxTokens: number
 }
 
 const WRITER_MODELS: ModelVariant[] = [
-  { label: "Kimi K2 (Groq)", provider: "groq", model: "moonshotai/kimi-k2-instruct-0905", temperature: 0.8 },
-  { label: "DeepSeek V3.2", provider: "deepseek", model: "deepseek-chat", temperature: 0.8 },
-  { label: "Qwen3 32B (Groq)", provider: "groq", model: "qwen/qwen3-32b", temperature: 0.8 },
+  { label: "Kimi K2 (Groq)", provider: "groq", model: "moonshotai/kimi-k2-instruct-0905", temperature: 0.8, maxTokens: 16384 },
+  { label: "DeepSeek V3.2", provider: "deepseek", model: "deepseek-chat", temperature: 0.8, maxTokens: 8192 },
+  { label: "Qwen3 32B (Groq)", provider: "groq", model: "qwen/qwen3-32b", temperature: 0.8, maxTokens: 16384 },
 ]
 
 const RUNS = parseInt(process.env.BENCHMARK_RUNS ?? "2")
@@ -49,7 +50,7 @@ async function generateWithModel(
       model: variant.model,
       provider: variant.provider as any,
       temperature: variant.temperature,
-      maxTokens: 16384,
+      maxTokens: variant.maxTokens,
       responseFormat: { type: "json_object" },
     })
     const latencyMs = Date.now() - start
