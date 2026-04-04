@@ -198,8 +198,30 @@ async function buildOperationsConfig() {
     seeds, fixtures, judges, batchProviders, batchModels, experiments,
   }
 
+  // Load agent configs for "agent under test" display
+  const { getAgentConfig } = await import("../../models/roles")
+
   const benchmarks: Record<string, any> = {}
   for (const [name, cfg] of Object.entries(BENCHMARKS)) {
+    // Resolve the agents being tested and their current model config
+    const agentsUnderTest = (cfg.promptTargets ?? []).map((t: any) => {
+      // For prose benchmark, the actual agent used is benchmark-writer
+      const effectiveName = name === "prose" && t.agentName === "writer" ? "benchmark-writer" : t.agentName
+      const agentCfg = getAgentConfig(effectiveName)
+      return {
+        agentName: t.agentName,
+        effectiveName,
+        provider: agentCfg?.provider,
+        model: agentCfg?.model,
+        temperature: agentCfg?.temperature,
+        label: MODELS.find(m => m.id === agentCfg?.model && m.provider === agentCfg?.provider)?.label ?? agentCfg?.model,
+      }
+    })
+
+    // Judge config
+    const judgeCfg = getAgentConfig("benchmark-judge")
+    const judgeLabel = MODELS.find(m => m.id === judgeCfg?.model && m.provider === judgeCfg?.provider)?.label ?? judgeCfg?.model
+
     benchmarks[name] = {
       displayName: cfg.displayName,
       scoring: cfg.scoring,
@@ -207,6 +229,8 @@ async function buildOperationsConfig() {
       dimensionLabels: cfg.dimensionLabels,
       runCmd: cfg.runCmd,
       supportsBatch: name === "prose",
+      agentsUnderTest,
+      judge: judgeCfg ? { provider: judgeCfg.provider, model: judgeCfg.model, label: judgeLabel } : null,
     }
   }
 
@@ -479,6 +503,27 @@ function onSuiteChange() {
   const suite = document.getElementById('bench-suite').value
   const container = document.getElementById('bench-params')
   container.innerHTML = ''
+
+  // Show agents under test + judge
+  const bench = config.benchmarks[suite]
+  if (bench) {
+    let infoHtml = '<div style="margin-bottom:0.8rem;padding:0.6rem;background:#0d1117;border:1px solid #30363d;border-radius:4px;font-size:0.8rem">'
+    if (bench.agentsUnderTest && bench.agentsUnderTest.length > 0) {
+      infoHtml += '<div style="margin-bottom:0.4rem"><span style="color:#4ecca3">Testing:</span> '
+      infoHtml += bench.agentsUnderTest.map(function(a) {
+        return '<strong>' + a.agentName + '</strong> <span style="color:#555">(' + a.provider + ' / ' + (a.label || a.model) + ', temp ' + a.temperature + ')</span>'
+      }).join(', ')
+      infoHtml += '</div>'
+    }
+    if (bench.judge) {
+      infoHtml += '<div><span style="color:#e2b714">Judge:</span> '
+      infoHtml += '<strong>' + (bench.judge.label || bench.judge.model) + '</strong> <span style="color:#555">(' + bench.judge.provider + ')</span>'
+      infoHtml += '</div>'
+    }
+    infoHtml += '<div style="margin-top:0.4rem;color:#555">Change models on the <a href="/app/config?key=' + key + '" style="color:#58a6ff">Config page</a></div>'
+    infoHtml += '</div>'
+    container.innerHTML += infoHtml
+  }
 
   for (const v of config.envVars) {
     if (!v.applies.includes('all') && !v.applies.includes(suite)) continue
