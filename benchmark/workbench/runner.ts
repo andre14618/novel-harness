@@ -5,6 +5,9 @@
  * using existing infrastructure. Launched as a subprocess by the
  * orchestrator via POST /api/experiments/create.
  *
+ * Supports batch judging: generation is always real-time (we need the prose),
+ * but judge calls can be queued via batch API for 50% savings.
+ *
  * Usage: EXPERIMENT_ID=N bun benchmark/workbench/runner.ts
  */
 
@@ -12,13 +15,15 @@ import db from "../../data/connection"
 import type { WorkbenchConfig } from "./types"
 import { DIMENSIONS, DIMENSION_LABELS, QUALITY_DIMENSIONS, QUALITY_LABELS } from "../prose/judges/schema"
 import { createRun, saveGeneration, saveScore, saveLLMCall } from "../db"
-import { concludeExperiment } from "../../data/db"
+import { concludeExperiment, createBatch, addBatchRequest, updateBatchSubmitted } from "../../data/db"
 import { loadSeeds, generateProse, judgeDimension, judgeQualityDimension, mean } from "../prose/shared"
-import { getTransport } from "../../src/transport"
+import { getTransport, setTransport, BatchTransport } from "../../src/transport"
 import { extractJSON } from "../../src/llm"
 import { lintProse, saveLintIssues } from "../../src/lint"
 import { runMatchup } from "../pairwise/judge"
 import { savePairwiseMatchup } from "../../data/db"
+import { getBatchProvider, listBatchProviders } from "../batch/providers"
+import { PROVIDERS } from "../../models/registry"
 import { readFileSync } from "node:fs"
 
 const WRITER_PROMPT = readFileSync(new URL("../../src/agents/writer/prompt.md", import.meta.url).pathname, "utf-8")
@@ -36,12 +41,15 @@ async function main() {
   // Update status to running
   await db`UPDATE tuning_experiments SET summary = 'running' WHERE id = ${experimentId}`
 
+  const batchJudging = config.transport?.judging === "batch"
+
   console.log(`\nWorkbench Experiment #${experimentId}`)
   console.log(`Suite: ${config.suite}`)
   console.log(`Models: ${config.models.map(m => m.label).join(", ")}`)
   console.log(`Seeds: ${config.seeds.length > 0 ? config.seeds.join(", ") : "all"}`)
   console.log(`Runs/seed: ${config.runsPerSeed}`)
   console.log(`Evaluations: ${Object.entries(config.evaluations).filter(([, v]) => v).map(([k]) => k).join(", ")}`)
+  console.log(`Transport: generation=realtime, judging=${batchJudging ? "batch" : "realtime"}`)
   if (config.sourceRunId) console.log(`Source run: ${config.sourceRunId} (reusing prose)`)
   console.log()
 
@@ -79,6 +87,11 @@ async function main() {
     ` as any[]
     console.log(`Loaded ${sourceGens.length} generations from source run ${config.sourceRunId}`)
   }
+
+  // Track generated prose for batch judging
+  const allGens: Array<{ genId: number; runId: number; seed: string; prose: string; model: string }> = []
+
+  // ── Phase 1: Generate prose (always real-time) ──────────────────────────
 
   for (const seed of seeds) {
     for (let run = 1; run <= config.runsPerSeed; run++) {
@@ -137,18 +150,19 @@ async function main() {
         modelStats[model.label].words.push(wordCount)
         modelStats[model.label].cost.push(cost)
 
-        let dimSummary = ""
-
-        // Lint
+        // Lint (always real-time — deterministic, no LLM cost)
         if (config.evaluations.lint) {
           const lintResult = await lintProse(prose)
           await saveLintIssues(genId, lintResult.issues)
           modelStats[model.label].lint.push(lintResult.totalIssues)
-          dimSummary += `lint:${lintResult.totalIssues} `
         }
 
-        // Penalty judges
-        if (config.evaluations.penaltyJudges) {
+        allGens.push({ genId, runId, seed: seed.name, prose, model: model.label })
+
+        // Real-time judging (inline)
+        if (!batchJudging && config.evaluations.penaltyJudges) {
+          let dimSummary = ""
+
           for (const dim of DIMENSIONS) {
             const penalty = await judgeDimension(judge, dim, prose, runId, seed.name)
             if (penalty) {
@@ -158,7 +172,6 @@ async function main() {
             }
           }
 
-          // Quality judges (always run alongside penalty judges)
           for (const dim of QUALITY_DIMENSIONS) {
             const quality = await judgeQualityDimension(judge, dim, prose, runId, seed.name)
             if (quality) {
@@ -166,15 +179,102 @@ async function main() {
               dimSummary += `${QUALITY_LABELS[dim].slice(0, 3)}:${quality.score}/10 `
             }
           }
-        }
 
-        console.log(`  [${model.label}] ${wordCount}w | ${latencyMs}ms | $${cost.toFixed(4)} | ${dimSummary}`)
+          const lintCount = modelStats[model.label].lint.at(-1) ?? 0
+          console.log(`  [${model.label}] ${wordCount}w | ${latencyMs}ms | $${cost.toFixed(4)} | lint:${lintCount} ${dimSummary}`)
+        } else {
+          const lintCount = modelStats[model.label].lint.at(-1) ?? 0
+          console.log(`  [${model.label}] ${wordCount}w | ${latencyMs}ms | $${cost.toFixed(4)} | lint:${lintCount}`)
+        }
       }
       console.log()
     }
   }
 
-  // Pairwise (compare first two models if enabled)
+  // ── Phase 2: Batch judging (if enabled) ──────────────────────────────────
+
+  if (batchJudging && config.evaluations.penaltyJudges && allGens.length > 0) {
+    const batchProvider = judge.provider
+    const batchModel = judge.model
+
+    // Validate provider supports batch API
+    const providerDef = PROVIDERS[batchProvider as keyof typeof PROVIDERS]
+    if (!providerDef?.batchApi?.available) {
+      const available = listBatchProviders()
+      console.log(`\n  Warning: '${batchProvider}' does not support batch API.`)
+      console.log(`  Available batch providers: ${available.join(", ")}`)
+      console.log(`  Falling back to real-time judging...\n`)
+
+      // Fallback: judge in real-time
+      for (const gen of allGens) {
+        let dimSummary = ""
+        for (const dim of DIMENSIONS) {
+          const penalty = await judgeDimension(judge, dim, gen.prose, gen.runId, gen.seed)
+          if (penalty) {
+            await saveScore(gen.genId, judge.label, dim, penalty.count, JSON.stringify(penalty.issues))
+            modelScores[gen.model].push({ dim, score: penalty.count })
+            dimSummary += `${DIMENSION_LABELS[dim]}:${Math.abs(penalty.count)} `
+          }
+        }
+        for (const dim of QUALITY_DIMENSIONS) {
+          const quality = await judgeQualityDimension(judge, dim, gen.prose, gen.runId, gen.seed)
+          if (quality) {
+            await saveScore(gen.genId, judge.label, dim, quality.score, quality.reasoning)
+            dimSummary += `${QUALITY_LABELS[dim].slice(0, 3)}:${quality.score}/10 `
+          }
+        }
+        console.log(`  [${gen.model}/${gen.seed}] ${dimSummary}`)
+      }
+    } else {
+      // Set up batch transport
+      const batchTransport = new BatchTransport(getBatchProvider(batchProvider), batchModel)
+      setTransport(batchTransport)
+
+      const batchJudgeConfig = { ...judge, provider: batchProvider as any, model: batchModel }
+
+      // Queue all judge calls (penalty + quality)
+      for (const gen of allGens) {
+        for (const dim of DIMENSIONS) {
+          await judgeDimension(batchJudgeConfig, dim, gen.prose, gen.runId, gen.seed, `gen-${gen.genId}-${dim}`)
+        }
+        for (const dim of QUALITY_DIMENSIONS) {
+          await judgeQualityDimension(batchJudgeConfig, dim, gen.prose, gen.runId, gen.seed, `gen-${gen.genId}-${dim}`)
+        }
+      }
+
+      // Register batch in DB and flush
+      const firstRunId = Object.values(modelRuns)[0]
+      const batchId = await createBatch(firstRunId, batchProvider, batchModel)
+      for (const q of batchTransport.getQueue()) {
+        const parts = q.customId.match(/^gen-(\d+)-(.+)$/)
+        if (parts) await addBatchRequest(batchId, q.customId, parseInt(parts[1]), parts[2])
+      }
+
+      const providerBatchId = await batchTransport.flush()
+      const requestCount = batchTransport.queueSize()
+      await updateBatchSubmitted(batchId, providerBatchId, `workbench-${experimentId}`, requestCount)
+
+      console.log(`\n  Batch submitted: ${requestCount} judge calls via ${batchProvider}/${batchModel}`)
+      console.log(`  Provider batch ID: ${providerBatchId}`)
+      console.log(`  Local batch: #${batchId}`)
+      console.log(`  Collect results: bun benchmark/batch/collect.ts`)
+
+      // Update experiment status — scores arrive later
+      await db`UPDATE tuning_experiments SET summary = 'batch-pending' WHERE id = ${experimentId}`
+
+      console.log("\n" + "=".repeat(60))
+      console.log("  WORKBENCH — GENERATION COMPLETE, JUDGING BATCHED")
+      console.log("=".repeat(60))
+      console.log(`  ${allGens.length} generations across ${config.models.length} model(s)`)
+      console.log(`  ${requestCount} judge calls queued (batch ${batchProvider}/${batchModel})`)
+      console.log(`  Experiment: #${experimentId}`)
+      for (const m of config.models) console.log(`  ${m.label} run: ${modelRuns[m.label]}`)
+      return // Exit — collection happens later via batch/collect.ts
+    }
+  }
+
+  // ── Phase 3: Pairwise (always real-time) ─────────────────────────────────
+
   if (config.evaluations.pairwise && config.models.length >= 2) {
     const runA = modelRuns[config.models[0].label]
     const runB = modelRuns[config.models[1].label]
@@ -213,7 +313,8 @@ async function main() {
     }
   }
 
-  // Conclude
+  // ── Conclude ──────────────────────────────────────────────────────────────
+
   const conclusion = config.models.map(m => {
     const scores = modelScores[m.label]
     const avgScore = scores.length > 0 ? mean(scores.map(s => Math.abs(s.score))).toFixed(1) : "n/a"
