@@ -196,7 +196,7 @@ export async function fixLintIssues(
 
         const promptTokens = response.usage?.prompt_tokens ?? 0
         const completionTokens = response.usage?.completion_tokens ?? 0
-        const { getTokenCost } = await import("../models/registry")
+        const { getTokenCost } = await import("../../models/registry")
         costUsd += getTokenCost(llmConfig.provider as any, llmConfig.model, promptTokens, completionTokens)
 
         if (fixed && fixed !== sentence) {
@@ -270,7 +270,7 @@ export async function fixLintIssues(
 
         const promptTokens = response.usage?.prompt_tokens ?? 0
         const completionTokens = response.usage?.completion_tokens ?? 0
-        const { getTokenCost } = await import("../models/registry")
+        const { getTokenCost } = await import("../../models/registry")
         costUsd += getTokenCost(llmConfig.provider as any, llmConfig.model, promptTokens, completionTokens)
 
         // Validate: rewrite should be similar length (within 20%) and not empty
