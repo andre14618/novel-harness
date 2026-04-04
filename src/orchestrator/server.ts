@@ -623,6 +623,28 @@ const server = Bun.serve({
     // Health — unauthenticated
     if (path === "/health") return Response.json({ status: "ok", service: "novel-harness-orchestrator" })
 
+    // React app static files — unauthenticated (key passed as query param for API calls)
+    const UI_DIST = resolve(import.meta.dir, "../../ui/dist")
+    if (path.startsWith("/app")) {
+      if (path.startsWith("/app/assets/")) {
+        const filePath = resolve(UI_DIST, path.replace("/app/", ""))
+        const file = Bun.file(filePath)
+        if (await file.exists()) {
+          const ext = filePath.split(".").pop()
+          const contentType = ext === "js" ? "application/javascript"
+            : ext === "css" ? "text/css"
+            : ext === "svg" ? "image/svg+xml"
+            : "application/octet-stream"
+          return new Response(file, { headers: { "Content-Type": contentType } })
+        }
+      }
+      const indexFile = Bun.file(resolve(UI_DIST, "index.html"))
+      if (await indexFile.exists()) {
+        return new Response(indexFile, { headers: { "Content-Type": "text/html" } })
+      }
+      return new Response("React app not built. Run: cd ui && bun install && bunx vite build", { status: 503 })
+    }
+
     // Everything else requires auth
     const authErr = checkAuth(req)
     if (authErr) return authErr
@@ -745,32 +767,6 @@ const server = Bun.serve({
     // ── Novel step-through API ──────────────────────────────────────
     const novelResponse = await handleNovelRoute(req, url)
     if (novelResponse) return novelResponse
-
-    // ── React app (SPA) ────────────────────────────────────────────
-    const UI_DIST = resolve(import.meta.dir, "../../ui/dist")
-
-    if (path.startsWith("/app")) {
-      // Serve static assets from ui/dist
-      if (path.startsWith("/app/assets/")) {
-        const filePath = resolve(UI_DIST, path.replace("/app/", ""))
-        const file = Bun.file(filePath)
-        if (await file.exists()) {
-          const ext = filePath.split(".").pop()
-          const contentType = ext === "js" ? "application/javascript"
-            : ext === "css" ? "text/css"
-            : ext === "svg" ? "image/svg+xml"
-            : "application/octet-stream"
-          return new Response(file, { headers: { "Content-Type": contentType } })
-        }
-      }
-      // SPA fallback — serve index.html for all /app/* routes
-      const indexPath = resolve(UI_DIST, "index.html")
-      const indexFile = Bun.file(indexPath)
-      if (await indexFile.exists()) {
-        return new Response(indexFile, { headers: { "Content-Type": "text/html" } })
-      }
-      return new Response("React app not built. Run: cd ui && bun install && bunx vite build", { status: 503 })
-    }
 
     return Response.json({ error: "Not found" }, { status: 404 })
   },
