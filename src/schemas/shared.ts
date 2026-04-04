@@ -5,6 +5,7 @@ import { z } from "zod"
 export const locationSchema = z.object({
   name: z.string(),
   description: z.string(),
+  sensoryDetails: z.string().optional(),
 })
 
 export const relationshipSchema = z.object({
@@ -17,6 +18,7 @@ export const actSchema = z.object({
   name: z.string(),
   summary: z.string(),
   emotionalArc: z.string(),
+  turningPoint: z.string().optional(),
 })
 
 export const sceneBeatSchema = z.object({

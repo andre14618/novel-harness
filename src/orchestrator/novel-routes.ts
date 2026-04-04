@@ -58,7 +58,7 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
 
       // Group agents by role for the UI
       const agentGroups: Record<string, { label: string; description: string; agents: string[] }> = {
-        writers: { label: "Writers", description: "Creative prose generation", agents: ["writer", "rewriter", "prose-polish"] },
+        writers: { label: "Writers", description: "Creative prose generation", agents: ["writer", "rewriter"] },
         planners: { label: "Planners", description: "World, characters, plot, chapter outlines", agents: ["world-builder", "character-agent", "plotter", "planning-plotter"] },
         extractors: { label: "Extractors", description: "Structured extraction from prose", agents: ["summary-extractor", "fact-extractor", "character-state"] },
         validators: { label: "Validators", description: "Continuity and quality checks", agents: ["continuity", "cross-chapter-continuity", "prose-quality"] },

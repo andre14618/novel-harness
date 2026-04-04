@@ -35,7 +35,7 @@ ${outline.scenes.map((s, i) => `${i + 1}. ${s.description}
 CHARACTER PROFILES:
 ${relevantChars.map(c => `${c.name} (${c.role}):
   Speech pattern: ${c.speechPattern}
-  Traits: ${c.traits.join(", ")}
+  ${c.internalConflict ? `Internal conflict: ${c.internalConflict}\n  ` : ""}${c.avoids ? `Avoids: ${c.avoids}\n  ` : ""}Traits: ${c.traits.join(", ")}
   Goals: ${c.goals}
   Fears: ${c.fears}`).join("\n\n")}`
 
@@ -50,7 +50,15 @@ ${charStates.map(cs => `${cs.characterId}:
 
   if (relevantLocations.length > 0) {
     ctx += `\n\nSETTING DETAILS:
-${relevantLocations.map(l => `${l.name}: ${l.description}`).join("\n")}`
+${relevantLocations.map(l => `${l.name}: ${l.description}${l.sensoryDetails ? `\n  Sensory: ${l.sensoryDetails}` : ""}`).join("\n")}`
+  }
+
+  if (worldBible.sensoryPalette) {
+    ctx += `\n\nWORLD SENSORY PALETTE: ${worldBible.sensoryPalette}`
+  }
+
+  if (worldBible.technologyConstraints) {
+    ctx += `\n\nTECHNOLOGY/MAGIC CONSTRAINTS: ${worldBible.technologyConstraints}`
   }
 
   ctx += `\n\nWORLD RULES:

@@ -12,10 +12,15 @@ export function buildContext(
   const worldSection = `WORLD BIBLE:
 Setting: ${worldBible.setting}
 Time Period: ${worldBible.timePeriod}
+Geography: ${worldBible.geography ?? ""}
+Political Structure: ${worldBible.politicalStructure ?? ""}
+Technology/Magic Constraints: ${worldBible.technologyConstraints ?? ""}
+${worldBible.socialCustoms?.length ? `Social Customs:\n${worldBible.socialCustoms.map(c => `- ${c}`).join("\n")}` : ""}
+Sensory Palette: ${worldBible.sensoryPalette ?? ""}
 Rules:
 ${worldBible.rules.map(r => `- ${r}`).join("\n")}
 Locations:
-${worldBible.locations.map(l => `- ${l.name}: ${l.description}`).join("\n")}
+${worldBible.locations.map(l => `- ${l.name}: ${l.description}${l.sensoryDetails ? ` [${l.sensoryDetails}]` : ""}`).join("\n")}
 Culture: ${worldBible.culture}
 History: ${worldBible.history}`
 
@@ -24,7 +29,7 @@ ${characters.map(c => `${c.name} (${c.role}):
   Backstory: ${c.backstory}
   Traits: ${c.traits.join(", ")}
   Speech: ${c.speechPattern}
-  Goals: ${c.goals}
+  ${c.internalConflict ? `Internal conflict: ${c.internalConflict}\n  ` : ""}${c.avoids ? `Avoids: ${c.avoids}\n  ` : ""}Goals: ${c.goals}
   Fears: ${c.fears}
   Relationships: ${c.relationships.map(r => `${r.characterName} — ${r.nature}`).join("; ")}`).join("\n\n")}`
 
@@ -33,7 +38,7 @@ Central Conflict: ${spine.centralConflict}
 Theme: ${spine.theme}
 Ending Direction: ${spine.endingDirection}
 Acts:
-${spine.acts.map(a => `  Act ${a.number} — ${a.name}: ${a.summary} [${a.emotionalArc}]`).join("\n")}`
+${spine.acts.map(a => `  Act ${a.number} — ${a.name}: ${a.summary} [${a.emotionalArc}]${a.turningPoint ? `\n    Turning point: ${a.turningPoint}` : ""}`).join("\n")}`
 
   return `Genre: ${seed.genre}
 Premise: ${seed.premise}

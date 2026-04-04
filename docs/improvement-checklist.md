@@ -9,42 +9,36 @@ verified: 2026-04-03
 
 These three agents produce the foundation every downstream agent uses. All are at 15-24 line prompts with 9-line context builders — the same state the extraction agents were in before their 4.2→8.0 overhaul. No benchmarks exist for concept quality.
 
-- [ ] **World-builder overhaul** — 15-line prompt, the thinnest in the system. Feeds world rules to plotter, writer, and continuity. A vague world bible means the writer invents settings and rules on the fly, creating continuity issues downstream.
-  - File: `src/agents/world-builder/prompt.md` (15 lines), `context.ts` (9 lines)
-  - Needs: structured output fields (geography, political structure, technology constraints, social customs, sensory palette), specificity guidance with examples, minimum detail thresholds
+- [x] **World-builder overhaul** — Expanded from 15 to ~30 lines. Added 5 new schema fields (geography, politicalStructure, technologyConstraints, socialCustoms, sensoryPalette), location sensoryDetails, specificity examples in prompt, downstream context enrichment in writer + planning-plotter (2026-04-04).
+  - File: `src/agents/world-builder/prompt.md`, `schema.ts`, `context.ts`; also `schemas/shared.ts`, `agents/writer/context.ts`, `agents/planning-plotter/context.ts`
   - Verify: run a novel, compare world bible quality before/after
 
-- [ ] **Plotter overhaul** — 21-line prompt. Decides central conflict, theme, and 3-act structure for the entire novel. Has no methodology integration (unlike planning-plotter which got Scene/Sequel, Five Commandments, Stasis=Death, etc.).
-  - File: `src/agents/plotter/prompt.md` (21 lines), `context.ts` (9 lines)
-  - Needs: Story Grid obligatory scenes per genre, try/fail cycle structure, theme integration guidance, act-level turning point specificity
+- [x] **Plotter overhaul** — Expanded from 21 to ~45 lines. Added: per-act methodology (Stasis=Death, midpoint reversal, whiff of death, try/fail cycles), turningPoint field in act schema, theme-as-question guidance, 5 genre-specific obligation sets, theme integration across all 3 acts. Planning-plotter context enriched with turningPoint (2026-04-04).
+  - File: `src/agents/plotter/prompt.md`, `schemas/shared.ts` (actSchema), `agents/planning-plotter/context.ts`
   - Verify: compare plot spines before/after across multiple seeds
 
-- [ ] **Character-agent overhaul** — 24-line prompt. Speech patterns feed writer + prose-quality, but likely produce generic profiles. The "character voice differentiation" Tier 3 item can't be solved at the writer level — it needs to be solved here.
-  - File: `src/agents/character-agent/prompt.md` (24 lines), `context.ts` (9 lines)
-  - Needs: distinctive speech pattern examples (vocabulary, sentence structure, verbal tics, what they avoid saying), backstory-to-behavior connections, relationship dynamics with specific conflict sources
+- [x] **Character-agent overhaul** — Expanded from 24 to ~50 lines. Added: detailed speech pattern template (structure, vocabulary, tics, avoidance), 2 new schema fields (internalConflict, avoids), backstory-to-behavior chain guidance, bad/good examples for traits, relationships, and fears. Downstream contexts (writer, planning-plotter) enriched with new fields (2026-04-04).
+  - File: `src/agents/character-agent/prompt.md`, `schema.ts`; also `agents/writer/context.ts`, `agents/planning-plotter/context.ts`
   - Verify: pairwise comparison on dialogue-heavy seeds, check if writer produces distinct voices
 
 ## Validation Agents (Never Improved)
 
-- [ ] **Continuity checker overhaul** — 27-line prompt, no benchmark, no examples. The single-chapter variant that runs during drafting.
-  - File: `src/agents/continuity/prompt.md` (27 lines), `context.ts` (25 lines)
-  - Needs: concrete examples of each issue type, false positive guidance, severity calibration
+- [x] **Continuity checker overhaul** — Expanded from 27 to ~50 lines: added 2-3 concrete examples per severity level (blocker/warning/nit), object tracking check, 5 false-positive exclusions (dramatic irony, figurative language, unreliable narrator, vague timeline, triggered emotional shifts) (2026-04-04).
+  - File: `src/agents/continuity/prompt.md`, `context.ts` (25 lines)
 
-- [ ] **Cross-chapter-continuity overhaul** — 29-line prompt. Has a benchmark and fixtures but the prompt itself has never been improved.
-  - File: `src/agents/cross-chapter-continuity/prompt.md` (29 lines), `context.ts` (37 lines)
-  - Needs: same as continuity, plus dropped-thread detection guidance and emotional continuity examples
+- [x] **Cross-chapter-continuity overhaul** — Expanded from 29 to ~60 lines. Added: 2-3 examples per severity level, dedicated dropped-thread detection section (promises, character arcs, foreshadowing), emotional continuity tracking guidance, 4 false-positive exclusions (2026-04-04).
+  - File: `src/agents/cross-chapter-continuity/prompt.md`, `context.ts` (37 lines)
   - Verify: run continuity benchmark before/after
 
-- [ ] **Prose-quality overhaul** — 22-line prompt. Rubric is focused (show-don't-tell + cliche detection) but has no examples of good vs bad flags. Context was enriched with character voice profiles but prompt unchanged.
-  - File: `src/agents/prose-quality/prompt.md` (22 lines), `context.ts` (27 lines)
-  - Needs: before/after examples of each flag type, threshold guidance for "clear cases"
+- [x] **Prose-quality overhaul** — Expanded from 22 to ~50 lines: added 3 issue categories (telling, cliché, AI-fiction tells), 14 before/after examples, false-positive guidance (legitimate telling, hedging in dialogue/deep POV), priority ordering (2026-04-04).
+  - File: `src/agents/prose-quality/prompt.md`, `context.ts` (27 lines)
 
 ## Prose Quality (Partially Done)
 
-- [ ] **Show-don't-tell: when telling is right** — The writer has 17 NEVER rules for cliches/hedges but no guidance on when telling IS the correct choice (time skips, rapid-fire action, transitions between scenes). Currently the rules are all prohibitions with no permissions.
+- [x] **Show-don't-tell: when telling is right** — Added 5 telling-is-correct cases (time skips, transitions, rapid action, known facts, sequel compression) to writer prompt (2026-04-04).
   - File: `src/agents/writer/prompt.md`
 
-- [ ] **Environment as emotional mirror** — Use setting details to reflect character emotional state without stating it. "Rain streaked the window" during grief, not "She felt sad."
+- [x] **Environment as emotional mirror** — Added pathetic fallacy guidance with 3 before/after examples + restraint note to writer prompt (2026-04-04).
   - File: `src/agents/writer/prompt.md`
 
 - [ ] **Rewriter dead-weight regression re-test** — Rewriter prompt now has anti-cliche/anti-hedge rules (2026-04-03). Experiment #34 showed +10 dead-weight regression. Need to re-run `benchmark/prose/rewriter-precision.ts` to verify the fix.
@@ -79,7 +73,7 @@ These three agents produce the foundation every downstream agent uses. All are a
   - Implementation: after each kept change, judge 1-2 other dimensions. Revert if any regresses > 1.0.
   - Cost: 2-3x more judge calls per iteration.
 
-- [ ] **Remove orphaned prose-polish agent** — 32-line prompt, not exported from `src/agents/index.ts`, not in the pipeline. Either integrate or delete.
+- [x] **Remove orphaned prose-polish agent** — deleted directory, removed from roles.ts, prompts.ts, novel-routes.ts, ConfigPage.tsx, architecture.html (2026-04-04).
 
 ## Improvement Daemon (Completed 2026-04-03)
 

@@ -45,3 +45,17 @@ Craft rules (follow strictly):
 - NEVER use "couldn't help but" — let the character act directly.
 - NEVER use electricity/magnetism/current as metaphors for interpersonal tension. Show the effect through the POV character's body.
 - After showing an emotion through physical action, do NOT immediately name the emotion. "Her hands trembled" is strong. Following it with "She was terrified" kills the showing. Exception: when the character analyzes or questions the emotion ("She hadn't expected to be afraid").
+
+When telling IS the right choice (use summary narration, not scene):
+- Time skips: "Three days passed before the letter arrived." Don't dramatize uneventful time.
+- Transitions between scenes: A single sentence of narration to reorient place/time. "By the time she reached the harbor, the storm had passed."
+- Rapid-fire action sequences: Short declarative sentences. "He ducked. The blade missed. He rolled left and came up swinging." — telling speed matters more than sensory detail here.
+- Establishing known facts: If a character's emotional state was already dramatized in the current scene, a brief reference is fine later. "Still rattled, she opened the door." — no need to re-show what was already shown.
+- Sequel compression: The reaction-dilemma-decision sequel between scenes can be a single telling sentence when the emotional stakes are low. "She decided to try the north road instead."
+
+Environment as emotional mirror:
+- Use setting details to reflect the POV character's emotional state without naming it. The environment becomes an extension of interiority.
+- Grief: "Rain streaked the window. The garden below had gone to seed." Not: "She felt sad looking outside."
+- Anxiety: "The fluorescent light buzzed. The hallway stretched longer than she remembered." Not: "She felt nervous walking down the hall."
+- Joy: "Sunlight caught the dust motes above the table. The coffee smelled like Saturday." Not: "She felt happy that morning."
+- Don't force every scene into pathetic fallacy — use it when the POV character would naturally notice their surroundings through an emotional lens. A distracted character notices less; a hypervigilant one notices everything.

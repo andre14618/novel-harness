@@ -5,5 +5,12 @@ export function buildContext(seed: SeedInput): string {
     .map(c => `- ${c.name} (${c.role}): ${c.description}`)
     .join("\n")
 
-  return `Genre: ${seed.genre}\n\nPremise: ${seed.premise}\n\nCharacters:\n${charList}\n\nCreate a detailed world bible for this story. Make the world feel specific and lived-in.`
+  return `Genre: ${seed.genre}
+
+Premise: ${seed.premise}
+
+Characters:
+${charList}
+
+Create a detailed world bible for this story. Every field you produce will be used by other agents — the plotter uses rules and political structure to build conflict, the writer uses locations and sensory palette to ground scenes, and the continuity checker uses rules and locations to catch contradictions. Make the world feel specific and lived-in.`
 }

@@ -8,6 +8,8 @@ export const characterProfileSchema = z.object({
   backstory: z.string().default(""),
   traits: z.array(z.string()).default([]),
   speechPattern: z.string().default(""),
+  internalConflict: z.string().optional(),
+  avoids: z.string().optional(),
   goals: z.string().default(""),
   fears: z.string().default(""),
   relationships: z.array(relationshipSchema).default([]),

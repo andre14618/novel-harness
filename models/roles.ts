@@ -26,7 +26,6 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // ── Writers (creative prose, high output) ─────────────────────────────
   "writer":                    { ...groqKimiK2, temperature: 0.8, maxTokens: 16384 },
   "rewriter":                  { ...groqKimiK2, temperature: 0.5, maxTokens: 16384 },
-  "prose-polish":              { ...groqKimiK2, temperature: 0.4, maxTokens: 16384 },
 
   // ── Planners (structured creative output) ─────────────────────────────
   "world-builder":             { ...groqQwen32B, maxTokens: 8192 },
