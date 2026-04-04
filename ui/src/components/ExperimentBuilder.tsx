@@ -77,7 +77,7 @@ export function ExperimentBuilder({ onCreated, onCancel }: Props) {
     return sum + perCall * discount * seedCount * runsPerSeed
   }, 0)
 
-  const judgeCallsPerGen = penaltyJudges ? 3 : 0
+  const judgeCallsPerGen = penaltyJudges ? 6 : 0  // 3 penalty + 3 quality
   const judgeCostPerCall = 0.001
   const judgeDiscount = judgeTransport === "batch" ? batchDiscount : 1
   const judgeCost = totalGens * judgeCallsPerGen * judgeCostPerCall * judgeDiscount
