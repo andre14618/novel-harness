@@ -29,12 +29,23 @@ const LLM_MODELS: ModelConfig[] = [
   { label: "Qwen3 235B", provider: "cerebras", model: "qwen-3-235b-a22b-instruct-2507" },
 ]
 
+/** Count characters that were actually edited — not shifted by earlier edits. */
 function measureCollateral(original: string, rewritten: string): number {
-  const maxLen = Math.max(original.length, rewritten.length)
+  // Split into words and count word-level changes for a shift-resistant metric
+  const origWords = original.split(/\s+/)
+  const rewriteWords = rewritten.split(/\s+/)
   let changed = 0
-  for (let i = 0; i < maxLen; i++) {
-    if (original[i] !== rewritten[i]) changed++
+  const maxLen = Math.max(origWords.length, rewriteWords.length)
+  // Simple LCS-based approach: count words present in one but not the other
+  const origSet = new Map<string, number>()
+  for (const w of origWords) origSet.set(w, (origSet.get(w) ?? 0) + 1)
+  for (const w of rewriteWords) {
+    const count = origSet.get(w) ?? 0
+    if (count > 0) origSet.set(w, count - 1)
+    else changed++
   }
+  // Also count words removed from original
+  for (const [, count] of origSet) changed += count
   return changed
 }
 
@@ -110,7 +121,7 @@ async function main() {
       })
       await saveLintIssues(genId, postLint.issues)
 
-      console.log(`  [det-only] det:${fix.deterministicFixes} unfixed:${fix.unfixed}/${lintResult.totalIssues} | lint:${lintResult.totalIssues}→${postLint.totalIssues} | collateral:${collateralPct}% | words:${wordDelta >= 0 ? "+" : ""}${wordDelta} | ${fix.latencyMs}ms | $0`)
+      console.log(`  [det-only] det:${fix.deterministicFixes} unfixed:${fix.unfixed}/${lintResult.totalIssues} | lint:${lintResult.totalIssues}→${postLint.totalIssues} | collateral:${collateralPct}% words | words:${wordDelta >= 0 ? "+" : ""}${wordDelta} | ${fix.latencyMs}ms | $0`)
     }
 
     // Arm 2+: deterministic + LLM fallback
@@ -141,7 +152,7 @@ async function main() {
       })
       await saveLintIssues(genId, postLint.issues)
 
-      console.log(`  [${model.label}] det:${fix.deterministicFixes} llm:${fix.llmFixes} (${fix.llmCalls} calls) unfixed:${fix.unfixed}/${lintResult.totalIssues} | lint:${lintResult.totalIssues}→${postLint.totalIssues} | collateral:${collateralPct}% | words:${wordDelta >= 0 ? "+" : ""}${wordDelta} | ${fix.latencyMs}ms | $${fix.costUsd.toFixed(4)}`)
+      console.log(`  [${model.label}] det:${fix.deterministicFixes} llm:${fix.llmFixes} (${fix.llmCalls} calls) unfixed:${fix.unfixed}/${lintResult.totalIssues} | lint:${lintResult.totalIssues}→${postLint.totalIssues} | collateral:${collateralPct}% words | words:${wordDelta >= 0 ? "+" : ""}${wordDelta} | ${fix.latencyMs}ms | $${fix.costUsd.toFixed(4)}`)
     }
     console.log()
   }
@@ -174,7 +185,7 @@ async function main() {
       `  ${arm.padEnd(20)} ` +
       `${det}/${llm}/${unf}`.padStart(18) + " " +
       `${lintPre}→${lintPost}`.padStart(10) + " " +
-      `${collPct}%`.padStart(12) + " " +
+      `${collPct}% words`.padStart(12) + " " +
       `${Number(wordD) >= 0 ? "+" : ""}${wordD}w`.padStart(10) + " " +
       `$${cost}`.padStart(10) + " " +
       `${time}ms`.padStart(8),

@@ -58,15 +58,18 @@ const DETERMINISTIC_FIXES: DetFix[] = [
 
   // FILTER_WORD — remove the filter, keep the perception
   { category: "FILTER_WORD", pattern: /\bcould\s+feel\b/gi, fix: () => "felt" },
-  { category: "FILTER_WORD", pattern: /\bcould\s+see\b/gi, fix: () => null }, // needs sentence restructure → LLM
+  { category: "FILTER_WORD", pattern: /\bcould\s+see\b/gi, fix: () => "saw" },
   { category: "FILTER_WORD", pattern: /\bcould\s+hear\b/gi, fix: () => "heard" },
   { category: "FILTER_WORD", pattern: /\bcould\s+smell\b/gi, fix: () => "smelled" },
   { category: "FILTER_WORD", pattern: /\bcould\s+taste\b/gi, fix: () => "tasted" },
-  { category: "FILTER_WORD", pattern: /\bseemed\s+to\b/gi, fix: () => null }, // often needs restructure → LLM
+  { category: "FILTER_WORD", pattern: /\bseemed\s+to\b/gi, fix: () => "" },
 
   // HEDGE_QUALIFIER — simple removals
   { category: "HEDGE_QUALIFIER", pattern: /\bcouldn't\s+help\s+but\b/gi, fix: () => "" },
   { category: "HEDGE_QUALIFIER", pattern: /\b(sort|kind)\s+of\b/gi, fix: () => "" },
+  { category: "HEDGE_QUALIFIER", pattern: /\bsomething\s+(like|akin\s+to)\b/gi, fix: () => "" },
+  { category: "HEDGE_QUALIFIER", pattern: /\balmost\s+as\s+if\b/gi, fix: () => "as if" },
+  { category: "HEDGE_QUALIFIER", pattern: /\bit\s+was\s+as\s+(though|if)\b/gi, fix: () => null }, // needs restructure → LLM
 
   // EMPTY_TRANSITION — cut the transition word
   { category: "EMPTY_TRANSITION", pattern: /(?:^|(?<=\.\s{1,2}))And then\b/gi, fix: () => "" },
@@ -129,7 +132,13 @@ export async function fixLintIssues(
     }
 
     if (!fixed) {
-      needsLlm.push(issue)
+      // AI_CLICHE and DECLARED_EMOTION need creative rewriting — advisory only, skip LLM
+      const advisoryCategories = ["AI_CLICHE", "DECLARED_EMOTION"]
+      if (advisoryCategories.includes(issue.category)) {
+        unfixed++
+      } else {
+        needsLlm.push(issue)
+      }
     }
   }
 
