@@ -206,6 +206,74 @@ export async function fixLintIssues(
     unfixed += needsLlm.length
   }
 
+  // Pass 3: per-window rhythm rewriting for structural patterns
+  // RHYTHM_MONOTONY and PARAGRAPH_HOMOGENEITY issues contain the window text
+  // in the match field — rewrite the block with varied rhythm
+  if (llmConfig) {
+    const rhythmIssues = issues.filter(i =>
+      i.category === "RHYTHM_MONOTONY" || i.category === "PARAGRAPH_HOMOGENEITY"
+    )
+
+    // Deduplicate overlapping windows (take the first occurrence per region)
+    const processedRegions = new Set<number>()
+
+    for (const issue of rhythmIssues) {
+      // Skip if we already rewrote a nearby region (windows overlap)
+      const regionKey = Math.floor(issue.charOffset / 500)
+      if (processedRegions.has(regionKey)) continue
+
+      // Extract the window from the current text
+      // The sentence field contains the window preview — find it in the text
+      const windowStart = result.indexOf(issue.sentence.split(" | ")[0]?.slice(0, 60)?.trim() ?? "")
+      if (windowStart === -1) continue
+
+      // Find the window end — roughly 8 sentences or 2 paragraphs from the start
+      let windowEnd = windowStart
+      let sentenceCount = 0
+      for (let i = windowStart; i < result.length && sentenceCount < 10; i++) {
+        if (result[i] === '.' || result[i] === '!' || result[i] === '?') sentenceCount++
+        windowEnd = i + 1
+      }
+
+      const window = result.slice(windowStart, windowEnd).trim()
+      if (window.length < 50 || window.length > 3000) continue
+
+      try {
+        const rhythmPrompt = issue.category === "RHYTHM_MONOTONY"
+          ? "Rewrite this passage with VARIED sentence rhythm. Mix short punchy sentences (3-6 words) with longer flowing ones (20-30 words). Use fragments for impact. Break compound sentences into simple ones where tension is high. Merge short choppy sentences into flowing ones where reflection happens. PRESERVE all content, characters, actions, and dialogue exactly — only change sentence structure and length."
+          : "Rewrite this passage with VARIED paragraph lengths. Break a long paragraph into a short impactful one (1-2 sentences) and a longer descriptive one. Merge short uniform paragraphs where the content flows together. PRESERVE all content exactly — only change paragraph breaks and sentence grouping."
+
+        const response = await getTransport().execute({
+          systemPrompt: rhythmPrompt,
+          userPrompt: `PASSAGE TO REWRITE:\n${window}`,
+          model: llmConfig.model,
+          provider: llmConfig.provider as any,
+          temperature: llmConfig.temperature ?? 0.4,
+          maxTokens: 2048,
+        })
+
+        const rewritten = response.content.trim()
+        llmCalls++
+
+        const promptTokens = response.usage?.prompt_tokens ?? 0
+        const completionTokens = response.usage?.completion_tokens ?? 0
+        const { getTokenCost } = await import("../models/registry")
+        costUsd += getTokenCost(llmConfig.provider as any, llmConfig.model, promptTokens, completionTokens)
+
+        // Validate: rewrite should be similar length (within 20%) and not empty
+        if (rewritten.length > 0 && Math.abs(rewritten.length - window.length) / window.length < 0.25) {
+          result = result.slice(0, windowStart) + rewritten + result.slice(windowEnd)
+          llmFixes++
+          processedRegions.add(regionKey)
+        } else {
+          unfixed++
+        }
+      } catch {
+        unfixed++
+      }
+    }
+  }
+
   return {
     prose: result,
     deterministicFixes,
