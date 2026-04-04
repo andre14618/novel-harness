@@ -93,6 +93,7 @@ async function fixWithContext(
       provider: LLM.provider as any,
       temperature: 0.3,
       maxTokens: 512,
+      responseFormat: { type: "text" },
     })
     const latencyMs = Date.now() - start
     const fixed = response.content.trim().replace(/^["']|["']$/g, "")
