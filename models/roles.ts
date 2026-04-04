@@ -24,8 +24,8 @@ const deepseekV3: ModelAssignment = { provider: "deepseek", model: "deepseek-cha
 
 export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // ── Writers (creative prose, high output) ─────────────────────────────
-  "writer":                    { ...groqKimiK2, temperature: 0.8, maxTokens: 16384 },
-  "rewriter":                  { ...groqKimiK2, temperature: 0.5, maxTokens: 16384 },
+  "writer":                    { ...deepseekV3, temperature: 0.8, maxTokens: 16384 },
+  "rewriter":                  { ...deepseekV3, temperature: 0.5, maxTokens: 16384 },
 
   // ── Planners (structured creative output) ─────────────────────────────
   "world-builder":             { ...groqQwen32B, maxTokens: 8192 },
@@ -57,7 +57,7 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "pairwise-judge":            { ...deepseekV3, temperature: 0.1 },
 
   // ── Benchmark (can tune independently from novel pipeline) ───────────
-  "benchmark-writer":          { ...groqKimiK2, temperature: 0.8, maxTokens: 16384 },
+  "benchmark-writer":          { ...deepseekV3, temperature: 0.8, maxTokens: 16384 },
   "benchmark-judge":           { ...deepseekV3, temperature: 0.1 },
 
   // ── Improvement daemon ──────────────────────────────────────────────
