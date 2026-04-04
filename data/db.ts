@@ -923,6 +923,63 @@ export async function getAllExperiments(limit: number = 50): Promise<any[]> {
   `
 }
 
+/** Fetch all generations for an experiment with prose, scores, and lint issues. */
+export async function getExperimentGenerations(
+  experimentId: number, limit: number = 20, offset: number = 0,
+): Promise<Array<{
+  id: number; seed: string; attempt: number; prose: string; wordCount: number
+  variantLabel: string | null; runLabel: string | null; latencyMs: number | null
+  scores: Array<{ dimension: string; score: number; reasoning: string | null; judge: string }>
+  lintIssues: Array<{ category: string; match: string; sentence: string; charOffset: number }>
+}>> {
+  const gens = await db`
+    SELECT g.id, g.seed, g.attempt, g.prose, g.word_count as "wordCount",
+           g.variant_label as "variantLabel", r.label as "runLabel",
+           g.latency_ms as "latencyMs"
+    FROM generations g
+    JOIN runs r ON r.id = g.run_id
+    WHERE r.experiment_id = ${experimentId} AND g.passed = true AND g.prose IS NOT NULL
+    ORDER BY g.variant_label, g.seed, g.attempt
+    LIMIT ${limit} OFFSET ${offset}
+  ` as any[]
+
+  // Batch-fetch scores and lint for all generation IDs
+  const genIds = gens.map((g: any) => g.id)
+  if (genIds.length === 0) return []
+
+  const [scores, lintIssues] = await Promise.all([
+    db`SELECT s.generation_id, s.dimension, s.score, s.reasoning, s.judge
+       FROM scores s WHERE s.generation_id = ANY(${genIds})
+       ORDER BY s.dimension`,
+    db`SELECT li.generation_id, lp.category, li.match, li.sentence, li.char_offset as "charOffset"
+       FROM lint_issues li JOIN lint_patterns lp ON lp.id = li.pattern_id
+       WHERE li.generation_id = ANY(${genIds})
+       ORDER BY li.char_offset`,
+  ])
+
+  const scoresByGen = new Map<number, typeof scores>()
+  for (const s of scores as any[]) {
+    if (!scoresByGen.has(s.generation_id)) scoresByGen.set(s.generation_id, [])
+    scoresByGen.get(s.generation_id)!.push(s)
+  }
+
+  const lintByGen = new Map<number, typeof lintIssues>()
+  for (const l of lintIssues as any[]) {
+    if (!lintByGen.has(l.generation_id)) lintByGen.set(l.generation_id, [])
+    lintByGen.get(l.generation_id)!.push(l)
+  }
+
+  return gens.map((g: any) => ({
+    ...g,
+    scores: (scoresByGen.get(g.id) ?? []).map((s: any) => ({
+      dimension: s.dimension, score: s.score, reasoning: s.reasoning, judge: s.judge,
+    })),
+    lintIssues: (lintByGen.get(g.id) ?? []).map((l: any) => ({
+      category: l.category, match: l.match, sentence: l.sentence, charOffset: l.charOffset,
+    })),
+  }))
+}
+
 export async function getExperimentCost(experimentId: number): Promise<Array<{
   variantLabel: string; totalCost: number; totalCalls: number
 }>> {

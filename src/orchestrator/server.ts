@@ -180,8 +180,8 @@ const ENV_VAR_DEFS = [
     description: "Which provider's batch API to use. Batch = 50% off but async (results in hours)." },
   { name: "BATCH_MODEL", applies: ["prose"], type: "select", optionsFrom: "batchModels", default: "gpt-5.4-mini",
     description: "Model for batch judge calls. Must be from the selected batch provider." },
-  { name: "LLM_TRANSPORT", applies: ["all"], type: "select", options: ["direct", "cache", "batch"],
-    description: "Direct = real-time. Cache = prefix caching (cheaper). Batch = async batch API (cheapest)." },
+  { name: "LLM_TRANSPORT", applies: ["all"], type: "select", options: ["direct", "batch"],
+    description: "Direct = real-time. Batch = async batch API (50% off)." },
 ] as const
 
 async function buildOperationsConfig() {
@@ -1037,6 +1037,142 @@ const server = Bun.serve({
           ORDER BY el.created_at
         `
         return Response.json({ runs, scores, cost, lint, lineage })
+      } catch (err) {
+        return Response.json({ error: String(err) }, { status: 500 })
+      }
+    }
+
+    // Experiment generations (prose + scores + lint)
+    const experimentGensMatch = path.match(/^\/api\/experiments\/(\d+)\/generations$/)
+    if (experimentGensMatch && req.method === "GET") {
+      try {
+        const id = parseInt(experimentGensMatch[1])
+        const limit = parseInt(url.searchParams.get("limit") ?? "20")
+        const offset = parseInt(url.searchParams.get("offset") ?? "0")
+        const { getExperimentGenerations } = await import("../../data/db")
+        return Response.json(await getExperimentGenerations(id, limit, offset))
+      } catch (err) {
+        return Response.json({ error: String(err) }, { status: 500 })
+      }
+    }
+
+    // Experiment diff (git show for commit)
+    const experimentDiffMatch = path.match(/^\/api\/experiments\/(\d+)\/diff$/)
+    if (experimentDiffMatch && req.method === "GET") {
+      try {
+        const id = parseInt(experimentDiffMatch[1])
+        const compareId = url.searchParams.get("compare")
+        const [exp] = await (await import("./db")).default`
+          SELECT commit_hash FROM tuning_experiments WHERE id = ${id}
+        ` as any[]
+        if (!exp?.commit_hash) return Response.json({ diff: null, reason: "no commit hash" })
+
+        if (compareId) {
+          const [other] = await (await import("./db")).default`
+            SELECT commit_hash FROM tuning_experiments WHERE id = ${parseInt(compareId)}
+          ` as any[]
+          if (!other?.commit_hash) return Response.json({ diff: null, reason: "compare experiment has no commit hash" })
+          const proc = Bun.spawn(["git", "diff", `${other.commit_hash}..${exp.commit_hash}`, "--", "src/agents/", "benchmark/"], { stdout: "pipe", stderr: "pipe" })
+          const diff = await new Response(proc.stdout).text()
+          return Response.json({ diff, hashA: other.commit_hash, hashB: exp.commit_hash })
+        } else {
+          const proc = Bun.spawn(["git", "show", exp.commit_hash, "--stat", "--format=%H%n%s%n%ai"], { stdout: "pipe", stderr: "pipe" })
+          const output = await new Response(proc.stdout).text()
+          return Response.json({ diff: output, hash: exp.commit_hash })
+        }
+      } catch (err) {
+        return Response.json({ error: String(err) }, { status: 500 })
+      }
+    }
+
+    // Experiment markdown summary (for copy-to-clipboard)
+    const experimentSummaryMatch = path.match(/^\/api\/experiments\/(\d+)\/summary$/)
+    if (experimentSummaryMatch && req.method === "GET") {
+      try {
+        const id = parseInt(experimentSummaryMatch[1])
+        const { getExperimentScores, getExperimentCost, getExperimentLintSummary } = await import("../../data/db")
+        const [exp] = await (await import("./db")).default`
+          SELECT id, experiment_type, description, conclusion, timestamp, commit_hash, target, dimension
+          FROM tuning_experiments WHERE id = ${id}
+        ` as any[]
+        if (!exp) return Response.json({ error: "Not found" }, { status: 404 })
+
+        const [scores, cost, lint] = await Promise.all([
+          getExperimentScores(id), getExperimentCost(id), getExperimentLintSummary(id),
+        ])
+
+        // Build markdown table
+        const variants = [...new Set(scores.map((s: any) => s.variantLabel))]
+        const dimensions = [...new Set(scores.map((s: any) => s.dimension))]
+        const totalCost = cost.reduce((s: number, c: any) => s + (c.totalCost ?? 0), 0)
+
+        let md = `## Experiment #${exp.id}: ${exp.description}\n`
+        md += `Commit: ${exp.commit_hash ?? "n/a"} | Cost: $${totalCost.toFixed(4)} | ${new Date(exp.timestamp).toLocaleDateString()}\n\n`
+
+        if (variants.length > 0 && dimensions.length > 0) {
+          md += `| Variant | ${dimensions.join(" | ")} |\n`
+          md += `|${"-|".repeat(dimensions.length + 1)}\n`
+          for (const v of variants) {
+            const cells = dimensions.map(d => {
+              const s = scores.find((x: any) => x.variantLabel === v && x.dimension === d)
+              return s ? String(s.avg) : "n/a"
+            })
+            md += `| ${v} | ${cells.join(" | ")} |\n`
+          }
+        }
+
+        // Lint summary
+        const lintByVariant = new Map<string, number>()
+        for (const l of lint as any[]) {
+          lintByVariant.set(l.variantLabel, (lintByVariant.get(l.variantLabel) ?? 0) + l.count)
+        }
+        if (lintByVariant.size > 0) {
+          md += `\nLint: ${[...lintByVariant.entries()].map(([v, c]) => `${v}: ${c}`).join(", ")}\n`
+        }
+
+        if (exp.conclusion) md += `\nConclusion: ${exp.conclusion}\n`
+
+        return Response.json({ markdown: md })
+      } catch (err) {
+        return Response.json({ error: String(err) }, { status: 500 })
+      }
+    }
+
+    // Rubric index
+    if (path === "/api/rubrics" && req.method === "GET") {
+      try {
+        const { BENCHMARKS } = await import("../../benchmark/registry")
+        const rubrics: Record<string, string[]> = {}
+        for (const [name, config] of Object.entries(BENCHMARKS)) {
+          rubrics[name] = [...config.dimensions]
+        }
+        // Add pairwise
+        rubrics["pairwise"] = ["overall"]
+        return Response.json(rubrics)
+      } catch (err) {
+        return Response.json({ error: String(err) }, { status: 500 })
+      }
+    }
+
+    // Individual rubric content
+    const rubricMatch = path.match(/^\/api\/rubrics\/([^/]+)\/([^/]+)$/)
+    if (rubricMatch && req.method === "GET") {
+      try {
+        const suite = rubricMatch[1]
+        const dimension = rubricMatch[2]
+        let filePath: string
+        if (suite === "pairwise") {
+          filePath = `${process.cwd()}/benchmark/pairwise/rubric.md`
+        } else {
+          const { BENCHMARKS } = await import("../../benchmark/registry")
+          const config = BENCHMARKS[suite]
+          if (!config) return Response.json({ error: `Unknown suite: ${suite}` }, { status: 404 })
+          filePath = `${config.judgesDir}/${dimension}.md`
+        }
+        const file = Bun.file(filePath)
+        if (!await file.exists()) return Response.json({ error: `Rubric not found: ${filePath}` }, { status: 404 })
+        const content = await file.text()
+        return Response.json({ suite, dimension, content })
       } catch (err) {
         return Response.json({ error: String(err) }, { status: 500 })
       }
