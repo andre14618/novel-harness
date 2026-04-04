@@ -181,6 +181,7 @@ Test inputs in `src/seeds/`: dark-fantasy, young-adult-fantasy, sci-fi-thriller,
 
 Each doc has a `status` frontmatter field: `active` (operational), `proposal` (not implemented), `reference` (read-once research).
 
+- `docs/lessons-learned.md` — **read before designing new agents, rubrics, or experiments** — hard-won principles from evaluation, rewriting, lint, model selection, and experiment design
 - `docs/commit-conventions.md` — commit message format and prefixes
 - `docs/improvement-checklist.md` — 25 improvement items across 4 capability tiers
 - `docs/methodology-integration-report.md` — writing methodology (Story Grid, Save the Cat, Weiland)
