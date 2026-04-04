@@ -219,23 +219,32 @@ export async function fixLintIssues(
     unfixed += needsLlm.length
   }
 
-  // Pass 3: rhythm rewriting (dedicated window-level fixer)
+  // Pass 3: rhythm rewriting — iterate until no more windows improve
   if (llmConfig) {
     const hasRhythmIssues = issues.some(i =>
       i.category === "RHYTHM_MONOTONY" || i.category === "PARAGRAPH_HOMOGENEITY"
     )
     if (hasRhythmIssues) {
       const { fixRhythm } = await import("./fix-rhythm")
-      const rhythmResult = await fixRhythm(result, {
-        provider: llmConfig.provider,
-        model: llmConfig.model,
-        temperature: llmConfig.temperature ?? 0.4,
-      }, { maxFixes: 3 })
-      result = rhythmResult.prose
-      llmFixes += rhythmResult.windowsFixed
-      llmCalls += rhythmResult.llmCalls
-      costUsd += rhythmResult.costUsd
-      unfixed += rhythmResult.windowsSkipped
+      const MAX_RHYTHM_PASSES = 3
+      for (let pass = 0; pass < MAX_RHYTHM_PASSES; pass++) {
+        const rhythmResult = await fixRhythm(result, {
+          provider: llmConfig.provider,
+          model: llmConfig.model,
+          temperature: llmConfig.temperature ?? 0.4,
+        }, { maxFixes: 3 })
+
+        result = rhythmResult.prose
+        llmFixes += rhythmResult.windowsFixed
+        llmCalls += rhythmResult.llmCalls
+        costUsd += rhythmResult.costUsd
+
+        if (rhythmResult.windowsFixed === 0) {
+          unfixed += rhythmResult.windowsSkipped
+          break // no more windows can be improved
+        }
+        // Fixed some — loop to catch newly-exposed or shifted windows
+      }
     }
   }
 
