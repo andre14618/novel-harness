@@ -10,10 +10,10 @@
 
 import db from "../../data/connection"
 import type { WorkbenchConfig } from "./types"
-import { DIMENSIONS, DIMENSION_LABELS, type Dimension } from "../prose/judges/schema"
+import { DIMENSIONS, DIMENSION_LABELS, QUALITY_DIMENSIONS, QUALITY_LABELS } from "../prose/judges/schema"
 import { createRun, saveGeneration, saveScore, saveLLMCall } from "../db"
 import { concludeExperiment } from "../../data/db"
-import { loadSeeds, generateProse, judgeDimension, mean } from "../prose/shared"
+import { loadSeeds, generateProse, judgeDimension, judgeQualityDimension, mean } from "../prose/shared"
 import { getTransport } from "../../src/transport"
 import { extractJSON } from "../../src/llm"
 import { lintProse, saveLintIssues } from "../../src/lint"
@@ -147,7 +147,7 @@ async function main() {
           dimSummary += `lint:${lintResult.totalIssues} `
         }
 
-        // Judge
+        // Penalty judges
         if (config.evaluations.penaltyJudges) {
           for (const dim of DIMENSIONS) {
             const penalty = await judgeDimension(judge, dim, prose, runId, seed.name)
@@ -155,6 +155,15 @@ async function main() {
               await saveScore(genId, judge.label, dim, penalty.count, JSON.stringify(penalty.issues))
               modelScores[model.label].push({ dim, score: penalty.count })
               dimSummary += `${DIMENSION_LABELS[dim]}:${Math.abs(penalty.count)} `
+            }
+          }
+
+          // Quality judges (always run alongside penalty judges)
+          for (const dim of QUALITY_DIMENSIONS) {
+            const quality = await judgeQualityDimension(judge, dim, prose, runId, seed.name)
+            if (quality) {
+              await saveScore(genId, judge.label, dim, quality.score, quality.reasoning)
+              dimSummary += `${QUALITY_LABELS[dim].slice(0, 3)}:${quality.score}/10 `
             }
           }
         }
