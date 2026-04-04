@@ -86,13 +86,58 @@ async function getEnabledPatterns(tier?: number): Promise<LintPattern[]> {
   ` as LintPattern[]
 }
 
+// ── Heuristic linters ─────────────────────────────────────────────────
+
+import { lintEmotionalEcho } from "./emotional-echo"
+import { lintRhythm, DEFAULT_RHYTHM_CONFIG, type RhythmConfig } from "./rhythm"
+
+// Synthetic pattern IDs for heuristic detectors (registered in DB via ensureHeuristicPatterns)
+let heuristicPatternIds: { emotionalEcho: number; rhythmMonotony: number; paragraphHomogeneity: number } | null = null
+
+async function getHeuristicPatternIds() {
+  if (heuristicPatternIds) return heuristicPatternIds
+
+  // Ensure synthetic pattern rows exist for heuristic categories
+  const categories = [
+    { category: "EMOTIONAL_ECHO", fixTemplate: "Physical detail already shows the emotion. Cut the label unless it adds analytical depth." },
+    { category: "RHYTHM_MONOTONY", fixTemplate: "Prose rhythm is too uniform. Vary sentence length and structure." },
+    { category: "PARAGRAPH_HOMOGENEITY", fixTemplate: "Paragraph structure is too uniform. Vary paragraph length and openings." },
+  ]
+
+  const ids: Record<string, number> = {}
+  for (const c of categories) {
+    const existing = await db`
+      SELECT id FROM lint_patterns WHERE category = ${c.category} AND pattern = '-- heuristic --' LIMIT 1
+    `
+    if (existing.length > 0) {
+      ids[c.category] = (existing[0] as any).id
+    } else {
+      const [row] = await db`
+        INSERT INTO lint_patterns (tier, category, pattern, flags, fix_template, dialogue_ok, enabled, rationale)
+        VALUES (3, ${c.category}, '-- heuristic --', '', ${c.fixTemplate}, false, true, 'Heuristic detector, not regex-based')
+        RETURNING id
+      `
+      ids[c.category] = (row as any).id
+    }
+  }
+
+  heuristicPatternIds = {
+    emotionalEcho: ids["EMOTIONAL_ECHO"],
+    rhythmMonotony: ids["RHYTHM_MONOTONY"],
+    paragraphHomogeneity: ids["PARAGRAPH_HOMOGENEITY"],
+  }
+  return heuristicPatternIds
+}
+
 // ── Main linter ────────────────────────────────────────────────────────
 
-export async function lintProse(prose: string, tier?: number): Promise<LintResult> {
+export async function lintProse(prose: string, tier?: number, rhythmConfig?: RhythmConfig): Promise<LintResult> {
   const patterns = await getEnabledPatterns(tier)
   const issues: LintIssue[] = []
 
+  // Regex-based patterns
   for (const pat of patterns) {
+    if (pat.pattern === "-- heuristic --") continue // skip synthetic entries
     const regex = new RegExp(pat.pattern, pat.flags)
     let match: RegExpExecArray | null
     while ((match = regex.exec(prose)) !== null) {
@@ -111,6 +156,11 @@ export async function lintProse(prose: string, tier?: number): Promise<LintResul
       })
     }
   }
+
+  // Heuristic detectors
+  const hIds = await getHeuristicPatternIds()
+  issues.push(...lintEmotionalEcho(prose, hIds.emotionalEcho))
+  issues.push(...lintRhythm(prose, { rhythmMonotony: hIds.rhythmMonotony, paragraphHomogeneity: hIds.paragraphHomogeneity }, rhythmConfig ?? DEFAULT_RHYTHM_CONFIG))
 
   issues.sort((a, b) => a.charOffset - b.charOffset)
 
