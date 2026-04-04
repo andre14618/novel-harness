@@ -24,15 +24,8 @@ const AGENT_LABELS: Record<string, string> = {
   "improver": "Improver",
 }
 
-interface EditState {
-  provider: string
-  model: string
-  temperature: string
-}
-
 export function ConfigPage() {
   const [config, setConfig] = useState<NovelConfig | null>(null)
-  const [editing, setEditing] = useState<Record<string, EditState>>({})
   const [saving, setSaving] = useState<Record<string, boolean>>({})
   const [flash, setFlash] = useState<{ agent: string; msg: string; ok: boolean } | null>(null)
   const [persisting, setPersisting] = useState(false)
@@ -44,56 +37,21 @@ export function ConfigPage() {
 
   useEffect(() => { loadConfig() }, [])
 
-  function startEdit(agent: string) {
+  async function handleChange(agent: string, field: string, value: string) {
     if (!config) return
-    const a = config.assignments[agent]
-    setEditing(prev => ({
-      ...prev,
-      [agent]: {
-        provider: a.provider,
-        model: a.model,
-        temperature: String(a.temperature),
-      },
-    }))
-  }
+    const current = config.assignments[agent]
 
-  function cancelEdit(agent: string) {
-    setEditing(prev => {
-      const next = { ...prev }
-      delete next[agent]
-      return next
-    })
-  }
-
-  function updateEdit(agent: string, field: keyof EditState, value: string) {
-    setEditing(prev => ({
-      ...prev,
-      [agent]: { ...prev[agent], [field]: value },
-    }))
-    // When provider changes, reset model to first available for that provider
-    if (field === "provider" && config) {
+    // If provider changed, pick the first model for that provider
+    let update: Record<string, any> = { [field]: field === "temperature" ? parseFloat(value) : value }
+    if (field === "provider") {
       const firstModel = config.models.find(m => m.provider === value)
-      if (firstModel) {
-        setEditing(prev => ({
-          ...prev,
-          [agent]: { ...prev[agent], provider: value, model: firstModel.id },
-        }))
-      }
+      if (firstModel) update.model = firstModel.id
     }
-  }
 
-  async function saveEdit(agent: string) {
-    const edit = editing[agent]
-    if (!edit) return
     setSaving(prev => ({ ...prev, [agent]: true }))
     try {
-      await setAgentConfig(agent, {
-        provider: edit.provider,
-        model: edit.model,
-        temperature: parseFloat(edit.temperature),
-      })
+      await setAgentConfig(agent, update)
       setFlash({ agent, msg: "Saved", ok: true })
-      cancelEdit(agent)
       loadConfig()
     } catch (err: any) {
       setFlash({ agent, msg: err.message, ok: false })
@@ -108,7 +66,6 @@ export function ConfigPage() {
     try {
       await resetAgentConfig(agent)
       setFlash({ agent, msg: "Reset to default", ok: true })
-      cancelEdit(agent)
       loadConfig()
     } catch (err: any) {
       setFlash({ agent, msg: err.message, ok: false })
@@ -137,8 +94,8 @@ export function ConfigPage() {
       </div>
 
       <p style={{ fontSize: "0.8rem", color: "#8b949e", marginBottom: "0.5rem", lineHeight: 1.6 }}>
-        Configure which model each agent uses. Changes take effect on the next agent call — even mid-run.
-        Overrides are shown with a yellow badge. Use "Save to File" to write changes permanently to <code>models/roles.ts</code>.
+        Configure which model each agent uses. Changes take effect immediately on the next agent call.
+        Use "Save to File" to write changes permanently to <code>models/roles.ts</code>.
       </p>
 
       {hasOverrides && (
@@ -178,25 +135,37 @@ export function ConfigPage() {
             const assignment = config.assignments[agent]
             if (!assignment) return null
             const isOverridden = !!config.overrides[agent]
-            const edit = editing[agent]
             const isSaving = saving[agent]
             const agentFlash = flash?.agent === agent ? flash : null
 
-            // Find model label
+            // Models for current provider
+            const providerModels = config.models.filter(m => m.provider === assignment.provider)
             const modelInfo = config.models.find(m => m.id === assignment.model && m.provider === assignment.provider)
-            const modelLabel = modelInfo?.label ?? assignment.model
 
             return (
               <div key={agent} className="card agent-config-row">
                 <div className="agent-config-header">
                   <div>
                     <strong>{AGENT_LABELS[agent] ?? agent}</strong>
-                    {isOverridden && <span className="badge active" style={{ marginLeft: "0.5rem", fontSize: "0.65rem" }}>overridden</span>}
+                    {isOverridden && (
+                      <>
+                        <span className="badge active" style={{ marginLeft: "0.5rem", fontSize: "0.65rem" }}>overridden</span>
+                        <button
+                          className="secondary"
+                          onClick={() => handleReset(agent)}
+                          disabled={isSaving}
+                          style={{ marginLeft: "0.5rem", padding: "1px 8px", fontSize: "0.65rem" }}
+                        >
+                          reset
+                        </button>
+                      </>
+                    )}
+                    {isSaving && <span style={{ marginLeft: "0.5rem", fontSize: "0.7rem", color: "#e2b714" }}>saving...</span>}
                   </div>
-                  {!edit && (
-                    <button className="secondary" onClick={() => startEdit(agent)} style={{ padding: "3px 10px", fontSize: "0.75rem" }}>
-                      Edit
-                    </button>
+                  {modelInfo?.pricing && (
+                    <span style={{ fontSize: "0.7rem", color: "#4ecca3" }}>
+                      ${modelInfo.pricing.input} / ${modelInfo.pricing.output} per 1M tokens
+                    </span>
                   )}
                 </div>
 
@@ -206,67 +175,45 @@ export function ConfigPage() {
                   </div>
                 )}
 
-                {edit ? (
-                  <div className="agent-config-edit">
-                    <div className="agent-config-fields">
-                      <div>
-                        <label style={{ fontSize: "0.7rem", color: "#8b949e" }}>Provider</label>
-                        <select value={edit.provider} onChange={e => updateEdit(agent, "provider", e.target.value)}>
-                          {config.providers.map(p => <option key={p} value={p}>{p}</option>)}
-                        </select>
-                      </div>
-                      <div>
-                        <label style={{ fontSize: "0.7rem", color: "#8b949e" }}>Model</label>
-                        <select value={edit.model} onChange={e => updateEdit(agent, "model", e.target.value)}>
-                          {config.models
-                            .filter(m => m.provider === edit.provider)
-                            .map(m => (
-                              <option key={m.id} value={m.id}>
-                                {m.label} {m.pricing ? `($${m.pricing.input}/$${m.pricing.output} per 1M)` : ""}
-                              </option>
-                            ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label style={{ fontSize: "0.7rem", color: "#8b949e" }}>Temperature</label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          min="0"
-                          max="2"
-                          value={edit.temperature}
-                          onChange={e => updateEdit(agent, "temperature", e.target.value)}
-                          style={{ width: "80px" }}
-                        />
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
-                      <button onClick={() => saveEdit(agent)} disabled={isSaving} style={{ padding: "4px 12px", fontSize: "0.75rem" }}>
-                        {isSaving ? "..." : "Save"}
-                      </button>
-                      <button className="secondary" onClick={() => cancelEdit(agent)} disabled={isSaving} style={{ padding: "4px 12px", fontSize: "0.75rem" }}>
-                        Cancel
-                      </button>
-                      {isOverridden && (
-                        <button className="danger" onClick={() => handleReset(agent)} disabled={isSaving} style={{ padding: "4px 12px", fontSize: "0.75rem" }}>
-                          Reset to Default
-                        </button>
-                      )}
-                    </div>
+                <div className="agent-config-fields">
+                  <div>
+                    <label style={{ fontSize: "0.7rem", color: "#8b949e" }}>Provider</label>
+                    <select
+                      value={assignment.provider}
+                      onChange={e => handleChange(agent, "provider", e.target.value)}
+                      disabled={isSaving}
+                    >
+                      {config.providers.map(p => <option key={p} value={p}>{p}</option>)}
+                    </select>
                   </div>
-                ) : (
-                  <div className="agent-config-display">
-                    <span className="config-tag">{assignment.provider}</span>
-                    <span className="config-tag">{modelLabel}</span>
-                    <span className="config-tag">temp {assignment.temperature}</span>
-                    <span className="config-tag">{assignment.maxTokens} max tokens</span>
-                    {modelInfo?.pricing && (
-                      <span className="config-tag" style={{ color: "#4ecca3" }}>
-                        ${modelInfo.pricing.input}/${modelInfo.pricing.output} per 1M
-                      </span>
-                    )}
+                  <div>
+                    <label style={{ fontSize: "0.7rem", color: "#8b949e" }}>Model</label>
+                    <select
+                      value={assignment.model}
+                      onChange={e => handleChange(agent, "model", e.target.value)}
+                      disabled={isSaving}
+                    >
+                      {providerModels.map(m => (
+                        <option key={m.id} value={m.id}>
+                          {m.label}{m.pricing ? ` ($${m.pricing.input}/$${m.pricing.output})` : ""}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                )}
+                  <div>
+                    <label style={{ fontSize: "0.7rem", color: "#8b949e" }}>Temp</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="2"
+                      value={assignment.temperature}
+                      onChange={e => handleChange(agent, "temperature", e.target.value)}
+                      disabled={isSaving}
+                      style={{ width: "70px" }}
+                    />
+                  </div>
+                </div>
               </div>
             )
           })}
