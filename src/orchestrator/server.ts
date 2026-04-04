@@ -516,7 +516,7 @@ function onSuiteChange() {
       infoHtml += '</div>'
     }
     if (bench.judge) {
-      infoHtml += '<div><span style="color:#e2b714">Judge:</span> '
+      infoHtml += '<div id="judge-display"><span style="color:#e2b714">Judge:</span> '
       infoHtml += '<strong>' + (bench.judge.label || bench.judge.model) + '</strong> <span style="color:#555">(' + bench.judge.provider + ')</span>'
       infoHtml += '</div>'
     }
@@ -549,6 +549,24 @@ function onSuiteChange() {
     }
     html += '</div>'
     container.innerHTML += html
+  }
+
+  // Wire judge dropdown to update the info box
+  const judgeSelect = container.querySelector('select[data-env="BENCHMARK_JUDGES"]')
+  if (judgeSelect) {
+    judgeSelect.addEventListener('change', function() {
+      const display = document.getElementById('judge-display')
+      if (!display) return
+      const val = judgeSelect.value
+      if (val) {
+        display.innerHTML = '<span style="color:#e2b714">Judge:</span> <strong>' + val + '</strong> <span style="color:#555">(override)</span>'
+      } else {
+        const b = config.benchmarks[suite]
+        if (b && b.judge) {
+          display.innerHTML = '<span style="color:#e2b714">Judge:</span> <strong>' + (b.judge.label || b.judge.model) + '</strong> <span style="color:#555">(' + b.judge.provider + ')</span>'
+        }
+      }
+    })
   }
 
   // Show batch checkbox only for prose
