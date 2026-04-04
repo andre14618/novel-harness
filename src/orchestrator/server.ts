@@ -501,6 +501,55 @@ async function loadConfig() {
   onTargetChange()
 }
 
+function wireAgentDropdowns(providerId, modelId, statusId, agentName, priceId) {
+  const pSel = document.getElementById(providerId)
+  const mSel = document.getElementById(modelId)
+  const status = document.getElementById(statusId)
+  const priceEl = document.getElementById(priceId)
+  if (!pSel || !mSel) return
+
+  function updatePrice() {
+    if (!priceEl) return
+    var m = config.models.find(function(x) { return x.id === mSel.value && x.provider === pSel.value })
+    if (m && m.pricing) {
+      priceEl.textContent = '$' + m.pricing.input + '/$' + m.pricing.output + ' per 1M'
+    } else {
+      priceEl.textContent = ''
+    }
+  }
+
+  pSel.addEventListener('change', function() {
+    const provider = pSel.value
+    mSel.innerHTML = ''
+    config.models.filter(function(m) { return m.provider === provider }).forEach(function(m) {
+      var price = m.pricing ? ' ($' + m.pricing.input + '/' + m.pricing.output + ')' : ''
+      mSel.innerHTML += '<option value="' + m.id + '">' + m.label + price + '</option>'
+    })
+    updatePrice()
+    saveAgentConfig(agentName, { provider: provider, model: mSel.value }, status)
+  })
+  mSel.addEventListener('change', function() {
+    updatePrice()
+    saveAgentConfig(agentName, { provider: pSel.value, model: mSel.value }, status)
+  })
+}
+
+function saveAgentConfig(agentName, cfg, statusEl) {
+  if (statusEl) statusEl.textContent = 'saving...'
+  fetch('/api/novel/config/agent/' + encodeURIComponent(agentName), {
+    method: 'PUT', headers: h,
+    body: JSON.stringify(cfg)
+  }).then(function(r) { return r.json() }).then(function(res) {
+    if (statusEl) {
+      statusEl.textContent = res.ok ? 'saved' : (res.error || 'error')
+      statusEl.style.color = res.ok ? '#4ecca3' : '#e74c3c'
+      setTimeout(function() { statusEl.textContent = '' }, 2000)
+    }
+  }).catch(function() {
+    if (statusEl) { statusEl.textContent = 'error'; statusEl.style.color = '#e74c3c' }
+  })
+}
+
 function onSuiteChange() {
   const suite = document.getElementById('bench-suite').value
   const container = document.getElementById('bench-params')
@@ -567,56 +616,6 @@ function onSuiteChange() {
     infoHtml += '</div>'
     container.innerHTML += infoHtml
 
-    // Wire provider changes to update model dropdowns + save via API
-    function wireAgentDropdowns(providerId, modelId, statusId, agentName, priceId) {
-      const pSel = document.getElementById(providerId)
-      const mSel = document.getElementById(modelId)
-      const status = document.getElementById(statusId)
-      const priceEl = document.getElementById(priceId)
-      if (!pSel || !mSel) return
-
-      function updatePrice() {
-        if (!priceEl) return
-        var m = config.models.find(function(x) { return x.id === mSel.value && x.provider === pSel.value })
-        if (m && m.pricing) {
-          priceEl.textContent = '$' + m.pricing.input + '/$' + m.pricing.output + ' per 1M'
-        } else {
-          priceEl.textContent = ''
-        }
-      }
-
-      pSel.addEventListener('change', function() {
-        const provider = pSel.value
-        mSel.innerHTML = ''
-        config.models.filter(function(m) { return m.provider === provider }).forEach(function(m) {
-          var price = m.pricing ? ' ($' + m.pricing.input + '/' + m.pricing.output + ')' : ''
-          mSel.innerHTML += '<option value="' + m.id + '">' + m.label + price + '</option>'
-        })
-        updatePrice()
-        saveAgentConfig(agentName, { provider: provider, model: mSel.value }, status)
-      })
-      mSel.addEventListener('change', function() {
-        updatePrice()
-        saveAgentConfig(agentName, { provider: pSel.value, model: mSel.value }, status)
-      })
-    }
-
-    function saveAgentConfig(agentName, cfg, statusEl) {
-      if (statusEl) statusEl.textContent = 'saving...'
-      fetch('/api/novel/config/agent/' + encodeURIComponent(agentName), {
-        method: 'PUT', headers: h,
-        body: JSON.stringify(cfg)
-      }).then(function(r) { return r.json() }).then(function(res) {
-        if (statusEl) {
-          statusEl.textContent = res.ok ? 'saved' : (res.error || 'error')
-          statusEl.style.color = res.ok ? '#4ecca3' : '#e74c3c'
-          setTimeout(function() { statusEl.textContent = '' }, 2000)
-        }
-      }).catch(function() {
-        if (statusEl) { statusEl.textContent = 'error'; statusEl.style.color = '#e74c3c' }
-      })
-    }
-
     if (bench.agentsUnderTest) {
       bench.agentsUnderTest.forEach(function(a, idx) {
         wireAgentDropdowns('agent-provider-' + idx, 'agent-model-' + idx, 'agent-save-' + idx, a.effectiveName, 'agent-price-' + idx)
@@ -671,25 +670,66 @@ function onTargetChange() {
       dimSel.innerHTML += '<option value="' + d + '">' + lbl + '</option>'
     }
 
-    // Show agents under test + judge
+    // Show agents under test + judge with inline editing
     var html = '<div style="margin-bottom:0.8rem;padding:0.6rem;background:#0d1117;border:1px solid #30363d;border-radius:4px;font-size:0.8rem">'
     if (bench.agentsUnderTest && bench.agentsUnderTest.length > 0) {
-      bench.agentsUnderTest.forEach(function(a) {
-        var m = config.models.find(function(x) { return x.id === a.model && x.provider === a.provider })
-        var price = m && m.pricing ? ' <span style="color:#4ecca3">$' + m.pricing.input + '/$' + m.pricing.output + '</span>' : ''
-        html += '<div style="margin-bottom:0.3rem"><span style="color:#4ecca3">Testing:</span> <strong>' + a.agentName + '</strong>'
-        html += ' <span style="color:#555">(' + a.provider + ' / ' + (a.label || a.model) + ', temp ' + a.temperature + ')</span>' + price + '</div>'
+      bench.agentsUnderTest.forEach(function(a, idx) {
+        var pid = 'imp-agent-provider-' + idx
+        var mid = 'imp-agent-model-' + idx
+        html += '<div style="margin-bottom:0.5rem"><span style="color:#4ecca3">Testing:</span> <strong>' + a.agentName + '</strong>'
+        html += '<div style="display:flex;gap:0.4rem;margin-top:0.3rem;align-items:center;flex-wrap:wrap">'
+        html += '<select id="' + pid + '" style="width:auto;font-size:0.8rem;padding:3px 6px">'
+        config.providers.forEach(function(p) {
+          html += '<option value="' + p + '"' + (p === a.provider ? ' selected' : '') + '>' + p + '</option>'
+        })
+        html += '</select>'
+        html += '<select id="' + mid + '" style="width:auto;font-size:0.8rem;padding:3px 6px">'
+        config.models.filter(function(m) { return m.provider === a.provider }).forEach(function(m) {
+          var price = m.pricing ? ' ($' + m.pricing.input + '/$' + m.pricing.output + ')' : ''
+          html += '<option value="' + m.id + '"' + (m.id === a.model ? ' selected' : '') + '>' + m.label + price + '</option>'
+        })
+        html += '</select>'
+        var curModel = config.models.find(function(m) { return m.id === a.model && m.provider === a.provider })
+        if (curModel && curModel.pricing) {
+          html += '<span id="imp-agent-price-' + idx + '" style="color:#4ecca3;font-size:0.75rem">$' + curModel.pricing.input + '/$' + curModel.pricing.output + ' per 1M</span>'
+        }
+        html += '<span id="imp-agent-save-' + idx + '" style="color:#555;font-size:0.75rem"></span>'
+        html += '</div></div>'
       })
     }
     if (bench.judge) {
-      var jm = config.models.find(function(x) { return x.id === bench.judge.model && x.provider === bench.judge.provider })
-      var jp = jm && jm.pricing ? ' <span style="color:#4ecca3">$' + jm.pricing.input + '/$' + jm.pricing.output + '</span>' : ''
-      html += '<div><span style="color:#e2b714">Judge:</span> <strong>' + (bench.judge.label || bench.judge.model) + '</strong>'
-      html += ' <span style="color:#555">(' + bench.judge.provider + ')</span>' + jp + '</div>'
+      var judgeModel = config.models.find(function(m) { return m.id === bench.judge.model && m.provider === bench.judge.provider })
+      html += '<div style="margin-bottom:0.3rem"><span style="color:#e2b714">Judge:</span>'
+      html += '<div style="display:flex;gap:0.4rem;margin-top:0.3rem;align-items:center;flex-wrap:wrap">'
+      html += '<select id="imp-judge-provider" style="width:auto;font-size:0.8rem;padding:3px 6px">'
+      config.providers.forEach(function(p) {
+        html += '<option value="' + p + '"' + (p === bench.judge.provider ? ' selected' : '') + '>' + p + '</option>'
+      })
+      html += '</select>'
+      html += '<select id="imp-judge-model" style="width:auto;font-size:0.8rem;padding:3px 6px">'
+      config.models.filter(function(m) { return m.provider === bench.judge.provider }).forEach(function(m) {
+        var price = m.pricing ? ' ($' + m.pricing.input + '/$' + m.pricing.output + ')' : ''
+        html += '<option value="' + m.id + '"' + (m.id === bench.judge.model ? ' selected' : '') + '>' + m.label + price + '</option>'
+      })
+      html += '</select>'
+      if (judgeModel && judgeModel.pricing) {
+        html += '<span id="imp-judge-price" style="color:#4ecca3;font-size:0.75rem">$' + judgeModel.pricing.input + '/$' + judgeModel.pricing.output + ' per 1M</span>'
+      }
+      html += '<span id="imp-judge-save" style="color:#555;font-size:0.75rem"></span>'
+      html += '</div></div>'
     }
-    html += '<div style="margin-top:0.4rem;color:#555">Change on <a href="/app/config?key=' + key + '" style="color:#58a6ff">Config page</a></div>'
     html += '</div>'
     agentsDiv.innerHTML = html
+
+    // Wire dropdowns
+    if (bench.agentsUnderTest) {
+      bench.agentsUnderTest.forEach(function(a, idx) {
+        wireAgentDropdowns('imp-agent-provider-' + idx, 'imp-agent-model-' + idx, 'imp-agent-save-' + idx, a.effectiveName, 'imp-agent-price-' + idx)
+      })
+    }
+    if (bench.judge) {
+      wireAgentDropdowns('imp-judge-provider', 'imp-judge-model', 'imp-judge-save', 'benchmark-judge', 'imp-judge-price')
+    }
   }
 }
 
