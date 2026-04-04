@@ -132,13 +132,7 @@ export async function fixLintIssues(
     }
 
     if (!fixed) {
-      // AI_CLICHE and DECLARED_EMOTION need creative rewriting — advisory only, skip LLM
-      const advisoryCategories = ["AI_CLICHE", "DECLARED_EMOTION"]
-      if (advisoryCategories.includes(issue.category)) {
-        unfixed++
-      } else {
-        needsLlm.push(issue)
-      }
+      needsLlm.push(issue)
     }
   }
 
@@ -163,10 +157,22 @@ export async function fixLintIssues(
         .map(i => `- "${i.match}" → ${i.fixTemplate}`)
         .join("\n")
 
+      // Extract surrounding context (2 paragraphs) for scene-aware fixes
+      const sentenceIdx = result.indexOf(sentence)
+      let context = ""
+      if (sentenceIdx !== -1) {
+        const before = result.lastIndexOf("\n\n", sentenceIdx)
+        const afterSentence = sentenceIdx + sentence.length
+        const after = result.indexOf("\n\n", afterSentence)
+        const contextStart = before !== -1 ? before : Math.max(0, sentenceIdx - 500)
+        const contextEnd = after !== -1 ? Math.min(result.length, after + 200) : Math.min(result.length, afterSentence + 500)
+        context = result.slice(contextStart, contextEnd).trim()
+      }
+
       try {
         const response = await getTransport().execute({
-          systemPrompt: "Fix the flagged patterns in this sentence. Return ONLY the corrected sentence — no JSON, no explanation, no quotes. Preserve everything else exactly.",
-          userPrompt: `PATTERNS TO FIX:\n${issueList}\n\nSENTENCE:\n${sentence}`,
+          systemPrompt: "Fix the flagged patterns in the TARGET SENTENCE. Use the surrounding scene context to ground your replacement in specific physical details from the scene. Return ONLY the corrected sentence — no JSON, no explanation, no quotes. Preserve everything else in the sentence exactly.",
+          userPrompt: `PATTERNS TO FIX:\n${issueList}\n\n${context ? `SCENE CONTEXT:\n${context}\n\n` : ""}TARGET SENTENCE:\n${sentence}`,
           model: llmConfig.model,
           provider: llmConfig.provider as any,
           temperature: llmConfig.temperature ?? 0.2,
