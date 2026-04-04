@@ -2,103 +2,92 @@
 status: DELETE AFTER COMPLETION
 ---
 
-# Session Handoff — 2026-04-04
+# Session Handoff — 2026-04-04 (afternoon)
 
 ## What was accomplished this session
 
-### Agent & rubric overhauls (commits 5560e47 → ab20bb0)
-- Overhauled 8 agents: world-builder, plotter, character-agent, continuity, cross-chapter-continuity, prose-quality, writer (show-don't-tell permissions + emotional mirror), removed orphaned prose-polish
-- Fixed dead-weight judge rubric — was flagging 44-86 issues/chapter (~80% false positives). Tightened to 10 max with explicit DO-NOT-FLAG exclusions. Commit `ab20bb0`.
-- Fixed dead-weight judge `[emotion]` bracket causing JSON extraction failure. Commit `ea4b3a1`.
-- Fixed pairwise runner — was using SQLite API, ported to Postgres. Commit `cd2ee5a`.
+### Lint fixer integrated into novel pipeline (commit 6956bc6)
+- `src/phases/drafting.ts` now runs `lintProse()` → `fixLintIssues()` after chapter generation
+- Added `lint-fixer` role in `roles.ts` (Qwen3 235B on Cerebras, per experiment #71 findings)
+- Deterministic fixes first, then LLM per-sentence for remaining issues
+- Shows lint summary (categories, fix counts, unfixed) in human gate display
+- Non-blocking — errors don't prevent chapter approval
+- Emits SSE events (`lint` step) for real-time UI tracking
 
-### Lint-rewrite investigation (experiments #44-#71)
-Key finding: **deterministic lint fixing + context-aware LLM per-sentence is the optimal approach**. Full-chapter LLM rewrites introduce 63-78% collateral damage regardless of prompt constraints.
+### 1-10 prose quality scoring rubrics (commit d49c1f0)
+- Three new rubric files: `prose-craft.md`, `character-voice.md`, `sensory-grounding.md`
+- Schema split: `PENALTY_DIMENSIONS` (telling, dead-weight, dialogue) + `QUALITY_DIMENSIONS` (prose-craft, character-voice, sensory-grounding)
+- `DIMENSIONS` kept as penalty-only for backwards compat with 10+ experiment scripts
+- `ALL_DIMENSIONS` for combined access
+- New `judgeQualityDimension()` in `shared.ts` validates against `judgeScoreSchema` (1-10)
+- Both `run.ts` and `workbench/runner.ts` invoke quality judges alongside penalty judges
+- Quality scores stored in same `scores` table (dimension name distinguishes them)
+- Reporting shows separate penalty and quality sections
 
-- **Deterministic fixes** handle ~56% of lint issues (filler phrases, filter words, redundant adverbs/body parts) at zero cost, zero latency, 0.1% collateral. File: `src/lint/fix.ts`.
-- **Context-aware LLM per-sentence** fixes creative patterns (AI clichés) by sending flagged sentence + 2 surrounding paragraphs. Qwen3 235B (Cerebras) produces the best fixes — scene-grounded, 200-500ms, $0.0003/fix. Experiment #71, #72.
-- **Full-chapter LLM rewriting is counterproductive** — pairwise judge consistently prefers originals over judge-informed rewrites due to content loss. Only lint-only rewrites ever beat originals.
-- **Judge-informed rewriting cuts too much** — even with tightened rubric (10 issues vs 86), rewriter drops to 79-81% word retention and pairwise judge values the lost content.
+### ExperimentBuilder UI fixed (commit 49392b6)
+- Text contrast bumped across all elements (#e6edf3 for labels, #c9d1d9 for provider names, #a5b3c0 for prices)
+- Provider columns get borders and separator lines under names
+- Seed/eval chips get borders for visual separation
+- Cost bar batch discount now shown as green badge instead of trailing text
+- Checked off in improvement checklist
 
-### Writer model comparison (experiment #74)
-DeepSeek V3.2 ($0.28/$0.42) beat Kimi K2 ($1.00/$3.00) on most quality metrics:
-- Telling: 3.5 vs 7.5 issues
-- Dead weight: 7.5 vs 10.0
-- Lint: 1.5 vs 5.5
-- Word count: 1,358 vs 1,159 (writes more)
-- Cost: $0.001 vs $0.007 per chapter (7x cheaper)
-- Caveat: 44s latency vs 7s. DeepSeek judge scored its own prose (potential self-bias). Needs pairwise confirmation with Reasoner.
-- Qwen3 32B writes too short (860w avg) and high telling (15.0). Not viable as writer.
+### Writer switched to DeepSeek V3.2 (commit 6809d0c)
+- Pairwise experiments #75 (non-Reasoner) and #76 (Reasoner) both showed 2/2 inconsistent (position bias)
+- Verdict: "quality is comparable" — but penalty metrics from experiment #74 strongly favor DeepSeek (telling 3.5 vs 7.5, lint 1.5 vs 5.5, 7x cheaper)
+- Writer, rewriter, and benchmark-writer all switched from Kimi K2 (Groq) to DeepSeek V3.2
+- Caveat: latency increases from 7s to 44s per chapter
 
-### Experiment Workbench (commits 00b40fb → cdfa45c)
-Built the experiment workbench UI at `/app/experiments`:
-
-**Phase 1 (working):**
-- Tabbed experiment detail: Scores, Prose (with inline lint highlighting), Rubrics (rendered markdown), Commit (git show)
-- APIs: `/api/experiments/:id/generations`, `/api/rubrics`, `/api/rubrics/:suite/:dimension`, `/api/experiments/:id/diff`, `/api/experiments/:id/summary`
-- Copy-for-discussion button (markdown to clipboard)
-
-**Phase 2 (working):**
-- Side-by-side prose comparison: `ProseCompare.tsx` with variant/seed selectors, lint highlighting, score badges
-
-**Phase 3 (partially working — UI needs polish):**
-- ExperimentBuilder form: model selection, seed selection, evaluation toggles, transport mode (realtime/batch), cost estimate
-- Workbench runner: `benchmark/workbench/runner.ts` reads config from DB, generates, judges, lints, pairwise
-- API: `POST /api/experiments/create`, `GET /api/models`, `GET /api/seeds`
-- **Known issue**: ExperimentBuilder layout/contrast/alignment is broken — added to improvement checklist
-
-### Infrastructure
-- Experiments now auto-capture git commit hash. Commit `bd2d3c4`.
-- `docs/lessons-learned.md` created with experiment-backed principles. Commit `29bbf28`.
-- GPT-5.4 Pro removed from model registry (too expensive).
+### Transport simplified (commit 30022e7)
+- Removed `PrefixCacheTransport` — provider prefix caching is automatic at the provider level
+- `DirectTransport` is now the default (was `PrefixCacheTransport`)
+- Updated README, architecture diagram, and guide page
 
 ## Immediate next tasks
 
-### 1. Wire hybrid lint fixer into novel pipeline
-The `src/lint/fix.ts` module is built and tested but not integrated into the drafting/validation phases.
-- Call `fixLintIssues()` after chapter generation in `src/phases/drafting.ts`
-- Use deterministic fixes for subtractive patterns, Qwen3 235B per-sentence for AI clichés
-- Re-lint after fixing to verify compliance
-- Store fix results in `lint_issues.resolved` / `lint_issues.rewrite_result`
+### 1. Run a full novel with the new pipeline
+The lint fixer integration and writer switch are untested end-to-end. Run a novel to verify:
+- Lint fixer runs after each chapter without blocking
+- DeepSeek V3.2 produces acceptable prose quality
+- Quality scoring rubrics produce reasonable scores when benchmarked
+```bash
+ssh novel-harness-lxc "cd ~/apps/novel-harness && ~/.bun/bin/bun src/index.ts --auto --seed romance-drama"
+```
 
-### 2. Add 1-10 prose quality scoring rubrics
-The prose benchmark only has penalty judges (issue counts). No positive quality dimension exists. The planning/extraction/continuity benchmarks have 1-10 rubrics and the schema supports it (`judgeScoreSchema` in `benchmark/prose/judges/schema.ts`).
-- Write rubrics for: prose craft, character voice, sensory grounding (same format as `benchmark/planning/judges/beat-specificity.md`)
-- Add as new dimensions in `benchmark/prose/judges/schema.ts`
-- Wire into the experiment engine alongside penalty judges
+### 2. Baseline benchmark with quality dimensions
+Run a full prose benchmark to establish quality dimension baselines alongside penalty baselines:
+```bash
+ssh novel-harness-lxc "cd ~/apps/novel-harness && EXPERIMENT_ID=<id> ~/.bun/bin/bun benchmark/prose/run.ts"
+```
+Create the experiment first, save as baseline with `--save-baseline`.
 
-### 3. Fix ExperimentBuilder UI
-The model grid, contrast, and alignment are broken. See improvement checklist.
+### 3. Batch engine integration
+The workbench UI has transport mode toggles (realtime/batch per phase) but the runner only executes real-time. The batch chaining (generation batch → auto-collect → judge batch → auto-collect → score) needs engine-level work. Key files:
+- `benchmark/workbench/runner.ts` — needs batch transport support
+- `src/transport.ts` — BatchTransport exists but workbench doesn't use it
+- `benchmark/batch/` — existing batch infrastructure for prose runner
 
-### 4. Confirm DeepSeek V3.2 as writer via pairwise
-Run pairwise comparison (Reasoner judge) between experiment #74 runs 224 (Kimi K2) and 225 (DeepSeek V3.2). If DeepSeek wins or ties, switch `roles.ts` writer from Kimi K2 to DeepSeek.
+### 4. Character voice differentiation
+Now that quality rubrics exist (character-voice dimension), this can be measured. Run benchmarks across seeds and see if scores correlate with character count/dialogue density. Currently unchecked in improvement checklist.
 
-### 5. Batch engine integration
-The workbench UI has transport mode toggles (realtime/batch per phase) but the runner only executes real-time. The batch chaining (generation batch → auto-collect → judge batch → auto-collect → score) needs engine-level work. See the batch plan in the conversation context.
-
-## Key files
-- `src/lint/fix.ts` — hybrid lint fixer (deterministic + LLM per-sentence)
-- `src/lint/index.ts` — deterministic prose flagger
-- `benchmark/workbench/runner.ts` — generic experiment runner
-- `benchmark/workbench/types.ts` — WorkbenchConfig type
-- `ui/src/components/ExperimentBuilder.tsx` — experiment creation form (needs polish)
-- `ui/src/components/ExperimentsPage.tsx` — experiment detail view with tabs
-- `ui/src/components/ProseCompare.tsx` — side-by-side prose comparison
-- `docs/lessons-learned.md` — experiment-backed engineering principles
-- `docs/improvement-checklist.md` — full task list
-- `models/registry.ts` — model definitions and pricing
-- `models/roles.ts` — agent-to-model assignments
+### 5. Pairwise judge position bias
+Both Reasoner and non-Reasoner showed 100% position bias on the writer comparison. This limits pairwise utility. Potential fixes:
+- Try a different judge model (Claude, GPT)
+- Increase matchup count (more seeds, more runs per seed)
+- Add confidence calibration to the rubric
 
 ## Key experiment IDs for reference
 | ID | What | Key finding |
 |---|---|---|
-| #44 | Rewriter dead-weight re-test | Regression fixed: -23 issues |
-| #46 | Lint-rewrite 3-arm (with rubric fix) | Lint-only: -50 dead weight, 100% word retention |
-| #48 | Two-pass (lint→judge) | Two-pass overwhelmed by judge issues (96+) |
-| #58 | Two-pass with tightened rubric | Dead weight 86→10 issues, word retention 64%→81% |
-| #63 | Lint rewrite model sweep (full chapter) | All models 99% word retention, 63-78% collateral |
-| #67 | Inline lint rewrite (constrained prompt) | Still 63-78% collateral — LLMs can't reproduce text verbatim |
-| #69 | Hybrid lint fix (deterministic + LLM) | 0.1% collateral, 56% fixed deterministically |
-| #71 | Context-aware creative fix (Qwen 235B) | Scene context enables AI cliché replacement, $0.0003/fix |
-| #72 | Context fix model sweep | Qwen 235B best quality, DeepSeek cheapest, Qwen 32B failed (0/3) |
-| #74 | Writer model comparison | DeepSeek V3.2 beats Kimi K2 on quality at 7x lower cost |
+| #74 | Writer model comparison | DeepSeek V3.2 beats Kimi K2 on penalties at 7x lower cost |
+| #75 | Pairwise: K2 vs DeepSeek (non-Reasoner) | 2/2 inconsistent — position bias |
+| #76 | Pairwise: K2 vs DeepSeek (Reasoner) | 2/2 inconsistent — position bias persists with Reasoner |
+
+## Key files changed
+- `src/phases/drafting.ts` — lint fixer integration point
+- `models/roles.ts` — writer switched to DeepSeek V3.2, lint-fixer role added
+- `benchmark/prose/judges/schema.ts` — PENALTY_DIMENSIONS, QUALITY_DIMENSIONS, ALL_DIMENSIONS
+- `benchmark/prose/shared.ts` — judgeQualityDimension()
+- `benchmark/prose/judges/{prose-craft,character-voice,sensory-grounding}.md` — quality rubrics
+- `benchmark/prose/run.ts` — quality judges in benchmark runner
+- `benchmark/workbench/runner.ts` — quality judges in workbench
+- `ui/src/components/ExperimentBuilder.tsx` — UI polish

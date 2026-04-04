@@ -72,7 +72,7 @@ These three agents produce the foundation every downstream agent uses. All are a
   - Implementation: after each kept change, judge 1-2 other dimensions. Revert if any regresses > 1.0.
   - Cost: 2-3x more judge calls per iteration.
 
-- [ ] **ExperimentBuilder UI polish** — Model grid layout, contrast, and alignment are broken in the experiment creation form. Needs: proper grid alignment per provider, better text contrast, cost estimate updating correctly with batch discounts. File: `ui/src/components/ExperimentBuilder.tsx`.
+- [x] **ExperimentBuilder UI polish** — Fixed contrast (labels, provider names, model prices), added borders to provider columns and chips, batch discount badge in cost bar (2026-04-04). File: `ui/src/components/ExperimentBuilder.tsx`.
 
 - [x] **Remove orphaned prose-polish agent** — deleted directory, removed from roles.ts, prompts.ts, novel-routes.ts, ConfigPage.tsx, architecture.html (2026-04-04).
 
