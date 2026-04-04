@@ -139,6 +139,8 @@ RULES:
 - Break one compound sentence into two short ones
 - Merge two short sentences into one flowing sentence
 - PRESERVE all content: every character, action, detail, and meaning must remain
+- Keep total word count within 20% of original — restructure, don't expand
+- Do NOT add new details, observations, or descriptions — only change sentence boundaries
 - Return JSON: {"rewritten": "the rewritten passage"}`,
         userPrompt: windowText,
         model: llmConfig.model,
@@ -162,9 +164,11 @@ RULES:
 
       if (!rewritten || rewritten.length < 30) { windowsSkipped++; continue }
 
-      // Validate: length within 20%, content roughly preserved
-      const lengthDelta = Math.abs(rewritten.length - windowText.length) / windowText.length
-      if (lengthDelta > 0.20) { windowsSkipped++; continue }
+      // Validate: word count within 30% (rhythm changes add/remove connectors)
+      const origWordCount = windowText.split(/\s+/).length
+      const newWordCount = rewritten.split(/\s+/).length
+      const wordDelta = Math.abs(newWordCount - origWordCount) / origWordCount
+      if (wordDelta > 0.30) { windowsSkipped++; continue }
 
       // Verify the rewrite actually varies rhythm
       const newSpans = splitToSpans(rewritten).filter(s => !s.isDialogue)
