@@ -49,6 +49,9 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "cross-chapter-continuity":  { ...groqQwen32B, temperature: 0.2 },
   "prose-quality":             { ...groqQwen32B, temperature: 0.2 },
 
+  // ── Lint fixer (per-sentence creative fixes via LLM) ──────────────────
+  "lint-fixer":                { provider: "cerebras", model: "qwen/qwen3-235b", temperature: 0.2 },
+
   // ── Judges (novel validation) ────────────────────────────────────────
   "judge":                     { ...deepseekV3, temperature: 0.1 },
   "pairwise-judge":            { ...deepseekV3, temperature: 0.1 },

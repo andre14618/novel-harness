@@ -14,6 +14,9 @@ import { log } from "../logger"
 import { updateStateAfterChapter } from "../state-extraction"
 import { pipeline } from "../config/pipeline"
 import * as gates from "../gates"
+import { lintProse } from "../lint"
+import { fixLintIssues } from "../lint/fix"
+import { getModelForAgent } from "../../models/roles"
 
 export async function runDraftingPhase(novelId: string): Promise<void> {
   displayPhaseHeader("Drafting — Writing chapters")
@@ -128,6 +131,42 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
       saveChapterDraft(novelId, ch, prose, wordCount)
       log(novelId, "checkpoint", `Draft saved for chapter ${ch} v${attempts}`)
 
+      // 4b. Lint and fix prose
+      let lintSummary = ""
+      try {
+        emit(novelId, { type: "progress", data: { step: "lint", chapter: ch, status: "running" } })
+        const lintResult = await lintProse(prose)
+        if (lintResult.totalIssues > 0) {
+          console.log(`  Lint: ${lintResult.totalIssues} issues (${Object.entries(lintResult.counts).map(([k, v]) => `${k}:${v}`).join(", ")})`)
+          log(novelId, "info", `Lint found ${lintResult.totalIssues} issues`)
+
+          const fixer = getModelForAgent("lint-fixer")
+          const fixResult = await fixLintIssues(
+            prose,
+            lintResult.issues,
+            fixer ? { provider: fixer.provider, model: fixer.model, temperature: fixer.temperature } : undefined,
+          )
+
+          const totalFixed = fixResult.deterministicFixes + fixResult.llmFixes
+          if (totalFixed > 0) {
+            prose = fixResult.prose
+            wordCount = prose.split(/\s+/).filter(Boolean).length
+            saveChapterDraft(novelId, ch, prose, wordCount)
+            console.log(`  Fixed: ${fixResult.deterministicFixes} deterministic, ${fixResult.llmFixes} LLM (${fixResult.unfixed} unfixed, $${fixResult.costUsd.toFixed(4)})`)
+            log(novelId, "info", `Lint fixed ${totalFixed}/${lintResult.totalIssues} issues ($${fixResult.costUsd.toFixed(4)})`)
+          }
+
+          lintSummary = `\n\n--- LINT (${lintResult.totalIssues} found, ${totalFixed} fixed, ${fixResult.unfixed} remaining) ---\n` +
+            Object.entries(lintResult.counts).map(([cat, count]) => `  ${cat}: ${count}`).join("\n")
+        } else {
+          console.log("  Lint: clean")
+        }
+        emit(novelId, { type: "progress", data: { step: "lint", chapter: ch, status: "complete" } })
+      } catch (err) {
+        log(novelId, "warn", `Lint/fix failed for chapter ${ch}: ${err}`)
+        console.log(`  Lint failed (non-blocking): ${err instanceof Error ? err.message : err}`)
+      }
+
       // 5. Human gate
       let displayContent = prose
       if (issues.length > 0) {
@@ -135,6 +174,9 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
       }
       if (validation.warnings.length > 0) {
         displayContent += `\n\n--- VALIDATION WARNINGS ---\n${validation.warnings.join("\n")}`
+      }
+      if (lintSummary) {
+        displayContent += lintSummary
       }
 
       const decision = await presentForApproval(
