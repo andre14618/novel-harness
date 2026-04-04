@@ -949,11 +949,12 @@ export async function getExperimentGenerations(
 
   const [scores, lintIssues] = await Promise.all([
     db`SELECT s.generation_id, s.dimension, s.score, s.reasoning, s.judge
-       FROM scores s WHERE s.generation_id = ANY(${genIds})
+       FROM scores s
+       WHERE s.generation_id IN (SELECT g.id FROM generations g JOIN runs r ON r.id = g.run_id WHERE r.experiment_id = ${experimentId} AND g.passed = true AND g.prose IS NOT NULL)
        ORDER BY s.dimension`,
     db`SELECT li.generation_id, lp.category, li.match, li.sentence, li.char_offset as "charOffset"
        FROM lint_issues li JOIN lint_patterns lp ON lp.id = li.pattern_id
-       WHERE li.generation_id = ANY(${genIds})
+       WHERE li.generation_id IN (SELECT g.id FROM generations g JOIN runs r ON r.id = g.run_id WHERE r.experiment_id = ${experimentId} AND g.passed = true AND g.prose IS NOT NULL)
        ORDER BY li.char_offset`,
   ])
 
