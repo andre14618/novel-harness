@@ -25,7 +25,7 @@ export interface RhythmConfig {
 }
 
 export const DEFAULT_RHYTHM_CONFIG: RhythmConfig = {
-  sentenceLengthCV:          { enabled: true, windowSize: 8, stepSize: 4, threshold: 0.25 },
+  sentenceLengthCV:          { enabled: true, windowSize: 8, stepSize: 4, threshold: 0.35 },
   openingRepetition:         { enabled: true, minRun: 3, twoWord: false },
   compoundDominance:         { enabled: false, windowSize: 10, threshold: 0.60 },
   paragraphLengthCV:         { enabled: false, windowSize: 4, tolerance: 0.20 },
