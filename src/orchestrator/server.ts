@@ -1010,6 +1010,71 @@ const server = Bun.serve({
     }
 
     // ── Experiments (unified) ─────────────────────────────────────
+
+    // Create experiment from workbench config
+    if (path === "/api/experiments/create" && req.method === "POST") {
+      try {
+        const body = await req.json() as any
+        if (!body.name || !body.suite || !body.models?.length) {
+          return Response.json({ error: "name, suite, and models[] are required" }, { status: 400 })
+        }
+
+        const config = {
+          name: body.name,
+          suite: body.suite,
+          models: body.models,
+          evaluations: body.evaluations ?? { penaltyJudges: true, lint: true, pairwise: false },
+          transport: body.transport ?? { generation: "realtime", judging: "realtime" },
+          seeds: body.seeds ?? [],
+          runsPerSeed: body.runsPerSeed ?? 2,
+          judgeModel: body.judgeModel ?? null,
+          sourceRunId: body.sourceRunId ?? null,
+        }
+
+        const { createTuningExperiment } = await import("../../data/db")
+        const experimentId = await createTuningExperiment(
+          "workbench", config.name, config,
+          { target: config.suite, dimension: "all" },
+        )
+
+        // Spawn runner as subprocess
+        const env: Record<string, string> = { ...process.env as Record<string, string>, EXPERIMENT_ID: String(experimentId) }
+        const proc = Bun.spawn(["bun", "benchmark/workbench/runner.ts"], {
+          env,
+          stdout: "pipe",
+          stderr: "pipe",
+          cwd: process.cwd(),
+        })
+
+        // Track the process
+        const pid = proc.pid
+        processes.set(pid, {
+          pid, label: `Workbench: ${config.name}`, running: true,
+          stdout: "", startedAt: new Date().toISOString(),
+        })
+
+        // Collect output async
+        ;(async () => {
+          const reader = proc.stdout.getReader()
+          const decoder = new TextDecoder()
+          try {
+            while (true) {
+              const { done, value } = await reader.read()
+              if (done) break
+              const p = processes.get(pid)
+              if (p) p.stdout += decoder.decode(value)
+            }
+          } catch {}
+          const p = processes.get(pid)
+          if (p) { p.running = false; p.exitCode = await proc.exited }
+        })()
+
+        return Response.json({ ok: true, experimentId, pid })
+      } catch (err) {
+        return Response.json({ error: String(err) }, { status: 500 })
+      }
+    }
+
     if (path === "/api/experiments" && req.method === "GET") {
       try {
         const { getAllExperiments } = await import("../../data/db")
@@ -1133,6 +1198,31 @@ const server = Bun.serve({
         if (exp.conclusion) md += `\nConclusion: ${exp.conclusion}\n`
 
         return Response.json({ markdown: md })
+      } catch (err) {
+        return Response.json({ error: String(err) }, { status: 500 })
+      }
+    }
+
+    // Model registry for experiment builder
+    if (path === "/api/models" && req.method === "GET") {
+      try {
+        const { MODELS } = await import("../../models/registry")
+        const models = MODELS.map(m => ({
+          id: m.id, label: m.label, provider: m.provider,
+          pricing: m.pricing, maxOutput: (m as any).maxOutput,
+        }))
+        return Response.json(models)
+      } catch (err) {
+        return Response.json({ error: String(err) }, { status: 500 })
+      }
+    }
+
+    // Seed list for experiment builder
+    if (path === "/api/seeds" && req.method === "GET") {
+      try {
+        const { loadSeeds } = await import("../../benchmark/prose/shared")
+        const seeds = loadSeeds()
+        return Response.json(seeds.map(s => s.name))
       } catch (err) {
         return Response.json({ error: String(err) }, { status: 500 })
       }

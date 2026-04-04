@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react"
+import { ProseCompare } from "./ProseCompare"
+import { ExperimentBuilder } from "./ExperimentBuilder"
 
 const API_KEY = new URLSearchParams(window.location.search).get("key") ?? ""
 const api = (path: string) => fetch(`${path}${path.includes("?") ? "&" : "?"}key=${API_KEY}`)
@@ -49,6 +51,8 @@ export function ExperimentsPage() {
   const [commitDiff, setCommitDiff] = useState<string | null>(null)
   const [expandedGen, setExpandedGen] = useState<number | null>(null)
   const [copiedId, setCopiedId] = useState<number | null>(null)
+  const [showCompare, setShowCompare] = useState(false)
+  const [showBuilder, setShowBuilder] = useState(false)
 
   useEffect(() => {
     api("/api/experiments").then(r => r.json()).then(setExperiments).catch(() => {})
@@ -188,9 +192,30 @@ export function ExperimentsPage() {
     <>
       <h1>Experiments</h1>
 
-      <p style={{ fontSize: "0.8rem", color: "#8b949e", marginBottom: "0.8rem" }}>
-        All benchmark runs and improvement cycles. Click to expand. Use tabs to view scores, prose, rubrics, and commit info.
-      </p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.8rem" }}>
+        <p style={{ fontSize: "0.8rem", color: "#8b949e", margin: 0 }}>
+          All benchmark runs and improvement cycles. Click to expand.
+        </p>
+        <button
+          onClick={() => setShowBuilder(!showBuilder)}
+          style={{ fontSize: "0.75rem", padding: "0.3rem 0.8rem", cursor: "pointer" }}
+        >
+          {showBuilder ? "Cancel" : "+ New Experiment"}
+        </button>
+      </div>
+
+      {showBuilder && (
+        <ExperimentBuilder
+          onCreated={(id) => {
+            setShowBuilder(false)
+            // Refresh experiments list
+            api("/api/experiments").then(r => r.json()).then(setExperiments).catch(() => {})
+            // Auto-expand the new experiment
+            setTimeout(() => loadDetail(id), 1000)
+          }}
+          onCancel={() => setShowBuilder(false)}
+        />
+      )}
 
       <input
         type="text"
@@ -315,6 +340,14 @@ export function ExperimentsPage() {
 
                   {activeTab === "prose" && (
                     <div style={{ fontSize: "0.8rem" }}>
+                      {generations.length >= 2 && (
+                        <button
+                          onClick={() => setShowCompare(true)}
+                          style={{ marginBottom: "0.5rem", fontSize: "0.75rem", padding: "0.3rem 0.8rem", cursor: "pointer" }}
+                        >
+                          Side-by-Side Compare
+                        </button>
+                      )}
                       {generations.length === 0 ? (
                         <p style={{ color: "#555" }}>No prose generations found.</p>
                       ) : (
@@ -415,6 +448,10 @@ export function ExperimentsPage() {
 
       {experiments.length === 0 && (
         <p style={{ color: "#555" }}>No experiments found.</p>
+      )}
+
+      {showCompare && generations.length >= 2 && (
+        <ProseCompare generations={generations} onClose={() => setShowCompare(false)} />
       )}
     </>
   )
