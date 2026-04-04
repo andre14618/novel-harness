@@ -42,17 +42,15 @@ export function ExperimentBuilder({ onCreated, onCancel }: Props) {
   function toggleModel(id: string) {
     setSelectedModels(prev => {
       const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
+      next.has(id) ? next.delete(id) : next.add(id)
       return next
     })
   }
 
-  function toggleSeed(name: string) {
+  function toggleSeed(s: string) {
     setSelectedSeeds(prev => {
       const next = new Set(prev)
-      if (next.has(name)) next.delete(name)
-      else next.add(name)
+      next.has(s) ? next.delete(s) : next.add(s)
       return next
     })
   }
@@ -69,13 +67,21 @@ export function ExperimentBuilder({ onCreated, onCancel }: Props) {
   const selectedModelList = models.filter(m => selectedModels.has(m.id))
   const seedCount = selectedSeeds.size || seeds.length
   const totalGens = selectedModelList.length * seedCount * runsPerSeed
-  const avgOutputTokens = 1700 // from token norms data
+  const avgOutputTokens = 1700
   const avgPromptTokens = 1000
+  const batchDiscount = 0.5
+
   const genCost = selectedModelList.reduce((sum, m) => {
     const perCall = (avgPromptTokens * m.pricing.input + avgOutputTokens * m.pricing.output) / 1_000_000
-    return sum + perCall * seedCount * runsPerSeed
+    const discount = genTransport === "batch" ? batchDiscount : 1
+    return sum + perCall * discount * seedCount * runsPerSeed
   }, 0)
-  const judgeCost = penaltyJudges ? totalGens * 3 * 0.001 : 0 // ~$0.001/judge call (DeepSeek)
+
+  const judgeCallsPerGen = penaltyJudges ? 3 : 0
+  const judgeCostPerCall = 0.001
+  const judgeDiscount = judgeTransport === "batch" ? batchDiscount : 1
+  const judgeCost = totalGens * judgeCallsPerGen * judgeCostPerCall * judgeDiscount
+
   const estimatedCost = sourceRunId ? judgeCost : genCost + judgeCost
 
   async function submit() {
@@ -83,11 +89,9 @@ export function ExperimentBuilder({ onCreated, onCancel }: Props) {
     if (selectedModels.size === 0 && !sourceRunId) { setError("Select at least one model"); return }
     setSubmitting(true)
     setError("")
-
     try {
       const body = {
-        name,
-        suite,
+        name, suite,
         models: sourceRunId
           ? [{ id: "source", provider: "source", label: "source-reuse" }]
           : selectedModelList.map(m => ({ id: m.id, provider: m.provider, label: m.label, maxTokens: m.maxOutput })),
@@ -97,49 +101,53 @@ export function ExperimentBuilder({ onCreated, onCancel }: Props) {
         runsPerSeed,
         sourceRunId: sourceRunId ? parseInt(sourceRunId) : undefined,
       }
-
       const res = await api("/api/experiments/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
       })
       const data = await res.json()
-      if (data.ok) {
-        onCreated(data.experimentId)
-      } else {
-        setError(data.error ?? "Failed to create experiment")
-      }
-    } catch (err) {
-      setError(String(err))
-    } finally {
-      setSubmitting(false)
-    }
+      if (data.ok) onCreated(data.experimentId)
+      else setError(data.error ?? "Failed to create experiment")
+    } catch (err) { setError(String(err)) }
+    finally { setSubmitting(false) }
   }
 
-  const sectionStyle = { marginBottom: "1rem" }
-  const labelStyle = { fontSize: "0.8rem", color: "#8b949e", display: "block" as const, marginBottom: "0.3rem" }
+  const S: Record<string, React.CSSProperties> = {
+    section: { marginBottom: "1.2rem" },
+    label: { fontSize: "0.8rem", color: "#c9d1d9", fontWeight: 600, display: "block", marginBottom: "0.4rem" },
+    sublabel: { fontSize: "0.7rem", color: "#6e7681", fontWeight: 400 },
+    providerGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "0.8rem" },
+    providerCol: { background: "#161b22", borderRadius: "6px", padding: "0.6rem" },
+    providerName: { fontSize: "0.65rem", color: "#8b949e", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: "0.4rem", fontWeight: 600 },
+    modelRow: { display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.25rem 0", fontSize: "0.8rem", cursor: "pointer" },
+    modelLabel: { color: "#e0e0e0", flex: 1 },
+    modelPrice: { color: "#8b949e", fontSize: "0.7rem", whiteSpace: "nowrap" as const },
+    seedRow: { display: "inline-flex", alignItems: "center", gap: "0.3rem", padding: "0.3rem 0.6rem", background: "#161b22", borderRadius: "4px", fontSize: "0.8rem", cursor: "pointer", color: "#e0e0e0" },
+    evalRow: { display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: "0.4rem 0.8rem", background: "#161b22", borderRadius: "4px", fontSize: "0.8rem", cursor: "pointer", color: "#e0e0e0" },
+    transportGroup: { display: "flex", gap: "0.8rem", alignItems: "center" },
+    transportLabel: { fontSize: "0.8rem", color: "#c9d1d9", minWidth: "90px" },
+    radioLabel: { display: "inline-flex", alignItems: "center", gap: "0.25rem", fontSize: "0.8rem", color: "#e0e0e0", cursor: "pointer" },
+    costBar: { padding: "0.6rem 0.8rem", background: "#0d1117", border: "1px solid #30363d", borderRadius: "6px", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" },
+  }
 
   return (
-    <div className="card" style={{ padding: "1rem", marginBottom: "1rem" }}>
+    <div className="card" style={{ padding: "1.2rem", marginBottom: "1rem" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
         <h2 style={{ margin: 0 }}>New Experiment</h2>
-        <button onClick={onCancel} style={{ fontSize: "0.75rem", padding: "0.2rem 0.6rem", cursor: "pointer" }}>Cancel</button>
+        <button onClick={onCancel} style={{ fontSize: "0.75rem", padding: "0.3rem 0.8rem", cursor: "pointer" }}>Cancel</button>
       </div>
 
       {/* Name */}
-      <div style={sectionStyle}>
-        <label style={labelStyle}>Experiment Name</label>
-        <input
-          type="text" value={name} onChange={e => setName(e.target.value)}
+      <div style={S.section}>
+        <label style={S.label}>Experiment Name</label>
+        <input type="text" value={name} onChange={e => setName(e.target.value)}
           placeholder="e.g. Writer model sweep — romance-drama"
-          style={{ width: "100%", maxWidth: "400px" }}
-        />
+          style={{ width: "100%", maxWidth: "500px" }} />
       </div>
 
       {/* Suite */}
-      <div style={sectionStyle}>
-        <label style={labelStyle}>Benchmark Suite</label>
-        <select value={suite} onChange={e => setSuite(e.target.value)}>
+      <div style={S.section}>
+        <label style={S.label}>Benchmark Suite</label>
+        <select value={suite} onChange={e => setSuite(e.target.value)} style={{ minWidth: "250px" }}>
           <option value="prose">Prose (penalty judges)</option>
           <option value="planning">Planning (1-10 scores)</option>
           <option value="extraction">Extraction (1-10 scores)</option>
@@ -147,29 +155,26 @@ export function ExperimentBuilder({ onCreated, onCancel }: Props) {
         </select>
       </div>
 
-      {/* Source run (optional) */}
-      <div style={sectionStyle}>
-        <label style={labelStyle}>Source Run ID (optional — reuse existing prose instead of generating)</label>
-        <input
-          type="text" value={sourceRunId} onChange={e => setSourceRunId(e.target.value)}
-          placeholder="Leave empty to generate new prose"
-          style={{ maxWidth: "200px" }}
-        />
+      {/* Source run */}
+      <div style={S.section}>
+        <label style={S.label}>Source Run ID <span style={S.sublabel}>(optional — reuse existing prose instead of generating)</span></label>
+        <input type="text" value={sourceRunId} onChange={e => setSourceRunId(e.target.value)}
+          placeholder="Leave empty to generate new prose" style={{ maxWidth: "250px" }} />
       </div>
 
       {/* Models */}
       {!sourceRunId && (
-        <div style={sectionStyle}>
-          <label style={labelStyle}>Writer Models</label>
-          <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+        <div style={S.section}>
+          <label style={S.label}>Writer Models</label>
+          <div style={S.providerGrid}>
             {[...byProvider.entries()].map(([provider, provModels]) => (
-              <div key={provider} style={{ minWidth: "200px" }}>
-                <div style={{ fontSize: "0.7rem", color: "#555", marginBottom: "0.3rem", textTransform: "uppercase" }}>{provider}</div>
+              <div key={provider} style={S.providerCol}>
+                <div style={S.providerName}>{provider}</div>
                 {provModels.map(m => (
-                  <label key={m.id} style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.75rem", color: "#c9d1d9", cursor: "pointer", marginBottom: "0.2rem" }}>
+                  <label key={m.id} style={S.modelRow}>
                     <input type="checkbox" checked={selectedModels.has(m.id)} onChange={() => toggleModel(m.id)} />
-                    {m.label}
-                    <span style={{ color: "#555", fontSize: "0.65rem" }}>${m.pricing.output}/M out</span>
+                    <span style={S.modelLabel}>{m.label}</span>
+                    <span style={S.modelPrice}>${m.pricing.output}/M</span>
                   </label>
                 ))}
               </div>
@@ -179,11 +184,11 @@ export function ExperimentBuilder({ onCreated, onCancel }: Props) {
       )}
 
       {/* Seeds */}
-      <div style={sectionStyle}>
-        <label style={labelStyle}>Seeds (none selected = all)</label>
+      <div style={S.section}>
+        <label style={S.label}>Seeds <span style={S.sublabel}>(none = all)</span></label>
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
           {seeds.map(s => (
-            <label key={s} style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.75rem", color: "#c9d1d9", cursor: "pointer" }}>
+            <label key={s} style={S.seedRow}>
               <input type="checkbox" checked={selectedSeeds.has(s)} onChange={() => toggleSeed(s)} />
               {s}
             </label>
@@ -192,76 +197,82 @@ export function ExperimentBuilder({ onCreated, onCancel }: Props) {
       </div>
 
       {/* Runs per seed */}
-      <div style={sectionStyle}>
-        <label style={labelStyle}>Runs per seed</label>
-        <input type="number" value={runsPerSeed} onChange={e => setRunsPerSeed(parseInt(e.target.value) || 1)} min={1} max={10} style={{ width: "60px" }} />
+      <div style={S.section}>
+        <label style={S.label}>Runs per seed</label>
+        <input type="number" value={runsPerSeed} onChange={e => setRunsPerSeed(parseInt(e.target.value) || 1)}
+          min={1} max={10} style={{ width: "70px" }} />
       </div>
 
       {/* Evaluations */}
-      <div style={sectionStyle}>
-        <label style={labelStyle}>Evaluations</label>
-        <div style={{ display: "flex", gap: "1rem" }}>
-          <label style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.75rem", color: "#c9d1d9", cursor: "pointer" }}>
+      <div style={S.section}>
+        <label style={S.label}>Evaluations</label>
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+          <label style={S.evalRow}>
             <input type="checkbox" checked={penaltyJudges} onChange={e => setPenaltyJudges(e.target.checked)} />
-            Penalty Judges (telling, dead-weight, dialogue)
+            Penalty Judges <span style={S.sublabel}>(telling, dead-weight, dialogue)</span>
           </label>
-          <label style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.75rem", color: "#c9d1d9", cursor: "pointer" }}>
+          <label style={S.evalRow}>
             <input type="checkbox" checked={lint} onChange={e => setLint(e.target.checked)} />
-            Lint (deterministic patterns)
+            Lint <span style={S.sublabel}>(deterministic patterns)</span>
           </label>
-          <label style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.75rem", color: "#c9d1d9", cursor: "pointer" }}>
+          <label style={S.evalRow}>
             <input type="checkbox" checked={pairwise} onChange={e => setPairwise(e.target.checked)} />
-            Pairwise A/B (first two models)
+            Pairwise A/B <span style={S.sublabel}>(first two models)</span>
           </label>
         </div>
       </div>
 
-      {/* Transport mode */}
-      <div style={sectionStyle}>
-        <label style={labelStyle}>Transport Mode</label>
-        <div style={{ display: "flex", gap: "2rem" }}>
-          <div>
-            <span style={{ fontSize: "0.75rem", color: "#8b949e" }}>Generation: </span>
-            <label style={{ fontSize: "0.75rem", color: "#c9d1d9", cursor: "pointer", marginRight: "0.5rem" }}>
-              <input type="radio" name="gen-transport" checked={genTransport === "realtime"} onChange={() => setGenTransport("realtime")} /> Real-time
+      {/* Transport */}
+      <div style={S.section}>
+        <label style={S.label}>Transport Mode</label>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+          <div style={S.transportGroup}>
+            <span style={S.transportLabel}>Generation:</span>
+            <label style={S.radioLabel}>
+              <input type="radio" name="gen-t" checked={genTransport === "realtime"} onChange={() => setGenTransport("realtime")} />
+              Real-time
             </label>
-            <label style={{ fontSize: "0.75rem", color: "#c9d1d9", cursor: "pointer" }}>
-              <input type="radio" name="gen-transport" checked={genTransport === "batch"} onChange={() => setGenTransport("batch")} /> Batch (50% off)
+            <label style={S.radioLabel}>
+              <input type="radio" name="gen-t" checked={genTransport === "batch"} onChange={() => setGenTransport("batch")} />
+              Batch <span style={{ color: "#4ecca3", fontSize: "0.7rem" }}>(50% off)</span>
             </label>
           </div>
-          <div>
-            <span style={{ fontSize: "0.75rem", color: "#8b949e" }}>Judging: </span>
-            <label style={{ fontSize: "0.75rem", color: "#c9d1d9", cursor: "pointer", marginRight: "0.5rem" }}>
-              <input type="radio" name="judge-transport" checked={judgeTransport === "realtime"} onChange={() => setJudgeTransport("realtime")} /> Real-time
+          <div style={S.transportGroup}>
+            <span style={S.transportLabel}>Judging:</span>
+            <label style={S.radioLabel}>
+              <input type="radio" name="judge-t" checked={judgeTransport === "realtime"} onChange={() => setJudgeTransport("realtime")} />
+              Real-time
             </label>
-            <label style={{ fontSize: "0.75rem", color: "#c9d1d9", cursor: "pointer" }}>
-              <input type="radio" name="judge-transport" checked={judgeTransport === "batch"} onChange={() => setJudgeTransport("batch")} /> Batch (50% off)
+            <label style={S.radioLabel}>
+              <input type="radio" name="judge-t" checked={judgeTransport === "batch"} onChange={() => setJudgeTransport("batch")} />
+              Batch <span style={{ color: "#4ecca3", fontSize: "0.7rem" }}>(50% off)</span>
             </label>
           </div>
         </div>
         {(genTransport === "batch" || judgeTransport === "batch") && (
-          <p style={{ fontSize: "0.7rem", color: "#555", marginTop: "0.3rem" }}>
-            Batch phases run async — results arrive when the provider processes them (minutes to hours). Check the experiments page for status.
+          <p style={{ fontSize: "0.7rem", color: "#6e7681", marginTop: "0.4rem" }}>
+            Batch phases run async — results arrive when the provider processes them. Check experiments page for status.
           </p>
         )}
       </div>
 
       {/* Cost estimate */}
-      <div style={{ padding: "0.5rem", background: "#161b22", borderRadius: "4px", marginBottom: "1rem", fontSize: "0.75rem" }}>
-        <span style={{ color: "#8b949e" }}>Estimated cost: </span>
-        <span style={{ color: "#4ecca3" }}>${estimatedCost.toFixed(4)}</span>
-        <span style={{ color: "#555", marginLeft: "0.5rem" }}>
-          ({totalGens} generations{penaltyJudges ? ` + ${totalGens * 3} judge calls` : ""})
+      <div style={S.costBar}>
+        <div>
+          <span style={{ fontSize: "0.8rem", color: "#8b949e" }}>Estimated cost: </span>
+          <span style={{ fontSize: "1rem", color: "#4ecca3", fontWeight: 700 }}>${estimatedCost.toFixed(4)}</span>
+        </div>
+        <span style={{ fontSize: "0.75rem", color: "#6e7681" }}>
+          {sourceRunId ? "" : `${totalGens} gen`}
+          {penaltyJudges ? `${sourceRunId ? "" : " + "}${totalGens * judgeCallsPerGen} judge` : ""}
+          {(genTransport === "batch" || judgeTransport === "batch") ? " (batch discount applied)" : ""}
         </span>
       </div>
 
       {/* Submit */}
       {error && <p style={{ color: "#f85149", fontSize: "0.8rem", marginBottom: "0.5rem" }}>{error}</p>}
-      <button
-        onClick={submit}
-        disabled={submitting}
-        style={{ padding: "0.4rem 1.2rem", cursor: submitting ? "wait" : "pointer", fontSize: "0.8rem" }}
-      >
+      <button onClick={submit} disabled={submitting}
+        style={{ padding: "0.5rem 1.5rem", cursor: submitting ? "wait" : "pointer", fontSize: "0.85rem", fontWeight: 600 }}>
         {submitting ? "Creating..." : "Start Experiment"}
       </button>
     </div>
