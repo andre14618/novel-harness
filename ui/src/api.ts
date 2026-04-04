@@ -29,6 +29,19 @@ export function startNovel(seed: string, mode: "interactive" | "auto" = "interac
   })
 }
 
+export interface CustomSeed {
+  premise: string
+  genre: string
+  characters: { name: string; role: "protagonist" | "antagonist" | "supporting"; description: string }[]
+}
+
+export function startNovelCustom(customSeed: CustomSeed, mode: "interactive" | "auto" = "interactive") {
+  return fetchJSON<{ ok: boolean; novelId: string }>("/api/novel/start", {
+    method: "POST",
+    body: JSON.stringify({ customSeed, mode }),
+  })
+}
+
 export function resumeNovel(novelId: string) {
   return fetchJSON<{ ok: boolean }>("/api/novel/resume", {
     method: "POST",
