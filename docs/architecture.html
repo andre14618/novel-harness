@@ -161,28 +161,20 @@ makeRequest()
       ▼
 getTransport().execute(request)
       │
-      ├── LLM_TRANSPORT=direct ──▶ DirectTransport
-      │                                  │
       ├── LLM_TRANSPORT=batch ───▶ BatchTransport ──▶ queue ──▶ flush to /v1/batches
       │
-      └── default ───▶ PrefixCacheTransport
+      └── default ───▶ DirectTransport
                             │
-                            ├── provider cache beneficial? ──▶ serialize same-prefix
-                            │                                         │
-                            └── not beneficial ───────────────────────┘
-                                                                      │
-                                                                      ▼
-                                                                DirectTransport
-                                                                      │
-                                                                      ▼
-                                                             HTTP POST to provider
-                                                             retry 3x on 429/5xx
-                                                                      │
-                                                                      ▼
-                                                             parse JSON + Zod validate
-                                                                      │
-                                                                      ▼
-                                                             logLLMCall ──▶ Postgres</pre>
+                            ▼
+                   HTTP POST to provider
+                   retry 3x on 429/5xx
+                            │
+                            ▼
+                   parse JSON + Zod validate
+                            │
+                            ▼
+                   logLLMCall ──▶ Postgres
+                   (provider prefix caching happens automatically — no transport logic needed)</pre>
 </section>
 
 <section id="databases">
@@ -231,21 +223,14 @@ Batch API:        yes (50%)   no           yes (50%)   no          no
 
 Transport routing:
 ┌──────────────────────────┐
-│ PrefixCacheTransport     │
-│ (default)                │
-│                          │
-│  DeepSeek calls ────────▶ serialize by system prompt hash (95% cache discount)
-│  Everything else ───────▶ pass through to DirectTransport
-└──────────────────────────┘
-         │
-         ▼
 ┌──────────────────────────┐
 │ DirectTransport          │──▶ HTTP POST ──▶ provider API (retry 5s, 10s, 15s)
+│ (default)                │    Provider prefix caching automatic (OpenAI 90%, DeepSeek 95%)
 └──────────────────────────┘
 
 ┌──────────────────────────┐
 │ BatchTransport           │──▶ queue in memory ──▶ flush() ──▶ /v1/batches
-│ (--batch flag)           │                                    (OpenAI / Groq)
+│ (--batch flag)           │                                    (OpenAI / Groq, 50% off)
 └──────────────────────────┘</pre>
 </section>
 

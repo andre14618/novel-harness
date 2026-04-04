@@ -165,17 +165,40 @@ export function GuidePage() {
         </section>
 
         <section>
-          <h2>Cost Tracking</h2>
+          <h2>Cost Management</h2>
           <p>
-            Every LLM call computes cost from the model registry pricing (tokens x $/1M).
-            Cost is stored in the <code>llm_calls</code> Postgres table and displayed in:
+            Every LLM call computes cost from the model registry pricing (tokens × $/1M).
+            Cost is stored in the <code>llm_calls</code> Postgres table and displayed in the
+            pipeline timeline (per-call), experiments page (per-experiment), and config page (per-model).
           </p>
-          <ul>
-            <li>Pipeline timeline — per-call cost tag</li>
-            <li>Running total at bottom of timeline</li>
-            <li>Experiments page — per-experiment total</li>
-            <li>Config page — pricing per model in dropdowns</li>
-          </ul>
+
+          <h3>Batch API (50% off)</h3>
+          <p>
+            The primary cost lever. Queues requests and submits via provider batch APIs (OpenAI, Groq).
+            Async with up to 24h turnaround. Toggle with <code>--batch</code> flag or <code>LLM_TRANSPORT=batch</code>.
+            Saves 50% on both input and output tokens.
+          </p>
+
+          <h3>Provider Prefix Caching (automatic)</h3>
+          <p>
+            OpenAI and DeepSeek automatically cache repeated prompt prefixes at the provider level —
+            no code or transport intervention needed. When requests share the same system prompt,
+            cached input tokens are discounted (OpenAI: 90% off, DeepSeek: 95% off).
+            The harness structures prompts with static instructions first and variable content last,
+            so caching happens naturally. Batch and cache discounts stack.
+          </p>
+
+          <table className="guide-table">
+            <thead>
+              <tr><th>Provider</th><th>Cache Discount</th><th>Batch Discount</th><th>Min Tokens</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>OpenAI</td><td>90% off input</td><td>50% off all</td><td>1024</td></tr>
+              <tr><td>DeepSeek</td><td>95% off input</td><td>—</td><td>None</td></tr>
+              <tr><td>Groq</td><td>50% off input</td><td>50% off all</td><td>—</td></tr>
+              <tr><td>Cerebras</td><td>—</td><td>—</td><td>—</td></tr>
+            </tbody>
+          </table>
         </section>
 
         <section>

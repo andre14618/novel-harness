@@ -152,7 +152,7 @@ export function extractJSON(raw: string): string {
 
 // ── HTTP Request ──────────────────────────────────────────────────────────
 // Delegates to the active LLMTransport (see src/transport.ts).
-// Direct, batch, and cache-aware modes are all handled by the transport layer.
+// Direct and batch modes are handled by the transport layer.
 
 async function makeRequest(
   systemPrompt: string,

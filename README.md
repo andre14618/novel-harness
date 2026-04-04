@@ -1,138 +1,146 @@
 # Novel Harness
 
-A deterministic harness for AI-assisted novel creation. Code controls the flow, LLMs are leaf-node function calls, and a SQLite state store keeps everything coherent across chapters.
+AI-assisted novel creation harness — deterministic code controls flow, LLMs are leaf-node function calls. Produces a 3-chapter short story (one per act) for rapid iteration on agent tuning.
 
 Built on the principles from [Harness Engineering](https://martinfowler.com/articles/exploring-gen-ai/harness-engineering.html) and Karpathy's [March of Nines](https://venturebeat.com/technology/karpathys-march-of-nines-shows-why-90-ai-reliability-isnt-even-close-to/).
 
 ## How It Works
 
-The harness is a **state machine** that moves through 3 phases:
+The harness is a **state machine** that moves through phases:
 
 ```
-Concept ──> Planning ──> Drafting ──> Done
+Concept ──> Planning ──> Drafting ──> Validation ──> Done
 ```
 
 Each phase calls specialized LLM agents with scoped context and typed schemas. The harness (your code) decides **what happens and in what order**. The LLM decides **how it sounds**.
 
 ### Phase 1: Concept
-Three agents run sequentially, each generating a structured artifact:
-- **World Builder** — produces a World Bible (setting, rules, locations, culture, history)
-- **Character Agent** — produces deep Character Profiles (backstory, voice, traits, relationships)
-- **Plotter Agent** — produces a Story Spine (3-act structure, conflict, theme, ending direction)
+Three agents run, each generating a structured artifact:
+- **World Builder** — World Bible (setting, rules, locations, culture, history)
+- **Character Agent** — Character Profiles (backstory, voice, traits, relationships)
+- **Plotter** — Story Spine (3-act structure, conflict, theme, ending direction)
 
-Each artifact gets a human approval gate (or auto-approved with `--auto`). Checkpointed to SQLite after each agent — resumable if interrupted.
+Each artifact gets a human approval gate (or auto-approved with `--auto`).
 
 ### Phase 2: Planning
-All Phase 1 outputs converge into a single Plotter call that generates a **chapter-by-chapter outline** with scene beats, POV assignments, character lists, and word targets.
+All Phase 1 outputs converge into a single **Planning Plotter** call that generates chapter-by-chapter outlines with scene beats, POV assignments, character lists, and word targets.
 
 ### Phase 3: Drafting
 For each chapter:
-1. **Context Assembly** (code) — queries the DB for the chapter outline, relevant character profiles, world rules, previous chapter summaries, character states, and open issues. Builds a scoped context package.
-2. **Writer Agent** (LLM) — generates prose following the scene beats.
-3. **Deterministic Validation** (code) — word count, POV character presence, character mentions.
-4. **Continuity Check** (LLM) — cross-references draft against established facts and character states.
-5. **Human Gate** — approve, revise, or reject.
-6. **State Update** (3 LLM calls) — extract chapter summary, facts, and character states. Write to DB.
-7. **Checkpoint** — advance `currentChapter`, write chapter file to disk.
+1. **Context Assembly** (code) — queries the DB for outline, character profiles, world rules, previous chapter summaries, character states, and open issues
+2. **Writer Agent** (LLM) — generates prose following scene beats
+3. **Continuity Check** (LLM) — cross-references draft against established facts
+4. **Human Gate** — approve, revise, or reject
+5. **State Update** (3 LLM calls) — extract summary, facts, and character states
 
-## The State Store
+### Phase 4: Validation
+Multi-pass cross-chapter consistency check. **Cross-Chapter Continuity** checks all chapters together, **Prose Quality** flags issues per chapter, and the **Rewriter** fixes them automatically. Repeats up to 3 passes until convergence.
 
-Each novel gets its own SQLite database at `output/{novelId}/novel.db` with tables for:
+## Stack
 
-| Table | Purpose |
-|---|---|
-| `novels` | Phase, current chapter, seed input |
-| `world_bibles` | World bible (JSON) |
-| `characters` | Character profiles (JSON per character) |
-| `story_spines` | Story spine (JSON) |
-| `chapter_outlines` | Per-chapter outlines with scene beats |
-| `chapter_drafts` | Versioned drafts with approval status |
-| `chapter_summaries` | Compressed summaries for downstream context |
-| `facts` | Fact registry — searchable, per-chapter |
-| `character_states` | Per-character, per-chapter state snapshots |
-| `issues` | Continuity issues and revision notes |
+- **Runtime**: Bun
+- **LLM Providers**: Configurable per-agent via `models/roles.ts` — Cerebras, Groq, OpenRouter, OpenAI, DeepSeek
+- **DB**: Postgres (central — experiments, LLM calls, cost tracking), per-novel SQLite (story state)
+- **Transport**: `src/transport.ts` — DirectTransport (real-time HTTP with retries) and BatchTransport (async batch API, 50% off)
+- **UI**: React + Vite served at `/app` on the orchestrator
 
-No agent ever sees the full manuscript. Each reads only what the context assembly code gives it.
+## Cost Management
+
+Two levers for reducing LLM costs:
+
+**Batch API (50% off input + output)** — the primary cost lever. Queues requests and submits via provider batch APIs (OpenAI, Groq). Async with 24h turnaround. Controlled via `LLM_TRANSPORT=batch` or `--batch` flag.
+
+**Provider prefix caching (automatic, no code needed)** — OpenAI and DeepSeek automatically cache repeated prompt prefixes at the provider level. When consecutive requests share the same system prompt, cached tokens get discounted (OpenAI: 90% off input >1024 tokens, DeepSeek: 95% off any prefix). No transport-level intervention — the harness structures prompts with static instructions first and variable content last, so caching happens naturally. Cache metadata on each provider in `models/registry.ts` for cost estimation.
+
+Every LLM call computes cost from registry pricing (tokens × $/1M), stores it in the `llm_calls` Postgres table, and emits it via SSE for real-time display.
+
+## Model Registry
+
+All available models, providers, pricing, and caching info live in `models/registry.ts`. Agent-to-model assignments in `models/roles.ts`. Runtime overrides via the web UI take effect immediately; "Save to File" persists to `roles.ts`.
+
+| Provider | Tier | Cache | Batch |
+|----------|------|-------|-------|
+| Cerebras | Fast inference | Automatic (no discount) | — |
+| Groq | Fast inference | Automatic (50% off) | 50% off, 7d window |
+| OpenAI | Standard | Automatic (90% off >1024 tok) | 50% off, 24h window |
+| DeepSeek | Standard | Automatic (95% off any prefix) | — |
+| OpenRouter | Standard | Varies by underlying provider | — |
+
+## Benchmarking & Improvement
+
+Four benchmark suites in `benchmark/`:
+
+| Suite | Tests | Dimensions | Scoring |
+|-------|-------|-----------|---------|
+| Prose | Writer agent | Penalty-based (issue counts) | Lower = better |
+| Planning | Planning plotter | Beat Specificity, Dialogue Cues, Emotional Arc | 1-10 |
+| Extraction | Summary, fact, character-state extractors | Completeness, Accuracy | 1-10 |
+| Continuity | Cross-chapter continuity | Issue Detection, Fix Quality | 1-10 |
+
+**Improvement daemon** automates: diagnose weakest dimension → propose prompt change → benchmark → keep or revert. Dimension-locked by default for structured, comparable data.
 
 ## Quick Start
 
 ```bash
-# Install
 bun install
 
-# Set up API key
+# Set up API keys
 cp .env.example .env
-# Edit .env with your OpenRouter API key
 
-# Interactive mode
-bun src/index.ts
+# Run tests (local, no DB needed)
+bun test
 
-# Auto mode (no human gates, uses test seed)
-bun src/index.ts --auto
+# Deploy to LXC
+bash scripts/deploy-lxc.sh
 
-# Resume an interrupted novel
-bun src/index.ts --resume novel-1774838177106
-bun src/index.ts --auto --resume novel-1774838177106
+# Novel creation (on LXC)
+ssh novel-harness-lxc "cd ~/apps/novel-harness && bun src/index.ts --auto"
+ssh novel-harness-lxc "cd ~/apps/novel-harness && bun src/index.ts --auto --seed sci-fi-thriller"
+
+# Benchmarks (on LXC)
+ssh novel-harness-lxc "cd ~/apps/novel-harness && BENCHMARK_SEEDS=romance-drama bun benchmark/prose/run.ts"
 ```
 
-## Configuration
+## Web UI
 
-Edit `.env` to change the model:
+Single React SPA served at `/app` on the orchestrator (port 3006):
 
-```bash
-OPENROUTER_API_KEY="your-key"
-MODEL="stepfun/step-3.5-flash:free"  # default
-```
-
-Free models available on OpenRouter:
-- `stepfun/step-3.5-flash:free` — 196B MoE, 60+ tps, 256K context (default)
-- `nvidia/nemotron-3-super-120b-a12b:free` — native JSON mode, 262K context
-- `nousresearch/hermes-3-llama-3.1-405b:free` — best prose quality, slow
-- `google/gemma-3-27b-it:free` — native structured outputs, 131K context
-
-## Testing
-
-```bash
-bun test              # 126 tests, ~120ms
-```
-
-Tests cover: Zod schemas, all DB CRUD operations, JSON extraction, LLM wrapper with mocked fetch, deterministic validation, context assembly, logging, phase orchestration, and state machine transitions.
+| Page | Purpose |
+|------|---------|
+| `/app` | Novel list — start, resume, archive novels |
+| `/app/:novelId` | Pipeline timeline — real-time SSE showing each agent, LLM call, cost |
+| `/app/config` | Per-agent model switching with inline dropdowns |
+| `/app/experiments` | Unified experiment history with scores, cost, lineage |
+| `/app/operations` | Benchmark runner, improvement daemon controls |
+| `/app/dashboard` | Daemon status, orchestrator stats |
+| `/app/guide` | Full documentation |
 
 ## Architecture
 
 ```
 src/
-  index.ts            # Entry point, --auto and --resume flags
-  types.ts            # All interfaces + Zod schemas
-  db.ts               # SQLite schema, migrations, query helpers
-  llm.ts              # callAgent() wrapper for OpenRouter
-  prompts.ts          # System prompts for 9 agent roles
-  context.ts          # Context assembly (DB queries -> prompt strings)
-  validation.ts       # Deterministic checks (word count, characters)
-  logger.ts           # File-based logging with checkpoints
-  cli.ts              # Interactive CLI with auto-approve mode
-  state-machine.ts    # Phase orchestrator (while loop + switch)
-  phases/
-    concept.ts        # Phase 1: world + characters + plot
-    planning.ts       # Phase 2: chapter-by-chapter outline
-    drafting.ts       # Phase 3: write -> validate -> check -> approve loop
+  index.ts              Entry point
+  llm.ts                callAgent() — resolves model from roles.ts, calls transport
+  transport.ts          DirectTransport (HTTP + retry), BatchTransport (async batch API)
+  gates.ts              Approval gates — CLI, web API, or auto mode
+  events.ts             SSE event bus for real-time browser updates
+  agents/               12 agents, each with prompt.md, schema.ts, context.ts, config.ts
+  phases/               concept.ts, planning.ts, drafting.ts, validation.ts
+  orchestrator/         Bun server combining API, UI, batch polling, improvement daemon
+models/
+  registry.ts           All models, providers, pricing, cache info
+  roles.ts              Agent-to-model assignments
+benchmark/
+  prose/                Penalty-based prose scoring
+  planning/             Planning quality dimensions
+  extraction/           Extractor completeness/accuracy
+  continuity/           Cross-chapter continuity
+  pairwise/             A/B comparison with position-bias correction
+  batch/                Async batch API integration
+ui/
+  src/                  React + Vite SPA
 ```
 
-## Design Principles
+## Seeds
 
-- **Code decides what, LLM decides how** — the state machine, context assembly, and validation are all deterministic code. The LLM only generates text within typed schemas.
-- **File system as checkpoint** — every successful operation is persisted to SQLite. Resume from any interruption.
-- **Scoped context** — no agent sees the full novel. Each gets a precise context package assembled by code.
-- **Separate writer and editor** — the writer generates, the continuity agent checks. Self-editing is unreliable.
-- **Schemas with defaults** — free-tier models don't follow JSON schemas perfectly. Zod defaults prevent failures on missing optional fields.
-
-## Output
-
-```
-output/{novelId}/
-  novel.db          # SQLite state store
-  harness.log       # Timestamped log of all operations
-  chapter-1.md      # Approved prose
-  chapter-2.md
-  ...
-```
+Test inputs in `src/seeds/`: dark-fantasy, young-adult-fantasy, sci-fi-thriller, romance-drama (primary test bed), minimal (stress test).

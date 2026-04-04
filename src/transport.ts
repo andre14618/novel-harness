@@ -4,7 +4,7 @@
  * Sits beneath all LLM call paths (callAgent, generateProse, judgeDimension).
  * The transport decides HOW to execute. Callers build prompts as usual.
  *
- * Cost-reduction strategies and their transports:
+ * Transports:
  *
  * 1. DirectTransport (default)
  *    Standard real-time HTTP calls with retry logic.
@@ -14,20 +14,13 @@
  *    (e.g., OpenAI /v1/batches). 50% off, async 24h turnaround. Results collected
  *    later by the orchestrator or manually.
  *
- * 3. PrefixCacheTransport (LLM_TRANSPORT=cache)
- *    Executes calls in real-time but serializes requests that share the same
- *    system prompt. Exploits provider prefix caching (DeepSeek: 95% input
- *    discount, OpenAI: 50% input discount) where consecutive calls with
- *    identical prompt prefixes hit the cache. Parallel calls with different
- *    system prompts are unaffected.
- *
- * Transports are composable — PrefixCacheTransport wraps DirectTransport,
- * and future transports could wrap others (e.g., rate-limited transport).
+ * Provider prefix caching (OpenAI 90% off, DeepSeek 95% off) happens automatically
+ * when prompts share the same prefix — no transport-level intervention needed.
  */
 
 import {
   PROVIDERS, getApiKey,
-  type ProviderName, type CacheStrategy,
+  type ProviderName,
 } from "../models/registry"
 import type { BatchProvider, BatchRequest } from "../benchmark/batch/types"
 
@@ -68,7 +61,7 @@ export interface LLMTransport {
 let active: LLMTransport | null = null
 
 export function getTransport(): LLMTransport {
-  if (!active) active = new PrefixCacheTransport()
+  if (!active) active = new DirectTransport()
   return active
 }
 
@@ -196,95 +189,8 @@ export class BatchTransport implements LLMTransport {
   }
 }
 
-// ── PrefixCacheTransport ─────────────────────────────────────────────────
-// Reads the provider's CacheStrategy from the registry and applies the
-// right behavior per-request:
-//
-//   - "automatic" + benefitsFromSequential: serialize same-prefix calls
-//     so the provider's automatic prefix cache sees consecutive identical
-//     prefixes. (DeepSeek: 95% input discount, OpenAI: 50% >1024 tokens)
-//
-//   - "explicit": transform the request to add provider-specific cache
-//     markers (e.g., Anthropic cache_control blocks) before sending.
-//
-//   - "none": pass through directly, no serialization or transformation.
-//
-// Callers can fire all calls concurrently (Promise.all). The transport
-// handles serialization internally — only same-prefix, same-provider
-// calls are serialized. Everything else runs in parallel.
+// ── Auto-init from env ────────────────────────��──────────────────────────
 
-export class PrefixCacheTransport implements LLMTransport {
-  private inner = new DirectTransport()
-  private locks = new Map<string, Promise<void>>()
-
-  private getCacheStrategy(provider: ProviderName): CacheStrategy | undefined {
-    return PROVIDERS[provider]?.cache
-  }
-
-  async execute(request: LLMRequest): Promise<LLMResponse> {
-    const strategy = this.getCacheStrategy(request.provider)
-
-    // No caching support — pass through directly
-    if (!strategy || strategy.type === "none") {
-      return this.inner.execute(request)
-    }
-
-    // Explicit caching — transform request (e.g., add cache_control blocks)
-    if (strategy.type === "explicit" && strategy.transformRequest) {
-      const messages = [
-        { role: "system", content: request.systemPrompt },
-        { role: "user", content: request.userPrompt },
-      ]
-      const transformed = strategy.transformRequest(messages)
-      // Pass transformed messages via extraBody override
-      const modified: LLMRequest = {
-        ...request,
-        extraBody: {
-          ...request.extraBody,
-          _transformedMessages: transformed,
-        },
-      }
-      return this.inner.execute(modified)
-    }
-
-    // Automatic caching — serialize if provider benefits from sequential calls
-    if (strategy.type === "automatic" && strategy.benefitsFromSequential) {
-      return this.executeSequential(request)
-    }
-
-    // Automatic but no sequential benefit — just execute
-    return this.inner.execute(request)
-  }
-
-  private async executeSequential(request: LLMRequest): Promise<LLMResponse> {
-    // Group by provider + model + system prompt content.
-    // Same group = same prefix = should be serialized for cache hits.
-    const prefixKey = `${request.provider}:${request.model}:${request.systemPrompt.length}:${request.systemPrompt.slice(0, 200)}`
-
-    const prev = this.locks.get(prefixKey) ?? Promise.resolve()
-    let resolve!: () => void
-    const current = new Promise<void>(r => { resolve = r })
-    this.locks.set(prefixKey, current)
-
-    try {
-      await prev
-      return await this.inner.execute(request)
-    } finally {
-      resolve()
-      if (this.locks.get(prefixKey) === current) {
-        this.locks.delete(prefixKey)
-      }
-    }
-  }
-}
-
-// ── Auto-init from env ───────────────────────────────────────────────────
-
-// Default: PrefixCacheTransport (auto-caches for providers that support it, passes
-// through to DirectTransport for those that don't). Batch mode requires explicit setup.
-const envTransport = process.env.LLM_TRANSPORT
-if (envTransport === "batch") {
+if (process.env.LLM_TRANSPORT === "batch") {
   console.log("[transport] LLM_TRANSPORT=batch — callers must call setTransport(new BatchTransport(...))")
-} else if (envTransport === "direct") {
-  active = new DirectTransport()
 }
