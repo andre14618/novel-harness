@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, Link } from "react-router-dom"
 import { getSeeds, listNovels, startNovel, startNovelCustom, deleteNovel, resumeNovel } from "../api"
 import type { NovelListItem, CustomSeed } from "../api"
 
@@ -117,6 +117,7 @@ export function NovelList() {
         <h1>Novel Harness</h1>
         <nav>
           <a href={`/?key=${key}`}>Dashboard</a>
+          <Link to={`/config${window.location.search}`}>Config</Link>
           <a href={`/panel?key=${key}`}>Operations</a>
         </nav>
       </div>

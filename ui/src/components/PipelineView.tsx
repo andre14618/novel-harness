@@ -140,7 +140,14 @@ export function PipelineView() {
           id: `gate-${ts}`,
           type: "gate",
           timestamp: ts,
-          title: e.data.title as string,
+          title: `Waiting for review: ${e.data.title as string}`,
+        })
+      } else if (e.type === "gate:resolved") {
+        entries.push({
+          id: `gate-resolved-${ts}`,
+          type: "info",
+          timestamp: ts,
+          title: `${e.data.action as string} — ${e.data.gateId as string}`,
         })
       } else if (e.type === "error") {
         entries.push({
@@ -224,6 +231,7 @@ export function PipelineView() {
           </span>
         </div>
         <nav>
+          <Link to={`/config${window.location.search}`}>Config</Link>
           <a href={`/?key=${key}`}>Dashboard</a>
         </nav>
       </div>
@@ -311,35 +319,6 @@ export function PipelineView() {
 
         <div ref={timelineEndRef} />
       </div>
-
-      {/* Phase config reference — collapsible */}
-      {config && (
-        <details style={{ marginTop: "1.5rem" }}>
-          <summary style={{ color: "#8b949e", cursor: "pointer", fontSize: "0.85rem" }}>
-            Agent Configuration
-          </summary>
-          <div className="config-grid">
-            {Object.entries(STEP_DESCRIPTIONS).map(([phase, desc]) => (
-              <div key={phase} className="card" style={{ marginTop: "0.5rem" }}>
-                <strong style={{ color: "#4ecca3", fontSize: "0.85rem" }}>{desc.label}</strong>
-                <p style={{ fontSize: "0.75rem", color: "#8b949e", margin: "0.3rem 0" }}>{desc.description}</p>
-                {desc.agents.map(agent => {
-                  const a = config.assignments[agent]
-                  if (!a) return null
-                  return (
-                    <div key={agent} style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginTop: "0.3rem", fontSize: "0.8rem" }}>
-                      <span style={{ color: "#e0e0e0", minWidth: "140px" }}>{AGENT_LABELS[agent] ?? agent}</span>
-                      <span className="config-tag">{a.provider}</span>
-                      <span className="config-tag">{a.model}</span>
-                      {a.temperature !== undefined && <span className="config-tag">temp {a.temperature}</span>}
-                    </div>
-                  )
-                })}
-              </div>
-            ))}
-          </div>
-        </details>
-      )}
 
       <div style={{ marginTop: "1rem" }}>
         <EventLog events={events} connected={connected} />

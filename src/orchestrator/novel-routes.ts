@@ -45,38 +45,118 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
   if (path === "/api/novel/config" && req.method === "GET") {
     try {
       const { MODELS, PROVIDERS } = await import("../../models/registry")
-      const { AGENT_MODELS } = await import("../../models/roles")
+      const { getAgentConfig, getAgentOverrides, AGENT_MODELS } = await import("../../models/roles")
 
       const models = MODELS.map(m => ({
         label: m.label,
         id: m.id,
         provider: m.provider,
+        pricing: m.pricing,
       }))
 
       const providers = Object.keys(PROVIDERS)
 
       // Group agents by role for the UI
-      const agentRoles: Record<string, string[]> = {
-        writers: ["writer", "rewriter"],
-        planners: ["world-builder", "character-agent", "plotter", "planning-plotter"],
-        extractors: ["summary-extractor", "fact-extractor", "character-state"],
-        validators: ["continuity", "cross-chapter-continuity", "prose-quality"],
-        judges: ["judge", "benchmark-judge"],
+      const agentGroups: Record<string, { label: string; description: string; agents: string[] }> = {
+        writers: { label: "Writers", description: "Creative prose generation", agents: ["writer", "rewriter", "prose-polish"] },
+        planners: { label: "Planners", description: "World, characters, plot, chapter outlines", agents: ["world-builder", "character-agent", "plotter", "planning-plotter"] },
+        extractors: { label: "Extractors", description: "Structured extraction from prose", agents: ["summary-extractor", "fact-extractor", "character-state"] },
+        validators: { label: "Validators", description: "Continuity and quality checks", agents: ["continuity", "cross-chapter-continuity", "prose-quality"] },
+        judges: { label: "Judges", description: "Benchmark scoring and pairwise comparison", agents: ["judge", "pairwise-judge", "benchmark-judge"] },
+        benchmark: { label: "Benchmark", description: "Independent benchmark pipeline agents", agents: ["benchmark-writer"] },
+        improvement: { label: "Improvement", description: "Autonomous prompt tuning daemon", agents: ["improver"] },
       }
 
+      // Effective assignments (static + overrides merged)
       const assignments: Record<string, any> = {}
-      for (const [agent, config] of Object.entries(AGENT_MODELS)) {
-        assignments[agent] = {
-          provider: config.provider,
-          model: config.model,
-          temperature: config.temperature,
-          maxTokens: config.maxTokens,
+      for (const agentName of Object.keys(AGENT_MODELS)) {
+        const effective = getAgentConfig(agentName)
+        if (effective) {
+          assignments[agentName] = {
+            provider: effective.provider,
+            model: effective.model,
+            temperature: effective.temperature,
+            maxTokens: effective.maxTokens,
+          }
         }
       }
 
-      return Response.json({ models, providers, agentRoles, assignments })
+      return Response.json({
+        models,
+        providers,
+        agentGroups,
+        assignments,
+        overrides: getAgentOverrides(),
+      })
     } catch (err) {
       return Response.json({ error: String(err) }, { status: 500 })
+    }
+  }
+
+  // ── Set agent override ─────────────────────────────────────────────
+  const agentConfigMatch = path.match(/^\/api\/novel\/config\/agent\/([^/]+)$/)
+  if (agentConfigMatch && req.method === "PUT") {
+    const agentName = decodeURIComponent(agentConfigMatch[1])
+    try {
+      const { MODELS, PROVIDERS } = await import("../../models/registry")
+      const { AGENT_MODELS, setAgentOverride, getAgentConfig } = await import("../../models/roles")
+
+      if (!AGENT_MODELS[agentName]) {
+        return Response.json({ error: `Unknown agent: ${agentName}` }, { status: 404 })
+      }
+
+      const body = await req.json() as Record<string, any>
+      const override: Record<string, any> = {}
+
+      if (body.provider) {
+        if (!PROVIDERS[body.provider as keyof typeof PROVIDERS]) {
+          return Response.json({ error: `Unknown provider: ${body.provider}` }, { status: 400 })
+        }
+        override.provider = body.provider
+      }
+
+      if (body.model) {
+        const provider = body.provider ?? AGENT_MODELS[agentName].provider
+        const exists = MODELS.some(m => m.id === body.model && m.provider === provider)
+        if (!exists) {
+          return Response.json({ error: `Model ${body.model} not found for provider ${provider}` }, { status: 400 })
+        }
+        override.model = body.model
+      }
+
+      if (body.temperature !== undefined) {
+        override.temperature = Math.max(0, Math.min(2, parseFloat(body.temperature)))
+      }
+
+      if (body.maxTokens !== undefined) {
+        override.maxTokens = Math.max(1, Math.min(131072, parseInt(body.maxTokens)))
+      }
+
+      setAgentOverride(agentName, override)
+      const effective = getAgentConfig(agentName)
+
+      return Response.json({ ok: true, agentName, effective })
+    } catch (err) {
+      return Response.json({ error: String(err) }, { status: 400 })
+    }
+  }
+
+  // ── Clear agent override ───────────────────────────────────────────
+  if (agentConfigMatch && req.method === "DELETE") {
+    const agentName = decodeURIComponent(agentConfigMatch[1])
+    try {
+      const { AGENT_MODELS, clearAgentOverride, getAgentConfig } = await import("../../models/roles")
+
+      if (!AGENT_MODELS[agentName]) {
+        return Response.json({ error: `Unknown agent: ${agentName}` }, { status: 404 })
+      }
+
+      clearAgentOverride(agentName)
+      const effective = getAgentConfig(agentName)
+
+      return Response.json({ ok: true, agentName, effective })
+    } catch (err) {
+      return Response.json({ error: String(err) }, { status: 400 })
     }
   }
 

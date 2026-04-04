@@ -346,6 +346,42 @@ select { cursor: pointer; }
   margin-top: 0.5rem;
 }
 
+/* Agent config page */
+.agent-config-row {
+  padding: 0.8rem 1rem;
+}
+.agent-config-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.4rem;
+}
+.agent-config-display {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.agent-config-edit {
+  margin-top: 0.3rem;
+}
+.agent-config-fields {
+  display: grid;
+  grid-template-columns: 1fr 2fr auto;
+  gap: 0.5rem;
+  align-items: end;
+}
+@media (max-width: 700px) {
+  .agent-config-fields { grid-template-columns: 1fr; }
+}
+
+/* Gate waiting tag in timeline */
+.tl-entry.tl-gate .tl-title {
+  color: #3498db;
+}
+.tl-entry.tl-gate .tl-body {
+  width: 100%;
+}
+
 /* Activity panel */
 .activity-panel {
   background: #16213e;

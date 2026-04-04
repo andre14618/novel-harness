@@ -92,12 +92,32 @@ export function getNovelConfig() {
   return fetchJSON<NovelConfig>("/api/novel/config")
 }
 
+export function setAgentConfig(agentName: string, config: Partial<{ provider: string; model: string; temperature: number; maxTokens: number }>) {
+  return fetchJSON<{ ok: boolean; effective: any }>(`/api/novel/config/agent/${encodeURIComponent(agentName)}`, {
+    method: "PUT",
+    body: JSON.stringify(config),
+  })
+}
+
+export function resetAgentConfig(agentName: string) {
+  return fetchJSON<{ ok: boolean }>(`/api/novel/config/agent/${encodeURIComponent(agentName)}`, {
+    method: "DELETE",
+  })
+}
+
 // Types
+export interface AgentGroup {
+  label: string
+  description: string
+  agents: string[]
+}
+
 export interface NovelConfig {
   models: { label: string; id: string; provider: string }[]
   providers: string[]
-  agentRoles: Record<string, string[]>
-  assignments: Record<string, { provider: string; model: string; temperature?: number; maxTokens?: number }>
+  agentGroups: Record<string, AgentGroup>
+  assignments: Record<string, { provider: string; model: string; temperature: number; maxTokens: number }>
+  overrides: Record<string, Partial<{ provider: string; model: string; temperature: number; maxTokens: number }>>
 }
 
 export interface NovelListItem {

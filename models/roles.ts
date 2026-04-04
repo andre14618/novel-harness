@@ -62,22 +62,43 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "improver":                  { ...deepseekV3, maxTokens: 8192 },
 }
 
-export function getModelForAgent(agentName: string): ModelAssignment | undefined {
-  return AGENT_MODELS[agentName]
+// ── Runtime overrides (set via web UI, cleared on restart) ──────────────
+
+const runtimeOverrides = new Map<string, Partial<ModelAssignment>>()
+
+export function setAgentOverride(agentName: string, override: Partial<ModelAssignment>): void {
+  runtimeOverrides.set(agentName, override)
 }
 
-/** Returns the full agent config with defaults applied. */
+export function clearAgentOverride(agentName: string): void {
+  runtimeOverrides.delete(agentName)
+}
+
+export function getAgentOverrides(): Record<string, Partial<ModelAssignment>> {
+  return Object.fromEntries(runtimeOverrides)
+}
+
+export function getModelForAgent(agentName: string): ModelAssignment | undefined {
+  const base = AGENT_MODELS[agentName]
+  const override = runtimeOverrides.get(agentName)
+  if (!base && !override) return undefined
+  return override ? { ...base, ...override } as ModelAssignment : base
+}
+
+/** Returns the full agent config with defaults applied, including runtime overrides. */
 export function getAgentConfig(agentName: string): {
   provider: ProviderName; model: string
   temperature: number; maxTokens: number; thinking: boolean
 } | undefined {
-  const assignment = AGENT_MODELS[agentName]
-  if (!assignment) return undefined
+  const base = AGENT_MODELS[agentName]
+  if (!base) return undefined
+  const override = runtimeOverrides.get(agentName)
+  const merged = override ? { ...base, ...override } : base
   return {
-    provider: assignment.provider,
-    model: assignment.model,
-    temperature: assignment.temperature ?? DEFAULTS.temperature,
-    maxTokens: assignment.maxTokens ?? DEFAULTS.maxTokens,
-    thinking: assignment.thinking ?? DEFAULTS.thinking,
+    provider: merged.provider,
+    model: merged.model,
+    temperature: merged.temperature ?? DEFAULTS.temperature,
+    maxTokens: merged.maxTokens ?? DEFAULTS.maxTokens,
+    thinking: merged.thinking ?? DEFAULTS.thinking,
   }
 }
