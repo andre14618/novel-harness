@@ -63,6 +63,9 @@ export async function collectSeedInput(): Promise<SeedInput> {
   return { premise, genre, characters }
 }
 
+// Stores the last gate decision so callers can access revision notes
+let lastDecision: GateDecision | null = null
+
 /**
  * Present content for human approval. Uses the gate system —
  * in CLI mode, also pumps readline to resolve the gate.
@@ -75,6 +78,8 @@ export async function presentForApproval(
   title: string,
   content: string,
 ): Promise<"approve" | "revise" | "reject"> {
+  lastDecision = null
+
   // Always log to console (visible in process stdout for web mode too)
   console.log(`\n${"─".repeat(60)}`)
   console.log(`  ${title}`)
@@ -93,6 +98,7 @@ export async function presentForApproval(
 
   if (resolverMode === "auto") {
     console.log("  [AUTO] Approved")
+    lastDecision = { action: "approve" }
     return "approve"
   }
 
@@ -114,6 +120,7 @@ export async function presentForApproval(
 
     // Race: either CLI input or web API resolves the gate
     const decision = await Promise.race([gatePromise, cliPromise])
+    lastDecision = decision
 
     // If CLI won, resolve the gate so web clients get notified
     if (gates.getPending(novelId)) {
@@ -126,22 +133,23 @@ export async function presentForApproval(
   // Web mode — just wait for the API to resolve it
   console.log("  [WAITING] Approval pending in web UI...")
   const decision = await gatePromise
+  lastDecision = decision
   console.log(`  [WEB] ${decision.action}`)
   return decision.action
 }
 
 /**
- * Get revision notes. In CLI mode, prompts readline.
- * In web mode, notes come from the gate decision.
+ * Get revision notes. Uses notes from the last gate decision if available
+ * (web mode sends them with the decision). Falls back to CLI readline.
  */
-export async function getRevisionNotes(decision?: GateDecision): Promise<string[]> {
-  // If notes were provided with the gate decision (web mode), use those
-  if (decision?.notes && decision.notes.length > 0) {
-    return decision.notes
+export async function getRevisionNotes(): Promise<string[]> {
+  // If the gate decision included notes (web mode), use those
+  if (lastDecision?.notes && lastDecision.notes.length > 0) {
+    return lastDecision.notes
   }
 
   if (resolverMode === "auto") return []
-  if (resolverMode === "web") return [] // Web mode should have included notes in decision
+  if (resolverMode === "web") return [] // Web client should have included notes in decision
 
   // CLI mode — prompt
   console.log("\nEnter revision notes (one per line, empty line to finish):")

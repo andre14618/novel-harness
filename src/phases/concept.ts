@@ -8,7 +8,7 @@ import { callAgent } from "../llm"
 import { WORLD_BUILDER_PROMPT, CHARACTER_AGENT_PROMPT, PLOTTER_AGENT_PROMPT } from "../prompts"
 import { buildConceptContext } from "../context"
 import {
-  displayPhaseHeader, presentForApproval,
+  displayPhaseHeader, presentForApproval, getRevisionNotes,
   formatWorldBible, formatCharacterProfiles, formatStorySpine,
 } from "../cli"
 import { emit } from "../events"
@@ -17,6 +17,77 @@ import { pipeline } from "../config/pipeline"
 
 function tryGet<T>(fn: () => T): T | null {
   try { return fn() } catch { return null }
+}
+
+/**
+ * Run a concept agent with human gate. Supports approve, reject (full regen),
+ * and revise (regen with revision notes appended to context).
+ */
+async function runConceptAgent<T>(
+  novelId: string,
+  agentName: string,
+  prompt: string,
+  context: string,
+  schema: any,
+  gateId: string,
+  gateTitle: string,
+  formatFn: (output: T) => string,
+): Promise<T> {
+  let currentContext = context
+
+  for (let attempt = 1; attempt <= pipeline.maxDraftAttempts; attempt++) {
+    try {
+      const retrying = attempt > 1
+      emit(novelId, {
+        type: "progress",
+        data: { step: agentName, status: retrying ? "retrying" : "running", attempt },
+      })
+
+      const result = await callAgent({
+        novelId,
+        agentName: retrying ? `${agentName}-retry` : agentName,
+        systemPrompt: prompt,
+        userPrompt: currentContext,
+        schema,
+      })
+
+      emit(novelId, { type: "progress", data: { step: agentName, status: "complete" } })
+
+      const decision = await presentForApproval(
+        novelId, gateId, gateTitle, formatFn(result.output),
+      )
+
+      if (decision === "approve") {
+        return result.output
+      }
+
+      if (decision === "revise") {
+        const notes = await getRevisionNotes()
+        if (notes.length > 0) {
+          currentContext = context + "\n\nREVISION NOTES — please address these in your regeneration:\n" +
+            notes.map(n => `- ${n}`).join("\n")
+        }
+        log(novelId, "info", `${gateTitle} revision requested: ${notes.length} notes`)
+        emit(novelId, { type: "progress", data: { step: agentName, status: "revising", notes: notes.length } })
+        // Loop — will regenerate with notes
+        continue
+      }
+
+      // reject — regenerate from scratch (original context, retry agent)
+      log(novelId, "info", `${gateTitle} rejected, regenerating`)
+      emit(novelId, { type: "progress", data: { step: agentName, status: "retrying" } })
+      currentContext = context // reset to original context
+      continue
+
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      log(novelId, "error", `${agentName} attempt ${attempt}/${pipeline.maxDraftAttempts} failed: ${msg}`)
+      console.error(`  ${agentName} attempt ${attempt} failed: ${msg}`)
+      if (attempt === pipeline.maxDraftAttempts) throw err
+    }
+  }
+
+  throw new Error(`${agentName} failed after ${pipeline.maxDraftAttempts} attempts`)
 }
 
 export async function runConceptPhase(novelId: string, seed: SeedInput): Promise<void> {
@@ -31,111 +102,55 @@ export async function runConceptPhase(novelId: string, seed: SeedInput): Promise
   const existingChars = getCharacters(novelId)
   const existingSpine = tryGet(() => getStorySpine(novelId))
 
-  // Run all 3 concept agents in parallel — no cross-dependencies, all derive from seed
   const needsWorld = !existingWorld
   const needsChars = existingChars.length === 0
   const needsSpine = !existingSpine
 
+  // Run all 3 concept agents — they run in parallel but gates serialize user interaction
   const pending: Promise<void>[] = []
 
   if (needsWorld) {
     console.log("\n  [1/3] World Builder...")
-    pending.push((async () => {
-      for (let attempt = 1; attempt <= pipeline.maxDraftAttempts; attempt++) {
-        try {
-          emit(novelId, { type: "progress", data: { step: "world-builder", status: "running", attempt } })
-          const worldResult = await callAgent({
-            novelId, agentName: "world-builder",
-            systemPrompt: WORLD_BUILDER_PROMPT, userPrompt: contexts.world,
-            schema: worldBibleSchema,
-          })
-          emit(novelId, { type: "progress", data: { step: "world-builder", status: "complete" } })
-          const decision = await presentForApproval(novelId, "concept:world-bible", "World Bible", formatWorldBible(worldResult.output))
-          if (decision === "reject") {
-            emit(novelId, { type: "progress", data: { step: "world-builder", status: "retrying" } })
-            const retry = await callAgent({ novelId, agentName: "world-builder-retry", systemPrompt: WORLD_BUILDER_PROMPT, userPrompt: contexts.world, schema: worldBibleSchema })
-            saveWorldBible(novelId, retry.output)
-          } else {
-            saveWorldBible(novelId, worldResult.output)
-          }
-          log(novelId, "checkpoint", "World bible saved")
-          return
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err)
-          log(novelId, "error", `World builder attempt ${attempt}/${pipeline.maxDraftAttempts} failed: ${msg}`)
-          console.error(`  World builder attempt ${attempt} failed: ${msg}`)
-          if (attempt === pipeline.maxDraftAttempts) throw err
-        }
-      }
-    })())
+    pending.push(
+      runConceptAgent(
+        novelId, "world-builder", WORLD_BUILDER_PROMPT, contexts.world,
+        worldBibleSchema, "concept:world-bible", "World Bible", formatWorldBible,
+      ).then(output => {
+        saveWorldBible(novelId, output)
+        log(novelId, "checkpoint", "World bible saved")
+      }),
+    )
   } else {
     console.log("\n  [1/3] World Bible — already saved, skipping")
   }
 
   if (needsChars) {
     console.log("  [2/3] Character Agent...")
-    pending.push((async () => {
-      for (let attempt = 1; attempt <= pipeline.maxDraftAttempts; attempt++) {
-        try {
-          emit(novelId, { type: "progress", data: { step: "character-agent", status: "running", attempt } })
-          const charResult = await callAgent({
-            novelId, agentName: "character-agent",
-            systemPrompt: CHARACTER_AGENT_PROMPT, userPrompt: contexts.character,
-            schema: characterProfilesSchema,
-          })
-          emit(novelId, { type: "progress", data: { step: "character-agent", status: "complete" } })
-          const decision = await presentForApproval(novelId, "concept:characters", "Character Profiles", formatCharacterProfiles(charResult.output.characters))
-          if (decision === "reject") {
-            emit(novelId, { type: "progress", data: { step: "character-agent", status: "retrying" } })
-            const retry = await callAgent({ novelId, agentName: "character-agent-retry", systemPrompt: CHARACTER_AGENT_PROMPT, userPrompt: contexts.character, schema: characterProfilesSchema })
-            for (const char of retry.output.characters) saveCharacter(novelId, char)
-          } else {
-            for (const char of charResult.output.characters) saveCharacter(novelId, char)
-          }
-          log(novelId, "checkpoint", "Character profiles saved")
-          return
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err)
-          log(novelId, "error", `Character agent attempt ${attempt}/${pipeline.maxDraftAttempts} failed: ${msg}`)
-          console.error(`  Character agent attempt ${attempt} failed: ${msg}`)
-          if (attempt === pipeline.maxDraftAttempts) throw err
-        }
-      }
-    })())
+    pending.push(
+      runConceptAgent(
+        novelId, "character-agent", CHARACTER_AGENT_PROMPT, contexts.character,
+        characterProfilesSchema, "concept:characters", "Character Profiles",
+        (output: any) => formatCharacterProfiles(output.characters),
+      ).then(output => {
+        for (const char of output.characters) saveCharacter(novelId, char)
+        log(novelId, "checkpoint", "Character profiles saved")
+      }),
+    )
   } else {
     console.log("  [2/3] Characters — already saved, skipping")
   }
 
   if (needsSpine) {
     console.log("  [3/3] Plotter Agent...")
-    pending.push((async () => {
-      for (let attempt = 1; attempt <= pipeline.maxDraftAttempts; attempt++) {
-        try {
-          emit(novelId, { type: "progress", data: { step: "plotter", status: "running", attempt } })
-          const spineResult = await callAgent({
-            novelId, agentName: "plotter",
-            systemPrompt: PLOTTER_AGENT_PROMPT, userPrompt: contexts.plotter,
-            schema: storySpineSchema,
-          })
-          emit(novelId, { type: "progress", data: { step: "plotter", status: "complete" } })
-          const decision = await presentForApproval(novelId, "concept:story-spine", "Story Spine", formatStorySpine(spineResult.output))
-          if (decision === "reject") {
-            emit(novelId, { type: "progress", data: { step: "plotter", status: "retrying" } })
-            const retry = await callAgent({ novelId, agentName: "plotter-retry", systemPrompt: PLOTTER_AGENT_PROMPT, userPrompt: contexts.plotter, schema: storySpineSchema })
-            saveStorySpine(novelId, retry.output)
-          } else {
-            saveStorySpine(novelId, spineResult.output)
-          }
-          log(novelId, "checkpoint", "Story spine saved")
-          return
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err)
-          log(novelId, "error", `Plotter attempt ${attempt}/${pipeline.maxDraftAttempts} failed: ${msg}`)
-          console.error(`  Plotter attempt ${attempt} failed: ${msg}`)
-          if (attempt === pipeline.maxDraftAttempts) throw err
-        }
-      }
-    })())
+    pending.push(
+      runConceptAgent(
+        novelId, "plotter", PLOTTER_AGENT_PROMPT, contexts.plotter,
+        storySpineSchema, "concept:story-spine", "Story Spine", formatStorySpine,
+      ).then(output => {
+        saveStorySpine(novelId, output)
+        log(novelId, "checkpoint", "Story spine saved")
+      }),
+    )
   } else {
     console.log("  [3/3] Story Spine — already saved, skipping")
   }

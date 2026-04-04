@@ -5,6 +5,7 @@ import type { NovelState } from "../api"
 import { useNovelSSE } from "../hooks/useNovelSSE"
 import { PhaseIndicator } from "./PhaseIndicator"
 import { GatePanel } from "./GatePanel"
+import { ActivityPanel } from "./ActivityPanel"
 import { ContentViewer } from "./ContentViewer"
 import { EventLog } from "./EventLog"
 
@@ -83,6 +84,9 @@ export function PipelineView() {
         </div>
       )}
 
+      {/* Activity panel — shows real-time progress when pipeline is running */}
+      <ActivityPanel events={events} active={state.active} />
+
       {state.pendingGate && (
         <GatePanel
           novelId={novelId!}
@@ -91,12 +95,6 @@ export function PipelineView() {
           content={state.pendingGate.content}
           onDecided={loadState}
         />
-      )}
-
-      {!state.pendingGate && state.active && (
-        <div className="card" style={{ textAlign: "center", color: "#8b949e" }}>
-          Pipeline running... waiting for next gate or completion.
-        </div>
       )}
 
       <ContentViewer
