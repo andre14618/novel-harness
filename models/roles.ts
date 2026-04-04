@@ -41,9 +41,9 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "planning-plotter-retry":    { ...cerebrasQwen235B, temperature: 0.8, maxTokens: 8192 },
 
   // ── Extractors (structured extraction from prose) ─────────────────────
-  "summary-extractor":         { ...cerebrasQwen235B, temperature: 0.2 },
-  "fact-extractor":            { ...cerebrasQwen235B, temperature: 0.1 },
-  "character-state":           { ...cerebrasQwen235B, temperature: 0.1 },
+  "summary-extractor":         { ...cerebrasQwen235B, temperature: 0.2, maxTokens: 8192 },
+  "fact-extractor":            { ...cerebrasQwen235B, temperature: 0.1, maxTokens: 8192 },
+  "character-state":           { ...cerebrasQwen235B, temperature: 0.1, maxTokens: 8192 },
 
   // ── Validators (analytical checks) ────────────────────────────────────
   "continuity":                { ...cerebrasQwen235B, temperature: 0.2 },
