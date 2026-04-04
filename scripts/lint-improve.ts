@@ -55,6 +55,7 @@ interface LintSnapshot {
   totalAfterFix: number   // persistent issues (survive hybrid fixer)
   categories: Record<string, number>
   persistentCategories: Record<string, number>
+  instances: Record<string, string[]>  // specific flagged sentences per category
 }
 
 // ── Lint snapshot: generate prose, lint, fix, measure what persists ────────
@@ -63,6 +64,7 @@ async function takeLintSnapshot(writerPrompt: string, seeds: ReturnType<typeof l
   const writer = getWriter()
   const allCounts: Record<string, number> = {}
   const persistentCounts: Record<string, number> = {}
+  const instances: Record<string, string[]> = {}
   let totalIssues = 0
   let totalAfterFix = 0
 
@@ -82,6 +84,13 @@ async function takeLintSnapshot(writerPrompt: string, seeds: ReturnType<typeof l
       totalIssues += lintResult.totalIssues
       for (const [cat, count] of Object.entries(lintResult.counts)) {
         allCounts[cat] = (allCounts[cat] || 0) + count
+      }
+      // Capture specific instances for the improver to see
+      for (const issue of lintResult.issues) {
+        if (!instances[issue.category]) instances[issue.category] = []
+        if (instances[issue.category].length < 8) {
+          instances[issue.category].push(issue.sentence)
+        }
       }
 
       // Fix and measure persistent issues
@@ -103,7 +112,7 @@ async function takeLintSnapshot(writerPrompt: string, seeds: ReturnType<typeof l
     }
   }
 
-  return { totalIssues, totalAfterFix, categories: allCounts, persistentCategories: persistentCounts }
+  return { totalIssues, totalAfterFix, categories: allCounts, persistentCategories: persistentCounts, instances }
 }
 
 // ── Agent prompt (loaded from file) ───────────────────────────────────────

@@ -1,10 +1,10 @@
 /**
- * Shared library for lint pattern discovery.
- * Used by both lint-discover.ts (standalone) and lint-improve.ts (--discover flag).
+ * Lint pattern discovery — per-concept focused passes.
  *
- * Uses the lint-discoverer agent (prompt.md + context.ts) for principled,
- * cited pattern proposals. Context includes craft reference docs, existing
- * rules, prior discovery history, and prose samples.
+ * Instead of one broad call with 10 principles, runs a focused discovery
+ * pass for each concept that has a reference doc. Each pass gives the LLM
+ * deep context on ONE craft concept and asks it to find instances of THAT
+ * specific defect, then propose regex rules for uncovered instances.
  */
 
 import { readFileSync } from "node:fs"
@@ -12,52 +12,76 @@ import db from "../data/connection"
 import { getTransport } from "../src/transport"
 import { extractJSON } from "../src/llm"
 import { getModelForAgent } from "../models/roles"
-import { buildDiscoveryContext } from "../src/agents/lint-discoverer/context"
+import { CONCEPTS, loadConceptContext, type LintConcept } from "../src/lint/concepts"
 
 const AGENT_PROMPT = readFileSync(
   new URL("../src/agents/lint-discoverer/prompt.md", import.meta.url).pathname, "utf-8",
 )
 
-interface ProposedPattern {
-  category: string
-  name: string
-  regex: string
-  regexFlags: string
-  tier: number
-  fixTemplate: string
-  craftCitation: string
-  dialogueOk: boolean
-  description: string
+// ── Load existing rules for a specific category ───────────────────────────
+
+async function getExistingRulesForCategories(categories: string[]): Promise<string> {
+  const patterns = await db`
+    SELECT category, pattern, fix_template
+    FROM lint_patterns WHERE enabled = true AND category = ANY(${categories})
+    ORDER BY category, id
+  ` as any[]
+
+  if (patterns.length === 0) return "(none)"
+
+  return patterns
+    .filter((p: any) => p.pattern !== "-- heuristic --")
+    .map((p: any) => `  /${p.pattern}/ → ${p.fix_template.slice(0, 80)}`)
+    .join("\n")
 }
 
-export async function discoverAndApply(runId?: number): Promise<number> {
+// ── Load prose samples ────────────────────────────────────────────────────
+
+async function getProseSamples(runId?: number): Promise<string[]> {
+  const rows = runId
+    ? await db`SELECT prose FROM generations WHERE run_id = ${runId} AND prose IS NOT NULL ORDER BY seed, attempt LIMIT 4`
+    : await db`SELECT prose FROM generations WHERE prose IS NOT NULL ORDER BY id DESC LIMIT 4`
+  return (rows as any[]).map(r => r.prose).filter(Boolean)
+}
+
+// ── Single-concept discovery pass ─────────────────────────────────────────
+
+async function discoverForConcept(
+  concept: LintConcept,
+  proseSamples: string[],
+): Promise<number> {
   const improver = getModelForAgent("improver")
   if (!improver) return 0
 
-  // Build rich context from reference docs, DB, and prose samples
-  const context = await buildDiscoveryContext(runId)
+  const conceptContext = loadConceptContext(concept)
+  const existingRules = await getExistingRulesForCategories(concept.categories)
+
+  const sampleText = proseSamples
+    .map((p, i) => `--- Sample ${i + 1} ---\n${p.slice(0, 1500)}`)
+    .join("\n\n")
+
+  console.log(`  [${concept.id}] Analyzing ${proseSamples.length} samples...`)
 
   const response = await getTransport().execute({
     systemPrompt: AGENT_PROMPT,
-    userPrompt: `${context}\n\nAnalyze the prose samples above against the craft principles. Propose 3-5 new high-precision lint patterns not covered by existing rules.`,
+    userPrompt: `${conceptContext}\nEXISTING RULES FOR THIS CATEGORY:\n${existingRules}\n\nPROSE SAMPLES:\n${sampleText}\n\nFind 1-3 new patterns for the "${concept.name}" concept that the existing rules miss. If existing rules already cover everything visible in these samples, return {"patterns": []}.`,
     model: improver.model,
     provider: improver.provider,
-    temperature: 0.5,
+    temperature: 0.4,
     maxTokens: 4096,
     responseFormat: { type: "json_object" },
   })
 
-  let proposals: ProposedPattern[]
+  let proposals: any[]
   try {
     const json = JSON.parse(extractJSON(response.content))
     proposals = json.patterns ?? []
   } catch { return 0 }
 
-  // Load prose samples for validation
-  const rows = runId
-    ? await db`SELECT prose FROM generations WHERE run_id = ${runId} AND prose IS NOT NULL ORDER BY seed, attempt LIMIT 6`
-    : await db`SELECT prose FROM generations WHERE prose IS NOT NULL ORDER BY id DESC LIMIT 6`
-  const proseSamples = (rows as any[]).map(r => r.prose).filter(Boolean)
+  if (proposals.length === 0) {
+    console.log(`  [${concept.id}] No new patterns found (existing coverage sufficient)`)
+    return 0
+  }
 
   // Validate and add
   let added = 0
@@ -75,15 +99,39 @@ export async function discoverAndApply(runId?: number): Promise<number> {
     if (hits < 2) { console.log(`    Skip low-hit: ${p.name} (${hits} hits)`); continue }
 
     const existing = await db`SELECT id FROM lint_patterns WHERE pattern = ${p.regex} LIMIT 1`
-    if (existing.length > 0) { console.log(`    Skip duplicate: ${p.name}`); continue }
+    if (existing.length > 0) { console.log(`    Skip duplicate regex: ${p.name}`); continue }
 
+    const category = p.category || concept.categories[0]
     await db`
       INSERT INTO lint_patterns (tier, category, pattern, flags, fix_template, dialogue_ok, enabled, rationale)
-      VALUES (${p.tier || 2}, ${p.category}, ${p.regex}, ${p.regexFlags || "gi"}, ${p.fixTemplate}, ${p.dialogueOk || false}, true, ${p.craftCitation + ". " + p.description})
+      VALUES (${p.tier || 2}, ${category}, ${p.regex}, ${p.regexFlags || "gi"}, ${p.fixTemplate}, ${p.dialogueOk || false}, true, ${(p.craftCitation || concept.craftSource) + ". " + (p.description || p.name)})
     `
-    console.log(`    Added: ${p.category} — ${p.name} (${hits} hits, ${p.craftCitation})`)
+    console.log(`    Added: ${category} — ${p.name} (${hits} hits)`)
     added++
   }
 
   return added
+}
+
+// ── Main entry point: run focused passes for each concept ─────────────────
+
+export async function discoverAndApply(runId?: number): Promise<number> {
+  const proseSamples = await getProseSamples(runId)
+  if (proseSamples.length === 0) {
+    console.log("  No prose samples available for discovery")
+    return 0
+  }
+
+  let totalAdded = 0
+
+  for (const concept of CONCEPTS) {
+    try {
+      const added = await discoverForConcept(concept, proseSamples)
+      totalAdded += added
+    } catch (err) {
+      console.log(`  [${concept.id}] Discovery failed: ${err instanceof Error ? err.message : err}`)
+    }
+  }
+
+  return totalAdded
 }
