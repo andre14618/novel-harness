@@ -134,13 +134,14 @@ export async function fixRhythm(
         systemPrompt: `Rewrite this passage to vary sentence rhythm. The current sentences are all similar length (${wordCounts.join(", ")} words each, CV=${window.cvVal.toFixed(2)}).
 
 RULES:
-- Mix short punchy sentences (2-5 words) with longer flowing ones (20-30 words)
-- Use at least one fragment for emphasis
-- Break one compound sentence into two short ones
-- Merge two short sentences into one flowing sentence
+- Create a MIX of sentence lengths: short (4-8 words), medium (10-16 words), and long (18-25 words)
+- Every sentence must be at least 3 words — no one-word fragments, no two-word sentences
+- No sentence should exceed 30 words
+- Break one compound sentence (X, and Y) into two shorter sentences
+- Merge two adjacent short sentences into one medium-length sentence with a subordinate clause
 - PRESERVE all content: every character, action, detail, and meaning must remain
-- Keep total word count within 20% of original — restructure, don't expand
-- Do NOT add new details, observations, or descriptions — only change sentence boundaries
+- Keep total word count within 20% of original — restructure, don't pad
+- Do NOT add new sensory details, observations, or metaphors — only change sentence boundaries and structure
 - Return JSON: {"rewritten": "the rewritten passage"}`,
         userPrompt: windowText,
         model: llmConfig.model,
@@ -170,10 +171,19 @@ RULES:
       const wordDelta = Math.abs(newWordCount - origWordCount) / origWordCount
       if (wordDelta > 0.30) { windowsSkipped++; continue }
 
-      // Verify the rewrite actually varies rhythm
+      // Verify the rewrite actually varies rhythm naturally
       const newSpans = splitToSpans(rewritten).filter(s => !s.isDialogue)
-      const newCv = cv(newSpans.map(s => s.words))
+      const newWordCounts = newSpans.map(s => s.words)
+      const newCv = cv(newWordCounts)
       if (newCv <= window.cvVal) { windowsSkipped++; continue } // didn't improve
+
+      // Reject artificial variation (sub-3-word fragments or 30+ word monsters)
+      if (newWordCounts.some(w => w < 3 || w > 30)) { windowsSkipped++; continue }
+
+      // Check the range is actually wider — min-to-max spread should increase
+      const origRange = Math.max(...wordCounts) - Math.min(...wordCounts)
+      const newRange = Math.max(...newWordCounts) - Math.min(...newWordCounts)
+      if (newRange <= origRange) { windowsSkipped++; continue }
 
       result = result.slice(0, adjStart) + rewritten + result.slice(adjEnd)
       offsetShift += rewritten.length - windowText.length
