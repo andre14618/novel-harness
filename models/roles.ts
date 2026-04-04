@@ -59,6 +59,7 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
 
   // ── Benchmark (can tune independently from novel pipeline) ───────────
   "benchmark-writer":          { ...deepseekV3, temperature: 0.8, maxTokens: 8000 },
+  "lint-writer":               { ...cerebrasQwen235B, temperature: 0.8, maxTokens: 8192 },
   "benchmark-judge":           { ...deepseekV3, temperature: 0.1 },
 
   // ── Improvement daemon ──────────────────────────────────────────────
