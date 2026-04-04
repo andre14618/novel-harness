@@ -141,43 +141,59 @@ export async function fixLintIssues(
     }
   }
 
-  // Pass 2: LLM per-sentence for remaining issues
+  // Pass 2: LLM per-match for remaining issues
+  // Uses charOffset for precise replacement (no ambiguous string search).
+  // Skips dialogue lines. Validates fixes preserve content.
   let llmFixes = 0
   let llmCalls = 0
   let costUsd = 0
 
   if (needsLlm.length > 0 && llmConfig) {
-    // Group by sentence to minimize calls
-    const bySentence = new Map<string, LintIssue[]>()
-    for (const issue of needsLlm) {
-      // Re-find sentence in the (possibly modified) text
-      const sentenceInText = result.includes(issue.sentence) ? issue.sentence : null
-      if (!sentenceInText) { unfixed++; continue }
-      if (!bySentence.has(sentenceInText)) bySentence.set(sentenceInText, [])
-      bySentence.get(sentenceInText)!.push(issue)
-    }
+    // Track offset shifts from prior replacements
+    let offsetShift = 0
+    // Process in reverse offset order so replacements don't shift later offsets
+    const sorted = [...needsLlm].sort((a, b) => b.charOffset - a.charOffset)
 
-    for (const [sentence, sentenceIssues] of bySentence) {
-      const issueList = sentenceIssues
-        .map(i => `- "${i.match}" → ${i.fixTemplate}`)
-        .join("\n")
+    for (const issue of sorted) {
+      // Skip if the match is inside dialogue (dialogue has its own voice)
+      const hasQuotes = /["\u201C\u201D]/.test(issue.sentence)
+      const isDialogueLine = issue.sentence.trim().startsWith('"') || issue.sentence.trim().startsWith('\u201C')
+      if (isDialogueLine) { unfixed++; continue }
 
-      // Extract surrounding context (2 paragraphs) for scene-aware fixes
-      const sentenceIdx = result.indexOf(sentence)
-      let context = ""
-      if (sentenceIdx !== -1) {
-        const before = result.lastIndexOf("\n\n", sentenceIdx)
-        const afterSentence = sentenceIdx + sentence.length
-        const after = result.indexOf("\n\n", afterSentence)
-        const contextStart = before !== -1 ? before : Math.max(0, sentenceIdx - 500)
-        const contextEnd = after !== -1 ? Math.min(result.length, after + 200) : Math.min(result.length, afterSentence + 500)
-        context = result.slice(contextStart, contextEnd).trim()
+      // For said-bookisms inside dialogue attribution, do a targeted tag-only fix
+      if (issue.category === "SAID_BOOKISM" && hasQuotes) {
+        // Just replace the bookism word with "said" — don't rewrite the whole sentence
+        const matchIdx = result.indexOf(issue.match)
+        if (matchIdx !== -1) {
+          result = result.slice(0, matchIdx) + "said" + result.slice(matchIdx + issue.match.length)
+          deterministicFixes++
+        } else {
+          unfixed++
+        }
+        continue
       }
+
+      // Find the exact match in current text using the sentence as anchor
+      const sentenceIdx = result.indexOf(issue.sentence)
+      if (sentenceIdx === -1) { unfixed++; continue }
+
+      // Extract surrounding context (1 paragraph before and after)
+      const before = result.lastIndexOf("\n\n", sentenceIdx)
+      const afterEnd = result.indexOf("\n\n", sentenceIdx + issue.sentence.length)
+      const contextStart = before !== -1 ? before : Math.max(0, sentenceIdx - 300)
+      const contextEnd = afterEnd !== -1 ? Math.min(result.length, afterEnd) : Math.min(result.length, sentenceIdx + issue.sentence.length + 300)
+      const context = result.slice(contextStart, contextEnd).trim()
 
       try {
         const response = await getTransport().execute({
-          systemPrompt: "Fix the flagged patterns in the TARGET SENTENCE. Use the surrounding scene context to ground your replacement in specific physical details from the scene. Preserve everything else exactly. Return JSON: {\"fixed\": \"the corrected sentence\"}",
-          userPrompt: `PATTERNS TO FIX:\n${issueList}\n\n${context ? `SCENE CONTEXT:\n${context}\n\n` : ""}TARGET SENTENCE:\n${sentence}`,
+          systemPrompt: `Fix ONLY the flagged pattern in the target sentence. Rules:
+- If the sentence contains dialogue (quoted text), preserve all dialogue exactly — only change the narrative part.
+- Do NOT add or remove quotation marks.
+- Do NOT duplicate any text.
+- The fix should be minimal — change as few words as possible.
+- Preserve the sentence's meaning, all character names, objects, and actions.
+Return JSON: {"fixed": "the corrected sentence"}`,
+          userPrompt: `PATTERN TO FIX: "${issue.match}" → ${issue.fixTemplate.slice(0, 150)}\n\nCONTEXT:\n${context}\n\nSENTENCE TO FIX:\n${issue.sentence}`,
           model: llmConfig.model,
           provider: llmConfig.provider as any,
           temperature: llmConfig.temperature ?? 0.2,
@@ -188,10 +204,8 @@ export async function fixLintIssues(
         let fixed: string
         try {
           const json = JSON.parse(response.content)
-          fixed = (json.fixed ?? json.sentence ?? json.result ?? "").trim()
-        } catch {
-          fixed = response.content.trim().replace(/^["']|["']$/g, "")
-        }
+          fixed = (json.fixed ?? json.sentence ?? "").trim()
+        } catch { unfixed++; continue }
         llmCalls++
 
         const promptTokens = response.usage?.prompt_tokens ?? 0
@@ -199,20 +213,30 @@ export async function fixLintIssues(
         const { getTokenCost } = await import("../../models/registry")
         costUsd += getTokenCost(llmConfig.provider as any, llmConfig.model, promptTokens, completionTokens)
 
-        if (fixed && fixed !== sentence) {
-          const idx = result.indexOf(sentence)
-          if (idx !== -1) {
-            result = result.slice(0, idx) + fixed + result.slice(idx + sentence.length)
-            llmFixes += sentenceIssues.length
-          } else {
-            unfixed += sentenceIssues.length
-          }
-        } else {
-          unfixed += sentenceIssues.length
-        }
+        // Validate the fix
+        if (!fixed || fixed === issue.sentence) { unfixed++; continue }
+
+        // Reject if fix is drastically different length (likely hallucinated)
+        if (fixed.length > issue.sentence.length * 1.5 || fixed.length < issue.sentence.length * 0.5) { unfixed++; continue }
+
+        // Reject if fix contains duplicated phrases (common LLM error)
+        const words = fixed.split(/\s+/)
+        const trigrams = words.slice(2).map((w, i) => `${words[i]} ${words[i+1]} ${w}`)
+        const hasDupes = trigrams.some((t, i) => trigrams.indexOf(t) !== i && t.split(/\s+/).every(w => w.length > 2))
+        if (hasDupes) { unfixed++; continue }
+
+        // Reject if quotes were added/removed (dialogue corruption)
+        const origQuotes = (issue.sentence.match(/["\u201C\u201D]/g) || []).length
+        const fixQuotes = (fixed.match(/["\u201C\u201D]/g) || []).length
+        if (origQuotes !== fixQuotes) { unfixed++; continue }
+
+        // Apply at the exact sentence position
+        result = result.slice(0, sentenceIdx) + fixed + result.slice(sentenceIdx + issue.sentence.length)
+        llmFixes++
+
       } catch (err) {
         console.log(`  [lint-fix] LLM error: ${err instanceof Error ? err.message : err}`)
-        unfixed += sentenceIssues.length
+        unfixed++
       }
     }
   } else {
