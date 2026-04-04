@@ -73,12 +73,20 @@ async function takeLintSnapshot(writerPrompt: string, seeds: ReturnType<typeof l
   let totalIssues = 0
   let totalAfterFix = 0
 
-  // Generate all seeds × runs in parallel for speed
+  // Generate seeds × runs with bounded concurrency (avoid overwhelming provider)
+  const CONCURRENCY = 4
   const jobs = seeds.flatMap(seed =>
     Array.from({ length: RUNS_PER_SEED }, (_, i) => ({ seed, run: i + 1 }))
   )
 
-  const results = await Promise.all(jobs.map(async ({ seed, run }) => {
+  const results: (Awaited<ReturnType<typeof processJob>> | null)[] = []
+  for (let i = 0; i < jobs.length; i += CONCURRENCY) {
+    const batch = jobs.slice(i, i + CONCURRENCY)
+    const batchResults = await Promise.all(batch.map(processJob))
+    results.push(...batchResults)
+  }
+
+  async function processJob({ seed, run }: typeof jobs[0]) {
     const result = await generateProse(writer, writerPrompt, seed.prompt, runId, seed.name, run)
     if (!result) return null
 
@@ -103,7 +111,7 @@ async function takeLintSnapshot(writerPrompt: string, seeds: ReturnType<typeof l
     console.log(`  [${seed.name}:${run}] ${lintResult.totalIssues} issues → fixed ${fixResult.deterministicFixes}d+${fixResult.llmFixes}llm → ${afterFix.totalIssues} persistent`)
 
     return { lintResult, afterFix, seed: seed.name }
-  }))
+  }
 
   // Aggregate
   for (const r of results) {

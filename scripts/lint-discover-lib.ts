@@ -124,17 +124,23 @@ export async function discoverAndApply(runId?: number): Promise<number> {
     return 0
   }
 
-  // Run all concept discovery passes in parallel
-  const results = await Promise.all(
-    CONCEPTS.map(async (concept) => {
-      try {
-        return await discoverForConcept(concept, proseSamples)
-      } catch (err) {
-        console.log(`  [${concept.id}] Discovery failed: ${err instanceof Error ? err.message : err}`)
-        return 0
-      }
-    })
-  )
+  // Run concept discovery passes with bounded concurrency
+  let totalAdded = 0
+  const CONCURRENCY = 3
+  for (let i = 0; i < CONCEPTS.length; i += CONCURRENCY) {
+    const batch = CONCEPTS.slice(i, i + CONCURRENCY)
+    const results = await Promise.all(
+      batch.map(async (concept) => {
+        try {
+          return await discoverForConcept(concept, proseSamples)
+        } catch (err) {
+          console.log(`  [${concept.id}] Discovery failed: ${err instanceof Error ? err.message : err}`)
+          return 0
+        }
+      })
+    )
+    totalAdded += results.reduce((sum, n) => sum + n, 0)
+  }
 
-  return results.reduce((sum, n) => sum + n, 0)
+  return totalAdded
 }
