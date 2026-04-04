@@ -6,7 +6,6 @@ import type { NovelConfig } from "../api"
 const AGENT_LABELS: Record<string, string> = {
   "writer": "Writer",
   "rewriter": "Rewriter",
-  "prose-polish": "Prose Polish",
   "world-builder": "World Builder",
   "character-agent": "Character Agent",
   "plotter": "Plotter",

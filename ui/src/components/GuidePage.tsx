@@ -1,8 +1,6 @@
 import { Link } from "react-router-dom"
 
 export function GuidePage() {
-  const key = new URLSearchParams(window.location.search).get("key") ?? ""
-
   return (
     <>
       <h1>Guide</h1>
@@ -136,7 +134,7 @@ export function GuidePage() {
         <section>
           <h2>Benchmarking &amp; Improvement</h2>
           <p>
-            The <a href={`/panel?key=${key}`}>Operations Panel</a> runs benchmarks and improvement cycles.
+            The <Link to={`/operations${window.location.search}`}>Operations Panel</Link> runs benchmarks and improvement cycles.
             Both produce experiments — there's no functional difference. An experiment is: run an agent,
             measure the output, record scores.
           </p>
@@ -199,15 +197,15 @@ export function GuidePage() {
           <pre className="guide-arch">{`
 LXC 307 (192.168.1.108)
 ├── Orchestrator (port 3006)
-│   ├── /        Dashboard (batch status, daemon status)
-│   ├── /panel   Operations (benchmark runner, improvement daemon)
-│   ├── /app     React UI (novel creation, pipeline, config, experiments)
+│   ├── /app                  React UI (all pages)
 │   │   ├── /app/             Novel list + creation
 │   │   ├── /app/:novelId     Pipeline timeline
 │   │   ├── /app/config       Agent model configuration
 │   │   ├── /app/experiments  Unified experiment history
+│   │   ├── /app/operations   Benchmark runner, improvement daemon
+│   │   ├── /app/dashboard    Batch status, daemon status
 │   │   └── /app/guide        This page
-│   └── /api/*   REST + SSE endpoints
+│   └── /api/*                REST + SSE endpoints
 ├── Postgres DB (novel_harness_orchestrator)
 │   ├── tuning_experiments, runs, generations, scores
 │   ├── llm_calls (with cost tracking)

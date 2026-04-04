@@ -118,7 +118,7 @@ export function PipelineView() {
             completionTokens: e.data.completionTokens as number,
             latencyMs: e.data.latencyMs as number,
             tokensPerSec: e.data.tokensPerSec as number,
-            cost: e.data.cost as number ?? 0,
+            cost: (e.data.cost as number) ?? 0,
           },
         })
       } else if (e.type === "progress") {

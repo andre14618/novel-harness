@@ -33,7 +33,7 @@ const STEP_LABELS: Record<string, string> = {
 export function ActivityPanel({ events, active, pendingGate }: Props) {
   const [steps, setSteps] = useState<StepState[]>([])
   const [elapsed, setElapsed] = useState(0)
-  const timerRef = useRef<ReturnType<typeof setInterval>>()
+  const timerRef = useRef<ReturnType<typeof setInterval>>(undefined)
   const startRef = useRef<number>(Date.now())
 
   // Track steps from SSE events

@@ -119,7 +119,7 @@ export interface AgentGroup {
 }
 
 export interface NovelConfig {
-  models: { label: string; id: string; provider: string }[]
+  models: { label: string; id: string; provider: string; pricing?: { input: number; output: number } }[]
   providers: string[]
   agentGroups: Record<string, AgentGroup>
   assignments: Record<string, { provider: string; model: string; temperature: number; maxTokens: number }>

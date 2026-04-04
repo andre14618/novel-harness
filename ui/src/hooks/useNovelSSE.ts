@@ -6,7 +6,7 @@ export function useNovelSSE(novelId: string | null) {
   const [connected, setConnected] = useState(false)
   const [lastEvent, setLastEvent] = useState<SSEEvent | null>(null)
   const sourceRef = useRef<EventSource | null>(null)
-  const reconnectTimer = useRef<ReturnType<typeof setTimeout>>()
+  const reconnectTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   useEffect(() => {
     if (!novelId) return
