@@ -12,7 +12,7 @@
  * existing corpus. See docs/ai-tells-rhythm-homogeneity.md.
  */
 
-import type { LintIssue } from "./index"
+import type { LintIssue } from "../types"
 
 // ── Config ────────────────────────────────────────────────────────────────
 

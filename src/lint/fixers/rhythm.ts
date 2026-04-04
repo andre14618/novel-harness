@@ -14,7 +14,7 @@
  *   6. Skip windows that overlap already-fixed regions
  */
 
-import { getTransport } from "../transport"
+import { getTransport } from "../../transport"
 
 interface RhythmFixResult {
   prose: string
@@ -154,7 +154,7 @@ RULES:
       llmCalls++
       const promptTokens = response.usage?.prompt_tokens ?? 0
       const completionTokens = response.usage?.completion_tokens ?? 0
-      const { getTokenCost } = await import("../../models/registry")
+      const { getTokenCost } = await import("../../../models/registry")
       costUsd += getTokenCost(llmConfig.provider as any, llmConfig.model, promptTokens, completionTokens)
 
       let rewritten: string

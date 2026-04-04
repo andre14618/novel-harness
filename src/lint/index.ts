@@ -1,103 +1,30 @@
 /**
- * Deterministic prose flagger.
+ * Lint system — main entry point.
  *
- * Pure TypeScript — no LLM calls. Reads detection patterns from the
- * lint_patterns table and flags issues with sentence-level annotations.
+ * Orchestrates three detector types:
+ *   1. Regex patterns (from lint_patterns DB table)
+ *   2. Emotional echo (cross-sentence heuristic)
+ *   3. Rhythm/paragraph heuristics (statistical windowing)
  *
- * Designed to:
- *   1. Replace LLM penalty judges for high-confidence patterns (free)
- *   2. Feed targeted rewrite instructions to a cheap model
+ * Re-exports types and DB persistence for external consumers.
  */
 
 import db from "../../data/connection"
-import { ensureLintPatterns } from "../../data/db"
+import { detectRegexPatterns, getEnabledPatterns } from "./detectors/regex"
+import { lintEmotionalEcho } from "./detectors/emotional-echo"
+import { lintRhythm, DEFAULT_RHYTHM_CONFIG, type RhythmConfig } from "./detectors/rhythm"
+import type { LintIssue, LintResult, LintPattern } from "./types"
 
-// ── Types ──────────────────────────────────────────────────────────────
+// Re-export types
+export type { LintIssue, LintResult, LintPattern }
 
-export interface LintPattern {
-  id: number
-  tier: number
-  category: string
-  pattern: string
-  flags: string
-  fix_template: string
-  dialogue_ok: number
-  enabled: number
-  rationale: string | null
-  edge_cases: string | null
-}
+// ── Heuristic pattern IDs (synthetic rows in lint_patterns) ───────────
 
-export interface LintIssue {
-  patternId: number
-  charOffset: number
-  category: string
-  match: string
-  sentence: string
-  fixTemplate: string
-}
-
-export interface LintResult {
-  issues: LintIssue[]
-  counts: Record<string, number>
-  totalIssues: number
-}
-
-// ── Dialogue awareness ─────────────────────────────────────────────────
-
-function isInDialogue(text: string, position: number): boolean {
-  let inQuote = false
-  for (let i = 0; i < position && i < text.length; i++) {
-    const ch = text[i]
-    if (ch === '"' || ch === '\u201C' || ch === '\u201D') {
-      if (ch === '\u201C') inQuote = true
-      else if (ch === '\u201D') inQuote = false
-      else inQuote = !inQuote
-    }
-  }
-  return inQuote
-}
-
-// ── Sentence extraction ────────────────────────────────────────────────
-
-function getSentenceAt(text: string, position: number): string {
-  let start = position
-  while (start > 0 && text[start - 1] !== '.' && text[start - 1] !== '!' && text[start - 1] !== '?' && text[start - 1] !== '\n') {
-    start--
-  }
-  let end = position
-  while (end < text.length && text[end] !== '.' && text[end] !== '!' && text[end] !== '?' && text[end] !== '\n') {
-    end++
-  }
-  if (end < text.length) end++
-  return text.slice(start, end).trim()
-}
-
-// ── Pattern loading ────────────────────────────────────────────────────
-
-async function getEnabledPatterns(tier?: number): Promise<LintPattern[]> {
-  await ensureLintPatterns()
-  if (tier !== undefined) {
-    return await db`
-      SELECT * FROM lint_patterns WHERE enabled = true AND tier = ${tier} ORDER BY category, id
-    ` as LintPattern[]
-  }
-  return await db`
-    SELECT * FROM lint_patterns WHERE enabled = true ORDER BY tier, category, id
-  ` as LintPattern[]
-}
-
-// ── Heuristic linters ─────────────────────────────────────────────────
-
-import { lintEmotionalEcho } from "./emotional-echo"
-import { lintRhythm, DEFAULT_RHYTHM_CONFIG, type RhythmConfig } from "./rhythm"
-
-// Synthetic pattern IDs for heuristic detectors (registered in DB via ensureHeuristicPatterns)
-let heuristicPatternIds: { emotionalEcho: number; rhythmMonotony: number; paragraphHomogeneity: number } | null = null
+let heuristicIds: { emotionalEcho: number; rhythmMonotony: number; paragraphHomogeneity: number } | null = null
 
 async function getHeuristicPatternIds() {
-  if (heuristicPatternIds) return heuristicPatternIds
+  if (heuristicIds) return heuristicIds
 
-  // Ensure synthetic pattern rows exist for heuristic categories
   const categories = [
     { category: "EMOTIONAL_ECHO", fixTemplate: "Physical detail already shows the emotion. Cut the label unless it adds analytical depth." },
     { category: "RHYTHM_MONOTONY", fixTemplate: "Prose rhythm is too uniform. Vary sentence length and structure." },
@@ -121,48 +48,31 @@ async function getHeuristicPatternIds() {
     }
   }
 
-  heuristicPatternIds = {
+  heuristicIds = {
     emotionalEcho: ids["EMOTIONAL_ECHO"],
     rhythmMonotony: ids["RHYTHM_MONOTONY"],
     paragraphHomogeneity: ids["PARAGRAPH_HOMOGENEITY"],
   }
-  return heuristicPatternIds
+  return heuristicIds
 }
 
 // ── Main linter ────────────────────────────────────────────────────────
 
 export async function lintProse(prose: string, tier?: number, rhythmConfig?: RhythmConfig): Promise<LintResult> {
-  const patterns = await getEnabledPatterns(tier)
-  const issues: LintIssue[] = []
+  // Run all detectors
+  const regexIssues = await detectRegexPatterns(prose, tier)
 
-  // Regex-based patterns
-  for (const pat of patterns) {
-    if (pat.pattern === "-- heuristic --") continue // skip synthetic entries
-    const regex = new RegExp(pat.pattern, pat.flags)
-    let match: RegExpExecArray | null
-    while ((match = regex.exec(prose)) !== null) {
-      const pos = match.index
-
-      // Skip matches inside dialogue unless pattern allows it
-      if (!pat.dialogue_ok && isInDialogue(prose, pos)) continue
-
-      issues.push({
-        patternId: pat.id,
-        charOffset: pos,
-        category: pat.category,
-        match: match[0],
-        sentence: getSentenceAt(prose, pos),
-        fixTemplate: pat.fix_template,
-      })
-    }
-  }
-
-  // Heuristic detectors
   const hIds = await getHeuristicPatternIds()
-  issues.push(...lintEmotionalEcho(prose, hIds.emotionalEcho))
-  issues.push(...lintRhythm(prose, { rhythmMonotony: hIds.rhythmMonotony, paragraphHomogeneity: hIds.paragraphHomogeneity }, rhythmConfig ?? DEFAULT_RHYTHM_CONFIG))
+  const echoIssues = lintEmotionalEcho(prose, hIds.emotionalEcho)
+  const rhythmIssues = lintRhythm(
+    prose,
+    { rhythmMonotony: hIds.rhythmMonotony, paragraphHomogeneity: hIds.paragraphHomogeneity },
+    rhythmConfig ?? DEFAULT_RHYTHM_CONFIG,
+  )
 
-  issues.sort((a, b) => a.charOffset - b.charOffset)
+  // Combine and sort
+  const issues = [...regexIssues, ...echoIssues, ...rhythmIssues]
+    .sort((a, b) => a.charOffset - b.charOffset)
 
   const counts: Record<string, number> = {}
   for (const issue of issues) {
@@ -208,9 +118,7 @@ export async function getLintSummary(runId: number): Promise<{ category: string;
   ` as { category: string; count: number }[]
 }
 
-/** Lint all generations for a run and persist results. Clears previous lint data for the run. */
 export async function lintRun(runId: number): Promise<{ generationId: number; seed: string; result: LintResult }[]> {
-  // Clear previous lint results for this run
   await db`
     DELETE FROM lint_issues WHERE generation_id IN (
       SELECT id FROM generations WHERE run_id = ${runId}
@@ -222,7 +130,6 @@ export async function lintRun(runId: number): Promise<{ generationId: number; se
   ` as { id: number; seed: string; prose: string }[]
 
   const results: { generationId: number; seed: string; result: LintResult }[] = []
-
   for (const gen of gens) {
     const result = await lintProse(gen.prose)
     await saveLintIssues(gen.id, result.issues)

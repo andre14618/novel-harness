@@ -13,7 +13,7 @@
  * See: docs/ai-tells-emotional-echo.md
  */
 
-import type { LintIssue } from "./index"
+import type { LintIssue } from "../types"
 
 // ── Physical indicator lexicon ────────────────────────────────────────────
 
