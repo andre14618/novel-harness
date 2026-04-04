@@ -85,7 +85,7 @@ export function PipelineView() {
       )}
 
       {/* Activity panel — shows real-time progress when pipeline is running */}
-      <ActivityPanel events={events} active={state.active} />
+      <ActivityPanel events={events} active={state.active} pendingGate={!!state.pendingGate} />
 
       {state.pendingGate && (
         <GatePanel

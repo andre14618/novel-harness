@@ -6,40 +6,60 @@ export function useNovelSSE(novelId: string | null) {
   const [connected, setConnected] = useState(false)
   const [lastEvent, setLastEvent] = useState<SSEEvent | null>(null)
   const sourceRef = useRef<EventSource | null>(null)
-
-  const connect = useCallback(() => {
-    if (!novelId) return
-
-    const key = new URLSearchParams(window.location.search).get("key") ?? ""
-    const url = `/api/novel/${novelId}/events?key=${encodeURIComponent(key)}`
-    const source = new EventSource(url)
-    sourceRef.current = source
-
-    source.onopen = () => setConnected(true)
-
-    source.onmessage = (e) => {
-      try {
-        const event: SSEEvent = JSON.parse(e.data)
-        setLastEvent(event)
-        setEvents(prev => [...prev.slice(-99), event])
-      } catch {}
-    }
-
-    source.onerror = () => {
-      setConnected(false)
-      source.close()
-      // Reconnect after 3s
-      setTimeout(connect, 3000)
-    }
-  }, [novelId])
+  const reconnectTimer = useRef<ReturnType<typeof setTimeout>>()
 
   useEffect(() => {
-    connect()
-    return () => {
-      sourceRef.current?.close()
-      sourceRef.current = null
+    if (!novelId) return
+
+    function connect() {
+      // Clean up previous connection
+      if (sourceRef.current) {
+        sourceRef.current.close()
+        sourceRef.current = null
+      }
+      clearTimeout(reconnectTimer.current)
+
+      const key = new URLSearchParams(window.location.search).get("key") ?? ""
+      const url = `/api/novel/${novelId}/events?key=${encodeURIComponent(key)}`
+      const source = new EventSource(url)
+      sourceRef.current = source
+
+      source.onopen = () => setConnected(true)
+
+      source.onmessage = (e) => {
+        try {
+          const event: SSEEvent = JSON.parse(e.data)
+          // Skip internal events (connected, keepalive)
+          if (event.type === "connected") {
+            setConnected(true)
+            return
+          }
+          setLastEvent(event)
+          setEvents(prev => [...prev.slice(-99), event])
+        } catch {
+          // ignore parse errors (keepalive comments etc)
+        }
+      }
+
+      source.onerror = () => {
+        setConnected(false)
+        source.close()
+        sourceRef.current = null
+        // Reconnect after 3s
+        reconnectTimer.current = setTimeout(connect, 3000)
+      }
     }
-  }, [connect])
+
+    connect()
+
+    return () => {
+      clearTimeout(reconnectTimer.current)
+      if (sourceRef.current) {
+        sourceRef.current.close()
+        sourceRef.current = null
+      }
+    }
+  }, [novelId])
 
   const clearEvents = useCallback(() => setEvents([]), [])
 

@@ -4,12 +4,12 @@ import type { SSEEvent } from "../api"
 interface Props {
   events: SSEEvent[]
   active: boolean
+  pendingGate: boolean
 }
 
 interface StepState {
   step: string
   status: string
-  startedAt: number
   chapter?: number
   attempt?: number
   wordCount?: number
@@ -30,18 +30,11 @@ const STEP_LABELS: Record<string, string> = {
   "drafting": "Drafting",
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  "running": "In progress",
-  "complete": "Complete",
-  "retrying": "Regenerating",
-  "starting": "Starting",
-  "approved": "Approved",
-}
-
-export function ActivityPanel({ events, active }: Props) {
+export function ActivityPanel({ events, active, pendingGate }: Props) {
   const [steps, setSteps] = useState<StepState[]>([])
   const [elapsed, setElapsed] = useState(0)
   const timerRef = useRef<ReturnType<typeof setInterval>>()
+  const startRef = useRef<number>(Date.now())
 
   // Track steps from SSE events
   useEffect(() => {
@@ -55,7 +48,6 @@ export function ActivityPanel({ events, active }: Props) {
       latestByStep.set(key, {
         step: d.step as string,
         status: d.status as string,
-        startedAt: new Date(e.timestamp).getTime(),
         chapter: d.chapter as number | undefined,
         attempt: d.attempt as number | undefined,
         wordCount: d.wordCount as number | undefined,
@@ -66,58 +58,70 @@ export function ActivityPanel({ events, active }: Props) {
     setSteps([...latestByStep.values()])
   }, [events])
 
-  // Elapsed timer — ticks every second while active
+  // Elapsed timer
   useEffect(() => {
-    if (active) {
-      timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000)
+    if (active && !pendingGate) {
+      startRef.current = Date.now() - elapsed * 1000
+      timerRef.current = setInterval(() => {
+        setElapsed(Math.floor((Date.now() - startRef.current) / 1000))
+      }, 1000)
+    } else {
+      clearInterval(timerRef.current)
     }
     return () => clearInterval(timerRef.current)
-  }, [active])
-
-  // Reset elapsed on new run
-  useEffect(() => {
-    if (active && events.length <= 1) setElapsed(0)
-  }, [active, events.length])
+  }, [active, pendingGate])
 
   if (!active && steps.length === 0) return null
 
-  const runningSteps = steps.filter(s => s.status === "running" || s.status === "retrying")
-  const completedSteps = steps.filter(s => s.status === "complete" || s.status === "approved")
+  const runningSteps = steps.filter(s =>
+    s.status === "running" || s.status === "retrying" || s.status === "revising"
+  )
+  const completedSteps = steps.filter(s =>
+    s.status === "complete" || s.status === "approved"
+  )
   const currentStep = runningSteps[runningSteps.length - 1]
+
+  const showSpinner = active && !pendingGate && (runningSteps.length > 0 || steps.length === 0)
 
   return (
     <div className="activity-panel">
       {/* Current activity header */}
       <div className="activity-header">
-        {active ? (
-          <>
-            <div className="spinner" />
-            <span className="activity-label">
-              {currentStep
+        {showSpinner && <div className="spinner" />}
+        <span className="activity-label">
+          {pendingGate
+            ? "Waiting for review"
+            : active
+              ? currentStep
                 ? formatStepLabel(currentStep)
-                : "Processing..."}
-            </span>
-            <span className="activity-elapsed">{formatElapsed(elapsed)}</span>
-          </>
-        ) : (
-          <span className="activity-label" style={{ color: "#4ecca3" }}>Pipeline idle</span>
+                : "Starting pipeline..."
+              : steps.length > 0
+                ? "Pipeline idle"
+                : ""}
+        </span>
+        {active && (
+          <span className="activity-elapsed">{formatElapsed(elapsed)}</span>
         )}
       </div>
 
       {/* Step progress list */}
       {steps.length > 0 && (
         <div className="activity-steps">
-          {steps.map((s, i) => (
-            <div key={i} className={`activity-step ${s.status}`}>
-              <span className="step-icon">
-                {s.status === "running" || s.status === "retrying" ? "◉" :
-                 s.status === "complete" || s.status === "approved" ? "✓" : "○"}
-              </span>
-              <span className="step-name">{formatStepLabel(s)}</span>
-              {s.wordCount && <span className="step-detail">{s.wordCount}w</span>}
-              {s.issueCount !== undefined && <span className="step-detail">{s.issueCount} issues</span>}
-            </div>
-          ))}
+          {steps.map((s, i) => {
+            const isDone = s.status === "complete" || s.status === "approved"
+            const isRunning = s.status === "running" || s.status === "retrying" || s.status === "revising"
+
+            return (
+              <div key={i} className={`activity-step ${s.status}`}>
+                <span className="step-icon">
+                  {isRunning ? "\u25c9" : isDone ? "\u2713" : "\u25cb"}
+                </span>
+                <span className="step-name">{formatStepLabel(s)}</span>
+                {s.wordCount !== undefined && <span className="step-detail">{s.wordCount}w</span>}
+                {s.issueCount !== undefined && <span className="step-detail">{s.issueCount} issues</span>}
+              </div>
+            )
+          })}
         </div>
       )}
 
@@ -125,7 +129,7 @@ export function ActivityPanel({ events, active }: Props) {
       {steps.length > 1 && (
         <div className="activity-summary">
           {completedSteps.length}/{steps.length} steps complete
-          {runningSteps.length > 0 && ` · ${runningSteps.length} running`}
+          {runningSteps.length > 0 && ` \u00b7 ${runningSteps.length} running`}
         </div>
       )}
     </div>
@@ -136,7 +140,8 @@ function formatStepLabel(s: StepState): string {
   let label = STEP_LABELS[s.step] ?? s.step
   if (s.chapter) label += ` ${s.chapter}`
   if (s.attempt && s.attempt > 1) label += ` (attempt ${s.attempt})`
-  if (s.status === "retrying") label += " — regenerating"
+  if (s.status === "retrying") label = label + " \u2014 regenerating"
+  if (s.status === "revising") label = label + " \u2014 revising"
   return label
 }
 
