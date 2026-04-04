@@ -42,6 +42,7 @@ State machine: concept → planning → drafting → validation → done
 - `benchmark/pairwise/` — A/B comparison with position-bias correction (runs each pair twice)
 - `benchmark/batch/` — async judge calls via provider batch APIs (OpenAI, Groq — provider-agnostic `BatchProvider` interface in `benchmark/batch/openai-compatible.ts`)
 - `src/lint/` — deterministic prose flagger, DB-driven patterns, no LLM calls
+- `scripts/replay-experiment.ts` — replay historical prompts (from iteration, run, or git commit) vs current, with scoring + pairwise comparison. All results persisted to DB as a `replay` experiment.
 
 **Transport layer** (`src/transport.ts`) — sits beneath `callAgent()`, `generateProse()`, `judgeDimension()`:
 - `DirectTransport` — standard real-time HTTP with retries (default)
@@ -103,6 +104,12 @@ bun scripts/batch-status.ts
 # Pull prompt changes from LXC after improvement cycle
 bash scripts/sync-improvements.sh
 git diff    # review changes before committing
+
+# Replay historical prompts vs current (on LXC)
+ssh novel-harness-lxc "cd ~/apps/novel-harness && bun scripts/replay-experiment.ts --iteration 42"
+ssh novel-harness-lxc "cd ~/apps/novel-harness && bun scripts/replay-experiment.ts --commit abc123 --seeds romance-drama"
+ssh novel-harness-lxc "cd ~/apps/novel-harness && bun scripts/replay-experiment.ts --iteration 42 --run-b 200"
+ssh novel-harness-lxc "cd ~/apps/novel-harness && bun scripts/replay-experiment.ts --iteration 42 --dry-run"
 
 # Tests (run locally — no DB dependency)
 bun test
