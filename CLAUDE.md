@@ -17,7 +17,7 @@ Code lives locally (canonical git repo). LXC 307 is the runtime — all benchmar
 - LLM: Configurable per-agent via `models/roles.ts`. Five providers: Cerebras, Groq, OpenRouter, OpenAI, DeepSeek.
 - DB: Postgres (`novel_harness_orchestrator` on LXC — all harness + orchestrator tables), per-novel SQLite (`output/novel-*/novel.db`)
 - Transport: `src/transport.ts` — pluggable layer beneath all LLM calls (direct, batch, prefix-cache)
-- Interface: CLI + orchestrator dashboard (port 3006)
+- Interface: React UI (`/app`), CLI, orchestrator dashboard (`/`), operations panel (`/panel`)
 
 ## Architecture
 
@@ -30,7 +30,7 @@ State machine: concept → planning → drafting → validation → done
 - Extraction: summary-extractor, fact-extractor, character-state
 - Validation: cross-chapter-continuity, prose-quality, rewriter
 
-**Models** — `models/roles.ts` is the single place to control all agent assignments (novel pipeline, benchmarks, orchestrator). Every `callAgent()` call resolves provider/model/temperature from roles.ts via `agentName`. Benchmark-specific roles (`benchmark-writer`, `benchmark-judge`) allow independent tuning from the novel pipeline, with fallback to `writer`/`judge`. Retry agents (`*-retry`) have their own entries with higher temperature. `models/registry.ts` has all available models with pricing/specs and provider cache/batch config.
+**Models** — `models/roles.ts` is the single place to control all agent assignments (novel pipeline, benchmarks, orchestrator). Every `callAgent()` call resolves provider/model/temperature from roles.ts via `agentName`. Benchmark-specific roles (`benchmark-writer`, `benchmark-judge`) allow independent tuning from the novel pipeline, with fallback to `writer`/`judge`. Retry agents (`*-retry`) have their own entries with higher temperature. `models/registry.ts` has all available models with pricing/specs and provider cache/batch config. Runtime overrides via web UI (`setAgentOverride()`) take effect immediately; `persistOverrides()` writes changes to roles.ts permanently.
 
 **Benchmarks** — four benchmark suites in `benchmark/`:
 - `prose/` — penalty-based scoring (issue counts, lower = better)
@@ -53,14 +53,40 @@ State machine: concept → planning → drafting → validation → done
 **Central DB** (Postgres `novel_harness_orchestrator` on LXC, schema in `sql/`, connection in `data/connection.ts`) — all experiments, runs, generations, scores, lint issues, batch tracking, pairwise matchups, improvement cycles. Single source of truth.
 
 **Orchestrator** (`src/orchestrator/`, runs on LXC 307 at 192.168.1.108):
-- Single Bun service on port 3006 combining batch polling, improvement daemon, dashboard, and API
+- Single Bun service on port 3006 combining batch polling, improvement daemon, dashboard, React UI, and API
 - Entry point: `bun src/orchestrator/server.ts`
 - Postgres DB: `novel_harness_orchestrator` (schema in `sql/`)
 - ntfy on port 2586 (self-hosted email notifications to andre14618@gmail.com)
 - SSH: `novel-harness-lxc` (via ProxyJump proxmox)
 - Dashboard: `http://novel-harness-lxc:3006/?key=<ORCHESTRATOR_API_KEY>`
-- Autonomous improvement: diagnoses weakest dimensions, proposes prompt changes, benchmarks, keeps/reverts. Manual trigger only (`POST /api/improvement/start`).
+- Focused improvement: runs locked experiments on a single target/dimension, proposes prompt changes, benchmarks, keeps/reverts. Cross-experiment linking surfaces prior conclusions to the proposer. Manual trigger only (`POST /api/improvement/start`).
 - Per-experiment limits (max iterations, optional cost cap) set at start time. Real costs tracked from llm_calls.
+
+**Web UI** (`ui/`, React + Vite, served at `/app` on the orchestrator):
+- **Novel List** (`/app`) — start novels from custom input (premise, genre, characters) or seed files. Resume stalled runs. Archive completed novels.
+- **Pipeline View** (`/app/:novelId`) — conversational timeline showing each phase, agent, and LLM call in real-time via SSE. Gate panels (approve/revise/reject) appear inline. Each LLM call shows provider, model, tokens, latency, tokens/sec, and cost.
+- **Config** (`/app/config`) — per-agent model switching. Inline dropdowns for provider/model/temperature on every agent, grouped by role. Changes apply immediately via runtime overrides; "Save to File" persists to `models/roles.ts`.
+- **Experiments** (`/app/experiments`) — unified view of all benchmark runs and improvement cycles. Grouped by target/dimension with scores, cost, iterations, conclusions, and cross-experiment lineage links.
+
+**Gate abstraction** (`src/gates.ts`, `src/events.ts`):
+- Decouples pipeline approval gates from stdin. `presentForApproval()` creates a pending gate as a Promise; resolved by CLI readline (terminal), web API POST (browser), or immediately (auto mode).
+- SSE event bus (`src/events.ts`) pushes real-time progress/gate events to connected browsers. Event types: `phase:changed`, `gate:waiting`, `gate:resolved`, `progress` (including LLM call details), `error`, `done`.
+- Novel pipeline runs in-process on the orchestrator when started via web UI, with gates resolved by HTTP.
+
+**Novel API** (`src/orchestrator/novel-routes.ts`):
+- `POST /api/novel/start` — create novel (seed or custom input), run pipeline in-process
+- `GET /api/novel/:id/state` — phase, progress, pending gate
+- `POST /api/novel/:id/gate/:gateId/decide` — approve/revise/reject with notes
+- `GET /api/novel/:id/events` — SSE stream for real-time updates
+- `GET /api/novel/:id/world-bible|characters|story-spine|outlines` — intermediate content
+- `GET /api/novel/:id/chapter/:ch/draft` — chapter prose
+- `PUT /api/novel/config/agent/:name` — set runtime model override
+- `POST /api/novel/config/persist` — write overrides to roles.ts
+- `DELETE /api/novel/:id` — archive novel (moves to `output/.archive/`)
+- `GET /api/experiments` — unified experiment list with scores and cost
+- `GET /api/novel/llm-calls` — historical LLM call log from Postgres
+
+**Cost tracking** — every `callAgent()` computes cost from registry pricing (`tokens × $/1M`), stores it in `llm_calls.cost`, and emits it via SSE. The pipeline timeline shows per-call cost; the experiments page shows per-experiment totals.
 
 ## Rules
 
@@ -144,6 +170,7 @@ bun test
 - **Deploy**: `bash scripts/deploy-lxc.sh` (rsync + restart)
 - **Dashboard**: `http://novel-harness:3006/?key=<ORCHESTRATOR_API_KEY>`
 - **Operations panel**: `http://novel-harness:3006/panel?key=<ORCHESTRATOR_API_KEY>`
+- **Novel UI**: `http://novel-harness:3006/app?key=<ORCHESTRATOR_API_KEY>`
 
 ## Seeds
 

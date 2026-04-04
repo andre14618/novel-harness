@@ -71,6 +71,7 @@ export function ExperimentsPage() {
         <nav>
           <Link to={`/${window.location.search}`}>Novel UI</Link>
           <Link to={`/config${window.location.search}`}>Config</Link>
+          <Link to={`/guide${window.location.search}`}>Guide</Link>
           <a href={`/?key=${key}`}>Dashboard</a>
           <a href={`/panel?key=${key}`}>Operations</a>
         </nav>

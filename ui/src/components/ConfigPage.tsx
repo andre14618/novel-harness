@@ -90,6 +90,7 @@ export function ConfigPage() {
         <nav>
           <Link to={`/${window.location.search}`}>Novel UI</Link>
           <Link to={`/experiments${window.location.search}`}>Experiments</Link>
+          <Link to={`/guide${window.location.search}`}>Guide</Link>
           <a href={`/?key=${key}`}>Dashboard</a>
         </nav>
       </div>

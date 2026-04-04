@@ -251,6 +251,7 @@ export function PipelineView() {
         <nav>
           <Link to={`/config${window.location.search}`}>Config</Link>
           <Link to={`/experiments${window.location.search}`}>Experiments</Link>
+          <Link to={`/guide${window.location.search}`}>Guide</Link>
           <a href={`/?key=${key}`}>Dashboard</a>
         </nav>
       </div>

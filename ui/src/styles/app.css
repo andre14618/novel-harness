@@ -394,6 +394,93 @@ select { cursor: pointer; }
   font-size: 0.65rem;
 }
 
+/* Guide page */
+.guide-content section {
+  margin-bottom: 2rem;
+}
+.guide-content p {
+  font-size: 0.85rem;
+  line-height: 1.7;
+  color: #d0d0d0;
+  margin-bottom: 0.5rem;
+}
+.guide-content ul {
+  font-size: 0.85rem;
+  color: #d0d0d0;
+  padding-left: 1.5rem;
+  line-height: 1.7;
+}
+.guide-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.8rem;
+}
+.guide-cards h3 { color: #4ecca3; font-size: 0.95rem; margin-bottom: 0.3rem; }
+.guide-cards p { font-size: 0.8rem; }
+.guide-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  margin: 0.5rem 0;
+}
+.guide-table th, .guide-table td {
+  padding: 6px 10px;
+  text-align: left;
+  border-bottom: 1px solid #30363d;
+}
+.guide-table th { color: #4ecca3; }
+.guide-arch {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 4px;
+  padding: 1rem;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  overflow-x: auto;
+  color: #8b949e;
+}
+
+/* Flow diagram */
+.flow-diagram {
+  padding-left: 8px;
+}
+.flow-step {
+  display: flex;
+  gap: 0.8rem;
+  margin-bottom: 0.3rem;
+  padding: 0.8rem;
+  background: #16213e;
+  border: 1px solid #0f3460;
+  border-radius: 6px;
+}
+.flow-step.done { border-color: #4ecca3; }
+.flow-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #0f3460;
+  color: #4ecca3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.flow-step.done .flow-num { background: #4ecca3; color: #000; }
+.flow-step p { margin: 0.2rem 0; }
+.flow-step strong { color: #e0e0e0; }
+.flow-agents { color: #8b949e !important; font-size: 0.75rem !important; font-style: italic; }
+.flow-gate { color: #3498db !important; font-size: 0.78rem !important; }
+.flow-arrow {
+  text-align: center;
+  color: #30363d;
+  font-size: 1.2rem;
+  line-height: 1;
+  padding: 2px 0;
+}
+
 /* Gate waiting tag in timeline */
 .tl-entry.tl-gate .tl-title {
   color: #3498db;

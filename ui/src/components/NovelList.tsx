@@ -116,6 +116,7 @@ export function NovelList() {
       <div className="top-bar">
         <h1>Novel Harness</h1>
         <nav>
+          <Link to={`/guide${window.location.search}`}>Guide</Link>
           <a href={`/?key=${key}`}>Dashboard</a>
           <Link to={`/config${window.location.search}`}>Config</Link>
           <Link to={`/experiments${window.location.search}`}>Experiments</Link>
