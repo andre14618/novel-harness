@@ -903,8 +903,11 @@ const server = Bun.serve({
       return Response.redirect(`/app/operations?key=${encodeURIComponent(key)}`, 302)
     }
 
-    // Health — unauthenticated
-    if (path === "/health") return Response.json({ status: "ok", service: "novel-harness-orchestrator" })
+    // Health — unauthenticated, CORS allowed (for homelab dashboard status checks)
+    if (path === "/health") return Response.json(
+      { status: "ok", service: "novel-harness-orchestrator" },
+      { headers: { "Access-Control-Allow-Origin": "*" } },
+    )
 
     // React app static files — unauthenticated (key passed as query param for API calls)
     const UI_DIST = resolve(import.meta.dir, "../../ui/dist")
