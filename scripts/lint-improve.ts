@@ -28,6 +28,7 @@ import { loadSeeds, generateProse } from "../benchmark/prose/shared"
 import { getWriter } from "../benchmark/config"
 import { getTransport } from "../src/transport"
 import { extractJSON } from "../src/llm"
+import { buildImprovementContext } from "../src/agents/lint-improver/context"
 
 const HARNESS_ROOT = new URL("..", import.meta.url).pathname.replace(/\/$/, "")
 const WRITER_PROMPT_PATH = `${HARNESS_ROOT}/src/agents/writer/prompt.md`
@@ -105,64 +106,30 @@ async function takeLintSnapshot(writerPrompt: string, seeds: ReturnType<typeof l
   return { totalIssues, totalAfterFix, categories: allCounts, persistentCategories: persistentCounts }
 }
 
-// ── Propose writer prompt change based on lint analysis ───────────────────
+// ── Agent prompt (loaded from file) ───────────────────────────────────────
+
+const IMPROVER_PROMPT = readFileSync(
+  new URL("../src/agents/lint-improver/prompt.md", import.meta.url).pathname, "utf-8",
+)
+
+// ── Propose writer prompt change via lint-improver agent ─────────────────
 
 async function proposePromptChange(
   currentPrompt: string,
-  baseline: LintSnapshot,
+  snapshot: LintSnapshot,
   iterationNum: number,
   previousAttempts: string[],
 ): Promise<{ newPrompt: string; explanation: string } | null> {
   const improver = getModelForAgent("improver")
   if (!improver) { console.error("No improver model configured"); return null }
 
-  const topPersistent = Object.entries(baseline.persistentCategories)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([cat, count]) => `${cat}: ${count} issues`)
-    .join("\n")
-
-  const topAll = Object.entries(baseline.categories)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 8)
-    .map(([cat, count]) => `${cat}: ${count} issues`)
-    .join("\n")
-
-  const previousContext = previousAttempts.length > 0
-    ? `\n\nPREVIOUS ATTEMPTS (what was tried and whether it worked):\n${previousAttempts.join("\n")}`
-    : ""
-
-  const systemPrompt = `You are an expert prompt engineer specializing in creative writing AI. Your task is to modify a writer agent's system prompt to reduce specific prose quality issues detected by a deterministic linter.
-
-RULES:
-- Return valid JSON: {"newPrompt": "...", "explanation": "..."}
-- The newPrompt must be the COMPLETE updated prompt (not a diff)
-- Make TARGETED changes — add specific "NEVER" rules, examples, or rewrite guidance for the most persistent issue categories
-- Do NOT remove existing rules that are working (low issue counts)
-- Do NOT make the prompt significantly longer (max 20% growth per iteration)
-- Focus on the top 1-2 persistent categories — trying to fix everything at once dilutes each fix
-- Use concrete before/after examples when adding rules — LLMs follow examples better than abstract instructions
-- Explain your reasoning in 2-3 sentences`
-
-  const userPrompt = `CURRENT WRITER PROMPT:
-${currentPrompt}
-
-LINT RESULTS (${baseline.totalIssues} total, ${baseline.totalAfterFix} persistent after auto-fix):
-
-All issues by category:
-${topAll}
-
-Persistent issues (survive deterministic + LLM fixing):
-${topPersistent || "(none — all issues were fixable)"}
-
-Iteration: ${iterationNum}/${MAX_ITERATIONS}${previousContext}
-
-Propose a targeted prompt modification to reduce the top persistent issue category. If all issues are fixable, target the highest-count category to prevent issues at generation time (cheaper than fixing).`
+  // Build rich context from DB, git history, and experiment lineage
+  const context = await buildImprovementContext(snapshot, iterationNum, MAX_ITERATIONS, previousAttempts)
 
   try {
     const response = await getTransport().execute({
-      systemPrompt,
-      userPrompt,
+      systemPrompt: IMPROVER_PROMPT,
+      userPrompt: `${context}\n\nPropose a targeted prompt modification to reduce the top persistent issue category. If all issues are fixable, target the highest-count category to prevent issues at generation time (cheaper than fixing).`,
       model: improver.model,
       provider: improver.provider,
       temperature: 0.7 + Math.min(iterationNum * 0.05, 0.3),
