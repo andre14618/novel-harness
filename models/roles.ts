@@ -78,6 +78,62 @@ export function getAgentOverrides(): Record<string, Partial<ModelAssignment>> {
   return Object.fromEntries(runtimeOverrides)
 }
 
+/**
+ * Persist current overrides into AGENT_MODELS source and clear the override map.
+ * Rewrites this file (models/roles.ts) with the merged config.
+ */
+export async function persistOverrides(): Promise<{ changed: string[] }> {
+  const overrides = [...runtimeOverrides.entries()]
+  if (overrides.length === 0) return { changed: [] }
+
+  const filePath = new URL(import.meta.url).pathname
+  const src = await Bun.file(filePath).text()
+
+  let result = src
+  const changed: string[] = []
+
+  for (const [agentName, override] of overrides) {
+    const base = AGENT_MODELS[agentName]
+    if (!base) continue
+
+    const merged = { ...base, ...override }
+
+    // Build the new value string
+    const parts: string[] = [
+      `provider: "${merged.provider}"`,
+      `model: "${merged.model}"`,
+    ]
+    if (merged.temperature !== undefined) parts.push(`temperature: ${merged.temperature}`)
+    if (merged.maxTokens !== undefined) parts.push(`maxTokens: ${merged.maxTokens}`)
+    if (merged.thinking) parts.push(`thinking: true`)
+
+    const newValue = `{ ${parts.join(", ")} }`
+
+    // Match the line:  "agentName":  { ... },
+    const pattern = new RegExp(
+      `("${agentName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}":\\s*)\\{[^}]+\\}`,
+    )
+
+    if (pattern.test(result)) {
+      result = result.replace(pattern, `$1${newValue}`)
+      changed.push(agentName)
+
+      // Also update the runtime AGENT_MODELS object
+      AGENT_MODELS[agentName] = merged
+    }
+  }
+
+  if (changed.length > 0) {
+    await Bun.write(filePath, result)
+    // Clear overrides since they're now in the source
+    for (const name of changed) {
+      runtimeOverrides.delete(name)
+    }
+  }
+
+  return { changed }
+}
+
 export function getModelForAgent(agentName: string): ModelAssignment | undefined {
   const base = AGENT_MODELS[agentName]
   const override = runtimeOverrides.get(agentName)

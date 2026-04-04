@@ -105,6 +105,12 @@ export function resetAgentConfig(agentName: string) {
   })
 }
 
+export function persistConfig() {
+  return fetchJSON<{ ok: boolean; changed: string[] }>("/api/novel/config/persist", {
+    method: "POST",
+  })
+}
+
 // Types
 export interface AgentGroup {
   label: string

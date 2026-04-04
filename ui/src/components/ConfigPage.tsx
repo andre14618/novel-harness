@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
-import { getNovelConfig, setAgentConfig, resetAgentConfig } from "../api"
+import { getNovelConfig, setAgentConfig, resetAgentConfig, persistConfig } from "../api"
 import type { NovelConfig } from "../api"
 
 const AGENT_LABELS: Record<string, string> = {
@@ -35,6 +35,8 @@ export function ConfigPage() {
   const [editing, setEditing] = useState<Record<string, EditState>>({})
   const [saving, setSaving] = useState<Record<string, boolean>>({})
   const [flash, setFlash] = useState<{ agent: string; msg: string; ok: boolean } | null>(null)
+  const [persisting, setPersisting] = useState(false)
+  const [persistMsg, setPersistMsg] = useState<{ msg: string; ok: boolean } | null>(null)
 
   function loadConfig() {
     getNovelConfig().then(setConfig).catch(() => {})
@@ -122,6 +124,8 @@ export function ConfigPage() {
     return <div className="app"><p style={{ color: "#8b949e" }}>Loading config...</p></div>
   }
 
+  const hasOverrides = Object.keys(config.overrides).length > 0
+
   return (
     <div className="app">
       <div className="top-bar">
@@ -132,10 +136,38 @@ export function ConfigPage() {
         </nav>
       </div>
 
-      <p style={{ fontSize: "0.8rem", color: "#8b949e", marginBottom: "1rem", lineHeight: 1.6 }}>
+      <p style={{ fontSize: "0.8rem", color: "#8b949e", marginBottom: "0.5rem", lineHeight: 1.6 }}>
         Configure which model each agent uses. Changes take effect on the next agent call — even mid-run.
-        Overrides are shown with a yellow badge and reset on server restart.
+        Overrides are shown with a yellow badge. Use "Save to File" to write changes permanently to <code>models/roles.ts</code>.
       </p>
+
+      {hasOverrides && (
+        <div style={{ marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.8rem" }}>
+          <button
+            onClick={async () => {
+              setPersisting(true)
+              try {
+                const res = await persistConfig()
+                setPersistMsg({ msg: `Saved ${res.changed.length} override(s) to roles.ts`, ok: true })
+                loadConfig()
+              } catch (err: any) {
+                setPersistMsg({ msg: err.message, ok: false })
+              } finally {
+                setPersisting(false)
+                setTimeout(() => setPersistMsg(null), 5000)
+              }
+            }}
+            disabled={persisting}
+          >
+            {persisting ? "Saving..." : "Save to File"}
+          </button>
+          {persistMsg && (
+            <span style={{ fontSize: "0.8rem", color: persistMsg.ok ? "#4ecca3" : "#e74c3c" }}>
+              {persistMsg.msg}
+            </span>
+          )}
+        </div>
+      )}
 
       {Object.entries(config.agentGroups).map(([groupKey, group]) => (
         <div key={groupKey} style={{ marginBottom: "1.5rem" }}>

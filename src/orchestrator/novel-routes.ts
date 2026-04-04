@@ -141,6 +141,17 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
     }
   }
 
+  // ── Persist overrides to roles.ts ────────────────────────────────
+  if (path === "/api/novel/config/persist" && req.method === "POST") {
+    try {
+      const { persistOverrides } = await import("../../models/roles")
+      const result = await persistOverrides()
+      return Response.json({ ok: true, ...result })
+    } catch (err) {
+      return Response.json({ error: String(err) }, { status: 500 })
+    }
+  }
+
   // ── Clear agent override ───────────────────────────────────────────
   if (agentConfigMatch && req.method === "DELETE") {
     const agentName = decodeURIComponent(agentConfigMatch[1])
