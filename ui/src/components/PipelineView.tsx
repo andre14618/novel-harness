@@ -48,7 +48,7 @@ const AGENT_LABELS: Record<string, string> = {
 
 interface TimelineEntry {
   id: string
-  type: "phase" | "agent-start" | "agent-complete" | "gate" | "info" | "error"
+  type: "phase" | "agent-start" | "agent-complete" | "llm-call" | "gate" | "info" | "error"
   timestamp: string
   agent?: string
   phase?: string
@@ -57,6 +57,7 @@ interface TimelineEntry {
   config?: { provider: string; model: string; temperature?: number }
   wordCount?: number
   issueCount?: number
+  llm?: { provider: string; model: string; promptTokens: number; completionTokens: number; latencyMs: number; tokensPerSec: number }
 }
 
 export function PipelineView() {
@@ -102,6 +103,22 @@ export function PipelineView() {
           phase,
           title: desc?.label ?? `Phase: ${phase}`,
           detail: desc?.description,
+        })
+      } else if (e.type === "progress" && e.data.step === "llm-call") {
+        entries.push({
+          id: `llm-${ts}-${e.data.agent}`,
+          type: "llm-call",
+          timestamp: ts,
+          agent: e.data.agent as string,
+          title: `${e.data.agent}`,
+          llm: {
+            provider: e.data.provider as string,
+            model: e.data.model as string,
+            promptTokens: e.data.promptTokens as number,
+            completionTokens: e.data.completionTokens as number,
+            latencyMs: e.data.latencyMs as number,
+            tokensPerSec: e.data.tokensPerSec as number,
+          },
         })
       } else if (e.type === "progress") {
         const agent = e.data.step as string
@@ -273,33 +290,52 @@ export function PipelineView() {
           </div>
         )}
 
-        {timeline.map(entry => (
-          <div key={entry.id} className={`tl-entry tl-${entry.type}`}>
-            <div className={`tl-dot ${entry.type === "phase" ? "phase" : entry.type === "agent-start" ? "active" : entry.type === "agent-complete" ? "done" : entry.type === "error" ? "error" : entry.type === "gate" ? "gate" : "info"}`}>
-              {entry.type === "agent-start" && <div className="spinner-sm" />}
+        {timeline.map(entry => {
+          const dotClass = entry.type === "phase" ? "phase"
+            : entry.type === "agent-start" ? "active"
+            : entry.type === "agent-complete" ? "done"
+            : entry.type === "llm-call" ? "done"
+            : entry.type === "error" ? "error"
+            : entry.type === "gate" ? "gate"
+            : "info"
+
+          return (
+            <div key={entry.id} className={`tl-entry tl-${entry.type}`}>
+              <div className={`tl-dot ${dotClass}`}>
+                {entry.type === "agent-start" && <div className="spinner-sm" />}
+              </div>
+              <div className="tl-body">
+                <div className="tl-time">{formatTime(entry.timestamp)}</div>
+                <div className="tl-title">{entry.title}</div>
+                {entry.detail && <div className="tl-detail">{entry.detail}</div>}
+                {entry.config && (
+                  <div className="tl-config">
+                    <span className="config-tag">{entry.config.provider}</span>
+                    <span className="config-tag">{entry.config.model}</span>
+                    {entry.config.temperature !== undefined && (
+                      <span className="config-tag">temp {entry.config.temperature}</span>
+                    )}
+                  </div>
+                )}
+                {entry.llm && (
+                  <div className="tl-config">
+                    <span className="config-tag">{entry.llm.provider}</span>
+                    <span className="config-tag">{entry.llm.model}</span>
+                    <span className="config-tag">{entry.llm.promptTokens}+{entry.llm.completionTokens} tok</span>
+                    <span className="config-tag">{(entry.llm.latencyMs / 1000).toFixed(1)}s</span>
+                    <span className="config-tag">{entry.llm.tokensPerSec} t/s</span>
+                  </div>
+                )}
+                {entry.wordCount !== undefined && (
+                  <div className="tl-detail">{entry.wordCount} words</div>
+                )}
+                {entry.issueCount !== undefined && entry.issueCount > 0 && (
+                  <div className="tl-detail">{entry.issueCount} issues found</div>
+                )}
+              </div>
             </div>
-            <div className="tl-body">
-              <div className="tl-time">{formatTime(entry.timestamp)}</div>
-              <div className="tl-title">{entry.title}</div>
-              {entry.detail && <div className="tl-detail">{entry.detail}</div>}
-              {entry.config && (
-                <div className="tl-config">
-                  <span className="config-tag">{entry.config.provider}</span>
-                  <span className="config-tag">{entry.config.model}</span>
-                  {entry.config.temperature !== undefined && (
-                    <span className="config-tag">temp {entry.config.temperature}</span>
-                  )}
-                </div>
-              )}
-              {entry.wordCount !== undefined && (
-                <div className="tl-detail">{entry.wordCount} words</div>
-              )}
-              {entry.issueCount !== undefined && entry.issueCount > 0 && (
-                <div className="tl-detail">{entry.issueCount} issues found</div>
-              )}
-            </div>
-          </div>
-        ))}
+          )
+        })}
 
         {/* Pending gate inline */}
         {state.pendingGate && (

@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { logLLMCallStructured, type LLMCallLogEntry } from "./logger"
+import { emit } from "./events"
 import {
   PROVIDERS, getApiKey, getTokenCost, getModel,
   type ProviderName, type ProviderDef,
@@ -286,6 +287,23 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
       }
 
       logLLMCallStructured(config.novelId, entry).catch(() => {})
+
+      // Broadcast to SSE for real-time visibility
+      emit(config.novelId, {
+        type: "progress",
+        data: {
+          step: "llm-call",
+          agent: entry.agent,
+          provider: entry.provider,
+          model: entry.model,
+          temperature: entry.temperature,
+          promptTokens: entry.promptTokens,
+          completionTokens: entry.completionTokens,
+          latencyMs: entry.totalLatencyMs,
+          tokensPerSec: entry.tokensPerSec,
+          status: "complete",
+        },
+      })
     }
   }
 }

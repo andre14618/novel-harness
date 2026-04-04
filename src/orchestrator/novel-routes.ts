@@ -490,6 +490,33 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
     return Response.json({ ok: true, novelId, archived: true })
   }
 
+  // ── Recent LLM calls ────────────────────────────────────────────────
+  if (path === "/api/novel/llm-calls" && req.method === "GET") {
+    const limit = parseInt(url.searchParams.get("limit") ?? "50")
+    const runId = url.searchParams.get("run_id")
+    try {
+      const { default: sql } = await import("./db")
+      let rows
+      if (runId) {
+        rows = await sql`
+          SELECT id, agent, phase, provider, model, temperature,
+                 prompt_tokens, completion_tokens, latency_ms, tokens_per_sec,
+                 cost, created_at
+          FROM llm_calls WHERE run_id = ${parseInt(runId)}
+          ORDER BY id DESC LIMIT ${limit}`
+      } else {
+        rows = await sql`
+          SELECT id, agent, phase, provider, model, temperature,
+                 prompt_tokens, completion_tokens, latency_ms, tokens_per_sec,
+                 cost, created_at
+          FROM llm_calls ORDER BY id DESC LIMIT ${limit}`
+      }
+      return Response.json(rows)
+    } catch (err) {
+      return Response.json({ error: String(err) }, { status: 500 })
+    }
+  }
+
   // ── Pending gates (for polling) ────────────────────────────────────
   if (path === "/api/novel/gates" && req.method === "GET") {
     return Response.json({ gates: gates.listPending() })

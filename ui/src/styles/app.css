@@ -374,6 +374,26 @@ select { cursor: pointer; }
   .agent-config-fields { grid-template-columns: 1fr; }
 }
 
+/* LLM call entries — compact */
+.tl-entry.tl-llm-call {
+  margin-bottom: 0.4rem;
+}
+.tl-entry.tl-llm-call .tl-dot {
+  width: 12px;
+  height: 12px;
+  margin-left: -25px;
+  margin-top: 4px;
+  border-width: 1.5px;
+}
+.tl-entry.tl-llm-call .tl-title {
+  font-size: 0.8rem;
+  font-weight: normal;
+  color: #8b949e;
+}
+.tl-entry.tl-llm-call .tl-time {
+  font-size: 0.65rem;
+}
+
 /* Gate waiting tag in timeline */
 .tl-entry.tl-gate .tl-title {
   color: #3498db;
