@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react"
 import { useParams, Link } from "react-router-dom"
-import { getNovelState } from "../api"
+import { getNovelState, resumeNovel } from "../api"
 import type { NovelState } from "../api"
 import { useNovelSSE } from "../hooks/useNovelSSE"
 import { PhaseIndicator } from "./PhaseIndicator"
@@ -13,6 +13,7 @@ export function PipelineView() {
   const { novelId } = useParams<{ novelId: string }>()
   const [state, setState] = useState<NovelState | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [resuming, setResuming] = useState(false)
   const { events, connected, lastEvent } = useNovelSSE(novelId ?? null)
 
   const loadState = useCallback(async () => {
@@ -37,13 +38,26 @@ export function PipelineView() {
     }
   }, [lastEvent, loadState])
 
+  async function handleResume() {
+    if (!novelId) return
+    setResuming(true)
+    try {
+      await resumeNovel(novelId)
+      loadState()
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setResuming(false)
+    }
+  }
+
   const key = new URLSearchParams(window.location.search).get("key") ?? ""
 
   if (error) {
     return (
       <div className="app">
         <p style={{ color: "#e74c3c" }}>Error: {error}</p>
-        <Link to={`/?key=${key}`}>Back to novels</Link>
+        <Link to={`/${window.location.search}`}>Back to novels</Link>
       </div>
     )
   }
@@ -51,6 +65,8 @@ export function PipelineView() {
   if (!state) {
     return <div className="app"><p style={{ color: "#8b949e" }}>Loading...</p></div>
   }
+
+  const stalled = !state.active && state.phase !== "done"
 
   return (
     <div className="app">
@@ -63,7 +79,8 @@ export function PipelineView() {
             {novelId?.replace("novel-", "").slice(0, 13)}
           </h1>
           {state.active && <span className="badge active" style={{ marginLeft: "0.5rem" }}>running</span>}
-          {state.activeError && <span className="badge error" style={{ marginLeft: "0.5rem" }}>error</span>}
+          {state.phase === "done" && <span className="badge done" style={{ marginLeft: "0.5rem" }}>complete</span>}
+          {stalled && <span className="badge idle" style={{ marginLeft: "0.5rem" }}>stopped</span>}
         </div>
         <nav>
           <a href={`/?key=${key}`}>Dashboard</a>
@@ -81,6 +98,19 @@ export function PipelineView() {
           <pre style={{ fontSize: "0.8rem", color: "#e74c3c", marginTop: "0.5rem", whiteSpace: "pre-wrap" }}>
             {state.activeError}
           </pre>
+        </div>
+      )}
+
+      {/* Stalled — pipeline died or was restarted */}
+      {stalled && (
+        <div className="card" style={{ borderColor: "#e2b714", textAlign: "center" }}>
+          <p style={{ color: "#e2b714", marginBottom: "0.8rem" }}>
+            Pipeline stopped at <strong>{state.phase}</strong> phase
+            {state.totalChapters > 0 && ` (chapter ${state.currentChapter}/${state.totalChapters})`}.
+          </p>
+          <button onClick={handleResume} disabled={resuming}>
+            {resuming ? "Resuming..." : "Resume Pipeline"}
+          </button>
         </div>
       )}
 

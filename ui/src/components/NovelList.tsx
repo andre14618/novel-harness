@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { getSeeds, listNovels, startNovel, startNovelCustom } from "../api"
+import { getSeeds, listNovels, startNovel, startNovelCustom, deleteNovel, resumeNovel } from "../api"
 import type { NovelListItem, CustomSeed } from "../api"
 
 type StartMode = "custom" | "seed"
@@ -30,9 +30,13 @@ export function NovelList() {
     { ...EMPTY_CHAR, role: "antagonist" },
   ])
 
+  function loadNovels() {
+    listNovels().then(r => setNovels(r.novels)).catch(() => {})
+  }
+
   useEffect(() => {
     getSeeds().then(r => setSeeds(r.seeds)).catch(() => {})
-    listNovels().then(r => setNovels(r.novels)).catch(() => {})
+    loadNovels()
   }, [])
 
   function updateChar(i: number, field: keyof CharacterInput, value: string) {
@@ -81,6 +85,27 @@ export function NovelList() {
       setError(err.message)
     } finally {
       setStarting(false)
+    }
+  }
+
+  async function handleDelete(e: React.MouseEvent, novelId: string) {
+    e.stopPropagation()
+    if (!confirm(`Archive novel ${novelId.replace("novel-", "").slice(0, 10)}? (Can be recovered from output/.archive)`)) return
+    try {
+      await deleteNovel(novelId)
+      loadNovels()
+    } catch (err: any) {
+      setError(err.message)
+    }
+  }
+
+  async function handleResume(e: React.MouseEvent, novelId: string) {
+    e.stopPropagation()
+    try {
+      await resumeNovel(novelId)
+      navigate(`/${novelId}${window.location.search}`)
+    } catch (err: any) {
+      setError(err.message)
     }
   }
 
@@ -223,29 +248,51 @@ export function NovelList() {
         <>
           <h2>Existing Novels</h2>
           <div className="novel-grid">
-            {novels.map(n => (
-              <div
-                key={n.id}
-                className="card novel-card"
-                onClick={() => navigate(`/${n.id}${window.location.search}`)}
-              >
-                <div className="card-header">
-                  <strong>{n.id.replace("novel-", "").slice(0, 10)}</strong>
-                  <span className={`badge ${n.active ? "active" : n.phase === "done" ? "done" : "idle"}`}>
-                    {n.active ? "running" : n.phase}
-                  </span>
-                </div>
-                <div style={{ fontSize: "0.8rem", color: "#8b949e" }}>
-                  {n.totalChapters > 0 && `Ch ${n.currentChapter}/${n.totalChapters} · `}
-                  {new Date(n.createdAt).toLocaleDateString()}
-                </div>
-                {n.pendingGate && (
-                  <div style={{ marginTop: "0.4rem" }}>
-                    <span className="badge waiting">awaiting: {n.pendingGate.title}</span>
+            {novels.map(n => {
+              const canResume = !n.active && n.phase !== "done"
+              return (
+                <div
+                  key={n.id}
+                  className="card novel-card"
+                  onClick={() => navigate(`/${n.id}${window.location.search}`)}
+                >
+                  <div className="card-header">
+                    <strong>{n.id.replace("novel-", "").slice(0, 10)}</strong>
+                    <span className={`badge ${n.active ? "active" : n.phase === "done" ? "done" : "idle"}`}>
+                      {n.active ? "running" : n.phase}
+                    </span>
                   </div>
-                )}
-              </div>
-            ))}
+                  <div style={{ fontSize: "0.8rem", color: "#8b949e" }}>
+                    {n.totalChapters > 0 && `Ch ${n.currentChapter}/${n.totalChapters} · `}
+                    {new Date(n.createdAt).toLocaleDateString()}
+                  </div>
+                  {n.pendingGate && (
+                    <div style={{ marginTop: "0.4rem" }}>
+                      <span className="badge waiting">awaiting: {n.pendingGate.title}</span>
+                    </div>
+                  )}
+                  <div style={{ marginTop: "0.6rem", display: "flex", gap: "0.5rem" }}>
+                    {canResume && (
+                      <button
+                        onClick={(e) => handleResume(e, n.id)}
+                        style={{ padding: "4px 10px", fontSize: "0.75rem" }}
+                      >
+                        Resume
+                      </button>
+                    )}
+                    {!n.active && (
+                      <button
+                        className="danger"
+                        onClick={(e) => handleDelete(e, n.id)}
+                        style={{ padding: "4px 10px", fontSize: "0.75rem" }}
+                      >
+                        Archive
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </>
       )}

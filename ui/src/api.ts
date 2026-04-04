@@ -77,6 +77,10 @@ export function getIssues(novelId: string) {
   return fetchJSON<any[]>(`/api/novel/${novelId}/issues`)
 }
 
+export function deleteNovel(novelId: string) {
+  return fetchJSON<{ ok: boolean }>(`/api/novel/${novelId}`, { method: "DELETE" })
+}
+
 export function decideGate(novelId: string, gateId: string, action: "approve" | "revise" | "reject", notes?: string[]) {
   return fetchJSON<{ ok: boolean }>(`/api/novel/${novelId}/gate/${encodeURIComponent(gateId)}/decide`, {
     method: "POST",

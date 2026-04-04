@@ -333,6 +333,33 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
     })
   }
 
+  // ── Delete novel ────────────────────────────────────────────────────
+  const deleteMatch = path.match(/^\/api\/novel\/([^/]+)$/)
+  if (deleteMatch && req.method === "DELETE") {
+    const novelId = deleteMatch[1]
+    const novelDir = resolve(HARNESS_ROOT, `output/${novelId}`)
+
+    if (!existsSync(novelDir)) {
+      return Response.json({ error: "Novel not found" }, { status: 404 })
+    }
+
+    if (activeRuns.has(novelId)) {
+      return Response.json({ error: "Cannot delete a running novel" }, { status: 409 })
+    }
+
+    // Move to archive directory instead of hard delete
+    const archiveDir = resolve(HARNESS_ROOT, "output/.archive")
+    if (!existsSync(archiveDir)) {
+      const { mkdirSync } = await import("node:fs")
+      mkdirSync(archiveDir, { recursive: true })
+    }
+
+    const { renameSync } = await import("node:fs")
+    renameSync(novelDir, resolve(archiveDir, novelId))
+
+    return Response.json({ ok: true, novelId, archived: true })
+  }
+
   // ── Pending gates (for polling) ────────────────────────────────────
   if (path === "/api/novel/gates" && req.method === "GET") {
     return Response.json({ gates: gates.listPending() })
