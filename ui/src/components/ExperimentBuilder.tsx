@@ -112,21 +112,21 @@ export function ExperimentBuilder({ onCreated, onCancel }: Props) {
   }
 
   const S: Record<string, React.CSSProperties> = {
-    section: { marginBottom: "1.2rem" },
-    label: { fontSize: "0.8rem", color: "#c9d1d9", fontWeight: 600, display: "block", marginBottom: "0.4rem" },
-    sublabel: { fontSize: "0.7rem", color: "#6e7681", fontWeight: 400 },
-    providerGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "0.8rem" },
-    providerCol: { background: "#161b22", borderRadius: "6px", padding: "0.6rem" },
-    providerName: { fontSize: "0.65rem", color: "#8b949e", textTransform: "uppercase" as const, letterSpacing: "0.05em", marginBottom: "0.4rem", fontWeight: 600 },
-    modelRow: { display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.25rem 0", fontSize: "0.8rem", cursor: "pointer" },
-    modelLabel: { color: "#e0e0e0", flex: 1 },
-    modelPrice: { color: "#8b949e", fontSize: "0.7rem", whiteSpace: "nowrap" as const },
-    seedRow: { display: "inline-flex", alignItems: "center", gap: "0.3rem", padding: "0.3rem 0.6rem", background: "#161b22", borderRadius: "4px", fontSize: "0.8rem", cursor: "pointer", color: "#e0e0e0" },
-    evalRow: { display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: "0.4rem 0.8rem", background: "#161b22", borderRadius: "4px", fontSize: "0.8rem", cursor: "pointer", color: "#e0e0e0" },
-    transportGroup: { display: "flex", gap: "0.8rem", alignItems: "center" },
-    transportLabel: { fontSize: "0.8rem", color: "#c9d1d9", minWidth: "90px" },
-    radioLabel: { display: "inline-flex", alignItems: "center", gap: "0.25rem", fontSize: "0.8rem", color: "#e0e0e0", cursor: "pointer" },
-    costBar: { padding: "0.6rem 0.8rem", background: "#0d1117", border: "1px solid #30363d", borderRadius: "6px", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" },
+    section: { marginBottom: "1.4rem" },
+    label: { fontSize: "0.85rem", color: "#e6edf3", fontWeight: 600, display: "block", marginBottom: "0.5rem" },
+    sublabel: { fontSize: "0.75rem", color: "#8b949e", fontWeight: 400 },
+    providerGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "0.75rem" },
+    providerCol: { background: "#161b22", borderRadius: "8px", padding: "0.75rem", border: "1px solid #21262d" },
+    providerName: { fontSize: "0.7rem", color: "#c9d1d9", textTransform: "uppercase" as const, letterSpacing: "0.06em", marginBottom: "0.5rem", fontWeight: 700, borderBottom: "1px solid #21262d", paddingBottom: "0.35rem" },
+    modelRow: { display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.35rem 0", fontSize: "0.8rem", cursor: "pointer" },
+    modelLabel: { color: "#e6edf3", flex: 1 },
+    modelPrice: { color: "#a5b3c0", fontSize: "0.72rem", whiteSpace: "nowrap" as const, fontVariantNumeric: "tabular-nums" },
+    seedRow: { display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: "0.35rem 0.7rem", background: "#161b22", borderRadius: "6px", border: "1px solid #21262d", fontSize: "0.8rem", cursor: "pointer", color: "#e6edf3" },
+    evalRow: { display: "inline-flex", alignItems: "center", gap: "0.5rem", padding: "0.45rem 0.9rem", background: "#161b22", borderRadius: "6px", border: "1px solid #21262d", fontSize: "0.8rem", cursor: "pointer", color: "#e6edf3" },
+    transportGroup: { display: "flex", gap: "1rem", alignItems: "center" },
+    transportLabel: { fontSize: "0.8rem", color: "#c9d1d9", minWidth: "90px", fontWeight: 500 },
+    radioLabel: { display: "inline-flex", alignItems: "center", gap: "0.3rem", fontSize: "0.8rem", color: "#e6edf3", cursor: "pointer" },
+    costBar: { padding: "0.75rem 1rem", background: "#0d1117", border: "1px solid #30363d", borderRadius: "8px", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.2rem" },
   }
 
   return (
@@ -258,14 +258,19 @@ export function ExperimentBuilder({ onCreated, onCancel }: Props) {
 
       {/* Cost estimate */}
       <div style={S.costBar}>
-        <div>
-          <span style={{ fontSize: "0.8rem", color: "#8b949e" }}>Estimated cost: </span>
-          <span style={{ fontSize: "1rem", color: "#4ecca3", fontWeight: 700 }}>${estimatedCost.toFixed(4)}</span>
+        <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
+          <span style={{ fontSize: "0.8rem", color: "#c9d1d9" }}>Estimated cost:</span>
+          <span style={{ fontSize: "1.1rem", color: "#4ecca3", fontWeight: 700 }}>${estimatedCost.toFixed(4)}</span>
+          {(genTransport === "batch" || judgeTransport === "batch") && (
+            <span style={{ fontSize: "0.7rem", color: "#4ecca3", background: "rgba(78,204,163,0.1)", padding: "0.15rem 0.4rem", borderRadius: "4px" }}>
+              50% batch discount
+            </span>
+          )}
         </div>
-        <span style={{ fontSize: "0.75rem", color: "#6e7681" }}>
+        <span style={{ fontSize: "0.75rem", color: "#8b949e" }}>
           {sourceRunId ? "" : `${totalGens} gen`}
           {penaltyJudges ? `${sourceRunId ? "" : " + "}${totalGens * judgeCallsPerGen} judge` : ""}
-          {(genTransport === "batch" || judgeTransport === "batch") ? " (batch discount applied)" : ""}
+          {` calls`}
         </span>
       </div>
 
