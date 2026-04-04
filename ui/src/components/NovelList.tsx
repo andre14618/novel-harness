@@ -122,6 +122,11 @@ export function NovelList() {
       </div>
 
       <h2>Start New Novel</h2>
+      <p style={{ fontSize: "0.8rem", color: "#8b949e", marginBottom: "0.8rem", lineHeight: 1.6 }}>
+        Creates a 3-chapter short story through 4 phases: <strong>Concept</strong> (world, characters, plot) →{" "}
+        <strong>Planning</strong> (chapter outlines) → <strong>Drafting</strong> (prose with continuity checks) →{" "}
+        <strong>Validation</strong> (cross-chapter consistency + rewrites). You'll review and approve each step.
+      </p>
 
       {/* Mode toggle */}
       <div className="tab-bar" style={{ marginBottom: "1.2rem" }}>
@@ -142,8 +147,11 @@ export function NovelList() {
       {mode === "custom" ? (
         <div className="card">
           <div style={{ marginBottom: "1rem" }}>
-            <label style={{ display: "block", color: "#8b949e", fontSize: "0.8rem", marginBottom: "0.3rem" }}>
-              Premise
+            <label
+              title="The core story idea. Agents use this to generate the world, characters, and plot structure."
+              style={{ display: "block", color: "#8b949e", fontSize: "0.8rem", marginBottom: "0.3rem", cursor: "help" }}
+            >
+              Premise <span style={{ color: "#555", fontSize: "0.7rem" }}>(?)</span>
             </label>
             <textarea
               placeholder="Describe your story in 1-3 sentences..."
@@ -154,8 +162,11 @@ export function NovelList() {
           </div>
 
           <div style={{ marginBottom: "1rem" }}>
-            <label style={{ display: "block", color: "#8b949e", fontSize: "0.8rem", marginBottom: "0.3rem" }}>
-              Genre
+            <label
+              title="Guides tone, tropes, and conventions. The writer agent adapts its prose style to match."
+              style={{ display: "block", color: "#8b949e", fontSize: "0.8rem", marginBottom: "0.3rem", cursor: "help" }}
+            >
+              Genre <span style={{ color: "#555", fontSize: "0.7rem" }}>(?)</span>
             </label>
             <input
               type="text"
@@ -167,8 +178,11 @@ export function NovelList() {
 
           <div style={{ marginBottom: "1rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-              <label style={{ color: "#8b949e", fontSize: "0.8rem" }}>
-                Characters ({characters.length}/4)
+              <label
+                title="2-4 characters with roles. The character agent expands these into full profiles with backstory, traits, speech patterns, and relationships."
+                style={{ color: "#8b949e", fontSize: "0.8rem", cursor: "help" }}
+              >
+                Characters ({characters.length}/4) <span style={{ color: "#555", fontSize: "0.7rem" }}>(?)</span>
               </label>
               {characters.length < 4 && (
                 <button className="secondary" onClick={addCharacter} style={{ padding: "4px 10px", fontSize: "0.75rem" }}>

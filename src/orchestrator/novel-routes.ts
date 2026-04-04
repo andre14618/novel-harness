@@ -41,6 +41,45 @@ function openNovelDB(novelId: string): Database | null {
 export async function handleNovelRoute(req: Request, url: URL): Promise<Response | null> {
   const path = url.pathname
 
+  // ── Models config (available models + current agent assignments) ────
+  if (path === "/api/novel/config" && req.method === "GET") {
+    try {
+      const { MODELS, PROVIDERS } = await import("../../models/registry")
+      const { AGENT_MODELS } = await import("../../models/roles")
+
+      const models = MODELS.map(m => ({
+        label: m.label,
+        id: m.id,
+        provider: m.provider,
+      }))
+
+      const providers = Object.keys(PROVIDERS)
+
+      // Group agents by role for the UI
+      const agentRoles: Record<string, string[]> = {
+        writers: ["writer", "rewriter"],
+        planners: ["world-builder", "character-agent", "plotter", "planning-plotter"],
+        extractors: ["summary-extractor", "fact-extractor", "character-state"],
+        validators: ["continuity", "cross-chapter-continuity", "prose-quality"],
+        judges: ["judge", "benchmark-judge"],
+      }
+
+      const assignments: Record<string, any> = {}
+      for (const [agent, config] of Object.entries(AGENT_MODELS)) {
+        assignments[agent] = {
+          provider: config.provider,
+          model: config.model,
+          temperature: config.temperature,
+          maxTokens: config.maxTokens,
+        }
+      }
+
+      return Response.json({ models, providers, agentRoles, assignments })
+    } catch (err) {
+      return Response.json({ error: String(err) }, { status: 500 })
+    }
+  }
+
   // ── List seeds ─────────────────────────────────────────────────────
   if (path === "/api/novel/seeds" && req.method === "GET") {
     try {

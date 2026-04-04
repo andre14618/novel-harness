@@ -138,19 +138,29 @@ setInterval(load, 30000)
 const HARNESS_ROOT = process.env.HARNESS_ROOT ?? "/home/andre/apps/novel-harness"
 
 const ENV_VAR_DEFS = [
-  { name: "BENCHMARK_SEEDS", applies: ["prose", "planning"], type: "multi-select", optionsFrom: "seeds" },
-  { name: "BENCHMARK_RUNS", applies: ["all"], type: "number", default: "3" },
-  { name: "BENCHMARK_SAMPLES", applies: ["extraction"], type: "number" },
-  { name: "BENCHMARK_AGENT", applies: ["extraction"], type: "select", options: ["summary-extractor", "fact-extractor", "character-state"] },
-  { name: "BENCHMARK_FIXTURES", applies: ["continuity"], type: "multi-select", optionsFrom: "fixtures" },
-  { name: "BENCHMARK_JUDGES", applies: ["all"], type: "text" },
-  { name: "EXPERIMENT_ID", applies: ["all"], type: "number" },
-  { name: "BATCH_PROVIDER", applies: ["prose"], type: "text", default: "openai" },
-  { name: "BATCH_MODEL", applies: ["prose"], type: "text", default: "gpt-5.4-mini" },
-  { name: "LLM_TRANSPORT", applies: ["all"], type: "select", options: ["direct", "cache", "batch"] },
+  { name: "BENCHMARK_SEEDS", applies: ["prose", "planning"], type: "multi-select", optionsFrom: "seeds",
+    description: "Which seed stories to test against. Leave empty for all." },
+  { name: "BENCHMARK_RUNS", applies: ["all"], type: "number", default: "3",
+    description: "Number of runs per seed/sample. Higher = more statistical confidence, more cost." },
+  { name: "BENCHMARK_SAMPLES", applies: ["extraction"], type: "number",
+    description: "Max chapters to test extraction on. Leave empty for all available." },
+  { name: "BENCHMARK_AGENT", applies: ["extraction"], type: "select", options: ["summary-extractor", "fact-extractor", "character-state"],
+    description: "Test a single extraction agent in isolation instead of all three." },
+  { name: "BENCHMARK_FIXTURES", applies: ["continuity"], type: "multi-select", optionsFrom: "fixtures",
+    description: "Which continuity test fixtures to use. Leave empty for all." },
+  { name: "BENCHMARK_JUDGES", applies: ["all"], type: "select", optionsFrom: "judges",
+    description: "LLM model used to score outputs. Affects scoring consistency and cost." },
+  { name: "EXPERIMENT_ID", applies: ["all"], type: "select", optionsFrom: "experiments",
+    description: "Link this run to an existing experiment for tracking. Required for all runs." },
+  { name: "BATCH_PROVIDER", applies: ["prose"], type: "select", optionsFrom: "batchProviders", default: "openai",
+    description: "Which provider's batch API to use. Batch = 50% off but async (results in hours)." },
+  { name: "BATCH_MODEL", applies: ["prose"], type: "select", optionsFrom: "batchModels", default: "gpt-5.4-mini",
+    description: "Model for batch judge calls. Must be from the selected batch provider." },
+  { name: "LLM_TRANSPORT", applies: ["all"], type: "select", options: ["direct", "cache", "batch"],
+    description: "Direct = real-time. Cache = prefix caching (cheaper). Batch = async batch API (cheapest)." },
 ] as const
 
-function buildOperationsConfig() {
+async function buildOperationsConfig() {
   const seeds = readdirSync(resolve(HARNESS_ROOT, "src/seeds"))
     .filter(f => f.endsWith(".json"))
     .map(f => basename(f, ".json"))
@@ -158,6 +168,35 @@ function buildOperationsConfig() {
   const fixtures = readdirSync(resolve(HARNESS_ROOT, "benchmark/continuity/fixtures"))
     .filter(f => f.endsWith(".json"))
     .map(f => basename(f, ".json"))
+
+  // Load model registry for judge/batch options
+  const { MODELS, PROVIDERS } = await import("../../models/registry")
+
+  const judges = MODELS
+    .filter(m => !m.label.includes("8B")) // exclude tiny models unsuitable for judging
+    .map(m => m.label)
+    .filter((v, i, a) => a.indexOf(v) === i) // dedupe
+
+  const batchProviders = Object.entries(PROVIDERS)
+    .filter(([_, p]) => p.batchApi?.available)
+    .map(([name]) => name)
+
+  const batchModels = MODELS
+    .filter(m => batchProviders.includes(m.provider))
+    .map(m => m.label)
+    .filter((v, i, a) => a.indexOf(v) === i)
+
+  // Load recent experiments from DB
+  let experiments: string[] = []
+  try {
+    const { default: sql } = await import("./db")
+    const rows = await sql`SELECT id, description FROM tuning_experiments ORDER BY id DESC LIMIT 50`
+    experiments = rows.map((r: any) => `${r.id}`)
+  } catch {}
+
+  const optionSources: Record<string, string[]> = {
+    seeds, fixtures, judges, batchProviders, batchModels, experiments,
+  }
 
   const benchmarks: Record<string, any> = {}
   for (const [name, cfg] of Object.entries(BENCHMARKS)) {
@@ -174,9 +213,10 @@ function buildOperationsConfig() {
   const envVars = ENV_VAR_DEFS.map(v => {
     const out: Record<string, any> = { name: v.name, applies: v.applies, type: v.type }
     if ("default" in v) out.default = v.default
+    if ("description" in v) out.description = v.description
     if ("options" in v && v.options) out.options = v.options
     if ("optionsFrom" in v) {
-      out.options = v.optionsFrom === "seeds" ? seeds : v.optionsFrom === "fixtures" ? fixtures : []
+      out.options = optionSources[v.optionsFrom] ?? []
     }
     return out
   })
@@ -348,17 +388,18 @@ function panelHtml(): string {
 <div id="flash"></div>
 
 <!-- Novel Creation -->
-<h2>Novel Creation</h2>
+<h2 title="Create a novel using --auto mode with a seed file. For interactive step-through, use the Novel UI.">Novel Creation <span style="color:#555;font-size:0.75rem">(?)</span></h2>
 <div class="card">
-  <label for="novel-seed">Seed</label>
+  <label for="novel-seed" title="Pre-built story inputs in src/seeds/. Each has a premise, genre, and character sketches.">Seed <span style="color:#555;font-size:0.75rem">(?)</span></label>
   <select id="novel-seed"></select>
   <button id="btn-novel" onclick="runNovel()">Create Novel</button>
+  <p style="font-size:0.75rem;color:#555;margin-top:0.5rem">Runs --auto (no gates). For interactive review: <a id="novel-ui-link" href="/app" style="color:#58a6ff">Novel UI</a></p>
 </div>
 
 <!-- Benchmark Runner -->
-<h2>Benchmark Runner</h2>
+<h2 title="Run benchmark suites to evaluate agent performance. Each suite tests a different capability.">Benchmark Runner <span style="color:#555;font-size:0.75rem">(?)</span></h2>
 <div class="card">
-  <label for="bench-suite">Suite</label>
+  <label for="bench-suite" title="Which benchmark suite to run. Each tests a different pipeline capability.">Suite <span style="color:#555;font-size:0.75rem">(?)</span></label>
   <select id="bench-suite" onchange="onSuiteChange()"></select>
 
   <div id="bench-params"></div>
@@ -371,18 +412,18 @@ function panelHtml(): string {
 </div>
 
 <!-- Active Runs -->
-<h2>Active Runs</h2>
+<h2 title="Currently running and recently completed benchmark/novel processes.">Active Runs <span style="color:#555;font-size:0.75rem">(?)</span></h2>
 <div id="runs-container"><span style="color:#555">Loading...</span></div>
 
 <!-- Improvement Daemon -->
-<h2>Improvement Daemon</h2>
+<h2 title="Autonomous prompt tuning. Diagnoses weakest dimensions, proposes prompt changes, benchmarks, keeps/reverts.">Improvement Daemon <span style="color:#555;font-size:0.75rem">(?)</span></h2>
 <div class="card">
   <div id="daemon-status" style="margin-bottom:0.8rem"><span class="status idle">loading...</span></div>
   <div class="two-col">
     <div>
-      <label for="imp-target">Target</label>
+      <label for="imp-target" title="Which benchmark suite to improve.">Target <span style="color:#555;font-size:0.75rem">(?)</span></label>
       <select id="imp-target" onchange="onTargetChange()"></select>
-      <label for="imp-dimension">Dimension</label>
+      <label for="imp-dimension" title="Which scoring dimension to focus on. Auto picks weakest.">Dimension <span style="color:#555;font-size:0.75rem">(?)</span></label>
       <select id="imp-dimension"></select>
     </div>
     <div>
@@ -401,6 +442,7 @@ const h = {'x-api-key': key, 'Content-Type': 'application/json'}
 let config = null
 
 document.getElementById('dash-link').href = '/?key=' + encodeURIComponent(key)
+if (document.getElementById('novel-ui-link')) document.getElementById('novel-ui-link').href = '/app?key=' + encodeURIComponent(key)
 
 function flash(msg, ok) {
   const el = document.getElementById('flash')
@@ -441,7 +483,8 @@ function onSuiteChange() {
   for (const v of config.envVars) {
     if (!v.applies.includes('all') && !v.applies.includes(suite)) continue
 
-    let html = '<div class="param-row visible"><label>' + v.name + '</label>'
+    const desc = v.description ? ' title="' + v.description.replace(/"/g, '&quot;') + '"' : ''
+    let html = '<div class="param-row visible"><label' + desc + ' style="cursor:help">' + v.name + (v.description ? ' <span style="color:#555;font-size:0.75rem">(?)</span>' : '') + '</label>'
     if (v.type === 'multi-select' && v.options) {
       html += '<div class="checkbox-group">'
       for (const opt of v.options) {
@@ -651,7 +694,7 @@ const server = Bun.serve({
 
     // ── Operations config ───────────────────────────────────────────
     if (path === "/api/config/operations" && req.method === "GET") {
-      return Response.json(buildOperationsConfig())
+      return Response.json(await buildOperationsConfig())
     }
 
     // ── Process spawning ────────────────────────────────────────────
