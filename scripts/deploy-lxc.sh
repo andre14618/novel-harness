@@ -15,6 +15,9 @@ ssh novel-harness-lxc 'grep -q psql-harness ~/.bashrc 2>/dev/null || echo "alias
 echo "Installing dependencies..."
 ssh novel-harness-lxc "cd ~/apps/novel-harness && ~/.bun/bin/bun install"
 
+echo "Building React UI..."
+ssh novel-harness-lxc "cd ~/apps/novel-harness/ui && ~/.bun/bin/bun install && ~/.bun/bin/bunx vite build"
+
 echo "Running migrations..."
 ssh novel-harness-lxc "cd ~/apps/novel-harness && ~/.bun/bin/bun -e 'import { migrate } from \"./data/connection\"; await migrate()'"
 

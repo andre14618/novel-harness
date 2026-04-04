@@ -10,7 +10,7 @@
  * Entry point: bun src/orchestrator/server.ts
  */
 
-import { readFileSync, readdirSync } from "node:fs"
+import { readFileSync, readdirSync, existsSync } from "node:fs"
 import { resolve, basename } from "node:path"
 import { migrate, getAllBatches, getBatchById, getRequestsForBatch, getState } from "./db"
 import { pollOnce } from "./poller"
@@ -18,6 +18,7 @@ import { getDaemonStatus, startCycle, handleBatchComplete } from "./daemon-loop"
 import { diagnose } from "./diagnose"
 import { TARGETS } from "./improve"
 import { BENCHMARKS } from "../../benchmark/registry"
+import { handleNovelRoute } from "./novel-routes"
 
 await migrate()
 
@@ -741,6 +742,36 @@ const server = Bun.serve({
       return Response.json({ cycle: cycle[0], iterations })
     }
 
+    // ── Novel step-through API ──────────────────────────────────────
+    const novelResponse = await handleNovelRoute(req, url)
+    if (novelResponse) return novelResponse
+
+    // ── React app (SPA) ────────────────────────────────────────────
+    const UI_DIST = resolve(import.meta.dir, "../../ui/dist")
+
+    if (path.startsWith("/app")) {
+      // Serve static assets from ui/dist
+      if (path.startsWith("/app/assets/")) {
+        const filePath = resolve(UI_DIST, path.replace("/app/", ""))
+        const file = Bun.file(filePath)
+        if (await file.exists()) {
+          const ext = filePath.split(".").pop()
+          const contentType = ext === "js" ? "application/javascript"
+            : ext === "css" ? "text/css"
+            : ext === "svg" ? "image/svg+xml"
+            : "application/octet-stream"
+          return new Response(file, { headers: { "Content-Type": contentType } })
+        }
+      }
+      // SPA fallback — serve index.html for all /app/* routes
+      const indexPath = resolve(UI_DIST, "index.html")
+      const indexFile = Bun.file(indexPath)
+      if (await indexFile.exists()) {
+        return new Response(indexFile, { headers: { "Content-Type": "text/html" } })
+      }
+      return new Response("React app not built. Run: cd ui && bun install && bunx vite build", { status: 503 })
+    }
+
     return Response.json({ error: "Not found" }, { status: 404 })
   },
 })
@@ -759,4 +790,5 @@ setInterval(() => {
 console.log(`Orchestrator running at http://localhost:${server.port}`)
 console.log(`Dashboard: http://localhost:${server.port}/?key=${API_KEY}`)
 console.log(`Panel: http://localhost:${server.port}/panel?key=${API_KEY}`)
+console.log(`Novel UI: http://localhost:${server.port}/app?key=${API_KEY}`)
 console.log(`Improvement daemon: manual trigger only`)

@@ -1,5 +1,6 @@
 import { initDB, createNovel, getNovel } from "./db"
-import { collectSeedInput, closeInput, setAutoMode } from "./cli"
+import { collectSeedInput, closeInput, setAutoMode, setResolverMode } from "./cli"
+import { getMode } from "./gates"
 import { runNovel } from "./state-machine"
 import { initNovelRun } from "./logger"
 import type { SeedInput } from "./types"
@@ -18,6 +19,9 @@ async function loadSeed(name: string = "epic-fantasy"): Promise<SeedInput> {
 async function main() {
   const isAuto = process.argv.includes("--auto")
   if (isAuto) setAutoMode(true)
+
+  // Set resolver mode based on environment
+  setResolverMode(getMode(isAuto))
 
   const resumeIdx = process.argv.indexOf("--resume")
   const seedIdx = process.argv.indexOf("--seed")

@@ -12,6 +12,7 @@ import { buildCrossChapterContext, buildProseQualityContext, buildRewriterContex
 import { validateChapterDraft } from "../validation"
 import { updateStateAfterChapter } from "../state-extraction"
 import { displayPhaseHeader } from "../cli"
+import { emit } from "../events"
 import { log } from "../logger"
 import { pipeline } from "../config/pipeline"
 
@@ -21,6 +22,7 @@ const MAX_CHAPTER_REWRITES = pipeline.maxChapterRewrites
 export async function runValidationPhase(novelId: string): Promise<void> {
   displayPhaseHeader("Validation — Cross-chapter consistency check")
   log(novelId, "info", "Validation phase started")
+  emit(novelId, { type: "phase:changed", data: { phase: "validation" } })
 
   const novel = getNovel(novelId)
   const totalChapters = novel.totalChapters
@@ -241,6 +243,7 @@ export async function runValidationPhase(novelId: string): Promise<void> {
   }
 
   updatePhase(novelId, "done")
+  emit(novelId, { type: "phase:changed", data: { phase: "done" } })
   log(novelId, "checkpoint", "Validation phase complete → done")
   console.log("\n  Validation phase complete.\n")
 }
