@@ -45,12 +45,13 @@ These three agents produce the foundation every downstream agent uses. All are a
 
 ## Character & Dialogue (Tier 3)
 
-- [ ] **Character voice differentiation** — Characters should have distinct speech patterns, vocabulary, sentence structure. Blocked on character-agent producing strong profiles first.
-  - Measure: pairwise comparison on dialogue-heavy seeds, human eval
-  - Depends on: character-agent overhaul
+- [x] **Character voice differentiation** — Threaded backstory and relationships into writer context (were only in plotter). Added dedicated "Character voice" prompt section: speech pattern as law, backstory shapes word choice, avoids shapes deflection, relationships change register, POV voice colors narration, subtext guidance. Context builder now includes voice contrast reminder when multiple characters present (2026-04-04).
+  - File: `src/agents/writer/prompt.md`, `src/agents/writer/context.ts`
+  - Verify: pairwise comparison on dialogue-heavy seeds, check if writer produces distinct voices
 
-- [ ] **Subtext quality** — Dialogue should carry meaning beyond its surface. Characters talk around the real issue.
-  - Measure: new rubric + human eval. Hard to judge with LLM alone.
+- [x] **Subtext quality** — Added subtext guidance to writer prompt: characters talk around the real issue, use questions to avoid statements, argue about safe topics while the dangerous one sits between them (2026-04-04).
+  - File: `src/agents/writer/prompt.md`
+  - Verify: human eval on dialogue-heavy seeds
 
 ## Structure & Genre (Tier 3 — Need New Rubrics)
 

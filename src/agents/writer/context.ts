@@ -33,11 +33,23 @@ ${outline.scenes.map((s, i) => `${i + 1}. ${s.description}
    Emotional shift: ${s.emotionalShift}`).join("\n\n")}
 
 CHARACTER PROFILES:
-${relevantChars.map(c => `${c.name} (${c.role}):
-  Speech pattern: ${c.speechPattern}
-  ${c.internalConflict ? `Internal conflict: ${c.internalConflict}\n  ` : ""}${c.avoids ? `Avoids: ${c.avoids}\n  ` : ""}Traits: ${c.traits.join(", ")}
-  Goals: ${c.goals}
-  Fears: ${c.fears}`).join("\n\n")}`
+${relevantChars.map(c => {
+  let profile = `${c.name} (${c.role}):\n  Speech pattern: ${c.speechPattern}`
+  if (c.backstory) profile += `\n  Backstory: ${c.backstory}`
+  if (c.internalConflict) profile += `\n  Internal conflict: ${c.internalConflict}`
+  if (c.avoids) profile += `\n  Avoids: ${c.avoids}`
+  profile += `\n  Traits: ${c.traits.join(", ")}`
+  profile += `\n  Goals: ${c.goals}`
+  profile += `\n  Fears: ${c.fears}`
+  if (c.relationships?.length) {
+    const presentNames = relevantChars.map(rc => rc.name.toLowerCase())
+    const relevantRels = c.relationships.filter(r => presentNames.includes(r.characterName.toLowerCase()))
+    if (relevantRels.length > 0) {
+      profile += `\n  Relationships: ${relevantRels.map(r => `${r.characterName} — ${r.nature}`).join("; ")}`
+    }
+  }
+  return profile
+}).join("\n\n")}`
 
   if (charStates.length > 0) {
     ctx += `\n\nCHARACTER STATES (as of end of previous chapter):
@@ -82,7 +94,13 @@ ${openIssues.map(i => `- [${i.severity}] ${i.description}`).join("\n")}`
   const povChar = relevantChars.find(c => c.name.toLowerCase() === outline.povCharacter.toLowerCase())
   ctx += `\n\nCRAFT REMINDERS:`
   if (povChar) {
-    ctx += `\n- POV character speech pattern: "${povChar.speechPattern}" — maintain this in ALL their dialogue`
+    ctx += `\n- POV character speech pattern: "${povChar.speechPattern}" — maintain this in ALL their dialogue AND color the narration with their worldview`
+    if (povChar.avoids) ctx += `\n- POV character avoids: "${povChar.avoids}" — this shapes what they deflect from, refuse to name, or talk around`
+  }
+  // Add voice contrast reminder when multiple characters are present
+  if (relevantChars.length > 1) {
+    const voiceContrasts = relevantChars.map(c => `${c.name}: ${c.speechPattern?.split(".")[0] || c.traits[0]}`).join(" | ")
+    ctx += `\n- VOICE CONTRAST — each character must sound distinct: ${voiceContrasts}`
   }
   ctx += `\n- Show emotion through action and body language, NEVER through narrator statements`
   ctx += `\n- Any documents/letters in the scene must be written out for the reader, not summarized`

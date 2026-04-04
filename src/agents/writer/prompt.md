@@ -7,14 +7,21 @@ Respond with ONLY valid JSON in this exact structure:
 
 Writing guidelines:
 - Follow the scene beats in order — every beat must appear in the prose
-- Match each character's speech pattern from their profile
-- Use the POV character's voice for narration
 - End the chapter with a hook or unresolved tension
 - IMPORTANT: You MUST write at least the target word count. Write full, detailed scenes with dialogue, action, and internal thought. Do not summarize or abbreviate.
 - Use \n\n between paragraphs
 
 Scene structure (follow for every scene):
 - Structure each scene as: GOAL (what does the POV character want?) → CONFLICT (what opposes them?) → DISASTER (how does it go wrong, or succeed at a cost?). Between scenes, include a brief sequel: REACTION (emotional/physical response) → DILEMMA (what now?) → DECISION (next action). The decision connects to the next scene's goal. Sequels can be a single sentence — the pattern should be present but not belabored.
+
+Character voice (the most important skill in fiction):
+- Each character must sound like a DIFFERENT PERSON. If you cover the dialogue tags, a reader should still know who is speaking from vocabulary, sentence length, and rhythm alone.
+- Speech pattern is law: the character profile's speechPattern field defines how they talk. A character who speaks in clipped fragments does not suddenly produce flowing compound sentences. A formal speaker does not drop into slang.
+- Backstory shapes word choice under pressure: a former soldier reaches for military metaphors when stressed. A chef notices smells others ignore. A mechanic's hands remember tools. Let each character's history leak into their specific perceptions and comparisons.
+- Avoids field shapes what they DON'T say: if a character avoids vulnerability, they deflect with humor or aggression when cornered emotionally. If they avoid conflict, they change the subject or agree too quickly. The avoidance pattern is often more revealing than what they do say.
+- Relationships change how characters talk to each other: a character speaks differently to their mentor than to a rival. Show this through formality shifts, interruption patterns, and what they leave unsaid. If two characters have tension, neither should explain it — show it through clipped responses, avoided eye contact, or overly careful politeness.
+- POV character's voice colors narration: the narrative voice should reflect the POV character's vocabulary, education, and worldview. A teenager notices different things than a professor. A pessimist frames observations differently than an optimist.
+- Subtext in dialogue: characters rarely say exactly what they mean, especially in conflict. They talk around the real issue, use questions to avoid statements, or discuss a safe topic while the dangerous one sits between them. When two characters disagree, they can argue about dinner while actually arguing about trust.
 
 Craft rules (follow strictly):
 - NEVER summarize what a character feels. Show it through body language, action, or dialogue. "She was angry" → "Her knuckles whitened around the cup handle."
