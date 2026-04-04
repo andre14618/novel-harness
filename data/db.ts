@@ -754,10 +754,11 @@ export async function getAgentStats(): Promise<Array<{
 
 export async function createTuningExperiment(
   type: string, description: string, config: Record<string, any>,
+  opts?: { target?: string; dimension?: string },
 ): Promise<number> {
   const [result] = await db`
-    INSERT INTO tuning_experiments (experiment_type, description, config)
-    VALUES (${type}, ${description}, ${config})
+    INSERT INTO tuning_experiments (experiment_type, description, config, target, dimension)
+    VALUES (${type}, ${description}, ${config}, ${opts?.target ?? null}, ${opts?.dimension ?? null})
     RETURNING id
   `
   return (result as any).id as number
@@ -765,6 +766,22 @@ export async function createTuningExperiment(
 
 export async function concludeExperiment(experimentId: number, conclusion: string): Promise<void> {
   await db`UPDATE tuning_experiments SET conclusion = ${conclusion} WHERE id = ${experimentId}`
+}
+
+export async function linkExperiment(experimentId: number, parentExperimentId: number, relationship: string = "continuation"): Promise<void> {
+  await db`
+    INSERT INTO experiment_lineage (experiment_id, parent_experiment_id, relationship)
+    VALUES (${experimentId}, ${parentExperimentId}, ${relationship})
+  `
+}
+
+export async function getRelatedExperiments(target: string, dimension: string, limit: number = 10): Promise<any[]> {
+  return db`
+    SELECT id, description, conclusion, config, timestamp
+    FROM tuning_experiments
+    WHERE target = ${target} AND dimension = ${dimension} AND conclusion IS NOT NULL
+    ORDER BY id DESC LIMIT ${limit}
+  `
 }
 
 export async function saveTuningResult(

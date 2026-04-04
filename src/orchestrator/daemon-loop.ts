@@ -15,7 +15,7 @@ import { diagnose, diagnoseFor } from "./diagnose"
 import { proposeChange, applyChange, revertChange, runBenchmark, getLatestScores, TARGETS, buildImproverContext, synthesizeConclusion } from "./improve"
 import { generate as atomicGenerate, judge as atomicJudge } from "./atomic"
 import { getDaemonTargetFull } from "../../benchmark/registry"
-import { createTuningExperiment, concludeExperiment } from "../../data/db"
+import { createTuningExperiment, concludeExperiment, linkExperiment, getRelatedExperiments } from "../../data/db"
 import { getModelForAgent } from "../../models/roles"
 import { type ExperimentLimits, resolveDefaults, checkLimits, getExperimentActualCost } from "./experiment-limits"
 import { validateProposal } from "./guardrails"
@@ -42,6 +42,8 @@ interface ActiveCycle {
   iterationId?: number
   /** When true, uses atomic generate+judge instead of subprocess benchmark */
   useAtomic: boolean
+  /** When true, stays on the same target/dimension for all iterations (default) */
+  dimensionLocked: boolean
   /** Proposal kept in memory for atomic mode — only written to disk when kept */
   pendingProposal?: { agentName: string; newPrompt: string; explanation: string; filePath: string }
 }
@@ -82,7 +84,7 @@ export async function getDaemonStatus() {
   }
 }
 
-export async function startCycle(trigger: string, override?: { target: string; dimension: string }, limitsConfig?: Partial<ExperimentLimits>): Promise<void> {
+export async function startCycle(trigger: string, override?: { target: string; dimension: string }, limitsConfig?: Partial<ExperimentLimits>, options?: { dimensionLocked?: boolean }): Promise<void> {
   if (activeCycle) {
     console.log("[daemon] Cycle already active, ignoring")
     return
@@ -109,7 +111,8 @@ export async function startCycle(trigger: string, override?: { target: string; d
   console.log(`[daemon] Starting: ${diagnosis.target}/${diagnosis.dimension} (score: ${diagnosis.currentScore}, atomic: ${useAtomic})`)
 
   // Create experiment — links all benchmark runs together
-  const limits = resolveDefaults(limitsConfig)
+  const dimensionLocked = options?.dimensionLocked ?? true
+  const limits = resolveDefaults(limitsConfig, dimensionLocked)
   const improverModel = getModelForAgent("improver")
   const experimentId = await createTuningExperiment("improvement-daemon", `${diagnosis.target}/${diagnosis.dimension}: improve from ${diagnosis.currentScore}`, {
     target: diagnosis.target,
@@ -120,8 +123,18 @@ export async function startCycle(trigger: string, override?: { target: string; d
     maxCostUsd: limits.maxCostUsd,
     trigger,
     mode: useAtomic ? "atomic" : "subprocess",
-  })
-  console.log(`[daemon] Created experiment #${experimentId}`)
+    dimensionLocked,
+  }, { target: diagnosis.target, dimension: diagnosis.dimension })
+  console.log(`[daemon] Created experiment #${experimentId} (locked: ${dimensionLocked})`)
+
+  // Auto-link to most recent experiment on the same target/dimension
+  try {
+    const related = await getRelatedExperiments(diagnosis.target, diagnosis.dimension, 1)
+    if (related.length > 0 && related[0].id !== experimentId) {
+      await linkExperiment(experimentId, related[0].id, "continuation")
+      console.log(`[daemon] Linked to prior experiment #${related[0].id}`)
+    }
+  } catch {}
 
   // Run baseline — atomic if supported, subprocess otherwise
   console.log(`[daemon] Running baseline...`)
@@ -181,8 +194,8 @@ export async function startCycle(trigger: string, override?: { target: string; d
   console.log(`[daemon] Baseline: ${baselineScore}`)
 
   const rows = await db`
-    INSERT INTO improvement_cycles (trigger_type, status, experiment_id, max_iterations, max_cost_usd)
-    VALUES (${trigger}, 'active', ${experimentId}, ${limits.maxIterations}, ${limits.maxCostUsd})
+    INSERT INTO improvement_cycles (trigger_type, status, experiment_id, max_iterations, max_cost_usd, target, dimension, dimension_locked)
+    VALUES (${trigger}, 'active', ${experimentId}, ${limits.maxIterations}, ${limits.maxCostUsd}, ${diagnosis.target}, ${diagnosis.dimension}, ${dimensionLocked})
     RETURNING id
   `
   const cycleId = (rows[0] as any).id
@@ -192,7 +205,7 @@ export async function startCycle(trigger: string, override?: { target: string; d
     target: diagnosis.target, dimension: diagnosis.dimension,
     currentScore: baselineScore, baselineScore,
     consecutiveFailures: 0, limits,
-    useAtomic,
+    useAtomic, dimensionLocked,
   }
 
   await notify(`Improvement cycle #${cycleId} started`, `Target: ${diagnosis.target}/${diagnosis.dimension} (baseline: ${baselineScore})\nExperiment: #${experimentId}\nTrigger: ${trigger}`)
@@ -503,20 +516,22 @@ async function evaluateIterationAtomic(newScore: number, judgeReasoning: string[
   const check = checkLimits(actualCost, cycle.iterationNum, cycle.consecutiveFailures, cycle.limits)
   if (!check.allowed) { await finishCycle("completed", check.reason ?? "Limit reached"); return }
 
-  // Re-diagnose
-  const newDiagnosis = await diagnose()
-  if (newDiagnosis && (newDiagnosis.target !== cycle.target || newDiagnosis.dimension !== cycle.dimension)) {
-    console.log(`[daemon] Switching: ${cycle.target}/${cycle.dimension} → ${newDiagnosis.target}/${newDiagnosis.dimension}`)
-    cycle.target = newDiagnosis.target
-    cycle.dimension = newDiagnosis.dimension
-    cycle.currentScore = newDiagnosis.currentScore
-    // Re-check atomic support for new target
-    const newFullTarget = getDaemonTargetFull(newDiagnosis.target)
-    cycle.useAtomic = !!newFullTarget?.supportsAtomic
-    judgeReasoning = newDiagnosis.judgeReasoning
+  // Re-diagnose (only if not dimension-locked)
+  if (!cycle.dimensionLocked) {
+    const newDiagnosis = await diagnose()
+    if (newDiagnosis && (newDiagnosis.target !== cycle.target || newDiagnosis.dimension !== cycle.dimension)) {
+      console.log(`[daemon] Switching: ${cycle.target}/${cycle.dimension} → ${newDiagnosis.target}/${newDiagnosis.dimension}`)
+      cycle.target = newDiagnosis.target
+      cycle.dimension = newDiagnosis.dimension
+      cycle.currentScore = newDiagnosis.currentScore
+      // Re-check atomic support for new target
+      const newFullTarget = getDaemonTargetFull(newDiagnosis.target)
+      cycle.useAtomic = !!newFullTarget?.supportsAtomic
+      judgeReasoning = newDiagnosis.judgeReasoning
+    }
   }
 
-  await runIteration(newDiagnosis?.judgeReasoning ?? judgeReasoning)
+  await runIteration(judgeReasoning)
 }
 
 async function evaluateIteration(judgeReasoning: string[]): Promise<void> {
@@ -581,17 +596,19 @@ async function evaluateIteration(judgeReasoning: string[]): Promise<void> {
   const check = checkLimits(actualCost, cycle.iterationNum, cycle.consecutiveFailures, cycle.limits)
   if (!check.allowed) { await finishCycle("completed", check.reason ?? "Limit reached"); return }
 
-  // Re-diagnose
-  const newDiagnosis = await diagnose()
-  if (newDiagnosis && (newDiagnosis.target !== cycle.target || newDiagnosis.dimension !== cycle.dimension)) {
-    console.log(`[daemon] Switching: ${cycle.target}/${cycle.dimension} → ${newDiagnosis.target}/${newDiagnosis.dimension}`)
-    cycle.target = newDiagnosis.target
-    cycle.dimension = newDiagnosis.dimension
-    cycle.currentScore = newDiagnosis.currentScore
-    judgeReasoning = newDiagnosis.judgeReasoning
+  // Re-diagnose (only if not dimension-locked)
+  if (!cycle.dimensionLocked) {
+    const newDiagnosis = await diagnose()
+    if (newDiagnosis && (newDiagnosis.target !== cycle.target || newDiagnosis.dimension !== cycle.dimension)) {
+      console.log(`[daemon] Switching: ${cycle.target}/${cycle.dimension} → ${newDiagnosis.target}/${newDiagnosis.dimension}`)
+      cycle.target = newDiagnosis.target
+      cycle.dimension = newDiagnosis.dimension
+      cycle.currentScore = newDiagnosis.currentScore
+      judgeReasoning = newDiagnosis.judgeReasoning
+    }
   }
 
-  await runIteration(newDiagnosis?.judgeReasoning ?? judgeReasoning)
+  await runIteration(judgeReasoning)
 }
 
 async function finishCycle(status: string, reason: string): Promise<void> {

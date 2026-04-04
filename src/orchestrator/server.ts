@@ -459,6 +459,9 @@ function panelHtml(): string {
       <input type="number" id="imp-cost" step="0.1">
     </div>
   </div>
+  <div style="margin-top:0.5rem">
+    <label title="When locked, stays on the selected target/dimension for all iterations. When unlocked, may switch to a different dimension after each improvement."><input type="checkbox" id="imp-locked" checked> Lock dimension (focused) <span style="color:#555;font-size:0.75rem">(?)</span></label>
+  </div>
   <button id="btn-imp" onclick="startImprovement()">Start Improvement</button>
 </div>
 
@@ -786,7 +789,9 @@ async function startImprovement() {
   const maxIterations = parseInt(document.getElementById('imp-iters').value) || undefined
   const maxCostUsd = parseFloat(document.getElementById('imp-cost').value) || undefined
 
-  const body = {}
+  const locked = document.getElementById('imp-locked').checked
+
+  const body = { dimensionLocked: locked }
   if (target) body.target = target
   if (dimension) body.dimension = dimension
   if (maxIterations) body.maxIterations = maxIterations
@@ -1003,8 +1008,53 @@ const server = Bun.serve({
       if (body.maxCostUsd != null) limits.maxCostUsd = parseFloat(body.maxCostUsd)
       if (body.maxConsecutiveFailures != null) limits.maxConsecutiveFailures = parseInt(body.maxConsecutiveFailures)
 
-      startCycle("manual", override, Object.keys(limits).length > 0 ? limits : undefined).catch(err => console.error("[daemon] Manual start error:", err))
-      return Response.json({ ok: true, status: "starting", target: override?.target, dimension: override?.dimension, limits })
+      const dimensionLocked = body.dimensionLocked !== false  // default true
+      startCycle("manual", override, Object.keys(limits).length > 0 ? limits : undefined, { dimensionLocked }).catch(err => console.error("[daemon] Manual start error:", err))
+      return Response.json({ ok: true, status: "starting", target: override?.target, dimension: override?.dimension, limits, dimensionLocked })
+    }
+
+    // ── Experiment history ────────────────────────────────────────────
+    if (path === "/api/improvement/history" && req.method === "GET") {
+      try {
+        const cycles = await (await import("./db")).default`
+          SELECT ic.id, ic.target, ic.dimension, ic.dimension_locked,
+                 ic.status, ic.total_iterations, ic.kept_count, ic.total_cost_usd,
+                 ic.started_at, ic.finished_at, ic.summary, ic.experiment_id,
+                 te.conclusion as experiment_conclusion
+          FROM improvement_cycles ic
+          LEFT JOIN tuning_experiments te ON te.id = ic.experiment_id
+          ORDER BY ic.id DESC LIMIT 50
+        `
+        return Response.json(cycles)
+      } catch (err) {
+        return Response.json({ error: String(err) }, { status: 500 })
+      }
+    }
+
+    if (path === "/api/improvement/continue" && req.method === "POST") {
+      const status = await getDaemonStatus()
+      if (status.active) return Response.json({ error: "Cycle already active", cycleId: status.cycle?.id })
+
+      const body = await req.json().catch(() => ({})) as Record<string, any>
+      if (!body.cycleId) return Response.json({ error: "cycleId required" }, { status: 400 })
+
+      // Look up the parent cycle's target/dimension
+      const parentCycles = await (await import("./db")).default`
+        SELECT target, dimension, experiment_id FROM improvement_cycles WHERE id = ${parseInt(body.cycleId)}
+      ` as any[]
+      if (parentCycles.length === 0) return Response.json({ error: "Cycle not found" }, { status: 404 })
+
+      const parent = parentCycles[0]
+      if (!parent.target || !parent.dimension) return Response.json({ error: "Parent cycle has no target/dimension" }, { status: 400 })
+
+      const limits: Record<string, any> = {}
+      if (body.maxIterations != null) limits.maxIterations = parseInt(body.maxIterations)
+      if (body.maxCostUsd != null) limits.maxCostUsd = parseFloat(body.maxCostUsd)
+
+      startCycle("manual", { target: parent.target, dimension: parent.dimension }, Object.keys(limits).length > 0 ? limits : undefined, { dimensionLocked: true })
+        .catch(err => console.error("[daemon] Continue error:", err))
+
+      return Response.json({ ok: true, target: parent.target, dimension: parent.dimension, parentCycleId: body.cycleId })
     }
 
     const reportMatch = path.match(/^\/api\/improvement\/report\/(\d+)$/)

@@ -200,24 +200,67 @@ export async function buildImproverContext(
       }
     })(),
 
-    // 4. Experiment conclusions — with what was actually tried
+    // 4. Experiment conclusions — structured by target/dimension + lineage
     (async () => {
       try {
-        const experiments = await harnessDb`
-          SELECT id, description, conclusion, config
+        // First: exact target+dimension matches (most relevant)
+        const exactMatches = await harnessDb`
+          SELECT id, description, conclusion, config, timestamp
           FROM tuning_experiments
-          WHERE description LIKE ${"%" + target + "%"} AND conclusion IS NOT NULL
+          WHERE target = ${target} AND dimension = ${dimension} AND conclusion IS NOT NULL
           ORDER BY id DESC LIMIT ${MAX_EXPERIMENT_CONCLUSIONS}
         ` as any[]
-        if (experiments.length === 0) return ""
 
-        return experiments
-          .map((e: any, i: number) => {
-            const desc = (e.description as string).slice(0, 100)
-            const conclusion = (e.conclusion as string).slice(0, 300)
-            return `${i + 1}. [Experiment #${e.id}] ${desc}\n   Result: ${conclusion}`
-          })
-          .join("\n\n")
+        // Second: same target, different dimension (tradeoff awareness)
+        const sameTarget = await harnessDb`
+          SELECT id, description, conclusion, dimension, timestamp
+          FROM tuning_experiments
+          WHERE target = ${target} AND dimension != ${dimension} AND conclusion IS NOT NULL
+          ORDER BY id DESC LIMIT 3
+        ` as any[]
+
+        // Third: lineage links (experiments explicitly linked as continuations)
+        const linked = await harnessDb`
+          SELECT te.id, te.description, te.conclusion, el.relationship
+          FROM experiment_lineage el
+          JOIN tuning_experiments te ON te.id = el.parent_experiment_id
+          WHERE el.experiment_id IN (
+            SELECT id FROM tuning_experiments
+            WHERE target = ${target} AND dimension = ${dimension}
+            ORDER BY id DESC LIMIT 5
+          ) AND te.conclusion IS NOT NULL
+          ORDER BY te.id DESC LIMIT 5
+        ` as any[]
+
+        const sections: string[] = []
+
+        if (exactMatches.length > 0) {
+          sections.push(`Prior experiments on ${target}/${dimension}:`)
+          for (const e of exactMatches) {
+            const conclusion = (e.conclusion as string).slice(0, 400)
+            sections.push(`  [#${e.id}] ${(e.description as string).slice(0, 100)}\n  Result: ${conclusion}`)
+          }
+        }
+
+        if (linked.length > 0) {
+          const linkedIds = new Set(exactMatches.map((e: any) => e.id))
+          const uniqueLinked = linked.filter((e: any) => !linkedIds.has(e.id))
+          if (uniqueLinked.length > 0) {
+            sections.push(`\nLinked experiments:`)
+            for (const e of uniqueLinked) {
+              sections.push(`  [#${e.id}, ${e.relationship}] ${(e.description as string).slice(0, 100)}\n  ${(e.conclusion as string).slice(0, 300)}`)
+            }
+          }
+        }
+
+        if (sameTarget.length > 0) {
+          sections.push(`\nOther ${target} experiments (tradeoff awareness):`)
+          for (const e of sameTarget) {
+            sections.push(`  [#${e.id}, ${e.dimension}] ${(e.conclusion as string).slice(0, 200)}`)
+          }
+        }
+
+        return sections.join("\n")
       } catch (err) {
         console.log(`[context] Experiments query failed: ${err instanceof Error ? err.message : err}`)
         return ""

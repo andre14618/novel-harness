@@ -18,11 +18,14 @@ const DEFAULT_MAX_ITERATIONS = parseInt(process.env.IMPROVEMENT_MAX_ITERATIONS ?
 const DEFAULT_MAX_CONSECUTIVE_FAILURES = 5
 const DEFAULT_MIN_DELTA_THRESHOLD = 0.3
 
-export function resolveDefaults(input?: Partial<ExperimentLimits>): ExperimentLimits {
+export function resolveDefaults(input?: Partial<ExperimentLimits>, dimensionLocked?: boolean): ExperimentLimits {
+  // When dimension-locked, allow more consecutive failures since focused work
+  // on a hard dimension will naturally hit more dead ends
+  const failureCap = dimensionLocked ? 8 : DEFAULT_MAX_CONSECUTIVE_FAILURES
   return {
     maxIterations: input?.maxIterations ?? DEFAULT_MAX_ITERATIONS,
     maxCostUsd: input?.maxCostUsd ?? null,
-    maxConsecutiveFailures: input?.maxConsecutiveFailures ?? DEFAULT_MAX_CONSECUTIVE_FAILURES,
+    maxConsecutiveFailures: input?.maxConsecutiveFailures ?? failureCap,
     minDeltaThreshold: input?.minDeltaThreshold ?? DEFAULT_MIN_DELTA_THRESHOLD,
   }
 }
