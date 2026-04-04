@@ -61,54 +61,66 @@ interface LintSnapshot {
 // ── Lint snapshot: generate prose, lint, fix, measure what persists ────────
 
 async function takeLintSnapshot(writerPrompt: string, seeds: ReturnType<typeof loadSeeds>, runId: number): Promise<LintSnapshot> {
-  const writer = getWriter()
+  // Use lint-writer (Qwen 235B, fast) if available, otherwise default writer
+  const lintWriter = getModelForAgent("lint-writer")
+  const defaultWriter = getWriter()
+  const writer = lintWriter
+    ? { ...defaultWriter, provider: lintWriter.provider, model: lintWriter.model, maxTokens: lintWriter.maxTokens ?? 8192 }
+    : defaultWriter
   const allCounts: Record<string, number> = {}
   const persistentCounts: Record<string, number> = {}
   const instances: Record<string, string[]> = {}
   let totalIssues = 0
   let totalAfterFix = 0
 
-  for (const seed of seeds) {
-    for (let run = 1; run <= RUNS_PER_SEED; run++) {
-      const result = await generateProse(writer, writerPrompt, seed.prompt, runId, seed.name, run)
-      if (!result) continue
+  // Generate all seeds × runs in parallel for speed
+  const jobs = seeds.flatMap(seed =>
+    Array.from({ length: RUNS_PER_SEED }, (_, i) => ({ seed, run: i + 1 }))
+  )
 
-      await saveGeneration(runId, seed.name, run, {
-        prose: result.prose, wordCount: result.prose.split(/\s+/).length, passed: true,
-        latencyMs: result.latencyMs, completionTokens: result.tokens,
-        tokensPerSec: result.tps,
-      })
+  const results = await Promise.all(jobs.map(async ({ seed, run }) => {
+    const result = await generateProse(writer, writerPrompt, seed.prompt, runId, seed.name, run)
+    if (!result) return null
 
-      // Lint
-      const lintResult = await lintProse(result.prose)
-      totalIssues += lintResult.totalIssues
-      for (const [cat, count] of Object.entries(lintResult.counts)) {
-        allCounts[cat] = (allCounts[cat] || 0) + count
+    await saveGeneration(runId, seed.name, run, {
+      prose: result.prose, wordCount: result.prose.split(/\s+/).length, passed: true,
+      latencyMs: result.latencyMs, completionTokens: result.tokens,
+      tokensPerSec: result.tps,
+    })
+
+    // Lint
+    const lintResult = await lintProse(result.prose)
+
+    // Fix and measure persistent issues
+    const fixer = getModelForAgent("lint-fixer")
+    const fixResult = await fixLintIssues(
+      result.prose,
+      lintResult.issues,
+      fixer ? { provider: fixer.provider, model: fixer.model, temperature: fixer.temperature } : undefined,
+    )
+    const afterFix = await lintProse(fixResult.prose)
+
+    console.log(`  [${seed.name}:${run}] ${lintResult.totalIssues} issues → fixed ${fixResult.deterministicFixes}d+${fixResult.llmFixes}llm → ${afterFix.totalIssues} persistent`)
+
+    return { lintResult, afterFix, seed: seed.name }
+  }))
+
+  // Aggregate
+  for (const r of results) {
+    if (!r) continue
+    totalIssues += r.lintResult.totalIssues
+    totalAfterFix += r.afterFix.totalIssues
+    for (const [cat, count] of Object.entries(r.lintResult.counts)) {
+      allCounts[cat] = (allCounts[cat] || 0) + count
+    }
+    for (const [cat, count] of Object.entries(r.afterFix.counts)) {
+      persistentCounts[cat] = (persistentCounts[cat] || 0) + count
+    }
+    for (const issue of r.lintResult.issues) {
+      if (!instances[issue.category]) instances[issue.category] = []
+      if (instances[issue.category].length < 8) {
+        instances[issue.category].push(issue.sentence)
       }
-      // Capture specific instances for the improver to see
-      for (const issue of lintResult.issues) {
-        if (!instances[issue.category]) instances[issue.category] = []
-        if (instances[issue.category].length < 8) {
-          instances[issue.category].push(issue.sentence)
-        }
-      }
-
-      // Fix and measure persistent issues
-      const fixer = getModelForAgent("lint-fixer")
-      const fixResult = await fixLintIssues(
-        result.prose,
-        lintResult.issues,
-        fixer ? { provider: fixer.provider, model: fixer.model, temperature: fixer.temperature } : undefined,
-      )
-
-      // Re-lint to count persistent issues
-      const afterFix = await lintProse(fixResult.prose)
-      totalAfterFix += afterFix.totalIssues
-      for (const [cat, count] of Object.entries(afterFix.counts)) {
-        persistentCounts[cat] = (persistentCounts[cat] || 0) + count
-      }
-
-      console.log(`  [${seed.name}:${run}] ${lintResult.totalIssues} issues → fixed ${fixResult.deterministicFixes}d+${fixResult.llmFixes}llm → ${afterFix.totalIssues} persistent`)
     }
   }
 

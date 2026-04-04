@@ -21,11 +21,13 @@ const AGENT_PROMPT = readFileSync(
 // ── Load existing rules for a specific category ───────────────────────────
 
 async function getExistingRulesForCategories(categories: string[]): Promise<string> {
-  const patterns = await db`
+  // Fetch all enabled patterns and filter in JS (avoids bun SQL array parameter issues)
+  const allPatterns = await db`
     SELECT category, pattern, fix_template
-    FROM lint_patterns WHERE enabled = true AND category = ANY(${categories})
+    FROM lint_patterns WHERE enabled = true
     ORDER BY category, id
   ` as any[]
+  const patterns = allPatterns.filter((p: any) => categories.includes(p.category))
 
   if (patterns.length === 0) return "(none)"
 
@@ -122,16 +124,17 @@ export async function discoverAndApply(runId?: number): Promise<number> {
     return 0
   }
 
-  let totalAdded = 0
+  // Run all concept discovery passes in parallel
+  const results = await Promise.all(
+    CONCEPTS.map(async (concept) => {
+      try {
+        return await discoverForConcept(concept, proseSamples)
+      } catch (err) {
+        console.log(`  [${concept.id}] Discovery failed: ${err instanceof Error ? err.message : err}`)
+        return 0
+      }
+    })
+  )
 
-  for (const concept of CONCEPTS) {
-    try {
-      const added = await discoverForConcept(concept, proseSamples)
-      totalAdded += added
-    } catch (err) {
-      console.log(`  [${concept.id}] Discovery failed: ${err instanceof Error ? err.message : err}`)
-    }
-  }
-
-  return totalAdded
+  return results.reduce((sum, n) => sum + n, 0)
 }
