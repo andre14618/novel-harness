@@ -14,34 +14,22 @@ export type ProviderName = "cerebras" | "groq" | "openrouter" | "openai" | "deep
 
 export interface CacheStrategy {
   /**
-   * How this provider handles prompt/prefix caching.
+   * Provider prefix caching — reference info for cost estimation.
+   * No transport-level intervention needed; providers handle caching automatically
+   * when consecutive requests share the same prompt prefix.
    *
-   * "automatic"  — provider caches repeated prefixes with no code changes.
-   *                Sequential same-prefix calls maximize hits.
-   *                (DeepSeek: 95% input discount, OpenAI: 50% input >1024 tokens)
-   *
-   * "explicit"   — provider requires cache_control markers in the message body.
-   *                Transport must transform the request before sending.
-   *                (Anthropic: 90% input discount on cached blocks)
+   * "automatic"  — provider caches repeated prefixes with no code changes or write cost.
+   *                (OpenAI GPT-5.4: 90% off >1024 tokens, DeepSeek: 95% off any prefix)
    *
    * "none"       — provider has no caching mechanism.
    */
-  type: "automatic" | "explicit" | "none"
-
-  /** Sequential same-prefix calls improve cache hit rate. */
-  benefitsFromSequential: boolean
+  type: "automatic" | "none"
 
   /** Minimum input tokens for caching to activate (provider-specific). */
   minTokens?: number
 
-  /** Input token discount when cached (fraction, e.g. 0.95 = 95% off). */
+  /** Discount on cached input tokens (fraction, e.g. 0.90 = 90% off). */
   discount?: number
-
-  /**
-   * Transform request for explicit caching (e.g., add cache_control blocks).
-   * Only called when type is "explicit".
-   */
-  transformRequest?: (messages: Array<{ role: string; content: any }>) => Array<{ role: string; content: any }>
 }
 
 export interface ProviderDef {
@@ -63,22 +51,13 @@ export const PROVIDERS: Record<ProviderName, ProviderDef> = {
     apiUrl: "https://api.cerebras.ai/v1/chat/completions",
     envKey: "CEREBRAS_API_KEY",
     tier: "fast",
-    cache: {
-      type: "automatic",
-      benefitsFromSequential: true,
-      minTokens: 128,  // 128-token blocks, matches segments in ephemeral memory
-      discount: 0,     // Cerebras caches but does not discount — no cost savings
-    },
+    cache: { type: "automatic", minTokens: 128, discount: 0 },  // caches but no cost savings
   },
   groq: {
     apiUrl: "https://api.groq.com/openai/v1/chat/completions",
     envKey: "GROQ_API_KEY",
     tier: "fast",
-    cache: {
-      type: "automatic",
-      benefitsFromSequential: false,  // matches recent requests, not strictly sequential
-      discount: 0.50,
-    },
+    cache: { type: "automatic", discount: 0.50 },
     batchApi: { available: true, discount: 0.50, maxWindow: "7d" },
   },
   openrouter: {
@@ -89,32 +68,20 @@ export const PROVIDERS: Record<ProviderName, ProviderDef> = {
       const provider = process.env.PROVIDER
       return provider ? { provider: { order: [provider], allow_fallbacks: false } } : {}
     },
-    // OpenRouter proxies to underlying providers — caching depends on which
-    // provider is selected. Conservative: treat as none.
-    cache: { type: "none", benefitsFromSequential: false },
+    cache: { type: "none" },  // proxies to underlying providers — caching varies
   },
   openai: {
     apiUrl: "https://api.openai.com/v1/chat/completions",
     envKey: "OPENAI_API_KEY",
     tier: "standard",
-    cache: {
-      type: "automatic",
-      benefitsFromSequential: true,
-      minTokens: 1024,   // 1024-token minimum, 128-token block increments
-      discount: 0.50,    // GPT-4o/o-series: 50%, GPT-4.1: 75%, GPT-5: 90%
-    },
+    cache: { type: "automatic", minTokens: 1024, discount: 0.90 },  // GPT-5.4: 90% off cached input
     batchApi: { available: true, discount: 0.50, maxWindow: "24h" },
   },
   deepseek: {
     apiUrl: "https://api.deepseek.com/v1/chat/completions",
     envKey: "DEEPSEEK_API_KEY",
     tier: "standard",
-    cache: {
-      type: "automatic",
-      benefitsFromSequential: true,
-      minTokens: 0,   // no minimum — any shared prefix is cached
-      discount: 0.95,  // $0.014/M vs $0.28/M
-    },
+    cache: { type: "automatic", minTokens: 0, discount: 0.95 },  // any shared prefix, 95% off
     // DeepSeek has no batch API — cost savings come from prefix caching only
   },
 }
@@ -288,16 +255,40 @@ export const MODELS: ModelDef[] = [
   // ── OpenAI ─────────────────────────────────────────────────────────────
 
   {
-    id: "gpt-5.4-mini",
-    label: "GPT-5.4-mini",
+    id: "gpt-5.4",
+    label: "GPT-5.4",
     provider: "openai",
     params: "unknown",
-    pricing: { input: 0.40, output: 1.60 },
-    thinking: "disabled",
-    maxContext: 400_000,
+    pricing: { input: 2.50, output: 15.00 },
+    thinking: "optional",
+    maxContext: 1_050_000,
     maxOutput: 128_000,
     useMaxCompletionTokens: true,
-    notes: "33% discrimination in calibration. Inconsistent (max spread 3). Expensive for mediocre signal.",
+    notes: "Flagship. reasoning_effort: none (default), low, medium, high, xhigh. 90% cache discount ($0.25/M cached). Long-context 2x/1.5x above 272k input.",
+  },
+  {
+    id: "gpt-5.4-mini",
+    label: "GPT-5.4 Mini",
+    provider: "openai",
+    params: "unknown",
+    pricing: { input: 0.75, output: 4.50 },
+    thinking: "disabled",
+    maxContext: 1_050_000,
+    maxOutput: 128_000,
+    useMaxCompletionTokens: true,
+    notes: "33% discrimination in calibration. Inconsistent (max spread 3). 90% cache discount ($0.075/M cached).",
+  },
+  {
+    id: "gpt-5.4-nano",
+    label: "GPT-5.4 Nano",
+    provider: "openai",
+    params: "unknown",
+    pricing: { input: 0.20, output: 1.25 },
+    thinking: "disabled",
+    maxContext: 1_050_000,
+    maxOutput: 128_000,
+    useMaxCompletionTokens: true,
+    notes: "Cheapest GPT-5.4 variant. 90% cache discount ($0.02/M cached). Untested in harness.",
   },
 
   // ── DeepSeek ───────────────────────────────────────────────────────────
