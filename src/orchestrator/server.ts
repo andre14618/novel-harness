@@ -148,8 +148,6 @@ const ENV_VAR_DEFS = [
     description: "Test a single extraction agent in isolation instead of all three." },
   { name: "BENCHMARK_FIXTURES", applies: ["continuity"], type: "multi-select", optionsFrom: "fixtures",
     description: "Which continuity test fixtures to use. Leave empty for all." },
-  { name: "BENCHMARK_JUDGES", applies: ["all"], type: "select", optionsFrom: "judges",
-    description: "LLM model used to score outputs. Affects scoring consistency and cost." },
   { name: "EXPERIMENT_ID", applies: ["all"], type: "select", optionsFrom: "experiments",
     description: "Link this run to an existing experiment for tracking. Required for all runs." },
   { name: "BATCH_PROVIDER", applies: ["prose"], type: "select", optionsFrom: "batchProviders", default: "openai",
@@ -245,7 +243,10 @@ async function buildOperationsConfig() {
     return out
   })
 
-  return { seeds, fixtures, benchmarks, envVars, targets: Object.keys(TARGETS) }
+  const allModels = MODELS.map(m => ({ label: m.label, id: m.id, provider: m.provider }))
+  const allProviders = Object.keys(PROVIDERS)
+
+  return { seeds, fixtures, benchmarks, envVars, targets: Object.keys(TARGETS), models: allModels, providers: allProviders }
 }
 
 // ── Process management ──────────────────────────────────────────────────
@@ -504,25 +505,100 @@ function onSuiteChange() {
   const container = document.getElementById('bench-params')
   container.innerHTML = ''
 
-  // Show agents under test + judge
+  // Show agents under test + judge with inline editing
   const bench = config.benchmarks[suite]
   if (bench) {
     let infoHtml = '<div style="margin-bottom:0.8rem;padding:0.6rem;background:#0d1117;border:1px solid #30363d;border-radius:4px;font-size:0.8rem">'
+
+    // Agent under test — editable
     if (bench.agentsUnderTest && bench.agentsUnderTest.length > 0) {
-      infoHtml += '<div style="margin-bottom:0.4rem"><span style="color:#4ecca3">Testing:</span> '
-      infoHtml += bench.agentsUnderTest.map(function(a) {
-        return '<strong>' + a.agentName + '</strong> <span style="color:#555">(' + a.provider + ' / ' + (a.label || a.model) + ', temp ' + a.temperature + ')</span>'
-      }).join(', ')
-      infoHtml += '</div>'
+      bench.agentsUnderTest.forEach(function(a, idx) {
+        const pid = 'agent-provider-' + idx
+        const mid = 'agent-model-' + idx
+        infoHtml += '<div style="margin-bottom:0.5rem"><span style="color:#4ecca3">Testing:</span> <strong>' + a.agentName + '</strong>'
+        infoHtml += '<div style="display:flex;gap:0.4rem;margin-top:0.3rem;align-items:center;flex-wrap:wrap">'
+        // Provider select
+        infoHtml += '<select id="' + pid + '" data-agent="' + a.effectiveName + '" style="width:auto;font-size:0.8rem;padding:3px 6px">'
+        config.providers.forEach(function(p) {
+          infoHtml += '<option value="' + p + '"' + (p === a.provider ? ' selected' : '') + '>' + p + '</option>'
+        })
+        infoHtml += '</select>'
+        // Model select
+        infoHtml += '<select id="' + mid + '" data-agent="' + a.effectiveName + '" style="width:auto;font-size:0.8rem;padding:3px 6px">'
+        config.models.filter(function(m) { return m.provider === a.provider }).forEach(function(m) {
+          infoHtml += '<option value="' + m.id + '"' + (m.id === a.model ? ' selected' : '') + '>' + m.label + '</option>'
+        })
+        infoHtml += '</select>'
+        infoHtml += '<span id="agent-save-' + idx + '" style="color:#555;font-size:0.75rem"></span>'
+        infoHtml += '</div></div>'
+      })
     }
+
+    // Judge — editable
     if (bench.judge) {
-      infoHtml += '<div id="judge-display"><span style="color:#e2b714">Judge:</span> '
-      infoHtml += '<strong>' + (bench.judge.label || bench.judge.model) + '</strong> <span style="color:#555">(' + bench.judge.provider + ')</span>'
-      infoHtml += '</div>'
+      infoHtml += '<div style="margin-bottom:0.3rem"><span style="color:#e2b714">Judge:</span>'
+      infoHtml += '<div style="display:flex;gap:0.4rem;margin-top:0.3rem;align-items:center;flex-wrap:wrap">'
+      infoHtml += '<select id="judge-provider" style="width:auto;font-size:0.8rem;padding:3px 6px">'
+      config.providers.forEach(function(p) {
+        infoHtml += '<option value="' + p + '"' + (p === bench.judge.provider ? ' selected' : '') + '>' + p + '</option>'
+      })
+      infoHtml += '</select>'
+      infoHtml += '<select id="judge-model" style="width:auto;font-size:0.8rem;padding:3px 6px">'
+      config.models.filter(function(m) { return m.provider === bench.judge.provider }).forEach(function(m) {
+        infoHtml += '<option value="' + m.id + '"' + (m.id === bench.judge.model ? ' selected' : '') + '>' + m.label + '</option>'
+      })
+      infoHtml += '</select>'
+      infoHtml += '<span id="judge-save-status" style="color:#555;font-size:0.75rem"></span>'
+      infoHtml += '</div></div>'
     }
-    infoHtml += '<div style="margin-top:0.4rem;color:#555">Change models on the <a href="/app/config?key=' + key + '" style="color:#58a6ff">Config page</a></div>'
+
     infoHtml += '</div>'
     container.innerHTML += infoHtml
+
+    // Wire provider changes to update model dropdowns + save via API
+    function wireAgentDropdowns(providerId, modelId, statusId, agentName) {
+      const pSel = document.getElementById(providerId)
+      const mSel = document.getElementById(modelId)
+      const status = document.getElementById(statusId)
+      if (!pSel || !mSel) return
+
+      pSel.addEventListener('change', function() {
+        const provider = pSel.value
+        mSel.innerHTML = ''
+        config.models.filter(function(m) { return m.provider === provider }).forEach(function(m) {
+          mSel.innerHTML += '<option value="' + m.id + '">' + m.label + '</option>'
+        })
+        saveAgentConfig(agentName, { provider: provider, model: mSel.value }, status)
+      })
+      mSel.addEventListener('change', function() {
+        saveAgentConfig(agentName, { provider: pSel.value, model: mSel.value }, status)
+      })
+    }
+
+    function saveAgentConfig(agentName, cfg, statusEl) {
+      if (statusEl) statusEl.textContent = 'saving...'
+      fetch('/api/novel/config/agent/' + encodeURIComponent(agentName), {
+        method: 'PUT', headers: h,
+        body: JSON.stringify(cfg)
+      }).then(function(r) { return r.json() }).then(function(res) {
+        if (statusEl) {
+          statusEl.textContent = res.ok ? 'saved' : (res.error || 'error')
+          statusEl.style.color = res.ok ? '#4ecca3' : '#e74c3c'
+          setTimeout(function() { statusEl.textContent = '' }, 2000)
+        }
+      }).catch(function() {
+        if (statusEl) { statusEl.textContent = 'error'; statusEl.style.color = '#e74c3c' }
+      })
+    }
+
+    if (bench.agentsUnderTest) {
+      bench.agentsUnderTest.forEach(function(a, idx) {
+        wireAgentDropdowns('agent-provider-' + idx, 'agent-model-' + idx, 'agent-save-' + idx, a.effectiveName)
+      })
+    }
+    if (bench.judge) {
+      wireAgentDropdowns('judge-provider', 'judge-model', 'judge-save-status', 'benchmark-judge')
+    }
   }
 
   for (const v of config.envVars) {
@@ -549,24 +625,6 @@ function onSuiteChange() {
     }
     html += '</div>'
     container.innerHTML += html
-  }
-
-  // Wire judge dropdown to update the info box
-  const judgeSelect = container.querySelector('select[data-env="BENCHMARK_JUDGES"]')
-  if (judgeSelect) {
-    judgeSelect.addEventListener('change', function() {
-      const display = document.getElementById('judge-display')
-      if (!display) return
-      const val = judgeSelect.value
-      if (val) {
-        display.innerHTML = '<span style="color:#e2b714">Judge:</span> <strong>' + val + '</strong> <span style="color:#555">(override)</span>'
-      } else {
-        const b = config.benchmarks[suite]
-        if (b && b.judge) {
-          display.innerHTML = '<span style="color:#e2b714">Judge:</span> <strong>' + (b.judge.label || b.judge.model) + '</strong> <span style="color:#555">(' + b.judge.provider + ')</span>'
-        }
-      }
-    })
   }
 
   // Show batch checkbox only for prose
