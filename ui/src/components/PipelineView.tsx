@@ -214,46 +214,36 @@ export function PipelineView() {
     }
   }
 
-  const key = new URLSearchParams(window.location.search).get("key") ?? ""
-
   if (error) {
     return (
-      <div className="app">
+      <>
         <p style={{ color: "#e74c3c" }}>Error: {error}</p>
         <Link to={`/${window.location.search}`}>Back to novels</Link>
-      </div>
+      </>
     )
   }
 
   if (!state) {
-    return <div className="app"><p style={{ color: "#8b949e" }}>Loading...</p></div>
+    return <p style={{ color: "#8b949e" }}>Loading...</p>
   }
 
   const stalled = !state.active && state.phase !== "done"
 
   return (
-    <div className="app">
-      <div className="top-bar">
-        <div>
-          <Link to={`/${window.location.search}`} style={{ fontSize: "0.85rem" }}>
-            &larr; Back
-          </Link>
-          <h1 style={{ display: "inline", marginLeft: "1rem" }}>
-            {novelId?.replace("novel-", "").slice(0, 13)}
-          </h1>
-          {state.active && <span className="badge active" style={{ marginLeft: "0.5rem" }}>running</span>}
-          {state.phase === "done" && <span className="badge done" style={{ marginLeft: "0.5rem" }}>complete</span>}
-          {stalled && <span className="badge idle" style={{ marginLeft: "0.5rem" }}>stopped</span>}
-          <span style={{ marginLeft: "0.5rem", fontSize: "0.75rem", color: "#555" }}>
-            <span className={`connected-dot ${connected ? "on" : "off"}`} />
-          </span>
-        </div>
-        <nav>
-          <Link to={`/config${window.location.search}`}>Config</Link>
-          <Link to={`/experiments${window.location.search}`}>Experiments</Link>
-          <Link to={`/guide${window.location.search}`}>Guide</Link>
-          <a href={`/?key=${key}`}>Dashboard</a>
-        </nav>
+    <>
+      <div style={{ marginBottom: "1rem" }}>
+        <Link to={`/${window.location.search}`} style={{ fontSize: "0.85rem" }}>
+          &larr; Back
+        </Link>
+        <h1 style={{ display: "inline", marginLeft: "1rem" }}>
+          {novelId?.replace("novel-", "").slice(0, 13)}
+        </h1>
+        {state.active && <span className="badge active" style={{ marginLeft: "0.5rem" }}>running</span>}
+        {state.phase === "done" && <span className="badge done" style={{ marginLeft: "0.5rem" }}>complete</span>}
+        {stalled && <span className="badge idle" style={{ marginLeft: "0.5rem" }}>stopped</span>}
+        <span style={{ marginLeft: "0.5rem", fontSize: "0.75rem", color: "#555" }}>
+          <span className={`connected-dot ${connected ? "on" : "off"}`} />
+        </span>
       </div>
 
       <PhaseIndicator currentPhase={state.phase} pendingGate={!!state.pendingGate} />
@@ -378,7 +368,7 @@ export function PipelineView() {
       <div style={{ marginTop: "1rem" }}>
         <EventLog events={events} connected={connected} />
       </div>
-    </div>
+    </>
   )
 }
 

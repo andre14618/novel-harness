@@ -219,6 +219,39 @@ select { cursor: pointer; }
 .seed-card:hover { border-color: #4ecca3; }
 .seed-card.selected { border-color: #4ecca3; background: #1a3a2a; }
 
+/* Main nav */
+.main-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: #16213e;
+  border: 1px solid #0f3460;
+  border-radius: 6px;
+  padding: 3px;
+  margin-bottom: 1.2rem;
+  overflow-x: auto;
+}
+.nav-link {
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-size: 0.82rem;
+  color: #8b949e;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.nav-link:hover { color: #e0e0e0; background: #0d1117; text-decoration: none; }
+.nav-link.active { color: #4ecca3; background: #0d1117; font-weight: bold; }
+.nav-link.external { color: #555; }
+.nav-link.external:hover { color: #8b949e; }
+.nav-divider {
+  width: 1px;
+  height: 20px;
+  background: #30363d;
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
 /* Layout */
 .top-bar {
   display: flex;
@@ -226,7 +259,7 @@ select { cursor: pointer; }
   align-items: center;
   margin-bottom: 1rem;
 }
-.top-bar nav a { margin-left: 1rem; font-size: 0.85rem; }
+.top-bar nav { display: none; } /* hidden — main-nav replaces it */
 
 .prose-content {
   white-space: pre-wrap;

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Link } from "react-router-dom"
+
 import { getNovelConfig, setAgentConfig, resetAgentConfig, persistConfig } from "../api"
 import type { NovelConfig } from "../api"
 
@@ -75,25 +75,15 @@ export function ConfigPage() {
     }
   }
 
-  const key = new URLSearchParams(window.location.search).get("key") ?? ""
-
   if (!config) {
-    return <div className="app"><p style={{ color: "#8b949e" }}>Loading config...</p></div>
+    return <p style={{ color: "#8b949e" }}>Loading config...</p>
   }
 
   const hasOverrides = Object.keys(config.overrides).length > 0
 
   return (
-    <div className="app">
-      <div className="top-bar">
-        <h1>Agent Configuration</h1>
-        <nav>
-          <Link to={`/${window.location.search}`}>Novel UI</Link>
-          <Link to={`/experiments${window.location.search}`}>Experiments</Link>
-          <Link to={`/guide${window.location.search}`}>Guide</Link>
-          <a href={`/?key=${key}`}>Dashboard</a>
-        </nav>
-      </div>
+    <>
+      <h1>Agent Configuration</h1>
 
       <p style={{ fontSize: "0.8rem", color: "#8b949e", marginBottom: "0.5rem", lineHeight: 1.6 }}>
         Configure which model each agent uses. Changes take effect immediately on the next agent call.
@@ -221,6 +211,6 @@ export function ConfigPage() {
           })}
         </div>
       ))}
-    </div>
+    </>
   )
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Link } from "react-router-dom"
+
 
 const API_KEY = new URLSearchParams(window.location.search).get("key") ?? ""
 
@@ -45,7 +45,6 @@ export function ExperimentsPage() {
     } catch {}
   }
 
-  const key = new URLSearchParams(window.location.search).get("key") ?? ""
   const filtered = experiments.filter(e => {
     if (!filter) return true
     const f = filter.toLowerCase()
@@ -65,17 +64,8 @@ export function ExperimentsPage() {
   }
 
   return (
-    <div className="app">
-      <div className="top-bar">
-        <h1>Experiments</h1>
-        <nav>
-          <Link to={`/${window.location.search}`}>Novel UI</Link>
-          <Link to={`/config${window.location.search}`}>Config</Link>
-          <Link to={`/guide${window.location.search}`}>Guide</Link>
-          <a href={`/?key=${key}`}>Dashboard</a>
-          <a href={`/panel?key=${key}`}>Operations</a>
-        </nav>
-      </div>
+    <>
+      <h1>Experiments</h1>
 
       <p style={{ fontSize: "0.8rem", color: "#8b949e", marginBottom: "0.8rem" }}>
         All benchmark runs and improvement cycles in one view. Grouped by target/dimension.
@@ -208,6 +198,6 @@ export function ExperimentsPage() {
       {experiments.length === 0 && (
         <p style={{ color: "#555" }}>No experiments found.</p>
       )}
-    </div>
+    </>
   )
 }

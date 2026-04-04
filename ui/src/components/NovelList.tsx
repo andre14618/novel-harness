@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { useNavigate, Link } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 import { getSeeds, listNovels, startNovel, startNovelCustom, deleteNovel, resumeNovel } from "../api"
 import type { NovelListItem, CustomSeed } from "../api"
 
@@ -109,21 +109,8 @@ export function NovelList() {
     }
   }
 
-  const key = new URLSearchParams(window.location.search).get("key") ?? ""
-
   return (
-    <div className="app">
-      <div className="top-bar">
-        <h1>Novel Harness</h1>
-        <nav>
-          <Link to={`/guide${window.location.search}`}>Guide</Link>
-          <a href={`/?key=${key}`}>Dashboard</a>
-          <Link to={`/config${window.location.search}`}>Config</Link>
-          <Link to={`/experiments${window.location.search}`}>Experiments</Link>
-          <a href={`/panel?key=${key}`}>Operations</a>
-        </nav>
-      </div>
-
+    <>
       <h2>Start New Novel</h2>
       <p style={{ fontSize: "0.8rem", color: "#8b949e", marginBottom: "0.8rem", lineHeight: 1.6 }}>
         Creates a 3-chapter short story through 4 phases: <strong>Concept</strong> (world, characters, plot) →{" "}
@@ -313,6 +300,6 @@ export function NovelList() {
           </div>
         </>
       )}
-    </div>
+    </>
   )
 }

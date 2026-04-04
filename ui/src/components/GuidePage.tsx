@@ -4,16 +4,8 @@ export function GuidePage() {
   const key = new URLSearchParams(window.location.search).get("key") ?? ""
 
   return (
-    <div className="app">
-      <div className="top-bar">
-        <h1>Guide</h1>
-        <nav>
-          <Link to={`/${window.location.search}`}>Novel UI</Link>
-          <Link to={`/config${window.location.search}`}>Config</Link>
-          <Link to={`/experiments${window.location.search}`}>Experiments</Link>
-          <a href={`/?key=${key}`}>Dashboard</a>
-        </nav>
-      </div>
+    <>
+      <h1>Guide</h1>
 
       <div className="guide-content">
         <section>
@@ -230,6 +222,6 @@ LXC 307 (192.168.1.108)
           `.trim()}</pre>
         </section>
       </div>
-    </div>
+    </>
   )
 }
