@@ -41,8 +41,7 @@ These three agents produce the foundation every downstream agent uses. All are a
 - [x] **Environment as emotional mirror** — Added pathetic fallacy guidance with 3 before/after examples + restraint note to writer prompt (2026-04-04).
   - File: `src/agents/writer/prompt.md`
 
-- [ ] **Rewriter dead-weight regression re-test** — Rewriter prompt now has anti-cliche/anti-hedge rules (2026-04-03). Experiment #34 showed +10 dead-weight regression. Need to re-run `benchmark/prose/rewriter-precision.ts` to verify the fix.
-  - Verify: `bun benchmark/prose/rewriter-precision.ts` — dead-weight delta should be < +3
+- [x] **Rewriter dead-weight regression re-test** — Experiment #44: dead-weight 81.5→58.5 (-23.0), telling 8.0→6.5 (-1.5), dialogue 10.0→5.5 (-4.5). Regression fully resolved (2026-04-04).
 
 ## Character & Dialogue (Tier 3)
 
