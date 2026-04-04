@@ -38,6 +38,7 @@ const { values } = parseArgs({
     seeds: { type: "string" },
     "runs-per-seed": { type: "string", default: "2" },
     "dry-run": { type: "boolean", default: false },
+    discover: { type: "boolean", default: false },
   },
 })
 
@@ -216,6 +217,22 @@ async function main() {
   const baselineRunId = await createRun("lint-improve", seeds.length.toString(), "baseline", experimentId)
   const baseline = await takeLintSnapshot(currentPrompt, seeds, baselineRunId)
   console.log(`  Baseline: ${baseline.totalIssues} total, ${baseline.totalAfterFix} persistent\n`)
+
+  // Optional: discover new lint patterns before optimizing
+  if (values.discover) {
+    console.log("── Pattern Discovery ──")
+    const { discoverAndApply } = await import("./lint-discover-lib")
+    const discovered = await discoverAndApply(baselineRunId)
+    if (discovered > 0) {
+      console.log(`  Added ${discovered} new lint patterns. Re-running baseline...\n`)
+      const rebaseRunId = await createRun("lint-improve", seeds.length.toString(), "baseline-post-discovery", experimentId)
+      const newBaseline = await takeLintSnapshot(currentPrompt, seeds, rebaseRunId)
+      console.log(`  Updated baseline: ${newBaseline.totalIssues} total, ${newBaseline.totalAfterFix} persistent\n`)
+      Object.assign(baseline, newBaseline)
+    } else {
+      console.log("  No new patterns discovered.\n")
+    }
+  }
 
   let activePrompt = currentPrompt
   let currentSnapshot = baseline
