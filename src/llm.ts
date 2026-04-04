@@ -267,6 +267,9 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
       const completionTokens = requestResult.usage.completion_tokens
       const tps = latency > 0 ? Math.round(completionTokens / (latency / 1000)) : 0
 
+      const promptTokens = requestResult.usage.prompt_tokens
+      const cost = getTokenCost(providerName, model, promptTokens, completionTokens)
+
       const entry: LLMCallLogEntry = {
         timestamp: new Date().toISOString(),
         agent: config.agentName ?? "unknown",
@@ -276,10 +279,11 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
         systemPromptLength: config.systemPrompt.length,
         userPromptLength: config.userPrompt.length,
         contentPreview: content.slice(0, 200),
-        promptTokens: requestResult.usage.prompt_tokens,
+        promptTokens,
         completionTokens,
         totalLatencyMs: Math.round(latency),
         tokensPerSec: tps,
+        cost,
         jsonExtractionSuccess, jsonExtractionRetried,
         zodValidationSuccess, zodErrors,
         httpAttempts: requestResult.httpAttempts,
@@ -301,6 +305,7 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
           completionTokens: entry.completionTokens,
           latencyMs: entry.totalLatencyMs,
           tokensPerSec: entry.tokensPerSec,
+          cost: entry.cost,
           status: "complete",
         },
       })

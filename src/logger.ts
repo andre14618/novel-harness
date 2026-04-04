@@ -55,6 +55,7 @@ export interface LLMCallLogEntry {
   jsonExtractionRetried: boolean
   zodValidationSuccess: boolean
   zodErrors: string[]
+  cost: number
   httpAttempts: number
   retryErrors: Array<{ status: number; delay: number }>
 }
@@ -75,7 +76,7 @@ export async function logLLMCallStructured(novelId: string, entry: LLMCallLogEnt
     promptTokens: entry.promptTokens,
     completionTokens: entry.completionTokens,
     latencyMs: entry.totalLatencyMs,
-    cost: 0, // cost is computed in callAgent already — we store tokens and can recompute
+    cost: entry.cost ?? 0,
     jsonExtractionSuccess: entry.jsonExtractionSuccess,
     jsonExtractionRetried: entry.jsonExtractionRetried,
     zodValidationSuccess: entry.zodValidationSuccess,

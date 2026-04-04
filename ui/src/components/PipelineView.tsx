@@ -57,7 +57,7 @@ interface TimelineEntry {
   config?: { provider: string; model: string; temperature?: number }
   wordCount?: number
   issueCount?: number
-  llm?: { provider: string; model: string; promptTokens: number; completionTokens: number; latencyMs: number; tokensPerSec: number }
+  llm?: { provider: string; model: string; promptTokens: number; completionTokens: number; latencyMs: number; tokensPerSec: number; cost: number }
 }
 
 export function PipelineView() {
@@ -118,6 +118,7 @@ export function PipelineView() {
             completionTokens: e.data.completionTokens as number,
             latencyMs: e.data.latencyMs as number,
             tokensPerSec: e.data.tokensPerSec as number,
+            cost: e.data.cost as number ?? 0,
           },
         })
       } else if (e.type === "progress") {
@@ -324,6 +325,7 @@ export function PipelineView() {
                     <span className="config-tag">{entry.llm.promptTokens}+{entry.llm.completionTokens} tok</span>
                     <span className="config-tag">{(entry.llm.latencyMs / 1000).toFixed(1)}s</span>
                     <span className="config-tag">{entry.llm.tokensPerSec} t/s</span>
+                    {entry.llm.cost > 0 && <span className="config-tag" style={{ color: "#4ecca3" }}>${entry.llm.cost.toFixed(4)}</span>}
                   </div>
                 )}
                 {entry.wordCount !== undefined && (
@@ -355,6 +357,21 @@ export function PipelineView() {
 
         <div ref={timelineEndRef} />
       </div>
+
+      {/* Running totals */}
+      {(() => {
+        const llmEntries = timeline.filter(e => e.llm)
+        if (llmEntries.length === 0) return null
+        const totalCost = llmEntries.reduce((sum, e) => sum + (e.llm?.cost ?? 0), 0)
+        const totalTokens = llmEntries.reduce((sum, e) => sum + (e.llm?.promptTokens ?? 0) + (e.llm?.completionTokens ?? 0), 0)
+        return (
+          <div style={{ display: "flex", gap: "1rem", fontSize: "0.8rem", color: "#8b949e", marginBottom: "1rem", padding: "0.5rem 0", borderTop: "1px solid #30363d" }}>
+            <span><strong style={{ color: "#4ecca3" }}>${totalCost.toFixed(4)}</strong> total cost</span>
+            <span>{totalTokens.toLocaleString()} total tokens</span>
+            <span>{llmEntries.length} LLM calls</span>
+          </div>
+        )
+      })()}
 
       <div style={{ marginTop: "1rem" }}>
         <EventLog events={events} connected={connected} />
