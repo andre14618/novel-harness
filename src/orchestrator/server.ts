@@ -243,7 +243,7 @@ async function buildOperationsConfig() {
     return out
   })
 
-  const allModels = MODELS.map(m => ({ label: m.label, id: m.id, provider: m.provider }))
+  const allModels = MODELS.map(m => ({ label: m.label, id: m.id, provider: m.provider, pricing: m.pricing }))
   const allProviders = Object.keys(PROVIDERS)
 
   return { seeds, fixtures, benchmarks, envVars, targets: Object.keys(TARGETS), models: allModels, providers: allProviders }
@@ -526,9 +526,15 @@ function onSuiteChange() {
         // Model select
         infoHtml += '<select id="' + mid + '" data-agent="' + a.effectiveName + '" style="width:auto;font-size:0.8rem;padding:3px 6px">'
         config.models.filter(function(m) { return m.provider === a.provider }).forEach(function(m) {
-          infoHtml += '<option value="' + m.id + '"' + (m.id === a.model ? ' selected' : '') + '>' + m.label + '</option>'
+          var price = m.pricing ? ' ($' + m.pricing.input + '/' + m.pricing.output + ')' : ''
+          infoHtml += '<option value="' + m.id + '"' + (m.id === a.model ? ' selected' : '') + '>' + m.label + price + '</option>'
         })
         infoHtml += '</select>'
+        // Show current pricing
+        var curModel = config.models.find(function(m) { return m.id === a.model && m.provider === a.provider })
+        if (curModel && curModel.pricing) {
+          infoHtml += '<span id="agent-price-' + idx + '" style="color:#4ecca3;font-size:0.75rem">$' + curModel.pricing.input + '/$' + curModel.pricing.output + ' per 1M</span>'
+        }
         infoHtml += '<span id="agent-save-' + idx + '" style="color:#555;font-size:0.75rem"></span>'
         infoHtml += '</div></div>'
       })
@@ -536,6 +542,7 @@ function onSuiteChange() {
 
     // Judge — editable
     if (bench.judge) {
+      var judgeModel = config.models.find(function(m) { return m.id === bench.judge.model && m.provider === bench.judge.provider })
       infoHtml += '<div style="margin-bottom:0.3rem"><span style="color:#e2b714">Judge:</span>'
       infoHtml += '<div style="display:flex;gap:0.4rem;margin-top:0.3rem;align-items:center;flex-wrap:wrap">'
       infoHtml += '<select id="judge-provider" style="width:auto;font-size:0.8rem;padding:3px 6px">'
@@ -545,9 +552,13 @@ function onSuiteChange() {
       infoHtml += '</select>'
       infoHtml += '<select id="judge-model" style="width:auto;font-size:0.8rem;padding:3px 6px">'
       config.models.filter(function(m) { return m.provider === bench.judge.provider }).forEach(function(m) {
-        infoHtml += '<option value="' + m.id + '"' + (m.id === bench.judge.model ? ' selected' : '') + '>' + m.label + '</option>'
+        var price = m.pricing ? ' ($' + m.pricing.input + '/' + m.pricing.output + ')' : ''
+        infoHtml += '<option value="' + m.id + '"' + (m.id === bench.judge.model ? ' selected' : '') + '>' + m.label + price + '</option>'
       })
       infoHtml += '</select>'
+      if (judgeModel && judgeModel.pricing) {
+        infoHtml += '<span id="judge-price" style="color:#4ecca3;font-size:0.75rem">$' + judgeModel.pricing.input + '/$' + judgeModel.pricing.output + ' per 1M</span>'
+      }
       infoHtml += '<span id="judge-save-status" style="color:#555;font-size:0.75rem"></span>'
       infoHtml += '</div></div>'
     }
@@ -556,21 +567,35 @@ function onSuiteChange() {
     container.innerHTML += infoHtml
 
     // Wire provider changes to update model dropdowns + save via API
-    function wireAgentDropdowns(providerId, modelId, statusId, agentName) {
+    function wireAgentDropdowns(providerId, modelId, statusId, agentName, priceId) {
       const pSel = document.getElementById(providerId)
       const mSel = document.getElementById(modelId)
       const status = document.getElementById(statusId)
+      const priceEl = document.getElementById(priceId)
       if (!pSel || !mSel) return
+
+      function updatePrice() {
+        if (!priceEl) return
+        var m = config.models.find(function(x) { return x.id === mSel.value && x.provider === pSel.value })
+        if (m && m.pricing) {
+          priceEl.textContent = '$' + m.pricing.input + '/$' + m.pricing.output + ' per 1M'
+        } else {
+          priceEl.textContent = ''
+        }
+      }
 
       pSel.addEventListener('change', function() {
         const provider = pSel.value
         mSel.innerHTML = ''
         config.models.filter(function(m) { return m.provider === provider }).forEach(function(m) {
-          mSel.innerHTML += '<option value="' + m.id + '">' + m.label + '</option>'
+          var price = m.pricing ? ' ($' + m.pricing.input + '/' + m.pricing.output + ')' : ''
+          mSel.innerHTML += '<option value="' + m.id + '">' + m.label + price + '</option>'
         })
+        updatePrice()
         saveAgentConfig(agentName, { provider: provider, model: mSel.value }, status)
       })
       mSel.addEventListener('change', function() {
+        updatePrice()
         saveAgentConfig(agentName, { provider: pSel.value, model: mSel.value }, status)
       })
     }
@@ -593,11 +618,11 @@ function onSuiteChange() {
 
     if (bench.agentsUnderTest) {
       bench.agentsUnderTest.forEach(function(a, idx) {
-        wireAgentDropdowns('agent-provider-' + idx, 'agent-model-' + idx, 'agent-save-' + idx, a.effectiveName)
+        wireAgentDropdowns('agent-provider-' + idx, 'agent-model-' + idx, 'agent-save-' + idx, a.effectiveName, 'agent-price-' + idx)
       })
     }
     if (bench.judge) {
-      wireAgentDropdowns('judge-provider', 'judge-model', 'judge-save-status', 'benchmark-judge')
+      wireAgentDropdowns('judge-provider', 'judge-model', 'judge-save-status', 'benchmark-judge', 'judge-price')
     }
   }
 
