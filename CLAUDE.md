@@ -53,20 +53,23 @@ State machine: concept → planning → drafting → validation → done
 **Central DB** (Postgres `novel_harness_orchestrator` on LXC, schema in `sql/`, connection in `data/connection.ts`) — all experiments, runs, generations, scores, lint issues, batch tracking, pairwise matchups, improvement cycles. Single source of truth.
 
 **Orchestrator** (`src/orchestrator/`, runs on LXC 307 at 192.168.1.108):
-- Single Bun service on port 3006 combining batch polling, improvement daemon, dashboard, React UI, and API
+- Single Bun service on port 3006 combining batch polling, improvement daemon, React UI, and API
 - Entry point: `bun src/orchestrator/server.ts`
 - Postgres DB: `novel_harness_orchestrator` (schema in `sql/`)
 - ntfy on port 2586 (self-hosted email notifications to andre14618@gmail.com)
 - SSH: `novel-harness-lxc` (via ProxyJump proxmox)
-- Dashboard: `http://novel-harness-lxc:3006/?key=<ORCHESTRATOR_API_KEY>`
 - Focused improvement: runs locked experiments on a single target/dimension, proposes prompt changes, benchmarks, keeps/reverts. Cross-experiment linking surfaces prior conclusions to the proposer. Manual trigger only (`POST /api/improvement/start`).
 - Per-experiment limits (max iterations, optional cost cap) set at start time. Real costs tracked from llm_calls.
 
-**Web UI** (`ui/`, React + Vite, served at `/app` on the orchestrator):
-- **Novel List** (`/app`) — start novels from custom input (premise, genre, characters) or seed files. Resume stalled runs. Archive completed novels.
+**Web UI** (`ui/`, React + Vite, served at `/app` on the orchestrator — single SPA with shared nav):
+- **Novels** (`/app`) — start novels from custom input (premise, genre, characters) or seed files. Resume stalled runs. Archive completed novels.
 - **Pipeline View** (`/app/:novelId`) — conversational timeline showing each phase, agent, and LLM call in real-time via SSE. Gate panels (approve/revise/reject) appear inline. Each LLM call shows provider, model, tokens, latency, tokens/sec, and cost.
 - **Config** (`/app/config`) — per-agent model switching. Inline dropdowns for provider/model/temperature on every agent, grouped by role. Changes apply immediately via runtime overrides; "Save to File" persists to `models/roles.ts`.
 - **Experiments** (`/app/experiments`) — unified view of all benchmark runs and improvement cycles. Grouped by target/dimension with scores, cost, iterations, conclusions, and cross-experiment lineage links.
+- **Operations** (`/app/operations`) — benchmark runner with inline model/judge switching, improvement daemon controls with dimension locking, active process list.
+- **Dashboard** (`/app/dashboard`) — daemon status, orchestrator stats, active runs, recent batches. Auto-refreshes.
+- **Guide** (`/app/guide`) — full-flow documentation: pipeline phases, agent roles, benchmark suites, cost tracking, architecture diagram.
+- Legacy routes `/` and `/panel` redirect to `/app/dashboard` and `/app/operations`.
 
 **Gate abstraction** (`src/gates.ts`, `src/events.ts`):
 - Decouples pipeline approval gates from stdin. `presentForApproval()` creates a pending gate as a Promise; resolved by CLI readline (terminal), web API POST (browser), or immediately (auto mode).
@@ -168,9 +171,7 @@ bun test
 - **App dir**: `/home/andre/apps/novel-harness`
 - **Backups**: nightly Postgres dump + container snapshot (automated on Proxmox host)
 - **Deploy**: `bash scripts/deploy-lxc.sh` (rsync + restart)
-- **Dashboard**: `http://novel-harness:3006/?key=<ORCHESTRATOR_API_KEY>`
-- **Operations panel**: `http://novel-harness:3006/panel?key=<ORCHESTRATOR_API_KEY>`
-- **Novel UI**: `http://novel-harness:3006/app?key=<ORCHESTRATOR_API_KEY>`
+- **Web UI**: `http://novel-harness:3006/app?key=<ORCHESTRATOR_API_KEY>` (all pages under /app)
 
 ## Seeds
 
