@@ -48,6 +48,9 @@ Sending the flagged sentence alone failed — the LLM doesn't know the scene, ch
 2. LLM per-sentence with scene context: handles AI clichés and declared emotions (~30% of issues)
 3. Advisory only: patterns too integrated to fix in isolation stay as flags for the writer (~14%)
 
+### Lint patterns must be calibrated against published fiction — not all "bad writing" is an AI tell
+Ran all 73 regex lint patterns against 221k words of published fiction (Christie, Cather) and 254k words of AI prose. Many patterns fire equally or more on human prose: `perhaps/maybe` (0.9x), `seemed to` (0.3x), `sort/kind of` (0.4x), said bookisms like `murmured/exclaimed` (0.3x). These are general style advice, not AI tells. The real signals are patterns with ≥3x AI amplification: `silence stretched` (42x), `could feel` (10.5x), `wiped hands` (76x), `flicker of something` (3.5x). Patterns with ratio <1.5 should be disabled — they erode linter credibility by flagging normal English. **Validate every lint pattern against a human baseline before enabling it.** (Baseline script: `scripts/lint-baseline.ts`, 2026-04-04)
+
 ## Model Selection
 
 ### Cheap models match expensive models for mechanical tasks

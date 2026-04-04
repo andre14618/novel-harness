@@ -62,7 +62,7 @@ These three agents produce the foundation every downstream agent uses. All are a
 
 ## Infrastructure
 
-- [ ] **Lint false positive review** — 66 patterns, 0 reviewed for precision. Run lint on 2-3 recent novels, skim flagged instances, disable patterns that are mostly wrong. Hedging patterns (perhaps/maybe, sort of/kind of) are highest FP risk in dialogue and deep POV.
+- [x] **Lint false positive review** — Calibrated 73 patterns against 221k words published fiction (Christie, Cather) vs 254k words AI prose. Disabled 23 patterns with AI/human ratio <1.5 (hedges, said bookisms, common transitions, redundancies AI already avoids). 50 patterns remain — all genuine AI signals (≥1.5x amplification or AI-only). Added baseline script `scripts/lint-baseline.ts` and lesson to `docs/lessons-learned.md` (2026-04-04).
 
 - [ ] **Batch API routing** — Transport layer supports batch mode but untested outside prose runner. DeepSeek has no batch API (fixed: daemon no longer defaults to --batch). Batch still available for OpenAI/Groq judges via `--batch` flag with `BATCH_PROVIDER=openai`.
 

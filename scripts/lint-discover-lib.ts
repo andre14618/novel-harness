@@ -12,7 +12,7 @@ import db from "../data/connection"
 import { getTransport } from "../src/transport"
 import { extractJSON } from "../src/llm"
 import { getModelForAgent } from "../models/roles"
-import { CONCEPTS, loadConceptContext, type LintConcept } from "../src/lint/concepts"
+import { CONCEPTS, loadConceptContext, isHeuristicOnly, type LintConcept } from "../src/lint/concepts"
 
 const AGENT_PROMPT = readFileSync(
   new URL("../src/agents/lint-discoverer/prompt.md", import.meta.url).pathname, "utf-8",
@@ -52,6 +52,12 @@ async function discoverForConcept(
   concept: LintConcept,
   proseSamples: string[],
 ): Promise<number> {
+  // Skip concepts where ALL categories are heuristic-only (no regex patterns possible)
+  if (concept.categories.every(isHeuristicOnly)) {
+    console.log(`  [${concept.id}] Skipped — all categories are heuristic-only`)
+    return 0
+  }
+
   const improver = getModelForAgent("improver")
   if (!improver) return 0
 
@@ -104,6 +110,10 @@ async function discoverForConcept(
     if (existing.length > 0) { console.log(`    Skip duplicate regex: ${p.name}`); continue }
 
     const category = p.category || concept.categories[0]
+    if (isHeuristicOnly(category)) {
+      console.log(`    Skip heuristic-only category: ${category} — ${p.name}`)
+      continue
+    }
     await db`
       INSERT INTO lint_patterns (tier, category, pattern, flags, fix_template, dialogue_ok, enabled, rationale)
       VALUES (${p.tier || 2}, ${category}, ${p.regex}, ${p.regexFlags || "gi"}, ${p.fixTemplate}, ${p.dialogueOk || false}, true, ${(p.craftCitation || concept.craftSource) + ". " + (p.description || p.name)})

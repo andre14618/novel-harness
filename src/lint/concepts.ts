@@ -135,6 +135,18 @@ export function loadConceptContext(concept: LintConcept): string {
   return context
 }
 
+/** Categories that use heuristic detectors — regex patterns are meaningless for these */
+export const HEURISTIC_ONLY_CATEGORIES = new Set([
+  "RHYTHM_MONOTONY",
+  "PARAGRAPH_HOMOGENEITY",
+  "EMOTIONAL_ECHO",
+])
+
+/** Returns true if a category should only use heuristic detection, not regex */
+export function isHeuristicOnly(category: string): boolean {
+  return HEURISTIC_ONLY_CATEGORIES.has(category)
+}
+
 /** Get concept by lint category name */
 export function getConceptForCategory(category: string): LintConcept | undefined {
   return CONCEPTS.find(c => c.categories.includes(category))

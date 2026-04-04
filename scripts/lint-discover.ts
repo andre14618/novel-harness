@@ -27,6 +27,7 @@ import { getTransport } from "../src/transport"
 import { extractJSON } from "../src/llm"
 import { getModelForAgent } from "../models/roles"
 import { createTuningExperiment, concludeExperiment } from "../data/db"
+import { isHeuristicOnly } from "../src/lint/concepts"
 
 const HARNESS_ROOT = new URL("..", import.meta.url).pathname.replace(/\/$/, "")
 
@@ -277,6 +278,9 @@ function validatePattern(pattern: ProposedPattern, proseSamples: string[]): Vali
 // ── Integrate: add validated pattern to DB ────────────────────────────────
 
 async function addPatternToDb(pattern: ProposedPattern): Promise<number> {
+  if (isHeuristicOnly(pattern.category)) {
+    throw new Error(`Category "${pattern.category}" is heuristic-only — regex patterns are not valid for it`)
+  }
   const [row] = await db`
     INSERT INTO lint_patterns (tier, category, pattern, flags, fix_template, dialogue_ok, enabled, rationale, edge_cases)
     VALUES (
