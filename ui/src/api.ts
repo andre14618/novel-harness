@@ -88,7 +88,18 @@ export function decideGate(novelId: string, gateId: string, action: "approve" | 
   })
 }
 
+export function getNovelConfig() {
+  return fetchJSON<NovelConfig>("/api/novel/config")
+}
+
 // Types
+export interface NovelConfig {
+  models: { label: string; id: string; provider: string }[]
+  providers: string[]
+  agentRoles: Record<string, string[]>
+  assignments: Record<string, { provider: string; model: string; temperature?: number; maxTokens?: number }>
+}
+
 export interface NovelListItem {
   id: string
   phase: string
