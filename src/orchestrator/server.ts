@@ -33,6 +33,30 @@ function checkAuth(req: Request): Response | null {
 
 // ── Dashboard HTML ──────────────────────────────────────────────────────
 
+function navBarHtml(activePage: "dashboard" | "panel" | "novels" | "config" | "experiments" | "guide"): string {
+  const items = [
+    { id: "novels", label: "Novels", href: "/app" },
+    { id: "config", label: "Config", href: "/app/config" },
+    { id: "experiments", label: "Experiments", href: "/app/experiments" },
+    { id: "guide", label: "Guide", href: "/app/guide" },
+    { id: "dashboard", label: "Dashboard", href: "/" },
+    { id: "panel", label: "Operations", href: "/panel" },
+  ]
+  const links = items.map(i => {
+    const cls = i.id === activePage ? "nav-active" : ""
+    const href = i.href + (i.href.includes("?") ? "&" : "?") + "key=" + "' + encodeURIComponent(key) + '"
+    return `<a href="${i.href}?key=' + encodeURIComponent(key) + '" class="nh-nav-link ${cls}">${i.label}</a>`
+  }).join("")
+  return `<nav class="nh-nav">${links}</nav>`
+}
+
+const NAV_CSS = `
+  .nh-nav { display: flex; align-items: center; gap: 2px; background: #16213e; border: 1px solid #0f3460; border-radius: 6px; padding: 3px; margin-bottom: 1.5rem; overflow-x: auto; }
+  .nh-nav-link { padding: 6px 14px; border-radius: 4px; font-size: 0.82rem; color: #8b949e; text-decoration: none; white-space: nowrap; transition: all 0.15s; font-family: monospace; }
+  .nh-nav-link:hover { color: #e0e0e0; background: #0d1117; }
+  .nh-nav-link.nav-active { color: #4ecca3; background: #0d1117; font-weight: bold; }
+`
+
 function dashboardHtml(): string {
   return `<!DOCTYPE html>
 <html><head>
@@ -42,6 +66,7 @@ function dashboardHtml(): string {
 <style>
   body { font-family: monospace; background: #1a1a2e; color: #e0e0e0; padding: 2rem; max-width: 900px; margin: 0 auto; }
   h1 { color: #4ecca3; font-size: 1.4rem; }
+  ${NAV_CSS}
   h2 { color: #4ecca3; font-size: 1.1rem; margin-top: 2rem; }
   .card { background: #16213e; border: 1px solid #0f3460; border-radius: 8px; padding: 1rem; margin: 1rem 0; }
   .status { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.85rem; }
@@ -58,8 +83,9 @@ function dashboardHtml(): string {
   .refresh { font-size: 0.8rem; color: #888; }
 </style>
 </head><body>
+<script>const key = new URLSearchParams(location.search).get('key') || ''</script>
+${navBarHtml("dashboard")}
 <h1>Novel Harness Orchestrator</h1>
-<p style="margin-bottom:1rem"><a id="panel-link" href="/panel" style="color:#58a6ff">Operations Panel &rarr;</a></p>
 <p class="refresh">Auto-refreshes every 30s. <button onclick="location.reload()">Refresh now</button>
   <button onclick="fetch('/api/poll',{method:'POST',headers:{'x-api-key':key}}).then(()=>setTimeout(()=>location.reload(),2000))">Poll now</button>
   <button onclick="fetch('/api/improvement/start',{method:'POST',headers:{'x-api-key':key}}).then(()=>setTimeout(()=>location.reload(),2000))">Start improvement</button>
@@ -867,14 +893,14 @@ const server = Bun.serve({
     const url = new URL(req.url)
     const path = url.pathname
 
-    // Dashboard — unauthenticated (key passed as query param for API calls)
+    // Redirect legacy pages to React app
     if (path === "/" && req.method === "GET") {
-      return new Response(dashboardHtml(), { headers: { "Content-Type": "text/html" } })
+      const key = url.searchParams.get("key") ?? ""
+      return Response.redirect(`/app/dashboard?key=${encodeURIComponent(key)}`, 302)
     }
-
-    // Panel — unauthenticated (key passed as query param for API calls)
     if (path === "/panel" && req.method === "GET") {
-      return new Response(panelHtml(), { headers: { "Content-Type": "text/html" } })
+      const key = url.searchParams.get("key") ?? ""
+      return Response.redirect(`/app/operations?key=${encodeURIComponent(key)}`, 302)
     }
 
     // Health — unauthenticated
