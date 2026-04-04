@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom"
 import { NovelList } from "./components/NovelList"
 import { PipelineView } from "./components/PipelineView"
 import { ConfigPage } from "./components/ConfigPage"
+import { ExperimentsPage } from "./components/ExperimentsPage"
 import "./styles/app.css"
 
 createRoot(document.getElementById("root")!).render(
@@ -12,6 +13,7 @@ createRoot(document.getElementById("root")!).render(
       <Routes>
         <Route path="/" element={<NovelList />} />
         <Route path="/config" element={<ConfigPage />} />
+        <Route path="/experiments" element={<ExperimentsPage />} />
         <Route path="/:novelId" element={<PipelineView />} />
       </Routes>
     </BrowserRouter>

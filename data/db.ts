@@ -878,6 +878,42 @@ export async function getExperimentLintSummary(experimentId: number): Promise<Ar
   ` as any[]
 }
 
+/** Unified experiment list — merges benchmark + improvement experiments */
+export async function getAllExperiments(limit: number = 50): Promise<any[]> {
+  return await db`
+    SELECT
+      te.id,
+      te.experiment_type as type,
+      te.description,
+      te.target,
+      te.dimension,
+      te.conclusion,
+      te.timestamp,
+      ic.id as cycle_id,
+      ic.status as cycle_status,
+      ic.total_iterations,
+      ic.kept_count,
+      ic.total_cost_usd as cycle_cost,
+      ic.dimension_locked,
+      (SELECT COUNT(*) FROM runs r WHERE r.experiment_id = te.id) as run_count,
+      (SELECT ROUND(SUM(lc.cost)::numeric, 6)::float FROM llm_calls lc JOIN runs r ON r.id = lc.run_id WHERE r.experiment_id = te.id) as total_cost,
+      (SELECT json_agg(json_build_object('dimension', sub.dimension, 'avg_score', sub.avg_score))
+       FROM (
+         SELECT s.dimension, ROUND(AVG(s.score)::numeric, 2)::float as avg_score
+         FROM scores s
+         JOIN generations g ON g.id = s.generation_id
+         JOIN runs r ON r.id = g.run_id
+         WHERE r.experiment_id = te.id AND g.passed = true
+         GROUP BY s.dimension
+       ) sub
+      ) as scores
+    FROM tuning_experiments te
+    LEFT JOIN improvement_cycles ic ON ic.experiment_id = te.id
+    ORDER BY te.id DESC
+    LIMIT ${limit}
+  `
+}
+
 export async function getExperimentCost(experimentId: number): Promise<Array<{
   variantLabel: string; totalCost: number; totalCalls: number
 }>> {

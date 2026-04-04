@@ -980,6 +980,39 @@ const server = Bun.serve({
       return Response.json({ ...state, active_batches: activeBatches.length, total_batches: active.length })
     }
 
+    // ── Experiments (unified) ─────────────────────────────────────
+    if (path === "/api/experiments" && req.method === "GET") {
+      try {
+        const { getAllExperiments } = await import("../../data/db")
+        const limit = parseInt(url.searchParams.get("limit") ?? "50")
+        return Response.json(await getAllExperiments(limit))
+      } catch (err) {
+        return Response.json({ error: String(err) }, { status: 500 })
+      }
+    }
+
+    const experimentDetailMatch = path.match(/^\/api\/experiments\/(\d+)$/)
+    if (experimentDetailMatch && req.method === "GET") {
+      try {
+        const id = parseInt(experimentDetailMatch[1])
+        const { getExperimentRuns, getExperimentScores, getExperimentCost, getExperimentLintSummary } = await import("../../data/db")
+        const [runs, scores, cost, lint] = await Promise.all([
+          getExperimentRuns(id), getExperimentScores(id), getExperimentCost(id), getExperimentLintSummary(id),
+        ])
+        // Get lineage
+        const lineage = await (await import("./db")).default`
+          SELECT el.*, te.description, te.target, te.dimension
+          FROM experiment_lineage el
+          JOIN tuning_experiments te ON te.id = el.parent_experiment_id
+          WHERE el.experiment_id = ${id}
+          ORDER BY el.created_at
+        `
+        return Response.json({ runs, scores, cost, lint, lineage })
+      } catch (err) {
+        return Response.json({ error: String(err) }, { status: 500 })
+      }
+    }
+
     // ── Improvement ─────────────────────────────────────────────────
     if (path === "/api/improvement/status" && req.method === "GET") {
       return Response.json(await getDaemonStatus())

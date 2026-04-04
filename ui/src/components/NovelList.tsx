@@ -118,6 +118,7 @@ export function NovelList() {
         <nav>
           <a href={`/?key=${key}`}>Dashboard</a>
           <Link to={`/config${window.location.search}`}>Config</Link>
+          <Link to={`/experiments${window.location.search}`}>Experiments</Link>
           <a href={`/panel?key=${key}`}>Operations</a>
         </nav>
       </div>

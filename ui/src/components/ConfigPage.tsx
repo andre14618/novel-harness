@@ -89,6 +89,7 @@ export function ConfigPage() {
         <h1>Agent Configuration</h1>
         <nav>
           <Link to={`/${window.location.search}`}>Novel UI</Link>
+          <Link to={`/experiments${window.location.search}`}>Experiments</Link>
           <a href={`/?key=${key}`}>Dashboard</a>
         </nav>
       </div>
