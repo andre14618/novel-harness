@@ -132,7 +132,12 @@ export async function fixLintIssues(
     }
 
     if (!fixed) {
-      needsLlm.push(issue)
+      // Rhythm/paragraph issues can't be fixed per-sentence — skip for now
+      if (issue.category === "RHYTHM_MONOTONY" || issue.category === "PARAGRAPH_HOMOGENEITY") {
+        unfixed++
+      } else {
+        needsLlm.push(issue)
+      }
     }
   }
 
@@ -171,15 +176,22 @@ export async function fixLintIssues(
 
       try {
         const response = await getTransport().execute({
-          systemPrompt: "Fix the flagged patterns in the TARGET SENTENCE. Use the surrounding scene context to ground your replacement in specific physical details from the scene. Return ONLY the corrected sentence — no JSON, no explanation, no quotes. Preserve everything else in the sentence exactly.",
+          systemPrompt: "Fix the flagged patterns in the TARGET SENTENCE. Use the surrounding scene context to ground your replacement in specific physical details from the scene. Preserve everything else exactly. Return JSON: {\"fixed\": \"the corrected sentence\"}",
           userPrompt: `PATTERNS TO FIX:\n${issueList}\n\n${context ? `SCENE CONTEXT:\n${context}\n\n` : ""}TARGET SENTENCE:\n${sentence}`,
           model: llmConfig.model,
           provider: llmConfig.provider as any,
           temperature: llmConfig.temperature ?? 0.2,
           maxTokens: 512,
+          responseFormat: { type: "json_object" },
         })
 
-        const fixed = response.content.trim().replace(/^["']|["']$/g, "")
+        let fixed: string
+        try {
+          const json = JSON.parse(response.content)
+          fixed = (json.fixed ?? json.sentence ?? json.result ?? "").trim()
+        } catch {
+          fixed = response.content.trim().replace(/^["']|["']$/g, "")
+        }
         llmCalls++
 
         const promptTokens = response.usage?.prompt_tokens ?? 0
@@ -198,7 +210,8 @@ export async function fixLintIssues(
         } else {
           unfixed += sentenceIssues.length
         }
-      } catch {
+      } catch (err) {
+        console.log(`  [lint-fix] LLM error: ${err instanceof Error ? err.message : err}`)
         unfixed += sentenceIssues.length
       }
     }
