@@ -16,7 +16,7 @@ Code lives locally (canonical git repo). LXC 307 is the runtime — all benchmar
 - Runtime: Bun
 - LLM: Configurable per-agent via `models/roles.ts`. Five providers: Cerebras, Groq, OpenRouter, OpenAI, DeepSeek.
 - DB: Postgres (`novel_harness_orchestrator` on LXC — all harness + orchestrator tables), per-novel SQLite (`output/novel-*/novel.db`)
-- Transport: `src/transport.ts` — pluggable layer beneath all LLM calls (direct, batch, prefix-cache)
+- Transport: `src/transport.ts` — pluggable layer beneath all LLM calls (direct, batch)
 - Interface: React UI (`/app`), CLI, orchestrator dashboard (`/`), operations panel (`/panel`)
 
 ## Architecture
@@ -47,8 +47,7 @@ State machine: concept → planning → drafting → validation → done
 **Transport layer** (`src/transport.ts`) — sits beneath `callAgent()`, `generateProse()`, `judgeDimension()`:
 - `DirectTransport` — standard real-time HTTP with retries (default)
 - `BatchTransport` — queues requests, submits via provider batch API (50% off)
-- `PrefixCacheTransport` — serializes same-system-prompt calls per provider cache strategy
-- Provider caching config lives in `models/registry.ts` (`cache` + `batchApi` fields on `ProviderDef`)
+- Provider prefix caching (OpenAI 90% off, DeepSeek 95% off) happens automatically — no transport intervention needed. Cache metadata on `ProviderDef` in `models/registry.ts` for cost estimation.
 
 **Central DB** (Postgres `novel_harness_orchestrator` on LXC, schema in `sql/`, connection in `data/connection.ts`) — all experiments, runs, generations, scores, lint issues, batch tracking, pairwise matchups, improvement cycles. Single source of truth.
 
@@ -100,6 +99,7 @@ State machine: concept → planning → drafting → validation → done
 5. **One change per commit.** See `docs/commit-conventions.md` for message format.
 6. **Improvement loop auto-commits** kept changes AND reverted attempts — every attempt is in git history.
 7. **Deploy after commit.** Run `bash scripts/deploy-lxc.sh` to sync code to LXC.
+8. **Every experiment links to a git commit.** `createTuningExperiment()` automatically captures `git rev-parse HEAD` into `tuning_experiments.commit_hash`. This enables: (a) querying "what code produced this result", (b) reverting to the exact state that produced a good/bad experiment, (c) comparing experiments across code changes. **Commit prompt/rubric/agent changes BEFORE running experiments** so the hash is meaningful — an experiment run against uncommitted changes can't be reproduced.
 
 ## Running
 
@@ -157,7 +157,7 @@ bun test
 | `EXPERIMENT_ID` | prose run.ts | Link run to an experiment |
 | `BATCH_PROVIDER` | prose --batch | Batch API provider (default: openai) |
 | `BATCH_MODEL` | prose --batch | Batch judge model (default: gpt-5.4-mini) |
-| `LLM_TRANSPORT` | all LLM calls | Transport mode: `direct` (default), `cache`, `batch` |
+| `LLM_TRANSPORT` | all LLM calls | Transport mode: `direct` (default), `batch` |
 | `DATABASE_URL` | all (harness + orchestrator) | Postgres connection string (fallback: ORCHESTRATOR_DB_URL) |
 | `IMPROVEMENT_MAX_ITERATIONS` | daemon | Default max iterations per experiment (default: 15) |
 

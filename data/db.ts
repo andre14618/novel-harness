@@ -752,13 +752,22 @@ export async function getAgentStats(): Promise<Array<{
 
 // ── Tuning experiments ──────────────────────────────────────────────────
 
+async function getGitCommitHash(): Promise<string | null> {
+  try {
+    const proc = Bun.spawn(["git", "rev-parse", "HEAD"], { stdout: "pipe", stderr: "ignore" })
+    const text = await new Response(proc.stdout).text()
+    return text.trim().slice(0, 12) || null
+  } catch { return null }
+}
+
 export async function createTuningExperiment(
   type: string, description: string, config: Record<string, any>,
   opts?: { target?: string; dimension?: string },
 ): Promise<number> {
+  const commitHash = await getGitCommitHash()
   const [result] = await db`
-    INSERT INTO tuning_experiments (experiment_type, description, config, target, dimension)
-    VALUES (${type}, ${description}, ${config}, ${opts?.target ?? null}, ${opts?.dimension ?? null})
+    INSERT INTO tuning_experiments (experiment_type, description, config, target, dimension, commit_hash)
+    VALUES (${type}, ${description}, ${config}, ${opts?.target ?? null}, ${opts?.dimension ?? null}, ${commitHash})
     RETURNING id
   `
   return (result as any).id as number
