@@ -17,7 +17,8 @@
 
 import { parseArgs } from "node:util"
 import { getPairwiseJudge } from "../config"
-import { getCentralDB, createTuningExperiment, savePairwiseMatchup, getPairwiseResults } from "../../data/db"
+import db from "../../data/connection"
+import { createTuningExperiment, savePairwiseMatchup, getPairwiseResults } from "../../data/db"
 import { runMatchup } from "./judge"
 
 const { values } = parseArgs({
@@ -38,25 +39,28 @@ const runB = parseInt(values["run-b"]!)
 const seedFilter = values.seeds?.split(",").map(s => s.trim())
 
 async function main() {
-  const db = getCentralDB()
   const judge = getPairwiseJudge()
 
   // Get run labels
-  const runAInfo = db.query<any, [number]>("SELECT label FROM runs WHERE id = ?").get(runA)
-  const runBInfo = db.query<any, [number]>("SELECT label FROM runs WHERE id = ?").get(runB)
+  const [runAInfo] = await db`SELECT label FROM runs WHERE id = ${runA}`
+  const [runBInfo] = await db`SELECT label FROM runs WHERE id = ${runB}`
   if (!runAInfo || !runBInfo) { console.error(`Run ${!runAInfo ? runA : runB} not found`); process.exit(1) }
 
   const labelA = `Run ${runA} (${runAInfo.label})`
   const labelB = `Run ${runB} (${runBInfo.label})`
 
   // Get generations for both runs, matched by seed
-  const gensA = db.query<any, [number]>(
-    "SELECT id, seed, prose, word_count FROM generations WHERE run_id = ? AND passed = true AND prose IS NOT NULL ORDER BY seed, attempt"
-  ).all(runA) as Array<{ id: number; seed: string; prose: string; word_count: number }>
+  const gensA = await db`
+    SELECT id, seed, prose, word_count FROM generations
+    WHERE run_id = ${runA} AND passed = true AND prose IS NOT NULL
+    ORDER BY seed, attempt
+  ` as Array<{ id: number; seed: string; prose: string; word_count: number }>
 
-  const gensB = db.query<any, [number]>(
-    "SELECT id, seed, prose, word_count FROM generations WHERE run_id = ? AND passed = true AND prose IS NOT NULL ORDER BY seed, attempt"
-  ).all(runB) as Array<{ id: number; seed: string; prose: string; word_count: number }>
+  const gensB = await db`
+    SELECT id, seed, prose, word_count FROM generations
+    WHERE run_id = ${runB} AND passed = true AND prose IS NOT NULL
+    ORDER BY seed, attempt
+  ` as Array<{ id: number; seed: string; prose: string; word_count: number }>
 
   // Group by seed
   const seedsA = new Map<string, typeof gensA>()
@@ -122,7 +126,7 @@ async function main() {
 
     // Save both directions
     if (matchup.forward) {
-      savePairwiseMatchup({
+      await savePairwiseMatchup({
         experimentId: expId,
         generationA: pair.genA.id, generationB: pair.genB.id,
         labelA, labelB, seed: pair.seed, judgeModel: judge.label,
@@ -134,7 +138,7 @@ async function main() {
       })
     }
     if (matchup.reverse) {
-      savePairwiseMatchup({
+      await savePairwiseMatchup({
         experimentId: expId,
         generationA: pair.genA.id, generationB: pair.genB.id,
         labelA, labelB, seed: pair.seed, judgeModel: judge.label,
