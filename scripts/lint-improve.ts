@@ -21,6 +21,7 @@ import { parseArgs } from "node:util"
 import { readFileSync, writeFileSync } from "node:fs"
 import { lintProse } from "../src/lint"
 import { fixLintIssues } from "../src/lint/fix"
+import { rewriteChapter } from "../src/lint/rewrite"
 import { getModelForAgent } from "../models/roles"
 import { createTuningExperiment, concludeExperiment } from "../data/db"
 import { createRun, saveGeneration, saveLLMCall } from "../benchmark/db"
@@ -99,13 +100,11 @@ async function takeLintSnapshot(writerPrompt: string, seeds: ReturnType<typeof l
     // Lint
     const lintResult = await lintProse(result.prose)
 
-    // Fix and measure persistent issues
+    // Batched rewrite: deterministic first, then one LLM call for all remaining
     const fixer = getModelForAgent("lint-fixer")
-    const fixResult = await fixLintIssues(
-      result.prose,
-      lintResult.issues,
-      fixer ? { provider: fixer.provider, model: fixer.model, temperature: fixer.temperature } : undefined,
-    )
+    const fixResult = fixer
+      ? await rewriteChapter(result.prose, lintResult.issues, { provider: fixer.provider, model: fixer.model, temperature: fixer.temperature })
+      : { prose: result.prose, deterministicFixes: 0, llmFixes: 0, unfixed: lintResult.totalIssues, totalIssues: lintResult.totalIssues, costUsd: 0, latencyMs: 0 }
     const afterFix = await lintProse(fixResult.prose)
 
     console.log(`  [${seed.name}:${run}] ${lintResult.totalIssues} issues → fixed ${fixResult.deterministicFixes}d+${fixResult.llmFixes}llm → ${afterFix.totalIssues} persistent`)
