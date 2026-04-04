@@ -444,6 +444,7 @@ function panelHtml(): string {
 <h2 title="Autonomous prompt tuning. Diagnoses weakest dimensions, proposes prompt changes, benchmarks, keeps/reverts.">Improvement Daemon <span style="color:#555;font-size:0.75rem">(?)</span></h2>
 <div class="card">
   <div id="daemon-status" style="margin-bottom:0.8rem"><span class="status idle">loading...</span></div>
+  <div id="imp-agents"></div>
   <div class="two-col">
     <div>
       <label for="imp-target" title="Which benchmark suite to improve.">Target <span style="color:#555;font-size:0.75rem">(?)</span></label>
@@ -660,13 +661,35 @@ function onSuiteChange() {
 function onTargetChange() {
   const target = document.getElementById('imp-target').value
   const dimSel = document.getElementById('imp-dimension')
+  const agentsDiv = document.getElementById('imp-agents')
   dimSel.innerHTML = '<option value="">auto (weakest)</option>'
+  agentsDiv.innerHTML = ''
   const bench = config.benchmarks[target]
   if (bench) {
     for (const d of bench.dimensions) {
       const lbl = bench.dimensionLabels[d] || d
       dimSel.innerHTML += '<option value="' + d + '">' + lbl + '</option>'
     }
+
+    // Show agents under test + judge
+    var html = '<div style="margin-bottom:0.8rem;padding:0.6rem;background:#0d1117;border:1px solid #30363d;border-radius:4px;font-size:0.8rem">'
+    if (bench.agentsUnderTest && bench.agentsUnderTest.length > 0) {
+      bench.agentsUnderTest.forEach(function(a) {
+        var m = config.models.find(function(x) { return x.id === a.model && x.provider === a.provider })
+        var price = m && m.pricing ? ' <span style="color:#4ecca3">$' + m.pricing.input + '/$' + m.pricing.output + '</span>' : ''
+        html += '<div style="margin-bottom:0.3rem"><span style="color:#4ecca3">Testing:</span> <strong>' + a.agentName + '</strong>'
+        html += ' <span style="color:#555">(' + a.provider + ' / ' + (a.label || a.model) + ', temp ' + a.temperature + ')</span>' + price + '</div>'
+      })
+    }
+    if (bench.judge) {
+      var jm = config.models.find(function(x) { return x.id === bench.judge.model && x.provider === bench.judge.provider })
+      var jp = jm && jm.pricing ? ' <span style="color:#4ecca3">$' + jm.pricing.input + '/$' + jm.pricing.output + '</span>' : ''
+      html += '<div><span style="color:#e2b714">Judge:</span> <strong>' + (bench.judge.label || bench.judge.model) + '</strong>'
+      html += ' <span style="color:#555">(' + bench.judge.provider + ')</span>' + jp + '</div>'
+    }
+    html += '<div style="margin-top:0.4rem;color:#555">Change on <a href="/app/config?key=' + key + '" style="color:#58a6ff">Config page</a></div>'
+    html += '</div>'
+    agentsDiv.innerHTML = html
   }
 }
 
