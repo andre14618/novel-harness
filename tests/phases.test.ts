@@ -150,7 +150,7 @@ describe("runDraftingPhase", () => {
     const novel = getNovel(novelId)
     expect(novel.phase).toBe("validation")
     expect(novel.currentChapter).toBe(2)
-    expect(callCount).toBe(5)
+    expect(callCount).toBe(6)
 
     writeSpy.mockRestore()
   })

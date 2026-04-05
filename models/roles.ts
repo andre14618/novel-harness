@@ -44,6 +44,7 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "summary-extractor":         { ...cerebrasQwen235B, temperature: 0.2, maxTokens: 8192 },
   "fact-extractor":            { ...cerebrasQwen235B, temperature: 0.1, maxTokens: 8192 },
   "character-state":           { ...cerebrasQwen235B, temperature: 0.1, maxTokens: 8192 },
+  "relationship-timeline":     { ...cerebrasQwen235B, temperature: 0.2, maxTokens: 8192 },
 
   // ── Validators (analytical checks) ────────────────────────────────────
   "continuity":                { ...cerebrasQwen235B, temperature: 0.2 },
