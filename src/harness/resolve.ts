@@ -115,9 +115,9 @@ async function matchEventByEmbedding(description: string, events: TimelineEvent[
   const rows = await db.unsafe(
     `SELECT id, 1 - (embedding <=> $1::vector) as similarity
      FROM timeline_events
-     WHERE novel_id = $2 AND id = ANY($3::uuid[]) AND embedding IS NOT NULL
+     WHERE novel_id = $2 AND id = ANY($3) AND embedding IS NOT NULL
      ORDER BY embedding <=> $1::vector LIMIT 1`,
-    [`[${descEmbedding.join(",")}]`, novelId, eventIds]
+    [`[${descEmbedding.join(",")}]`, novelId, `{${eventIds.join(",")}}`]
   )
 
   if (rows.length > 0 && rows[0].similarity >= MIN_SIMILARITY) {
@@ -163,9 +163,9 @@ async function matchKnowledgeByEmbedding(
   const rows = await db.unsafe(
     `SELECT id, 1 - (embedding <=> $1::vector) as similarity
      FROM character_knowledge
-     WHERE novel_id = $2 AND id = ANY($3::uuid[]) AND embedding IS NOT NULL
+     WHERE novel_id = $2 AND id = ANY($3) AND embedding IS NOT NULL
      ORDER BY embedding <=> $1::vector LIMIT 1`,
-    [`[${descEmbedding.join(",")}]`, novelId, knowledgeIds]
+    [`[${descEmbedding.join(",")}]`, novelId, `{${knowledgeIds.join(",")}}`]
   )
 
   if (rows.length > 0 && rows[0].similarity >= MIN_SIMILARITY) {
