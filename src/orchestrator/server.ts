@@ -1360,6 +1360,22 @@ const server = Bun.serve({
       return Response.json({ cycle: cycle[0], iterations })
     }
 
+    // ── Component Registry API ──────────────────────────────────────
+    if (path === "/api/components" && req.method === "GET") {
+      const { getAllComponents } = await import("../harness/registry")
+      const dimension = url.searchParams.get("dimension")
+      const category = url.searchParams.get("category")
+      let components = getAllComponents()
+      if (dimension) components = components.filter(c => c.measuredBy.includes(dimension))
+      if (category) components = components.filter(c => c.category === category)
+      return Response.json({ components })
+    }
+
+    if (path === "/api/components/dimensions" && req.method === "GET") {
+      const { getAllMeasuredDimensions } = await import("../harness/registry")
+      return Response.json({ dimensions: getAllMeasuredDimensions() })
+    }
+
     // ── Retrieval Config API ─────────────────────────────────────────
     if (path === "/api/retrieval-config/defaults" && req.method === "GET") {
       const { DEFAULT_CONFIG } = await import("../db/retrieval")
