@@ -34,19 +34,12 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "plotter":                   { ...cerebrasQwen235B, maxTokens: 8192 },
   "planning-plotter":          { ...cerebrasQwen235B, temperature: 0.6, maxTokens: 8192 },
 
-  // ── Retries (higher temperature to get different output on schema failures) ──
-  "world-builder-retry":       { ...cerebrasQwen235B, temperature: 0.8, maxTokens: 8192 },
-  "character-agent-retry":     { ...cerebrasQwen235B, temperature: 0.8, maxTokens: 8192 },
-  "plotter-retry":             { ...cerebrasQwen235B, temperature: 0.8, maxTokens: 8192 },
-  "planning-plotter-retry":    { ...cerebrasQwen235B, temperature: 0.8, maxTokens: 8192 },
-
   // ── Extractors (structured extraction from prose) ─────────────────────
   "summary-extractor":         { ...cerebrasQwen235B, temperature: 0.2, maxTokens: 8192 },
   "fact-extractor":            { ...cerebrasQwen235B, temperature: 0.1, maxTokens: 8192 },
   "character-state":           { ...cerebrasQwen235B, temperature: 0.1, maxTokens: 8192 },
   "relationship-timeline":     { ...cerebrasQwen235B, temperature: 0.2, maxTokens: 8192 },
   "graph-linker":              { ...cerebrasQwen235B, temperature: 0.2, maxTokens: 4096 },
-  "graph-linker-retry":        { ...cerebrasQwen235B, temperature: 0.5, maxTokens: 4096 },
 
   // ── Validators (analytical checks) ────────────────────────────────────
   "continuity":                { ...cerebrasQwen235B, temperature: 0.2 },

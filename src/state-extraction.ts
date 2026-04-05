@@ -138,24 +138,12 @@ export async function updateStateAfterChapter(novelId: string, chapterNum: numbe
 
   // Step 3: Graph linker — causal chains, knowledge propagation, thematic tags
   const graphContext = await buildGraphLinkerContext(novelId, chapterNum)
-  let graphResult
-  try {
-    graphResult = await callAgent({
-      novelId, agentName: "graph-linker",
-      systemPrompt: GRAPH_LINKER_PROMPT,
-      userPrompt: graphContext,
-      schema: graphLinkerSchema,
-    })
-  } catch (err) {
-    // Retry once with retry agent (higher temp)
-    log(novelId, "warn", `Graph linker attempt 1 failed, retrying: ${err instanceof Error ? err.message : err}`)
-    graphResult = await callAgent({
-      novelId, agentName: "graph-linker-retry",
-      systemPrompt: GRAPH_LINKER_PROMPT,
-      userPrompt: graphContext,
-      schema: graphLinkerSchema,
-    })
-  }
+  const graphResult = await callAgent({
+    novelId, agentName: "graph-linker",
+    systemPrompt: GRAPH_LINKER_PROMPT,
+    userPrompt: graphContext,
+    schema: graphLinkerSchema,
+  })
 
   const gl = graphResult.output
   if (gl.causalLinks.length > 0) {

@@ -191,16 +191,9 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
         approved = true
         await approveChapterDraft(novelId, ch)
 
-        try {
-          emit(novelId, { type: "progress", data: { step: "state-extraction", chapter: ch, status: "running" } })
-          await updateStateAfterChapter(novelId, ch, prose)
-          emit(novelId, { type: "progress", data: { step: "state-extraction", chapter: ch, status: "complete" } })
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err)
-          log(novelId, "error", `State extraction failed for chapter ${ch}: ${msg}. Facts/summaries may be incomplete for subsequent chapters.`)
-          console.error(`  State extraction failed for chapter ${ch}: ${msg}`)
-          console.error(`    Chapter is approved but facts/summaries may be missing. Subsequent chapters may have degraded context.`)
-        }
+        emit(novelId, { type: "progress", data: { step: "state-extraction", chapter: ch, status: "running" } })
+        await updateStateAfterChapter(novelId, ch, prose)
+        emit(novelId, { type: "progress", data: { step: "state-extraction", chapter: ch, status: "complete" } })
 
         await updateCurrentChapter(novelId, ch + 1)
         log(novelId, "checkpoint", `Chapter ${ch} approved. currentChapter → ${ch + 1}`)
