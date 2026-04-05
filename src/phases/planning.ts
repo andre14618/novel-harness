@@ -9,6 +9,7 @@ import { buildContext as buildPlanningContext } from "../agents/planning-plotter
 import { displayPhaseHeader, presentForApproval, formatChapterOutlines } from "../cli"
 import { emit } from "../events"
 import { log } from "../logger"
+import * as harness from "../harness"
 
 export async function runPlanningPhase(novelId: string): Promise<void> {
   displayPhaseHeader("Planning — Creating chapter-by-chapter outline")
@@ -26,48 +27,50 @@ export async function runPlanningPhase(novelId: string): Promise<void> {
   console.log(`  Running Plotter agent...${targetChapters ? ` (target: ${targetChapters} chapters)` : ""}`)
   emit(novelId, { type: "progress", data: { step: "planning-plotter", status: "running" } })
 
-  let result
-  try {
-    result = await callAgent({
-      novelId, agentName: "planning-plotter",
-      systemPrompt: PLANNING_PLOTTER_PROMPT,
-      userPrompt: context,
-      schema: chapterOutlinesSchema,
-    })
-    log(novelId, "info", `Planning agent generated ${result.output.chapters.length} chapter outlines`)
-    emit(novelId, { type: "progress", data: { step: "planning-plotter", status: "complete", chapters: result.output.chapters.length } })
-  } catch (err) {
-    log(novelId, "error", `Planning agent failed: ${err}`)
-    emit(novelId, { type: "error", data: { step: "planning-plotter", error: String(err) } })
-    throw err
-  }
+  // Generate + enforce — up to 2 attempts
+  let chapters: any[] | null = null
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const promptContext = attempt === 1 ? context
+      : context + `\n\nCRITICAL: You MUST produce exactly ${targetChapters} chapters. Previous attempt produced an incorrect count.`
 
-  // ── Deterministic enforcement: chapter count and numbering ──────────
-  let chapters = result.output.chapters
-
-  if (targetChapters) {
-    if (chapters.length > targetChapters) {
-      log(novelId, "info", `Trimming ${chapters.length} chapters to target ${targetChapters}`)
-      chapters = chapters.slice(0, targetChapters)
-    } else if (chapters.length < targetChapters) {
-      // Re-generate with stronger instruction
-      log(novelId, "warn", `Got ${chapters.length} chapters, need ${targetChapters}. Regenerating.`)
-      console.log(`  Got ${chapters.length} chapters, need ${targetChapters}. Regenerating...`)
-      const retryContext = context + `\n\nCRITICAL: You MUST produce exactly ${targetChapters} chapters. You produced ${chapters.length} last time which is not enough.`
-      const retry = await callAgent({
+    try {
+      const result = await callAgent({
         novelId, agentName: "planning-plotter",
         systemPrompt: PLANNING_PLOTTER_PROMPT,
-        userPrompt: retryContext,
+        userPrompt: promptContext,
         schema: chapterOutlinesSchema,
       })
-      chapters = retry.output.chapters.slice(0, targetChapters)
+
+      const enforcement = harness.enforce.enforcePlanningOutput(
+        result.output.chapters, targetChapters, characters,
+      )
+
+      for (const w of enforcement.warnings) {
+        log(novelId, "warn", `Planning: ${w}`)
+        console.log(`  Warning: ${w}`)
+      }
+
+      if (enforcement.valid) {
+        chapters = enforcement.chapters
+        log(novelId, "info", `Planning attempt ${attempt}: ${chapters.length} chapters (valid)`)
+        emit(novelId, { type: "progress", data: { step: "planning-plotter", status: "complete", chapters: chapters.length } })
+        break
+      } else {
+        for (const e of enforcement.errors) {
+          log(novelId, "error", `Planning enforcement: ${e}`)
+          console.log(`  Enforcement failed: ${e}`)
+        }
+        if (attempt === 2) {
+          throw new Error(`Planning failed structural enforcement after 2 attempts: ${enforcement.errors.join("; ")}`)
+        }
+      }
+    } catch (err) {
+      if (attempt === 2) throw err
+      log(novelId, "warn", `Planning attempt ${attempt} failed: ${err instanceof Error ? err.message : err}`)
     }
   }
 
-  // Enforce sequential chapter numbering (1, 2, 3, ...)
-  for (let i = 0; i < chapters.length; i++) {
-    chapters[i].chapterNumber = i + 1
-  }
+  if (!chapters) throw new Error("Planning produced no valid output")
 
   console.log(`  ${chapters.length} chapter outlines.\n`)
 
@@ -87,13 +90,13 @@ export async function runPlanningPhase(novelId: string): Promise<void> {
       userPrompt: context,
       schema: chapterOutlinesSchema,
     })
-    let retryChapters = retry.output.chapters
-    if (targetChapters) retryChapters = retryChapters.slice(0, targetChapters)
-    for (let i = 0; i < retryChapters.length; i++) retryChapters[i].chapterNumber = i + 1
+    const enforcement = harness.enforce.enforcePlanningOutput(retry.output.chapters, targetChapters, characters)
+    if (!enforcement.valid) throw new Error(`Regeneration failed enforcement: ${enforcement.errors.join("; ")}`)
+    chapters = enforcement.chapters
 
-    for (const outline of retryChapters) await saveChapterOutline(novelId, outline)
-    await updateTotalChapters(novelId, retryChapters.length)
-    log(novelId, "info", `Outline regenerated: ${retryChapters.length} chapters`)
+    for (const outline of chapters) await saveChapterOutline(novelId, outline)
+    await updateTotalChapters(novelId, chapters.length)
+    log(novelId, "info", `Outline regenerated: ${chapters.length} chapters`)
   } else {
     for (const outline of chapters) await saveChapterOutline(novelId, outline)
     await updateTotalChapters(novelId, chapters.length)

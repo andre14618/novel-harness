@@ -17,5 +17,6 @@ import * as graph from "./graph"
 import * as novels from "./novels"
 import * as deterministic from "./deterministic"
 import * as registry from "./registry"
+import * as enforce from "./enforce"
 
-export { scores, experiments, cycles, context, embeddings, graph, novels, deterministic, registry }
+export { scores, experiments, cycles, context, embeddings, graph, novels, deterministic, registry, enforce }
