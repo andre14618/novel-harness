@@ -382,7 +382,8 @@ export const MODELS: ModelDef[] = [
     params: "unknown",
     pricing: { input: 1.00, output: 3.20 },
     thinking: "enabled",
-    notes: "Flagship. Thinking enabled by default. Cached input $0.20/M (80% off).",
+    maxOutput: 131_072,
+    notes: "Flagship. Thinking forced when enabled. Cached input $0.20/M (80% off).",
   },
   {
     id: "GLM-5-Turbo",
@@ -391,7 +392,8 @@ export const MODELS: ModelDef[] = [
     params: "unknown",
     pricing: { input: 1.20, output: 4.00 },
     thinking: "enabled",
-    notes: "Turbo variant. Thinking enabled by default. Cached input $0.24/M (80% off).",
+    maxOutput: 131_072,
+    notes: "Turbo variant. Thinking forced when enabled. Cached input $0.24/M (80% off).",
   },
   {
     id: "GLM-5-Code",
@@ -400,7 +402,8 @@ export const MODELS: ModelDef[] = [
     params: "unknown",
     pricing: { input: 1.20, output: 5.00 },
     thinking: "enabled",
-    notes: "Code-specialized. Thinking enabled by default. Cached input $0.30/M (75% off).",
+    maxOutput: 131_072,
+    notes: "Code-specialized. Thinking forced when enabled. Cached input $0.30/M (75% off).",
   },
   {
     id: "GLM-4.7",
@@ -409,7 +412,8 @@ export const MODELS: ModelDef[] = [
     params: "unknown",
     pricing: { input: 0.60, output: 2.20 },
     thinking: "enabled",
-    notes: "Also available on Cerebras. Thinking enabled by default. Cached input $0.11/M (~82% off).",
+    maxOutput: 131_072,
+    notes: "Also available on Cerebras. Thinking forced when enabled. Cached input $0.11/M (~82% off).",
   },
   {
     id: "GLM-4.7-FlashX",
@@ -427,7 +431,8 @@ export const MODELS: ModelDef[] = [
     params: "unknown",
     pricing: { input: 0.60, output: 2.20 },
     thinking: "optional",
-    notes: "Thinking auto-determined by API. Cached input $0.11/M (~82% off).",
+    maxOutput: 131_072,
+    notes: "Thinking auto-determined when enabled. 128K max output. Cached input $0.11/M (~82% off).",
   },
   {
     id: "GLM-4.5",
@@ -436,7 +441,8 @@ export const MODELS: ModelDef[] = [
     params: "unknown",
     pricing: { input: 0.60, output: 2.20 },
     thinking: "optional",
-    notes: "Thinking auto-determined by API. Cached input $0.11/M (~82% off).",
+    maxOutput: 98_304,
+    notes: "Thinking auto-determined when enabled. 96K max output. Cached input $0.11/M (~82% off).",
   },
   {
     id: "GLM-4.5-X",
@@ -445,7 +451,8 @@ export const MODELS: ModelDef[] = [
     params: "unknown",
     pricing: { input: 2.20, output: 8.90 },
     thinking: "optional",
-    notes: "Premium variant. Thinking auto-determined. Cached input $0.45/M (~80% off). Expensive.",
+    maxOutput: 98_304,
+    notes: "Premium variant. Thinking auto-determined. 96K max output. Cached input $0.45/M (~80% off). Expensive.",
   },
   {
     id: "GLM-4.5-Air",
@@ -454,7 +461,8 @@ export const MODELS: ModelDef[] = [
     params: "unknown",
     pricing: { input: 0.20, output: 1.10 },
     thinking: "optional",
-    notes: "Cheap mid-tier. Thinking auto-determined. Cached input $0.03/M (85% off).",
+    maxOutput: 98_304,
+    notes: "Cheap mid-tier. Thinking auto-determined. 96K max output. Cached input $0.03/M (85% off).",
   },
   {
     id: "GLM-4.5-AirX",
@@ -463,7 +471,8 @@ export const MODELS: ModelDef[] = [
     params: "unknown",
     pricing: { input: 1.10, output: 4.50 },
     thinking: "optional",
-    notes: "Faster Air variant. Thinking auto-determined. Cached input $0.22/M (80% off).",
+    maxOutput: 98_304,
+    notes: "Faster Air variant. Thinking auto-determined. 96K max output. Cached input $0.22/M (80% off).",
   },
   {
     id: "GLM-4-32B-0414-128K",
@@ -473,7 +482,8 @@ export const MODELS: ModelDef[] = [
     pricing: { input: 0.10, output: 0.10 },
     thinking: "disabled",
     maxContext: 128_000,
-    notes: "Open-weight 32B. Very cheap, no caching. Good candidate for extraction/validation.",
+    maxOutput: 16_384,
+    notes: "Open-weight 32B. Very cheap, no caching. 16K max output. Good candidate for extraction/validation.",
   },
   {
     id: "GLM-4.7-Flash",
@@ -490,8 +500,9 @@ export const MODELS: ModelDef[] = [
     provider: "zai",
     params: "unknown",
     pricing: { input: 0, output: 0 },
-    thinking: "disabled",
-    notes: "Free tier. Zero cost.",
+    thinking: "optional",
+    maxOutput: 98_304,
+    notes: "Free tier. Zero cost. Thinking auto-determined. 96K max output.",
   },
 
   // ── OpenRouter (fallback to closed-source labs) ────────────────────────
