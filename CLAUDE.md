@@ -170,8 +170,8 @@ bun test
 
 ## Reference docs
 
+- `docs/improvement-checklist.md` — **living to-do** — items removed when done, not checked off
 - `docs/lessons-learned.md` — **read before designing agents, rubrics, or experiments**
 - `docs/commit-conventions.md` — commit message format
 - `docs/world-knowledge-graph.md` — knowledge graph, context assembly, retrieval parameters
-- `docs/improvement-checklist.md` — improvement items across capability tiers
-- `docs/methodology-integration-report.md` — writing methodology (Story Grid, Save the Cat, Weiland)
+- `docs/ai-tells-*.md` — lint pattern research (cliches, emotional echo, hedging, rhythm)
