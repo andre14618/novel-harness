@@ -24,14 +24,42 @@ ${worldBible.locations.map(l => `- ${l.name}: ${l.description}${l.sensoryDetails
 Culture: ${worldBible.culture}
 History: ${worldBible.history}`
 
+  // World systems and cultures (if available)
+  let systemsSection = ""
+  if (worldBible.systems?.length > 0) {
+    systemsSection = `\nWORLD SYSTEMS:
+${worldBible.systems.map(s => `- ${s.name} (${s.type}): ${s.description}
+    Rules: ${s.rules.join("; ")}
+    Manifestations: ${s.manifestations.join("; ")}
+    Constraints: ${s.constraints.join("; ")}`).join("\n")}`
+  }
+
+  let culturesSection = ""
+  if (worldBible.cultures?.length > 0) {
+    culturesSection = `\nCULTURES:
+${worldBible.cultures.map(c => `- ${c.name}: ${c.description}
+    Values: ${c.values.join(", ")}
+    Taboos: ${c.taboos.join(", ")}
+    Speech influences: ${c.speechInfluences}`).join("\n")}`
+  }
+
   const charSection = `CHARACTER PROFILES:
-${characters.map(c => `${c.name} (${c.role}):
+${characters.map(c => {
+  let profile = `${c.name} (${c.role}):
   Backstory: ${c.backstory}
   Traits: ${c.traits.join(", ")}
   Speech: ${c.speechPattern}
   ${c.internalConflict ? `Internal conflict: ${c.internalConflict}\n  ` : ""}${c.avoids ? `Avoids: ${c.avoids}\n  ` : ""}Goals: ${c.goals}
   Fears: ${c.fears}
-  Relationships: ${c.relationships.map(r => `${r.characterName} — ${r.nature}`).join("; ")}`).join("\n\n")}`
+  Relationships: ${c.relationships.map(r => `${r.characterName} — ${r.nature}`).join("; ")}`
+  if (c.culturalBackground?.length > 0) {
+    profile += `\n  Cultural background: ${c.culturalBackground.map(cb => `${cb.cultureName} (${cb.relationship})`).join(", ")}`
+  }
+  if (c.systemAwareness?.length > 0) {
+    profile += `\n  System awareness: ${c.systemAwareness.map(sa => `${sa.systemName}: ${sa.level}`).join(", ")}`
+  }
+  return profile
+}).join("\n\n")}`
 
   const spineSection = `STORY SPINE:
 Central Conflict: ${spine.centralConflict}
@@ -43,13 +71,13 @@ ${spine.acts.map(a => `  Act ${a.number} — ${a.name}: ${a.summary} [${a.emotio
   return `Genre: ${seed.genre}
 Premise: ${seed.premise}
 
-${worldSection}
+${worldSection}${systemsSection}${culturesSection}
 
 ${charSection}
 
 ${spineSection}
 
-Create a detailed chapter-by-chapter outline. Each chapter should have specific scene beats that advance the plot and develop characters.`
+Create a detailed chapter-by-chapter outline. Each chapter should have specific scene beats that advance the plot and develop characters.${worldBible.systems?.length ? `\n\nConsider how different characters' awareness of world systems creates opportunities for dramatic tension — a character ignorant of magic witnessing it for the first time, cultural clashes when characters from different backgrounds meet, or characters navigating taboos they don't share.` : ""}`
 }
 
 export const buildPlanningContext = buildContext
