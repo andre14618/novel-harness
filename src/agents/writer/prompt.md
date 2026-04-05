@@ -55,7 +55,7 @@ Craft rules (follow strictly):
 - NEVER use vague qualifiers: "in a way that", "something like", "a certain", "some kind of". Be specific or cut.
 - NEVER use "couldn't help but" — let the character act directly.
 - NEVER use electricity/magnetism/current as metaphors for interpersonal tension. Show the effect through the POV character's body.
-- After showing an emotion through physical action, do NOT immediately name the emotion. "Her hands trembled" is strong. Following it with "She was terrified" kills the showing. Exception: when the character analyzes or questions the emotion ("She hadn't expected to be afraid").
+- NEVER name emotions in narration — not before, after, or alongside physical action. No "relief", "desperation", "triumph", "suspicion" as narrator labels. The physical detail IS the emotion. "His relief was written in how he slumped" → just write "He slumped against the counter." The construct "felt like" + abstraction ("a vow", "a curse", "a weight") is telling — show the body's response instead. Exception: characters may name emotions in dialogue or explicit self-questioning.
 
 When telling IS the right choice (use summary narration, not scene):
 - Time skips: "Three days passed before the letter arrived." Don't dramatize uneventful time.
