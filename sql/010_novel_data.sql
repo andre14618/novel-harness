@@ -2,7 +2,8 @@
 -- Previously each novel had its own SQLite file at output/{novelId}/novel.db
 -- Now all novel data lives in the central Postgres DB, partitioned by novel_id
 
-CREATE EXTENSION IF NOT EXISTS vector;
+-- pgvector extension must be created by superuser:
+-- sudo -u postgres psql -d novel_harness_orchestrator -c 'CREATE EXTENSION IF NOT EXISTS vector;'
 
 -- ── Core Novel Tables ─────────────────────────────────────────────────────
 
