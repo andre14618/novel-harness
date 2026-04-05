@@ -47,6 +47,15 @@ export function makeWorldBible(): WorldBible {
   return {
     setting: "The Ashen Expanse — a vast desert continent dominated by the Solaran Empire",
     timePeriod: "Post-imperial decline, roughly analogous to late Roman Empire",
+    geography: "Vast desert continent with scattered oases. The Glass Wastes in the south, fertile Crescent in the north. Underground river networks connect warrens.",
+    politicalStructure: "The Sun Court rules from Dust Throne. Regional governors (Solarchs) manage provinces. A shadow council of spymasters operates independently.",
+    technologyConstraints: "No gunpowder — solar magic fills that role. Metalworking is advanced but limited by scarce ore. Communication relies on mirror-towers and trained hawks.",
+    socialCustoms: [
+      "Lower castes avert their eyes from Sun Court members",
+      "Oaths are sworn on sunlight — breaking one is believed to cause blindness",
+      "The dead are left in the desert for the sun to reclaim",
+    ],
+    sensoryPalette: "Constant heat shimmer, gritty sand in everything, the metallic taste of solar magic, blinding white architecture against ochre dunes, the low hum of mirror-towers at dawn.",
     rules: [
       "Magic is drawn from sunlight and costs physical vitality",
       "The desert is expanding due to overuse of solar magic",

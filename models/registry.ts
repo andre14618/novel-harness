@@ -10,7 +10,7 @@
 
 // ── Provider definitions ─────────────────────────────────────────────────
 
-export type ProviderName = "cerebras" | "groq" | "openrouter" | "openai" | "deepseek"
+export type ProviderName = "cerebras" | "groq" | "openrouter" | "openai" | "deepseek" | "minimax" | "zai"
 
 export interface CacheStrategy {
   /**
@@ -83,6 +83,20 @@ export const PROVIDERS: Record<ProviderName, ProviderDef> = {
     tier: "standard",
     cache: { type: "automatic", minTokens: 0, discount: 0.95 },  // any shared prefix, 95% off
     // DeepSeek has no batch API — cost savings come from prefix caching only
+  },
+  minimax: {
+    apiUrl: "https://api.minimax.io/v1/chat/completions",
+    envKey: "MINIMAX_API_KEY",
+    tier: "standard",
+    extraBody: () => ({ reasoning_split: true }),  // puts <think> into separate field, keeps content clean
+    cache: { type: "automatic", discount: 0.80 },  // M2.7: $0.06 read vs $0.30 input = 80% off; M2.5: $0.03 vs $0.30 = 90% off (varies by model)
+  },
+  zai: {
+    apiUrl: "https://api.z.ai/api/paas/v4/chat/completions",
+    envKey: "ZAI_API_KEY",
+    tier: "standard",
+    extraBody: () => ({ thinking: { type: "disabled", clear_thinking: true } }),  // disable thinking by default; reasoning goes to separate field anyway
+    cache: { type: "automatic", discount: 0.80 },  // ~80% off cached input across models; storage currently free
   },
 }
 
@@ -314,6 +328,170 @@ export const MODELS: ModelDef[] = [
     maxContext: 128_000,
     maxOutput: 64_000,
     notes: "V3.2 thinking mode. Same pricing as chat. Default 32k output (max 64k). Supports JSON output + tool calls. Untested.",
+  },
+
+  // ── MiniMax ────────────────────────────────────────────────────────
+
+  {
+    id: "MiniMax-M2.7",
+    label: "MiniMax M2.7",
+    provider: "minimax",
+    params: "unknown",
+    pricing: { input: 0.30, output: 1.20 },
+    thinking: "enabled",
+    maxContext: 204_800,
+    notes: "Reasoning always on (slower). ~60 tps. reasoning_split keeps thinking out of content. Cache read $0.06/M (80% off), cache write $0.375/M.",
+  },
+  {
+    id: "MiniMax-M2.7-highspeed",
+    label: "MiniMax M2.7 Highspeed",
+    provider: "minimax",
+    params: "unknown",
+    pricing: { input: 0.60, output: 2.40 },
+    thinking: "enabled",
+    maxContext: 204_800,
+    notes: "M2.7 faster variant. Reasoning always on. ~100 tps. 2x price of standard. Cache read $0.06/M, cache write $0.375/M.",
+  },
+  {
+    id: "MiniMax-M2.5",
+    label: "MiniMax M2.5",
+    provider: "minimax",
+    params: "unknown",
+    pricing: { input: 0.30, output: 1.20 },
+    thinking: "enabled",
+    maxContext: 204_800,
+    notes: "Reasoning always on. ~60 tps. reasoning_split keeps thinking out of content. Cache read $0.03/M (90% off), cache write $0.375/M.",
+  },
+  {
+    id: "MiniMax-M2.5-highspeed",
+    label: "MiniMax M2.5 Highspeed",
+    provider: "minimax",
+    params: "unknown",
+    pricing: { input: 0.60, output: 2.40 },
+    thinking: "enabled",
+    maxContext: 204_800,
+    notes: "M2.5 faster variant. Reasoning always on. ~100 tps. 2x price of standard. Cache read $0.03/M, cache write $0.375/M.",
+  },
+
+  // ── Z.AI (ZhipuAI) ─────────────────────────────────────────────────
+
+  {
+    id: "GLM-5",
+    label: "GLM-5",
+    provider: "zai",
+    params: "unknown",
+    pricing: { input: 1.00, output: 3.20 },
+    thinking: "enabled",
+    notes: "Flagship. Thinking enabled by default. Cached input $0.20/M (80% off).",
+  },
+  {
+    id: "GLM-5-Turbo",
+    label: "GLM-5 Turbo",
+    provider: "zai",
+    params: "unknown",
+    pricing: { input: 1.20, output: 4.00 },
+    thinking: "enabled",
+    notes: "Turbo variant. Thinking enabled by default. Cached input $0.24/M (80% off).",
+  },
+  {
+    id: "GLM-5-Code",
+    label: "GLM-5 Code",
+    provider: "zai",
+    params: "unknown",
+    pricing: { input: 1.20, output: 5.00 },
+    thinking: "enabled",
+    notes: "Code-specialized. Thinking enabled by default. Cached input $0.30/M (75% off).",
+  },
+  {
+    id: "GLM-4.7",
+    label: "GLM-4.7",
+    provider: "zai",
+    params: "unknown",
+    pricing: { input: 0.60, output: 2.20 },
+    thinking: "enabled",
+    notes: "Also available on Cerebras. Thinking enabled by default. Cached input $0.11/M (~82% off).",
+  },
+  {
+    id: "GLM-4.7-FlashX",
+    label: "GLM-4.7 FlashX",
+    provider: "zai",
+    params: "unknown",
+    pricing: { input: 0.07, output: 0.40 },
+    thinking: "disabled",
+    notes: "Very cheap fast model. No thinking support. Cached input $0.01/M (~86% off).",
+  },
+  {
+    id: "GLM-4.6",
+    label: "GLM-4.6",
+    provider: "zai",
+    params: "unknown",
+    pricing: { input: 0.60, output: 2.20 },
+    thinking: "optional",
+    notes: "Thinking auto-determined by API. Cached input $0.11/M (~82% off).",
+  },
+  {
+    id: "GLM-4.5",
+    label: "GLM-4.5",
+    provider: "zai",
+    params: "unknown",
+    pricing: { input: 0.60, output: 2.20 },
+    thinking: "optional",
+    notes: "Thinking auto-determined by API. Cached input $0.11/M (~82% off).",
+  },
+  {
+    id: "GLM-4.5-X",
+    label: "GLM-4.5-X",
+    provider: "zai",
+    params: "unknown",
+    pricing: { input: 2.20, output: 8.90 },
+    thinking: "optional",
+    notes: "Premium variant. Thinking auto-determined. Cached input $0.45/M (~80% off). Expensive.",
+  },
+  {
+    id: "GLM-4.5-Air",
+    label: "GLM-4.5 Air",
+    provider: "zai",
+    params: "unknown",
+    pricing: { input: 0.20, output: 1.10 },
+    thinking: "optional",
+    notes: "Cheap mid-tier. Thinking auto-determined. Cached input $0.03/M (85% off).",
+  },
+  {
+    id: "GLM-4.5-AirX",
+    label: "GLM-4.5 AirX",
+    provider: "zai",
+    params: "unknown",
+    pricing: { input: 1.10, output: 4.50 },
+    thinking: "optional",
+    notes: "Faster Air variant. Thinking auto-determined. Cached input $0.22/M (80% off).",
+  },
+  {
+    id: "GLM-4-32B-0414-128K",
+    label: "GLM-4 32B 128K",
+    provider: "zai",
+    params: "32B",
+    pricing: { input: 0.10, output: 0.10 },
+    thinking: "disabled",
+    maxContext: 128_000,
+    notes: "Open-weight 32B. Very cheap, no caching. Good candidate for extraction/validation.",
+  },
+  {
+    id: "GLM-4.7-Flash",
+    label: "GLM-4.7 Flash",
+    provider: "zai",
+    params: "unknown",
+    pricing: { input: 0, output: 0 },
+    thinking: "disabled",
+    notes: "Free tier. Zero cost.",
+  },
+  {
+    id: "GLM-4.5-Flash",
+    label: "GLM-4.5 Flash",
+    provider: "zai",
+    params: "unknown",
+    pricing: { input: 0, output: 0 },
+    thinking: "disabled",
+    notes: "Free tier. Zero cost.",
   },
 
   // ── OpenRouter (fallback to closed-source labs) ────────────────────────

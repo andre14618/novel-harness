@@ -207,8 +207,9 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
   const provider = resolveProvider(effectiveProvider)
   const model = resolveModel(effectiveProvider, effectiveModel)
 
-  // /nothink only needed for Qwen 3 on Groq/OpenRouter (Cerebras model doesn't support thinking)
-  const needsNothink = !thinking && providerName !== "cerebras"
+  // /nothink is a Qwen convention — only apply to models that explicitly declare it
+  const modelDef = getModel(model, providerName)
+  const needsNothink = !thinking && !!modelDef?.needsNothink
   console.log(`  [LLM] Calling ${model} (temp=${temperature}${needsNothink ? ", nothink" : ""})...`)
 
   const userPrompt = needsNothink ? `/nothink\n${config.userPrompt}` : config.userPrompt
