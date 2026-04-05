@@ -1,17 +1,21 @@
 import { z } from "zod"
 
 // Accept both camelCase and snake_case from the model
+const CAUSAL_TYPES = ["causes", "enables", "prevents", "motivates"] as const
 const causalLinkSchema = z.object({
   causeEventId: z.string().optional(),
   cause_event_id: z.string().optional(),
+  cause: z.string().optional(),
   effectEventId: z.string().optional(),
   effect_event_id: z.string().optional(),
-  relationship: z.enum(["causes", "enables", "prevents", "motivates"]),
-  confidence: z.number().min(0).max(1),
+  effect: z.string().optional(),
+  relationship: z.enum(CAUSAL_TYPES).optional(),
+  type: z.enum(CAUSAL_TYPES).optional(),
+  confidence: z.number().min(0).max(1).optional().default(0.8),
 }).transform(d => ({
-  causeEventId: d.causeEventId ?? d.cause_event_id ?? "",
-  effectEventId: d.effectEventId ?? d.effect_event_id ?? "",
-  relationship: d.relationship,
+  causeEventId: d.causeEventId ?? d.cause_event_id ?? d.cause ?? "",
+  effectEventId: d.effectEventId ?? d.effect_event_id ?? d.effect ?? "",
+  relationship: d.relationship ?? d.type ?? "causes",
   confidence: d.confidence,
 }))
 
@@ -41,12 +45,15 @@ const themeSchema = z.object({
   source_type: z.enum(["fact", "event", "summary", "knowledge"]).optional(),
   sourceId: z.string().optional(),
   source_id: z.string().optional(),
-  theme: z.string(),
+  theme: z.string().optional(),
+  tag: z.string().optional(),
+  name: z.string().optional(),
+  label: z.string().optional(),
 }).transform(d => ({
   sourceType: d.sourceType ?? d.source_type ?? "event",
   sourceId: d.sourceId ?? d.source_id ?? "",
-  theme: d.theme,
-}))
+  theme: d.theme ?? d.tag ?? d.name ?? d.label ?? "",
+})).refine(d => d.theme.length > 0, { message: "theme is required" })
 
 // Accept both "themes" and "thematicTags" keys
 export const graphLinkerSchema = z.object({
