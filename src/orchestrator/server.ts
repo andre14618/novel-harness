@@ -1382,6 +1382,28 @@ const server = Bun.serve({
       return Response.json({ ok: true })
     }
 
+    // ── Deterministic Config API ──────────────────────────────────────
+    if (path === "/api/deterministic-config/defaults" && req.method === "GET") {
+      const { DEFAULT_DETERMINISTIC_CONFIG } = await import("../harness/deterministic")
+      return Response.json({ novelId: "defaults", ...DEFAULT_DETERMINISTIC_CONFIG })
+    }
+
+    const detMatch = path.match(/^\/api\/deterministic-config\/([^/]+)$/)
+    if (detMatch && req.method === "GET") {
+      const novelId = decodeURIComponent(detMatch[1])
+      const { getDeterministicConfig } = await import("../harness/deterministic")
+      const config = await getDeterministicConfig(novelId)
+      return Response.json({ novelId, ...config })
+    }
+
+    if (detMatch && req.method === "PUT") {
+      const novelId = decodeURIComponent(detMatch[1])
+      const body = await req.json() as Record<string, any>
+      const { saveDeterministicConfig } = await import("../harness/deterministic")
+      await saveDeterministicConfig(novelId, body)
+      return Response.json({ ok: true })
+    }
+
     // ── Novel step-through API ──────────────────────────────────────
     const novelResponse = await handleNovelRoute(req, url)
     if (novelResponse) return novelResponse

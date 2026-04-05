@@ -15,5 +15,6 @@ import * as context from "./context"
 import * as embeddings from "./embeddings"
 import * as graph from "./graph"
 import * as novels from "./novels"
+import * as deterministic from "./deterministic"
 
-export { scores, experiments, cycles, context, embeddings, graph, novels }
+export { scores, experiments, cycles, context, embeddings, graph, novels, deterministic }

@@ -15,7 +15,7 @@ import { buildContext as buildSummaryContext } from "./agents/summary-extractor/
 import { buildContext as buildFactExtractionContext } from "./agents/fact-extractor/context"
 import { buildContext as buildCharacterStateContext } from "./agents/character-state/context"
 import { buildContext as buildRelationshipTimelineContext } from "./agents/relationship-timeline/context"
-import { buildContext as buildGraphLinkerContext } from "./agents/graph-linker/context"
+// Graph-linker context is built inline with deterministic results (buildGraphLinkerContextWithDeterministic)
 import { graphLinkerSchema } from "./agents/graph-linker/schema"
 import * as harness from "./harness"
 import { log } from "./logger"
@@ -136,8 +136,46 @@ export async function updateStateAfterChapter(novelId: string, chapterNum: numbe
   log(novelId, "info", `Embedded ${embedResult.embedded} entries for chapter ${chapterNum}`)
   console.log(`  Embedded: ${embedResult.embedded} entries`)
 
-  // Step 3: Graph linker — causal chains, knowledge propagation, thematic tags
-  const graphContext = await buildGraphLinkerContext(novelId, chapterNum)
+  // Step 3: Deterministic pre-processing — resolve what doesn't need an LLM
+  const { getTimelineEventsForChapter, getTimelineEventsUpToChapter } = await import("./db/timeline")
+  const { getKnowledgeForChapter } = await import("./db/knowledge")
+  const { getStorySpine } = await import("./db")
+
+  const [thisChapterEvents, priorEvents, knowledgeGains] = await Promise.all([
+    getTimelineEventsForChapter(novelId, chapterNum),
+    getTimelineEventsUpToChapter(novelId, chapterNum),
+    getKnowledgeForChapter(novelId, chapterNum),
+  ])
+  const storyTheme = await tryGet(async () => (await getStorySpine(novelId)).theme) ?? null
+  const detConfig = await harness.deterministic.getDeterministicConfig(novelId)
+
+  const det = await harness.deterministic.runDeterministicAnalysis(
+    novelId, chapterNum, thisChapterEvents, priorEvents,
+    knowledgeGains, characters, storyTheme, detConfig,
+  )
+
+  // Save auto-accepted deterministic results
+  if (det.autoKnowledge.length > 0) {
+    await harness.graph.saveKnowledgePropagation(novelId, det.autoKnowledge.map(k => ({
+      knowledgeId: k.knowledgeId,
+      fromCharacterId: k.fromCharacterId,
+      toCharacterId: k.toCharacterId,
+      propagationType: k.propagationType,
+      confidence: k.confidence,
+      chapterNumber: chapterNum,
+    })))
+  }
+  if (det.autoThemes.length > 0) {
+    await harness.graph.saveThematicTags(novelId, det.autoThemes)
+  }
+
+  log(novelId, "info", `Deterministic: ${det.stats.knowledgeAutoResolved} knowledge auto, ${det.stats.themesAutoTagged} themes auto, ${det.stats.causalCandidates} causal candidates`)
+  console.log(`  Deterministic: ${det.stats.knowledgeAutoResolved} knowledge, ${det.stats.themesAutoTagged} themes, ${det.stats.causalCandidates} causal candidates`)
+
+  // Step 4: LLM graph-linker — handles candidates + gaps the deterministic layer can't resolve
+  const graphContext = buildGraphLinkerContextWithDeterministic(
+    novelId, chapterNum, thisChapterEvents, priorEvents, det, characters, storyTheme,
+  )
   const graphResult = await callAgent({
     novelId, agentName: "graph-linker",
     systemPrompt: GRAPH_LINKER_PROMPT,
@@ -160,11 +198,84 @@ export async function updateStateAfterChapter(novelId: string, chapterNum: numbe
     await harness.graph.saveThematicTags(novelId, gl.themes)
   }
 
-  const graphCount = gl.causalLinks.length + gl.knowledgePropagation.length + gl.themes.length
-  log(novelId, "info", `Graph linked: ${gl.causalLinks.length} causal, ${gl.knowledgePropagation.length} knowledge, ${gl.themes.length} themes`)
-  console.log(`  Graph linked: ${gl.causalLinks.length} causal, ${gl.knowledgePropagation.length} knowledge, ${gl.themes.length} themes`)
+  const totalGraph = det.stats.knowledgeAutoResolved + det.stats.themesAutoTagged +
+    gl.causalLinks.length + gl.knowledgePropagation.length + gl.themes.length
+  log(novelId, "info", `Graph total: ${totalGraph} entries (${det.stats.knowledgeAutoResolved + det.stats.themesAutoTagged} deterministic + ${gl.causalLinks.length + gl.knowledgePropagation.length + gl.themes.length} LLM)`)
+  console.log(`  Graph LLM: ${gl.causalLinks.length} causal, ${gl.knowledgePropagation.length} knowledge, ${gl.themes.length} themes`)
 }
 
 async function tryGet<T>(fn: () => Promise<T>): Promise<T | null> {
   try { return await fn() } catch { return null }
+}
+
+/**
+ * Build graph-linker context that includes deterministic pre-analysis results.
+ * The LLM sees what was auto-resolved and focuses on gaps + candidates.
+ */
+function buildGraphLinkerContextWithDeterministic(
+  novelId: string,
+  chapterNum: number,
+  thisChapterEvents: import("./db/timeline").TimelineEvent[],
+  priorEvents: import("./db/timeline").TimelineEvent[],
+  det: import("./harness/deterministic").DeterministicResult,
+  characters: import("./types").CharacterProfile[],
+  storyTheme: string | null,
+): string {
+  const sections: string[] = []
+
+  sections.push(`CHARACTERS:\n${characters.map(c => `- ${c.name} (id: ${c.id}, role: ${c.role})`).join("\n")}`)
+
+  if (storyTheme) {
+    sections.push(`STORY THEME: ${storyTheme}`)
+  }
+
+  if (thisChapterEvents.length > 0) {
+    sections.push(`THIS CHAPTER'S EVENTS (chapter ${chapterNum}):\n${thisChapterEvents.map(e =>
+      `- [${e.id}] ${e.event} at ${e.location}. Participants: ${e.participants.join(", ")}${e.consequences ? `. Consequences: ${e.consequences}` : ""}`
+    ).join("\n")}`)
+  }
+
+  const recentPrior = priorEvents.slice(-30)
+  if (recentPrior.length > 0) {
+    sections.push(`PRIOR EVENTS (for causal linking):\n${recentPrior.map(e =>
+      `- [${e.id}] ch${e.chapterNumber}: ${e.event} at ${e.location}. Participants: ${e.participants.join(", ")}`
+    ).join("\n")}`)
+  }
+
+  // Show what deterministic analysis already resolved
+  if (det.autoKnowledge.length > 0) {
+    sections.push(`ALREADY RESOLVED (deterministic — do not re-analyze):\nKnowledge propagation:\n${det.autoKnowledge.map(k =>
+      `- ${k.toCharacterId}: ${k.propagationType} (confidence ${k.confidence}) — ${k.reason}`
+    ).join("\n")}`)
+  }
+
+  if (det.autoThemes.length > 0) {
+    sections.push(`Auto-tagged themes:\n${det.autoThemes.map(t =>
+      `- [${t.sourceType}:${t.sourceId}] "${t.theme}" (similarity ${t.similarity.toFixed(2)})`
+    ).join("\n")}`)
+  }
+
+  // Show candidates that need LLM validation
+  if (det.causalCandidates.length > 0) {
+    sections.push(`CAUSAL LINK CANDIDATES (confirm, reject, or adjust):\n${det.causalCandidates.map(c =>
+      `- [${c.causeEventId}] → [${c.effectEventId}] score ${c.score.toFixed(2)} — ${c.signals.join(", ")}`
+    ).join("\n")}`)
+  }
+
+  if (det.themeCandidates.length > 0) {
+    sections.push(`THEME CANDIDATES (confirm or reject):\n${det.themeCandidates.map(t =>
+      `- [${t.sourceType}:${t.sourceId}] "${t.theme}" (similarity ${t.similarity.toFixed(2)})`
+    ).join("\n")}`)
+  }
+
+  // Knowledge entries that need LLM judgment
+  if (det.unlinkedKnowledge.length > 0) {
+    sections.push(`KNOWLEDGE NEEDING PROPAGATION TYPE:\n${det.unlinkedKnowledge.map(k =>
+      `- [${k.id}] ${k.characterId} ${k.source} that "${k.knowledge}" (category: ${k.category}${k.isFalse ? ", FALSE BELIEF" : ""})`
+    ).join("\n")}`)
+  }
+
+  sections.push("Validate the causal candidates, resolve unlinked knowledge, confirm/reject theme candidates, and identify anything the deterministic analysis missed.")
+
+  return sections.join("\n\n")
 }
