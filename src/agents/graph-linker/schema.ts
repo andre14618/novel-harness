@@ -10,7 +10,18 @@ export const graphLinkerSchema = z.object({
   causalLinks: z.array(z.object({
     causeDescription: z.string().describe("Brief description of the cause event"),
     effectDescription: z.string().describe("Brief description of the effect event"),
-    relationship: z.enum(["causes", "enables", "prevents", "motivates"]).default("causes"),
+    relationship: z.string().default("causes").transform(v => {
+      const valid = ["causes", "enables", "prevents", "motivates"]
+      if (valid.includes(v)) return v
+      // Map common variants deterministically
+      const map: Record<string, string> = {
+        supports: "enables", refines: "enables", leads_to: "causes",
+        triggers: "causes", blocks: "prevents", stops: "prevents",
+        inspires: "motivates", drives: "motivates", caused: "causes",
+        enabled: "enables", prevented: "prevents", motivated: "motivates",
+      }
+      return map[v.toLowerCase()] ?? "causes"
+    }),
     confidence: z.number().min(0).max(1).default(0.8),
     reasoning: z.string().optional().describe("Why this causal link exists"),
   })).default([]),
