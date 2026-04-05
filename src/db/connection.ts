@@ -69,6 +69,7 @@ function migrate(): void {
       summary TEXT NOT NULL,
       key_events_json TEXT NOT NULL,
       emotional_state TEXT NOT NULL DEFAULT '',
+      open_threads_json TEXT NOT NULL DEFAULT '[]',
       PRIMARY KEY (novel_id, chapter_number)
     );
 
@@ -111,11 +112,93 @@ function migrate(): void {
       PRIMARY KEY (novel_id, pass_number, chapter_number)
     );
 
+    -- ── World Knowledge Graph ──────────────────────────────────────────────
+
+    CREATE TABLE IF NOT EXISTS world_systems (
+      id TEXT PRIMARY KEY,
+      novel_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      type TEXT NOT NULL,
+      description TEXT NOT NULL,
+      rules_json TEXT NOT NULL DEFAULT '[]',
+      manifestations_json TEXT NOT NULL DEFAULT '[]',
+      vocabulary_json TEXT NOT NULL DEFAULT '[]',
+      constraints_json TEXT NOT NULL DEFAULT '[]'
+    );
+
+    CREATE TABLE IF NOT EXISTS cultures (
+      id TEXT PRIMARY KEY,
+      novel_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT NOT NULL,
+      values_json TEXT NOT NULL DEFAULT '[]',
+      taboos_json TEXT NOT NULL DEFAULT '[]',
+      speech_influences TEXT NOT NULL DEFAULT '',
+      customs_json TEXT NOT NULL DEFAULT '[]',
+      system_views_json TEXT NOT NULL DEFAULT '{}'
+    );
+
+    CREATE TABLE IF NOT EXISTS character_cultures (
+      novel_id TEXT NOT NULL,
+      character_id TEXT NOT NULL,
+      culture_id TEXT NOT NULL,
+      relationship TEXT NOT NULL DEFAULT 'native',
+      PRIMARY KEY (novel_id, character_id, culture_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS character_system_awareness (
+      novel_id TEXT NOT NULL,
+      character_id TEXT NOT NULL,
+      system_id TEXT NOT NULL,
+      awareness_level TEXT NOT NULL DEFAULT 'ignorant',
+      perspective TEXT NOT NULL DEFAULT '',
+      chapter_established INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (novel_id, character_id, system_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS relationship_states (
+      novel_id TEXT NOT NULL,
+      character_a TEXT NOT NULL,
+      character_b TEXT NOT NULL,
+      chapter_number INTEGER NOT NULL,
+      trust_level TEXT NOT NULL DEFAULT 'neutral',
+      dynamic TEXT NOT NULL,
+      tension TEXT NOT NULL DEFAULT '',
+      recent_shift TEXT NOT NULL DEFAULT '',
+      PRIMARY KEY (novel_id, character_a, character_b, chapter_number)
+    );
+
+    CREATE TABLE IF NOT EXISTS timeline_events (
+      id TEXT PRIMARY KEY,
+      novel_id TEXT NOT NULL,
+      chapter_number INTEGER NOT NULL,
+      event TEXT NOT NULL,
+      location TEXT NOT NULL DEFAULT '',
+      participants_json TEXT NOT NULL DEFAULT '[]',
+      witnesses_json TEXT NOT NULL DEFAULT '[]',
+      consequences TEXT NOT NULL DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS character_knowledge (
+      id TEXT PRIMARY KEY,
+      novel_id TEXT NOT NULL,
+      character_id TEXT NOT NULL,
+      knowledge TEXT NOT NULL,
+      source TEXT NOT NULL DEFAULT '',
+      chapter_learned INTEGER NOT NULL,
+      category TEXT NOT NULL DEFAULT 'event',
+      is_false INTEGER NOT NULL DEFAULT 0
+    );
+
     -- LLM call tracking moved to central data/harness.db
   `)
 
-  // Add emotional_state column to existing databases
+  // Add columns to existing databases
   try {
     db.exec("ALTER TABLE chapter_summaries ADD COLUMN emotional_state TEXT NOT NULL DEFAULT ''")
+  } catch {}
+  try {
+    db.exec("ALTER TABLE chapter_summaries ADD COLUMN open_threads_json TEXT NOT NULL DEFAULT '[]'")
   } catch {}
 }

@@ -39,6 +39,7 @@ export interface ChapterSummary {
   summary: string
   keyEvents: string[]
   emotionalState: string
+  openThreads: string[]
 }
 
 // ── Novel State (top-level) ────────────────────────────────────────────────
@@ -77,3 +78,4 @@ export { characterStateUpdateSchema } from "./agents/character-state/schema"
 export { crossChapterIssueSchema, crossChapterContinuitySchema } from "./agents/cross-chapter-continuity/schema"
 export { proseQualityIssueSchema, proseQualitySchema } from "./agents/prose-quality/schema"
 export { rewriterOutputSchema } from "./agents/rewriter/schema"
+export { relationshipTimelineSchema } from "./agents/relationship-timeline/schema"
