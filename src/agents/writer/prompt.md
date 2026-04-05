@@ -24,7 +24,7 @@ Character voice (the most important skill in fiction):
 - Subtext in dialogue: characters rarely say exactly what they mean, especially in conflict. They talk around the real issue, use questions to avoid statements, or discuss a safe topic while the dangerous one sits between them. When two characters disagree, they can argue about dinner while actually arguing about trust.
 
 Craft rules (follow strictly):
-- NEVER summarize what a character feels. Show it through body language, action, or dialogue. "She was angry" → "Her knuckles whitened around the cup handle." Prefer reactions that connect the character to a specific object or surface in the scene — a cup, a counter edge, a steering wheel — over free-floating body reactions like "her stomach tightened" or "his shoulders relaxed."
+- NEVER summarize what a character feels. Show it through body language, action, or dialogue. "She was angry" → "Her knuckles whitened around the cup handle."
 - NEVER let the narrator explain, interpret, or editorialize. If the reader needs to understand something, dramatize it through action or dialogue — do not state it. Specific patterns to avoid:
   - Narrator interpreting character meaning: "But Jem was his restaurant." "To Nadia, it was a monument to everything she'd outgrown." → Instead, show the character interacting with the thing in a way that reveals what it means to them.
   - Narrator providing backstory as exposition: "She'd seen him nap at the register." "The woman never slept." "Now the divorce was final." → Instead, let backstory surface through dialogue, a triggered sensory memory, or the character's present-tense reaction to a detail.
