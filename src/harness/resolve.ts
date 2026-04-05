@@ -39,8 +39,8 @@ export async function resolveGraphLinkerOutput(
   // ── Resolve causal links ────────────────────────────────────────────
   const causalLinks: ResolvedGraphData["causalLinks"] = []
   for (const link of llmOutput.causalLinks) {
-    const cause = matchEventByText(link.causeDescription, allEvents)
-    const effect = matchEventByText(link.effectDescription, thisChapterEvents)
+    const cause = await matchEventByEmbedding(link.causeDescription, allEvents, novelId)
+    const effect = await matchEventByEmbedding(link.effectDescription, thisChapterEvents, novelId)
     if (cause?.id && effect?.id) {
       causalLinks.push({
         causeEventId: cause.id, effectEventId: effect.id,
@@ -56,7 +56,7 @@ export async function resolveGraphLinkerOutput(
   const knowledgePropagation: ResolvedGraphData["knowledgePropagation"] = []
   for (const kp of llmOutput.knowledgePropagation) {
     const toChar = matchCharacterByName(kp.characterName, characters)
-    const knowledge = matchKnowledgeByText(kp.knowledge, kp.characterName, knowledgeGains, characters)
+    const knowledge = await matchKnowledgeByEmbedding(kp.knowledge, kp.characterName, knowledgeGains, characters, novelId)
     if (toChar && knowledge?.id) {
       const fromChar = kp.fromCharacterName ? matchCharacterByName(kp.fromCharacterName, characters) : null
       knowledgePropagation.push({
@@ -77,7 +77,7 @@ export async function resolveGraphLinkerOutput(
   const themes: ResolvedGraphData["themes"] = []
   for (const t of llmOutput.themes) {
     // Try matching against events first, then facts
-    const event = matchEventByText(t.description, thisChapterEvents)
+    const event = await matchEventByEmbedding(t.description, thisChapterEvents, novelId)
     if (event?.id) {
       themes.push({ sourceType: "event", sourceId: event.id, theme: t.theme })
       stats.themesResolved++
@@ -85,7 +85,7 @@ export async function resolveGraphLinkerOutput(
     }
 
     // Try matching against facts
-    const fact = await matchFactByText(t.description, novelId, chapterNum)
+    const fact = await matchFactByEmbedding(t.description, novelId, chapterNum)
     if (fact) {
       themes.push({ sourceType: "fact", sourceId: fact, theme: t.theme })
       stats.themesResolved++
@@ -98,38 +98,41 @@ export async function resolveGraphLinkerOutput(
   return { causalLinks, knowledgePropagation, themes, stats }
 }
 
-// ── Matching functions ────────────────────────────────────────────────────
+// ── Matching functions (embedding similarity) ────────────────────────────
 
-function matchEventByText(description: string, events: TimelineEvent[]): TimelineEvent | null {
+const MIN_SIMILARITY = 0.4
+
+async function matchEventByEmbedding(description: string, events: TimelineEvent[], novelId: string): Promise<TimelineEvent | null> {
   if (!description || events.length === 0) return null
-  const descLower = description.toLowerCase()
 
-  // Exact substring match first
+  // Get embedding for the LLM's description
+  const descEmbedding = await getEmbedding(description)
+
+  // Query events with embeddings and find best match
+  const eventIds = events.filter(e => e.id).map(e => e.id!)
+  if (eventIds.length === 0) return null
+
+  const rows = await db.unsafe(
+    `SELECT id, 1 - (embedding <=> $1::vector) as similarity
+     FROM timeline_events
+     WHERE novel_id = $2 AND id = ANY($3::uuid[]) AND embedding IS NOT NULL
+     ORDER BY embedding <=> $1::vector LIMIT 1`,
+    [`[${descEmbedding.join(",")}]`, novelId, eventIds]
+  )
+
+  if (rows.length > 0 && rows[0].similarity >= MIN_SIMILARITY) {
+    return events.find(e => e.id === rows[0].id) ?? null
+  }
+
+  // Fallback: substring match (for events without embeddings yet)
+  const descLower = description.toLowerCase()
   for (const e of events) {
     if (e.event.toLowerCase().includes(descLower) || descLower.includes(e.event.toLowerCase())) {
       return e
     }
   }
 
-  // Word overlap scoring
-  const descWords = new Set(descLower.split(/\s+/).filter(w => w.length > 3))
-  let bestEvent: TimelineEvent | null = null
-  let bestScore = 0
-
-  for (const e of events) {
-    const eventWords = new Set(e.event.toLowerCase().split(/\s+/).filter(w => w.length > 3))
-    let overlap = 0
-    for (const w of descWords) {
-      if (eventWords.has(w)) overlap++
-    }
-    const score = overlap / Math.max(descWords.size, 1)
-    if (score > bestScore && score >= 0.3) {
-      bestScore = score
-      bestEvent = e
-    }
-  }
-
-  return bestEvent
+  return null
 }
 
 function matchCharacterByName(name: string, characters: CharacterProfile[]): CharacterProfile | null {
@@ -140,75 +143,62 @@ function matchCharacterByName(name: string, characters: CharacterProfile[]): Cha
     ?? null
 }
 
-function matchKnowledgeByText(
+async function matchKnowledgeByEmbedding(
   description: string,
   characterName: string,
   knowledgeGains: CharacterKnowledgeEntry[],
   characters: CharacterProfile[],
-): CharacterKnowledgeEntry | null {
+  novelId: string,
+): Promise<CharacterKnowledgeEntry | null> {
   if (!description) return null
-  const descLower = description.toLowerCase()
   const char = matchCharacterByName(characterName, characters)
+  const charKnowledge = char ? knowledgeGains.filter(k => k.characterId === char.id) : knowledgeGains
+  if (charKnowledge.length === 0) return null
 
-  // Filter to this character's knowledge
-  const charKnowledge = char
-    ? knowledgeGains.filter(k => k.characterId === char.id)
-    : knowledgeGains
+  const knowledgeIds = charKnowledge.filter(k => k.id).map(k => k.id!)
+  if (knowledgeIds.length === 0) return null
 
-  // Exact substring match
+  const descEmbedding = await getEmbedding(description)
+
+  const rows = await db.unsafe(
+    `SELECT id, 1 - (embedding <=> $1::vector) as similarity
+     FROM character_knowledge
+     WHERE novel_id = $2 AND id = ANY($3::uuid[]) AND embedding IS NOT NULL
+     ORDER BY embedding <=> $1::vector LIMIT 1`,
+    [`[${descEmbedding.join(",")}]`, novelId, knowledgeIds]
+  )
+
+  if (rows.length > 0 && rows[0].similarity >= MIN_SIMILARITY) {
+    return charKnowledge.find(k => k.id === rows[0].id) ?? null
+  }
+
+  // Fallback: substring
+  const descLower = description.toLowerCase()
   for (const k of charKnowledge) {
     if (k.knowledge.toLowerCase().includes(descLower) || descLower.includes(k.knowledge.toLowerCase())) {
       return k
     }
   }
 
-  // Word overlap
-  const descWords = new Set(descLower.split(/\s+/).filter(w => w.length > 3))
-  let best: CharacterKnowledgeEntry | null = null
-  let bestScore = 0
-
-  for (const k of charKnowledge) {
-    const kWords = new Set(k.knowledge.toLowerCase().split(/\s+/).filter(w => w.length > 3))
-    let overlap = 0
-    for (const w of descWords) { if (kWords.has(w)) overlap++ }
-    const score = overlap / Math.max(descWords.size, 1)
-    if (score > bestScore && score >= 0.3) {
-      bestScore = score
-      best = k
-    }
-  }
-
-  return best
+  return null
 }
 
-async function matchFactByText(description: string, novelId: string, chapterNum: number): Promise<string | null> {
+async function matchFactByEmbedding(description: string, novelId: string, chapterNum: number): Promise<string | null> {
   if (!description) return null
-  const descLower = description.toLowerCase()
 
-  // Query facts for this chapter
-  const facts = await db`SELECT id, fact FROM facts WHERE novel_id = ${novelId} AND established_in_chapter = ${chapterNum}`
+  const descEmbedding = await getEmbedding(description)
 
-  for (const f of facts) {
-    if (f.fact.toLowerCase().includes(descLower) || descLower.includes(f.fact.toLowerCase())) {
-      return f.id
-    }
+  const rows = await db.unsafe(
+    `SELECT id, 1 - (embedding <=> $1::vector) as similarity
+     FROM facts
+     WHERE novel_id = $2 AND established_in_chapter = $3 AND embedding IS NOT NULL
+     ORDER BY embedding <=> $1::vector LIMIT 1`,
+    [`[${descEmbedding.join(",")}]`, novelId, chapterNum]
+  )
+
+  if (rows.length > 0 && rows[0].similarity >= MIN_SIMILARITY) {
+    return rows[0].id
   }
 
-  // Word overlap
-  const descWords = new Set(descLower.split(/\s+/).filter(w => w.length > 3))
-  let bestId: string | null = null
-  let bestScore = 0
-
-  for (const f of facts) {
-    const fWords = new Set(f.fact.toLowerCase().split(/\s+/).filter(w => w.length > 3))
-    let overlap = 0
-    for (const w of descWords) { if (fWords.has(w)) overlap++ }
-    const score = overlap / Math.max(descWords.size, 1)
-    if (score > bestScore && score >= 0.3) {
-      bestScore = score
-      bestId = f.id
-    }
-  }
-
-  return bestId
+  return null
 }
