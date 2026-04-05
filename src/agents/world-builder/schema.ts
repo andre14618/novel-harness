@@ -4,7 +4,20 @@ import { locationSchema } from "../../schemas/shared"
 const worldSystemSchema = z.object({
   id: z.string(),
   name: z.string(),
-  type: z.enum(["magic", "religion", "politics", "economy", "technology", "social"]),
+  type: z.string().transform(v => {
+    const valid = ["magic", "religion", "politics", "economy", "technology", "social"]
+    if (valid.includes(v)) return v
+    const map: Record<string, string> = {
+      "artificial-intelligence": "technology", ai: "technology", computing: "technology",
+      engineering: "technology", science: "technology", navigation: "technology",
+      military: "politics", governance: "politics", law: "politics", bureaucracy: "politics",
+      trade: "economy", commerce: "economy", currency: "economy", labor: "economy",
+      faith: "religion", spiritual: "religion", ritual: "religion", mythology: "religion",
+      arcane: "magic", sorcery: "magic", supernatural: "magic", alchemy: "magic",
+      cultural: "social", class: "social", caste: "social", hierarchy: "social",
+    }
+    return map[v.toLowerCase()] ?? "technology"
+  }),
   description: z.string(),
   rules: z.array(z.string()).default([]),
   manifestations: z.array(z.string()).default([]),
