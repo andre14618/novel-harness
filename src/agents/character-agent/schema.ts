@@ -3,7 +3,18 @@ import { relationshipSchema } from "../../schemas/shared"
 
 const culturalBackgroundSchema = z.object({
   cultureName: z.string(),
-  relationship: z.enum(["native", "adopted", "outsider", "rebel", "exile"]).default("native"),
+  relationship: z.string().default("native").transform(v => {
+    const valid = ["native", "adopted", "outsider", "rebel", "exile"]
+    if (valid.includes(v)) return v
+    const map: Record<string, string> = {
+      returnee: "native", born: "native", local: "native", indigenous: "native",
+      immigrant: "adopted", convert: "adopted", newcomer: "adopted", settler: "adopted",
+      foreigner: "outsider", stranger: "outsider", visitor: "outsider", traveler: "outsider",
+      dissident: "rebel", reformer: "rebel", revolutionary: "rebel", resistance: "rebel",
+      banished: "exile", expelled: "exile", outcast: "exile", fugitive: "exile",
+    }
+    return map[v.toLowerCase()] ?? "outsider"
+  }),
 })
 
 const systemAwarenessSchema = z.object({
