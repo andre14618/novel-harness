@@ -14,7 +14,7 @@ export async function getWorldBible(novelId: string): Promise<WorldBible> {
 
 export async function saveCharacter(novelId: string, profile: CharacterProfile): Promise<void> {
   await db`INSERT INTO characters (id, novel_id, name, profile_json) VALUES (${profile.id}, ${novelId}, ${profile.name}, ${JSON.stringify(profile)})
-           ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, profile_json = EXCLUDED.profile_json`
+           ON CONFLICT (novel_id, id) DO UPDATE SET name = EXCLUDED.name, profile_json = EXCLUDED.profile_json`
 }
 
 export async function getCharacters(novelId: string): Promise<CharacterProfile[]> {

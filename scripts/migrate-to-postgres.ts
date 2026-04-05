@@ -202,8 +202,9 @@ async function migrateNovel(sqlite: Database, novelId: string) {
   } catch {}
 
   const factCount = facts.length
-  const eventCount = sqlite.prepare("SELECT COUNT(*) as c FROM timeline_events WHERE novel_id = ?").get(novelId) as any
-  console.log(`  Migrated: ${chars.length} characters, ${outlines.length} outlines, ${drafts.length} drafts, ${factCount} facts, ${eventCount?.c ?? 0} events`)
+  let eventCount = 0
+  try { eventCount = (sqlite.prepare("SELECT COUNT(*) as c FROM timeline_events WHERE novel_id = ?").get(novelId) as any)?.c ?? 0 } catch {}
+  console.log(`  Migrated: ${chars.length} characters, ${outlines.length} outlines, ${drafts.length} drafts, ${factCount} facts, ${eventCount} events`)
 }
 
 async function embedNovelData(novelId: string) {

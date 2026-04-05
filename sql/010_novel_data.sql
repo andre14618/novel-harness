@@ -23,10 +23,11 @@ CREATE TABLE IF NOT EXISTS world_bibles (
 );
 
 CREATE TABLE IF NOT EXISTS characters (
-  id           TEXT PRIMARY KEY,
+  id           TEXT NOT NULL,
   novel_id     TEXT NOT NULL REFERENCES novels(id),
   name         TEXT NOT NULL,
-  profile_json JSONB NOT NULL
+  profile_json JSONB NOT NULL,
+  PRIMARY KEY (novel_id, id)
 );
 CREATE INDEX idx_characters_novel ON characters (novel_id);
 
