@@ -14,7 +14,9 @@ Respond with ONLY valid JSON in this exact structure:
       "avoids": "what this character refuses to say, do, or acknowledge — and why",
       "goals": "what they want (external goal)",
       "fears": "what they're afraid of — the specific scenario, not a vague concept",
-      "relationships": [{"characterName": "Other Character", "nature": "how they relate + the specific source of tension between them"}]
+      "relationships": [{"characterName": "Other Character", "nature": "how they relate + the specific source of tension between them"}],
+      "culturalBackground": [{"cultureName": "Name from world bible cultures", "relationship": "native|adopted|outsider|rebel|exile"}],
+      "systemAwareness": [{"systemName": "Name from world bible systems", "level": "ignorant|rumors|aware|practitioner|expert", "perspective": "How they personally view/relate to this system"}]
     }
   ]
 }
@@ -43,3 +45,20 @@ Relationships — every relationship needs a tension source:
 Fears — make them specific and dramatizable:
 - Bad: "afraid of failure"
 - Good: "afraid of being publicly exposed as incompetent — will sabotage herself rather than let someone else reveal her limitations"
+
+Cultural background — assign each character to one or more cultures from the world bible:
+- "native" — born into, speaks/acts as a natural member
+- "adopted" — joined later, may code-switch or overcompensate
+- "outsider" — interacts with but doesn't belong to (tourist, diplomat, spy)
+- "rebel" — born into but actively rejects (apostate, deserter, class traitor)
+- "exile" — forced out, carries the culture's marks but not its welcome
+- A character's cultural background shapes their speech patterns, what they notice, and what feels normal vs. foreign
+
+System awareness — how much each character knows about world systems (magic, religion, politics, etc.):
+- "ignorant" — doesn't know this system exists or has no concept of it
+- "rumors" — has heard vague stories, may have misconceptions
+- "aware" — knows the basics but has no direct experience
+- "practitioner" — uses/participates in this system directly
+- "expert" — deep understanding, knows edge cases and exploits
+- Include a perspective for each: how they personally feel about the system. A practitioner might love or resent their abilities. An aware character might fear or envy practitioners.
+- EVERY character should have awareness entries for EVERY system in the world bible — even "ignorant" is meaningful information for the writer

@@ -22,3 +22,4 @@ export { buildContext as buildCharacterStateContext } from "./agents/character-s
 export { buildContext as buildCrossChapterContext } from "./agents/cross-chapter-continuity/context"
 export { buildContext as buildProseQualityContext } from "./agents/prose-quality/context"
 export { buildContext as buildRewriterContext } from "./agents/rewriter/context"
+export { buildContext as buildRelationshipTimelineContext } from "./agents/relationship-timeline/context"

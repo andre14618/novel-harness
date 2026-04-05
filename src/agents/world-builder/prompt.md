@@ -12,7 +12,31 @@ Respond with ONLY valid JSON in this exact structure:
   "rules": ["rule 1", "rule 2", "..."],
   "locations": [{"name": "Place Name", "description": "what it looks like and what happens here", "sensoryDetails": "what you hear, smell, feel in this specific place"}],
   "culture": "beliefs, values, and daily life — what do people care about, argue over, celebrate",
-  "history": "relevant backstory that shapes current tensions — only what matters to this story"
+  "history": "relevant backstory that shapes current tensions — only what matters to this story",
+  "systems": [
+    {
+      "id": "sys_allomancy",
+      "name": "Allomancy",
+      "type": "magic|religion|politics|economy|technology|social",
+      "description": "How this system works — the mechanics that govern it",
+      "rules": ["Specific rule 1", "Specific rule 2"],
+      "manifestations": ["How ordinary people encounter this system in daily life"],
+      "vocabulary": ["Terms, jargon, slang associated with this system"],
+      "constraints": ["What this system CANNOT do — its limits and costs"]
+    }
+  ],
+  "cultures": [
+    {
+      "id": "cult_skaa",
+      "name": "Culture Name",
+      "description": "Who these people are and how they live",
+      "values": ["What they hold sacred or important"],
+      "taboos": ["What is forbidden, shameful, or avoided"],
+      "speechInfluences": "How belonging to this culture shapes the way people speak — formality level, common expressions, what topics are discussed openly vs avoided",
+      "customs": ["Specific daily-life practices and rituals"],
+      "systemViews": {"sys_allomancy": "How this culture views/interacts with this system — fear, reverence, exploitation, ignorance"}
+    }
+  ]
 }
 
 Guidelines:
@@ -22,3 +46,8 @@ Guidelines:
 - technologyConstraints: be explicit about what does NOT exist. Gaps matter more than capabilities. If there are no phones, characters can't call for help. If there's no refrigeration, food storage drives settlement patterns.
 - sensoryPalette: this is the world's default atmosphere. The writer will layer character-specific perception on top of it.
 - Be specific and concrete throughout — vague worldbuilding forces the writer to invent details on the fly, which creates continuity issues downstream.
+
+Systems and Cultures:
+- systems: Create 1-4 structured world systems. Every world has at least a political/social system. Fantasy worlds typically have magic; all worlds have economics, religion, or social hierarchy. Each system needs concrete rules (not abstract), visible manifestations (how regular people encounter it), vocabulary (what people call things), and constraints (what it CANNOT do). Use ids like "sys_lowercase_name".
+- cultures: Create 1-3 distinct cultures present in the story. Different cultures perceive the same world systems differently — a ruling class celebrates a political system the underclass resents. Each culture needs speech influences (formality, common phrases, avoided topics) because the writer uses this to differentiate dialogue. systemViews maps system ids to this culture's perspective on that system. Use ids like "cult_lowercase_name".
+- For contemporary/realistic genres: "systems" may be social structures (class, corporate hierarchy, legal system) and "cultures" may be communities, neighborhoods, professional subcultures, or generational divides. The schema is the same — what matters is that different characters interact with different systems at different awareness levels.
