@@ -9,7 +9,7 @@ The world knowledge graph gives the novel harness structured worldbuilding that 
 
 ## Data Model
 
-All tables live in per-novel SQLite (`output/{novelId}/novel.db`).
+All tables live in the central Postgres DB (`novel_harness_orchestrator`), partitioned by `novel_id`. Schema in `sql/010_novel_data.sql` and `sql/011_vector_graph.sql`.
 
 ### World Systems (`world_systems`)
 
@@ -109,53 +109,64 @@ Structured tracking of what each character knows, replacing flat `knows[]`/`does
 
 ## Extraction Pipeline
 
-After each chapter is approved, four extractors run in parallel:
+After each chapter is approved, five steps run:
 
-1. **summary-extractor** — chapter summary, key events, emotional state, open threads
-2. **fact-extractor** — 20-35 categorized facts (unchanged)
-3. **character-state** — location, emotional state, knows/doesNotKnow (unchanged)
-4. **relationship-timeline** — relationship changes, timeline events, knowledge gains, system awareness changes
+1. **4 extractors in parallel:**
+   - **summary-extractor** — chapter summary, key events, emotional state, open threads
+   - **fact-extractor** — 20-35 categorized facts
+   - **character-state** — location, emotional state, knows/doesNotKnow
+   - **relationship-timeline** — relationship changes, timeline events, knowledge gains, awareness changes
 
-The relationship-timeline agent (`src/agents/relationship-timeline/`) receives the chapter prose, current relationship states, character list, and world systems. It extracts only changes — if no relationships shifted, those arrays are empty.
+2. **Embedding** — batch embed all new chapter data via `text-embedding-3-large` (1536 dims). Stored in vector columns on each table. Cost: ~$0.0003/chapter.
 
-## Scoped Context Assembly
+3. **Graph linker** (`src/agents/graph-linker/`) — identifies causal chains, knowledge propagation, and thematic tags across the extracted data. Writes to `event_causes`, `knowledge_propagation`, `thematic_tags`.
 
-The writer context builder (`src/agents/writer/context.ts`) assembles 10 layers of context, filtered through the POV character's awareness:
+### Graph Tables (sql/011_vector_graph.sql)
 
-### Layer 1: Scene Setup (~200 tokens)
-Chapter number, title, POV character, setting, purpose, target word count, scene beats.
+| Table | Purpose |
+|-------|---------|
+| `event_causes` | Cause → effect links between timeline events (causes, enables, prevents, motivates) |
+| `knowledge_propagation` | Who transmitted knowledge to whom, via what event, with confidence |
+| `thematic_tags` | Theme labels on facts, events, summaries for cross-chapter thread tracking |
+| `retrieval_config` | Per-novel tunable retrieval parameters (12 fields) |
 
-### Layer 2: POV Character's World View (~300-500 tokens)
-Cultural background (which cultures they belong to, their relationship to each), values, taboos, speech influences. This shapes what they notice and how they think.
+## Context Assembly
 
-### Layer 3: Character Profiles + Evolving Relationships (~200 tokens/char)
-Full profiles for present characters. For each non-POV character, includes the current relationship state with the POV character (trust level, dynamic, tension, recent shift).
+The writer context builder (`src/agents/writer/context.ts`) uses a fixed skeleton with dynamic semantic retrieval.
 
-### Layer 4: Relevant World Systems (~100-200 tokens/system)
-Only systems the POV character is aware of, described at their awareness level. An "ignorant" character sees nothing; a "rumors" character sees vague whispers; an "expert" sees full mechanics including limitations.
+### Fixed Skeleton (always included)
+- **Scene Setup** — chapter number, POV character, setting, beats
+- **POV World View** — cultural background, values, taboos, speech influences
+- **Character Profiles** — present characters with relationship arcs (full trajectory, not just latest snapshot)
+- **Craft Reminders** — POV speech pattern, voice contrast, show-don't-tell
 
-### Layer 5: Setting & Atmosphere (~200 tokens)
-Location description and sensory details from world bible, plus location history (what happened here before, from timeline events).
+### Dynamic Sections (semantic retrieval via `src/db/retrieval.ts`)
 
-### Layer 6: Story Context (~300 tokens)
-Theme, central conflict, ending direction from story spine. Current act with emotional arc and turning point. Open threads from previous chapter summaries.
+Scene query embedded → 6-table hybrid RRF search → character/location boost → recency decay.
 
-### Layer 7: Recent Timeline Events (~200-400 tokens)
-Last 10 events involving characters present in this chapter, with consequences.
+Assembled based on what's actually found and relevant to the scene:
+- **World Systems** — only if semantically relevant (a kitchen scene won't get magic details)
+- **Setting & Atmosphere** — location details, what happened here before
+- **Story Context** — relevant summaries from any chapter, not just last 5
+- **Causal Context** — event chains traced via `event_causes` graph
+- **Knowledge Context** — POV character's knowledge with propagation sources and confidence
+- **Established Facts** — semantically relevant facts from any chapter
+- **Thematic Threads** — prior scenes sharing themes with this scene
 
-### Layer 8: Character States (~100 tokens/char)
-Location, emotional state, knowledge from character-state extractor. Filtered to present characters.
+### Retrieval Parameters (tunable via UI or daemon)
 
-### Layer 9: Filtered Facts (~variable)
-Relevance-scored and capped at 80 facts (from potentially 500+ at chapter 20). Scoring:
-- +3 per present character mentioned
-- +2 for current location match
-- +5 for world rules (always relevant)
-- +2 for recency (last 5 chapters)
-- Category priority: relationship/knowledge > identity/rule > action/dialogue > physical/sensory
+Stored in `retrieval_config` per novel, adjustable at `/app/context`:
 
-### Layer 10: Craft Reminders (~100 tokens)
-POV speech pattern, avoidance patterns, voice contrast between present characters, show-don't-tell rules.
+| Parameter | Default | Purpose |
+|-----------|---------|---------|
+| `max_facts` | 40 | Facts returned per scene |
+| `max_events` | 15 | Timeline events returned |
+| `max_summaries` | 8 | Chapter summaries returned |
+| `min_similarity` | 0.25 | Cosine similarity floor |
+| `rrf_k` | 60 | RRF fusion constant |
+| `character_boost` | 2.0 | Score multiplier for present characters |
+| `location_boost` | 1.5 | Score multiplier for location matches |
+| `recency_half_life` | 10 | Chapters until recency bonus halves |
 
 ## Concept Phase Ordering
 
@@ -166,19 +177,16 @@ The concept phase runs agents in this order:
 
 This adds ~5-10s wall-clock time but eliminates the need for a reconciliation step between characters and world.
 
-## Files
+## Key Files
 
 | File | Purpose |
 |------|---------|
-| `src/db/world-systems.ts` | CRUD for world_systems, cultures, character_cultures, character_system_awareness |
-| `src/db/relationships.ts` | CRUD for relationship_states |
-| `src/db/timeline.ts` | CRUD for timeline_events |
-| `src/db/knowledge.ts` | CRUD for character_knowledge |
-| `src/agents/relationship-timeline/` | New extraction agent (prompt, schema, context, config) |
-| `src/agents/writer/context.ts` | 10-layer scoped context assembler |
-| `src/state-extraction.ts` | `updateStateAfterChapter()` — 4 parallel extractors |
-| `src/phases/concept.ts` | Serialized concept phase + knowledge graph saving |
-
-## Backward Compatibility
-
-All new tables use `CREATE TABLE IF NOT EXISTS`. All new schema fields have `.default([])`. Existing novels resume with empty arrays everywhere, falling back to the original context behavior. The flat `facts` table and `character_states` table are unchanged — the knowledge graph is additive.
+| `sql/010_novel_data.sql` | Postgres schema: all novel tables with vector columns, HNSW indexes, tsvector triggers |
+| `sql/011_vector_graph.sql` | Graph tables: event_causes, knowledge_propagation, thematic_tags, retrieval_config |
+| `src/db/retrieval.ts` | Hybrid RRF search engine + graph queries (causal chains, relationship arcs, knowledge graph, thematic threads) |
+| `src/db/embed.ts` | Embedding client (text-embedding-3-large via OpenRouter, 1536 dims) |
+| `src/harness/` | Service layer — typed API for all harness operations (scores, experiments, cycles, context, embeddings, graph, novels) |
+| `src/agents/graph-linker/` | 5th extraction agent: causal links, knowledge propagation, thematic tags |
+| `src/agents/writer/context.ts` | Fixed skeleton + dynamic semantic retrieval context assembler |
+| `src/state-extraction.ts` | `updateStateAfterChapter()` — 4 parallel extractors + embedding + graph linker |
+| `benchmark/context/` | Context quality benchmark: 5 focused judges (relevance, completeness, noise, causal-depth, knowledge-accuracy) |

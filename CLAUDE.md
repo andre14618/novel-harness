@@ -157,10 +157,22 @@ bun test
 - **Deploy**: `bash scripts/deploy-lxc.sh` (rsync + restart)
 - **Web UI**: `http://novel-harness:3006/app?key=<ORCHESTRATOR_API_KEY>`
 
+## Sources of Truth
+
+| What | Where |
+|------|-------|
+| Architecture + pipeline flow | `/app/guide` (React UI) |
+| Knowledge graph + context assembly | `docs/world-knowledge-graph.md` |
+| DB schema | `sql/010_novel_data.sql`, `sql/011_vector_graph.sql` |
+| Agent model assignments | `models/roles.ts` |
+| Service layer API | `src/harness/index.ts` |
+| Retrieval engine | `src/db/retrieval.ts` |
+
 ## Reference docs
 
 - `docs/lessons-learned.md` — **read before designing agents, rubrics, or experiments**
 - `docs/commit-conventions.md` — commit message format
-- `docs/world-knowledge-graph.md` — knowledge graph schema and context assembly
+- `docs/world-knowledge-graph.md` — knowledge graph, context assembly, retrieval parameters
 - `docs/improvement-checklist.md` — improvement items across capability tiers
 - `docs/methodology-integration-report.md` — writing methodology (Story Grid, Save the Cat, Weiland)
+- `docs/architecture.html` — **deprecated**, superseded by `/app/guide`
