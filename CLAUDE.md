@@ -1,6 +1,6 @@
 # Novel Harness
 
-AI-assisted novel creation harness — deterministic code controls flow, LLMs are leaf-node function calls. Produces a 3-chapter short story (one chapter per act) for rapid iteration on agent tuning.
+AI-assisted novel creation harness — deterministic code controls flow, LLMs are leaf-node function calls. Supports short stories (3 chapters) for rapid iteration and full-length novels (20-30 chapters) with deep worldbuilding.
 
 ## Deployment Model
 
@@ -27,8 +27,10 @@ State machine: concept → planning → drafting → validation → done
 - Concept: world-builder, character-agent, plotter
 - Planning: planning-plotter
 - Drafting: writer, continuity
-- Extraction: summary-extractor, fact-extractor, character-state
+- Extraction: summary-extractor, fact-extractor, character-state, relationship-timeline
 - Validation: cross-chapter-continuity, prose-quality, rewriter
+
+**World Knowledge Graph & Scoped Context** — see `docs/world-knowledge-graph.md`. Structured world systems, cultures, evolving relationships, timeline events, and character knowledge tracked per-novel in SQLite. Writer receives 10-layer POV-aware context filtered through the character's cultural background and system awareness level. Concept phase runs world-builder first, then character-agent + plotter in parallel.
 
 **Models** — `models/roles.ts` is the single place to control all agent assignments (novel pipeline, benchmarks, orchestrator). Every `callAgent()` call resolves provider/model/temperature from roles.ts via `agentName`. Benchmark-specific roles (`benchmark-writer`, `benchmark-judge`) allow independent tuning from the novel pipeline, with fallback to `writer`/`judge`. Retry agents (`*-retry`) have their own entries with higher temperature. `models/registry.ts` has all available models with pricing/specs and provider cache/batch config. Runtime overrides via web UI (`setAgentOverride()`) take effect immediately; `persistOverrides()` writes changes to roles.ts permanently.
 
@@ -186,5 +188,6 @@ Each doc has a `status` frontmatter field: `active` (operational), `proposal` (n
 - `docs/improvement-checklist.md` — 25 improvement items across 4 capability tiers
 - `docs/methodology-integration-report.md` — writing methodology (Story Grid, Save the Cat, Weiland)
 - `docs/batch-processing.md` — batch API cost analysis and phased approach (reference, partially implemented)
+- `docs/world-knowledge-graph.md` — world systems, cultures, evolving relationships, scoped context assembly, extraction pipeline
 - `docs/proposal-style-mimicry.md` — author style extraction for fanfiction (proposal)
 - `docs/tuning-log.md` — historical tuning experiment results (April 2026, pre-DB)
