@@ -9,8 +9,6 @@ Items removed when done — git history has the record. Ordered by impact.
 
 ## Context Engine
 
-- Build context quality benchmark runner (`benchmark/context/run.ts`)
-- Run 10+ chapter novel to validate retrieval at scale
 - Wire retrieval-config + deterministic-config as autoresearcher optimization targets via component registry
 
 ## Seeds & Testing

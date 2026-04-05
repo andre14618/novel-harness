@@ -29,14 +29,14 @@ export interface DeterministicConfig {
 }
 
 export const DEFAULT_DETERMINISTIC_CONFIG: DeterministicConfig = {
-  themeAutoThreshold: 0.5,
-  themeCandidateThreshold: 0.3,
+  themeAutoThreshold: 0.35,
+  themeCandidateThreshold: 0.2,
   causalParticipantWeight: 0.4,
   causalLocationWeight: 0.2,
   causalTemporalWeight: 0.15,
   causalConsequenceWeight: 0.25,
-  causalAutoThreshold: 0.85,
-  causalCandidateThreshold: 0.5,
+  causalAutoThreshold: 0.65,
+  causalCandidateThreshold: 0.35,
 }
 
 /** Load config from DB, falling back to defaults */
