@@ -175,4 +175,3 @@ bun test
 - `docs/world-knowledge-graph.md` — knowledge graph, context assembly, retrieval parameters
 - `docs/improvement-checklist.md` — improvement items across capability tiers
 - `docs/methodology-integration-report.md` — writing methodology (Story Grid, Save the Cat, Weiland)
-- `docs/architecture.html` — **deprecated**, superseded by `/app/guide`
