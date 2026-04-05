@@ -20,7 +20,18 @@ const timelineEventSchema = z.object({
 const knowledgeGainSchema = z.object({
   characterName: z.string(),
   knowledge: z.string(),
-  source: z.enum(["witnessed", "told", "overheard", "deduced", "read", "discovered"]).default("witnessed"),
+  source: z.string().default("witnessed").transform(v => {
+    const valid = ["witnessed", "told", "overheard", "deduced", "read", "discovered"]
+    if (valid.includes(v)) return v
+    const map: Record<string, string> = {
+      seen: "witnessed", saw: "witnessed", observed: "witnessed", watched: "witnessed",
+      heard: "overheard", listening: "overheard", eavesdropped: "overheard",
+      figured: "deduced", inferred: "deduced", concluded: "deduced", realized: "deduced",
+      found: "discovered", uncovered: "discovered", learned: "told",
+      informed: "told", shared: "told", revealed: "told",
+    }
+    return map[v.toLowerCase()] ?? "witnessed"
+  }),
   category: z.string().default("event").transform(v => {
     const valid = ["event", "secret", "relationship", "system", "location", "identity"]
     return valid.includes(v) ? v : "event"
