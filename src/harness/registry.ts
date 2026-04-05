@@ -118,22 +118,6 @@ export const COMPONENTS: Component[] = [
 
   // ── Deterministic heuristic parameters ────────────────────────────────
   {
-    id: "deterministic.theme_auto_threshold", name: "Theme Auto-Accept Threshold",
-    description: "Embedding similarity above this → theme auto-tagged without LLM",
-    type: "number", storage: "deterministic_config", table: "deterministic_config", column: "theme_auto_threshold",
-    min: 0.3, max: 0.8, step: 0.05,
-    measuredBy: ["context-relevance", "context-noise"],
-    category: "deterministic",
-  },
-  {
-    id: "deterministic.theme_candidate_threshold", name: "Theme Candidate Threshold",
-    description: "Embedding similarity above this → sent to LLM for validation",
-    type: "number", storage: "deterministic_config", table: "deterministic_config", column: "theme_candidate_threshold",
-    min: 0.1, max: 0.5, step: 0.05,
-    measuredBy: ["context-relevance"],
-    category: "deterministic",
-  },
-  {
     id: "deterministic.causal_participant_weight", name: "Causal: Participant Weight",
     description: "How much shared participants between events contributes to causal link score",
     type: "number", storage: "deterministic_config", table: "deterministic_config", column: "causal_participant_weight",

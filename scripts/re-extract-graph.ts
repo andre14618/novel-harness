@@ -7,7 +7,7 @@
  */
 
 import db from "../data/connection"
-import { getCharacters, getStorySpine } from "../src/db"
+import { getCharacters } from "../src/db"
 import { getTimelineEventsForChapter, getTimelineEventsUpToChapter } from "../src/db/timeline"
 import { getKnowledgeForChapter } from "../src/db/knowledge"
 import { callAgent } from "../src/llm"
@@ -32,18 +32,14 @@ async function reExtract(novelId: string) {
   const totalChapters = novel.total_chapters
   console.log(`\n${novelId}: ${totalChapters} chapters`)
 
-  // Clear existing graph data (causal + themes only — keep knowledge propagation)
-  const [causalDeleted, themesDeleted] = await Promise.all([
-    db`DELETE FROM event_causes WHERE novel_id = ${novelId} RETURNING id`,
-    db`DELETE FROM thematic_tags WHERE novel_id = ${novelId} RETURNING id`,
-  ])
-  console.log(`  Cleared: ${causalDeleted.length} causal links, ${themesDeleted.length} themes`)
+  // Clear existing causal links (keep knowledge propagation)
+  const causalDeleted = await db`DELETE FROM event_causes WHERE novel_id = ${novelId} RETURNING id`
+  console.log(`  Cleared: ${causalDeleted.length} causal links`)
 
   const characters = await getCharacters(novelId)
-  const storyTheme = await tryGet(async () => (await getStorySpine(novelId)).theme) ?? null
   const detConfig = await harness.deterministic.getDeterministicConfig(novelId)
 
-  let totalCausalAuto = 0, totalCausalLLM = 0, totalThemes = 0, totalCandidates = 0
+  let totalCausalAuto = 0, totalCausalLLM = 0, totalCandidates = 0
 
   for (let ch = 1; ch <= totalChapters; ch++) {
     const [thisChapterEvents, priorEvents, knowledgeGains] = await Promise.all([
@@ -60,14 +56,8 @@ async function reExtract(novelId: string) {
     // Step 3: Deterministic analysis
     const det = await harness.deterministic.runDeterministicAnalysis(
       novelId, ch, thisChapterEvents, priorEvents,
-      knowledgeGains, characters, storyTheme, detConfig,
+      knowledgeGains, characters, detConfig,
     )
-
-    // Save themes
-    if (det.autoThemes.length > 0) {
-      await harness.graph.saveThematicTags(novelId, det.autoThemes)
-      totalThemes += det.autoThemes.length
-    }
 
     // Save auto-accepted causal links
     const autoCausal = det.causalCandidates.filter(c => c.score >= detConfig.causalAutoThreshold)
@@ -126,17 +116,16 @@ async function reExtract(novelId: string) {
           }
         }
 
-        console.log(`  ch${ch}: ${det.stats.themesAutoTagged} themes, ${autoCausal.length} causal auto, ${confirmed.length}/${ambiguous.length} LLM confirmed`)
+        console.log(`  ch${ch}: ${autoCausal.length} causal auto, ${confirmed.length}/${ambiguous.length} LLM confirmed`)
       } catch (err) {
-        console.log(`  ch${ch}: ${det.stats.themesAutoTagged} themes, ${autoCausal.length} causal auto, LLM failed: ${err instanceof Error ? err.message : err}`)
+        console.log(`  ch${ch}: ${autoCausal.length} causal auto, LLM failed: ${err instanceof Error ? err.message : err}`)
       }
     } else {
-      console.log(`  ch${ch}: ${det.stats.themesAutoTagged} themes, ${autoCausal.length} causal auto, 0 candidates`)
+      console.log(`  ch${ch}: ${autoCausal.length} causal auto, 0 candidates`)
     }
   }
 
   console.log(`\n  TOTAL: ${totalCausalAuto} causal auto + ${totalCausalLLM} LLM confirmed = ${totalCausalAuto + totalCausalLLM} causal links`)
-  console.log(`  ${totalThemes} themes tagged`)
   console.log(`  ${totalCandidates} candidates sent to LLM`)
 }
 

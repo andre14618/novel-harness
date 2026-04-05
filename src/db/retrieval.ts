@@ -28,7 +28,7 @@ export interface RetrievalConfig {
 }
 
 export const DEFAULT_CONFIG: RetrievalConfig = {
-  maxFacts: 40,
+  maxFacts: 15,
   maxEvents: 15,
   maxSummaries: 8,
   maxStates: 10,

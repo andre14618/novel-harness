@@ -4,19 +4,20 @@ export const schema = z.object({
   facts: z.array(z.object({
     fact: z.string(),
     category: z.string().transform(v => {
-      const valid = ["physical", "action", "rule", "relationship", "knowledge", "sensory", "temporal", "emotional", "identity", "dialogue"]
+      const valid = ["physical", "rule", "relationship", "knowledge", "identity", "temporal"]
       if (valid.includes(v)) return v
       const map: Record<string, string> = {
-        visual: "sensory", auditory: "sensory", tactile: "sensory", olfactory: "sensory",
         spatial: "physical", environmental: "physical", geographic: "physical", appearance: "physical",
-        behavioral: "action", movement: "action", gesture: "action",
-        social: "relationship", interpersonal: "relationship", familial: "relationship",
-        belief: "knowledge", information: "knowledge", memory: "knowledge", cultural: "knowledge",
-        legal: "rule", political: "rule", systemic: "rule", custom: "rule",
-        chronological: "temporal", historical: "temporal", sequential: "temporal",
-        psychological: "emotional", motivational: "emotional", internal: "emotional",
-        personal: "identity", biographical: "identity", trait: "identity",
-        speech: "dialogue", verbal: "dialogue", conversational: "dialogue",
+        visual: "physical", object: "physical", location: "physical",
+        social: "relationship", interpersonal: "relationship", familial: "relationship", alliance: "relationship",
+        belief: "knowledge", information: "knowledge", memory: "knowledge", secret: "knowledge",
+        deduction: "knowledge", discovery: "knowledge", revelation: "knowledge",
+        legal: "rule", political: "rule", systemic: "rule", custom: "rule", constraint: "rule",
+        chronological: "temporal", historical: "temporal", sequential: "temporal", deadline: "temporal",
+        personal: "identity", biographical: "identity", name: "identity",
+        // Map removed categories to closest match
+        action: "physical", sensory: "physical", emotional: "knowledge",
+        dialogue: "knowledge",
       }
       return map[v.toLowerCase()] ?? "physical"
     }),

@@ -1,16 +1,15 @@
 import type { ContinuityIssue } from "../../schemas/shared"
 import {
-  getApprovedDraft, getChapterOutline, getFactsUpToChapter,
+  getApprovedDraft, getChapterOutline,
   getCharacterStatesAtChapter, getStorySpine,
 } from "../../db"
+import db from "../../../data/connection"
 
 export async function buildContext(novelId: string, chapterNum: number, issues: ContinuityIssue[]): Promise<string> {
   const draft = await getApprovedDraft(novelId, chapterNum)
   if (!draft) throw new Error(`No approved draft for chapter ${chapterNum}`)
 
   const outline = await getChapterOutline(novelId, chapterNum)
-  const facts = await getFactsUpToChapter(novelId, chapterNum)
-  const charStates = await getCharacterStatesAtChapter(novelId, chapterNum)
 
   let ctx = `CHAPTER ${chapterNum}: "${outline.title}"\n`
   ctx += `POV: ${outline.povCharacter}\n`
@@ -33,16 +32,26 @@ export async function buildContext(novelId: string, chapterNum: number, issues: 
 
   ctx += `\n\nORIGINAL DRAFT:\n${draft.prose}\n\n`
 
+  // Only include facts from this chapter and immediately adjacent chapters
+  const facts = await db`
+    SELECT fact, category, established_in_chapter
+    FROM facts
+    WHERE novel_id = ${novelId}
+      AND established_in_chapter BETWEEN ${Math.max(1, chapterNum - 1)} AND ${chapterNum}
+      AND category IN ('knowledge', 'rule', 'relationship', 'identity', 'physical')
+    ORDER BY established_in_chapter
+  `
   if (facts.length > 0) {
-    ctx += "ESTABLISHED FACTS (must not contradict):\n"
-    ctx += facts.map(f => `- [ch${f.establishedInChapter}] ${f.fact}`).join("\n")
+    ctx += "FACTS TO PRESERVE (this chapter + prior):\n"
+    ctx += facts.map(f => `- [ch${f.established_in_chapter}] ${f.fact}`).join("\n")
     ctx += "\n\n"
   }
 
+  const charStates = await getCharacterStatesAtChapter(novelId, chapterNum)
   if (charStates.length > 0) {
     ctx += "CHARACTER STATES (entering this chapter):\n"
     ctx += charStates.map(cs =>
-      `${cs.characterId}: at ${cs.location}, feeling ${cs.emotionalState}, knows: ${cs.knows.join("; ")}`
+      `${cs.characterId}: at ${cs.location}, feeling ${cs.emotionalState}`
     ).join("\n")
     ctx += "\n"
   }

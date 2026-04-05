@@ -26,7 +26,7 @@ import {
 } from "../../db"
 import {
   hasEmbeddings, searchForScene, buildSceneQuery, getRetrievalConfig,
-  getCausalChain, getRelationshipArc, getKnowledgeGraph, getThematicThread,
+  getCausalChain, getRelationshipArc, getKnowledgeGraph,
 } from "../../db/retrieval"
 import type { StorySpine, NovelState, CharacterProfile } from "../../types"
 import type { WorldSystem } from "../../db/world-systems"
@@ -138,17 +138,26 @@ async function buildDynamicSections(
 
   // ── Causal Context (graph traversal) ─────────────────────────────────
   if (results.events.length > 0) {
-    // Get causal chains for the most relevant events
+    // Get causal chains for the most relevant events (deduped)
     const eventLines: string[] = []
     for (const r of results.events.slice(0, 8)) {
       let line = `Ch${r.content.chapter_number}: ${r.content.event}`
       if (r.content.consequences) line += ` → ${r.content.consequences}`
 
-      // Trace causal chain back
+      // Trace causal chain back (dedup by event text)
       const chain = await tryGet(() => getCausalChain(novelId, r.id, 3))
       if (chain && chain.length > 0) {
-        const chainStr = chain.map(c => `ch${c.chapterNumber}: ${c.event}`).join(" ← ")
-        line += `\n    Caused by: ${chainStr}`
+        const seen = new Set<string>()
+        const deduped = chain.filter(c => {
+          const key = `ch${c.chapterNumber}:${c.event.slice(0, 60)}`
+          if (seen.has(key)) return false
+          seen.add(key)
+          return true
+        })
+        if (deduped.length > 0) {
+          const chainStr = deduped.map(c => `ch${c.chapterNumber}: ${c.event}`).join(" ← ")
+          line += `\n    Caused by: ${chainStr}`
+        }
       }
       eventLines.push(`- ${line}`)
     }
@@ -202,15 +211,7 @@ async function buildDynamicSections(
     sections.push(`ESTABLISHED FACTS (${results.facts.length} most relevant):\n${factLines}`)
   }
 
-  // ── Thematic Threads ─────────────────────────────────────────────────
-  if (storySpine?.theme) {
-    const thread = await tryGet(() => getThematicThread(novelId, storySpine.theme, chapterNum))
-    if (thread && thread.length > 0) {
-      sections.push(`THEMATIC THREAD ("${storySpine.theme}"):\n${thread.slice(-10).map(t =>
-        `- ch${t.chapterNumber}: ${t.content.slice(0, 100)}`
-      ).join("\n")}`)
-    }
-  }
+  // Theme reaches writer through story spine context — no separate thread needed
 
   // ── Open Issues ──────────────────────────────────────────────────────
   const openIssues = await getOpenIssues(novelId, chapterNum)

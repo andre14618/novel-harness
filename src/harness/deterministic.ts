@@ -10,7 +10,6 @@
  */
 
 import db from "../../data/connection"
-import { getEmbedding } from "../db/embed"
 import type { TimelineEvent } from "../db/timeline"
 import type { CharacterKnowledgeEntry } from "../db/knowledge"
 import type { CharacterProfile } from "../types"
@@ -18,8 +17,6 @@ import type { CharacterProfile } from "../types"
 // ── Config (tunable by autoresearcher via DB + UI) ────────────────────────
 
 export interface DeterministicConfig {
-  themeAutoThreshold: number      // similarity above this → auto-tagged
-  themeCandidateThreshold: number // similarity above this → sent to LLM
   causalParticipantWeight: number // how much participant overlap matters
   causalLocationWeight: number    // how much location match matters
   causalTemporalWeight: number    // how much temporal adjacency matters
@@ -29,8 +26,6 @@ export interface DeterministicConfig {
 }
 
 export const DEFAULT_DETERMINISTIC_CONFIG: DeterministicConfig = {
-  themeAutoThreshold: 0.35,
-  themeCandidateThreshold: 0.2,
   causalParticipantWeight: 0.4,
   causalLocationWeight: 0.2,
   causalTemporalWeight: 0.15,
@@ -45,8 +40,6 @@ export async function getDeterministicConfig(novelId: string): Promise<Determini
   if (!rows.length) return DEFAULT_DETERMINISTIC_CONFIG
   const r = rows[0]
   return {
-    themeAutoThreshold: r.theme_auto_threshold,
-    themeCandidateThreshold: r.theme_candidate_threshold,
     causalParticipantWeight: r.causal_participant_weight,
     causalLocationWeight: r.causal_location_weight,
     causalTemporalWeight: r.causal_temporal_weight,
@@ -59,15 +52,13 @@ export async function getDeterministicConfig(novelId: string): Promise<Determini
 /** Save config to DB (for autoresearcher tuning) */
 export async function saveDeterministicConfig(novelId: string, config: Partial<DeterministicConfig>): Promise<void> {
   const c = { ...DEFAULT_DETERMINISTIC_CONFIG, ...config }
-  await db`INSERT INTO deterministic_config (novel_id, theme_auto_threshold, theme_candidate_threshold,
+  await db`INSERT INTO deterministic_config (novel_id,
            causal_participant_weight, causal_location_weight, causal_temporal_weight, causal_consequence_weight,
            causal_auto_threshold, causal_candidate_threshold)
-           VALUES (${novelId}, ${c.themeAutoThreshold}, ${c.themeCandidateThreshold},
+           VALUES (${novelId},
                    ${c.causalParticipantWeight}, ${c.causalLocationWeight}, ${c.causalTemporalWeight}, ${c.causalConsequenceWeight},
                    ${c.causalAutoThreshold}, ${c.causalCandidateThreshold})
            ON CONFLICT (novel_id) DO UPDATE SET
-             theme_auto_threshold = EXCLUDED.theme_auto_threshold,
-             theme_candidate_threshold = EXCLUDED.theme_candidate_threshold,
              causal_participant_weight = EXCLUDED.causal_participant_weight,
              causal_location_weight = EXCLUDED.causal_location_weight,
              causal_temporal_weight = EXCLUDED.causal_temporal_weight,
@@ -89,12 +80,6 @@ export interface DeterministicResult {
     confidence: number
     reason: string
   }>
-  autoThemes: Array<{
-    sourceType: string
-    sourceId: string
-    theme: string
-    similarity: number
-  }>
 
   // Candidates for LLM validation
   causalCandidates: Array<{
@@ -102,12 +87,6 @@ export interface DeterministicResult {
     effectEventId: string
     score: number
     signals: string[] // what heuristics fired
-  }>
-  themeCandidates: Array<{
-    sourceType: string
-    sourceId: string
-    theme: string
-    similarity: number
   }>
 
   // What still needs the LLM (no heuristic signal)
@@ -117,8 +96,6 @@ export interface DeterministicResult {
   stats: {
     knowledgeAutoResolved: number
     knowledgeNeedsLLM: number
-    themesAutoTagged: number
-    themesCandidates: number
     causalCandidates: number
   }
 }
@@ -132,28 +109,21 @@ export async function runDeterministicAnalysis(
   priorEvents: TimelineEvent[],
   knowledgeGains: CharacterKnowledgeEntry[],
   characters: CharacterProfile[],
-  storyTheme: string | null,
   config: DeterministicConfig = DEFAULT_DETERMINISTIC_CONFIG,
 ): Promise<DeterministicResult> {
 
-  // Run all three analyses in parallel
-  const [knowledgeResult, themeResult, causalResult] = await Promise.all([
+  const [knowledgeResult, causalResult] = await Promise.all([
     analyzeKnowledgePropagation(knowledgeGains, thisChapterEvents, characters),
-    analyzeThemes(novelId, chapterNum, thisChapterEvents, storyTheme, config),
     analyzeCausalLinks(thisChapterEvents, priorEvents, config),
   ])
 
   return {
     autoKnowledge: knowledgeResult.auto,
     unlinkedKnowledge: knowledgeResult.needsLLM,
-    autoThemes: themeResult.auto,
-    themeCandidates: themeResult.candidates,
     causalCandidates: causalResult.candidates,
     stats: {
       knowledgeAutoResolved: knowledgeResult.auto.length,
       knowledgeNeedsLLM: knowledgeResult.needsLLM.length,
-      themesAutoTagged: themeResult.auto.length,
-      themesCandidates: themeResult.candidates.length,
       causalCandidates: causalResult.candidates.length,
     },
   }
@@ -344,91 +314,10 @@ async function analyzeCausalLinks(
   return { candidates: filtered }
 }
 
-// ── Theme Tagging (embedding similarity) ──────────────────────────────────
-
-async function analyzeThemes(
-  novelId: string,
-  chapterNum: number,
-  thisChapterEvents: TimelineEvent[],
-  storyTheme: string | null,
-  config: DeterministicConfig,
-): Promise<{
-  auto: DeterministicResult["autoThemes"]
-  candidates: DeterministicResult["themeCandidates"]
-}> {
-  const auto: DeterministicResult["autoThemes"] = []
-  const candidates: DeterministicResult["themeCandidates"] = []
-
-  if (!storyTheme) return { auto, candidates }
-
-  // Get theme embedding
-  let themeEmbedding: number[]
-  try {
-    themeEmbedding = await getEmbedding(storyTheme)
-  } catch {
-    return { auto, candidates }
-  }
-
-  // Check events from this chapter that already have embeddings
-  const rows = await db`
-    SELECT id, event, embedding FROM timeline_events
-    WHERE novel_id = ${novelId} AND chapter_number = ${chapterNum} AND embedding IS NOT NULL
-  `
-
-  // Also check facts
-  const factRows = await db`
-    SELECT id, fact, embedding FROM facts
-    WHERE novel_id = ${novelId} AND established_in_chapter = ${chapterNum} AND embedding IS NOT NULL
-  `
-
-  const entries = [
-    ...rows.map(r => ({ id: r.id, type: "event" as const, text: r.event, embedding: r.embedding })),
-    ...factRows.map(r => ({ id: r.id, type: "fact" as const, text: r.fact, embedding: r.embedding })),
-  ]
-
-  let maxSim = 0
-  for (const entry of entries) {
-    if (!entry.embedding) continue
-
-    const similarity = cosineSimilarity(themeEmbedding, parseEmbedding(entry.embedding))
-    if (similarity > maxSim) maxSim = similarity
-
-    if (similarity >= config.themeAutoThreshold) {
-      auto.push({ sourceType: entry.type, sourceId: entry.id, theme: storyTheme, similarity })
-    } else if (similarity >= config.themeCandidateThreshold) {
-      candidates.push({ sourceType: entry.type, sourceId: entry.id, theme: storyTheme, similarity })
-    }
-  }
-
-  if (entries.length > 0 && auto.length === 0 && candidates.length === 0) {
-    console.log(`  [themes] ${entries.length} entries checked, max similarity: ${maxSim.toFixed(3)} (thresholds: auto=${config.themeAutoThreshold}, candidate=${config.themeCandidateThreshold})`)
-  }
-
-  return { auto, candidates }
-}
-
 // ── Utilities ─────────────────────────────────────────────────────────────
 
 function findCharacterId(name: string, characters: CharacterProfile[]): string | null {
   const lower = name.toLowerCase()
   const match = characters.find(c => c.name.toLowerCase() === lower)
   return match?.id ?? null
-}
-
-function parseEmbedding(v: unknown): number[] {
-  if (Array.isArray(v)) return v
-  if (typeof v === "string") return JSON.parse(v)
-  return []
-}
-
-function cosineSimilarity(a: number[], b: number[]): number {
-  if (a.length !== b.length || a.length === 0) return 0
-  let dot = 0, magA = 0, magB = 0
-  for (let i = 0; i < a.length; i++) {
-    dot += a[i] * b[i]
-    magA += a[i] * a[i]
-    magB += b[i] * b[i]
-  }
-  const denom = Math.sqrt(magA) * Math.sqrt(magB)
-  return denom === 0 ? 0 : dot / denom
 }

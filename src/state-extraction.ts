@@ -16,7 +16,6 @@ import {
   saveRelationshipState, getRelationshipStatesAtChapter,
   saveTimelineEvent, saveCharacterKnowledge,
   getWorldSystems, saveCharacterSystemAwareness,
-  getStorySpine,
 } from "./db"
 import { getTimelineEventsForChapter, getTimelineEventsUpToChapter } from "./db/timeline"
 import { getKnowledgeForChapter } from "./db/knowledge"
@@ -156,12 +155,11 @@ export async function updateStateAfterChapter(novelId: string, chapterNum: numbe
     getTimelineEventsUpToChapter(novelId, chapterNum),
     getKnowledgeForChapter(novelId, chapterNum),
   ])
-  const storyTheme = await tryGet(async () => (await getStorySpine(novelId)).theme) ?? null
   const detConfig = await harness.deterministic.getDeterministicConfig(novelId)
 
   const det = await harness.deterministic.runDeterministicAnalysis(
     novelId, chapterNum, thisChapterEvents, priorEvents,
-    knowledgeGains, characters, storyTheme, detConfig,
+    knowledgeGains, characters, detConfig,
   )
 
   // Save deterministic results (these have real IDs — no resolution needed)
@@ -174,9 +172,6 @@ export async function updateStateAfterChapter(novelId: string, chapterNum: numbe
       confidence: k.confidence,
       chapterNumber: chapterNum,
     })))
-  }
-  if (det.autoThemes.length > 0) {
-    await harness.graph.saveThematicTags(novelId, det.autoThemes)
   }
 
   // Save high-confidence causal candidates directly
@@ -191,8 +186,7 @@ export async function updateStateAfterChapter(novelId: string, chapterNum: numbe
     })))
   }
 
-  const detTotal = det.stats.knowledgeAutoResolved + det.stats.themesAutoTagged + autoCausal.length
-  console.log(`  Deterministic: ${det.stats.knowledgeAutoResolved} knowledge, ${det.stats.themesAutoTagged} themes, ${autoCausal.length} causal auto-accepted`)
+  console.log(`  Deterministic: ${det.stats.knowledgeAutoResolved} knowledge, ${autoCausal.length} causal auto-accepted`)
 
   // ── Step 4: LLM validates ambiguous causal candidates ──────────────────
   const ambiguousCausal = det.causalCandidates.filter(c => c.score >= detConfig.causalCandidateThreshold && c.score < detConfig.causalAutoThreshold)
