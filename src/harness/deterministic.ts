@@ -386,16 +386,22 @@ async function analyzeThemes(
     ...factRows.map(r => ({ id: r.id, type: "fact" as const, text: r.fact, embedding: r.embedding })),
   ]
 
+  let maxSim = 0
   for (const entry of entries) {
     if (!entry.embedding) continue
 
-    const similarity = cosineSimilarity(themeEmbedding, entry.embedding as number[])
+    const similarity = cosineSimilarity(themeEmbedding, parseEmbedding(entry.embedding))
+    if (similarity > maxSim) maxSim = similarity
 
     if (similarity >= config.themeAutoThreshold) {
       auto.push({ sourceType: entry.type, sourceId: entry.id, theme: storyTheme, similarity })
     } else if (similarity >= config.themeCandidateThreshold) {
       candidates.push({ sourceType: entry.type, sourceId: entry.id, theme: storyTheme, similarity })
     }
+  }
+
+  if (entries.length > 0 && auto.length === 0 && candidates.length === 0) {
+    console.log(`  [themes] ${entries.length} entries checked, max similarity: ${maxSim.toFixed(3)} (thresholds: auto=${config.themeAutoThreshold}, candidate=${config.themeCandidateThreshold})`)
   }
 
   return { auto, candidates }
@@ -409,8 +415,14 @@ function findCharacterId(name: string, characters: CharacterProfile[]): string |
   return match?.id ?? null
 }
 
+function parseEmbedding(v: unknown): number[] {
+  if (Array.isArray(v)) return v
+  if (typeof v === "string") return JSON.parse(v)
+  return []
+}
+
 function cosineSimilarity(a: number[], b: number[]): number {
-  if (a.length !== b.length) return 0
+  if (a.length !== b.length || a.length === 0) return 0
   let dot = 0, magA = 0, magB = 0
   for (let i = 0; i < a.length; i++) {
     dot += a[i] * b[i]
