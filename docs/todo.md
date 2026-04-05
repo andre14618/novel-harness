@@ -7,13 +7,11 @@ updated: 2026-04-05
 
 Items removed when done — git history has the record. Ordered by impact.
 
-## Context Engine (Highest Priority)
+## Context Engine
 
-- Replace heuristic context layers 4-9 with semantic retrieval from `src/db/retrieval.ts`
-- Fix relationship-timeline schema to accept non-enum category values gracefully
 - Build context quality benchmark runner (`benchmark/context/run.ts`)
 - Run 10+ chapter novel to validate retrieval at scale
-- Wire retrieval-config + deterministic-config as autoresearcher optimization targets
+- Wire retrieval-config + deterministic-config as autoresearcher optimization targets via component registry
 
 ## Seeds & Testing
 
