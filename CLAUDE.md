@@ -170,7 +170,7 @@ bun test
 
 ## Reference docs
 
-- `docs/improvement-checklist.md` — **living to-do** — items removed when done, not checked off
+- `docs/todo.md` — **living to-do** — items removed when done
 - `docs/lessons-learned.md` — **read before designing agents, rubrics, or experiments**
 - `docs/commit-conventions.md` — commit message format
 - `docs/world-knowledge-graph.md` — knowledge graph, context assembly, retrieval parameters

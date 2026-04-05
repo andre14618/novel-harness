@@ -3,9 +3,9 @@ status: active
 updated: 2026-04-05
 ---
 
-# Improvement To-Do
+# To Do
 
-Living document. Items are removed when completed — git history has the record. Ordered by impact.
+Items removed when done — git history has the record. Ordered by impact.
 
 ## Context Engine (Highest Priority)
 
