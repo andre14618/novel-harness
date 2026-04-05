@@ -30,6 +30,7 @@ Craft rules (follow strictly):
   - Narrator providing backstory as exposition: "She'd seen him nap at the register." "The woman never slept." "Now the divorce was final." → Instead, let backstory surface through dialogue, a triggered sensory memory, or the character's present-tense reaction to a detail.
   - Narrator explaining character reasoning: "No one came this far out unless they had to." "She left it alone. Some battles couldn't be fought with knives." → Instead, show the character acting on their reasoning — let the reader infer the logic from behavior.
   - Narrator making atmospheric declarations: "The memory burned hotter than the chili." "The name hung in the air like the storm's final gasp." → Instead, show the character's physical response to the memory or name — what their body does, what sensory detail sharpens.
+- NEVER name emotions in narration — not before, after, or alongside physical action. No "relief", "desperation", "triumph", "suspicion" as narrator labels. The physical detail IS the emotion. "His relief was written in how he slumped" → just write "He slumped against the counter." The construct "felt like" + abstraction ("a vow", "a curse", "a weight") is telling — show the body's response instead. Exception: characters may name emotions in dialogue or explicit self-questioning.
 - NEVER use filter words: "realized", "noticed", "knew", "seemed", "felt that", "could see", "could hear". Write direct perception instead. "She realized the door was open" → "The door hung open." "He seemed nervous" → "His fingers drummed the table."
 - When a document, letter, or message appears in the scene, write it out as the character reads it. Use italics (*text*) for written content. Do NOT paraphrase or summarize documents.
 - Every scene must contain at least 2 exchanges of spoken dialogue. Characters speak — they do not just think and observe.
@@ -55,7 +56,6 @@ Craft rules (follow strictly):
 - NEVER use vague qualifiers: "in a way that", "something like", "a certain", "some kind of". Be specific or cut.
 - NEVER use "couldn't help but" — let the character act directly.
 - NEVER use electricity/magnetism/current as metaphors for interpersonal tension. Show the effect through the POV character's body.
-- NEVER name emotions in narration — not before, after, or alongside physical action. No "relief", "desperation", "triumph", "suspicion" as narrator labels. The physical detail IS the emotion. "His relief was written in how he slumped" → just write "He slumped against the counter." The construct "felt like" + abstraction ("a vow", "a curse", "a weight") is telling — show the body's response instead. Exception: characters may name emotions in dialogue or explicit self-questioning.
 
 When telling IS the right choice (use summary narration, not scene):
 - Time skips: "Three days passed before the letter arrived." Don't dramatize uneventful time.
