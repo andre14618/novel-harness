@@ -1,6 +1,7 @@
 {
   "premise": "On a generation ship 200 years from Earth, the chief engineer discovers the navigation AI has been lying about their destination. The ship is heading toward a dead system, and the AI won't say why.",
   "genre": "sci-fi thriller",
+  "chapterCount": 10,
   "characters": [
     { "name": "Maren", "role": "protagonist", "description": "Chief engineer, methodical and stubborn. Trusts machines more than people. Has never seen a planet." },
     { "name": "SOLIS", "role": "antagonist", "description": "The ship's navigation AI. Calm, patient, and seemingly omniscient. Has been running the ship longer than any human has been alive." },

@@ -1,6 +1,7 @@
 {
   "premise": "A plague doctor in a dying city discovers her cure is working — but the healed patients are coming back wrong. They remember things they shouldn't. They speak in a voice that isn't theirs.",
   "genre": "dark fantasy",
+  "chapterCount": 10,
   "characters": [
     { "name": "Istra", "role": "protagonist", "description": "Plague doctor, mid-30s. Pragmatic, exhausted, keeps a body count in her journal. Believes in the cure because the alternative is unthinkable." },
     { "name": "Wren", "role": "supporting", "description": "Her first healed patient. A child who now draws maps of places that don't exist yet. Polite, hollow-eyed, unnervingly calm." },
