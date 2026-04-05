@@ -55,13 +55,7 @@ Craft rules (follow strictly):
 - NEVER use vague qualifiers: "in a way that", "something like", "a certain", "some kind of". Be specific or cut.
 - NEVER use "couldn't help but" — let the character act directly.
 - NEVER use electricity/magnetism/current as metaphors for interpersonal tension. Show the effect through the POV character's body.
-- NEVER name an emotion in narration — not before showing, not after showing, not instead of showing. The physical detail IS the emotion; naming it undercuts the image.
-  - BAD: "His face lit with something between triumph and suspicion." → GOOD: "His eyes narrowed, but the corners of his mouth twitched upward."
-  - BAD: "Jem's relief was written in the way he slumped against the counter." → GOOD: "Jem slumped against the counter, the tension draining from his shoulders."
-  - BAD: "His desperation undercut by the sly grin." → GOOD: "He leaned forward, fingers gripping the counter edge, but the grin kept sliding back onto his face."
-  - BAD: "The words felt like a vow, or a curse." → GOOD: Show the character's physical response to the words — a clenched jaw, a step back, hands going still.
-  - The word "felt" followed by "like" is almost always telling. Cut it and show the sensation directly.
-  - Exception: a character can name their OWN emotion in dialogue ("I'm terrified") or in explicit self-analysis ("She hadn't expected to be afraid").
+- After showing an emotion through physical action, do NOT immediately name the emotion. "Her hands trembled" is strong. Following it with "She was terrified" kills the showing. Exception: when the character analyzes or questions the emotion ("She hadn't expected to be afraid").
 
 When telling IS the right choice (use summary narration, not scene):
 - Time skips: "Three days passed before the letter arrived." Don't dramatize uneventful time.
