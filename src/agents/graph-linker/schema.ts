@@ -24,32 +24,59 @@ const knowledgePropSchema = z.record(z.any()).transform(d => ({
   confidence: Number(d.confidence ?? d.conf ?? 1.0),
 }))
 
-const themeSchema = z.record(z.any()).transform(d => {
-  // Extract theme string from whatever key the model used
-  const theme = String(d.theme ?? d.tag ?? d.name ?? d.label ?? d.value ?? d.thematic_tag ?? d.text ?? "")
-  return {
-    sourceType: ["fact", "event", "summary", "knowledge"].includes(d.sourceType ?? d.source_type ?? d.type)
+// Theme entries can come in two formats:
+// 1. { sourceType, sourceId, theme } — one tag per entry
+// 2. { targetId, tags: ["theme1", "theme2"] } — multiple tags per entry
+// We normalize both to flat { sourceType, sourceId, theme } entries
+const themeEntrySchema = z.record(z.any())
+
+function normalizeThemes(raw: any[]): Array<{ sourceType: string; sourceId: string; theme: string }> {
+  const results: Array<{ sourceType: string; sourceId: string; theme: string }> = []
+  for (const d of raw) {
+    const sourceId = String(d.sourceId ?? d.source_id ?? d.id ?? d.targetId ?? d.target_id ?? d.event_id ?? d.fact_id ?? "")
+    const sourceType = ["fact", "event", "summary", "knowledge"].includes(d.sourceType ?? d.source_type ?? d.type)
       ? (d.sourceType ?? d.source_type ?? d.type)
-      : "event",
-    sourceId: String(d.sourceId ?? d.source_id ?? d.id ?? d.event_id ?? d.fact_id ?? ""),
-    theme,
+      : "event"
+
+    // Format 2: { targetId, tags: [...] }
+    if (Array.isArray(d.tags)) {
+      for (const tag of d.tags) {
+        if (typeof tag === "string" && tag.length > 0) {
+          results.push({ sourceType, sourceId, theme: tag })
+        }
+      }
+      continue
+    }
+
+    // Format 1: single theme string
+    const theme = String(d.theme ?? d.tag ?? d.name ?? d.label ?? d.value ?? "")
+    if (theme.length > 0) {
+      results.push({ sourceType, sourceId, theme })
+    }
   }
-}).pipe(z.object({
-  sourceType: z.string(),
-  sourceId: z.string(),
-  theme: z.string().min(1),
-}))
+  return results
+}
 
 // Accept any key naming for the top-level arrays
-export const graphLinkerSchema = z.record(z.any()).transform(d => ({
-  causalLinks: Array.isArray(d.causalLinks ?? d.causal_links) ? (d.causalLinks ?? d.causal_links) : [],
-  knowledgePropagation: Array.isArray(d.knowledgePropagation ?? d.knowledge_propagation) ? (d.knowledgePropagation ?? d.knowledge_propagation) : [],
-  themes: Array.isArray(d.themes ?? d.thematicTags ?? d.thematic_tags) ? (d.themes ?? d.thematicTags ?? d.thematic_tags) : [],
-})).pipe(z.object({
+export const graphLinkerSchema = z.record(z.any()).transform(d => {
+  const rawCausal = Array.isArray(d.causalLinks ?? d.causal_links) ? (d.causalLinks ?? d.causal_links) : []
+  const rawKnowledge = Array.isArray(d.knowledgePropagation ?? d.knowledge_propagation) ? (d.knowledgePropagation ?? d.knowledge_propagation) : []
+  const rawThemes = Array.isArray(d.themes ?? d.thematicTags ?? d.thematic_tags) ? (d.themes ?? d.thematicTags ?? d.thematic_tags) : []
+
+  return {
+    causalLinks: rawCausal,
+    knowledgePropagation: rawKnowledge,
+    themes: rawThemes,
+  }
+}).pipe(z.object({
   causalLinks: z.array(causalLinkSchema).default([]),
   knowledgePropagation: z.array(knowledgePropSchema).default([]),
-  themes: z.array(themeSchema).default([]),
-}))
+  themes: z.array(themeEntrySchema).default([]),
+}).transform(d => ({
+  causalLinks: d.causalLinks,
+  knowledgePropagation: d.knowledgePropagation,
+  themes: normalizeThemes(d.themes),
+})))
 
 export type GraphLinkerOutput = {
   causalLinks: Array<{ causeEventId: string; effectEventId: string; relationship: string; confidence: number }>
