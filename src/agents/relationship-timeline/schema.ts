@@ -21,7 +21,10 @@ const knowledgeGainSchema = z.object({
   characterName: z.string(),
   knowledge: z.string(),
   source: z.enum(["witnessed", "told", "overheard", "deduced", "read", "discovered"]).default("witnessed"),
-  category: z.enum(["event", "secret", "relationship", "system", "location", "identity"]).default("event"),
+  category: z.string().default("event").transform(v => {
+    const valid = ["event", "secret", "relationship", "system", "location", "identity"]
+    return valid.includes(v) ? v : "event"
+  }),
   isFalse: z.boolean().default(false),
 })
 
