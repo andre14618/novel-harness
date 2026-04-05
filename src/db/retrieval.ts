@@ -135,11 +135,11 @@ async function hybridSearchTable(
   // Semantic leg
   const semanticRows = await db.unsafe(
     `SELECT ${idCol} as id, ${chapterCol} as chapter_number, *,
-            1 - (embedding::halfvec(3072) <=> $1::halfvec(3072)) as similarity
+            1 - (embedding <=> $1::vector) as similarity
      FROM ${table}
      WHERE novel_id = $2 AND ${chapterCol} <= $3 AND embedding IS NOT NULL
-       AND 1 - (embedding::halfvec(3072) <=> $1::halfvec(3072)) >= $4
-     ORDER BY embedding::halfvec(3072) <=> $1::halfvec(3072)
+       AND 1 - (embedding <=> $1::vector) >= $4
+     ORDER BY embedding <=> $1::vector
      LIMIT $5`,
     [embStr, novelId, maxChapter, config.minSimilarity, fetchLimit]
   )

@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS chapter_summaries (
   key_events_json  JSONB NOT NULL,
   emotional_state  TEXT NOT NULL DEFAULT '',
   open_threads_json JSONB NOT NULL DEFAULT '[]',
-  embedding        vector(3072),
+  embedding        vector(1536),
   tsv              tsvector,
   PRIMARY KEY (novel_id, chapter_number)
 );
@@ -74,7 +74,7 @@ CREATE TABLE IF NOT EXISTS facts (
   category               TEXT NOT NULL,
   established_in_chapter INTEGER NOT NULL,
   created_at             TIMESTAMPTZ NOT NULL DEFAULT now(),
-  embedding              vector(3072),
+  embedding              vector(1536),
   tsv                    tsvector
 );
 CREATE INDEX idx_facts_novel ON facts (novel_id);
@@ -85,7 +85,7 @@ CREATE TABLE IF NOT EXISTS character_states (
   character_id   TEXT NOT NULL,
   chapter_number INTEGER NOT NULL,
   state_json     JSONB NOT NULL,
-  embedding      vector(3072),
+  embedding      vector(1536),
   tsv            tsvector,
   PRIMARY KEY (novel_id, character_id, chapter_number)
 );
@@ -169,7 +169,7 @@ CREATE TABLE IF NOT EXISTS relationship_states (
   dynamic        TEXT NOT NULL,
   tension        TEXT NOT NULL DEFAULT '',
   recent_shift   TEXT NOT NULL DEFAULT '',
-  embedding      vector(3072),
+  embedding      vector(1536),
   tsv            tsvector,
   PRIMARY KEY (novel_id, character_a, character_b, chapter_number)
 );
@@ -184,7 +184,7 @@ CREATE TABLE IF NOT EXISTS timeline_events (
   witnesses_json    JSONB NOT NULL DEFAULT '[]',
   consequences      TEXT NOT NULL DEFAULT '',
   created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
-  embedding         vector(3072),
+  embedding         vector(1536),
   tsv               tsvector
 );
 CREATE INDEX idx_timeline_novel ON timeline_events (novel_id);
@@ -201,37 +201,37 @@ CREATE TABLE IF NOT EXISTS character_knowledge (
   is_false            BOOLEAN NOT NULL DEFAULT false,
   source_character_id TEXT,
   source_event_id     UUID,
-  embedding           vector(3072),
+  embedding           vector(1536),
   tsv                 tsvector
 );
 CREATE INDEX idx_knowledge_novel ON character_knowledge (novel_id);
 CREATE INDEX idx_knowledge_novel_char ON character_knowledge (novel_id, character_id);
 CREATE INDEX idx_knowledge_novel_chapter ON character_knowledge (novel_id, chapter_learned);
 
--- ── HNSW Vector Indexes (halfvec for >2000 dims) ─────────────────────────
+-- ── HNSW Vector Indexes ───────────────────────────────────────────────────
 
 CREATE INDEX idx_facts_embedding_hnsw ON facts
-  USING hnsw ((embedding::halfvec(3072)) halfvec_cosine_ops)
+  USING hnsw ((embedding) vector_cosine_ops)
   WITH (m = 16, ef_construction = 200);
 
 CREATE INDEX idx_summaries_embedding_hnsw ON chapter_summaries
-  USING hnsw ((embedding::halfvec(3072)) halfvec_cosine_ops)
+  USING hnsw ((embedding) vector_cosine_ops)
   WITH (m = 16, ef_construction = 200);
 
 CREATE INDEX idx_timeline_embedding_hnsw ON timeline_events
-  USING hnsw ((embedding::halfvec(3072)) halfvec_cosine_ops)
+  USING hnsw ((embedding) vector_cosine_ops)
   WITH (m = 16, ef_construction = 200);
 
 CREATE INDEX idx_charstates_embedding_hnsw ON character_states
-  USING hnsw ((embedding::halfvec(3072)) halfvec_cosine_ops)
+  USING hnsw ((embedding) vector_cosine_ops)
   WITH (m = 16, ef_construction = 200);
 
 CREATE INDEX idx_relationships_embedding_hnsw ON relationship_states
-  USING hnsw ((embedding::halfvec(3072)) halfvec_cosine_ops)
+  USING hnsw ((embedding) vector_cosine_ops)
   WITH (m = 16, ef_construction = 200);
 
 CREATE INDEX idx_knowledge_embedding_hnsw ON character_knowledge
-  USING hnsw ((embedding::halfvec(3072)) halfvec_cosine_ops)
+  USING hnsw ((embedding) vector_cosine_ops)
   WITH (m = 16, ef_construction = 200);
 
 -- ── Full-Text Search Indexes ──────────────────────────────────────────────

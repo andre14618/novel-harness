@@ -5,6 +5,7 @@
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY
 const EMBEDDING_MODEL = "openai/text-embedding-3-large"
+const EMBEDDING_DIMS = 1536 // Truncated from 3072 — pgvector 0.6 HNSW max is 2000 dims
 const MAX_TOKENS = 8000 // leave headroom under 8191 limit
 
 export async function getEmbedding(text: string): Promise<number[]> {
@@ -31,7 +32,7 @@ export async function getEmbeddings(texts: string[]): Promise<number[][]> {
         "Content-Type": "application/json",
         Authorization: `Bearer ${OPENROUTER_API_KEY}`,
       },
-      body: JSON.stringify({ model: EMBEDDING_MODEL, input: truncated }),
+      body: JSON.stringify({ model: EMBEDDING_MODEL, input: truncated, dimensions: EMBEDDING_DIMS }),
     })
 
   let res = await doFetch()
