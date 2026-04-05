@@ -12,18 +12,18 @@ import {
 import type { StorySpine, NovelState, CharacterProfile } from "../../types"
 import type { WorldSystem } from "../../db/world-systems"
 
-function tryGet<T>(fn: () => T): T | null {
-  try { return fn() } catch { return null }
+async function tryGet<T>(fn: () => Promise<T>): Promise<T | null> {
+  try { return await fn() } catch { return null }
 }
 
-export function buildContext(novelId: string, chapterNum: number): string {
-  const outline = getChapterOutline(novelId, chapterNum)
-  const allChars = getCharacters(novelId)
-  const worldBible = getWorldBible(novelId)
-  const storySpine = tryGet(() => getStorySpine(novelId))
-  const novel = tryGet(() => getNovel(novelId))
-  const worldSystems = tryGet(() => getWorldSystems(novelId)) ?? []
-  const cultures = tryGet(() => getCultures(novelId)) ?? []
+export async function buildContext(novelId: string, chapterNum: number): Promise<string> {
+  const outline = await getChapterOutline(novelId, chapterNum)
+  const allChars = await getCharacters(novelId)
+  const worldBible = await getWorldBible(novelId)
+  const storySpine = await tryGet(() => getStorySpine(novelId))
+  const novel = await tryGet(() => getNovel(novelId))
+  const worldSystems = await tryGet(() => getWorldSystems(novelId)) ?? []
+  const cultures = await tryGet(() => getCultures(novelId)) ?? []
 
   // Filter characters to only those in this chapter
   const chapterCharNames = outline.charactersPresent.map(n => n.toLowerCase())
@@ -37,30 +37,30 @@ export function buildContext(novelId: string, chapterNum: number): string {
 
   // ── LAYER 2: POV Character's World View ────────────────────────────────
   if (povChar) {
-    sections.push(formatPOVWorldView(novelId, povChar, worldSystems, cultures))
+    sections.push(await formatPOVWorldView(novelId, povChar, worldSystems, cultures))
   }
 
   // ── LAYER 3: Character Profiles + Evolving Relationships ───────────────
-  sections.push(formatCharacterProfiles(novelId, povChar, relevantChars, chapterNum))
+  sections.push(await formatCharacterProfiles(novelId, povChar, relevantChars, chapterNum))
 
   // ── LAYER 4: Relevant World Systems (at POV awareness level) ───────────
   if (povChar && worldSystems.length > 0) {
-    const systemSection = formatWorldSystemsForPOV(novelId, povChar, worldSystems)
+    const systemSection = await formatWorldSystemsForPOV(novelId, povChar, worldSystems)
     if (systemSection) sections.push(systemSection)
   }
 
   // ── LAYER 5: Setting & Atmosphere ──────────────────────────────────────
-  sections.push(formatSetting(novelId, worldBible, outline, chapterNum))
+  sections.push(await formatSetting(novelId, worldBible, outline, chapterNum))
 
   // ── LAYER 6: Story Context (theme, act, open threads) ──────────────────
-  sections.push(formatStoryContext(novelId, storySpine, novel, chapterNum))
+  sections.push(await formatStoryContext(novelId, storySpine, novel, chapterNum))
 
   // ── LAYER 7: Recent History (timeline events for present characters) ───
-  const recentEvents = formatRecentTimeline(novelId, chapterNum, relevantChars)
+  const recentEvents = await formatRecentTimeline(novelId, chapterNum, relevantChars)
   if (recentEvents) sections.push(recentEvents)
 
   // ── LAYER 8: Character States ──────────────────────────────────────────
-  const charStates = getCharacterStatesAtChapter(novelId, chapterNum)
+  const charStates = await getCharacterStatesAtChapter(novelId, chapterNum)
   const presentStates = charStates.filter(cs =>
     chapterCharNames.includes(cs.characterId.toLowerCase()) ||
     relevantChars.some(c => c.id === cs.characterId)
@@ -74,7 +74,7 @@ export function buildContext(novelId: string, chapterNum: number): string {
   }
 
   // ── LAYER 9: Continuity (filtered facts + open issues) ─────────────────
-  sections.push(formatContinuity(novelId, chapterNum, relevantChars, outline))
+  sections.push(await formatContinuity(novelId, chapterNum, relevantChars, outline))
 
   // ── LAYER 10: Craft Reminders ──────────────────────────────────────────
   sections.push(formatCraftReminders(povChar, relevantChars))
@@ -97,11 +97,11 @@ ${outline.scenes.map((s: any, i: number) => `${i + 1}. ${s.description}
    Emotional shift: ${s.emotionalShift}`).join("\n\n")}`
 }
 
-function formatPOVWorldView(novelId: string, povChar: CharacterProfile, worldSystems: WorldSystem[], cultures: any[]): string {
+async function formatPOVWorldView(novelId: string, povChar: CharacterProfile, worldSystems: WorldSystem[], cultures: any[]): Promise<string> {
   const parts: string[] = [`POV WORLD VIEW (${povChar.name}'s perception shapes the narration):`]
 
   // Cultural background
-  const charCultures = tryGet(() => getCharacterCultures(novelId, povChar.id)) ?? []
+  const charCultures = await tryGet(() => getCharacterCultures(novelId, povChar.id)) ?? []
   if (charCultures.length > 0) {
     for (const cc of charCultures) {
       const c = cc.culture
@@ -127,8 +127,8 @@ function formatPOVWorldView(novelId: string, povChar: CharacterProfile, worldSys
   return parts.join("\n")
 }
 
-function formatCharacterProfiles(novelId: string, povChar: CharacterProfile | undefined, relevantChars: CharacterProfile[], chapterNum: number): string {
-  const profiles = relevantChars.map(c => {
+async function formatCharacterProfiles(novelId: string, povChar: CharacterProfile | undefined, relevantChars: CharacterProfile[], chapterNum: number): Promise<string> {
+  const profiles = await Promise.all(relevantChars.map(async c => {
     let profile = `${c.name} (${c.role}):\n  Speech pattern: ${c.speechPattern}`
     if (c.backstory) profile += `\n  Backstory: ${c.backstory}`
     if (c.internalConflict) profile += `\n  Internal conflict: ${c.internalConflict}`
@@ -148,7 +148,7 @@ function formatCharacterProfiles(novelId: string, povChar: CharacterProfile | un
 
     // Evolving relationship state (from knowledge graph)
     if (povChar && c.id !== povChar.id) {
-      const relState = tryGet(() => getRelationshipBetween(novelId, povChar.id, c.id, chapterNum))
+      const relState = await tryGet(() => getRelationshipBetween(novelId, povChar.id, c.id, chapterNum))
       if (relState) {
         profile += `\n  Current dynamic with ${povChar.name}: [${relState.trustLevel}] ${relState.dynamic}`
         if (relState.tension) profile += `\n    Tension: ${relState.tension}`
@@ -157,13 +157,13 @@ function formatCharacterProfiles(novelId: string, povChar: CharacterProfile | un
     }
 
     return profile
-  })
+  }))
 
   return `CHARACTER PROFILES:\n${profiles.join("\n\n")}`
 }
 
-function formatWorldSystemsForPOV(novelId: string, povChar: CharacterProfile, worldSystems: WorldSystem[]): string | null {
-  const awareness = tryGet(() => getCharacterSystemAwareness(novelId, povChar.id)) ?? []
+async function formatWorldSystemsForPOV(novelId: string, povChar: CharacterProfile, worldSystems: WorldSystem[]): Promise<string | null> {
+  const awareness = await tryGet(() => getCharacterSystemAwareness(novelId, povChar.id)) ?? []
   if (awareness.length === 0 && worldSystems.length === 0) return null
 
   const parts: string[] = []
@@ -210,7 +210,7 @@ function formatWorldSystemsForPOV(novelId: string, povChar: CharacterProfile, wo
   return `WORLD SYSTEMS (as ${povChar.name} understands them):\n${parts.join("\n\n")}`
 }
 
-function formatSetting(novelId: string, worldBible: any, outline: any, chapterNum: number): string {
+async function formatSetting(novelId: string, worldBible: any, outline: any, chapterNum: number): Promise<string> {
   const parts: string[] = []
 
   // Match locations
@@ -226,7 +226,7 @@ function formatSetting(novelId: string, worldBible: any, outline: any, chapterNu
   }
 
   // Location history
-  const locationEvents = tryGet(() => getEventsAtLocation(novelId, outline.setting, chapterNum)) ?? []
+  const locationEvents = await tryGet(() => getEventsAtLocation(novelId, outline.setting, chapterNum)) ?? []
   if (locationEvents.length > 0) {
     const recentLocationEvents = locationEvents.slice(-5)
     parts.push(`WHAT HAS HAPPENED HERE:\n${recentLocationEvents.map(e =>
@@ -247,11 +247,11 @@ function formatSetting(novelId: string, worldBible: any, outline: any, chapterNu
   return parts.join("\n\n")
 }
 
-function formatStoryContext(novelId: string, storySpine: StorySpine | null, novel: NovelState | null, chapterNum: number): string {
+async function formatStoryContext(novelId: string, storySpine: StorySpine | null, novel: NovelState | null, chapterNum: number): Promise<string> {
   const parts: string[] = []
 
   // Previous chapters + open threads
-  const recentSummaries = getRecentSummaries(novelId, chapterNum, 5)
+  const recentSummaries = await getRecentSummaries(novelId, chapterNum, 5)
   if (recentSummaries.length > 0) {
     parts.push(`PREVIOUS CHAPTERS:\n${recentSummaries.map(s => {
       let entry = `Chapter ${s.chapterNumber}: ${s.summary}`
@@ -287,9 +287,9 @@ function formatStoryContext(novelId: string, storySpine: StorySpine | null, nove
   return parts.join("\n\n")
 }
 
-function formatRecentTimeline(novelId: string, chapterNum: number, relevantChars: CharacterProfile[]): string | null {
+async function formatRecentTimeline(novelId: string, chapterNum: number, relevantChars: CharacterProfile[]): Promise<string | null> {
   const charNames = relevantChars.map(c => c.name)
-  const events = tryGet(() => getRecentEventsForCharacters(novelId, chapterNum, charNames, 10)) ?? []
+  const events = await tryGet(() => getRecentEventsForCharacters(novelId, chapterNum, charNames, 10)) ?? []
   if (events.length === 0) return null
 
   return `RECENT EVENTS (involving characters present):\n${events.map(e =>
@@ -297,11 +297,11 @@ function formatRecentTimeline(novelId: string, chapterNum: number, relevantChars
   ).join("\n")}`
 }
 
-function formatContinuity(novelId: string, chapterNum: number, relevantChars: CharacterProfile[], outline: any): string {
+async function formatContinuity(novelId: string, chapterNum: number, relevantChars: CharacterProfile[], outline: any): Promise<string> {
   const parts: string[] = []
 
   // Filtered facts — prioritize by relevance, cap at ~80
-  const allFacts = tryGet(() => getFactsUpToChapter(novelId, chapterNum)) ?? []
+  const allFacts = await tryGet(() => getFactsUpToChapter(novelId, chapterNum)) ?? []
   if (allFacts.length > 0) {
     const charNames = new Set(relevantChars.map(c => c.name.toLowerCase()))
     const setting = outline.setting.toLowerCase()
@@ -350,7 +350,7 @@ function formatContinuity(novelId: string, chapterNum: number, relevantChars: Ch
   }
 
   // Open issues
-  const openIssues = getOpenIssues(novelId, chapterNum)
+  const openIssues = await getOpenIssues(novelId, chapterNum)
   if (openIssues.length > 0) {
     parts.push(`ISSUES TO ADDRESS:\n${openIssues.map(i => `- [${i.severity}] ${i.description}`).join("\n")}`)
   }

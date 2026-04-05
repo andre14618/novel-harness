@@ -8,7 +8,9 @@ import {
 } from "../db"
 import { callAgent } from "../llm"
 import { CROSS_CHAPTER_CONTINUITY_PROMPT, PROSE_QUALITY_PROMPT, REWRITER_AGENT_PROMPT } from "../prompts"
-import { buildCrossChapterContext, buildProseQualityContext, buildRewriterContext } from "../context"
+import { buildContext as buildCrossChapterContext } from "../agents/cross-chapter-continuity/context"
+import { buildContext as buildProseQualityContext } from "../agents/prose-quality/context"
+import { buildContext as buildRewriterContext } from "../agents/rewriter/context"
 import { validateChapterDraft } from "../validation"
 import { updateStateAfterChapter } from "../state-extraction"
 import { displayPhaseHeader } from "../cli"
@@ -24,7 +26,7 @@ export async function runValidationPhase(novelId: string): Promise<void> {
   log(novelId, "info", "Validation phase started")
   emit(novelId, { type: "phase:changed", data: { phase: "validation" } })
 
-  const novel = getNovel(novelId)
+  const novel = await getNovel(novelId)
   const totalChapters = novel.totalChapters
 
   let converged = false
@@ -37,22 +39,22 @@ export async function runValidationPhase(novelId: string): Promise<void> {
 
     // Step 1: Deterministic validation on all chapters (fail-fast)
     for (let ch = 1; ch <= totalChapters; ch++) {
-      const draft = getApprovedDraft(novelId, ch)
+      const draft = await getApprovedDraft(novelId, ch)
       if (!draft) {
         log(novelId, "error", `No approved draft for chapter ${ch}`)
         console.log(`  Chapter ${ch}: no approved draft — skipping`)
         continue
       }
 
-      const outline = getChapterOutline(novelId, ch)
+      const outline = await getChapterOutline(novelId, ch)
       const result = validateChapterDraft(draft.prose, outline, "validation")
 
       if (!result.passed) {
         for (const blocker of result.blockers) {
-          saveIssue(novelId, { severity: "blocker", description: blocker, chapter: ch })
+          await saveIssue(novelId, { severity: "blocker", description: blocker, chapter: ch })
         }
         chaptersWithIssues.push(ch)
-        saveValidationPass(novelId, pass, ch, "has_issues", result.blockers.length)
+        await saveValidationPass(novelId, pass, ch, "has_issues", result.blockers.length)
         console.log(`  Chapter ${ch}: ${result.blockers.length} blockers (deterministic)`)
         log(novelId, "info", `Pass ${pass} ch${ch}: deterministic blockers: ${result.blockers.join("; ")}`)
       } else {
@@ -72,7 +74,7 @@ export async function runValidationPhase(novelId: string): Promise<void> {
       log(novelId, "info", `Pass ${pass}: running LLM continuity + prose quality`)
 
       try {
-        const ctx = buildCrossChapterContext(novelId, totalChapters)
+        const ctx = await buildCrossChapterContext(novelId, totalChapters)
         const llmResult = await callAgent({
           novelId, agentName: "cross-chapter-continuity",
           systemPrompt: CROSS_CHAPTER_CONTINUITY_PROMPT,
@@ -85,7 +87,7 @@ export async function runValidationPhase(novelId: string): Promise<void> {
         if (issues.length > 0) {
           console.log(`  Continuity: ${issues.length} issues found`)
           for (const issue of issues) {
-            saveIssue(novelId, {
+            await saveIssue(novelId, {
               severity: issue.severity,
               description: issue.description,
               chapter: issue.chapter,
@@ -105,15 +107,15 @@ export async function runValidationPhase(novelId: string): Promise<void> {
         console.log(`  Continuity check failed (non-blocking): ${err instanceof Error ? err.message : err}`)
       }
 
-      // 2b: Per-chapter prose quality (show-don't-tell + clichés)
+      // 2b: Per-chapter prose quality (show-don't-tell + cliches)
       console.log("\n  Running prose quality checks...")
 
       for (let ch = 1; ch <= totalChapters; ch++) {
-        const draft = getApprovedDraft(novelId, ch)
+        const draft = await getApprovedDraft(novelId, ch)
         if (!draft) continue
 
         try {
-          const ctx = buildProseQualityContext(draft.prose, ch, novelId)
+          const ctx = await buildProseQualityContext(draft.prose, ch, novelId)
           const qualityResult = await callAgent({
             novelId, agentName: "prose-quality",
             systemPrompt: PROSE_QUALITY_PROMPT,
@@ -125,7 +127,7 @@ export async function runValidationPhase(novelId: string): Promise<void> {
           if (issues.length > 0) {
             console.log(`  Chapter ${ch}: ${issues.length} prose quality issues`)
             for (const issue of issues) {
-              saveIssue(novelId, {
+              await saveIssue(novelId, {
                 severity: "warning",
                 description: `[prose] ${issue.issue}: "${issue.excerpt}"`,
                 chapter: ch,
@@ -149,7 +151,7 @@ export async function runValidationPhase(novelId: string): Promise<void> {
     // Record pass status for chapters without issues
     for (let ch = 1; ch <= totalChapters; ch++) {
       if (!chaptersWithIssues.includes(ch)) {
-        saveValidationPass(novelId, pass, ch, "passed", 0)
+        await saveValidationPass(novelId, pass, ch, "passed", 0)
       }
     }
 
@@ -166,23 +168,23 @@ export async function runValidationPhase(novelId: string): Promise<void> {
     chaptersWithIssues.sort((a, b) => a - b)
 
     for (const ch of chaptersWithIssues) {
-      const attempts = getValidationAttempts(novelId, ch) + 1
+      const attempts = await getValidationAttempts(novelId, ch) + 1
 
       if (attempts > MAX_CHAPTER_REWRITES) {
         console.log(`  Chapter ${ch}: stuck after ${attempts - 1} rewrites — skipping`)
         log(novelId, "warn", `Chapter ${ch} stuck after ${MAX_CHAPTER_REWRITES} rewrites`)
-        saveValidationPass(novelId, pass, ch, "stuck", 0)
+        await saveValidationPass(novelId, pass, ch, "stuck", 0)
         continue
       }
 
-      const issues = getOpenIssues(novelId, ch)
+      const issues = await getOpenIssues(novelId, ch)
       if (issues.length === 0) continue
 
       console.log(`  Chapter ${ch}: rewriting (attempt ${attempts}/${MAX_CHAPTER_REWRITES})...`)
       log(novelId, "info", `Rewriting chapter ${ch} (attempt ${attempts}): ${issues.length} issues`)
 
       try {
-        const ctx = buildRewriterContext(novelId, ch, issues)
+        const ctx = await buildRewriterContext(novelId, ch, issues)
         const rewriteResult = await callAgent({
           novelId, agentName: "rewriter",
           systemPrompt: REWRITER_AGENT_PROMPT,
@@ -194,47 +196,47 @@ export async function runValidationPhase(novelId: string): Promise<void> {
         const wordCount = newProse.split(/\s+/).filter(Boolean).length
 
         // Deterministic validation on rewrite
-        const outline = getChapterOutline(novelId, ch)
+        const outline = await getChapterOutline(novelId, ch)
         const rewriteValidation = validateChapterDraft(newProse, outline, "validation")
 
         if (!rewriteValidation.passed) {
           console.log(`  Chapter ${ch}: rewrite failed deterministic validation — ${rewriteValidation.blockers.join("; ")}`)
           log(novelId, "warn", `Chapter ${ch} rewrite failed validation: ${rewriteValidation.blockers.join("; ")}`)
-          saveValidationPass(novelId, pass, ch, "has_issues", rewriteValidation.blockers.length)
+          await saveValidationPass(novelId, pass, ch, "has_issues", rewriteValidation.blockers.length)
           continue
         }
 
         // Accept rewrite
-        unapproveChapterDraft(novelId, ch)
-        saveChapterDraft(novelId, ch, newProse, wordCount)
-        approveChapterDraft(novelId, ch)
+        await unapproveChapterDraft(novelId, ch)
+        await saveChapterDraft(novelId, ch, newProse, wordCount)
+        await approveChapterDraft(novelId, ch)
 
         // Clear + re-extract state
-        clearFactsForChapter(novelId, ch)
-        clearCharacterStatesForChapter(novelId, ch)
+        await clearFactsForChapter(novelId, ch)
+        await clearCharacterStatesForChapter(novelId, ch)
         await updateStateAfterChapter(novelId, ch, newProse)
 
         // Resolve old issues
-        resolveIssuesForChapter(novelId, ch)
+        await resolveIssuesForChapter(novelId, ch)
 
         // Write updated file
         const dir = `output/${novelId}`
         await Bun.write(`${dir}/chapter-${ch}.md`, `# Chapter ${ch}: ${outline.title}\n\n${newProse}`)
 
-        saveValidationPass(novelId, pass, ch, "rewritten", issues.length)
+        await saveValidationPass(novelId, pass, ch, "rewritten", issues.length)
         console.log(`  Chapter ${ch}: rewritten (${wordCount} words)`)
         log(novelId, "checkpoint", `Chapter ${ch} rewritten: ${wordCount} words, ${issues.length} issues addressed`)
 
       } catch (err) {
         log(novelId, "error", `Rewrite failed for chapter ${ch}: ${err}`)
         console.log(`  Chapter ${ch}: rewrite failed — ${err instanceof Error ? err.message : err}`)
-        saveValidationPass(novelId, pass, ch, "has_issues", 0)
+        await saveValidationPass(novelId, pass, ch, "has_issues", 0)
       }
     }
   }
 
   if (!converged) {
-    const remainingIssues = getOpenIssues(novelId)
+    const remainingIssues = await getOpenIssues(novelId)
     if (remainingIssues.length > 0) {
       console.log(`\n  Validation did not fully converge after ${MAX_PASSES} passes.`)
       console.log(`  ${remainingIssues.length} open issue(s) remaining.`)
@@ -242,7 +244,7 @@ export async function runValidationPhase(novelId: string): Promise<void> {
     }
   }
 
-  updatePhase(novelId, "done")
+  await updatePhase(novelId, "done")
   emit(novelId, { type: "phase:changed", data: { phase: "done" } })
   log(novelId, "checkpoint", "Validation phase complete → done")
   console.log("\n  Validation phase complete.\n")

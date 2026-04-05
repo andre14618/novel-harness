@@ -3,9 +3,11 @@ import { Link, useLocation } from "react-router-dom"
 const PAGES = [
   { path: "/", label: "Novels" },
   { path: "/config", label: "Config" },
+  { path: "/context", label: "Context" },
   { path: "/experiments", label: "Experiments" },
   { path: "/operations", label: "Operations" },
   { path: "/dashboard", label: "Dashboard" },
+  { path: "/models", label: "Models" },
   { path: "/guide", label: "Guide" },
 ]
 
@@ -15,6 +17,18 @@ export function Nav() {
 
   return (
     <nav className="main-nav">
+      <span style={{
+        fontSize: "0.72rem",
+        fontWeight: 700,
+        color: "var(--accent)",
+        padding: "0 12px 0 8px",
+        letterSpacing: "0.04em",
+        whiteSpace: "nowrap",
+        borderRight: "1px solid var(--border-subtle)",
+        marginRight: "4px",
+      }}>
+        NH
+      </span>
       {PAGES.map(p => {
         const active = p.path === "/"
           ? location.pathname === "/"

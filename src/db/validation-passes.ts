@@ -1,10 +1,12 @@
-import { getDB } from "./connection"
+import db from "../../data/connection"
 
-export function saveValidationPass(novelId: string, passNumber: number, chapterNum: number, status: string, issuesFound: number): void {
-  getDB().prepare("INSERT OR REPLACE INTO validation_passes (novel_id, pass_number, chapter_number, status, issues_found) VALUES (?, ?, ?, ?, ?)").run(novelId, passNumber, chapterNum, status, issuesFound)
+export async function saveValidationPass(novelId: string, passNumber: number, chapterNum: number, status: string, issuesFound: number): Promise<void> {
+  await db`INSERT INTO validation_passes (novel_id, pass_number, chapter_number, status, issues_found)
+           VALUES (${novelId}, ${passNumber}, ${chapterNum}, ${status}, ${issuesFound})
+           ON CONFLICT (novel_id, pass_number, chapter_number) DO UPDATE SET status = EXCLUDED.status, issues_found = EXCLUDED.issues_found`
 }
 
-export function getValidationAttempts(novelId: string, chapterNum: number): number {
-  const row = getDB().prepare("SELECT COUNT(*) as total FROM validation_passes WHERE novel_id = ? AND chapter_number = ? AND status = 'rewritten'").get(novelId, chapterNum) as any
-  return row?.total ?? 0
+export async function getValidationAttempts(novelId: string, chapterNum: number): Promise<number> {
+  const rows = await db`SELECT COUNT(*) as total FROM validation_passes WHERE novel_id = ${novelId} AND chapter_number = ${chapterNum} AND status = 'rewritten'`
+  return Number(rows[0]?.total ?? 0)
 }

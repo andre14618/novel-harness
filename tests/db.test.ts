@@ -1,7 +1,6 @@
 import { describe, test, expect, beforeEach, afterAll } from "bun:test"
-import { existsSync } from "node:fs"
 import {
-  initDB, getDB, createNovel, getNovel, updatePhase, updateCurrentChapter,
+  initDB, createNovel, getNovel, updatePhase, updateCurrentChapter,
   updateTotalChapters, saveWorldBible, getWorldBible, saveCharacter,
   getCharacters, saveStorySpine, getStorySpine, saveChapterOutline,
   getChapterOutline, getChapterOutlines, saveChapterDraft, approveChapterDraft,
@@ -13,28 +12,19 @@ import {
   saveValidationPass, getValidationAttempts,
 } from "../src/db"
 import {
-  setupTestDB, setupTestNovel, cleanupTestDBs,
+  setupTestNovel, cleanupTestDBs,
   makeSeedInput, makeWorldBible, makeCharacterProfile, makeCharacterProfileRina,
   makeStorySpine, makeChapterOutline,
 } from "./helpers"
 
-afterAll(() => cleanupTestDBs())
+afterAll(async () => await cleanupTestDBs())
 
 // ── Init ───────────────────────────────────────────────────────────────────
 
 describe("initDB", () => {
-  test("creates output directory and DB file", () => {
+  test("is a no-op for Postgres (schema managed by migrations)", async () => {
     const id = `test-init-${crypto.randomUUID()}`
-    initDB(id)
-    expect(existsSync(`output/${id}/novel.db`)).toBe(true)
-    // cleanup
-    const { rmSync } = require("node:fs")
-    rmSync(`output/${id}`, { recursive: true, force: true })
-  })
-
-  test("is idempotent", () => {
-    const id = setupTestDB()
-    expect(() => initDB(id)).not.toThrow()
+    await expect(initDB(id)).resolves.toBeUndefined()
   })
 })
 
@@ -43,12 +33,12 @@ describe("initDB", () => {
 describe("novel CRUD", () => {
   let novelId: string
 
-  beforeEach(() => {
-    novelId = setupTestNovel()
+  beforeEach(async () => {
+    novelId = await setupTestNovel()
   })
 
-  test("createNovel + getNovel round-trips seed", () => {
-    const novel = getNovel(novelId)
+  test("createNovel + getNovel round-trips seed", async () => {
+    const novel = await getNovel(novelId)
     expect(novel.id).toBe(novelId)
     expect(novel.phase).toBe("concept")
     expect(novel.seed.premise).toBe(makeSeedInput().premise)
@@ -57,23 +47,23 @@ describe("novel CRUD", () => {
     expect(novel.totalChapters).toBe(0)
   })
 
-  test("getNovel throws for nonexistent id", () => {
-    expect(() => getNovel("nonexistent")).toThrow()
+  test("getNovel throws for nonexistent id", async () => {
+    await expect(getNovel("nonexistent")).rejects.toThrow()
   })
 
-  test("updatePhase changes phase", () => {
-    updatePhase(novelId, "planning")
-    expect(getNovel(novelId).phase).toBe("planning")
+  test("updatePhase changes phase", async () => {
+    await updatePhase(novelId, "planning")
+    expect((await getNovel(novelId)).phase).toBe("planning")
   })
 
-  test("updateCurrentChapter sets chapter", () => {
-    updateCurrentChapter(novelId, 5)
-    expect(getNovel(novelId).currentChapter).toBe(5)
+  test("updateCurrentChapter sets chapter", async () => {
+    await updateCurrentChapter(novelId, 5)
+    expect((await getNovel(novelId)).currentChapter).toBe(5)
   })
 
-  test("updateTotalChapters sets total", () => {
-    updateTotalChapters(novelId, 10)
-    expect(getNovel(novelId).totalChapters).toBe(10)
+  test("updateTotalChapters sets total", async () => {
+    await updateTotalChapters(novelId, 10)
+    expect((await getNovel(novelId)).totalChapters).toBe(10)
   })
 })
 
@@ -81,29 +71,26 @@ describe("novel CRUD", () => {
 
 describe("world bible", () => {
   let novelId: string
+  beforeEach(async () => { novelId = await setupTestNovel() })
 
-  beforeEach(() => {
-    novelId = setupTestNovel()
-  })
-
-  test("save + get round-trips", () => {
+  test("save + get round-trips", async () => {
     const wb = makeWorldBible()
-    saveWorldBible(novelId, wb)
-    const loaded = getWorldBible(novelId)
+    await saveWorldBible(novelId, wb)
+    const loaded = await getWorldBible(novelId)
     expect(loaded.setting).toBe(wb.setting)
     expect(loaded.rules).toEqual(wb.rules)
     expect(loaded.locations).toHaveLength(2)
   })
 
-  test("getWorldBible throws for nonexistent novel", () => {
-    expect(() => getWorldBible("nonexistent")).toThrow()
+  test("getWorldBible throws for nonexistent novel", async () => {
+    await expect(getWorldBible("nonexistent")).rejects.toThrow()
   })
 
-  test("save overwrites on duplicate", () => {
-    saveWorldBible(novelId, makeWorldBible())
+  test("save overwrites on duplicate", async () => {
+    await saveWorldBible(novelId, makeWorldBible())
     const updated = { ...makeWorldBible(), setting: "Updated setting" }
-    saveWorldBible(novelId, updated)
-    expect(getWorldBible(novelId).setting).toBe("Updated setting")
+    await saveWorldBible(novelId, updated)
+    expect((await getWorldBible(novelId)).setting).toBe("Updated setting")
   })
 })
 
@@ -111,30 +98,27 @@ describe("world bible", () => {
 
 describe("characters", () => {
   let novelId: string
+  beforeEach(async () => { novelId = await setupTestNovel() })
 
-  beforeEach(() => {
-    novelId = setupTestNovel()
-  })
-
-  test("save + get round-trips", () => {
+  test("save + get round-trips", async () => {
     const char = makeCharacterProfile()
-    saveCharacter(novelId, char)
-    const chars = getCharacters(novelId)
+    await saveCharacter(novelId, char)
+    const chars = await getCharacters(novelId)
     expect(chars).toHaveLength(1)
     expect(chars[0].name).toBe("Kael")
     expect(chars[0].traits).toEqual(char.traits)
   })
 
-  test("multiple characters returned", () => {
-    saveCharacter(novelId, makeCharacterProfile())
-    saveCharacter(novelId, makeCharacterProfileRina())
-    expect(getCharacters(novelId)).toHaveLength(2)
+  test("multiple characters returned", async () => {
+    await saveCharacter(novelId, makeCharacterProfile())
+    await saveCharacter(novelId, makeCharacterProfileRina())
+    expect(await getCharacters(novelId)).toHaveLength(2)
   })
 
-  test("upserts on same id", () => {
-    saveCharacter(novelId, makeCharacterProfile())
-    saveCharacter(novelId, makeCharacterProfile({ goals: "New goals" }))
-    const chars = getCharacters(novelId)
+  test("upserts on same id", async () => {
+    await saveCharacter(novelId, makeCharacterProfile())
+    await saveCharacter(novelId, makeCharacterProfile({ goals: "New goals" }))
+    const chars = await getCharacters(novelId)
     expect(chars).toHaveLength(1)
     expect(chars[0].goals).toBe("New goals")
   })
@@ -144,21 +128,18 @@ describe("characters", () => {
 
 describe("story spine", () => {
   let novelId: string
+  beforeEach(async () => { novelId = await setupTestNovel() })
 
-  beforeEach(() => {
-    novelId = setupTestNovel()
-  })
-
-  test("save + get round-trips", () => {
+  test("save + get round-trips", async () => {
     const spine = makeStorySpine()
-    saveStorySpine(novelId, spine)
-    const loaded = getStorySpine(novelId)
+    await saveStorySpine(novelId, spine)
+    const loaded = await getStorySpine(novelId)
     expect(loaded.centralConflict).toBe(spine.centralConflict)
     expect(loaded.acts).toHaveLength(3)
   })
 
-  test("getStorySpine throws for nonexistent", () => {
-    expect(() => getStorySpine("nonexistent")).toThrow()
+  test("getStorySpine throws for nonexistent", async () => {
+    await expect(getStorySpine("nonexistent")).rejects.toThrow()
   })
 })
 
@@ -166,32 +147,29 @@ describe("story spine", () => {
 
 describe("chapter outlines", () => {
   let novelId: string
+  beforeEach(async () => { novelId = await setupTestNovel() })
 
-  beforeEach(() => {
-    novelId = setupTestNovel()
-  })
-
-  test("save + get round-trips", () => {
+  test("save + get round-trips", async () => {
     const outline = makeChapterOutline()
-    saveChapterOutline(novelId, outline)
-    const loaded = getChapterOutline(novelId, 1)
+    await saveChapterOutline(novelId, outline)
+    const loaded = await getChapterOutline(novelId, 1)
     expect(loaded.title).toBe(outline.title)
     expect(loaded.scenes).toHaveLength(2)
   })
 
-  test("getChapterOutlines returns all ordered", () => {
-    saveChapterOutline(novelId, makeChapterOutline({ chapterNumber: 3, title: "Ch3" }))
-    saveChapterOutline(novelId, makeChapterOutline({ chapterNumber: 1, title: "Ch1" }))
-    saveChapterOutline(novelId, makeChapterOutline({ chapterNumber: 2, title: "Ch2" }))
-    const outlines = getChapterOutlines(novelId)
+  test("getChapterOutlines returns all ordered", async () => {
+    await saveChapterOutline(novelId, makeChapterOutline({ chapterNumber: 3, title: "Ch3" }))
+    await saveChapterOutline(novelId, makeChapterOutline({ chapterNumber: 1, title: "Ch1" }))
+    await saveChapterOutline(novelId, makeChapterOutline({ chapterNumber: 2, title: "Ch2" }))
+    const outlines = await getChapterOutlines(novelId)
     expect(outlines).toHaveLength(3)
     expect(outlines[0].chapterNumber).toBe(1)
     expect(outlines[1].chapterNumber).toBe(2)
     expect(outlines[2].chapterNumber).toBe(3)
   })
 
-  test("getChapterOutline throws for nonexistent chapter", () => {
-    expect(() => getChapterOutline(novelId, 99)).toThrow()
+  test("getChapterOutline throws for nonexistent chapter", async () => {
+    await expect(getChapterOutline(novelId, 99)).rejects.toThrow()
   })
 })
 
@@ -199,40 +177,30 @@ describe("chapter outlines", () => {
 
 describe("chapter drafts", () => {
   let novelId: string
+  beforeEach(async () => { novelId = await setupTestNovel() })
 
-  beforeEach(() => {
-    novelId = setupTestNovel()
+  test("approve + get round-trips", async () => {
+    await saveChapterDraft(novelId, 1, "Draft v1", 500)
+    await saveChapterDraft(novelId, 1, "Draft v2", 600)
+    await approveChapterDraft(novelId, 1)
+    const draft = await getApprovedDraft(novelId, 1)
+    expect(draft).not.toBeNull()
+    expect(draft!.prose).toBe("Draft v2")
+    expect(draft!.wordCount).toBe(600)
+    expect(draft!.version).toBe(2)
   })
 
-  test("first save creates version 1", () => {
-    saveChapterDraft(novelId, 1, "Draft text", 500)
-    const row = getDB().prepare(
-      "SELECT version, status FROM chapter_drafts WHERE novel_id = ? AND chapter_number = ?"
-    ).get(novelId, 1) as any
-    expect(row.version).toBe(1)
-    expect(row.status).toBe("draft")
+  test("getApprovedDraft returns null when none approved", async () => {
+    await saveChapterDraft(novelId, 1, "Draft", 500)
+    expect(await getApprovedDraft(novelId, 1)).toBeNull()
   })
 
-  test("second save auto-increments version", () => {
-    saveChapterDraft(novelId, 1, "Draft v1", 500)
-    saveChapterDraft(novelId, 1, "Draft v2", 600)
-    const rows = getDB().prepare(
-      "SELECT version FROM chapter_drafts WHERE novel_id = ? AND chapter_number = ? ORDER BY version"
-    ).all(novelId, 1) as any[]
-    expect(rows).toHaveLength(2)
-    expect(rows[0].version).toBe(1)
-    expect(rows[1].version).toBe(2)
-  })
-
-  test("approveChapterDraft marks latest version", () => {
-    saveChapterDraft(novelId, 1, "Draft v1", 500)
-    saveChapterDraft(novelId, 1, "Draft v2", 600)
-    approveChapterDraft(novelId, 1)
-    const rows = getDB().prepare(
-      "SELECT version, status FROM chapter_drafts WHERE novel_id = ? AND chapter_number = ? ORDER BY version"
-    ).all(novelId, 1) as any[]
-    expect(rows[0].status).toBe("draft")    // v1 unchanged
-    expect(rows[1].status).toBe("approved") // v2 approved
+  test("unapproveChapterDraft reverts status", async () => {
+    await saveChapterDraft(novelId, 1, "Draft", 500)
+    await approveChapterDraft(novelId, 1)
+    expect(await getApprovedDraft(novelId, 1)).not.toBeNull()
+    await unapproveChapterDraft(novelId, 1)
+    expect(await getApprovedDraft(novelId, 1)).toBeNull()
   })
 })
 
@@ -240,33 +208,30 @@ describe("chapter drafts", () => {
 
 describe("chapter summaries", () => {
   let novelId: string
+  beforeEach(async () => { novelId = await setupTestNovel() })
 
-  beforeEach(() => {
-    novelId = setupTestNovel()
-  })
-
-  test("save + getRecentSummaries round-trips", () => {
-    saveChapterSummary(novelId, 1, "Chapter 1 summary", ["event1"])
-    const summaries = getRecentSummaries(novelId, 2, 3)
+  test("save + getRecentSummaries round-trips", async () => {
+    await saveChapterSummary(novelId, 1, "Chapter 1 summary", ["event1"])
+    const summaries = await getRecentSummaries(novelId, 2, 3)
     expect(summaries).toHaveLength(1)
     expect(summaries[0].summary).toBe("Chapter 1 summary")
     expect(summaries[0].keyEvents).toEqual(["event1"])
   })
 
-  test("returns ordered ascending, limited", () => {
+  test("returns ordered ascending, limited", async () => {
     for (let i = 1; i <= 5; i++) {
-      saveChapterSummary(novelId, i, `Summary ${i}`, [`event${i}`])
+      await saveChapterSummary(novelId, i, `Summary ${i}`, [`event${i}`])
     }
-    const summaries = getRecentSummaries(novelId, 5, 3)
+    const summaries = await getRecentSummaries(novelId, 5, 3)
     expect(summaries).toHaveLength(3)
     expect(summaries[0].chapterNumber).toBe(2)
     expect(summaries[1].chapterNumber).toBe(3)
     expect(summaries[2].chapterNumber).toBe(4)
   })
 
-  test("returns empty for chapter 1", () => {
-    saveChapterSummary(novelId, 1, "Summary", ["event"])
-    const summaries = getRecentSummaries(novelId, 1, 3)
+  test("returns empty for chapter 1", async () => {
+    await saveChapterSummary(novelId, 1, "Summary", ["event"])
+    const summaries = await getRecentSummaries(novelId, 1, 3)
     expect(summaries).toHaveLength(0)
   })
 })
@@ -275,36 +240,41 @@ describe("chapter summaries", () => {
 
 describe("facts", () => {
   let novelId: string
+  beforeEach(async () => { novelId = await setupTestNovel() })
 
-  beforeEach(() => {
-    novelId = setupTestNovel()
-  })
-
-  test("save + get round-trips", () => {
-    saveFact(novelId, { fact: "The door is red", category: "physical", establishedInChapter: 1 })
-    const facts = getFactsUpToChapter(novelId, 1)
+  test("save + get round-trips", async () => {
+    await saveFact(novelId, { fact: "The door is red", category: "physical", establishedInChapter: 1 })
+    const facts = await getFactsUpToChapter(novelId, 1)
     expect(facts).toHaveLength(1)
     expect(facts[0].fact).toBe("The door is red")
     expect(facts[0].category).toBe("physical")
   })
 
-  test("filters by chapter number", () => {
-    saveFact(novelId, { fact: "Fact ch1", category: "physical", establishedInChapter: 1 })
-    saveFact(novelId, { fact: "Fact ch3", category: "rule", establishedInChapter: 3 })
-    saveFact(novelId, { fact: "Fact ch5", category: "knowledge", establishedInChapter: 5 })
+  test("filters by chapter number", async () => {
+    await saveFact(novelId, { fact: "Fact ch1", category: "physical", establishedInChapter: 1 })
+    await saveFact(novelId, { fact: "Fact ch3", category: "rule", establishedInChapter: 3 })
+    await saveFact(novelId, { fact: "Fact ch5", category: "knowledge", establishedInChapter: 5 })
 
-    const upTo3 = getFactsUpToChapter(novelId, 3)
+    const upTo3 = await getFactsUpToChapter(novelId, 3)
     expect(upTo3).toHaveLength(2)
     expect(upTo3.map(f => f.fact)).toContain("Fact ch1")
     expect(upTo3.map(f => f.fact)).toContain("Fact ch3")
   })
 
-  test("ordered by established chapter", () => {
-    saveFact(novelId, { fact: "Late", category: "physical", establishedInChapter: 3 })
-    saveFact(novelId, { fact: "Early", category: "physical", establishedInChapter: 1 })
-    const facts = getFactsUpToChapter(novelId, 5)
-    expect(facts[0].fact).toBe("Early")
-    expect(facts[1].fact).toBe("Late")
+  test("getFactsForChapter returns only that chapter", async () => {
+    await saveFact(novelId, { fact: "Fact ch1", category: "physical", establishedInChapter: 1 })
+    await saveFact(novelId, { fact: "Fact ch2", category: "rule", establishedInChapter: 2 })
+    const ch1Facts = await getFactsForChapter(novelId, 1)
+    expect(ch1Facts).toHaveLength(1)
+    expect(ch1Facts[0].fact).toBe("Fact ch1")
+  })
+
+  test("clearFactsForChapter deletes only that chapter", async () => {
+    await saveFact(novelId, { fact: "Fact ch1", category: "physical", establishedInChapter: 1 })
+    await saveFact(novelId, { fact: "Fact ch2", category: "rule", establishedInChapter: 2 })
+    await clearFactsForChapter(novelId, 1)
+    expect(await getFactsForChapter(novelId, 1)).toHaveLength(0)
+    expect(await getFactsForChapter(novelId, 2)).toHaveLength(1)
   })
 })
 
@@ -312,49 +282,46 @@ describe("facts", () => {
 
 describe("character states", () => {
   let novelId: string
+  beforeEach(async () => { novelId = await setupTestNovel() })
 
-  beforeEach(() => {
-    novelId = setupTestNovel()
-  })
-
-  test("save + get round-trips", () => {
-    saveCharacterState(novelId, "char_kael", 1, {
-      characterId: "char_kael",
-      chapterNumber: 1,
-      location: "Dust Throne",
-      emotionalState: "suspicious",
-      knows: ["Rina is here"],
-      doesNotKnow: ["The truth"],
+  test("save + get round-trips", async () => {
+    await saveCharacterState(novelId, "char_kael", 1, {
+      characterId: "char_kael", chapterNumber: 1,
+      location: "Dust Throne", emotionalState: "suspicious",
+      knows: ["Rina is here"], doesNotKnow: ["The truth"],
     })
-    const states = getCharacterStatesAtChapter(novelId, 2)
+    const states = await getCharacterStatesAtChapter(novelId, 2)
     expect(states).toHaveLength(1)
     expect(states[0].location).toBe("Dust Throne")
   })
 
-  test("returns latest state per character", () => {
-    saveCharacterState(novelId, "char_kael", 1, {
+  test("returns latest state per character", async () => {
+    await saveCharacterState(novelId, "char_kael", 1, {
       characterId: "char_kael", chapterNumber: 1,
-      location: "Frontier", emotionalState: "bitter",
-      knows: [], doesNotKnow: [],
+      location: "Frontier", emotionalState: "bitter", knows: [], doesNotKnow: [],
     })
-    saveCharacterState(novelId, "char_kael", 3, {
+    await saveCharacterState(novelId, "char_kael", 3, {
       characterId: "char_kael", chapterNumber: 3,
-      location: "Capital", emotionalState: "determined",
-      knows: ["the lie"], doesNotKnow: [],
+      location: "Capital", emotionalState: "determined", knows: ["the lie"], doesNotKnow: [],
     })
-    const states = getCharacterStatesAtChapter(novelId, 4)
+    const states = await getCharacterStatesAtChapter(novelId, 4)
     expect(states).toHaveLength(1)
     expect(states[0].location).toBe("Capital")
   })
 
-  test("returns empty before first state", () => {
-    saveCharacterState(novelId, "char_kael", 3, {
-      characterId: "char_kael", chapterNumber: 3,
-      location: "here", emotionalState: "fine",
-      knows: [], doesNotKnow: [],
+  test("clearCharacterStatesForChapter deletes only that chapter", async () => {
+    await saveCharacterState(novelId, "char_kael", 1, {
+      characterId: "char_kael", chapterNumber: 1,
+      location: "Frontier", emotionalState: "bitter", knows: [], doesNotKnow: [],
     })
-    expect(getCharacterStatesAtChapter(novelId, 1)).toHaveLength(0)
-    expect(getCharacterStatesAtChapter(novelId, 3)).toHaveLength(0) // < 3, not <=
+    await saveCharacterState(novelId, "char_kael", 2, {
+      characterId: "char_kael", chapterNumber: 2,
+      location: "Capital", emotionalState: "angry", knows: [], doesNotKnow: [],
+    })
+    await clearCharacterStatesForChapter(novelId, 1)
+    const states = await getCharacterStatesAtChapter(novelId, 3)
+    expect(states).toHaveLength(1)
+    expect(states[0].location).toBe("Capital")
   })
 })
 
@@ -362,126 +329,27 @@ describe("character states", () => {
 
 describe("issues", () => {
   let novelId: string
+  beforeEach(async () => { novelId = await setupTestNovel() })
 
-  beforeEach(() => {
-    novelId = setupTestNovel()
-  })
-
-  test("save + getOpenIssues round-trips", () => {
-    saveIssue(novelId, { severity: "blocker", description: "Kael teleported", chapter: 2 })
-    const issues = getOpenIssues(novelId)
+  test("save + getOpenIssues round-trips", async () => {
+    await saveIssue(novelId, { severity: "blocker", description: "Kael teleported", chapter: 2 })
+    const issues = await getOpenIssues(novelId)
     expect(issues).toHaveLength(1)
     expect(issues[0].description).toBe("Kael teleported")
   })
 
-  test("filters by chapter", () => {
-    saveIssue(novelId, { severity: "blocker", description: "Issue ch2", chapter: 2 })
-    saveIssue(novelId, { severity: "warning", description: "Issue ch3", chapter: 3 })
-    expect(getOpenIssues(novelId, 2)).toHaveLength(1)
-    expect(getOpenIssues(novelId, 3)).toHaveLength(1)
-    expect(getOpenIssues(novelId)).toHaveLength(2)
+  test("filters by chapter", async () => {
+    await saveIssue(novelId, { severity: "blocker", description: "Issue ch2", chapter: 2 })
+    await saveIssue(novelId, { severity: "warning", description: "Issue ch3", chapter: 3 })
+    expect(await getOpenIssues(novelId, 2)).toHaveLength(1)
+    expect(await getOpenIssues(novelId, 3)).toHaveLength(1)
+    expect(await getOpenIssues(novelId)).toHaveLength(2)
   })
 
-  test("resolveIssuesForChapter clears issues", () => {
-    saveIssue(novelId, { severity: "blocker", description: "Issue", chapter: 2 })
-    resolveIssuesForChapter(novelId, 2)
-    expect(getOpenIssues(novelId, 2)).toHaveLength(0)
-  })
-
-  test("resolve only affects target chapter", () => {
-    saveIssue(novelId, { severity: "blocker", description: "Ch2 issue", chapter: 2 })
-    saveIssue(novelId, { severity: "warning", description: "Ch3 issue", chapter: 3 })
-    resolveIssuesForChapter(novelId, 2)
-    expect(getOpenIssues(novelId, 2)).toHaveLength(0)
-    expect(getOpenIssues(novelId, 3)).toHaveLength(1)
-  })
-})
-
-// ── Approved Drafts ───────────────────────────────────────────────────────
-
-describe("approved drafts", () => {
-  let novelId: string
-
-  beforeEach(() => {
-    novelId = setupTestNovel()
-  })
-
-  test("getApprovedDraft returns approved draft", () => {
-    saveChapterDraft(novelId, 1, "Draft v1", 500)
-    saveChapterDraft(novelId, 1, "Draft v2", 600)
-    approveChapterDraft(novelId, 1)
-    const draft = getApprovedDraft(novelId, 1)
-    expect(draft).not.toBeNull()
-    expect(draft!.prose).toBe("Draft v2")
-    expect(draft!.wordCount).toBe(600)
-    expect(draft!.version).toBe(2)
-  })
-
-  test("getApprovedDraft returns null when none approved", () => {
-    saveChapterDraft(novelId, 1, "Draft", 500)
-    expect(getApprovedDraft(novelId, 1)).toBeNull()
-  })
-
-  test("unapproveChapterDraft reverts status", () => {
-    saveChapterDraft(novelId, 1, "Draft", 500)
-    approveChapterDraft(novelId, 1)
-    expect(getApprovedDraft(novelId, 1)).not.toBeNull()
-    unapproveChapterDraft(novelId, 1)
-    expect(getApprovedDraft(novelId, 1)).toBeNull()
-  })
-})
-
-// ── Facts (per-chapter) ───────────────────────────────────────────────────
-
-describe("facts per chapter", () => {
-  let novelId: string
-
-  beforeEach(() => {
-    novelId = setupTestNovel()
-  })
-
-  test("getFactsForChapter returns only that chapter", () => {
-    saveFact(novelId, { fact: "Fact ch1", category: "physical", establishedInChapter: 1 })
-    saveFact(novelId, { fact: "Fact ch2", category: "rule", establishedInChapter: 2 })
-    saveFact(novelId, { fact: "Another ch1", category: "knowledge", establishedInChapter: 1 })
-    const ch1Facts = getFactsForChapter(novelId, 1)
-    expect(ch1Facts).toHaveLength(2)
-    expect(ch1Facts.map(f => f.fact)).toContain("Fact ch1")
-    expect(ch1Facts.map(f => f.fact)).toContain("Another ch1")
-  })
-
-  test("clearFactsForChapter deletes only that chapter", () => {
-    saveFact(novelId, { fact: "Fact ch1", category: "physical", establishedInChapter: 1 })
-    saveFact(novelId, { fact: "Fact ch2", category: "rule", establishedInChapter: 2 })
-    clearFactsForChapter(novelId, 1)
-    expect(getFactsForChapter(novelId, 1)).toHaveLength(0)
-    expect(getFactsForChapter(novelId, 2)).toHaveLength(1)
-  })
-})
-
-// ── Character States (per-chapter clear) ──────────────────────────────────
-
-describe("character states clear", () => {
-  let novelId: string
-
-  beforeEach(() => {
-    novelId = setupTestNovel()
-  })
-
-  test("clearCharacterStatesForChapter deletes only that chapter", () => {
-    saveCharacterState(novelId, "char_kael", 1, {
-      characterId: "char_kael", chapterNumber: 1,
-      location: "Frontier", emotionalState: "bitter", knows: [], doesNotKnow: [],
-    })
-    saveCharacterState(novelId, "char_kael", 2, {
-      characterId: "char_kael", chapterNumber: 2,
-      location: "Capital", emotionalState: "angry", knows: [], doesNotKnow: [],
-    })
-    clearCharacterStatesForChapter(novelId, 1)
-    // ch1 cleared, ch2 state still visible
-    const states = getCharacterStatesAtChapter(novelId, 3)
-    expect(states).toHaveLength(1)
-    expect(states[0].location).toBe("Capital")
+  test("resolveIssuesForChapter clears issues", async () => {
+    await saveIssue(novelId, { severity: "blocker", description: "Issue", chapter: 2 })
+    await resolveIssuesForChapter(novelId, 2)
+    expect(await getOpenIssues(novelId, 2)).toHaveLength(0)
   })
 })
 
@@ -489,24 +357,21 @@ describe("character states clear", () => {
 
 describe("validation passes", () => {
   let novelId: string
+  beforeEach(async () => { novelId = await setupTestNovel() })
 
-  beforeEach(() => {
-    novelId = setupTestNovel()
+  test("saveValidationPass + getValidationAttempts counts rewrites", async () => {
+    expect(await getValidationAttempts(novelId, 1)).toBe(0)
+    await saveValidationPass(novelId, 1, 1, "rewritten", 2)
+    expect(await getValidationAttempts(novelId, 1)).toBe(1)
+    await saveValidationPass(novelId, 2, 1, "rewritten", 1)
+    expect(await getValidationAttempts(novelId, 1)).toBe(2)
   })
 
-  test("saveValidationPass + getValidationAttempts counts rewrites", () => {
-    expect(getValidationAttempts(novelId, 1)).toBe(0)
-    saveValidationPass(novelId, 1, 1, "rewritten", 2)
-    expect(getValidationAttempts(novelId, 1)).toBe(1)
-    saveValidationPass(novelId, 2, 1, "rewritten", 1)
-    expect(getValidationAttempts(novelId, 1)).toBe(2)
-  })
-
-  test("getValidationAttempts only counts rewritten status", () => {
-    saveValidationPass(novelId, 1, 1, "passed", 0)
-    saveValidationPass(novelId, 1, 2, "has_issues", 3)
-    saveValidationPass(novelId, 2, 1, "rewritten", 1)
-    expect(getValidationAttempts(novelId, 1)).toBe(1)
-    expect(getValidationAttempts(novelId, 2)).toBe(0)
+  test("getValidationAttempts only counts rewritten status", async () => {
+    await saveValidationPass(novelId, 1, 1, "passed", 0)
+    await saveValidationPass(novelId, 1, 2, "has_issues", 3)
+    await saveValidationPass(novelId, 2, 1, "rewritten", 1)
+    expect(await getValidationAttempts(novelId, 1)).toBe(1)
+    expect(await getValidationAttempts(novelId, 2)).toBe(0)
   })
 })

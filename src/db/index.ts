@@ -1,4 +1,4 @@
-export { initDB, getDB } from "./connection"
+export { initDB } from "./connection"
 export { createNovel, getNovel, updatePhase, updateCurrentChapter, updateTotalChapters } from "./novels"
 export { saveWorldBible, getWorldBible, saveCharacter, getCharacters, saveStorySpine, getStorySpine } from "./world"
 export { saveChapterOutline, getChapterOutline, getChapterOutlines } from "./outlines"
@@ -16,7 +16,8 @@ export {
 } from "./world-systems"
 export type { WorldSystem, Culture, CharacterCulture, CharacterSystemAwareness } from "./world-systems"
 export {
-  saveRelationshipState, getRelationshipStatesAtChapter, getRelationshipBetween, clearRelationshipStatesForChapter,
+  saveRelationshipState, getRelationshipStatesAtChapter, getRelationshipBetween,
+  getRelationshipArc, clearRelationshipStatesForChapter,
 } from "./relationships"
 export type { RelationshipState } from "./relationships"
 export {

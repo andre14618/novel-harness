@@ -1,17 +1,23 @@
-import { getDB } from "./connection"
+import db from "../../data/connection"
 import type { ChapterSummary } from "../types"
 
-export function saveChapterSummary(novelId: string, chapterNum: number, summary: string, keyEvents: string[], emotionalState: string = "", openThreads: string[] = []): void {
-  getDB().prepare("INSERT OR REPLACE INTO chapter_summaries (novel_id, chapter_number, summary, key_events_json, emotional_state, open_threads_json) VALUES (?, ?, ?, ?, ?, ?)").run(novelId, chapterNum, summary, JSON.stringify(keyEvents), emotionalState, JSON.stringify(openThreads))
+export async function saveChapterSummary(novelId: string, chapterNum: number, summary: string, keyEvents: string[], emotionalState: string = "", openThreads: string[] = []): Promise<void> {
+  await db`INSERT INTO chapter_summaries (novel_id, chapter_number, summary, key_events_json, emotional_state, open_threads_json)
+           VALUES (${novelId}, ${chapterNum}, ${summary}, ${JSON.stringify(keyEvents)}, ${emotionalState}, ${JSON.stringify(openThreads)})
+           ON CONFLICT (novel_id, chapter_number) DO UPDATE SET
+             summary = EXCLUDED.summary, key_events_json = EXCLUDED.key_events_json,
+             emotional_state = EXCLUDED.emotional_state, open_threads_json = EXCLUDED.open_threads_json`
 }
 
-export function getRecentSummaries(novelId: string, chapterNum: number, count: number): ChapterSummary[] {
-  const rows = getDB().prepare("SELECT chapter_number, summary, key_events_json, emotional_state, open_threads_json FROM chapter_summaries WHERE novel_id = ? AND chapter_number < ? ORDER BY chapter_number DESC LIMIT ?").all(novelId, chapterNum, count) as any[]
+export async function getRecentSummaries(novelId: string, chapterNum: number, count: number): Promise<ChapterSummary[]> {
+  const rows = await db`SELECT chapter_number, summary, key_events_json, emotional_state, open_threads_json
+                        FROM chapter_summaries WHERE novel_id = ${novelId} AND chapter_number < ${chapterNum}
+                        ORDER BY chapter_number DESC LIMIT ${count}`
   return rows.reverse().map(r => ({
     chapterNumber: r.chapter_number,
     summary: r.summary,
-    keyEvents: JSON.parse(r.key_events_json),
+    keyEvents: r.key_events_json as string[],
     emotionalState: r.emotional_state || "",
-    openThreads: r.open_threads_json ? JSON.parse(r.open_threads_json) : [],
+    openThreads: (r.open_threads_json as string[]) ?? [],
   }))
 }

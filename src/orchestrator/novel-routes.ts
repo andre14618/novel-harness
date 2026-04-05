@@ -11,7 +11,6 @@
 
 import { readdirSync, existsSync } from "node:fs"
 import { resolve, basename } from "node:path"
-import { Database } from "bun:sqlite"
 import { subscribeSSE } from "../events"
 import * as gates from "../gates"
 import { initDB, createNovel, getNovel } from "../db"
@@ -19,6 +18,7 @@ import { setAutoMode, setResolverMode } from "../cli"
 import { runNovel } from "../state-machine"
 import { initNovelRun } from "../logger"
 import type { SeedInput } from "../types"
+import db from "../../data/connection"
 
 const HARNESS_ROOT = process.env.HARNESS_ROOT ?? "/home/andre/apps/novel-harness"
 
@@ -26,28 +26,65 @@ const HARNESS_ROOT = process.env.HARNESS_ROOT ?? "/home/andre/apps/novel-harness
 const activeRuns = new Map<string, { startedAt: string; error?: string }>()
 
 /**
- * Open a per-novel SQLite DB read-only for content queries.
- * Returns null if the novel DB doesn't exist.
- */
-function openNovelDB(novelId: string): Database | null {
-  const dbPath = resolve(HARNESS_ROOT, `output/${novelId}/novel.db`)
-  if (!existsSync(dbPath)) return null
-  return new Database(dbPath, { readonly: true })
-}
-
-/**
  * Handle all /api/novel/* routes. Returns null if the path doesn't match.
  */
 export async function handleNovelRoute(req: Request, url: URL): Promise<Response | null> {
   const path = url.pathname
+
+  // ── Full model registry (for Models page) ───────────────────────────
+  if (path === "/api/models/registry" && req.method === "GET") {
+    try {
+      const { MODELS, PROVIDERS } = await import("../../models/registry")
+      const { getHiddenModels, isModelHidden } = await import("../../models/hidden")
+      const providers = Object.fromEntries(
+        Object.entries(PROVIDERS).map(([name, p]) => [name, {
+          tier: p.tier,
+          cache: p.cache ?? null,
+          batchApi: p.batchApi ?? null,
+        }])
+      )
+      const models = MODELS.map(m => ({
+        id: m.id,
+        label: m.label,
+        provider: m.provider,
+        params: m.params,
+        pricing: m.pricing,
+        thinking: m.thinking ?? null,
+        observedTps: m.observedTps ?? null,
+        maxContext: m.maxContext ?? null,
+        maxOutput: m.maxOutput ?? null,
+        rateLimit: m.rateLimit ?? null,
+        providerStatus: m.providerStatus ?? null,
+        notes: m.notes ?? null,
+        hidden: isModelHidden(m.provider, m.id),
+      }))
+      return Response.json({ providers, models, hiddenModels: getHiddenModels() })
+    } catch (err) {
+      return Response.json({ error: String(err) }, { status: 500 })
+    }
+  }
+
+  // ── Toggle model hidden state ──────────────────────────────────────
+  if (path === "/api/models/hidden" && req.method === "POST") {
+    try {
+      const { setModelHidden } = await import("../../models/hidden")
+      const { provider, modelId, hidden } = await req.json() as { provider: string; modelId: string; hidden: boolean }
+      await setModelHidden(provider, modelId, hidden)
+      return Response.json({ ok: true })
+    } catch (err) {
+      return Response.json({ error: String(err) }, { status: 400 })
+    }
+  }
 
   // ── Models config (available models + current agent assignments) ────
   if (path === "/api/novel/config" && req.method === "GET") {
     try {
       const { MODELS, PROVIDERS } = await import("../../models/registry")
       const { getAgentConfig, getAgentOverrides, AGENT_MODELS } = await import("../../models/roles")
+      const { isModelHidden, getHiddenModels } = await import("../../models/hidden")
 
-      const models = MODELS.map(m => ({
+      // Only include visible models in dropdown lists
+      const models = MODELS.filter(m => !isModelHidden(m.provider, m.id)).map(m => ({
         label: m.label,
         id: m.id,
         provider: m.provider,
@@ -87,6 +124,7 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
         agentGroups,
         assignments,
         overrides: getAgentOverrides(),
+        hiddenModels: getHiddenModels(),
       })
     } catch (err) {
       return Response.json({ error: String(err) }, { status: 500 })
@@ -184,36 +222,22 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
     }
   }
 
-  // ── List existing novels ───────────────────────────────────────────
+  // ── List existing novels (from Postgres) ──────────────────────────
   if (path === "/api/novel/list" && req.method === "GET") {
     try {
-      const outputDir = resolve(HARNESS_ROOT, "output")
-      if (!existsSync(outputDir)) return Response.json({ novels: [] })
-
-      const dirs = readdirSync(outputDir).filter(d =>
-        d.startsWith("novel-") && existsSync(resolve(outputDir, d, "novel.db"))
-      )
-
-      const novels = dirs.map(d => {
-        const db = new Database(resolve(outputDir, d, "novel.db"), { readonly: true })
-        try {
-          const row = db.prepare("SELECT id, phase, current_chapter, total_chapters, created_at FROM novels LIMIT 1").get() as any
-          if (!row) return null
-          const pending = gates.getPending(row.id)
-          return {
-            id: row.id,
-            phase: row.phase,
-            currentChapter: row.current_chapter,
-            totalChapters: row.total_chapters,
-            createdAt: row.created_at,
-            active: activeRuns.has(row.id),
-            pendingGate: pending ? { gateId: pending.gateId, title: pending.title } : null,
-          }
-        } finally {
-          db.close()
+      const rows = await db`SELECT id, phase, current_chapter, total_chapters, created_at FROM novels ORDER BY created_at DESC`
+      const novels = rows.map(row => {
+        const pending = gates.getPending(row.id)
+        return {
+          id: row.id,
+          phase: row.phase,
+          currentChapter: row.current_chapter,
+          totalChapters: row.total_chapters,
+          createdAt: row.created_at,
+          active: activeRuns.has(row.id),
+          pendingGate: pending ? { gateId: pending.gateId, title: pending.title } : null,
         }
-      }).filter(Boolean)
-
+      })
       return Response.json({ novels })
     } catch (err) {
       return Response.json({ error: String(err) }, { status: 500 })
@@ -246,8 +270,8 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
       setResolverMode(mode === "auto" ? "auto" : "web")
 
       // Init DB and create novel
-      initDB(novelId)
-      createNovel(novelId, seed)
+      await initDB(novelId)
+      await createNovel(novelId, seed)
 
       // Register in central DB
       const runId = await initNovelRun(novelId)
@@ -286,9 +310,9 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
     setAutoMode(mode === "auto")
     setResolverMode(mode === "auto" ? "auto" : "web")
 
-    initDB(novelId)
+    await initDB(novelId)
     try {
-      getNovel(novelId)
+      await getNovel(novelId)
     } catch {
       return Response.json({ error: `Novel ${novelId} not found` }, { status: 404 })
     }
@@ -305,17 +329,14 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
     return Response.json({ ok: true, novelId, mode })
   }
 
-  // ── Novel state ────────────────────────────────────────────────────
+  // ── Novel state (from Postgres) ────────────────────���───────────────
   const stateMatch = path.match(/^\/api\/novel\/([^/]+)\/state$/)
   if (stateMatch && req.method === "GET") {
     const novelId = stateMatch[1]
-    const db = openNovelDB(novelId)
-    if (!db) return Response.json({ error: "Novel not found" }, { status: 404 })
-
     try {
-      const row = db.prepare("SELECT * FROM novels WHERE id = ?").get(novelId) as any
-      if (!row) return Response.json({ error: "Novel not found" }, { status: 404 })
-
+      const rows = await db`SELECT * FROM novels WHERE id = ${novelId}`
+      if (!rows.length) return Response.json({ error: "Novel not found" }, { status: 404 })
+      const row = rows[0]
       const pending = gates.getPending(novelId)
 
       return Response.json({
@@ -328,104 +349,86 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
         activeError: activeRuns.get(novelId)?.error,
         pendingGate: pending ? { gateId: pending.gateId, title: pending.title, content: pending.content } : null,
       })
-    } finally {
-      db.close()
+    } catch (err) {
+      return Response.json({ error: String(err) }, { status: 500 })
     }
   }
 
-  // ── World bible ────────────────────────────────────────────────────
+  // ── World bible (from Postgres) ────────────────────────────────────
   const worldMatch = path.match(/^\/api\/novel\/([^/]+)\/world-bible$/)
   if (worldMatch && req.method === "GET") {
     const novelId = worldMatch[1]
-    const db = openNovelDB(novelId)
-    if (!db) return Response.json({ error: "Novel not found" }, { status: 404 })
-
     try {
-      const row = db.prepare("SELECT content_json FROM world_bibles WHERE novel_id = ?").get(novelId) as any
-      if (!row) return Response.json(null)
-      return Response.json(JSON.parse(row.content_json))
-    } finally {
-      db.close()
+      const rows = await db`SELECT content_json FROM world_bibles WHERE novel_id = ${novelId}`
+      if (!rows.length) return Response.json(null)
+      return Response.json(rows[0].content_json)
+    } catch (err) {
+      return Response.json({ error: String(err) }, { status: 500 })
     }
   }
 
-  // ── Characters ─────────────────────────────────────────────────────
+  // ── Characters (from Postgres) ─────────────────────────────────────
   const charsMatch = path.match(/^\/api\/novel\/([^/]+)\/characters$/)
   if (charsMatch && req.method === "GET") {
     const novelId = charsMatch[1]
-    const db = openNovelDB(novelId)
-    if (!db) return Response.json({ error: "Novel not found" }, { status: 404 })
-
     try {
-      const rows = db.prepare("SELECT profile_json FROM characters WHERE novel_id = ?").all(novelId) as any[]
-      return Response.json(rows.map(r => JSON.parse(r.profile_json)))
-    } finally {
-      db.close()
+      const rows = await db`SELECT profile_json FROM characters WHERE novel_id = ${novelId}`
+      return Response.json(rows.map(r => r.profile_json))
+    } catch (err) {
+      return Response.json({ error: String(err) }, { status: 500 })
     }
   }
 
-  // ── Story spine ────────────────────────────────────────────────────
+  // ── Story spine (from Postgres) ────────────────────────────────────
   const spineMatch = path.match(/^\/api\/novel\/([^/]+)\/story-spine$/)
   if (spineMatch && req.method === "GET") {
     const novelId = spineMatch[1]
-    const db = openNovelDB(novelId)
-    if (!db) return Response.json({ error: "Novel not found" }, { status: 404 })
-
     try {
-      const row = db.prepare("SELECT content_json FROM story_spines WHERE novel_id = ?").get(novelId) as any
-      if (!row) return Response.json(null)
-      return Response.json(JSON.parse(row.content_json))
-    } finally {
-      db.close()
+      const rows = await db`SELECT content_json FROM story_spines WHERE novel_id = ${novelId}`
+      if (!rows.length) return Response.json(null)
+      return Response.json(rows[0].content_json)
+    } catch (err) {
+      return Response.json({ error: String(err) }, { status: 500 })
     }
   }
 
-  // ── Chapter outlines ───────────────────────────────────────────────
+  // ── Chapter outlines (from Postgres) ───────────────────────────────
   const outlinesMatch = path.match(/^\/api\/novel\/([^/]+)\/outlines$/)
   if (outlinesMatch && req.method === "GET") {
     const novelId = outlinesMatch[1]
-    const db = openNovelDB(novelId)
-    if (!db) return Response.json({ error: "Novel not found" }, { status: 404 })
-
     try {
-      const rows = db.prepare("SELECT outline_json FROM chapter_outlines WHERE novel_id = ? ORDER BY chapter_number").all(novelId) as any[]
-      return Response.json(rows.map(r => JSON.parse(r.outline_json)))
-    } finally {
-      db.close()
+      const rows = await db`SELECT outline_json FROM chapter_outlines WHERE novel_id = ${novelId} ORDER BY chapter_number`
+      return Response.json(rows.map(r => r.outline_json))
+    } catch (err) {
+      return Response.json({ error: String(err) }, { status: 500 })
     }
   }
 
-  // ── Chapter draft ──────────────────────────────────────────────────
+  // ── Chapter draft (from Postgres) ���─────────────────────────────────
   const draftMatch = path.match(/^\/api\/novel\/([^/]+)\/chapter\/(\d+)\/draft$/)
   if (draftMatch && req.method === "GET") {
     const novelId = draftMatch[1]
     const ch = parseInt(draftMatch[2])
-    const db = openNovelDB(novelId)
-    if (!db) return Response.json({ error: "Novel not found" }, { status: 404 })
-
     try {
-      const row = db.prepare(
-        "SELECT prose, word_count, version, status FROM chapter_drafts WHERE novel_id = ? AND chapter_number = ? ORDER BY version DESC LIMIT 1"
-      ).get(novelId, ch) as any
-      if (!row) return Response.json(null)
-      return Response.json({ prose: row.prose, wordCount: row.word_count, version: row.version, status: row.status })
-    } finally {
-      db.close()
+      const rows = await db`SELECT prose, word_count, version, status FROM chapter_drafts
+                            WHERE novel_id = ${novelId} AND chapter_number = ${ch}
+                            ORDER BY version DESC LIMIT 1`
+      if (!rows.length) return Response.json(null)
+      return Response.json({ prose: rows[0].prose, wordCount: rows[0].word_count, version: rows[0].version, status: rows[0].status })
+    } catch (err) {
+      return Response.json({ error: String(err) }, { status: 500 })
     }
   }
 
-  // ── Issues ─────────────────────────────────────────────────────────
+  // ── Issues (from Postgres) ─────────────────────────────────────────
   const issuesMatch = path.match(/^\/api\/novel\/([^/]+)\/issues$/)
   if (issuesMatch && req.method === "GET") {
     const novelId = issuesMatch[1]
-    const db = openNovelDB(novelId)
-    if (!db) return Response.json({ error: "Novel not found" }, { status: 404 })
-
     try {
-      const rows = db.prepare("SELECT * FROM issues WHERE novel_id = ? AND status = 'open' ORDER BY chapter, created_at").all(novelId) as any[]
+      const rows = await db`SELECT * FROM issues WHERE novel_id = ${novelId} AND status = 'open' ORDER BY chapter, created_at`
       return Response.json(rows)
-    } finally {
-      db.close()
+    } catch (err) {
+      return Response.json({ error: String(err) }, { status: 500 })
     }
   }
 
@@ -467,25 +470,31 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
   const deleteMatch = path.match(/^\/api\/novel\/([^/]+)$/)
   if (deleteMatch && req.method === "DELETE") {
     const novelId = deleteMatch[1]
-    const novelDir = resolve(HARNESS_ROOT, `output/${novelId}`)
-
-    if (!existsSync(novelDir)) {
-      return Response.json({ error: "Novel not found" }, { status: 404 })
-    }
 
     if (activeRuns.has(novelId)) {
       return Response.json({ error: "Cannot delete a running novel" }, { status: 409 })
     }
 
-    // Move to archive directory instead of hard delete
-    const archiveDir = resolve(HARNESS_ROOT, "output/.archive")
-    if (!existsSync(archiveDir)) {
-      const { mkdirSync } = await import("node:fs")
-      mkdirSync(archiveDir, { recursive: true })
+    // Check novel exists in Postgres
+    const rows = await db`SELECT id FROM novels WHERE id = ${novelId}`
+    if (!rows.length) {
+      return Response.json({ error: "Novel not found" }, { status: 404 })
     }
 
-    const { renameSync } = await import("node:fs")
-    renameSync(novelDir, resolve(archiveDir, novelId))
+    // Archive: move output files if they exist, mark novel as archived in DB
+    const novelDir = resolve(HARNESS_ROOT, `output/${novelId}`)
+    if (existsSync(novelDir)) {
+      const archiveDir = resolve(HARNESS_ROOT, "output/.archive")
+      if (!existsSync(archiveDir)) {
+        const { mkdirSync } = await import("node:fs")
+        mkdirSync(archiveDir, { recursive: true })
+      }
+      const { renameSync } = await import("node:fs")
+      renameSync(novelDir, resolve(archiveDir, novelId))
+    }
+
+    // Update phase to 'archived' in Postgres
+    await db`UPDATE novels SET phase = 'archived', updated_at = now() WHERE id = ${novelId}`
 
     return Response.json({ ok: true, novelId, archived: true })
   }
@@ -495,17 +504,16 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
     const limit = parseInt(url.searchParams.get("limit") ?? "50")
     const runId = url.searchParams.get("run_id")
     try {
-      const { default: sql } = await import("./db")
       let rows
       if (runId) {
-        rows = await sql`
+        rows = await db`
           SELECT id, agent, phase, provider, model, temperature,
                  prompt_tokens, completion_tokens, latency_ms, tokens_per_sec,
                  cost, created_at
           FROM llm_calls WHERE run_id = ${parseInt(runId)}
           ORDER BY id DESC LIMIT ${limit}`
       } else {
-        rows = await sql`
+        rows = await db`
           SELECT id, agent, phase, provider, model, temperature,
                  prompt_tokens, completion_tokens, latency_ms, tokens_per_sec,
                  cost, created_at

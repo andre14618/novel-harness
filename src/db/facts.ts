@@ -1,21 +1,27 @@
-import { getDB } from "./connection"
+import db from "../../data/connection"
 import type { Fact } from "../types"
 
-export function saveFact(novelId: string, fact: Omit<Fact, "id">): void {
-  const id = crypto.randomUUID()
-  getDB().prepare("INSERT INTO facts (id, novel_id, fact, category, established_in_chapter) VALUES (?, ?, ?, ?, ?)").run(id, novelId, fact.fact, fact.category, fact.establishedInChapter)
+export async function saveFact(novelId: string, fact: Omit<Fact, "id">): Promise<string> {
+  const rows = await db`INSERT INTO facts (novel_id, fact, category, established_in_chapter)
+                        VALUES (${novelId}, ${fact.fact}, ${fact.category}, ${fact.establishedInChapter})
+                        RETURNING id`
+  return rows[0].id
 }
 
-export function getFactsUpToChapter(novelId: string, chapterNum: number): Fact[] {
-  const rows = getDB().prepare("SELECT id, fact, category, established_in_chapter FROM facts WHERE novel_id = ? AND established_in_chapter <= ? ORDER BY established_in_chapter").all(novelId, chapterNum) as any[]
+export async function getFactsUpToChapter(novelId: string, chapterNum: number): Promise<Fact[]> {
+  const rows = await db`SELECT id, fact, category, established_in_chapter FROM facts
+                        WHERE novel_id = ${novelId} AND established_in_chapter <= ${chapterNum}
+                        ORDER BY established_in_chapter`
   return rows.map(r => ({ id: r.id, fact: r.fact, category: r.category, establishedInChapter: r.established_in_chapter }))
 }
 
-export function getFactsForChapter(novelId: string, chapterNum: number): Fact[] {
-  const rows = getDB().prepare("SELECT id, fact, category, established_in_chapter FROM facts WHERE novel_id = ? AND established_in_chapter = ? ORDER BY created_at").all(novelId, chapterNum) as any[]
+export async function getFactsForChapter(novelId: string, chapterNum: number): Promise<Fact[]> {
+  const rows = await db`SELECT id, fact, category, established_in_chapter FROM facts
+                        WHERE novel_id = ${novelId} AND established_in_chapter = ${chapterNum}
+                        ORDER BY created_at`
   return rows.map(r => ({ id: r.id, fact: r.fact, category: r.category, establishedInChapter: r.established_in_chapter }))
 }
 
-export function clearFactsForChapter(novelId: string, chapterNum: number): void {
-  getDB().prepare("DELETE FROM facts WHERE novel_id = ? AND established_in_chapter = ?").run(novelId, chapterNum)
+export async function clearFactsForChapter(novelId: string, chapterNum: number): Promise<void> {
+  await db`DELETE FROM facts WHERE novel_id = ${novelId} AND established_in_chapter = ${chapterNum}`
 }

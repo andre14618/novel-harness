@@ -11,15 +11,18 @@ import {
   SUMMARY_EXTRACTOR_PROMPT, FACT_EXTRACTOR_PROMPT, CHARACTER_STATE_PROMPT,
   RELATIONSHIP_TIMELINE_PROMPT,
 } from "./prompts"
-import { buildSummaryContext, buildFactExtractionContext, buildCharacterStateContext, buildRelationshipTimelineContext } from "./context"
+import { buildContext as buildSummaryContext } from "./agents/summary-extractor/context"
+import { buildContext as buildFactExtractionContext } from "./agents/fact-extractor/context"
+import { buildContext as buildCharacterStateContext } from "./agents/character-state/context"
+import { buildContext as buildRelationshipTimelineContext } from "./agents/relationship-timeline/context"
 import { log } from "./logger"
 
 export async function updateStateAfterChapter(novelId: string, chapterNum: number, prose: string): Promise<void> {
   log(novelId, "info", `Extracting state for chapter ${chapterNum}...`)
 
-  const characters = getCharacters(novelId)
-  const currentRelationships = getRelationshipStatesAtChapter(novelId, chapterNum)
-  const worldSystems = tryGet(() => getWorldSystems(novelId)) ?? []
+  const characters = await getCharacters(novelId)
+  const currentRelationships = await getRelationshipStatesAtChapter(novelId, chapterNum)
+  const worldSystems = await tryGet(() => getWorldSystems(novelId)) ?? []
 
   // All 4 extractors take approved prose as input with no cross-dependencies
   const [summaryResult, factResult, charStateResult, relTimelineResult] = await Promise.all([
@@ -50,7 +53,7 @@ export async function updateStateAfterChapter(novelId: string, chapterNum: numbe
   ])
 
   // Save summaries
-  saveChapterSummary(
+  await saveChapterSummary(
     novelId, chapterNum,
     summaryResult.output.summary,
     summaryResult.output.keyEvents,
@@ -60,14 +63,14 @@ export async function updateStateAfterChapter(novelId: string, chapterNum: numbe
 
   // Save facts
   for (const f of factResult.output.facts) {
-    saveFact(novelId, { fact: f.fact, category: f.category, establishedInChapter: chapterNum })
+    await saveFact(novelId, { fact: f.fact, category: f.category, establishedInChapter: chapterNum })
   }
 
   // Save character states
   for (const cs of charStateResult.output.characters) {
     const char = characters.find(c => c.name.toLowerCase() === cs.name.toLowerCase())
     if (char) {
-      saveCharacterState(novelId, char.id, chapterNum, {
+      await saveCharacterState(novelId, char.id, chapterNum, {
         characterId: char.id,
         chapterNumber: chapterNum,
         location: cs.location,
@@ -81,19 +84,19 @@ export async function updateStateAfterChapter(novelId: string, chapterNum: numbe
   // Save relationship changes
   const rt = relTimelineResult.output
   for (const rc of rt.relationshipChanges) {
-    saveRelationshipState(novelId, { ...rc, chapterNumber: chapterNum })
+    await saveRelationshipState(novelId, { ...rc, chapterNumber: chapterNum })
   }
 
   // Save timeline events
   for (const te of rt.timelineEvents) {
-    saveTimelineEvent(novelId, { ...te, chapterNumber: chapterNum })
+    await saveTimelineEvent(novelId, { ...te, chapterNumber: chapterNum })
   }
 
   // Save character knowledge gains
   for (const kg of rt.knowledgeGains) {
     const char = characters.find(c => c.name.toLowerCase() === kg.characterName.toLowerCase())
     if (char) {
-      saveCharacterKnowledge(novelId, {
+      await saveCharacterKnowledge(novelId, {
         characterId: char.id,
         knowledge: kg.knowledge,
         source: kg.source,
@@ -109,7 +112,7 @@ export async function updateStateAfterChapter(novelId: string, chapterNum: numbe
     const char = characters.find(c => c.name.toLowerCase() === ac.characterName.toLowerCase())
     const sys = worldSystems.find(s => s.name.toLowerCase() === ac.systemName.toLowerCase())
     if (char && sys) {
-      saveCharacterSystemAwareness(novelId, {
+      await saveCharacterSystemAwareness(novelId, {
         characterId: char.id,
         systemId: sys.id,
         awarenessLevel: ac.newLevel,
@@ -119,13 +122,13 @@ export async function updateStateAfterChapter(novelId: string, chapterNum: numbe
     }
   }
 
-  resolveIssuesForChapter(novelId, chapterNum)
+  await resolveIssuesForChapter(novelId, chapterNum)
 
   const relCount = rt.relationshipChanges.length + rt.timelineEvents.length + rt.knowledgeGains.length
   log(novelId, "info", `State updated: summary, ${factResult.output.facts.length} facts, ${charStateResult.output.characters.length} character states, ${relCount} relationship/timeline entries`)
   console.log(`  State updated: summary, ${factResult.output.facts.length} facts, ${charStateResult.output.characters.length} character states, ${relCount} relationship/timeline entries`)
 }
 
-function tryGet<T>(fn: () => T): T | null {
-  try { return fn() } catch { return null }
+async function tryGet<T>(fn: () => Promise<T>): Promise<T | null> {
+  try { return await fn() } catch { return null }
 }

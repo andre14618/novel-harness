@@ -1,17 +1,18 @@
-import { getDB } from "./connection"
+import db from "../../data/connection"
 import type { ChapterOutline } from "../types"
 
-export function saveChapterOutline(novelId: string, outline: ChapterOutline): void {
-  getDB().prepare("INSERT OR REPLACE INTO chapter_outlines (novel_id, chapter_number, outline_json) VALUES (?, ?, ?)").run(novelId, outline.chapterNumber, JSON.stringify(outline))
+export async function saveChapterOutline(novelId: string, outline: ChapterOutline): Promise<void> {
+  await db`INSERT INTO chapter_outlines (novel_id, chapter_number, outline_json) VALUES (${novelId}, ${outline.chapterNumber}, ${JSON.stringify(outline)})
+           ON CONFLICT (novel_id, chapter_number) DO UPDATE SET outline_json = EXCLUDED.outline_json`
 }
 
-export function getChapterOutline(novelId: string, chapterNum: number): ChapterOutline {
-  const row = getDB().prepare("SELECT outline_json FROM chapter_outlines WHERE novel_id = ? AND chapter_number = ?").get(novelId, chapterNum) as any
-  if (!row) throw new Error(`No outline for chapter ${chapterNum}`)
-  return JSON.parse(row.outline_json)
+export async function getChapterOutline(novelId: string, chapterNum: number): Promise<ChapterOutline> {
+  const rows = await db`SELECT outline_json FROM chapter_outlines WHERE novel_id = ${novelId} AND chapter_number = ${chapterNum}`
+  if (!rows.length) throw new Error(`No outline for chapter ${chapterNum}`)
+  return rows[0].outline_json as ChapterOutline
 }
 
-export function getChapterOutlines(novelId: string): ChapterOutline[] {
-  const rows = getDB().prepare("SELECT outline_json FROM chapter_outlines WHERE novel_id = ? ORDER BY chapter_number").all(novelId) as any[]
-  return rows.map(r => JSON.parse(r.outline_json))
+export async function getChapterOutlines(novelId: string): Promise<ChapterOutline[]> {
+  const rows = await db`SELECT outline_json FROM chapter_outlines WHERE novel_id = ${novelId} ORDER BY chapter_number`
+  return rows.map(r => r.outline_json as ChapterOutline)
 }

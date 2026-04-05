@@ -1,33 +1,34 @@
-import { rmSync } from "node:fs"
 import { initDB, createNovel } from "../src/db"
+import db from "../data/connection"
 import type {
   SeedInput, WorldBible, CharacterProfile, StorySpine,
   ChapterOutline, SceneBeat,
 } from "../src/types"
 
-// Track test DBs for cleanup
-const testDirs: string[] = []
+// Track test novel IDs for cleanup
+const testNovelIds: string[] = []
 
-export function setupTestDB(novelId?: string): string {
+export async function setupTestDB(novelId?: string): Promise<string> {
   const id = novelId ?? `test-${crypto.randomUUID()}`
-  initDB(id)
-  testDirs.push(`output/${id}`)
+  await initDB(id)
+  testNovelIds.push(id)
   return id
 }
 
-export function setupTestNovel(novelId?: string): string {
-  const id = setupTestDB(novelId)
-  createNovel(id, makeSeedInput())
+export async function setupTestNovel(novelId?: string): Promise<string> {
+  const id = await setupTestDB(novelId)
+  await createNovel(id, makeSeedInput())
   return id
 }
 
-export function cleanupTestDBs(): void {
-  for (const dir of testDirs) {
+export async function cleanupTestDBs(): Promise<void> {
+  for (const id of testNovelIds) {
     try {
-      rmSync(dir, { recursive: true, force: true })
+      // Clean up all novel data from Postgres
+      await db`DELETE FROM novels WHERE id = ${id}`
     } catch {}
   }
-  testDirs.length = 0
+  testNovelIds.length = 0
 }
 
 // ── Fixtures ───────────────────────────────────────────────────────────────
@@ -158,7 +159,6 @@ The wind howled outside, carrying dust through the cracks in the walls. Kael tho
   const baseWords = base.split(/\s+/).filter(Boolean).length
   if (baseWords >= wordTarget) return base
 
-  // Pad with filler paragraphs
   const filler = "The desert stretched endlessly beyond the city walls, its dunes shifting in patterns that seemed almost deliberate. Ancient ruins dotted the landscape, half-buried monuments to a civilization the empire claimed never existed. Kael had walked among those ruins during her exile, reading inscriptions that contradicted everything the Sun Court taught. "
   const fillerWords = filler.split(/\s+/).filter(Boolean).length
   const repeats = Math.ceil((wordTarget - baseWords) / fillerWords)

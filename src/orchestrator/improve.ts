@@ -1,29 +1,17 @@
 /**
- * Improvement iteration logic — adapted for async batch judging.
- *
- * Core flow: propose change → apply → run benchmark (real-time writer) →
- * submit judge batch (async) → wait → evaluate → keep/revert.
- *
- * Adapted from scripts/improve-loop.ts. Key difference: judge calls are
- * batched instead of real-time, so the iteration is split across two
- * events (propose+benchmark, then evaluate on batch-complete).
+ * Improvement iteration logic — proposal generation and evaluation.
+ * Uses harness service layer for all data access.
  */
 
 import { readFileSync, writeFileSync } from "node:fs"
-import db from "./db"
-import harnessDb from "../../data/connection"
+import * as harness from "../harness"
 import { validateProposal, type Proposal } from "./guardrails"
 import { MODELS, PROVIDERS, getApiKey } from "../../models/registry"
 import { getModelForAgent } from "../../models/roles"
 import { extractJSON } from "../llm"
-import { getBatchProvider } from "../../benchmark/batch/providers"
-import { createBatch, addBatchRequest, updateBatchSubmitted } from "../../data/db"
-import type { BatchRequest } from "../../benchmark/batch/types"
 
 const HARNESS_ROOT = process.env.HARNESS_ROOT ?? "/home/andre/apps/novel-harness"
 const MAX_GIT_COMMITS = 5
-const MAX_EXPERIMENT_CONCLUSIONS = 5
-const MAX_CROSS_CYCLE_ATTEMPTS = 20
 
 // ── Target configs (derived from benchmark registry) ────────────────────
 
@@ -52,7 +40,7 @@ export interface ImproverContext {
 
 /**
  * Build rich context for the improver from DB + git.
- * Deterministic — no LLM calls.
+ * Uses harness service layer — no inline SQL.
  */
 export async function buildImproverContext(
   cycleId: number,
@@ -60,40 +48,28 @@ export async function buildImproverContext(
   dimension: string,
   promptFilePath: string,
 ): Promise<ImproverContext> {
-  // Run all four context sections in parallel — they're independent
   const [previousAttempts, gitDiffs, otherDimensions, experimentConclusions] = await Promise.all([
 
-    // 1. Previous attempts — ALL cycles for this target/dimension, not just current
+    // 1. Previous attempts across all cycles
     (async () => {
       try {
-        const iters = await db`
-          SELECT ii.iteration_num, ii.proposal_explanation, ii.delta, ii.result,
-                 ii.backup_content, ii.cycle_id,
-                 ic.started_at::date as cycle_date
-          FROM improvement_iterations ii
-          JOIN improvement_cycles ic ON ic.id = ii.cycle_id
-          WHERE ii.target = ${target} AND ii.dimension = ${dimension}
-          AND ii.result IS NOT NULL
-          ORDER BY ii.id DESC
-          LIMIT ${MAX_CROSS_CYCLE_ATTEMPTS}
-        ` as any[]
-        if (iters.length === 0) return ""
+        const attempts = await harness.cycles.getPreviousAttempts(target, dimension)
+        if (attempts.length === 0) return ""
 
-        // Group by cycle for readability
-        const byCycle = new Map<number, any[]>()
-        for (const i of iters) {
-          const list = byCycle.get(i.cycle_id) ?? []
-          list.push(i)
-          byCycle.set(i.cycle_id, list)
+        const byCycle = new Map<number, typeof attempts>()
+        for (const a of attempts) {
+          const list = byCycle.get(a.cycleId) ?? []
+          list.push(a)
+          byCycle.set(a.cycleId, list)
         }
 
         const sections: string[] = []
-        for (const [cId, attempts] of byCycle) {
-          const date = attempts[0]?.cycle_date ?? "unknown"
+        for (const [cId, items] of byCycle) {
+          const date = items[0]?.cycleDate ?? "unknown"
           const current = cId === cycleId ? " (current)" : ""
-          const lines = attempts.reverse().map((i: any) => {
+          const lines = items.reverse().map(i => {
             const deltaStr = i.delta !== null ? `, ${i.delta >= 0 ? "+" : ""}${i.delta}` : ""
-            return `  ${i.result}${deltaStr}: ${i.proposal_explanation ?? "no explanation"}`
+            return `  ${i.result}${deltaStr}: ${i.proposalExplanation ?? "no explanation"}`
           })
           sections.push(`Cycle #${cId} (${date}${current}):\n${lines.join("\n")}`)
         }
@@ -104,7 +80,7 @@ export async function buildImproverContext(
       }
     })(),
 
-    // 2. Git diffs — per-commit diffs for THIS file only
+    // 2. Git diffs for this file
     (async () => {
       try {
         const logProc = Bun.spawn(
@@ -118,8 +94,6 @@ export async function buildImproverContext(
         if (commits.length === 0) return ""
 
         const diffs: string[] = [`${commits.length} commits that changed this file:`]
-
-        // Spawn all git diff processes in parallel
         const diffResults = await Promise.all(
           commits.slice(0, MAX_GIT_COMMITS).map(async (line) => {
             const sha = line.split(" ")[0]
@@ -145,51 +119,35 @@ export async function buildImproverContext(
       }
     })(),
 
-    // 3. Dimension scores — per-seed breakdown + tradeoff awareness
+    // 3. Dimension scores + per-seed breakdown
     (async () => {
       try {
-        const latestRun = await harnessDb`
-          SELECT id FROM runs WHERE run_type = ${target} ORDER BY id DESC LIMIT 1
-        ` as any[]
-        if (latestRun.length === 0) return ""
-        const runId = latestRun[0].id
+        const latestScores = await harness.scores.getLatestScores(target, dimension)
+        if (!latestScores) return ""
 
-        // Run both score queries in parallel
         const [dimScores, seedScores] = await Promise.all([
-          harnessDb`
-            SELECT s.dimension, ROUND(AVG(s.score)::numeric, 1) as avg_score
-            FROM scores s JOIN generations g ON s.generation_id = g.id
-            WHERE g.run_id = ${runId} AND g.passed = true
-            GROUP BY s.dimension
-            ORDER BY avg_score ASC
-          ` as Promise<any[]>,
-          harnessDb`
-            SELECT g.seed, ROUND(AVG(s.score)::numeric, 1) as avg_score
-            FROM scores s JOIN generations g ON s.generation_id = g.id
-            WHERE g.run_id = ${runId} AND g.passed = true AND s.dimension = ${dimension}
-            GROUP BY g.seed
-            ORDER BY avg_score ASC
-          ` as Promise<any[]>,
+          harness.scores.getAllDimensionScoresForRun(latestScores.runId),
+          harness.scores.getSeedScores(target, dimension),
         ])
 
         const parts: string[] = []
 
         if (dimScores.length > 0) {
-          const targetScore = dimScores.find((s: any) => s.dimension === dimension)
-          const others = dimScores.filter((s: any) => s.dimension !== dimension)
+          const targetScore = dimScores.find(s => s.dimension === dimension)
+          const others = dimScores.filter(s => s.dimension !== dimension)
           if (targetScore) {
-            parts.push(`Target dimension (${dimension}): ${targetScore.avg_score} (higher=better)`)
+            parts.push(`Target dimension (${dimension}): ${targetScore.avgScore} (higher=better)`)
           }
           if (others.length > 0) {
-            parts.push(`Other dimensions (don't regress): ${others.map((s: any) => `${s.dimension}: ${s.avg_score}`).join(", ")}`)
+            parts.push(`Other dimensions (don't regress): ${others.map(s => `${s.dimension}: ${s.avgScore}`).join(", ")}`)
           }
         }
 
         if (seedScores.length > 0) {
-          parts.push(`Per-seed scores for ${dimension}: ${seedScores.map((s: any) => `${s.seed}: ${s.avg_score}`).join(", ")}`)
+          parts.push(`Per-seed scores for ${dimension}: ${seedScores.map(s => `${s.seed}: ${s.avgScore}`).join(", ")}`)
           const weakest = seedScores[0]
-          if (seedScores.length > 1 && parseFloat(weakest.avg_score) < parseFloat(seedScores[seedScores.length - 1].avg_score) - 1) {
-            parts.push(`Weakest seed: ${weakest.seed} (${weakest.avg_score}) — focus improvements here`)
+          if (seedScores.length > 1 && weakest.avgScore < seedScores[seedScores.length - 1].avgScore - 1) {
+            parts.push(`Weakest seed: ${weakest.seed} (${weakest.avgScore}) — focus improvements here`)
           }
         }
 
@@ -200,55 +158,32 @@ export async function buildImproverContext(
       }
     })(),
 
-    // 4. Experiment conclusions — structured by target/dimension + lineage
+    // 4. Experiment conclusions
     (async () => {
       try {
-        // First: exact target+dimension matches (most relevant)
-        const exactMatches = await harnessDb`
-          SELECT id, description, conclusion, config, timestamp
-          FROM tuning_experiments
-          WHERE target = ${target} AND dimension = ${dimension} AND conclusion IS NOT NULL
-          ORDER BY id DESC LIMIT ${MAX_EXPERIMENT_CONCLUSIONS}
-        ` as any[]
-
-        // Second: same target, different dimension (tradeoff awareness)
-        const sameTarget = await harnessDb`
-          SELECT id, description, conclusion, dimension, timestamp
-          FROM tuning_experiments
-          WHERE target = ${target} AND dimension != ${dimension} AND conclusion IS NOT NULL
-          ORDER BY id DESC LIMIT 3
-        ` as any[]
-
-        // Third: lineage links (experiments explicitly linked as continuations)
-        const linked = await harnessDb`
-          SELECT te.id, te.description, te.conclusion, el.relationship
-          FROM experiment_lineage el
-          JOIN tuning_experiments te ON te.id = el.parent_experiment_id
-          WHERE el.experiment_id IN (
-            SELECT id FROM tuning_experiments
-            WHERE target = ${target} AND dimension = ${dimension}
-            ORDER BY id DESC LIMIT 5
-          ) AND te.conclusion IS NOT NULL
-          ORDER BY te.id DESC LIMIT 5
-        ` as any[]
+        const [exactMatches, sameTarget, linked] = await Promise.all([
+          harness.experiments.getExactExperiments(target, dimension),
+          harness.experiments.getSameTargetExperiments(target, dimension),
+          harness.experiments.getLinkedExperiments(target, dimension),
+        ])
 
         const sections: string[] = []
 
         if (exactMatches.length > 0) {
           sections.push(`Prior experiments on ${target}/${dimension}:`)
           for (const e of exactMatches) {
-            const conclusion = (e.conclusion as string).slice(0, 400)
-            sections.push(`  [#${e.id}] ${(e.description as string).slice(0, 100)}\n  Result: ${conclusion}`)
+            const conclusion = (e.conclusion ?? "").slice(0, 400)
+            sections.push(`  [#${e.id}] ${(e.description ?? "").slice(0, 100)}\n  Result: ${conclusion}`)
           }
         }
 
         if (linked.length > 0) {
-          const linkedIds = new Set(exactMatches.map((e: any) => e.id))
-          const uniqueLinked = linked.filter((e: any) => !linkedIds.has(e.id))
+          const linkedIds = new Set(exactMatches.map(e => e.id))
+          const uniqueLinked = linked.filter(e => !linkedIds.has(e.id))
           if (uniqueLinked.length > 0) {
             sections.push(`\nLinked experiments:`)
             for (const e of uniqueLinked) {
-              sections.push(`  [#${e.id}, ${e.relationship}] ${(e.description as string).slice(0, 100)}\n  ${(e.conclusion as string).slice(0, 300)}`)
+              sections.push(`  [#${e.id}, ${e.relationship}] ${(e.description ?? "").slice(0, 100)}\n  ${(e.conclusion ?? "").slice(0, 300)}`)
             }
           }
         }
@@ -256,7 +191,7 @@ export async function buildImproverContext(
         if (sameTarget.length > 0) {
           sections.push(`\nOther ${target} experiments (tradeoff awareness):`)
           for (const e of sameTarget) {
-            sections.push(`  [#${e.id}, ${e.dimension}] ${(e.conclusion as string).slice(0, 200)}`)
+            sections.push(`  [#${e.id}, ${e.dimension}] ${(e.conclusion ?? "").slice(0, 200)}`)
           }
         }
 
@@ -332,7 +267,6 @@ Respond with ONLY valid JSON:
   "explanation": "1-2 sentences on what you changed and why"
 }`
 
-  // Build context sections
   const contextSections: string[] = []
   if (context?.previousAttempts) {
     contextSections.push(`## Previous Attempts (learn from these — don't repeat failed approaches)\n\n${context.previousAttempts}`)
@@ -377,7 +311,6 @@ Propose a targeted prompt change to improve the ${dimension} score. Focus on the
           { role: "system", content: systemPrompt },
           { role: "user", content: finalUserPrompt },
         ],
-        // Escalate temperature on consecutive failures to explore different proposals
         temperature: Math.min(0.7 + consecutiveFailures * 0.1, 1.0),
         max_tokens: 8192,
         response_format: { type: "json_object" },
@@ -405,7 +338,7 @@ Propose a targeted prompt change to improve the ${dimension} score. Focus on the
   }
 }
 
-// ── Apply a proposed change ─────────────────────────────────────────────
+// ── Apply/revert changes ──────────────────────────────────────────────
 
 export function applyChange(
   proposal: { agentName: string; newPrompt: string },
@@ -425,7 +358,7 @@ export function revertChange(filePath: string, originalContent: string): void {
   writeFileSync(`${HARNESS_ROOT}/${filePath}`, originalContent)
 }
 
-// ── Run benchmark (writer generation, real-time) ────────────────────────
+// ── Run benchmark (subprocess) ────────────────────────────────────────
 
 export async function runBenchmark(cmd: string, experimentId?: number): Promise<{ runId: number; stdout: string } | null> {
   const fullCmd = experimentId ? `EXPERIMENT_ID=${experimentId} ${cmd}` : cmd
@@ -453,10 +386,6 @@ export async function runBenchmark(cmd: string, experimentId?: number): Promise<
 
 // ── Synthesize conclusion via LLM ───────────────────────────────────────
 
-/**
- * At cycle end, feed kept/reverted diffs + scores + judge reasoning to an LLM
- * to produce a strategic conclusion. One call, grounded in raw data only.
- */
 export async function synthesizeConclusion(
   cycleId: number,
   target: string,
@@ -464,27 +393,17 @@ export async function synthesizeConclusion(
   baselineScore: number,
   finalScore: number,
 ): Promise<string | null> {
-  // Gather all iterations for this cycle
-  const iters = await db`
-    SELECT iteration_num, result, delta, proposal_explanation, backup_content,
-           proposed_content, file_path, new_score, baseline_score
-    FROM improvement_iterations
-    WHERE cycle_id = ${cycleId}
-    ORDER BY iteration_num
-  ` as any[]
-
+  const iters = await harness.cycles.getCycleIterations(cycleId)
   if (iters.length === 0) return null
 
-  // Build per-attempt context with actual diffs for ALL attempts
   const attemptSections: string[] = []
   for (const iter of iters) {
-    const header = `Attempt ${iter.iteration_num} — ${iter.result} (${iter.baseline_score} → ${iter.new_score ?? "?"}, delta: ${iter.delta ?? "?"})`
-    const explanation = iter.proposal_explanation ?? "no explanation"
+    const header = `Attempt ${iter.iterationNum} — ${iter.result} (${iter.baselineScore} → ${iter.newScore ?? "?"}, delta: ${iter.delta ?? "?"})`
+    const explanation = iter.proposalExplanation ?? "no explanation"
 
     let diff = ""
-    if (iter.backup_content && iter.proposed_content) {
-      // Both kept and reverted attempts have backup (original) + proposed (new)
-      diff = buildCompactDiff(iter.backup_content, iter.proposed_content)
+    if (iter.backupContent && iter.proposedContent) {
+      diff = buildCompactDiff(iter.backupContent, iter.proposedContent)
     }
 
     const parts = [header, `Explanation: ${explanation}`]
@@ -492,29 +411,18 @@ export async function synthesizeConclusion(
     attemptSections.push(parts.join("\n"))
   }
 
-  // Get judge reasoning for the weakest generations in the final run
+  // Get judge reasoning for weakest generations
   let judgeContext = ""
   try {
-    const latestRun = await harnessDb`
-      SELECT id FROM runs WHERE run_type = ${target} ORDER BY id DESC LIMIT 1
-    ` as any[]
-    if (latestRun.length > 0) {
-      const reasoning = await harnessDb`
-        SELECT s.reasoning, s.score, g.seed
-        FROM scores s JOIN generations g ON s.generation_id = g.id
-        WHERE g.run_id = ${latestRun[0].id} AND s.dimension = ${dimension}
-          AND g.passed = true AND s.reasoning IS NOT NULL
-        ORDER BY s.score ASC LIMIT 3
-      ` as any[]
+    const latestScores = await harness.scores.getLatestScores(target, dimension)
+    if (latestScores) {
+      const reasoning = await harness.scores.getJudgeReasoningForRun(latestScores.runId, dimension, 3)
       if (reasoning.length > 0) {
-        judgeContext = reasoning.map((r: any) =>
-          `[${r.seed}, score ${r.score}]: ${(r.reasoning as string).slice(0, 300)}`
-        ).join("\n")
+        judgeContext = reasoning.map(r => `[${r.seed}, score ${r.score}]: ${r.reasoning.slice(0, 300)}`).join("\n")
       }
     }
   } catch { /* non-critical */ }
 
-  // One LLM call to synthesize
   const assignment = getModelForAgent("improver")
   if (!assignment) return null
   const model = MODELS.find(m => m.id === assignment.model && m.provider === assignment.provider)
@@ -577,23 +485,17 @@ Write your conclusion.`
   }
 }
 
-/** Build a compact line-level diff (added/removed only, no context lines). */
 function buildCompactDiff(original: string, modified: string): string {
   const origLines = original.split("\n")
   const modLines = modified.split("\n")
-
   const diff: string[] = []
-  const maxLines = Math.max(origLines.length, modLines.length)
 
-  // Simple line-by-line comparison — not a proper diff algorithm but good enough
-  // for prompt files where changes are typically additions/modifications, not moves
   let i = 0, j = 0
   while (i < origLines.length || j < modLines.length) {
     if (i < origLines.length && j < modLines.length && origLines[i] === modLines[j]) {
       i++; j++
       continue
     }
-    // Lines differ — show removed and added
     if (i < origLines.length && (j >= modLines.length || !modLines.includes(origLines[i]))) {
       diff.push(`- ${origLines[i]}`)
       i++
@@ -609,23 +511,4 @@ function buildCompactDiff(original: string, modified: string): string {
   }
 
   return diff.join("\n")
-}
-
-// ── Get scores from Postgres ────────────────────────────────────────────
-
-export async function getLatestScores(runType: string, dimension: string): Promise<{
-  avgScore: number; runId: number
-} | null> {
-  const runs = await harnessDb`SELECT id FROM runs WHERE run_type = ${runType} ORDER BY id DESC LIMIT 1`
-  if (runs.length === 0) return null
-  const runId = (runs[0] as any).id
-
-  const scores = await harnessDb`
-    SELECT s.score FROM scores s JOIN generations g ON g.id = s.generation_id
-    WHERE g.run_id = ${runId} AND s.dimension = ${dimension}
-  ` as Array<{ score: number }>
-
-  if (scores.length === 0) return null
-  const avg = scores.reduce((s, r) => s + r.score, 0) / scores.length
-  return { avgScore: Math.round(avg * 10) / 10, runId }
 }

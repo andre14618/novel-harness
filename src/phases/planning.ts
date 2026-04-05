@@ -5,7 +5,7 @@ import {
 } from "../db"
 import { callAgent } from "../llm"
 import { PLANNING_PLOTTER_PROMPT } from "../prompts"
-import { buildPlanningContext } from "../context"
+import { buildContext as buildPlanningContext } from "../agents/planning-plotter/context"
 import { displayPhaseHeader, presentForApproval, formatChapterOutlines } from "../cli"
 import { emit } from "../events"
 import { log } from "../logger"
@@ -15,10 +15,10 @@ export async function runPlanningPhase(novelId: string): Promise<void> {
   log(novelId, "info", "Planning phase started")
   emit(novelId, { type: "phase:changed", data: { phase: "planning" } })
 
-  const novel = getNovel(novelId)
-  const worldBible = getWorldBible(novelId)
-  const characters = getCharacters(novelId)
-  const spine = getStorySpine(novelId)
+  const novel = await getNovel(novelId)
+  const worldBible = await getWorldBible(novelId)
+  const characters = await getCharacters(novelId)
+  const spine = await getStorySpine(novelId)
 
   const context = buildPlanningContext(worldBible, characters, spine, novel.seed)
 
@@ -59,16 +59,16 @@ export async function runPlanningPhase(novelId: string): Promise<void> {
       userPrompt: context,
       schema: chapterOutlinesSchema,
     })
-    for (const outline of retry.output.chapters) saveChapterOutline(novelId, outline)
-    updateTotalChapters(novelId, retry.output.chapters.length)
+    for (const outline of retry.output.chapters) await saveChapterOutline(novelId, outline)
+    await updateTotalChapters(novelId, retry.output.chapters.length)
     log(novelId, "info", `Outline regenerated: ${retry.output.chapters.length} chapters`)
   } else {
-    for (const outline of result.output.chapters) saveChapterOutline(novelId, outline)
-    updateTotalChapters(novelId, result.output.chapters.length)
+    for (const outline of result.output.chapters) await saveChapterOutline(novelId, outline)
+    await updateTotalChapters(novelId, result.output.chapters.length)
     log(novelId, "checkpoint", `${result.output.chapters.length} chapter outlines saved`)
   }
 
-  updatePhase(novelId, "drafting")
+  await updatePhase(novelId, "drafting")
   emit(novelId, { type: "phase:changed", data: { phase: "drafting" } })
   log(novelId, "checkpoint", "Planning phase complete → drafting")
   console.log("\n  Planning phase complete. Advancing to Drafting.\n")

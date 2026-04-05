@@ -8,7 +8,8 @@ import {
 } from "../db"
 import { callAgent } from "../llm"
 import { WORLD_BUILDER_PROMPT, CHARACTER_AGENT_PROMPT, PLOTTER_AGENT_PROMPT } from "../prompts"
-import { buildConceptContext } from "../context"
+import { buildContext as buildWorldContext } from "../agents/world-builder/context"
+import { buildContext as buildPlotterContext } from "../agents/plotter/context"
 import { buildContext as buildCharContext } from "../agents/character-agent/context"
 import {
   displayPhaseHeader, presentForApproval, getRevisionNotes,
@@ -18,8 +19,8 @@ import { emit } from "../events"
 import { log } from "../logger"
 import { pipeline } from "../config/pipeline"
 
-function tryGet<T>(fn: () => T): T | null {
-  try { return fn() } catch { return null }
+async function tryGet<T>(fn: () => Promise<T>): Promise<T | null> {
+  try { return await fn() } catch { return null }
 }
 
 /**
@@ -98,12 +99,15 @@ export async function runConceptPhase(novelId: string, seed: SeedInput): Promise
   log(novelId, "info", `Concept phase started. Premise: ${seed.premise.slice(0, 100)}`)
   emit(novelId, { type: "phase:changed", data: { phase: "concept" } })
 
-  const contexts = buildConceptContext(seed)
+  const contexts = {
+    world: buildWorldContext(seed),
+    plotter: buildPlotterContext(seed),
+  }
 
   // Check what's already saved (for resume)
-  const existingWorld = tryGet(() => getWorldBible(novelId))
-  const existingChars = getCharacters(novelId)
-  const existingSpine = tryGet(() => getStorySpine(novelId))
+  const existingWorld = await tryGet(() => getWorldBible(novelId))
+  const existingChars = await getCharacters(novelId)
+  const existingSpine = await tryGet(() => getStorySpine(novelId))
 
   const needsWorld = !existingWorld
   const needsChars = existingChars.length === 0
@@ -117,9 +121,9 @@ export async function runConceptPhase(novelId: string, seed: SeedInput): Promise
       novelId, "world-builder", WORLD_BUILDER_PROMPT, contexts.world,
       worldBibleSchema, "concept:world-bible", "World Bible", formatWorldBible,
     )
-    saveWorldBible(novelId, worldBible)
+    await saveWorldBible(novelId, worldBible)
     // Save structured systems and cultures to dedicated tables
-    saveWorldKnowledgeGraph(novelId, worldBible)
+    await saveWorldKnowledgeGraph(novelId, worldBible)
     log(novelId, "checkpoint", "World bible saved")
   } else {
     console.log("\n  [1/3] World Bible — already saved, skipping")
@@ -136,10 +140,10 @@ export async function runConceptPhase(novelId: string, seed: SeedInput): Promise
         novelId, "character-agent", CHARACTER_AGENT_PROMPT, charContext,
         characterProfilesSchema, "concept:characters", "Character Profiles",
         (output: any) => formatCharacterProfiles(output.characters),
-      ).then(output => {
+      ).then(async output => {
         for (const char of output.characters) {
-          saveCharacter(novelId, char)
-          saveCharacterKnowledgeGraph(novelId, char, worldBible)
+          await saveCharacter(novelId, char)
+          await saveCharacterKnowledgeGraph(novelId, char, worldBible)
         }
         log(novelId, "checkpoint", "Character profiles saved")
       }),
@@ -154,8 +158,8 @@ export async function runConceptPhase(novelId: string, seed: SeedInput): Promise
       runConceptAgent(
         novelId, "plotter", PLOTTER_AGENT_PROMPT, contexts.plotter,
         storySpineSchema, "concept:story-spine", "Story Spine", formatStorySpine,
-      ).then(output => {
-        saveStorySpine(novelId, output)
+      ).then(async output => {
+        await saveStorySpine(novelId, output)
         log(novelId, "checkpoint", "Story spine saved")
       }),
     )
@@ -165,16 +169,16 @@ export async function runConceptPhase(novelId: string, seed: SeedInput): Promise
 
   await Promise.all(pending)
 
-  updatePhase(novelId, "planning")
+  await updatePhase(novelId, "planning")
   emit(novelId, { type: "phase:changed", data: { phase: "planning" } })
   log(novelId, "checkpoint", "Concept phase complete → planning")
   console.log("\n  Concept phase complete. Advancing to Planning.\n")
 }
 
 /** Save world bible systems and cultures to dedicated knowledge graph tables */
-function saveWorldKnowledgeGraph(novelId: string, worldBible: WorldBible): void {
+async function saveWorldKnowledgeGraph(novelId: string, worldBible: WorldBible): Promise<void> {
   for (const sys of worldBible.systems ?? []) {
-    saveWorldSystem(novelId, {
+    await saveWorldSystem(novelId, {
       id: sys.id, name: sys.name, type: sys.type,
       description: sys.description, rules: sys.rules,
       manifestations: sys.manifestations, vocabulary: sys.vocabulary,
@@ -182,7 +186,7 @@ function saveWorldKnowledgeGraph(novelId: string, worldBible: WorldBible): void 
     })
   }
   for (const cult of worldBible.cultures ?? []) {
-    saveCulture(novelId, {
+    await saveCulture(novelId, {
       id: cult.id, name: cult.name, description: cult.description,
       values: cult.values, taboos: cult.taboos,
       speechInfluences: cult.speechInfluences, customs: cult.customs,
@@ -192,17 +196,17 @@ function saveWorldKnowledgeGraph(novelId: string, worldBible: WorldBible): void 
 }
 
 /** Save character's cultural memberships and system awareness to knowledge graph */
-function saveCharacterKnowledgeGraph(novelId: string, char: any, worldBible: WorldBible | null): void {
+async function saveCharacterKnowledgeGraph(novelId: string, char: any, worldBible: WorldBible | null): Promise<void> {
   if (!worldBible) return
 
-  const systems = getWorldSystems(novelId)
-  const cultures = getCultures(novelId)
+  const systems = await getWorldSystems(novelId)
+  const cultures = await getCultures(novelId)
 
   // Match cultural background by name to culture ids
   for (const cb of char.culturalBackground ?? []) {
     const culture = cultures.find(c => c.name.toLowerCase() === cb.cultureName.toLowerCase())
     if (culture) {
-      saveCharacterCulture(novelId, {
+      await saveCharacterCulture(novelId, {
         characterId: char.id,
         cultureId: culture.id,
         relationship: cb.relationship || "native",
@@ -214,7 +218,7 @@ function saveCharacterKnowledgeGraph(novelId: string, char: any, worldBible: Wor
   for (const sa of char.systemAwareness ?? []) {
     const system = systems.find(s => s.name.toLowerCase() === sa.systemName.toLowerCase())
     if (system) {
-      saveCharacterSystemAwareness(novelId, {
+      await saveCharacterSystemAwareness(novelId, {
         characterId: char.id,
         systemId: system.id,
         awarenessLevel: sa.level || "aware",

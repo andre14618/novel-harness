@@ -2,10 +2,8 @@
  * Central operational database.
  *
  * Single source of truth for all LLM calls, run configs, model assignments,
- * and benchmark scores across both novel runs and benchmark runs.
- *
- * Per-novel creative content (drafts, outlines, facts) stays in output/{novelId}/novel.db.
- * This DB tracks the operational/performance layer only.
+ * benchmark scores, AND all per-novel creative content (drafts, outlines, facts,
+ * world state, knowledge graph). Everything lives in one Postgres DB.
  */
 
 import db from "./connection"

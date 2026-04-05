@@ -1,12 +1,12 @@
 import { getChapterOutline, getCharacters } from "../../db"
 
-export function buildContext(prose: string, chapterNum: number, novelId?: string): string {
+export async function buildContext(prose: string, chapterNum: number, novelId?: string): Promise<string> {
   let ctx = `CHAPTER ${chapterNum} DRAFT:\n${prose}\n\n`
 
   if (novelId) {
     try {
-      const outline = getChapterOutline(novelId, chapterNum)
-      const allChars = getCharacters(novelId)
+      const outline = await getChapterOutline(novelId, chapterNum)
+      const allChars = await getCharacters(novelId)
       const chapterCharNames = outline.charactersPresent.map(n => n.toLowerCase())
       const relevantChars = allChars.filter(c => chapterCharNames.includes(c.name.toLowerCase()))
 
@@ -20,7 +20,7 @@ export function buildContext(prose: string, chapterNum: number, novelId?: string
     } catch {}
   }
 
-  ctx += "Review this chapter for show-don't-tell violations and cliché usage. Return the most impactful issues."
+  ctx += "Review this chapter for show-don't-tell violations and cliche usage. Return the most impactful issues."
   return ctx
 }
 

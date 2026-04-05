@@ -30,29 +30,29 @@ async function main() {
   if (resumeIdx !== -1 && process.argv[resumeIdx + 1]) {
     novelId = process.argv[resumeIdx + 1]
     console.log(`\nResuming novel: ${novelId}`)
-    initDB(novelId)
+    await initDB(novelId)
 
     try {
-      const novel = getNovel(novelId)
+      const novel = await getNovel(novelId)
       console.log(`  Phase: ${novel.phase}`)
       console.log(`  Progress: chapter ${novel.currentChapter}/${novel.totalChapters}`)
     } catch {
-      console.error(`Error: Novel "${novelId}" not found in output/${novelId}/novel.db`)
+      console.error(`Error: Novel "${novelId}" not found`)
       process.exit(1)
     }
   } else if (isAuto) {
     const seedName = seedIdx !== -1 ? process.argv[seedIdx + 1] : "epic-fantasy"
     const seed = await loadSeed(seedName)
     novelId = `novel-${Date.now()}`
-    initDB(novelId)
-    createNovel(novelId, seed)
+    await initDB(novelId)
+    await createNovel(novelId, seed)
     console.log(`\nCreated novel (auto mode, seed: ${seedName}): ${novelId}`)
     console.log(`  Premise: ${seed.premise.slice(0, 80)}...`)
   } else {
     const seed = await collectSeedInput()
     novelId = `novel-${Date.now()}`
-    initDB(novelId)
-    createNovel(novelId, seed)
+    await initDB(novelId)
+    await createNovel(novelId, seed)
     console.log(`\nCreated novel: ${novelId}`)
   }
 

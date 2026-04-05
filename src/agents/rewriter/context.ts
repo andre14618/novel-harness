@@ -4,20 +4,20 @@ import {
   getCharacterStatesAtChapter, getStorySpine,
 } from "../../db"
 
-export function buildContext(novelId: string, chapterNum: number, issues: ContinuityIssue[]): string {
-  const draft = getApprovedDraft(novelId, chapterNum)
+export async function buildContext(novelId: string, chapterNum: number, issues: ContinuityIssue[]): Promise<string> {
+  const draft = await getApprovedDraft(novelId, chapterNum)
   if (!draft) throw new Error(`No approved draft for chapter ${chapterNum}`)
 
-  const outline = getChapterOutline(novelId, chapterNum)
-  const facts = getFactsUpToChapter(novelId, chapterNum)
-  const charStates = getCharacterStatesAtChapter(novelId, chapterNum)
+  const outline = await getChapterOutline(novelId, chapterNum)
+  const facts = await getFactsUpToChapter(novelId, chapterNum)
+  const charStates = await getCharacterStatesAtChapter(novelId, chapterNum)
 
   let ctx = `CHAPTER ${chapterNum}: "${outline.title}"\n`
   ctx += `POV: ${outline.povCharacter}\n`
   ctx += `Target: ~${outline.targetWords} words\n`
 
   try {
-    const spine = getStorySpine(novelId)
+    const spine = await getStorySpine(novelId)
     if (spine.theme) ctx += `Theme: ${spine.theme} — preserve and reinforce thematic resonance in rewrites\n`
   } catch {}
 

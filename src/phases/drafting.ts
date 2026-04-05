@@ -6,7 +6,8 @@ import {
 } from "../db"
 import { callAgent } from "../llm"
 import { WRITER_AGENT_PROMPT, CONTINUITY_AGENT_PROMPT } from "../prompts"
-import { buildWriterContext, buildContinuityContext } from "../context"
+import { buildContext as buildWriterContext } from "../agents/writer/context"
+import { buildContext as buildContinuityContext } from "../agents/continuity/context"
 import { validateChapterDraft } from "../validation"
 import { displayPhaseHeader, displayProgress, presentForApproval, getRevisionNotes } from "../cli"
 import { emit } from "../events"
@@ -22,7 +23,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
   displayPhaseHeader("Drafting — Writing chapters")
   emit(novelId, { type: "phase:changed", data: { phase: "drafting" } })
 
-  const novel = getNovel(novelId)
+  const novel = await getNovel(novelId)
   const startChapter = novel.currentChapter  // 1-based
   const totalChapters = novel.totalChapters
 
@@ -35,7 +36,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
 
     let outline
     try {
-      outline = getChapterOutline(novelId, ch)
+      outline = await getChapterOutline(novelId, ch)
     } catch (err) {
       log(novelId, "error", `Failed to load outline for chapter ${ch}: ${err}`)
       console.error(`  Error loading outline for chapter ${ch}. Stopping.`)
@@ -55,7 +56,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
       // 1. Context assembly
       let writerContext: string
       try {
-        writerContext = buildWriterContext(novelId, ch)
+        writerContext = await buildWriterContext(novelId, ch)
       } catch (err) {
         log(novelId, "error", `Context assembly failed for chapter ${ch}: ${err}`)
         console.error(`  Error assembling context: ${err instanceof Error ? err.message : err}`)
@@ -104,8 +105,8 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
       try {
         console.log("  Running continuity check...")
         emit(novelId, { type: "progress", data: { step: "continuity", chapter: ch, status: "running" } })
-        const facts = getFactsUpToChapter(novelId, ch)
-        const charStates = getCharacterStatesAtChapter(novelId, ch)
+        const facts = await getFactsUpToChapter(novelId, ch)
+        const charStates = await getCharacterStatesAtChapter(novelId, ch)
         const continuityResult = await callAgent({
           novelId, agentName: "continuity",
           systemPrompt: CONTINUITY_AGENT_PROMPT,
@@ -128,7 +129,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
       }
 
       // Save draft
-      saveChapterDraft(novelId, ch, prose, wordCount)
+      await saveChapterDraft(novelId, ch, prose, wordCount)
       log(novelId, "checkpoint", `Draft saved for chapter ${ch} v${attempts}`)
 
       // 4b. Lint and fix prose
@@ -151,7 +152,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
           if (totalFixed > 0) {
             prose = fixResult.prose
             wordCount = prose.split(/\s+/).filter(Boolean).length
-            saveChapterDraft(novelId, ch, prose, wordCount)
+            await saveChapterDraft(novelId, ch, prose, wordCount)
             console.log(`  Fixed: ${fixResult.deterministicFixes} deterministic, ${fixResult.llmFixes} LLM (${fixResult.unfixed} unfixed, $${fixResult.costUsd.toFixed(4)})`)
             log(novelId, "info", `Lint fixed ${totalFixed}/${lintResult.totalIssues} issues ($${fixResult.costUsd.toFixed(4)})`)
           }
@@ -188,7 +189,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
 
       if (decision === "approve") {
         approved = true
-        approveChapterDraft(novelId, ch)
+        await approveChapterDraft(novelId, ch)
 
         try {
           emit(novelId, { type: "progress", data: { step: "state-extraction", chapter: ch, status: "running" } })
@@ -197,11 +198,11 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err)
           log(novelId, "error", `State extraction failed for chapter ${ch}: ${msg}. Facts/summaries may be incomplete for subsequent chapters.`)
-          console.error(`  ⚠ State extraction failed for chapter ${ch}: ${msg}`)
+          console.error(`  State extraction failed for chapter ${ch}: ${msg}`)
           console.error(`    Chapter is approved but facts/summaries may be missing. Subsequent chapters may have degraded context.`)
         }
 
-        updateCurrentChapter(novelId, ch + 1)
+        await updateCurrentChapter(novelId, ch + 1)
         log(novelId, "checkpoint", `Chapter ${ch} approved. currentChapter → ${ch + 1}`)
 
         // Write to file
@@ -216,7 +217,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
         const gateDecision = pendingGate ? undefined : undefined // gate already resolved
         const notes = await getRevisionNotes()
         for (const note of notes) {
-          saveIssue(novelId, { severity: "blocker", description: note, chapter: ch })
+          await saveIssue(novelId, { severity: "blocker", description: note, chapter: ch })
         }
         log(novelId, "info", `Chapter ${ch} revision requested: ${notes.length} notes`)
         console.log(`  ${notes.length} revision notes recorded. Retrying...`)
@@ -235,7 +236,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
     }
   }
 
-  updatePhase(novelId, "validation")
+  await updatePhase(novelId, "validation")
   emit(novelId, { type: "phase:changed", data: { phase: "validation" } })
   log(novelId, "info", "All chapters drafted. Advancing to validation.")
   console.log("\n  All chapters drafted. Advancing to Validation.\n")

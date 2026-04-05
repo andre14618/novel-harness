@@ -1,5 +1,4 @@
-import { getDB } from "./connection"
-import { randomUUID } from "crypto"
+import db from "../../data/connection"
 
 export interface CharacterKnowledgeEntry {
   id?: string
@@ -9,47 +8,59 @@ export interface CharacterKnowledgeEntry {
   chapterLearned: number
   category: string // event|secret|relationship|system|location|identity
   isFalse: boolean
+  sourceCharacterId?: string
+  sourceEventId?: string
 }
 
-export function saveCharacterKnowledge(novelId: string, entry: CharacterKnowledgeEntry): void {
-  const id = entry.id || randomUUID()
-  getDB().prepare(
-    `INSERT OR REPLACE INTO character_knowledge (id, novel_id, character_id, knowledge, source, chapter_learned, category, is_false)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(id, novelId, entry.characterId, entry.knowledge, entry.source, entry.chapterLearned, entry.category, entry.isFalse ? 1 : 0)
+export async function saveCharacterKnowledge(novelId: string, entry: CharacterKnowledgeEntry): Promise<string> {
+  if (entry.id) {
+    await db`INSERT INTO character_knowledge (id, novel_id, character_id, knowledge, source, chapter_learned, category, is_false, source_character_id, source_event_id)
+             VALUES (${entry.id}::uuid, ${novelId}, ${entry.characterId}, ${entry.knowledge}, ${entry.source},
+                     ${entry.chapterLearned}, ${entry.category}, ${entry.isFalse},
+                     ${entry.sourceCharacterId ?? null}, ${entry.sourceEventId ? entry.sourceEventId : null})
+             ON CONFLICT (id) DO UPDATE SET
+               knowledge = EXCLUDED.knowledge, source = EXCLUDED.source,
+               category = EXCLUDED.category, is_false = EXCLUDED.is_false,
+               source_character_id = EXCLUDED.source_character_id, source_event_id = EXCLUDED.source_event_id`
+    return entry.id
+  }
+  const rows = await db`INSERT INTO character_knowledge (novel_id, character_id, knowledge, source, chapter_learned, category, is_false, source_character_id, source_event_id)
+                        VALUES (${novelId}, ${entry.characterId}, ${entry.knowledge}, ${entry.source},
+                                ${entry.chapterLearned}, ${entry.category}, ${entry.isFalse},
+                                ${entry.sourceCharacterId ?? null}, ${entry.sourceEventId ? entry.sourceEventId : null})
+                        RETURNING id`
+  return rows[0].id
 }
 
-/** Get all knowledge for a character up to a given chapter */
-export function getCharacterKnowledgeUpToChapter(novelId: string, characterId: string, chapterNum: number): CharacterKnowledgeEntry[] {
-  const rows = getDB().prepare(
-    "SELECT * FROM character_knowledge WHERE novel_id = ? AND character_id = ? AND chapter_learned < ? ORDER BY chapter_learned ASC"
-  ).all(novelId, characterId, chapterNum) as any[]
+export async function getCharacterKnowledgeUpToChapter(novelId: string, characterId: string, chapterNum: number): Promise<CharacterKnowledgeEntry[]> {
+  const rows = await db`SELECT * FROM character_knowledge WHERE novel_id = ${novelId} AND character_id = ${characterId} AND chapter_learned < ${chapterNum} ORDER BY chapter_learned ASC`
   return rows.map(mapRow)
 }
 
-/** Get all knowledge entries for a chapter (all characters) */
-export function getKnowledgeForChapter(novelId: string, chapterNum: number): CharacterKnowledgeEntry[] {
-  const rows = getDB().prepare(
-    "SELECT * FROM character_knowledge WHERE novel_id = ? AND chapter_learned = ?"
-  ).all(novelId, chapterNum) as any[]
+export async function getKnowledgeForChapter(novelId: string, chapterNum: number): Promise<CharacterKnowledgeEntry[]> {
+  const rows = await db`SELECT * FROM character_knowledge WHERE novel_id = ${novelId} AND chapter_learned = ${chapterNum}`
   return rows.map(mapRow)
 }
 
-/** Get knowledge a specific character has about a topic (text search) */
-export function searchCharacterKnowledge(novelId: string, characterId: string, query: string, chapterNum: number): CharacterKnowledgeEntry[] {
-  const all = getCharacterKnowledgeUpToChapter(novelId, characterId, chapterNum)
-  const q = query.toLowerCase()
-  return all.filter(e => e.knowledge.toLowerCase().includes(q))
+export async function searchCharacterKnowledge(novelId: string, characterId: string, query: string, chapterNum: number): Promise<CharacterKnowledgeEntry[]> {
+  // Use Postgres full-text search instead of JS string matching
+  const rows = await db`SELECT * FROM character_knowledge
+                        WHERE novel_id = ${novelId} AND character_id = ${characterId} AND chapter_learned < ${chapterNum}
+                          AND tsv @@ websearch_to_tsquery('english', ${query})
+                        ORDER BY chapter_learned ASC`
+  return rows.map(mapRow)
 }
 
-export function clearKnowledgeForChapter(novelId: string, chapterNum: number): void {
-  getDB().prepare("DELETE FROM character_knowledge WHERE novel_id = ? AND chapter_learned = ?").run(novelId, chapterNum)
+export async function clearKnowledgeForChapter(novelId: string, chapterNum: number): Promise<void> {
+  await db`DELETE FROM character_knowledge WHERE novel_id = ${novelId} AND chapter_learned = ${chapterNum}`
 }
 
 function mapRow(r: any): CharacterKnowledgeEntry {
   return {
     id: r.id, characterId: r.character_id, knowledge: r.knowledge,
     source: r.source, chapterLearned: r.chapter_learned,
-    category: r.category, isFalse: r.is_false === 1,
+    category: r.category, isFalse: r.is_false === true,
+    sourceCharacterId: r.source_character_id ?? undefined,
+    sourceEventId: r.source_event_id ?? undefined,
   }
 }

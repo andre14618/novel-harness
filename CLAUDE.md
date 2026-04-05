@@ -1,6 +1,6 @@
 # Novel Harness
 
-AI-assisted novel creation harness — deterministic code controls flow, LLMs are leaf-node function calls. Supports short stories (3 chapters) for rapid iteration and full-length novels (20-30 chapters) with deep worldbuilding.
+AI-assisted novel creation harness — deterministic code controls flow, LLMs are leaf-node function calls. Supports short stories (3 chapters) for rapid iteration and full-length novels (20-30 chapters) with semantic context retrieval.
 
 ## Deployment Model
 
@@ -8,186 +8,159 @@ Code lives locally (canonical git repo). LXC 307 is the runtime — all benchmar
 
 - **Edit locally** → commit → `bash scripts/deploy-lxc.sh` (rsyncs to LXC)
 - **Run on LXC** via `ssh novel-harness-lxc "cd ~/apps/novel-harness && bun ..."`
-- **DB lives on LXC only** — single Postgres DB (`novel_harness_orchestrator`) for all harness + orchestrator data
+- **Single Postgres DB** on LXC — `novel_harness_orchestrator` stores ALL data (novel content, world state, embeddings, experiments, LLM calls)
 - **Results come back** via Postgres (SSH tunnel) or `bash scripts/sync-improvements.sh` (rsync prompts)
 
 ## Stack
 
 - Runtime: Bun
-- LLM: Configurable per-agent via `models/roles.ts`. Five providers: Cerebras, Groq, OpenRouter, OpenAI, DeepSeek.
-- DB: Postgres (`novel_harness_orchestrator` on LXC — all harness + orchestrator tables), per-novel SQLite (`output/novel-*/novel.db`)
+- LLM: Configurable per-agent via `models/roles.ts`. Providers: Cerebras, Groq, OpenRouter, OpenAI, DeepSeek.
+- DB: Single Postgres with pgvector (`novel_harness_orchestrator` on LXC — all tables)
+- Embeddings: `openai/text-embedding-3-large` via OpenRouter (3072 dims, HNSW halfvec indexes)
 - Transport: `src/transport.ts` — pluggable layer beneath all LLM calls (direct, batch)
-- Interface: React UI (`/app`), CLI, orchestrator dashboard (`/`), operations panel (`/panel`)
+- Interface: React UI (`/app`), CLI
 
 ## Architecture
 
 State machine: concept → planning → drafting → validation → done
 
-**Agents** (each in `src/agents/{name}/` with prompt.md, schema.ts, context.ts, config.ts):
-- Concept: world-builder, character-agent, plotter
-- Planning: planning-plotter
-- Drafting: writer, continuity
-- Extraction: summary-extractor, fact-extractor, character-state, relationship-timeline
-- Validation: cross-chapter-continuity, prose-quality, rewriter
+### Agents
+Each in `src/agents/{name}/` with prompt.md, schema.ts, context.ts, config.ts:
+- **Concept**: world-builder, character-agent, plotter
+- **Planning**: planning-plotter
+- **Drafting**: writer, continuity
+- **Extraction**: summary-extractor, fact-extractor, character-state, relationship-timeline, **graph-linker**
+- **Validation**: cross-chapter-continuity, prose-quality, rewriter
 
-**World Knowledge Graph & Scoped Context** — see `docs/world-knowledge-graph.md`. Structured world systems, cultures, evolving relationships, timeline events, and character knowledge tracked per-novel in SQLite. Writer receives 10-layer POV-aware context filtered through the character's cultural background and system awareness level. Concept phase runs world-builder first, then character-agent + plotter in parallel.
+### Data Layer
+- `src/db/` — per-table async Postgres modules (all functions return Promises via `Bun.sql`)
+- `src/harness/` — **service layer** — typed high-level API for all harness operations. The daemon, benchmarks, and UI call this instead of writing SQL. Modules: `scores`, `experiments`, `cycles`, `context`, `embeddings`, `graph`, `novels`.
+- `data/connection.ts` — shared lazy Postgres proxy, migration runner
+- `sql/` — migration files (001-011)
 
-**Models** — `models/roles.ts` is the single place to control all agent assignments (novel pipeline, benchmarks, orchestrator). Every `callAgent()` call resolves provider/model/temperature from roles.ts via `agentName`. Benchmark-specific roles (`benchmark-writer`, `benchmark-judge`) allow independent tuning from the novel pipeline, with fallback to `writer`/`judge`. Retry agents (`*-retry`) have their own entries with higher temperature. `models/registry.ts` has all available models with pricing/specs and provider cache/batch config. Runtime overrides via web UI (`setAgentOverride()`) take effect immediately; `persistOverrides()` writes changes to roles.ts permanently.
+### Semantic Context Engine
+Writer receives context assembled via hybrid RRF search (vector similarity + full-text keyword) over 6 tables: facts, events, summaries, character states, relationships, knowledge. See `benchmark/context/judges/` for how context quality is measured.
 
-**Benchmarks** — four benchmark suites in `benchmark/`:
-- `prose/` — penalty-based scoring (issue counts, lower = better)
+**Context assembly** (`src/agents/writer/context.ts`):
+- Fixed skeleton: scene setup, POV world view, character profiles + relationship arcs, craft reminders
+- Dynamic sections: semantically retrieved, weighted by scene relevance via `src/db/retrieval.ts`
+
+**Retrieval pipeline** (`src/db/retrieval.ts`):
+- Scene query embedded → 6-table parallel hybrid search → RRF fusion → character/location boost → recency decay
+- Graph queries: causal chains (recursive CTE), relationship arcs, knowledge propagation, thematic threads
+- Tunable via `retrieval_config` table (12 parameters per novel)
+
+**Embedding pipeline** (`src/db/embed.ts`, `src/harness/embeddings.ts`):
+- Runs after extraction: batch embeds all new chapter data (~$0.0003/chapter)
+- Text templates per source type in `src/db/embed.ts`
+
+**Graph linker** (`src/agents/graph-linker/`):
+- 5th extraction agent, runs after extractors + embedding
+- Produces: causal links (`event_causes`), knowledge propagation (`knowledge_propagation`), thematic tags (`thematic_tags`)
+
+### Knowledge Graph
+Structured world systems, cultures, evolving relationships, timeline events, character knowledge — all in Postgres. Tables: `world_systems`, `cultures`, `character_cultures`, `character_system_awareness`, `relationship_states`, `timeline_events`, `character_knowledge`, `event_causes`, `knowledge_propagation`, `thematic_tags`.
+
+### Models
+`models/roles.ts` is the single place to control all agent assignments. `models/registry.ts` has all available models with pricing/specs. Runtime overrides via web UI; `persistOverrides()` writes to roles.ts.
+
+### Benchmarks
+Five suites in `benchmark/`:
+- **`context/`** — context quality scoring (primary optimization target): relevance, completeness, noise, causal-depth, knowledge-accuracy. Each judge produces actionable diagnostics.
+- `prose/` — penalty-based (issue counts) + quality (1-10)
 - `planning/` — Beat Specificity, Dialogue Cues, Emotional Arc (1-10)
 - `extraction/` — Completeness, Accuracy (1-10)
-- `continuity/` — Issue Detection, Fix Quality (1-10, requires fixtures/)
+- `continuity/` — Issue Detection, Fix Quality (1-10)
 
-**Evaluation tools:**
-- `benchmark/pairwise/` — A/B comparison with position-bias correction (runs each pair twice)
-- `benchmark/batch/` — async judge calls via provider batch APIs (OpenAI, Groq — provider-agnostic `BatchProvider` interface in `benchmark/batch/openai-compatible.ts`)
-- `src/lint/` — deterministic prose flagger, DB-driven patterns, no LLM calls
-- `scripts/replay-experiment.ts` — replay historical prompts (from iteration, run, or git commit) vs current, with scoring + pairwise comparison. All results persisted to DB as a `replay` experiment.
+### Improvement Daemon
+`src/orchestrator/daemon-loop.ts` — autonomous improvement loop:
+1. Diagnose weakest dimension (`src/harness/scores.ts`)
+2. Build improver context (`src/orchestrator/improve.ts` → `src/harness/`)
+3. Propose change via LLM (improver agent)
+4. Benchmark → evaluate → keep/revert
+5. Synthesize conclusion for future cycles
 
-**Transport layer** (`src/transport.ts`) — sits beneath `callAgent()`, `generateProse()`, `judgeDimension()`:
-- `DirectTransport` — standard real-time HTTP with retries (default)
-- `BatchTransport` — queues requests, submits via provider batch API (50% off)
-- Provider prefix caching (OpenAI 90% off, DeepSeek 95% off) happens automatically — no transport intervention needed. Cache metadata on `ProviderDef` in `models/registry.ts` for cost estimation.
+All daemon data access goes through `src/harness/` service layer. No inline SQL in daemon code.
 
-**Central DB** (Postgres `novel_harness_orchestrator` on LXC, schema in `sql/`, connection in `data/connection.ts`) — all experiments, runs, generations, scores, lint issues, batch tracking, pairwise matchups, improvement cycles. Single source of truth.
+**Optimization surfaces**: retrieval parameters, embedding templates, graph-linker prompt, writer prompt, scene query template, extraction prompts.
 
-**Orchestrator** (`src/orchestrator/`, runs on LXC 307 at 192.168.1.108):
-- Single Bun service on port 3006 combining batch polling, improvement daemon, React UI, and API
-- Entry point: `bun src/orchestrator/server.ts`
-- Postgres DB: `novel_harness_orchestrator` (schema in `sql/`)
-- ntfy on port 2586 (self-hosted email notifications to andre14618@gmail.com)
-- SSH: `novel-harness-lxc` (via ProxyJump proxmox)
-- Focused improvement: runs locked experiments on a single target/dimension, proposes prompt changes, benchmarks, keeps/reverts. Cross-experiment linking surfaces prior conclusions to the proposer. Manual trigger only (`POST /api/improvement/start`).
-- Per-experiment limits (max iterations, optional cost cap) set at start time. Real costs tracked from llm_calls.
+### Web UI
+`ui/`, React + Vite, served at `/app`:
+- **Novels** (`/app`) — create/resume/archive novels
+- **Pipeline View** (`/app/:novelId`) — real-time SSE timeline with gate panels
+- **Config** (`/app/config`) — per-agent model switching
+- **Context** (`/app/context`) — retrieval parameter tuning per novel
+- **Experiments** (`/app/experiments`) — benchmark runs and improvement cycles
+- **Operations** (`/app/operations`) — benchmark runner, improvement daemon controls
+- **Dashboard** (`/app/dashboard`) — daemon status, batch status
+- **Models** (`/app/models`) — searchable model registry
+- **Guide** (`/app/guide`) — architecture diagrams, pipeline flow, benchmark docs
 
-**Web UI** (`ui/`, React + Vite, served at `/app` on the orchestrator — single SPA with shared nav):
-- **Novels** (`/app`) — start novels from custom input (premise, genre, characters) or seed files. Resume stalled runs. Archive completed novels.
-- **Pipeline View** (`/app/:novelId`) — conversational timeline showing each phase, agent, and LLM call in real-time via SSE. Gate panels (approve/revise/reject) appear inline. Each LLM call shows provider, model, tokens, latency, tokens/sec, and cost.
-- **Config** (`/app/config`) — per-agent model switching. Inline dropdowns for provider/model/temperature on every agent, grouped by role. Changes apply immediately via runtime overrides; "Save to File" persists to `models/roles.ts`.
-- **Experiments** (`/app/experiments`) — unified view of all benchmark runs and improvement cycles. Grouped by target/dimension with scores, cost, iterations, conclusions, and cross-experiment lineage links.
-- **Operations** (`/app/operations`) — benchmark runner with inline model/judge switching, improvement daemon controls with dimension locking, active process list.
-- **Dashboard** (`/app/dashboard`) — daemon status, orchestrator stats, active runs, recent batches. Auto-refreshes.
-- **Guide** (`/app/guide`) — full-flow documentation: pipeline phases, agent roles, benchmark suites, cost tracking, architecture diagram.
-- Legacy routes `/` and `/panel` redirect to `/app/dashboard` and `/app/operations`.
-
-**Gate abstraction** (`src/gates.ts`, `src/events.ts`):
-- Decouples pipeline approval gates from stdin. `presentForApproval()` creates a pending gate as a Promise; resolved by CLI readline (terminal), web API POST (browser), or immediately (auto mode).
-- SSE event bus (`src/events.ts`) pushes real-time progress/gate events to connected browsers. Event types: `phase:changed`, `gate:waiting`, `gate:resolved`, `progress` (including LLM call details), `error`, `done`.
-- Novel pipeline runs in-process on the orchestrator when started via web UI, with gates resolved by HTTP.
-
-**Novel API** (`src/orchestrator/novel-routes.ts`):
-- `POST /api/novel/start` — create novel (seed or custom input), run pipeline in-process
-- `GET /api/novel/:id/state` — phase, progress, pending gate
-- `POST /api/novel/:id/gate/:gateId/decide` — approve/revise/reject with notes
-- `GET /api/novel/:id/events` — SSE stream for real-time updates
-- `GET /api/novel/:id/world-bible|characters|story-spine|outlines` — intermediate content
-- `GET /api/novel/:id/chapter/:ch/draft` — chapter prose
-- `PUT /api/novel/config/agent/:name` — set runtime model override
-- `POST /api/novel/config/persist` — write overrides to roles.ts
-- `DELETE /api/novel/:id` — archive novel (moves to `output/.archive/`)
-- `GET /api/experiments` — unified experiment list with scores and cost
-- `GET /api/novel/llm-calls` — historical LLM call log from Postgres
-
-**Cost tracking** — every `callAgent()` computes cost from registry pricing (`tokens × $/1M`), stores it in `llm_calls.cost`, and emits it via SSE. The pipeline timeline shows per-call cost; the experiments page shows per-experiment totals.
+### Gate Abstraction
+`src/gates.ts`, `src/events.ts` — decouples approval gates from stdin. SSE event bus pushes real-time updates. Modes: CLI readline, web API POST, auto-approve.
 
 ## Rules
 
-1. **Every experiment goes in the DB.** Use `createTuningExperiment()` + `concludeExperiment()`. Never delete experiments — failures are reference data.
-2. **Every benchmark run testing a change links to an experiment** via `EXPERIMENT_ID=N`.
+1. **Every experiment goes in the DB.** Use `harness.experiments.createTuningExperiment()` + `concludeExperiment()`. Never delete experiments.
+2. **Every benchmark run links to an experiment** via `EXPERIMENT_ID=N`.
 3. **All results persist to the DB.** Never write scripts that only output to stdout.
-4. **Tight iteration first, full validation after.** Use env filters for focused cycles, run all seeds only when keeping a change.
-5. **One change per commit.** See `docs/commit-conventions.md` for message format.
-6. **Improvement loop auto-commits** kept changes AND reverted attempts — every attempt is in git history.
-7. **Deploy after commit.** Run `bash scripts/deploy-lxc.sh` to sync code to LXC.
-8. **Every experiment links to a git commit.** `createTuningExperiment()` automatically captures `git rev-parse HEAD` into `tuning_experiments.commit_hash`. This enables: (a) querying "what code produced this result", (b) reverting to the exact state that produced a good/bad experiment, (c) comparing experiments across code changes. **Commit prompt/rubric/agent changes BEFORE running experiments** so the hash is meaningful — an experiment run against uncommitted changes can't be reproduced.
+4. **Use the service layer.** Data access goes through `src/harness/` — no inline SQL in daemon, benchmarks, or UI code.
+5. **One change per commit.** See `docs/commit-conventions.md`.
+6. **Deploy after commit.** Run `bash scripts/deploy-lxc.sh`.
+7. **Every experiment links to a git commit.** Commit changes BEFORE running experiments.
 
 ## Running
 
-All benchmark/novel commands run on the LXC via SSH:
-
 ```bash
-# Deploy code to LXC (run after commits)
+# Deploy code to LXC
 bash scripts/deploy-lxc.sh
 
 # Novel creation (on LXC)
-ssh novel-harness-lxc "cd ~/apps/novel-harness && bun src/index.ts --auto"
-ssh novel-harness-lxc "cd ~/apps/novel-harness && bun src/index.ts --auto --seed sci-fi-thriller"
+ssh novel-harness-lxc "cd ~/apps/novel-harness && bun src/index.ts --auto --seed romance-drama"
 
 # Benchmarks (on LXC)
 ssh novel-harness-lxc "cd ~/apps/novel-harness && BENCHMARK_SEEDS=romance-drama BENCHMARK_RUNS=2 bun benchmark/prose/run.ts"
-ssh novel-harness-lxc "cd ~/apps/novel-harness && bun benchmark/prose/run.ts --batch"
 
-# Orchestrator (runs as systemd service on LXC)
+# Context quality benchmark (requires 10+ chapter novel in Postgres)
+ssh novel-harness-lxc "cd ~/apps/novel-harness && bun benchmark/context/run.ts"
+
+# Orchestrator (systemd service)
 ssh novel-harness-lxc "sudo systemctl status novel-harness-orchestrator"
-ssh novel-harness-lxc "curl -s http://localhost:3006/health"
 
-# Improvement daemon — manual trigger
+# Improvement daemon
 ssh novel-harness-lxc "curl -s -X POST http://localhost:3006/api/improvement/start -H 'x-api-key: <key>'"
-ssh novel-harness-lxc "curl -s http://localhost:3006/api/improvement/status -H 'x-api-key: <key>'"
 
-# View results (from local machine, requires Postgres tunnel)
-ssh -f -N -L 15432:192.168.1.108:5432 proxmox
-bun scripts/improvement-report.ts
-bun scripts/batch-status.ts
+# Migrate existing SQLite novels to Postgres (one-time)
+ssh novel-harness-lxc "cd ~/apps/novel-harness && bun scripts/migrate-to-postgres.ts --embed"
 
-# Pull prompt changes from LXC after improvement cycle
-bash scripts/sync-improvements.sh
-git diff    # review changes before committing
-
-# Replay historical prompts vs current (on LXC)
-ssh novel-harness-lxc "cd ~/apps/novel-harness && bun scripts/replay-experiment.ts --iteration 42"
-ssh novel-harness-lxc "cd ~/apps/novel-harness && bun scripts/replay-experiment.ts --commit abc123 --seeds romance-drama"
-ssh novel-harness-lxc "cd ~/apps/novel-harness && bun scripts/replay-experiment.ts --iteration 42 --run-b 200"
-ssh novel-harness-lxc "cd ~/apps/novel-harness && bun scripts/replay-experiment.ts --iteration 42 --dry-run"
-
-# Tests (run locally — no DB dependency)
+# Tests (require DATABASE_URL)
 bun test
 ```
 
 ## Key env vars
 
-| Var | Used by | Purpose |
-|-----|---------|---------|
-| `BENCHMARK_SEEDS` | prose, planning | Filter to specific seeds (comma-separated) |
-| `BENCHMARK_RUNS` | all benchmarks | Runs per seed/sample/fixture (default 2-3) |
-| `BENCHMARK_SAMPLES` | extraction | Max chapters to test (default: all) |
-| `BENCHMARK_AGENT` | extraction | Test one extractor in isolation |
-| `BENCHMARK_FIXTURES` | continuity | Filter to specific fixtures (comma-separated) |
-| `BENCHMARK_JUDGES` | all benchmarks | Override judge model (label match) |
-| `EXPERIMENT_ID` | prose run.ts | Link run to an experiment |
-| `BATCH_PROVIDER` | prose --batch | Batch API provider (default: openai) |
-| `BATCH_MODEL` | prose --batch | Batch judge model (default: gpt-5.4-mini) |
-| `LLM_TRANSPORT` | all LLM calls | Transport mode: `direct` (default), `batch` |
-| `DATABASE_URL` | all (harness + orchestrator) | Postgres connection string (fallback: ORCHESTRATOR_DB_URL) |
-| `IMPROVEMENT_MAX_ITERATIONS` | daemon | Default max iterations per experiment (default: 15) |
+| Var | Purpose |
+|-----|---------|
+| `DATABASE_URL` | Postgres connection (fallback: ORCHESTRATOR_DB_URL) |
+| `OPENROUTER_API_KEY` | Embeddings + LLM calls via OpenRouter |
+| `BENCHMARK_SEEDS` | Filter to specific seeds (comma-separated) |
+| `BENCHMARK_RUNS` | Runs per seed (default 2-3) |
+| `EXPERIMENT_ID` | Link benchmark run to experiment |
+| `LLM_TRANSPORT` | `direct` (default) or `batch` |
 
-## LXC 307 Infrastructure
+## LXC 307
 
 - **IP**: 192.168.1.108 (LAN), 100.115.80.77 (Tailscale)
-- **Tailscale hostname**: `novel-harness`
 - **SSH**: `novel-harness-lxc` (ProxyJump proxmox)
 - **Services**: `novel-harness-orchestrator` (port 3006), `ntfy` (port 2586)
-- **Postgres**: `novel_harness_orchestrator` DB, role `orchestrator`
-- **App dir**: `/home/andre/apps/novel-harness`
-- **Backups**: nightly Postgres dump + container snapshot (automated on Proxmox host)
+- **Postgres**: `novel_harness_orchestrator` DB with pgvector extension
 - **Deploy**: `bash scripts/deploy-lxc.sh` (rsync + restart)
-- **Web UI**: `http://novel-harness:3006/app?key=<ORCHESTRATOR_API_KEY>` (all pages under /app)
-
-## Seeds
-
-Test inputs in `src/seeds/`: dark-fantasy, young-adult-fantasy, sci-fi-thriller, romance-drama (primary test bed), minimal (stress test).
+- **Web UI**: `http://novel-harness:3006/app?key=<ORCHESTRATOR_API_KEY>`
 
 ## Reference docs
 
-Each doc has a `status` frontmatter field: `active` (operational), `proposal` (not implemented), `reference` (read-once research).
-
-- `docs/lessons-learned.md` — **read before designing new agents, rubrics, or experiments** — hard-won principles from evaluation, rewriting, lint, model selection, and experiment design
-- `docs/commit-conventions.md` — commit message format and prefixes
-- `docs/improvement-checklist.md` — 25 improvement items across 4 capability tiers
+- `docs/lessons-learned.md` — **read before designing agents, rubrics, or experiments**
+- `docs/commit-conventions.md` — commit message format
+- `docs/world-knowledge-graph.md` — knowledge graph schema and context assembly
+- `docs/improvement-checklist.md` — improvement items across capability tiers
 - `docs/methodology-integration-report.md` — writing methodology (Story Grid, Save the Cat, Weiland)
-- `docs/batch-processing.md` — batch API cost analysis and phased approach (reference, partially implemented)
-- `docs/world-knowledge-graph.md` — world systems, cultures, evolving relationships, scoped context assembly, extraction pipeline
-- `docs/proposal-style-mimicry.md` — author style extraction for fanfiction (proposal)
-- `docs/tuning-log.md` — historical tuning experiment results (April 2026, pre-DB)

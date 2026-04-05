@@ -195,8 +195,11 @@ async function buildOperationsConfig() {
 
   // Load model registry for judge/batch options
   const { MODELS, PROVIDERS } = await import("../../models/registry")
+  const { isModelHidden } = await import("../../models/hidden")
 
-  const judges = MODELS
+  const visibleModels = MODELS.filter(m => !isModelHidden(m.provider, m.id))
+
+  const judges = visibleModels
     .filter(m => !m.label.includes("8B")) // exclude tiny models unsuitable for judging
     .map(m => m.label)
     .filter((v, i, a) => a.indexOf(v) === i) // dedupe
@@ -205,7 +208,7 @@ async function buildOperationsConfig() {
     .filter(([_, p]) => p.batchApi?.available)
     .map(([name]) => name)
 
-  const batchModels = MODELS
+  const batchModels = visibleModels
     .filter(m => batchProviders.includes(m.provider))
     .map(m => m.label)
     .filter((v, i, a) => a.indexOf(v) === i)
@@ -269,7 +272,7 @@ async function buildOperationsConfig() {
     return out
   })
 
-  const allModels = MODELS.map(m => ({ label: m.label, id: m.id, provider: m.provider, pricing: m.pricing }))
+  const allModels = visibleModels.map(m => ({ label: m.label, id: m.id, provider: m.provider, pricing: m.pricing }))
   const allProviders = Object.keys(PROVIDERS)
 
   return { seeds, fixtures, benchmarks, envVars, targets: Object.keys(TARGETS), models: allModels, providers: allProviders }
@@ -1207,10 +1210,13 @@ const server = Bun.serve({
     if (path === "/api/models" && req.method === "GET") {
       try {
         const { MODELS } = await import("../../models/registry")
-        const models = MODELS.map(m => ({
-          id: m.id, label: m.label, provider: m.provider,
-          pricing: m.pricing, maxOutput: (m as any).maxOutput,
-        }))
+        const { isModelHidden } = await import("../../models/hidden")
+        const models = MODELS
+          .filter(m => !isModelHidden(m.provider, m.id))
+          .map(m => ({
+            id: m.id, label: m.label, provider: m.provider,
+            pricing: m.pricing, maxOutput: (m as any).maxOutput,
+          }))
         return Response.json(models)
       } catch (err) {
         return Response.json({ error: String(err) }, { status: 500 })
@@ -1352,6 +1358,28 @@ const server = Bun.serve({
       const iterations = await (await import("./db")).default`SELECT * FROM improvement_iterations WHERE cycle_id = ${id} ORDER BY iteration_num`
       if (cycle.length === 0) return Response.json({ error: "Not found" }, { status: 404 })
       return Response.json({ cycle: cycle[0], iterations })
+    }
+
+    // ── Retrieval Config API ─────────────────────────────────────────
+    if (path === "/api/retrieval-config/defaults" && req.method === "GET") {
+      const { DEFAULT_CONFIG } = await import("../db/retrieval")
+      return Response.json({ novelId: "defaults", ...DEFAULT_CONFIG })
+    }
+
+    const retrievalMatch = path.match(/^\/api\/retrieval-config\/([^/]+)$/)
+    if (retrievalMatch && req.method === "GET") {
+      const novelId = decodeURIComponent(retrievalMatch[1])
+      const { getRetrievalConfig } = await import("../db/retrieval")
+      const config = await getRetrievalConfig(novelId)
+      return Response.json({ novelId, ...config })
+    }
+
+    if (retrievalMatch && req.method === "PUT") {
+      const novelId = decodeURIComponent(retrievalMatch[1])
+      const body = await req.json() as Record<string, any>
+      const { saveRetrievalConfig } = await import("../db/retrieval")
+      await saveRetrievalConfig(novelId, body)
+      return Response.json({ ok: true })
     }
 
     // ── Novel step-through API ──────────────────────────────────────

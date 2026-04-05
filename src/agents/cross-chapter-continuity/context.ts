@@ -2,12 +2,12 @@ import {
   getRecentSummaries, getFactsForChapter, getCharacterStatesAtChapter,
 } from "../../db"
 
-export function buildContext(novelId: string, totalChapters: number): string {
+export async function buildContext(novelId: string, totalChapters: number): Promise<string> {
   let ctx = "MANUSCRIPT REVIEW\n\n"
 
   for (let ch = 1; ch <= totalChapters; ch++) {
-    const summaries = getRecentSummaries(novelId, ch + 1, 1)
-    const facts = getFactsForChapter(novelId, ch)
+    const summaries = await getRecentSummaries(novelId, ch + 1, 1)
+    const facts = await getFactsForChapter(novelId, ch)
 
     ctx += `CHAPTER ${ch}:\n`
     if (summaries.length > 0) {
@@ -20,7 +20,7 @@ export function buildContext(novelId: string, totalChapters: number): string {
     ctx += "\n"
   }
 
-  const finalStates = getCharacterStatesAtChapter(novelId, totalChapters + 1)
+  const finalStates = await getCharacterStatesAtChapter(novelId, totalChapters + 1)
   if (finalStates.length > 0) {
     ctx += "CHARACTER STATES (end of manuscript):\n"
     ctx += finalStates.map(cs =>

@@ -111,6 +111,46 @@ export function persistConfig() {
   })
 }
 
+export function toggleModelHidden(provider: string, modelId: string, hidden: boolean) {
+  return fetchJSON<{ ok: boolean }>("/api/models/hidden", {
+    method: "POST",
+    body: JSON.stringify({ provider, modelId, hidden }),
+  })
+}
+
+// ── Retrieval Config ──────────────────────────────────────────────────────
+
+export interface RetrievalConfig {
+  novelId: string
+  maxFacts: number
+  maxEvents: number
+  maxSummaries: number
+  maxStates: number
+  maxRelationships: number
+  maxKnowledge: number
+  minSimilarity: number
+  rrfK: number
+  fetchPerLeg: number
+  characterBoost: number
+  locationBoost: number
+  recencyHalfLife: number
+}
+
+export function getRetrievalConfig(novelId: string) {
+  return fetchJSON<RetrievalConfig>(`/api/retrieval-config/${novelId}`)
+}
+
+export function updateRetrievalConfig(novelId: string, config: Partial<RetrievalConfig>) {
+  return fetchJSON<{ ok: boolean }>(`/api/retrieval-config/${novelId}`, {
+    method: "PUT",
+    body: JSON.stringify(config),
+  })
+}
+
+export function getRetrievalDefaults() {
+  return fetchJSON<RetrievalConfig>("/api/retrieval-config/defaults")
+}
+
 // Types
 export interface AgentGroup {
   label: string

@@ -7,7 +7,7 @@ import { getTokenUsage } from "./llm"
 import { emit } from "./events"
 
 export async function runNovel(novelId: string): Promise<void> {
-  let novel = getNovel(novelId)
+  let novel = await getNovel(novelId)
 
   while (novel.phase !== "done") {
     switch (novel.phase) {
@@ -24,7 +24,7 @@ export async function runNovel(novelId: string): Promise<void> {
         await runValidationPhase(novelId)
         break
     }
-    novel = getNovel(novelId)
+    novel = await getNovel(novelId)
   }
 
   const usage = getTokenUsage()
