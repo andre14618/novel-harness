@@ -10,28 +10,29 @@ Items removed when done — git history has the record. Ordered by impact.
 ## Context Engine (Highest Priority)
 
 - Replace heuristic context layers 4-9 with semantic retrieval from `src/db/retrieval.ts`
-- Build deterministic graph-linker layer (knowledge propagation origins, theme keyword matching, causal co-occurrence heuristics) — LLM only for ambiguous cases
 - Fix relationship-timeline schema to accept non-enum category values gracefully
 - Build context quality benchmark runner (`benchmark/context/run.ts`)
 - Run 10+ chapter novel to validate retrieval at scale
-- Wire retrieval-config as daemon optimization target
+- Wire retrieval-config + deterministic-config as autoresearcher optimization targets
 
 ## Seeds & Testing
 
 - Create 3-5 new seeds that stress different context layers: complex magic systems, many POV characters, dense continuity requirements
 - Extend seeds to support 10-20 chapter novel plans (current seeds produce 3 chapters)
 
-## Daemon & Auto-Research
+## Autoresearcher
 
-- Wire context quality benchmark as primary daemon target
-- Add embedding template tuning as a daemon surface (config file the daemon can modify)
-- Add scene query template tuning as a daemon surface
-- Test daemon on context-quality dimensions end-to-end
+- Wire context quality benchmark as primary autoresearcher target
+- Wire component registry into autoresearcher so it reads available surfaces
+- Add embedding template tuning as an autoresearcher surface
+- Add scene query template tuning as an autoresearcher surface
+- Rename daemon → autoresearcher across codebase
+- Test autoresearcher on context-quality dimensions end-to-end
 
 ## Lint & Rewriter
 
 - Continue lint pattern expansion from craft references
-- Tune rewriter prompt via daemon on prose penalty dimensions
+- Tune rewriter prompt via autoresearcher on prose penalty dimensions
 
 ## Infrastructure
 
