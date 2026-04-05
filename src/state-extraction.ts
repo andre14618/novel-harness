@@ -1,3 +1,14 @@
+/**
+ * State extraction pipeline — runs after each chapter is approved.
+ *
+ * Flow:
+ * 1. Extract: 4 LLM agents in parallel → structured data saved to DB with assigned IDs
+ * 2. Embed: batch embed all new data for semantic retrieval
+ * 3. Deterministic: resolve knowledge origins, score causal candidates, tag themes
+ *    (all using real DB IDs — no matching needed)
+ * 4. LLM validation: graph-linker confirms/rejects ambiguous causal candidates only
+ */
+
 import { chapterSummarySchema, factExtractionSchema, characterStateUpdateSchema, relationshipTimelineSchema } from "./types"
 import {
   getCharacters, saveChapterSummary, saveFact, saveCharacterState,
@@ -5,7 +16,10 @@ import {
   saveRelationshipState, getRelationshipStatesAtChapter,
   saveTimelineEvent, saveCharacterKnowledge,
   getWorldSystems, saveCharacterSystemAwareness,
+  getStorySpine,
 } from "./db"
+import { getTimelineEventsForChapter, getTimelineEventsUpToChapter } from "./db/timeline"
+import { getKnowledgeForChapter } from "./db/knowledge"
 import { callAgent } from "./llm"
 import {
   SUMMARY_EXTRACTOR_PROMPT, FACT_EXTRACTOR_PROMPT, CHARACTER_STATE_PROMPT,
@@ -15,10 +29,9 @@ import { buildContext as buildSummaryContext } from "./agents/summary-extractor/
 import { buildContext as buildFactExtractionContext } from "./agents/fact-extractor/context"
 import { buildContext as buildCharacterStateContext } from "./agents/character-state/context"
 import { buildContext as buildRelationshipTimelineContext } from "./agents/relationship-timeline/context"
-// Graph-linker context is built inline with deterministic results (buildGraphLinkerContextWithDeterministic)
-import { graphLinkerSchema } from "./agents/graph-linker/schema"
 import * as harness from "./harness"
 import { log } from "./logger"
+import { z } from "zod"
 
 export async function updateStateAfterChapter(novelId: string, chapterNum: number, prose: string): Promise<void> {
   log(novelId, "info", `Extracting state for chapter ${chapterNum}...`)
@@ -27,7 +40,7 @@ export async function updateStateAfterChapter(novelId: string, chapterNum: numbe
   const currentRelationships = await getRelationshipStatesAtChapter(novelId, chapterNum)
   const worldSystems = await tryGet(() => getWorldSystems(novelId)) ?? []
 
-  // Step 1: 4 extractors in parallel (no cross-dependencies)
+  // ── Step 1: Extract (4 LLM agents in parallel) ─────────────────────────
   const [summaryResult, factResult, charStateResult, relTimelineResult] = await Promise.all([
     callAgent({
       novelId, agentName: "summary-extractor",
@@ -55,7 +68,7 @@ export async function updateStateAfterChapter(novelId: string, chapterNum: numbe
     }),
   ])
 
-  // Save summaries
+  // ── Save and collect assigned IDs ───────────────────────────────────────
   await saveChapterSummary(
     novelId, chapterNum,
     summaryResult.output.summary,
@@ -64,17 +77,18 @@ export async function updateStateAfterChapter(novelId: string, chapterNum: numbe
     summaryResult.output.openThreads,
   )
 
-  // Save facts
+  const savedFactIds: string[] = []
   for (const f of factResult.output.facts) {
-    await saveFact(novelId, { fact: f.fact, category: f.category, establishedInChapter: chapterNum })
+    const id = await saveFact(novelId, { fact: f.fact, category: f.category, establishedInChapter: chapterNum })
+    savedFactIds.push(id)
   }
 
-  // Save character states
   for (const cs of charStateResult.output.characters) {
-    const char = characters.find(c => c.name.toLowerCase() === cs.name.toLowerCase())
-    if (char) {
-      await saveCharacterState(novelId, char.id, chapterNum, {
-        characterId: char.id,
+    const char = harness.enforce.matchCharacter(cs.name, characters)
+    if (char.warning) log(novelId, "warn", `Extraction: ${char.warning}`)
+    if (char.char) {
+      await saveCharacterState(novelId, char.char.id, chapterNum, {
+        characterId: char.char.id,
         chapterNumber: chapterNum,
         location: cs.location,
         emotionalState: cs.emotionalState,
@@ -84,39 +98,40 @@ export async function updateStateAfterChapter(novelId: string, chapterNum: numbe
     }
   }
 
-  // Save relationship changes
   const rt = relTimelineResult.output
   for (const rc of rt.relationshipChanges) {
     await saveRelationshipState(novelId, { ...rc, chapterNumber: chapterNum })
   }
 
-  // Save timeline events
+  const savedEventIds: string[] = []
   for (const te of rt.timelineEvents) {
-    await saveTimelineEvent(novelId, { ...te, chapterNumber: chapterNum })
+    const id = await saveTimelineEvent(novelId, { ...te, chapterNumber: chapterNum })
+    savedEventIds.push(id)
   }
 
-  // Save character knowledge gains
+  const savedKnowledgeIds: string[] = []
   for (const kg of rt.knowledgeGains) {
-    const char = characters.find(c => c.name.toLowerCase() === kg.characterName.toLowerCase())
-    if (char) {
-      await saveCharacterKnowledge(novelId, {
-        characterId: char.id,
+    const char = harness.enforce.matchCharacter(kg.characterName, characters)
+    if (char.warning) log(novelId, "warn", `Extraction: ${char.warning}`)
+    if (char.char) {
+      const id = await saveCharacterKnowledge(novelId, {
+        characterId: char.char.id,
         knowledge: kg.knowledge,
         source: kg.source,
         chapterLearned: chapterNum,
         category: kg.category,
         isFalse: kg.isFalse,
       })
+      savedKnowledgeIds.push(id)
     }
   }
 
-  // Save system awareness changes
   for (const ac of rt.awarenessChanges) {
-    const char = characters.find(c => c.name.toLowerCase() === ac.characterName.toLowerCase())
+    const char = harness.enforce.matchCharacter(ac.characterName, characters)
     const sys = worldSystems.find(s => s.name.toLowerCase() === ac.systemName.toLowerCase())
-    if (char && sys) {
+    if (char.char && sys) {
       await saveCharacterSystemAwareness(novelId, {
-        characterId: char.id,
+        characterId: char.char.id,
         systemId: sys.id,
         awarenessLevel: ac.newLevel,
         perspective: ac.reason,
@@ -128,19 +143,14 @@ export async function updateStateAfterChapter(novelId: string, chapterNum: numbe
   await resolveIssuesForChapter(novelId, chapterNum)
 
   const relCount = rt.relationshipChanges.length + rt.timelineEvents.length + rt.knowledgeGains.length
-  log(novelId, "info", `State updated: summary, ${factResult.output.facts.length} facts, ${charStateResult.output.characters.length} character states, ${relCount} relationship/timeline entries`)
-  console.log(`  State updated: summary, ${factResult.output.facts.length} facts, ${charStateResult.output.characters.length} character states, ${relCount} relationship/timeline entries`)
+  log(novelId, "info", `Extracted: ${factResult.output.facts.length} facts, ${charStateResult.output.characters.length} states, ${relCount} rel/timeline`)
+  console.log(`  Extracted: ${factResult.output.facts.length} facts, ${charStateResult.output.characters.length} states, ${relCount} rel/timeline`)
 
-  // Step 2: Embed all extracted data for this chapter
+  // ── Step 2: Embed ──────────────────────────────────────────────────────
   const embedResult = await harness.embeddings.embedChapterData(novelId, chapterNum)
-  log(novelId, "info", `Embedded ${embedResult.embedded} entries for chapter ${chapterNum}`)
   console.log(`  Embedded: ${embedResult.embedded} entries`)
 
-  // Step 3: Deterministic pre-processing — resolve what doesn't need an LLM
-  const { getTimelineEventsForChapter, getTimelineEventsUpToChapter } = await import("./db/timeline")
-  const { getKnowledgeForChapter } = await import("./db/knowledge")
-  const { getStorySpine } = await import("./db")
-
+  // ── Step 3: Deterministic graph analysis (uses real IDs from Step 1) ───
   const [thisChapterEvents, priorEvents, knowledgeGains] = await Promise.all([
     getTimelineEventsForChapter(novelId, chapterNum),
     getTimelineEventsUpToChapter(novelId, chapterNum),
@@ -154,7 +164,7 @@ export async function updateStateAfterChapter(novelId: string, chapterNum: numbe
     knowledgeGains, characters, storyTheme, detConfig,
   )
 
-  // Save auto-accepted deterministic results
+  // Save deterministic results (these have real IDs — no resolution needed)
   if (det.autoKnowledge.length > 0) {
     await harness.graph.saveKnowledgePropagation(novelId, det.autoKnowledge.map(k => ({
       knowledgeId: k.knowledgeId,
@@ -169,122 +179,118 @@ export async function updateStateAfterChapter(novelId: string, chapterNum: numbe
     await harness.graph.saveThematicTags(novelId, det.autoThemes)
   }
 
-  log(novelId, "info", `Deterministic: ${det.stats.knowledgeAutoResolved} knowledge auto, ${det.stats.themesAutoTagged} themes auto, ${det.stats.causalCandidates} causal candidates`)
-  console.log(`  Deterministic: ${det.stats.knowledgeAutoResolved} knowledge, ${det.stats.themesAutoTagged} themes, ${det.stats.causalCandidates} causal candidates`)
-
-  // Step 4: LLM graph-linker — handles gaps the deterministic layer can't resolve
-  // LLM describes connections in natural language, resolver matches to DB rows
-  const { resolveGraphLinkerOutput } = await import("./harness/resolve")
-
-  const graphContext = buildGraphLinkerContextWithDeterministic(
-    novelId, chapterNum, thisChapterEvents, priorEvents, det, characters, storyTheme,
-  )
-  const graphResult = await callAgent({
-    novelId, agentName: "graph-linker",
-    systemPrompt: GRAPH_LINKER_PROMPT,
-    userPrompt: graphContext,
-    schema: graphLinkerSchema,
-  })
-
-  // Deterministic resolution: match LLM descriptions to actual DB IDs
-  const resolved = await resolveGraphLinkerOutput(
-    graphResult.output, novelId, chapterNum,
-    thisChapterEvents, priorEvents, knowledgeGains, characters,
-  )
-
-  if (resolved.causalLinks.length > 0) {
-    await harness.graph.saveCausalLinks(novelId, resolved.causalLinks.map(l => ({
-      ...l, chapterEstablished: chapterNum,
+  // Save high-confidence causal candidates directly
+  const autoCausal = det.causalCandidates.filter(c => c.score >= detConfig.causalAutoThreshold)
+  if (autoCausal.length > 0) {
+    await harness.graph.saveCausalLinks(novelId, autoCausal.map(c => ({
+      causeEventId: c.causeEventId,
+      effectEventId: c.effectEventId,
+      relationship: "causes",
+      confidence: c.score,
+      chapterEstablished: chapterNum,
     })))
   }
-  if (resolved.knowledgePropagation.length > 0) {
-    await harness.graph.saveKnowledgePropagation(novelId, resolved.knowledgePropagation.map(p => ({
-      ...p, chapterNumber: chapterNum,
-    })))
-  }
-  if (resolved.themes.length > 0) {
-    await harness.graph.saveThematicTags(novelId, resolved.themes)
-  }
 
-  const totalDet = det.stats.knowledgeAutoResolved + det.stats.themesAutoTagged
-  const totalLLM = resolved.causalLinks.length + resolved.knowledgePropagation.length + resolved.themes.length
-  const totalFailed = resolved.stats.causalFailed + resolved.stats.knowledgeFailed + resolved.stats.themesFailed
-  log(novelId, "info", `Graph: ${totalDet} deterministic + ${totalLLM} LLM-resolved (${totalFailed} unmatched)`)
-  console.log(`  Graph: ${totalDet} deterministic, ${totalLLM} LLM-resolved, ${totalFailed} unmatched`)
+  const detTotal = det.stats.knowledgeAutoResolved + det.stats.themesAutoTagged + autoCausal.length
+  console.log(`  Deterministic: ${det.stats.knowledgeAutoResolved} knowledge, ${det.stats.themesAutoTagged} themes, ${autoCausal.length} causal auto-accepted`)
+
+  // ── Step 4: LLM validates ambiguous causal candidates ──────────────────
+  const ambiguousCausal = det.causalCandidates.filter(c => c.score >= detConfig.causalCandidateThreshold && c.score < detConfig.causalAutoThreshold)
+
+  if (ambiguousCausal.length > 0 || det.unlinkedKnowledge.length > 0) {
+    // Build a focused prompt: just the candidates + unlinked knowledge
+    const sections: string[] = []
+    sections.push(`CHARACTERS:\n${characters.map(c => `- ${c.name} (${c.role})`).join("\n")}`)
+
+    if (ambiguousCausal.length > 0) {
+      sections.push(`CAUSAL LINK CANDIDATES — confirm or reject each:\n${ambiguousCausal.map((c, i) => {
+        const cause = thisChapterEvents.concat(priorEvents).find(e => e.id === c.causeEventId)
+        const effect = thisChapterEvents.find(e => e.id === c.effectEventId)
+        return `${i + 1}. "${cause?.event ?? "unknown"}" → "${effect?.event ?? "unknown"}" (score: ${c.score.toFixed(2)}, signals: ${c.signals.join(", ")})`
+      }).join("\n")}`)
+    }
+
+    if (det.unlinkedKnowledge.length > 0) {
+      sections.push(`KNOWLEDGE NEEDING PROPAGATION TYPE:\n${det.unlinkedKnowledge.map(k =>
+        `- ${k.characterId}: "${k.knowledge}" (source: ${k.source})`
+      ).join("\n")}`)
+    }
+
+    sections.push("For causal candidates: respond with the candidate number and 'confirm' or 'reject'. For knowledge: provide propagationType and fromCharacterName if applicable.")
+
+    try {
+      const validationResult = await callAgent({
+        novelId, agentName: "graph-linker",
+        systemPrompt: GRAPH_LINKER_PROMPT,
+        userPrompt: sections.join("\n\n"),
+        schema: z.object({
+          causalDecisions: z.array(z.object({
+            candidate: z.number(),
+            decision: z.string().transform(v => v.toLowerCase().includes("confirm") ? "confirm" : "reject"),
+          })).default([]),
+          knowledgePropagation: z.array(z.object({
+            characterName: z.string(),
+            knowledge: z.string(),
+            fromCharacterName: z.string().nullable().default(null),
+            propagationType: z.string().default("origin").transform(v => {
+              const valid = ["origin", "told", "overheard", "deduced", "discovered"]
+              return valid.includes(v) ? v : "origin"
+            }),
+            confidence: z.number().min(0).max(1).default(1.0),
+          })).default([]),
+        }).passthrough(),
+      })
+
+      // Save confirmed causal links
+      const vr = validationResult.output
+      let confirmedCausal = 0
+      for (const d of vr.causalDecisions ?? []) {
+        if (d.decision === "confirm" && d.candidate >= 1 && d.candidate <= ambiguousCausal.length) {
+          const c = ambiguousCausal[d.candidate - 1]
+          await harness.graph.saveCausalLinks(novelId, [{
+            causeEventId: c.causeEventId,
+            effectEventId: c.effectEventId,
+            relationship: "causes",
+            confidence: c.score,
+            chapterEstablished: chapterNum,
+          }])
+          confirmedCausal++
+        }
+      }
+
+      // Save LLM-resolved knowledge propagation
+      let resolvedKnowledge = 0
+      for (const kp of vr.knowledgePropagation ?? []) {
+        const toChar = harness.enforce.matchCharacter(kp.characterName, characters)
+        const knowledge = knowledgeGains.find(k =>
+          k.characterId === toChar.char?.id && k.knowledge.toLowerCase().includes(kp.knowledge.toLowerCase().slice(0, 30))
+        )
+        if (toChar.char && knowledge?.id) {
+          const fromChar = kp.fromCharacterName ? harness.enforce.matchCharacter(kp.fromCharacterName, characters) : null
+          await harness.graph.saveKnowledgePropagation(novelId, [{
+            knowledgeId: knowledge.id,
+            fromCharacterId: fromChar?.char?.id ?? null,
+            toCharacterId: toChar.char.id,
+            viaEventId: null,
+            propagationType: kp.propagationType,
+            confidence: kp.confidence,
+            chapterNumber: chapterNum,
+          }])
+          resolvedKnowledge++
+        }
+      }
+
+      console.log(`  LLM validated: ${confirmedCausal}/${ambiguousCausal.length} causal confirmed, ${resolvedKnowledge} knowledge resolved`)
+    } catch (err) {
+      // Non-blocking — deterministic results already saved
+      log(novelId, "warn", `Graph-linker validation failed: ${err instanceof Error ? err.message : err}`)
+      console.log(`  Graph-linker validation failed (non-blocking): ${err instanceof Error ? err.message : err}`)
+    }
+  } else {
+    console.log(`  No ambiguous candidates — deterministic analysis sufficient`)
+  }
 }
 
 async function tryGet<T>(fn: () => Promise<T>): Promise<T | null> {
   try { return await fn() } catch { return null }
-}
-
-/**
- * Build graph-linker context that includes deterministic pre-analysis results.
- * The LLM sees what was auto-resolved and focuses on gaps + candidates.
- */
-function buildGraphLinkerContextWithDeterministic(
-  novelId: string,
-  chapterNum: number,
-  thisChapterEvents: import("./db/timeline").TimelineEvent[],
-  priorEvents: import("./db/timeline").TimelineEvent[],
-  det: import("./harness/deterministic").DeterministicResult,
-  characters: import("./types").CharacterProfile[],
-  storyTheme: string | null,
-): string {
-  const sections: string[] = []
-
-  sections.push(`CHARACTERS:\n${characters.map(c => `- ${c.name} (id: ${c.id}, role: ${c.role})`).join("\n")}`)
-
-  if (storyTheme) {
-    sections.push(`STORY THEME: ${storyTheme}`)
-  }
-
-  if (thisChapterEvents.length > 0) {
-    sections.push(`THIS CHAPTER'S EVENTS (chapter ${chapterNum}):\n${thisChapterEvents.map(e =>
-      `- ${e.event} at ${e.location}. Participants: ${e.participants.join(", ")}${e.consequences ? `. Consequences: ${e.consequences}` : ""}`
-    ).join("\n")}`)
-  }
-
-  const recentPrior = priorEvents.slice(-30)
-  if (recentPrior.length > 0) {
-    sections.push(`PRIOR EVENTS (for causal linking):\n${recentPrior.map(e =>
-      `- ch${e.chapterNumber}: ${e.event} at ${e.location}. Participants: ${e.participants.join(", ")}`
-    ).join("\n")}`)
-  }
-
-  // Show what deterministic analysis already resolved
-  if (det.autoKnowledge.length > 0) {
-    sections.push(`ALREADY RESOLVED (deterministic — do not re-analyze):\nKnowledge propagation:\n${det.autoKnowledge.map(k =>
-      `- ${k.toCharacterId}: ${k.propagationType} (confidence ${k.confidence}) — ${k.reason}`
-    ).join("\n")}`)
-  }
-
-  if (det.autoThemes.length > 0) {
-    sections.push(`Auto-tagged themes:\n${det.autoThemes.map(t =>
-      `- [${t.sourceType}:${t.sourceId}] "${t.theme}" (similarity ${t.similarity.toFixed(2)})`
-    ).join("\n")}`)
-  }
-
-  // Show candidates that need LLM validation
-  if (det.causalCandidates.length > 0) {
-    sections.push(`CAUSAL LINK CANDIDATES (confirm, reject, or adjust):\n${det.causalCandidates.map(c =>
-      `- [${c.causeEventId}] → [${c.effectEventId}] score ${c.score.toFixed(2)} — ${c.signals.join(", ")}`
-    ).join("\n")}`)
-  }
-
-  if (det.themeCandidates.length > 0) {
-    sections.push(`THEME CANDIDATES (confirm or reject):\n${det.themeCandidates.map(t =>
-      `- [${t.sourceType}:${t.sourceId}] "${t.theme}" (similarity ${t.similarity.toFixed(2)})`
-    ).join("\n")}`)
-  }
-
-  // Knowledge entries that need LLM judgment
-  if (det.unlinkedKnowledge.length > 0) {
-    sections.push(`KNOWLEDGE NEEDING PROPAGATION TYPE:\n${det.unlinkedKnowledge.map(k =>
-      `- ${k.characterId} ${k.source} that "${k.knowledge}" (category: ${k.category}${k.isFalse ? ", FALSE BELIEF" : ""})`
-    ).join("\n")}`)
-  }
-
-  sections.push("Validate the causal candidates, resolve unlinked knowledge, confirm/reject theme candidates, and identify anything the deterministic analysis missed.")
-
-  return sections.join("\n\n")
 }
