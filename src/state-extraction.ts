@@ -9,12 +9,15 @@ import {
 import { callAgent } from "./llm"
 import {
   SUMMARY_EXTRACTOR_PROMPT, FACT_EXTRACTOR_PROMPT, CHARACTER_STATE_PROMPT,
-  RELATIONSHIP_TIMELINE_PROMPT,
+  RELATIONSHIP_TIMELINE_PROMPT, GRAPH_LINKER_PROMPT,
 } from "./prompts"
 import { buildContext as buildSummaryContext } from "./agents/summary-extractor/context"
 import { buildContext as buildFactExtractionContext } from "./agents/fact-extractor/context"
 import { buildContext as buildCharacterStateContext } from "./agents/character-state/context"
 import { buildContext as buildRelationshipTimelineContext } from "./agents/relationship-timeline/context"
+import { buildContext as buildGraphLinkerContext } from "./agents/graph-linker/context"
+import { graphLinkerSchema } from "./agents/graph-linker/schema"
+import * as harness from "./harness"
 import { log } from "./logger"
 
 export async function updateStateAfterChapter(novelId: string, chapterNum: number, prose: string): Promise<void> {
@@ -24,7 +27,7 @@ export async function updateStateAfterChapter(novelId: string, chapterNum: numbe
   const currentRelationships = await getRelationshipStatesAtChapter(novelId, chapterNum)
   const worldSystems = await tryGet(() => getWorldSystems(novelId)) ?? []
 
-  // All 4 extractors take approved prose as input with no cross-dependencies
+  // Step 1: 4 extractors in parallel (no cross-dependencies)
   const [summaryResult, factResult, charStateResult, relTimelineResult] = await Promise.all([
     callAgent({
       novelId, agentName: "summary-extractor",
@@ -127,6 +130,55 @@ export async function updateStateAfterChapter(novelId: string, chapterNum: numbe
   const relCount = rt.relationshipChanges.length + rt.timelineEvents.length + rt.knowledgeGains.length
   log(novelId, "info", `State updated: summary, ${factResult.output.facts.length} facts, ${charStateResult.output.characters.length} character states, ${relCount} relationship/timeline entries`)
   console.log(`  State updated: summary, ${factResult.output.facts.length} facts, ${charStateResult.output.characters.length} character states, ${relCount} relationship/timeline entries`)
+
+  // Step 2: Embed all extracted data for this chapter
+  try {
+    const embedResult = await harness.embeddings.embedChapterData(novelId, chapterNum)
+    if (embedResult.embedded > 0) {
+      log(novelId, "info", `Embedded ${embedResult.embedded} entries for chapter ${chapterNum}`)
+      console.log(`  Embedded: ${embedResult.embedded} entries`)
+    }
+  } catch (err) {
+    // Non-blocking — pipeline continues without embeddings
+    log(novelId, "warn", `Embedding failed for chapter ${chapterNum}: ${err instanceof Error ? err.message : err}`)
+    console.log(`  Embedding failed (non-blocking): ${err instanceof Error ? err.message : err}`)
+  }
+
+  // Step 3: Graph linker — causal chains, knowledge propagation, thematic tags
+  try {
+    const graphContext = await buildGraphLinkerContext(novelId, chapterNum)
+    const graphResult = await callAgent({
+      novelId, agentName: "graph-linker",
+      systemPrompt: GRAPH_LINKER_PROMPT,
+      userPrompt: graphContext,
+      schema: graphLinkerSchema,
+    })
+
+    const gl = graphResult.output
+    if (gl.causalLinks.length > 0) {
+      await harness.graph.saveCausalLinks(novelId, gl.causalLinks.map(l => ({
+        ...l, chapterEstablished: chapterNum,
+      })))
+    }
+    if (gl.knowledgePropagation.length > 0) {
+      await harness.graph.saveKnowledgePropagation(novelId, gl.knowledgePropagation.map(p => ({
+        ...p, chapterNumber: chapterNum,
+      })))
+    }
+    if (gl.themes.length > 0) {
+      await harness.graph.saveThematicTags(novelId, gl.themes)
+    }
+
+    const graphCount = gl.causalLinks.length + gl.knowledgePropagation.length + gl.themes.length
+    if (graphCount > 0) {
+      log(novelId, "info", `Graph linked: ${gl.causalLinks.length} causal, ${gl.knowledgePropagation.length} knowledge, ${gl.themes.length} themes`)
+      console.log(`  Graph linked: ${gl.causalLinks.length} causal, ${gl.knowledgePropagation.length} knowledge, ${gl.themes.length} themes`)
+    }
+  } catch (err) {
+    // Non-blocking — pipeline continues without graph links
+    log(novelId, "warn", `Graph linker failed for chapter ${chapterNum}: ${err instanceof Error ? err.message : err}`)
+    console.log(`  Graph linker failed (non-blocking): ${err instanceof Error ? err.message : err}`)
+  }
 }
 
 async function tryGet<T>(fn: () => Promise<T>): Promise<T | null> {

@@ -12,3 +12,4 @@ export { prompt as CROSS_CHAPTER_CONTINUITY_PROMPT } from "./agents/cross-chapte
 export { prompt as PROSE_QUALITY_PROMPT } from "./agents/prose-quality"
 export { prompt as REWRITER_AGENT_PROMPT } from "./agents/rewriter"
 export { prompt as RELATIONSHIP_TIMELINE_PROMPT } from "./agents/relationship-timeline"
+export { prompt as GRAPH_LINKER_PROMPT } from "./agents/graph-linker"
