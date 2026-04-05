@@ -1,73 +1,54 @@
 import { z } from "zod"
 
-// Accept both camelCase and snake_case from the model
+// ── Flexible schemas that accept various LLM output formats ───────────────
+// Models return inconsistent key names (camelCase, snake_case, abbreviations).
+// Each schema accepts common variants and normalizes to a canonical form.
+
 const CAUSAL_TYPES = ["causes", "enables", "prevents", "motivates"] as const
-const causalLinkSchema = z.object({
-  causeEventId: z.string().optional(),
-  cause_event_id: z.string().optional(),
-  cause: z.string().optional(),
-  effectEventId: z.string().optional(),
-  effect_event_id: z.string().optional(),
-  effect: z.string().optional(),
-  relationship: z.enum(CAUSAL_TYPES).optional(),
-  type: z.enum(CAUSAL_TYPES).optional(),
-  confidence: z.number().min(0).max(1).optional().default(0.8),
-}).transform(d => ({
-  causeEventId: d.causeEventId ?? d.cause_event_id ?? d.cause ?? "",
-  effectEventId: d.effectEventId ?? d.effect_event_id ?? d.effect ?? "",
-  relationship: d.relationship ?? d.type ?? "causes",
-  confidence: d.confidence,
+
+const causalLinkSchema = z.record(z.any()).transform(d => ({
+  causeEventId: String(d.causeEventId ?? d.cause_event_id ?? d.cause ?? d.from ?? d.source ?? ""),
+  effectEventId: String(d.effectEventId ?? d.effect_event_id ?? d.effect ?? d.to ?? d.target ?? ""),
+  relationship: CAUSAL_TYPES.includes(d.relationship ?? d.type ?? d.relation) ? (d.relationship ?? d.type ?? d.relation) : "causes",
+  confidence: Number(d.confidence ?? d.conf ?? 0.8),
 }))
 
-const knowledgePropSchema = z.object({
-  knowledgeId: z.string().optional(),
-  knowledge_id: z.string().optional(),
-  fromCharacterId: z.string().nullable().optional(),
-  from_character_id: z.string().nullable().optional(),
-  toCharacterId: z.string().optional(),
-  to_character_id: z.string().optional(),
-  viaEventId: z.string().nullable().optional(),
-  via_event_id: z.string().nullable().optional(),
-  propagationType: z.enum(["origin", "told", "overheard", "deduced", "discovered"]).optional(),
-  propagation_type: z.enum(["origin", "told", "overheard", "deduced", "discovered"]).optional(),
-  confidence: z.number().min(0).max(1).optional().default(1.0),
-}).transform(d => ({
-  knowledgeId: d.knowledgeId ?? d.knowledge_id ?? "",
-  fromCharacterId: d.fromCharacterId ?? d.from_character_id ?? null,
-  toCharacterId: d.toCharacterId ?? d.to_character_id ?? "",
-  viaEventId: d.viaEventId ?? d.via_event_id ?? null,
-  propagationType: d.propagationType ?? d.propagation_type ?? "origin",
-  confidence: d.confidence,
+const knowledgePropSchema = z.record(z.any()).transform(d => ({
+  knowledgeId: String(d.knowledgeId ?? d.knowledge_id ?? d.id ?? ""),
+  fromCharacterId: d.fromCharacterId ?? d.from_character_id ?? d.from ?? d.source_character ?? null,
+  toCharacterId: String(d.toCharacterId ?? d.to_character_id ?? d.to ?? d.character ?? d.recipient ?? ""),
+  viaEventId: d.viaEventId ?? d.via_event_id ?? d.event ?? d.via ?? null,
+  propagationType: ["origin", "told", "overheard", "deduced", "discovered"].includes(d.propagationType ?? d.propagation_type ?? d.type ?? d.method)
+    ? (d.propagationType ?? d.propagation_type ?? d.type ?? d.method)
+    : "origin",
+  confidence: Number(d.confidence ?? d.conf ?? 1.0),
 }))
 
-const themeSchema = z.object({
-  sourceType: z.enum(["fact", "event", "summary", "knowledge"]).optional(),
-  source_type: z.enum(["fact", "event", "summary", "knowledge"]).optional(),
-  sourceId: z.string().optional(),
-  source_id: z.string().optional(),
-  theme: z.string().optional(),
-  tag: z.string().optional(),
-  name: z.string().optional(),
-  label: z.string().optional(),
-}).transform(d => ({
-  sourceType: d.sourceType ?? d.source_type ?? "event",
-  sourceId: d.sourceId ?? d.source_id ?? "",
-  theme: d.theme ?? d.tag ?? d.name ?? d.label ?? "",
-})).refine(d => d.theme.length > 0, { message: "theme is required" })
+const themeSchema = z.record(z.any()).transform(d => {
+  // Extract theme string from whatever key the model used
+  const theme = String(d.theme ?? d.tag ?? d.name ?? d.label ?? d.value ?? d.thematic_tag ?? d.text ?? "")
+  return {
+    sourceType: ["fact", "event", "summary", "knowledge"].includes(d.sourceType ?? d.source_type ?? d.type)
+      ? (d.sourceType ?? d.source_type ?? d.type)
+      : "event",
+    sourceId: String(d.sourceId ?? d.source_id ?? d.id ?? d.event_id ?? d.fact_id ?? ""),
+    theme,
+  }
+}).pipe(z.object({
+  sourceType: z.string(),
+  sourceId: z.string(),
+  theme: z.string().min(1),
+}))
 
-// Accept both "themes" and "thematicTags" keys
-export const graphLinkerSchema = z.object({
-  causalLinks: z.array(causalLinkSchema).optional().default([]),
-  causal_links: z.array(causalLinkSchema).optional(),
-  knowledgePropagation: z.array(knowledgePropSchema).optional().default([]),
-  knowledge_propagation: z.array(knowledgePropSchema).optional(),
-  themes: z.array(themeSchema).optional().default([]),
-  thematicTags: z.array(themeSchema).optional(),
-  thematic_tags: z.array(themeSchema).optional(),
-}).transform(d => ({
-  causalLinks: d.causalLinks.length > 0 ? d.causalLinks : (d.causal_links ?? []),
-  knowledgePropagation: d.knowledgePropagation.length > 0 ? d.knowledgePropagation : (d.knowledge_propagation ?? []),
-  themes: d.themes.length > 0 ? d.themes : (d.thematicTags ?? d.thematic_tags ?? []),
+// Accept any key naming for the top-level arrays
+export const graphLinkerSchema = z.record(z.any()).transform(d => ({
+  causalLinks: Array.isArray(d.causalLinks ?? d.causal_links) ? (d.causalLinks ?? d.causal_links) : [],
+  knowledgePropagation: Array.isArray(d.knowledgePropagation ?? d.knowledge_propagation) ? (d.knowledgePropagation ?? d.knowledge_propagation) : [],
+  themes: Array.isArray(d.themes ?? d.thematicTags ?? d.thematic_tags) ? (d.themes ?? d.thematicTags ?? d.thematic_tags) : [],
+})).pipe(z.object({
+  causalLinks: z.array(causalLinkSchema).default([]),
+  knowledgePropagation: z.array(knowledgePropSchema).default([]),
+  themes: z.array(themeSchema).default([]),
 }))
 
 export type GraphLinkerOutput = {
