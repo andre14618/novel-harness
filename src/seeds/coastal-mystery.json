@@ -1,0 +1,11 @@
+{
+  "premise": "A marine biologist returns to her hometown to study a sudden coral die-off and discovers it's connected to a chemical company her estranged father manages. The town is split between those who depend on the company for jobs and those watching the bay die. When a fisherman drowns in waters that should have been safe, she suspects the death wasn't accidental.",
+  "genre": "literary thriller",
+  "chapterCount": 10,
+  "characters": [
+    { "name": "Maren", "role": "protagonist", "description": "Marine biologist, early 30s. Left town at 18 and never looked back. Methodical, stubborn, keeps people at arm's length. Speaks in precise, clipped sentences. Her guilt about leaving drives her harder than her science." },
+    { "name": "Gil", "role": "supporting", "description": "Local fisherman, 60s. Knew Maren as a child. Gruff, protective of the bay, mistrustful of outsiders and corporations alike. Speaks in fragments and fishing metaphors. Found the drowned man." },
+    { "name": "Tess", "role": "supporting", "description": "Maren's younger sister who stayed. Manages the company's community relations. Warm, pragmatic, fiercely loyal to the town. Resents Maren for leaving but won't say it directly." },
+    { "name": "Harlan", "role": "antagonist", "description": "Maren's father. Plant manager for 25 years. Built half the town's infrastructure with company money. Believes he's protecting the community. Never raises his voice — makes threats sound like advice." }
+  ]
+}

@@ -14,6 +14,7 @@ export interface SeedInput {
   premise: string
   genre: string
   characters: CharacterSketch[]
+  chapterCount?: number
 }
 
 // ── Stored types (DB rows) ─────────────────────────────────────────────────
