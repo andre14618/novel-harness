@@ -132,53 +132,49 @@ export async function updateStateAfterChapter(novelId: string, chapterNum: numbe
   console.log(`  State updated: summary, ${factResult.output.facts.length} facts, ${charStateResult.output.characters.length} character states, ${relCount} relationship/timeline entries`)
 
   // Step 2: Embed all extracted data for this chapter
-  try {
-    const embedResult = await harness.embeddings.embedChapterData(novelId, chapterNum)
-    if (embedResult.embedded > 0) {
-      log(novelId, "info", `Embedded ${embedResult.embedded} entries for chapter ${chapterNum}`)
-      console.log(`  Embedded: ${embedResult.embedded} entries`)
-    }
-  } catch (err) {
-    // Non-blocking — pipeline continues without embeddings
-    log(novelId, "warn", `Embedding failed for chapter ${chapterNum}: ${err instanceof Error ? err.message : err}`)
-    console.log(`  Embedding failed (non-blocking): ${err instanceof Error ? err.message : err}`)
-  }
+  const embedResult = await harness.embeddings.embedChapterData(novelId, chapterNum)
+  log(novelId, "info", `Embedded ${embedResult.embedded} entries for chapter ${chapterNum}`)
+  console.log(`  Embedded: ${embedResult.embedded} entries`)
 
   // Step 3: Graph linker — causal chains, knowledge propagation, thematic tags
+  const graphContext = await buildGraphLinkerContext(novelId, chapterNum)
+  let graphResult
   try {
-    const graphContext = await buildGraphLinkerContext(novelId, chapterNum)
-    const graphResult = await callAgent({
+    graphResult = await callAgent({
       novelId, agentName: "graph-linker",
       systemPrompt: GRAPH_LINKER_PROMPT,
       userPrompt: graphContext,
       schema: graphLinkerSchema,
     })
-
-    const gl = graphResult.output
-    if (gl.causalLinks.length > 0) {
-      await harness.graph.saveCausalLinks(novelId, gl.causalLinks.map(l => ({
-        ...l, chapterEstablished: chapterNum,
-      })))
-    }
-    if (gl.knowledgePropagation.length > 0) {
-      await harness.graph.saveKnowledgePropagation(novelId, gl.knowledgePropagation.map(p => ({
-        ...p, chapterNumber: chapterNum,
-      })))
-    }
-    if (gl.themes.length > 0) {
-      await harness.graph.saveThematicTags(novelId, gl.themes)
-    }
-
-    const graphCount = gl.causalLinks.length + gl.knowledgePropagation.length + gl.themes.length
-    if (graphCount > 0) {
-      log(novelId, "info", `Graph linked: ${gl.causalLinks.length} causal, ${gl.knowledgePropagation.length} knowledge, ${gl.themes.length} themes`)
-      console.log(`  Graph linked: ${gl.causalLinks.length} causal, ${gl.knowledgePropagation.length} knowledge, ${gl.themes.length} themes`)
-    }
   } catch (err) {
-    // Non-blocking — pipeline continues without graph links
-    log(novelId, "warn", `Graph linker failed for chapter ${chapterNum}: ${err instanceof Error ? err.message : err}`)
-    console.log(`  Graph linker failed (non-blocking): ${err instanceof Error ? err.message : err}`)
+    // Retry once with retry agent (higher temp)
+    log(novelId, "warn", `Graph linker attempt 1 failed, retrying: ${err instanceof Error ? err.message : err}`)
+    graphResult = await callAgent({
+      novelId, agentName: "graph-linker-retry",
+      systemPrompt: GRAPH_LINKER_PROMPT,
+      userPrompt: graphContext,
+      schema: graphLinkerSchema,
+    })
   }
+
+  const gl = graphResult.output
+  if (gl.causalLinks.length > 0) {
+    await harness.graph.saveCausalLinks(novelId, gl.causalLinks.map(l => ({
+      ...l, chapterEstablished: chapterNum,
+    })))
+  }
+  if (gl.knowledgePropagation.length > 0) {
+    await harness.graph.saveKnowledgePropagation(novelId, gl.knowledgePropagation.map(p => ({
+      ...p, chapterNumber: chapterNum,
+    })))
+  }
+  if (gl.themes.length > 0) {
+    await harness.graph.saveThematicTags(novelId, gl.themes)
+  }
+
+  const graphCount = gl.causalLinks.length + gl.knowledgePropagation.length + gl.themes.length
+  log(novelId, "info", `Graph linked: ${gl.causalLinks.length} causal, ${gl.knowledgePropagation.length} knowledge, ${gl.themes.length} themes`)
+  console.log(`  Graph linked: ${gl.causalLinks.length} causal, ${gl.knowledgePropagation.length} knowledge, ${gl.themes.length} themes`)
 }
 
 async function tryGet<T>(fn: () => Promise<T>): Promise<T | null> {

@@ -25,8 +25,8 @@ const deepseekV3: ModelAssignment = { provider: "deepseek", model: "deepseek-cha
 
 export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // ── Writers (creative prose, high output) ─────────────────────────────
-  "writer":                    { ...deepseekV3, temperature: 0.8, maxTokens: 8000 },
-  "rewriter":                  { ...deepseekV3, temperature: 0.5, maxTokens: 8000 },
+  "writer":                    { ...cerebrasQwen235B, temperature: 0.8, maxTokens: 8000 },
+  "rewriter":                  { ...cerebrasQwen235B, temperature: 0.5, maxTokens: 8000 },
 
   // ── Planners (structured creative output) ─────────────────────────────
   "world-builder":             { ...cerebrasQwen235B, maxTokens: 8192 },
@@ -46,6 +46,7 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "character-state":           { ...cerebrasQwen235B, temperature: 0.1, maxTokens: 8192 },
   "relationship-timeline":     { ...cerebrasQwen235B, temperature: 0.2, maxTokens: 8192 },
   "graph-linker":              { ...cerebrasQwen235B, temperature: 0.2, maxTokens: 4096 },
+  "graph-linker-retry":        { ...cerebrasQwen235B, temperature: 0.5, maxTokens: 4096 },
 
   // ── Validators (analytical checks) ────────────────────────────────────
   "continuity":                { ...cerebrasQwen235B, temperature: 0.2 },
