@@ -172,7 +172,10 @@ export async function updateStateAfterChapter(novelId: string, chapterNum: numbe
   log(novelId, "info", `Deterministic: ${det.stats.knowledgeAutoResolved} knowledge auto, ${det.stats.themesAutoTagged} themes auto, ${det.stats.causalCandidates} causal candidates`)
   console.log(`  Deterministic: ${det.stats.knowledgeAutoResolved} knowledge, ${det.stats.themesAutoTagged} themes, ${det.stats.causalCandidates} causal candidates`)
 
-  // Step 4: LLM graph-linker — handles candidates + gaps the deterministic layer can't resolve
+  // Step 4: LLM graph-linker — handles gaps the deterministic layer can't resolve
+  // LLM describes connections in natural language, resolver matches to DB rows
+  const { resolveGraphLinkerOutput } = await import("./harness/resolve")
+
   const graphContext = buildGraphLinkerContextWithDeterministic(
     novelId, chapterNum, thisChapterEvents, priorEvents, det, characters, storyTheme,
   )
@@ -183,25 +186,31 @@ export async function updateStateAfterChapter(novelId: string, chapterNum: numbe
     schema: graphLinkerSchema,
   })
 
-  const gl = graphResult.output
-  if (gl.causalLinks.length > 0) {
-    await harness.graph.saveCausalLinks(novelId, gl.causalLinks.map(l => ({
+  // Deterministic resolution: match LLM descriptions to actual DB IDs
+  const resolved = await resolveGraphLinkerOutput(
+    graphResult.output, novelId, chapterNum,
+    thisChapterEvents, priorEvents, knowledgeGains, characters,
+  )
+
+  if (resolved.causalLinks.length > 0) {
+    await harness.graph.saveCausalLinks(novelId, resolved.causalLinks.map(l => ({
       ...l, chapterEstablished: chapterNum,
     })))
   }
-  if (gl.knowledgePropagation.length > 0) {
-    await harness.graph.saveKnowledgePropagation(novelId, gl.knowledgePropagation.map(p => ({
+  if (resolved.knowledgePropagation.length > 0) {
+    await harness.graph.saveKnowledgePropagation(novelId, resolved.knowledgePropagation.map(p => ({
       ...p, chapterNumber: chapterNum,
     })))
   }
-  if (gl.themes.length > 0) {
-    await harness.graph.saveThematicTags(novelId, gl.themes)
+  if (resolved.themes.length > 0) {
+    await harness.graph.saveThematicTags(novelId, resolved.themes)
   }
 
-  const totalGraph = det.stats.knowledgeAutoResolved + det.stats.themesAutoTagged +
-    gl.causalLinks.length + gl.knowledgePropagation.length + gl.themes.length
-  log(novelId, "info", `Graph total: ${totalGraph} entries (${det.stats.knowledgeAutoResolved + det.stats.themesAutoTagged} deterministic + ${gl.causalLinks.length + gl.knowledgePropagation.length + gl.themes.length} LLM)`)
-  console.log(`  Graph LLM: ${gl.causalLinks.length} causal, ${gl.knowledgePropagation.length} knowledge, ${gl.themes.length} themes`)
+  const totalDet = det.stats.knowledgeAutoResolved + det.stats.themesAutoTagged
+  const totalLLM = resolved.causalLinks.length + resolved.knowledgePropagation.length + resolved.themes.length
+  const totalFailed = resolved.stats.causalFailed + resolved.stats.knowledgeFailed + resolved.stats.themesFailed
+  log(novelId, "info", `Graph: ${totalDet} deterministic + ${totalLLM} LLM-resolved (${totalFailed} unmatched)`)
+  console.log(`  Graph: ${totalDet} deterministic, ${totalLLM} LLM-resolved, ${totalFailed} unmatched`)
 }
 
 async function tryGet<T>(fn: () => Promise<T>): Promise<T | null> {
@@ -231,14 +240,14 @@ function buildGraphLinkerContextWithDeterministic(
 
   if (thisChapterEvents.length > 0) {
     sections.push(`THIS CHAPTER'S EVENTS (chapter ${chapterNum}):\n${thisChapterEvents.map(e =>
-      `- [${e.id}] ${e.event} at ${e.location}. Participants: ${e.participants.join(", ")}${e.consequences ? `. Consequences: ${e.consequences}` : ""}`
+      `- ${e.event} at ${e.location}. Participants: ${e.participants.join(", ")}${e.consequences ? `. Consequences: ${e.consequences}` : ""}`
     ).join("\n")}`)
   }
 
   const recentPrior = priorEvents.slice(-30)
   if (recentPrior.length > 0) {
     sections.push(`PRIOR EVENTS (for causal linking):\n${recentPrior.map(e =>
-      `- [${e.id}] ch${e.chapterNumber}: ${e.event} at ${e.location}. Participants: ${e.participants.join(", ")}`
+      `- ch${e.chapterNumber}: ${e.event} at ${e.location}. Participants: ${e.participants.join(", ")}`
     ).join("\n")}`)
   }
 
@@ -271,7 +280,7 @@ function buildGraphLinkerContextWithDeterministic(
   // Knowledge entries that need LLM judgment
   if (det.unlinkedKnowledge.length > 0) {
     sections.push(`KNOWLEDGE NEEDING PROPAGATION TYPE:\n${det.unlinkedKnowledge.map(k =>
-      `- [${k.id}] ${k.characterId} ${k.source} that "${k.knowledge}" (category: ${k.category}${k.isFalse ? ", FALSE BELIEF" : ""})`
+      `- ${k.characterId} ${k.source} that "${k.knowledge}" (category: ${k.category}${k.isFalse ? ", FALSE BELIEF" : ""})`
     ).join("\n")}`)
   }
 
