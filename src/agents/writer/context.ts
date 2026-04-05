@@ -1,14 +1,33 @@
+/**
+ * Writer context assembly — fixed skeleton + dynamic semantic retrieval.
+ *
+ * Fixed sections (always included via direct DB lookups):
+ *   1. Scene Setup — chapter outline, beats, POV
+ *   2. POV World View — cultural background, values, taboos
+ *   3. Character Profiles — present characters with relationship arcs
+ *   10. Craft Reminders — speech patterns, voice contrast, rules
+ *
+ * Dynamic sections (semantic retrieval via hybrid RRF search):
+ *   Retrieved based on scene relevance, weighted by the retrieval_config.
+ *   Includes: world systems, setting, story context, timeline, causal chains,
+ *   character knowledge, facts, thematic threads.
+ *
+ * Falls back to heuristic assembly if no embeddings exist for the novel.
+ */
+
 import {
   getChapterOutline, getCharacters, getWorldBible,
   getRecentSummaries, getCharacterStatesAtChapter, getOpenIssues,
   getStorySpine, getNovel,
   getCharacterCultures, getCharacterSystemAwareness,
-  getRelationshipBetween, getRelationshipStatesAtChapter,
-  getRecentEventsForCharacters, getEventsAtLocation,
-  getCharacterKnowledgeUpToChapter,
+  getRelationshipBetween,
   getWorldSystems, getCultures,
   getFactsUpToChapter,
 } from "../../db"
+import {
+  hasEmbeddings, searchForScene, buildSceneQuery, getRetrievalConfig,
+  getCausalChain, getRelationshipArc, getKnowledgeGraph, getThematicThread,
+} from "../../db/retrieval"
 import type { StorySpine, NovelState, CharacterProfile } from "../../types"
 import type { WorldSystem } from "../../db/world-systems"
 
@@ -25,64 +44,279 @@ export async function buildContext(novelId: string, chapterNum: number): Promise
   const worldSystems = await tryGet(() => getWorldSystems(novelId)) ?? []
   const cultures = await tryGet(() => getCultures(novelId)) ?? []
 
-  // Filter characters to only those in this chapter
   const chapterCharNames = outline.charactersPresent.map(n => n.toLowerCase())
   const relevantChars = allChars.filter(c => chapterCharNames.includes(c.name.toLowerCase()))
   const povChar = relevantChars.find(c => c.name.toLowerCase() === outline.povCharacter?.toLowerCase()) ?? relevantChars[0]
 
   const sections: string[] = []
 
-  // ── LAYER 1: Scene Setup ───────────────────────────────────────────────
+  // ── FIXED: Scene Setup ──────────────────────────────────────────────���──
   sections.push(formatSceneSetup(outline))
 
-  // ── LAYER 2: POV Character's World View ────────────────────────────────
+  // ── FIXED: POV World View ──────────────────────────────────────────────
   if (povChar) {
-    sections.push(await formatPOVWorldView(novelId, povChar, worldSystems, cultures))
+    const pov = await formatPOVWorldView(novelId, povChar, cultures)
+    if (pov) sections.push(pov)
   }
 
-  // ── LAYER 3: Character Profiles + Evolving Relationships ───────────────
+  // ── FIXED: Character Profiles + Relationship Arcs ──────────────────────
   sections.push(await formatCharacterProfiles(novelId, povChar, relevantChars, chapterNum))
 
-  // ── LAYER 4: Relevant World Systems (at POV awareness level) ───────────
+  // ── DYNAMIC: Semantic retrieval or heuristic fallback ──────────────────
+  const embedsReady = await hasEmbeddings(novelId)
+
+  if (embedsReady) {
+    const dynamicSections = await buildDynamicSections(
+      novelId, chapterNum, outline, povChar, relevantChars,
+      worldBible, worldSystems, storySpine, novel,
+    )
+    sections.push(...dynamicSections)
+  } else {
+    const fallbackSections = await buildHeuristicFallback(
+      novelId, chapterNum, outline, povChar, relevantChars,
+      worldBible, worldSystems, storySpine, novel,
+    )
+    sections.push(...fallbackSections)
+  }
+
+  // ── FIXED: Craft Reminders ─────────────────────────────────────────────
+  sections.push(formatCraftReminders(povChar, relevantChars))
+
+  return sections.filter(Boolean).join("\n\n")
+}
+
+// ── Dynamic Context (semantic retrieval) ──────────────────────────────────
+
+async function buildDynamicSections(
+  novelId: string, chapterNum: number, outline: any, povChar: CharacterProfile | undefined,
+  relevantChars: CharacterProfile[], worldBible: any, worldSystems: WorldSystem[],
+  storySpine: StorySpine | null, novel: NovelState | null,
+): Promise<string[]> {
+  const sections: string[] = []
+  const config = await getRetrievalConfig(novelId)
+  const sceneQuery = buildSceneQuery(outline, povChar)
+
+  // Run semantic search across all 6 tables
+  const results = await searchForScene({
+    novelId, sceneQuery, maxChapter: chapterNum - 1,
+    characters: relevantChars.map(c => c.name),
+    location: outline.setting,
+    config,
+  })
+
+  // ── World Systems (only if relevant results found) ─────────────────���─
   if (povChar && worldSystems.length > 0) {
     const systemSection = await formatWorldSystemsForPOV(novelId, povChar, worldSystems)
     if (systemSection) sections.push(systemSection)
   }
 
-  // ── LAYER 5: Setting & Atmosphere ──────────────────────────────────────
-  sections.push(await formatSetting(novelId, worldBible, outline, chapterNum))
+  // ── Setting & Atmosphere ─────────────────────────────────────────────
+  sections.push(formatSettingFromWorldBible(worldBible, outline))
 
-  // ── LAYER 6: Story Context (theme, act, open threads) ──────────────────
-  sections.push(await formatStoryContext(novelId, storySpine, novel, chapterNum))
+  // ── Story Context (semantically relevant summaries) ──────────────────
+  if (results.summaries.length > 0) {
+    const summaryLines = results.summaries.map(r => {
+      const s = r.content
+      let line = `Chapter ${s.chapter_number}: ${s.summary}`
+      if (s.emotional_state) line += `\n   Emotional throughline: ${s.emotional_state}`
+      return line
+    })
+    sections.push(`RELEVANT PRIOR CHAPTERS:\n${summaryLines.join("\n\n")}`)
+  }
 
-  // ── LAYER 7: Recent History (timeline events for present characters) ───
-  const recentEvents = await formatRecentTimeline(novelId, chapterNum, relevantChars)
-  if (recentEvents) sections.push(recentEvents)
+  // Open threads from most recent summary
+  const recentSummaries = await getRecentSummaries(novelId, chapterNum, 1)
+  if (recentSummaries.length > 0 && recentSummaries[0].openThreads?.length > 0) {
+    sections.push(`OPEN THREADS:\n${recentSummaries[0].openThreads.map(t => `- ${t}`).join("\n")}`)
+  }
 
-  // ── LAYER 8: Character States ──────────────────────────────────────────
+  // Story spine context (act, theme — always from direct lookup)
+  if (storySpine) {
+    const spineSection = formatStorySpine(storySpine, novel, chapterNum)
+    if (spineSection) sections.push(spineSection)
+  }
+
+  // ── Causal Context (graph traversal) ─────────────────────────────────
+  if (results.events.length > 0) {
+    // Get causal chains for the most relevant events
+    const eventLines: string[] = []
+    for (const r of results.events.slice(0, 8)) {
+      let line = `Ch${r.content.chapter_number}: ${r.content.event}`
+      if (r.content.consequences) line += ` → ${r.content.consequences}`
+
+      // Trace causal chain back
+      const chain = await tryGet(() => getCausalChain(novelId, r.id, 3))
+      if (chain && chain.length > 0) {
+        const chainStr = chain.map(c => `ch${c.chapterNumber}: ${c.event}`).join(" ← ")
+        line += `\n    Caused by: ${chainStr}`
+      }
+      eventLines.push(`- ${line}`)
+    }
+    sections.push(`RELEVANT EVENTS:\n${eventLines.join("\n")}`)
+  }
+
+  // ── Character Knowledge (POV-aware) ──────────────────────────────────
+  if (povChar) {
+    const knowledge = await tryGet(() => getKnowledgeGraph(novelId, povChar.id, chapterNum))
+    if (knowledge && knowledge.length > 0) {
+      const knowsLines: string[] = []
+      const suspectedLines: string[] = []
+      for (const k of knowledge) {
+        const source = k.fromCharacterId ? `from ${k.fromCharacterId}, ` : ""
+        const line = `${k.knowledge} (${source}ch${k.chapterLearned})`
+        if (k.isFalse) {
+          knowsLines.push(`${line} [BELIEVES BUT FALSE]`)
+        } else if (k.confidence < 0.7) {
+          suspectedLines.push(`${line} [SUSPECTS, confidence ${k.confidence}]`)
+        } else {
+          knowsLines.push(line)
+        }
+      }
+      const parts: string[] = [`WHAT ${povChar.name.toUpperCase()} KNOWS:`]
+      if (knowsLines.length > 0) parts.push(knowsLines.map(l => `  - ${l}`).join("\n"))
+      if (suspectedLines.length > 0) parts.push(`  SUSPECTS:\n${suspectedLines.map(l => `  - ${l}`).join("\n")}`)
+
+      // What creates dramatic tension — things POV doesn't know
+      const charStates = await getCharacterStatesAtChapter(novelId, chapterNum)
+      const povState = charStates.find(cs => cs.characterId === povChar.id || cs.characterId.toLowerCase() === povChar.name.toLowerCase())
+      if (povState?.doesNotKnow?.length > 0) {
+        parts.push(`  DOESN'T KNOW:\n${povState.doesNotKnow.map(d => `  - ${d}`).join("\n")}`)
+      }
+
+      sections.push(parts.join("\n"))
+    }
+  }
+
+  // ── Established Facts (semantically relevant) ────────────────────────
+  if (results.facts.length > 0) {
+    const byChapter = new Map<number, string[]>()
+    for (const r of results.facts) {
+      const ch = r.content.established_in_chapter
+      if (!byChapter.has(ch)) byChapter.set(ch, [])
+      byChapter.get(ch)!.push(`[${r.content.category}] ${r.content.fact}`)
+    }
+    const factLines = [...byChapter.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([ch, facts]) => facts.map(f => `  ch${ch}: ${f}`).join("\n"))
+      .join("\n")
+    sections.push(`ESTABLISHED FACTS (${results.facts.length} most relevant):\n${factLines}`)
+  }
+
+  // ── Thematic Threads ─────────────────────────────────────────────────
+  if (storySpine?.theme) {
+    const thread = await tryGet(() => getThematicThread(novelId, storySpine.theme, chapterNum))
+    if (thread && thread.length > 0) {
+      sections.push(`THEMATIC THREAD ("${storySpine.theme}"):\n${thread.slice(-10).map(t =>
+        `- ch${t.chapterNumber}: ${t.content.slice(0, 100)}`
+      ).join("\n")}`)
+    }
+  }
+
+  // ── Open Issues ──────────────────────────────────────────────────────
+  const openIssues = await getOpenIssues(novelId, chapterNum)
+  if (openIssues.length > 0) {
+    sections.push(`ISSUES TO ADDRESS:\n${openIssues.map(i => `- [${i.severity}] ${i.description}`).join("\n")}`)
+  }
+
+  return sections
+}
+
+// ── Heuristic Fallback (no embeddings) ────────────────────────────────────
+
+async function buildHeuristicFallback(
+  novelId: string, chapterNum: number, outline: any, povChar: CharacterProfile | undefined,
+  relevantChars: CharacterProfile[], worldBible: any, worldSystems: WorldSystem[],
+  storySpine: StorySpine | null, novel: NovelState | null,
+): Promise<string[]> {
+  const sections: string[] = []
+
+  // World systems (POV-filtered)
+  if (povChar && worldSystems.length > 0) {
+    const systemSection = await formatWorldSystemsForPOV(novelId, povChar, worldSystems)
+    if (systemSection) sections.push(systemSection)
+  }
+
+  // Setting
+  sections.push(formatSettingFromWorldBible(worldBible, outline))
+
+  // Story context (last 5 summaries)
+  const recentSummaries = await getRecentSummaries(novelId, chapterNum, 5)
+  if (recentSummaries.length > 0) {
+    sections.push(`PREVIOUS CHAPTERS:\n${recentSummaries.map(s => {
+      let entry = `Chapter ${s.chapterNumber}: ${s.summary}`
+      if (s.emotionalState) entry += `\n   Emotional throughline: ${s.emotionalState}`
+      return entry
+    }).join("\n\n")}`)
+
+    const lastSummary = recentSummaries[recentSummaries.length - 1]
+    if (lastSummary?.openThreads?.length > 0) {
+      sections.push(`OPEN THREADS:\n${lastSummary.openThreads.map(t => `- ${t}`).join("\n")}`)
+    }
+  }
+
+  if (storySpine) {
+    const spineSection = formatStorySpine(storySpine, novel, chapterNum)
+    if (spineSection) sections.push(spineSection)
+  }
+
+  // Character states
   const charStates = await getCharacterStatesAtChapter(novelId, chapterNum)
   const presentStates = charStates.filter(cs =>
-    chapterCharNames.includes(cs.characterId.toLowerCase()) ||
+    outline.charactersPresent.map((n: string) => n.toLowerCase()).includes(cs.characterId.toLowerCase()) ||
     relevantChars.some(c => c.id === cs.characterId)
   )
   if (presentStates.length > 0) {
-    sections.push(`CHARACTER STATES (as of end of previous chapter):\n${presentStates.map(cs => `${cs.characterId}:
+    sections.push(`CHARACTER STATES:\n${presentStates.map(cs => `${cs.characterId}:
   Location: ${cs.location}
   Carrying: ${cs.emotionalState} (show through behavior, NEVER state directly)
   Knows: ${cs.knows.join("; ")}
   Doesn't know: ${cs.doesNotKnow.join("; ")}`).join("\n\n")}`)
   }
 
-  // ── LAYER 9: Continuity (filtered facts + open issues) ─────────────────
-  sections.push(await formatContinuity(novelId, chapterNum, relevantChars, outline))
+  // Facts (heuristic scoring)
+  const allFacts = await tryGet(() => getFactsUpToChapter(novelId, chapterNum)) ?? []
+  if (allFacts.length > 0) {
+    const charNames = new Set(relevantChars.map(c => c.name.toLowerCase()))
+    const setting = outline.setting.toLowerCase()
 
-  // ── LAYER 10: Craft Reminders ──────────────────────────────────────────
-  sections.push(formatCraftReminders(povChar, relevantChars))
+    const scored = allFacts.map(f => {
+      const factLower = f.fact.toLowerCase()
+      let score = 0
+      for (const name of charNames) { if (factLower.includes(name)) score += 3 }
+      if (factLower.includes(setting)) score += 2
+      const catPriority: Record<string, number> = { relationship: 4, knowledge: 4, identity: 3, rule: 3, action: 2, dialogue: 2 }
+      score += catPriority[f.category] ?? 0
+      if (f.establishedInChapter >= chapterNum - 5) score += 2
+      if (f.category === "rule") score += 5
+      return { fact: f, score }
+    })
 
-  return sections.filter(Boolean).join("\n\n")
+    scored.sort((a, b) => b.score - a.score)
+    const topFacts = scored.slice(0, 80)
+    if (topFacts.length > 0) {
+      const byChapter = new Map<number, string[]>()
+      for (const { fact } of topFacts) {
+        const ch = fact.establishedInChapter
+        if (!byChapter.has(ch)) byChapter.set(ch, [])
+        byChapter.get(ch)!.push(`[${fact.category}] ${fact.fact}`)
+      }
+      const factLines = [...byChapter.entries()]
+        .sort((a, b) => a[0] - b[0])
+        .map(([ch, facts]) => facts.map(f => `  ch${ch}: ${f}`).join("\n"))
+        .join("\n")
+      sections.push(`ESTABLISHED FACTS (${topFacts.length} of ${allFacts.length}, heuristic):\n${factLines}`)
+    }
+  }
+
+  const openIssues = await getOpenIssues(novelId, chapterNum)
+  if (openIssues.length > 0) {
+    sections.push(`ISSUES TO ADDRESS:\n${openIssues.map(i => `- [${i.severity}] ${i.description}`).join("\n")}`)
+  }
+
+  return sections
 }
 
-// ── Layer Formatters ──────────────────────────────────────────────────────
+// ── Fixed Layer Formatters ────────────────────────────────────────────────
 
 function formatSceneSetup(outline: any): string {
   return `CHAPTER ${outline.chapterNumber}: "${outline.title}"
@@ -97,10 +331,9 @@ ${outline.scenes.map((s: any, i: number) => `${i + 1}. ${s.description}
    Emotional shift: ${s.emotionalShift}`).join("\n\n")}`
 }
 
-async function formatPOVWorldView(novelId: string, povChar: CharacterProfile, worldSystems: WorldSystem[], cultures: any[]): Promise<string> {
+async function formatPOVWorldView(novelId: string, povChar: CharacterProfile, cultures: any[]): Promise<string | null> {
   const parts: string[] = [`POV WORLD VIEW (${povChar.name}'s perception shapes the narration):`]
 
-  // Cultural background
   const charCultures = await tryGet(() => getCharacterCultures(novelId, povChar.id)) ?? []
   if (charCultures.length > 0) {
     for (const cc of charCultures) {
@@ -112,7 +345,6 @@ async function formatPOVWorldView(novelId: string, povChar: CharacterProfile, wo
       if (c.taboos.length > 0) parts.push(`    Taboos: ${c.taboos.join(", ")}`)
     }
   } else if (povChar.culturalBackground?.length > 0) {
-    // Fallback to inline cultural data from character profile
     for (const cb of povChar.culturalBackground) {
       const culture = cultures.find(c => c.name.toLowerCase() === cb.cultureName.toLowerCase())
       if (culture) {
@@ -123,7 +355,7 @@ async function formatPOVWorldView(novelId: string, povChar: CharacterProfile, wo
     }
   }
 
-  if (parts.length === 1) return "" // No cultural data available
+  if (parts.length === 1) return null
   return parts.join("\n")
 }
 
@@ -137,7 +369,6 @@ async function formatCharacterProfiles(novelId: string, povChar: CharacterProfil
     profile += `\n  Goals: ${c.goals}`
     profile += `\n  Fears: ${c.fears}`
 
-    // Static relationships (from character profile)
     if (c.relationships?.length) {
       const presentNames = relevantChars.map(rc => rc.name.toLowerCase())
       const relevantRels = c.relationships.filter(r => presentNames.includes(r.characterName.toLowerCase()))
@@ -146,13 +377,23 @@ async function formatCharacterProfiles(novelId: string, povChar: CharacterProfil
       }
     }
 
-    // Evolving relationship state (from knowledge graph)
+    // Relationship arc (full trajectory, not just latest snapshot)
     if (povChar && c.id !== povChar.id) {
-      const relState = await tryGet(() => getRelationshipBetween(novelId, povChar.id, c.id, chapterNum))
-      if (relState) {
-        profile += `\n  Current dynamic with ${povChar.name}: [${relState.trustLevel}] ${relState.dynamic}`
-        if (relState.tension) profile += `\n    Tension: ${relState.tension}`
-        if (relState.recentShift) profile += `\n    Recent shift: ${relState.recentShift}`
+      const arc = await tryGet(() => getRelationshipArc(novelId, povChar.id, c.id, chapterNum))
+      if (arc && arc.length > 0) {
+        const latest = arc[arc.length - 1]
+        profile += `\n  Current dynamic with ${povChar.name}: [${latest.trustLevel}] ${latest.dynamic}`
+        if (latest.tension) profile += `\n    Tension: ${latest.tension}`
+        if (arc.length > 1) {
+          const trajectory = arc.map(s => s.trustLevel).join(" → ")
+          profile += `\n    Arc: ${trajectory}`
+        }
+      } else {
+        const relState = await tryGet(() => getRelationshipBetween(novelId, povChar.id, c.id, chapterNum))
+        if (relState) {
+          profile += `\n  Current dynamic with ${povChar.name}: [${relState.trustLevel}] ${relState.dynamic}`
+          if (relState.tension) profile += `\n    Tension: ${relState.tension}`
+        }
       }
     }
 
@@ -167,12 +408,9 @@ async function formatWorldSystemsForPOV(novelId: string, povChar: CharacterProfi
   if (awareness.length === 0 && worldSystems.length === 0) return null
 
   const parts: string[] = []
-
   for (const sys of worldSystems) {
     const charAwareness = awareness.find(a => a.systemId === sys.id)
     const level = charAwareness?.awarenessLevel ?? "ignorant"
-
-    // Filter context by awareness level
     if (level === "ignorant") continue
 
     let entry = ""
@@ -198,11 +436,7 @@ async function formatWorldSystemsForPOV(novelId: string, povChar: CharacterProfi
         if (sys.constraints.length > 0) entry += `\n    Limitations: ${sys.constraints.join("; ")}`
         break
     }
-
-    if (charAwareness?.perspective) {
-      entry += `\n    ${povChar.name}'s perspective: ${charAwareness.perspective}`
-    }
-
+    if (charAwareness?.perspective) entry += `\n    ${povChar.name}'s perspective: ${charAwareness.perspective}`
     if (entry) parts.push(entry)
   }
 
@@ -210,152 +444,41 @@ async function formatWorldSystemsForPOV(novelId: string, povChar: CharacterProfi
   return `WORLD SYSTEMS (as ${povChar.name} understands them):\n${parts.join("\n\n")}`
 }
 
-async function formatSetting(novelId: string, worldBible: any, outline: any, chapterNum: number): Promise<string> {
+function formatSettingFromWorldBible(worldBible: any, outline: any): string {
   const parts: string[] = []
 
-  // Match locations
-  const relevantLocations = worldBible.locations.filter(
+  const relevantLocations = worldBible.locations?.filter(
     (l: any) => l.name.toLowerCase().includes(outline.setting.toLowerCase()) ||
          outline.setting.toLowerCase().includes(l.name.toLowerCase())
-  )
+  ) ?? []
 
   if (relevantLocations.length > 0) {
-    parts.push(`SETTING DETAILS:\n${relevantLocations.map((l: any) =>
+    parts.push(`SETTING:\n${relevantLocations.map((l: any) =>
       `${l.name}: ${l.description}${l.sensoryDetails ? `\n  Sensory: ${l.sensoryDetails}` : ""}`
     ).join("\n")}`)
   }
 
-  // Location history
-  const locationEvents = await tryGet(() => getEventsAtLocation(novelId, outline.setting, chapterNum)) ?? []
-  if (locationEvents.length > 0) {
-    const recentLocationEvents = locationEvents.slice(-5)
-    parts.push(`WHAT HAS HAPPENED HERE:\n${recentLocationEvents.map(e =>
-      `- Ch${e.chapterNumber}: ${e.event}`
-    ).join("\n")}`)
-  }
-
-  if (worldBible.sensoryPalette) {
-    parts.push(`WORLD SENSORY PALETTE: ${worldBible.sensoryPalette}`)
-  }
-
-  if (worldBible.technologyConstraints) {
-    parts.push(`TECHNOLOGY/MAGIC CONSTRAINTS: ${worldBible.technologyConstraints}`)
-  }
-
-  parts.push(`WORLD RULES:\n${worldBible.rules.map((r: string) => `- ${r}`).join("\n")}`)
+  if (worldBible.sensoryPalette) parts.push(`WORLD SENSORY PALETTE: ${worldBible.sensoryPalette}`)
+  if (worldBible.technologyConstraints) parts.push(`CONSTRAINTS: ${worldBible.technologyConstraints}`)
+  if (worldBible.rules?.length > 0) parts.push(`WORLD RULES:\n${worldBible.rules.map((r: string) => `- ${r}`).join("\n")}`)
 
   return parts.join("\n\n")
 }
 
-async function formatStoryContext(novelId: string, storySpine: StorySpine | null, novel: NovelState | null, chapterNum: number): Promise<string> {
-  const parts: string[] = []
+function formatStorySpine(storySpine: StorySpine, novel: NovelState | null, chapterNum: number): string | null {
+  let section = `STORY CONTEXT:\nTheme: ${storySpine.theme}\nCentral conflict: ${storySpine.centralConflict}\nEnding direction: ${storySpine.endingDirection}`
 
-  // Previous chapters + open threads
-  const recentSummaries = await getRecentSummaries(novelId, chapterNum, 5)
-  if (recentSummaries.length > 0) {
-    parts.push(`PREVIOUS CHAPTERS:\n${recentSummaries.map(s => {
-      let entry = `Chapter ${s.chapterNumber}: ${s.summary}`
-      if (s.emotionalState) entry += `\n   Emotional throughline: ${s.emotionalState}`
-      return entry
-    }).join("\n\n")}`)
-
-    // Open threads from the most recent summary
-    const lastSummary = recentSummaries[recentSummaries.length - 1]
-    if (lastSummary?.openThreads?.length > 0) {
-      parts.push(`OPEN THREADS (unresolved from previous chapters — weave in or advance):\n${lastSummary.openThreads.map(t => `- ${t}`).join("\n")}`)
-    }
+  const totalChapters = novel?.totalChapters || storySpine.acts.length
+  const chaptersPerAct = Math.ceil(totalChapters / storySpine.acts.length)
+  const actIndex = Math.min(Math.floor((chapterNum - 1) / chaptersPerAct), storySpine.acts.length - 1)
+  const currentAct = storySpine.acts[actIndex]
+  if (currentAct) {
+    section += `\nCurrent act: Act ${currentAct.number} — ${currentAct.name}`
+    section += `\n  Arc: ${currentAct.summary}`
+    section += `\n  Emotional arc: ${currentAct.emotionalArc}`
+    if (currentAct.turningPoint) section += `\n  Turning point: ${currentAct.turningPoint}`
   }
-
-  // Story spine
-  if (storySpine) {
-    let spineSection = `STORY CONTEXT:\nTheme: ${storySpine.theme}\nCentral conflict: ${storySpine.centralConflict}\nEnding direction: ${storySpine.endingDirection}`
-
-    const totalChapters = novel?.totalChapters || storySpine.acts.length
-    const chaptersPerAct = Math.ceil(totalChapters / storySpine.acts.length)
-    const actIndex = Math.min(Math.floor((chapterNum - 1) / chaptersPerAct), storySpine.acts.length - 1)
-    const currentAct = storySpine.acts[actIndex]
-    if (currentAct) {
-      spineSection += `\nCurrent act: Act ${currentAct.number} — ${currentAct.name}`
-      spineSection += `\n  Arc: ${currentAct.summary}`
-      spineSection += `\n  Emotional arc: ${currentAct.emotionalArc}`
-      if (currentAct.turningPoint) spineSection += `\n  Turning point: ${currentAct.turningPoint}`
-    }
-
-    parts.push(spineSection)
-  }
-
-  return parts.join("\n\n")
-}
-
-async function formatRecentTimeline(novelId: string, chapterNum: number, relevantChars: CharacterProfile[]): Promise<string | null> {
-  const charNames = relevantChars.map(c => c.name)
-  const events = await tryGet(() => getRecentEventsForCharacters(novelId, chapterNum, charNames, 10)) ?? []
-  if (events.length === 0) return null
-
-  return `RECENT EVENTS (involving characters present):\n${events.map(e =>
-    `- Ch${e.chapterNumber}: ${e.event}${e.consequences ? ` → ${e.consequences}` : ""}`
-  ).join("\n")}`
-}
-
-async function formatContinuity(novelId: string, chapterNum: number, relevantChars: CharacterProfile[], outline: any): Promise<string> {
-  const parts: string[] = []
-
-  // Filtered facts — prioritize by relevance, cap at ~80
-  const allFacts = await tryGet(() => getFactsUpToChapter(novelId, chapterNum)) ?? []
-  if (allFacts.length > 0) {
-    const charNames = new Set(relevantChars.map(c => c.name.toLowerCase()))
-    const setting = outline.setting.toLowerCase()
-
-    // Score facts by relevance
-    const scored = allFacts.map(f => {
-      const factLower = f.fact.toLowerCase()
-      let score = 0
-      // Present characters mentioned
-      for (const name of charNames) {
-        if (factLower.includes(name)) score += 3
-      }
-      // Current location
-      if (factLower.includes(setting) || setting.includes(factLower.slice(0, 20))) score += 2
-      // Category priority
-      const categoryPriority: Record<string, number> = {
-        relationship: 4, knowledge: 4, identity: 3, rule: 3,
-        action: 2, dialogue: 2, temporal: 1, physical: 1, sensory: 0, emotional: 1,
-      }
-      score += categoryPriority[f.category] ?? 0
-      // Recency bonus (last 5 chapters)
-      if (f.establishedInChapter >= chapterNum - 5) score += 2
-      // World rules always relevant
-      if (f.category === "rule") score += 5
-      return { fact: f, score }
-    })
-
-    // Sort by score, take top 80
-    scored.sort((a, b) => b.score - a.score)
-    const topFacts = scored.slice(0, 80)
-
-    if (topFacts.length > 0) {
-      // Group by chapter for readability
-      const byChapter = new Map<number, string[]>()
-      for (const { fact } of topFacts) {
-        const ch = fact.establishedInChapter
-        if (!byChapter.has(ch)) byChapter.set(ch, [])
-        byChapter.get(ch)!.push(`[${fact.category}] ${fact.fact}`)
-      }
-      const factLines = [...byChapter.entries()]
-        .sort((a, b) => a[0] - b[0])
-        .map(([ch, facts]) => facts.map(f => `  ch${ch}: ${f}`).join("\n"))
-        .join("\n")
-      parts.push(`ESTABLISHED FACTS (${topFacts.length} most relevant of ${allFacts.length}):\n${factLines}`)
-    }
-  }
-
-  // Open issues
-  const openIssues = await getOpenIssues(novelId, chapterNum)
-  if (openIssues.length > 0) {
-    parts.push(`ISSUES TO ADDRESS:\n${openIssues.map(i => `- [${i.severity}] ${i.description}`).join("\n")}`)
-  }
-
-  return parts.join("\n\n")
+  return section
 }
 
 function formatCraftReminders(povChar: CharacterProfile | undefined, relevantChars: CharacterProfile[]): string {
