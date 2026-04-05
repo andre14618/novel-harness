@@ -2,7 +2,7 @@ import db from "../../data/connection"
 import type { ChapterOutline } from "../types"
 
 export async function saveChapterOutline(novelId: string, outline: ChapterOutline): Promise<void> {
-  await db`INSERT INTO chapter_outlines (novel_id, chapter_number, outline_json) VALUES (${novelId}, ${outline.chapterNumber}, ${JSON.stringify(outline)})
+  await db`INSERT INTO chapter_outlines (novel_id, chapter_number, outline_json) VALUES (${novelId}, ${outline.chapterNumber}, ${outline})
            ON CONFLICT (novel_id, chapter_number) DO UPDATE SET outline_json = EXCLUDED.outline_json`
 }
 

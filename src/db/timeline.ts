@@ -14,7 +14,7 @@ export async function saveTimelineEvent(novelId: string, te: TimelineEvent): Pro
   if (te.id) {
     await db`INSERT INTO timeline_events (id, novel_id, chapter_number, event, location, participants_json, witnesses_json, consequences)
              VALUES (${te.id}::uuid, ${novelId}, ${te.chapterNumber}, ${te.event}, ${te.location},
-                     ${JSON.stringify(te.participants)}, ${JSON.stringify(te.witnesses)}, ${te.consequences})
+                     ${te.participants}, ${te.witnesses}, ${te.consequences})
              ON CONFLICT (id) DO UPDATE SET
                event = EXCLUDED.event, location = EXCLUDED.location,
                participants_json = EXCLUDED.participants_json, witnesses_json = EXCLUDED.witnesses_json,
@@ -23,7 +23,7 @@ export async function saveTimelineEvent(novelId: string, te: TimelineEvent): Pro
   }
   const rows = await db`INSERT INTO timeline_events (novel_id, chapter_number, event, location, participants_json, witnesses_json, consequences)
                         VALUES (${novelId}, ${te.chapterNumber}, ${te.event}, ${te.location},
-                                ${JSON.stringify(te.participants)}, ${JSON.stringify(te.witnesses)}, ${te.consequences})
+                                ${te.participants}, ${te.witnesses}, ${te.consequences})
                         RETURNING id`
   return rows[0].id
 }

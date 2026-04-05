@@ -3,7 +3,7 @@ import type { CharacterState } from "../types"
 
 export async function saveCharacterState(novelId: string, charId: string, chapterNum: number, state: CharacterState): Promise<void> {
   await db`INSERT INTO character_states (novel_id, character_id, chapter_number, state_json)
-           VALUES (${novelId}, ${charId}, ${chapterNum}, ${JSON.stringify(state)})
+           VALUES (${novelId}, ${charId}, ${chapterNum}, ${state})
            ON CONFLICT (novel_id, character_id, chapter_number) DO UPDATE SET state_json = EXCLUDED.state_json`
 }
 

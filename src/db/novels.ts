@@ -2,7 +2,7 @@ import db from "../../data/connection"
 import type { Phase, SeedInput, NovelState } from "../types"
 
 export async function createNovel(id: string, seed: SeedInput): Promise<void> {
-  await db`INSERT INTO novels (id, seed_json) VALUES (${id}, ${JSON.stringify(seed)})`
+  await db`INSERT INTO novels (id, seed_json) VALUES (${id}, ${seed})`
 }
 
 export async function getNovel(id: string): Promise<NovelState> {

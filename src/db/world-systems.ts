@@ -43,8 +43,8 @@ export interface CharacterSystemAwareness {
 export async function saveWorldSystem(novelId: string, system: WorldSystem): Promise<void> {
   await db`INSERT INTO world_systems (id, novel_id, name, type, description, rules_json, manifestations_json, vocabulary_json, constraints_json)
            VALUES (${system.id}, ${novelId}, ${system.name}, ${system.type}, ${system.description},
-                   ${JSON.stringify(system.rules)}, ${JSON.stringify(system.manifestations)},
-                   ${JSON.stringify(system.vocabulary)}, ${JSON.stringify(system.constraints)})
+                   ${system.rules}, ${system.manifestations},
+                   ${system.vocabulary}, ${system.constraints})
            ON CONFLICT (novel_id, id) DO UPDATE SET
              name = EXCLUDED.name, type = EXCLUDED.type, description = EXCLUDED.description,
              rules_json = EXCLUDED.rules_json, manifestations_json = EXCLUDED.manifestations_json,
@@ -75,9 +75,9 @@ function mapWorldSystem(r: any): WorldSystem {
 export async function saveCulture(novelId: string, culture: Culture): Promise<void> {
   await db`INSERT INTO cultures (id, novel_id, name, description, values_json, taboos_json, speech_influences, customs_json, system_views_json)
            VALUES (${culture.id}, ${novelId}, ${culture.name}, ${culture.description},
-                   ${JSON.stringify(culture.values)}, ${JSON.stringify(culture.taboos)},
-                   ${culture.speechInfluences}, ${JSON.stringify(culture.customs)},
-                   ${JSON.stringify(culture.systemViews)})
+                   ${culture.values}, ${culture.taboos},
+                   ${culture.speechInfluences}, ${culture.customs},
+                   ${culture.systemViews})
            ON CONFLICT (novel_id, id) DO UPDATE SET
              name = EXCLUDED.name, description = EXCLUDED.description,
              values_json = EXCLUDED.values_json, taboos_json = EXCLUDED.taboos_json,

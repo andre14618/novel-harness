@@ -2,7 +2,7 @@ import db from "../../data/connection"
 import type { WorldBible, CharacterProfile, StorySpine } from "../types"
 
 export async function saveWorldBible(novelId: string, bible: WorldBible): Promise<void> {
-  await db`INSERT INTO world_bibles (novel_id, content_json) VALUES (${novelId}, ${JSON.stringify(bible)})
+  await db`INSERT INTO world_bibles (novel_id, content_json) VALUES (${novelId}, ${bible})
            ON CONFLICT (novel_id) DO UPDATE SET content_json = EXCLUDED.content_json`
 }
 
@@ -13,7 +13,7 @@ export async function getWorldBible(novelId: string): Promise<WorldBible> {
 }
 
 export async function saveCharacter(novelId: string, profile: CharacterProfile): Promise<void> {
-  await db`INSERT INTO characters (id, novel_id, name, profile_json) VALUES (${profile.id}, ${novelId}, ${profile.name}, ${JSON.stringify(profile)})
+  await db`INSERT INTO characters (id, novel_id, name, profile_json) VALUES (${profile.id}, ${novelId}, ${profile.name}, ${profile})
            ON CONFLICT (novel_id, id) DO UPDATE SET name = EXCLUDED.name, profile_json = EXCLUDED.profile_json`
 }
 
@@ -23,7 +23,7 @@ export async function getCharacters(novelId: string): Promise<CharacterProfile[]
 }
 
 export async function saveStorySpine(novelId: string, spine: StorySpine): Promise<void> {
-  await db`INSERT INTO story_spines (novel_id, content_json) VALUES (${novelId}, ${JSON.stringify(spine)})
+  await db`INSERT INTO story_spines (novel_id, content_json) VALUES (${novelId}, ${spine})
            ON CONFLICT (novel_id) DO UPDATE SET content_json = EXCLUDED.content_json`
 }
 
