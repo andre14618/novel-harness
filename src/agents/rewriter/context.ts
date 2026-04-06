@@ -1,5 +1,5 @@
 import type { ContinuityIssue } from "../../schemas/shared"
-import { getApprovedDraft, getChapterOutline, getStorySpine } from "../../db"
+import { getApprovedDraft, getChapterOutline } from "../../db"
 
 export async function buildContext(novelId: string, chapterNum: number, issues: ContinuityIssue[]): Promise<string> {
   const draft = await getApprovedDraft(novelId, chapterNum)
@@ -7,15 +7,7 @@ export async function buildContext(novelId: string, chapterNum: number, issues: 
 
   const outline = await getChapterOutline(novelId, chapterNum)
 
-  let ctx = `CHAPTER ${chapterNum}: "${outline.title}"\n`
-  ctx += `POV: ${outline.povCharacter}\n`
-  ctx += `Target: ~${outline.targetWords} words\n`
-
-  try {
-    const spine = await getStorySpine(novelId)
-    if (spine.theme) ctx += `Theme: ${spine.theme}\n`
-  } catch {}
-
+  let ctx = `POV: ${outline.povCharacter}\n`
   ctx += "\nISSUES TO FIX:\n"
   ctx += issues.map((issue, i) =>
     `${i + 1}. [${issue.severity}] ${issue.description}${issue.suggestedFix ? ` — ${issue.suggestedFix}` : ""}`
