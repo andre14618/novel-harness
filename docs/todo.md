@@ -42,7 +42,7 @@ Rewriter is the single most expensive agent (24-32% of novel cost, 22-28 calls p
 Experiment #90 showed Qwen 235B, DeepSeek V3.2, and MiMo Flash are quality-equivalent on penalty dimensions. Qwen is 12x faster (428 tok/s), DeepSeek has best penalties but 48.7s latency, MiMo is cheapest ($0.0007/ch). All produce same AI cliché categories.
 
 - Evaluate DeepSeek V3.2 as rewriter — 95% prefix caching on 10K avg prompt tokens could cut rewriter cost significantly
-- Consider MiMo Flash as iteration writer (speed + cost) with Qwen 235B for final drafts
+- MiMo Flash not viable as writer — exposition-heavy, theme-stating, weak prompt adherence despite similar penalty counts. OK for fast smoke tests only.
 
 ## Seeds & Testing
 
