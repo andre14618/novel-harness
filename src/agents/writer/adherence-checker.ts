@@ -91,8 +91,8 @@ Return pass:true with empty deviations if the beat is executed well.`,
     if (!result.output.pass) {
       issues.push(...result.output.deviations)
     }
-  } catch {
-    // LLM check failed — don't block on it
+  } catch (err) {
+    issues.push(`Adherence check failed: ${err instanceof Error ? err.message : String(err)}`)
   }
 
   return {

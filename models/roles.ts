@@ -55,13 +55,12 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // ── Lint fixer (per-sentence creative fixes via LLM) ──────────────────
   "lint-fixer":                { provider: "cerebras", model: "qwen/qwen3-235b", temperature: 0.2 },
 
-  // ── Judges (novel validation) ────────────────────────────────────────
+  // ── Judges (novel validation) ──────────────────────────────────────────
   "judge":                     { ...deepseekV3, temperature: 0.1 },
   "pairwise-judge":            { ...deepseekV3, temperature: 0.1 },
 
   // ── Benchmark (can tune independently from novel pipeline) ───────────
   "benchmark-writer":          { ...deepseekV3, temperature: 0.8, maxTokens: 8000 },
-  "lint-writer":               { ...cerebrasQwen235B, temperature: 0.8, maxTokens: 8192 },
   "benchmark-judge":           { ...deepseekV3, temperature: 0.1 },
 
   // ── Improvement daemon ──────────────────────────────────────────────

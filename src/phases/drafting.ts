@@ -217,9 +217,9 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
         }
         emit(novelId, { type: "progress", data: { step: "continuity", chapter: ch, status: "complete", issueCount: issues.length } })
       } catch (err) {
-        log(novelId, "warn", `Continuity check failed for chapter ${ch}: ${err}`)
-        console.log(`  Continuity check failed (non-blocking): ${err instanceof Error ? err.message : err}`)
-        // Continue — continuity failure shouldn't block drafting
+        log(novelId, "error", `Continuity check failed for chapter ${ch}: ${err}`)
+        console.error(`  Continuity check failed: ${err instanceof Error ? err.message : err}`)
+        continue  // Retry the chapter — don't proceed without continuity validation
       }
 
       // Save draft

@@ -10,9 +10,9 @@
  * Dynamic sections (semantic retrieval via hybrid RRF search):
  *   Retrieved based on scene relevance, weighted by the retrieval_config.
  *   Includes: world systems, setting, story context, timeline, causal chains,
- *   character knowledge, facts, thematic threads.
+ *   character knowledge, facts.
  *
- * Falls back to heuristic assembly if no embeddings exist for the novel.
+ * Falls back to minimal assembly if no embeddings exist (safety net only).
  */
 
 import {
@@ -28,11 +28,25 @@ import {
   hasEmbeddings, searchForScene, buildSceneQuery, getRetrievalConfig,
   getCausalChain, getRelationshipArc, getKnowledgeGraph,
 } from "../../db/retrieval"
+import { getContextTemplate, interpolate as tplInterp } from "../../db/context-templates"
 import type { StorySpine, NovelState, CharacterProfile } from "../../types"
 import type { WorldSystem } from "../../db/world-systems"
 
+/** Attempt a DB lookup that may legitimately return no data (novel hasn't reached that stage yet).
+ *  Only catches "not found" style errors. Real errors (connection, schema) propagate. */
 async function tryGet<T>(fn: () => Promise<T>): Promise<T | null> {
-  try { return await fn() } catch { return null }
+  try { return await fn() }
+  catch (err: any) {
+    // "not found" or empty result — legitimate missing data
+    if (err?.code === "PGRST116" || err?.message?.includes("not found") || err?.message?.includes("no rows")) return null
+    // Postgres "undefined_table" or "undefined_column" — schema issue, propagate
+    if (err?.code === "42P01" || err?.code === "42703") throw err
+    // Connection errors — propagate
+    if (err?.code === "ECONNREFUSED" || err?.code === "ETIMEDOUT") throw err
+    // Unknown — log and return null (preserves existing behavior for edge cases)
+    console.warn(`[context] tryGet warning: ${err?.message ?? err}`)
+    return null
+  }
 }
 
 export async function buildContext(novelId: string, chapterNum: number): Promise<string> {
@@ -62,7 +76,7 @@ export async function buildContext(novelId: string, chapterNum: number): Promise
   // ── FIXED: Character Profiles + Relationship Arcs ──────────────────────
   sections.push(await formatCharacterProfiles(novelId, povChar, relevantChars, chapterNum))
 
-  // ── DYNAMIC: Semantic retrieval or heuristic fallback ──────────────────
+  // ── DYNAMIC: Semantic retrieval or minimal fallback ─────────────────────
   const embedsReady = await hasEmbeddings(novelId)
 
   if (embedsReady) {
@@ -72,7 +86,8 @@ export async function buildContext(novelId: string, chapterNum: number): Promise
     )
     sections.push(...dynamicSections)
   } else {
-    const fallbackSections = await buildHeuristicFallback(
+    console.warn(`[context] No embeddings for novel ${novelId} — using minimal fallback`)
+    const fallbackSections = await buildMinimalFallback(
       novelId, chapterNum, outline, povChar, relevantChars,
       worldBible, worldSystems, storySpine, novel,
     )
@@ -94,7 +109,7 @@ async function buildDynamicSections(
 ): Promise<string[]> {
   const sections: string[] = []
   const config = await getRetrievalConfig(novelId)
-  const sceneQuery = buildSceneQuery(outline, povChar)
+  const sceneQuery = await buildSceneQuery(outline, povChar)
 
   // Run semantic search across all 6 tables
   const results = await searchForScene({
@@ -115,19 +130,20 @@ async function buildDynamicSections(
 
   // ── Story Context (semantically relevant summaries) ──────────────────
   if (results.summaries.length > 0) {
+    const summaryTpl = await getContextTemplate("summary_line")
+    const headerTpl = await getContextTemplate("section_summaries")
     const summaryLines = results.summaries.map(r => {
       const s = r.content
-      let line = `Chapter ${s.chapter_number}: ${s.summary}`
-      if (s.emotional_state) line += `\n   Emotional throughline: ${s.emotional_state}`
-      return line
+      return tplInterp(summaryTpl, { chapter: String(s.chapter_number), summary: s.summary, emotionalState: s.emotional_state ?? "" })
     })
-    sections.push(`RELEVANT PRIOR CHAPTERS:\n${summaryLines.join("\n\n")}`)
+    sections.push(`${headerTpl}\n${summaryLines.join("\n\n")}`)
   }
 
   // Open threads from most recent summary
   const recentSummaries = await getRecentSummaries(novelId, chapterNum, 1)
   if (recentSummaries.length > 0 && recentSummaries[0].openThreads?.length > 0) {
-    sections.push(`OPEN THREADS:\n${recentSummaries[0].openThreads.map(t => `- ${t}`).join("\n")}`)
+    const threadHeader = await getContextTemplate("section_threads")
+    sections.push(`${threadHeader}\n${recentSummaries[0].openThreads.map(t => `- ${t}`).join("\n")}`)
   }
 
   // Story spine context (act, theme — always from direct lookup)
@@ -138,13 +154,13 @@ async function buildDynamicSections(
 
   // ── Causal Context (graph traversal) ─────────────────────────────────
   if (results.events.length > 0) {
-    // Get causal chains for the most relevant events (deduped)
+    const eventTpl = await getContextTemplate("event_line")
+    const causalTpl = await getContextTemplate("causal_chain")
+    const eventHeader = await getContextTemplate("section_events")
     const eventLines: string[] = []
     for (const r of results.events.slice(0, 8)) {
-      let line = `Ch${r.content.chapter_number}: ${r.content.event}`
-      if (r.content.consequences) line += ` → ${r.content.consequences}`
+      let line = tplInterp(eventTpl, { chapter: String(r.content.chapter_number), event: r.content.event, consequences: r.content.consequences ?? "" })
 
-      // Trace causal chain back (dedup by event text)
       const chain = await tryGet(() => getCausalChain(novelId, r.id, 3))
       if (chain && chain.length > 0) {
         const seen = new Set<string>()
@@ -156,23 +172,25 @@ async function buildDynamicSections(
         })
         if (deduped.length > 0) {
           const chainStr = deduped.map(c => `ch${c.chapterNumber}: ${c.event}`).join(" ← ")
-          line += `\n    Caused by: ${chainStr}`
+          line += `\n    ${tplInterp(causalTpl, { chain: chainStr })}`
         }
       }
       eventLines.push(`- ${line}`)
     }
-    sections.push(`RELEVANT EVENTS:\n${eventLines.join("\n")}`)
+    sections.push(`${eventHeader}\n${eventLines.join("\n")}`)
   }
 
   // ── Character Knowledge (POV-aware) ──────────────────────────────────
   if (povChar) {
     const knowledge = await tryGet(() => getKnowledgeGraph(novelId, povChar.id, chapterNum))
     if (knowledge && knowledge.length > 0) {
+      const knowledgeTpl = await getContextTemplate("knowledge_line")
+      const knowledgeHeader = await getContextTemplate("section_knowledge")
       const knowsLines: string[] = []
       const suspectedLines: string[] = []
       for (const k of knowledge) {
         const source = k.fromCharacterId ? `from ${k.fromCharacterId}, ` : ""
-        const line = `${k.knowledge} (${source}ch${k.chapterLearned})`
+        const line = tplInterp(knowledgeTpl, { knowledge: k.knowledge, source, chapter: String(k.chapterLearned) })
         if (k.isFalse) {
           knowsLines.push(`${line} [BELIEVES BUT FALSE]`)
         } else if (k.confidence < 0.7) {
@@ -181,11 +199,11 @@ async function buildDynamicSections(
           knowsLines.push(line)
         }
       }
-      const parts: string[] = [`WHAT ${povChar.name.toUpperCase()} KNOWS:`]
+      const header = tplInterp(knowledgeHeader, { povName: povChar.name.toUpperCase() })
+      const parts: string[] = [header]
       if (knowsLines.length > 0) parts.push(knowsLines.map(l => `  - ${l}`).join("\n"))
       if (suspectedLines.length > 0) parts.push(`  SUSPECTS:\n${suspectedLines.map(l => `  - ${l}`).join("\n")}`)
 
-      // What creates dramatic tension — things POV doesn't know
       const charStates = await getCharacterStatesAtChapter(novelId, chapterNum)
       const povState = charStates.find(cs => cs.characterId === povChar.id || cs.characterId.toLowerCase() === povChar.name.toLowerCase())
       if (povState?.doesNotKnow?.length > 0) {
@@ -198,38 +216,40 @@ async function buildDynamicSections(
 
   // ── Established Facts (semantically relevant) ────────────────────────
   if (results.facts.length > 0) {
+    const factTpl = await getContextTemplate("fact_line")
+    const factHeader = await getContextTemplate("section_facts")
     const byChapter = new Map<number, string[]>()
     for (const r of results.facts) {
       const ch = r.content.established_in_chapter
       if (!byChapter.has(ch)) byChapter.set(ch, [])
-      byChapter.get(ch)!.push(`[${r.content.category}] ${r.content.fact}`)
+      byChapter.get(ch)!.push(tplInterp(factTpl, { chapter: String(ch), category: r.content.category, fact: r.content.fact }))
     }
     const factLines = [...byChapter.entries()]
       .sort((a, b) => a[0] - b[0])
-      .map(([ch, facts]) => facts.map(f => `  ch${ch}: ${f}`).join("\n"))
+      .map(([ch, facts]) => facts.map(f => `  ${f}`).join("\n"))
       .join("\n")
-    sections.push(`ESTABLISHED FACTS (${results.facts.length} most relevant):\n${factLines}`)
+    sections.push(`${tplInterp(factHeader, { count: String(results.facts.length) })}\n${factLines}`)
   }
-
-  // Theme reaches writer through story spine context — no separate thread needed
 
   // ── Open Issues ──────────────────────────────────────────────────────
   const openIssues = await getOpenIssues(novelId, chapterNum)
   if (openIssues.length > 0) {
-    sections.push(`ISSUES TO ADDRESS:\n${openIssues.map(i => `- [${i.severity}] ${i.description}`).join("\n")}`)
+    const issueHeader = await getContextTemplate("section_issues")
+    sections.push(`${issueHeader}\n${openIssues.map(i => `- [${i.severity}] ${i.description}`).join("\n")}`)
   }
 
   return sections
 }
 
-// ── Heuristic Fallback (no embeddings) ────────────────────────────────────
+// ── Minimal Fallback (no embeddings — safety net) ───────────────────────────
 
-async function buildHeuristicFallback(
+async function buildMinimalFallback(
   novelId: string, chapterNum: number, outline: any, povChar: CharacterProfile | undefined,
   relevantChars: CharacterProfile[], worldBible: any, worldSystems: WorldSystem[],
   storySpine: StorySpine | null, novel: NovelState | null,
 ): Promise<string[]> {
   const sections: string[] = []
+  const config = await getRetrievalConfig(novelId)
 
   // World systems (POV-filtered)
   if (povChar && worldSystems.length > 0) {
@@ -237,18 +257,14 @@ async function buildHeuristicFallback(
     if (systemSection) sections.push(systemSection)
   }
 
-  // Setting
   sections.push(formatSettingFromWorldBible(worldBible, outline))
 
-  // Story context (last 5 summaries)
-  const recentSummaries = await getRecentSummaries(novelId, chapterNum, 5)
+  // Last 3 summaries + open threads
+  const recentSummaries = await getRecentSummaries(novelId, chapterNum, 3)
   if (recentSummaries.length > 0) {
-    sections.push(`PREVIOUS CHAPTERS:\n${recentSummaries.map(s => {
-      let entry = `Chapter ${s.chapterNumber}: ${s.summary}`
-      if (s.emotionalState) entry += `\n   Emotional throughline: ${s.emotionalState}`
-      return entry
-    }).join("\n\n")}`)
-
+    sections.push(`PREVIOUS CHAPTERS:\n${recentSummaries.map(s =>
+      `Chapter ${s.chapterNumber}: ${s.summary}`
+    ).join("\n\n")}`)
     const lastSummary = recentSummaries[recentSummaries.length - 1]
     if (lastSummary?.openThreads?.length > 0) {
       sections.push(`OPEN THREADS:\n${lastSummary.openThreads.map(t => `- ${t}`).join("\n")}`)
@@ -260,58 +276,22 @@ async function buildHeuristicFallback(
     if (spineSection) sections.push(spineSection)
   }
 
-  // Character states
-  const charStates = await getCharacterStatesAtChapter(novelId, chapterNum)
-  const presentStates = charStates.filter(cs =>
-    outline.charactersPresent.map((n: string) => n.toLowerCase()).includes(cs.characterId.toLowerCase()) ||
-    relevantChars.some(c => c.id === cs.characterId)
-  )
-  if (presentStates.length > 0) {
-    sections.push(`CHARACTER STATES:\n${presentStates.map(cs => `${cs.characterId}:
-  Location: ${cs.location}
-  Carrying: ${cs.emotionalState} (show through behavior, NEVER state directly)
-  Knows: ${cs.knows.join("; ")}
-  Doesn't know: ${cs.doesNotKnow.join("; ")}`).join("\n\n")}`)
-  }
-
-  // Facts (heuristic scoring)
+  // Facts — recency-ordered, using same limit as retrieval config
   const allFacts = await tryGet(() => getFactsUpToChapter(novelId, chapterNum)) ?? []
   if (allFacts.length > 0) {
-    const charNames = new Set(relevantChars.map(c => c.name.toLowerCase()))
-    const setting = outline.setting.toLowerCase()
-
-    const scored = allFacts.map(f => {
-      const factLower = f.fact.toLowerCase()
-      let score = 0
-      for (const name of charNames) { if (factLower.includes(name)) score += 3 }
-      if (factLower.includes(setting)) score += 2
-      const catPriority: Record<string, number> = { relationship: 4, knowledge: 4, identity: 3, rule: 3, action: 2, dialogue: 2 }
-      score += catPriority[f.category] ?? 0
-      if (f.establishedInChapter >= chapterNum - 5) score += 2
-      if (f.category === "rule") score += 5
-      return { fact: f, score }
-    })
-
-    scored.sort((a, b) => b.score - a.score)
-    const topFacts = scored.slice(0, 80)
-    if (topFacts.length > 0) {
-      const byChapter = new Map<number, string[]>()
-      for (const { fact } of topFacts) {
-        const ch = fact.establishedInChapter
-        if (!byChapter.has(ch)) byChapter.set(ch, [])
-        byChapter.get(ch)!.push(`[${fact.category}] ${fact.fact}`)
-      }
-      const factLines = [...byChapter.entries()]
-        .sort((a, b) => a[0] - b[0])
-        .map(([ch, facts]) => facts.map(f => `  ch${ch}: ${f}`).join("\n"))
-        .join("\n")
-      sections.push(`ESTABLISHED FACTS (${topFacts.length} of ${allFacts.length}, heuristic):\n${factLines}`)
-    }
+    const topFacts = allFacts
+      .sort((a, b) => b.establishedInChapter - a.establishedInChapter)
+      .slice(0, config.maxFacts)
+    const factLines = topFacts.map(f =>
+      `  ch${f.establishedInChapter}: [${f.category}] ${f.fact}`
+    ).join("\n")
+    sections.push(`ESTABLISHED FACTS (${topFacts.length} most recent, no embeddings):\n${factLines}`)
   }
 
   const openIssues = await getOpenIssues(novelId, chapterNum)
   if (openIssues.length > 0) {
-    sections.push(`ISSUES TO ADDRESS:\n${openIssues.map(i => `- [${i.severity}] ${i.description}`).join("\n")}`)
+    const issueHeader = await getContextTemplate("section_issues")
+    sections.push(`${issueHeader}\n${openIssues.map(i => `- [${i.severity}] ${i.description}`).join("\n")}`)
   }
 
   return sections
