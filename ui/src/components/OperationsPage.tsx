@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
+import { SearchableSelect } from "./SearchableSelect"
 
 const API_KEY = new URLSearchParams(window.location.search).get("key") ?? ""
 const headers: Record<string, string> = { "x-api-key": API_KEY, "Content-Type": "application/json" }
@@ -46,6 +47,8 @@ export function OperationsPage() {
   const [saving, setSaving] = useState<Record<string, string>>({})
   const [daemon, setDaemon] = useState<any>(null)
   const [runs, setRuns] = useState<any[]>([])
+  const [stats, setStats] = useState<any>(null)
+  const [batches, setBatches] = useState<any[]>([])
 
   useEffect(() => {
     fetch("/api/config/operations?key=" + API_KEY).then(r => r.json()).then(c => {
@@ -56,9 +59,11 @@ export function OperationsPage() {
     }).catch(() => {})
     refreshDaemon()
     refreshRuns()
+    refreshStats()
     const ri = setInterval(refreshRuns, 5000)
     const di = setInterval(refreshDaemon, 15000)
-    return () => { clearInterval(ri); clearInterval(di) }
+    const si = setInterval(refreshStats, 30000)
+    return () => { clearInterval(ri); clearInterval(di); clearInterval(si) }
   }, [])
 
   function refreshDaemon() {
@@ -67,6 +72,13 @@ export function OperationsPage() {
 
   function refreshRuns() {
     fetch("/api/run/active?key=" + API_KEY).then(r => r.json()).then(setRuns).catch(() => {})
+  }
+
+  function refreshStats() {
+    Promise.all([
+      fetch("/api/stats?key=" + API_KEY).then(r => r.json()),
+      fetch("/api/batches?key=" + API_KEY).then(r => r.json()),
+    ]).then(([s, b]) => { setStats(s); setBatches(b) }).catch(() => {})
   }
 
   function showFlash(msg: string, ok: boolean) {
@@ -140,12 +152,14 @@ export function OperationsPage() {
       {/* Benchmark Runner */}
       <h2 title="Run benchmark suites to evaluate agent performance.">Benchmark Runner</h2>
       <div className="card">
-        <label style={{ fontSize: "0.8rem", color: "#8b949e" }}>Suite</label>
-        <select value={suite} onChange={e => { setSuite(e.target.value); setEnvValues({}) }}>
-          {Object.entries(config.benchmarks).map(([name, cfg]) => (
-            <option key={name} value={name}>{cfg.displayName}</option>
-          ))}
-        </select>
+        <label style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>Suite</label>
+        <SearchableSelect
+          value={suite}
+          onChange={v => { setSuite(v); setEnvValues({}) }}
+          options={Object.entries(config.benchmarks).map(([name, cfg]) => ({
+            value: name, label: cfg.displayName,
+          }))}
+        />
 
         {/* Agent under test + judge */}
         {bench && (
@@ -186,13 +200,14 @@ export function OperationsPage() {
                 ))}
               </div>
             ) : v.type === "select" && v.options ? (
-              <select
+              <SearchableSelect
                 value={envValues[v.name] ?? v.default ?? ""}
-                onChange={e => setEnvValues(prev => ({ ...prev, [v.name]: e.target.value }))}
-              >
-                <option value="">--</option>
-                {v.options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-              </select>
+                onChange={val => setEnvValues(prev => ({ ...prev, [v.name]: val }))}
+                options={[
+                  { value: "", label: "--" },
+                  ...v.options.map(opt => ({ value: opt, label: opt })),
+                ]}
+              />
             ) : v.type === "number" ? (
               <input
                 type="number"
@@ -277,17 +292,23 @@ export function OperationsPage() {
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
           <div>
-            <label style={{ fontSize: "0.8rem", color: "#8b949e" }}>Target</label>
-            <select value={impTarget} onChange={e => { setImpTarget(e.target.value); setImpDimension("") }}>
-              {config.targets.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
-            <label style={{ fontSize: "0.8rem", color: "#8b949e", marginTop: "0.3rem", display: "block" }}>Dimension</label>
-            <select value={impDimension} onChange={e => setImpDimension(e.target.value)}>
-              <option value="">auto (weakest)</option>
-              {impBench?.dimensions.map(d => (
-                <option key={d} value={d}>{impBench.dimensionLabels[d] ?? d}</option>
-              ))}
-            </select>
+            <label style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>Target</label>
+            <SearchableSelect
+              value={impTarget}
+              onChange={v => { setImpTarget(v); setImpDimension("") }}
+              options={config.targets.map(t => ({ value: t, label: t }))}
+            />
+            <label style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginTop: "0.3rem", display: "block" }}>Dimension</label>
+            <SearchableSelect
+              value={impDimension}
+              onChange={setImpDimension}
+              options={[
+                { value: "", label: "auto (weakest)" },
+                ...(impBench?.dimensions.map(d => ({
+                  value: d, label: impBench.dimensionLabels[d] ?? d,
+                })) ?? []),
+              ]}
+            />
           </div>
           <div>
             <label style={{ fontSize: "0.8rem", color: "#8b949e" }}>Max iterations</label>
@@ -307,6 +328,48 @@ export function OperationsPage() {
 
         <button onClick={startImprovement} style={{ marginTop: "0.8rem" }}>Start Improvement</button>
       </div>
+
+      {/* Orchestrator Stats */}
+      <h2>Orchestrator</h2>
+      <div className="card" style={{ fontSize: "0.82rem", display: "flex", gap: "1.5rem", flexWrap: "wrap", alignItems: "center" }}>
+        <span>Polls: <strong>{stats?.total_polls ?? 0}</strong></span>
+        <span>Collected: <strong>{stats?.total_collected ?? 0}</strong></span>
+        <span>Last poll: {stats?.last_poll_at ? new Date(stats.last_poll_at).toLocaleString() : "never"}</span>
+        <span>Active batches: <strong>{stats?.active_batches ?? 0}</strong></span>
+        <button
+          onClick={() => fetch("/api/poll", { method: "POST", headers }).then(() => setTimeout(refreshStats, 2000))}
+          style={{ fontSize: "0.72rem", padding: "3px 10px" }}
+        >
+          Poll Now
+        </button>
+      </div>
+
+      {/* Recent Batches */}
+      {batches.length > 0 && (
+        <>
+          <h2>Recent Batches</h2>
+          <div style={{ overflowX: "auto" }}>
+            <table className="guide-table">
+              <thead>
+                <tr><th>ID</th><th>Status</th><th>Progress</th><th>Provider</th><th>Model</th><th>Run</th><th>Submitted</th></tr>
+              </thead>
+              <tbody>
+                {batches.map((b: any) => (
+                  <tr key={b.id}>
+                    <td>{b.id}</td>
+                    <td><span className={`badge ${b.status === "completed" ? "done" : b.status === "failed" ? "error" : "active"}`}>{b.status}</span></td>
+                    <td>{b.completed_count}/{b.request_count}</td>
+                    <td>{b.provider}</td>
+                    <td>{b.judge_model ?? ""}</td>
+                    <td>{b.local_run_id ?? ""}</td>
+                    <td>{new Date(b.submitted_at).toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
     </>
   )
 }
@@ -361,46 +424,39 @@ function AgentInfoBox({ agents, judge, models, providers, saving, onSave }: {
   )
 }
 
-function ModelSelector({ provider, model, agentName, models, providers, saving, onSave }: {
+function ModelSelector({ provider, model, agentName, models, saving, onSave }: {
   provider: string; model: string; agentName: string
   models: Array<{ label: string; id: string; provider: string; pricing?: { input: number; output: number } }>
   providers: string[]
   saving?: string
   onSave: (agent: string, update: Record<string, any>) => void
 }) {
-  const providerModels = models.filter(m => m.provider === provider)
   const currentModel = models.find(m => m.id === model && m.provider === provider)
+  const compositeValue = `${provider}:${model}`
+
+  const allOptions = models.map(m => ({
+    value: `${m.provider}:${m.id}`,
+    label: m.label,
+    sublabel: `${m.provider}${m.pricing ? ` · $${m.pricing.input}/$${m.pricing.output}` : ""}`,
+  }))
 
   return (
     <>
-      <select
-        value={provider}
-        onChange={e => {
-          const newProvider = e.target.value
-          const firstModel = models.find(m => m.provider === newProvider)
-          if (firstModel) onSave(agentName, { provider: newProvider, model: firstModel.id })
+      <SearchableSelect
+        value={compositeValue}
+        onChange={v => {
+          const [p, ...rest] = v.split(":")
+          onSave(agentName, { provider: p, model: rest.join(":") })
         }}
-        style={{ width: "auto", fontSize: "0.8rem", padding: "3px 6px" }}
-      >
-        {providers.map(p => <option key={p} value={p}>{p}</option>)}
-      </select>
-      <select
-        value={model}
-        onChange={e => onSave(agentName, { provider, model: e.target.value })}
-        style={{ width: "auto", fontSize: "0.8rem", padding: "3px 6px" }}
-      >
-        {providerModels.map(m => (
-          <option key={m.id} value={m.id}>
-            {m.label}{m.pricing ? ` ($${m.pricing.input}/$${m.pricing.output})` : ""}
-          </option>
-        ))}
-      </select>
+        options={allOptions}
+        style={{ width: "320px" }}
+      />
       {currentModel?.pricing && (
-        <span style={{ color: "#4ecca3", fontSize: "0.75rem" }}>
+        <span style={{ color: "var(--accent)", fontSize: "0.75rem" }}>
           ${currentModel.pricing.input}/${currentModel.pricing.output} per 1M
         </span>
       )}
-      {saving && <span style={{ fontSize: "0.75rem", color: saving === "saved" ? "#4ecca3" : saving === "error" ? "#e74c3c" : "#e2b714" }}>{saving}</span>}
+      {saving && <span style={{ fontSize: "0.75rem", color: saving === "saved" ? "var(--accent)" : saving === "error" ? "var(--red)" : "var(--yellow)" }}>{saving}</span>}
     </>
   )
 }

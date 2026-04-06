@@ -3,12 +3,11 @@ import { Link, useLocation } from "react-router-dom"
 const PAGES = [
   { path: "/", label: "Novels" },
   { path: "/config", label: "Config" },
-  { path: "/context", label: "Context" },
   { path: "/experiments", label: "Experiments" },
   { path: "/operations", label: "Operations" },
-  { path: "/dashboard", label: "Dashboard" },
   { path: "/models", label: "Models" },
-  { path: "/guide", label: "Guide" },
+  { path: "/guide", label: "Overview" },
+  { path: "/docs", label: "Docs" },
 ]
 
 export function Nav() {

@@ -151,6 +151,49 @@ export function getRetrievalDefaults() {
   return fetchJSON<RetrievalConfig>("/api/retrieval-config/defaults")
 }
 
+// ── Deterministic Config ─────────────────────────────────────────────────
+
+export interface DeterministicConfig {
+  novelId: string
+  causalParticipantWeight: number
+  causalLocationWeight: number
+  causalTemporalWeight: number
+  causalConsequenceWeight: number
+  causalAutoThreshold: number
+  causalCandidateThreshold: number
+}
+
+export function getDeterministicConfig(novelId: string) {
+  return fetchJSON<DeterministicConfig>(`/api/deterministic-config/${novelId}`)
+}
+
+export function updateDeterministicConfig(novelId: string, config: Partial<DeterministicConfig>) {
+  return fetchJSON<{ ok: boolean }>(`/api/deterministic-config/${novelId}`, {
+    method: "PUT",
+    body: JSON.stringify(config),
+  })
+}
+
+export function getDeterministicDefaults() {
+  return fetchJSON<DeterministicConfig>("/api/deterministic-config/defaults")
+}
+
+// ── Docs ──────────────────────────────────────────────────────────────
+
+export interface DocEntry {
+  filename: string
+  title: string
+  size: number
+}
+
+export function listDocs() {
+  return fetchJSON<{ docs: DocEntry[] }>("/api/docs")
+}
+
+export function getDoc(filename: string) {
+  return fetchJSON<{ filename: string; title: string; content: string }>(`/api/docs/${encodeURIComponent(filename)}`)
+}
+
 // Types
 export interface AgentGroup {
   label: string

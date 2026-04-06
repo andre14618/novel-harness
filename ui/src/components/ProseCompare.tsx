@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { SearchableSelect } from "./SearchableSelect"
 
 const API_KEY = new URLSearchParams(window.location.search).get("key") ?? ""
 
@@ -47,23 +48,20 @@ export function ProseCompare({ generations, onClose }: Props) {
 
         {/* Controls */}
         <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem", flexWrap: "wrap" }}>
-          <label style={{ fontSize: "0.8rem", color: "#8b949e" }}>
+          <label style={{ fontSize: "0.8rem", color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: "0.3rem" }}>
             Seed:
-            <select value={selectedSeed} onChange={e => setSelectedSeed(e.target.value)} style={{ marginLeft: "0.3rem" }}>
-              {seeds.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
+            <SearchableSelect value={selectedSeed} onChange={setSelectedSeed}
+              options={seeds.map(s => ({ value: s, label: s }))} style={{ width: "180px" }} />
           </label>
-          <label style={{ fontSize: "0.8rem", color: "#8b949e" }}>
+          <label style={{ fontSize: "0.8rem", color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: "0.3rem" }}>
             Left:
-            <select value={leftVariant} onChange={e => setLeftVariant(e.target.value)} style={{ marginLeft: "0.3rem" }}>
-              {variants.map(v => <option key={v} value={v}>{v}</option>)}
-            </select>
+            <SearchableSelect value={leftVariant} onChange={setLeftVariant}
+              options={variants.map(v => ({ value: v, label: v }))} style={{ width: "180px" }} />
           </label>
-          <label style={{ fontSize: "0.8rem", color: "#8b949e" }}>
+          <label style={{ fontSize: "0.8rem", color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: "0.3rem" }}>
             Right:
-            <select value={rightVariant} onChange={e => setRightVariant(e.target.value)} style={{ marginLeft: "0.3rem" }}>
-              {variants.map(v => <option key={v} value={v}>{v}</option>)}
-            </select>
+            <SearchableSelect value={rightVariant} onChange={setRightVariant}
+              options={variants.map(v => ({ value: v, label: v }))} style={{ width: "180px" }} />
           </label>
         </div>
 

@@ -4,7 +4,7 @@ export function GuidePage() {
   const qs = window.location.search
   return (
     <>
-      <h1>Guide</h1>
+      <h1>Overview</h1>
 
       <div className="guide-content">
         <section>
@@ -44,7 +44,7 @@ LXC 307 (192.168.1.108)
 │   │   ├── character_knowledge (with propagation tracking)
 │   │   ├── event_causes (cause → effect graph)
 │   │   ├── knowledge_propagation (who told whom)
-│   │   └── thematic_tags (cross-chapter themes)
+│   │   └── deterministic_config (causal tuning parameters)
 │   │
 │   ├── Vector Search (pgvector)
 │   │   ├── embedding vector(3072) on 6 tables
@@ -129,7 +129,7 @@ LXC 307 (192.168.1.108)
                   </div>
                   <div className="flow-sub-arrow">↓</div>
                   <div className="flow-sub-step">
-                    <strong>Graph Linker</strong> — Identifies causal chains, knowledge propagation, and thematic tags.
+                    <strong>Graph Linker</strong> — Identifies causal chains and knowledge propagation.
                   </div>
                 </div>
                 <p className="flow-agents">Agents: writer, continuity, summary-extractor, fact-extractor,
@@ -188,8 +188,7 @@ Scene Outline + POV Character
    Graph Queries (recursive CTEs)
    ├── Causal chains (event → caused → event)
    ├── Relationship arcs (full trajectory)
-   ├── Knowledge graph (who knows what, from whom)
-   └── Thematic threads (cross-chapter themes)
+   └── Knowledge graph (who knows what, from whom)
          │
          ▼
    Context Assembly

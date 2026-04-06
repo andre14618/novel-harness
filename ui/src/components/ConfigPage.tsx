@@ -2,6 +2,11 @@ import { useEffect, useState } from "react"
 
 import { getNovelConfig, setAgentConfig, resetAgentConfig, persistConfig } from "../api"
 import type { NovelConfig } from "../api"
+import { SearchableSelect } from "./SearchableSelect"
+import { ContextPage } from "./ContextPage"
+import { DeterministicConfigPage } from "./DeterministicConfigPage"
+
+type ConfigTab = "models" | "context" | "causal"
 
 const AGENT_LABELS: Record<string, string> = {
   "writer": "Writer",
@@ -24,6 +29,7 @@ const AGENT_LABELS: Record<string, string> = {
 }
 
 export function ConfigPage() {
+  const [tab, setTab] = useState<ConfigTab>("models")
   const [config, setConfig] = useState<NovelConfig | null>(null)
   const [saving, setSaving] = useState<Record<string, boolean>>({})
   const [flash, setFlash] = useState<{ agent: string; msg: string; ok: boolean } | null>(null)
@@ -75,15 +81,46 @@ export function ConfigPage() {
   }
 
   if (!config) {
-    return <p style={{ color: "#8b949e" }}>Loading config...</p>
+    return <p style={{ color: "var(--text-secondary)" }}>Loading config...</p>
+  }
+
+  // Build unified model options: all models across all providers, searchable by name/provider/price
+  const allModelOptions = config.models.map(m => ({
+    value: `${m.provider}:${m.id}`,
+    label: m.label,
+    sublabel: `${m.provider}${m.pricing ? ` · $${m.pricing.input}/$${m.pricing.output}` : ""}`,
+  }))
+
+  async function handleModelSelect(agent: string, provider: string, model: string) {
+    setSaving(prev => ({ ...prev, [agent]: true }))
+    try {
+      await setAgentConfig(agent, { provider, model })
+      setFlash({ agent, msg: "Saved", ok: true })
+      loadConfig()
+    } catch (err: any) {
+      setFlash({ agent, msg: err.message, ok: false })
+    } finally {
+      setSaving(prev => ({ ...prev, [agent]: false }))
+      setTimeout(() => setFlash(null), 3000)
+    }
   }
 
   const hasOverrides = Object.keys(config.overrides).length > 0
 
   return (
     <>
-      <h1>Agent Configuration</h1>
+      <h1>Configuration</h1>
 
+      <div className="tab-bar">
+        <div className={`tab ${tab === "models" ? "active" : ""}`} onClick={() => setTab("models")}>Models</div>
+        <div className={`tab ${tab === "context" ? "active" : ""}`} onClick={() => setTab("context")}>Context</div>
+        <div className={`tab ${tab === "causal" ? "active" : ""}`} onClick={() => setTab("causal")}>Causal</div>
+      </div>
+
+      {tab === "context" && <ContextPage />}
+      {tab === "causal" && <DeterministicConfigPage />}
+
+      {tab === "models" && <>
       <p style={{ fontSize: "0.8rem", color: "#8b949e", marginBottom: "0.5rem", lineHeight: 1.6 }}>
         Configure which model each agent uses. Changes take effect immediately on the next agent call.
         Use "Save to File" to write changes permanently to <code>models/roles.ts</code>.
@@ -128,10 +165,10 @@ export function ConfigPage() {
             const isOverridden = !!config.overrides[agent]
             const isSaving = saving[agent]
             const agentFlash = flash?.agent === agent ? flash : null
-
-            // Models for current provider
-            const providerModels = config.models.filter(m => m.provider === assignment.provider)
             const modelInfo = config.models.find(m => m.id === assignment.model && m.provider === assignment.provider)
+
+            // Composite key for current selection
+            const compositeValue = `${assignment.provider}:${assignment.model}`
 
             return (
               <div key={agent} className="card agent-config-row">
@@ -151,48 +188,37 @@ export function ConfigPage() {
                         </button>
                       </>
                     )}
-                    {isSaving && <span style={{ marginLeft: "0.5rem", fontSize: "0.7rem", color: "#e2b714" }}>saving...</span>}
+                    {isSaving && <span style={{ marginLeft: "0.5rem", fontSize: "0.7rem", color: "var(--yellow)" }}>saving...</span>}
                   </div>
                   {modelInfo?.pricing && (
-                    <span style={{ fontSize: "0.7rem", color: "#4ecca3" }}>
+                    <span style={{ fontSize: "0.7rem", color: "var(--accent)" }}>
                       ${modelInfo.pricing.input} / ${modelInfo.pricing.output} per 1M tokens
                     </span>
                   )}
                 </div>
 
                 {agentFlash && (
-                  <div style={{ fontSize: "0.75rem", color: agentFlash.ok ? "#4ecca3" : "#e74c3c", marginBottom: "0.3rem" }}>
+                  <div style={{ fontSize: "0.75rem", color: agentFlash.ok ? "var(--accent)" : "var(--red)", marginBottom: "0.3rem" }}>
                     {agentFlash.msg}
                   </div>
                 )}
 
-                <div className="agent-config-fields">
+                <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "0.5rem", alignItems: "end" }}>
                   <div>
-                    <label style={{ fontSize: "0.7rem", color: "#8b949e" }}>Provider</label>
-                    <select
-                      value={assignment.provider}
-                      onChange={e => handleChange(agent, "provider", e.target.value)}
+                    <label style={{ fontSize: "0.7rem", color: "var(--text-secondary)" }}>Model</label>
+                    <SearchableSelect
+                      value={compositeValue}
+                      onChange={v => {
+                        const [provider, ...rest] = v.split(":")
+                        const model = rest.join(":")
+                        handleModelSelect(agent, provider, model)
+                      }}
                       disabled={isSaving}
-                    >
-                      {config.providers.map(p => <option key={p} value={p}>{p}</option>)}
-                    </select>
+                      options={allModelOptions}
+                    />
                   </div>
                   <div>
-                    <label style={{ fontSize: "0.7rem", color: "#8b949e" }}>Model</label>
-                    <select
-                      value={assignment.model}
-                      onChange={e => handleChange(agent, "model", e.target.value)}
-                      disabled={isSaving}
-                    >
-                      {providerModels.map(m => (
-                        <option key={m.id} value={m.id}>
-                          {m.label}{m.pricing ? ` ($${m.pricing.input}/$${m.pricing.output})` : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label style={{ fontSize: "0.7rem", color: "#8b949e" }}>Temp</label>
+                    <label style={{ fontSize: "0.7rem", color: "var(--text-secondary)" }}>Temp</label>
                     <input
                       type="number"
                       step="0.1"
@@ -210,6 +236,7 @@ export function ConfigPage() {
           })}
         </div>
       ))}
+      </>}
     </>
   )
 }

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { getSeeds, listNovels, startNovel, startNovelCustom, deleteNovel, resumeNovel } from "../api"
 import type { NovelListItem, CustomSeed } from "../api"
+import { SearchableSelect } from "./SearchableSelect"
 
 type StartMode = "custom" | "seed"
 
@@ -190,15 +191,16 @@ export function NovelList() {
                     value={c.name}
                     onChange={e => updateChar(i, "name", e.target.value)}
                   />
-                  <select
+                  <SearchableSelect
                     value={c.role}
-                    onChange={e => updateChar(i, "role", e.target.value)}
-                    style={{ width: "auto" }}
-                  >
-                    <option value="protagonist">protagonist</option>
-                    <option value="antagonist">antagonist</option>
-                    <option value="supporting">supporting</option>
-                  </select>
+                    onChange={v => updateChar(i, "role", v)}
+                    options={[
+                      { value: "protagonist", label: "protagonist" },
+                      { value: "antagonist", label: "antagonist" },
+                      { value: "supporting", label: "supporting" },
+                    ]}
+                    style={{ width: "140px" }}
+                  />
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "0.5rem", marginBottom: "0.8rem" }}>
                   <input

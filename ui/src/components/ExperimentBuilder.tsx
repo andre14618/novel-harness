@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { SearchableSelect } from "./SearchableSelect"
 
 const API_KEY = new URLSearchParams(window.location.search).get("key") ?? ""
 const api = (path: string, opts?: RequestInit) =>
@@ -147,12 +148,17 @@ export function ExperimentBuilder({ onCreated, onCancel }: Props) {
       {/* Suite */}
       <div style={S.section}>
         <label style={S.label}>Benchmark Suite</label>
-        <select value={suite} onChange={e => setSuite(e.target.value)} style={{ minWidth: "250px" }}>
-          <option value="prose">Prose (penalty judges)</option>
-          <option value="planning">Planning (1-10 scores)</option>
-          <option value="extraction">Extraction (1-10 scores)</option>
-          <option value="continuity">Continuity (1-10 scores)</option>
-        </select>
+        <SearchableSelect
+          value={suite}
+          onChange={setSuite}
+          options={[
+            { value: "prose", label: "Prose (penalty judges)" },
+            { value: "planning", label: "Planning (1-10 scores)" },
+            { value: "extraction", label: "Extraction (1-10 scores)" },
+            { value: "continuity", label: "Continuity (1-10 scores)" },
+          ]}
+          style={{ minWidth: "250px" }}
+        />
       </div>
 
       {/* Source run */}
