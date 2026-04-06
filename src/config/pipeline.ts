@@ -1,7 +1,7 @@
 export const pipeline = {
   // Drafting
   maxDraftAttempts: 3,
-  beatLevelWriting: false,    // use beat-level context + generation
+  beatLevelWriting: true,     // use beat-level context + generation
   maxBeatRetries: 2,          // retries per beat on adherence failure
 
   // Validation

@@ -8,6 +8,7 @@ import { callAgent } from "../llm"
 import { WRITER_AGENT_PROMPT, BEAT_WRITER_PROMPT, CONTINUITY_AGENT_PROMPT } from "../prompts"
 import { buildContext as buildWriterContext } from "../agents/writer/context"
 import { buildBeatContext } from "../agents/writer/beat-context"
+import { checkBeatAdherence } from "../agents/writer/adherence-checker"
 import { buildContext as buildContinuityContext } from "../agents/continuity/context"
 import { validateChapterDraft } from "../validation"
 import { displayPhaseHeader, displayProgress, presentForApproval, getRevisionNotes } from "../cli"
@@ -78,17 +79,25 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
 
             let beatProse: string | null = null
             for (let retry = 0; retry <= pipeline.maxBeatRetries; retry++) {
-              const retryNote = retry > 0 ? `\nRETRY — previous attempt did not follow the beat. Try again.` : ""
+              const retryNote = retry > 0 ? `\nRETRY — previous attempt deviated. Try again, following the beat exactly.` : ""
               const result = await callAgent({
                 novelId, agentName: "beat-writer",
                 systemPrompt: BEAT_WRITER_PROMPT,
                 userPrompt: beatCtx.userPrompt + retryNote,
                 schema: chapterDraftSchema,
               })
-              if (result.output.prose) {
+              if (!result.output.prose) continue
+
+              // Adherence check
+              const adherence = await checkBeatAdherence(result.output.prose, outline.scenes[bi], outline, characters)
+              if (adherence.pass || retry === pipeline.maxBeatRetries) {
                 beatProse = result.output.prose
+                if (!adherence.pass) {
+                  log(novelId, "warn", `Beat ${bi + 1} adherence issues accepted after max retries: ${adherence.issues.join("; ")}`)
+                }
                 break
               }
+              log(novelId, "info", `Beat ${bi + 1} retry ${retry + 1}: ${adherence.issues.join("; ")}`)
             }
 
             if (!beatProse) {

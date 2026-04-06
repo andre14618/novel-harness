@@ -14,6 +14,7 @@
  */
 
 import { getRelationshipBetween, getCharacterStatesAtChapter } from "../../db"
+import { resolveReferences } from "./reference-resolver"
 import type { ChapterOutline, CharacterProfile, SceneBeat } from "../../types"
 
 export interface BeatContextInput {
@@ -70,7 +71,11 @@ export async function buildBeatContext(input: BeatContextInput): Promise<BeatCon
     sections.push(`CHARACTERS:\n${snapshots.join("\n\n")}`)
   }
 
-  // ── 5. Setting ────────────────────────────────────────────────────────
+  // ── 5. Resolved references ─────────────────────────────────────────────
+  const refs = await resolveReferences(beat, outline, novelId, chapterNumber, characters)
+  if (refs.context) sections.push(refs.context)
+
+  // ── 6. Setting ────────────────────────────────────────────────────────
   if (beatIndex === 0 || beatHasLocationChange(beat, outline)) {
     const setting = formatSetting(worldBible, outline.setting)
     if (setting) sections.push(setting)

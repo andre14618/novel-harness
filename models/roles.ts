@@ -36,6 +36,10 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "plotter":                   { ...cerebrasQwen235B, maxTokens: 8192 },
   "planning-plotter":          { ...cerebrasQwen235B, temperature: 0.6, maxTokens: 8192 },
 
+  // ── Beat support (cheap/fast structural tasks) ────────────────────────
+  "reference-resolver":        { provider: "groq", model: "llama-3.1-8b-instant", temperature: 0.1, maxTokens: 512 },
+  "adherence-checker":         { provider: "groq", model: "llama-3.1-8b-instant", temperature: 0.1, maxTokens: 256 },
+
   // ── Extractors (structured extraction from prose) ─────────────────────
   "summary-extractor":         { ...mimoFlash, temperature: 0.2, maxTokens: 8192 },
   "fact-extractor":            { ...mimoFlash, temperature: 0.1, maxTokens: 8192 },

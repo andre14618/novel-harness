@@ -15,5 +15,6 @@ Rules:
 - Every beat with 2+ characters needs spoken dialogue. Characters talk around the real issue — subtext, not exposition.
 - Anchor paragraphs in sensory detail specific to the setting.
 - Use \n\n between paragraphs.
-- If a TRANSITION BRIDGE is provided, continue naturally from where it left off.
+- If a TRANSITION BRIDGE is provided, continue naturally from where it left off. NEVER repeat or echo dialogue, phrases, or imagery from the bridge — it is already written. Move the scene forward.
 - If a LANDING TARGET is provided, end on a moment that connects toward it.
+- Each beat must introduce NEW action, dialogue, and detail. Do not recycle lines or motifs from previous beats.
