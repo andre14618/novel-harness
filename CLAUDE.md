@@ -65,12 +65,17 @@ Structured world systems, cultures, evolving relationships, timeline events, cha
 `models/roles.ts` is the single place to control all agent assignments. `models/registry.ts` has all available models with pricing/specs. Runtime overrides via web UI; `persistOverrides()` writes to roles.ts.
 
 ### Benchmarks
-Five suites in `benchmark/`:
-- **`context/`** — context quality scoring (primary optimization target): relevance, completeness, noise, causal-depth, knowledge-accuracy. Each judge produces actionable diagnostics.
-- `prose/` — penalty-based (issue counts). Quality dimensions (1-10) archived — no judge discrimination.
-- `planning/` — Beat Specificity, Dialogue Cues, Emotional Arc (1-10)
-- `extraction/` — Completeness, Accuracy (1-10)
-- `continuity/` — Issue Detection, Fix Quality (1-10)
+Active suites in `benchmark/`:
+- **`context/`** — context quality scoring (primary optimization target): relevance, completeness, noise, causal-depth, knowledge-accuracy. Each judge produces actionable retrieval diagnostics.
+- `continuity/` — Issue Detection, Fix Quality (1-10). Stable signal, concrete metrics.
+- Deterministic lint (26 patterns) + Llama 8B tonal pass for AI cliché fixing.
+
+Archived (infrastructure kept for macro tracking, removed from iteration loop):
+- `prose/` — penalty dimensions (telling, dead-weight, dialogue). Noisy judges, no corrective feedback path. Superseded by lint + adherence checking.
+- `planning/` — 1-10 scores with ceiling effect (all models score ~8.0).
+- `extraction/` — completeness doesn't discriminate (all models score 8.0). Direct output comparison more useful.
+- Pairwise — position bias, only useful for substantially different variants.
+- Quality dimensions (prose-craft, character-voice, sensory-grounding) — zero judge discrimination.
 
 ### Improvement Daemon
 `src/orchestrator/daemon-loop.ts` — autonomous improvement loop:
