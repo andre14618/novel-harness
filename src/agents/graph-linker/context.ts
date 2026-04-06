@@ -1,6 +1,6 @@
 import {
   getTimelineEventsForChapter, getTimelineEventsUpToChapter,
-  getKnowledgeForChapter, getCharacters, getStorySpine,
+  getKnowledgeForChapter, getCharacters,
 } from "../../db"
 
 export async function buildContext(novelId: string, chapterNum: number): Promise<string> {
@@ -9,21 +9,10 @@ export async function buildContext(novelId: string, chapterNum: number): Promise
   const priorEvents = await getTimelineEventsUpToChapter(novelId, chapterNum)
   const knowledgeGains = await getKnowledgeForChapter(novelId, chapterNum)
 
-  let storyThemes: string[] = []
-  try {
-    const spine = await getStorySpine(novelId)
-    if (spine.theme) storyThemes.push(spine.theme)
-  } catch {}
-
   const sections: string[] = []
 
   // Character reference
   sections.push(`CHARACTERS:\n${characters.map(c => `- ${c.name} (id: ${c.id}, role: ${c.role})`).join("\n")}`)
-
-  // Story themes
-  if (storyThemes.length > 0) {
-    sections.push(`STORY THEMES:\n${storyThemes.map(t => `- ${t}`).join("\n")}`)
-  }
 
   // This chapter's events (with IDs)
   if (thisChapterEvents.length > 0) {
@@ -47,7 +36,7 @@ export async function buildContext(novelId: string, chapterNum: number): Promise
     ).join("\n")}`)
   }
 
-  sections.push("Analyze these events and knowledge gains. Produce causal links, knowledge propagation, and thematic tags.")
+  sections.push("Analyze these events and knowledge gains. Produce causal links and knowledge propagation.")
 
   return sections.join("\n\n")
 }

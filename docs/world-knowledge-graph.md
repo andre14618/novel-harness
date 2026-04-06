@@ -119,7 +119,7 @@ After each chapter is approved, five steps run:
 
 2. **Embedding** — batch embed all new chapter data via `text-embedding-3-large` (1536 dims). Stored in vector columns on each table. Cost: ~$0.0003/chapter.
 
-3. **Graph linker** (`src/agents/graph-linker/`) — identifies causal chains, knowledge propagation, and thematic tags across the extracted data. Writes to `event_causes`, `knowledge_propagation`, `thematic_tags`.
+3. **Graph linker** (`src/agents/graph-linker/`) — identifies causal chains and knowledge propagation across the extracted data. Writes to `event_causes`, `knowledge_propagation`.
 
 ### Graph Tables (sql/011_vector_graph.sql)
 
@@ -127,7 +127,6 @@ After each chapter is approved, five steps run:
 |-------|---------|
 | `event_causes` | Cause → effect links between timeline events (causes, enables, prevents, motivates) |
 | `knowledge_propagation` | Who transmitted knowledge to whom, via what event, with confidence |
-| `thematic_tags` | Theme labels on facts, events, summaries for cross-chapter thread tracking |
 | `retrieval_config` | Per-novel tunable retrieval parameters (12 fields) |
 
 ## Context Assembly
@@ -151,7 +150,6 @@ Assembled based on what's actually found and relevant to the scene:
 - **Causal Context** — event chains traced via `event_causes` graph
 - **Knowledge Context** — POV character's knowledge with propagation sources and confidence
 - **Established Facts** — semantically relevant facts from any chapter
-- **Thematic Threads** — prior scenes sharing themes with this scene
 
 ### Retrieval Parameters (tunable via UI or daemon)
 
@@ -182,11 +180,13 @@ This adds ~5-10s wall-clock time but eliminates the need for a reconciliation st
 | File | Purpose |
 |------|---------|
 | `sql/010_novel_data.sql` | Postgres schema: all novel tables with vector columns, HNSW indexes, tsvector triggers |
-| `sql/011_vector_graph.sql` | Graph tables: event_causes, knowledge_propagation, thematic_tags, retrieval_config |
-| `src/db/retrieval.ts` | Hybrid RRF search engine + graph queries (causal chains, relationship arcs, knowledge graph, thematic threads) |
-| `src/db/embed.ts` | Embedding client (text-embedding-3-large via OpenRouter, 1536 dims) |
+| `sql/011_vector_graph.sql` | Graph tables: event_causes, knowledge_propagation, retrieval_config |
+| `sql/012-015_*.sql` | Config tables: deterministic_config, embedding_templates, context_templates, agent_generation_config |
+| `src/db/retrieval.ts` | Hybrid RRF search engine + graph queries (causal chains, relationship arcs, knowledge graph) |
+| `src/db/embed.ts` | Embedding client + DB-backed templates (text-embedding-3-large, 1536 dims) |
+| `src/db/context-templates.ts` | DB-backed context format templates (scene query, per-item formats) |
 | `src/harness/` | Service layer — typed API for all harness operations (scores, experiments, cycles, context, embeddings, graph, novels) |
-| `src/agents/graph-linker/` | 5th extraction agent: causal links, knowledge propagation, thematic tags |
+| `src/agents/graph-linker/` | 5th extraction agent: causal links, knowledge propagation |
 | `src/agents/writer/context.ts` | Fixed skeleton + dynamic semantic retrieval context assembler |
 | `src/state-extraction.ts` | `updateStateAfterChapter()` — 4 parallel extractors + embedding + graph linker |
 | `benchmark/context/` | Context quality benchmark: 5 focused judges (relevance, completeness, noise, causal-depth, knowledge-accuracy) |

@@ -3,7 +3,20 @@ import { z } from "zod"
 const relationshipChangeSchema = z.object({
   characterA: z.string(),
   characterB: z.string(),
-  trustLevel: z.enum(["deep_trust", "trust", "cautious", "neutral", "wary", "suspicious", "hostile"]).default("neutral"),
+  trustLevel: z.string().default("neutral").transform(v => {
+    const valid = ["deep_trust", "trust", "cautious", "neutral", "wary", "suspicious", "hostile"]
+    if (valid.includes(v)) return v
+    const map: Record<string, string> = {
+      close: "deep_trust", intimate: "deep_trust", bonded: "deep_trust",
+      friendly: "trust", warm: "trust", allied: "trust",
+      careful: "cautious", guarded: "cautious", reserved: "cautious",
+      distant: "wary", uneasy: "wary", uncertain: "wary",
+      distrustful: "suspicious", doubtful: "suspicious", skeptical: "suspicious",
+      antagonistic: "hostile", enemy: "hostile", hateful: "hostile",
+      uncomfortable: "wary", tense: "wary",
+    }
+    return map[v.toLowerCase()] ?? "neutral"
+  }),
   dynamic: z.string(),
   tension: z.string().default(""),
   recentShift: z.string().default(""),
@@ -42,7 +55,18 @@ const knowledgeGainSchema = z.object({
 const awarenessChangeSchema = z.object({
   characterName: z.string(),
   systemName: z.string(),
-  newLevel: z.enum(["ignorant", "rumors", "aware", "practitioner", "expert"]),
+  newLevel: z.string().default("aware").transform(v => {
+    const valid = ["ignorant", "rumors", "aware", "practitioner", "expert"]
+    if (valid.includes(v)) return v
+    const map: Record<string, string> = {
+      unknown: "ignorant", unaware: "ignorant", oblivious: "ignorant",
+      heard: "rumors", hearsay: "rumors", gossip: "rumors", vague: "rumors",
+      knows: "aware", familiar: "aware", understands: "aware", informed: "aware",
+      skilled: "practitioner", trained: "practitioner", practicing: "practitioner",
+      master: "expert", mastered: "expert", advanced: "expert",
+    }
+    return map[v.toLowerCase()] ?? "aware"
+  }),
   reason: z.string(),
 })
 

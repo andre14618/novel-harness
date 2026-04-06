@@ -4,7 +4,7 @@
  * Flow:
  * 1. Extract: 4 LLM agents in parallel → structured data saved to DB with assigned IDs
  * 2. Embed: batch embed all new data for semantic retrieval
- * 3. Deterministic: resolve knowledge origins, score causal candidates, tag themes
+ * 3. Deterministic: resolve knowledge origins, score causal candidates
  *    (all using real DB IDs — no matching needed)
  * 4. LLM validation: graph-linker confirms/rejects ambiguous causal candidates only
  */

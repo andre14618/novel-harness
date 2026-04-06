@@ -53,43 +53,89 @@ export async function getEmbeddings(texts: string[]): Promise<number[][]> {
     .map((d: any) => d.embedding)
 }
 
-// ── Embedding text templates ──────────────────────────────────────────────
+// ── Embedding text templates (DB-backed, autoresearcher-tunable) ─────────
 
-export function buildFactEmbedText(category: string, fact: string): string {
-  return `[${category}] ${fact}`
+import db from "../../data/connection"
+
+const DEFAULT_TEMPLATES: Record<string, string> = {
+  fact: "[{category}] {fact}",
+  event: "{event}. at {location}. Participants: {participants}. Consequences: {consequences}",
+  summary: "Chapter {chapterNum}: {summary}. Key events: {keyEvents}. Emotional state: {emotionalState}",
+  char_state: "{name} in {location}: {emotionalState}. Knows: {knows}. Doesn't know: {doesNotKnow}",
+  relationship: "{charA} and {charB}: [{trustLevel}] {dynamic}. Tension: {tension}. Shift: {recentShift}",
+  knowledge: "{characterName} {source} that {knowledge}{isFalseTag}",
 }
 
-export function buildEventEmbedText(event: string, location: string, participants: string[], consequences: string): string {
-  const parts = [event]
-  if (location) parts.push(`at ${location}`)
-  if (participants.length) parts.push(`Participants: ${participants.join(", ")}`)
-  if (consequences) parts.push(`Consequences: ${consequences}`)
-  return parts.join(". ")
+// Cache loaded templates (invalidated on save)
+let templateCache: Record<string, string> | null = null
+
+async function getTemplate(sourceType: string): Promise<string> {
+  if (!templateCache) {
+    templateCache = { ...DEFAULT_TEMPLATES }
+    try {
+      const rows = await db`SELECT source_type, template FROM embedding_templates`
+      for (const r of rows) templateCache[r.source_type] = r.template
+    } catch {
+      // DB not available (tests, local dev) — use defaults
+    }
+  }
+  return templateCache[sourceType] ?? DEFAULT_TEMPLATES[sourceType] ?? ""
 }
 
-export function buildSummaryEmbedText(chapterNum: number, summary: string, keyEvents: string[], emotionalState: string): string {
-  const parts = [`Chapter ${chapterNum}: ${summary}`]
-  if (keyEvents.length) parts.push(`Key events: ${keyEvents.join("; ")}`)
-  if (emotionalState) parts.push(`Emotional state: ${emotionalState}`)
-  return parts.join(". ")
+function interpolate(template: string, vars: Record<string, string>): string {
+  return template.replace(/\{(\w+)\}/g, (_, key) => vars[key] ?? "")
+    .replace(/\.\s*\./g, ".") // collapse empty sections
+    .replace(/:\s*\./g, ".") // collapse "label: ."
+    .trim()
 }
 
-export function buildCharStateEmbedText(name: string, location: string, emotionalState: string, knows: string[], doesNotKnow: string[]): string {
-  const parts = [`${name} in ${location || "unknown location"}: ${emotionalState || "unspecified state"}`]
-  if (knows.length) parts.push(`Knows: ${knows.join("; ")}`)
-  if (doesNotKnow.length) parts.push(`Doesn't know: ${doesNotKnow.join("; ")}`)
-  return parts.join(". ")
+/** Save a template (for autoresearcher tuning) */
+export async function saveEmbeddingTemplate(sourceType: string, template: string): Promise<void> {
+  await db`INSERT INTO embedding_templates (source_type, template, updated_at)
+           VALUES (${sourceType}, ${template}, now())
+           ON CONFLICT (source_type) DO UPDATE SET template = EXCLUDED.template, updated_at = now()`
+  templateCache = null // invalidate cache
 }
 
-export function buildRelationshipEmbedText(charA: string, charB: string, trustLevel: string, dynamic: string, tension: string, recentShift: string): string {
-  const parts = [`${charA} and ${charB}: [${trustLevel}] ${dynamic}`]
-  if (tension) parts.push(`Tension: ${tension}`)
-  if (recentShift) parts.push(`Shift: ${recentShift}`)
-  return parts.join(". ")
+/** Get current template text (for display / improver context) */
+export async function getEmbeddingTemplate(sourceType: string): Promise<string> {
+  return getTemplate(sourceType)
 }
 
-export function buildKnowledgeEmbedText(characterName: string, source: string, knowledge: string, isFalse: boolean): string {
-  let text = `${characterName} ${source} that ${knowledge}`
-  if (isFalse) text += " [BELIEVED BUT FALSE]"
-  return text
+/** Get all templates */
+export async function getAllEmbeddingTemplates(): Promise<Record<string, string>> {
+  // Force reload
+  templateCache = null
+  await getTemplate("fact") // triggers load
+  return { ...templateCache! }
+}
+
+export async function buildFactEmbedText(category: string, fact: string): Promise<string> {
+  const tpl = await getTemplate("fact")
+  return interpolate(tpl, { category, fact })
+}
+
+export async function buildEventEmbedText(event: string, location: string, participants: string[], consequences: string): Promise<string> {
+  const tpl = await getTemplate("event")
+  return interpolate(tpl, { event, location, participants: participants.join(", "), consequences })
+}
+
+export async function buildSummaryEmbedText(chapterNum: number, summary: string, keyEvents: string[], emotionalState: string): Promise<string> {
+  const tpl = await getTemplate("summary")
+  return interpolate(tpl, { chapterNum: String(chapterNum), summary, keyEvents: keyEvents.join("; "), emotionalState })
+}
+
+export async function buildCharStateEmbedText(name: string, location: string, emotionalState: string, knows: string[], doesNotKnow: string[]): Promise<string> {
+  const tpl = await getTemplate("char_state")
+  return interpolate(tpl, { name, location: location || "unknown location", emotionalState: emotionalState || "unspecified state", knows: knows.join("; "), doesNotKnow: doesNotKnow.join("; ") })
+}
+
+export async function buildRelationshipEmbedText(charA: string, charB: string, trustLevel: string, dynamic: string, tension: string, recentShift: string): Promise<string> {
+  const tpl = await getTemplate("relationship")
+  return interpolate(tpl, { charA, charB, trustLevel, dynamic, tension, recentShift })
+}
+
+export async function buildKnowledgeEmbedText(characterName: string, source: string, knowledge: string, isFalse: boolean): Promise<string> {
+  const tpl = await getTemplate("knowledge")
+  return interpolate(tpl, { characterName, source, knowledge, isFalseTag: isFalse ? " [BELIEVED BUT FALSE]" : "" })
 }

@@ -93,10 +93,13 @@ export async function saveRetrievalConfig(novelId: string, config: Partial<Retri
 
 // ── Scene Query Builder ────────────────────────────────────────────────────
 
-export function buildSceneQuery(outline: ChapterOutline, povChar?: CharacterProfile): string {
+import { getContextTemplate, interpolate } from "./context-templates"
+
+export async function buildSceneQuery(outline: ChapterOutline, povChar?: CharacterProfile): Promise<string> {
   const beats = outline.scenes.map(s => s.description).join(". ")
   const pov = povChar?.name ?? outline.povCharacter
-  return `${pov} in ${outline.setting}. ${outline.purpose}. ${beats}`
+  const tpl = await getContextTemplate("scene_query")
+  return interpolate(tpl, { pov, setting: outline.setting, purpose: outline.purpose, beats })
 }
 
 // ── Check if embeddings exist ──────────────────────────────────────────────
@@ -368,40 +371,3 @@ export async function getKnowledgeGraph(novelId: string, characterId: string, up
   }))
 }
 
-export interface ThemedEntry {
-  sourceType: string
-  sourceId: string
-  theme: string
-  chapterNumber: number
-  content: string
-}
-
-/** Get entries tagged with a specific theme */
-export async function getThematicThread(novelId: string, theme: string, upToChapter: number): Promise<ThemedEntry[]> {
-  // Join thematic_tags with their source tables
-  const factRows = await db`
-    SELECT tt.source_type, tt.source_id, tt.theme, f.established_in_chapter as chapter_number, f.fact as content
-    FROM thematic_tags tt
-    JOIN facts f ON f.id = tt.source_id
-    WHERE tt.novel_id = ${novelId} AND tt.theme = ${theme} AND tt.source_type = 'fact'
-      AND f.established_in_chapter <= ${upToChapter}
-    ORDER BY f.established_in_chapter`
-
-  const eventRows = await db`
-    SELECT tt.source_type, tt.source_id, tt.theme, te.chapter_number, te.event as content
-    FROM thematic_tags tt
-    JOIN timeline_events te ON te.id = tt.source_id
-    WHERE tt.novel_id = ${novelId} AND tt.theme = ${theme} AND tt.source_type = 'event'
-      AND te.chapter_number <= ${upToChapter}
-    ORDER BY te.chapter_number`
-
-  return [...factRows, ...eventRows]
-    .map(r => ({
-      sourceType: r.source_type,
-      sourceId: r.source_id,
-      theme: r.theme,
-      chapterNumber: r.chapter_number,
-      content: r.content,
-    }))
-    .sort((a, b) => a.chapterNumber - b.chapterNumber)
-}

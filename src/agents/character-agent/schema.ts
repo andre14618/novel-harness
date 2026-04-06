@@ -19,7 +19,18 @@ const culturalBackgroundSchema = z.object({
 
 const systemAwarenessSchema = z.object({
   systemName: z.string(),
-  level: z.enum(["ignorant", "rumors", "aware", "practitioner", "expert"]).default("aware"),
+  level: z.string().default("aware").transform(v => {
+    const valid = ["ignorant", "rumors", "aware", "practitioner", "expert"]
+    if (valid.includes(v)) return v
+    const map: Record<string, string> = {
+      unknown: "ignorant", unaware: "ignorant", oblivious: "ignorant",
+      heard: "rumors", hearsay: "rumors", gossip: "rumors", vague: "rumors",
+      knows: "aware", familiar: "aware", understands: "aware", informed: "aware",
+      skilled: "practitioner", trained: "practitioner", practicing: "practitioner",
+      master: "expert", mastered: "expert", advanced: "expert",
+    }
+    return map[v.toLowerCase()] ?? "aware"
+  }),
   perspective: z.string().default(""),
 })
 
