@@ -80,8 +80,9 @@ export const config: BenchmarkConfig<typeof CONTEXT_DIMENSIONS[number]> = {
 
   // Daemon metadata
   promptTargets: [
-    // The daemon can tune retrieval config (DB params) and embedding templates
-    // These are handled specially — not prompt files but config surfaces
+    { path: "src/agents/graph-linker/prompt.md", agentName: "graph-linker" },
+    { path: "src/agents/world-builder/prompt.md", agentName: "world-builder" },
+    { path: "src/agents/character-agent/prompt.md", agentName: "character-agent" },
   ],
   runCmd: "bun benchmark/context/run.ts",
   daemonEnv: {

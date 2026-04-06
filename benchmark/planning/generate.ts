@@ -109,6 +109,7 @@ export const config: BenchmarkConfig<typeof DIMENSIONS[number]> = {
   generate: generateOutline,
   promptTargets: [
     { path: "src/agents/planning-plotter/prompt.md", agentName: "planning-plotter" },
+    { path: "src/agents/plotter/prompt.md", agentName: "plotter" },
   ],
   runCmd: "bun benchmark/planning/run.ts",
   daemonEnv: { BENCHMARK_SEEDS: "romance-drama", BENCHMARK_RUNS: "2" },

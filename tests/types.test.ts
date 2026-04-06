@@ -162,11 +162,14 @@ describe("continuityCheckSchema", () => {
     expect(result.success).toBe(true)
   })
 
-  test("rejects invalid severity", () => {
+  test("normalizes invalid severity to known value", () => {
     const result = continuityCheckSchema.safeParse({
       issues: [{ severity: "critical", description: "bad" }],
     })
-    expect(result.success).toBe(false)
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.issues[0].severity).toBe("blocker")
+    }
   })
 
   test("rejects missing issues key", () => {
@@ -217,11 +220,14 @@ describe("factExtractionSchema", () => {
     }
   })
 
-  test("rejects invalid category", () => {
+  test("normalizes invalid category to fallback", () => {
     const result = factExtractionSchema.safeParse({
       facts: [{ fact: "test", category: "magical" }],
     })
-    expect(result.success).toBe(false)
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.facts[0].category).toBe("physical")
+    }
   })
 })
 
@@ -241,7 +247,7 @@ describe("characterStateUpdateSchema", () => {
     expect(result.success).toBe(true)
   })
 
-  test("rejects knows as string instead of array", () => {
+  test("normalizes knows from string to array", () => {
     const result = characterStateUpdateSchema.safeParse({
       characters: [{
         name: "Kael",
@@ -251,6 +257,9 @@ describe("characterStateUpdateSchema", () => {
         doesNotKnow: [],
       }],
     })
-    expect(result.success).toBe(false)
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.characters[0].knows).toEqual(["stuff"])
+    }
   })
 })

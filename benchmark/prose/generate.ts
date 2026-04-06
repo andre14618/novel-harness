@@ -21,6 +21,7 @@ export const config: BenchmarkConfig<typeof DIMENSIONS[number]> = {
   generate: () => { throw new Error("Prose benchmark uses its own runner — run benchmark/prose/run.ts directly") },
   promptTargets: [
     { path: "src/agents/writer/prompt.md", agentName: "writer" },
+    { path: "src/agents/rewriter/prompt.md", agentName: "rewriter" },
   ],
   runCmd: "bun benchmark/prose/run.ts",
   daemonEnv: { BENCHMARK_SEEDS: "romance-drama", BENCHMARK_RUNS: "2" },
