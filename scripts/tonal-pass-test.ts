@@ -11,8 +11,10 @@
 
 import db from "../data/connection"
 import { getTransport } from "../src/transport"
+import { getRunConfig } from "../src/config/run"
 
-const RUN_IDS = (process.env.RUNS ?? "323,324,325").split(",").map(Number)
+const rc = getRunConfig()
+const RUN_IDS = rc.sourceRun ? [rc.sourceRun] : (process.env.RUNS ?? "323,324,325").split(",").map(Number)
 const MAX_ISSUES = parseInt(process.env.MAX_ISSUES ?? "30")
 
 interface LintIssue {

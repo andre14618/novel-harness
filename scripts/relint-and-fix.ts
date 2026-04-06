@@ -8,8 +8,10 @@
 import db from "../data/connection"
 import { lintProse, saveLintIssues } from "../src/lint/index"
 import { getTransport } from "../src/transport"
+import { getRunConfig } from "../src/config/run"
 
-const RUN_IDS = (process.env.RUNS ?? "323,324,325").split(",").map(Number)
+const rc = getRunConfig()
+const RUN_IDS = rc.sourceRun ? [rc.sourceRun] : (process.env.RUNS ?? "323,324,325").split(",").map(Number)
 
 const SYSTEM_PROMPT = `You are a prose editor. You will receive a sentence from a fiction chapter that has been flagged for a specific AI writing cliché. Your job is to fix ONLY the flagged issue while preserving the author's voice, style, and intent.
 

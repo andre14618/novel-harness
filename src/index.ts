@@ -3,10 +3,10 @@ import { collectSeedInput, closeInput, setAutoMode, setResolverMode } from "./cl
 import { getMode } from "./gates"
 import { runNovel } from "./state-machine"
 import { initNovelRun } from "./logger"
+import { getRunConfig, logRunConfig } from "./config/run"
 import type { SeedInput } from "./types"
 
-// Load seed from file — default to epic-fantasy, or pass --seed <name>
-async function loadSeed(name: string = "epic-fantasy"): Promise<SeedInput> {
+async function loadSeed(name: string): Promise<SeedInput> {
   const path = new URL(`./seeds/${name}.json`, import.meta.url).pathname
   const file = Bun.file(path)
   if (!await file.exists()) {
@@ -17,18 +17,15 @@ async function loadSeed(name: string = "epic-fantasy"): Promise<SeedInput> {
 }
 
 async function main() {
-  const isAuto = process.argv.includes("--auto")
-  if (isAuto) setAutoMode(true)
+  const config = getRunConfig()
 
-  // Set resolver mode based on environment
-  setResolverMode(getMode(isAuto))
+  if (config.auto) setAutoMode(true)
+  setResolverMode(getMode(config.auto))
 
-  const resumeIdx = process.argv.indexOf("--resume")
-  const seedIdx = process.argv.indexOf("--seed")
   let novelId: string
 
-  if (resumeIdx !== -1 && process.argv[resumeIdx + 1]) {
-    novelId = process.argv[resumeIdx + 1]
+  if (config.resumeId) {
+    novelId = config.resumeId
     console.log(`\nResuming novel: ${novelId}`)
     await initDB(novelId)
 
@@ -40,35 +37,26 @@ async function main() {
       console.error(`Error: Novel "${novelId}" not found`)
       process.exit(1)
     }
-  } else if (isAuto) {
-    const seedName = seedIdx !== -1 ? process.argv[seedIdx + 1] : "epic-fantasy"
-    const seed = await loadSeed(seedName)
-
-    // --chapters N overrides seed chapterCount
-    const chaptersIdx = process.argv.indexOf("--chapters")
-    if (chaptersIdx !== -1 && process.argv[chaptersIdx + 1]) {
-      seed.chapterCount = parseInt(process.argv[chaptersIdx + 1])
-    }
+  } else if (config.auto) {
+    const seed = await loadSeed(config.seed)
+    if (config.chapters) seed.chapterCount = config.chapters
 
     novelId = `novel-${Date.now()}`
     await initDB(novelId)
     await createNovel(novelId, seed)
-    console.log(`\nCreated novel (auto mode, seed: ${seedName}): ${novelId}`)
-    console.log(`  Chapters: ${seed.chapterCount ?? "planner decides"}`)
+    console.log(`\nCreated novel (auto mode, seed: ${config.seed}): ${novelId}`)
+    logRunConfig(config)
     console.log(`  Premise: ${seed.premise.slice(0, 80)}...`)
   } else {
     const seed = await collectSeedInput()
-    const chaptersIdx = process.argv.indexOf("--chapters")
-    if (chaptersIdx !== -1 && process.argv[chaptersIdx + 1]) {
-      seed.chapterCount = parseInt(process.argv[chaptersIdx + 1])
-    }
+    if (config.chapters) seed.chapterCount = config.chapters
+
     novelId = `novel-${Date.now()}`
     await initDB(novelId)
     await createNovel(novelId, seed)
     console.log(`\nCreated novel: ${novelId}`)
   }
 
-  // Register this novel run in the central DB with current model config
   const runId = await initNovelRun(novelId)
   console.log(`  Central DB run: ${runId}`)
 

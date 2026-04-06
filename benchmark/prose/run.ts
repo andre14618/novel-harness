@@ -16,22 +16,21 @@ import { PROVIDERS } from "../../models/registry"
 import { createBatch, addBatchRequest, updateBatchSubmitted } from "../../data/db"
 
 import { setTransport, BatchTransport } from "../../src/transport"
-
-// ── Config ───────────────────────────────────────────────────────────────
-
-const RUNS_PER_SEED = parseInt(process.env.BENCHMARK_RUNS ?? "3")
-const BATCH_MODE = process.argv.includes("--batch")
+import { getRunConfig } from "../../src/config/run"
 
 // ── Main ─────────────────────────────────────────────────────────────────
 
 async function main() {
   getDB()
 
+  const rc = getRunConfig()
+  const RUNS_PER_SEED = rc.runs
+  const BATCH_MODE = rc.batch
+
   const writer = getWriter()
   const judges = getJudges()
-  const seedFilter = process.env.BENCHMARK_SEEDS?.split(",").map(s => s.trim())
-  const seeds = loadSeeds(seedFilter)
-  const experimentId = process.env.EXPERIMENT_ID ? parseInt(process.env.EXPERIMENT_ID) : undefined
+  const seeds = loadSeeds(rc.seeds.length > 0 ? rc.seeds : undefined)
+  const experimentId = rc.experimentId ?? undefined
 
   if (!BATCH_MODE && judges.length === 0) { console.error("No judge API keys found"); process.exit(1) }
 

@@ -26,10 +26,13 @@ import { getBatchProvider, listBatchProviders } from "../batch/providers"
 import { PROVIDERS } from "../../models/registry"
 import { readFileSync } from "node:fs"
 
+import { getRunConfig } from "../../src/config/run"
+
 const WRITER_PROMPT = readFileSync(new URL("../../src/agents/writer/prompt.md", import.meta.url).pathname, "utf-8")
 
-const experimentId = parseInt(process.env.EXPERIMENT_ID ?? "")
-if (!experimentId) { console.error("EXPERIMENT_ID required"); process.exit(1) }
+const rc = getRunConfig()
+const experimentId = rc.experimentId ?? parseInt(process.env.EXPERIMENT_ID ?? "")
+if (!experimentId) { console.error("EXPERIMENT_ID required (--experiment N or EXPERIMENT_ID=N)"); process.exit(1) }
 
 async function main() {
   // Load config from DB

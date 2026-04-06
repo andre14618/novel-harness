@@ -17,6 +17,7 @@ import { lintProse, saveLintIssues } from "../../src/lint"
 import { WRITER_AGENT_PROMPT } from "../../src/prompts"
 import type { WriterConfig } from "../config"
 import { PROVIDERS, type ProviderName } from "../../models/registry"
+import { getRunConfig } from "../../src/config/run"
 
 interface ModelVariant {
   label: string
@@ -33,7 +34,8 @@ const WRITER_MODELS: ModelVariant[] = [
   { label: "MiMo V2 Flash", provider: "mimo", model: "mimo-v2-flash", temperature: 0.8, maxTokens: 8192 },
 ]
 
-const RUNS = parseInt(process.env.BENCHMARK_RUNS ?? "2")
+const rc = getRunConfig()
+const RUNS = rc.runs
 
 function toWriterConfig(v: ModelVariant): WriterConfig {
   const providerDef = PROVIDERS[v.provider]
@@ -52,8 +54,7 @@ function toWriterConfig(v: ModelVariant): WriterConfig {
 async function main() {
   const judges = getJudges()
   const judge = judges[0]
-  const seedFilter = process.env.BENCHMARK_SEEDS?.split(",").map(s => s.trim())
-  const seeds = loadSeeds(seedFilter)
+  const seeds = loadSeeds(rc.seeds.length > 0 ? rc.seeds : undefined)
 
   const experimentId = await createTuningExperiment(
     "writer",
