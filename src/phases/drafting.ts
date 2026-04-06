@@ -1,12 +1,13 @@
 import { chapterDraftSchema, continuityCheckSchema } from "../types"
 import {
-  getNovel, getChapterOutline, getFactsUpToChapter,
-  getCharacterStatesAtChapter, saveChapterDraft, approveChapterDraft,
+  getNovel, getChapterOutline, getCharacters, getFactsUpToChapter,
+  getCharacterStatesAtChapter, getWorldBible, saveChapterDraft, approveChapterDraft,
   saveIssue, updateCurrentChapter, updatePhase,
 } from "../db"
 import { callAgent } from "../llm"
-import { WRITER_AGENT_PROMPT, CONTINUITY_AGENT_PROMPT } from "../prompts"
+import { WRITER_AGENT_PROMPT, BEAT_WRITER_PROMPT, CONTINUITY_AGENT_PROMPT } from "../prompts"
 import { buildContext as buildWriterContext } from "../agents/writer/context"
+import { buildBeatContext } from "../agents/writer/beat-context"
 import { buildContext as buildContinuityContext } from "../agents/continuity/context"
 import { validateChapterDraft } from "../validation"
 import { displayPhaseHeader, displayProgress, presentForApproval, getRevisionNotes } from "../cli"
@@ -53,38 +54,112 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
       console.log(`\n  --- Chapter ${ch}: "${outline.title}" (attempt ${attempts}/${maxAttempts}) ---`)
       log(novelId, "info", `Chapter ${ch} "${outline.title}" attempt ${attempts}`)
 
-      // 1. Context assembly
-      let writerContext: string
-      try {
-        writerContext = await buildWriterContext(novelId, ch)
-      } catch (err) {
-        log(novelId, "error", `Context assembly failed for chapter ${ch}: ${err}`)
-        console.error(`  Error assembling context: ${err instanceof Error ? err.message : err}`)
-        continue
-      }
-
-      // 2. Writer agent
+      // 1-2. Context assembly + writer (beat-level or chapter-level)
       let prose: string
       let wordCount: number
-      try {
-        console.log("  Writing draft...")
-        emit(novelId, { type: "progress", data: { step: "writer", chapter: ch, attempt: attempts, status: "running" } })
-        const draftResult = await callAgent({
-          novelId, agentName: "writer",
-          systemPrompt: WRITER_AGENT_PROMPT,
-          userPrompt: writerContext,
-          schema: chapterDraftSchema,
-        })
-        prose = draftResult.output.prose
-        wordCount = prose.split(/\s+/).filter(Boolean).length
-        console.log(`  Draft: ${wordCount} words`)
-        log(novelId, "info", `Draft generated: ${wordCount} words`)
-        emit(novelId, { type: "progress", data: { step: "writer", chapter: ch, status: "complete", wordCount } })
-      } catch (err) {
-        log(novelId, "error", `Writer agent failed for chapter ${ch}: ${err}`)
-        console.error(`  Writer agent error: ${err instanceof Error ? err.message : err}`)
-        emit(novelId, { type: "error", data: { step: "writer", chapter: ch, error: String(err) } })
-        continue
+
+      if (pipeline.beatLevelWriting && outline.scenes.length > 0) {
+        // ── Beat-level generation ───────────────────────────────────────
+        try {
+          console.log(`  Writing ${outline.scenes.length} beats...`)
+          emit(novelId, { type: "progress", data: { step: "beat-writer", chapter: ch, attempt: attempts, status: "running" } })
+
+          const characters = await getCharacters(novelId)
+          const charStates = await getCharacterStatesAtChapter(novelId, ch)
+          const worldBible = await getWorldBible(novelId)
+
+          const beatProses: string[] = []
+          for (let bi = 0; bi < outline.scenes.length; bi++) {
+            const beatCtx = await buildBeatContext({
+              novelId, chapterNumber: ch, beatIndex: bi,
+              previousBeatProse: beatProses[bi - 1],
+              outline, characters, characterStates: charStates, worldBible,
+            })
+
+            let beatProse: string | null = null
+            for (let retry = 0; retry <= pipeline.maxBeatRetries; retry++) {
+              const retryNote = retry > 0 ? `\nRETRY — previous attempt did not follow the beat. Try again.` : ""
+              const result = await callAgent({
+                novelId, agentName: "beat-writer",
+                systemPrompt: BEAT_WRITER_PROMPT,
+                userPrompt: beatCtx.userPrompt + retryNote,
+                schema: chapterDraftSchema,
+              })
+              if (result.output.prose) {
+                beatProse = result.output.prose
+                break
+              }
+            }
+
+            if (!beatProse) {
+              log(novelId, "warn", `Beat ${bi + 1} failed after retries, falling back to chapter-level`)
+              break
+            }
+
+            beatProses.push(beatProse)
+            const beatWords = beatProse.split(/\s+/).filter(Boolean).length
+            console.log(`    Beat ${bi + 1}/${outline.scenes.length}: ${beatWords}w`)
+            emit(novelId, { type: "progress", data: { step: "beat-writer", chapter: ch, beat: bi, totalBeats: outline.scenes.length, status: "complete" } })
+          }
+
+          if (beatProses.length === outline.scenes.length) {
+            prose = beatProses.join("\n\n")
+            wordCount = prose.split(/\s+/).filter(Boolean).length
+            console.log(`  Draft (${outline.scenes.length} beats): ${wordCount} words`)
+            log(novelId, "info", `Beat-level draft: ${wordCount} words from ${outline.scenes.length} beats`)
+            emit(novelId, { type: "progress", data: { step: "beat-writer", chapter: ch, status: "complete", wordCount } })
+          } else {
+            // Fallback to chapter-level
+            console.log("  Beat generation incomplete, falling back to chapter-level...")
+            log(novelId, "info", `Beat fallback → chapter-level for chapter ${ch}`)
+            const writerContext = await buildWriterContext(novelId, ch)
+            const draftResult = await callAgent({
+              novelId, agentName: "writer",
+              systemPrompt: WRITER_AGENT_PROMPT,
+              userPrompt: writerContext,
+              schema: chapterDraftSchema,
+            })
+            prose = draftResult.output.prose
+            wordCount = prose.split(/\s+/).filter(Boolean).length
+            console.log(`  Draft (fallback): ${wordCount} words`)
+          }
+        } catch (err) {
+          log(novelId, "error", `Beat-level writing failed for chapter ${ch}: ${err}`)
+          console.error(`  Beat writer error: ${err instanceof Error ? err.message : err}`)
+          emit(novelId, { type: "error", data: { step: "beat-writer", chapter: ch, error: String(err) } })
+          continue
+        }
+      } else {
+        // ── Chapter-level generation (existing path) ────────────────────
+        let writerContext: string
+        try {
+          writerContext = await buildWriterContext(novelId, ch)
+        } catch (err) {
+          log(novelId, "error", `Context assembly failed for chapter ${ch}: ${err}`)
+          console.error(`  Error assembling context: ${err instanceof Error ? err.message : err}`)
+          continue
+        }
+
+        try {
+          console.log("  Writing draft...")
+          emit(novelId, { type: "progress", data: { step: "writer", chapter: ch, attempt: attempts, status: "running" } })
+          const draftResult = await callAgent({
+            novelId, agentName: "writer",
+            systemPrompt: WRITER_AGENT_PROMPT,
+            userPrompt: writerContext,
+            schema: chapterDraftSchema,
+          })
+          prose = draftResult.output.prose
+          wordCount = prose.split(/\s+/).filter(Boolean).length
+          console.log(`  Draft: ${wordCount} words`)
+          log(novelId, "info", `Draft generated: ${wordCount} words`)
+          emit(novelId, { type: "progress", data: { step: "writer", chapter: ch, status: "complete", wordCount } })
+        } catch (err) {
+          log(novelId, "error", `Writer agent failed for chapter ${ch}: ${err}`)
+          console.error(`  Writer agent error: ${err instanceof Error ? err.message : err}`)
+          emit(novelId, { type: "error", data: { step: "writer", chapter: ch, error: String(err) } })
+          continue
+        }
       }
 
       // 3. Deterministic validation

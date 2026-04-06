@@ -27,6 +27,7 @@ const mimoFlash: ModelAssignment = { provider: "mimo", model: "mimo-v2-flash" }
 export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // ── Writers (creative prose, high output) ─────────────────────────────
   "writer":                    { ...cerebrasQwen235B, temperature: 0.8, maxTokens: 8000 },
+  "beat-writer":               { ...cerebrasQwen235B, temperature: 0.8, maxTokens: 4000 },
   "rewriter":                  { ...cerebrasQwen235B, temperature: 0.5, maxTokens: 8000 },
 
   // ── Planners (structured creative output) ─────────────────────────────

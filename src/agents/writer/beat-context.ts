@@ -1,0 +1,162 @@
+/**
+ * Beat-level context assembly — deterministic DB lookups driven by beat spec.
+ *
+ * Each beat gets ~500-1,000 tokens of context instead of ~8,500.
+ * Only includes what the beat actually references:
+ *   1. Beat spec (description, characters, POV, setting)
+ *   2. Transition bridge (last 2-3 sentences of previous beat)
+ *   3. Landing target (first sentence of next beat's description)
+ *   4. Character snapshot (speech pattern, current state, relationship to POV)
+ *   5. Setting (location sensory details, only if beat 0 or location changes)
+ *
+ * emotionalShift is deliberately excluded — naming emotions biases toward telling.
+ * The beat description encodes emotional trajectory through action.
+ */
+
+import { getRelationshipBetween, getCharacterStatesAtChapter } from "../../db"
+import type { ChapterOutline, CharacterProfile, SceneBeat } from "../../types"
+
+export interface BeatContextInput {
+  novelId: string
+  chapterNumber: number
+  beatIndex: number
+  previousBeatProse?: string
+  outline: ChapterOutline
+  characters: CharacterProfile[]
+  characterStates: any[]
+  worldBible: any
+}
+
+export interface BeatContextResult {
+  userPrompt: string
+  targetWords: number
+}
+
+export async function buildBeatContext(input: BeatContextInput): Promise<BeatContextResult> {
+  const { novelId, chapterNumber, beatIndex, previousBeatProse, outline, characters, characterStates, worldBible } = input
+  const beat = outline.scenes[beatIndex]
+  const povCharName = outline.povCharacter
+  const povChar = characters.find(c => c.name.toLowerCase() === povCharName?.toLowerCase())
+  const targetWords = Math.round(outline.targetWords / Math.max(outline.scenes.length, 1))
+
+  const sections: string[] = []
+
+  // ── 1. Beat spec ──────────────────────────────────────────────────────
+  sections.push(formatBeatSpec(beat, outline, beatIndex))
+
+  // ── 2. Transition bridge ──────────────────────────────────────────────
+  if (previousBeatProse) {
+    const bridge = extractLastSentences(previousBeatProse, 3)
+    if (bridge) sections.push(`TRANSITION BRIDGE (continue from here):\n${bridge}`)
+  }
+
+  // ── 3. Landing target ─────────────────────────────────────────────────
+  const nextBeat = outline.scenes[beatIndex + 1]
+  if (nextBeat) {
+    const firstSentence = nextBeat.description.split(/[.!?]/)[0]?.trim()
+    if (firstSentence) {
+      sections.push(`LANDING TARGET (end connecting toward this):\nNext beat: ${firstSentence}`)
+    }
+  }
+
+  // ── 4. Character snapshot ─────────────────────────────────────────────
+  const beatCharNames = beat.characters.map(n => n.toLowerCase())
+  const beatChars = characters.filter(c => beatCharNames.includes(c.name.toLowerCase()))
+
+  if (beatChars.length > 0) {
+    const snapshots = await Promise.all(beatChars.map(c =>
+      formatCharacterSnapshot(novelId, c, povChar, chapterNumber, characterStates)
+    ))
+    sections.push(`CHARACTERS:\n${snapshots.join("\n\n")}`)
+  }
+
+  // ── 5. Setting ────────────────────────────────────────────────────────
+  if (beatIndex === 0 || beatHasLocationChange(beat, outline)) {
+    const setting = formatSetting(worldBible, outline.setting)
+    if (setting) sections.push(setting)
+  }
+
+  return {
+    userPrompt: sections.filter(Boolean).join("\n\n"),
+    targetWords,
+  }
+}
+
+// ── Formatters ──────────────────────────────────────────────────────────
+
+function formatBeatSpec(beat: SceneBeat, outline: ChapterOutline, beatIndex: number): string {
+  const lines = [
+    `BEAT ${beatIndex + 1} of ${outline.scenes.length}`,
+    `POV: ${outline.povCharacter}`,
+    `Setting: ${outline.setting}`,
+    ``,
+    beat.description,
+  ]
+  if (beat.characters.length > 0) {
+    lines.push(`Characters present: ${beat.characters.join(", ")}`)
+  }
+  return lines.join("\n")
+}
+
+async function formatCharacterSnapshot(
+  novelId: string, char: CharacterProfile, povChar: CharacterProfile | undefined,
+  chapterNumber: number, characterStates: any[],
+): Promise<string> {
+  const lines: string[] = [`${char.name}:`]
+
+  // Speech pattern — the critical anchor
+  if (char.speechPattern) lines.push(`  Voice: ${char.speechPattern}`)
+
+  // Current emotional/tactical state
+  const state = characterStates.find(
+    cs => cs.characterId === char.id || cs.characterId?.toLowerCase() === char.name.toLowerCase()
+  )
+  if (state?.emotionalState) lines.push(`  State: ${state.emotionalState}`)
+
+  // Relationship to POV (just the current dynamic, not full arc)
+  if (povChar && char.id !== povChar.id) {
+    try {
+      const rel = await getRelationshipBetween(novelId, povChar.id, char.id, chapterNumber)
+      if (rel) {
+        lines.push(`  With ${povChar.name}: [${rel.trustLevel}] ${rel.dynamic}`)
+        if (rel.tension) lines.push(`    Tension: ${rel.tension}`)
+      }
+    } catch { /* no relationship data yet */ }
+  }
+
+  // Knowledge constraint (what they don't know)
+  if (state?.doesNotKnow?.length > 0) {
+    lines.push(`  Doesn't know: ${state.doesNotKnow.slice(0, 2).join("; ")}`)
+  }
+
+  return lines.join("\n")
+}
+
+function formatSetting(worldBible: any, settingName: string): string | null {
+  const locations = worldBible?.locations ?? []
+  const match = locations.find(
+    (l: any) => l.name.toLowerCase().includes(settingName.toLowerCase()) ||
+         settingName.toLowerCase().includes(l.name.toLowerCase())
+  )
+  if (!match) return null
+
+  let section = `SETTING: ${match.name}`
+  if (match.description) section += `\n${match.description}`
+  if (match.sensoryDetails) section += `\nSensory: ${match.sensoryDetails}`
+  return section
+}
+
+function extractLastSentences(prose: string, count: number): string | null {
+  // Split on sentence boundaries, take last N
+  const sentences = prose.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 0)
+  if (sentences.length === 0) return null
+  return sentences.slice(-count).join(" ")
+}
+
+function beatHasLocationChange(beat: SceneBeat, outline: ChapterOutline): boolean {
+  // Simple heuristic: if beat description mentions a place that differs from chapter setting
+  const desc = beat.description.toLowerCase()
+  const setting = outline.setting.toLowerCase()
+  const locationWords = ["enters", "arrives at", "walks to", "goes to", "reaches", "steps into", "moves to"]
+  return locationWords.some(w => desc.includes(w)) && !desc.includes(setting)
+}
