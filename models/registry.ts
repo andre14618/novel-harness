@@ -10,7 +10,7 @@
 
 // ── Provider definitions ─────────────────────────────────────────────────
 
-export type ProviderName = "cerebras" | "groq" | "openrouter" | "openai" | "deepseek" | "minimax" | "zai"
+export type ProviderName = "cerebras" | "groq" | "openrouter" | "openai" | "deepseek" | "minimax" | "zai" | "mimo"
 
 export interface CacheStrategy {
   /**
@@ -37,6 +37,8 @@ export interface ProviderDef {
   envKey: string              // env var name for the API key
   tier: "fast" | "standard"   // fast = Cerebras/Groq inference hardware
   extraBody?: () => Record<string, any>
+  /** Custom auth header name (default: "Authorization" with "Bearer " prefix). */
+  authHeader?: string
   cache?: CacheStrategy
   /** Provider offers an async batch API (JSONL upload, collect later). */
   batchApi?: {
@@ -97,6 +99,13 @@ export const PROVIDERS: Record<ProviderName, ProviderDef> = {
     tier: "standard",
     extraBody: () => ({ thinking: { type: "disabled", clear_thinking: true } }),  // disable thinking by default; reasoning goes to separate field anyway
     cache: { type: "automatic", discount: 0.80 },  // ~80% off cached input across models; storage currently free
+  },
+  mimo: {
+    apiUrl: "https://api.xiaomimimo.com/v1/chat/completions",
+    envKey: "MIMO_API_KEY",
+    tier: "standard",
+    authHeader: "api-key",  // MiMo uses "api-key: <key>" instead of "Authorization: Bearer <key>"
+    cache: { type: "automatic", discount: 0.80 },  // Pro/Omni ~80% off; Flash ~90% off; cache writing free (limited time)
   },
 }
 
@@ -505,6 +514,48 @@ export const MODELS: ModelDef[] = [
     notes: "Free tier. Zero cost. Thinking auto-determined. 96K max output.",
   },
 
+  // ── Xiaomi MiMo ────────────────────────────────────────────────────────
+
+  {
+    id: "mimo-v2-pro",
+    label: "MiMo V2 Pro",
+    provider: "mimo",
+    params: "unknown",
+    pricing: { input: 1.00, output: 3.00 },
+    thinking: "optional",
+    maxContext: 1_000_000,
+    maxOutput: 128_000,
+    useMaxCompletionTokens: true,
+    rateLimit: { requestsPerMin: 100, tokensPerMin: 10_000_000 },
+    notes: "Flagship. Deep thinking + function call + JSON output. >256K context: $2.00/$6.00. Cached input $0.20/M (80% off).",
+  },
+  {
+    id: "mimo-v2-omni",
+    label: "MiMo V2 Omni",
+    provider: "mimo",
+    params: "unknown",
+    pricing: { input: 0.40, output: 2.00 },
+    thinking: "optional",
+    maxContext: 256_000,
+    maxOutput: 128_000,
+    useMaxCompletionTokens: true,
+    rateLimit: { requestsPerMin: 100, tokensPerMin: 10_000_000 },
+    notes: "Multimodal understanding + deep thinking. Cached input $0.08/M (80% off).",
+  },
+  {
+    id: "mimo-v2-flash",
+    label: "MiMo V2 Flash",
+    provider: "mimo",
+    params: "unknown",
+    pricing: { input: 0.10, output: 0.30 },
+    thinking: "optional",
+    maxContext: 256_000,
+    maxOutput: 64_000,
+    useMaxCompletionTokens: true,
+    rateLimit: { requestsPerMin: 100, tokensPerMin: 10_000_000 },
+    notes: "Cheapest MiMo. Deep thinking + function call + JSON output. Cached input $0.01/M (90% off).",
+  },
+
   // ── OpenRouter (fallback to closed-source labs) ────────────────────────
 
   {
@@ -563,10 +614,28 @@ export function getModelsByProvider(provider: ProviderName): ModelDef[] {
   return MODELS.filter(m => m.provider === provider)
 }
 
+/**
+ * Returns models that have API keys configured.
+ * For hidden-model filtering, use the async variant or check hidden.ts directly.
+ */
 export function getAvailableModels(): ModelDef[] {
   return MODELS.filter(m => {
     const provider = PROVIDERS[m.provider]
     return !!process.env[provider.envKey]
+  })
+}
+
+/**
+ * Like getAvailableModels() but also filters out hidden models.
+ * Use this in contexts where hidden models should be excluded.
+ */
+export async function getVisibleModels(): Promise<ModelDef[]> {
+  const { isModelHidden } = await import("./hidden")
+  return MODELS.filter(m => {
+    const provider = PROVIDERS[m.provider]
+    if (!process.env[provider.envKey]) return false
+    if (isModelHidden(m.provider, m.id)) return false
+    return true
   })
 }
 

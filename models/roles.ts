@@ -22,6 +22,7 @@ const groqQwen32B: ModelAssignment = { provider: "groq", model: "qwen/qwen3-32b"
 const cerebrasQwen235B: ModelAssignment = { provider: "cerebras", model: "qwen-3-235b-a22b-instruct-2507" }
 const groqKimiK2: ModelAssignment = { provider: "groq", model: "moonshotai/kimi-k2-instruct-0905" }
 const deepseekV3: ModelAssignment = { provider: "deepseek", model: "deepseek-chat" }
+const mimoFlash: ModelAssignment = { provider: "mimo", model: "mimo-v2-flash" }
 
 export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // ── Writers (creative prose, high output) ─────────────────────────────
@@ -35,11 +36,11 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "planning-plotter":          { ...cerebrasQwen235B, temperature: 0.6, maxTokens: 8192 },
 
   // ── Extractors (structured extraction from prose) ─────────────────────
-  "summary-extractor":         { ...cerebrasQwen235B, temperature: 0.2, maxTokens: 8192 },
-  "fact-extractor":            { ...cerebrasQwen235B, temperature: 0.1, maxTokens: 8192 },
-  "character-state":           { ...cerebrasQwen235B, temperature: 0.1, maxTokens: 8192 },
+  "summary-extractor":         { ...mimoFlash, temperature: 0.2, maxTokens: 8192 },
+  "fact-extractor":            { ...mimoFlash, temperature: 0.1, maxTokens: 8192 },
+  "character-state":           { ...mimoFlash, temperature: 0.1, maxTokens: 8192 },
   "relationship-timeline":     { ...cerebrasQwen235B, temperature: 0.2, maxTokens: 8192 },
-  "graph-linker":              { ...cerebrasQwen235B, temperature: 0.2, maxTokens: 4096 },
+  "graph-linker":              { ...mimoFlash, temperature: 0.2, maxTokens: 4096 },
 
   // ── Validators (analytical checks) ────────────────────────────────────
   "continuity":                { ...cerebrasQwen235B, temperature: 0.2 },
@@ -141,15 +142,56 @@ export function getModelForAgent(agentName: string): ModelAssignment | undefined
   return override ? { ...base, ...override } as ModelAssignment : base
 }
 
-/** Returns the full agent config with defaults applied, including runtime overrides. */
+// ── DB generation config (autoresearcher-tunable temperature/maxTokens) ──
+
+let dbGenConfigCache: Map<string, { temperature?: number; maxTokens?: number }> | null = null
+
+/** Load all agent generation overrides from DB into cache */
+export async function loadGenerationConfig(): Promise<void> {
+  try {
+    const db = (await import("../data/connection")).default
+    const rows = await db`SELECT agent_name, temperature, max_tokens FROM agent_generation_config`
+    dbGenConfigCache = new Map()
+    for (const r of rows) {
+      dbGenConfigCache.set(r.agent_name, {
+        temperature: r.temperature ?? undefined,
+        maxTokens: r.max_tokens ?? undefined,
+      })
+    }
+  } catch {
+    dbGenConfigCache = new Map() // DB not available — empty overrides
+  }
+}
+
+/** Save a generation config override (for autoresearcher) */
+export async function saveGenerationConfig(agentName: string, config: { temperature?: number; maxTokens?: number }): Promise<void> {
+  const db = (await import("../data/connection")).default
+  await db`INSERT INTO agent_generation_config (agent_name, temperature, max_tokens, updated_at)
+           VALUES (${agentName}, ${config.temperature ?? null}, ${config.maxTokens ?? null}, now())
+           ON CONFLICT (agent_name) DO UPDATE SET
+             temperature = COALESCE(EXCLUDED.temperature, agent_generation_config.temperature),
+             max_tokens = COALESCE(EXCLUDED.max_tokens, agent_generation_config.max_tokens),
+             updated_at = now()`
+  dbGenConfigCache = null // invalidate
+}
+
+/** Get generation config for an agent from DB cache */
+export async function getGenerationConfig(agentName: string): Promise<{ temperature?: number; maxTokens?: number } | undefined> {
+  if (!dbGenConfigCache) await loadGenerationConfig()
+  return dbGenConfigCache?.get(agentName)
+}
+
+/** Returns the full agent config with defaults applied, including DB + runtime overrides. */
 export function getAgentConfig(agentName: string): {
   provider: ProviderName; model: string
   temperature: number; maxTokens: number; thinking: boolean
 } | undefined {
   const base = AGENT_MODELS[agentName]
   if (!base) return undefined
-  const override = runtimeOverrides.get(agentName)
-  const merged = override ? { ...base, ...override } : base
+  const dbOverride = dbGenConfigCache?.get(agentName)
+  const runtimeOverride = runtimeOverrides.get(agentName)
+  // Priority: runtime > DB > base > defaults
+  const merged = { ...base, ...dbOverride, ...runtimeOverride } as ModelAssignment
   return {
     provider: merged.provider,
     model: merged.model,

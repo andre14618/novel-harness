@@ -95,10 +95,9 @@ export class DirectTransport implements LLMTransport {
       response_format: request.responseFormat ?? { type: "json_object" },
       ...request.extraBody,
     })
-    const headers = {
-      "Authorization": `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    }
+    const headers: Record<string, string> = providerDef.authHeader
+      ? { [providerDef.authHeader]: apiKey, "Content-Type": "application/json" }
+      : { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" }
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       httpAttempts++

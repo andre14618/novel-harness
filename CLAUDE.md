@@ -47,19 +47,19 @@ Writer receives context assembled via hybrid RRF search (vector similarity + ful
 
 **Retrieval pipeline** (`src/db/retrieval.ts`):
 - Scene query embedded → 6-table parallel hybrid search → RRF fusion → character/location boost → recency decay
-- Graph queries: causal chains (recursive CTE), relationship arcs, knowledge propagation, thematic threads
+- Graph queries: causal chains (recursive CTE), relationship arcs, knowledge propagation
 - Tunable via `retrieval_config` table (12 parameters per novel)
 
 **Embedding pipeline** (`src/db/embed.ts`, `src/harness/embeddings.ts`):
 - Runs after extraction: batch embeds all new chapter data (~$0.0003/chapter)
-- Text templates per source type in `src/db/embed.ts`
+- Text templates in `embedding_templates` DB table (6 source types, autoresearcher-tunable)
 
 **Graph linker** (`src/agents/graph-linker/`):
 - 5th extraction agent, runs after extractors + embedding
-- Produces: causal links (`event_causes`), knowledge propagation (`knowledge_propagation`), thematic tags (`thematic_tags`)
+- Produces: causal links (`event_causes`), knowledge propagation (`knowledge_propagation`)
 
 ### Knowledge Graph
-Structured world systems, cultures, evolving relationships, timeline events, character knowledge — all in Postgres. Tables: `world_systems`, `cultures`, `character_cultures`, `character_system_awareness`, `relationship_states`, `timeline_events`, `character_knowledge`, `event_causes`, `knowledge_propagation`, `thematic_tags`.
+Structured world systems, cultures, evolving relationships, timeline events, character knowledge — all in Postgres. Tables: `world_systems`, `cultures`, `character_cultures`, `character_system_awareness`, `relationship_states`, `timeline_events`, `character_knowledge`, `event_causes`, `knowledge_propagation`.
 
 ### Models
 `models/roles.ts` is the single place to control all agent assignments. `models/registry.ts` has all available models with pricing/specs. Runtime overrides via web UI; `persistOverrides()` writes to roles.ts.
@@ -82,7 +82,16 @@ Five suites in `benchmark/`:
 
 All daemon data access goes through `src/harness/` service layer. No inline SQL in daemon code.
 
-**Optimization surfaces**: retrieval parameters, embedding templates, graph-linker prompt, writer prompt, scene query template, extraction prompts.
+**Optimization surfaces** (50 components in `src/harness/registry.ts`):
+- 12 agent prompts (all extraction, planning, prose, continuity, concept agents)
+- 9 retrieval parameters (`retrieval_config` table)
+- 6 deterministic causal parameters (`deterministic_config` table)
+- 6 embedding templates (`embedding_templates` table)
+- 6 context format templates (`context_templates` table — scene query, per-item formats)
+- 8 generation parameters (`agent_generation_config` table — temperature/maxTokens per agent)
+- 3 model assignments (visible in registry, not daemon-tunable)
+
+The daemon rotates between prompt, config, and template proposals per iteration, using the component registry to discover surfaces per benchmark dimension.
 
 ### Web UI
 `ui/`, React + Vite, served at `/app`:
@@ -90,6 +99,7 @@ All daemon data access goes through `src/harness/` service layer. No inline SQL 
 - **Pipeline View** (`/app/:novelId`) — real-time SSE timeline with gate panels
 - **Config** (`/app/config`) — per-agent model switching
 - **Context** (`/app/context`) — retrieval parameter tuning per novel
+- **Causal** (`/app/deterministic`) — causal link scoring weights and thresholds per novel
 - **Experiments** (`/app/experiments`) — benchmark runs and improvement cycles
 - **Operations** (`/app/operations`) — benchmark runner, improvement daemon controls
 - **Dashboard** (`/app/dashboard`) — daemon status, batch status
@@ -98,6 +108,10 @@ All daemon data access goes through `src/harness/` service layer. No inline SQL 
 
 ### Gate Abstraction
 `src/gates.ts`, `src/events.ts` — decouples approval gates from stdin. SSE event bus pushes real-time updates. Modes: CLI readline, web API POST, auto-approve.
+
+## DB Queries
+
+**Never guess column names.** Before writing any ad-hoc SQL (bun -e, scripts, debugging), query `information_schema.columns` for the table first. The schema evolves via migrations and column names don't always match what you'd expect (e.g. `seed_json` not `seed`, `profile_json` not `role`, `attempt` not `run_number`).
 
 ## Rules
 
@@ -163,7 +177,7 @@ bun test
 |------|-------|
 | Architecture + pipeline flow | `/app/guide` (React UI) |
 | Knowledge graph + context assembly | `docs/world-knowledge-graph.md` |
-| DB schema | `sql/010_novel_data.sql`, `sql/011_vector_graph.sql` |
+| DB schema | `sql/010_novel_data.sql`, `sql/011_vector_graph.sql`, `sql/012-015_*.sql` |
 | Agent model assignments | `models/roles.ts` |
 | Service layer API | `src/harness/index.ts` |
 | Retrieval engine | `src/db/retrieval.ts` |
