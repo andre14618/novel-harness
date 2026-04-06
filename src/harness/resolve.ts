@@ -18,8 +18,7 @@ import type { GraphLinkerOutput } from "../agents/graph-linker/schema"
 export interface ResolvedGraphData {
   causalLinks: Array<{ causeEventId: string; effectEventId: string; relationship: string; confidence: number }>
   knowledgePropagation: Array<{ knowledgeId: string; fromCharacterId: string | null; toCharacterId: string; viaEventId: string | null; propagationType: string; confidence: number }>
-  themes: Array<{ sourceType: string; sourceId: string; theme: string }>
-  stats: { causalResolved: number; causalFailed: number; knowledgeResolved: number; knowledgeFailed: number; themesResolved: number; themesFailed: number }
+  stats: { causalResolved: number; causalFailed: number; knowledgeResolved: number; knowledgeFailed: number }
 }
 
 // ── Main resolver ─────────────────────────────────────────────────────────
@@ -34,7 +33,7 @@ export async function resolveGraphLinkerOutput(
   characters: CharacterProfile[],
 ): Promise<ResolvedGraphData> {
   const allEvents = [...priorEvents, ...thisChapterEvents]
-  const stats = { causalResolved: 0, causalFailed: 0, knowledgeResolved: 0, knowledgeFailed: 0, themesResolved: 0, themesFailed: 0 }
+  const stats = { causalResolved: 0, causalFailed: 0, knowledgeResolved: 0, knowledgeFailed: 0 }
 
   // ── Resolve causal links ────────────────────────────────────────────
   const causalLinks: ResolvedGraphData["causalLinks"] = []
@@ -73,29 +72,7 @@ export async function resolveGraphLinkerOutput(
     }
   }
 
-  // ── Resolve themes ──────────────────────────────────────────────────
-  const themes: ResolvedGraphData["themes"] = []
-  for (const t of llmOutput.themes) {
-    // Try matching against events first, then facts
-    const event = await matchEventByEmbedding(t.description, thisChapterEvents, novelId)
-    if (event?.id) {
-      themes.push({ sourceType: "event", sourceId: event.id, theme: t.theme })
-      stats.themesResolved++
-      continue
-    }
-
-    // Try matching against facts
-    const fact = await matchFactByEmbedding(t.description, novelId, chapterNum)
-    if (fact) {
-      themes.push({ sourceType: "fact", sourceId: fact, theme: t.theme })
-      stats.themesResolved++
-      continue
-    }
-
-    stats.themesFailed++
-  }
-
-  return { causalLinks, knowledgePropagation, themes, stats }
+  return { causalLinks, knowledgePropagation, stats }
 }
 
 // ── Matching functions (embedding similarity) ────────────────────────────
@@ -183,22 +160,3 @@ async function matchKnowledgeByEmbedding(
   return null
 }
 
-async function matchFactByEmbedding(description: string, novelId: string, chapterNum: number): Promise<string | null> {
-  if (!description) return null
-
-  const descEmbedding = await getEmbedding(description)
-
-  const rows = await db.unsafe(
-    `SELECT id, 1 - (embedding <=> $1::vector) as similarity
-     FROM facts
-     WHERE novel_id = $2 AND established_in_chapter = $3 AND embedding IS NOT NULL
-     ORDER BY embedding <=> $1::vector LIMIT 1`,
-    [`[${descEmbedding.join(",")}]`, novelId, chapterNum]
-  )
-
-  if (rows.length > 0 && rows[0].similarity >= MIN_SIMILARITY) {
-    return rows[0].id
-  }
-
-  return null
-}

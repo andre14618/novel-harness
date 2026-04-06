@@ -5,10 +5,14 @@
 
 import { readFileSync, writeFileSync } from "node:fs"
 import * as harness from "../harness"
-import { validateProposal, type Proposal } from "./guardrails"
+import { validateProposal, validateConfigProposal, validateTemplateProposal, type Proposal, type ConfigProposal, type TemplateProposal } from "./guardrails"
 import { MODELS, PROVIDERS, getApiKey } from "../../models/registry"
 import { getModelForAgent } from "../../models/roles"
 import { extractJSON } from "../llm"
+import { getComponentsForDimension, getComponent, type Component } from "../harness/registry"
+import { getRetrievalConfig, saveRetrievalConfig } from "../db/retrieval"
+import { getDeterministicConfig, saveDeterministicConfig } from "../harness/deterministic"
+import { getEmbeddingTemplate, saveEmbeddingTemplate, getAllEmbeddingTemplates } from "../db/embed"
 
 const HARNESS_ROOT = process.env.HARNESS_ROOT ?? "/home/andre/apps/novel-harness"
 const MAX_GIT_COMMITS = 5
@@ -483,6 +487,385 @@ Write your conclusion.`
     console.log(`[conclude] Error: ${err instanceof Error ? err.message : err}`)
     return null
   }
+}
+
+// ── Config proposal generation ────────────────────────────────────────────
+
+/** Get tunable config components for a dimension */
+export function getConfigComponentsForDimension(dimension: string): Component[] {
+  return getComponentsForDimension(dimension).filter(c =>
+    c.type === "number" && (c.storage === "retrieval_config" || c.storage === "deterministic_config" || c.storage === "agent_generation_config")
+  )
+}
+
+/** Load current values for config components from a novel's DB config */
+export async function loadConfigValues(novelId: string, components: Component[]): Promise<Map<string, number>> {
+  const values = new Map<string, number>()
+  const needsRetrieval = components.some(c => c.storage === "retrieval_config")
+  const needsDeterministic = components.some(c => c.storage === "deterministic_config")
+  const needsGeneration = components.some(c => c.storage === "agent_generation_config")
+
+  if (needsRetrieval) {
+    const rc = await getRetrievalConfig(novelId)
+    for (const c of components) {
+      if (c.storage === "retrieval_config" && c.column) {
+        const key = camelCase(c.column)
+        values.set(c.id, (rc as any)[key] ?? c.default ?? 0)
+      }
+    }
+  }
+  if (needsDeterministic) {
+    const dc = await getDeterministicConfig(novelId)
+    for (const c of components) {
+      if (c.storage === "deterministic_config" && c.column) {
+        const key = camelCase(c.column)
+        values.set(c.id, (dc as any)[key] ?? c.default ?? 0)
+      }
+    }
+  }
+  if (needsGeneration) {
+    const { getGenerationConfig, loadGenerationConfig } = await import("../../models/roles")
+    await loadGenerationConfig()
+    for (const c of components) {
+      if (c.storage === "agent_generation_config" && c.column) {
+        // column format: "writer.temperature" or "writer.max_tokens"
+        const [agentName, param] = c.column.split(".")
+        const gc = await getGenerationConfig(agentName)
+        if (gc) {
+          const val = param === "temperature" ? gc.temperature : gc.maxTokens
+          values.set(c.id, val ?? c.default ?? 0)
+        }
+      }
+    }
+  }
+  return values
+}
+
+function camelCase(snake: string): string {
+  return snake.replace(/_([a-z])/g, (_, c) => c.toUpperCase())
+}
+
+/** Propose a config parameter change via LLM */
+export async function proposeConfigChange(
+  components: Component[],
+  currentValues: Map<string, number>,
+  dimension: string,
+  currentScore: number,
+  judgeReasoning: string[],
+  context?: ImproverContext,
+  consecutiveFailures: number = 0,
+): Promise<ConfigProposal | null> {
+  const assignment = getModelForAgent("improver")
+  if (!assignment) throw new Error(`No model assigned for "improver" role`)
+  const model = MODELS.find(m => m.id === assignment.model && m.provider === assignment.provider)
+  if (!model) throw new Error(`Model ${assignment.model} (${assignment.provider}) not found`)
+
+  const provider = PROVIDERS[model.provider]
+  const apiKey = getApiKey(model.provider)
+
+  const paramSection = components.map(c => {
+    const current = currentValues.get(c.id) ?? c.default ?? 0
+    const range = c.min !== undefined && c.max !== undefined ? ` [${c.min}–${c.max}, step ${c.step}]` : ""
+    const def = c.default !== undefined ? ` (default: ${c.default})` : ""
+    return `- **${c.id}** = ${current}${range}${def}\n  ${c.description}`
+  }).join("\n")
+
+  const reasoningSection = judgeReasoning.slice(0, 5).map((r, i) =>
+    `${i + 1}. ${r.slice(0, 400)}`
+  ).join("\n\n")
+
+  const systemPrompt = `You are an expert at tuning numeric parameters for a novel-writing harness's retrieval and causal linking pipeline.
+
+You will be given:
+1. The current parameter values with their valid ranges
+2. The benchmark dimension being measured and its current score (higher=better)
+3. Judge reasoning explaining WHY the score is low
+
+## Parameters
+Each parameter controls a specific aspect of context retrieval or causal chain building. Changing one parameter at a time is safest — propose exactly ONE change per iteration.
+
+## Strategy
+- Read the judge reasoning carefully. If it says context is too noisy → lower result limits or raise similarity floor. If causal chains are shallow → adjust causal weights.
+- Small changes (1-2 steps) are safer than large jumps.
+- Consider parameter interactions: raising max_facts helps completeness but hurts noise. Raising min_similarity helps relevance but hurts completeness.
+- If previous attempts failed, try a different parameter rather than the same one harder.
+
+Respond with ONLY valid JSON:
+{
+  "componentId": "the parameter to change (e.g., retrieval.max_facts)",
+  "newValue": 20,
+  "explanation": "1-2 sentences on what you changed and why"
+}`
+
+  const contextSections: string[] = []
+  if (context?.previousAttempts) {
+    contextSections.push(`## Previous Attempts\n\n${context.previousAttempts}`)
+  }
+  if (context?.otherDimensions) {
+    contextSections.push(`## ${context.otherDimensions}`)
+  }
+  if (context?.experimentConclusions) {
+    contextSections.push(`## Past Experiment Conclusions\n\n${context.experimentConclusions}`)
+  }
+
+  const contextBlock = contextSections.length > 0 ? `\n\n${contextSections.join("\n\n")}` : ""
+
+  const userPrompt = `## Current Parameters
+
+${paramSection}
+
+## Target Dimension: ${dimension}
+## Current Score: ${currentScore} (higher=better)
+
+## Judge Reasoning:
+
+${reasoningSection}${contextBlock}
+
+Propose ONE parameter change to improve ${dimension}.${consecutiveFailures >= 2 ? `\n\nIMPORTANT: ${consecutiveFailures} previous attempts failed. Try a different parameter.` : ""}`
+
+  const needsNothink = model.needsNothink
+  const finalUserPrompt = needsNothink ? `/nothink\n${userPrompt}` : userPrompt
+
+  try {
+    const res = await fetch(provider.apiUrl, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: model.id,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: finalUserPrompt },
+        ],
+        temperature: Math.min(0.5 + consecutiveFailures * 0.1, 0.9),
+        max_tokens: 512,
+        response_format: { type: "json_object" },
+        ...provider.extraBody?.(),
+      }),
+    })
+
+    if (!res.ok) {
+      console.log(`  ! Config improver LLM error: ${res.status}`)
+      return null
+    }
+
+    const data = await res.json() as any
+    const content = data.choices?.[0]?.message?.content
+    if (!content) return null
+
+    const jsonStr = extractJSON(content)
+    const parsed = JSON.parse(jsonStr)
+    if (!parsed.componentId || parsed.newValue === undefined || !parsed.explanation) return null
+
+    const component = getComponent(parsed.componentId)
+    if (!component || !component.table || !component.column) return null
+
+    const oldValue = currentValues.get(parsed.componentId) ?? component.default ?? 0
+
+    return {
+      componentId: parsed.componentId,
+      table: component.table,
+      column: component.column,
+      oldValue,
+      newValue: parsed.newValue,
+      explanation: parsed.explanation,
+    }
+  } catch (err) {
+    console.log(`  ! Config improver error: ${err instanceof Error ? err.message : err}`)
+    return null
+  }
+}
+
+/** Apply a config change to the DB, return backup for revert */
+export async function applyConfigChange(
+  proposal: ConfigProposal, novelId: string,
+): Promise<{ table: string; column: string; oldValue: number }> {
+  const backup = { table: proposal.table, column: proposal.column, oldValue: proposal.oldValue }
+
+  if (proposal.table === "agent_generation_config") {
+    // column format: "writer.temperature"
+    const [agentName, param] = proposal.column.split(".")
+    const { saveGenerationConfig } = await import("../../models/roles")
+    await saveGenerationConfig(agentName, { [param === "temperature" ? "temperature" : "maxTokens"]: proposal.newValue })
+  } else {
+    const key = camelCase(proposal.column)
+    if (proposal.table === "retrieval_config") {
+      await saveRetrievalConfig(novelId, { [key]: proposal.newValue } as any)
+    } else if (proposal.table === "deterministic_config") {
+      await saveDeterministicConfig(novelId, { [key]: proposal.newValue } as any)
+    }
+  }
+
+  console.log(`  [improve] Applied config: ${proposal.componentId} = ${proposal.oldValue} → ${proposal.newValue}`)
+  return backup
+}
+
+/** Revert a config change */
+export async function revertConfigChange(
+  backup: { table: string; column: string; oldValue: number }, novelId: string,
+): Promise<void> {
+  if (backup.table === "agent_generation_config") {
+    const [agentName, param] = backup.column.split(".")
+    const { saveGenerationConfig } = await import("../../models/roles")
+    await saveGenerationConfig(agentName, { [param === "temperature" ? "temperature" : "maxTokens"]: backup.oldValue })
+  } else {
+    const key = camelCase(backup.column)
+    if (backup.table === "retrieval_config") {
+      await saveRetrievalConfig(novelId, { [key]: backup.oldValue } as any)
+    } else if (backup.table === "deterministic_config") {
+      await saveDeterministicConfig(novelId, { [key]: backup.oldValue } as any)
+    }
+  }
+
+  console.log(`  [improve] Reverted config: ${backup.column} back to ${backup.oldValue}`)
+}
+
+// ── Template proposal generation ──────────────────────────────────────────
+
+/** Get tunable template components for a dimension */
+export function getTemplateComponentsForDimension(dimension: string): Component[] {
+  return getComponentsForDimension(dimension).filter(c =>
+    c.type === "template" && (c.storage === "embedding_templates" || c.storage === "context_templates")
+  )
+}
+
+/** Propose an embedding template change via LLM */
+export async function proposeTemplateChange(
+  components: Component[],
+  currentTemplates: Record<string, string>,
+  dimension: string,
+  currentScore: number,
+  judgeReasoning: string[],
+  consecutiveFailures: number = 0,
+): Promise<TemplateProposal | null> {
+  const assignment = getModelForAgent("improver")
+  if (!assignment) throw new Error(`No model assigned for "improver" role`)
+  const model = MODELS.find(m => m.id === assignment.model && m.provider === assignment.provider)
+  if (!model) throw new Error(`Model ${assignment.model} (${assignment.provider}) not found`)
+
+  const provider = PROVIDERS[model.provider]
+  const apiKey = getApiKey(model.provider)
+
+  const templateSection = components.map(c => {
+    const sourceType = c.column ?? ""
+    const current = currentTemplates[sourceType] ?? ""
+    return `- **${c.id}** (source_type: "${sourceType}")\n  Current: \`${current}\`\n  ${c.description}`
+  }).join("\n\n")
+
+  const reasoningSection = judgeReasoning.slice(0, 5).map((r, i) =>
+    `${i + 1}. ${r.slice(0, 400)}`
+  ).join("\n\n")
+
+  const systemPrompt = `You are an expert at tuning embedding text templates for a novel-writing harness's semantic retrieval system.
+
+## How Templates Work
+Each extracted data type (facts, events, summaries, etc.) is converted to text using a template before being embedded by text-embedding-3-large. The template controls what text the embedding vector represents. Better templates = better retrieval.
+
+## Placeholder Rules
+Templates use {placeholder} syntax. Each template type has specific valid placeholders listed in the descriptions. You MUST preserve the required placeholders. You can reorder, reformat, add context words, or change punctuation.
+
+## Strategy
+- If retrieval misses relevant facts → the fact template may not capture enough semantic signal. Try adding contextual framing.
+- If irrelevant results appear → templates may be too generic. Try making them more specific.
+- Small wording changes can significantly shift embedding space proximity.
+- Change ONE template per iteration.
+
+Respond with ONLY valid JSON:
+{
+  "componentId": "embed.fact_template",
+  "newTemplate": "[{category}] {fact}",
+  "explanation": "1-2 sentences on what you changed and why"
+}`
+
+  const userPrompt = `## Current Embedding Templates
+
+${templateSection}
+
+## Target Dimension: ${dimension}
+## Current Score: ${currentScore} (higher=better)
+
+## Judge Reasoning:
+
+${reasoningSection}
+
+Propose ONE template change to improve ${dimension}.${consecutiveFailures >= 2 ? `\n\nIMPORTANT: ${consecutiveFailures} previous attempts failed. Try a different template.` : ""}`
+
+  const needsNothink = model.needsNothink
+  const finalUserPrompt = needsNothink ? `/nothink\n${userPrompt}` : userPrompt
+
+  try {
+    const res = await fetch(provider.apiUrl, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: model.id,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: finalUserPrompt },
+        ],
+        temperature: Math.min(0.5 + consecutiveFailures * 0.1, 0.9),
+        max_tokens: 512,
+        response_format: { type: "json_object" },
+        ...provider.extraBody?.(),
+      }),
+    })
+
+    if (!res.ok) {
+      console.log(`  ! Template improver LLM error: ${res.status}`)
+      return null
+    }
+
+    const data = await res.json() as any
+    const content = data.choices?.[0]?.message?.content
+    if (!content) return null
+
+    const jsonStr = extractJSON(content)
+    const parsed = JSON.parse(jsonStr)
+    if (!parsed.componentId || !parsed.newTemplate || !parsed.explanation) return null
+
+    const component = getComponent(parsed.componentId)
+    if (!component || component.storage !== "embedding_templates" || !component.column) return null
+
+    const oldTemplate = currentTemplates[component.column] ?? ""
+
+    return {
+      componentId: parsed.componentId,
+      sourceType: component.column,
+      oldTemplate,
+      newTemplate: parsed.newTemplate,
+      explanation: parsed.explanation,
+    }
+  } catch (err) {
+    console.log(`  ! Template improver error: ${err instanceof Error ? err.message : err}`)
+    return null
+  }
+}
+
+/** Apply a template change to the DB */
+export async function applyTemplateChange(proposal: TemplateProposal): Promise<{ sourceType: string; oldTemplate: string; storage: string }> {
+  const component = getComponent(proposal.componentId)
+  const storage = component?.storage ?? "embedding_templates"
+  const backup = { sourceType: proposal.sourceType, oldTemplate: proposal.oldTemplate, storage }
+
+  if (storage === "context_templates") {
+    const { saveContextTemplate } = await import("../db/context-templates")
+    await saveContextTemplate(proposal.sourceType, proposal.newTemplate)
+  } else {
+    await saveEmbeddingTemplate(proposal.sourceType, proposal.newTemplate)
+  }
+
+  console.log(`  [improve] Applied template: ${proposal.sourceType} = "${proposal.newTemplate.slice(0, 60)}..."`)
+  return backup
+}
+
+/** Revert a template change */
+export async function revertTemplateChange(backup: { sourceType: string; oldTemplate: string; storage?: string }): Promise<void> {
+  if (backup.storage === "context_templates") {
+    const { saveContextTemplate } = await import("../db/context-templates")
+    await saveContextTemplate(backup.sourceType, backup.oldTemplate)
+  } else {
+    await saveEmbeddingTemplate(backup.sourceType, backup.oldTemplate)
+  }
+  console.log(`  [improve] Reverted template: ${backup.sourceType}`)
 }
 
 function buildCompactDiff(original: string, modified: string): string {

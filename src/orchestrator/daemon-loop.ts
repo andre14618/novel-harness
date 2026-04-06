@@ -10,12 +10,16 @@
 import { readFileSync } from "node:fs"
 import * as harness from "../harness"
 import { diagnose, diagnoseFor } from "./diagnose"
-import { proposeChange, applyChange, revertChange, runBenchmark, TARGETS, buildImproverContext, synthesizeConclusion } from "./improve"
+import {
+  proposeChange, applyChange, revertChange, runBenchmark, TARGETS, buildImproverContext, synthesizeConclusion,
+  getConfigComponentsForDimension, loadConfigValues, proposeConfigChange, applyConfigChange, revertConfigChange,
+  getTemplateComponentsForDimension, proposeTemplateChange, applyTemplateChange, revertTemplateChange,
+} from "./improve"
 import { generate as atomicGenerate, judge as atomicJudge } from "./atomic"
 import { getDaemonTargetFull } from "../../benchmark/registry"
 import { getModelForAgent } from "../../models/roles"
 import { type ExperimentLimits, resolveDefaults, checkLimits, getExperimentActualCost } from "./experiment-limits"
-import { validateProposal } from "./guardrails"
+import { validateProposal, validateConfigProposal, validateTemplateProposal } from "./guardrails"
 
 const HARNESS_ROOT = process.env.HARNESS_ROOT ?? "/home/andre/apps/novel-harness"
 const NOTIFY_URL = process.env.NOTIFY_URL ?? "http://localhost:2586"
@@ -35,11 +39,18 @@ interface ActiveCycle {
   consecutiveFailures: number
   limits: ExperimentLimits
   backup?: { filePath: string; originalContent: string }
+  configBackup?: { table: string; column: string; oldValue: number; novelId: string }
+  templateBackup?: { sourceType: string; oldTemplate: string; storage?: string }
   pendingBatchId?: number
   iterationId?: number
   useAtomic: boolean
   dimensionLocked: boolean
   pendingProposal?: { agentName: string; newPrompt: string; explanation: string; filePath: string }
+  pendingConfigProposal?: { componentId: string; newValue: number; explanation: string }
+  /** Novel ID used for config tuning (from context benchmark) */
+  configNovelId?: string
+  /** Track iteration type so evaluator knows how to revert */
+  iterationType?: "prompt" | "config" | "template"
 }
 
 let activeCycle: ActiveCycle | null = null
@@ -173,11 +184,22 @@ export async function startCycle(trigger: string, override?: { target: string; d
     dimension: diagnosis.dimension, dimensionLocked,
   })
 
+  // Determine config novel ID for config tuning (from benchmark inputs)
+  let configNovelId: string | undefined
+  try {
+    if (fullTarget) {
+      const inputs = fullTarget.loadInputs()
+      const firstWithNovel = inputs.find((i: any) => i.novelId)
+      if (firstWithNovel) configNovelId = (firstWithNovel as any).novelId
+    }
+  } catch { /* inputs may not have novelId — that's fine */ }
+
   activeCycle = {
     cycleId, experimentId, iterationNum: 0,
     target: diagnosis.target, dimension: diagnosis.dimension,
     currentScore: baselineScore, baselineScore,
     consecutiveFailures: 0, limits, useAtomic, dimensionLocked,
+    configNovelId,
   }
 
   await notify(`Improvement cycle #${cycleId} started`, `Target: ${diagnosis.target}/${diagnosis.dimension} (baseline: ${baselineScore})\nExperiment: #${experimentId}\nTrigger: ${trigger}`)
@@ -237,6 +259,32 @@ async function runIteration(judgeReasoning: string[]): Promise<void> {
 
   cycle.iterationId = await harness.cycles.createIteration(cycle.cycleId, cycle.iterationNum, cycle.target, cycle.dimension, cycle.currentScore)
 
+  // Decide iteration type: rotate prompt → config → template based on iteration number and failures
+  const configComponents = getConfigComponentsForDimension(cycle.dimension)
+  const templateComponents = getTemplateComponentsForDimension(cycle.dimension)
+
+  const iterMod = cycle.iterationNum % 4 // 1=prompt, 2=prompt, 3=config, 0=template
+  const shouldTryConfig = configComponents.length > 0 && cycle.configNovelId && (
+    iterMod === 3 || cycle.consecutiveFailures >= 2
+  )
+  const shouldTryTemplate = templateComponents.length > 0 && (
+    iterMod === 0 || (cycle.consecutiveFailures >= 3 && !shouldTryConfig)
+  )
+
+  if (shouldTryConfig) {
+    const configResult = await runConfigIteration(cycle, configComponents, judgeReasoning, targetConfig)
+    if (configResult) return
+    console.log(`[daemon] Config proposal failed, trying template or prompt`)
+  }
+
+  if (shouldTryTemplate || (shouldTryConfig && !shouldTryConfig)) {
+    const templateResult = await runTemplateIteration(cycle, templateComponents, judgeReasoning, targetConfig)
+    if (templateResult) return
+    console.log(`[daemon] Template proposal failed, falling back to prompt iteration`)
+  }
+
+  // ── Prompt iteration ──────────────────────────────────────────────
+
   // Read current prompts
   const currentPrompts = targetConfig.promptFiles.map(f => ({
     agentName: f.agentName,
@@ -259,6 +307,7 @@ async function runIteration(judgeReasoning: string[]): Promise<void> {
     await runIteration(judgeReasoning)
     return
   }
+  cycle.iterationType = "prompt"
 
   // Validate
   const targetFile = targetConfig.promptFiles.find(f => f.agentName === proposal.agentName)
@@ -390,6 +439,124 @@ async function runIteration(judgeReasoning: string[]): Promise<void> {
   await evaluateIteration(judgeReasoning)
 }
 
+// ── Config iteration (DB parameter tuning) ──────────────────────────────
+
+async function runConfigIteration(
+  cycle: ActiveCycle,
+  configComponents: ReturnType<typeof getConfigComponentsForDimension>,
+  judgeReasoning: string[],
+  targetConfig: typeof TARGETS[string],
+): Promise<boolean> {
+  if (!cycle.configNovelId) return false
+
+  console.log(`[daemon] Config iteration: ${configComponents.length} tunable parameters for ${cycle.dimension}`)
+
+  const currentValues = await loadConfigValues(cycle.configNovelId, configComponents)
+  const improverContext = await buildImproverContext(cycle.cycleId, cycle.target, cycle.dimension, "")
+
+  const proposal = await proposeConfigChange(
+    configComponents, currentValues, cycle.dimension,
+    cycle.currentScore, judgeReasoning, improverContext, cycle.consecutiveFailures,
+  )
+
+  if (!proposal) return false
+
+  const validation = validateConfigProposal(proposal)
+  if (!validation.valid) {
+    console.log(`[daemon] Config proposal rejected: ${validation.reason}`)
+    return false
+  }
+
+  // Store proposal info
+  await harness.cycles.setIterationProposal(cycle.iterationId!, {
+    explanation: `[config] ${proposal.explanation}`,
+    agentName: proposal.componentId,
+    filePath: `${proposal.table}.${proposal.column}`,
+    proposedContent: `${proposal.oldValue} → ${proposal.newValue}`,
+    backupContent: String(proposal.oldValue),
+  })
+
+  cycle.iterationType = "config"
+  cycle.pendingConfigProposal = { componentId: proposal.componentId, newValue: proposal.newValue, explanation: proposal.explanation }
+
+  // Apply config change
+  const backup = await applyConfigChange(proposal, cycle.configNovelId)
+  cycle.configBackup = { ...backup, novelId: cycle.configNovelId }
+
+  // Run benchmark (subprocess only — config changes don't work with atomic mode)
+  const benchResult = await runBenchmark(targetConfig.benchmarkCmd, cycle.experimentId)
+  if (!benchResult) {
+    console.log("[daemon] Benchmark failed after config change, reverting")
+    await revertConfigChange(backup, cycle.configNovelId)
+    cycle.configBackup = undefined
+    cycle.pendingConfigProposal = undefined
+    await harness.cycles.completeIteration(cycle.iterationId!, { outcome: "failed" })
+    cycle.consecutiveFailures++
+    return true // handled, even though it failed
+  }
+
+  await harness.cycles.setIterationRunId(cycle.iterationId!, benchResult.runId)
+  await evaluateIteration(judgeReasoning)
+  return true
+}
+
+// ── Template iteration (embedding template tuning) ──────────────────────
+
+async function runTemplateIteration(
+  cycle: ActiveCycle,
+  templateComponents: ReturnType<typeof getTemplateComponentsForDimension>,
+  judgeReasoning: string[],
+  targetConfig: typeof TARGETS[string],
+): Promise<boolean> {
+  if (templateComponents.length === 0) return false
+
+  console.log(`[daemon] Template iteration: ${templateComponents.length} tunable templates for ${cycle.dimension}`)
+
+  const { getAllEmbeddingTemplates } = await import("../db/embed")
+  const { getAllContextTemplates } = await import("../db/context-templates")
+  const [embedTemplates, ctxTemplates] = await Promise.all([getAllEmbeddingTemplates(), getAllContextTemplates()])
+  const currentTemplates = { ...embedTemplates, ...ctxTemplates }
+
+  const proposal = await proposeTemplateChange(
+    templateComponents, currentTemplates, cycle.dimension,
+    cycle.currentScore, judgeReasoning, cycle.consecutiveFailures,
+  )
+
+  if (!proposal) return false
+
+  const validation = validateTemplateProposal(proposal)
+  if (!validation.valid) {
+    console.log(`[daemon] Template proposal rejected: ${validation.reason}`)
+    return false
+  }
+
+  await harness.cycles.setIterationProposal(cycle.iterationId!, {
+    explanation: `[template] ${proposal.explanation}`,
+    agentName: proposal.componentId,
+    filePath: `embedding_templates.${proposal.sourceType}`,
+    proposedContent: proposal.newTemplate,
+    backupContent: proposal.oldTemplate,
+  })
+
+  cycle.iterationType = "template"
+  const backup = await applyTemplateChange(proposal)
+  cycle.templateBackup = backup
+
+  const benchResult = await runBenchmark(targetConfig.benchmarkCmd, cycle.experimentId)
+  if (!benchResult) {
+    console.log("[daemon] Benchmark failed after template change, reverting")
+    await revertTemplateChange(backup)
+    cycle.templateBackup = undefined
+    await harness.cycles.completeIteration(cycle.iterationId!, { outcome: "failed" })
+    cycle.consecutiveFailures++
+    return true
+  }
+
+  await harness.cycles.setIterationRunId(cycle.iterationId!, benchResult.runId)
+  await evaluateIteration(judgeReasoning)
+  return true
+}
+
 async function evaluateIterationAtomic(newScore: number, judgeReasoning: string[]): Promise<void> {
   if (!activeCycle) return
   const cycle = activeCycle
@@ -467,6 +634,8 @@ async function evaluateIteration(judgeReasoning: string[]): Promise<void> {
   if (!newScores) {
     console.log("[daemon] No scores, reverting")
     if (cycle.backup) revertChange(cycle.backup.filePath, cycle.backup.originalContent)
+    if (cycle.configBackup) await revertConfigChange(cycle.configBackup, cycle.configBackup.novelId)
+    if (cycle.templateBackup) await revertTemplateChange(cycle.templateBackup)
     await harness.cycles.completeIteration(cycle.iterationId!, { outcome: "failed" })
     cycle.consecutiveFailures++
     return
@@ -498,15 +667,27 @@ async function evaluateIteration(judgeReasoning: string[]): Promise<void> {
         console.log(`[daemon] Auto-commit failed: ${err instanceof Error ? err.message : err}`)
       }
     }
+    if (cycle.configBackup) {
+      console.log(`[daemon] Config change kept: ${cycle.configBackup.column} = ${cycle.pendingConfigProposal?.newValue}`)
+    }
+    if (cycle.templateBackup) {
+      console.log(`[daemon] Template change kept: ${cycle.templateBackup.sourceType}`)
+    }
   } else {
     const belowThreshold = delta > 0 && !improved
     const reason = belowThreshold ? ` (below threshold ${cycle.limits.minDeltaThreshold})` : ""
     console.log(`[daemon] REVERTED: ${cycle.currentScore} → ${newScores.avgScore} (${delta >= 0 ? "+" : ""}${delta})${reason}`)
     if (cycle.backup) revertChange(cycle.backup.filePath, cycle.backup.originalContent)
+    if (cycle.configBackup) await revertConfigChange(cycle.configBackup, cycle.configBackup.novelId)
+    if (cycle.templateBackup) await revertTemplateChange(cycle.templateBackup)
     cycle.consecutiveFailures++
   }
 
   cycle.backup = undefined
+  cycle.configBackup = undefined
+  cycle.templateBackup = undefined
+  cycle.pendingConfigProposal = undefined
+  cycle.iterationType = undefined
   cycle.pendingBatchId = undefined
 
   const check = checkLimits(actualCost, cycle.iterationNum, cycle.consecutiveFailures, cycle.limits)

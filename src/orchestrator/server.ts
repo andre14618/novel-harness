@@ -38,9 +38,9 @@ function navBarHtml(activePage: "dashboard" | "panel" | "novels" | "config" | "e
     { id: "novels", label: "Novels", href: "/app" },
     { id: "config", label: "Config", href: "/app/config" },
     { id: "experiments", label: "Experiments", href: "/app/experiments" },
-    { id: "guide", label: "Guide", href: "/app/guide" },
-    { id: "dashboard", label: "Dashboard", href: "/" },
-    { id: "panel", label: "Operations", href: "/panel" },
+    { id: "panel", label: "Operations", href: "/app/operations" },
+    { id: "guide", label: "Overview", href: "/app/guide" },
+    { id: "docs", label: "Docs", href: "/app/docs" },
   ]
   const links = items.map(i => {
     const cls = i.id === activePage ? "nav-active" : ""
@@ -1418,6 +1418,114 @@ const server = Bun.serve({
       const { saveDeterministicConfig } = await import("../harness/deterministic")
       await saveDeterministicConfig(novelId, body)
       return Response.json({ ok: true })
+    }
+
+    // ── Context Templates API ──────────────────────────────────────
+    if (path === "/api/context-templates" && req.method === "GET") {
+      const { getAllContextTemplates } = await import("../db/context-templates")
+      const templates = await getAllContextTemplates()
+      return Response.json({ templates })
+    }
+
+    const ctxTplMatch = path.match(/^\/api\/context-templates\/([^/]+)$/)
+    if (ctxTplMatch && req.method === "PUT") {
+      const key = decodeURIComponent(ctxTplMatch[1])
+      const body = await req.json() as { template: string }
+      const { saveContextTemplate } = await import("../db/context-templates")
+      await saveContextTemplate(key, body.template)
+      return Response.json({ ok: true })
+    }
+
+    // ── Agent Generation Config API ──────────────────────────────────
+    if (path === "/api/generation-config" && req.method === "GET") {
+      const { getGenerationConfig, loadGenerationConfig } = await import("../../models/roles")
+      await loadGenerationConfig()
+      const agents = ["writer", "rewriter", "planning-plotter", "fact-extractor", "summary-extractor", "character-state", "relationship-timeline", "graph-linker"]
+      const configs: Record<string, any> = {}
+      for (const a of agents) {
+        configs[a] = await getGenerationConfig(a)
+      }
+      return Response.json({ configs })
+    }
+
+    const genMatch = path.match(/^\/api\/generation-config\/([^/]+)$/)
+    if (genMatch && req.method === "PUT") {
+      const agentName = decodeURIComponent(genMatch[1])
+      const body = await req.json() as { temperature?: number; maxTokens?: number }
+      const { saveGenerationConfig } = await import("../../models/roles")
+      await saveGenerationConfig(agentName, body)
+      return Response.json({ ok: true })
+    }
+
+    // ── Embedding Templates API ──────────────────────────────────────
+    if (path === "/api/embedding-templates" && req.method === "GET") {
+      const { getAllEmbeddingTemplates } = await import("../db/embed")
+      const templates = await getAllEmbeddingTemplates()
+      return Response.json({ templates })
+    }
+
+    const embedMatch = path.match(/^\/api\/embedding-templates\/([^/]+)$/)
+    if (embedMatch && req.method === "GET") {
+      const sourceType = decodeURIComponent(embedMatch[1])
+      const { getEmbeddingTemplate } = await import("../db/embed")
+      const template = await getEmbeddingTemplate(sourceType)
+      return Response.json({ sourceType, template })
+    }
+
+    if (embedMatch && req.method === "PUT") {
+      const sourceType = decodeURIComponent(embedMatch[1])
+      const body = await req.json() as { template: string }
+      const { saveEmbeddingTemplate } = await import("../db/embed")
+      await saveEmbeddingTemplate(sourceType, body.template)
+      return Response.json({ ok: true })
+    }
+
+    // ── Docs API ────────────────────────────────────────────────────
+    if (path === "/api/docs" && req.method === "GET") {
+      try {
+        const docsDir = resolve(import.meta.dir, "../../docs")
+        const files = readdirSync(docsDir)
+          .filter(f => f.endsWith(".md"))
+          .map(f => {
+            const filePath = resolve(docsDir, f)
+            const stat = Bun.file(filePath)
+            // Extract title from first heading or use filename
+            const content = readFileSync(filePath, "utf-8")
+            const titleMatch = content.match(/^#\s+(.+)/m)
+            return {
+              filename: f,
+              title: titleMatch?.[1] ?? f.replace(/\.md$/, ""),
+              size: stat.size,
+            }
+          })
+          .sort((a, b) => a.title.localeCompare(b.title))
+        return Response.json({ docs: files })
+      } catch (err) {
+        return Response.json({ error: String(err) }, { status: 500 })
+      }
+    }
+
+    const docsMatch = path.match(/^\/api\/docs\/(.+)$/)
+    if (docsMatch && req.method === "GET") {
+      try {
+        const filename = decodeURIComponent(docsMatch[1])
+        // Prevent path traversal
+        if (filename.includes("..") || filename.includes("/")) {
+          return Response.json({ error: "Invalid filename" }, { status: 400 })
+        }
+        const filePath = resolve(import.meta.dir, "../../docs", filename)
+        const file = Bun.file(filePath)
+        if (!await file.exists()) return Response.json({ error: "Not found" }, { status: 404 })
+        const content = await file.text()
+        const titleMatch = content.match(/^#\s+(.+)/m)
+        return Response.json({
+          filename,
+          title: titleMatch?.[1] ?? filename.replace(/\.md$/, ""),
+          content,
+        })
+      } catch (err) {
+        return Response.json({ error: String(err) }, { status: 500 })
+      }
     }
 
     // ── Novel step-through API ──────────────────────────────────────

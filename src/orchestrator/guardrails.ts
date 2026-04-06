@@ -7,6 +7,7 @@
 
 import { readFileSync } from "node:fs"
 import { MODELS } from "../../models/registry"
+import { getComponent } from "../harness/registry"
 
 // ── File scope ──────────────────────────────────────────────────────────
 
@@ -109,5 +110,62 @@ export function validateProposal(proposal: Proposal, harnessRoot: string): { val
     }
   }
 
+  return { valid: true }
+}
+
+// ── Config proposals (DB-backed parameters) ─────────────────────────────
+
+export interface ConfigProposal {
+  componentId: string       // e.g., "retrieval.max_facts"
+  table: string            // "retrieval_config" | "deterministic_config" | "agent_generation_config"
+  column: string           // "max_facts"
+  oldValue: number
+  newValue: number
+  explanation: string
+}
+
+export interface TemplateProposal {
+  componentId: string       // e.g., "embed.fact_template"
+  sourceType: string        // e.g., "fact"
+  oldTemplate: string
+  newTemplate: string
+  explanation: string
+}
+
+export function validateTemplateProposal(proposal: TemplateProposal): { valid: boolean; reason?: string } {
+  const component = getComponent(proposal.componentId)
+  if (!component) return { valid: false, reason: `Unknown component: ${proposal.componentId}` }
+  if (component.storage !== "embedding_templates" && component.storage !== "context_templates") {
+    return { valid: false, reason: `Component ${proposal.componentId} is not a template` }
+  }
+  if (!proposal.newTemplate || proposal.newTemplate.trim().length === 0) {
+    return { valid: false, reason: "Empty template" }
+  }
+  if (proposal.oldTemplate === proposal.newTemplate) {
+    return { valid: false, reason: "No change proposed" }
+  }
+  // Must contain at least one placeholder
+  if (!/\{[a-zA-Z]+\}/.test(proposal.newTemplate)) {
+    return { valid: false, reason: "Template must contain at least one {placeholder}" }
+  }
+  return { valid: true }
+}
+
+export function validateConfigProposal(proposal: ConfigProposal): { valid: boolean; reason?: string } {
+  const component = getComponent(proposal.componentId)
+  if (!component) return { valid: false, reason: `Unknown component: ${proposal.componentId}` }
+  if (component.type !== "number") return { valid: false, reason: `Component ${proposal.componentId} is not numeric` }
+  if (component.storage !== "retrieval_config" && component.storage !== "deterministic_config" && component.storage !== "agent_generation_config") {
+    return { valid: false, reason: `Component ${proposal.componentId} is not DB-backed (storage: ${component.storage})` }
+  }
+  if (component.min !== undefined && proposal.newValue < component.min) {
+    return { valid: false, reason: `Value ${proposal.newValue} below min (${component.min})` }
+  }
+  if (component.max !== undefined && proposal.newValue > component.max) {
+    return { valid: false, reason: `Value ${proposal.newValue} above max (${component.max})` }
+  }
+  if (proposal.oldValue === proposal.newValue) {
+    return { valid: false, reason: "No change proposed" }
+  }
   return { valid: true }
 }
