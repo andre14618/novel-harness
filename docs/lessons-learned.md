@@ -65,6 +65,18 @@ Per-call averages underestimate real costs because they don't account for rewrit
 ### Extraction benchmark completeness dimension doesn't discriminate (2026-04-06)
 Every model tested (Qwen 32B, Qwen 235B, MiMo Flash) scored exactly 8.0 on completeness across all runs. The judge always says "thorough, captures nearly all explicit and implicit information." Either the benchmark ceiling is too low, the judge rubric needs tightening, or all models genuinely extract equally well. Direct output comparison (relationship-timeline) showed real differences the benchmark missed.
 
+### Quality dimensions (1-10 scores) don't discriminate between models (2026-04-06)
+Prose Craft, Character Voice, and Sensory Grounding rubrics scored identically across Qwen 235B, DeepSeek V3.2, and MiMo Flash (all 8.0/10 on Prose Craft, 8.2-9.0 on others). DeepSeek V3.2 as judge anchors to the "7-8: Accomplished" band regardless of input quality. Penalty-based dimensions (issue enumeration) discriminate because they force specific evidence. **1-10 quality scoring is not useful for model comparison — use penalty counts or pairwise.** Quality dimensions archived from prose benchmark. (Experiment #90)
+
+### Writer model quality is indistinguishable across price tiers (2026-04-06)
+Compared Qwen 235B ($0.60/$1.20), DeepSeek V3.2 ($0.28/$0.42), and MiMo Flash ($0.10/$0.30) on 3 seeds × 2 runs. Penalty scores overlapped within variance. DeepSeek had fewest telling/dead-weight issues but was 12x slower (48.7s vs 4.7s). MiMo Flash had fewest dialogue problems and best cost ($0.0007/chapter). All three produce the same categories of issues (telling, dead weight, AI clichés) at similar rates — the problems are model-class-wide, not model-specific. **Model choice for writing is a speed/cost tradeoff, not a quality one.** (Experiment #90)
+
+### Llama 3.1 8B handles AI cliché tonal fixes at 131ms/$0.05M (2026-04-06)
+Tested Llama 3.1 8B (Groq) vs MiMo Flash on 25 tier-2 lint fixes. Both produced good rewrites for AI clichés (replacing abstract constructions with concrete scene-specific detail). Llama was 10x faster (131ms vs 1235ms) and cheaper ($0.05/$0.08 vs $0.10/$0.30). MiMo failed silently on some issues (returned unchanged sentence). Llama occasionally over-wrote but stayed closer to the original. **For chunked tonal fixes, use the cheapest fast model — the task is bounded enough that model size barely matters.** (Scripts: `scripts/tonal-pass-test.ts`, `scripts/relint-and-fix.ts`)
+
+### Lint pattern "just" has 23%+ false positive rate — disable broad filler patterns (2026-04-06)
+Pattern 70 (`\bjust\s+...`) flagged 39 issues in experiment #90. 9+ were false positives where "just" carries semantic weight: "not just a restaurant" (means "more than"), "just right" (means "precisely"), "just as" (temporal), "no longer just hers" (means "more than"). Even several "true positives" were debatable stylistic choices. Broader lesson: single-word filler patterns that can't distinguish semantic from filler usage erode linter credibility. **Disable patterns with >15% false positive rates. AI cliché patterns (multi-word constructions) are the high-value targets.** (Analysis of experiment #90 lint data)
+
 ### Cheap models match expensive models for mechanical tasks
 Qwen3 32B ($0.29/$0.59) and Qwen3 235B ($0.60/$1.20) performed equivalently to Kimi K2 ($1.00/$3.00) on lint compliance and word retention for full-chapter lint rewrites. For deterministic + per-sentence fixes, the model barely matters since the LLM only handles 1-3 sentences. **Use the cheapest available model for lint fixing.** (Experiment #63)
 

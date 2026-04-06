@@ -13,10 +13,10 @@
 
 import db from "../../data/connection"
 import type { WorkbenchConfig } from "./types"
-import { DIMENSIONS, DIMENSION_LABELS, QUALITY_DIMENSIONS, QUALITY_LABELS } from "../prose/judges/schema"
+import { DIMENSIONS, DIMENSION_LABELS } from "../prose/judges/schema"
 import { createRun, saveGeneration, saveScore, saveLLMCall } from "../db"
 import { concludeExperiment, createBatch, addBatchRequest, updateBatchSubmitted } from "../../data/db"
-import { loadSeeds, generateProse, judgeDimension, judgeQualityDimension, mean } from "../prose/shared"
+import { loadSeeds, generateProse, judgeDimension, mean } from "../prose/shared"
 import { getTransport, setTransport, BatchTransport } from "../../src/transport"
 import { extractJSON } from "../../src/llm"
 import { lintProse, saveLintIssues } from "../../src/lint"
@@ -172,14 +172,6 @@ async function main() {
             }
           }
 
-          for (const dim of QUALITY_DIMENSIONS) {
-            const quality = await judgeQualityDimension(judge, dim, prose, runId, seed.name)
-            if (quality) {
-              await saveScore(genId, judge.label, dim, quality.score, quality.reasoning)
-              dimSummary += `${QUALITY_LABELS[dim].slice(0, 3)}:${quality.score}/10 `
-            }
-          }
-
           const lintCount = modelStats[model.label].lint.at(-1) ?? 0
           console.log(`  [${model.label}] ${wordCount}w | ${latencyMs}ms | $${cost.toFixed(4)} | lint:${lintCount} ${dimSummary}`)
         } else {
@@ -216,13 +208,6 @@ async function main() {
             dimSummary += `${DIMENSION_LABELS[dim]}:${Math.abs(penalty.count)} `
           }
         }
-        for (const dim of QUALITY_DIMENSIONS) {
-          const quality = await judgeQualityDimension(judge, dim, gen.prose, gen.runId, gen.seed)
-          if (quality) {
-            await saveScore(gen.genId, judge.label, dim, quality.score, quality.reasoning)
-            dimSummary += `${QUALITY_LABELS[dim].slice(0, 3)}:${quality.score}/10 `
-          }
-        }
         console.log(`  [${gen.model}/${gen.seed}] ${dimSummary}`)
       }
     } else {
@@ -232,13 +217,10 @@ async function main() {
 
       const batchJudgeConfig = { ...judge, provider: batchProvider as any, model: batchModel }
 
-      // Queue all judge calls (penalty + quality)
+      // Queue all judge calls
       for (const gen of allGens) {
         for (const dim of DIMENSIONS) {
           await judgeDimension(batchJudgeConfig, dim, gen.prose, gen.runId, gen.seed, `gen-${gen.genId}-${dim}`)
-        }
-        for (const dim of QUALITY_DIMENSIONS) {
-          await judgeQualityDimension(batchJudgeConfig, dim, gen.prose, gen.runId, gen.seed, `gen-${gen.genId}-${dim}`)
         }
       }
 

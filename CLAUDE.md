@@ -67,7 +67,7 @@ Structured world systems, cultures, evolving relationships, timeline events, cha
 ### Benchmarks
 Five suites in `benchmark/`:
 - **`context/`** — context quality scoring (primary optimization target): relevance, completeness, noise, causal-depth, knowledge-accuracy. Each judge produces actionable diagnostics.
-- `prose/` — penalty-based (issue counts) + quality (1-10)
+- `prose/` — penalty-based (issue counts). Quality dimensions (1-10) archived — no judge discrimination.
 - `planning/` — Beat Specificity, Dialogue Cues, Emotional Arc (1-10)
 - `extraction/` — Completeness, Accuracy (1-10)
 - `continuity/` — Issue Detection, Fix Quality (1-10)

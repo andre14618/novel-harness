@@ -10,9 +10,9 @@ import { chapterDraftSchema } from "../../src/types"
 import { extractJSON } from "../../src/llm"
 import { getTokenCost } from "../../src/config/pricing"
 import {
-  penaltySchema, judgeScoreSchema,
-  ALL_DIMENSIONS, PENALTY_DIMENSIONS, QUALITY_DIMENSIONS,
-  type AnyDimension, type PenaltyDimension, type QualityDimension,
+  penaltySchema,
+  DIMENSIONS,
+  type Dimension,
 } from "./judges/schema"
 import { saveLLMCall } from "../db"
 import { getTransport } from "../../src/transport"
@@ -74,8 +74,8 @@ Premise: ${seed.premise}`
 
 // ── Judge rubrics ───────────────────────────────────────────────────────
 
-export const JUDGE_RUBRICS: Record<AnyDimension, string> = {} as any
-for (const dim of ALL_DIMENSIONS) {
+export const JUDGE_RUBRICS: Record<Dimension, string> = {} as any
+for (const dim of DIMENSIONS) {
   const path = new URL(`./judges/${dim}.md`, import.meta.url).pathname
   if (existsSync(path)) {
     JUDGE_RUBRICS[dim] = readFileSync(path, "utf-8")
@@ -155,7 +155,7 @@ export async function generateProse(
 // ── Judge call (penalty-based) ──────────────────────────────────────────
 
 export async function judgeDimension(
-  judge: JudgeConfig, dimension: PenaltyDimension, prose: string, runId: number, seed: string,
+  judge: JudgeConfig, dimension: Dimension, prose: string, runId: number, seed: string,
   customId?: string,
 ): Promise<{ count: number; issues: Array<{ quote: string; problem: string }> } | null> {
   const rubric = JUDGE_RUBRICS[dimension]
@@ -210,61 +210,6 @@ export async function judgeDimension(
   }
 }
 
-// ── Judge call (quality score, 1-10) ───────────────────────────────────
-
-export async function judgeQualityDimension(
-  judge: JudgeConfig, dimension: QualityDimension, prose: string, runId: number, seed: string,
-  customId?: string,
-): Promise<{ score: number; reasoning: string } | null> {
-  const rubric = JUDGE_RUBRICS[dimension]
-  if (!rubric) { console.log(`  ! no rubric for quality dimension ${dimension}`); return null }
-
-  try {
-    const response = await getTransport().execute({
-      systemPrompt: `Here is a prose passage:\n\n${prose}\n\n---\n\n${rubric}`,
-      userPrompt: "Evaluate the prose above according to the rubric. Return the JSON result.",
-      model: judge.model,
-      provider: judge.provider,
-      temperature: 0.1,
-      maxTokens: 4096,
-      useMaxCompletionTokens: judge.useMaxCompletionTokens,
-      responseFormat: { type: "json_object" },
-      extraBody: judge.extraBody,
-      callerId: "judge",
-      customId,
-    })
-
-    const content = response.content
-    if (!content) { console.log(`  ! ${judge.label}/${dimension} [empty]`); return null }
-
-    const promptTokens = response.usage.prompt_tokens ?? 0
-    const completionTokens = response.usage.completion_tokens ?? 0
-    const elapsed = response.latencyMs
-
-    const cost = getTokenCost(judge.provider, judge.model, promptTokens, completionTokens)
-    await saveLLMCall(runId, "judge", null, judge.model, judge.provider, promptTokens, completionTokens, Math.round(elapsed), cost, { seed, dimension })
-
-    let jsonStr: string
-    try { jsonStr = extractJSON(content) }
-    catch { console.log(`  ! ${judge.label}/${dimension} [json] extraction failed`); return null }
-
-    let parsed: any
-    try { parsed = JSON.parse(jsonStr) }
-    catch { console.log(`  ! ${judge.label}/${dimension} [parse] invalid JSON`); return null }
-
-    const result = judgeScoreSchema.safeParse(parsed)
-    if (!result.success) {
-      console.log(`  ! ${judge.label}/${dimension} [zod] ${result.error.issues.map(i => i.message).join("; ").slice(0, 120)}`)
-      return null
-    }
-
-    return { score: result.data.score, reasoning: result.data.reasoning }
-  } catch (err) {
-    console.log(`  ! ${judge.label}/${dimension} [exception] ${err instanceof Error ? err.message : err}`)
-    return null
-  }
-}
-
 // ── Stats helpers ───────────────────────────────────────────────────────
 
 export function mean(arr: number[]): number {
@@ -276,4 +221,3 @@ export function stddev(arr: number[]): number {
   const m = mean(arr)
   return Math.sqrt(arr.reduce((s, v) => s + (v - m) ** 2, 0) / arr.length)
 }
-

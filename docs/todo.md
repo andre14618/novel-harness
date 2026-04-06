@@ -39,10 +39,10 @@ Rewriter is the single most expensive agent (24-32% of novel cost, 22-28 calls p
 
 ## Writer Model
 
-DeepSeek V3.2 is the best tested writer — lowest telling on average (~6.0), consistent dialogue quality. But high variance (telling swings 2.5-14.5). Kimi K2 clearly worse (dead-weight 25-80 in older runs). Qwen 235B never properly benchmarked as writer with independent judge. No better candidates at DeepSeek's price tier ($0.28/$0.42 + 95% cache).
+Experiment #90 showed Qwen 235B, DeepSeek V3.2, and MiMo Flash are quality-equivalent on penalty dimensions. Qwen is 12x faster (428 tok/s), DeepSeek has best penalties but 48.7s latency, MiMo is cheapest ($0.0007/ch). All produce same AI cliché categories.
 
-- Benchmark Qwen 235B as writer with DeepSeek judge to get a real comparison
-- Evaluate whether DeepSeek should replace Cerebras for writing + rewriting (cheaper per-token, 95% prefix caching on repeated prompts)
+- Evaluate DeepSeek V3.2 as rewriter — 95% prefix caching on 10K avg prompt tokens could cut rewriter cost significantly
+- Consider MiMo Flash as iteration writer (speed + cost) with Qwen 235B for final drafts
 
 ## Seeds & Testing
 
@@ -53,10 +53,13 @@ DeepSeek V3.2 is the best tested writer — lowest telling on average (~6.0), co
 - Rename daemon → autoresearcher across codebase
 - Test autoresearcher on context-quality dimensions end-to-end
 
-## Lint
+## Lint & Tonal Pass
 
-- Continue lint pattern expansion from craft references
-- Validate that lint patterns are calibrated against published fiction (baseline script exists at scripts/lint-baseline.ts)
+Lint trimmed from 53 → 26 enabled patterns (2026-04-06). Removed: "just" filler (23% FP), FILTER_WORD "could X" (overcutting), "looked/sounded like" (legit similes), all dead T1 patterns, RHYTHM_MONOTONY + PARAGRAPH_HOMOGENEITY (archived for future finetuned tonal pass). Remaining: 17 AI_CLICHE, 5 HEDGE_QUALIFIER, 2 DECLARED_EMOTION, 1 EMOTIONAL_ECHO, 1 REDUNDANT_BODY.
+
+- **Wire Llama 8B tonal pass into pipeline** — proven 9/9 on AI cliché fixes at 131ms/$0.05M (scripts/relint-and-fix.ts). Needs: integration into post-writer or post-rewriter step, before extraction.
+- **Finetuned paragraph-scale tonal model** — for rhythm monotony, sentence uniformity, paragraph homogeneity. Heuristic detection exists (archived patterns 68, 69) but fixing needs paragraph-scope rewriting, not sentence-level. LoRA on small model with curated before/after pairs.
+- **Expand AI cliché patterns** — current 17 patterns catch the big ones. Source more from craft references (docs/ai-tells-*.md has research). Each new pattern must be validated against published fiction baseline.
 
 ## Infrastructure
 
