@@ -213,7 +213,7 @@ async function embedNovelData(novelId: string) {
   // Facts
   const facts = await db`SELECT id, fact, category FROM facts WHERE novel_id = ${novelId} AND embedding IS NULL`
   if (facts.length > 0) {
-    const texts = facts.map(f => buildFactEmbedText(f.category, f.fact))
+    const texts = await Promise.all(facts.map(f => buildFactEmbedText(f.category, f.fact)))
     const embeddings = await getEmbeddings(texts)
     for (let i = 0; i < facts.length; i++) {
       const embStr = `[${embeddings[i].join(",")}]`
@@ -225,7 +225,7 @@ async function embedNovelData(novelId: string) {
   // Timeline events
   const events = await db`SELECT id, event, location, participants_json, consequences FROM timeline_events WHERE novel_id = ${novelId} AND embedding IS NULL`
   if (events.length > 0) {
-    const texts = events.map(e => buildEventEmbedText(e.event, e.location, e.participants_json as string[], e.consequences))
+    const texts = await Promise.all(events.map(e => buildEventEmbedText(e.event, e.location, e.participants_json as string[], e.consequences)))
     const embeddings = await getEmbeddings(texts)
     for (let i = 0; i < events.length; i++) {
       const embStr = `[${embeddings[i].join(",")}]`
@@ -237,7 +237,7 @@ async function embedNovelData(novelId: string) {
   // Summaries
   const summaries = await db`SELECT novel_id, chapter_number, summary, key_events_json, emotional_state FROM chapter_summaries WHERE novel_id = ${novelId} AND embedding IS NULL`
   if (summaries.length > 0) {
-    const texts = summaries.map(s => buildSummaryEmbedText(s.chapter_number, s.summary, s.key_events_json as string[], s.emotional_state))
+    const texts = await Promise.all(summaries.map(s => buildSummaryEmbedText(s.chapter_number, s.summary, s.key_events_json as string[], s.emotional_state)))
     const embeddings = await getEmbeddings(texts)
     for (let i = 0; i < summaries.length; i++) {
       const embStr = `[${embeddings[i].join(",")}]`
@@ -251,7 +251,7 @@ async function embedNovelData(novelId: string) {
   if (knowledge.length > 0) {
     const chars = await db`SELECT id, name FROM characters WHERE novel_id = ${novelId}`
     const charMap = Object.fromEntries(chars.map(c => [c.id, c.name]))
-    const texts = knowledge.map(k => buildKnowledgeEmbedText(charMap[k.character_id] ?? k.character_id, k.source, k.knowledge, k.is_false))
+    const texts = await Promise.all(knowledge.map(k => buildKnowledgeEmbedText(charMap[k.character_id] ?? k.character_id, k.source, k.knowledge, k.is_false)))
     const embeddings = await getEmbeddings(texts)
     for (let i = 0; i < knowledge.length; i++) {
       const embStr = `[${embeddings[i].join(",")}]`
