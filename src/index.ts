@@ -43,13 +43,25 @@ async function main() {
   } else if (isAuto) {
     const seedName = seedIdx !== -1 ? process.argv[seedIdx + 1] : "epic-fantasy"
     const seed = await loadSeed(seedName)
+
+    // --chapters N overrides seed chapterCount
+    const chaptersIdx = process.argv.indexOf("--chapters")
+    if (chaptersIdx !== -1 && process.argv[chaptersIdx + 1]) {
+      seed.chapterCount = parseInt(process.argv[chaptersIdx + 1])
+    }
+
     novelId = `novel-${Date.now()}`
     await initDB(novelId)
     await createNovel(novelId, seed)
     console.log(`\nCreated novel (auto mode, seed: ${seedName}): ${novelId}`)
+    console.log(`  Chapters: ${seed.chapterCount ?? "planner decides"}`)
     console.log(`  Premise: ${seed.premise.slice(0, 80)}...`)
   } else {
     const seed = await collectSeedInput()
+    const chaptersIdx = process.argv.indexOf("--chapters")
+    if (chaptersIdx !== -1 && process.argv[chaptersIdx + 1]) {
+      seed.chapterCount = parseInt(process.argv[chaptersIdx + 1])
+    }
     novelId = `novel-${Date.now()}`
     await initDB(novelId)
     await createNovel(novelId, seed)
