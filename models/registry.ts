@@ -10,7 +10,7 @@
 
 // ── Provider definitions ─────────────────────────────────────────────────
 
-export type ProviderName = "cerebras" | "groq" | "openrouter" | "openai" | "deepseek" | "minimax" | "zai" | "mimo"
+export type ProviderName = "cerebras" | "groq" | "openrouter" | "openai" | "deepseek" | "minimax" | "zai" | "mimo" | "together"
 
 export interface CacheStrategy {
   /**
@@ -107,12 +107,19 @@ export const PROVIDERS: Record<ProviderName, ProviderDef> = {
     authHeader: "api-key",  // MiMo uses "api-key: <key>" instead of "Authorization: Bearer <key>"
     cache: { type: "automatic", discount: 0.80 },  // Pro/Omni ~80% off; Flash ~90% off; cache writing free (limited time)
   },
+  together: {
+    apiUrl: "https://api.together.xyz/v1/chat/completions",
+    envKey: "TOGETHER_API_KEY",
+    tier: "standard",
+    extraBody: () => ({ chat_template_kwargs: { enable_thinking: false } }),
+    cache: { type: "none" },  // LoRA fine-tunes — no prefix caching
+  },
 }
 
 // ── Model definitions ────────────────────────────────────────────────────
 
 export interface ModelDef {
-  id: string                  // model ID sent in API request
+  id: string                  // model ID sent in API request (or logical ID for fine-tunes)
   label: string               // human-readable name
   provider: ProviderName
   params: string              // parameter count for reference
@@ -132,6 +139,9 @@ export interface ModelDef {
   notes?: string
   needsNothink?: boolean      // Qwen3 on Groq/OpenRouter needs /nothink prefix
   useMaxCompletionTokens?: boolean
+  /** Fine-tune fields — when set, transport sends baseModel as the API model and lora as a separate field. */
+  baseModel?: string           // API model ID to send (e.g. "Qwen/Qwen3.5-9B")
+  lora?: string                // LoRA adapter ID (e.g. Together AI fine-tunes)
 }
 
 export const MODELS: ModelDef[] = [
@@ -600,6 +610,22 @@ export const MODELS: ModelDef[] = [
     maxContext: 256_000,
     maxOutput: 32_000,
     notes: "67% discrimination in calibration (via Groq proxy). Dialogue scoring inconsistent (max spread 3).",
+  },
+
+  // ── Together AI (LoRA fine-tunes) ───────────────────────────────────
+
+  {
+    id: "qwen3.5-9b-howard-tonal-v1",
+    label: "Qwen 3.5 9B — Howard Tonal v1",
+    provider: "together",
+    params: "9B",
+    pricing: { input: 0.10, output: 0.15 },
+    thinking: "disabled",
+    maxContext: 32_000,
+    maxOutput: 2_048,
+    baseModel: "Qwen/Qwen3.5-9B",
+    lora: "andre14618_2c8c/Qwen3.5-9B-howard-tonal-v1-582d484b",
+    notes: "LoRA fine-tune for tonal pass. Back-translated Howard style. Served serverless via Together AI.",
   },
 ]
 
