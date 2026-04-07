@@ -3,9 +3,15 @@
  * proposed chapter outline and the accumulated character state from
  * prior chapters. No DB calls — caller pre-loads state.
  *
- * First-cut detections:
+ * The planner emits per-chapter deltas (only what meaningfully changed
+ * this chapter), not cumulative snapshots. So accumulation is the union
+ * of all prior knows[] across every prior chapter, keyed per character.
+ * Doing latest-only would miss contradictions against topics established
+ * in earlier chapters that weren't repeated in the most recent state.
+ *
+ * Detections:
  *   - knowledge_regression: planner marks doesNotKnow something the
- *     character previously knew.
+ *     character previously knew (in any prior chapter).
  *   - redundant_learning: knowledgeChanges entry for something the
  *     character already knew before this chapter.
  *
@@ -38,27 +44,32 @@ export interface DiffResult {
   conflicts: DiffConflict[]
 }
 
+interface AccumulatedKnowledge {
+  // normalized topic → { original display string, earliest chapter learned }
+  knows: Map<string, { topic: string; chapter: number }>
+}
+
 export function diffPlanAgainstState(
   outline: ChapterOutline,
   priorStates: PriorCharacterState[],
 ): DiffResult {
   const conflicts: DiffConflict[] = []
-  const byName = indexLatestByName(priorStates)
+  const byName = accumulateByName(priorStates)
 
   for (const change of outline.characterStateChanges) {
     const prior = byName.get(normalizeName(change.name))
     if (!prior) continue
 
-    const priorKnows = new Set(prior.knows.map(normalizeTopic))
     for (const unknown of change.doesNotKnow) {
       const norm = normalizeTopic(unknown)
-      if (priorKnows.has(norm)) {
+      const learned = prior.knows.get(norm)
+      if (learned) {
         conflicts.push({
           type: "knowledge_regression",
           characterName: change.name,
           topic: unknown,
-          detail: `${change.name} previously knew "${unknown}" (chapter ${prior.chapterNumber}) but the plan marks it as unknown`,
-          priorChapter: prior.chapterNumber,
+          detail: `${change.name} previously knew "${learned.topic}" (chapter ${learned.chapter}) but the plan marks it as unknown`,
+          priorChapter: learned.chapter,
         })
       }
     }
@@ -67,14 +78,14 @@ export function diffPlanAgainstState(
   for (const learn of outline.knowledgeChanges) {
     const prior = byName.get(normalizeName(learn.characterName))
     if (!prior) continue
-    const priorKnows = new Set(prior.knows.map(normalizeTopic))
-    if (priorKnows.has(normalizeTopic(learn.knowledge))) {
+    const learned = prior.knows.get(normalizeTopic(learn.knowledge))
+    if (learned) {
       conflicts.push({
         type: "redundant_learning",
         characterName: learn.characterName,
         topic: learn.knowledge,
-        detail: `${learn.characterName} already knew "${learn.knowledge}" as of chapter ${prior.chapterNumber}`,
-        priorChapter: prior.chapterNumber,
+        detail: `${learn.characterName} already knew "${learned.topic}" as of chapter ${learned.chapter}`,
+        priorChapter: learned.chapter,
       })
     }
   }
@@ -82,13 +93,22 @@ export function diffPlanAgainstState(
   return { ok: conflicts.length === 0, conflicts }
 }
 
-function indexLatestByName(states: PriorCharacterState[]): Map<string, PriorCharacterState> {
-  const out = new Map<string, PriorCharacterState>()
-  for (const s of states) {
+function accumulateByName(states: PriorCharacterState[]): Map<string, AccumulatedKnowledge> {
+  // Process in chapter order so the earliest chapter wins for each topic.
+  const sorted = [...states].sort((a, b) => a.chapterNumber - b.chapterNumber)
+  const out = new Map<string, AccumulatedKnowledge>()
+  for (const s of sorted) {
     const key = normalizeName(s.characterName)
-    const existing = out.get(key)
-    if (!existing || s.chapterNumber > existing.chapterNumber) {
-      out.set(key, s)
+    let acc = out.get(key)
+    if (!acc) {
+      acc = { knows: new Map() }
+      out.set(key, acc)
+    }
+    for (const topic of s.knows) {
+      const norm = normalizeTopic(topic)
+      if (!acc.knows.has(norm)) {
+        acc.knows.set(norm, { topic, chapter: s.chapterNumber })
+      }
     }
   }
   return out

@@ -1,7 +1,8 @@
 import { chapterDraftSchema, continuityCheckSchema } from "../types"
 import {
   getNovel, getChapterOutline, getCharacters, getFactsUpToChapter,
-  getCharacterStatesAtChapter, getWorldBible, saveChapterDraft, approveChapterDraft,
+  getCharacterStatesAtChapter, getAllCharacterStatesBeforeChapter, getWorldBible,
+  saveChapterDraft, approveChapterDraft,
   saveIssue, updateCurrentChapter, updatePhase,
 } from "../db"
 import { callAgent } from "../llm"
@@ -53,9 +54,11 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
 
     // Pre-write plan-vs-state diff (non-blocking — logs conflicts as warnings).
     // Catches contradictions in the planner's proposed state before generation cost.
+    // Uses ALL prior states (not just latest) because the planner emits per-chapter
+    // deltas, not cumulative snapshots.
     try {
       const characters = await getCharacters(novelId)
-      const priorStates = await getCharacterStatesAtChapter(novelId, ch)
+      const priorStates = await getAllCharacterStatesBeforeChapter(novelId, ch)
       const charById = new Map(characters.map(c => [c.id, c.name]))
       const prior: PriorCharacterState[] = priorStates.map(s => ({
         characterName: charById.get(s.characterId) ?? s.characterId,

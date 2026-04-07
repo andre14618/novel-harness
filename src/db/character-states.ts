@@ -20,6 +20,14 @@ export async function getCharacterStatesAtChapter(novelId: string, chapterNum: n
   return rows.map(r => r.state_json as CharacterState)
 }
 
+export async function getAllCharacterStatesBeforeChapter(novelId: string, chapterNum: number): Promise<CharacterState[]> {
+  const rows = await db`
+    SELECT state_json FROM character_states
+    WHERE novel_id = ${novelId} AND chapter_number < ${chapterNum}
+    ORDER BY chapter_number ASC`
+  return rows.map(r => r.state_json as CharacterState)
+}
+
 export async function clearCharacterStatesForChapter(novelId: string, chapterNum: number): Promise<void> {
   await db`DELETE FROM character_states WHERE novel_id = ${novelId} AND chapter_number = ${chapterNum}`
 }

@@ -5,7 +5,7 @@ export { saveChapterOutline, getChapterOutline, getChapterOutlines } from "./out
 export { saveChapterDraft, approveChapterDraft, getApprovedDraft, unapproveChapterDraft } from "./drafts"
 export { saveChapterSummary, getRecentSummaries } from "./summaries"
 export { saveFact, getFactsUpToChapter, getFactsForChapter, clearFactsForChapter } from "./facts"
-export { saveCharacterState, getCharacterStatesAtChapter, clearCharacterStatesForChapter } from "./character-states"
+export { saveCharacterState, getCharacterStatesAtChapter, getAllCharacterStatesBeforeChapter, clearCharacterStatesForChapter } from "./character-states"
 export { saveIssue, getOpenIssues, resolveIssuesForChapter } from "./issues"
 export { saveValidationPass, getValidationAttempts } from "./validation-passes"
 export {

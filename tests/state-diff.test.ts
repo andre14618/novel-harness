@@ -95,7 +95,9 @@ describe("diffPlanAgainstState", () => {
     expect(result.conflicts[0].type).toBe("knowledge_regression")
   })
 
-  test("most recent prior state wins when multiple chapters exist", () => {
+  test("redundant learning is detected even when most recent state doesn't repeat the topic", () => {
+    // Planner emits per-chapter deltas, not cumulative snapshots.
+    // Topic established in ch3 must still be remembered in ch7 even though ch5 didn't mention it.
     const outline = makeChapterOutline({
       chapterNumber: 7,
       characterStateChanges: [],
@@ -103,15 +105,50 @@ describe("diffPlanAgainstState", () => {
         { characterName: "Elena", knowledge: "the betrayal", source: "discovered" },
       ],
     })
-    // ch3: didn't know. ch5: did know. ch7 plan says "learns it" → conflict (already known at ch5)
     const prior: PriorCharacterState[] = [
-      { characterName: "Elena", chapterNumber: 3, knows: [], doesNotKnow: ["the betrayal"] },
-      { characterName: "Elena", chapterNumber: 5, knows: ["the betrayal"], doesNotKnow: [] },
+      { characterName: "Elena", chapterNumber: 3, knows: ["the betrayal"], doesNotKnow: [] },
+      { characterName: "Elena", chapterNumber: 5, knows: ["something else"], doesNotKnow: [] },
     ]
     const result = diffPlanAgainstState(outline, prior)
     expect(result.ok).toBe(false)
     expect(result.conflicts[0].type).toBe("redundant_learning")
-    expect(result.conflicts[0].priorChapter).toBe(5)
+    expect(result.conflicts[0].priorChapter).toBe(3)
+  })
+
+  test("knowledge regression is detected against earlier chapter even when latest chapter is silent on the topic", () => {
+    // Same union-vs-snapshot point for the regression path.
+    const outline = makeChapterOutline({
+      chapterNumber: 7,
+      characterStateChanges: [
+        { name: "Elena", location: "", emotionalState: "", knows: [], doesNotKnow: ["the betrayal"] },
+      ],
+      knowledgeChanges: [],
+    })
+    const prior: PriorCharacterState[] = [
+      { characterName: "Elena", chapterNumber: 2, knows: ["the betrayal"], doesNotKnow: [] },
+      { characterName: "Elena", chapterNumber: 5, knows: ["something else"], doesNotKnow: [] },
+    ]
+    const result = diffPlanAgainstState(outline, prior)
+    expect(result.ok).toBe(false)
+    expect(result.conflicts[0].type).toBe("knowledge_regression")
+    expect(result.conflicts[0].priorChapter).toBe(2)
+  })
+
+  test("earliest chapter wins when topic appears in multiple prior chapters", () => {
+    const outline = makeChapterOutline({
+      chapterNumber: 7,
+      characterStateChanges: [],
+      knowledgeChanges: [
+        { characterName: "Elena", knowledge: "the betrayal", source: "discovered" },
+      ],
+    })
+    const prior: PriorCharacterState[] = [
+      { characterName: "Elena", chapterNumber: 2, knows: ["the betrayal"], doesNotKnow: [] },
+      { characterName: "Elena", chapterNumber: 5, knows: ["the betrayal"], doesNotKnow: [] },
+    ]
+    const result = diffPlanAgainstState(outline, prior)
+    expect(result.ok).toBe(false)
+    expect(result.conflicts[0].priorChapter).toBe(2)
   })
 
   test("multiple conflicts are all reported", () => {
