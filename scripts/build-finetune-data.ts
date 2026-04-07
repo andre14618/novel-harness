@@ -131,6 +131,8 @@ function buildUserPrompt(task: string, chapter: ChapterData): string {
 
 // ── Main (supports both CLI and programmatic use) ───────────────────────
 
+const CONCURRENCY = 5 // parallel base model calls
+
 export async function generateTrainingData(task: string, limit: number): Promise<{ inserted: number; skipped: number }> {
   const systemPrompt = SYSTEM_PROMPTS[task]
   if (!systemPrompt) {
@@ -139,7 +141,7 @@ export async function generateTrainingData(task: string, limit: number): Promise
 
   console.log(`[finetune] Fetching up to ${limit} approved chapters...`)
   const chapters = await fetchChapters(limit)
-  console.log(`[finetune] Found ${chapters.length} chapters`)
+  console.log(`[finetune] Found ${chapters.length} chapters (concurrency: ${CONCURRENCY})`)
 
   if (chapters.length === 0) {
     console.log("[finetune] No approved chapters found.")
@@ -148,37 +150,49 @@ export async function generateTrainingData(task: string, limit: number): Promise
 
   let inserted = 0
   let skipped = 0
+  const startTime = Date.now()
 
-  for (const chapter of chapters) {
-    const userPrompt = buildUserPrompt(task, chapter)
-    if (!userPrompt) {
-      skipped++
-      continue
+  // Process in batches of CONCURRENCY
+  for (let i = 0; i < chapters.length; i += CONCURRENCY) {
+    const batch = chapters.slice(i, i + CONCURRENCY)
+    const results = await Promise.allSettled(batch.map(async (chapter, j) => {
+      const idx = i + j + 1
+      const userPrompt = buildUserPrompt(task, chapter)
+      if (!userPrompt) return null
+
+      const t0 = Date.now()
+      const baseOutput = await runBaseModel(systemPrompt, userPrompt)
+      const ms = Date.now() - t0
+
+      // Rough token estimate from output length
+      const outputTokens = Math.round(baseOutput.length / 4)
+      const tps = ms > 0 ? Math.round(outputTokens / (ms / 1000)) : 0
+
+      console.log(`  [${idx}/${chapters.length}] novel=${chapter.novelId.slice(0, 8)} ch${chapter.chapterNumber} — ${ms}ms, ~${outputTokens} tokens, ~${tps} tok/s`)
+
+      await saveTrainingPair({
+        task,
+        novel_id: chapter.novelId,
+        chapter_number: chapter.chapterNumber,
+        system_prompt: systemPrompt,
+        user_content: userPrompt,
+        base_output: baseOutput,
+      })
+
+      return true
+    }))
+
+    for (const r of results) {
+      if (r.status === "fulfilled" && r.value === true) inserted++
+      else if (r.status === "rejected") {
+        console.error(`    Failed: ${r.reason instanceof Error ? r.reason.message : r.reason}`)
+        skipped++
+      } else skipped++
     }
-
-    let baseOutput = "{}"
-    try {
-      console.log(`  [${inserted + skipped + 1}/${chapters.length}] novel=${chapter.novelId.slice(0, 8)} ch${chapter.chapterNumber} — calling base model...`)
-      baseOutput = await runBaseModel(systemPrompt, userPrompt)
-    } catch (err) {
-      console.error(`    Failed: ${err instanceof Error ? err.message : err}`)
-      skipped++
-      continue
-    }
-
-    await saveTrainingPair({
-      task,
-      novel_id: chapter.novelId,
-      chapter_number: chapter.chapterNumber,
-      system_prompt: systemPrompt,
-      user_content: userPrompt,
-      base_output: baseOutput,
-    })
-
-    inserted++
   }
 
-  console.log(`[finetune] Done: ${inserted} pairs inserted, ${skipped} skipped`)
+  const totalSec = ((Date.now() - startTime) / 1000).toFixed(1)
+  console.log(`[finetune] Done: ${inserted} pairs inserted, ${skipped} skipped (${totalSec}s total)`)
   return { inserted, skipped }
 }
 
