@@ -5,7 +5,7 @@ import {
   saveChapterDraft, approveChapterDraft,
   saveIssue, updateCurrentChapter, updatePhase,
 } from "../db"
-import { callAgent } from "../llm"
+import { callAgent, executeAndLog } from "../llm"
 import { getTransport } from "../transport"
 import { WRITER_AGENT_PROMPT, BEAT_WRITER_PROMPT, CONTINUITY_AGENT_PROMPT, CHAPTER_PLAN_CHECKER_PROMPT } from "../prompts"
 import { buildContext as buildWriterContext } from "../agents/writer/context"
@@ -135,7 +135,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
             for (let retry = 0; retry <= pipeline.maxBeatRetries; retry++) {
               const retryNote = retry > 0 ? `\nRETRY — previous attempt deviated. Try again, following the beat exactly.` : ""
               try {
-                const response = await getTransport().execute({
+                const response = await executeAndLog({
                   systemPrompt: BEAT_WRITER_PROMPT,
                   userPrompt: beatCtx.userPrompt + retryNote,
                   model: beatWriterModel?.model ?? "qwen-3-235b-a22b-instruct-2507",
@@ -143,7 +143,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                   temperature: beatWriterModel?.temperature ?? 0.8,
                   maxTokens: beatWriterModel?.maxTokens ?? 4000,
                   responseFormat: { type: "text" },
-                })
+                }, novelId, "beat-writer")
                 const prose = response.content?.trim()
                 if (!prose || prose.length < 50) continue
 

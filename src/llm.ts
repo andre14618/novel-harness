@@ -150,6 +150,49 @@ export function extractJSON(raw: string): string {
   throw new Error(`Could not extract JSON from response:\n${raw.slice(0, 500)}`)
 }
 
+// ── Direct Transport Wrapper with Logging ────────────────────────────────
+// For callers that bypass callAgent (e.g. beat-writer, lint fixers — they need
+// raw text output instead of JSON+schema validation). Wraps transport.execute()
+// so the call still lands in the llm_calls table for queryable timing analysis.
+
+export async function executeAndLog(
+  request: import("./transport").LLMRequest,
+  novelId: string | undefined,
+  agentName: string,
+): Promise<LLMResponse> {
+  const response = await getTransport().execute(request)
+  if (novelId) {
+    const tps = response.latencyMs > 0 && response.usage.completion_tokens > 0
+      ? Math.round(response.usage.completion_tokens / (response.latencyMs / 1000))
+      : 0
+    const cost = getTokenCost(request.provider, request.model, response.usage.prompt_tokens, response.usage.completion_tokens)
+    logLLMCallStructured(novelId, {
+      timestamp: new Date().toISOString(),
+      agent: agentName,
+      model: request.model,
+      provider: request.provider,
+      temperature: request.temperature,
+      maxTokens: request.maxTokens,
+      thinking: false,
+      systemPromptLength: request.systemPrompt.length,
+      userPromptLength: request.userPrompt.length,
+      contentPreview: response.content.slice(0, 200),
+      promptTokens: response.usage.prompt_tokens,
+      completionTokens: response.usage.completion_tokens,
+      totalLatencyMs: Math.round(response.latencyMs),
+      tokensPerSec: tps,
+      cost,
+      jsonExtractionSuccess: true,
+      jsonExtractionRetried: false,
+      zodValidationSuccess: true,
+      zodErrors: [],
+      httpAttempts: response.httpAttempts,
+      retryErrors: response.retryErrors,
+    }).catch(() => {})
+  }
+  return response
+}
+
 // ── HTTP Request ──────────────────────────────────────────────────────────
 // Delegates to the active LLMTransport (see src/transport.ts).
 // Direct and batch modes are handled by the transport layer.
