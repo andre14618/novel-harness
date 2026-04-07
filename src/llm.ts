@@ -162,8 +162,6 @@ async function makeRequest(
   provider: ProviderConfig,
   model: string,
   providerName: ProviderName,
-  novelId?: string,
-  callerId?: string,
 ): Promise<MakeRequestResult> {
   const response: LLMResponse = await getTransport().execute({
     systemPrompt,
@@ -174,8 +172,6 @@ async function makeRequest(
     maxTokens,
     responseFormat: { type: "json_object" },
     extraBody: provider.extraBody(),
-    novelId,
-    callerId,
   })
   return {
     content: response.content,
@@ -226,7 +222,7 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
   let zodErrors: string[] = []
 
   try {
-    requestResult = await makeRequest(config.systemPrompt, userPrompt, temperature, maxTokens, provider, model, providerName, config.novelId, config.agentName)
+    requestResult = await makeRequest(config.systemPrompt, userPrompt, temperature, maxTokens, provider, model, providerName)
     content = requestResult.content
 
     totalTokens.prompt += requestResult.usage.prompt_tokens
@@ -243,7 +239,7 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
       jsonExtractionRetried = true
       const retryResult = await makeRequest(
         config.systemPrompt + "\n\nIMPORTANT: Respond with ONLY valid JSON. No markdown, no commentary.",
-        config.userPrompt, temperature, maxTokens, provider, model, providerName, config.novelId, config.agentName,
+        config.userPrompt, temperature, maxTokens, provider, model, providerName,
       )
       content = retryResult.content
       jsonStr = extractJSON(content)

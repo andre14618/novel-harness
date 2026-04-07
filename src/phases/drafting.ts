@@ -143,8 +143,6 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                   temperature: beatWriterModel?.temperature ?? 0.8,
                   maxTokens: beatWriterModel?.maxTokens ?? 4000,
                   responseFormat: { type: "text" },
-                  novelId,
-                  callerId: "beat-writer",
                 })
                 const prose = response.content?.trim()
                 if (!prose || prose.length < 50) continue

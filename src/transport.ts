@@ -22,7 +22,6 @@ import {
   PROVIDERS, getApiKey, getModel,
   type ProviderName,
 } from "../models/registry"
-import { saveLLMCall } from "./db/llm-calls"
 import type { BatchProvider, BatchRequest } from "../benchmark/batch/types"
 
 // ── Types ────────────────────────────────────────────────────────────────
@@ -37,8 +36,7 @@ export interface LLMRequest {
   responseFormat?: { type: string }
   extraBody?: Record<string, any>
   useMaxCompletionTokens?: boolean
-  callerId?: string   // "writer", "penalty-judge", etc. — used as agent_name in llm_calls
-  novelId?: string    // novel context for per-novel timing queries
+  callerId?: string   // "writer", "penalty-judge", etc.
   customId?: string   // for batch result mapping
 }
 
@@ -134,26 +132,10 @@ export class DirectTransport implements LLMTransport {
 
       const data = await res.json() as any
       if (data.error) throw new Error(`LLM error: ${JSON.stringify(data.error)}`)
-      const latencyMs = performance.now() - startTime
-      const usage = data.usage ?? { prompt_tokens: 0, completion_tokens: 0 }
-
-      // Fire-and-forget timing log for queryable latency analytics. Failure to
-      // write is silent — don't let DB issues block the LLM call return.
-      saveLLMCall({
-        novelId: request.novelId,
-        agentName: request.callerId,
-        model: request.model,
-        provider: request.provider,
-        latencyMs: Math.round(latencyMs),
-        promptTokens: usage.prompt_tokens ?? 0,
-        completionTokens: usage.completion_tokens ?? 0,
-        httpAttempts,
-      }).catch(() => {})
-
       return {
         content: data.choices[0].message.content,
-        usage,
-        latencyMs,
+        usage: data.usage ?? { prompt_tokens: 0, completion_tokens: 0 },
+        latencyMs: performance.now() - startTime,
         httpAttempts,
         retryErrors,
       }
