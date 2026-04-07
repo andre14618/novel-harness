@@ -19,6 +19,7 @@ import { emit } from "../events"
 import { log } from "../logger"
 import { updateStateAfterChapter } from "../state-extraction"
 import { savePlannedState } from "../planned-state"
+import { diffPlanAgainstState, type PriorCharacterState } from "../state-diff"
 import { pipeline } from "../config/pipeline"
 import * as gates from "../gates"
 import { lintProse } from "../lint"
@@ -48,6 +49,34 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
       console.error(`  Error loading outline for chapter ${ch}. Stopping.`)
       emit(novelId, { type: "error", data: { step: "drafting", chapter: ch, error: "Failed to load outline" } })
       return
+    }
+
+    // Pre-write plan-vs-state diff (non-blocking — logs conflicts as warnings).
+    // Catches contradictions in the planner's proposed state before generation cost.
+    try {
+      const characters = await getCharacters(novelId)
+      const priorStates = await getCharacterStatesAtChapter(novelId, ch)
+      const charById = new Map(characters.map(c => [c.id, c.name]))
+      const prior: PriorCharacterState[] = priorStates.map(s => ({
+        characterName: charById.get(s.characterId) ?? s.characterId,
+        chapterNumber: s.chapterNumber,
+        knows: s.knows ?? [],
+        doesNotKnow: s.doesNotKnow ?? [],
+      }))
+      const diff = diffPlanAgainstState(outline, prior)
+      if (!diff.ok) {
+        console.log(`  Plan diff: ${diff.conflicts.length} conflict(s)`)
+        for (const c of diff.conflicts) {
+          console.log(`    [${c.type}] ${c.detail}`)
+          log(novelId, "warn", `Plan diff: [${c.type}] ${c.detail}`)
+        }
+        emit(novelId, { type: "progress", data: { step: "plan-diff", chapter: ch, status: "warnings", conflictCount: diff.conflicts.length } })
+      } else {
+        log(novelId, "info", `Plan diff clean for chapter ${ch}`)
+        emit(novelId, { type: "progress", data: { step: "plan-diff", chapter: ch, status: "complete" } })
+      }
+    } catch (err) {
+      log(novelId, "warn", `Plan diff skipped (non-blocking): ${err instanceof Error ? err.message : err}`)
     }
 
     let approved = false
