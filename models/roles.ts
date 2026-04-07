@@ -23,6 +23,7 @@ const cerebrasQwen235B: ModelAssignment = { provider: "cerebras", model: "qwen-3
 const groqKimiK2: ModelAssignment = { provider: "groq", model: "moonshotai/kimi-k2-instruct-0905" }
 const deepseekV3: ModelAssignment = { provider: "deepseek", model: "deepseek-chat" }
 const mimoFlash: ModelAssignment = { provider: "mimo", model: "mimo-v2-flash" }
+const togetherQwen9B: ModelAssignment = { provider: "together", model: "Qwen/Qwen3.5-9B" }
 
 export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // ── Writers (creative prose, high output) ─────────────────────────────
@@ -36,9 +37,12 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "plotter":                   { ...cerebrasQwen235B, maxTokens: 8192 },
   "planning-plotter":          { ...cerebrasQwen235B, temperature: 0.6, maxTokens: 8192 },
 
-  // ── Beat support (cheap/fast structural tasks) ────────────────────────
-  "reference-resolver":        { provider: "groq", model: "llama-3.1-8b-instant", temperature: 0.1, maxTokens: 512 },
-  "adherence-checker":         { provider: "groq", model: "llama-3.1-8b-instant", temperature: 0.1, maxTokens: 256 },
+  // ── Beat support (cheap structural tasks) ─────────────────────────────
+  // Default small model: Qwen 3.5 9B base on Together AI. Slightly slower than
+  // Groq Llama 8B (standard tier vs fast tier) but same family as the eventual
+  // fine-tunes — makes future LoRA evaluation apples-to-apples.
+  "reference-resolver":        { ...togetherQwen9B, temperature: 0.1, maxTokens: 512 },
+  "adherence-checker":         { ...togetherQwen9B, temperature: 0.1, maxTokens: 256 },
 
   // ── Extractors (structured extraction from prose) ─────────────────────
   "summary-extractor":         { ...mimoFlash, temperature: 0.2, maxTokens: 8192 },

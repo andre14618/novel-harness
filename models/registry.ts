@@ -612,8 +612,19 @@ export const MODELS: ModelDef[] = [
     notes: "67% discrimination in calibration (via Groq proxy). Dialogue scoring inconsistent (max spread 3).",
   },
 
-  // ── Together AI (LoRA fine-tunes) ───────────────────────────────────
+  // ── Together AI (base models + LoRA fine-tunes) ─────────────────────
 
+  {
+    id: "Qwen/Qwen3.5-9B",
+    label: "Qwen 3.5 9B (base)",
+    provider: "together",
+    params: "9B",
+    pricing: { input: 0.10, output: 0.15 },
+    thinking: "disabled",
+    maxContext: 32_000,
+    maxOutput: 8_000,
+    notes: "Base Qwen 3.5 9B served via Together AI serverless. Default small-model slot for cheap structural agents (reference-resolver, adherence-checker). Same base as the tonal-pass LoRA — using the base here makes the eventual fine-tune comparison apples-to-apples.",
+  },
   {
     id: "qwen3.5-9b-howard-tonal-v1",
     label: "Qwen 3.5 9B — Howard Tonal v1",
