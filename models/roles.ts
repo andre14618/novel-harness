@@ -56,7 +56,11 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "lint-fixer":                { provider: "cerebras", model: "qwen/qwen3-235b", temperature: 0.2 },
 
   // ── Chapter plan checker (structural adherence, fine-tune target) ────
-  "chapter-plan-checker":      { provider: "groq", model: "llama-3.1-8b-instant", temperature: 0.2, maxTokens: 4096 },
+  // Was on llama-3.1-8b-instant but the model couldn't reason through the planner's
+  // structural requirements and kept bouncing valid prose, spinning the drafting retry
+  // loop. Now on gpt-oss-120b which serves as the distillation source for the eventual
+  // LoRA fine-tune.
+  "chapter-plan-checker":      { provider: "groq", model: "openai/gpt-oss-120b", temperature: 0.2, maxTokens: 4096 },
 
   // ── Tonal pass (per-paragraph voice rewrite, LoRA fine-tuned) ────────
   "tonal-pass":                { provider: "together", model: "Qwen/Qwen3.5-9B", lora: "andre14618_2c8c/Qwen3.5-9B-howard-tonal-v3-5d040ad5", temperature: 0.6, maxTokens: 2048 },
