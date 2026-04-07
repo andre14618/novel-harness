@@ -15,18 +15,18 @@ const STEP_DESCRIPTIONS: Record<string, { label: string; description: string; ag
   },
   "planning": {
     label: "Planning Phase",
-    description: "Creating a chapter-by-chapter outline with scene breakdowns, character arcs, and pacing.",
+    description: "Creating chapter outlines with scene beats, world state updates, and character arcs.",
     agents: ["planning-plotter"],
   },
   "drafting": {
     label: "Drafting Phase",
-    description: "Writing each chapter sequentially. Each draft goes through continuity checking before you review.",
-    agents: ["writer", "continuity"],
+    description: "Writing each chapter beat-by-beat. Each beat is checked for adherence, then the assembled chapter is validated against the plan.",
+    agents: ["beat-writer", "reference-resolver", "adherence-checker", "chapter-plan-checker", "continuity", "lint-fixer"],
   },
   "validation": {
     label: "Validation Phase",
-    description: "Cross-chapter consistency check and prose quality review. Issues trigger automatic rewrites.",
-    agents: ["cross-chapter-continuity", "prose-quality", "rewriter"],
+    description: "Consistency checks across all chapters. Issues trigger automatic rewrites. Tonal pass applies voice styling.",
+    agents: ["rewriter", "tonal-pass"],
   },
 }
 
@@ -36,14 +36,21 @@ const AGENT_LABELS: Record<string, string> = {
   "plotter": "Plotter",
   "planning-plotter": "Planning Plotter",
   "writer": "Writer",
+  "beat-writer": "Beat Writer",
+  "reference-resolver": "Reference Resolver",
+  "adherence-checker": "Adherence Checker",
+  "chapter-plan-checker": "Chapter Plan Checker",
   "continuity": "Continuity Checker",
-  "cross-chapter-continuity": "Cross-Chapter Continuity",
-  "prose-quality": "Prose Quality",
   "rewriter": "Rewriter",
+  "tonal-pass": "Tonal Pass",
+  "lint-fixer": "Lint Fixer",
   "summary-extractor": "Summary Extractor",
   "fact-extractor": "Fact Extractor",
   "character-state": "Character State",
+  "relationship-timeline": "Relationship Timeline",
+  "graph-linker": "Graph Linker",
   "state-extraction": "State Extraction",
+  "plan-check": "Chapter Plan Check",
 }
 
 interface TimelineEntry {

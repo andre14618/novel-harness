@@ -10,3 +10,4 @@ data/batches/
 .DS_Store
 novel.db
 lora-data/
+finetune-data/

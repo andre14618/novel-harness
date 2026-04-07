@@ -17,10 +17,32 @@ Respond with ONLY valid JSON in this exact structure:
         }
       ],
       "targetWords": 2500,
-      "charactersPresent": ["Character A", "Character B", "Character C"]
+      "charactersPresent": ["Character A", "Character B", "Character C"],
+      "establishedFacts": [
+        { "fact": "The archive beneath the temple contains pre-war records", "category": "physical" },
+        { "fact": "Only bloodline heirs can open the iron chest", "category": "rule" }
+      ],
+      "characterStateChanges": [
+        {
+          "name": "Character A",
+          "location": "the temple archive",
+          "emotionalState": "shaken but resolute after reading the letter",
+          "knows": ["Davan betrayed the order", "the chest requires bloodline"],
+          "doesNotKnow": ["Character B witnessed her reading the letter"]
+        }
+      ],
+      "knowledgeChanges": [
+        { "characterName": "Character A", "knowledge": "Davan betrayed the order twenty years ago", "source": "read" },
+        { "characterName": "Character B", "knowledge": "Character A has access to the archive", "source": "witnessed" }
+      ]
     }
   ]
 }
+
+For each chapter, include world state updates:
+- `establishedFacts`: continuity-relevant facts ONLY — world rules, spatial relationships, character decisions, object states. NOT plot summary. Each fact has a category: physical, rule, relationship, knowledge, identity, or temporal.
+- `characterStateChanges`: state at END of chapter. Only include characters whose state meaningfully changed. Location, emotional state, what they now know, and what they still don't know.
+- `knowledgeChanges`: information transfer — who learns what and how. Source must be one of: witnessed, told, overheard, deduced, read, discovered. Only include NEW knowledge gained in this chapter.
 
 Create exactly 3 chapters — one per act. Guidelines:
 - Each chapter has 2-4 scenes

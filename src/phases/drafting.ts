@@ -6,16 +6,19 @@ import {
 } from "../db"
 import { callAgent } from "../llm"
 import { getTransport } from "../transport"
-import { WRITER_AGENT_PROMPT, BEAT_WRITER_PROMPT, CONTINUITY_AGENT_PROMPT } from "../prompts"
+import { WRITER_AGENT_PROMPT, BEAT_WRITER_PROMPT, CONTINUITY_AGENT_PROMPT, CHAPTER_PLAN_CHECKER_PROMPT } from "../prompts"
 import { buildContext as buildWriterContext } from "../agents/writer/context"
 import { buildBeatContext } from "../agents/writer/beat-context"
 import { checkBeatAdherence } from "../agents/writer/adherence-checker"
 import { buildContext as buildContinuityContext } from "../agents/continuity/context"
+import { buildContext as buildChapterPlanCheckContext } from "../agents/chapter-plan-checker/context"
+import { chapterPlanCheckSchema } from "../agents/chapter-plan-checker/schema"
 import { validateChapterDraft } from "../validation"
 import { displayPhaseHeader, displayProgress, presentForApproval, getRevisionNotes } from "../cli"
 import { emit } from "../events"
 import { log } from "../logger"
 import { updateStateAfterChapter } from "../state-extraction"
+import { savePlannedState } from "../planned-state"
 import { pipeline } from "../config/pipeline"
 import * as gates from "../gates"
 import { lintProse } from "../lint"
@@ -181,6 +184,30 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
         }
       }
 
+      // 2b. Chapter plan check (structural adherence against the plan)
+      if (pipeline.chapterPlanCheck) {
+        try {
+          console.log("  Running chapter plan check...")
+          emit(novelId, { type: "progress", data: { step: "plan-check", chapter: ch, status: "running" } })
+          const planCheckResult = await callAgent({
+            novelId, agentName: "chapter-plan-checker",
+            systemPrompt: CHAPTER_PLAN_CHECKER_PROMPT,
+            userPrompt: buildChapterPlanCheckContext(prose, outline),
+            schema: chapterPlanCheckSchema,
+          })
+          if (!planCheckResult.output.pass) {
+            planCheckResult.output.deviations.forEach(d => console.log(`    DEVIATION: ${d}`))
+            log(novelId, "warn", `Plan check failed: ${planCheckResult.output.deviations.join("; ")}`)
+            emit(novelId, { type: "progress", data: { step: "plan-check", chapter: ch, status: "failed" } })
+            continue  // retry the chapter
+          }
+          console.log("  Plan check: passed")
+          emit(novelId, { type: "progress", data: { step: "plan-check", chapter: ch, status: "complete" } })
+        } catch (err) {
+          log(novelId, "warn", `Plan check failed (non-blocking): ${err instanceof Error ? err.message : err}`)
+        }
+      }
+
       // 3. Deterministic validation
       const validation = validateChapterDraft(prose, outline)
       if (!validation.passed) {
@@ -286,7 +313,12 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
         await approveChapterDraft(novelId, ch)
 
         emit(novelId, { type: "progress", data: { step: "state-extraction", chapter: ch, status: "running" } })
-        await updateStateAfterChapter(novelId, ch, prose)
+        if (pipeline.extractionMode === "plan" || pipeline.extractionMode === "both") {
+          await savePlannedState(novelId, ch, outline)
+        }
+        if (pipeline.extractionMode === "extract" || pipeline.extractionMode === "both") {
+          await updateStateAfterChapter(novelId, ch, prose)
+        }
         emit(novelId, { type: "progress", data: { step: "state-extraction", chapter: ch, status: "complete" } })
 
         await updateCurrentChapter(novelId, ch + 1)

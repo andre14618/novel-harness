@@ -10,16 +10,16 @@ export function GuidePage() {
         <section>
           <h2>What This Does</h2>
           <p>
-            Novel Harness creates novels (3-30 chapters) using a pipeline of LLM agents with
-            semantic context retrieval. You provide a premise, genre, and characters. The system
-            builds a world, plots the story, writes each chapter with semantically retrieved context,
-            and validates consistency — all with your review at each step.
+            Novel Harness creates novels (3-30 chapters) using a beat-first pipeline of LLM agents.
+            You provide a premise, genre, and characters. The system builds a world, plots the story
+            with detailed scene beats and world state tracking, writes each beat with tight adherence
+            checking, and validates consistency — all with your review at each step.
           </p>
           <p>
-            It's also a context engineering and benchmarking platform. The semantic retrieval engine
-            uses pgvector hybrid search to assemble the right context for each scene. An autonomous
-            improvement daemon iteratively tunes retrieval parameters, prompts, and context assembly
-            using focused judge suites.
+            Quality comes from the plan, not from post-hoc analysis. The planning phase outputs
+            specific beats plus world state updates (facts, character states, knowledge changes).
+            Deterministic checks verify the prose executes the plan faithfully. Fine-tuned 9B models
+            handle high-frequency mechanical checks at low cost.
           </p>
         </section>
 
@@ -34,7 +34,8 @@ LXC 307 (192.168.1.108)
 ├── Postgres DB (novel_harness_orchestrator)
 │   ├── Novel Data
 │   │   ├── novels, world_bibles, characters, story_spines
-│   │   ├── chapter_outlines, chapter_drafts, chapter_summaries
+│   │   ├── chapter_outlines (beats + world state updates)
+│   │   ├── chapter_drafts, chapter_summaries
 │   │   ├── facts, character_states, issues, validation_passes
 │   │   └── world_systems, cultures, character_cultures
 │   │
@@ -46,17 +47,18 @@ LXC 307 (192.168.1.108)
 │   │   ├── knowledge_propagation (who told whom)
 │   │   └── deterministic_config (causal tuning parameters)
 │   │
-│   ├── Vector Search (pgvector)
-│   │   ├── embedding vector(3072) on 6 tables
-│   │   ├── HNSW indexes (halfvec cosine)
-│   │   ├── tsvector + GIN full-text indexes
-│   │   └── retrieval_config (tunable parameters)
-│   │
 │   └── Operations
 │       ├── runs, llm_calls, tuning_experiments, scores
 │       ├── improvement_cycles, improvement_iterations
 │       ├── experiment_lineage, lint_patterns
 │       └── batches, batch_requests
+│
+├── Fine-Tuning (Together AI)
+│   └── Qwen 3.5 9B LoRA adapters
+│       ├── tonal-pass (style transfer)
+│       ├── adherence-checker (planned)
+│       ├── reference-resolver (planned)
+│       └── chapter-plan-checker (planned)
           `.trim()}</pre>
         </section>
 
@@ -81,8 +83,9 @@ LXC 307 (192.168.1.108)
               <div className="flow-num">2</div>
               <div>
                 <strong>Planning Phase</strong>
-                <p><em>Planning Plotter</em> creates chapter-by-chapter outlines with scenes,
-                   POV characters, emotional arcs, and target word counts.</p>
+                <p><em>Planning Plotter</em> creates chapter-by-chapter outlines with scene beats,
+                   POV characters, emotional arcs, target word counts, and <strong>world state updates</strong> —
+                   facts established, character state changes, and knowledge transfers per chapter.</p>
                 <p className="flow-agents">Agent: planning-plotter</p>
                 <p className="flow-gate">You review the complete outline before drafting begins.</p>
               </div>
@@ -94,25 +97,28 @@ LXC 307 (192.168.1.108)
               <div className="flow-num">3</div>
               <div>
                 <strong>Drafting Phase (per chapter)</strong>
-                <p>Each chapter follows this pipeline:</p>
+                <p>Each chapter is written beat-by-beat with tight validation:</p>
                 <div className="flow-sub">
                   <div className="flow-sub-step">
-                    <strong>Context Assembly</strong> — Hybrid RRF search (vector + keyword) retrieves
-                    relevant facts, events, summaries, relationship arcs, knowledge state, and causal chains
-                    from the entire novel. Fixed skeleton (scene setup, POV, character profiles, craft reminders)
-                    + dynamic sections weighted by scene relevance.
+                    <strong>Per-Beat Writing Loop</strong> — For each scene beat:
+                    <br /><em>Reference Resolver</em> identifies implicit references and does deterministic DB lookups.
+                    <br /><em>Beat Writer</em> generates ~300-500 words of prose from the beat spec + resolved context.
+                    <br /><em>Adherence Checker</em> validates the beat was executed (deterministic + LLM check). Retries on failure.
                   </div>
                   <div className="flow-sub-arrow">↓</div>
                   <div className="flow-sub-step">
-                    <strong>Writer</strong> — Generates prose from the assembled context.
+                    <strong>Chapter Plan Check</strong> — Assembled chapter prose is validated against
+                    the full chapter plan: all beats represented, characters present, emotional arc intact,
+                    no unplanned events. Retries the chapter if structural deviations found.
                   </div>
                   <div className="flow-sub-arrow">↓</div>
                   <div className="flow-sub-step">
-                    <strong>Lint + Fix</strong> — Deterministic pattern flagging + LLM-powered fixes.
+                    <strong>Continuity Check</strong> — Flags inconsistencies with established facts and character states.
                   </div>
                   <div className="flow-sub-arrow">↓</div>
                   <div className="flow-sub-step">
-                    <strong>Continuity Check</strong> — Flags inconsistencies with established facts.
+                    <strong>Lint + Fix</strong> — 26 deterministic patterns flag AI tells (cliches, hedging,
+                    emotional echo, rhythm homogeneity). LLM-powered fixes applied per pattern.
                   </div>
                   <div className="flow-sub-arrow">↓</div>
                   <div className="flow-sub-step">
@@ -120,20 +126,13 @@ LXC 307 (192.168.1.108)
                   </div>
                   <div className="flow-sub-arrow">↓</div>
                   <div className="flow-sub-step">
-                    <strong>Extraction</strong> — 4 agents in parallel: summary, facts, character state,
-                    relationships + timeline + knowledge.
-                  </div>
-                  <div className="flow-sub-arrow">↓</div>
-                  <div className="flow-sub-step">
-                    <strong>Embedding</strong> — Batch embed all extracted data (text-embedding-3-large via OpenRouter).
-                  </div>
-                  <div className="flow-sub-arrow">↓</div>
-                  <div className="flow-sub-step">
-                    <strong>Graph Linker</strong> — Identifies causal chains and knowledge propagation.
+                    <strong>State Save</strong> — Planner's world state updates (facts, character states, knowledge)
+                    are saved to DB tables. Optionally, LLM extractors also run for verification.
+                    Configurable via <code>pipeline.extractionMode</code> (plan, extract, or both).
                   </div>
                 </div>
-                <p className="flow-agents">Agents: writer, continuity, summary-extractor, fact-extractor,
-                   character-state, relationship-timeline, graph-linker</p>
+                <p className="flow-agents">Agents: reference-resolver, beat-writer, adherence-checker,
+                   chapter-plan-checker, continuity, lint-fixer</p>
               </div>
             </div>
 
@@ -143,9 +142,10 @@ LXC 307 (192.168.1.108)
               <div className="flow-num">4</div>
               <div>
                 <strong>Validation Phase</strong>
-                <p>Multi-pass cross-chapter consistency + prose quality checks.
-                   <em>Rewriter</em> fixes issues automatically. Up to 3 passes until convergence.</p>
-                <p className="flow-agents">Agents: cross-chapter-continuity, prose-quality, rewriter</p>
+                <p>Deterministic consistency checks across all chapters. Issues trigger automatic
+                   rewrites via <em>Rewriter</em>. Up to 3 passes until convergence.
+                   <em>Tonal Pass</em> applies voice styling after all issues are resolved.</p>
+                <p className="flow-agents">Agents: rewriter, tonal-pass</p>
               </div>
             </div>
 
@@ -162,47 +162,37 @@ LXC 307 (192.168.1.108)
         </section>
 
         <section>
-          <h2>Semantic Context Engine</h2>
+          <h2>Beat-Level Context</h2>
           <pre className="guide-arch">{`
-Scene Outline + POV Character
+Beat Specification (from planner)
          │
-         ├─→ Embed scene query (text-embedding-3-large)
+         ├─→ Reference Resolver (deterministic + LLM)
+         │   ├── Check for implicit markers ("their last", "consequences of")
+         │   ├── LLM identifies needed lookups (cheap 8B model)
+         │   └── Execute DB queries (recent events, relationships, knowledge)
          │
          ▼
    ┌─────────────────────────────────────────────────┐
-   │           Hybrid RRF Search (per table)         │
+   │           Beat Context (~500-1K tokens)         │
    │                                                 │
-   │  Semantic leg:  embedding <=> query (HNSW)      │
-   │  Keyword leg:   tsv @@ websearch_to_tsquery     │
-   │  Fusion:        1/(K + sem_rank) + 1/(K + kw)   │
-   │  Boost:         characters ×2, location ×1.5    │
-   │  Decay:         2^(-chaptersAgo / halfLife)      │
+   │  Beat spec (description, characters, shift)     │
+   │  Transition bridge (last 2-3 sentences)         │
+   │  Landing target (next beat first sentence)      │
+   │  Character snapshots (speech, state, relations) │
+   │  Resolved references (from DB lookups)          │
+   │  Setting (on beat 0 or location change)         │
    └─────────────────────────────────────────────────┘
          │
-   ┌─────┼─────┬──────┬────────┬───────┬──────────┐
-   │     │     │      │        │       │          │
- facts events summaries states rels  knowledge
- (40)  (15)    (8)     (10)   (10)    (15)
+         ▼
+   Beat Writer generates ~300-500 words
          │
          ▼
-   Graph Queries (recursive CTEs)
-   ├── Causal chains (event → caused → event)
-   ├── Relationship arcs (full trajectory)
-   └── Knowledge graph (who knows what, from whom)
-         │
-         ▼
-   Context Assembly
-   ├── Fixed: scene setup, POV world view, characters, craft
-   └── Dynamic: sections weighted by scene relevance
-         │
-         ▼
-   Writer Agent receives assembled context
+   Adherence Checker (pass/fail + specific issues)
           `.trim()}</pre>
           <p>
-            All retrieval parameters are tunable via the <Link to={`/context${qs}`}>Context</Link> page
-            and optimizable by the improvement daemon. The <code>retrieval_config</code> table stores
-            per-novel parameters: similarity thresholds, RRF K value, per-type result limits,
-            character/location boost multipliers, and recency half-life.
+            Beat-level context replaces the semantic retrieval engine. Instead of assembling ~8.5K tokens
+            via vector search, each beat gets ~500-1K tokens of tight, specific context derived from the
+            plan and deterministic DB lookups. No embeddings needed.
           </p>
         </section>
 
@@ -220,13 +210,9 @@ Scene Outline + POV Character
             </div>
             <div className="card">
               <h3><Link to={`/config${qs}`}>Config</Link></h3>
-              <p>Per-agent model selection grouped by role. Changes apply immediately.
-                 "Save to File" writes to <code>models/roles.ts</code>.</p>
-            </div>
-            <div className="card">
-              <h3><Link to={`/context${qs}`}>Context</Link></h3>
-              <p>Retrieval parameter tuning. Adjust similarity thresholds, RRF K, per-type limits,
-                 character/location boosts, and recency decay. View context quality scores.</p>
+              <p>Three tabs: <strong>Models</strong> (per-agent model selection), <strong>Context</strong> (retrieval
+                 parameter tuning — similarity thresholds, RRF K, boosts, limits), and <strong>Causal</strong> (deterministic
+                 link scoring weights and thresholds).</p>
             </div>
             <div className="card">
               <h3><Link to={`/experiments${qs}`}>Experiments</Link></h3>
@@ -235,81 +221,141 @@ Scene Outline + POV Character
             </div>
             <div className="card">
               <h3><Link to={`/operations${qs}`}>Operations</Link></h3>
-              <p>Run benchmarks and improvement cycles. Start the daemon with target/dimension locking.</p>
+              <p>Run benchmarks and improvement cycles. Start the daemon with target/dimension locking.
+                 Batch status monitoring.</p>
+            </div>
+            <div className="card">
+              <h3><Link to={`/models${qs}`}>Models</Link></h3>
+              <p>Searchable model registry with pricing, specs, and provider info for all available models.</p>
+            </div>
+            <div className="card">
+              <h3><Link to={`/docs${qs}`}>Docs</Link></h3>
+              <p>Browse project documentation — lessons learned, AI-tell research, LoRA style transfer report,
+                 world knowledge graph, and more.</p>
             </div>
           </div>
         </section>
 
         <section>
-          <h2>Benchmark Suites</h2>
+          <h2>Quality Measurement</h2>
+          <p>
+            Quality is measured through structured checks, not LLM scoring. Each check produces
+            pass/fail with specific actionable issues — no 1-10 scores.
+          </p>
           <table className="guide-table">
             <thead>
-              <tr><th>Suite</th><th>What It Measures</th><th>Dimensions</th><th>Judges</th></tr>
+              <tr><th>Check</th><th>What It Measures</th><th>Method</th><th>Runs When</th></tr>
             </thead>
             <tbody>
               <tr>
-                <td><strong>Context</strong></td>
-                <td>Retrieval quality for the writer</td>
-                <td>Relevance, Completeness, Noise, Causal Depth, Knowledge Accuracy</td>
-                <td>5 focused judges, each with diagnostic output</td>
+                <td><strong>Adherence</strong></td>
+                <td>Beat execution fidelity</td>
+                <td>Deterministic (character presence, word count, dialogue) + LLM verification</td>
+                <td>Per beat</td>
               </tr>
               <tr>
-                <td>Prose</td>
-                <td>Writer output quality</td>
-                <td>Telling, Dead Weight, Dialogue (penalty); Prose Craft, Character Voice, Sensory (score)</td>
-                <td>6 judges (3 penalty + 3 quality)</td>
+                <td><strong>Chapter Plan</strong></td>
+                <td>Structural coherence against plan</td>
+                <td>LLM comparison: prose vs plan (pass/fail + deviations)</td>
+                <td>Per chapter</td>
               </tr>
               <tr>
-                <td>Planning</td>
-                <td>Chapter outline quality</td>
-                <td>Beat Specificity, Dialogue Cues, Emotional Arc, Five Commandments</td>
-                <td>4-5 judges, 1-10 scale</td>
+                <td><strong>Continuity</strong></td>
+                <td>Consistency with established facts</td>
+                <td>LLM check against world state tables</td>
+                <td>Per chapter</td>
               </tr>
               <tr>
-                <td>Extraction</td>
-                <td>State extraction accuracy</td>
-                <td>Completeness, Accuracy</td>
-                <td>2 judges, 1-10 scale</td>
+                <td><strong>Lint</strong></td>
+                <td>AI prose patterns</td>
+                <td>26 deterministic patterns (cliches, hedging, emotional echo, rhythm)</td>
+                <td>Per chapter</td>
               </tr>
               <tr>
-                <td>Continuity</td>
-                <td>Cross-chapter consistency</td>
-                <td>Issue Detection, Fix Quality</td>
-                <td>2 judges, 1-10 scale</td>
+                <td><strong>Tonal Pass</strong></td>
+                <td>Voice consistency</td>
+                <td>LoRA-tuned 9B model (per-paragraph rewrite)</td>
+                <td>Post-validation</td>
               </tr>
+            </tbody>
+          </table>
+          <p style={{ marginTop: "0.5rem", opacity: 0.7, fontSize: "0.9em" }}>
+            <strong>Archived</strong>: LLM judge scoring (prose penalties, extraction scores, planning scores, pairwise comparison,
+            context quality benchmark) — removed due to poor discrimination (0-33%) and lack of corrective feedback path.
+          </p>
+        </section>
+
+        <section>
+          <h2>Fine-Tuning Pipeline</h2>
+          <p>
+            High-frequency mechanical agents are fine-tuned on Qwen 3.5 9B via Together AI LoRA
+            ($0.48/M training tokens, $0.10/$0.15 inference). Training data is built from
+            knowledge distillation: base model extracts, human reviews and corrects with Claude Code,
+            corrected outputs become training data.
+          </p>
+          <table className="guide-table">
+            <thead>
+              <tr><th>Fine-Tune Target</th><th>Task</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Tonal Pass</td><td>Per-paragraph style rewriting</td><td>V3 LoRA deployed</td></tr>
+              <tr><td>Adherence Checker</td><td>Beat spec vs prose (pass/fail)</td><td>Planned</td></tr>
+              <tr><td>Reference Resolver</td><td>Identify needed DB lookups from beat</td><td>Planned</td></tr>
+              <tr><td>Chapter Plan Checker</td><td>Plan vs assembled prose (pass/fail)</td><td>Planned</td></tr>
             </tbody>
           </table>
         </section>
 
         <section>
-          <h2>Improvement Daemon</h2>
+          <h2>Autoresearcher</h2>
           <p>
-            The daemon automates: diagnose weakest dimension → propose change → benchmark → keep or revert.
-            Each judge produces <strong>actionable diagnostics</strong> that flow directly to the improver agent,
-            which synthesizes all judge outputs and proposes specific parameter or prompt changes.
+            Autonomous improvement loop: diagnose weakest quality signal → propose change → test → keep or revert.
+            Focused on deterministic quality signals — adherence pass rates, plan check rates, lint counts,
+            extraction precision/recall.
           </p>
 
           <h3>Optimization Surfaces</h3>
           <table className="guide-table">
             <thead>
-              <tr><th>Surface</th><th>What Changes</th><th>Measured By</th></tr>
+              <tr><th>Surface</th><th>Count</th><th>What Changes</th><th>Measured By</th></tr>
             </thead>
             <tbody>
-              <tr><td>Retrieval parameters</td><td>similarity thresholds, RRF K, boosts, limits</td><td>Context quality</td></tr>
-              <tr><td>Embedding templates</td><td>Text format per source type</td><td>Context quality (recall)</td></tr>
-              <tr><td>Graph linker prompt</td><td>Causal link, knowledge propagation identification</td><td>Context quality (causal depth)</td></tr>
-              <tr><td>Writer prompt</td><td>Prose generation instructions</td><td>Prose quality</td></tr>
-              <tr><td>Scene query template</td><td>How outlines become search queries</td><td>Context quality (precision)</td></tr>
-              <tr><td>Extraction prompts</td><td>Fact, summary, state, relationship extraction</td><td>Extraction + context quality</td></tr>
+              <tr><td>Agent prompts</td><td>12</td><td>Planning, writing, checking, extraction agents</td><td>Adherence/plan check pass rates</td></tr>
+              <tr><td>Generation parameters</td><td>8</td><td>Temperature, max tokens per agent</td><td>Output quality metrics</td></tr>
+              <tr><td>Deterministic config</td><td>6</td><td>Causal link scoring weights and thresholds</td><td>Graph accuracy</td></tr>
+              <tr><td>Context format templates</td><td>6</td><td>How facts/events/states render in context</td><td>Writer adherence</td></tr>
+              <tr><td>Model assignments</td><td>3</td><td>Which model runs each agent role</td><td>Visible in registry, not daemon-tunable</td></tr>
             </tbody>
           </table>
         </section>
 
         <section>
+          <h2>LoRA Style Transfer</h2>
+          <p>
+            Standard LLM prose carries a recognizable "AI voice" even after deterministic lint fixes.
+            The tonal pass uses a LoRA-tuned 9B model (Qwen 3.5) to rewrite each paragraph for voice
+            consistency — short punchy sentences, concrete sensory detail, minimal adjectives — while
+            preserving all factual content and dialogue verbatim.
+          </p>
+          <p>
+            The training pipeline uses <strong>back-translation</strong>: start with ground-truth stylized
+            text, use a large LLM to produce neutral/flattened versions, then train the LoRA on
+            (neutral → stylized) pairs. This works because LLMs are better at removing style than
+            adding it — the neutral versions are high quality, and the stylized versions are real
+            source prose.
+          </p>
+          <p>
+            See the full research report in <Link to={`/docs${qs}${qs ? "&" : "?"}doc=lora-style-transfer-report.md`}>Docs</Link> for
+            methodology, training results, and next steps.
+          </p>
+        </section>
+
+        <section>
           <h2>Cost Management</h2>
           <p>
-            Every LLM call tracks cost via registry pricing. Embedding costs are negligible
-            (~$0.0003/chapter). The primary cost levers:
+            Every LLM call tracks cost via registry pricing. The beat-first architecture reduces
+            per-chapter costs by using cheap 8B/9B models for high-frequency checks and reserving
+            large models for writing only. Primary cost levers:
           </p>
           <table className="guide-table">
             <thead>

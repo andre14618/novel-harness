@@ -1,6 +1,6 @@
 # Novel Harness
 
-AI-assisted novel creation harness — deterministic code controls flow, LLMs are leaf-node function calls. Supports short stories (3 chapters) for rapid iteration and full-length novels (20-30 chapters) with semantic context retrieval.
+AI-assisted novel creation harness — deterministic code controls flow, LLMs are leaf-node function calls. Supports short stories (3 chapters) for rapid iteration and full-length novels (20-30 chapters). Beat-first architecture: planning outputs world state, writing is per-beat with adherence checking, quality measured via structured pass/fail checks.
 
 ## Deployment Model
 
@@ -8,15 +8,15 @@ Code lives locally (canonical git repo). LXC 307 is the runtime — all benchmar
 
 - **Edit locally** → commit → `bash scripts/deploy-lxc.sh` (rsyncs to LXC)
 - **Run on LXC** via `ssh novel-harness-lxc "cd ~/apps/novel-harness && bun ..."`
-- **Single Postgres DB** on LXC — `novel_harness_orchestrator` stores ALL data (novel content, world state, embeddings, experiments, LLM calls)
+- **Single Postgres DB** on LXC — `novel_harness_orchestrator` stores ALL data (novel content, world state, experiments, LLM calls)
 - **Results come back** via Postgres (SSH tunnel) or `bash scripts/sync-improvements.sh` (rsync prompts)
 
 ## Stack
 
 - Runtime: Bun
-- LLM: Configurable per-agent via `models/roles.ts`. Providers: Cerebras, Groq, OpenRouter, OpenAI, DeepSeek.
-- DB: Single Postgres with pgvector (`novel_harness_orchestrator` on LXC — all tables)
-- Embeddings: `openai/text-embedding-3-large` via OpenRouter (3072 dims, HNSW halfvec indexes)
+- LLM: Configurable per-agent via `models/roles.ts`. Providers: Cerebras, Groq, OpenRouter, OpenAI, DeepSeek, Together (fine-tunes).
+- DB: Single Postgres (`novel_harness_orchestrator` on LXC — all tables). pgvector installed but embeddings disabled.
+- Fine-tuning: Together AI LoRA on Qwen 3.5 9B ($0.10/$0.15 inference). Tonal pass deployed, other adapters planned.
 - Transport: `src/transport.ts` — pluggable layer beneath all LLM calls (direct, batch)
 - Interface: React UI (`/app`), CLI
 
@@ -25,12 +25,12 @@ Code lives locally (canonical git repo). LXC 307 is the runtime — all benchmar
 State machine: concept → planning → drafting → validation → done
 
 ### Agents
-Each in `src/agents/{name}/` with prompt.md, schema.ts, context.ts, config.ts:
+Each in `src/agents/{name}/` with prompt.md, schema.ts, context.ts:
 - **Concept**: world-builder, character-agent, plotter
-- **Planning**: planning-plotter
-- **Drafting**: writer, continuity
-- **Extraction**: summary-extractor, fact-extractor, character-state, relationship-timeline, **graph-linker**
-- **Validation**: cross-chapter-continuity, prose-quality, rewriter
+- **Planning**: planning-plotter (outputs beats + world state updates)
+- **Drafting**: beat-writer, reference-resolver, adherence-checker, **chapter-plan-checker**, continuity, lint-fixer
+- **Extraction** (configurable via `pipeline.extractionMode`): summary-extractor, fact-extractor, character-state, relationship-timeline, graph-linker
+- **Validation**: rewriter, tonal-pass
 
 ### Data Layer
 - `src/db/` — per-table async Postgres modules (all functions return Promises via `Bun.sql`)
@@ -38,25 +38,24 @@ Each in `src/agents/{name}/` with prompt.md, schema.ts, context.ts, config.ts:
 - `data/connection.ts` — shared lazy Postgres proxy, migration runner
 - `sql/` — migration files (001-011)
 
-### Semantic Context Engine
-Writer receives context assembled via hybrid RRF search (vector similarity + full-text keyword) over 6 tables: facts, events, summaries, character states, relationships, knowledge. See `benchmark/context/judges/` for how context quality is measured.
+### Beat-Level Context
+Beat writing bypasses semantic retrieval. Context comes from the plan + deterministic DB lookups (~500-1K tokens per beat vs ~8.5K for chapter-level).
 
-**Context assembly** (`src/agents/writer/context.ts`):
-- Fixed skeleton: scene setup, POV world view, character profiles + relationship arcs, craft reminders
-- Dynamic sections: semantically retrieved, weighted by scene relevance via `src/db/retrieval.ts`
+**Beat context** (`src/agents/writer/beat-context.ts`):
+- Beat spec (description, characters, emotional shift)
+- Transition bridge (last 2-3 sentences of previous beat)
+- Landing target (first sentence of next beat)
+- Character snapshots (speech pattern, emotional state, relationship to POV)
+- Resolved references via `src/agents/writer/reference-resolver.ts` (deterministic + cheap LLM lookups)
 
-**Retrieval pipeline** (`src/db/retrieval.ts`):
-- Scene query embedded → 6-table parallel hybrid search → RRF fusion → character/location boost → recency decay
-- Graph queries: causal chains (recursive CTE), relationship arcs, knowledge propagation
-- Tunable via `retrieval_config` table (12 parameters per novel)
+**Planned state** (`src/planned-state.ts`):
+- Planning-plotter outputs `establishedFacts`, `characterStateChanges`, `knowledgeChanges` per chapter
+- Saved to DB tables after chapter approval (same tables extractors write to)
+- Configurable via `pipeline.extractionMode`: `"plan"` (planner only), `"extract"` (LLM extractors only), `"both"` (verify)
 
-**Embedding pipeline** (`src/db/embed.ts`, `src/harness/embeddings.ts`):
-- Runs after extraction: batch embeds all new chapter data (~$0.0003/chapter)
-- Text templates in `embedding_templates` DB table (6 source types, autoresearcher-tunable)
-
-**Graph linker** (`src/agents/graph-linker/`):
-- 5th extraction agent, runs after extractors + embedding
-- Produces: causal links (`event_causes`), knowledge propagation (`knowledge_propagation`)
+**Semantic retrieval** (`src/db/retrieval.ts`, `src/db/embed.ts`):
+- Infrastructure exists but embeddings disabled (`pipeline.embeddings = false`)
+- Used as fallback for chapter-level writing path only
 
 ### Knowledge Graph
 Structured world systems, cultures, evolving relationships, timeline events, character knowledge — all in Postgres. Tables: `world_systems`, `cultures`, `character_cultures`, `character_system_awareness`, `relationship_states`, `timeline_events`, `character_knowledge`, `event_causes`, `knowledge_propagation`.
@@ -64,18 +63,15 @@ Structured world systems, cultures, evolving relationships, timeline events, cha
 ### Models
 `models/roles.ts` is the single place to control all agent assignments. `models/registry.ts` has all available models with pricing/specs. Runtime overrides via web UI; `persistOverrides()` writes to roles.ts.
 
-### Benchmarks
-Active suites in `benchmark/`:
-- **`context/`** — context quality scoring (primary optimization target): relevance, completeness, noise, causal-depth, knowledge-accuracy. Each judge produces actionable retrieval diagnostics.
-- `continuity/` — Issue Detection, Fix Quality (1-10). Stable signal, concrete metrics.
-- Deterministic lint (26 patterns) + Llama 8B tonal pass for AI cliché fixing.
+### Quality Checks
+Quality measured via structured pass/fail checks, not LLM scoring (1-10 judges showed 0-33% discrimination):
+- **Adherence checker** — per-beat: deterministic (character presence, word count, dialogue) + LLM verification
+- **Chapter plan checker** — per-chapter: LLM compares prose vs plan, reports specific deviations
+- **Continuity checker** — per-chapter: LLM check against world state tables
+- **Lint** — deterministic (26 patterns) + LLM fixes for cliché, hedging, emotional echo, rhythm
+- **Tonal pass** — LoRA-tuned 9B model for per-paragraph voice rewriting
 
-Archived (infrastructure kept for macro tracking, removed from iteration loop):
-- `prose/` — penalty dimensions (telling, dead-weight, dialogue). Noisy judges, no corrective feedback path. Superseded by lint + adherence checking.
-- `planning/` — 1-10 scores with ceiling effect (all models score ~8.0).
-- `extraction/` — completeness doesn't discriminate (all models score 8.0). Direct output comparison more useful.
-- Pairwise — position bias, only useful for substantially different variants.
-- Quality dimensions (prose-craft, character-voice, sensory-grounding) — zero judge discrimination.
+Archived benchmarks (infrastructure kept): context quality, prose penalties, planning scores, extraction scores, pairwise comparison.
 
 ### Improvement Daemon
 `src/orchestrator/daemon-loop.ts` — autonomous improvement loop:
@@ -87,16 +83,14 @@ Archived (infrastructure kept for macro tracking, removed from iteration loop):
 
 All daemon data access goes through `src/harness/` service layer. No inline SQL in daemon code.
 
-**Optimization surfaces** (50 components in `src/harness/registry.ts`):
-- 12 agent prompts (all extraction, planning, prose, continuity, concept agents)
-- 9 retrieval parameters (`retrieval_config` table)
+**Optimization surfaces** (in `src/harness/registry.ts`):
+- 12 agent prompts (planning, writing, checking, extraction, concept agents)
 - 6 deterministic causal parameters (`deterministic_config` table)
-- 6 embedding templates (`embedding_templates` table)
-- 6 context format templates (`context_templates` table — scene query, per-item formats)
+- 6 context format templates (`context_templates` table — per-item rendering formats)
 - 8 generation parameters (`agent_generation_config` table — temperature/maxTokens per agent)
 - 3 model assignments (visible in registry, not daemon-tunable)
 
-The daemon rotates between prompt, config, and template proposals per iteration, using the component registry to discover surfaces per benchmark dimension.
+The daemon rotates between prompt, config, and template proposals per iteration, using the component registry to discover surfaces per quality dimension.
 
 ### Web UI
 `ui/`, React + Vite, served at `/app`:

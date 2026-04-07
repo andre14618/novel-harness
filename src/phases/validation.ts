@@ -1,4 +1,4 @@
-import { crossChapterContinuitySchema, proseQualitySchema, rewriterOutputSchema } from "../types"
+import { rewriterOutputSchema } from "../types"
 import {
   getNovel, getChapterOutline, getApprovedDraft, getOpenIssues,
   saveIssue, resolveIssuesForChapter, unapproveChapterDraft,
@@ -7,10 +7,9 @@ import {
   updatePhase,
 } from "../db"
 import { callAgent } from "../llm"
-import { CROSS_CHAPTER_CONTINUITY_PROMPT, PROSE_QUALITY_PROMPT, REWRITER_AGENT_PROMPT } from "../prompts"
-import { buildContext as buildCrossChapterContext } from "../agents/cross-chapter-continuity/context"
-import { buildContext as buildProseQualityContext } from "../agents/prose-quality/context"
+import { REWRITER_AGENT_PROMPT } from "../prompts"
 import { buildContext as buildRewriterContext } from "../agents/rewriter/context"
+import { runTonalPass } from "../agents/tonal-pass/run"
 import { validateChapterDraft } from "../validation"
 import { updateStateAfterChapter } from "../state-extraction"
 import { displayPhaseHeader } from "../cli"
@@ -62,88 +61,6 @@ export async function runValidationPhase(novelId: string): Promise<void> {
           console.log(`  Chapter ${ch}: passed (${result.warnings.length} warnings)`)
         } else {
           console.log(`  Chapter ${ch}: passed deterministic checks`)
-        }
-      }
-    }
-
-    // Step 2: LLM checks (only if deterministic passed for all)
-    // Both continuity and prose quality run — their issues merge for the rewriter
-    if (chaptersWithIssues.length === 0) {
-      // 2a: Cross-chapter continuity
-      console.log("\n  Running cross-chapter continuity check...")
-      log(novelId, "info", `Pass ${pass}: running LLM continuity + prose quality`)
-
-      try {
-        const ctx = await buildCrossChapterContext(novelId, totalChapters)
-        const llmResult = await callAgent({
-          novelId, agentName: "cross-chapter-continuity",
-          systemPrompt: CROSS_CHAPTER_CONTINUITY_PROMPT,
-          userPrompt: ctx,
-          schema: crossChapterContinuitySchema,
-        })
-
-        const issues = llmResult.output.issues.filter(i => i.severity === "blocker" || i.severity === "warning")
-
-        if (issues.length > 0) {
-          console.log(`  Continuity: ${issues.length} issues found`)
-          for (const issue of issues) {
-            await saveIssue(novelId, {
-              severity: issue.severity,
-              description: issue.description,
-              chapter: issue.chapter,
-              conflictsWith: issue.conflictsWith,
-              suggestedFix: issue.suggestedFix,
-            })
-            if (!chaptersWithIssues.includes(issue.chapter)) {
-              chaptersWithIssues.push(issue.chapter)
-            }
-            console.log(`    [${issue.severity}] ch${issue.chapter}: ${issue.description}`)
-          }
-        } else {
-          console.log("  Continuity: no issues found")
-        }
-      } catch (err) {
-        log(novelId, "warn", `Cross-chapter continuity check failed: ${err}`)
-        console.log(`  Continuity check failed (non-blocking): ${err instanceof Error ? err.message : err}`)
-      }
-
-      // 2b: Per-chapter prose quality (show-don't-tell + cliches)
-      console.log("\n  Running prose quality checks...")
-
-      for (let ch = 1; ch <= totalChapters; ch++) {
-        const draft = await getApprovedDraft(novelId, ch)
-        if (!draft) continue
-
-        try {
-          const ctx = await buildProseQualityContext(draft.prose, ch, novelId)
-          const qualityResult = await callAgent({
-            novelId, agentName: "prose-quality",
-            systemPrompt: PROSE_QUALITY_PROMPT,
-            userPrompt: ctx,
-            schema: proseQualitySchema,
-          })
-
-          const issues = qualityResult.output.issues
-          if (issues.length > 0) {
-            console.log(`  Chapter ${ch}: ${issues.length} prose quality issues`)
-            for (const issue of issues) {
-              await saveIssue(novelId, {
-                severity: "warning",
-                description: `[prose] ${issue.issue}: "${issue.excerpt}"`,
-                chapter: ch,
-                suggestedFix: issue.suggestedFix,
-              })
-              console.log(`    ${issue.issue}: "${issue.excerpt.slice(0, 60)}..."`)
-            }
-            if (!chaptersWithIssues.includes(ch)) {
-              chaptersWithIssues.push(ch)
-            }
-          } else {
-            console.log(`  Chapter ${ch}: prose quality clean`)
-          }
-        } catch (err) {
-          log(novelId, "warn", `Prose quality check failed for ch${ch}: ${err}`)
-          console.log(`  Chapter ${ch}: prose quality check failed (non-blocking)`)
         }
       }
     }
@@ -242,6 +159,50 @@ export async function runValidationPhase(novelId: string): Promise<void> {
       console.log(`  ${remainingIssues.length} open issue(s) remaining.`)
       log(novelId, "warn", `Validation incomplete: ${remainingIssues.length} open issues after ${MAX_PASSES} passes`)
     }
+  }
+
+  // ── Tonal pass (per-paragraph voice rewrite) ─────────────────────────
+  // Runs after all content/continuity issues are resolved.
+  // Only runs if a tonal-pass model is configured (skip if placeholder).
+  if (pipeline.tonalPass) {
+    console.log("\n  --- Tonal pass: voice rewrite ---")
+    log(novelId, "info", "Tonal pass started")
+    emit(novelId, { type: "phase:changed", data: { phase: "tonal-pass" } })
+
+    for (let ch = 1; ch <= totalChapters; ch++) {
+      const draft = await getApprovedDraft(novelId, ch)
+      if (!draft) continue
+
+      console.log(`  Chapter ${ch}: running tonal pass...`)
+
+      try {
+        const result = await runTonalPass(novelId, ch, draft.prose)
+
+        if (result.paragraphsRewritten > 0) {
+          const wordCount = result.prose.split(/\s+/).filter(Boolean).length
+
+          // Save tonal-pass rewrite as new approved draft
+          await unapproveChapterDraft(novelId, ch)
+          await saveChapterDraft(novelId, ch, result.prose, wordCount)
+          await approveChapterDraft(novelId, ch)
+
+          // Update output file
+          const outline = await getChapterOutline(novelId, ch)
+          const dir = `output/${novelId}`
+          await Bun.write(`${dir}/chapter-${ch}.md`, `# Chapter ${ch}: ${outline.title}\n\n${result.prose}`)
+
+          console.log(`  Chapter ${ch}: ${result.paragraphsRewritten}/${result.paragraphsTotal} paragraphs rewritten (${result.paragraphsSkipped} dialogue skipped)`)
+        } else {
+          console.log(`  Chapter ${ch}: no changes needed`)
+        }
+      } catch (err) {
+        // Tonal pass is non-blocking — log and continue
+        log(novelId, "warn", `Tonal pass failed for ch${ch}: ${err}`)
+        console.log(`  Chapter ${ch}: tonal pass failed (non-blocking) — ${err instanceof Error ? err.message : err}`)
+      }
+    }
+
+    log(novelId, "checkpoint", "Tonal pass complete")
   }
 
   await updatePhase(novelId, "done")

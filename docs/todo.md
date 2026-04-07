@@ -7,16 +7,14 @@ updated: 2026-04-06
 
 Items removed when done — git history has the record. Ordered by impact.
 
-## Context Engineering (primary focus)
+## Pipeline Architecture — Beat-First, Embeddings Disabled
 
-Context quality is the main lever for prose improvement — better context means less room for the writer to drift. The context quality benchmark (5 dimensions with retrieval diagnostics) directly guides this work.
+Beat-level writing bypasses semantic retrieval entirely. Context comes from the plan itself + deterministic DB lookups. The embedding pipeline adds cost and complexity without improving the beat path.
 
-- **Run context quality benchmark across 3 existing 10-chapter novels** — establish baseline scores and identify weakest retrieval dimensions
-- **Tighten fact extractor** — still 17-20 facts/chapter, target 8-15. Extracts scene detail despite prompt saying not to. May need few-shot or negative examples.
-- **Audit writer context weight (~8.5K tokens)** — character profiles and prior chapter summaries are biggest sections. Identify what's noise vs essential.
-- **Tune retrieval parameters per dimension** — use context benchmark diagnostics (similarity thresholds, character boost, recency decay) to optimize each of the 6 retrieval tables
-- **Improve embedding templates** — context benchmark judges diagnose template gaps. Iterate templates via autoresearcher.
-- Word count below target (550-770 vs 800-1100). May be context weight, model, or prompt issue — investigate after context audit.
+- **Disable embedding step** — skip `embedChapterData` in `state-extraction.ts`. Extraction still saves structured data to tables. Reference-resolver, adherence-checker, continuity-checker all query tables directly.
+- **Tighten fact extractor** — still 17-20 facts/chapter, target 8-15. Precision matters more now that facts feed deterministic queries, not fuzzy vector search.
+- **Build claim extractor + contradiction checker** — post-draft validation: extract testable claims from chapter, query world state tables for conflicts, send flagged conflicts to strong model. Replaces semantic context assembly with structured contradiction detection.
+- Word count below target (550-770 vs 800-1100). May be model, prompt, or beat granularity issue.
 
 ## Adherence Checking (new — replaces prose penalty benchmark)
 
@@ -29,13 +27,15 @@ Experiment #90 showed the real quality axis is adherence to seed constraints (ch
 - **Chunked write-check loop** — writer generates per-beat (~300-500w), adherence checker validates before next beat. Fail → regenerate with deviation flagged. Fast iteration at low cost.
 - **Archive prose penalty benchmark** — telling/dead-weight/dialogue judge dimensions are noisy (2-8x variance on re-judge), don't correlate with actual quality (MiMo scored similar but had real adherence failures), and have no corrective path. Keep infrastructure for macro trend tracking but remove from iteration loop.
 
-## Lint & Tonal Pass
+## LoRA Tonal Pass
 
-26 enabled patterns (17 AI_CLICHE, 5 HEDGE_QUALIFIER, 2 DECLARED_EMOTION, 1 EMOTIONAL_ECHO, 1 REDUNDANT_BODY). Proven Llama 8B tonal fix pipeline: 9/9 cliché fixes at 131ms/$0.05M.
+V3 LoRA (Qwen 3.5 9B on Together AI) trained on back-translated Howard pairs. Wins 9/15 paragraphs vs base on qualitative review — tighter prose, fewer adjectives, more visceral verbs. Total experiment cost: $2.71. Details: `docs/lora-style-transfer-report.md`, `docs/lora-qualitative-assessment.md`.
 
-- **Wire Llama 8B tonal pass into pipeline** — post-writer, before extraction. Integration point: after chapter generation, run lint → Llama 8B fixes flagged clichés → proceed to extraction with cleaned prose.
-- **Finetuned paragraph-scale tonal model** — for rhythm monotony and sentence uniformity. Heuristic detection exists (archived patterns 68, 69) but fixing needs paragraph-scope, not sentence-level. LoRA on small model with curated before/after pairs.
-- **Expand AI cliché patterns** — source from craft references (docs/ai-tells-*.md). Validate each against published fiction baseline (scripts/lint-baseline.ts).
+- **Build multi-author training corpus** — Howard alone is too narrow (sword-and-sorcery only). Source modern prose across genres: literary fiction, thriller, horror, romance narration. Need public domain or permissively licensed material. Target: 2,000-5,000 chunks covering both dialogue styles and thematic prose variety. Same back-translation pipeline (`scripts/generate-tonal-pairs.ts`), same curation (`scripts/curate-tonal-pairs.ts`).
+- **Include dialogue-heavy training pairs** — current corpus filters out >70% dialogue. But voice distinction in dialogue is a core writing skill. The model should learn to handle dialogue tags and dialogue-adjacent narration, not just pure description/action.
+- **Re-evaluate lint system role** — if a strong enough LoRA shifts the model's prior away from AI clichés organically, deterministic lint becomes redundant or counterproductive (flags patterns that real authors use intentionally). Test: run lint on V3 outputs vs base outputs, measure whether V3 already produces fewer violations. If so, lint becomes a safety net, not a pipeline stage.
+- **DPO refinement** — generate multiple rewrites per paragraph, score by measurable style dimensions (sentence length, adjective density, verb concreteness), create preference pairs. ASTRAPOP showed +25% over SFT-only. Specifically targets structural patterns (sentence rhythm) that SFT hasn't fully captured.
+- **Test V3 in production pipeline** — enable `pipeline.tonalPass`, run on an existing novel, compare before/after chapters.
 
 ## Cost Optimization
 
@@ -56,29 +56,42 @@ Real 10-chapter novel costs $0.63-$0.94 on Cerebras Qwen 235B. Rewriter is 24-32
 - Deduplicate timeline events in DB — rewrite re-extractions create duplicate events
 - Clean up stale DB data: 5 incomplete novels, 35 orphan benchmark runs, 35 experiments without conclusions
 
-## Benchmarks — What Remains Active
+## Quality Measurement — Structured Checks, Not Score Judges
 
-| Benchmark | Status | Why |
-|-----------|--------|-----|
-| **Context quality** | **Active** | 5 dims with retrieval diagnostics. Primary optimization target. |
-| **Continuity** | **Active** | Stable signal, concrete metrics, low cost. |
-| **Lint + tonal pass** | **Active** | Deterministic + Llama 8B. Proven pipeline. |
-| Prose penalties | Archived | Noisy, no corrective path, superseded by lint + adherence. |
-| Extraction scores | Archived | Ceiling effect (all models score 8.0). Direct output comparison more useful. |
-| Planning scores | Archived | 1-10 ceiling effect. Adherence checking is better signal. |
-| Pairwise | Archived | Position bias. Only useful for substantially different variants. |
-| Quality dims | Archived | Zero discrimination (flat 8/10 across all models). |
+LLM judges scoring 1-10 are unreliable (0-33% discrimination in calibration). Replaced with structured pass/fail checks that produce specific actionable issues:
+
+- **Adherence**: pass/fail per beat, deterministic checks + cheap LLM verification
+- **Chapter plan check**: pass/fail per chapter, LLM compares prose against plan
+- **Continuity**: LLM check against world state tables
+- **Lint + tonal pass**: deterministic pattern matching, proven pipeline
+- **Extraction quality**: precision (correct facts), recall (missed facts), schema compliance — computable against gold-standard dataset
+- **Fine-tune evaluation**: compare fine-tuned model output vs gold standard on held-out test set — precision/recall, not 1-10 scores
 
 ## Autoresearcher
 
 - Rename daemon → autoresearcher across codebase
-- Focus autoresearcher on context-quality dimensions — retrieval parameters, embedding templates, context templates
-- Remove prose penalty dimensions from autoresearcher optimization targets
+- Refocus on deterministic quality signals — adherence pass rates, extraction precision/recall, contradiction detection rates
+- Remove all LLM judge and embedding-related optimization targets
+
+## Fine-Tuning (Qwen 3.5 9B on Together AI)
+
+LoRA fine-tunes on Together ($0.48/M training tokens, $0.10/$0.15 inference). Knowledge distillation: base model extracts, Claude corrects to gold standard, train on Claude's output. Generic prompts — training data teaches behavior, not the prompt.
+
+- **Fact-extractor fine-tune** — easiest win. Narrow schema (`{fact, category}[]`), clear validation (precision/recall vs gold standard). Build dataset: pull chapters from Postgres, base 9B extracts, Claude reviews/corrects, output Together JSONL.
+- **Adherence-checker fine-tune** — runs every beat, high frequency. Classification task (pass/fail + deviation). Train on real beat/draft pairs.
+- **Reference-resolver fine-tune** — runs every beat. Identify needed lookups from implicit references. Train on real beat descriptions.
+- **Tonal pass** — V3 LoRA already shows promise. Expand corpus beyond Howard.
+- **Chapter-level plan checker fine-tune** — post-assembly gate, runs once per chapter. Input: chapter plan (beats, characters, emotional shifts) + assembled prose. Output: specific structural deviations or PASS. Catches beat transition breaks, missing beats, emotional arc drift, character disappearance. Verifies against plan, not subjective quality. ~3-5K token input, structured comparison task.
+- **Dataset generator script** — shared infrastructure for all fine-tunes. Pulls from Postgres, runs base + Claude, outputs Together JSONL, splits train/test.
+- **Generate beat-level training data** — run beat pipeline across diverse seeds, log beat/draft/adherence/reference pairs for adherence-checker, reference-resolver, and chapter plan checker fine-tunes. New chapters also feed extraction fine-tunes.
+
+## Future — Worldbuilding Workbench (separate project)
+
+Interactive chat frontend backed by the knowledge graph. Author converses with their world, modifies plotlines, generates beats, adjusts world state. Output is a structured plan that feeds the harness. Workbench writes to knowledge graph, harness reads from it. Same Postgres tables, different interface. Semantic search / embeddings may be useful here for exploratory authorial queries. Entirely separate from the prose generation pipeline.
 
 ## Infrastructure
 
 - Add context inspection view to web UI (show what the writer received for a chapter)
-- Upgrade pgvector to 0.7+ on LXC for halfvec support (enables 3072-dim embeddings)
 
 ## Seeds & Testing
 

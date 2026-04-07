@@ -55,6 +55,12 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // ── Lint fixer (per-sentence creative fixes via LLM) ──────────────────
   "lint-fixer":                { provider: "cerebras", model: "qwen/qwen3-235b", temperature: 0.2 },
 
+  // ── Chapter plan checker (structural adherence, fine-tune target) ────
+  "chapter-plan-checker":      { provider: "groq", model: "llama-3.1-8b-instant", temperature: 0.2, maxTokens: 4096 },
+
+  // ── Tonal pass (per-paragraph voice rewrite, LoRA fine-tuned) ────────
+  "tonal-pass":                { provider: "together", model: "Qwen/Qwen3.5-9B", lora: "andre14618_2c8c/Qwen3.5-9B-howard-tonal-v3-5d040ad5", temperature: 0.6, maxTokens: 2048 },
+
   // ── Judges (novel validation) ──────────────────────────────────────────
   "judge":                     { ...deepseekV3, temperature: 0.1 },
   "pairwise-judge":            { ...deepseekV3, temperature: 0.1 },

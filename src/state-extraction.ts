@@ -145,9 +145,14 @@ export async function updateStateAfterChapter(novelId: string, chapterNum: numbe
   log(novelId, "info", `Extracted: ${factResult.output.facts.length} facts, ${charStateResult.output.characters.length} states, ${relCount} rel/timeline`)
   console.log(`  Extracted: ${factResult.output.facts.length} facts, ${charStateResult.output.characters.length} states, ${relCount} rel/timeline`)
 
-  // ── Step 2: Embed ──────────────────────────────────────────────────────
-  const embedResult = await harness.embeddings.embedChapterData(novelId, chapterNum)
-  console.log(`  Embedded: ${embedResult.embedded} entries`)
+  // ── Step 2: Embed (disabled when pipeline.embeddings = false) ────────
+  const { pipeline } = await import("./config/pipeline")
+  if (pipeline.embeddings) {
+    const embedResult = await harness.embeddings.embedChapterData(novelId, chapterNum)
+    console.log(`  Embedded: ${embedResult.embedded} entries`)
+  } else {
+    console.log(`  Embedded: 0 entries (disabled)`)
+  }
 
   // ── Step 3: Deterministic graph analysis (uses real IDs from Step 1) ───
   const [thisChapterEvents, priorEvents, knowledgeGains] = await Promise.all([
