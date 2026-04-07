@@ -10,6 +10,7 @@ import { getTransport } from "../transport"
 import { WRITER_AGENT_PROMPT, BEAT_WRITER_PROMPT, CONTINUITY_AGENT_PROMPT, CHAPTER_PLAN_CHECKER_PROMPT } from "../prompts"
 import { buildContext as buildWriterContext } from "../agents/writer/context"
 import { buildBeatContext } from "../agents/writer/beat-context"
+import { resolveReferences } from "../agents/writer/reference-resolver"
 import { checkBeatAdherence } from "../agents/writer/adherence-checker"
 import { buildContext as buildContinuityContext } from "../agents/continuity/context"
 import { buildContext as buildChapterPlanCheckContext } from "../agents/chapter-plan-checker/context"
@@ -105,12 +106,28 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
           const charStates = await getCharacterStatesAtChapter(novelId, ch)
           const worldBible = await getWorldBible(novelId)
 
+          // Pre-resolve all beat references in parallel before the serial writing loop.
+          // Reference resolution depends only on the beat spec + outline + characters —
+          // none of which change during writing. Hoisting these out of the per-beat loop
+          // collapses N serial reference-resolver calls into one parallel batch, which is
+          // the dominant per-beat latency on slower providers (e.g. Together AI standard tier).
+          const preResolvedRefs = await Promise.all(
+            outline.scenes.map(beat =>
+              resolveReferences(beat, outline, novelId, ch, characters)
+                .catch(err => {
+                  log(novelId, "warn", `Reference pre-fetch failed for a beat: ${err instanceof Error ? err.message : err}`)
+                  return { context: "", lookupCount: 0, llmUsed: false }
+                }),
+            ),
+          )
+
           const beatProses: string[] = []
           for (let bi = 0; bi < outline.scenes.length; bi++) {
             const beatCtx = await buildBeatContext({
               novelId, chapterNumber: ch, beatIndex: bi,
               previousBeatProse: beatProses[bi - 1],
               outline, characters, characterStates: charStates, worldBible,
+              preResolvedRefs: preResolvedRefs[bi],
             })
 
             let beatProse: string | null = null

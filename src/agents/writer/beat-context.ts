@@ -14,7 +14,7 @@
  */
 
 import { getRelationshipBetween, getCharacterStatesAtChapter } from "../../db"
-import { resolveReferences } from "./reference-resolver"
+import { resolveReferences, type ResolvedReferences } from "./reference-resolver"
 import type { ChapterOutline, CharacterProfile, SceneBeat } from "../../types"
 
 export interface BeatContextInput {
@@ -26,6 +26,10 @@ export interface BeatContextInput {
   characters: CharacterProfile[]
   characterStates: any[]
   worldBible: any
+  /** Pre-resolved references for this beat. When provided, skips the internal
+   *  resolveReferences call — used by the drafting loop to pre-fetch all beats
+   *  in parallel before the serial writing loop starts. */
+  preResolvedRefs?: ResolvedReferences
 }
 
 export interface BeatContextResult {
@@ -72,7 +76,7 @@ export async function buildBeatContext(input: BeatContextInput): Promise<BeatCon
   }
 
   // ── 5. Resolved references ─────────────────────────────────────────────
-  const refs = await resolveReferences(beat, outline, novelId, chapterNumber, characters)
+  const refs = input.preResolvedRefs ?? await resolveReferences(beat, outline, novelId, chapterNumber, characters)
   if (refs.context) sections.push(refs.context)
 
   // ── 6. Setting ────────────────────────────────────────────────────────
