@@ -30,3 +30,4 @@ export {
   searchCharacterKnowledge, clearKnowledgeForChapter,
 } from "./knowledge"
 export type { CharacterKnowledgeEntry } from "./knowledge"
+export { saveLLMCall, type LLMCallRow } from "./llm-calls"
