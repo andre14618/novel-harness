@@ -233,58 +233,71 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
         }
       }
 
-      // 2b. Chapter plan check (structural adherence against the plan)
-      if (pipeline.chapterPlanCheck) {
-        try {
-          console.log("  Running chapter plan check...")
-          emit(novelId, { type: "progress", data: { step: "plan-check", chapter: ch, status: "running" } })
-          const planCheckResult = await callAgent({
-            novelId, agentName: "chapter-plan-checker",
-            systemPrompt: CHAPTER_PLAN_CHECKER_PROMPT,
-            userPrompt: buildChapterPlanCheckContext(prose, outline),
-            schema: chapterPlanCheckSchema,
+      // 2b-4. Post-draft checks: plan check + continuity in parallel (independent
+      // reads of the same prose), validation runs synchronously alongside for free.
+      // All three results are gathered before deciding whether to retry, so a failing
+      // attempt surfaces every problem at once instead of one-at-a-time.
+      console.log("  Running checks (plan + continuity in parallel)...")
+      emit(novelId, { type: "progress", data: { step: "plan-check", chapter: ch, status: "running" } })
+      emit(novelId, { type: "progress", data: { step: "continuity", chapter: ch, status: "running" } })
+
+      const [planCheckSettled, continuitySettled] = await Promise.allSettled([
+        pipeline.chapterPlanCheck
+          ? callAgent({
+              novelId, agentName: "chapter-plan-checker",
+              systemPrompt: CHAPTER_PLAN_CHECKER_PROMPT,
+              userPrompt: buildChapterPlanCheckContext(prose, outline),
+              schema: chapterPlanCheckSchema,
+            })
+          : Promise.resolve(null),
+        (async () => {
+          const facts = await getFactsUpToChapter(novelId, ch)
+          const charStates = await getCharacterStatesAtChapter(novelId, ch)
+          return callAgent({
+            novelId, agentName: "continuity",
+            systemPrompt: CONTINUITY_AGENT_PROMPT,
+            userPrompt: buildContinuityContext(prose, facts, charStates),
+            schema: continuityCheckSchema,
           })
-          if (!planCheckResult.output.pass) {
-            planCheckResult.output.deviations.forEach(d => console.log(`    DEVIATION: ${d}`))
-            log(novelId, "warn", `Plan check failed: ${planCheckResult.output.deviations.join("; ")}`)
+        })(),
+      ])
+
+      const validation = validateChapterDraft(prose, outline)
+      let bail = false
+
+      // Plan check result handling
+      if (pipeline.chapterPlanCheck) {
+        if (planCheckSettled.status === "fulfilled" && planCheckSettled.value !== null) {
+          const out = planCheckSettled.value.output
+          if (!out.pass) {
+            out.deviations?.forEach(d => console.log(`    DEVIATION: ${d}`))
+            log(novelId, "warn", `Plan check failed: ${(out.deviations ?? []).join("; ")}`)
             emit(novelId, { type: "progress", data: { step: "plan-check", chapter: ch, status: "failed" } })
-            continue  // retry the chapter
+            bail = true
+          } else {
+            console.log("  Plan check: passed")
+            emit(novelId, { type: "progress", data: { step: "plan-check", chapter: ch, status: "complete" } })
           }
-          console.log("  Plan check: passed")
-          emit(novelId, { type: "progress", data: { step: "plan-check", chapter: ch, status: "complete" } })
-        } catch (err) {
-          log(novelId, "warn", `Plan check failed (non-blocking): ${err instanceof Error ? err.message : err}`)
+        } else if (planCheckSettled.status === "rejected") {
+          log(novelId, "warn", `Plan check failed (non-blocking): ${planCheckSettled.reason instanceof Error ? planCheckSettled.reason.message : planCheckSettled.reason}`)
         }
       }
 
-      // 3. Deterministic validation
-      const validation = validateChapterDraft(prose, outline)
+      // Validation result handling
       if (!validation.passed) {
         console.log(`  Validation FAILED:`)
         validation.blockers.forEach(b => console.log(`    BLOCKER: ${b}`))
         validation.warnings.forEach(w => console.log(`    WARNING: ${w}`))
         log(novelId, "warn", `Validation failed: ${validation.blockers.join("; ")}`)
-        continue
-      }
-      if (validation.warnings.length > 0) {
+        bail = true
+      } else if (validation.warnings.length > 0) {
         validation.warnings.forEach(w => console.log(`    WARNING: ${w}`))
       }
 
-      // 4. Continuity check
+      // Continuity result handling
       let issues: any[] = []
-      try {
-        console.log("  Running continuity check...")
-        emit(novelId, { type: "progress", data: { step: "continuity", chapter: ch, status: "running" } })
-        const facts = await getFactsUpToChapter(novelId, ch)
-        const charStates = await getCharacterStatesAtChapter(novelId, ch)
-        const continuityResult = await callAgent({
-          novelId, agentName: "continuity",
-          systemPrompt: CONTINUITY_AGENT_PROMPT,
-          userPrompt: buildContinuityContext(prose, facts, charStates),
-          schema: continuityCheckSchema,
-        })
-        issues = continuityResult.output.issues
-
+      if (continuitySettled.status === "fulfilled") {
+        issues = continuitySettled.value.output.issues
         if (issues.length > 0) {
           console.log(`  Continuity: ${issues.length} issues`)
           issues.forEach(i => console.log(`    [${i.severity}] ${i.description}`))
@@ -292,11 +305,13 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
           console.log("  Continuity: no issues found")
         }
         emit(novelId, { type: "progress", data: { step: "continuity", chapter: ch, status: "complete", issueCount: issues.length } })
-      } catch (err) {
-        log(novelId, "error", `Continuity check failed for chapter ${ch}: ${err}`)
-        console.error(`  Continuity check failed: ${err instanceof Error ? err.message : err}`)
-        continue  // Retry the chapter — don't proceed without continuity validation
+      } else {
+        log(novelId, "error", `Continuity check failed for chapter ${ch}: ${continuitySettled.reason}`)
+        console.error(`  Continuity check failed: ${continuitySettled.reason instanceof Error ? continuitySettled.reason.message : continuitySettled.reason}`)
+        bail = true
       }
+
+      if (bail) continue
 
       // Save draft
       await saveChapterDraft(novelId, ch, prose, wordCount)
