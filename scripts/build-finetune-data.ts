@@ -71,7 +71,14 @@ async function fetchChapters(lim: number): Promise<ChapterData[]> {
 
 // ── Base model extraction ───────────────────────────────────────────────
 
-async function runBaseModel(systemPrompt: string, userPrompt: string): Promise<string> {
+interface BaseModelResult {
+  content: string
+  promptTokens: number
+  completionTokens: number
+  latencyMs: number
+}
+
+async function runBaseModel(systemPrompt: string, userPrompt: string): Promise<BaseModelResult> {
   const transport = getTransport()
   const response = await transport.execute({
     systemPrompt,
@@ -79,10 +86,15 @@ async function runBaseModel(systemPrompt: string, userPrompt: string): Promise<s
     model: "Qwen/Qwen3.5-9B",
     provider: "together",
     temperature: 0.1,
-    maxTokens: 4096,
+    maxTokens: 2048,
     responseFormat: { type: "json_object" },
   })
-  return response.content?.trim() ?? "{}"
+  return {
+    content: response.content?.trim() ?? "{}",
+    promptTokens: response.usage.prompt_tokens,
+    completionTokens: response.usage.completion_tokens,
+    latencyMs: Math.round(response.latencyMs),
+  }
 }
 
 // ── Task-specific user prompt builders ──────────────────────────────────
@@ -160,15 +172,10 @@ export async function generateTrainingData(task: string, limit: number): Promise
       const userPrompt = buildUserPrompt(task, chapter)
       if (!userPrompt) return null
 
-      const t0 = Date.now()
-      const baseOutput = await runBaseModel(systemPrompt, userPrompt)
-      const ms = Date.now() - t0
+      const result = await runBaseModel(systemPrompt, userPrompt)
+      const tps = result.latencyMs > 0 ? Math.round(result.completionTokens / (result.latencyMs / 1000)) : 0
 
-      // Rough token estimate from output length
-      const outputTokens = Math.round(baseOutput.length / 4)
-      const tps = ms > 0 ? Math.round(outputTokens / (ms / 1000)) : 0
-
-      console.log(`  [${idx}/${chapters.length}] novel=${chapter.novelId.slice(0, 8)} ch${chapter.chapterNumber} — ${ms}ms, ~${outputTokens} tokens, ~${tps} tok/s`)
+      console.log(`  [${idx}/${chapters.length}] novel=${chapter.novelId.slice(0, 8)} ch${chapter.chapterNumber} — ${result.latencyMs}ms, ${result.promptTokens}+${result.completionTokens} tokens, ${tps} tok/s`)
 
       await saveTrainingPair({
         task,
@@ -176,7 +183,7 @@ export async function generateTrainingData(task: string, limit: number): Promise
         chapter_number: chapter.chapterNumber,
         system_prompt: systemPrompt,
         user_content: userPrompt,
-        base_output: baseOutput,
+        base_output: result.content,
       })
 
       return true

@@ -19,7 +19,7 @@
  */
 
 import {
-  PROVIDERS, getApiKey,
+  PROVIDERS, getApiKey, getModel,
   type ProviderName,
 } from "../models/registry"
 import type { BatchProvider, BatchRequest } from "../benchmark/batch/types"
@@ -84,8 +84,16 @@ export class DirectTransport implements LLMTransport {
       ? { max_completion_tokens: request.maxTokens }
       : { max_tokens: request.maxTokens }
 
+    // Resolve fine-tune: if the model has baseModel/lora, send baseModel as the API model
+    // and include the lora adapter ID as a separate field
+    const modelDef = getModel(request.model, request.provider)
+    const apiModel = modelDef?.baseModel ?? request.model
+    const loraExtra = modelDef?.lora ? { lora: modelDef.lora } : {}
+
+    const providerExtra = providerDef.extraBody ? providerDef.extraBody() : {}
+
     const body = JSON.stringify({
-      model: request.model,
+      model: apiModel,
       messages: [
         { role: "system", content: request.systemPrompt },
         { role: "user", content: request.userPrompt },
@@ -93,6 +101,8 @@ export class DirectTransport implements LLMTransport {
       temperature: request.temperature,
       ...tokenParam,
       response_format: request.responseFormat ?? { type: "json_object" },
+      ...providerExtra,
+      ...loraExtra,
       ...request.extraBody,
     })
     const headers: Record<string, string> = providerDef.authHeader
