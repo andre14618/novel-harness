@@ -2,48 +2,26 @@
  * Generate fine-tuning training data for Together AI LoRA.
  *
  * Usage:
- *   bun scripts/build-finetune-data.ts --task fact-extractor [--limit 50] [--out finetune-data]
+ *   bun scripts/build-finetune-data.ts --task fact-extractor [--limit 50]
  *
  * Tasks:
  *   fact-extractor       — chapter → { facts: [{ fact, category }] }
  *   adherence-checker    — beat spec + prose → { pass, issues }
  *   chapter-plan-checker — plan + prose → { pass, deviations }
+ *   tonal-pass           — chapter → AI-tell detection + fixes
  *
  * Workflow:
  *   1. Pulls chapters from Postgres
  *   2. Runs base Qwen 3.5 9B to get baseline extraction
- *   3. Outputs JSONL pairs for human review in Claude Code
- *   4. After review, corrected outputs become training data
- *
- * Output format (Together AI JSONL):
- *   { "messages": [{ "role": "system", ... }, { "role": "user", ... }, { "role": "assistant", ... }] }
+ *   3. Inserts each pair into finetune_training_data with status='pending'
+ *   4. Review pairs in the web UI at /app/finetune
+ *   5. Export approved pairs as JSONL for Together AI
  */
 
 import db from "../data/connection"
 import { getTransport } from "../src/transport"
-import { getModelForAgent } from "../models/roles"
+import { saveTrainingPair } from "../src/db/finetune"
 import { parseArgs } from "util"
-
-const { values } = parseArgs({
-  args: Bun.argv.slice(2),
-  options: {
-    task: { type: "string" },
-    limit: { type: "string", default: "50" },
-    out: { type: "string", default: "finetune-data" },
-    "skip-base": { type: "boolean", default: false },
-  },
-})
-
-const task = values.task
-const limit = parseInt(values.limit!, 10)
-const outDir = values.out!
-const skipBase = values["skip-base"]
-
-if (!task) {
-  console.error("Usage: bun scripts/build-finetune-data.ts --task <task> [--limit N] [--out dir]")
-  console.error("Tasks: fact-extractor, adherence-checker, chapter-plan-checker")
-  process.exit(1)
-}
 
 // ── System prompts (generic, not the verbose production versions) ────────
 
@@ -59,6 +37,10 @@ Respond with JSON: { "pass": true/false, "issues": ["specific issue description"
   "chapter-plan-checker": `Compare the chapter prose against the chapter plan. Check that all beats are represented, characters appear as specified, emotional arcs match, and no major unplanned events are introduced.
 
 Respond with JSON: { "pass": true/false, "deviations": ["specific deviation", ...] }`,
+
+  "tonal-pass": `Identify AI writing cliches and unnatural phrasings in this prose. For each issue found, provide the original text and a suggested fix that sounds more natural and human-written.
+
+Respond with JSON: { "issues": [{ "original": "...", "fix": "...", "reason": "..." }] }`,
 }
 
 // ── Data fetching ───────────────────────────────────────────────────────
@@ -91,7 +73,6 @@ async function fetchChapters(lim: number): Promise<ChapterData[]> {
 
 async function runBaseModel(systemPrompt: string, userPrompt: string): Promise<string> {
   const transport = getTransport()
-  const model = getModelForAgent("tonal-pass") // Qwen 3.5 9B on Together
   const response = await transport.execute({
     systemPrompt,
     userPrompt,
@@ -140,84 +121,94 @@ function buildUserPrompt(task: string, chapter: ChapterData): string {
       return sections.join("\n")
     }
 
+    case "tonal-pass":
+      return chapter.prose
+
     default:
       return chapter.prose
   }
 }
 
-// ── Main ────────────────────────────────────────────────────────────────
+// ── Main (supports both CLI and programmatic use) ───────────────────────
 
-const systemPrompt = SYSTEM_PROMPTS[task]
-if (!systemPrompt) {
-  console.error(`Unknown task: ${task}`)
-  process.exit(1)
-}
-
-console.log(`Fetching up to ${limit} approved chapters...`)
-const chapters = await fetchChapters(limit)
-console.log(`Found ${chapters.length} chapters`)
-
-if (chapters.length === 0) {
-  console.log("No approved chapters found. Run some novels first.")
-  process.exit(0)
-}
-
-await Bun.write(`${outDir}/.gitkeep`, "")
-
-const outputLines: string[] = []
-let processed = 0
-let skipped = 0
-
-for (const chapter of chapters) {
-  const userPrompt = buildUserPrompt(task, chapter)
-  if (!userPrompt) {
-    skipped++
-    continue
+export async function generateTrainingData(task: string, limit: number): Promise<{ inserted: number; skipped: number }> {
+  const systemPrompt = SYSTEM_PROMPTS[task]
+  if (!systemPrompt) {
+    throw new Error(`Unknown task: ${task}. Valid: ${Object.keys(SYSTEM_PROMPTS).join(", ")}`)
   }
 
-  let baseOutput = "{}"
-  if (!skipBase) {
+  console.log(`[finetune] Fetching up to ${limit} approved chapters...`)
+  const chapters = await fetchChapters(limit)
+  console.log(`[finetune] Found ${chapters.length} chapters`)
+
+  if (chapters.length === 0) {
+    console.log("[finetune] No approved chapters found.")
+    return { inserted: 0, skipped: 0 }
+  }
+
+  let inserted = 0
+  let skipped = 0
+
+  for (const chapter of chapters) {
+    const userPrompt = buildUserPrompt(task, chapter)
+    if (!userPrompt) {
+      skipped++
+      continue
+    }
+
+    let baseOutput = "{}"
     try {
-      console.log(`  [${++processed}/${chapters.length}] novel=${chapter.novelId.slice(0, 8)} ch${chapter.chapterNumber} — calling base model...`)
+      console.log(`  [${inserted + skipped + 1}/${chapters.length}] novel=${chapter.novelId.slice(0, 8)} ch${chapter.chapterNumber} — calling base model...`)
       baseOutput = await runBaseModel(systemPrompt, userPrompt)
     } catch (err) {
       console.error(`    Failed: ${err instanceof Error ? err.message : err}`)
       skipped++
       continue
     }
-  } else {
-    processed++
-  }
 
-  // Together AI JSONL format
-  const entry = {
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt },
-      { role: "assistant", content: baseOutput },
-    ],
-    // Metadata for review (not sent to Together, stripped before upload)
-    _meta: {
-      novelId: chapter.novelId,
-      chapterNumber: chapter.chapterNumber,
+    await saveTrainingPair({
       task,
-      needsReview: true,
-    },
+      novel_id: chapter.novelId,
+      chapter_number: chapter.chapterNumber,
+      system_prompt: systemPrompt,
+      user_content: userPrompt,
+      base_output: baseOutput,
+    })
+
+    inserted++
   }
 
-  outputLines.push(JSON.stringify(entry))
+  console.log(`[finetune] Done: ${inserted} pairs inserted, ${skipped} skipped`)
+  return { inserted, skipped }
 }
 
-// Write output
-const outPath = `${outDir}/${task}-draft.jsonl`
-await Bun.write(outPath, outputLines.join("\n") + "\n")
+// ── CLI entry point ─────────────────────────────────────────────────────
 
-console.log(`\nDone: ${outputLines.length} pairs written to ${outPath}`)
-console.log(`Skipped: ${skipped}`)
-console.log(`\nNext steps:`)
-console.log(`  1. Review the JSONL in Claude Code — correct the assistant outputs`)
-console.log(`  2. Remove the _meta field from each line`)
-console.log(`  3. Split into train/test: head -n 240 > train.jsonl, tail -n 60 > test.jsonl`)
-console.log(`  4. Upload to Together AI for LoRA fine-tuning`)
+if (import.meta.main) {
+  const { values } = parseArgs({
+    args: Bun.argv.slice(2),
+    options: {
+      task: { type: "string" },
+      limit: { type: "string", default: "50" },
+    },
+  })
 
-process.exit(0)
+  const task = values.task
+  const limit = parseInt(values.limit!, 10)
+
+  if (!task) {
+    console.error("Usage: bun scripts/build-finetune-data.ts --task <task> [--limit N]")
+    console.error(`Tasks: ${Object.keys(SYSTEM_PROMPTS).join(", ")}`)
+    process.exit(1)
+  }
+
+  const result = await generateTrainingData(task, limit)
+
+  console.log(`\nNext steps:`)
+  console.log(`  1. Open the web UI at /app/finetune`)
+  console.log(`  2. Review and correct the base model outputs`)
+  console.log(`  3. Approve good pairs, reject bad ones`)
+  console.log(`  4. Export approved pairs as JSONL for Together AI`)
+
+  process.exit(result.inserted > 0 ? 0 : 1)
+}

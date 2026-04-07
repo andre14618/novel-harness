@@ -19,6 +19,7 @@ import { diagnose } from "./diagnose"
 import { TARGETS } from "./improve"
 import { BENCHMARKS } from "../../benchmark/registry"
 import { handleNovelRoute } from "./novel-routes"
+import { handleFinetuneRoute } from "./finetune-routes"
 
 await migrate()
 
@@ -1527,6 +1528,10 @@ const server = Bun.serve({
         return Response.json({ error: String(err) }, { status: 500 })
       }
     }
+
+    // ── Fine-tuning data API ───────────────────────────────────────
+    const finetuneResponse = await handleFinetuneRoute(req, url)
+    if (finetuneResponse) return finetuneResponse
 
     // ── Novel step-through API ──────────────────────────────────────
     const novelResponse = await handleNovelRoute(req, url)

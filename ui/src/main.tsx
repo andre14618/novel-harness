@@ -10,6 +10,8 @@ import { OperationsPage } from "./components/OperationsPage"
 import { GuidePage } from "./components/GuidePage"
 import { DocsPage } from "./components/DocsPage"
 import { ModelsPage } from "./components/ModelsPage"
+import { LoraComparePage } from "./components/LoraComparePage"
+import { FinetunePage } from "./components/FinetunePage"
 import "./styles/app.css"
 
 createRoot(document.getElementById("root")!).render(
@@ -25,6 +27,8 @@ createRoot(document.getElementById("root")!).render(
           <Route path="/models" element={<ModelsPage />} />
           <Route path="/guide" element={<GuidePage />} />
           <Route path="/docs" element={<DocsPage />} />
+          <Route path="/lora" element={<LoraComparePage />} />
+          <Route path="/finetune" element={<FinetunePage />} />
           {/* Redirects for old routes */}
           <Route path="/context" element={<Navigate to="/config" replace />} />
           <Route path="/deterministic" element={<Navigate to="/config" replace />} />

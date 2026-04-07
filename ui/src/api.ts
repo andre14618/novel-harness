@@ -194,6 +194,66 @@ export function getDoc(filename: string) {
   return fetchJSON<{ filename: string; title: string; content: string }>(`/api/docs/${encodeURIComponent(filename)}`)
 }
 
+// ── Fine-tune Training Data ──────────────────────────────────────────
+
+export interface FinetuneStats {
+  totals: Record<string, number>
+  byTask: Record<string, Record<string, number>>
+}
+
+export interface FinetunePair {
+  id: string
+  task: string
+  status: string
+  novel_id: string | null
+  chapter_number: number | null
+  system_prompt: string
+  user_content: string
+  base_output: string
+  gold_output: string | null
+  reviewer_notes: string | null
+  created_at: string
+  reviewed_at: string | null
+}
+
+export function getFinetuneStats() {
+  return fetchJSON<FinetuneStats>("/api/finetune/stats")
+}
+
+export function getFinetunePairs(task?: string, status?: string, limit?: number, offset?: number) {
+  const params = new URLSearchParams()
+  if (task) params.set("task", task)
+  if (status) params.set("status", status)
+  if (limit) params.set("limit", String(limit))
+  if (offset) params.set("offset", String(offset))
+  const qs = params.toString()
+  return fetchJSON<{ pairs: FinetunePair[] }>(`/api/finetune/pairs${qs ? `?${qs}` : ""}`)
+}
+
+export function getFinetunePair(id: string) {
+  return fetchJSON<FinetunePair>(`/api/finetune/pairs/${id}`)
+}
+
+export function updateFinetunePair(id: string, data: { gold_output?: string; status?: string; reviewer_notes?: string }) {
+  return fetchJSON<FinetunePair>(`/api/finetune/pairs/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  })
+}
+
+export async function exportFinetuneData(task: string): Promise<Blob> {
+  const res = await fetch(`/api/finetune/export?task=${encodeURIComponent(task)}`, { headers })
+  if (!res.ok) throw new Error(`Export failed: ${res.status}`)
+  return res.blob()
+}
+
+export function generateFinetuneData(task: string, limit: number) {
+  return fetchJSON<{ ok: boolean; task: string; limit: number; pid: number }>("/api/finetune/generate", {
+    method: "POST",
+    body: JSON.stringify({ task, limit }),
+  })
+}
+
 // Types
 export interface AgentGroup {
   label: string
