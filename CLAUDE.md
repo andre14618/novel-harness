@@ -14,9 +14,9 @@ Code lives locally (canonical git repo). LXC 307 is the runtime — all benchmar
 ## Stack
 
 - Runtime: Bun
-- LLM: Configurable per-agent via `models/roles.ts`. Providers: Cerebras, Groq, Fireworks, OpenRouter, OpenAI, DeepSeek, Together (legacy LoRA fine-tunes), W&B Inference (CoreWeave-backed, chosen home for new LoRA fine-tunes per `docs/lessons-learned.md`).
+- LLM: Configurable per-agent via `models/roles.ts`. Providers: Cerebras, Groq, Fireworks, OpenRouter, OpenAI, DeepSeek, MiniMax, Zai, MiMo, Together (legacy LoRA fine-tunes), W&B Inference (CoreWeave-backed, chosen home for new LoRA fine-tunes per `docs/lessons-learned.md`).
 - DB: Single Postgres (`novel_harness_orchestrator` on LXC — all tables). pgvector installed but embeddings disabled.
-- Fine-tuning: **W&B Inference on `OpenPipe/Qwen3-14B-Instruct` is the chosen home for new LoRA fine-tunes** (decided 2026-04-07 via `tuning_experiment` id=94 — see `docs/todo.md` "Fine-Tuning serving infrastructure"). Existing Howard tonal-pass v3 still on Together AI Qwen 3.5 9B ($0.10/$0.15 inference); v4 retrain on the W&B base is a follow-up. **Together standard tier is ~50-100× slower than Groq fast tier per `docs/lessons-learned.md` — only use Together for actual LoRA serving of the legacy adapter, not per-beat agents or new training.**
+- Fine-tuning: **W&B Inference on `OpenPipe/Qwen3-14B-Instruct` is the chosen home for new LoRA fine-tunes** (decided 2026-04-07 via `tuning_experiment` id=94 — see `docs/todo.md` "Fine-Tuning serving infrastructure"). Existing Howard tonal-pass v3 still on Together AI Qwen 3.5 9B ($0.10/$0.15 inference); **v4 retrain is OFF the table** — retraining on a less-capable older base (Qwen3-14B) just for unified serving was wrong per `docs/lessons-learned.md` "Don't compare model size without checking generation." **Together standard tier is ~50-100× slower than Groq fast tier per `docs/lessons-learned.md` — only use Together for actual LoRA serving of the legacy adapter, not per-beat agents or new training.**
 - Transport: `src/transport.ts` — pluggable layer beneath all LLM calls (direct, batch). Per-call telemetry written to `llm_calls`.
 - Interface: React UI (`/app`), CLI
 
@@ -51,7 +51,7 @@ These are NOT called via `callAgent` and are NOT in `models/roles.ts`. They read
 - `src/db/` — per-table async Postgres modules (all functions return Promises via `Bun.sql`)
 - `src/harness/` — **service layer** — typed high-level API for all harness operations. The daemon, benchmarks, and UI call this instead of writing SQL. Modules: `scores`, `experiments`, `cycles`, `context`, `embeddings`, `graph`, `novels`.
 - `data/connection.ts` — shared lazy Postgres proxy, migration runner
-- `sql/` — migration files (001-011)
+- `sql/` — migration files (001-016)
 
 ### Beat-Level Context
 Beat writing bypasses semantic retrieval. Context comes from the plan + deterministic DB lookups. Real per-call shape from `llm_calls`: avg 846 input tokens, 391 output tokens, 2.1s latency on Cerebras Qwen 235B.
