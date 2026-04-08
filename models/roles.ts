@@ -37,14 +37,22 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "plotter":                   { ...cerebrasQwen235B, maxTokens: 8192 },
   "planning-plotter":          { ...cerebrasQwen235B, temperature: 0.6, maxTokens: 8192 },
 
-  // ── Beat support (cheap structural tasks) ─────────────────────────────
-  // Default small model: Llama 3.1 8B on Groq (fast tier). The Qwen 3.5 9B
-  // experiment on Together AI was reverted — see docs/lessons-learned.md
-  // ("Together AI standard tier is ~50× slower than Groq fast tier"). The
-  // togetherQwen9B constant is kept available for future use serving custom
-  // LoRAs, just not as the default for these per-beat slots.
+  // ── Beat support ──────────────────────────────────────────────────────
+  // reference-resolver stays on Llama 3.1 8B Groq — set-union over implicit
+  // references, fast tier is the right home, parallel-N may or may not
+  // help (different output shape than adherence-checker — pending its own
+  // benchmark via scripts/best-of-n-experiment.ts).
   "reference-resolver":        { provider: "groq", model: "llama-3.1-8b-instant", temperature: 0.1, maxTokens: 512 },
-  "adherence-checker":         { provider: "groq", model: "llama-3.1-8b-instant", temperature: 0.1, maxTokens: 256 },
+
+  // adherence-checker upgraded from Llama 3.1 8B to Cerebras Qwen 235B after
+  // the parallel-N benchmark showed Llama 8B was systematically over-strict
+  // (flagged stylistic embellishments and minor event ordering as deviations).
+  // Best-of-N can't fix systematic miscalibration, only variance — and Llama
+  // 8B at temp 0.1 was already self-consistent on this task. Qwen 235B matches
+  // the oracle by definition at ~520ms vs Llama 8B's ~365ms. Cost difference
+  // (~$0.0003/call vs ~$0.00003) is rounding error per chapter.
+  // See docs/lessons-learned.md for the full benchmark write-up.
+  "adherence-checker":         { ...cerebrasQwen235B, temperature: 0.1, maxTokens: 256 },
 
   // ── Extractors (structured extraction from prose) ─────────────────────
   "summary-extractor":         { ...mimoFlash, temperature: 0.2, maxTokens: 8192 },
