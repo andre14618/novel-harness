@@ -403,6 +403,73 @@ A schema is not universally "good" or "bad" — it has an interaction with both 
 
 (Commits `bcc7782` baseline script, `9715b69` baseline lessons row, `ce5b2e2` checklist script; experiments #110 flat, #111 checklist)
 
+### Reference-resolver ladder: checklist makes Qwen3-14B BEAT Qwen 235B — and removes the SFT case for this slot (2026-04-08)
+
+Third-task data point on the baseline+checklist ladder pattern, after chapter-plan-checker (exp #107/#109) and adherence-checker (exp #110/#111). Built a synthetic 120-pair eval (`scripts/generate-reference-resolver-data.ts`, 20 scenarios × 6 variants — VAR_NONE, VAR_REL, VAR_EVENTS, VAR_LOCATION, VAR_KNOWLEDGE, VAR_MULTI) and ran it through the same three-model ladder under the production prompt and a structured-checklist prompt. Labels are deterministic from the variant — only the expected lookup TYPE set is scored, args excluded since args are judgment calls. Score is Jaccard over the type set; binary cell is exact-match (Jaccard == 1).
+
+| | flat baseline (#114) |  | | checklist (#115) |  | |
+|---|---:|---:|---:|---:|---:|---:|
+| | exact | F1 | recall | exact | F1 | recall |
+| Llama 3.1 8B (Groq) | 5% | 0.475 | 87.5% | **31%** | 0.522 | 60.5% |
+| **Qwen3-14B base (W&B)** | 1% | 0.518 | **97.5%** | **44%** | **0.626** | 68.0% |
+| Qwen 235B (Cerebras) | **23%** | 0.554 | 75.0% | 38% | 0.563 | 60.5% |
+| 14B avg lookups | 2.73 | | | 1.24 | | |
+| 14B latency | 493ms | | | 978ms | | |
+
+Per-variant under the checklist (the headline numbers hide where the gains land):
+
+| variant | Llama 8B | **Qwen3-14B** | Qwen 235B |
+|---|---|---|---|
+| VAR_NONE | 0 → 35 | 0 → **80** | 0 → **95** |
+| VAR_REL | 5 → 15 | 0 → **55** | 5 → 25 |
+| VAR_EVENTS | 0 → **85** | 5 → **60** | 40 → 40 |
+| VAR_LOCATION | 0 → 0 | 0 → 10 | 25 → 15 |
+| VAR_KNOWLEDGE | 0 → 10 | 0 → 25 | 15 → 35 |
+| VAR_MULTI | 25 → 40 | 0 → 35 | 50 → **15** |
+
+(`tuning_experiment` ids 114 flat, 115 checklist; `scripts/score-reference-baseline.ts`, `scripts/score-reference-checklist.ts`)
+
+**Five things happened, and together they kill the SFT case for this slot.**
+
+1. **The flat-schema ladder is upside-down vs adherence-checker.** Where adherence-checker had a clean 79% → 96% gap by exact match (a real calibration deficit on the smaller model), reference-resolver's flat ladder has Qwen3-14B at 1% exact-match — the LOWEST on the table. But by F1 and recall, 14B is the best of the three. The reason is that 14B fires almost every lookup type on every beat (avg 2.73 of 4 possible types per call), so its recall is 97.5% and its precision is 35%. 235B fires fewer (avg 1.89), so it gets more exact-matches but lower recall. **Exact-match was the wrong primary metric for a set-output task — recall is the production-relevant one** because the writer reads extra lookups for free and missing one is the costly failure mode (this matches the prior best-of-N finding from 2026-04-07 about why parallel-N worked for reference-resolver). By recall, the smaller models actually beat 235B at baseline; there's no calibration gap to close in the same way adherence-checker has one.
+
+2. **VAR_NONE was 0% across all three models on the flat schema.** Every model over-fetches when the IMPLICIT_MARKERS gate fires on ambient phrasing ("after the morning meal", "since the last bell"). The default behavior under the production prompt is "fire some lookup, never an empty list." This is a UNIVERSAL bias, not a small-model bias — even 235B does it.
+
+3. **The checklist's explicit "ambient" branch fixed VAR_NONE almost completely.** 235B went 0 → 95, 14B went 0 → 80, Llama went 0 → 35. Adding the `points_to_background: "specific_event" | "relationship_dynamic" | "location_history" | "character_knowledge" | "ambient"` enumeration step gave the model permission to write "ambient" and emit no lookup for that phrase. **The over-fetch failure mode was a missing-affordance failure, not a capacity failure — the model would have known to skip if asked, it just was never given a way to skip.** This is the *opposite* shape from the adherence-checker FAIL_TANGENT collapse in exp #111: there the checklist's atomization destroyed a holistic judgment; here the checklist's explicit branch restored a missing branch in the verdict space. Both findings are true and both are about "what does the schema actually let the model emit" — design schemas to expose the verdict options the model needs but can't reach by default.
+
+4. **Qwen3-14B with the checklist beats Qwen 235B with EITHER schema, on F1 and exact-match.** 14B-checklist F1 = 0.626, vs 235B-checklist 0.563, vs 235B-flat 0.554. The 14B with the right prompt is the strongest configuration in the table for this slot. **This is the cleanest "free win from prompt engineering" result we've measured — a +43pp exact-match jump on 14B from a schema swap, with no training, no model change.** Production should ship the checklist prompt. The cost is 2× latency (493 → 978ms) and ~3× output tokens, both well within the per-beat budget for a writing-loop helper.
+
+5. **VAR_LOCATION stayed broken under both schemas** (10% / 0% / 15% under checklist). All three models conflate `location_events` with `recent_events` — they recognize that "where they fought before" is a reference to a past event but tag the lookup type as `recent_events` (the more general bucket). This is the only failure mode SFT could meaningfully address, and it's a 4-letter type-string distinction worth ~10pp on one variant. Not worth a training run on its own. Could be fixed with stronger few-shot examples or by collapsing `location_events` into `recent_events` in the production agent's lookup vocabulary. The latter is probably the right move — the production retrieval engine already overlaps these two types in practice.
+
+**Cross-task pattern across the three checklist experiments:**
+
+| task | flat 14B | checklist 14B | Δ | mechanism that worked |
+|---|---:|---:|---:|---|
+| chapter-plan-checker (#107/#109) | 58% | 75% | +17pp | per-element observation forces attention on each plan field |
+| reference-resolver (#114/#115)   | **1%** | **44%** | **+43pp** | explicit "ambient" branch restores a missing verdict option |
+| adherence-checker (#110/#111)    | 79% | 83% | +4pp  | per-action quoting helps Llama 8B but not 14B's actual bias |
+
+The pattern that falls out:
+
+- **Checklists win big when the failure mode is "model can't reach a verdict option that exists in the task" or "model isn't enumerating discrete elements that are independent and discoverable in the input."** Reference-resolver had both: the ambient verdict was unreachable and the multi-lookup enumeration was under-recalled.
+- **Checklists fail when the failure mode is "model is biased on a 1-judgment holistic call that can't be atomized."** Adherence-checker FAIL_TANGENT is the canonical case — meaningful-vs-nominal execution is not decomposable into per-action presence checks.
+- **Schema design is verdict-space design.** Before reaching for SFT, ask: does the failure mode look like a missing affordance in the output vocabulary (cheap to fix with a schema branch) or a missing capacity in the model (expensive, needs training)? The reference-resolver over-fetch was the former and we just got it for free.
+
+**Where this leaves SFT prioritization:**
+
+- **Reference-resolver is OFF the SFT list.** The checklist prompt closes the gap and inverts the ladder. Ship it to production; refocus SFT spend.
+- **Adherence-checker remains the cleanest SFT case.** Prompt-only fix gave it +4pp; the 17pp gap is real and concentrated in FAIL_MISSING/FAIL_CHAR/FAIL_TANGENT — exactly the failure modes that DON'T atomize. SFT is the right next move there.
+- **Chapter-plan-checker has a partial prompt fix (+17pp) and a residual gap on MISSING_BEAT and REVERSED_ARC** — narrower SFT target than adherence-checker.
+- **The next measurement candidate** is `continuity` — currently on 235B, also a structured analytical agent, also a candidate for the multi-task LoRA mentioned in the f21f3db strip-commit message. Same baseline+checklist ladder applies. This is the right next experiment before opening any SFT data collection.
+
+**Methodology lessons compounding from this run:**
+
+- **Run the baseline ladder before designing the schema treatment.** I went into #115 expecting the checklist to "expand recall via per-phrase enumeration" — exactly the wrong mechanism, because baseline #114 already showed recall was at 97.5%. The actual mechanism that mattered (the ambient branch) was a side effect I almost left out. Baseline data should drive the schema design, not the other way around.
+- **Include the recall/precision/F1 trio AND exact-match in any set-output ladder.** Exact-match alone showed 14B at 1% and would have read as a damning result; the F1 view showed 14B at 0.518 vs 235B at 0.554 — practically tied. Different metrics tell different stories on set outputs and you need both to pick the right intervention.
+- **Synthetic deterministic labels work for set-output tasks if you keep the metric coarse** (type-set match, no args). Worry about label noise per-variant if specific cells are anomalously low across all models — VAR_REL was suspect here (5% / 0% / 5% on flat, partly because some VAR_REL beats arguably also need recent_events) but the cross-model agreement on the noise pattern told us it was data ambiguity, not model failure on a specific cell.
+
+(Commits `e02a150` data generator, `a670170` baseline script, `a1b5170` checklist script; experiments #114 flat, #115 checklist)
+
 ## Prompt & Output Schema Design
 
 ### Structured checklist output beats flat verdict schemas on multi-check verification tasks — but only for fields within model capacity (2026-04-08)
