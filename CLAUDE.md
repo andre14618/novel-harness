@@ -14,9 +14,9 @@ Code lives locally (canonical git repo). LXC 307 is the runtime — all benchmar
 ## Stack
 
 - Runtime: Bun
-- LLM: Configurable per-agent via `models/roles.ts`. Providers: Cerebras, Groq, Fireworks, OpenRouter, OpenAI, DeepSeek, Together (LoRA fine-tunes).
+- LLM: Configurable per-agent via `models/roles.ts`. Providers: Cerebras, Groq, Fireworks, OpenRouter, OpenAI, DeepSeek, Together (legacy LoRA fine-tunes), W&B Inference (CoreWeave-backed, chosen home for new LoRA fine-tunes per `docs/lessons-learned.md`).
 - DB: Single Postgres (`novel_harness_orchestrator` on LXC — all tables). pgvector installed but embeddings disabled.
-- Fine-tuning: Together AI LoRA on Qwen 3.5 9B ($0.10/$0.15 inference). Tonal pass v3 (Howard) deployed, other adapters planned. **Together standard tier is ~50-100× slower than Groq fast tier per `docs/lessons-learned.md` — only use Together for actual LoRA serving, not per-beat agents.**
+- Fine-tuning: **W&B Inference on `OpenPipe/Qwen3-14B-Instruct` is the chosen home for new LoRA fine-tunes** (decided 2026-04-07 via `tuning_experiment` id=94 — see `docs/todo.md` "Fine-Tuning serving infrastructure"). Existing Howard tonal-pass v3 still on Together AI Qwen 3.5 9B ($0.10/$0.15 inference); v4 retrain on the W&B base is a follow-up. **Together standard tier is ~50-100× slower than Groq fast tier per `docs/lessons-learned.md` — only use Together for actual LoRA serving of the legacy adapter, not per-beat agents or new training.**
 - Transport: `src/transport.ts` — pluggable layer beneath all LLM calls (direct, batch). Per-call telemetry written to `llm_calls`.
 - Interface: React UI (`/app`), CLI
 
