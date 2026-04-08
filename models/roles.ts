@@ -44,15 +44,12 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // benchmark via scripts/best-of-n-experiment.ts).
   "reference-resolver":        { provider: "groq", model: "llama-3.1-8b-instant", temperature: 0.1, maxTokens: 512 },
 
-  // adherence-checker upgraded from Llama 3.1 8B to Cerebras Qwen 235B after
-  // the parallel-N benchmark showed Llama 8B was systematically over-strict
-  // (flagged stylistic embellishments and minor event ordering as deviations).
-  // Best-of-N can't fix systematic miscalibration, only variance — and Llama
-  // 8B at temp 0.1 was already self-consistent on this task. Qwen 235B matches
-  // the oracle by definition at ~520ms vs Llama 8B's ~365ms. Cost difference
-  // (~$0.0003/call vs ~$0.00003) is rounding error per chapter.
-  // See docs/lessons-learned.md for the full benchmark write-up.
-  "adherence-checker":         { ...cerebrasQwen235B, temperature: 0.1, maxTokens: 256 },
+  // adherence-checker: testing base Qwen3-14B on W&B Inference before committing
+  // to a fine-tune. If base 14B agreement with 235B oracle is ≥90% on the
+  // synthetic validation set, no fine-tune needed — just cheaper + faster.
+  // Prior history: Llama 8B was systematically over-strict; 235B fixed calibration.
+  // See docs/fine-tuning-strategy.md adherence-checker slot for full context.
+  "adherence-checker":         { provider: "wandb", model: "OpenPipe/Qwen3-14B-Instruct", temperature: 0.1, maxTokens: 256 },
 
   // ── Extractors (structured extraction from prose) ─────────────────────
   "summary-extractor":         { ...mimoFlash, temperature: 0.2, maxTokens: 8192 },
