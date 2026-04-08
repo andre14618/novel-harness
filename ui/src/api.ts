@@ -323,6 +323,34 @@ export function generateFinetuneData(task: string, limit: number) {
   })
 }
 
+// ── Preference evaluation ────────────────────────────────────────────
+
+export function getPrefRatings(evalName: string) {
+  return fetchJSON<{ ratings: { paragraph_index: number; chosen_model: string }[] }>(
+    `/api/pref-eval/${encodeURIComponent(evalName)}`
+  )
+}
+
+export function savePrefRating(evalName: string, data: {
+  paragraphIndex: number
+  inputText: string
+  chosenText: string
+  rejectedText: string
+  chosenModel: string
+  rejectedModel: string
+}) {
+  return fetchJSON<{ ok: boolean }>(`/api/pref-eval/${encodeURIComponent(evalName)}`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  })
+}
+
+export async function exportPrefDpo(evalName: string): Promise<Blob> {
+  const res = await fetch(`/api/pref-eval/${encodeURIComponent(evalName)}/export`, { headers })
+  if (!res.ok) throw new Error(`Export failed: ${res.status}`)
+  return res.blob()
+}
+
 // Types
 export interface AgentGroup {
   label: string

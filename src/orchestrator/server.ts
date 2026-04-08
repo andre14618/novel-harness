@@ -20,6 +20,7 @@ import { TARGETS } from "./improve"
 import { BENCHMARKS } from "../../benchmark/registry"
 import { handleNovelRoute } from "./novel-routes"
 import { handleFinetuneRoute } from "./finetune-routes"
+import { handlePrefEvalRoute } from "./pref-eval-routes"
 
 await migrate()
 
@@ -1528,6 +1529,10 @@ const server = Bun.serve({
         return Response.json({ error: String(err) }, { status: 500 })
       }
     }
+
+    // ── Preference evaluation API ──────────────────────────────────
+    const prefEvalResponse = await handlePrefEvalRoute(req, url)
+    if (prefEvalResponse) return prefEvalResponse
 
     // ── Fine-tuning data API ───────────────────────────────────────
     const finetuneResponse = await handleFinetuneRoute(req, url)

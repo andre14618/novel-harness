@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
+import { getPrefRatings, savePrefRating, exportPrefDpo } from "../api"
 
 interface Comparison {
   category: string
@@ -125,11 +126,63 @@ const PREF_PAIRS = V4_SAMPLES.map((s, i) => {
   return { input: s.input, optionA: aIsV3 ? s.v3 : s.v4, optionB: aIsV3 ? s.v4 : s.v3, aIsV3 }
 })
 
+const EVAL_NAME = "v3-vs-v4-tonal"
+
 function PrefEvalTab() {
   const [prefs, setPrefs] = useState<Record<number, "a" | "b">>({})
+  const [saving, setSaving] = useState<number | null>(null)
+  const [exporting, setExporting] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
-  const pick = (i: number, choice: "a" | "b") =>
+  // Load saved ratings on mount
+  useEffect(() => {
+    getPrefRatings(EVAL_NAME).then(({ ratings }) => {
+      const restored: Record<number, "a" | "b"> = {}
+      for (const row of ratings) {
+        const pair = PREF_PAIRS[row.paragraph_index]
+        if (!pair) continue
+        const aIsChosen = (row.chosen_model === "v3") === pair.aIsV3
+        restored[row.paragraph_index] = aIsChosen ? "a" : "b"
+      }
+      setPrefs(restored)
+    }).catch(e => setLoadError(String(e)))
+  }, [])
+
+  const pick = useCallback(async (i: number, choice: "a" | "b") => {
     setPrefs(p => p[i] === choice ? p : { ...p, [i]: choice })
+    setSaving(i)
+    const pair = PREF_PAIRS[i]
+    const chosenText  = choice === "a" ? pair.optionA : pair.optionB
+    const rejectedText = choice === "a" ? pair.optionB : pair.optionA
+    const chosenModel  = (choice === "a") === pair.aIsV3 ? "v3" : "v4"
+    const rejectedModel = chosenModel === "v3" ? "v4" : "v3"
+    await savePrefRating(EVAL_NAME, {
+      paragraphIndex: i,
+      inputText: pair.input,
+      chosenText,
+      rejectedText,
+      chosenModel,
+      rejectedModel,
+    }).catch(e => console.error("save pref failed", e))
+    setSaving(null)
+  }, [])
+
+  const handleExport = async () => {
+    setExporting(true)
+    try {
+      const blob = await exportPrefDpo(EVAL_NAME)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `${EVAL_NAME}-dpo.jsonl`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      console.error("export failed", e)
+    } finally {
+      setExporting(false)
+    }
+  }
 
   const done = Object.keys(prefs).length
   const v3Wins = Object.entries(prefs).filter(([i, c]) => {
@@ -146,27 +199,34 @@ function PrefEvalTab() {
         background: "var(--bg-primary)", borderBottom: "1px solid var(--border)",
         padding: "0.6rem 0", marginBottom: "1.25rem",
         display: "flex", alignItems: "center", gap: "1.5rem", fontSize: "0.82rem",
+        flexWrap: "wrap",
       }}>
         <span style={{ color: "var(--text-secondary)" }}>{done}/15 rated</span>
         {done > 0 && <>
           <span style={{ color: V4_METRICS.v3.color, fontWeight: 600 }}>V3: {v3Wins}</span>
           <span style={{ color: V4_METRICS.v4.color, fontWeight: 600 }}>V4: {v4Wins}</span>
         </>}
-        {done === 15 && (
-          <span style={{
-            marginLeft: "auto", fontSize: "0.78rem", padding: "0.2rem 0.6rem",
-            borderRadius: "4px", background: v3Wins > v4Wins ? "rgba(130,196,168,0.15)" : "rgba(196,168,226,0.15)",
-            color: v3Wins > v4Wins ? V4_METRICS.v3.color : V4_METRICS.v4.color, fontWeight: 600,
-          }}>
-            {v3Wins > v4Wins ? `V3 wins ${v3Wins}–${v4Wins}` : v4Wins > v3Wins ? `V4 wins ${v4Wins}–${v3Wins}` : "Tie"}
-          </span>
-        )}
-        {done > 0 && done < 15 && (
-          <button onClick={() => setPrefs({})} style={{
-            marginLeft: "auto", fontSize: "0.72rem", background: "none", border: "1px solid var(--border)",
-            borderRadius: "4px", padding: "0.15rem 0.5rem", color: "var(--text-secondary)", cursor: "pointer",
-          }}>reset</button>
-        )}
+        {saving !== null && <span style={{ color: "#666", fontSize: "0.72rem" }}>saving…</span>}
+        {loadError && <span style={{ color: "#f85149", fontSize: "0.72rem" }}>{loadError}</span>}
+
+        <div style={{ marginLeft: "auto", display: "flex", gap: "0.5rem", alignItems: "center" }}>
+          {done === 15 && (
+            <span style={{
+              fontSize: "0.78rem", padding: "0.2rem 0.6rem", borderRadius: "4px",
+              background: v3Wins > v4Wins ? "rgba(130,196,168,0.15)" : "rgba(196,168,226,0.15)",
+              color: v3Wins > v4Wins ? V4_METRICS.v3.color : V4_METRICS.v4.color, fontWeight: 600,
+            }}>
+              {v3Wins > v4Wins ? `V3 wins ${v3Wins}–${v4Wins}` : v4Wins > v3Wins ? `V4 wins ${v4Wins}–${v3Wins}` : "Tie"}
+            </span>
+          )}
+          {done > 0 && (
+            <button onClick={handleExport} disabled={exporting} style={{
+              fontSize: "0.72rem", background: "none", border: "1px solid var(--border)",
+              borderRadius: "4px", padding: "0.15rem 0.6rem", color: "var(--text-secondary)",
+              cursor: exporting ? "default" : "pointer", opacity: exporting ? 0.5 : 1,
+            }}>{exporting ? "exporting…" : "export DPO"}</button>
+          )}
+        </div>
       </div>
 
       {/* Paragraph list */}
@@ -216,7 +276,7 @@ function PrefEvalTab() {
                         display: "flex", alignItems: "center", gap: "0.4rem",
                       }}>
                         {optLabel(opt)}
-                        {isSelected && <span style={{ color: "#4ecca3" }}>✓</span>}
+                        {isSelected && <span style={{ color: saving === i ? "#888" : "#4ecca3" }}>{saving === i ? "·" : "✓"}</span>}
                       </div>
                       <div style={{ fontSize: "0.81rem", lineHeight: 1.75, color: "var(--text-primary)" }}>
                         {opt === "a" ? pair.optionA : pair.optionB}
