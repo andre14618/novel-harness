@@ -46,6 +46,62 @@ OpenPipe/Qwen3-14B-Instruct (hot, always warm)
 
 ---
 
+## Alternative Serving: RunPod Serverless
+
+**Status**: Potential avenue, not yet adopted. W&B Inference remains the default.
+
+W&B Inference has two hard constraints: base model catalog (only Qwen3-14B-Instruct is viable) and max LoRA rank 16. RunPod Serverless removes both — any model, any rank, any base size.
+
+### Why it's worth tracking
+
+- **No catalog lock-in** — can serve Qwen3-3B, Mistral, or any custom base
+- **Task-matched sizing** — a lint-fixer or adherence-checker might only need a fine-tuned 3B, which is far cheaper per token than forcing everything onto 14B
+- **LoRA rank > 16** — relevant if higher-capacity adapters are needed for complex tasks (continuity, beat-writer)
+- **Horizontal auto-scaling** — each endpoint gets its own worker pool; agents never compete for rate limits the way Cerebras calls do
+- **Plugs into transport.ts unchanged** — RunPod vLLM exposes an OpenAI-compatible API; only `models/registry.ts` and `models/roles.ts` need updating
+
+### Economics
+
+Per-second billing, scale-to-zero:
+
+| GPU | VRAM | Active $/s | $/hr equiv | Good for |
+|-----|------|-----------|------------|----------|
+| A4000 | 16GB | $0.00011 | $0.40 | Fine-tuned 3B models |
+| L4/A5000 | 24GB | $0.00013 | $0.47 | Fine-tuned 7-14B (AWQ) |
+| A6000/A40 | 48GB | $0.00024 | $0.86 | Fine-tuned 14B fp16, 30B AWQ |
+
+Approximate per-token cost at steady throughput: ~$0.04–0.17/M depending on model size and GPU — comparable to W&B Inference ($0.05/$0.22), competitive on output-heavy workloads.
+
+**The idle timeout trap**: A worker is billed for up to 5 seconds after its last request before scaling down (configurable). For small fast models (3B, ~0.1s inference), idle overhead can dominate. Mitigations:
+- Set idle timeout to 0s for infrequent agents (accept cold starts)
+- Set idle timeout to 60s for agents with sequential bursty calls (beat-writer, adherence-checker stay warm across a full novel run)
+- Use min_workers=1 (active worker, 20-30% discount) for critical path agents during production runs
+
+**Cold starts**: Mitigated by FlashBoot + HF model caching. With a model cached on HF, worker restore is ~5s rather than 60-90s.
+
+### Integration path
+
+```
+W&B trains adapter
+  → wandb artifact get (download PEFT weights locally)
+  → peft merge_and_unload() (merge adapter into base)
+  → push to private HuggingFace repo
+  → RunPod endpoint: MODEL_NAME=yourorg/model-name
+  → endpoint URL → models/registry.ts entry
+  → agent assignment in models/roles.ts
+```
+
+Transport layer needs no changes. The RunPod vLLM URL is a drop-in OpenAI-compatible base URL.
+
+### When to consider switching a slot
+
+- Need a base model not in W&B's catalog
+- Need LoRA rank > 16
+- Want a 3B specialist for a pure classification task (adherence-checker, reference-resolver) — economics favor small models when they stay warm during runs
+- Cerebras rate limits become a bottleneck for parallel agent workloads
+
+---
+
 ## Candidate Slots — Priority Ordered
 
 ### 1. Continuity (Highest ROI)
@@ -106,26 +162,27 @@ OpenPipe/Qwen3-14B-Instruct (hot, always warm)
 
 ---
 
-### 5. Tonal Pass v4 (Howard Style) — ATTEMPTED, V3 RETAINED
+### 5. Tonal Pass — IN PROGRESS (V4 trained, pref eval pending)
 
-**Status**: Trained and benchmarked 2026-04-08. V3 stays in production. See `tuning_experiment id=95`.
+**Status**: V4 adapter trained and benchmarked (exp #98, 2026-04-08). Quantitative metrics favor V4; qualitative pref eval in progress. V3 stays in production until pref eval confirms.
 
-**What was tried**: Retrained v3 adapter on Qwen3-14B-Instruct (W&B Inference) using the same 4,497 curated pairs, 3 epochs, cosine schedule. Artifact: `wandb-artifact:///andre14618-/novel-harness/howard-tonal-v4:latest`.
+**Identity LoRA bug**: Exp #95 and #96 used `howard-tonal-v4:latest` which points to the identity LoRA placeholder (v0 uploaded at job submission). All data from those runs was base-vs-base. See `lessons-learned.md`. Real adapter is at `howard-tonal-v4-sft-resume:v8`.
 
-**Results vs V3** (15-paragraph benchmark):
+**Real results (exp #98, sft-resume:v8) vs V3**:
 
-| Metric | Howard ref | V3 (9B Together) | V4 (14B W&B) | Winner |
-|--------|-----------|-----------------|--------------|--------|
-| Classifier ↑ | 0.715 | **0.389** | 0.319 | V3 |
-| Perplexity ↓ | 1964 | 5122 | **4165** | V4 |
-| Feature KL ↓ | 1.534 | **1.539** | 1.635 | V3 |
-| Avg latency | — | 1691ms | **931ms** | V4 |
+| Metric | Howard ref | Input (bland) | V3 (9B Together) | V4 (14B W&B) | Winner |
+|--------|-----------|---------------|-----------------|--------------|--------|
+| Classifier ↑ | 0.715 | 0.197 | 0.422 | **0.550** | V4 |
+| Perplexity ↓ | 1964 | 3593 | 4814 | **3086** | V4 |
+| Feature KL ↓ | 1.534 | 1.569 | 1.584 | **1.564** | V4 |
+| Content pres ↑ | — | — | 0.275 | **0.583** | V4 |
+| Avg latency | — | — | 1757ms | **597ms** | V4 |
 
-**Why V4 lost**: The 14B base model's verbosity bleeds through the LoRA. P1 sample showed V4 introducing hedging constructions ("not just from the cold, but from the growing sense that…") — exactly what the lint pass removes. Model size does not predict style transfer quality. This confirms the `lessons-learned.md` entry.
+**Qualitative concern**: V4 outputs read as more conservative (measured, period-accurate) vs V3 (bolder, more dramatic rewriting). Metrics say V4 wins but prose quality reading says V3 may still be better. Pref eval tab (`/app/lora-style` → Pref Eval) resolves this — 15-paragraph binary preference rating, results saved to DB.
 
-**V4 is 1.8× faster** (W&B Inference vs Together AI), which is useful latency data, but quality regression rules it out as a production swap.
+**Next step (V5)**: If pref eval confirms V3 still reads better — re-curate training targets. Strategy: run all 4,497 training inputs through V3, use V3 outputs as new targets (teacher-student bootstrap). Apply Jaccard filter to drop pairs where output similarity > 0.6 (conservative targets). Train V5 on the curated V3-bootstrapped set, re-run pref eval.
 
-**If revisiting**: Higher contrast threshold in training pairs, or data augmentation targeting verbosity/hedging reduction, before retraining on 14B.
+**Serving URI**: `wandb-artifact:///andre14618-/novel-harness/howard-tonal-v4-sft-resume:v8`
 
 ---
 
