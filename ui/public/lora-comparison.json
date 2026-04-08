@@ -1,0 +1,92 @@
+[
+  {
+    "category": "Action",
+    "input": "The soldier moved carefully through the dark corridor, his sword held ready in front of him. He could hear strange sounds coming from somewhere deeper in the ruins, and the air felt cold and damp against his skin. He was starting to feel uncomfortable about the whole situation, but he knew he had to keep going.",
+    "base": "The soldier crept through the suffocating dark, sword leveled and ready. Strange, wet sounds echoed from the ruins' depths, while the air bit at his skin, cold and damp. Unease prickled his nerves, but he pressed on, driven forward despite the dread.",
+    "v3": "The soldier crept through the suffocating darkness, his blade a rigid line before him. Strange, guttural sounds echoed from the ruins' depths, while the air bit at his skin with a chilling dampness. Unease prickled his nerves, but he forced his feet forward anyway."
+  },
+  {
+    "category": "Action",
+    "input": "The two warriors circled each other slowly, looking for an opening. Rain fell steadily on the stone courtyard, making the footing treacherous. The taller man attacked first, swinging his blade in a wide arc. The shorter one stepped back quickly and countered with a thrust that was barely deflected. They were both breathing hard now, and it was clear that neither would give up easily.",
+    "base": "Rain hissed on the stone courtyard, slicking the ground into a treacherous trap. Two warriors circled, eyes locked, hunting for a flaw. The taller man lunged first, his blade carving a deadly arc through the mist. The shorter one slipped back, pivoting on wet feet to drive a thrust home. It grazed the steel, sparks dying instantly. Both men heaved for air, their chests rising and falling in a ragged rhythm, neither showing the slightest sign of yielding.",
+    "v3": "Rain hissed against the stone courtyard, turning the ground into slick, treacherous mud. Two warriors circled, breath fogging the chill air, eyes locked for a fatal flaw. The taller man surged first, driving a sweeping blade through the downpour. The shorter fighter vanished into a sidestep, then drove a sudden thrust home. The steel grated against the guard, barely missed, sending sparks flying. Both men gasped, chests heaving, refusing to yield an inch."
+  },
+  {
+    "category": "Action",
+    "input": "The battle had been going on for hours. Bodies lay everywhere on the muddy field. The defenders were exhausted but they refused to retreat. Their leader stood on the wall, shouting encouragement despite the arrow wound in his shoulder.",
+    "base": "Sunlight glared off the churned mud, where hundreds of bodies lay tangled, silent, and cold. The defenders, muscles screaming with fatigue, refused to break their line. On the crenellated wall, their leader bellowed orders, blood soaking his tunic from an arrow wound in his shoulder, his voice raw but unyielding.",
+    "v3": "For hours, the mud had churned into a red slurry, littered with the broken limbs and quiet faces of the dead. The defenders, their limbs heavy with exhaustion, planted their boots deep in the churned earth and refused to blink. On the ramparts, their leader screamed orders over the din of steel, blood seeping through the fabric of his tunic where an arrow had pinned him to the wall. He did not fall; he roared, anchoring them."
+  },
+  {
+    "category": "Action",
+    "input": "He drew his sword and charged at the creature. It was larger than a man, covered in dark scales, and its eyes glowed with an unnatural light. The beast swiped at him with enormous claws, and he barely managed to dodge to the side. He struck back, aiming for the exposed throat, and felt his blade bite into flesh.",
+    "base": "Steel sang as he drew the blade, then he lunged. The creature loomed, a mountain of obsidian scales, its eyes burning with a sickly, unnatural fire. Massive claws raked the air, missing him by inches as he dove sideways. He met the strike with a thrust, driving the edge home into the beast's exposed throat. The metal bit deep, tearing through living flesh.",
+    "v3": "He drew his steel and lunged. The beast loomed over him—a mountain of obsidian scales, its eyes burning with a sick, unnatural luminescence. Massive claws raked the air where his neck had been a heartbeat before. He sidestepped the blow and drove his blade home, slicing deep into the soft, pulsing flesh of its exposed throat."
+  },
+  {
+    "category": "Atmosphere",
+    "input": "She climbed the crumbling tower stairs, testing each step before putting her full weight on it. The moonlight came through gaps in the stone walls, creating patches of silver light on the dusty floor. From somewhere above, she could hear a rhythmic tapping sound that she could not identify. Her torch was getting low, and she considered turning back, but curiosity drove her forward.",
+    "base": "She clawed her way up the crumbling tower, testing every fraying step before committing her weight. Moonlight sliced through gaps in the rotting stone, painting jagged patches of silver across the dust-choked floor. From above, a rhythmic, frantic tapping echoed in the silence—human or beast, she couldn't tell. Her torch sputtered, its flame dying low. Fear tugged at her heels, screaming to turn back, but the unknown rhythm pulled her forward anyway.",
+    "v3": "She ascended the crumbling tower stairs, testing every jagged step before committing her full weight. Moonlight sliced through gaps in the rotting stone, painting the dust-choked floor in shifting patches of silver. From above, a rhythmic tapping echoed down the shaft—a sound she couldn't place. Her torch sputtered, its flame dying low, whispering her to turn back. Yet curiosity clawed at her ribs, pulling her forward into the dark."
+  },
+  {
+    "category": "Atmosphere",
+    "input": "The castle had been abandoned for many years. Weeds grew through cracks in the courtyard stones, and most of the windows were broken. But something about the place suggested that it was not entirely empty. There were fresh marks in the dust on the floor.",
+    "base": "Years of neglect had turned the castle into a skeleton of crumbling stone. Vines choked the courtyard, snapping through fissures where moss had taken root, while shattered glass littered the window frames like broken teeth. Yet the silence held a strange tension. Fresh scuff marks sliced through the thick layer of gray dust on the floorboards, proving that despite the rot and the ruin, something—or someone—had just walked through.",
+    "v3": "Years of silence had turned the castle to a rotting husk. Vines strangled the courtyard walls, and shattered glass littered the floor like white bone. Yet the air hummed with a strange, waiting life. Fresh scuff marks tore through the thick gray dust, proving the empty halls were not so empty after all."
+  },
+  {
+    "category": "Atmosphere",
+    "input": "The swamp stretched endlessly in every direction. Mist hung low over the dark water, and strange lights flickered in the distance. The trees here were dead, their branches reaching up like skeletal fingers. Every now and then something splashed in the murky water nearby, but he could never see what caused it.",
+    "base": "The swamp swallowed the horizon, a suffocating sea of rotting reeds and stagnant black water. A funeral shroud of mist clung to the surface, while ghostly lights pulsed like diseased eyes in the gloom. Jagged, leafless branches clawed at the sky like skeletal fingers. Beneath the silence, the water erupted with sudden, violent splashes—shouts from the dark that vanished before the eye could catch them.",
+    "v3": "The swamp sprawled without end, a suffocating blanket of dead water and rot. A heavy mist clung to the surface, while eerie lights flickered in the gloom like dying embers. Above, bleached branches clawed at the sky, skeletal fingers grasping for air. Something splashed in the murk nearby, a sudden ripple in the stagnant blackness, then silence returned—leaving him staring into the void, certain something was moving just out of sight."
+  },
+  {
+    "category": "Atmosphere",
+    "input": "The city was quiet at this hour. Most of the shops were closed, their shutters drawn tight. Only a few torches still burned along the main street, casting pools of orange light on the cobblestones. A cat ran across the road ahead of her, disappearing into a narrow alley.",
+    "base": "Silence swallowed the city. Shop shutters slammed their eyes shut, barring out the night. Only a handful of torches flickered along the main street, drowning the cobblestones in pools of oily orange. Ahead, a cat bolted across the road, vanishing instantly into a throat of darkness.",
+    "v3": "Silence swallowed the city. Shop shutters slammed tight, sealing out the night. Along the main street, embers in torches flickered, spilling pools of orange onto the cobblestones. Ahead, a cat darted across the road, vanishing instantly into a dark, narrow alley."
+  },
+  {
+    "category": "Character",
+    "input": "The woman stood at the edge of the cliff, looking down at the churning sea below. The wind was strong and cold, pulling at her cloak. She had come here to make a decision, and she knew there was no going back once she chose.",
+    "base": "Perched on the cliff's razor edge, she stared down into the churning abyss where the sea clawed at the rocks. The biting wind tore at her cloak, threatening to strip it away. This was the precipice of her choice; a single step forward meant no return.",
+    "v3": "She stood on the cliff's precipice, staring into the churning abyss below. A biting gale tore at her cloak, whipping it around her legs. This was the moment of truth; she had come to make a choice she knew would seal her fate, leaving no path for retreat."
+  },
+  {
+    "category": "Character",
+    "input": "He woke up in a dark room with no memory of how he had gotten there. His hands were bound and his head was throbbing with pain. Somewhere nearby, he could hear voices speaking in a language he did not understand.",
+    "base": "Consciousness returned not with clarity, but with a violent throb behind his eyes. He lay in suffocating darkness, his hands cinched tight by rough rope. Nearby, indistinct voices wove a foreign tongue, their syllables sharp and alien against the silence.",
+    "v3": "Darkness swallowed him whole. He woke with a thunderous headache splitting his skull, his wrists seared by rough hemp rope. Somewhere in the suffocating gloom, unintelligible voices drifted like ghosts, their words alien and cold against his ears."
+  },
+  {
+    "category": "Character",
+    "input": "Dawn broke over the battlefield. The survivors began to stir, checking their wounds and looking for fallen companions. The enemy had retreated during the night, leaving behind only their dead. Victory felt hollow in the cold morning light.",
+    "base": "Gray dawn bled across the churned earth, forcing the survivors from their slumber. They dragged themselves upright, fingers probing torn flesh for shrapnel while scanning the mud for missing friends. The enemy had vanished into the night, leaving only a graveyard of their own dead. In the biting cold, the victory tasted like ash.",
+    "v3": "Dawn cracked open the battlefield, bleaching the mud in sickly gray light. Survivors groaned, dragging themselves upright to tear at their bleeding bodies and scan the grass for missing friends. The enemy had vanished into the night, leaving only a carpet of corpses. In the biting cold, victory tasted like ash."
+  },
+  {
+    "category": "Dialogue-adjacent",
+    "input": "The tavern was crowded and noisy. Men were drinking and arguing at every table. In the corner, a hooded figure sat alone, watching the room with careful attention. Nobody seemed to notice him, which was exactly what he wanted.",
+    "base": "Smoke choked the tavern, thick with the roar of clinking tankards and the guttural clash of men arguing over their drinks. At every table, shadows danced as voices rose above the din. In the corner, a hooded figure sat alone, eyes scanning the room with predatory stillness. The noise swallowed him whole, granting him the perfect, invisible cloak he craved.",
+    "v3": "Steam curled from tankards as the tavern roared, a cacophony of shouting men and clinking glass filling every corner. Amidst the chaos, a hooded figure sat rigid in the shadows, his eyes scanning the room with predatory focus. The noise washed over him, but no one saw him; that invisibility was precisely his aim."
+  },
+  {
+    "category": "Dialogue-adjacent",
+    "input": "The old man looked at him for a long time before speaking. His eyes were sharp despite his age, and there was something unsettling about the way he studied the younger mans face. Finally, he leaned back in his chair and let out a long breath.",
+    "base": "The old man pinned him with a steady, unblinking stare. Despite his age, his eyes remained sharp as flint, dissecting the younger man's face with an unsettling precision. Finally, he slumped back in his chair, the creak of the wood echoing in the silence, and exhaled a long, rattling breath.",
+    "v3": "The old man pinned him with a stare that burned despite the years etched into his skin. Something primal and unsettling coiled in the way he dissected the younger man's features, peeling back layers until nothing remained but raw nerve. Only then did he slump back, exhaling a ragged, rattling breath that seemed to carry the weight of a lifetime."
+  },
+  {
+    "category": "Complex",
+    "input": "The ship rocked violently as the storm grew worse. Waves crashed over the deck, and the crew struggled to keep the sails from tearing apart. The captain stood at the wheel, his face grim and determined as he fought to keep the vessel from capsizing.",
+    "base": "The ship heaved like a dying beast as the storm intensified. Green walls of water slammed over the deck, soaking the crew who fought desperately to secure the fraying sails. At the wheel, the captain's face was a mask of grim determination, his hands grinding the spokes as he wrestled the vessel from the brink of capsizing.",
+    "v3": "The ship heaved violently, tossed by a tempest that clawed at the sky. Green walls of water smashed over the deck, drenching the crew as they frantically lashed the rigging to prevent the sails from ripping apart. At the helm, the captain's face was a mask of grim determination; his hands gripped the wheel with white-knuckled force, steering the dying vessel through the churning chaos."
+  },
+  {
+    "category": "Complex",
+    "input": "The assassin waited on the rooftop, perfectly still. Below, the target walked through the market square, surrounded by guards. She counted them carefully and calculated her approach. The window of opportunity would be very small.",
+    "base": "Perched on the slanted roof, the assassin held her breath, a statue carved from shadow. Below, the target cut through the market square, flanked by a ring of armored guards. She weighed them in her mind, mapping every step, measuring the cracks in her plan. The window to strike would snap shut in a heartbeat.",
+    "v3": "Perched on the rooftop, the assassin froze, a statue of shadow against the gray sky. Below, the target drifted through the crowded market square, flanked by a ring of armored guards. She counted their paces, mapped their blind spots, and timed her strike. The window to act was razor-thin."
+  }
+]
