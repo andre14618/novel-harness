@@ -7,16 +7,35 @@ updated: 2026-04-07
 
 Items removed when done — git history has the record. Ordered by impact.
 
-## Fine-Tuning (Qwen 3.5 9B on Together AI) — primary focus
+## Fine-Tuning serving infrastructure — decide before more LoRAs
 
-LoRA fine-tunes on Together ($0.48/M training tokens, $0.10/$0.15 inference). Knowledge distillation: base model outputs, human reviews/corrects in Claude Code, corrected outputs become training data. Generic prompts — training data teaches behavior, not the prompt.
+The serving plan for fine-tuned adapters changed during the 2026-04-07 architectural session. **Fireworks does NOT support serverless LoRA** (verified at https://docs.fireworks.ai/models/overview — "Neither custom base models nor LoRA addons are supported for serverless inference"). **W&B Inference DOES** (https://docs.wandb.ai/inference/lora) — CoreWeave-backed, pay-per-token at base-model rates, but only against a fixed list of supported bases.
+
+W&B supported bases (as of 2026-04-07):
+- `meta-llama/Llama-3.1-8B-Instruct`
+- `meta-llama/Llama-3.1-70B-Instruct`
+- `openai/gpt-oss-120b`
+- `OpenPipe/Qwen3-14B-Instruct`
+- `Qwen/Qwen3-30B-A3B-Instruct-2507` ← most interesting (30B MoE, ~3B active params)
+
+Notably absent: Qwen3 8B, Qwen3 4B-Instruct-2507, Qwen 3.5 9B (the base of the existing v3 Howard tonal-pass adapter). Any LoRA we want to serve on W&B has to be (re)trained on a supported base.
+
+**Action items, in order:**
+
+- **Evaluate W&B Inference end-to-end against `Qwen/Qwen3-30B-A3B-Instruct-2507`** — write a 50-call latency probe (clone of `scripts/test-qwen-speed.ts`, swap endpoint and auth header for W&B Inference's OpenAI-compatible API). Run from LXC 307 with shapes matching the actual harness slots: reference-resolver (~80 in / 40 out), adherence-checker (~360 in / 140 out), beat-writer (~850 in / 400 out). Capture per-call latency, decode tps, and any cold-start variance. Store the run as a tuning_experiment per the standing rule. **Decision criteria**: if avg per-call latency on the writer-shaped probe is within 2-3× of Cerebras 235B's ~2.1s, W&B becomes the default home for future fine-tuned slots. If it's 5-10× slower, fall back to either local hosting (Mac Mini MLX or used 3090 + vLLM) or staying on Together for the low-frequency tonal-pass slot only.
+- **If W&B passes the probe**: retrain the Howard tonal-pass v3 on Qwen3 30B A3B Instruct 2507 as v4. Existing curated training pairs (`scripts/curate-tonal-pairs.ts`, ~4,500 pairs) port over but the adapter weights do not. Expect to re-validate the style transfer on the new base — different family, different parameter count, MoE vs dense.
+- **If W&B fails the probe**: build the serving box. Used RTX 3090 + vLLM with `--enable-lora` is the cheapest viable answer for solo-dev volume. ~$700-900 added to existing Proxmox host, or ~$1,100-1,400 for a dedicated dual-3090-ready build.
+
+## Fine-Tuning data generation — unchanged direction, base model TBD
+
+LoRA fine-tunes have historically targeted Qwen 3.5 9B on Together ($0.48/M training tokens, $0.10/$0.15 inference). Going forward the base will likely change to whichever W&B supports for the slot — probably Qwen3 30B A3B Instruct 2507 for creative LoRAs and OpenPipe Qwen3 14B Instruct for structured/analytical LoRAs. Knowledge distillation: base model outputs, human reviews/corrects in Claude Code, corrected outputs become training data. Generic prompts — training data teaches behavior, not the prompt.
 
 - **Run fact-extractor dataset generation** — `bun scripts/build-finetune-data.ts --task fact-extractor --limit 50` on LXC. Review 20-30 pairs in Claude Code, correct to gold standard, then scale to 300+.
 - **Adherence-checker fine-tune** — runs every beat, high frequency. Classification task (pass/fail + deviation). Needs beat-level training data — generate novels with beat pipeline and log beat/draft/adherence pairs.
 - **Reference-resolver fine-tune** — runs every beat. Identify needed lookups from implicit references. Same beat-level data source.
-- **Chapter plan checker fine-tune** — runs once per chapter. Compare prose against plan, report structural deviations or PASS. ~3-5K token input. Now serving from `openai/gpt-oss-120b` on Groq (was llama-3.1-8b-instant — too small to reason through structural requirements, kept bouncing valid prose and spinning the drafting retry loop). Prerequisite: persist `(prose, plan, deviations, passed, model)` to a new `chapter_plan_checks` table so each real chapter generates a labeled training example. After ~50-100 examples accumulate, train a LoRA on Qwen 3.5 9B (same base as tonal-pass) using GPT-OSS as distillation source, evaluate vs GPT-OSS baseline, swap in if accuracy matches.
+- **Chapter plan checker fine-tune** — runs once per chapter. Compare prose against plan, report structural deviations or PASS. ~3-5K token input. Now serving from `openai/gpt-oss-120b` on Groq (was llama-3.1-8b-instant — too small to reason through structural requirements, kept bouncing valid prose and spinning the drafting retry loop). Prerequisite: persist `(prose, plan, deviations, passed, model)` to a new `chapter_plan_checks` table so each real chapter generates a labeled training example. After ~50-100 examples accumulate, train a LoRA on a W&B-supported base (gpt-oss-120b is on the supported list — natural distillation target since it's already the production checker), evaluate vs GPT-OSS baseline, swap in if accuracy matches.
 - **Tonal pass expansion** — V3 LoRA trained on Howard only (sword-and-sorcery). Need multi-genre corpus. Copyright considerations documented in `docs/ai-training-copyright-landscape.md`. Public domain authors: Hemingway (pre-1929), London, Cather, Fitzgerald. Back-translation pipeline exists (`scripts/generate-tonal-pairs.ts`).
-- **Test tonal pass V3 in production** — enable `pipeline.tonalPass`, run on a novel, compare before/after.
+- **Test tonal pass V3 in production** — enable `pipeline.tonalPass`, run on a novel, compare before/after. **Note**: this still uses the Together-served v3 adapter on Qwen 3.5 9B. The W&B retraining (above) is a separate decision; production-test the existing adapter first to validate the style transfer before investing in v4 on a new base.
 
 ## Pipeline Tuning
 
