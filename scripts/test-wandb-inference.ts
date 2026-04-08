@@ -191,13 +191,24 @@ async function runCell(model: ModelTarget, shape: Shape, n: number): Promise<Cel
   process.stdout.write(`  ${model.name.padEnd(32)} × ${shape.name.padEnd(20)}: `)
   const results: CallResult[] = []
   const errors: string[] = []
-  for (let i = 0; i < n; i++) {
-    const r = await callOnce(model, shape)
-    results.push(r)
-    if (!r.ok && r.error && !errors.includes(r.error)) errors.push(r.error)
-    if (i % 10 === 9) process.stdout.write(".")
+  // Concurrent batches: 5 calls in flight at a time. Sequential would take too
+  // long for the beat-writer shape (~1-2 min/call serial × 50 calls × 4 models
+  // = 4+ hours). Concurrency 5 cuts wall time ~5× while still capturing
+  // independent latency samples — each call gets its own connection and the
+  // server doesn't batch them.
+  const CONCURRENCY = 5
+  const startCell = performance.now()
+  for (let i = 0; i < n; i += CONCURRENCY) {
+    const batch = Array.from({ length: Math.min(CONCURRENCY, n - i) }, () => callOnce(model, shape))
+    const batchResults = await Promise.all(batch)
+    for (const r of batchResults) {
+      results.push(r)
+      if (!r.ok && r.error && !errors.includes(r.error)) errors.push(r.error)
+    }
+    process.stdout.write(".")
   }
-  process.stdout.write("\n")
+  const cellWallMs = Math.round(performance.now() - startCell)
+  process.stdout.write(` ${cellWallMs}ms wall\n`)
 
   const ok = results.filter(r => r.ok)
   const latencies = ok.map(r => r.ms).sort((a, b) => a - b)
@@ -221,7 +232,7 @@ async function runCell(model: ModelTarget, shape: Shape, n: number): Promise<Cel
   }
 }
 
-const N_PER_CELL = 50
+const N_PER_CELL = 25
 
 async function main() {
   console.log(`W&B Inference latency probe — ${MODELS.length} models × ${SHAPES.length} shapes × ${N_PER_CELL} calls = ${MODELS.length * SHAPES.length * N_PER_CELL} total calls\n`)
