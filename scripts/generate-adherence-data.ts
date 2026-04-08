@@ -294,7 +294,15 @@ Write the prose now.`
     temperature: 0.8,
     maxTokens: 600,
   })
-  return result.content.trim()
+  let prose = result.content.trim()
+  // Strip JSON wrapper if model returned {"prose": "..."} instead of raw text
+  if (prose.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(prose)
+      prose = (parsed.prose ?? parsed.text ?? prose).trim()
+    } catch {}
+  }
+  return prose
 }
 
 // ── Training pair builder ─────────────────────────────────────────────────────
