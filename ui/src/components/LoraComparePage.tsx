@@ -119,6 +119,120 @@ const V4_SAMPLES: Array<{ input: string; v3: string; v4: string }> = [
   },
 ]
 
+// Deterministic shuffle: V3 on left for even-indexed paragraphs, V4 on left for odd
+const PREF_PAIRS = V4_SAMPLES.map((s, i) => {
+  const aIsV3 = i % 2 === 0
+  return { input: s.input, optionA: aIsV3 ? s.v3 : s.v4, optionB: aIsV3 ? s.v4 : s.v3, aIsV3 }
+})
+
+function PrefEvalTab() {
+  const [prefs, setPrefs] = useState<Record<number, "a" | "b">>({})
+
+  const pick = (i: number, choice: "a" | "b") =>
+    setPrefs(p => p[i] === choice ? p : { ...p, [i]: choice })
+
+  const done = Object.keys(prefs).length
+  const v3Wins = Object.entries(prefs).filter(([i, c]) => {
+    const pair = PREF_PAIRS[Number(i)]
+    return (c === "a" && pair.aIsV3) || (c === "b" && !pair.aIsV3)
+  }).length
+  const v4Wins = done - v3Wins
+
+  return (
+    <div>
+      {/* Tally bar */}
+      <div style={{
+        position: "sticky", top: 0, zIndex: 10,
+        background: "var(--bg-primary)", borderBottom: "1px solid var(--border)",
+        padding: "0.6rem 0", marginBottom: "1.25rem",
+        display: "flex", alignItems: "center", gap: "1.5rem", fontSize: "0.82rem",
+      }}>
+        <span style={{ color: "var(--text-secondary)" }}>{done}/15 rated</span>
+        {done > 0 && <>
+          <span style={{ color: V4_METRICS.v3.color, fontWeight: 600 }}>V3: {v3Wins}</span>
+          <span style={{ color: V4_METRICS.v4.color, fontWeight: 600 }}>V4: {v4Wins}</span>
+        </>}
+        {done === 15 && (
+          <span style={{
+            marginLeft: "auto", fontSize: "0.78rem", padding: "0.2rem 0.6rem",
+            borderRadius: "4px", background: v3Wins > v4Wins ? "rgba(130,196,168,0.15)" : "rgba(196,168,226,0.15)",
+            color: v3Wins > v4Wins ? V4_METRICS.v3.color : V4_METRICS.v4.color, fontWeight: 600,
+          }}>
+            {v3Wins > v4Wins ? `V3 wins ${v3Wins}–${v4Wins}` : v4Wins > v3Wins ? `V4 wins ${v4Wins}–${v3Wins}` : "Tie"}
+          </span>
+        )}
+        {done > 0 && done < 15 && (
+          <button onClick={() => setPrefs({})} style={{
+            marginLeft: "auto", fontSize: "0.72rem", background: "none", border: "1px solid var(--border)",
+            borderRadius: "4px", padding: "0.15rem 0.5rem", color: "var(--text-secondary)", cursor: "pointer",
+          }}>reset</button>
+        )}
+      </div>
+
+      {/* Paragraph list */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+        {PREF_PAIRS.map((pair, i) => {
+          const sel = prefs[i]
+          const revealed = sel !== undefined
+
+          const optLabel = (opt: "a" | "b") => {
+            if (!revealed) return opt === "a" ? "1" : "2"
+            const isV3 = (opt === "a") === pair.aIsV3
+            return isV3 ? "V3 · Together 9B" : "V4 · W&B 14B"
+          }
+          const optColor = (opt: "a" | "b") => {
+            if (!revealed) return "var(--text-secondary)"
+            return ((opt === "a") === pair.aIsV3) ? V4_METRICS.v3.color : V4_METRICS.v4.color
+          }
+
+          return (
+            <div key={i}>
+              {/* Input */}
+              <div style={{ display: "flex", gap: "0.5rem", alignItems: "baseline", marginBottom: "0.4rem" }}>
+                <span style={{ fontSize: "0.68rem", color: "#555", flexShrink: 0 }}>P{i + 1} · input</span>
+              </div>
+              <div style={{
+                fontSize: "0.8rem", lineHeight: 1.7, color: "#777",
+                background: "var(--bg-secondary)", borderRadius: "6px",
+                padding: "0.7rem 0.9rem", marginBottom: "0.5rem",
+                borderLeft: "3px solid #444",
+              }}>{pair.input}</div>
+
+              {/* Options */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.6rem" }}>
+                {(["a", "b"] as const).map(opt => {
+                  const isSelected = sel === opt
+                  const color = optColor(opt)
+                  return (
+                    <div key={opt} onClick={() => pick(i, opt)} style={{
+                      background: isSelected ? "rgba(78,204,163,0.06)" : "var(--bg-secondary)",
+                      border: isSelected ? "2px solid rgba(78,204,163,0.5)" : "2px solid var(--border)",
+                      borderRadius: "6px", padding: "0.85rem", cursor: "pointer",
+                      transition: "border-color 0.1s",
+                    }}>
+                      <div style={{
+                        fontSize: "0.68rem", color, textTransform: "uppercase",
+                        letterSpacing: "0.05em", marginBottom: "0.4rem", fontWeight: 600,
+                        display: "flex", alignItems: "center", gap: "0.4rem",
+                      }}>
+                        {optLabel(opt)}
+                        {isSelected && <span style={{ color: "#4ecca3" }}>✓</span>}
+                      </div>
+                      <div style={{ fontSize: "0.81rem", lineHeight: 1.75, color: "var(--text-primary)" }}>
+                        {opt === "a" ? pair.optionA : pair.optionB}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 function V4BenchmarkTab() {
   const r = (n: number, d = 3) => Math.round(n * 10 ** d) / 10 ** d
 
@@ -510,7 +624,7 @@ export function LoraComparePage() {
   const [data, setData] = useState<Comparison[]>([])
   const [filter, setFilter] = useState("All")
   const [highlight, setHighlight] = useState(true)
-  const [tab, setTab] = useState<"compare" | "v4" | "hardware">("compare")
+  const [tab, setTab] = useState<"compare" | "v4" | "pref" | "hardware">("compare")
 
   useEffect(() => {
     fetch("/app/lora-comparison.json")
@@ -534,7 +648,7 @@ export function LoraComparePage() {
       <div style={{ marginBottom: "1rem" }}>
         <h2 style={{ margin: "0 0 0.75rem 0" }}>LoRA Style</h2>
         <div style={{ display: "flex", gap: "0.25rem", borderBottom: "1px solid var(--border)" }}>
-          {([["compare", "V3 Side-by-side"], ["v4", "V4 Benchmark"], ["hardware", "Self-Host"]] as const).map(([t, label]) => (
+          {([["compare", "V3 Side-by-side"], ["v4", "V4 Benchmark"], ["pref", "Pref Eval"], ["hardware", "Self-Host"]] as const).map(([t, label]) => (
             <button key={t} onClick={() => setTab(t)} style={{
               padding: "0.4rem 1rem", fontSize: "0.8rem", border: "none", background: "none", cursor: "pointer",
               color: tab === t ? "var(--accent)" : "var(--text-secondary)",
@@ -547,6 +661,9 @@ export function LoraComparePage() {
 
       {/* V4 benchmark tab */}
       {tab === "v4" && <V4BenchmarkTab />}
+
+      {/* Preference eval tab */}
+      {tab === "pref" && <PrefEvalTab />}
 
       {/* Hardware evaluation tab */}
       {tab === "hardware" && <HardwareTab />}
