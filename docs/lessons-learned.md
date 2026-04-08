@@ -543,6 +543,54 @@ The pattern across the four-task series:
 
 (Commits `d09bcd2` data generator, `7a7044a` baseline script, `916fd63` checklist script; experiments #117 flat, #118 checklist)
 
+### Chapter-plan-checker teacher head-to-head: gpt-oss-120b beats Qwen 235B by 9pp, the right teacher is task-specific (2026-04-08)
+
+Follow-up to the four-task ladder series. Exp #107 measured base Qwen3-14B against gpt-oss-120b (the production chapter-plan-checker model) on the 80-pair synthetic eval and got 58% agreement — but **Qwen 235B was never in that ladder**. Earlier in this session I had been claiming gpt-oss-120b is "roughly peer-tier with Qwen 235B" based on the continuity baseline. That claim turns out to be wrong on chapter-plan-checker, and the way it's wrong matters for the SFT teacher decision.
+
+Ran a 4-model ladder (Llama 8B / Qwen3-14B base / gpt-oss-120b / Qwen 235B) against the same 80 pairs with the same flat production prompt. (`scripts/score-chapter-plan-baseline.ts`, `tuning_experiment` id=119.)
+
+| variant | Llama 8B | Qwen3-14B base | **gpt-oss-120b** | Qwen 235B |
+|---|---:|---:|---:|---:|
+| PASS_CLEAN | 80% | 100% | 80% | 100% |
+| PASS_PARAPHRASE | 90% | 100% | 100% | 100% |
+| PASS_REORDER | 70% | 100% | 100% | 90% |
+| PASS_ATMOSPHERIC | 80% | 100% | 100% | 100% |
+| FAIL_MISSING_BEAT | 20% | **0%** | **50%** | **10%** |
+| FAIL_MISSING_CHAR | 40% | 10% | 100% | 80% |
+| FAIL_REVERSED_ARC | 60% | 10% | 80% | 70% |
+| FAIL_WRONG_SETTING | 80% | **0%** | 100% | 100% |
+| **overall** | **65%** | **53%** | **90%** | **81%** |
+| latency | 357ms | 204ms | 1575ms | 431ms |
+| confusion (FP/FN) | 20/8 | **38/0** | 5/2 | **14/1** |
+| errors | 0 | 0 | 9 | 0 |
+
+**Three things this run actually tells us:**
+
+1. **gpt-oss-120b is empirically the right teacher for chapter-plan-checker, not just the incumbent.** It beats Qwen 235B by 9pp overall and **by 40pp on FAIL_MISSING_BEAT** — the hardest variant for every model. The 'institutional inertia' worry I'd been carrying ("we use gpt-oss because it's already in the pipeline, not because it's measured better") is empirically wrong. It IS measured better on the labels we have. The case for gpt-oss as the SFT distillation teacher for this slot is strengthened, not weakened.
+
+2. **Qwen 235B has the same one-sided rubber-stamp bias as 14B on this task, just less severe.** 235B's confusion is 14 false-passes / 1 false-fail. On FAIL_MISSING_BEAT it scored 1/10 — almost completely whiffs on detecting missing beats. The same failure mode that made us escalate the production slot from Llama 8B to gpt-oss-120b is *also* present in 235B, just at a milder severity. **Distilling 235B into a 14B LoRA on chapter-plan-checker would teach the student to also rubber-stamp missing-beat cases.** This is the same mistake as the continuity case (235B missing 90% of warnings), and the diagnostic generalizes: before picking a teacher, run the teacher candidate against the deterministic eval and look at the per-variant table, not just the overall number.
+
+3. **FAIL_MISSING_BEAT is broken across the entire ladder** (Llama 20% / 14B 0% / gpt-oss 50% / 235B 10%). The best model in the ladder catches half. This is the variant that needs the most attention, and the explanation is one of three: (a) the synthetic FAIL_MISSING_BEAT injections are too subtle, (b) all models genuinely struggle with this judgment because "beat is missing" requires negative-evidence reasoning (proving absence), (c) the rubric is under-specified. Most likely a mix of (b) and (c) — proving absence in a 1500-word chapter is exactly the kind of attention task LLMs are weak at, and the production prompt's false-positive guidance ("paraphrased, reordered, atmospheric details are NOT deviations") may bleed into "we err on the side of PASS" more strongly than intended. **The selective-teacher pipeline is now load-bearing for this slot**: bulk labeling via gpt-oss + manual escalation for FAIL_MISSING_BEAT cases is not optional — it's the only way to get clean training data on the failure mode the SFT is supposed to fix.
+
+**Cross-task teacher table** — extending the four-task ladder series with this finding:
+
+| task | best teacher | overall accuracy | hardest variant accuracy | next step |
+|---|---|---:|---:|---|
+| adherence-checker | **Qwen 235B** | 96% | FAIL_TANGENT 95% | SFT distillation, 235B as teacher |
+| chapter-plan-checker | **gpt-oss-120b** | 90% | FAIL_MISSING_BEAT 50% | SFT distillation, gpt-oss as teacher + manual escalation for MISSING_BEAT |
+| reference-resolver | flat 14B | 97.5% recall | — | OFF the SFT list, recall is already production-acceptable |
+| continuity | **Claude (Sonnet/Opus)** | TBD — 235B at 35% recall, gpt-oss not measured | WARNING 0% / NIT 0-35% | BLOCKED, need stronger teacher than 235B before training |
+
+**The general principle that falls out:** the "right teacher" varies per analytical task because each task has a different failure-mode-distribution and different model strengths. A single multi-task LoRA distilled from a single teacher across all four agents would be a strict downgrade vs per-task teacher selection. The four (now five) per-task baseline-vs-teacher experiments are the minimum diligence before any SFT spend.
+
+**Methodology lessons compounding from this run:**
+
+- **Run the teacher against the labels, not just the candidate.** Exp #107 measured 14B vs gpt-oss outputs and got 58% — that conflated "14B is wrong" with "14B disagrees with the teacher who happens to be wrong on the same cases." The actual 14B-vs-label number is 53%, and the actual gpt-oss-vs-label number is 90%. The 5pp shift on 14B is small but the gpt-oss number is what tells you whether the teacher is worth training against. Always score every model in the ladder against the deterministic gold, not against another model.
+- **One-sided FP/FN confusion is a leading indicator that this slot needs SFT *and* a leading indicator of the failure mode the SFT must fix.** 14B base on chapter-plan-checker is 38 FP / 0 FN — the model literally cannot say FAIL on this task. Same shape as the adherence-checker 14B baseline (33 FP / 1 FN). When you see one-sided confusion, the SFT target is "teach the model to commit to the negative verdict" — and the training data should be heavily weighted toward FAIL examples that the teacher itself reliably catches.
+- **Always include the production model in the ladder even if you "already know it works."** I almost didn't put gpt-oss in this script because "we know it's the production model, the question is the teacher comparison." Putting it in revealed the 9-error / max-token issue in its current configuration AND gave us the actual head-to-head against 235B. The cost was zero (one extra column in MODELS array) and the upside was the entire SFT teacher decision.
+
+(Commit `df63138` baseline script; experiment #119)
+
 ## Prompt & Output Schema Design
 
 ### Structured checklist output beats flat verdict schemas on multi-check verification tasks — but only for fields within model capacity (2026-04-08)
