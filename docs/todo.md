@@ -7,24 +7,33 @@ updated: 2026-04-07
 
 Items removed when done — git history has the record. Ordered by impact.
 
-## Fine-Tuning serving infrastructure — decide before more LoRAs
+## Fine-Tuning serving infrastructure — DECIDED 2026-04-07: W&B Inference on Qwen3-14B-Instruct
 
-The serving plan for fine-tuned adapters changed during the 2026-04-07 architectural session. **Fireworks does NOT support serverless LoRA** (verified at https://docs.fireworks.ai/models/overview — "Neither custom base models nor LoRA addons are supported for serverless inference"). **W&B Inference DOES** (https://docs.wandb.ai/inference/lora) — CoreWeave-backed, pay-per-token at base-model rates, but only against a fixed list of supported bases.
+The serving plan for fine-tuned adapters was reworked during the 2026-04-07 architectural session. **Fireworks does NOT support serverless LoRA** (verified at https://docs.fireworks.ai/models/overview — "Neither custom base models nor LoRA addons are supported for serverless inference"). **W&B Inference DOES** (https://docs.wandb.ai/inference/lora) — CoreWeave-backed, pay-per-token at base-model rates, no LoRA surcharge, against a fixed list of supported bases.
 
 W&B supported bases (as of 2026-04-07):
-- `meta-llama/Llama-3.1-8B-Instruct`
-- `meta-llama/Llama-3.1-70B-Instruct`
-- `openai/gpt-oss-120b`
-- `OpenPipe/Qwen3-14B-Instruct`
-- `Qwen/Qwen3-30B-A3B-Instruct-2507` ← most interesting (30B MoE, ~3B active params)
+- `meta-llama/Llama-3.1-8B-Instruct` — $0.22/$0.22 (worse than Qwen3-14B in every dimension; not used)
+- `meta-llama/Llama-3.1-70B-Instruct` — $0.80/$0.80 (overkill for analytical agents)
+- `openai/gpt-oss-120b` — $0.15/$0.60 (the existing chapter-plan-checker model; reserve as fallback for harder analytical tasks)
+- **`OpenPipe/Qwen3-14B-Instruct` — $0.05/$0.22 — chosen as the analytical multi-task LoRA base** (CoreWeave acquired OpenPipe in Sept 2025, so this is W&B's preferred fine-tune base; non-thinking-default chat template avoids the Together Qwen 3.5 9B thinking-on-by-default trap)
+- `Qwen/Qwen3-30B-A3B-Instruct-2507` — $0.10/$0.30 (was the leading candidate before the probe; killed by latency — see below)
 
 Notably absent: Qwen3 8B, Qwen3 4B-Instruct-2507, Qwen 3.5 9B (the base of the existing v3 Howard tonal-pass adapter). Any LoRA we want to serve on W&B has to be (re)trained on a supported base.
 
-**Action items, in order:**
+**Latency probe results (2026-04-07, `tuning_experiment` id=94, `scripts/test-wandb-inference.ts`)**: 5 parallel calls per cell × 4 models × 3 workload shapes. Decision criterion was "viable if beat-writer-shape avg ≤ 3× Cerebras Qwen 235B baseline (≤4.5s)."
 
-- **Evaluate W&B Inference end-to-end against `Qwen/Qwen3-30B-A3B-Instruct-2507`** — write a 50-call latency probe (clone of `scripts/test-qwen-speed.ts`, swap endpoint and auth header for W&B Inference's OpenAI-compatible API). Run from LXC 307 with shapes matching the actual harness slots: reference-resolver (~80 in / 40 out), adherence-checker (~360 in / 140 out), beat-writer (~850 in / 400 out). Capture per-call latency, decode tps, and any cold-start variance. Store the run as a tuning_experiment per the standing rule. **Decision criteria**: if avg per-call latency on the writer-shaped probe is within 2-3× of Cerebras 235B's ~2.1s, W&B becomes the default home for future fine-tuned slots. If it's 5-10× slower, fall back to either local hosting (Mac Mini MLX or used 3090 + vLLM) or staying on Together for the low-frequency tonal-pass slot only.
-- **If W&B passes the probe**: retrain the Howard tonal-pass v3 on Qwen3 30B A3B Instruct 2507 as v4. Existing curated training pairs (`scripts/curate-tonal-pairs.ts`, ~4,500 pairs) port over but the adapter weights do not. Expect to re-validate the style transfer on the new base — different family, different parameter count, MoE vs dense.
-- **If W&B fails the probe**: build the serving box. Used RTX 3090 + vLLM with `--enable-lora` is the cheapest viable answer for solo-dev volume. ~$700-900 added to existing Proxmox host, or ~$1,100-1,400 for a dedicated dual-3090-ready build.
+| model | reference-resolver avg | adherence-checker avg | beat-writer avg | vs baseline (writer) | verdict |
+|---|---:|---:|---:|---:|---|
+| Qwen3-14B-Instruct (OpenPipe) | 741ms | **157ms** | 2008ms | **1.3×** | **VIABLE — chosen** |
+| Qwen3-30B-A3B-Instruct-2507 | 3393ms | 7172ms (33s p95!) | 16268ms | 10.7× | TOO SLOW (cold-start sensitive on W&B) |
+| openai/gpt-oss-120b | 2148ms | 3881ms | 7339ms | 4.8× | MARGINAL (fallback for chapter-plan-checker only) |
+| Qwen3-235B (Cerebras baseline) | 385ms | 365ms | 1520ms | — | — |
+
+**Headline finding: Qwen3-14B-Instruct on W&B is FASTER than Cerebras Qwen 235B on adherence-checker** (157ms vs 365ms — small-output decode is the bottleneck and the 14B decodes faster than the 235B). For reference-resolver and beat-writer it's within 2× baseline. ~10× cheaper per call.
+
+**Decision**: multi-task LoRA on `OpenPipe/Qwen3-14B-Instruct` for the three analytical agents (adherence-checker, reference-resolver, chapter-plan-checker). One base, one training run, one deployment.
+
+**Open follow-up: Howard tonal-pass v4** — the existing v3 tonal-pass LoRA is on Qwen 3.5 9B (Together) and that base isn't on W&B's list. To bring tonal-pass onto W&B for unified serving, retrain on `OpenPipe/Qwen3-14B-Instruct` (or Qwen3-30B-A3B if/when the cold-start gets resolved). Existing curated training pairs (`scripts/curate-tonal-pairs.ts`, ~4,500 pairs) port over but the adapter weights do not. Expect to re-validate the style transfer on the new base. Lower priority than the analytical LoRA — tonal-pass isn't enabled in production yet (`pipeline.tonalPass: false`).
 
 ## Fine-Tuning data generation — unchanged direction, base model TBD
 
