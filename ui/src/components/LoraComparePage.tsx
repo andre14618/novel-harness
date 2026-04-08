@@ -174,11 +174,261 @@ function V4BenchmarkTab() {
   )
 }
 
+// ── Hardware evaluation tab ──────────────────────────────────────────────────
+
+const HARDWARE = [
+  {
+    id: "rtx3090",
+    label: "RTX 3090 (used)",
+    type: "gpu" as const,
+    tokPerSec: 105,
+    latencyMs: 420,   // ~200 output tokens ÷ 105 tok/s × 1000 + ~200ms overhead
+    priceUsd: 975,
+    notes: "Best $/speed. 24 GB VRAM → BF16 9B fits without quantization. Needs PCIe slot + 350 W headroom in existing Proxmox box. Standard 8-pin connectors.",
+    pros: ["Fastest at this price", "24 GB = BF16 capable", "Slots into existing Proxmox server"],
+    cons: ["Needs PCIe slot + PSU check", "Linux CUDA driver maintenance", "No display — headless only"],
+    integration: "GPU passthrough to LXC via VFIO, vLLM or llama.cpp, existing transport layer unchanged",
+    color: "#4ecca3",
+  },
+  {
+    id: "rtx4080s",
+    label: "RTX 4080 Super (used)",
+    type: "gpu" as const,
+    tokPerSec: 95,
+    latencyMs: 465,
+    priceUsd: 880,
+    notes: "Slightly cheaper than 3090. 16 GB VRAM means INT4 only for 9B. 12VHPWR connector — may need adapter.",
+    pros: ["Cheapest option", "~90% of 3090 speed"],
+    cons: ["16 GB: INT4 only for 9B BF16", "12VHPWR connector required", "No BF16 headroom"],
+    integration: "Same as 3090",
+    color: "#4ec3ca",
+  },
+  {
+    id: "macstudio",
+    label: "Mac Studio M4 Max 36GB",
+    type: "apple" as const,
+    tokPerSec: 62,
+    latencyMs: 720,
+    priceUsd: 1999,
+    notes: "Best Apple option. 410 GB/s unified memory bandwidth. Dead simple setup. No CUDA, no drivers. Runs Ollama out of the box.",
+    pros: ["Zero setup friction", "Fanless under 9B load", "Tailscale → LXC integration trivial", "macOS reliability"],
+    cons: ["2× price of 3090 for 40% less speed", "No PCIe expandability", "M4 Ultra cancelled — this is the Apple ceiling"],
+    integration: "Ollama on macOS → OpenAI-compatible endpoint → call via Tailscale IP from LXC transport",
+    color: "#c4a8e2",
+  },
+  {
+    id: "macmini",
+    label: "Mac Mini M4 Pro 48GB",
+    type: "apple" as const,
+    tokPerSec: 35,
+    latencyMs: 1150,
+    priceUsd: 1799,
+    notes: "273 GB/s bandwidth — Metal doesn't fully saturate it at small batch sizes. Slower than expected for the price.",
+    pros: ["Smallest form factor", "48 GB fits BF16 9B", "Dead quiet"],
+    cons: ["~35 tok/s — only 3× faster than Together", "273 GB/s underutilized by llama.cpp Metal", "Worse value than Mac Studio"],
+    integration: "Same as Mac Studio",
+    color: "#a8c4e2",
+  },
+]
+
+// Together AI current baseline for tonal pass
+const TOGETHER_TOK_S = 12        // ~10-15 tok/s measured
+const TOGETHER_INPUT_COST = 0.10  // $ per 1M tokens
+const TOGETHER_OUTPUT_COST = 0.15
+
+function HardwareTab() {
+  const [novelCount, setNovelCount] = useState(10)
+  const [parasPerNovel, setParasPerNovel] = useState(300)
+  const [tokPerCall, setTokPerCall] = useState(400)  // ~200 in + 200 out
+  const [selected, setSelected] = useState<string | null>(null)
+
+  const totalCalls = novelCount * parasPerNovel
+  const inputTok  = totalCalls * 200
+  const outputTok = totalCalls * 200
+  const togetherCostMonthly = (inputTok / 1e6) * TOGETHER_INPUT_COST + (outputTok / 1e6) * TOGETHER_OUTPUT_COST
+  const togetherTimeS = totalCalls * (tokPerCall / TOGETHER_TOK_S)
+
+  const sel = HARDWARE.find(h => h.id === selected)
+
+  const fmt$ = (n: number) => n < 1 ? `$${(n * 100).toFixed(1)}¢` : `$${n.toFixed(2)}`
+  const fmtTime = (s: number) => s >= 3600 ? `${(s/3600).toFixed(1)}h` : s >= 60 ? `${(s/60).toFixed(0)}m` : `${s.toFixed(0)}s`
+
+  return (
+    <div>
+      <div style={{ marginBottom: "1.5rem" }}>
+        <h3 style={{ margin: "0 0 0.25rem 0", fontSize: "1rem" }}>Self-Host Hardware Evaluation</h3>
+        <p style={{ color: "var(--text-secondary)", fontSize: "0.8rem", margin: 0 }}>
+          Replace Together AI tonal-pass serving (~12 tok/s, 13–30s/call) with local inference.
+          Baseline: <strong style={{ color: "#f85149" }}>{TOGETHER_TOK_S} tok/s</strong> · $0.10/$0.15 per 1M tokens.
+        </p>
+      </div>
+
+      {/* Workload inputs */}
+      <div style={{
+        background: "var(--bg-secondary)", borderRadius: "6px", padding: "0.9rem 1rem",
+        marginBottom: "1.5rem", display: "flex", gap: "2rem", flexWrap: "wrap", alignItems: "center",
+      }}>
+        <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Workload</span>
+        {[
+          { label: "Novels/month", val: novelCount, set: setNovelCount, min: 1, max: 200 },
+          { label: "Paragraphs/novel", val: parasPerNovel, set: setParasPerNovel, min: 50, max: 1000 },
+        ].map(({ label, val, set, min, max }) => (
+          <label key={label} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8rem", color: "var(--text-secondary)" }}>
+            {label}
+            <input type="range" min={min} max={max} value={val} onChange={e => set(Number(e.target.value))}
+              style={{ width: "80px" }} />
+            <strong style={{ color: "var(--text-primary)", minWidth: "2.5rem" }}>{val}</strong>
+          </label>
+        ))}
+        <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginLeft: "auto" }}>
+          <strong style={{ color: "var(--text-primary)" }}>{totalCalls.toLocaleString()}</strong> calls/month ·{" "}
+          Together cost: <strong style={{ color: "#f85149" }}>{fmt$(togetherCostMonthly)}/mo</strong> ·{" "}
+          Together wall time: <strong style={{ color: "#f85149" }}>{fmtTime(togetherTimeS)}</strong>
+        </div>
+      </div>
+
+      {/* Hardware cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "0.75rem", marginBottom: "1.5rem" }}>
+        {HARDWARE.map(h => {
+          const localTimeS = totalCalls * (tokPerCall / h.tokPerSec)
+          const speedup = togetherTimeS / localTimeS
+          const breakEvenMonths = togetherCostMonthly > 0 ? h.priceUsd / togetherCostMonthly : Infinity
+          const isSelected = selected === h.id
+
+          return (
+            <div key={h.id} onClick={() => setSelected(isSelected ? null : h.id)} style={{
+              background: "var(--bg-secondary)", borderRadius: "8px", padding: "1rem",
+              borderLeft: `3px solid ${h.color}`,
+              border: isSelected ? `1px solid ${h.color}` : "1px solid var(--border)",
+              borderLeftWidth: "3px",
+              cursor: "pointer", transition: "opacity 0.15s",
+              opacity: selected && !isSelected ? 0.5 : 1,
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.6rem" }}>
+                <div>
+                  <span style={{ fontSize: "0.7rem", color: h.color, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                    {h.type === "gpu" ? "GPU" : "Apple Silicon"}
+                  </span>
+                  <div style={{ fontWeight: 600, fontSize: "0.9rem", marginTop: "0.1rem" }}>{h.label}</div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontSize: "1.1rem", fontWeight: 700, color: h.color }}>${h.priceUsd.toLocaleString()}</div>
+                  <div style={{ fontSize: "0.7rem", color: "var(--text-secondary)" }}>{h.type === "gpu" ? "used" : "new"}</div>
+                </div>
+              </div>
+
+              {/* Speed bar */}
+              <div style={{ marginBottom: "0.75rem" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.72rem", color: "var(--text-secondary)", marginBottom: "0.2rem" }}>
+                  <span>{h.tokPerSec} tok/s</span>
+                  <span style={{ color: h.color, fontWeight: 600 }}>{speedup.toFixed(1)}× faster than Together</span>
+                </div>
+                <div style={{ height: "4px", background: "var(--border)", borderRadius: "2px", overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${Math.min(100, (h.tokPerSec / 130) * 100)}%`, background: h.color, borderRadius: "2px" }} />
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.4rem", fontSize: "0.75rem" }}>
+                <div style={{ color: "var(--text-secondary)" }}>Wall time/month</div>
+                <div style={{ color: "var(--text-primary)", textAlign: "right" }}>{fmtTime(localTimeS)}</div>
+                <div style={{ color: "var(--text-secondary)" }}>Per-call latency</div>
+                <div style={{ color: "var(--text-primary)", textAlign: "right" }}>~{h.latencyMs}ms</div>
+                <div style={{ color: "var(--text-secondary)" }}>Cost break-even</div>
+                <div style={{ color: breakEvenMonths > 999 ? "#666" : "var(--text-primary)", textAlign: "right" }}>
+                  {breakEvenMonths > 999 ? "never (API cost too low)" : `${Math.round(breakEvenMonths)} months`}
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Expanded detail */}
+      {sel && (
+        <div style={{
+          background: "var(--bg-secondary)", borderRadius: "8px", padding: "1.1rem 1.25rem",
+          borderLeft: `3px solid ${sel.color}`, marginBottom: "1.5rem",
+        }}>
+          <div style={{ fontWeight: 600, marginBottom: "0.5rem" }}>{sel.label} — detail</div>
+          <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", margin: "0 0 0.75rem 0", lineHeight: 1.6 }}>{sel.notes}</p>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+            <div>
+              <div style={{ fontSize: "0.7rem", color: "var(--text-secondary)", textTransform: "uppercase", marginBottom: "0.3rem" }}>Pros</div>
+              {sel.pros.map(p => <div key={p} style={{ fontSize: "0.78rem", color: "#4ecca3", marginBottom: "0.2rem" }}>✓ {p}</div>)}
+            </div>
+            <div>
+              <div style={{ fontSize: "0.7rem", color: "var(--text-secondary)", textTransform: "uppercase", marginBottom: "0.3rem" }}>Cons</div>
+              {sel.cons.map(c => <div key={c} style={{ fontSize: "0.78rem", color: "#f85149", marginBottom: "0.2rem" }}>✗ {c}</div>)}
+            </div>
+          </div>
+          <div style={{ marginTop: "0.75rem", paddingTop: "0.75rem", borderTop: "1px solid var(--border)" }}>
+            <div style={{ fontSize: "0.7rem", color: "var(--text-secondary)", textTransform: "uppercase", marginBottom: "0.3rem" }}>Integration path</div>
+            <div style={{ fontSize: "0.78rem", color: "var(--text-secondary)", fontFamily: "monospace" }}>{sel.integration}</div>
+          </div>
+        </div>
+      )}
+
+      {/* Comparison table */}
+      <div>
+        <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.5rem" }}>
+          Full comparison
+        </div>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem" }}>
+          <thead>
+            <tr style={{ borderBottom: "1px solid var(--border)" }}>
+              {["Option", "Speed", "Latency/call", "Price", "Speedup", "Break-even", "Complexity"].map(h => (
+                <th key={h} style={{ padding: "0.4rem 0.6rem", textAlign: h === "Option" ? "left" : "right", color: "var(--text-secondary)", fontSize: "0.7rem", textTransform: "uppercase", whiteSpace: "nowrap" }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {/* Together baseline */}
+            <tr style={{ borderBottom: "1px solid var(--border)", opacity: 0.6 }}>
+              <td style={{ padding: "0.4rem 0.6rem", color: "#888" }}>Together AI (current)</td>
+              <td style={{ padding: "0.4rem 0.6rem", textAlign: "right", color: "#f85149" }}>12 tok/s</td>
+              <td style={{ padding: "0.4rem 0.6rem", textAlign: "right", color: "#888" }}>13–30s</td>
+              <td style={{ padding: "0.4rem 0.6rem", textAlign: "right", color: "#888" }}>{fmt$(togetherCostMonthly)}/mo</td>
+              <td style={{ padding: "0.4rem 0.6rem", textAlign: "right", color: "#888" }}>1×</td>
+              <td style={{ padding: "0.4rem 0.6rem", textAlign: "right", color: "#888" }}>—</td>
+              <td style={{ padding: "0.4rem 0.6rem", textAlign: "right", color: "#888" }}>—</td>
+            </tr>
+            {HARDWARE.map(h => {
+              const localTimeS = totalCalls * (tokPerCall / h.tokPerSec)
+              const speedup = togetherTimeS / localTimeS
+              const breakEven = togetherCostMonthly > 0.01 ? Math.round(h.priceUsd / togetherCostMonthly) : null
+              return (
+                <tr key={h.id} style={{ borderBottom: "1px solid var(--border)" }}
+                  onClick={() => setSelected(selected === h.id ? null : h.id)}
+                  className="hover-row">
+                  <td style={{ padding: "0.4rem 0.6rem", color: h.color, fontWeight: 500, cursor: "pointer" }}>{h.label}</td>
+                  <td style={{ padding: "0.4rem 0.6rem", textAlign: "right" }}>{h.tokPerSec} tok/s</td>
+                  <td style={{ padding: "0.4rem 0.6rem", textAlign: "right", color: "var(--text-secondary)" }}>~{h.latencyMs}ms</td>
+                  <td style={{ padding: "0.4rem 0.6rem", textAlign: "right" }}>${h.priceUsd.toLocaleString()}</td>
+                  <td style={{ padding: "0.4rem 0.6rem", textAlign: "right", color: h.color, fontWeight: 600 }}>{speedup.toFixed(1)}×</td>
+                  <td style={{ padding: "0.4rem 0.6rem", textAlign: "right", color: "var(--text-secondary)", fontSize: "0.72rem" }}>
+                    {breakEven ? `${breakEven} mo` : "n/a"}
+                  </td>
+                  <td style={{ padding: "0.4rem 0.6rem", textAlign: "right", color: "var(--text-secondary)", fontSize: "0.72rem" }}>
+                    {h.type === "gpu" ? "PCIe + Linux" : "Plug in + brew"}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+        <div style={{ fontSize: "0.7rem", color: "#555", marginTop: "0.5rem" }}>
+          Break-even = hardware cost ÷ monthly Together savings. API cost for tonal pass is low (~{fmt$(togetherCostMonthly)}/mo at this volume) — hardware is justified by <em>speed</em>, not cost savings.
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function LoraComparePage() {
   const [data, setData] = useState<Comparison[]>([])
   const [filter, setFilter] = useState("All")
   const [highlight, setHighlight] = useState(true)
-  const [tab, setTab] = useState<"compare" | "v4">("compare")
+  const [tab, setTab] = useState<"compare" | "v4" | "hardware">("compare")
 
   useEffect(() => {
     fetch("/app/lora-comparison.json")
@@ -202,7 +452,7 @@ export function LoraComparePage() {
       <div style={{ marginBottom: "1rem" }}>
         <h2 style={{ margin: "0 0 0.75rem 0" }}>LoRA Style</h2>
         <div style={{ display: "flex", gap: "0.25rem", borderBottom: "1px solid var(--border)" }}>
-          {([["compare", "V3 Side-by-side"], ["v4", "V4 Benchmark"]] as const).map(([t, label]) => (
+          {([["compare", "V3 Side-by-side"], ["v4", "V4 Benchmark"], ["hardware", "Self-Host"]] as const).map(([t, label]) => (
             <button key={t} onClick={() => setTab(t)} style={{
               padding: "0.4rem 1rem", fontSize: "0.8rem", border: "none", background: "none", cursor: "pointer",
               color: tab === t ? "var(--accent)" : "var(--text-secondary)",
@@ -215,6 +465,9 @@ export function LoraComparePage() {
 
       {/* V4 benchmark tab */}
       {tab === "v4" && <V4BenchmarkTab />}
+
+      {/* Hardware evaluation tab */}
+      {tab === "hardware" && <HardwareTab />}
 
       {/* V3 side-by-side tab */}
       {tab === "compare" && <>
