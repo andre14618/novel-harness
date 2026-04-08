@@ -10,7 +10,7 @@
 
 // ── Provider definitions ─────────────────────────────────────────────────
 
-export type ProviderName = "cerebras" | "groq" | "openrouter" | "openai" | "deepseek" | "minimax" | "zai" | "mimo" | "together" | "fireworks"
+export type ProviderName = "cerebras" | "groq" | "openrouter" | "openai" | "deepseek" | "minimax" | "zai" | "mimo" | "together" | "fireworks" | "wandb"
 
 export interface CacheStrategy {
   /**
@@ -123,6 +123,20 @@ export const PROVIDERS: Record<ProviderName, ProviderDef> = {
     // Thinking control is per-model: gpt-oss uses reasoning_effort, Qwen uses /nothink
     // prefix via needsNothink, the explicit Instruct/Thinking variants need nothing.
     cache: { type: "none" },  // verify on Fireworks pricing page; conservative default
+    // NOTE: Fireworks only supports custom LoRAs via dedicated GPU rental
+    // (~$2-5/hr per H100), not the serverless pay-per-token tier. For
+    // solo-developer volume that's economically wrong. Use W&B Inference
+    // for fine-tune serving instead. See docs/lessons-learned.md.
+  },
+  wandb: {
+    apiUrl: "https://api.inference.wandb.ai/v1/chat/completions",
+    envKey: "WANDB_API_KEY",
+    tier: "standard",  // CoreWeave-backed. The chosen home for fine-tune serving.
+    // Pay-per-token at base-model rates with no LoRA surcharge. Standard
+    // OpenAI-compatible auth (Authorization: Bearer). The OpenPipe/Qwen3-14B
+    // base is W&B's preferred fine-tune base post the CoreWeave/OpenPipe
+    // acquisition (Sept 2025) and proved viable in tuning_experiment id=94.
+    cache: { type: "none" },
   },
 }
 
@@ -683,6 +697,54 @@ export const MODELS: ModelDef[] = [
     reasoningEffort: "low",
     maxContext: 131_000,
     notes: "Cheapest analytical-tier candidate. Tunable. Worth A/B testing as a chapter-plan-checker once the persistence + training-data pipeline exists — if 20B is good enough fine-tuned, it's the cost floor.",
+  },
+
+  // ── W&B Inference (CoreWeave-backed serverless LoRA hosting) ────────
+  // Chosen as the default home for fine-tuned analytical agents per the
+  // 2026-04-07 latency probe (tuning_experiment id=94). Pay-per-token, no
+  // LoRA surcharge, standard OpenAI-compatible API. The OpenPipe/Qwen3-14B
+  // base is W&B's preferred fine-tune base — this is where the multi-task
+  // adherence/reference/plan-check LoRA will live.
+
+  {
+    id: "OpenPipe/Qwen3-14B-Instruct",
+    label: "Qwen3 14B Instruct (OpenPipe)",
+    provider: "wandb",
+    params: "14B",
+    pricing: { input: 0.05, output: 0.22 },
+    thinking: "disabled",
+    maxContext: 33_000,
+    notes: "Cheapest serverless tier on W&B. Designed by OpenPipe (acquired by CoreWeave Sept 2025) as a finetune-friendly fork of Qwen3-14B with non-thinking-default chat template — no /nothink prefix needed. Probe (exp #94) showed 1.3x baseline on beat-writer shape, FASTER than Cerebras 235B on adherence-checker (157ms vs 365ms). Chosen as the multi-task analytical LoRA base.",
+  },
+  {
+    id: "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    label: "Qwen3 30B A3B Instruct 2507 (W&B)",
+    provider: "wandb",
+    params: "30B (3B active) MoE",
+    pricing: { input: 0.10, output: 0.30 },
+    thinking: "disabled",
+    maxContext: 256_000,
+    notes: "Was the leading candidate before the probe — killed by latency (10.7x baseline on writer shape, 33s p95 outlier on adherence-checker). W&B serving doesn't seem to keep this model warm. Available in the registry for future re-evaluation if cold-start improves; not currently assigned to any agent.",
+  },
+  {
+    id: "openai/gpt-oss-120b",
+    label: "GPT-OSS 120B (W&B)",
+    provider: "wandb",
+    params: "120B MoE",
+    pricing: { input: 0.15, output: 0.60 },
+    thinking: "disabled",
+    maxContext: 131_000,
+    notes: "Same model as the existing chapter-plan-checker on Groq. Marginal on the W&B latency probe (4.8x baseline) but available as a fallback for chapter-plan-checker specifically if the 14B LoRA can't match its analytical depth. Tunable on W&B unlike the Groq instance.",
+  },
+  {
+    id: "meta-llama/Llama-3.1-8B-Instruct",
+    label: "Llama 3.1 8B Instruct (W&B)",
+    provider: "wandb",
+    params: "8B",
+    pricing: { input: 0.22, output: 0.22 },
+    thinking: "disabled",
+    maxContext: 131_000,
+    notes: "On W&B's supported list. Worse than OpenPipe/Qwen3-14B in every dimension (smaller AND more expensive AND no fine-tune-friendly chat template). Listed for completeness only — no agent currently routes to this.",
   },
 
   // ── Together AI (base models + LoRA fine-tunes) ─────────────────────
