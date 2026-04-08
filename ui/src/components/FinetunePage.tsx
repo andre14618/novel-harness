@@ -6,8 +6,10 @@ import {
   updateFinetunePair,
   exportFinetuneData,
   generateFinetuneData,
+  getExperiments,
   type FinetuneStats,
   type FinetunePair,
+  type ExperimentSummary,
 } from "../api"
 
 const TASKS = ["fact-extractor", "adherence-checker", "chapter-plan-checker", "tonal-pass"]
@@ -228,8 +230,303 @@ function collectFeedback(items: (FactItem | CheckItem)[]): string {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
+// Slots Strategy Tab
+// ═══════════════════════════════════════════════════════════════════════
+
+type SlotStatus = "live" | "in-progress" | "pending" | "blocked" | "experimental"
+
+interface SlotDef {
+  key: string
+  label: string
+  agentKey: string
+  currentModel: string
+  provider: string
+  status: SlotStatus
+  statusNote: string
+  priority: number
+  costPerCall: string
+  dataStatus: string
+  experimentTargetKey: string
+}
+
+const SLOT_DEFS: SlotDef[] = [
+  {
+    key: "adherence-checker",
+    label: "Adherence Checker",
+    agentKey: "adherence-checker",
+    currentModel: "Qwen3-14B-Instruct",
+    provider: "wandb",
+    status: "live",
+    statusNote: "Base model = oracle (96% agreement, exp #101). No fine-tune needed. Swap confirmed 2026-04-08.",
+    priority: 2,
+    costPerCall: "$0.00005",
+    dataStatus: "160 pairs validated (exp #100)",
+    experimentTargetKey: "adherence-checker",
+  },
+  {
+    key: "tonal-pass",
+    label: "Tonal Pass",
+    agentKey: "tonal-pass",
+    currentModel: "Qwen3.5-9B + howard-tonal-v3 (Together)",
+    provider: "together",
+    status: "in-progress",
+    statusNote: "V4 (Qwen3-14B W&B, exp #98) beats V3 on all quantitative metrics. Pref eval in progress at /app/lora-style. V5 pending pref eval outcome.",
+    priority: 5,
+    costPerCall: "$0.0002",
+    dataStatus: "4,497 training pairs (v3/v4). Pref eval: 15 paragraphs in UI.",
+    experimentTargetKey: "tonal-pass",
+  },
+  {
+    key: "continuity",
+    label: "Continuity",
+    agentKey: "continuity",
+    currentModel: "Qwen3-235B (Cerebras)",
+    provider: "cerebras",
+    status: "pending",
+    statusNote: "Highest per-call cost (7,294 avg input tokens, $0.0023/call). Phase 3 — requires compact diff format design first.",
+    priority: 1,
+    costPerCall: "$0.0023",
+    dataStatus: "Not started. Needs compact diff schema design before data generation.",
+    experimentTargetKey: "continuity",
+  },
+  {
+    key: "chapter-plan-checker",
+    label: "Chapter Plan Checker",
+    agentKey: "chapter-plan-checker",
+    currentModel: "gpt-oss-120b (Groq)",
+    provider: "groq",
+    status: "pending",
+    statusNote: "Accumulating (prose, plan, deviations, passed) from novel runs. Target: 50-100 examples. Phase 1.",
+    priority: 4,
+    costPerCall: "$0.0007",
+    dataStatus: "Accumulating from pipeline runs. No dedicated dataset yet.",
+    experimentTargetKey: "chapter-plan-checker",
+  },
+  {
+    key: "reference-resolver",
+    label: "Reference Resolver",
+    agentKey: "reference-resolver",
+    currentModel: "Llama 3.1 8B (Groq)",
+    provider: "groq",
+    status: "pending",
+    statusNote: "Parallel-3 set-union compensates for low single-shot recall. Fine-tune could collapse to single-shot. Phase 1.",
+    priority: 3,
+    costPerCall: "$0.00003",
+    dataStatus: "Best-of-3 union outputs from approved beats. Not yet collected.",
+    experimentTargetKey: "reference-resolver",
+  },
+  {
+    key: "fact-extractor",
+    label: "Fact Extractor",
+    agentKey: "fact-extractor",
+    currentModel: "MiMo Flash",
+    provider: "mimo",
+    status: "pending",
+    statusNote: "Over-extracts (17-20 facts/chapter vs target 8-15). Needs labeled keep/drop examples. Phase 2.",
+    priority: 6,
+    costPerCall: "~$0.0001",
+    dataStatus: "Review UI exists (/app/finetune → Data). Pairs accumulating.",
+    experimentTargetKey: "fact-extractor",
+  },
+  {
+    key: "lint-fixer",
+    label: "Lint Fixer",
+    agentKey: "lint-fixer",
+    currentModel: "Qwen3-235B (Cerebras)",
+    provider: "cerebras",
+    status: "pending",
+    statusNote: "Per-sentence cliché rewrite. Mine (flagged_sentence, context, good_rewrite) from approved chapters. Phase 4.",
+    priority: 7,
+    costPerCall: "$0.00005",
+    dataStatus: "Not started. Mine from approved novel chapters.",
+    experimentTargetKey: "lint-fixer",
+  },
+  {
+    key: "beat-writer",
+    label: "Beat Writer",
+    agentKey: "beat-writer",
+    currentModel: "Qwen3-235B (Cerebras)",
+    provider: "cerebras",
+    status: "experimental",
+    statusNote: "Highest upside (7.8× cost reduction) but highest risk — creative core. Needs 500+ high-quality examples. Phase 4.",
+    priority: 8,
+    costPerCall: "$0.001",
+    dataStatus: "Not started. Collect from best-rated novel runs only.",
+    experimentTargetKey: "beat-writer",
+  },
+]
+
+const SLOT_STATUS_LABEL: Record<SlotStatus, string> = {
+  "live": "Live",
+  "in-progress": "In Progress",
+  "pending": "Pending",
+  "blocked": "Blocked",
+  "experimental": "Experimental",
+}
+
+const SLOT_STATUS_COLOR: Record<SlotStatus, string> = {
+  "live": "var(--green, #4caf50)",
+  "in-progress": "var(--accent)",
+  "pending": "var(--text-tertiary)",
+  "blocked": "var(--yellow, #f0a500)",
+  "experimental": "var(--text-ghost)",
+}
+
+function SlotStatusBadge({ status }: { status: SlotStatus }) {
+  return (
+    <span style={{
+      display: "inline-block",
+      padding: "2px 8px",
+      borderRadius: "4px",
+      fontSize: "0.68rem",
+      fontWeight: 700,
+      letterSpacing: "0.04em",
+      textTransform: "uppercase",
+      background: `color-mix(in srgb, ${SLOT_STATUS_COLOR[status]} 15%, transparent)`,
+      border: `1px solid color-mix(in srgb, ${SLOT_STATUS_COLOR[status]} 40%, transparent)`,
+      color: SLOT_STATUS_COLOR[status],
+    }}>
+      {SLOT_STATUS_LABEL[status]}
+    </span>
+  )
+}
+
+function SlotsTab() {
+  const [experiments, setExperiments] = useState<ExperimentSummary[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    getExperiments(200).then(exps => {
+      setExperiments(exps)
+      setLoading(false)
+    }).catch(() => setLoading(false))
+  }, [])
+
+  function getSlotExperiments(targetKey: string): ExperimentSummary[] {
+    return experiments.filter(e => e.target === targetKey).slice(0, 5)
+  }
+
+  function extractAgreementPct(conclusion: string | null): string | null {
+    if (!conclusion) return null
+    const m = conclusion.match(/(\d+)%\s*(oracle\s+)?agreement/)
+    if (m) return `${m[1]}% agreement`
+    const m2 = conclusion.match(/agree[^)]*?\((\d+)%\)/)
+    if (m2) return `${m2[1]}% agreement`
+    return null
+  }
+
+  const sortedSlots = [...SLOT_DEFS].sort((a, b) => a.priority - b.priority)
+
+  return (
+    <div>
+      <p style={{ color: "var(--text-tertiary)", fontSize: "0.82rem", marginBottom: "1.5rem", marginTop: 0 }}>
+        One base model — <code>OpenPipe/Qwen3-14B-Instruct</code> on W&B Inference — with multiple task-specific LoRA adapters.
+        Training is free (W&B Serverless SFT). Each slot is a fine-tune candidate ordered by expected ROI.
+      </p>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+        {sortedSlots.map(slot => {
+          const slotExps = getSlotExperiments(slot.experimentTargetKey)
+          const latestExp = slotExps[0]
+          const agreementPct = latestExp ? extractAgreementPct(latestExp.conclusion) : null
+
+          return (
+            <div key={slot.key} className="card" style={{
+              padding: "1rem 1.2rem",
+              borderLeft: `3px solid ${SLOT_STATUS_COLOR[slot.status]}`,
+              opacity: slot.status === "experimental" ? 0.75 : 1,
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.5rem" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                  <span style={{ fontSize: "0.65rem", color: "var(--text-ghost)", fontFamily: "var(--font-mono)", fontWeight: 700 }}>
+                    #{slot.priority}
+                  </span>
+                  <h3 style={{ margin: 0, fontSize: "0.9rem" }}>{slot.label}</h3>
+                  <SlotStatusBadge status={slot.status} />
+                  {agreementPct && (
+                    <span style={{ fontSize: "0.7rem", color: "var(--accent)", fontWeight: 600 }}>{agreementPct}</span>
+                  )}
+                </div>
+                <div style={{ fontSize: "0.72rem", color: "var(--text-ghost)", textAlign: "right" }}>
+                  <span style={{ color: "var(--text-tertiary)" }}>{slot.costPerCall}/call</span>
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem 2rem", marginBottom: "0.6rem" }}>
+                <div>
+                  <div style={{ fontSize: "0.68rem", color: "var(--text-ghost)", marginBottom: "2px" }}>CURRENT MODEL</div>
+                  <div style={{ fontSize: "0.78rem", color: "var(--text-secondary)", fontFamily: "var(--font-mono)" }}>
+                    {slot.currentModel}
+                    <span style={{ fontSize: "0.65rem", color: "var(--text-ghost)", marginLeft: "6px" }}>({slot.provider})</span>
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: "0.68rem", color: "var(--text-ghost)", marginBottom: "2px" }}>TRAINING DATA</div>
+                  <div style={{ fontSize: "0.78rem", color: "var(--text-tertiary)" }}>{slot.dataStatus}</div>
+                </div>
+              </div>
+
+              <div style={{ fontSize: "0.78rem", color: "var(--text-secondary)", lineHeight: 1.5, marginBottom: slotExps.length ? "0.6rem" : 0 }}>
+                {slot.statusNote}
+              </div>
+
+              {slotExps.length > 0 && (
+                <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginTop: "0.4rem" }}>
+                  {slotExps.map(exp => (
+                    <a
+                      key={exp.id}
+                      href={`/app/experiments#${exp.id}`}
+                      style={{
+                        fontSize: "0.68rem",
+                        padding: "2px 7px",
+                        borderRadius: "4px",
+                        background: "var(--bg-inset)",
+                        border: "1px solid var(--border-subtle)",
+                        color: "var(--text-tertiary)",
+                        textDecoration: "none",
+                        cursor: "pointer",
+                      }}
+                    >
+                      #{exp.id} {exp.type}
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {loading && (
+        <p style={{ fontSize: "0.78rem", color: "var(--text-ghost)", marginTop: "1rem" }}>Loading experiments...</p>
+      )}
+
+      <div className="card" style={{ marginTop: "1.5rem", padding: "0.8rem 1.2rem" }}>
+        <h3 style={{ margin: "0 0 0.5rem", fontSize: "0.82rem", color: "var(--text-secondary)" }}>Infrastructure</h3>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.6rem 2rem" }}>
+          {[
+            ["Base model", "OpenPipe/Qwen3-14B-Instruct"],
+            ["Training", "W&B Serverless SFT (free, public preview)"],
+            ["Serving", "W&B Inference ($0.05/$0.22 per 1M)"],
+            ["Max LoRA rank", "16 (W&B hard limit)"],
+            ["Storage", "Free under 100GB (~50MB per r=16 adapter)"],
+            ["Training script", "scripts/train-lora.py"],
+          ].map(([k, v]) => (
+            <div key={k}>
+              <div style={{ fontSize: "0.65rem", color: "var(--text-ghost)", marginBottom: "2px" }}>{k}</div>
+              <div style={{ fontSize: "0.75rem", color: "var(--text-tertiary)", fontFamily: "var(--font-mono)" }}>{v}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════
 
 export function FinetunePage() {
+  const [mainTab, setMainTab] = useState<"strategy" | "data">("strategy")
   const [view, setView] = useState<"list" | "review">("list")
   const [stats, setStats] = useState<FinetuneStats | null>(null)
   const [pairs, setPairs] = useState<FinetunePair[]>([])
@@ -572,12 +869,22 @@ export function FinetunePage() {
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.5rem" }}>
-        <h1>Fine-tune Training Data</h1>
-        <div style={{ display: "flex", gap: "0.5rem" }}>
-          <button className="secondary" onClick={() => setShowGenerate(!showGenerate)}>Generate Data</button>
-          <button onClick={handleExport} disabled={!taskFilter}>Export Approved</button>
-        </div>
+        <h1>Fine-tune Strategy</h1>
+        {mainTab === "data" && (
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <button className="secondary" onClick={() => setShowGenerate(!showGenerate)}>Generate Data</button>
+            <button onClick={handleExport} disabled={!taskFilter}>Export Approved</button>
+          </div>
+        )}
       </div>
+
+      <div className="tab-bar" style={{ marginBottom: "1.5rem" }}>
+        <div className={`tab ${mainTab === "strategy" ? "active" : ""}`} onClick={() => setMainTab("strategy")}>Strategy</div>
+        <div className={`tab ${mainTab === "data" ? "active" : ""}`} onClick={() => setMainTab("data")}>Training Data</div>
+      </div>
+
+      {mainTab === "strategy" && <SlotsTab />}
+      {mainTab === "data" && <div>
 
       {showGenerate && (
         <div className="card" style={{ marginBottom: "1rem", borderColor: "var(--accent-dim)" }}>
@@ -679,6 +986,7 @@ export function FinetunePage() {
           </tbody>
         </table>
       )}
+    </div>}
     </div>
   )
 }

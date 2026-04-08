@@ -351,6 +351,20 @@ export async function exportPrefDpo(evalName: string): Promise<Blob> {
   return res.blob()
 }
 
+export interface ExperimentSummary {
+  id: number
+  type: string
+  description: string
+  target: string | null
+  dimension: string | null
+  conclusion: string | null
+  timestamp: string
+}
+
+export function getExperiments(limit = 200) {
+  return fetchJSON<ExperimentSummary[]>(`/api/experiments?limit=${limit}`)
+}
+
 // Types
 export interface AgentGroup {
   label: string
