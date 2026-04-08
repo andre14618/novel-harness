@@ -351,5 +351,16 @@ Across style fine-tuning literature and community runs, training loss dropping b
 
 **Fix:** after a training job completes, use `<name>-sft-resume:latest` (or the specific final checkpoint version, e.g. `:v8`) as the inference URI, not `<name>:latest`. Verify with a deterministic probe (temperature=0, compare base vs artifact output — identical = identity LoRA still serving). (v4 training run, `tuning_experiment` id=95/96)
 
-### W&B ART fine-tune on 14B instruction-tuned base underperforms a dedicated 9B LoRA for style transfer (2026-04-08)
-Once the correct serving URI was identified (`sft-resume:v8`), the v4 fine-tune (Qwen3-14B-Instruct, 4,497 pairs, 3 epochs, H200) produced **shorter** output than the base model (good) but **less vivid** output than V3 (bad). The model learned Howard's restraint without his imagery. Root cause: the OpenPipe/Qwen3-14B-Instruct base is heavily instruction-tuned and resists vocabulary distribution shift at LoRA rank 16 — 4,497 pairs isn't enough to override its default "expand with sensory detail" behavior. V3 (Qwen3.5 9B, Together AI) outperforms V4 on feature KL (structure closest to Howard) and produces crisper prose because a smaller, less-instruction-hardened base yields more readily to the fine-tuning distribution. **Model size does not predict LoRA style-transfer quality — base model plasticity does.** (Experiments #95, #96)
+### V4 (Qwen3-14B, W&B) beats V3 (Qwen3.5-9B, Together) on every style metric once served correctly (2026-04-08)
+Experiments #95 and #96 concluded V4 underperformed V3 — that conclusion was entirely wrong because both runs hit the identity LoRA placeholder (`howard-tonal-v4:latest` = v0), not the trained adapter. Once the correct URI was used (`howard-tonal-v4-sft-resume:v8`), V4 dominates:
+
+| Metric | Howard ref | Input | Base 14B | V4 14B FT | V3 9B FT |
+|--------|-----------|-------|---------|----------|---------|
+| Classifier ↑ | 0.715 | 0.197 | 0.333 | **0.550** | 0.422 |
+| Perplexity ↓ | 1964 | 3593 | 4224 | **3086** | 4814 |
+| Feature KL ↓ | 1.534 | 1.569 | 1.608 | **1.564** | 1.584 |
+| Content pres ↑ | — | — | 0.268 | **0.583** | 0.275 |
+| Avg words | 47.9 | — | 78.9 | **51.8** | 58.5 |
+| Avg latency | — | — | 489ms | 597ms | 1757ms |
+
+Feature KL of 1.564 vs Howard's 1.534 — V4 nearly matches Howard's structural rhythm. Word count 51.8 vs input 47.9 — minimal expansion. Jaccard base↔V4 of 0.255 confirms strong adapter effect. The serving URI bug, not model quality, caused the earlier wrong conclusion. (Experiment #98 — the real benchmark)

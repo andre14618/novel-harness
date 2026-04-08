@@ -9,37 +9,39 @@ interface Comparison {
 
 const CATEGORIES = ["All", "Action", "Atmosphere", "Character", "Dialogue-adjacent", "Complex"]
 
-// ── V4 benchmark data (tuning_experiment id=95, 2026-04-08) ──────────────────
+// ── V4 benchmark data (tuning_experiment id=98, 2026-04-08) ──────────────────
+// NOTE: exp #95 and #96 used the identity LoRA placeholder (howard-tonal-v4:latest = v0).
+// Real data uses howard-tonal-v4-sft-resume:v8. V4 wins on every metric.
 
 const HOWARD_REF = { classifier: 0.715, perplexity: 1964, featureKL: 1.534 }
 const INPUT_REF  = { classifier: 0.197, perplexity: 3593, featureKL: 1.569 }
 
 const V4_METRICS = {
-  v3: { label: "V3 · Together 9B",  classifier: 0.389, perplexity: 5122, featureKL: 1.539, contentPres: 0.278, latencyMs: 1691, color: "#82c4a8" },
-  v4: { label: "V4 · W&B 14B",      classifier: 0.319, perplexity: 4165, featureKL: 1.635, contentPres: 0.274, latencyMs: 931,  color: "#c4a8e2" },
+  v3: { label: "V3 · Together 9B",  classifier: 0.422, perplexity: 4814, featureKL: 1.584, contentPres: 0.275, latencyMs: 1757, color: "#82c4a8" },
+  v4: { label: "V4 · W&B 14B",      classifier: 0.550, perplexity: 3086, featureKL: 1.564, contentPres: 0.583, latencyMs: 597,  color: "#c4a8e2" },
 }
 
 const V4_PER_PARA = [
-  { input: 0.20, v3: 0.000, v4: 0.000 },
-  { input: 0.00, v3: 0.333, v4: 0.333 },
-  { input: 0.00, v3: 1.000, v4: 0.200 },
-  { input: 0.50, v3: 0.500, v4: 0.167 },
+  { input: 0.20, v3: 0.500, v4: 0.500 },
   { input: 0.00, v3: 0.000, v4: 0.000 },
-  { input: 1.00, v3: 0.500, v4: 0.500 },
-  { input: 0.00, v3: 0.500, v4: 0.333 },
+  { input: 0.00, v3: 1.000, v4: 0.500 },
+  { input: 0.50, v3: 1.000, v4: 1.000 },
   { input: 0.00, v3: 0.000, v4: 0.500 },
-  { input: 0.00, v3: 0.500, v4: 0.500 },
+  { input: 1.00, v3: 0.333, v4: 1.000 },
+  { input: 0.00, v3: 1.000, v4: 0.000 },
+  { input: 0.00, v3: 0.000, v4: 0.500 },
   { input: 0.00, v3: 0.000, v4: 0.000 },
-  { input: 0.00, v3: 1.000, v4: 1.000 },
-  { input: 0.50, v3: 0.000, v4: 0.250 },
-  { input: 0.25, v3: 0.000, v4: 0.000 },
-  { input: 0.50, v3: 1.000, v4: 0.500 },
-  { input: 0.00, v3: 0.500, v4: 0.500 },
+  { input: 0.00, v3: 0.000, v4: 0.500 },
+  { input: 0.00, v3: 1.000, v4: 0.500 },
+  { input: 0.50, v3: 0.500, v4: 1.000 },
+  { input: 0.25, v3: 0.000, v4: 1.000 },
+  { input: 0.50, v3: 0.500, v4: 1.000 },
+  { input: 0.00, v3: 0.500, v4: 0.250 },
 ]
 
 const V4_P1_INPUT = "The soldier moved carefully through the dark corridor, his sword held ready in front of him. He could hear strange sounds coming from somewhere deeper in the ruins, and the air felt cold and damp against his skin. He was starting to feel uncomfortable about the whole situation, but he knew he had to keep going."
-const V4_P1_V3 = "The soldier crept through the suffocating dark, sword drawn low. Strange, wet gurgles drifted from the ruins' depths, chilling the air that clung to his sweat-slicked skin. Dread tightened his chest; he wanted to turn back, but the cold stone behind him offered no escape. He forced his legs to move forward."
-const V4_P1_V4 = "The soldier crept through the shadowed corridor, his blade raised and glinting in the faintest sliver of light. Each step echoed softly against the stone walls, lost in the eerie silence. Somewhere ahead, odd noises slithered through the darkness—whispers, maybe, or something else entirely. The air was thick with dampness, clinging to his skin and making his muscles tense. A chill ran through him, not just from the cold, but from the growing sense that he was being watched. Still, he pressed on, jaw set, knowing there was no turning back."
+const V4_P1_V3 = "The soldier crept through the suffocating dark, sword locked tight before him. Muffled, alien noises dragged from the ruins' depths, while the air bit cold and damp against his skin. Dread clawed at his gut, yet he forced his legs forward."
+const V4_P1_V4 = "The soldier advanced warily down the black corridor, his sword extended in front of him. He could hear curious sounds issuing from somewhere farther in the ruins, and the air was cold and clammy against his skin. He was beginning to be very uneasy in his mind, but he knew he must push on."
 
 function V4BenchmarkTab() {
   const r = (n: number, d = 3) => Math.round(n * 10 ** d) / 10 ** d
@@ -82,15 +84,15 @@ function V4BenchmarkTab() {
 
       {/* Verdict banner */}
       <div style={{
-        background: "rgba(248,81,73,0.08)", border: "1px solid rgba(248,81,73,0.25)",
+        background: "rgba(78,204,163,0.08)", border: "1px solid rgba(78,204,163,0.25)",
         borderRadius: "6px", padding: "0.75rem 1rem", marginBottom: "1.5rem", fontSize: "0.82rem",
         color: "var(--text-secondary)", lineHeight: 1.6,
       }}>
-        <strong style={{ color: "#f85149" }}>V3 retained.</strong>{" "}
-        V4 scores lower on classifier and feature KL. The 14B base verbosity bleeds through the adapter —
-        P1 sample below shows V4 introducing hedging constructions the lint pass would flag.
-        Model size does not predict style transfer quality.{" "}
-        <span style={{ color: "#82c4a8" }}>V4 is 1.8× faster (W&B vs Together latency).</span>
+        <strong style={{ color: "#4ecca3" }}>V4 wins.</strong>{" "}
+        Exp #95/#96 compared base to base (identity LoRA bug — see lessons-learned). Real fine-tune
+        at <code>howard-tonal-v4-sft-resume:v8</code> beats V3 on every metric: classifier +0.128,
+        perplexity 3086 vs 4814, feature KL matches Howard's rhythm (1.564 vs ref 1.534).{" "}
+        <span style={{ color: "#c4a8e2" }}>3× faster than Together (597ms vs 1757ms). Pending switchover in tonal-pass agent.</span>
       </div>
 
       {/* Metrics table */}
