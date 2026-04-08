@@ -145,13 +145,15 @@ async function callOracle(systemPrompt: string, userPrompt: string): Promise<{ c
 // ── Beat-writer call (for adherence-checker training data) ─────────────
 // Generates fresh prose for a specific beat in isolation. Used to produce
 // correctly-paired (beat, beat_prose) inputs for the adherence-checker
-// oracle. Without this, splitting an existing chapter's prose by paragraph
-// breaks and pairing chunks with beats by index gives mismatched inputs
-// that all label as "fail" (the smoke test confirmed this).
+// oracle.
 //
-// Uses Cerebras Qwen 235B for both the beat-writer and the oracle — same
-// model the production beat-writer uses. Temperature 0.7 for creative
-// variety so the dataset includes both clean executions and natural drift.
+// Uses a DIFFERENT MODEL than the oracle (Llama 3.1 8B on Groq vs Cerebras
+// Qwen 235B). Same-model generation+evaluation produces self-agreement bias
+// (oracle confirms its own writing) — the smoke test of that approach hit
+// 100% pass on 11 pairs. Cross-model generation produces a more balanced
+// distribution: the smaller writer occasionally drifts, and the stronger
+// oracle catches the drift, so the dataset gets both pass and fail examples.
+// Higher temperature (0.9) for more variation.
 
 async function generateBeatProse(
   beat: SceneBeat,
@@ -172,9 +174,9 @@ Write approximately ${targetWords} words of prose for this beat. Stay in third-p
   const response = await getTransport().execute({
     systemPrompt,
     userPrompt,
-    model: ORACLE_MODEL,
-    provider: ORACLE_PROVIDER,
-    temperature: 0.7,
+    model: "llama-3.1-8b-instant",
+    provider: "groq",
+    temperature: 0.9,
     maxTokens: 1500,
     responseFormat: { type: "text" },
     callerId: "finetune-beat-writer",
