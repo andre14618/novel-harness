@@ -470,6 +470,76 @@ The pattern that falls out:
 
 (Commits `e02a150` data generator, `a670170` baseline script, `a1b5170` checklist script; experiments #114 flat, #115 checklist)
 
+### Continuity ladder: schema gives 235B its best F1 of any task — but the eval ceiling exposes the real bottleneck (2026-04-08)
+
+Fourth-task data point on the baseline+checklist ladder pattern, after chapter-plan-checker (#107/#109), adherence-checker (#110/#111), and reference-resolver (#114/#115). Continuity is the highest prompt-token cost agent in the pipeline (~7,300 in/call on production Cerebras Qwen 235B), so the SFT-EV question is largest here. Built a synthetic 120-pair eval (`scripts/generate-continuity-data.ts`, 20 hand-written scenarios × 6 variants — VAR_NONE, VAR_BLOCKER, VAR_WARNING, VAR_NIT, VAR_TRAP, VAR_MULTI) and ran it through the same three-model ladder under the production prompt and a structured-checklist prompt. Each scenario hand-specifies its planted-issue strings (blocker/warning/nit/trap-phrase) so the LLM-rewrite step is surgical. Labels are deterministic from the variant — only the expected severity SET is scored (specific issue text and conflictsWith are judgment calls and not scored). Score is Jaccard over the severity set; binary cell is exact-match (Jaccard == 1).
+
+| | flat baseline (#117) |  | | checklist (#118) |  | |
+|---|---:|---:|---:|---:|---:|---:|
+| | exact | F1 | recall | exact | F1 | recall |
+| Llama 3.1 8B (Groq) | 20% | 0.405 | 51.2% | **33%** | 0.415 | 41.7% |
+| Qwen3-14B base (W&B) | 30% | 0.440 | 48.1% | **43%** | 0.347 | 21.9% |
+| **Qwen 235B (Cerebras)** | **52%** | 0.469 | 35.0% | **54%** | **0.555** | 45.0% |
+| 235B FP-calls (NONE+TRAP, /40) | 0 | | | 0 | | |
+| 14B FP-calls (NONE+TRAP, /40) | 26 | | | **0** | | |
+| 8B  FP-calls (NONE+TRAP, /40) | 34 | | | 24 | | |
+
+Per-variant under the checklist:
+
+| variant | Llama 8B | Qwen3-14B | **Qwen 235B** |
+|---|---|---|---|
+| VAR_NONE     | 5 → 40   | 40 → **100** | 100 → **100** |
+| VAR_BLOCKER  | 60 → 90  | 80 → 50      | 85 → 75       |
+| VAR_WARNING  | 0 → 16   | 0 → 5        | 0 → 10        |
+| VAR_NIT      | 0 → 0    | 15 → 0       | 10 → **35**   |
+| VAR_TRAP     | 25 → 40  | 30 → **100** | 100 → **100** |
+| VAR_MULTI    | 30 → 11  | 15 → 0       | 15 → 5        |
+
+(`tuning_experiment` ids 117 flat, 118 checklist; `scripts/score-continuity-baseline.ts`, `scripts/score-continuity-checklist.ts`)
+
+**Five things this run actually tells us, and only one of them is "schema wins":**
+
+1. **The ladder is intact under both schemas, unlike reference-resolver.** 235B leads on every metric in both runs (52→54% exact, 0.469→0.555 F1). Qwen3-14B does NOT beat 235B here under any condition — different from reference-resolver, where the checklist inverted the ladder. The "free-win-from-prompt-engineering" pattern from #115 does not generalize: continuity's failure mode is not a missing-affordance/over-fetch problem, it's an actual under-detection problem that smaller models can't bluff their way out of.
+
+2. **Checklist gives 235B its best F1 of any task in the four-experiment series** (0.555). The mechanism: by walking each fact and each character state explicitly before deriving issues, 235B's recall jumps 35.0 → 45.0% while precision only drops 70.8 → 72.4 (precision actually *improves* slightly because the figurative_review step removes spurious flags). Production should consider the checklist prompt for the continuity slot — the +0.086 F1 lift on 235B is the largest single-model F1 improvement from any schema swap so far, even though the headline exact-match number barely moves.
+
+3. **Qwen3-14B with the checklist is a precision/recall *trade*, not an improvement.** Exact-match goes 30 → 43% (+13pp), but F1 *drops* 0.440 → 0.347 because recall collapses 48.1 → 21.9%. The checklist makes 14B drastically more conservative — false positives go from 26/40 to 0/40 (perfect precision on empty-expected variants), but blocker detection drops 80 → 50% and the model emits an average of 0.26 issues per call (vs 1.38 on flat). The checklist gives 14B *Llama-on-flat behavior in reverse*: it's now under-confident across the board. The +13pp exact-match jump comes entirely from the NONE/TRAP variants going to 100% — not from improved issue detection. **Headline exact-match alone would mislead here**; F1 is the truth.
+
+4. **WARNING detection is broken across all six model/schema combinations** (0–16% exact-match), and NIT detection is broken on 5 of 6 (0–15%, with 235B-checklist the lone exception at 35%). This is the headline finding for the SFT prioritization question: **the bottleneck on continuity is not "14B vs 235B", it's "any model vs subtle severity distinctions."** Even production 235B with the best schema misses 90% of warnings (timeline/travel-time/characterization drift) and 65% of nits (description/name/object drift). Distilling 235B into 14B would replicate exactly this failure mode, because 235B itself doesn't see them.
+
+5. **TRAP is a clean win for the checklist on the larger models.** 14B and 235B both go to 100% on the figurative-language trap variant under checklist (vs 30% / 100% on flat — 14B was the broken one). The explicit `figurative_review` classification step is the mechanism: it forces the model to label "the firelight made shadows climb the walls like slow black animals" as figurative *before* it can reach the issues list, and the model takes the offered branch every time. This is the same shape as the reference-resolver "ambient" branch — give the model a way to say "no issue" and the over-flag goes away. Llama 8B doesn't take the branch as reliably (40%) — small-model attention drift, not a verdict-space gap.
+
+**Cross-task pattern across all four checklist experiments:**
+
+| task                          | flat best | checklist best | Δ exact | best-model F1 Δ | shape                                    |
+|---|---:|---:|---:|---:|---|
+| chapter-plan-checker (#107/#109) | 58%       | 75%            | +17pp   | n/a             | partial — both 14B and 235B improved      |
+| reference-resolver (#114/#115)   | 23%       | **44%** (14B)  | +21pp   | +0.108 (14B)    | **inverted ladder** — 14B beats 235B      |
+| adherence-checker (#110/#111)    | 67%       | 71%            | +4pp    | flat            | schema didn't move the needle             |
+| **continuity (#117/#118)**       | **52%**   | **54%**        | **+2pp**| **+0.086 (235B)** | **modest exact-match, big 235B F1 gain** |
+
+The pattern across the four-task series:
+
+- **Chapter-plan-checker, reference-resolver, adherence-checker**: the checklist's effect lands mostly on the 14B side. Either 14B closes most of the gap (chapter-plan), inverts the ladder (reference), or barely moves (adherence).
+- **Continuity is the first task where the checklist's biggest win is on 235B itself, not on 14B.** The reason is that 14B doesn't have the underlying continuity-checking capacity to take advantage of structured walking — it just becomes more conservative and emits fewer issues. 235B does have the capacity, and the checklist gives it a place to use it.
+- **All four tasks have a different "shape" of how the checklist interacts with the ladder.** There is no universal "checklists are good" lesson — design schemas against the specific failure mode of the specific model on the specific task. The four-task series strongly disconfirms the idea that any one schema-shape generalizes across structured-analytical agents.
+
+**What this means for SFT prioritization:**
+
+- **Continuity is NOT a clean SFT case in its current form**, because the teacher signal (235B at 54% exact / F1 0.555) is itself missing 90% of warnings and 65% of nits. Distilling that teacher would teach the student to also miss them. Before SFT can work for this slot, we need a stronger labeling pipeline — either hand-labeled warning/nit examples, or a different teacher (gpt-oss-120b on Groq is the obvious candidate, mirroring chapter-plan-checker's escalation in #107), or a fundamentally different metric (reframe the task as fact-by-fact yes/no consistency rather than severity classification).
+- **The right next move on continuity is the checklist prompt swap on 235B in production**, not training. +0.086 F1 is the cheapest improvement on the table. Latency cost is 389ms → 638ms (~1.6×) and output tokens 59 → 380 (~6×) — well within the per-chapter budget for the highest-cost-per-call agent in the pipeline.
+- **Adherence-checker remains the cleanest SFT case across all four tasks.** Its teacher signal (235B at 96% on flat) is still the cleanest distillation target, the failure mode is concentrated in non-atomizable variants, and the gap is real and not closable by prompt engineering. SFT spend should focus there.
+- **The four-task series is now complete enough to prioritize SFT spend.** Order: (1) chapter-plan-checker — already done, validated in #107; (2) adherence-checker — clean teacher, real gap, ship next; (3) continuity — fix teacher quality FIRST, then revisit; (4) reference-resolver — OFF the list, prompt-only fix is sufficient.
+
+**Methodology lessons compounding from this run:**
+
+- **Headline exact-match is the wrong primary metric on multi-class severity tasks.** Continuity's exact-match table reads "checklist gives a small lift", but the F1 view tells a much more interesting story — 235B's F1 jumps 0.469 → 0.555 (best-of-series) while 14B's F1 collapses 0.440 → 0.347 because the same schema makes one model use its capacity and makes the other model freeze. Always report both.
+- **Empty-expected variants (NONE, TRAP) should be reported as false-positive *call counts*, not as exact-match cells.** A model that emits zero issues on NONE always scores 100% on that cell, hiding the false-positive *rate*. The FP-call counter (`falsePositiveCalls` in the conclusion JSON) makes the trade visible: 14B-checklist is 0/40 vs 14B-flat 26/40 — that's the entire +13pp exact-match jump on 14B, and it doesn't reflect a single new correct issue detection.
+- **A bench is only as good as its hardest variant.** Continuity's bench has WARNING and NIT detection at 0–35% across all six runs. Either the synthetic injections are too subtle for the production prompt's rubric to catch, or the rubric itself is under-specified on those severities. Before drawing any SFT conclusion from this bench, those two variants need re-examination — they may be measuring "task fundamentally hard" rather than "model deficit."
+- **Continuity and adherence-checker have *opposite* strong models.** Adherence (#110): 235B is over-strict, 14B is over-permissive. Continuity (#117): 235B is over-conservative (under-flags warnings/nits but never false-positives), 14B is over-aggressive (flags everything but lower precision). The same ladder produces opposite biases on different tasks — *another* reason no universal "best base model" exists for analytical agents.
+
+(Commits `d09bcd2` data generator, `7a7044a` baseline script, `916fd63` checklist script; experiments #117 flat, #118 checklist)
+
 ## Prompt & Output Schema Design
 
 ### Structured checklist output beats flat verdict schemas on multi-check verification tasks — but only for fields within model capacity (2026-04-08)
