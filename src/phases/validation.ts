@@ -104,6 +104,7 @@ export async function runValidationPhase(novelId: string): Promise<void> {
         const ctx = await buildRewriterContext(novelId, ch, issues)
         const rewriteResult = await callAgent({
           novelId, agentName: "rewriter",
+          chapter: ch, attempt: attempts,
           systemPrompt: REWRITER_AGENT_PROMPT,
           userPrompt: ctx,
           schema: rewriterOutputSchema,

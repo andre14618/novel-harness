@@ -36,6 +36,7 @@ export async function runPlanningPhase(novelId: string): Promise<void> {
     try {
       const result = await callAgent({
         novelId, agentName: "planning-plotter",
+        attempt,
         systemPrompt: PLANNING_PLOTTER_PROMPT,
         userPrompt: promptContext,
         schema: chapterOutlinesSchema,
@@ -86,6 +87,7 @@ export async function runPlanningPhase(novelId: string): Promise<void> {
     emit(novelId, { type: "progress", data: { step: "planning-plotter", status: "retrying" } })
     const retry = await callAgent({
       novelId, agentName: "planning-plotter",
+      attempt: 3, // user-rejected first plan, this is a manual regeneration
       systemPrompt: PLANNING_PLOTTER_PROMPT,
       userPrompt: context,
       schema: chapterOutlinesSchema,

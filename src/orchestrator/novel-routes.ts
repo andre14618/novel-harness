@@ -501,27 +501,84 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
     return Response.json({ ok: true, novelId, archived: true })
   }
 
-  // ── Recent LLM calls ────────────────────────────────────────────────
+  // ── LLM call inspector — list view ───────────────────────────────────
+  // Returns metadata only (no prompt text) for the table view. Filters:
+  //   ?novel_id=…  ?run_id=…  ?agent=…  ?chapter=N  ?beat_index=N  ?limit=N
+  // For full prompt+response text, use /api/novel/llm-calls/:id below.
   if (path === "/api/novel/llm-calls" && req.method === "GET") {
-    const limit = parseInt(url.searchParams.get("limit") ?? "50")
+    const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "100"), 500)
     const runId = url.searchParams.get("run_id")
+    const novelId = url.searchParams.get("novel_id")
+    const agent = url.searchParams.get("agent")
+    const chapter = url.searchParams.get("chapter")
+    const beatIndex = url.searchParams.get("beat_index")
+    const failedOnly = url.searchParams.get("failed")
     try {
-      let rows
-      if (runId) {
-        rows = await db`
-          SELECT id, agent, phase, provider, model, temperature,
-                 prompt_tokens, completion_tokens, latency_ms, tokens_per_sec,
-                 cost, created_at
-          FROM llm_calls WHERE run_id = ${parseInt(runId)}
-          ORDER BY id DESC LIMIT ${limit}`
-      } else {
-        rows = await db`
-          SELECT id, agent, phase, provider, model, temperature,
-                 prompt_tokens, completion_tokens, latency_ms, tokens_per_sec,
-                 cost, created_at
-          FROM llm_calls ORDER BY id DESC LIMIT ${limit}`
+      // Build a WHERE clause dynamically. Bun.sql's tagged template doesn't
+      // compose AND-fragments cleanly, so we use sql.unsafe for the dynamic
+      // bits (parameterised) and keep the column list literal.
+      const where: string[] = []
+      const params: any[] = []
+      const add = (clause: string, val: any) => {
+        params.push(val)
+        where.push(clause.replace("?", `$${params.length}`))
       }
+      if (runId) add("run_id = ?", parseInt(runId))
+      if (novelId) add("novel_id = ?", novelId)
+      if (agent) add("agent = ?", agent)
+      if (chapter) add("chapter = ?", parseInt(chapter))
+      if (beatIndex) add("beat_index = ?", parseInt(beatIndex))
+      if (failedOnly === "1" || failedOnly === "true") where.push("failed = true")
+      const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : ""
+      params.push(limit)
+      const limitParam = `$${params.length}`
+      const rows = await db.unsafe(
+        `SELECT id, run_id, agent, phase, provider, model, temperature,
+                prompt_tokens, completion_tokens, latency_ms, tokens_per_sec,
+                cost, novel_id, chapter, beat_index, attempt, timestamp,
+                failed, error_text
+           FROM llm_calls ${whereSql}
+          ORDER BY id DESC LIMIT ${limitParam}`,
+        params,
+      )
       return Response.json(rows)
+    } catch (err) {
+      return Response.json({ error: String(err) }, { status: 500 })
+    }
+  }
+
+  // ── LLM call inspector — distinct agent names (for filter dropdown) ──
+  // Must come before the /:id regex below.
+  if (path === "/api/novel/llm-calls/agents" && req.method === "GET") {
+    const novelId = url.searchParams.get("novel_id")
+    try {
+      const rows = novelId
+        ? await db`SELECT DISTINCT agent FROM llm_calls WHERE novel_id = ${novelId} ORDER BY agent`
+        : await db`SELECT DISTINCT agent FROM llm_calls ORDER BY agent`
+      return Response.json(rows.map((r: any) => r.agent))
+    } catch (err) {
+      return Response.json({ error: String(err) }, { status: 500 })
+    }
+  }
+
+  // ── LLM call inspector — drill-down (full prompt + response) ─────────
+  const llmCallMatch = path.match(/^\/api\/novel\/llm-calls\/(\d+)$/)
+  if (llmCallMatch && req.method === "GET") {
+    const id = parseInt(llmCallMatch[1])
+    try {
+      const rows = await db`
+        SELECT id, run_id, agent, phase, provider, model, temperature, max_tokens,
+               prompt_tokens, completion_tokens, latency_ms, tokens_per_sec, cost,
+               novel_id, chapter, beat_index, attempt, timestamp,
+               system_prompt, user_prompt, response_content,
+               request_json, failed, error_text,
+               json_extraction_success, json_extraction_retried,
+               zod_validation_success, zod_errors, http_attempts, retry_errors
+          FROM llm_calls WHERE id = ${id}`
+      if (rows.length === 0) {
+        return Response.json({ error: "not found" }, { status: 404 })
+      }
+      return Response.json(rows[0])
     } catch (err) {
       return Response.json({ error: String(err) }, { status: 500 })
     }

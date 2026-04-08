@@ -118,6 +118,75 @@ export function toggleModelHidden(provider: string, modelId: string, hidden: boo
   })
 }
 
+// ── LLM call inspector ────────────────────────────────────────────────────
+
+export interface LLMCallRow {
+  id: number
+  run_id: number
+  agent: string
+  phase: string | null
+  provider: string
+  model: string
+  temperature: number | null
+  prompt_tokens: number
+  completion_tokens: number
+  latency_ms: number
+  tokens_per_sec: number
+  cost: string
+  novel_id: string | null
+  chapter: number | null
+  beat_index: number | null
+  attempt: number | null
+  timestamp: string
+  failed: boolean | null
+  error_text: string | null
+}
+
+export interface LLMCallDetail extends LLMCallRow {
+  max_tokens: number | null
+  system_prompt: string | null
+  user_prompt: string | null
+  response_content: string | null
+  request_json: any | null
+  json_extraction_success: boolean | null
+  json_extraction_retried: boolean | null
+  zod_validation_success: boolean | null
+  zod_errors: string | null
+  http_attempts: number | null
+  retry_errors: string | null
+}
+
+export interface LLMCallFilters {
+  novelId?: string
+  agent?: string
+  chapter?: number
+  beatIndex?: number
+  runId?: number
+  limit?: number
+  failedOnly?: boolean
+}
+
+export function listLLMCalls(filters: LLMCallFilters = {}) {
+  const qs = new URLSearchParams()
+  if (filters.novelId) qs.set("novel_id", filters.novelId)
+  if (filters.agent) qs.set("agent", filters.agent)
+  if (filters.chapter != null) qs.set("chapter", String(filters.chapter))
+  if (filters.beatIndex != null) qs.set("beat_index", String(filters.beatIndex))
+  if (filters.runId != null) qs.set("run_id", String(filters.runId))
+  if (filters.limit != null) qs.set("limit", String(filters.limit))
+  if (filters.failedOnly) qs.set("failed", "1")
+  return fetchJSON<LLMCallRow[]>(`/api/novel/llm-calls?${qs.toString()}`)
+}
+
+export function getLLMCall(id: number) {
+  return fetchJSON<LLMCallDetail>(`/api/novel/llm-calls/${id}`)
+}
+
+export function listLLMCallAgents(novelId?: string) {
+  const qs = novelId ? `?novel_id=${encodeURIComponent(novelId)}` : ""
+  return fetchJSON<string[]>(`/api/novel/llm-calls/agents${qs}`)
+}
+
 // ── Retrieval Config ──────────────────────────────────────────────────────
 
 export interface RetrievalConfig {

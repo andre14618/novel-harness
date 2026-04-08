@@ -497,6 +497,17 @@ export interface LLMCallData {
   zodErrors?: string[]
   httpAttempts?: number
   retryErrors?: Array<{ status: number; delay: number }>
+  // Inspection columns (sql/017_llm_call_inspection.sql) — full text + tags
+  systemPrompt?: string
+  userPrompt?: string
+  responseContent?: string
+  novelId?: string
+  beatIndex?: number
+  attempt?: number
+  // Failure capture (sql/018_llm_call_errors.sql) — guarantee one row per attempt
+  requestJson?: Record<string, any>
+  failed?: boolean
+  errorText?: string
 }
 
 export async function logLLMCall(runId: number, data: LLMCallData): Promise<void> {
@@ -510,7 +521,10 @@ export async function logLLMCall(runId: number, data: LLMCallData): Promise<void
       prompt_tokens, completion_tokens, latency_ms, tokens_per_sec, cost,
       chapter, seed, dimension,
       json_extraction_success, json_extraction_retried,
-      zod_validation_success, zod_errors, http_attempts, retry_errors
+      zod_validation_success, zod_errors, http_attempts, retry_errors,
+      system_prompt, user_prompt, response_content,
+      novel_id, beat_index, attempt,
+      request_json, failed, error_text
     ) VALUES (
       ${runId}, ${data.agent}, ${data.phase ?? null}, ${data.model}, ${data.provider},
       ${data.temperature ?? null}, ${data.maxTokens ?? null},
@@ -522,7 +536,16 @@ export async function logLLMCall(runId: number, data: LLMCallData): Promise<void
       ${data.zodValidationSuccess ?? true},
       ${data.zodErrors?.length ? JSON.stringify(data.zodErrors) : null},
       ${data.httpAttempts ?? 1},
-      ${data.retryErrors?.length ? JSON.stringify(data.retryErrors) : null}
+      ${data.retryErrors?.length ? JSON.stringify(data.retryErrors) : null},
+      ${data.systemPrompt ?? null},
+      ${data.userPrompt ?? null},
+      ${data.responseContent ?? null},
+      ${data.novelId ?? null},
+      ${data.beatIndex ?? null},
+      ${data.attempt ?? null},
+      ${data.requestJson ? JSON.stringify(data.requestJson) : null},
+      ${data.failed ?? false},
+      ${data.errorText ?? null}
     )
   `
 }

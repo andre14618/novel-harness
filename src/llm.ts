@@ -67,6 +67,12 @@ interface AgentConfig<T> {
   agentName?: string
   provider?: ProviderName  // override global provider for this call
   model?: string           // override global model for this call
+  // Drill-down tags persisted to llm_calls for the inspector view.
+  // Pass these from callers that know which beat / chapter / attempt
+  // they're working in (drafting loop, retry loops, etc.).
+  chapter?: number
+  beatIndex?: number
+  attempt?: number
 }
 
 interface AgentResult<T> {
@@ -155,42 +161,102 @@ export function extractJSON(raw: string): string {
 // raw text output instead of JSON+schema validation). Wraps transport.execute()
 // so the call still lands in the llm_calls table for queryable timing analysis.
 
+// Optional drill-down tags for executeAndLog. Pass these from agents that
+// know which beat / chapter / attempt they're working on (e.g. beat-writer,
+// adherence-checker inside the drafting loop) so the inspector view can
+// filter llm_calls down to a specific beat/attempt.
+export interface ExecuteTags {
+  chapter?: number
+  beatIndex?: number
+  attempt?: number
+}
+
+// Strip prompts from the request envelope before serializing — they're stored
+// in dedicated columns (system_prompt, user_prompt) for easy querying. This
+// keeps request_json focused on the OTHER call shape that matters for
+// reproducibility: model, provider, temperature, responseFormat, extraBody,
+// useMaxCompletionTokens, callerId.
+function requestEnvelopeForLog(req: import("./transport").LLMRequest): Record<string, any> {
+  const { systemPrompt: _sp, userPrompt: _up, ...rest } = req
+  return rest
+}
+
+function formatErrorForLog(err: unknown): string {
+  if (err instanceof Error) {
+    return err.stack ?? `${err.name}: ${err.message}`
+  }
+  try {
+    return typeof err === "string" ? err : JSON.stringify(err)
+  } catch {
+    return String(err)
+  }
+}
+
+// Guarantee: every call to executeAndLog produces exactly one row in llm_calls
+// when novelId is set, regardless of whether the underlying execute() succeeded
+// or threw. On failure, the row has failed=true and error_text populated.
+// The error is re-thrown so caller behavior is unchanged.
 export async function executeAndLog(
   request: import("./transport").LLMRequest,
   novelId: string | undefined,
   agentName: string,
+  tags?: ExecuteTags,
 ): Promise<LLMResponse> {
-  const response = await getTransport().execute(request)
-  if (novelId) {
-    const tps = response.latencyMs > 0 && response.usage.completion_tokens > 0
-      ? Math.round(response.usage.completion_tokens / (response.latencyMs / 1000))
-      : 0
-    const cost = getTokenCost(request.provider, request.model, response.usage.prompt_tokens, response.usage.completion_tokens)
-    logLLMCallStructured(novelId, {
-      timestamp: new Date().toISOString(),
-      agent: agentName,
-      model: request.model,
-      provider: request.provider,
-      temperature: request.temperature,
-      maxTokens: request.maxTokens,
-      thinking: false,
-      systemPromptLength: request.systemPrompt.length,
-      userPromptLength: request.userPrompt.length,
-      contentPreview: response.content.slice(0, 200),
-      promptTokens: response.usage.prompt_tokens,
-      completionTokens: response.usage.completion_tokens,
-      totalLatencyMs: Math.round(response.latencyMs),
-      tokensPerSec: tps,
-      cost,
-      jsonExtractionSuccess: true,
-      jsonExtractionRetried: false,
-      zodValidationSuccess: true,
-      zodErrors: [],
-      httpAttempts: response.httpAttempts,
-      retryErrors: response.retryErrors,
-    }).catch(() => {})
+  const startedAt = Date.now()
+  let response: LLMResponse | null = null
+  let caughtError: unknown = null
+  try {
+    response = await getTransport().execute(request)
+    return response
+  } catch (err) {
+    caughtError = err
+    throw err
+  } finally {
+    if (novelId) {
+      const failed = caughtError != null
+      const latencyMs = response?.latencyMs ?? (Date.now() - startedAt)
+      const promptTokens = response?.usage.prompt_tokens ?? 0
+      const completionTokens = response?.usage.completion_tokens ?? 0
+      const tps = latencyMs > 0 && completionTokens > 0
+        ? Math.round(completionTokens / (latencyMs / 1000))
+        : 0
+      const cost = response
+        ? getTokenCost(request.provider, request.model, promptTokens, completionTokens)
+        : 0
+      logLLMCallStructured(novelId, {
+        timestamp: new Date().toISOString(),
+        agent: agentName,
+        model: request.model,
+        provider: request.provider,
+        temperature: request.temperature,
+        maxTokens: request.maxTokens,
+        thinking: false,
+        systemPromptLength: request.systemPrompt.length,
+        userPromptLength: request.userPrompt.length,
+        contentPreview: response?.content.slice(0, 200) ?? "",
+        promptTokens,
+        completionTokens,
+        totalLatencyMs: Math.round(latencyMs),
+        tokensPerSec: tps,
+        cost,
+        jsonExtractionSuccess: !failed,
+        jsonExtractionRetried: false,
+        zodValidationSuccess: !failed,
+        zodErrors: [],
+        httpAttempts: response?.httpAttempts ?? 0,
+        retryErrors: response?.retryErrors ?? [],
+        systemPrompt: request.systemPrompt,
+        userPrompt: request.userPrompt,
+        responseContent: response?.content,
+        chapter: tags?.chapter,
+        beatIndex: tags?.beatIndex,
+        attempt: tags?.attempt,
+        requestJson: requestEnvelopeForLog(request),
+        failed,
+        errorText: caughtError ? formatErrorForLog(caughtError) : undefined,
+      }).catch(() => {})
+    }
   }
-  return response
 }
 
 // ── HTTP Request ──────────────────────────────────────────────────────────
@@ -263,6 +329,8 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
   let jsonExtractionRetried = false
   let zodValidationSuccess = false
   let zodErrors: string[] = []
+  let caughtError: unknown = null
+  const startedAt = Date.now()
 
   try {
     requestResult = await makeRequest(config.systemPrompt, userPrompt, temperature, maxTokens, provider, model, providerName)
@@ -284,6 +352,7 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
         config.systemPrompt + "\n\nIMPORTANT: Respond with ONLY valid JSON. No markdown, no commentary.",
         config.userPrompt, temperature, maxTokens, provider, model, providerName,
       )
+      requestResult = retryResult
       content = retryResult.content
       jsonStr = extractJSON(content)
       jsonExtractionSuccess = true
@@ -305,14 +374,26 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
       output: result.data,
       tokensUsed: { prompt: requestResult.usage.prompt_tokens, completion: requestResult.usage.completion_tokens },
     }
+  } catch (err) {
+    // Capture the error so the finally block can record it. We re-throw below
+    // so caller behavior is unchanged.
+    caughtError = err
+    throw err
   } finally {
-    if (config.novelId && requestResult) {
-      const latency = requestResult.totalLatencyMs
-      const completionTokens = requestResult.usage.completion_tokens
-      const tps = latency > 0 ? Math.round(completionTokens / (latency / 1000)) : 0
-
-      const promptTokens = requestResult.usage.prompt_tokens
-      const cost = getTokenCost(providerName, model, promptTokens, completionTokens)
+    // Always log when we have a novel context — even when makeRequest threw
+    // (requestResult is null) or zod validation failed. This is the troubleshooting
+    // guarantee: every attempt produces exactly one row.
+    if (config.novelId) {
+      const failed = caughtError != null
+      const latency = requestResult?.totalLatencyMs ?? (Date.now() - startedAt)
+      const promptTokens = requestResult?.usage.prompt_tokens ?? 0
+      const completionTokens = requestResult?.usage.completion_tokens ?? 0
+      const tps = latency > 0 && completionTokens > 0
+        ? Math.round(completionTokens / (latency / 1000))
+        : 0
+      const cost = requestResult
+        ? getTokenCost(providerName, model, promptTokens, completionTokens)
+        : 0
 
       const entry: LLMCallLogEntry = {
         timestamp: new Date().toISOString(),
@@ -330,15 +411,37 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
         cost,
         jsonExtractionSuccess, jsonExtractionRetried,
         zodValidationSuccess, zodErrors,
-        httpAttempts: requestResult.httpAttempts,
-        retryErrors: requestResult.retryErrors,
+        httpAttempts: requestResult?.httpAttempts ?? 0,
+        retryErrors: requestResult?.retryErrors ?? [],
+        systemPrompt: config.systemPrompt,
+        userPrompt: config.userPrompt,
+        responseContent: content || undefined,
+        chapter: config.chapter,
+        beatIndex: config.beatIndex,
+        attempt: config.attempt,
+        // Reconstruct the request envelope for reproducibility. We don't have
+        // the literal extraBody/responseFormat from inside makeRequest here,
+        // so we re-derive from the same provider config makeRequest used.
+        requestJson: {
+          model,
+          provider: providerName,
+          temperature,
+          maxTokens,
+          thinking,
+          responseFormat: { type: "json_object" },
+          extraBody: provider.extraBody(),
+          needsNothink,
+        },
+        failed,
+        errorText: caughtError ? formatErrorForLog(caughtError) : undefined,
       }
 
       logLLMCallStructured(config.novelId, entry).catch(() => {})
 
-      // Broadcast to SSE for real-time visibility
+      // Broadcast to SSE for real-time visibility. Failed calls get status="error"
+      // so the UI can highlight them as they happen.
       emit(config.novelId, {
-        type: "progress",
+        type: failed ? "error" : "progress",
         data: {
           step: "llm-call",
           agent: entry.agent,
@@ -350,7 +453,8 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
           latencyMs: entry.totalLatencyMs,
           tokensPerSec: entry.tokensPerSec,
           cost: entry.cost,
-          status: "complete",
+          status: failed ? "error" : "complete",
+          error: failed ? formatErrorForLog(caughtError).slice(0, 500) : undefined,
         },
       })
     }

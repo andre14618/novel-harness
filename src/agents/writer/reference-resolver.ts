@@ -66,6 +66,7 @@ export async function resolveReferences(
     const result = await callAgent({
       novelId,
       agentName: "reference-resolver",
+      chapter: chapterNumber,
       systemPrompt: "You identify what background information a scene beat needs. Return JSON with specific lookups.",
       userPrompt: `Beat: "${beat.description}"
 Characters: ${beat.characters.join(", ")}

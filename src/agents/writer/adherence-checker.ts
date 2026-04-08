@@ -24,6 +24,10 @@ export async function checkBeatAdherence(
   beat: SceneBeat,
   outline: ChapterOutline,
   characters: CharacterProfile[],
+  // Tags so this call lands in llm_calls with the same drill-down keys
+  // as the beat-writer call it's checking. Optional for backwards compat
+  // (callers outside the drafting loop pass nothing → call is logged untagged).
+  tags?: { novelId?: string; chapter?: number; beatIndex?: number; attempt?: number },
 ): Promise<AdherenceResult> {
   const issues: string[] = []
 
@@ -68,6 +72,10 @@ export async function checkBeatAdherence(
   try {
     const result = await callAgent({
       agentName: "adherence-checker",
+      novelId: tags?.novelId,
+      chapter: tags?.chapter,
+      beatIndex: tags?.beatIndex,
+      attempt: tags?.attempt,
       systemPrompt: "You check if prose follows a scene beat specification. Be strict but fair.",
       userPrompt: `Beat: "${beat.description}"
 Setting: "${outline.setting}"

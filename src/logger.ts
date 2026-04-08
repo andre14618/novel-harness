@@ -58,6 +58,21 @@ export interface LLMCallLogEntry {
   cost: number
   httpAttempts: number
   retryErrors: Array<{ status: number; delay: number }>
+  // Full prompt + response text and drill-down tags. Persisted to llm_calls
+  // so the inspector view (src/orchestrator/novel-routes.ts → /api/novel/llm-calls)
+  // can show what every agent received and produced. See sql/017_llm_call_inspection.sql.
+  systemPrompt?: string
+  userPrompt?: string
+  responseContent?: string
+  chapter?: number
+  beatIndex?: number
+  attempt?: number
+  // Failure capture (sql/018_llm_call_errors.sql) — every attempt produces a row,
+  // even when the call throws. requestJson is the full LLMRequest envelope so the
+  // call is reproducible from the row alone.
+  requestJson?: Record<string, any>
+  failed?: boolean
+  errorText?: string
 }
 
 export async function logLLMCallStructured(novelId: string, entry: LLMCallLogEntry): Promise<void> {
@@ -83,6 +98,16 @@ export async function logLLMCallStructured(novelId: string, entry: LLMCallLogEnt
     zodErrors: entry.zodErrors,
     httpAttempts: entry.httpAttempts,
     retryErrors: entry.retryErrors,
+    systemPrompt: entry.systemPrompt,
+    userPrompt: entry.userPrompt,
+    responseContent: entry.responseContent,
+    novelId,
+    chapter: entry.chapter,
+    beatIndex: entry.beatIndex,
+    attempt: entry.attempt,
+    requestJson: entry.requestJson,
+    failed: entry.failed,
+    errorText: entry.errorText,
   })
 }
 

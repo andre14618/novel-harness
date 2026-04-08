@@ -50,6 +50,7 @@ async function runConceptAgent<T>(
       const result = await callAgent({
         novelId,
         agentName: retrying ? `${agentName}-retry` : agentName,
+        attempt,
         systemPrompt: prompt,
         userPrompt: currentContext,
         schema,

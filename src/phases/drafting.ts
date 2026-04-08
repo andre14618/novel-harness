@@ -143,12 +143,19 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                   temperature: beatWriterModel?.temperature ?? 0.8,
                   maxTokens: beatWriterModel?.maxTokens ?? 4000,
                   responseFormat: { type: "text" },
-                }, novelId, "beat-writer")
+                }, novelId, "beat-writer", { chapter: ch, beatIndex: bi, attempt: retry + 1 })
                 const prose = response.content?.trim()
                 if (!prose || prose.length < 50) continue
 
-                // Adherence check
-                const adherence = await checkBeatAdherence(prose, outline.scenes[bi], outline, characters)
+                // Adherence check — tagged with the same keys as the beat-writer call above
+                // so they group together in the inspector view.
+                const adherence = await checkBeatAdherence(
+                  prose,
+                  outline.scenes[bi],
+                  outline,
+                  characters,
+                  { novelId, chapter: ch, beatIndex: bi, attempt: retry + 1 },
+                )
                 if (adherence.pass || retry === pipeline.maxBeatRetries) {
                   beatProse = prose
                   if (!adherence.pass) {
@@ -186,6 +193,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
             const writerContext = await buildWriterContext(novelId, ch)
             const draftResult = await callAgent({
               novelId, agentName: "writer",
+              chapter: ch, attempt: attempts,
               systemPrompt: WRITER_AGENT_PROMPT,
               userPrompt: writerContext,
               schema: chapterDraftSchema,
@@ -216,6 +224,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
           emit(novelId, { type: "progress", data: { step: "writer", chapter: ch, attempt: attempts, status: "running" } })
           const draftResult = await callAgent({
             novelId, agentName: "writer",
+            chapter: ch, attempt: attempts,
             systemPrompt: WRITER_AGENT_PROMPT,
             userPrompt: writerContext,
             schema: chapterDraftSchema,
@@ -245,6 +254,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
         pipeline.chapterPlanCheck
           ? callAgent({
               novelId, agentName: "chapter-plan-checker",
+              chapter: ch, attempt: attempts,
               systemPrompt: CHAPTER_PLAN_CHECKER_PROMPT,
               userPrompt: buildChapterPlanCheckContext(prose, outline),
               schema: chapterPlanCheckSchema,
@@ -255,6 +265,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
           const charStates = await getCharacterStatesAtChapter(novelId, ch)
           return callAgent({
             novelId, agentName: "continuity",
+            chapter: ch, attempt: attempts,
             systemPrompt: CONTINUITY_AGENT_PROMPT,
             userPrompt: buildContinuityContext(prose, facts, charStates),
             schema: continuityCheckSchema,

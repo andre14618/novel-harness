@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom"
 const PAGES = [
   { path: "/", label: "Novels" },
   { path: "/config", label: "Config" },
+  { path: "/llm-calls", label: "Inspector" },
   { path: "/experiments", label: "Experiments" },
   { path: "/operations", label: "Operations" },
   { path: "/models", label: "Models" },

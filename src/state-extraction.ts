@@ -43,24 +43,28 @@ export async function updateStateAfterChapter(novelId: string, chapterNum: numbe
   const [summaryResult, factResult, charStateResult, relTimelineResult] = await Promise.all([
     callAgent({
       novelId, agentName: "summary-extractor",
+      chapter: chapterNum,
       systemPrompt: SUMMARY_EXTRACTOR_PROMPT,
       userPrompt: buildSummaryContext(prose),
       schema: chapterSummarySchema,
     }),
     callAgent({
       novelId, agentName: "fact-extractor",
+      chapter: chapterNum,
       systemPrompt: FACT_EXTRACTOR_PROMPT,
       userPrompt: buildFactExtractionContext(prose),
       schema: factExtractionSchema,
     }),
     callAgent({
       novelId, agentName: "character-state",
+      chapter: chapterNum,
       systemPrompt: CHARACTER_STATE_PROMPT,
       userPrompt: buildCharacterStateContext(prose, characters),
       schema: characterStateUpdateSchema,
     }),
     callAgent({
       novelId, agentName: "relationship-timeline",
+      chapter: chapterNum,
       systemPrompt: RELATIONSHIP_TIMELINE_PROMPT,
       userPrompt: buildRelationshipTimelineContext(prose, characters, currentRelationships, worldSystems),
       schema: relationshipTimelineSchema,
@@ -220,6 +224,7 @@ export async function updateStateAfterChapter(novelId: string, chapterNum: numbe
     try {
       const validationResult = await callAgent({
         novelId, agentName: "graph-linker",
+        chapter: chapterNum,
         systemPrompt: GRAPH_LINKER_PROMPT,
         userPrompt: sections.join("\n\n"),
         schema: z.object({
