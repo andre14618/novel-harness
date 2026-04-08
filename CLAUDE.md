@@ -196,6 +196,8 @@ bun test
 | Agent model assignments | `models/roles.ts` |
 | Service layer API | `src/harness/index.ts` |
 | Retrieval engine | `src/db/retrieval.ts` |
+| Fine-tuning strategy + adapter roadmap | `docs/fine-tuning-strategy.md` |
+| LoRA training best practices + experiment log | `docs/lora-style-transfer-report.md` |
 
 ## Reference docs
 

@@ -56,17 +56,34 @@ Notably absent: Qwen3 8B, Qwen3 4B-Instruct-2507, Qwen 3.5 9B (the base of the e
 
 **DeepInfra is NOT a viable serving home for our LoRAs** (corrected 2026-04-08 — see `docs/lessons-learned.md` "DeepInfra Custom LLMs is dedicated GPU rental"). The previous version of this todo proposed DeepInfra as a serverless alternative because AA's per-provider numbers showed DeepInfra serving stock Qwen 3.5 9B 3.1× faster than Together. That was a conflation: DeepInfra has two different products, and the one that hosts user-uploaded adapters ("Custom LLMs") is dedicated GPU rental at $2-5/hr per A100/H100 with weekly invoicing — uneconomical for our bursty solo-developer traffic by 2-3 orders of magnitude. The W&B/Qwen3-14B plan above stands unchallenged.
 
-## Fine-Tuning data generation — unchanged direction, base model TBD
+## Fine-Tuning — Full Strategy
 
-**Base model decided**: `OpenPipe/Qwen3-14B-Instruct` on W&B Inference for all structured/analytical LoRAs. Training via Modal/Unsloth (~$0.25/run), serving via W&B at base-model per-token rates. Knowledge distillation: Cerebras Qwen 235B as oracle, outputs reviewed in Claude Code, corrected outputs become training data. Generic prompts — training data teaches behavior, not the prompt.
+See `docs/fine-tuning-strategy.md` for the complete plan. Training is free (W&B Serverless SFT, public preview). Inference is $0.05/$0.22 per 1M tokens. One base — `OpenPipe/Qwen3-14B-Instruct` — multiple task adapters. Every agent is a candidate. Full priority ranking, data sources, and evaluation protocol are in the strategy doc.
 
-- **Run fact-extractor dataset generation** — `bun scripts/build-finetune-data.ts --task fact-extractor --limit 50` on LXC. Review 20-30 pairs in Claude Code, correct to gold standard, then scale to 300+.
-- **Adherence-checker fine-tune** — runs every beat, high frequency. Classification task (pass/fail + deviation). Needs beat-level training data — generate novels with beat pipeline and log beat/draft/adherence pairs.
-- **Reference-resolver fine-tune** — runs every beat. Identify needed lookups from implicit references. Same beat-level data source.
-- **Chapter plan checker fine-tune** — runs once per chapter. Compare prose against plan, report structural deviations or PASS. ~3-5K token input. Now serving from `openai/gpt-oss-120b` on Groq (was llama-3.1-8b-instant — too small to reason through structural requirements, kept bouncing valid prose and spinning the drafting retry loop). Prerequisite: persist `(prose, plan, deviations, passed, model)` to a new `chapter_plan_checks` table so each real chapter generates a labeled training example. After ~50-100 examples accumulate, train a LoRA on a W&B-supported base (gpt-oss-120b is on the supported list — natural distillation target since it's already the production checker), evaluate vs GPT-OSS baseline, swap in if accuracy matches.
-- **Burn Together AI credits on tonal pair generation, then remove provider** — $10-12 remaining on Together AI. Use it to regenerate tonal pairs with a better flattener (Qwen3 235B A22B Instruct 2507 FP8 Throughput at $0.20/$0.60 vs current Groq Qwen3 32B at $0.29/$0.59 — larger model, cleaner content preservation). Swap model string in `scripts/generate-tonal-pairs.ts` to Together's 235B and point at Together API. Once credit is exhausted: (1) remove `TOGETHER_API_KEY` from env, (2) remove Together model entries from `models/registry.ts`, (3) remove the Together provider config. The legacy v3 adapter served from Together is already inaccessible on serverless — nothing in the live pipeline depends on Together anymore.
-- **Tonal pass expansion** — V3 LoRA trained on Howard only (sword-and-sorcery). Need multi-genre corpus. Copyright considerations documented in `docs/ai-training-copyright-landscape.md`. Public domain authors: Hemingway (pre-1929), London, Cather, Fitzgerald. Back-translation pipeline exists (`scripts/generate-tonal-pairs.ts`).
-- **Test tonal pass V3 in production** — enable `pipeline.tonalPass`, run on a novel, compare before/after. **Note**: this still uses the Together-served v3 adapter on Qwen 3.5 9B. The W&B retraining (above) is a separate decision; production-test the existing adapter first to validate the style transfer before investing in v4 on a new base.
+**Phase 1 — Analytical trio** (highest confidence, data nearly ready):
+
+- **Adherence-checker** — accumulate 200+ `(beat_spec, prose, decision, deviations)` examples from novel runs. Oracle = Qwen 235B. Review sample, train, validate ≥95% agreement on held-out set. If passes, swap in — runs every beat, 6× cheaper, 2.3× faster (measured).
+- **Reference-resolver** — same data source. Oracle = best-of-3 union outputs. Evaluate on recall using coarse-key metric (not strict Jaccard — see lessons-learned).
+- **Chapter-plan-checker** — add `chapter_plan_checks` table (migrate), persist `(prose, plan, deviations, passed)` per run. After 50-100 examples accumulate, label, train, evaluate vs gpt-oss-120b oracle.
+
+**Phase 2 — Tonal pass v4 + fact extractor** (data exists or easy to generate):
+
+- **Tonal pass v4** — retrain `howard-tonal-pairs-curated.jsonl` on Qwen3-14B via ART. Evaluate against v3 on the same 15-paragraph test set (bigram perplexity, adjective density, word count). Serve via W&B Inference instead of Together.
+- **Burn Together AI credits on tonal pair generation, then remove provider** — $10-12 remaining. Use `scripts/generate-tonal-pairs.ts` pointed at Together's Qwen3 235B A22B Instruct 2507 FP8 ($0.20/$0.60, better flattening quality than current Groq 32B). Once exhausted: remove `TOGETHER_API_KEY`, remove Together entries from `models/registry.ts`, remove provider config.
+- **Fact extractor** — `bun scripts/build-finetune-data.ts --task fact-extractor --limit 50`, review 20-30 pairs, correct to gold (target: 8-12 facts/chapter vs current 17-20), scale to 300+.
+- **Tonal pass expansion** — multi-genre corpus after v4 validates. Public domain: Hemingway (pre-1929), London, Cather, Fitzgerald. Copyright notes in `docs/ai-training-copyright-landscape.md`.
+- **Test tonal pass V3 in production first** — enable `pipeline.tonalPass`, run a novel, compare before/after. Production-test the existing adapter before investing in v4.
+
+**Phase 3 — Continuity** (highest ROI, requires schema work):
+
+- Design compact world-state diff format (new facts, changed character states, new events only — not full dump).
+- Generate training data against new format using 235B oracle.
+- Expected outcome: 7,294 → ~1,000 input tokens per call = 7× cost reduction on the highest-cost slot.
+
+**Phase 4 — Lint fixer + beat writer** (opportunistic):
+
+- **Lint fixer** — mine approved chapters for `(flagged_sentence, scene_context, good_rewrite)` triples. 200-300 examples across AI cliché pattern types. Low risk.
+- **Beat writer** — highest upside (7.8× cheaper), highest risk (quality regression breaks pipeline). Shadow-run in parallel with 235B. See strategy doc for validation bar.
 
 ## Pipeline Tuning
 
