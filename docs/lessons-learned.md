@@ -163,6 +163,40 @@ Pay-per-token, no LoRA surcharge, PEFT-format upload as a versioned W&B artifact
 
 The corollary: **the LoRA-serving question and the base-model-routing question are separate decisions**. The harness can have one provider for cheap base-model serverless calls (Fireworks for FP8 8B/120B) and a different provider for the LoRA-served slots (W&B Inference if its base catalog fits, local hardware otherwise, Together as legacy for the existing v3 tonal-pass). The transport layer already handles per-provider quirks; multi-provider is the default, not the cost.
 
+### Don't compare model "size" without checking generation — Qwen 3.5 9B is more capable than Qwen3 14B (2026-04-07)
+**Correction to a claim made earlier in the same session.** I previously said "moving from Qwen 3.5 9B to Qwen3-14B is a meaningful capability upgrade for the analytical agents" because parameter count went from 9.7B to 14.8B (+56%). That framing was wrong. Per Artificial Analysis ([qwen3-5-9b](https://artificialanalysis.ai/models/qwen3-5-9b), [qwen3-14b-instruct-reasoning](https://artificialanalysis.ai/models/qwen3-14b-instruct-reasoning)):
+
+| Metric | Qwen 3.5 9B (Mar 2026) | Qwen3 14B Instruct (Apr 2025) |
+|---|---:|---:|
+| AA Intelligence Index | **32** (#5/116) | **16** (#41/116) |
+| Parameters | 9.7B (hybrid Gated Delta + sparse MoE) | 14.8B dense |
+| Output speed | 131 tps | 62.9 tps |
+| Context window | 262k | 33k |
+| Modalities | text + image + video | text only |
+| Input price | $0.07/M | $0.35/M |
+| Output price | $0.17/M | $4.20/M |
+| AA verdict | "well above average... very competitive" | "above average... particularly expensive... notably slow" |
+
+Qwen 3.5 9B is **half the parameters but double the intelligence index, twice the speed, eight times the context, multimodal, and one generation newer.** It's an MoE model with sparse experts — total params don't tell the whole story. The 14B is an older dense model that AA explicitly calls expensive and slow. The "capability upgrade" framing was upside-down.
+
+**The actual rule**: never compare two models on parameter count alone. Always check the **release date** (generation matters more than param count at the small scale) and the **architecture family** (MoE vs dense breaks naive size comparisons). When you don't know, look up Artificial Analysis or a similar third-party benchmark site rather than reasoning from parameter count.
+
+**The corollary for this harness**: the existing Howard tonal-pass v3 base (Qwen 3.5 9B on Together) is NOT an outdated model that needs upgrading — it's a top-shelf modern 9B that happens to be served slowly because Together's standard tier is bad infrastructure, not because the model is bad. Moving v3 to a different provider that serves the same model faster is the right play, not retraining v4 on a "bigger" base that's actually a less-capable older one. This corrects the v4-on-Qwen3-14B plan in `docs/todo.md` (the analytical LoRA decision is unaffected — it was driven by W&B's supported base list, not by capability).
+
+### Same model, different providers, 3× different latency — DeepInfra serves Qwen 3.5 9B 3.1× faster than Together (2026-04-07)
+Per AA's [Qwen 3.5 9B providers comparison](https://artificialanalysis.ai/models/qwen3-5-9b/providers):
+
+| Provider | Output speed | TTFT | Input | Output | Blended |
+|---|---:|---:|---:|---:|---:|
+| **DeepInfra (FP8)** | **170.9 tps** | 12.27s | $0.04/M | $0.20/M | $0.08/M |
+| Together.ai (FP8) | 55.6 tps | 36.79s | $0.10/M | $0.15/M | $0.11/M |
+
+AA's headline: "DeepInfra (FP8) demonstrates superior performance across all metrics, delivering 3.1x faster throughput and lower latency compared to Together.ai." Same model, same precision (FP8), different providers, **3× different decode speed and 3× different TTFT.** This matches what we observed empirically when the slow Together serving of Qwen 3.5 9B caused the per-beat-agent benchmark fiasco earlier this same session — the slow path wasn't the model, it was Together's standard tier.
+
+**The 12s TTFT on DeepInfra is concerning** but might be a cold-start artifact in AA's testing methodology rather than steady-state behavior. AA tests with infrequent calls; in production with sustained traffic the model would warm up and TTFT would drop. Or it might be reasoning-mode overhead (Qwen 3.5 9B has thinking-mode-on by default and AA may not be disabling it). **Needs an empirical probe in steady-state** before committing the harness's tonal-pass slot to DeepInfra. The decode speed (170 tps) makes the migration attractive regardless — even with a 12s startup, a typical paragraph rewrite would complete in <15 seconds vs Together's observed ~20s, and warm-state would be much faster.
+
+**The actionable rule**: when a provider costs you wall time on a model, the right diagnostic is **find another provider serving the same model and compare**, not retrain or migrate to a different model. Provider serving quality varies 3-10× on the same weights. Use [AA's per-model providers tab](https://artificialanalysis.ai) to find the comparison without needing to benchmark each provider yourself (then verify steady-state with your own probe before committing).
+
 ### Smaller models can be FASTER than larger ones on decode-bound tasks (2026-04-07)
 W&B Inference latency probe (`tuning_experiment` id=94, `scripts/test-wandb-inference.ts`) hit a counterintuitive finding: **OpenPipe/Qwen3-14B-Instruct on W&B Inference is FASTER than Cerebras Qwen 235B on the adherence-checker workload shape** — 157ms avg vs 365ms avg, a 2.3× speedup. On a 14B model on a "standard" tier inference service vs a 235B model on Cerebras's custom LPU hardware. That's not the direction the comparison usually goes.
 
