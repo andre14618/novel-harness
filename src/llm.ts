@@ -299,9 +299,13 @@ export function getTokenUsage() {
 
 export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<T>> {
   // Look up agent in roles.ts — use as base, explicit config values override.
-  // Falls back to base agent name (strip -retry) if no exact match.
+  // Falls back to base agent name (strip -retry, -boN) if no exact match.
+  // The -boN suffix is added by executeBestOfN for log correlation; the role
+  // for the unsuffixed base name still applies to all parallel attempts.
   const role = config.agentName
-    ? (getAgentConfig(config.agentName) ?? getAgentConfig(config.agentName.replace(/-retry$/, "")))
+    ? (getAgentConfig(config.agentName)
+       ?? getAgentConfig(config.agentName.replace(/-retry$/, ""))
+       ?? getAgentConfig(config.agentName.replace(/-bo\d+$/, "")))
     : undefined
   const temperature = config.temperature ?? role?.temperature ?? 0.7
   const maxTokens = config.maxTokens ?? role?.maxTokens ?? 4096
