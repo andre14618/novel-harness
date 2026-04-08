@@ -117,6 +117,68 @@ export async function runAgent<T>(
   })
 }
 
+// ── executeBestOfN ────────────────────────────────────────────────────────
+// Run an agent N times in parallel and aggregate the outputs. Each parallel
+// call lands in llm_calls with a distinct agent_name suffix (`-bo1`, `-bo2`,
+// ...) so the variance across attempts is queryable after the fact.
+//
+// The aggregator is task-specific and lives next to the agent that uses it.
+// It receives the N successful outputs and returns one combined output.
+// Token usage is summed across all successful attempts (you paid for them).
+//
+// Failure semantics: as long as at least one call succeeds, the aggregator
+// runs on the successful subset. If ALL calls fail, throws with the last
+// error so the caller sees a real failure rather than silent degradation.
+
+export async function executeBestOfN<T>(
+  config: AgentConfig<T>,
+  n: number,
+  aggregateOutputs: (outputs: T[]) => T,
+): Promise<AgentResult<T>> {
+  if (n < 1) throw new Error(`executeBestOfN: n must be >= 1, got ${n}`)
+  if (n === 1) return callAgent(config)
+
+  const baseAgentName = config.agentName ?? "unknown"
+  const settled = await Promise.allSettled(
+    Array.from({ length: n }, (_, i) =>
+      callAgent({ ...config, agentName: `${baseAgentName}-bo${i + 1}` }),
+    ),
+  )
+
+  const successes: AgentResult<T>[] = []
+  const failures: unknown[] = []
+  for (const r of settled) {
+    if (r.status === "fulfilled") successes.push(r.value)
+    else failures.push(r.reason)
+  }
+
+  if (successes.length === 0) {
+    const lastError = failures[failures.length - 1]
+    throw new Error(
+      `executeBestOfN(${baseAgentName}): all ${n} parallel attempts failed. Last error: ${
+        lastError instanceof Error ? lastError.message : String(lastError)
+      }`,
+    )
+  }
+
+  if (failures.length > 0) {
+    console.log(
+      `  [bestOfN] ${baseAgentName}: ${successes.length}/${n} attempts succeeded (${failures.length} failed); aggregating successful subset`,
+    )
+  }
+
+  const aggregatedOutput = aggregateOutputs(successes.map(s => s.output))
+  const totalTokens = successes.reduce(
+    (sum, r) => ({
+      prompt: sum.prompt + r.tokensUsed.prompt,
+      completion: sum.completion + r.tokensUsed.completion,
+    }),
+    { prompt: 0, completion: 0 },
+  )
+
+  return { output: aggregatedOutput, tokensUsed: totalTokens }
+}
+
 // ── JSON Extraction ───────────────────────────────────────────────────────
 
 export function extractJSON(raw: string): string {
