@@ -530,9 +530,14 @@ max_seq_length = 2048
 num_epochs = 1             # for < 500 examples; increase to 2 for 500–1000
 ```
 
-**Why α = r instead of α = 2r (the Together AI default):** The actual weight update magnitude is `(alpha/r) × delta_W`. When α = r, this is 1× — the LoRA update scales naturally with rank. When α = 2r (as in v1/v2/v3), it's 2× — effectively doubling the learning rate for the adapter. For style tasks this can push the model to overfit faster. Community consensus for Qwen3 specifically is α = r unless you have good reason to scale up.
+**Why α = r instead of α = 2r (the Together AI default):** The actual weight update magnitude is `(alpha/r) × delta_W`. When α = r, this is 1× — the LoRA update scales naturally with rank. When α = 2r (as in v1/v2/v3), it's 2× — effectively doubling the learning rate for the adapter. For style tasks this can push the model to overfit faster. Community consensus for Qwen3 specifically is α = r unless you have good reason to scale up [11, 12].
 
-**Why r = 16 is not a limitation here:** The adapter capacity bottleneck only activates when (a) dataset > ~1000 high-quality examples, and (b) the style patterns are structurally complex enough to need the additional basis vectors. For the v3 data scale (~4,500 pairs), r = 64 may have been more capacity than needed — the quality improvement from v2→v3 came from curation, not rank. W&B's 16-rank cap is architecturally constraining but practically not the bottleneck for where this project's data volume currently sits.
+**Why r = 16 is not a limitation here:** The adapter capacity bottleneck only activates when (a) dataset > ~1000 high-quality examples, and (b) the style patterns are structurally complex enough to need the additional basis vectors. For the v3 data scale (~4,500 pairs), r = 64 may have been more capacity than needed — the quality improvement from v2→v3 came from curation, not rank. W&B's 16-rank cap is architecturally constraining but practically not the bottleneck for where this project's data volume currently sits [10, 12]. Note: at r ≥ 64, rsLoRA rank-stabilization scaling is recommended to prevent gradient instability [13].
+
+### References
+- [11] Ivan. "Practical guide: fine-tuning Qwen3 with LoRA. KL-anchored SFT and β-tuned DPO." 2025. https://blog.ivan.digital/finetuning-qwen3-with-lora-done-right-94d6343e1814
+- [12] Unsloth. "LoRA Hyperparameters Guide." https://unsloth.ai/docs/get-started/fine-tuning-llms-guide/lora-hyperparameters-guide
+- [13] Kalajdzievski. "rsLoRA: A Rank Stabilization Scaling Factor for Fine-Tuning of Large Language Models." arXiv:2312.03732, 2023. https://arxiv.org/abs/2312.03732
 
 ---
 
@@ -552,16 +557,20 @@ Loss = CrossEntropy(output, target) + β × KL(fine-tuned model || frozen refere
 
 The KL term penalizes drifting away from the base model's distribution. For style tasks — where the fine-tune touches every token in the output — this drift can accumulate and degrade general capability.
 
-**β values (Qwen3-specific, from Ivan's 2025 guide):**
+**β values (Qwen3-specific, from Ivan's 2025 guide [11]):**
 
 | Stage | β | Effect |
 |-------|---|--------|
 | SFT | 0.05 | Small anchor — prevents drift without constraining style learning |
 | DPO (optional, later) | 0.05–0.20 | Sweep to find the "knee": highest β before general capability drops |
 
-**Practical impact:** Without KL, style fine-tuning on a pervasive task (every paragraph) can degrade general benchmarks by 5–10%. With β = 0.05, degradation is < 1% in published results. The cost is near-zero: the reference model is frozen and can run in parallel.
+**Practical impact:** Without KL, style fine-tuning on a pervasive task (every paragraph) can degrade general benchmarks by 5–10%. With β = 0.05, degradation is < 1% in published results [11, 14]. The cost is near-zero: the reference model is frozen and can run in parallel.
 
 **Implementation:** TRL's `SFTTrainer` supports a `ref_model` argument for KL-regularized training. In Unsloth, this requires a custom trainer wrapper — the base Unsloth SFT path doesn't expose it directly. Alternatively, train with standard SFT at low LR (1e-4) and 1 epoch: at small scale and short training duration the KL drift is less severe, so KL-anchoring matters more for longer runs or larger datasets.
+
+### References
+- [11] Ivan. "Practical guide: fine-tuning Qwen3 with LoRA. KL-anchored SFT and β-tuned DPO." 2025. https://blog.ivan.digital/finetuning-qwen3-with-lora-done-right-94d6343e1814
+- [14] Luo et al. "Revisiting Catastrophic Forgetting in Large Language Model Tuning." EMNLP Findings, 2024. https://aclanthology.org/2024.findings-emnlp.249/
 
 ---
 
@@ -569,9 +578,9 @@ The KL term penalizes drifting away from the base model's distribution. For styl
 
 The back-translation approach (Section 3) and curation approach (Section 10.6–10.7) from the v3 run are sound and transfer directly. Key additions:
 
-**Dilution with general examples.** Mix 25–30% general instruction-following examples into training data. Even though LoRA's frozen base limits catastrophic forgetting, the adapter's weight updates can shift the model's default behavior on non-style tasks. Mixing in general examples prevents this. Sources: OpenHermes, ShareGPT subsets, or the base model's own outputs on diverse prompts.
+**Dilution with general examples.** Mix 25–30% general instruction-following examples into training data [11, 14]. Even though LoRA's frozen base limits catastrophic forgetting, the adapter's weight updates can shift the model's default behavior on non-style tasks. Mixing in general examples prevents this. Sources: OpenHermes, ShareGPT subsets, or the base model's own outputs on diverse prompts.
 
-**Chat template format for Qwen3.** The system-prompt + user/assistant format remains correct but Qwen3 has a specific EOS token:
+**Chat template format for Qwen3.** The system-prompt + user/assistant format remains correct but Qwen3 has a specific EOS token [15]:
 ```json
 {
   "messages": [
@@ -583,7 +592,14 @@ The back-translation approach (Section 3) and curation approach (Section 10.6–
 ```
 Set `eos_token = "<|im_end|>"` in training config. Mask the assistant token itself from the loss (train on response tokens only, not on `<|im_start|>assistant`).
 
-**Dataset size for r = 16:** With rank capped at 16, the adapter's expressiveness is bounded. This is actually helpful: it means you shouldn't over-engineer the dataset beyond ~500–800 high-contrast pairs. The v3 curated set (4,497 pairs) is likely more than r = 16 can fully utilize. A curated 500–800 pair subset focused on the highest-contrast examples may perform comparably with less overfitting risk.
+**Dataset size for r = 16:** With rank capped at 16, the adapter's expressiveness is bounded. This is actually helpful: it means you shouldn't over-engineer the dataset beyond ~500–800 high-contrast pairs. The v3 curated set (4,497 pairs) is likely more than r = 16 can fully utilize. A curated 500–800 pair subset focused on the highest-contrast examples may perform comparably with less overfitting risk [10, 12].
+
+### References
+- [10] Raschka, S. "Practical Tips for Finetuning LLMs Using LoRA." 2023. https://magazine.sebastianraschka.com/p/practical-tips-for-finetuning-llms
+- [11] Ivan. "Practical guide: fine-tuning Qwen3 with LoRA. KL-anchored SFT and β-tuned DPO." 2025. https://blog.ivan.digital/finetuning-qwen3-with-lora-done-right-94d6343e1814
+- [12] Unsloth. "LoRA Hyperparameters Guide." https://unsloth.ai/docs/get-started/fine-tuning-llms-guide/lora-hyperparameters-guide
+- [14] Luo et al. "Revisiting Catastrophic Forgetting in Large Language Model Tuning." EMNLP Findings, 2024. https://aclanthology.org/2024.findings-emnlp.249/
+- [15] Hugging Face. "The 4 Things Qwen-3's Chat Template Teaches Us." https://huggingface.co/blog/qwen-3-chat-template-deep-dive
 
 ---
 
@@ -609,7 +625,11 @@ Same scoring framework as Section 10.8, run against base `OpenPipe/Qwen3-14B-Ins
 | Short sentence ratio (↑) | Punchiness | > 15% short sentences (≤ 8 words) |
 | BERTScore vs input (↑) | Content preservation | > 0.85 (semantic meaning retained) |
 
-**General capability regression:** Hold out 15–20 diverse prompts (factual QA, simple logic, instruction following). Compare fine-tuned vs base. Flag if any category drops > 5% accuracy.
+**General capability regression:** Hold out 15–20 diverse prompts (factual QA, simple logic, instruction following). Compare fine-tuned vs base. Flag if any category drops > 5% accuracy [16].
+
+### References
+- [16] Wang et al. "Learning Rate Matters: Vanilla LoRA May Suffice for LLM Fine-tuning." arXiv:2602.04998, 2026. https://arxiv.org/abs/2602.04998
+- [17] Unsloth. "Qwen3 — How to Run & Fine-tune." https://unsloth.ai/docs/models/qwen3-how-to-run-and-fine-tune
 
 ---
 
@@ -620,9 +640,12 @@ Upload the trained PEFT adapter as a W&B artifact:
 wandb artifact put --name lora-adapter --type model ./path/to/adapter/
 ```
 
-The adapter must be stored in `storage_region = "coreweave-us"` for low latency. Inference call includes the artifact reference as a `lora` parameter alongside the base model name `OpenPipe/Qwen3-14B-Instruct`. No LoRA surcharge — billed at base model rates ($0.05/M input, $0.22/M output).
+The adapter must be stored in `storage_region = "coreweave-us"` for low latency. Inference call includes the artifact reference as a `lora` parameter alongside the base model name `OpenPipe/Qwen3-14B-Instruct`. No LoRA surcharge — billed at base model rates ($0.05/M input, $0.22/M output) [18].
 
 **Latency context from tuning_experiment id=94**: The 14B on W&B Inference averaged 157ms on the adherence-checker shape (short output). For the tonal-pass shape (~300 in / 250 out tokens, one paragraph), expect 500–900ms per call — comparable to the Together/Qwen3.5-9B path but with better price per token.
+
+### References
+- [18] Weights & Biases. "Use Serverless LoRA Inference." https://docs.wandb.ai/inference/lora
 
 ---
 
