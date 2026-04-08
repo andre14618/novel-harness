@@ -62,22 +62,33 @@ W&B Inference has two hard constraints: base model catalog (only Qwen3-14B-Instr
 
 ### Economics
 
-Per-second billing, scale-to-zero:
+Per-second billing, scale-to-zero. Current RunPod Secure Cloud serverless endpoint rates (2026-04):
 
 | GPU | VRAM | Active $/s | $/hr equiv | Good for |
 |-----|------|-----------|------------|----------|
-| A4000 | 16GB | $0.00011 | $0.40 | Fine-tuned 3B models |
-| L4/A5000 | 24GB | $0.00013 | $0.47 | Fine-tuned 7-14B (AWQ) |
-| A6000/A40 | 48GB | $0.00024 | $0.86 | Fine-tuned 14B fp16, 30B AWQ |
+| A4000 | 16GB | ~$0.00016–0.00022 | ~$0.58–0.79 | Fine-tuned 3B models |
+| L4/A5000 | 24GB | ~$0.00016–0.00020 | ~$0.58–0.72 | Fine-tuned 7-14B (AWQ) |
+| A6000/A40 | 48GB | ~$0.00024 | ~$0.86 | Fine-tuned 14B fp16, 30B AWQ |
 
-Approximate per-token cost at steady throughput: ~$0.04–0.17/M depending on model size and GPU — comparable to W&B Inference ($0.05/$0.22), competitive on output-heavy workloads.
+Note: the lower-end GPUs (A4000, L4) are cheaper as community *pod* rentals (~$0.40–0.47/hr), but serverless *endpoint* pricing adds infrastructure overhead — expect 1.3–2× the pod rate. The A6000 figure is confirmed against the lessons-learned cost analysis.
 
-**The idle timeout trap**: A worker is billed for up to 5 seconds after its last request before scaling down (configurable). For small fast models (3B, ~0.1s inference), idle overhead can dominate. Mitigations:
-- Set idle timeout to 0s for infrequent agents (accept cold starts)
-- Set idle timeout to 60s for agents with sequential bursty calls (beat-writer, adherence-checker stay warm across a full novel run)
-- Use min_workers=1 (active worker, 20-30% discount) for critical path agents during production runs
+**The utilization cliff is the real cost driver.** At the continuous batch sizes the harness actually sustains, effective per-token cost is far from the hardware floor:
 
-**Cold starts**: Mitigated by FlashBoot + HF model caching. With a model cached on HF, worker restore is ~5s rather than 60-90s.
+| Scenario | Throughput | $/M tokens (A6000) |
+|----------|-----------|-------------------|
+| Batched inference, 8–16 concurrent requests | ~500–2,500 TPS | ~$0.03–0.17/M |
+| Single-request sequential (harness pattern) | ~60 TPS decode | ~$7–8/M |
+
+The harness fires sequential per-beat calls with gaps between chapters. Even with idle timeout tuning, a worker is billing during inter-beat pauses and chapter transitions. The ~$0.04–0.17/M "efficient" figure only materialises at sustained concurrency the harness never produces. **The realistic cost is ~$7–8/M**, derived from an actual 10-chapter novel run in `llm_calls` (novel-1775484070927): 229K output tokens / 60 TPS decode = 3,822s active + 476K input tokens / 500 TPS prefill = 952s, all × $0.00024/s = ~$1.10 total vs $0.074 on W&B Inference. See lessons-learned for the full analysis.
+
+The value of RunPod is **flexibility, not cost**: any model, any LoRA rank, any base size. At solo-developer volume it costs ~15× more than W&B Inference per token.
+
+**The idle timeout trap**: A worker is billed until it scales down (configurable, default up to 5s after last request). For sequential harness calls separated by seconds of processing, the worker stays warm but also stays billing. Mitigations:
+- Set idle timeout to 0s for infrequent agents (accept cold starts, ~5s with HF model cache)
+- Set idle timeout to 60s for bursty sequential agents (beat-writer, adherence-checker) to stay warm across a full chapter
+- Use min_workers=1 (active worker, 20–30% discount) only if the agent runs continuously throughout a production novel run
+
+**Cold starts**: Mitigated by FlashBoot + HF model caching. With a model cached on HF, worker restore is ~5s rather than 60–90s.
 
 ### Integration path
 
