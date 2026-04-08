@@ -118,7 +118,10 @@ export const PROVIDERS: Record<ProviderName, ProviderDef> = {
     apiUrl: "https://api.fireworks.ai/inference/v1/chat/completions",
     envKey: "FIREWORKS_API_KEY",
     tier: "standard",  // FireAttention on H100s — much faster than Together standard tier per benchmarks, but not LPU/WSE-class
-    extraBody: () => ({ chat_template_kwargs: { enable_thinking: false } }),  // same kwarg as Together for Qwen-family thinking control
+    // No provider-wide extraBody. Fireworks REJECTS chat_template_kwargs entirely
+    // ("Extra inputs are not permitted") so the Together-style kwarg breaks every call.
+    // Thinking control is per-model: gpt-oss uses reasoning_effort, Qwen uses /nothink
+    // prefix via needsNothink, the explicit Instruct/Thinking variants need nothing.
     cache: { type: "none" },  // verify on Fireworks pricing page; conservative default
   },
 }
@@ -146,6 +149,9 @@ export interface ModelDef {
   notes?: string
   needsNothink?: boolean      // Qwen3 on Groq/OpenRouter needs /nothink prefix
   useMaxCompletionTokens?: boolean
+  /** Reasoning-effort param for OpenAI-style reasoning models (gpt-oss, gpt-5.4 family).
+   *  When set, transport sends `reasoning_effort: <value>` in the request body. */
+  reasoningEffort?: "low" | "medium" | "high"
   /** Fine-tune fields — when set, transport sends baseModel as the API model and lora as a separate field. */
   baseModel?: string           // API model ID to send (e.g. "Qwen/Qwen3.5-9B")
   lora?: string                // LoRA adapter ID (e.g. Together AI fine-tunes)
@@ -662,7 +668,8 @@ export const MODELS: ModelDef[] = [
     provider: "fireworks",
     params: "120B MoE",
     pricing: { input: 0.15, output: 0.60 },
-    thinking: "disabled",
+    thinking: "optional",
+    reasoningEffort: "low",  // Fireworks gpt-oss reasons by default; "low" keeps reasoning_content short. Increase for analytical slots that benefit from explicit reasoning.
     maxContext: 131_000,
     notes: "Same model as the Groq gpt-oss-120b that's currently serving chapter-plan-checker. Same price. Difference is Fireworks supports fine-tuning, so once we accumulate plan-check training data we can train a LoRA against this base in-place. A/B latency vs Groq before any swap.",
   },
@@ -672,7 +679,8 @@ export const MODELS: ModelDef[] = [
     provider: "fireworks",
     params: "20B",
     pricing: { input: 0.07, output: 0.30 },
-    thinking: "disabled",
+    thinking: "optional",
+    reasoningEffort: "low",
     maxContext: 131_000,
     notes: "Cheapest analytical-tier candidate. Tunable. Worth A/B testing as a chapter-plan-checker once the persistence + training-data pipeline exists — if 20B is good enough fine-tuned, it's the cost floor.",
   },

@@ -89,6 +89,7 @@ export class DirectTransport implements LLMTransport {
     const modelDef = getModel(request.model, request.provider)
     const apiModel = modelDef?.baseModel ?? request.model
     const loraExtra = modelDef?.lora ? { lora: modelDef.lora } : {}
+    const reasoningExtra = modelDef?.reasoningEffort ? { reasoning_effort: modelDef.reasoningEffort } : {}
 
     const providerExtra = providerDef.extraBody ? providerDef.extraBody() : {}
 
@@ -103,6 +104,7 @@ export class DirectTransport implements LLMTransport {
       response_format: request.responseFormat ?? { type: "json_object" },
       ...providerExtra,
       ...loraExtra,
+      ...reasoningExtra,
       ...request.extraBody,
     })
     const headers: Record<string, string> = providerDef.authHeader
