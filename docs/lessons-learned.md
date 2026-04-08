@@ -323,6 +323,34 @@ When testing lint fixes, measuring judge penalty deltas is noisy and indirect. M
 ### Character-level diff is useless for measuring edit precision
 A positional character comparison counts every character shifted by an earlier edit as "changed." Removing 5 characters at position 100 in a 8,000-character text shows 99% collateral because positions 101-8000 all shift. Use word-level bag-of-words diff or proper edit distance. (Experiment #68 showed 52% "collateral" for 2 word changes → fixed in experiment #69)
 
+### Adherence-checker base-model ladder: 14B is 79%, biased over-permissive in the same direction as chapter-plan-checker (2026-04-08)
+
+Replayed the 160-pair synthetic adherence-checker training set (`lora-data/adherence-checker-pairs.jsonl`, 20 scenarios × 8 variants) through three candidate models, scoring each verdict against the deterministic label. Single script, single run, same prompts, three providers. The point was to extend the chapter-plan-checker baseline pattern to the second-largest verdict slot in the pipeline so the SFT-vs-prompt-engineering decision has the same shape of data for both.
+
+| variant            | Llama 3.1 8B (Groq) | **Qwen3-14B base (W&B)** | Qwen 235B (Cerebras) |
+|---|---:|---:|---:|
+| PASS_CLEAN         | 65% | **100%** | 100% |
+| PASS_PARAPHRASE    | 45% | **100%** | 100% |
+| PASS_REORDER       | 40% | 95%      | 95%  |
+| PASS_ATMOSPHERIC   | 40% | **100%** | 100% |
+| FAIL_MISSING       | 80% | **35%**  | 85%  |
+| FAIL_CHAR          | 100%| **60%**  | 95%  |
+| FAIL_SETTING       | 100%| 95%      | 100% |
+| FAIL_TANGENT       | 100%| **45%**  | 95%  |
+| **overall**        | **71%** | **79%** | **96%** |
+| avg latency        | 491ms | **298ms** | 486ms |
+| confusion (FP/FN)  | 4 / 42 | **33 / 1** | 5 / 1 |
+
+(`tuning_experiment` id=110, `scripts/score-adherence-baseline.ts`)
+
+**The two small models fail in opposite directions, which is the actually important finding.** Llama 8B is over-strict — 42 false fails, 4 false passes — it rejects valid creative variation (paraphrased dialogue, reordered events, atmospheric additions) at 40-65% rates while catching every fail case at ≥80%. Qwen3-14B is over-permissive — 1 false fail, 33 false passes — it never rejects a valid PASS but rubber-stamps invalid FAIL_MISSING (35%) and FAIL_TANGENT (45%) cases. The 17pp overall gap to 235B is concentrated entirely in fail-detection on three variants: MISSING (50pp gap), TANGENT (50pp gap), CHAR (35pp gap).
+
+**This is exactly the chapter-plan-checker failure mode from exp #107.** Same model family (Qwen3-14B), same default-to-affirmative bias under flat verdict schemas, same concentration of misses on FAIL cases that require the model to commit to "this thing didn't happen." There the fix that lifted 14B from 58% → 75% was the structured checklist schema (`scripts/test-checklist-schema.ts`, exp #109) — forcing the model to write down what it observed before emitting `pass`. The mechanism transfers cleanly: every FAIL_MISSING case is one where the verdict could be conditioned on "I scanned the prose for action X and didn't find it" rather than streamed straight from prior. The natural next experiment is to apply the same checklist treatment to adherence-checker and re-score on this same 160-pair set to see if 14B can close most of the 17pp gap without any SFT.
+
+**Implication for SFT prioritization.** Don't open an SFT data collection effort for adherence-checker until the prompt-engineering ceiling has been measured. The chapter-plan-checker pattern says +17pp is on the table for free; if it transfers, 14B lands around 96% — tied with 235B at 1.6× the speed and ~10× cheaper per token, which would close the case without training a single example. Only consider SFT if the post-checklist 14B number still has a meaningful gap on a specific failure mode.
+
+**Methodology note — three-way ladders are worth the extra script time.** Including Llama 8B in this run cost ~5 minutes and exposed the symmetric-but-opposite failure mode (over-strict vs over-permissive). With only 14B + 235B I would have seen "14B is 17pp worse" and missed that the *direction* of the failure is what reveals the underlying mechanism (verdict-token-bias vs literal under-trained classification capacity). Always add a third anchor to baseline runs when one exists at low cost.
+
 ## Prompt & Output Schema Design
 
 ### Structured checklist output beats flat verdict schemas on multi-check verification tasks — but only for fields within model capacity (2026-04-08)
