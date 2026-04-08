@@ -33,6 +33,23 @@ Notably absent: Qwen3 8B, Qwen3 4B-Instruct-2507, Qwen 3.5 9B (the base of the e
 
 **Decision**: multi-task LoRA on `OpenPipe/Qwen3-14B-Instruct` for the three analytical agents (adherence-checker, reference-resolver, chapter-plan-checker). One base, one training run, one deployment.
 
+**Provider plumbing done (commit `5191e98`)**: `wandb` registered as a provider in `models/registry.ts` with the four candidate model entries. End-to-end smoke test through `getTransport().execute()` confirmed: 410ms for a single tiny call against `OpenPipe/Qwen3-14B-Instruct`, auth via `WANDB_API_KEY` works, OpenAI-compatible payload works, no extraBody quirks. The harness can now route to W&B; no agent assignments yet because there's no LoRA to point at.
+
+**Next action items, in order**:
+
+1. **Research the LoRA training side** — figure out the right training provider for `OpenPipe/Qwen3-14B-Instruct`. The output needs to be a PEFT-format adapter that W&B Inference will accept as a LoRA artifact. Candidates:
+   - **W&B's own LoRA training service** — cleanest if it exists for this base. The CoreWeave/OpenPipe acquisition (Sept 2025) suggests this is the intended on-ramp.
+   - **Together AI's training service** — proven (we used it for tonal-pass v3) but training and serving aren't co-located.
+   - **OpenPipe's own training tooling** — they're the maintainers of this base; their training stack should produce W&B-compatible artifacts by definition.
+   - **Local one-off training** on a rented GPU instance — most control, most setup. Last resort.
+   This is the next concrete blocker. ~half day of research + testing one path.
+
+2. **Use the existing 111 training pairs** to seed the multi-task LoRA. They were generated 2026-04-07 via `scripts/build-analytical-finetune-data.ts` (oracle = Cerebras Qwen 235B): 35 adherence-checker (with beat-writer pre-step + truncation rejects filtered), 58 reference-resolver, 18 chapter-plan-checker. Spot-check ~10% via `/app/finetune` first to validate oracle quality. If pairs look good, train. If not, expand the dataset with `--limit 30` runs first.
+
+3. **Wire `models/roles.ts`** to route adherence-checker, reference-resolver, and chapter-plan-checker through the LoRA — once it's deployed. Until then those slots stay on their current models (Cerebras Qwen 235B / Llama 8B Groq / gpt-oss-120b Groq).
+
+4. **Validate the LoRA against the oracle** before swapping in production. Same shape as the latency probe but measuring agreement: run N inputs through both the LoRA and Cerebras Qwen 235B, compute agreement rate. Decision criterion: ≥95% agreement for a swap.
+
 **Open follow-up: Howard tonal-pass v4** — the existing v3 tonal-pass LoRA is on Qwen 3.5 9B (Together) and that base isn't on W&B's list. To bring tonal-pass onto W&B for unified serving, retrain on `OpenPipe/Qwen3-14B-Instruct` (or Qwen3-30B-A3B if/when the cold-start gets resolved). Existing curated training pairs (`scripts/curate-tonal-pairs.ts`, ~4,500 pairs) port over but the adapter weights do not. Expect to re-validate the style transfer on the new base. Lower priority than the analytical LoRA — tonal-pass isn't enabled in production yet (`pipeline.tonalPass: false`).
 
 ## Fine-Tuning data generation — unchanged direction, base model TBD
