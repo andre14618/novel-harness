@@ -578,7 +578,13 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
       if (rows.length === 0) {
         return Response.json({ error: "not found" }, { status: 404 })
       }
-      return Response.json(rows[0])
+      // Bun.sql returns JSONB columns as strings — parse so the UI gets an object
+      // and can render with JSON.stringify(...) without escaping.
+      const row = rows[0]
+      if (typeof row.request_json === "string") {
+        try { row.request_json = JSON.parse(row.request_json) } catch { /* leave as string */ }
+      }
+      return Response.json(row)
     } catch (err) {
       return Response.json({ error: String(err) }, { status: 500 })
     }

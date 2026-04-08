@@ -223,38 +223,45 @@ export async function executeAndLog(
       const cost = response
         ? getTokenCost(request.provider, request.model, promptTokens, completionTokens)
         : 0
-      logLLMCallStructured(novelId, {
-        timestamp: new Date().toISOString(),
-        agent: agentName,
-        model: request.model,
-        provider: request.provider,
-        temperature: request.temperature,
-        maxTokens: request.maxTokens,
-        thinking: false,
-        systemPromptLength: request.systemPrompt.length,
-        userPromptLength: request.userPrompt.length,
-        contentPreview: response?.content.slice(0, 200) ?? "",
-        promptTokens,
-        completionTokens,
-        totalLatencyMs: Math.round(latencyMs),
-        tokensPerSec: tps,
-        cost,
-        jsonExtractionSuccess: !failed,
-        jsonExtractionRetried: false,
-        zodValidationSuccess: !failed,
-        zodErrors: [],
-        httpAttempts: response?.httpAttempts ?? 0,
-        retryErrors: response?.retryErrors ?? [],
-        systemPrompt: request.systemPrompt,
-        userPrompt: request.userPrompt,
-        responseContent: response?.content,
-        chapter: tags?.chapter,
-        beatIndex: tags?.beatIndex,
-        attempt: tags?.attempt,
-        requestJson: requestEnvelopeForLog(request),
-        failed,
-        errorText: caughtError ? formatErrorForLog(caughtError) : undefined,
-      }).catch(() => {})
+      // Awaited inside finally so the always-log guarantee is strict: when this
+      // function returns or throws, the row exists. Log errors are surfaced to
+      // stderr but never replace the original LLM error from the try block.
+      try {
+        await logLLMCallStructured(novelId, {
+          timestamp: new Date().toISOString(),
+          agent: agentName,
+          model: request.model,
+          provider: request.provider,
+          temperature: request.temperature,
+          maxTokens: request.maxTokens,
+          thinking: false,
+          systemPromptLength: request.systemPrompt.length,
+          userPromptLength: request.userPrompt.length,
+          contentPreview: response?.content.slice(0, 200) ?? "",
+          promptTokens,
+          completionTokens,
+          totalLatencyMs: Math.round(latencyMs),
+          tokensPerSec: tps,
+          cost,
+          jsonExtractionSuccess: !failed,
+          jsonExtractionRetried: false,
+          zodValidationSuccess: !failed,
+          zodErrors: [],
+          httpAttempts: response?.httpAttempts ?? 0,
+          retryErrors: response?.retryErrors ?? [],
+          systemPrompt: request.systemPrompt,
+          userPrompt: request.userPrompt,
+          responseContent: response?.content,
+          chapter: tags?.chapter,
+          beatIndex: tags?.beatIndex,
+          attempt: tags?.attempt,
+          requestJson: requestEnvelopeForLog(request),
+          failed,
+          errorText: caughtError ? formatErrorForLog(caughtError) : undefined,
+        })
+      } catch (logErr) {
+        console.error(`[llm-inspector] failed to log ${agentName} call:`, logErr)
+      }
     }
   }
 }
@@ -436,7 +443,14 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
         errorText: caughtError ? formatErrorForLog(caughtError) : undefined,
       }
 
-      logLLMCallStructured(config.novelId, entry).catch(() => {})
+      // Awaited so the always-log guarantee is strict: when this function
+      // returns or throws, the row exists. Log errors are surfaced to stderr
+      // but never replace the original LLM error from the try block.
+      try {
+        await logLLMCallStructured(config.novelId, entry)
+      } catch (logErr) {
+        console.error(`[llm-inspector] failed to log ${entry.agent} call:`, logErr)
+      }
 
       // Broadcast to SSE for real-time visibility. Failed calls get status="error"
       // so the UI can highlight them as they happen.
