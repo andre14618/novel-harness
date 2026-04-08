@@ -177,7 +177,11 @@ Write approximately ${targetWords} words of prose for this beat. Stay in third-p
     model: "llama-3.1-8b-instant",
     provider: "groq",
     temperature: 0.9,
-    maxTokens: 1500,
+    // 2500 token budget for ~333-word beats. The smoke test showed ~5/16 pairs
+    // hitting truncation with maxTokens=1500, which the oracle correctly labeled
+    // as "fail (cuts off mid-sentence)" — useless noise in the training data
+    // because the failure mode is "ran out of tokens," not real adherence drift.
+    maxTokens: 2500,
     responseFormat: { type: "text" },
     callerId: "finetune-beat-writer",
   })
