@@ -35,20 +35,19 @@ Notably absent: Qwen3 8B, Qwen3 4B-Instruct-2507, Qwen 3.5 9B (the base of the e
 
 **Provider plumbing done (commit `5191e98`)**: `wandb` registered as a provider in `models/registry.ts` with the four candidate model entries. End-to-end smoke test through `getTransport().execute()` confirmed: 410ms for a single tiny call against `OpenPipe/Qwen3-14B-Instruct`, auth via `WANDB_API_KEY` works, OpenAI-compatible payload works, no extraBody quirks. The harness can now route to W&B; no agent assignments yet because there's no LoRA to point at.
 
+**Training provider decided (2026-04-08): Modal DIY with Unsloth on A100-40GB.** W&B has no training service (inference only). Together AI's support for the OpenPipe variant is unconfirmed and adapter export is ambiguous. OpenPipe can train on their own base but is 3× more expensive and adapter export unclear. Modal gives full ownership of the PEFT adapter weights (~$0.25, ~7 minutes on A100-40GB), which upload directly to W&B Inference as a versioned artifact. W&B's LoRA docs confirm: upload a PEFT adapter directory as a W&B artifact with base model metadata → serves instantly at base-model per-token rates, no extra LoRA fee, max rank 16 for this base.
+
 **Next action items, in order**:
 
-1. **Research the LoRA training side** — figure out the right training provider for `OpenPipe/Qwen3-14B-Instruct`. The output needs to be a PEFT-format adapter that W&B Inference will accept as a LoRA artifact. Candidates:
-   - **W&B's own LoRA training service** — cleanest if it exists for this base. The CoreWeave/OpenPipe acquisition (Sept 2025) suggests this is the intended on-ramp.
-   - **Together AI's training service** — proven (we used it for tonal-pass v3) but training and serving aren't co-located.
-   - **OpenPipe's own training tooling** — they're the maintainers of this base; their training stack should produce W&B-compatible artifacts by definition.
-   - **Local one-off training** on a rented GPU instance — most control, most setup. Last resort.
-   This is the next concrete blocker. ~half day of research + testing one path.
+1. **Spot-check the 111 training pairs** via `/app/finetune` — review ~10-15 examples per task (adherence-checker, reference-resolver, chapter-plan-checker). Validate oracle quality. Flag any systematic errors in the oracle outputs before training. If chapter-plan-checker (18 pairs) looks thin, expand to 50 with `scripts/build-analytical-finetune-data.ts --task chapter-plan-checker --limit 32` before proceeding.
 
-2. **Use the existing 111 training pairs** to seed the multi-task LoRA. They were generated 2026-04-07 via `scripts/build-analytical-finetune-data.ts` (oracle = Cerebras Qwen 235B): 35 adherence-checker (with beat-writer pre-step + truncation rejects filtered), 58 reference-resolver, 18 chapter-plan-checker. Spot-check ~10% via `/app/finetune` first to validate oracle quality. If pairs look good, train. If not, expand the dataset with `--limit 30` runs first.
+2. **Write the Modal/Unsloth training script** — `scripts/train-analytical-lora.py`. Unsloth has documented support for Qwen3 models. Key config: base = `OpenPipe/Qwen3-14B-Instruct`, rank = 16 (W&B max), alpha = 16, target modules = attention projections (Q/K/V/O), 5 epochs, multi-task dataset from the 111 pairs. Output: PEFT adapter directory.
 
-3. **Wire `models/roles.ts`** to route adherence-checker, reference-resolver, and chapter-plan-checker through the LoRA — once it's deployed. Until then those slots stay on their current models (Cerebras Qwen 235B / Llama 8B Groq / gpt-oss-120b Groq).
+3. **Upload adapter to W&B** as a versioned artifact, confirm it appears in W&B Inference's LoRA list and is routable.
 
-4. **Validate the LoRA against the oracle** before swapping in production. Same shape as the latency probe but measuring agreement: run N inputs through both the LoRA and Cerebras Qwen 235B, compute agreement rate. Decision criterion: ≥95% agreement for a swap.
+4. **Wire `models/roles.ts`** to route adherence-checker, reference-resolver, and chapter-plan-checker through the LoRA. Until then those slots stay on their current models (Cerebras Qwen 235B / Llama 8B Groq / gpt-oss-120b Groq).
+
+5. **Validate against the oracle** — run 50 production inputs through both the LoRA and Cerebras Qwen 235B, compute agreement rate per task. Decision criterion: ≥95% agreement for a swap. If a task falls short, expand its training set and retrain (cheap — ~$0.25/run).
 
 **Tonal-pass v4 retrain on Qwen3-14B is OFF the table** (was a follow-up in the previous version of this todo). Retraining on a less-capable older base just for unified serving was based on the wrong capability framing — corrected per `docs/lessons-learned.md` "Don't compare model size without checking generation." Howard tonal-pass v3 stays on Together AI as the legacy serving home until/unless retrained on a W&B-supported base.
 
@@ -56,7 +55,7 @@ Notably absent: Qwen3 8B, Qwen3 4B-Instruct-2507, Qwen 3.5 9B (the base of the e
 
 ## Fine-Tuning data generation — unchanged direction, base model TBD
 
-LoRA fine-tunes have historically targeted Qwen 3.5 9B on Together ($0.48/M training tokens, $0.10/$0.15 inference). Going forward the base will likely change to whichever W&B supports for the slot — probably Qwen3 30B A3B Instruct 2507 for creative LoRAs and OpenPipe Qwen3 14B Instruct for structured/analytical LoRAs. Knowledge distillation: base model outputs, human reviews/corrects in Claude Code, corrected outputs become training data. Generic prompts — training data teaches behavior, not the prompt.
+**Base model decided**: `OpenPipe/Qwen3-14B-Instruct` on W&B Inference for all structured/analytical LoRAs. Training via Modal/Unsloth (~$0.25/run), serving via W&B at base-model per-token rates. Knowledge distillation: Cerebras Qwen 235B as oracle, outputs reviewed in Claude Code, corrected outputs become training data. Generic prompts — training data teaches behavior, not the prompt.
 
 - **Run fact-extractor dataset generation** — `bun scripts/build-finetune-data.ts --task fact-extractor --limit 50` on LXC. Review 20-30 pairs in Claude Code, correct to gold standard, then scale to 300+.
 - **Adherence-checker fine-tune** — runs every beat, high frequency. Classification task (pass/fail + deviation). Needs beat-level training data — generate novels with beat pipeline and log beat/draft/adherence pairs.
