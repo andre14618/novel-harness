@@ -177,11 +177,21 @@ const referenceSchema = z.object({
 })
 type ReferenceOutput = z.infer<typeof referenceSchema>
 
+/** Coarse key for matching lookups across models. Drops the free-text `topic`
+ *  field because the retrieval engine in src/agents/writer/reference-resolver.ts
+ *  only uses topic for the `knowledge` lookup type (substring filter); for
+ *  recent_events, relationship, and location_events the topic is unused at
+ *  retrieval time. Including topic in the key produces near-zero exact matches
+ *  even when the models semantically agree on what background to fetch. */
 function lookupKey(l: ReferenceOutput["lookups"][number]): string {
   const chars = (l.characters ?? []).map(c => c.toLowerCase().trim()).sort().join(",")
-  const topic = (l.topic ?? "").toLowerCase().trim()
   const loc = (l.location ?? "").toLowerCase().trim()
-  return `${l.type}|${chars}|${loc}|${topic}`
+  // For knowledge lookups, include a short normalized topic prefix so distinct
+  // topic intents on the same character don't all collapse to one key.
+  const topicHint = l.type === "knowledge"
+    ? "|" + (l.topic ?? "").toLowerCase().trim().split(/\s+/).slice(0, 3).join(" ")
+    : ""
+  return `${l.type}|${chars}|${loc}${topicHint}`
 }
 
 const REFERENCE_CONFIG: AgentExperimentConfig<ReferenceOutput> = {
