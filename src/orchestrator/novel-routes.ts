@@ -95,10 +95,12 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
 
       // Group agents by role for the UI
       const agentGroups: Record<string, { label: string; description: string; agents: string[] }> = {
-        writers: { label: "Writers", description: "Creative prose generation", agents: ["writer", "rewriter"] },
+        writers: { label: "Writers", description: "Creative prose generation", agents: ["writer", "beat-writer", "rewriter"] },
         planners: { label: "Planners", description: "World, characters, plot, chapter outlines", agents: ["world-builder", "character-agent", "plotter", "planning-plotter"] },
-        extractors: { label: "Extractors", description: "Structured extraction from prose", agents: ["summary-extractor", "fact-extractor", "character-state"] },
-        validators: { label: "Validators", description: "Continuity and quality checks", agents: ["continuity", "cross-chapter-continuity", "prose-quality"] },
+        beatSupport: { label: "Beat Support", description: "Cheap/fast structural tasks for beat-level writing", agents: ["reference-resolver", "adherence-checker"] },
+        extractors: { label: "Extractors", description: "Structured extraction from prose", agents: ["summary-extractor", "fact-extractor", "character-state", "relationship-timeline", "graph-linker"] },
+        lintTonal: { label: "Lint & Tonal", description: "AI-tell detection and style transfer", agents: ["lint-fixer", "tonal-pass"] },
+        validators: { label: "Validators", description: "Continuity checks", agents: ["continuity"] },
         judges: { label: "Judges", description: "Benchmark scoring and pairwise comparison", agents: ["judge", "pairwise-judge", "benchmark-judge"] },
         benchmark: { label: "Benchmark", description: "Independent benchmark pipeline agents", agents: ["benchmark-writer"] },
         improvement: { label: "Improvement", description: "Autonomous prompt tuning daemon", agents: ["improver"] },

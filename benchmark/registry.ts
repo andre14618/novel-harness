@@ -10,7 +10,6 @@
 
 import { config as planningConfig } from "./planning/generate"
 import { config as extractionConfig } from "./extraction/generate"
-import { config as continuityConfig } from "./continuity/generate"
 import { config as proseConfig } from "./prose/generate"
 import { config as contextConfig } from "./context/generate"
 import type { BenchmarkConfig } from "./engine"
@@ -19,7 +18,6 @@ export const BENCHMARKS: Record<string, BenchmarkConfig> = {
   context: contextConfig,
   planning: planningConfig,
   extraction: extractionConfig,
-  continuity: continuityConfig,
   prose: proseConfig,
 }
 

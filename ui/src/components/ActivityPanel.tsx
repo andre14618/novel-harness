@@ -24,8 +24,6 @@ const STEP_LABELS: Record<string, string> = {
   "writer": "Writing chapter",
   "continuity": "Checking continuity",
   "state-extraction": "Extracting facts & state",
-  "cross-chapter-continuity": "Cross-chapter continuity check",
-  "prose-quality": "Prose quality check",
   "rewriter": "Rewriting chapter",
   "drafting": "Drafting",
 }

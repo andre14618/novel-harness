@@ -22,7 +22,7 @@ import { extractJSON } from "../src/llm"
 
 const { values } = parseArgs({
   options: {
-    target: { type: "string" },       // "extraction", "planning", "continuity", "prose"
+    target: { type: "string" },       // "extraction", "planning", "prose"
     dimension: { type: "string" },     // dimension to improve
     iterations: { type: "string", default: "3" },
     "dry-run": { type: "boolean", default: false },
@@ -63,13 +63,6 @@ const TARGETS: Record<string, TargetConfig> = {
     ],
     benchmarkCmd: "BENCHMARK_SEEDS=romance-drama BENCHMARK_RUNS=2 bun benchmark/planning/run.ts",
     runType: "planning",
-  },
-  continuity: {
-    promptFiles: [
-      { path: "src/agents/cross-chapter-continuity/prompt.md", agentName: "cross-chapter-continuity" },
-    ],
-    benchmarkCmd: "BENCHMARK_FIXTURES=location-impossibility,character-knowledge-violation BENCHMARK_RUNS=2 bun benchmark/continuity/run.ts",
-    runType: "continuity",
   },
   prose: {
     promptFiles: [

@@ -97,8 +97,6 @@ function getPhaseForAgent(agent: string): string {
     "summary-extractor": "extraction",
     "fact-extractor": "extraction",
     "character-state": "extraction",
-    "cross-chapter-continuity": "validation",
-    "prose-quality": "validation",
     "rewriter": "validation",
   }
   return PHASE_MAP[agent] ?? "unknown"

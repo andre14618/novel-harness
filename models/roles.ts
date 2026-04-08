@@ -63,8 +63,6 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
 
   // ── Validators (analytical checks) ────────────────────────────────────
   "continuity":                { ...cerebrasQwen235B, temperature: 0.2 },
-  "cross-chapter-continuity":  { ...cerebrasQwen235B, temperature: 0.2 },
-  "prose-quality":             { ...cerebrasQwen235B, temperature: 0.2 },
 
   // ── Lint fixer (per-sentence creative fixes via LLM) ──────────────────
   "lint-fixer":                { provider: "cerebras", model: "qwen/qwen3-235b", temperature: 0.2 },
