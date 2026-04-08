@@ -351,6 +351,31 @@ Across style fine-tuning literature and community runs, training loss dropping b
 
 **Fix:** after a training job completes, use `<name>-sft-resume:latest` (or the specific final checkpoint version, e.g. `:v8`) as the inference URI, not `<name>:latest`. Verify with a deterministic probe (temperature=0, compare base vs artifact output — identical = identity LoRA still serving). (v4 training run, `tuning_experiment` id=95/96)
 
+### RunPod dedicated GPU is 2× more expensive than Cerebras and 15× more expensive than W&B Inference at solo-developer volume — the value is flexibility, not cost (2026-04-08)
+
+Priced a 10-chapter novel run against actual `llm_calls` data (novel-1775484070927, April 6 2026): 130 beat-writer calls, 13 continuity calls, 44 relationship-timeline calls, 33 rewriter calls, plus concept and extraction agents. Real token counts:
+
+| Provider comparison | Cost for this run |
+|---------------------|------------------|
+| Actual run (Cerebras 235B + mimo) | **$0.63** |
+| RunPod A6000 48GB ($0.00024/s, fine-tuned 14B) | **~$1.10** |
+| W&B Inference ($0.05/$0.22 per 1M tokens) | **~$0.074** |
+
+The RunPod estimate is based on 229K Cerebras output tokens / ~60 TPS single-request decode on A6000 = 3,822s × $0.00024, plus 476K input tokens / ~600 TPS prefill = 794s × $0.00024.
+
+**Why RunPod costs more even at a lower per-second rate:** When you rent a dedicated GPU you pay for every second the worker runs — including the seconds between serial requests while the harness writes to Postgres, runs deterministic checks, and waits on other agents. Cerebras and W&B run multi-tenant infrastructure at high utilization; you pay only for your tokens, not for anyone else's idle time. At serial one-request-at-a-time calling patterns (which is how most harness agents work), utilization on a dedicated GPU is low, and the $/token blows out.
+
+**The break-even condition for RunPod:** only approaches W&B cost-per-token at vLLM continuous batch sizes of ~8-16 simultaneous requests, which the harness never sustains. The reference-resolver 250-call burst is the closest case but it clears in ~40 seconds and then the worker goes idle.
+
+**What RunPod is actually for:** serving fine-tuned adapters on bases W&B doesn't carry, or LoRA rank > 16. It is not cheaper than managed inference — it is the escape hatch when managed inference can't serve your model at all. The cold start, idle timeout, and per-second billing are all manageable (cold start with HF model caching is ~5–20s at $0.001–0.005; idle is negligible at $0.0144 per 60s window). The problem is structural: dedicated GPUs at low utilization always lose to multi-tenant per-token pricing on the same hardware generation.
+
+**The hierarchy for fine-tune serving:**
+1. **W&B Inference** — $0.05/$0.22/M, zero infra, limited to their catalog (Qwen3-14B, rank ≤ 16)
+2. **Together AI** — $0.10/$0.15/M, serverless multi-LoRA, wider base catalog
+3. **RunPod** — ~$7–8/M at low utilization, but any model, any rank, any base
+
+Always exhaust managed per-token options before going to RunPod. (Analysis 2026-04-08, based on `llm_calls` data for novel-1775484070927)
+
 ### V4 (Qwen3-14B, W&B) beats V3 (Qwen3.5-9B, Together) on every style metric once served correctly (2026-04-08)
 Experiments #95 and #96 concluded V4 underperformed V3 — that conclusion was entirely wrong because both runs hit the identity LoRA placeholder (`howard-tonal-v4:latest` = v0), not the trained adapter. Once the correct URI was used (`howard-tonal-v4-sft-resume:v8`), V4 dominates:
 
