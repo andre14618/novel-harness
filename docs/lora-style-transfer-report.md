@@ -509,25 +509,31 @@ The 14B is a less capable but dense model. Its value is not raw intelligence but
 
 ---
 
-### 11.2 Recommended Hyperparameter Config
+### 11.2 Training Path: W&B Serverless SFT (ART)
+
+**Fully on-platform.** W&B's managed fine-tuning service (Serverless SFT) is powered by OpenPipe's **ART framework** running on CoreWeave GPUs. `OpenPipe/Qwen3-14B-Instruct` is ART's own fine-tuning-optimized fork — training against it is the native path. The trained adapter is auto-saved as a W&B artifact and immediately routable via W&B Inference. No GPU provisioning, no manual upload. Training is **free during public preview**.
+
+ART docs: https://art.openpipe.ai/fundamentals/sft-training
+
+**Storage cost:** A r=16 PEFT adapter (adapter_config.json + adapter_model.safetensors) is ~50MB. The W&B free tier includes 100GB storage. At $0.03/GB/month for overages, even a dozen adapters cost cents per month.
+
+### 11.3 Recommended Hyperparameter Config
 
 ```
-# LoRA
-r = 16                    # W&B's max; also appropriate for < 1000 examples
+# LoRA (ART config)
+r = 16                    # W&B Inference hard limit; also appropriate for < 1000 examples
 lora_alpha = 16           # α = r (not α = 2r as Together defaulted); prevents unintended LR scaling
 lora_dropout = 0.1
 target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
 bias = "none"
-task_type = "CAUSAL_LM"
 
 # Training
 learning_rate = 1e-4
 lr_scheduler = "cosine"
 warmup_ratio = 0.05        # 5% of total steps
-per_device_train_batch_size = 2
-gradient_accumulation_steps = 8   # effective batch = 16
 max_seq_length = 2048
 num_epochs = 1             # for < 500 examples; increase to 2 for 500–1000
+backend = ServerlessBackend  # auto-saves artifact, no GPU config needed
 ```
 
 **Why α = r instead of α = 2r (the Together AI default):** The actual weight update magnitude is `(alpha/r) × delta_W`. When α = r, this is 1× — the LoRA update scales naturally with rank. When α = 2r (as in v1/v2/v3), it's 2× — effectively doubling the learning rate for the adapter. For style tasks this can push the model to overfit faster. Community consensus for Qwen3 specifically is α = r unless you have good reason to scale up [11, 12].
@@ -541,7 +547,7 @@ num_epochs = 1             # for < 500 examples; increase to 2 for 500–1000
 
 ---
 
-### 11.3 KL-Anchored SFT
+### 11.4 KL-Anchored SFT
 
 The most important addition compared to the v1–v3 runs: **add a KL divergence penalty during SFT**.
 
@@ -574,7 +580,7 @@ The KL term penalizes drifting away from the base model's distribution. For styl
 
 ---
 
-### 11.4 Dataset Construction for Qwen3-14B
+### 11.5 Dataset Construction for Qwen3-14B
 
 The back-translation approach (Section 3) and curation approach (Section 10.6–10.7) from the v3 run are sound and transfer directly. Key additions:
 
@@ -603,7 +609,7 @@ Set `eos_token = "<|im_end|>"` in training config. Mask the assistant token itse
 
 ---
 
-### 11.5 Overfitting Signals
+### 11.6 Overfitting Signals
 
 - **Training loss < 0.2:** Red flag — the model is memorizing, not generalizing. Stop before this point.
 - **Validation loss diverging from training loss:** Early sign of overfitting. Use the checkpoint with the best validation loss, not the final checkpoint.
@@ -613,7 +619,7 @@ For a 500-pair dataset at r = 16, overfitting risk is moderate. 1 epoch is the s
 
 ---
 
-### 11.6 Evaluation Plan
+### 11.7 Evaluation Plan
 
 Same scoring framework as Section 10.8, run against base `OpenPipe/Qwen3-14B-Instruct`:
 
@@ -633,7 +639,7 @@ Same scoring framework as Section 10.8, run against base `OpenPipe/Qwen3-14B-Ins
 
 ---
 
-### 11.7 W&B Inference Serving
+### 11.8 W&B Inference Serving
 
 Upload the trained PEFT adapter as a W&B artifact:
 ```bash
