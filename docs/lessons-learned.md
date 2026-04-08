@@ -323,7 +323,71 @@ When testing lint fixes, measuring judge penalty deltas is noisy and indirect. M
 ### Character-level diff is useless for measuring edit precision
 A positional character comparison counts every character shifted by an earlier edit as "changed." Removing 5 characters at position 100 in a 8,000-character text shows 99% collateral because positions 101-8000 all shift. Use word-level bag-of-words diff or proper edit distance. (Experiment #68 showed 52% "collateral" for 2 word changes → fixed in experiment #69)
 
-## LoRA Fine-Tuning
+## Prompt & Output Schema Design
+
+### Structured checklist output beats flat verdict schemas on multi-check verification tasks — but only for fields within model capacity (2026-04-08)
+
+Chapter-plan-checker was running on a flat schema: `{pass: bool, deviations: string[]}`. Base Qwen3-14B on W&B Inference agreed with the gpt-oss-120b oracle only 58% of the time (exp #107), with 100% one-directional bias — it rubber-stamped every FAIL case, including 0/10 on FAIL_WRONG_SETTING and 10% on FAIL_MISSING_CHAR. 14B was skipping the checks entirely and defaulting to PASS.
+
+Swapping to a structured checklist schema that forced the model to emit per-check observations before the verdict:
+
+```json
+{
+  "setting_match":      { "planned": "...", "observed": "<quote from prose>", "matches": true },
+  "characters_present": { "required": [...], "found": [...], "missing": [] },
+  "beats_covered":      [{ "beat_index": 1, "description": "...", "found_in_prose": true }],
+  "emotional_arc_correct": true,
+  "pass": true,
+  "deviations": []
+}
+```
+
+**Results on the same 80-pair set (exp #107 flat vs #109 checklist):**
+
+| Metric | Flat | Checklist | Δ |
+|---|---|---|---|
+| 120B vs labels | 85% | 89% | +4 |
+| 14B vs labels | 53% | 69% | +16 |
+| 14B ↔ 120B direct | 58% | 75% | +17 |
+
+| Variant (14B↔120B direct) | Flat | Checklist | Δ |
+|---|---|---|---|
+| FAIL_WRONG_SETTING | **0%** | **90%** | **+90** |
+| FAIL_MISSING_CHAR | 10% | 60% | +50 |
+| FAIL_MISSING_BEAT | 40% | 50% | +10 |
+| FAIL_REVERSED_ARC | 50% | **20%** | **−30** |
+
+**Why it works — three stacked mechanisms:**
+
+1. **Sequential decoding is prior-driven until something anchors it.** When the model emits `{"pass":` as the very first field, the next token samples from its prior over verdicts given the prompt shape — and for instruction-tuned models that prior is strongly biased toward `true` (affirmative defaults, plus the prompt ended with "when in doubt, PASS"). With the checklist, by the time the model reaches the `pass` field, it has already emitted `"missing": ["Leth"]`. The verdict token is now conditioned on the model's own prior observation, not on the task framing. The gains concentrate on FAIL cases because PASS was already the default — the checklist doesn't change PASS behavior, it enables override of the PASS default.
+
+2. **The output schema is a programmatic attention specifier.** To emit `characters_present.required: [...]`, the model has to locate the plan's character section and copy it. To emit `found: [...]`, it has to scan the prose for names. To emit `missing: [...]`, it computes a set difference between two fields it just wrote. The JSON structure mandates attention per-field — the control flow is in the schema, not in the model's choice of what to attend to. FAIL_WRONG_SETTING went 0/10 → 9/10 because in the flat schema the model never had to write down where the prose takes place; in the checklist it can't skip that field.
+
+3. **Externalizing working memory.** Without the checklist, the model has to hold "plan has 3 characters, I saw 2, one is missing, therefore FAIL" in activations while streaming tokens toward `pass`. A 14B's working-memory capacity is limited; it drops intermediate states and falls back to priors. By writing intermediates as output tokens, an internal reasoning problem becomes a surface-level text-reading problem. The verdict token conditions on literal emitted strings (`"missing": ["Leth"]`) rather than fuzzy hidden state. This is the same mechanism that makes chain-of-thought work — the checklist is CoT with a fixed task-specific structure instead of free-form "think step by step", which is safer for non-reasoning Instruct models that haven't been tuned to produce useful CoT.
+
+**Why FAIL_REVERSED_ARC regressed 50% → 20%:**
+
+Same mechanism, inverted. The checklist required an `emotional_arc_correct: true|false` field — the schema gives no escape hatch. In the flat schema, a model uncertain about emotional arcs could evade by simply not mentioning them in deviations; silence served as "I don't know". In the checklist, evasion is illegal — the model MUST commit to one of two tokens.
+
+When you force a model to answer a question beyond its capacity, it falls back to the same prior that biased it toward PASS in the first place: affirmative defaults. Every uncertain REVERSED_ARC case gets confidently stamped `true`, converting noisy-but-half-right behavior into confidently-wrong behavior.
+
+**The design principle this produces:**
+
+For any agent reaching a verdict by reasoning over multiple aspects of an input:
+
+1. **Decompose the verdict into observable sub-checks.** Each sub-check field forces attention on a specific part of the input.
+2. **Order checks concrete-to-abstract.** Later fields can reference earlier ones as anchors.
+3. **Make the verdict the LAST field, not the first.** It conditions on the model's own observations, not on the task framing.
+4. **Only include fields the model can actually answer.** Abstract fields beyond capacity become confident fabrications. When in doubt, leave them out and route those cases to a more capable model.
+5. **Require grounding quotes for observations.** `observed: "<quote from prose>"` is a massive lever — it forces the model to look at specific input tokens rather than generate from prior.
+
+Rule 4 is the one most people miss. Structured output is often framed as "just a better prompt", but it's really a **capability filter**: it exposes which fields are within model capacity and which aren't. The REVERSED_ARC regression is a feature, not a bug — the schema is telling us which checks 14B shouldn't be doing. Now we know not to include emotional-arc judgment in the 14B path at all, and to route those cases to 120B or a specifically-fine-tuned adapter.
+
+**Secondary finding — the checklist is a free win on capable models too.** 120B went from 85% → 89% label agreement with no model change. Even models with raw reasoning capacity benefit from externalizing intermediate state — it makes reasoning more stable across runs because the logic is anchored to written tokens instead of swimming in activations. The effect is smaller for capable models (+4 vs +17) because they don't need the scaffolding as much, but it's non-zero and free. Applies to GPT-4, 120B, Qwen 235B equally — if a prompt asks for a verdict over multiple aspects, structure the output to force explicit observations first.
+
+**Cost impact of the checklist format.** Output tokens go up 3-5× (from ~100 to ~400-500 per call). At W&B Inference rates that's still ~$0.00010-0.00015 per 14B call vs $0.0007 on 120B — an order of magnitude cheaper than the current production path. On 120B the extra output tokens are real cost (~$0.0009/call vs $0.0007), but still cheaper than the alternative of getting it wrong and having a broken chapter propagate.
+
+**What this means for fine-tuning targets.** Structured output tells you what SFT should target. The checklist already fixes the attention failures (setting, characters) for free — SFT on those would waste budget. The remaining gap is on MISSING_BEAT and REVERSED_ARC, both of which require genuine semantic matching of narrative content against plan descriptions. SFT data for chapter-plan-checker should be concentrated on those two specific failure modes, not mixed across all variants. (Experiments #107, #108, #109; commit 749ced0)
 
 ### α = r, not α = 2r — Together AI's defaults were wrong for style tasks (2026-04-08)
 The v1/v2/v3 runs on Together AI used rank 64, alpha 128 (α = 2r) because Together's platform auto-configured these defaults. The actual weight update magnitude scales as `(alpha/r) × delta_W`. At α = 2r this is 2× — effectively doubling the adapter's learning rate beyond what the nominal LR implies. For style tasks this can push the model toward overfitting faster than intended. Community consensus for Qwen3 specifically is **α = r** (e.g., r=16 → α=16) unless you have explicit evidence you need a higher update magnitude. Future training runs should use α = r as the baseline and only deviate with a reason.
