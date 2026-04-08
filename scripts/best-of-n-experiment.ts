@@ -9,17 +9,13 @@
  * Mines real (input, expected_output_shape) pairs from the DB so the
  * comparison runs against actual harness workload, not synthetic data.
  *
- * Currently supports the adherence-checker agent. Others (reference-resolver,
- * fact-extractor, chapter-plan-checker) follow the same pattern — add an
- * agent-specific block when extending.
+ * Currently supports adherence-checker (boolean output, majority vote)
+ * and reference-resolver (list output, set union). Each agent has its
+ * own config block specifying schema, prompt, aggregator, and metric.
  *
  * Usage:
  *   bun scripts/best-of-n-experiment.ts --agent adherence-checker --samples 30 --n 3
- *   bun scripts/best-of-n-experiment.ts --agent adherence-checker --samples 10 --n 5 --novels novel-X,novel-Y
- *
- * Output:
- *   - Console table with per-variant metrics
- *   - JSON dump to /tmp/best-of-n-<agent>-<timestamp>.json for later analysis
+ *   bun scripts/best-of-n-experiment.ts --agent reference-resolver --samples 30 --n 3
  */
 
 import { z } from "zod"
@@ -48,9 +44,7 @@ const NOVELS_ARG = arg("novels")
 const ORACLE_PROVIDER = arg("oracle-provider", "cerebras")!
 const ORACLE_MODEL = arg("oracle-model", "qwen-3-235b-a22b-instruct-2507")!
 
-console.log(`agent=${AGENT} samples=${SAMPLES} n=${N} oracle=${ORACLE_PROVIDER}/${ORACLE_MODEL}`)
-
-// ── Data mining ───────────────────────────────────────────────────────────
+// ── Test case mining ──────────────────────────────────────────────────────
 
 interface TestCase {
   novelId: string
@@ -62,7 +56,6 @@ interface TestCase {
 }
 
 async function loadTestCases(maxCases: number): Promise<TestCase[]> {
-  // Pick novels: explicit list, or auto-select novels with >=2 approved chapters
   let novelIds: string[]
   if (NOVELS_ARG) {
     novelIds = NOVELS_ARG.split(",")
@@ -82,7 +75,6 @@ async function loadTestCases(maxCases: number): Promise<TestCase[]> {
   const cases: TestCase[] = []
   for (const novelId of novelIds) {
     if (cases.length >= maxCases) break
-    // Get all approved chapter prose for this novel
     const chapters = await db`
       SELECT chapter_number, prose
       FROM chapter_drafts
@@ -91,7 +83,6 @@ async function loadTestCases(maxCases: number): Promise<TestCase[]> {
     `
     for (const ch of chapters) {
       if (cases.length >= maxCases) break
-      // Get the outline for this chapter
       const outlineRows = await db`
         SELECT outline_json
         FROM chapter_outlines
@@ -101,13 +92,9 @@ async function loadTestCases(maxCases: number): Promise<TestCase[]> {
       const outline = outlineRows[0].outline_json as ChapterOutline
       if (!outline.scenes || outline.scenes.length === 0) continue
 
-      // Split prose into beat-sized chunks. Use the planner's beat count as the target
-      // segmentation. Beats joined with \n\n in the beat-writer path.
       const chunks = ch.prose.split(/\n\n+/).filter((c: string) => c.trim().length > 50)
       if (chunks.length === 0) continue
 
-      // Pair each beat with a prose chunk. If counts mismatch, use the closest mapping
-      // (clamp the chunk index). Imperfect but acceptable for benchmark inputs.
       for (let bi = 0; bi < outline.scenes.length && cases.length < maxCases; bi++) {
         const chunkIdx = Math.min(bi, chunks.length - 1)
         const proseChunk = chunks[chunkIdx]
@@ -126,6 +113,21 @@ async function loadTestCases(maxCases: number): Promise<TestCase[]> {
   return cases
 }
 
+// ── Per-agent config interface ────────────────────────────────────────────
+
+interface AgentExperimentConfig<T> {
+  agentName: string
+  systemPrompt: string
+  buildUserPrompt: (tc: TestCase) => string
+  schema: z.ZodSchema<T>
+  aggregator: (outputs: T[]) => T
+  /** Compute an "agreement score" between two outputs (typically production vs oracle).
+   *  For boolean outputs return 1 if equal else 0. For set outputs return Jaccard similarity. */
+  agreementScore: (a: T, b: T) => number
+  /** Short summary string for console logging — e.g. "T" / "F" for booleans, item count for sets. */
+  summarize: (output: T) => string
+}
+
 // ── Agent: adherence-checker ─────────────────────────────────────────────
 
 const adherenceSchema = z.object({
@@ -134,8 +136,10 @@ const adherenceSchema = z.object({
 })
 type AdherenceOutput = z.infer<typeof adherenceSchema>
 
-function buildAdherenceUserPrompt(tc: TestCase): string {
-  return `Beat: "${tc.beat.description}"
+const ADHERENCE_CONFIG: AgentExperimentConfig<AdherenceOutput> = {
+  agentName: "adherence-checker",
+  systemPrompt: "You check if prose follows a scene beat specification. Be strict but fair.",
+  buildUserPrompt: (tc) => `Beat: "${tc.beat.description}"
 Setting: "${tc.outline.setting}"
 Characters expected: ${tc.beat.characters.join(", ")}
 
@@ -150,86 +154,135 @@ Did the prose execute the beat? Check:
 3. Do characters behave consistently with their roles?
 
 Return JSON: { "pass": true/false, "deviations": ["specific issue 1", ...] }
-Return pass:true with empty deviations if the beat is executed well.`
+Return pass:true with empty deviations if the beat is executed well.`,
+  schema: adherenceSchema,
+  aggregator: (outputs) => {
+    const passed = majorityValue(outputs.map(o => o.pass))
+    const dedupedDeviations = unionByKey([outputs.flatMap(o => o.deviations ?? [])], d => d)
+    return { pass: passed, deviations: dedupedDeviations }
+  },
+  agreementScore: (a, b) => (a.pass === b.pass ? 1 : 0),
+  summarize: (out) => out.pass ? "T" : "F",
 }
 
-const ADHERENCE_SYSTEM = "You check if prose follows a scene beat specification. Be strict but fair."
+// ── Agent: reference-resolver ────────────────────────────────────────────
 
-function aggregateAdherenceMajority(outputs: AdherenceOutput[]): AdherenceOutput {
-  const passVotes = outputs.map(o => o.pass)
-  const passed = majorityValue(passVotes)
-  // Union all deviations across calls; dedup by string
-  const allDeviations = outputs.flatMap(o => o.deviations ?? [])
-  const dedupedDeviations = unionByKey([allDeviations], d => d)
-  return { pass: passed, deviations: dedupedDeviations }
+const referenceSchema = z.object({
+  lookups: z.array(z.object({
+    type: z.string(),
+    characters: z.array(z.string()).optional(),
+    location: z.string().optional(),
+    topic: z.string().optional(),
+  })).default([]),
+})
+type ReferenceOutput = z.infer<typeof referenceSchema>
+
+function lookupKey(l: ReferenceOutput["lookups"][number]): string {
+  const chars = (l.characters ?? []).map(c => c.toLowerCase().trim()).sort().join(",")
+  const topic = (l.topic ?? "").toLowerCase().trim()
+  const loc = (l.location ?? "").toLowerCase().trim()
+  return `${l.type}|${chars}|${loc}|${topic}`
 }
 
-// ── Variant runners ───────────────────────────────────────────────────────
+const REFERENCE_CONFIG: AgentExperimentConfig<ReferenceOutput> = {
+  agentName: "reference-resolver",
+  systemPrompt: "You identify what background information a scene beat needs. Return JSON with specific lookups.",
+  buildUserPrompt: (tc) => `Beat: "${tc.beat.description}"
+Characters: ${tc.beat.characters.join(", ")}
+Setting: ${tc.outline.setting}
+Chapter: ${tc.chapterNumber}
 
-interface VariantResult {
-  output: AdherenceOutput
+What specific background does the writer need? Return JSON:
+{ "lookups": [{ "type": "recent_events"|"relationship"|"location_events"|"knowledge", "characters": ["name"], "location": "place", "topic": "subject" }] }
+
+Only include lookups for things implicitly referenced. Return empty lookups array if the beat is self-contained.`,
+  schema: referenceSchema,
+  aggregator: (outputs) => {
+    const merged = unionByKey(outputs.map(o => o.lookups ?? []), lookupKey)
+    return { lookups: merged }
+  },
+  agreementScore: (a, b) => {
+    const setA = new Set((a.lookups ?? []).map(lookupKey))
+    const setB = new Set((b.lookups ?? []).map(lookupKey))
+    if (setA.size === 0 && setB.size === 0) return 1
+    const intersection = [...setA].filter(k => setB.has(k)).length
+    const union = new Set([...setA, ...setB]).size
+    return union === 0 ? 1 : intersection / union  // Jaccard similarity
+  },
+  summarize: (out) => `${out.lookups?.length ?? 0}`,
+}
+
+const AGENT_CONFIGS: Record<string, AgentExperimentConfig<any>> = {
+  "adherence-checker": ADHERENCE_CONFIG,
+  "reference-resolver": REFERENCE_CONFIG,
+}
+
+// ── Variant runners (generic over agent config) ───────────────────────────
+
+interface VariantResult<T> {
+  output: T
   latencyMs: number
   tokens: { prompt: number; completion: number }
   failed?: boolean
 }
 
-async function runProduction(tc: TestCase): Promise<VariantResult> {
+async function runProduction<T>(tc: TestCase, cfg: AgentExperimentConfig<T>): Promise<VariantResult<T>> {
   const t0 = performance.now()
   try {
     const r = await callAgent({
-      agentName: "adherence-checker",
-      systemPrompt: ADHERENCE_SYSTEM,
-      userPrompt: buildAdherenceUserPrompt(tc),
-      schema: adherenceSchema,
+      agentName: cfg.agentName,
+      systemPrompt: cfg.systemPrompt,
+      userPrompt: cfg.buildUserPrompt(tc),
+      schema: cfg.schema,
       novelId: tc.novelId,
     })
     return { output: r.output, latencyMs: performance.now() - t0, tokens: r.tokensUsed }
   } catch (e) {
-    return { output: { pass: false, deviations: [`production failed: ${e instanceof Error ? e.message : e}`] }, latencyMs: performance.now() - t0, tokens: { prompt: 0, completion: 0 }, failed: true }
+    return { output: {} as T, latencyMs: performance.now() - t0, tokens: { prompt: 0, completion: 0 }, failed: true }
   }
 }
 
-async function runOracle(tc: TestCase): Promise<VariantResult> {
+async function runOracle<T>(tc: TestCase, cfg: AgentExperimentConfig<T>): Promise<VariantResult<T>> {
   const t0 = performance.now()
   try {
     const r = await callAgent({
-      agentName: "adherence-checker-oracle",
-      systemPrompt: ADHERENCE_SYSTEM,
-      userPrompt: buildAdherenceUserPrompt(tc),
-      schema: adherenceSchema,
+      agentName: `${cfg.agentName}-oracle`,
+      systemPrompt: cfg.systemPrompt,
+      userPrompt: cfg.buildUserPrompt(tc),
+      schema: cfg.schema,
       novelId: tc.novelId,
       provider: ORACLE_PROVIDER as any,
       model: ORACLE_MODEL,
     })
     return { output: r.output, latencyMs: performance.now() - t0, tokens: r.tokensUsed }
   } catch (e) {
-    return { output: { pass: false, deviations: [`oracle failed: ${e instanceof Error ? e.message : e}`] }, latencyMs: performance.now() - t0, tokens: { prompt: 0, completion: 0 }, failed: true }
+    return { output: {} as T, latencyMs: performance.now() - t0, tokens: { prompt: 0, completion: 0 }, failed: true }
   }
 }
 
-async function runParallelN(tc: TestCase): Promise<VariantResult> {
+async function runParallelN<T>(tc: TestCase, cfg: AgentExperimentConfig<T>): Promise<VariantResult<T>> {
   const t0 = performance.now()
   try {
-    const r = await executeBestOfN<AdherenceOutput>({
-      agentName: "adherence-checker",
-      systemPrompt: ADHERENCE_SYSTEM,
-      userPrompt: buildAdherenceUserPrompt(tc),
-      schema: adherenceSchema,
+    const r = await executeBestOfN<T>({
+      agentName: cfg.agentName,
+      systemPrompt: cfg.systemPrompt,
+      userPrompt: cfg.buildUserPrompt(tc),
+      schema: cfg.schema,
       novelId: tc.novelId,
-    }, N, aggregateAdherenceMajority)
+    }, N, cfg.aggregator)
     return { output: r.output, latencyMs: performance.now() - t0, tokens: r.tokensUsed }
   } catch (e) {
-    return { output: { pass: false, deviations: [`parallel-N failed: ${e instanceof Error ? e.message : e}`] }, latencyMs: performance.now() - t0, tokens: { prompt: 0, completion: 0 }, failed: true }
+    return { output: {} as T, latencyMs: performance.now() - t0, tokens: { prompt: 0, completion: 0 }, failed: true }
   }
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────
 
-interface CaseResult {
+interface CaseResult<T> {
   testCase: { novelId: string; chapter: number; beat: number; beatDescription: string }
-  production: VariantResult
-  oracle: VariantResult
-  parallelN: VariantResult
+  production: VariantResult<T>
+  oracle: VariantResult<T>
+  parallelN: VariantResult<T>
 }
 
 function avg(nums: number[]): number {
@@ -237,11 +290,13 @@ function avg(nums: number[]): number {
 }
 
 async function main() {
-  if (AGENT !== "adherence-checker") {
-    console.error(`Only adherence-checker is supported in v1; got: ${AGENT}`)
+  const cfg = AGENT_CONFIGS[AGENT]
+  if (!cfg) {
+    console.error(`Unknown agent: ${AGENT}. Supported: ${Object.keys(AGENT_CONFIGS).join(", ")}`)
     process.exit(1)
   }
 
+  console.log(`agent=${AGENT} samples=${SAMPLES} n=${N} oracle=${ORACLE_PROVIDER}/${ORACLE_MODEL}`)
   await initNovelRun(`best-of-n-experiment-${Date.now()}`)
 
   console.log("\nLoading test cases from DB...")
@@ -253,19 +308,22 @@ async function main() {
     process.exit(1)
   }
 
-  const results: CaseResult[] = []
+  const results: CaseResult<any>[] = []
   for (let i = 0; i < cases.length; i++) {
     const tc = cases[i]
     process.stdout.write(`[${i + 1}/${cases.length}] ch${tc.chapterNumber} beat${tc.beatIndex}: `)
 
-    const production = await runProduction(tc)
+    const production = await runProduction(tc, cfg)
     process.stdout.write("P ")
-    const oracle = await runOracle(tc)
+    const oracle = await runOracle(tc, cfg)
     process.stdout.write("O ")
-    const parallelN = await runParallelN(tc)
+    const parallelN = await runParallelN(tc, cfg)
     process.stdout.write(`bo${N} `)
 
-    process.stdout.write(`| P=${production.output.pass ? "T" : "F"} O=${oracle.output.pass ? "T" : "F"} bo=${parallelN.output.pass ? "T" : "F"}\n`)
+    const pSum = production.failed ? "ERR" : cfg.summarize(production.output)
+    const oSum = oracle.failed ? "ERR" : cfg.summarize(oracle.output)
+    const bSum = parallelN.failed ? "ERR" : cfg.summarize(parallelN.output)
+    process.stdout.write(`| P=${pSum} O=${oSum} bo=${bSum}\n`)
 
     results.push({
       testCase: { novelId: tc.novelId, chapter: tc.chapterNumber, beat: tc.beatIndex, beatDescription: tc.beat.description.slice(0, 80) },
@@ -277,48 +335,47 @@ async function main() {
 
   // ── Summary ────────────────────────────────────────────────────────────
   const valid = results.filter(r => !r.production.failed && !r.oracle.failed && !r.parallelN.failed)
-  const productionAgreement = valid.filter(r => r.production.output.pass === r.oracle.output.pass).length / valid.length
-  const parallelAgreement = valid.filter(r => r.parallelN.output.pass === r.oracle.output.pass).length / valid.length
-  const productionVsParallel = valid.filter(r => r.production.output.pass === r.parallelN.output.pass).length / valid.length
+  if (valid.length === 0) {
+    console.error("\nAll cases failed. Check logs for errors.")
+    process.exit(1)
+  }
 
-  // Self-disagreement: where production and parallel-N differ on the same input
-  const productionParallelDisagree = valid.filter(r => r.production.output.pass !== r.parallelN.output.pass).length
+  const productionVsOracle = avg(valid.map(r => cfg.agreementScore(r.production.output, r.oracle.output)))
+  const parallelVsOracle = avg(valid.map(r => cfg.agreementScore(r.parallelN.output, r.oracle.output)))
+  const productionVsParallel = avg(valid.map(r => cfg.agreementScore(r.production.output, r.parallelN.output)))
 
-  console.log(`\n${"═".repeat(70)}`)
-  console.log(`RESULTS  (n=${valid.length} valid cases out of ${results.length} total)`)
-  console.log("═".repeat(70))
+  console.log(`\n${"═".repeat(72)}`)
+  console.log(`RESULTS — ${AGENT}  (n=${valid.length} valid out of ${results.length})`)
+  console.log("═".repeat(72))
   console.log()
   console.log("Variant".padEnd(28) + "Avg latency".padStart(14) + "  Total cost".padStart(14) + "  Vs oracle".padStart(13))
-  console.log("─".repeat(70))
+  console.log("─".repeat(72))
 
   const productionLatencies = valid.map(r => r.production.latencyMs)
   const oracleLatencies = valid.map(r => r.oracle.latencyMs)
   const parallelLatencies = valid.map(r => r.parallelN.latencyMs)
 
-  const productionTokens = valid.reduce((s, r) => s + r.production.tokens.prompt + r.production.tokens.completion, 0)
-  const oracleTokens = valid.reduce((s, r) => s + r.oracle.tokens.prompt + r.oracle.tokens.completion, 0)
-  const parallelTokens = valid.reduce((s, r) => s + r.parallelN.tokens.prompt + r.parallelN.tokens.completion, 0)
+  // Cost is approximate — assumes Llama 8B Groq pricing for single-shot/parallel-N,
+  // Cerebras Qwen 235B pricing for oracle. Update if testing other model assignments.
+  const productionCostUsd = valid.reduce((s, r) =>
+    s + r.production.tokens.prompt * 0.05 / 1e6 + r.production.tokens.completion * 0.08 / 1e6, 0)
+  const oracleCostUsd = valid.reduce((s, r) =>
+    s + r.oracle.tokens.prompt * 0.60 / 1e6 + r.oracle.tokens.completion * 1.20 / 1e6, 0)
+  const parallelCostUsd = valid.reduce((s, r) =>
+    s + r.parallelN.tokens.prompt * 0.05 / 1e6 + r.parallelN.tokens.completion * 0.08 / 1e6, 0)
 
-  // Rough cost (use $/M from registry for typical models)
-  // Llama 8B Groq: $0.05/$0.08 per M
-  // Cerebras Qwen 235B: $0.60/$1.20 per M
-  // We'll just sum prompt+completion at the in-rate as a back-of-envelope
-  const productionCostUsd = (valid.reduce((s, r) => s + r.production.tokens.prompt * 0.05 / 1e6 + r.production.tokens.completion * 0.08 / 1e6, 0))
-  const oracleCostUsd = (valid.reduce((s, r) => s + r.oracle.tokens.prompt * 0.60 / 1e6 + r.oracle.tokens.completion * 1.20 / 1e6, 0))
-  const parallelCostUsd = (valid.reduce((s, r) => s + r.parallelN.tokens.prompt * 0.05 / 1e6 + r.parallelN.tokens.completion * 0.08 / 1e6, 0))
-
-  console.log(`production single`.padEnd(28) + `${Math.round(avg(productionLatencies))}ms`.padStart(14) + `  $${productionCostUsd.toFixed(5)}`.padStart(14) + `  ${(productionAgreement * 100).toFixed(1)}%`.padStart(13))
+  console.log(`production single`.padEnd(28) + `${Math.round(avg(productionLatencies))}ms`.padStart(14) + `  $${productionCostUsd.toFixed(5)}`.padStart(14) + `  ${(productionVsOracle * 100).toFixed(1)}%`.padStart(13))
   console.log(`oracle (${ORACLE_MODEL.slice(0, 16)})`.padEnd(28) + `${Math.round(avg(oracleLatencies))}ms`.padStart(14) + `  $${oracleCostUsd.toFixed(5)}`.padStart(14) + `  -`.padStart(13))
-  console.log(`parallel-${N} (production)`.padEnd(28) + `${Math.round(avg(parallelLatencies))}ms`.padStart(14) + `  $${parallelCostUsd.toFixed(5)}`.padStart(14) + `  ${(parallelAgreement * 100).toFixed(1)}%`.padStart(13))
-  console.log("─".repeat(70))
+  console.log(`parallel-${N} (production)`.padEnd(28) + `${Math.round(avg(parallelLatencies))}ms`.padStart(14) + `  $${parallelCostUsd.toFixed(5)}`.padStart(14) + `  ${(parallelVsOracle * 100).toFixed(1)}%`.padStart(13))
+  console.log("─".repeat(72))
   console.log()
-  console.log(`Production vs parallel-${N} agree on:           ${(productionVsParallel * 100).toFixed(1)}%`)
-  console.log(`Production vs parallel-${N} disagree on:        ${productionParallelDisagree} cases`)
+  console.log(`Production vs parallel-${N} similarity:        ${(productionVsParallel * 100).toFixed(1)}%`)
+  console.log(`(For boolean outputs this is 0 or 1; for set outputs it's Jaccard similarity.)`)
   console.log()
-  console.log(`Headline: parallel-${N} ${parallelAgreement > productionAgreement ? "BEATS" : parallelAgreement < productionAgreement ? "LOSES TO" : "MATCHES"} single-shot for agreement-with-oracle`)
-  console.log(`  (parallel-${N}: ${(parallelAgreement * 100).toFixed(1)}%, single-shot: ${(productionAgreement * 100).toFixed(1)}%)`)
+  const headlineDelta = parallelVsOracle - productionVsOracle
+  console.log(`Headline: parallel-${N} ${headlineDelta > 0.005 ? "BEATS" : headlineDelta < -0.005 ? "LOSES TO" : "MATCHES"} single-shot for agreement-with-oracle`)
+  console.log(`  parallel-${N}: ${(parallelVsOracle * 100).toFixed(1)}%   single-shot: ${(productionVsOracle * 100).toFixed(1)}%   delta: ${(headlineDelta * 100).toFixed(1)}pp`)
 
-  // Save full results to JSON for later analysis
   const outPath = `/tmp/best-of-n-${AGENT}-${Date.now()}.json`
   await Bun.write(outPath, JSON.stringify({ agent: AGENT, n: N, samples: results.length, oracleProvider: ORACLE_PROVIDER, oracleModel: ORACLE_MODEL, results }, null, 2))
   console.log(`\nFull results saved to ${outPath}`)
