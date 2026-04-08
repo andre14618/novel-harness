@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-07
+updated: 2026-04-08
 ---
 
 # To Do
@@ -50,20 +50,9 @@ Notably absent: Qwen3 8B, Qwen3 4B-Instruct-2507, Qwen 3.5 9B (the base of the e
 
 4. **Validate the LoRA against the oracle** before swapping in production. Same shape as the latency probe but measuring agreement: run N inputs through both the LoRA and Cerebras Qwen 235B, compute agreement rate. Decision criterion: ≥95% agreement for a swap.
 
-**Open question — DeepInfra Qwen 3.5 9B as a better serving home (2026-04-07)**: Per [Artificial Analysis](https://artificialanalysis.ai/models/qwen3-5-9b), Qwen 3.5 9B is a more capable base than Qwen3-14B (AA Intelligence Index 32 vs 16, 131 tps vs 63 tps, 262k context vs 33k, multimodal, MoE hybrid, released March 2026 vs April 2025). It's not on W&B's supported base list, but [DeepInfra DOES support custom LoRA serving on Qwen/Qwen3.5-9B](https://deepinfra.com/docs/advanced/lora). DeepInfra serves the same model 3.1× faster than Together (170.9 tps vs 55.6 tps). **This means**:
+**Tonal-pass v4 retrain on Qwen3-14B is OFF the table** (was a follow-up in the previous version of this todo). Retraining on a less-capable older base just for unified serving was based on the wrong capability framing — corrected per `docs/lessons-learned.md` "Don't compare model size without checking generation." Howard tonal-pass v3 stays on Together AI as the legacy serving home until/unless retrained on a W&B-supported base.
 
-- **Howard tonal-pass v3 migration**: same model, same adapter weights, no retraining. Just upload the existing PEFT artifact to DeepInfra and switch the provider in the registry. **Strict upgrade over Together** in throughput and pricing. Caveat: AA reports 12s TTFT on DeepInfra for this model — could be cold-start artifact or reasoning-mode preamble, needs steady-state probe to confirm.
-- **Analytical multi-task LoRA reconsideration**: if DeepInfra's TTFT on Qwen 3.5 9B is sub-2s in steady state, the analytical LoRA could ALSO live on DeepInfra Qwen 3.5 9B instead of W&B Qwen3-14B — same training pairs, smarter base, no W&B detour. The W&B/Qwen3-14B plumbing already in `models/registry.ts` (commit `5191e98`) stays as a fallback. Decision is gated on the DeepInfra latency probe.
-
-**Tonal-pass v4 retrain on Qwen3-14B is OFF the table** (was a follow-up in the previous version of this todo). Retraining on a less-capable older base just for unified serving was based on the wrong capability framing — corrected per `docs/lessons-learned.md` "Don't compare model size without checking generation."
-
-**Next action items, in order**:
-
-1. **Add `DEEPINFRA_API_KEY` to local `.env`** (sign up at deepinfra.com for the key) — gates everything below.
-2. **Run a steady-state DeepInfra latency probe against `Qwen/Qwen3.5-9B`** — clone of `scripts/test-wandb-inference.ts`, swap auth and endpoint. Three workload shapes (reference-resolver, adherence-checker, beat-writer), 25 calls each via concurrency=5. Capture per-call latency, TTFT, decode tps. Save as a `tuning_experiment` per the standing rule. **Decision criterion**: if TTFT in steady state is <2s on the adherence-checker shape, DeepInfra Qwen 3.5 9B becomes the analytical LoRA base AND the tonal-pass migration target. If TTFT is still 12s+, fall back to the W&B/Qwen3-14B plan and only use DeepInfra for tonal-pass (where the TTFT is tolerable for end-of-validation polish).
-3. **If DeepInfra wins**: register `deepinfra` as a provider in `models/registry.ts`, add `Qwen/Qwen3.5-9B` as a model entry, update the analytical LoRA action items below to target this base instead of OpenPipe/Qwen3-14B. The 111 training pairs work against any base.
-4. **Howard tonal-pass v3 migration (regardless of analytical LoRA decision)**: re-upload the existing PEFT adapter weights to DeepInfra (the artifact ID becomes a DeepInfra-namespaced one), update the `tonal-pass` role in `models/roles.ts` to point at the DeepInfra-served LoRA. No retraining. Should be a small commit. The Together-served v3 entry stays in the registry as a legacy fallback.
-5. **Analytical multi-task LoRA training** — once the base is locked in (DeepInfra Qwen 3.5 9B if probe passes, OpenPipe Qwen3-14B otherwise). Use existing 111 training pairs from `scripts/build-analytical-finetune-data.ts`.
+**DeepInfra is NOT a viable serving home for our LoRAs** (corrected 2026-04-08 — see `docs/lessons-learned.md` "DeepInfra Custom LLMs is dedicated GPU rental"). The previous version of this todo proposed DeepInfra as a serverless alternative because AA's per-provider numbers showed DeepInfra serving stock Qwen 3.5 9B 3.1× faster than Together. That was a conflation: DeepInfra has two different products, and the one that hosts user-uploaded adapters ("Custom LLMs") is dedicated GPU rental at $2-5/hr per A100/H100 with weekly invoicing — uneconomical for our bursty solo-developer traffic by 2-3 orders of magnitude. The W&B/Qwen3-14B plan above stands unchallenged.
 
 ## Fine-Tuning data generation — unchanged direction, base model TBD
 

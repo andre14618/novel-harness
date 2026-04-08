@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-07
+updated: 2026-04-08
 ---
 
 # Lessons Learned
@@ -184,6 +184,8 @@ Qwen 3.5 9B is **half the parameters but double the intelligence index, twice th
 **The corollary for this harness**: the existing Howard tonal-pass v3 base (Qwen 3.5 9B on Together) is NOT an outdated model that needs upgrading — it's a top-shelf modern 9B that happens to be served slowly because Together's standard tier is bad infrastructure, not because the model is bad. Moving v3 to a different provider that serves the same model faster is the right play, not retraining v4 on a "bigger" base that's actually a less-capable older one. This corrects the v4-on-Qwen3-14B plan in `docs/todo.md` (the analytical LoRA decision is unaffected — it was driven by W&B's supported base list, not by capability).
 
 ### Same model, different providers, 3× different latency — DeepInfra serves Qwen 3.5 9B 3.1× faster than Together (2026-04-07)
+**Caveat added 2026-04-08:** the rule below holds for routing **stock model** calls (i.e. when you'd use the public catalog entry on either provider). It does NOT extend to where you serve a custom LoRA adapter — DeepInfra's adapter-hosting product is a different SKU (dedicated GPU rental) from its stock-model serving. See "DeepInfra Custom LLMs is dedicated GPU rental, not serverless LoRA" below.
+
 Per AA's [Qwen 3.5 9B providers comparison](https://artificialanalysis.ai/models/qwen3-5-9b/providers):
 
 | Provider | Output speed | TTFT | Input | Output | Blended |
@@ -197,7 +199,24 @@ AA's headline: "DeepInfra (FP8) demonstrates superior performance across all met
 
 **The actionable rule**: when a provider costs you wall time on a model, the right diagnostic is **find another provider serving the same model and compare**, not retrain or migrate to a different model. Provider serving quality varies 3-10× on the same weights. Use [AA's per-model providers tab](https://artificialanalysis.ai) to find the comparison without needing to benchmark each provider yourself (then verify steady-state with your own probe before committing).
 
-### Smaller models can be FASTER than larger ones on decode-bound tasks (2026-04-07)
+### DeepInfra "Custom LLMs" is dedicated GPU rental, not serverless LoRA — corrects an earlier conflation (2026-04-08)
+During the 2026-04-07 W&B/Qwen3-14B serving decision I treated DeepInfra as a viable serverless LoRA host based on the public docs page at https://deepinfra.com/docs/advanced/lora and AA's per-provider numbers showing DeepInfra serving stock Qwen 3.5 9B 3.1× faster than Together. **That was a product conflation.** DeepInfra has two different SKUs and I mixed them up:
+
+- **Stock model serving** (the public catalog: `Qwen/Qwen3.5-9B`, `meta-llama/...`, etc.) — serverless, per-token, multi-tenant. This is what AA's "providers" tab measures. Real, fast, cheap. But it only works against the public model catalog — you cannot point it at your own LoRA adapter.
+- **Custom LLMs** (https://deepinfra.com/docs/advanced/custom_llms) — dedicated GPU rental on A100-80GB or H100-80GB, billed per GPU/hour, weekly invoice, 4-GPU per-user cap, no quantization. This is the product that hosts user-uploaded fine-tunes and LoRAs. Per the docs, verbatim: *"pricing is for GPU uptime... You have to have a sufficient load to justify this resource."* Idle GPUs still bill — the docs warn that forgetting to shut down a 2-GPU deployment over a weekend costs ~$256.
+
+For solo-developer harness traffic — bursty per-beat calls separated by long idle stretches, plus once-per-novel tonal pass — dedicated GPU rental is uneconomical by 2-3 orders of magnitude vs per-token serverless. The break-even is somewhere around thousands of sustained calls per day per model.
+
+**Sharpened actionable rule** (refines the "verify the docs page that covers serving, not training" lesson above): when a provider says they "support custom LoRAs," check **how the LoRA hosting is billed** before treating them as a drop-in serverless replacement. The two product shapes:
+
+- **Per-token, multi-tenant serverless LoRA** — W&B Inference (CoreWeave-backed), Together AI's serverless multi-LoRA. Both share GPUs across customers, charge per token at base-model rates, and constrain you to a fixed list of supported bases. This is the shape this harness needs.
+- **Per-GPU-hour dedicated** — DeepInfra Custom LLMs, Fireworks dedicated, Hugging Face Inference Endpoints, Replicate dedicated. All require sustained throughput to amortize idle cost. Sane for production serving at thousands of calls per day per model; insane for bursty solo-developer use.
+
+The harness is firmly in the first bucket. **W&B Inference on `OpenPipe/Qwen3-14B-Instruct` remains the chosen home for the analytical multi-task LoRA**, and Howard tonal-pass v3 stays on Together AI as the legacy serving home until/unless retrained on a W&B-supported base.
+
+**Corollary**: AA's per-provider latency tables describe stock-model serving on each provider. They cannot be used to predict the performance, pricing, or even *availability* of custom-LoRA hosting on the same provider — that's a different product line on the same vendor and may not even exist (Cerebras, Groq) or may exist only as dedicated rental (DeepInfra, Fireworks).
+
+
 W&B Inference latency probe (`tuning_experiment` id=94, `scripts/test-wandb-inference.ts`) hit a counterintuitive finding: **OpenPipe/Qwen3-14B-Instruct on W&B Inference is FASTER than Cerebras Qwen 235B on the adherence-checker workload shape** — 157ms avg vs 365ms avg, a 2.3× speedup. On a 14B model on a "standard" tier inference service vs a 235B model on Cerebras's custom LPU hardware. That's not the direction the comparison usually goes.
 
 The reason: **decode time dominates for short-output tasks**. Adherence-checker outputs are tiny (~17 tokens of structured JSON). At those sizes, the per-token decode cost is the bottleneck and a smaller model decodes per-token faster than a larger one even when the larger model is on faster hardware. The Cerebras LPU's throughput advantage shows up on the writer shape (~400 output tokens) where it dominates the 14B's 248 tps with its 384 tps. But for the 17-token adherence response, the 14B's smaller decoder finishes before the 235B's faster-but-larger decoder gets going.
