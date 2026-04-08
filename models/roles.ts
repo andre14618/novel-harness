@@ -38,11 +38,13 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "planning-plotter":          { ...cerebrasQwen235B, temperature: 0.6, maxTokens: 8192 },
 
   // ── Beat support (cheap structural tasks) ─────────────────────────────
-  // Default small model: Qwen 3.5 9B base on Together AI. Slightly slower than
-  // Groq Llama 8B (standard tier vs fast tier) but same family as the eventual
-  // fine-tunes — makes future LoRA evaluation apples-to-apples.
-  "reference-resolver":        { ...togetherQwen9B, temperature: 0.1, maxTokens: 512 },
-  "adherence-checker":         { ...togetherQwen9B, temperature: 0.1, maxTokens: 256 },
+  // Default small model: Llama 3.1 8B on Groq (fast tier). The Qwen 3.5 9B
+  // experiment on Together AI was reverted — see docs/lessons-learned.md
+  // ("Together AI standard tier is ~50× slower than Groq fast tier"). The
+  // togetherQwen9B constant is kept available for future use serving custom
+  // LoRAs, just not as the default for these per-beat slots.
+  "reference-resolver":        { provider: "groq", model: "llama-3.1-8b-instant", temperature: 0.1, maxTokens: 512 },
+  "adherence-checker":         { provider: "groq", model: "llama-3.1-8b-instant", temperature: 0.1, maxTokens: 256 },
 
   // ── Extractors (structured extraction from prose) ─────────────────────
   "summary-extractor":         { ...mimoFlash, temperature: 0.2, maxTokens: 8192 },
