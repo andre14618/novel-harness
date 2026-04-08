@@ -3,6 +3,9 @@ status: active
 updated: 2026-04-08
 ---
 
+<!-- Last edit: added LLM call inspector (sql/017_llm_call_inspection.sql, /app/llm-calls). See docs/llm-call-inspector.md. -->
+
+
 # To Do
 
 Items removed when done — git history has the record. Ordered by impact.
@@ -61,6 +64,7 @@ Notably absent: Qwen3 8B, Qwen3 4B-Instruct-2507, Qwen 3.5 9B (the base of the e
 - **Adherence-checker fine-tune** — runs every beat, high frequency. Classification task (pass/fail + deviation). Needs beat-level training data — generate novels with beat pipeline and log beat/draft/adherence pairs.
 - **Reference-resolver fine-tune** — runs every beat. Identify needed lookups from implicit references. Same beat-level data source.
 - **Chapter plan checker fine-tune** — runs once per chapter. Compare prose against plan, report structural deviations or PASS. ~3-5K token input. Now serving from `openai/gpt-oss-120b` on Groq (was llama-3.1-8b-instant — too small to reason through structural requirements, kept bouncing valid prose and spinning the drafting retry loop). Prerequisite: persist `(prose, plan, deviations, passed, model)` to a new `chapter_plan_checks` table so each real chapter generates a labeled training example. After ~50-100 examples accumulate, train a LoRA on a W&B-supported base (gpt-oss-120b is on the supported list — natural distillation target since it's already the production checker), evaluate vs GPT-OSS baseline, swap in if accuracy matches.
+- **Burn Together AI credits on tonal pair generation, then remove provider** — $10-12 remaining on Together AI. Use it to regenerate tonal pairs with a better flattener (Qwen3 235B A22B Instruct 2507 FP8 Throughput at $0.20/$0.60 vs current Groq Qwen3 32B at $0.29/$0.59 — larger model, cleaner content preservation). Swap model string in `scripts/generate-tonal-pairs.ts` to Together's 235B and point at Together API. Once credit is exhausted: (1) remove `TOGETHER_API_KEY` from env, (2) remove Together model entries from `models/registry.ts`, (3) remove the Together provider config. The legacy v3 adapter served from Together is already inaccessible on serverless — nothing in the live pipeline depends on Together anymore.
 - **Tonal pass expansion** — V3 LoRA trained on Howard only (sword-and-sorcery). Need multi-genre corpus. Copyright considerations documented in `docs/ai-training-copyright-landscape.md`. Public domain authors: Hemingway (pre-1929), London, Cather, Fitzgerald. Back-translation pipeline exists (`scripts/generate-tonal-pairs.ts`).
 - **Test tonal pass V3 in production** — enable `pipeline.tonalPass`, run on a novel, compare before/after. **Note**: this still uses the Together-served v3 adapter on Qwen 3.5 9B. The W&B retraining (above) is a separate decision; production-test the existing adapter first to validate the style transfer before investing in v4 on a new base.
 
@@ -91,8 +95,8 @@ Notably absent: Qwen3 8B, Qwen3 4B-Instruct-2507, Qwen 3.5 9B (the base of the e
 
 ## Infrastructure
 
-- Add context inspection view to web UI (show what the writer/beat-writer received)
 - **Mac Mini as local inference provider** — Ollama + `qwen3.5:9b` resident in memory, registered as a `local` provider in `models/registry.ts` pointing at `http://mac-mini:11434/v1` (or Tailscale IP). Cost: ~$2-4/month electricity, zero per-token. Role: background/batch jobs only — tonal-pass pair generation (back-translation), analytical LoRA input generation, agreement probes, offline prompt iteration. Not for online per-beat inference. Hardware already exists alongside Proxmox setup.
+- **Extend LLM call inspector tags to non-drafting agents** — `chapter` / `beat_index` / `attempt` are populated for `beat-writer` and `adherence-checker`. Threading through `reference-resolver`, `continuity`, `chapter-plan-checker`, `rewriter`, planner, and extractors is straightforward (columns already exist) but hasn't been done. Each agent's `callAgent` site needs the tags added. See `docs/llm-call-inspector.md`.
 
 ## Seeds & Testing
 
