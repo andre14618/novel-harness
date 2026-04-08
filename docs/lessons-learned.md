@@ -163,6 +163,40 @@ Pay-per-token, no LoRA surcharge, PEFT-format upload as a versioned W&B artifact
 
 The corollary: **the LoRA-serving question and the base-model-routing question are separate decisions**. The harness can have one provider for cheap base-model serverless calls (Fireworks for FP8 8B/120B) and a different provider for the LoRA-served slots (W&B Inference if its base catalog fits, local hardware otherwise, Together as legacy for the existing v3 tonal-pass). The transport layer already handles per-provider quirks; multi-provider is the default, not the cost.
 
+### Smaller models can be FASTER than larger ones on decode-bound tasks (2026-04-07)
+W&B Inference latency probe (`tuning_experiment` id=94, `scripts/test-wandb-inference.ts`) hit a counterintuitive finding: **OpenPipe/Qwen3-14B-Instruct on W&B Inference is FASTER than Cerebras Qwen 235B on the adherence-checker workload shape** — 157ms avg vs 365ms avg, a 2.3× speedup. On a 14B model on a "standard" tier inference service vs a 235B model on Cerebras's custom LPU hardware. That's not the direction the comparison usually goes.
+
+The reason: **decode time dominates for short-output tasks**. Adherence-checker outputs are tiny (~17 tokens of structured JSON). At those sizes, the per-token decode cost is the bottleneck and a smaller model decodes per-token faster than a larger one even when the larger model is on faster hardware. The Cerebras LPU's throughput advantage shows up on the writer shape (~400 output tokens) where it dominates the 14B's 248 tps with its 384 tps. But for the 17-token adherence response, the 14B's smaller decoder finishes before the 235B's faster-but-larger decoder gets going.
+
+| shape | Qwen3-14B (W&B) | Cerebras Qwen 235B | who wins |
+|---|---:|---:|---|
+| reference-resolver (~80 in / 40 out) | 741ms | 385ms | Cerebras |
+| **adherence-checker (~360 in / 17 out)** | **157ms** | **365ms** | **14B (2.3× faster)** |
+| beat-writer (~850 in / 400 out) | 2008ms | 1520ms | Cerebras |
+
+The pattern: at very short outputs, decode-overhead-per-token dominates and smaller wins. At longer outputs, raw decode-throughput dominates and the faster hardware wins. The crossover happens somewhere around 50-100 output tokens for this hardware comparison.
+
+**Practical implication for the harness**: when matching a model to a slot, the decision criterion shouldn't just be "is this model fast enough" — it should be "is this model fast enough *at the output length this slot produces*." The adherence-checker is the smallest-output slot in the pipeline and therefore the most decode-bound, which is why the 14B beats the 235B there. Other small-output slots (judges, classifiers, structured extractors with bounded output) probably show similar patterns.
+
+**Methodology**: shape your latency probes to match real workload output lengths, not arbitrary defaults. The original probe used `max_tokens=256` for reference-resolver (vs the production-realistic ~40), which would have hidden this pattern. The probe script now sets max_tokens close to the expected output for each shape. (Commits `2d39254`, `5c7ba26`)
+
+### MoE doesn't always pay off in serverless serving — Qwen3-30B-A3B is unusably slow on W&B (2026-04-07)
+The same probe (`tuning_experiment` id=94) was supposed to validate `Qwen/Qwen3-30B-A3B-Instruct-2507` as the multi-task LoRA base, with the theory being that 30B total params + 3B active params gives "30B-class capacity at 3B-class inference cost." The architecture is sound — Cerebras serves the closely-related Qwen 235B (22B active) at ~1.5 seconds for the writer shape. The 30B/3B variant should be at least as fast.
+
+It wasn't. On W&B Inference the 30B A3B came in at:
+
+| shape | avg ms | p95 | vs Cerebras 235B |
+|---|---:|---:|---:|
+| reference-resolver | 3393 | 3807 | 8.8× |
+| **adherence-checker** | **7172** | **33044 (!)** | **19.6× avg, 90× p95** |
+| beat-writer | 16268 | 18595 | 10.7× |
+
+A 33-second p95 on a task whose successful completions are sub-second is the giveaway: **cold-start dominance**. W&B's serving infrastructure isn't keeping the Qwen3-30B-A3B model warm — probably because it's a less popular variant than the Qwen3-14B and gpt-oss-120b on their platform — so most requests are paying a load-from-cold cost. The MoE architecture doesn't help if the experts have to be loaded from disk before each batch.
+
+**The lesson**: model architecture efficiency only matters when the serving infrastructure is keeping the model warm enough to deliver it. A "fast" architecture on a cold-start-prone serving tier is slower than a "slow" architecture on a hot-path serving tier. **Verify served-tier-warmth empirically before committing to a model on architectural grounds**, especially for less popular variants on multi-tenant inference services.
+
+The corollary: **the OpenPipe/Qwen3-14B-Instruct base is the only viable W&B-served choice** for the analytical multi-task LoRA at the moment. Not because it's the most capable (the 30B A3B has more total parameters and the gpt-oss-120b has way more total parameters) but because it's the only one W&B keeps hot. Locked in via commit `e81b9c3`.
+
 ### Beat-writer cost is rounding error — the optimization pressure lives at continuity (2026-04-07)
 Cleanup-session trace pulled real per-call shapes from `llm_calls` for every active agent in the drafting pipeline. The numbers contradicted the intuition that the writer slot is where cost or speed matter:
 
