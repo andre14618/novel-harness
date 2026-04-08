@@ -351,6 +351,58 @@ Replayed the 160-pair synthetic adherence-checker training set (`lora-data/adher
 
 **Methodology note — three-way ladders are worth the extra script time.** Including Llama 8B in this run cost ~5 minutes and exposed the symmetric-but-opposite failure mode (over-strict vs over-permissive). With only 14B + 235B I would have seen "14B is 17pp worse" and missed that the *direction* of the failure is what reveals the underlying mechanism (verdict-token-bias vs literal under-trained classification capacity). Always add a third anchor to baseline runs when one exists at low cost.
 
+### Checklist schemas help on N-check tasks and HURT on 1-check tasks — adherence-checker exp #111 disconfirms a clean transfer (2026-04-08)
+
+Direct follow-up to exp #110. Hypothesis: the structured-checklist pattern that lifted chapter-plan-checker 14B from 58% → 75% (exp #109) would transfer to adherence-checker and close most of the 17pp gap. The hypothesis was wrong, and the way it was wrong is the actual lesson.
+
+Ran the same 160-pair labeled set through the same 3 models with a checklist system prompt forcing per-action observation: `key_actions[]` (decompose the beat, quote where each action appears or null), `setting_match`, `characters_present`, `character_behavior_consistent`, then `pass` derived from the checks. (`scripts/score-adherence-checklist.ts`, exp #111.)
+
+| | flat (#110) | checklist (#111) | Δ |
+|---|---:|---:|---:|
+| Llama 3.1 8B (Groq) | 71% | **89%** | **+18pp** |
+| Qwen3-14B base (W&B) | 79% | 83% | +4pp |
+| Qwen 235B (Cerebras) | **96%** | 90% | **−6pp** |
+| 14B latency | 298ms | 1209ms | **+306%** |
+| 14B output tokens | 47 | 288 | 6× |
+
+Per-variant flat → checklist (the headline numbers hide the real story):
+
+| variant | Llama 8B | 14B | 235B |
+|---|---|---|---|
+| PASS_CLEAN | 65 → **95** | 100 → 100 | 100 → 100 |
+| PASS_PARAPHRASE | 45 → **100** | 100 → 100 | 100 → 95 |
+| PASS_REORDER | 40 → **90** | 95 → 95 | 95 → 90 |
+| PASS_ATMOSPHERIC | 40 → **100** | 100 → 100 | 100 → 94 |
+| FAIL_MISSING | 80 → 70 | 35 → **60** | 85 → 83 |
+| FAIL_CHAR | 100 → 100 | 60 → **80** | 95 → 90 |
+| FAIL_SETTING | 100 → 100 | 95 → 100 | 100 → 100 |
+| **FAIL_TANGENT** | **100 → 53** | 45 → 30 | **95 → 67** |
+
+**Three things happened, and they're all important.**
+
+1. **The chapter-plan-checker mechanism did transfer to Llama 8B, just not in the direction I targeted.** Llama 8B was the over-strict one in exp #110 (4 FP / 42 FN — rejected valid PASS cases at 40-65% rates). The checklist forced it to *quote* evidence, and when it actually had to point at words on the page, it stopped over-rejecting. Bias flipped from over-strict to nearly balanced (15 FP / 3 FN). The same mechanism — structured output as a programmatic attention specifier — works *both* directions: it can rescue an under-confident model from rejecting valid cases just as it can rescue an over-permissive model from skipping checks. The match-between-mechanism-and-failure-mode determines which model benefits most from a given schema, and exp #111 had it backwards: I designed the schema to fix 14B's over-permissive bias, but the mechanism it actually delivered (force per-action quotes) helped Llama 8B's over-strict bias more. **Schemas have a "shape of attention they enforce." Match it to the failure mode you actually have.**
+
+2. **Qwen 235B regressed from 96% to 90%, and FAIL_TANGENT collapsed for ALL three models** (Llama 100 → 53, 235B 95 → 67). This is the smoking gun. In FAIL_TANGENT the prose opens correctly and then drifts; the beat actions are "barely mentioned or happen offscreen." Under the flat schema, models made a *holistic* judgment — "the prose talked around the beat without actually executing it." Under the checklist, the field `key_actions[].quote` rewards finding *any* mention of each action. If a tangent prose contains a single sentence brushing past the action, the model writes a quote for it and marks `executed: true`. The checklist atomizes a holistic judgment into per-action presence, and the atomization throws away the meaningful-vs-nominal-execution distinction. The mechanism that gave us +17pp on chapter-plan-checker actively destroys the most nuanced judgment in adherence-checker.
+
+3. **14B's gain was modest (+4pp) and its latency 4× worse (298 → 1209ms).** The latency win that made 14B attractive in exp #110 evaporates entirely. Output tokens went from 47 to 288. Even in the optimistic interpretation where 14B closes 4pp of the 17pp gap, the cost is 4× the response time, so the cost/perf-per-token ratio is no longer favorable vs 235B. The checklist is not a viable production swap for adherence-checker even if it accuracy-improves.
+
+**The mechanistic principle that falls out:**
+
+> Structured checklists help when the task is **N independent checks against discrete elements** (chapter-plan-checker: did each plan element appear in the prose? — setting, character list, beat list, all separable). They hurt when the task is **1 nuanced judgment about a single conceptual unit** (adherence-checker: was this beat *meaningfully* executed or only *nominally* gestured at?). Atomizing a holistic judgment into per-feature presence loses the "actually-vs-nominally" distinction that the holistic verdict was carrying.
+
+The diagnostic before designing a schema: **count the number of independent things being checked.** If N > 3 and they're naturally separable (different parts of input attended to independently), checklists likely help. If the task is "is X a meaningful instance of Y" where the answer requires integration across the whole input, checklists likely hurt. Chapter-plan-checker is N=4+ (setting, characters, beats[], emotional arc). Adherence-checker is N=1 (did this beat happen well).
+
+**Corollary on schema-shape vs failure-mode matching:** the same structured checklist had three completely different effects on three models:
+- Llama 8B (over-strict baseline): **+18pp** — schema rescued an under-confident model
+- Qwen3-14B (over-permissive baseline): **+4pp** — schema slightly nudged the right direction but didn't fix the underlying bias
+- Qwen 235B (balanced baseline): **−6pp** — schema imposed atomization on a model that didn't need scaffolding
+
+A schema is not universally "good" or "bad" — it has an interaction with both the task and the model's baseline calibration. Test schema changes against multiple base models to see the interaction shape, not just the strongest one.
+
+**Implication for adherence-checker fine-tuning:** prompt engineering is now exhausted for this slot. The 17pp flat-schema gap (79% vs 96%) is the real gap, and SFT is the natural next move. The signal to train on is exactly the failure mode this benchmark exposed: 14B's per-variant misses on FAIL_MISSING (35%), FAIL_CHAR (60%), FAIL_TANGENT (45%) on the flat schema. The 235B flat-schema verdicts (96% accurate against deterministic labels) can serve as the teacher signal for a larger SFT dataset beyond the original 160 synthetic pairs. Notably, FAIL_TANGENT is the hardest variant for *every* model — even 235B drops to 95% on it, and to 67% under the checklist — so the synthetic FAIL_TANGENT data may itself be inconsistent at the edges, and SFT data quality on that variant should be hand-validated before training.
+
+(Commits `bcc7782` baseline script, `9715b69` baseline lessons row, `ce5b2e2` checklist script; experiments #110 flat, #111 checklist)
+
 ## Prompt & Output Schema Design
 
 ### Structured checklist output beats flat verdict schemas on multi-check verification tasks — but only for fields within model capacity (2026-04-08)
