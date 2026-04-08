@@ -142,45 +142,142 @@ async function callOracle(systemPrompt: string, userPrompt: string): Promise<{ c
   }
 }
 
-// ── Per-task pair generators ────────────────────────────────────────────
+// ── Beat-writer call (for adherence-checker training data) ─────────────
+// Generates fresh prose for a specific beat in isolation. Used to produce
+// correctly-paired (beat, beat_prose) inputs for the adherence-checker
+// oracle. Without this, splitting an existing chapter's prose by paragraph
+// breaks and pairing chunks with beats by index gives mismatched inputs
+// that all label as "fail" (the smoke test confirmed this).
+//
+// Uses Cerebras Qwen 235B for both the beat-writer and the oracle — same
+// model the production beat-writer uses. Temperature 0.7 for creative
+// variety so the dataset includes both clean executions and natural drift.
 
-interface PairToGenerate {
-  systemPrompt: string
-  userPrompt: string
+async function generateBeatProse(
+  beat: SceneBeat,
+  outline: ChapterOutline,
+  chapterNumber: number,
+  targetWords: number,
+): Promise<string> {
+  const systemPrompt = "You are a novelist writing prose that executes a specific scene beat. Match the beat description exactly. Write only the prose, no preamble or commentary."
+  const userPrompt = `Setting: ${outline.setting}
+Chapter ${chapterNumber}: "${outline.title}"
+POV: ${outline.povCharacter}
+
+Beat: ${beat.description}
+Characters present: ${beat.characters.join(", ")}
+
+Write approximately ${targetWords} words of prose for this beat. Stay in third-person past tense unless the chapter context suggests otherwise. Output prose only — no preamble, no commentary, no headers.`
+
+  const response = await getTransport().execute({
+    systemPrompt,
+    userPrompt,
+    model: ORACLE_MODEL,
+    provider: ORACLE_PROVIDER,
+    temperature: 0.7,
+    maxTokens: 1500,
+    responseFormat: { type: "text" },
+    callerId: "finetune-beat-writer",
+  })
+  return response.content?.trim() ?? ""
 }
 
-function generatePairs(task: string, chapter: ChapterData): PairToGenerate[] {
-  const sys = SYSTEM_PROMPTS[task]
-  if (!sys) throw new Error(`Unknown task: ${task}`)
+// ── Per-task pair specs (sync — just identifies what to generate) ──────
+// Pair specs are produced sync from chapter data. The async pipeline in
+// processPairSpec then handles task-specific work (e.g. beat-writer call
+// for adherence-checker) before calling the oracle.
 
-  const pairs: PairToGenerate[] = []
+type PairSpec =
+  | { kind: "adherence"; beat: SceneBeat; outline: ChapterOutline; chapterNumber: number; targetWords: number }
+  | { kind: "reference"; beat: SceneBeat; outline: ChapterOutline; chapterNumber: number }
+  | { kind: "plancheck"; outline: ChapterOutline; prose: string; chapterNumber: number }
 
-  if (task === "adherence-checker" || task === "reference-resolver") {
-    // Per-beat: split prose by paragraph chunks, pair each with the corresponding outline beat by index
+function generatePairSpecs(task: string, chapter: ChapterData): PairSpec[] {
+  const specs: PairSpec[] = []
+
+  if (task === "adherence-checker") {
     const scenes = chapter.outline.scenes ?? []
-    if (scenes.length === 0) return pairs
-    const chunks = chapter.prose.split(/\n\n+/).filter(c => c.trim().length > 50)
-    if (chunks.length === 0) return pairs
-
+    if (scenes.length === 0) return specs
+    const targetWords = Math.round((chapter.outline.targetWords ?? 1000) / Math.max(scenes.length, 1))
     for (let bi = 0; bi < scenes.length; bi++) {
-      const chunkIdx = Math.min(bi, chunks.length - 1)
-      const proseChunk = chunks[chunkIdx]
-      if (proseChunk.length < 100) continue
-      const userPrompt = task === "adherence-checker"
-        ? adherenceUserPrompt(scenes[bi], chapter.outline, proseChunk)
-        : referenceUserPrompt(scenes[bi], chapter.outline, chapter.chapterNumber)
-      pairs.push({ systemPrompt: sys, userPrompt })
+      specs.push({
+        kind: "adherence",
+        beat: scenes[bi],
+        outline: chapter.outline,
+        chapterNumber: chapter.chapterNumber,
+        targetWords,
+      })
     }
-    return pairs
+    return specs
+  }
+
+  if (task === "reference-resolver") {
+    const scenes = chapter.outline.scenes ?? []
+    if (scenes.length === 0) return specs
+    for (let bi = 0; bi < scenes.length; bi++) {
+      specs.push({
+        kind: "reference",
+        beat: scenes[bi],
+        outline: chapter.outline,
+        chapterNumber: chapter.chapterNumber,
+      })
+    }
+    return specs
   }
 
   if (task === "chapter-plan-checker") {
-    // Per-chapter: one pair per chapter (full prose + plan)
-    pairs.push({ systemPrompt: sys, userPrompt: chapterPlanCheckUserPrompt(chapter.outline, chapter.prose) })
-    return pairs
+    specs.push({
+      kind: "plancheck",
+      outline: chapter.outline,
+      prose: chapter.prose,
+      chapterNumber: chapter.chapterNumber,
+    })
+    return specs
   }
 
   throw new Error(`Unknown task: ${task}`)
+}
+
+// ── Pair pipeline (async — runs beat-writer if needed, then oracle) ────
+
+interface ProcessedPair {
+  systemPrompt: string
+  userPrompt: string
+  oracleOutput: string
+  oracleLatencyMs: number
+  oraclePromptTokens: number
+  oracleCompletionTokens: number
+}
+
+async function processPairSpec(task: string, spec: PairSpec): Promise<ProcessedPair> {
+  const systemPrompt = SYSTEM_PROMPTS[task]
+  if (!systemPrompt) throw new Error(`Unknown task: ${task}`)
+
+  if (spec.kind === "adherence") {
+    // Step 1: generate fresh beat prose via the beat-writer model
+    const beatProse = await generateBeatProse(spec.beat, spec.outline, spec.chapterNumber, spec.targetWords)
+    if (!beatProse || beatProse.length < 100) {
+      throw new Error(`Beat-writer produced too-short prose (${beatProse.length} chars)`)
+    }
+    // Step 2: build the adherence-checker prompt with the fresh prose and call oracle
+    const userPrompt = adherenceUserPrompt(spec.beat, spec.outline, beatProse)
+    const oracle = await callOracle(systemPrompt, userPrompt)
+    return { systemPrompt, userPrompt, oracleOutput: oracle.content, oracleLatencyMs: oracle.latencyMs, oraclePromptTokens: oracle.promptTokens, oracleCompletionTokens: oracle.completionTokens }
+  }
+
+  if (spec.kind === "reference") {
+    const userPrompt = referenceUserPrompt(spec.beat, spec.outline, spec.chapterNumber)
+    const oracle = await callOracle(systemPrompt, userPrompt)
+    return { systemPrompt, userPrompt, oracleOutput: oracle.content, oracleLatencyMs: oracle.latencyMs, oraclePromptTokens: oracle.promptTokens, oracleCompletionTokens: oracle.completionTokens }
+  }
+
+  if (spec.kind === "plancheck") {
+    const userPrompt = chapterPlanCheckUserPrompt(spec.outline, spec.prose)
+    const oracle = await callOracle(systemPrompt, userPrompt)
+    return { systemPrompt, userPrompt, oracleOutput: oracle.content, oracleLatencyMs: oracle.latencyMs, oraclePromptTokens: oracle.promptTokens, oracleCompletionTokens: oracle.completionTokens }
+  }
+
+  throw new Error(`Unknown spec kind`)
 }
 
 // ── Main ───────────────────────────────────────────────────────────────
@@ -214,32 +311,35 @@ async function main() {
     process.exit(1)
   }
 
-  // Build the full list of pairs to generate across all chapters
-  const allPairs: Array<{ pair: PairToGenerate; chapter: ChapterData }> = []
+  // Build the full list of pair specs across all chapters
+  const allSpecs: Array<{ spec: PairSpec; chapter: ChapterData }> = []
   for (const ch of chapters) {
-    for (const pair of generatePairs(task, ch)) {
-      allPairs.push({ pair, chapter: ch })
+    for (const spec of generatePairSpecs(task, ch)) {
+      allSpecs.push({ spec, chapter: ch })
     }
   }
-  console.log(`[oracle-distill] expanded to ${allPairs.length} (input, expected_output) pairs`)
+  console.log(`[oracle-distill] expanded to ${allSpecs.length} pair specs`)
+  if (task === "adherence-checker") {
+    console.log(`[oracle-distill] adherence-checker uses 2 LLM calls per pair (beat-writer + oracle)`)
+  }
 
   let inserted = 0
   let failed = 0
   const startTime = Date.now()
 
-  for (let i = 0; i < allPairs.length; i += CONCURRENCY) {
-    const batch = allPairs.slice(i, i + CONCURRENCY)
-    const results = await Promise.allSettled(batch.map(async ({ pair, chapter }, j) => {
+  for (let i = 0; i < allSpecs.length; i += CONCURRENCY) {
+    const batch = allSpecs.slice(i, i + CONCURRENCY)
+    const results = await Promise.allSettled(batch.map(async ({ spec, chapter }, j) => {
       const idx = i + j + 1
-      const oracleResult = await callOracle(pair.systemPrompt, pair.userPrompt)
-      console.log(`  [${idx}/${allPairs.length}] novel=${chapter.novelId.slice(0, 8)} ch${chapter.chapterNumber} — ${oracleResult.latencyMs}ms, ${oracleResult.promptTokens}+${oracleResult.completionTokens} tokens`)
+      const processed = await processPairSpec(task, spec)
+      console.log(`  [${idx}/${allSpecs.length}] novel=${chapter.novelId.slice(0, 8)} ch${chapter.chapterNumber} — ${processed.oracleLatencyMs}ms, ${processed.oraclePromptTokens}+${processed.oracleCompletionTokens} tokens`)
       await saveTrainingPair({
         task,
         novel_id: chapter.novelId,
         chapter_number: chapter.chapterNumber,
-        system_prompt: pair.systemPrompt,
-        user_content: pair.userPrompt,
-        base_output: oracleResult.content,
+        system_prompt: processed.systemPrompt,
+        user_content: processed.userPrompt,
+        base_output: processed.oracleOutput,
       })
       return true
     }))
