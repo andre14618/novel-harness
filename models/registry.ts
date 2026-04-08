@@ -10,7 +10,7 @@
 
 // ── Provider definitions ─────────────────────────────────────────────────
 
-export type ProviderName = "cerebras" | "groq" | "openrouter" | "openai" | "deepseek" | "minimax" | "zai" | "mimo" | "together"
+export type ProviderName = "cerebras" | "groq" | "openrouter" | "openai" | "deepseek" | "minimax" | "zai" | "mimo" | "together" | "fireworks"
 
 export interface CacheStrategy {
   /**
@@ -113,6 +113,13 @@ export const PROVIDERS: Record<ProviderName, ProviderDef> = {
     tier: "standard",
     extraBody: () => ({ chat_template_kwargs: { enable_thinking: false } }),
     cache: { type: "none" },  // LoRA fine-tunes — no prefix caching
+  },
+  fireworks: {
+    apiUrl: "https://api.fireworks.ai/inference/v1/chat/completions",
+    envKey: "FIREWORKS_API_KEY",
+    tier: "standard",  // FireAttention on H100s — much faster than Together standard tier per benchmarks, but not LPU/WSE-class
+    extraBody: () => ({ chat_template_kwargs: { enable_thinking: false } }),  // same kwarg as Together for Qwen-family thinking control
+    cache: { type: "none" },  // verify on Fireworks pricing page; conservative default
   },
 }
 
@@ -610,6 +617,64 @@ export const MODELS: ModelDef[] = [
     maxContext: 256_000,
     maxOutput: 32_000,
     notes: "67% discrimination in calibration (via Groq proxy). Dialogue scoring inconsistent (max spread 3).",
+  },
+
+  // ── Fireworks AI (fast custom-LoRA hosting on H100s) ────────────────
+  // Model IDs use the format "accounts/fireworks/models/<slug>". Verify exact slugs
+  // against the Fireworks catalog page after setting FIREWORKS_API_KEY — these are
+  // the best guesses from the public catalog (2026-04-07) and may need adjustment.
+  // Pricing matches what Fireworks publishes; not yet measured for latency in-harness.
+
+  {
+    id: "accounts/fireworks/models/qwen3-vl-30b-a3b-instruct",
+    label: "Qwen3 VL 30B A3B Instruct (Fireworks)",
+    provider: "fireworks",
+    params: "30B (3B active) MoE",
+    pricing: { input: 0.15, output: 0.60 },
+    thinking: "disabled",
+    maxContext: 262_000,
+    notes: "MoE 30B/3B-active. Vision-language but works fine for text-only. Strong candidate for extractor tier (replacing mimo-v2-flash) and fact/character-state agents — same family as the eventual fine-tunes, tunable on Fireworks. Untested for latency in harness.",
+  },
+  {
+    id: "accounts/fireworks/models/qwen3-vl-30b-a3b-thinking",
+    label: "Qwen3 VL 30B A3B Thinking (Fireworks)",
+    provider: "fireworks",
+    params: "30B (3B active) MoE",
+    pricing: { input: 0.15, output: 0.60 },
+    thinking: "enabled",
+    maxContext: 262_000,
+    notes: "Thinking variant. Candidate for chapter-plan-checker A/B vs gpt-oss-120b — analytical tasks benefit from explicit reasoning. Set generous max_tokens (3-10x output of non-thinking).",
+  },
+  {
+    id: "accounts/fireworks/models/qwen3-8b",
+    label: "Qwen3 8B (Fireworks)",
+    provider: "fireworks",
+    params: "8B",
+    pricing: { input: 0.20, output: 0.20 },
+    thinking: "optional",
+    maxContext: 40_000,
+    needsNothink: true,
+    notes: "Small dense Qwen3. Candidate for reference-resolver / adherence-checker fine-tune base on Fireworks — same family as the rest of the Qwen fine-tune story, tunable + fast hosting in one place. Replaces the failed Together Qwen 9B experiment from this session.",
+  },
+  {
+    id: "accounts/fireworks/models/gpt-oss-120b",
+    label: "GPT-OSS 120B (Fireworks)",
+    provider: "fireworks",
+    params: "120B MoE",
+    pricing: { input: 0.15, output: 0.60 },
+    thinking: "disabled",
+    maxContext: 131_000,
+    notes: "Same model as the Groq gpt-oss-120b that's currently serving chapter-plan-checker. Same price. Difference is Fireworks supports fine-tuning, so once we accumulate plan-check training data we can train a LoRA against this base in-place. A/B latency vs Groq before any swap.",
+  },
+  {
+    id: "accounts/fireworks/models/gpt-oss-20b",
+    label: "GPT-OSS 20B (Fireworks)",
+    provider: "fireworks",
+    params: "20B",
+    pricing: { input: 0.07, output: 0.30 },
+    thinking: "disabled",
+    maxContext: 131_000,
+    notes: "Cheapest analytical-tier candidate. Tunable. Worth A/B testing as a chapter-plan-checker once the persistence + training-data pipeline exists — if 20B is good enough fine-tuned, it's the cost floor.",
   },
 
   // ── Together AI (base models + LoRA fine-tunes) ─────────────────────
