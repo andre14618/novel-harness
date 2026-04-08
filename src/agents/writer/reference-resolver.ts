@@ -9,8 +9,7 @@
  * implicit references that the deterministic pass can't handle.
  */
 
-import { executeBestOfN } from "../../llm"
-import { unionByKey } from "../../aggregators"
+import { callAgent } from "../../llm"
 import {
   getRecentEventsForCharacters,
   getRelationshipBetween,
@@ -44,31 +43,6 @@ const lookupResponseSchema = z.object({
   })),
 })
 
-type LookupResponse = z.infer<typeof lookupResponseSchema>
-type Lookup = LookupResponse["lookups"][number]
-
-/** Coarse key for cross-call deduplication. Drops free-text topic except for
- *  knowledge lookups (where the retrieval engine actually uses topic to filter). */
-function lookupKey(l: Lookup): string {
-  const chars = (l.characters ?? []).map(c => c.toLowerCase().trim()).sort().join(",")
-  const loc = (l.location ?? "").toLowerCase().trim()
-  const topicHint = l.type === "knowledge"
-    ? "|" + (l.topic ?? "").toLowerCase().trim().split(/\s+/).slice(0, 3).join(" ")
-    : ""
-  return `${l.type}|${chars}|${loc}${topicHint}`
-}
-
-/** Aggregator for parallel-N calls. Set union by lookup key — improves recall
- *  by ~7pp (relative +23%) vs single-shot per the best-of-N benchmark on 30
- *  real beats. The recall gain is the right tradeoff for reference-resolver
- *  because extra lookups are low-cost (writer reads more context) while missed
- *  lookups are higher-cost (writer doesn't know about something). See
- *  docs/lessons-learned.md for the full benchmark write-up. */
-function aggregateLookupsUnion(outputs: LookupResponse[]): LookupResponse {
-  const merged = unionByKey(outputs.map(o => o.lookups ?? []), lookupKey)
-  return { lookups: merged }
-}
-
 export async function resolveReferences(
   beat: SceneBeat,
   outline: ChapterOutline,
@@ -89,7 +63,7 @@ export async function resolveReferences(
   let llmUsed = false
 
   try {
-    const result = await executeBestOfN<LookupResponse>({
+    const result = await callAgent({
       novelId,
       agentName: "reference-resolver",
       systemPrompt: "You identify what background information a scene beat needs. Return JSON with specific lookups.",
@@ -103,11 +77,11 @@ What specific background does the writer need? Return JSON:
 
 Only include lookups for things implicitly referenced. Return empty lookups array if the beat is self-contained.`,
       schema: lookupResponseSchema,
-    }, 3, aggregateLookupsUnion)
+    })
     lookups = result.output.lookups
     llmUsed = true
   } catch {
-    // All N parallel attempts failed — fall back to heuristic lookups based on beat characters
+    // LLM failed — fall back to heuristic lookups based on beat characters
     lookups = [{ type: "recent_events", characters: beat.characters }]
   }
 
