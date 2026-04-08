@@ -106,17 +106,26 @@ OpenPipe/Qwen3-14B-Instruct (hot, always warm)
 
 ---
 
-### 5. Tonal Pass v4 (Howard Style)
+### 5. Tonal Pass v4 (Howard Style) — ATTEMPTED, V3 RETAINED
 
-**Current**: Together AI Qwen 3.5 9B + howard-tonal-v3 · $0.10/$0.15 · ~20s per call on Together
+**Status**: Trained and benchmarked 2026-04-08. V3 stays in production. See `tuning_experiment id=95`.
 
-**The opportunity**: Retrain v3 adapter on Qwen3-14B base. Better base model (14.8B dense vs 9.7B MoE notwithstanding capability differences), on W&B Inference instead of Together (faster serving, cheaper, on-platform). The v3 training data (4,497 curated pairs) transfers directly — same back-translation pipeline, same ChatML format.
+**What was tried**: Retrained v3 adapter on Qwen3-14B-Instruct (W&B Inference) using the same 4,497 curated pairs, 3 epochs, cosine schedule. Artifact: `wandb-artifact:///andre14618-/novel-harness/howard-tonal-v4:latest`.
 
-**Data source**: Existing `lora-data/howard-tonal-pairs-curated.jsonl`. May want to re-curate with higher contrast threshold or expand with additional Howard corpus.
+**Results vs V3** (15-paragraph benchmark):
 
-**Risk**: Low. Proven approach. Same data, same task, better serving infrastructure.
+| Metric | Howard ref | V3 (9B Together) | V4 (14B W&B) | Winner |
+|--------|-----------|-----------------|--------------|--------|
+| Classifier ↑ | 0.715 | **0.389** | 0.319 | V3 |
+| Perplexity ↓ | 1964 | 5122 | **4165** | V4 |
+| Feature KL ↓ | 1.534 | **1.539** | 1.635 | V3 |
+| Avg latency | — | 1691ms | **931ms** | V4 |
 
-**Expected outcome**: Comparable or better style transfer quality than v3, 10× faster inference, 50% cheaper per call.
+**Why V4 lost**: The 14B base model's verbosity bleeds through the LoRA. P1 sample showed V4 introducing hedging constructions ("not just from the cold, but from the growing sense that…") — exactly what the lint pass removes. Model size does not predict style transfer quality. This confirms the `lessons-learned.md` entry.
+
+**V4 is 1.8× faster** (W&B Inference vs Together AI), which is useful latency data, but quality regression rules it out as a production swap.
+
+**If revisiting**: Higher contrast threshold in training pairs, or data augmentation targeting verbosity/hedging reduction, before retraining on 14B.
 
 ---
 
