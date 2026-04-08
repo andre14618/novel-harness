@@ -82,7 +82,7 @@ async function callTarget(system: string, user: string): Promise<CheckerResult |
       provider: provider as any,
       model,
       temperature: 0.1,
-      maxTokens: 512,
+      maxTokens: 2048,
       responseFormat: { type: "json_object" },
     })
     // Extract JSON — models sometimes return prose around it

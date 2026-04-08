@@ -233,7 +233,7 @@ function collectFeedback(items: (FactItem | CheckItem)[]): string {
 // Slots Strategy Tab
 // ═══════════════════════════════════════════════════════════════════════
 
-type SlotStatus = "live" | "in-progress" | "pending" | "blocked" | "experimental"
+type SlotStatus = "live" | "in-progress" | "pending" | "blocked" | "experimental" | "data-needed"
 
 interface SlotDef {
   key: string
@@ -295,11 +295,11 @@ const SLOT_DEFS: SlotDef[] = [
     agentKey: "chapter-plan-checker",
     currentModel: "gpt-oss-120b (Groq)",
     provider: "groq",
-    status: "pending",
-    statusNote: "Accumulating (prose, plan, deviations, passed) from novel runs. Target: 50-100 examples. Phase 1.",
+    status: "data-needed",
+    statusNote: "Base 14B zero-shot = 58% agreement with 120B oracle (exp #107). 100% one-directional: 14B rubber-stamps all FAIL cases, incl. FAIL_WRONG_SETTING at 0/10. Highly learnable one-sided bias — fine-tune (distill 120B) is the path. Keep 120B in prod until adapter exists.",
     priority: 4,
     costPerCall: "$0.0007",
-    dataStatus: "Accumulating from pipeline runs. No dedicated dataset yet.",
+    dataStatus: "80 synthetic pairs generated (lora-data/chapter-plan-checker-pairs.jsonl). Relabel with 120B from exp #107, plus accumulate 200+ real production pairs.",
     experimentTargetKey: "chapter-plan-checker",
   },
   {
@@ -362,6 +362,7 @@ const SLOT_STATUS_LABEL: Record<SlotStatus, string> = {
   "pending": "Pending",
   "blocked": "Blocked",
   "experimental": "Experimental",
+  "data-needed": "Data Needed",
 }
 
 const SLOT_STATUS_COLOR: Record<SlotStatus, string> = {
@@ -370,6 +371,7 @@ const SLOT_STATUS_COLOR: Record<SlotStatus, string> = {
   "pending": "var(--text-tertiary)",
   "blocked": "var(--yellow, #f0a500)",
   "experimental": "var(--text-ghost)",
+  "data-needed": "var(--yellow, #f0a500)",
 }
 
 function SlotStatusBadge({ status }: { status: SlotStatus }) {

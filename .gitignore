@@ -11,3 +11,4 @@ data/batches/
 novel.db
 lora-data/
 finetune-data/
+wandb/

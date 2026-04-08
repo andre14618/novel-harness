@@ -410,8 +410,9 @@ function getVariants(s: ChapterScenario): VariantSpec[] {
 // ── Prose generation ─────────────────────────────────────────────────────
 
 const GEN_SYSTEM = `You are a skilled prose writer generating labeled training examples for a chapter-plan-adherence classifier.
-Write exactly the type of chapter prose described. Do NOT add editorial notes, labels, or JSON wrappers.
-Return ONLY the chapter prose itself as raw text.`
+Write chapter prose exactly matching the requested variant type.
+Return your response as strict JSON in the form: {"prose": "<the full chapter prose here>"}
+The value of "prose" should be the full chapter text with \\n for paragraph breaks. No other keys, no commentary.`
 
 function serializePlan(outline: ChapterOutline): string {
   const parts: string[] = []
@@ -458,12 +459,20 @@ Now write the chapter prose.`
     maxTokens: 3500,
   })
   let prose = result.content.trim()
-  // Strip JSON wrapper if model returned {"prose": "..."} instead of raw text
+  // Expected shape: {"prose": "..."} — try parsing, fall back gracefully
   if (prose.startsWith("{")) {
     try {
       const parsed = JSON.parse(prose)
-      prose = (parsed.prose ?? parsed.text ?? parsed.chapter ?? prose).trim()
-    } catch {}
+      const extracted = parsed.prose ?? parsed.text ?? parsed.chapter ?? parsed.content
+      if (typeof extracted === "string" && extracted.length > 100) {
+        prose = extracted.trim()
+      } else if (parsed.error) {
+        throw new Error(`model returned error: ${String(parsed.error).slice(0, 200)}`)
+      }
+    } catch (e) {
+      if (String(e).startsWith("Error: model returned error")) throw e
+      // Fall through — maybe the content IS the prose and starts with { as text
+    }
   }
   // Strip markdown code fences if present
   if (prose.startsWith("```")) {

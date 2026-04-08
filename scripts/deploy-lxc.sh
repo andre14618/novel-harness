@@ -6,7 +6,7 @@ set -e
 echo "Syncing harness code to LXC..."
 rsync -az --delete \
   --exclude node_modules --exclude .env --exclude 'data/*.db' --exclude output \
-  --exclude .git --exclude '.claude' \
+  --exclude .git --exclude '.claude' --exclude 'lora-data' --exclude 'wandb' \
   . novel-harness-lxc:~/apps/novel-harness/
 
 # Ensure psql-harness alias exists

@@ -166,17 +166,42 @@ Until condition 1 is true, RunPod is an infrastructure cost, not a cost saving. 
 
 ---
 
-### 4. Chapter Plan Checker
+### 4. Chapter Plan Checker — CONFIRMED FINE-TUNE CANDIDATE
 
 **Current**: `openai/gpt-oss-120b` on Groq · ~2,880 in / ~995 out · ~2,415ms · $0.0007/call
 
-**The opportunity**: Structural reasoning task — compare chapter prose against the structured plan (beats, characters, facts, state changes) and classify deviations. The false-positive ruleset (paraphrased dialogue, reordered details, atmospheric additions are NOT deviations) is currently in the prompt. A fine-tuned model compresses those rules into weights and works from a shorter prompt.
+**Zero-shot test (exp #107, 2026-04-08)**: Ran base Qwen3-14B-Instruct on W&B side-by-side with the 120B oracle across 80 synthetic pairs (10 scenarios × 8 variants, same methodology as adherence-checker exp #99–#101).
 
-**Data source**: Persist `(prose, plan, deviations, passed, model)` to a `chapter_plan_checks` table so every real novel run generates a labeled example. After 50-100 examples: review in Claude Code, correct false positives, train. The `openai/gpt-oss-120b` base is on the W&B supported list — could distill from that oracle directly.
+**Result**: **58% direct agreement (46/79)** — base 14B cannot replace 120B on this task.
 
-**Risk**: Medium. Complex multi-step reasoning. The prior Llama 8B failure (couldn't reason through structural rules, bounced valid prose) shows the task requires genuine reasoning capacity. The 14B should be sufficient but needs validation. 50 labeled examples is the minimum viable dataset.
+| Variant | 14B↔120B agreement |
+|---------|-------------------|
+| PASS_CLEAN           | 9/10 (90%)  |
+| PASS_PARAPHRASE      | 9/9 (100%)  |
+| PASS_REORDER         | 9/10 (90%)  |
+| PASS_ATMOSPHERIC     | 9/10 (90%)  |
+| FAIL_MISSING_BEAT    | 4/10 (40%) ⚠ |
+| FAIL_MISSING_CHAR    | 1/10 (10%) ⚠ |
+| FAIL_REVERSED_ARC    | 5/10 (50%) ⚠ |
+| FAIL_WRONG_SETTING   | **0/10 (0%)** ⚠ |
 
-**Expected outcome**: Comparable accuracy to gpt-oss-120b, 3× faster, 2× cheaper per call. More importantly: shorter prompt → lower input tokens → further cost reduction.
+**Critical finding — 100% directional bias**: all 33 disagreements are "14B said PASS, 120B said FAIL". Zero cases where 14B was stricter. The base 14B has a systematic rubber-stamp bias — it approves almost every chapter regardless of actual plan violations, including obvious cases like setting the scene in the wrong location or omitting a character listed in the plan.
+
+**Why this differs from adherence-checker**: Adherence-checker is a well-scoped per-beat binary classification (did this specific character appear? did the word count match?). Chapter-plan-checker requires multi-step structural reasoning over 4-5 scene beats, 5-10 facts, 3+ character state changes, and a false-positive ruleset. 14B hits its reasoning ceiling on the FAIL detection side. This is the same ceiling that made us escalate from Llama 8B → 120B originally — different failure mode (under-strict vs over-strict), same root cause.
+
+**Why fine-tuning is justified here (unlike adherence-checker)**: The bias is 100% one-directional and highly learnable. SFT is the ideal correction for systematic under-detection — provide labeled FAIL examples and the model learns the discrimination boundary. This is the canonical use case for distillation from a stronger model.
+
+**Fine-tune approach**: Distill gpt-oss-120b onto Qwen3-14B via SFT. The 120B judgments are trusted as labels (85% agreement with deterministic labels on the synthetic set, and disagreements were mostly label noise where the generator failed to cleanly omit/invert elements).
+
+**Data source**: Two parallel collection paths:
+1. **Real production data (primary)**: Every production chapter-plan-checker call captures `(prose, plan, oracle_pass, oracle_deviations)`. Already flowing through `llm_calls` but `response_content` needs to be reliably captured (known gap). Target: 200+ real pairs from actual novel runs.
+2. **Synthetic augmentation (secondary)**: The 80-pair synthetic set exists in `lora-data/chapter-plan-checker-pairs.jsonl`. Relabel with the 120B outputs from exp #107 (stored in experiment conclusion) — this gives 80 120B-labeled pairs immediately, usable for a pilot SFT run to validate the approach before waiting for production data.
+
+**Risk**: Medium. 14B has the raw capacity (PASS variants all ≥90%), so the fine-tune only needs to teach FAIL discrimination, not full reasoning from scratch. 200 distilled pairs is the minimum viable dataset per the adherence-checker playbook.
+
+**Expected outcome**: Agreement with 120B rises from 58% → ≥90% after SFT. Cost drops from $0.0007 → $0.00005/call (14×). Latency drops from ~2,400ms → ~400ms (6×, matching adherence-checker profile on same base).
+
+**Status**: Stay on gpt-oss-120b in production until a fine-tuned adapter exists. Do NOT swap to base 14B — it would rubber-stamp broken chapters.
 
 ---
 
