@@ -93,6 +93,7 @@ LoRA fine-tunes have historically targeted Qwen 3.5 9B on Together ($0.48/M trai
 ## Infrastructure
 
 - Add context inspection view to web UI (show what the writer/beat-writer received)
+- **Mac Mini as local inference provider** — Ollama + `qwen3.5:9b` resident in memory, registered as a `local` provider in `models/registry.ts` pointing at `http://mac-mini:11434/v1` (or Tailscale IP). Cost: ~$2-4/month electricity, zero per-token. Role: background/batch jobs only — tonal-pass pair generation (back-translation), analytical LoRA input generation, agreement probes, offline prompt iteration. Not for online per-beat inference. Hardware already exists alongside Proxmox setup.
 
 ## Seeds & Testing
 
