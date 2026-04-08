@@ -48,15 +48,18 @@ OpenPipe/Qwen3-14B-Instruct (hot, always warm)
 
 ## Alternative Serving: RunPod Serverless
 
-**Status**: Potential avenue, not yet adopted. W&B Inference remains the default.
+**Status**: Not viable without solving the training problem separately. W&B Inference is the only real option.
 
-W&B Inference has two hard constraints: base model catalog (only Qwen3-14B-Instruct is viable) and max LoRA rank 16. RunPod Serverless removes both — any model, any rank, any base size.
+The constraint isn't just on the serving side. W&B Inference is limited to their catalog (Qwen3-14B-Instruct is the only viable model), but **W&B ART training is also catalog-constrained** — training runs fine on other bases in principle, but there is no end-to-end path: ART trains → W&B Inference can't serve it. For RunPod flexibility to be real, you'd need a separate training pipeline (Unsloth on Modal, or similar), which is a non-trivial infrastructure commitment that doesn't currently exist.
 
-### Why it's worth tracking
+The "3B specialist" argument in particular doesn't hold: no 3B training path, no 3B on W&B Inference, and RunPod serving a 3B at harness traffic volumes costs ~$7–8/M anyway (see Economics below). **Qwen3-14B-Instruct on W&B is the only legitimate LoRA base available end-to-end right now.**
 
-- **No catalog lock-in** — can serve Qwen3-3B, Mistral, or any custom base
-- **Task-matched sizing** — a lint-fixer or adherence-checker might only need a fine-tuned 3B, which is far cheaper per token than forcing everything onto 14B
-- **LoRA rank > 16** — relevant if higher-capacity adapters are needed for complex tasks (continuity, beat-writer)
+RunPod Serverless would genuinely remove both constraints — any model, any rank, any base — but only if you also build the training side. That's the actual gap.
+
+### What RunPod would unlock (if training were solved)
+
+- **LoRA rank > 16** — relevant for complex tasks (continuity, beat-writer) where higher-capacity adapters may be needed
+- **Any base model** — if a better base than Qwen3-14B-Instruct emerged that W&B Inference doesn't carry
 - **Horizontal auto-scaling** — each endpoint gets its own worker pool; agents never compete for rate limits the way Cerebras calls do
 - **Plugs into transport.ts unchanged** — RunPod vLLM exposes an OpenAI-compatible API; only `models/registry.ts` and `models/roles.ts` need updating
 
@@ -104,12 +107,14 @@ W&B trains adapter
 
 Transport layer needs no changes. The RunPod vLLM URL is a drop-in OpenAI-compatible base URL.
 
-### When to consider switching a slot
+### When RunPod would actually become viable
 
-- Need a base model not in W&B's catalog
-- Need LoRA rank > 16
-- Want a 3B specialist for a pure classification task (adherence-checker, reference-resolver) — economics favor small models when they stay warm during runs
-- Cerebras rate limits become a bottleneck for parallel agent workloads
+The real threshold is solving the training pipeline, not the serving side:
+
+1. **A separate training path exists** (Unsloth + Modal, or similar) for the target base model
+2. **AND** the target model isn't in W&B's catalog / rank > 16 / some other constraint forces the switch
+
+Until condition 1 is true, RunPod is an infrastructure cost, not a cost saving. At harness traffic volume (~$7–8/M effective), it's ~15× more expensive than W&B Inference regardless of which base model is served.
 
 ---
 
