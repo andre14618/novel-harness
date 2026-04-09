@@ -268,7 +268,7 @@ export function LLMCallsPage() {
                       : <span style={{ color: "var(--text-tertiary)" }}>ok</span>}
                   </Td>
                   <Td>{row.agent}</Td>
-                  <Td muted>{row.novel_id ? row.novel_id.slice(0, 8) : "—"}</Td>
+                  <Td muted>{row.novel_id ? row.novel_id.replace("novel-", "…") : "—"}</Td>
                   <Td>{row.chapter ?? "—"}</Td>
                   <Td>{row.beat_index ?? "—"}</Td>
                   <Td>{row.attempt ?? "—"}</Td>
@@ -335,7 +335,7 @@ function DetailPanel({ call, loading, onClose }: { call: LLMCallDetail; loading:
             {call.provider}/{shortModel(call.model)} · t={call.temperature ?? "—"} · {call.prompt_tokens}+{call.completion_tokens} tokens · {call.latency_ms}ms · ${Number(call.cost).toFixed(4)}
           </div>
           <div style={{ fontSize: "0.7rem", color: "var(--text-secondary)", marginTop: 2 }}>
-            novel={call.novel_id?.slice(0, 12) ?? "—"} · ch={call.chapter ?? "—"} · beat={call.beat_index ?? "—"} · attempt={call.attempt ?? "—"} · {new Date(call.timestamp).toLocaleString()}
+            novel={call.novel_id ?? "—"} · ch={call.chapter ?? "—"} · beat={call.beat_index ?? "—"} · attempt={call.attempt ?? "—"} · {new Date(call.timestamp).toLocaleString()}
           </div>
         </div>
         <button onClick={onClose} style={{ ...buttonStyle, padding: "2px 8px" }}>×</button>
