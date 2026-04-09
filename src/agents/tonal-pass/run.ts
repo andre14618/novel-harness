@@ -15,7 +15,7 @@ import { log } from "../../logger"
 import { emit } from "../../events"
 
 // Load prompt at module level
-const PROMPT = await Bun.file(new URL("./prompt.md", import.meta.url).pathname).text()
+const PROMPT = await Bun.file(new URL("./tonal-rewrite-system.md", import.meta.url).pathname).text()
 
 export interface TonalPassResult {
   prose: string

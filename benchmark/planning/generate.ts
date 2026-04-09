@@ -14,7 +14,7 @@ import { judgeScoreSchema, DIMENSIONS, DIMENSION_LABELS } from "./judges/schema"
 import type { BenchmarkConfig, BenchmarkInput, GenerationResult } from "../engine"
 import type { WriterConfig } from "../config"
 
-const PLANNER_PROMPT_PATH = new URL("../../src/agents/planning-plotter/prompt.md", import.meta.url).pathname
+const PLANNER_PROMPT_PATH = new URL("../../src/agents/planning-plotter/chapter-outline-system.md", import.meta.url).pathname
 const PLANNER_PROMPT = readFileSync(PLANNER_PROMPT_PATH, "utf-8")
 const SEEDS_DIR = new URL("../../src/seeds", import.meta.url).pathname
 
@@ -108,8 +108,8 @@ export const config: BenchmarkConfig<typeof DIMENSIONS[number]> = {
   loadInputs: loadSeeds,
   generate: generateOutline,
   promptTargets: [
-    { path: "src/agents/planning-plotter/prompt.md", agentName: "planning-plotter" },
-    { path: "src/agents/plotter/prompt.md", agentName: "plotter" },
+    { path: "src/agents/planning-plotter/chapter-outline-system.md", agentName: "planning-plotter" },
+    { path: "src/agents/plotter/story-structure-system.md", agentName: "plotter" },
   ],
   runCmd: "bun benchmark/planning/run.ts",
   daemonEnv: { BENCHMARK_SEEDS: "romance-drama", BENCHMARK_RUNS: "2" },

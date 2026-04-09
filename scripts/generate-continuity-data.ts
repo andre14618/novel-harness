@@ -60,8 +60,8 @@ const OUT_PATH = join(import.meta.dir, "../lora-data/continuity-pairs.jsonl")
 
 // ── Continuity prompt template (must match production exactly) ────────────
 //
-// Mirrors src/agents/continuity/prompt.md (system) and
-// src/agents/continuity/context.ts (user payload). The system prompt is the
+// Mirrors src/agents/continuity/fact-check-system.md + state-check-system.md
+// (decomposed into 2 parallel calls). The system prompts are the
 // big severity-rubric block; the user payload is CHAPTER DRAFT + ESTABLISHED
 // FACTS + CHARACTER STATES + the trailing "Check this chapter draft…"
 // instruction. Generated pairs are scored by score-continuity-baseline.ts and

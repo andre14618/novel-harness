@@ -2,7 +2,7 @@
  * Context builder for lint-discoverer agent.
  *
  * Minimal context: prose samples + existing rule names (to avoid duplication).
- * Craft principles live in the agent prompt.md — they're static methodology,
+ * Craft principles live in the agent antipattern-discoverer-system.md — they're static methodology,
  * not per-call context.
  */
 

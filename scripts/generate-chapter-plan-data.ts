@@ -28,7 +28,7 @@ import type { ChapterOutline } from "../src/agents/planning-plotter/schema"
 
 const OUT_PATH = join(import.meta.dir, "../lora-data/chapter-plan-checker-pairs.jsonl")
 const SYSTEM_PROMPT = await Bun.file(
-  join(import.meta.dir, "../src/agents/chapter-plan-checker/prompt.md")
+  join(import.meta.dir, "../src/agents/chapter-plan-checker/plan-adherence-system.md")
 ).text()
 
 // ── Scenarios ────────────────────────────────────────────────────────────

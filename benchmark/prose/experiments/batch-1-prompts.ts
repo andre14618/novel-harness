@@ -32,7 +32,7 @@ Writing guidelines:
 
 const A1: Variant = {
   label: "A1: current",
-  systemPrompt: readFileSync(new URL("../../../src/agents/writer/prompt.md", import.meta.url).pathname, "utf-8"),
+  systemPrompt: readFileSync(new URL("../../../src/agents/writer/prose-writer-system.md", import.meta.url).pathname, "utf-8"),
 }
 
 // ── Variant A2: Positive-only rules ─────────────────────────────────────

@@ -9,7 +9,7 @@ import { readFileSync } from "node:fs"
 import { getConceptForCategory, loadConceptContext } from "../../lint/concepts"
 
 const HARNESS_ROOT = new URL("../../..", import.meta.url).pathname.replace(/\/$/, "")
-const WRITER_PROMPT_PATH = `${HARNESS_ROOT}/src/agents/writer/prompt.md`
+const WRITER_PROMPT_PATH = `${HARNESS_ROOT}/src/agents/writer/prose-writer-system.md`
 
 export function loadWriterPrompt(): string {
   return readFileSync(WRITER_PROMPT_PATH, "utf-8")

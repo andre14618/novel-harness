@@ -80,9 +80,9 @@ export const config: BenchmarkConfig<typeof CONTEXT_DIMENSIONS[number]> = {
 
   // Daemon metadata
   promptTargets: [
-    { path: "src/agents/graph-linker/prompt.md", agentName: "graph-linker" },
-    { path: "src/agents/world-builder/prompt.md", agentName: "world-builder" },
-    { path: "src/agents/character-agent/prompt.md", agentName: "character-agent" },
+    { path: "src/agents/graph-linker/graph-validator-system.md", agentName: "graph-linker" },
+    { path: "src/agents/world-builder/world-bible-system.md", agentName: "world-builder" },
+    { path: "src/agents/character-agent/character-profile-system.md", agentName: "character-agent" },
   ],
   runCmd: "bun benchmark/context/run.ts",
   daemonEnv: {

@@ -50,23 +50,23 @@ interface TargetConfig {
 const TARGETS: Record<string, TargetConfig> = {
   extraction: {
     promptFiles: [
-      { path: "src/agents/fact-extractor/prompt.md", agentName: "fact-extractor" },
-      { path: "src/agents/summary-extractor/prompt.md", agentName: "summary-extractor" },
-      { path: "src/agents/character-state/prompt.md", agentName: "character-state" },
+      { path: "src/agents/fact-extractor/fact-extractor-system.md", agentName: "fact-extractor" },
+      { path: "src/agents/summary-extractor/chapter-summary-system.md", agentName: "summary-extractor" },
+      { path: "src/agents/character-state/state-extractor-system.md", agentName: "character-state" },
     ],
     benchmarkCmd: "BENCHMARK_RUNS=2 BENCHMARK_SAMPLES=2 bun benchmark/extraction/run.ts",
     runType: "extraction",
   },
   planning: {
     promptFiles: [
-      { path: "src/agents/planning-plotter/prompt.md", agentName: "planning-plotter" },
+      { path: "src/agents/planning-plotter/chapter-outline-system.md", agentName: "planning-plotter" },
     ],
     benchmarkCmd: "BENCHMARK_SEEDS=romance-drama BENCHMARK_RUNS=2 bun benchmark/planning/run.ts",
     runType: "planning",
   },
   prose: {
     promptFiles: [
-      { path: "src/agents/writer/prompt.md", agentName: "writer" },
+      { path: "src/agents/writer/prose-writer-system.md", agentName: "writer" },
     ],
     benchmarkCmd: "BENCHMARK_SEEDS=romance-drama BENCHMARK_RUNS=2 bun benchmark/prose/run.ts",
     runType: "prose",

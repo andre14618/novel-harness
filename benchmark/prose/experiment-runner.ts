@@ -52,7 +52,7 @@ function expandMatrix(batch: ExperimentBatch): Variant[] {
 
   const prompts = batch.matrix.prompts ?? [{
     label: "default",
-    systemPrompt: readFileSync(new URL("../../src/agents/writer/prompt.md", import.meta.url).pathname, "utf-8"),
+    systemPrompt: readFileSync(new URL("../../src/agents/writer/prose-writer-system.md", import.meta.url).pathname, "utf-8"),
   }]
   const models = batch.matrix.models ?? [undefined]
   const temps = batch.matrix.temperatures ?? [0.8]

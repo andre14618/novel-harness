@@ -31,7 +31,7 @@ import { extractJSON } from "../src/llm"
 import { buildImprovementContext } from "../src/agents/lint-improver/context"
 
 const HARNESS_ROOT = new URL("..", import.meta.url).pathname.replace(/\/$/, "")
-const WRITER_PROMPT_PATH = `${HARNESS_ROOT}/src/agents/writer/prompt.md`
+const WRITER_PROMPT_PATH = `${HARNESS_ROOT}/src/agents/writer/prose-writer-system.md`
 
 const { values } = parseArgs({
   options: {
@@ -138,7 +138,7 @@ async function takeLintSnapshot(writerPrompt: string, seeds: ReturnType<typeof l
 // ── Agent prompt (loaded from file) ───────────────────────────────────────
 
 const IMPROVER_PROMPT = readFileSync(
-  new URL("../src/agents/lint-improver/prompt.md", import.meta.url).pathname, "utf-8",
+  new URL("../src/agents/lint-improver/prompt-improver-system.md", import.meta.url).pathname, "utf-8",
 )
 
 // ── Propose writer prompt change via lint-improver agent ─────────────────
@@ -282,7 +282,7 @@ async function main() {
 
       // Git commit
       try {
-        const proc = Bun.spawn(["git", "add", "src/agents/writer/prompt.md"], { cwd: HARNESS_ROOT })
+        const proc = Bun.spawn(["git", "add", "src/agents/writer/prose-writer-system.md"], { cwd: HARNESS_ROOT })
         await proc.exited
         const commitMsg = `[lint-improve] persistent ${currentSnapshot.totalAfterFix} (${persistentDelta}): ${proposal.explanation}\n\nexperiment: #${experimentId}, iter: ${iter}`
         const commitProc = Bun.spawn(["git", "commit", "-m", commitMsg], { cwd: HARNESS_ROOT })

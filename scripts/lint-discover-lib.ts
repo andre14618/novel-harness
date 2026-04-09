@@ -15,7 +15,7 @@ import { getModelForAgent } from "../models/roles"
 import { CONCEPTS, loadConceptContext, isHeuristicOnly, type LintConcept } from "../src/lint/concepts"
 
 const AGENT_PROMPT = readFileSync(
-  new URL("../src/agents/lint-discoverer/prompt.md", import.meta.url).pathname, "utf-8",
+  new URL("../src/agents/lint-discoverer/antipattern-discoverer-system.md", import.meta.url).pathname, "utf-8",
 )
 
 // ── Load existing rules for a specific category ───────────────────────────

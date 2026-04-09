@@ -141,7 +141,7 @@ async function resolveFromRun(runId: number): Promise<ResolvedPrompts> {
   const timestamp = new Date(run.timestamp).toISOString()
 
   // Find the commit that was active at the run's time
-  const writerPath = "src/agents/writer/prompt.md"
+  const writerPath = "src/agents/writer/prose-writer-system.md"
   const result = await $`git log --before="${timestamp}" -1 --format=%H -- ${writerPath}`.text()
   const sha = result.trim()
   if (!sha) throw new Error(`No git commit found for ${writerPath} before ${timestamp}`)
@@ -150,7 +150,7 @@ async function resolveFromRun(runId: number): Promise<ResolvedPrompts> {
 }
 
 async function resolveFromCommit(sha: string, labelOverride?: string): Promise<ResolvedPrompts> {
-  const writerPath = "src/agents/writer/prompt.md"
+  const writerPath = "src/agents/writer/prose-writer-system.md"
 
   let content: string
   try {

@@ -14,9 +14,9 @@ import type { BenchmarkConfig, BenchmarkInput, GenerationResult } from "../engin
 import type { WriterConfig } from "../config"
 
 // Load extractor prompts
-const SUMMARY_PROMPT = readFileSync(new URL("../../src/agents/summary-extractor/prompt.md", import.meta.url).pathname, "utf-8")
-const FACT_PROMPT = readFileSync(new URL("../../src/agents/fact-extractor/prompt.md", import.meta.url).pathname, "utf-8")
-const CHAR_STATE_PROMPT = readFileSync(new URL("../../src/agents/character-state/prompt.md", import.meta.url).pathname, "utf-8")
+const SUMMARY_PROMPT = readFileSync(new URL("../../src/agents/summary-extractor/chapter-summary-system.md", import.meta.url).pathname, "utf-8")
+const FACT_PROMPT = readFileSync(new URL("../../src/agents/fact-extractor/fact-extractor-system.md", import.meta.url).pathname, "utf-8")
+const CHAR_STATE_PROMPT = readFileSync(new URL("../../src/agents/character-state/state-extractor-system.md", import.meta.url).pathname, "utf-8")
 
 const MAX_SAMPLES = parseInt(process.env.BENCHMARK_SAMPLES ?? "0")
 const AGENT_FILTER = process.env.BENCHMARK_AGENT
@@ -132,10 +132,10 @@ export const config: BenchmarkConfig<typeof DIMENSIONS[number]> = {
   buildJudgePrompt: (input, extractedData) =>
     `ORIGINAL PROSE:\n${input.prose}\n\nEXTRACTED DATA:\n${extractedData}`,
   promptTargets: [
-    { path: "src/agents/fact-extractor/prompt.md", agentName: "fact-extractor" },
-    { path: "src/agents/summary-extractor/prompt.md", agentName: "summary-extractor" },
-    { path: "src/agents/character-state/prompt.md", agentName: "character-state" },
-    { path: "src/agents/relationship-timeline/prompt.md", agentName: "relationship-timeline" },
+    { path: "src/agents/fact-extractor/fact-extractor-system.md", agentName: "fact-extractor" },
+    { path: "src/agents/summary-extractor/chapter-summary-system.md", agentName: "summary-extractor" },
+    { path: "src/agents/character-state/state-extractor-system.md", agentName: "character-state" },
+    { path: "src/agents/relationship-timeline/timeline-extractor-system.md", agentName: "relationship-timeline" },
   ],
   runCmd: "bun benchmark/extraction/run.ts",
   daemonEnv: { BENCHMARK_RUNS: "2", BENCHMARK_SAMPLES: "2" },
