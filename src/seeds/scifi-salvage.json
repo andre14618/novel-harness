@@ -1,0 +1,10 @@
+{
+  "premise": "A salvage crew operating in the debris field of a destroyed space station finds an intact cryo-pod with a living occupant. The station was destroyed in a classified military action twenty years ago, and every record says there were no survivors. The occupant remembers why the station was really destroyed.",
+  "genre": "science-fiction",
+  "chapterCount": 10,
+  "characters": [
+    { "name": "Kess Adeyemi", "role": "protagonist", "description": "Salvage captain, mid-30s. Runs a three-person crew on tight margins. Nigerian-British. Sharp negotiator, fair divider of shares, terrible at saying no to risky jobs. Lost her previous ship to a debris strike and is still paying it off." },
+    { "name": "Lior", "role": "supporting", "description": "The cryo-pod occupant. Former station researcher, physically mid-20s but chronologically mid-40s. Disoriented, frightened, and carrying classified knowledge they didn't ask for. Speaks in the clipped, formal syntax of someone who hasn't had a casual conversation in twenty years." },
+    { "name": "Commander Vasik", "role": "antagonist", "description": "Military intelligence officer dispatched when the cryo-pod's beacon activated. Professional, restrained, authorized to offer the crew enough money to retire — or to classify them as material witnesses, which means they never leave military custody." }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "premise": "Five years after the collapse, a ham radio operator in the Ozarks picks up a broadcast from a functioning city on the coast — they're accepting refugees but only for sixty more days. She has to cross 800 miles of lawless territory with her nephew, and the only map is from before the rivers changed course.",
+  "genre": "post-apocalyptic",
+  "chapterCount": 10,
+  "characters": [
+    { "name": "June Weaver", "role": "protagonist", "description": "Former high school teacher, early 50s. Tough, resourceful, terrible liar. Has kept her nephew alive for five years through stubbornness and radio scavenging. Walks with a limp from a badly set fracture." },
+    { "name": "Colt", "role": "supporting", "description": "June's nephew, fourteen. Born just before the collapse, doesn't remember the old world. Quiet, watchful, better at reading strangers than June is. Draws maps from memory." },
+    { "name": "Briggs", "role": "antagonist", "description": "Controls a bridge toll on the Missouri River. Ex-national guard who kept his unit together by keeping them fed. Reasonable, transactional, but the toll keeps going up and he doesn't let people go back the way they came." }
+  ]
+}

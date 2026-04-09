@@ -1,0 +1,10 @@
+{
+  "premise": "A hotshot wildfire crew in Montana breaks through a fire line into a world where fire is alive, intelligent, and the dominant civilization. The fire that crossed into Earth wasn't an invasion — it was a refugee, fleeing something worse. The crew has to negotiate passage home through a landscape where everything burns and nothing dies.",
+  "genre": "portal-fantasy",
+  "chapterCount": 10,
+  "characters": [
+    { "name": "Ray Begay", "role": "protagonist", "description": "Hotshot crew superintendent, late 30s. Navajo. Twenty years fighting wildfire. Reads terrain and weather like text. Calm in emergencies, claustrophobic in buildings, carries a fire shelter he's deployed twice. His crew is his responsibility and he counts heads constantly." },
+    { "name": "Torres", "role": "supporting", "description": "Crew's newest member, early 20s. First season on a hotshot crew. Puerto Rican, former EMT. Terrified but competent. The fire entities communicate through heat gradients, and Torres — who has synesthesia and perceives temperature as color — can read them better than anyone." },
+    { "name": "The Burn", "role": "antagonist", "description": "A fire entity that crossed into Earth and started the wildfire the crew was fighting. Ancient, desperate, doesn't understand that humans die from heat. It's trying to warn them about what's coming behind it, but its communication method is combustion, and every warning is a new fire." }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "premise": "A used bookshop owner discovers that a water-damaged book in her inventory is a one-way portal — reading the first chapter pulls you into the world described, and the only way back is to reach the final page. The problem: the last thirty pages are missing, and someone in the book's world tore them out on purpose.",
+  "genre": "portal-fantasy",
+  "chapterCount": 10,
+  "characters": [
+    { "name": "Iris Blackwood", "role": "protagonist", "description": "Used bookshop owner, mid-30s. Inherited the shop from an aunt she barely knew. Reads compulsively, terrible at running a business, has a photographic memory for text. Inside the book-world, discovers she can sense the narrative structure — where chapters end, where the plot is heading." },
+    { "name": "Hemm", "role": "supporting", "description": "A character from the book who knows he's a character. Innkeeper, world-weary, speaks in the slightly formal cadence of someone written in the 1940s. Has met three other readers who entered the book. None of them made it to the end." },
+    { "name": "The Redactor", "role": "antagonist", "description": "The person who tore out the final pages — another reader who entered the book years ago and chose to stay. She removed the ending to prevent anyone from leaving, because when readers leave, the world resets and everyone inside dies. She's protecting the world by trapping everyone in it." }
+  ]
+}

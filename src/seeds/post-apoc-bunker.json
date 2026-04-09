@@ -1,0 +1,10 @@
+{
+  "premise": "Ten years after a solar flare wiped out the grid, a sealed government bunker finally opens on a timer. The three survivors inside walk out to find a thriving settlement built on top of them — and the settlers aren't happy to learn what the bunker was really for.",
+  "genre": "post-apocalyptic",
+  "chapterCount": 10,
+  "characters": [
+    { "name": "Dara Osei", "role": "protagonist", "description": "Former emergency management specialist. Was supposed to coordinate the rebuild from the bunker. Instead, she spent a decade underground watching the plan fall apart on dead screens. Controlled, guilty, physically diminished from years without sunlight." },
+    { "name": "Fen", "role": "supporting", "description": "The settlement's de facto leader. A teenager when the flare hit, now a scarred pragmatist in her late twenties. Built the community from nothing and doesn't trust anyone who sat out the hard years." },
+    { "name": "Colm", "role": "antagonist", "description": "One of the other bunker survivors. A military logistics officer who believes the bunker's original mission — restoring federal authority — still applies. Sees the settlement as an occupied zone, not a community." }
+  ]
+}

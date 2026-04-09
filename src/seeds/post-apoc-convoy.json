@@ -1,0 +1,10 @@
+{
+  "premise": "A fuel convoy crosses the dead Midwest every spring, trading diesel for grain between the last two functioning cities. This year, the route is blocked by a flooded river that wasn't there last season — and the convoy's navigator suspects someone upstream built a dam on purpose.",
+  "genre": "post-apocalyptic",
+  "chapterCount": 10,
+  "characters": [
+    { "name": "Reeve Talbot", "role": "protagonist", "description": "Convoy master, late 40s. Former long-haul trucker who inherited the route from its founder. Calm under pressure, bad at delegating, carries a grudge like cargo." },
+    { "name": "Suki Park", "role": "supporting", "description": "Navigator and cartographer. Obsessively maps the changing landscape. Notices what's different before anyone else. Quiet, precise, privately terrified of being stranded." },
+    { "name": "Marshall", "role": "antagonist", "description": "Runs a settlement upstream that the convoy has bypassed for three years. Patient, strategic, believes controlling water means controlling the region. Never makes a threat — only observations." }
+  ]
+}

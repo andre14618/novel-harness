@@ -1,0 +1,10 @@
+{
+  "premise": "A royal cartographer mapping the kingdom's northern reaches discovers that the border doesn't match any previous map — not because the maps were wrong, but because the land itself has moved. Entire villages are in the wrong place, rivers flow in new directions, and the people living there don't remember it being any different.",
+  "genre": "epic-fantasy",
+  "chapterCount": 10,
+  "characters": [
+    { "name": "Alory Vane", "role": "protagonist", "description": "Royal cartographer, early 30s. Obsessive about accuracy — her maps are legal documents that determine borders, taxes, and land rights. Practical, solitary, trusts measurements over testimony. Carries her dead teacher's instruments." },
+    { "name": "Renn", "role": "supporting", "description": "Village headman in the displaced northern settlement. Former soldier, mid-50s. Knows something is wrong but can't articulate it — his memories of the landscape contradict what he sees, and the contradiction gives him headaches. Protective of his people, suspicious of the crown." },
+    { "name": "The Surveyor", "role": "antagonist", "description": "A figure from the Cartographers' Guild who mapped this region forty years ago and retired. Her maps are the ones Alory's measurements contradict. She knows why the land moved — because she moved it, using a geographic magic the Guild has kept secret for centuries." }
+  ]
+}

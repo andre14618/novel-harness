@@ -1,0 +1,10 @@
+{
+  "premise": "A generation ship halfway through its 200-year journey discovers that the destination planet was colonized by a faster ship launched fifty years after they left. The destination colony is thriving and doesn't need them. The ship's council must decide: continue to a planet that doesn't want them, turn around, or find somewhere else.",
+  "genre": "science-fiction",
+  "chapterCount": 10,
+  "characters": [
+    { "name": "Councilor Rumi Asante", "role": "protagonist", "description": "Ship's elected council head, mid-40s. Third generation — born on the ship, will die on the ship. Historian by training, politician by necessity. Believes the ship is home, not a vehicle, and that changes every calculation." },
+    { "name": "Chief Engineer Dao", "role": "supporting", "description": "The only person who truly understands the ship's remaining fuel budget. Vietnamese heritage, late 50s. Apolitical, answers questions with math. Privately calculated that only two of the three options are physically possible, and hasn't told the council which two." },
+    { "name": "Falk", "role": "antagonist", "description": "Leader of the Arrival faction — colonists who've spent their lives training to settle the destination planet. Charismatic, furious, views the council's deliberation as theft of his people's purpose. His grandmother was on the original launch crew." }
+  ]
+}

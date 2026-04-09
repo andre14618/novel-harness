@@ -1,0 +1,10 @@
+{
+  "premise": "A lighthouse keeper on Lake Superior has kept the light running for seven years after the collapse, believing ships still navigate by it. When a battered cargo vessel actually appears, its crew isn't looking for safe harbor — they're fleeing a plague ship behind them and need to make landfall before it catches up.",
+  "genre": "post-apocalyptic",
+  "chapterCount": 10,
+  "characters": [
+    { "name": "Margit Salo", "role": "protagonist", "description": "Finnish-American lighthouse keeper, early 60s. Former Coast Guard. Meticulous, ritualistic, has structured her entire survival around the lighthouse routine. Talks to the lake like it's a person. Hasn't seen another human in two years." },
+    { "name": "Dex Okafor", "role": "supporting", "description": "Captain of the cargo vessel. Nigerian-Canadian, late 30s. Runs a trade loop between lakeside settlements. Pragmatic, exhausted, carrying guilt about a crew member they left on the plague ship." },
+    { "name": "Vessel", "role": "antagonist", "description": "The plague ship's self-appointed quarantine officer. Former epidemiologist who decided containment means nobody leaves — ever. Broadcasts warnings that are half medical protocol, half manifesto. Never boards other ships; uses a small fast launch to disable rudders." }
+  ]
+}

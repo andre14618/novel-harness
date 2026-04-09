@@ -1,0 +1,10 @@
+{
+  "premise": "A bridge builder in a war-torn kingdom is ordered to construct a bridge across a canyon that separates two peoples who have been killing each other for a century. Both sides want the bridge — but each side wants it built to specifications that would make it a chokepoint they can defend. She has to build one bridge that satisfies two incompatible military requirements without either side realizing the other's demands.",
+  "genre": "epic-fantasy",
+  "chapterCount": 10,
+  "characters": [
+    { "name": "Fenna Blackiron", "role": "protagonist", "description": "Master bridge builder, mid-40s. Guild-trained, has built seventeen bridges across the kingdom. Thinks in load-bearing capacity and stress tolerance. Apolitical by profession — bridges serve whoever crosses them. Her hands shake from years of precision stonework, which she hides." },
+    { "name": "Lieutenant Caro", "role": "supporting", "description": "Military liaison from the eastern side. Young officer, idealistic, genuinely wants peace but has been ordered to ensure the bridge favors eastern defense. Starts as Fenna's minder, becomes her ally when he realizes both sides are playing the same game." },
+    { "name": "Envoy Machek", "role": "antagonist", "description": "Western diplomatic envoy overseeing the bridge project. Former engineer turned politician. Understands exactly what Fenna is doing — building a bridge that favors neither side — and intends to let her finish, then modify it. Patient, admiring of Fenna's skill, and completely willing to undermine it." }
+  ]
+}

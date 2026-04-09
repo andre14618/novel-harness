@@ -1,0 +1,10 @@
+{
+  "premise": "In a world where antibiotics no longer exist, a veterinarian is the closest thing to a doctor for three hundred miles. When a caravan arrives with a sick child and a crate of pre-collapse pharmaceuticals they can't identify, she has to decide who gets the medicine — the child, her own settlement's outbreak, or the warlord who's been 'protecting' them in exchange for medical priority.",
+  "genre": "post-apocalyptic",
+  "chapterCount": 10,
+  "characters": [
+    { "name": "Dr. Ada Lum", "role": "protagonist", "description": "Large-animal veterinarian turned settlement doctor, mid-40s. Chinese-American. Calm hands, bad bedside manner, keeps meticulous records on livestock and humans alike. Knows exactly how many people she's lost and carries each name." },
+    { "name": "Pasha", "role": "supporting", "description": "Caravan leader, late 20s. Uzbek heritage. Trades between settlements on horseback. The sick child is his sister's — he crossed hostile territory for this. Respectful, desperate, won't lie about the medicine's origin." },
+    { "name": "Krieg", "role": "antagonist", "description": "Local strongman who provides armed protection to Ada's settlement. Former ranch foreman. Not cruel — transactional. His people get treated first, always. If that changes, the protection changes. He's never had to follow through on the threat, which is the point." }
+  ]
+}

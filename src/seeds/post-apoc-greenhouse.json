@@ -1,0 +1,10 @@
+{
+  "premise": "After a bioweapon killed every crop with a root system, a botanist in a sealed university greenhouse has the last viable seed bank. A warlord's envoy arrives offering protection in exchange for exclusivity. The nearby refugee camp is starving and has offered her nothing — except the truth about where the bioweapon came from.",
+  "genre": "post-apocalyptic",
+  "chapterCount": 10,
+  "characters": [
+    { "name": "Elise Nadir", "role": "protagonist", "description": "Botanist, mid-30s. Spent two years alone with the seed bank. Talks to the plants. Brilliant, isolationist, has no idea how to negotiate because she's never had to. The seeds give her power she doesn't want." },
+    { "name": "Kai", "role": "supporting", "description": "Leader of the refugee camp. Former paramedic. Pragmatic, exhausted, transparent about the camp's desperation. Doesn't beg — presents facts and lets Elise decide. His daughter has protein deficiency." },
+    { "name": "Adjutant Sera", "role": "antagonist", "description": "The warlord's envoy. Former agricultural inspector, now serves Warlord Goss. Polite, knowledgeable about seed viability, and completely honest about what Goss will do if refused." }
+  ]
+}

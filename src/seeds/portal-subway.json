@@ -1,0 +1,10 @@
+{
+  "premise": "A night-shift subway operator in Seoul discovers that Train 0047 — a ghost train that appears on no schedule — runs to a parallel version of the city where Korea never divided. Passengers from the other side have been using the train for years, and now they want to shut the route permanently because something from a third version of Seoul is using it too.",
+  "genre": "portal-fantasy",
+  "chapterCount": 10,
+  "characters": [
+    { "name": "Park Jae-won", "role": "protagonist", "description": "Night-shift subway operator, early 30s. Former engineering student who dropped out. Methodical, insomniac, knows the system's sounds — can tell which train is coming by the vibration. Divorced, lives alone, the subway is the most stable thing in his life." },
+    { "name": "Kim Soo-yeon", "role": "supporting", "description": "A passenger from the other Seoul. Journalist, mid-40s. Has been crossing for three years to report on this version of Korea for her newspaper. Sharp, compassionate, carries guilt about treating another world's reality as a story." },
+    { "name": "The Conductor", "role": "antagonist", "description": "Operates Train 0047. Appears human but isn't — has been running the route since before either Seoul existed. Doesn't speak, communicates through schedule changes and route alterations. Doesn't want the route shut down because the third Seoul is already here, and the train is the only thing keeping it contained." }
+  ]
+}

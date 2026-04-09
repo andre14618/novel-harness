@@ -1,0 +1,10 @@
+{
+  "premise": "Faster-than-light travel requires human navigators who can perceive fold-space — a sense that burns out after roughly five years. A navigator on her last viable run discovers that the route she's been flying for three years has a hidden waypoint that someone has been using to siphon cargo without anyone noticing.",
+  "genre": "science-fiction",
+  "chapterCount": 10,
+  "characters": [
+    { "name": "Sera Voss", "role": "protagonist", "description": "FTL navigator, early 30s but looks 50 — the perception burns you from the inside. German-Kenyan. One of the best active navigators, which means she has maybe eight months left. Precise, impatient, privately terrified of what she'll be when she can't navigate anymore." },
+    { "name": "Olu Bankole", "role": "supporting", "description": "Ship's cargo master. Nigerian, mid-40s. Been on the same route for nine years across three navigators. Meticulous inventory keeper who first noticed the weight discrepancies. Loyal to the crew, not the shipping company." },
+    { "name": "Madrigal", "role": "antagonist", "description": "A retired navigator running the hidden waypoint station. Lost her perception two years ago and built the siphon operation to survive. Understands Sera's fear intimately and uses it. Not violent — she simply knows things about fold-space that active navigators don't want to hear." }
+  ]
+}

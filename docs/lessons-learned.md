@@ -838,5 +838,26 @@ Experiments #95 and #96 concluded V4 underperformed V3 — that conclusion was e
 
 Feature KL of 1.564 vs Howard's 1.534 — V4 nearly matches Howard's structural rhythm. Word count 51.8 vs input 47.9 — minimal expansion. Jaccard base↔V4 of 0.255 confirms strong adapter effect. The serving URI bug, not model quality, caused the earlier wrong conclusion. (Experiment #98 — the real benchmark)
 
+### Pipeline prose is structurally monotone across genres — dialogue, interiority, and sentence rhythm barely vary (2026-04-09)
+
+Deterministic structural analysis of 131 approved chapters across 5 genres (`scripts/analyze-structure.ts`) revealed that the pipeline produces structurally uniform output regardless of genre or premise:
+
+| Metric | Corpus avg | Range | Published novel benchmark |
+|--------|-----------|-------|--------------------------|
+| Dialogue word% | 7.6% | 0–36% | 25–50% typical |
+| Interiority verbs/100w | 0.1 | 0–0.8 | 0.5–2.0 typical |
+| Action verbs/100w | 0.3 | 0–1.1 | varies by genre |
+| Avg sentence length | 7.5w | 4.2–12.5 | 12–18w typical |
+| Sentence length CV | 0.7 | 0.4–0.9 | good (>0.5) |
+| Max non-dialogue para run | 23¶ | 2–70¶ | 3–8¶ typical |
+
+**Genre barely moves the needle.** Dark fantasy and sci-fi thriller are nearly structurally identical. Contemporary romance has the most dialogue (19.9%) but still below published norms. Literary fiction is 0.5% dialogue.
+
+**Root cause is the writer prompts, not the seeds.** Seeds define narrative premises; structural shape comes from the beat-writer and planning-plotter prompts, which don't specify dialogue density, interiority targets, or pacing variation. The LLM finds a comfortable narration-heavy mode and stays there.
+
+**Implication for fine-tuning:** Checker fine-tunes (adherence, chapter-plan, continuity) are unaffected — they check compliance, not prose quality. But any writer or tonal-pass fine-tune trained on this corpus would bake in the monotone shape. A structural diversity pass (analogous to the existing tonal pass but targeting dialogue/interiority/pacing) is needed before writer SFT makes sense.
+
+**Implication for training data diversity:** All 131 approved chapters come from only 5 unique premises. For adherence-checker SFT this doesn't matter (synthetic variants cover it). For chapter-plan-checker and continuity, the plan structures and world states are the training signal, so premise diversity directly affects data quality. The 30-seed expansion (post-apoc, sci-fi, epic fantasy, portal fantasy) addresses this gap.
+
 ### LLM call inspector only captures calls inside an active novel run — benchmarks and scripts are invisible (2026-04-08)
 `src/logger.ts` guards every write with `if (!currentRunId) return` — so calls only land in `llm_calls` when there is an active novel run ID in scope. Benchmark scripts (`scripts/score-*.ts`, `scripts/best-of-n-experiment.ts`, etc.), one-off data generation scripts (`scripts/build-finetune-data.ts`, `scripts/build-analytical-finetune-data.ts`), and the improvement daemon all execute without a novel run context and never write to `llm_calls`. The inspector at `/app/llm-calls` is therefore **novel-pipeline-only** — it shows the per-beat agents (beat-writer, adherence-checker, reference-resolver, continuity, chapter-plan-checker, rewriter, extractors) for a specific novel run, not the full record of all LLM calls the harness has ever made. Experiment-linked calls can be recovered from the `llm_calls` table directly by joining on `tuning_experiment` if the benchmark scripts were wired to log them, but the vast majority are not. If you're wondering why "many API calls from today aren't in the inspector," check whether those calls came from a benchmark script rather than a novel run.

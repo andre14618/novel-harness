@@ -1,0 +1,10 @@
+{
+  "premise": "A border fortress has held against the Waste for four hundred years. The garrison commander discovers that the ancient ward-stones aren't failing — they're being drained by someone inside the fortress, feeding power to something beneath the foundation that the original builders imprisoned on purpose.",
+  "genre": "epic-fantasy",
+  "chapterCount": 10,
+  "characters": [
+    { "name": "Commander Thessa Ironwall", "role": "protagonist", "description": "Garrison commander, late 40s. Rose from the ranks. Her family has served at the fortress for six generations. Tactical, stubborn, privately fears the fortress matters less to the crown every year. Walks the walls every dawn because her mentor did." },
+    { "name": "Archivist Pell", "role": "supporting", "description": "The fortress's record-keeper. Young, bookish, was sent here as punishment for challenging a senior scholar. Found references to the ward-stones' true purpose in a builder's journal everyone else dismissed as myth. Brave in exactly one context: when the records say something clearly." },
+    { "name": "Chaplain Demos", "role": "antagonist", "description": "The fortress's spiritual leader for twenty years. Beloved, steady, genuinely faithful. Also the one draining the ward-stones — not for power, but because the thing imprisoned below has been speaking to him for decades, and he believes freeing it is an act of mercy." }
+  ]
+}

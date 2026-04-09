@@ -1,0 +1,10 @@
+{
+  "premise": "The king is dead, and by ancient law the crown passes to whoever holds the royal sword — but the sword was broken in the king's final battle and its pieces scattered among three claimants who each believe they hold the true fragment. A blacksmith summoned to reforge it realizes the sword was never magical; the scabbard was.",
+  "genre": "epic-fantasy",
+  "chapterCount": 10,
+  "characters": [
+    { "name": "Maren Ashford", "role": "protagonist", "description": "Royal blacksmith, mid-30s. Inherited the position from her mother, who forged the sword's last repair. Quiet, precise, deeply uncomfortable with politics. Knows metal like a language — the sword's fragments tell her things the claimants don't want heard." },
+    { "name": "Prince Edric", "role": "supporting", "description": "The youngest claimant. Holds the hilt fragment. Twenty-two, earnest, the only claimant who might actually be a decent ruler — but he's third in line and knows it. Trusts Maren because she doesn't care about his claim." },
+    { "name": "Duchess Severn", "role": "antagonist", "description": "Holds the blade fragment and controls the treasury. Forty-five, brilliant administrator, openly contemptuous of the succession ritual but plays it perfectly. Doesn't want the crown — wants to choose who wears it, which is more power than any monarch holds." }
+  ]
+}

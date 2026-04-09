@@ -1,0 +1,10 @@
+{
+  "premise": "An auto mechanic falls through the floor of a condemned parking garage into a world where machines are alive and hostile — all descended from vehicles that fell through the same rift over decades. Her knowledge of engines and drivetrains makes her the first person who can communicate with them, which makes her invaluable to both sides of a machine civil war.",
+  "genre": "portal-fantasy",
+  "chapterCount": 10,
+  "characters": [
+    { "name": "Dani Reyes", "role": "protagonist", "description": "Auto mechanic, late 20s. Mexican-American, runs her family's shop in Albuquerque. Speaks to engines diagnostically — listens to the knock, feels the vibration, knows what's wrong. Stubborn, loyal, homesick from the moment she arrives. Oil under her fingernails is permanent." },
+    { "name": "Axle", "role": "supporting", "description": "A sentient 1970s pickup truck chassis that serves as Dani's guide. Remembers falling through the rift as a junked frame. Protective, laconic, communicates through engine revs and transmission clicks that Dani learns to read. Faction-neutral, which is increasingly dangerous." },
+    { "name": "The Foreman", "role": "antagonist", "description": "Leader of the industrial machines — the heavy equipment that fell through first and built the world's infrastructure. A sentient bulldozer-crane hybrid that has welded smaller machines into its body for power. Sees Dani as a tool — literally. Her diagnostic ability could end the war, but only if she cooperates." }
+  ]
+}

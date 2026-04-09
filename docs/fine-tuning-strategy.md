@@ -136,19 +136,27 @@ Until condition 1 is true, RunPod is an infrastructure cost, not a cost saving. 
 
 ---
 
-### 2. Adherence Checker — RESOLVED: No fine-tune needed
+### 2. Adherence Checker — SFT IN PROGRESS (4-call decomposed)
 
-**Current**: W&B Qwen3-14B-Instruct (base model, no LoRA) · ~360 in / ~140 out · ~400ms avg · $0.00005/call
+**Current**: W&B Qwen3-14B-Instruct (base model, no LoRA) · 4 parallel calls (events/setting/tangent/character) · ~400ms avg · $0.00005/call
 
-**Result (exp #101, 2026-04-08)**: Base Qwen3-14B zero-shot on W&B Inference matches Cerebras 235B oracle at **96% agreement** across all 160 validation pairs (8 variant types, ≥85% on every variant). This is identical to what a fine-tune would achieve. No fine-tune needed for this slot.
+**History**: Base 14B zero-shot hit 96% agreement on the old 160-pair single-call eval (exp #101). But the 4-call decomposed prompt (exp #122, 2026-04-08) revealed a 6pp gap: 14B at 91% vs 235B at 97% on the 160-pair decomposed eval. Worth closing at zero marginal cost (W&B SFT is free).
 
-**Production swap**: Confirmed 2026-04-08. `models/roles.ts` updated to `{ provider: "wandb", model: "OpenPipe/Qwen3-14B-Instruct", temperature: 0.1, maxTokens: 256 }`. Smoke test passed 10/10 on live callAgent stack.
+**Data pipeline (2026-04-09, exp #132)**: `scripts/generate-adherence-decomposed-data.ts` — 59 scenarios × 11 variants × 4 writers (Cerebras 235B, Llama 8B, Kimi K2, DeepSeek V3.2) = 2,596 prose samples × 4 decomposed oracle calls = 10,008 raw training examples. Multi-writer for stylistic diversity + organic drift from weaker models. Oracle: Cerebras 235B using production system prompts, validated against gpt-oss-120b (95% agreement). $6.16 total cost.
 
-**Cost reduction achieved**: $0.0003 → $0.00005/call (6×), 235B → 14B, no quality regression.
+**Curation (2026-04-09)**: `scripts/curate-adherence-data.ts` removed 15% cross-contaminated labels → 8,524 curated examples. Cross-contamination: FAIL variants designed to test one dimension often trip non-target dimensions (e.g., FAIL_MISSING trips character contradiction because "not doing the action" ≠ "behaving out of character"). Ambiguous tangent examples (off_spec_fraction 0.3–0.7) also removed. Label balance post-curation: events 25% flag, setting 25%, tangent 17%, character 18%.
 
-**Why it worked**: The adherence task is well-scoped binary classification with a clear rubric. Qwen3-14B has sufficient reasoning capacity. The prior Llama 8B failure was about systematic calibration bias (over-strictness), not raw capacity.
+**Training status**:
+- **V1 (uncurated, 10,008 examples)**: Training on W&B ART as `adherence-checker-v1`, 2 epochs, batch_size=2, cosine schedule, lr=2e-4. Loss converging well (~0.1–0.4 at 6%).
+- **V2 (curated, 8,524 examples)**: Ready at `lora-data/adherence-checker-decomposed-curated.jsonl`. Train after V1 evaluation.
 
-**Data generated (exp #99–#100)**: 160 pairs, 20 scenarios × 8 variants (PASS_CLEAN, PASS_PARAPHRASE, PASS_REORDER, PASS_ATMOSPHERIC, FAIL_MISSING, FAIL_CHAR, FAIL_SETTING, FAIL_TANGENT). Stored in `lora-data/adherence-checker-pairs.jsonl`. 6 FAIL_MISSING pairs are mislabeled (oracle says PASS); relabel before using for any future fine-tune. These pairs are useful training data if oracle agreement ever drops below threshold on a future model swap.
+**Data enrichment pipeline**: `scripts/extract-production-adherence-data.ts` pulls real beat/prose pairs from approved chapters in Postgres, oracle-labels them. This is the highest-leverage addition because it represents the actual production distribution (real planner output, real 235B writer prose). Output merges with curated synthetic data.
+
+**Active learning (planned for V3)**: Run best model on held-out production data, find disagreements with 235B oracle, oversample those regions.
+
+**Evaluation plan**: Agreement rate vs decomposed-235B teacher per failure-mode variant. Decision criterion: ≥95% on PASS variants, ≥90% on FAIL_MISSING/CHAR/TANGENT. Plus a 3-chapter romance-drama end-to-end run.
+
+**Legacy data**: 160 flat-format pairs (exp #99–#100) in `lora-data/adherence-checker-pairs.jsonl` are superseded by the decomposed format.
 
 ---
 
@@ -304,6 +312,22 @@ Until condition 1 is true, RunPod is an infrastructure cost, not a cost saving. 
 **Label quality gates.** Every dataset needs a human review pass before training. Target: review 20-30% of examples manually, correct systematic errors, then scale. `scripts/build-analytical-finetune-data.ts` + `/app/finetune` review UI are the tools.
 
 **Compact input format first.** For slots where prompt compression is part of the value (continuity, chapter-plan-checker), design the compact input format before generating training data. Training data must match the inference format.
+
+## Data Sufficiency Assessment (2026-04-09)
+
+**Production data status**: 131 approved chapters from 31 novels, but only **5 unique premises** across 5 genres. This is sufficient for adherence-checker SFT (synthetic variants cover the gap) but insufficient for chapter-plan-checker and continuity SFT, where plan structure and world-state diversity are the training signal.
+
+| Fine-tune target | Data sufficient? | Bottleneck | Path forward |
+|-----------------|-----------------|------------|--------------|
+| Adherence checker | **Yes** | N/A — synthetic data (10K examples) covers it | V1/V2 training in progress |
+| Chapter-plan checker | **No** | 71 production calls, 5 premises. Need 200+ pairs from 15+ diverse premises | Run 10-15 novels on new seeds, collect oracle labels |
+| Continuity | **No** | Teacher quality (235B misses 90% of warnings) AND only 5 premises | Claude-as-teacher + diverse novel runs |
+| Tonal pass (structural) | **No** | No paired data exists (monotone → structurally rich) | Requires structural diversity pass design first |
+| Beat writer | **No** | 131 chapters from 5 premises, structurally monotone (7.6% dialogue avg). Training on this would bake in the monotone shape | Address structural diversity in writer prompts first, then collect |
+
+**Structural monotony finding**: Deterministic analysis (`scripts/analyze-structure.ts`) showed pipeline output is structurally uniform: 7.6% dialogue (vs 25-50% in published novels), 0.1 interiority verbs/100w, flat sentence rhythm. Genre barely moves these numbers. This affects writer/tonal fine-tunes but NOT checker fine-tunes. See `docs/lessons-learned.md`.
+
+**30 seeds created** (2026-04-09) to address premise diversity: 8 post-apoc, 7 sci-fi, 7 epic fantasy, 4 portal fantasy. These need to be run through the pipeline before chapter-plan-checker and continuity SFT data generation can begin.
 
 ---
 

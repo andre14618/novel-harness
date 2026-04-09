@@ -1,0 +1,10 @@
+{
+  "premise": "In a kingdom where magic is fueled by personal debt — the more you owe, the more power you wield — a debt collector discovers that the crown's chief sorcerer has been manufacturing false debts to increase his power. The collector must decide whether to expose the fraud and collapse the kingdom's magical infrastructure, or find a way to unwind it quietly.",
+  "genre": "epic-fantasy",
+  "chapterCount": 10,
+  "characters": [
+    { "name": "Taryn Cross", "role": "protagonist", "description": "Licensed debt collector, early 30s. Grew up poor, worked her way into the Collector's Guild. Precise, ethical, believes the debt system works when it's honest. Carries a ledger enchanted to verify true debts — it started glowing wrong three weeks ago." },
+    { "name": "Aldric Vey", "role": "supporting", "description": "Junior sorcerer at the royal court. Stumbled onto the false debts while auditing power allocations. Terrified, idealistic, comes from minor nobility. Brought the evidence to Taryn because collectors are the only guild the sorcerers don't control." },
+    { "name": "Lord Sorcerer Brennan", "role": "antagonist", "description": "The crown's chief sorcerer for fifteen years. Built the kingdom's magical defenses, powered the harvest wards, keeps the border sealed. Every critical spell runs on fabricated debt. He's not hoarding power for himself — he's keeping the kingdom alive with resources it doesn't actually have." }
+  ]
+}

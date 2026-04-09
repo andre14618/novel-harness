@@ -1,0 +1,10 @@
+{
+  "premise": "A deep-space relay station at the edge of colonized space receives a distress signal from a colony ship that was declared lost forty years ago. The signal includes current life signs — but the ship's trajectory shows it coming from outside the galactic plane, where nothing should be.",
+  "genre": "science-fiction",
+  "chapterCount": 10,
+  "characters": [
+    { "name": "Ines Ferreira", "role": "protagonist", "description": "Relay station operator, late 30s. Former Navy signals officer who took the remote posting after a tribunal. Methodical, skeptical, runs every signal through three verification passes before forwarding. The loneliest job in colonized space, which is exactly why she wanted it." },
+    { "name": "Yuki Tanabe", "role": "supporting", "description": "The station's AI systems specialist, on a six-month maintenance rotation. Curious, chatty, treats the station's systems like pets. Notices the signal's encoding uses a compression algorithm that shouldn't exist yet." },
+    { "name": "Director Calloway", "role": "antagonist", "description": "Head of Colonial Navigation Authority. Declared the colony ship lost, collected the insurance, redistributed its colonial charter. If the ship is found alive, forty years of decisions unravel. Politely instructs Ines to verify the signal is a malfunction." }
+  ]
+}

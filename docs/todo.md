@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-08
+updated: 2026-04-09
 ---
 
 <!-- Last edit: added LLM call inspector (sql/017_llm_call_inspection.sql, /app/llm-calls). See docs/llm-call-inspector.md. -->
@@ -46,11 +46,9 @@ Notably absent: Qwen3 8B, Qwen3 4B-Instruct-2507, Qwen 3.5 9B (the base of the e
 
 1. **~~Swap continuity to decomposed parallel calls.~~** DONE (2026-04-09). 2-call decomposition (facts + character state) replaces single overloaded call. Same pattern as adherence-checker (exp #122). Inline prompts in `check.ts`, prompt.md removed. On 235B for now; decomposition enables dropping to 14B (W&B) once validated. Needs production validation: 3-chapter romance-drama run.
 
-2. **Adherence-checker SFT — DEMOTED, conditional on 4-call prompt holding in production.** With the decomposed prompt at 91% on 14B (within 6pp of 235B teacher), SFT may not be needed at all. Re-evaluate after a few more production novel runs accumulate. If a 6pp gap is still worth closing, the SFT teacher signal should come from the *decomposed* 235B (97%), NOT the flat single-call prompt — that means relabeling the 160 synthetic pairs through the 4-call pipeline so the student learns the same shape as production.
+2. **Adherence-checker SFT — TRAINING V1 (uncurated), V2 (curated) ready.** Data pipeline complete (2026-04-09, exp #132). `scripts/generate-adherence-decomposed-data.ts`: 59 scenarios × 11 variants × 4 writers (Cerebras 235B, Llama 8B, Kimi K2, DeepSeek V3.2) × 4 decomposed calls = 10,008 training examples. Oracle: Cerebras 235B using production prompts, validated against gpt-oss-120b (95% agreement). $6.16 total cost. **V1 (uncurated, 10,008 examples) training on W&B ART** as `adherence-checker-v1` (experiment in progress). **V2 (curated, 8,524 examples)** ready at `lora-data/adherence-checker-decomposed-curated.jsonl` — curation removed 15% cross-contaminated labels (FAIL variants tripping non-target dimensions) + 90 ambiguous tangent boundary cases via `scripts/curate-adherence-data.ts`. Steps remaining: (a) evaluate V1 when training completes, (b) train V2 (curated), (c) A/B compare V1 vs V2, (d) enrich with production data via `scripts/extract-production-adherence-data.ts` (pulls real beat/prose pairs from approved chapters, oracle-labels them), (e) active learning — run best model on held-out set, oversample disagreements for V3.
 
-3. **(Conditional on #2) Submit adherence-checker SFT via ART + W&B Serverless SFT** — `base = OpenPipe/Qwen3-14B-Instruct`, `rank = 16`, `alpha = 16`, `epochs = 1–2`, `ServerlessBackend`. ART auto-saves the checkpoint as a W&B artifact and makes it routable through W&B Inference. Free during public preview. Docs: https://art.openpipe.ai/fundamentals/sft-training
-
-4. **(Conditional on #3) Validate adherence-checker LoRA against a held-out 50-pair production set** — agreement rate vs the decomposed-235B teacher per failure-mode variant. Decision criterion: ≥95% on PASS variants, ≥90% on FAIL_MISSING/CHAR/TANGENT. If passes, wire `models/roles.ts` to route adherence-checker through the LoRA.
+3. **(Conditional on #2) Validate adherence-checker LoRA against production** — agreement rate vs the decomposed-235B teacher on a held-out 50-pair production set per failure-mode variant. Decision criterion: ≥95% on PASS variants, ≥90% on FAIL_MISSING/CHAR/TANGENT. If passes, wire `models/roles.ts` to route adherence-checker through the LoRA. Also run a 3-chapter romance-drama end-to-end to validate in-pipeline behavior.
 
 5. **(Conditional on #4) Post-SFT: GRPO/RL loop for adherence-checker** — adherence-checker is the only one of the four analytical agents with a clean reward signal (the deterministic checks — character presence, word count, dialogue — plus synthetic labels compose into a fully automatic reward function). After the SFT baseline lands, design a GRPO loop on the same W&B/ART stack using the deterministic verifier as the reward. None of the other three analytical agents qualify: continuity has no reliable verifier (that IS the bottleneck), chapter-plan-checker uses an LLM judge (brittle), reference-resolver has no real production deficit.
 
@@ -70,7 +68,7 @@ See `docs/fine-tuning-strategy.md` for the complete plan. Training is free (W&B 
 
 **Phase 1 — Analytical agents** (revised 2026-04-08 after the four-task baseline+checklist series AND the per-call decomposition follow-ups #122/#123 — see "Fine-Tuning serving infrastructure" section above for the full action list and `project_four_task_sft_ladder.md` memory):
 
-- **Adherence-checker — PROMPT SWAP SHIPPED (2026-04-08), SFT DEMOTED to conditional.** 4-call decomposed prompt (events/setting/tangent/character) shipped in `src/agents/writer/adherence-checker.ts` and production-validated: fire rate dropped from 57% → 22% on a 3-chapter romance-drama run. 14B 79% → 91%, 235B 96% → 97% (exp #122). Re-evaluate SFT after production accumulates more data — the remaining 6pp gap on 14B may not be worth a training run. If SFT happens, label through the *decomposed* 235B (97%), not the flat prompt.
+- **Adherence-checker — V1 TRAINING, V2 (curated) READY.** 4-call decomposed prompt shipped (exp #122). Synthetic data complete (exp #132, 2026-04-09): 10,008 raw examples, curated to 8,524 (15% cross-contamination removed). V1 training on W&B ART in progress. Production data enrichment script ready (`scripts/extract-production-adherence-data.ts`). Next: evaluate V1, train V2 (curated), A/B compare, enrich with production data, active learning for V3.
 - **Chapter-plan-checker — CHECKLIST PROMPT SHIPPED (2026-04-09, exp #124).** Structured checklist schema swapped in: 14B vs labels 53% → 75% (+22pp), 14B↔120B direct 58% → 75% (+17pp). Bias corrected: was 100% one-sided (14B rubber-stamps PASS), now symmetric except `FAIL_REVERSED_ARC` (0/2 — 14B reasoning ceiling on arc reversal). SFT target is now the checklist output format, not the flat schema. Distillation pairs must be labeled through the 120B checklist path. See `project_chapter_plan_checker_finetune.md`.
 - **Continuity — 2-CALL DECOMPOSITION SHIPPED (2026-04-09).** Split into `continuity-facts` + `continuity-state` parallel calls (same pattern as adherence-checker 4-call decomposition). On Cerebras 235B; decomposition enables dropping to 14B (W&B). SFT still BLOCKED on a stronger labeling pipeline — 235B misses 90% of warnings and 65% of nits (#117/#118). Path forward: Claude-as-teacher labeling script + hand-validation of WARNING/NIT synthetic variants.
 - **Reference-resolver — OFF the list.** Flat 14B already at 97.5% recall against synthetic labels; production cost function favors recall (over-fetch nearly free, miss costly). No real deficit to train against. (#114/#115, see amendment in lessons-learned.)
@@ -78,10 +76,9 @@ See `docs/fine-tuning-strategy.md` for the complete plan. Training is free (W&B 
 **Phase 2 — Tonal pass v4 + fact extractor** (data exists or easy to generate):
 
 - **Tonal pass v4** — retrain `howard-tonal-pairs-curated.jsonl` on Qwen3-14B via ART. Evaluate against v3 on the same 15-paragraph test set (bigram perplexity, adjective density, word count). Serve via W&B Inference instead of Together.
-- **Burn Together AI credits on tonal pair generation, then remove provider** — $10-12 remaining. Use `scripts/generate-tonal-pairs.ts` pointed at Together's Qwen3 235B A22B Instruct 2507 FP8 ($0.20/$0.60, better flattening quality than current Groq 32B). Once exhausted: remove `TOGETHER_API_KEY`, remove Together entries from `models/registry.ts`, remove provider config.
+- **Remove Together AI provider** — V3 tonal pass on Together is being dropped due to latency (~50-100× slower than Groq fast tier). Remove `TOGETHER_API_KEY`, Together entries from `models/registry.ts`, provider config. Any remaining credits are not worth the integration cost.
 - **Fact extractor** — `bun scripts/build-finetune-data.ts --task fact-extractor --limit 50`, review 20-30 pairs, correct to gold (target: 8-12 facts/chapter vs current 17-20), scale to 300+.
-- **Tonal pass expansion** — multi-genre corpus after v4 validates. Public domain: Hemingway (pre-1929), London, Cather, Fitzgerald. Copyright notes in `docs/ai-training-copyright-landscape.md`.
-- **Test tonal pass V3 in production first** — enable `pipeline.tonalPass`, run a novel, compare before/after. Production-test the existing adapter before investing in v4.
+- **Tonal pass expansion — CRITICAL** — v3/v4 training data is dark-fantasy-specific (Howard corpus). The adapter's voice is genre-locked; applying it to romance, literary fiction, etc. will impose the wrong tonal register. Multi-genre corpus needed before tonal pass is viable as a general pipeline stage. Public domain candidates: Hemingway (pre-1929), London, Cather, Fitzgerald. Copyright notes in `docs/ai-training-copyright-landscape.md`.
 
 **Phase 3 — Continuity** (highest ROI, requires schema work):
 
@@ -97,7 +94,7 @@ See `docs/fine-tuning-strategy.md` for the complete plan. Training is free (W&B 
 ## Pipeline Tuning
 
 - **Tighten fact extractor** — still 17-20 facts/chapter, target 8-15. Precision matters now that facts feed deterministic queries.
-- **Word count below target** (550-770 vs 800-1100). May be model, prompt, or beat granularity issue.
+- **Word count below target** (550-770 vs 800-1100). Likely partly a tonal pass shortening effect; may also be model, prompt, or beat granularity. Re-evaluate after measuring pre- vs post-tonal-pass word counts.
 - **Switch extractionMode to "plan"** — once planner's state outputs are verified against a few novels, disable LLM extractors (except relationship-timeline which produces data the planner doesn't). Currently set to "both".
 - **Re-evaluate lint system role** — if tonal pass LoRA already reduces AI cliches, lint becomes a safety net, not a pipeline stage. Test: run lint on tonal-pass outputs vs base outputs.
 - **Strip anti-pattern list from rewriter prompt** — rewriter can't self-police cliches (proven). Lint + tonal pass handles this.
@@ -124,9 +121,17 @@ See `docs/fine-tuning-strategy.md` for the complete plan. Training is free (W&B 
 - **Mac Mini as local inference provider** — Ollama + `qwen3.5:9b` resident in memory, registered as a `local` provider in `models/registry.ts` pointing at `http://mac-mini:11434/v1` (or Tailscale IP). Cost: ~$2-4/month electricity, zero per-token. Role: background/batch jobs only — tonal-pass pair generation (back-translation), analytical LoRA input generation, agreement probes, offline prompt iteration. Not for online per-beat inference. Hardware already exists alongside Proxmox setup.
 - **Extend LLM call inspector tags to non-drafting agents** — `chapter` / `beat_index` / `attempt` are populated for `beat-writer` and `adherence-checker`. Threading through `reference-resolver`, `continuity`, `chapter-plan-checker`, `rewriter`, planner, and extractors is straightforward (columns already exist) but hasn't been done. Each agent's `callAgent` site needs the tags added. See `docs/llm-call-inspector.md`.
 
-## Seeds & Testing
+## Structural Diversity
 
-- Create 3-5 new seeds stressing different scenarios: complex magic systems, many POV characters, dense continuity, dialogue-heavy
+- **Pipeline prose is structurally monotone** — 7.6% dialogue (published novels: 25-50%), 0.1 interiority verbs/100w, flat sentence rhythm across all genres. See `docs/lessons-learned.md` "Pipeline prose is structurally monotone." Root cause: writer prompts, not seeds.
+- **Structural diversity pass needed** — analogous to the existing tonal pass but targeting dialogue density, interiority, pacing variation. Requires paired training data (monotone input → structurally rich output) that doesn't exist yet. Block writer SFT and new tonal-pass training until this is addressed.
+- **Analysis script**: `scripts/analyze-structure.ts` — deterministic structural metrics on all approved chapters. Run after each batch of new novels to track improvement.
+
+## Seeds & Data Diversity
+
+- **30 seeds created** (2026-04-09) — 8 post-apoc, 7 sci-fi, 7 epic fantasy, 4 portal fantasy, plus 6 original (romance-drama, dark-fantasy, coastal-mystery, sci-fi-thriller, young-adult-fantasy, minimal). LitRPG-adjacent genre bias per commercial target.
+- **Premise diversity gap in production data** — all 131 approved chapters come from only 5 unique premises. Chapter-plan-checker and continuity SFT need plan/world-state diversity that synthetic generation can't provide. Run diverse seeds to fill this gap before those fine-tunes.
+- **Run priority**: 10-15 novels across new seeds (mix of 3ch and 10ch) to build diverse training corpus for chapter-plan-checker and continuity fine-tunes.
 
 ## Future — Worldbuilding Workbench (separate project)
 

@@ -1,0 +1,10 @@
+{
+  "premise": "After an electromagnetic pulse collapsed civilization, the Mississippi River became the only reliable trade corridor. A barge pilot discovers that the river is changing course — cutting off three major settlements — and the upstream community diverting it knows exactly what they're doing.",
+  "genre": "post-apocalyptic",
+  "chapterCount": 10,
+  "characters": [
+    { "name": "Harlan Oates", "role": "protagonist", "description": "Barge pilot, mid-50s. Third-generation riverman who never left the water. Knows the Mississippi by feel — current speed, water color, sediment load. Apolitical until the river forced his hand. Missing three fingers on his left hand from a mooring accident." },
+    { "name": "Callie Reese", "role": "supporting", "description": "Hydrologist from one of the threatened settlements. Young, intense, keeps a water table journal going back six years. Hired Harlan to take her upstream to prove the diversion is engineered, not natural." },
+    { "name": "Judge Avery", "role": "antagonist", "description": "Leads the upstream community of New Hannibal. Former appellate judge who rebuilt order through procedure and precedent. Genuinely believes the diversion is justified under riparian law. Offers trials instead of violence — but the verdicts always favor New Hannibal." }
+  ]
+}

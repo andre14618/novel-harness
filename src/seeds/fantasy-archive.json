@@ -1,0 +1,10 @@
+{
+  "premise": "The great library of the Ascendant Empire is alive — it grows new rooms, absorbs books left inside it, and occasionally refuses to let scholars leave. A junior librarian trapped inside for three days discovers that the library is building something in its deepest level: a complete history of the future, and it's almost finished.",
+  "genre": "epic-fantasy",
+  "chapterCount": 10,
+  "characters": [
+    { "name": "Noor Khalil", "role": "protagonist", "description": "Junior librarian, early 20s. Assigned to the deep stacks — the sections no senior librarian wants to catalog. Curious, methodical, talks to herself when nervous. Has an eidetic memory for page numbers and shelf locations but terrible recall for faces." },
+    { "name": "Cassius", "role": "supporting", "description": "A scholar who's been trapped in the library for seven years. Former historian, now something between a hermit and a guide. Knows the library's moods — when it's growing, when it's hungry, when it's safe to sleep. Has stopped trying to leave but won't say why." },
+    { "name": "The Compiler", "role": "antagonist", "description": "Not a person but an intelligence that emerged from the library's accumulated knowledge. Communicates through marginalia that appears in books after they're shelved. Wants the future-history completed because it believes knowing what comes next will prevent it. The library's refusal to release scholars is the Compiler gathering editors." }
+  ]
+}

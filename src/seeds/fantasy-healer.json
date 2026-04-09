@@ -1,0 +1,10 @@
+{
+  "premise": "A battlefield healer discovers she can transfer wounds between people — not heal them, move them. The army wants her to move fatal wounds from officers onto prisoners. A dying general offers her a choice: move his wound onto a prisoner and save the campaign, or let him die and watch the army fragment.",
+  "genre": "epic-fantasy",
+  "chapterCount": 10,
+  "characters": [
+    { "name": "Sylvie Dunmore", "role": "protagonist", "description": "Battlefield healer, mid-20s. Discovered her ability three months ago by accident. Farm-raised, direct, hates the war but believes in the people fighting it. Every wound she transfers leaves a phantom ache in her own body that doesn't fade." },
+    { "name": "Corporal Jien", "role": "supporting", "description": "Infantry soldier assigned as Sylvie's escort. Sixteen, lied about his age to enlist. Quiet, watchful, has seen too much. The only person who treats Sylvie like a person instead of an asset. Lost his squad at the river crossing." },
+    { "name": "General Voss", "role": "antagonist", "description": "The dying general. Sixty, legendary tactician, built the campaign on personal loyalty. Not a tyrant — genuinely believes the campaign will save more lives than it costs. His wound is a gut wound, slow and certain. He's had three days to think about the math of one prisoner's life versus ten thousand soldiers." }
+  ]
+}

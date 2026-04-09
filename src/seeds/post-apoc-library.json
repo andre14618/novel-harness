@@ -1,0 +1,10 @@
+{
+  "premise": "A wandering scribe trades hand-copied books between settlements in the post-grid Pacific Northwest. When she copies a journal that contains coordinates to a pre-collapse military cache, every settlement she visits afterward gets raided — and she realizes someone is following her route, reading the copies she leaves behind.",
+  "genre": "post-apocalyptic",
+  "chapterCount": 10,
+  "characters": [
+    { "name": "Wren Oshiro", "role": "protagonist", "description": "Scribe, early 30s. Former librarian's assistant. Walks a circuit between twelve settlements every season, copying and trading books. Memorizes everything she reads. Small, fast, trusts roads more than people." },
+    { "name": "Tolliver", "role": "supporting", "description": "Blacksmith in the settlement of Bend. One of Wren's regular stops. Big, quiet, illiterate — pays Wren to read to him. Notices the raids follow her pattern before she does." },
+    { "name": "Lace", "role": "antagonist", "description": "Former rare books dealer who survived the collapse by being useful to armed groups. Follows Wren's route two days behind, reading the copies she leaves. Doesn't want the cache for weapons — wants the leverage of knowing where it is." }
+  ]
+}
