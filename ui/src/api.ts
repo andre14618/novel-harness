@@ -1,12 +1,18 @@
+// Auth: cookie-based (nh_session set by /login). Falls back to ?key= for backward compat.
 const API_KEY = new URLSearchParams(window.location.search).get("key") ?? ""
 
 const headers: Record<string, string> = {
-  "x-api-key": API_KEY,
+  ...(API_KEY && { "x-api-key": API_KEY }),
   "Content-Type": "application/json",
 }
 
 async function fetchJSON<T>(url: string, opts?: RequestInit): Promise<T> {
-  const res = await fetch(url, { ...opts, headers: { ...headers, ...opts?.headers } })
+  const res = await fetch(url, { ...opts, headers: { ...headers, ...opts?.headers }, credentials: "same-origin" })
+  if (res.status === 401) {
+    // Session expired — redirect to login
+    window.location.href = "/login"
+    throw new Error("Session expired")
+  }
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: res.statusText }))
     throw new Error(body.error ?? `HTTP ${res.status}`)
@@ -311,7 +317,7 @@ export function updateFinetunePair(id: string, data: { gold_output?: string; sta
 }
 
 export async function exportFinetuneData(task: string): Promise<Blob> {
-  const res = await fetch(`/api/finetune/export?task=${encodeURIComponent(task)}`, { headers })
+  const res = await fetch(`/api/finetune/export?task=${encodeURIComponent(task)}`, { headers, credentials: "same-origin" })
   if (!res.ok) throw new Error(`Export failed: ${res.status}`)
   return res.blob()
 }
@@ -346,7 +352,7 @@ export function savePrefRating(evalName: string, data: {
 }
 
 export async function exportPrefDpo(evalName: string): Promise<Blob> {
-  const res = await fetch(`/api/pref-eval/${encodeURIComponent(evalName)}/export`, { headers })
+  const res = await fetch(`/api/pref-eval/${encodeURIComponent(evalName)}/export`, { headers, credentials: "same-origin" })
   if (!res.ok) throw new Error(`Export failed: ${res.status}`)
   return res.blob()
 }

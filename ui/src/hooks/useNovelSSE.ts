@@ -19,8 +19,12 @@ export function useNovelSSE(novelId: string | null) {
       }
       clearTimeout(reconnectTimer.current)
 
+      // Auth via cookie (nh_session) — EventSource sends cookies automatically.
+      // Falls back to ?key= query param for backward compat.
       const key = new URLSearchParams(window.location.search).get("key") ?? ""
-      const url = `/api/novel/${novelId}/events?key=${encodeURIComponent(key)}`
+      const url = key
+        ? `/api/novel/${novelId}/events?key=${encodeURIComponent(key)}`
+        : `/api/novel/${novelId}/events`
       const source = new EventSource(url)
       sourceRef.current = source
 

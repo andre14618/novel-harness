@@ -27,10 +27,38 @@ await migrate()
 const API_KEY = process.env.ORCHESTRATOR_API_KEY
 if (!API_KEY) throw new Error("ORCHESTRATOR_API_KEY not set")
 
+const PASSWORD = process.env.ORCHESTRATOR_PASSWORD
+if (!PASSWORD) throw new Error("ORCHESTRATOR_PASSWORD not set")
+
+// Session token — HMAC of the password, used as cookie value so the raw
+// password is never stored client-side.
+const SESSION_TOKEN = new Bun.CryptoHasher("sha256").update(PASSWORD).update(API_KEY).digest("hex")
+
+function parseCookies(req: Request): Record<string, string> {
+  const header = req.headers.get("cookie") ?? ""
+  const cookies: Record<string, string> = {}
+  for (const part of header.split(";")) {
+    const [k, ...v] = part.trim().split("=")
+    if (k) cookies[k] = v.join("=")
+  }
+  return cookies
+}
+
 function checkAuth(req: Request): Response | null {
-  const key = req.headers.get("x-api-key") || new URL(req.url).searchParams.get("key")
-  if (!key || key !== API_KEY) return Response.json({ error: "Unauthorized" }, { status: 401 })
-  return null
+  // API callers: header or query param (API key)
+  const apiKey = req.headers.get("x-api-key") || new URL(req.url).searchParams.get("key")
+  if (apiKey === API_KEY) return null
+  // Browser sessions: cookie (session token)
+  const cookie = parseCookies(req).nh_session
+  if (cookie === SESSION_TOKEN) return null
+  return Response.json({ error: "Unauthorized" }, { status: 401 })
+}
+
+function isAuthed(req: Request): boolean {
+  const apiKey = req.headers.get("x-api-key") || new URL(req.url).searchParams.get("key")
+  if (apiKey === API_KEY) return true
+  const cookie = parseCookies(req).nh_session
+  return cookie === SESSION_TOKEN
 }
 
 // ── Dashboard HTML ──────────────────────────────────────────────────────
@@ -901,6 +929,70 @@ setInterval(refreshDaemon, 15000)
 </body></html>`
 }
 
+// ── Login page ─────────────────────────────────────────────────────────
+
+function loginPageHtml(): string {
+  return `<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Novel Harness — Login</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0;
+         display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 2rem;
+          width: 100%; max-width: 380px; }
+  h1 { font-size: 1.25rem; margin-bottom: 0.25rem; }
+  .sub { color: #94a3b8; font-size: 0.875rem; margin-bottom: 1.5rem; }
+  label { display: block; font-size: 0.875rem; color: #94a3b8; margin-bottom: 0.25rem; }
+  input { width: 100%; padding: 0.5rem 0.75rem; background: #0f172a; border: 1px solid #475569;
+          border-radius: 6px; color: #e2e8f0; font-size: 1rem; outline: none; }
+  input:focus { border-color: #3b82f6; }
+  button { width: 100%; padding: 0.5rem; margin-top: 1rem; background: #3b82f6; color: white;
+           border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; }
+  button:hover { background: #2563eb; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .error { color: #f87171; font-size: 0.875rem; margin-top: 0.5rem; display: none; }
+</style>
+</head><body>
+<div class="card">
+  <h1>Novel Harness</h1>
+  <p class="sub">Enter your password to continue</p>
+  <form id="loginForm">
+    <label for="pw">Password</label>
+    <input type="password" id="pw" name="password" autocomplete="current-password" autofocus>
+    <div class="error" id="error">Invalid password</div>
+    <button type="submit">Sign in</button>
+  </form>
+</div>
+<script>
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault()
+  const btn = e.target.querySelector('button')
+  const errEl = document.getElementById('error')
+  errEl.style.display = 'none'
+  btn.disabled = true
+  try {
+    const res = await fetch('/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: document.getElementById('pw').value }),
+    })
+    if (res.ok) {
+      window.location.href = '/app'
+    } else {
+      errEl.style.display = 'block'
+    }
+  } catch {
+    errEl.textContent = 'Connection failed'
+    errEl.style.display = 'block'
+  }
+  btn.disabled = false
+})
+</script>
+</body></html>`
+}
+
 // ── HTTP Server ─────────────────────────────────────────────────────────
 
 const server = Bun.serve({
@@ -911,14 +1003,50 @@ const server = Bun.serve({
     const url = new URL(req.url)
     const path = url.pathname
 
+    // ── Login page ───────────────────────────────────────────────────
+    if (path === "/login" && req.method === "GET") {
+      return new Response(loginPageHtml(), { headers: { "Content-Type": "text/html" } })
+    }
+
+    if (path === "/login" && req.method === "POST") {
+      try {
+        const body = await req.json() as { password?: string }
+        if (!body.password || body.password !== PASSWORD) {
+          return Response.json({ error: "Invalid password" }, { status: 401 })
+        }
+        return new Response(JSON.stringify({ ok: true }), {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            "Set-Cookie": `nh_session=${SESSION_TOKEN}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${60 * 60 * 24 * 30}`,
+          },
+        })
+      } catch {
+        return Response.json({ error: "Bad request" }, { status: 400 })
+      }
+    }
+
+    if (path === "/logout" && req.method === "POST") {
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          "Set-Cookie": "nh_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0",
+        },
+      })
+    }
+
     // Redirect legacy pages to React app
     if (path === "/" && req.method === "GET") {
-      const key = url.searchParams.get("key") ?? ""
-      return Response.redirect(`/app/dashboard?key=${encodeURIComponent(key)}`, 302)
+      return Response.redirect("/app/dashboard", 302)
     }
     if (path === "/panel" && req.method === "GET") {
-      const key = url.searchParams.get("key") ?? ""
-      return Response.redirect(`/app/operations?key=${encodeURIComponent(key)}`, 302)
+      return Response.redirect("/app/operations", 302)
+    }
+
+    // Public overview — redirect bare path to React route
+    if (path === "/overview" && req.method === "GET") {
+      return Response.redirect("/app/overview", 302)
     }
 
     // Health — unauthenticated, CORS allowed (for homelab dashboard status checks)
@@ -927,9 +1055,10 @@ const server = Bun.serve({
       { headers: { "Access-Control-Allow-Origin": "*" } },
     )
 
-    // React app static files — unauthenticated (key passed as query param for API calls)
+    // React app — static assets unauthenticated, pages require cookie/key auth
     const UI_DIST = resolve(import.meta.dir, "../../ui/dist")
     if (path.startsWith("/app")) {
+      // Static assets (JS/CSS/SVG) — no auth needed
       if (path.startsWith("/app/assets/")) {
         const filePath = resolve(UI_DIST, path.replace("/app/", ""))
         const file = Bun.file(filePath)
@@ -941,6 +1070,12 @@ const server = Bun.serve({
             : "application/octet-stream"
           return new Response(file, { headers: { "Content-Type": contentType } })
         }
+      }
+      // Public pages — no auth needed
+      const isPublicPage = path === "/app/overview" || path === "/overview"
+      // HTML pages — require auth (except public pages), redirect to /login if missing
+      if (!isPublicPage && !isAuthed(req)) {
+        return Response.redirect("/login", 302)
       }
       const indexFile = Bun.file(resolve(UI_DIST, "index.html"))
       if (await indexFile.exists()) {
