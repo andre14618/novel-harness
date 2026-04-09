@@ -64,29 +64,43 @@ Respond with ONLY valid JSON in this exact shape:
   "reasoning": "<one sentence>"
 }`
 
-const SETTING_SYSTEM = `You verify whether the prose's setting matches the expected setting for a scene beat.
+const SETTING_SYSTEM = `You verify whether the prose CONTRADICTS the expected setting for a scene beat.
 
-The expected setting is a brief description (e.g., "a crowded tavern, evening, smoky torchlight"). The prose's actual setting is wherever the action takes place — the location, time of day, and atmospheric markers.
+The expected setting is a brief description (e.g., "a crowded tavern, evening, smoky torchlight"). This beat may be one of several in a chapter — the prose often inherits setting from earlier beats and does NOT re-establish it. That is normal craft and not a mismatch.
 
-A "setting mismatch" is when the prose places the scene in a clearly different location, time, or environment than what was expected. Minor variation in atmospheric detail is fine. Different building, different time of day, different outdoor/indoor, different city — those are mismatches.
+ONLY flag setting_matches=false when the prose places the scene in a CLEARLY DIFFERENT setting than expected. Examples of real contradictions:
+- Different named location (tavern vs castle, kitchen vs garden)
+- Different building or room when the beat names a specific one
+- Outdoors vs indoors when the beat is explicit about which
+- Different time of day when the beat is explicit (dawn vs midnight)
+- Different city, region, or world
 
-If the prose has no clear setting at all (purely abstract or interior monologue with no place markers), return setting_matches=false with reasoning noting the absence.
+If the prose simply doesn't mention setting markers — it's continuing a scene from a prior beat, focused on dialogue, character interiority, or close action — return setting_matches=true. Absence of setting markers is NOT a mismatch. Only POSITIVE evidence of a different setting counts.
 
 Respond with ONLY valid JSON in this exact shape:
 {
   "setting_matches": true | false,
   "expected_setting": "<the expected setting, restated>",
-  "actual_setting": "<the setting the prose actually establishes>",
+  "actual_setting": "<the setting the prose establishes, or 'inherited from prior beat' if not re-established>",
   "reasoning": "<one sentence>"
 }`
 
-const TANGENT_SYSTEM = `You measure how much of the prose advances a specific scene beat versus going off on tangents.
+const TANGENT_SYSTEM = `You measure whether the prose has DRIFTED OFF the scene beat into unrelated content.
 
-A "tangent" is content that does not serve the beat: unrelated subplot, lengthy backstory, scene drift to another topic, atmospheric description that's longer than the actual beat content, or the prose pivoting to something the beat does not call for.
+A "tangent" is the prose abandoning the beat to pursue something the beat does not call for: an unrelated subplot, scene drift to another character's storyline, lengthy unrelated backstory dump, or the prose pivoting away from the beat entirely.
 
-Atmospheric details that decorate the beat are NOT tangents. Backstory that the beat itself implies is NOT a tangent. The threshold for is_tangent=true is when the bulk of the prose (more than ~40%) is doing something other than executing the beat.
+The following are NOT tangents — they are normal prose craft and must NOT be flagged:
+- Atmospheric description (weather, sensory details, environmental texture)
+- Character interiority (POV character's thoughts, feelings, memories triggered by what's happening)
+- Sensory grounding (what the character sees, hears, smells, touches)
+- Emotional reactions to the beat's action
+- Brief flashes of backstory the beat itself implies
+- Dialogue that develops the beat's situation, even if it briefly digresses
+- Pacing variation, internal monologue, descriptive flourishes
 
-Estimate the off-spec fraction (0.0 = entirely on-spec, 1.0 = entirely off-spec). Quote any clearly off-spec passage.
+The threshold for is_tangent=true is HIGH: more than ~60% of the prose must be doing something completely unrelated to the beat. If the beat is happening anywhere in the prose — even surrounded by atmospheric and interior detail — is_tangent=false.
+
+Estimate the off-spec fraction (0.0 = entirely on-spec, 1.0 = entirely off-spec). Only quote a passage if you are flagging is_tangent=true.
 
 Respond with ONLY valid JSON in this exact shape:
 {
