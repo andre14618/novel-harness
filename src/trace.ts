@@ -64,7 +64,7 @@ export async function trace(novelId: string, event: TraceEvent): Promise<number>
         ${event.agent ?? null},
         ${event.llmCallId ?? null},
         ${event.durationMs ?? null},
-        ${JSON.stringify(event.payload ?? {})},
+        ${event.payload ?? {}},
         ${ts}
       )
       RETURNING id
