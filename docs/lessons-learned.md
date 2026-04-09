@@ -591,6 +591,69 @@ Ran a 4-model ladder (Llama 8B / Qwen3-14B base / gpt-oss-120b / Qwen 235B) agai
 
 (Commit `df63138` baseline script; experiment #119)
 
+### Per-API-call decomposition: orthogonal facets win, items-of-same-type lose — adherence +12pp, chapter-plan −26pp on the same intervention (2026-04-08)
+
+Same week as the four-task ladder series (#107-#119), tested per-API-call decomposition on two different analytical agents. Same intervention shape ("split one LLM call into N parallel calls, aggregate FAIL if any fires"), opposite outcomes. The split is sharper than the existing "atomization helps for N independent checks" lesson — *the shape of N matters*, not just the count.
+
+**Adherence-checker — clean win** (`scripts/score-adherence-decomposed.ts`, exp #122). Replaced the single LLM call (which asked "events present? right setting? characters in role?" in one prompt and entirely lacked a slot for FAIL_TANGENT) with **four parallel calls**, one per failure mode:
+
+- `events`    — "Quote the passage where the beat's action happens. Off-page references don't count." (positive evidence quoting)
+- `setting`   — "Does the prose's setting match the expected setting? Quote actual vs expected."
+- `tangent`   — "Estimate off-spec fraction. Quote off-spec passages." (the failure mode the production prompt was missing entirely)
+- `character` — "Quote any line where a character acts contrary to their role."
+
+Aggregate: PASS only if all four return clean. Same 160-pair eval as #110/#111.
+
+| model | #110 flat | #111 checklist | **#122 4-call** | Δ vs flat |
+|---|---:|---:|---:|---:|
+| Llama 3.1 8B | 58% | 59% | **76%** | **+18pp** |
+| Qwen3-14B base | 79% | 68% | **91%** | **+12pp** |
+| Qwen 235B | 96% | 79% | **97%** | +1pp |
+
+PASS variants stayed near-100% on 14B and 235B (no over-firing — meaningful-vs-nominal collapse from #111 did NOT re-emerge). FAIL_TANGENT — the failure mode I identified as orphaned by the production prompt — went from undermeasured to **100% on Llama and 235B, 90% on 14B** with the dedicated tangent slot. FAIL_SETTING is 100% across all three models.
+
+**Chapter-plan-checker — regression** (`scripts/score-chapter-plan-perbeat.ts`, exp #123). Same intervention shape: replace the single "compare prose vs plan" call with **N parallel per-beat calls**, where N is the number of beats in the chapter (~4). Each call asks "is THIS specific beat enacted on the page?" with positive-evidence quoting. Aggregate FAIL if any beat returns absent. Same 80-pair eval as #119, same 4-model ladder.
+
+| model | #119 single-call | **#123 per-beat** | Δ |
+|---|---:|---:|---:|
+| Llama 3.1 8B | 23% | 55% | +32pp |
+| Qwen3-14B base | 42% | 63% | +21pp |
+| **gpt-oss-120b** | **90%** | **64%** | **−26pp** |
+| **Qwen 235B** | **81%** | **72%** | **−9pp** |
+
+Per-beat **helps the small models, hurts the strong ones**. The regression on gpt-oss is the load-bearing finding — that's the production teacher and the SFT target. PASS_REORDER cratered to 22% on gpt-oss (reordered beats look like missing beats to an isolated checker because the model expects beat N at position N). FAIL_MISSING_BEAT — the variant the experiment was *designed* to fix — only modestly improved (50% → 60% on gpt-oss, 10% → 30% on 235B).
+
+**Why one wins and the other loses — three mechanisms:**
+
+1. **N-beat compounding error.** Adherence has *one* judgment per pair, decomposed into 4 facets that each fire independently. Chapter-plan has *N* items of the same type (beats), and aggregation is OR — if ANY beat is wrongly marked absent, the whole pair flips to FAIL. Even a 90% per-beat accuracy compounds to 0.9⁴ = 66% pair-level on 4-beat chapters. That's almost exactly the gpt-oss collapse (90% → 64%). False-positive rate on "is this beat present" is the killer because it scales multiplicatively with N.
+
+2. **Cross-item reasoning is invisible to per-item decomposition.** FAIL_REVERSED_ARC scored 0-22% across all four models in #123 — the per-beat checker can't see that the *direction* of emotional change is wrong because each beat is judged in isolation. The reversal is a property of the *sequence*, not any single beat. Adherence-checker doesn't have this problem because each of its 4 calls covers a different aspect of the *same* judgment, not a different item in a sequence.
+
+3. **The "no quote → FAIL" framing has an asymmetric effect by model strength.** Strong models (gpt-oss, 235B) treat the positive-evidence requirement strictly and over-fire on absence when paraphrase, reordering, or atmospheric expansion makes the beat hard to quote literally. Weak models (Llama 8B, 14B base) couldn't reliably emit FAIL anyway, so the quote requirement *gives them structure* and lifts their floor. Result: per-beat compresses the spread between strong and weak models. For adherence (where the weakest is also the deployment candidate for SFT), compression is the goal. For chapter-plan (where the strongest is the production model), compression is a regression.
+
+**The taxonomy this falls into:**
+
+| Task shape | Example | Decomposition outcome |
+|---|---|---|
+| 1 holistic judgment, N orthogonal failure modes | adherence-checker (events / setting / tangent / character) | **Win** — each call gets a tailored prompt direction and an attention budget |
+| N items of same type, OR aggregation | chapter-plan-checker (beats), continuity (facts) | **Lose** — compounding error blows up false positives, cross-item reasoning is invisible |
+| N items of same type, recall-weighted aggregation | reference-resolver (lookups, set union) | **TBD** — recall-weighted aggregation may avoid the compounding-error trap; haven't tested |
+
+**Implications for the four-task SFT prioritization:**
+
+- **Adherence-checker SFT urgency drops dramatically.** The 14B base on the *decomposed* prompt is 91%, not 79%. The gap to the 235B teacher (97%) is now 6pp, not 17pp. SFT may not be needed at all if 91% is acceptable for the production slot. If SFT still happens, the teacher signal should come from the decomposed 235B (97%), not the flat one.
+- **The decomposed prompt is the new production prompt for adherence-checker.** Cheapest improvement on the table. Wired into `src/agents/writer/adherence-checker.ts` as 4 parallel calls; latency unchanged (parallel) but per-pair token cost ~3-4× because each call has its own system prompt.
+- **Chapter-plan-checker stays on single-call gpt-oss-120b.** Per-beat is NOT the production swap. SFT distillation from gpt-oss-120b on the existing 80 synthetic pairs is still the path. The per-beat experiment is a useful disconfirmation, not a regression we deploy.
+- **The "atomization helps for N independent checks" lesson from #109 is retained but refined.** The original lesson was correct *within one call* (structured checklist output schema). It does NOT transfer to *across calls* when the items being decomposed are sequential same-type items rather than orthogonal facets.
+
+**Methodology notes:**
+
+- **Smoke run with 16 pairs is enough to catch a missing slot.** The 3-call adherence smoke (before the SETTING slot was added) showed 0/2 FAIL_SETTING catches across 14B and 235B and a 235B regression from 96% → 88%. Adding the 4th slot (~10 lines of code) and re-running fixed it. Smoke runs are the right time to find these gaps — full runs would have shown the same regression at 8× the cost.
+- **The smoke run can also be misleading in the *positive* direction.** The 16-pair chapter-plan-perbeat smoke showed 235B at 94% — wildly better than the full 80-pair number (72%). Random sampling can produce variant distributions that hide the failure modes. Always validate gains on the full eval before drawing conclusions.
+- **"Same intervention, opposite outcome" is the most useful kind of experiment.** The adherence/chapter-plan A/B forced the question *why one wins and the other loses* — which is what produced the orthogonal-facets-vs-items-of-same-type taxonomy. A single-task experiment would have produced a single-task lesson; the two-task experiment produced a transferable principle.
+
+(Commits `0fe9c6c` (both scripts), `6a7e211` (4th setting slot); experiments #122 adherence, #123 chapter-plan)
+
 ## Prompt & Output Schema Design
 
 ### Structured checklist output beats flat verdict schemas on multi-check verification tasks — but only for fields within model capacity (2026-04-08)
