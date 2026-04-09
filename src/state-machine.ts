@@ -6,8 +6,10 @@ import { runValidationPhase } from "./phases/validation"
 import { getTokenUsage } from "./llm"
 import { emit } from "./events"
 import { pipeline } from "./config/pipeline"
+import db from "../data/connection"
 
 export async function runNovel(novelId: string): Promise<void> {
+  const startedAt = Date.now()
   let novel = await getNovel(novelId)
   let prevSignature = ""
   let stuckCount = 0
@@ -48,12 +50,76 @@ export async function runNovel(novelId: string): Promise<void> {
     novel = await getNovel(novelId)
   }
 
+  const wallMs = Date.now() - startedAt
   const usage = getTokenUsage()
+
   console.log(`\n╔══════════════════════════════════════╗`)
   console.log(`║          NOVEL COMPLETE               ║`)
   console.log(`╚══════════════════════════════════════╝`)
   console.log(`  Output: output/${novelId}/`)
-  console.log(`  Tokens used: ${usage.prompt + usage.completion} (${usage.prompt} prompt + ${usage.completion} completion)`)
+
+  // ── Run summary from llm_calls ─────────────────────────────────────────
+  await printRunSummary(novelId, wallMs, usage)
 
   emit(novelId, { type: "done", data: { novelId, tokens: usage } })
+}
+
+async function printRunSummary(
+  novelId: string,
+  wallMs: number,
+  memUsage: { prompt: number; completion: number },
+): Promise<void> {
+  const wallSec = wallMs / 1000
+  const wallMin = Math.floor(wallSec / 60)
+  const wallRemSec = Math.round(wallSec % 60)
+
+  // Totals
+  const [totals] = await db`
+    SELECT
+      COUNT(*)::int                         AS calls,
+      COALESCE(SUM(prompt_tokens), 0)::int  AS prompt_tokens,
+      COALESCE(SUM(completion_tokens), 0)::int AS completion_tokens,
+      ROUND(COALESCE(SUM(cost), 0)::numeric, 6) AS total_cost,
+      COALESCE(SUM(latency_ms), 0)::int     AS total_latency_ms,
+      COUNT(*) FILTER (WHERE failed)::int   AS failed_calls
+    FROM llm_calls
+    WHERE novel_id = ${novelId}
+  `
+
+  // Per-agent breakdown
+  const agentRows = await db`
+    SELECT
+      agent,
+      COUNT(*)::int                         AS calls,
+      COALESCE(SUM(prompt_tokens), 0)::int  AS prompt_in,
+      COALESCE(SUM(completion_tokens), 0)::int AS comp_out,
+      ROUND(COALESCE(SUM(cost), 0)::numeric, 6) AS cost,
+      ROUND(AVG(latency_ms)::numeric)::int  AS avg_ms
+    FROM llm_calls
+    WHERE novel_id = ${novelId}
+    GROUP BY agent
+    ORDER BY cost DESC
+  `
+
+  console.log(`\n────────────────────────────────────────────────────────────`)
+  console.log(`  Run Summary`)
+  console.log(`────────────────────────────────────────────────────────────`)
+  console.log(`  Wall clock:    ${wallMin}m ${wallRemSec}s`)
+  console.log(`  API cost:      $${totals.total_cost}`)
+  console.log(`  LLM calls:     ${totals.calls} (${totals.failed_calls} failed)`)
+  console.log(`  Tokens:        ${totals.prompt_tokens.toLocaleString()} in / ${totals.completion_tokens.toLocaleString()} out`)
+
+  if (memUsage.prompt + memUsage.completion !== totals.prompt_tokens + totals.completion_tokens) {
+    console.log(`  (in-memory:    ${memUsage.prompt.toLocaleString()} in / ${memUsage.completion.toLocaleString()} out)`)
+  }
+
+  console.log(`\n  Per-agent breakdown:`)
+  console.log(`  ${"Agent".padEnd(28)} ${"Calls".padStart(5)}  ${"Tokens In".padStart(10)}  ${"Tokens Out".padStart(10)}  ${"Cost".padStart(8)}  ${"Avg ms".padStart(7)}`)
+  console.log(`  ${"─".repeat(28)} ${"─".repeat(5)}  ${"─".repeat(10)}  ${"─".repeat(10)}  ${"─".repeat(8)}  ${"─".repeat(7)}`)
+  for (const r of agentRows) {
+    console.log(
+      `  ${r.agent.padEnd(28)} ${String(r.calls).padStart(5)}  ${r.prompt_in.toLocaleString().padStart(10)}  ${r.comp_out.toLocaleString().padStart(10)}  ${"$" + r.cost.padStart(7)}  ${String(r.avg_ms).padStart(6)}ms`
+    )
+  }
+  console.log()
 }
