@@ -130,11 +130,9 @@ export function OperationsPage() {
     } catch (e: any) { showFlash(e.message, false) }
   }
 
-  if (!config) return <p style={{ color: "#8b949e" }}>Loading...</p>
-
-  const bench = config.benchmarks[suite]
-  const impBench = config.benchmarks[impTarget]
-  const applicableVars = config.envVars.filter(v => v.applies.includes("all") || v.applies.includes(suite))
+  const bench = config?.benchmarks[suite]
+  const impBench = config?.benchmarks[impTarget]
+  const applicableVars = config ? config.envVars.filter(v => v.applies.includes("all") || v.applies.includes(suite)) : []
 
   return (
     <>
@@ -152,6 +150,9 @@ export function OperationsPage() {
       {/* Benchmark Runner */}
       <h2 title="Run benchmark suites to evaluate agent performance.">Benchmark Runner</h2>
       <div className="card">
+        {!config ? (
+          <p style={{ color: "#8b949e", fontSize: "0.85rem", margin: 0 }}>Loading config…</p>
+        ) : (<>
         <label style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>Suite</label>
         <SearchableSelect
           value={suite}
@@ -236,6 +237,7 @@ export function OperationsPage() {
         )}
 
         <button onClick={runBenchmark} style={{ marginTop: "0.8rem" }}>Run Benchmark</button>
+        </>)}
       </div>
 
       {/* Active Runs */}
@@ -279,7 +281,7 @@ export function OperationsPage() {
         </div>
 
         {/* Target info box */}
-        {impBench && (
+        {impBench && config && (
           <AgentInfoBox
             agents={impBench.agentsUnderTest}
             judge={impBench.judge}
@@ -296,7 +298,7 @@ export function OperationsPage() {
             <SearchableSelect
               value={impTarget}
               onChange={v => { setImpTarget(v); setImpDimension("") }}
-              options={config.targets.map(t => ({ value: t, label: t }))}
+              options={(config?.targets ?? []).map(t => ({ value: t, label: t }))}
             />
             <label style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginTop: "0.3rem", display: "block" }}>Dimension</label>
             <SearchableSelect

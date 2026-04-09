@@ -5,7 +5,6 @@ const PAGES = [
   { path: "/config", label: "Config" },
   { path: "/llm-calls", label: "Inspector" },
   { path: "/experiments", label: "Experiments" },
-  { path: "/operations", label: "Operations" },
   { path: "/models", label: "Models" },
   { path: "/lora", label: "LoRA" },
   { path: "/finetune", label: "Fine-tune" },

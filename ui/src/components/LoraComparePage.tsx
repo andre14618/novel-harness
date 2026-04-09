@@ -682,15 +682,16 @@ function HardwareTab() {
 
 export function LoraComparePage() {
   const [data, setData] = useState<Comparison[]>([])
+  const [compareLoaded, setCompareLoaded] = useState(false)
   const [filter, setFilter] = useState("All")
   const [highlight, setHighlight] = useState(true)
   const [tab, setTab] = useState<"compare" | "v4" | "pref" | "hardware">("compare")
 
   useEffect(() => {
     fetch("/app/lora-comparison.json")
-      .then(r => r.json())
-      .then(setData)
-      .catch(() => setData([]))
+      .then(r => { if (!r.ok) throw new Error(`${r.status}`); return r.json() })
+      .then(d => { setData(d); setCompareLoaded(true) })
+      .catch(() => { setData([]); setCompareLoaded(true) })
   }, [])
 
   const filtered = filter === "All" ? data : data.filter(d => d.category === filter)
@@ -750,8 +751,14 @@ export function LoraComparePage() {
           </div>
         </div>
 
-        {filtered.length === 0 && (
+        {!compareLoaded && (
           <p style={{ color: "var(--text-secondary)" }}>Loading comparison data...</p>
+        )}
+        {compareLoaded && filtered.length === 0 && (
+          <p style={{ color: "var(--text-secondary)" }}>
+            No comparison data.
+            Place <code>lora-comparison.json</code> in <code>ui/public/</code> and rebuild.
+          </p>
         )}
 
         {filtered.map((item, i) => (

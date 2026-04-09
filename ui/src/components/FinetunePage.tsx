@@ -257,7 +257,7 @@ const SLOT_DEFS: SlotDef[] = [
     currentModel: "Qwen3-14B-Instruct",
     provider: "wandb",
     status: "live",
-    statusNote: "Base model = oracle (96% agreement, exp #101). No fine-tune needed. Swap confirmed 2026-04-08.",
+    statusNote: "Base model = oracle (96% agreement, exp #101). 4-call decomposed prompt (events/setting/tangent/character) shipped 2026-04-08 (exp #122: 14B 79%→91%, 235B 96%→97%). Production-validated and re-tuned (fire rate 57%→22%). SFT deferred — prompt swap closes most of the gap.",
     priority: 2,
     costPerCall: "$0.00005",
     dataStatus: "160 pairs validated (exp #100)",
@@ -282,8 +282,8 @@ const SLOT_DEFS: SlotDef[] = [
     agentKey: "continuity",
     currentModel: "Qwen3-235B (Cerebras)",
     provider: "cerebras",
-    status: "pending",
-    statusNote: "Highest per-call cost (7,294 avg input tokens, $0.0023/call). Phase 3 — requires compact diff format design first.",
+    status: "blocked",
+    statusNote: "Highest per-call cost (7,294 avg input tokens, $0.0023/call). BLOCKED — 235B misses 90% of warnings in synthetic eval (exp #117/#118); distilling this teacher would teach the student to miss them too. Needs a stronger teacher (Claude Opus/Sonnet) before data collection can start.",
     priority: 1,
     costPerCall: "$0.0023",
     dataStatus: "Not started. Needs compact diff schema design before data generation.",
@@ -296,7 +296,7 @@ const SLOT_DEFS: SlotDef[] = [
     currentModel: "gpt-oss-120b (Groq)",
     provider: "groq",
     status: "data-needed",
-    statusNote: "Base 14B zero-shot = 58% agreement with 120B oracle (exp #107). 100% one-directional: 14B rubber-stamps all FAIL cases, incl. FAIL_WRONG_SETTING at 0/10. Highly learnable one-sided bias — fine-tune (distill 120B) is the path. Keep 120B in prod until adapter exists.",
+    statusNote: "Base 14B zero-shot = 58% (exp #107). gpt-oss-120b teacher validated at 90% (exp #119, beats 235B by 9pp). Per-beat decomposition disconfirmed (exp #123: 90%→64% regression — compounding error + can't see cross-beat arcs). SFT distillation from gpt-oss is the path. Keep 120B in prod until adapter exists.",
     priority: 4,
     costPerCall: "$0.0007",
     dataStatus: "80 synthetic pairs generated (lora-data/chapter-plan-checker-pairs.jsonl). Relabel with 120B from exp #107, plus accumulate 200+ real production pairs.",
@@ -308,11 +308,11 @@ const SLOT_DEFS: SlotDef[] = [
     agentKey: "reference-resolver",
     currentModel: "Llama 3.1 8B (Groq)",
     provider: "groq",
-    status: "pending",
-    statusNote: "Parallel-3 set-union compensates for low single-shot recall. Fine-tune could collapse to single-shot. Phase 1.",
+    status: "blocked",
+    statusNote: "REMOVED from roadmap (exp #114/#115). 14B already at 97.5% recall against synthetic labels; recall is the production-relevant metric (over-fetch nearly free, miss costly). No real deficit to train against.",
     priority: 3,
     costPerCall: "$0.00003",
-    dataStatus: "Best-of-3 union outputs from approved beats. Not yet collected.",
+    dataStatus: "Removed — no training deficit identified.",
     experimentTargetKey: "reference-resolver",
   },
   {
@@ -906,7 +906,7 @@ export function FinetunePage() {
             <button className="secondary" onClick={() => setShowGenerate(false)}>Cancel</button>
           </div>
           <p style={{ fontSize: "0.7rem", color: "var(--text-ghost)", marginTop: "0.4rem", marginBottom: 0 }}>
-            Pulls chapters from Postgres, runs base Qwen 3.5 9B, inserts pairs as pending.
+            Pulls chapters from Postgres, runs base model (Qwen3-14B-Instruct for analytical tasks, task-specific for others), inserts pairs as pending.
           </p>
         </div>
       )}
@@ -934,14 +934,13 @@ export function FinetunePage() {
 
       <div className="tab-bar">
         <div className={`tab ${taskFilter === "" ? "active" : ""}`} onClick={() => setTaskFilter("")}>All</div>
-        {TASKS.map(t => (
+        {/* Show tabs for every task that has data in the DB, not just the hardcoded TASKS list */}
+        {Object.keys(stats?.byTask ?? {}).sort().map(t => (
           <div key={t} className={`tab ${taskFilter === t ? "active" : ""}`} onClick={() => setTaskFilter(t)}>
             {t}
-            {stats?.byTask[t] && (
-              <span style={{ fontSize: "0.68rem", marginLeft: "6px", color: "var(--text-ghost)" }}>
-                ({Object.values(stats.byTask[t]).reduce((a, b) => a + b, 0)})
-              </span>
-            )}
+            <span style={{ fontSize: "0.68rem", marginLeft: "6px", color: "var(--text-ghost)" }}>
+              ({Object.values(stats!.byTask[t]).reduce((a, b) => a + b, 0)})
+            </span>
           </div>
         ))}
       </div>

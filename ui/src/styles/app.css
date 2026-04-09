@@ -724,7 +724,7 @@ input[type="checkbox"] {
 /* ── Docs page ─────────────────────────────────────────────────────── */
 .docs-layout {
   display: grid;
-  grid-template-columns: 220px 1fr;
+  grid-template-columns: 280px 1fr;
   gap: 1.5rem;
   min-height: calc(100vh - 120px);
 }
@@ -746,9 +746,7 @@ input[type="checkbox"] {
   border-bottom: 1px solid var(--border-subtle);
 }
 .docs-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  display: block;
   width: 100%;
   padding: 6px 8px;
   border: none;
@@ -759,12 +757,13 @@ input[type="checkbox"] {
   font-size: 0.78rem;
   cursor: pointer;
   text-align: left;
+  line-height: 1.4;
   transition: all var(--transition-fast);
 }
 .docs-item:hover { background: var(--bg-elevated); color: var(--text-primary); }
 .docs-item.active { background: var(--accent-surface); color: var(--accent); border-left: 2px solid var(--accent); }
-.docs-item-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.docs-item-size { color: var(--text-ghost); font-size: 0.7rem; flex-shrink: 0; margin-left: 6px; }
+.docs-item-title { display: block; white-space: normal; word-break: break-word; }
+.docs-item-size { display: none; }
 
 .docs-content { min-width: 0; padding-bottom: 4rem; }
 

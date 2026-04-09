@@ -186,7 +186,20 @@ const ENV_VAR_DEFS = [
     description: "Direct = real-time. Batch = async batch API (50% off)." },
 ] as const
 
+let _opsConfigCache: Awaited<ReturnType<typeof _buildOperationsConfig>> | null = null
+let _opsConfigCacheAt = 0
+const OPS_CONFIG_TTL_MS = 60_000 // 1 minute — models/seeds rarely change
+
 async function buildOperationsConfig() {
+  if (_opsConfigCache && Date.now() - _opsConfigCacheAt < OPS_CONFIG_TTL_MS) {
+    return _opsConfigCache
+  }
+  _opsConfigCache = await _buildOperationsConfig()
+  _opsConfigCacheAt = Date.now()
+  return _opsConfigCache
+}
+
+async function _buildOperationsConfig() {
   const seeds = readdirSync(resolve(HARNESS_ROOT, "src/seeds"))
     .filter(f => f.endsWith(".json"))
     .map(f => basename(f, ".json"))
@@ -1500,7 +1513,15 @@ const server = Bun.serve({
               size: stat.size,
             }
           })
-          .sort((a, b) => a.title.localeCompare(b.title))
+          .sort((a, b) => {
+            const pinned = ["todo.md", "lessons-learned.md"]
+            const ai = pinned.indexOf(a.filename)
+            const bi = pinned.indexOf(b.filename)
+            if (ai !== -1 && bi !== -1) return ai - bi
+            if (ai !== -1) return -1
+            if (bi !== -1) return 1
+            return a.title.localeCompare(b.title)
+          })
         return Response.json({ docs: files })
       } catch (err) {
         return Response.json({ error: String(err) }, { status: 500 })

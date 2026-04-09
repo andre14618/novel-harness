@@ -12,22 +12,31 @@ import {
 //
 // See docs/llm-call-inspector.md for usage workflows.
 
+type SortCol = "id" | "status" | "agent" | "novel" | "ch" | "beat" | "att" | "model" | "in" | "out" | "ms" | "$"
+type SortDir = "asc" | "desc"
+
 export function LLMCallsPage() {
   const [rows, setRows] = useState<LLMCallRow[]>([])
   const [agents, setAgents] = useState<string[]>([])
   const [novels, setNovels] = useState<{ id: string; title: string }[]>([])
   const [loading, setLoading] = useState(false)
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [selected, setSelected] = useState<LLMCallDetail | null>(null)
   const [selectedLoading, setSelectedLoading] = useState(false)
 
-  // Filters
+  // Server-side filters
   const [novelId, setNovelId] = useState<string>("")
   const [agent, setAgent] = useState<string>("")
   const [chapter, setChapter] = useState<string>("")
   const [beatIndex, setBeatIndex] = useState<string>("")
   const [failedOnly, setFailedOnly] = useState(false)
   const [limit, setLimit] = useState(100)
+
+  // Client-side sort + search
+  const [sortCol, setSortCol] = useState<SortCol>("id")
+  const [sortDir, setSortDir] = useState<SortDir>("desc")
+  const [search, setSearch] = useState("")
 
   function load() {
     setLoading(true)
@@ -40,12 +49,16 @@ export function LLMCallsPage() {
       failedOnly: failedOnly || undefined,
       limit,
     })
-      .then(setRows)
+      .then(r => { setRows(r); setLastRefresh(new Date()) })
       .catch(e => setError(String(e)))
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { load() }, [novelId, agent, chapter, beatIndex, failedOnly, limit])
+  useEffect(() => {
+    load()
+    const interval = setInterval(load, 10_000)
+    return () => clearInterval(interval)
+  }, [novelId, agent, chapter, beatIndex, failedOnly, limit])
 
   useEffect(() => {
     listLLMCallAgents(novelId || undefined).then(setAgents).catch(() => {})
@@ -63,18 +76,57 @@ export function LLMCallsPage() {
       .finally(() => setSelectedLoading(false))
   }
 
-  // Group consecutive rows with the same novel/chapter/beat into visual clusters
-  // so it's obvious which adherence-checker call belongs to which beat-writer call.
+  function handleSort(col: SortCol) {
+    if (sortCol === col) {
+      setSortDir(d => d === "asc" ? "desc" : "asc")
+    } else {
+      setSortCol(col)
+      setSortDir(col === "id" ? "desc" : "asc")
+    }
+  }
+
+  // Sort + search client-side, then cluster consecutive beat groups
   const clusteredRows = useMemo(() => {
-    return rows.map((r, i) => {
-      const prev = rows[i - 1]
-      const isNewCluster = !prev
+    const q = search.trim().toLowerCase()
+    let filtered = q
+      ? rows.filter(r =>
+          r.agent.toLowerCase().includes(q) ||
+          shortModel(r.model).toLowerCase().includes(q) ||
+          r.model.toLowerCase().includes(q) ||
+          (r.novel_id ?? "").toLowerCase().includes(q)
+        )
+      : rows
+
+    const sorted = [...filtered].sort((a, b) => {
+      let cmp = 0
+      switch (sortCol) {
+        case "id":      cmp = a.id - b.id; break
+        case "status":  cmp = Number(a.failed) - Number(b.failed); break
+        case "agent":   cmp = a.agent.localeCompare(b.agent); break
+        case "novel":   cmp = (a.novel_id ?? "").localeCompare(b.novel_id ?? ""); break
+        case "ch":      cmp = (a.chapter ?? -1) - (b.chapter ?? -1); break
+        case "beat":    cmp = (a.beat_index ?? -1) - (b.beat_index ?? -1); break
+        case "att":     cmp = (a.attempt ?? -1) - (b.attempt ?? -1); break
+        case "model":   cmp = shortModel(a.model).localeCompare(shortModel(b.model)); break
+        case "in":      cmp = (a.prompt_tokens ?? 0) - (b.prompt_tokens ?? 0); break
+        case "out":     cmp = (a.completion_tokens ?? 0) - (b.completion_tokens ?? 0); break
+        case "ms":      cmp = (a.latency_ms ?? 0) - (b.latency_ms ?? 0); break
+        case "$":       cmp = Number(a.cost) - Number(b.cost); break
+      }
+      return sortDir === "asc" ? cmp : -cmp
+    })
+
+    // Only cluster when sorted by id desc (natural pipeline order)
+    const isDefaultOrder = sortCol === "id" && sortDir === "desc" && !q
+    return sorted.map((r, i) => {
+      const prev = sorted[i - 1]
+      const isNewCluster = isDefaultOrder && (!prev
         || prev.novel_id !== r.novel_id
         || prev.chapter !== r.chapter
-        || prev.beat_index !== r.beat_index
+        || prev.beat_index !== r.beat_index)
       return { row: r, isNewCluster }
     })
-  }, [rows])
+  }, [rows, sortCol, sortDir, search])
 
   return (
     <div style={{ padding: 16, maxWidth: "100%" }}>
@@ -130,10 +182,24 @@ export function LLMCallsPage() {
           </label>
         </Field>
         <button onClick={load} disabled={loading} style={buttonStyle}>
-          {loading ? "loading…" : "refresh"}
+          {loading ? "loading…" : "refresh now"}
         </button>
-        {(novelId || agent || chapter || beatIndex || failedOnly) && (
-          <button onClick={() => { setNovelId(""); setAgent(""); setChapter(""); setBeatIndex(""); setFailedOnly(false) }}
+        {lastRefresh && (
+          <span style={{ fontSize: "0.68rem", color: "var(--text-tertiary)", alignSelf: "flex-end", paddingBottom: 6 }}>
+            auto · last {lastRefresh.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+          </span>
+        )}
+        <Field label="Search">
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="agent / model / novel"
+            style={{ ...inputStyle, width: 180 }}
+          />
+        </Field>
+        {(novelId || agent || chapter || beatIndex || failedOnly || search) && (
+          <button onClick={() => { setNovelId(""); setAgent(""); setChapter(""); setBeatIndex(""); setFailedOnly(false); setSearch("") }}
             style={{ ...buttonStyle, background: "transparent" }}>
             clear
           </button>
@@ -151,18 +217,18 @@ export function LLMCallsPage() {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.74rem" }}>
             <thead>
               <tr style={{ background: "var(--bg-raised)", color: "var(--text-secondary)" }}>
-                <Th>id</Th>
-                <Th>status</Th>
-                <Th>agent</Th>
-                <Th>novel</Th>
-                <Th>ch</Th>
-                <Th>beat</Th>
-                <Th>att</Th>
-                <Th>model</Th>
-                <Th align="right">in</Th>
-                <Th align="right">out</Th>
-                <Th align="right">ms</Th>
-                <Th align="right">$</Th>
+                <Th col="id" sortCol={sortCol} sortDir={sortDir} onSort={handleSort}>id</Th>
+                <Th col="status" sortCol={sortCol} sortDir={sortDir} onSort={handleSort}>status</Th>
+                <Th col="agent" sortCol={sortCol} sortDir={sortDir} onSort={handleSort}>agent</Th>
+                <Th col="novel" sortCol={sortCol} sortDir={sortDir} onSort={handleSort}>novel</Th>
+                <Th col="ch" sortCol={sortCol} sortDir={sortDir} onSort={handleSort}>ch</Th>
+                <Th col="beat" sortCol={sortCol} sortDir={sortDir} onSort={handleSort}>beat</Th>
+                <Th col="att" sortCol={sortCol} sortDir={sortDir} onSort={handleSort}>att</Th>
+                <Th col="model" sortCol={sortCol} sortDir={sortDir} onSort={handleSort}>model</Th>
+                <Th col="in" sortCol={sortCol} sortDir={sortDir} onSort={handleSort} align="right">in</Th>
+                <Th col="out" sortCol={sortCol} sortDir={sortDir} onSort={handleSort} align="right">out</Th>
+                <Th col="ms" sortCol={sortCol} sortDir={sortDir} onSort={handleSort} align="right">ms</Th>
+                <Th col="$" sortCol={sortCol} sortDir={sortDir} onSort={handleSort} align="right">$</Th>
               </tr>
             </thead>
             <tbody>
@@ -207,15 +273,25 @@ export function LLMCallsPage() {
                   <Td align="right">{Number(row.cost).toFixed(4)}</Td>
                 </tr>
               ))}
-              {rows.length === 0 && !loading && (
+              {clusteredRows.length === 0 && !loading && (
                 <tr>
                   <td colSpan={12} style={{ padding: 24, textAlign: "center", color: "var(--text-secondary)" }}>
-                    no calls match these filters
+                    {rows.length > 0 ? "no rows match search" : "no calls match these filters"}
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
+          {rows.length > 0 && (
+            <div style={{
+              padding: "5px 10px", fontSize: "0.68rem", color: "var(--text-tertiary)",
+              borderTop: "1px solid var(--border-subtle)", textAlign: "right",
+            }}>
+              {clusteredRows.length < rows.length
+                ? `${clusteredRows.length} of ${rows.length} rows`
+                : `${rows.length} rows`}
+            </div>
+          )}
         </div>
 
         {/* Detail panel */}
@@ -360,13 +436,35 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   )
 }
 
-function Th({ children, align }: { children: React.ReactNode; align?: "left" | "right" }) {
+function Th({
+  children, align, col, sortCol, sortDir, onSort,
+}: {
+  children: React.ReactNode
+  align?: "left" | "right"
+  col?: SortCol
+  sortCol?: SortCol
+  sortDir?: SortDir
+  onSort?: (col: SortCol) => void
+}) {
+  const active = col && sortCol === col
   return (
-    <th style={{
-      padding: "6px 8px", textAlign: align ?? "left", fontWeight: 500,
-      fontSize: "0.68rem", textTransform: "uppercase", letterSpacing: "0.04em",
-    }}>
+    <th
+      onClick={col && onSort ? () => onSort(col) : undefined}
+      style={{
+        padding: "6px 8px", textAlign: align ?? "left", fontWeight: 500,
+        fontSize: "0.68rem", textTransform: "uppercase", letterSpacing: "0.04em",
+        cursor: col ? "pointer" : undefined,
+        userSelect: "none",
+        color: active ? "var(--text-primary)" : undefined,
+        whiteSpace: "nowrap",
+      }}
+    >
       {children}
+      {col && (
+        <span style={{ marginLeft: 4, opacity: active ? 1 : 0.25, fontSize: "0.6rem" }}>
+          {active ? (sortDir === "asc" ? "▲" : "▼") : "▲"}
+        </span>
+      )}
     </th>
   )
 }

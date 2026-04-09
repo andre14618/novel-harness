@@ -59,9 +59,9 @@ export function DocsPage() {
             key={d.filename}
             className={`docs-item ${active === d.filename ? "active" : ""}`}
             onClick={() => setActive(d.filename)}
+            title={`${(d.size / 1024).toFixed(1)} KB`}
           >
             <span className="docs-item-title">{d.title}</span>
-            <span className="docs-item-size">{(d.size / 1024).toFixed(1)}k</span>
           </button>
         ))}
       </aside>
