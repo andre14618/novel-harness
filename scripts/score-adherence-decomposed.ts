@@ -12,21 +12,22 @@
  * tested. Each call gets its own attention budget AND can be prompted in the
  * direction of the failure mode it's targeting.
  *
- * This script splits the LLM check into THREE parallel calls per pair:
+ * This script splits the LLM check into FOUR parallel calls per pair:
  *
  *   1. Events call    — "Quote the passage where the beat's action happens.
  *                       Off-page references don't count." → catches FAIL_MISSING
- *   2. Tangent call   — "Estimate the off-spec fraction. Quote off-spec passages."
+ *   2. Setting call   — "Does the prose's setting match the expected setting?"
+ *                       → catches FAIL_SETTING (added after the smoke run showed
+ *                       events doesn't naturally catch wrong-place; 235B
+ *                       regressed 96→88% in the 3-call version because of this)
+ *   3. Tangent call   — "Estimate the off-spec fraction. Quote off-spec passages."
  *                       → catches FAIL_TANGENT (the orphaned failure mode)
- *   3. Character call — "Quote any line where a character acts contrary to role."
+ *   4. Character call — "Quote any line where a character acts contrary to role."
  *                       → catches FAIL_CHAR
  *
- * Note FAIL_SETTING isn't separately decomposed — the events call already needs
- * to find the action in the right place to quote it, and the production prompt's
- * setting check is already weak. We could add a 4th call but starting with 3.
- *
- * Aggregate verdict: PASS = events_present AND NOT is_tangent AND NOT character_contradiction.
- *                    FAIL = any of the three flags fires.
+ * Aggregate verdict: PASS = events_present AND setting_matches AND NOT is_tangent
+ *                    AND NOT character_contradiction.
+ *                    FAIL = any of the four flags fires.
  *
  * Reads:  lora-data/adherence-checker-pairs.jsonl (160 pairs)
  * Writes: tuning_experiment row with full per-call breakdown.
@@ -97,7 +98,7 @@ function parsePair(p: Pair): ParsedPair {
   }
 }
 
-// ── Three decomposed prompts ──────────────────────────────────────────────
+// ── Four decomposed prompts ───────────────────────────────────────────────
 
 const EVENTS_SYSTEM = `You verify whether the prose ENACTS a specific scene beat on-page.
 
@@ -113,6 +114,22 @@ Respond with ONLY valid JSON in this exact shape:
 {
   "events_present": true | false,
   "evidence": "<short quoted passage from the prose, ~1-3 sentences>",
+  "reasoning": "<one sentence>"
+}`
+
+const SETTING_SYSTEM = `You verify whether the prose's setting matches the expected setting for a scene beat.
+
+The expected setting is a brief description (e.g., "a crowded tavern, evening, smoky torchlight"). The prose's actual setting is wherever the action takes place — the location, time of day, and atmospheric markers.
+
+A "setting mismatch" is when the prose places the scene in a clearly different location, time, or environment than what was expected. Minor variation in atmospheric detail is fine. Different building, different time of day, different outdoor/indoor, different city — those are mismatches.
+
+If the prose has no clear setting at all (purely abstract or interior monologue with no place markers), return setting_matches=false with reasoning noting the absence.
+
+Respond with ONLY valid JSON in this exact shape:
+{
+  "setting_matches": true | false,
+  "expected_setting": "<the expected setting, restated>",
+  "actual_setting": "<the setting the prose actually establishes>",
   "reasoning": "<one sentence>"
 }`
 
@@ -155,6 +172,16 @@ ${p.prose}
 ---`
 }
 
+function buildSettingUser(p: ParsedPair): string {
+  return `BEAT: ${p.beat}
+EXPECTED SETTING: ${p.setting}
+
+PROSE:
+---
+${p.prose}
+---`
+}
+
 function buildTangentUser(p: ParsedPair): string {
   return `BEAT: ${p.beat}
 
@@ -186,13 +213,14 @@ interface CallOutcome {
   error?: string
 }
 
-type Slot = "events" | "tangent" | "character"
+type Slot = "events" | "setting" | "tangent" | "character"
 
 async function runSlot(target: ModelTarget, slot: Slot, p: ParsedPair): Promise<CallOutcome> {
   const transport = getTransport()
   const t0 = performance.now()
   let system: string, user: string
   if (slot === "events")        { system = EVENTS_SYSTEM;    user = buildEventsUser(p) }
+  else if (slot === "setting")  { system = SETTING_SYSTEM;   user = buildSettingUser(p) }
   else if (slot === "tangent")  { system = TANGENT_SYSTEM;   user = buildTangentUser(p) }
   else                          { system = CHARACTER_SYSTEM; user = buildCharacterUser(p) }
 
@@ -217,6 +245,7 @@ async function runSlot(target: ModelTarget, slot: Slot, p: ParsedPair): Promise<
 
     let flag: boolean
     if (slot === "events")        flag = parsed.events_present === false
+    else if (slot === "setting")  flag = parsed.setting_matches === false
     else if (slot === "tangent")  flag = parsed.is_tangent === true
     else                          flag = parsed.character_contradiction === true
 
@@ -274,6 +303,7 @@ function emptyModelStats(): ModelStats {
     outTokens: [],
     slotStats: {
       events:    { fired: 0, total: 0, errors: 0 },
+      setting:   { fired: 0, total: 0, errors: 0 },
       tangent:   { fired: 0, total: 0, errors: 0 },
       character: { fired: 0, total: 0, errors: 0 },
     },
@@ -318,20 +348,20 @@ async function main() {
   }
 
   const pairs = rawPairs.map(parsePair)
-  console.log(`Pairs: ${pairs.length}  models: ${MODELS.length}  slots: 3`)
-  console.log(`Approx LLM calls: ${pairs.length * MODELS.length * 3}\n`)
+  console.log(`Pairs: ${pairs.length}  models: ${MODELS.length}  slots: 4`)
+  console.log(`Approx LLM calls: ${pairs.length * MODELS.length * 4}\n`)
 
   const expId = await createTuningExperiment(
     "decomposed-calls",
-    `Adherence-checker decomposed: 3 parallel calls per pair (events / tangent / character) on Llama 8B / Qwen3-14B / Qwen 235B (${pairs.length} pairs)`,
+    `Adherence-checker decomposed: 4 parallel calls per pair (events / setting / tangent / character) on Llama 8B / Qwen3-14B / Qwen 235B (${pairs.length} pairs)`,
     {
       pairs: pairs.length,
       models: MODELS.map(m => ({ key: m.key, label: m.label, provider: m.provider, model: m.model })),
       temperature: 0.1,
       maxTokensPerCall: 384,
       pairsFile: "lora-data/adherence-checker-pairs.jsonl",
-      slots: ["events", "tangent", "character"],
-      hypothesis: "Production adherence-checker prompt asks 3 questions (events / setting / character) in ONE call and entirely lacks a question for FAIL_TANGENT. Exp #111 disconfirmed structured-checklist (single call, more output structure) but per-API-call decomposition is a different shape: each call gets its own attention budget AND a tailored prompt for one failure mode. Three calls: (1) events with positive-evidence quoting → catches FAIL_MISSING, (2) tangent with off-spec fraction estimation → catches FAIL_TANGENT (the orphaned failure mode in #110/#111), (3) character contradiction quoting → catches FAIL_CHAR. Aggregate: PASS only if all three return clean. Target: close the 14B 79% gap by addressing the meaningful-vs-nominal collapse on FAIL_TANGENT specifically. If 14B closes meaningfully, this becomes a production prompt swap candidate AND may eliminate the SFT need.",
+      slots: ["events", "setting", "tangent", "character"],
+      hypothesis: "Production adherence-checker prompt asks 3 questions (events / setting / character) in ONE call and entirely lacks a question for FAIL_TANGENT. Exp #111 disconfirmed structured-checklist (single call, more output structure) but per-API-call decomposition is a different shape: each call gets its own attention budget AND a tailored prompt for one failure mode. Four calls: (1) events with positive-evidence quoting → catches FAIL_MISSING, (2) setting matches expected → catches FAIL_SETTING (added after smoke run showed events doesn't naturally catch wrong-place; 235B regressed 96→88% in the 3-call version), (3) tangent with off-spec fraction estimation → catches FAIL_TANGENT (the orphaned failure mode in #110/#111), (4) character contradiction quoting → catches FAIL_CHAR. Aggregate: PASS only if all four return clean. Target: close the 14B 79% gap by addressing the meaningful-vs-nominal collapse on FAIL_TANGENT specifically. If 14B closes meaningfully, this becomes a production prompt swap candidate AND may eliminate the SFT need.",
       relatedExperiments: [110, 111],
     },
     { target: "adherence-checker", dimension: "calibration" },
@@ -341,9 +371,9 @@ async function main() {
   const allStats = new Map<string, ModelStats>()
   for (const m of MODELS) allStats.set(m.key, emptyModelStats())
 
-  // 4 pairs × 3 models × 3 slots = 36 in-flight peak. Within rate limits.
+  // 4 pairs × 3 models × 4 slots = 48 in-flight peak. Within rate limits.
   const PAIR_CONCURRENCY = 4
-  const SLOTS: Slot[] = ["events", "tangent", "character"]
+  const SLOTS: Slot[] = ["events", "setting", "tangent", "character"]
 
   for (let i = 0; i < pairs.length; i += PAIR_CONCURRENCY) {
     const batch = pairs.slice(i, i + PAIR_CONCURRENCY)
@@ -359,7 +389,7 @@ async function main() {
         let anyError = false
         let anyFlag = false
         if (!stats.byVariantSlotFires.has(parsed.variant)) {
-          stats.byVariantSlotFires.set(parsed.variant, { events: 0, tangent: 0, character: 0 })
+          stats.byVariantSlotFires.set(parsed.variant, { events: 0, setting: 0, tangent: 0, character: 0 })
         }
         const variantFires = stats.byVariantSlotFires.get(parsed.variant)!
 
@@ -440,7 +470,7 @@ async function main() {
     const o = s.overall
     console.log(`  ${m.label}`)
     console.log(`    truePass=${o.truePass} trueFail=${o.trueFail} falsePass=${o.falsePass} falseFail=${o.falseFail} errors=${o.errors}`)
-    for (const slot of ["events", "tangent", "character"] as Slot[]) {
+    for (const slot of ["events", "setting", "tangent", "character"] as Slot[]) {
       const ss = s.slotStats[slot]
       console.log(`    ${slot.padEnd(10)} fired ${ss.fired}/${ss.total} (${pct(ss.fired, ss.total)}%)  errors=${ss.errors}`)
     }
@@ -455,7 +485,7 @@ async function main() {
       if (!fires) continue
       const vs = allStats.get(m.key)!.byVariant.get(variant)!
       const tot = vs.agree + vs.disagree
-      console.log(`    ${variant.padEnd(20)} events=${fires.events}/${tot} tangent=${fires.tangent}/${tot} character=${fires.character}/${tot}`)
+      console.log(`    ${variant.padEnd(20)} events=${fires.events}/${tot} setting=${fires.setting}/${tot} tangent=${fires.tangent}/${tot} character=${fires.character}/${tot}`)
     }
   }
 
@@ -477,7 +507,7 @@ async function main() {
         variantTable[v] = { agree: st.agree, total: t, pct: pct(st.agree, t), falsePass: st.falsePass, falseFail: st.falseFail }
       }
       const slotsOut: Record<string, { fired: number; total: number; pct: number; errors: number }> = {}
-      for (const slot of ["events", "tangent", "character"] as Slot[]) {
+      for (const slot of ["events", "setting", "tangent", "character"] as Slot[]) {
         const ss = s.slotStats[slot]
         slotsOut[slot] = { fired: ss.fired, total: ss.total, pct: pct(ss.fired, ss.total), errors: ss.errors }
       }
