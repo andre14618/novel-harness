@@ -35,56 +35,10 @@ const stateCheckSchema = z.object({
   })).default([]),
 })
 
-// ── Prompts ──────────────────────────────────────────────────────────────────
+// ── Prompts (loaded from .md files for readability) ─────────────────────────
 
-const FACT_CHECK_SYSTEM = `You check whether a chapter draft CONTRADICTS any established facts.
-
-For each fact provided, determine if the draft contains a passage that directly contradicts it. Only report contradictions — do not report facts that are simply not mentioned.
-
-Severity guide:
-- "blocker" — dead character speaking/acting, character in wrong location, impossible event, world-rule violation, knowledge violation (character acts on info they haven't learned)
-- "warning" — timeline mismatch, travel-time violation, slight characterization drift, emotional discontinuity without transition
-- "nit" — physical description drift (hair color, height), name/title inconsistency, object continuity (puts down cup then drinks from it)
-
-FALSE POSITIVE rules — do NOT flag these as contradictions:
-- Figurative language: "the walls closed in" is not a location change, "her heart shattered" is not a physical event
-- Dramatic irony: the reader knowing something the character doesn't is not a continuity error
-- Character lying or being unreliable in dialogue — an unreliable narrator's claim does not contradict a fact
-- Vague timeline when no concrete timeline was established
-- Metaphor, simile, or hyperbole
-- Facts that are simply not relevant to this chapter
-
-Respond with ONLY valid JSON:
-{
-  "contradictions": [
-    { "fact": "the established fact", "severity": "blocker", "evidence": "quoted passage from draft", "reasoning": "one sentence" }
-  ]
-}
-
-If no facts are contradicted, return: {"contradictions": []}`
-
-const STATE_CHECK_SYSTEM = `You check whether a chapter draft is consistent with each character's current state (location and knowledge).
-
-For each character state provided, check:
-- LOCATION: Is the character in the right place? If the draft places them somewhere that contradicts their established location, flag it.
-- KNOWLEDGE: Does the character act on information they shouldn't have yet, or fail to act on information they should have? Only flag clear violations — not every piece of knowledge needs to surface in every scene.
-
-Only report violations — do not report characters whose state is consistent or who simply aren't mentioned.
-
-FALSE POSITIVE rules — do NOT flag these as violations:
-- Character not appearing in this chapter — that's not a location violation
-- Figurative language about location: "she was miles away" (meaning distracted) is not a location error
-- Character lying about where they've been or what they know — that's characterization, not a continuity error
-- Knowledge that a character plausibly could have learned off-page between chapters (unless the timeline makes that impossible)
-
-Respond with ONLY valid JSON:
-{
-  "violations": [
-    { "character": "name", "type": "location", "evidence": "quoted passage", "reasoning": "one sentence" }
-  ]
-}
-
-If no violations, return: {"violations": []}`
+const FACT_CHECK_SYSTEM = await Bun.file(new URL("fact-check-system.md", import.meta.url).pathname).text()
+const STATE_CHECK_SYSTEM = await Bun.file(new URL("state-check-system.md", import.meta.url).pathname).text()
 
 // ── Main function ────────────────────────────────────────────────────────────
 
