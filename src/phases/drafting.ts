@@ -1,4 +1,4 @@
-import { chapterDraftSchema, continuityCheckSchema } from "../types"
+import { chapterDraftSchema } from "../types"
 import {
   getNovel, getChapterOutline, getCharacters, getFactsUpToChapter,
   getCharacterStatesAtChapter, getAllCharacterStatesBeforeChapter, getWorldBible,
@@ -7,12 +7,12 @@ import {
 } from "../db"
 import { callAgent, executeAndLog } from "../llm"
 import { getTransport } from "../transport"
-import { WRITER_AGENT_PROMPT, BEAT_WRITER_PROMPT, CONTINUITY_AGENT_PROMPT, CHAPTER_PLAN_CHECKER_PROMPT } from "../prompts"
+import { WRITER_AGENT_PROMPT, BEAT_WRITER_PROMPT, CHAPTER_PLAN_CHECKER_PROMPT } from "../prompts"
 import { buildContext as buildWriterContext } from "../agents/writer/context"
 import { buildBeatContext } from "../agents/writer/beat-context"
 import { resolveReferences } from "../agents/writer/reference-resolver"
 import { checkBeatAdherence } from "../agents/writer/adherence-checker"
-import { buildContext as buildContinuityContext } from "../agents/continuity/context"
+import { checkContinuity } from "../agents/continuity/check"
 import { buildContext as buildChapterPlanCheckContext } from "../agents/chapter-plan-checker/context"
 import { chapterPlanCheckSchema } from "../agents/chapter-plan-checker/schema"
 import { validateChapterDraft } from "../validation"
@@ -268,13 +268,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
         (async () => {
           const facts = await getFactsUpToChapter(novelId, ch)
           const charStates = await getCharacterStatesAtChapter(novelId, ch)
-          return callAgent({
-            novelId, agentName: "continuity",
-            chapter: ch, attempt: attempts,
-            systemPrompt: CONTINUITY_AGENT_PROMPT,
-            userPrompt: buildContinuityContext(prose, facts, charStates),
-            schema: continuityCheckSchema,
-          })
+          return checkContinuity(prose, facts, charStates, { novelId, chapter: ch, attempt: attempts })
         })(),
       ])
 
@@ -317,7 +311,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
       // Continuity result handling
       let issues: any[] = []
       if (continuitySettled.status === "fulfilled") {
-        issues = continuitySettled.value.output.issues
+        issues = continuitySettled.value.issues
         if (issues.length > 0) {
           console.log(`  Continuity: ${issues.length} issues`)
           issues.forEach(i => console.log(`    [${i.severity}] ${i.description}`))

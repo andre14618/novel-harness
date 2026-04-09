@@ -64,7 +64,11 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "graph-linker":              { ...mimoFlash, temperature: 0.2, maxTokens: 4096 },
 
   // ── Validators (analytical checks) ────────────────────────────────────
-  "continuity":                { ...cerebrasQwen235B, temperature: 0.2 },
+  // continuity: decomposed into 2 parallel calls (facts + state) via check.ts.
+  // Sub-check aliases — same model, distinct agent names for tracing in llm_calls.
+  // On 235B for now; decomposition enables dropping to 14B (W&B) once validated.
+  "continuity-facts":          { ...cerebrasQwen235B, temperature: 0.2, maxTokens: 2048 },
+  "continuity-state":          { ...cerebrasQwen235B, temperature: 0.2, maxTokens: 2048 },
 
   // ── Lint fixer (per-sentence creative fixes via LLM) ──────────────────
   "lint-fixer":                { provider: "cerebras", model: "qwen/qwen3-235b", temperature: 0.2 },
