@@ -27,6 +27,7 @@ interface ChapterMetrics {
   paragraphs: number;
   avgParaWords: number;
   dialogueExchanges: number;
+  speechVerbCount: number;
   longestNonDialogueRun: number;
 }
 
@@ -39,18 +40,32 @@ const results: ChapterMetrics[] = chapters.map((ch: any) => {
   const allWords = prose.split(/\s+/).filter(Boolean).length;
 
   // Dialogue: words inside quotes
-  const quoteMatches = prose.match(/[""\u201C][^""\u201D]+[""\u201D]/g) || [];
+  // 1. Double quotes: ASCII " or smart ""
+  // 2. Curly single quotes: '\u2018...\u2019' — \u2018 is unambiguous dialogue opener
+  // 3. ASCII single quotes: '...' with contraction handling ('re, 't, 's, etc.)
+  const doubleQuoteMatches = prose.match(/[""\u201C][^""\u201D]+[""\u201D]/g) || [];
+  const curlySingleMatches = prose.match(/\u2018[^\u2018\u2019]+\u2019/g) || [];
+  const asciiSingleMatches = prose.match(/(?:^|[\s(—–])'((?:[^'\n]|'(?=[a-z]))+)'(?=[.,!?;\s—–)]|$)/gm) || [];
+  const quoteMatches = [...doubleQuoteMatches, ...curlySingleMatches, ...asciiSingleMatches];
   const dialogueWords = quoteMatches.reduce((sum, m) => sum + m.split(/\s+/).length, 0);
   const dialogueWordRatio = allWords > 0 ? dialogueWords / allWords : 0;
 
   // Count dialogue exchanges (each quoted string is roughly one exchange)
   const dialogueExchanges = quoteMatches.length;
 
+  // Speech verb count as a secondary dialogue signal
+  const speechVerbs = prose.match(/\b(said|asked|replied|whispered|shouted|muttered|called|yelled|answered|exclaimed|murmured|growled|hissed|snapped|demanded|pleaded|insisted|offered|suggested|warned)\b/gi) || [];
+  const speechVerbCount = speechVerbs.length;
+
   // Longest run of consecutive paragraphs without dialogue
   let longestNonDialogueRun = 0;
   let currentRun = 0;
   for (const p of paragraphs) {
-    if (/[""\u201C]/.test(p)) {
+    // Paragraph has dialogue if it contains any recognizable quote pattern
+    const hasDoubleQ = /[""\u201C]/.test(p);
+    const hasCurlySingleQ = /\u2018/.test(p);
+    const hasAsciiSingleQ = /(?:^|[\s(—–])'[A-Z]/.test(p); // ASCII ' before uppercase = dialogue start
+    if (hasDoubleQ || hasCurlySingleQ || hasAsciiSingleQ) {
       currentRun = 0;
     } else {
       currentRun++;
@@ -112,6 +127,7 @@ const results: ChapterMetrics[] = chapters.map((ch: any) => {
     paragraphs: paragraphs.length,
     avgParaWords: Math.round(avgParaLen),
     dialogueExchanges,
+    speechVerbCount,
     longestNonDialogueRun,
   };
 });
@@ -148,6 +164,9 @@ for (const [genre, chaps] of Object.entries(byGenre)) {
     `  dialogue exchanges: avg=${avg(chaps, "dialogueExchanges")}   range=[${range(chaps, "dialogueExchanges").join("–")}]`
   );
   console.log(
+    `  speech verbs:       avg=${avg(chaps, "speechVerbCount")}   range=[${range(chaps, "speechVerbCount").join("–")}]`
+  );
+  console.log(
     `  max non-dlg run:    avg=${avg(chaps, "longestNonDialogueRun")}¶  range=[${range(chaps, "longestNonDialogueRun").join("–")}]`
   );
   console.log(
@@ -174,12 +193,13 @@ for (const [genre, chaps] of Object.entries(byGenre)) {
 console.log("\n=== CROSS-GENRE COMPARISON ===");
 console.log(
   "Genre".padEnd(25) +
-    "DlgWd%  Int/100  Act/100  SentLen  SentCV  Paras  ParaW"
+    "DlgWd%  SpeechV  Int/100  Act/100  SentLen  SentCV  Paras  ParaW"
 );
 for (const [genre, chaps] of Object.entries(byGenre)) {
   const row = [
     genre.padEnd(25),
     String(avg(chaps, "dialogueWordPct")).padStart(5),
+    String(avg(chaps, "speechVerbCount")).padStart(8),
     String(avg(chaps, "interiorityPer100w")).padStart(8),
     String(avg(chaps, "actionPer100w")).padStart(8),
     String(avg(chaps, "avgSentLen")).padStart(8),
@@ -195,6 +215,7 @@ console.log(`\n=== CORPUS-WIDE (${results.length} chapters) ===`);
 const allMetricKeys: (keyof ChapterMetrics)[] = [
   "dialogueWordPct",
   "dialogueExchanges",
+  "speechVerbCount",
   "longestNonDialogueRun",
   "interiorityPer100w",
   "actionPer100w",
@@ -223,7 +244,7 @@ for (const nid of novelIds) {
   console.log(`\nNovel ...${nid} (${chaps[0].genre}):`);
   for (const c of chaps) {
     console.log(
-      `  Ch${String(c.ch).padStart(2)}: ${String(c.words).padStart(4)}w | dlg=${String(c.dialogueWordPct).padStart(2)}% ${String(c.dialogueExchanges).padStart(2)}exc | int=${c.interiorityPer100w}/100 act=${c.actionPer100w}/100 | sent=${c.avgSentLen}w cv=${c.sentLenCV} | ${c.paragraphs}¶ ${c.avgParaWords}w/¶ | maxNoDlg=${c.longestNonDialogueRun}¶`
+      `  Ch${String(c.ch).padStart(2)}: ${String(c.words).padStart(4)}w | dlg=${String(c.dialogueWordPct).padStart(2)}% ${String(c.dialogueExchanges).padStart(2)}exc ${String(c.speechVerbCount).padStart(2)}sv | int=${c.interiorityPer100w}/100 act=${c.actionPer100w}/100 | sent=${c.avgSentLen}w cv=${c.sentLenCV} | ${c.paragraphs}¶ | maxNoDlg=${c.longestNonDialogueRun}¶`
     );
   }
 }

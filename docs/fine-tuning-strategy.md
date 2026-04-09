@@ -325,7 +325,7 @@ Until condition 1 is true, RunPod is an infrastructure cost, not a cost saving. 
 | Tonal pass (structural) | **No** | No paired data exists (monotone → structurally rich) | Requires structural diversity pass design first |
 | Beat writer | **No** | 131 chapters from 5 premises, structurally monotone (7.6% dialogue avg). Training on this would bake in the monotone shape | Address structural diversity in writer prompts first, then collect |
 
-**Structural monotony finding**: Deterministic analysis (`scripts/analyze-structure.ts`) showed pipeline output is structurally uniform: 7.6% dialogue (vs 25-50% in published novels), 0.1 interiority verbs/100w, flat sentence rhythm. Genre barely moves these numbers. This affects writer/tonal fine-tunes but NOT checker fine-tunes. See `docs/lessons-learned.md`.
+**Structural deficit finding**: Deterministic analysis (`scripts/analyze-structure.ts`) showed pipeline output is below published norms: 15.7% dialogue (vs 25-50% in published novels), 0.1 interiority verbs/100w, 7.5w avg sentence length (vs 12-18w). Genre does differentiate (sci-fi 24.8% vs literary fiction 8.9%) but all genres are below published density. This affects writer/tonal fine-tunes but NOT checker fine-tunes. See `docs/lessons-learned.md`. Note: initial analysis showed 7.6% dialogue but this was a measurement bug — the regex missed single-quoted dialogue.
 
 **30 seeds created** (2026-04-09) to address premise diversity: 8 post-apoc, 7 sci-fi, 7 epic fantasy, 4 portal fantasy. These need to be run through the pipeline before chapter-plan-checker and continuity SFT data generation can begin.
 

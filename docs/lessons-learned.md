@@ -838,24 +838,26 @@ Experiments #95 and #96 concluded V4 underperformed V3 — that conclusion was e
 
 Feature KL of 1.564 vs Howard's 1.534 — V4 nearly matches Howard's structural rhythm. Word count 51.8 vs input 47.9 — minimal expansion. Jaccard base↔V4 of 0.255 confirms strong adapter effect. The serving URI bug, not model quality, caused the earlier wrong conclusion. (Experiment #98 — the real benchmark)
 
-### Pipeline prose is structurally monotone across genres — dialogue, interiority, and sentence rhythm barely vary (2026-04-09)
+### Pipeline prose is structurally low on dialogue and interiority — but genre DOES differentiate after fixing detection (2026-04-09)
 
-Deterministic structural analysis of 131 approved chapters across 5 genres (`scripts/analyze-structure.ts`) revealed that the pipeline produces structurally uniform output regardless of genre or premise:
+Deterministic structural analysis of 131 approved chapters across 5 genres (`scripts/analyze-structure.ts`). Initial results showed 7.6% dialogue — **but that was a measurement bug**: the regex only matched ASCII `"` quotes while the LLM produces three different quote styles (ASCII `"`, smart `""`, and curly single `''`). After fixing detection to handle all three styles plus contractions inside single-quoted dialogue:
 
 | Metric | Corpus avg | Range | Published novel benchmark |
 |--------|-----------|-------|--------------------------|
-| Dialogue word% | 7.6% | 0–36% | 25–50% typical |
+| Dialogue word% | 15.7% | 0–43% | 25–50% typical |
 | Interiority verbs/100w | 0.1 | 0–0.8 | 0.5–2.0 typical |
 | Action verbs/100w | 0.3 | 0–1.1 | varies by genre |
 | Avg sentence length | 7.5w | 4.2–12.5 | 12–18w typical |
 | Sentence length CV | 0.7 | 0.4–0.9 | good (>0.5) |
-| Max non-dialogue para run | 23¶ | 2–70¶ | 3–8¶ typical |
+| Max non-dialogue para run | 9¶ | 1–32¶ | 3–8¶ typical |
 
-**Genre barely moves the needle.** Dark fantasy and sci-fi thriller are nearly structurally identical. Contemporary romance has the most dialogue (19.9%) but still below published norms. Literary fiction is 0.5% dialogue.
+**Genre DOES differentiate** (corrected from initial wrong conclusion): sci-fi thriller 24.8%, contemporary romance 21.3%, literary fiction 8.9%, dark fantasy 11.8%. The gap between genres is real, but all are below published norms.
 
-**Root cause is the writer prompts, not the seeds.** Seeds define narrative premises; structural shape comes from the beat-writer and planning-plotter prompts, which don't specify dialogue density, interiority targets, or pacing variation. The LLM finds a comfortable narration-heavy mode and stays there.
+**Remaining structural issues:** Dialogue is still about half of published novel density. Interiority is nearly absent (0.1/100w vs 0.5–2.0 typical). Sentence length is short (7.5w vs 12–18w in published fiction). These are genuine writer-prompt issues, not measurement artifacts.
 
-**Implication for fine-tuning:** Checker fine-tunes (adherence, chapter-plan, continuity) are unaffected — they check compliance, not prose quality. But any writer or tonal-pass fine-tune trained on this corpus would bake in the monotone shape. A structural diversity pass (analogous to the existing tonal pass but targeting dialogue/interiority/pacing) is needed before writer SFT makes sense.
+**Measurement lesson: always validate deterministic metrics against spot-checked samples.** The initial 7.6% figure would have driven wrong conclusions about structural monotony severity. The LLM's inconsistent quote style (switching between `"`, `"`, `'`, and `'` mid-novel) makes naive regex detection unreliable. Any future deterministic analysis needs to handle all Unicode quote variants.
+
+**Implication for fine-tuning:** Checker fine-tunes (adherence, chapter-plan, continuity) are unaffected — they check compliance, not prose quality. Writer/tonal fine-tunes should not be trained on current corpus without addressing the low interiority and short sentence length.
 
 **Implication for training data diversity:** All 131 approved chapters come from only 5 unique premises. For adherence-checker SFT this doesn't matter (synthetic variants cover it). For chapter-plan-checker and continuity, the plan structures and world states are the training signal, so premise diversity directly affects data quality. The 30-seed expansion (post-apoc, sci-fi, epic fantasy, portal fantasy) addresses this gap.
 

@@ -123,8 +123,8 @@ See `docs/fine-tuning-strategy.md` for the complete plan. Training is free (W&B 
 
 ## Structural Diversity
 
-- **Pipeline prose is structurally monotone** — 7.6% dialogue (published novels: 25-50%), 0.1 interiority verbs/100w, flat sentence rhythm across all genres. See `docs/lessons-learned.md` "Pipeline prose is structurally monotone." Root cause: writer prompts, not seeds.
-- **Structural diversity pass needed** — analogous to the existing tonal pass but targeting dialogue density, interiority, pacing variation. Requires paired training data (monotone input → structurally rich output) that doesn't exist yet. Block writer SFT and new tonal-pass training until this is addressed.
+- **Pipeline prose is low on dialogue and interiority** — 15.7% dialogue (published novels: 25-50%), 0.1 interiority verbs/100w, 7.5w avg sentence length (published: 12-18w). Genre does differentiate (sci-fi 24.8% vs literary fiction 8.9%) but all below published norms. See `docs/lessons-learned.md`.
+- **Structural diversity pass needed** — analogous to the existing tonal pass but targeting dialogue density, interiority, sentence variety. Requires paired training data (current output → structurally rich output) that doesn't exist yet. Block writer SFT and new tonal-pass training until this is addressed.
 - **Analysis script**: `scripts/analyze-structure.ts` — deterministic structural metrics on all approved chapters. Run after each batch of new novels to track improvement.
 
 ## Seeds & Data Diversity
