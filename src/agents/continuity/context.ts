@@ -17,8 +17,6 @@ export function buildContext(
     ).join("\n")}\n\n`
   }
 
-  ctx += `Check this chapter draft for continuity issues against the established facts and character states. Report any contradictions, impossibilities, or inconsistencies.`
-
   return ctx
 }
 
