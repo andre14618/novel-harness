@@ -53,12 +53,13 @@ LXC 307 (192.168.1.108)
 │       ├── experiment_lineage, lint_patterns
 │       └── batches, batch_requests
 │
-├── Fine-Tuning (Together AI)
-│   └── Qwen 3.5 9B LoRA adapters
-│       ├── tonal-pass (style transfer)
-│       ├── adherence-checker (planned)
-│       ├── reference-resolver (planned)
-│       └── chapter-plan-checker (planned)
+├── Fine-Tuning (W&B Inference)
+│   └── OpenPipe/Qwen3-14B-Instruct LoRA adapters
+│       ├── tonal-pass v4 (trained, W&B) / v3 (live, Together AI)
+│       ├── adherence-checker (4-call decomposed shipped; SFT deferred)
+│       ├── chapter-plan-checker (SFT next; gpt-oss-120b teacher)
+│       ├── continuity (blocked — no reliable teacher yet)
+│       └── reference-resolver (removed; 14B already 97.5% recall)
           `.trim()}</pre>
         </section>
 
@@ -103,7 +104,7 @@ LXC 307 (192.168.1.108)
                     <strong>Per-Beat Writing Loop</strong> — For each scene beat:
                     <br /><em>Reference Resolver</em> identifies implicit references and does deterministic DB lookups.
                     <br /><em>Beat Writer</em> generates ~300-500 words of prose from the beat spec + resolved context.
-                    <br /><em>Adherence Checker</em> validates the beat was executed (deterministic + LLM check). Retries on failure.
+                    <br /><em>Adherence Checker</em> validates the beat was executed (deterministic + 4-call LLM check: events / setting / tangent / character). Retries on failure.
                   </div>
                   <div className="flow-sub-arrow">↓</div>
                   <div className="flow-sub-step">
@@ -274,7 +275,7 @@ Beat Specification (from planner)
               <tr>
                 <td><strong>Tonal Pass</strong></td>
                 <td>Voice consistency</td>
-                <td>LoRA-tuned 9B model (per-paragraph rewrite)</td>
+                <td>LoRA-tuned 14B model (per-paragraph rewrite). V4 on W&B Inference validated; V3 on Together AI still live pending switchover.</td>
                 <td>Post-validation</td>
               </tr>
             </tbody>
@@ -288,20 +289,23 @@ Beat Specification (from planner)
         <section>
           <h2>Fine-Tuning Pipeline</h2>
           <p>
-            High-frequency mechanical agents are fine-tuned on Qwen 3.5 9B via Together AI LoRA
-            ($0.48/M training tokens, $0.10/$0.15 inference). Training data is built from
-            knowledge distillation: base model extracts, human reviews and corrects with Claude Code,
-            corrected outputs become training data.
+            High-frequency mechanical agents are fine-tuned on <strong>OpenPipe/Qwen3-14B-Instruct</strong> via
+            W&B Serverless SFT (ART framework, free during public preview) + W&B Inference ($0.05/$0.22 per 1M tokens).
+            Training data is built from knowledge distillation: base model extracts, human reviews and corrects
+            with Claude Code, corrected outputs become training data. Always exhaust prompt-engineering wins
+            (especially per-call decomposition) before committing to SFT — exp #122 closed half the adherence-checker
+            gap with a prompt change alone.
           </p>
           <table className="guide-table">
             <thead>
               <tr><th>Fine-Tune Target</th><th>Task</th><th>Status</th></tr>
             </thead>
             <tbody>
-              <tr><td>Tonal Pass</td><td>Per-paragraph style rewriting</td><td>V3 LoRA deployed</td></tr>
-              <tr><td>Adherence Checker</td><td>Beat spec vs prose (pass/fail)</td><td>Planned</td></tr>
-              <tr><td>Reference Resolver</td><td>Identify needed DB lookups from beat</td><td>Planned</td></tr>
-              <tr><td>Chapter Plan Checker</td><td>Plan vs assembled prose (pass/fail)</td><td>Planned</td></tr>
+              <tr><td>Tonal Pass</td><td>Per-paragraph style rewriting</td><td>V4 trained &amp; validated on W&B Inference; V3 (Together AI) still live pending switchover</td></tr>
+              <tr><td>Chapter Plan Checker</td><td>Plan vs assembled prose (pass/fail)</td><td>SFT next — gpt-oss-120b teacher validated (90%); per-beat decomposition disconfirmed (regression)</td></tr>
+              <tr><td>Adherence Checker</td><td>Beat spec vs prose (pass/fail)</td><td>4-call decomposed prompt shipped in production — SFT deferred pending validation at scale</td></tr>
+              <tr><td>Continuity</td><td>Consistency with world state</td><td>Blocked — no reliable teacher (235B misses 90% of warnings)</td></tr>
+              <tr><td>Reference Resolver</td><td>Identify needed DB lookups from beat</td><td>Removed from roadmap — 14B already at 97.5% recall, no deficit to train against</td></tr>
             </tbody>
           </table>
         </section>
@@ -333,7 +337,7 @@ Beat Specification (from planner)
           <h2>LoRA Style Transfer</h2>
           <p>
             Standard LLM prose carries a recognizable "AI voice" even after deterministic lint fixes.
-            The tonal pass uses a LoRA-tuned 9B model (Qwen 3.5) to rewrite each paragraph for voice
+            The tonal pass uses a LoRA-tuned 14B model (Qwen3-14B-Instruct) to rewrite each paragraph for voice
             consistency — short punchy sentences, concrete sensory detail, minimal adjectives — while
             preserving all factual content and dialogue verbatim.
           </p>
@@ -342,7 +346,12 @@ Beat Specification (from planner)
             text, use a large LLM to produce neutral/flattened versions, then train the LoRA on
             (neutral → stylized) pairs. This works because LLMs are better at removing style than
             adding it — the neutral versions are high quality, and the stylized versions are real
-            source prose.
+            source prose. Training runs via W&B Serverless SFT (ART framework); adapters are served
+            via W&B Inference at $0.05/$0.22 per 1M tokens.
+          </p>
+          <p>
+            V4 (howard-tonal-v4-sft-resume:v8) beats V3 on every metric — classifier 0.550 vs 0.422,
+            perplexity 3086 vs 4814, 3× faster latency. V3 on Together AI remains live pending the switchover.
           </p>
           <p>
             See the full research report in <Link to={`/docs${qs}${qs ? "&" : "?"}doc=lora-style-transfer-report.md`}>Docs</Link> for

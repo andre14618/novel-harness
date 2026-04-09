@@ -33,7 +33,7 @@ Each agent's prompt/schema/context lives in `src/agents/{name}/`. The model assi
 - **Drafting** (`src/phases/drafting.ts`):
   - **beat-writer** is the primary writer path. Cerebras Qwen 235B, ~846 in / 391 out / 2.1s per beat. Chapter-level `writer` only runs as fallback when beat generation fails N retries.
   - **reference-resolver** (Llama 3.1 8B Groq) — pre-fetched in parallel for all beats before the serial writing loop.
-  - **adherence-checker** — deterministic checks (char presence, word count, dialogue) + LLM verification on **Cerebras Qwen 235B**. Was Llama 8B; upgraded after parallel-N benchmark showed Llama was systematically over-strict (see `models/roles.ts:47-54`).
+  - **adherence-checker** — deterministic checks (char presence, word count, dialogue) + **4-call LLM verification** (events / setting / tangent / character parallel calls) on **W&B Qwen3-14B-Instruct**. Was Llama 8B (over-strict) → 235B → 14B W&B base (157ms, 10× cheaper). 4-call decomposed prompt shipped 2026-04-08 (exp #122: 91% agreement with 235B oracle).
   - **chapter-plan-checker** — **gpt-oss-120b on Groq**. Was Llama 8B; escalated because Llama couldn't reason through the planner's structural rules and kept bouncing valid prose.
   - **continuity** — **Cerebras Qwen 235B**. Highest prompt-token cost in the pipeline (~7,300 in/call) because it dumps facts + character states.
   - **lint-fixer** — Cerebras Qwen 235B per-sentence rewrites. No agent dir; lint code lives in `src/lint/` and reads the model assignment via `getModelForAgent("lint-fixer")`.
@@ -51,7 +51,7 @@ These are NOT called via `callAgent` and are NOT in `models/roles.ts`. They read
 - `src/db/` — per-table async Postgres modules (all functions return Promises via `Bun.sql`)
 - `src/harness/` — **service layer** — typed high-level API for all harness operations. The daemon, benchmarks, and UI call this instead of writing SQL. Modules: `scores`, `experiments`, `cycles`, `context`, `embeddings`, `graph`, `novels`.
 - `data/connection.ts` — shared lazy Postgres proxy, migration runner
-- `sql/` — migration files (001-016)
+- `sql/` — migration files (001-018)
 
 ### Beat-Level Context
 Beat writing bypasses semantic retrieval. Context comes from the plan + deterministic DB lookups. Real per-call shape from `llm_calls`: avg 846 input tokens, 391 output tokens, 2.1s latency on Cerebras Qwen 235B.
@@ -81,7 +81,7 @@ Structured world systems, cultures, evolving relationships, timeline events, cha
 
 ### Quality Checks
 Quality measured via structured pass/fail checks, not LLM scoring (1-10 judges showed 0-33% discrimination — see `docs/lessons-learned.md`):
-- **Adherence checker** — per-beat: deterministic (character presence, word count, dialogue) + LLM verification on Cerebras Qwen 235B. Retries the beat up to `pipeline.maxBeatRetries` if adherence fails.
+- **Adherence checker** — per-beat: deterministic (character presence, word count, dialogue) + 4-call LLM verification (events/setting/tangent/character in parallel) on **W&B Qwen3-14B-Instruct**. Retries the beat up to `pipeline.maxBeatRetries` if adherence fails.
 - **Chapter plan checker** — per-chapter: gpt-oss-120b on Groq compares prose vs the structured plan (beats + characters + facts + state changes). Has a strict false-positive ruleset (paraphrased dialogue, reordered details, atmospheric additions are NOT deviations).
 - **Continuity checker** — per-chapter: Cerebras Qwen 235B checks against world state tables (facts, character states). Largest prompt-token cost in the pipeline by an order of magnitude.
 - **Lint** — deterministic (~26 patterns) + LLM fixes for cliché, hedging, emotional echo, rhythm. Lives in `src/lint/`.
