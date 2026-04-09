@@ -1,8 +1,15 @@
 /**
  * Beat adherence checker — fast post-generation check that prose follows the beat spec.
  *
- * Two-pass: deterministic checks (instant) + Llama 8B LLM check (~50ms).
- * Returns pass/fail with specific deviations for retry context.
+ * Two-pass: deterministic checks (instant) + four parallel LLM calls (events / setting /
+ * tangent / character) running on the configured adherence-checker model. Returns
+ * pass/fail with specific deviations for retry context.
+ *
+ * The 4-call shape replaces the single overloaded LLM call after exp #122 (2026-04-08)
+ * showed it lifts 14B 79% → 91% and 235B 96% → 97% on the 160-pair synthetic eval —
+ * see `docs/lessons-learned.md` "Per-API-call decomposition: orthogonal facets win".
+ * The tangent slot is the load-bearing addition; the prior single call lacked it
+ * entirely.
  */
 
 import { callAgent } from "../../llm"
@@ -14,10 +21,93 @@ export interface AdherenceResult {
   issues: string[]
 }
 
-const adherenceSchema = z.object({
-  pass: z.boolean(),
-  deviations: z.array(z.string()),
+const eventsSchema = z.object({
+  events_present: z.boolean(),
+  evidence: z.string().optional().default(""),
+  reasoning: z.string().optional().default(""),
 })
+
+const settingSchema = z.object({
+  setting_matches: z.boolean(),
+  expected_setting: z.string().optional().default(""),
+  actual_setting: z.string().optional().default(""),
+  reasoning: z.string().optional().default(""),
+})
+
+const tangentSchema = z.object({
+  off_spec_fraction: z.number().optional().default(0),
+  off_spec_quote: z.string().optional().default(""),
+  is_tangent: z.boolean(),
+  reasoning: z.string().optional().default(""),
+})
+
+const characterSchema = z.object({
+  character_contradiction: z.boolean(),
+  evidence: z.string().optional().default(""),
+  reasoning: z.string().optional().default(""),
+})
+
+const EVENTS_SYSTEM = `You verify whether the prose ENACTS a specific scene beat on-page.
+
+Find the passage where the beat's action happens — characters performing the action, dialogue, narration of the action as it occurs in scene.
+
+Rules:
+- "Enacted" means the action happens IN SCENE during this prose. Paraphrase, dialogue rewording, and atmospheric expansion are fine.
+- A reference to the action as having happened earlier (off-page, past-tense, summarized in narration as backstory) does NOT count as enacted.
+- Characters being merely present in the scene is NOT enough — the beat's specific action must occur.
+- If you cannot find a passage where the beat is enacted, return events_present=false. Do NOT default to true.
+
+Respond with ONLY valid JSON in this exact shape:
+{
+  "events_present": true | false,
+  "evidence": "<short quoted passage from the prose, ~1-3 sentences>",
+  "reasoning": "<one sentence>"
+}`
+
+const SETTING_SYSTEM = `You verify whether the prose's setting matches the expected setting for a scene beat.
+
+The expected setting is a brief description (e.g., "a crowded tavern, evening, smoky torchlight"). The prose's actual setting is wherever the action takes place — the location, time of day, and atmospheric markers.
+
+A "setting mismatch" is when the prose places the scene in a clearly different location, time, or environment than what was expected. Minor variation in atmospheric detail is fine. Different building, different time of day, different outdoor/indoor, different city — those are mismatches.
+
+If the prose has no clear setting at all (purely abstract or interior monologue with no place markers), return setting_matches=false with reasoning noting the absence.
+
+Respond with ONLY valid JSON in this exact shape:
+{
+  "setting_matches": true | false,
+  "expected_setting": "<the expected setting, restated>",
+  "actual_setting": "<the setting the prose actually establishes>",
+  "reasoning": "<one sentence>"
+}`
+
+const TANGENT_SYSTEM = `You measure how much of the prose advances a specific scene beat versus going off on tangents.
+
+A "tangent" is content that does not serve the beat: unrelated subplot, lengthy backstory, scene drift to another topic, atmospheric description that's longer than the actual beat content, or the prose pivoting to something the beat does not call for.
+
+Atmospheric details that decorate the beat are NOT tangents. Backstory that the beat itself implies is NOT a tangent. The threshold for is_tangent=true is when the bulk of the prose (more than ~40%) is doing something other than executing the beat.
+
+Estimate the off-spec fraction (0.0 = entirely on-spec, 1.0 = entirely off-spec). Quote any clearly off-spec passage.
+
+Respond with ONLY valid JSON in this exact shape:
+{
+  "off_spec_fraction": 0.0,
+  "off_spec_quote": "<quoted passage, or empty string>",
+  "is_tangent": true | false,
+  "reasoning": "<one sentence>"
+}`
+
+const CHARACTER_SYSTEM = `You verify whether characters in the prose behave consistently with their roles in a scene beat.
+
+A character "acts contrary to their role" when they do something the beat says they should NOT do, or when they take an action that reverses the beat's intended dynamic (e.g., the beat calls for the character to refuse but the prose has them immediately agree, or the beat calls for confrontation but the prose has them stay silent).
+
+Do NOT flag normal creative interpretation: dialogue rewording, gesture additions, emotional shading, or pacing variation. Only flag clear contradictions.
+
+Respond with ONLY valid JSON in this exact shape:
+{
+  "character_contradiction": true | false,
+  "evidence": "<quoted passage where contradiction occurs, or empty string>",
+  "reasoning": "<one sentence>"
+}`
 
 export async function checkBeatAdherence(
   prose: string,
@@ -67,40 +157,110 @@ export async function checkBeatAdherence(
     return { pass: false, issues }
   }
 
-  // ── LLM adherence check (~50ms on Groq) ─────────────────────────────
+  // ── LLM adherence check — 4 parallel calls (events / setting / tangent / character) ──
+  //
+  // Each slot has its own attention budget AND its own prompt tailored to one failure
+  // mode. Aggregate verdict: FAIL if any slot fires. See exp #122 for the validation —
+  // 14B 79% → 91%, 235B 96% → 97% on the 160-pair synthetic eval. Latency unchanged
+  // vs the single-call shape (calls run in parallel via Promise.all).
 
-  try {
-    const result = await callAgent({
-      agentName: "adherence-checker",
-      novelId: tags?.novelId,
-      chapter: tags?.chapter,
-      beatIndex: tags?.beatIndex,
-      attempt: tags?.attempt,
-      systemPrompt: "You check if prose follows a scene beat specification. Be strict but fair.",
-      userPrompt: `Beat: "${beat.description}"
-Setting: "${outline.setting}"
-Characters expected: ${beat.characters.join(", ")}
+  const proseTrimmed = prose.slice(0, 2000)
+  const charsLine = beat.characters.join(", ")
 
-Prose:
+  const callOpts = {
+    agentName: "adherence-checker" as const,
+    novelId: tags?.novelId,
+    chapter: tags?.chapter,
+    beatIndex: tags?.beatIndex,
+    attempt: tags?.attempt,
+  }
+
+  const results = await Promise.allSettled([
+    callAgent({
+      ...callOpts,
+      systemPrompt: EVENTS_SYSTEM,
+      userPrompt: `BEAT: ${beat.description}
+CHARACTERS EXPECTED: ${charsLine}
+
+PROSE:
 ---
-${prose.slice(0, 2000)}
+${proseTrimmed}
+---`,
+      schema: eventsSchema,
+    }),
+    callAgent({
+      ...callOpts,
+      systemPrompt: SETTING_SYSTEM,
+      userPrompt: `BEAT: ${beat.description}
+EXPECTED SETTING: ${outline.setting}
+
+PROSE:
 ---
+${proseTrimmed}
+---`,
+      schema: settingSchema,
+    }),
+    callAgent({
+      ...callOpts,
+      systemPrompt: TANGENT_SYSTEM,
+      userPrompt: `BEAT: ${beat.description}
 
-Did the prose execute the beat? Check:
-1. Do the described events happen in the prose?
-2. Is it set in the right place?
-3. Do characters behave consistently with their roles?
+PROSE:
+---
+${proseTrimmed}
+---`,
+      schema: tangentSchema,
+    }),
+    callAgent({
+      ...callOpts,
+      systemPrompt: CHARACTER_SYSTEM,
+      userPrompt: `BEAT: ${beat.description}
+CHARACTERS EXPECTED: ${charsLine}
 
-Return JSON: { "pass": true/false, "deviations": ["specific issue 1", ...] }
-Return pass:true with empty deviations if the beat is executed well.`,
-      schema: adherenceSchema,
-    })
+PROSE:
+---
+${proseTrimmed}
+---`,
+      schema: characterSchema,
+    }),
+  ])
 
-    if (!result.output.pass) {
-      issues.push(...result.output.deviations)
+  const [eventsRes, settingRes, tangentRes, characterRes] = results
+
+  if (eventsRes.status === "fulfilled") {
+    const o = eventsRes.value.output
+    if (!o.events_present) {
+      issues.push(`Beat events not enacted on-page: ${o.reasoning || "no evidence found"}`)
     }
-  } catch (err) {
-    issues.push(`Adherence check failed: ${err instanceof Error ? err.message : String(err)}`)
+  } else {
+    issues.push(`Adherence events check failed: ${eventsRes.reason instanceof Error ? eventsRes.reason.message : String(eventsRes.reason)}`)
+  }
+
+  if (settingRes.status === "fulfilled") {
+    const o = settingRes.value.output
+    if (!o.setting_matches) {
+      issues.push(`Setting mismatch — expected "${o.expected_setting || outline.setting}", got "${o.actual_setting || "unclear"}"`)
+    }
+  } else {
+    issues.push(`Adherence setting check failed: ${settingRes.reason instanceof Error ? settingRes.reason.message : String(settingRes.reason)}`)
+  }
+
+  if (tangentRes.status === "fulfilled") {
+    const o = tangentRes.value.output
+    if (o.is_tangent) {
+      issues.push(`Prose drifts off-spec (~${Math.round((o.off_spec_fraction ?? 0) * 100)}%): ${o.reasoning || "tangent detected"}`)
+    }
+  } else {
+    issues.push(`Adherence tangent check failed: ${tangentRes.reason instanceof Error ? tangentRes.reason.message : String(tangentRes.reason)}`)
+  }
+
+  if (characterRes.status === "fulfilled") {
+    const o = characterRes.value.output
+    if (o.character_contradiction) {
+      issues.push(`Character behaves contrary to role: ${o.reasoning || "contradiction detected"}`)
+    }
+  } else {
+    issues.push(`Adherence character check failed: ${characterRes.reason instanceof Error ? characterRes.reason.message : String(characterRes.reason)}`)
   }
 
   return {
