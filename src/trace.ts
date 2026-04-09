@@ -1,0 +1,159 @@
+/**
+ * Unified pipeline trace — every event (LLM + deterministic) flows through here.
+ *
+ * Two things happen on each trace() call:
+ *   1. Row inserted into pipeline_events (persistent, queryable)
+ *   2. SSE broadcast via emit() (real-time UI updates)
+ *
+ * This replaces scattered emit() calls throughout the pipeline. The existing
+ * emit() function in events.ts is kept for backward compat but trace() is
+ * the primary API for all new instrumentation.
+ */
+
+import db from "../data/connection"
+import { emit } from "./events"
+import { getRunId } from "./logger"
+
+// ── Event types ─────────────────────────────────────────────────────────
+
+export type TraceEventType =
+  | "phase-change"
+  | "agent-start"
+  | "agent-complete"
+  | "agent-fail"
+  | "lint-detect"
+  | "lint-fix-deterministic"
+  | "lint-fix-llm"
+  | "validation-check"
+  | "adherence-deterministic"
+  | "reference-resolution"
+  | "state-extraction"
+  | "gate-wait"
+  | "gate-resolve"
+  | "error"
+
+export interface TraceEvent {
+  eventType: TraceEventType
+  chapter?: number
+  beatIndex?: number
+  agent?: string
+  llmCallId?: number | null
+  durationMs?: number
+  payload?: Record<string, unknown>
+}
+
+// ── Core emitter ────────────────────────────────────────────────────────
+
+export async function trace(novelId: string, event: TraceEvent): Promise<number> {
+  const runId = getRunId()
+  const ts = new Date().toISOString()
+
+  // 1. Persist to DB
+  let eventId = 0
+  try {
+    const [row] = await db`
+      INSERT INTO pipeline_events (novel_id, run_id, chapter, beat_index, event_type, agent, llm_call_id, duration_ms, payload, timestamp)
+      VALUES (
+        ${novelId},
+        ${runId},
+        ${event.chapter ?? null},
+        ${event.beatIndex ?? null},
+        ${event.eventType},
+        ${event.agent ?? null},
+        ${event.llmCallId ?? null},
+        ${event.durationMs ?? null},
+        ${JSON.stringify(event.payload ?? {})},
+        ${ts}
+      )
+      RETURNING id
+    `
+    eventId = (row as any).id
+  } catch (err) {
+    // DB write failures must not block the pipeline. Log and continue.
+    console.error(`[trace] failed to persist ${event.eventType}:`, err)
+  }
+
+  // 2. Broadcast via SSE for real-time UI
+  emit(novelId, {
+    type: "trace" as any,
+    data: {
+      id: eventId,
+      eventType: event.eventType,
+      chapter: event.chapter,
+      beatIndex: event.beatIndex,
+      agent: event.agent,
+      llmCallId: event.llmCallId,
+      durationMs: event.durationMs,
+      ...event.payload,
+    },
+    timestamp: ts,
+  })
+
+  return eventId
+}
+
+// ── Convenience helpers ─────────────────────────────────────────────────
+
+export function traceAgentStart(novelId: string, agent: string, opts?: { chapter?: number; beatIndex?: number; attempt?: number }) {
+  return trace(novelId, {
+    eventType: "agent-start",
+    agent,
+    chapter: opts?.chapter,
+    beatIndex: opts?.beatIndex,
+    payload: opts?.attempt != null ? { attempt: opts.attempt } : undefined,
+  })
+}
+
+export function traceAgentComplete(
+  novelId: string,
+  agent: string,
+  opts: {
+    chapter?: number
+    beatIndex?: number
+    attempt?: number
+    llmCallId?: number | null
+    durationMs?: number
+    tokens?: { prompt: number; completion: number }
+    cost?: number
+    pass?: boolean
+  },
+) {
+  return trace(novelId, {
+    eventType: "agent-complete",
+    agent,
+    chapter: opts.chapter,
+    beatIndex: opts.beatIndex,
+    llmCallId: opts.llmCallId,
+    durationMs: opts.durationMs,
+    payload: {
+      ...(opts.attempt != null && { attempt: opts.attempt }),
+      ...(opts.tokens && { promptTokens: opts.tokens.prompt, completionTokens: opts.tokens.completion }),
+      ...(opts.cost != null && { cost: opts.cost }),
+      ...(opts.pass != null && { pass: opts.pass }),
+    },
+  })
+}
+
+export function traceAgentFail(
+  novelId: string,
+  agent: string,
+  error: string,
+  opts?: { chapter?: number; beatIndex?: number; llmCallId?: number | null; durationMs?: number },
+) {
+  return trace(novelId, {
+    eventType: "agent-fail",
+    agent,
+    chapter: opts?.chapter,
+    beatIndex: opts?.beatIndex,
+    llmCallId: opts?.llmCallId,
+    durationMs: opts?.durationMs,
+    payload: { error },
+  })
+}
+
+export function tracePhaseChange(novelId: string, from: string, to: string) {
+  return trace(novelId, {
+    eventType: "phase-change",
+    payload: { from, to },
+  })
+}

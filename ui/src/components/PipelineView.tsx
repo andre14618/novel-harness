@@ -6,6 +6,7 @@ import { useNovelSSE } from "../hooks/useNovelSSE"
 import { PhaseIndicator } from "./PhaseIndicator"
 import { GatePanel } from "./GatePanel"
 import { EventLog } from "./EventLog"
+import { TraceTimeline } from "./TraceTimeline"
 
 const STEP_DESCRIPTIONS: Record<string, { label: string; description: string; agents: string[] }> = {
   "concept": {
@@ -74,6 +75,7 @@ export function PipelineView() {
   const [error, setError] = useState<string | null>(null)
   const [resuming, setResuming] = useState(false)
   const [timeline, setTimeline] = useState<TimelineEntry[]>([])
+  const [viewMode, setViewMode] = useState<"live" | "trace">("live")
   const { events, connected, lastEvent } = useNovelSSE(novelId ?? null)
   const timelineEndRef = useRef<HTMLDivElement>(null)
 
@@ -255,6 +257,35 @@ export function PipelineView() {
 
       <PhaseIndicator currentPhase={state.phase} pendingGate={!!state.pendingGate} />
 
+      {/* View mode tabs */}
+      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
+        <button
+          onClick={() => setViewMode("live")}
+          style={{
+            fontSize: "0.8rem", padding: "4px 12px",
+            background: viewMode === "live" ? "var(--accent)" : "transparent",
+            color: viewMode === "live" ? "var(--bg-root)" : "var(--text-secondary)",
+            border: viewMode === "live" ? "none" : "1px solid var(--border)",
+            borderRadius: "4px", cursor: "pointer",
+          }}
+        >Live</button>
+        <button
+          onClick={() => setViewMode("trace")}
+          style={{
+            fontSize: "0.8rem", padding: "4px 12px",
+            background: viewMode === "trace" ? "var(--accent)" : "transparent",
+            color: viewMode === "trace" ? "var(--bg-root)" : "var(--text-secondary)",
+            border: viewMode === "trace" ? "none" : "1px solid var(--border)",
+            borderRadius: "4px", cursor: "pointer",
+          }}
+        >Trace</button>
+      </div>
+
+      {viewMode === "trace" && novelId && (
+        <TraceTimeline novelId={novelId} live={state.active} />
+      )}
+
+      {viewMode === "live" && <>
       {/* Stalled banner */}
       {stalled && (
         <div className="card" style={{ borderColor: "#e2b714", textAlign: "center" }}>
@@ -375,6 +406,7 @@ export function PipelineView() {
       <div style={{ marginTop: "1rem" }}>
         <EventLog events={events} connected={connected} />
       </div>
+      </>}
     </>
   )
 }

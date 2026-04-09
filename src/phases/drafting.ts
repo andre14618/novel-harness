@@ -19,6 +19,7 @@ import { validateChapterDraft } from "../validation"
 import { displayPhaseHeader, displayProgress, presentForApproval, getRevisionNotes } from "../cli"
 import { emit } from "../events"
 import { log } from "../logger"
+import { trace } from "../trace"
 import { updateStateAfterChapter } from "../state-extraction"
 import { savePlannedState } from "../planned-state"
 import { diffPlanAgainstState, type PriorCharacterState } from "../state-diff"
@@ -107,10 +108,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
           const worldBible = await getWorldBible(novelId)
 
           // Pre-resolve all beat references in parallel before the serial writing loop.
-          // Reference resolution depends only on the beat spec + outline + characters —
-          // none of which change during writing. Hoisting these out of the per-beat loop
-          // collapses N serial reference-resolver calls into one parallel batch, which is
-          // the dominant per-beat latency on slower providers (e.g. Together AI standard tier).
+          const refStart = Date.now()
           const preResolvedRefs = await Promise.all(
             outline.scenes.map(beat =>
               resolveReferences(beat, outline, novelId, ch, characters)
@@ -120,6 +118,13 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                 }),
             ),
           )
+          const totalLookups = preResolvedRefs.reduce((s, r) => s + r.lookupCount, 0)
+          const llmUsedCount = preResolvedRefs.filter(r => r.llmUsed).length
+          await trace(novelId, {
+            eventType: "reference-resolution", chapter: ch,
+            durationMs: Date.now() - refStart,
+            payload: { beats: outline.scenes.length, totalLookups, llmUsedCount },
+          })
 
           const beatProses: string[] = []
           for (let bi = 0; bi < outline.scenes.length; bi++) {
@@ -274,6 +279,10 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
       ])
 
       const validation = validateChapterDraft(prose, outline)
+      await trace(novelId, {
+        eventType: "validation-check", chapter: ch,
+        payload: { passed: validation.passed, blockers: validation.blockers, warnings: validation.warnings },
+      })
       let bail = false
 
       // Plan check result handling
@@ -332,17 +341,39 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
       let lintSummary = ""
       try {
         emit(novelId, { type: "progress", data: { step: "lint", chapter: ch, status: "running" } })
+        const lintStart = Date.now()
         const lintResult = await lintProse(prose)
+        await trace(novelId, {
+          eventType: "lint-detect", chapter: ch,
+          durationMs: Date.now() - lintStart,
+          payload: { totalIssues: lintResult.totalIssues, counts: lintResult.counts },
+        })
         if (lintResult.totalIssues > 0) {
           console.log(`  Lint: ${lintResult.totalIssues} issues (${Object.entries(lintResult.counts).map(([k, v]) => `${k}:${v}`).join(", ")})`)
           log(novelId, "info", `Lint found ${lintResult.totalIssues} issues`)
 
           const fixer = getModelForAgent("lint-fixer")
+          const fixStart = Date.now()
           const fixResult = await fixLintIssues(
             prose,
             lintResult.issues,
             fixer ? { provider: fixer.provider, model: fixer.model, temperature: fixer.temperature } : undefined,
+            { novelId, chapter: ch },
           )
+
+          if (fixResult.deterministicFixes > 0) {
+            await trace(novelId, {
+              eventType: "lint-fix-deterministic", chapter: ch,
+              payload: { fixed: fixResult.deterministicFixes },
+            })
+          }
+          if (fixResult.llmFixes > 0 || fixResult.llmCalls > 0) {
+            await trace(novelId, {
+              eventType: "lint-fix-llm", chapter: ch,
+              durationMs: Date.now() - fixStart,
+              payload: { fixed: fixResult.llmFixes, unfixed: fixResult.unfixed, llmCalls: fixResult.llmCalls, cost: fixResult.costUsd },
+            })
+          }
 
           const totalFixed = fixResult.deterministicFixes + fixResult.llmFixes
           if (totalFixed > 0) {
@@ -388,12 +419,18 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
         await approveChapterDraft(novelId, ch)
 
         emit(novelId, { type: "progress", data: { step: "state-extraction", chapter: ch, status: "running" } })
+        const extractStart = Date.now()
         if (pipeline.extractionMode === "plan" || pipeline.extractionMode === "both") {
           await savePlannedState(novelId, ch, outline)
         }
         if (pipeline.extractionMode === "extract" || pipeline.extractionMode === "both") {
           await updateStateAfterChapter(novelId, ch, prose)
         }
+        await trace(novelId, {
+          eventType: "state-extraction", chapter: ch,
+          durationMs: Date.now() - extractStart,
+          payload: { mode: pipeline.extractionMode },
+        })
         emit(novelId, { type: "progress", data: { step: "state-extraction", chapter: ch, status: "complete" } })
 
         await updateCurrentChapter(novelId, ch + 1)

@@ -14,7 +14,7 @@
  *   6. Skip windows that overlap already-fixed regions
  */
 
-import { getTransport } from "../../transport"
+import { executeAndLog } from "../../llm"
 
 interface RhythmFixResult {
   prose: string
@@ -73,6 +73,7 @@ export async function fixRhythm(
   prose: string,
   llmConfig: { provider: string; model: string; temperature?: number },
   options: { windowSize?: number; threshold?: number; maxFixes?: number } = {},
+  tracing?: { novelId: string; chapter: number },
 ): Promise<RhythmFixResult> {
   const { windowSize = 8, threshold = 0.30, maxFixes = 3 } = options
   const spans = splitToSpans(prose)
@@ -130,7 +131,7 @@ export async function fixRhythm(
     const wordCounts = window.sentences.map(s => s.words)
 
     try {
-      const response = await getTransport().execute({
+      const request = {
         systemPrompt: `Rewrite this passage to vary sentence rhythm. The current sentences are all similar length (${wordCounts.join(", ")} words each, CV=${window.cvVal.toFixed(2)}).
 
 RULES:
@@ -148,8 +149,14 @@ RULES:
         provider: llmConfig.provider as any,
         temperature: llmConfig.temperature ?? 0.4,
         maxTokens: 2048,
-        responseFormat: { type: "json_object" },
-      })
+        responseFormat: { type: "json_object" } as const,
+      }
+      const response = await executeAndLog(
+        request,
+        tracing?.novelId,
+        "lint-fixer",
+        { chapter: tracing?.chapter },
+      )
 
       llmCalls++
       const promptTokens = response.usage?.prompt_tokens ?? 0

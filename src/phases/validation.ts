@@ -15,6 +15,7 @@ import { updateStateAfterChapter } from "../state-extraction"
 import { displayPhaseHeader } from "../cli"
 import { emit } from "../events"
 import { log } from "../logger"
+import { trace } from "../trace"
 import { pipeline } from "../config/pipeline"
 
 const MAX_PASSES = pipeline.maxValidationPasses
@@ -47,6 +48,10 @@ export async function runValidationPhase(novelId: string): Promise<void> {
 
       const outline = await getChapterOutline(novelId, ch)
       const result = validateChapterDraft(draft.prose, outline, "validation")
+      await trace(novelId, {
+        eventType: "validation-check", chapter: ch,
+        payload: { passed: result.passed, blockers: result.blockers, warnings: result.warnings, pass },
+      })
 
       if (!result.passed) {
         for (const blocker of result.blockers) {
@@ -116,6 +121,10 @@ export async function runValidationPhase(novelId: string): Promise<void> {
         // Deterministic validation on rewrite
         const outline = await getChapterOutline(novelId, ch)
         const rewriteValidation = validateChapterDraft(newProse, outline, "validation")
+        await trace(novelId, {
+          eventType: "validation-check", chapter: ch, agent: "rewriter",
+          payload: { passed: rewriteValidation.passed, blockers: rewriteValidation.blockers, warnings: rewriteValidation.warnings, pass, attempt: attempts },
+        })
 
         if (!rewriteValidation.passed) {
           console.log(`  Chapter ${ch}: rewrite failed deterministic validation — ${rewriteValidation.blockers.join("; ")}`)

@@ -12,6 +12,7 @@
  */
 
 import { emit, hasClients } from "./events"
+import { trace } from "./trace"
 
 export interface GateDecision {
   action: "approve" | "revise" | "reject"
@@ -66,6 +67,8 @@ export function request(
       type: "gate:waiting",
       data: { gateId, title, content },
     })
+    // Persist gate-wait to trace timeline (fire-and-forget)
+    trace(novelId, { eventType: "gate-wait", payload: { gateId, title } }).catch(() => {})
   })
 }
 
@@ -84,6 +87,9 @@ export function resolve(novelId: string, gateId: string, decision: GateDecision)
     type: "gate:resolved",
     data: { gateId, action: decision.action },
   })
+  // Persist gate resolution to trace timeline
+  const waitMs = Date.now() - gate.createdAt
+  trace(novelId, { eventType: "gate-resolve", durationMs: waitMs, payload: { gateId, action: decision.action } }).catch(() => {})
 
   return true
 }

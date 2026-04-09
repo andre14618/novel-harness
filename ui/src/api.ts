@@ -410,3 +410,29 @@ export interface SSEEvent {
   data: Record<string, any>
   timestamp: string
 }
+
+// ── Pipeline trace ────────────────────────────────────────────────────
+
+export interface TraceEvent {
+  id: number
+  novel_id: string
+  run_id: number | null
+  chapter: number | null
+  beat_index: number | null
+  event_type: string
+  agent: string | null
+  llm_call_id: number | null
+  duration_ms: number | null
+  payload: Record<string, any>
+  timestamp: string
+}
+
+export function getTrace(novelId: string, filters: { chapter?: number; event_type?: string; agent?: string; limit?: number } = {}) {
+  const params = new URLSearchParams()
+  if (filters.chapter != null) params.set("chapter", String(filters.chapter))
+  if (filters.event_type) params.set("event_type", filters.event_type)
+  if (filters.agent) params.set("agent", filters.agent)
+  if (filters.limit) params.set("limit", String(filters.limit))
+  const qs = params.toString()
+  return fetchJSON<TraceEvent[]>(`/api/novel/${novelId}/trace${qs ? `?${qs}` : ""}`)
+}

@@ -50,6 +50,11 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // Prior history: Llama 8B was systematically over-strict; 235B fixed calibration.
   // See docs/fine-tuning-strategy.md adherence-checker slot for full context.
   "adherence-checker":         { provider: "wandb", model: "OpenPipe/Qwen3-14B-Instruct", temperature: 0.1, maxTokens: 256 },
+  // Sub-check aliases — same model as adherence-checker, distinct agent names for tracing
+  "adherence-events":          { provider: "wandb", model: "OpenPipe/Qwen3-14B-Instruct", temperature: 0.1, maxTokens: 256 },
+  "adherence-setting":         { provider: "wandb", model: "OpenPipe/Qwen3-14B-Instruct", temperature: 0.1, maxTokens: 256 },
+  "adherence-tangent":         { provider: "wandb", model: "OpenPipe/Qwen3-14B-Instruct", temperature: 0.1, maxTokens: 256 },
+  "adherence-character":       { provider: "wandb", model: "OpenPipe/Qwen3-14B-Instruct", temperature: 0.1, maxTokens: 256 },
 
   // ── Extractors (structured extraction from prose) ─────────────────────
   "summary-extractor":         { ...mimoFlash, temperature: 0.2, maxTokens: 8192 },

@@ -510,12 +510,12 @@ export interface LLMCallData {
   errorText?: string
 }
 
-export async function logLLMCall(runId: number, data: LLMCallData): Promise<void> {
+export async function logLLMCall(runId: number, data: LLMCallData): Promise<number | null> {
   const tps = data.latencyMs > 0 && data.completionTokens > 0
     ? Math.round(data.completionTokens / (data.latencyMs / 1000))
     : 0
 
-  await db`
+  const [row] = await db`
     INSERT INTO llm_calls (
       run_id, agent, phase, model, provider, temperature, max_tokens,
       prompt_tokens, completion_tokens, latency_ms, tokens_per_sec, cost,
@@ -547,7 +547,9 @@ export async function logLLMCall(runId: number, data: LLMCallData): Promise<void
       ${data.failed ?? false},
       ${data.errorText ?? null}
     )
+    RETURNING id
   `
+  return (row as any)?.id ?? null
 }
 
 // ── Benchmark generations & scores ───────────────────────────────────────

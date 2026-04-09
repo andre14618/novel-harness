@@ -468,6 +468,47 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
     })
   }
 
+  // ── Pipeline trace timeline ────────────────────────────────────────
+  // Returns persistent pipeline_events rows for a novel. Filters:
+  //   ?chapter=N  ?beat_index=N  ?event_type=…  ?agent=…  ?limit=N
+  const traceMatch = path.match(/^\/api\/novel\/([^/]+)\/trace$/)
+  if (traceMatch && req.method === "GET") {
+    const novelId = traceMatch[1]
+    const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "500"), 2000)
+    const chapter = url.searchParams.get("chapter")
+    const beatIndex = url.searchParams.get("beat_index")
+    const eventType = url.searchParams.get("event_type")
+    const agent = url.searchParams.get("agent")
+
+    try {
+      const conditions = [`novel_id = ${novelId}`]
+      if (chapter) conditions.push(`chapter = ${parseInt(chapter)}`)
+      if (beatIndex) conditions.push(`beat_index = ${parseInt(beatIndex)}`)
+      if (eventType) conditions.push(`event_type = ${eventType}`)
+      if (agent) conditions.push(`agent = ${agent}`)
+
+      // Build query with optional filters using Bun.sql tagged templates
+      let rows
+      if (chapter && agent) {
+        rows = await db`SELECT * FROM pipeline_events WHERE novel_id = ${novelId} AND chapter = ${parseInt(chapter)} AND agent = ${agent} ORDER BY timestamp ASC LIMIT ${limit}`
+      } else if (chapter && eventType) {
+        rows = await db`SELECT * FROM pipeline_events WHERE novel_id = ${novelId} AND chapter = ${parseInt(chapter)} AND event_type = ${eventType} ORDER BY timestamp ASC LIMIT ${limit}`
+      } else if (chapter) {
+        rows = await db`SELECT * FROM pipeline_events WHERE novel_id = ${novelId} AND chapter = ${parseInt(chapter)} ORDER BY timestamp ASC LIMIT ${limit}`
+      } else if (eventType) {
+        rows = await db`SELECT * FROM pipeline_events WHERE novel_id = ${novelId} AND event_type = ${eventType} ORDER BY timestamp ASC LIMIT ${limit}`
+      } else if (agent) {
+        rows = await db`SELECT * FROM pipeline_events WHERE novel_id = ${novelId} AND agent = ${agent} ORDER BY timestamp ASC LIMIT ${limit}`
+      } else {
+        rows = await db`SELECT * FROM pipeline_events WHERE novel_id = ${novelId} ORDER BY timestamp ASC LIMIT ${limit}`
+      }
+
+      return Response.json(rows)
+    } catch (err) {
+      return Response.json({ error: String(err) }, { status: 500 })
+    }
+  }
+
   // ── Delete novel ────────────────────────────────────────────────────
   const deleteMatch = path.match(/^\/api\/novel\/([^/]+)$/)
   if (deleteMatch && req.method === "DELETE") {

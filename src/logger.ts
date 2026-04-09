@@ -75,13 +75,13 @@ export interface LLMCallLogEntry {
   errorText?: string
 }
 
-export async function logLLMCallStructured(novelId: string, entry: LLMCallLogEntry): Promise<void> {
-  if (!currentRunId) return
+export async function logLLMCallStructured(novelId: string, entry: LLMCallLogEntry): Promise<number | null> {
+  if (!currentRunId) return null
 
   // Determine phase from agent name
   const phase = getPhaseForAgent(entry.agent)
 
-  await centralLogLLMCall(currentRunId, {
+  return await centralLogLLMCall(currentRunId, {
     agent: entry.agent,
     phase,
     model: entry.model,
@@ -118,11 +118,23 @@ function getPhaseForAgent(agent: string): string {
     "plotter": "concept",
     "planning-plotter": "planning",
     "writer": "drafting",
+    "beat-writer": "drafting",
+    "reference-resolver": "drafting",
+    "adherence-checker": "drafting",
+    "adherence-events": "drafting",
+    "adherence-setting": "drafting",
+    "adherence-tangent": "drafting",
+    "adherence-character": "drafting",
+    "chapter-plan-checker": "drafting",
     "continuity": "drafting",
+    "lint-fixer": "drafting",
     "summary-extractor": "extraction",
     "fact-extractor": "extraction",
     "character-state": "extraction",
+    "relationship-timeline": "extraction",
+    "graph-linker": "extraction",
     "rewriter": "validation",
+    "tonal-pass": "validation",
   }
   return PHASE_MAP[agent] ?? "unknown"
 }

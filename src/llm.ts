@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { logLLMCallStructured, type LLMCallLogEntry } from "./logger"
 import { emit } from "./events"
+import { traceAgentStart, traceAgentComplete, traceAgentFail } from "./trace"
 import {
   PROVIDERS, getApiKey, getTokenCost, getModel,
   type ProviderName, type ProviderDef,
@@ -223,11 +224,9 @@ export async function executeAndLog(
       const cost = response
         ? getTokenCost(request.provider, request.model, promptTokens, completionTokens)
         : 0
-      // Awaited inside finally so the always-log guarantee is strict: when this
-      // function returns or throws, the row exists. Log errors are surfaced to
-      // stderr but never replace the original LLM error from the try block.
+      let llmCallId: number | null = null
       try {
-        await logLLMCallStructured(novelId, {
+        llmCallId = await logLLMCallStructured(novelId, {
           timestamp: new Date().toISOString(),
           agent: agentName,
           model: request.model,
@@ -261,6 +260,30 @@ export async function executeAndLog(
         })
       } catch (logErr) {
         console.error(`[llm-inspector] failed to log ${agentName} call:`, logErr)
+      }
+
+      // Unified trace: persists to pipeline_events + broadcasts via SSE.
+      try {
+        if (failed) {
+          await traceAgentFail(novelId, agentName, formatErrorForLog(caughtError).slice(0, 500), {
+            chapter: tags?.chapter,
+            beatIndex: tags?.beatIndex,
+            llmCallId,
+            durationMs: Math.round(latencyMs),
+          })
+        } else {
+          await traceAgentComplete(novelId, agentName, {
+            chapter: tags?.chapter,
+            beatIndex: tags?.beatIndex,
+            attempt: tags?.attempt,
+            llmCallId,
+            durationMs: Math.round(latencyMs),
+            tokens: { prompt: promptTokens, completion: completionTokens },
+            cost,
+          })
+        }
+      } catch (traceErr) {
+        console.error(`[trace] failed for ${agentName}:`, traceErr)
       }
     }
   }
@@ -446,31 +469,36 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
       // Awaited so the always-log guarantee is strict: when this function
       // returns or throws, the row exists. Log errors are surfaced to stderr
       // but never replace the original LLM error from the try block.
+      let llmCallId: number | null = null
       try {
-        await logLLMCallStructured(config.novelId, entry)
+        llmCallId = await logLLMCallStructured(config.novelId, entry)
       } catch (logErr) {
         console.error(`[llm-inspector] failed to log ${entry.agent} call:`, logErr)
       }
 
-      // Broadcast to SSE for real-time visibility. Failed calls get status="error"
-      // so the UI can highlight them as they happen.
-      emit(config.novelId, {
-        type: failed ? "error" : "progress",
-        data: {
-          step: "llm-call",
-          agent: entry.agent,
-          provider: entry.provider,
-          model: entry.model,
-          temperature: entry.temperature,
-          promptTokens: entry.promptTokens,
-          completionTokens: entry.completionTokens,
-          latencyMs: entry.totalLatencyMs,
-          tokensPerSec: entry.tokensPerSec,
-          cost: entry.cost,
-          status: failed ? "error" : "complete",
-          error: failed ? formatErrorForLog(caughtError).slice(0, 500) : undefined,
-        },
-      })
+      // Unified trace: persists to pipeline_events + broadcasts via SSE.
+      try {
+        if (failed) {
+          await traceAgentFail(config.novelId, entry.agent, formatErrorForLog(caughtError).slice(0, 500), {
+            chapter: config.chapter,
+            beatIndex: config.beatIndex,
+            llmCallId,
+            durationMs: Math.round(latency),
+          })
+        } else {
+          await traceAgentComplete(config.novelId, entry.agent, {
+            chapter: config.chapter,
+            beatIndex: config.beatIndex,
+            attempt: config.attempt,
+            llmCallId,
+            durationMs: Math.round(latency),
+            tokens: { prompt: promptTokens, completion: completionTokens },
+            cost,
+          })
+        }
+      } catch (traceErr) {
+        console.error(`[trace] failed for ${entry.agent}:`, traceErr)
+      }
     }
   }
 }

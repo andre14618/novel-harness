@@ -13,6 +13,7 @@
  */
 
 import { callAgent } from "../../llm"
+import { trace } from "../../trace"
 import type { ChapterOutline, CharacterProfile, SceneBeat } from "../../types"
 import { z } from "zod"
 
@@ -166,6 +167,21 @@ export async function checkBeatAdherence(
     }
   }
 
+  // Trace deterministic results
+  if (tags?.novelId) {
+    await trace(tags.novelId, {
+      eventType: "adherence-deterministic",
+      chapter: tags.chapter,
+      beatIndex: tags.beatIndex,
+      payload: {
+        charPresence: !issues.some(i => i.includes("not found in prose")),
+        wordCountOk: !issues.some(i => i.includes("Too short") || i.includes("Too long")),
+        dialogueOk: !issues.some(i => i.includes("No dialogue")),
+        deterministicIssues: issues.length,
+      },
+    })
+  }
+
   // If deterministic checks fail hard, skip the LLM check
   if (issues.length >= 2) {
     return { pass: false, issues }
@@ -181,8 +197,7 @@ export async function checkBeatAdherence(
   const proseTrimmed = prose.slice(0, 2000)
   const charsLine = beat.characters.join(", ")
 
-  const callOpts = {
-    agentName: "adherence-checker" as const,
+  const baseTags = {
     novelId: tags?.novelId,
     chapter: tags?.chapter,
     beatIndex: tags?.beatIndex,
@@ -191,7 +206,8 @@ export async function checkBeatAdherence(
 
   const results = await Promise.allSettled([
     callAgent({
-      ...callOpts,
+      ...baseTags,
+      agentName: "adherence-events" as const,
       systemPrompt: EVENTS_SYSTEM,
       userPrompt: `BEAT: ${beat.description}
 CHARACTERS EXPECTED: ${charsLine}
@@ -203,7 +219,8 @@ ${proseTrimmed}
       schema: eventsSchema,
     }),
     callAgent({
-      ...callOpts,
+      ...baseTags,
+      agentName: "adherence-setting" as const,
       systemPrompt: SETTING_SYSTEM,
       userPrompt: `BEAT: ${beat.description}
 EXPECTED SETTING: ${outline.setting}
@@ -215,7 +232,8 @@ ${proseTrimmed}
       schema: settingSchema,
     }),
     callAgent({
-      ...callOpts,
+      ...baseTags,
+      agentName: "adherence-tangent" as const,
       systemPrompt: TANGENT_SYSTEM,
       userPrompt: `BEAT: ${beat.description}
 
@@ -226,7 +244,8 @@ ${proseTrimmed}
       schema: tangentSchema,
     }),
     callAgent({
-      ...callOpts,
+      ...baseTags,
+      agentName: "adherence-character" as const,
       systemPrompt: CHARACTER_SYSTEM,
       userPrompt: `BEAT: ${beat.description}
 CHARACTERS EXPECTED: ${charsLine}

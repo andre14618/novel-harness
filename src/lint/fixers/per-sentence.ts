@@ -6,7 +6,7 @@
  * Skips dialogue lines. Validates fixes preserve content.
  */
 
-import { getTransport } from "../../transport"
+import { executeAndLog } from "../../llm"
 import type { LintIssue } from "../types"
 
 interface FixConfig {
@@ -27,6 +27,7 @@ export async function applyPerSentenceFixes(
   prose: string,
   issues: LintIssue[],
   config: FixConfig,
+  tracing?: { novelId: string; chapter: number },
 ): Promise<PerSentenceResult> {
   let result = prose
   let fixed = 0
@@ -54,7 +55,7 @@ export async function applyPerSentenceFixes(
     const context = result.slice(contextStart, contextEnd).trim()
 
     try {
-      const response = await getTransport().execute({
+      const request = {
         systemPrompt: `Fix ONLY the flagged pattern in the target sentence. Rules:
 - If the sentence contains dialogue (quoted text), preserve all dialogue exactly — only change the narrative part.
 - Do NOT add or remove quotation marks.
@@ -67,8 +68,14 @@ Return JSON: {"fixed": "the corrected sentence"}`,
         provider: config.provider as any,
         temperature: config.temperature ?? 0.2,
         maxTokens: 512,
-        responseFormat: { type: "json_object" },
-      })
+        responseFormat: { type: "json_object" } as const,
+      }
+      const response = await executeAndLog(
+        request,
+        tracing?.novelId,
+        "lint-fixer",
+        { chapter: tracing?.chapter },
+      )
 
       let fixedText: string
       try {

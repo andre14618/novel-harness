@@ -16,6 +16,7 @@ export async function fixLintIssues(
   prose: string,
   issues: LintIssue[],
   llmConfig?: { provider: string; model: string; temperature?: number },
+  tracing?: { novelId: string; chapter: number },
 ): Promise<FixResult> {
   const totalStart = Date.now()
   let costUsd = 0
@@ -36,7 +37,7 @@ export async function fixLintIssues(
   )
 
   if (sentenceIssues.length > 0 && llmConfig) {
-    const sentenceResult = await applyPerSentenceFixes(result, sentenceIssues, llmConfig)
+    const sentenceResult = await applyPerSentenceFixes(result, sentenceIssues, llmConfig, tracing)
     result = sentenceResult.prose
     llmFixes += sentenceResult.fixed
     unfixed += sentenceResult.unfixed
@@ -55,7 +56,7 @@ export async function fixLintIssues(
         provider: llmConfig.provider,
         model: llmConfig.model,
         temperature: llmConfig.temperature ?? 0.4,
-      }, { maxFixes: 3 })
+      }, { maxFixes: 3 }, tracing)
 
       result = rhythmResult.prose
       llmFixes += rhythmResult.windowsFixed
