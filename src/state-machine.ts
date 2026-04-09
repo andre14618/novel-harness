@@ -6,6 +6,7 @@ import { runValidationPhase } from "./phases/validation"
 import { getTokenUsage } from "./llm"
 import { emit } from "./events"
 import { pipeline } from "./config/pipeline"
+import { trace } from "./trace"
 import db from "../data/connection"
 
 export async function runNovel(novelId: string): Promise<void> {
@@ -33,6 +34,9 @@ export async function runNovel(novelId: string): Promise<void> {
     }
     prevSignature = signature
 
+    const phaseStart = Date.now()
+    const currentPhase = novel.phase
+
     switch (novel.phase) {
       case "concept":
         await runConceptPhase(novelId, novel.seed)
@@ -47,6 +51,13 @@ export async function runNovel(novelId: string): Promise<void> {
         await runValidationPhase(novelId)
         break
     }
+
+    await trace(novelId, {
+      eventType: "phase-complete",
+      durationMs: Date.now() - phaseStart,
+      payload: { phase: currentPhase },
+    })
+
     novel = await getNovel(novelId)
   }
 
@@ -62,6 +73,14 @@ export async function runNovel(novelId: string): Promise<void> {
   await printRunSummary(novelId, wallMs, usage)
 
   emit(novelId, { type: "done", data: { novelId, tokens: usage } })
+}
+
+function formatDuration(ms: number): string {
+  const sec = ms / 1000
+  if (sec < 60) return `${Math.round(sec)}s`
+  const min = Math.floor(sec / 60)
+  const rem = Math.round(sec % 60)
+  return rem > 0 ? `${min}m ${rem}s` : `${min}m`
 }
 
 async function printRunSummary(
@@ -121,5 +140,46 @@ async function printRunSummary(
       `  ${r.agent.padEnd(28)} ${String(r.calls).padStart(5)}  ${r.prompt_in.toLocaleString().padStart(10)}  ${r.comp_out.toLocaleString().padStart(10)}  ${"$" + r.cost.padStart(7)}  ${String(r.avg_ms).padStart(6)}ms`
     )
   }
+
+  // ── Per-phase timing ─────────────────────────────────────────────────
+  const phaseRows = await db`
+    SELECT
+      payload->>'phase' AS phase,
+      duration_ms::int  AS duration_ms
+    FROM pipeline_events
+    WHERE novel_id = ${novelId}
+      AND event_type = 'phase-complete'
+      AND payload->>'phase' IS NOT NULL
+    ORDER BY timestamp
+  `
+  if (phaseRows.length > 0) {
+    console.log(`\n  Per-phase timing:`)
+    console.log(`  ${"Phase".padEnd(16)} Duration`)
+    console.log(`  ${"─".repeat(16)} ${"─".repeat(10)}`)
+    for (const r of phaseRows) {
+      console.log(`  ${r.phase.padEnd(16)} ${formatDuration(r.duration_ms)}`)
+    }
+
+    // Per-chapter breakdown within drafting
+    const chapterRows = await db`
+      SELECT
+        chapter,
+        duration_ms::int AS duration_ms
+      FROM pipeline_events
+      WHERE novel_id = ${novelId}
+        AND event_type = 'chapter-complete'
+        AND chapter IS NOT NULL
+      ORDER BY chapter
+    `
+    if (chapterRows.length > 0) {
+      console.log(`\n  Per-chapter drafting:`)
+      console.log(`  ${"Chapter".padEnd(16)} Duration`)
+      console.log(`  ${"─".repeat(16)} ${"─".repeat(10)}`)
+      for (const r of chapterRows) {
+        console.log(`  ${`Chapter ${r.chapter}`.padEnd(16)} ${formatDuration(r.duration_ms)}`)
+      }
+    }
+  }
+
   console.log()
 }

@@ -41,6 +41,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
   log(novelId, "info", `Drafting phase: chapters ${startChapter}-${totalChapters}`)
 
   for (let ch = startChapter; ch <= totalChapters; ch++) {
+    const chapterStart = Date.now()
     displayProgress(ch - 1, totalChapters, `Chapter ${ch}`)
     emit(novelId, { type: "progress", data: { step: "drafting", chapter: ch, totalChapters, status: "starting" } })
 
@@ -452,6 +453,13 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
         console.log("  Chapter rejected. Retrying from scratch...")
       }
     }
+
+    await trace(novelId, {
+      eventType: "chapter-complete",
+      chapter: ch,
+      durationMs: Date.now() - chapterStart,
+      payload: { approved, attempts },
+    })
 
     if (!approved) {
       log(novelId, "error", `Chapter ${ch} failed after ${maxAttempts} attempts`)

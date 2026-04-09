@@ -65,7 +65,13 @@ export function LLMCallsPage() {
   }, [novelId])
 
   useEffect(() => {
-    listNovels().then(r => setNovels(r.novels)).catch(() => {})
+    listNovels().then(r => {
+      setNovels(r.novels)
+      // Auto-select the most recent novel on initial load (list is sorted by created_at DESC)
+      if (!novelId && r.novels.length > 0) {
+        setNovelId(r.novels[0].id)
+      }
+    }).catch(() => {})
   }, [])
 
   function openCall(id: number) {

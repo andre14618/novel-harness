@@ -18,6 +18,8 @@ import { getRunId } from "./logger"
 
 export type TraceEventType =
   | "phase-change"
+  | "phase-complete"
+  | "chapter-complete"
   | "agent-start"
   | "agent-complete"
   | "agent-fail"
