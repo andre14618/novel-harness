@@ -71,7 +71,7 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "continuity-state":          { ...cerebrasQwen235B, temperature: 0.2, maxTokens: 2048 },
 
   // ── Lint fixer (per-sentence creative fixes via LLM) ──────────────────
-  "lint-fixer":                { provider: "cerebras", model: "qwen/qwen3-235b", temperature: 0.2 },
+  "lint-fixer":                { ...cerebrasQwen235B, temperature: 0.2 },
 
   // ── Chapter plan checker (structural adherence, fine-tune target) ────
   // Was on llama-3.1-8b-instant but the model couldn't reason through the planner's
