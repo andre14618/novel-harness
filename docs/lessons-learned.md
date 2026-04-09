@@ -654,6 +654,59 @@ Per-beat **helps the small models, hurts the strong ones**. The regression on gp
 
 (Commits `0fe9c6c` (both scripts), `6a7e211` (4th setting slot); experiments #122 adherence, #123 chapter-plan)
 
+### Synthetic eval false-positive rate underestimated production by ~25× — distribution shift on inherited setting and atmospheric prose (2026-04-08)
+
+The 4-call adherence-checker decomposition (`src/agents/writer/adherence-checker.ts`, exp #122 — see entry above) was shipped to production and validated on a 3-chapter `romance-drama` run. The synthetic eval predicted 1.3% false-fail rate on PASS variants for 235B and 2.5% for 14B. Production reality on the very first run: **13/23 beat-attempts (57%) had a slot fire**, all of them from `setting` (8) and `tangent` (6) — `events` and `character` were silent. Tokens used 252K vs an expected ~150K for a clean 3-chapter run because the writer was being asked to redo good prose.
+
+This is the largest distribution gap I've seen between a synthetic eval and production behavior on the same task. Two specific prompt-to-distribution mismatches caused it, and both are instructive:
+
+**1. Setting slot fired on mid-chapter beats because real prose inherits setting from prior beats.**
+
+The synthetic generator (`scripts/generate-adherence-data.ts`) constructs each PASS pair as a single beat with a single fully-stated prose passage that includes explicit place markers (because the prose was generated from one beat with full context). The slot's prompt accordingly contained:
+
+> If the prose has no clear setting at all (purely abstract or interior monologue with no place markers), return setting_matches=false with reasoning noting the absence.
+
+That rule was harmless on the synthetic eval (every PASS pair had explicit setting). In production, the beat-writer's context only injects setting on "beat 0 or detected location change" (per `src/agents/writer/beat-context.ts`). For beats 1, 2, 3 of a chapter, the prose continues the inherited setting and may have **zero** explicit place markers — pure dialogue, character interiority, close action. The slot interpreted "no setting markers" as "setting absent → mismatch" and fired on every mid-chapter beat that didn't bother to re-establish location. The synthetic eval could not have caught this because the synthetic distribution had no examples of mid-chapter beats inheriting setting.
+
+**2. Tangent slot fired on legitimate atmospheric/interiority because the 40% off-spec threshold was calibrated against synthetic prose that didn't have much of either.**
+
+The synthetic PASS variants (PASS_CLEAN, PASS_PARAPHRASE, PASS_REORDER, PASS_ATMOSPHERIC) have a relatively narrow stylistic range — they're all rewrites of one beat. Real beat-writer output (Cerebras Qwen 235B at temperature 0.7) produces prose with substantially more atmospheric description, character interiority, sensory grounding, and dialogue digression. By the model's read, that easily crossed the prompt's "more than ~40%" threshold for `is_tangent=true`. PASS_ATMOSPHERIC was the closest synthetic analogue and even it sat well under the threshold; production prose blew through it.
+
+**The fix — tighten setting and tangent prompts to reflect production prose conventions:**
+
+- **Setting:** invert from "no markers → false" to "only POSITIVE evidence of a different setting → false". Explicitly enumerate examples of real contradictions (different named location, building, indoor↔outdoor, time of day, region) and explicitly say "if the prose simply doesn't mention setting markers, return setting_matches=true." Inheritance is normal craft.
+- **Tangent:** raise threshold from ~40% to ~60%, expand the "NOT a tangent" list to include atmospheric description, character interiority, sensory grounding, emotional reactions, brief implied backstory, and dialogue that develops the situation even if it digresses for a sentence or two.
+
+events_present and character_contradiction prompts unchanged — they were silent on the first production run and remained well-calibrated.
+
+**Result on a re-run of the same `romance-drama` 3-chapter seed:**
+
+| Metric | Loose prompts (run 1) | Tightened prompts (run 2) | Δ |
+|---|---:|---:|---|
+| Beat-attempts | 23 | 18 | -22% (fewer retries) |
+| Attempts with any slot fire | 13 (57%) | 4 (22%) | **-35pp** |
+| `events` fires | 0 | 1 | +1 |
+| `setting` fires | 8 | 3 | -5 |
+| `tangent` fires | 6 | **0** | **-6 (eliminated)** |
+| `character` fires | 0 | 1 | +1 |
+| Tokens used | 252K | 149K | **-41%** |
+
+All 5 firing instances in run 2 were inspected manually and **every one was a real catch**, not a false positive:
+- ch1 beat 1 fired `events` AND `character` on the same incident — the writer wrote Jem lighting a stove with a lighter when the beat called for him to grab a dented stockpot and wipe fish scales off it. The retry resolved it on attempt 2.
+- ch3 beat 2 fired `setting` on all 3 attempts — beat called for "The Cove Commons and Vera's Office" (indoor), writer placed it on "the tide flats by the sea, under moonlight" (outdoor). Persistent writer error, hit max retries, chapter shipped with the deviation flagged. Adherence checker did its job, the writer was the failure point.
+
+**The methodology lesson — three things to do differently next time:**
+
+1. **Synthetic eval false-positive rates are a lower bound, not a prediction.** Whenever the synthetic distribution is narrower than production (which it almost always is), the production false-positive rate will be higher — sometimes by an order of magnitude. The 1.3% / 2.5% numbers from #122 weren't *wrong* on the eval set, they were *uninformative* about production. Treat synthetic FP rates as "necessary but not sufficient — must validate on real prose."
+
+2. **Always pilot a new check on a real novel before declaring a prompt-engineering experiment a "win."** Exp #122 looked clean across 480 LLM calls on the synthetic eval. The very first 3-chapter production run revealed the calibration gap in <2 minutes of compute. The pilot run is cheaper than the eval and catches things the eval can't. **A 3-chapter `romance-drama` run is now part of the standard validation flow for any production-bound checker prompt change.**
+
+3. **Inspect prompt assumptions against the architecture, not just against the eval.** The "no setting markers → false" rule was explicitly contradicted by the beat-context.ts injection logic ("only on beat 0 or detected location change"). I should have caught that by reading the beat-context source before writing the slot prompt — the architecture itself told me mid-chapter beats wouldn't have setting markers. Reading the eval data isn't enough; you have to read the production data shape too.
+
+**Bonus methodology finding — instrumented retries are the right way to validate a checker.** The retry-loop signal (which slot fires, on which attempt, did the next attempt clean up) is exactly the data needed to distinguish "false positive that wastes a retry" from "real catch the writer fixed" from "real catch the writer can't fix." Without per-slot logging in `llm_calls`, the only signal would have been the aggregate "did the chapter pass validation" — which would have shown PASS in run 1 too (the writer eventually produced acceptable prose), masking the 41% token bloat from spurious retries. Per-slot fields (`events_present`, `setting_matches`, `is_tangent`, `character_contradiction`) in the response_content column let us reconstruct the slot decisions retroactively — which is what made the diagnosis and fix possible in one iteration.
+
+(Commit `d364fbd` setting+tangent prompt fixes; novels `novel-1775696018877` (loose) and `novel-1775696571250` (tightened); both on the same `romance-drama` seed for clean head-to-head)
+
 ## Prompt & Output Schema Design
 
 ### Structured checklist output beats flat verdict schemas on multi-check verification tasks — but only for fields within model capacity (2026-04-08)
