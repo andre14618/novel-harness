@@ -1,11 +1,12 @@
 /**
- * Evaluate adherence-checker fine-tune adapters (V1/V2) against the 235B oracle.
+ * Evaluate adherence-checker fine-tune adapters (V1/V2/V3) against the 235B oracle.
  *
  * Pulls real beat/prose pairs from production, runs each through:
  *   1. 235B oracle (4 decomposed calls)
  *   2. Base 14B (no LoRA)
  *   3. V1 adapter (uncurated training data)
  *   4. V2 adapter (curated training data)
+ *   5. V3 adapter (mixed-teacher curated data)
  *
  * Reports agreement rates per model × call type × variant.
  *
@@ -39,6 +40,10 @@ const MODELS = {
   "v2-curated": {
     provider: "wandb" as const,
     model: "wandb-artifact:///andre14618-/novel-harness/adherence-checker-v2-sft-resume:v9",
+  },
+  "v3-mixed-teacher": {
+    provider: "wandb" as const,
+    model: "wandb-artifact:///andre14618-/novel-harness/adherence-checker-v3-sft-resume:v9",
   },
 };
 
