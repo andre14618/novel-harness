@@ -536,7 +536,7 @@ const server = Bun.serve({
             }
           })
           .sort((a, b) => {
-            const pinned = ["todo.md", "lessons-learned.md"]
+            const pinned = ["todo.md", "decisions.md", "lessons-learned.md"]
             const ai = pinned.indexOf(a.filename)
             const bi = pinned.indexOf(b.filename)
             if (ai !== -1 && bi !== -1) return ai - bi

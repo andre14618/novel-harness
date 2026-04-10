@@ -10,6 +10,7 @@ const PAGES = [
   { path: "/experiments", label: "Experiments" },
   { path: "/models", label: "Models" },
   { path: "/lora", label: "LoRA" },
+  { path: "/decisions", label: "Decisions" },
   { path: "/docs", label: "Docs" },
 ]
 

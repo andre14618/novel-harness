@@ -16,7 +16,7 @@ Code lives locally (canonical git repo). LXC 307 is the runtime — all benchmar
 - Runtime: Bun
 - LLM: Configurable per-agent via `models/roles.ts`. Providers: Cerebras, Groq, Fireworks, OpenRouter, OpenAI, DeepSeek, MiniMax, Zai, MiMo, Together (legacy LoRA fine-tunes), W&B Inference (CoreWeave-backed, chosen home for new LoRA fine-tunes per `docs/lessons-learned.md`).
 - DB: Single Postgres (`novel_harness_orchestrator` on LXC — all tables). pgvector installed but embeddings disabled.
-- Fine-tuning: **W&B end-to-end (train + serve) on `OpenPipe/Qwen3-14B-Instruct` is the chosen home for new LoRA fine-tunes** (decided 2026-04-07/08 via `tuning_experiment` id=94 — see `docs/todo.md` "Fine-Tuning serving infrastructure"). Training via **W&B Serverless SFT (ART framework, free during public preview)** → adapter auto-saved as W&B artifact → served via W&B Inference at $0.05/$0.22 per 1M tokens. LoRA artifact storage is free under the 100GB free tier (a r=16 adapter is ~50MB). **W&B LoRA convention: artifact URI goes in the `model` field** (e.g. `model: "wandb-artifact:///team/project/name:v9"`). W&B silently ignores a separate `lora` field — that convention is Together AI only. Transport layer (`src/transport.ts`) auto-detects `wandb-artifact:///` prefix and routes correctly. **V4 tonal-pass adapter trained and validated** (exp #98, 2026-04-08): `howard-tonal-v4-sft-resume:v8` on W&B Inference beats V3 on every metric (classifier 0.550 vs 0.422, perplexity 3086 vs 4814, feature KL 1.564 vs 1.534 Howard ref, 597ms vs 1757ms latency). **Serving URI is `wandb-artifact:///andre14618-/novel-harness/howard-tonal-v4-sft-resume:v8`** — NOT `howard-tonal-v4:latest` (that's the identity LoRA placeholder; see lessons-learned "W&B ART submits async"). V3 on Together AI is the current live adapter pending the switchover. **Together standard tier is ~50-100× slower than Groq fast tier per `docs/lessons-learned.md` — only use Together for actual LoRA serving of the legacy adapter, not per-beat agents or new training.**
+- Fine-tuning: **W&B end-to-end (train + serve) on `OpenPipe/Qwen3-14B-Instruct` is the chosen home for new LoRA fine-tunes** (decided 2026-04-07/08 via `tuning_experiment` id=94 — see `docs/decisions.md` "W&B Inference on OpenPipe/Qwen3-14B-Instruct"). Training via **W&B Serverless SFT (ART framework, free during public preview)** → adapter auto-saved as W&B artifact → served via W&B Inference at $0.05/$0.22 per 1M tokens. LoRA artifact storage is free under the 100GB free tier (a r=16 adapter is ~50MB). **W&B LoRA convention: artifact URI goes in the `model` field** (e.g. `model: "wandb-artifact:///team/project/name:v9"`). W&B silently ignores a separate `lora` field — that convention is Together AI only. Transport layer (`src/transport.ts`) auto-detects `wandb-artifact:///` prefix and routes correctly. **V4 tonal-pass adapter trained and validated** (exp #98, 2026-04-08): `howard-tonal-v4-sft-resume:v8` on W&B Inference beats V3 on every metric (classifier 0.550 vs 0.422, perplexity 3086 vs 4814, feature KL 1.564 vs 1.534 Howard ref, 597ms vs 1757ms latency). **Serving URI is `wandb-artifact:///andre14618-/novel-harness/howard-tonal-v4-sft-resume:v8`** — NOT `howard-tonal-v4:latest` (that's the identity LoRA placeholder; see lessons-learned "W&B ART submits async"). V3 on Together AI is the current live adapter pending the switchover. **Together standard tier is ~50-100× slower than Groq fast tier per `docs/lessons-learned.md` — only use Together for actual LoRA serving of the legacy adapter, not per-beat agents or new training.**
 - Transport: `src/transport.ts` — pluggable layer beneath all LLM calls (direct, batch). Per-call telemetry written to `llm_calls`.
 - Interface: React UI (`/app`), CLI
 
@@ -199,11 +199,22 @@ bun test
 | Retrieval engine | `src/db/retrieval.ts` |
 | Fine-tuning strategy + adapter roadmap | `docs/fine-tuning-strategy.md` |
 | LoRA training best practices + experiment log | `docs/lora-style-transfer-report.md` |
+| Architectural decisions with rationale | `docs/decisions.md` |
 
 ## Reference docs
 
-- `docs/todo.md` — **living to-do** — items removed when done
+- `docs/todo.md` — **living to-do** — pending action items only
+- `docs/decisions.md` — **architectural decisions with rationale** — append-only record of what was decided and why
 - `docs/lessons-learned.md` — **read before designing agents, rubrics, or experiments**
 - `docs/commit-conventions.md` — commit message format
 - `docs/world-knowledge-graph.md` — knowledge graph, context assembly, retrieval parameters
 - `docs/ai-tells-*.md` — lint pattern research (cliches, emotional echo, hedging, rhythm)
+
+## Decision Recording SOP
+
+When an experiment concludes, a design choice is made, or a path is ruled out:
+
+1. **Add an entry to `docs/decisions.md`** — decision, why, alternatives rejected, ongoing implications. Use the experiment ID and date.
+2. **Remove the rationale from `docs/todo.md`** — todo.md is for pending action items only. Completed items and decision history do not belong there.
+3. **Record the experiment in the DB** — `createTuningExperiment()` + `concludeExperiment()` per the existing SOP.
+4. **Commit docs separately** from code changes (see `docs/commit-conventions.md`).
