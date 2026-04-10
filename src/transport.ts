@@ -84,11 +84,15 @@ export class DirectTransport implements LLMTransport {
       ? { max_completion_tokens: request.maxTokens }
       : { max_tokens: request.maxTokens }
 
-    // Resolve fine-tune: if the model has baseModel/lora, send baseModel as the API model
-    // and include the lora adapter ID as a separate field
+    // Resolve fine-tune: provider-specific LoRA handling
+    // - W&B Inference: LoRA artifact URI goes in the `model` field (not a separate field)
+    // - Together AI: separate `lora` field alongside the base model
     const modelDef = getModel(request.model, request.provider)
-    const apiModel = modelDef?.baseModel ?? request.model
-    const loraExtra = modelDef?.lora ? { lora: modelDef.lora } : {}
+    const isWandbLora = modelDef?.lora?.startsWith("wandb-artifact:///")
+    const apiModel = isWandbLora
+      ? modelDef!.lora!                           // W&B: artifact URI IS the model
+      : (modelDef?.baseModel ?? request.model)    // Together/others: base model + separate lora
+    const loraExtra = (modelDef?.lora && !isWandbLora) ? { lora: modelDef.lora } : {}
     const reasoningExtra = modelDef?.reasoningEffort ? { reasoning_effort: modelDef.reasoningEffort } : {}
 
     const providerExtra = providerDef.extraBody ? providerDef.extraBody() : {}
@@ -122,7 +126,7 @@ export class DirectTransport implements LLMTransport {
           const text = await res.text()
           throw new Error(`LLM request failed after ${maxRetries} retries: ${res.status} ${text}`)
         }
-        console.log(`  [LLM] ${res.status} — retrying in ${delay / 1000}s (attempt ${attempt + 1}/${maxRetries})...`)
+        console.log(`  [LLM] ${request.provider}/${apiModel} ${res.status} — retrying in ${delay / 1000}s (attempt ${attempt + 1}/${maxRetries})...`)
         await Bun.sleep(delay)
         continue
       }

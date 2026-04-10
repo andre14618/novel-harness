@@ -799,6 +799,24 @@ Across style fine-tuning literature and community runs, training loss dropping b
 
 **Fix:** after a training job completes, use `<name>-sft-resume:latest` (or the specific final checkpoint version, e.g. `:v8`) as the inference URI, not `<name>:latest`. Verify with a deterministic probe (temperature=0, compare base vs artifact output — identical = identity LoRA still serving). (v4 training run, `tuning_experiment` id=95/96)
 
+### W&B and Together AI have incompatible LoRA serving conventions — the `lora` field is provider-specific (2026-04-09)
+
+W&B Inference expects the LoRA artifact URI as the `model` parameter:
+```json
+{"model": "wandb-artifact:///team/project/adapter:v9", "messages": [...]}
+```
+
+Together AI expects a separate `lora` field alongside the base model:
+```json
+{"model": "Qwen/Qwen3.5-9B", "lora": "user/adapter-id", "messages": [...]}
+```
+
+W&B **silently ignores** a separate `lora` field — returns HTTP 200 with base model output, no error. This caused V1 and V2 adherence adapter evals to produce byte-identical results to the base model. Diagnosed by comparing temperature=0 outputs: all three were character-for-character identical.
+
+**Fix:** `src/transport.ts` now detects `wandb-artifact:///` prefixed LoRA URIs and routes them to the `model` field instead of a separate `lora` field. When configuring W&B fine-tunes, use the artifact URI directly as the model — do not use the `baseModel`/`lora` split (that pattern is Together AI only).
+
+**Diagnostic:** Always verify LoRA loading with a temperature=0 deterministic probe comparing base vs adapter output. If identical, the adapter is not loading.
+
 ### RunPod dedicated GPU is 2× more expensive than Cerebras and 15× more expensive than W&B Inference at solo-developer volume — the value is flexibility, not cost (2026-04-08)
 
 Priced a 10-chapter novel run against actual `llm_calls` data (novel-1775484070927, April 6 2026): 130 beat-writer calls, 13 continuity calls, 44 relationship-timeline calls, 33 rewriter calls, plus concept and extraction agents. Real token counts:

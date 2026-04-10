@@ -485,6 +485,8 @@ The Together provider in `models/registry.ts` includes `chat_template_kwargs: { 
 
 The `lora` field in `ModelAssignment` (`models/roles.ts`) is passed through `getAgentConfig()` → `callAgent()` → `makeRequest()` to the Together API as a separate field on the base model, not as the model name.
 
+> **⚠ Together AI convention only.** W&B Inference uses a different convention: the artifact URI goes in the `model` field (e.g. `"model": "wandb-artifact:///team/project/name:v9"`). W&B silently ignores a separate `lora` field. See `docs/lessons-learned.md` "W&B and Together AI have incompatible LoRA serving conventions".
+
 ---
 
 ## 11. Qwen3-14B Training Plan (W&B Inference)
@@ -657,7 +659,7 @@ The adapter must be stored in `storage_region = "coreweave-us"` for low latency.
 
 ### 10.10 Platform Notes for Reproducibility
 
-**Together AI serverless LoRA inference call format:**
+**Together AI serverless LoRA inference call format (legacy — Together only):**
 ```json
 {
   "model": "Qwen/Qwen3.5-9B",
@@ -672,7 +674,9 @@ The adapter must be stored in `storage_region = "coreweave-us"` for low latency.
 }
 ```
 
-**Critical**: Use the `lora` field on the base model, NOT the adapter ID as the model name. The adapter ID as model returns "non-serverless" error.
+**Critical (Together AI only)**: Use the `lora` field on the base model, NOT the adapter ID as the model name. The adapter ID as model returns "non-serverless" error.
+
+> **W&B Inference uses a different convention.** Artifact URI goes in the `model` field: `"model": "wandb-artifact:///team/project/name:v9"`. No separate `lora` field. All new adapters should target W&B, not Together. See `docs/lessons-learned.md`.
 
 ### 10.9 Next Steps
 

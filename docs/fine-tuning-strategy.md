@@ -107,6 +107,8 @@ W&B trains adapter
 
 Transport layer needs no changes. The RunPod vLLM URL is a drop-in OpenAI-compatible base URL.
 
+> **LoRA serving convention (2026-04-09):** W&B and Together AI have incompatible LoRA APIs. W&B expects the artifact URI in the `model` field (`"model": "wandb-artifact:///team/project/name:v9"`). Together AI uses a separate `lora` field alongside the base model. W&B silently ignores a `lora` field — returns 200 with base model output. The transport layer (`src/transport.ts`) auto-detects `wandb-artifact:///` prefixed URIs and routes correctly. See `docs/lessons-learned.md` for the full post-mortem.
+
 ### When RunPod would actually become viable
 
 The real threshold is solving the training pipeline, not the serving side:
