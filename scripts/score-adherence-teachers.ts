@@ -128,7 +128,7 @@ interface ModelTarget {
 }
 
 const MODELS: ModelTarget[] = [
-  { key: "deepseek",  label: "DeepSeek V3.2 (Together)",  provider: "together",  model: "DeepSeek-AI/DeepSeek-V3-2-Exp" },
+  { key: "deepseek",  label: "DeepSeek V3.2",              provider: "deepseek",  model: "deepseek-chat" },
   { key: "kimik25",   label: "Kimi K2.5 (Together)",      provider: "together",  model: "moonshotai/Kimi-K2.5" },
   { key: "glm51",     label: "GLM 5.1 (Together)",        provider: "together",  model: "zai-org/GLM-5.1" },
 ]
@@ -228,7 +228,7 @@ async function main() {
   for (const m of MODELS) allStats.set(m.key, emptyStats())
 
   // Run all models × all slots per pair in parallel
-  const PAIR_CONCURRENCY = 4
+  const PAIR_CONCURRENCY = 2  // GLM 5.1 on Together hits 429 at higher concurrency
   for (let i = 0; i < pairs.length; i += PAIR_CONCURRENCY) {
     const batch = pairs.slice(i, i + PAIR_CONCURRENCY)
     await Promise.all(batch.map(async (p, bi) => {

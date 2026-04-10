@@ -1,7 +1,7 @@
 ---
 status: active
-updated: 2026-04-09
-derived-from: tuning_experiments #10, #86-94, #107-123, #135, #138
+updated: 2026-04-10
+derived-from: tuning_experiments #10, #86-94, #107-123, #135, #138, #140
 ---
 
 # Model Capability Matrix
@@ -27,6 +27,18 @@ Statistical reference for which models perform best on which pipeline tasks. All
 **Key finding:** 235B is weakest on **FAIL_MISSING (events) at 85%** — the highest-stakes flag. gpt-oss scores 93% on the same variant (+8pp) but drops 13pp on tangent. No single model is best everywhere.
 
 **Production model:** W&B Qwen3-14B + V2 LoRA (deployed 2026-04-09, exp #135).
+
+### Adherence Teacher Ladder — Full 5-Model Comparison (exp #122, #138, #140)
+
+| Model | Overall | FAIL_MISS | FAIL_CHAR | FAIL_SET | FAIL_TANG | PASS_REORD | Latency | Provider |
+|-------|--------:|----------:|----------:|---------:|----------:|-----------:|--------:|----------|
+| **Qwen 235B** | **97%** | 85% | 95% | 100% | **100%** | 95% | 486ms | Cerebras |
+| **Kimi K2.5** | **95%** | **95%** | 95% | 100% | 90% | 80% | 1931ms | Together |
+| gpt-oss-120b | 95% | 93% | **100%** | 100% | 87% | 100% | ~2400ms | Groq |
+| GLM 5.1 | 94% | 90% | **100%** | 100% | 75% | 85% | 2521ms | Together |
+| DeepSeek V3.2 | 90% | 80% | 90% | 100% | 55% | 95% | 2984ms | DeepSeek |
+
+**DeepSeek V3.2 is not viable as a teacher** — tangent collapsed to 55%. **Kimi K2.5 is the best events teacher** at 95% (+10pp over 235B). **235B remains the only model at 100% on tangent.**
 
 ---
 
@@ -218,3 +230,60 @@ Same workload shape across providers, for models available on W&B Inference:
 | #132 | Adherence SFT data generation | 10,008 training examples from 4 writers |
 | #135 | Adherence V1/V2 production eval | **V2 at 90% — DEPLOYED** |
 | #138 | gpt-oss adherence eval | 95% overall; FAIL_MISSING 93% (+8pp vs 235B) |
+| #140 | Teacher ladder: DeepSeek/K2.5/GLM | K2.5 best events (95%); DeepSeek not viable (tangent 55%) |
+
+---
+
+## Fine-Tune Teacher Competency Matrix
+
+Quick reference: which model to use as teacher (label source) for each task and flag when generating SFT training data. Based on experiments #119, #122, #138, #140.
+
+### Adherence Checker — Per-Flag Best Teacher
+
+| Flag | Best Teacher | Accuracy | Runner-up | Gap | Notes |
+|------|-------------|:--------:|-----------|:---:|-------|
+| **events** | **Kimi K2.5** | **95%** | gpt-oss-120b (93%) | +2pp | +10pp over 235B oracle. K2.5 is aggressive on missing actions — exactly what this flag needs |
+| **setting** | Any (all 100%) | **100%** | — | 0 | Use 235B (cheapest/fastest). All 5 tested models are perfect |
+| **tangent** | **Qwen 235B** | **100%** | Kimi K2.5 (90%) | +10pp | Only model that never misses tangent drift. Critical — tangent is the subtlest judgment |
+| **character** | **gpt-oss / GLM** | **100%** | K2.5/235B (95%) | +5pp | Tied at ceiling. gpt-oss already in pipeline, prefer it |
+
+### Chapter Plan Checker — Per-Task Best Teacher
+
+| Task | Best Teacher | Accuracy | Runner-up | Gap | Notes |
+|------|-------------|:--------:|-----------|:---:|-------|
+| **Overall** | **gpt-oss-120b** | **90%** | Qwen 235B (81%) | +9pp | Beats 235B on every FAIL variant |
+| **FAIL_MISSING_BEAT** | **gpt-oss-120b** | **50%** | 235B (10%) | +40pp | Hardest variant; even best model catches half |
+| **FAIL_REVERSED_ARC** | **gpt-oss-120b** | **80%** | 235B (70%) | +10pp | Sequence-level reasoning |
+
+### Continuity — Teacher Status
+
+| Severity | Best Available | Accuracy | Assessment |
+|----------|---------------|:--------:|------------|
+| **BLOCKER** | Qwen 235B | 75-85% | Adequate but not strong |
+| **WARNING** | None adequate | 0-16% | **BLOCKED** — no model in the ladder detects warnings reliably |
+| **NIT** | Qwen 235B (checklist) | 35% | Weak; only model above 15% |
+| **TRAP** | 235B / 14B (checklist) | 100% | Solved by schema branch |
+
+**Continuity SFT is blocked** until a stronger teacher is found. Claude (Opus/Sonnet) is the recommended teacher for offline labeling — 235B misses 90% of warnings and 65% of nits.
+
+### Cross-Task Teacher Summary
+
+| Task | Teacher | Status | V3 Action |
+|------|---------|--------|-----------|
+| Adherence events | Kimi K2.5 (95%) | **Ready** | Use as events teacher in mixed-teacher data gen |
+| Adherence setting | Qwen 235B (100%) | **Ready** | Continue using 235B |
+| Adherence tangent | Qwen 235B (100%) | **Ready** | Continue using 235B |
+| Adherence character | gpt-oss-120b (100%) | **Ready** | Swap from 235B to gpt-oss for character labels |
+| Chapter-plan | gpt-oss-120b (90%) | **Ready** | Distill gpt-oss, manually escalate MISSING_BEAT |
+| Continuity | Claude Opus/Sonnet | **BLOCKED** | Need teacher eval first |
+| Tonal pass | Howard corpus | **Ready** | V4 trained; pref eval pending |
+| Reference resolver | N/A | **OFF LIST** | 97.5% recall, no deficit |
+
+### Models NOT Recommended as Teachers
+
+| Model | Why | Evidence |
+|-------|-----|---------|
+| **DeepSeek V3.2** | Tangent detection collapsed (55%). Systematically under-flags drift. | Exp #140: 9 false passes on FAIL_TANGENT, worst of any model tested |
+| **Qwen3-14B base** | 100% rubber-stamp bias on chapter-plan-checker (38 FP / 0 FN). Over-permissive on adherence FAIL variants. | Exp #107, #110 |
+| **Llama 3.1 8B** | Over-strict on adherence PASS variants (42 false-fails). Unusable for any judging task. | Exp #110 |
+| **MiMo V2 Flash** | Adherence failures in writing (inverts characters, wrong genre vocab). Inconsistent as judge. | Exp #86-90 |

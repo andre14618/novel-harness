@@ -836,6 +836,41 @@ The events slot is the highest-stakes flag (missing beat action = structurally b
 
 **Implication for tiered retry:** Events and character should remain hard gates (always retry on flag). Setting and tangent should be soft gates (log warning, don't retry) unless the oracle is also running — its 100% accuracy on those flags means every flag it fires is real.
 
+### Mixed-teacher approach validated — no single model is best across all adherence flags (2026-04-09)
+
+Teacher comparison across 5 models on the same 160-pair decomposed adherence eval (exp #122 reference, #138 gpt-oss, #140 teacher ladder). All models scored against deterministic labels with the 4-call decomposed prompt.
+
+| Model | Overall | FAIL_MISS | FAIL_CHAR | FAIL_SET | FAIL_TANG | PASS_REORD | Latency |
+|-------|--------:|----------:|----------:|---------:|----------:|-----------:|--------:|
+| **Qwen 235B** (#122) | **97%** | 85% | 95% | 100% | **100%** | 95% | 486ms |
+| **Kimi K2.5** (#140) | **95%** | **95%** | 95% | 100% | 90% | 80% | 1931ms |
+| gpt-oss-120b (#138) | 95% | 93% | **100%** | 100% | 87% | 100% | 2984ms* |
+| GLM 5.1 (#140) | 94% | 90% | **100%** | 100% | 75% | 85% | 2521ms |
+| DeepSeek V3.2 (#140) | 90% | 80% | 90% | 100% | 55% | 95% | 2984ms |
+
+*gpt-oss latency from exp #138 (Groq); DeepSeek latency from native API; K2.5/GLM via Together AI.
+
+**Per-flag best teacher for V3 training data:**
+
+| Flag | Best teacher | Accuracy | Runner-up | Why best |
+|------|-------------|----------|-----------|----------|
+| **events** | **Kimi K2.5** | **95%** | gpt-oss 93% | +10pp over 235B oracle on the highest-stakes flag |
+| **setting** | Any model | 100% | — | All 5 models perfect; use 235B (cheapest/fastest) |
+| **tangent** | **Qwen 235B** | **100%** | K2.5 90% | Only model that never misses tangent drift |
+| **character** | **gpt-oss / GLM** | **100%** | K2.5/235B 95% | Tied at ceiling; gpt-oss already in pipeline |
+
+**Three lessons from this ladder:**
+
+1. **DeepSeek V3.2 is not a viable teacher for any adherence flag.** 90% overall with tangent collapsed to 55% (9 false passes). It systematically under-flags drift — the prose can abandon the beat for 70%+ of its length and DeepSeek still calls it on-spec. Not recommended for any analytical judging task in this pipeline.
+
+2. **Kimi K2.5's weakness is PASS_REORDER (80%).** It false-fails on reordered prose — when beats are enacted but in a different sequence than the plan specified. This is the reverse of the events strength: K2.5 is aggressive at finding missing actions, which also makes it hair-trigger on reordered ones. For V3 training data, use K2.5 *only* for events labels, not as a wholesale oracle.
+
+3. **The cost of the mixed-teacher approach is pipeline complexity, not money.** All 5 models cost <$0.01 total for the 160-pair eval. The real cost is maintaining per-flag routing in the data generation script — `scripts/generate-adherence-decomposed-data.ts` needs to call K2.5 for events labels, 235B for tangent labels, and gpt-oss for character labels instead of a single oracle. This is ~20 lines of routing code, not a major refactor.
+
+**Methodology note — Together AI credits are useful for one-off teacher evaluations.** K2.5 and GLM were both available on Together AI and ran without issues (some 429 rate limiting on GLM at concurrency 4, reduced to 2). DeepSeek V3.2 was not available on Together under the expected model ID and was routed through the native DeepSeek API instead. When running multi-provider comparisons, check model availability on the target provider before the run, and have fallback providers ready.
+
+(Exp #140, commit `93e0f6a`; ref experiments #122 Qwen 235B, #138 gpt-oss)
+
 ### RunPod dedicated GPU is 2× more expensive than Cerebras and 15× more expensive than W&B Inference at solo-developer volume — the value is flexibility, not cost (2026-04-08)
 
 Priced a 10-chapter novel run against actual `llm_calls` data (novel-1775484070927, April 6 2026): 130 beat-writer calls, 13 continuity calls, 44 relationship-timeline calls, 33 rewriter calls, plus concept and extraction agents. Real token counts:
