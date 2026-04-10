@@ -24,35 +24,46 @@ const CALL_TYPES = ["events", "setting", "tangent", "character"] as const;
 
 // Adapter URIs — using final checkpoints (v9 = last of 10 saved during 2-epoch training)
 // W&B Inference: LoRA artifact URI goes in the `model` field (NOT a separate `lora` field).
-const ALL_MODELS = {
-  "oracle-235b": {
-    provider: "cerebras" as const,
-    model: "qwen-3-235b-a22b-instruct-2507",
-  },
+// -- Oracle models --
+// Single oracle (legacy): 235B for all call types
+// Mixed oracle: per-flag best teacher matching V3 training data routing
+const ORACLE_235B = { provider: "cerebras" as const, model: "qwen-3-235b-a22b-instruct-2507" };
+const ORACLE_K25 = { provider: "together" as const, model: "moonshotai/Kimi-K2.5" };
+const ORACLE_GPTOSS = { provider: "groq" as const, model: "openai/gpt-oss-120b" };
+
+const MIXED_ORACLE = process.argv.includes("--mixed-oracle");
+
+// Per-call-type oracle: matches V3 mixed-teacher training routing
+const ORACLE_BY_CALL_TYPE: Record<string, { provider: string; model: string }> = {
+  events: MIXED_ORACLE ? ORACLE_K25 : ORACLE_235B,
+  setting: ORACLE_235B,
+  tangent: ORACLE_235B,
+  character: MIXED_ORACLE ? ORACLE_GPTOSS : ORACLE_235B,
+};
+
+const ALL_MODELS: Record<string, { provider: string; model: string }> = {
   "base-14b": {
-    provider: "wandb" as const,
+    provider: "wandb",
     model: "OpenPipe/Qwen3-14B-Instruct",
   },
   "v1-uncurated": {
-    provider: "wandb" as const,
+    provider: "wandb",
     model: "wandb-artifact:///andre14618-/novel-harness/adherence-checker-v1-sft-resume:v9",
   },
   "v2-curated": {
-    provider: "wandb" as const,
+    provider: "wandb",
     model: "wandb-artifact:///andre14618-/novel-harness/adherence-checker-v2-sft-resume:v9",
   },
   "v3-mixed-teacher": {
-    provider: "wandb" as const,
+    provider: "wandb",
     model: "wandb-artifact:///andre14618-/novel-harness/adherence-checker-v3-sft-resume:v9",
   },
 };
 
-// --only flag: run oracle + specified model only (e.g. --only v3-mixed-teacher)
+// --only flag: run oracle + specified model only (e.g. --only=v3-mixed-teacher)
 const ONLY = process.argv.find(a => a.startsWith("--only="))?.split("=")[1];
-const MODELS = ONLY
-  ? Object.fromEntries(
-      Object.entries(ALL_MODELS).filter(([k]) => k === "oracle-235b" || k === ONLY)
-    ) as typeof ALL_MODELS
+const CANDIDATE_MODELS = ONLY
+  ? Object.fromEntries(Object.entries(ALL_MODELS).filter(([k]) => k === ONLY))
   : ALL_MODELS;
 
 // System prompts — copied from src/agents/writer/adherence-checker.ts (the inline constants)
@@ -252,12 +263,16 @@ function getFlag(callType: string, result: any): boolean | undefined {
 }
 
 async function main() {
+  const oracleLabel = MIXED_ORACLE ? "mixed oracle" : "235B oracle";
+  console.log(`Mode: ${MIXED_ORACLE ? "--mixed-oracle (events→K2.5, character→gpt-oss, setting/tangent→235B)" : "single oracle (235B)"}`);
+  if (ONLY) console.log(`Evaluating only: ${ONLY}`);
   console.log(`Fetching production pairs (${SMOKE ? "SMOKE" : "full"} mode, ${CHAPTER_LIMIT} chapters)...`);
   const pairs = await getProductionPairs(CHAPTER_LIMIT);
   console.log(`Got ${pairs.length} beat/prose pairs from ${CHAPTER_LIMIT} chapters\n`);
 
-  // Track results
-  const results: Array<{
+  // Track results: oracle and candidate calls separately
+  const oracleResults = new Map<string, { result: any; latency: number }>();  // key: pairIdx:callType
+  const candidateResults: Array<{
     pairIdx: number;
     callType: string;
     modelName: string;
@@ -265,59 +280,52 @@ async function main() {
     latency: number;
   }> = [];
 
-  // Evaluate each pair × call type × model
-  const modelEntries = Object.entries(MODELS);
+  const candidateEntries = Object.entries(CANDIDATE_MODELS);
+  const totalCalls = pairs.length * CALL_TYPES.length * (1 + candidateEntries.length); // 1 oracle + N candidates
   let done = 0;
-  const total = pairs.length * CALL_TYPES.length * modelEntries.length;
 
   for (let pi = 0; pi < pairs.length; pi++) {
     const pair = pairs[pi];
 
     for (const callType of CALL_TYPES) {
-      // Run all models in parallel for this pair × call type
-      const modelResults = await Promise.all(
-        modelEntries.map(async ([modelName, modelConfig]) => {
+      const oracleConfig = ORACLE_BY_CALL_TYPE[callType];
+
+      // Run oracle + all candidates in parallel
+      const allCalls = [
+        // Oracle call
+        (async () => {
+          try {
+            const { result, latency } = await runCheck(callType, pair, oracleConfig);
+            oracleResults.set(`${pi}:${callType}`, { result, latency });
+            done++;
+          } catch (e: any) {
+            oracleResults.set(`${pi}:${callType}`, { result: { _error: e.message?.slice(0, 100) }, latency: 0 });
+            done++;
+          }
+        })(),
+        // Candidate calls
+        ...candidateEntries.map(async ([modelName, modelConfig]) => {
           try {
             const { result, latency } = await runCheck(callType, pair, modelConfig);
             done++;
-            return { pairIdx: pi, callType, modelName, result, latency };
+            candidateResults.push({ pairIdx: pi, callType, modelName, result, latency });
           } catch (e: any) {
             done++;
-            return {
-              pairIdx: pi,
-              callType,
-              modelName,
-              result: { _error: e.message?.slice(0, 100) },
-              latency: 0,
-            };
+            candidateResults.push({ pairIdx: pi, callType, modelName, result: { _error: e.message?.slice(0, 100) }, latency: 0 });
           }
-        })
-      );
-      results.push(...modelResults);
+        }),
+      ];
+      await Promise.all(allCalls);
     }
 
     if ((pi + 1) % 5 === 0) {
-      console.log(`  Progress: ${pi + 1}/${pairs.length} pairs (${done}/${total} calls)`);
+      console.log(`  Progress: ${pi + 1}/${pairs.length} pairs (${done}/${totalCalls} calls)`);
     }
   }
 
   // Compute agreement rates
-  console.log("\n=== AGREEMENT WITH ORACLE (235B) ===\n");
+  console.log(`\n=== AGREEMENT WITH ${oracleLabel.toUpperCase()} ===\n`);
 
-  // Group results by pairIdx + callType
-  const byKey = new Map<string, Map<string, any>>();
-  for (const r of results) {
-    const key = `${r.pairIdx}:${r.callType}`;
-    if (!byKey.has(key)) byKey.set(key, new Map());
-    byKey.get(key)!.set(r.modelName, r);
-  }
-
-  // For each model, compute agreement with oracle
-  const modelNames = modelEntries
-    .map(([n]) => n)
-    .filter((n) => n !== "oracle-235b");
-
-  // Also track disagreement details for diagnosis
   const disagreements: Array<{
     modelName: string;
     callType: string;
@@ -326,49 +334,41 @@ async function main() {
     candidateFlag: any;
   }> = [];
 
-  for (const modelName of modelNames) {
+  for (const [modelName] of candidateEntries) {
     const agreementByType: Record<string, { agree: number; total: number }> = {};
     const latencies: number[] = [];
 
-    for (const [key, models] of byKey) {
-      const callType = key.split(":")[1];
-      const oracle = models.get("oracle-235b");
-      const candidate = models.get(modelName);
-      if (!oracle || !candidate) continue;
-      if (oracle.result._error || candidate.result._error) continue;
-      if (oracle.result._parseError || candidate.result._parseError) continue;
+    for (const cr of candidateResults.filter(r => r.modelName === modelName)) {
+      const oracle = oracleResults.get(`${cr.pairIdx}:${cr.callType}`);
+      if (!oracle) continue;
+      if (oracle.result._error || cr.result._error) continue;
+      if (oracle.result._parseError || cr.result._parseError) continue;
 
-      if (!agreementByType[callType]) {
-        agreementByType[callType] = { agree: 0, total: 0 };
+      if (!agreementByType[cr.callType]) {
+        agreementByType[cr.callType] = { agree: 0, total: 0 };
       }
-      agreementByType[callType].total++;
+      agreementByType[cr.callType].total++;
 
-      const oracleFlag = getFlag(callType, oracle.result);
-      const candidateFlag = getFlag(callType, candidate.result);
+      const oracleFlag = getFlag(cr.callType, oracle.result);
+      const candidateFlag = getFlag(cr.callType, cr.result);
 
       if (oracleFlag === candidateFlag) {
-        agreementByType[callType].agree++;
+        agreementByType[cr.callType].agree++;
       } else {
         disagreements.push({
           modelName,
-          callType,
-          pairIdx: parseInt(key.split(":")[0]),
+          callType: cr.callType,
+          pairIdx: cr.pairIdx,
           oracleFlag,
           candidateFlag,
         });
       }
 
-      latencies.push(candidate.latency);
+      latencies.push(cr.latency);
     }
 
-    const totalAgree = Object.values(agreementByType).reduce(
-      (s, a) => s + a.agree,
-      0
-    );
-    const totalCount = Object.values(agreementByType).reduce(
-      (s, a) => s + a.total,
-      0
-    );
+    const totalAgree = Object.values(agreementByType).reduce((s, a) => s + a.agree, 0);
+    const totalCount = Object.values(agreementByType).reduce((s, a) => s + a.total, 0);
     const avgLatency = latencies.length
       ? Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length)
       : 0;
@@ -377,33 +377,36 @@ async function main() {
       `${modelName}: ${totalAgree}/${totalCount} (${totalCount > 0 ? Math.round((totalAgree / totalCount) * 100) : 0}%) | avg ${avgLatency}ms`
     );
     for (const [ct, { agree, total }] of Object.entries(agreementByType)) {
+      const oracleModel = ORACLE_BY_CALL_TYPE[ct].model.split("/").pop();
       console.log(
-        `  ${ct.padEnd(12)} ${agree}/${total} (${total > 0 ? Math.round((agree / total) * 100) : 0}%)`
+        `  ${ct.padEnd(12)} ${agree}/${total} (${total > 0 ? Math.round((agree / total) * 100) : 0}%) [oracle: ${oracleModel}]`
       );
     }
     console.log("");
   }
 
-  // Oracle latency stats
-  const oracleLatencies = results
-    .filter((r) => r.modelName === "oracle-235b")
-    .map((r) => r.latency);
-  const avgOracleLatency = oracleLatencies.length
-    ? Math.round(
-        oracleLatencies.reduce((a, b) => a + b, 0) / oracleLatencies.length
-      )
-    : 0;
-  console.log(`Oracle (235B) avg latency: ${avgOracleLatency}ms`);
+  // Oracle latency stats per call type
+  console.log("Oracle latencies:");
+  for (const ct of CALL_TYPES) {
+    const lats = [...oracleResults.entries()]
+      .filter(([k]) => k.endsWith(`:${ct}`))
+      .map(([, v]) => v.latency)
+      .filter(l => l > 0);
+    const avg = lats.length ? Math.round(lats.reduce((a, b) => a + b, 0) / lats.length) : 0;
+    const model = ORACLE_BY_CALL_TYPE[ct].model.split("/").pop();
+    console.log(`  ${ct.padEnd(12)} avg ${avg}ms [${model}]`);
+  }
 
   // Error/parse-failure summary
-  const errors = results.filter((r) => r.result._error);
-  const parseErrors = results.filter((r) => r.result._parseError);
+  const allResults = [...candidateResults, ...[...oracleResults.entries()].map(([k, v]) => ({ modelName: "oracle", callType: k.split(":")[1], ...v }))];
+  const errors = allResults.filter((r: any) => r.result._error);
+  const parseErrors = allResults.filter((r: any) => r.result._parseError);
   if (errors.length > 0 || parseErrors.length > 0) {
     console.log(`\n--- Errors: ${errors.length} API errors, ${parseErrors.length} parse errors ---`);
-    for (const e of errors.slice(0, 5)) {
+    for (const e of errors.slice(0, 5) as any[]) {
       console.log(`  ${e.modelName}/${e.callType}: ${e.result._error}`);
     }
-    for (const e of parseErrors.slice(0, 5)) {
+    for (const e of parseErrors.slice(0, 5) as any[]) {
       console.log(`  ${e.modelName}/${e.callType} parse: ${e.result.raw}`);
     }
   }
