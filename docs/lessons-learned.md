@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-08
+updated: 2026-04-10
 ---
 
 # Lessons Learned
@@ -836,7 +836,7 @@ The events slot is the highest-stakes flag (missing beat action = structurally b
 
 **Implication for tiered retry:** Events and character should remain hard gates (always retry on flag). Setting and tangent should be soft gates (log warning, don't retry) unless the oracle is also running — its 100% accuracy on those flags means every flag it fires is real.
 
-### Mixed-teacher approach validated — no single model is best across all adherence flags (2026-04-09)
+### Mixed-teacher approach DISCONFIRMED — synthetic teacher accuracy doesn't predict training data quality on marginal cases (2026-04-09/10)
 
 Teacher comparison across 5 models on the same 160-pair decomposed adherence eval (exp #122 reference, #138 gpt-oss, #140 teacher ladder). All models scored against deterministic labels with the 4-call decomposed prompt.
 
@@ -850,26 +850,39 @@ Teacher comparison across 5 models on the same 160-pair decomposed adherence eva
 
 *gpt-oss latency from exp #138 (Groq); DeepSeek latency from native API; K2.5/GLM via Together AI.
 
-**Per-flag best teacher for V3 training data:**
+Based on this ladder, V3 training data was generated with per-flag routing: K2.5 for events, gpt-oss for character, 235B for setting/tangent. 7,541 curated examples. **V3 was trained and evaluated (exp #146) — it regressed vs V2.**
 
-| Flag | Best teacher | Accuracy | Runner-up | Why best |
-|------|-------------|----------|-----------|----------|
-| **events** | **Kimi K2.5** | **95%** | gpt-oss 93% | +10pp over 235B oracle on the highest-stakes flag |
-| **setting** | Any model | 100% | — | All 5 models perfect; use 235B (cheapest/fastest) |
-| **tangent** | **Qwen 235B** | **100%** | K2.5 90% | Only model that never misses tangent drift |
-| **character** | **gpt-oss / GLM** | **100%** | K2.5/235B 95% | Tied at ceiling; gpt-oss already in pipeline |
+**V3 vs V2 absolute accuracy on 1,343 synthetic ground-truth pairs (exp #146, `scripts/eval-adherence-synthetic.ts`):**
 
-**Three lessons from this ladder:**
+| | base-14b | V2 (235B teacher) | V3 (mixed teacher) |
+|---|---:|---:|---:|
+| **Overall** | 86.4% | **95.2%** | 94.4% (-0.8pp) |
+| Precision | 99.1% | 98.8% | 98.2% |
+| Recall | 55.1% | **84.9%** | 82.9% (-2pp) |
+| events | 82.7% | **95.4%** | 91.4% (-4pp) |
+| character | 93.8% | **94.9%** | 93.2% (-1.7pp) |
+| setting | 99.1% | 99.7% | 99.7% (=) |
+| tangent | 71.0% | 90.6% | **93.2%** (+2.6pp) |
 
-1. **DeepSeek V3.2 is not a viable teacher for any adherence flag.** 90% overall with tangent collapsed to 55% (9 false passes). It systematically under-flags drift — the prose can abandon the beat for 70%+ of its length and DeepSeek still calls it on-spec. Not recommended for any analytical judging task in this pipeline.
+**Critical variant-level regressions:**
 
-2. **Kimi K2.5's weakness is PASS_REORDER (80%).** It false-fails on reordered prose — when beats are enacted but in a different sequence than the plan specified. This is the reverse of the events strength: K2.5 is aggressive at finding missing actions, which also makes it hair-trigger on reordered ones. For V3 training data, use K2.5 *only* for events labels, not as a wholesale oracle.
+| Variant | V2 | V3 | Delta |
+|---|---:|---:|---:|
+| FAIL_MISSING_SUBTLE | **78.6%** | 55.4% | **-23pp** |
+| FAIL_CHAR | **78.9%** | 73.7% | -5pp |
+| FAIL_TANGENT_HARD | 69.0% | **82.8%** | +14pp |
 
-3. **The cost of the mixed-teacher approach is pipeline complexity, not money.** All 5 models cost <$0.01 total for the 160-pair eval. The real cost is maintaining per-flag routing in the data generation script — `scripts/generate-adherence-decomposed-data.ts` needs to call K2.5 for events labels, 235B for tangent labels, and gpt-oss for character labels instead of a single oracle. This is ~20 lines of routing code, not a major refactor.
+V3 improved only on tangent (the one flag where 235B was already the teacher for both V2 and V3). Events and character — the two flags where the teacher was swapped — both regressed. FAIL_MISSING_SUBTLE collapsed from 78.6% to 55.4%.
 
-**Methodology note — Together AI credits are useful for one-off teacher evaluations.** K2.5 and GLM were both available on Together AI and ran without issues (some 429 rate limiting on GLM at concurrency 4, reduced to 2). DeepSeek V3.2 was not available on Together under the expected model ID and was routed through the native DeepSeek API instead. When running multi-provider comparisons, check model availability on the target provider before the run, and have fallback providers ready.
+**Why the mixed-teacher approach failed:**
 
-(Exp #140, commit `93e0f6a`; ref experiments #122 Qwen 235B, #138 gpt-oss)
+The teacher ladder (table above) measured accuracy on **synthetic pairs with unambiguous injected failures** — beats completely removed, settings swapped, blatant contradictions. Every good model scores 85-100% on those. The synthetic eval cannot distinguish teachers' **calibration on marginal cases** — prose that partially covers a beat, character behavior that's arguably consistent. On those marginal production pairs (which make up the bulk of training data), each teacher draws the PASS/FAIL line differently. K2.5 is more lenient than 235B on subtle missing events, so V3 learned K2.5's lenient threshold and lost sensitivity on FAIL_MISSING_SUBTLE.
+
+**The lesson: teacher accuracy on easy synthetic benchmarks does not predict teacher quality on marginal cases that determine the student's decision boundary.** To properly compare teachers, you need to take cases where teachers *disagree* on production data, hand-label those disagreements, and see who's right. Synthetic-only teacher selection is insufficient.
+
+**V2 remains the production adapter.** Mixed-teacher is a dead end. If specific V2 weak spots need improvement (FAIL_MISSING_SUBTLE 78.6%, FAIL_TANGENT_HARD 69%), the path is targeted data curation on those variants within the single-teacher (235B) framework, or evaluating a frontier model (Sonnet) as teacher on disagreement cases only.
+
+(Exp #140 teacher ladder commit `93e0f6a`; V3 training exp #145; V3 eval exp #146 commit `0b7a138`; ref experiments #122 Qwen 235B, #138 gpt-oss)
 
 ### RunPod dedicated GPU is 2× more expensive than Cerebras and 15× more expensive than W&B Inference at solo-developer volume — the value is flexibility, not cost (2026-04-08)
 

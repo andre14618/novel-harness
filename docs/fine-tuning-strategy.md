@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-08
+updated: 2026-04-10
 ---
 
 # Fine-Tuning Strategy
@@ -138,9 +138,9 @@ Until condition 1 is true, RunPod is an infrastructure cost, not a cost saving. 
 
 ---
 
-### 2. Adherence Checker — SFT IN PROGRESS (4-call decomposed)
+### 2. Adherence Checker — V2 DEPLOYED, V3 DISCONFIRMED (4-call decomposed)
 
-**Current**: W&B Qwen3-14B-Instruct (base model, no LoRA) · 4 parallel calls (events/setting/tangent/character) · ~400ms avg · $0.00005/call
+**Current**: W&B Qwen3-14B-Instruct + V2 curated LoRA · 4 parallel calls (events/setting/tangent/character) · ~627ms avg · $0.00005/call
 
 **History**: Base 14B zero-shot hit 96% agreement on the old 160-pair single-call eval (exp #101). But the 4-call decomposed prompt (exp #122, 2026-04-08) revealed a 6pp gap: 14B at 91% vs 235B at 97% on the 160-pair decomposed eval. Worth closing at zero marginal cost (W&B SFT is free).
 
@@ -150,13 +150,16 @@ Until condition 1 is true, RunPod is an infrastructure cost, not a cost saving. 
 
 **Training status**:
 - **V1 (uncurated, 10,008 examples)**: Finished. 2 epochs, batch_size=2, cosine schedule, lr=2e-4. 10 checkpoints (v0-v9). Artifact: `adherence-checker-v1-sft-resume:v9`.
-- **V2 (curated, 8,524 examples)**: Finished. Same hyperparameters. Artifact: `adherence-checker-v2-sft-resume:v9`.
+- **V2 (curated, 8,524 examples)**: Finished. Same hyperparameters. Artifact: `adherence-checker-v2-sft-resume:v9`. **DEPLOYED to production.**
+- **V3 (mixed-teacher, 7,541 curated examples)**: Finished. Per-flag teacher routing: K2.5 for events, gpt-oss for character, 235B for setting/tangent. Artifact: `adherence-checker-v3-mixed-teacher-sft-resume:v9`. **DISCONFIRMED — regressed vs V2.** See eval below.
 
-**Production eval (exp #135, 2026-04-09)**: `scripts/eval-adherence-finetune.ts` — 64 beat/prose pairs from 20 approved chapters, 4 call types × 4 models = 1,024 API calls. V2 curated: **90% oracle agreement** (230/255). V1 uncurated: 87% (222/254). Base 14B: 77% (196/255). By call type: events V2 98%/V1 92%/base 78%, setting V2 88%/V1 83%/base 81%, tangent V2 87%/V1 92%/base 86%, character V2 88%/V1 83%/base 63%. Latency: V2 627ms, V1 701ms, base 402ms, oracle 383ms. **V2 deployed to production** (`models/roles.ts`).
+**V2 production eval (exp #135, 2026-04-09)**: `scripts/eval-adherence-finetune.ts` — 64 beat/prose pairs from 20 approved chapters, 4 call types × 4 models = 1,024 API calls. V2 curated: **90% oracle agreement** (230/255). V1 uncurated: 87% (222/254). Base 14B: 77% (196/255). By call type: events V2 98%/V1 92%/base 78%, setting V2 88%/V1 83%/base 81%, tangent V2 87%/V1 92%/base 86%, character V2 88%/V1 83%/base 63%. Latency: V2 627ms, V1 701ms, base 402ms, oracle 383ms.
+
+**V3 absolute accuracy eval (exp #146, 2026-04-10)**: `scripts/eval-adherence-synthetic.ts` — 1,343 synthetic pairs with known ground truth (injected failures), 3 models (base/V2/V3). **V3 94.4% overall vs V2 95.2%.** Critical regression: FAIL_MISSING_SUBTLE collapsed 78.6% → 55.4% (-23pp). Events recall dropped 86.6% → 74.1%. Character recall dropped 78.9% → 73.7%. Only tangent improved (71.8% → 79.5%). Root cause: K2.5 scored 95% on synthetic events (unambiguous failures) but has a more lenient threshold on marginal production cases than 235B. Training on K2.5 labels taught the student to be less sensitive to subtle missing events. **Lesson: synthetic teacher accuracy doesn't predict marginal-case calibration. A consistent single teacher (235B) produces better training signal than per-flag best teachers with different sensitivity thresholds.**
 
 > **Critical W&B LoRA convention**: artifact URI goes in the `model` field (`"model": "wandb-artifact:///team/project/name:v9"`). W&B silently ignores a separate `lora` field — that convention is Together AI only. First eval run produced byte-identical output to base because of this. See `docs/lessons-learned.md`.
 
-**Next steps**: (a) 3-chapter romance-drama end-to-end validation, (b) if gap worth closing further: enrich with production data via `scripts/extract-production-adherence-data.ts`, active learning for V3, then GRPO/RL.
+**Next steps**: (a) tiered retry policy (events/character hard gate, setting/tangent soft gate), (b) 3-chapter romance-drama end-to-end validation of V2 + tiered retry, (c) if V2 weak spots need closing (FAIL_MISSING_SUBTLE 78.6%, FAIL_TANGENT_HARD 69%): targeted curation within 235B framework or Sonnet-as-teacher on disagreement cases, then GRPO/RL.
 
 **Legacy data**: 160 flat-format pairs (exp #99–#100) in `lora-data/adherence-checker-pairs.jsonl` are superseded by the decomposed format.
 
@@ -321,7 +324,7 @@ Until condition 1 is true, RunPod is an infrastructure cost, not a cost saving. 
 
 | Fine-tune target | Data sufficient? | Bottleneck | Path forward |
 |-----------------|-----------------|------------|--------------|
-| Adherence checker | **Yes — DEPLOYED** | N/A — V2 curated at 90% oracle agreement (exp #135) | Deployed to production. Next: e2e validation run |
+| Adherence checker | **Yes — V2 DEPLOYED** | V3 mixed-teacher regressed (exp #146). V2 stays. | Tiered retry policy + e2e validation. V2 weak spots (FAIL_MISSING_SUBTLE 78.6%, FAIL_TANGENT_HARD 69%) addressable via targeted curation or Sonnet-as-teacher |
 | Chapter-plan checker | **No** | 71 production calls, 5 premises. Need 200+ pairs from 15+ diverse premises | Run 10-15 novels on new seeds, collect oracle labels |
 | Continuity | **No** | Teacher quality (235B misses 90% of warnings) AND only 5 premises | Claude-as-teacher + diverse novel runs |
 | Tonal pass (structural) | **No** | No paired data exists (monotone → structurally rich) | Requires structural diversity pass design first |

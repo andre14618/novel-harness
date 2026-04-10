@@ -1,9 +1,9 @@
 ---
 status: active
-updated: 2026-04-09
+updated: 2026-04-10
 ---
 
-<!-- Last edit: added LLM call inspector (sql/017_llm_call_inspection.sql, /app/llm-calls). See docs/llm-call-inspector.md. -->
+<!-- Last edit: V3 mixed-teacher DISCONFIRMED (exp #146), items #3/#6 struck through, Phase 1 adherence updated. -->
 
 
 # To Do
@@ -42,7 +42,7 @@ Notably absent: Qwen3 8B, Qwen3 4B-Instruct-2507, Qwen 3.5 9B (the base of the e
 
 **Next action items, in order** (revised 2026-04-08 after the four-task baseline+checklist ladder series PLUS the per-call decomposition follow-ups #122/#123 — see `docs/lessons-learned.md` entries from "Adherence-checker base-model ladder" through "Per-API-call decomposition"):
 
-> The original "train one multi-task LoRA on all three analytical agents using Qwen 235B as oracle" plan is dead. The four-task + decomposition series showed (a) reference-resolver doesn't need SFT at all, (b) continuity's would-be teacher (235B) misses 90% of warnings — distilling it would teach the student to also miss them, (c) **adherence-checker can be most-of-the-way fixed by a prompt swap alone (#122 closed half the SFT gap with no training)**, and (d) the right teacher is task-specific, not "whatever's already in the pipeline." See `project_four_task_sft_ladder.md` memory.
+> The original "train one multi-task LoRA on all three analytical agents using Qwen 235B as oracle" plan is dead. The four-task + decomposition series showed (a) reference-resolver doesn't need SFT at all, (b) continuity's would-be teacher (235B) misses 90% of warnings — distilling it would teach the student to also miss them, (c) **adherence-checker can be most-of-the-way fixed by a prompt swap alone (#122 closed half the SFT gap with no training)**, and (d) ~~the right teacher is task-specific, not "whatever's already in the pipeline."~~ **CORRECTED (2026-04-10): mixed-teacher V3 regressed vs single-teacher V2 (exp #146). Synthetic teacher accuracy on obvious failures doesn't predict calibration on marginal production cases. A consistent single teacher (235B) produces a better student than per-flag best teachers with different sensitivity thresholds.** See `project_four_task_sft_ladder.md` memory.
 
 1. **~~Swap continuity to decomposed parallel calls.~~** DONE (2026-04-09). 2-call decomposition (facts + character state) replaces single overloaded call. Same pattern as adherence-checker (exp #122). Inline prompts in `check.ts`, prompt.md removed. On 235B for now; decomposition enables dropping to 14B (W&B) once validated. Needs production validation: 3-chapter romance-drama run.
 
@@ -51,13 +51,13 @@ Notably absent: Qwen3 8B, Qwen3 4B-Instruct-2507, Qwen 3.5 9B (the base of the e
     - Character: oracle 95%, V2 88%
     - **Events: oracle only 85%** — misses 3/20 truly absent beats. V2's 98% agreement means it learned the oracle's errors.
 
-3. **Score gpt-oss-120b on the adherence decomposed eval.** gpt-oss was never tested as a decomposed adherence checker (exp #122 only ran Llama 8B, 14B, 235B). gpt-oss is the best chapter-plan checker (90% in exp #119) and may be a stronger events judge than 235B. Run `scripts/score-adherence-decomposed.ts` with gpt-oss added as a 4th model to determine if it catches the 15% of FAIL_MISSING that 235B misses. If gpt-oss events accuracy ≥95%, use it as the events teacher for V3 training data.
+3. **~~Score gpt-oss-120b on the adherence decomposed eval.~~** DONE (2026-04-09, exp #138/#140). Teacher ladder across 5 models. Per-flag best: K2.5 events 95%, gpt-oss character 100%, 235B tangent 100%. Led to mixed-teacher V3 training — **which regressed vs V2** (see item 6).
 
 4. **Implement tiered retry policy.** Currently any single flag fires a full beat rewrite. Proposed: events/character flags → hard gate (always retry), setting/tangent → soft gate (log warning, don't retry unless off_spec_fraction > 0.7). Reduces per-beat false-rejection from ~19% to ~5-7%. Especially important when using expensive writer models ($1-3/M).
 
 5. **3-chapter romance-drama end-to-end validation** of V2 adapter + tiered retry policy. Measure actual retry rate, false-rejection impact, and whether setting/tangent soft gates cause downstream chapter-plan-checker failures.
 
-6. **(Conditional on #3) Train V3 with stronger events teacher.** If gpt-oss outperforms 235B on FAIL_MISSING, relabel events training data with gpt-oss as teacher. Keep 235B as teacher for setting/tangent/character (100%/100%/95% accurate). Mixed-teacher V3 should close the events gap without regressing other flags.
+6. **~~(Conditional on #3) Train V3 with stronger events teacher.~~** DONE and DISCONFIRMED (2026-04-10, exp #145/#146). V3 trained on 7,541 mixed-teacher examples (K2.5 events, gpt-oss character, 235B setting/tangent). **V3 regressed vs V2**: 94.4% vs 95.2% overall on synthetic ground truth, FAIL_MISSING_SUBTLE collapsed 78.6% → 55.4%. Root cause: synthetic teacher accuracy doesn't predict calibration on marginal production cases — K2.5 is more lenient on subtle missing events than 235B. See `docs/lessons-learned.md` "Mixed-teacher approach DISCONFIRMED." **V2 remains production adapter.**
 
 7. **(Conditional on V3 or decided unnecessary) Post-SFT: GRPO/RL loop for adherence-checker** — adherence-checker is the only one of the four analytical agents with a clean reward signal (the deterministic checks — character presence, word count, dialogue — plus synthetic labels compose into a fully automatic reward function). After the events gap is addressed, design a GRPO loop on the same W&B/ART stack using the deterministic verifier as the reward.
 
@@ -77,7 +77,7 @@ See `docs/fine-tuning-strategy.md` for the complete plan. Training is free (W&B 
 
 **Phase 1 — Analytical agents** (revised 2026-04-08 after the four-task baseline+checklist series AND the per-call decomposition follow-ups #122/#123 — see "Fine-Tuning serving infrastructure" section above for the full action list and `project_four_task_sft_ladder.md` memory):
 
-- **Adherence-checker — V2 CURATED DEPLOYED (2026-04-09).** 4-call decomposed prompt + V2 LoRA adapter live in production. Eval exp #135: 90% oracle agreement on 64 production beat/prose pairs (base 77%, V1 87%). Adapter: `wandb-artifact:///andre14618-/novel-harness/adherence-checker-v2-sft-resume:v9`. Next: 3-chapter production validation run, then GRPO/RL if SFT gap still worth closing.
+- **Adherence-checker — V2 CURATED DEPLOYED (2026-04-09). V3 mixed-teacher DISCONFIRMED (2026-04-10).** 4-call decomposed prompt + V2 LoRA adapter live in production. V2 eval exp #135: 90% oracle agreement on 64 production pairs (base 77%, V1 87%). Adapter: `wandb-artifact:///andre14618-/novel-harness/adherence-checker-v2-sft-resume:v9`. V3 (mixed-teacher: K2.5 events, gpt-oss character, 235B setting/tangent) regressed to 94.4% vs V2's 95.2% on synthetic ground truth (exp #146). FAIL_MISSING_SUBTLE collapsed 78.6% → 55.4%. Mixed-teacher approach is a dead end — synthetic teacher accuracy doesn't predict marginal-case calibration. Next: tiered retry policy + 3-chapter production validation, then GRPO/RL if SFT gap still worth closing.
 - **Chapter-plan-checker — CHECKLIST PROMPT SHIPPED (2026-04-09, exp #124).** Structured checklist schema swapped in: 14B vs labels 53% → 75% (+22pp), 14B↔120B direct 58% → 75% (+17pp). Bias corrected: was 100% one-sided (14B rubber-stamps PASS), now symmetric except `FAIL_REVERSED_ARC` (0/2 — 14B reasoning ceiling on arc reversal). SFT target is now the checklist output format, not the flat schema. Distillation pairs must be labeled through the 120B checklist path. See `project_chapter_plan_checker_finetune.md`.
 - **Continuity — 2-CALL DECOMPOSITION SHIPPED (2026-04-09).** Split into `continuity-facts` + `continuity-state` parallel calls (same pattern as adherence-checker 4-call decomposition). On Cerebras 235B; decomposition enables dropping to 14B (W&B). SFT still BLOCKED on a stronger labeling pipeline — 235B misses 90% of warnings and 65% of nits (#117/#118). Path forward: Claude-as-teacher labeling script + hand-validation of WARNING/NIT synthetic variants.
 - **Reference-resolver — OFF the list.** Flat 14B already at 97.5% recall against synthetic labels; production cost function favors recall (over-fetch nearly free, miss costly). No real deficit to train against. (#114/#115, see amendment in lessons-learned.)
