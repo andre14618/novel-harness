@@ -142,6 +142,17 @@ See `docs/fine-tuning-strategy.md` for the complete plan. Training is free (W&B 
 - **Premise diversity gap in production data** — all 131 approved chapters come from only 5 unique premises. Chapter-plan-checker and continuity SFT need plan/world-state diversity that synthetic generation can't provide. Run diverse seeds to fill this gap before those fine-tunes.
 - **Run priority**: 10-15 novels across new seeds (mix of 3ch and 10ch) to build diverse training corpus for chapter-plan-checker and continuity fine-tunes.
 
+## Studio — Chat-Driven Novel Creation Interface
+
+Rebuild `/app/studio` from form-based launcher to conversational chat interface:
+
+1. **Chat phase** — user talks to an LLM that asks about genre, premise, characters, tone. The LLM shapes input into the correct seed format (`CustomSeed`) and asks for confirmation before proceeding. Like talking to an assistant that understands the harness's seed schema.
+2. **Execution phase** — once the user approves, the chat kicks off the pipeline and transitions into a terminal-style stream view (like Claude Code output). SSE events render as they arrive: agent steps, LLM calls with model/tokens/latency/cost, gate prompts, errors.
+3. **Backend**: new API route that proxies chat messages to an LLM (Cerebras Qwen 235B) with a system prompt explaining seed format and available options. Conversation stored in session state.
+4. **UX model**: single pane, chat messages above, pipeline stream below once kicked off. Novel list in sidebar for watching existing runs.
+
+Current Studio page (form + passive log) is deployed but doesn't match the vision — needs full rebuild.
+
 ## Future — Worldbuilding Workbench (separate project)
 
 Interactive chat frontend backed by the knowledge graph. Author converses with their world, modifies plotlines, generates beats, adjusts world state. Output is a structured plan that feeds the harness. Workbench writes to knowledge graph, harness reads from it. Same Postgres tables, different interface. Semantic search / embeddings may be useful here for exploratory authorial queries. Entirely separate from the prose generation pipeline.
