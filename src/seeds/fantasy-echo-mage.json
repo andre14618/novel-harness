@@ -1,0 +1,10 @@
+{
+  "premise": "An echo-caster — a mage who can only cast spells she has personally been struck by — is assigned to kill a rogue archmage besieged in a tower. The problem: the archmage has spent forty years developing spells no one has ever survived receiving. The mission requires her to go in first, get hit, and come back out.",
+  "genre": "epic-fantasy",
+  "chapterCount": 3,
+  "characters": [
+    { "name": "Senna Dray", "role": "protagonist", "description": "Echo-caster, early 30s. Spent fifteen years being hit by things so she could use them later. Her body is a catalog of scars with a corresponding spell for each one. Pragmatic about pain in a way that unnerves people. Her best spell is a bone-shattering compression wave — she doesn't talk about how she learned it." },
+    { "name": "Helix", "role": "supporting", "description": "Her handler, a strategist who has run echo-casters before. Doesn't pretend this mission has good odds. Provides tactical support from outside the tower and will extract whatever she brings back out, alive or otherwise. Respects her in the way you respect a tool that has never broken yet." },
+    { "name": "Archmage Reseth", "role": "antagonist", "description": "The rogue archmage. Seventy, brilliant, genuinely believed the empire's magical doctrine was going to cause a catastrophe. Proved right six years ago — a dormant fault line activated exactly where he said it would. The empire can't acknowledge him, so they're eliminating him instead. He knows someone's coming. He's been building new spells in anticipation." }
+  ]
+}

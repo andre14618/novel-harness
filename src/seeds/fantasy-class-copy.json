@@ -1,0 +1,10 @@
+{
+  "premise": "In a world where classes are assigned at adulthood and fixed for life, a hospice worker discovers she has been involuntarily copying the classes of people who die in her care — absorbing their abilities in the moment of death. She has worked in the hospice for nine years. She has no idea how many classes she carries, or what they do, or what will happen when she finally uses one.",
+  "genre": "litrpg",
+  "chapterCount": 10,
+  "characters": [
+    { "name": "Enna Brosch", "role": "protagonist", "description": "Hospice worker, late 20s. Assigned a Caretaker class at eighteen — supportive, low-tier, socially invisible. Has spent her career believing the strange flickers she sometimes feels are grief. A dying veteran called her by the name of his old commander, someone with his same rare class. That was last week. She has started writing down names." },
+    { "name": "Old Margret", "role": "supporting", "description": "The hospice director. Sixty-five, retired Healer, has seen everything. Noticed something strange about Enna three years ago but chalked it up to natural empathy. When Enna finally tells her, Margret doesn't panic — she starts thinking about how to keep it quiet long enough to figure out what Enna actually is. Has one contact in the Classification Bureau she trusts absolutely." },
+    { "name": "Inspector Vane", "role": "antagonist", "description": "Classification Bureau investigator. Mid-30s, precise, believes the class system is the foundation of social order. Received an anomalous signal from a hospice in the eastern district nine years ago — filed it, monitored it, waited. Now the pattern has become undeniable. His job is to classify Enna. The problem is that there's no existing class for what she is, and in the Bureau's framework, anything unclassifiable is by definition a threat." }
+  ]
+}

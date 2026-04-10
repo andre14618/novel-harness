@@ -1,0 +1,10 @@
+{
+  "premise": "In a world where infinite-floor dungeons are commonplace infrastructure — taxed, administered, explored by licensed delvers — a cartographer hired to map an unstable tower realizes the floor layouts aren't random. They form a language. She has been passively reading it for three months without knowing it, and she has just reached the sentence that addresses her directly.",
+  "genre": "litrpg",
+  "chapterCount": 10,
+  "characters": [
+    { "name": "Dara Sollum", "role": "protagonist", "description": "Tower cartographer, early 30s. Licensed surveyor, specializes in unstable dungeons that other mappers won't touch. Methodical, visually oriented, annotates everything. Has mapped forty-three towers. This one is her forty-fourth, assigned because three previous teams abandoned it citing 'navigational impossibility.' She considers that a geometry problem." },
+    { "name": "Kael", "role": "supporting", "description": "Her delver escort, a mid-tier fighter who usually works solo. Pragmatic, quietly competent, content to follow someone else's lead when they know what they're doing. Has noticed that Dara's route choices aren't random — she takes paths that shouldn't be faster but always are. Hasn't commented yet because the outcomes keep being correct." },
+    { "name": "The Tower Administrator", "role": "antagonist", "description": "The Dungeon Authority official responsible for the tower's license. Bureaucratic surface, genuinely frightened underneath — the tower was classified as abandoned infrastructure six years ago after it stopped generating monsters and started generating rooms. Something changed. He has been suppressing the previous teams' reports. He needs it mapped because he needs to know what's being built, but he does not want anyone to read what it says." }
+  ]
+}

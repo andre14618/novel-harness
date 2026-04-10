@@ -1,0 +1,10 @@
+{
+  "premise": "An inscription mage is ordered to carve a death-mark into a condemned prisoner before dawn. When she makes the first cut, she finds his flesh is already covered in inscriptions she has never seen — a complete magical language predating the empire. The prisoner doesn't know they're there. He's had them since birth.",
+  "genre": "epic-fantasy",
+  "chapterCount": 3,
+  "characters": [
+    { "name": "Calla Vren", "role": "protagonist", "description": "Inscription mage, late 20s. Guild-trained, precise, performs executions as a contract obligation she's tried to stop thinking about. Reads inscriptions the way other people read faces — involuntarily, constantly. What she sees on the prisoner's skin doesn't match any known school or era." },
+    { "name": "Davan", "role": "supporting", "description": "The condemned prisoner. Former soldier, mid-30s, sentenced for a massacre he claims he didn't commit but stopped trying to argue. Calm in a way that reads as already-dead. When Calla shows him what's written on his body, he recognizes nothing — but his hands start shaking." },
+    { "name": "Master Inquisitor Orvath", "role": "antagonist", "description": "The official who assigned Calla this execution. Forty years in the Guild. He knew about the inscriptions — he's why Davan was condemned. The execution was never about the massacre." }
+  ]
+}

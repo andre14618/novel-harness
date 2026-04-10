@@ -1,0 +1,10 @@
+{
+  "premise": "In a world governed by the System — a divine framework that assigns every person a class, tracks their statistics, and rewards growth with tangible power — a young scribe's stats have been lying since she received them at fourteen. Her Strength reads 3. She has bent iron bars with her hands. The System has never corrected the discrepancy. Now a System Arbiter has arrived in her city to investigate an anomaly — her anomaly.",
+  "genre": "litrpg",
+  "chapterCount": 3,
+  "characters": [
+    { "name": "Maret", "role": "protagonist", "description": "Scribe, early 20s. Has lived with false stats for eight years by hiding what she can do. Uses her official Scribe class as cover — the administrative access it grants lets her avoid most physical situations. Smart, secretive, deeply uncertain whether the System is protecting her or preparing something. Has never told anyone her real numbers." },
+    { "name": "Journeyman Theo", "role": "supporting", "description": "A young adventurer in Maret's city. His stats are genuinely mediocre — he knows exactly what he is and is at peace with it. Befriended Maret two years ago because she's smarter than anyone in his party. Has noticed that she avoids combat situations in ways that don't match a Scribe's normal reasons. Doesn't push. Asks good questions." },
+    { "name": "Arbiter Cassel", "role": "antagonist", "description": "System Arbiter, mid-40s. Investigates discrepancies between System records and observed reality. Genuinely believes in the System's justice — the Framework doesn't make mistakes, so anomalies must be corrected. His case file has Maret flagged as Threat Level: Unknown. He's not wrong to be cautious. He also doesn't know the System flagged her anomaly eight years ago and chose not to correct it." }
+  ]
+}

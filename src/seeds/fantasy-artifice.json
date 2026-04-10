@@ -1,0 +1,10 @@
+{
+  "premise": "The empire's greatest artificer — the engineer who designs the magical infrastructure that keeps cities running — discovers that the lattice underpinning all constructed magic has a flaw that will cascade to total failure in approximately eighteen months. She has been hiding this for three months because the only fix requires dismantling everything and rebuilding from first principles, which means eight years of darkness for every city that runs on the lattice. She has just been asked to expand the lattice to three new territories.",
+  "genre": "epic-fantasy",
+  "chapterCount": 10,
+  "characters": [
+    { "name": "Tessaly Wren", "role": "protagonist", "description": "Chief Artificer of the Imperial Lattice, mid-40s. Built the current lattice generation from scratch eighteen years ago on a design she's been quietly proud of. Discovered the flaw during a routine stress analysis — a resonance interaction that only appears at scale. The larger the lattice grows, the faster the cascade will come. Expanding it by three territories will cut the timeline to eight months. She has been sitting on a complete rebuild specification for eleven weeks." },
+    { "name": "Journeyman Cassin", "role": "supporting", "description": "Tessaly's lead apprentice, late 20s. Technically brilliant, genuinely devoted to the work. Noticed something was wrong with her three months ago but assumed it was personal. Figured out the flaw independently last week — came to Tessaly to report it and found she already knew. Currently deciding what to do with that information and whether the decision is his to make." },
+    { "name": "Imperial Administrator Prenn", "role": "antagonist", "description": "The official responsible for the three-territory expansion. Political, ambitious, and genuinely well-intentioned — the expansion was his idea, proposed to reduce the energy poverty in the new territories. Knows nothing about the flaw. Tessaly's delay is threatening his timeline and he has begun investigating why. Not a villain; a competent bureaucrat applying pressure in exactly the way bureaucrats do, at exactly the worst moment." }
+  ]
+}

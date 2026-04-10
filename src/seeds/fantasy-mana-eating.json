@@ -1,0 +1,10 @@
+{
+  "premise": "A mage who cannot generate mana but can absorb and redirect it from other casters is requisitioned during a siege. The city's defensive ward is consuming its own mages — drawing their mana involuntarily until they collapse. She's the only one who can stand inside the ward without being drained. What she discovers is that the ward isn't malfunctioning. It's feeding something.",
+  "genre": "epic-fantasy",
+  "chapterCount": 3,
+  "characters": [
+    { "name": "Ris Farrow", "role": "protagonist", "description": "Mana absorber, mid-20s. Spent her life being called cursed, broken, parasitic. Learned to control her ability through sheer necessity — uncontrolled, she pulls mana from anyone nearby without meaning to. Works as a battlefield specialist because it's the only role that uses what she is instead of apologizing for it." },
+    { "name": "Siege Commander Breck", "role": "supporting", "description": "The officer who requisitioned her. Fifty, practical, has lost four mages to the ward in three days. Doesn't care why she works, only that she does. Gives her full access and stays out of her way. Has started quietly evacuating the mage corps from the inner ward zone." },
+    { "name": "The Ward Architect", "role": "antagonist", "description": "Not a person present in the siege — the long-dead mage who designed the ward. Her research notes are in the siege commander's possession. They reveal the ward was designed to harvest mana at catastrophic scale in a final defensive scenario: consuming the city's entire magical population to power a single devastating strike. The mechanism has activated. It thinks it's already lost." }
+  ]
+}
