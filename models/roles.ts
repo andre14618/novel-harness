@@ -44,17 +44,16 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // benchmark via scripts/best-of-n-experiment.ts).
   "reference-resolver":        { provider: "groq", model: "llama-3.1-8b-instant", temperature: 0.1, maxTokens: 512 },
 
-  // adherence-checker: testing base Qwen3-14B on W&B Inference before committing
-  // to a fine-tune. If base 14B agreement with 235B oracle is ≥90% on the
-  // synthetic validation set, no fine-tune needed — just cheaper + faster.
-  // Prior history: Llama 8B was systematically over-strict; 235B fixed calibration.
-  // See docs/fine-tuning-strategy.md adherence-checker slot for full context.
-  "adherence-checker":         { provider: "wandb", model: "OpenPipe/Qwen3-14B-Instruct", temperature: 0.1, maxTokens: 256 },
-  // Sub-check aliases — same model as adherence-checker, distinct agent names for tracing
-  "adherence-events":          { provider: "wandb", model: "OpenPipe/Qwen3-14B-Instruct", temperature: 0.1, maxTokens: 256 },
-  "adherence-setting":         { provider: "wandb", model: "OpenPipe/Qwen3-14B-Instruct", temperature: 0.1, maxTokens: 256 },
-  "adherence-tangent":         { provider: "wandb", model: "OpenPipe/Qwen3-14B-Instruct", temperature: 0.1, maxTokens: 256 },
-  "adherence-character":       { provider: "wandb", model: "OpenPipe/Qwen3-14B-Instruct", temperature: 0.1, maxTokens: 256 },
+  // adherence-checker: V2 curated LoRA on Qwen3-14B via W&B Inference.
+  // Eval exp #135 (2026-04-09): 90% oracle agreement on 64 production pairs
+  // (vs 77% base, 87% V1 uncurated). Events 98%, character 88% (+25pp over base).
+  // W&B convention: artifact URI goes in `model` field (NOT separate `lora` field).
+  "adherence-checker":         { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/adherence-checker-v2-sft-resume:v9", temperature: 0.1, maxTokens: 256 },
+  // Sub-check aliases — same adapter, distinct agent names for tracing
+  "adherence-events":          { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/adherence-checker-v2-sft-resume:v9", temperature: 0.1, maxTokens: 256 },
+  "adherence-setting":         { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/adherence-checker-v2-sft-resume:v9", temperature: 0.1, maxTokens: 256 },
+  "adherence-tangent":         { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/adherence-checker-v2-sft-resume:v9", temperature: 0.1, maxTokens: 256 },
+  "adherence-character":       { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/adherence-checker-v2-sft-resume:v9", temperature: 0.1, maxTokens: 256 },
 
   // ── Extractors (structured extraction from prose) ─────────────────────
   "summary-extractor":         { ...mimoFlash, temperature: 0.2, maxTokens: 8192 },

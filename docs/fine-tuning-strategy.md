@@ -149,14 +149,14 @@ Until condition 1 is true, RunPod is an infrastructure cost, not a cost saving. 
 **Curation (2026-04-09)**: `scripts/curate-adherence-data.ts` removed 15% cross-contaminated labels → 8,524 curated examples. Cross-contamination: FAIL variants designed to test one dimension often trip non-target dimensions (e.g., FAIL_MISSING trips character contradiction because "not doing the action" ≠ "behaving out of character"). Ambiguous tangent examples (off_spec_fraction 0.3–0.7) also removed. Label balance post-curation: events 25% flag, setting 25%, tangent 17%, character 18%.
 
 **Training status**:
-- **V1 (uncurated, 10,008 examples)**: Training on W&B ART as `adherence-checker-v1`, 2 epochs, batch_size=2, cosine schedule, lr=2e-4. Loss converging well (~0.1–0.4 at 6%).
-- **V2 (curated, 8,524 examples)**: Ready at `lora-data/adherence-checker-decomposed-curated.jsonl`. Train after V1 evaluation.
+- **V1 (uncurated, 10,008 examples)**: Finished. 2 epochs, batch_size=2, cosine schedule, lr=2e-4. 10 checkpoints (v0-v9). Artifact: `adherence-checker-v1-sft-resume:v9`.
+- **V2 (curated, 8,524 examples)**: Finished. Same hyperparameters. Artifact: `adherence-checker-v2-sft-resume:v9`.
 
-**Data enrichment pipeline**: `scripts/extract-production-adherence-data.ts` pulls real beat/prose pairs from approved chapters in Postgres, oracle-labels them. This is the highest-leverage addition because it represents the actual production distribution (real planner output, real 235B writer prose). Output merges with curated synthetic data.
+**Production eval (exp #135, 2026-04-09)**: `scripts/eval-adherence-finetune.ts` — 64 beat/prose pairs from 20 approved chapters, 4 call types × 4 models = 1,024 API calls. V2 curated: **90% oracle agreement** (230/255). V1 uncurated: 87% (222/254). Base 14B: 77% (196/255). By call type: events V2 98%/V1 92%/base 78%, setting V2 88%/V1 83%/base 81%, tangent V2 87%/V1 92%/base 86%, character V2 88%/V1 83%/base 63%. Latency: V2 627ms, V1 701ms, base 402ms, oracle 383ms. **V2 deployed to production** (`models/roles.ts`).
 
-**Active learning (planned for V3)**: Run best model on held-out production data, find disagreements with 235B oracle, oversample those regions.
+> **Critical W&B LoRA convention**: artifact URI goes in the `model` field (`"model": "wandb-artifact:///team/project/name:v9"`). W&B silently ignores a separate `lora` field — that convention is Together AI only. First eval run produced byte-identical output to base because of this. See `docs/lessons-learned.md`.
 
-**Evaluation plan**: Agreement rate vs decomposed-235B teacher per failure-mode variant. Decision criterion: ≥95% on PASS variants, ≥90% on FAIL_MISSING/CHAR/TANGENT. Plus a 3-chapter romance-drama end-to-end run.
+**Next steps**: (a) 3-chapter romance-drama end-to-end validation, (b) if gap worth closing further: enrich with production data via `scripts/extract-production-adherence-data.ts`, active learning for V3, then GRPO/RL.
 
 **Legacy data**: 160 flat-format pairs (exp #99–#100) in `lora-data/adherence-checker-pairs.jsonl` are superseded by the decomposed format.
 
@@ -321,7 +321,7 @@ Until condition 1 is true, RunPod is an infrastructure cost, not a cost saving. 
 
 | Fine-tune target | Data sufficient? | Bottleneck | Path forward |
 |-----------------|-----------------|------------|--------------|
-| Adherence checker | **Yes** | N/A — synthetic data (10K examples) covers it | V1/V2 training in progress |
+| Adherence checker | **Yes — DEPLOYED** | N/A — V2 curated at 90% oracle agreement (exp #135) | Deployed to production. Next: e2e validation run |
 | Chapter-plan checker | **No** | 71 production calls, 5 premises. Need 200+ pairs from 15+ diverse premises | Run 10-15 novels on new seeds, collect oracle labels |
 | Continuity | **No** | Teacher quality (235B misses 90% of warnings) AND only 5 premises | Claude-as-teacher + diverse novel runs |
 | Tonal pass (structural) | **No** | No paired data exists (monotone → structurally rich) | Requires structural diversity pass design first |
