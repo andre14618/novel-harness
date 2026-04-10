@@ -1,0 +1,253 @@
+---
+status: active
+updated: 2026-04-09
+derived-from: 125 experiments (tuning_experiments #1-#138), docs/lessons-learned.md
+---
+
+# Experiment Design Rules
+
+Hard rules for designing experiments, selecting models, generating training data, and evaluating fine-tunes. Every rule here was learned from a mistake or a surprising result in this harness's experiment history. Read before designing any new experiment.
+
+---
+
+## 1. Experiment Infrastructure
+
+### 1.1 Every experiment goes in the DB
+Use `createTuningExperiment()` + `concludeExperiment()`. No exceptions — even smoke tests, null results, and system tests. The conclusion JSON is your lab notebook. Experiments without conclusions are invisible to future analysis. *(Rule since day 1; reinforced by having to reconstruct results from stdout for early unnumbered runs.)*
+
+### 1.2 Commit code before running experiments
+`createTuningExperiment()` captures the git commit hash. If you run against uncommitted code, the experiment can't be reproduced. The experiment record says "this code produced these results" — that contract breaks if "this code" doesn't exist in git. *(Exp #28 onward — enforced after losing reproducibility on pre-Postgres experiments.)*
+
+### 1.3 Link every benchmark run to an experiment via EXPERIMENT_ID
+Ad-hoc benchmark runs without experiment linkage produce orphaned results. If you're measuring something, it's an experiment. *(Enforced since exp #33.)*
+
+### 1.4 Never delete experiments
+Failed experiments, null results, and system tests are all valuable data. A null result tells you what doesn't work — deleting it means someone will try again. Mark conclusions as "null result" or "superseded by #N", don't delete the row.
+
+---
+
+## 2. Baseline Measurements
+
+### 2.1 Run a baseline ladder before designing any intervention
+Before testing a prompt change, schema swap, or fine-tune: run the **current production model** and at least **two comparison models** (one weaker, one stronger) on the same eval set. This gives you:
+- The gap you're trying to close (strong vs production)
+- The floor you're trying to stay above (weak model)
+- The direction of failure (over-strict vs over-permissive)
+
+Without a ladder, you can't tell whether a +5pp improvement is closing a 50pp gap (good) or a 6pp gap (noise). *(Learned from exp #110/#111 — the 3-model ladder exposed symmetric-but-opposite failure modes that a 2-model comparison would have missed.)*
+
+### 2.2 Always include the production model in the ladder
+Even if you "already know it works." Including gpt-oss-120b in the chapter-plan-checker ladder (exp #119) revealed 9 max-token errors in its current config AND gave the actual head-to-head vs 235B. Cost: one extra column. Upside: the entire SFT teacher decision. *(Exp #119.)*
+
+### 2.3 Include a third anchor model when one exists at low cost
+Three-way ladders expose failure mode symmetry. In exp #110, Llama 8B was over-strict (42 false-fails) while 14B was over-permissive (33 false-passes). With only 14B + 235B you'd see "14B is 17pp worse" but miss that the *direction* reveals the mechanism. *(Exp #110.)*
+
+### 2.4 Report FP/FN confusion direction, not just accuracy
+One-sided confusion (e.g., 38 FP / 0 FN) is a stronger signal than overall accuracy. It tells you the model has a systematic bias (rubber-stamp or hair-trigger) and tells you exactly what the SFT training data should emphasize. *(Exp #107: 14B chapter-plan-checker was 38/0 — 100% rubber-stamp bias.)*
+
+---
+
+## 3. Evaluation Methodology
+
+### 3.1 Pick the metric that matches the production cost function
+Different metrics tell completely different stories on the same data:
+
+| Metric | Good for | Misleading when |
+|--------|----------|-----------------|
+| Exact match | Binary verdict tasks (adherence) | Set-output tasks (reference-resolver: 1% exact but 97.5% recall) |
+| F1 | Balanced precision/recall tradeoff | Production cost function is asymmetric (recall >> precision for ref-resolver) |
+| Recall | Tasks where missing a catch is expensive | Tasks where false alarms are expensive |
+| Precision | Tasks where false alarms waste retries | Tasks where missing a catch compounds |
+
+**Always report multiple metrics**, but know which one drives the production decision. *(Exp #114: 14B scored 1% exact-match, which looked damning; F1 showed 0.518 — practically tied with 235B. Recall showed 97.5% — actually the best.)*
+
+### 3.2 Synthetic eval FP rates are a lower bound, not a prediction
+Synthetic distributions are narrower than production. The adherence-checker 4-call decomposition showed 1.3% false-fail rate on the synthetic eval; production hit **57%** on the first run. The gap was ~25x. Always validate checker changes on a **3-chapter romance-drama end-to-end run** before declaring a win. *(Exp #122 → production run. The 3-chapter pilot is now mandatory.)*
+
+### 3.3 Smoke runs can mislead in the positive direction
+A 16-pair smoke showed 235B at 94% on chapter-plan per-beat; the full 80-pair eval showed 72%. Random sampling can produce variant distributions that hide failure modes. Use smoke runs to catch **regressions and missing slots**, not to validate gains. *(Exp #120 vs #123.)*
+
+### 3.4 Report empty-expected variants as FP call counts, not exact-match
+A model that emits zero issues on a VAR_NONE case scores 100% exact-match on that cell — hiding the false-positive rate across the eval. Report FP calls separately (e.g., "14B-flat: 26/40 FP on NONE+TRAP variants" vs "14B-checklist: 0/40"). The exact-match jump may come entirely from FP reduction, not from improved detection. *(Exp #117/#118: 14B's +13pp exact-match on continuity came entirely from NONE/TRAP going to 100%, not from better issue detection.)*
+
+### 3.5 1-10 scoring does not discriminate between models
+LLM judges using 1-10 rubrics anchor to the "7-8: Accomplished" band for any competent output. Prose Craft, Character Voice, Sensory Grounding all scored identically across 235B, DeepSeek, and MiMo Flash. **Use penalty counts (issue enumeration) or pairwise comparison for model comparison.** For iteration, use deterministic checks (lint, adherence). *(Exp #86-90, full audit.)*
+
+### 3.6 Pairwise judges need reasoning models
+Non-reasoning models (DeepSeek V3.2 flat) produced inconsistent pairwise results with 20%+ position bias. Reasoning models (DeepSeek Reasoner) were consistent and defensible. **Always use a reasoning model for pairwise.** *(Exp #47-53.)*
+
+### 3.7 Pairwise is wrong for mechanical edits
+When the edit changes 3-6 words in 1,200, pairwise judges can't detect the difference. Position bias dominates. For lint/mechanical changes, measure lint compliance, collateral damage, and word count delta. *(Exp #64-66.)*
+
+---
+
+## 4. Schema & Prompt Design
+
+### 4.1 Structured checklists help N-check tasks, hurt 1-judgment tasks
+Before designing an output schema, count the independent things being checked:
+
+| Task shape | Schema effect | Example |
+|-----------|--------------|---------|
+| N independent checks against discrete elements (N > 3) | **Helps** — forces attention per element | Chapter-plan-checker: setting + characters + beats + arc |
+| 1 nuanced holistic judgment | **Hurts** — atomization destroys meaningful-vs-nominal distinction | Adherence FAIL_TANGENT: "did the beat happen meaningfully?" |
+| N items of same type with OR aggregation | **Hurts** — compounding error at scale | Per-beat chapter-plan: 0.9^4 = 66% pair-level |
+
+*(Exp #109: +17pp on chapter-plan. Exp #111: -6pp on adherence 235B, FAIL_TANGENT collapsed. Exp #122 vs #123: orthogonal facets win, same-type items lose.)*
+
+### 4.2 Schemas are verdict-space design — expose the options the model needs
+When a model universally over-fires, check whether the output schema gives it a way to say "no issue." Adding an `"ambient"` branch to reference-resolver fixed VAR_NONE from 0% → 80% on 14B. Adding a `figurative_review` step fixed TRAP from 30% → 100% on 14B. **The model would have known to skip if asked — it just was never given a way to skip.** *(Exp #115, #118.)*
+
+### 4.3 Make the verdict the LAST field, not the first
+When the model emits `{"pass":` first, the next token samples from priors (biased toward `true`). With checklist fields first, by the time it reaches `pass`, it has already emitted `"missing": ["Leth"]` — the verdict conditions on its own observation. *(Exp #107/#109: chapter-plan 14B went from 58% → 75% solely from field ordering.)*
+
+### 4.4 Only include fields the model can actually answer
+Abstract fields beyond capacity become confident fabrications. 14B's `emotional_arc_correct` field regressed REVERSED_ARC from 50% → 20% — the model couldn't assess emotional arcs, so it confidently stamped `true`. **When in doubt, leave the field out and route to a more capable model.** *(Exp #109.)*
+
+### 4.5 Test schema changes against multiple base models
+The same checklist had opposite effects on three models: Llama 8B +18pp (rescued under-confident), 14B +4pp (barely moved), 235B -6pp (imposed unnecessary atomization). A schema is not universally good or bad — it interacts with the model's baseline calibration. *(Exp #111.)*
+
+### 4.6 Check prompt assumptions against the architecture, not just the eval
+The adherence-checker setting prompt said "no setting markers → false." The beat-context code only injects setting on beat 0 or location change. Mid-chapter beats never have setting markers by design. **Read the production data shape before writing the check prompt.** *(Production run post-exp #122.)*
+
+---
+
+## 5. Teacher Selection for Fine-Tuning
+
+### 5.1 The best teacher varies per task — there is no universal oracle
+Run each teacher candidate against the deterministic eval labels and look at the per-variant table:
+
+| Task | Best teacher | Accuracy | Why not a universal oracle? |
+|------|-------------|----------|---------------------------|
+| Adherence-checker | Qwen 235B | 97% (decomposed) | gpt-oss only 87% on tangent |
+| Chapter-plan-checker | gpt-oss-120b | 90% | 235B only 81%, misses MISSING_BEAT at 10% |
+| Continuity | Claude (Opus/Sonnet) | TBD | 235B at 35% recall, misses 90% of warnings |
+| Reference-resolver | N/A | 97.5% recall | No fine-tune needed |
+
+*(Exp #119: gpt-oss beat 235B by 9pp on chapter-plan-checker, and by 40pp on FAIL_MISSING_BEAT.)*
+
+### 5.2 Score the teacher against labels, not just against the student
+Exp #107 measured 14B vs gpt-oss outputs (58% agreement). That conflated "14B is wrong" with "14B disagrees with the teacher, who is also wrong." Always score every model against deterministic gold. The 5pp shift from "vs teacher" to "vs labels" was small here but would be catastrophic if the teacher were weaker. *(Exp #107 vs #119.)*
+
+### 5.3 A teacher that misses a failure mode will teach the student to miss it too
+235B on chapter-plan-checker scores 10% on FAIL_MISSING_BEAT. Distilling 235B into a 14B LoRA would teach the student to also rubber-stamp missing beats. **Check the teacher's per-variant accuracy before committing to distillation.** If the teacher is weak on a specific variant, either use a different teacher for that variant (mixed-teacher approach) or hand-label those examples. *(Exp #119: 235B had 14 FP / 1 FN — same rubber-stamp bias as 14B, just milder.)*
+
+### 5.4 Mixed-teacher distillation is better than single-teacher when per-variant accuracy is non-uniform
+When Teacher A is best on events (97%) and Teacher B is best on setting (100%), use each teacher for its strongest flag. The overhead is per-variant routing in the data generation script, not in production serving. *(Derived from exp #122/#138 cross-analysis: 235B wins events at 97%, gpt-oss wins events at 93% but beats 235B on other dimensions.)*
+
+### 5.5 Use the cheapest model that passes the teacher quality bar
+For offline SFT data generation, latency doesn't matter — only label quality. But cost matters at scale (10K+ examples). Run teacher candidates on a 160-pair eval first; the best-accuracy model at tolerable cost becomes the teacher. Don't default to the most expensive model. *(Continuity exception: even 235B at $0.60/$1.20 isn't good enough — need Claude at $3/$15 for the teacher signal.)*
+
+---
+
+## 6. Data Generation
+
+### 6.1 Multi-writer diversity prevents stylistic overfitting
+Generate prose samples from 4+ different writer models (Cerebras 235B, Llama 8B, Kimi K2, DeepSeek V3.2). Weaker writers produce organic drift — prose that deviates naturally from the beat spec — which creates more realistic FAIL training examples than synthetic injection alone. *(Exp #132: 2,596 prose samples from 4 writers → 10,008 training examples. gpt-oss couldn't write to spec — 100% prose errors — which is itself useful data about model limitations.)*
+
+### 6.2 Curate training data by removing cross-contaminated labels
+FAIL variants designed to test one dimension often trip non-target dimensions (e.g., FAIL_MISSING trips character contradiction because "not doing the action" ≈ "behaving out of character"). Remove ambiguous labels where the non-target flag fires — they teach the model the wrong discrimination boundary. *(Exp #132 → curation: 10,008 → 8,524 after removing 15% cross-contaminated labels. V2 curated beat V1 uncurated: 90% vs 87%.)*
+
+### 6.3 Data curation outperforms data volume and rank increases
+The single most impactful change across the tonal-pass v1→v3 progression was removing low-contrast training pairs, not adding more data or increasing LoRA rank. When style signal is weak, ask "does every training pair show clear contrast?" before asking "do we need more data?" *(Tonal-pass v2→v3: fewer pairs, same rank, better results.)*
+
+### 6.4 Scenario diversity matters more than scenario count
+131 approved chapters from only 5 unique premises is sufficient for adherence-checker (synthetic variants cover the gap) but insufficient for chapter-plan-checker and continuity (where plan structure and world-state diversity are the training signal). **Increase premise diversity before increasing examples-per-premise.** *(Data sufficiency audit, 2026-04-09: 30 new seeds created to address the gap.)*
+
+### 6.5 Generic system prompts generalize better than detailed ones
+Training data should use the simplest possible task description. The fine-tuned behavior lives in the weights, not the prompt. A model trained on "Does this prose match this beat?" generalizes better than one trained on a 500-word prompt full of rules. *(Fine-tuning strategy principle.)*
+
+### 6.6 Label quality gates: review 20-30% before scaling
+Every dataset needs a human review pass before training. Review 20-30% of examples manually, correct systematic errors, then scale. Don't trust automated oracle labels without spot-checking variant accuracy. *(Exp #100/#101: 96% oracle agreement validated before training.)*
+
+---
+
+## 7. Evaluation of Fine-Tunes
+
+### 7.1 Don't test fine-tunes only on the same synthetic distribution they were trained on
+The synthetic eval measures in-distribution performance. The real signal is the **production eval** — real beat/prose pairs from actual novel runs. Expect a generalization penalty of 5-10pp between synthetic and production accuracy. *(Exp #135: V2 scored 90% on 64 production pairs, lower than synthetic numbers.)*
+
+### 7.2 Evaluating teachers on synthetic data IS correct
+For teacher selection (not student evaluation), synthetic data with known-by-construction ground truth is the right tool. A FAIL_MISSING pair was deliberately written with the beat's action removed — if the teacher can't catch that, it won't catch subtler production omissions. **Synthetic for teacher selection, production for adapter validation.** *(Exp #122/#138: teacher comparison on 160 synthetic pairs.)*
+
+### 7.3 Avoid circular evaluation: don't evaluate a student against the teacher that generated its training signal
+If V3 is trained using gpt-oss labels for events, then evaluating V3 against gpt-oss on events is circular — you're measuring agreement with the source, not accuracy. V3 evaluation needs: (a) production pairs, or (b) a held-out synthetic set from new scenarios.
+
+### 7.4 The standard evaluation protocol
+All fine-tune evaluations follow this structure:
+
+1. **Oracle agreement rate** on held-out examples (≥95% for a slot swap, ≥90% to ship with monitoring)
+2. **Per-variant breakdown** — overall numbers hide failure modes; the per-variant table is the truth
+3. **3-chapter end-to-end pipeline run** on romance-drama — no regression on adherence/plan-check/lint
+4. **Latency probe** at production output length (not arbitrary max_tokens)
+5. **Cost comparison** at production call volume
+
+### 7.5 Shape latency probes to match real workload output lengths
+The adherence-checker outputs ~17 tokens. A probe with `max_tokens=256` hides the fact that a smaller model can be 2.3x faster than a larger model on short outputs. Set max_tokens close to expected output for each shape. *(Exp #94: 14B W&B beat Cerebras 235B on adherence: 157ms vs 365ms.)*
+
+---
+
+## 8. Model Selection Heuristics
+
+### 8.1 Never compare models on parameter count alone
+Qwen 3.5 9B (MoE, 2026-03) has 2x the intelligence index of Qwen3 14B (dense, 2025-04) despite having fewer parameters. Check: release date, architecture (MoE vs dense), and third-party benchmarks (Artificial Analysis). *(Lessons-learned, 2026-04-07.)*
+
+### 8.2 Provider matters as much as model
+Same model (Qwen 3.5 9B), same precision (FP8): DeepInfra serves at 170 tps, Together AI at 55 tps — 3.1x gap. When a model is slow, the first diagnostic is "find another provider," not "try a different model." *(AA comparison, 2026-04-07.)*
+
+### 8.3 "LoRA support" means different things across providers
+| Provider | LoRA hosting model | Viable for solo dev? |
+|----------|-------------------|---------------------|
+| W&B Inference | Per-token serverless, multi-tenant | **Yes** — $0.05/$0.22 per 1M |
+| Together AI | Per-token serverless, multi-tenant | **Yes** — legacy home for tonal-pass |
+| DeepInfra | Per-GPU-hour dedicated rental | No — $2-5/hr idle cost |
+| Fireworks | Per-GPU-hour dedicated rental | No — same economics |
+| Cerebras/Groq | No user adapter hosting | N/A |
+
+Always verify the **serving** docs page, not just the **training** docs. *(Fireworks false positive, 2026-04-07.)*
+
+### 8.4 Parallel-N works when variance is the problem, not when calibration is the problem
+The diagnostic is **internal disagreement rate**: if parallel calls disagree with each other ≥10%, variance is the problem and aggregation helps. If they agree with each other but disagree with the oracle, calibration is the problem and aggregation won't help. *(Exp adherence-checker: 0/29 internal disagreement, 0pp improvement. Exp reference-resolver: ~57% Jaccard between calls, +23% recall gain.)*
+
+### 8.5 At very short outputs, smaller models can be faster than larger ones on faster hardware
+Decode-overhead-per-token dominates at <50 output tokens. Qwen3-14B on W&B beat Cerebras 235B on adherence-checker (157ms vs 365ms) because the response is ~17 tokens. At ~400 output tokens (beat-writer), Cerebras wins. **Match model to slot by output length, not just capability.** *(Exp #94.)*
+
+---
+
+## 9. Anti-Patterns to Avoid
+
+### 9.1 Don't optimize from intuition — pull llm_calls and read the shapes
+The natural instinct was to fine-tune the writer first. Actual data: writer costs $0.001/call (rounding error), continuity costs $0.0023/call with 7,294 input tokens (10x the next highest). **The real optimization target was invisible without querying production data.** *(Trace analysis, 2026-04-07.)*
+
+### 9.2 Don't deploy a checker without a production pilot
+Synthetic evals always underestimate false-positive rates. The 3-chapter romance-drama pilot is mandatory before any checker prompt ships to production. *(Post-exp #122 production disaster: 57% false-fail rate.)*
+
+### 9.3 Don't design training data before measuring the prompt-engineering ceiling
+The adherence-checker SFT case changed dramatically after the 4-call decomposition lifted 14B from 79% → 91%. The gap to close shrank from 17pp to 6pp. **Prompt-engineering is free; SFT is not. Measure the ceiling first.** *(Exp #110→#111→#122 progression.)*
+
+### 9.4 Don't rerun all models when adding one to a comparison
+If you already have results for models A, B, C on a fixed eval set, only run model D. The eval set is deterministic — existing results are still valid. *(Exp #138: ran only gpt-oss on the 160-pair set, compared against exp #122 reference.)*
+
+### 9.5 Don't assume a provider swap is model-neutral
+W&B Inference keeps Qwen3-14B hot but lets Qwen3-30B-A3B cold-start (33s p95 vs sub-second). Model architecture efficiency only matters when the serving infrastructure keeps it warm. *(Exp #92-94.)*
+
+### 9.6 Don't use full-chapter rewriting for targeted fixes
+All models (K2, 32B, 235B) change 63-78% of characters when reproducing a full chapter while making 3 edits. **Per-sentence with scene context is the only viable approach for targeted fixes.** *(Exp #67.)*
+
+---
+
+## 10. Checklist: Before Running Any Experiment
+
+```
+[ ] Hypothesis written down in experiment description
+[ ] Code changes committed (git hash will be captured)
+[ ] Baseline ladder exists or is being created as part of this experiment
+[ ] Eval set covers PASS and FAIL variants (not just one direction)
+[ ] Metric chosen matches the production cost function
+[ ] Multiple metrics will be reported (exact-match + F1 + recall at minimum for set outputs)
+[ ] Per-variant breakdown will be included in the conclusion
+[ ] FP/FN confusion direction will be reported
+[ ] Production model included in the ladder
+[ ] Smoke run (16 pairs) planned before full run
+[ ] If checker change: 3-chapter romance-drama pilot scheduled after
+[ ] Experiment linked to related prior experiments in config JSON
+```
