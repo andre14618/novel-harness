@@ -817,6 +817,25 @@ W&B **silently ignores** a separate `lora` field — returns HTTP 200 with base 
 
 **Diagnostic:** Always verify LoRA loading with a temperature=0 deterministic probe comparing base vs adapter output. If identical, the adapter is not loading.
 
+### Per-flag oracle accuracy is not uniform — 235B's FAIL_MISSING (events) is its weakest flag at 85% (2026-04-09)
+
+Post-mortem on exp #122 per-variant breakdown + exp #135 production eval:
+
+| Flag | Oracle accuracy (synthetic) | V2 agreement (production) | Assessment |
+|------|:---:|:---:|---|
+| **setting** | **100%** (0 FP, 0 FN) | 88% | Oracle is the strongest teacher here. V2 over-fires on setting inheritance (mid-chapter beats that don't re-establish location). |
+| **tangent** | **100%** (0 FP, 0 FN) | 87% | Oracle is perfect. V2 over-fires at the atmospheric/interiority boundary (~40-60% off-spec content). |
+| **character** | **95%** (1 FP, 0 FN) | 88% | Oracle misses 1/20 real contradictions. Manageable. |
+| **events** | **85%** (3 FP, 0 FN) | 98% | **Oracle's weakest flag.** Misses 3/20 truly absent beat actions. V2's 98% agreement means it learned the oracle's errors, not ground truth. Both are too lenient on this flag. |
+
+The events slot is the highest-stakes flag (missing beat action = structurally broken prose) and the one where the oracle is least reliable. 3 false passes out of 20 FAIL_MISSING variants means 15% of genuinely missing beats slip through both oracle and V2.
+
+**Implications for retry policy:** With a $1-3/M writer model, false retries cost real money ($0.002+ per wasted beat) and can degrade prose quality (retried beat loses context coherence). But false passes on events are worse — a structurally broken beat propagates to chapter-plan-checker (which runs on assembled prose, not per-beat) and may not be caught until full-chapter validation.
+
+**Implication for fine-tuning:** V2's training data was labeled by the 235B oracle. On events, 15% of FAIL_MISSING labels were wrong (oracle said PASS when ground truth was FAIL). The student faithfully learned those errors. A V3 with a stronger events teacher — gpt-oss-120b or Claude — could close this gap. gpt-oss was never evaluated as a decomposed adherence checker (exp #122 only tested Llama 8B, 14B base, 235B). Running gpt-oss on the same 160-pair eval is the next diagnostic.
+
+**Implication for tiered retry:** Events and character should remain hard gates (always retry on flag). Setting and tangent should be soft gates (log warning, don't retry) unless the oracle is also running — its 100% accuracy on those flags means every flag it fires is real.
+
 ### RunPod dedicated GPU is 2× more expensive than Cerebras and 15× more expensive than W&B Inference at solo-developer volume — the value is flexibility, not cost (2026-04-08)
 
 Priced a 10-chapter novel run against actual `llm_calls` data (novel-1775484070927, April 6 2026): 130 beat-writer calls, 13 continuity calls, 44 relationship-timeline calls, 33 rewriter calls, plus concept and extraction agents. Real token counts:
