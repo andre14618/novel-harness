@@ -225,7 +225,7 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
   // ── List existing novels (from Postgres) ──────────────────────────
   if (path === "/api/novel/list" && req.method === "GET") {
     try {
-      const rows = await db`SELECT id, phase, current_chapter, total_chapters, created_at FROM novels ORDER BY created_at DESC`
+      const rows = await db`SELECT id, phase, current_chapter, total_chapters, created_at, seed_json FROM novels ORDER BY created_at DESC`
       const novels = rows.map(row => {
         const pending = gates.getPending(row.id)
         return {
@@ -235,6 +235,7 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
           totalChapters: row.total_chapters,
           createdAt: row.created_at,
           active: activeRuns.has(row.id),
+          seed: row.seed_json,
           pendingGate: pending ? { gateId: pending.gateId, title: pending.title } : null,
         }
       })

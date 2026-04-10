@@ -14,19 +14,18 @@ export function NovelReadView() {
   const chapterRefs = useRef<Map<number, HTMLDivElement>>(new Map())
   const qs = window.location.search
 
-  // Load novel list for the selector
+  const currentNovel = novels.find(n => n.id === novelId)
+
   useEffect(() => {
     listNovels().then(r => setNovels(r.novels))
   }, [])
 
-  // If no novelId, redirect to most recent
   useEffect(() => {
     if (!novelId && novels.length > 0) {
       navigate(`/${novels[0].id}/read${qs}`, { replace: true })
     }
   }, [novelId, novels])
 
-  // Load novel data when novelId changes
   useEffect(() => {
     if (!novelId) return
     setLoading(true)
@@ -49,16 +48,13 @@ export function NovelReadView() {
   const totalWords = chapters.reduce((sum, c) => sum + c.wordCount, 0)
   const approvedCount = chapters.filter(c => c.status === "approved").length
 
-  // No novelId and still loading novels list
   if (!novelId && novels.length === 0) {
     return <div className="card" style={{ textAlign: "center", padding: "3rem" }}>Loading...</div>
   }
 
   return (
     <div className="reader-layout">
-      {/* Sidebar */}
       <aside className="reader-sidebar">
-        {/* Novel selector */}
         <select
           className="reader-novel-select"
           value={novelId || ""}
@@ -67,7 +63,7 @@ export function NovelReadView() {
           {!novelId && <option value="">Select a novel...</option>}
           {novels.map(n => (
             <option key={n.id} value={n.id}>
-              {n.id} ({n.currentChapter}/{n.totalChapters})
+              {n.seed?.genre ? `[${n.seed.genre}] ` : ""}{n.seed?.premise?.slice(0, 60) || n.id}
             </option>
           ))}
         </select>
@@ -82,6 +78,20 @@ export function NovelReadView() {
 
         {novelId && (
           <Link to={`/${novelId}${qs}`} className="reader-back">Pipeline View</Link>
+        )}
+
+        {currentNovel?.seed && (
+          <div className="reader-seed">
+            <span className="reader-seed-genre">{currentNovel.seed.genre}</span>
+            <p className="reader-seed-premise">{currentNovel.seed.premise}</p>
+            {currentNovel.seed.characters && currentNovel.seed.characters.length > 0 && (
+              <div className="reader-seed-chars">
+                {currentNovel.seed.characters.map((c, i) => (
+                  <span key={i} className={`reader-seed-char ${c.role}`}>{c.name}</span>
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
         {state && (
@@ -110,7 +120,6 @@ export function NovelReadView() {
         </nav>
       </aside>
 
-      {/* Content */}
       <main className="reader-content">
         {loading ? (
           <div className="card" style={{ textAlign: "center", padding: "3rem" }}>Loading...</div>

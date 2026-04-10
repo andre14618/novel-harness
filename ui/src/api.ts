@@ -398,6 +398,13 @@ export interface NovelConfig {
   overrides: Record<string, Partial<{ provider: string; model: string; temperature: number; maxTokens: number }>>
 }
 
+export interface SeedInfo {
+  premise: string
+  genre: string
+  characters?: { name: string; role: string; description: string }[]
+  chapterCount?: number
+}
+
 export interface NovelListItem {
   id: string
   phase: string
@@ -405,6 +412,7 @@ export interface NovelListItem {
   totalChapters: number
   createdAt: string
   active: boolean
+  seed: SeedInfo | null
   pendingGate: { gateId: string; title: string } | null
 }
 

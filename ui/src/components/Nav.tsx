@@ -2,6 +2,7 @@ import { Link, useLocation } from "react-router-dom"
 
 const PAGES = [
   { path: "/guide", label: "Overview" },
+  { path: "/studio", label: "Studio" },
   { path: "/read", label: "Read" },
   { path: "/config", label: "Config" },
   { path: "/llm-calls", label: "Inspector" },
