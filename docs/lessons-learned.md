@@ -884,6 +884,37 @@ The teacher ladder (table above) measured accuracy on **synthetic pairs with una
 
 (Exp #140 teacher ladder commit `93e0f6a`; V3 training exp #145; V3 eval exp #146 commit `0b7a138`; ref experiments #122 Qwen 235B, #138 gpt-oss)
 
+### Sonnet 4.6 as adherence teacher: 96.5% accuracy, better than 235B but below V2.1 threshold (2026-04-10)
+
+Followed from the mixed-teacher post-mortem, which identified Sonnet as the candidate for evaluating teacher quality on the V2 weak spots. Full 1,559-pair synthetic eval using 78 parallel Claude Code subagents (exp #147).
+
+**Results vs prior teachers:**
+
+| | base-14B | V2 (235B teacher) | V3 (mixed) | Sonnet 4.6 teacher |
+|---|---:|---:|---:|---:|
+| Overall | 86.4% | 95.2% | 94.4% | **96.5%** |
+| FAIL_MISSING_SUBTLE | 23.2% | 78.6% | 55.4% | **87.2%** |
+| FAIL_TANGENT_HARD | 0% | 69.0% | 82.8% | **100%** |
+| FAIL_MISSING | — | — | — | 98.1% |
+| FAIL_CHAR | — | — | — | 85.7% |
+| PASS_CLEAN | — | — | — | 99.5% |
+
+By call type: setting 100%, tangent 100%, events 94.9%, character 93.3%. Precision 96.7%, recall 96.3%, F1 96.5%.
+
+**Decision threshold** (from eval doc): >97% overall AND >90% FAIL_MISSING_SUBTLE to use as teacher for V2.1. Sonnet misses both (96.5%, 87.2%), so it does NOT replace 235B as the primary teacher.
+
+**What Sonnet is better at:** FAIL_TANGENT_HARD (100% vs 69%) and FAIL_MISSING (98.1%) — unambiguous cases. On the soft cases that matter for training data quality (FAIL_MISSING_SUBTLE, FAIL_CHAR), Sonnet performs similarly to 235B with the same kinds of false-negative errors.
+
+**Where Sonnet misses:**
+- **FAIL_CHAR (85.7%)**: False negatives on "soft compliance" — character does the beat action but with the wrong dynamic (too eager, too passive, wrong emotional valence). The `character_contradiction` prompt's "only flag clear contradictions" instruction is too permissive here. Sonnet correctly respects it; the ground truth labels these edge cases as contradictions.
+- **FAIL_MISSING_SUBTLE (87.2%)**: Mix of genuine model errors (treating interrupted-but-announced actions as enacted) and what appear to be actual ground truth labeling errors (see below).
+
+**Ground truth errors discovered:** Two FAIL_MISSING_SUBTLE scenarios — `airlock_standoff` and `trench_letter` — appear to have ground truth errors. The prose fully enacts all beat elements in both, yet they are labeled `events_present=false`. Three independent evaluations (smoke test subagents × 2 + full eval) all returned `true`. These should be excluded from any future accuracy calculations or relabeled.
+
+**Implication for V2.1:** Sonnet-as-teacher is not a drop-in upgrade over 235B for standard training pairs. A targeted use case remains: collect the cases where Sonnet and 235B *disagree* on production pairs, hand-label those disagreements, and use Sonnet's labels only where it's clearly more accurate. The bulk training data should remain 235B-labeled.
+
+(Exp #147, results at `/tmp/adherence-claude-sonnet-results.jsonl` on LXC)
+
 ### RunPod dedicated GPU is 2× more expensive than Cerebras and 15× more expensive than W&B Inference at solo-developer volume — the value is flexibility, not cost (2026-04-08)
 
 Priced a 10-chapter novel run against actual `llm_calls` data (novel-1775484070927, April 6 2026): 130 beat-writer calls, 13 continuity calls, 44 relationship-timeline calls, 33 rewriter calls, plus concept and extraction agents. Real token counts:

@@ -114,17 +114,34 @@ Process in batches of 10 parallel subagents. After all pairs, print:
 
 ### Step 3: Compare results
 
-After both Sonnet and Opus runs, the comparison looks like:
+**Sonnet 4.6 COMPLETED (2026-04-10, exp #147)** — 1,559 pairs, 78 parallel subagents:
 
 | | base-14b | V2 (235B teacher) | V3 (mixed) | Sonnet teacher | Opus teacher |
 |---|---:|---:|---:|---:|---:|
-| Overall | 86.4% | 95.2% | 94.4% | ? | ? |
-| FAIL_MISSING_SUBTLE | 23.2% | 78.6% | 55.4% | ? | ? |
-| FAIL_TANGENT_HARD | 0% | 69.0% | 82.8% | ? | ? |
+| Overall | 86.4% | 95.2% | 94.4% | **96.5%** | — |
+| FAIL_MISSING_SUBTLE | 23.2% | 78.6% | 55.4% | **87.2%** | — |
+| FAIL_TANGENT_HARD | 0% | 69.0% | 82.8% | **100%** | — |
+| FAIL_MISSING | — | — | — | 98.1% | — |
+| FAIL_CHAR | — | — | — | 85.7% | — |
+| PASS_CLEAN | — | — | — | 99.5% | — |
 
-**Decision criteria:**
+By call type: setting 100%, tangent 100%, events 94.9%, character 93.3%. Precision 96.7% / Recall 96.3% / F1 96.5%.
+
+**Decision:** Sonnet misses both thresholds (needs >97% overall + >90% FAIL_MISSING_SUBTLE). It is NOT used as bulk teacher for V2.1. V2 (235B teacher) remains production adapter.
+
+**Sonnet is better than 235B overall** (+1.3pp overall, +8.6pp FAIL_MISSING_SUBTLE, +31pp FAIL_TANGENT_HARD) but the margin is insufficient to justify retraining.
+
+**Ground truth errors confirmed:** `airlock_standoff` and `trench_letter` FAIL_MISSING_SUBTLE pairs are mislabeled — the prose fully enacts all beat elements. Three independent evaluations (smoke test ×2 + full eval) all returned `events_present=true`. Exclude these from future accuracy calculations.
+
+**Remaining weak spots (if V2.1 ever warranted):**
+- FAIL_CHAR (85.7%): soft-compliance false negatives — character does the action but with wrong dynamic. Sonnet's "only flag clear contradictions" instruction is too permissive.
+- FAIL_MISSING_SUBTLE (87.2%): Sonnet treats interrupted-but-announced actions as enacted.
+
+Opus run: **not warranted** — Sonnet already below threshold and Opus costs 5× more (~$50 vs ~$10).
+
+**Decision criteria (for reference):**
 - If teacher accuracy > 97% overall and > 90% on FAIL_MISSING_SUBTLE → use as teacher for V2.1 training data
-- If teacher accuracy is similar to 235B (95-97%) → not worth the cost, stick with V2
+- If teacher accuracy is similar to 235B (95-97%) → not worth the cost, stick with V2 ← **we are here**
 - If Sonnet and Opus disagree significantly → hand-label disagreements to determine which is better calibrated
 
 ### Step 4: Generate training data (Phase 2, conditional)

@@ -159,7 +159,9 @@ Until condition 1 is true, RunPod is an infrastructure cost, not a cost saving. 
 
 > **Critical W&B LoRA convention**: artifact URI goes in the `model` field (`"model": "wandb-artifact:///team/project/name:v9"`). W&B silently ignores a separate `lora` field — that convention is Together AI only. First eval run produced byte-identical output to base because of this. See `docs/lessons-learned.md`.
 
-**Next steps**: (a) tiered retry policy (events/character hard gate, setting/tangent soft gate), (b) 3-chapter romance-drama end-to-end validation of V2 + tiered retry, (c) if V2 weak spots need closing (FAIL_MISSING_SUBTLE 78.6%, FAIL_TANGENT_HARD 69%): targeted curation within 235B framework or Sonnet-as-teacher on disagreement cases, then GRPO/RL.
+**Sonnet 4.6 teacher eval (exp #147, 2026-04-10)**: Full 1,559-pair synthetic eval using 78 parallel Claude Code subagents. Overall 96.5% (1504/1559). By variant: PASS_CLEAN 99.5%, FAIL_MISSING 98.1%, FAIL_MISSING_SUBTLE 87.2%, FAIL_TANGENT_HARD 100%, FAIL_CHAR 85.7%. By call type: setting 100%, tangent 100%, events 94.9%, character 93.3%. Decision threshold was >97% overall + >90% FAIL_MISSING_SUBTLE — Sonnet misses both (96.5%, 87.2%). Sonnet is +1.3pp overall and dramatically better on tangent (+31pp) but not a material upgrade over 235B on the marginal cases that determine training data quality. Ground truth labeling errors confirmed in `airlock_standoff` and `trench_letter` FAIL_MISSING_SUBTLE pairs (beat fully enacted but labeled false; three independent evaluations agree). See `docs/lessons-learned.md` "Sonnet 4.6 as adherence teacher."
+
+**Next steps**: (a) tiered retry policy (events/character hard gate, setting/tangent soft gate), (b) 3-chapter romance-drama end-to-end validation of V2 + tiered retry, (c) if V2 weak spots need closing: targeted curation within 235B framework; Sonnet useful only as a disagreement-case tiebreaker (not bulk teacher), then GRPO/RL.
 
 **Legacy data**: 160 flat-format pairs (exp #99–#100) in `lora-data/adherence-checker-pairs.jsonl` are superseded by the decomposed format.
 
@@ -324,7 +326,7 @@ Until condition 1 is true, RunPod is an infrastructure cost, not a cost saving. 
 
 | Fine-tune target | Data sufficient? | Bottleneck | Path forward |
 |-----------------|-----------------|------------|--------------|
-| Adherence checker | **Yes — V2 DEPLOYED** | V3 mixed-teacher regressed (exp #146). V2 stays. | Tiered retry policy + e2e validation. V2 weak spots (FAIL_MISSING_SUBTLE 78.6%, FAIL_TANGENT_HARD 69%) addressable via targeted curation or Sonnet-as-teacher |
+| Adherence checker | **Yes — V2 DEPLOYED** | V3 mixed-teacher regressed (exp #146). V2 stays. | Tiered retry policy + e2e validation. V2 weak spots (FAIL_MISSING_SUBTLE 78.6%, FAIL_TANGENT_HARD 69%): Sonnet teacher evaluated (exp #147, 96.5%) — better overall but below V2.1 threshold; targeted 235B curation or GRPO/RL if needed |
 | Chapter-plan checker | **No** | 71 production calls, 5 premises. Need 200+ pairs from 15+ diverse premises | Run 10-15 novels on new seeds, collect oracle labels |
 | Continuity | **No** | Teacher quality (235B misses 90% of warnings) AND only 5 premises | Claude-as-teacher + diverse novel runs |
 | Tonal pass (structural) | **No** | No paired data exists (monotone → structurally rich) | Requires structural diversity pass design first |
