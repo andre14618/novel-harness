@@ -98,11 +98,9 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
         writers: { label: "Writers", description: "Creative prose generation", agents: ["writer", "beat-writer", "rewriter"] },
         planners: { label: "Planners", description: "World, characters, plot, chapter outlines", agents: ["world-builder", "character-agent", "plotter", "planning-plotter"] },
         beatSupport: { label: "Beat Support", description: "Cheap/fast structural tasks for beat-level writing", agents: ["reference-resolver", "adherence-checker"] },
+        validators: { label: "Validators", description: "Plan adherence and continuity checks", agents: ["chapter-plan-checker", "continuity-facts", "continuity-state"] },
         extractors: { label: "Extractors", description: "Structured extraction from prose", agents: ["summary-extractor", "fact-extractor", "character-state", "relationship-timeline", "graph-linker"] },
         lintTonal: { label: "Lint & Tonal", description: "AI-tell detection and style transfer", agents: ["lint-fixer", "tonal-pass"] },
-        validators: { label: "Validators", description: "Continuity checks", agents: ["continuity"] },
-        judges: { label: "Judges", description: "Benchmark scoring and pairwise comparison", agents: ["judge", "pairwise-judge", "benchmark-judge"] },
-        benchmark: { label: "Benchmark", description: "Independent benchmark pipeline agents", agents: ["benchmark-writer"] },
         improvement: { label: "Improvement", description: "Autonomous prompt tuning daemon", agents: ["improver"] },
       }
 
@@ -422,6 +420,28 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
     }
   }
 
+  // ── All chapter drafts (for reader view) ─────────────────────────
+  const allDraftsMatch = path.match(/^\/api\/novel\/([^/]+)\/chapters$/)
+  if (allDraftsMatch && req.method === "GET") {
+    const novelId = allDraftsMatch[1]
+    try {
+      const rows = await db`
+        SELECT DISTINCT ON (chapter_number) chapter_number, prose, word_count, version, status
+        FROM chapter_drafts
+        WHERE novel_id = ${novelId}
+        ORDER BY chapter_number, version DESC`
+      return Response.json(rows.map(r => ({
+        chapter: r.chapter_number,
+        prose: r.prose,
+        wordCount: r.word_count,
+        version: r.version,
+        status: r.status,
+      })))
+    } catch (err) {
+      return Response.json({ error: String(err) }, { status: 500 })
+    }
+  }
+
   // ── Issues (from Postgres) ─────────────────────────────────────────
   const issuesMatch = path.match(/^\/api\/novel\/([^/]+)\/issues$/)
   if (issuesMatch && req.method === "GET") {
@@ -626,6 +646,76 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
         try { row.request_json = JSON.parse(row.request_json) } catch { /* leave as string */ }
       }
       return Response.json(row)
+    } catch (err) {
+      return Response.json({ error: String(err) }, { status: 500 })
+    }
+  }
+
+  // ── Cost breakdown ─────────────────────────────────────────────────
+  if (path === "/api/novel/costs" && req.method === "GET") {
+    try {
+      const byAgent = await db`
+        SELECT agent,
+          COUNT(*) as calls,
+          ROUND(SUM(cost)::numeric, 6)::float as total_cost,
+          SUM(prompt_tokens)::int as total_in,
+          SUM(completion_tokens)::int as total_out,
+          ROUND(AVG(prompt_tokens))::int as avg_in,
+          ROUND(AVG(completion_tokens))::int as avg_out,
+          ROUND(AVG(latency_ms))::int as avg_latency_ms
+        FROM llm_calls WHERE cost > 0
+        GROUP BY agent ORDER BY total_cost DESC`
+
+      const byProvider = await db`
+        SELECT provider, model,
+          COUNT(*) as calls,
+          ROUND(SUM(cost)::numeric, 6)::float as total_cost,
+          SUM(prompt_tokens)::int as total_in,
+          SUM(completion_tokens)::int as total_out
+        FROM llm_calls WHERE cost > 0
+        GROUP BY provider, model ORDER BY total_cost DESC`
+
+      const byPhase = await db`
+        SELECT COALESCE(phase, 'unknown') as phase,
+          COUNT(*) as calls,
+          ROUND(SUM(cost)::numeric, 6)::float as total_cost,
+          SUM(prompt_tokens)::int as total_in,
+          SUM(completion_tokens)::int as total_out
+        FROM llm_calls WHERE cost > 0
+        GROUP BY phase ORDER BY total_cost DESC`
+
+      const byNovel = await db`
+        SELECT l.novel_id, n.total_chapters,
+          COUNT(*) as calls,
+          ROUND(SUM(l.cost)::numeric, 6)::float as total_cost,
+          SUM(l.prompt_tokens)::int as total_in,
+          SUM(l.completion_tokens)::int as total_out
+        FROM llm_calls l
+        LEFT JOIN novels n ON n.id = l.novel_id
+        WHERE l.cost > 0 AND l.novel_id IS NOT NULL
+        GROUP BY l.novel_id, n.total_chapters
+        ORDER BY total_cost DESC`
+
+      const daily = await db`
+        SELECT date_trunc('day', timestamp)::date as day,
+          COUNT(*) as calls,
+          ROUND(SUM(cost)::numeric, 6)::float as total_cost,
+          SUM(prompt_tokens)::int as total_in,
+          SUM(completion_tokens)::int as total_out
+        FROM llm_calls WHERE cost > 0
+        GROUP BY day ORDER BY day`
+
+      const [totals] = await db`
+        SELECT COUNT(*) as calls,
+          ROUND(SUM(cost)::numeric, 6)::float as total_cost,
+          SUM(prompt_tokens)::bigint as total_in,
+          SUM(completion_tokens)::bigint as total_out
+        FROM llm_calls WHERE cost > 0`
+
+      return Response.json({
+        totals: { calls: Number(totals.calls), totalCost: totals.total_cost, totalIn: Number(totals.total_in), totalOut: Number(totals.total_out) },
+        byAgent, byProvider, byPhase, byNovel, daily,
+      })
     } catch (err) {
       return Response.json({ error: String(err) }, { status: 500 })
     }

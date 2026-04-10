@@ -83,6 +83,18 @@ export function getIssues(novelId: string) {
   return fetchJSON<any[]>(`/api/novel/${novelId}/issues`)
 }
 
+export interface ChapterData {
+  chapter: number
+  prose: string
+  wordCount: number
+  version: number
+  status: string
+}
+
+export function getAllChapters(novelId: string) {
+  return fetchJSON<ChapterData[]>(`/api/novel/${novelId}/chapters`)
+}
+
 export function deleteNovel(novelId: string) {
   return fetchJSON<{ ok: boolean }>(`/api/novel/${novelId}`, { method: "DELETE" })
 }
