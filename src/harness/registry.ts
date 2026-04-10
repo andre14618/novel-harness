@@ -256,14 +256,6 @@ export const COMPONENTS: Component[] = [
     measuredBy: ["context-causal-depth", "context-knowledge-accuracy"],
     category: "model",
   },
-  {
-    id: "model.benchmark-judge", name: "Benchmark Judge Model",
-    description: "LLM model used for scoring benchmark dimensions",
-    type: "model", storage: "roles",
-    measuredBy: [], // meta — judges measure everything else
-    category: "model",
-  },
-
   // ── Embedding templates (DB-backed, autoresearcher-tunable) ────────────
   {
     id: "embed.fact_template", name: "Fact Embedding Template",

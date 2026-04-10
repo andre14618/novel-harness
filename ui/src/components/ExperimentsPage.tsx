@@ -1,6 +1,4 @@
 import { useEffect, useState } from "react"
-import { ProseCompare } from "./ProseCompare"
-import { ExperimentBuilder } from "./ExperimentBuilder"
 
 const API_KEY = new URLSearchParams(window.location.search).get("key") ?? ""
 const api = (path: string) => fetch(`${path}${path.includes("?") ? "&" : "?"}key=${API_KEY}`)
@@ -37,7 +35,7 @@ interface Generation {
   lintIssues: Array<{ category: string; match: string; sentence: string; charOffset: number }>
 }
 
-type Tab = "scores" | "prose" | "rubrics" | "commit"
+type Tab = "scores" | "prose" | "commit"
 
 export function ExperimentsPage() {
   const [experiments, setExperiments] = useState<Experiment[]>([])
@@ -46,17 +44,12 @@ export function ExperimentsPage() {
   const [generations, setGenerations] = useState<Generation[]>([])
   const [activeTab, setActiveTab] = useState<Tab>("scores")
   const [filter, setFilter] = useState<string>("")
-  const [rubricIndex, setRubricIndex] = useState<Record<string, string[]>>({})
-  const [rubricContent, setRubricContent] = useState<Record<string, string>>({})
   const [commitDiff, setCommitDiff] = useState<string | null>(null)
   const [expandedGen, setExpandedGen] = useState<number | null>(null)
   const [copiedId, setCopiedId] = useState<number | null>(null)
-  const [showCompare, setShowCompare] = useState(false)
-  const [showBuilder, setShowBuilder] = useState(false)
 
   useEffect(() => {
     api("/api/experiments").then(r => r.json()).then(setExperiments).catch(() => {})
-    api("/api/rubrics").then(r => r.json()).then(setRubricIndex).catch(() => {})
   }, [])
 
   async function loadDetail(id: number) {
@@ -73,16 +66,6 @@ export function ExperimentsPage() {
       ])
       setDetail(detailRes)
       setGenerations(gensRes)
-    } catch {}
-  }
-
-  async function loadRubric(suite: string, dimension: string) {
-    const key = `${suite}/${dimension}`
-    if (rubricContent[key]) return
-    try {
-      const res = await api(`/api/rubrics/${suite}/${dimension}`)
-      const data = await res.json()
-      setRubricContent(prev => ({ ...prev, [key]: data.content }))
     } catch {}
   }
 
@@ -107,20 +90,6 @@ export function ExperimentsPage() {
   function handleTabChange(tab: Tab, expId: number) {
     setActiveTab(tab)
     if (tab === "commit" && !commitDiff) loadCommitDiff(expId)
-    if (tab === "rubrics") {
-      // Detect suite from experiment type or scores
-      const exp = experiments.find(e => e.id === expId)
-      const suite = exp?.type === "pairwise" ? "pairwise"
-        : detail?.scores?.[0]?.dimension ? guessSuite(detail.scores[0].dimension) : "prose"
-      for (const dim of rubricIndex[suite] ?? []) loadRubric(suite, dim)
-    }
-  }
-
-  function guessSuite(dimension: string): string {
-    for (const [suite, dims] of Object.entries(rubricIndex)) {
-      if (dims.includes(dimension)) return suite
-    }
-    return "prose"
   }
 
   // Highlight lint issues in prose
@@ -192,30 +161,9 @@ export function ExperimentsPage() {
     <>
       <h1>Experiments</h1>
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.8rem" }}>
-        <p style={{ fontSize: "0.8rem", color: "#8b949e", margin: 0 }}>
-          All benchmark runs and improvement cycles. Click to expand.
-        </p>
-        <button
-          onClick={() => setShowBuilder(!showBuilder)}
-          style={{ fontSize: "0.75rem", padding: "0.3rem 0.8rem", cursor: "pointer" }}
-        >
-          {showBuilder ? "Cancel" : "+ New Experiment"}
-        </button>
-      </div>
-
-      {showBuilder && (
-        <ExperimentBuilder
-          onCreated={(id) => {
-            setShowBuilder(false)
-            // Refresh experiments list
-            api("/api/experiments").then(r => r.json()).then(setExperiments).catch(() => {})
-            // Auto-expand the new experiment
-            setTimeout(() => loadDetail(id), 1000)
-          }}
-          onCancel={() => setShowBuilder(false)}
-        />
-      )}
+      <p style={{ fontSize: "0.8rem", color: "#8b949e", marginBottom: "0.8rem" }}>
+        All experiments and tuning runs. Click to expand.
+      </p>
 
       <input
         type="text"
@@ -290,7 +238,6 @@ export function ExperimentsPage() {
                     <button style={tabStyle("prose")} onClick={() => handleTabChange("prose", e.id)}>
                       Prose ({generations.length})
                     </button>
-                    <button style={tabStyle("rubrics")} onClick={() => handleTabChange("rubrics", e.id)}>Rubrics</button>
                     <button style={tabStyle("commit")} onClick={() => handleTabChange("commit", e.id)}>Commit</button>
                   </div>
 
@@ -340,14 +287,6 @@ export function ExperimentsPage() {
 
                   {activeTab === "prose" && (
                     <div style={{ fontSize: "0.8rem" }}>
-                      {generations.length >= 2 && (
-                        <button
-                          onClick={() => setShowCompare(true)}
-                          style={{ marginBottom: "0.5rem", fontSize: "0.75rem", padding: "0.3rem 0.8rem", cursor: "pointer" }}
-                        >
-                          Side-by-Side Compare
-                        </button>
-                      )}
                       {generations.length === 0 ? (
                         <p style={{ color: "#555" }}>No prose generations found.</p>
                       ) : (
@@ -404,30 +343,6 @@ export function ExperimentsPage() {
                     </div>
                   )}
 
-                  {activeTab === "rubrics" && (
-                    <div style={{ fontSize: "0.8rem" }}>
-                      {Object.entries(rubricIndex).map(([suite, dims]) => (
-                        <div key={suite}>
-                          {dims.map(dim => {
-                            const key = `${suite}/${dim}`
-                            const content = rubricContent[key]
-                            if (!content) return null
-                            return (
-                              <details key={key} style={{ marginBottom: "0.5rem" }}>
-                                <summary style={{ cursor: "pointer", color: "#e0e0e0" }}>
-                                  <strong>{suite}</strong> / {dim}
-                                </summary>
-                                <pre style={{ fontSize: "0.7rem", color: "#8b949e", whiteSpace: "pre-wrap", marginTop: "0.3rem", padding: "0.5rem", background: "#161b22", borderRadius: "4px" }}>
-                                  {content}
-                                </pre>
-                              </details>
-                            )
-                          })}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
                   {activeTab === "commit" && (
                     <div style={{ fontSize: "0.8rem" }}>
                       {commitDiff ? (
@@ -450,9 +365,6 @@ export function ExperimentsPage() {
         <p style={{ color: "#555" }}>No experiments found.</p>
       )}
 
-      {showCompare && generations.length >= 2 && (
-        <ProseCompare generations={generations} onClose={() => setShowCompare(false)} />
-      )}
     </>
   )
 }

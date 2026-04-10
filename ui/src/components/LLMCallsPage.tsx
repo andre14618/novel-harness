@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import {
   listLLMCalls, listLLMCallAgents, getLLMCall, listNovels,
-  type LLMCallRow, type LLMCallDetail,
+  type LLMCallRow, type LLMCallDetail, type NovelListItem,
 } from "../api"
 
 // LLM Call inspector — see exactly what every agent received and produced.
@@ -18,7 +18,7 @@ type SortDir = "asc" | "desc"
 export function LLMCallsPage() {
   const [rows, setRows] = useState<LLMCallRow[]>([])
   const [agents, setAgents] = useState<string[]>([])
-  const [novels, setNovels] = useState<{ id: string; title: string }[]>([])
+  const [novels, setNovels] = useState<NovelListItem[]>([])
   const [loading, setLoading] = useState(false)
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -152,7 +152,7 @@ export function LLMCallsPage() {
         <Field label="Novel">
           <select value={novelId} onChange={e => setNovelId(e.target.value)} style={selectStyle}>
             <option value="">all novels</option>
-            {novels.map(n => <option key={n.id} value={n.id}>{n.title || n.id}</option>)}
+            {novels.map(n => <option key={n.id} value={n.id}>{n.id}</option>)}
           </select>
         </Field>
         <Field label="Agent">

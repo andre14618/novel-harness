@@ -55,11 +55,10 @@ LXC 307 (192.168.1.108)
 │
 ├── Fine-Tuning (W&B Inference)
 │   └── OpenPipe/Qwen3-14B-Instruct LoRA adapters
-│       ├── tonal-pass v4 (trained, W&B) / v3 (live, Together AI)
-│       ├── adherence-checker (4-call decomposed shipped; SFT deferred)
+│       ├── tonal-pass v4 (trained + validated on W&B; v3 live pending switchover)
+│       ├── adherence-checker v2 (curated LoRA deployed — 90% oracle agreement)
 │       ├── chapter-plan-checker (SFT next; gpt-oss-120b teacher)
-│       ├── continuity (blocked — no reliable teacher yet)
-│       └── reference-resolver (removed; 14B already 97.5% recall)
+│       └── continuity (blocked — no reliable teacher yet)
           `.trim()}</pre>
         </section>
 
@@ -201,33 +200,29 @@ Beat Specification (from planner)
           <h2>Pages</h2>
           <div className="guide-cards">
             <div className="card">
-              <h3><Link to={`/${qs}`}>Novels</Link></h3>
-              <p>Start a new novel with custom input or a seed file. View, resume, or archive existing novels.</p>
-            </div>
-            <div className="card">
-              <h3>Pipeline View</h3>
-              <p>Real-time timeline of a novel run. Every LLM call shows tokens, latency, cost.
-                 Gate panels appear inline for approval decisions.</p>
-            </div>
-            <div className="card">
               <h3><Link to={`/config${qs}`}>Config</Link></h3>
-              <p>Three tabs: <strong>Models</strong> (per-agent model selection), <strong>Context</strong> (retrieval
-                 parameter tuning — similarity thresholds, RRF K, boosts, limits), and <strong>Causal</strong> (deterministic
-                 link scoring weights and thresholds).</p>
+              <p>Per-agent model selection with temperature tuning. Changes take effect immediately.</p>
+            </div>
+            <div className="card">
+              <h3><Link to={`/llm-calls${qs}`}>Inspector</Link></h3>
+              <p>Every LLM call across the pipeline. Filter by novel/agent/chapter/beat, click to see full prompts and responses.</p>
+            </div>
+            <div className="card">
+              <h3><Link to={`/costs${qs}`}>Costs</Link></h3>
+              <p>Cost analytics by agent, provider, phase, novel, and day.</p>
             </div>
             <div className="card">
               <h3><Link to={`/experiments${qs}`}>Experiments</Link></h3>
-              <p>Unified view of all benchmark runs and improvement cycles. Scores, cost,
+              <p>Unified view of all tuning experiments. Scores, cost,
                  iterations, conclusions, and cross-experiment lineage.</p>
-            </div>
-            <div className="card">
-              <h3><Link to={`/operations${qs}`}>Operations</Link></h3>
-              <p>Run benchmarks and improvement cycles. Start the daemon with target/dimension locking.
-                 Batch status monitoring.</p>
             </div>
             <div className="card">
               <h3><Link to={`/models${qs}`}>Models</Link></h3>
               <p>Searchable model registry with pricing, specs, and provider info for all available models.</p>
+            </div>
+            <div className="card">
+              <h3><Link to={`/lora${qs}`}>LoRA</Link></h3>
+              <p>V4 tonal pass benchmark results and preference evaluation for style transfer comparison.</p>
             </div>
             <div className="card">
               <h3><Link to={`/docs${qs}`}>Docs</Link></h3>
@@ -275,7 +270,7 @@ Beat Specification (from planner)
               <tr>
                 <td><strong>Tonal Pass</strong></td>
                 <td>Voice consistency</td>
-                <td>LoRA-tuned 14B model (per-paragraph rewrite). V4 on W&B Inference validated; V3 on Together AI still live pending switchover.</td>
+                <td>LoRA-tuned 14B model (per-paragraph rewrite via W&B Inference). V4 validated; V3 on Together AI still live pending switchover.</td>
                 <td>Post-validation</td>
               </tr>
             </tbody>
@@ -301,11 +296,10 @@ Beat Specification (from planner)
               <tr><th>Fine-Tune Target</th><th>Task</th><th>Status</th></tr>
             </thead>
             <tbody>
-              <tr><td>Tonal Pass</td><td>Per-paragraph style rewriting</td><td>V4 trained &amp; validated on W&B Inference; V3 (Together AI) still live pending switchover</td></tr>
-              <tr><td>Chapter Plan Checker</td><td>Plan vs assembled prose (pass/fail)</td><td>SFT next — gpt-oss-120b teacher validated (90%); per-beat decomposition disconfirmed (regression)</td></tr>
-              <tr><td>Adherence Checker</td><td>Beat spec vs prose (pass/fail)</td><td>4-call decomposed prompt shipped in production — SFT deferred pending validation at scale</td></tr>
+              <tr><td>Adherence Checker</td><td>Beat spec vs prose (4-call decomposed)</td><td><strong>V2 curated LoRA deployed</strong> — 90% oracle agreement on 64 production pairs (exp #135)</td></tr>
+              <tr><td>Tonal Pass</td><td>Per-paragraph style rewriting</td><td>V4 trained &amp; validated on W&B Inference (exp #98); V3 (Together AI) still live pending switchover</td></tr>
+              <tr><td>Chapter Plan Checker</td><td>Plan vs assembled prose (pass/fail)</td><td>SFT next — gpt-oss-120b teacher validated (90%)</td></tr>
               <tr><td>Continuity</td><td>Consistency with world state</td><td>Blocked — no reliable teacher (235B misses 90% of warnings)</td></tr>
-              <tr><td>Reference Resolver</td><td>Identify needed DB lookups from beat</td><td>Removed from roadmap — 14B already at 97.5% recall, no deficit to train against</td></tr>
             </tbody>
           </table>
         </section>

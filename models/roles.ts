@@ -82,14 +82,6 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // ── Tonal pass (per-paragraph voice rewrite, LoRA fine-tuned) ────────
   "tonal-pass":                { provider: "together", model: "Qwen/Qwen3.5-9B", lora: "andre14618_2c8c/Qwen3.5-9B-howard-tonal-v3-5d040ad5", temperature: 0.6, maxTokens: 2048 },
 
-  // ── Judges (novel validation) ──────────────────────────────────────────
-  "judge":                     { ...deepseekV3, temperature: 0.1 },
-  "pairwise-judge":            { ...deepseekV3, temperature: 0.1 },
-
-  // ── Benchmark (can tune independently from novel pipeline) ───────────
-  "benchmark-writer":          { ...deepseekV3, temperature: 0.8, maxTokens: 8000 },
-  "benchmark-judge":           { ...deepseekV3, temperature: 0.1 },
-
   // ── Improvement daemon ──────────────────────────────────────────────
   "improver":                  { ...deepseekV3, maxTokens: 8192 },
 }

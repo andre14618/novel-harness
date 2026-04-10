@@ -3,10 +3,6 @@ import { useEffect, useState } from "react"
 import { getNovelConfig, setAgentConfig, resetAgentConfig, persistConfig } from "../api"
 import type { NovelConfig } from "../api"
 import { SearchableSelect } from "./SearchableSelect"
-import { ContextPage } from "./ContextPage"
-import { DeterministicConfigPage } from "./DeterministicConfigPage"
-
-type ConfigTab = "models" | "context" | "causal"
 
 const AGENT_LABELS: Record<string, string> = {
   "writer": "Writer",
@@ -26,14 +22,12 @@ const AGENT_LABELS: Record<string, string> = {
   "graph-linker": "Graph Linker",
   "lint-fixer": "Lint Fixer",
   "tonal-pass": "Tonal Pass",
-  "continuity": "Continuity Checker",
-  "benchmark-writer": "Benchmark Writer",
-  "benchmark-judge": "Benchmark Judge",
+  "continuity-facts": "Continuity — Facts",
+  "continuity-state": "Continuity — State",
   "improver": "Improver",
 }
 
 export function ConfigPage() {
-  const [tab, setTab] = useState<ConfigTab>("models")
   const [config, setConfig] = useState<NovelConfig | null>(null)
   const [saving, setSaving] = useState<Record<string, boolean>>({})
   const [flash, setFlash] = useState<{ agent: string; msg: string; ok: boolean } | null>(null)
@@ -115,16 +109,6 @@ export function ConfigPage() {
     <>
       <h1>Configuration</h1>
 
-      <div className="tab-bar">
-        <div className={`tab ${tab === "models" ? "active" : ""}`} onClick={() => setTab("models")}>Models</div>
-        <div className={`tab ${tab === "context" ? "active" : ""}`} onClick={() => setTab("context")}>Context</div>
-        <div className={`tab ${tab === "causal" ? "active" : ""}`} onClick={() => setTab("causal")}>Causal</div>
-      </div>
-
-      {tab === "context" && <ContextPage />}
-      {tab === "causal" && <DeterministicConfigPage />}
-
-      {tab === "models" && <>
       <p style={{ fontSize: "0.8rem", color: "#8b949e", marginBottom: "0.5rem", lineHeight: 1.6 }}>
         Configure which model each agent uses. Changes take effect immediately on the next agent call.
         Use "Save to File" to write changes permanently to <code>models/roles.ts</code>.
@@ -240,7 +224,6 @@ export function ConfigPage() {
           })}
         </div>
       ))}
-      </>}
     </>
   )
 }

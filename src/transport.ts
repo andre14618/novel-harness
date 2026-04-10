@@ -1,18 +1,10 @@
 /**
  * LLM Transport Layer.
  *
- * Sits beneath all LLM call paths (callAgent, generateProse, judgeDimension).
+ * Sits beneath all LLM call paths (callAgent, generateProse).
  * The transport decides HOW to execute. Callers build prompts as usual.
  *
- * Transports:
- *
- * 1. DirectTransport (default)
- *    Standard real-time HTTP calls with retry logic.
- *
- * 2. BatchTransport (LLM_TRANSPORT=batch or --batch flag)
- *    Queues requests in memory, submits as a single batch via provider batch API
- *    (e.g., OpenAI /v1/batches). 50% off, async 24h turnaround. Results collected
- *    later by the orchestrator or manually.
+ * DirectTransport: Standard real-time HTTP calls with retry logic.
  *
  * Provider prefix caching (OpenAI 90% off, DeepSeek 95% off) happens automatically
  * when prompts share the same prefix — no transport-level intervention needed.
@@ -22,8 +14,6 @@ import {
   PROVIDERS, getApiKey, getModel,
   type ProviderName,
 } from "../models/registry"
-import type { BatchProvider, BatchRequest } from "../benchmark/batch/types"
-
 // ── Types ────────────────────────────────────────────────────────────────
 
 export interface LLMRequest {
@@ -50,10 +40,6 @@ export interface LLMResponse {
 
 export interface LLMTransport {
   execute(request: LLMRequest): Promise<LLMResponse>
-  /** Batch: submit all queued requests. Returns provider batch ID. */
-  flush?(): Promise<string>
-  /** Number of queued requests (batch mode). */
-  queueSize?(): number
 }
 
 // ── Singleton ────────────────────────────────────────────────────────────
@@ -151,61 +137,3 @@ export class DirectTransport implements LLMTransport {
   }
 }
 
-// ── BatchTransport ───────────────────────────────────────────────────────
-
-const EMPTY_RESPONSE: LLMResponse = {
-  content: "",
-  usage: { prompt_tokens: 0, completion_tokens: 0 },
-  latencyMs: 0,
-  httpAttempts: 0,
-  retryErrors: [],
-}
-
-export class BatchTransport implements LLMTransport {
-  private queue: Array<{ request: LLMRequest; customId: string }> = []
-
-  constructor(
-    private provider: BatchProvider,
-    private overrideModel?: string,
-  ) {}
-
-  async execute(request: LLMRequest): Promise<LLMResponse> {
-    const id = request.customId ?? `${request.callerId ?? "call"}-${this.queue.length}`
-    this.queue.push({ request, customId: id })
-    return EMPTY_RESPONSE
-  }
-
-  queueSize(): number {
-    return this.queue.length
-  }
-
-  async flush(): Promise<string> {
-    if (this.queue.length === 0) throw new Error("BatchTransport: nothing to flush")
-
-    const batchRequests: BatchRequest[] = this.queue.map(q => ({
-      customId: q.customId,
-      model: this.overrideModel ?? q.request.model,
-      messages: [
-        { role: "system", content: q.request.systemPrompt },
-        { role: "user", content: q.request.userPrompt },
-      ],
-      temperature: q.request.temperature,
-      maxTokens: q.request.maxTokens,
-      useMaxCompletionTokens: q.request.useMaxCompletionTokens,
-      responseFormat: q.request.responseFormat,
-    }))
-
-    return this.provider.submit(batchRequests)
-  }
-
-  /** Get queued requests for DB tracking before flush. */
-  getQueue(): ReadonlyArray<{ request: LLMRequest; customId: string }> {
-    return this.queue
-  }
-}
-
-// ── Auto-init from env ────────────────────────��──────────────────────────
-
-if (process.env.LLM_TRANSPORT === "batch") {
-  console.log("[transport] LLM_TRANSPORT=batch — callers must call setTransport(new BatchTransport(...))")
-}

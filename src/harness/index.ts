@@ -8,9 +8,7 @@
  *   await harness.embeddings.embedChapterData(novelId, chapterNum)
  */
 
-import * as scores from "./scores"
 import * as experiments from "./experiments"
-import * as cycles from "./cycles"
 import * as context from "./context"
 import * as embeddings from "./embeddings"
 import * as graph from "./graph"
@@ -20,4 +18,4 @@ import * as registry from "./registry"
 import * as enforce from "./enforce"
 import * as resolve from "./resolve"
 
-export { scores, experiments, cycles, context, embeddings, graph, novels, deterministic, registry, enforce, resolve }
+export { experiments, context, embeddings, graph, novels, deterministic, registry, enforce, resolve }
