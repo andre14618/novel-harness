@@ -35,6 +35,7 @@ createRoot(document.getElementById("root")!).render(
           <Route path="/dashboard" element={<Navigate to="/guide" replace />} />
           <Route path="/operations" element={<Navigate to="/guide" replace />} />
           <Route path="/finetune" element={<Navigate to="/guide" replace />} />
+          <Route path="/read" element={<NovelReadView />} />
           <Route path="/:novelId/read" element={<NovelReadView />} />
           <Route path="/:novelId" element={<PipelineView />} />
         </Routes>

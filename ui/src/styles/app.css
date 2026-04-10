@@ -526,27 +526,76 @@ input[type="checkbox"] {
   min-height: calc(100vh - 44px);
 }
 .reader-sidebar {
-  width: 220px;
-  min-width: 220px;
+  width: 240px;
+  min-width: 240px;
   background: var(--bg-surface);
   border-right: 1px solid var(--border-subtle);
-  padding: 1rem;
+  padding: 1.2rem 1rem;
   position: sticky;
   top: 44px;
   height: calc(100vh - 44px);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  gap: 0.8rem;
+}
+.reader-novel-select {
+  width: 100%;
+  padding: 7px 10px;
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  background: var(--bg-inset);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238b949e'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+  text-overflow: ellipsis;
+}
+.reader-novel-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.reader-novel-select option {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+.reader-latest-btn {
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  background: var(--accent-surface);
+  color: var(--accent);
+  border: 1px solid var(--accent-dim);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.reader-latest-btn:hover {
+  background: var(--accent);
+  color: var(--bg-root);
+}
+.reader-latest-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 .reader-back {
   font-size: 0.72rem;
   color: var(--text-muted);
   text-decoration: none;
-  margin-bottom: 1rem;
   display: block;
 }
 .reader-back:hover { color: var(--accent); }
-.reader-meta { margin-bottom: 1.2rem; }
+.reader-meta {
+  padding-top: 0.4rem;
+  border-top: 1px solid var(--border-subtle);
+}
 .reader-title {
   font-size: 0.85rem;
   font-weight: 700;
@@ -555,17 +604,20 @@ input[type="checkbox"] {
   word-break: break-all;
 }
 .reader-theme {
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   color: var(--text-muted);
   font-style: italic;
+  font-family: 'Georgia', 'Times New Roman', serif;
   margin: 0 0 0.6rem;
+  line-height: 1.5;
 }
 .reader-stats {
   display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.8rem;
   font-size: 0.7rem;
   color: var(--text-muted);
+  align-items: center;
 }
 .reader-toc {
   display: flex;
@@ -573,12 +625,14 @@ input[type="checkbox"] {
   gap: 2px;
   flex: 1;
   overflow-y: auto;
+  padding-top: 0.4rem;
+  border-top: 1px solid var(--border-subtle);
 }
 .reader-toc-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 10px;
+  padding: 7px 10px;
   background: none;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
@@ -597,36 +651,52 @@ input[type="checkbox"] {
 .reader-toc-item.approved .reader-toc-num { color: var(--accent-dim); }
 .reader-toc-num { font-weight: 600; }
 .reader-toc-words { font-size: 0.65rem; color: var(--text-muted); }
+
+/* Reader content — optimized for long-form reading */
 .reader-content {
   flex: 1;
-  max-width: 720px;
+  max-width: 680px;
   margin: 0 auto;
-  padding: 2rem 2rem 4rem;
+  padding: 3rem 2.5rem 6rem;
 }
 .reader-chapter {
-  margin-bottom: 3rem;
-  padding-bottom: 3rem;
+  margin-bottom: 4rem;
+  padding-bottom: 4rem;
   border-bottom: 1px solid var(--border-subtle);
 }
-.reader-chapter:last-child { border-bottom: none; }
+.reader-chapter:last-child { border-bottom: none; margin-bottom: 0; }
 .reader-chapter-header {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  margin-bottom: 1.2rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-subtle);
 }
 .reader-chapter-header h3 {
-  font-size: 1rem;
+  font-size: 1.15rem;
   font-weight: 700;
   color: var(--text-primary);
   margin: 0;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  letter-spacing: 0.02em;
 }
 .reader-chapter-meta {
   display: flex;
   gap: 0.8rem;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   color: var(--text-muted);
   align-items: center;
+}
+
+/* Override prose-content inside reader for a more pleasant reading experience */
+.reader-chapter .prose-content {
+  font-size: 1rem;
+  line-height: 1.9;
+  color: var(--text-secondary);
+  letter-spacing: 0.01em;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .connected-dot {
