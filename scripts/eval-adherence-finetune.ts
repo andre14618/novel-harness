@@ -24,7 +24,7 @@ const CALL_TYPES = ["events", "setting", "tangent", "character"] as const;
 
 // Adapter URIs — using final checkpoints (v9 = last of 10 saved during 2-epoch training)
 // W&B Inference: LoRA artifact URI goes in the `model` field (NOT a separate `lora` field).
-const MODELS = {
+const ALL_MODELS = {
   "oracle-235b": {
     provider: "cerebras" as const,
     model: "qwen-3-235b-a22b-instruct-2507",
@@ -46,6 +46,14 @@ const MODELS = {
     model: "wandb-artifact:///andre14618-/novel-harness/adherence-checker-v3-sft-resume:v9",
   },
 };
+
+// --only flag: run oracle + specified model only (e.g. --only v3-mixed-teacher)
+const ONLY = process.argv.find(a => a.startsWith("--only="))?.split("=")[1];
+const MODELS = ONLY
+  ? Object.fromEntries(
+      Object.entries(ALL_MODELS).filter(([k]) => k === "oracle-235b" || k === ONLY)
+    ) as typeof ALL_MODELS
+  : ALL_MODELS;
 
 // System prompts — copied from src/agents/writer/adherence-checker.ts (the inline constants)
 const SYSTEM_PROMPTS: Record<typeof CALL_TYPES[number], string> = {
