@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-10
+updated: 2026-04-11
 ---
 
 # Decisions
@@ -264,3 +264,37 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 4. Aggregate with a local script → combined JSONL → rsync to LXC for DB recording
 
 **Ongoing:** This pattern is reusable for continuity labeling, chapter-plan-checker SFT data collection, and any future large-scale annotation task.
+
+---
+
+### Chapter-plan-checker: Sonnet 4.6 adopted as teacher — gpt-oss superseded
+*(2026-04-11 · exp #158)*
+
+**Decision:** Switch from gpt-oss-120b to Sonnet 4.6 as the oracle teacher for all chapter-plan-checker SFT data. V2 data collection uses Sonnet labels only.
+
+**Why:** Sonnet 94.3% vs gpt-oss 88.2% on a 229-pair, 25-scenario, 8-variant eval (exp #158). Adjusted for 12 confirmed GT labeling errors: Sonnet 99.5% vs gpt-oss 93.1%. Sonnet wins on the variants where correctness matters most for training signal quality:
+
+| Variant | Sonnet | GPT-oss | Delta |
+|---------|--------|---------|-------|
+| PASS_REORDER | 100% | 82.8% | +17pp |
+| FAIL_REVERSED_ARC | 89.7% | 82.8% | +6.9pp |
+| PASS_PARAPHRASE | 100% | 96.4% | +3.6pp |
+| FAIL_MISSING_CHAR | 96.4% | 96.4% | — |
+| All FAIL_WRONG_SETTING, PASS_CLEAN, PASS_ATMOSPHERIC | 100% | 100% | — |
+
+GPT-oss failure mode: over-literal on beat reordering and arc reversal. Calls FAIL when prose contains all required beats/arcs in non-canonical order. This is the false-positive pattern the V1 adapter may have inherited.
+
+FAIL_MISSING_BEAT: both models at 67.9% / 46.4% vs GT — driven by 12 GT labeling errors where the beat IS present but GT incorrectly marks it missing. Not a teacher quality issue.
+
+**Alternatives rejected:**
+- **Keep gpt-oss** — 88.2% is at the lower end of the "consider Sonnet" threshold. The specific failure patterns (PASS_REORDER, FAIL_REVERSED_ARC) are exactly the variants most likely to produce bad training signal. Cost is $0 with Sonnet via subagents. No reason to keep gpt-oss.
+
+**V1 training implication:** The V1 adapter (`chapter-plan-checker-v1`, exp #154, 197 pairs) was trained on gpt-oss labels, which had ~12% error rate on PASS_REORDER and FAIL_REVERSED_ARC. V1 should be treated as a pilot only. Post-eval target remains ≥80% oracle agreement before production deployment.
+
+**V2 path:**
+1. Add 20+ scenarios to `scripts/generate-chapter-plan-data.ts` (currently 25, target 45+)
+2. Label with Sonnet subagents
+3. Combine with V1 data (relabeled with Sonnet) → ~500+ pairs
+4. Train `chapter-plan-checker-v2` on W&B Serverless SFT
+
+**Ongoing:** gpt-oss remains the production oracle until V2 adapter passes ≥80% eval. Do not swap yet.

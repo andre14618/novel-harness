@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-11
+updated: 2026-04-11 (chapter-plan eval complete, exp #158)
 ---
 
 # Teacher Selection Strategy
@@ -96,21 +96,27 @@ On marginal cases, Kimi K2.5 is more lenient than 235B on subtle missing events.
 
 | Model | Overall | PASS variants | FAIL variants | Notes |
 |-------|---------|--------------|--------------|-------|
-| gpt-oss-120b | 90% | ~95% | ~85% | exp #119; 9 errors on 80 pairs |
+| gpt-oss-120b | 88.2% | ~95% | ~80% | exp #158; 229 pairs — reliable baseline |
 | Qwen 235B | 81% | 100% | 47% (FAIL_MISSING_BEAT 10%) | exp #119 |
 | GLM-5 | 89% | 100% | 80% | exp #144; 0 errors — but 20s latency, unusable |
 | Kimi K2 | 84% | 100% | 67% (FAIL_MISSING_BEAT 10%) | exp #144 |
 | Qwen3-14B base | 53% | 100% | 5% (rubber-stamp) | exp #107 |
-| Sonnet 4.6 | **UNTESTED** | — | — | eval running 2026-04-11 |
+| **Sonnet 4.6** | **94.3%** | **100%** | **~89%** | **exp #158; 229 pairs, 25 scenarios — WINNER** |
 
-**Critical gap**: gpt-oss was selected as production oracle before Sonnet was available as a $0 subagent teacher. No direct comparison of Sonnet vs gpt-oss on chapter-plan accuracy exists.
+> **exp #119 note**: gpt-oss's original 90% figure (80 pairs) was from a smaller eval. The definitive head-to-head at 229 pairs (exp #158) puts gpt-oss at 88.2% vs Sonnet 94.3%.
 
-**exp #144 contamination**: gpt-oss scored only 75% in exp #144 with 19 errors (24% failure rate) — caused by `maxTokens: 768` truncation. The 90% figure from exp #119 (9 errors, same `maxTokens`) is the reliable gpt-oss number. GLM-5's 89% (0 errors) is a legitimate finding but GLM-5's 20s latency makes it unusable.
+**exp #144 contamination**: gpt-oss scored only 75% in exp #144 with 19 errors (24% failure rate) — caused by `maxTokens: 768` truncation. GLM-5's 89% (0 errors) is a legitimate finding but GLM-5's 20s latency makes it unusable.
 
-**Decision pending**: When Sonnet chapter-plan eval (2026-04-11) completes:
-- If Sonnet ≥ 90%: switch to Sonnet as teacher for V2 data collection (same quality, $0 cost, consistent with other tasks)
-- If Sonnet ≥ 88%: consider Sonnet as teacher, monitor specifically on FAIL_REVERSED_ARC and FAIL_WRONG_SETTING
-- If Sonnet < 88%: keep gpt-oss as teacher, generate more data with `maxTokens: 2048` (bug-fixed)
+**Decision (2026-04-11, exp #158):** Sonnet is the chapter-plan teacher. Switch for V2 data collection.
+
+Key variant findings:
+- **PASS_REORDER**: Sonnet 100% vs gpt-oss 82.8% — gpt-oss over-literal on reordering
+- **FAIL_REVERSED_ARC**: Sonnet 89.7% vs gpt-oss 82.8%
+- **PASS_PARAPHRASE**: Sonnet 100% vs gpt-oss 96.4%
+- **FAIL_MISSING_BEAT**: Both low (67.9% / 46.4%) — 12 GT labeling errors identified; not a teacher quality issue
+- All other variants: Sonnet ≥ gpt-oss
+
+V1 adapter (exp #154) was trained on gpt-oss labels with ~12% error rate on PASS_REORDER and FAIL_REVERSED_ARC. Treat V1 as a pilot.
 
 ### Continuity Checker
 
@@ -180,15 +186,21 @@ For any new fine-tune candidate:
 
 | Task | Sonnet Accuracy | Decision |
 |------|----------------|---------|
-| Adherence | 96.5% (below 97% threshold) | V3 with Sonnet labels: relabeling 7,541 pairs, pending eval |
-| Chapter-plan | **EVAL RUNNING** | Decision pending results |
-| Continuity | 98% — adopted | V1 training in progress |
+| Adherence | 96.5% (exp #147) | V3 with Sonnet labels: relabeling 7,541 pairs in progress |
+| Chapter-plan | **94.3% (exp #158)** | **Sonnet adopted** — V2 data uses Sonnet labels |
+| Continuity | 98% (exp #150) | Sonnet adopted — V1 training in progress (exp #155) |
 | Reference-resolver | N/A — task retired | Llama 8B sufficient |
 
-If Sonnet proves viable on chapter-plan (≥88%), the architecture becomes:
-- One teacher (Sonnet) across all analytical checkers
-- Consistent calibration
+**Sonnet is now the universal teacher across all analytical checkers.**
+
+- One teacher, one calibration standard
 - $0 labeling cost via Claude Code subagents
 - Easy to regenerate/augment any dataset
 
-This is a stronger position than per-task teacher hunting and avoids repeating the V3 multi-teacher failure.
+This is a stronger position than per-task teacher hunting and avoids repeating the V3 multi-teacher failure. The architecture holds:
+
+| Checker | Production Oracle | Adapter Status |
+|---------|-----------------|----------------|
+| Adherence | W&B Qwen3-14B V2 | In production; V3 Sonnet-labeled relabeling in progress |
+| Chapter-plan | gpt-oss-120b | V1 in training (exp #154); V2 with Sonnet labels next |
+| Continuity | Qwen 235B | V1 in training (exp #155) |

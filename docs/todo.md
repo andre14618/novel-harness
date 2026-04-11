@@ -15,8 +15,8 @@ Pending action items only. Ordered by impact. Completed items and decision ratio
 
 ## Chapter Plan Checker
 
-- **SFT training in progress** — 197-pair dataset (`lora-data/chapter-plan-checker-pairs-v2-final.jsonl`) submitted to W&B Serverless SFT as `chapter-plan-checker-v1` (exp #154). Teacher: gpt-oss-120b (87.5% agreement on PASS variants, Sonnet escalation on FAIL_MISSING_BEAT). Class balance: 54:46. Eval target: ≥80% oracle agreement on held-out pairs before swapping from gpt-oss-120b. Adapter URI once done: `wandb-artifact:///andre14618-/novel-harness/chapter-plan-checker-v1-sft-resume:v9`.
-- **Accumulate real production pairs** — 197 synthetic pairs are the V1 training set. For V2: run 10–15 novels on diverse seeds, collect oracle labels from the production gpt-oss-120b calls (already flowing through `llm_calls`), relabel with the validated adapter for self-improvement loop.
+- **SFT training in progress** — 197-pair dataset (`lora-data/chapter-plan-checker-pairs-v2-final.jsonl`) submitted to W&B Serverless SFT as `chapter-plan-checker-v1` (exp #154). Teacher was gpt-oss-120b — now superseded by Sonnet (exp #158: Sonnet 94.3% vs gpt-oss 88.2%). V1 is a pilot. Class balance: 54:46. Eval target: ≥80% oracle agreement on held-out pairs. Adapter URI once done: `wandb-artifact:///andre14618-/novel-harness/chapter-plan-checker-v1-sft-resume:v9`.
+- **V2 dataset with Sonnet labels** — V1 gpt-oss labels had ~12% error rate on PASS_REORDER and FAIL_REVERSED_ARC. V2 path: (1) add 20+ scenarios to `scripts/generate-chapter-plan-data.ts` (currently 25, target 45+); (2) relabel all pairs with Sonnet subagents; (3) combine with corrected V1 data → ~500+ pairs; (4) train `chapter-plan-checker-v2`. Do NOT re-collect production oracle gpt-oss labels — teacher is now Sonnet.
 
 ## Continuity
 
