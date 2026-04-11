@@ -31,7 +31,7 @@ Pending action items only. Ordered by impact. Completed items and decision ratio
 
 ## Adherence Checker
 
-- **V3 Sonnet-teacher adapter** — relabeling 7,541 V3 curated pairs with Sonnet as single consistent teacher (addresses V2 weak spots: FAIL_TANGENT_HARD 69%, FAIL_MISSING_SUBTLE 78.6%). Sonnet scores 100% on tangent, 87.2% on FAIL_MISSING_SUBTLE. Pilot batches running (2026-04-11). Do NOT mix teachers — use Sonnet for all 4 call types. Train `adherence-checker-v3-sonnet` on W&B once all 76 batches complete. Decision gate: must improve tangent + FAIL_MISSING_SUBTLE without regressing events below 95%.
+- **V3 Sonnet-teacher adapter** — 7,540 pairs relabeled (2026-04-11), submitted to W&B SFT as `adherence-checker-v3-sonnet` (exp #159). ETA ~4h. Adapter URI once done: `wandb-artifact:///andre14618-/novel-harness/adherence-checker-v3-sonnet-sft-resume:v9`. Decision gate: must improve FAIL_TANGENT_HARD (V2: 69%) and FAIL_MISSING_SUBTLE (V2: 78.6%) without regressing events below 95%.
 
 ## Fine-Tuning (Other)
 
