@@ -13,20 +13,21 @@ What goes into each beat-writer call and how it has evolved. Covers beat context
 
 ## Quick Reference
 
-| Area | Status | Current State | Next Action |
-|------|--------|--------------|-------------|
-| Beat context skeleton | DEPLOYED | Bridge + landing + chars + refs + setting | — |
-| Speech profiles | **PLANNED** | Free-text `speechPattern` field | Phase 1: structured schema |
-| Planner dialogue targets | **PLANNED** | No guidance | Add to planning-plotter prompt |
-| Archetype library | **PLANNED** | None | Phase 2: 15–20 archetypes |
-| Extraction mode | **PLANNED** | `"both"` (extractors + planner) | Switch to `"plan"` after validation |
-| Semantic retrieval | RETIRED (idle) | Infrastructure exists, disabled | Not before beat-writer SFT |
-| Structural diversity | **BLOCKED** | 15.7% dialogue, 7.5w sentences | Paired training data needed |
-| Together AI removal | **PLANNED** | V4 confirmed, V3 retired | Remove from registry.ts + env |
+| Area | Status | Current State | Since | Next Action |
+|------|--------|--------------|-------|-------------|
+| Beat context skeleton | DEPLOYED | Bridge + landing + chars + refs + setting | 2026-04-08 | — |
+| Speech profiles | **PLANNED** | Free-text `speechPattern` field | — | Phase 1: structured schema |
+| Planner dialogue targets | **PLANNED** | No guidance | — | Add to planning-plotter prompt |
+| Archetype library | **PLANNED** | None | — | Phase 2: 15–20 archetypes |
+| Extraction mode | **PLANNED** | `"both"` (extractors + planner) | 2026-04-07 | Switch to `"plan"` after validation |
+| Semantic retrieval | RETIRED (idle) | Infrastructure exists, disabled | 2026-04-07 | Not before beat-writer SFT |
+| Structural diversity | **BLOCKED** | 15.7% dialogue, 7.5w sentences | Measured 2026-04-09 | Paired training data needed |
+| Together AI removal | **PLANNED** | V4 confirmed, V3 retired | Decided 2026-04-11 | Remove from registry.ts + env |
 
 ---
 
 ## Beat Context — Current Contents
+*Established 2026-04-08 (beat-first architecture, 4-call decomposition shipped)*
 
 **File:** `src/agents/writer/beat-context.ts`
 
@@ -45,7 +46,7 @@ Every beat-writer call gets ~500–1,000 tokens assembled deterministically:
 - `emotionalShift` — excluded to prevent "telling" bias in prose
 - World systems / facts / timeline — omitted per-beat; reserved for chapter-level validation (continuity checker)
 
-**Observed output shape (131 chapters, 5 premises, 2026-04-09):**
+**Observed output shape (131 chapters, 5 premises, measured 2026-04-09):**
 
 | Metric | Pipeline avg | Published norm | Gap |
 |--------|-------------|---------------|-----|
@@ -54,16 +55,17 @@ Every beat-writer call gets ~500–1,000 tokens assembled deterministically:
 | Avg sentence length | 7.5w | 12–18w | **−4–10w** |
 | Max non-dialogue paragraph run | 9¶ | 3–8¶ | over |
 
-*Measurement note: Initial structural analysis showed 7.6% dialogue — wrong due to regex bug that missed Unicode smart quotes. Fixed detection handles `""`, `''`, and contractions. Always validate deterministic metrics against spot-checked samples.*
+*Measurement note: Initial analysis (2026-04-06) showed 7.6% dialogue — wrong, regex bug missed Unicode smart quotes. Corrected 2026-04-09. Always validate deterministic metrics against spot-checked samples.*
 
 ---
 
 ## Character Voice
+*Architecture decision 2026-04-11*
 
 **The problem:** Current `speechPattern: string` in character schema is free-text ("sounds gruff"). Models follow example dialogue far better than abstract descriptions. No per-character guardrails in the pipeline.
 
 ### Phase 1 — Structured SpeechProfile (no training required)
-**Status: PLANNED — build now**
+**Status: PLANNED**
 
 Replace free-text `speechPattern` with structured attributes:
 
@@ -120,6 +122,7 @@ Per-beat classifier: does this dialogue match the character's `SpeechProfile`? T
 ---
 
 ## Extraction Mode
+*extractionMode = "both" in production since 2026-04-07*
 
 **The question:** The planner already outputs `establishedFacts`, `characterStateChanges`, and `knowledgeChanges` per chapter. Do we still need to run LLM extractors?
 
@@ -136,27 +139,28 @@ After each approved chapter, runs 5 parallel extraction agents:
 Extraction is ~45% of total pipeline cost. Extractors write to the same Postgres tables the continuity checker reads.
 
 ### Planned: Switch to `extractionMode = "plan"`
-**Status: PLANNED — requires validation on 2–3 novels first**
+**Status: PLANNED**
 
 Disable LLM extractors except `relationship-timeline` (planner doesn't output relationship arcs). Use planner-produced `establishedFacts`, `characterStateChanges`, `knowledgeChanges` directly.
 
 **Risk:** Planner outputs may miss things the extractors catch. Run `"both"` on 2–3 new-seed novels, compare planner vs extractor outputs, confirm coverage before switching.
 
 ### Fact Extractor Tightening
-**Status: PLANNED**
+**Status: PLANNED** *(measured 2026-04-10)*
 
 17–20 facts/chapter vs 8–15 target. Over-extraction creates noisy continuity context. Fix path: `bun scripts/build-finetune-data.ts --task fact-extractor --limit 50` → review 20–30 pairs manually → establish keep/drop criteria → correct to gold → scale to 300+ pairs → SFT.
 
 ---
 
 ## Structural Diversity
+*Measured 2026-04-09, confirmed 2026-04-10*
 
 **Status: BLOCKED — no paired training data exists**
 
 The pipeline produces structurally monotone prose. The gap isn't a prompt issue — it's a training data problem.
 
-| Metric | Pipeline | Published norm | Fix required |
-|--------|---------|---------------|-------------|
+| Metric | Pipeline | Published norm | Fix |
+|--------|---------|---------------|-----|
 | Dialogue word% | 15.7% | 25–50% | Planner guidance (Phase 1) + structural paired data |
 | Interiority verbs/100w | 0.1 | 0.5–2.0 | Paired training data |
 | Avg sentence length | 7.5w | 12–18w | Paired training data |
@@ -170,6 +174,7 @@ The pipeline produces structurally monotone prose. The gap isn't a prompt issue 
 ---
 
 ## Semantic Retrieval
+*Infrastructure built 2026-04-03 (Postgres migration); disabled by default*
 
 **Status: RETIRED (infrastructure idle)**
 
@@ -187,9 +192,9 @@ Full hybrid retrieval infrastructure exists in `src/db/retrieval.ts`:
 ## Infrastructure Cleanup
 
 ### Remove Together AI provider
-**Status: PLANNED**
+**Status: PLANNED** *(decided 2026-04-11 — V4 pref eval confirmed)*
 
-V4 tonal-pass pref eval confirmed 2026-04-11. V3 on Together AI retired. Actions:
+V4 tonal-pass confirmed preferred; V3 on Together AI retired. Actions:
 - Remove `TOGETHER_API_KEY` from `.env`
 - Remove Together entries from `models/registry.ts`
 - Verify no remaining role assignments in `models/roles.ts`
