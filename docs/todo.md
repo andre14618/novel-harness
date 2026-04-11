@@ -29,6 +29,10 @@ Pending action items only. Ordered by impact. Completed items and decision ratio
 - **Remove Together AI provider** — V4 confirmed preferred (pref eval 2026-04-11). Remove `TOGETHER_API_KEY`, Together entries from `models/registry.ts`, and provider config. V3 on Together was the only remaining use.
 - **Tonal pass expansion** — v3/v4 training data is dark-fantasy-specific (Howard corpus). Multi-genre corpus needed before tonal pass is usable as a general pipeline stage. Public domain candidates: Hemingway (pre-1929), London, Cather, Fitzgerald. See `docs/ai-training-copyright-landscape.md`.
 
+## Adherence Checker
+
+- **V3 Sonnet-teacher adapter** — relabeling 7,541 V3 curated pairs with Sonnet as single consistent teacher (addresses V2 weak spots: FAIL_TANGENT_HARD 69%, FAIL_MISSING_SUBTLE 78.6%). Sonnet scores 100% on tangent, 87.2% on FAIL_MISSING_SUBTLE. Pilot batches running (2026-04-11). Do NOT mix teachers — use Sonnet for all 4 call types. Train `adherence-checker-v3-sonnet` on W&B once all 76 batches complete. Decision gate: must improve tangent + FAIL_MISSING_SUBTLE without regressing events below 95%.
+
 ## Fine-Tuning (Other)
 
 - **Fact extractor tightening** — still 17–20 facts/chapter, target 8–15. Run `bun scripts/build-finetune-data.ts --task fact-extractor --limit 50`, review 20–30 pairs, correct to gold, scale to 300+.
