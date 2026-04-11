@@ -11,6 +11,7 @@ const PAGES = [
   { path: "/models", label: "Models" },
   { path: "/lora", label: "LoRA" },
   { path: "/adapters", label: "Adapters" },
+  { path: "/context-engineering", label: "Context" },
   { path: "/decisions", label: "Decisions" },
   { path: "/docs", label: "Docs" },
 ]

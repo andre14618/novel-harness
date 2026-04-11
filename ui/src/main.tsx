@@ -15,6 +15,7 @@ import { NovelReadView } from "./components/NovelReadView"
 import { StudioPage } from "./components/StudioPage"
 import { DecisionsPage } from "./components/DecisionsPage"
 import { AdaptersPage } from "./components/AdaptersPage"
+import { ContextEngineeringPage } from "./components/ContextEngineeringPage"
 import "./styles/app.css"
 
 createRoot(document.getElementById("root")!).render(
@@ -40,6 +41,7 @@ createRoot(document.getElementById("root")!).render(
           <Route path="/finetune" element={<Navigate to="/guide" replace />} />
           <Route path="/decisions" element={<DecisionsPage />} />
           <Route path="/adapters" element={<AdaptersPage />} />
+          <Route path="/context-engineering" element={<ContextEngineeringPage />} />
           <Route path="/studio" element={<StudioPage />} />
           <Route path="/read" element={<NovelReadView />} />
           <Route path="/:novelId/read" element={<NovelReadView />} />
