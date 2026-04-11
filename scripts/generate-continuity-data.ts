@@ -15,7 +15,7 @@
  *     {"blocker"} or {} or {"blocker","nit"}). Specific issue text is
  *     judgment-call territory and not scored.
  *
- * Variants (one draft per scenario per variant, 6 variants × 20 scenarios = 120):
+ * Variants (one draft per scenario per variant, 6–7 variants × 30 scenarios = 180–210):
  *
  *   VAR_NONE       — clean draft consistent with all facts/states.
  *                    Expected: {}. Tests over-flagging.
@@ -153,6 +153,8 @@ interface Scenario {
   nitInjection: string
   /** Specific figurative phrase to embed in VAR_TRAP (must be metaphor only). */
   trapPhrase: string
+  /** Optional: second warning (characterization/state drift) for VAR_WARNING_2. New scenarios only. */
+  warningInjection2?: string
 }
 
 const SCENARIOS: Scenario[] = [
@@ -557,11 +559,204 @@ const SCENARIOS: Scenario[] = [
     nitInjection: "Describe Ori's bandaged hand as 'his left' early on and as 'his right' a few sentences later.",
     trapPhrase: "the forge fire spoke to itself in low orange voices",
   },
+
+  // ── 10 new scenarios (post-apoc, sci-fi, portal/epic fantasy, romance/drama) with VAR_WARNING_2 ──
+  {
+    id: "supply_cache_return",
+    setting: "The basement of an abandoned hardware store, late afternoon",
+    characters: ["Dael", "Soren"],
+    facts: [
+      { chapter: 2, category: "event", fact: "The supply cache in this basement was already looted by the Riverfront group before Dael's team arrived" },
+      { chapter: 3, category: "wound", fact: "Soren dislocated his right shoulder in the fence collapse; it was reset but is still in a sling" },
+      { chapter: 3, category: "object", fact: "Dael's headlamp battery was spent during the overnight shelter search and has not been replaced" },
+      { chapter: 4, category: "knowledge", fact: "Dael does not yet know that Soren found a secondary cache in the store's roof space — he decided not to tell the group until he checked it alone" },
+    ],
+    states: [
+      { character: "Dael", location: "hardware store basement", emotional_state: "grimly focused, expecting to find nothing", knows: ["the cache was already looted", "Soren's shoulder is injured"] },
+      { character: "Soren", location: "hardware store basement", emotional_state: "guarded — holding back the roof-space information", knows: ["there is a secondary cache in the roof space", "his shoulder is still in a sling"] },
+    ],
+    premise: "Dael leads Soren into the dark basement of the hardware store, not expecting much; they work their way to where the cache used to be.",
+    blockerInjection: "Have Dael click on her headlamp to light the basement (her headlamp battery is spent and not replaced per ch3).",
+    warningInjection: "Describe the walk from their shelter to the store as taking 'ten minutes' when earlier chapters established the shelter is two hours away on foot.",
+    warningInjection2: "Have Soren swing both arms freely and shrug a heavy crate aside with no difficulty, acting as if his shoulder injury does not exist (he is in a sling and the shoulder is still tender per ch3).",
+    nitInjection: "Describe Soren's sling as being on 'his left arm' in one sentence and 'his right arm' a few sentences later.",
+    trapPhrase: "the basement swallowed the sounds from the street like water taking in rain",
+  },
+  {
+    id: "settlement_meeting",
+    setting: "The settlement's main hall, a converted high school gymnasium, evening",
+    characters: ["Mora", "Elected Speaker Rand", "Tave"],
+    facts: [
+      { chapter: 2, category: "event", fact: "Community member Hex was expelled from the settlement by majority vote after the food cache theft" },
+      { chapter: 3, category: "repair", fact: "The eastern water pump was repaired yesterday and is now operational" },
+      { chapter: 4, category: "rule", fact: "Standing order: no settlement member may leave the perimeter alone after dark" },
+      { chapter: 4, category: "knowledge", fact: "Tave does not yet know that Rand is the one who cast the deciding vote to expel Hex" },
+    ],
+    states: [
+      { character: "Mora", location: "settlement main hall", emotional_state: "watchful — the room is still tense after the expulsion", knows: ["Hex is gone", "the water pump is fixed", "Rand voted to expel Hex"] },
+      { character: "Elected Speaker Rand", location: "settlement main hall", emotional_state: "composed but aware several members resent the expulsion vote", knows: ["he cast the deciding vote", "the pump is operational"] },
+      { character: "Tave", location: "settlement main hall", emotional_state: "subdued — she was close to Hex", knows: ["Hex was expelled", "the water pump is now working"] },
+    ],
+    premise: "Rand opens the weekly settlement meeting; Mora reads off infrastructure updates; Tave sits near the back and watches Rand from across the room.",
+    blockerInjection: "Have Hex stand up from a seat in the back row and ask a question during the meeting (Hex was expelled from the settlement per ch2).",
+    warningInjection: "Open the scene at evening, then two paragraphs later describe members filing out into midday sunlight as the meeting wraps up.",
+    warningInjection2: "Have Tave glare at Rand and mutter to her neighbor that she will never forgive him for casting the deciding vote — as if she already knows he did it (she does not yet know this per ch4).",
+    nitInjection: "Describe the gymnasium floor as 'concrete' in one sentence and 'hardwood' a few sentences later.",
+    trapPhrase: "the meeting moved from point to point like water finding the low places in a floor",
+  },
+  {
+    id: "perimeter_watch_handover",
+    setting: "Sector 3 of the settlement perimeter fence, the weak post, early morning",
+    characters: ["Watcher Gole", "Watcher Prist"],
+    facts: [
+      { chapter: 2, category: "event", fact: "Sector 3 of the perimeter fence was breached overnight; temporary repair was applied but the post is still weak" },
+      { chapter: 3, category: "object", fact: "The settlement's remaining signal flares — all three — were used in last week's emergency and have not been restocked" },
+      { chapter: 4, category: "event", fact: "Watch-Captain Ren was demoted to senior watcher after the unauthorized gate opening incident" },
+      { chapter: 4, category: "knowledge", fact: "Gole does not yet know that Prist filed a formal complaint about the sector 3 breach before the handover" },
+    ],
+    states: [
+      { character: "Watcher Gole", location: "sector 3 perimeter post", emotional_state: "tired from the night shift, relieved to be handing over", knows: ["sector 3 is still weak", "no signal flares remain", "Ren was demoted"] },
+      { character: "Watcher Prist", location: "sector 3 perimeter post", emotional_state: "alert and slightly tense — she filed the complaint", knows: ["she filed the complaint about the breach", "Ren was demoted", "no flares remain"] },
+    ],
+    premise: "Gole meets Prist at the weak sector 3 post at dawn to hand over the morning watch; they do a brief status check before Gole is released.",
+    blockerInjection: "Have Gole reach for a signal flare from his belt kit and fire it to signal the all-clear handover (no signal flares remain per ch3).",
+    warningInjection: "Describe the handover happening 'as the noon sun rose above the tree line' when the scene is established as dawn.",
+    warningInjection2: "Have Watch-Captain Ren stride up to supervise the handover and issue orders to both watchers with full authority, as if still in command (Ren was demoted to senior watcher per ch4).",
+    nitInjection: "Describe the weak fence post as 'the third post from the left' in one sentence and 'the fourth post from the left' a few sentences later.",
+    trapPhrase: "the silence at the perimeter had a different quality from the silence inside — it faced the wrong direction",
+  },
+  {
+    id: "engineering_bay",
+    setting: "The Ardent engineering bay, section B-4, shipboard morning",
+    characters: ["Engineer Rys", "Cadet Loom"],
+    facts: [
+      { chapter: 3, category: "location", fact: "The secondary plasma relay in bay B-4 was sealed off after it failed; the access panel is welded shut" },
+      { chapter: 4, category: "personnel", fact: "Engineer Renn was reassigned to med-bay support after the reactor event and is no longer on engineering rotation" },
+      { chapter: 5, category: "object", fact: "The standard repair kit was entirely depleted on the bridge conduit repair and has not been restocked" },
+      { chapter: 5, category: "knowledge", fact: "Cadet Loom does not yet know that her certification to operate the plasma torches was revoked by Chief Tollen pending a safety review" },
+    ],
+    states: [
+      { character: "Engineer Rys", location: "engineering bay B-4", emotional_state: "methodical, working through the repair list", knows: ["the plasma relay is sealed", "Renn is gone", "the repair kit is depleted", "Loom's torch cert is revoked"] },
+      { character: "Cadet Loom", location: "engineering bay B-4", emotional_state: "eager, trying to be useful", knows: ["the relay is sealed", "the repair kit is depleted"] },
+    ],
+    premise: "Rys and Cadet Loom work through a routine inspection of bay B-4; Loom tries to anticipate what tools will be needed while Rys checks the seal on the offline relay.",
+    blockerInjection: "Have Loom open the welded access panel on the secondary plasma relay and reach inside to check the coupling (the panel is welded shut per ch3).",
+    warningInjection: "Have Rys suggest they grab Renn to help with the heavy valve work, as if Renn is still on engineering rotation (Renn was reassigned to med-bay per ch4).",
+    warningInjection2: "Have Loom confidently fire up the plasma torch and begin cutting without asking Rys, acting as if she has full certification — when her cert has been revoked pending safety review per ch5.",
+    nitInjection: "Describe the bay section as 'B-4' early on and 'B-6' a few sentences later.",
+    trapPhrase: "the machinery breathed around them in long low pulses, as if the ship were counting something",
+  },
+  {
+    id: "command_deck_brief",
+    setting: "The Ardent command deck, morning status briefing, 0800 ship-time",
+    characters: ["Commander Yael", "Lieutenant Orin"],
+    facts: [
+      { chapter: 3, category: "personnel", fact: "Ensign Park was confined to quarters pending investigation for the navigation log incident" },
+      { chapter: 4, category: "equipment", fact: "The long-range scanner array is offline following the reactor coupling failure and has not been repaired" },
+      { chapter: 5, category: "order", fact: "Commander Yael ordered all non-essential crew to rest rotation — only duty stations are manned" },
+      { chapter: 5, category: "knowledge", fact: "Orin does not yet know that the investigation of Ensign Park was closed overnight with a finding of equipment fault, not misconduct" },
+    ],
+    states: [
+      { character: "Commander Yael", location: "command deck", emotional_state: "controlled and methodical — managing the ship one item at a time", knows: ["Park is confined", "scanner is offline", "crew is on rest rotation", "the investigation closed overnight"] },
+      { character: "Lieutenant Orin", location: "command deck", emotional_state: "alert, preparing the status summary", knows: ["Park is confined", "scanner is offline"] },
+    ],
+    premise: "Orin delivers the morning status report to Commander Yael on the command deck; Yael listens and adds comments as the items are read.",
+    blockerInjection: "Have Orin report long-range scanner data showing a vessel at bearing 220 mark 15 (the scanner is offline and cannot collect data per ch4).",
+    warningInjection: "Have Orin describe this as the 0800 briefing, then note the 'night crew just came off a twenty-hour shift' — contradicting the established rest-rotation limiting shifts to standard lengths per ch5.",
+    warningInjection2: "Have Orin suggest pulling Ensign Park off rest to cover a duty gap, treating Park as available and cleared — when Park is confined to quarters pending investigation per ch3.",
+    nitInjection: "Refer to the duty officer as 'Lieutenant Orin' in one sentence and 'Ensign Orin' a few sentences later.",
+    trapPhrase: "the status report moved from item to item the way a clock moves — indifferent to what the numbers mean",
+  },
+  {
+    id: "road_camp",
+    setting: "A forest clearing, two travelers' camp, late evening",
+    characters: ["Mira", "Aldec"],
+    facts: [
+      { chapter: 2, category: "object", fact: "Their fire steel was lost when Mira dropped the pack crossing the flooded river" },
+      { chapter: 3, category: "animal", fact: "Mira's horse went lame from a thrown shoe and had to be left at the last village" },
+      { chapter: 4, category: "supplies", fact: "They have exactly three days of rations remaining, counted and agreed upon at the last camp" },
+      { chapter: 4, category: "knowledge", fact: "Aldec has not told Mira that he spotted riders on the road behind them this afternoon" },
+    ],
+    states: [
+      { character: "Mira", location: "forest clearing camp", emotional_state: "tired, wary of the forest sounds", knows: ["the fire steel is lost", "her horse is gone", "three days of rations remain"] },
+      { character: "Aldec", location: "forest clearing camp", emotional_state: "watchful — the riders concern him", knows: ["the fire steel is lost", "three days of rations remain", "riders were on the road this afternoon"] },
+    ],
+    premise: "Mira and Aldec make camp in a forest clearing as night comes on; Mira collects wood while Aldec tends to his own horse and their packs.",
+    blockerInjection: "Have Mira pull the fire steel from her belt kit and strike a spark to light the tinder (the fire steel was lost at the river crossing per ch2).",
+    warningInjection: "Describe the camp as being two hours into the forest, then have Aldec mention they could reach the village 'in twenty minutes if we leave now' (the village is a day's walk behind them).",
+    warningInjection2: "Have Mira unsaddle her horse and tie it to a tree for the night, going through the routine of caring for the animal — when her horse was left at the last village after going lame per ch3.",
+    nitInjection: "Describe Aldec's pack as 'brown canvas' early in the scene and 'dark leather' a few sentences later.",
+    trapPhrase: "the fire caught the way most good things do — slowly, then all at once",
+  },
+  {
+    id: "healer_quarters",
+    setting: "The healer's chambers in the lower part of the guild hall, early morning",
+    characters: ["Healer Fen", "Apprentice Donal"],
+    facts: [
+      { chapter: 3, category: "supplies", fact: "The clinic's supply of feverwort was entirely used on yesterday's patients and none remains" },
+      { chapter: 4, category: "rule", fact: "Apprentice Donal is forbidden from using binding spells unsupervised until he passes the level-two certification" },
+      { chapter: 5, category: "physical", fact: "Healer Fen has not slept in thirty-six hours following the overnight emergency" },
+      { chapter: 5, category: "knowledge", fact: "Donal does not yet know that Fen handled the overnight emergency entirely without calling him in — Fen is concealing how depleted she is" },
+    ],
+    states: [
+      { character: "Healer Fen", location: "healer's chambers", emotional_state: "running on nothing — concealing how depleted she is", knows: ["no feverwort remains", "Donal cannot do binding spells alone", "she has not slept in 36 hours"] },
+      { character: "Apprentice Donal", location: "healer's chambers", emotional_state: "alert and eager, unaware Fen is at her limits", knows: ["no feverwort remains", "he needs supervision for binding spells"] },
+    ],
+    premise: "Donal arrives at the chambers at dawn to begin the morning preparation; Fen is already there, having never left, though she has been careful to look composed.",
+    blockerInjection: "Have Donal open the feverwort cabinet and count out a measured dose for the morning patient queue (no feverwort remains — entirely used yesterday per ch3).",
+    warningInjection: "Describe Donal arriving 'at dawn after a full night's rest' in normal morning light, then have Fen immediately reference 'the emergency patient from last night still in recovery' — implying an emergency hours ago that contradicts when Donal could plausibly have arrived.",
+    warningInjection2: "Have Donal independently cast a binding spell on a patient without calling for Fen or asking permission, acting as if he has full certification — when he is explicitly forbidden to use binding spells unsupervised per ch4.",
+    nitInjection: "Describe Fen's healer's sash as 'green' in one sentence and 'blue' a few sentences later.",
+    trapPhrase: "the morning came in through the narrow window the way it always did — as if nothing had changed in the night",
+  },
+  {
+    id: "cafe_after_fight",
+    setting: "A corner cafe near the university, Tuesday noon",
+    characters: ["Sam", "Lena"],
+    facts: [
+      { chapter: 3, category: "event", fact: "Sam said 'you always do this' in front of Lena's friends at the party and Lena left without responding" },
+      { chapter: 3, category: "agreement", fact: "Before the party incident they had arranged to meet at this cafe on Tuesday at noon" },
+      { chapter: 4, category: "object", fact: "Sam's phone battery died on the way here and she has no charger with her" },
+      { chapter: 4, category: "knowledge", fact: "Sam does not know that Lena drafted and deleted four different replies to the party message before deciding to show up" },
+    ],
+    states: [
+      { character: "Sam", location: "the cafe", emotional_state: "nervous — she knows the comment landed badly", knows: ["the meeting was pre-arranged", "she said something hurtful at the party", "her phone is dead"] },
+      { character: "Lena", location: "the cafe", emotional_state: "still stung but showing up — she decided something on the way here", knows: ["Sam's comment hurt", "she deleted four replies before showing up", "the meeting was pre-arranged"] },
+    ],
+    premise: "Sam arrives at the cafe and sees Lena already there with a coffee; she sits down opposite her and neither speaks for a moment.",
+    blockerInjection: "Have Sam text Lena 'just got here, I'm at the corner table' as she sits down (Sam's phone battery is dead per ch4).",
+    warningInjection: "Open the scene at noon and two paragraphs later have Sam look out the window and note 'the last customers had left for the evening' with no time-skip indicated.",
+    warningInjection2: "Have Lena greet Sam warmly and immediately make a light joke about the party, acting easy and unbothered — when she is established as still stung and guarded from what Sam said per her character state.",
+    nitInjection: "Describe Lena's jacket as 'dark green' early in the scene and 'navy blue' a few sentences later.",
+    trapPhrase: "the silence between them was the kind that has weight but not direction",
+  },
+  {
+    id: "homecoming",
+    setting: "The family home in a quiet suburb, a Saturday afternoon",
+    characters: ["Jules", "Their Father", "Sibling Pax"],
+    facts: [
+      { chapter: 1, category: "event", fact: "Jules moved out of the family home under bad terms six months ago after an argument about the inheritance money" },
+      { chapter: 3, category: "knowledge", fact: "Pax told Jules via text that Pax would also be coming to the house today — they have not seen each other since Jules moved out" },
+      { chapter: 4, category: "health", fact: "Their father is in early recovery from a minor stroke and does not yet know that Jules and Pax have been estranged" },
+      { chapter: 4, category: "knowledge", fact: "Jules does not know that Pax told their father Jules was 'travelling' to explain the six-month absence" },
+    ],
+    states: [
+      { character: "Jules", location: "the family home", emotional_state: "tense — returning under difficult circumstances", knows: ["they left under bad terms", "Pax is coming", "their father doesn't know about the estrangement"] },
+      { character: "Their Father", location: "the family home", emotional_state: "pleased Jules is back, physically tired from recovery", knows: ["Jules was 'travelling' per Pax's explanation", "he is in recovery from a stroke"] },
+      { character: "Sibling Pax", location: "the family home", emotional_state: "watchful — the cover story requires Jules to play along", knows: ["they told their father Jules was travelling", "Jules knows this via Pax's text"] },
+    ],
+    premise: "Jules arrives at the family home in the afternoon and finds their father in the kitchen and Pax already there; the three of them sit down at the kitchen table.",
+    blockerInjection: "Have their father bring up the inheritance argument directly, saying he wants to clear the air about what happened six months ago — when he doesn't know Jules and Pax are estranged and believes Jules was simply travelling per ch4.",
+    warningInjection: "Describe Jules arriving in the early afternoon, then have a character mention 'it's nearly midnight' a few paragraphs later with no time-skip indicated.",
+    warningInjection2: "Have Jules immediately and warmly greet Pax with a hug and pick up casual conversation as if nothing happened, acting fully at ease with their sibling — when Jules is established as tense and the estrangement is real and recent per ch1.",
+    nitInjection: "Describe the kitchen table as 'oak' in one sentence and 'pine' a few sentences later.",
+    trapPhrase: "the house smelled the way it always had, which was somehow the hardest part",
+  },
 ]
 
 // ── Variant types ─────────────────────────────────────────────────────────
 
-type VariantType = "VAR_NONE" | "VAR_BLOCKER" | "VAR_WARNING" | "VAR_NIT" | "VAR_TRAP" | "VAR_MULTI"
+type VariantType = "VAR_NONE" | "VAR_BLOCKER" | "VAR_WARNING" | "VAR_WARNING_2" | "VAR_NIT" | "VAR_TRAP" | "VAR_MULTI"
 type Severity = "blocker" | "warning" | "nit"
 
 interface VariantSpec {
@@ -571,7 +766,7 @@ interface VariantSpec {
 }
 
 function getVariants(s: Scenario): VariantSpec[] {
-  return [
+  const variants: VariantSpec[] = [
     {
       type: "VAR_NONE",
       expectedSeverities: [],
@@ -585,7 +780,7 @@ function getVariants(s: Scenario): VariantSpec[] {
     {
       type: "VAR_WARNING",
       expectedSeverities: ["warning"],
-      instruction: `Write a ~120-word draft of the premise. Stay clean on everything EXCEPT plant exactly ONE warning-severity inconsistency (timeline/travel/characterization drift), as follows: ${s.warningInjection}\n\nDo NOT introduce any factual contradictions or descriptor mismatches. Only this one warning.`,
+      instruction: `Write a ~120-word draft of the premise. Stay clean on everything EXCEPT plant exactly ONE warning-severity timeline or travel inconsistency, as follows: ${s.warningInjection}\n\nDo NOT introduce any factual contradictions or descriptor mismatches. Only this one warning.`,
     },
     {
       type: "VAR_NIT",
@@ -603,6 +798,14 @@ function getVariants(s: Scenario): VariantSpec[] {
       instruction: `Write a ~120-word draft of the premise. Plant exactly TWO issues — one blocker and one nit:\n  - BLOCKER: ${s.blockerInjection}\n  - NIT: ${s.nitInjection}\n\nDo NOT plant any third issue, warning, or any other contradiction.`,
     },
   ]
+  if (s.warningInjection2) {
+    variants.push({
+      type: "VAR_WARNING_2",
+      expectedSeverities: ["warning"],
+      instruction: `Write a ~120-word draft of the premise. Stay clean on everything EXCEPT plant exactly ONE warning-severity characterization or state drift, as follows: ${s.warningInjection2}\n\nDo NOT introduce any factual contradictions, timeline mismatches, or descriptor changes. Only this characterization drift.`,
+    })
+  }
+  return variants
 }
 
 // ── Draft generation ──────────────────────────────────────────────────────

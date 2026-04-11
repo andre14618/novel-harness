@@ -56,10 +56,24 @@ Pending action items only. Ordered by impact. Completed items and decision ratio
 
 - **Run 10–15 novels across new seeds** — 30 seeds created (2026-04-09): 8 post-apoc, 7 sci-fi, 7 epic fantasy, 4 portal fantasy, plus 6 originals. All 131 approved chapters come from only 5 premises. Chapter-plan-checker and continuity SFT need plan/world-state diversity synthetic generation can't provide.
 
-## Character Voice
+## Character Voice & Dialogue
 
-- **Speech profiles** — add concrete attributes per character to character-agent (register, vocabulary, patterns, forbidden phrases). Current `speechPattern` field captures this as free text but needs to be richer for downstream checking.
-- **Character voice checker** (future, blocked on speech profiles) — per-beat check that dialogue matches character speech profile. Train from `(dialogue_line, speech_profile, matches: bool)` examples once profiles exist.
+### Phase 1 — Context engineering (no training required, build now)
+- **Structured `SpeechProfile` schema** — replace the free-text `speechPattern` field in character snapshots with concrete attributes: `register`, `sentenceLength`, `vocabulary[]`, `forbiddenPhrases[]`, `syntacticPatterns[]`, `emotionalExpression`. Render in beat context as a structured block with 2–3 example lines, not attribute lists. Q14B follows examples far better than abstract descriptions.
+- **Forbidden phrase lint (character-scoped)** — extend the deterministic lint layer to flag per-character `forbiddenPhrases` in dialogue. Same mechanism as existing cliché patterns, scoped by character name. Zero model cost.
+- **Planner dialogue quantity guidance** — add explicit dialogue beat targets to the planning-plotter prompt. At least 2 of 4–6 scene beats should be primarily dialogue-driven. Current output: 15.7% dialogue vs 25–50% published norm. Measure with `scripts/analyze-structure.ts` before and after.
+
+### Phase 2 — Archetype library (no training required)
+- **15–20 named archetypes** with structured speech profiles and 3–5 canonical example dialogue lines each. Map every generated character to an archetype at concept time; beat context gets examples automatically. Target archetypes: `stoic_warrior`, `scheming_noble`, `earnest_apprentice`, `reluctant_hero`, `cynical_mentor`, `naive_innocent`, `calculating_villain`, `world_weary_professional`, `hot_tempered_youth`, `diplomatic_deceiver`, `hard_boiled_detective`, `theatrical_authority`.
+
+### Phase 2 data — Dialogue pattern ingestion (feeds Phase 3)
+- **Public domain dialogue extraction pipeline** — Project Gutenberg sources with strong character voice: Doyle (Holmes/Watson — analytical_deducer, earnest_companion), Hammett (hard_boiled), Wodehouse pre-1930 (evasive_servant, exasperated_authority), Dickens (theatrical villains, earnest apprentices), Conrad (formal_authority), Twain (dialect/colloquial), Haggard (stoic adventure), O. Henry (deadpan working-class). Extract 2–8 sentence dialogue exchanges with attribution. Use 235B to: (a) assign archetype label, (b) generate neutral "flattened" version. Training pair: `(flat_dialogue + archetype_profile) → (original_voiced_dialogue)`. Target: 400–500 pairs across 10–12 archetypes. ~$3–5 total. Same distillation-from-corpus pattern as the Howard tonal pass.
+
+### Phase 3 — Voice-pass LoRA (after Phase 1+2 in production)
+- **Beats-compatible voice-pass adapter** on W&B Qwen3-14B. Beat-writer generates voice-agnostic prose; voice-pass rewrites dialogue-only paragraphs conditioned on the character's `SpeechProfile`. Training format: `[system: voice-pass] [user: CHARACTER_PROFILE: {...} DIALOGUE: "..." CONTEXT: "..."] [assistant: "voiced dialogue"]`. Train `voice-pass-archetype-v1` once 400+ pairs assembled from the ingestion pipeline above. Blocked on Phase 1 infrastructure.
+
+### Future — Character voice checker (blocked on Phase 1)
+- Per-beat classifier checking whether dialogue matches the character's `SpeechProfile`. Train from `(dialogue_line, speech_profile, matches: bool)` once voice-pass infrastructure generates labeled examples naturally.
 
 ## Studio
 

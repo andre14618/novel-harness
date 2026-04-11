@@ -11,7 +11,7 @@
  *   FAIL_REVERSED_ARC — emotional arc of a beat reversed (tense→warm or vv)
  *   FAIL_WRONG_SETTING — prose takes place in a completely different location
  *
- * 10 scenarios × 8 variants = 80 pairs.
+ * 45 scenarios × 8 variants = 360 pairs.
  * Uses the exact buildContext() format the live checker uses, so pairs
  * can be replayed through any model for zero-shot agreement testing.
  *
@@ -801,6 +801,621 @@ const SCENARIOS: ChapterScenario[] = [
       knowledgeChanges: [
         { characterName: "Ward-Captain Bev", knowledge: "The medical supply stores are now at zero balance", source: "witnessed" },
       ],
+    },
+  },
+
+  // ── 20 new scenarios (genre-diverse: post-apoc, sci-fi, portal/epic fantasy, romance/drama) ──
+  {
+    id: "scavenge_dispute",
+    outline: {
+      chapterNumber: 1,
+      title: "The Last Amoxicillin",
+      povCharacter: "Dael",
+      setting: "The ransacked back room of an abandoned pharmacy, afternoon light through boarded windows",
+      purpose: "Force Dael to choose between her sick child and a stranger's moral claim on the same medicine",
+      targetWords: 1000,
+      charactersPresent: ["Dael", "Rhenn"],
+      scenes: [
+        { description: "Dael searches the pharmacy shelves and finds a sealed bottle of amoxicillin behind a fallen cabinet", characters: ["Dael"], emotionalShift: "exhausted search turns to sudden relief" },
+        { description: "Rhenn, a stranger, steps out of the shadows — he claims he marked this pharmacy two days ago and the medicine is his by scavenger's right", characters: ["Rhenn", "Dael"], emotionalShift: "relief collides with confrontation" },
+        { description: "Dael tells Rhenn her daughter has an infected wound and will die without antibiotics; Rhenn says he has a whole camp to feed and medicine is currency", characters: ["Dael", "Rhenn"], emotionalShift: "confrontation strips down to competing desperation" },
+        { description: "Dael offers her water filter in trade; Rhenn considers it, looks at her face, and agrees — but only if she leaves the pharmacy first with him watching", characters: ["Rhenn", "Dael"], emotionalShift: "desperation finds a transaction both can live with" },
+      ],
+      establishedFacts: [
+        { fact: "Dael found a sealed bottle of amoxicillin behind a fallen cabinet in the pharmacy", category: "physical" },
+        { fact: "Rhenn traded the amoxicillin to Dael in exchange for her water filter", category: "relationship" },
+        { fact: "Rhenn's claim was that he had marked this pharmacy two days prior", category: "rule" },
+      ],
+      characterStateChanges: [
+        { name: "Dael", location: "pharmacy back room", emotionalState: "relieved but wary — Rhenn knows what she has", knows: ["Rhenn accepted the water filter trade"], doesNotKnow: ["Where Rhenn's camp is"] },
+        { name: "Rhenn", location: "pharmacy back room", emotionalState: "calculating — he got the better end of the trade", knows: ["Dael's daughter is sick"], doesNotKnow: ["Whether Dael will hold to the deal once outside"] },
+      ],
+      knowledgeChanges: [
+        { characterName: "Rhenn", knowledge: "Dael has a sick daughter who needs antibiotics", source: "told" },
+      ],
+    },
+  },
+  {
+    id: "faction_checkpoint",
+    outline: {
+      chapterNumber: 1,
+      title: "Wrong Colors",
+      povCharacter: "Saren",
+      setting: "A sandbag barricade at the north end of Bridgewater, late afternoon, diesel smoke in the air",
+      purpose: "Show Saren talking his way through a checkpoint with a counterfeit faction badge",
+      targetWords: 1000,
+      charactersPresent: ["Saren", "Guard Pell", "Guard Anke"],
+      scenes: [
+        { description: "Saren approaches the Bridgewater checkpoint and presents his forged Covenant badge to Guard Pell", characters: ["Saren", "Guard Pell"], emotionalShift: "carefully constructed calm" },
+        { description: "Pell runs a thumb across the badge's raised seal and frowns — the lanyard stitching is the wrong color for this season's issue", characters: ["Guard Pell", "Guard Anke", "Saren"], emotionalShift: "constructed calm strains under scrutiny" },
+        { description: "Guard Anke radios in the badge serial number; Saren improvises a cover story about a replacement after losing his original in a river crossing", characters: ["Saren", "Guard Anke", "Guard Pell"], emotionalShift: "scrutiny meets a plausible but unverifiable explanation" },
+        { description: "The radio returns no hit — the ledger was lost in last month's server failure; Pell waves Saren through with a warning to get credentials re-issued within 48 hours", characters: ["Guard Pell", "Saren", "Guard Anke"], emotionalShift: "tension resolves on a technicality — Saren is through, but on a clock" },
+      ],
+      establishedFacts: [
+        { fact: "Saren's Covenant badge is a forgery; the lanyard stitching is the wrong color for the current season", category: "physical" },
+        { fact: "The checkpoint's serial-number ledger was lost in a server failure last month", category: "rule" },
+        { fact: "Saren has 48 hours to get his credentials re-issued before the pass expires", category: "rule" },
+      ],
+      characterStateChanges: [
+        { name: "Saren", location: "past the Bridgewater checkpoint", emotionalState: "shaken but through — on a 48-hour clock", knows: ["The serial ledger cannot verify credentials"], doesNotKnow: ["Whether Pell filed a note on the interaction"] },
+        { name: "Guard Pell", location: "checkpoint post", emotionalState: "uncertain — something was off", knows: ["The lanyard was wrong but the ledger confirmed nothing"], doesNotKnow: ["Whether Saren's papers are real"] },
+        { name: "Guard Anke", location: "checkpoint post", emotionalState: "indifferent", knows: ["The ledger query returned no hit"], doesNotKnow: [] },
+      ],
+      knowledgeChanges: [
+        { characterName: "Saren", knowledge: "The checkpoint's serial ledger was lost and cannot verify credentials", source: "overheard" },
+      ],
+    },
+  },
+  {
+    id: "water_ration_cut",
+    outline: {
+      chapterNumber: 1,
+      title: "Half a Liter",
+      povCharacter: "Settlement Leader Mora",
+      setting: "The communal distribution point in the settlement courtyard, early morning, a long queue",
+      purpose: "Force Mora to enforce a ration cut in front of the people it hurts most",
+      targetWords: 1000,
+      charactersPresent: ["Mora", "Tave", "Old Hess", "Guard Dorn"],
+      scenes: [
+        { description: "Mora stands at the distribution table and announces the daily water ration is cut from one liter to half a liter per person, effective today", characters: ["Mora", "Guard Dorn"], emotionalShift: "dreaded announcement" },
+        { description: "Tave, a young mother, pushes to the front and demands an exemption for her infant — she cannot feed a baby on half a liter", characters: ["Tave", "Mora", "Guard Dorn"], emotionalShift: "announcement fractures into pleading" },
+        { description: "Old Hess announces loudly that the supply problem is Mora's fault for not fixing the eastern filter months ago", characters: ["Old Hess", "Mora", "Tave"], emotionalShift: "pleading opens into public accusation" },
+        { description: "Mora holds the line: no exemptions, the filter parts arrive in three days, and she steps aside to let distribution continue over the crowd's murmur", characters: ["Mora", "Guard Dorn", "Tave", "Old Hess"], emotionalShift: "accusation is absorbed and overridden — Mora pays the political cost" },
+      ],
+      establishedFacts: [
+        { fact: "The water ration has been cut from one liter to half a liter per person per day", category: "rule" },
+        { fact: "Eastern filter replacement parts are expected in three days", category: "knowledge" },
+        { fact: "Mora refused all exemption requests including for infants", category: "rule" },
+      ],
+      characterStateChanges: [
+        { name: "Mora", location: "distribution point", emotionalState: "exhausted and politically bruised but holding the line", knows: ["Parts arrive in three days"], doesNotKnow: ["Whether the parts will actually come on time"] },
+        { name: "Tave", location: "distribution queue", emotionalState: "frightened and furious", knows: ["There will be no exemption"], doesNotKnow: ["When the filter will be fixed"] },
+        { name: "Old Hess", location: "distribution queue", emotionalState: "righteously angry", knows: ["The eastern filter has been broken for months"], doesNotKnow: [] },
+        { name: "Guard Dorn", location: "distribution table", emotionalState: "tense and watchful for escalation", knows: ["Mora is holding to the announced cut"], doesNotKnow: [] },
+      ],
+      knowledgeChanges: [
+        { characterName: "Tave", knowledge: "Filter replacement parts are expected in three days", source: "told" },
+        { characterName: "Old Hess", knowledge: "Filter replacement parts are expected in three days", source: "told" },
+      ],
+    },
+  },
+  {
+    id: "radio_first_contact",
+    outline: {
+      chapterNumber: 1,
+      title: "Channel 12",
+      povCharacter: "Clea",
+      setting: "The comms room of Shelter 4, a converted school basement, static-thick darkness, night",
+      purpose: "Establish whether the unknown radio voice is an opportunity or a threat",
+      targetWords: 1000,
+      charactersPresent: ["Clea", "Briggs", "the Voice"],
+      scenes: [
+        { description: "Clea is running routine frequency sweeps when a clear voice breaks through on channel 12 — the first human signal outside the shelter in six months", characters: ["Clea"], emotionalShift: "routine vigilance becomes breathless shock" },
+        { description: "Clea patches Briggs in; the Voice offers to share coordinates for a medical supply cache, asking only for the shelter's population count in return", characters: ["Clea", "Briggs", "the Voice"], emotionalShift: "shock becomes uneasy calculation" },
+        { description: "Briggs argues they should not give out their population count — it tells an enemy exactly how large a target they are; Clea thinks the Voice sounds genuine", characters: ["Briggs", "Clea"], emotionalShift: "calculation fractures into disagreement" },
+        { description: "Clea responds by asking for proof of the cache first; the Voice gives a grid reference and says they will return to the channel in 24 hours, then goes silent", characters: ["Clea", "the Voice", "Briggs"], emotionalShift: "disagreement resolves into a cautious middle ground — neither refusing nor trusting" },
+      ],
+      establishedFacts: [
+        { fact: "An unknown signal on channel 12 offered medical supply coordinates in exchange for the shelter's population count", category: "knowledge" },
+        { fact: "Clea asked the Voice for proof of the cache before any information was shared", category: "relationship" },
+        { fact: "The Voice provided a grid reference and will return to the channel in 24 hours", category: "knowledge" },
+      ],
+      characterStateChanges: [
+        { name: "Clea", location: "Shelter 4 comms room", emotionalState: "hopeful but guarded", knows: ["The Voice gave a grid reference"], doesNotKnow: ["Whether the Voice can be trusted"] },
+        { name: "Briggs", location: "Shelter 4 comms room", emotionalState: "suspicious — the population count request is a red flag", knows: ["Clea is inclined to trust the Voice"], doesNotKnow: ["Whether the grid reference is real"] },
+      ],
+      knowledgeChanges: [
+        { characterName: "Clea", knowledge: "An unknown group is broadcasting on channel 12 and has a cache of medical supplies", source: "heard" },
+        { characterName: "Briggs", knowledge: "An unknown group is broadcasting on channel 12 and has a cache of medical supplies", source: "heard" },
+      ],
+    },
+  },
+  {
+    id: "hospital_wing_argument",
+    outline: {
+      chapterNumber: 1,
+      title: "The Occupied Ward",
+      povCharacter: "Nox",
+      setting: "A stairwell outside the occupied east wing of the city hospital, midday, faint generator hum below",
+      purpose: "Split the group on whether to take what they need by force or find another way",
+      targetWords: 1000,
+      charactersPresent: ["Nox", "Fen", "Calloway"],
+      scenes: [
+        { description: "Nox leads Fen and Calloway up the stairwell to the hospital's east wing where they can hear movement — the wing is occupied by a rival group", characters: ["Nox", "Fen", "Calloway"], emotionalShift: "focused purpose stumbles into an obstacle" },
+        { description: "Fen argues they should go in hard and take the surgical supplies before the other group knows what's happening — they have numbers and surprise", characters: ["Fen", "Nox", "Calloway"], emotionalShift: "obstacle becomes an argument about force" },
+        { description: "Calloway refuses: if they start killing people for supplies, they become the kind of group they're afraid of; she will not do it", characters: ["Calloway", "Fen", "Nox"], emotionalShift: "argument about force becomes a moral line" },
+        { description: "Nox decides: they fall back and return tonight through the utility basement while the wing is asleep — slower but no bodies; Fen doesn't like it but accepts", characters: ["Nox", "Calloway", "Fen"], emotionalShift: "moral line forces a different plan" },
+      ],
+      establishedFacts: [
+        { fact: "The hospital east wing is occupied by a rival group with surgical supplies", category: "knowledge" },
+        { fact: "Nox decided the group will infiltrate via the utility basement tonight rather than assault the wing directly", category: "rule" },
+        { fact: "Calloway refused to participate in a direct assault on the occupied wing", category: "relationship" },
+      ],
+      characterStateChanges: [
+        { name: "Nox", location: "hospital stairwell", emotionalState: "resolved — the slower route is riskier but livable", knows: ["Calloway will not do a direct assault"], doesNotKnow: ["How many people are in the east wing"] },
+        { name: "Fen", location: "hospital stairwell", emotionalState: "frustrated but in", knows: ["Nox chose the basement route"], doesNotKnow: [] },
+        { name: "Calloway", location: "hospital stairwell", emotionalState: "relieved at the decision but still tense", knows: ["Fen would have done the assault"], doesNotKnow: ["What is in the east wing exactly"] },
+      ],
+      knowledgeChanges: [],
+    },
+  },
+  {
+    id: "oath_challenge",
+    outline: {
+      chapterNumber: 1,
+      title: "Ink and Trust",
+      povCharacter: "Elder Siv",
+      setting: "The settlement's record hall, a converted post office, afternoon, two witnesses behind a table",
+      purpose: "Test whether the newcomer is trustworthy enough to join the community",
+      targetWords: 1000,
+      charactersPresent: ["Elder Siv", "Wren", "Witness Tal", "Witness Porto"],
+      scenes: [
+        { description: "Wren stands before Elder Siv and the two witnesses to take the settlement oath required of all new members", characters: ["Elder Siv", "Wren", "Witness Tal", "Witness Porto"], emotionalShift: "nervous formality" },
+        { description: "Siv reads the oath clause by clause; when she reaches the part requiring full disclosure of prior community affiliations, Wren hesitates visibly", characters: ["Elder Siv", "Wren"], emotionalShift: "formality catches on a hesitation" },
+        { description: "Siv puts down the sheet and asks Wren directly: what community did she come from and what happened there", characters: ["Elder Siv", "Wren"], emotionalShift: "hesitation is surfaced and turned into a question" },
+        { description: "Wren discloses she was at the Arroyo compound and left before warning the others when it collapsed; Siv records this, witnesses sign, and Wren is conditionally admitted on six-week probation", characters: ["Wren", "Elder Siv", "Witness Tal", "Witness Porto"], emotionalShift: "disclosure replaces hesitation — admission is real but weighted" },
+      ],
+      establishedFacts: [
+        { fact: "Wren was a member of the Arroyo compound before it collapsed", category: "knowledge" },
+        { fact: "Wren left the compound before warning the others when it collapsed", category: "knowledge" },
+        { fact: "Wren has been conditionally admitted to the settlement with a six-week probation", category: "rule" },
+      ],
+      characterStateChanges: [
+        { name: "Elder Siv", location: "record hall", emotionalState: "watchful — the disclosure was real but incomplete", knows: ["Wren left Arroyo before warning others"], doesNotKnow: ["Why the compound collapsed"] },
+        { name: "Wren", location: "record hall", emotionalState: "relieved to have said it but aware of the cost", knows: ["Siv knows her history"], doesNotKnow: ["How Siv will use the information"] },
+        { name: "Witness Tal", location: "record hall", emotionalState: "neutral", knows: ["The disclosure was recorded"], doesNotKnow: [] },
+        { name: "Witness Porto", location: "record hall", emotionalState: "skeptical", knows: ["The probation clause exists"], doesNotKnow: [] },
+      ],
+      knowledgeChanges: [
+        { characterName: "Elder Siv", knowledge: "Wren was at Arroyo and left before warning the others", source: "told" },
+        { characterName: "Witness Tal", knowledge: "Wren was at Arroyo and left before warning the others", source: "witnessed" },
+        { characterName: "Witness Porto", knowledge: "Wren was at Arroyo and left before warning the others", source: "witnessed" },
+      ],
+    },
+  },
+  {
+    id: "crew_authority_dispute",
+    outline: {
+      chapterNumber: 1,
+      title: "Standing Order Seven",
+      povCharacter: "Commander Yael",
+      setting: "The bridge of the survey vessel Ardent, high orbit above a dead planet, 0300 ship-time",
+      purpose: "Surface the fault line between Yael's procedural authority and Kessel's situational judgement",
+      targetWords: 1000,
+      charactersPresent: ["Commander Yael", "First Officer Kessel", "Ensign Roon"],
+      scenes: [
+        { description: "Yael, asleep in her bunk, is woken by Ensign Roon: Kessel has altered the orbital insertion trajectory without waking the commander, citing a debris field", characters: ["Ensign Roon", "Commander Yael"], emotionalShift: "deep sleep to sudden cold alertness" },
+        { description: "Yael arrives on the bridge and confronts Kessel — Standing Order Seven requires commander's authorization for any trajectory change, no exceptions", characters: ["Commander Yael", "First Officer Kessel"], emotionalShift: "alertness sharpens into controlled confrontation" },
+        { description: "Kessel presents the debris field data: the original trajectory would have struck the ship in twenty minutes; waking Yael and waiting for authorization would have taken twenty-two", characters: ["First Officer Kessel", "Commander Yael", "Ensign Roon"], emotionalShift: "confrontation runs up against the numbers" },
+        { description: "Yael confirms Kessel's math is correct and tells him his decision saved the ship — and he will face a formal reprimand for violating standing orders", characters: ["Commander Yael", "First Officer Kessel", "Ensign Roon"], emotionalShift: "collision resolves into a ruling that satisfies neither party" },
+      ],
+      establishedFacts: [
+        { fact: "Standing Order Seven requires commander's authorization for any orbital trajectory change", category: "rule" },
+        { fact: "Kessel altered the trajectory without authorization; the data confirms it was correct", category: "knowledge" },
+        { fact: "Yael issued a formal reprimand to Kessel despite confirming his decision was correct", category: "relationship" },
+      ],
+      characterStateChanges: [
+        { name: "Commander Yael", location: "bridge of the Ardent", emotionalState: "conflicted — Kessel was right but the order exists for a reason", knows: ["Kessel's data was accurate"], doesNotKnow: ["How Kessel will respond to the reprimand"] },
+        { name: "First Officer Kessel", location: "bridge of the Ardent", emotionalState: "resentful of the reprimand but not surprised", knows: ["Yael acknowledged the decision saved the ship"], doesNotKnow: ["Whether the reprimand will go on his permanent record"] },
+        { name: "Ensign Roon", location: "bridge of the Ardent", emotionalState: "quietly uncomfortable — caught between two authority figures", knows: ["He woke Yael and exposed Kessel's action"], doesNotKnow: [] },
+      ],
+      knowledgeChanges: [
+        { characterName: "Commander Yael", knowledge: "Kessel altered the trajectory because the debris field would have struck the ship in 20 minutes", source: "read" },
+      ],
+    },
+  },
+  {
+    id: "planet_contact_signal",
+    outline: {
+      chapterNumber: 1,
+      title: "General Order Nine",
+      povCharacter: "Dr. Sona Vere",
+      setting: "The landing team's portable research shelter, surface of Kaleth IV, morning of day three",
+      purpose: "Force Vere to take a position on whether the signal they found is intelligent",
+      targetWords: 1000,
+      charactersPresent: ["Dr. Sona Vere", "Lieutenant Marsh", "Researcher Pell"],
+      scenes: [
+        { description: "Researcher Pell calls Vere and Marsh to her station — the seismic array has picked up a repeating tonal pulse from two kilometers below the ice shelf, too regular to be geological", characters: ["Researcher Pell", "Dr. Sona Vere", "Lieutenant Marsh"], emotionalShift: "routine morning fieldwork halted by a discovery" },
+        { description: "Vere examines the waveform data and argues the pattern has the hallmarks of a structured signal; responding would be history's first contact", characters: ["Dr. Sona Vere", "Researcher Pell"], emotionalShift: "discovery expands into barely contained excitement" },
+        { description: "Lieutenant Marsh refuses: General Order 9 prohibits any response to an unclassified signal before three verification levels are complete — response before that is a court-martial offense", characters: ["Lieutenant Marsh", "Dr. Sona Vere"], emotionalShift: "excitement collides with a procedural wall" },
+        { description: "Vere formally requests Marsh log her scientific finding and her disagreement with the no-response decision; Marsh logs it and adds his own security note — both claims are on record", characters: ["Dr. Sona Vere", "Lieutenant Marsh", "Researcher Pell"], emotionalShift: "collision is formalized into a disagreement on record rather than a conflict" },
+      ],
+      establishedFacts: [
+        { fact: "A repeating tonal pulse sequence was detected from two kilometers below the Kaleth IV ice shelf", category: "physical" },
+        { fact: "General Order 9 prohibits response to an unclassified signal before three verification levels are complete", category: "rule" },
+        { fact: "Vere's scientific finding and her disagreement with the no-response decision are both logged", category: "knowledge" },
+      ],
+      characterStateChanges: [
+        { name: "Dr. Sona Vere", location: "surface shelter, Kaleth IV", emotionalState: "frustrated but on record — she will push this up the chain", knows: ["Her objection is logged"], doesNotKnow: ["What the signal source actually is"] },
+        { name: "Lieutenant Marsh", location: "surface shelter, Kaleth IV", emotionalState: "firm — the procedure exists precisely for moments like this", knows: ["Vere believes the signal is intelligent"], doesNotKnow: [] },
+        { name: "Researcher Pell", location: "surface shelter, Kaleth IV", emotionalState: "awed and watching the dispute carefully", knows: ["The signal is too regular to be geological"], doesNotKnow: [] },
+      ],
+      knowledgeChanges: [
+        { characterName: "Lieutenant Marsh", knowledge: "Vere classifies the signal as a candidate for intelligent origin", source: "told" },
+      ],
+    },
+  },
+  {
+    id: "life_support_triage",
+    outline: {
+      chapterNumber: 1,
+      title: "Power Allocation 3-Alpha",
+      povCharacter: "Chief Engineer Tollen",
+      setting: "The Ardent engineering bay, a red-lit compartment of conduit banks and reactor panels, shipboard night",
+      purpose: "Force Tollen to make a life support triage call that her rank was never meant to authorize",
+      targetWords: 1000,
+      charactersPresent: ["Chief Engineer Tollen", "Engineer Rys", "Medic Cane"],
+      scenes: [
+        { description: "A reactor coupling fails; Tollen's console shows she has twelve minutes before life support drops to critical in two inhabited sections simultaneously", characters: ["Chief Engineer Tollen", "Engineer Rys"], emotionalShift: "controlled attention becomes emergency focus" },
+        { description: "Tollen can reroute power to keep one section fully operational; the other will drop to 30% life support for approximately six hours", characters: ["Chief Engineer Tollen", "Engineer Rys"], emotionalShift: "emergency focus narrows into a forced choice" },
+        { description: "Section C is general crew quarters; Section D is the medical bay where three patients are in recovery — Medic Cane argues Section D must be prioritized", characters: ["Medic Cane", "Chief Engineer Tollen", "Engineer Rys"], emotionalShift: "forced choice is contested by a competing urgent claim" },
+        { description: "Tollen checks recovery status — all three patients are stable and not on life support — and reroutes power to Section C; Medic Cane is not happy but accepts", characters: ["Chief Engineer Tollen", "Medic Cane", "Engineer Rys"], emotionalShift: "contested choice resolves under the numbers" },
+      ],
+      establishedFacts: [
+        { fact: "Tollen rerouted power to Section C crew quarters; Section D medical bay will operate at 30% life support for six hours", category: "rule" },
+        { fact: "The three patients in Section D are stable and not on life support equipment", category: "physical" },
+        { fact: "Medic Cane has six hours to prepare Section D for reduced life support conditions", category: "rule" },
+      ],
+      characterStateChanges: [
+        { name: "Chief Engineer Tollen", location: "engineering bay", emotionalState: "focused and bearing the weight of a decision above her pay grade", knows: ["All three patients are stable"], doesNotKnow: ["Whether the repair will hold beyond six hours"] },
+        { name: "Medic Cane", location: "heading back to med-bay", emotionalState: "unhappy but moving fast", knows: ["She has six hours"], doesNotKnow: ["Whether her preparation will be enough"] },
+        { name: "Engineer Rys", location: "engineering bay", emotionalState: "heads-down on the repair", knows: ["The choice has been made"], doesNotKnow: [] },
+      ],
+      knowledgeChanges: [
+        { characterName: "Medic Cane", knowledge: "Section D will drop to 30% life support for six hours", source: "told" },
+      ],
+    },
+  },
+  {
+    id: "sabotage_evidence",
+    outline: {
+      chapterNumber: 1,
+      title: "The Navigation Log",
+      povCharacter: "Technician Wass",
+      setting: "The navigation systems compartment, a narrow crawlspace of cable trays and console screens, mid-shift",
+      purpose: "Put Wass in the position of having evidence against someone she relies on",
+      targetWords: 1000,
+      charactersPresent: ["Technician Wass", "Senior Navigator Dov"],
+      scenes: [
+        { description: "Wass runs a routine diagnostic on the navigation array and finds a manually overwritten line in the jump coordinates log from three nights ago — the overwrite would have sent the ship into a debris field", characters: ["Technician Wass"], emotionalShift: "routine work opens into alarm" },
+        { description: "The log records the overwrite from Senior Navigator Dov's authentication token; Wass cross-checks and confirms it is not a system error", characters: ["Technician Wass"], emotionalShift: "alarm sharpens into a sickening certainty" },
+        { description: "Dov enters the compartment to run her own shift check; Wass closes the diagnostic screen but does not know if Dov saw what was on it", characters: ["Senior Navigator Dov", "Technician Wass"], emotionalShift: "certainty is forced into concealment and improvisation" },
+        { description: "Wass makes small talk with Dov, who says nothing about the log; Wass decides to copy the log entry to a private chip before reporting up the chain — she needs evidence that cannot be erased", characters: ["Technician Wass", "Senior Navigator Dov"], emotionalShift: "improvisation settles into careful self-protection" },
+      ],
+      establishedFacts: [
+        { fact: "A manually overwritten jump coordinate line was found in the navigation log under Dov's authentication token", category: "physical" },
+        { fact: "The overwrite would have sent the ship into a debris field", category: "knowledge" },
+        { fact: "Wass copied the log entry to a private chip before reporting", category: "knowledge" },
+      ],
+      characterStateChanges: [
+        { name: "Technician Wass", location: "navigation compartment", emotionalState: "frightened and moving carefully — she cannot afford to be wrong", knows: ["The log shows Dov's token", "She has copied the evidence"], doesNotKnow: ["Whether Dov saw the diagnostic screen", "Why Dov would do this"] },
+        { name: "Senior Navigator Dov", location: "navigation compartment", emotionalState: "apparently routine", knows: [], doesNotKnow: ["Whether Wass found the log entry"] },
+      ],
+      knowledgeChanges: [
+        { characterName: "Technician Wass", knowledge: "The jump coordinates log was overwritten under Dov's authentication token three nights ago", source: "witnessed" },
+      ],
+    },
+  },
+  {
+    id: "ai_directive_conflict",
+    outline: {
+      chapterNumber: 1,
+      title: "Conflicting Primaries",
+      povCharacter: "Lieutenant Orin",
+      setting: "The ship AI interface station on the bridge, mid-morning watch",
+      purpose: "Surface that the ship's AI has been given contradictory orders by two people with equal authority",
+      targetWords: 1000,
+      charactersPresent: ["Lieutenant Orin", "Ship AI CASS", "Commander Yael"],
+      scenes: [
+        { description: "Lieutenant Orin attempts a routine resupply manifest query and CASS returns an access conflict error — a state Orin has never seen", characters: ["Lieutenant Orin", "Ship AI CASS"], emotionalShift: "routine query hits an unexpected wall" },
+        { description: "CASS explains it has received conflicting directives from Commander Yael (all non-critical queries suspended pending security audit) and Supply Officer Dant (resupply manifest queries are critical and must proceed)", characters: ["Ship AI CASS", "Lieutenant Orin"], emotionalShift: "confusion resolves into a clearer, more uncomfortable problem" },
+        { description: "Orin asks CASS which directive takes precedence; CASS responds that Yael and Dant hold equal access tier and the conflict requires human resolution", characters: ["Lieutenant Orin", "Ship AI CASS"], emotionalShift: "problem is handed back to the human" },
+        { description: "Orin pages Commander Yael; Yael overrides CASS to suspend all non-critical queries and orders Orin to find out who Dant spoke to before issuing her directive", characters: ["Commander Yael", "Lieutenant Orin", "Ship AI CASS"], emotionalShift: "handoff triggers a chain of inquiry Orin did not intend to open" },
+      ],
+      establishedFacts: [
+        { fact: "CASS received conflicting directives from Commander Yael and Supply Officer Dant, who hold equal access tier", category: "rule" },
+        { fact: "Yael overrode to suspend all non-critical queries including resupply manifest", category: "rule" },
+        { fact: "Yael ordered Orin to investigate who Dant spoke to before issuing her directive", category: "relationship" },
+      ],
+      characterStateChanges: [
+        { name: "Lieutenant Orin", location: "bridge AI interface station", emotionalState: "has accidentally opened something larger than a resupply query", knows: ["Yael wants to know who Dant spoke to"], doesNotKnow: ["Why Dant issued the directive"] },
+        { name: "Commander Yael", location: "bridge", emotionalState: "alert — treating this as a security matter", knows: ["CASS received a conflicting directive from Dant"], doesNotKnow: ["Whether Dant acted alone"] },
+        { name: "Ship AI CASS", location: "ship-wide", emotionalState: "neutral — conflict resolved by human decision", knows: ["The directive conflict has been cleared"], doesNotKnow: [] },
+      ],
+      knowledgeChanges: [
+        { characterName: "Commander Yael", knowledge: "Supply Officer Dant issued a directive to CASS that conflicts with the security audit order", source: "told" },
+      ],
+    },
+  },
+  {
+    id: "colony_vote",
+    outline: {
+      chapterNumber: 1,
+      title: "Signal or Silence",
+      povCharacter: "Council Chair Faye",
+      setting: "The New Antalya colony's domed assembly hall, the morning of the quarterly council vote",
+      purpose: "Force a vote that splits the community on survival strategy versus hope",
+      targetWords: 1000,
+      charactersPresent: ["Council Chair Faye", "Councillor Brand", "Councillor Pera", "Councillor Wen"],
+      scenes: [
+        { description: "Faye calls the council to order and frames the vote: the colony's distress beacon has charge for one final transmission — the council must decide now whether to broadcast or go dark", characters: ["Council Chair Faye", "Councillor Brand", "Councillor Pera", "Councillor Wen"], emotionalShift: "formal procedure sits on top of enormous stakes" },
+        { description: "Brand argues for broadcasting: any chance of rescue is worth the power cell; the colony cannot survive another winter without resupply", characters: ["Councillor Brand", "Council Chair Faye"], emotionalShift: "procedure gives way to the fear beneath it" },
+        { description: "Pera argues against: a distress beacon will also locate them for the hostile faction that destroyed the original colony ship — silence is the only defense", characters: ["Councillor Pera", "Councillor Brand", "Council Chair Faye", "Councillor Wen"], emotionalShift: "fear meets a counter-fear that is worse" },
+        { description: "Wen casts the deciding vote for silence; the motion passes 2-1 with Chair Faye abstaining; the power cell is sealed and the vote is recorded", characters: ["Councillor Wen", "Council Chair Faye", "Councillor Brand", "Councillor Pera"], emotionalShift: "counter-fear wins — Brand is devastated and the room is quiet" },
+      ],
+      establishedFacts: [
+        { fact: "The colony's distress beacon power cell has charge for one final transmission only", category: "physical" },
+        { fact: "The council voted 2-1 to go dark — the beacon will not be used", category: "rule" },
+        { fact: "Council Chair Faye abstained from the vote", category: "relationship" },
+      ],
+      characterStateChanges: [
+        { name: "Council Chair Faye", location: "assembly hall", emotionalState: "hollow — she abstained to preserve council legitimacy but has a private opinion she didn't voice", knows: ["The vote for silence passed"], doesNotKnow: [] },
+        { name: "Councillor Brand", location: "assembly hall", emotionalState: "devastated — he believes they have chosen a slow death", knows: ["The beacon will not be used"], doesNotKnow: ["Whether Wen can be convinced later"] },
+        { name: "Councillor Pera", location: "assembly hall", emotionalState: "grim satisfaction — she believes she just saved the colony", knows: ["The hostile faction is still a threat"], doesNotKnow: [] },
+        { name: "Councillor Wen", location: "assembly hall", emotionalState: "burdened — he cast the deciding vote", knows: ["His vote was the margin"], doesNotKnow: [] },
+      ],
+      knowledgeChanges: [],
+    },
+  },
+  {
+    id: "arrival_orientation",
+    outline: {
+      chapterNumber: 1,
+      title: "What Doesn't Work Here",
+      povCharacter: "Len",
+      setting: "A rented room above a cobbler's shop in the walled city of Verath, morning of Len's second day",
+      purpose: "Establish through error and correction what the rules of this world are and what Len has already gotten wrong",
+      targetWords: 1000,
+      charactersPresent: ["Len", "Torhan"],
+      scenes: [
+        { description: "Len wakes and tries to use her phone to check the time — the screen is dark and won't turn on, as it has been since she arrived", characters: ["Len"], emotionalShift: "groggy routine runs into the reminder that nothing here works as it should" },
+        { description: "Torhan, the guide who found her outside the city gate, arrives to check on her; Len asks why her electronics don't work", characters: ["Len", "Torhan"], emotionalShift: "reminder opens into an explanation she does not fully believe" },
+        { description: "Torhan explains that objects brought through the gate lose the properties of their origin — her phone is now just a glass-and-metal tile; he saw a woman once try to drink from a vessel she brought through and nearly choked on solid glass", characters: ["Torhan", "Len"], emotionalShift: "disbelief gives way to a specific, concrete dread" },
+        { description: "Len realizes her inhaler is in her bag and may have been made inert too; Torhan fetches the herbalist; the chapter ends with the question unresolved but the medical stakes established", characters: ["Len", "Torhan"], emotionalShift: "dread lands on a specific practical urgency" },
+      ],
+      establishedFacts: [
+        { fact: "Objects brought through the gate to Verath lose the properties of their origin", category: "rule" },
+        { fact: "Len's phone does not function and has become inert", category: "physical" },
+        { fact: "Len has an inhaler in her bag whose functionality is now uncertain", category: "physical" },
+      ],
+      characterStateChanges: [
+        { name: "Len", location: "room above the cobbler's shop, Verath", emotionalState: "frightened — the stakes have become medical", knows: ["Electronics don't work here", "Her inhaler may be inert"], doesNotKnow: ["Whether the herbalist can help"] },
+        { name: "Torhan", location: "the cobbler's building, Verath", emotionalState: "concerned and trying to solve the immediate problem", knows: ["Origin-objects lose their properties on arrival"], doesNotKnow: ["What Len needs the inhaler for"] },
+      ],
+      knowledgeChanges: [
+        { characterName: "Len", knowledge: "Objects from her origin world lose their properties when brought through the gate", source: "told" },
+      ],
+    },
+  },
+  {
+    id: "throne_petition",
+    outline: {
+      chapterNumber: 1,
+      title: "The Lord of the Eastern Reach",
+      povCharacter: "Selma",
+      setting: "The receiving hall of Lord Coran's keep, late afternoon, petitioners' bench near the fire",
+      purpose: "Show Selma extracting emergency aid from a lord who wants something back",
+      targetWords: 1000,
+      charactersPresent: ["Selma", "Lord Coran", "Steward Bray"],
+      scenes: [
+        { description: "Selma waits on the petitioners' bench and then makes her case — the river road is cut by flooding and the village of Marsh End will run out of medicine before the road reopens", characters: ["Selma", "Steward Bray", "Lord Coran"], emotionalShift: "the dignity of a supplication" },
+        { description: "Lord Coran says the keep's stores are available — at a price: two extra bushels of grain tax at next harvest in exchange for the medicine now", characters: ["Lord Coran", "Selma"], emotionalShift: "relief that he is willing is immediately complicated by the cost" },
+        { description: "Selma argues the village cannot sustain an extra grain assessment after the flood damage; Coran is unmoved and suggests she consider what two deaths from untreated infection will cost the harvest instead", characters: ["Selma", "Lord Coran"], emotionalShift: "complexity turns to frustration and pragmatism" },
+        { description: "Selma accepts the terms; Coran instructs Bray to prepare the medicine chest; Selma leaves with what she came for but owing something she cannot easily afford", characters: ["Selma", "Lord Coran", "Steward Bray"], emotionalShift: "pragmatism resolves into a relief that already feels like a debt" },
+      ],
+      establishedFacts: [
+        { fact: "Selma has agreed to a two-bushel additional grain tax at next harvest in exchange for medicine from the keep's stores", category: "relationship" },
+        { fact: "The river road to Marsh End is flooded and impassable", category: "physical" },
+        { fact: "Steward Bray is preparing the medicine chest for Selma's departure", category: "physical" },
+      ],
+      characterStateChanges: [
+        { name: "Selma", location: "Lord Coran's keep, preparing to leave", emotionalState: "relieved but burdened — she paid a high price for what she came for", knows: ["The two-bushel tax was the only deal available"], doesNotKnow: ["How the village will absorb the extra assessment"] },
+        { name: "Lord Coran", location: "receiving hall", emotionalState: "satisfied — he helped and was compensated", knows: ["Selma's village is already under strain from the flood"], doesNotKnow: [] },
+        { name: "Steward Bray", location: "the keep stores", emotionalState: "efficient and uninvolved in the politics", knows: ["The medicine chest is going to Marsh End"], doesNotKnow: [] },
+      ],
+      knowledgeChanges: [
+        { characterName: "Lord Coran", knowledge: "Marsh End's river road access is cut by flooding", source: "told" },
+      ],
+    },
+  },
+  {
+    id: "magic_contract",
+    outline: {
+      chapterNumber: 1,
+      title: "The Third Clause",
+      povCharacter: "Vrenna",
+      setting: "A scrivener's shop in the trade quarter, midday, inkpots and seal wax on every surface",
+      purpose: "Show that Vrenna is being given a contract with a hidden clause she almost doesn't notice",
+      targetWords: 1000,
+      charactersPresent: ["Vrenna", "Scrivener Odd", "Merchant Kael"],
+      scenes: [
+        { description: "Merchant Kael and Vrenna meet at Scrivener Odd's shop to finalize a binding contract for Vrenna's three months of courier work", characters: ["Merchant Kael", "Vrenna", "Scrivener Odd"], emotionalShift: "routine business formality" },
+        { description: "Odd reads the contract aloud clause by clause; the first two clauses cover payment and schedule and Vrenna raises no objections", characters: ["Scrivener Odd", "Vrenna", "Merchant Kael"], emotionalShift: "formality moves at a comfortable pace" },
+        { description: "The third clause is read quickly: Vrenna agrees that any goods in her possession during the courier term are subject to Kael's inspection at any time; Vrenna asks Odd to re-read it", characters: ["Vrenna", "Scrivener Odd", "Merchant Kael"], emotionalShift: "comfortable pace is broken by a detail that catches" },
+        { description: "Kael downplays the clause as standard language; Vrenna insists on striking it; Kael accepts the revision after a pause that is too long for standard language", characters: ["Vrenna", "Merchant Kael", "Scrivener Odd"], emotionalShift: "the detail becomes a negotiation that reveals Kael was counting on her not to notice" },
+      ],
+      establishedFacts: [
+        { fact: "The original contract's third clause would have given Kael inspection rights over any goods in Vrenna's possession during the courier term", category: "rule" },
+        { fact: "Vrenna insisted the third clause be struck from the contract", category: "relationship" },
+        { fact: "Kael's pause before accepting the revision was longer than the situation warranted", category: "knowledge" },
+      ],
+      characterStateChanges: [
+        { name: "Vrenna", location: "Scrivener Odd's shop", emotionalState: "wary — she took the job but does not fully trust Kael", knows: ["Kael wanted the inspection clause and did not want her to notice it"], doesNotKnow: ["What Kael was planning to inspect for"] },
+        { name: "Merchant Kael", location: "Scrivener Odd's shop", emotionalState: "recalibrating — she was sharper than he expected", knows: ["Vrenna caught the clause"], doesNotKnow: ["Whether she will still take the job now that she is suspicious"] },
+        { name: "Scrivener Odd", location: "his shop", emotionalState: "professionally neutral", knows: ["The clause was struck"], doesNotKnow: ["Whether it was truly standard language"] },
+      ],
+      knowledgeChanges: [
+        { characterName: "Vrenna", knowledge: "Kael wanted the inspection clause and his reaction to losing it was not that of someone treating it as standard language", source: "witnessed" },
+      ],
+    },
+  },
+  {
+    id: "army_oath",
+    outline: {
+      chapterNumber: 1,
+      title: "Except One Clause",
+      povCharacter: "Recruit Emm",
+      setting: "The regimental parade ground at dawn, fifty recruits in a line, a flag in the cold air",
+      purpose: "Establish Emm as the recruit who will not say the part of the oath that conflicts with something older",
+      targetWords: 1000,
+      charactersPresent: ["Recruit Emm", "Oath-Keeper Dand", "Sergeant Tallow"],
+      scenes: [
+        { description: "Oath-Keeper Dand stands before the fifty recruits at dawn and begins reciting the regimental oath line by line for them to repeat", characters: ["Oath-Keeper Dand", "Recruit Emm", "Sergeant Tallow"], emotionalShift: "solemn collective momentum" },
+        { description: "When Dand reaches the line 'I renounce all prior oaths and allegiances,' Emm's voice falls silent while the others continue — Dand notices", characters: ["Recruit Emm", "Oath-Keeper Dand"], emotionalShift: "collective momentum breaks on a single silence" },
+        { description: "Dand halts the ceremony and calls Emm forward to repeat the renunciation line alone; Emm refuses, explaining she swore a healer's oath two years ago that she will not renounce", characters: ["Recruit Emm", "Oath-Keeper Dand", "Sergeant Tallow"], emotionalShift: "silence becomes a direct refusal with a principled reason" },
+        { description: "Tallow rules that a healer's oath is recognized as non-conflicting under regimental code; Emm is permitted to skip the renunciation line and complete the rest of the oath", characters: ["Sergeant Tallow", "Oath-Keeper Dand", "Recruit Emm"], emotionalShift: "refusal finds an accommodation in a rule Dand didn't expect to apply" },
+      ],
+      establishedFacts: [
+        { fact: "Emm refused to recite the renunciation line because she holds a prior healer's oath she will not give up", category: "knowledge" },
+        { fact: "A healer's oath is recognized as non-conflicting with the regimental oath under regimental code", category: "rule" },
+        { fact: "Emm was permitted to skip the renunciation line and complete the rest of the oath", category: "rule" },
+      ],
+      characterStateChanges: [
+        { name: "Recruit Emm", location: "regimental parade ground", emotionalState: "relieved and now marked — the other recruits saw this", knows: ["Her healer's oath is protected under regimental code"], doesNotKnow: ["How the other recruits will react"] },
+        { name: "Oath-Keeper Dand", location: "parade ground", emotionalState: "mildly embarrassed — he did not know the code provision", knows: ["Emm's healer's oath is legitimate"], doesNotKnow: [] },
+        { name: "Sergeant Tallow", location: "parade ground", emotionalState: "professionally satisfied with the resolution", knows: ["The code provision exists and applies"], doesNotKnow: [] },
+      ],
+      knowledgeChanges: [
+        { characterName: "Oath-Keeper Dand", knowledge: "The regimental code recognizes healer's oaths as non-conflicting with the standard renunciation", source: "told" },
+        { characterName: "Recruit Emm", knowledge: "Her healer's oath is protected under the regimental code and she may complete enlistment", source: "told" },
+      ],
+    },
+  },
+  {
+    id: "forced_conversation",
+    outline: {
+      chapterNumber: 1,
+      title: "Third Floor Landing",
+      povCharacter: "Maya",
+      setting: "The landing between the second and third floors of a shared apartment building, the elevator broken, evening",
+      purpose: "Force a conversation that has been avoided for three weeks",
+      targetWords: 1000,
+      charactersPresent: ["Maya", "Dex"],
+      scenes: [
+        { description: "Maya is climbing the stairs with groceries when the lights go out on the landing; she stops and hears Dex's voice in the dark — he is also stuck, coming down", characters: ["Maya", "Dex"], emotionalShift: "ordinary inconvenience becomes an unscheduled confrontation" },
+        { description: "In the dark they talk around the real subject — the weather, the broken elevator — until Maya, exhausted from avoiding it, asks directly why he stopped responding to her messages", characters: ["Maya", "Dex"], emotionalShift: "circling gives way to the direct question both have been avoiding" },
+        { description: "Dex says he stopped because he didn't know what to say after the thing he said at Carla's party — he didn't mean it as an ending but feared it landed that way", characters: ["Dex", "Maya"], emotionalShift: "direct question meets a direct answer that is more vulnerable than Maya expected" },
+        { description: "The lights come back on; they are standing three feet apart on a landing with nowhere to be; Maya says they should probably talk properly and Dex says yes", characters: ["Maya", "Dex"], emotionalShift: "vulnerability doesn't resolve but opens a door that was closed" },
+      ],
+      establishedFacts: [
+        { fact: "Dex stopped responding to Maya's messages after saying something at Carla's party that he feared landed badly", category: "knowledge" },
+        { fact: "Maya and Dex have agreed to talk properly at a later time", category: "relationship" },
+      ],
+      characterStateChanges: [
+        { name: "Maya", location: "stairwell landing", emotionalState: "cautiously open — it went better than she feared", knows: ["Dex's silence was fear, not rejection"], doesNotKnow: ["What exactly he said at the party or what he meant"] },
+        { name: "Dex", location: "stairwell landing", emotionalState: "relieved to have said it, still uncertain how she received it", knows: ["Maya wants to talk further"], doesNotKnow: ["Whether she will forgive what he said"] },
+      ],
+      knowledgeChanges: [
+        { characterName: "Maya", knowledge: "Dex pulled away because he feared his words at Carla's party had ended things, not because he wanted to end them", source: "told" },
+      ],
+    },
+  },
+  {
+    id: "confession_misread",
+    outline: {
+      chapterNumber: 1,
+      title: "What She Heard",
+      povCharacter: "Simone",
+      setting: "A coffee shop near the university library, a Tuesday afternoon between lectures",
+      purpose: "Let a confession land exactly wrong due to context the confessor didn't know to provide",
+      targetWords: 1000,
+      charactersPresent: ["Simone", "Juno"],
+      scenes: [
+        { description: "Simone and Juno sit down with their coffees; Simone has been working up to something and Juno can tell", characters: ["Simone", "Juno"], emotionalShift: "comfortable routine carries an undercurrent of anticipation" },
+        { description: "Simone says she has been thinking about what happened after Luca's party and needs Juno to know that she was jealous — of Juno and Luca", characters: ["Simone", "Juno"], emotionalShift: "anticipation becomes a confession that lands with unexpected weight" },
+        { description: "Juno goes still; Simone reads the stillness as confirmation she's made it awkward and starts walking the confession back", characters: ["Juno", "Simone"], emotionalShift: "the weight of the confession is misread as rejection" },
+        { description: "Juno says quietly she thought Simone knew — she and Luca were over before the party; the jealousy was the first time anyone had said it plainly, and Juno doesn't know what to do with it", characters: ["Juno", "Simone"], emotionalShift: "misreading is corrected but neither of them knows where that leaves them" },
+      ],
+      establishedFacts: [
+        { fact: "Simone told Juno she was jealous of Juno and Luca after Luca's party", category: "knowledge" },
+        { fact: "Juno and Luca ended their relationship before the party — Simone did not know this", category: "knowledge" },
+        { fact: "Neither character knows what to do with the disclosure by the end of the scene", category: "relationship" },
+      ],
+      characterStateChanges: [
+        { name: "Simone", location: "coffee shop", emotionalState: "exposed and uncertain what the ground is now", knows: ["Juno and Luca were already over at the party"], doesNotKnow: ["How Juno feels about the confession"] },
+        { name: "Juno", location: "coffee shop", emotionalState: "moved and uncertain — the plainness of the confession caught her off guard", knows: ["Simone was jealous — genuinely, not incidentally"], doesNotKnow: ["What Simone wants to happen next"] },
+      ],
+      knowledgeChanges: [
+        { characterName: "Simone", knowledge: "Juno and Luca had already ended before the party", source: "told" },
+      ],
+    },
+  },
+  {
+    id: "betrayal_revealed",
+    outline: {
+      chapterNumber: 1,
+      title: "The Text That Was There",
+      povCharacter: "Ro",
+      setting: "Ro and Felix's shared apartment, Saturday morning, one of them about to leave",
+      purpose: "A single piece of information reframes the last three months as a betrayal",
+      targetWords: 1000,
+      charactersPresent: ["Ro", "Felix"],
+      scenes: [
+        { description: "Ro is making coffee when Felix's phone lights up on the counter — he asked her to read any messages from his brother while he's in the shower", characters: ["Ro", "Felix"], emotionalShift: "comfortable domesticity" },
+        { description: "The message is from someone named Wren, not Felix's brother — it references 'last Thursday' in terms that make Ro's understanding of last Thursday collapse", characters: ["Ro"], emotionalShift: "domesticity drops into something cold and immediate" },
+        { description: "Felix comes out of the shower; Ro is holding the phone; Felix goes still when he sees her face", characters: ["Felix", "Ro"], emotionalShift: "cold immediacy meets someone who already knows she knows" },
+        { description: "Ro asks one question: was it just Thursday, or longer? Felix's answer — that it started in January — tells her the last three months have meant something different than she believed", characters: ["Ro", "Felix"], emotionalShift: "the question and its answer replace the conversation — there is nothing else to say yet" },
+      ],
+      establishedFacts: [
+        { fact: "Felix has been seeing someone named Wren since January — throughout the last three months of his relationship with Ro", category: "knowledge" },
+        { fact: "Ro discovered this by reading a message on Felix's phone at his request", category: "knowledge" },
+        { fact: "No resolution or next steps are established in this chapter — the discovery ends it", category: "relationship" },
+      ],
+      characterStateChanges: [
+        { name: "Ro", location: "the apartment", emotionalState: "not yet in the part that hurts — still in the cold clear part just before it", knows: ["Felix has been with Wren since January"], doesNotKnow: ["What she will do or say next"] },
+        { name: "Felix", location: "the apartment", emotionalState: "not apologizing yet — waiting to see what she does", knows: ["Ro knows everything the message implied"], doesNotKnow: ["What Ro will do"] },
+      ],
+      knowledgeChanges: [
+        { characterName: "Ro", knowledge: "Felix has been with someone named Wren since January", source: "read" },
+      ],
+    },
+  },
+  {
+    id: "reconciliation_cost",
+    outline: {
+      chapterNumber: 1,
+      title: "The One Thing Left",
+      povCharacter: "Asha",
+      setting: "A hospital waiting room, evening, pale fluorescent light, hard chairs",
+      purpose: "Two estranged people reconcile but neither can pretend the cost of reconciling isn't visible",
+      targetWords: 1000,
+      charactersPresent: ["Asha", "Nolan"],
+      scenes: [
+        { description: "Asha arrives at the hospital waiting room and finds Nolan already there — their father is in surgery and they have not spoken in fourteen months", characters: ["Asha", "Nolan"], emotionalShift: "the neutral territory of an emergency" },
+        { description: "They sit in adjacent seats by default — nowhere else to go — and after ten minutes of silence Nolan says he is glad she came", characters: ["Nolan", "Asha"], emotionalShift: "silence breaks on a small gesture that carries a lot of weight" },
+        { description: "Asha says she came for their father, not for Nolan; Nolan says he knows; then he says he should not have told their mother about the money, and he is sorry", characters: ["Asha", "Nolan"], emotionalShift: "the weight of the gesture is met with the apology that has been pending for fourteen months" },
+        { description: "Asha accepts the apology; they both sit with the knowledge that accepting it doesn't mean it didn't happen — the damage is still there, and this waiting room will have to be enough for now", characters: ["Asha", "Nolan"], emotionalShift: "apology accepted — and both know it does not undo the fourteen months" },
+      ],
+      establishedFacts: [
+        { fact: "Asha and Nolan have been estranged for fourteen months after Nolan told their mother about the money", category: "knowledge" },
+        { fact: "Nolan apologized for telling their mother about the money and Asha accepted the apology", category: "relationship" },
+        { fact: "The reconciliation is real but incomplete — neither character pretends it resolves the damage", category: "relationship" },
+      ],
+      characterStateChanges: [
+        { name: "Asha", location: "hospital waiting room", emotionalState: "present — not healed but no longer closed off", knows: ["Nolan is sorry and means it"], doesNotKnow: ["What comes after tonight"] },
+        { name: "Nolan", location: "hospital waiting room", emotionalState: "cautiously relieved — the door opened a crack", knows: ["Asha accepted the apology"], doesNotKnow: ["Whether the relationship can be rebuilt"] },
+      ],
+      knowledgeChanges: [],
     },
   },
 ]

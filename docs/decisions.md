@@ -159,6 +159,40 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+## Character Voice & Dialogue
+
+### Voice-pass LoRA: beats-compatible, character-conditioned, same pattern as tonal pass
+*2026-04-11 (architectural decision — no experiment yet)*
+
+**Decision:** Character voice enforcement is built as a dedicated voice-pass LoRA on Qwen3-14B, not as additional complexity inside the beat-writer call. Architecture mirrors the tonal pass exactly: beat-writer generates voice-agnostic prose, voice-pass rewrites dialogue-only paragraphs conditioned on a structured `SpeechProfile`. In-context pattern matching (structured profiles + few-shot archetype examples) ships first as Phase 1; the fine-tune is Phase 3.
+
+**Why a separate pass rather than beat-writer context enrichment:**
+At 14B, loading the beat-writer call with simultaneous beat adherence + world state + voice enforcement causes drift. The beat-writer already manages beat spec, transition bridges, character snapshots, reference lookups, and word count. Adding voice enforcement to the same call degrades beat adherence on complex scenes. A separate focused call (one job: voice) is more reliable and independently improvable.
+
+**Why in-context first:**
+The `speechPattern` field is currently free text ("sounds gruff"). Replacing it with a structured `SpeechProfile` schema (register, sentenceLength, vocabulary, forbiddenPhrases, syntacticPatterns, emotionalExpression) plus 2–3 example dialogue lines in the beat context is a zero-cost, zero-training improvement that ships immediately and also generates the schema that the voice-pass LoRA will be conditioned on.
+
+**Data sourcing — public domain dialogue extraction:**
+The tonal pass used the Howard corpus (public domain). The voice-pass uses a different public domain strategy: extract 2–8 sentence dialogue exchanges from Project Gutenberg texts with distinctive character voice, generate a neutral "flattened" version synthetically (235B), and create `(flat_dialogue + archetype_profile) → (original_voiced_dialogue)` training pairs. Primary sources: Doyle (analytical_deducer, earnest_companion), Hammett (hard_boiled), Wodehouse pre-1930 (evasive_servant, exasperated_authority), Dickens (theatrical villains, earnest apprentices), Conrad (formal_authority), Twain (dialect/colloquial), Haggard (stoic adventure). Target: 400–500 pairs across 10–12 archetypes. Estimated cost: ~$3–5.
+
+**Beat compatibility:**
+Voice-pass runs after beat validation converges (same position as tonal pass). Dialogue-only paragraphs are identified by the same logic the tonal pass uses to skip them — inverted: voice-pass touches only dialogue paragraphs, tonal pass skips them. The two passes are complementary and non-overlapping at the paragraph level.
+
+**Why in-context pattern matching for Phase 2 (archetype library):**
+Named archetypes with structured profiles and few-shot example lines allow Q14B to apply consistent voice without training. This covers the common case (archetypal characters) and generates the labeled examples needed to evaluate whether Phase 3 (fine-tune) closes any remaining gap.
+
+**Dialogue quantity is a separate problem:**
+15.7% dialogue vs 25–50% published norm is a planner problem, not a voice problem. Fix is a planning-plotter prompt change requiring at least 2 of 4–6 scene beats to be dialogue-driven. No training required. These are logged separately in todo.md.
+
+**Alternatives rejected:**
+- *Add voice to beat-writer context only* — insufficient for a 14B model handling simultaneous beat adherence + voice; demonstrated pattern in adherence-checker that focused calls outperform overloaded single calls.
+- *Train a character-specific adapter per novel* — not tractable; adapter per novel defeats the purpose of a shared base and exceeds W&B storage economics at any real novel volume.
+- *Voice checker instead of voice pass* — a binary checker tells you voice is wrong but doesn't fix it; a rewrite pass produces better prose directly. Checker can be added later as a quality gate on top of the pass.
+
+**Ongoing:** Phase 1 (structured SpeechProfile schema + forbidden phrase lint + planner dialogue guidance) builds next. Phase 2 (archetype library + few-shot beat context) follows as novel runs accumulate. Phase 3 (voice-pass LoRA) begins once Phase 1 is in production and dialogue pattern ingestion script is built.
+
+---
+
 ## Reference Resolver
 
 ### Reference-resolver SFT permanently off the list
