@@ -220,13 +220,13 @@ Until condition 1 is true, RunPod is an infrastructure cost, not a cost saving. 
 
 ---
 
-### 5. Tonal Pass — IN PROGRESS (V4 trained, pref eval pending)
+### 5. Tonal Pass — V4 DEPLOYED (pref eval confirmed 2026-04-11)
 
-**Status**: V4 adapter trained and benchmarked (exp #98, 2026-04-08). Quantitative metrics favor V4; qualitative pref eval in progress. V3 stays in production until pref eval confirms.
+**Status**: V4 adapter deployed to production. Pref eval confirmed V4 preferred. V3 on Together AI retired.
 
 **Identity LoRA bug**: Exp #95 and #96 used `howard-tonal-v4:latest` which points to the identity LoRA placeholder (v0 uploaded at job submission). All data from those runs was base-vs-base. See `lessons-learned.md`. Real adapter is at `howard-tonal-v4-sft-resume:v8`.
 
-**Real results (exp #98, sft-resume:v8) vs V3**:
+**Results (exp #98, sft-resume:v8) vs V3**:
 
 | Metric | Howard ref | Input (bland) | V3 (9B Together) | V4 (14B W&B) | Winner |
 |--------|-----------|---------------|-----------------|--------------|--------|
@@ -236,11 +236,11 @@ Until condition 1 is true, RunPod is an infrastructure cost, not a cost saving. 
 | Content pres ↑ | — | — | 0.275 | **0.583** | V4 |
 | Avg latency | — | — | 1757ms | **597ms** | V4 |
 
-**Qualitative concern**: V4 outputs read as more conservative (measured, period-accurate) vs V3 (bolder, more dramatic rewriting). Metrics say V4 wins but prose quality reading says V3 may still be better. Pref eval tab (`/app/lora-style` → Pref Eval) resolves this — 15-paragraph binary preference rating, results saved to DB.
-
-**Next step (V5)**: If pref eval confirms V3 still reads better — re-curate training targets. Strategy: run all 4,497 training inputs through V3, use V3 outputs as new targets (teacher-student bootstrap). Apply Jaccard filter to drop pairs where output similarity > 0.6 (conservative targets). Train V5 on the curated V3-bootstrapped set, re-run pref eval.
+**Pref eval (2026-04-11)**: 15-paragraph binary preference confirmed V4 preferred.
 
 **Serving URI**: `wandb-artifact:///andre14618-/novel-harness/howard-tonal-v4-sft-resume:v8`
+
+**Next step (V5, if needed)**: Re-curate training targets using V4 outputs as bootstrap teacher. Run V4 inputs through V4, use V4 outputs as new targets, apply Jaccard filter to drop pairs where output similarity > 0.6, retrain.
 
 ---
 
@@ -327,8 +327,9 @@ Until condition 1 is true, RunPod is an infrastructure cost, not a cost saving. 
 | Fine-tune target | Data sufficient? | Bottleneck | Path forward |
 |-----------------|-----------------|------------|--------------|
 | Adherence checker | **Yes — V2 DEPLOYED** | V3 mixed-teacher regressed (exp #146). V2 stays. | Tiered retry policy + e2e validation. V2 weak spots (FAIL_MISSING_SUBTLE 78.6%, FAIL_TANGENT_HARD 69%): Sonnet teacher evaluated (exp #147, 96.5%) — better overall but below V2.1 threshold; targeted 235B curation or GRPO/RL if needed |
-| Chapter-plan checker | **No** | 71 production calls, 5 premises. Need 200+ pairs from 15+ diverse premises | Run 10-15 novels on new seeds, collect oracle labels |
-| Continuity | **No** | Teacher quality (235B misses 90% of warnings) AND only 5 premises | Claude-as-teacher + diverse novel runs |
+| Chapter-plan checker | **Yes — TRAINING (exp #154)** | 197 synthetic pairs (25 scenarios × 8 variants), gpt-oss teacher, 87.5% accuracy, 54:46 balance | Eval adapter on held-out pairs (≥80% oracle agreement); run 10–15 novels on new seeds for V2 production data |
+| Continuity | **Yes — TRAINING (exp #155)** | 120 synthetic pairs (20 scenarios × 6 variants), Sonnet teacher, 98% accuracy | Eval adapter on held-out pairs (≥80%); Phase 2: scale to 300 pairs; Phase 3: compact diff input format |
+| Tonal pass | **Yes — V4 DEPLOYED** | Pref eval confirmed V4 preferred (2026-04-11) | V5 if needed: bootstrap from V4 outputs |
 | Tonal pass (structural) | **No** | No paired data exists (monotone → structurally rich) | Requires structural diversity pass design first |
 | Beat writer | **No** | 131 chapters from 5 premises, structurally monotone (7.6% dialogue avg). Training on this would bake in the monotone shape | Address structural diversity in writer prompts first, then collect |
 

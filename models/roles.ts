@@ -80,7 +80,10 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "chapter-plan-checker":      { provider: "groq", model: "openai/gpt-oss-120b", temperature: 0.2, maxTokens: 4096 },
 
   // ── Tonal pass (per-paragraph voice rewrite, LoRA fine-tuned) ────────
-  "tonal-pass":                { provider: "together", model: "Qwen/Qwen3.5-9B", lora: "andre14618_2c8c/Qwen3.5-9B-howard-tonal-v3-5d040ad5", temperature: 0.6, maxTokens: 2048 },
+  // V4 (howard-tonal-v4-sft-resume:v8) confirmed preferred via pref eval 2026-04-11.
+  // Beats V3 on every quantitative metric (classifier 0.550 vs 0.422, perplexity 3086 vs 4814,
+  // 3× faster latency). V3 on Together AI retired.
+  "tonal-pass":                { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/howard-tonal-v4-sft-resume:v8", temperature: 0.6, maxTokens: 2048 },
 
   // ── Improvement daemon ──────────────────────────────────────────────
   "improver":                  { ...deepseekV3, maxTokens: 8192 },

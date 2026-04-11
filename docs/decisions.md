@@ -39,6 +39,8 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 **Ongoing:** W&B Inference catalog is limited (Qwen3-14B-Instruct, Llama-3.1-8B/70B, gpt-oss-120b, Qwen3-30B-A3B). LoRA rank hard-limited to 16. Any adapter requiring a different base or rank > 16 would require RunPod + a separate training path.
 
+**Update — exp #148 (2026-04-10):** W&B now keeps Qwen3-30B-A3B warm. Adherence-checker shape: 7,172ms → 551ms avg (13× improvement). Beat-writer shape: 16,268ms → 11,054ms (still 9.5× Cerebras baseline — TOO SLOW for writing). 30B-A3B is now viable for checker-shaped tasks. Throughput ceiling remains (58 tps vs 14B's 261 tps) — MoE decode on W&B is slower per token than dense 14B, so output-heavy workloads don't benefit. 30B-A3B is worth evaluating as a chapter-plan-checker fine-tune base given its larger expert pool and 551ms adherence latency. Cost is 2× input / 1.36× output vs 14B.
+
 ---
 
 ### DeepInfra not viable as LoRA serving home
@@ -139,6 +141,21 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 **Ground truth labeling errors confirmed:** `airlock_standoff` and `trench_letter` FAIL_MISSING_SUBTLE pairs are mislabeled — prose fully enacts all beat elements. Three independent evaluations (smoke test × 2 + full eval) all returned `events_present=true`. Exclude from future accuracy calculations.
 
 **Sonnet's remaining role:** Disagreement-case tiebreaker only — collect cases where Sonnet and 235B disagree on production pairs, hand-label those, and use Sonnet's label where it's more accurate. Bulk training data stays 235B-labeled.
+
+---
+
+### Tonal pass V4 deployed — pref eval confirmed
+*2026-04-11 · exp #98 (quantitative) + pref eval*
+
+**Decision:** V4 (`howard-tonal-v4-sft-resume:v8` on W&B Inference) is the production tonal-pass adapter. V3 on Together AI retired.
+
+**Evidence:** Quantitative metrics from exp #98 favor V4 on every dimension (classifier 0.550 vs 0.422, perplexity 3086 vs 4814, content preservation 0.583 vs 0.275, latency 597ms vs 1757ms). Pref eval (15-paragraph binary preference in `/app/lora`) confirmed V4 is preferred.
+
+**Alternatives rejected:** V3 read as "bolder and more dramatic" in subjective review — pref eval did not support retaining V3 on prose quality grounds.
+
+**Actions taken:** `models/roles.ts` `tonal-pass` switched from Together AI (V3) to W&B Inference V4. Together AI no longer serves any production adapter.
+
+**Ongoing:** Clean up Together AI entries from `models/registry.ts` and remove `TOGETHER_API_KEY`. V5 strategy (if needed later): run V4 inputs through V4, bootstrap new training targets, filter Jaccard > 0.6.
 
 ---
 

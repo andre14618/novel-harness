@@ -15,16 +15,18 @@ Pending action items only. Ordered by impact. Completed items and decision ratio
 
 ## Chapter Plan Checker
 
-- **SFT distillation** — distill gpt-oss-120b onto Qwen3-14B via SFT. Base 14B at 58% direct agreement; 100% one-directional bias (rubber-stamps PASS). SFT is the right fix for systematic under-detection. Data: (a) 80 synthetic pairs in `lora-data/chapter-plan-checker-pairs.jsonl` — relabel with 120B outputs from exp #107; (b) accumulate 200+ real production pairs from diverse novel runs. Stay on gpt-oss-120b in production until a fine-tuned adapter exists. See `project_chapter_plan_checker_finetune.md`.
+- **SFT training in progress** — 197-pair dataset (`lora-data/chapter-plan-checker-pairs-v2-final.jsonl`) submitted to W&B Serverless SFT as `chapter-plan-checker-v1` (exp #154). Teacher: gpt-oss-120b (87.5% agreement on PASS variants, Sonnet escalation on FAIL_MISSING_BEAT). Class balance: 54:46. Eval target: ≥80% oracle agreement on held-out pairs before swapping from gpt-oss-120b. Adapter URI once done: `wandb-artifact:///andre14618-/novel-harness/chapter-plan-checker-v1-sft-resume:v9`.
+- **Accumulate real production pairs** — 197 synthetic pairs are the V1 training set. For V2: run 10–15 novels on diverse seeds, collect oracle labels from the production gpt-oss-120b calls (already flowing through `llm_calls`), relabel with the validated adapter for self-improvement loop.
 
 ## Continuity
 
-- **Build Claude-as-teacher labeling pipeline** — 235B misses 90% of warnings and 65% of nits (exp #117/#118). Use Opus or Sonnet (not gpt-oss — peer-tier with 235B on this task). Steps: hand-validate WARNING/NIT variant injections in `scripts/generate-continuity-data.ts`, re-run the synthetic eval with Claude as teacher, confirm improvement before full data run. ~1,000 pairs, ~$15 (Sonnet) once validated. See `docs/decisions.md`.
+- **SFT training in progress** — 120-pair dataset (`lora-data/continuity-pairs-sonnet-labeled.jsonl`) submitted to W&B Serverless SFT as `continuity-v1` (exp #155). Teacher: Sonnet 4.6 (98% accuracy vs expected labels; 235B misses 90% of WARNINGs). Eval target: ≥80% accuracy on held-out continuity pairs before swapping from 235B. Adapter URI once done: `wandb-artifact:///andre14618-/novel-harness/continuity-v1-sft-resume:v9`.
+- **Phase 2 — scale to 300 pairs** — add 10 more scenarios to `scripts/generate-continuity-data.ts` + VAR_WARNING_2 variants. Prioritize LitRPG scenarios and multi-chapter carryover. Then re-run Sonnet labeling pipeline.
+- **Compact diff format (Phase 3)** — V1 trains on full-dump format (same as production ~7,300 tokens). Compressing to ~1,000 tokens via structured diff requires a new input format design + new training data. Do not attempt until V1 eval passes.
 
 ## Tonal Pass
 
-- **Pref eval** — V4 quantitative metrics beat V3 on every dimension (exp #98) but reads as more conservative. Run 15-paragraph binary preference eval in `/app/lora` → Pref Eval tab. V3 stays in production until pref eval confirms V4.
-- **Remove Together AI provider** — once V4 is confirmed, remove `TOGETHER_API_KEY`, Together entries from `models/registry.ts`, and provider config. V3 on Together is the only remaining use; no new adapters go there.
+- **Remove Together AI provider** — V4 confirmed preferred (pref eval 2026-04-11). Remove `TOGETHER_API_KEY`, Together entries from `models/registry.ts`, and provider config. V3 on Together was the only remaining use.
 - **Tonal pass expansion** — v3/v4 training data is dark-fantasy-specific (Howard corpus). Multi-genre corpus needed before tonal pass is usable as a general pipeline stage. Public domain candidates: Hemingway (pre-1929), London, Cather, Fitzgerald. See `docs/ai-training-copyright-landscape.md`.
 
 ## Fine-Tuning (Other)

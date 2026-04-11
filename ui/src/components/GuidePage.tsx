@@ -55,10 +55,10 @@ LXC 307 (192.168.1.108)
 │
 ├── Fine-Tuning (W&B Inference)
 │   └── OpenPipe/Qwen3-14B-Instruct LoRA adapters
-│       ├── tonal-pass v4 (trained + validated on W&B; v3 live pending switchover)
+│       ├── tonal-pass v4 (deployed — pref eval confirmed 2026-04-11)
 │       ├── adherence-checker v2 (curated LoRA deployed — 90% oracle agreement)
-│       ├── chapter-plan-checker (SFT next; gpt-oss-120b teacher)
-│       └── continuity (blocked — no reliable teacher yet)
+│       ├── chapter-plan-checker v1 (training — 197 pairs, gpt-oss teacher)
+│       └── continuity v1 (training — 120 pairs, Sonnet teacher)
           `.trim()}</pre>
         </section>
 
@@ -270,7 +270,7 @@ Beat Specification (from planner)
               <tr>
                 <td><strong>Tonal Pass</strong></td>
                 <td>Voice consistency</td>
-                <td>LoRA-tuned 14B model (per-paragraph rewrite via W&B Inference). V4 validated; V3 on Together AI still live pending switchover.</td>
+                <td>V4 LoRA-tuned 14B (W&B Inference, <code>howard-tonal-v4-sft-resume:v8</code>). Pref eval confirmed 2026-04-11.</td>
                 <td>Post-validation</td>
               </tr>
             </tbody>
@@ -297,9 +297,9 @@ Beat Specification (from planner)
             </thead>
             <tbody>
               <tr><td>Adherence Checker</td><td>Beat spec vs prose (4-call decomposed)</td><td><strong>V2 curated LoRA deployed</strong> — 90% oracle agreement on 64 production pairs (exp #135)</td></tr>
-              <tr><td>Tonal Pass</td><td>Per-paragraph style rewriting</td><td>V4 trained &amp; validated on W&B Inference (exp #98); V3 (Together AI) still live pending switchover</td></tr>
-              <tr><td>Chapter Plan Checker</td><td>Plan vs assembled prose (pass/fail)</td><td>SFT next — gpt-oss-120b teacher validated (90%)</td></tr>
-              <tr><td>Continuity</td><td>Consistency with world state</td><td>Blocked — no reliable teacher (235B misses 90% of warnings)</td></tr>
+              <tr><td>Tonal Pass</td><td>Per-paragraph style rewriting</td><td><strong>V4 deployed</strong> — pref eval confirmed 2026-04-11 (exp #98); V3 Together AI retired</td></tr>
+              <tr><td>Chapter Plan Checker</td><td>Plan vs assembled prose (pass/fail)</td><td><strong>Training in progress</strong> — 197 pairs, gpt-oss-120b teacher, 54:46 balance (exp #154). gpt-oss-120b in production until eval passes.</td></tr>
+              <tr><td>Continuity</td><td>Consistency with world state</td><td><strong>Training in progress</strong> — 120 pairs, Sonnet 4.6 teacher, 98% label accuracy (exp #155). 235B in production until eval passes.</td></tr>
             </tbody>
           </table>
         </section>
@@ -344,8 +344,9 @@ Beat Specification (from planner)
             via W&B Inference at $0.05/$0.22 per 1M tokens.
           </p>
           <p>
-            V4 (howard-tonal-v4-sft-resume:v8) beats V3 on every metric — classifier 0.550 vs 0.422,
-            perplexity 3086 vs 4814, 3× faster latency. V3 on Together AI remains live pending the switchover.
+            V4 (<code>howard-tonal-v4-sft-resume:v8</code>) beats V3 on every metric — classifier 0.550 vs 0.422,
+            perplexity 3086 vs 4814, 3× faster latency. Pref eval confirmed V4 preferred (2026-04-11).
+            V3 on Together AI retired.
           </p>
           <p>
             See the full research report in <Link to={`/docs${qs}${qs ? "&" : "?"}doc=lora-style-transfer-report.md`}>Docs</Link> for
