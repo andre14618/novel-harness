@@ -321,23 +321,23 @@ CONTEXT: [surrounding prose paragraph for register reference]]
 [assistant: "This needs looking at. Tonight."]
 ```
 
-**Data source — public domain extraction pipeline** (see todo.md Phase 2 data):
-Gutenberg texts → 2–8 sentence dialogue exchanges → 235B assigns archetype + generates flattened version → `(flat + profile) → original` training pairs. Target: 400–500 pairs across 10–12 archetypes. ~$3–5 total. Same distillation-from-corpus pattern as Howard tonal pass.
+**Data source — pattern research + synthetic generation** (see todo.md Phase 2 data):
+Study modern fiction to extract archetype speech patterns (fair use for research). Generate synthetic training pairs from those patterns via 235B: `(flat_dialogue + archetype_profile) → (voiced_dialogue)`. Do not use verbatim copyrighted dialogue as training targets — the pattern is the extractable artifact, not the line. Modern fantasy, sci-fi, and post-apoc fiction is more relevant to the seeds the pipeline targets than public domain sources. Target: 400–500 pairs across 10–12 archetypes. ~$3–5 total.
 
-Primary Gutenberg sources by archetype:
+Representative archetypes (profiles informed by modern genre study):
 
-| Archetype | Source |
-|-----------|--------|
-| `analytical_deducer` | Doyle (Holmes) |
-| `earnest_companion` | Doyle (Watson) |
-| `hard_boiled` | Hammett (Continental Op, Spade) |
-| `evasive_servant` | Wodehouse pre-1930 (Jeeves) |
-| `exasperated_authority` | Wodehouse (Bertie Wooster), Dickens |
-| `theatrical_villain` | Dickens (various), Collins (Fosco) |
-| `formal_authority` | Conrad, Trollope |
-| `dialect_colloquial` | Twain (Huck, Tom) |
-| `stoic_adventure` | Haggard (Quatermain) |
-| `deadpan_street` | O. Henry |
+| Archetype | Typical register |
+|-----------|-----------------|
+| `stoic_warrior` | Short declaratives, imperative verbs, no hedging |
+| `scheming_noble` | Euphemism, questions as threats, long dependent clauses |
+| `cynical_mentor` | Deflection, rhetorical questions, world-weary brevity |
+| `earnest_apprentice` | Incomplete thoughts, trailing questions, open wonder |
+| `hard_boiled_investigator` | Flat affect, transactional, sensory-concrete |
+| `theatrical_villain` | Performative, interrupts, enjoys its own voice |
+| `formal_authority` | Passive construction, title-over-name, conditional phrasing |
+| `hot_tempered_youth` | Short sentences, volume implied, emotional leakage |
+| `diplomatic_deceiver` | Agrees while redirecting, never refuses directly |
+| `world_weary_professional` | Understatement, brevity, dark humor as shield |
 
 **Risk**: Medium. The model must learn to apply different transformations depending on the input profile — harder than uniform style (tonal pass). Archetype coverage in training data must match production archetype distribution.
 
