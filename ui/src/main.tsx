@@ -14,6 +14,7 @@ import { CostsPage } from "./components/CostsPage"
 import { NovelReadView } from "./components/NovelReadView"
 import { StudioPage } from "./components/StudioPage"
 import { DecisionsPage } from "./components/DecisionsPage"
+import { AdaptersPage } from "./components/AdaptersPage"
 import "./styles/app.css"
 
 createRoot(document.getElementById("root")!).render(
@@ -38,6 +39,7 @@ createRoot(document.getElementById("root")!).render(
           <Route path="/operations" element={<Navigate to="/guide" replace />} />
           <Route path="/finetune" element={<Navigate to="/guide" replace />} />
           <Route path="/decisions" element={<DecisionsPage />} />
+          <Route path="/adapters" element={<AdaptersPage />} />
           <Route path="/studio" element={<StudioPage />} />
           <Route path="/read" element={<NovelReadView />} />
           <Route path="/:novelId/read" element={<NovelReadView />} />
