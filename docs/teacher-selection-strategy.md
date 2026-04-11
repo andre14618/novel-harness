@@ -87,7 +87,7 @@ On marginal cases, Kimi K2.5 is more lenient than 235B on subtle missing events.
 **Why Sonnet is interesting for V3**: Sonnet hits 100% on tangent (vs V2 adapter's 69%) and 87.2% on FAIL_MISSING_SUBTLE (vs V2 adapter's 78.6%). These are exactly the weak spots.
 
 **Path to adherence V3 (Sonnet teacher)**:
-1. Take the 7,541 V3 curated training pairs (same inputs as V2, different labels)
+1. ~~Take the 7,541 V3 curated training pairs (same inputs as V2, different labels)~~ **DONE — 7,540 pairs relabeled (exp #159, 2026-04-11)**
 2. Run Sonnet on all pairs via Claude Code subagents ($0)
 3. Train on Sonnet-labeled outputs
 4. Eval against production test set: must improve tangent and FAIL_MISSING_SUBTLE without regressing events
@@ -186,7 +186,7 @@ For any new fine-tune candidate:
 
 | Task | Sonnet Accuracy | Decision |
 |------|----------------|---------|
-| Adherence | 96.5% (exp #147) | V3 with Sonnet labels: relabeling 7,541 pairs in progress |
+| Adherence | 96.5% (exp #147) | V3-sonnet: 7,540 pairs relabeled, training submitted (exp #159) |
 | Chapter-plan | **94.3% (exp #158)** | **Sonnet adopted** — V2 data uses Sonnet labels |
 | Continuity | 98% (exp #150) | Sonnet adopted — V1 training in progress (exp #155) |
 | Reference-resolver | N/A — task retired | Llama 8B sufficient |
@@ -201,6 +201,6 @@ This is a stronger position than per-task teacher hunting and avoids repeating t
 
 | Checker | Production Oracle | Adapter Status |
 |---------|-----------------|----------------|
-| Adherence | W&B Qwen3-14B V2 | In production; V3 Sonnet-labeled relabeling in progress |
+| Adherence | W&B Qwen3-14B V2 | In production; V3-sonnet training submitted (exp #159) |
 | Chapter-plan | gpt-oss-120b | V1 in training (exp #154); V2 with Sonnet labels next |
 | Continuity | Qwen 235B | V1 in training (exp #155) |

@@ -332,3 +332,30 @@ FAIL_MISSING_BEAT: both models at 67.9% / 46.4% vs GT — driven by 12 GT labeli
 4. Train `chapter-plan-checker-v2` on W&B Serverless SFT
 
 **Ongoing:** gpt-oss remains the production oracle until V2 adapter passes ≥80% eval. Do not swap yet.
+
+---
+
+### Adherence checker V3-sonnet: 7,540 pairs relabeled, training submitted
+*(2026-04-11 · exp #159)*
+
+**Decision:** Relabel the full V3 curated dataset (7,541 pairs) with Sonnet 4.6 as single consistent teacher, replacing the disconfirmed mixed-teacher labels. Submit as `adherence-checker-v3-sonnet` to W&B Serverless SFT.
+
+**Why:** The V3 mixed-teacher adapter (exp #146) regressed vs V2 — confirmed root cause is calibration divergence when different teachers label different call types within the same task. Sonnet as a single teacher across all 4 call types (events/setting/tangent/character) eliminates this. Sonnet teacher accuracy: 96.5% overall (exp #147) — tangent 100% (vs V2 adapter's 69%), FAIL_MISSING_SUBTLE 87.2% (vs V2 adapter's 78.6%). These are exactly V2's weak spots.
+
+**What was done:**
+- All 7,541 V3 curated pairs relabeled via Sonnet subagents (138 batches of 20–100 pairs each)
+- 7,540 unique pairs produced (ID 6319 missing — 0.013%, negligible)
+- Label distribution: events 2,444 pairs (90.5% PASS), setting 2,137 (83.6% PASS), tangent 2,372 (89.6% PASS), character 2,126 (93.6% PASS)
+- Training: 2 epochs, batch size 2, lr 2e-4, cosine schedule, `OpenPipe/Qwen3-14B-Instruct` base
+- Expected adapter URI: `wandb-artifact:///andre14618-/novel-harness/adherence-checker-v3-sonnet-sft-resume:v9`
+
+**Decision gate before production deployment:**
+- FAIL_TANGENT_HARD must improve beyond V2's 69%
+- FAIL_MISSING_SUBTLE must improve beyond V2's 78.6%
+- Events must NOT regress below 95%
+
+**Alternatives rejected:**
+- **Continue with V2 (235B teacher):** V2 weak spots are structural — tangent calibration is genuinely worse because 235B scored ~80% on tangent (exp #147 showed 235B has limited tangent sensitivity). Sonnet at 100% tangent accuracy is a real signal, not noise.
+- **Targeted augmentation within 235B framework:** Would add data but not fix the calibration threshold. The teacher defines the boundary; more data won't shift it.
+
+**Ongoing:** V2 remains in production. V3-sonnet training in progress (~4h). Eval after training; deploy if decision gate passed.

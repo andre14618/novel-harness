@@ -138,7 +138,7 @@ Until condition 1 is true, RunPod is an infrastructure cost, not a cost saving. 
 
 ---
 
-### 2. Adherence Checker — V2 DEPLOYED, V3 DISCONFIRMED (4-call decomposed)
+### 2. Adherence Checker — V2 DEPLOYED · V3-mixed DISCONFIRMED · V3-sonnet IN TRAINING (4-call decomposed)
 
 **Current**: W&B Qwen3-14B-Instruct + V2 curated LoRA · 4 parallel calls (events/setting/tangent/character) · ~627ms avg · $0.00005/call
 
@@ -151,7 +151,8 @@ Until condition 1 is true, RunPod is an infrastructure cost, not a cost saving. 
 **Training status**:
 - **V1 (uncurated, 10,008 examples)**: Finished. 2 epochs, batch_size=2, cosine schedule, lr=2e-4. 10 checkpoints (v0-v9). Artifact: `adherence-checker-v1-sft-resume:v9`.
 - **V2 (curated, 8,524 examples)**: Finished. Same hyperparameters. Artifact: `adherence-checker-v2-sft-resume:v9`. **DEPLOYED to production.**
-- **V3 (mixed-teacher, 7,541 curated examples)**: Finished. Per-flag teacher routing: K2.5 for events, gpt-oss for character, 235B for setting/tangent. Artifact: `adherence-checker-v3-mixed-teacher-sft-resume:v9`. **DISCONFIRMED — regressed vs V2.** See eval below.
+- **V3-mixed (mixed-teacher, 7,541 curated examples)**: Finished. Per-flag teacher routing: K2.5 for events, gpt-oss for character, 235B for setting/tangent. Artifact: `adherence-checker-v3-mixed-teacher-sft-resume:v9`. **DISCONFIRMED — regressed vs V2.** See eval below.
+- **V3-sonnet (7,540 curated examples, Sonnet teacher)**: IN TRAINING (exp #159, 2026-04-11). Full V3 curated set relabeled with Sonnet 4.6 as single consistent teacher. Same hyperparameters (2 epochs, lr=2e-4, cosine). Expected artifact: `adherence-checker-v3-sonnet-sft-resume:v9`. Decision gate: FAIL_TANGENT_HARD > 69%, FAIL_MISSING_SUBTLE > 78.6%, events ≥ 95%.
 
 **V2 production eval (exp #135, 2026-04-09)**: `scripts/eval-adherence-finetune.ts` — 64 beat/prose pairs from 20 approved chapters, 4 call types × 4 models = 1,024 API calls. V2 curated: **90% oracle agreement** (230/255). V1 uncurated: 87% (222/254). Base 14B: 77% (196/255). By call type: events V2 98%/V1 92%/base 78%, setting V2 88%/V1 83%/base 81%, tangent V2 87%/V1 92%/base 86%, character V2 88%/V1 83%/base 63%. Latency: V2 627ms, V1 701ms, base 402ms, oracle 383ms.
 
@@ -161,7 +162,7 @@ Until condition 1 is true, RunPod is an infrastructure cost, not a cost saving. 
 
 **Sonnet 4.6 teacher eval (exp #147, 2026-04-10)**: Full 1,559-pair synthetic eval using 78 parallel Claude Code subagents. Overall 96.5% (1504/1559). By variant: PASS_CLEAN 99.5%, FAIL_MISSING 98.1%, FAIL_MISSING_SUBTLE 87.2%, FAIL_TANGENT_HARD 100%, FAIL_CHAR 85.7%. By call type: setting 100%, tangent 100%, events 94.9%, character 93.3%. Decision threshold was >97% overall + >90% FAIL_MISSING_SUBTLE — Sonnet misses both (96.5%, 87.2%). Sonnet is +1.3pp overall and dramatically better on tangent (+31pp) but not a material upgrade over 235B on the marginal cases that determine training data quality. Ground truth labeling errors confirmed in `airlock_standoff` and `trench_letter` FAIL_MISSING_SUBTLE pairs (beat fully enacted but labeled false; three independent evaluations agree). See `docs/lessons-learned.md` "Sonnet 4.6 as adherence teacher."
 
-**Next steps**: (a) tiered retry policy (events/character hard gate, setting/tangent soft gate), (b) 3-chapter romance-drama end-to-end validation of V2 + tiered retry, (c) if V2 weak spots need closing: targeted curation within 235B framework; Sonnet useful only as a disagreement-case tiebreaker (not bulk teacher), then GRPO/RL.
+**Next steps**: (a) eval V3-sonnet against decision gate once training completes; (b) if passes: swap production to V3-sonnet, then pursue tiered retry policy (events/character hard gate, setting/tangent soft gate) + 3-chapter romance-drama end-to-end validation; (c) GRPO/RL reward loop after V3-sonnet is validated.
 
 **Legacy data**: 160 flat-format pairs (exp #99–#100) in `lora-data/adherence-checker-pairs.jsonl` are superseded by the decomposed format.
 
