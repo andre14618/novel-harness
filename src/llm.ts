@@ -1,7 +1,7 @@
 import { z } from "zod"
 import { logLLMCallStructured, type LLMCallLogEntry } from "./logger"
 import { emit } from "./events"
-import { traceAgentStart, traceAgentComplete, traceAgentFail } from "./trace"
+import { traceAgentStart, traceAgentComplete, traceAgentFail, traceLLMCallStart, broadcastLLMToken } from "./trace"
 import {
   PROVIDERS, getApiKey, getTokenCost, getModel,
   type ProviderName, type ProviderDef,
@@ -172,6 +172,15 @@ export interface ExecuteTags {
   attempt?: number
 }
 
+// Execution options — streaming toggles token-level SSE broadcasts so the live
+// pipeline view can render prose as it's generated. meta carries human-readable
+// fields (beat description, total beats, etc.) surfaced in the llm-call-start
+// event so the UI can render "Writing beat 3: Eliza confronts Marcus…" titles.
+export interface ExecuteOpts {
+  stream?: boolean
+  meta?: Record<string, unknown>
+}
+
 // Strip prompts from the request envelope before serializing — they're stored
 // in dedicated columns (system_prompt, user_prompt) for easy querying. This
 // keeps request_json focused on the OTHER call shape that matters for
@@ -202,12 +211,52 @@ export async function executeAndLog(
   novelId: string | undefined,
   agentName: string,
   tags?: ExecuteTags,
+  opts?: ExecuteOpts,
 ): Promise<LLMResponse> {
   const startedAt = Date.now()
   let response: LLMResponse | null = null
   let caughtError: unknown = null
+
+  // Broadcast call-start before firing the request so the live UI can show
+  // an in-flight row immediately. Persisted so the trace view can also see it.
+  if (novelId) {
+    try {
+      await traceLLMCallStart(novelId, {
+        agent: agentName,
+        chapter: tags?.chapter,
+        beatIndex: tags?.beatIndex,
+        attempt: tags?.attempt,
+        model: request.model,
+        provider: request.provider,
+        meta: opts?.meta,
+      })
+    } catch (err) {
+      console.error(`[trace] llm-call-start failed for ${agentName}:`, err)
+    }
+  }
+
+  // If the caller asked for streaming, wire a streaming request that forwards
+  // every content delta onto the SSE bus as an llm-token event. The accumulated
+  // content is still returned via the normal LLMResponse.content so callers
+  // don't need to care about the stream.
+  const effectiveRequest: import("./transport").LLMRequest =
+    opts?.stream && novelId
+      ? {
+          ...request,
+          streaming: true,
+          onChunk: (delta: string) => {
+            broadcastLLMToken(novelId, {
+              agent: agentName,
+              chapter: tags?.chapter,
+              beatIndex: tags?.beatIndex,
+              delta,
+            })
+          },
+        }
+      : request
+
   try {
-    response = await getTransport().execute(request)
+    response = await getTransport().execute(effectiveRequest)
     return response
   } catch (err) {
     caughtError = err
@@ -361,6 +410,19 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
   let zodErrors: string[] = []
   let caughtError: unknown = null
   const startedAt = Date.now()
+
+  // Broadcast call-start so the live UI can render an in-flight row before
+  // the LLM actually returns. Fire-and-forget — failures never block the call.
+  if (config.novelId) {
+    traceLLMCallStart(config.novelId, {
+      agent: config.agentName ?? "unknown",
+      chapter: config.chapter,
+      beatIndex: config.beatIndex,
+      attempt: config.attempt,
+      model,
+      provider: providerName,
+    }).catch(err => console.error(`[trace] llm-call-start failed:`, err))
+  }
 
   try {
     requestResult = await makeRequest(config.systemPrompt, userPrompt, temperature, maxTokens, provider, model, providerName)

@@ -23,6 +23,7 @@ export type TraceEventType =
   | "agent-start"
   | "agent-complete"
   | "agent-fail"
+  | "llm-call-start"
   | "lint-detect"
   | "lint-fix-deterministic"
   | "lint-fix-llm"
@@ -157,5 +158,57 @@ export function tracePhaseChange(novelId: string, from: string, to: string) {
   return trace(novelId, {
     eventType: "phase-change",
     payload: { from, to },
+  })
+}
+
+// ── LLM call start (persisted — used by the live pipeline view to show the
+// in-flight row before agent-complete lands) ────────────────────────────
+export function traceLLMCallStart(
+  novelId: string,
+  opts: {
+    agent: string
+    chapter?: number
+    beatIndex?: number
+    attempt?: number
+    model: string
+    provider: string
+    meta?: Record<string, unknown>
+  },
+) {
+  return trace(novelId, {
+    eventType: "llm-call-start",
+    agent: opts.agent,
+    chapter: opts.chapter,
+    beatIndex: opts.beatIndex,
+    payload: {
+      model: opts.model,
+      provider: opts.provider,
+      ...(opts.attempt != null && { attempt: opts.attempt }),
+      ...opts.meta,
+    },
+  })
+}
+
+// ── Per-token broadcast (SSE only — too spammy to persist). The UI streams
+// this into the live prose panel. Skip DB entirely. ─────────────────────
+export function broadcastLLMToken(
+  novelId: string,
+  opts: {
+    agent: string
+    chapter?: number
+    beatIndex?: number
+    delta: string
+  },
+) {
+  emit(novelId, {
+    type: "trace" as any,
+    data: {
+      eventType: "llm-token",
+      agent: opts.agent,
+      chapter: opts.chapter,
+      beatIndex: opts.beatIndex,
+      delta: opts.delta,
+    },
+    timestamp: new Date().toISOString(),
   })
 }

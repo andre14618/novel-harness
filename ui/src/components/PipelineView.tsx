@@ -1,71 +1,60 @@
-import { useEffect, useState, useCallback, useRef } from "react"
+import { useEffect, useState, useCallback, useRef, useMemo } from "react"
 import { useParams, Link } from "react-router-dom"
 import { getNovelState, getNovelConfig, resumeNovel } from "../api"
-import type { NovelState, NovelConfig, SSEEvent } from "../api"
+import type { NovelState, NovelConfig } from "../api"
 import { useNovelSSE } from "../hooks/useNovelSSE"
-import { PhaseIndicator } from "./PhaseIndicator"
 import { GatePanel } from "./GatePanel"
 import { EventLog } from "./EventLog"
 import { TraceTimeline } from "./TraceTimeline"
+import { PipelineFlow } from "./PipelineFlow"
+import { LiveMeters } from "./LiveMeters"
+import { LiveProse, type LiveBeat } from "./LiveProse"
 
-const STEP_DESCRIPTIONS: Record<string, { label: string; description: string; agents: string[] }> = {
-  "concept": {
-    label: "Concept Phase",
-    description: "Building the foundation — world, characters, and story structure are generated in parallel, then presented for your review.",
-    agents: ["world-builder", "character-agent", "plotter"],
-  },
-  "planning": {
-    label: "Planning Phase",
-    description: "Creating chapter outlines with scene beats, world state updates, and character arcs.",
-    agents: ["planning-plotter"],
-  },
-  "drafting": {
-    label: "Drafting Phase",
-    description: "Writing each chapter beat-by-beat. Each beat is checked for adherence, then the assembled chapter is validated against the plan.",
-    agents: ["beat-writer", "reference-resolver", "adherence-checker", "chapter-plan-checker", "continuity", "lint-fixer"],
-  },
-  "validation": {
-    label: "Validation Phase",
-    description: "Consistency checks across all chapters. Issues trigger automatic rewrites. Tonal pass applies voice styling.",
-    agents: ["rewriter", "tonal-pass"],
-  },
+// ── Agent display labels ────────────────────────────────────────────────
+// Drives the human-readable text shown in the activity feed when an LLM call
+// lands. Short verb-first phrasing reads like a status line, not a log entry.
+const AGENT_ACTION: Record<string, string> = {
+  "world-builder":        "Building the world",
+  "character-agent":      "Casting characters",
+  "plotter":              "Sketching the plot",
+  "planning-plotter":     "Planning the chapter",
+  "writer":               "Writing the chapter",
+  "beat-writer":          "Writing beat",
+  "reference-resolver":   "Resolving references",
+  "adherence-checker":    "Checking beat adherence",
+  "chapter-plan-checker": "Verifying chapter plan",
+  "continuity":           "Checking continuity",
+  "rewriter":             "Rewriting",
+  "tonal-pass":           "Applying tonal pass",
+  "lint-fixer":           "Fixing lint",
+  "summary-extractor":    "Extracting summary",
+  "fact-extractor":       "Extracting facts",
+  "character-state":      "Tracking character state",
+  "relationship-timeline":"Updating relationships",
+  "graph-linker":         "Linking causal graph",
 }
 
-const AGENT_LABELS: Record<string, string> = {
-  "world-builder": "World Builder",
-  "character-agent": "Character Agent",
-  "plotter": "Plotter",
-  "planning-plotter": "Planning Plotter",
-  "writer": "Writer",
-  "beat-writer": "Beat Writer",
-  "reference-resolver": "Reference Resolver",
-  "adherence-checker": "Adherence Checker",
-  "chapter-plan-checker": "Chapter Plan Checker",
-  "continuity": "Continuity Checker",
-  "rewriter": "Rewriter",
-  "tonal-pass": "Tonal Pass",
-  "lint-fixer": "Lint Fixer",
-  "summary-extractor": "Summary Extractor",
-  "fact-extractor": "Fact Extractor",
-  "character-state": "Character State",
-  "relationship-timeline": "Relationship Timeline",
-  "graph-linker": "Graph Linker",
-  "state-extraction": "State Extraction",
-  "plan-check": "Chapter Plan Check",
+function agentAction(agent: string): string {
+  return AGENT_ACTION[agent] ?? agent
 }
 
-interface TimelineEntry {
+interface LLMCallRow {
   id: string
-  type: "phase" | "agent-start" | "agent-complete" | "llm-call" | "gate" | "info" | "error"
-  timestamp: string
-  agent?: string
-  phase?: string
-  title: string
-  detail?: string
-  config?: { provider: string; model: string; temperature?: number }
-  wordCount?: number
-  issueCount?: number
-  llm?: { provider: string; model: string; promptTokens: number; completionTokens: number; latencyMs: number; tokensPerSec: number; cost: number }
+  agent: string
+  chapter?: number
+  beatIndex?: number
+  model: string
+  provider: string
+  startTs: number
+  endTs?: number
+  promptTokens?: number
+  completionTokens?: number
+  cost?: number
+  durationMs?: number
+  meta?: Record<string, any>
+  status: "running" | "done" | "fail"
+  error?: string
+  pass?: boolean
 }
 
 export function PipelineView() {
@@ -74,10 +63,42 @@ export function PipelineView() {
   const [config, setConfig] = useState<NovelConfig | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [resuming, setResuming] = useState(false)
-  const [timeline, setTimeline] = useState<TimelineEntry[]>([])
   const [viewMode, setViewMode] = useState<"live" | "trace">("live")
-  const { events, connected, lastEvent } = useNovelSSE(novelId ?? null)
-  const timelineEndRef = useRef<HTMLDivElement>(null)
+
+  // Per-beat streamed text — updated via ref to avoid re-rendering on every
+  // token; a requestAnimationFrame flush mirrors it into React state.
+  const beatTextRef = useRef<Map<string, string>>(new Map())
+  const [beatTextTick, setBeatTextTick] = useState(0)
+  const flushScheduledRef = useRef(false)
+
+  const handleStream = useCallback((event: { data: any }) => {
+    const d = event.data
+    if (d?.agent !== "beat-writer" || d.chapter == null || d.beatIndex == null) return
+    const key = `${d.chapter}-${d.beatIndex}`
+    const prev = beatTextRef.current.get(key) ?? ""
+    beatTextRef.current.set(key, prev + (d.delta ?? ""))
+    if (!flushScheduledRef.current) {
+      flushScheduledRef.current = true
+      requestAnimationFrame(() => {
+        flushScheduledRef.current = false
+        setBeatTextTick(t => t + 1)
+      })
+    }
+  }, [])
+
+  const { events, connected, lastEvent } = useNovelSSE(novelId ?? null, handleStream)
+
+  // Live stream state — built from SSE events on every render
+  const [liveCalls, setLiveCalls] = useState<LLMCallRow[]>([])
+  const [liveBeats, setLiveBeats] = useState<LiveBeat[]>([])
+  const [currentChapter, setCurrentChapter] = useState<number | null>(null)
+  const [currentBeat, setCurrentBeat] = useState<number | null>(null)
+  const [currentTotalBeats, setCurrentTotalBeats] = useState<number | null>(null)
+  const [currentChapterTitle, setCurrentChapterTitle] = useState<string | null>(null)
+  const [activeAgents, setActiveAgents] = useState<Set<string>>(new Set())
+  const [completedAgents, setCompletedAgents] = useState<Set<string>>(new Set())
+  const [runStartedAt, setRunStartedAt] = useState<number | null>(null)
+  const activityEndRef = useRef<HTMLDivElement>(null)
 
   const loadState = useCallback(async () => {
     if (!novelId) return
@@ -90,112 +111,167 @@ export function PipelineView() {
     }
   }, [novelId])
 
-  // Load config + initial state
   useEffect(() => {
     loadState()
     getNovelConfig().then(setConfig).catch(() => {})
   }, [loadState])
 
-  // Build timeline from SSE events
+  // Ingest SSE events and derive the live view state. We rebuild everything
+  // from the events array on each update so the logic stays declarative.
   useEffect(() => {
-    const entries: TimelineEntry[] = []
+    const calls = new Map<string, LLMCallRow>()
+    const beats: LiveBeat[] = []
+    const beatByKey = new Map<string, number>() // "chapter-beatIndex" → index into beats[]
+    const active = new Set<string>()
+    const completed = new Set<string>()
+    let chapter: number | null = null
+    let beatIdx: number | null = null
+    let totalBeats: number | null = null
+    let chapterTitle: string | null = null
+    let earliestTs: number | null = null
+
+    const keyFor = (agent: string, ch?: number, bi?: number, startTs?: number) =>
+      `${agent}:${ch ?? "_"}:${bi ?? "_"}:${startTs ?? ""}`
 
     for (const e of events) {
-      const ts = e.timestamp
-      if (e.type === "phase:changed") {
-        const phase = e.data.phase as string
-        const desc = STEP_DESCRIPTIONS[phase]
-        entries.push({
-          id: `phase-${phase}-${ts}`,
-          type: "phase",
-          timestamp: ts,
-          phase,
-          title: desc?.label ?? `Phase: ${phase}`,
-          detail: desc?.description,
-        })
-      } else if (e.type === "progress" && e.data.step === "llm-call") {
-        entries.push({
-          id: `llm-${ts}-${e.data.agent}`,
-          type: "llm-call",
-          timestamp: ts,
-          agent: e.data.agent as string,
-          title: `${e.data.agent}`,
-          llm: {
-            provider: e.data.provider as string,
-            model: e.data.model as string,
-            promptTokens: e.data.promptTokens as number,
-            completionTokens: e.data.completionTokens as number,
-            latencyMs: e.data.latencyMs as number,
-            tokensPerSec: e.data.tokensPerSec as number,
-            cost: (e.data.cost as number) ?? 0,
-          },
-        })
-      } else if (e.type === "progress") {
-        const agent = e.data.step as string
-        const status = e.data.status as string
-        const agentConfig = config?.assignments[agent]
+      const tsMs = e.timestamp ? new Date(e.timestamp).getTime() : Date.now()
+      if (earliestTs === null || tsMs < earliestTs) earliestTs = tsMs
 
-        if (status === "running" || status === "retrying" || status === "revising") {
-          entries.push({
-            id: `agent-start-${agent}-${e.data.chapter ?? ""}-${ts}`,
-            type: "agent-start",
-            timestamp: ts,
+      if (e.type === "trace") {
+        const d = e.data as any
+        const et = d.eventType as string
+
+        if (et === "llm-call-start") {
+          const agent = d.agent as string
+          const startTs = tsMs
+          const key = keyFor(agent, d.chapter, d.beatIndex, startTs)
+          calls.set(key, {
+            id: key,
             agent,
-            title: `${AGENT_LABELS[agent] ?? agent}${e.data.chapter ? ` — Chapter ${e.data.chapter}` : ""}`,
-            detail: status === "retrying" ? "Regenerating from scratch..."
-              : status === "revising" ? `Revising with ${e.data.notes ?? 0} notes...`
-              : undefined,
-            config: agentConfig ? {
-              provider: agentConfig.provider,
-              model: agentConfig.model,
-              temperature: agentConfig.temperature,
-            } : undefined,
+            chapter: d.chapter,
+            beatIndex: d.beatIndex,
+            model: d.model,
+            provider: d.provider,
+            startTs,
+            meta: d,
+            status: "running",
           })
-        } else if (status === "complete" || status === "approved") {
-          entries.push({
-            id: `agent-done-${agent}-${e.data.chapter ?? ""}-${ts}`,
-            type: "agent-complete",
-            timestamp: ts,
-            agent,
-            title: `${AGENT_LABELS[agent] ?? agent}${e.data.chapter ? ` — Chapter ${e.data.chapter}` : ""} complete`,
-            wordCount: e.data.wordCount as number | undefined,
-            issueCount: e.data.issueCount as number | undefined,
-          })
+          active.add(agent)
+
+          // Beat-writer opens a new beat slot in LiveProse
+          if (agent === "beat-writer" && d.chapter != null && d.beatIndex != null) {
+            const bkey = `${d.chapter}-${d.beatIndex}`
+            if (!beatByKey.has(bkey)) {
+              beatByKey.set(bkey, beats.length)
+              beats.push({
+                chapter: d.chapter,
+                beatIndex: d.beatIndex,
+                description: d.beatDescription,
+                characters: d.beatCharacters,
+                text: "",
+                done: false,
+              })
+            }
+            chapter = d.chapter
+            beatIdx = d.beatIndex
+            if (d.totalBeats != null) totalBeats = d.totalBeats
+            if (d.chapterTitle) chapterTitle = d.chapterTitle
+          }
+        } else if (et === "agent-complete") {
+          const agent = d.agent as string
+          // Find the most recent matching running call and close it
+          let matched: LLMCallRow | undefined
+          for (const [k, v] of calls) {
+            if (v.agent === agent && v.status === "running"
+                && v.chapter === d.chapter && v.beatIndex === d.beatIndex) {
+              matched = v
+              calls.set(k, {
+                ...v,
+                status: "done",
+                endTs: tsMs,
+                promptTokens: d.promptTokens,
+                completionTokens: d.completionTokens,
+                cost: d.cost,
+                durationMs: d.durationMs,
+                pass: d.pass,
+              })
+              break
+            }
+          }
+          if (!matched) {
+            // Rare: agent-complete without a matching start (replay path)
+            const key = keyFor(agent, d.chapter, d.beatIndex, tsMs)
+            calls.set(key, {
+              id: key,
+              agent,
+              chapter: d.chapter,
+              beatIndex: d.beatIndex,
+              model: "",
+              provider: "",
+              startTs: tsMs,
+              endTs: tsMs,
+              promptTokens: d.promptTokens,
+              completionTokens: d.completionTokens,
+              cost: d.cost,
+              durationMs: d.durationMs,
+              status: "done",
+              pass: d.pass,
+            })
+          }
+          active.delete(agent)
+          completed.add(agent)
+
+          if (agent === "beat-writer" && d.chapter != null && d.beatIndex != null) {
+            const bkey = `${d.chapter}-${d.beatIndex}`
+            const idx = beatByKey.get(bkey)
+            if (idx != null) {
+              beats[idx] = { ...beats[idx], done: true }
+            }
+          }
+        } else if (et === "agent-fail") {
+          const agent = d.agent as string
+          for (const [k, v] of calls) {
+            if (v.agent === agent && v.status === "running"
+                && v.chapter === d.chapter && v.beatIndex === d.beatIndex) {
+              calls.set(k, { ...v, status: "fail", endTs: tsMs, error: d.error })
+              break
+            }
+          }
+          active.delete(agent)
+        } else if (et === "agent-start") {
+          active.add(d.agent as string)
+        } else if (et === "phase-change") {
+          // Reset completed agents when the phase changes
+          completed.clear()
+        } else if (et === "chapter-complete") {
+          // Leave beats as they are — the stream is cumulative across chapters
         }
-      } else if (e.type === "gate:waiting") {
-        entries.push({
-          id: `gate-${ts}`,
-          type: "gate",
-          timestamp: ts,
-          title: `Waiting for review: ${e.data.title as string}`,
-        })
-      } else if (e.type === "gate:resolved") {
-        entries.push({
-          id: `gate-resolved-${ts}`,
-          type: "info",
-          timestamp: ts,
-          title: `${e.data.action as string} — ${e.data.gateId as string}`,
-        })
-      } else if (e.type === "error") {
-        entries.push({
-          id: `error-${ts}`,
-          type: "error",
-          timestamp: ts,
-          title: `Error: ${e.data.step}`,
-          detail: e.data.error as string,
-        })
-      } else if (e.type === "done") {
-        entries.push({
-          id: `done-${ts}`,
-          type: "info",
-          timestamp: ts,
-          title: "Novel complete",
-        })
+      } else if (e.type === "phase:changed") {
+        // SSE phase event as a fallback — PhaseIndicator already uses state.phase
+      } else if (e.type === "progress") {
+        const d = e.data as any
+        if (d.chapter != null) chapter = d.chapter
       }
     }
 
-    setTimeline(entries)
-  }, [events, config])
+    // Sort calls by start time
+    const callList = [...calls.values()].sort((a, b) => a.startTs - b.startTs)
+
+    setLiveCalls(callList)
+    setLiveBeats(beats)
+    setCurrentChapter(chapter)
+    setCurrentBeat(beatIdx)
+    setCurrentTotalBeats(totalBeats)
+    setCurrentChapterTitle(chapterTitle)
+    setActiveAgents(active)
+    setCompletedAgents(completed)
+    setRunStartedAt(earliestTs)
+  }, [events])
+
+  // Auto-scroll activity feed
+  useEffect(() => {
+    activityEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [liveCalls.length])
 
   // Reload state on relevant SSE events
   useEffect(() => {
@@ -205,10 +281,33 @@ export function PipelineView() {
     }
   }, [lastEvent, loadState])
 
-  // Auto-scroll timeline
-  useEffect(() => {
-    timelineEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [timeline.length])
+  // Merge streamed text from the ref into the beat list for rendering.
+  // Recomputed on beatTextTick so the UI updates smoothly as tokens arrive.
+  const beatsForRender = useMemo(
+    () =>
+      liveBeats.map(b => ({
+        ...b,
+        text: beatTextRef.current.get(`${b.chapter}-${b.beatIndex}`) ?? b.text,
+      })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [liveBeats, beatTextTick],
+  )
+
+  // Aggregate meters
+  const totals = useMemo(() => {
+    const done = liveCalls.filter(c => c.status === "done")
+    const totalCost = done.reduce((s, c) => s + (c.cost ?? 0), 0)
+    const totalTokens = done.reduce((s, c) => s + (c.promptTokens ?? 0) + (c.completionTokens ?? 0), 0)
+    // Rolling tokens/sec: average of the last 5 completed calls
+    const recent = done.slice(-5)
+    const tps = recent.length > 0
+      ? Math.round(recent.reduce((s, c) => {
+          const ms = c.durationMs ?? 1
+          return s + (c.completionTokens ?? 0) / (ms / 1000)
+        }, 0) / recent.length)
+      : 0
+    return { totalCost, totalTokens, tps, count: done.length }
+  }, [liveCalls])
 
   async function handleResume() {
     if (!novelId) return
@@ -232,9 +331,7 @@ export function PipelineView() {
     )
   }
 
-  if (!state) {
-    return <p style={{ color: "#8b949e" }}>Loading...</p>
-  }
+  if (!state) return <p style={{ color: "#8b949e" }}>Loading...</p>
 
   const stalled = !state.active && state.phase !== "done"
 
@@ -254,8 +351,6 @@ export function PipelineView() {
           <span className={`connected-dot ${connected ? "on" : "off"}`} />
         </span>
       </div>
-
-      <PhaseIndicator currentPhase={state.phase} pendingGate={!!state.pendingGate} />
 
       {/* View mode tabs */}
       <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
@@ -286,134 +381,166 @@ export function PipelineView() {
       )}
 
       {viewMode === "live" && <>
-      {/* Stalled banner */}
-      {stalled && (
-        <div className="card" style={{ borderColor: "#e2b714", textAlign: "center" }}>
-          <p style={{ color: "#e2b714", marginBottom: "0.8rem" }}>
-            Pipeline stopped at <strong>{state.phase}</strong> phase
-            {state.totalChapters > 0 && ` (chapter ${state.currentChapter}/${state.totalChapters})`}.
-          </p>
-          <button onClick={handleResume} disabled={resuming}>
-            {resuming ? "Resuming..." : "Resume Pipeline"}
-          </button>
-        </div>
-      )}
+        <PipelineFlow
+          currentPhase={state.phase}
+          activeAgents={activeAgents}
+          completedAgents={completedAgents}
+        />
 
-      {state.activeError && (
-        <div className="tl-entry tl-error">
-          <div className="tl-dot error" />
-          <div className="tl-body">
-            <strong>Pipeline Error</strong>
-            <pre style={{ whiteSpace: "pre-wrap", fontSize: "0.8rem", color: "#e74c3c" }}>{state.activeError}</pre>
+        <LiveMeters
+          totalCost={totals.totalCost}
+          totalTokens={totals.totalTokens}
+          tokensPerSec={totals.tps}
+          llmCalls={totals.count}
+          chapter={currentChapter ?? (state.currentChapter || null)}
+          totalChapters={state.totalChapters}
+          beat={currentBeat}
+          totalBeats={currentTotalBeats}
+          startedAt={runStartedAt}
+        />
+
+        {stalled && (
+          <div className="card" style={{ borderColor: "#e2b714", textAlign: "center" }}>
+            <p style={{ color: "#e2b714", marginBottom: "0.8rem" }}>
+              Pipeline stopped at <strong>{state.phase}</strong> phase
+              {state.totalChapters > 0 && ` (chapter ${state.currentChapter}/${state.totalChapters})`}.
+            </p>
+            <button onClick={handleResume} disabled={resuming}>
+              {resuming ? "Resuming..." : "Resume Pipeline"}
+            </button>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Conversational timeline */}
-      <div className="timeline">
-        {timeline.length === 0 && state.active && (
-          <div className="tl-entry tl-info">
-            <div className="tl-dot active" />
+        {state.activeError && (
+          <div className="tl-entry tl-error">
+            <div className="tl-dot error" />
             <div className="tl-body">
-              <div className="tl-title">Starting pipeline...</div>
-              <div className="spinner" style={{ marginTop: "0.5rem" }} />
+              <strong>Pipeline Error</strong>
+              <pre style={{ whiteSpace: "pre-wrap", fontSize: "0.8rem", color: "#e74c3c" }}>{state.activeError}</pre>
             </div>
           </div>
         )}
 
-        {timeline.map(entry => {
-          const dotClass = entry.type === "phase" ? "phase"
-            : entry.type === "agent-start" ? "active"
-            : entry.type === "agent-complete" ? "done"
-            : entry.type === "llm-call" ? "done"
-            : entry.type === "error" ? "error"
-            : entry.type === "gate" ? "gate"
-            : "info"
+        {/* Main split: LiveProse on the left, activity feed on the right */}
+        <div className="live-split">
+          <LiveProse
+            chapter={currentChapter}
+            chapterTitle={currentChapterTitle}
+            totalBeats={currentTotalBeats}
+            beats={beatsForRender}
+            writing={activeAgents.has("beat-writer")}
+          />
 
-          return (
-            <div key={entry.id} className={`tl-entry tl-${entry.type}`}>
-              <div className={`tl-dot ${dotClass}`}>
-                {entry.type === "agent-start" && <div className="spinner-sm" />}
-              </div>
-              <div className="tl-body">
-                <div className="tl-time">{formatTime(entry.timestamp)}</div>
-                <div className="tl-title">{entry.title}</div>
-                {entry.detail && <div className="tl-detail">{entry.detail}</div>}
-                {entry.config && (
-                  <div className="tl-config">
-                    <span className="config-tag">{entry.config.provider}</span>
-                    <span className="config-tag">{entry.config.model}</span>
-                    {entry.config.temperature !== undefined && (
-                      <span className="config-tag">temp {entry.config.temperature}</span>
-                    )}
-                  </div>
-                )}
-                {entry.llm && (
-                  <div className="tl-config">
-                    <span className="config-tag">{entry.llm.provider}</span>
-                    <span className="config-tag">{entry.llm.model}</span>
-                    <span className="config-tag">{entry.llm.promptTokens}+{entry.llm.completionTokens} tok</span>
-                    <span className="config-tag">{(entry.llm.latencyMs / 1000).toFixed(1)}s</span>
-                    <span className="config-tag">{entry.llm.tokensPerSec} t/s</span>
-                    {entry.llm.cost > 0 && <span className="config-tag" style={{ color: "#4ecca3" }}>${entry.llm.cost.toFixed(4)}</span>}
-                  </div>
-                )}
-                {entry.wordCount !== undefined && (
-                  <div className="tl-detail">{entry.wordCount} words</div>
-                )}
-                {entry.issueCount !== undefined && entry.issueCount > 0 && (
-                  <div className="tl-detail">{entry.issueCount} issues found</div>
-                )}
-              </div>
+          <div className="live-activity">
+            <div className="live-activity-header">Activity</div>
+            <div className="live-activity-body">
+              {liveCalls.length === 0 && (
+                <div className="live-activity-placeholder">
+                  {state.active ? "Waiting for the first LLM call…" : "Idle."}
+                </div>
+              )}
+              {liveCalls.map(call => (
+                <ActivityRow key={call.id} call={call} />
+              ))}
+              <div ref={activityEndRef} />
             </div>
-          )
-        })}
 
-        {/* Pending gate inline */}
-        {state.pendingGate && (
-          <div className="tl-entry tl-gate">
-            <div className="tl-dot gate" />
-            <div className="tl-body" style={{ width: "100%" }}>
-              <GatePanel
-                novelId={novelId!}
-                gateId={state.pendingGate.gateId}
-                title={state.pendingGate.title}
-                content={state.pendingGate.content}
-                onDecided={loadState}
-              />
-            </div>
+            {/* Pending gate inline */}
+            {state.pendingGate && (
+              <div className="tl-entry tl-gate" style={{ marginTop: "1rem" }}>
+                <div className="tl-dot gate" />
+                <div className="tl-body" style={{ width: "100%" }}>
+                  <GatePanel
+                    novelId={novelId!}
+                    gateId={state.pendingGate.gateId}
+                    title={state.pendingGate.title}
+                    content={state.pendingGate.content}
+                    onDecided={loadState}
+                  />
+                </div>
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
-        <div ref={timelineEndRef} />
-      </div>
-
-      {/* Running totals */}
-      {(() => {
-        const llmEntries = timeline.filter(e => e.llm)
-        if (llmEntries.length === 0) return null
-        const totalCost = llmEntries.reduce((sum, e) => sum + (e.llm?.cost ?? 0), 0)
-        const totalTokens = llmEntries.reduce((sum, e) => sum + (e.llm?.promptTokens ?? 0) + (e.llm?.completionTokens ?? 0), 0)
-        return (
-          <div style={{ display: "flex", gap: "1rem", fontSize: "0.8rem", color: "#8b949e", marginBottom: "1rem", padding: "0.5rem 0", borderTop: "1px solid #30363d" }}>
-            <span><strong style={{ color: "#4ecca3" }}>${totalCost.toFixed(4)}</strong> total cost</span>
-            <span>{totalTokens.toLocaleString()} total tokens</span>
-            <span>{llmEntries.length} LLM calls</span>
-          </div>
-        )
-      })()}
-
-      <div style={{ marginTop: "1rem" }}>
-        <EventLog events={events} connected={connected} />
-      </div>
+        <div style={{ marginTop: "1rem" }}>
+          <EventLog events={events} connected={connected} />
+        </div>
       </>}
     </>
   )
 }
 
-function formatTime(ts: string): string {
-  if (!ts) return ""
-  const d = new Date(ts)
-  if (isNaN(d.getTime())) return ""
-  return d.toLocaleTimeString()
+function ActivityRow({ call }: { call: LLMCallRow }) {
+  const [, setTick] = useState(0)
+  // Re-render once a second while a call is running so the elapsed timer moves
+  useEffect(() => {
+    if (call.status !== "running") return
+    const id = setInterval(() => setTick(t => t + 1), 250)
+    return () => clearInterval(id)
+  }, [call.status])
+
+  const elapsedMs = (call.endTs ?? Date.now()) - call.startTs
+  const running = call.status === "running"
+  const failed = call.status === "fail"
+
+  // Build a human-readable title
+  let title = agentAction(call.agent)
+  if (call.agent === "beat-writer" && call.beatIndex != null) {
+    title = `${title} ${call.beatIndex + 1}${call.meta?.totalBeats ? `/${call.meta.totalBeats}` : ""}`
+  } else if (call.chapter != null) {
+    title = `${title}${call.agent === "beat-writer" ? "" : ""}`
+  }
+
+  const subtitle: string[] = []
+  if (call.chapter != null && call.agent !== "beat-writer") subtitle.push(`Chapter ${call.chapter}`)
+  if (call.meta?.beatDescription && call.agent === "beat-writer") {
+    subtitle.push(call.meta.beatDescription)
+  }
+
+  return (
+    <div className={`activity-row${running ? " running" : ""}${failed ? " failed" : ""}`}>
+      <div className="activity-dot">
+        {running && <div className="spinner-sm" />}
+      </div>
+      <div className="activity-body">
+        <div className="activity-title">
+          {title}
+          <span className="activity-chip activity-chip-model">{call.provider && `${call.provider}`}</span>
+        </div>
+        {subtitle.length > 0 && (
+          <div className="activity-subtitle">{subtitle.join(" · ")}</div>
+        )}
+        <div className="activity-metrics">
+          {running ? (
+            <>
+              <span className="activity-chip">{(elapsedMs / 1000).toFixed(1)}s</span>
+              <span className="activity-chip activity-chip-live">streaming…</span>
+            </>
+          ) : failed ? (
+            <span className="activity-chip activity-chip-fail">failed</span>
+          ) : (
+            <>
+              {call.promptTokens != null && (
+                <span className="activity-chip">
+                  {call.promptTokens}+{call.completionTokens} tok
+                </span>
+              )}
+              {call.durationMs != null && (
+                <span className="activity-chip">{(call.durationMs / 1000).toFixed(1)}s</span>
+              )}
+              {call.cost != null && call.cost > 0 && (
+                <span className="activity-chip activity-chip-cost">${call.cost.toFixed(4)}</span>
+              )}
+              {call.pass != null && (
+                <span className={`activity-chip ${call.pass ? "activity-chip-pass" : "activity-chip-fail"}`}>
+                  {call.pass ? "pass" : "fail"}
+                </span>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
 }

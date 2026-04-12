@@ -28,6 +28,11 @@ export interface LLMRequest {
   useMaxCompletionTokens?: boolean
   callerId?: string   // "writer", "penalty-judge", etc.
   customId?: string   // for batch result mapping
+  // Streaming — when set, DirectTransport uses the provider's SSE stream and
+  // invokes onChunk per content delta. The returned LLMResponse.content is the
+  // full accumulated string so callers don't need to care about streaming.
+  streaming?: boolean
+  onChunk?: (delta: string) => void
 }
 
 export interface LLMResponse {
@@ -83,7 +88,8 @@ export class DirectTransport implements LLMTransport {
 
     const providerExtra = providerDef.extraBody ? providerDef.extraBody() : {}
 
-    const body = JSON.stringify({
+    const useStreaming = !!request.streaming
+    const bodyObj: Record<string, any> = {
       model: apiModel,
       messages: [
         { role: "system", content: request.systemPrompt },
@@ -96,7 +102,12 @@ export class DirectTransport implements LLMTransport {
       ...loraExtra,
       ...reasoningExtra,
       ...request.extraBody,
-    })
+    }
+    if (useStreaming) {
+      bodyObj.stream = true
+      bodyObj.stream_options = { include_usage: true }
+    }
+    const body = JSON.stringify(bodyObj)
     const headers: Record<string, string> = providerDef.authHeader
       ? { [providerDef.authHeader]: apiKey, "Content-Type": "application/json" }
       : { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" }
@@ -122,6 +133,17 @@ export class DirectTransport implements LLMTransport {
         throw new Error(`LLM request failed: ${res.status} ${text}`)
       }
 
+      if (useStreaming) {
+        const streamResult = await consumeSSEStream(res, request.onChunk)
+        return {
+          content: streamResult.content,
+          usage: streamResult.usage,
+          latencyMs: performance.now() - startTime,
+          httpAttempts,
+          retryErrors,
+        }
+      }
+
       const data = await res.json() as any
       if (data.error) throw new Error(`LLM error: ${JSON.stringify(data.error)}`)
       return {
@@ -137,3 +159,58 @@ export class DirectTransport implements LLMTransport {
   }
 }
 
+// ── SSE stream consumer ─────────────────────────────────────────────────
+// Parses an OpenAI-compatible chat completion stream (data: {json}\n\n lines).
+// Returns accumulated content and final usage. Invokes onChunk per delta so
+// the caller can forward tokens to the UI in real time.
+async function consumeSSEStream(
+  res: Response,
+  onChunk?: (delta: string) => void,
+): Promise<{ content: string; usage: { prompt_tokens: number; completion_tokens: number } }> {
+  if (!res.body) throw new Error("streaming response missing body")
+  const reader = res.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ""
+  let content = ""
+  let usage = { prompt_tokens: 0, completion_tokens: 0 }
+
+  while (true) {
+    const { value, done } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+
+    // Lines are separated by \n\n in SSE. Split but keep trailing partial.
+    const parts = buffer.split("\n\n")
+    buffer = parts.pop() ?? ""
+    for (const part of parts) {
+      const line = part.trim()
+      if (!line) continue
+      if (!line.startsWith("data:")) continue
+      const payload = line.slice(5).trim()
+      if (payload === "[DONE]") continue
+      try {
+        const chunk = JSON.parse(payload)
+        if (chunk.error) throw new Error(`stream error: ${JSON.stringify(chunk.error)}`)
+        const delta: string | undefined = chunk.choices?.[0]?.delta?.content
+        if (delta) {
+          content += delta
+          if (onChunk) {
+            try { onChunk(delta) } catch { /* never let UI callbacks break the stream */ }
+          }
+        }
+        if (chunk.usage) {
+          usage = {
+            prompt_tokens: chunk.usage.prompt_tokens ?? usage.prompt_tokens,
+            completion_tokens: chunk.usage.completion_tokens ?? usage.completion_tokens,
+          }
+        }
+      } catch (err) {
+        // Swallow parse errors for malformed chunks; the stream may contain
+        // provider-specific lines we don't care about.
+        if ((err as Error).message?.startsWith("stream error")) throw err
+      }
+    }
+  }
+
+  return { content, usage }
+}

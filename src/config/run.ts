@@ -73,7 +73,7 @@ export function getRunConfig(): RunConfig {
   const sourceRunArg = arg("--source-run") ?? process.env.SOURCE_RUN
 
   _config = {
-    seed: seedList[0] ?? seedArg ?? "romance-drama",
+    seed: seedList[0] ?? seedArg ?? "fantasy-system-heretic",
     seeds: seedList,
     chapters: chaptersArg ? parseInt(chaptersArg) : null,
     runs: runsArg ? parseInt(runsArg) : 2,

@@ -1,12 +1,22 @@
 import { useEffect, useRef, useState, useCallback } from "react"
 import type { SSEEvent } from "../api"
 
-export function useNovelSSE(novelId: string | null) {
+/**
+ * onStream: optional callback for high-frequency events that shouldn't be
+ * accumulated in the events array (e.g. llm-token). The callback receives the
+ * event directly so the caller can handle them with a ref + throttled render.
+ */
+export function useNovelSSE(
+  novelId: string | null,
+  onStream?: (event: SSEEvent) => void,
+) {
   const [events, setEvents] = useState<SSEEvent[]>([])
   const [connected, setConnected] = useState(false)
   const [lastEvent, setLastEvent] = useState<SSEEvent | null>(null)
   const sourceRef = useRef<EventSource | null>(null)
   const reconnectTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const onStreamRef = useRef(onStream)
+  onStreamRef.current = onStream
 
   useEffect(() => {
     if (!novelId) return
@@ -38,8 +48,17 @@ export function useNovelSSE(novelId: string | null) {
             setConnected(true)
             return
           }
+          // High-frequency token stream bypasses state accumulation — caller
+          // handles it via ref + throttled render. Don't pollute `events`.
+          const isToken = event.type === "trace" && (event.data as any)?.eventType === "llm-token"
+          if (isToken) {
+            onStreamRef.current?.(event)
+            return
+          }
           setLastEvent(event)
-          setEvents(prev => [...prev.slice(-99), event])
+          // Keep the last 2000 structural events so a long novel run doesn't
+          // drop earlier LLM call starts / completes from the live view.
+          setEvents(prev => [...prev.slice(-1999), event])
         } catch {
           // ignore parse errors (keepalive comments etc)
         }

@@ -138,18 +138,33 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
 
             let beatProse: string | null = null
             const beatWriterModel = getModelForAgent("beat-writer")
+            const beatSpec = outline.scenes[bi]
             for (let retry = 0; retry <= pipeline.maxBeatRetries; retry++) {
               const retryNote = retry > 0 ? `\nRETRY — previous attempt deviated. Try again, following the beat exactly.` : ""
               try {
-                const response = await executeAndLog({
-                  systemPrompt: BEAT_WRITER_PROMPT,
-                  userPrompt: beatCtx.userPrompt + retryNote,
-                  model: beatWriterModel?.model ?? "qwen-3-235b-a22b-instruct-2507",
-                  provider: beatWriterModel?.provider ?? "cerebras",
-                  temperature: beatWriterModel?.temperature ?? 0.8,
-                  maxTokens: beatWriterModel?.maxTokens ?? 4000,
-                  responseFormat: { type: "text" },
-                }, novelId, "beat-writer", { chapter: ch, beatIndex: bi, attempt: retry + 1 })
+                const response = await executeAndLog(
+                  {
+                    systemPrompt: BEAT_WRITER_PROMPT,
+                    userPrompt: beatCtx.userPrompt + retryNote,
+                    model: beatWriterModel?.model ?? "qwen-3-235b-a22b-instruct-2507",
+                    provider: beatWriterModel?.provider ?? "cerebras",
+                    temperature: beatWriterModel?.temperature ?? 0.8,
+                    maxTokens: beatWriterModel?.maxTokens ?? 4000,
+                    responseFormat: { type: "text" },
+                  },
+                  novelId,
+                  "beat-writer",
+                  { chapter: ch, beatIndex: bi, attempt: retry + 1 },
+                  {
+                    stream: true,
+                    meta: {
+                      beatDescription: beatSpec.description,
+                      beatCharacters: beatSpec.characters,
+                      totalBeats: outline.scenes.length,
+                      chapterTitle: outline.title,
+                    },
+                  },
+                )
                 const prose = response.content?.trim()
                 if (!prose || prose.length < 50) continue
 
