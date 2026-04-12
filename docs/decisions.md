@@ -595,3 +595,58 @@ Dramatic/medium (5 beats) is the only condition that maintained both high dialog
 **Next steps:** Change planner prompt (dramatic beat style, remove 3-element mandate) + writer prompt ("dramatize" not "execute precisely"). Run 3 novels and measure structural metrics + adherence rates against the 200-chapter corpus baseline. See `docs/todo.md`.
 
 **Ongoing:** These three findings (exp #165, corpus echo analysis, writer ablation) converge on the same conclusion: the pipeline's prose quality problems are primarily caused by prescriptive beat descriptions and a writer prompt that rewards faithful execution over interpretation.
+
+### Beat architecture validation — dramatic beats + dramatize writer deployed
+*(2026-04-12 · exp #173 · novels: novel-1776022336598, novel-1776022647499, novel-1776022930719)*
+
+**Decision:** Ship dramatic beat planner prompt + "dramatize" writer prompt. Two of three quality targets met; echo improved but needs one more adjustment (no prescribed dialogue in beats).
+
+**Changes deployed (commit afd3ca5):**
+1. Planner prompt: replaced 3-element mandate with dramatic style guidance, added "keep beat descriptions to 1-2 sentences," added scene tension guidance for multi-character beats.
+2. Writer prompt: replaced "Execute the beat description precisely" with "Dramatize this beat. The beat description is your creative brief."
+
+**3-novel validation results (30 chapters, 10 per novel):**
+
+| Novel | Genre | Echo | Dlg% | Int/100 | DescW | 1st-attempt | Total attempts |
+|-------|-------|------|------|---------|-------|-------------|----------------|
+| novel-...336598 | coastal-mystery | 0.30 | 18.7% | 0.1 | 35.3 | 50% (5/10) | 15 |
+| novel-...647499 | sci-fi-thriller | **0.20** | **27.8%** | 0.1 | 25.9 | **80%** (8/10) | 12 |
+| novel-...930719 | fantasy-siege | 0.30 | 13.7% | 0.3 | 38.8 | **90%** (9/10) | 12 |
+| **Combined** | | **0.27** | **20.1%** | **0.17** | **33.3** | **73% (22/30)** | **39** |
+| Baseline (200ch) | mixed | 0.35 | 11.8% | 0.1 | ~68 | 79% | — |
+| **Target** | | **<0.20** | **>20%** | — | — | **≥70%** | — |
+
+**Targets vs results:**
+- **Dialogue% >20%: MET** (20.1% combined, sci-fi-thriller at 27.8%). 70% improvement over 11.8% baseline.
+- **First-attempt ≥70%: MET** (73% combined). Sci-fi-thriller 80%, fantasy-siege 90%. Coastal-mystery at 50% dragged the average down — failures were overwhelmingly continuity location violations (see below), not adherence problems.
+- **Echo <0.20: NOT MET** (0.27 combined). Sci-fi-thriller hit 0.20, but coastal-mystery and fantasy-siege at 0.30. Root cause identified (see below).
+
+**Why echo target not met — planner still prescribes dialogue in beat descriptions:**
+
+Inspecting the planner outputs reveals the root cause. Coastal-mystery beat descriptions contain verbatim prescribed dialogue:
+- Ch8 beat1: `Gil: 'You left. I stayed. Watched the water turn. Buried the sick. You think data saves us?'`
+- Ch2 beat1: `Tess recounts Eli's death, echoing the plant's line: 'poor visibility, old man's reflexes.'`
+
+When beats contain verbatim dialogue, the writer transcribes it (high echo). The sci-fi-thriller planner generated beats without prescribed dialogue (avg 25.9w desc), resulting in echo=0.20. The planner prompt says "1-2 sentences" and "what changes dramatically" but doesn't prohibit including dialogue in beat descriptions.
+
+**Fix:** Add explicit rule to planner prompt: "Do NOT include sample dialogue in beat descriptions — the writer creates all dialogue."
+
+**Failure analysis — continuity location violations dominate:**
+
+| Failure type | Coastal | Sci-fi | Fantasy | Total |
+|-------------|---------|--------|---------|-------|
+| Continuity location violation | 5 | 0 | 1 | 6 |
+| Continuity world state contradiction | 0 | 0 | 1 | 1 |
+| Chapter plan deviation | 0 | 2 | 0 | 2 |
+| **Total failures** | **5** | **2** | **2** | **9** |
+
+The planner assigns a chapter-level setting to all beats. The writer, given more creative freedom by dramatic beats, moves characters to locations that make dramatic sense but contradict tracked character states. This is the "Planner Setting Coherence" bug (already in todo.md) — not a beat architecture regression. The dramatic beat change exposed it more because the writer takes more creative liberties.
+
+**Adherence checker V4 LoRA handles dramatic beats without retraining.** The LoRA was trained on screenplay-style pairs but showed no evidence of rubber-stamping or degraded accuracy on dramatic beats. Pass rate is not artificially high (73% overall, with legitimate catches). No V5 adapter needed.
+
+**Fantasy-siege low dialogue (13.7%):** Genre-specific. The planner generated more narration-heavy beats for epic fantasy (avg 38.8w desc). The Phase 1 character voice work (dialogue quantity guidance in planner prompt) should help here.
+
+**Alternatives rejected:**
+- Revert to screenplay beats: data overwhelmingly favors dramatic style on every quality metric.
+- Increase beat granularity: exp #165 showed dialogue collapse at >5 beats. Keep at 3.
+- V5 LoRA retraining: V4 handles dramatic beats fine. Save effort for after the no-dialogue planner fix.

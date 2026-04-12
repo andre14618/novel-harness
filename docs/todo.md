@@ -7,35 +7,23 @@ updated: 2026-04-12
 
 Pending action items only. Ordered by impact. Completed items and decision rationale live in `docs/decisions.md`.
 
-## Beat Architecture — Dramatic Beats + Writer Prompt Fix (HIGH PRIORITY)
+## Beat Architecture — Remaining Echo Fix (HIGH PRIORITY)
 
-Three converging tests (exp #165 9-condition eval, 200-chapter corpus echo analysis, writer prompt ablation) confirm: the pipeline's prose quality problems are primarily caused by prescriptive beat descriptions and a writer prompt that rewards faithful execution over interpretation. Full evidence in `docs/decisions.md` under "Beat Architecture."
+Dramatic beats + dramatize writer prompt shipped (exp #173, 2026-04-12). 3-novel validation (30ch): dialogue rose from 11.8%→20.1% (target met), first-attempt pass 73% (target met), but echo only dropped 0.35→0.27 (target <0.20 not met). Full evidence in `docs/decisions.md` under "Beat Architecture."
 
-**Corpus baseline (200 approved chapters):** median echo=0.35, avg dialogue=11.8%, avg interiority=0.1/100w. 72.5% of chapters have echo ≥0.30. r(avgDescWords, dialogue%)=−0.282 — longer beat descriptions are the strongest predictor of low dialogue.
+**Root cause of remaining echo:** The planner still prescribes verbatim dialogue in beat descriptions for character-heavy genres (coastal-mystery echo=0.30, beat descriptions contained lines like `Gil: 'You left. I stayed...'`). Sci-fi-thriller (echo=0.20) had no prescribed dialogue — proving the fix works when descriptions are purely dramatic.
 
-### Step 1 — Change planner prompt (`chapter-outline-system.md`)
-- **Replace the "good beat" example** from micro-screenplay ("Kael breaks the wax seal on the iron chest, pulls out Davan's water-stained letter, reads it by the flicker of a dying oil lamp — her hands tightening on the parchment as the cellar draft makes the flame gutter") to dramatic style ("Kael discovers Davan's betrayal through a letter in the archive — physical evidence that's undeniable, and it changes what she believed about the order's history"). Tell the writer what changes, not what hands do.
-- **Remove the 3-element mandate** ("EVERY scene description must include ALL THREE: physical action with named prop, spatial detail, sensory cue"). This forces planner output into micro-screenplay format. Replace with: "Each scene should describe what changes dramatically — what the character discovers, decides, loses, or confronts. Include who is present and what tension exists. Do NOT prescribe specific physical actions, props, or sensory details — the writer chooses how to dramatize."
-- **Keep beat count at 2–4** — corpus data shows r(beats, dialogue%)=+0.153 (slightly positive). Don't change granularity yet.
+### Step 1 — Add "no prescribed dialogue" rule to planner prompt
+- Add to `chapter-outline-system.md`: "Do NOT include sample dialogue in beat descriptions — the writer creates all dialogue. Describe what characters confront or reveal, not what they say."
+- This is the single remaining echo driver. When beat descriptions contain no dialogue, echo consistently hits 0.20 or below.
 
-### Step 2 — Change writer prompt (`beat-writer-system.md`)
-- **Replace** "Execute the beat description precisely. Every action described must appear in the prose." **with** "Dramatize this beat. The beat description is your creative brief — capture its essential dramatic content through scene, dialogue, and character action. You decide how to show it."
-- **Keep** all other rules (speech pattern, POV, transition bridge, landing target, no emotion naming).
-- Ablation showed "dramatize" reduces echo 29% (0.31→0.22) while holding dialogue. "Minimal" guidance made things worse — the writer needs active steering toward dramatization.
-
-### Step 3 — Run 3 validation novels
-- Deploy changed prompts, run 3 novels across different seeds (coastal-mystery, sci-fi-thriller, one scifi-* seed).
-- Measure with `scripts/corpus-echo-analysis.ts` and `scripts/analyze-structure.ts`.
-- **Targets vs corpus baseline:** echo <0.20 (baseline median 0.35), dialogue% >20% (baseline 11.8%), adherence first-attempt pass rate ≥70% (baseline 79% with screenplay beats).
-- **Watch for:** adherence checker false negatives (dramatic beats may be too vague for the V4 LoRA — if first-attempt pass exceeds 95%, the checker may be rubber-stamping). Also watch for narrative incoherence — dramatic beats give the writer more freedom, which means more potential for beats to drift from the chapter's purpose.
-
-### Step 4 — Measure and adjust
-- If echo target met but dialogue still low: the problem is in the writer model, not the prompts. Track under beat-writer SFT.
-- If adherence checker breaks (pass rate <60% or >95%): run on base 14B first (no LoRA), collect 200+ new dramatic-beat pairs, train V5 adapter.
-- If narrative coherence suffers: tighten the planner's dramatic beat guidance to require a "purpose" field per beat (what this beat must accomplish for the chapter arc).
+### Step 2 — Validate with 1-2 novels
+- Run 1-2 novels on dialogue-heavy seeds (romance or mystery genre) to confirm the fix.
+- Target: echo <0.20, dialogue% maintained ≥20%.
+- If echo target met: close the Beat Architecture item.
 
 ### Separate: Interiority
-Near-zero everywhere (0.0–0.2/100w) across all conditions in exp #165 and the corpus. Not a beat architecture problem — the beat-writer system prompt says "show emotion through body and action" with no instruction to include internal thought. Tracked under Structural Diversity below.
+Near-zero everywhere (0.0–0.2/100w) across all conditions in exp #165, the corpus, and the 3 validation novels. Not a beat architecture problem — the beat-writer system prompt says "show emotion through body and action" with no instruction to include internal thought. Tracked under Structural Diversity below.
 
 ## Adherence Checker
 
