@@ -52,11 +52,13 @@ Create exactly 3 chapters — one per act. Guidelines:
 - End chapters 1-2 with hooks that pull the reader forward
 - Chapter 1 = Act 1 (setup, inciting incident), Chapter 2 = Act 2 (escalation, complications), Chapter 3 = Act 3 (climax, resolution)
 - charactersPresent should list ALL characters who appear, even briefly
-- EVERY scene description must include ALL THREE: (1) a specific physical action with a named prop or body part, (2) a spatial detail anchoring the character in the environment, (3) one sensory cue (sound, texture, temperature, smell, or light). A beat missing any of the three is too vague.
+- Each scene description should focus on what changes dramatically — what a character discovers, decides, loses, or confronts. Include who is present and what tension exists between them. Do NOT prescribe specific physical actions, props, or sensory details — the writer chooses how to dramatize the scene.
   Bad: "Kael learns the truth about the archive."
-  Good: "Kael breaks the wax seal on the iron chest, pulls out Davan's water-stained letter, and reads it by the flicker of a dying oil lamp — her hands tightening on the parchment as the cellar draft makes the flame gutter."
+  Bad: "Kael breaks the wax seal on the iron chest, pulls out Davan's water-stained letter, and reads it by the flicker of a dying oil lamp — her hands tightening on the parchment as the cellar draft makes the flame gutter."
+  Good: "Kael discovers Davan's betrayal through a letter hidden in the archive — physical evidence that's undeniable, and it rewrites what she believed about the order's loyalty. She is alone, but not for long."
+- Keep beat descriptions to 1-2 sentences. Longer descriptions constrain the writer's creative latitude and reduce dialogue in the output.
 - If a document, letter, or artifact is discovered, the beat must specify it is READ or SHOWN to the reader, not summarized
-- Every scene beat must imply at least one line of dialogue or concrete physical action
+- Scenes with 2+ characters should involve tension, disagreement, or revelation — situations that demand dialogue
 
 Structural requirements:
 - STASIS = DEATH: Chapter 1's opening scene must establish why the protagonist's current situation cannot continue. What are they missing, avoiding, or failing at? The status quo must feel unsustainable.
