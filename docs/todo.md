@@ -27,12 +27,12 @@ Dramatic beats + dramatize writer + no-prescribed-dialogue rule shipped and vali
 All existing SFT training data was generated with screenplay-style beats (pre-exp #173/#176). Now that the pipeline uses dramatic-style beats, training data for future adapter versions should be regenerated:
 - **Adherence checker** — 2,134 pairs (V4) trained on screenplay beats. V4 handles dramatic beats without retraining (validated exp #161), but V5+ should be regenerated with dramatic beat distribution.
 - **Chapter plan checker** — 520 pairs (V2 dataset) trained on screenplay beats. V2 Sonnet relabeling (in progress) should use dramatic-style plans as input.
-- **Continuity checker** — 253 pairs trained on screenplay beats. V2 data generation should use dramatic-style plans.
+- **Continuity checker** — 253 pairs trained on screenplay beats. V2 deployed and working. V3 data generation should use dramatic-style plans.
 - **Not urgent** — current adapters work. Regeneration is for the next training round of each checker.
 
-## Adherence Checker
+## Adherence Checker — V4 DEPLOYED
 
-- **V4 deployed and concluded** (exp #161, 2026-04-12) — `adherence-checker-v4` live at 512 token budget. Production eval: 79% first-attempt pass (23/30 beats), all failures resolved on retry, zero false positives. Synthetic eval (70%) not reliable for this task — production signal is the metric. See `docs/decisions.md`.
+- **V4 deployed and concluded** (exp #161, 2026-04-12) — `adherence-checker-v4` live at 512 token budget. Production eval: 79% first-attempt pass (23/30 beats), all failures resolved on retry, zero false positives. V2 config removed from `models/roles.ts` (dead — never invoked at runtime, only `adherence-events` is called). See `docs/decisions.md`.
 - **GRPO/RL reward loop** (conditional, post-V4 validation) — adherence-checker is the only pipeline agent with a clean automatic reward signal (deterministic checks + synthetic labels). Design a GRPO loop on W&B/ART. Now unblocked since V4 is validated.
 
 ## Chapter Plan Checker — DONE
@@ -43,16 +43,18 @@ All existing SFT training data was generated with screenplay-style beats (pre-ex
 - V1 pilot (exp #154) superseded — V2 Sonnet labels (96% accuracy) are the definitive dataset.
 - **Next data round** — regenerate with dramatic-style beat plans (current dataset used screenplay-style). Not urgent; V2 handles dramatic beats fine in production. Revisit when first-attempt pass rate trends downward.
 
-## Continuity
+## Continuity — V2 DEPLOYED
 
-- **V2 adapter trained, pending validation** — `continuity-v2:v1` on W&B. 253 pairs, 99% Sonnet label accuracy. Serving URI: `wandb-artifact:///andre14618-/novel-harness/continuity-v2:v1`. **Next: wire into `models/roles.ts` and run 3-chapter dark-fantasy validation** (same pattern as chapter-plan-checker-v2). Monitor issue counts vs Cerebras 235B baseline before declaring stable swap.
+**V2 adapter deployed** (2026-04-12). `continuity-v2:v1` live in `models/roles.ts` for both `continuity-facts` and `continuity-state`. 3-chapter dark-fantasy validation (novel-1776029103713): 0 false positives, 0 missed issues, 11.9× cost reduction vs Cerebras 235B ($0.0011 vs $0.0128), 204ms warm latency. See `docs/decisions.md`.
+
 - V1 pilot (exp #155) superseded by V2 — do not eval V1.
 - **Phase 2 — scale to 300 pairs** — add 10 more scenarios to `scripts/generate-continuity-data.ts` + VAR_WARNING_2 variants. Prioritize LitRPG scenarios and multi-chapter carryover. Then re-run Sonnet labeling pipeline.
-- **Compact diff format (Phase 3)** — V2 trains on full-dump format (~7,300 tokens). Compressing to ~1,000 tokens via structured diff requires new input format + new training data. Do not attempt until V2 validated in production.
+- **Compact diff format (Phase 3)** — V2 trains on full-dump format (~7,300 tokens). Compressing to ~1,000 tokens via structured diff requires new input format + new training data. Phase 3 is now unblocked.
+- **Next data round** — regenerate with dramatic-style beat plans (current dataset used screenplay-style). Not urgent; V2 handles dramatic beats fine in production.
 
 ## Tonal Pass
 
-- **Remove Together AI provider** — V4 confirmed preferred (pref eval 2026-04-11). Remove `TOGETHER_API_KEY`, Together entries from `models/registry.ts`, and provider config. V3 on Together was the only remaining use.
+- **Together AI now Tier 2 hot standby** — V3 tonal-pass on Together retired (V4 on W&B preferred, pref eval 2026-04-11). All 4 adapters retraining on Together's Qwen 3.5 9B (submitted 2026-04-12) as Tier 2 fallback. Keep `TOGETHER_API_KEY`. Once training completes, verify adapter quality against W&B baselines before declaring Tier 2 ready.
 - **Tonal pass expansion** — v3/v4 training data is dark-fantasy-specific (Howard corpus). Multi-genre corpus needed before tonal pass is usable as a general pipeline stage. Public domain candidates: Hemingway (pre-1929), London, Cather, Fitzgerald. See `docs/ai-training-copyright-landscape.md`.
 
 ## Open Experiments (need concludeExperiment())
@@ -119,9 +121,26 @@ All existing SFT training data was generated with screenplay-style beats (pre-ex
 - **Rename daemon → autoresearcher** across codebase.
 - **Refocus on structured quality signals** — adherence pass rates, plan check rates, lint counts, extraction precision/recall. Remove all LLM judge and embedding-related optimization targets.
 
+## Local Apple Silicon Inference (Tier 4 Evaluation)
+
+Evaluate running LoRA adapters locally on MacBook Air M4 24GB instead of W&B. See `docs/wandb-alternatives-report.md` for full analysis.
+
+**Cost savings are minimal** (~$3/year) — adapter calls are already ~$0.004/novel on W&B. The value is zero provider dependency and unlimited experimentation at zero marginal cost.
+
+**Evaluation steps:**
+1. Install MLX or Ollama, download Qwen 3.5 9B Q4/Q8
+2. Convert Together-trained LoRA adapters (SafeTensors) to MLX format
+3. Run all 4 adapters on quantized local base and compare accuracy to W&B (FP16 base) — adherence, chapter-plan, continuity, tonal
+4. If quality holds: register as `local` provider in `models/registry.ts`, add transport support for local endpoint
+5. Benchmark latency on real pipeline calls (expect ~3-10s/call vs 157-609ms W&B)
+6. Test Mac Mini 16GB with 9B Q4 under sustained load (memory pressure risk)
+
+**Together AI training (2026-04-12):** All 4 adapters submitted for LoRA training on `Qwen/Qwen3.5-9B` (r=16, alpha=32). Check status: `ssh novel-harness-lxc "cd ~/apps/novel-harness && python3 scripts/train-together.py --status"`. Once complete, these adapters can serve double duty — Together Tier 2 inference AND local Tier 4 inference (same SafeTensors format).
+
+**GPU rental benchmarked (2026-04-12):** Per-second analysis against 20 real novels. GPU rental is 3-5x more expensive than current API setup. Break-even requires ~530 novels/day. Viable for batch jobs (SFT data gen, eval sweeps) but not per-novel pipeline. Full report: `docs/gpu-rental-analysis.md`.
+
 ## Infrastructure
 
-- **Mac Mini as local inference provider** — Ollama + `qwen3.5:9b` resident in memory, registered as `local` provider in `models/registry.ts` at `http://mac-mini:11434/v1`. Role: background/batch jobs only (tonal-pass pair generation, analytical LoRA input generation, agreement probes). Not for online per-beat inference.
 - **Extend LLM call inspector tags** — `chapter` / `beat_index` / `attempt` populated for beat-writer and adherence-checker. Need to thread through reference-resolver, continuity, chapter-plan-checker, rewriter, planner, and extractors. Columns already exist; each agent's `callAgent` site needs the tags. See `docs/llm-call-inspector.md`.
 
 ## Pipeline Stability

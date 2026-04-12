@@ -751,6 +751,31 @@ All three targets met (echo at target, dialogue slightly below 20% for this myst
 
 ---
 
+### Continuity-v2 validated and deployed — 12× cost reduction
+*(2026-04-12)*
+
+**Decision:** Swap `continuity-facts` and `continuity-state` from Cerebras Qwen 235B to W&B `continuity-v2:v1` (Qwen3-14B SFT adapter). Remove dead `adherence-checker` v2 config from `models/roles.ts`.
+
+**Validation (3-chapter dark-fantasy, novel-1776029103713):**
+
+| Metric | Continuity-v2 (14B) | Cerebras 235B equiv |
+|--------|---------------------|---------------------|
+| Total cost | $0.0011 | $0.0128 |
+| Cost reduction | **11.9×** | — |
+| Avg latency | 819ms (204ms warm) | ~200ms (Cerebras fast) |
+| False positives | 0 | — |
+| Missed issues | 0 | — |
+
+8 continuity calls across 4 chapter attempts (3 chapters approved + 1 retry). First call cold-start at 2.3s, subsequent calls 190-230ms. Zero false positives across all checks. Continuity-facts correctly found 0 issues on all clean chapters. Continuity-state found 0 issues on all chapters.
+
+**Adherence-checker v2 cleanup:** Removed dead `adherence-checker` entry from `models/roles.ts` (line 51). Only `adherence-events` (v4) is called at runtime via `callAgent({ agentName: "adherence-events" })` in `src/agents/writer/adherence-checker.ts`. Updated all UI display references (ConfigPage, PipelineFlow, PipelineView, StudioPage, logger, novel-routes).
+
+**Alternatives rejected:** Keep on Cerebras 235B — 12× more expensive per call, and the adapter matches quality on this 3-chapter validation. The continuity checker is the single most expensive per-call agent in the pipeline (~7,300 input tokens), making cost reduction here high-ROI.
+
+**Ongoing:** Monitor continuity issue counts across production runs. If the adapter starts missing real violations that 235B would catch, revert and investigate. Phase 2 (scale to 300 pairs + compact diff format) unblocked now that V2 is validated.
+
+---
+
 ### W&B storage management — purge and auto-cleanup
 *(2026-04-12)*
 

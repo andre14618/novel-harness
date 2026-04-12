@@ -1,26 +1,28 @@
 # W&B Alternatives Report: Together AI vs Modal
 
-**Date:** 2026-04-12
-**Context:** W&B pay-as-you-go plan blocks artifact deletion (403 on all methods). 21.8 GB stored, 5 GB free tier. Need to evaluate migration paths for LoRA serving.
+**Date:** 2026-04-12 (updated with Together warm-up probe results)
+**Context:** W&B is the prototyping tier for LoRA fine-tuning. Storage issue resolved (purged to 1 GB, auto-cleanup in place). This report evaluates migration paths if W&B becomes untenable.
 
 ## Current Pipeline: What Actually Runs on W&B
 
-Per chapter, the pipeline makes **~11 W&B adapter calls**:
+Per chapter, the pipeline makes **~13 W&B adapter calls**:
 
 | Adapter | Calls/chapter | Shape (in/out tokens) | W&B latency | Role |
 |---------|---:|---|---:|---|
 | adherence-events | ~9-10 (2.25 per beat × 4 beats) | ~500 in / 200 out | **157ms** | Beat-level event checker |
 | chapter-plan-checker | 1 | ~1000 in / 600 out | **609ms** | Cross-beat structural check |
+| continuity-facts | 1 | ~2500 in / 7 out | **204ms** (warm) | Fact contradiction check |
+| continuity-state | 1 | ~2500 in / 6 out | **204ms** (warm) | Character state check |
 | tonal-pass | 0 (disabled) | ~300 in / 400 out | — | Per-paragraph voice rewrite |
 
-**Total per chapter:** ~11 calls, ~1.7s of W&B latency (parallel-adjusted).
-**Total per 3-chapter novel:** ~33 calls, ~$0.003.
+**Total per chapter:** ~13 calls, ~2.1s of W&B latency (parallel-adjusted).
+**Total per 3-chapter novel:** ~39 calls, ~$0.004.
 
-W&B adapters are **not the latency bottleneck**. Beat-writer (Cerebras 235B, ~2.1s/beat) and continuity (Cerebras 235B, ~7,300 input tokens) dominate chapter time.
+W&B adapters are **not the latency bottleneck**. Beat-writer (Cerebras 235B, ~2.1s/beat) dominates chapter time.
 
 ---
 
-## Option 1: Together AI Serverless LoRA
+## Option 1: Together AI Serverless LoRA (Tier 2 — hot standby)
 
 ### How it works
 
@@ -28,40 +30,40 @@ Together serves LoRA adapters on their shared serverless fleet. You upload a Saf
 
 Transport layer already supports Together (`src/transport.ts` — separate `lora` field convention). Would need to retrain adapters on a Together-supported Qwen3-14B base (or upload the existing W&B adapter weights if format-compatible).
 
-### The latency problem
+### Latency benchmark (2026-04-12) — warm-up probe
 
-Together was previously benchmarked on Qwen 3.5 9B (the former tonal-pass base):
+**The old data was stale.** The 36.79s TTFT from Artificial Analysis (2026-04-07) was measured with infrequent isolated calls. A proper 20-call sequential probe (`scripts/together-warmup-probe.ts`) on Qwen 3.5 9B shows Together has improved significantly:
 
-| Provider | Model | Decode speed | TTFT | Source |
-|---|---|---:|---:|---|
-| DeepInfra | Qwen 3.5 9B | 170.9 tps | 12.27s | lessons-learned.md |
-| **Together** | **Qwen 3.5 9B** | **55.6 tps** | **36.79s** | lessons-learned.md |
+| Shape | Calls | Avg | Min | Max | 1st half | 2nd half |
+|-------|------:|----:|----:|----:|----:|----:|
+| Short (~256 out, checker-like) | 20 | **1,089ms** | 692ms | 1,738ms | 1,160ms | 1,018ms |
+| Medium (~512 out, continuity-like) | 20 | **4,918ms** | 2,629ms | 10,268ms | 5,448ms | 4,389ms |
 
-Together was **3.1× slower** than DeepInfra on identical weights. TTFT of **36.79 seconds** is the killer — that's the time before the first token arrives.
+**Key finding: no warm-up effect.** First 3 calls avg = last 3 calls avg (within noise). Sustained traffic does not reduce latency — the variance is random, not a cold-start curve.
 
-### What Together latency would mean for this pipeline
+### What Together latency means for this pipeline (updated estimates)
 
-The pipeline's W&B calls are short-output, latency-sensitive checker calls. Current W&B performance:
+| Call | W&B (current) | Together (measured) | Slowdown |
+|---|---:|---:|---:|
+| adherence-events (500 in / 200 out) | 157ms | **~1,100ms** | 7× |
+| chapter-plan-checker (1000 in / 600 out) | 609ms | **~3,000ms** | 5× |
+| continuity-facts/state (2500 in / 7 out) | 204ms | **~2,500ms** | 12× |
+| tonal-pass per paragraph (if enabled) | ~500ms | **~3,000ms** | 6× |
 
-| Call | W&B (current) | Together (estimated) | Impact |
-|---|---:|---:|---|
-| adherence-events (500 in / 200 out) | 157ms | **~4-8s** (TTFT-dominated) | 9 calls × 4-8s = **36-72s added per chapter** |
-| chapter-plan-checker (1000 in / 600 out) | 609ms | **~6-12s** | +6-12s per chapter |
-| tonal-pass per paragraph (if enabled) | ~500ms | **~4-8s** | 8 calls × 4-8s = **32-64s per chapter** |
+**Per-chapter impact:** Currently ~2.1s of adapter latency would become ~15-25s. For a 3-chapter novel, **~45-75s of adapter wait time** vs current ~6s. This is 8-12× slower but no longer the 2-4 minute nightmare the old data suggested.
 
-**Why the estimates are this bad:** Together's 36.79s TTFT was on a 9B model. A 14B model would be equal or worse. Even if Together has improved by 2-3× since the benchmark, TTFT would still be 12-18s — versus W&B's sub-200ms. The gap is structural: W&B/CoreWeave keeps models warm on dedicated CoreWeave GPUs; Together's standard tier shares capacity across all customers.
+**The variance problem:** Medium-shape calls swing 2.6s to 10.3s — a 4× range within the same session. The pipeline handles this (checkers run in parallel, retries absorb spikes), but unpredictable 10s outliers would make the user experience feel unreliable.
 
-**Per-chapter impact:** Currently ~1.7s of adapter latency would become ~40-80s. For a 3-chapter novel, that's **2-4 minutes of pure adapter wait time** vs the current ~5 seconds.
+### Together: viable as Tier 2
 
-### Together: could it work?
+Together is the **hot standby** if W&B becomes untenable:
+- **Setup:** 1 hour (retrain adapters on Together-supported base, upload, test)
+- **Cost:** Comparable to W&B (~$0.003-0.005 per 3-chapter novel)
+- **Latency:** 5-12× slower than W&B per call. Adds ~15-25s per chapter. Acceptable for development, uncomfortable for production.
+- **No warm-up effect:** Don't expect it to get faster with sustained traffic.
+- **Transport layer ready:** `src/transport.ts` already supports Together's `lora` field convention.
 
-**Maybe, with caveats:**
-- Together may have improved since the benchmark (2026-04-07). A re-benchmark is cheap — just run `scripts/test-qwen-speed.ts` pointed at Together.
-- Together offers a "Turbo" tier for some models with better latency, but Qwen3-14B Turbo availability is unconfirmed.
-- If TTFT has dropped to 2-3s (a 10× improvement from the benchmark), the pipeline impact shrinks to ~30s per novel — acceptable.
-- Adherence-events calls could potentially be batched or parallelized differently to hide latency.
-
-**Bottom line:** Together is **low-effort to try** (transport layer exists, adapter upload is straightforward) but **high risk of unacceptable latency**. A 15-minute benchmark would resolve this.
+**When to pull the trigger:** If W&B inference becomes unreliable, pricing changes dramatically, or they restrict the free tier further. A same-day migration is feasible — retrain 4 adapters (~1 hour each on Together's training infra) and swap URIs in `models/roles.ts`.
 
 ---
 
@@ -137,28 +139,75 @@ It does **not** make sense as a W&B replacement for your current workload patter
 
 ---
 
+## Option 3: Local Apple Silicon (Tier 4 — zero-cost self-hosted)
+
+### Hardware available
+
+- **MacBook Air M4 24GB** — fits 9B Q8 (~10 GB) comfortably, 14B Q4 (~9 GB) with room
+- **Mac Mini M-series 16GB** — fits 9B Q4 (~6 GB) only; 9B Q8 risks memory pressure
+
+### Expected performance
+
+| Model | Quant | RAM | Prefill (tok/s) | Generation (tok/s) | Est. per-call |
+|-------|-------|-----|-----------------|-------------------|--------------|
+| 9B | Q4 | ~6 GB | ~150-250 | 30-50 | ~3-6s |
+| 9B | Q8 | ~10 GB | ~100-200 | 20-35 | ~5-10s |
+| 14B | Q4 | ~9 GB | ~80-150 | 15-25 | ~8-15s |
+
+Tooling: **MLX** (Apple Silicon native, supports LoRA hot-loading via `--adapter-path`) or **Ollama** (simpler, requires merging LoRA into base weights).
+
+### Cost comparison (adapter calls only)
+
+| | W&B (Tier 1) | Together (Tier 2) | Local (Tier 4) |
+|---|---:|---:|---:|
+| Per 3-chapter novel (39 calls) | $0.004 | $0.004 | ~$0.0002 (electricity) |
+| Monthly (2-3 novels/day) | $0.24-0.36 | $0.24-0.36 | ~$0.02 |
+| Annual | ~$3.60 | ~$3.60 | ~$0.20 |
+| Hardware | $0 | $0 | $0 (already owned) |
+
+**Honest assessment:** Adapter costs are already negligible — W&B charges $0.004/novel. The savings from local are ~$3/year. The real value proposition is not cost:
+
+1. **Zero provider dependency** — no pricing changes, no tier restrictions, no API outages
+2. **Unlimited experimentation** — run thousands of eval probes, labeling sweeps, agreement checks at zero marginal cost
+3. **Offline capability** — works without internet for the adapter portion
+4. **Privacy** — training data and novel content never leave the machine
+
+### Open questions (to evaluate)
+
+- **LoRA adapter transfer:** Adapters trained on FP16 base (W&B/Together) may degrade on quantized local base. Need to eval all 4 adapters on Q4/Q8 Qwen 3.5 9B and compare accuracy to W&B.
+- **MLX LoRA format:** Together exports SafeTensors; MLX needs compatible format. May need conversion step.
+- **Latency impact on pipeline:** 39 calls × 5-10s = ~3-7 min of adapter wait per novel (vs ~2s on W&B). Acceptable for dev, uncomfortable for interactive use. Parallelism limited by single-device throughput.
+- **Mac Mini 16GB viability:** 9B Q4 fits but leaves ~10 GB for OS + KV cache. Needs testing under sustained load to confirm it doesn't swap.
+
+---
+
 ## Comparison Summary
 
-| Factor | W&B (current) | Together AI | Modal + vLLM |
-|---|---|---|---|
-| **First-call latency** | 157ms | ~4-36s (TTFT) | 10-120s (cold start) |
-| **Steady-state latency** | 157ms | ~4-8s | ~150-300ms |
-| **Cost per 3ch novel** | $0.003 | ~$0.003 | ~$0.09 |
-| **Setup effort** | Done | 1 hour (retrain/upload) | 1-2 days |
-| **Maintenance** | Zero | Zero | Ongoing |
-| **Artifact control** | Broken (403) | Full | Full |
-| **Risk** | Storage lockout | Latency regression | Cold starts, infra burden |
+| Factor | W&B (T1) | Together (T2) | Modal (T3) | Local (T4) | GPU Rental (T5) |
+|---|---|---|---|---|---|
+| **First-call latency** | 157ms | ~1,100ms | 10-120s | ~3-10s | ~3-10s (warm) |
+| **Steady-state latency** | 157-609ms | 1-5s | ~150-300ms | ~3-10s | ~3-10s |
+| **Cost per 3ch novel** | $0.004 | ~$0.004 | ~$0.09 | ~$0.0002 | ~$0.27 (full pipeline) |
+| **Setup effort** | Done | 1 hour | 1-2 days | 2-4 hours | 2-4 hours |
+| **Maintenance** | Zero | Zero | Ongoing | Minimal | Per-session |
+| **Risk** | Pricing changes | Latency variance | Cold starts | Quant quality | Spot interruption |
+| **Provider dependency** | Yes | Yes | Yes | **None** | Minimal |
+| **Best for** | Production | Failover | Custom models | Experimentation | Batch jobs |
 
 ---
 
 ## Recommendation
 
-**Don't migrate yet.** The W&B storage problem is real but doesn't block inference — your adapters still serve fine, you just can't clean up or train new ones. The correct sequence:
+**Stay on W&B (Tier 1).** Storage issue resolved, all 4 adapters deployed and serving. W&B is the prototyping tier — cheap inference ($0.05/$0.22/1M), free training during preview, zero maintenance.
 
-1. **Contact W&B support** about the 403 permission issue. This is likely a bug or misconfigured default on the pay-as-you-go plan. You are the sole owner of a personal team and cannot delete your own artifacts — that's broken.
+**Tiered fallback plan:**
 
-2. **Benchmark Together latency** (15 minutes). Run the existing `scripts/test-qwen-speed.ts` against Together's current Qwen3-14B endpoint. If TTFT is under 3s, Together becomes a viable hot-standby. If it's still 10s+, rule it out.
+1. **Tier 1 — W&B (current).** All adapters live here. Train and serve on the same platform. $2/mo inference credit covers current volume. Risk: pricing changes, free training ending, 5 GB storage limit.
 
-3. **If W&B support fails and Together is too slow**, then Modal becomes the fallback. Accept the cold start penalty and the maintenance burden as the cost of full control.
+2. **Tier 2 — Together AI (hot standby).** Benchmarked 2026-04-12: ~1s short calls, ~5s medium calls, no warm-up effect. 5-12× slower than W&B but functional. Same-day migration: retrain 4 adapters (submitted 2026-04-12, Qwen 3.5 9B LoRA r=16), swap URIs. Transport layer already supports Together. Use when: W&B inference becomes unreliable or too expensive.
 
-4. **Self-hosted RTX 3090** ($500 one-time) remains the nuclear option for long-term independence from all providers. Zero cold start, zero per-token cost, complete control. Worth considering if you're running novels daily.
+3. **Tier 3 — Modal + vLLM (full control).** 10-120s cold starts, 30× per-run cost, ongoing maintenance. Use when: both W&B and Together fail, or you need models/ranks neither supports.
+
+4. **Tier 4 — Local Apple Silicon (MacBook Air M4 24GB).** Zero per-token cost, zero provider dependency. ~3-10s/call on 9B Q4/Q8 via MLX or Ollama. Adapter quality on quantized base needs evaluation. Use when: unlimited experimentation needed, or all cloud providers become untenable. Hardware already owned — no capital cost.
+
+5. **Tier 5 — Rented GPU (RunPod/Lambda).** H100 $2.69/hr, A100 $1.39/hr, L40S $0.79/hr. Per-second billing. Benchmarked against 20 real novels (2026-04-12): **3-5x more expensive than current API setup** for per-novel pipeline execution. Cerebras wafer-scale engine and W&B shared LoRA fleet are too cost-efficient for a single rented GPU to compete at current volume. Break-even requires ~530 novels/day. Viable for batch jobs (SFT data gen, eval sweeps) where hourly rate beats per-token pricing. Full analysis: `docs/gpu-rental-analysis.md`.

@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-11
+updated: 2026-04-12
 ---
 
 # Adapter Changelog
@@ -16,11 +16,23 @@ Single source of truth for fine-tuning history across all pipeline agents. One e
 | Adapter | Status | Current Version | Exp | Artifact URI |
 |---------|--------|----------------|-----|-------------|
 | Tonal Pass | **DEPLOYED** | V4 · W&B 14B | #98 | `howard-tonal-v4-sft-resume:v8` |
-| Adherence Checker | **IN TRAINING** | V3-sonnet | #159 | `adherence-checker-v3-sonnet-sft-resume:v9` *(pending)* |
-| Adherence Checker | DEPLOYED (current prod) | V2 · 235B teacher | #135 | `adherence-checker-v2-sft-resume:v9` |
-| Chapter Plan Checker | IN TRAINING | V1 pilot · gpt-oss teacher | #154 | `chapter-plan-checker-v1-sft-resume:v9` *(pending)* |
-| Continuity | IN TRAINING | V1 · Sonnet teacher | #155 | `continuity-v1-sft-resume:v9` *(pending)* |
+| Adherence Checker | **DEPLOYED** | V4 · events+attribution | #161 | `adherence-checker-v4` |
+| Chapter Plan Checker | **DEPLOYED** | V2 · Sonnet teacher | #178 | `chapter-plan-checker-v2:v1` |
+| Continuity | **DEPLOYED** | V2 · Sonnet teacher | #175 | `continuity-v2:v1` |
 | Reference Resolver | RETIRED | — | — | Llama 3.1 8B sufficient |
+
+### Together AI Tier 2 Mirrors (IN TRAINING — 2026-04-12)
+
+All 4 adapters submitted for LoRA training on `Qwen/Qwen3.5-9B` (r=16, alpha=32, dropout=0.05). Same training data as W&B adapters, `_meta` keys stripped. These serve as Tier 2 hot standby and potential Tier 4 local inference source (same SafeTensors format works with MLX).
+
+| Adapter | Together Job ID | Together Output Model | Data | Epochs |
+|---------|----------------|----------------------|------|--------|
+| Adherence V4 | `ft-452bac3d-dbcb` | `andre14618_2c8c/Qwen3.5-9B-adherence-checker-v4-together-0c3a3c63` | 2,134 pairs | 2 |
+| Chapter Plan V2 | `ft-2b8663d1-1644` | `andre14618_2c8c/Qwen3.5-9B-chapter-plan-checker-v2-together-30747106` | 520 pairs | 3 |
+| Continuity V2 | `ft-ed08007d-2056` | `andre14618_2c8c/Qwen3.5-9B-continuity-v2-together-7f273d6b` | 253 pairs | 3 |
+| Tonal V4 | `ft-f5916b1d-c94f` | `andre14618_2c8c/Qwen3.5-9B-howard-tonal-v4-together-90c6e60c` | 4,497 pairs | 2 |
+
+Check status: `python3 scripts/train-together.py --status`
 
 ---
 
@@ -57,131 +69,89 @@ Migrated to `OpenPipe/Qwen3-14B-Instruct` on W&B Inference. Beats V3 on every me
 
 ## Adherence Checker
 
-**Task:** Per-beat verification — 4 parallel LLM calls (events / setting / tangent / character). Binary pass/fail per call type. Retries the beat writer on failure.  
-**Base model (current prod):** `OpenPipe/Qwen3-14B-Instruct` on W&B Inference  
-**Architecture:** 4-call decomposed (shipped 2026-04-08, exp #122) — prior single-call architecture retired
-
-### Baseline: Llama 3.1 8B (pre-LoRA)
-- Over-strict; rejected valid prose at high rate
-- Replaced by 235B for production; used as impetus to fine-tune
-
-### Base Qwen3-14B (no adapter)
-- ~77% oracle agreement on 64 production pairs
-- Insufficient for pipeline use on its own
+**Task:** Per-beat verification — single LLM call (events+attribution). Binary pass/fail. Retries the beat writer on failure with targeted rewrite (specific issues passed back).  
+**Base model:** `OpenPipe/Qwen3-14B-Instruct` on W&B Inference  
+**Architecture:** Single events+attribution call (shipped 2026-04-12, exp #161) — prior 4-call decomposed architecture retired (setting/tangent had 0–4.3% fire rates, character merged into events)
 
 ### V2 · 235B teacher `adherence-checker-v2-sft-resume:v9` (exp #135, 2026-04-08)
-**Status: DEPLOYED (current production)**
+**Status: RETIRED** — config removed from `models/roles.ts` 2026-04-12
 
 - **Dataset:** 8,524 curated pairs (4-call decomposed format), 235B as single teacher
 - **Eval:** 90% oracle agreement on 64 production pairs (+13pp over base)
-- **Strengths:** Events ~97%, setting ~95%
-- **Weak spots:** FAIL_TANGENT_HARD 69%, FAIL_MISSING_SUBTLE 78.6%, FAIL_CHAR 85.7%
+- Superseded by V4 (events+attribution merged prompt, Sonnet labels)
 
 ### V3 mixed-teacher (exp #145 train / #146 eval, 2026-04-11)
 **Status: DISCONFIRMED**
 
-- **Hypothesis:** Per-flag best teachers — Kimi K2.5 for events (95% synthetic), gpt-oss for character (100% synthetic), 235B for setting/tangent
-- **Result:** Regressed vs V2 overall (94.4% → 55.4% on FAIL_MISSING_SUBTLE; events recall 86.6% → 74.1%)
-- **Root cause:** Synthetic accuracy ≠ calibration on marginal cases. Different teachers have different thresholds for ambiguous prose. Mixing teachers within a task produces an incoherent decision boundary.
-- **Lesson:** One teacher per task, always. See `docs/teacher-selection-strategy.md`.
+- **Root cause:** Synthetic accuracy ≠ calibration on marginal cases. Mixing teachers within a task produces an incoherent decision boundary.
+- **Lesson:** One teacher per task, always.
 
-### V3-sonnet · Sonnet 4.6 teacher `adherence-checker-v3-sonnet-sft-resume:v9` (exp #159, 2026-04-11)
-**Status: IN TRAINING** (~4h ETA from submission)
+### V4 · Sonnet teacher `adherence-checker-v4` (exp #161, 2026-04-12)
+**Status: DEPLOYED**
 
-- **Dataset:** 7,540 pairs — full V3 curated set relabeled with Sonnet as single consistent teacher
-- **Teacher accuracy (exp #147):** Sonnet 96.5% overall vs 235B's ~95% (tangent: 100% vs ~80%; FAIL_MISSING_SUBTLE: 87.2% vs 78.6%)
-- **Training:** 2 epochs, batch size 2, lr 2e-4, cosine schedule
-
-**Decision gate before deploying:**
-- FAIL_TANGENT_HARD must improve beyond V2's 69%
-- FAIL_MISSING_SUBTLE must improve beyond V2's 78.6%
-- Events must NOT regress below 95%
+- **Dataset:** 2,134 unique (beat, prose) pairs, Sonnet 4.6 teacher, events+attribution merged prompt
+- **Production eval (10-chapter coastal-mystery):** 79% first-attempt pass (23/30 beats), all failures resolved on retry, zero false positives
+- **Architecture change:** 4 parallel calls → 1 call. Character merged into events. Setting/tangent removed (0–4.3% fire rates, planner-level bugs).
+- **Next:** GRPO/RL reward loop (adherence-checker has clean automatic reward signal)
 
 ---
 
 ## Chapter Plan Checker
 
-**Task:** Per-chapter check — does the prose implement the structured beat plan? Strict false-positive rules: paraphrased dialogue, reordered details, and atmospheric additions are NOT deviations.  
-**Current production:** gpt-oss-120b on Groq (direct, no adapter)  
-**Base model (target):** `OpenPipe/Qwen3-14B-Instruct` on W&B Inference
+**Task:** Per-chapter check — cross-beat properties: setting coherence, emotional arc direction, major plot contradictions. Strict false-positive rules: paraphrased dialogue, reordered details, and atmospheric additions are NOT deviations.  
+**Base model:** `OpenPipe/Qwen3-14B-Instruct` on W&B Inference
 
-### Base Qwen3-14B (no adapter, exp #107)
-- 58% overall accuracy — effectively useless
-- 100% PASS on all PASS variants, 5% on FAIL variants
-- "Rubber-stamp" failure mode: structural reasoning requires distillation
-
-### Teacher eval (exp #158, 2026-04-11)
-Sonnet 4.6 vs gpt-oss-120b on 229 pairs, 25 scenarios:
-
-| Teacher | Overall | PASS_REORDER | FAIL_REVERSED_ARC | FAIL_MISSING_BEAT |
-|---------|---------|-------------|------------------|------------------|
-| Sonnet 4.6 | **94.3%** | **100%** | **89.7%** | 67.9% |
-| gpt-oss-120b | 88.2% | 82.8% | 82.8% | 46.4% |
-
-Adjusted for 12 GT labeling errors: Sonnet 99.5% vs gpt-oss 93.1%.  
-**Decision:** Sonnet adopted as teacher. gpt-oss labels had ~12% error rate on PASS_REORDER and FAIL_REVERSED_ARC.
-
-### V1 pilot · gpt-oss labels `chapter-plan-checker-v1-sft-resume:v9` (exp #154)
-**Status: IN TRAINING**
+### V1 pilot · gpt-oss labels (exp #154)
+**Status: SUPERSEDED by V2**
 
 - **Dataset:** 197 pairs, gpt-oss teacher (12% error rate on key variants)
-- **Purpose:** Pilot only — confirms distillation is viable
-- **Eval target:** ≥80% oracle agreement on held-out pairs
-- **Known issue:** gpt-oss over-literal on reordering; V1 will likely struggle on PASS_REORDER and FAIL_REVERSED_ARC
+- Superseded by V2 Sonnet labels (96% accuracy)
 
-### V2 · Sonnet labels (planned)
-**Status: PLANNED**
+### V2 · Sonnet labels `chapter-plan-checker-v2:v1` (exp #170 train / #178 eval, 2026-04-12)
+**Status: DEPLOYED**
 
-- Add 20+ scenarios to generator (currently 25, target 45+)
-- Relabel all pairs with Sonnet subagents
-- Combine with corrected V1 data → ~500+ pairs
-- Train `chapter-plan-checker-v2`
-- Target: match or exceed gpt-oss-120b (88.2%) — ideally approach Sonnet's 94.3%
+- **Dataset:** 520 pairs (65 scenarios × 8 variants), Sonnet 4.6 teacher
+- **Eval (exp #178):** 96% accuracy vs Sonnet ground truth (vs 78% for gpt-oss-120b oracle)
+- **Production validation:** 3-chapter dark-fantasy — all chapters passed first attempt, 609ms avg latency
+- **Scope narrowed:** `beats_covered` and `characters_present` removed (redundant with beat-level adherence). Focus on cross-beat properties only.
+- **Next:** Regenerate data with dramatic-style beat plans for V3 (not urgent — V2 handles dramatic beats fine)
 
 ---
 
 ## Continuity Checker
 
-**Task:** Per-chapter check against world state tables (facts, character states, relationship timeline). Largest prompt-token cost in the pipeline (~7,300 in/call — full fact/state dump).  
-**Current production:** Cerebras Qwen 235B (direct, no adapter)  
-**Base model (target):** `OpenPipe/Qwen3-14B-Instruct` on W&B Inference
+**Task:** Per-chapter check against world state tables (facts, character states). 2 parallel decomposed calls (continuity-facts + continuity-state). Largest prompt-token cost in the pipeline (~7,300 in/call — full fact/state dump).  
+**Base model:** `OpenPipe/Qwen3-14B-Instruct` on W&B Inference
 
-### Baseline: Qwen3 235B
-- Catastrophic on soft violations: ~10% recall on WARNINGs, ~35% on NITs
-- Acceptable on BLOCKERs (~95%) and TRAPs (~90%)
-- Unusable as a teacher due to WARNING blindness
-
-### Teacher eval (exp #150)
-Sonnet 4.6 vs 235B on 120 pairs:
-
-| Teacher | Overall | BLOCKER | WARNING | NIT | TRAP |
-|---------|---------|---------|---------|-----|------|
-| Qwen3 235B | ~10–35% | ~95% | ~10% | ~35% | ~90% |
-| Sonnet 4.6 | **98%** | **100%** | **~95%** | **~95%** | **~100%** |
-
-**Decision:** Sonnet is the only viable teacher for continuity. 235B cannot be used.
-
-### V1 · Sonnet teacher `continuity-v1-sft-resume:v9` (exp #155)
-**Status: IN TRAINING**
+### V1 · Sonnet teacher (exp #155)
+**Status: SUPERSEDED by V2**
 
 - **Dataset:** 120 pairs, Sonnet teacher
-- **Eval target:** ≥80% accuracy on held-out continuity pairs before swapping from 235B
-- **Known gap:** 120 pairs is borderline (see data sufficiency table below)
+- Superseded by V2 (253 pairs, 99% Sonnet accuracy)
 
-### V2 · Scale to 300 pairs (planned)
+### V2 · Sonnet teacher `continuity-v2:v1` (exp #175, 2026-04-12)
+**Status: DEPLOYED**
+
+- **Dataset:** 253 pairs (39 scenarios × ~6.5 variants avg), Sonnet 4.6 teacher, 99% label accuracy
+- **Production validation (novel-1776029103713, 3 chapters dark-fantasy):**
+  - 8 calls, 0 false positives, 0 missed issues
+  - $0.0011 total cost vs $0.0128 Cerebras equivalent (**11.9× cost reduction**)
+  - 204ms warm latency (first call 2.3s cold start)
+- **Training:** 3 epochs, batch size 2, cosine LR 2e-4, LoRA rank 16
+- **Decomposed prompts:** `fact-check-system.md` (contradictions vs established facts), `state-check-system.md` (character location/knowledge consistency)
+
+### V3 · Scale to 300 pairs (planned)
 **Status: PLANNED**
 
 - Add 10 more scenarios to generator + VAR_WARNING_2 variants
 - Prioritize LitRPG scenarios and multi-chapter carryover
-- Re-run Sonnet labeling pipeline
-- Target: 300 pairs before serious eval
+- Regenerate with dramatic-style beat plans
 
-### V3 · Compact diff format (planned, blocked)
-**Status: BLOCKED on V1 eval passing**
+### V4 · Compact diff format (planned)
+**Status: PLANNED — unblocked now that V2 is validated**
 
-- V1/V2 train on full-dump format (~7,300 tokens/call)
+- V2 trains on full-dump format (~7,300 tokens/call)
 - Compressing to ~1,000 tokens via structured diff requires new input format + new training data
-- Do not attempt until V1 eval passes
 
 ---
 

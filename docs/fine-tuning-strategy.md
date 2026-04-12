@@ -15,10 +15,10 @@ This changes the math: every agent in the pipeline is a fine-tune candidate. The
 
 ```
 OpenPipe/Qwen3-14B-Instruct (hot, always warm)
-  ├── novel-harness/adherence-checker-v2      [DEPLOYED]
-  ├── novel-harness/tonal-howard-v4           [DEPLOYED]
-  ├── novel-harness/continuity-v1             [TRAINING, exp #155]
-  ├── novel-harness/chapter-plan-checker-v1   [TRAINING, exp #154]
+  ├── novel-harness/adherence-checker-v4      [DEPLOYED — events+attribution, 2134 Sonnet-labeled pairs]
+  ├── novel-harness/tonal-howard-v4           [DEPLOYED — pref eval confirmed 2026-04-11]
+  ├── novel-harness/chapter-plan-checker-v2   [DEPLOYED — 96% accuracy, 609ms, exp #178]
+  ├── novel-harness/continuity-v2             [DEPLOYED — 253 pairs, 12× cost reduction, exp #175]
   ├── novel-harness/fact-extractor-v1         [PLANNED]
   ├── novel-harness/lint-fixer-v1             [PLANNED]
   ├── novel-harness/voice-pass-archetype-v1   [PLANNED — Phase 3, after context eng]
@@ -122,25 +122,23 @@ Until condition 1 is true, RunPod is an infrastructure cost, not a cost saving. 
 
 ## Candidate Slots — Priority Ordered
 
-### 1. Continuity (Highest ROI)
+### 1. Continuity — V2 DEPLOYED
 
-**Current**: Cerebras Qwen 235B · 7,294 avg input tokens · $0.0023/call · highest per-call cost in pipeline by 10×
+**Current**: W&B `continuity-v2:v1` (Qwen3-14B SFT) · 2 parallel decomposed calls (facts + state) · ~204ms warm latency · $0.0001/call · **11.9× cost reduction** from Cerebras 235B
 
-**The opportunity**: The continuity checker dumps the entire facts + character states table into the prompt on every call. A fine-tuned model that knows the harness's world-state schema can work from a structured diff — the delta since the last chapter — rather than the full dump. Compressing 7,294 → ~1,000 input tokens is a 7× cost reduction on the highest-cost slot.
+**V2 (253 pairs, exp #175):** 39 hand-crafted scenarios × 6-7 variants (NONE, BLOCKER, WARNING, NIT, TRAP, MULTI). Labeled by Sonnet 4.6 (99% accuracy, 250/253 matches). Trained on W&B ART: 3 epochs, batch size 2, cosine LR 2e-4, LoRA rank 16. Two decomposed prompts: `fact-check-system.md` (contradictions vs established facts) and `state-check-system.md` (character location/knowledge consistency).
 
-**Fine-tune approach**: Teach the model to accept a compact structured diff format (new facts, changed character states, new timeline events) and reason about consistency against that, rather than a raw wall of text.
+**Validation (novel-1776029103713, 3 chapters dark-fantasy):** 8 calls, 0 false positives, 0 missed issues. $0.0011 total vs $0.0128 Cerebras equivalent. First call 2.3s (cold start), subsequent 190-230ms.
 
-**Data source**: Generate 3-5 novels end-to-end, collect `(world_state_dump, chapter_prose, [continuity_issues], passed)` tuples per chapter from Cerebras 235B oracle calls. Then reformat inputs as structured diffs. Compact input format must be validated — the model needs to agree with the 235B oracle at ≥95% before the prompt compression is trusted.
+**Phase 2 — scale to 300 pairs**: Add 10 more scenarios + VAR_WARNING_2 variants. Prioritize LitRPG scenarios and multi-chapter carryover. Re-run Sonnet labeling pipeline.
 
-**Risk**: High. Changing the input format means the training data must match the new format. Two-phase effort: (1) define the compact diff schema, (2) generate training data against it. Can't distill directly from existing 235B calls because those use the full-dump format.
-
-**Expected outcome**: 7× input token reduction, 5× cost reduction per call, comparable latency to adherence-checker shape (~150-200ms).
+**Phase 3 — compact diff format**: V2 trains on full-dump format (~7,300 tokens). Compressing to ~1,000 tokens via structured diff requires new input format + new training data. Now unblocked.
 
 ---
 
-### 2. Adherence Checker — V2 DEPLOYED · V3-mixed DISCONFIRMED · V3-sonnet IN TRAINING (4-call decomposed)
+### 2. Adherence Checker — V4 DEPLOYED (single events+attribution call)
 
-**Current**: W&B Qwen3-14B-Instruct + V2 curated LoRA · 4 parallel calls (events/setting/tangent/character) · ~627ms avg · $0.00005/call
+**Current**: W&B `adherence-checker-v4` (Qwen3-14B SFT) · single LLM call (events+attribution) · 2,134 Sonnet-labeled examples · 79% first-attempt pass rate in production · V2 config removed from roles.ts
 
 **History**: Base 14B zero-shot hit 96% agreement on the old 160-pair single-call eval (exp #101). But the 4-call decomposed prompt (exp #122, 2026-04-08) revealed a 6pp gap: 14B at 91% vs 235B at 97% on the 160-pair decomposed eval. Worth closing via SFT (W&B ART training is cheap; inference is billed at $0.05/$0.22 per 1M).
 
@@ -182,9 +180,9 @@ Until condition 1 is true, RunPod is an infrastructure cost, not a cost saving. 
 
 ---
 
-### 4. Chapter Plan Checker — CONFIRMED FINE-TUNE CANDIDATE
+### 4. Chapter Plan Checker — V2 DEPLOYED
 
-**Current**: `openai/gpt-oss-120b` on Groq · ~2,880 in / ~995 out · ~2,415ms · $0.0007/call
+**Current**: W&B `chapter-plan-checker-v2:v1` (Qwen3-14B SFT) · 96% accuracy vs Sonnet ground truth · 609ms avg · $0.00005/call. Replaced gpt-oss-120b (78% accuracy, ~1,700ms, ~$0.0007/call). See `docs/decisions.md` exp #178.
 
 **Zero-shot test (exp #107, 2026-04-08)**: Ran base Qwen3-14B-Instruct on W&B side-by-side with the 120B oracle across 80 synthetic pairs (10 scenarios × 8 variants, same methodology as adherence-checker exp #99–#101).
 

@@ -199,6 +199,21 @@ AA's headline: "DeepInfra (FP8) demonstrates superior performance across all met
 
 **The actionable rule**: when a provider costs you wall time on a model, the right diagnostic is **find another provider serving the same model and compare**, not retrain or migrate to a different model. Provider serving quality varies 3-10× on the same weights. Use [AA's per-model providers tab](https://artificialanalysis.ai) to find the comparison without needing to benchmark each provider yourself (then verify steady-state with your own probe before committing).
 
+### Together AI warm-up probe: no warm-up effect, but much faster than AA data suggested (2026-04-12)
+
+The AA benchmark (2026-04-07) showed Together at 36.79s TTFT on Qwen 3.5 9B — but AA makes infrequent isolated calls. A 20-call sequential probe (`scripts/together-warmup-probe.ts`) showed dramatically better results:
+
+| Shape | Avg | Min | Max | 1st half | 2nd half |
+|-------|----:|----:|----:|----:|----:|
+| Short (checker-like, ~256 out) | **1,089ms** | 692ms | 1,738ms | 1,160ms | 1,018ms |
+| Medium (continuity-like, ~512 out) | **4,918ms** | 2,629ms | 10,268ms | 5,448ms | 4,389ms |
+
+**No warm-up effect.** First 3 calls avg ≈ last 3 calls avg. The hypothesis that "sustained traffic would warm up the model" is **disconfirmed** — Together's variance is random, not a cold-start curve.
+
+**Revised positioning:** Together is 5-12× slower than W&B per call, not 50-100× as the stale AA data implied. Viable as a Tier 2 hot standby. Would add ~15-25s of adapter latency per chapter (vs ~2s on W&B). See `docs/wandb-alternatives-report.md` for the tiered fallback plan.
+
+**Lesson:** Third-party benchmarks (AA) use infrequent isolated calls that can overstate cold-start effects — but in Together's case, the old data was genuinely stale. Together improved their infrastructure between April 7 and April 12. Always re-benchmark before making migration decisions based on data more than a few days old.
+
 ### DeepInfra "Custom LLMs" is dedicated GPU rental, not serverless LoRA — corrects an earlier conflation (2026-04-08)
 During the 2026-04-07 W&B/Qwen3-14B serving decision I treated DeepInfra as a viable serverless LoRA host based on the public docs page at https://deepinfra.com/docs/advanced/lora and AA's per-provider numbers showing DeepInfra serving stock Qwen 3.5 9B 3.1× faster than Together. **That was a product conflation.** DeepInfra has two different SKUs and I mixed them up:
 
