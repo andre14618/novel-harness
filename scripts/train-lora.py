@@ -6,6 +6,10 @@ Uses W&B Serverless SFT (ART framework) to train on OpenPipe/Qwen3-14B-Instruct.
 Training is free during W&B public preview. Adapter is served via W&B Inference
 at $0.05/$0.22 per 1M tokens.
 
+Automatic post-training cleanup deletes intermediate checkpoints, train-state,
+and dataset artifacts from W&B to stay under the 5 GB free storage tier.
+Only the final serving adapter is kept. Use --no-cleanup to skip.
+
 Usage:
     python3 scripts/train-lora.py \\
         --name howard-tonal-v4 \\
@@ -45,6 +49,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--warmup",     type=float, default=0.1, help="Warmup ratio")
     p.add_argument("--dry-run",    action="store_true",
                    help="Validate data and print plan without kicking off training")
+    p.add_argument("--no-cleanup", action="store_true",
+                   help="Skip post-training artifact cleanup (keeps all checkpoints)")
     return p.parse_args()
 
 
@@ -98,6 +104,120 @@ def validate_data(path: str) -> tuple[int, int]:
             sys.exit(1)
 
     return total, skipped
+
+
+def fmt_bytes(n: int) -> str:
+    if n < 1024 * 1024:
+        return f"{n / 1024:.1f} KB"
+    if n < 1024 * 1024 * 1024:
+        return f"{n / (1024 * 1024):.1f} MB"
+    return f"{n / (1024 * 1024 * 1024):.2f} GB"
+
+
+async def cleanup_training_artifacts(model, args: argparse.Namespace) -> None:
+    """Delete intermediate checkpoints, train-state, and dataset artifacts.
+
+    After training, W&B stores ~3.7 GB of artifacts per run:
+      - Identity LoRA v0 (~123 MB)
+      - Intermediate LoRA checkpoints v1-v8 (~134 MB each)
+      - Train-state checkpoints v0-v9 (~246 MB each)
+      - Dataset artifact (~50-65 MB)
+
+    Only the final LoRA adapter (~134 MB) is needed for serving.
+    This function deletes everything else.
+    """
+    import wandb as wandb_sdk
+
+    print("Post-training cleanup: removing intermediate artifacts...")
+
+    api = wandb_sdk.Api()
+    entity = args.entity or api.default_entity
+    project = args.project
+    name = args.name
+    freed = 0
+    deleted = 0
+
+    # 1. Clean serving-side checkpoints (keeps latest + best)
+    try:
+        await model.delete_checkpoints()
+        print("  Cleaned serving-side checkpoints.")
+    except Exception as e:
+        print(f"  Warning: delete_checkpoints() failed: {e}")
+
+    # 2. Delete intermediate LoRA artifact versions (keep only the final/latest)
+    for coll_name in [name, f"{name}-sft-resume"]:
+        try:
+            versions = list(api.artifacts("lora", f"{entity}/{project}/{coll_name}"))
+        except Exception:
+            continue
+
+        # Find the version with 'latest' alias — that's the serving one
+        latest_ver = None
+        for v in versions:
+            if v.aliases and "latest" in v.aliases:
+                latest_ver = v.name
+                break
+
+        for v in versions:
+            if v.name == latest_ver:
+                print(f"  KEEP {v.name} (serving)")
+                continue
+            size = v.size or 0
+            try:
+                if v.aliases:
+                    v.aliases = []
+                    v.save()
+                v.delete()
+                freed += size
+                deleted += 1
+                print(f"  Deleted {v.name} ({fmt_bytes(size)})")
+            except Exception as e:
+                print(f"  Warning: failed to delete {v.name}: {e}")
+
+    # 3. Delete ALL train-state artifacts (not needed once training is done)
+    for suffix in ["-train-state", "-train-state-sft-resume"]:
+        coll_name = f"{name}{suffix}"
+        try:
+            versions = list(api.artifacts("train-state", f"{entity}/{project}/{coll_name}"))
+        except Exception:
+            continue
+        for v in versions:
+            size = v.size or 0
+            try:
+                if v.aliases:
+                    v.aliases = []
+                    v.save()
+                v.delete()
+                freed += size
+                deleted += 1
+                print(f"  Deleted {v.name} ({fmt_bytes(size)})")
+            except Exception as e:
+                print(f"  Warning: failed to delete {v.name}: {e}")
+
+    # 4. Delete dataset artifact (training data already lives in lora-data/)
+    try:
+        for atype in api.artifact_types(f"{entity}/{project}"):
+            if atype.name != "dataset":
+                continue
+            for coll in atype.collections():
+                if not coll.name.startswith(name):
+                    continue
+                for v in coll.artifacts():
+                    size = v.size or 0
+                    try:
+                        if v.aliases:
+                            v.aliases = []
+                            v.save()
+                        v.delete()
+                        freed += size
+                        deleted += 1
+                        print(f"  Deleted {v.name} ({fmt_bytes(size)})")
+                    except Exception as e:
+                        print(f"  Warning: failed to delete {v.name}: {e}")
+    except Exception as e:
+        print(f"  Warning: dataset cleanup failed: {e}")
+
+    print(f"\n  Cleanup done: deleted {deleted} artifacts, freed ~{fmt_bytes(freed)}.")
 
 
 async def train(args: argparse.Namespace) -> None:
@@ -174,6 +294,14 @@ async def train(args: argparse.Namespace) -> None:
     baseModel: "{args.base_model}",
   }},""")
     print("=" * 60)
+
+    # ── Post-training cleanup ────────────────────────────────────────────
+    # Delete intermediate checkpoints, train-state, and dataset artifacts
+    # to stay under the 5 GB W&B free storage tier. Only the final serving
+    # adapter (~134 MB) is kept.
+    if not args.no_cleanup:
+        print()
+        await cleanup_training_artifacts(model, args)
 
 
 if __name__ == "__main__":
