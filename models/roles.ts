@@ -75,7 +75,7 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // structural requirements and kept bouncing valid prose, spinning the drafting retry
   // loop. Now on gpt-oss-120b which serves as the distillation source for the eventual
   // LoRA fine-tune.
-  "chapter-plan-checker":      { provider: "groq", model: "openai/gpt-oss-120b", temperature: 0.2, maxTokens: 4096 },
+  "chapter-plan-checker":      { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/chapter-plan-checker-v2:v1", temperature: 0.2, maxTokens: 4096 },
 
   // ── Tonal pass (per-paragraph voice rewrite, LoRA fine-tuned) ────────
   // V4 (howard-tonal-v4-sft-resume:v8) confirmed preferred via pref eval 2026-04-11.

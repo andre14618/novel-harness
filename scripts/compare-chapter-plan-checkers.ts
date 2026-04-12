@@ -80,13 +80,13 @@ async function main() {
   const pairs: Pair[] = lines.map(l => JSON.parse(l))
 
   const ORACLE = { provider: "groq", model: "openai/gpt-oss-120b", label: "120B" }
-  const CANDIDATE = { provider: "wandb", model: "OpenPipe/Qwen3-14B-Instruct", label: "14B" }
+  const CANDIDATE = { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/chapter-plan-checker-v2:v1", label: "v2" }
 
   console.log(`A/B comparison: ${CANDIDATE.label} vs ${ORACLE.label} on ${pairs.length} pairs\n`)
 
   const expId = await createTuningExperiment(
     "data-validation",
-    `Chapter-plan-checker A/B: base Qwen3-14B vs gpt-oss-120b (direct agreement)`,
+    `Chapter-plan-checker A/B: chapter-plan-checker-v2 SFT adapter vs gpt-oss-120b (direct agreement)`,
     { totalPairs: pairs.length, oracle: ORACLE, candidate: CANDIDATE },
     { target: "chapter-plan-checker", dimension: "calibration" },
   )
@@ -154,7 +154,7 @@ async function main() {
     const mark = oraclePass !== null && candidatePass !== null
       ? (direct ? "✓" : "✗")
       : "·"
-    process.stdout.write(`120B=${o} 14B=${c} ${mark}\n`)
+    process.stdout.write(`120B=${o} v2=${c} ${mark}\n`)
   }
 
   // ── Report ──────────────────────────────────────────────────────────
@@ -164,9 +164,9 @@ async function main() {
   const candidateVsLabelPct = Math.round(candidateVsLabel / pairs.length * 100)
 
   console.log("\n════════════════════════════════════════")
-  console.log(`DIRECT AGREEMENT (14B vs 120B): ${directAgree}/${directTotal} (${directPct}%)`)
+  console.log(`DIRECT AGREEMENT (v2 vs 120B):   ${directAgree}/${directTotal} (${directPct}%)`)
   console.log(`120B vs labels:                  ${oracleVsLabel}/${pairs.length} (${oracleVsLabelPct}%)`)
-  console.log(`14B  vs labels:                  ${candidateVsLabel}/${pairs.length} (${candidateVsLabelPct}%)`)
+  console.log(`v2   vs labels:                  ${candidateVsLabel}/${pairs.length} (${candidateVsLabelPct}%)`)
   console.log(`Errors: 120B=${oracleErrors}, 14B=${candidateErrors}`)
   console.log("════════════════════════════════════════\n")
 
@@ -196,27 +196,27 @@ async function main() {
     // Directional bias: who is stricter?
     const candidateStricter = disagreements.filter(d => d.oraclePass === true && d.candidatePass === false).length
     const oracleStricter = disagreements.filter(d => d.oraclePass === false && d.candidatePass === true).length
-    console.log(`  14B stricter (14B=FAIL, 120B=PASS):  ${candidateStricter}`)
-    console.log(`  120B stricter (14B=PASS, 120B=FAIL): ${oracleStricter}`)
+    console.log(`  v2 stricter  (v2=FAIL,  120B=PASS): ${candidateStricter}`)
+    console.log(`  120B stricter (v2=PASS, 120B=FAIL): ${oracleStricter}`)
     console.log()
     for (const d of disagreements.slice(0, 20)) {
-      console.log(`  [${d.scenario}/${d.variant}] 120B=${d.oraclePass ? "PASS" : "FAIL"} 14B=${d.candidatePass ? "PASS" : "FAIL"} (label=${d.label ? "PASS" : "FAIL"})`)
+      console.log(`  [${d.scenario}/${d.variant}] 120B=${d.oraclePass ? "PASS" : "FAIL"} v2=${d.candidatePass ? "PASS" : "FAIL"} (label=${d.label ? "PASS" : "FAIL"})`)
     }
   }
 
   // Decision
   let verdict: string
   if (directPct >= 90) {
-    verdict = `SWAP SAFE: ${directPct}% direct agreement with oracle → swap to 14B.`
+    verdict = `SWAP SAFE: ${directPct}% direct agreement with oracle → swap to v2 adapter.`
   } else if (directPct >= 85) {
-    verdict = `FINE-TUNE JUSTIFIED: ${directPct}% direct agreement. Distill 120B labels onto 14B via SFT.`
+    verdict = `CLOSE: ${directPct}% direct agreement. Consider more data or another training round.`
   } else {
-    verdict = `KEEP ORACLE: ${directPct}% direct agreement — 14B can't replicate 120B on this task.`
+    verdict = `KEEP ORACLE: ${directPct}% direct agreement — v2 adapter doesn't replicate 120B on this task.`
   }
   console.log(`\nVerdict: ${verdict}`)
 
   const conclusion = JSON.stringify({
-    method: "direct A/B — 14B vs 120B side-by-side, same prompts",
+    method: "direct A/B — v2 SFT adapter vs 120B side-by-side, same prompts",
     totalPairs: pairs.length,
     directAgreement: { agree: directAgree, disagree: directDisagree, pct: directPct },
     oracleVsLabel: { agree: oracleVsLabel, pct: oracleVsLabelPct },
