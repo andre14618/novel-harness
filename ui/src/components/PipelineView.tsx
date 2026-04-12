@@ -57,6 +57,18 @@ interface LLMCallRow {
   pass?: boolean
 }
 
+type NarrativeKind = "phase" | "chapter" | "fail" | "retry" | "validation" | "lint"
+interface NarrativeEntry {
+  kind: NarrativeKind
+  ts: number
+  text: string
+  detail?: string
+}
+
+type FeedItem =
+  | { type: "call"; ts: number; call: LLMCallRow }
+  | { type: "narrative"; ts: number; entry: NarrativeEntry }
+
 export function PipelineView() {
   const { novelId } = useParams<{ novelId: string }>()
   const [state, setState] = useState<NovelState | null>(null)
@@ -90,6 +102,7 @@ export function PipelineView() {
 
   // Live stream state — built from SSE events on every render
   const [liveCalls, setLiveCalls] = useState<LLMCallRow[]>([])
+  const [feedItems, setFeedItems] = useState<FeedItem[]>([])
   const [liveBeats, setLiveBeats] = useState<LiveBeat[]>([])
   const [currentChapter, setCurrentChapter] = useState<number | null>(null)
   const [currentBeat, setCurrentBeat] = useState<number | null>(null)
@@ -163,8 +176,9 @@ export function PipelineView() {
   // from the events array on each update so the logic stays declarative.
   useEffect(() => {
     const calls = new Map<string, LLMCallRow>()
+    const narratives: NarrativeEntry[] = []
     const beats: LiveBeat[] = []
-    const beatByKey = new Map<string, number>() // "chapter-beatIndex" → index into beats[]
+    const beatByKey = new Map<string, number>()
     const active = new Set<string>()
     const completed = new Set<string>()
     let chapter: number | null = null
@@ -172,6 +186,9 @@ export function PipelineView() {
     let totalBeats: number | null = null
     let chapterTitle: string | null = null
     let earliestTs: number | null = null
+
+    // Track beat-writer attempts per beat to detect retries
+    const beatAttempts = new Map<string, number>()
 
     const keyFor = (agent: string, ch?: number, bi?: number, startTs?: number) =>
       `${agent}:${ch ?? "_"}:${bi ?? "_"}:${startTs ?? ""}`
@@ -201,9 +218,18 @@ export function PipelineView() {
           })
           active.add(agent)
 
-          // Beat-writer opens a new beat slot in LiveProse
           if (agent === "beat-writer" && d.chapter != null && d.beatIndex != null) {
             const bkey = `${d.chapter}-${d.beatIndex}`
+            const attempt = (beatAttempts.get(bkey) ?? 0) + 1
+            beatAttempts.set(bkey, attempt)
+            if (attempt > 1) {
+              narratives.push({
+                kind: "retry",
+                ts: tsMs,
+                text: `Retrying beat ${d.beatIndex + 1} (attempt ${attempt})`,
+                detail: `Chapter ${d.chapter}`,
+              })
+            }
             if (!beatByKey.has(bkey)) {
               beatByKey.set(bkey, beats.length)
               beats.push({
@@ -222,7 +248,6 @@ export function PipelineView() {
           }
         } else if (et === "agent-complete") {
           const agent = d.agent as string
-          // Find the most recent matching running call and close it
           let matched: LLMCallRow | undefined
           for (const [k, v] of calls) {
             if (v.agent === agent && v.status === "running"
@@ -242,7 +267,6 @@ export function PipelineView() {
             }
           }
           if (!matched) {
-            // Rare: agent-complete without a matching start (replay path)
             const key = keyFor(agent, d.chapter, d.beatIndex, tsMs)
             calls.set(key, {
               id: key,
@@ -281,16 +305,94 @@ export function PipelineView() {
             }
           }
           active.delete(agent)
+          const label = AGENT_ACTION[agent] ?? agent
+          const loc = d.chapter != null
+            ? d.beatIndex != null ? `Ch ${d.chapter}, beat ${d.beatIndex + 1}` : `Ch ${d.chapter}`
+            : undefined
+          const errSnippet = d.error
+            ? String(d.error).split("\n")[0].slice(0, 120)
+            : undefined
+          narratives.push({
+            kind: "fail",
+            ts: tsMs,
+            text: `${label} failed${loc ? ` — ${loc}` : ""}`,
+            detail: errSnippet,
+          })
         } else if (et === "agent-start") {
           active.add(d.agent as string)
-        } else if (et === "phase-change") {
-          // Reset completed agents when the phase changes
+        } else if (et === "phase-change" || et === "phase-complete") {
           completed.clear()
+          const phase = d.to ?? d.phase
+          if (phase) {
+            const PHASE_LABELS: Record<string, string> = {
+              concept: "Concept phase complete — world, characters, and plot ready",
+              planning: "Planning complete — chapter outlines ready",
+              drafting: "Drafting complete — all chapters written",
+              validation: "Validation complete — prose approved",
+              done: "Novel complete",
+            }
+            narratives.push({
+              kind: "phase",
+              ts: tsMs,
+              text: PHASE_LABELS[phase] ?? `Entered ${phase} phase`,
+            })
+          }
         } else if (et === "chapter-complete") {
-          // Leave beats as they are — the stream is cumulative across chapters
+          const att = d.attempts ?? d.attempt
+          narratives.push({
+            kind: "chapter",
+            ts: tsMs,
+            text: `Chapter ${d.chapter} approved${att > 1 ? ` after ${att} attempts` : ""}`,
+          })
+        } else if (et === "validation-check") {
+          const passed = d.passed
+          const blockers: string[] = d.blockers ?? []
+          const warnings: string[] = d.warnings ?? []
+          if (!passed && blockers.length > 0) {
+            narratives.push({
+              kind: "validation",
+              ts: tsMs,
+              text: `Validation failed — Ch ${d.chapter ?? "?"}`,
+              detail: blockers.join("; "),
+            })
+          } else if (warnings.length > 0) {
+            narratives.push({
+              kind: "validation",
+              ts: tsMs,
+              text: `Validation passed with warnings — Ch ${d.chapter ?? "?"}`,
+              detail: warnings.join("; "),
+            })
+          }
+        } else if (et === "lint-detect") {
+          const total = d.totalIssues ?? 0
+          if (total > 0) {
+            const cats = d.counts
+              ? Object.entries(d.counts as Record<string, number>)
+                  .map(([k, v]) => `${k.toLowerCase().replace(/_/g, " ")} (${v})`)
+                  .join(", ")
+              : `${total} issues`
+            narratives.push({
+              kind: "lint",
+              ts: tsMs,
+              text: `Lint: ${cats}`,
+              detail: d.chapter != null ? `Chapter ${d.chapter}` : undefined,
+            })
+          }
+        } else if (et === "adherence-deterministic") {
+          const issues = d.deterministicIssues ?? 0
+          if (issues > 0) {
+            const parts: string[] = []
+            if (!d.charPresence) parts.push("missing characters")
+            if (!d.dialogueOk) parts.push("no dialogue")
+            if (!d.wordCountOk) parts.push("word count")
+            narratives.push({
+              kind: "fail",
+              ts: tsMs,
+              text: `Adherence check failed — beat ${(d.beatIndex ?? 0) + 1}`,
+              detail: parts.join(", ") || `${issues} issue${issues > 1 ? "s" : ""}`,
+            })
+          }
         }
-      } else if (e.type === "phase:changed") {
-        // SSE phase event as a fallback — PhaseIndicator already uses state.phase
       } else if (e.type === "progress") {
         const d = e.data as any
         if (d.chapter != null) chapter = d.chapter
@@ -300,7 +402,14 @@ export function PipelineView() {
     // Sort calls by start time
     const callList = [...calls.values()].sort((a, b) => a.startTs - b.startTs)
 
+    // Merge calls and narratives into a unified feed sorted by timestamp
+    const feed: FeedItem[] = [
+      ...callList.map(c => ({ type: "call" as const, ts: c.startTs, call: c })),
+      ...narratives.map(n => ({ type: "narrative" as const, ts: n.ts, entry: n })),
+    ].sort((a, b) => a.ts - b.ts)
+
     setLiveCalls(callList)
+    setFeedItems(feed)
     setLiveBeats(beats)
     setCurrentChapter(chapter)
     setCurrentBeat(beatIdx)
@@ -477,14 +586,16 @@ export function PipelineView() {
           <div className="live-activity">
             <div className="live-activity-header">Activity</div>
             <div className="live-activity-body">
-              {liveCalls.length === 0 && (
+              {feedItems.length === 0 && (
                 <div className="live-activity-placeholder">
                   {state.active ? "Waiting for the first LLM call…" : "Idle."}
                 </div>
               )}
-              {liveCalls.map(call => (
-                <ActivityRow key={call.id} call={call} />
-              ))}
+              {feedItems.map((item, i) =>
+                item.type === "call"
+                  ? <ActivityRow key={item.call.id} call={item.call} />
+                  : <NarrativeRow key={`n-${i}`} entry={item.entry} />
+              )}
               <div ref={activityEndRef} />
             </div>
 
@@ -516,7 +627,6 @@ export function PipelineView() {
 
 function ActivityRow({ call }: { call: LLMCallRow }) {
   const [, setTick] = useState(0)
-  // Re-render once a second while a call is running so the elapsed timer moves
   useEffect(() => {
     if (call.status !== "running") return
     const id = setInterval(() => setTick(t => t + 1), 250)
@@ -527,12 +637,9 @@ function ActivityRow({ call }: { call: LLMCallRow }) {
   const running = call.status === "running"
   const failed = call.status === "fail"
 
-  // Build a human-readable title
   let title = agentAction(call.agent)
   if (call.agent === "beat-writer" && call.beatIndex != null) {
     title = `${title} ${call.beatIndex + 1}${call.meta?.totalBeats ? `/${call.meta.totalBeats}` : ""}`
-  } else if (call.chapter != null) {
-    title = `${title}${call.agent === "beat-writer" ? "" : ""}`
   }
 
   const subtitle: string[] = []
@@ -548,7 +655,7 @@ function ActivityRow({ call }: { call: LLMCallRow }) {
       </div>
       <div className="activity-body">
         <div className="activity-title">
-          {title}
+          <span className="activity-title-text">{title}</span>
           <span className="activity-chip activity-chip-model">{call.provider && `${call.provider}`}</span>
         </div>
         {subtitle.length > 0 && (
@@ -583,6 +690,29 @@ function ActivityRow({ call }: { call: LLMCallRow }) {
             </>
           )}
         </div>
+      </div>
+    </div>
+  )
+}
+
+const NARRATIVE_ICONS: Record<NarrativeKind, string> = {
+  phase: "→",
+  chapter: "✓",
+  fail: "✗",
+  retry: "↻",
+  validation: "⚠",
+  lint: "◆",
+}
+
+function NarrativeRow({ entry }: { entry: NarrativeEntry }) {
+  const isFail = entry.kind === "fail"
+  const isChapter = entry.kind === "chapter" || entry.kind === "phase"
+  return (
+    <div className={`narrative-row${isFail ? " narrative-fail" : ""}${isChapter ? " narrative-milestone" : ""}`}>
+      <div className="narrative-icon">{NARRATIVE_ICONS[entry.kind]}</div>
+      <div className="narrative-body">
+        <div className="narrative-text">{entry.text}</div>
+        {entry.detail && <div className="narrative-detail">{entry.detail}</div>}
       </div>
     </div>
   )

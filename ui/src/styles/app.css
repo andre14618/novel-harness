@@ -2063,8 +2063,12 @@ details[open] summary::before { transform: rotate(90deg); }
   font-weight: 600;
   color: var(--text-primary);
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 8px;
+  flex-wrap: wrap;
+}
+.activity-title-text {
+  white-space: nowrap;
 }
 .activity-row.running .activity-title { color: var(--yellow); }
 .activity-row.failed .activity-title { color: var(--red); }
@@ -2073,9 +2077,7 @@ details[open] summary::before { transform: rotate(90deg); }
   color: var(--text-secondary);
   margin-top: 2px;
   font-style: italic;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.4;
 }
 .activity-metrics {
   display: flex;
@@ -2111,4 +2113,49 @@ details[open] summary::before { transform: rotate(90deg); }
 @keyframes chip-pulse {
   0%, 100% { opacity: 1; }
   50%      { opacity: 0.5; }
+}
+
+/* ── Narrative rows (milestones, failures, retries) ──────────────────── */
+.narrative-row {
+  display: flex;
+  gap: 10px;
+  padding: 6px 10px;
+  margin-bottom: 4px;
+  border-radius: 4px;
+  background: var(--bg-inset);
+  align-items: flex-start;
+}
+.narrative-row.narrative-milestone {
+  background: var(--accent-surface);
+  border-left: 2px solid var(--accent);
+}
+.narrative-row.narrative-fail {
+  background: var(--red-surface);
+  border-left: 2px solid var(--red);
+}
+.narrative-icon {
+  width: 16px;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+.narrative-milestone .narrative-icon { color: var(--accent); }
+.narrative-fail .narrative-icon { color: var(--red); }
+.narrative-body { flex: 1; min-width: 0; }
+.narrative-text {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+.narrative-milestone .narrative-text { color: var(--accent); font-weight: 600; }
+.narrative-fail .narrative-text { color: var(--red); }
+.narrative-detail {
+  font-size: 0.7rem;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+  line-height: 1.35;
+  word-break: break-word;
 }
