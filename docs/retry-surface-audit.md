@@ -181,14 +181,16 @@ This stays entirely at beat level. No architecture change to the writer, no chap
 
 **Files changed:** `src/agents/writer/adherence-checker.ts`, `src/phases/drafting.ts`, `models/roles.ts`
 
-### Remaining: Narrow chapter plan checker scope
+### Shipped: Narrow chapter plan checker scope
 
-Remove `beats_covered` and `characters_present` from the chapter plan checker — redundant with beat-level events+attribution and deterministic character presence.
+Removed `beats_covered` and `characters_present` from the chapter plan checker schema and prompt — redundant with beat-level events+attribution and deterministic character presence.
 
-**Keep in chapter plan checker:**
+**Kept in chapter plan checker:**
+- `setting_match` — chapter-level spatial coherence (catches cross-beat location drift)
 - `emotional_arc_correct` — cross-beat property, only assessable at chapter level
-- `setting_match` — chapter-level spatial coherence
 - Major plot contradictions — cross-beat arc reversals
+
+**Also shipped: Alignment offset detection in targeted rewrite.** On events retry, if the previous beat's prose exists, the writer receives the last 500 chars of prior beat prose with a note to avoid duplicating already-dramatized actions. Addresses the beat-boundary alignment offset false positive pattern.
 
 ### Remaining: Validation convergence fix
 

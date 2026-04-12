@@ -34,7 +34,7 @@ Each agent's prompt/schema/context lives in `src/agents/{name}/`. The model assi
   - **beat-writer** is the primary writer path. Cerebras Qwen 235B, ~846 in / 391 out / 2.1s per beat. Chapter-level `writer` only runs as fallback when beat generation fails N retries.
   - **reference-resolver** (Llama 3.1 8B Groq) — pre-fetched in parallel for all beats before the serial writing loop.
   - **adherence-checker** — deterministic checks (char presence, word count, dialogue) + **single LLM call** (events+attribution) on **W&B Qwen3-14B-Instruct + V2 curated LoRA** (`adherence-checker-v2-sft-resume:v9`). Was 4 parallel calls; character merged into events (6/8 catches redundant), setting removed (4.3% fire rate, planner-level bug unfixable by writer), tangent removed (0 fires in 563 calls). Retries use **targeted rewrite** (existing prose + specific issues) instead of blind regeneration. See `docs/retry-surface-audit.md`.
-  - **chapter-plan-checker** — **gpt-oss-120b on Groq**. Was Llama 8B; escalated because Llama couldn't reason through the planner's structural rules and kept bouncing valid prose.
+  - **chapter-plan-checker** — **gpt-oss-120b on Groq**. Focused on cross-beat properties only: setting coherence, emotional arc direction, major plot contradictions. `beats_covered` and `characters_present` removed (redundant with beat-level adherence checker). Base 14B scored 58% (exp #107, 100% one-sided bias) — keep on 120B until SFT adapter (exp #154) is validated.
   - **continuity** — **Cerebras Qwen 235B**. Highest prompt-token cost in the pipeline (~7,300 in/call) because it dumps facts + character states.
   - **lint-fixer** — Cerebras Qwen 235B per-sentence rewrites. No agent dir; lint code lives in `src/lint/` and reads the model assignment via `getModelForAgent("lint-fixer")`.
 - **Extraction** (`src/state-extraction.ts`, runs after chapter approval, configurable via `pipeline.extractionMode`): summary-extractor, fact-extractor, character-state (mimo-flash), relationship-timeline (Cerebras Qwen 235B), graph-linker (mimo-flash, ambiguous-causal validation only)
@@ -60,7 +60,7 @@ Beat writing bypasses semantic retrieval. Context comes from the plan + determin
 - Beat spec (description, characters, POV, setting)
 - Transition bridge (last 2-3 sentences of previous beat)
 - Landing target (first sentence of next beat)
-- Character snapshots (speech pattern, emotional state, relationship to POV, doesn't-know constraints)
+- Character snapshots (speech pattern, behavioral drivers [goals/avoids/internal conflict], emotional state, relationship to POV, doesn't-know constraints)
 - Resolved references via `src/agents/writer/reference-resolver.ts` (deterministic + cheap LLM lookups, pre-fetched in parallel for all beats before the serial writing loop starts)
 - Setting (only on beat 0 or detected location change)
 
@@ -82,7 +82,7 @@ Structured world systems, cultures, evolving relationships, timeline events, cha
 ### Quality Checks
 Quality measured via structured pass/fail checks, not LLM scoring (1-10 judges showed 0-33% discrimination — see `docs/lessons-learned.md`):
 - **Adherence checker** — per-beat: deterministic (character presence, word count, dialogue) + single LLM call (events+attribution) on **W&B Qwen3-14B-Instruct**. Events failure triggers targeted rewrite (prose + specific issues passed back to writer). Setting and tangent calls removed — zero production signal. See `docs/retry-surface-audit.md`.
-- **Chapter plan checker** — per-chapter: gpt-oss-120b on Groq compares prose vs the structured plan (beats + characters + facts + state changes). Has a strict false-positive ruleset (paraphrased dialogue, reordered details, atmospheric additions are NOT deviations).
+- **Chapter plan checker** — per-chapter: gpt-oss-120b on Groq checks cross-beat properties: setting coherence, emotional arc direction, major plot contradictions. `beats_covered` and `characters_present` removed (redundant with beat-level adherence). Has a strict false-positive ruleset (paraphrased dialogue, reordered details, atmospheric additions are NOT deviations).
 - **Continuity checker** — per-chapter: Cerebras Qwen 235B checks against world state tables (facts, character states). Largest prompt-token cost in the pipeline by an order of magnitude.
 - **Lint** — deterministic (~26 patterns) + LLM fixes for cliché, hedging, emotional echo, rhythm. Lives in `src/lint/`.
 - **Tonal pass** — LoRA-tuned 9B model (Together AI) for per-paragraph voice rewriting. Runs once at the end of validation, not per-chapter.
