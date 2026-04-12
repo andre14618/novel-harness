@@ -403,6 +403,42 @@ Character call regressed 21pp vs V2. Root cause identified (see below). Other ca
 - New EVENTS_SYSTEM: "every distinct action...ALL must appear...partially enacted is not fully enacted"
 - Validated by Claude subagents: 0 FP on clean prose, correctly caught partial enactments
 
-**Pending:** Measure teacher accuracy with new prompts against known ground-truth pairs (not just oracle agreement) before committing to re-labeling 7,540 pairs for V4. Prompt changes are in `scripts/eval-adherence-finetune.ts` as `CHARACTER_SYSTEM_NEW` and `EVENTS_SYSTEM_NEW`.
+**Superseded:** Prompts shipped to production 2026-04-12. Character call merged into events. See entries below.
 
-**Ongoing:** New prompts are NOT yet in production. Production CHARACTER_SYSTEM and EVENTS_SYSTEM in `src/agents/writer/adherence-checker.ts` are unchanged.
+### Adherence retry surface tightened: 4→1 LLM calls, targeted rewrite
+*(2026-04-12 · ground-truth eval on 30 production pairs + production fire-rate analysis on 563 calls)*
+
+**Decision:** Ship new events+attribution prompt, remove character/setting/tangent calls, replace blind retry with targeted rewrite.
+
+**Evidence:**
+- Ground-truth eval (30 pairs, Claude subagents): new events prompt 93% vs old 77% (+16pp). Character call 87%, 6/8 catches redundant with events. Character's unique signal (2 line attribution swaps) folded into events prompt.
+- Production fire rates (563 calls per agent, 41 novels): tangent 0 fires (zero signal), setting 24 fires (4.3%) but all planner-level bugs (wrong setting on beat spec when scene transitions mid-chapter). Neither fixable by beat writer.
+- Compound FP: 4 calls at 5% each → 18.5% false alarm rate per beat. Single call → ~5-7%.
+
+**Changes shipped:**
+1. New events+attribution prompt (multi-action + character attribution in one call)
+2. Character call removed (6/8 catches redundant with events)
+3. Setting call removed (4.3% fire rate, planner-level bugs, tracked upstream in todo)
+4. Tangent call removed (0 fires in 563 calls)
+5. Targeted rewrite: on failure, writer gets previous prose + specific issues instead of generic "try again"
+6. Alignment offset detection: prior beat prose tail included on retry to prevent duplication
+
+**Alternatives rejected:** Soft gates (run but don't retry) — considered for setting/tangent but production data showed they add zero actionable signal. Removing entirely is cleaner.
+
+**Ongoing:** V2 LoRA trained on old prompt distribution. Testing base 14B with new prompt (step 0). V4 re-labeling with Sonnet planned — instructions at `scripts/v4-adherence-relabeling-instructions.md`.
+
+### Chapter plan checker narrowed to cross-beat properties only
+*(2026-04-12)*
+
+**Decision:** Remove `beats_covered` and `characters_present` from chapter plan checker. Keep `setting_match`, `emotional_arc_correct`, and major plot contradiction detection.
+
+**Why:** Beat-level adherence checker already covers event enactment and character presence per beat. Chapter plan checker was re-checking the same things at chapter level — redundant signal that added false positives without catching anything the beat checker missed. The unique value of chapter-level review is cross-beat coherence (arc direction, setting across scenes, plot contradictions).
+
+**Also cleaned:** Removed architecture context ("downstream agents", pipeline references) from 5 agent prompts. Small models should know their task, not the system.
+
+### Base 14B not viable for chapter plan checker (reconfirmed)
+*(2026-04-12 · exp #107 still current)*
+
+**Decision:** Keep chapter plan checker on gpt-oss-120b. Do NOT swap to base Qwen3-14B.
+
+**Why:** Base 14B scored 58% with 100% one-sided bias (exp #107) — rubber-stamps every FAIL case. SFT adapter (exp #154) is the path forward, pending eval.
