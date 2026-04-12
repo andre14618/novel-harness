@@ -1,14 +1,12 @@
-import { useEffect, useState, useCallback, useRef, useMemo } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import { useParams, Link } from "react-router-dom"
 import { getNovelState, getNovelConfig, resumeNovel, getTrace, getAllChapters } from "../api"
-import type { NovelState, NovelConfig, SSEEvent, TraceEvent } from "../api"
+import type { NovelState, NovelConfig, SSEEvent, TraceEvent, ChapterData } from "../api"
 import { useNovelSSE } from "../hooks/useNovelSSE"
 import { GatePanel } from "./GatePanel"
-import { EventLog } from "./EventLog"
 import { TraceTimeline } from "./TraceTimeline"
 import { PipelineFlow } from "./PipelineFlow"
 import { LiveMeters } from "./LiveMeters"
-import { LiveProse, type LiveBeat } from "./LiveProse"
 
 // ── Agent display labels ────────────────────────────────────────────────
 // Drives the human-readable text shown in the activity feed when an LLM call
@@ -77,33 +75,12 @@ export function PipelineView() {
   const [resuming, setResuming] = useState(false)
   const [viewMode, setViewMode] = useState<"live" | "trace">("live")
 
-  // Per-beat streamed text — updated via ref to avoid re-rendering on every
-  // token; a requestAnimationFrame flush mirrors it into React state.
-  const beatTextRef = useRef<Map<string, string>>(new Map())
-  const [beatTextTick, setBeatTextTick] = useState(0)
-  const flushScheduledRef = useRef(false)
-
-  const handleStream = useCallback((event: { data: any }) => {
-    const d = event.data
-    if (d?.agent !== "beat-writer" || d.chapter == null || d.beatIndex == null) return
-    const key = `${d.chapter}-${d.beatIndex}`
-    const prev = beatTextRef.current.get(key) ?? ""
-    beatTextRef.current.set(key, prev + (d.delta ?? ""))
-    if (!flushScheduledRef.current) {
-      flushScheduledRef.current = true
-      requestAnimationFrame(() => {
-        flushScheduledRef.current = false
-        setBeatTextTick(t => t + 1)
-      })
-    }
-  }, [])
-
-  const { events, connected, lastEvent, seedEvents } = useNovelSSE(novelId ?? null, handleStream)
+  const { events, connected, lastEvent, seedEvents } = useNovelSSE(novelId ?? null)
 
   // Live stream state — built from SSE events on every render
   const [liveCalls, setLiveCalls] = useState<LLMCallRow[]>([])
   const [feedItems, setFeedItems] = useState<FeedItem[]>([])
-  const [liveBeats, setLiveBeats] = useState<LiveBeat[]>([])
+  const [chapters, setChapters] = useState<ChapterData[]>([])
   const [currentChapter, setCurrentChapter] = useState<number | null>(null)
   const [currentBeat, setCurrentBeat] = useState<number | null>(null)
   const [currentTotalBeats, setCurrentTotalBeats] = useState<number | null>(null)
@@ -157,19 +134,7 @@ export function PipelineView() {
       })
       .catch(() => {})
 
-    getAllChapters(novelId)
-      .then(chapters => {
-        if (chapters.length === 0) return
-        for (const ch of chapters) {
-          if (!ch.prose) continue
-          // We don't have per-beat prose boundaries in the chapter data, so
-          // store the full chapter text as beat 0 — the live view will show it
-          // as a single block for completed chapters.
-          beatTextRef.current.set(`${ch.chapter}-0`, ch.prose)
-        }
-        setBeatTextTick(t => t + 1)
-      })
-      .catch(() => {})
+    getAllChapters(novelId).then(setChapters).catch(() => {})
   }, [novelId, seedEvents])
 
   // Ingest SSE events and derive the live view state. We rebuild everything
@@ -177,8 +142,6 @@ export function PipelineView() {
   useEffect(() => {
     const calls = new Map<string, LLMCallRow>()
     const narratives: NarrativeEntry[] = []
-    const beats: LiveBeat[] = []
-    const beatByKey = new Map<string, number>()
     const active = new Set<string>()
     const completed = new Set<string>()
     let chapter: number | null = null
@@ -187,7 +150,6 @@ export function PipelineView() {
     let chapterTitle: string | null = null
     let earliestTs: number | null = null
 
-    // Track beat-writer attempts per beat to detect retries
     const beatAttempts = new Map<string, number>()
 
     const keyFor = (agent: string, ch?: number, bi?: number, startTs?: number) =>
@@ -228,17 +190,6 @@ export function PipelineView() {
                 ts: tsMs,
                 text: `Retrying beat ${d.beatIndex + 1} (attempt ${attempt})`,
                 detail: `Chapter ${d.chapter}`,
-              })
-            }
-            if (!beatByKey.has(bkey)) {
-              beatByKey.set(bkey, beats.length)
-              beats.push({
-                chapter: d.chapter,
-                beatIndex: d.beatIndex,
-                description: d.beatDescription,
-                characters: d.beatCharacters,
-                text: "",
-                done: false,
               })
             }
             chapter = d.chapter
@@ -287,14 +238,6 @@ export function PipelineView() {
           }
           active.delete(agent)
           completed.add(agent)
-
-          if (agent === "beat-writer" && d.chapter != null && d.beatIndex != null) {
-            const bkey = `${d.chapter}-${d.beatIndex}`
-            const idx = beatByKey.get(bkey)
-            if (idx != null) {
-              beats[idx] = { ...beats[idx], done: true }
-            }
-          }
         } else if (et === "agent-fail") {
           const agent = d.agent as string
           for (const [k, v] of calls) {
@@ -410,7 +353,6 @@ export function PipelineView() {
 
     setLiveCalls(callList)
     setFeedItems(feed)
-    setLiveBeats(beats)
     setCurrentChapter(chapter)
     setCurrentBeat(beatIdx)
     setCurrentTotalBeats(totalBeats)
@@ -425,25 +367,20 @@ export function PipelineView() {
     activityEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [liveCalls.length])
 
-  // Reload state on relevant SSE events
+  // Reload state on relevant SSE events; re-fetch chapters on completion
   useEffect(() => {
-    if (!lastEvent) return
+    if (!lastEvent || !novelId) return
     if (["phase:changed", "gate:waiting", "gate:resolved", "done"].includes(lastEvent.type)) {
       loadState()
     }
-  }, [lastEvent, loadState])
-
-  // Merge streamed text from the ref into the beat list for rendering.
-  // Recomputed on beatTextTick so the UI updates smoothly as tokens arrive.
-  const beatsForRender = useMemo(
-    () =>
-      liveBeats.map(b => ({
-        ...b,
-        text: beatTextRef.current.get(`${b.chapter}-${b.beatIndex}`) ?? b.text,
-      })),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [liveBeats, beatTextTick],
-  )
+    const d = lastEvent.data as any
+    if (lastEvent.type === "trace" && d?.eventType === "chapter-complete") {
+      getAllChapters(novelId).then(setChapters).catch(() => {})
+    }
+    if (lastEvent.type === "done") {
+      getAllChapters(novelId).then(setChapters).catch(() => {})
+    }
+  }, [lastEvent, loadState, novelId])
 
   // Aggregate meters
   const totals = useMemo(() => {
@@ -573,53 +510,51 @@ export function PipelineView() {
           </div>
         )}
 
-        {/* Main split: LiveProse on the left, activity feed on the right */}
-        <div className="live-split">
-          <LiveProse
-            chapter={currentChapter}
-            chapterTitle={currentChapterTitle}
-            totalBeats={currentTotalBeats}
-            beats={beatsForRender}
-            writing={activeAgents.has("beat-writer")}
-          />
-
-          <div className="live-activity">
-            <div className="live-activity-header">Activity</div>
-            <div className="live-activity-body">
-              {feedItems.length === 0 && (
-                <div className="live-activity-placeholder">
-                  {state.active ? "Waiting for the first LLM call…" : "Idle."}
-                </div>
-              )}
-              {feedItems.map((item, i) =>
-                item.type === "call"
-                  ? <ActivityRow key={item.call.id} call={item.call} />
-                  : <NarrativeRow key={`n-${i}`} entry={item.entry} />
-              )}
-              <div ref={activityEndRef} />
-            </div>
-
-            {/* Pending gate inline */}
-            {state.pendingGate && (
-              <div className="tl-entry tl-gate" style={{ marginTop: "1rem" }}>
-                <div className="tl-dot gate" />
-                <div className="tl-body" style={{ width: "100%" }}>
-                  <GatePanel
-                    novelId={novelId!}
-                    gateId={state.pendingGate.gateId}
-                    title={state.pendingGate.title}
-                    content={state.pendingGate.content}
-                    onDecided={loadState}
-                  />
-                </div>
+        <div className="live-activity">
+          <div className="live-activity-header">Activity</div>
+          <div className="live-activity-body">
+            {feedItems.length === 0 && (
+              <div className="live-activity-placeholder">
+                {state.active ? "Waiting for the first LLM call…" : "Idle."}
               </div>
             )}
+            {feedItems.map((item, i) =>
+              item.type === "call"
+                ? <ActivityRow key={item.call.id} call={item.call} />
+                : <NarrativeRow key={`n-${i}`} entry={item.entry} />
+            )}
+            <div ref={activityEndRef} />
           </div>
+
+          {state.pendingGate && (
+            <div className="tl-entry tl-gate" style={{ marginTop: "1rem" }}>
+              <div className="tl-dot gate" />
+              <div className="tl-body" style={{ width: "100%" }}>
+                <GatePanel
+                  novelId={novelId!}
+                  gateId={state.pendingGate.gateId}
+                  title={state.pendingGate.title}
+                  content={state.pendingGate.content}
+                  onDecided={loadState}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
-        <div style={{ marginTop: "1rem" }}>
-          <EventLog events={events} connected={connected} />
-        </div>
+        {chapters.length > 0 && (
+          <div className="chapter-prose-list">
+            {chapters.map(ch => (
+              <details key={ch.chapter} className="chapter-prose-block">
+                <summary className="chapter-prose-summary">
+                  Chapter {ch.chapter}
+                  <span className="chapter-prose-meta">{ch.wordCount.toLocaleString()} words</span>
+                </summary>
+                <div className="chapter-prose-text">{ch.prose}</div>
+              </details>
+            ))}
+          </div>
+        )}
       </>}
     </>
   )
