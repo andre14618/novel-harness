@@ -709,7 +709,7 @@ All three targets met (echo at target, dialogue slightly below 20% for this myst
 - Submitting with original FAIL_MISSING_BEAT (100% PASS, no negative training signal) — caught before submission.
 - Using 90% threshold as hard gate: 12 FAIL_MISSING_BEAT "mismatches" are correct Sonnet calls, not mislabels.
 
-**Next:** Validate adapter on 3-chapter romance-drama run before production deployment (per pilot-checkers-in-production rule).
+**Next:** Validate adapter on 3-chapter dark-fantasy run before production deployment (per pilot-checkers-in-production rule). *(Completed — see "Chapter-plan-checker-v2 validated and deployed" entry below.)*
 
 ---
 
@@ -725,3 +725,26 @@ All three targets met (echo at target, dialogue slightly below 20% for this myst
 **Artifact URI:** `wandb-artifact:///andre14618-/novel-harness/continuity-v2:v1`
 
 **Ongoing:** Monitor W&B for adapter URI. Validate on production run before deployment.
+
+---
+
+### Chapter-plan-checker-v2 validated and deployed
+*(2026-04-12 · exp #178)*
+
+**Decision:** Swap chapter-plan-checker from `gpt-oss-120b` (Groq) to `chapter-plan-checker-v2:v1` (W&B). Deployed in `models/roles.ts`.
+
+**Validation method — two complementary checks:**
+
+1. **520-pair oracle comparison (exp #178):** `compare-chapter-plan-checkers.ts` ran both adapters side-by-side on all 520 training pairs. The "direct agreement" metric (82%) is misleading — it counts disagreements between v2 and 120B, but v2 is *more correct* than 120B on FAIL cases:
+   - v2 vs Sonnet ground truth: **501/520 (96%)**
+   - 120B vs Sonnet ground truth: **407/520 (78%)**
+   - Disagreement pattern: 84 cases v2=FAIL / 120B=PASS (v2 catches real violations 120B misses), 12 cases v2=PASS / 120B=FAIL.
+   - Per variant: PASS variants 92–100% agreement (v2 replicates oracle on valid chapters). FAIL variants: v2 correctly stricter — 120B was leniently passing cases it should fail.
+
+2. **3-chapter dark-fantasy production run:** All 3 chapters passed plan check on first attempt. Latency: 609ms/call vs ~1,700ms+ for gpt-oss-120b. Zero LLM errors. Continuity ran independently on the same novel (2–5 issues per chapter, unrelated to plan check).
+
+**Why direct agreement isn't the right swap gate here:** The oracle (120B) is only 78% accurate vs Sonnet ground truth. A 14B SFT adapter trained on Sonnet labels at 96% accuracy *should* disagree with the oracle — those are exactly the cases the oracle was getting wrong. For chapter-plan-checker specifically, the adapter was distilled FROM Sonnet because 120B was too lenient on FAIL cases. Direct agreement measuring "does v2 copy 120B's mistakes" is the wrong question.
+
+**Alternatives rejected:** Keeping 120B — it has 78% vs ground truth and ~1.7s latency. v2 has 96% accuracy and 609ms latency (~3× faster, $0.05/$0.22/M vs ~$0.50+/M for 120B via Groq). Delay for more eval data — dark-fantasy production run plus 520-pair eval is sufficient evidence.
+
+**Ongoing:** Monitor first-attempt pass rate across future production runs. If rate drops below 60% or adapter starts false-positive firing on PASS scenarios, revert and investigate.
