@@ -30,7 +30,8 @@ Pending action items only. Ordered by impact. Completed items and decision ratio
 
 ## Adherence Checker (cont.)
 
-- **V4 adapter re-labeling** — re-label 7,540 pairs with the new events+attribution merged prompt. Train V4 adapter on W&B once validated in production. Blocked on end-to-end validation run.
+- **Base 14B sanity check** — test base `OpenPipe/Qwen3-14B-Instruct` (no LoRA) with the new events+attribution prompt vs V2 LoRA with the new prompt. Single roles.ts change + 3-chapter run. If base 14B >85% first-attempt pass rate, the new prompt alone compensates.
+- **V4 adapter re-labeling** — extract ~2,000 unique (beat, prose) pairs from existing curated JSONL, re-label with Sonnet using new events+attribution prompt, train V4 on W&B. Full instructions: `scripts/v4-adherence-relabeling-instructions.md`.
 - **Close experiments #154 (chapter-plan-checker-v1), #155 (continuity-v1), #159 (adherence-v3-sonnet)** — all three training runs submitted but not concluded in DB. Run eval for each and call `concludeExperiment()` with results.
 
 ## Fine-Tuning (Other)
