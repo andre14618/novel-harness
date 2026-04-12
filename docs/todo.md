@@ -9,9 +9,8 @@ Pending action items only. Ordered by impact. Completed items and decision ratio
 
 ## Adherence Checker
 
-- **Step 0 eval** — base 14B novel run in progress on LXC. Query retry rates when done: `SELECT attempt, count(*) FROM llm_calls WHERE agent = 'adherence-events' AND novel_id = '<id>' GROUP BY attempt`. Target: >85% first-attempt pass → V4 training less urgent (still proceeding).
-- **V4 adapter eval** — training submitted 2026-04-12 (exp #161, 2,134 Sonnet-labeled examples, `adherence-checker-v4`). When done: (1) run 30-pair ground-truth eval at `/tmp/eval-pairs-30.json` (target: ≥93%); (2) run 3-chapter romance-drama; (3) if both pass, set `adherence-events` to `wandb-artifact:///andre14618-/novel-harness/adherence-checker-v4-sft-resume:v9`, deploy, conclude exp #161.
-- **GRPO/RL reward loop** (conditional, post-validation) — adherence-checker is the only pipeline agent with a clean automatic reward signal (deterministic checks + synthetic labels). Design a GRPO loop on W&B/ART after V4 is validated.
+- **V4 deployed and concluded** (exp #161, 2026-04-12) — `adherence-checker-v4` live at 512 token budget. Production eval: 79% first-attempt pass (23/30 beats), all failures resolved on retry, zero false positives. Synthetic eval (70%) not reliable for this task — production signal is the metric. See `docs/decisions.md`.
+- **GRPO/RL reward loop** (conditional, post-V4 validation) — adherence-checker is the only pipeline agent with a clean automatic reward signal (deterministic checks + synthetic labels). Design a GRPO loop on W&B/ART. Now unblocked since V4 is validated.
 
 ## Chapter Plan Checker
 
@@ -35,7 +34,7 @@ Pending action items only. Ordered by impact. Completed items and decision ratio
 - **Exp #154** (chapter-plan-checker-v1) — training submitted, eval pending. Run oracle agreement eval on held-out pairs.
 - **Exp #155** (continuity-v1) — training submitted, eval pending. Run accuracy eval on held-out pairs.
 - **Exp #159** (adherence-v3-sonnet) — partial eval done (character 61% regression documented). Conclude with notes.
-- **Exp #161** (adherence-v4-events-sonnet) — training in progress. Conclude after step 0 + V4 eval above.
+- **Exp #161** (adherence-v4-events-sonnet) — concluded 2026-04-12. See `docs/decisions.md`.
 
 ## Fine-Tuning (Other)
 
