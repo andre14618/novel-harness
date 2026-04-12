@@ -142,7 +142,7 @@ Until condition 1 is true, RunPod is an infrastructure cost, not a cost saving. 
 
 **Current**: W&B Qwen3-14B-Instruct + V2 curated LoRA · 4 parallel calls (events/setting/tangent/character) · ~627ms avg · $0.00005/call
 
-**History**: Base 14B zero-shot hit 96% agreement on the old 160-pair single-call eval (exp #101). But the 4-call decomposed prompt (exp #122, 2026-04-08) revealed a 6pp gap: 14B at 91% vs 235B at 97% on the 160-pair decomposed eval. Worth closing at zero marginal cost (W&B SFT is free).
+**History**: Base 14B zero-shot hit 96% agreement on the old 160-pair single-call eval (exp #101). But the 4-call decomposed prompt (exp #122, 2026-04-08) revealed a 6pp gap: 14B at 91% vs 235B at 97% on the 160-pair decomposed eval. Worth closing via SFT (W&B ART training is free during public preview; inference is billed at $0.05/$0.22 per 1M).
 
 **Data pipeline (2026-04-09, exp #132)**: `scripts/generate-adherence-decomposed-data.ts` — 59 scenarios × 11 variants × 4 writers (Cerebras 235B, Llama 8B, Kimi K2, DeepSeek V3.2) = 2,596 prose samples × 4 decomposed oracle calls = 10,008 raw training examples. Multi-writer for stylistic diversity + organic drift from weaker models. Oracle: Cerebras 235B using production system prompts, validated against gpt-oss-120b (95% agreement). $6.16 total cost.
 

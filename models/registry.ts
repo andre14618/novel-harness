@@ -714,7 +714,7 @@ export const MODELS: ModelDef[] = [
     pricing: { input: 0.05, output: 0.22 },
     thinking: "disabled",
     maxContext: 33_000,
-    notes: "Cheapest serverless tier on W&B. Designed by OpenPipe (acquired by CoreWeave Sept 2025) as a finetune-friendly fork of Qwen3-14B with non-thinking-default chat template — no /nothink prefix needed. Probe (exp #94) showed 1.3x baseline on beat-writer shape, FASTER than Cerebras 235B on adherence-checker (157ms vs 365ms). Chosen as the multi-task analytical LoRA base.",
+    notes: "Cheapest serverless tier on W&B. Designed by OpenPipe (acquired by CoreWeave Sept 2025) as a finetune-friendly fork of Qwen3-14B with non-thinking-default chat template — no /nothink prefix needed. Probe (exp #94) showed 1.3x baseline on beat-writer shape, FASTER than Cerebras 235B on adherence-checker (157ms vs 365ms). Chosen as the multi-task analytical LoRA base. NOTE: LoRA adapters served here are billed at these same rates ($0.05/$0.22 per 1M) — NOT free. The wandb-artifact:/// URI used for LoRA calls does not match this id, so getTokenCost() requires a special-case fallback (see below) to avoid logging $0.",
   },
   {
     id: "Qwen/Qwen3-30B-A3B-Instruct-2507",
@@ -824,6 +824,16 @@ export function getApiKey(provider: ProviderName): string {
 
 export function getTokenCost(provider: ProviderName, modelId: string, promptTokens: number, completionTokens: number): number {
   const model = getModel(modelId, provider)
-  if (!model) return 0
+  if (!model) {
+    // W&B LoRA artifact URIs (wandb-artifact:///...) don't match any id in MODELS,
+    // but they are served on OpenPipe/Qwen3-14B-Instruct at standard Qwen3-14B rates
+    // with no LoRA surcharge. Fall back to that base model's pricing so llm_calls
+    // records real cost instead of $0.
+    if (provider === "wandb" && modelId.startsWith("wandb-artifact:///")) {
+      const base = getModel("OpenPipe/Qwen3-14B-Instruct", "wandb")
+      if (base) return (promptTokens * base.pricing.input + completionTokens * base.pricing.output) / 1_000_000
+    }
+    return 0
+  }
   return (promptTokens * model.pricing.input + completionTokens * model.pricing.output) / 1_000_000
 }

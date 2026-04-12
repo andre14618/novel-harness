@@ -169,11 +169,13 @@ Shows how the same intervention (structured checklist) has different effects by 
 | beat-writer | Cerebras Qwen 235B | 846 | 391 | 2,155ms | ~$0.001 |
 | **continuity** | **Cerebras Qwen 235B** | **7,294** | **241** | **934ms** | **~$0.0023** |
 | chapter-plan-checker | gpt-oss-120b (Groq) | 2,880 | 995 | 2,415ms | ~$0.0007 |
-| adherence-checker (×4) | W&B Qwen3-14B + V2 | ~360 | ~17 | ~627ms | ~$0.00005 |
+| adherence-checker (×4) | W&B Qwen3-14B + V2 | ~360 | ~17 | ~627ms | ~$0.00005 ¹ |
 | reference-resolver (×3) | Llama 8B (Groq) | 257 | 162 | 289ms | ~$0.00003 |
 | lint-fixer | Cerebras Qwen 235B | ~200 | ~50 | ~200ms | ~$0.0002 |
 
 **Continuity is the highest per-call cost by 3x.** That's where the fine-tuning ROI lives — but the teacher quality bottleneck must be solved first.
+
+¹ W&B adherence calls are billed at Qwen3-14B rates ($0.05/$0.22 per 1M) — not free. The LoRA artifact URI (`wandb-artifact:///...`) previously caused `getTokenCost()` to return $0 due to an ID lookup miss; this was fixed in `models/registry.ts`. A 10-chapter run generates ~$0.019 in adherence costs (267K prompt + 27K completion tokens across 348 calls).
 
 ---
 
