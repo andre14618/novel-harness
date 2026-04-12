@@ -144,7 +144,12 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
             for (let retry = 0; retry <= pipeline.maxBeatRetries; retry++) {
               let retryContext = ""
               if (retry > 0 && previousProse && previousIssues.length > 0) {
-                retryContext = `\n\n--- TARGETED REWRITE ---\nYour previous prose for this beat:\n---\n${previousProse.slice(0, 2000)}\n---\nIssues found:\n${previousIssues.map(i => `- ${i}`).join("\n")}\nRewrite this beat to address the issues above while preserving what works.`
+                const hasEventIssue = previousIssues.some(i => i.includes("not enacted"))
+                const priorBeatProse = bi > 0 ? beatProses[bi - 1] : null
+                const alignmentNote = hasEventIssue && priorBeatProse
+                  ? `\nNote: The previous beat's prose (below) may already cover some of this beat's actions — this is natural prose flow. Focus on actions NOT yet dramatized. Do not duplicate what the prior beat already covered.\n\nPrevious beat's prose (last 500 chars):\n---\n${priorBeatProse.slice(-500)}\n---\n`
+                  : ""
+                retryContext = `\n\n--- TARGETED REWRITE ---\nYour previous prose for this beat:\n---\n${previousProse.slice(0, 2000)}\n---\nIssues found:\n${previousIssues.map(i => `- ${i}`).join("\n")}${alignmentNote}\nRewrite this beat to address the issues above while preserving what works.`
               }
               try {
                 const response = await executeAndLog(
