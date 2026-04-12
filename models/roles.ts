@@ -49,9 +49,9 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // (vs 77% base, 87% V1 uncurated). Events 98%, character 88% (+25pp over base).
   // W&B convention: artifact URI goes in `model` field (NOT separate `lora` field).
   "adherence-checker":         { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/adherence-checker-v2-sft-resume:v9", temperature: 0.1, maxTokens: 256 },
-  // Temporarily on base 14B to test if new events+attribution prompt alone suffices.
-  // Step 0 sanity check per v4-adherence-relabeling-instructions.md (2026-04-12).
-  "adherence-events":          { provider: "wandb", model: "OpenPipe/Qwen3-14B-Instruct", temperature: 0.1, maxTokens: 256 },
+  // V4 adapter: events+attribution merged prompt, Sonnet-labeled, 2134 examples (exp #161).
+  // 512 tokens: V4 trained on Sonnet labels which include fuller evidence quotes than V2.
+  "adherence-events":          { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/adherence-checker-v4", temperature: 0.1, maxTokens: 512 },
 
   // ── Extractors (structured extraction from prose) ─────────────────────
   "summary-extractor":         { ...mimoFlash, temperature: 0.2, maxTokens: 8192 },
