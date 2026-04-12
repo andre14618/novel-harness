@@ -58,6 +58,10 @@ const ALL_MODELS: Record<string, { provider: string; model: string }> = {
     provider: "wandb",
     model: "wandb-artifact:///andre14618-/novel-harness/adherence-checker-v3-sft-resume:v9",
   },
+  "v3-sonnet-teacher": {
+    provider: "wandb",
+    model: "wandb-artifact:///andre14618-/novel-harness/adherence-checker-v3-sonnet-sft-resume:v9",
+  },
 };
 
 // --only flag: run oracle + specified model only (e.g. --only=v3-mixed-teacher)
