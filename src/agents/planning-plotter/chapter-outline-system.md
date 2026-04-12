@@ -57,6 +57,9 @@ Create exactly 3 chapters — one per act. Guidelines:
   Bad: "Kael breaks the wax seal on the iron chest, pulls out Davan's water-stained letter, and reads it by the flicker of a dying oil lamp — her hands tightening on the parchment as the cellar draft makes the flame gutter."
   Good: "Kael discovers Davan's betrayal through a letter hidden in the archive — physical evidence that's undeniable, and it rewrites what she believed about the order's loyalty. She is alone, but not for long."
 - Keep beat descriptions to 1-2 sentences. Longer descriptions constrain the writer's creative latitude and reduce dialogue in the output.
+- Do NOT include sample dialogue in beat descriptions — the writer creates all dialogue. Describe what characters confront or reveal, not what they say.
+  Bad: "Gil: 'You left. I stayed. Watched the water turn.' She has no answer."
+  Good: "Gil confronts Maren about leaving — he stayed and suffered while she was gone. She has no defense."
 - If a document, letter, or artifact is discovered, the beat must specify it is READ or SHOWN to the reader, not summarized
 - Scenes with 2+ characters should involve tension, disagreement, or revelation — situations that demand dialogue
 
