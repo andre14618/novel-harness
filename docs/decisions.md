@@ -650,3 +650,48 @@ The planner assigns a chapter-level setting to all beats. The writer, given more
 - Revert to screenplay beats: data overwhelmingly favors dramatic style on every quality metric.
 - Increase beat granularity: exp #165 showed dialogue collapse at >5 beats. Keep at 3.
 - V5 LoRA retraining: V4 handles dramatic beats fine. Save effort for after the no-dialogue planner fix.
+
+---
+
+## Chapter Plan Checker V2 SFT Data — Complete
+
+### FAIL_MISSING_BEAT redesigned from event-omission to fact-omission
+*(2026-04-12 · exp #169 → #170)*
+
+**Decision:** FAIL_MISSING_BEAT v1 was misconfigured — it skipped the opening/entry beat, which is a valid in-medias-res narrative choice and the checker prompt explicitly permits missing beat events. All 65 pairs were labeled PASS by gpt-oss and Sonnet (100% accuracy, but zero training signal for FAIL cases). V2 redesign targets the *middle* beat (index = max(1, floor(N/2))) and requires that beat to carry a required `establishedFact`. Missing that beat means a plan-required fact is never established — a genuine major plot contradiction per the checker prompt.
+
+**Result:** Sonnet labeled 53/65 as FAIL (82%). The 12 PASS labels are correct overrides where the Cerebras writer established the required fact through other beats. gt_pass=false for FAIL_MISSING_BEAT in aggregate script.
+
+**Ongoing:** FAIL_MISSING_BEAT per-variant accuracy is 82% vs 90% threshold. Acceptable because the 12 "mismatches" are correct Sonnet calls, not errors.
+
+---
+
+### Chapter-plan-checker-v2 adapter trained (exp #170)
+*(2026-04-12)*
+
+**Decision:** Submit chapter-plan-checker-v2 to W&B Serverless SFT. Adapter available for eval.
+
+**Data:** 520 pairs (65 scenarios × 8 variants), Sonnet 4.6 teacher labels, 96% overall accuracy. 3 epochs, Qwen3-14B-Instruct base, batch size 2, cosine LR.
+
+**Artifact URI:** `wandb-artifact:///andre14618-/novel-harness/chapter-plan-checker-v2:v1`
+
+**Alternatives rejected:**
+- Submitting with original FAIL_MISSING_BEAT (100% PASS, no negative training signal) — caught before submission.
+- Using 90% threshold as hard gate: 12 FAIL_MISSING_BEAT "mismatches" are correct Sonnet calls, not mislabels.
+
+**Next:** Validate adapter on 3-chapter romance-drama run before production deployment (per pilot-checkers-in-production rule).
+
+---
+
+## Continuity Checker V2 SFT Data — Complete
+
+### Continuity V2 Sonnet labeling: 99% accuracy, all variants pass
+*(2026-04-12 · exp #175)*
+
+**Decision:** Submit continuity-v2 to W&B Serverless SFT.
+
+**Data:** 253 pairs (39 scenarios × ~6.5 variants avg), Sonnet 4.6 teacher labels, 99% overall accuracy. 3 mismatches all malformed-draft artifacts (`{"type": "object"}` placeholder prose), not labeling errors. 3 epochs, Qwen3-14B-Instruct base.
+
+**Artifact URI:** pending training completion (submitted 2026-04-12).
+
+**Ongoing:** Monitor W&B for adapter URI. Validate on production run before deployment.
