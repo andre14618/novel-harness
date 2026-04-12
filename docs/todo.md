@@ -29,17 +29,20 @@ All existing SFT training data was generated with screenplay-style beats (pre-ex
 - **V4 deployed and concluded** (exp #161, 2026-04-12) — `adherence-checker-v4` live at 512 token budget. Production eval: 79% first-attempt pass (23/30 beats), all failures resolved on retry, zero false positives. Synthetic eval (70%) not reliable for this task — production signal is the metric. See `docs/decisions.md`.
 - **GRPO/RL reward loop** (conditional, post-V4 validation) — adherence-checker is the only pipeline agent with a clean automatic reward signal (deterministic checks + synthetic labels). Design a GRPO loop on W&B/ART. Now unblocked since V4 is validated.
 
-## Chapter Plan Checker
+## Chapter Plan Checker — DONE
 
-- **Scope narrowed** — `beats_covered` and `characters_present` removed from schema and prompt (2026-04-12). Now focused on cross-beat properties only: setting coherence, emotional arc, major plot contradictions. Beat-level adherence handles event coverage and character presence.
-- **SFT training in progress** — 197-pair dataset (`lora-data/chapter-plan-checker-pairs-v2-final.jsonl`) submitted to W&B Serverless SFT as `chapter-plan-checker-v1` (exp #154). Teacher was gpt-oss-120b — now superseded by Sonnet (exp #158: Sonnet 94.3% vs gpt-oss 88.2%). V1 is a pilot. Class balance: 54:46. Eval target: ≥80% oracle agreement on held-out pairs. Adapter URI once done: `wandb-artifact:///andre14618-/novel-harness/chapter-plan-checker-v1-sft-resume:v9`.
-- **V2 dataset with Sonnet labels** — V1 gpt-oss labels had ~12% error rate on PASS_REORDER and FAIL_REVERSED_ARC. V2 path: (1) add 20+ scenarios to `scripts/generate-chapter-plan-data.ts` (currently 25, target 45+); (2) relabel all pairs with Sonnet subagents; (3) combine with corrected V1 data → ~500+ pairs; (4) train `chapter-plan-checker-v2`. Do NOT re-collect production oracle gpt-oss labels — teacher is now Sonnet.
+**V2 adapter deployed** (2026-04-12). `chapter-plan-checker-v2:v1` live in `models/roles.ts`. 96% accuracy vs Sonnet ground truth (vs 78% for gpt-oss-120b), 609ms latency. Validated on 520-pair oracle comparison (exp #178) + 3-chapter dark-fantasy production run (all chapters passed first attempt). See `docs/decisions.md`.
+
+- Scope narrowed (2026-04-12): cross-beat properties only — setting coherence, emotional arc, major plot contradictions.
+- V1 pilot (exp #154) superseded — V2 Sonnet labels (96% accuracy) are the definitive dataset.
+- **Next data round** — regenerate with dramatic-style beat plans (current dataset used screenplay-style). Not urgent; V2 handles dramatic beats fine in production. Revisit when first-attempt pass rate trends downward.
 
 ## Continuity
 
-- **SFT training in progress** — 120-pair dataset (`lora-data/continuity-pairs-sonnet-labeled.jsonl`) submitted to W&B Serverless SFT as `continuity-v1` (exp #155). Teacher: Sonnet 4.6 (98% accuracy vs expected labels; 235B misses 90% of WARNINGs). Eval target: ≥80% accuracy on held-out continuity pairs before swapping from 235B. Adapter URI once done: `wandb-artifact:///andre14618-/novel-harness/continuity-v1-sft-resume:v9`.
+- **V2 adapter trained, pending validation** — `continuity-v2:v1` on W&B. 253 pairs, 99% Sonnet label accuracy. Serving URI: `wandb-artifact:///andre14618-/novel-harness/continuity-v2:v1`. **Next: wire into `models/roles.ts` and run 3-chapter dark-fantasy validation** (same pattern as chapter-plan-checker-v2). Monitor issue counts vs Cerebras 235B baseline before declaring stable swap.
+- V1 pilot (exp #155) superseded by V2 — do not eval V1.
 - **Phase 2 — scale to 300 pairs** — add 10 more scenarios to `scripts/generate-continuity-data.ts` + VAR_WARNING_2 variants. Prioritize LitRPG scenarios and multi-chapter carryover. Then re-run Sonnet labeling pipeline.
-- **Compact diff format (Phase 3)** — V1 trains on full-dump format (same as production ~7,300 tokens). Compressing to ~1,000 tokens via structured diff requires a new input format design + new training data. Do not attempt until V1 eval passes.
+- **Compact diff format (Phase 3)** — V2 trains on full-dump format (~7,300 tokens). Compressing to ~1,000 tokens via structured diff requires new input format + new training data. Do not attempt until V2 validated in production.
 
 ## Tonal Pass
 
@@ -48,10 +51,9 @@ All existing SFT training data was generated with screenplay-style beats (pre-ex
 
 ## Open Experiments (need concludeExperiment())
 
-- **Exp #154** (chapter-plan-checker-v1) — training submitted, eval pending. Run oracle agreement eval on held-out pairs.
-- **Exp #155** (continuity-v1) — training submitted, eval pending. Run accuracy eval on held-out pairs.
+- **Exp #154** (chapter-plan-checker-v1) — superseded by V2. Conclude with note: "V1 pilot on gpt-oss labels superseded by chapter-plan-checker-v2 (Sonnet labels, 96% accuracy, exp #170/#178). V1 not evaluated."
+- **Exp #155** (continuity-v1) — superseded by V2. Conclude with note: "V1 pilot superseded by continuity-v2 (253 pairs, 99% Sonnet accuracy, exp #175). V1 not evaluated."
 - **Exp #159** (adherence-v3-sonnet) — partial eval done (character 61% regression documented). Conclude with notes.
-- **Exp #161** (adherence-v4-events-sonnet) — concluded 2026-04-12. See `docs/decisions.md`.
 
 ## Fine-Tuning (Other)
 

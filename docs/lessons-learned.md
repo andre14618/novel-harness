@@ -993,3 +993,24 @@ The no-dialogue rule for the planner was ignored when stated as a simple bullet 
 
 ### Goodhart's Law in pipeline metrics — optimizing pass rate produced stage-direction prose (2026-04-12)
 The harness originally optimized for adherence checker pass rates. The planner wrote dense screenplay beats → checker verified all actions → writer executed faithfully → pass rate was high. But the prose read like conjugated stage directions. The metric (pass rate, spec coverage) became the target and ceased measuring prose quality. The fix was upstream: changing the beat description mechanism (screenplay → dramatic) fixed echo, dialogue density, and prose quality without touching the metric. **If your optimization target conflicts with your quality goal, fix the mechanism upstream — don't chase the metric downstream.** (Experiments #165, #173, #176)
+
+## SFT Distillation
+
+### Evaluate SFT adapters against ground truth, not against the oracle you're replacing — direct agreement is wrong when the oracle is imperfect (2026-04-12 · exp #178)
+chapter-plan-checker-v2 eval: direct agreement between the 14B SFT adapter and the production oracle (gpt-oss-120b) was 82%. The automated verdict said "KEEP ORACLE." But this was the wrong signal:
+
+| Model | Accuracy vs Sonnet ground truth |
+|---|---:|
+| **v2 SFT adapter (14B)** | **96%** |
+| gpt-oss-120b (oracle being replaced) | 78% |
+
+The adapter matched the teacher (Sonnet) almost exactly. The 82% direct agreement was low because the adapter correctly caught FAIL cases the oracle was leniently passing — the disagreements were the oracle being wrong. Of 96 disagreements: 84 were `v2=FAIL, 120B=PASS (label=FAIL)` and only 12 were `v2=PASS, 120B=FAIL (label=PASS)`. The "direct agreement" metric was measuring "does the adapter copy the oracle's mistakes."
+
+**The rule**: when you SFT-distill FROM a teacher onto a student to REPLACE a different oracle, use ground-truth accuracy vs teacher labels as the primary swap gate — not direct agreement vs the production oracle. Direct agreement is the right metric only if the production oracle is known to be correct. If the oracle were correct, you wouldn't need to fine-tune.
+
+**The diagnostic**: read the disagreement direction before acting on the headline number. If disagreements are predominantly `adapter=FAIL, oracle=PASS` for known FAIL cases, the adapter is more accurate. If they're predominantly `adapter=PASS, oracle=FAIL`, the adapter is under-fitting.
+
+### Well-executed SFT distillation matches the teacher's accuracy exactly (2026-04-12 · exp #178)
+Sonnet 4.6 labeled 520 training pairs at 96% accuracy vs deterministic ground truth. After training, the 14B v2 adapter scored 96% accuracy vs the same ground truth — a near-perfect match. The student absorbed the teacher's calibration.
+
+This is the expected outcome when: (1) the teacher accuracy is high (96%), (2) the dataset is large enough to cover the variant space (520 pairs, 8 variants × 65 scenarios), and (3) the task is within the student model's capacity (structured verdict with 4 output fields, bounded reasoning). When these conditions hold, SFT distillation eliminates the teacher at inference time with no accuracy penalty. **If your teacher accuracy is high and your student comes back below teacher accuracy, the first suspects are insufficient data coverage or task capacity mismatch — not inherent limits of the approach.**
