@@ -49,10 +49,7 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // (vs 77% base, 87% V1 uncurated). Events 98%, character 88% (+25pp over base).
   // W&B convention: artifact URI goes in `model` field (NOT separate `lora` field).
   "adherence-checker":         { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/adherence-checker-v2-sft-resume:v9", temperature: 0.1, maxTokens: 256 },
-  // Sub-check aliases — same adapter, distinct agent names for tracing
   "adherence-events":          { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/adherence-checker-v2-sft-resume:v9", temperature: 0.1, maxTokens: 256 },
-  "adherence-setting":         { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/adherence-checker-v2-sft-resume:v9", temperature: 0.1, maxTokens: 256 },
-  "adherence-tangent":         { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/adherence-checker-v2-sft-resume:v9", temperature: 0.1, maxTokens: 256 },
 
   // ── Extractors (structured extraction from prose) ─────────────────────
   "summary-extractor":         { ...mimoFlash, temperature: 0.2, maxTokens: 8192 },

@@ -187,9 +187,6 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                   if (!adherence.pass) {
                     log(novelId, "warn", `Beat ${bi + 1} adherence issues accepted after max retries: ${adherence.issues.join("; ")}`)
                   }
-                  if (adherence.warnings.length > 0) {
-                    log(novelId, "info", `Beat ${bi + 1} soft warnings: ${adherence.warnings.join("; ")}`)
-                  }
                   break
                 }
                 previousProse = prose
