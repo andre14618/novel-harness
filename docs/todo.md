@@ -16,6 +16,14 @@ Dramatic beats + dramatize writer + no-prescribed-dialogue rule shipped and vali
 - **Fantasy-siege low dialogue** (13.7%). Genre-specific. Tracked under Character Voice & Dialogue Phase 1.
 - **Continuity location violations** from planner's chapter-level settings. Tracked under Planner Setting Coherence.
 
+## SFT Data Distribution Shift (Beat Architecture)
+
+All existing SFT training data was generated with screenplay-style beats (pre-exp #173/#176). Now that the pipeline uses dramatic-style beats, training data for future adapter versions should be regenerated:
+- **Adherence checker** — 2,134 pairs (V4) trained on screenplay beats. V4 handles dramatic beats without retraining (validated exp #161), but V5+ should be regenerated with dramatic beat distribution.
+- **Chapter plan checker** — 520 pairs (V2 dataset) trained on screenplay beats. V2 Sonnet relabeling (in progress) should use dramatic-style plans as input.
+- **Continuity checker** — 253 pairs trained on screenplay beats. V2 data generation should use dramatic-style plans.
+- **Not urgent** — current adapters work. Regeneration is for the next training round of each checker.
+
 ## Adherence Checker
 
 - **V4 deployed and concluded** (exp #161, 2026-04-12) — `adherence-checker-v4` live at 512 token budget. Production eval: 79% first-attempt pass (23/30 beats), all failures resolved on retry, zero false positives. Synthetic eval (70%) not reliable for this task — production signal is the metric. See `docs/decisions.md`.
