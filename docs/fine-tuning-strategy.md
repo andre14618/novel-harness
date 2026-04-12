@@ -36,7 +36,7 @@ OpenPipe/Qwen3-14B-Instruct (hot, always warm)
 | Serving | W&B Inference, `WANDB_API_KEY` in env |
 | Inference cost | $0.05/M input · $0.22/M output |
 | Training cost | Free during public preview |
-| Storage | Free under 100GB tier (~50MB per r=16 adapter) |
+| Storage | 5 GB free tier (pay-as-you-go). ~134 MB per adapter, ~3.7 GB per training run (auto-cleaned). Train one at a time. |
 | Max LoRA rank | 16 (W&B Inference hard limit) |
 | Training script | `scripts/train-lora.py` (Python, not Bun) |
 | JSONL format | OpenAI chat format — `{"messages": [{role, content}, ...]}` |

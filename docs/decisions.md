@@ -748,3 +748,24 @@ All three targets met (echo at target, dialogue slightly below 20% for this myst
 **Alternatives rejected:** Keeping 120B — it has 78% vs ground truth and ~1.7s latency. v2 has 96% accuracy and 609ms latency (~3× faster, $0.05/$0.22/M vs ~$0.50+/M for 120B via Groq). Delay for more eval data — dark-fantasy production run plus 520-pair eval is sufficient evidence.
 
 **Ongoing:** Monitor first-attempt pass rate across future production runs. If rate drops below 60% or adapter starts false-positive firing on PASS scenarios, revert and investigate.
+
+---
+
+### W&B storage management — purge and auto-cleanup
+*(2026-04-12)*
+
+**Decision:** Purge 20.8 GB of superseded W&B artifacts (21.81 → 1.02 GB). Add automatic post-training cleanup to `train-lora.py`. Stay on W&B free tier (5 GB) — do not upgrade to $50/month Pro plan.
+
+**Problem:** W&B pay-as-you-go plan restricted "models write access" by default, blocking all artifact deletion (API and UI returned 403). Each SFT training run creates ~3.7 GB of intermediate artifacts (identity LoRA, 9 intermediate checkpoints, 10 train-state checkpoints, dataset upload) with no user-configurable checkpoint frequency — ART controls this server-side.
+
+**Resolution:**
+1. Enabled "models write access" in W&B team settings (`andre14618-`).
+2. W&B requires aliases to be stripped before deletion — `v.aliases = []; v.save()` then `v.delete()`. Created `scripts/cleanup-wandb-storage.py` for manual cleanup.
+3. Added auto-cleanup to `train-lora.py`: after training completes, deletes intermediate LoRA versions (keeps only serving adapter), all train-state artifacts, and dataset artifacts. Use `--no-cleanup` to skip.
+4. Train-state is not needed — training data lives in `lora-data/`, retraining from scratch takes minutes on small datasets (100-2,000 examples).
+
+**Storage budget:** 5 production/eval adapters = 1.02 GB. One training run adds ~3.7 GB temporarily (total ~4.7 GB, under 5 GB cap). Auto-cleanup returns to ~1.15 GB after each run. Train one adapter at a time.
+
+**Alternatives evaluated:** Together AI (latency risk — 36.79s TTFT benchmarked on Qwen 3.5 9B, 3.1× slower than other providers on identical weights), Modal + vLLM (10-120s cold starts, 30× per-run cost, maintenance burden), self-hosted RTX 3090 (~$500 one-time, best long-term economics). Full analysis in `docs/wandb-alternatives-report.md`. W&B remains the best fit for the current workload pattern (burst runs, latency-sensitive checker calls, infrequent usage).
+
+**Ongoing:** If W&B changes pricing or restrictions again, Together AI is the hot-standby (needs latency re-benchmark first). Modal is the fallback if both fail.

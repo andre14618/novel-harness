@@ -817,6 +817,21 @@ W&B **silently ignores** a separate `lora` field — returns HTTP 200 with base 
 
 **Diagnostic:** Always verify LoRA loading with a temperature=0 deterministic probe comparing base vs adapter output. If identical, the adapter is not loading.
 
+### W&B artifact deletion requires alias-stripping — `v.delete()` alone returns 409 (2026-04-12)
+
+ART auto-assigns aliases (`latest`, `step0`, `step1`, `sft-resume-*`) to every artifact. The W&B API returns HTTP 409 if you try to delete an artifact that has any aliases. The SDK's `v.delete()` method does not strip aliases automatically.
+
+**Fix:** Strip aliases first, then delete:
+```python
+v.aliases = []
+v.save()
+v.delete()
+```
+
+Also: the W&B pay-as-you-go plan restricts "models write access" by default. Deletion (API and web UI) returns 403 `"user does not have models write access for this org"` until this is enabled in team settings. This is separate from the alias issue — you need both the permission AND alias-stripping.
+
+**Storage math:** Each SFT training run creates ~3.7 GB of artifacts (identity LoRA ~123 MB, 9 intermediate checkpoints ~134 MB each, 10 train-state ~246 MB each, dataset ~50 MB). Only the final adapter (~134 MB) is needed for serving. ART has no user-facing checkpoint frequency controls — saving is entirely server-side. `train-lora.py` auto-cleans after training; `scripts/cleanup-wandb-storage.py` handles manual cleanup.
+
 ### Per-flag oracle accuracy is not uniform — 235B's FAIL_MISSING (events) is its weakest flag at 85% (2026-04-09)
 
 Post-mortem on exp #122 per-variant breakdown + exp #135 production eval:
