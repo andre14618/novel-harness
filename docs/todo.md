@@ -9,9 +9,8 @@ Pending action items only. Ordered by impact. Completed items and decision ratio
 
 ## Adherence Checker
 
-- **Tiered retry policy** — any single flag currently fires a full beat rewrite. Proposed: events/character flags → hard gate (always retry), setting/tangent → soft gate (log warning, skip retry unless off_spec_fraction > 0.7). Reduces false-rejection rate from ~19% to ~5–7%. Especially important with expensive writer models.
-- **3-chapter romance-drama end-to-end validation** — V2 adapter + tiered retry policy. Measure actual retry rate, false-rejection impact, and whether setting/tangent soft gates cause downstream chapter-plan-checker failures.
-- **GRPO/RL reward loop** (conditional, post-validation) — adherence-checker is the only pipeline agent with a clean automatic reward signal (deterministic checks + synthetic labels). Design a GRPO loop on W&B/ART after the tiered retry policy is validated and any residual SFT gaps are assessed.
+- **3-chapter romance-drama end-to-end validation** — validate the tightened surface (single events+attribution call + targeted rewrite). Measure actual retry rate and first-attempt pass rate (target: 19% → 80%+).
+- **GRPO/RL reward loop** (conditional, post-validation) — adherence-checker is the only pipeline agent with a clean automatic reward signal (deterministic checks + synthetic labels). Design a GRPO loop on W&B/ART after the tightened surface is validated.
 
 ## Chapter Plan Checker
 
@@ -29,10 +28,9 @@ Pending action items only. Ordered by impact. Completed items and decision ratio
 - **Remove Together AI provider** — V4 confirmed preferred (pref eval 2026-04-11). Remove `TOGETHER_API_KEY`, Together entries from `models/registry.ts`, and provider config. V3 on Together was the only remaining use.
 - **Tonal pass expansion** — v3/v4 training data is dark-fantasy-specific (Howard corpus). Multi-genre corpus needed before tonal pass is usable as a general pipeline stage. Public domain candidates: Hemingway (pre-1929), London, Cather, Fitzgerald. See `docs/ai-training-copyright-landscape.md`.
 
-## Adherence Checker
+## Adherence Checker (cont.)
 
-- **V3-sonnet character regression** — adapter scored 61% on character call (V2: 82%). Root cause: old CHARACTER_SYSTEM prompt too narrow ("only flag clear contradictions"); Sonnet followed it literally. New CHARACTER_SYSTEM_NEW and EVENTS_SYSTEM_NEW prompts are written and validated (in `scripts/eval-adherence-finetune.ts`). Pending: measure teacher accuracy against known ground-truth pairs before re-labeling 7,540 pairs for V4. Use Claude subagents vs constructed pairs with known labels (not just oracle agreement). See `docs/decisions.md` entry 2026-04-12.
-- **Ship revised CHARACTER and EVENTS prompts to production** — `src/agents/writer/adherence-checker.ts` — blocked until teacher accuracy confirms the new prompts improve oracle agreement without introducing FP. Also update `src/agents/chapter-plan-checker/plan-adherence-system.md` `beats_covered` definition ("ALL key actions" not just "the central action").
+- **V4 adapter re-labeling** — re-label 7,540 pairs with the new events+attribution merged prompt. Train V4 adapter on W&B once validated in production. Blocked on end-to-end validation run.
 - **Close experiments #154 (chapter-plan-checker-v1), #155 (continuity-v1), #159 (adherence-v3-sonnet)** — all three training runs submitted but not concluded in DB. Run eval for each and call `concludeExperiment()` with results.
 
 ## Fine-Tuning (Other)
@@ -40,6 +38,13 @@ Pending action items only. Ordered by impact. Completed items and decision ratio
 - **Fact extractor tightening** — still 17–20 facts/chapter, target 8–15. Run `bun scripts/build-finetune-data.ts --task fact-extractor --limit 50`, review 20–30 pairs, correct to gold, scale to 300+.
 - **Lint fixer SFT** — mine approved chapters for `(flagged_sentence, scene_context, good_rewrite)` triples. Target 200–300 examples across the 8 AI cliché pattern types. Low risk.
 - **Beat writer SFT** (opportunistic, high risk) — 7.8× cost reduction if it works. Shadow-run in parallel with 235B. Validation bar: adherence rate ≥ 235B baseline, lint counts ≤ baseline, 2 full novels without regression. Blocked until structural diversity in the training corpus is addressed.
+
+## Planner Setting Coherence
+
+- **Beat specs assign wrong settings when scenes cross locations** — production data (563 adherence-setting calls, 24 flags = 4.3%) shows the planner assigns a chapter-level setting to all beats even when the narrative naturally transitions mid-chapter (e.g., "Drowned Row Gym" assigned but prose correctly moves to "Statless Hideout"). This is a planner-level bug, not a writer-level bug. The beat writer can't fix it by rewriting.
+  - **Investigation**: query `llm_calls` for adherence-setting flags, cross-reference with chapter outlines to identify which planning patterns produce stale settings on mid/late beats.
+  - **Fix options**: (1) planner outputs per-beat settings instead of chapter-level; (2) post-plan validation that checks beat descriptions against their assigned settings for location transitions; (3) beat context assembly detects setting shifts from prior beat prose and overrides the stale plan setting.
+  - **Chapter plan checker already has `setting_match`** — once beat-level setting checks are removed (done), the chapter plan checker is the only remaining setting gate. Consider whether it should validate setting coherence *across* beats rather than per-beat.
 
 ## Pipeline Tuning
 
