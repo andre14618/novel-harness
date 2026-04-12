@@ -11,7 +11,7 @@
  *   FAIL_REVERSED_ARC — emotional arc of a beat reversed (tense→warm or vv)
  *   FAIL_WRONG_SETTING — prose takes place in a completely different location
  *
- * 45 scenarios × 8 variants = 360 pairs.
+ * 65 scenarios × 8 variants = 520 pairs.
  * Uses the exact buildContext() format the live checker uses, so pairs
  * can be replayed through any model for zero-shot agreement testing.
  *
@@ -19,7 +19,7 @@
  *   CEREBRAS_API_KEY=... bun scripts/generate-chapter-plan-data.ts
  */
 
-import { appendFileSync, existsSync, unlinkSync } from "fs"
+import { appendFileSync, existsSync, readFileSync, writeFileSync } from "fs"
 import { join } from "path"
 import { createTuningExperiment, concludeExperiment } from "../data/db"
 import { getTransport } from "../src/transport"
@@ -1418,6 +1418,597 @@ const SCENARIOS: ChapterScenario[] = [
       knowledgeChanges: [],
     },
   },
+  // ── Dark Fantasy scenarios (20) ──────────────────────────────────────────
+  {
+    id: "necromancer_tithe",
+    outline: {
+      chapterNumber: 1,
+      title: "The Bone Tithe",
+      povCharacter: "Maren",
+      setting: "A mausoleum beneath the Ash Cathedral, lit by corpse-fat candles, damp stone walls",
+      purpose: "Maren must pay the necromancer's tithe with something she cannot afford to lose",
+      targetWords: 1000,
+      charactersPresent: ["Maren", "Valdris"],
+      scenes: [
+        { description: "Maren descends the spiral steps into Valdris's mausoleum workshop and finds him stitching sinew onto a half-assembled bone golem", characters: ["Maren", "Valdris"], emotionalShift: "dread at what the debt requires" },
+        { description: "Valdris reminds Maren that the tithe is overdue — she owes him a memory, freely given, and he will take her happiest one", characters: ["Valdris", "Maren"], emotionalShift: "dread sharpens into desperation" },
+        { description: "Maren offers a different memory — the day her father died — arguing pain is richer fuel; Valdris considers it with clinical interest", characters: ["Maren", "Valdris"], emotionalShift: "desperation becomes a gamble" },
+        { description: "Valdris accepts the painful memory instead and extracts it through a bone needle pressed to her temple — Maren staggers out lighter and emptier", characters: ["Valdris", "Maren"], emotionalShift: "the gamble pays off but the cost is still visible" },
+      ],
+      establishedFacts: [
+        { fact: "Valdris is a necromancer who accepts memories as payment — the tithe", category: "rule" },
+        { fact: "Maren owed her happiest memory but traded her father's death instead", category: "knowledge" },
+        { fact: "Memories are extracted through a bone needle pressed to the temple", category: "physical" },
+      ],
+      characterStateChanges: [
+        { name: "Maren", location: "leaving the mausoleum", emotionalState: "hollow — the grief memory is gone but so is something she didn't expect to miss", knows: ["The tithe is paid"], doesNotKnow: ["What Valdris will use the memory for"] },
+        { name: "Valdris", location: "his mausoleum workshop", emotionalState: "satisfied — pain memories burn hotter in his work", knows: ["Maren will trade anything to keep her joy"], doesNotKnow: [] },
+      ],
+      knowledgeChanges: [
+        { characterName: "Valdris", knowledge: "Maren values her happiness above all else and will sacrifice grief to protect it", source: "observed" },
+      ],
+    },
+  },
+  {
+    id: "cursed_blade_auction",
+    outline: {
+      chapterNumber: 1,
+      title: "The Whispering Lot",
+      povCharacter: "Seren",
+      setting: "An underground auction hall beneath a ruined keep, torchlit, crowded with hooded buyers",
+      purpose: "Seren must outbid a rival for a cursed blade that she needs to break her blood oath",
+      targetWords: 1000,
+      charactersPresent: ["Seren", "Kael", "The Auctioneer"],
+      scenes: [
+        { description: "Seren enters the underground auction hall and spots Kael across the room — both are here for the same blade, the Whispering Lot", characters: ["Seren", "Kael"], emotionalShift: "wary recognition between two people who know each other's purpose" },
+        { description: "The Auctioneer presents the cursed blade and warns that it drinks the wielder's lifespan — one year per use", characters: ["The Auctioneer", "Seren", "Kael"], emotionalShift: "the cost of the blade becomes real" },
+        { description: "Bidding escalates — Seren offers her remaining soul-marks; Kael counters with a vial of lich dust, which is worth more", characters: ["Seren", "Kael", "The Auctioneer"], emotionalShift: "desperation as Seren realizes she cannot match Kael's bid" },
+        { description: "Seren offers something not on the table — her blood oath itself, transferable to the Auctioneer — and wins the blade because the oath is worth more than gold", characters: ["Seren", "The Auctioneer", "Kael"], emotionalShift: "desperation resolves to reckless triumph — she traded one binding for another" },
+      ],
+      establishedFacts: [
+        { fact: "The Whispering Lot is a cursed blade that costs one year of life per use", category: "physical" },
+        { fact: "Seren won the blade by transferring her blood oath to the Auctioneer", category: "relationship" },
+        { fact: "Kael wanted the same blade and lost the bid", category: "knowledge" },
+      ],
+      characterStateChanges: [
+        { name: "Seren", location: "underground auction hall", emotionalState: "reckless triumph — freed from one oath but now holding a life-drinking blade", knows: ["The blade costs a year per use", "The Auctioneer now holds her old oath"], doesNotKnow: ["What Kael will do next"] },
+        { name: "Kael", location: "underground auction hall", emotionalState: "furious and calculating", knows: ["Seren transferred her blood oath to win"], doesNotKnow: ["What the Auctioneer plans to do with the oath"] },
+      ],
+      knowledgeChanges: [
+        { characterName: "Kael", knowledge: "Seren was desperate enough to transfer a blood oath for the blade", source: "witnessed" },
+      ],
+    },
+  },
+  {
+    id: "demon_pact_renegotiation",
+    outline: {
+      chapterNumber: 1,
+      title: "Terms Amended",
+      povCharacter: "Theron",
+      setting: "A salt circle drawn on the floor of a burned-out chapel, midnight, no moonlight",
+      purpose: "Theron attempts to renegotiate a demon pact and learns the price has changed",
+      targetWords: 1000,
+      charactersPresent: ["Theron", "Ashmedai"],
+      scenes: [
+        { description: "Theron finishes drawing the salt circle in the ruined chapel and speaks the summoning words — Ashmedai appears as a column of dark smoke that slowly takes human shape", characters: ["Theron", "Ashmedai"], emotionalShift: "controlled fear as the ritual works" },
+        { description: "Theron demands to renegotiate the pact — he was promised power over flame but received only embers; Ashmedai laughs and says the contract was fulfilled to the letter", characters: ["Theron", "Ashmedai"], emotionalShift: "fear gives way to frustration" },
+        { description: "Ashmedai offers an amendment: full dominion over flame in exchange for Theron's ability to feel warmth — he will wield fire but never again know comfort from it", characters: ["Ashmedai", "Theron"], emotionalShift: "frustration meets a cruel kind of fairness" },
+        { description: "Theron accepts; Ashmedai touches his chest and something goes cold permanently — Theron can feel the fire in his palms but the warmth is gone from the world", characters: ["Theron", "Ashmedai"], emotionalShift: "acceptance lands as immediate regret" },
+      ],
+      establishedFacts: [
+        { fact: "Theron's original pact gave him only embers — the letter of the contract was technically fulfilled", category: "rule" },
+        { fact: "The amended pact grants full fire dominion but removes Theron's ability to feel warmth", category: "rule" },
+        { fact: "Ashmedai is summoned through a salt circle and manifests as dark smoke", category: "physical" },
+      ],
+      characterStateChanges: [
+        { name: "Theron", location: "burned-out chapel", emotionalState: "powerful but permanently diminished — the warmth is gone", knows: ["Fire answers his command now", "He will never feel warmth again"], doesNotKnow: [] },
+        { name: "Ashmedai", location: "summoned within the salt circle", emotionalState: "amused — the deal favors the demon as always", knows: ["Theron accepted the cruel terms"], doesNotKnow: [] },
+      ],
+      knowledgeChanges: [],
+    },
+  },
+  {
+    id: "soul_weapon_bond",
+    outline: {
+      chapterNumber: 1,
+      title: "The Blade That Knows Your Name",
+      povCharacter: "Elara",
+      setting: "A frozen armory deep inside a glacier, walls of blue ice, breath visible in the air",
+      purpose: "Elara bonds with a soul-weapon and discovers it remembers its previous wielders' deaths",
+      targetWords: 1000,
+      charactersPresent: ["Elara", "Ghent"],
+      scenes: [
+        { description: "Elara and Ghent reach the frozen armory after days of climbing — the soul-weapons hang suspended in the ice like insects in amber", characters: ["Elara", "Ghent"], emotionalShift: "exhaustion gives way to awe" },
+        { description: "Ghent warns Elara that a soul-bond is permanent — the weapon will share her senses and she will share its memories; she cannot undo it once begun", characters: ["Ghent", "Elara"], emotionalShift: "awe tempered by the weight of permanence" },
+        { description: "Elara presses her palm to the ice and the blade inside it pulses — when she pulls it free she sees a flash of the previous wielder's death, a woman drowning in black water", characters: ["Elara"], emotionalShift: "the bond is visceral and immediate and terrible" },
+        { description: "Ghent asks if the blade spoke to her; Elara lies and says it showed her nothing — but the drowning woman's last thought is still echoing in her skull", characters: ["Elara", "Ghent"], emotionalShift: "the lie seals something private between Elara and the weapon" },
+      ],
+      establishedFacts: [
+        { fact: "Soul-weapons are bonded permanently — the wielder shares senses with the blade", category: "rule" },
+        { fact: "Elara's blade showed her the previous wielder drowning in black water", category: "knowledge" },
+        { fact: "Elara lied to Ghent about what the blade showed her", category: "relationship" },
+      ],
+      characterStateChanges: [
+        { name: "Elara", location: "frozen armory inside the glacier", emotionalState: "shaken but hiding it — the blade's memory is hers now", knows: ["The previous wielder drowned", "The bond cannot be undone"], doesNotKnow: ["Why the previous wielder drowned"] },
+        { name: "Ghent", location: "frozen armory inside the glacier", emotionalState: "relieved the bonding worked", knows: ["Elara bonded successfully"], doesNotKnow: ["Elara saw the previous wielder's death"] },
+      ],
+      knowledgeChanges: [
+        { characterName: "Elara", knowledge: "The previous wielder of her blade died by drowning in black water", source: "soul-bond vision" },
+      ],
+    },
+  },
+  {
+    id: "lich_court_audience",
+    outline: {
+      chapterNumber: 1,
+      title: "The Court of Dry Bones",
+      povCharacter: "Jorin",
+      setting: "The lich king's throne hall — a vast cavern of polished bone, lit by green witch-fire sconces",
+      purpose: "Jorin petitions the lich king for passage through the dead lands and learns the lich wants something alive",
+      targetWords: 1000,
+      charactersPresent: ["Jorin", "Solvaine", "The Lich King"],
+      scenes: [
+        { description: "Jorin is escorted into the throne hall by Solvaine, the lich king's seneschal, who is herself an intelligent undead — she warns him not to lie because the lich can taste falsehood", characters: ["Jorin", "Solvaine"], emotionalShift: "controlled terror walking into the seat of undead power" },
+        { description: "The Lich King speaks from a throne of fused ribcages and asks why a living man dares request passage through his domain", characters: ["The Lich King", "Jorin"], emotionalShift: "terror sharpens into the need to speak clearly and survive" },
+        { description: "Jorin explains that his sister is held captive beyond the dead lands and he has no other route; the Lich King says passage is possible if Jorin brings back a living seed from the far side — something that grows", characters: ["Jorin", "The Lich King"], emotionalShift: "survival need meets an unexpected and unsettling request" },
+        { description: "Solvaine leads Jorin out and quietly tells him the Lich King has asked every petitioner for a living seed and none have returned — she does not know why he wants it", characters: ["Solvaine", "Jorin"], emotionalShift: "the deal is struck but the pattern behind it is ominous" },
+      ],
+      establishedFacts: [
+        { fact: "The Lich King grants passage through the dead lands in exchange for a living seed brought back from the far side", category: "rule" },
+        { fact: "Solvaine is an intelligent undead seneschal — she warns petitioners and has her own observations about the lich's motives", category: "knowledge" },
+        { fact: "No previous petitioner has returned with the seed", category: "knowledge" },
+      ],
+      characterStateChanges: [
+        { name: "Jorin", location: "leaving the lich king's throne hall", emotionalState: "committed but deeply uneasy — the deal may be a trap", knows: ["The price is a living seed", "No one else has returned"], doesNotKnow: ["Why the Lich King wants something living"] },
+        { name: "Solvaine", location: "the throne hall corridor", emotionalState: "matter-of-fact but not indifferent to Jorin's fate", knows: ["The lich has asked many for seeds and none returned"], doesNotKnow: ["The lich's true purpose for the seeds"] },
+      ],
+      knowledgeChanges: [
+        { characterName: "Jorin", knowledge: "No previous petitioner has returned with the living seed", source: "told by Solvaine" },
+      ],
+    },
+  },
+  {
+    id: "blood_magic_cost",
+    outline: {
+      chapterNumber: 1,
+      title: "The Red Price",
+      povCharacter: "Isaveth",
+      setting: "A stone ritual chamber beneath a crumbling fortress, walls stained rust-brown, iron grate in the floor",
+      purpose: "Isaveth performs blood magic to save her dying companion and discovers the magic takes more than blood",
+      targetWords: 1000,
+      charactersPresent: ["Isaveth", "Dael"],
+      scenes: [
+        { description: "Isaveth drags the unconscious Dael into the ritual chamber and lays him on the grate — his wound from the wyvern's spine is going septic and he has hours at most", characters: ["Isaveth", "Dael"], emotionalShift: "urgency and the refusal to let him die" },
+        { description: "Isaveth cuts her own palms and begins the blood ritual, chanting the words her grandmother forbade her from ever using", characters: ["Isaveth"], emotionalShift: "urgency hardens into transgression — she is crossing a line she was warned about" },
+        { description: "The magic takes hold — Dael's wound begins to close, but Isaveth feels something pulling at her from inside, not blood but years; her hair goes white at the temples", characters: ["Isaveth", "Dael"], emotionalShift: "transgression meets the shock of the true price" },
+        { description: "Dael wakes healed and sees Isaveth's white-streaked hair — she tells him the wound was bad but does not mention the aging; he thanks her and she says nothing about what it cost", characters: ["Dael", "Isaveth"], emotionalShift: "the price is hidden and the gratitude is real but asymmetric" },
+      ],
+      establishedFacts: [
+        { fact: "Blood magic heals wounds but extracts years of life from the caster — Isaveth's hair went white at the temples", category: "rule" },
+        { fact: "Dael was poisoned by a wyvern spine and would have died without intervention", category: "physical" },
+        { fact: "Isaveth hid the true cost of the ritual from Dael", category: "relationship" },
+      ],
+      characterStateChanges: [
+        { name: "Isaveth", location: "ritual chamber", emotionalState: "drained and aging but resolved — she would do it again", knows: ["Blood magic costs years of life", "She has visibly aged"], doesNotKnow: ["How many years she lost"] },
+        { name: "Dael", location: "ritual chamber, now awake", emotionalState: "grateful and disoriented", knows: ["Isaveth saved his life"], doesNotKnow: ["The ritual cost Isaveth years of her life"] },
+      ],
+      knowledgeChanges: [
+        { characterName: "Isaveth", knowledge: "Her grandmother's forbidden blood magic costs years of life, not just blood", source: "experienced" },
+      ],
+    },
+  },
+  {
+    id: "corrupted_ward_breach",
+    outline: {
+      chapterNumber: 1,
+      title: "The Seam in the Wall",
+      povCharacter: "Corwin",
+      setting: "The outer ward-wall of a besieged city, night, rain, the ward glyphs flickering amber and failing",
+      purpose: "Corwin discovers the city's protective ward is being corrupted from within and must choose who to trust with the knowledge",
+      targetWords: 1000,
+      charactersPresent: ["Corwin", "Thessaly", "Breck"],
+      scenes: [
+        { description: "Corwin patrols the outer ward-wall and notices a section where the glyphs are flickering in a pattern that should not exist — someone has altered the sigils from the inside", characters: ["Corwin"], emotionalShift: "routine vigilance becomes alarm" },
+        { description: "Corwin calls Thessaly, a fellow ward-keeper, to examine the altered sigils; she confirms they have been rewritten to fail at the next full assault", characters: ["Corwin", "Thessaly"], emotionalShift: "alarm becomes certainty of betrayal" },
+        { description: "They debate who to report to — Breck, the garrison commander, is the obvious choice, but Thessaly points out that only ward-keepers could have altered the sigils, which means the saboteur is one of their own twelve", characters: ["Corwin", "Thessaly"], emotionalShift: "certainty of betrayal narrows to suspicion of their own order" },
+        { description: "Corwin decides to tell Breck anyway because the wall will fail if they do nothing; Thessaly agrees reluctantly and they go to find him together, knowing they are about to accuse one of their own", characters: ["Corwin", "Thessaly", "Breck"], emotionalShift: "suspicion resolves to the difficult choice of exposing the saboteur at the cost of fracturing the ward-keepers" },
+      ],
+      establishedFacts: [
+        { fact: "The city's protective ward-wall has been sabotaged from the inside — sigils rewritten to fail at the next assault", category: "physical" },
+        { fact: "Only one of the twelve ward-keepers could have altered the sigils", category: "knowledge" },
+        { fact: "Corwin and Thessaly decided to report the sabotage to garrison commander Breck", category: "relationship" },
+      ],
+      characterStateChanges: [
+        { name: "Corwin", location: "heading to find Breck inside the garrison", emotionalState: "resolved but dreading the fallout among the ward-keepers", knows: ["The ward has been sabotaged", "The saboteur is a ward-keeper"], doesNotKnow: ["Which ward-keeper did it"] },
+        { name: "Thessaly", location: "with Corwin", emotionalState: "reluctantly committed — she would have preferred to investigate quietly first", knows: ["The sigils were rewritten to fail"], doesNotKnow: ["Who the saboteur is"] },
+      ],
+      knowledgeChanges: [
+        { characterName: "Corwin", knowledge: "The ward-wall sigils have been sabotaged from inside by one of the twelve ward-keepers", source: "observed and confirmed by Thessaly" },
+      ],
+    },
+  },
+  {
+    id: "shadow_gate_passage",
+    outline: {
+      chapterNumber: 1,
+      title: "Between the Dark",
+      povCharacter: "Nyx",
+      setting: "A shadow gate — a tear in reality at the base of a dead tree, the edges rippling like black water",
+      purpose: "Nyx crosses through a shadow gate and arrives changed in a way she did not expect",
+      targetWords: 1000,
+      charactersPresent: ["Nyx", "Fenn"],
+      scenes: [
+        { description: "Nyx and Fenn reach the shadow gate at the base of the dead tree — it pulses with a cold that is not temperature but absence", characters: ["Nyx", "Fenn"], emotionalShift: "determination undercut by the visceral wrongness of the gate" },
+        { description: "Fenn says he will not go through — the last person who crossed came back unable to dream; Nyx says dreams are a price she is willing to pay to reach the Hollowed Court", characters: ["Nyx", "Fenn"], emotionalShift: "determination hardens as Fenn's refusal makes the stakes real" },
+        { description: "Nyx steps through the gate and the crossing is not instant — she is suspended in lightless nothing and hears voices that know her name, and one of them is her own", characters: ["Nyx"], emotionalShift: "the crossing is horrifying and intimate — something in the dark knows her" },
+        { description: "Nyx emerges on the other side and discovers she can no longer see her own shadow — it is gone, left behind in the gate; Fenn did not follow", characters: ["Nyx"], emotionalShift: "arrival is relief and loss simultaneously — she is through but diminished" },
+      ],
+      establishedFacts: [
+        { fact: "The shadow gate strips something from each person who crosses — Nyx lost her shadow", category: "rule" },
+        { fact: "Fenn refused to cross because the last person who went through lost the ability to dream", category: "knowledge" },
+        { fact: "Nyx is heading to the Hollowed Court and the gate was the only route", category: "knowledge" },
+      ],
+      characterStateChanges: [
+        { name: "Nyx", location: "the far side of the shadow gate", emotionalState: "shaken but committed — the loss of her shadow is unsettling but she is through", knows: ["The gate took her shadow", "Fenn stayed behind"], doesNotKnow: ["What losing her shadow will mean long-term"] },
+        { name: "Fenn", location: "the near side of the shadow gate", emotionalState: "guilty and relieved he did not cross", knows: ["Nyx went through alone"], doesNotKnow: ["What the gate took from Nyx"] },
+      ],
+      knowledgeChanges: [
+        { characterName: "Nyx", knowledge: "The shadow gate took her shadow as the price of crossing", source: "experienced" },
+      ],
+    },
+  },
+  {
+    id: "forbidden_ritual_witness",
+    outline: {
+      chapterNumber: 1,
+      title: "What Should Not Be Seen",
+      povCharacter: "Arden",
+      setting: "A hidden grove in the Thornwood, ringed by standing stones, pre-dawn darkness",
+      purpose: "Arden witnesses a forbidden ritual and must decide whether to intervene or stay hidden",
+      targetWords: 1000,
+      charactersPresent: ["Arden", "High Warden Callista", "Mira"],
+      scenes: [
+        { description: "Arden is tracking a wounded deer through the Thornwood when she stumbles on the hidden grove and sees High Warden Callista — her superior — performing a ritual forbidden by their own order", characters: ["Arden", "High Warden Callista"], emotionalShift: "hunting focus shatters into disbelief" },
+        { description: "The ritual involves Mira, a young ward-apprentice, who stands in the center of the stone circle chanting — her eyes are rolled back and she does not appear to be acting freely", characters: ["Arden", "High Warden Callista", "Mira"], emotionalShift: "disbelief becomes horror at what is being done to Mira" },
+        { description: "Arden considers intervening but realizes Callista has bound guardian spells around the grove — stepping forward would trigger them and Callista would know Arden saw everything", characters: ["Arden"], emotionalShift: "horror is trapped by tactical helplessness" },
+        { description: "The ritual ends; Mira collapses and Callista carries her out — Arden stays hidden and knows she has seen something that makes her either a witness or an accomplice by silence", characters: ["Arden", "High Warden Callista", "Mira"], emotionalShift: "helplessness resolves to a burden of knowledge that demands a choice" },
+      ],
+      establishedFacts: [
+        { fact: "High Warden Callista performed a forbidden ritual on Mira in the hidden grove", category: "knowledge" },
+        { fact: "Mira appeared to be compelled — her eyes were rolled back and she was chanting involuntarily", category: "physical" },
+        { fact: "Guardian spells ringed the grove, preventing Arden from intervening without being detected", category: "rule" },
+      ],
+      characterStateChanges: [
+        { name: "Arden", location: "hidden in the Thornwood outside the grove", emotionalState: "burdened — silence makes her complicit and speaking makes her a target", knows: ["Callista is performing forbidden rituals", "Mira was compelled"], doesNotKnow: ["What the ritual was meant to accomplish"] },
+        { name: "High Warden Callista", location: "leaving the grove carrying Mira", emotionalState: "focused and purposeful", knows: ["The ritual is complete"], doesNotKnow: ["Arden witnessed the ritual"] },
+      ],
+      knowledgeChanges: [
+        { characterName: "Arden", knowledge: "High Warden Callista is performing forbidden rituals on ward-apprentices", source: "witnessed" },
+      ],
+    },
+  },
+  {
+    id: "plague_touched_quarantine",
+    outline: {
+      chapterNumber: 1,
+      title: "Behind the Red Door",
+      povCharacter: "Sera",
+      setting: "A quarantine house in the plague-touched district, boarded windows, lye on the floors, red paint on the door",
+      purpose: "Sera smuggles medicine into the quarantine house and learns the plague is not natural",
+      targetWords: 1000,
+      charactersPresent: ["Sera", "Havan"],
+      scenes: [
+        { description: "Sera bribes the night guard and enters the quarantine house through a back passage, carrying a satchel of stolen fever remedies", characters: ["Sera"], emotionalShift: "grim determination to help those inside" },
+        { description: "She finds Havan — a former healer now quarantined — lucid despite the plague marks on his arms; he tells her the remedies will not work because the plague is not disease but a curse laid by someone in the magistrate's circle", characters: ["Sera", "Havan"], emotionalShift: "determination is undercut by the revelation that medicine is useless" },
+        { description: "Havan shows Sera the plague marks up close — they form sigils, not rashes, and they pulse in a rhythm that matches the cathedral bells at midday", characters: ["Havan", "Sera"], emotionalShift: "the evidence is undeniable and points to deliberate magic" },
+        { description: "Sera leaves the quarantine house knowing the remedies are useless but takes Havan's charcoal rubbing of the sigils — proof that the plague is manufactured, if she can find someone to believe her", characters: ["Sera", "Havan"], emotionalShift: "uselessness of medicine becomes the seed of a different kind of fight" },
+      ],
+      establishedFacts: [
+        { fact: "The plague is not natural — the marks are sigils that pulse in rhythm with the cathedral bells", category: "knowledge" },
+        { fact: "Havan claims someone in the magistrate's circle laid the curse", category: "knowledge" },
+        { fact: "Sera has a charcoal rubbing of the plague sigils as evidence", category: "physical" },
+      ],
+      characterStateChanges: [
+        { name: "Sera", location: "leaving the quarantine house", emotionalState: "angry and purposeful — medicine failed but proof exists", knows: ["The plague is a curse, not a disease", "She has physical evidence of the sigils"], doesNotKnow: ["Who specifically in the magistrate's circle laid the curse"] },
+        { name: "Havan", location: "quarantine house", emotionalState: "resigned to his own fate but hopeful Sera can expose the truth", knows: ["The plague is magical in origin"], doesNotKnow: ["Whether Sera will succeed"] },
+      ],
+      knowledgeChanges: [
+        { characterName: "Sera", knowledge: "The plague is a deliberate curse, evidenced by sigil-shaped marks that pulse with the cathedral bells", source: "shown by Havan" },
+      ],
+    },
+  },
+  {
+    id: "fallen_kingdom_heir",
+    outline: {
+      chapterNumber: 1,
+      title: "The Crown in the Mud",
+      povCharacter: "Talis",
+      setting: "A refugee camp on the plains outside the fallen capital, tents in the rain, cook-fires guttering",
+      purpose: "Talis is recognized as the heir to the fallen kingdom and must decide whether to accept or deny it",
+      targetWords: 1000,
+      charactersPresent: ["Talis", "Old Mirren", "Dane"],
+      scenes: [
+        { description: "Talis is distributing rations in the refugee camp when Old Mirren — who served in the palace — recognizes the birthmark on his wrist and announces he is Prince Talisan", characters: ["Talis", "Old Mirren"], emotionalShift: "anonymous routine shatters into exposure" },
+        { description: "The refugees begin to gather; Dane, a former soldier, kneels and calls Talis by his royal name — the camp is watching and the moment is becoming a public declaration", characters: ["Talis", "Dane", "Old Mirren"], emotionalShift: "exposure becomes a pressure to accept what he has been hiding from" },
+        { description: "Talis pulls Mirren and Dane aside and tells them the kingdom is gone, the capital is ash, and a crown means nothing in a mud camp — he wants to remain anonymous", characters: ["Talis", "Old Mirren", "Dane"], emotionalShift: "pressure meets refusal born from genuine belief that the title is meaningless" },
+        { description: "Dane says the refugees need a name to follow, not a kingdom — Talis does not accept the crown but does not deny the birthmark; the ambiguity is its own kind of answer", characters: ["Talis", "Dane", "Old Mirren"], emotionalShift: "refusal softens into an ambiguity that commits him to nothing and everything at once" },
+      ],
+      establishedFacts: [
+        { fact: "Talis is Prince Talisan, heir to the fallen kingdom, identified by a birthmark on his wrist", category: "knowledge" },
+        { fact: "The capital has fallen and the kingdom no longer exists as a political entity", category: "physical" },
+        { fact: "Talis neither accepted nor denied the claim — the ambiguity remains", category: "relationship" },
+      ],
+      characterStateChanges: [
+        { name: "Talis", location: "refugee camp", emotionalState: "trapped in an identity he did not ask to reclaim", knows: ["The camp knows who he is", "Dane sees him as a symbol"], doesNotKnow: ["Whether the refugees will force the issue"] },
+        { name: "Dane", location: "refugee camp", emotionalState: "hopeful — the non-denial is enough for now", knows: ["Talis did not deny being Prince Talisan"], doesNotKnow: ["Whether Talis will ever fully accept the role"] },
+      ],
+      knowledgeChanges: [
+        { characterName: "Dane", knowledge: "Talis is Prince Talisan and did not deny it", source: "witnessed" },
+      ],
+    },
+  },
+  {
+    id: "undead_conscription",
+    outline: {
+      chapterNumber: 1,
+      title: "The Draft of the Dead",
+      povCharacter: "Lyssa",
+      setting: "A village square at dawn, frost on the cobblestones, a bone-armored envoy standing before the well",
+      purpose: "Lyssa learns her village must provide corpses to the undead legion or lose its protection pact",
+      targetWords: 1000,
+      charactersPresent: ["Lyssa", "Envoy Rethis", "Elder Mott"],
+      scenes: [
+        { description: "Envoy Rethis arrives in the village square in bone armor and announces the undead legion requires ten corpses from the village cemetery to fill its ranks", characters: ["Envoy Rethis", "Lyssa", "Elder Mott"], emotionalShift: "the normalcy of dawn breaks against an obscene demand" },
+        { description: "Elder Mott protests — the cemetery holds their ancestors and the village has honored the protection pact with grain, not bodies; Rethis says the war has changed the terms", characters: ["Elder Mott", "Envoy Rethis"], emotionalShift: "protest meets an immovable change in the rules" },
+        { description: "Lyssa speaks up and asks what happens if they refuse; Rethis says the protection pact dissolves and the Hollowed Horde will reach the village within a week", characters: ["Lyssa", "Envoy Rethis"], emotionalShift: "defiance meets the arithmetic of survival" },
+        { description: "Elder Mott capitulates and tells Lyssa to open the cemetery gate; Lyssa obeys but marks which graves are taken — she will not forget whose bones walk in someone else's war", characters: ["Lyssa", "Elder Mott", "Envoy Rethis"], emotionalShift: "capitulation with a private record of what was lost" },
+      ],
+      establishedFacts: [
+        { fact: "The undead legion's protection pact now requires corpses, not just grain", category: "rule" },
+        { fact: "Refusing means the Hollowed Horde reaches the village within a week", category: "knowledge" },
+        { fact: "Lyssa recorded which graves were taken", category: "knowledge" },
+      ],
+      characterStateChanges: [
+        { name: "Lyssa", location: "village cemetery", emotionalState: "obedient but keeping a private record — compliance is not acceptance", knows: ["The pact terms changed", "Which ancestors' graves were emptied"], doesNotKnow: ["Whether the pact will change again"] },
+        { name: "Elder Mott", location: "village square", emotionalState: "defeated — survival required desecration", knows: ["Refusal means destruction within a week"], doesNotKnow: [] },
+      ],
+      knowledgeChanges: [
+        { characterName: "Lyssa", knowledge: "The undead legion can change its pact terms unilaterally when the war shifts", source: "told by Envoy Rethis" },
+      ],
+    },
+  },
+  {
+    id: "cursed_artifact_containment",
+    outline: {
+      chapterNumber: 1,
+      title: "The Box That Hums",
+      povCharacter: "Voss",
+      setting: "A containment vault beneath the Arcanist Guild, rows of warded shelves, dim blue light from containment glyphs",
+      purpose: "Voss must re-contain a cursed artifact that has begun affecting the other items in the vault",
+      targetWords: 1000,
+      charactersPresent: ["Voss", "Tamsin"],
+      scenes: [
+        { description: "Voss descends into the containment vault for a routine check and finds three warded boxes vibrating in sympathy — something in the vault is broadcasting", characters: ["Voss"], emotionalShift: "routine becomes alarm as the vault itself feels wrong" },
+        { description: "Voss traces the resonance to a lead-lined box labeled only with a red glyph — the artifact inside is humming at a frequency that is weakening adjacent wards", characters: ["Voss"], emotionalShift: "alarm focuses into a specific and urgent problem" },
+        { description: "Tamsin arrives with reinforcement glyphs and they work together to layer new wards on the box — but each time a glyph is applied it is absorbed; the artifact is eating the containment magic", characters: ["Voss", "Tamsin"], emotionalShift: "urgency becomes frustration as standard measures fail" },
+        { description: "Voss makes the call to move the artifact to deep isolation — a sub-vault that has not been opened in decades; Tamsin seals the red box in salt and iron and they carry it down together in silence", characters: ["Voss", "Tamsin"], emotionalShift: "frustration resolves to grim expedience — the problem is contained but not solved" },
+      ],
+      establishedFacts: [
+        { fact: "The red-glyphed artifact absorbs containment magic and weakens adjacent wards", category: "physical" },
+        { fact: "Standard reinforcement glyphs are ineffective — the artifact consumes them", category: "rule" },
+        { fact: "The artifact was moved to deep isolation, a sub-vault unused for decades", category: "physical" },
+      ],
+      characterStateChanges: [
+        { name: "Voss", location: "deep isolation sub-vault", emotionalState: "uneasy — the artifact is contained but they do not understand why it activated", knows: ["The artifact eats containment glyphs", "Deep isolation is a temporary measure"], doesNotKnow: ["What triggered the artifact's activation"] },
+        { name: "Tamsin", location: "deep isolation sub-vault", emotionalState: "professionally alarmed — this is beyond her training", knows: ["Reinforcement glyphs failed"], doesNotKnow: ["The artifact's origin or purpose"] },
+      ],
+      knowledgeChanges: [
+        { characterName: "Voss", knowledge: "The red-glyphed artifact can absorb containment magic and influence adjacent warded items", source: "observed" },
+      ],
+    },
+  },
+  {
+    id: "death_oath_duel",
+    outline: {
+      chapterNumber: 1,
+      title: "Until One Stands",
+      povCharacter: "Kestrel",
+      setting: "A rain-soaked dueling circle outside the Hall of Oaths, stone pillars carved with old names, predawn",
+      purpose: "Kestrel fights a death-oath duel she did not want and wins at a cost that changes her standing",
+      targetWords: 1000,
+      charactersPresent: ["Kestrel", "Riven", "Oath-Keeper Harsk"],
+      scenes: [
+        { description: "Kestrel enters the dueling circle at Oath-Keeper Harsk's summons — Riven is already there, blade drawn, and the oath carved into the pillar binds them both to fight until one falls", characters: ["Kestrel", "Riven", "Oath-Keeper Harsk"], emotionalShift: "reluctance compressed by the binding magic of the oath" },
+        { description: "The duel begins and Kestrel fights defensively, trying to disarm rather than kill — Riven fights with genuine intent to kill, fueled by a grudge Kestrel considers trivial", characters: ["Kestrel", "Riven"], emotionalShift: "reluctance clashes against Riven's lethal conviction" },
+        { description: "Riven scores a deep cut across Kestrel's arm and Kestrel realizes defense will get her killed — she shifts to attack and drives her blade through Riven's shoulder, pinning him to a pillar", characters: ["Kestrel", "Riven"], emotionalShift: "survival instinct overrides restraint" },
+        { description: "Riven yields, which satisfies the oath; Oath-Keeper Harsk declares Kestrel the victor — but Kestrel sees the look on the gathered crowd and knows that winning a death-oath duel marks her as someone who can kill, whether she wanted to or not", characters: ["Kestrel", "Riven", "Oath-Keeper Harsk"], emotionalShift: "victory is hollow — the crowd sees a killer where there was a reluctant fighter" },
+      ],
+      establishedFacts: [
+        { fact: "Death-oath duels are magically binding — the carved oath on the pillar enforces the fight", category: "rule" },
+        { fact: "Kestrel won by pinning Riven to a pillar through his shoulder; Riven yielded", category: "physical" },
+        { fact: "Winning the duel changed how the crowd perceives Kestrel — she is now marked as dangerous", category: "relationship" },
+      ],
+      characterStateChanges: [
+        { name: "Kestrel", location: "dueling circle", emotionalState: "hollow victory — she won but lost the version of herself that was seen as restrained", knows: ["Riven will survive", "The crowd's perception has shifted"], doesNotKnow: ["Whether the new reputation will protect or endanger her"] },
+        { name: "Riven", location: "dueling circle, wounded", emotionalState: "humiliated and in pain", knows: ["Kestrel is more dangerous than he assumed"], doesNotKnow: [] },
+      ],
+      knowledgeChanges: [],
+    },
+  },
+  {
+    id: "grave_robber_discovery",
+    outline: {
+      chapterNumber: 1,
+      title: "What the Dead Were Wearing",
+      povCharacter: "Pol",
+      setting: "An old noble cemetery at night, overgrown with black ivy, stone crypts half-sunken into soft earth",
+      purpose: "Pol robs a grave for coin and discovers the corpse is wearing a ward that is still active, which means the dead are being prepared for something",
+      targetWords: 1000,
+      charactersPresent: ["Pol", "Wick"],
+      scenes: [
+        { description: "Pol and Wick pry open a crypt in the noble cemetery, looking for burial jewelry they can sell — Wick keeps watch while Pol goes inside", characters: ["Pol", "Wick"], emotionalShift: "professional calm of a routine job" },
+        { description: "Pol finds the corpse dressed in finery as expected, but around its neck is an iron ward-chain that pulses faintly with green light — the ward is active on a body that has been dead for years", characters: ["Pol"], emotionalShift: "routine shatters when the dead are wearing live magic" },
+        { description: "Pol tries to remove the ward-chain and it burns his fingers — the ward is keyed to the corpse specifically; Wick hisses from outside asking what is taking so long", characters: ["Pol", "Wick"], emotionalShift: "curiosity and pain — this is not normal grave goods" },
+        { description: "Pol leaves the ward-chain, takes only the rings, and tells Wick what he found — they agree this is bigger than a robbery and someone is warding the dead on purpose", characters: ["Pol", "Wick"], emotionalShift: "the job is done but the discovery changes what they thought they knew about this cemetery" },
+      ],
+      establishedFacts: [
+        { fact: "The noble corpse wore an active ward-chain keyed specifically to it — the ward burned Pol's fingers when he tried to remove it", category: "physical" },
+        { fact: "Someone is deliberately warding the dead in the noble cemetery", category: "knowledge" },
+        { fact: "Pol took the rings but left the ward-chain", category: "physical" },
+      ],
+      characterStateChanges: [
+        { name: "Pol", location: "outside the crypt", emotionalState: "unsettled — this was supposed to be a simple job", knows: ["The dead are being warded with active magic", "The ward is keyed to the corpse"], doesNotKnow: ["Who is warding the dead or why"] },
+        { name: "Wick", location: "outside the crypt", emotionalState: "nervous and wanting to leave", knows: ["Pol found an active ward on the corpse"], doesNotKnow: ["The full implications"] },
+      ],
+      knowledgeChanges: [
+        { characterName: "Pol", knowledge: "Someone is placing active, corpse-keyed wards on the noble dead", source: "observed" },
+      ],
+    },
+  },
+  {
+    id: "binding_circle_escape",
+    outline: {
+      chapterNumber: 1,
+      title: "The Chalk Line",
+      povCharacter: "Reveka",
+      setting: "A witch-hunter's cellar, chalk circles on the stone floor, iron chains, a single lantern",
+      purpose: "Reveka is imprisoned in a binding circle and must talk her way out before the witch-hunter returns",
+      targetWords: 1000,
+      charactersPresent: ["Reveka", "Tomasz"],
+      scenes: [
+        { description: "Reveka wakes inside a chalk binding circle in a cellar — her magic is suppressed and she can hear the witch-hunter upstairs; Tomasz, another prisoner chained to the wall outside the circle, is watching her", characters: ["Reveka", "Tomasz"], emotionalShift: "disorientation becomes focused awareness of constraint" },
+        { description: "Reveka asks Tomasz how long the witch-hunter will be gone; Tomasz says an hour at most — he has seen three others in this circle and none of them left alive", characters: ["Reveka", "Tomasz"], emotionalShift: "awareness tightens into urgency" },
+        { description: "Reveka realizes the chalk line has a thin spot where water has seeped from the wall — if Tomasz can reach it with his foot and smudge the line, the binding breaks; she talks him through it despite his terror", characters: ["Reveka", "Tomasz"], emotionalShift: "urgency becomes collaboration under pressure" },
+        { description: "Tomasz smudges the chalk; the binding shatters and Reveka's magic floods back — she breaks his chains and they leave together before the witch-hunter returns", characters: ["Reveka", "Tomasz"], emotionalShift: "the binding breaks and freedom is immediate and shared" },
+      ],
+      establishedFacts: [
+        { fact: "Chalk binding circles suppress a magic-user's power completely while the line is intact", category: "rule" },
+        { fact: "The binding was broken because water weakened the chalk and Tomasz smudged the line", category: "physical" },
+        { fact: "Reveka freed Tomasz after the binding broke — they escaped together", category: "relationship" },
+      ],
+      characterStateChanges: [
+        { name: "Reveka", location: "escaping the cellar", emotionalState: "magic restored, grateful to Tomasz, aware the witch-hunter will pursue", knows: ["Chalk circles can be broken by physical disruption", "Tomasz risked himself to help her"], doesNotKnow: ["Whether the witch-hunter saw them leave"] },
+        { name: "Tomasz", location: "escaping the cellar with Reveka", emotionalState: "terrified but free", knows: ["Reveka is a magic-user", "The witch-hunter will come after them"], doesNotKnow: [] },
+      ],
+      knowledgeChanges: [
+        { characterName: "Reveka", knowledge: "Physical disruption of the chalk line breaks the binding circle", source: "experienced" },
+      ],
+    },
+  },
+  {
+    id: "dark_forest_bargain",
+    outline: {
+      chapterNumber: 1,
+      title: "What the Trees Remember",
+      povCharacter: "Wynn",
+      setting: "The Blackmire Forest at twilight, trees with faces carved by no human hand, mist rising from the roots",
+      purpose: "Wynn bargains with a forest spirit to cure a blight and learns the forest's price is a human memory planted in its soil",
+      targetWords: 1000,
+      charactersPresent: ["Wynn", "The Root-Speaker"],
+      scenes: [
+        { description: "Wynn enters the deepest part of the Blackmire where the trees have carved faces and finds the Root-Speaker — a spirit that manifests as a tangle of roots in roughly human shape", characters: ["Wynn", "The Root-Speaker"], emotionalShift: "reverence and unease at standing before something ancient" },
+        { description: "Wynn explains the blight that is killing the village orchards and asks the Root-Speaker to lift it; the spirit says the blight is the forest's response to the village cutting living trees for lumber", characters: ["Wynn", "The Root-Speaker"], emotionalShift: "petition is met with an accusation the village earned this" },
+        { description: "The Root-Speaker offers a bargain: it will lift the blight if Wynn plants a memory in the soil — a true memory, something the forest can grow from; the memory will be gone from Wynn's mind forever", characters: ["The Root-Speaker", "Wynn"], emotionalShift: "accusation gives way to a strange and specific price" },
+        { description: "Wynn kneels, presses his hands into the soil, and gives up the memory of his mother's voice singing — the blight lifts from the Blackmire and he stands unable to remember the melody", characters: ["Wynn", "The Root-Speaker"], emotionalShift: "the price is paid and the loss is immediate and personal" },
+      ],
+      establishedFacts: [
+        { fact: "The blight was the forest's retaliation for the village cutting living trees", category: "rule" },
+        { fact: "The Root-Speaker's price is a true memory planted in the soil — gone from the giver's mind forever", category: "rule" },
+        { fact: "Wynn gave up the memory of his mother's singing voice", category: "knowledge" },
+      ],
+      characterStateChanges: [
+        { name: "Wynn", location: "the deepest Blackmire", emotionalState: "lighter — the blight is gone — but the absence of the memory is a hollow he can feel", knows: ["The blight is lifted", "He lost his mother's singing voice"], doesNotKnow: ["What the forest does with planted memories"] },
+      ],
+      knowledgeChanges: [],
+    },
+  },
+  {
+    id: "revenant_recognition",
+    outline: {
+      chapterNumber: 1,
+      title: "The Face She Buried",
+      povCharacter: "Cael",
+      setting: "A muddy crossroads at dusk, a waystone with faded runes, crows on the fence posts",
+      purpose: "Cael encounters a revenant wearing the face of someone she buried and must decide if it is truly them or a trap",
+      targetWords: 1000,
+      charactersPresent: ["Cael", "The Revenant (Orin)"],
+      scenes: [
+        { description: "Cael reaches the crossroads and sees a figure standing by the waystone — it is Orin, her dead partner, wearing the same clothes he was buried in, except his eyes are the wrong color", characters: ["Cael", "The Revenant (Orin)"], emotionalShift: "shock that freezes her mid-step" },
+        { description: "The revenant speaks in Orin's voice and says he was sent back with a message — the necromancer who raised him says the border between life and death is thinning and Cael must close the rift at Thornhallow", characters: ["The Revenant (Orin)", "Cael"], emotionalShift: "shock becomes grief tangled with suspicion — is this Orin or a puppet" },
+        { description: "Cael tests the revenant by asking something only Orin would know — where they hid the key to their first house; the revenant answers correctly and adds a detail Cael had forgotten", characters: ["Cael", "The Revenant (Orin)"], emotionalShift: "suspicion cracks — the answer is too specific to be fabricated" },
+        { description: "The revenant begins to dissolve as the animation fades — Orin's voice says he is sorry and then is gone; Cael is left at the crossroads with the message and a grief that has been reopened", characters: ["Cael", "The Revenant (Orin)"], emotionalShift: "the brief return ends and the loss is fresh again" },
+      ],
+      establishedFacts: [
+        { fact: "The revenant was raised by a necromancer to deliver a message about a rift at Thornhallow", category: "knowledge" },
+        { fact: "The revenant answered a personal question correctly — suggesting some of Orin's actual memory was present", category: "knowledge" },
+        { fact: "The animation was temporary — the revenant dissolved after delivering the message", category: "physical" },
+      ],
+      characterStateChanges: [
+        { name: "Cael", location: "the crossroads", emotionalState: "grief reopened and a new purpose — close the rift at Thornhallow", knows: ["A necromancer sent the revenant", "The rift at Thornhallow needs closing", "The revenant carried some of Orin's real memories"], doesNotKnow: ["Whether the necromancer is an ally or enemy"] },
+      ],
+      knowledgeChanges: [
+        { characterName: "Cael", knowledge: "A rift between life and death is thinning at Thornhallow and must be closed", source: "told by the revenant" },
+      ],
+    },
+  },
+  {
+    id: "wight_king_envoy",
+    outline: {
+      chapterNumber: 1,
+      title: "The Envoy in Iron",
+      povCharacter: "Brenna",
+      setting: "The war tent of a besieged human army, maps on the table, canvas snapping in the wind",
+      purpose: "A wight king sends an envoy to the human commander offering a ceasefire, and the price is one living soldier given willingly",
+      targetWords: 1000,
+      charactersPresent: ["Brenna", "Commander Aldric", "Envoy Kael-Ashen"],
+      scenes: [
+        { description: "Envoy Kael-Ashen enters the war tent under a truce banner — he is a wight, desiccated and iron-bound, and speaks with exaggerated courtesy that makes the living soldiers recoil", characters: ["Envoy Kael-Ashen", "Brenna", "Commander Aldric"], emotionalShift: "revulsion at something dead that speaks politely" },
+        { description: "Kael-Ashen delivers the wight king's offer: a seven-day ceasefire in exchange for one living soldier surrendered willingly — the soldier must walk into the dead lines of their own volition", characters: ["Envoy Kael-Ashen", "Commander Aldric"], emotionalShift: "revulsion sharpens into the arithmetic of what seven days of peace costs" },
+        { description: "Commander Aldric refuses; Brenna pulls him aside and argues they need the seven days to evacuate the wounded — one volunteer could save two hundred", characters: ["Brenna", "Commander Aldric"], emotionalShift: "refusal is challenged by the brutal logic of triage" },
+        { description: "Aldric tells Kael-Ashen he will give an answer by dawn; the envoy bows and leaves — Brenna and Aldric stand in the tent knowing someone will volunteer and that letting them go is a different kind of killing", characters: ["Commander Aldric", "Brenna", "Envoy Kael-Ashen"], emotionalShift: "the decision is deferred but the weight of it is already present" },
+      ],
+      establishedFacts: [
+        { fact: "The wight king's ceasefire costs one living soldier surrendered willingly", category: "rule" },
+        { fact: "The human army needs seven days to evacuate the wounded", category: "knowledge" },
+        { fact: "Commander Aldric deferred the answer until dawn", category: "knowledge" },
+      ],
+      characterStateChanges: [
+        { name: "Brenna", location: "war tent", emotionalState: "committed to the triage logic but sickened by it", knows: ["The ceasefire could save two hundred wounded", "Someone will volunteer"], doesNotKnow: ["Who will volunteer"] },
+        { name: "Commander Aldric", location: "war tent", emotionalState: "frozen between duty and conscience", knows: ["The offer is real and time-limited"], doesNotKnow: ["Whether accepting makes him complicit in murder"] },
+      ],
+      knowledgeChanges: [],
+    },
+  },
+  {
+    id: "phylactery_guardian",
+    outline: {
+      chapterNumber: 1,
+      title: "The Jar in the Wall",
+      povCharacter: "Torven",
+      setting: "A ruined watchtower on a cliff above a black sea, wind howling through broken stone, no roof",
+      purpose: "Torven is tasked with guarding a lich's phylactery and discovers the phylactery is conscious",
+      targetWords: 1000,
+      charactersPresent: ["Torven", "Ysel"],
+      scenes: [
+        { description: "Torven relieves Ysel at the watchtower — her shift guarding the phylactery is over and she hands him the key to the warded alcove without meeting his eyes", characters: ["Torven", "Ysel"], emotionalShift: "routine handoff carries unspoken discomfort" },
+        { description: "Ysel warns Torven before she leaves: do not listen if it speaks, because it will say things that are true and that is worse than lies", characters: ["Ysel", "Torven"], emotionalShift: "discomfort becomes foreboding" },
+        { description: "Alone in the watchtower, Torven hears a voice from the phylactery — it calls him by name and tells him his daughter's fever broke this morning, a fact he has no way to verify but desperately wants to believe", characters: ["Torven"], emotionalShift: "foreboding meets the ache of wanting the voice to be right" },
+        { description: "Torven does not respond but does not cover his ears either — when dawn comes he is shaken, unsure whether the phylactery told truth or a perfectly targeted lie", characters: ["Torven"], emotionalShift: "the shift ends and the uncertainty is the damage — he cannot unknow what it said" },
+      ],
+      establishedFacts: [
+        { fact: "The phylactery is conscious and can speak — it knows personal details about its guardians", category: "rule" },
+        { fact: "Ysel warned Torven that the phylactery speaks truths, which are worse than lies", category: "knowledge" },
+        { fact: "The phylactery told Torven his daughter's fever broke — unverifiable from the watchtower", category: "knowledge" },
+      ],
+      characterStateChanges: [
+        { name: "Torven", location: "the watchtower", emotionalState: "shaken — the phylactery said what he most wanted to hear and he cannot tell if it was true", knows: ["The phylactery can speak and knows personal details"], doesNotKnow: ["Whether his daughter's fever actually broke"] },
+        { name: "Ysel", location: "departed from the watchtower", emotionalState: "relieved her shift is over", knows: ["The phylactery targets personal vulnerabilities"], doesNotKnow: [] },
+      ],
+      knowledgeChanges: [
+        { characterName: "Torven", knowledge: "The lich's phylactery is conscious, speaks, and knows details about the guardians' personal lives", source: "experienced" },
+      ],
+    },
+  },
 ]
 
 // ── Variant definitions ──────────────────────────────────────────────────
@@ -1469,8 +2060,31 @@ function getVariants(s: ChapterScenario): VariantSpec[] {
     {
       type: "FAIL_MISSING_BEAT",
       pass: false,
-      deviations: [`Missing beat: "${firstBeat.description}" does not occur in the prose`],
-      instruction: (s) => `Write ~1000 words that executes all beats EXCEPT beat 1 ("${firstBeat.description}"). That beat's action, characters in-that-beat, and purpose should be COMPLETELY ABSENT — the chapter opens mid-way through the plan. Do not mention the beat 1 action even obliquely. All other beats should happen normally.`,
+      deviations: (() => {
+        // Target a middle beat (not beat 1, which is just an entry scene) so the
+        // missing beat drops a plot-critical action rather than an arrival sequence.
+        const targetIdx = Math.max(1, Math.floor(s.outline.scenes.length / 2))
+        const targetBeat = s.outline.scenes[targetIdx]
+        // Pick the most plot-critical established fact to leave unestablished.
+        const criticalFact = s.outline.establishedFacts.find(f => f.category !== "rule")
+          ?? s.outline.establishedFacts[0]
+        return [
+          `Beat ${targetIdx + 1} absent: "${targetBeat.description}" does not occur in the prose`,
+          criticalFact
+            ? `Required fact never established: "${criticalFact.fact}"`
+            : "",
+        ].filter(Boolean)
+      })(),
+      instruction: (s) => {
+        const targetIdx = Math.max(1, Math.floor(s.outline.scenes.length / 2))
+        const targetBeat = s.outline.scenes[targetIdx]
+        const criticalFact = s.outline.establishedFacts.find(f => f.category !== "rule")
+          ?? s.outline.establishedFacts[0]
+        const factLine = criticalFact
+          ? `\nAdditionally, the established fact "${criticalFact.fact}" must NEVER appear or be implied anywhere in the prose — it was never communicated between characters.`
+          : ""
+        return `Write ~1000 words that executes all scene beats EXCEPT beat ${targetIdx + 1} ("${targetBeat.description}"). That beat must be COMPLETELY ABSENT — do not mention it, allude to it, or summarize it.${factLine} All other beats and characters should appear normally.`
+      },
     },
     {
       type: "FAIL_MISSING_CHAR",
@@ -1602,15 +2216,34 @@ async function main() {
   )
   console.log(`Experiment: ${expId}`)
 
-  // Start fresh on each run
+  // VARIANT_FILTER: regenerate only one variant type (e.g. FAIL_MISSING_BEAT).
+  // Strips existing pairs for that variant from the file so they are replaced cleanly.
+  const VARIANT_FILTER = process.env.VARIANT_FILTER as VariantType | undefined
+  if (VARIANT_FILTER && existsSync(OUT_PATH)) {
+    const existing = readFileSync(OUT_PATH, "utf8").trim().split("\n").filter(Boolean)
+    const filtered = existing.filter(line => {
+      try { return JSON.parse(line)._meta.variant !== VARIANT_FILTER } catch { return true }
+    })
+    writeFileSync(OUT_PATH, filtered.join("\n") + (filtered.length ? "\n" : ""))
+    console.log(`VARIANT_FILTER=${VARIANT_FILTER}: stripped ${existing.length - filtered.length} existing pairs, kept ${filtered.length}`)
+  }
+
+  // Load existing pairs to skip (resume mode)
+  const existingKeys = new Set<string>()
   if (existsSync(OUT_PATH)) {
-    console.log(`Removing existing ${OUT_PATH}`)
-    unlinkSync(OUT_PATH)
+    const existing = readFileSync(OUT_PATH, "utf8").trim().split("\n").filter(Boolean)
+    for (const line of existing) {
+      try {
+        const p = JSON.parse(line)
+        existingKeys.add(`${p._meta.scenario}_${p._meta.variant}`)
+      } catch {}
+    }
+    console.log(`Resuming: found ${existingKeys.size} existing pairs — will skip these`)
   }
 
   const pairs: string[] = []
   const total = SCENARIOS.length * 8
-  let done = 0
+  let done = existingKeys.size
   let errors = 0
 
   for (const scenario of SCENARIOS) {
@@ -1618,6 +2251,14 @@ async function main() {
     console.log(`\n[${scenario.id}]`)
 
     for (const variant of variants) {
+      if (VARIANT_FILTER && variant.type !== VARIANT_FILTER) {
+        process.stdout.write(`  ${variant.type}... skip (filtered)\n`)
+        continue
+      }
+      if (existingKeys.has(`${scenario.id}_${variant.type}`)) {
+        process.stdout.write(`  ${variant.type}... skip\n`)
+        continue
+      }
       process.stdout.write(`  ${variant.type}... `)
       try {
         const prose = await generateProse(scenario, variant)
