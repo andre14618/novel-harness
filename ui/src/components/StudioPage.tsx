@@ -240,9 +240,14 @@ export function StudioPage() {
           <div className="studio-terminal-actions">
             {connected && <span className="studio-dot on" />}
             {activeNovelId && (
-              <button className="studio-read-btn" onClick={() => navigate(`/${activeNovelId}/read${qs}`)}>
-                Read
-              </button>
+              <>
+                <button className="studio-read-btn" onClick={() => navigate(`/${activeNovelId}${qs}`)}>
+                  Pipeline
+                </button>
+                <button className="studio-read-btn" onClick={() => navigate(`/${activeNovelId}/read${qs}`)}>
+                  Read
+                </button>
+              </>
             )}
           </div>
         </div>
