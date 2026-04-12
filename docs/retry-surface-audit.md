@@ -143,9 +143,22 @@ Both are **line attribution swaps**: the action happens, but the wrong character
 
 ## Tightening Plan
 
-### Phase 1: Merge events + character, ship new events prompt
+### Design principle: targeted rewrite over blind regeneration
 
-**Change:** Merge the character call into events. Drop from 4 LLM calls to 3 per beat.
+The current retry loop throws away prose and regenerates from scratch. The beat writer has no idea what was wrong. This is the primary cause of the 60% retry-exhaustion rate — it's rolling the dice again, not fixing a known issue.
+
+The ground-truth eval revealed a second problem: many "failures" are **alignment offsets** — the beat's content IS in the chapter, just rendered in an adjacent beat's prose block. This is natural prose flow (scenes don't break cleanly at beat boundaries). Blind regeneration can't fix this because the beat writer doesn't know what the adjacent beat already covered.
+
+**Core change:** On adherence failure, pass the existing prose + specific issues back to the beat writer as a **targeted rewrite** instead of regenerating from scratch. The writer keeps its optimized beat-level context (beat spec, transition bridge, landing target, character snapshots) and adds:
+1. The prose it already wrote
+2. The specific failure: "Beat events not enacted: Nadia crushing the card is missing"
+3. For alignment offsets: "Note: the previous beat's prose already covered [X] from your beat spec — cover the remaining actions without duplicating"
+
+This stays entirely at beat level. No architecture change to the writer, no chapter-level rewrite path.
+
+### Phase 1: Ship new events prompt + merge character into events
+
+**Change:** Replace the old events prompt with the validated new one (+16pp). Fold the character call's unique signal (attribution) into it. Drop from 4 LLM calls to 3 per beat.
 
 **New events+attribution prompt** adds one line to the validated new events prompt:
 ```
@@ -155,10 +168,10 @@ Both are **line attribution swaps**: the action happens, but the wrong character
 ```
 
 **Expected impact:**
-- Events accuracy: 93% baseline, attribution check adds coverage for the 2 swap cases
+- Events accuracy: 93% baseline, attribution check adds coverage for the 2 swap cases (only unique signal the character call provided)
 - Removes the 87% character call entirely — eliminates its FP contribution to the compound rate
-- Compound FP with 3 calls at 5% each: `1 - 0.95^3 = 14.3%` (down from 18.5%)
-- Saves ~25% of adherence LLM cost per beat (1 fewer call × ~256 tokens each)
+- Compound FP with 3 calls at 5% each: `1 - 0.95^3 = 14.3%` (down from 18.5% with 4 calls)
+- Saves ~25% of adherence LLM cost per beat
 
 **Validation:** Re-run the 30-pair eval with the merged prompt via subagents before shipping.
 
@@ -168,29 +181,56 @@ Both are **line attribution swaps**: the action happens, but the wrong character
 
 | Call | Gate | Rationale |
 |---|---|---|
-| Events+attribution | **Hard** — always retry | Core signal: beat not enacted or wrong character. Writer can fix this. |
-| Setting | **Soft** — log, don't retry | Setting mismatches are rare and often inherited from prior beats. Mid-chapter beats don't re-establish setting. Current prompt already accounts for this. |
-| Tangent | **Soft** unless off_spec_fraction > 0.7 | Mild tangent (30-60% off-spec) is often atmospheric expansion. Only severe drift (>70%) warrants a rewrite. |
+| Events+attribution | **Hard** — targeted rewrite | Core signal: beat not enacted or wrong character. Writer can fix this with directed feedback. |
+| Setting | **Soft** — log, don't retry | Setting mismatches are rare and often inherited from prior beats. Mid-chapter beats don't re-establish setting. |
+| Tangent | **Soft** unless off_spec_fraction > 0.7 | Mild tangent (30-60% off-spec) is often atmospheric expansion. Only severe drift warrants a rewrite. |
 
 **Expected impact:**
 - Only events+attribution triggers retries → compound FP drops to the single-call rate (~5-7%)
-- Setting and tangent still run (signal preserved for monitoring) but don't cause rewrites
+- Setting and tangent still run (signal preserved for monitoring and chapter-level gating) but don't trigger beat rewrites
 - Beat first-attempt pass rate should rise from 19% to ~80%+
 
-### Phase 3: Deduplicate beat vs chapter checks
+### Phase 3: Targeted rewrite on beat failure
+
+**Change:** Replace the blind retry loop in `drafting.ts` with a targeted rewrite. On adherence failure:
+
+1. Collect specific issues from the events+attribution check (e.g., "missing action: Nadia crushes the card")
+2. Pass to the beat writer as additional context alongside the existing prose:
+   ```
+   Your previous prose for this beat:
+   ---
+   {previous prose}
+   ---
+   Issues found:
+   - {issue 1}
+   - {issue 2}
+   Rewrite this beat to address the issues above while preserving what works.
+   ```
+3. For alignment offsets (detected when the previous beat's prose covers current beat's actions), add:
+   ```
+   The previous beat's prose already covers: {summary of covered actions}
+   Focus on the remaining actions that are not yet dramatized.
+   ```
+
+**Files changed:** `src/phases/drafting.ts` (beat retry loop), `src/agents/writer/beat-context.ts` (context assembly for retry)
+
+**Expected impact:**
+- Retries converge because the writer knows exactly what to fix
+- Alignment offsets handled explicitly rather than triggering blind regeneration
+- Should reduce retry-exhaustion rate from 60% to <20% (the writer model is capable; it just needs feedback)
+
+### Phase 4: Narrow chapter plan checker scope
 
 **Change:** Remove `beats_covered` and `characters_present` from the chapter plan checker. These are redundant with beat-level events+attribution and deterministic character presence.
 
 **Keep in chapter plan checker:**
 - `emotional_arc_correct` — cross-beat property, can only be assessed at chapter level
-- `setting_match` — chapter-level spatial coherence
+- `setting_match` — chapter-level spatial coherence (catches issues that beat-level soft-gated setting missed)
 - Major plot contradictions — cross-beat arc reversals
 
-**Expected impact:**
-- Fewer false chapter-level rejections from `beats_covered` re-flagging issues the beat writer already accepted
-- Chapter plan checker becomes focused on what only it can see: arc direction and cross-beat coherence
+The chapter plan checker becomes focused on what only it can see: arc direction and cross-beat coherence. It serves as a safety net for setting/tangent issues that were soft-gated at beat level.
 
-### Phase 4: Validation convergence fix
+### Phase 5: Validation convergence fix
 
 The 66→63→58 rewrite pattern means the rewriter creates nearly as many issues as it fixes. Two potential causes:
 
@@ -203,17 +243,24 @@ The 66→63→58 rewrite pattern means the rewriter creates nearly as many issue
 
 ## Implementation Order
 
-| Step | Change | Risk | Effort |
-|---|---|---|---|
-| 1 | Ship new events prompt to `adherence-checker.ts` | Low — +16pp validated | 1 file edit |
-| 2 | Write + validate merged events+attribution prompt (subagent eval) | Low — extends step 1 | Eval run |
-| 3 | Remove character call, wire events+attribution | Low | `adherence-checker.ts` edit |
-| 4 | Add soft gate for setting + tangent | Medium — changes retry behavior | `adherence-checker.ts` + `drafting.ts` |
-| 5 | Remove `beats_covered`/`characters_present` from chapter plan checker | Medium — changes chapter gate | `plan-adherence-system.md` + schema |
-| 6 | Investigate validation convergence | Research | DB queries + analysis |
-| 7 | Re-label training data with merged prompt, train V4 adapter | High effort | Full re-labeling pipeline |
+| Step | Change | Risk | Effort | Files |
+|---|---|---|---|---|
+| 1 | Ship new events prompt | Low — +16pp validated | Small | `adherence-checker.ts` |
+| 2 | Write + validate merged events+attribution prompt | Low | Eval run | subagent eval |
+| 3 | Remove character call, wire events+attribution | Low | Small | `adherence-checker.ts` |
+| 4 | Tiered gates: setting/tangent → soft | Medium | Small | `adherence-checker.ts` |
+| 5 | Targeted rewrite on beat failure | Medium | Medium | `drafting.ts`, `beat-context.ts` |
+| 6 | Narrow chapter plan checker scope | Medium | Small | `plan-adherence-system.md`, `schema.ts` |
+| 7 | Investigate validation convergence | Research | DB queries | — |
+| 8 | Re-label training data with merged prompt, train V4 adapter | High effort | Large | Full pipeline |
 
-Steps 1-3 can ship together. Step 4 is the highest-impact change for retry rates. Steps 5-6 are independent. Step 7 depends on all prior steps being validated in production.
+**Batch 1 (ship together, low risk):** Steps 1-4. Reduces beat LLM calls from 4→3, makes setting/tangent non-blocking. Validate with a 3-chapter romance-drama run.
+
+**Batch 2 (medium risk, highest impact):** Step 5. Targeted rewrite is the key architectural change — this is what breaks the 60% retry-exhaustion pattern. Validate with a full novel run comparing retry rates before/after.
+
+**Batch 3 (independent):** Steps 6-7. Chapter-level deduplication and validation convergence investigation.
+
+**Batch 4 (depends on all above):** Step 8. Re-label training data only after the merged prompt and targeted rewrite are validated in production.
 
 ---
 
