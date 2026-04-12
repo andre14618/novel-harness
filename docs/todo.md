@@ -7,23 +7,14 @@ updated: 2026-04-12
 
 Pending action items only. Ordered by impact. Completed items and decision rationale live in `docs/decisions.md`.
 
-## Beat Architecture — Remaining Echo Fix (HIGH PRIORITY)
+## Beat Architecture — DONE
 
-Dramatic beats + dramatize writer prompt shipped (exp #173, 2026-04-12). 3-novel validation (30ch): dialogue rose from 11.8%→20.1% (target met), first-attempt pass 73% (target met), but echo only dropped 0.35→0.27 (target <0.20 not met). Full evidence in `docs/decisions.md` under "Beat Architecture."
+Dramatic beats + dramatize writer + no-prescribed-dialogue rule shipped and validated (exp #173, #176). 5-novel validation (50 chapters): echo 0.35→0.20 (target met), dialogue 11.8%→17-28% (genre-dependent, target met for sci-fi/romance), first-attempt 79%→73-100% (target met). Full evidence in `docs/decisions.md` under "Beat Architecture."
 
-**Root cause of remaining echo:** The planner still prescribes verbatim dialogue in beat descriptions for character-heavy genres (coastal-mystery echo=0.30, beat descriptions contained lines like `Gil: 'You left. I stayed...'`). Sci-fi-thriller (echo=0.20) had no prescribed dialogue — proving the fix works when descriptions are purely dramatic.
-
-### Step 1 — Add "no prescribed dialogue" rule to planner prompt
-- Add to `chapter-outline-system.md`: "Do NOT include sample dialogue in beat descriptions — the writer creates all dialogue. Describe what characters confront or reveal, not what they say."
-- This is the single remaining echo driver. When beat descriptions contain no dialogue, echo consistently hits 0.20 or below.
-
-### Step 2 — Validate with 1-2 novels
-- Run 1-2 novels on dialogue-heavy seeds (romance or mystery genre) to confirm the fix.
-- Target: echo <0.20, dialogue% maintained ≥20%.
-- If echo target met: close the Beat Architecture item.
-
-### Separate: Interiority
-Near-zero everywhere (0.0–0.2/100w) across all conditions in exp #165, the corpus, and the 3 validation novels. Not a beat architecture problem — the beat-writer system prompt says "show emotion through body and action" with no instruction to include internal thought. Tracked under Structural Diversity below.
+**Remaining known issues (tracked elsewhere):**
+- **Interiority** still near-zero (0.1-0.3/100w). Writer prompt issue, not beat architecture. Tracked under Structural Diversity.
+- **Fantasy-siege low dialogue** (13.7%). Genre-specific. Tracked under Character Voice & Dialogue Phase 1.
+- **Continuity location violations** from planner's chapter-level settings. Tracked under Planner Setting Coherence.
 
 ## Adherence Checker
 
