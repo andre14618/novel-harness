@@ -4,9 +4,11 @@ import { getNovelState, getNovelConfig, resumeNovel, getTrace, getAllChapters } 
 import type { NovelState, NovelConfig, SSEEvent, TraceEvent } from "../api"
 import { useNovelSSE } from "../hooks/useNovelSSE"
 import { GatePanel } from "./GatePanel"
+import { EventLog } from "./EventLog"
 import { TraceTimeline } from "./TraceTimeline"
 import { PipelineFlow } from "./PipelineFlow"
 import { LiveMeters } from "./LiveMeters"
+import { LiveProse, type LiveBeat } from "./LiveProse"
 
 // ── Agent display labels ────────────────────────────────────────────────
 // Drives the human-readable text shown in the activity feed when an LLM call
@@ -571,36 +573,52 @@ export function PipelineView() {
           </div>
         )}
 
-        <div className="live-activity" style={{ marginTop: 14 }}>
-          <div className="live-activity-header">Activity</div>
-          <div className="live-activity-body">
-            {feedItems.length === 0 && (
-              <div className="live-activity-placeholder">
-                {state.active ? "Waiting for the first LLM call…" : "Idle."}
-              </div>
-            )}
-            {feedItems.map((item, i) =>
-              item.type === "call"
-                ? <ActivityRow key={item.call.id} call={item.call} />
-                : <NarrativeRow key={`n-${i}`} entry={item.entry} />
-            )}
-            <div ref={activityEndRef} />
-          </div>
+        {/* Main split: LiveProse on the left, activity feed on the right */}
+        <div className="live-split">
+          <LiveProse
+            chapter={currentChapter}
+            chapterTitle={currentChapterTitle}
+            totalBeats={currentTotalBeats}
+            beats={beatsForRender}
+            writing={activeAgents.has("beat-writer")}
+          />
 
-          {state.pendingGate && (
-            <div className="tl-entry tl-gate" style={{ marginTop: "1rem" }}>
-              <div className="tl-dot gate" />
-              <div className="tl-body" style={{ width: "100%" }}>
-                <GatePanel
-                  novelId={novelId!}
-                  gateId={state.pendingGate.gateId}
-                  title={state.pendingGate.title}
-                  content={state.pendingGate.content}
-                  onDecided={loadState}
-                />
-              </div>
+          <div className="live-activity">
+            <div className="live-activity-header">Activity</div>
+            <div className="live-activity-body">
+              {feedItems.length === 0 && (
+                <div className="live-activity-placeholder">
+                  {state.active ? "Waiting for the first LLM call…" : "Idle."}
+                </div>
+              )}
+              {feedItems.map((item, i) =>
+                item.type === "call"
+                  ? <ActivityRow key={item.call.id} call={item.call} />
+                  : <NarrativeRow key={`n-${i}`} entry={item.entry} />
+              )}
+              <div ref={activityEndRef} />
             </div>
-          )}
+
+            {/* Pending gate inline */}
+            {state.pendingGate && (
+              <div className="tl-entry tl-gate" style={{ marginTop: "1rem" }}>
+                <div className="tl-dot gate" />
+                <div className="tl-body" style={{ width: "100%" }}>
+                  <GatePanel
+                    novelId={novelId!}
+                    gateId={state.pendingGate.gateId}
+                    title={state.pendingGate.title}
+                    content={state.pendingGate.content}
+                    onDecided={loadState}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div style={{ marginTop: "1rem" }}>
+          <EventLog events={events} connected={connected} />
         </div>
       </>}
     </>
