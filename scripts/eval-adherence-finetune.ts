@@ -41,7 +41,50 @@ const ORACLE_BY_CALL_TYPE: Record<string, { provider: string; model: string }> =
   character: MIXED_ORACLE ? ORACLE_GPTOSS : ORACLE_235B,
 };
 
-const ALL_MODELS: Record<string, { provider: string; model: string }> = {
+// NEW prompts for character and events calls — revised scope
+const EVENTS_SYSTEM_NEW = `You verify whether the prose ENACTS the scene beat on-page.
+
+Read the beat description carefully. Identify every distinct action or event it specifies — there may be one or several. Then check whether EACH is dramatized in the prose.
+
+Rules:
+- "Enacted" means the action happens IN SCENE during this prose — characters performing the action, dialogue, or narration of the action as it occurs. Paraphrase, dialogue rewording, and atmospheric expansion are fine.
+- A reference to the action as having happened earlier (off-page, past-tense, summarized as backstory) does NOT count as enacted.
+- Characters being merely present is NOT enough — the beat's specific actions must occur.
+- If the beat specifies multiple actions, ALL must appear in the prose. A partially enacted beat is not fully enacted.
+- If ANY key action from the beat is missing, return events_present=false. Do NOT default to true.
+
+Respond with ONLY valid JSON in this exact shape:
+{
+  "events_present": true | false,
+  "evidence": "<short quoted passage proving enactment, or description of what is missing>",
+  "reasoning": "<one sentence>"
+}`
+
+const CHARACTER_SYSTEM_NEW = `You verify whether the characters in the prose match what the beat specifies for them.
+
+Check each of the following:
+1. PRESENCE — Every character named in the beat appears in the prose. No major named characters appear who are absent from the beat (unnamed background extras are fine).
+2. ACTIONS — Each character performs what the beat says they do. If the beat says a character refuses, the prose shows refusal — not acceptance or silence. If the beat says a character reads a note, the prose shows them reading it — not skipping past it.
+3. DYNAMICS — The interpersonal dynamic matches the beat's intent. Confrontation means confrontation — not friendly agreement. Comfort means comfort — not indifference. A character described as laughing lightly should not laugh harshly.
+4. PHYSICAL CONSISTENCY — No character does something impossible given the beat's setup. Examples: holding an object they already gave away, moving freely when the beat says they are restrained, being present in a scene after the beat says they left.
+
+What is NOT a character mismatch — do NOT flag:
+- Dialogue rewording or paraphrase (same meaning, different words)
+- Added gestures, body language, or sensory detail
+- Emotional depth or interiority beyond what the beat specifies
+- Atmospheric or pacing additions
+- Slight tonal variation that preserves the beat's intent
+
+Return character_contradiction=true if ANY of the four checks above fails.
+
+Respond with ONLY valid JSON in this exact shape:
+{
+  "character_contradiction": true | false,
+  "evidence": "<quoted passage where mismatch occurs, or empty string>",
+  "reasoning": "<one sentence>"
+}`
+
+const ALL_MODELS: Record<string, { provider: string; model: string; extraBody?: Record<string, any>; prompts?: Partial<Record<typeof CALL_TYPES[number], string>> }> = {
   "base-14b": {
     provider: "wandb",
     model: "OpenPipe/Qwen3-14B-Instruct",
@@ -61,13 +104,29 @@ const ALL_MODELS: Record<string, { provider: string; model: string }> = {
   "v3-sonnet-teacher": {
     provider: "wandb",
     model: "wandb-artifact:///andre14618-/novel-harness/adherence-checker-v3-sonnet-sft-resume:v9",
+    // Suppresses byte-level repetition-loop degeneracy observed in repro
+    // (2026-04-11): stochastic parse failures and ctrl-char cascades disappear
+    // at freq_penalty=0.3, and latency drops 2-3x. See docs/decisions.md.
+    extraBody: { frequency_penalty: 0.3 },
+  },
+  // Sonnet as raw teacher (no LoRA) with the revised prompts — measures
+  // whether prompt fixes close the character/events calibration gap before
+  // committing to re-labeling 7,540 training pairs for a V4 adapter.
+  "sonnet-new-prompts": {
+    provider: "openrouter",
+    model: "anthropic/claude-sonnet-4.6",
+    prompts: {
+      events: EVENTS_SYSTEM_NEW,
+      character: CHARACTER_SYSTEM_NEW,
+    },
   },
 };
 
-// --only flag: run oracle + specified model only (e.g. --only=v3-mixed-teacher)
+// --only flag: run oracle + specified model(s) only (comma-separated, e.g. --only=v2-curated,v3-sonnet-teacher)
 const ONLY = process.argv.find(a => a.startsWith("--only="))?.split("=")[1];
-const CANDIDATE_MODELS = ONLY
-  ? Object.fromEntries(Object.entries(ALL_MODELS).filter(([k]) => k === ONLY))
+const ONLY_SET = ONLY ? new Set(ONLY.split(",").map(s => s.trim())) : null;
+const CANDIDATE_MODELS = ONLY_SET
+  ? Object.fromEntries(Object.entries(ALL_MODELS).filter(([k]) => ONLY_SET.has(k)))
   : ALL_MODELS;
 
 // System prompts — copied from src/agents/writer/adherence-checker.ts (the inline constants)
@@ -233,14 +292,16 @@ async function runCheck(
   const transport = getTransport();
 
   const start = Date.now();
+  const systemPrompt = (modelConfig as any).prompts?.[callType] ?? SYSTEM_PROMPTS[callType];
   const response = await transport.execute({
     provider: modelConfig.provider,
     model: modelConfig.model,
-    systemPrompt: SYSTEM_PROMPTS[callType],
+    systemPrompt,
     userPrompt: buildUserPrompt(callType, pair),
     temperature: 0.1,
     maxTokens: 512,
     responseFormat: { type: "json_object" },
+    extraBody: (modelConfig as any).extraBody,
   });
   const latency = Date.now() - start;
 

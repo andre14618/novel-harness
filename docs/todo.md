@@ -31,7 +31,9 @@ Pending action items only. Ordered by impact. Completed items and decision ratio
 
 ## Adherence Checker
 
-- **V3 Sonnet-teacher adapter** — 7,540 pairs relabeled (2026-04-11), submitted to W&B SFT as `adherence-checker-v3-sonnet` (exp #159). ETA ~4h. Adapter URI once done: `wandb-artifact:///andre14618-/novel-harness/adherence-checker-v3-sonnet-sft-resume:v9`. Decision gate: must improve FAIL_TANGENT_HARD (V2: 69%) and FAIL_MISSING_SUBTLE (V2: 78.6%) without regressing events below 95%.
+- **V3-sonnet character regression** — adapter scored 61% on character call (V2: 82%). Root cause: old CHARACTER_SYSTEM prompt too narrow ("only flag clear contradictions"); Sonnet followed it literally. New CHARACTER_SYSTEM_NEW and EVENTS_SYSTEM_NEW prompts are written and validated (in `scripts/eval-adherence-finetune.ts`). Pending: measure teacher accuracy against known ground-truth pairs before re-labeling 7,540 pairs for V4. Use Claude subagents vs constructed pairs with known labels (not just oracle agreement). See `docs/decisions.md` entry 2026-04-12.
+- **Ship revised CHARACTER and EVENTS prompts to production** — `src/agents/writer/adherence-checker.ts` — blocked until teacher accuracy confirms the new prompts improve oracle agreement without introducing FP. Also update `src/agents/chapter-plan-checker/plan-adherence-system.md` `beats_covered` definition ("ALL key actions" not just "the central action").
+- **Close experiments #154 (chapter-plan-checker-v1), #155 (continuity-v1), #159 (adherence-v3-sonnet)** — all three training runs submitted but not concluded in DB. Run eval for each and call `concludeExperiment()` with results.
 
 ## Fine-Tuning (Other)
 

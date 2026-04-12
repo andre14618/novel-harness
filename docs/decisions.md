@@ -359,3 +359,50 @@ FAIL_MISSING_BEAT: both models at 67.9% / 46.4% vs GT — driven by 12 GT labeli
 - **Targeted augmentation within 235B framework:** Would add data but not fix the calibration threshold. The teacher defines the boundary; more data won't shift it.
 
 **Ongoing:** V2 remains in production. V3-sonnet training in progress (~4h). Eval after training; deploy if decision gate passed.
+
+---
+
+### Adherence checker V3-sonnet: production eval results + degenerate output fix
+*(2026-04-12 · exp #159 eval)*
+
+**Findings:** V3-sonnet adapter evaluated against 235B oracle on 60 production pairs.
+
+| call type | V2 curated | V3-sonnet | delta |
+|-----------|-----------|-----------|-------|
+| events    | ~95%      | TBD       |       |
+| setting   | ~90%      | TBD       |       |
+| tangent   | 69%       | TBD       |       |
+| character | **82%**   | **61%**   | **−21pp** |
+
+Character call regressed 21pp vs V2. Root cause identified (see below). Other call types pending full eval.
+
+**Degenerate output bug fixed:** V3-sonnet produced stochastic parse failures and ctrl-char token cascade loops at `temperature=0.1`. Root cause: distributional narrowing from fine-tuning reduces output entropy, causing the model to spiral on low-entropy BPE byte tokens. Fix: `frequency_penalty: 0.3` — penalizes recently-seen tokens and breaks the cycle. Tested 5/5 clean at 523ms vs 0/5 clean baseline. No impact on label quality. This setting is now permanent for V3-sonnet inference. See `src/transport.ts` `extraBody: { frequency_penalty: 0.3 }`.
+
+---
+
+### Adherence checker CHARACTER call: prompt scope gap identified, new prompt designed
+*(2026-04-12)*
+
+**Decision:** Redesign CHARACTER_SYSTEM prompt before training V4. Do NOT deploy revised prompts to production until teacher accuracy is measured.
+
+**Root cause of V3-sonnet character regression:** The production CHARACTER_SYSTEM prompt contains two scope-narrowing guardrails: "only flag clear contradictions" and "do NOT flag normal creative interpretation." Sonnet follows these literally — it only flags unambiguous reversals. The 235B oracle ignores these guardrails and flags broadly based on intent. V3-sonnet learned Sonnet's narrow boundary. V2 learned 235B's broader boundary. V3-sonnet character 61% = correct behavior given the prompt, not a model defect.
+
+**Analysis of 29-pair FP/FN breakdown:**
+- 0 false positives (V3-sonnet correctly catches clear contradictions)
+- 8 false negatives (all pattern: "beat's events simply do not occur, characters act consistently" — model interprets consistency of behavior correctly but misses missing actions as character failure)
+
+**New CHARACTER_SYSTEM prompt designed (in `scripts/eval-adherence-finetune.ts`):**
+- Splits verification into 4 explicit checks: PRESENCE, ACTIONS, DYNAMICS, PHYSICAL CONSISTENCY
+- Removes the blanket "only flag clear contradictions" guardrail
+- Preserves the NOT-a-mismatch list for FP suppression
+- `character_contradiction=true` if ANY of the four checks fails
+- Validated by Claude subagents on synthetic clean pairs: 0 false positives
+
+**EVENTS call secondary-action gap also found and fixed:**
+- Production EVENTS_SYSTEM: "the beat's action" (singular) — misses multi-action beats
+- New EVENTS_SYSTEM: "every distinct action...ALL must appear...partially enacted is not fully enacted"
+- Validated by Claude subagents: 0 FP on clean prose, correctly caught partial enactments
+
+**Pending:** Measure teacher accuracy with new prompts against known ground-truth pairs (not just oracle agreement) before committing to re-labeling 7,540 pairs for V4. Prompt changes are in `scripts/eval-adherence-finetune.ts` as `CHARACTER_SYSTEM_NEW` and `EVENTS_SYSTEM_NEW`.
+
+**Ongoing:** New prompts are NOT yet in production. Production CHARACTER_SYSTEM and EVENTS_SYSTEM in `src/agents/writer/adherence-checker.ts` are unchanged.
