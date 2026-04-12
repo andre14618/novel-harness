@@ -110,11 +110,19 @@ export function ComparePage() {
 
   const beatsToShow = beat !== null ? [beat] : Array.from({ length: maxBeats }, (_, i) => i)
 
-  const label = (n: NovelListItem) => {
+  // Group novels by premise for the picker
+  const groupedNovels = novels.reduce<{ premise: string; genre: string; novels: NovelListItem[] }[]>((acc, n) => {
+    const premise = n.seed?.premise ?? "(no premise)"
+    const genre = n.seed?.genre ?? "?"
+    let group = acc.find(g => g.premise === premise)
+    if (!group) { group = { premise, genre, novels: [] }; acc.push(group) }
+    group.novels.push(n)
+    return acc
+  }, [])
+
+  const novelDate = (n: NovelListItem) => {
     const d = new Date(n.createdAt)
-    const date = `${d.getMonth() + 1}/${d.getDate()}`
-    const premise = n.seed?.premise ?? ""
-    return `${n.id.slice(-6)} | ${n.seed?.genre ?? "?"} | ${date} | ${premise.length > 50 ? premise.slice(0, 50) + "..." : premise}`
+    return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`
   }
 
   const sameSeed = dataA && dataB &&
@@ -125,8 +133,8 @@ export function ComparePage() {
     <div className="cmp">
       {/* Pickers */}
       <div className="cmp-pickers">
-        <Picker label="A" value={idA} novels={novels} onChange={pickA} labelFn={label} />
-        <Picker label="B" value={idB} novels={novels} onChange={pickB} labelFn={label} />
+        <GroupedPicker label="A" value={idA} groups={groupedNovels} dateFn={novelDate} onChange={pickA} />
+        <GroupedPicker label="B" value={idB} groups={groupedNovels} dateFn={novelDate} onChange={pickB} />
       </div>
 
       {sameSeed && <div className="cmp-same-seed">Same seed — specs aligned</div>}
@@ -176,16 +184,26 @@ export function ComparePage() {
 
 // ── Sub-components ──────────────────────────────────────────────────
 
-function Picker({ label, value, novels, onChange, labelFn }: {
-  label: string; value: string; novels: NovelListItem[]
-  onChange: (id: string) => void; labelFn: (n: NovelListItem) => string
+function GroupedPicker({ label, value, groups, dateFn, onChange }: {
+  label: string; value: string
+  groups: { premise: string; genre: string; novels: NovelListItem[] }[]
+  dateFn: (n: NovelListItem) => string
+  onChange: (id: string) => void
 }) {
   return (
     <div className="cmp-picker">
       <label className="cmp-picker-label">{label}</label>
       <select className="cmp-select" value={value} onChange={e => onChange(e.target.value)}>
         <option value="">Select novel...</option>
-        {novels.map(n => <option key={n.id} value={n.id}>{labelFn(n)}</option>)}
+        {groups.map(g => (
+          <optgroup key={g.premise} label={`${g.genre} — ${g.premise.length > 70 ? g.premise.slice(0, 70) + "..." : g.premise}`}>
+            {g.novels.map(n => (
+              <option key={n.id} value={n.id}>
+                {dateFn(n)} — {n.id.slice(-6)} — ch {n.currentChapter}/{n.totalChapters} — {n.phase}
+              </option>
+            ))}
+          </optgroup>
+        ))}
       </select>
     </div>
   )
