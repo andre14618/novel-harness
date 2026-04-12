@@ -7,37 +7,16 @@ updated: 2026-04-12
 
 Pending action items only. Ordered by impact. Completed items and decision rationale live in `docs/decisions.md`.
 
-## Beat Architecture — Goodhart Overfitting (HIGH PRIORITY)
+## Beat Architecture — Switch Planner to Dramatic Beats (HIGH PRIORITY)
 
-The planner→checker loop has drifted into a self-reinforcing cycle that optimizes for pipeline pass rates, not prose quality. The planner writes dense micro-screenplay beats (4–7 discrete actions in 40–55 words) because the prompt's "good" example models that density. The adherence checker verifies all actions are enacted. The writer executes the spec faithfully. The result is prose that reads like conjugated stage directions — not fiction.
+Exp #165 confirmed: beat description style matters more than granularity. Screenplay-style beats cause the writer to transcribe specs (0.29–0.35 echo). Dramatic-style beats halve the echo (0.14) while maintaining dialogue (28% vs 29% baseline). Granularity increase is measurably harmful — dialogue collapses from 27%→12% as beats go from 3→10. Seam blindness test passed (0% detection) — the beat architecture itself is sound. Full analysis in `docs/decisions.md` under "Beat description style matters more than granularity."
 
-**The core problem:** beats are shaped to pass checkers, not to produce good writing. The writer gets ~300 words per beat and spends them executing a checklist (43–75 words per action). There's no room for interiority, subtext, dialogue, or rhythm. Measured: 15.7% dialogue (published norm 25–50%), 0.1 interiority/100w, 7.5w avg sentence length (published 12–18w). These aren't independent bugs — they're symptoms of a pipeline that rewards faithful execution of dense specs.
-
-**Evidence from production data (41 novels, 194 beats):**
-- Typical beat: 4–7 discrete actions in a 40–55 word description
-- Planner prompt's "good" example contains 6 discrete elements
-- Writer output shows high N-gram overlap with beat descriptions (spec echo — the writer is transcribing, not interpreting)
-- Beat boundary seams compound with beat count (transition bridge helps but doesn't eliminate)
-
-**Proposed evaluation — beat granularity × beat style matrix:**
-
-Generate the same chapter (one seed, one chapter) under 9 conditions:
-
-| | Screenplay beats (current) | Dramatic beats ("Gil discovers the bay is dying") | Goal-conflict beats ("Gil wants X, obstacle Y") |
-|---|---|---|---|
-| 3 beats (current) | Baseline | — | — |
-| 5–6 beats | — | — | — |
-| 8–10 beats | — | — | — |
-
-Evaluate with **prose feature extraction** (not LLM judges, not checker pass rates):
-1. **Seam blindness test** — give assembled chapter to a model, ask it to mark scene breaks. If detected breaks align with actual beat boundaries → seams are leaking.
-2. **Actions per 100 words** — lower = more breathing room for craft.
-3. **Spec echo rate** — N-gram overlap between beat description and output prose. High = transcription. Low = interpretation.
-4. **Dialogue %**, **interiority density**, **sentence length std dev** — existing structural metrics.
-
-**Key question this answers:** what beat shape (granularity × description style) produces the best writing? The answer determines whether to adjust the planner prompt, the beat description format, or the architecture itself.
-
-**What NOT to do:** optimize beat format for checker pass rates. That's how we got here.
+**Action items:**
+- **Change planner prompt beat example** — replace the micro-screenplay "good" example in `chapter-outline-system.md` with a dramatic-style example. Current: "Kael breaks the wax seal on the iron chest, pulls out Davan's water-stained letter..." → New: something like "Kael discovers Davan's betrayal through a letter in the archive — the evidence is physical, undeniable, and changes what she believed about the order." Tell the writer what changes, not what hands do.
+- **Update beat guidance** — change "EVERY scene description must include ALL THREE: (1) physical action with named prop (2) spatial detail (3) sensory cue" to guidance that focuses on dramatic content: what changes for the character, what tension exists, what the reader should feel. Sensory cues should come from the writer's craft, not the planner's checklist.
+- **Optionally bump beat range to 3–5** — current guidance says 2–4 scenes. 5 beats held dialogue at 28% in the dramatic condition. Don't go above 5–6.
+- **Run 3 novels with new planner prompt** — compare structural metrics (dialogue%, interiority, spec echo) against the 41-novel corpus baseline from `scripts/analyze-structure.ts`.
+- **Interiority is a separate problem** — near-zero everywhere in exp #165 (0.0–0.2/100w). Needs a beat-writer system prompt change (currently says "show emotion through body and action" with no instruction to include internal thought). Track under Structural Diversity, not here.
 
 ## Adherence Checker
 

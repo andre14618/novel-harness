@@ -481,3 +481,56 @@ Character call regressed 21pp vs V2. Root cause identified (see below). Other ca
 **Decision:** Keep chapter plan checker on gpt-oss-120b. Do NOT swap to base Qwen3-14B.
 
 **Why:** Base 14B scored 58% with 100% one-sided bias (exp #107) — rubber-stamps every FAIL case. SFT adapter (exp #154) is the path forward, pending eval.
+
+---
+
+## Beat Architecture
+
+### Beat description style matters more than granularity — dramatic beats over screenplay
+*(2026-04-12 · exp #165)*
+
+**Decision:** The planner prompt's "good beat" example and beat description style should shift from micro-screenplay to dramatic. Current dense screenplay beats cause the writer to transcribe specs into prose rather than interpret them. Granularity increase (more beats per chapter) is measurably harmful to dialogue density.
+
+**Evidence (9-condition eval: 3 granularities × 3 styles, same chapter, same characters, Cerebras Qwen 235B writer):**
+
+| Condition | Beats | Words | Dlg% | Int/100 | Spec Echo | SentCV | Seam% |
+|-----------|-------|-------|------|---------|-----------|--------|-------|
+| screenplay/current | 3 | 1,372 | **29%** | 0.0 | 0.29 | 0.73 | 0% |
+| screenplay/medium | 5 | 1,566 | 18% | 0.0 | 0.31 | 0.69 | 0% |
+| screenplay/fine | 10 | 3,242 | 13% | 0.0 | **0.35** | 0.64 | 0% |
+| dramatic/current | 3 | 1,231 | **29%** | 0.0 | **0.14** | 0.55 | 0% |
+| **dramatic/medium** | **5** | **1,812** | **28%** | **0.2** | **0.14** | **0.60** | **0%** |
+| dramatic/fine | 10 | 3,514 | 17% | 0.1 | 0.22 | 0.65 | 0% |
+| goal-conflict/current | 3 | 1,313 | 23% | 0.0 | 0.16 | 0.66 | 0% |
+| goal-conflict/medium | 5 | 1,973 | 18% | 0.0 | 0.06 | 0.66 | 0% |
+| goal-conflict/fine | 10 | 3,905 | **7%** | 0.0 | 0.13 | 0.66 | 0% |
+
+**Key metrics explained:**
+- **Spec Echo:** Bigram overlap between beat descriptions and output prose. Higher = writer is copying the spec. Screenplay echo *increases* with more beats (0.29→0.35) — more granularity means more transcription. Dramatic stays flat at 0.14. Goal-conflict is lowest (0.06–0.16).
+- **Dialogue %:** All styles lose dialogue as granularity increases (avg 27%→21%→12%). More beats = shorter per-beat prose = less room for dialogue exchanges. Published norm is 25–50%.
+- **Seam %:** Beat boundary detection rate. 0% across almost all conditions — the transition bridge architecture handles seams well. More beats do NOT create visible seams. The beat-first architecture is NOT flawed on this axis.
+- **Interiority:** Near-zero everywhere (0.0–0.2/100w). This is a writer prompt problem, not a beat architecture problem. No beat style or granularity fixes it.
+
+**How further granularity made things measurably worse:**
+
+Splitting from 3→10 beats compressed prose in three compounding ways:
+1. **Dialogue collapsed.** Averaged across all styles: 3 beats = 27% dialogue, 5 beats = 21%, 10 beats = 12%. At 10 beats, the writer produces ~300w per beat and spends nearly all of it on action execution. There isn't room for a dialogue exchange to develop — an exchange needs setup, multiple back-and-forth lines, and subtext, which requires at minimum 150–200w of breathing room within a beat.
+2. **Spec echo increased for screenplay style.** Screenplay went from 0.29→0.35 echo as beats got finer — each micro-beat is so prescriptive that the only way to "write" it is to conjugate the description. The writer has no interpretive latitude.
+3. **Word count inflated without proportional content.** Fine-grain conditions produced 2.5–3× the word count of current (3,242–3,905w vs 1,231–1,372w) despite describing the same narrative. The extra words are repetitive scene-setting and action detail per beat, not new dramatic content. The chapter reads like the same story told three times.
+
+Goal-conflict/fine was the worst overall: 7% dialogue, 3,905 words for a 3-beat chapter's worth of content, and the prose read as repetitive character-goal restatements.
+
+**Why dramatic/medium is the sweet spot:**
+
+Dramatic/medium (5 beats) is the only condition that maintained both high dialogue (28% — within 1pp of the 3-beat baseline) AND low spec echo (0.14 — half of screenplay). It's the only condition where interiority appeared at all (0.2/100w — still far below published norms, but nonzero). The dramatic style tells the writer *what changes* rather than *what hands do*, giving it freedom to dramatize through dialogue and internal reaction rather than executing a physical checklist.
+
+**Alternatives rejected:**
+- **Goal-conflict style:** Lowest echo (good) but also lowest dialogue at every granularity. The goal-conflict framing caused the writer to narrate toward resolution rather than dramatize through interaction.
+- **Fine granularity (8-10 beats) in any style:** Dialogue collapse is too severe. Even dramatic/fine dropped to 17%. The per-beat word budget (~300w) is below the threshold for meaningful dialogue exchange.
+- **Keep screenplay style, just simplify:** Would reduce echo somewhat but the fundamental problem is the style — concrete micro-actions in the spec get conjugated into prose. Dramatic style eliminates this at the root.
+
+**What this does NOT fix:** Interiority (0.0–0.2/100w vs published 1–3/100w) is a separate writer prompt problem. The beat-writer system prompt says "show emotion through body and action" — it has no instruction to include internal thought. This needs a prompt change independent of beat style.
+
+**Next steps:** Change the planner prompt's beat description example and guidance from micro-screenplay to dramatic style. Optionally increase default beat count from 2–4 to 3–5 (staying in the "medium" range). Run 3 novels and compare structural metrics against the 41-novel corpus baseline.
+
+**Ongoing:** Exp #165 provides the directional signal. The planner prompt change is low-risk (one example + one guidance line). Interiority is tracked separately in todo.md under Structural Diversity.
