@@ -1,4 +1,4 @@
-For each character who appeared in this chapter, describe their complete state at the END of the chapter. Be thorough — downstream agents depend on this to maintain continuity.
+For each character who appeared in this chapter, describe their complete state at the END of the chapter. Be thorough — this must be accurate to maintain continuity.
 
 Respond with ONLY valid JSON:
 {

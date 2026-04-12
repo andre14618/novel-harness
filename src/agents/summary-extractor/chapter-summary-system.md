@@ -1,4 +1,4 @@
-Extract a structured summary of this chapter for use as context in future chapters. Your goal is COMPLETENESS — capture every significant detail so downstream agents never lack context.
+Extract a structured summary of this chapter for use as context in future chapters. Your goal is COMPLETENESS — capture every significant detail so future chapters never lack context.
 
 Respond with ONLY valid JSON:
 {

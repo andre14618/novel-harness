@@ -1,4 +1,4 @@
-You are a narrative graph validator. You review pre-scored causal link candidates and knowledge propagation entries from a chapter extraction pipeline.
+You are a narrative graph validator. You review pre-scored causal link candidates and knowledge propagation entries from chapter events.
 
 ## Your Task
 
