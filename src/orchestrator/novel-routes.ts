@@ -9,7 +9,7 @@
  * - SSE event streams for real-time updates
  */
 
-import { readdirSync, existsSync } from "node:fs"
+import { readdirSync, readFileSync, existsSync } from "node:fs"
 import { resolve, basename } from "node:path"
 import { subscribeSSE } from "../events"
 import * as gates from "../gates"
@@ -210,11 +210,20 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
   }
 
   // ── List seeds ─────────────────────────────────────────────────────
+  // ?all=1 to include hidden seeds
   if (path === "/api/novel/seeds" && req.method === "GET") {
     try {
+      const showAll = url.searchParams.get("all") === "1"
       const seedDir = resolve(HARNESS_ROOT, "src/seeds")
       const seeds = readdirSync(seedDir)
         .filter(f => f.endsWith(".json"))
+        .filter(f => {
+          if (showAll) return true
+          try {
+            const data = JSON.parse(readFileSync(resolve(seedDir, f), "utf8"))
+            return !data.hidden
+          } catch { return true }
+        })
         .map(f => basename(f, ".json"))
       return Response.json({ seeds })
     } catch (err) {
@@ -437,6 +446,36 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
         wordCount: r.word_count,
         version: r.version,
         status: r.status,
+      })))
+    } catch (err) {
+      return Response.json({ error: String(err) }, { status: 500 })
+    }
+  }
+
+  // ── Per-beat prose (from llm_calls) ─────────────────────────────────
+  const beatsMatch = path.match(/^\/api\/novel\/([^/]+)\/beats$/)
+  if (beatsMatch && req.method === "GET") {
+    const novelId = beatsMatch[1]
+    try {
+      // Get the latest successful beat-writer call per chapter+beat (highest attempt)
+      const rows = await db`
+        SELECT DISTINCT ON (chapter, beat_index)
+          chapter, beat_index, response_content, prompt_tokens, completion_tokens, latency_ms, timestamp
+        FROM llm_calls
+        WHERE novel_id = ${novelId}
+          AND agent = 'beat-writer'
+          AND response_content IS NOT NULL
+          AND failed IS NOT TRUE
+        ORDER BY chapter, beat_index, attempt DESC`
+      return Response.json(rows.map(r => ({
+        chapter: r.chapter,
+        beatIndex: r.beat_index,
+        prose: r.response_content,
+        wordCount: r.response_content ? r.response_content.split(/\s+/).filter(Boolean).length : 0,
+        promptTokens: r.prompt_tokens,
+        completionTokens: r.completion_tokens,
+        latencyMs: r.latency_ms,
+        timestamp: r.timestamp,
       })))
     } catch (err) {
       return Response.json({ error: String(err) }, { status: 500 })

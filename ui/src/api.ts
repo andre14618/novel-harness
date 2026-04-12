@@ -95,6 +95,21 @@ export function getAllChapters(novelId: string) {
   return fetchJSON<ChapterData[]>(`/api/novel/${novelId}/chapters`)
 }
 
+export interface BeatData {
+  chapter: number
+  beatIndex: number
+  prose: string
+  wordCount: number
+  promptTokens: number
+  completionTokens: number
+  latencyMs: number
+  timestamp: string
+}
+
+export function getBeats(novelId: string) {
+  return fetchJSON<BeatData[]>(`/api/novel/${novelId}/beats`)
+}
+
 export function deleteNovel(novelId: string) {
   return fetchJSON<{ ok: boolean }>(`/api/novel/${novelId}`, { method: "DELETE" })
 }
