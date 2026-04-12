@@ -7,6 +7,38 @@ updated: 2026-04-12
 
 Pending action items only. Ordered by impact. Completed items and decision rationale live in `docs/decisions.md`.
 
+## Beat Architecture — Goodhart Overfitting (HIGH PRIORITY)
+
+The planner→checker loop has drifted into a self-reinforcing cycle that optimizes for pipeline pass rates, not prose quality. The planner writes dense micro-screenplay beats (4–7 discrete actions in 40–55 words) because the prompt's "good" example models that density. The adherence checker verifies all actions are enacted. The writer executes the spec faithfully. The result is prose that reads like conjugated stage directions — not fiction.
+
+**The core problem:** beats are shaped to pass checkers, not to produce good writing. The writer gets ~300 words per beat and spends them executing a checklist (43–75 words per action). There's no room for interiority, subtext, dialogue, or rhythm. Measured: 15.7% dialogue (published norm 25–50%), 0.1 interiority/100w, 7.5w avg sentence length (published 12–18w). These aren't independent bugs — they're symptoms of a pipeline that rewards faithful execution of dense specs.
+
+**Evidence from production data (41 novels, 194 beats):**
+- Typical beat: 4–7 discrete actions in a 40–55 word description
+- Planner prompt's "good" example contains 6 discrete elements
+- Writer output shows high N-gram overlap with beat descriptions (spec echo — the writer is transcribing, not interpreting)
+- Beat boundary seams compound with beat count (transition bridge helps but doesn't eliminate)
+
+**Proposed evaluation — beat granularity × beat style matrix:**
+
+Generate the same chapter (one seed, one chapter) under 9 conditions:
+
+| | Screenplay beats (current) | Dramatic beats ("Gil discovers the bay is dying") | Goal-conflict beats ("Gil wants X, obstacle Y") |
+|---|---|---|---|
+| 3 beats (current) | Baseline | — | — |
+| 5–6 beats | — | — | — |
+| 8–10 beats | — | — | — |
+
+Evaluate with **prose feature extraction** (not LLM judges, not checker pass rates):
+1. **Seam blindness test** — give assembled chapter to a model, ask it to mark scene breaks. If detected breaks align with actual beat boundaries → seams are leaking.
+2. **Actions per 100 words** — lower = more breathing room for craft.
+3. **Spec echo rate** — N-gram overlap between beat description and output prose. High = transcription. Low = interpretation.
+4. **Dialogue %**, **interiority density**, **sentence length std dev** — existing structural metrics.
+
+**Key question this answers:** what beat shape (granularity × description style) produces the best writing? The answer determines whether to adjust the planner prompt, the beat description format, or the architecture itself.
+
+**What NOT to do:** optimize beat format for checker pass rates. That's how we got here.
+
 ## Adherence Checker
 
 - **V4 deployed and concluded** (exp #161, 2026-04-12) — `adherence-checker-v4` live at 512 token budget. Production eval: 79% first-attempt pass (23/30 beats), all failures resolved on retry, zero false positives. Synthetic eval (70%) not reliable for this task — production signal is the metric. See `docs/decisions.md`.
