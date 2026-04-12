@@ -1,277 +1,564 @@
-import { useEffect, useState, useRef, useCallback } from "react"
-import { useNavigate } from "react-router-dom"
-import { getSeeds, listNovels, startNovel, startNovelCustom, type NovelListItem, type SSEEvent } from "../api"
+import { useEffect, useState, useRef, useCallback, useMemo } from "react"
+import { Link } from "react-router-dom"
+import {
+  getSeeds, listNovels, startNovel, startNovelCustom,
+  getNovelState, getNovelConfig, getTrace, resumeNovel,
+  type NovelListItem, type NovelState, type NovelConfig, type SSEEvent, type TraceEvent,
+} from "../api"
 import { useNovelSSE } from "../hooks/useNovelSSE"
+import { GatePanel } from "./GatePanel"
+import { PipelineFlow } from "./PipelineFlow"
+import { LiveMeters } from "./LiveMeters"
 
-interface LogEntry {
+// ── Agent display labels ────────────────────────────────────────────────
+const AGENT_ACTION: Record<string, string> = {
+  "world-builder":        "Building the world",
+  "character-agent":      "Casting characters",
+  "plotter":              "Sketching the plot",
+  "planning-plotter":     "Planning the chapter",
+  "writer":               "Writing the chapter",
+  "beat-writer":          "Writing beat",
+  "reference-resolver":   "Resolving references",
+  "adherence-checker":    "Checking beat adherence",
+  "chapter-plan-checker": "Verifying chapter plan",
+  "continuity":           "Checking continuity",
+  "rewriter":             "Rewriting",
+  "tonal-pass":           "Applying tonal pass",
+  "lint-fixer":           "Fixing lint",
+  "summary-extractor":    "Extracting summary",
+  "fact-extractor":       "Extracting facts",
+  "character-state":      "Tracking character state",
+  "relationship-timeline":"Updating relationships",
+  "graph-linker":         "Linking causal graph",
+}
+
+function agentAction(agent: string): string {
+  return AGENT_ACTION[agent] ?? agent
+}
+
+interface LLMCallRow {
   id: string
-  type: "system" | "agent" | "llm" | "gate" | "error" | "user"
-  timestamp: string
+  agent: string
+  chapter?: number
+  beatIndex?: number
+  model: string
+  provider: string
+  startTs: number
+  endTs?: number
+  promptTokens?: number
+  completionTokens?: number
+  cost?: number
+  durationMs?: number
+  meta?: Record<string, any>
+  status: "running" | "done" | "fail"
+  error?: string
+  pass?: boolean
+}
+
+type NarrativeKind = "phase" | "chapter" | "fail" | "retry" | "validation" | "lint"
+interface NarrativeEntry {
+  kind: NarrativeKind
+  ts: number
   text: string
   detail?: string
-  meta?: Record<string, any>
 }
 
-function formatTime(ts: string) {
-  return new Date(ts).toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" })
-}
-
-function eventToEntries(event: SSEEvent): LogEntry[] {
-  const ts = event.timestamp || new Date().toISOString()
-  const id = `${ts}-${Math.random().toString(36).slice(2, 6)}`
-  const d = event.data || {}
-
-  switch (event.type) {
-    case "phase:changed":
-      return [{ id, type: "system", timestamp: ts, text: `Phase: ${d.phase}` }]
-
-    case "progress": {
-      const step = d.step as string || "unknown"
-      const status = d.status as string || ""
-
-      if (step === "llm-call" || d.provider) {
-        const model = `${d.provider}/${d.model}`
-        const tokens = `${d.promptTokens || 0}in/${d.completionTokens || 0}out`
-        const latency = d.latencyMs ? `${Math.round(d.latencyMs as number)}ms` : ""
-        const tps = d.tokensPerSec ? `${Math.round(d.tokensPerSec as number)}t/s` : ""
-        const cost = d.cost ? `$${(d.cost as number).toFixed(4)}` : ""
-        return [{ id, type: "llm", timestamp: ts, text: `${d.agent || step}`, detail: [model, tokens, latency, tps, cost].filter(Boolean).join(" | "), meta: d as any }]
-      }
-
-      if (status === "running" || status === "starting") {
-        const chapter = d.chapter ? ` ch${d.chapter}` : ""
-        const beat = d.beatIndex !== undefined ? ` beat${d.beatIndex}` : ""
-        return [{ id, type: "agent", timestamp: ts, text: `${step}${chapter}${beat} started` }]
-      }
-
-      if (status === "complete") {
-        const chapter = d.chapter ? ` ch${d.chapter}` : ""
-        const words = d.wordCount ? ` ${d.wordCount}w` : ""
-        const extra = d.chapters ? ` ${d.chapters} chapters planned` : ""
-        return [{ id, type: "agent", timestamp: ts, text: `${step}${chapter} done${words}${extra}` }]
-      }
-
-      if (status === "retrying" || status === "revising") {
-        const attempt = d.attempt ? ` (attempt ${d.attempt})` : ""
-        return [{ id, type: "agent", timestamp: ts, text: `${step} ${status}${attempt}` }]
-      }
-
-      if (status === "warnings" || status === "issues") {
-        const count = d.conflictCount || d.issueCount || 0
-        return [{ id, type: "agent", timestamp: ts, text: `${step}: ${count} ${status}` }]
-      }
-
-      // Generic progress
-      return [{ id, type: "agent", timestamp: ts, text: `${step}: ${status}`, detail: d.detail as string }]
-    }
-
-    case "gate:waiting":
-      return [{ id, type: "gate", timestamp: ts, text: `Gate: ${d.title}`, detail: (d.content as string)?.slice(0, 200) }]
-
-    case "gate:resolved":
-      return [{ id, type: "system", timestamp: ts, text: `Gate resolved: ${d.action}` }]
-
-    case "error":
-      return [{ id, type: "error", timestamp: ts, text: `Error in ${d.step}${d.chapter ? ` ch${d.chapter}` : ""}`, detail: d.error as string }]
-
-    case "done":
-      return [{ id, type: "system", timestamp: ts, text: "Novel complete" }]
-
-    default:
-      return [{ id, type: "system", timestamp: ts, text: `${event.type}: ${JSON.stringify(d).slice(0, 120)}` }]
-  }
-}
+type FeedItem =
+  | { type: "call"; ts: number; call: LLMCallRow }
+  | { type: "narrative"; ts: number; entry: NarrativeEntry }
 
 export function StudioPage() {
-  const navigate = useNavigate()
   const qs = window.location.search
 
-  // State
+  // ── Novel creation state ──────────────────────────────────────────────
   const [seeds, setSeeds] = useState<string[]>([])
   const [novels, setNovels] = useState<NovelListItem[]>([])
   const [activeNovelId, setActiveNovelId] = useState<string | null>(null)
-  const [log, setLog] = useState<LogEntry[]>([])
   const [inputMode, setInputMode] = useState<"seed" | "custom">("seed")
   const [selectedSeed, setSelectedSeed] = useState("")
   const [customPremise, setCustomPremise] = useState("")
   const [customGenre, setCustomGenre] = useState("literary fiction")
   const [starting, setStarting] = useState(false)
 
-  const logEndRef = useRef<HTMLDivElement>(null)
-  const { events, connected } = useNovelSSE(activeNovelId)
+  // ── Pipeline view state ───────────────────────────────────────────────
+  const [state, setState] = useState<NovelState | null>(null)
+  const [_config, setConfig] = useState<NovelConfig | null>(null)
+  const [resuming, setResuming] = useState(false)
 
-  // Load seeds and novels
+  const { events, connected, lastEvent, seedEvents } = useNovelSSE(activeNovelId)
+
+  const [liveCalls, setLiveCalls] = useState<LLMCallRow[]>([])
+  const [feedItems, setFeedItems] = useState<FeedItem[]>([])
+  const [currentChapter, setCurrentChapter] = useState<number | null>(null)
+  const [currentBeat, setCurrentBeat] = useState<number | null>(null)
+  const [currentTotalBeats, setCurrentTotalBeats] = useState<number | null>(null)
+  const [currentChapterTitle, setCurrentChapterTitle] = useState<string | null>(null)
+  const [activeAgents, setActiveAgents] = useState<Set<string>>(new Set())
+  const [completedAgents, setCompletedAgents] = useState<Set<string>>(new Set())
+  const [runStartedAt, setRunStartedAt] = useState<number | null>(null)
+  const activityEndRef = useRef<HTMLDivElement>(null)
+
+  // ── Load seeds and novels on mount ────────────────────────────────────
   useEffect(() => {
     getSeeds().then(r => { setSeeds(r.seeds); if (r.seeds.length > 0) setSelectedSeed(r.seeds[0]) })
-    listNovels().then(r => setNovels(r.novels))
+    listNovels().then(r => {
+      setNovels(r.novels)
+      // Auto-select first running novel, or most recent
+      const running = r.novels.find(n => n.active)
+      if (running) setActiveNovelId(running.id)
+      else if (r.novels.length > 0) setActiveNovelId(r.novels[0].id)
+    })
   }, [])
 
-  // Convert SSE events to log entries
+  // ── Load novel state when active novel changes ────────────────────────
+  const loadState = useCallback(async () => {
+    if (!activeNovelId) { setState(null); return }
+    try {
+      const s = await getNovelState(activeNovelId)
+      setState(s)
+    } catch { setState(null) }
+  }, [activeNovelId])
+
   useEffect(() => {
-    if (events.length === 0) return
-    const latest = events[events.length - 1]
-    const entries = eventToEntries(latest)
-    setLog(prev => [...prev, ...entries])
+    loadState()
+    getNovelConfig().then(setConfig).catch(() => {})
+  }, [loadState])
+
+  // ── Hydrate historical trace events on novel change ───────────────────
+  const lastHydratedRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!activeNovelId || lastHydratedRef.current === activeNovelId) return
+    lastHydratedRef.current = activeNovelId
+
+    // Reset pipeline state
+    setLiveCalls([])
+    setFeedItems([])
+    setCurrentChapter(null)
+    setCurrentBeat(null)
+    setCurrentTotalBeats(null)
+    setCurrentChapterTitle(null)
+    setActiveAgents(new Set())
+    setCompletedAgents(new Set())
+    setRunStartedAt(null)
+
+    function traceToSSE(t: TraceEvent): SSEEvent {
+      return {
+        type: "trace",
+        data: {
+          eventType: t.event_type,
+          agent: t.agent,
+          chapter: t.chapter,
+          beatIndex: t.beat_index,
+          durationMs: t.duration_ms,
+          ...(t.payload ?? {}),
+        },
+        timestamp: t.timestamp,
+      }
+    }
+
+    getTrace(activeNovelId, { limit: 2000 })
+      .then(rows => {
+        if (rows.length > 0) seedEvents(rows.map(traceToSSE))
+      })
+      .catch(() => {})
+  }, [activeNovelId, seedEvents])
+
+  // ── Reload state on SSE events ────────────────────────────────────────
+  useEffect(() => {
+    if (!lastEvent || !activeNovelId) return
+    if (["phase:changed", "gate:waiting", "gate:resolved", "done"].includes(lastEvent.type)) {
+      loadState()
+      listNovels().then(r => setNovels(r.novels)).catch(() => {})
+    }
+  }, [lastEvent, loadState, activeNovelId])
+
+  // ── Process events into feed items ────────────────────────────────────
+  useEffect(() => {
+    const calls = new Map<string, LLMCallRow>()
+    const narratives: NarrativeEntry[] = []
+    const active = new Set<string>()
+    const completed = new Set<string>()
+    let chapter: number | null = null
+    let beatIdx: number | null = null
+    let totalBeats: number | null = null
+    let chapterTitle: string | null = null
+    let earliestTs: number | null = null
+    const beatAttempts = new Map<string, number>()
+
+    const keyFor = (agent: string, ch?: number, bi?: number, startTs?: number) =>
+      `${agent}:${ch ?? "_"}:${bi ?? "_"}:${startTs ?? ""}`
+
+    for (const e of events) {
+      const tsMs = e.timestamp ? new Date(e.timestamp).getTime() : Date.now()
+      if (earliestTs === null || tsMs < earliestTs) earliestTs = tsMs
+
+      if (e.type === "trace") {
+        const d = e.data as any
+        const et = d.eventType as string
+
+        if (et === "llm-call-start") {
+          const agent = d.agent as string
+          const key = keyFor(agent, d.chapter, d.beatIndex, tsMs)
+          calls.set(key, {
+            id: key, agent, chapter: d.chapter, beatIndex: d.beatIndex,
+            model: d.model, provider: d.provider, startTs: tsMs, meta: d, status: "running",
+          })
+          active.add(agent)
+
+          if (agent === "beat-writer" && d.chapter != null && d.beatIndex != null) {
+            const bkey = `${d.chapter}-${d.beatIndex}`
+            const attempt = (beatAttempts.get(bkey) ?? 0) + 1
+            beatAttempts.set(bkey, attempt)
+            if (attempt > 1) {
+              narratives.push({ kind: "retry", ts: tsMs, text: `Retrying beat ${d.beatIndex + 1} (attempt ${attempt})`, detail: `Chapter ${d.chapter}` })
+            }
+            chapter = d.chapter
+            beatIdx = d.beatIndex
+            if (d.totalBeats != null) totalBeats = d.totalBeats
+            if (d.chapterTitle) chapterTitle = d.chapterTitle
+          }
+        } else if (et === "agent-complete") {
+          const agent = d.agent as string
+          let matched = false
+          for (const [k, v] of calls) {
+            if (v.agent === agent && v.status === "running" && v.chapter === d.chapter && v.beatIndex === d.beatIndex) {
+              calls.set(k, { ...v, status: "done", endTs: tsMs, promptTokens: d.promptTokens, completionTokens: d.completionTokens, cost: d.cost, durationMs: d.durationMs, pass: d.pass })
+              matched = true
+              break
+            }
+          }
+          if (!matched) {
+            const key = keyFor(agent, d.chapter, d.beatIndex, tsMs)
+            calls.set(key, { id: key, agent, chapter: d.chapter, beatIndex: d.beatIndex, model: "", provider: "", startTs: tsMs, endTs: tsMs, promptTokens: d.promptTokens, completionTokens: d.completionTokens, cost: d.cost, durationMs: d.durationMs, status: "done", pass: d.pass })
+          }
+          active.delete(agent)
+          completed.add(agent)
+        } else if (et === "agent-fail") {
+          const agent = d.agent as string
+          for (const [k, v] of calls) {
+            if (v.agent === agent && v.status === "running" && v.chapter === d.chapter && v.beatIndex === d.beatIndex) {
+              calls.set(k, { ...v, status: "fail", endTs: tsMs, error: d.error })
+              break
+            }
+          }
+          active.delete(agent)
+          const label = AGENT_ACTION[agent] ?? agent
+          const loc = d.chapter != null ? (d.beatIndex != null ? `Ch ${d.chapter}, beat ${d.beatIndex + 1}` : `Ch ${d.chapter}`) : undefined
+          const errSnippet = d.error ? String(d.error).split("\n")[0].slice(0, 120) : undefined
+          narratives.push({ kind: "fail", ts: tsMs, text: `${label} failed${loc ? ` — ${loc}` : ""}`, detail: errSnippet })
+        } else if (et === "agent-start") {
+          active.add(d.agent as string)
+        } else if (et === "phase-change" || et === "phase-complete") {
+          completed.clear()
+          const phase = d.to ?? d.phase
+          if (phase) {
+            const labels: Record<string, string> = {
+              concept: "Concept complete — world, characters, and plot ready",
+              planning: "Planning complete — chapter outlines ready",
+              drafting: "Drafting complete — all chapters written",
+              validation: "Validation complete — prose approved",
+              done: "Novel complete",
+            }
+            narratives.push({ kind: "phase", ts: tsMs, text: labels[phase] ?? `Entered ${phase} phase` })
+          }
+        } else if (et === "chapter-complete") {
+          const att = d.attempts ?? d.attempt
+          narratives.push({ kind: "chapter", ts: tsMs, text: `Chapter ${d.chapter} approved${att > 1 ? ` after ${att} attempts` : ""}` })
+        } else if (et === "validation-check") {
+          const blockers: string[] = d.blockers ?? []
+          const warnings: string[] = d.warnings ?? []
+          if (!d.passed && blockers.length > 0) {
+            narratives.push({ kind: "validation", ts: tsMs, text: `Validation failed — Ch ${d.chapter ?? "?"}`, detail: blockers.join("; ") })
+          } else if (warnings.length > 0) {
+            narratives.push({ kind: "validation", ts: tsMs, text: `Validation passed with warnings — Ch ${d.chapter ?? "?"}`, detail: warnings.join("; ") })
+          }
+        } else if (et === "lint-detect") {
+          const total = d.totalIssues ?? 0
+          if (total > 0) {
+            const cats = d.counts
+              ? Object.entries(d.counts as Record<string, number>).map(([k, v]) => `${k.toLowerCase().replace(/_/g, " ")} (${v})`).join(", ")
+              : `${total} issues`
+            narratives.push({ kind: "lint", ts: tsMs, text: `Lint: ${cats}`, detail: d.chapter != null ? `Chapter ${d.chapter}` : undefined })
+          }
+        } else if (et === "adherence-deterministic") {
+          const issues = d.deterministicIssues ?? 0
+          if (issues > 0) {
+            const parts: string[] = []
+            if (!d.charPresence) parts.push("missing characters")
+            if (!d.dialogueOk) parts.push("no dialogue")
+            if (!d.wordCountOk) parts.push("word count")
+            narratives.push({ kind: "fail", ts: tsMs, text: `Adherence check failed — beat ${(d.beatIndex ?? 0) + 1}`, detail: parts.join(", ") || `${issues} issue${issues > 1 ? "s" : ""}` })
+          }
+        }
+      } else if (e.type === "progress") {
+        const d = e.data as any
+        if (d.chapter != null) chapter = d.chapter
+      }
+    }
+
+    const callList = [...calls.values()].sort((a, b) => a.startTs - b.startTs)
+    const feed: FeedItem[] = [
+      ...callList.map(c => ({ type: "call" as const, ts: c.startTs, call: c })),
+      ...narratives.map(n => ({ type: "narrative" as const, ts: n.ts, entry: n })),
+    ].sort((a, b) => a.ts - b.ts)
+
+    setLiveCalls(callList)
+    setFeedItems(feed)
+    setCurrentChapter(chapter)
+    setCurrentBeat(beatIdx)
+    setCurrentTotalBeats(totalBeats)
+    setCurrentChapterTitle(chapterTitle)
+    setActiveAgents(active)
+    setCompletedAgents(completed)
+    setRunStartedAt(earliestTs)
   }, [events])
 
   // Auto-scroll
   useEffect(() => {
-    logEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [log])
+    activityEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [liveCalls.length])
 
-  const addUserEntry = useCallback((text: string) => {
-    setLog(prev => [...prev, { id: Date.now().toString(), type: "user", timestamp: new Date().toISOString(), text }])
-  }, [])
+  // Meters
+  const totals = useMemo(() => {
+    const done = liveCalls.filter(c => c.status === "done")
+    const totalCost = done.reduce((s, c) => s + (c.cost ?? 0), 0)
+    const totalTokens = done.reduce((s, c) => s + (c.promptTokens ?? 0) + (c.completionTokens ?? 0), 0)
+    const recent = done.slice(-5)
+    const tps = recent.length > 0
+      ? Math.round(recent.reduce((s, c) => {
+          const ms = c.durationMs ?? 1
+          return s + (c.completionTokens ?? 0) / (ms / 1000)
+        }, 0) / recent.length)
+      : 0
+    return { totalCost, totalTokens, tps, count: done.length }
+  }, [liveCalls])
 
+  // ── Actions ───────────────────────────────────────────────────────────
   const handleStart = async () => {
     setStarting(true)
-    setLog([])
     try {
       let result: { ok: boolean; novelId: string }
       if (inputMode === "seed") {
-        addUserEntry(`Starting novel with seed: ${selectedSeed}`)
         result = await startNovel(selectedSeed, "auto")
       } else {
-        addUserEntry(`Starting novel: "${customPremise.slice(0, 80)}..."`)
         result = await startNovelCustom({ premise: customPremise, genre: customGenre, characters: [] }, "auto")
       }
       setActiveNovelId(result.novelId)
-      setLog(prev => [...prev, {
-        id: "started",
-        type: "system",
-        timestamp: new Date().toISOString(),
-        text: `Novel created: ${result.novelId}`,
-      }])
-      // Refresh novel list
       listNovels().then(r => setNovels(r.novels))
-    } catch (err: any) {
-      setLog(prev => [...prev, {
-        id: "err",
-        type: "error",
-        timestamp: new Date().toISOString(),
-        text: "Failed to start novel",
-        detail: err.message,
-      }])
-    }
+    } catch {}
     setStarting(false)
   }
 
-  const handleWatch = (novelId: string) => {
-    setActiveNovelId(novelId)
-    setLog([{
-      id: "watch",
-      type: "system",
-      timestamp: new Date().toISOString(),
-      text: `Watching: ${novelId}`,
-    }])
+  async function handleResume() {
+    if (!activeNovelId) return
+    setResuming(true)
+    try { await resumeNovel(activeNovelId); loadState() }
+    catch {}
+    finally { setResuming(false) }
   }
 
-  return (
-    <div className="studio-layout">
-      {/* Left panel — controls */}
-      <aside className="studio-controls">
-        <h2 className="studio-heading">Studio</h2>
+  const isDone = state?.phase === "done"
+  const stalled = state && !state.active && !isDone
 
-        {/* New novel */}
-        <div className="studio-section">
-          <h3>New Novel</h3>
+  return (
+    <div className="studio-v2">
+      {/* ── Compact creation bar ─────────────────────────────────────── */}
+      <div className="studio-create-bar">
+        <div className="studio-create-left">
           <div className="studio-mode-toggle">
             <button className={inputMode === "seed" ? "active" : ""} onClick={() => setInputMode("seed")}>Seed</button>
             <button className={inputMode === "custom" ? "active" : ""} onClick={() => setInputMode("custom")}>Custom</button>
           </div>
-
           {inputMode === "seed" ? (
-            <select className="studio-select" value={selectedSeed} onChange={e => setSelectedSeed(e.target.value)}>
+            <select className="studio-select-compact" value={selectedSeed} onChange={e => setSelectedSeed(e.target.value)}>
               {seeds.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           ) : (
             <>
-              <input
-                className="studio-input"
-                placeholder="Genre (e.g. dark fantasy)"
-                value={customGenre}
-                onChange={e => setCustomGenre(e.target.value)}
-              />
-              <textarea
-                className="studio-textarea"
-                placeholder="Premise — describe your story..."
-                value={customPremise}
-                onChange={e => setCustomPremise(e.target.value)}
-                rows={4}
-              />
+              <input className="studio-input-compact" placeholder="Genre" value={customGenre} onChange={e => setCustomGenre(e.target.value)} />
+              <input className="studio-input-compact studio-input-wide" placeholder="Premise…" value={customPremise} onChange={e => setCustomPremise(e.target.value)} />
             </>
           )}
-
-          <button className="studio-start-btn" onClick={handleStart} disabled={starting || (inputMode === "custom" && !customPremise.trim())}>
-            {starting ? "Starting..." : "Create Novel"}
+          <button className="studio-create-btn" onClick={handleStart} disabled={starting || (inputMode === "custom" && !customPremise.trim())}>
+            {starting ? "Starting…" : "Create"}
           </button>
         </div>
-
-        {/* Active novels */}
-        <div className="studio-section">
-          <h3>Novels</h3>
-          <div className="studio-novel-list">
-            {novels.map(n => (
-              <button
-                key={n.id}
-                className={`studio-novel-item ${activeNovelId === n.id ? "active" : ""} ${n.active ? "running" : ""}`}
-                onClick={() => handleWatch(n.id)}
-              >
-                <div className="studio-novel-info">
-                  <span className="studio-novel-genre">{n.seed?.genre || "unknown"}</span>
-                  <span className="studio-novel-premise">{n.seed?.premise?.slice(0, 50) || n.id}</span>
-                </div>
-                <div className="studio-novel-status">
-                  <span className={`badge ${n.phase === "done" ? "done" : n.active ? "active" : "pending"}`}>{n.phase}</span>
-                  <span className="studio-novel-progress">{n.currentChapter}/{n.totalChapters}</span>
-                </div>
-              </button>
-            ))}
-          </div>
+        <div className="studio-create-right">
+          {activeNovelId && (
+            <Link to={`/${activeNovelId}/read${qs}`} className="studio-read-link">Read</Link>
+          )}
+          <span className={`connected-dot ${connected ? "on" : "off"}`} />
         </div>
-      </aside>
+      </div>
 
-      {/* Right panel — terminal log */}
-      <main className="studio-terminal">
-        <div className="studio-terminal-header">
-          <span className="studio-terminal-title">
-            {activeNovelId ? activeNovelId : "No novel selected"}
-          </span>
-          <div className="studio-terminal-actions">
-            {connected && <span className="studio-dot on" />}
-            {activeNovelId && (
-              <>
-                <button className="studio-read-btn" onClick={() => navigate(`/${activeNovelId}${qs}`)}>
-                  Pipeline
-                </button>
-                <button className="studio-read-btn" onClick={() => navigate(`/${activeNovelId}/read${qs}`)}>
-                  Read
-                </button>
-              </>
+      {/* ── Novel selector ───────────────────────────────────────────── */}
+      <div className="studio-novel-strip">
+        {novels.map(n => (
+          <button
+            key={n.id}
+            className={`studio-novel-tab ${activeNovelId === n.id ? "active" : ""}`}
+            onClick={() => setActiveNovelId(n.id)}
+          >
+            <span className="studio-tab-genre">{n.seed?.genre || "?"}</span>
+            <span className={`studio-tab-badge ${n.phase === "done" ? "done" : n.active ? "running" : "idle"}`}>
+              {n.phase === "done" ? "done" : n.active ? `ch ${n.currentChapter}/${n.totalChapters}` : n.phase}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* ── Pipeline view ────────────────────────────────────────────── */}
+      {state && (
+        <>
+          <PipelineFlow
+            currentPhase={state.phase}
+            activeAgents={activeAgents}
+            completedAgents={completedAgents}
+          />
+
+          <LiveMeters
+            totalCost={totals.totalCost}
+            totalTokens={totals.totalTokens}
+            tokensPerSec={totals.tps}
+            llmCalls={totals.count}
+            chapter={currentChapter ?? (state.currentChapter || null)}
+            totalChapters={state.totalChapters}
+            beat={currentBeat}
+            totalBeats={currentTotalBeats}
+            startedAt={runStartedAt}
+            done={isDone}
+          />
+
+          {stalled && (
+            <div className="card" style={{ borderColor: "#e2b714", textAlign: "center", marginTop: 10 }}>
+              <p style={{ color: "#e2b714", marginBottom: "0.8rem" }}>
+                Pipeline stopped at <strong>{state.phase}</strong> phase
+                {state.totalChapters > 0 && ` (chapter ${state.currentChapter}/${state.totalChapters})`}.
+              </p>
+              <button onClick={handleResume} disabled={resuming}>
+                {resuming ? "Resuming…" : "Resume Pipeline"}
+              </button>
+            </div>
+          )}
+
+          {state.activeError && (
+            <div className="tl-entry tl-error" style={{ marginTop: 10 }}>
+              <div className="tl-dot error" />
+              <div className="tl-body">
+                <strong>Pipeline Error</strong>
+                <pre style={{ whiteSpace: "pre-wrap", fontSize: "0.8rem", color: "#e74c3c" }}>{state.activeError}</pre>
+              </div>
+            </div>
+          )}
+
+          <div className="live-activity" style={{ marginTop: 14 }}>
+            <div className="live-activity-header">Activity</div>
+            <div className="live-activity-body">
+              {feedItems.length === 0 && (
+                <div className="live-activity-placeholder">
+                  {state.active ? "Waiting for the first LLM call…" : "No events yet."}
+                </div>
+              )}
+              {feedItems.map((item, i) =>
+                item.type === "call"
+                  ? <ActivityRow key={item.call.id} call={item.call} />
+                  : <NarrativeRow key={`n-${i}`} entry={item.entry} />
+              )}
+              <div ref={activityEndRef} />
+            </div>
+
+            {state.pendingGate && (
+              <div className="tl-entry tl-gate" style={{ marginTop: "1rem" }}>
+                <div className="tl-dot gate" />
+                <div className="tl-body" style={{ width: "100%" }}>
+                  <GatePanel
+                    novelId={activeNovelId!}
+                    gateId={state.pendingGate.gateId}
+                    title={state.pendingGate.title}
+                    content={state.pendingGate.content}
+                    onDecided={loadState}
+                  />
+                </div>
+              </div>
             )}
           </div>
-        </div>
+        </>
+      )}
 
-        <div className="studio-terminal-body">
-          {log.length === 0 ? (
-            <div className="studio-terminal-empty">
-              Select a novel to watch or create a new one
-            </div>
-          ) : (
-            log.map(entry => (
-              <div key={entry.id} className={`studio-log-entry ${entry.type}`}>
-                <span className="studio-log-time">{formatTime(entry.timestamp)}</span>
-                <span className={`studio-log-badge ${entry.type}`}>
-                  {entry.type === "system" ? "SYS" : entry.type === "agent" ? "AGT" : entry.type === "llm" ? "LLM" : entry.type === "gate" ? "GATE" : entry.type === "error" ? "ERR" : ">"}
-                </span>
-                <span className="studio-log-text">{entry.text}</span>
-                {entry.detail && <span className="studio-log-detail">{entry.detail}</span>}
-              </div>
-            ))
-          )}
-          <div ref={logEndRef} />
+      {!state && activeNovelId && <p style={{ color: "var(--text-tertiary)", marginTop: 20 }}>Loading…</p>}
+      {!activeNovelId && <p style={{ color: "var(--text-tertiary)", marginTop: 40, textAlign: "center" }}>Select a novel or create one above.</p>}
+    </div>
+  )
+}
+
+// ── Activity row ──────────────────────────────────────────────────────
+function ActivityRow({ call }: { call: LLMCallRow }) {
+  const [, setTick] = useState(0)
+  useEffect(() => {
+    if (call.status !== "running") return
+    const id = setInterval(() => setTick(t => t + 1), 250)
+    return () => clearInterval(id)
+  }, [call.status])
+
+  const elapsedMs = (call.endTs ?? Date.now()) - call.startTs
+  const running = call.status === "running"
+  const failed = call.status === "fail"
+
+  let title = agentAction(call.agent)
+  if (call.agent === "beat-writer" && call.beatIndex != null) {
+    title = `${title} ${call.beatIndex + 1}${call.meta?.totalBeats ? `/${call.meta.totalBeats}` : ""}`
+  }
+
+  const subtitle: string[] = []
+  if (call.chapter != null && call.agent !== "beat-writer") subtitle.push(`Chapter ${call.chapter}`)
+  if (call.meta?.beatDescription && call.agent === "beat-writer") subtitle.push(call.meta.beatDescription)
+
+  return (
+    <div className={`activity-row${running ? " running" : ""}${failed ? " failed" : ""}`}>
+      <div className="activity-dot">{running && <div className="spinner-sm" />}</div>
+      <div className="activity-body">
+        <div className="activity-title">
+          <span className="activity-title-text">{title}</span>
+          <span className="activity-chip activity-chip-model">{call.provider && `${call.provider}`}</span>
         </div>
-      </main>
+        {subtitle.length > 0 && <div className="activity-subtitle">{subtitle.join(" · ")}</div>}
+        <div className="activity-metrics">
+          {running ? (
+            <>
+              <span className="activity-chip">{(elapsedMs / 1000).toFixed(1)}s</span>
+              <span className="activity-chip activity-chip-live">streaming…</span>
+            </>
+          ) : failed ? (
+            <span className="activity-chip activity-chip-fail">failed</span>
+          ) : (
+            <>
+              {call.promptTokens != null && <span className="activity-chip">{call.promptTokens}+{call.completionTokens} tok</span>}
+              {call.durationMs != null && <span className="activity-chip">{(call.durationMs / 1000).toFixed(1)}s</span>}
+              {call.cost != null && call.cost > 0 && <span className="activity-chip activity-chip-cost">${call.cost.toFixed(4)}</span>}
+              {call.pass != null && <span className={`activity-chip ${call.pass ? "activity-chip-pass" : "activity-chip-fail"}`}>{call.pass ? "pass" : "fail"}</span>}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Narrative row ─────────────────────────────────────────────────────
+const NARRATIVE_ICONS: Record<NarrativeKind, string> = {
+  phase: "→", chapter: "✓", fail: "✗", retry: "↻", validation: "⚠", lint: "◆",
+}
+
+function NarrativeRow({ entry }: { entry: NarrativeEntry }) {
+  const isFail = entry.kind === "fail"
+  const isChapter = entry.kind === "chapter" || entry.kind === "phase"
+  return (
+    <div className={`narrative-row${isFail ? " narrative-fail" : ""}${isChapter ? " narrative-milestone" : ""}`}>
+      <div className="narrative-icon">{NARRATIVE_ICONS[entry.kind]}</div>
+      <div className="narrative-body">
+        <div className="narrative-text">{entry.text}</div>
+        {entry.detail && <div className="narrative-detail">{entry.detail}</div>}
+      </div>
     </div>
   )
 }

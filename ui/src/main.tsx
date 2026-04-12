@@ -24,7 +24,7 @@ createRoot(document.getElementById("root")!).render(
       <div className="app">
         <Nav />
         <Routes>
-          <Route path="/" element={<Navigate to="/guide" replace />} />
+          <Route path="/" element={<Navigate to="/studio" replace />} />
           <Route path="/config" element={<ConfigPage />} />
           <Route path="/experiments" element={<ExperimentsPage />} />
           <Route path="/models" element={<ModelsPage />} />
