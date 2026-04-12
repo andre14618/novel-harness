@@ -77,7 +77,12 @@ export function StudioPage() {
   const [inputMode, setInputMode] = useState<"seed" | "custom">("seed")
   const [selectedSeed, setSelectedSeed] = useState("")
   const [customPremise, setCustomPremise] = useState("")
-  const [customGenre, setCustomGenre] = useState("literary fiction")
+  const GENRES = [
+    "litrpg", "epic-fantasy", "dark fantasy", "portal-fantasy", "cultivation-fantasy",
+    "young adult fantasy", "science-fiction", "sci-fi thriller", "literary fiction",
+    "literary thriller", "contemporary romance", "post-apocalyptic",
+  ]
+  const [customGenre, setCustomGenre] = useState("litrpg")
   const [starting, setStarting] = useState(false)
 
   // ── Pipeline view state ───────────────────────────────────────────────
@@ -375,7 +380,9 @@ export function StudioPage() {
             </select>
           ) : (
             <>
-              <input className="studio-input-compact" placeholder="Genre" value={customGenre} onChange={e => setCustomGenre(e.target.value)} />
+              <select className="studio-select-compact" value={customGenre} onChange={e => setCustomGenre(e.target.value)}>
+                {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
+              </select>
               <input className="studio-input-compact studio-input-wide" placeholder="Premise…" value={customPremise} onChange={e => setCustomPremise(e.target.value)} />
             </>
           )}
