@@ -139,6 +139,8 @@ The writer context builder (`src/agents/writer/context.ts`) uses a fixed skeleto
 - **Character Profiles** — present characters with relationship arcs (full trajectory, not just latest snapshot)
 - **Craft Reminders** — POV speech pattern, voice contrast, show-don't-tell
 
+Note: Beat-level context (see `src/agents/writer/beat-context.ts`) uses a lighter snapshot per character: speech pattern, behavioral drivers (goals, avoids, internal conflict), current emotional state, relationship to POV, and knowledge gaps. The chapter-level fixed skeleton above is only used by the fallback writer path.
+
 ### Dynamic Sections (semantic retrieval via `src/db/retrieval.ts`)
 
 Scene query embedded → 6-table hybrid RRF search → character/location boost → recency decay.

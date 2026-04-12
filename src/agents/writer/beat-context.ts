@@ -6,7 +6,7 @@
  *   1. Beat spec (description, characters, POV, setting)
  *   2. Transition bridge (last 2-3 sentences of previous beat)
  *   3. Landing target (first sentence of next beat's description)
- *   4. Character snapshot (speech pattern, current state, relationship to POV)
+ *   4. Character snapshot (speech pattern, behavioral drivers, current state, relationship to POV)
  *   5. Setting (location sensory details, only if beat 0 or location changes)
  *
  * emotionalShift is deliberately excluded — naming emotions biases toward telling.
@@ -115,6 +115,11 @@ async function formatCharacterSnapshot(
 
   // Speech pattern — the critical anchor
   if (char.speechPattern) lines.push(`  Voice: ${char.speechPattern}`)
+
+  // Behavioral drivers — how they act, not just how they talk
+  if (char.goals) lines.push(`  Drives: ${char.goals}`)
+  if (char.avoids) lines.push(`  Avoids: ${char.avoids}`)
+  if (char.internalConflict) lines.push(`  Conflict: ${char.internalConflict}`)
 
   // Current emotional/tactical state
   const state = characterStates.find(
