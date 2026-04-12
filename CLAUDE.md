@@ -110,16 +110,16 @@ The daemon rotates between prompt, config, and template proposals per iteration,
 
 ### Web UI
 `ui/`, React + Vite, served at `/app`:
-- **Novels** (`/app`) — create/resume/archive novels
-- **Pipeline View** (`/app/:novelId`) — real-time SSE timeline with gate panels
+- **Studio** (`/app/studio`, default route) — home page. Compact novel creation bar (seed/custom toggle, genre dropdown, premise input) + horizontal novel tab strip + inline pipeline view (PipelineFlow, LiveMeters, narrative activity feed). Hydrates historical events from `/api/novel/:id/trace` on novel switch. SSE subscription for real-time updates during active writes.
+- **Pipeline View** (`/app/:novelId`) — standalone real-time SSE timeline with gate panels (also accessible from Studio)
+- **Read** (`/app/:novelId/read`) — rendered novel prose, linked from Studio/Pipeline
 - **Config** (`/app/config`) — per-agent model switching
-- **Context** (`/app/context`) — retrieval parameter tuning per novel
-- **Causal** (`/app/deterministic`) — causal link scoring weights and thresholds per novel
 - **Experiments** (`/app/experiments`) — benchmark runs and improvement cycles
-- **Operations** (`/app/operations`) — benchmark runner, improvement daemon controls
-- **Dashboard** (`/app/dashboard`) — daemon status, batch status
 - **Models** (`/app/models`) — searchable model registry
 - **Guide** (`/app/guide`) — architecture diagrams, pipeline flow, benchmark docs
+- **Other pages**: Decisions, Adapters, Context Engineering, LoRA Compare, LLM Calls, Costs, Docs
+
+Streaming infrastructure: `src/transport.ts` (DirectTransport emits `llm-call-start` / `llm-token` events), `src/trace.ts` (persists pipeline events to `pipeline_events` table). Historical hydration via `traceToSSE` conversion from DB rows to SSE event format.
 
 ### Gate Abstraction
 `src/gates.ts`, `src/events.ts` — decouples approval gates from stdin. SSE event bus pushes real-time updates. Modes: CLI readline, web API POST, auto-approve.

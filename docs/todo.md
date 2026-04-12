@@ -77,7 +77,7 @@ Pending action items only. Ordered by impact. Completed items and decision ratio
 
 ## Studio
 
-- **Chat-driven rebuild** of `/app/studio` — replace form-based launcher with conversational chat interface. LLM (Cerebras Qwen 235B) shapes input into `CustomSeed` format, asks for confirmation, then kicks off the pipeline and transitions to a terminal-style SSE stream view. Current Studio page (form + passive log) doesn't match the vision.
+- **Chat-driven creation flow** — Studio was rebuilt as a pipeline-first interface (compact creation bar + inline pipeline view with narrative activity feed, 2026-04-11). Next step: replace the form-based seed input with a conversational chat interface where an LLM (Cerebras Qwen 235B) shapes user input into `CustomSeed` format, asks for confirmation, then kicks off the pipeline.
 
 ## Autoresearcher / Daemon
 
