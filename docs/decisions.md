@@ -531,6 +531,67 @@ Dramatic/medium (5 beats) is the only condition that maintained both high dialog
 
 **What this does NOT fix:** Interiority (0.0–0.2/100w vs published 1–3/100w) is a separate writer prompt problem. The beat-writer system prompt says "show emotion through body and action" — it has no instruction to include internal thought. This needs a prompt change independent of beat style.
 
-**Next steps:** Change the planner prompt's beat description example and guidance from micro-screenplay to dramatic style. Optionally increase default beat count from 2–4 to 3–5 (staying in the "medium" range). Run 3 novels and compare structural metrics against the 41-novel corpus baseline.
+**Confound identified:** The granularity finding (dialogue collapse at 10 beats) is partially a word count budget artifact. The eval held the chapter target constant at 1,000w and divided by beat count, creating 100w/beat targets the writer ignored (natural floor ~200–300w). Corpus correlation r(beats, dialogue%) = +0.153 contradicts the collapse finding. The style finding (dramatic > screenplay) is NOT confounded — echo reduction holds regardless of word count.
 
-**Ongoing:** Exp #165 provides the directional signal. The planner prompt change is low-risk (one example + one guidance line). Interiority is tracked separately in todo.md under Structural Diversity.
+### Corpus-wide spec echo analysis confirms transcription pattern
+*(2026-04-12 · 200 approved chapters, all 43 novels)*
+
+**Finding:** The entire corpus is in the transcription zone. Median echo = 0.35. 72.5% of chapters have echo ≥0.30. Only 1/200 chapters falls below 0.15.
+
+| Echo bucket | n | Dlg% | Int/100 | SentCV | Avg desc words |
+|-------------|---|------|---------|--------|---------------|
+| Low (<0.15) | 1 | 26% | 0.2 | 0.70 | 74 |
+| Mid (0.15–0.30) | 54 | 13.3% | 0.2 | 0.70 | 67 |
+| High (≥0.30) | **145** | **10.9%** | **0.1** | 0.70 | 69 |
+
+**Correlations across 200 chapters:**
+
+| Pair | Pearson r | Interpretation |
+|------|-----------|---------------|
+| echo ↔ dialogue% | −0.186 | Higher echo = less dialogue (weak but consistent) |
+| **avgDescWords ↔ dialogue%** | **−0.282** | **Longest descriptions hurt dialogue most — the "too many items" problem directly measured** |
+| echo ↔ sentCV | −0.239 | Higher echo = less sentence variety |
+| echo ↔ avgDescWords | 0.044 | Echo ≠ description length. Short beats can still be micro-screenplays |
+| beats ↔ dialogue% | +0.153 | More beats slightly helps dialogue (contradicts exp #165 — confirms word count confound) |
+| beats ↔ echo | 0.071 | Beat count doesn't drive echo |
+
+**Highest-echo chapters (0.52–0.62) have 0% dialogue.** The single lowest-echo chapter (0.14) has 26%. The pattern is clear at the extremes and noisy in the middle.
+
+**Key finding:** r(avgDescWords, dialogue%) = −0.282 is the strongest correlation in the dataset. Beat descriptions averaging 90–120 words consistently produce chapters with ≤5% dialogue. Descriptions averaging 36–50 words produce chapters with 12–36% dialogue. The planner is stuffing too many prescriptive items into each beat, and the writer spends its word budget executing them instead of writing dialogue.
+
+### Writer prompt ablation: beat style is the bigger lever, but writer prompt matters too
+*(2026-04-12 · same screenplay beats, 3 writer prompt variants)*
+
+**Test:** Hold beats constant (current screenplay style, 3 beats), vary only the writer system prompt.
+
+| Writer prompt | Dlg% | Int/100 | Echo | SentCV |
+|---------------|------|---------|------|--------|
+| A: "Execute the beat description precisely" (current) | 19% | 0.2 | 0.31 | 0.77 |
+| B: "Dramatize this scene using the beat as your guide" | 18% | 0.0 | **0.22** | 0.64 |
+| C: "Write this scene" (minimal guidance) | **11%** | 0.0 | 0.33 | 0.64 |
+
+**Findings:**
+1. **B reduces echo 29% (0.31→0.22) while holding dialogue.** The writer interprets rather than transcribes when told to "dramatize" instead of "execute precisely."
+2. **C (maximum freedom) is worst.** Echo increases to 0.33, dialogue drops to 11%. The writer model defaults to copying beat descriptions when not given structural guidance. It needs active steering toward dramatization.
+3. **Both levers need to move.** Beat style change (exp #165) moved echo from 0.29→0.14. Writer prompt change moved it 0.31→0.22. Combined effect is likely additive — dramatic beats + dramatize prompt should push echo below 0.15 with dialogue ≥25%.
+
+**Effect comparison:**
+
+| Change | Echo Δ | Dlg% Δ |
+|--------|--------|--------|
+| Beat style: screenplay→dramatic (exp #165) | 0.29→0.14 (−52%) | 29%→29% (held) |
+| Writer prompt: precise→dramatize (ablation) | 0.31→0.22 (−29%) | 19%→18% (held) |
+| Writer prompt: precise→minimal (ablation) | 0.31→0.33 (+6%) | 19%→11% (−42%) |
+
+### Adherence checker compatibility with dramatic beats
+*(2026-04-12 · code review, no experiment)*
+
+**Assessment:** The EVENTS_SYSTEM prompt is general enough to handle dramatic beats. It says "identify every distinct action or event" — with dramatic beats ("Gil discovers the bay is dying"), this becomes a semantic judgment ("is bay deterioration shown on page?") rather than a micro-action checklist.
+
+**Risk:** The V4 LoRA adapter was trained on screenplay-style beat/prose pairs (2,134 examples, all with prescriptive beat descriptions). Dramatic beats would be out-of-distribution for the adapter. The base 14B with the new prompt scored 79% first-attempt pass on screenplay beats (exp #161). On dramatic beats, it may score higher (fewer items to verify per beat) or lower (unfamiliar input shape). Production run needed to measure.
+
+**Mitigation:** If adherence rates drop with dramatic beats, run on base 14B first (no LoRA) and collect new training pairs for a V5 adapter trained on the dramatic beat distribution.
+
+**Next steps:** Change planner prompt (dramatic beat style, remove 3-element mandate) + writer prompt ("dramatize" not "execute precisely"). Run 3 novels and measure structural metrics + adherence rates against the 200-chapter corpus baseline. See `docs/todo.md`.
+
+**Ongoing:** These three findings (exp #165, corpus echo analysis, writer ablation) converge on the same conclusion: the pipeline's prose quality problems are primarily caused by prescriptive beat descriptions and a writer prompt that rewards faithful execution over interpretation.
