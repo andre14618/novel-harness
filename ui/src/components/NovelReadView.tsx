@@ -11,6 +11,7 @@ export function NovelReadView() {
   const [chapters, setChapters] = useState<ChapterData[]>([])
   const [activeChapter, setActiveChapter] = useState(1)
   const [loading, setLoading] = useState(true)
+  const [pickerOpen, setPickerOpen] = useState(false)
   const chapterRefs = useRef<Map<number, HTMLDivElement>>(new Map())
   const qs = window.location.search
 
@@ -52,28 +53,23 @@ export function NovelReadView() {
     return <div className="card" style={{ textAlign: "center", padding: "3rem" }}>Loading...</div>
   }
 
+  const pickerLabel = novels.length === 1 ? "Read Novel" : "Read Novels"
+  const current = novels.find(n => n.id === novelId) ?? novels[0] ?? null
+  const rest = novels.filter(n => n.id !== current?.id)
+  const tileInfo = (n: NovelListItem) => {
+    const d = new Date(n.createdAt)
+    return {
+      status: n.phase === "done" ? "done" : n.active ? "running" : n.phase,
+      dateStr: `${d.getMonth() + 1}/${d.getDate()}`,
+      premise: n.seed?.premise ?? "",
+    }
+  }
+
   return (
     <div className="reader-layout">
       <aside className="reader-sidebar">
-        <select
-          className="reader-novel-select"
-          value={novelId || ""}
-          onChange={e => navigate(`/${e.target.value}/read${qs}`)}
-        >
-          {!novelId && <option value="">Select a novel...</option>}
-          {novels.map(n => (
-            <option key={n.id} value={n.id}>
-              {n.seed?.genre ? `[${n.seed.genre}] ` : ""}{n.seed?.premise?.slice(0, 60) || n.id}
-            </option>
-          ))}
-        </select>
-
-        <button
-          className="reader-latest-btn"
-          onClick={() => novels.length > 0 && navigate(`/${novels[0].id}/read${qs}`)}
-          disabled={novels.length === 0}
-        >
-          Most Recent
+        <button className="studio-novels-btn" onClick={() => setPickerOpen(true)} style={{ width: "100%", marginBottom: "0.5rem" }}>
+          {pickerLabel} <span className="studio-novels-count">{novels.length}</span>
         </button>
 
         {novelId && (
@@ -151,6 +147,69 @@ export function NovelReadView() {
           ))
         )}
       </main>
+
+      {/* Novel picker overlay */}
+      {pickerOpen && (
+        <div className="novel-picker-overlay" onClick={() => setPickerOpen(false)}>
+          <div className="novel-picker-panel" onClick={e => e.stopPropagation()}>
+            <div className="novel-picker-header">
+              <span>{pickerLabel}</span>
+              <button className="novel-picker-close" onClick={() => setPickerOpen(false)}>×</button>
+            </div>
+            <div className="novel-picker-body">
+              {current && (() => {
+                const { status, dateStr, premise } = tileInfo(current)
+                return (
+                  <Link
+                    key={current.id}
+                    to={`/${current.id}/read${qs}`}
+                    className="novel-featured-tile"
+                    onClick={() => setPickerOpen(false)}
+                  >
+                    <div className="novel-tile-top">
+                      <span className="novel-tile-genre">{current.seed?.genre || "?"}</span>
+                      <span className="novel-tile-date">{dateStr}</span>
+                    </div>
+                    <div className="novel-featured-premise">{premise || "—"}</div>
+                    <div className="novel-tile-footer">
+                      <span className={`novel-tile-status ${status === "done" ? "done" : status === "running" ? "running" : ""}`}>
+                        {status === "running" ? `ch ${current.currentChapter}/${current.totalChapters}` : status}
+                      </span>
+                      <span className="novel-featured-cta">Read →</span>
+                    </div>
+                  </Link>
+                )
+              })()}
+              {rest.length > 0 && (
+                <div className="novel-picker-rest">
+                  {rest.map(n => {
+                    const { status, dateStr, premise } = tileInfo(n)
+                    return (
+                      <Link
+                        key={n.id}
+                        to={`/${n.id}/read${qs}`}
+                        className="novel-picker-tile"
+                        onClick={() => setPickerOpen(false)}
+                      >
+                        <div className="novel-tile-top">
+                          <span className="novel-tile-genre">{n.seed?.genre || "?"}</span>
+                          <span className="novel-tile-date">{dateStr}</span>
+                        </div>
+                        <div className="novel-tile-premise">{premise || "—"}</div>
+                        <div className="novel-tile-footer">
+                          <span className={`novel-tile-status ${status === "done" ? "done" : status === "running" ? "running" : ""}`}>
+                            {status === "running" ? `ch ${n.currentChapter}/${n.totalChapters}` : status}
+                          </span>
+                        </div>
+                      </Link>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

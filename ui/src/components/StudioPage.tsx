@@ -419,11 +419,8 @@ export function StudioPage() {
               }}>Clear</button>
             )}
             <button className="studio-novels-btn" onClick={() => setPickerOpen(true)}>
-              Novels <span className="studio-novels-count">{novels.length}</span>
+              {novels.length === 1 ? "Read Novel" : "Read Novels"} <span className="studio-novels-count">{novels.length}</span>
             </button>
-            {activeNovelId && (
-              <Link to={`/${activeNovelId}/read${qs}`} className="studio-read-link">Read</Link>
-            )}
             <span className={`connected-dot ${connected ? "on" : "off"}`} />
           </div>
         </div>
@@ -439,43 +436,77 @@ export function StudioPage() {
       </div>
 
       {/* ── Novel picker popout ───────────────────────────────────── */}
-      {pickerOpen && (
-        <div className="novel-picker-overlay" onClick={() => setPickerOpen(false)}>
-          <div className="novel-picker-panel" onClick={e => e.stopPropagation()}>
-            <div className="novel-picker-header">
-              <span>Novels</span>
-              <button className="novel-picker-close" onClick={() => setPickerOpen(false)}>×</button>
-            </div>
-            <div className="novel-picker-grid">
-              {novels.map(n => {
-                const isActive = activeNovelId === n.id
-                const status = n.phase === "done" ? "done" : n.active ? "running" : n.phase
-                const date = new Date(n.createdAt)
-                const dateStr = `${date.getMonth() + 1}/${date.getDate()}`
-                const premise = n.seed?.premise ?? ""
-                return (
-                  <button
-                    key={n.id}
-                    className={`novel-picker-tile${isActive ? " active" : ""}`}
-                    onClick={() => { setActiveNovelId(n.id); setPickerOpen(false) }}
-                  >
-                    <div className="novel-tile-top">
-                      <span className="novel-tile-genre">{n.seed?.genre || "?"}</span>
-                      <span className="novel-tile-date">{dateStr}</span>
-                    </div>
-                    <div className="novel-tile-premise">{premise || "—"}</div>
-                    <div className="novel-tile-footer">
-                      <span className={`novel-tile-status ${status === "done" ? "done" : status === "running" ? "running" : ""}`}>
-                        {status === "running" ? `ch ${n.currentChapter}/${n.totalChapters}` : status}
-                      </span>
-                    </div>
-                  </button>
-                )
-              })}
+      {pickerOpen && (() => {
+        const current = novels.find(n => n.id === activeNovelId) ?? novels[0] ?? null
+        const rest = novels.filter(n => n.id !== current?.id)
+        const tileInfo = (n: NovelListItem) => ({
+          status: n.phase === "done" ? "done" : n.active ? "running" : n.phase,
+          dateStr: (() => { const d = new Date(n.createdAt); return `${d.getMonth()+1}/${d.getDate()}` })(),
+          premise: n.seed?.premise ?? "",
+        })
+        return (
+          <div className="novel-picker-overlay" onClick={() => setPickerOpen(false)}>
+            <div className="novel-picker-panel" onClick={e => e.stopPropagation()}>
+              <div className="novel-picker-header">
+                <span>{novels.length === 1 ? "Read Novel" : "Read Novels"}</span>
+                <button className="novel-picker-close" onClick={() => setPickerOpen(false)}>×</button>
+              </div>
+              <div className="novel-picker-body">
+                {/* Featured current novel */}
+                {current && (() => {
+                  const { status, dateStr, premise } = tileInfo(current)
+                  return (
+                    <Link
+                      to={`/${current.id}/read${qs}`}
+                      className="novel-featured-tile"
+                      onClick={() => setPickerOpen(false)}
+                    >
+                      <div className="novel-tile-top">
+                        <span className="novel-tile-genre">{current.seed?.genre || "?"}</span>
+                        <span className="novel-tile-date">{dateStr}</span>
+                      </div>
+                      <div className="novel-featured-premise">{premise || "—"}</div>
+                      <div className="novel-tile-footer">
+                        <span className={`novel-tile-status ${status === "done" ? "done" : status === "running" ? "running" : ""}`}>
+                          {status === "running" ? `ch ${current.currentChapter}/${current.totalChapters}` : status}
+                        </span>
+                        <span className="novel-featured-cta">Read →</span>
+                      </div>
+                    </Link>
+                  )
+                })()}
+                {/* Rest of novels */}
+                {rest.length > 0 && (
+                  <div className="novel-picker-rest">
+                    {rest.map(n => {
+                      const { status, dateStr, premise } = tileInfo(n)
+                      return (
+                        <Link
+                          key={n.id}
+                          to={`/${n.id}/read${qs}`}
+                          className="novel-picker-tile"
+                          onClick={() => { setActiveNovelId(n.id); setPickerOpen(false) }}
+                        >
+                          <div className="novel-tile-top">
+                            <span className="novel-tile-genre">{n.seed?.genre || "?"}</span>
+                            <span className="novel-tile-date">{dateStr}</span>
+                          </div>
+                          <div className="novel-tile-premise">{premise || "—"}</div>
+                          <div className="novel-tile-footer">
+                            <span className={`novel-tile-status ${status === "done" ? "done" : status === "running" ? "running" : ""}`}>
+                              {status === "running" ? `ch ${n.currentChapter}/${n.totalChapters}` : status}
+                            </span>
+                          </div>
+                        </Link>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* ── Pipeline view ────────────────────────────────────────────── */}
       {state && (
