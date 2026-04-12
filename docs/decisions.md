@@ -692,6 +692,6 @@ The planner assigns a chapter-level setting to all beats. The writer, given more
 
 **Data:** 253 pairs (39 scenarios × ~6.5 variants avg), Sonnet 4.6 teacher labels, 99% overall accuracy. 3 mismatches all malformed-draft artifacts (`{"type": "object"}` placeholder prose), not labeling errors. 3 epochs, Qwen3-14B-Instruct base.
 
-**Artifact URI:** pending training completion (submitted 2026-04-12).
+**Artifact URI:** `wandb-artifact:///andre14618-/novel-harness/continuity-v2:v1`
 
 **Ongoing:** Monitor W&B for adapter URI. Validate on production run before deployment.
