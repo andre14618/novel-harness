@@ -1,6 +1,7 @@
 {
   "premise": "Faster-than-light travel requires human navigators who can perceive fold-space — a sense that burns out after roughly five years. A navigator on her last viable run discovers that the route she's been flying for three years has a hidden waypoint that someone has been using to siphon cargo without anyone noticing.",
   "genre": "science-fiction",
+  "hidden": true,
   "chapterCount": 10,
   "characters": [
     { "name": "Sera Voss", "role": "protagonist", "description": "FTL navigator, early 30s but looks 50 — the perception burns you from the inside. German-Kenyan. One of the best active navigators, which means she has maybe eight months left. Precise, impatient, privately terrified of what she'll be when she can't navigate anymore." },

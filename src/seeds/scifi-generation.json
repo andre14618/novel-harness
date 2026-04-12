@@ -1,6 +1,7 @@
 {
   "premise": "A generation ship halfway through its 200-year journey discovers that the destination planet was colonized by a faster ship launched fifty years after they left. The destination colony is thriving and doesn't need them. The ship's council must decide: continue to a planet that doesn't want them, turn around, or find somewhere else.",
   "genre": "science-fiction",
+  "hidden": true,
   "chapterCount": 10,
   "characters": [
     { "name": "Councilor Rumi Asante", "role": "protagonist", "description": "Ship's elected council head, mid-40s. Third generation — born on the ship, will die on the ship. Historian by training, politician by necessity. Believes the ship is home, not a vehicle, and that changes every calculation." },

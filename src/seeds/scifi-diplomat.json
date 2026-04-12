@@ -1,6 +1,7 @@
 {
   "premise": "Humanity's first contact with an alien species goes well — too well. The aliens agree to every proposal, mirror every cultural gesture, and seem to have no demands of their own. A junior diplomat realizes the aliens aren't negotiating; they're studying, and the 'embassy' is a behavioral research facility.",
   "genre": "science-fiction",
+  "hidden": true,
   "chapterCount": 10,
   "characters": [
     { "name": "Ava Lindqvist", "role": "protagonist", "description": "Junior diplomatic attaché, late 20s. Swedish-Chilean. Trained in xenolinguistics but assigned to protocol because she's junior. Observant, socially awkward, notices patterns others dismiss as cultural differences. Keeps a private log of every interaction that felt 'performed.'" },

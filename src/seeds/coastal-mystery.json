@@ -1,6 +1,7 @@
 {
   "premise": "A marine biologist returns to her hometown to study a sudden coral die-off and discovers it's connected to a chemical company her estranged father manages. The town is split between those who depend on the company for jobs and those watching the bay die. When a fisherman drowns in waters that should have been safe, she suspects the death wasn't accidental.",
   "genre": "literary thriller",
+  "hidden": true,
   "chapterCount": 10,
   "characters": [
     { "name": "Maren", "role": "protagonist", "description": "Marine biologist, early 30s. Left town at 18 and never looked back. Methodical, stubborn, keeps people at arm's length. Speaks in precise, clipped sentences. Her guilt about leaving drives her harder than her science." },

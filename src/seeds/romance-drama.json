@@ -1,9 +1,0 @@
-{
-  "premise": "Two rival restaurateurs in a small coastal town are forced to share a kitchen after a storm destroys one of their restaurants. The insurance won't pay out for three months.",
-  "genre": "contemporary romance",
-  "characters": [
-    { "name": "Nadia", "role": "protagonist", "description": "Runs a modern fusion restaurant. Controlled, ambitious, recently divorced. Cooks like she's proving something to someone who isn't watching anymore." },
-    { "name": "Jem", "role": "supporting", "description": "Runs the traditional seafood place next door. Loud, instinctive, terrible with money. His regulars are family. Has never left the town." },
-    { "name": "Vera", "role": "antagonist", "description": "A property developer who wants to buy both lots. Patient, polite, always has a better offer ready. The storm was convenient for her." }
-  ]
-}

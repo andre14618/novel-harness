@@ -1,8 +1,0 @@
-{
-  "premise": "A locksmith discovers one of her keys opens a door that shouldn't exist.",
-  "genre": "literary fiction",
-  "characters": [
-    { "name": "Ada", "role": "protagonist", "description": "A quiet locksmith who prefers locks to people. Precise, patient, afraid of the unknown." },
-    { "name": "Marsh", "role": "supporting", "description": "Ada's apprentice. Young, curious, doesn't know when to stop asking questions." }
-  ]
-}

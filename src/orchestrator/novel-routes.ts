@@ -97,7 +97,7 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
       const agentGroups: Record<string, { label: string; description: string; agents: string[] }> = {
         writers: { label: "Writers", description: "Creative prose generation", agents: ["writer", "beat-writer", "rewriter"] },
         planners: { label: "Planners", description: "World, characters, plot, chapter outlines", agents: ["world-builder", "character-agent", "plotter", "planning-plotter"] },
-        beatSupport: { label: "Beat Support", description: "Cheap/fast structural tasks for beat-level writing", agents: ["reference-resolver", "adherence-checker"] },
+        beatSupport: { label: "Beat Support", description: "Cheap/fast structural tasks for beat-level writing", agents: ["reference-resolver", "adherence-events"] },
         validators: { label: "Validators", description: "Plan adherence and continuity checks", agents: ["chapter-plan-checker", "continuity-facts", "continuity-state"] },
         extractors: { label: "Extractors", description: "Structured extraction from prose", agents: ["summary-extractor", "fact-extractor", "character-state", "relationship-timeline", "graph-linker"] },
         lintTonal: { label: "Lint & Tonal", description: "AI-tell detection and style transfer", agents: ["lint-fixer", "tonal-pass"] },

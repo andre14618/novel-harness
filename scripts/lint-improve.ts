@@ -11,9 +11,9 @@
  *   - Measures "persistent" issues (those that survive the hybrid fixer)
  *
  * Usage:
- *   bun scripts/lint-improve.ts                          # default: 5 iterations, romance-drama
+ *   bun scripts/lint-improve.ts                          # default: 5 iterations, fantasy-system-heretic
  *   bun scripts/lint-improve.ts --iterations 10          # more iterations
- *   bun scripts/lint-improve.ts --seeds romance-drama,sci-fi-thriller
+ *   bun scripts/lint-improve.ts --seeds fantasy-system-heretic,dark-fantasy
  *   bun scripts/lint-improve.ts --dry-run                # propose but don't apply
  */
 

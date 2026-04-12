@@ -1,6 +1,7 @@
 {
   "premise": "A terraform engineer on humanity's first Mars colony discovers that the atmospheric processors are working too well — oxygen levels are rising faster than the models predict. Something in the Martian soil is responding to the terraforming, and it's not geological.",
   "genre": "science-fiction",
+  "hidden": true,
   "chapterCount": 10,
   "characters": [
     { "name": "Santos Medina", "role": "protagonist", "description": "Terraform engineer, early 40s. Third-generation space worker — grandparents built orbital habitats. Quiet, data-driven, uncomfortable with ambiguity. Married to the colony's chief botanist, which complicates things when the biology team wants to keep the anomaly quiet." },

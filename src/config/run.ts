@@ -8,7 +8,7 @@
  * Resolution order: CLI args > env vars > defaults
  *
  * CLI args:
- *   --seed <name>         Seed name (default: "romance-drama")
+ *   --seed <name>         Seed name (default: "fantasy-system-heretic")
  *   --seeds <csv>         Multiple seeds (comma-separated)
  *   --chapters <n>        Override chapter count from seed
  *   --runs <n>            Runs per seed/model (default: 2)

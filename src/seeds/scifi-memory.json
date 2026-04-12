@@ -1,6 +1,7 @@
 {
   "premise": "In a future where criminal rehabilitation works by editing memories, a memory technician discovers that a death-row inmate's memories have already been edited — by someone using techniques that won't be invented for another decade. The edits are surgical, professional, and they're hiding something the inmate did that no one in the justice system wants found.",
   "genre": "science-fiction",
+  "hidden": true,
   "chapterCount": 10,
   "characters": [
     { "name": "Zara Okonkwo", "role": "protagonist", "description": "Memory technician, early 30s. Nigerian-British. Works in the rehabilitation wing, not the forensic side — she fixes people, doesn't interrogate them. Meticulous, empathetic, has a policy of not reading case files before memory work so she treats the person, not the crime." },

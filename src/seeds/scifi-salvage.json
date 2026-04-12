@@ -1,6 +1,7 @@
 {
   "premise": "A salvage crew operating in the debris field of a destroyed space station finds an intact cryo-pod with a living occupant. The station was destroyed in a classified military action twenty years ago, and every record says there were no survivors. The occupant remembers why the station was really destroyed.",
   "genre": "science-fiction",
+  "hidden": true,
   "chapterCount": 10,
   "characters": [
     { "name": "Kess Adeyemi", "role": "protagonist", "description": "Salvage captain, mid-30s. Runs a three-person crew on tight margins. Nigerian-British. Sharp negotiator, fair divider of shares, terrible at saying no to risky jobs. Lost her previous ship to a debris strike and is still paying it off." },

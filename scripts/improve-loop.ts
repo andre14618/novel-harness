@@ -61,14 +61,14 @@ const TARGETS: Record<string, TargetConfig> = {
     promptFiles: [
       { path: "src/agents/planning-plotter/chapter-outline-system.md", agentName: "planning-plotter" },
     ],
-    benchmarkCmd: "BENCHMARK_SEEDS=romance-drama BENCHMARK_RUNS=2 bun benchmark/planning/run.ts",
+    benchmarkCmd: "BENCHMARK_SEEDS=fantasy-system-heretic BENCHMARK_RUNS=2 bun benchmark/planning/run.ts",
     runType: "planning",
   },
   prose: {
     promptFiles: [
       { path: "src/agents/writer/prose-writer-system.md", agentName: "writer" },
     ],
-    benchmarkCmd: "BENCHMARK_SEEDS=romance-drama BENCHMARK_RUNS=2 bun benchmark/prose/run.ts",
+    benchmarkCmd: "BENCHMARK_SEEDS=fantasy-system-heretic BENCHMARK_RUNS=2 bun benchmark/prose/run.ts",
     runType: "prose",
   },
 }

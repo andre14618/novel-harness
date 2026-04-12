@@ -44,11 +44,6 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // benchmark via scripts/best-of-n-experiment.ts).
   "reference-resolver":        { provider: "groq", model: "llama-3.1-8b-instant", temperature: 0.1, maxTokens: 512 },
 
-  // adherence-checker: V2 curated LoRA on Qwen3-14B via W&B Inference.
-  // Eval exp #135 (2026-04-09): 90% oracle agreement on 64 production pairs
-  // (vs 77% base, 87% V1 uncurated). Events 98%, character 88% (+25pp over base).
-  // W&B convention: artifact URI goes in `model` field (NOT separate `lora` field).
-  "adherence-checker":         { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/adherence-checker-v2-sft-resume:v9", temperature: 0.1, maxTokens: 256 },
   // V4 adapter: events+attribution merged prompt, Sonnet-labeled, 2134 examples (exp #161).
   // 512 tokens: V4 trained on Sonnet labels which include fuller evidence quotes than V2.
   "adherence-events":          { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/adherence-checker-v4", temperature: 0.1, maxTokens: 512 },
@@ -63,9 +58,10 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // ── Validators (analytical checks) ────────────────────────────────────
   // continuity: decomposed into 2 parallel calls (facts + state) via check.ts.
   // Sub-check aliases — same model, distinct agent names for tracing in llm_calls.
-  // On 235B for now; decomposition enables dropping to 14B (W&B) once validated.
-  "continuity-facts":          { ...cerebrasQwen235B, temperature: 0.2, maxTokens: 2048 },
-  "continuity-state":          { ...cerebrasQwen235B, temperature: 0.2, maxTokens: 2048 },
+  // V2 adapter: 253 Sonnet-labeled pairs (39 scenarios × 6-7 variants), 3 epochs on Qwen3-14B.
+  // Swapped from Cerebras 235B → W&B continuity-v2 adapter (2026-04-12).
+  "continuity-facts":          { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/continuity-v2:v1", temperature: 0.2, maxTokens: 2048 },
+  "continuity-state":          { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/continuity-v2:v1", temperature: 0.2, maxTokens: 2048 },
 
   // ── Lint fixer (per-sentence creative fixes via LLM) ──────────────────
   "lint-fixer":                { ...cerebrasQwen235B, temperature: 0.2 },
