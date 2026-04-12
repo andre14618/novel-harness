@@ -18,6 +18,10 @@ export function useNovelSSE(
   const onStreamRef = useRef(onStream)
   onStreamRef.current = onStream
 
+  const seedEvents = useCallback((seed: SSEEvent[]) => {
+    setEvents(seed)
+  }, [])
+
   useEffect(() => {
     if (!novelId) return
 
@@ -86,5 +90,5 @@ export function useNovelSSE(
 
   const clearEvents = useCallback(() => setEvents([]), [])
 
-  return { events, connected, lastEvent, clearEvents }
+  return { events, connected, lastEvent, clearEvents, seedEvents }
 }

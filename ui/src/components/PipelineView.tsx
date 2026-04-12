@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react"
 import { useParams, Link } from "react-router-dom"
-import { getNovelState, getNovelConfig, resumeNovel } from "../api"
-import type { NovelState, NovelConfig } from "../api"
+import { getNovelState, getNovelConfig, resumeNovel, getTrace, getAllChapters } from "../api"
+import type { NovelState, NovelConfig, SSEEvent, TraceEvent } from "../api"
 import { useNovelSSE } from "../hooks/useNovelSSE"
 import { GatePanel } from "./GatePanel"
 import { EventLog } from "./EventLog"
@@ -86,7 +86,7 @@ export function PipelineView() {
     }
   }, [])
 
-  const { events, connected, lastEvent } = useNovelSSE(novelId ?? null, handleStream)
+  const { events, connected, lastEvent, seedEvents } = useNovelSSE(novelId ?? null, handleStream)
 
   // Live stream state — built from SSE events on every render
   const [liveCalls, setLiveCalls] = useState<LLMCallRow[]>([])
@@ -115,6 +115,49 @@ export function PipelineView() {
     loadState()
     getNovelConfig().then(setConfig).catch(() => {})
   }, [loadState])
+
+  // Hydrate historical trace events + chapter prose on mount so the view
+  // shows the full pipeline state even when opened after beats are written.
+  const hydratedRef = useRef(false)
+  useEffect(() => {
+    if (!novelId || hydratedRef.current) return
+    hydratedRef.current = true
+
+    function traceToSSE(t: TraceEvent): SSEEvent {
+      return {
+        type: "trace",
+        data: {
+          eventType: t.event_type,
+          agent: t.agent,
+          chapter: t.chapter,
+          beatIndex: t.beat_index,
+          durationMs: t.duration_ms,
+          ...(t.payload ?? {}),
+        },
+        timestamp: t.timestamp,
+      }
+    }
+
+    getTrace(novelId, { limit: 2000 })
+      .then(rows => {
+        if (rows.length > 0) seedEvents(rows.map(traceToSSE))
+      })
+      .catch(() => {})
+
+    getAllChapters(novelId)
+      .then(chapters => {
+        if (chapters.length === 0) return
+        for (const ch of chapters) {
+          if (!ch.prose) continue
+          // We don't have per-beat prose boundaries in the chapter data, so
+          // store the full chapter text as beat 0 — the live view will show it
+          // as a single block for completed chapters.
+          beatTextRef.current.set(`${ch.chapter}-0`, ch.prose)
+        }
+        setBeatTextTick(t => t + 1)
+      })
+      .catch(() => {})
+  }, [novelId, seedEvents])
 
   // Ingest SSE events and derive the live view state. We rebuild everything
   // from the events array on each update so the logic stays declarative.
