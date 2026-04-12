@@ -79,13 +79,9 @@ export async function checkBeatAdherence(
     issues.push(`Too long: ${wordCount}w vs ${targetWords}w target (${Math.round(wordCount / targetWords * 100)}%)`)
   }
 
-  // Dialogue check: 2+ characters should have dialogue
-  if (beat.characters.length >= 2) {
-    const hasDialogue = /['"][^'"]{5,}['"]/.test(prose) || /[''"][^''""]{5,}[''"]/.test(prose)
-    if (!hasDialogue) {
-      issues.push("No dialogue found but beat has 2+ characters")
-    }
-  }
+  // Dialogue check removed: false-positive rate too high for scenes where
+  // silence is intentional (tense moments, nonverbal beats). The events+attribution
+  // LLM call catches missing dialogue when the beat actually requires it.
 
   // Trace deterministic results
   if (tags?.novelId) {
@@ -96,7 +92,6 @@ export async function checkBeatAdherence(
       payload: {
         charPresence: !issues.some(i => i.includes("not found in prose")),
         wordCountOk: !issues.some(i => i.includes("Too short") || i.includes("Too long")),
-        dialogueOk: !issues.some(i => i.includes("No dialogue")),
         deterministicIssues: issues.length,
       },
     })
