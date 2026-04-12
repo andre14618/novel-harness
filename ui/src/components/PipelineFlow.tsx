@@ -8,7 +8,7 @@
 const PHASES: { id: string; label: string; agents: string[] }[] = [
   { id: "concept",    label: "Concept",    agents: ["world-builder", "character-agent", "plotter"] },
   { id: "planning",   label: "Planning",   agents: ["planning-plotter"] },
-  { id: "drafting",   label: "Drafting",   agents: ["beat-writer", "reference-resolver", "adherence-checker", "chapter-plan-checker", "continuity", "lint-fixer"] },
+  { id: "drafting",   label: "Drafting",   agents: ["beat-writer", "reference-resolver", "adherence-events", "chapter-plan-checker", "continuity", "lint-fixer"] },
   { id: "validation", label: "Validation", agents: ["rewriter", "tonal-pass"] },
   { id: "done",       label: "Done",       agents: [] },
 ]
@@ -20,7 +20,7 @@ const AGENT_LABELS: Record<string, string> = {
   "planning-plotter": "Chapter Plan",
   "beat-writer": "Beat Writer",
   "reference-resolver": "References",
-  "adherence-checker": "Adherence",
+  "adherence-events": "Adherence",
   "chapter-plan-checker": "Plan Check",
   "continuity": "Continuity",
   "lint-fixer": "Lint",

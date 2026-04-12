@@ -333,7 +333,7 @@ function V4BenchmarkTab() {
         Exp #95/#96 compared base to base (identity LoRA bug — see lessons-learned). Real fine-tune
         at <code>howard-tonal-v4-sft-resume:v8</code> beats V3 on every metric: classifier +0.128,
         perplexity 3086 vs 4814, feature KL matches Howard's rhythm (1.564 vs ref 1.534).{" "}
-        <span style={{ color: "#c4a8e2" }}>3× faster than Together (597ms vs 1757ms). Pending switchover in tonal-pass agent.</span>
+        <span style={{ color: "#c4a8e2" }}>3× faster than Together (597ms vs 1757ms). V4 deployed to production 2026-04-11.</span>
       </div>
 
       {/* Metrics table */}

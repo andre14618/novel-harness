@@ -13,7 +13,7 @@ const AGENT_LABELS: Record<string, string> = {
   "plotter": "Plotter",
   "planning-plotter": "Planning Plotter",
   "reference-resolver": "Reference Resolver",
-  "adherence-checker": "Adherence Checker",
+  "adherence-events": "Adherence Events",
   "chapter-plan-checker": "Chapter Plan Checker",
   "summary-extractor": "Summary Extractor",
   "fact-extractor": "Fact Extractor",

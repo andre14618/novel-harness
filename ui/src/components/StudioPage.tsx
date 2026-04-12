@@ -19,7 +19,7 @@ const AGENT_ACTION: Record<string, string> = {
   "writer":               "Writing the chapter",
   "beat-writer":          "Writing beat",
   "reference-resolver":   "Resolving references",
-  "adherence-checker":    "Checking beat adherence",
+  "adherence-events":     "Checking beat adherence",
   "chapter-plan-checker": "Verifying chapter plan",
   "continuity":           "Checking continuity",
   "rewriter":             "Rewriting",

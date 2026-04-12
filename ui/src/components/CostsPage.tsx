@@ -26,7 +26,7 @@ interface CostData {
   daily: CostRow[]
 }
 
-type Tab = "agent" | "provider" | "phase" | "novel" | "daily"
+type Tab = "agent" | "provider" | "phase" | "novel" | "daily" | "gpu"
 
 function fmt(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
@@ -71,6 +71,7 @@ export function CostsPage() {
     { key: "phase", label: "By Phase" },
     { key: "novel", label: "By Novel" },
     { key: "daily", label: "Daily" },
+    { key: "gpu", label: "GPU Comparison" },
   ]
 
   return (
@@ -129,6 +130,7 @@ export function CostsPage() {
       {tab === "phase" && <PhaseTable rows={data.byPhase} />}
       {tab === "novel" && <NovelTable rows={data.byNovel} />}
       {tab === "daily" && <DailyTable rows={data.daily} />}
+      {tab === "gpu" && <GpuComparison totals={data.totals} providers={data.byProvider} />}
     </div>
   )
 }
@@ -257,6 +259,178 @@ function NovelTable({ rows }: { rows: CostRow[] }) {
         ))}
       </tbody>
     </table>
+  )
+}
+
+function GpuComparison({ totals, providers }: { totals: CostData["totals"]; providers: CostRow[] }) {
+  const totalNovels = 20 // benchmark dataset size
+  const perNovel = totals.totalCost / totalNovels
+
+  const scenarios = [
+    { name: "API (current)", desc: "Cerebras + W&B + Groq + MiMo", cost20: totals.totalCost, perNovelCost: perNovel, wallClock10ch: "~5 min", quality: "235B writing" },
+    { name: "H100 + L40S", desc: "70B FP16 writing + 14B checkers", cost20: 12.56, perNovelCost: 0.63, wallClock10ch: "~14 min", quality: "70B (lower)" },
+    { name: "Single A100 70B Q4", desc: "Everything on one GPU", cost20: 16.58, perNovelCost: 0.83, wallClock10ch: "~21 min", quality: "70B Q4 (lower)" },
+    { name: "2x H100 235B parity", desc: "Full model parity", cost20: 63.60, perNovelCost: 3.18, wallClock10ch: "~12 min", quality: "235B (parity)" },
+    { name: "L40S only (14B)", desc: "Cheapest GPU option", cost20: 5.00, perNovelCost: 0.25, wallClock10ch: "~18 min", quality: "14B (much lower)" },
+    { name: "Spot instances", desc: "H100 + L40S at 50% off", cost20: 6.28, perNovelCost: 0.31, wallClock10ch: "~14 min", quality: "70B (lower)" },
+  ]
+
+  const gpuPricing = [
+    { gpu: "H100 80GB SXM", vram: "80 GB", runpod: "$2.69/hr", lambda: "$2.89/hr", perSec: "$0.00075" },
+    { gpu: "A100 80GB SXM", vram: "80 GB", runpod: "$1.39/hr", lambda: "$1.29/hr", perSec: "$0.00036" },
+    { gpu: "A100 80GB PCIe", vram: "80 GB", runpod: "$1.19/hr", lambda: "--", perSec: "$0.00033" },
+    { gpu: "L40S 48GB", vram: "48 GB", runpod: "$0.79/hr", lambda: "--", perSec: "$0.00022" },
+  ]
+
+  const tpsData = [
+    { gpu: "H100 80GB", model: "70B FP16", prefill: "~5,000", gen: "60-80", fit: "Yes" },
+    { gpu: "A100 80GB", model: "70B Q4", prefill: "~2,500", gen: "30-50", fit: "Yes (tight)" },
+    { gpu: "A100 80GB", model: "14B FP16", prefill: "~8,000", gen: "80-120", fit: "Yes" },
+    { gpu: "L40S 48GB", model: "14B FP16", prefill: "~5,000", gen: "60-90", fit: "Yes" },
+    { gpu: "2x H100", model: "235B MoE", prefill: "~3,000", gen: "30-50", fit: "Yes" },
+  ]
+
+  const sectionStyle: React.CSSProperties = { marginBottom: 32 }
+  const headingStyle: React.CSSProperties = { fontSize: "0.85rem", fontWeight: 600, color: "var(--text-primary)", marginBottom: 12 }
+  const subStyle: React.CSSProperties = { fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: 16, lineHeight: 1.5 }
+  const noteStyle: React.CSSProperties = { fontSize: "0.72rem", color: "var(--text-tertiary)", marginTop: 8, fontStyle: "italic" }
+
+  return (
+    <div>
+      {/* Summary callout */}
+      <div style={{ background: "var(--bg-inset)", border: "1px solid var(--border-subtle)", borderRadius: 6, padding: 16, marginBottom: 24 }}>
+        <div style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--accent)", marginBottom: 8 }}>
+          GPU Rental vs API: Per-Second Analysis
+        </div>
+        <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: 1.6 }}>
+          Based on {totalNovels} real novels ({fmt(totals.calls)} calls, {fmt(totals.totalIn + totals.totalOut)} tokens, ${totals.totalCost.toFixed(2)} total API cost).
+          GPU rental is <strong style={{ color: "var(--red-dim)" }}>3-5x more expensive</strong> than the current multi-provider API setup.
+          Break-even requires ~530 novels/day. The pipeline exploits specialized hardware (Cerebras wafer-scale, W&B shared LoRA fleet, Groq LPU)
+          that generic rented GPUs cannot match on price.
+        </div>
+      </div>
+
+      {/* Scenario comparison */}
+      <div style={sectionStyle}>
+        <div style={headingStyle}>Cost Scenarios ({totalNovels} Novels)</div>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead><tr>
+            <th style={thStyle}>Scenario</th>
+            <th style={thStyle}>Setup</th>
+            <th style={thRight}>Cost ({totalNovels} novels)</th>
+            <th style={thRight}>Per Novel</th>
+            <th style={thRight}>vs API</th>
+            <th style={thRight}>Wall Clock (10ch)</th>
+            <th style={thStyle}>Writing Quality</th>
+          </tr></thead>
+          <tbody>
+            {scenarios.map((s, i) => {
+              const ratio = s.cost20 / totals.totalCost
+              const isBaseline = i === 0
+              return (
+                <tr key={s.name} style={isBaseline ? { background: "var(--accent-glow)" } : undefined}>
+                  <td style={{ ...tdStyle, fontWeight: isBaseline ? 600 : 400 }}>{s.name}</td>
+                  <td style={{ ...tdStyle, fontSize: "0.72rem", color: "var(--text-secondary)" }}>{s.desc}</td>
+                  <td style={tdMoney}>${s.cost20.toFixed(2)}</td>
+                  <td style={tdRight}>${s.perNovelCost.toFixed(3)}</td>
+                  <td style={{ ...tdRight, color: ratio > 1.1 ? "var(--red-dim)" : ratio < 0.9 ? "var(--green-dim)" : "var(--accent)" }}>
+                    {isBaseline ? "baseline" : `${ratio.toFixed(1)}x`}
+                  </td>
+                  <td style={tdRight}>{s.wallClock10ch}</td>
+                  <td style={{ ...tdStyle, fontSize: "0.72rem" }}>{s.quality}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* GPU Pricing */}
+      <div style={sectionStyle}>
+        <div style={headingStyle}>GPU Rental Rates (April 2026)</div>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead><tr>
+            <th style={thStyle}>GPU</th>
+            <th style={thRight}>VRAM</th>
+            <th style={thRight}>RunPod</th>
+            <th style={thRight}>Lambda</th>
+            <th style={thRight}>$/second</th>
+          </tr></thead>
+          <tbody>
+            {gpuPricing.map(g => (
+              <tr key={g.gpu}>
+                <td style={tdStyle}>{g.gpu}</td>
+                <td style={tdRight}>{g.vram}</td>
+                <td style={tdRight}>{g.runpod}</td>
+                <td style={tdRight}>{g.lambda}</td>
+                <td style={{ ...tdRight, fontFamily: "monospace" }}>{g.perSec}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* TPS estimates */}
+      <div style={sectionStyle}>
+        <div style={headingStyle}>Single-Request Generation Speed</div>
+        <div style={subStyle}>Sequential call pattern (pipeline's actual access pattern). Batched throughput is 5-20x higher but doesn't apply to latency-sensitive pipeline calls.</div>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead><tr>
+            <th style={thStyle}>GPU</th>
+            <th style={thStyle}>Model</th>
+            <th style={thRight}>Prefill (tok/s)</th>
+            <th style={thRight}>Generation (tok/s)</th>
+            <th style={thStyle}>Fits?</th>
+          </tr></thead>
+          <tbody>
+            {tpsData.map((t, i) => (
+              <tr key={i}>
+                <td style={tdStyle}>{t.gpu}</td>
+                <td style={tdStyle}>{t.model}</td>
+                <td style={tdRight}>{t.prefill}</td>
+                <td style={tdRight}>{t.gen}</td>
+                <td style={tdStyle}>{t.fit}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Why APIs win */}
+      <div style={sectionStyle}>
+        <div style={headingStyle}>Why API Providers Win at This Scale</div>
+        <div style={subStyle}>
+          The pipeline uses four specialized providers, each with purpose-built hardware:
+        </div>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead><tr>
+            <th style={thStyle}>Provider</th>
+            <th style={thStyle}>Hardware</th>
+            <th style={thStyle}>Advantage</th>
+            <th style={thRight}>Share of Cost</th>
+          </tr></thead>
+          <tbody>
+            {[
+              { provider: "Cerebras", hw: "Wafer-scale engine", adv: "190 tok/s generation, $0.60/$1.20/1M. Custom silicon 3-10x faster than GPU.", share: "86.6%" },
+              { provider: "W&B", hw: "CoreWeave shared fleet", adv: "Multi-tenant LoRA: $0.05/$0.22/1M. GPU cost shared across customers.", share: "1.9%" },
+              { provider: "Groq", hw: "LPU (custom ASIC)", adv: "342ms reference resolver. Purpose-built for low-latency.", share: "5.0%" },
+              { provider: "MiMo", hw: "Serverless", adv: "$0.07/$0.30/1M. Slow but fine for background extraction.", share: "6.6%" },
+            ].map(p => (
+              <tr key={p.provider}>
+                <td style={{ ...tdStyle, fontWeight: 600 }}>{p.provider}</td>
+                <td style={{ ...tdStyle, fontSize: "0.72rem" }}>{p.hw}</td>
+                <td style={{ ...tdStyle, fontSize: "0.72rem", color: "var(--text-secondary)" }}>{p.adv}</td>
+                <td style={tdRight}>{p.share}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div style={noteStyle}>
+          A single rented GPU is a generalist competing against four specialists. GPU rental makes sense for batch jobs (SFT data gen, eval sweeps)
+          where hourly rate beats per-token pricing, but not for per-novel pipeline execution at current volume.
+        </div>
+      </div>
+    </div>
   )
 }
 

@@ -56,9 +56,9 @@ LXC 307 (192.168.1.108)
 ├── Fine-Tuning (W&B Inference)
 │   └── OpenPipe/Qwen3-14B-Instruct LoRA adapters
 │       ├── tonal-pass v4 (deployed — pref eval confirmed 2026-04-11)
-│       ├── adherence-checker v2 (curated LoRA deployed — 90% oracle agreement)
-│       ├── chapter-plan-checker v1 (training — 197 pairs, gpt-oss teacher)
-│       └── continuity v1 (training — 120 pairs, Sonnet teacher)
+│       ├── adherence-checker v4 (deployed — events+attribution, 2134 Sonnet-labeled pairs)
+│       ├── chapter-plan-checker v2 (deployed — 96% accuracy, 609ms, exp #178)
+│       └── continuity v2 (deployed — 253 pairs, 12x cost reduction, exp #175)
           `.trim()}</pre>
         </section>
 
@@ -131,7 +131,7 @@ LXC 307 (192.168.1.108)
                     Configurable via <code>pipeline.extractionMode</code> (plan, extract, or both).
                   </div>
                 </div>
-                <p className="flow-agents">Agents: reference-resolver, beat-writer, adherence-checker,
+                <p className="flow-agents">Agents: reference-resolver, beat-writer, adherence-events,
                    chapter-plan-checker, continuity, lint-fixer</p>
               </div>
             </div>
@@ -296,12 +296,16 @@ Beat Specification (from planner)
               <tr><th>Fine-Tune Target</th><th>Task</th><th>Status</th></tr>
             </thead>
             <tbody>
-              <tr><td>Adherence Checker</td><td>Beat spec vs prose (4-call decomposed)</td><td><strong>V2 curated LoRA deployed</strong> — 90% oracle agreement on 64 production pairs (exp #135)</td></tr>
+              <tr><td>Adherence Checker</td><td>Beat spec vs prose (events+attribution)</td><td><strong>V4 deployed</strong> — 2,134 Sonnet-labeled pairs, 79% first-attempt pass, zero FPs (exp #161)</td></tr>
               <tr><td>Tonal Pass</td><td>Per-paragraph style rewriting</td><td><strong>V4 deployed</strong> — pref eval confirmed 2026-04-11 (exp #98); V3 Together AI retired</td></tr>
-              <tr><td>Chapter Plan Checker</td><td>Plan vs assembled prose (pass/fail)</td><td><strong>Training in progress</strong> — 197 pairs, gpt-oss-120b teacher, 54:46 balance (exp #154). gpt-oss-120b in production until eval passes.</td></tr>
-              <tr><td>Continuity</td><td>Consistency with world state</td><td><strong>Training in progress</strong> — 120 pairs, Sonnet 4.6 teacher, 98% label accuracy (exp #155). 235B in production until eval passes.</td></tr>
+              <tr><td>Chapter Plan Checker</td><td>Cross-beat coherence (pass/fail)</td><td><strong>V2 deployed</strong> — 520 pairs, Sonnet teacher, 96% accuracy, 609ms (exp #178)</td></tr>
+              <tr><td>Continuity</td><td>Consistency with world state</td><td><strong>V2 deployed</strong> — 253 pairs, Sonnet teacher, 12x cost reduction from 235B (exp #175)</td></tr>
             </tbody>
           </table>
+          <p style={{ marginTop: 12 }}>
+            <strong>Tiered serving:</strong> W&B (Tier 1, production) → Together AI (Tier 2, hot standby — all 4 adapters training on Qwen 3.5 9B, 2026-04-12) → Local Apple Silicon (Tier 4, evaluation pending).
+            GPU rental benchmarked at 3-5x more expensive than current API setup for per-novel pipeline execution (see <Link to={`/costs${qs}`}>Costs &gt; GPU Comparison</Link>).
+          </p>
         </section>
 
         <section>
