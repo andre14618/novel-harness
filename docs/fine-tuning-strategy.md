@@ -7,7 +7,7 @@ updated: 2026-04-10
 
 ## The Core Premise
 
-Training is free (W&B Serverless SFT, public preview). Inference is $0.05/$0.22 per 1M tokens. One base model — `OpenPipe/Qwen3-14B-Instruct` on W&B Inference — with multiple task-specific LoRA adapters. The cost of a failed experiment is ~$0.02 in evaluation calls.
+Training is free during W&B public preview (temporary — will become paid). Inference is $0.05/$0.22 per 1M tokens with a $2/month free credit. One base model — `OpenPipe/Qwen3-14B-Instruct` on W&B Inference — with multiple task-specific LoRA adapters. W&B is the prototyping tier; production may require migration to a provider with broader model support (see `docs/wandb-alternatives-report.md`). The cost of a failed experiment is ~$0.02 in evaluation calls.
 
 This changes the math: every agent in the pipeline is a fine-tune candidate. The question is no longer "can we afford to try this?" but "what do we expect to learn?"
 
@@ -35,7 +35,7 @@ OpenPipe/Qwen3-14B-Instruct (hot, always warm)
 | Training | W&B Serverless SFT via ART (`pip install openpipe-art`) |
 | Serving | W&B Inference, `WANDB_API_KEY` in env |
 | Inference cost | $0.05/M input · $0.22/M output |
-| Training cost | Free during public preview |
+| Training cost | Free during public preview (temporary — will become paid) |
 | Storage | 5 GB free tier (pay-as-you-go). ~134 MB per adapter, ~3.7 GB per training run (auto-cleaned). Train one at a time. |
 | Max LoRA rank | 16 (W&B Inference hard limit) |
 | Training script | `scripts/train-lora.py` (Python, not Bun) |
@@ -142,7 +142,7 @@ Until condition 1 is true, RunPod is an infrastructure cost, not a cost saving. 
 
 **Current**: W&B Qwen3-14B-Instruct + V2 curated LoRA · 4 parallel calls (events/setting/tangent/character) · ~627ms avg · $0.00005/call
 
-**History**: Base 14B zero-shot hit 96% agreement on the old 160-pair single-call eval (exp #101). But the 4-call decomposed prompt (exp #122, 2026-04-08) revealed a 6pp gap: 14B at 91% vs 235B at 97% on the 160-pair decomposed eval. Worth closing via SFT (W&B ART training is free during public preview; inference is billed at $0.05/$0.22 per 1M).
+**History**: Base 14B zero-shot hit 96% agreement on the old 160-pair single-call eval (exp #101). But the 4-call decomposed prompt (exp #122, 2026-04-08) revealed a 6pp gap: 14B at 91% vs 235B at 97% on the 160-pair decomposed eval. Worth closing via SFT (W&B ART training is cheap; inference is billed at $0.05/$0.22 per 1M).
 
 **Data pipeline (2026-04-09, exp #132)**: `scripts/generate-adherence-decomposed-data.ts` — 59 scenarios × 11 variants × 4 writers (Cerebras 235B, Llama 8B, Kimi K2, DeepSeek V3.2) = 2,596 prose samples × 4 decomposed oracle calls = 10,008 raw training examples. Multi-writer for stylistic diversity + organic drift from weaker models. Oracle: Cerebras 235B using production system prompts, validated against gpt-oss-120b (95% agreement). $6.16 total cost.
 
@@ -396,7 +396,7 @@ All fine-tune evaluations use the same structure:
 3. **Latency probe** on the actual production workload shape (match output token count to real production calls).
 4. **Cost comparison** at production call volume (per 10-chapter novel).
 
-If a slot fails criterion 1 but is close, expand training set and retrain. Training is free — iteration cost is just the evaluation runs.
+If a slot fails criterion 1 but is close, expand training set and retrain. Training is cheap (free during preview, low-cost after) — iteration cost is mainly the evaluation runs.
 
 ---
 

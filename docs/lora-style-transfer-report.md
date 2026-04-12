@@ -513,7 +513,7 @@ The 14B is a less capable but dense model. Its value is not raw intelligence but
 
 ### 11.2 Training Path: W&B Serverless SFT (ART)
 
-**Fully on-platform.** W&B's managed fine-tuning service (Serverless SFT) is powered by OpenPipe's **ART framework** running on CoreWeave GPUs. `OpenPipe/Qwen3-14B-Instruct` is ART's own fine-tuning-optimized fork — training against it is the native path. The trained adapter is auto-saved as a W&B artifact and immediately routable via W&B Inference. No GPU provisioning, no manual upload. Training is **free during public preview**.
+**Fully on-platform.** W&B's managed fine-tuning service (Serverless SFT) is powered by OpenPipe's **ART framework** running on CoreWeave GPUs. `OpenPipe/Qwen3-14B-Instruct` is ART's own fine-tuning-optimized fork — training against it is the native path. The trained adapter is auto-saved as a W&B artifact and immediately routable via W&B Inference. No GPU provisioning, no manual upload. Training is **free during public preview** (temporary — will become paid). Inference at $0.05/$0.22 per 1M tokens with $2/month free credit.
 
 ART docs: https://art.openpipe.ai/fundamentals/sft-training
 

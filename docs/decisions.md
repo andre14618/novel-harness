@@ -18,7 +18,7 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 **Decision:** All new fine-tuned adapters are trained and served on W&B — `OpenPipe/Qwen3-14B-Instruct` as the base, W&B Serverless SFT (ART framework) for training, W&B Inference for serving.
 
-**Why:** Latency probe of 5 providers × 3 workload shapes showed 14B on W&B at 157ms adherence-checker avg (vs 365ms Cerebras 235B baseline) and 2,008ms beat-writer avg (1.3× baseline). Training is free during ART public preview. Inference at $0.05/$0.22 per 1M tokens. Storage free under 100GB tier (~50MB per r=16 adapter). Zero infra to operate.
+**Why:** Latency probe of 5 providers × 3 workload shapes showed 14B on W&B at 157ms adherence-checker avg (vs 365ms Cerebras 235B baseline) and 2,008ms beat-writer avg (1.3× baseline). Training is free during ART public preview (temporary). Inference at $0.05/$0.22 per 1M tokens ($2/month free credit). 5 GB storage free tier. Zero infra to operate. W&B is the prototyping tier — production may require migration for broader model support.
 
 **Latency probe results (exp #94):**
 
@@ -59,7 +59,7 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 **Decision:** All LoRA training uses W&B's Serverless SFT powered by OpenPipe's ART framework on CoreWeave GPUs. No Modal, no Unsloth, no manual upload.
 
-**Why:** `OpenPipe/Qwen3-14B-Instruct` is ART's own fine-tuning-optimized fork — training against it is the native path. Training is free during public preview. Adapter auto-saves as a W&B artifact and is immediately routable via W&B Inference. The full round-trip (train → serve → eval) requires zero infrastructure outside the project.
+**Why:** `OpenPipe/Qwen3-14B-Instruct` is ART's own fine-tuning-optimized fork — training against it is the native path. Training is free during public preview (temporary). Adapter auto-saves as a W&B artifact and is immediately routable via W&B Inference. The full round-trip (train → serve → eval) requires zero infrastructure outside the project.
 
 **Ongoing:** ART training is catalog-constrained (same bases as W&B Inference). If a task ever requires a base W&B doesn't support, a separate training path (Unsloth + Modal) becomes necessary. This is the actual threshold for RunPod to make sense.
 
