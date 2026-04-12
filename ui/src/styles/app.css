@@ -1744,14 +1744,38 @@ details[open] summary::before { transform: rotate(90deg); }
 
 .studio-create-bar {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  flex-direction: column;
+  gap: 8px;
   padding: 8px 12px;
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
   margin-bottom: 10px;
+}
+.studio-create-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.studio-premise-textarea {
+  width: 100%;
+  min-height: 40px;
+  max-height: 300px;
+  padding: 8px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  background: var(--bg-inset);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  resize: vertical;
+  field-sizing: content;
+}
+.studio-premise-textarea:focus {
+  outline: none;
+  border-color: var(--accent-dim);
 }
 .studio-create-left {
   display: flex;
@@ -1779,9 +1803,8 @@ details[open] summary::before { transform: rotate(90deg); }
   border-radius: var(--radius-sm);
   min-width: 0;
 }
-.studio-select-compact { max-width: 200px; }
+.studio-select-compact { width: auto; }
 .studio-input-compact { width: 100px; }
-.studio-input-wide { flex: 1; min-width: 120px; }
 .studio-select-compact:focus,
 .studio-input-compact:focus {
   outline: none;
@@ -1819,48 +1842,149 @@ details[open] summary::before { transform: rotate(90deg); }
 }
 .studio-read-link:hover { background: var(--accent-surface); }
 
-.studio-novel-strip {
-  display: flex;
-  gap: 4px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-  margin-bottom: 10px;
-}
-.studio-novel-tab {
-  padding: 5px 12px;
+/* ── Novels button ──────────────────────────────────────────────────── */
+.studio-clear-btn {
   font-family: var(--font-mono);
   font-size: 0.68rem;
+  padding: 4px 10px;
+  background: none;
+  color: var(--text-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.studio-clear-btn:hover { color: var(--text-secondary); border-color: var(--border-default); }
+.studio-novels-btn {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 4px 10px;
   background: var(--bg-inset);
   color: var(--text-secondary);
   border: 1px solid var(--border-subtle);
   border-radius: 6px;
   cursor: pointer;
-  white-space: nowrap;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   transition: all var(--transition-fast);
 }
-.studio-novel-tab:hover { background: var(--bg-raised); border-color: var(--border-default); }
-.studio-novel-tab.active {
+.studio-novels-btn:hover { background: var(--bg-raised); border-color: var(--border-default); }
+.studio-novels-count {
+  font-size: 0.62rem;
   background: var(--accent-surface);
-  border-color: var(--accent-dim);
   color: var(--accent);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 600;
 }
-.studio-tab-genre {
+
+/* ── Novel picker overlay ───────────────────────────────────────────── */
+.novel-picker-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 80px;
+}
+.novel-picker-panel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  width: fit-content;
+  min-width: 300px;
+  max-width: 92vw;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+.novel-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.novel-picker-close {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+.novel-picker-close:hover { color: var(--text-primary); }
+.novel-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 8px;
+  padding: 12px;
+  overflow-y: auto;
+}
+.novel-picker-tile {
+  background: var(--bg-inset);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: all var(--transition-fast);
+  font-family: var(--font-mono);
+}
+.novel-picker-tile:hover {
+  background: var(--bg-raised);
+  border-color: var(--border-default);
+}
+.novel-picker-tile.active {
+  border-color: var(--accent-dim);
+  background: var(--accent-surface);
+}
+.novel-tile-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.novel-tile-genre {
+  font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   font-weight: 600;
+  color: var(--accent);
 }
-.studio-tab-badge {
+.novel-tile-date {
+  font-size: 0.62rem;
+  color: var(--text-tertiary);
+}
+.novel-tile-premise {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+.novel-tile-footer {
+  margin-top: auto;
+}
+.novel-tile-status {
   font-size: 0.6rem;
-  padding: 1px 5px;
+  padding: 1px 6px;
   border-radius: 3px;
   background: var(--bg-raised);
   color: var(--text-tertiary);
 }
-.studio-tab-badge.done { background: var(--accent-surface); color: var(--accent); }
-.studio-tab-badge.running { background: var(--yellow-surface); color: var(--yellow); }
+.novel-tile-status.done { background: var(--accent-surface); color: var(--accent); }
+.novel-tile-status.running { background: var(--yellow-surface); color: var(--yellow); }
 
 /* ═════════════════════════════════════════════════════════════════════
    Live Pipeline View — polished real-time novel creation experience

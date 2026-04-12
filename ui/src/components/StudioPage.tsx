@@ -89,6 +89,7 @@ export function StudioPage() {
   const [state, setState] = useState<NovelState | null>(null)
   const [_config, setConfig] = useState<NovelConfig | null>(null)
   const [resuming, setResuming] = useState(false)
+  const [pickerOpen, setPickerOpen] = useState(false)
 
   const { events, connected, lastEvent, seedEvents } = useNovelSSE(activeNovelId)
 
@@ -101,11 +102,16 @@ export function StudioPage() {
   const [activeAgents, setActiveAgents] = useState<Set<string>>(new Set())
   const [completedAgents, setCompletedAgents] = useState<Set<string>>(new Set())
   const [runStartedAt, setRunStartedAt] = useState<number | null>(null)
+  const [runEndedAt, setRunEndedAt] = useState<number | null>(null)
   const activityEndRef = useRef<HTMLDivElement>(null)
 
   // ── Load seeds and novels on mount ────────────────────────────────────
   useEffect(() => {
-    getSeeds().then(r => { setSeeds(r.seeds); if (r.seeds.length > 0) setSelectedSeed(r.seeds[0]) })
+    getSeeds().then(r => {
+      const sorted = [...r.seeds].sort((a, b) => a === "fantasy-system-heretic" ? -1 : b === "fantasy-system-heretic" ? 1 : 0)
+      setSeeds(sorted)
+      if (sorted.length > 0) setSelectedSeed(sorted[0])
+    })
     listNovels().then(r => {
       setNovels(r.novels)
       // Auto-select first running novel, or most recent
@@ -145,6 +151,7 @@ export function StudioPage() {
     setActiveAgents(new Set())
     setCompletedAgents(new Set())
     setRunStartedAt(null)
+    setRunEndedAt(null)
 
     function traceToSSE(t: TraceEvent): SSEEvent {
       return {
@@ -188,6 +195,7 @@ export function StudioPage() {
     let totalBeats: number | null = null
     let chapterTitle: string | null = null
     let earliestTs: number | null = null
+    let latestTs: number | null = null
     const beatAttempts = new Map<string, number>()
 
     const keyFor = (agent: string, ch?: number, bi?: number, startTs?: number) =>
@@ -196,6 +204,7 @@ export function StudioPage() {
     for (const e of events) {
       const tsMs = e.timestamp ? new Date(e.timestamp).getTime() : Date.now()
       if (earliestTs === null || tsMs < earliestTs) earliestTs = tsMs
+      if (latestTs === null || tsMs > latestTs) latestTs = tsMs
 
       if (e.type === "trace") {
         const d = e.data as any
@@ -316,12 +325,15 @@ export function StudioPage() {
     setActiveAgents(active)
     setCompletedAgents(completed)
     setRunStartedAt(earliestTs)
+    setRunEndedAt(latestTs)
   }, [events])
 
-  // Auto-scroll
+  // Auto-scroll only during live writes, not historical hydration
   useEffect(() => {
-    activityEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [liveCalls.length])
+    if (state?.active) {
+      activityEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    }
+  }, [liveCalls.length, state?.active])
 
   // Meters
   const totals = useMemo(() => {
@@ -367,52 +379,103 @@ export function StudioPage() {
 
   return (
     <div className="studio-v2">
-      {/* ── Compact creation bar ─────────────────────────────────────── */}
+      {/* ── Creation bar ────────────────────────────────────────────── */}
       <div className="studio-create-bar">
-        <div className="studio-create-left">
-          <div className="studio-mode-toggle">
-            <button className={inputMode === "seed" ? "active" : ""} onClick={() => setInputMode("seed")}>Seed</button>
-            <button className={inputMode === "custom" ? "active" : ""} onClick={() => setInputMode("custom")}>Custom</button>
-          </div>
-          {inputMode === "seed" ? (
-            <select className="studio-select-compact" value={selectedSeed} onChange={e => setSelectedSeed(e.target.value)}>
-              {seeds.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          ) : (
-            <>
+        <div className="studio-create-row">
+          <div className="studio-create-left">
+            <div className="studio-mode-toggle">
+              <button className={inputMode === "seed" ? "active" : ""} onClick={() => setInputMode("seed")}>Seed</button>
+              <button className={inputMode === "custom" ? "active" : ""} onClick={() => setInputMode("custom")}>Custom</button>
+            </div>
+            {inputMode === "seed" ? (
+              <select className="studio-select-compact" value={selectedSeed} onChange={e => setSelectedSeed(e.target.value)}>
+                {seeds.map(s => <option key={s} value={s}>{s}{s === "fantasy-system-heretic" ? " (short test)" : ""}</option>)}
+              </select>
+            ) : (
               <select className="studio-select-compact" value={customGenre} onChange={e => setCustomGenre(e.target.value)}>
                 {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
               </select>
-              <input className="studio-input-compact studio-input-wide" placeholder="Premise…" value={customPremise} onChange={e => setCustomPremise(e.target.value)} />
-            </>
-          )}
-          <button className="studio-create-btn" onClick={handleStart} disabled={starting || (inputMode === "custom" && !customPremise.trim())}>
-            {starting ? "Starting…" : "Create"}
-          </button>
+            )}
+            <button className="studio-create-btn" onClick={handleStart} disabled={starting || (inputMode === "custom" && !customPremise.trim())}>
+              {starting ? "Starting…" : "Create"}
+            </button>
+          </div>
+          <div className="studio-create-right">
+            {activeNovelId && (
+              <button className="studio-clear-btn" onClick={() => {
+                setActiveNovelId(null)
+                setState(null)
+                setLiveCalls([])
+                setFeedItems([])
+                setCurrentChapter(null)
+                setCurrentBeat(null)
+                setCurrentTotalBeats(null)
+                setCurrentChapterTitle(null)
+                setActiveAgents(new Set())
+                setCompletedAgents(new Set())
+                setRunStartedAt(null)
+                setRunEndedAt(null)
+                lastHydratedRef.current = null
+              }}>Clear</button>
+            )}
+            <button className="studio-novels-btn" onClick={() => setPickerOpen(true)}>
+              Novels <span className="studio-novels-count">{novels.length}</span>
+            </button>
+            {activeNovelId && (
+              <Link to={`/${activeNovelId}/read${qs}`} className="studio-read-link">Read</Link>
+            )}
+            <span className={`connected-dot ${connected ? "on" : "off"}`} />
+          </div>
         </div>
-        <div className="studio-create-right">
-          {activeNovelId && (
-            <Link to={`/${activeNovelId}/read${qs}`} className="studio-read-link">Read</Link>
-          )}
-          <span className={`connected-dot ${connected ? "on" : "off"}`} />
-        </div>
+        {inputMode === "custom" && (
+          <textarea
+            className="studio-premise-textarea"
+            placeholder="Describe your novel premise…"
+            value={customPremise}
+            onChange={e => setCustomPremise(e.target.value)}
+            rows={2}
+          />
+        )}
       </div>
 
-      {/* ── Novel selector ───────────────────────────────────────────── */}
-      <div className="studio-novel-strip">
-        {novels.map(n => (
-          <button
-            key={n.id}
-            className={`studio-novel-tab ${activeNovelId === n.id ? "active" : ""}`}
-            onClick={() => setActiveNovelId(n.id)}
-          >
-            <span className="studio-tab-genre">{n.seed?.genre || "?"}</span>
-            <span className={`studio-tab-badge ${n.phase === "done" ? "done" : n.active ? "running" : "idle"}`}>
-              {n.phase === "done" ? "done" : n.active ? `ch ${n.currentChapter}/${n.totalChapters}` : n.phase}
-            </span>
-          </button>
-        ))}
-      </div>
+      {/* ── Novel picker popout ───────────────────────────────────── */}
+      {pickerOpen && (
+        <div className="novel-picker-overlay" onClick={() => setPickerOpen(false)}>
+          <div className="novel-picker-panel" onClick={e => e.stopPropagation()}>
+            <div className="novel-picker-header">
+              <span>Novels</span>
+              <button className="novel-picker-close" onClick={() => setPickerOpen(false)}>×</button>
+            </div>
+            <div className="novel-picker-grid">
+              {novels.map(n => {
+                const isActive = activeNovelId === n.id
+                const status = n.phase === "done" ? "done" : n.active ? "running" : n.phase
+                const date = new Date(n.createdAt)
+                const dateStr = `${date.getMonth() + 1}/${date.getDate()}`
+                const premise = n.seed?.premise ?? ""
+                return (
+                  <button
+                    key={n.id}
+                    className={`novel-picker-tile${isActive ? " active" : ""}`}
+                    onClick={() => { setActiveNovelId(n.id); setPickerOpen(false) }}
+                  >
+                    <div className="novel-tile-top">
+                      <span className="novel-tile-genre">{n.seed?.genre || "?"}</span>
+                      <span className="novel-tile-date">{dateStr}</span>
+                    </div>
+                    <div className="novel-tile-premise">{premise || "—"}</div>
+                    <div className="novel-tile-footer">
+                      <span className={`novel-tile-status ${status === "done" ? "done" : status === "running" ? "running" : ""}`}>
+                        {status === "running" ? `ch ${n.currentChapter}/${n.totalChapters}` : status}
+                      </span>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Pipeline view ────────────────────────────────────────────── */}
       {state && (
@@ -433,6 +496,7 @@ export function StudioPage() {
             beat={currentBeat}
             totalBeats={currentTotalBeats}
             startedAt={runStartedAt}
+            endedAt={runEndedAt}
             done={isDone}
           />
 

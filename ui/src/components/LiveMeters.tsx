@@ -18,6 +18,7 @@ interface Props {
   beat: number | null
   totalBeats: number | null
   startedAt: number | null
+  endedAt: number | null
   done?: boolean
 }
 
@@ -31,18 +32,23 @@ export function LiveMeters({
   beat,
   totalBeats,
   startedAt,
+  endedAt,
   done,
 }: Props) {
   const [elapsed, setElapsed] = useState(0)
 
   useEffect(() => {
     if (!startedAt) return
+    if (done && endedAt) {
+      setElapsed(Math.floor((endedAt - startedAt) / 1000))
+      return
+    }
     const tick = () => setElapsed(Math.floor((Date.now() - startedAt) / 1000))
     tick()
     if (done) return
     const id = setInterval(tick, 1000)
     return () => clearInterval(id)
-  }, [startedAt, done])
+  }, [startedAt, endedAt, done])
 
   return (
     <div className="live-meters">

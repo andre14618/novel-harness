@@ -111,6 +111,7 @@ export function PipelineView() {
   const [activeAgents, setActiveAgents] = useState<Set<string>>(new Set())
   const [completedAgents, setCompletedAgents] = useState<Set<string>>(new Set())
   const [runStartedAt, setRunStartedAt] = useState<number | null>(null)
+  const [runEndedAt, setRunEndedAt] = useState<number | null>(null)
   const activityEndRef = useRef<HTMLDivElement>(null)
 
   const loadState = useCallback(async () => {
@@ -186,6 +187,7 @@ export function PipelineView() {
     let totalBeats: number | null = null
     let chapterTitle: string | null = null
     let earliestTs: number | null = null
+    let latestTs: number | null = null
 
     // Track beat-writer attempts per beat to detect retries
     const beatAttempts = new Map<string, number>()
@@ -196,6 +198,7 @@ export function PipelineView() {
     for (const e of events) {
       const tsMs = e.timestamp ? new Date(e.timestamp).getTime() : Date.now()
       if (earliestTs === null || tsMs < earliestTs) earliestTs = tsMs
+      if (latestTs === null || tsMs > latestTs) latestTs = tsMs
 
       if (e.type === "trace") {
         const d = e.data as any
@@ -418,6 +421,7 @@ export function PipelineView() {
     setActiveAgents(active)
     setCompletedAgents(completed)
     setRunStartedAt(earliestTs)
+    setRunEndedAt(latestTs)
   }, [events])
 
   // Auto-scroll activity feed
@@ -549,6 +553,8 @@ export function PipelineView() {
           beat={currentBeat}
           totalBeats={currentTotalBeats}
           startedAt={runStartedAt}
+          endedAt={runEndedAt}
+          done={state.phase === "done"}
         />
 
         {stalled && (

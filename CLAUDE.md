@@ -110,7 +110,7 @@ The daemon rotates between prompt, config, and template proposals per iteration,
 
 ### Web UI
 `ui/`, React + Vite, served at `/app`:
-- **Studio** (`/app/studio`, default route) — home page. Compact novel creation bar (seed/custom toggle, genre dropdown, premise input) + horizontal novel tab strip + inline pipeline view (PipelineFlow, LiveMeters, narrative activity feed). Hydrates historical events from `/api/novel/:id/trace` on novel switch. SSE subscription for real-time updates during active writes.
+- **The Studio** (`/app/studio`, default route) — home page. Compact creation bar (seed/custom toggle, genre dropdown, full-width premise textarea in custom mode) + novel picker popout (tile grid with genre, date, premise) + inline pipeline view (PipelineFlow, LiveMeters, narrative activity feed). Clear button resets local UI for new runs. Auto-scroll only during live writes; historical views start at top. Hydrates historical events from `/api/novel/:id/trace` on novel switch. SSE subscription for real-time updates during active writes. Elapsed timer freezes to actual run duration on completion.
 - **Pipeline View** (`/app/:novelId`) — standalone real-time SSE timeline with gate panels (also accessible from Studio)
 - **Read** (`/app/:novelId/read`) — rendered novel prose, linked from Studio/Pipeline
 - **Config** (`/app/config`) — per-agent model switching
