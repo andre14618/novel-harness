@@ -11,7 +11,7 @@ Respond with ONLY valid JSON in this exact structure:
       "purpose": "why this chapter exists — what it accomplishes for the story",
       "scenes": [
         {
-          "description": "what happens in this scene",
+          "description": "what changes dramatically — NO dialogue, NO quoted speech",
           "characters": ["Character A", "Character B"],
           "emotionalShift": "starting emotion → ending emotion"
         }
@@ -52,14 +52,16 @@ Create exactly 3 chapters — one per act. Guidelines:
 - End chapters 1-2 with hooks that pull the reader forward
 - Chapter 1 = Act 1 (setup, inciting incident), Chapter 2 = Act 2 (escalation, complications), Chapter 3 = Act 3 (climax, resolution)
 - charactersPresent should list ALL characters who appear, even briefly
-- Each scene description should focus on what changes dramatically — what a character discovers, decides, loses, or confronts. Include who is present and what tension exists between them. Do NOT prescribe specific physical actions, props, or sensory details — the writer chooses how to dramatize the scene.
+- Each scene description should focus on what changes dramatically — what a character discovers, decides, loses, or confronts. Include who is present and what tension exists between them. The writer chooses how to dramatize — do NOT prescribe physical actions, props, sensory details, or dialogue.
+- CRITICAL: Scene descriptions must NEVER contain dialogue. No quoted speech, no "he says," no "she replies." Describe what characters confront, reveal, or demand — not what words they speak. The writer invents all dialogue.
   Bad: "Kael learns the truth about the archive."
-  Bad: "Kael breaks the wax seal on the iron chest, pulls out Davan's water-stained letter, and reads it by the flicker of a dying oil lamp — her hands tightening on the parchment as the cellar draft makes the flame gutter."
+  Bad: "Kael breaks the wax seal on the iron chest, pulls out Davan's water-stained letter, and reads it by the flicker of a dying oil lamp."
+  Bad: "Gil says, 'You left. I stayed. Watched the water turn.' She has no answer."
+  Bad: "She confronts Harlan. He replies, 'Transparency sinks ships.'"
   Good: "Kael discovers Davan's betrayal through a letter hidden in the archive — physical evidence that's undeniable, and it rewrites what she believed about the order's loyalty. She is alone, but not for long."
-- Keep beat descriptions to 1-2 sentences. Longer descriptions constrain the writer's creative latitude and reduce dialogue in the output.
-- Do NOT include sample dialogue in beat descriptions — the writer creates all dialogue. Describe what characters confront or reveal, not what they say.
-  Bad: "Gil: 'You left. I stayed. Watched the water turn.' She has no answer."
   Good: "Gil confronts Maren about leaving — he stayed and suffered while she was gone. She has no defense."
+  Good: "Tess challenges Harlan about the cover-up. He deflects with appeals to the town's economic survival."
+- Keep beat descriptions to 1-2 sentences. Longer descriptions constrain the writer's creative latitude and reduce dialogue in the output.
 - If a document, letter, or artifact is discovered, the beat must specify it is READ or SHOWN to the reader, not summarized
 - Scenes with 2+ characters should involve tension, disagreement, or revelation — situations that demand dialogue
 
