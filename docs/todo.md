@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-10
+updated: 2026-04-12
 ---
 
 # To Do
@@ -9,8 +9,9 @@ Pending action items only. Ordered by impact. Completed items and decision ratio
 
 ## Adherence Checker
 
-- **3-chapter romance-drama end-to-end validation** — validate the tightened surface (single events+attribution call + targeted rewrite). Measure actual retry rate and first-attempt pass rate (target: 19% → 80%+).
-- **GRPO/RL reward loop** (conditional, post-validation) — adherence-checker is the only pipeline agent with a clean automatic reward signal (deterministic checks + synthetic labels). Design a GRPO loop on W&B/ART after the tightened surface is validated.
+- **Step 0 eval** — base 14B novel run in progress on LXC. Query retry rates when done: `SELECT attempt, count(*) FROM llm_calls WHERE agent = 'adherence-events' AND novel_id = '<id>' GROUP BY attempt`. Target: >85% first-attempt pass → V4 training less urgent (still proceeding).
+- **V4 adapter eval** — training submitted 2026-04-12 (exp #161, 2,134 Sonnet-labeled examples, `adherence-checker-v4`). When done: (1) run 30-pair ground-truth eval at `/tmp/eval-pairs-30.json` (target: ≥93%); (2) run 3-chapter romance-drama; (3) if both pass, set `adherence-events` to `wandb-artifact:///andre14618-/novel-harness/adherence-checker-v4-sft-resume:v9`, deploy, conclude exp #161.
+- **GRPO/RL reward loop** (conditional, post-validation) — adherence-checker is the only pipeline agent with a clean automatic reward signal (deterministic checks + synthetic labels). Design a GRPO loop on W&B/ART after V4 is validated.
 
 ## Chapter Plan Checker
 
@@ -29,11 +30,12 @@ Pending action items only. Ordered by impact. Completed items and decision ratio
 - **Remove Together AI provider** — V4 confirmed preferred (pref eval 2026-04-11). Remove `TOGETHER_API_KEY`, Together entries from `models/registry.ts`, and provider config. V3 on Together was the only remaining use.
 - **Tonal pass expansion** — v3/v4 training data is dark-fantasy-specific (Howard corpus). Multi-genre corpus needed before tonal pass is usable as a general pipeline stage. Public domain candidates: Hemingway (pre-1929), London, Cather, Fitzgerald. See `docs/ai-training-copyright-landscape.md`.
 
-## Adherence Checker (cont.)
+## Open Experiments (need concludeExperiment())
 
-- **Base 14B sanity check** — test base `OpenPipe/Qwen3-14B-Instruct` (no LoRA) with the new events+attribution prompt vs V2 LoRA with the new prompt. Single roles.ts change + 3-chapter run. If base 14B >85% first-attempt pass rate, the new prompt alone compensates.
-- **V4 adapter re-labeling** — extract ~2,000 unique (beat, prose) pairs from existing curated JSONL, re-label with Sonnet using new events+attribution prompt, train V4 on W&B. Full instructions: `scripts/v4-adherence-relabeling-instructions.md`.
-- **Close experiments #154 (chapter-plan-checker-v1), #155 (continuity-v1), #159 (adherence-v3-sonnet)** — all three training runs submitted but not concluded in DB. Run eval for each and call `concludeExperiment()` with results.
+- **Exp #154** (chapter-plan-checker-v1) — training submitted, eval pending. Run oracle agreement eval on held-out pairs.
+- **Exp #155** (continuity-v1) — training submitted, eval pending. Run accuracy eval on held-out pairs.
+- **Exp #159** (adherence-v3-sonnet) — partial eval done (character 61% regression documented). Conclude with notes.
+- **Exp #161** (adherence-v4-events-sonnet) — training in progress. Conclude after step 0 + V4 eval above.
 
 ## Fine-Tuning (Other)
 

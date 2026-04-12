@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-11
+updated: 2026-04-12
 ---
 
 # Decisions
@@ -435,6 +435,36 @@ Character call regressed 21pp vs V2. Root cause identified (see below). Other ca
 **Why:** Beat-level adherence checker already covers event enactment and character presence per beat. Chapter plan checker was re-checking the same things at chapter level — redundant signal that added false positives without catching anything the beat checker missed. The unique value of chapter-level review is cross-beat coherence (arc direction, setting across scenes, plot contradictions).
 
 **Also cleaned:** Removed architecture context ("downstream agents", pipeline references) from 5 agent prompts. Small models should know their task, not the system.
+
+### Dialogue deterministic check removed from adherence checker
+*(2026-04-12)*
+
+**Decision:** Remove the `beat.characters.length >= 2 → dialogue required` check from `src/agents/writer/adherence-checker.ts`.
+
+**Why:** Created infinite retry loops for valid scenes where a character is intentionally silent (tense moments, nonverbal beats). Writer generated correct prose, check fired, retry produced identical correct prose — no recoverable path. The events+attribution LLM call already handles missing dialogue when the beat requires it. The deterministic check was redundant and had no false-negative case the LLM wouldn't also catch.
+
+**Also:** The regex didn't reliably match typographic/curly quotes, making it fragile on top of the semantic false-positive problem.
+
+**Alternatives rejected:** Tightening the regex (still semantically wrong for intentional-silence beats). Making it non-blocking (adds noise without fixing the loop).
+
+---
+
+### Adherence checker V4: Sonnet re-labeling + W&B training submitted
+*(2026-04-12 · exp #161)*
+
+**Decision:** Re-label all V3 curated training data with Sonnet using the new events+attribution prompt, train V4 adapter on W&B.
+
+**Why:** V2 LoRA was trained on the old single-action prompt ("the beat's action" — singular). New prompt requires ALL actions + attribution. V2 may resist the new prompt's multi-action/attribution rules because it learned the old distribution. V3-sonnet also regressed on character (61%). V4 starts fresh with the final merged prompt.
+
+**Data:** 7,541 V3 examples deduplicated to 2,134 unique (beat, prose) pairs. Labeled by Sonnet 4.6 across 17 parallel batches. Class balance: 59% true / 41% false. Assembled to `lora-data/adherence-checker-v4-events-sonnet.jsonl`.
+
+**Training:** Submitted to W&B Serverless SFT as `adherence-checker-v4`, base `OpenPipe/Qwen3-14B-Instruct`, 2 epochs, lr 2e-4. Expected artifact: `adherence-checker-v4-sft-resume:v9`.
+
+**Step 0 running in parallel:** Base 14B with new prompt on LXC. If first-attempt pass rate >85%, the prompt alone may suffice. V4 training proceeds regardless — the adapter eliminates latency regression (base 14B showed ~38s cold-start vs LoRA warm).
+
+**Eval plan:** 30-pair ground-truth eval at `/tmp/eval-pairs-30.json` (target ≥93%, matching new prompt's measured accuracy). Then 3-chapter production run (target: >85% first-attempt pass rate).
+
+---
 
 ### Base 14B not viable for chapter plan checker (reconfirmed)
 *(2026-04-12 · exp #107 still current)*
