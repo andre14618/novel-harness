@@ -53,7 +53,6 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "adherence-events":          { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/adherence-checker-v2-sft-resume:v9", temperature: 0.1, maxTokens: 256 },
   "adherence-setting":         { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/adherence-checker-v2-sft-resume:v9", temperature: 0.1, maxTokens: 256 },
   "adherence-tangent":         { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/adherence-checker-v2-sft-resume:v9", temperature: 0.1, maxTokens: 256 },
-  "adherence-character":       { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/adherence-checker-v2-sft-resume:v9", temperature: 0.1, maxTokens: 256 },
 
   // ── Extractors (structured extraction from prose) ─────────────────────
   "summary-extractor":         { ...mimoFlash, temperature: 0.2, maxTokens: 8192 },

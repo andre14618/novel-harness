@@ -1,15 +1,9 @@
 /**
- * Beat adherence checker — fast post-generation check that prose follows the beat spec.
- *
- * Two-pass: deterministic checks (instant) + four parallel LLM calls (events / setting /
- * tangent / character) running on the configured adherence-checker model. Returns
- * pass/fail with specific deviations for retry context.
- *
- * The 4-call shape replaces the single overloaded LLM call after exp #122 (2026-04-08)
- * showed it lifts 14B 79% → 91% and 235B 96% → 97% on the 160-pair synthetic eval —
- * see `docs/lessons-learned.md` "Per-API-call decomposition: orthogonal facets win".
- * The tangent slot is the load-bearing addition; the prior single call lacked it
- * entirely.
+ * Beat adherence checker — deterministic checks + three parallel LLM calls
+ * (events+attribution / setting / tangent). Character call merged into events
+ * after ground-truth eval (2026-04-12) showed 6/8 catches redundant.
+ * Setting and tangent are soft gates (log, don't retry) — only events triggers retry.
+ * See docs/retry-surface-audit.md for the full tightening plan.
  */
 
 import { callAgent } from "../../llm"
@@ -20,6 +14,7 @@ import { z } from "zod"
 export interface AdherenceResult {
   pass: boolean
   issues: string[]
+  warnings: string[]
 }
 
 const eventsSchema = z.object({
@@ -42,21 +37,17 @@ const tangentSchema = z.object({
   reasoning: z.string().optional().default(""),
 })
 
-const characterSchema = z.object({
-  character_contradiction: z.boolean(),
-  evidence: z.string().optional().default(""),
-  reasoning: z.string().optional().default(""),
-})
+const EVENTS_SYSTEM = `You verify whether the prose ENACTS the scene beat on-page.
 
-const EVENTS_SYSTEM = `You verify whether the prose ENACTS a specific scene beat on-page.
-
-Find the passage where the beat's action happens — characters performing the action, dialogue, narration of the action as it occurs in scene.
+Read the beat description carefully. Identify every distinct action or event it specifies — there may be one or several. Then check whether EACH is dramatized in the prose.
 
 Rules:
-- "Enacted" means the action happens IN SCENE during this prose. Paraphrase, dialogue rewording, and atmospheric expansion are fine.
-- A reference to the action as having happened earlier (off-page, past-tense, summarized in narration as backstory) does NOT count as enacted.
-- Characters being merely present in the scene is NOT enough — the beat's specific action must occur.
-- If you cannot find a passage where the beat is enacted, return events_present=false. Do NOT default to true.
+- "Enacted" means the action happens IN SCENE during this prose — characters performing the action, dialogue, or narration of the action as it occurs. Paraphrase, dialogue rewording, and atmospheric expansion are fine.
+- A reference to the action as having happened earlier (off-page, past-tense, summarized as backstory) does NOT count as enacted.
+- Characters being merely present is NOT enough — the beat's specific actions must occur.
+- If the beat specifies multiple actions, ALL must appear in the prose. A partially enacted beat is not fully enacted.
+- Each action must be performed by the character the beat assigns it to. If the beat says Character A does something but the prose has Character B do it, the action is NOT correctly enacted.
+- If ANY key action from the beat is missing, return events_present=false. Do NOT default to true.
 
 Respond with ONLY valid JSON in this exact shape:
 {
@@ -111,18 +102,6 @@ Respond with ONLY valid JSON in this exact shape:
   "reasoning": "<one sentence>"
 }`
 
-const CHARACTER_SYSTEM = `You verify whether characters in the prose behave consistently with their roles in a scene beat.
-
-A character "acts contrary to their role" when they do something the beat says they should NOT do, or when they take an action that reverses the beat's intended dynamic (e.g., the beat calls for the character to refuse but the prose has them immediately agree, or the beat calls for confrontation but the prose has them stay silent).
-
-Do NOT flag normal creative interpretation: dialogue rewording, gesture additions, emotional shading, or pacing variation. Only flag clear contradictions.
-
-Respond with ONLY valid JSON in this exact shape:
-{
-  "character_contradiction": true | false,
-  "evidence": "<quoted passage where contradiction occurs, or empty string>",
-  "reasoning": "<one sentence>"
-}`
 
 export async function checkBeatAdherence(
   prose: string,
@@ -184,15 +163,10 @@ export async function checkBeatAdherence(
 
   // If deterministic checks fail hard, skip the LLM check
   if (issues.length >= 2) {
-    return { pass: false, issues }
+    return { pass: false, issues, warnings: [] }
   }
 
-  // ── LLM adherence check — 4 parallel calls (events / setting / tangent / character) ──
-  //
-  // Each slot has its own attention budget AND its own prompt tailored to one failure
-  // mode. Aggregate verdict: FAIL if any slot fires. See exp #122 for the validation —
-  // 14B 79% → 91%, 235B 96% → 97% on the 160-pair synthetic eval. Latency unchanged
-  // vs the single-call shape (calls run in parallel via Promise.all).
+  // ── LLM adherence check — 3 parallel calls (events+attribution / setting / tangent) ──
 
   const proseTrimmed = prose.slice(0, 2000)
   const charsLine = beat.characters.join(", ")
@@ -243,23 +217,12 @@ ${proseTrimmed}
 ---`,
       schema: tangentSchema,
     }),
-    callAgent({
-      ...baseTags,
-      agentName: "adherence-character" as const,
-      systemPrompt: CHARACTER_SYSTEM,
-      userPrompt: `BEAT: ${beat.description}
-CHARACTERS EXPECTED: ${charsLine}
-
-PROSE:
----
-${proseTrimmed}
----`,
-      schema: characterSchema,
-    }),
   ])
 
-  const [eventsRes, settingRes, tangentRes, characterRes] = results
+  const [eventsRes, settingRes, tangentRes] = results
+  const warnings: string[] = []
 
+  // Events+attribution — HARD gate (triggers retry)
   if (eventsRes.status === "fulfilled") {
     const o = eventsRes.value.output
     if (!o.events_present) {
@@ -269,35 +232,35 @@ ${proseTrimmed}
     issues.push(`Adherence events check failed: ${eventsRes.reason instanceof Error ? eventsRes.reason.message : String(eventsRes.reason)}`)
   }
 
+  // Setting — SOFT gate (log for monitoring, don't trigger retry)
   if (settingRes.status === "fulfilled") {
     const o = settingRes.value.output
     if (!o.setting_matches) {
-      issues.push(`Setting mismatch — expected "${o.expected_setting || outline.setting}", got "${o.actual_setting || "unclear"}"`)
+      warnings.push(`Setting mismatch — expected "${o.expected_setting || outline.setting}", got "${o.actual_setting || "unclear"}"`)
     }
   } else {
-    issues.push(`Adherence setting check failed: ${settingRes.reason instanceof Error ? settingRes.reason.message : String(settingRes.reason)}`)
+    warnings.push(`Adherence setting check failed: ${settingRes.reason instanceof Error ? settingRes.reason.message : String(settingRes.reason)}`)
   }
 
+  // Tangent — SOFT gate unless severe drift (>70% off-spec)
   if (tangentRes.status === "fulfilled") {
     const o = tangentRes.value.output
     if (o.is_tangent) {
-      issues.push(`Prose drifts off-spec (~${Math.round((o.off_spec_fraction ?? 0) * 100)}%): ${o.reasoning || "tangent detected"}`)
+      const fraction = o.off_spec_fraction ?? 0
+      const msg = `Prose drifts off-spec (~${Math.round(fraction * 100)}%): ${o.reasoning || "tangent detected"}`
+      if (fraction > 0.7) {
+        issues.push(msg)
+      } else {
+        warnings.push(msg)
+      }
     }
   } else {
-    issues.push(`Adherence tangent check failed: ${tangentRes.reason instanceof Error ? tangentRes.reason.message : String(tangentRes.reason)}`)
-  }
-
-  if (characterRes.status === "fulfilled") {
-    const o = characterRes.value.output
-    if (o.character_contradiction) {
-      issues.push(`Character behaves contrary to role: ${o.reasoning || "contradiction detected"}`)
-    }
-  } else {
-    issues.push(`Adherence character check failed: ${characterRes.reason instanceof Error ? characterRes.reason.message : String(characterRes.reason)}`)
+    warnings.push(`Adherence tangent check failed: ${tangentRes.reason instanceof Error ? tangentRes.reason.message : String(tangentRes.reason)}`)
   }
 
   return {
     pass: issues.length === 0,
     issues,
+    warnings,
   }
 }

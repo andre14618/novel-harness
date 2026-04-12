@@ -139,13 +139,18 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
             let beatProse: string | null = null
             const beatWriterModel = getModelForAgent("beat-writer")
             const beatSpec = outline.scenes[bi]
+            let previousProse: string | null = null
+            let previousIssues: string[] = []
             for (let retry = 0; retry <= pipeline.maxBeatRetries; retry++) {
-              const retryNote = retry > 0 ? `\nRETRY — previous attempt deviated. Try again, following the beat exactly.` : ""
+              let retryContext = ""
+              if (retry > 0 && previousProse && previousIssues.length > 0) {
+                retryContext = `\n\n--- TARGETED REWRITE ---\nYour previous prose for this beat:\n---\n${previousProse.slice(0, 2000)}\n---\nIssues found:\n${previousIssues.map(i => `- ${i}`).join("\n")}\nRewrite this beat to address the issues above while preserving what works.`
+              }
               try {
                 const response = await executeAndLog(
                   {
                     systemPrompt: BEAT_WRITER_PROMPT,
-                    userPrompt: beatCtx.userPrompt + retryNote,
+                    userPrompt: beatCtx.userPrompt + retryContext,
                     model: beatWriterModel?.model ?? "qwen-3-235b-a22b-instruct-2507",
                     provider: beatWriterModel?.provider ?? "cerebras",
                     temperature: beatWriterModel?.temperature ?? 0.8,
@@ -182,8 +187,13 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                   if (!adherence.pass) {
                     log(novelId, "warn", `Beat ${bi + 1} adherence issues accepted after max retries: ${adherence.issues.join("; ")}`)
                   }
+                  if (adherence.warnings.length > 0) {
+                    log(novelId, "info", `Beat ${bi + 1} soft warnings: ${adherence.warnings.join("; ")}`)
+                  }
                   break
                 }
+                previousProse = prose
+                previousIssues = adherence.issues
                 log(novelId, "info", `Beat ${bi + 1} retry ${retry + 1}: ${adherence.issues.join("; ")}`)
               } catch (err) {
                 log(novelId, "warn", `Beat ${bi + 1} attempt ${retry + 1} failed: ${err instanceof Error ? err.message : err}`)
