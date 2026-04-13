@@ -3,7 +3,7 @@ import {
   getNovel, getChapterOutline, getApprovedDraft, getOpenIssues,
   saveIssue, resolveIssuesForChapter, unapproveChapterDraft,
   saveChapterDraft, approveChapterDraft, saveValidationPass,
-  getValidationAttempts, clearFactsForChapter, clearCharacterStatesForChapter,
+  getValidationAttempts,
   updatePhase,
 } from "../db"
 import { callAgent } from "../llm"
@@ -11,7 +11,6 @@ import { REWRITER_AGENT_PROMPT } from "../prompts"
 import { buildContext as buildRewriterContext } from "../agents/rewriter/context"
 import { runTonalPass } from "../agents/tonal-pass/run"
 import { validateChapterDraft } from "../validation"
-import { updateStateAfterChapter } from "../state-extraction"
 import { displayPhaseHeader } from "../cli"
 import { emit } from "../events"
 import { log } from "../logger"
@@ -137,11 +136,6 @@ export async function runValidationPhase(novelId: string): Promise<void> {
         await unapproveChapterDraft(novelId, ch)
         await saveChapterDraft(novelId, ch, newProse, wordCount)
         await approveChapterDraft(novelId, ch)
-
-        // Clear + re-extract state
-        await clearFactsForChapter(novelId, ch)
-        await clearCharacterStatesForChapter(novelId, ch)
-        await updateStateAfterChapter(novelId, ch, newProse)
 
         // Resolve old issues
         await resolveIssuesForChapter(novelId, ch)

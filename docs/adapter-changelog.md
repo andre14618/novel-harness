@@ -19,10 +19,10 @@ Single source of truth for fine-tuning history across all pipeline agents. One e
 | Adherence Checker | **DEPLOYED** | V4 · events+attribution | #161 | `adherence-checker-v4` |
 | Chapter Plan Checker | **DEPLOYED** | V2 · Sonnet teacher | #178 | `chapter-plan-checker-v2:v1` |
 | Continuity | **DEPLOYED** | V2 · Sonnet teacher | #175 | `continuity-v2:v1` |
-| Fact Extractor | **EVAL** | V1 · Sonnet teacher | #187 | `fact-extractor-v1:v1` |
-| Summary Extractor | **EVAL** | V1 · Sonnet teacher | #187 | `summary-extractor-v1:v1` |
-| Character State | **EVAL** | V1 · Sonnet teacher | #187 | `character-state-v1:v1` |
-| Relationship Timeline | **EVAL** | V1 · Sonnet teacher | #187 | `relationship-timeline-v1:v1` |
+| Fact Extractor | BLOCKED | V1 · Sonnet teacher | #187 | `fact-extractor-v1:v1` |
+| Summary Extractor | BLOCKED | V1 · Sonnet teacher | #187 | `summary-extractor-v1:v1` |
+| Character State | BLOCKED | V1 · Sonnet teacher | #187 | `character-state-v1:v1` |
+| Relationship Timeline | BLOCKED | V1 · Sonnet teacher | #187 | `relationship-timeline-v1:v1` |
 | Reference Resolver | RETIRED | — | — | Llama 3.1 8B sufficient |
 
 ### Together AI Tier 2 Mirrors (IN TRAINING — 2026-04-12)
@@ -229,12 +229,21 @@ Based on the adherence V2 calibration point (8,524 pairs → 90% oracle agreemen
 - **Sequence length:** 100% over 2048, 51% over 4096 (most severe truncation risk)
 - **Latency:** 6,873ms avg
 
-### Next Steps
+### Sonnet-as-Judge Eval Results (2026-04-13)
 
-1. **Sonnet-as-judge eval** — content accuracy, not word overlap. Instructions: `scripts/extractor-eval-judging-instructions.md`
-2. **Truncate user prompts + retrain** — fit within 2048 token limit by cutting prose, not output
-3. **Production validation** — 3-chapter run with adapters vs 235B side-by-side
-4. **Deploy** — swap in `models/roles.ts`, expected 98% cost reduction
+Content accuracy eval revealed deployment-blocking issues:
+- fact-extractor: 84.2% recall, 93.5% precision — climax/resolution facts dropped
+- summary-extractor: 92.5% key events, 79.7% open threads — 2/19 fabrications
+- character-state: 73.9% knows recall, **57.1% doesNotKnow** — knows↔doesNotKnow inversions
+- relationship-timeline: 84.1% overall, 73.8% awareness — invents items when GT=0
+
+### Architecture Audit (2026-04-13)
+
+**3 of 4 extractors are redundant with planner.** The planner already produces `establishedFacts`, `characterStateChanges`, `knowledgeChanges` deterministically. `"both"` extractionMode overwrites planner data via `ON CONFLICT DO UPDATE` — replacing ground truth with ~80% accurate approximations.
+
+Only **relationship-timeline** captures unique signal (prose-level trust shifts, knowledge propagation).
+
+**Status: BLOCKED — pending plan-only validation.** If `extractionMode: "plan"` shows no continuity regression, extractors are unnecessary. See `docs/decisions.md` "Extraction architecture audit" for full analysis.
 
 ### Frozen Prompts
 

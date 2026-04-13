@@ -20,7 +20,6 @@ import { displayPhaseHeader, displayProgress, presentForApproval, getRevisionNot
 import { emit } from "../events"
 import { log } from "../logger"
 import { trace } from "../trace"
-import { updateStateAfterChapter } from "../state-extraction"
 import { savePlannedState } from "../planned-state"
 import { diffPlanAgainstState, type PriorCharacterState } from "../state-diff"
 import { pipeline } from "../config/pipeline"
@@ -442,16 +441,11 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
 
         emit(novelId, { type: "progress", data: { step: "state-extraction", chapter: ch, status: "running" } })
         const extractStart = Date.now()
-        if (pipeline.extractionMode === "plan" || pipeline.extractionMode === "both") {
-          await savePlannedState(novelId, ch, outline)
-        }
-        if (pipeline.extractionMode === "extract" || pipeline.extractionMode === "both") {
-          await updateStateAfterChapter(novelId, ch, prose)
-        }
+        await savePlannedState(novelId, ch, outline)
         await trace(novelId, {
           eventType: "state-extraction", chapter: ch,
           durationMs: Date.now() - extractStart,
-          payload: { mode: pipeline.extractionMode },
+          payload: { mode: "plan" },
         })
         emit(novelId, { type: "progress", data: { step: "state-extraction", chapter: ch, status: "complete" } })
 

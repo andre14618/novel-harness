@@ -72,8 +72,4 @@ export { characterProfileSchema, characterProfilesSchema, type CharacterProfile 
 export { storySpineSchema, type StorySpine } from "./agents/plotter/schema"
 export { chapterOutlineSchema, chapterOutlinesSchema, type ChapterOutline } from "./agents/planning-plotter/schema"
 export { chapterDraftSchema } from "./agents/writer/schema"
-export { chapterSummarySchema } from "./agents/summary-extractor/schema"
-export { factExtractionSchema } from "./agents/fact-extractor/schema"
-export { characterStateUpdateSchema } from "./agents/character-state/schema"
 export { rewriterOutputSchema } from "./agents/rewriter/schema"
-export { relationshipTimelineSchema } from "./agents/relationship-timeline/schema"

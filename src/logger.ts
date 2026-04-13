@@ -124,11 +124,6 @@ function getPhaseForAgent(agent: string): string {
     "chapter-plan-checker": "drafting",
     "continuity": "drafting",
     "lint-fixer": "drafting",
-    "summary-extractor": "extraction",
-    "fact-extractor": "extraction",
-    "character-state": "extraction",
-    "relationship-timeline": "extraction",
-    "graph-linker": "extraction",
     "rewriter": "validation",
     "tonal-pass": "validation",
   }
