@@ -209,7 +209,7 @@ bun test
 - `docs/lessons-learned.md` — **read before designing agents, rubrics, or experiments**
 - `docs/commit-conventions.md` — commit message format
 - `docs/world-knowledge-graph.md` — knowledge graph, context assembly, retrieval parameters
-- `docs/ai-tells-*.md` — lint pattern research (cliches, emotional echo, hedging, rhythm)
+- `archive/ai-tells-*.md` — lint pattern research (cliches, emotional echo, hedging, rhythm) — completed, archived
 
 ## Decision Recording SOP
 
