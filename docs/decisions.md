@@ -823,3 +823,33 @@ All three targets met (echo at target, dialogue slightly below 20% for this myst
 **Alternatives evaluated:** Together AI (latency risk — 36.79s TTFT benchmarked on Qwen 3.5 9B, 3.1× slower than other providers on identical weights), Modal + vLLM (10-120s cold starts, 30× per-run cost, maintenance burden), self-hosted RTX 3090 (~$500 one-time, best long-term economics). Full analysis in `docs/wandb-alternatives-report.md`. W&B remains the best fit for the current workload pattern (burst runs, latency-sensitive checker calls, infrequent usage).
 
 **Ongoing:** If W&B changes pricing or restrictions again, Together AI is the hot-standby (needs latency re-benchmark first). Modal is the fallback if both fail.
+
+---
+
+## Extractor SFT — V1 Adapters Trained but Not Deployed
+*(2026-04-13 · exp #187)*
+
+**Decision:** Do not deploy extractor V1 adapters. Conduct methodology analysis before any retraining.
+
+**Eval results (Sonnet-as-judge, 25 pairs per adapter, semantic content accuracy):**
+
+| Adapter | Key metric | Weakest dimension |
+|---------|-----------|-------------------|
+| fact-extractor-v1 | 84.2% info recall, 93.5% precision | Climax/resolution facts dropped; category confusion (knowledge vs rule, relationship vs knowledge) |
+| summary-extractor-v1 | 92.5% key events, 79.7% open threads | Drops 4th/5th open thread; 2/19 entries fabricate (minor) |
+| character-state-v1 | 73.9% knows recall, **57.1% doesNotKnow recall** | knows↔doesNotKnow inversions; drops granular facts on detail-heavy characters |
+| relationship-timeline-v1 | 84.1% overall, 73.8% awareness | Invents relationships/awareness when ground truth has 0 |
+
+**Why not deploy:** 80%+ error rates compound across chapters. character-state at 57% doesNotKnow recall means nearly half of all dramatic tension gaps are wrong or inverted. A knows↔doesNotKnow inversion silently corrupts world state — it cannot be caught downstream unless the exact wrong entry is tested. The continuity checker can't detect a missing doesNotKnow that was never written. Errors in world-state tables accumulate monotonically across a novel.
+
+**The extraction scope problem:** Adapters were trained to extract everything the Sonnet oracle would extract, including dozens of items per chapter. This is a high-recall task that 14B fine-tunes can't reliably perform. The 2048-token W&B ART sequence limit truncated 77-100% of training examples, which almost certainly contributes to missed climax/resolution facts (these appear at the end of chapters) and dropped granular details.
+
+**Planned state as the alternative:** The planner already produces `establishedFacts`, `characterStateChanges`, `knowledgeChanges` per chapter. This is deterministic with zero extraction error. `extractionMode: "plan"` is already implemented. Testing it against `"both"` will show whether LLM extractors add net value or merely add noise.
+
+**Next:** Test plan-only (`extractionMode: "plan"`) vs both on 5 novels before deciding whether to retrain with scoped prompts, scope down extraction targets, or remove LLM extractors entirely for all but relationship-timeline (which has no planner equivalent).
+
+**Alternatives rejected (prematurely):**
+- Retrain with scoped prompts — premature until plan-only baseline is measured
+- Fix sequence length truncation and retrain — may not fix the fundamental scope problem; a 14B model asked to extract 30 items from 4000 tokens of prose will always drop some
+
+**Ongoing:** Extractor adapters remain available as artifacts but are not wired into `models/roles.ts`. `extractionMode` stays at `"both"` (planner + Cerebras 235B extractors) until the plan-only test concludes.
