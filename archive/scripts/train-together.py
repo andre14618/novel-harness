@@ -40,28 +40,28 @@ LORA_DATA = Path(__file__).parent.parent / "lora-data"
 # Adapter definitions — same data as W&B training
 ADAPTERS = {
     "adherence": {
-        "name": "adherence-checker-v4-together",
+        "name": "adherence-checker-v4-together-v2",
         "data": "adherence-checker-v4-events-sonnet.jsonl",
         "description": "Beat adherence events+attribution checker (2,134 Sonnet-labeled pairs)",
-        "epochs": 2,
+        "epochs": 6,  # Compensate for bs=8 vs W&B bs=2: 6ep×267=1600 steps (vs W&B 3201)
     },
     "chapter-plan": {
-        "name": "chapter-plan-checker-v2-together",
+        "name": "chapter-plan-checker-v2-together-v2",
         "data": "chapter-plan-checker-pairs-sonnet-v2.jsonl",
         "description": "Cross-beat structural plan checker (520 Sonnet-labeled pairs)",
-        "epochs": 3,
+        "epochs": 10,  # Compensate for bs=8: 10ep×65=650 steps (vs W&B 780)
     },
     "continuity": {
-        "name": "continuity-v2-together",
+        "name": "continuity-v2-together-v2",
         "data": "continuity-pairs-sonnet-labeled.jsonl",
         "description": "Continuity fact/state checker (253 Sonnet-labeled pairs)",
-        "epochs": 3,
+        "epochs": 12,  # Compensate for bs=8: 12ep×31=372 steps (vs W&B 379)
     },
     "tonal": {
-        "name": "howard-tonal-v4-together",
+        "name": "howard-tonal-v4-together-v2",
         "data": "howard-tonal-pairs-curated.jsonl",
         "description": "Howard tonal pass style transfer (4,497 curated pairs)",
-        "epochs": 2,
+        "epochs": 4,  # Compensate for bs=8: 4ep×562=2248 steps
     },
 }
 
@@ -159,10 +159,12 @@ def start_training(adapter_config: dict, file_id: str) -> str | None:
         "training_file": file_id,
         "model": BASE_MODEL,
         "n_epochs": adapter_config["epochs"],
-        "learning_rate": 2e-4,
-        "batch_size": 8,
+        "learning_rate": 1e-4,  # Halved from 2e-4 — fewer steps need gentler LR
+        "batch_size": 8,  # Together minimum
         "n_checkpoints": 1,
         "suffix": adapter_config["name"],
+        "train_on_inputs": "auto",  # Mask non-assistant tokens (match W&B ART behavior)
+        "warmup_ratio": 0.1,  # Match W&B ART warmup
         "training_type": {
             "type": "Lora",
             "lora_r": 16,
@@ -259,7 +261,7 @@ def main():
             continue
 
         # Train
-        print(f"  Submitting training job ({config['epochs']} epochs, lr=2e-4, batch=2)...")
+        print(f"  Submitting training job ({config['epochs']} epochs, lr=1e-4, batch=8, train_on_inputs=auto)...")
         job_id = start_training(config, file_id)
         if not job_id:
             print(f"  ERROR: Training submission failed!")

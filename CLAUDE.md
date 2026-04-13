@@ -37,7 +37,7 @@ Each agent's prompt/schema/context lives in `src/agents/{name}/`. The model assi
   - **chapter-plan-checker** — **W&B `chapter-plan-checker-v2:v1`** (Qwen3-14B SFT, Sonnet-labeled). Focused on cross-beat properties only: setting coherence, emotional arc direction, major plot contradictions. 96% accuracy vs Sonnet ground truth, 609ms latency. Serving URI: `wandb-artifact:///andre14618-/novel-harness/chapter-plan-checker-v2:v1`. Validated exp #178, 2026-04-12.
   - **continuity** — **W&B `continuity-v2:v1`** (Qwen3-14B SFT, 253 Sonnet-labeled pairs from 39 scenarios). 2 parallel decomposed agents (`continuity-facts` + `continuity-state`). Highest prompt-token cost in the pipeline (~7,300 in/call). Swapped from Cerebras 235B 2026-04-12 — pending production validation.
   - **lint-fixer** — Cerebras Qwen 235B per-sentence rewrites. No agent dir; lint code lives in `src/lint/` and reads the model assignment via `getModelForAgent("lint-fixer")`.
-- **Extraction** (`src/state-extraction.ts`, runs after chapter approval, configurable via `pipeline.extractionMode`): summary-extractor, fact-extractor, character-state (mimo-flash), relationship-timeline (Cerebras Qwen 235B), graph-linker (mimo-flash, ambiguous-causal validation only)
+- **Extraction** — LLM extractor subsystem (summary-extractor, fact-extractor, character-state, relationship-timeline, graph-linker) validated as noise (7 novels, 134 checks, 0 failures on plan-only — 2026-04-13). **Being removed.** `pipeline.extractionMode` is locked to `"plan"` — planner declared state is the sole world-state source. See `docs/decisions.md` "Plan-only extractionMode validated."
 - **Validation** (`src/phases/validation.ts`): **rewriter** (Cerebras Qwen 235B) reruns chapters that fail deterministic validation. **tonal-pass** runs *after* validation converges, once across all approved chapters — per-paragraph LoRA voice rewrite, dialogue-only paragraphs skipped. **W&B Inference `howard-tonal-v4-sft-resume:v8`** (exp #98, pref eval confirmed 2026-04-11). V3 on Together AI retired.
 
 ### Tools-only agent dirs (not in the runtime pipeline)
@@ -66,8 +66,7 @@ Beat writing bypasses semantic retrieval. Context comes from the plan + determin
 
 **Planned state** (`src/planned-state.ts`):
 - Planning-plotter outputs `establishedFacts`, `characterStateChanges`, `knowledgeChanges` per chapter
-- Saved to DB tables after chapter approval (same tables extractors write to)
-- Configurable via `pipeline.extractionMode`: `"plan"` (planner only), `"extract"` (LLM extractors only), `"both"` (verify)
+- Saved to DB tables after chapter approval (`extractionMode: "plan"` — planner-declared state only, LLM extractors removed)
 
 **Semantic retrieval** (`src/db/retrieval.ts`, `src/db/embed.ts`):
 - Infrastructure exists but embeddings disabled (`pipeline.embeddings = false`)
@@ -100,7 +99,7 @@ Archived benchmarks (infrastructure kept): context quality, prose penalties, pla
 All daemon data access goes through `src/harness/` service layer. No inline SQL in daemon code.
 
 **Optimization surfaces** (in `src/harness/registry.ts`):
-- Agent prompts for the live agents (concept, planning, writing, checking, extraction)
+- Agent prompts for the live agents (concept, planning, writing, checking)
 - 6 deterministic causal parameters (`deterministic_config` table)
 - 6 context format templates (`context_templates` table — per-item rendering formats)
 - 8 generation parameters (`agent_generation_config` table — temperature/maxTokens per agent)
