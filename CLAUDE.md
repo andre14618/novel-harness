@@ -160,9 +160,6 @@ ssh novel-harness-lxc "sudo systemctl status novel-harness-orchestrator"
 # Improvement daemon
 ssh novel-harness-lxc "curl -s -X POST http://localhost:3006/api/improvement/start -H 'x-api-key: <key>'"
 
-# Migrate existing SQLite novels to Postgres (one-time)
-ssh novel-harness-lxc "cd ~/apps/novel-harness && bun scripts/migrate-to-postgres.ts --embed"
-
 # Tests (require DATABASE_URL)
 bun test
 ```
@@ -208,7 +205,7 @@ bun test
 - `docs/lessons-learned.md` — **read before designing agents, rubrics, or experiments**
 - `docs/commit-conventions.md` — commit message format
 - `docs/world-knowledge-graph.md` — knowledge graph, context assembly, retrieval parameters
-- `archive/ai-tells-*.md` — lint pattern research (cliches, emotional echo, hedging, rhythm) — completed, archived
+- `../archives/novel-harness/` — completed research docs + archived scripts/agents (outside repo) — lint pattern research, extractor agents, one-off eval scripts
 
 ## Decision Recording SOP
 

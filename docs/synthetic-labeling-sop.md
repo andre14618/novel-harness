@@ -237,9 +237,11 @@ Accept the labeled set for training when overall accuracy ≥82% (leave mismatch
 - **Current state:** 80 pairs in `lora-data/chapter-plan-checker-pairs.jsonl` (10 scenarios × 8 variants)
 - **The problem:** Base 14B at 58% overall accuracy; 100% PASS bias (rubber-stamps everything). gpt-oss-120b is the validated teacher at 90% on these 80 pairs. FAIL_MISSING_BEAT is the hard case — gpt-oss catches only 50%.
 - **The plan:** Scale to 200 pairs via gpt-oss bulk labeling, then Sonnet escalation on FAIL_MISSING_BEAT cases where gpt-oss says PASS.
-- **Known data quality issue:** FAIL_MISSING_BEAT pairs have 64% keyword leak (inspect log at `lora-data/inspect-fail_missing_beat.md`). Prose often starts with characters already mid-beat-2, referencing beat 1 events obliquely. These are ambiguous training examples — Sonnet escalation decides which to keep.
+- **Known data quality issue:** FAIL_MISSING_BEAT pairs have 64% keyword leak (inspect log archived at `personal_projects/archives/novel-harness/lora-data/inspect-fail_missing_beat.md`). Prose often starts with characters already mid-beat-2, referencing beat 1 events obliquely. These are ambiguous training examples — Sonnet escalation decides which to keep.
 
 ### Step 1: Scale to 200 pairs (add 15 scenarios)
+
+> **Note:** `scripts/generate-chapter-plan-data.ts` was archived to `personal_projects/archives/novel-harness/scripts/` during the 2026-04-13 repo cleanup. Restore it before running this step.
 
 Add 15 new `ChapterScenario` objects to `scripts/generate-chapter-plan-data.ts`. Each scenario must specify a complete `ChapterOutline` with exactly 4 `scenes`. Prioritize:
 - LitRPG scenarios (dungeon entry, skill-check moment, loot division, guild registration)
@@ -254,6 +256,8 @@ ssh novel-harness-lxc "cd ~/apps/novel-harness && nohup ~/.bun/bin/bun scripts/g
 This regenerates the full JSONL from scratch (it deletes and rewrites the output file). Runtime ~20 min for 25 scenarios × 8 variants = 200 pairs on Cerebras.
 
 ### Step 2: gpt-oss-120b bulk labeling
+
+> **Note:** `scripts/score-chapter-plan-baseline.ts` and `scripts/score-chapter-plan-teachers.ts` were archived to `personal_projects/archives/novel-harness/scripts/`. Restore before running.
 
 gpt-oss-120b is a direct API call, not a Claude Code subagent task. Run it via `scripts/score-chapter-plan-baseline.ts` or the teachers script with `EXPERIMENT_ID` set. This produces a label file with `{pair_id, gpt_oss_verdict: {pass, deviations, beats_covered}, ...}`.
 
