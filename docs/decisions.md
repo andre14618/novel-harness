@@ -184,7 +184,44 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 **Alternatives considered:** Could have skipped Sonnet review and trained directly on 235B output (silver standard). Chose Sonnet review because fact-extractor had 97% correction rate — 235B output quality was insufficient for the task.
 
-**Ongoing:** Run Sonnet-as-judge eval. If >=80% content recall: deploy to `models/roles.ts`. If <80%: truncate inputs and retrain. Once deployed, switch `extractionMode` from `"both"` to `"extract"` (relationship-timeline has no planner equivalent).
+**Ongoing:** Extractor deployment blocked by content accuracy (see below). Architecture audit revealed deeper problem — most extractors are redundant with planner.
+
+### Extraction architecture audit — 3 of 4 extractors redundant with planner
+*2026-04-13 · follows exp #187 eval*
+
+**Decision:** Do not deploy fact-extractor, character-state, or summary-extractor adapters. The planner already produces equivalent data deterministically via `establishedFacts`, `characterStateChanges`, `knowledgeChanges`. Only relationship-timeline extracts information the planner cannot see (prose-level relationship dynamics, trust shifts, knowledge propagation).
+
+**Why — the `"both"` extractionMode is backwards:**
+- Extractors write to the same tables as planner state (`fact_store`, `character_knowledge`, `character_states`)
+- DB uses `ON CONFLICT DO UPDATE` — extractor output **overwrites** planner's deterministic declarations
+- This replaces ground truth (planner knows what it planned) with approximations (LLM guessing what happened)
+- At 80% accuracy per extractor, compounded across 4 extractors and 10+ chapters, this introduces hundreds of wrong or missing entries into the world state tables that continuity checker reads
+
+**Redundancy analysis:**
+
+| Extractor | Planner equivalent | Unique signal |
+|-----------|-------------------|---------------|
+| fact-extractor | `establishedFacts` per chapter | Minor prose-revealed facts planner didn't plan — but these are low-continuity-impact |
+| character-state | `characterStateChanges` + `knowledgeChanges` | Emotional state from prose — but beat context already has character snapshots |
+| summary-extractor | Chapter plan itself is the summary | Only used by embeddings-fallback retrieval path, which is disabled (`pipeline.embeddings = false`) |
+| relationship-timeline | **No planner equivalent** | Trust shifts, knowledge propagation, timeline events from prose — planner can't see these |
+
+**Sonnet-as-judge eval results (content accuracy on training data):**
+- fact-extractor: 84.2% recall, 93.5% precision — climax/resolution facts dropped, category errors
+- summary-extractor: 92.5% key events, 79.7% open threads — drops 4th/5th thread, 2/19 fabrications
+- character-state: 73.9% knows recall, **57.1% doesNotKnow recall** — knows↔doesNotKnow inversions silently corrupt dramatic tension gaps
+- relationship-timeline: 84.1% overall, 73.8% awareness — invents items when ground truth has 0
+
+**Recommended path:**
+1. Switch to `extractionMode: "plan"` and run 5 novels — measure whether continuity checker false-negative rate changes
+2. If no regression: extractors add no signal, remove entirely
+3. If regression on relationship data: keep relationship-timeline only (the one unique extractor), drop the other 3
+4. If regression on facts/character state: investigate whether scoped extraction (smaller surface) or planner expansion is cheaper than fixing 4 adapters
+
+**Alternatives rejected:**
+- Deploy all 4 adapters anyway: 57% doesNotKnow recall means nearly half of dramatic tension gaps are wrong. Net negative for continuity.
+- Retrain with truncation fixes: addresses sequence length but not the fundamental redundancy with planner. Effort wasted if plan-only mode works.
+- Scope down extractors: still LLM calls that can fail, still overwrite planner data. Only justified if plan-only shows measurable regression.
 
 ---
 
@@ -853,3 +890,29 @@ All three targets met (echo at target, dialogue slightly below 20% for this myst
 - Fix sequence length truncation and retrain — may not fix the fundamental scope problem; a 14B model asked to extract 30 items from 4000 tokens of prose will always drop some
 
 **Ongoing:** Extractor adapters remain available as artifacts but are not wired into `models/roles.ts`. `extractionMode` stays at `"both"` (planner + Cerebras 235B extractors) until the plan-only test concludes.
+
+---
+
+### Plan-only extractionMode validated — LLM extractors removed
+*(2026-04-13)*
+
+**Decision:** Set `extractionMode: "plan"` permanently. Remove the LLM extractor subsystem (fact-extractor, summary-extractor, character-state, relationship-timeline) from the active pipeline.
+
+**Validation:** 7 novels across 5 genres (dark-fantasy ×2, sci-fi-thriller ×2, epic-fantasy, post-apocalyptic, literary thriller) — 134 continuity checks, **0 failures**. No regression vs "both"-mode baseline. The epic-fantasy plan-only run had 0 failures; baseline epic-fantasy had a 35% fail rate from earlier novels — confirming the checker/planner system handles this, not extractors.
+
+**Why extractors were noise:**
+- In "both" mode, extractors overwrote planner state via `ON CONFLICT DO UPDATE` — replacing deterministic declarations with ~80% accurate LLM approximations. Wrong direction.
+- fact-extractor and character-state are structurally redundant with `savePlannedState()` (`establishedFacts`, `characterStateChanges`, `knowledgeChanges`).
+- summary-extractor output is only consumed in the embeddings-fallback path, which is disabled (`pipeline.embeddings = false`).
+- relationship-timeline was the only extractor reading unique prose-semantic signal, but removing it caused zero regression — the continuity checker operates on planner-declared state, not extracted state.
+- The real continuity enforcement is beat-level adherence checks + per-chapter continuity-facts/state checks. Extraction was a post-hoc redundant audit, not a load-bearing pipeline stage.
+
+**Alternatives rejected:**
+- Keep relationship-timeline only — caused no regression when removed; not worth the LLM call cost and 84% accuracy risk.
+- Scope down extractor targets and retrain — premature; plan-only already works.
+- Planner expansion to output relationship arcs — unnecessary; not needed by any downstream consumer.
+
+**What to clean up (not urgent):**
+- Remove extractor agents from `src/state-extraction.ts` and `src/phases/drafting.ts` call sites
+- Remove `"extract"` and `"both"` branches from extractionMode logic
+- V1 adapter artifacts remain on W&B but are no longer needed
