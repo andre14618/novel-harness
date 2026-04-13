@@ -127,7 +127,7 @@ All existing SFT training data was generated with screenplay-style beats (pre-ex
 
 ## Pipeline Tuning
 
-- **extractionMode decision** — currently `"both"` (planner state + LLM extractors). Once extractor LoRAs are deployed (see above), choose: `"extract"` (LoRA extractors only) or `"plan"` (planner output only, no LLM extractors). Relationship-timeline has no planner equivalent — must keep as LLM call regardless.
+- **extractionMode switched to `"plan"` (2026-04-13)** — running 5-novel validation (dark-fantasy, sci-fi-thriller, post-apoc-library, fantasy-siege, coastal-mystery). Check: does continuity checker surface more issues than "both" baseline? If no regression, extractor subsystem is noise → remove all 4. See `docs/decisions.md` "Extractor V1 Eval" for full analysis.
 - **Word count below target** — 550–770w vs 800–1100w target. Measure pre- vs post-tonal-pass word counts to isolate cause (model, prompt, beat granularity, or tonal pass shortening).
 - **Re-evaluate lint system role** — if tonal pass LoRA already reduces AI clichés, lint becomes a safety net rather than a pipeline stage. Test: run lint on tonal-pass outputs vs base outputs.
 - **Strip anti-pattern list from rewriter prompt** — rewriter can't self-police clichés (proven). Lint + tonal pass handles this.
