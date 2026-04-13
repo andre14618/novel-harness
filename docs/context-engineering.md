@@ -19,7 +19,7 @@ What goes into each beat-writer call and how it has evolved. Covers beat context
 | Speech profiles | **PLANNED** | Free-text `speechPattern` field | — | Phase 1: structured schema |
 | Planner dialogue targets | **PLANNED** | No guidance | — | Add to planning-plotter prompt |
 | Archetype library | **PLANNED** | None | — | Phase 2: 15–20 archetypes |
-| Extraction mode | **PLANNED** | `"both"` (extractors + planner) | 2026-04-07 | Switch to `"plan"` after validation |
+| Extraction mode | **DONE** | `"plan"` — LLM extractors removed | 2026-04-13 | — |
 | Semantic retrieval | RETIRED (idle) | Infrastructure exists, disabled | 2026-04-07 | Not before beat-writer SFT |
 | Structural diversity | **BLOCKED** | 15.7% dialogue, 7.5w sentences | Measured 2026-04-09 | Paired training data needed |
 | Together AI removal | **PLANNED** | V4 confirmed, V3 retired | Decided 2026-04-11 | Remove from registry.ts + env |
@@ -122,33 +122,11 @@ Per-beat classifier: does this dialogue match the character's `SpeechProfile`? T
 ---
 
 ## Extraction Mode
-*extractionMode = "both" in production since 2026-04-07*
+**Status: DONE — 2026-04-13**
 
-**The question:** The planner already outputs `establishedFacts`, `characterStateChanges`, and `knowledgeChanges` per chapter. Do we still need to run LLM extractors?
+LLM extractors (summary-extractor, fact-extractor, character-state, relationship-timeline, graph-linker) validated as noise and removed. `savePlannedState()` is the sole world-state source — planner-declared `establishedFacts`, `characterStateChanges`, `knowledgeChanges` written to DB after each chapter approval.
 
-### Current: `extractionMode = "both"`
-**File:** `src/config/pipeline.ts`
-
-After each approved chapter, runs 5 parallel extraction agents:
-1. `summary-extractor` — chapter summary, key events, emotional state, open threads
-2. `fact-extractor` — currently 17–20 facts/chapter (target: 8–15, over-extracting)
-3. `character-state` — location, emotional state, knows/doesNotKnow per character
-4. `relationship-timeline` — relationship changes, timeline events, knowledge propagation
-5. `graph-linker` — causal chains via `event_causes` + `knowledge_propagation` tables
-
-Extraction is ~45% of total pipeline cost. Extractors write to the same Postgres tables the continuity checker reads.
-
-### Planned: Switch to `extractionMode = "plan"`
-**Status: PLANNED**
-
-Disable LLM extractors except `relationship-timeline` (planner doesn't output relationship arcs). Use planner-produced `establishedFacts`, `characterStateChanges`, `knowledgeChanges` directly.
-
-**Risk:** Planner outputs may miss things the extractors catch. Run `"both"` on 2–3 new-seed novels, compare planner vs extractor outputs, confirm coverage before switching.
-
-### Fact Extractor Tightening
-**Status: PLANNED** *(measured 2026-04-10)*
-
-17–20 facts/chapter vs 8–15 target. Over-extraction creates noisy continuity context. Fix path: `bun scripts/build-finetune-data.ts --task fact-extractor --limit 50` → review 20–30 pairs manually → establish keep/drop criteria → correct to gold → scale to 300+ pairs → SFT.
+Validation: 7 novels, 134 continuity checks, 0 failures on plan-only. No regression vs "both"-mode baseline. See `docs/decisions.md` "Plan-only extractionMode validated."
 
 ---
 
@@ -208,7 +186,7 @@ V4 tonal-pass confirmed preferred; V3 on Together AI retired. Actions:
 | `scripts/analyze-structure.ts` | Dialogue %, interiority, sentence length, paragraph run | After each batch of novels |
 | `scripts/eval-adherence-finetune.ts` | Adherence checker oracle agreement | After adapter training |
 | `scripts/eval-adherence-synthetic.ts` | Synthetic accuracy on known-label pairs | Teacher eval, adapter comparison |
-| `scripts/build-finetune-data.ts` | Build SFT training data for any extractor | Before fact-extractor SFT |
+| `scripts/build-finetune-data.ts` | Build SFT training data for writer/checker agents | For next SFT round |
 
 ---
 
@@ -218,5 +196,5 @@ V4 tonal-pass confirmed preferred; V3 on Together AI retired. Actions:
 |------|--------|----------|
 | Structural diversity improvement | Beat-writer SFT, tonal-pass V2 training | Dialogue ≥ 25%, sentence length ≥ 10w avg |
 | Phase 1 (SpeechProfile) shipped | Phase 2 archetype library, Phase 3 voice-pass | In production on ≥ 1 novel |
-| extractionMode validation | Switch to `"plan"` | Planner vs extractor coverage match on 2–3 novels |
+| extractionMode | ~~Switch to `"plan"`~~ | Done 2026-04-13 — LLM extractors removed |
 | V3-sonnet adherence eval | Tiered retry policy, GRPO loop | FAIL_TANGENT_HARD > 69%, FAIL_MISSING_SUBTLE > 78.6%, events ≥ 95% |

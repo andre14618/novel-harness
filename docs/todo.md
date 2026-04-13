@@ -7,61 +7,13 @@ updated: 2026-04-13
 
 Pending action items only. Ordered by impact. Completed items and decision rationale live in `docs/decisions.md`.
 
-## Extractor SFT — Eval Complete, Deployment Blocked (exp #187)
-
-**4 extractor adapters trained on W&B** (2026-04-13). Sonnet-as-judge content accuracy eval complete (2026-04-13). **Deployment blocked** — critical dimensions below acceptable production threshold. See decisions.md.
-
-| Adapter | Key metric | Weakest dimension | Deploy? |
-|---------|-----------|-------------------|---------|
-| fact-extractor-v1 | 84.2% recall, 93.5% precision | Climax/resolution facts dropped; category errors | No |
-| summary-extractor-v1 | 92.5% key events, 79.7% open threads | Drops 4th/5th thread; 2/19 entries fabricate | Marginal |
-| character-state-v1 | 73.9% knows recall, **57.1% doesNotKnow** | knows↔doesNotKnow inversions; detail-heavy chars | No |
-| relationship-timeline-v1 | 84.1% overall, 73.8% awareness | Invents items when GT has 0; level inflation | Marginal |
-
-**Core problem:** 80%+ failure rates on critical dimensions compound across chapters. character-state at 57% doesNotKnow recall means nearly half of all dramatic tension gaps are wrong or inverted — a knows↔doesNotKnow inversion silently corrupts world state in ways that are nearly impossible to detect downstream.
-
-**Next: Evaluate and tune extractors — including removal as a candidate** (see below)
-
 **Lint fixer SFT** — 169 pairs with full data in `llm_calls`. 849 flagged issues in `lint_issues` across 34 patterns. Mine `(flagged_sentence, scene_context, good_rewrite)` triples from approved chapters. Target 200-300 examples across the 8 major pattern types.
-
-## Extractor Methodology Analysis — Scope Down vs Remove
-
-**Core question:** Are LLM-based extractors delivering net value, or is the error rate high enough that they're a net negative for downstream continuity?
-
-**Context:**
-- Extractor outputs feed world state tables (`character_knowledge`, `timeline_events`, `relationship_states`, `fact_store`) which are read by continuity checker and beat-context assembly.
-- ~80% accuracy sounds acceptable in isolation but compounds: if 3 extractors each miss 20% of items, a novel with 10 chapters accumulates 100s of missing or wrong entries. Continuity checker is supposed to catch downstream errors, but it can only check what it knows — it can't detect a missing doesNotKnow entry that was never written.
-- The planner already produces `establishedFacts`, `characterStateChanges`, `knowledgeChanges` per chapter (planned state). This is deterministic — no LLM error on extraction.
-
-**Methodologies to test:**
-1. **Plan-only (`extractionMode: "plan"`)** — drop all LLM extractors, use planner output as the sole source. Zero extraction error. Loss: relationship-timeline has no planner equivalent; some post-hoc facts the planner doesn't know about.
-2. **Scoped extraction** — reduce what each extractor is asked to capture. character-state drops doesNotKnow (57% recall, inversion risk). fact-extractor targets only continuity-critical facts (currently too broad: ~17-20 facts/chapter). relationship-timeline drops awareness changes (73.8%, invents items when GT=0).
-3. **Planner-augmented extraction** — planner outputs the high-level facts; extractors only add what the planner can't see (character emotional state, minor dialogue-revealed knowledge). Much smaller extraction surface = fewer failure modes.
-4. **Remove extractors entirely** — run on plan-only and measure whether continuity checker false-negative rate changes. If no measurable regression, extractors add no signal.
-
-**Action items:**
-- [ ] Run 5 novels with `extractionMode: "plan"` vs `"both"` and measure continuity issue counts and false-negative rate
-- [ ] Audit which world-state table reads actually matter in beat context vs continuity — many may be vestigial
-- [ ] Before any retraining: decide on the right extraction scope by testing plan-only first. Retraining with scoped prompts is premature if plan-only is sufficient.
-
-## Together AI Tier 2 — V2 Training (In Progress)
-
-V1 eval (exp #180, 2026-04-13): Together 9B significantly underperformed W&B 14B — adherence 80% vs 94%, chapter-plan 62% vs 100%, continuity 88% vs 98%. Root causes: `train_on_inputs` unspecified (possibly training on prompts), no warmup, 4-6× fewer gradient steps from forced batch_size=8.
-
-**V2 training submitted (2026-04-13)** with fixes:
-- `train_on_inputs: "auto"` (mask non-assistant tokens)
-- `warmup_ratio: 0.1` (match W&B)
-- `learning_rate: 1e-4` (halved — gentler with more epochs)
-- Epochs increased: adherence 2→6, chapter-plan 3→10, continuity 3→12, tonal 2→4
-
-Check status: `ssh novel-harness-lxc "cd ~/apps/novel-harness && python3 scripts/train-together.py --status"`
-Re-run eval once complete: `bun scripts/eval-together-vs-wandb.ts` (update adapter names to V2)
 
 ## W&B Storage Management
 
 **Resolved (2026-04-12):** Purged 20.8 GB of superseded artifacts (21.81 → 1.02 GB). Required enabling "models write access" in W&B team settings (was restricted by default on pay-as-you-go plan). Aliases must be stripped before deletion (`v.aliases = []; v.save(); v.delete()`). `train-lora.py` now auto-cleans after each training run. Cleanup script: `python3 scripts/cleanup-wandb-storage.py --delete`.
 
-**Ongoing:** Each training run creates ~3.7 GB of intermediate artifacts. Post-training auto-cleanup keeps it under 5 GB free tier. Train one adapter at a time. No checkpoint frequency controls exist in ART — this is server-side, not configurable. See `docs/wandb-alternatives-report.md` for migration options if W&B becomes untenable (Together AI latency re-benchmark needed, Modal as fallback).
+**Ongoing:** Each training run creates ~3.7 GB of intermediate artifacts. Post-training auto-cleanup keeps it under 5 GB free tier. Train one adapter at a time. No checkpoint frequency controls exist in ART — this is server-side, not configurable. Modal is the fallback if W&B becomes untenable.
 
 ## Beat Architecture — DONE
 
@@ -105,7 +57,7 @@ All existing SFT training data was generated with screenplay-style beats (pre-ex
 ## Tonal Pass
 
 - **Together AI now Tier 2 hot standby** — V3 tonal-pass on Together retired (V4 on W&B preferred, pref eval 2026-04-11). All 4 adapters retraining on Together's Qwen 3.5 9B (submitted 2026-04-12) as Tier 2 fallback. Keep `TOGETHER_API_KEY`. Once training completes, verify adapter quality against W&B baselines before declaring Tier 2 ready.
-- **Tonal pass expansion** — v3/v4 training data is dark-fantasy-specific (Howard corpus). Multi-genre corpus needed before tonal pass is usable as a general pipeline stage. Public domain candidates: Hemingway (pre-1929), London, Cather, Fitzgerald. See `docs/ai-training-copyright-landscape.md`.
+- **Tonal pass expansion** — v3/v4 training data is dark-fantasy-specific (Howard corpus). Multi-genre corpus needed before tonal pass is usable as a general pipeline stage. Public domain candidates: Hemingway (pre-1929), London, Cather, Fitzgerald.
 
 ## Open Experiments (need concludeExperiment())
 
@@ -115,7 +67,6 @@ All existing SFT training data was generated with screenplay-style beats (pre-ex
 
 ## Fine-Tuning (Other)
 
-- **Fact extractor tightening** — still 17–20 facts/chapter, target 8–15. Tracked under Extractor SFT above.
 - **Beat writer SFT** (opportunistic, high risk) — 7.8× cost reduction if it works. Shadow-run in parallel with 235B. Validation bar: adherence rate ≥ 235B baseline, lint counts ≤ baseline, 2 full novels without regression. Blocked until structural diversity in the training corpus is addressed.
 
 ## Planner Setting Coherence
@@ -127,7 +78,6 @@ All existing SFT training data was generated with screenplay-style beats (pre-ex
 
 ## Pipeline Tuning
 
-- **Remove extractor subsystem** — plan-only validated (7 novels, 134 checks, 0 failures). Clean up: remove `src/state-extraction.ts` extractor calls, drop `"extract"` and `"both"` branches from drafting.ts, simplify extractionMode to plan-only. See `docs/decisions.md` "Plan-only extractionMode validated."
 - **Word count below target** — 550–770w vs 800–1100w target. Measure pre- vs post-tonal-pass word counts to isolate cause (model, prompt, beat granularity, or tonal pass shortening).
 - **Re-evaluate lint system role** — if tonal pass LoRA already reduces AI clichés, lint becomes a safety net rather than a pipeline stage. Test: run lint on tonal-pass outputs vs base outputs.
 - **Strip anti-pattern list from rewriter prompt** — rewriter can't self-police clichés (proven). Lint + tonal pass handles this.
@@ -172,7 +122,7 @@ All existing SFT training data was generated with screenplay-style beats (pre-ex
 
 ## Local Apple Silicon Inference (Tier 4 Evaluation)
 
-Evaluate running LoRA adapters locally on MacBook Air M4 24GB instead of W&B. See `docs/wandb-alternatives-report.md` for full analysis.
+Evaluate running LoRA adapters locally on MacBook Air M4 24GB instead of W&B.
 
 **Cost savings are minimal** (~$3/year) — adapter calls are already ~$0.004/novel on W&B. The value is zero provider dependency and unlimited experimentation at zero marginal cost.
 
@@ -190,7 +140,7 @@ Evaluate running LoRA adapters locally on MacBook Air M4 24GB instead of W&B. Se
 
 ## Infrastructure
 
-- **Extend LLM call inspector tags** — `chapter` / `beat_index` / `attempt` populated for beat-writer and adherence-checker. Need to thread through reference-resolver, continuity, chapter-plan-checker, rewriter, planner, and extractors. Columns already exist; each agent's `callAgent` site needs the tags. See `docs/llm-call-inspector.md`.
+- **Extend LLM call inspector tags** — `chapter` / `beat_index` / `attempt` populated for beat-writer and adherence-checker. Need to thread through reference-resolver, continuity, chapter-plan-checker, rewriter, and planner. Columns already exist; each agent's `callAgent` site needs the tags. See `docs/llm-call-inspector.md`.
 
 ## Pipeline Stability
 

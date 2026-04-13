@@ -912,7 +912,8 @@ All three targets met (echo at target, dialogue slightly below 20% for this myst
 - Scope down extractor targets and retrain — premature; plan-only already works.
 - Planner expansion to output relationship arcs — unnecessary; not needed by any downstream consumer.
 
-**What to clean up (not urgent):**
-- Remove extractor agents from `src/state-extraction.ts` and `src/phases/drafting.ts` call sites
-- Remove `"extract"` and `"both"` branches from extractionMode logic
-- V1 adapter artifacts remain on W&B but are no longer needed
+**Cleaned up 2026-04-13:**
+- Removed `src/state-extraction.ts`, `src/harness/resolve.ts`, and 5 agent dirs (`summary-extractor`, `fact-extractor`, `character-state`, `relationship-timeline`, `graph-linker`) — archived to `archive/src/`
+- Collapsed extractionMode branching in `drafting.ts` and `validation.ts` to direct `savePlannedState()` call
+- Removed `extractionMode` config option, extractor registry entries, prompt/schema exports, logger mappings, UI groups
+- V1 adapter artifacts remain on W&B as artifacts but are permanently retired

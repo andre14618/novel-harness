@@ -19,10 +19,10 @@ Single source of truth for fine-tuning history across all pipeline agents. One e
 | Adherence Checker | **DEPLOYED** | V4 · events+attribution | #161 | `adherence-checker-v4` |
 | Chapter Plan Checker | **DEPLOYED** | V2 · Sonnet teacher | #178 | `chapter-plan-checker-v2:v1` |
 | Continuity | **DEPLOYED** | V2 · Sonnet teacher | #175 | `continuity-v2:v1` |
-| Fact Extractor | BLOCKED | V1 · Sonnet teacher | #187 | `fact-extractor-v1:v1` |
-| Summary Extractor | BLOCKED | V1 · Sonnet teacher | #187 | `summary-extractor-v1:v1` |
-| Character State | BLOCKED | V1 · Sonnet teacher | #187 | `character-state-v1:v1` |
-| Relationship Timeline | BLOCKED | V1 · Sonnet teacher | #187 | `relationship-timeline-v1:v1` |
+| Fact Extractor | RETIRED | V1 · Sonnet teacher | #187 | `fact-extractor-v1:v1` |
+| Summary Extractor | RETIRED | V1 · Sonnet teacher | #187 | `summary-extractor-v1:v1` |
+| Character State | RETIRED | V1 · Sonnet teacher | #187 | `character-state-v1:v1` |
+| Relationship Timeline | RETIRED | V1 · Sonnet teacher | #187 | `relationship-timeline-v1:v1` |
 | Reference Resolver | RETIRED | — | — | Llama 3.1 8B sufficient |
 
 ### Together AI Tier 2 Mirrors (IN TRAINING — 2026-04-12)

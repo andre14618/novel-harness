@@ -313,7 +313,7 @@ The pattern: agent dirs accumulate when an agent is removed from the runtime pip
 1. `ls src/agents/` to enumerate agent directories
 2. For each agent name, `Grep` for `agentName:\s*["']<name>["']` across `src/` to find `callAgent` call sites
 3. Cross-reference against `models/roles.ts` entries — anything in roles.ts without a real call site is a candidate
-4. Cross-reference against `src/phases/*.ts` and `src/state-extraction.ts` — these are the only places live agents get called from
+4. Cross-reference against `src/phases/*.ts` — these are the only places live agents get called from (`src/state-extraction.ts` was removed 2026-04-13 when LLM extractors were retired)
 5. Query `llm_calls` for last call timestamp per agent — anything where the most recent call is from a benchmark or script (not a phase) is suspect
 6. Check the cleanup blast radius: every dead agent has references in `src/agents/index.ts`, `src/prompts.ts`, `src/types.ts` (schema re-export), `src/orchestrator/novel-routes.ts` (UI grouping), `src/logger.ts` (PHASE_MAP), `ui/src/components/ActivityPanel.tsx` (STEP_LABELS), and possibly `models/roles.ts` and `benchmark/registry.ts`. Grep for the agent name across all of them before deleting.
 

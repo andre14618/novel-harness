@@ -107,19 +107,17 @@ Structured tracking of what each character knows, replacing flat `knows[]`/`does
 | `category` | event, secret, relationship, system, location, identity |
 | `is_false` | Character believes something incorrect (dramatic irony) |
 
-## Extraction Pipeline
+## State Population
 
-After each chapter is approved, five steps run:
+After each chapter is approved, `savePlannedState()` (`src/planned-state.ts`) writes the planner's declared world-state to DB:
 
-1. **4 extractors in parallel:**
-   - **summary-extractor** — chapter summary, key events, emotional state, open threads
-   - **fact-extractor** — 20-35 categorized facts
-   - **character-state** — location, emotional state, knows/doesNotKnow
-   - **relationship-timeline** — relationship changes, timeline events, knowledge gains, awareness changes
+- `establishedFacts` → `fact_store`
+- `characterStateChanges` → `character_states`
+- `knowledgeChanges` → `character_knowledge`
 
-2. **Embedding** — batch embed all new chapter data via `text-embedding-3-large` (1536 dims). Stored in vector columns on each table. Cost: ~$0.0003/chapter.
+LLM extractors (summary-extractor, fact-extractor, character-state, relationship-timeline, graph-linker) were validated as noise 2026-04-13 and removed. Plan-only: 7 novels, 134 continuity checks, 0 failures. See `docs/decisions.md` "Plan-only extractionMode validated."
 
-3. **Graph linker** (`src/agents/graph-linker/`) — identifies causal chains and knowledge propagation across the extracted data. Writes to `event_causes`, `knowledge_propagation`.
+Embeddings are disabled (`pipeline.embeddings = false`). Graph linker and `event_causes`/`knowledge_propagation` tables are written but not populated post-extraction removal.
 
 ### Graph Tables (sql/011_vector_graph.sql)
 
@@ -188,7 +186,6 @@ This adds ~5-10s wall-clock time but eliminates the need for a reconciliation st
 | `src/db/embed.ts` | Embedding client + DB-backed templates (text-embedding-3-large, 1536 dims) |
 | `src/db/context-templates.ts` | DB-backed context format templates (scene query, per-item formats) |
 | `src/harness/` | Service layer — typed API for all harness operations (scores, experiments, cycles, context, embeddings, graph, novels) |
-| `src/agents/graph-linker/` | 5th extraction agent: causal links, knowledge propagation |
 | `src/agents/writer/context.ts` | Fixed skeleton + dynamic semantic retrieval context assembler |
-| `src/state-extraction.ts` | `updateStateAfterChapter()` — 4 parallel extractors + embedding + graph linker |
+| `src/planned-state.ts` | `savePlannedState()` — writes planner-declared facts, states, knowledge to DB |
 | `benchmark/context/` | Context quality benchmark: 5 focused judges (relevance, completeness, noise, causal-depth, knowledge-accuracy) |
