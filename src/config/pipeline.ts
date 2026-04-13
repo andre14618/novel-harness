@@ -13,7 +13,7 @@ export const pipeline = {
 
   // State management
   embeddings: false,          // skip embedding step (beat path uses deterministic DB lookups)
-  extractionMode: "both" as "plan" | "extract" | "both",  // plan=planner state, extract=LLM extractors, both=verify
+  extractionMode: "plan" as "plan" | "extract" | "both",  // plan=planner state, extract=LLM extractors, both=verify
 
   // Word targets (used as defaults if plotter doesn't specify)
   defaultTargetWords: 1000,
