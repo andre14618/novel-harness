@@ -1,11 +1,48 @@
 ---
 status: active
-updated: 2026-04-12
+updated: 2026-04-13
 ---
 
 # To Do
 
 Pending action items only. Ordered by impact. Completed items and decision rationale live in `docs/decisions.md`.
+
+## Extractor SFT — Sonnet-as-Judge Eval + Deploy (exp #187)
+
+**4 extractor adapters trained on W&B** (2026-04-13). 256 Sonnet-reviewed pairs each, 50 novels. All produce valid JSON with correct schemas. Structural eval passed. **Content accuracy eval pending** — word-overlap F1 is a poor proxy; need Sonnet-as-judge semantic comparison before deploying.
+
+| Adapter | Artifact | Structural | Content (pending) | Latency |
+|---------|----------|-----------|-------------------|---------|
+| fact-extractor-v1 | `fact-extractor-v1:v1` | 100% valid JSON, categories | 65.8% word F1 (~80-85% semantic est.) | 2.6s |
+| summary-extractor-v1 | `summary-extractor-v1:v1` | 100% schema, 92% word ratio | Pending | 3.7s |
+| character-state-v1 | `character-state-v1:v1` | 96% name recall, 100% schema | Pending | 2.8s |
+| relationship-timeline-v1 | `relationship-timeline-v1:v1` | 100% schema, enums, sections | Pending | 6.9s |
+
+**Next steps (ordered):**
+1. Run prep script: `ssh novel-harness-lxc "bun scripts/prep-extractor-eval-batches.ts"` → generates `/tmp/extractor-eval/{agent}-eval.json`
+2. Spawn 4 Sonnet subagents per `scripts/extractor-eval-judging-instructions.md` — measures content accuracy
+3. If >=80% content recall: deploy to `models/roles.ts`, expected 98% cost reduction
+4. If <80%: truncate user prompts to fix 2048 token limit truncation, retrain
+
+**Known issues:**
+- Sequence length: 77-100% of training examples exceed W&B ART 2048 token limit — assistant responses truncated during training
+- Prompt drift: summary-extractor and character-state have minor wording changes between training data and live prompts — align before deploy
+- Frozen prompts: all 4 prompts are locked — see `docs/adapter-training-reference.md`
+
+**Lint fixer SFT** — 169 pairs with full data in `llm_calls`. 849 flagged issues in `lint_issues` across 34 patterns. Mine `(flagged_sentence, scene_context, good_rewrite)` triples from approved chapters. Target 200-300 examples across the 8 major pattern types.
+
+## Together AI Tier 2 — V2 Training (In Progress)
+
+V1 eval (exp #180, 2026-04-13): Together 9B significantly underperformed W&B 14B — adherence 80% vs 94%, chapter-plan 62% vs 100%, continuity 88% vs 98%. Root causes: `train_on_inputs` unspecified (possibly training on prompts), no warmup, 4-6× fewer gradient steps from forced batch_size=8.
+
+**V2 training submitted (2026-04-13)** with fixes:
+- `train_on_inputs: "auto"` (mask non-assistant tokens)
+- `warmup_ratio: 0.1` (match W&B)
+- `learning_rate: 1e-4` (halved — gentler with more epochs)
+- Epochs increased: adherence 2→6, chapter-plan 3→10, continuity 3→12, tonal 2→4
+
+Check status: `ssh novel-harness-lxc "cd ~/apps/novel-harness && python3 scripts/train-together.py --status"`
+Re-run eval once complete: `bun scripts/eval-together-vs-wandb.ts` (update adapter names to V2)
 
 ## W&B Storage Management
 
@@ -65,8 +102,7 @@ All existing SFT training data was generated with screenplay-style beats (pre-ex
 
 ## Fine-Tuning (Other)
 
-- **Fact extractor tightening** — still 17–20 facts/chapter, target 8–15. Run `bun scripts/build-finetune-data.ts --task fact-extractor --limit 50`, review 20–30 pairs, correct to gold, scale to 300+.
-- **Lint fixer SFT** — mine approved chapters for `(flagged_sentence, scene_context, good_rewrite)` triples. Target 200–300 examples across the 8 AI cliché pattern types. Low risk.
+- **Fact extractor tightening** — still 17–20 facts/chapter, target 8–15. Tracked under Extractor SFT above.
 - **Beat writer SFT** (opportunistic, high risk) — 7.8× cost reduction if it works. Shadow-run in parallel with 235B. Validation bar: adherence rate ≥ 235B baseline, lint counts ≤ baseline, 2 full novels without regression. Blocked until structural diversity in the training corpus is addressed.
 
 ## Planner Setting Coherence
@@ -78,7 +114,7 @@ All existing SFT training data was generated with screenplay-style beats (pre-ex
 
 ## Pipeline Tuning
 
-- **Switch extractionMode to "plan"** — planner already outputs `establishedFacts`, `characterStateChanges`, `knowledgeChanges`. Once verified against a few novels, disable LLM extractors (except relationship-timeline). Currently set to "both".
+- **extractionMode decision** — currently `"both"` (planner state + LLM extractors). Once extractor LoRAs are deployed (see above), choose: `"extract"` (LoRA extractors only) or `"plan"` (planner output only, no LLM extractors). Relationship-timeline has no planner equivalent — must keep as LLM call regardless.
 - **Word count below target** — 550–770w vs 800–1100w target. Measure pre- vs post-tonal-pass word counts to isolate cause (model, prompt, beat granularity, or tonal pass shortening).
 - **Re-evaluate lint system role** — if tonal pass LoRA already reduces AI clichés, lint becomes a safety net rather than a pipeline stage. Test: run lint on tonal-pass outputs vs base outputs.
 - **Strip anti-pattern list from rewriter prompt** — rewriter can't self-police clichés (proven). Lint + tonal pass handles this.

@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-12
+updated: 2026-04-13
 ---
 
 # Adapter Changelog
@@ -19,6 +19,10 @@ Single source of truth for fine-tuning history across all pipeline agents. One e
 | Adherence Checker | **DEPLOYED** | V4 · events+attribution | #161 | `adherence-checker-v4` |
 | Chapter Plan Checker | **DEPLOYED** | V2 · Sonnet teacher | #178 | `chapter-plan-checker-v2:v1` |
 | Continuity | **DEPLOYED** | V2 · Sonnet teacher | #175 | `continuity-v2:v1` |
+| Fact Extractor | **EVAL** | V1 · Sonnet teacher | #187 | `fact-extractor-v1:v1` |
+| Summary Extractor | **EVAL** | V1 · Sonnet teacher | #187 | `summary-extractor-v1:v1` |
+| Character State | **EVAL** | V1 · Sonnet teacher | #187 | `character-state-v1:v1` |
+| Relationship Timeline | **EVAL** | V1 · Sonnet teacher | #187 | `relationship-timeline-v1:v1` |
 | Reference Resolver | RETIRED | — | — | Llama 3.1 8B sufficient |
 
 ### Together AI Tier 2 Mirrors (IN TRAINING — 2026-04-12)
@@ -180,11 +184,70 @@ Based on the adherence V2 calibration point (8,524 pairs → 90% oracle agreemen
 
 ---
 
+## Extraction Agents — V1 (exp #187, 2026-04-13)
+
+**Task:** Post-approval extraction of facts, summaries, character states, and relationship timelines from chapter prose. Currently Cerebras 235B ($4.78/14d combined across 4 agents).
+**Base model:** `OpenPipe/Qwen3-14B-Instruct` on W&B Inference
+
+### Pipeline
+
+1. **Phase 1** — Exported 143 pairs per agent from `llm_calls` (235B silver standard)
+2. **Phase 2** — Generated 113 more pairs per agent from approved chapters missing saved prompts
+3. **Phase 3** — Sonnet subagent review of all 1,024 pairs (256 per agent). Correction rates: fact-extractor 97%, summary-extractor 50%, character-state 56%, relationship-timeline 67%
+4. **Phase 4** — Assembled training JSONL, trained 4 adapters on W&B (3 epochs, batch size 2, cosine LR 2e-4)
+
+### Fact Extractor V1 · `fact-extractor-v1:v1`
+**Status: EVAL — needs Sonnet-as-judge before deploy**
+
+- **Dataset:** 256 Sonnet-reviewed pairs from 50 novels, 97% corrected (Sonnet was aggressive — mostly trimming over-extraction)
+- **Structural eval:** 100% valid JSON, 100% valid categories, 65.8% word-overlap F1
+- **Deep inspection:** F1 is misleading. Adapter splits/merges/rephrases facts vs ground truth. True semantic accuracy estimated ~80-85%. Genuine drops ~10-15%. See `docs/adapter-training-reference.md` for full failure mode breakdown.
+- **Sequence length:** 77% of training examples exceeded W&B ART 2048 token limit — assistant responses may be truncated during training
+- **Latency:** 2,557ms avg
+
+### Summary Extractor V1 · `summary-extractor-v1:v1`
+**Status: EVAL — needs Sonnet-as-judge before deploy**
+
+- **Dataset:** 256 Sonnet-reviewed pairs, 50% corrected (most corrections: summaries too short)
+- **Structural eval:** 100% valid JSON, 100% schema completeness (all 4 fields present), 92.4% word ratio vs ground truth, 7.0 key events vs 7.5 ground truth
+- **Sequence length:** 100% over 2048 tokens, 14% over 4096
+- **Latency:** 3,703ms avg
+
+### Character State V1 · `character-state-v1:v1`
+**Status: EVAL — needs Sonnet-as-judge before deploy**
+
+- **Dataset:** 256 Sonnet-reviewed pairs, 56% corrected
+- **Structural eval:** 100% valid JSON, 95.9% character name recall, 98.4% precision, 100% per-character schema completeness
+- **Sequence length:** 92% over 2048 tokens
+- **Latency:** 2,783ms avg
+
+### Relationship Timeline V1 · `relationship-timeline-v1:v1`
+**Status: EVAL — needs Sonnet-as-judge before deploy**
+
+- **Dataset:** 256 Sonnet-reviewed pairs, 67% corrected
+- **Structural eval:** 100% valid JSON, 100% schema completeness (all 4 sections), 100% valid trust levels, 100% valid knowledge sources, item counts closely match ground truth
+- **Sequence length:** 100% over 2048, 51% over 4096 (most severe truncation risk)
+- **Latency:** 6,873ms avg
+
+### Next Steps
+
+1. **Sonnet-as-judge eval** — content accuracy, not word overlap. Instructions: `scripts/extractor-eval-judging-instructions.md`
+2. **Truncate user prompts + retrain** — fit within 2048 token limit by cutting prose, not output
+3. **Production validation** — 3-chapter run with adapters vs 235B side-by-side
+4. **Deploy** — swap in `models/roles.ts`, expected 98% cost reduction
+
+### Frozen Prompts
+
+All 4 extractor adapters have system prompts frozen in training data. Changing these prompts requires retraining. See `docs/adapter-training-reference.md` for the exact prompt text per adapter and drift status.
+
+**Known drifts:** summary-extractor ("downstream agents" → "future chapters") and character-state ("downstream agents depend on this" → "this must be accurate to maintain continuity"). Minor wording; align before production deploy.
+
+---
+
 ## Future Candidates
 
 | Adapter | Priority | Status | Blocker |
 |---------|----------|--------|---------|
-| Fact Extractor | Medium | PLANNED | Still 17–20 facts/ch vs 8–15 target; needs 300 corrected pairs |
 | Lint Fixer | Low | PLANNED | Mine approved chapters for 200–300 cliché rewrite triples |
 | Beat Writer | High risk | PLANNED | Blocked on structural diversity (15.7% dialogue vs 25–50% published norm) |
 | Character Voice | Future | BLOCKED | Requires speech profiles per character first |

@@ -159,6 +159,35 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+## Extraction Agents
+
+### Extractor V1 adapters trained — structural eval passed, content eval pending
+*2026-04-13 · exp #187*
+
+**Decision:** Trained 4 extractor LoRA adapters on W&B (Qwen3-14B-Instruct) to replace Cerebras 235B extraction calls. All 4 produce valid JSON, correct schemas, and valid enum values. Content accuracy via Sonnet-as-judge eval is pending before deployment.
+
+**Why:** Extraction agents account for $4.78/14d across 4 agents (125 calls/agent). All are schema-driven JSON extraction — proven SFT targets. 256 Sonnet-reviewed training pairs per adapter from 50 novels. Sonnet correction rates: fact-extractor 97% (over-extraction trimming), summary-extractor 50% (length fixes), character-state 56%, relationship-timeline 67%.
+
+**Eval results (structural, on training data):**
+- fact-extractor: 100% valid JSON, 65.8% word-overlap F1 (misleading — deep inspection shows ~80-85% semantic accuracy due to split/merge/rephrase differences)
+- summary-extractor: 100% schema completeness, 92.4% word ratio
+- character-state: 95.9% name recall, 100% per-character schema completeness
+- relationship-timeline: 100% section/enum completeness, item counts match ground truth
+
+**Key finding:** Word-overlap F1 is a poor eval metric for extraction tasks. Facts can be split, merged, or rephrased while capturing identical information. Sonnet-as-judge semantic comparison is the right eval — instructions at `scripts/extractor-eval-judging-instructions.md`.
+
+**Known issue — sequence truncation:** W&B ART max_seq_length=2048. 77-100% of training examples exceed this. Assistant responses (the learned output) are at the end and get truncated first. Mitigation: truncate user prompt (chapter prose) instead of output, retrain. This likely explains the fact-extractor's ~15% genuine fact drops.
+
+**Known issue — prompt drift:** summary-extractor and character-state prompts were edited after training data generation. Minor wording changes. Must align before deploying.
+
+**Frozen prompts documented:** All adapter system prompts recorded in `docs/adapter-training-reference.md` with exact text, drift status, and safe-to-edit guidance.
+
+**Alternatives considered:** Could have skipped Sonnet review and trained directly on 235B output (silver standard). Chose Sonnet review because fact-extractor had 97% correction rate — 235B output quality was insufficient for the task.
+
+**Ongoing:** Run Sonnet-as-judge eval. If >=80% content recall: deploy to `models/roles.ts`. If <80%: truncate inputs and retrain. Once deployed, switch `extractionMode` from `"both"` to `"extract"` (relationship-timeline has no planner equivalent).
+
+---
+
 ## Character Voice & Dialogue
 
 ### Voice-pass LoRA: beats-compatible, character-conditioned, same pattern as tonal pass
