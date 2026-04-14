@@ -51,7 +51,7 @@ echo "Building React UI..."
 ssh novel-harness-lxc "cd ~/apps/novel-harness/ui && ~/.bun/bin/bun install && ~/.bun/bin/bunx vite build"
 
 echo "Running migrations..."
-ssh novel-harness-lxc "cd ~/apps/novel-harness && ~/.bun/bin/bun -e 'import { migrate } from \"./data/connection\"; await migrate()'"
+ssh novel-harness-lxc "cd ~/apps/novel-harness && ~/.bun/bin/bun -e 'import { migrate } from \"./src/db/connection\"; await migrate()'"
 
 echo "Restarting orchestrator..."
 ssh novel-harness-lxc "sudo systemctl restart novel-harness-orchestrator"
