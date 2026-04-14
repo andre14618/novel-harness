@@ -1017,6 +1017,102 @@ input[type="checkbox"] {
 
 .docs-content { min-width: 0; padding-bottom: 4rem; }
 
+/* ── Docs tile grid + reader view ──────────────────────────────────── */
+.docs-grid-view {
+  padding: 0 0 4rem;
+}
+.docs-grid-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-bottom: 14px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.docs-grid-header h2 {
+  color: var(--accent);
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0;
+}
+.docs-grid-count {
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+}
+.docs-tile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+}
+.docs-tile {
+  background: var(--bg-inset);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 14px 16px;
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: all var(--transition-fast);
+  font-family: var(--font-mono);
+  color: inherit;
+  min-height: 72px;
+}
+.docs-tile:hover {
+  background: var(--bg-raised);
+  border-color: var(--accent-dim);
+  transform: translateY(-1px);
+}
+.docs-tile-title {
+  font-size: 0.82rem;
+  color: var(--text-primary);
+  font-weight: 600;
+  line-height: 1.4;
+}
+.docs-tile-meta {
+  font-size: 0.64rem;
+  color: var(--text-tertiary);
+  letter-spacing: 0.02em;
+  margin-top: auto;
+}
+
+.docs-reader {
+  padding: 0 0 4rem;
+}
+.docs-reader-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 14px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.docs-back-btn {
+  background: var(--bg-inset);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 0.76rem;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.docs-back-btn:hover {
+  background: var(--bg-raised);
+  border-color: var(--accent-dim);
+  color: var(--accent);
+}
+.docs-reader-title {
+  font-size: 0.82rem;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.docs-reader-body { min-width: 0; }
+
 /* Markdown body styling */
 .markdown-body { color: var(--text-secondary); font-size: 0.82rem; line-height: 1.8; }
 .markdown-body h1 { color: var(--accent); font-size: 1.3rem; margin: 0 0 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-subtle); }
