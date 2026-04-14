@@ -109,15 +109,15 @@ All daemon data access goes through `src/harness/` service layer. No inline SQL 
 The daemon rotates between prompt, config, and template proposals per iteration, using the component registry to discover surfaces per quality dimension.
 
 ### Web UI
-`ui/`, React + Vite, served at `/app`:
+`ui/`, React + Vite, served at `/app`. Nav has 5 items — living pages are JSX with visuals; reference docs are markdown in the Docs browser:
 - **The Studio** (`/app/studio`, default route) — home page. Compact creation bar (seed/custom toggle, genre dropdown, full-width premise textarea in custom mode) + novel picker popout (tile grid with genre, date, premise) + inline pipeline view (PipelineFlow, LiveMeters, narrative activity feed). Clear button resets local UI for new runs. Auto-scroll only during live writes; historical views start at top. Hydrates historical events from `/api/novel/:id/trace` on novel switch. SSE subscription for real-time updates during active writes. Elapsed timer freezes to actual run duration on completion.
+- **Overview** (`/app/guide`) — project summary: what it does, architecture tree, novel creation flow, quality measurement, cost management.
+- **Context** (`/app/context`) — visual context engineering page with SVG pipeline diagram, beat context assembly flow, deliberate omissions, state feedback loop tables.
+- **Fine-Tuning** (`/app/finetune`) — SFT pipeline overview, LoRA style transfer narrative, deployed adapter table, plus tabs for adapter changelog and LoRA comparison tool.
+- **Docs** (`/app/docs`) — reference document browser (drag-to-reorder sidebar, markdown rendering). All `docs/*.md` files served here.
 - **Pipeline View** (`/app/:novelId`) — standalone real-time SSE timeline with gate panels (also accessible from Studio)
 - **Read** (`/app/:novelId/read`) — rendered novel prose, linked from Studio/Pipeline
-- **Config** (`/app/config`) — per-agent model switching
-- **Experiments** (`/app/experiments`) — benchmark runs and improvement cycles
-- **Models** (`/app/models`) — searchable model registry
-- **Guide** (`/app/guide`) — architecture diagrams, pipeline flow, benchmark docs
-- **Other pages**: Decisions, Adapters, Context Engineering, LoRA Compare, LLM Calls, Costs, Docs
+- **Other pages** (accessible via URL, not in nav): Config, Experiments, Models, LLM Calls, Costs
 
 Streaming infrastructure: `src/transport.ts` (DirectTransport emits `llm-call-start` / `llm-token` events), `src/trace.ts` (persists pipeline events to `pipeline_events` table). Historical hydration via `traceToSSE` conversion from DB rows to SSE event format.
 
@@ -205,13 +205,13 @@ ssh novel-harness-lxc "curl -s -X POST http://localhost:3006/api/improvement/sta
 
 | What | Where |
 |------|-------|
-| Architecture + pipeline flow | `/app/guide` (React UI) |
+| Architecture + pipeline flow | `/app/guide` (Overview) + `/app/context` (Context Engineering) |
 | Knowledge graph + context assembly | `docs/world-knowledge-graph.md` |
 | DB schema | `sql/010_novel_data.sql`, `sql/011_vector_graph.sql`, `sql/012-015_*.sql` |
 | Agent model assignments | `src/models/roles.ts` |
 | Service layer API | `src/harness/index.ts` |
 | Retrieval engine | `src/db/retrieval.ts` |
-| Fine-tuning strategy + adapter roadmap | `docs/fine-tuning-strategy.md` |
+| Fine-tuning strategy + adapter roadmap | `/app/finetune` (UI) + `docs/fine-tuning-strategy.md` |
 | LoRA training best practices + experiment log | `docs/lora-style-transfer-report.md` |
 | Architectural decisions with rationale | `docs/decisions.md` |
 
