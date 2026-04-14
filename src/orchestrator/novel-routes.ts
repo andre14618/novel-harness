@@ -295,6 +295,7 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
         provider: (role?.provider ?? "groq") as any,
         temperature: role?.temperature ?? chatConfig.temperature,
         maxTokens: role?.maxTokens ?? chatConfig.maxTokens,
+        responseFormat: { type: "text" },
       })
 
       return Response.json({ ok: true, assistantMessage: response.content.trim() })
