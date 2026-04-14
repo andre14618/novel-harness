@@ -25,14 +25,14 @@ import { join } from "path"
 const PAIRS_ARG_IDX = process.argv.indexOf("--pairs")
 const PAIRS_PATH = PAIRS_ARG_IDX !== -1
   ? process.argv[PAIRS_ARG_IDX + 1]
-  : join(import.meta.dir, "../lora-data/chapter-plan-checker-pairs.jsonl")
+  : join(import.meta.dir, "../../lora-data/chapter-plan-checker-pairs.jsonl")
 
 const variantArg = process.argv.find((a, i) =>
   i >= 2 && !a.startsWith("--") && process.argv[i - 1] !== "--pairs"
 )
 const VARIANT = variantArg ?? "FAIL_MISSING_BEAT"
 
-const OUT_PATH = join(import.meta.dir, `../lora-data/inspect-${VARIANT.toLowerCase()}.md`)
+const OUT_PATH = join(import.meta.dir, `../../lora-data/inspect-${VARIANT.toLowerCase()}.md`)
 
 interface Pair {
   messages: Array<{ role: string; content: string }>

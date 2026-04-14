@@ -19,18 +19,18 @@
 
 import { parseArgs } from "node:util"
 import { readFileSync, writeFileSync } from "node:fs"
-import { lintProse } from "../src/lint"
-import { fixLintIssues } from "../src/lint/fix"
-import { getModelForAgent } from "../models/roles"
-import { createTuningExperiment, concludeExperiment } from "../data/db"
-import { createRun, saveGeneration, saveLLMCall } from "../benchmark/db"
-import { loadSeeds, generateProse } from "../benchmark/prose/shared"
-import { getWriter } from "../benchmark/config"
-import { getTransport } from "../src/transport"
-import { extractJSON } from "../src/llm"
-import { buildImprovementContext } from "../src/agents/lint-improver/context"
+import { lintProse } from "../../src/lint"
+import { fixLintIssues } from "../../src/lint/fix"
+import { getModelForAgent } from "../../models/roles"
+import { createTuningExperiment, concludeExperiment } from "../../data/db"
+import { createRun, saveGeneration, saveLLMCall } from "../../benchmark/db"
+import { loadSeeds, generateProse } from "../../benchmark/prose/shared"
+import { getWriter } from "../../benchmark/config"
+import { getTransport } from "../../src/transport"
+import { extractJSON } from "../../src/llm"
+import { buildImprovementContext } from "../../src/agents/lint-improver/context"
 
-const HARNESS_ROOT = new URL("..", import.meta.url).pathname.replace(/\/$/, "")
+const HARNESS_ROOT = new URL("../..", import.meta.url).pathname.replace(/\/$/, "")
 const WRITER_PROMPT_PATH = `${HARNESS_ROOT}/src/agents/writer/prose-writer-system.md`
 
 const { values } = parseArgs({
@@ -138,7 +138,7 @@ async function takeLintSnapshot(writerPrompt: string, seeds: ReturnType<typeof l
 // ── Agent prompt (loaded from file) ───────────────────────────────────────
 
 const IMPROVER_PROMPT = readFileSync(
-  new URL("../src/agents/lint-improver/prompt-improver-system.md", import.meta.url).pathname, "utf-8",
+  new URL("../../src/agents/lint-improver/prompt-improver-system.md", import.meta.url).pathname, "utf-8",
 )
 
 // ── Propose writer prompt change via lint-improver agent ─────────────────

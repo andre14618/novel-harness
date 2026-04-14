@@ -13,9 +13,9 @@
 
 import { parseArgs } from "node:util"
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs"
-import db from "../data/connection"
-import { getEnabledPatterns } from "../src/lint/detectors/regex"
-import type { LintPattern } from "../src/lint/types"
+import db from "../../data/connection"
+import { getEnabledPatterns } from "../../src/lint/detectors/regex"
+import type { LintPattern } from "../../src/lint/types"
 
 const { values } = parseArgs({
   options: {
@@ -50,7 +50,7 @@ const NOVELS = [
   },
 ]
 
-const CACHE_DIR = new URL("../.cache/baseline-novels", import.meta.url).pathname
+const CACHE_DIR = new URL("../../.cache/baseline-novels", import.meta.url).pathname
 
 // ── Download / cache novels ───────────────────────────────────────────
 

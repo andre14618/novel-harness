@@ -84,7 +84,7 @@ Render in beat context as a structured block with **2–3 example dialogue lines
 
 **Also in Phase 1 (same code change, no training):**
 - **Forbidden phrase lint** — extend deterministic lint to flag per-character `forbiddenPhrases` in dialogue. Same mechanism as cliché patterns, scoped by character name. Zero model cost.
-- **Planner dialogue guidance** — add explicit dialogue beat targets to planning-plotter prompt. At least 2 of 4–6 beats should be primarily dialogue-driven. Measure before/after with `scripts/analyze-structure.ts`. Target: 15.7% → 25%.
+- **Planner dialogue guidance** — add explicit dialogue beat targets to planning-plotter prompt. At least 2 of 4–6 beats should be primarily dialogue-driven. Measure before/after with `scripts/analysis/analyze-structure.ts`. Target: 15.7% → 25%.
 
 ### Phase 2 — Archetype Library (no training required)
 **Status: PLANNED — after Phase 1 ships**
@@ -147,7 +147,7 @@ The pipeline produces structurally monotone prose. The gap isn't a prompt issue 
 
 **What requires paired training data:** Interiority density and sentence length variation. Needs `(current pipeline output → structurally rich rewrite)` pairs that don't exist yet. Beat-writer SFT and new tonal-pass training are blocked until this is addressed.
 
-**Tracking:** Run `scripts/analyze-structure.ts` after each batch of new novels. Measure before/after each context engineering change.
+**Tracking:** Run `scripts/analysis/analyze-structure.ts` after each batch of new novels. Measure before/after each context engineering change.
 
 ---
 
@@ -183,10 +183,10 @@ V4 tonal-pass confirmed preferred; V3 on Together AI retired. Actions:
 
 | Script | Purpose | Run when |
 |--------|---------|----------|
-| `scripts/analyze-structure.ts` | Dialogue %, interiority, sentence length, paragraph run | After each batch of novels |
+| `scripts/analysis/analyze-structure.ts` | Dialogue %, interiority, sentence length, paragraph run | After each batch of novels |
 | `scripts/eval-adherence-finetune.ts` | Adherence checker oracle agreement | After adapter training |
 | `scripts/eval-adherence-synthetic.ts` | Synthetic accuracy on known-label pairs | Teacher eval, adapter comparison |
-| `scripts/build-finetune-data.ts` | Build SFT training data for writer/checker agents | For next SFT round |
+| `scripts/finetune/build-finetune-data.ts` | Build SFT training data for writer/checker agents | For next SFT round |
 
 ---
 

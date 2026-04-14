@@ -38,7 +38,7 @@ OpenPipe/Qwen3-14B-Instruct (hot, always warm)
 | Training cost | Free during public preview (temporary — will become paid) |
 | Storage | 5 GB free tier (pay-as-you-go). ~134 MB per adapter, ~3.7 GB per training run (auto-cleaned). Train one at a time. |
 | Max LoRA rank | 16 (W&B Inference hard limit) |
-| Training script | `scripts/train-lora.py` (Python, not Bun) |
+| Training script | `scripts/finetune/train-lora.py` (Python, not Bun) |
 | JSONL format | OpenAI chat format — `{"messages": [{role, content}, ...]}` |
 | ART docs | https://art.openpipe.ai/fundamentals/sft-training |
 
@@ -144,7 +144,7 @@ Until condition 1 is true, RunPod is an infrastructure cost, not a cost saving. 
 
 **Data pipeline (2026-04-09, exp #132)**: `scripts/generate-adherence-decomposed-data.ts` — 59 scenarios × 11 variants × 4 writers (Cerebras 235B, Llama 8B, Kimi K2, DeepSeek V3.2) = 2,596 prose samples × 4 decomposed oracle calls = 10,008 raw training examples. Multi-writer for stylistic diversity + organic drift from weaker models. Oracle: Cerebras 235B using production system prompts, validated against gpt-oss-120b (95% agreement). $6.16 total cost.
 
-**Curation (2026-04-09)**: `scripts/curate-adherence-data.ts` removed 15% cross-contaminated labels → 8,524 curated examples. Cross-contamination: FAIL variants designed to test one dimension often trip non-target dimensions (e.g., FAIL_MISSING trips character contradiction because "not doing the action" ≠ "behaving out of character"). Ambiguous tangent examples (off_spec_fraction 0.3–0.7) also removed. Label balance post-curation: events 25% flag, setting 25%, tangent 17%, character 18%.
+**Curation (2026-04-09)**: `scripts/finetune/curate-adherence-data.ts` removed 15% cross-contaminated labels → 8,524 curated examples. Cross-contamination: FAIL variants designed to test one dimension often trip non-target dimensions (e.g., FAIL_MISSING trips character contradiction because "not doing the action" ≠ "behaving out of character"). Ambiguous tangent examples (off_spec_fraction 0.3–0.7) also removed. Label balance post-curation: events 25% flag, setting 25%, tangent 17%, character 18%.
 
 **Training status**:
 - **V1 (uncurated, 10,008 examples)**: Finished. 2 epochs, batch_size=2, cosine schedule, lr=2e-4. 10 checkpoints (v0-v9). Artifact: `adherence-checker-v1-sft-resume:v9`.
@@ -249,7 +249,7 @@ Until condition 1 is true, RunPod is an infrastructure cost, not a cost saving. 
 
 **The opportunity**: The extractor consistently over-extracts — captures minor background details that clutter the fact store and degrade deterministic query precision. A fine-tuned model trained on labeled examples of "keep this / drop this" learns the right selection threshold.
 
-**Data source**: `bun scripts/build-finetune-data.ts --task fact-extractor` → review 20-30 pairs in Claude Code → mark facts as keep/drop → scale to 300+. Labeling criteria: facts that would matter for a continuity check 10 chapters later, vs facts that are set dressing.
+**Data source**: `bun scripts/finetune/build-finetune-data.ts --task fact-extractor` → review 20-30 pairs in Claude Code → mark facts as keep/drop → scale to 300+. Labeling criteria: facts that would matter for a continuity check 10 chapters later, vs facts that are set dressing.
 
 **Risk**: Low-medium. The selection criteria are subjective and need consistent human labels. But the problem (over-extraction) is well-defined and measurable.
 
@@ -379,7 +379,7 @@ Representative archetypes (profiles informed by modern genre study):
 | Tonal pass (structural) | **No** | No paired data exists (monotone → structurally rich) | Requires structural diversity pass design first |
 | Beat writer | **No** | 131 chapters from 5 premises, structurally monotone (7.6% dialogue avg). Training on this would bake in the monotone shape | Address structural diversity in writer prompts first, then collect |
 
-**Structural deficit finding**: Deterministic analysis (`scripts/analyze-structure.ts`) showed pipeline output is below published norms: 15.7% dialogue (vs 25-50% in published novels), 0.1 interiority verbs/100w, 7.5w avg sentence length (vs 12-18w). Genre does differentiate (sci-fi 24.8% vs literary fiction 8.9%) but all genres are below published density. This affects writer/tonal fine-tunes but NOT checker fine-tunes. See `docs/lessons-learned.md`. Note: initial analysis showed 7.6% dialogue but this was a measurement bug — the regex missed single-quoted dialogue.
+**Structural deficit finding**: Deterministic analysis (`scripts/analysis/analyze-structure.ts`) showed pipeline output is below published norms: 15.7% dialogue (vs 25-50% in published novels), 0.1 interiority verbs/100w, 7.5w avg sentence length (vs 12-18w). Genre does differentiate (sci-fi 24.8% vs literary fiction 8.9%) but all genres are below published density. This affects writer/tonal fine-tunes but NOT checker fine-tunes. See `docs/lessons-learned.md`. Note: initial analysis showed 7.6% dialogue but this was a measurement bug — the regex missed single-quoted dialogue.
 
 **30 seeds created** (2026-04-09) to address premise diversity: 8 post-apoc, 7 sci-fi, 7 epic fantasy, 4 portal fantasy. These need to be run through the pipeline before chapter-plan-checker and continuity SFT data generation can begin.
 

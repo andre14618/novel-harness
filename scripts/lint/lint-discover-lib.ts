@@ -8,14 +8,14 @@
  */
 
 import { readFileSync } from "node:fs"
-import db from "../data/connection"
-import { getTransport } from "../src/transport"
-import { extractJSON } from "../src/llm"
-import { getModelForAgent } from "../models/roles"
-import { CONCEPTS, loadConceptContext, isHeuristicOnly, type LintConcept } from "../src/lint/concepts"
+import db from "../../data/connection"
+import { getTransport } from "../../src/transport"
+import { extractJSON } from "../../src/llm"
+import { getModelForAgent } from "../../models/roles"
+import { CONCEPTS, loadConceptContext, isHeuristicOnly, type LintConcept } from "../../src/lint/concepts"
 
 const AGENT_PROMPT = readFileSync(
-  new URL("../src/agents/lint-discoverer/antipattern-discoverer-system.md", import.meta.url).pathname, "utf-8",
+  new URL("../../src/agents/lint-discoverer/antipattern-discoverer-system.md", import.meta.url).pathname, "utf-8",
 )
 
 // ── Load existing rules for a specific category ───────────────────────────

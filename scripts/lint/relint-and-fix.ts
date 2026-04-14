@@ -5,10 +5,10 @@
  * Usage: RUNS=323,324,325 bun scripts/relint-and-fix.ts
  */
 
-import db from "../data/connection"
-import { lintProse, saveLintIssues } from "../src/lint/index"
-import { getTransport } from "../src/transport"
-import { getRunConfig } from "../src/config/run"
+import db from "../../data/connection"
+import { lintProse, saveLintIssues } from "../../src/lint/index"
+import { getTransport } from "../../src/transport"
+import { getRunConfig } from "../../src/config/run"
 
 const rc = getRunConfig()
 const RUN_IDS = rc.sourceRun ? [rc.sourceRun] : (process.env.RUNS ?? "323,324,325").split(",").map(Number)

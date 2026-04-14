@@ -19,7 +19,7 @@
 
 import { readdirSync, readFileSync, existsSync, unlinkSync } from "fs"
 import { join } from "path"
-import { createTuningExperiment, concludeExperiment } from "../data/db"
+import { createTuningExperiment, concludeExperiment } from "../../data/db"
 
 const RESULTS_DIR  = process.env.RESULTS_DIR ?? "/tmp/continuity-label"
 const PAIRS_PATH   = join(import.meta.dir, "../lora-data/continuity-pairs.jsonl")

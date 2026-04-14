@@ -12,7 +12,7 @@
  */
 
 import { readFileSync } from "fs"
-import { getTransport } from "../src/transport.ts"
+import { getTransport } from "../../src/transport.ts"
 
 const PAIRS_FILE = "/tmp/eval-pairs-30.json"
 

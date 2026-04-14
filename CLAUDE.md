@@ -16,7 +16,7 @@ Code lives locally (canonical git repo). LXC 307 is the runtime — all benchmar
 - Runtime: Bun
 - LLM: Configurable per-agent via `models/roles.ts`. Providers: Cerebras, Groq, Fireworks, OpenRouter, OpenAI, DeepSeek, MiniMax, Zai, MiMo, Together (legacy LoRA fine-tunes), W&B Inference (CoreWeave-backed, chosen home for new LoRA fine-tunes per `docs/lessons-learned.md`).
 - DB: Single Postgres (`novel_harness_orchestrator` on LXC — all tables). pgvector installed but embeddings disabled.
-- Fine-tuning: **W&B end-to-end (train + serve) on `OpenPipe/Qwen3-14B-Instruct` is the chosen home for new LoRA fine-tunes** (decided 2026-04-07/08 via `tuning_experiment` id=94 — see `docs/decisions.md` "W&B Inference on OpenPipe/Qwen3-14B-Instruct"). Training via **W&B Serverless SFT (ART framework, free during public preview — temporary)** → adapter auto-saved as W&B artifact → served via W&B Inference at $0.05/$0.22 per 1M tokens. W&B free tier is 5 GB storage (pay-as-you-go plan). Each training run creates ~3.7 GB of intermediate artifacts; `train-lora.py` auto-cleans after training (strips aliases then deletes). Run `python3 scripts/cleanup-wandb-storage.py --delete` for manual cleanup. A r=16 adapter is ~134 MB. **W&B LoRA convention: artifact URI goes in the `model` field** (e.g. `model: "wandb-artifact:///team/project/name:v9"`). W&B silently ignores a separate `lora` field — that convention is Together AI only. Transport layer (`src/transport.ts`) auto-detects `wandb-artifact:///` prefix and routes correctly. **V4 tonal-pass adapter trained and validated** (exp #98, 2026-04-08): `howard-tonal-v4-sft-resume:v8` on W&B Inference beats V3 on every metric (classifier 0.550 vs 0.422, perplexity 3086 vs 4814, feature KL 1.564 vs 1.534 Howard ref, 597ms vs 1757ms latency). **Serving URI is `wandb-artifact:///andre14618-/novel-harness/howard-tonal-v4-sft-resume:v8`** — NOT `howard-tonal-v4:latest` (that's the identity LoRA placeholder; see lessons-learned "W&B ART submits async"). V4 is the current live adapter (pref eval confirmed 2026-04-11). V3 on Together AI retired. **Together standard tier is ~50-100× slower than Groq fast tier per `docs/lessons-learned.md` — no new adapters go to Together.**
+- Fine-tuning: **W&B end-to-end (train + serve) on `OpenPipe/Qwen3-14B-Instruct` is the chosen home for new LoRA fine-tunes** (decided 2026-04-07/08 via `tuning_experiment` id=94 — see `docs/decisions.md` "W&B Inference on OpenPipe/Qwen3-14B-Instruct"). Training via **W&B Serverless SFT (ART framework, free during public preview — temporary)** → adapter auto-saved as W&B artifact → served via W&B Inference at $0.05/$0.22 per 1M tokens. W&B free tier is 5 GB storage (pay-as-you-go plan). Each training run creates ~3.7 GB of intermediate artifacts; `train-lora.py` auto-cleans after training (strips aliases then deletes). Run `python3 scripts/finetune/cleanup-wandb-storage.py --delete` for manual cleanup. A r=16 adapter is ~134 MB. **W&B LoRA convention: artifact URI goes in the `model` field** (e.g. `model: "wandb-artifact:///team/project/name:v9"`). W&B silently ignores a separate `lora` field — that convention is Together AI only. Transport layer (`src/transport.ts`) auto-detects `wandb-artifact:///` prefix and routes correctly. **V4 tonal-pass adapter trained and validated** (exp #98, 2026-04-08): `howard-tonal-v4-sft-resume:v8` on W&B Inference beats V3 on every metric (classifier 0.550 vs 0.422, perplexity 3086 vs 4814, feature KL 1.564 vs 1.534 Howard ref, 597ms vs 1757ms latency). **Serving URI is `wandb-artifact:///andre14618-/novel-harness/howard-tonal-v4-sft-resume:v8`** — NOT `howard-tonal-v4:latest` (that's the identity LoRA placeholder; see lessons-learned "W&B ART submits async"). V4 is the current live adapter (pref eval confirmed 2026-04-11). V3 on Together AI retired. **Together standard tier is ~50-100× slower than Groq fast tier per `docs/lessons-learned.md` — no new adapters go to Together.**
 - Transport: `src/transport.ts` — pluggable layer beneath all LLM calls (direct, batch). Per-call telemetry written to `llm_calls`.
 - Interface: React UI (`/app`), CLI
 
@@ -42,8 +42,8 @@ Each agent's prompt/schema/context lives in `src/agents/{name}/`. The model assi
 
 ### Tools-only agent dirs (not in the runtime pipeline)
 
-- `src/agents/lint-discoverer/` — used by `scripts/lint-discover-lib.ts` for lint pattern research only
-- `src/agents/lint-improver/` — used by `scripts/lint-improve.ts` for lint pattern improvement research only
+- `src/agents/lint-discoverer/` — used by `scripts/lint/lint-discover-lib.ts` for lint pattern research only
+- `src/agents/lint-improver/` — used by `scripts/lint/lint-improve.ts` for lint pattern improvement research only
 
 These are NOT called via `callAgent` and are NOT in `models/roles.ts`. They read prompts directly from disk and use the `improver` model role. Don't add them to the agent registry — they're scripts that happen to live under `src/agents/`.
 
@@ -160,8 +160,6 @@ ssh novel-harness-lxc "sudo systemctl status novel-harness-orchestrator"
 # Improvement daemon
 ssh novel-harness-lxc "curl -s -X POST http://localhost:3006/api/improvement/start -H 'x-api-key: <key>'"
 
-# Tests (require DATABASE_URL)
-bun test
 ```
 
 ## Key env vars

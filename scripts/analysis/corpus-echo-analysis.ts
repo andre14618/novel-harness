@@ -3,7 +3,7 @@
  * Computes bigram overlap between beat descriptions and prose for all
  * approved chapters. Correlates with structural metrics.
  */
-import db from "../data/connection"
+import db from "../../data/connection"
 
 const rows = await db`
   SELECT co.novel_id, co.chapter_number, co.outline_json, cd.prose, cd.word_count

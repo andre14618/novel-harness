@@ -79,7 +79,7 @@ export async function handleFinetuneRoute(req: Request, url: URL): Promise<Respo
         return Response.json({ error: "task is required" }, { status: 400 })
       }
       const limit = body.limit ?? 50
-      const cmd = `bun scripts/build-finetune-data.ts --task ${body.task} --limit ${limit}`
+      const cmd = `bun scripts/finetune/build-finetune-data.ts --task ${body.task} --limit ${limit}`
 
       const proc = Bun.spawn(["bash", "-c", cmd], {
         cwd: HARNESS_ROOT,

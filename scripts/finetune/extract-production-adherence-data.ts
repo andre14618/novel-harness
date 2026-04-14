@@ -22,11 +22,11 @@
 
 import { appendFileSync, writeFileSync } from "fs"
 import { join } from "path"
-import db from "../data/connection"
-import { createTuningExperiment, concludeExperiment } from "../data/db.ts"
-import { getTransport } from "../src/transport"
-import type { ChapterOutline, SceneBeat } from "../src/types"
-import type { ProviderName } from "../models/registry"
+import db from "../../data/connection"
+import { createTuningExperiment, concludeExperiment } from "../../data/db.ts"
+import { getTransport } from "../../src/transport"
+import type { ChapterOutline, SceneBeat } from "../../src/types"
+import type { ProviderName } from "../../models/registry"
 
 const ORACLE_PROVIDER: ProviderName = "cerebras"
 const ORACLE_MODEL = "qwen-3-235b-a22b-instruct-2507"

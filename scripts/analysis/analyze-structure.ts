@@ -3,7 +3,7 @@
  * Measures dialogue density, interiority, action, sentence variety, etc.
  * No LLM calls — pure regex/counting.
  */
-import db from "../data/connection.ts";
+import db from "../../data/connection.ts";
 
 const chapters = await db`
   SELECT cd.novel_id, cd.chapter_number, cd.prose, cd.word_count,

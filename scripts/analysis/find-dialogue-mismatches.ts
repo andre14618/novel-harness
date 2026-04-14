@@ -2,7 +2,7 @@
  * Find chapters where speech verbs suggest dialogue but no quotes are detected.
  * Helps validate the dialogue regex.
  */
-import db from "../data/connection.ts";
+import db from "../../data/connection.ts";
 
 const chapters = await db`
   SELECT cd.novel_id, cd.chapter_number, cd.prose, cd.word_count,

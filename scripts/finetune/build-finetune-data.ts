@@ -18,9 +18,9 @@
  *   5. Export approved pairs as JSONL for Together AI
  */
 
-import db from "../data/connection"
-import { getTransport } from "../src/transport"
-import { saveTrainingPair } from "../src/db/finetune"
+import db from "../../data/connection"
+import { getTransport } from "../../src/transport"
+import { saveTrainingPair } from "../../src/db/finetune"
 import { parseArgs } from "util"
 
 // ── System prompts (generic, not the verbose production versions) ────────

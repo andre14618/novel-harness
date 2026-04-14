@@ -8,7 +8,7 @@
  * they're general style advice that erodes linter credibility.
  */
 
-import db from "../data/connection"
+import db from "../../data/connection"
 
 // Pattern IDs to disable, identified from baseline calibration output.
 // We match by substring of the pattern regex since IDs may differ across environments.

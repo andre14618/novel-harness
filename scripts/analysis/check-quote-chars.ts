@@ -1,7 +1,7 @@
 /**
  * Check the actual Unicode characters used for quotes in the prose.
  */
-import db from "../data/connection.ts";
+import db from "../../data/connection.ts";
 
 const all = await db`
   SELECT cd.novel_id, cd.chapter_number, cd.prose

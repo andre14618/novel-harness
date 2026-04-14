@@ -13,7 +13,7 @@
  * Usage:
  *   WANDB_API_KEY=... bun scripts/ping-new-adapters.ts
  */
-import { getTransport } from "../src/transport.ts"
+import { getTransport } from "../../src/transport.ts"
 
 const ADAPTERS = [
   {

@@ -14,7 +14,7 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 ## Infrastructure & Serving
 
 ### W&B Inference on OpenPipe/Qwen3-14B-Instruct chosen as LoRA serving home
-*2026-04-07 · exp #94 (`scripts/test-wandb-inference.ts`)*
+*2026-04-07 · exp #94 (`scripts/finetune/test-wandb-inference.ts`)*
 
 **Decision:** All new fine-tuned adapters are trained and served on W&B — `OpenPipe/Qwen3-14B-Instruct` as the base, W&B Serverless SFT (ART framework) for training, W&B Inference for serving.
 
@@ -851,7 +851,7 @@ All three targets met (echo at target, dialogue slightly below 20% for this myst
 
 **Resolution:**
 1. Enabled "models write access" in W&B team settings (`andre14618-`).
-2. W&B requires aliases to be stripped before deletion — `v.aliases = []; v.save()` then `v.delete()`. Created `scripts/cleanup-wandb-storage.py` for manual cleanup.
+2. W&B requires aliases to be stripped before deletion — `v.aliases = []; v.save()` then `v.delete()`. Created `scripts/finetune/cleanup-wandb-storage.py` for manual cleanup.
 3. Added auto-cleanup to `train-lora.py`: after training completes, deletes intermediate LoRA versions (keeps only serving adapter), all train-state artifacts, and dataset artifacts. Use `--no-cleanup` to skip.
 4. Train-state is not needed — training data lives in `lora-data/`, retraining from scratch takes minutes on small datasets (100-2,000 examples).
 
