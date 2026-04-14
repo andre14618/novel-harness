@@ -112,7 +112,7 @@ The daemon rotates between prompt, config, and template proposals per iteration,
 `ui/`, React + Vite, served at `/app`. Nav has 5 items — living pages are JSX with visuals; reference docs are markdown in the Docs browser:
 - **The Studio** (`/app/studio`, default route) — home page. Compact creation bar (seed/custom toggle, genre dropdown, full-width premise textarea in custom mode) + novel picker popout (tile grid with genre, date, premise) + inline pipeline view (PipelineFlow, LiveMeters, narrative activity feed). Clear button resets local UI for new runs. Auto-scroll only during live writes; historical views start at top. Hydrates historical events from `/api/novel/:id/trace` on novel switch. SSE subscription for real-time updates during active writes. Elapsed timer freezes to actual run duration on completion.
 - **Overview** (`/app/guide`) — project summary: what it does, architecture tree, novel creation flow, quality measurement, cost management.
-- **Context** (`/app/context`) — visual context engineering page with SVG pipeline diagram, beat context assembly flow, deliberate omissions, state feedback loop tables.
+- **Context Engineering** (`/app/context`) — visual context engineering page with SVG pipeline diagram, beat context assembly flow, deliberate omissions, state feedback loop tables.
 - **Fine-Tuning** (`/app/finetune`) — SFT pipeline overview, LoRA style transfer narrative, deployed adapter table, plus tabs for adapter changelog and LoRA comparison tool.
 - **Docs** (`/app/docs`) — reference document browser (drag-to-reorder sidebar, markdown rendering). All `docs/*.md` files served here.
 - **Pipeline View** (`/app/:novelId`) — standalone real-time SSE timeline with gate panels (also accessible from Studio)
