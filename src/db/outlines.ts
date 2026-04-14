@@ -1,4 +1,4 @@
-import db from "../../data/connection"
+import db from "./connection"
 import type { ChapterOutline } from "../types"
 
 export async function saveChapterOutline(novelId: string, outline: ChapterOutline): Promise<void> {

@@ -1,5 +1,5 @@
 import { appendFileSync, existsSync, mkdirSync } from "node:fs"
-import { logLLMCall as centralLogLLMCall, createRun, type LLMCallData } from "../data/db"
+import { logLLMCall as centralLogLLMCall, createRun, type LLMCallData } from "./db/ops"
 
 type LogLevel = "info" | "warn" | "error" | "checkpoint"
 

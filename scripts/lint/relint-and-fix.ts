@@ -5,7 +5,7 @@
  * Usage: RUNS=323,324,325 bun scripts/relint-and-fix.ts
  */
 
-import db from "../../data/connection"
+import db from "../../src/db/connection"
 import { lintProse, saveLintIssues } from "../../src/lint/index"
 import { getTransport } from "../../src/transport"
 import { getRunConfig } from "../../src/config/run"

@@ -14,7 +14,7 @@ Code lives locally (canonical git repo). LXC 307 is the runtime — all benchmar
 ## Stack
 
 - Runtime: Bun
-- LLM: Configurable per-agent via `models/roles.ts`. Providers: Cerebras, Groq, Fireworks, OpenRouter, OpenAI, DeepSeek, MiniMax, Zai, MiMo, Together (legacy LoRA fine-tunes), W&B Inference (CoreWeave-backed, chosen home for new LoRA fine-tunes per `docs/lessons-learned.md`).
+- LLM: Configurable per-agent via `src/models/roles.ts`. Providers: Cerebras, Groq, Fireworks, OpenRouter, OpenAI, DeepSeek, MiniMax, Zai, MiMo, Together (legacy LoRA fine-tunes), W&B Inference (CoreWeave-backed, chosen home for new LoRA fine-tunes per `docs/lessons-learned.md`).
 - DB: Single Postgres (`novel_harness_orchestrator` on LXC — all tables). pgvector installed but embeddings disabled.
 - Fine-tuning: **W&B end-to-end (train + serve) on `OpenPipe/Qwen3-14B-Instruct` is the chosen home for new LoRA fine-tunes** (decided 2026-04-07/08 via `tuning_experiment` id=94 — see `docs/decisions.md` "W&B Inference on OpenPipe/Qwen3-14B-Instruct"). Training via **W&B Serverless SFT (ART framework, free during public preview — temporary)** → adapter auto-saved as W&B artifact → served via W&B Inference at $0.05/$0.22 per 1M tokens. W&B free tier is 5 GB storage (pay-as-you-go plan). Each training run creates ~3.7 GB of intermediate artifacts; `train-lora.py` auto-cleans after training (strips aliases then deletes). Run `python3 scripts/finetune/cleanup-wandb-storage.py --delete` for manual cleanup. A r=16 adapter is ~134 MB. **W&B LoRA convention: artifact URI goes in the `model` field** (e.g. `model: "wandb-artifact:///team/project/name:v9"`). W&B silently ignores a separate `lora` field — that convention is Together AI only. Transport layer (`src/transport.ts`) auto-detects `wandb-artifact:///` prefix and routes correctly. **V4 tonal-pass adapter trained and validated** (exp #98, 2026-04-08): `howard-tonal-v4-sft-resume:v8` on W&B Inference beats V3 on every metric (classifier 0.550 vs 0.422, perplexity 3086 vs 4814, feature KL 1.564 vs 1.534 Howard ref, 597ms vs 1757ms latency). **Serving URI is `wandb-artifact:///andre14618-/novel-harness/howard-tonal-v4-sft-resume:v8`** — NOT `howard-tonal-v4:latest` (that's the identity LoRA placeholder; see lessons-learned "W&B ART submits async"). V4 is the current live adapter (pref eval confirmed 2026-04-11). V3 on Together AI retired. **Together standard tier is ~50-100× slower than Groq fast tier per `docs/lessons-learned.md` — no new adapters go to Together.**
 - Transport: `src/transport.ts` — pluggable layer beneath all LLM calls (direct, batch). Per-call telemetry written to `llm_calls`.
@@ -26,7 +26,7 @@ State machine: concept → planning → drafting → validation → done
 
 ### Agents (live, with current model assignment)
 
-Each agent's prompt/schema/context lives in `src/agents/{name}/`. The model assignment is in `models/roles.ts`.
+Each agent's prompt/schema/context lives in `src/agents/{name}/`. The model assignment is in `src/models/roles.ts`.
 
 - **Concept** (`src/phases/concept.ts`): world-builder, character-agent, plotter — all on **Cerebras Qwen 235B**
 - **Planning** (`src/phases/planning.ts`): planning-plotter (outputs beats + world state updates) — **Cerebras Qwen 235B**
@@ -43,14 +43,15 @@ Each agent's prompt/schema/context lives in `src/agents/{name}/`. The model assi
 ### Tools-only agent dirs (not in the runtime pipeline)
 
 - `src/agents/lint-discoverer/` — used by `scripts/lint/lint-discover-lib.ts` for lint pattern research only
-- `src/agents/lint-improver/` — used by `scripts/lint/lint-improve.ts` for lint pattern improvement research only
+- `src/agents/lint-improver/` — used by the lint improvement tooling for prompt research only
 
-These are NOT called via `callAgent` and are NOT in `models/roles.ts`. They read prompts directly from disk and use the `improver` model role. Don't add them to the agent registry — they're scripts that happen to live under `src/agents/`.
+These are NOT called via `callAgent` and are NOT in `src/models/roles.ts`. They read prompts directly from disk and use the `improver` model role. Don't add them to the agent registry — they're scripts that happen to live under `src/agents/`.
 
 ### Data Layer
 - `src/db/` — per-table async Postgres modules (all functions return Promises via `Bun.sql`)
+- `src/db/connection.ts` — shared lazy Postgres proxy, migration runner
+- `src/db/ops.ts` — operational helpers: run management, experiment tracking, LLM call logging, lint seeding
 - `src/harness/` — **service layer** — typed high-level API for all harness operations. The daemon, benchmarks, and UI call this instead of writing SQL. Modules: `scores`, `experiments`, `cycles`, `context`, `embeddings`, `graph`, `novels`.
-- `data/connection.ts` — shared lazy Postgres proxy, migration runner
 - `sql/` — migration files (001-018)
 
 ### Beat-Level Context
@@ -76,7 +77,7 @@ Beat writing bypasses semantic retrieval. Context comes from the plan + determin
 Structured world systems, cultures, evolving relationships, timeline events, character knowledge — all in Postgres. Tables: `world_systems`, `cultures`, `character_cultures`, `character_system_awareness`, `relationship_states`, `timeline_events`, `character_knowledge`, `event_causes`, `knowledge_propagation`.
 
 ### Models
-`models/roles.ts` is the single place to control all agent assignments. `models/registry.ts` has all available models with pricing/specs. Runtime overrides via web UI; `persistOverrides()` writes to roles.ts.
+`src/models/roles.ts` is the single place to control all agent assignments. `src/models/registry.ts` has all available models with pricing/specs. Runtime overrides via web UI; `persistOverrides()` writes to roles.ts.
 
 ### Quality Checks
 Quality measured via structured pass/fail checks, not LLM scoring (1-10 judges showed 0-33% discrimination — see `docs/lessons-learned.md`):
@@ -127,6 +128,31 @@ Streaming infrastructure: `src/transport.ts` (DirectTransport emits `llm-call-st
 
 **Never guess column names.** Before writing any ad-hoc SQL (bun -e, scripts, debugging), query `information_schema.columns` for the table first. The schema evolves via migrations and column names don't always match what you'd expect (e.g. `seed_json` not `seed`, `profile_json` not `role`, `attempt` not `run_number`).
 
+## Repo Layout Discipline
+
+The root directory contains only: `src/`, `scripts/`, `ui/`, `tests/`, `docs/`, `sql/`, and config files (`package.json`, `tsconfig.json`, `.env.example`, `CLAUDE.md`, `README.md`). Everything else is either generated/runtime (gitignored) or belongs inside one of these.
+
+**`src/` is the only home for application code.** If you find yourself creating a root-level directory for TypeScript/Python code, move it into `src/`. The current structure:
+```
+src/
+  agents/     ← one dir per agent, each with index.ts + context.ts + schema.ts + prompt files
+  config/     ← pipeline config, pricing, run config
+  db/         ← per-table Postgres modules + connection.ts + ops.ts
+  harness/    ← service layer (high-level API used by daemon, UI, scripts)
+  lint/       ← lint detectors, fixers, concepts
+  models/     ← model registry (registry.ts) and role assignments (roles.ts)
+  orchestrator/ ← HTTP server and route handlers
+  phases/     ← concept.ts, planning.ts, drafting.ts, validation.ts
+  schemas/    ← shared Zod schemas
+  seeds/      ← JSON novel seeds (38 files)
+```
+
+**When removing a subsystem, audit reverse dependencies before deleting.** Run `grep -r "the-path" src/ scripts/` first. Leaving broken imports is worse than leaving dead code.
+
+**Keep README.md current.** Update it in the same commit as any architectural change — not in a later cleanup pass. If the README describes a removed feature, it actively misleads.
+
+**Gitignore generated output.** Runtime artifacts (`output/`, `scripts/lora-data/`, `data/batches/`, `wandb/`, `finetune-data/`) are already in `.gitignore`. Don't commit generated files.
+
 ## Rules
 
 1. **Every experiment goes in the DB.** Use `harness.experiments.createTuningExperiment()` + `concludeExperiment()`. Never delete experiments.
@@ -137,7 +163,7 @@ Streaming infrastructure: `src/transport.ts` (DirectTransport emits `llm-call-st
 6. **Deploy after commit.** Run `bash scripts/deploy-lxc.sh`.
 7. **Every experiment links to a git commit.** Commit changes BEFORE running experiments.
 8. **Use `nohup` for long-running LXC scripts.** Never pipe SSH output through `head` or filters that close the pipe — it sends SIGPIPE and kills the process. Use `nohup ... > /tmp/foo.log 2>&1 &` and check progress via `tail`.
-9. **Never deploy while data generation is running.** `deploy-lxc.sh` uses `rsync --delete`, which deletes any LXC file that doesn't exist locally — including in-progress `lora-data/` output. The script now checks for active generation processes and prompts before continuing. `lora-data/` is also excluded from rsync so generated datasets are never overwritten.
+9. **Never deploy while data generation is running.** `deploy-lxc.sh` uses `rsync --delete`, which deletes any LXC file that doesn't exist locally — including in-progress `scripts/lora-data/` output. The script now checks for active generation processes and prompts before continuing. `scripts/lora-data/` is also excluded from rsync so generated datasets are never overwritten.
 
 ## Running
 
@@ -148,18 +174,11 @@ bash scripts/deploy-lxc.sh
 # Novel creation (on LXC)
 ssh novel-harness-lxc "cd ~/apps/novel-harness && bun src/index.ts --auto --seed romance-drama"
 
-# Benchmarks (on LXC)
-ssh novel-harness-lxc "cd ~/apps/novel-harness && BENCHMARK_SEEDS=romance-drama BENCHMARK_RUNS=2 bun benchmark/prose/run.ts"
-
-# Context quality benchmark (requires 10+ chapter novel in Postgres)
-ssh novel-harness-lxc "cd ~/apps/novel-harness && bun benchmark/context/run.ts"
-
 # Orchestrator (systemd service)
 ssh novel-harness-lxc "sudo systemctl status novel-harness-orchestrator"
 
 # Improvement daemon
 ssh novel-harness-lxc "curl -s -X POST http://localhost:3006/api/improvement/start -H 'x-api-key: <key>'"
-
 ```
 
 ## Key env vars
@@ -189,7 +208,7 @@ ssh novel-harness-lxc "curl -s -X POST http://localhost:3006/api/improvement/sta
 | Architecture + pipeline flow | `/app/guide` (React UI) |
 | Knowledge graph + context assembly | `docs/world-knowledge-graph.md` |
 | DB schema | `sql/010_novel_data.sql`, `sql/011_vector_graph.sql`, `sql/012-015_*.sql` |
-| Agent model assignments | `models/roles.ts` |
+| Agent model assignments | `src/models/roles.ts` |
 | Service layer API | `src/harness/index.ts` |
 | Retrieval engine | `src/db/retrieval.ts` |
 | Fine-tuning strategy + adapter roadmap | `docs/fine-tuning-strategy.md` |

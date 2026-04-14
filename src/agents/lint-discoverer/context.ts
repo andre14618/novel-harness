@@ -6,7 +6,7 @@
  * not per-call context.
  */
 
-import db from "../../../data/connection"
+import db from "../../db/connection"
 
 // ── Existing rule categories (names only — just enough to avoid duplicates)
 

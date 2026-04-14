@@ -1,6 +1,6 @@
 import {
   getCentralDB, getCallSummary, getModelStats, getAgentStats, getPhaseStats, getRecentRuns,
-} from "../../data/db"
+} from "../../src/db/ops"
 
 const arg = process.argv[2]
 

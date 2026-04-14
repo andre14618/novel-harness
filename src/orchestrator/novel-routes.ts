@@ -18,7 +18,7 @@ import { setAutoMode, setResolverMode } from "../cli"
 import { runNovel } from "../state-machine"
 import { initNovelRun } from "../logger"
 import type { SeedInput } from "../types"
-import db from "../../data/connection"
+import db from "../db/connection"
 
 const HARNESS_ROOT = process.env.HARNESS_ROOT ?? "/home/andre/apps/novel-harness"
 

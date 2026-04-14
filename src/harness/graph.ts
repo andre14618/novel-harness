@@ -4,7 +4,7 @@
  * Validates IDs before inserting — skips entries with empty/invalid UUIDs.
  */
 
-import db from "../../data/connection"
+import db from "../db/connection"
 import { getCausalChain, getRelationshipArc, getKnowledgeGraph } from "../db/retrieval"
 
 // Re-export graph query functions from retrieval

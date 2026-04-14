@@ -6,8 +6,8 @@
  * unless the pattern allows it).
  */
 
-import db from "../../../data/connection"
-import { ensureLintPatterns } from "../../../data/db"
+import db from "../../db/connection"
+import { ensureLintPatterns } from "../../db/ops"
 import type { LintIssue, LintPattern } from "../types"
 
 // ── Dialogue awareness ─────────────────────────────────────────────────

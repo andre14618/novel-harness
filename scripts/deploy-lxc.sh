@@ -31,7 +31,7 @@ echo "Syncing harness code to LXC..."
 rsync -az --delete \
   --exclude node_modules --exclude .env --exclude 'data/*.db' --exclude output \
   --exclude .git --exclude '.claude' --exclude 'wandb' \
-  --exclude 'lora-data/' \
+  --exclude 'scripts/lora-data/' \
   . novel-harness-lxc:~/apps/novel-harness/
 
 # Record which commit (or working tree state) is deployed

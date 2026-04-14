@@ -1,4 +1,4 @@
-import db from "../../data/connection"
+import db from "./connection"
 import type { CharacterState } from "../types"
 
 export async function saveCharacterState(novelId: string, charId: string, chapterNum: number, state: CharacterState): Promise<void> {

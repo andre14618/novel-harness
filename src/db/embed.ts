@@ -55,7 +55,7 @@ export async function getEmbeddings(texts: string[]): Promise<number[][]> {
 
 // ── Embedding text templates (DB-backed, autoresearcher-tunable) ─────────
 
-import db from "../../data/connection"
+import db from "./connection"
 
 const DEFAULT_TEMPLATES: Record<string, string> = {
   fact: "[{category}] {fact}",

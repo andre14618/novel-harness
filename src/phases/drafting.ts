@@ -26,7 +26,7 @@ import { pipeline } from "../config/pipeline"
 import * as gates from "../gates"
 import { lintProse } from "../lint"
 import { fixLintIssues } from "../lint/fix"
-import { getModelForAgent } from "../../models/roles"
+import { getModelForAgent } from "../models/roles"
 
 export async function runDraftingPhase(novelId: string): Promise<void> {
   displayPhaseHeader("Drafting — Writing chapters")

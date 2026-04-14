@@ -24,8 +24,8 @@
 
 import { readFileSync, writeFileSync } from "fs"
 
-const INPUT = process.env.CURATE_INPUT || "lora-data/adherence-checker-v3-mixed-teacher.jsonl"
-const OUTPUT = process.env.CURATE_OUTPUT || "lora-data/adherence-checker-v3-curated.jsonl"
+const INPUT = process.env.CURATE_INPUT || "scripts/lora-data/adherence-checker-v3-mixed-teacher.jsonl"
+const OUTPUT = process.env.CURATE_OUTPUT || "scripts/lora-data/adherence-checker-v3-curated.jsonl"
 
 const dryRun = process.argv.includes("--dry-run")
 

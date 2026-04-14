@@ -9,7 +9,7 @@
  * LLM handles judgment, ambiguity, and anything the heuristics miss.
  */
 
-import db from "../../data/connection"
+import db from "../db/connection"
 import type { TimelineEvent } from "../db/timeline"
 import type { CharacterKnowledgeEntry } from "../db/knowledge"
 import type { CharacterProfile } from "../types"

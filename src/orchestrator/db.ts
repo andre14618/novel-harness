@@ -6,8 +6,8 @@
  * live alongside the harness tables in the same database.
  */
 
-import db from "../../data/connection"
-export { migrate } from "../../data/connection"
+import db from "../db/connection"
+export { migrate } from "../db/connection"
 export default db
 
 // ── Batch queries ───────────────────────────────────────────────────────

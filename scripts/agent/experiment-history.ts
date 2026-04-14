@@ -7,8 +7,8 @@
  */
 
 import { parseArgs } from "node:util"
-import { getRelatedExperiments } from "../../data/db"
-import db from "../../data/connection"
+import { getRelatedExperiments } from "../../src/db/ops"
+import db from "../../src/db/connection"
 
 const { values } = parseArgs({
   options: {

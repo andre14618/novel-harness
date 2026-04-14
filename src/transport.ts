@@ -13,7 +13,7 @@
 import {
   PROVIDERS, getApiKey, getModel,
   type ProviderName,
-} from "../models/registry"
+} from "./models/registry"
 // ── Types ────────────────────────────────────────────────────────────────
 
 export interface LLMRequest {

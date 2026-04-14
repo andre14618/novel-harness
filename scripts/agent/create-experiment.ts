@@ -6,7 +6,7 @@
  */
 
 import { parseArgs } from "node:util"
-import { createTuningExperiment } from "../../data/db"
+import { createTuningExperiment } from "../../src/db/ops"
 
 const { values } = parseArgs({
   options: {

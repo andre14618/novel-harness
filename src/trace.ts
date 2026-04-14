@@ -10,7 +10,7 @@
  * the primary API for all new instrumentation.
  */
 
-import db from "../data/connection"
+import db from "./db/connection"
 import { emit } from "./events"
 import { getRunId } from "./logger"
 

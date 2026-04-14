@@ -17,7 +17,7 @@
 | **Training pairs** | 2,134 (Sonnet-labeled) |
 | **Epochs** | 2 |
 | **Experiment** | #161 |
-| **Data file** | `lora-data/adherence-checker-pairs.jsonl` (160 original + expanded via Sonnet) |
+| **Data file** | `scripts/lora-data/adherence-checker-pairs.jsonl` (160 original + expanded via Sonnet) |
 | **roles.ts agent** | `adherence-events` |
 
 **Frozen system prompt** (74 chars, inline in `src/agents/writer/adherence-checker.ts:28-45`):
@@ -60,7 +60,7 @@ Respond with ONLY valid JSON in this exact shape:
 | **Training pairs** | 520 (Sonnet-labeled) |
 | **Epochs** | 2 |
 | **Experiment** | #178 |
-| **Data file** | `lora-data/chapter-plan-checker-pairs.jsonl` |
+| **Data file** | `scripts/lora-data/chapter-plan-checker-pairs.jsonl` |
 | **roles.ts agent** | `chapter-plan-checker` |
 
 **Frozen system prompt** (2,343 chars, from `src/agents/chapter-plan-checker/plan-adherence-system.md`):
@@ -82,7 +82,7 @@ Starts with: `You verify that chapter prose captures the INTENT of a chapter pla
 | **Training pairs** | 253 (hand-crafted scenarios x 6-7 variants) |
 | **Epochs** | 3 |
 | **Experiment** | exp in docs/decisions.md |
-| **Data file** | `lora-data/continuity-pairs.jsonl` |
+| **Data file** | `scripts/lora-data/continuity-pairs.jsonl` |
 | **roles.ts agents** | `continuity-facts`, `continuity-state` (both use same adapter) |
 
 **Frozen system prompt** (2,927 chars, from `src/agents/continuity/fact-check-system.md` and `state-check-system.md`):
@@ -106,7 +106,7 @@ Starts with: `You are a continuity checker for fiction. Review the chapter draft
 | **Training pairs** | 6,423 (back-translated Howard style pairs) |
 | **Epochs** | 2 |
 | **Experiment** | #98 |
-| **Data file** | `lora-data/howard-tonal-pairs.jsonl` |
+| **Data file** | `scripts/lora-data/howard-tonal-pairs.jsonl` |
 | **roles.ts agent** | `tonal-pass` |
 
 **Frozen system prompt** (67 chars):
@@ -133,7 +133,7 @@ Rewrite this paragraph. Make the prose vivid, concrete, and direct.
 | **Base model** | OpenPipe/Qwen3-14B-Instruct |
 | **Training pairs** | 256 (Sonnet-reviewed, 3% approved / 97% corrected) |
 | **Epochs** | 3 |
-| **Data file** | `lora-data/fact-extractor-sonnet.jsonl` |
+| **Data file** | `scripts/lora-data/fact-extractor-sonnet.jsonl` |
 | **Source** | 143 from llm_calls + 113 generated, all Sonnet-reviewed |
 | **Novels** | 50 unique, chapters 1-10 |
 
@@ -159,7 +159,7 @@ Starts with: `Extract facts from this chapter that could cause **continuity erro
 | **Base model** | OpenPipe/Qwen3-14B-Instruct |
 | **Training pairs** | 256 (Sonnet-reviewed, 50% approved / 50% corrected) |
 | **Epochs** | 3 |
-| **Data file** | `lora-data/summary-extractor-sonnet.jsonl` |
+| **Data file** | `scripts/lora-data/summary-extractor-sonnet.jsonl` |
 | **Source** | 143 from llm_calls + 113 generated, all Sonnet-reviewed |
 | **Novels** | 50 unique, chapters 1-10 |
 
@@ -185,7 +185,7 @@ Starts with: `Extract a structured summary of this chapter for use as context in
 | **Base model** | OpenPipe/Qwen3-14B-Instruct |
 | **Training pairs** | 256 (Sonnet-reviewed, 44% approved / 56% corrected) |
 | **Epochs** | 3 |
-| **Data file** | `lora-data/character-state-sonnet.jsonl` |
+| **Data file** | `scripts/lora-data/character-state-sonnet.jsonl` |
 | **Source** | 143 from llm_calls + 113 generated, all Sonnet-reviewed |
 | **Novels** | 50 unique, chapters 1-10 |
 
@@ -211,7 +211,7 @@ Starts with: `For each character who appeared in this chapter, describe their co
 | **Base model** | OpenPipe/Qwen3-14B-Instruct |
 | **Training pairs** | 256 (Sonnet-reviewed, 33% approved / 67% corrected) |
 | **Epochs** | 3 |
-| **Data file** | `lora-data/relationship-timeline-sonnet.jsonl` |
+| **Data file** | `scripts/lora-data/relationship-timeline-sonnet.jsonl` |
 | **Source** | 143 from llm_calls + 113 generated, all Sonnet-reviewed |
 | **Novels** | 50 unique, chapters 1-10 |
 

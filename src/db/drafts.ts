@@ -1,4 +1,4 @@
-import db from "../../data/connection"
+import db from "./connection"
 
 export async function saveChapterDraft(novelId: string, chapterNum: number, prose: string, wordCount: number): Promise<void> {
   const rows = await db`SELECT MAX(version) as v FROM chapter_drafts WHERE novel_id = ${novelId} AND chapter_number = ${chapterNum}`

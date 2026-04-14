@@ -22,11 +22,11 @@
 
 import { parseArgs } from "node:util"
 import { readFileSync, existsSync } from "node:fs"
-import db from "../../data/connection"
+import db from "../../src/db/connection"
 import { getTransport } from "../../src/transport"
 import { extractJSON } from "../../src/llm"
-import { getModelForAgent } from "../../models/roles"
-import { createTuningExperiment, concludeExperiment } from "../../data/db"
+import { getModelForAgent } from "../../src/models/roles"
+import { createTuningExperiment, concludeExperiment } from "../../src/db/ops"
 import { isHeuristicOnly } from "../../src/lint/concepts"
 
 const HARNESS_ROOT = new URL("../..", import.meta.url).pathname.replace(/\/$/, "")

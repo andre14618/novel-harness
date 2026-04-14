@@ -1,4 +1,4 @@
-import db from "../../data/connection"
+import db from "./connection"
 
 export async function saveValidationPass(novelId: string, passNumber: number, chapterNum: number, status: string, issuesFound: number): Promise<void> {
   await db`INSERT INTO validation_passes (novel_id, pass_number, chapter_number, status, issues_found)

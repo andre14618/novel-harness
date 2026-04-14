@@ -5,11 +5,11 @@ import { traceAgentStart, traceAgentComplete, traceAgentFail, traceLLMCallStart,
 import {
   PROVIDERS, getApiKey, getTokenCost, getModel,
   type ProviderName, type ProviderDef,
-} from "../models/registry"
-import { getModelForAgent, getAgentConfig, type ModelAssignment } from "../models/roles"
+} from "./models/registry"
+import { getModelForAgent, getAgentConfig, type ModelAssignment } from "./models/roles"
 import { getTransport, type LLMResponse } from "./transport"
 
-export type { ProviderName } from "../models/registry"
+export type { ProviderName } from "./models/registry"
 
 // ── Provider resolution ──────────────────────────────────────────────────
 

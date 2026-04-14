@@ -6,7 +6,7 @@
  * then applies character/location boosts and recency decay.
  */
 
-import db from "../../data/connection"
+import db from "./connection"
 import { getEmbedding } from "./embed"
 import type { ChapterOutline, CharacterProfile } from "../types"
 

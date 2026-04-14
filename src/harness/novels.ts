@@ -3,7 +3,7 @@
  * Aggregates across multiple tables for dashboard/status views.
  */
 
-import db from "../../data/connection"
+import db from "../db/connection"
 
 export interface NovelSummary {
   id: string

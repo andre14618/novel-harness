@@ -4,7 +4,7 @@
  * Usage: bun src/lint/test-all.ts
  */
 
-import db from "../../data/connection"
+import db from "../db/connection"
 import { lintRun, getPatternStats } from "./index"
 
 const runs = await db`

@@ -1,4 +1,4 @@
-import db from "../../data/connection"
+import db from "./connection"
 import type { Fact } from "../types"
 
 export async function saveFact(novelId: string, fact: Omit<Fact, "id">): Promise<string> {

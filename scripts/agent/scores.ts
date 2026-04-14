@@ -11,8 +11,8 @@ import { parseArgs } from "node:util"
 import {
   getRunAverages, getPerSeedAverages, getBaselineAverages,
   getExperimentScores,
-} from "../../data/db"
-import db from "../../data/connection"
+} from "../../src/db/ops"
+import db from "../../src/db/connection"
 
 const { values } = parseArgs({
   options: {

@@ -1,4 +1,4 @@
-import db from "../../data/connection"
+import db from "./connection"
 import type { ChapterSummary } from "../types"
 
 export async function saveChapterSummary(novelId: string, chapterNum: number, summary: string, keyEvents: string[], emotionalState: string = "", openThreads: string[] = []): Promise<void> {

@@ -6,7 +6,7 @@
  * to improve how context is presented to the writer.
  */
 
-import db from "../../data/connection"
+import db from "./connection"
 
 const DEFAULTS: Record<string, string> = {
   scene_query: "{pov} in {setting}. {purpose}. {beats}",

@@ -13,7 +13,7 @@
 
 import { parseArgs } from "node:util"
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs"
-import db from "../../data/connection"
+import db from "../../src/db/connection"
 import { getEnabledPatterns } from "../../src/lint/detectors/regex"
 import type { LintPattern } from "../../src/lint/types"
 

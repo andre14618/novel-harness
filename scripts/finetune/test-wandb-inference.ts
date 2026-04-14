@@ -23,7 +23,7 @@
  *   bun scripts/test-wandb-inference.ts
  */
 
-import { createTuningExperiment, concludeExperiment } from "../../data/db"
+import { createTuningExperiment, concludeExperiment } from "../../src/db/ops"
 
 const WANDB_KEY = process.env.WANDB_API_KEY
 const CEREBRAS_KEY = process.env.CEREBRAS_API_KEY

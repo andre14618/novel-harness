@@ -3,8 +3,8 @@
  * Replaces direct calls to data/db.ts experiment functions and inline SQL.
  */
 
-import db from "../../data/connection"
-import { createTuningExperiment, concludeExperiment, linkExperiment, getRelatedExperiments } from "../../data/db"
+import db from "../db/connection"
+import { createTuningExperiment, concludeExperiment, linkExperiment, getRelatedExperiments } from "../db/ops"
 
 export { createTuningExperiment, concludeExperiment, linkExperiment, getRelatedExperiments }
 

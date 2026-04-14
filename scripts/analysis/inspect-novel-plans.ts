@@ -4,7 +4,7 @@
  *
  * Usage: NOVEL_ID=novel-xxx bun scripts/inspect-novel-plans.ts
  */
-import db from "../../data/connection"
+import db from "../../src/db/connection"
 
 const NOVEL_ID = process.env.NOVEL_ID || "novel-1776022336598"
 

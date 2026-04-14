@@ -1,4 +1,4 @@
-import db from "../../data/connection"
+import db from "./connection"
 import type { ContinuityIssue } from "../schemas/shared"
 
 export async function saveIssue(novelId: string, issue: { severity: string; description: string; chapter: number; conflictsWith?: string; suggestedFix?: string }): Promise<void> {

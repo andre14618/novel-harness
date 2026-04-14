@@ -21,7 +21,7 @@
 
 import { readdirSync, readFileSync, existsSync, unlinkSync } from "fs"
 import { join } from "path"
-import { createTuningExperiment, concludeExperiment } from "../../data/db"
+import { createTuningExperiment, concludeExperiment } from "../../src/db/ops"
 
 const ESCALATION_DIR = "/tmp/missing-beat-escalation"
 const GPTOSS_TRAIN   = join(import.meta.dir, "../lora-data/chapter-plan-checker-pairs-gptoss-v2.jsonl")

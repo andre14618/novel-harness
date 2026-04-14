@@ -2,7 +2,7 @@
  * Spot-check dialogue detection on a specific chapter.
  * Usage: bun scripts/spot-check-dialogue.ts
  */
-import db from "../../data/connection.ts";
+import db from "../../src/db/connection";
 
 // Get a chapter with high speech verb count but previously low dialogue detection
 const samples = await db`

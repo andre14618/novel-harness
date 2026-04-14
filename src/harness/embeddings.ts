@@ -3,7 +3,7 @@
  * Handles batch embedding of chapter data after extraction.
  */
 
-import db from "../../data/connection"
+import db from "../db/connection"
 import {
   getEmbeddings,
   buildFactEmbedText, buildEventEmbedText, buildSummaryEmbedText,

@@ -1,4 +1,4 @@
-import db from "../../data/connection"
+import db from "./connection"
 import type { Phase, SeedInput, NovelState } from "../types"
 
 export async function createNovel(id: string, seed: SeedInput): Promise<void> {

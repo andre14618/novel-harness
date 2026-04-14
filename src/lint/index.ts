@@ -9,7 +9,7 @@
  * Re-exports types and DB persistence for external consumers.
  */
 
-import db from "../../data/connection"
+import db from "../db/connection"
 import { detectRegexPatterns, getEnabledPatterns } from "./detectors/regex"
 import { lintEmotionalEcho } from "./detectors/emotional-echo"
 import { lintRhythm, DEFAULT_RHYTHM_CONFIG, type RhythmConfig } from "./detectors/rhythm"

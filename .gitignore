@@ -9,6 +9,6 @@ data/batches/
 .env
 .DS_Store
 novel.db
-lora-data/
+scripts/lora-data/
 finetune-data/
 wandb/

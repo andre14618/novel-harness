@@ -7,7 +7,7 @@ import { getTokenUsage } from "./llm"
 import { emit } from "./events"
 import { pipeline } from "./config/pipeline"
 import { trace } from "./trace"
-import db from "../data/connection"
+import db from "./db/connection"
 
 export async function runNovel(novelId: string): Promise<void> {
   const startedAt = Date.now()

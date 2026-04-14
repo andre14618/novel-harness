@@ -1,4 +1,4 @@
-import db from "../../data/connection"
+import db from "./connection"
 import type { WorldBible, CharacterProfile, StorySpine } from "../types"
 
 export async function saveWorldBible(novelId: string, bible: WorldBible): Promise<void> {

@@ -8,10 +8,10 @@
  */
 
 import { readFileSync } from "node:fs"
-import db from "../../data/connection"
+import db from "../../src/db/connection"
 import { getTransport } from "../../src/transport"
 import { extractJSON } from "../../src/llm"
-import { getModelForAgent } from "../../models/roles"
+import { getModelForAgent } from "../../src/models/roles"
 import { CONCEPTS, loadConceptContext, isHeuristicOnly, type LintConcept } from "../../src/lint/concepts"
 
 const AGENT_PROMPT = readFileSync(

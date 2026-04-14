@@ -1,4 +1,4 @@
-import db from "../../data/connection"
+import db from "./connection"
 
 export interface RelationshipState {
   characterA: string
