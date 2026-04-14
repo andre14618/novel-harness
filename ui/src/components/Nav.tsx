@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom"
 const PAGES = [
   { path: "/studio", label: "The Studio" },
   { path: "/guide", label: "Overview" },
-  { path: "/context", label: "Context" },
+  { path: "/context", label: "Context Engineering" },
   { path: "/finetune", label: "Fine-Tuning" },
   { path: "/docs", label: "Docs" },
 ]

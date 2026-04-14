@@ -34,12 +34,10 @@ LXC 307 (192.168.1.108)
 │   │   ├── facts, character_states, issues, validation_passes
 │   │   └── world_systems, cultures, character_cultures
 │   │
-│   ├── Knowledge Graph
+│   ├── World State (plan-declared, feeds beat context)
 │   │   ├── relationship_states (per-chapter snapshots → arcs)
-│   │   ├── timeline_events (with causal chains)
-│   │   ├── character_knowledge (with propagation tracking)
-│   │   ├── event_causes (cause → effect graph)
-│   │   ├── knowledge_propagation (who told whom)
+│   │   ├── timeline_events (recent events, location events)
+│   │   ├── character_knowledge (what each character knows)
 │   │   └── deterministic_config (causal tuning parameters)
 │   │
 │   └── Operations
