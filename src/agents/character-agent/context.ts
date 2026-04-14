@@ -1,11 +1,14 @@
 import type { SeedInput, WorldBible } from "../../types"
+import { renderDirectivesForConcept } from "../../schemas/planning-directives"
 
 export function buildContext(seed: SeedInput, worldBible?: WorldBible | null): string {
   const charList = seed.characters
     .map(c => `- ${c.name} (${c.role}): ${c.description}`)
     .join("\n")
 
-  let ctx = `Genre: ${seed.genre}\n\nPremise: ${seed.premise}\n\nCharacters:\n${charList}`
+  const directives = seed.directives ? renderDirectivesForConcept(seed.directives) : ""
+
+  let ctx = `Genre: ${seed.genre}\n\nPremise: ${seed.premise}\n\nCharacters:\n${charList}${directives}`
 
   if (worldBible?.systems?.length || worldBible?.cultures?.length) {
     if (worldBible.systems.length > 0) {

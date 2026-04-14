@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-12
+updated: 2026-04-14
 ---
 
 # Decisions
@@ -917,3 +917,29 @@ All three targets met (echo at target, dialogue slightly below 20% for this myst
 - Collapsed extractionMode branching in `drafting.ts` and `validation.ts` to direct `savePlannedState()` call
 - Removed `extractionMode` config option, extractor registry entries, prompt/schema exports, logger mappings, UI groups
 - V1 adapter artifacts remain on W&B as artifacts but are permanently retired
+
+---
+
+## Studio UI
+
+### Pre-planning Director chat shipped as two-agent split
+*2026-04-14*
+
+**Decision:** The Studio's pre-planning "director" is split into two agents with different models:
+- **`planning-conversationalist`** — Groq Qwen3-32B, temp 0.65, maxTokens 600. Plain-text chat. Runs a guided 8-phase sequence (protagonist → opposing force → world → supporting cast → story shape → voice/tone → guardrails → confirmation) with explicit sparsity detection — probes once with an example menu when an answer is a bare category or one-word adjective, then advances.
+- **`planning-extractor`** — Cerebras Qwen 235B, temp 0.2, maxTokens 2048. One-shot compile of the transcript into `PlanningDirectives` (Zod schema: lockedCharacters, requiredBeats, forbidden, tonalAnchors, structuralConstraints, rawNotes). Only runs when the user presses "Compile."
+
+**Why:** Chat turns are high-volume and forgiving; compile is one-shot and load-bearing (its output drives the whole concept + planning phase). Matches cost to where quality matters. Groq Qwen3-32B is ~10× cheaper than Cerebras 235B at similar chat fidelity; Cerebras 235B stays as the extractor because structured extraction quality feeds every downstream agent.
+
+**Directives reach the whole pipeline, not just the planner:** `renderDirectivesForConcept()` injects locked characters, tonal anchors, forbidden items, and structural constraints into world-builder, character-agent, and plotter contexts. `renderDirectivesForPlanner()` (superset) injects everything plus required beats into planning-plotter. Directives travel on `SeedInput.directives` → `seed_json` JSONB, so no new DB table was required.
+
+**Alternatives rejected:**
+- **Single `planning-director` agent doing chat + per-turn JSON extraction** (initial design) — every turn paid for a structured call against the full schema, and chat drift kept corrupting earlier extracted state. Split into chat (cheap, plain text) + compile (expensive, structured, on-demand).
+- **Cerebras 235B for the conversationalist too** — ruled out after pivot: chat doesn't benefit from the big model's schema-following; the extractor is where fidelity matters.
+- **MiMo Flash for the extractor** — ruled out explicitly by user ("not an extra dumb model"). The extractor's output shapes every concept-phase context, so a weak model would amplify errors.
+- **New `planning_directives` table** — unnecessary. Directives are seed-scoped; embedding in `seed_json` avoids a migration and keeps load/resume paths trivial.
+
+**Ongoing:**
+- Validate the guided 8-phase flow on 2–3 real novel runs; tune sparsity heuristics if probes misfire.
+- Chip-edit UI (click chip → inline edit or scoped "AI modify" call) not yet built — next UI iteration.
+- Post-planning editing (Option 2) and mid-run steering (Option 3) remain in `docs/todo.md`.

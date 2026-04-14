@@ -253,6 +253,95 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
     }
   }
 
+  // ── Planning chat (plain text, conversational) ────────────────────
+  // Pre-creation brainstorming turn. The conversationalist has no schema —
+  // it just asks focused follow-up questions to surface author intent.
+  // A separate /compile call later extracts directives from the transcript.
+  if (path === "/api/novel/director/chat" && req.method === "POST") {
+    try {
+      const body = await req.json() as {
+        seed: { premise: string; genre: string; chapterCount?: number }
+        history?: { role: "user" | "assistant"; content: string }[]
+        message: string
+      }
+
+      if (!body.message?.trim()) {
+        return Response.json({ error: "message required" }, { status: 400 })
+      }
+
+      const {
+        buildContext: buildChatContext,
+        prompt: CHAT_PROMPT,
+        config: chatConfig,
+      } = await import("../agents/planning-conversationalist")
+      const { getAgentConfig } = await import("../models/roles")
+      const { getTransport } = await import("../transport")
+
+      const role = getAgentConfig("planning-conversationalist")
+      const userPrompt = buildChatContext({
+        seed: {
+          premise: body.seed.premise ?? "",
+          genre: body.seed.genre ?? "",
+          chapterCount: body.seed.chapterCount,
+        },
+        history: body.history ?? [],
+        userMessage: body.message,
+      })
+
+      const response = await getTransport().execute({
+        systemPrompt: CHAT_PROMPT,
+        userPrompt,
+        model: role?.model ?? "qwen/qwen3-32b",
+        provider: (role?.provider ?? "groq") as any,
+        temperature: role?.temperature ?? chatConfig.temperature,
+        maxTokens: role?.maxTokens ?? chatConfig.maxTokens,
+      })
+
+      return Response.json({ ok: true, assistantMessage: response.content.trim() })
+    } catch (err) {
+      return Response.json({ error: String(err) }, { status: 500 })
+    }
+  }
+
+  // ── Compile directives from transcript ────────────────────────────
+  // One-shot extraction: transcript → PlanningDirectives JSON. Runs on demand
+  // when the author clicks "Compile directives" in the UI.
+  if (path === "/api/novel/director/compile" && req.method === "POST") {
+    try {
+      const body = await req.json() as {
+        seed: { premise: string; genre: string; chapterCount?: number }
+        history?: { role: "user" | "assistant"; content: string }[]
+      }
+
+      const {
+        buildContext: buildExtractorContext,
+        prompt: EXTRACTOR_PROMPT,
+        schema: extractorSchema,
+      } = await import("../agents/planning-extractor")
+      const { callAgent } = await import("../llm")
+
+      const userPrompt = buildExtractorContext({
+        seed: {
+          premise: body.seed.premise ?? "",
+          genre: body.seed.genre ?? "",
+          chapterCount: body.seed.chapterCount,
+        },
+        history: body.history ?? [],
+      })
+
+      const result = await callAgent({
+        agentName: "planning-extractor",
+        systemPrompt: EXTRACTOR_PROMPT,
+        userPrompt,
+        schema: extractorSchema,
+      })
+
+      return Response.json({ ok: true, directives: result.output })
+    } catch (err) {
+      return Response.json({ error: String(err) }, { status: 500 })
+    }
+  }
+
   // ── Start novel ────────────────────────────────────────────────────
   if (path === "/api/novel/start" && req.method === "POST") {
     try {

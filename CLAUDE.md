@@ -28,6 +28,7 @@ State machine: concept → planning → drafting → validation → done
 
 Each agent's prompt/schema/context lives in `src/agents/{name}/`. The model assignment is in `src/models/roles.ts`.
 
+- **Studio pre-planning** (optional, pre-concept): `planning-conversationalist` (**Groq Qwen3-32B**, guided 8-phase Q&A with sparsity detection) + `planning-extractor` (**Cerebras Qwen 235B**, one-shot transcript → `PlanningDirectives`). Directives embed in `SeedInput.directives` → `seed_json` and reach concept agents via `renderDirectivesForConcept()` and the planner via `renderDirectivesForPlanner()`. See `docs/decisions.md` "Pre-planning Director chat."
 - **Concept** (`src/phases/concept.ts`): world-builder, character-agent, plotter — all on **Cerebras Qwen 235B**
 - **Planning** (`src/phases/planning.ts`): planning-plotter (outputs beats + world state updates) — **Cerebras Qwen 235B**
 - **Drafting** (`src/phases/drafting.ts`):

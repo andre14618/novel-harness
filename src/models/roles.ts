@@ -37,6 +37,13 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "plotter":                   { ...cerebrasQwen235B, maxTokens: 8192 },
   "planning-plotter":          { ...cerebrasQwen235B, temperature: 0.6, maxTokens: 8192 },
 
+  // ── Studio: pre-planning chat + extraction ───────────────────────────
+  // Chat is high-volume, forgiving — Groq Qwen3-32B is cheap and fast enough.
+  // Extractor is load-bearing (one-shot compile of transcript → PlanningDirectives
+  // that drives the planner) — stays on Cerebras 235B for fidelity.
+  "planning-conversationalist": { ...groqQwen32B, temperature: 0.65, maxTokens: 600 },
+  "planning-extractor":         { ...cerebrasQwen235B, temperature: 0.2, maxTokens: 2048 },
+
   // ── Beat support ──────────────────────────────────────────────────────
   // reference-resolver stays on Llama 3.1 8B Groq — set-union over implicit
   // references, fast tier is the right home, parallel-N may or may not

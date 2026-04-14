@@ -15,6 +15,7 @@ export interface SeedInput {
   genre: string
   characters: CharacterSketch[]
   chapterCount?: number
+  directives?: import("./schemas/planning-directives").PlanningDirectives
 }
 
 // ── Stored types (DB rows) ─────────────────────────────────────────────────

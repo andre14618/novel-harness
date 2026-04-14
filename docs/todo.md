@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-13
+updated: 2026-04-14
 ---
 
 # To Do
@@ -114,6 +114,36 @@ All existing SFT training data was generated with screenplay-style beats (pre-ex
 ## Studio
 
 - **Chat-driven creation flow** — Studio was rebuilt as a pipeline-first interface (compact creation bar + inline pipeline view with narrative activity feed, 2026-04-11). Next step: replace the form-based seed input with a conversational chat interface where an LLM (Cerebras Qwen 235B) shapes user input into `CustomSeed` format, asks for confirmation, then kicks off the pipeline.
+
+### Chat-based Planning Control (three intervention points)
+
+The chat UI is a reusable shell; the question is *where in the pipeline* it plugs in. Ship #1 first (additive, no schema changes), add #2 once the UX is proven, defer #3 until gates are ready.
+
+#### Option 1 — Pre-planning directives — SHIPPED 2026-04-14
+- Two-agent split: `planning-conversationalist` (Groq Qwen3-32B, guided 8-phase Q&A with sparsity detection) + `planning-extractor` (Cerebras Qwen 235B, one-shot compile of transcript → `PlanningDirectives`).
+- Directives live on the seed (`SeedInput.directives`), persisted via `seed_json` — no new table.
+- Injected into concept phase (world-builder, character-agent, plotter) via `renderDirectivesForConcept()` and into the planner via `renderDirectivesForPlanner()` (includes required beats).
+- UI: `DirectorChat.tsx` two-pane (transcript + live directives chips). Endpoints `POST /api/novel/director/chat` (plain text) and `POST /api/novel/director/compile` (structured).
+- **Next**: chip-edit (inline quick edit + AI-modify scoped call), validate guided flow produces well-formed directives on 2–3 real runs.
+
+#### Option 2 — Post-planning editing
+- **Where it plugs in**: after `runPlanningPhase()` produces chapter outlines, before `presentForApproval()` transitions to drafting. New "Edit Plan" gate in the Studio pipeline view.
+- **Model**: chat agent emits a structured diff against the `chapter_outlines` rows — add/remove/edit beat, swap POV, re-order beats, change chapter-level setting. Diffs are applied transactionally; a plain regeneration of affected chapters is the fallback when the diff is ambiguous.
+- **Requires**:
+  - Diff schema covering beat/outline mutations (new Zod schema in `src/schemas/`)
+  - Apply layer in `src/harness/novels.ts` that mutates `chapter_outlines` + keeps `planned_state` consistent (character state / knowledge changes may need recomputation)
+  - UI: plan tree on the left, chat on the right, pending-diff preview at the bottom with Apply/Discard
+  - Re-runs of the `chapter-plan-checker` after each apply so the user sees whether edits broke cross-beat coherence
+- **Risk**: medium. Edits to `chapter_outlines` after approval can desync `planned_state` tables. Needs careful transaction boundaries.
+
+#### Option 3 — Mid-run steering
+- **Where it plugs in**: at every existing gate (`src/gates.ts`) and optionally at custom breakpoints (end of chapter, before tonal pass). Steering message is injected into the *next* agent's context.
+- **Requires**:
+  - Gate extension: `presentForApproval` returns `{ decision, steeringMessage? }` instead of just decision
+  - Per-phase context hooks that accept an optional steering blob and render it into the agent prompt
+  - SSE event types for "gate:chat-open" / "gate:chat-message" so the UI can slide in a chat panel when the pipeline pauses
+  - Transcript persisted per gate event for audit / daemon training data
+- **Risk**: high. Every agent site that calls `callAgent` needs to accept/route steering. Steering can contradict already-persisted `planned_state`, so drafting-phase steering may need partial plan invalidation. Defer until #1 and #2 have validated the chat UX.
 
 ## Autoresearcher / Daemon
 

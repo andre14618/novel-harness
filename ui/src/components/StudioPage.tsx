@@ -3,12 +3,15 @@ import { Link } from "react-router-dom"
 import {
   getSeeds, listNovels, startNovel, startNovelCustom,
   getNovelState, getNovelConfig, getTrace, resumeNovel,
+  emptyDirectives,
   type NovelListItem, type NovelState, type NovelConfig, type SSEEvent, type TraceEvent,
+  type PlanningDirectives, type DirectorChatTurn,
 } from "../api"
 import { useNovelSSE } from "../hooks/useNovelSSE"
 import { GatePanel } from "./GatePanel"
 import { PipelineFlow } from "./PipelineFlow"
 import { LiveMeters } from "./LiveMeters"
+import { DirectorChat } from "./DirectorChat"
 
 // ── Agent display labels ────────────────────────────────────────────────
 const AGENT_ACTION: Record<string, string> = {
@@ -84,6 +87,9 @@ export function StudioPage() {
   ]
   const [customGenre, setCustomGenre] = useState("litrpg")
   const [starting, setStarting] = useState(false)
+  const [directorOpen, setDirectorOpen] = useState(false)
+  const [directives, setDirectives] = useState<PlanningDirectives>(emptyDirectives)
+  const [directorHistory, setDirectorHistory] = useState<DirectorChatTurn[]>([])
 
   // ── Pipeline view state ───────────────────────────────────────────────
   const [state, setState] = useState<NovelState | null>(null)
@@ -357,7 +363,27 @@ export function StudioPage() {
       if (inputMode === "seed") {
         result = await startNovel(selectedSeed, "auto")
       } else {
-        result = await startNovelCustom({ premise: customPremise, genre: customGenre, characters: [] }, "auto")
+        const hasDirectives =
+          directives.lockedCharacters.length > 0 ||
+          directives.requiredBeats.length > 0 ||
+          directives.forbidden.length > 0 ||
+          directives.tonalAnchors.length > 0 ||
+          !!directives.structuralConstraints.chapterCount ||
+          !!directives.structuralConstraints.povRotation ||
+          !!directives.structuralConstraints.pacing ||
+          !!directives.rawNotes.trim()
+        result = await startNovelCustom(
+          {
+            premise: customPremise,
+            genre: customGenre,
+            characters: [],
+            ...(hasDirectives ? { directives } : {}),
+          },
+          "auto",
+        )
+        setDirectorOpen(false)
+        setDirectives(emptyDirectives)
+        setDirectorHistory([])
       }
       setActiveNovelId(result.novelId)
       listNovels().then(r => setNovels(r.novels))
@@ -424,13 +450,39 @@ export function StudioPage() {
           </div>
         </div>
         {inputMode === "custom" && (
-          <textarea
-            className="studio-premise-textarea"
-            placeholder="Describe your novel premise…"
-            value={customPremise}
-            onChange={e => setCustomPremise(e.target.value)}
-            rows={2}
-          />
+          <>
+            <div className="studio-custom-premise-row">
+              <textarea
+                className="studio-premise-textarea"
+                placeholder="Describe your novel premise…"
+                value={customPremise}
+                onChange={e => setCustomPremise(e.target.value)}
+                rows={2}
+              />
+              <button
+                className={`studio-director-toggle${directorOpen ? " active" : ""}`}
+                onClick={() => setDirectorOpen(v => !v)}
+                disabled={!customPremise.trim()}
+                title={customPremise.trim() ? "Chat with the Planning Director to refine directives" : "Enter a premise first"}
+              >
+                {directorOpen ? "Close Director" : "Refine with Director"}
+                {(directives.lockedCharacters.length + directives.requiredBeats.length + directives.forbidden.length + directives.tonalAnchors.length) > 0 && (
+                  <span className="studio-director-count">
+                    {directives.lockedCharacters.length + directives.requiredBeats.length + directives.forbidden.length + directives.tonalAnchors.length}
+                  </span>
+                )}
+              </button>
+            </div>
+            {directorOpen && (
+              <DirectorChat
+                seed={{ premise: customPremise, genre: customGenre }}
+                directives={directives}
+                onDirectivesChange={setDirectives}
+                history={directorHistory}
+                onHistoryChange={setDirectorHistory}
+              />
+            )}
+          </>
         )}
       </div>
 

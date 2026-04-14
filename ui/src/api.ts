@@ -35,16 +35,81 @@ export function startNovel(seed: string, mode: "interactive" | "auto" = "interac
   })
 }
 
+export interface LockedCharacter {
+  name: string
+  role?: string
+  mustHaveTraits?: string[]
+  mustHaveArc?: string
+}
+
+export interface RequiredBeat {
+  chapter?: number
+  description: string
+  mustInclude?: string[]
+}
+
+export interface StructuralConstraints {
+  chapterCount?: number
+  povRotation?: string
+  pacing?: string
+  targetWordsPerChapter?: number
+}
+
+export interface PlanningDirectives {
+  lockedCharacters: LockedCharacter[]
+  requiredBeats: RequiredBeat[]
+  forbidden: string[]
+  tonalAnchors: string[]
+  structuralConstraints: StructuralConstraints
+  rawNotes: string
+}
+
+export const emptyDirectives: PlanningDirectives = {
+  lockedCharacters: [],
+  requiredBeats: [],
+  forbidden: [],
+  tonalAnchors: [],
+  structuralConstraints: { povRotation: "", pacing: "" },
+  rawNotes: "",
+}
+
 export interface CustomSeed {
   premise: string
   genre: string
   characters: { name: string; role: "protagonist" | "antagonist" | "supporting"; description: string }[]
+  directives?: PlanningDirectives
 }
 
 export function startNovelCustom(customSeed: CustomSeed, mode: "interactive" | "auto" = "interactive") {
   return fetchJSON<{ ok: boolean; novelId: string }>("/api/novel/start", {
     method: "POST",
     body: JSON.stringify({ customSeed, mode }),
+  })
+}
+
+export interface DirectorChatTurn {
+  role: "user" | "assistant"
+  content: string
+}
+
+export function chatWithDirector(args: {
+  seed: { premise: string; genre: string; chapterCount?: number }
+  history: DirectorChatTurn[]
+  message: string
+}) {
+  return fetchJSON<{ ok: boolean; assistantMessage: string }>("/api/novel/director/chat", {
+    method: "POST",
+    body: JSON.stringify(args),
+  })
+}
+
+export function compileDirectives(args: {
+  seed: { premise: string; genre: string; chapterCount?: number }
+  history: DirectorChatTurn[]
+}) {
+  return fetchJSON<{ ok: boolean; directives: PlanningDirectives }>("/api/novel/director/compile", {
+    method: "POST",
+    body: JSON.stringify(args),
   })
 }
 
