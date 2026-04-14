@@ -898,6 +898,34 @@ input[type="checkbox"] {
 }
 .card-tab-link:hover { opacity: 0.8; }
 
+/* ── Fine-tune page ────────────────────────────────────────────────── */
+.finetune-page { padding: 0; }
+.finetune-header {
+  padding: 0 32px 0;
+}
+.finetune-header section { margin-bottom: 1.5rem; }
+.finetune-header h2 {
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+}
+.finetune-header p {
+  font-size: 0.82rem;
+  line-height: 1.8;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+.finetune-header code {
+  font-size: 0.78rem;
+  background: var(--bg-raised);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+.finetune-tab-bar {
+  padding: 0 32px 14px;
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
 .guide-content section { margin-bottom: 2rem; }
 .guide-content p {
   font-size: 0.82rem;

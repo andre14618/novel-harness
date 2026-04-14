@@ -12,7 +12,7 @@ export function ContextEngineeringPage() {
         <h2>Pipeline Data Flow</h2>
         <p className="ce-desc">
           Each phase must complete before the next begins. After a chapter is approved,
-          extracted state feeds back into the DB for the next chapter's beat context.
+          the planner's declared state is saved to DB for the next chapter's beat context.
         </p>
         <PipelineSVG />
       </section>
@@ -205,38 +205,6 @@ export function ContextEngineeringPage() {
         </div>
       </section>
 
-      {/* ── Token budget comparison ──────────────────────────── */}
-      <section className="ce-section">
-        <h2>Token Budget: Before vs After</h2>
-        <div className="ce-comparison">
-          <div className="ce-compare-card ce-compare-card--old">
-            <h3>Semantic Retrieval (retired)</h3>
-            <div className="ce-bar-row">
-              <div className="ce-bar-label">Input tokens</div>
-              <div className="ce-bar-track"><div className="ce-bar-fill ce-bar-fill--old" style={{ width: "100%" }}>~8,500</div></div>
-            </div>
-            <ul className="ce-compare-list">
-              <li>Vector search across 6 tables</li>
-              <li>RRF ranking with recency decay</li>
-              <li>Character + location boosts</li>
-              <li>Non-deterministic: different context each run</li>
-            </ul>
-          </div>
-          <div className="ce-compare-card ce-compare-card--new">
-            <h3>Beat Context (current)</h3>
-            <div className="ce-bar-row">
-              <div className="ce-bar-label">Input tokens</div>
-              <div className="ce-bar-track"><div className="ce-bar-fill ce-bar-fill--new" style={{ width: "10%" }}>~846</div></div>
-            </div>
-            <ul className="ce-compare-list">
-              <li>Deterministic DB lookups</li>
-              <li>Only what the beat references</li>
-              <li>Reproducible: same input every run</li>
-              <li>10x fewer tokens, better adherence</li>
-            </ul>
-          </div>
-        </div>
-      </section>
     </div>
   )
 }
@@ -434,12 +402,12 @@ function PipelineSVG() {
       {/* ── Phase 5: Approval + Extraction ────────────────────── */}
       <rect x={PX} y={p5y} width={PW} height={p5h} rx={8} className="cs-ph" />
       <Pn cx={PX + 20} cy={p5y + 16} n={5} />
-      <text x={PX + 36} y={p5y + 20} className="cs-title">Approval + State Extraction</text>
+      <text x={PX + 36} y={p5y + 20} className="cs-title">Approval + State Save</text>
       <text x={PX + PW - 10} y={p5y + 20} textAnchor="end" className="cs-meta">per chapter — feeds next chapter</text>
 
       <N x={55} y={n5y} w={185} h={n5h} type="output" label="Approved Chapter" />
       <A x1={240} y1={n5y + n5h / 2} x2={290} y2={n5y + n5h / 2} />
-      <N x={290} y={n5y - 2} w={270} h={n5h + 4} type="agent" label="State Extraction" sub="savePlannedState() + 5 extractors" />
+      <N x={290} y={n5y - 2} w={270} h={n5h + 4} type="store" label="savePlannedState()" sub="planner-declared state → DB" />
       <A x1={560} y1={n5y + n5h / 2} x2={610} y2={n5y + n5h / 2} />
       <N x={610} y={n5y} w={250} h={n5h} type="store" label="DB State Tables" sub="facts, states, knowledge, relationships" />
 

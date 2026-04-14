@@ -3,6 +3,9 @@ import { Link, useLocation } from "react-router-dom"
 const PAGES = [
   { path: "/studio", label: "The Studio" },
   { path: "/guide", label: "Overview" },
+  { path: "/context", label: "Context" },
+  { path: "/finetune", label: "Fine-Tuning" },
+  { path: "/docs", label: "Docs" },
 ]
 
 export function Nav() {
