@@ -46,6 +46,11 @@ const db = new Proxy(function () {} as unknown as SQL, {
 
 export default db
 
+// ── API compatibility ───────────────────────────────────────────────────
+// Postgres doesn't need per-novel initialization. Kept as a no-op so callers
+// don't need to change when migrating from SQLite.
+export async function initDB(_novelId: string): Promise<void> {}
+
 // ── Migration runner ────────────────────────────────────────────────────
 
 async function ensureMigrationsTable() {
