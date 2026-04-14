@@ -6,8 +6,6 @@ import { PipelineView } from "./components/PipelineView"
 import { GuidePage } from "./components/GuidePage"
 import { DocsPage } from "./components/DocsPage"
 import { FinetunePage } from "./components/FinetunePage"
-import { TodoPage } from "./components/TodoPage"
-import { ContextEngineeringPage } from "./components/ContextEngineeringPage"
 import { NovelReadView } from "./components/NovelReadView"
 import { StudioPage } from "./components/StudioPage"
 import { ComparePage } from "./components/ComparePage"
@@ -23,7 +21,7 @@ createRoot(document.getElementById("root")!).render(
           <Route path="/guide" element={<GuidePage />} />
           <Route path="/docs" element={<DocsPage />} />
           <Route path="/finetune" element={<FinetunePage />} />
-          <Route path="/todo" element={<TodoPage />} />
+          <Route path="/todo" element={<Navigate to="/docs?doc=todo.md" replace />} />
           <Route path="/studio" element={<StudioPage />} />
           <Route path="/compare" element={<ComparePage />} />
           <Route path="/read" element={<NovelReadView />} />
@@ -37,7 +35,7 @@ createRoot(document.getElementById("root")!).render(
           <Route path="/lora" element={<Navigate to="/finetune" replace />} />
           <Route path="/adapters" element={<Navigate to="/finetune" replace />} />
           <Route path="/decisions" element={<Navigate to="/docs?doc=decisions.md" replace />} />
-          <Route path="/context-engineering" element={<ContextEngineeringPage />} />
+          <Route path="/context-engineering" element={<Navigate to="/docs?doc=context-engineering.md" replace />} />
           {/* Legacy redirects */}
           <Route path="/context" element={<Navigate to="/guide" replace />} />
           <Route path="/deterministic" element={<Navigate to="/guide" replace />} />

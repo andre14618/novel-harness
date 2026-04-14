@@ -1,11 +1,16 @@
 ---
-status: active
+status: partial — DB schema live, retrieval retired
 created: 2026-04-04
+updated: 2026-04-13
 ---
 
-# World Knowledge Graph & Scoped Context Assembly
+# World Knowledge Graph — DB Schema Reference
 
-The world knowledge graph gives the novel harness structured worldbuilding that scales to 20-30 chapter novels. Instead of a flat world bible JSON blob, the system maintains typed entities (systems, cultures, relationships, timeline events, character knowledge) that evolve chapter-by-chapter and are assembled into POV-scoped context for the writer agent.
+> **Current status (2026-04-13):** The Postgres tables below are all live and populated by the planner. LLM extractors were removed 2026-04-13 (validated as noise — 7 novels, 134 checks, 0 failures on plan-only). Semantic retrieval (embeddings, RRF search) is disabled. The graph tables (`event_causes`, `knowledge_propagation`) are no longer written. This doc is now a **DB schema reference** — the retrieval and context-assembly sections describe retired infrastructure.
+>
+> For the current context pipeline see `docs/context-engineering.md` → "Beat Context" section.
+
+The world knowledge graph stores structured worldbuilding in Postgres. Typed entities (systems, cultures, relationships, timeline events, character knowledge) are populated from planner output each chapter and available to checkers.
 
 ## Data Model
 
@@ -127,7 +132,9 @@ Embeddings are disabled (`pipeline.embeddings = false`). Graph linker and `event
 | `knowledge_propagation` | Who transmitted knowledge to whom, via what event, with confidence |
 | `retrieval_config` | Per-novel tunable retrieval parameters (12 fields) |
 
-## Context Assembly
+## Context Assembly *(retired — see context-engineering.md)*
+
+> Semantic retrieval is disabled. The beat-writer uses only deterministic DB lookups via `beat-context.ts`. See `docs/context-engineering.md` for the current context pipeline.
 
 The writer context builder (`src/agents/writer/context.ts`) uses a fixed skeleton with dynamic semantic retrieval.
 

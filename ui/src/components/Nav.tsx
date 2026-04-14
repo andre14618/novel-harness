@@ -3,10 +3,7 @@ import { Link, useLocation } from "react-router-dom"
 const PAGES = [
   { path: "/studio", label: "The Studio" },
   { path: "/guide", label: "Overview" },
-  { path: "/context-engineering", label: "Context Engineering" },
   { path: "/compare", label: "Compare" },
-  { path: "/finetune", label: "Fine-tuning" },
-  { path: "/todo", label: "To Do" },
   { path: "/docs", label: "Docs" },
 ]
 

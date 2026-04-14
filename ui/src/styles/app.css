@@ -2447,6 +2447,74 @@ details[open] summary::before { transform: rotate(90deg); }
 .novel-tile-status.done { background: var(--accent-surface); color: var(--accent); }
 .novel-tile-status.running { background: var(--yellow-surface); color: var(--yellow); }
 
+/* ── Docs panel overlay (Studio popout) ─────────────────────────────── */
+.docs-panel-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 200;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 60px 24px 24px;
+}
+.docs-panel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  width: min(960px, 90vw);
+  height: calc(100vh - 96px);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+.docs-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+.docs-panel-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+.docs-panel-sidebar {
+  width: 210px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border-subtle);
+  overflow-y: auto;
+  padding: 8px 0;
+}
+.docs-panel-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 7px 16px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-family: inherit;
+  cursor: pointer;
+  line-height: 1.35;
+  transition: all var(--transition-fast);
+}
+.docs-panel-item:hover { color: var(--text-primary); background: var(--bg-inset); }
+.docs-panel-item.active { color: var(--accent); background: var(--accent-surface); border-left: 2px solid var(--accent); }
+.docs-panel-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 32px;
+  min-width: 0;
+}
+
 /* ═════════════════════════════════════════════════════════════════════
    Live Pipeline View — polished real-time novel creation experience
    ═════════════════════════════════════════════════════════════════════ */
