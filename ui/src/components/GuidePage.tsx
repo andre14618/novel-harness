@@ -146,7 +146,7 @@ LXC 307 (192.168.1.108)
 
               <div className="flow-arrow">|</div>
 
-              <div className="flow-step done">
+              <div className="flow-step">
                 <div className="flow-num">5</div>
                 <div>
                   <strong>Done</strong>
