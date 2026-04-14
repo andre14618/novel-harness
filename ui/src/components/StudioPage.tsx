@@ -9,9 +9,6 @@ import { useNovelSSE } from "../hooks/useNovelSSE"
 import { GatePanel } from "./GatePanel"
 import { PipelineFlow } from "./PipelineFlow"
 import { LiveMeters } from "./LiveMeters"
-import { marked } from "marked"
-import { listDocs, getDoc, type DocEntry } from "../api"
-marked.setOptions({ breaks: true, gfm: true })
 
 // ── Agent display labels ────────────────────────────────────────────────
 const AGENT_ACTION: Record<string, string> = {
@@ -93,11 +90,6 @@ export function StudioPage() {
   const [_config, setConfig] = useState<NovelConfig | null>(null)
   const [resuming, setResuming] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
-  const [docsOpen, setDocsOpen] = useState(false)
-  const [docsList, setDocsList] = useState<DocEntry[]>([])
-  const [activeDoc, setActiveDoc] = useState<string | null>(null)
-  const [docContent, setDocContent] = useState("")
-
   const { events, connected, lastEvent, seedEvents } = useNovelSSE(activeNovelId)
 
   const [liveCalls, setLiveCalls] = useState<LLMCallRow[]>([])
@@ -342,26 +334,6 @@ export function StudioPage() {
     }
   }, [liveCalls.length, state?.active])
 
-  // Docs panel — load list on first open
-  useEffect(() => {
-    if (!docsOpen || docsList.length > 0) return
-    listDocs()
-      .then(r => {
-        setDocsList(r.docs)
-        if (r.docs.length > 0) setActiveDoc(r.docs[0].filename)
-      })
-      .catch(() => {})
-  }, [docsOpen])
-
-  // Docs panel — load content when active doc changes
-  useEffect(() => {
-    if (!activeDoc) return
-    setDocContent("")
-    getDoc(activeDoc)
-      .then(r => setDocContent(r.content))
-      .catch(() => setDocContent("Error loading document."))
-  }, [activeDoc])
-
   // Meters
   const totals = useMemo(() => {
     const done = liveCalls.filter(c => c.status === "done")
@@ -448,7 +420,6 @@ export function StudioPage() {
             <button className="studio-novels-btn" onClick={() => setPickerOpen(true)}>
               {novels.length === 1 ? "Read Novel" : "Read Novels"} <span className="studio-novels-count">{novels.length}</span>
             </button>
-            <button className="studio-clear-btn" onClick={() => setDocsOpen(true)}>Docs</button>
             <span className={`connected-dot ${connected ? "on" : "off"}`} />
           </div>
         </div>
@@ -535,42 +506,6 @@ export function StudioPage() {
           </div>
         )
       })()}
-
-      {/* ── Docs panel ───────────────────────────────────────────────── */}
-      {docsOpen && (
-        <div className="docs-panel-overlay" onClick={() => setDocsOpen(false)}>
-          <div className="docs-panel" onClick={e => e.stopPropagation()}>
-            <div className="docs-panel-header">
-              <span>Docs</span>
-              <button className="novel-picker-close" onClick={() => setDocsOpen(false)}>×</button>
-            </div>
-            <div className="docs-panel-body">
-              <aside className="docs-panel-sidebar">
-                {docsList.length === 0
-                  ? <p style={{ padding: "12px 16px", color: "var(--text-tertiary)", fontSize: "0.78rem" }}>Loading…</p>
-                  : docsList.map(d => (
-                      <button
-                        key={d.filename}
-                        className={`docs-panel-item${activeDoc === d.filename ? " active" : ""}`}
-                        onClick={() => setActiveDoc(d.filename)}
-                      >
-                        {d.title}
-                      </button>
-                    ))
-                }
-              </aside>
-              <div className="docs-panel-content">
-                {docContent
-                  ? <div className="markdown-body" dangerouslySetInnerHTML={{ __html: marked.parse(docContent) as string }} />
-                  : <p style={{ color: "var(--text-tertiary)", fontSize: "0.82rem" }}>
-                      {docsList.length === 0 ? "Loading…" : "Select a document"}
-                    </p>
-                }
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── Pipeline view ────────────────────────────────────────────── */}
       {state && (

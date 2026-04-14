@@ -3,8 +3,6 @@ import { Link, useLocation } from "react-router-dom"
 const PAGES = [
   { path: "/studio", label: "The Studio" },
   { path: "/guide", label: "Overview" },
-  { path: "/compare", label: "Compare" },
-  { path: "/docs", label: "Docs" },
 ]
 
 export function Nav() {

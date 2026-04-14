@@ -4,11 +4,9 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import { Nav } from "./components/Nav"
 import { PipelineView } from "./components/PipelineView"
 import { GuidePage } from "./components/GuidePage"
-import { DocsPage } from "./components/DocsPage"
 import { FinetunePage } from "./components/FinetunePage"
 import { NovelReadView } from "./components/NovelReadView"
 import { StudioPage } from "./components/StudioPage"
-import { ComparePage } from "./components/ComparePage"
 import "./styles/app.css"
 
 createRoot(document.getElementById("root")!).render(
@@ -19,11 +17,11 @@ createRoot(document.getElementById("root")!).render(
         <Routes>
           <Route path="/" element={<Navigate to="/studio" replace />} />
           <Route path="/guide" element={<GuidePage />} />
-          <Route path="/docs" element={<DocsPage />} />
+          <Route path="/docs" element={<Navigate to="/guide?tab=docs" replace />} />
           <Route path="/finetune" element={<FinetunePage />} />
           <Route path="/todo" element={<Navigate to="/docs?doc=todo.md" replace />} />
           <Route path="/studio" element={<StudioPage />} />
-          <Route path="/compare" element={<ComparePage />} />
+          <Route path="/compare" element={<Navigate to="/guide?tab=compare" replace />} />
           <Route path="/read" element={<NovelReadView />} />
           <Route path="/:novelId/read" element={<NovelReadView />} />
           {/* Redirects for removed tabs — still accessible via direct URL */}
