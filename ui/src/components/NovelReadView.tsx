@@ -1,6 +1,12 @@
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, useMemo } from "react"
 import { useParams, useNavigate, Link } from "react-router-dom"
-import { listNovels, getNovelState, getAllChapters, getStorySpine, exportNovelURL, type ChapterData, type NovelState, type NovelListItem } from "../api"
+import { listNovels, getNovelState, getAllChapters, getStorySpine, exportNovelURL, runTonalPass, type ChapterData, type NovelState, type NovelListItem } from "../api"
+
+type ViewMode = "original" | "tonal" | "diff"
+
+function splitParagraphs(prose: string): string[] {
+  return prose.split(/\n{2,}/).map(p => p.trim()).filter(Boolean)
+}
 
 export function NovelReadView() {
   const { novelId } = useParams<{ novelId: string }>()
@@ -9,9 +15,13 @@ export function NovelReadView() {
   const [state, setState] = useState<NovelState | null>(null)
   const [spine, setSpine] = useState<any>(null)
   const [chapters, setChapters] = useState<ChapterData[]>([])
+  const [tonalChapters, setTonalChapters] = useState<ChapterData[]>([])
+  const [viewMode, setViewMode] = useState<ViewMode>("original")
   const [activeChapter, setActiveChapter] = useState(1)
   const [loading, setLoading] = useState(true)
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [tonalRunning, setTonalRunning] = useState(false)
+  const [tonalError, setTonalError] = useState<string | null>(null)
   const chapterRefs = useRef<Map<number, HTMLDivElement>>(new Map())
   const qs = window.location.search
 
@@ -27,19 +37,61 @@ export function NovelReadView() {
     }
   }, [novelId, novels])
 
+  const loadChapters = (id: string) => Promise.all([
+    getAllChapters(id, "approved").then(setChapters),
+    getAllChapters(id, "tonal").then(setTonalChapters).catch(() => setTonalChapters([])),
+  ])
+
   useEffect(() => {
     if (!novelId) return
     setLoading(true)
     setChapters([])
+    setTonalChapters([])
     setState(null)
     setSpine(null)
+    setViewMode("original")
     setActiveChapter(1)
     Promise.all([
       getNovelState(novelId).then(setState),
-      getAllChapters(novelId).then(setChapters),
+      loadChapters(novelId),
       getStorySpine(novelId).then(setSpine).catch(() => null),
     ]).finally(() => setLoading(false))
   }, [novelId])
+
+  // Poll for tonal-pass updates while a run is in progress
+  useEffect(() => {
+    if (!novelId || !tonalRunning) return
+    const t = setInterval(async () => {
+      const s = await getNovelState(novelId).catch(() => null)
+      if (!s) return
+      setState(s)
+      await loadChapters(novelId)
+      if (!s.active) {
+        setTonalRunning(false)
+        if (s.lastRunError) setTonalError(s.lastRunError.error)
+      }
+    }, 3000)
+    return () => clearInterval(t)
+  }, [novelId, tonalRunning])
+
+  const tonalByChapter = useMemo(() => {
+    const m = new Map<number, ChapterData>()
+    for (const c of tonalChapters) if (c.status === "tonal-pass") m.set(c.chapter, c)
+    return m
+  }, [tonalChapters])
+
+  const hasAnyTonal = tonalByChapter.size > 0
+
+  const onRunTonal = async () => {
+    if (!novelId) return
+    setTonalError(null)
+    try {
+      await runTonalPass(novelId)
+      setTonalRunning(true)
+    } catch (err) {
+      setTonalError(err instanceof Error ? err.message : String(err))
+    }
+  }
 
   const scrollToChapter = (ch: number) => {
     setActiveChapter(ch)
@@ -78,7 +130,21 @@ export function NovelReadView() {
 
         {novelId && chapters.length > 0 && (
           <div className="reader-export">
-            <div className="reader-export-label">Export</div>
+            <div className="reader-export-label">Tonal Pass</div>
+            {hasAnyTonal ? (
+              <div className="reader-view-modes">
+                <button className={`reader-mode-btn ${viewMode === "original" ? "active" : ""}`} onClick={() => setViewMode("original")}>Original</button>
+                <button className={`reader-mode-btn ${viewMode === "tonal" ? "active" : ""}`} onClick={() => setViewMode("tonal")}>Tonal</button>
+                <button className={`reader-mode-btn ${viewMode === "diff" ? "active" : ""}`} onClick={() => setViewMode("diff")}>Diff</button>
+              </div>
+            ) : (
+              <div className="reader-tonal-empty">No tonal pass yet</div>
+            )}
+            <button className="reader-export-btn" onClick={onRunTonal} disabled={tonalRunning || state?.active} style={{ width: "100%", marginTop: "0.35rem" }}>
+              {tonalRunning ? "Running…" : hasAnyTonal ? "Re-run Tonal Pass" : "Run Tonal Pass"}
+            </button>
+            {tonalError && <div className="reader-tonal-error">{tonalError}</div>}
+            <div className="reader-export-label" style={{ marginTop: "0.85rem" }}>Export</div>
             <div className="reader-export-row">
               <a href={exportNovelURL(novelId, "markdown")} className="reader-export-btn">.md</a>
               <a href={exportNovelURL(novelId, "txt")} className="reader-export-btn">.txt</a>
@@ -142,23 +208,55 @@ export function NovelReadView() {
             No chapters drafted yet
           </div>
         ) : (
-          chapters.map(ch => (
-            <div
-              key={ch.chapter}
-              ref={el => { if (el) chapterRefs.current.set(ch.chapter, el) }}
-              className="reader-chapter"
-            >
-              <div className="reader-chapter-header">
-                <h3>Chapter {ch.chapter}</h3>
-                <div className="reader-chapter-meta">
-                  <span className={`badge ${ch.status === "approved" ? "done" : "active"}`}>{ch.status}</span>
-                  <span>{ch.wordCount} words</span>
-                  <span>v{ch.version}</span>
+          chapters.map(ch => {
+            const tonal = tonalByChapter.get(ch.chapter)
+            const activeProse = viewMode === "tonal" && tonal ? tonal.prose : ch.prose
+            const activeWords = viewMode === "tonal" && tonal ? tonal.wordCount : ch.wordCount
+            const activeVersion = viewMode === "tonal" && tonal ? tonal.version : ch.version
+            const activeStatus = viewMode === "tonal" && tonal ? "tonal-pass" : ch.status
+            const showDiff = viewMode === "diff" && tonal
+            const origParas = showDiff ? splitParagraphs(ch.prose) : []
+            const tonalParas = showDiff ? splitParagraphs(tonal!.prose) : []
+            const diffLen = Math.max(origParas.length, tonalParas.length)
+
+            return (
+              <div
+                key={ch.chapter}
+                ref={el => { if (el) chapterRefs.current.set(ch.chapter, el) }}
+                className={`reader-chapter ${viewMode === "tonal" && tonal ? "tonal" : ""}`}
+              >
+                <div className="reader-chapter-header">
+                  <h3>Chapter {ch.chapter}</h3>
+                  <div className="reader-chapter-meta">
+                    <span className={`badge ${activeStatus === "approved" ? "done" : activeStatus === "tonal-pass" ? "tonal" : "active"}`}>{activeStatus}</span>
+                    <span>{activeWords} words</span>
+                    <span>v{activeVersion}</span>
+                  </div>
                 </div>
+                {showDiff ? (
+                  <div className="prose-content">
+                    {Array.from({ length: diffLen }).map((_, i) => {
+                      const o = origParas[i] ?? ""
+                      const t = tonalParas[i] ?? ""
+                      if (o === t) {
+                        return <p key={i} className="diff-para unchanged">{o}</p>
+                      }
+                      if (!o) return <p key={i} className="diff-para added">{t}</p>
+                      if (!t) return <p key={i} className="diff-para removed">{o}</p>
+                      return (
+                        <div key={i} className="diff-pair">
+                          <p className="diff-para removed">{o}</p>
+                          <p className="diff-para added">{t}</p>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div className="prose-content">{activeProse}</div>
+                )}
               </div>
-              <div className="prose-content">{ch.prose}</div>
-            </div>
-          ))
+            )
+          })
         )}
       </main>
 

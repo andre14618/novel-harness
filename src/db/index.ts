@@ -5,7 +5,10 @@ export {
   updateCharacterFields, updateWorldBibleFields, updateStorySpineFields,
 } from "./world"
 export { saveChapterOutline, getChapterOutline, getChapterOutlines } from "./outlines"
-export { saveChapterDraft, approveChapterDraft, getApprovedDraft, unapproveChapterDraft, deleteChapterDrafts } from "./drafts"
+export {
+  saveChapterDraft, approveChapterDraft, getApprovedDraft, unapproveChapterDraft, deleteChapterDrafts,
+  saveTonalPassDraft, getTonalPassDraft, deleteTonalPassDrafts,
+} from "./drafts"
 export { saveChapterSummary, getRecentSummaries } from "./summaries"
 export { saveFact, getFactsUpToChapter, getFactsForChapter, clearFactsForChapter } from "./facts"
 export { saveCharacterState, getCharacterStatesAtChapter, getAllCharacterStatesBeforeChapter, clearCharacterStatesForChapter } from "./character-states"

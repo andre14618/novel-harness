@@ -238,8 +238,24 @@ export interface ChapterData {
   status: string
 }
 
-export function getAllChapters(novelId: string) {
-  return fetchJSON<ChapterData[]>(`/api/novel/${novelId}/chapters`)
+export function getAllChapters(novelId: string, variant: "approved" | "tonal" = "approved") {
+  return fetchJSON<ChapterData[]>(`/api/novel/${novelId}/chapters?variant=${variant}`)
+}
+
+export interface ChapterVersions {
+  approved: { prose: string; wordCount: number; version: number } | null
+  tonal: { prose: string; wordCount: number; version: number } | null
+}
+
+export function getChapterVersions(novelId: string, chapter: number) {
+  return fetchJSON<ChapterVersions>(`/api/novel/${novelId}/chapter/${chapter}/versions`)
+}
+
+export function runTonalPass(novelId: string, opts: { chapter?: number; regenerate?: boolean } = {}) {
+  return fetchJSON<{ ok: boolean }>(`/api/novel/${novelId}/tonal-pass`, {
+    method: "POST",
+    body: JSON.stringify(opts),
+  })
 }
 
 export interface BeatData {

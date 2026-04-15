@@ -690,15 +690,26 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
   }
 
   // ── All chapter drafts (for reader view) ─────────────────────────
+  // ?variant=tonal returns tonal-pass versions where they exist, falling back
+  // to approved. Default returns the canonical approved draft only.
   const allDraftsMatch = path.match(/^\/api\/novel\/([^/]+)\/chapters$/)
   if (allDraftsMatch && req.method === "GET") {
     const novelId = allDraftsMatch[1]
+    const variant = url.searchParams.get("variant") ?? "approved"
     try {
-      const rows = await db`
-        SELECT DISTINCT ON (chapter_number) chapter_number, prose, word_count, version, status
-        FROM chapter_drafts
-        WHERE novel_id = ${novelId}
-        ORDER BY chapter_number, version DESC`
+      const rows = variant === "tonal"
+        ? await db`
+            SELECT DISTINCT ON (chapter_number) chapter_number, prose, word_count, version, status
+            FROM chapter_drafts
+            WHERE novel_id = ${novelId} AND status IN ('approved', 'tonal-pass')
+            ORDER BY chapter_number,
+              CASE status WHEN 'tonal-pass' THEN 0 WHEN 'approved' THEN 1 ELSE 2 END,
+              version DESC`
+        : await db`
+            SELECT DISTINCT ON (chapter_number) chapter_number, prose, word_count, version, status
+            FROM chapter_drafts
+            WHERE novel_id = ${novelId} AND status = 'approved'
+            ORDER BY chapter_number, version DESC`
       return Response.json(rows.map(r => ({
         chapter: r.chapter_number,
         prose: r.prose,
@@ -709,6 +720,81 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
     } catch (err) {
       return Response.json({ error: String(err) }, { status: 500 })
     }
+  }
+
+  // ── Chapter versions (approved + tonal-pass, for diff view) ─────────
+  const versionsMatch = path.match(/^\/api\/novel\/([^/]+)\/chapter\/(\d+)\/versions$/)
+  if (versionsMatch && req.method === "GET") {
+    const novelId = versionsMatch[1]
+    const ch = parseInt(versionsMatch[2])
+    try {
+      const rows = await db`
+        SELECT prose, word_count, version, status
+        FROM chapter_drafts
+        WHERE novel_id = ${novelId} AND chapter_number = ${ch}
+          AND status IN ('approved', 'tonal-pass')
+        ORDER BY version DESC`
+      const approved = rows.find((r: any) => r.status === 'approved') ?? null
+      const tonal = rows.find((r: any) => r.status === 'tonal-pass') ?? null
+      return Response.json({
+        approved: approved ? { prose: approved.prose, wordCount: approved.word_count, version: approved.version } : null,
+        tonal: tonal ? { prose: tonal.prose, wordCount: tonal.word_count, version: tonal.version } : null,
+      })
+    } catch (err) {
+      return Response.json({ error: String(err) }, { status: 500 })
+    }
+  }
+
+  // ── Run tonal pass on-demand across all approved chapters ───────────
+  // Preserves the approved draft and stores the rewrite as a new version
+  // with status='tonal-pass'. Does not touch the state machine.
+  const tonalRunMatch = path.match(/^\/api\/novel\/([^/]+)\/tonal-pass$/)
+  if (tonalRunMatch && req.method === "POST") {
+    const novelId = tonalRunMatch[1]
+    if (activeRuns.has(novelId)) {
+      return Response.json({ error: "Novel is already running" }, { status: 409 })
+    }
+
+    await initDB(novelId)
+    try {
+      await getNovel(novelId)
+    } catch {
+      return Response.json({ error: `Novel ${novelId} not found` }, { status: 404 })
+    }
+
+    const body = (await req.json().catch(() => ({}))) as { chapter?: number; regenerate?: boolean }
+    const { getApprovedDraft, saveTonalPassDraft, deleteTonalPassDrafts } = await import("../db")
+    const { runTonalPass } = await import("../agents/tonal-pass/run")
+
+    await initNovelRun(novelId)
+    lastRunErrors.delete(novelId)
+    activeRuns.set(novelId, { startedAt: new Date().toISOString() })
+
+    ;(async () => {
+      try {
+        const novel = await getNovel(novelId)
+        const total = novel.totalChapters
+        const targets = body.chapter ? [body.chapter] : Array.from({ length: total }, (_, i) => i + 1)
+
+        for (const ch of targets) {
+          const draft = await getApprovedDraft(novelId, ch)
+          if (!draft) continue
+          if (body.regenerate) await deleteTonalPassDrafts(novelId, ch)
+          const result = await runTonalPass(novelId, ch, draft.prose)
+          if (result.paragraphsRewritten > 0) {
+            const wc = result.prose.split(/\s+/).filter(Boolean).length
+            await saveTonalPassDraft(novelId, ch, result.prose, wc)
+          }
+        }
+      } catch (err) {
+        lastRunErrors.set(novelId, { error: String(err), at: new Date().toISOString() })
+        console.error(`[novel-api] Tonal pass failed for ${novelId}:`, err)
+      } finally {
+        activeRuns.delete(novelId)
+      }
+    })()
+
+    return Response.json({ ok: true, novelId, chapter: body.chapter ?? "all" })
   }
 
   // ── Per-beat prose (from llm_calls) ─────────────────────────────────

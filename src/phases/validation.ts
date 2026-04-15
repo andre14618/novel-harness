@@ -3,7 +3,7 @@ import {
   getNovel, getChapterOutline, getApprovedDraft, getOpenIssues,
   saveIssue, resolveIssuesForChapter, unapproveChapterDraft,
   saveChapterDraft, approveChapterDraft, saveValidationPass,
-  getValidationAttempts,
+  getValidationAttempts, saveTonalPassDraft,
   updatePhase,
 } from "../db"
 import { callAgent } from "../llm"
@@ -185,12 +185,11 @@ export async function runValidationPhase(novelId: string): Promise<void> {
         if (result.paragraphsRewritten > 0) {
           const wordCount = result.prose.split(/\s+/).filter(Boolean).length
 
-          // Save tonal-pass rewrite as new approved draft
-          await unapproveChapterDraft(novelId, ch)
-          await saveChapterDraft(novelId, ch, result.prose, wordCount)
-          await approveChapterDraft(novelId, ch)
+          // Save tonal-pass rewrite as a separate version (status='tonal-pass').
+          // The original 'approved' draft is preserved so the UI can diff.
+          await saveTonalPassDraft(novelId, ch, result.prose, wordCount)
 
-          // Update output file
+          // Update output file to the tonal-pass prose (readable output)
           const outline = await getChapterOutline(novelId, ch)
           const dir = `output/${novelId}`
           await Bun.write(`${dir}/chapter-${ch}.md`, `# Chapter ${ch}: ${outline.title}\n\n${result.prose}`)
