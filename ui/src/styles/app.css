@@ -3033,6 +3033,7 @@ details[open] summary::before { transform: rotate(90deg); }
 .activity-chip-cost { color: var(--accent); background: var(--accent-surface); }
 .activity-chip-pass { color: var(--accent); background: var(--accent-surface); }
 .activity-chip-fail { color: var(--red); background: var(--red-surface); }
+.activity-chip-stale { color: var(--text-muted); background: transparent; opacity: 0.7; font-style: italic; border: 1px dashed var(--border); }
 .activity-chip-live {
   color: var(--yellow);
   background: var(--yellow-surface);

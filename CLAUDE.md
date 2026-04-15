@@ -122,6 +122,8 @@ The daemon rotates between prompt, config, and template proposals per iteration,
 
 Streaming infrastructure: `src/transport.ts` (DirectTransport emits `llm-call-start` / `llm-token` events), `src/trace.ts` (persists pipeline events to `pipeline_events` table). Historical hydration via `traceToSSE` conversion from DB rows to SSE event format.
 
+**MAJOR UI REQUIREMENT — no forever-streaming rows.** An activity row must never remain in a `running`/"streaming…" state after the pipeline has advanced past it. Completion events can be lost (transport crash, SSE reconnect, retry). The Studio activity feed MUST reconcile orphans: when a new `llm-call-start` arrives for the same `(agent, chapter, beatIndex)` tuple, any prior `running` row with that tuple is marked `stale`; on `phase-change` / `phase-complete`, ALL remaining `running` rows are marked `stale` and the active-agent set is cleared. Stale rows render as a dimmed "orphaned" chip so the user knows what happened instead of seeing a spinner that never resolves. See `StudioPage.tsx` `llm-call-start` and `phase-change` event handlers.
+
 ### Gate Abstraction
 `src/gates.ts`, `src/events.ts` — decouples approval gates from stdin. SSE event bus pushes real-time updates. Modes: CLI readline, web API POST, auto-approve.
 

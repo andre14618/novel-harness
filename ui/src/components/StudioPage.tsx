@@ -53,7 +53,7 @@ interface LLMCallRow {
   cost?: number
   durationMs?: number
   meta?: Record<string, any>
-  status: "running" | "done" | "fail"
+  status: "running" | "done" | "fail" | "stale"
   error?: string
   pass?: boolean
 }
@@ -217,6 +217,14 @@ export function StudioPage() {
 
         if (et === "llm-call-start") {
           const agent = d.agent as string
+          // Reconciliation: if a prior call for the same (agent, chapter, beatIndex)
+          // tuple is still "running", it's a stranded event — mark it superseded so
+          // the row doesn't sit as "streaming…" forever.
+          for (const [k, v] of calls) {
+            if (v.agent === agent && v.chapter === d.chapter && v.beatIndex === d.beatIndex && v.status === "running") {
+              calls.set(k, { ...v, status: "stale", endTs: tsMs })
+            }
+          }
           const key = keyFor(agent, d.chapter, d.beatIndex, tsMs)
           calls.set(key, {
             id: key, agent, chapter: d.chapter, beatIndex: d.beatIndex,
@@ -269,6 +277,15 @@ export function StudioPage() {
           active.add(d.agent as string)
         } else if (et === "phase-change" || et === "phase-complete") {
           completed.clear()
+          // Reconciliation: any call still "running" when the phase advances is
+          // an orphan (its completion event was lost). Mark stale so the row
+          // stops displaying "streaming…" after the phase has moved on.
+          for (const [k, v] of calls) {
+            if (v.status === "running") {
+              calls.set(k, { ...v, status: "stale", endTs: tsMs })
+            }
+          }
+          active.clear()
           const phase = d.to ?? d.phase
           if (phase) {
             const labels: Record<string, string> = {
@@ -665,6 +682,7 @@ function ActivityRow({ call }: { call: LLMCallRow }) {
   const elapsedMs = (call.endTs ?? Date.now()) - call.startTs
   const running = call.status === "running"
   const failed = call.status === "fail"
+  const stale = call.status === "stale"
 
   let title = agentAction(call.agent)
   if (call.agent === "beat-writer" && call.beatIndex != null) {
@@ -692,6 +710,8 @@ function ActivityRow({ call }: { call: LLMCallRow }) {
             </>
           ) : failed ? (
             <span className="activity-chip activity-chip-fail">failed</span>
+          ) : stale ? (
+            <span className="activity-chip activity-chip-stale" title="No completion event received — pipeline advanced past this call">orphaned</span>
           ) : (
             <>
               {call.promptTokens != null && <span className="activity-chip">{call.promptTokens}+{call.completionTokens} tok</span>}
