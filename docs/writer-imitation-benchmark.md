@@ -35,24 +35,46 @@ Alternate: *Homeland* (Drizzt origin) if Drizzt's voice is the more important co
 
 ## Phase 0-POC — "Capability vs tuning" proof of concept (runs before full Phase 0)
 
-Before spending ~$75 on a Kimi K2.5 training run, settle a strategic question that the ceiling probes alone cannot: **does real fine-tuning (even at small scale) meaningfully close the gap, or is base-model capability the dominant lever?** A 2×2 design on a micro-corpus answers this at ~$5–7 end-to-end.
+Before spending ~$75 on a Kimi K2.5 training run, settle a strategic question that the ceiling probes alone cannot: **does real fine-tuning (even at small scale) meaningfully close the gap, or is base-model capability the dominant lever?** Two nested probes — the cheaper **POC-mini** runs first (~$1), and the **POC-full 2×2** runs only if the mini leaves the answer ambiguous.
 
-**The 2×2:**
+### Phase 0-POC-mini — Qwen3-14B quadrant only (~$1, ~2 days)
+
+Three cells only — all essentially free because Qwen3-14B training is $0 on W&B ART preview and DeepSeek+primer is already our production default.
+
+| cell | methodology | cost |
+|---|---|---:|
+| A | Qwen3-14B + Howard primer, untuned | $0 (W&B inference) |
+| B | Qwen3-14B LoRA on ~100 Salvatore pairs (3 Crystal Shard training chapters) | $0 training (ART preview) + ~$0.50 inference |
+| C | DeepSeek V3 + Howard primer (current default) | ~$0.30 inference |
+
+**Eval:** generate prose for ~60 held-out beats (2 Crystal Shard chapters) under each cell. Sonnet sub-agent pref-eval blind A/B each cell vs real Salvatore prose. Add perplexity + feature-KL as supporting signals.
+
+**Decision rules from POC-mini:**
+1. **B > C decisively** → answered. Tuning at small scale already beats the large-untuned baseline. Strongest possible signal that SFT is the lever. Skip POC-full. Proceed to full benchmark with SFT prioritized; Qwen3-14B is a live candidate for production writer.
+2. **B < C decisively** → partial answer. 14B may be too small, or tuning on this shape of data doesn't transfer. Don't ship a 14B writer adapter. Proceed to POC-full to add cell D (Llama 70B LoRA) and distinguish "14B too small" from "tuning doesn't work."
+3. **B ≈ C** (within ~10% pref-eval) → tiebreaker. Proceed to POC-full.
+
+### Phase 0-POC-full — 2×2 (runs only if POC-mini is ambiguous, adds ~$5)
+
+Adds cell D (Llama 3.3 70B LoRA) to the three mini cells:
 
 | | Untuned (in-context only) | Tuned (LoRA SFT) |
 |---|---|---|
 | **Small base** (Qwen3-14B) | **A** — Qwen3-14B + Howard primer | **B** — Qwen3-14B LoRA on Salvatore pairs |
 | **Large base** (DeepSeek / Llama 70B) | **C** — DeepSeek V3 + Howard primer (current default) | **D** — Llama 3.3 70B LoRA on Salvatore pairs |
 
-Interpretations:
-- A vs C isolates base-model capability at zero training spend
-- A vs B isolates tuning lift at fixed small base
-- **B vs D is the core question** — does big-base-untuned beat small-base-tuned?
-- C vs D isolates tuning lift at a larger base
+Adds:
+- A vs C: base-capability isolation at zero training spend
+- **B vs D: the core SFT-at-scale question** — does a tuned large base beat a tuned small base by enough margin to justify Kimi K2.5?
+- C vs D: tuning lift at a larger base
 
-**Micro-corpus:** train on 3 Crystal Shard chapters (~20–25 scenes, ~100 paired beats), hold out 2 chapters (~60 beats) for eval. ~2 days of sub-agent labor vs. ~4 for the full book.
+**Why it isn't just tonal-pass V4 replayed:** V4 failed at voice transfer because it was rewriting existing prose paragraph-by-paragraph — the task collapsed into lexical synonym swapping because the input already had fixed structure and rhythm. Beat-writer SFT is a fundamentally different task: generate new prose from a beat brief + transition + context. The model chooses rhythm, sentence length, dialogue tag style, sensory density, clause structure. Salvatore-trained pairs can shape any of those. V4's no-structure-to-change failure mode doesn't apply.
 
-**Cost breakdown:**
+**14B constraints to flag:** W&B LoRA rank hard-capped at 16 — if voice imprinting needs rank-32+, W&B can't serve it (training/serving fallback: Together or RunPod). Base is `OpenPipe/Qwen3-14B-Instruct` (instruct-tuned, which can fight voice shift; raw base sometimes imprints better). Our prior 14B adapters (adherence-v4, chapter-plan-v2, continuity-v2, tonal-v4) all succeeded at structured classification/rewriting — **none of them tested open-ended creative generation.** POC-mini is new ground for 14B in our harness; that's exactly why it's worth doing cheaply.
+
+**Micro-corpus (shared across mini and full):** train on 3 Crystal Shard chapters (~20–25 scenes, ~100 paired beats), hold out 2 chapters (~60 beats) for eval. ~2 days of sub-agent labor vs. ~4 for the full book.
+
+**Full cost breakdown (if POC-full runs):**
 
 | item | cost |
 |---|---:|
@@ -61,18 +83,16 @@ Interpretations:
 | Training — Llama 3.3 70B LoRA on Together (0.9M tokens × $2.90/M) | ~$2.60 |
 | Inference — 60 eval beats × 4 conditions | ~$2 |
 | Sonnet pref-eval judge (sub-agents, blind A/B) | $0 |
-| **POC total** | **~$5–7** |
+| **POC-full total (mini + D)** | **~$5–7** |
 
-**Wall clock:** ~3 days with deconstruction and training in parallel once labels are in.
+**Decision rules from POC-full 2×2:**
 
-**Decision rules from POC:**
-
-1. **B > C** (tuned small beats untuned large) → tuning matters most. Kimi K2.5 investment is probably worth it but not urgent — a Qwen3-14B adapter may be good enough. Proceed to full benchmark with SFT methodologies prioritized.
+1. **B > C** (tuned small beats untuned large) → tuning matters most. Qwen3-14B adapter may be good enough. Kimi K2.5 investment possible but not urgent. Proceed to full benchmark with SFT methodologies prioritized.
 2. **D > B AND D > C** (tuned large beats both) → tuning at scale is the real lever. Justifies the Kimi K2.5 ~$70 training spend. Proceed to full benchmark including Kimi.
 3. **C > B AND C ≈ D** (untuned large ties tuned large) → base capability dominates; SFT barely helps. Do NOT spend on Kimi. Invest in primer strategy and scene-vs-beat generation-unit experiments (M3–M7) instead.
 4. **A ≈ B ≈ C ≈ D** → we're all far from real Salvatore and the gap is something else (planner beat quality, generation unit, or benchmark noise floor). Reinvest in the planner.
 
-The POC is cheap enough that the answer is worth more than the cost of finding out. Run before committing to Phase 2 in full.
+The POC-mini is cheap enough (~$1) that the answer is worth more than the cost of finding out. POC-full (~$5–7) runs only if the mini leaves the 14B-vs-larger question ambiguous.
 
 ## Corpus deconstruction (Phase 0) — 6-stage pipeline
 

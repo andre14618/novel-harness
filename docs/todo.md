@@ -15,9 +15,21 @@ Treat writer quality as an engineering problem with a measurable ground truth. D
 
 **Status:** Awaiting target confirmation (Crystal Shard vs alternate Salvatore novel) and ebook source.
 
-### Phase 0-POC — "Capability vs tuning" proof of concept (START HERE, ~$7, ~3 days)
+### Phase 0-POC — "Capability vs tuning" proof of concept (START HERE)
 
-Before spending ~$75–210 on large-base SFT, run the 2×2 POC to settle the strategic question: does real fine-tuning (even at small scale) close the gap, or is base-model capability the dominant lever? Design matrix: Qwen3-14B (untuned/tuned) × DeepSeek-or-Llama-70B (untuned/tuned) on a micro-corpus (3 training chapters + 2 eval chapters of Crystal Shard, ~100 paired beats + 60 eval beats). Full spec in `docs/writer-imitation-benchmark.md` "Phase 0-POC."
+Before spending ~$75–210 on large-base SFT, settle the strategic question: does real fine-tuning (even at small scale) close the gap, or is base-model capability the dominant lever? Two nested probes.
+
+**Phase 0-POC-mini (~$1, ~2 days, START HERE):**
+- Qwen3-14B quadrant only — 3 cells (A untuned+primer, B LoRA on ~100 Salvatore pairs, C DeepSeek+primer current default)
+- Qwen3-14B LoRA training on W&B ART preview: $0
+- Inference for ~60 eval beats × 3 cells: <$1
+- If B > C decisively → **answered.** SFT at small scale beats large-untuned. Skip POC-full. Proceed to Phase 0a (full deconstruction) and full benchmark with SFT prioritized.
+- If B < C decisively or B ≈ C → run POC-full below.
+
+**Phase 0-POC-full (~$5–7, +1 day, gated on POC-mini ambiguity):**
+- Adds cell D (Llama 3.3 70B LoRA on Together, ~$2.60 training) to the three mini cells
+- Distinguishes "14B too small for voice imprinting" from "tuning doesn't work at all"
+- Full 2×2 decision rules in `docs/writer-imitation-benchmark.md`
 
 POC outcome directs Phase 2 scope:
 - Tuned small beats untuned large → SFT matters; prioritize SFT methodologies
