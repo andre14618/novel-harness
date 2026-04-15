@@ -288,9 +288,11 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
         userMessage: body.message,
       })
 
+      // Qwen3 on Groq emits <think>…</think> unless prefixed with /nothink.
+      // getTransport().execute bypasses the callAgent path that normally handles this.
       const response = await getTransport().execute({
         systemPrompt: CHAT_PROMPT,
-        userPrompt,
+        userPrompt: `/nothink\n${userPrompt}`,
         model: role?.model ?? "qwen/qwen3-32b",
         provider: (role?.provider ?? "groq") as any,
         temperature: role?.temperature ?? chatConfig.temperature,
@@ -298,7 +300,12 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
         responseFormat: { type: "text" },
       })
 
-      return Response.json({ ok: true, assistantMessage: response.content.trim() })
+      // Strip any <think>…</think> block if the model produced one anyway.
+      const cleaned = response.content
+        .replace(/<think>[\s\S]*?<\/think>\s*/gi, "")
+        .trim()
+
+      return Response.json({ ok: true, assistantMessage: cleaned })
     } catch (err) {
       return Response.json({ error: String(err) }, { status: 500 })
     }
