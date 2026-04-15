@@ -197,6 +197,15 @@ export function getNovelState(novelId: string) {
   return fetchJSON<NovelState>(`/api/novel/${novelId}/state`)
 }
 
+export type ExportFormat = "markdown" | "txt" | "json"
+
+export function exportNovelURL(novelId: string, format: ExportFormat, approvedOnly = false): string {
+  const params = new URLSearchParams({ format })
+  if (approvedOnly) params.set("approved", "true")
+  if (API_KEY) params.set("key", API_KEY)
+  return `/api/novel/${novelId}/export?${params.toString()}`
+}
+
 export function getWorldBible(novelId: string) {
   return fetchJSON<any>(`/api/novel/${novelId}/world-bible`)
 }

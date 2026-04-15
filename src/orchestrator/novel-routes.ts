@@ -741,6 +741,105 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
     }
   }
 
+  // ── Export novel (markdown | txt | json) ───────────────────────────
+  const exportMatch = path.match(/^\/api\/novel\/([^/]+)\/export$/)
+  if (exportMatch && req.method === "GET") {
+    const novelId = exportMatch[1]
+    const format = (url.searchParams.get("format") ?? "markdown").toLowerCase()
+    const approvedOnly = url.searchParams.get("approved") === "true"
+
+    try {
+      const [novelRow] = await db`SELECT seed_json, phase, total_chapters FROM novels WHERE id = ${novelId}`
+      if (!novelRow) return Response.json({ error: "Novel not found" }, { status: 404 })
+
+      const chapterRows = await db`
+        SELECT DISTINCT ON (chapter_number) chapter_number, prose, word_count, status, version
+        FROM chapter_drafts
+        WHERE novel_id = ${novelId}${approvedOnly ? db` AND status = 'approved'` : db``}
+        ORDER BY chapter_number, version DESC`
+
+      const outlineRows = await db`SELECT outline_json FROM chapter_outlines WHERE novel_id = ${novelId} ORDER BY chapter_number`
+      const outlines = new Map<number, any>(outlineRows.map((r: any) => [r.outline_json?.chapterNumber, r.outline_json]))
+
+      const seed = novelRow.seed_json ?? {}
+      const title = seed.title ?? seed.premise?.slice(0, 60) ?? novelId
+      const genre = seed.genre ?? "unspecified"
+      const premise = seed.premise ?? ""
+      const totalWords = chapterRows.reduce((s: number, r: any) => s + (r.word_count ?? 0), 0)
+
+      const safeName = String(title).replace(/[^a-zA-Z0-9 ._-]+/g, "").replace(/\s+/g, "_").slice(0, 60) || novelId
+      const chapterTitle = (n: number) => outlines.get(n)?.title ?? `Chapter ${n}`
+
+      if (format === "json") {
+        const body = {
+          novelId,
+          title, genre, premise,
+          phase: novelRow.phase,
+          totalChapters: novelRow.total_chapters,
+          totalWords,
+          chapters: chapterRows.map((r: any) => ({
+            chapterNumber: r.chapter_number,
+            title: chapterTitle(r.chapter_number),
+            status: r.status,
+            version: r.version,
+            wordCount: r.word_count,
+            prose: r.prose,
+          })),
+        }
+        return new Response(JSON.stringify(body, null, 2), {
+          headers: {
+            "Content-Type": "application/json",
+            "Content-Disposition": `attachment; filename="${safeName}.json"`,
+          },
+        })
+      }
+
+      if (format === "txt") {
+        const parts: string[] = []
+        parts.push(title.toUpperCase())
+        parts.push("")
+        if (genre) parts.push(`Genre: ${genre}`)
+        if (premise) parts.push("", premise)
+        parts.push("", `Total: ${chapterRows.length} chapters, ${totalWords.toLocaleString()} words`, "")
+        for (const r of chapterRows as any[]) {
+          parts.push("")
+          parts.push("=".repeat(60))
+          parts.push(`Chapter ${r.chapter_number}: ${chapterTitle(r.chapter_number)}`)
+          parts.push("=".repeat(60))
+          parts.push("")
+          parts.push(r.prose ?? "")
+        }
+        return new Response(parts.join("\n"), {
+          headers: {
+            "Content-Type": "text/plain; charset=utf-8",
+            "Content-Disposition": `attachment; filename="${safeName}.txt"`,
+          },
+        })
+      }
+
+      // Default: markdown
+      const md: string[] = []
+      md.push(`# ${title}`, "")
+      if (genre) md.push(`**Genre:** ${genre}  `)
+      md.push(`**Chapters:** ${chapterRows.length} · **Words:** ${totalWords.toLocaleString()}  `)
+      md.push(`**Phase:** ${novelRow.phase}${approvedOnly ? " · approved only" : ""}`, "")
+      if (premise) md.push("## Premise", "", premise, "")
+      for (const r of chapterRows as any[]) {
+        md.push("", "---", "", `## Chapter ${r.chapter_number}: ${chapterTitle(r.chapter_number)}`, "")
+        md.push(`_${(r.word_count ?? 0).toLocaleString()} words · ${r.status}_`, "")
+        md.push(r.prose ?? "")
+      }
+      return new Response(md.join("\n"), {
+        headers: {
+          "Content-Type": "text/markdown; charset=utf-8",
+          "Content-Disposition": `attachment; filename="${safeName}.md"`,
+        },
+      })
+    } catch (err) {
+      return Response.json({ error: String(err) }, { status: 500 })
+    }
+  }
+
   // ── Issues (from Postgres) ─────────────────────────────────────────
   const issuesMatch = path.match(/^\/api\/novel\/([^/]+)\/issues$/)
   if (issuesMatch && req.method === "GET") {

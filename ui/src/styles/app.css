@@ -592,6 +592,34 @@ input[type="checkbox"] {
   display: block;
 }
 .reader-back:hover { color: var(--accent); }
+.reader-export {
+  margin-top: 0.6rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.reader-export-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+.reader-export-row { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+.reader-export-btn {
+  font-size: 0.7rem;
+  padding: 3px 8px;
+  color: var(--accent);
+  border: 1px solid var(--accent-dim);
+  border-radius: 3px;
+  text-decoration: none;
+  background: transparent;
+  transition: background 0.15s;
+}
+.reader-export-btn:hover { background: rgba(226, 183, 20, 0.1); }
+.reader-export-btn.alt { color: var(--text-muted); border-color: var(--border-default); }
+.reader-export-btn.alt:hover { color: var(--accent); border-color: var(--accent-dim); }
 .reader-meta {
   padding-top: 0.4rem;
   border-top: 1px solid var(--border-subtle);

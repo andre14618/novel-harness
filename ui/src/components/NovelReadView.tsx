@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react"
 import { useParams, useNavigate, Link } from "react-router-dom"
-import { listNovels, getNovelState, getAllChapters, getStorySpine, type ChapterData, type NovelState, type NovelListItem } from "../api"
+import { listNovels, getNovelState, getAllChapters, getStorySpine, exportNovelURL, type ChapterData, type NovelState, type NovelListItem } from "../api"
 
 export function NovelReadView() {
   const { novelId } = useParams<{ novelId: string }>()
@@ -74,6 +74,20 @@ export function NovelReadView() {
 
         {novelId && (
           <Link to={`/${novelId}${qs}`} className="reader-back">Pipeline View</Link>
+        )}
+
+        {novelId && chapters.length > 0 && (
+          <div className="reader-export">
+            <div className="reader-export-label">Export</div>
+            <div className="reader-export-row">
+              <a href={exportNovelURL(novelId, "markdown")} className="reader-export-btn">.md</a>
+              <a href={exportNovelURL(novelId, "txt")} className="reader-export-btn">.txt</a>
+              <a href={exportNovelURL(novelId, "json")} className="reader-export-btn">.json</a>
+            </div>
+            <div className="reader-export-row">
+              <a href={exportNovelURL(novelId, "markdown", true)} className="reader-export-btn alt" title="Only chapters that passed approval">.md (approved only)</a>
+            </div>
+          </div>
         )}
 
         {currentNovel?.seed && (

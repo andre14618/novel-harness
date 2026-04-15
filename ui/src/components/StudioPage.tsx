@@ -3,6 +3,7 @@ import { Link } from "react-router-dom"
 import {
   getSeeds, listNovels, startNovel, startNovelCustom,
   getNovelState, getNovelConfig, getTrace, resumeNovel,
+  exportNovelURL,
   emptyDirectives,
   type NovelListItem, type NovelState, type NovelConfig, type SSEEvent, type TraceEvent,
   type PlanningDirectives, type DirectorChatTurn,
@@ -446,6 +447,7 @@ export function StudioPage() {
 
   const [resumeError, setResumeError] = useState<string | null>(null)
   const [rewindMenuOpen, setRewindMenuOpen] = useState(false)
+  const [exportMenuOpen, setExportMenuOpen] = useState(false)
   async function handleResume(rewindTo?: "concept" | "planning" | "drafting" | "validation") {
     if (!activeNovelId) return
     if (rewindTo) {
@@ -769,6 +771,79 @@ export function StudioPage() {
                         </div>
                       </button>
                     ))}
+                  </div>
+                )}
+                <button
+                  onClick={() => setExportMenuOpen(v => !v)}
+                  title="Download the novel in various formats"
+                  style={{
+                    fontSize: "0.72rem",
+                    padding: "3px 10px",
+                    background: "transparent",
+                    color: "var(--text-secondary)",
+                    border: "1px solid var(--border-default)",
+                    borderRadius: 4,
+                    cursor: "pointer",
+                  }}
+                >
+                  Export ▾
+                </button>
+                {exportMenuOpen && activeNovelId && (
+                  <div style={{
+                    position: "absolute",
+                    top: "100%",
+                    right: 0,
+                    marginTop: 4,
+                    background: "var(--bg-raised)",
+                    border: "1px solid var(--border-default)",
+                    borderRadius: 4,
+                    padding: 4,
+                    zIndex: 10,
+                    minWidth: 220,
+                    boxShadow: "0 6px 18px rgba(0,0,0,0.4)",
+                  }}>
+                    {([
+                      { fmt: "markdown", label: "Markdown (.md)", desc: "All chapters, with titles + stats" },
+                      { fmt: "txt", label: "Plain text (.txt)", desc: "Readable, no formatting" },
+                      { fmt: "json", label: "JSON (.json)", desc: "Structured — seed + all chapters" },
+                    ] as const).map(({ fmt, label, desc }) => (
+                      <a
+                        key={fmt}
+                        href={exportNovelURL(activeNovelId, fmt)}
+                        onClick={() => setExportMenuOpen(false)}
+                        style={{
+                          display: "block",
+                          padding: "6px 10px",
+                          fontSize: "0.72rem",
+                          color: "var(--text-primary)",
+                          borderRadius: 3,
+                          textDecoration: "none",
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-elevated)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                      >
+                        <strong>{label}</strong>
+                        <div style={{ fontSize: "0.66rem", color: "var(--text-tertiary)", marginTop: 2 }}>{desc}</div>
+                      </a>
+                    ))}
+                    <div style={{ borderTop: "1px solid var(--border-subtle)", margin: "4px 0" }} />
+                    <a
+                      href={exportNovelURL(activeNovelId, "markdown", true)}
+                      onClick={() => setExportMenuOpen(false)}
+                      style={{
+                        display: "block",
+                        padding: "6px 10px",
+                        fontSize: "0.72rem",
+                        color: "var(--text-secondary)",
+                        borderRadius: 3,
+                        textDecoration: "none",
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-elevated)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                    >
+                      <strong>Markdown — approved only</strong>
+                      <div style={{ fontSize: "0.66rem", color: "var(--text-tertiary)", marginTop: 2 }}>Skip chapters still awaiting approval</div>
+                    </a>
                   </div>
                 )}
               </div>
