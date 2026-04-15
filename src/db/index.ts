@@ -1,6 +1,9 @@
 export { initDB } from "./connection"
 export { createNovel, getNovel, updatePhase, updateCurrentChapter, updateTotalChapters } from "./novels"
-export { saveWorldBible, getWorldBible, saveCharacter, getCharacters, saveStorySpine, getStorySpine } from "./world"
+export {
+  saveWorldBible, getWorldBible, saveCharacter, getCharacters, saveStorySpine, getStorySpine,
+  updateCharacterFields, updateWorldBibleFields, updateStorySpineFields,
+} from "./world"
 export { saveChapterOutline, getChapterOutline, getChapterOutlines } from "./outlines"
 export { saveChapterDraft, approveChapterDraft, getApprovedDraft, unapproveChapterDraft, deleteChapterDrafts } from "./drafts"
 export { saveChapterSummary, getRecentSummaries } from "./summaries"

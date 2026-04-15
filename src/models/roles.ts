@@ -43,6 +43,7 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // that drives the planner) — stays on Cerebras 235B for fidelity.
   "planning-conversationalist": { ...groqQwen32B, temperature: 0.65, maxTokens: 2048 },
   "planning-extractor":         { ...cerebrasQwen235B, temperature: 0.2, maxTokens: 2048 },
+  "artifact-adjuster":          { ...cerebrasQwen235B, temperature: 0.3, maxTokens: 2048 },
 
   // ── Beat support ──────────────────────────────────────────────────────
   // reference-resolver stays on Llama 3.1 8B Groq — set-union over implicit

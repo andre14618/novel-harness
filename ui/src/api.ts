@@ -126,6 +126,73 @@ export function redraftChapter(novelId: string, chapterNum: number) {
   })
 }
 
+export interface CharacterPatch {
+  name?: string
+  role?: string
+  backstory?: string
+  traits?: string[]
+  speechPattern?: string
+  internalConflict?: string
+  avoids?: string
+  goals?: string
+  fears?: string
+}
+
+export function updateCharacter(novelId: string, characterId: string, patch: CharacterPatch) {
+  return fetchJSON<{ ok: boolean; character: any }>(`/api/novel/${novelId}/character/${encodeURIComponent(characterId)}`, {
+    method: "PUT",
+    body: JSON.stringify(patch),
+  })
+}
+
+export interface WorldPatch {
+  setting?: string
+  timePeriod?: string
+  geography?: string
+  politicalStructure?: string
+  technologyConstraints?: string
+  sensoryPalette?: string
+  culture?: string
+  history?: string
+  socialCustoms?: string[]
+  rules?: string[]
+}
+
+export function updateWorldBible(novelId: string, patch: WorldPatch) {
+  return fetchJSON<{ ok: boolean; world: any }>(`/api/novel/${novelId}/world-bible`, {
+    method: "PUT",
+    body: JSON.stringify(patch),
+  })
+}
+
+export interface SpinePatch {
+  centralConflict?: string
+  theme?: string
+  endingDirection?: string
+}
+
+export function updateStorySpine(novelId: string, patch: SpinePatch) {
+  return fetchJSON<{ ok: boolean; spine: any }>(`/api/novel/${novelId}/story-spine`, {
+    method: "PUT",
+    body: JSON.stringify(patch),
+  })
+}
+
+export type AdjusterPatch =
+  | { type: "characterUpdate"; characterId: string; patch: CharacterPatch }
+  | { type: "characterRename"; characterId: string; newName: string }
+  | { type: "worldUpdate"; patch: WorldPatch }
+  | { type: "spineUpdate"; patch: SpinePatch }
+
+export interface AdjustTurn { role: "user" | "assistant"; content: string }
+
+export function adjustNovel(novelId: string, message: string, history: AdjustTurn[] = []) {
+  return fetchJSON<{ ok: boolean; assistantMessage: string; proposedPatches: AdjusterPatch[]; error?: string; raw?: string }>(
+    `/api/novel/${novelId}/adjust`,
+    { method: "POST", body: JSON.stringify({ message, history }) },
+  )
+}
+
 export function getNovelState(novelId: string) {
   return fetchJSON<NovelState>(`/api/novel/${novelId}/state`)
 }

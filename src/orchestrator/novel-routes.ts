@@ -547,6 +547,104 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
     }
   }
 
+  // ── Artifact edits: character / world / spine ─────────────────────
+  const charEditMatch = path.match(/^\/api\/novel\/([^/]+)\/character\/([^/]+)$/)
+  if (charEditMatch && req.method === "PUT") {
+    const novelId = charEditMatch[1]
+    const charId = charEditMatch[2]
+    try {
+      const body = await req.json() as Record<string, unknown>
+      const { updateCharacterFields } = await import("../db")
+      const updated = await updateCharacterFields(novelId, charId, body)
+      return Response.json({ ok: true, character: updated })
+    } catch (err) {
+      return Response.json({ error: String(err) }, { status: 500 })
+    }
+  }
+
+  if (worldMatch && req.method === "PUT") {
+    const novelId = worldMatch[1]
+    try {
+      const body = await req.json() as Record<string, unknown>
+      const { updateWorldBibleFields } = await import("../db")
+      const updated = await updateWorldBibleFields(novelId, body)
+      return Response.json({ ok: true, world: updated })
+    } catch (err) {
+      return Response.json({ error: String(err) }, { status: 500 })
+    }
+  }
+
+  if (spineMatch && req.method === "PUT") {
+    const novelId = spineMatch[1]
+    try {
+      const body = await req.json() as Record<string, unknown>
+      const { updateStorySpineFields } = await import("../db")
+      const updated = await updateStorySpineFields(novelId, body)
+      return Response.json({ ok: true, spine: updated })
+    } catch (err) {
+      return Response.json({ error: String(err) }, { status: 500 })
+    }
+  }
+
+  // ── Conversational adjust (LLM proposes patches; UI applies) ──────
+  const adjustMatch = path.match(/^\/api\/novel\/([^/]+)\/adjust$/)
+  if (adjustMatch && req.method === "POST") {
+    const novelId = adjustMatch[1]
+    try {
+      const body = await req.json() as {
+        message: string
+        history?: { role: "user" | "assistant"; content: string }[]
+      }
+      if (!body.message?.trim()) return Response.json({ error: "message required" }, { status: 400 })
+
+      const { getWorldBible, getCharacters, getStorySpine } = await import("../db")
+      const [world, characters, spine] = await Promise.all([
+        getWorldBible(novelId).catch(() => null),
+        getCharacters(novelId).catch(() => [] as any[]),
+        getStorySpine(novelId).catch(() => null),
+      ])
+
+      const { buildContext, prompt: ADJUST_PROMPT, config: adjustConfig, adjusterOutputSchema } = await import("../agents/artifact-adjuster")
+      const { getAgentConfig } = await import("../models/roles")
+      const { getTransport } = await import("../transport")
+
+      const role = getAgentConfig("artifact-adjuster")
+      const userPrompt = buildContext({
+        world, characters, spine,
+        history: body.history ?? [],
+        userMessage: body.message,
+      })
+
+      const response = await getTransport().execute({
+        systemPrompt: ADJUST_PROMPT,
+        userPrompt,
+        model: role?.model ?? "qwen-3-235b-a22b-instruct-2507",
+        provider: (role?.provider ?? "cerebras") as any,
+        temperature: role?.temperature ?? adjustConfig.temperature,
+        maxTokens: role?.maxTokens ?? adjustConfig.maxTokens,
+        responseFormat: { type: "json_object" },
+      })
+
+      let parsed
+      try {
+        const obj = JSON.parse(response.content)
+        parsed = adjusterOutputSchema.parse(obj)
+      } catch (err) {
+        return Response.json({
+          ok: false,
+          assistantMessage: "(The adjuster returned malformed output. Try rephrasing.)",
+          proposedPatches: [],
+          error: String(err),
+          raw: response.content,
+        })
+      }
+
+      return Response.json({ ok: true, ...parsed })
+    } catch (err) {
+      return Response.json({ error: String(err) }, { status: 500 })
+    }
+  }
+
   // ── Chapter outlines (from Postgres) ───────────────────────────────
   const outlinesMatch = path.match(/^\/api\/novel\/([^/]+)\/outlines$/)
   if (outlinesMatch && req.method === "GET") {
