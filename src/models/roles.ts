@@ -27,12 +27,9 @@ const togetherQwen9B: ModelAssignment = { provider: "together", model: "Qwen/Qwe
 
 export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // ── Writers (creative prose, high output) ─────────────────────────────
-  // PHASE 3 PROBE (exp #189): swapped to deepseek-chat (V3.2) to test whether
-  // a stronger creative base beats tuned Qwen 235B on voice + adherence. Revert
-  // after probe concludes.
-  "writer":                    { ...deepseekV3, temperature: 0.8, maxTokens: 8000 },
-  "beat-writer":               { ...deepseekV3, temperature: 0.8, maxTokens: 4000 },
-  "rewriter":                  { ...deepseekV3, temperature: 0.5, maxTokens: 8000 },
+  "writer":                    { ...cerebrasQwen235B, temperature: 0.8, maxTokens: 8000 },
+  "beat-writer":               { ...cerebrasQwen235B, temperature: 0.8, maxTokens: 4000 },
+  "rewriter":                  { ...cerebrasQwen235B, temperature: 0.5, maxTokens: 8000 },
 
   // ── Planners (structured creative output) ─────────────────────────────
   "world-builder":             { ...cerebrasQwen235B, maxTokens: 8192 },
