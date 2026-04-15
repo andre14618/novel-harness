@@ -1,7 +1,29 @@
 import { z } from "zod"
 
+// Reject archetype placeholders ("the cannibal", "the mentor", "a scholar",
+// "protagonist") as names. Major characters must have proper names so the
+// writer can attribute dialogue and the reader can track them. Role words
+// belong in `role` or `mustHaveTraits`, not `name`.
+const ARCHETYPE_NAME_RE = /^(the|a|an)\s+\w+$/i
+const ROLE_WORDS = new Set([
+  "protagonist", "antagonist", "narrator", "hero", "heroine", "villain",
+  "mentor", "sidekick", "rival", "lover", "love interest", "ally", "foil",
+])
+export function isValidCharacterName(name: string): boolean {
+  const trimmed = name.trim()
+  if (!trimmed) return false
+  if (ARCHETYPE_NAME_RE.test(trimmed)) return false
+  if (ROLE_WORDS.has(trimmed.toLowerCase())) return false
+  // Must contain at least one capitalized word (proper noun).
+  if (!/[A-Z][a-zA-Z'\-]+/.test(trimmed)) return false
+  return true
+}
+const properNameSchema = z.string().refine(isValidCharacterName, {
+  message: "Character name must be a proper name, not an archetype ('the cannibal', 'the mentor') or role word. Put role descriptions in `role` or `mustHaveTraits` instead.",
+})
+
 export const lockedCharacterSchema = z.object({
-  name: z.string(),
+  name: properNameSchema,
   role: z.string().default(""),
   mustHaveTraits: z.array(z.string()).default([]),
   mustHaveArc: z.string().default(""),

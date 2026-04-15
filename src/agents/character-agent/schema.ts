@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { relationshipSchema } from "../../schemas/shared"
+import { isValidCharacterName } from "../../schemas/planning-directives"
 
 const culturalBackgroundSchema = z.object({
   cultureName: z.string(),
@@ -36,7 +37,9 @@ const systemAwarenessSchema = z.object({
 
 export const characterProfileSchema = z.object({
   id: z.string(),
-  name: z.string(),
+  name: z.string().refine(isValidCharacterName, {
+    message: "Character name must be a proper name, not an archetype ('the cannibal', 'the scholar') or role word. Put archetype descriptions in `role` or `traits` instead.",
+  }),
   role: z.string(),
   backstory: z.string().default(""),
   traits: z.array(z.string()).default([]),
