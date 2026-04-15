@@ -65,6 +65,7 @@ interface NarrativeEntry {
   ts: number
   text: string
   detail?: string
+  recovered?: boolean
 }
 
 type FeedItem =
@@ -782,13 +783,17 @@ const NARRATIVE_ICONS: Record<NarrativeKind, string> = {
 }
 
 function NarrativeRow({ entry }: { entry: NarrativeEntry }) {
-  const isFail = entry.kind === "fail"
+  const isFail = entry.kind === "fail" && !entry.recovered
+  const isRecovered = entry.kind === "fail" && entry.recovered
   const isChapter = entry.kind === "chapter" || entry.kind === "phase"
   return (
-    <div className={`narrative-row${isFail ? " narrative-fail" : ""}${isChapter ? " narrative-milestone" : ""}`}>
-      <div className="narrative-icon">{NARRATIVE_ICONS[entry.kind]}</div>
+    <div className={`narrative-row${isFail ? " narrative-fail" : ""}${isRecovered ? " narrative-recovered" : ""}${isChapter ? " narrative-milestone" : ""}`}>
+      <div className="narrative-icon">{isRecovered ? "↻" : NARRATIVE_ICONS[entry.kind]}</div>
       <div className="narrative-body">
-        <div className="narrative-text">{entry.text}</div>
+        <div className="narrative-text">
+          {entry.text}
+          {isRecovered && <span style={{ marginLeft: 8, fontSize: "0.7rem", opacity: 0.7 }}>(recovered on retry)</span>}
+        </div>
         {entry.detail && <div className="narrative-detail">{entry.detail}</div>}
       </div>
     </div>
