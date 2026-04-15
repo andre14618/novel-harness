@@ -424,12 +424,19 @@ export function StudioPage() {
     setStarting(false)
   }
 
+  const [resumeError, setResumeError] = useState<string | null>(null)
   async function handleResume() {
     if (!activeNovelId) return
     setResuming(true)
-    try { await resumeNovel(activeNovelId); loadState() }
-    catch {}
-    finally { setResuming(false) }
+    setResumeError(null)
+    try {
+      await resumeNovel(activeNovelId)
+      loadState()
+    } catch (err: any) {
+      setResumeError(String(err?.message ?? err))
+    } finally {
+      setResuming(false)
+    }
   }
 
   const isDone = state?.phase === "done"
@@ -649,7 +656,32 @@ export function StudioPage() {
           )}
 
           <div className="live-activity" style={{ marginTop: 14 }}>
-            <div className="live-activity-header">Activity</div>
+            <div className="live-activity-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span>Activity</span>
+              {!isDone && (
+                <button
+                  onClick={handleResume}
+                  disabled={resuming}
+                  title={`Re-enter the pipeline at ${state.phase}. Safe to click repeatedly — saved artifacts and approved chapters are skipped.`}
+                  style={{
+                    fontSize: "0.72rem",
+                    padding: "3px 10px",
+                    background: state.activeError ? "#e74c3c" : "transparent",
+                    color: state.activeError ? "#fff" : "var(--accent)",
+                    border: `1px solid ${state.activeError ? "#e74c3c" : "var(--accent-dim)"}`,
+                    borderRadius: 4,
+                    cursor: resuming ? "wait" : "pointer",
+                  }}
+                >
+                  {resuming ? "Resuming…" : state.activeError ? "Retry pipeline" : `Resume at ${state.phase}`}
+                </button>
+              )}
+            </div>
+            {resumeError && (
+              <div style={{ margin: "6px 14px 0", padding: "6px 10px", fontSize: "0.72rem", color: "#e74c3c", background: "rgba(231,76,60,0.08)", border: "1px solid rgba(231,76,60,0.3)", borderRadius: 4 }}>
+                {resumeError}
+              </div>
+            )}
             <div className="live-activity-body">
               {feedItems.length === 0 && (
                 <div className="live-activity-placeholder">
