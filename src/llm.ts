@@ -267,11 +267,12 @@ export async function executeAndLog(
       const latencyMs = response?.latencyMs ?? (Date.now() - startedAt)
       const promptTokens = response?.usage.prompt_tokens ?? 0
       const completionTokens = response?.usage.completion_tokens ?? 0
+      const cachedTokens = response?.usage.cached_tokens ?? 0
       const tps = latencyMs > 0 && completionTokens > 0
         ? Math.round(completionTokens / (latencyMs / 1000))
         : 0
       const cost = response
-        ? getTokenCost(request.provider, request.model, promptTokens, completionTokens)
+        ? getTokenCost(request.provider, request.model, promptTokens, completionTokens, cachedTokens)
         : 0
       let llmCallId: number | null = null
       try {
@@ -288,6 +289,7 @@ export async function executeAndLog(
           contentPreview: response?.content.slice(0, 200) ?? "",
           promptTokens,
           completionTokens,
+          cachedTokens,
           totalLatencyMs: Math.round(latencyMs),
           tokensPerSec: tps,
           cost,
@@ -430,8 +432,9 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
 
     totalTokens.prompt += requestResult.usage.prompt_tokens
     totalTokens.completion += requestResult.usage.completion_tokens
-    const callCost = getTokenCost(providerName, model, requestResult.usage.prompt_tokens, requestResult.usage.completion_tokens)
-    console.log(`  [LLM] Response: ${requestResult.usage.prompt_tokens}+${requestResult.usage.completion_tokens} tokens ($${callCost.toFixed(4)})`)
+    const callCost = getTokenCost(providerName, model, requestResult.usage.prompt_tokens, requestResult.usage.completion_tokens, requestResult.usage.cached_tokens)
+    const cachedSuffix = requestResult.usage.cached_tokens > 0 ? ` [cache:${requestResult.usage.cached_tokens}]` : ""
+    console.log(`  [LLM] Response: ${requestResult.usage.prompt_tokens}+${requestResult.usage.completion_tokens} tokens ($${callCost.toFixed(4)})${cachedSuffix}`)
 
     let jsonStr: string
     try {
@@ -480,11 +483,12 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
       const latency = requestResult?.totalLatencyMs ?? (Date.now() - startedAt)
       const promptTokens = requestResult?.usage.prompt_tokens ?? 0
       const completionTokens = requestResult?.usage.completion_tokens ?? 0
+      const cachedTokens = requestResult?.usage.cached_tokens ?? 0
       const tps = latency > 0 && completionTokens > 0
         ? Math.round(completionTokens / (latency / 1000))
         : 0
       const cost = requestResult
-        ? getTokenCost(providerName, model, promptTokens, completionTokens)
+        ? getTokenCost(providerName, model, promptTokens, completionTokens, cachedTokens)
         : 0
 
       const entry: LLMCallLogEntry = {
@@ -498,6 +502,7 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
         contentPreview: content.slice(0, 200),
         promptTokens,
         completionTokens,
+        cachedTokens,
         totalLatencyMs: Math.round(latency),
         tokensPerSec: tps,
         cost,

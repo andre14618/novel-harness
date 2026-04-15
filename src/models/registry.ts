@@ -822,18 +822,36 @@ export function getApiKey(provider: ProviderName): string {
   return key
 }
 
-export function getTokenCost(provider: ProviderName, modelId: string, promptTokens: number, completionTokens: number): number {
-  const model = getModel(modelId, provider)
-  if (!model) {
+export function getTokenCost(
+  provider: ProviderName,
+  modelId: string,
+  promptTokens: number,
+  completionTokens: number,
+  cachedTokens: number = 0,
+): number {
+  const resolveModel = () => {
+    const m = getModel(modelId, provider)
+    if (m) return m
     // W&B LoRA artifact URIs (wandb-artifact:///...) don't match any id in MODELS,
     // but they are served on OpenPipe/Qwen3-14B-Instruct at standard Qwen3-14B rates
     // with no LoRA surcharge. Fall back to that base model's pricing so llm_calls
     // records real cost instead of $0.
     if (provider === "wandb" && modelId.startsWith("wandb-artifact:///")) {
-      const base = getModel("OpenPipe/Qwen3-14B-Instruct", "wandb")
-      if (base) return (promptTokens * base.pricing.input + completionTokens * base.pricing.output) / 1_000_000
+      return getModel("OpenPipe/Qwen3-14B-Instruct", "wandb")
     }
-    return 0
+    return null
   }
-  return (promptTokens * model.pricing.input + completionTokens * model.pricing.output) / 1_000_000
+  const model = resolveModel()
+  if (!model) return 0
+
+  // cached_tokens is a SUBSET of prompt_tokens. Bill the miss portion at the
+  // full input rate and the cached portion at (input * (1 - cache.discount)).
+  // Providers without a cache discount (or with cachedTokens=0) effectively
+  // fall through to the original calculation.
+  const cache = PROVIDERS[provider]?.cache
+  const cachedRate = cache ? model.pricing.input * (1 - cache.discount) : model.pricing.input
+  const cached = Math.min(cachedTokens, promptTokens)
+  const miss = promptTokens - cached
+
+  return (miss * model.pricing.input + cached * cachedRate + completionTokens * model.pricing.output) / 1_000_000
 }

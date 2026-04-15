@@ -486,6 +486,7 @@ export interface LLMCallData {
   maxTokens?: number
   promptTokens: number
   completionTokens: number
+  cachedTokens?: number
   latencyMs: number
   cost: number
   chapter?: number
@@ -518,7 +519,7 @@ export async function logLLMCall(runId: number, data: LLMCallData): Promise<numb
   const [row] = await db`
     INSERT INTO llm_calls (
       run_id, agent, phase, model, provider, temperature, max_tokens,
-      prompt_tokens, completion_tokens, latency_ms, tokens_per_sec, cost,
+      prompt_tokens, completion_tokens, cached_tokens, latency_ms, tokens_per_sec, cost,
       chapter, seed, dimension,
       json_extraction_success, json_extraction_retried,
       zod_validation_success, zod_errors, http_attempts, retry_errors,
@@ -528,7 +529,7 @@ export async function logLLMCall(runId: number, data: LLMCallData): Promise<numb
     ) VALUES (
       ${runId}, ${data.agent}, ${data.phase ?? null}, ${data.model}, ${data.provider},
       ${data.temperature ?? null}, ${data.maxTokens ?? null},
-      ${data.promptTokens}, ${data.completionTokens},
+      ${data.promptTokens}, ${data.completionTokens}, ${data.cachedTokens ?? 0},
       ${Math.round(data.latencyMs)}, ${tps}, ${data.cost},
       ${data.chapter ?? null}, ${data.seed ?? null}, ${data.dimension ?? null},
       ${data.jsonExtractionSuccess ?? true},

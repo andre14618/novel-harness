@@ -37,7 +37,10 @@ export interface LLMRequest {
 
 export interface LLMResponse {
   content: string
-  usage: { prompt_tokens: number; completion_tokens: number }
+  // cached_tokens is a SUBSET of prompt_tokens — the portion that hit the
+  // provider's automatic prefix cache. 0 when unreported or on the first call
+  // with a given prefix.
+  usage: { prompt_tokens: number; completion_tokens: number; cached_tokens: number }
   latencyMs: number
   httpAttempts: number
   retryErrors: Array<{ status: number; delay: number }>
@@ -148,7 +151,7 @@ export class DirectTransport implements LLMTransport {
       if (data.error) throw new Error(`LLM error: ${JSON.stringify(data.error)}`)
       return {
         content: data.choices[0].message.content,
-        usage: data.usage ?? { prompt_tokens: 0, completion_tokens: 0 },
+        usage: extractUsage(data.usage),
         latencyMs: performance.now() - startTime,
         httpAttempts,
         retryErrors,
@@ -159,6 +162,21 @@ export class DirectTransport implements LLMTransport {
   }
 }
 
+// Normalize the OpenAI-compatible `usage` field. Providers expose cached-token
+// counts in slightly different shapes:
+//   - OpenAI, DeepSeek, MiniMax, Zai: `prompt_tokens_details.cached_tokens`
+//   - DeepSeek also exposes: `prompt_cache_hit_tokens` (legacy alias)
+// cached_tokens is always a SUBSET of prompt_tokens, never additive.
+function extractUsage(raw: any): { prompt_tokens: number; completion_tokens: number; cached_tokens: number } {
+  const prompt_tokens = raw?.prompt_tokens ?? 0
+  const completion_tokens = raw?.completion_tokens ?? 0
+  const cached_tokens =
+    raw?.prompt_tokens_details?.cached_tokens
+    ?? raw?.prompt_cache_hit_tokens
+    ?? 0
+  return { prompt_tokens, completion_tokens, cached_tokens }
+}
+
 // ── SSE stream consumer ─────────────────────────────────────────────────
 // Parses an OpenAI-compatible chat completion stream (data: {json}\n\n lines).
 // Returns accumulated content and final usage. Invokes onChunk per delta so
@@ -166,13 +184,13 @@ export class DirectTransport implements LLMTransport {
 async function consumeSSEStream(
   res: Response,
   onChunk?: (delta: string) => void,
-): Promise<{ content: string; usage: { prompt_tokens: number; completion_tokens: number } }> {
+): Promise<{ content: string; usage: { prompt_tokens: number; completion_tokens: number; cached_tokens: number } }> {
   if (!res.body) throw new Error("streaming response missing body")
   const reader = res.body.getReader()
   const decoder = new TextDecoder()
   let buffer = ""
   let content = ""
-  let usage = { prompt_tokens: 0, completion_tokens: 0 }
+  let usage = { prompt_tokens: 0, completion_tokens: 0, cached_tokens: 0 }
 
   while (true) {
     const { value, done } = await reader.read()
@@ -199,10 +217,7 @@ async function consumeSSEStream(
           }
         }
         if (chunk.usage) {
-          usage = {
-            prompt_tokens: chunk.usage.prompt_tokens ?? usage.prompt_tokens,
-            completion_tokens: chunk.usage.completion_tokens ?? usage.completion_tokens,
-          }
+          usage = extractUsage(chunk.usage)
         }
       } catch (err) {
         // Swallow parse errors for malformed chunks; the stream may contain

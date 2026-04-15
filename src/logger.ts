@@ -49,6 +49,7 @@ export interface LLMCallLogEntry {
   contentPreview: string
   promptTokens: number
   completionTokens: number
+  cachedTokens?: number
   totalLatencyMs: number
   tokensPerSec: number
   jsonExtractionSuccess: boolean
@@ -95,6 +96,7 @@ export async function logLLMCallStructured(novelId: string, entry: LLMCallLogEnt
     maxTokens: entry.maxTokens,
     promptTokens: entry.promptTokens,
     completionTokens: entry.completionTokens,
+    cachedTokens: entry.cachedTokens,
     latencyMs: entry.totalLatencyMs,
     cost: entry.cost ?? 0,
     jsonExtractionSuccess: entry.jsonExtractionSuccess,
