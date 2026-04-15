@@ -76,7 +76,12 @@ export interface LLMCallLogEntry {
 }
 
 export async function logLLMCallStructured(novelId: string, entry: LLMCallLogEntry): Promise<number | null> {
-  if (!currentRunId) return null
+  if (!currentRunId) {
+    // Silent drop would leave llm_calls missing rows for a live novel. Warn
+    // loudly so we notice the moment a resume path forgets to call initNovelRun().
+    console.warn(`[logger] logLLMCallStructured called with no currentRunId — dropping ${entry.agent} call for novel ${novelId}`)
+    return null
+  }
 
   // Determine phase from agent name
   const phase = getPhaseForAgent(entry.agent)

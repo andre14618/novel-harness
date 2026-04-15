@@ -143,6 +143,18 @@ export function StudioPage() {
     getNovelConfig().then(setConfig).catch(() => {})
   }, [loadState])
 
+  // Safety poll: if the pipeline is active but no gate is showing, re-fetch
+  // state every 8s. Handles the case where the `gate:waiting` SSE event was
+  // dropped (reconnect, backgrounded tab) and the UI would otherwise sit
+  // without a gate card while the backend is blocked waiting for approval.
+  useEffect(() => {
+    if (!activeNovelId) return
+    if (!state?.active) return
+    if (state.pendingGate) return
+    const t = setInterval(loadState, 8000)
+    return () => clearInterval(t)
+  }, [activeNovelId, state?.active, state?.pendingGate, loadState])
+
   // ── Hydrate historical trace events on novel change ───────────────────
   const lastHydratedRef = useRef<string | null>(null)
   useEffect(() => {
@@ -189,6 +201,13 @@ export function StudioPage() {
     if (["phase:changed", "gate:waiting", "gate:resolved", "done"].includes(lastEvent.type)) {
       loadState()
       listNovels().then(r => setNovels(r.novels)).catch(() => {})
+    }
+    // Also trigger state reload on trace `gate-wait` events. The live SSE
+    // `gate:waiting` packet can be lost (reconnect, backgrounded tab) — the
+    // trace row is the durable signal that a gate is pending.
+    if (lastEvent.type === "trace") {
+      const et = (lastEvent as any).data?.eventType
+      if (et === "gate-wait") loadState()
     }
     // Refresh artifact previews when a phase completes or a concept/planning
     // agent finishes (so world/characters/spine/outlines populate as they land).
@@ -453,6 +472,7 @@ export function StudioPage() {
 
   const isDone = state?.phase === "done"
   const stalled = state && !state.active && !isDone
+  const pipelineError = state?.activeError ?? state?.lastRunError?.error ?? null
 
   return (
     <div className="studio-v2">
@@ -640,14 +660,14 @@ export function StudioPage() {
             <div
               className="card"
               style={{
-                borderColor: state.activeError ? "#e74c3c" : "#e2b714",
+                borderColor: pipelineError ? "#e74c3c" : "#e2b714",
                 marginTop: 10,
               }}
             >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: state.activeError ? "0.8rem" : 0 }}>
-                <div style={{ color: state.activeError ? "#e74c3c" : "#e2b714" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: pipelineError ? "0.8rem" : 0 }}>
+                <div style={{ color: pipelineError ? "#e74c3c" : "#e2b714" }}>
                   <strong>
-                    {state.activeError ? "Pipeline errored" : "Pipeline stopped"}
+                    {pipelineError ? "Pipeline errored" : "Pipeline stopped"}
                   </strong>
                   {" "}at <strong>{state.phase}</strong>
                   {state.totalChapters > 0 && ` (chapter ${state.currentChapter}/${state.totalChapters})`}.
@@ -659,9 +679,9 @@ export function StudioPage() {
                   {resuming ? "Resuming…" : "Resume Pipeline"}
                 </button>
               </div>
-              {state.activeError && (
+              {pipelineError && (
                 <pre style={{ whiteSpace: "pre-wrap", fontSize: "0.75rem", color: "#e74c3c", margin: 0, padding: "0.5rem 0.6rem", background: "rgba(231, 76, 60, 0.08)", borderRadius: 4 }}>
-                  {state.activeError}
+                  {pipelineError}
                 </pre>
               )}
             </div>
@@ -678,15 +698,15 @@ export function StudioPage() {
                   style={{
                     fontSize: "0.72rem",
                     padding: "3px 10px",
-                    background: state.activeError ? "#e74c3c" : "transparent",
-                    color: state.activeError ? "#fff" : "var(--accent)",
-                    border: `1px solid ${state.activeError ? "#e74c3c" : "var(--accent-dim)"}`,
+                    background: pipelineError ? "#e74c3c" : "transparent",
+                    color: pipelineError ? "#fff" : "var(--accent)",
+                    border: `1px solid ${pipelineError ? "#e74c3c" : "var(--accent-dim)"}`,
                     borderRadius: 4,
                     cursor: resuming ? "wait" : "pointer",
                   }}
                 >
                   {resuming ? "Resuming…"
-                    : state.activeError ? "Retry pipeline"
+                    : pipelineError ? "Retry pipeline"
                     : isDone ? "Resume (no-op when done)"
                     : `Resume at ${state.phase}`}
                 </button>

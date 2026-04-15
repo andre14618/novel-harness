@@ -24,6 +24,9 @@ const HARNESS_ROOT = process.env.HARNESS_ROOT ?? "/home/andre/apps/novel-harness
 
 // Track in-process novel runs
 const activeRuns = new Map<string, { startedAt: string; error?: string }>()
+// Preserve the last error for a novel after its run has exited, so the UI
+// can surface it. Cleared when a new run starts.
+const lastRunErrors = new Map<string, { error: string; at: string }>()
 
 /**
  * Handle all /api/novel/* routes. Returns null if the path doesn't match.
@@ -394,18 +397,18 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
       // Register in central DB
       const runId = await initNovelRun(novelId)
 
+      lastRunErrors.delete(novelId)
       activeRuns.set(novelId, { startedAt: new Date().toISOString() })
 
       // Start pipeline as floating promise (fire-and-forget)
       runNovel(novelId)
         .then(() => {
-          const run = activeRuns.get(novelId)
-          if (run) activeRuns.delete(novelId)
+          activeRuns.delete(novelId)
           console.log(`[novel-api] Novel ${novelId} completed`)
         })
         .catch(err => {
-          const run = activeRuns.get(novelId)
-          if (run) run.error = String(err)
+          activeRuns.delete(novelId)
+          lastRunErrors.set(novelId, { error: String(err), at: new Date().toISOString() })
           console.error(`[novel-api] Novel ${novelId} failed:`, err)
         })
 
@@ -440,13 +443,21 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
       await updatePhase(novelId, rewindTo)
     }
 
+    // Re-init the logger's currentRunId so all downstream LLM calls land in
+    // llm_calls. Without this, resumes across an orchestrator restart (or
+    // after any path that clears the module-level runId) silently drop every
+    // row — pipeline_events still populates via novelId, but llm_calls does not.
+    await initNovelRun(novelId)
+
+    lastRunErrors.delete(novelId)
     activeRuns.set(novelId, { startedAt: new Date().toISOString() })
 
     runNovel(novelId)
       .then(() => { activeRuns.delete(novelId) })
       .catch(err => {
-        const run = activeRuns.get(novelId)
-        if (run) run.error = String(err)
+        activeRuns.delete(novelId)
+        lastRunErrors.set(novelId, { error: String(err), at: new Date().toISOString() })
+        console.error(`[novel-api] Novel ${novelId} resume failed:`, err)
       })
 
     return Response.json({ ok: true, novelId, mode })
@@ -473,12 +484,16 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
     await deleteChapterDrafts(novelId, chapterNum)
     await updatePhase(novelId, "drafting")
 
+    await initNovelRun(novelId)
+
+    lastRunErrors.delete(novelId)
     activeRuns.set(novelId, { startedAt: new Date().toISOString() })
     runNovel(novelId)
       .then(() => { activeRuns.delete(novelId) })
       .catch(err => {
-        const run = activeRuns.get(novelId)
-        if (run) run.error = String(err)
+        activeRuns.delete(novelId)
+        lastRunErrors.set(novelId, { error: String(err), at: new Date().toISOString() })
+        console.error(`[novel-api] Novel ${novelId} redraft failed:`, err)
       })
 
     return Response.json({ ok: true, novelId, chapter: chapterNum })
@@ -502,6 +517,7 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
         createdAt: row.created_at,
         active: activeRuns.has(novelId),
         activeError: activeRuns.get(novelId)?.error,
+        lastRunError: lastRunErrors.get(novelId) ?? null,
         pendingGate: pending ? { gateId: pending.gateId, title: pending.title, content: pending.content } : null,
       })
     } catch (err) {

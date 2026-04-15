@@ -27,11 +27,19 @@ export async function runPlanningPhase(novelId: string): Promise<void> {
   console.log(`  Running Plotter agent...${targetChapters ? ` (target: ${targetChapters} chapters)` : ""}`)
   emit(novelId, { type: "progress", data: { step: "planning-plotter", status: "running" } })
 
-  // Generate + enforce — up to 2 attempts
+  // Generate + enforce — up to 2 attempts. The retry prompt is built from
+  // the ACTUAL failure (schema message or enforcement errors), not a generic
+  // chapter-count warning, so a targeted fix is possible on attempt 2.
   let chapters: any[] | null = null
+  let lastError: string | null = null
   for (let attempt = 1; attempt <= 2; attempt++) {
-    const promptContext = attempt === 1 ? context
-      : context + `\n\nCRITICAL: You MUST produce exactly ${targetChapters} chapters. Previous attempt produced an incorrect count.`
+    let promptContext = context
+    if (attempt > 1 && lastError) {
+      promptContext += `\n\n--- PREVIOUS ATTEMPT FAILED ---\n${lastError}\n\nFix the specific issue(s) above.`
+      if (targetChapters) {
+        promptContext += ` Produce exactly ${targetChapters} chapters.`
+      }
+    }
 
     try {
       const result = await callAgent({
@@ -61,13 +69,15 @@ export async function runPlanningPhase(novelId: string): Promise<void> {
           log(novelId, "error", `Planning enforcement: ${e}`)
           console.log(`  Enforcement failed: ${e}`)
         }
+        lastError = `Enforcement errors: ${enforcement.errors.join("; ")}`
         if (attempt === 2) {
           throw new Error(`Planning failed structural enforcement after 2 attempts: ${enforcement.errors.join("; ")}`)
         }
       }
     } catch (err) {
+      lastError = err instanceof Error ? err.message : String(err)
       if (attempt === 2) throw err
-      log(novelId, "warn", `Planning attempt ${attempt} failed: ${err instanceof Error ? err.message : err}`)
+      log(novelId, "warn", `Planning attempt ${attempt} failed: ${lastError}`)
     }
   }
 

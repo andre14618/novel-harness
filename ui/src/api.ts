@@ -577,6 +577,7 @@ export interface NovelState {
   createdAt: string
   active: boolean
   activeError?: string
+  lastRunError?: { error: string; at: string } | null
   pendingGate: {
     gateId: string
     title: string

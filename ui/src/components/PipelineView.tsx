@@ -569,12 +569,12 @@ export function PipelineView() {
           </div>
         )}
 
-        {state.activeError && (
+        {(state.activeError || state.lastRunError?.error) && (
           <div className="tl-entry tl-error">
             <div className="tl-dot error" />
             <div className="tl-body">
               <strong>Pipeline Error</strong>
-              <pre style={{ whiteSpace: "pre-wrap", fontSize: "0.8rem", color: "#e74c3c" }}>{state.activeError}</pre>
+              <pre style={{ whiteSpace: "pre-wrap", fontSize: "0.8rem", color: "#e74c3c" }}>{state.activeError ?? state.lastRunError?.error}</pre>
             </div>
           </div>
         )}

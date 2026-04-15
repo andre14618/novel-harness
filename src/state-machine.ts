@@ -37,19 +37,33 @@ export async function runNovel(novelId: string): Promise<void> {
     const phaseStart = Date.now()
     const currentPhase = novel.phase
 
-    switch (novel.phase) {
-      case "concept":
-        await runConceptPhase(novelId, novel.seed)
-        break
-      case "planning":
-        await runPlanningPhase(novelId)
-        break
-      case "drafting":
-        await runDraftingPhase(novelId)
-        break
-      case "validation":
-        await runValidationPhase(novelId)
-        break
+    try {
+      switch (novel.phase) {
+        case "concept":
+          await runConceptPhase(novelId, novel.seed)
+          break
+        case "planning":
+          await runPlanningPhase(novelId)
+          break
+        case "drafting":
+          await runDraftingPhase(novelId)
+          break
+        case "validation":
+          await runValidationPhase(novelId)
+          break
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      // Surface phase-level failure as both a trace event (so the Activity
+      // feed renders an explicit failure block, not just two completed LLM
+      // calls) and an SSE "error" event.
+      await trace(novelId, {
+        eventType: "error",
+        durationMs: Date.now() - phaseStart,
+        payload: { phase: currentPhase, error: message },
+      })
+      emit(novelId, { type: "error", data: { phase: currentPhase, error: message } })
+      throw err
     }
 
     await trace(novelId, {
