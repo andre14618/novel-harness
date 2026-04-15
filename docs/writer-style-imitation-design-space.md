@@ -341,8 +341,11 @@ Training: ~$500 one-time. Inference: same as D. **When pure-Salvatore overfits t
 
 ## Recommended exploration order
 
+**Stage 0 — Capability vs tuning POC (this week, ~$7):**
+Before committing to any full Stage 1+ run, answer the strategic question: does real fine-tuning meaningfully close the gap, or is base-model capability the dominant lever? A 2×2 micro-benchmark on 3 training chapters + 2 eval chapters of Crystal Shard tests Qwen3-14B (untuned/tuned) × DeepSeek-or-Llama-70B (untuned/tuned). Full setup in `docs/writer-imitation-benchmark.md` "Phase 0-POC." Outcome determines whether SFT-heavy recipes (D, E, F, H) or capability-heavy recipes (B, C, I) deserve budget first.
+
 **Stage 1 — Establish floor and ceiling (this month, ~$80):**
-1. Phase 0 of `writer-imitation-benchmark.md` (Salvatore deconstruction) — required input for everything else
+1. Phase 0 of `writer-imitation-benchmark.md` (Salvatore deconstruction, full book) — required input for everything else
 2. Run Recipes A, B, C against the benchmark
 3. **Decide:** is the gap between B and C large enough to justify spending money on training? If C beats B by less than ~10% pref-eval, ship B and stop here.
 

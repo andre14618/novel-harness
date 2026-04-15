@@ -11,9 +11,21 @@ Pending action items only. Ordered by impact. Completed items and decision ratio
 
 Treat writer quality as an engineering problem with a measurable ground truth. Deconstruct *The Crystal Shard* into scene-level beats, build a permanent quality oracle that scores every methodology (model swap, primer change, generation unit change, SFT adapter) against actual published prose for the same beats. The corpus deconstruction is also a paired SFT training set, so this work subsumes Phase 1's manual labeling.
 
-**Full plan:** `docs/writer-imitation-benchmark.md`
+**Full plan:** `docs/writer-imitation-benchmark.md` (measurement layer) + `docs/writer-style-imitation-design-space.md` (method layer).
 
-**Status:** Awaiting target confirmation (Crystal Shard vs alternate Salvatore novel) and ebook source. Phase 0a-0b starts within a day of confirmation. Phases 1–3 below remain valid as fallback if the benchmark verdict says SFT is needed, but they are **deprioritized** until the benchmark settles which methodology and which model deserve SFT investment.
+**Status:** Awaiting target confirmation (Crystal Shard vs alternate Salvatore novel) and ebook source.
+
+### Phase 0-POC — "Capability vs tuning" proof of concept (START HERE, ~$7, ~3 days)
+
+Before spending ~$75–210 on large-base SFT, run the 2×2 POC to settle the strategic question: does real fine-tuning (even at small scale) close the gap, or is base-model capability the dominant lever? Design matrix: Qwen3-14B (untuned/tuned) × DeepSeek-or-Llama-70B (untuned/tuned) on a micro-corpus (3 training chapters + 2 eval chapters of Crystal Shard, ~100 paired beats + 60 eval beats). Full spec in `docs/writer-imitation-benchmark.md` "Phase 0-POC."
+
+POC outcome directs Phase 2 scope:
+- Tuned small beats untuned large → SFT matters; prioritize SFT methodologies
+- Tuned large beats tuned small AND untuned large → tuning at scale is the lever; justifies Kimi K2.5 $70 training spend
+- Untuned large ties tuned large → base capability dominates; skip Kimi, prioritize primer/unit experiments
+- No methodology wins → planner is the gap, not the writer
+
+After POC, Phase 0a-0b (full-book deconstruction) starts. Phases 1–3 below remain valid as fallback if the benchmark verdict says SFT is needed, but they are **deprioritized** until the benchmark settles which methodology and which model deserve SFT investment.
 
 ---
 

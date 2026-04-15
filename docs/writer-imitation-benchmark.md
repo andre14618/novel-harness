@@ -33,6 +33,47 @@ Rationale:
 
 Alternate: *Homeland* (Drizzt origin) if Drizzt's voice is the more important commercial vector.
 
+## Phase 0-POC — "Capability vs tuning" proof of concept (runs before full Phase 0)
+
+Before spending ~$75 on a Kimi K2.5 training run, settle a strategic question that the ceiling probes alone cannot: **does real fine-tuning (even at small scale) meaningfully close the gap, or is base-model capability the dominant lever?** A 2×2 design on a micro-corpus answers this at ~$5–7 end-to-end.
+
+**The 2×2:**
+
+| | Untuned (in-context only) | Tuned (LoRA SFT) |
+|---|---|---|
+| **Small base** (Qwen3-14B) | **A** — Qwen3-14B + Howard primer | **B** — Qwen3-14B LoRA on Salvatore pairs |
+| **Large base** (DeepSeek / Llama 70B) | **C** — DeepSeek V3 + Howard primer (current default) | **D** — Llama 3.3 70B LoRA on Salvatore pairs |
+
+Interpretations:
+- A vs C isolates base-model capability at zero training spend
+- A vs B isolates tuning lift at fixed small base
+- **B vs D is the core question** — does big-base-untuned beat small-base-tuned?
+- C vs D isolates tuning lift at a larger base
+
+**Micro-corpus:** train on 3 Crystal Shard chapters (~20–25 scenes, ~100 paired beats), hold out 2 chapters (~60 beats) for eval. ~2 days of sub-agent labor vs. ~4 for the full book.
+
+**Cost breakdown:**
+
+| item | cost |
+|---|---:|
+| Mini-deconstruction (3+2 chapters, sub-agents) | $0 |
+| Training — Qwen3-14B LoRA on W&B (ART preview) | $0 |
+| Training — Llama 3.3 70B LoRA on Together (0.9M tokens × $2.90/M) | ~$2.60 |
+| Inference — 60 eval beats × 4 conditions | ~$2 |
+| Sonnet pref-eval judge (sub-agents, blind A/B) | $0 |
+| **POC total** | **~$5–7** |
+
+**Wall clock:** ~3 days with deconstruction and training in parallel once labels are in.
+
+**Decision rules from POC:**
+
+1. **B > C** (tuned small beats untuned large) → tuning matters most. Kimi K2.5 investment is probably worth it but not urgent — a Qwen3-14B adapter may be good enough. Proceed to full benchmark with SFT methodologies prioritized.
+2. **D > B AND D > C** (tuned large beats both) → tuning at scale is the real lever. Justifies the Kimi K2.5 ~$70 training spend. Proceed to full benchmark including Kimi.
+3. **C > B AND C ≈ D** (untuned large ties tuned large) → base capability dominates; SFT barely helps. Do NOT spend on Kimi. Invest in primer strategy and scene-vs-beat generation-unit experiments (M3–M7) instead.
+4. **A ≈ B ≈ C ≈ D** → we're all far from real Salvatore and the gap is something else (planner beat quality, generation unit, or benchmark noise floor). Reinvest in the planner.
+
+The POC is cheap enough that the answer is worth more than the cost of finding out. Run before committing to Phase 2 in full.
+
 ## Corpus deconstruction (Phase 0) — 6-stage pipeline
 
 Deterministic splitting + sub-agent semantic labeling + deterministic style tagging + a mandatory validation gate before scaling. Sonnet labor goes through Claude Code sub-agents (zero transport API spend).
