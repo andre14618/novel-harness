@@ -86,7 +86,7 @@ Quality measured via structured pass/fail checks, not LLM scoring (1-10 judges s
 - **Chapter plan checker** — per-chapter: W&B `chapter-plan-checker-v2:v1` (Qwen3-14B SFT adapter) checks cross-beat properties: setting coherence, emotional arc direction, major plot contradictions. 96% accuracy vs Sonnet ground truth, 609ms avg. `beats_covered` and `characters_present` removed (redundant with beat-level adherence). Has a strict false-positive ruleset (paraphrased dialogue, reordered details, atmospheric additions are NOT deviations).
 - **Continuity checker** — per-chapter: **W&B `continuity-v2:v1`** (Qwen3-14B SFT) — 2 parallel decomposed calls (facts + state) check against world state tables. Largest prompt-token cost in the pipeline by an order of magnitude. Swapped from Cerebras 235B 2026-04-12.
 - **Lint** — deterministic (~26 patterns) + LLM fixes for cliché, hedging, emotional echo, rhythm. Lives in `src/lint/`.
-- **Tonal pass** — LoRA-tuned 9B model (Together AI) for per-paragraph voice rewriting. Runs once at the end of validation, not per-chapter.
+- **Tonal pass** — W&B Inference LoRA adapter `howard-tonal-v4-sft-resume:v8` (Qwen3-14B) for per-paragraph voice rewriting. Runs once at the end of validation, not per-chapter. Output is saved as a separate draft version (`status='tonal-pass'`) — the approved draft is preserved so the reader view can diff. On-demand: `POST /api/novel/:id/tonal-pass` re-runs the pass on any existing novel.
 
 Archived benchmarks (infrastructure kept): context quality, prose penalties, planning scores, extraction scores, pairwise comparison. The continuity benchmark and `cross-chapter-continuity` agent were removed in 2026-04 (the per-chapter `continuity` checker subsumes that role).
 
@@ -117,7 +117,7 @@ The daemon rotates between prompt, config, and template proposals per iteration,
 - **Fine-Tuning** (`/app/finetune`) — SFT pipeline overview, LoRA style transfer narrative, deployed adapter table, plus tabs for adapter changelog and LoRA comparison tool.
 - **Docs** (`/app/docs`) — reference document browser (drag-to-reorder sidebar, markdown rendering). All `docs/*.md` files served here.
 - **Pipeline View** (`/app/:novelId`) — standalone real-time SSE timeline with gate panels (also accessible from Studio)
-- **Read** (`/app/:novelId/read`) — rendered novel prose, linked from Studio/Pipeline
+- **Read** (`/app/:novelId/read`) — rendered novel prose, linked from Studio/Pipeline. Sidebar has tonal-pass controls (Original / Tonal / Diff toggle + "Run Tonal Pass" button) when tonal-pass versions exist; Diff view highlights changed paragraphs (removed in red, added in green) aligned by paragraph index. Export dropdown supports `.md`/`.txt`/`.json`, with an approved-only variant.
 - **Other pages** (accessible via URL, not in nav): Config, Experiments, Models, LLM Calls, Costs
 
 Streaming infrastructure: `src/transport.ts` (DirectTransport emits `llm-call-start` / `llm-token` events), `src/trace.ts` (persists pipeline events to `pipeline_events` table). Historical hydration via `traceToSSE` conversion from DB rows to SSE event format.

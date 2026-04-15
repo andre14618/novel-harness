@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-14
+updated: 2026-04-14b
 ---
 
 # Decisions
@@ -274,6 +274,25 @@ Named archetypes with structured profiles and few-shot example lines allow Q14B 
 
 ## Tonal Pass
 
+### Tonal pass stores a separate version; on-demand run for existing novels
+*2026-04-14*
+
+**Decision:** Tonal-pass output now saves to `chapter_drafts` as a new version with `status='tonal-pass'`. The original `status='approved'` draft is preserved so the reader view can diff before/after. A `POST /api/novel/:id/tonal-pass` endpoint runs the pass on any existing novel's approved chapters; the NovelReadView has Original / Tonal / Diff toggles and a "Run Tonal Pass" button.
+
+**Why:** The pipeline previously did `unapproveChapterDraft → saveChapterDraft → approveChapterDraft`, destroying the pre-tonal version. Users asked to see "before and after visually identifiable" — that required keeping both versions. Making the pass re-runnable on completed novels also decouples adapter-quality evaluation from running a fresh pipeline.
+
+**Implementation:**
+- `src/db/drafts.ts`: `saveTonalPassDraft` / `getTonalPassDraft` / `deleteTonalPassDrafts`
+- `src/phases/validation.ts`: uses `saveTonalPassDraft` instead of unapprove-replace
+- `src/orchestrator/novel-routes.ts`: `GET /chapters?variant=tonal`, `GET /chapter/:n/versions`, `POST /tonal-pass` (optional `{ chapter, regenerate }`)
+- `NovelReadView.tsx`: Original / Tonal / Diff view toggle; diff view aligns paragraphs by index (tonal-pass `reassemble()` preserves paragraph count) and highlights removed-paragraph text in red, added-paragraph in green.
+
+**Also:** `pipeline.tonalPass` flipped to `true` (V4 adapter `howard-tonal-v4-sft-resume:v8` confirmed 2026-04-11 — flag had been left off).
+
+**Ongoing:** Tonal-pass drafts are visible via `?variant=tonal` only; default reader view shows the approved version. Re-running regenerates the tonal version without touching approved.
+
+---
+
 ### V4 (Qwen3-14B W&B) trained and benchmarked; quantitative metrics favor V4 over V3
 *2026-04-08 · exp #98*
 
@@ -312,6 +331,21 @@ Named archetypes with structured profiles and few-shot example lines allow Q14B 
 ---
 
 ## Process / Method
+
+### Resume/redraft must call initNovelRun; failed runs clear activeRuns; phase errors surface via SSE
+*2026-04-14*
+
+**Decision:** Three orchestrator stabilizations shipped together:
+
+1. `initNovelRun()` is called at the top of every run entry point — start, resume, redraft, on-demand tonal-pass. The logger's module-level `currentRunId` is only set inside `initNovelRun`. Without it, `logLLMCallStructured` silently drops every call. The logger now emits a loud `console.warn` when `currentRunId` is null.
+2. Failed `runNovel` executions `activeRuns.delete(novelId)` and populate a separate `lastRunErrors` map. The `/state` endpoint returns `lastRunError` so the UI can surface the error after the run has exited. Previously a crash left the novel in `activeRuns` with `error` set, making subsequent resume attempts 409.
+3. `src/state-machine.ts` wraps the phase switch in a try/catch that emits both a trace `error` event and an SSE `error` event. The UI falls back to polling `/state` every 8s while a run is active (gate-wait SSE can be dropped on reconnect).
+
+**Why:** During a real novel run, planning got stuck re-dispatching chapter-count errors (retry used a generic warning instead of the actual zod/enforcement message), every drafting LLM call was silently absent from `llm_calls` (logger dropped them because resume didn't init the run), and a crash in the phase dispatcher surfaced no error to the UI (user saw a frozen spinner). These three bugs compounded into "novel hangs with no explanation."
+
+**Ongoing:** Any new run entry point MUST call `initNovelRun(novelId)` before spawning `runNovel`. Planning-phase retry now passes the real `lastError` string into the retry prompt.
+
+---
 
 ### LLM judges (1–10 scoring) removed from quality pipeline
 *(date: pre-2026-04, documented retrospectively)*
