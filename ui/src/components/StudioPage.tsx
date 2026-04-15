@@ -12,6 +12,7 @@ import { GatePanel } from "./GatePanel"
 import { PipelineFlow } from "./PipelineFlow"
 import { LiveMeters } from "./LiveMeters"
 import { DirectorChat } from "./DirectorChat"
+import { ArtifactPreviews } from "./ArtifactPreviews"
 
 // ── Agent display labels ────────────────────────────────────────────────
 const AGENT_ACTION: Record<string, string> = {
@@ -108,6 +109,7 @@ export function StudioPage() {
   const [completedAgents, setCompletedAgents] = useState<Set<string>>(new Set())
   const [runStartedAt, setRunStartedAt] = useState<number | null>(null)
   const [runEndedAt, setRunEndedAt] = useState<number | null>(null)
+  const [artifactRefreshKey, setArtifactRefreshKey] = useState(0)
   const activityEndRef = useRef<HTMLDivElement>(null)
 
   // ── Load seeds and novels on mount ────────────────────────────────────
@@ -186,6 +188,20 @@ export function StudioPage() {
     if (["phase:changed", "gate:waiting", "gate:resolved", "done"].includes(lastEvent.type)) {
       loadState()
       listNovels().then(r => setNovels(r.novels)).catch(() => {})
+    }
+    // Refresh artifact previews when a phase completes or a concept/planning
+    // agent finishes (so world/characters/spine/outlines populate as they land).
+    if (lastEvent.type === "phase:changed") {
+      setArtifactRefreshKey(k => k + 1)
+    } else if (lastEvent.type === "trace") {
+      const d: any = (lastEvent as any).data
+      const et = d?.eventType
+      const agent = d?.agent
+      if (et === "agent-complete" && ["world-builder", "character-agent", "plotter", "planning-plotter"].includes(agent)) {
+        setArtifactRefreshKey(k => k + 1)
+      } else if (et === "phase-change" || et === "phase-complete") {
+        setArtifactRefreshKey(k => k + 1)
+      }
     }
   }, [lastEvent, loadState, activeNovelId])
 
@@ -598,6 +614,8 @@ export function StudioPage() {
             endedAt={runEndedAt}
             done={isDone}
           />
+
+          <ArtifactPreviews novelId={activeNovelId} refreshKey={artifactRefreshKey} />
 
           {stalled && (
             <div
