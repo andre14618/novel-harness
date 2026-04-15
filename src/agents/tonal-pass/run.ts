@@ -62,25 +62,37 @@ export async function runTonalPass(
         schema: tonalPassSchema,
       })
 
-      if (result.output.changed) {
-        let rewrite = result.output.paragraph.trim()
+      {
+        let rewrite = (result.output.paragraph ?? "").trim()
 
-        // Guard A: model sometimes concatenates the following paragraph into
-        // its output (observed with V4 on W&B). Keep only the first paragraph.
+        // Guard A: V4 sometimes concatenates the FOLLOWING paragraph onto its
+        // output. Keep only the first paragraph.
         if (rewrite.includes("\n\n")) {
           rewrite = rewrite.split(/\n{2,}/)[0].trim()
         }
 
-        // Guard B: V4 occasionally swaps `*italics*` for `_italics_`. Normalize
-        // to the input's convention (`*…*`) so the diff reflects real content
-        // changes rather than formatting drift.
+        // Guard B: V4 swaps `*italics*` for `_italics_`. Normalize so the
+        // diff reflects real content changes, not formatting drift.
         rewrite = rewrite.replace(/_([^_\n][^_\n]*?)_/g, "*$1*")
 
-        // Guard C: reject no-op rewrites. If the only difference is whitespace
-        // or emphasis syntax, don't count it as a rewrite.
+        // Guard C: detect change by CONTENT, not by the model's `changed` flag.
+        // On the last run 48 of 147 paragraphs were genuine rewrites that the
+        // model labeled `changed:false`. Trust the text, not the boolean.
         const normalize = (s: string) => s.replace(/\s+/g, " ").trim()
-        if (normalize(rewrite) === normalize(input.paragraph)) {
-          log(novelId, "info", `Tonal pass ch${chapterNumber} para ${input.index}: no-op (whitespace/format only) — skipping`)
+        const inputNorm = normalize(input.paragraph)
+        const rewriteNorm = normalize(rewrite)
+
+        // Guard D: reject length collapse (model truncated mid-paragraph — we
+        // saw a 400-char paragraph come back as "I suppose,"). Require at
+        // least 50% of the original word count.
+        const inputWords = inputNorm.split(" ").length
+        const rewriteWords = rewriteNorm.split(" ").length
+        const truncated = rewriteWords < Math.max(3, inputWords * 0.5)
+
+        if (!rewrite || rewriteNorm === inputNorm) {
+          // No-op — skip silently.
+        } else if (truncated) {
+          log(novelId, "warn", `Tonal pass ch${chapterNumber} para ${input.index}: length collapse (${inputWords}w → ${rewriteWords}w) — rejecting`)
         } else {
           rewrites.set(input.index, rewrite)
           rewrittenCount++
