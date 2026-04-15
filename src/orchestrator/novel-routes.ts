@@ -288,11 +288,14 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
         userMessage: body.message,
       })
 
-      // Qwen3 on Groq emits <think>…</think> unless prefixed with /nothink.
-      // getTransport().execute bypasses the callAgent path that normally handles this.
+      // Qwen3 reasoning is ON for this agent — the guided-conversation
+      // judgments (coverage tracking, sparsity detection, contradiction
+      // catching) benefit from an explicit reasoning pass. Cost delta is
+      // ~0.15¢ per 10-turn session; latency adds ~500ms/turn which also
+      // helps the UX feel less jarringly fast.
       const response = await getTransport().execute({
         systemPrompt: CHAT_PROMPT,
-        userPrompt: `/nothink\n${userPrompt}`,
+        userPrompt,
         model: role?.model ?? "qwen/qwen3-32b",
         provider: (role?.provider ?? "groq") as any,
         temperature: role?.temperature ?? chatConfig.temperature,
@@ -300,7 +303,8 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
         responseFormat: { type: "text" },
       })
 
-      // Strip any <think>…</think> block if the model produced one anyway.
+      // Strip the <think>…</think> block from the user-visible reply —
+      // reasoning happens but isn't surfaced in the transcript.
       const cleaned = response.content
         .replace(/<think>[\s\S]*?<\/think>\s*/gi, "")
         .trim()
