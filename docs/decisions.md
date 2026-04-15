@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-15
+updated: 2026-04-15b
 ---
 
 # Decisions
@@ -404,6 +404,59 @@ Clinical register held across chapters. Dialogue is tight (`"Secret trials," Ist
 3. 8 failed LLM calls in the run (out of 176) — audit which agents failed and why before making DeepSeek a committed default.
 
 **Ongoing:** Probe reverted; `writer`/`beat-writer`/`rewriter` back on Cerebras 235B pending the above. Phase 1 SFT (`docs/todo.md`) is now provisionally re-prioritized below "DeepSeek second-seed probe + default-writer decision."
+
+### In-context Howard style primer (~10K tokens) is effectively free via DeepSeek prefix cache and pushes prose toward Howard rhythm
+*2026-04-15 · exp #190 (`novel-1776254029537`)*
+
+**Decision:** A `STYLE_PRIMER=<name>` env var in `src/agents/writer/index.ts` prepends a ~10K-token exemplar file (`style-primer-<name>.md`) to the writer/beat-writer system prompts. On DeepSeek, the primer caches as a prefix and bills at ~10% of the input rate after beat 0 — effectively free in-context voice conditioning, no training needed.
+
+**Probe setup:** Exp #189 baseline (unprimed DeepSeek, 3-chapter dark-fantasy) repeated with `STYLE_PRIMER=howard` and the same seed. Primer built by `scripts/finetune/extract-howard-primer.ts` — picks longest passages from `scripts/lora-data/howard-training.jsonl`, filters Project Gutenberg boilerplate, wraps with a "match voice NOT content" instruction header. Output: 13 passages, 39.6 KB, ~9,895 tokens.
+
+**Cache behavior (confirmed working):**
+
+| beat | prompt_tokens | cached_tokens | cache hit % |
+|---|---:|---:|---:|
+| 0 (cold) | 9,832 | 0 | 0% |
+| 1 | 9,562 | 9,152 | 95.7% |
+| 2 | 9,705 | 9,152 | 94.3% |
+| 3 | 9,675 | 9,152 | 94.6% |
+| avg beats 1–14 | ~9,800 | ~9,200 | **~94%** |
+
+**Results vs #189 baseline:**
+
+| signal | #189 (unprimed) | #190 (primer=howard) |
+|---|---:|---:|
+| beat-writer calls | 13 | 15 |
+| beat-writer avg latency | 27.6s | 31.9s (+16%) |
+| beat-writer cost | $0.0082 | $0.0126 (+54%, but see below) |
+| per-beat cost | $0.00063 | $0.00084 |
+| adherence-events pass | 13/13 | 15/15 |
+| chapter-plan | 3/3 | 3/3 |
+| continuity (facts+state) | 6/6 | 6/6 |
+| chapter char lengths | 9.9k / 9.5k / 8.8k | 10.6k / 11.6k / 11.1k (+19%) |
+| wall clock (3 ch) | 9m 9s | 11m 37s |
+
+**Cost math:** Without the cache, a 10K-token primer × 15 beats × $0.28/M input = ~$0.042. Actual writer cost was $0.0126. **Cache saved ~70% on primer tokens** — primer is effectively a ~$0.004 surcharge, not $0.034.
+
+**Qualitative prose (Ch 1 opening, #190):**
+> The final infusion dripped from the glass vial into the cannula. Istra observed the subject's radial artery. No pulse. The subject's chest did not rise. The subject's skin retained the pallor of the slab. Infusion complete. Vital signs monitored.
+>
+> The subject's eyelids opened.
+>
+> Pupils were fully dilated, black pools consuming the iris. No blink reflex to the candle held three inches from the cornea.
+
+Clipped declarative rhythm with sudden expansions into sensory/clinical detail — noticeably closer to Howard's short-blunt-then-elaborate cadence than the more flowing #189 baseline. Chapters are ~19% longer: the primer encourages denser prose without sacrificing discipline.
+
+**Why this matters for Phase 1 voice-SFT:** Voice transfer via ~10K-token in-context exemplars, near-free via prefix cache, with measurable rhythm shift and no quality regression, further raises the bar for committing to writer-side SFT on Qwen3-14B. If primer-conditioned DeepSeek produces "good enough" voice for production drafts, the SFT path becomes a latency/cost optimization rather than a quality unlock.
+
+**Known issue (separate):** W&B Inference agent costs logged as NaN (147 tonal-pass + 15 adherence + 3 chapter-plan + 6 continuity). Not caused by this probe — `getTokenCost` doesn't resolve W&B artifact URIs against the registry. Worth fixing independently so run summaries show accurate cost.
+
+**Open questions (pending):**
+1. Second-seed probe (non-fantasy) to confirm the primer's voice shift isn't genre-confounded with the seed's native feel.
+2. Compare primer=howard vs primer=<literary> (McCarthy, Wolfe) to see whether the technique generalizes or is Howard-specific.
+3. Policy: make primer default-on for production drafts, or reserve for approved-chapter rewriter passes only.
+
+**Ongoing:** Probe reverted; writers back on Cerebras 235B. Primer infrastructure (`STYLE_PRIMER` env var, `extract-howard-primer.ts`, `style-primer-howard.md`) kept for on-demand use. Phase 1 writer-SFT further deprioritized — primer + DeepSeek now a live third option alongside "Qwen3-14B SFT" and "larger-base SFT."
 
 ---
 

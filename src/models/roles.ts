@@ -27,13 +27,12 @@ const togetherQwen9B: ModelAssignment = { provider: "together", model: "Qwen/Qwe
 
 export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // ── Writers (creative prose, high output) ─────────────────────────────
-  // PHASE 3 PROBE (exp #190): swapped to deepseek-chat (V3.2) with Howard
-  // style primer via STYLE_PRIMER=howard env var. Tests whether a stronger
-  // base + ~10K token in-context style exemplars can substitute for voice SFT.
-  // Revert after probe concludes.
-  "writer":                    { ...deepseekV3, temperature: 0.8, maxTokens: 8000 },
-  "beat-writer":               { ...deepseekV3, temperature: 0.8, maxTokens: 4000 },
-  "rewriter":                  { ...deepseekV3, temperature: 0.5, maxTokens: 8000 },
+  // Reverted to Cerebras 235B after exp #189/#190 probes concluded (see
+  // docs/decisions.md "Writer Model"). DeepSeek+Howard primer validated as
+  // a working option; keeping it off by default pending second-seed probe.
+  "writer":                    { ...cerebrasQwen235B, temperature: 0.8, maxTokens: 8000 },
+  "beat-writer":               { ...cerebrasQwen235B, temperature: 0.8, maxTokens: 4000 },
+  "rewriter":                  { ...cerebrasQwen235B, temperature: 0.5, maxTokens: 8000 },
 
   // ── Planners (structured creative output) ─────────────────────────────
   "world-builder":             { ...cerebrasQwen235B, maxTokens: 8192 },
