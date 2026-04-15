@@ -765,6 +765,7 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
     const body = (await req.json().catch(() => ({}))) as { chapter?: number; regenerate?: boolean }
     const { getApprovedDraft, saveTonalPassDraft, deleteTonalPassDrafts } = await import("../db")
     const { runTonalPass } = await import("../agents/tonal-pass/run")
+    const { emit } = await import("../events")
 
     await initNovelRun(novelId)
     lastRunErrors.delete(novelId)
@@ -776,18 +777,42 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
         const total = novel.totalChapters
         const targets = body.chapter ? [body.chapter] : Array.from({ length: total }, (_, i) => i + 1)
 
+        emit(novelId, { type: "tonal-start", data: { totalChapters: targets.length, chapters: targets } })
+
+        let chapterIndex = 0
         for (const ch of targets) {
+          chapterIndex++
           const draft = await getApprovedDraft(novelId, ch)
           if (!draft) continue
           if (body.regenerate) await deleteTonalPassDrafts(novelId, ch)
+
+          emit(novelId, {
+            type: "tonal-chapter-start",
+            data: { chapter: ch, chapterIndex, totalChapters: targets.length },
+          })
+
           const result = await runTonalPass(novelId, ch, draft.prose)
           if (result.paragraphsRewritten > 0) {
             const wc = result.prose.split(/\s+/).filter(Boolean).length
             await saveTonalPassDraft(novelId, ch, result.prose, wc)
           }
+
+          emit(novelId, {
+            type: "tonal-chapter-done",
+            data: {
+              chapter: ch,
+              chapterIndex,
+              totalChapters: targets.length,
+              rewritten: result.paragraphsRewritten,
+              total: result.paragraphsTotal,
+            },
+          })
         }
+
+        emit(novelId, { type: "tonal-done", data: { totalChapters: targets.length } })
       } catch (err) {
         lastRunErrors.set(novelId, { error: String(err), at: new Date().toISOString() })
+        emit(novelId, { type: "tonal-error", data: { error: String(err) } })
         console.error(`[novel-api] Tonal pass failed for ${novelId}:`, err)
       } finally {
         activeRuns.delete(novelId)

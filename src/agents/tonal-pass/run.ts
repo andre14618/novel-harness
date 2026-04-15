@@ -36,9 +36,20 @@ export async function runTonalPass(
 
   const rewrites = new Map<number, string>()
   let rewrittenCount = 0
+  let processed = 0
 
   for (const input of inputs) {
     const userPrompt = buildParagraphPrompt(input)
+
+    emit(novelId, {
+      type: "tonal-progress",
+      data: {
+        chapter: chapterNumber,
+        paragraph: processed + 1,
+        totalParagraphs: inputs.length,
+        rewritten: rewrittenCount,
+      },
+    })
 
     try {
       const result = await callAgent({
@@ -52,13 +63,35 @@ export async function runTonalPass(
       })
 
       if (result.output.changed) {
-        rewrites.set(input.index, result.output.paragraph)
-        rewrittenCount++
+        let rewrite = result.output.paragraph.trim()
+
+        // Guard A: model sometimes concatenates the following paragraph into
+        // its output (observed with V4 on W&B). Keep only the first paragraph.
+        if (rewrite.includes("\n\n")) {
+          rewrite = rewrite.split(/\n{2,}/)[0].trim()
+        }
+
+        // Guard B: V4 occasionally swaps `*italics*` for `_italics_`. Normalize
+        // to the input's convention (`*…*`) so the diff reflects real content
+        // changes rather than formatting drift.
+        rewrite = rewrite.replace(/_([^_\n][^_\n]*?)_/g, "*$1*")
+
+        // Guard C: reject no-op rewrites. If the only difference is whitespace
+        // or emphasis syntax, don't count it as a rewrite.
+        const normalize = (s: string) => s.replace(/\s+/g, " ").trim()
+        if (normalize(rewrite) === normalize(input.paragraph)) {
+          log(novelId, "info", `Tonal pass ch${chapterNumber} para ${input.index}: no-op (whitespace/format only) — skipping`)
+        } else {
+          rewrites.set(input.index, rewrite)
+          rewrittenCount++
+        }
       }
     } catch (err) {
       // On failure, keep original paragraph — tonal pass is non-blocking
       log(novelId, "warn", `Tonal pass ch${chapterNumber} para ${input.index} failed: ${err}`)
     }
+
+    processed++
   }
 
   const finalProse = reassemble(prose, rewrites)

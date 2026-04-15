@@ -651,6 +651,32 @@ input[type="checkbox"] {
   margin-top: 0.3rem;
   word-break: break-word;
 }
+.reader-tonal-progress {
+  margin-top: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.reader-tonal-chapter {
+  font-size: 0.68rem;
+  color: var(--accent);
+  letter-spacing: 0.04em;
+}
+.reader-tonal-bar {
+  height: 4px;
+  background: var(--border-subtle);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.reader-tonal-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.25s ease-out;
+}
+.reader-tonal-meta {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+}
 
 .reader-chapter.tonal .reader-chapter-header h3::after {
   content: " · tonal pass";
