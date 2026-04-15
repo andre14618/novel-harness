@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-14c
+updated: 2026-04-15
 ---
 
 # Decisions
@@ -365,6 +365,45 @@ Representative real diffs: `looked at → stared at`, `judgment → condemnation
 **Why:** The motivation was unified serving (one provider). This is the wrong cost/benefit framing: the existing V3 adapter on Together AI works, the V4 adapter trained on Qwen3-14B is a capability upgrade (not just an infrastructure migration), and the right trigger for moving providers is capability — not serving consolidation. Retraining on a less-capable older base (Qwen 3.5 9B → Qwen3-14B) for infrastructure reasons was based on flawed reasoning: models should be compared on task output, not parameter count.
 
 **Ongoing:** V4 on W&B replaces V3 on Together when pref eval confirms V4 prose quality. The switchover is a capability decision, not an infrastructure cleanup.
+
+---
+
+## Writer Model
+
+### DeepSeek V3.2 is a meaningfully better writer than Cerebras Qwen 235B (dark-fantasy, n=1)
+*2026-04-15 · exp #189 (`novel-1776252162026`)*
+
+**Decision (provisional, pending second-seed confirmation):** DeepSeek V3.2 (`deepseek-chat`) is a stronger base writer than Cerebras Qwen 3-235B for target-genre prose. Reframes the Phase 1 Qwen3-14B voice-SFT plan: base-model choice may cover most of the gap that Phase 1 was intended to close.
+
+**Probe setup:** Swapped `writer`, `beat-writer`, `rewriter` from Cerebras Qwen 235B to `deepseek-chat` for a 3-chapter dark-fantasy run (`--seed dark-fantasy --chapters 3`). All checkers and tonal-pass left on their Qwen3-14B W&B adapters. No training involved.
+
+**Results:**
+
+| signal | DeepSeek V3.2 | Cerebras 235B baseline |
+|---|---:|---:|
+| beat-writer avg latency | 27.6s | ~2.1s (~13× slower) |
+| beat-writer cost (13 calls) | $0.0082 | comparable |
+| adherence-events pass rate | 13/13 first try | typically 79% |
+| chapter-plan-checker | 3/3 | 3/3 |
+| continuity (facts + state) | 3/3 each | 3/3 each |
+| word count per chapter | 1455–1663w | 550–770w (historical undershoot) |
+| total wall clock (3 ch) | 9m 9s | ~3–4m typical |
+
+**Qualitative prose** (Ch 1, Istra POV, pre-tonal):
+> The subject's respiratory rate stabilized at fourteen breaths per minute. Istra recorded the figure in her journal, the nib of her pen scratching a precise black line… Her fingers, damp from the perpetual humidity, left smudges on the cover. They trembled, a fine vibration she stilled by pressing her palm flat against the leather.
+
+Clinical register held across chapters. Dialogue is tight (`"Secret trials," Istra said. The words were a diagnosis.`). Subtext active. Visibly a step up from Qwen 235B on this seed.
+
+**Tradeoff:** ~13× slower drafting. A 20-chapter novel runs from ~7m (Cerebras) to ~90m (DeepSeek). Acceptable for quality work, rough for fast iteration.
+
+**Why this reframes Phase 1 voice-SFT:** The post-hoc tonal pass V4 verdict (2026-04-14) concluded voice has to land at generation time and proposed Sonnet-labeled beat-writer SFT on Qwen3-14B. If a stronger base model already closes most of the prose-quality gap at zero training cost, the SFT investment needs to clear a higher bar. Before committing to Phase 1, confirm DeepSeek's advantage on a non-fantasy seed and decide whether SFT is better spent on a DeepSeek base (no serverless LoRA path currently) or deferred entirely.
+
+**Open questions (pending):**
+1. Second-seed probe (e.g. post-apoc or sci-fi) to confirm voice quality isn't genre-luck.
+2. Policy decision: DeepSeek as default writer (accept 13× drafting time), or reserved for final/approved drafts while Cerebras handles iteration.
+3. 8 failed LLM calls in the run (out of 176) — audit which agents failed and why before making DeepSeek a committed default.
+
+**Ongoing:** Probe reverted; `writer`/`beat-writer`/`rewriter` back on Cerebras 235B pending the above. Phase 1 SFT (`docs/todo.md`) is now provisionally re-prioritized below "DeepSeek second-seed probe + default-writer decision."
 
 ---
 

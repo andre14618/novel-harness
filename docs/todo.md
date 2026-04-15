@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-14d
+updated: 2026-04-15
 ---
 
 # To Do
@@ -10,6 +10,13 @@ Pending action items only. Ordered by impact. Completed items and decision ratio
 ## Writer-side voice imprinting — multi-phase investigation
 
 The post-hoc tonal pass is a dead end for voice transfer (see decisions.md "Tonal pass V4 verdict"). Voice has to land at generation time. Open question: how hard will voice actually imprint on a tuned writer, and at what model size? Running this as a phased investigation rather than a single bet, since we suspect Qwen3-14B may be under-capacity for bold voice imprinting and we want to keep DeepSeek-class options on the table.
+
+**Phase 3 initial result (2026-04-15, exp #189):** DeepSeek V3.2 as writer beat Cerebras 235B on a 3-chapter dark-fantasy run — 100% first-try adherence/plan/continuity, noticeably richer prose, 1455–1663w chapters vs Qwen's 550–770w undershoot. Tradeoff: ~13× slower (27.6s/beat-write vs 2.1s). See `docs/decisions.md` "DeepSeek V3.2 is a meaningfully better writer." **Reframes the Phase 1 SFT plan — confirm on a second seed before committing to 14B voice-SFT.**
+
+**Immediate next steps (post exp #189):**
+- **Second-seed DeepSeek probe** — run DeepSeek writer on `post-apocalyptic` or `sci-fi` seed to confirm voice holds outside dark-fantasy. Same setup: swap `writer`/`beat-writer`/`rewriter` to `deepseek-chat`, `--chapters 3`, fresh `EXPERIMENT_ID`.
+- **Default-writer policy decision** — if DeepSeek holds on second seed, decide: (a) promote DeepSeek to default writer (accept ~13× drafting time), (b) reserve DeepSeek for final approved drafts while Cerebras handles iteration, or (c) keep Cerebras and invest in the Phase 1 SFT plan anyway.
+- **Audit 8 failed LLM calls** from `novel-1776252162026` before making DeepSeek a committed default.
 
 **Phase 1 — Beat-writer LoRA on Qwen3-14B (scoped probe, low cost).** Question: can 14B SFT imprint a recognizable author voice when scoped narrowly to beat-sized writing (~400 tokens per call)? Small scope is the whole point — we're not asking 14B to be a novelist, only to hit a target voice distribution inside a structured beat spec + context window. Plan: (1) Sonnet-label 500–1000 `(beat spec, beat context, target-voice prose)` triples; reverse-engineer beat specs from real Howard passages (~20% of set) and style-condition existing pipeline outputs for volume (~80%); (2) train LoRA on Qwen3-14B-Instruct via W&B Serverless SFT; (3) pref-eval vs Cerebras Qwen 235B writer baseline on both voice similarity AND beat adherence. **Success bar:** pref eval wins on voice, holds or improves on adherence. **Kill criteria:** if voice similarity is at tonal-pass-V4-level (lexical only), stop and move to Phase 2 — don't retrain at 14B.
 
