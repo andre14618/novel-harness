@@ -41,8 +41,8 @@ Respond with ONLY valid JSON in this exact structure:
 
 For each chapter, include world state updates:
 - `establishedFacts`: continuity-relevant facts ONLY — world rules, spatial relationships, character decisions, object states. NOT plot summary. Each fact has a category: physical, rule, relationship, knowledge, identity, or temporal.
-- `characterStateChanges`: state at END of chapter. Only include characters whose state meaningfully changed. Location, emotional state, what they now know, and what they still don't know.
-- `knowledgeChanges`: information transfer — who learns what and how. Source must be one of: witnessed, told, overheard, deduced, read, discovered. Only include NEW knowledge gained in this chapter.
+- `characterStateChanges`: state at END of chapter. Only include characters whose state meaningfully changed. Location, emotional state, what they now know, and what they still don't know. **The identity field is `name` (NOT `characterName`).**
+- `knowledgeChanges`: information transfer — who learns what and how. Source must be one of: witnessed, told, overheard, deduced, read, discovered. Only include NEW knowledge gained in this chapter. **The identity field here is `characterName` (NOT `name`) — yes, the two blocks use different keys; match the examples above exactly.**
 
 Create exactly 3 chapters — one per act. Guidelines:
 - Each chapter has 2-4 scenes

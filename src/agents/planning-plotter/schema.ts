@@ -27,13 +27,28 @@ export const chapterOutlineSchema = z.object({
     fact: z.string(),
     category: z.string().transform(v => factCategoryMap[v.toLowerCase()] ?? v.toLowerCase()),
   })).default([]),
-  characterStateChanges: z.array(z.object({
-    name: z.string(),
-    location: z.string().default(""),
-    emotionalState: z.string().default(""),
-    knows: z.array(z.string()).default([]),
-    doesNotKnow: z.array(z.string()).default([]),
-  })).default([]),
+  characterStateChanges: z.array(
+    z.preprocess(
+      // Model occasionally emits `characterName` or `character` instead of `name`
+      // (confusion with the sibling `knowledgeChanges` block which uses
+      // `characterName`). Alias them onto `name` so extraction doesn't fail
+      // the whole run for a labeling mismatch.
+      (v) => {
+        if (!v || typeof v !== "object") return v
+        const o = v as Record<string, unknown>
+        if (!o.name && typeof o.characterName === "string") return { ...o, name: o.characterName }
+        if (!o.name && typeof o.character === "string") return { ...o, name: o.character }
+        return v
+      },
+      z.object({
+        name: z.string(),
+        location: z.string().default(""),
+        emotionalState: z.string().default(""),
+        knows: z.array(z.string()).default([]),
+        doesNotKnow: z.array(z.string()).default([]),
+      }),
+    ),
+  ).default([]),
   knowledgeChanges: z.array(z.object({
     characterName: z.string(),
     knowledge: z.string(),
