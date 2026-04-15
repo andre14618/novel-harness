@@ -29,6 +29,12 @@ export function NovelReadView() {
 
   const currentNovel = novels.find(n => n.id === novelId)
 
+  // Sequential nav (newest → oldest) — novels list is sorted desc by createdAt.
+  const sortedNovels = useMemo(() => [...novels].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt)), [novels])
+  const currentIdx = sortedNovels.findIndex(n => n.id === novelId)
+  const prevNovel = currentIdx > 0 ? sortedNovels[currentIdx - 1] : null            // newer
+  const nextNovel = currentIdx >= 0 && currentIdx < sortedNovels.length - 1 ? sortedNovels[currentIdx + 1] : null  // older
+
   useEffect(() => {
     listNovels().then(r => setNovels(r.novels))
   }, [])
@@ -60,39 +66,51 @@ export function NovelReadView() {
     ]).finally(() => setLoading(false))
   }, [novelId])
 
-  // SSE — drives per-paragraph progress and end-of-run state
-  const { lastEvent } = useNovelSSE(novelId ?? null)
+  // SSE — drives per-paragraph progress and end-of-run state.
+  // Iterate the full events array (processed-index ref) instead of relying on
+  // `lastEvent`: React batches setState from the EventSource onmessage, so a
+  // tonal-chapter-start immediately followed by a tonal-progress can collapse
+  // — only the last one's handler runs, leaving chapterIndex stuck at 0.
+  const { events } = useNovelSSE(novelId ?? null)
+  const processedIdx = useRef(0)
 
   useEffect(() => {
-    if (!lastEvent) return
-    const { type, data } = lastEvent as { type: string; data: any }
-    if (type === "tonal-start") {
-      setTonalRunning(true)
-      setTonalError(null)
-      setTonalProgress({ chapter: 0, chapterIndex: 0, totalChapters: data.totalChapters, paragraph: 0, totalParagraphs: 0, rewritten: 0 })
-    } else if (type === "tonal-chapter-start") {
-      setTonalProgress(p => ({ ...(p ?? { paragraph: 0, totalParagraphs: 0, rewritten: 0 }), chapter: data.chapter, chapterIndex: data.chapterIndex, totalChapters: data.totalChapters }))
-    } else if (type === "tonal-progress") {
-      setTonalProgress(p => ({
-        chapter: data.chapter,
-        chapterIndex: p?.chapterIndex ?? 0,
-        totalChapters: p?.totalChapters ?? 0,
-        paragraph: data.paragraph,
-        totalParagraphs: data.totalParagraphs,
-        rewritten: data.rewritten,
-      }))
-    } else if (type === "tonal-chapter-done") {
-      if (novelId) loadChapters(novelId)
-    } else if (type === "tonal-done") {
-      setTonalRunning(false)
-      setTonalProgress(null)
-      if (novelId) loadChapters(novelId)
-    } else if (type === "tonal-error") {
-      setTonalRunning(false)
-      setTonalProgress(null)
-      setTonalError(data.error)
+    processedIdx.current = 0
+  }, [novelId])
+
+  useEffect(() => {
+    if (events.length <= processedIdx.current) return
+    for (let i = processedIdx.current; i < events.length; i++) {
+      const { type, data } = events[i] as { type: string; data: any }
+      if (type === "tonal-start") {
+        setTonalRunning(true)
+        setTonalError(null)
+        setTonalProgress({ chapter: 0, chapterIndex: 0, totalChapters: data.totalChapters, paragraph: 0, totalParagraphs: 0, rewritten: 0 })
+      } else if (type === "tonal-chapter-start") {
+        setTonalProgress(p => ({ ...(p ?? { paragraph: 0, totalParagraphs: 0, rewritten: 0 }), chapter: data.chapter, chapterIndex: data.chapterIndex, totalChapters: data.totalChapters }))
+      } else if (type === "tonal-progress") {
+        setTonalProgress(p => ({
+          chapter: data.chapter,
+          chapterIndex: p?.chapterIndex ?? 0,
+          totalChapters: p?.totalChapters ?? 0,
+          paragraph: data.paragraph,
+          totalParagraphs: data.totalParagraphs,
+          rewritten: data.rewritten,
+        }))
+      } else if (type === "tonal-chapter-done") {
+        if (novelId) loadChapters(novelId)
+      } else if (type === "tonal-done") {
+        setTonalRunning(false)
+        setTonalProgress(null)
+        if (novelId) loadChapters(novelId)
+      } else if (type === "tonal-error") {
+        setTonalRunning(false)
+        setTonalProgress(null)
+        setTonalError(data.error)
+      }
     }
-  }, [lastEvent, novelId])
+    processedIdx.current = events.length
+  }, [events, novelId])
 
   // Safety poll — in case SSE drops, reconcile against /state
   useEffect(() => {
@@ -119,11 +137,11 @@ export function NovelReadView() {
 
   const hasAnyTonal = tonalByChapter.size > 0
 
-  const onRunTonal = async () => {
+  const onRunTonal = async (chapter?: number) => {
     if (!novelId) return
     setTonalError(null)
     try {
-      await runTonalPass(novelId)
+      await runTonalPass(novelId, chapter ? { chapter, regenerate: true } : {})
       setTonalRunning(true)
     } catch (err) {
       setTonalError(err instanceof Error ? err.message : String(err))
@@ -157,9 +175,30 @@ export function NovelReadView() {
   return (
     <div className="reader-layout">
       <aside className="reader-sidebar">
-        <button className="studio-novels-btn" onClick={() => setPickerOpen(true)} style={{ width: "100%", marginBottom: "0.5rem" }}>
+        <button className="studio-novels-btn" onClick={() => setPickerOpen(true)} style={{ width: "100%", marginBottom: "0.35rem" }}>
           {pickerLabel} <span className="studio-novels-count">{novels.length}</span>
         </button>
+
+        <div className="reader-nav-row" style={{ display: "flex", gap: "0.35rem", marginBottom: "0.5rem" }}>
+          <button
+            className="reader-export-btn"
+            style={{ flex: 1 }}
+            onClick={() => prevNovel && navigate(`/${prevNovel.id}/read${qs}`)}
+            disabled={!prevNovel}
+            title={prevNovel ? `Newer: ${prevNovel.seed?.genre ?? prevNovel.id}` : "Newest already shown"}
+          >
+            ← Newer
+          </button>
+          <button
+            className="reader-export-btn"
+            style={{ flex: 1 }}
+            onClick={() => nextNovel && navigate(`/${nextNovel.id}/read${qs}`)}
+            disabled={!nextNovel}
+            title={nextNovel ? `Older: ${nextNovel.seed?.genre ?? nextNovel.id}` : "Oldest already shown"}
+          >
+            Older →
+          </button>
+        </div>
 
         {novelId && (
           <Link to={`/${novelId}${qs}`} className="reader-back">Pipeline View</Link>
@@ -177,8 +216,8 @@ export function NovelReadView() {
             ) : (
               <div className="reader-tonal-empty">No tonal pass yet</div>
             )}
-            <button className="reader-export-btn" onClick={onRunTonal} disabled={tonalRunning || state?.active} style={{ width: "100%", marginTop: "0.35rem" }}>
-              {tonalRunning ? "Running…" : hasAnyTonal ? "Re-run Tonal Pass" : "Run Tonal Pass"}
+            <button className="reader-export-btn" onClick={() => onRunTonal()} disabled={tonalRunning || state?.active} style={{ width: "100%", marginTop: "0.35rem" }}>
+              {tonalRunning ? "Running…" : hasAnyTonal ? "Re-run (all chapters)" : "Run Tonal Pass (all)"}
             </button>
             {tonalRunning && tonalProgress && (
               <div className="reader-tonal-progress">
@@ -240,16 +279,29 @@ export function NovelReadView() {
         )}
 
         <nav className="reader-toc">
-          {chapters.map(ch => (
-            <button
-              key={ch.chapter}
-              className={`reader-toc-item ${activeChapter === ch.chapter ? "active" : ""} ${ch.status === "approved" ? "approved" : ""}`}
-              onClick={() => scrollToChapter(ch.chapter)}
-            >
-              <span className="reader-toc-num">Ch {ch.chapter}</span>
-              <span className="reader-toc-words">{ch.wordCount}w</span>
-            </button>
-          ))}
+          {chapters.map(ch => {
+            const hasTonal = tonalByChapter.has(ch.chapter)
+            const isRunning = tonalRunning && tonalProgress?.chapter === ch.chapter
+            return (
+              <div
+                key={ch.chapter}
+                className={`reader-toc-item ${activeChapter === ch.chapter ? "active" : ""} ${ch.status === "approved" ? "approved" : ""}`}
+              >
+                <button className="reader-toc-label" onClick={() => scrollToChapter(ch.chapter)}>
+                  <span className="reader-toc-num">Ch {ch.chapter}</span>
+                  <span className="reader-toc-words">{ch.wordCount}w</span>
+                </button>
+                <button
+                  className="reader-toc-tonal"
+                  onClick={(e) => { e.stopPropagation(); onRunTonal(ch.chapter) }}
+                  disabled={tonalRunning || state?.active}
+                  title={hasTonal ? `Re-run tonal pass on Ch ${ch.chapter}` : `Run tonal pass on Ch ${ch.chapter}`}
+                >
+                  {isRunning ? "…" : hasTonal ? "↻" : "▶"}
+                </button>
+              </div>
+            )
+          })}
         </nav>
       </aside>
 

@@ -9,7 +9,7 @@ export const pipeline = {
   // Validation
   maxValidationPasses: 3,
   maxChapterRewrites: 3,
-  tonalPass: true,            // W&B howard-tonal-v4-sft-resume:v8 (pref-eval confirmed 2026-04-11)
+  tonalPass: false,           // Auto-run disabled 2026-04-15: DeepSeek+Howard primer handles voice at generation time. On-demand /api/novel/:id/tonal-pass route still works.
 
   // State management
   embeddings: false,          // skip embedding step (beat path uses deterministic DB lookups)

@@ -27,26 +27,26 @@ const togetherQwen9B: ModelAssignment = { provider: "together", model: "Qwen/Qwe
 
 export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // ── Writers (creative prose, high output) ─────────────────────────────
-  // Reverted to Cerebras 235B after exp #189/#190 probes concluded (see
-  // docs/decisions.md "Writer Model"). DeepSeek+Howard primer validated as
-  // a working option; keeping it off by default pending second-seed probe.
-  "writer":                    { ...cerebrasQwen235B, temperature: 0.8, maxTokens: 8000 },
-  "beat-writer":               { ...cerebrasQwen235B, temperature: 0.8, maxTokens: 4000 },
-  "rewriter":                  { ...cerebrasQwen235B, temperature: 0.5, maxTokens: 8000 },
+  // DeepSeek V3.2 is the default writer (exp #189/#190). Howard style primer
+  // is prepended automatically via STYLE_PRIMER (default "howard") in
+  // src/agents/writer/index.ts and prefix-cached on DeepSeek at ~94% hit rate.
+  "writer":                    { ...deepseekV3, temperature: 0.8, maxTokens: 8000 },
+  "beat-writer":               { ...deepseekV3, temperature: 0.8, maxTokens: 4000 },
+  "rewriter":                  { ...deepseekV3, temperature: 0.5, maxTokens: 8000 },
 
   // ── Planners (structured creative output) ─────────────────────────────
-  "world-builder":             { ...cerebrasQwen235B, maxTokens: 8192 },
-  "character-agent":           { ...cerebrasQwen235B, maxTokens: 8192 },
-  "plotter":                   { ...cerebrasQwen235B, maxTokens: 8192 },
-  "planning-plotter":          { ...cerebrasQwen235B, temperature: 0.6, maxTokens: 8192 },
+  "world-builder":             { ...deepseekV3, maxTokens: 8192 },
+  "character-agent":           { ...deepseekV3, maxTokens: 8192 },
+  "plotter":                   { ...deepseekV3, maxTokens: 8192 },
+  "planning-plotter":          { ...deepseekV3, temperature: 0.6, maxTokens: 8192 },
 
   // ── Studio: pre-planning chat + extraction ───────────────────────────
   // Chat is high-volume, forgiving — Groq Qwen3-32B is cheap and fast enough.
   // Extractor is load-bearing (one-shot compile of transcript → PlanningDirectives
-  // that drives the planner) — stays on Cerebras 235B for fidelity.
+  // that drives the planner) — DeepSeek for fidelity.
   "planning-conversationalist": { ...groqQwen32B, temperature: 0.65, maxTokens: 2048 },
-  "planning-extractor":         { ...cerebrasQwen235B, temperature: 0.2, maxTokens: 2048 },
-  "artifact-adjuster":          { ...cerebrasQwen235B, temperature: 0.3, maxTokens: 2048 },
+  "planning-extractor":         { ...deepseekV3, temperature: 0.2, maxTokens: 2048 },
+  "artifact-adjuster":          { ...deepseekV3, temperature: 0.3, maxTokens: 2048 },
 
   // ── Beat support ──────────────────────────────────────────────────────
   // reference-resolver stays on Llama 3.1 8B Groq — set-union over implicit
@@ -63,7 +63,7 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "summary-extractor":         { ...mimoFlash, temperature: 0.2, maxTokens: 8192 },
   "fact-extractor":            { ...mimoFlash, temperature: 0.1, maxTokens: 8192 },
   "character-state":           { ...mimoFlash, temperature: 0.1, maxTokens: 8192 },
-  "relationship-timeline":     { ...cerebrasQwen235B, temperature: 0.2, maxTokens: 8192 },
+  "relationship-timeline":     { ...deepseekV3, temperature: 0.2, maxTokens: 8192 },
   "graph-linker":              { ...mimoFlash, temperature: 0.2, maxTokens: 4096 },
 
   // ── Validators (analytical checks) ────────────────────────────────────
@@ -75,6 +75,8 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "continuity-state":          { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/continuity-v2:v1", temperature: 0.2, maxTokens: 2048 },
 
   // ── Lint fixer (per-sentence creative fixes via LLM) ──────────────────
+  // Stays on Cerebras 235B — high call count (6–17/run), latency-sensitive,
+  // sentence-level rewrites where DeepSeek's voice advantage doesn't help.
   "lint-fixer":                { ...cerebrasQwen235B, temperature: 0.2 },
 
   // ── Chapter plan checker (structural adherence, fine-tune target) ────
