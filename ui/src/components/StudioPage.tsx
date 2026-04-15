@@ -426,12 +426,23 @@ export function StudioPage() {
   }
 
   const [resumeError, setResumeError] = useState<string | null>(null)
-  async function handleResume() {
+  const [rewindMenuOpen, setRewindMenuOpen] = useState(false)
+  async function handleResume(rewindTo?: "concept" | "planning" | "drafting" | "validation") {
     if (!activeNovelId) return
+    if (rewindTo) {
+      const labels: Record<string, string> = {
+        concept:    "Concept (rebuild world, characters, plot — destructive)",
+        planning:   "Planning (rewrite chapter outlines — drops existing outlines)",
+        drafting:   "Drafting (re-run chapter writing — keeps outlines)",
+        validation: "Validation (re-run checks + tonal pass on existing prose)",
+      }
+      if (!confirm(`Rewind and re-run: ${labels[rewindTo]}\n\nContinue?`)) return
+    }
     setResuming(true)
     setResumeError(null)
+    setRewindMenuOpen(false)
     try {
-      await resumeNovel(activeNovelId)
+      await resumeNovel(activeNovelId, rewindTo ? { rewindTo } : undefined)
       loadState()
     } catch (err: any) {
       setResumeError(String(err?.message ?? err))
@@ -644,7 +655,7 @@ export function StudioPage() {
                     Resume re-enters at <code>{state.phase}</code>. Concept skips saved world/characters/spine, drafting skips approved chapters, planning re-plans, validation re-checks.
                   </div>
                 </div>
-                <button onClick={handleResume} disabled={resuming} style={{ flexShrink: 0 }}>
+                <button onClick={() => handleResume()} disabled={resuming} style={{ flexShrink: 0 }}>
                   {resuming ? "Resuming…" : "Resume Pipeline"}
                 </button>
               </div>
@@ -657,13 +668,13 @@ export function StudioPage() {
           )}
 
           <div className="live-activity" style={{ marginTop: 14 }}>
-            <div className="live-activity-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div className="live-activity-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", position: "relative" }}>
               <span>Activity</span>
-              {!isDone && (
+              <div style={{ display: "flex", gap: 6 }}>
                 <button
-                  onClick={handleResume}
+                  onClick={() => handleResume()}
                   disabled={resuming}
-                  title={`Re-enter the pipeline at ${state.phase}. Safe to click repeatedly — saved artifacts and approved chapters are skipped.`}
+                  title={`Re-enter the pipeline at ${state.phase}. Saved artifacts and approved chapters are skipped.`}
                   style={{
                     fontSize: "0.72rem",
                     padding: "3px 10px",
@@ -674,9 +685,73 @@ export function StudioPage() {
                     cursor: resuming ? "wait" : "pointer",
                   }}
                 >
-                  {resuming ? "Resuming…" : state.activeError ? "Retry pipeline" : `Resume at ${state.phase}`}
+                  {resuming ? "Resuming…"
+                    : state.activeError ? "Retry pipeline"
+                    : isDone ? "Resume (no-op when done)"
+                    : `Resume at ${state.phase}`}
                 </button>
-              )}
+                <button
+                  onClick={() => setRewindMenuOpen(v => !v)}
+                  disabled={resuming}
+                  title="Rewind to an earlier phase and re-run from there"
+                  style={{
+                    fontSize: "0.72rem",
+                    padding: "3px 10px",
+                    background: "transparent",
+                    color: "var(--text-secondary)",
+                    border: "1px solid var(--border-default)",
+                    borderRadius: 4,
+                    cursor: resuming ? "wait" : "pointer",
+                  }}
+                >
+                  Rewind ▾
+                </button>
+                {rewindMenuOpen && (
+                  <div style={{
+                    position: "absolute",
+                    top: "100%",
+                    right: 0,
+                    marginTop: 4,
+                    background: "var(--bg-raised)",
+                    border: "1px solid var(--border-default)",
+                    borderRadius: 4,
+                    padding: 4,
+                    zIndex: 10,
+                    minWidth: 280,
+                    boxShadow: "0 6px 18px rgba(0,0,0,0.4)",
+                  }}>
+                    {(["concept", "planning", "drafting", "validation"] as const).map(p => (
+                      <button
+                        key={p}
+                        onClick={() => handleResume(p)}
+                        disabled={resuming}
+                        style={{
+                          display: "block",
+                          width: "100%",
+                          textAlign: "left",
+                          padding: "6px 10px",
+                          fontSize: "0.72rem",
+                          background: "transparent",
+                          color: "var(--text-primary)",
+                          border: "none",
+                          borderRadius: 3,
+                          cursor: "pointer",
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-elevated)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                      >
+                        Rewind to <strong>{p}</strong>
+                        <div style={{ fontSize: "0.66rem", color: "var(--text-tertiary)", marginTop: 2 }}>
+                          {p === "concept"    && "Rebuild world, characters, plot"}
+                          {p === "planning"   && "Re-plan chapter outlines"}
+                          {p === "drafting"   && "Re-draft chapters (keeps outlines)"}
+                          {p === "validation" && "Re-check + re-lint existing prose"}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
             {resumeError && (
               <div style={{ margin: "6px 14px 0", padding: "6px 10px", fontSize: "0.72rem", color: "#e74c3c", background: "rgba(231,76,60,0.08)", border: "1px solid rgba(231,76,60,0.3)", borderRadius: 4 }}>

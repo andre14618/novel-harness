@@ -113,10 +113,10 @@ export function compileDirectives(args: {
   })
 }
 
-export function resumeNovel(novelId: string) {
+export function resumeNovel(novelId: string, opts?: { rewindTo?: "concept" | "planning" | "drafting" | "validation" }) {
   return fetchJSON<{ ok: boolean }>("/api/novel/resume", {
     method: "POST",
-    body: JSON.stringify({ novelId, mode: "interactive" }),
+    body: JSON.stringify({ novelId, mode: "interactive", rewindTo: opts?.rewindTo }),
   })
 }
 

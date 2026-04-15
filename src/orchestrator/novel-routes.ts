@@ -417,8 +417,8 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
 
   // ── Resume novel ───────────────────────────────────────────────────
   if (path === "/api/novel/resume" && req.method === "POST") {
-    const body = await req.json() as { novelId: string; mode?: "interactive" | "auto" }
-    const { novelId } = body
+    const body = await req.json() as { novelId: string; mode?: "interactive" | "auto"; rewindTo?: "concept" | "planning" | "drafting" | "validation" }
+    const { novelId, rewindTo } = body
     const mode = body.mode ?? "interactive"
 
     if (activeRuns.has(novelId)) {
@@ -433,6 +433,11 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
       await getNovel(novelId)
     } catch {
       return Response.json({ error: `Novel ${novelId} not found` }, { status: 404 })
+    }
+
+    if (rewindTo) {
+      const { updatePhase } = await import("../db")
+      await updatePhase(novelId, rewindTo)
     }
 
     activeRuns.set(novelId, { startedAt: new Date().toISOString() })
