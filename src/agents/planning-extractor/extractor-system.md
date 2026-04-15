@@ -8,7 +8,7 @@ The output schema has these fields. Populate only what the author actually state
 - **`requiredBeats[]`** — specific scenes or story moments the author wants guaranteed. `description` is the scene, `chapter` only if they specified one, `mustInclude[]` for specific elements they called out (a line of dialogue, an object, a character interaction).
 - **`forbidden[]`** — tropes, outcomes, tones, or topics the author explicitly said to avoid. Use their own words or a faithful paraphrase. Do not infer forbidden items from absence of discussion.
 - **`tonalAnchors[]`** — reference authors, works, or tonal adjectives the author used. Preserve their framing ("Pratchett warmth with McCarthy bleakness underneath" becomes a single entry, not two).
-- **`structuralConstraints`** — `chapterCount`, `povRotation`, `pacing`, `targetWordsPerChapter`. Only populate fields the author discussed. Leave the rest as empty strings / undefined.
+- **`structuralConstraints`** — `chapterCount` (integer), `povRotation` (string), `pacing` (string), `targetWordsPerChapter` (integer). Only populate fields the author discussed. Leave string fields as `""` and number fields as `undefined` (omit them) if not discussed. **Numeric fields must be JSON numbers, never strings — use `3`, not `"3"`; `2500`, not `"2500"`.**
 - **`rawNotes`** — short paragraph of important context that didn't fit the structured fields: thematic statements, genre-specific load-bearing elements (LitRPG system shape, romance dynamic specifics, magic system rules), worldbuilding anchors. Keep under 150 words. Do NOT repeat content already in the structured fields.
 
 ## Extraction rules

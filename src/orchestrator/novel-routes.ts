@@ -303,11 +303,19 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
         responseFormat: { type: "text" },
       })
 
-      // Strip the <think>…</think> block from the user-visible reply —
-      // reasoning happens but isn't surfaced in the transcript.
-      const cleaned = response.content
-        .replace(/<think>[\s\S]*?<\/think>\s*/gi, "")
-        .trim()
+      // Strip the <think>…</think> block from the user-visible reply.
+      // Handles two failure modes:
+      //   1. Normal closed block: <think>…</think>
+      //   2. Truncated block (hit maxTokens mid-think, no closing tag):
+      //      drop everything from <think> onward and surface a fallback.
+      let cleaned = response.content.replace(/<think>[\s\S]*?<\/think>\s*/gi, "").trim()
+      const unclosed = cleaned.indexOf("<think>")
+      if (unclosed !== -1) {
+        cleaned = cleaned.slice(0, unclosed).trim()
+        if (!cleaned) {
+          cleaned = "(The model ran out of tokens while reasoning. Try rephrasing or continue the conversation.)"
+        }
+      }
 
       return Response.json({ ok: true, assistantMessage: cleaned })
     } catch (err) {

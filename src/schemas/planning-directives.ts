@@ -15,11 +15,25 @@ export const requiredBeatSchema = z.object({
 })
 export type RequiredBeat = z.infer<typeof requiredBeatSchema>
 
+// Coerce string→number on the numeric fields — LLMs frequently emit "3" instead
+// of 3 for chapterCount / targetWordsPerChapter. Empty strings become undefined.
+const coerceOptionalNumber = z.preprocess(
+  (v) => {
+    if (v === "" || v === null || v === undefined) return undefined
+    if (typeof v === "string") {
+      const n = Number(v.trim())
+      return Number.isFinite(n) ? n : undefined
+    }
+    return v
+  },
+  z.number().optional(),
+)
+
 export const structuralConstraintsSchema = z.object({
-  chapterCount: z.number().optional(),
+  chapterCount: coerceOptionalNumber,
   povRotation: z.string().default(""),
   pacing: z.string().default(""),
-  targetWordsPerChapter: z.number().optional(),
+  targetWordsPerChapter: coerceOptionalNumber,
 })
 export type StructuralConstraints = z.infer<typeof structuralConstraintsSchema>
 

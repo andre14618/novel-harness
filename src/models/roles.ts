@@ -41,7 +41,7 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // Chat is high-volume, forgiving — Groq Qwen3-32B is cheap and fast enough.
   // Extractor is load-bearing (one-shot compile of transcript → PlanningDirectives
   // that drives the planner) — stays on Cerebras 235B for fidelity.
-  "planning-conversationalist": { ...groqQwen32B, temperature: 0.65, maxTokens: 1024 },
+  "planning-conversationalist": { ...groqQwen32B, temperature: 0.65, maxTokens: 2048 },
   "planning-extractor":         { ...cerebrasQwen235B, temperature: 0.2, maxTokens: 2048 },
 
   // ── Beat support ──────────────────────────────────────────────────────
