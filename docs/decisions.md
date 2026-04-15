@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-14b
+updated: 2026-04-14c
 ---
 
 # Decisions
@@ -273,6 +273,44 @@ Named archetypes with structured profiles and few-shot example lines allow Q14B 
 ---
 
 ## Tonal Pass
+
+### Tonal pass V4 verdict — lexical-only, dead end as a voice tool; writer-side style training is the path forward
+*2026-04-14 · post-hoc analysis of 147 live tonal-pass calls*
+
+**Decision:** Stop treating the post-hoc tonal pass as the voice-transfer mechanism. The V4 adapter (`howard-tonal-v4-sft-resume:v8`) produces lexical substitutions, not literary transformation. Future voice work moves to **writer-side SFT** (train the beat-writer on `(beat spec + context → target-voice prose)` pairs so voice lands at generation time).
+
+**Evidence — representative rewrites from one novel (147 calls):**
+
+| Category | Count | Behavior |
+|---|---:|---|
+| Real rewrites (flag=true, content differs) | 73 | Single-word synonym swaps |
+| Real rewrites with **`changed:false`** (flag lie) | 48 | Silently dropped pre-fix |
+| Paragraph-concat artifacts | 27 | V4 glued the FOLLOWING paragraph onto its output |
+| No-op identical | 19 | Returned input verbatim |
+| Length-collapse | 1 | 400-char paragraph → `"I suppose,"` |
+
+Representative real diffs: `looked at → stared at`, `judgment → condemnation`, `question → wonder`, `jokes → jesting`, `rising and falling → heaving`. Formatting swaps: `*italics* → _italics_`, em-dash → `--`, smart quotes → straight quotes.
+
+**Why it's a dead end:** Voice is a sentence-construction property (rhythm, clause structure, metaphor density, cadence, interiority depth). V4 changes none of those — only token-level word choice. The exp #98 metrics that favored V4 (classifier 0.550 vs Howard ref 0.715, feature KL 1.564, perplexity 3086) measured distributional token drift, not literary transformation. The model is optimizing for the part of "voice" that survives under a unigram-ish loss.
+
+**Why post-hoc retrofitting can't work:** You can't retrofit voice onto prose without breaking beat adherence and rhythm, because voice is baked into the sentence structure at generation time. Per-paragraph rewrite windows also lose whole-scene rhythm. The architecture itself is wrong for the goal.
+
+**Alternatives rejected:**
+- **Train V5 on bolder pairs** — same architecture, same ceiling. The issue is task framing, not training volume.
+- **Co-train writer + adherence + style** — adherence is strict pass/fail (easy to distill), style is diffuse (hard). Adherence loss dominates, squashes voice.
+
+**Chosen path — beat-writer voice LoRA:**
+1. Sonnet-label 500–1000 `(beat, beat context, target-voice prose)` triples from existing approved chapters. Sonnet rewrites existing outputs into target voice while preserving beat adherence (cheap — one pass per beat, no ground truth needed beyond the beat spec).
+2. Train a LoRA on Qwen3-14B-Instruct (same base as other adapters) via W&B Serverless SFT.
+3. Pref-eval vs. Cerebras Qwen 235B writer baseline.
+4. If wins: replace writer model assignment in `src/models/roles.ts`.
+
+**Ongoing:**
+- `pipeline.tonalPass` stays wired and reachable via `POST /tonal-pass` for experimentation, but the post-hoc pass is no longer the "make the novel read like Howard" lever.
+- The guards added to `src/agents/tonal-pass/run.ts` (paragraph-concat strip, italics normalization, content-based change detection, length-collapse rejection) stay in place so the on-demand endpoint produces clean diffs for further V5/V6 experiments.
+- The reader-view before/after diff remains the primary tool for adapter comparison going forward — can now be used to eyeball any future tonal adapter cheaply.
+
+---
 
 ### Tonal pass stores a separate version; on-demand run for existing novels
 *2026-04-14*

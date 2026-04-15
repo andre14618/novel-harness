@@ -1,11 +1,13 @@
 ---
 status: active
-updated: 2026-04-14b
+updated: 2026-04-14c
 ---
 
 # To Do
 
 Pending action items only. Ordered by impact. Completed items and decision rationale live in `docs/decisions.md`.
+
+**Beat-writer voice LoRA** (replaces post-hoc tonal pass as the voice lever) — the current tonal-pass V4 adapter produces lexical synonym swaps, not literary voice transfer (see decisions.md "Tonal pass V4 verdict"). Generate voice at write-time instead of retrofitting. Plan: (1) Sonnet-label 500–1000 `(beat spec, beat context, target-voice prose)` triples from existing approved chapters — Sonnet rewrites current outputs into the target voice while preserving beat adherence; (2) train a LoRA on Qwen3-14B-Instruct via W&B Serverless SFT; (3) pref-eval against the Cerebras Qwen 235B writer baseline; (4) if wins, reassign `writer` / `beat-writer` in `src/models/roles.ts`. The post-hoc tonal pass stays reachable via `POST /tonal-pass` for experimentation but is no longer in the default pipeline's voice story.
 
 **Lint fixer SFT** — 169 pairs with full data in `llm_calls`. 849 flagged issues in `lint_issues` across 34 patterns. Mine `(flagged_sentence, scene_context, good_rewrite)` triples from approved chapters. Target 200-300 examples across the 8 major pattern types.
 
