@@ -1,13 +1,23 @@
 ---
 status: active
-updated: 2026-04-15
+updated: 2026-04-15c
 ---
 
 # To Do
 
 Pending action items only. Ordered by impact. Completed items and decision rationale live in `docs/decisions.md`.
 
-## Writer-side voice imprinting — multi-phase investigation
+## Writer Imitation Benchmark — Salvatore deconstruction (NEW, supersedes Phase 1–3 below)
+
+Treat writer quality as an engineering problem with a measurable ground truth. Deconstruct *The Crystal Shard* into scene-level beats, build a permanent quality oracle that scores every methodology (model swap, primer change, generation unit change, SFT adapter) against actual published prose for the same beats. The corpus deconstruction is also a paired SFT training set, so this work subsumes Phase 1's manual labeling.
+
+**Full plan:** `docs/writer-imitation-benchmark.md`
+
+**Status:** Awaiting target confirmation (Crystal Shard vs alternate Salvatore novel) and ebook source. Phase 0a-0b starts within a day of confirmation. Phases 1–3 below remain valid as fallback if the benchmark verdict says SFT is needed, but they are **deprioritized** until the benchmark settles which methodology and which model deserve SFT investment.
+
+---
+
+## Writer-side voice imprinting — multi-phase investigation (DEPRIORITIZED — see benchmark plan above)
 
 The post-hoc tonal pass is a dead end for voice transfer (see decisions.md "Tonal pass V4 verdict"). Voice has to land at generation time. Open question: how hard will voice actually imprint on a tuned writer, and at what model size? Running this as a phased investigation rather than a single bet, since we suspect Qwen3-14B may be under-capacity for bold voice imprinting and we want to keep DeepSeek-class options on the table.
 
