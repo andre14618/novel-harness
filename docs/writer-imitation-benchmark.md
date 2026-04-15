@@ -33,11 +33,74 @@ Rationale:
 
 Alternate: *Homeland* (Drizzt origin) if Drizzt's voice is the more important commercial vector.
 
-## Corpus deconstruction (Phase 0)
+## Corpus deconstruction (Phase 0) — 6-stage pipeline
 
-Sonnet sub-agents (free analytical labor — no transport API spend) deconstruct the entire book into structured JSONL.
+Deterministic splitting + sub-agent semantic labeling + deterministic style tagging + a mandatory validation gate before scaling. Sonnet labor goes through Claude Code sub-agents (zero transport API spend).
 
-**Output shape: `scripts/lora-data/salvatore-deconstruction.jsonl`** — one record per scene:
+**Expected shape:** Crystal Shard ~100K words → ~25 chapters → ~150 scenes → ~600–800 beats.
+
+### Stage 1 — Mechanical chapter/scene split (deterministic, no LLM)
+
+`scripts/lora-data/split-salvatore.ts` tokenizes the raw ebook text:
+- **Chapters:** split on `^Chapter \d+` or `^\d+$` headers (Salvatore uses numbered chapter breaks)
+- **Scenes within chapter:** blank-line triple-break, `* * *`, or `◆◆◆` markers (Salvatore's convention). Fallback: POV-shift heuristic flagged for sub-agent review.
+- **Output:** `scripts/lora-data/salvatore-raw.jsonl` — one record per scene: `{chapter, scene_idx, raw_prose, word_count}`. No semantic labels yet.
+
+### Stage 2 — Sub-agent scene labeling (parallel, zero API spend)
+
+5 Sonnet sub-agents, each assigned 5 consecutive chapters (chapter range preserves within-arc context). Each sub-agent receives:
+- Its chapter slice as raw prose
+- A fixed rubric prompt (`scripts/lora-data/deconstruction-prompt.md`)
+- The JSONL schema to emit
+
+For each scene the sub-agent emits:
+- **Pragmatic metadata:** `pov`, `location`, `characters_present`, `mood`, `action_level` (low/med/high), `scene_purpose` (1 sentence)
+- **Continuity anchors:** `inbound_state` (what the reader knows/feels coming in), `outbound_state` (what's been established leaving)
+
+Style-tag numerics are NOT computed here — Stage 4 handles them deterministically.
+
+### Stage 3 — Beat segmentation inside each scene
+
+Same sub-agent, second pass on each scene. A beat is one micro-unit of narrative motion — typically a paragraph cluster delivering a single action, observation, or exchange. Salvatore averages ~4–6 beats/scene.
+
+For each beat:
+- `beat_idx`
+- `brief` — one-sentence brief phrased as if written by our `planning-plotter` (this is the training-time input)
+- `transition_in` — last sentence of prior beat (or scene opener)
+- `landing_target` — first sentence of next beat (the "what comes next" signal)
+- `real_prose` — the actual Salvatore paragraphs verbatim
+- `beat_type` — action / dialogue / interiority / description / transition (enum)
+
+The `(brief + transition_in + landing_target + context) → real_prose` pair is exactly the shape our beat-writer already consumes. That's the paired-data dividend — SFT training set falls out as a free side effect.
+
+**Most failure-prone step:** Stage 3 briefs must match production `planning-plotter` register — not summaries, not recaps. Stage 5 validation gate catches drift early.
+
+### Stage 4 — Deterministic style tagging (no LLM)
+
+A Bun script walks the JSONL and computes per-scene and per-beat numerics:
+- `avg_sentence_words`, `clause_depth_mean`, `dialogue_ratio`
+- `sensory_density_per_100w` (regex over a sense-word lexicon)
+- `interiority_per_100w` (regex over `thought|wondered|felt|knew|realized|…`)
+- `action_verb_density` (POS-tag-free proxy: verbs from a curated action-verb list)
+
+These become the feature-KL targets for the benchmark's surface-voice metric (eval metric #3).
+
+### Stage 5 — Validation gate (mandatory before scaling)
+
+Before merging sub-agent output, hand-check 10 randomly sampled scenes:
+- Do beat boundaries align with paragraph breaks naturally? (Bad split = rewrite prompt.)
+- Is the `brief` something our existing `planning-plotter` could plausibly emit? (If not, the training data doesn't match production input distribution.)
+- Does `real_prose` reconstruct the scene verbatim when concatenated? (Integrity check.)
+
+If the sample fails, tighten the prompt and re-run. Budget: ~2 days for Stages 2+3 first pass, ~1 day for the validation loop.
+
+### Stage 6 — Merge and index
+
+- Concatenate sub-agent slices → `scripts/lora-data/salvatore-deconstruction.jsonl` (one record per scene, with embedded beats array + raw prose)
+- Build a Postgres table `salvatore_scenes` (columns: `pov`, `mood`, `action_level`, `beat_type`) as a queryable tag index for dynamic primer retrieval in methodologies M3/M4/M6
+- Build a pgvector embedding index over `brief` text for similarity-based retrieval (reuses pgvector, even though the main pipeline has embeddings off)
+
+**Final JSONL record shape:**
 
 ```json
 {
@@ -49,12 +112,16 @@ Sonnet sub-agents (free analytical labor — no transport API spend) deconstruct
   "mood": "wary truce",
   "action_level": "low",
   "scene_purpose": "establish Drizzt-Wulfgar trust foundation",
+  "inbound_state": "Drizzt suspicious of barbarian intent",
+  "outbound_state": "fragile mutual respect established",
   "beats": [
     {
       "beat_idx": 0,
       "brief": "Drizzt observes Wulfgar's approach across the snow",
-      "transition_in": "...",
-      "real_prose": "The drow ranger crouched lower into the drift..."
+      "transition_in": "The cold wind whistled across the ridgeline.",
+      "landing_target": "Wulfgar raised his warhammer in greeting.",
+      "real_prose": "The drow ranger crouched lower into the drift...",
+      "beat_type": "description"
     }
   ],
   "style_tags": {
@@ -64,13 +131,13 @@ Sonnet sub-agents (free analytical labor — no transport API spend) deconstruct
     "interiority_per_100w": 2.3,
     "action_verb_density": 0.09
   },
-  "raw_prose": "<full scene prose>"
+  "raw_prose": "<full scene prose verbatim>"
 }
 ```
 
-Sub-agent partitioning: 5–10 sub-agents work parallel chapter ranges (Crystal Shard is ~25 chapters). Each sub-agent produces its slice of the JSONL. Final pass merges and validates.
+**Companion artifact: `src/agents/writer/style-primer-salvatore.md`** — a separate sub-agent reads the full JSONL and extracts the always-true voice fundamentals (clause-pacing patterns, dialogue tag habits, sensory-detail conventions, action verb selection, interiority style). ~5K tokens, designed to sit cacheable as the static primer base for M2/M5/M7.
 
-**Companion artifact: `src/agents/writer/style-primer-salvatore.md`** — Sonnet sub-agent reads the full deconstruction and extracts the always-true voice fundamentals: clause-pacing patterns, dialogue tag habits, sensory-detail conventions, action verb selection, interiority style. ~5K tokens, designed to sit cacheable as the static primer base.
+**Wall time:** ~4 days end-to-end. **API spend:** $0 (raw text acquisition in Phase 0a is the only paid step). **Sub-agent parallelism:** 5 × 5 chapters is within the 10–15 parallel agent limit.
 
 ## Benchmark harness (Phase 1)
 
@@ -133,7 +200,12 @@ All methodologies generate prose for the *same* deconstructed Salvatore beats. A
 | phase | duration | spend | deliverable |
 |---|---|---|---|
 | **0a** Acquire *Crystal Shard* text | 1 hr | $5 | `scripts/lora-data/salvatore-crystal-shard.txt` |
-| **0b** Sub-agent deconstruction (parallel chapter ranges) | 3–4 days | $0 (sub-agents) | `scripts/lora-data/salvatore-deconstruction.jsonl` (~150 scenes, ~600 beats) |
+| **0b.1** Mechanical chapter/scene split (deterministic) | 2 hr | $0 | `scripts/lora-data/salvatore-raw.jsonl` |
+| **0b.2** Sub-agent scene labeling (5 agents × 5 chapters) | 1 day | $0 | scenes tagged with pov/location/mood/etc. |
+| **0b.3** Sub-agent beat segmentation + brief writing | 1–2 days | $0 | `(brief, transition_in, landing_target, real_prose)` tuples |
+| **0b.4** Deterministic style tagging (numerics) | 4 hr | $0 | style_tags computed per scene/beat |
+| **0b.5** Validation gate (10-scene hand-check) | 1 day | $0 | prompt tightened if needed; go/no-go to scale |
+| **0b.6** Merge, Postgres index, pgvector brief index | 4 hr | $0 | `salvatore-deconstruction.jsonl` + `salvatore_scenes` table |
 | **0c** Sub-agent extracts style fundamentals | 1 day | $0 | `src/agents/writer/style-primer-salvatore.md` (~5K tokens) |
 | **0d** Dynamic primer infra (embed/tag retrieval over scenes) | 2 days | $0 | `src/agents/writer/dynamic-primer.ts` |
 | **1a** `bench-writer.ts` harness | 2 days | $0 | runs M against scene subset, writes to `writer_benchmark` |

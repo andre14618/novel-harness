@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-15c
+updated: 2026-04-15d
 ---
 
 # To Do
@@ -17,32 +17,19 @@ Treat writer quality as an engineering problem with a measurable ground truth. D
 
 ---
 
-## Writer-side voice imprinting — multi-phase investigation (DEPRIORITIZED — see benchmark plan above)
+## Writer-side voice imprinting — DEPRIORITIZED, superseded by imitation benchmark
 
-The post-hoc tonal pass is a dead end for voice transfer (see decisions.md "Tonal pass V4 verdict"). Voice has to land at generation time. Open question: how hard will voice actually imprint on a tuned writer, and at what model size? Running this as a phased investigation rather than a single bet, since we suspect Qwen3-14B may be under-capacity for bold voice imprinting and we want to keep DeepSeek-class options on the table.
+DeepSeek V3.2 + Howard primer is now the default writer stack (exp #189/#190/#191, see `docs/decisions.md` "DeepSeek V3.2 + Howard primer promoted to pipeline-wide default"). All voice-SFT plans below are paused pending the Salvatore imitation benchmark verdict — the benchmark will tell us whether any SFT investment (14B, larger-base, or DeepSeek-class) is justified vs. simply improving primer strategy or generation unit.
 
-**Phase 3 initial result (2026-04-15, exp #189):** DeepSeek V3.2 as writer beat Cerebras 235B on a 3-chapter dark-fantasy run — 100% first-try adherence/plan/continuity, noticeably richer prose, 1455–1663w chapters vs Qwen's 550–770w undershoot. Tradeoff: ~13× slower (27.6s/beat-write vs 2.1s). See `docs/decisions.md` "DeepSeek V3.2 is a meaningfully better writer." **Reframes the Phase 1 SFT plan — confirm on a second seed before committing to 14B voice-SFT.**
+**Phase 1 (Qwen3-14B beat-writer SFT)** — PAUSED. Pre-benchmark hypothesis was 14B may be under-capacity for voice imprinting. The benchmark's M4/M6 (hybrid primer at beat/scene level) will dominate this if primer is sufficient; M9/M10 (Sonnet ceiling) will clarify whether any DeepSeek-class methodology even matters. Only revisit if benchmark verdict says DeepSeek + primer leaves a large gap to M9/M10 AND a 14B SFT could plausibly close it.
 
-**Immediate next steps (post exp #189):**
-- **Second-seed DeepSeek probe** — run DeepSeek writer on `post-apocalyptic` or `sci-fi` seed to confirm voice holds outside dark-fantasy. Same setup: swap `writer`/`beat-writer`/`rewriter` to `deepseek-chat`, `--chapters 3`, fresh `EXPERIMENT_ID`.
-- **Default-writer policy decision** — if DeepSeek holds on second seed, decide: (a) promote DeepSeek to default writer (accept ~13× drafting time), (b) reserve DeepSeek for final approved drafts while Cerebras handles iteration, or (c) keep Cerebras and invest in the Phase 1 SFT plan anyway.
-- **Audit 8 failed LLM calls** from `novel-1776252162026` before making DeepSeek a committed default.
+**Phase 2 (larger-base SFT on W&B or Together)** — PAUSED. Same gating as Phase 1 but with bigger bases (Qwen3.5 397B A17B on Together, Llama 70B, next hot W&B base when available). Training costs are meaningful ($20–100+ per run), so this path requires benchmark verdict + a clear ceiling to chase.
 
-**Phase 1 — Beat-writer LoRA on Qwen3-14B (scoped probe, low cost).** Question: can 14B SFT imprint a recognizable author voice when scoped narrowly to beat-sized writing (~400 tokens per call)? Small scope is the whole point — we're not asking 14B to be a novelist, only to hit a target voice distribution inside a structured beat spec + context window. Plan: (1) Sonnet-label 500–1000 `(beat spec, beat context, target-voice prose)` triples; reverse-engineer beat specs from real Howard passages (~20% of set) and style-condition existing pipeline outputs for volume (~80%); (2) train LoRA on Qwen3-14B-Instruct via W&B Serverless SFT; (3) pref-eval vs Cerebras Qwen 235B writer baseline on both voice similarity AND beat adherence. **Success bar:** pref eval wins on voice, holds or improves on adherence. **Kill criteria:** if voice similarity is at tonal-pass-V4-level (lexical only), stop and move to Phase 2 — don't retrain at 14B.
+**Phase 3 (DeepSeek experiments)** — DONE/shipped. DeepSeek as default writer and Howard primer cached at ~94% hit rate both landed as pipeline-wide defaults 2026-04-15.
 
-**Phase 2 — Larger-base beat-writer (if Phase 1 ceiling is too low).** Try LoRA SFT on a larger base to see if voice imprinting is a capacity problem, not a data problem. Two candidates:
-- **W&B Inference:** next hot base up from Qwen3-14B when one becomes available. Current Qwen3-30B-A3B is disqualified by cold-start sensitivity (exp #94) but that could change. Revisit the W&B hot model catalog at the time.
-- **Together.ai:** Qwen/Llama 70B-class bases. Previously retired for production use (50-100× slower than Groq fast tier per lessons-learned), but training cost + occasional eval calls are fine even at slow serving. A 70B voice-imprinted writer running at 5-10× normal latency is still interesting if it genuinely transfers voice.
+**Ongoing:** post-hoc tonal pass stays reachable via `POST /tonal-pass` for adapter comparison on any existing novel. Auto-run is disabled.
 
-**Phase 3 — DeepSeek experiments (parallel track, no training required).** DeepSeek-V3/V3.1 has a reputation for stronger creative generation than Qwen in the same size class. Worth two probes without any fine-tuning:
-- **DeepSeek tonal rewrite:** run the existing tonal-pass per-paragraph rewrite against DeepSeek instead of the Howard V4 LoRA. No training cost — just point the tonal-pass model role at DeepSeek via `setAgentOverride`. Useful as a voice-quality upper bound from a base model; if DeepSeek gives meaningfully richer rewrites than V4 out of the box, that reframes Phase 1/2 (maybe the base model, not the adapter, is the bottleneck).
-- **DeepSeek as primary writer:** swap `writer` / `beat-writer` model assignment to DeepSeek (runtime via `setAgentOverride` or persist via `persistConfig`). Run a 3-chapter novel end-to-end and eyeball prose quality + check adherence. Question: does a stronger base beat a tuned-but-smaller base on both voice and adherence? If yes, we may want to delay Phase 1 training and invest in DeepSeek infra instead.
-
-**Sequencing:** Phase 3 DeepSeek experiments can run **in parallel with Phase 1** — no training blocker, just swap models and run. Phase 2 is gated on Phase 1 verdict. Record every run as a `tuning_experiment` with `EXPERIMENT_ID` even for the no-training probes.
-
-**Ongoing:** post-hoc tonal pass stays reachable via `POST /tonal-pass` for adapter comparison across all of these experiments — the reader-view before/after diff is now the cheapest tool for eyeballing any writer/tonal adapter.
-
-**Lint fixer SFT** — 169 pairs with full data in `llm_calls`. 849 flagged issues in `lint_issues` across 34 patterns. Mine `(flagged_sentence, scene_context, good_rewrite)` triples from approved chapters. Target 200-300 examples across the 8 major pattern types.
+**Lint fixer SFT** — 169 pairs with full data in `llm_calls`. 849 flagged issues in `lint_issues` across 34 patterns. Mine `(flagged_sentence, scene_context, good_rewrite)` triples from approved chapters. Target 200-300 examples across the 8 major pattern types. Not blocked by benchmark — lint is deterministic rewriting, not voice imprinting.
 
 ## W&B Storage Management
 

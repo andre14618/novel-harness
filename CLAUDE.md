@@ -28,18 +28,18 @@ State machine: concept → planning → drafting → validation → done
 
 Each agent's prompt/schema/context lives in `src/agents/{name}/`. The model assignment is in `src/models/roles.ts`.
 
-- **Studio pre-planning** (optional, pre-concept): `planning-conversationalist` (**Groq Qwen3-32B**, guided 8-phase Q&A with sparsity detection) + `planning-extractor` (**Cerebras Qwen 235B**, one-shot transcript → `PlanningDirectives`). Directives embed in `SeedInput.directives` → `seed_json` and reach concept agents via `renderDirectivesForConcept()` and the planner via `renderDirectivesForPlanner()`. See `docs/decisions.md` "Pre-planning Director chat."
-- **Concept** (`src/phases/concept.ts`): world-builder, character-agent, plotter — all on **Cerebras Qwen 235B**
-- **Planning** (`src/phases/planning.ts`): planning-plotter (outputs beats + world state updates) — **Cerebras Qwen 235B**
+- **Studio pre-planning** (optional, pre-concept): `planning-conversationalist` (**Groq Qwen3-32B**, guided 8-phase Q&A with sparsity detection) + `planning-extractor` (**DeepSeek V3.2**, one-shot transcript → `PlanningDirectives`). Directives embed in `SeedInput.directives` → `seed_json` and reach concept agents via `renderDirectivesForConcept()` and the planner via `renderDirectivesForPlanner()`. See `docs/decisions.md` "Pre-planning Director chat."
+- **Concept** (`src/phases/concept.ts`): world-builder, character-agent, plotter — all on **DeepSeek V3.2** (promoted 2026-04-15c, see `docs/decisions.md` "DeepSeek V3.2 + Howard primer promoted to pipeline-wide default").
+- **Planning** (`src/phases/planning.ts`): planning-plotter (outputs beats + world state updates) — **DeepSeek V3.2**.
 - **Drafting** (`src/phases/drafting.ts`):
-  - **beat-writer** is the primary writer path. Cerebras Qwen 235B, ~846 in / 391 out / 2.1s per beat. Chapter-level `writer` only runs as fallback when beat generation fails N retries.
+  - **beat-writer** is the primary writer path. **DeepSeek V3.2** with `STYLE_PRIMER=howard` default-on (~10K-token Howard exemplars prepended, ~94% prefix-cache hit rate after beat 0). Per-beat shape: ~9,800 in / 391 out / ~30s. Chapter-level `writer` only runs as fallback when beat generation fails N retries.
   - **reference-resolver** (Llama 3.1 8B Groq) — pre-fetched in parallel for all beats before the serial writing loop.
   - **adherence-checker** — deterministic checks (char presence, word count) + **single LLM call** (events+attribution) via `adherence-events` agent on **W&B `adherence-checker-v4`** (Qwen3-14B SFT, 2,134 Sonnet-labeled examples, exp #161). Was 4 parallel calls; character merged into events, setting/tangent removed (0–4.3% fire rates, planner-level bugs). Dialogue deterministic check removed — false positive for intentionally silent scenes; events LLM call covers this. Retries use **targeted rewrite** (existing prose + specific issues). See `docs/retry-surface-audit.md`. V2 adapter config removed from roles.ts (dead — never invoked at runtime).
   - **chapter-plan-checker** — **W&B `chapter-plan-checker-v2:v1`** (Qwen3-14B SFT, Sonnet-labeled). Focused on cross-beat properties only: setting coherence, emotional arc direction, major plot contradictions. 96% accuracy vs Sonnet ground truth, 609ms latency. Serving URI: `wandb-artifact:///andre14618-/novel-harness/chapter-plan-checker-v2:v1`. Validated exp #178, 2026-04-12.
   - **continuity** — **W&B `continuity-v2:v1`** (Qwen3-14B SFT, 253 Sonnet-labeled pairs from 39 scenarios). 2 parallel decomposed agents (`continuity-facts` + `continuity-state`). Highest prompt-token cost in the pipeline (~7,300 in/call). Swapped from Cerebras 235B 2026-04-12 — pending production validation.
   - **lint-fixer** — Cerebras Qwen 235B per-sentence rewrites. No agent dir; lint code lives in `src/lint/` and reads the model assignment via `getModelForAgent("lint-fixer")`.
 - **Extraction** — LLM extractor subsystem (summary-extractor, fact-extractor, character-state, relationship-timeline, graph-linker) validated as noise (7 novels, 134 checks, 0 failures on plan-only — 2026-04-13). **Being removed.** `pipeline.extractionMode` is locked to `"plan"` — planner declared state is the sole world-state source. See `docs/decisions.md` "Plan-only extractionMode validated."
-- **Validation** (`src/phases/validation.ts`): **rewriter** (Cerebras Qwen 235B) reruns chapters that fail deterministic validation. **tonal-pass** runs *after* validation converges, once across all approved chapters — per-paragraph LoRA voice rewrite, dialogue-only paragraphs skipped. **W&B Inference `howard-tonal-v4-sft-resume:v8`** (exp #98, pref eval confirmed 2026-04-11). V3 on Together AI retired.
+- **Validation** (`src/phases/validation.ts`): **rewriter** (**DeepSeek V3.2**) reruns chapters that fail deterministic validation. **tonal-pass auto-run disabled 2026-04-15c** — DeepSeek + Howard primer handles voice at generation time. On-demand `POST /api/novel/:id/tonal-pass` still works for experimentation/comparison on existing novels. Adapter `howard-tonal-v4-sft-resume:v8` on W&B Inference retained but not auto-invoked.
 
 ### Tools-only agent dirs (not in the runtime pipeline)
 
@@ -56,7 +56,7 @@ These are NOT called via `callAgent` and are NOT in `src/models/roles.ts`. They 
 - `sql/` — migration files (001-018)
 
 ### Beat-Level Context
-Beat writing bypasses semantic retrieval. Context comes from the plan + deterministic DB lookups. Real per-call shape from `llm_calls`: avg 846 input tokens, 391 output tokens, 2.1s latency on Cerebras Qwen 235B.
+Beat writing bypasses semantic retrieval. Context comes from the plan + deterministic DB lookups. Real per-call shape from `llm_calls`: avg ~9,800 input tokens (primer + context), ~391 output tokens, ~30s latency on DeepSeek V3.2. Primer is ~94% prefix-cached after beat 0.
 
 **Beat context** (`src/agents/writer/beat-context.ts`):
 - Beat spec (description, characters, POV, setting)
@@ -86,7 +86,7 @@ Quality measured via structured pass/fail checks, not LLM scoring (1-10 judges s
 - **Chapter plan checker** — per-chapter: W&B `chapter-plan-checker-v2:v1` (Qwen3-14B SFT adapter) checks cross-beat properties: setting coherence, emotional arc direction, major plot contradictions. 96% accuracy vs Sonnet ground truth, 609ms avg. `beats_covered` and `characters_present` removed (redundant with beat-level adherence). Has a strict false-positive ruleset (paraphrased dialogue, reordered details, atmospheric additions are NOT deviations).
 - **Continuity checker** — per-chapter: **W&B `continuity-v2:v1`** (Qwen3-14B SFT) — 2 parallel decomposed calls (facts + state) check against world state tables. Largest prompt-token cost in the pipeline by an order of magnitude. Swapped from Cerebras 235B 2026-04-12.
 - **Lint** — deterministic (~26 patterns) + LLM fixes for cliché, hedging, emotional echo, rhythm. Lives in `src/lint/`.
-- **Tonal pass** — W&B Inference LoRA adapter `howard-tonal-v4-sft-resume:v8` (Qwen3-14B) for per-paragraph voice rewriting. Runs once at the end of validation, not per-chapter. Output is saved as a separate draft version (`status='tonal-pass'`) — the approved draft is preserved so the reader view can diff. On-demand: `POST /api/novel/:id/tonal-pass` re-runs the pass on any existing novel. **Experimental as of 2026-04-14:** post-hoc analysis (147 calls) showed V4 produces lexical synonym swaps, not literary voice transfer. Future voice work moves to writer-side SFT — see `docs/decisions.md` "Tonal pass V4 verdict."
+- **Tonal pass** — **auto-run disabled 2026-04-15c.** Voice now lands at generation time via DeepSeek V3.2 + `STYLE_PRIMER=howard` (prefix-cached, ~94% hit rate). On-demand only: `POST /api/novel/:id/tonal-pass` re-runs the V4 Howard adapter on any existing novel for comparison/experimentation. Adapter `howard-tonal-v4-sft-resume:v8` retained on W&B Inference. See `docs/decisions.md` "Tonal pass V4 verdict" + "DeepSeek V3.2 + Howard primer promoted to pipeline-wide default."
 
 Archived benchmarks (infrastructure kept): context quality, prose penalties, planning scores, extraction scores, pairwise comparison. The continuity benchmark and `cross-chapter-continuity` agent were removed in 2026-04 (the per-chapter `continuity` checker subsumes that role).
 
@@ -217,6 +217,8 @@ ssh novel-harness-lxc "curl -s -X POST http://localhost:3006/api/improvement/sta
 | Fine-tuning strategy + adapter roadmap | `/app/finetune` (UI) + `docs/fine-tuning-strategy.md` |
 | LoRA training best practices + experiment log | `docs/lora-style-transfer-report.md` |
 | Architectural decisions with rationale | `docs/decisions.md` |
+| Writer quality oracle (measurement layer) | `docs/writer-imitation-benchmark.md` |
+| Writer methodology design space (method layer) | `docs/writer-style-imitation-design-space.md` |
 
 ## Reference docs
 
@@ -225,6 +227,8 @@ ssh novel-harness-lxc "curl -s -X POST http://localhost:3006/api/improvement/sta
 - `docs/lessons-learned.md` — **read before designing agents, rubrics, or experiments**
 - `docs/commit-conventions.md` — commit message format
 - `docs/world-knowledge-graph.md` — knowledge graph, context assembly, retrieval parameters
+- `docs/writer-imitation-benchmark.md` — Salvatore Crystal Shard deconstruction plan; 6-stage pipeline; 10 methodologies × 4 metrics scored against real published prose
+- `docs/writer-style-imitation-design-space.md` — companion method layer: 7 architectural layers × 10 end-to-end harness recipes
 - `../archives/novel-harness/` — completed research docs + archived scripts/agents (outside repo) — lint pattern research, extractor agents, one-off eval scripts
 
 ## Decision Recording SOP

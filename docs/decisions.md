@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-15b
+updated: 2026-04-15c
 ---
 
 # Decisions
@@ -456,7 +456,68 @@ Clipped declarative rhythm with sudden expansions into sensory/clinical detail �
 2. Compare primer=howard vs primer=<literary> (McCarthy, Wolfe) to see whether the technique generalizes or is Howard-specific.
 3. Policy: make primer default-on for production drafts, or reserve for approved-chapter rewriter passes only.
 
-**Ongoing:** Probe reverted; writers back on Cerebras 235B. Primer infrastructure (`STYLE_PRIMER` env var, `extract-howard-primer.ts`, `style-primer-howard.md`) kept for on-demand use. Phase 1 writer-SFT further deprioritized — primer + DeepSeek now a live third option alongside "Qwen3-14B SFT" and "larger-base SFT."
+**Ongoing:** Probe reverted; writers back on Cerebras 235B. Primer infrastructure (`STYLE_PRIMER` env var, `extract-howard-primer.ts`, `style-primer-howard.md`) kept for on-demand use. Phase 1 writer-SFT further deprioritized — primer + DeepSeek now a live third option alongside "Qwen3-14B SFT" and "larger-base SFT." **(Superseded 2026-04-15c — see "DeepSeek V3.2 + Howard primer promoted to pipeline-wide default" below.)**
+
+### DeepSeek V3.2 + Howard primer promoted to pipeline-wide default
+*2026-04-15 · exp #191 (verification run, 3-ch dark-fantasy, full DeepSeek stack)*
+
+**Decision:** DeepSeek V3.2 (`deepseek-chat`) becomes the default for all generative/creative roles in the harness. Howard style primer (`STYLE_PRIMER=howard`) becomes default-on. Tonal pass auto-run is disabled (on-demand endpoint retained). Cerebras Qwen 235B is retained only for `lint-fixer`.
+
+**Roles swapped to DeepSeek V3.2:** `writer`, `beat-writer`, `rewriter`, `world-builder`, `character-agent`, `plotter`, `planning-plotter`, `planning-extractor`, `artifact-adjuster`, `relationship-timeline`.
+
+**Roles staying on Cerebras Qwen 235B:** `lint-fixer` only — high call count (6–17/run), latency-sensitive, per-sentence rewrites where DeepSeek's voice advantage doesn't transfer.
+
+**Verification (exp #191):** 3-chapter dark-fantasy end-to-end on the full new default stack. 13m 41s total wall clock. 100% first-attempt pass on adherence-events, chapter-plan, continuity (facts + state). No retries fired. Rewriter and tonal-pass were never invoked (both are fallback paths — the writer output cleared all gates on first try).
+
+**Why supersede the "pending second-seed" posture of #189/#190:**
+1. Three cumulative runs (#189, #190, #191) all passed every checker on the first try with no regressions.
+2. The primer cache economics (~94% hit rate, ~70% token savings on the primer) make DeepSeek + Howard primer cost-competitive with Cerebras 235B for writer workloads.
+3. Waiting for a non-fantasy seed before flipping defaults was costing iteration velocity; the flip is cheap to revert via `src/models/roles.ts` if a future seed regresses.
+
+**Tradeoff accepted:** ~13× slower drafting (27.6s/beat vs 2.1s). 3-chapter novel: 13m 41s. 20-chapter novel projected: ~90m.
+
+**Alternatives rejected:**
+- Keep Cerebras as default, use DeepSeek only for final drafts — added operational complexity, no evidence it beats DeepSeek-default.
+- Defer decision until Salvatore imitation benchmark lands — benchmark will settle method-level questions (beat vs scene, static vs dynamic primer) but baseline-model choice is already clear enough to flip.
+- Promote but keep tonal pass auto-run on — V4 tonal pass is a dead end for voice transfer (see "Tonal pass V4 verdict"); primer handles voice at generation time.
+
+**Known issues (not blockers):**
+- W&B Inference agent costs log as NaN (`getTokenCost` doesn't resolve `wandb-artifact:///` URIs). Separate fix.
+- 8 failed LLM calls in exp #189 went unaudited. If failures recur in production, audit before next default flip.
+
+**Ongoing:** Any new creative/generative role defaults to `deepseekV3` in `src/models/roles.ts` unless there's a specific structured-output or latency reason to pick otherwise. Reverting to Cerebras is a one-line edit per role.
+
+---
+
+## Writer Quality Measurement
+
+### Writer quality is measured against a deconstructed published novel, not subjective eyeballing
+*2026-04-15 · planned (see `docs/writer-imitation-benchmark.md` + `docs/writer-style-imitation-design-space.md`)*
+
+**Decision:** Every future writer methodology (model swap, primer change, generation unit change, SFT adapter, hybrid routing) is scored against a permanent quality oracle: R.A. Salvatore's *The Crystal Shard* deconstructed into `(beat brief + context) → real published prose` pairs. Four measurable axes replace "this prose looks good": pref-eval win rate (Sonnet sub-agent blind A/B), perplexity of real prose under the candidate, feature-distribution KL vs real prose, author-style classifier score.
+
+**Why:** A direct user directive reframed writer-quality evaluation: *"Wouldn't the baseline be a completed successful novel and doing some kind of comparison, given beats that were fabricated from that novel? I'm trying to approach novel writing as an engineering problem."* Subjective "Sonnet judge decides" framing is insufficient. Engineering rigor requires real ground truth.
+
+**Companion docs:**
+- `docs/writer-imitation-benchmark.md` — measurement layer: 6-stage corpus deconstruction pipeline (mechanical split → sub-agent scene label → beat segmentation → deterministic style tagging → validation gate → merge/index), `writer_benchmark` Postgres schema, 10 methodologies M1–M10, 4 eval metrics, phased plan.
+- `docs/writer-style-imitation-design-space.md` — method layer: 7 architectural layers (corpus, conditioning, unit, process, model, selection, post-processing) composed into 10 end-to-end recipes A–J from cheap baseline to continued pretraining.
+
+**Decision rules set in advance:**
+- DeepSeek methodology wins or ties Sonnet on pref-eval → ship it, writer-side SFT deferred indefinitely.
+- Sonnet wins by >20% at acceptable cost → ship Sonnet, SFT path becomes "match Sonnet cheaply."
+- Even M10 (Sonnet + best architecture) loses to real Salvatore by >30% → writer is not the bottleneck; planner is.
+- Scene-level methodologies (M5/M6) significantly beat beat-level (M2/M4) → restructure pipeline around scenes, invalidating the Cerebras-era beat-first architectural decision.
+
+**Alternatives rejected:**
+- Sonnet-vs-DeepSeek head-to-head with subjective judging — primary reason the benchmark was designed; user explicitly pushed back on this framing.
+- Unpaired prose comparison (critique-only) — loses the free SFT training set dividend the paired deconstruction provides.
+- Broader multi-novel benchmark as v1 — single-novel Crystal Shard is the tractable start; Sanderson/Lynch/Rothfuss cross-validation is a v2 once the harness is proven reusable.
+
+**Budget:** ~2 weeks, ~$60 API spend end-to-end. Sonnet analytical labor ($0 transport) via Claude Code sub-agents.
+
+**Status:** Planned. Phase 0a (text acquisition) blocked on target-novel confirmation (Crystal Shard vs Homeland vs other Salvatore) and ebook source location.
+
+**Ongoing:** Corpus deconstruction produces paired `(brief → prose)` training data as a free side effect. Any future writer-side SFT (Qwen3-14B, Qwen3.5 397B on Together, DeepSeek-class base) uses this dataset directly. Harness is reusable: swap the ebook, re-run the same 6-stage pipeline for a new target author in ~1 week.
 
 ---
 
