@@ -120,6 +120,12 @@ export function resumeNovel(novelId: string, opts?: { rewindTo?: "concept" | "pl
   })
 }
 
+export function redraftChapter(novelId: string, chapterNum: number) {
+  return fetchJSON<{ ok: boolean; chapter: number }>(`/api/novel/${novelId}/chapter/${chapterNum}/redraft`, {
+    method: "POST",
+  })
+}
+
 export function getNovelState(novelId: string) {
   return fetchJSON<NovelState>(`/api/novel/${novelId}/state`)
 }
@@ -141,7 +147,7 @@ export function getOutlines(novelId: string) {
 }
 
 export function getChapterDraft(novelId: string, chapter: number) {
-  return fetchJSON<any>(`/api/novel/${novelId}/chapter/${chapter}/draft`)
+  return fetchJSON<{ prose: string; wordCount: number; version: number; status: string } | null>(`/api/novel/${novelId}/chapter/${chapter}/draft`)
 }
 
 export function getIssues(novelId: string) {

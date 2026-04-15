@@ -2,7 +2,7 @@ import { chapterDraftSchema } from "../types"
 import {
   getNovel, getChapterOutline, getCharacters, getFactsUpToChapter,
   getCharacterStatesAtChapter, getAllCharacterStatesBeforeChapter, getWorldBible,
-  saveChapterDraft, approveChapterDraft,
+  saveChapterDraft, approveChapterDraft, getApprovedDraft,
   saveIssue, updateCurrentChapter, updatePhase,
 } from "../db"
 import { callAgent, executeAndLog } from "../llm"
@@ -33,14 +33,26 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
   emit(novelId, { type: "phase:changed", data: { phase: "drafting" } })
 
   const novel = await getNovel(novelId)
-  const startChapter = novel.currentChapter  // 1-based
   const totalChapters = novel.totalChapters
 
-  console.log(`  Starting from chapter ${startChapter} of ${totalChapters}\n`)
-  log(novelId, "info", `Drafting phase: chapters ${startChapter}-${totalChapters}`)
+  console.log(`  Drafting ${totalChapters} chapters (approved chapters will be skipped)\n`)
+  log(novelId, "info", `Drafting phase: ${totalChapters} chapters`)
 
-  for (let ch = startChapter; ch <= totalChapters; ch++) {
+  for (let ch = 1; ch <= totalChapters; ch++) {
     const chapterStart = Date.now()
+
+    // Skip chapters that already have an approved draft. Per-chapter redraft
+    // works by deleting the target chapter's drafts — this loop then
+    // regenerates only the missing one. Safe because cross-chapter prose
+    // doesn't flow (beat-writer context is planner-driven and `beatProses`
+    // resets at every chapter boundary).
+    const existingApproved = await getApprovedDraft(novelId, ch)
+    if (existingApproved) {
+      log(novelId, "info", `Skipping chapter ${ch} — already approved (v${existingApproved.version})`)
+      emit(novelId, { type: "progress", data: { step: "drafting", chapter: ch, totalChapters, status: "skipped-approved" } })
+      continue
+    }
+
     displayProgress(ch - 1, totalChapters, `Chapter ${ch}`)
     emit(novelId, { type: "progress", data: { step: "drafting", chapter: ch, totalChapters, status: "starting" } })
 

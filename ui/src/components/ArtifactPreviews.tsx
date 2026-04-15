@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react"
-import { getCharacters, getOutlines, getStorySpine, getWorldBible } from "../api"
+import { getBeats, getCharacters, getChapterDraft, getOutlines, getStorySpine, getWorldBible, redraftChapter, type BeatData } from "../api"
 
 type ArtifactKey = "world" | "characters" | "spine" | "outlines"
 
@@ -68,7 +68,7 @@ export function ArtifactPreviews({ novelId, refreshKey }: Props) {
       {expanded === "world"      && artifacts.world      && <WorldPreview     world={artifacts.world} />}
       {expanded === "characters" && artifacts.characters && <CharactersPreview characters={artifacts.characters} />}
       {expanded === "spine"      && artifacts.spine      && <SpinePreview     spine={artifacts.spine} />}
-      {expanded === "outlines"   && artifacts.outlines   && <OutlinesPreview  outlines={artifacts.outlines} />}
+      {expanded === "outlines"   && artifacts.outlines   && <OutlinesPreview  novelId={novelId} outlines={artifacts.outlines} />}
     </div>
   )
 }
@@ -151,22 +151,111 @@ function SpinePreview({ spine }: { spine: any }) {
   )
 }
 
-function OutlinesPreview({ outlines }: { outlines: any[] }) {
+function OutlinesPreview({ novelId, outlines }: { novelId: string; outlines: any[] }) {
+  const [expandedChapter, setExpandedChapter] = useState<number | null>(null)
+  const [beatsByChapter, setBeatsByChapter] = useState<Record<number, BeatData[]>>({})
+  const [proseByChapter, setProseByChapter] = useState<Record<number, { prose: string; wordCount: number; version: number; status: string } | null>>({})
+  const [loadingChapter, setLoadingChapter] = useState<number | null>(null)
+  const [redrafting, setRedrafting] = useState<number | null>(null)
+
+  const loadChapter = useCallback(async (ch: number) => {
+    setLoadingChapter(ch)
+    try {
+      const [beats, draft] = await Promise.allSettled([getBeats(novelId), getChapterDraft(novelId, ch)])
+      if (beats.status === "fulfilled") {
+        const filtered = beats.value.filter(b => b.chapter === ch).sort((a, b) => a.beatIndex - b.beatIndex)
+        setBeatsByChapter(prev => ({ ...prev, [ch]: filtered }))
+      }
+      if (draft.status === "fulfilled") {
+        setProseByChapter(prev => ({ ...prev, [ch]: draft.value }))
+      }
+    } finally {
+      setLoadingChapter(null)
+    }
+  }, [novelId])
+
+  const toggleChapter = (ch: number) => {
+    if (expandedChapter === ch) { setExpandedChapter(null); return }
+    setExpandedChapter(ch)
+    if (!(ch in beatsByChapter) && !(ch in proseByChapter)) loadChapter(ch)
+  }
+
+  const handleRedraft = async (ch: number) => {
+    if (!confirm(`Redraft chapter ${ch}? This deletes the current draft and re-runs drafting for this chapter only.`)) return
+    setRedrafting(ch)
+    try {
+      await redraftChapter(novelId, ch)
+    } catch (err) {
+      alert(`Redraft failed: ${(err as Error).message}`)
+    } finally {
+      setRedrafting(null)
+    }
+  }
+
   return (
     <div className="artifact-body">
       {outlines.map((o, i) => {
+        const ch = o.chapterNumber ?? i + 1
         const scenes: any[] = o.scenes ?? []
+        const isExpanded = expandedChapter === ch
+        const beats = beatsByChapter[ch]
+        const draft = proseByChapter[ch]
         return (
           <div key={i} className="artifact-chapter">
-            <div className="artifact-chapter-head">
-              <strong>Chapter {o.chapterNumber ?? i + 1}{o.title ? `: ${o.title}` : ""}</strong>
+            <div className="artifact-chapter-head" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <button
+                onClick={() => toggleChapter(ch)}
+                style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer", color: "inherit", font: "inherit" }}
+                aria-expanded={isExpanded}
+              >
+                <strong>{isExpanded ? "▾" : "▸"} Chapter {ch}{o.title ? `: ${o.title}` : ""}</strong>
+              </button>
               {o.povCharacter && <span className="artifact-badge">POV: {o.povCharacter}</span>}
+              {draft?.status === "approved" && <span className="artifact-badge" style={{ background: "#2e7d32" }}>approved v{draft.version}</span>}
+              {draft && draft.status !== "approved" && <span className="artifact-badge">draft v{draft.version}</span>}
+              <button
+                onClick={() => handleRedraft(ch)}
+                disabled={redrafting === ch}
+                style={{ marginLeft: "auto", fontSize: "0.75em", padding: "2px 8px", cursor: redrafting === ch ? "wait" : "pointer" }}
+                title="Delete this chapter's drafts and re-run drafting"
+              >
+                {redrafting === ch ? "Redrafting…" : "Redraft"}
+              </button>
             </div>
             {o.purpose && <div className="artifact-chapter-purpose">{o.purpose}</div>}
             {scenes.length > 0 && (
               <ol className="artifact-scenes">
                 {scenes.map((s, j) => <li key={j}>{s.description ?? s.summary ?? String(s)}</li>)}
               </ol>
+            )}
+            {isExpanded && (
+              <div className="artifact-chapter-detail" style={{ marginTop: 8, paddingTop: 8, borderTop: "1px dashed #444" }}>
+                {loadingChapter === ch && <div style={{ opacity: 0.6 }}>Loading beats and prose…</div>}
+                {loadingChapter !== ch && beats && beats.length > 0 && (
+                  <div>
+                    <div className="artifact-section-title">Written beats ({beats.length})</div>
+                    {beats.map(b => (
+                      <details key={b.beatIndex} style={{ marginBottom: 6 }}>
+                        <summary style={{ cursor: "pointer" }}>
+                          Beat {b.beatIndex + 1} — {b.wordCount} words · {b.latencyMs}ms
+                        </summary>
+                        <div style={{ whiteSpace: "pre-wrap", padding: "6px 0 0 12px", fontSize: "0.9em", opacity: 0.85 }}>{b.prose}</div>
+                      </details>
+                    ))}
+                  </div>
+                )}
+                {loadingChapter !== ch && beats && beats.length === 0 && !draft && (
+                  <div style={{ opacity: 0.6 }}>No beats or prose written yet.</div>
+                )}
+                {loadingChapter !== ch && draft && (
+                  <details style={{ marginTop: 8 }}>
+                    <summary style={{ cursor: "pointer" }}>
+                      Full chapter prose (v{draft.version} · {draft.wordCount} words · {draft.status})
+                    </summary>
+                    <div style={{ whiteSpace: "pre-wrap", padding: "6px 0 0 0", fontSize: "0.9em", opacity: 0.9 }}>{draft.prose}</div>
+                  </details>
+                )}
+              </div>
             )}
           </div>
         )

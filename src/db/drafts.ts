@@ -21,3 +21,7 @@ export async function getApprovedDraft(novelId: string, chapterNum: number): Pro
 export async function unapproveChapterDraft(novelId: string, chapterNum: number): Promise<void> {
   await db`UPDATE chapter_drafts SET status = 'draft' WHERE novel_id = ${novelId} AND chapter_number = ${chapterNum} AND status = 'approved'`
 }
+
+export async function deleteChapterDrafts(novelId: string, chapterNum: number): Promise<void> {
+  await db`DELETE FROM chapter_drafts WHERE novel_id = ${novelId} AND chapter_number = ${chapterNum}`
+}

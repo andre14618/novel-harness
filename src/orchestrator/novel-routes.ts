@@ -452,6 +452,38 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
     return Response.json({ ok: true, novelId, mode })
   }
 
+  // ── Per-chapter redraft (delete + resume drafting) ───────────────────
+  const redraftMatch = path.match(/^\/api\/novel\/([^/]+)\/chapter\/(\d+)\/redraft$/)
+  if (redraftMatch && req.method === "POST") {
+    const novelId = redraftMatch[1]
+    const chapterNum = parseInt(redraftMatch[2])
+
+    if (activeRuns.has(novelId)) {
+      return Response.json({ error: "Novel is already running" }, { status: 409 })
+    }
+
+    await initDB(novelId)
+    try {
+      await getNovel(novelId)
+    } catch {
+      return Response.json({ error: `Novel ${novelId} not found` }, { status: 404 })
+    }
+
+    const { deleteChapterDrafts, updatePhase } = await import("../db")
+    await deleteChapterDrafts(novelId, chapterNum)
+    await updatePhase(novelId, "drafting")
+
+    activeRuns.set(novelId, { startedAt: new Date().toISOString() })
+    runNovel(novelId)
+      .then(() => { activeRuns.delete(novelId) })
+      .catch(err => {
+        const run = activeRuns.get(novelId)
+        if (run) run.error = String(err)
+      })
+
+    return Response.json({ ok: true, novelId, chapter: chapterNum })
+  }
+
   // ── Novel state (from Postgres) ────────────────────���───────────────
   const stateMatch = path.match(/^\/api\/novel\/([^/]+)\/state$/)
   if (stateMatch && req.method === "GET") {
