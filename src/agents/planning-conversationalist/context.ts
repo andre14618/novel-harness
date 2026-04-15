@@ -3,12 +3,29 @@ export interface ChatTurn {
   content: string
 }
 
+/**
+ * Strip Qwen-style <think>…</think> reasoning blocks (closed and truncated)
+ * from a turn's content before it's replayed into any LLM context. Reasoning
+ * is internal-only; feeding it back in wastes tokens and pollutes extraction.
+ */
+export function stripThinking(content: string): string {
+  let out = content.replace(/<think>[\s\S]*?<\/think>\s*/gi, "")
+  const unclosed = out.indexOf("<think>")
+  if (unclosed !== -1) out = out.slice(0, unclosed)
+  return out.trim()
+}
+
+export function sanitizeHistory(history: ChatTurn[]): ChatTurn[] {
+  return history.map(t => ({ ...t, content: stripThinking(t.content) }))
+}
+
 export function buildContext(args: {
   seed: { premise: string; genre: string; chapterCount?: number }
   history: ChatTurn[]
   userMessage: string
 }): string {
-  const { seed, history, userMessage } = args
+  const { seed, userMessage } = args
+  const history = sanitizeHistory(args.history)
 
   const seedSection = `PREMISE: ${seed.premise}
 GENRE: ${seed.genre}${seed.chapterCount ? `\nTARGET CHAPTER COUNT: ${seed.chapterCount}` : ""}`

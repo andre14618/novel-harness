@@ -1,10 +1,11 @@
-import type { ChatTurn } from "../planning-conversationalist/context"
+import { type ChatTurn, sanitizeHistory } from "../planning-conversationalist/context"
 
 export function buildContext(args: {
   seed: { premise: string; genre: string; chapterCount?: number }
   history: ChatTurn[]
 }): string {
-  const { seed, history } = args
+  const { seed } = args
+  const history = sanitizeHistory(args.history)
 
   const seedSection = `PREMISE: ${seed.premise}
 GENRE: ${seed.genre}${seed.chapterCount ? `\nTARGET CHAPTER COUNT: ${seed.chapterCount}` : ""}`
