@@ -583,24 +583,33 @@ export function StudioPage() {
           />
 
           {stalled && (
-            <div className="card" style={{ borderColor: "#e2b714", textAlign: "center", marginTop: 10 }}>
-              <p style={{ color: "#e2b714", marginBottom: "0.8rem" }}>
-                Pipeline stopped at <strong>{state.phase}</strong> phase
-                {state.totalChapters > 0 && ` (chapter ${state.currentChapter}/${state.totalChapters})`}.
-              </p>
-              <button onClick={handleResume} disabled={resuming}>
-                {resuming ? "Resuming…" : "Resume Pipeline"}
-              </button>
-            </div>
-          )}
-
-          {state.activeError && (
-            <div className="tl-entry tl-error" style={{ marginTop: 10 }}>
-              <div className="tl-dot error" />
-              <div className="tl-body">
-                <strong>Pipeline Error</strong>
-                <pre style={{ whiteSpace: "pre-wrap", fontSize: "0.8rem", color: "#e74c3c" }}>{state.activeError}</pre>
+            <div
+              className="card"
+              style={{
+                borderColor: state.activeError ? "#e74c3c" : "#e2b714",
+                marginTop: 10,
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: state.activeError ? "0.8rem" : 0 }}>
+                <div style={{ color: state.activeError ? "#e74c3c" : "#e2b714" }}>
+                  <strong>
+                    {state.activeError ? "Pipeline errored" : "Pipeline stopped"}
+                  </strong>
+                  {" "}at <strong>{state.phase}</strong>
+                  {state.totalChapters > 0 && ` (chapter ${state.currentChapter}/${state.totalChapters})`}.
+                  <div style={{ fontSize: "0.75rem", opacity: 0.75, marginTop: 4 }}>
+                    Resume re-enters at <code>{state.phase}</code>. Concept skips saved world/characters/spine, drafting skips approved chapters, planning re-plans, validation re-checks.
+                  </div>
+                </div>
+                <button onClick={handleResume} disabled={resuming} style={{ flexShrink: 0 }}>
+                  {resuming ? "Resuming…" : "Resume Pipeline"}
+                </button>
               </div>
+              {state.activeError && (
+                <pre style={{ whiteSpace: "pre-wrap", fontSize: "0.75rem", color: "#e74c3c", margin: 0, padding: "0.5rem 0.6rem", background: "rgba(231, 76, 60, 0.08)", borderRadius: 4 }}>
+                  {state.activeError}
+                </pre>
+              )}
             </div>
           )}
 
