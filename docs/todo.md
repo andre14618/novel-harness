@@ -1,43 +1,32 @@
 ---
 status: active
-updated: 2026-04-15d
+updated: 2026-04-16
 ---
 
 # To Do
 
 Pending action items only. Ordered by impact. Completed items and decision rationale live in `docs/decisions.md`.
 
-## Writer Imitation Benchmark — Salvatore deconstruction (NEW, supersedes Phase 1–3 below)
+## Writer Imitation Benchmark — Salvatore deconstruction (TRAINING IN FLIGHT)
 
-Treat writer quality as an engineering problem with a measurable ground truth. Deconstruct *The Crystal Shard* into scene-level beats, build a permanent quality oracle that scores every methodology (model swap, primer change, generation unit change, SFT adapter) against actual published prose for the same beats. The corpus deconstruction is also a paired SFT training set, so this work subsumes Phase 1's manual labeling.
+Treat writer quality as an engineering problem with a measurable ground truth. Deconstruct the Icewind Dale Trilogy into beat-level training pairs, build a permanent quality oracle that scores every methodology (model swap, primer change, generation unit change, SFT adapter) against actual published prose for the same beats.
 
-**Full plan:** `docs/writer-imitation-benchmark.md` (measurement layer) + `docs/writer-style-imitation-design-space.md` (method layer).
+**Full plan:** `docs/writer-imitation-benchmark.md` (measurement layer) + `docs/writer-style-imitation-design-space.md` (method layer). Phase A + B results in `docs/corpus-structural-analysis.md`. Decisions in `docs/decisions.md` ("Writer Voice Imprinting").
 
-**Status:** Awaiting target confirmation (Crystal Shard vs alternate Salvatore novel) and ebook source.
+**Status (2026-04-16):**
+- Phase A (corpus decomposition): **DONE** — 777 paired (brief, prose) beats, 83,641 prose words, 703/74 train/val
+- Phase B (chunk-size A/B on DeepSeek baseline): **DONE** — 120w wins (Δ-sum 1.81); identifies the rhythm + sensory-density gaps the LoRA must close
+- Phase C (LoRA training): **IN FLIGHT** — `salvatore-1988-v1` submitted to W&B Serverless SFT (ART) on `OpenPipe/Qwen3-14B-Instruct`, exp #192
 
-### Phase 0-POC — "Capability vs tuning" proof of concept (START HERE)
+### Phase C — post-training validation (next, gated on training completion)
+1. Pull adapter URI from W&B (`wandb-artifact:///andre14618-/novel-harness/salvatore-1988-v1:vN`)
+2. Re-run Phase B briefs through the adapter; compare Δ-sum to DeepSeek baseline (1.81)
+3. If Δ-sum < 1.0 → 3-chapter pipeline run (romance-drama / litrpg seed) for production validation; consider promoting to default writer
+4. If Δ-sum ≥ 1.5 → debug data shape (likely sensory-density signal too weak in 100w pairs) before retraining
+5. `bun scripts/finetune/submit-salvatore-training.ts --conclude 192 "<summary>"`
 
-Before spending ~$75–210 on large-base SFT, settle the strategic question: does real fine-tuning (even at small scale) close the gap, or is base-model capability the dominant lever? Two nested probes.
-
-**Phase 0-POC-mini (~$1, ~2 days, START HERE):**
-- Qwen3-14B quadrant only — 3 cells (A untuned+primer, B LoRA on ~100 Salvatore pairs, C DeepSeek+primer current default)
-- Qwen3-14B LoRA training on W&B ART preview: $0
-- Inference for ~60 eval beats × 3 cells: <$1
-- If B > C decisively → **answered.** SFT at small scale beats large-untuned. Skip POC-full. Proceed to Phase 0a (full deconstruction) and full benchmark with SFT prioritized.
-- If B < C decisively or B ≈ C → run POC-full below.
-
-**Phase 0-POC-full (~$5–7, +1 day, gated on POC-mini ambiguity):**
-- Adds cell D (Llama 3.3 70B LoRA on Together, ~$2.60 training) to the three mini cells
-- Distinguishes "14B too small for voice imprinting" from "tuning doesn't work at all"
-- Full 2×2 decision rules in `docs/writer-imitation-benchmark.md`
-
-POC outcome directs Phase 2 scope:
-- Tuned small beats untuned large → SFT matters; prioritize SFT methodologies
-- Tuned large beats tuned small AND untuned large → tuning at scale is the lever; justifies Kimi K2.5 $70 training spend
-- Untuned large ties tuned large → base capability dominates; skip Kimi, prioritize primer/unit experiments
-- No methodology wins → planner is the gap, not the writer
-
-After POC, Phase 0a-0b (full-book deconstruction) starts. Phases 1–3 below remain valid as fallback if the benchmark verdict says SFT is needed, but they are **deprioritized** until the benchmark settles which methodology and which model deserve SFT investment.
+### Phase D (deferred) — "Capability vs tuning" 2×2
+Originally planned as POC. Now superseded by the live training run — `salvatore-1988-v1` IS the small-model LoRA cell. If B > C decisively after Phase C validation, skip the 2×2; SFT at small scale answered the question. If B < C, run the larger-base cell (Llama 3.3 70B on Together, ~$2.60) to distinguish "14B too small" from "tuning doesn't move this writer-voice axis."
 
 ---
 

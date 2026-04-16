@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-13
+updated: 2026-04-16
 ---
 
 # Adapter Changelog
@@ -15,6 +15,7 @@ Single source of truth for fine-tuning history across all pipeline agents. One e
 
 | Adapter | Status | Current Version | Exp | Artifact URI |
 |---------|--------|----------------|-----|-------------|
+| Salvatore Voice (Path B) | **IN TRAINING** | V1 · Qwen3-14B SFT | #192 | `salvatore-1988-v1:vN` (pending) |
 | Tonal Pass | **DEPLOYED** | V4 · W&B 14B | #98 | `howard-tonal-v4-sft-resume:v8` |
 | Adherence Checker | **DEPLOYED** | V4 · events+attribution | #161 | `adherence-checker-v4` |
 | Chapter Plan Checker | **DEPLOYED** | V2 · Sonnet teacher | #178 | `chapter-plan-checker-v2:v1` |
@@ -24,6 +25,26 @@ Single source of truth for fine-tuning history across all pipeline agents. One e
 | Character State | RETIRED | V1 · Sonnet teacher | #187 | `character-state-v1:v1` |
 | Relationship Timeline | RETIRED | V1 · Sonnet teacher | #187 | `relationship-timeline-v1:v1` |
 | Reference Resolver | RETIRED | — | — | Llama 3.1 8B sufficient |
+
+### Salvatore Voice V1 — Path B voice imprinting (IN TRAINING — 2026-04-16)
+
+First voice-imprinting LoRA. Targets the 1988 Salvatore action-pulp rhythm (short punchy sentences, restrained sensory imagery, dialogue-heavy beats) on top of `OpenPipe/Qwen3-14B-Instruct`.
+
+| Field | Value |
+|---|---|
+| Adapter name | `salvatore-1988-v1` |
+| Base | `OpenPipe/Qwen3-14B-Instruct` |
+| Training pairs | 703 train / 74 val (777 total beats) |
+| Source corpus | Icewind Dale Trilogy (Crystal Shard, Streams of Silver, Halfling's Gem) |
+| LoRA rank | 16 |
+| Hyperparams | lr 2e-4, batch 2, 3 epochs, cosine schedule |
+| Training file | `finetune-data/salvatore-1988-sft-train.jsonl` |
+| Experiment | #192 (`lora_voice_sft`, target=writer, dimension=voice_imprint) |
+| Pre-train baseline | DeepSeek V3.2 + Howard primer, Δ-sum 1.81 vs Salvatore aggregate (Phase B) |
+| Submission script | `bun scripts/finetune/submit-salvatore-training.ts` |
+| Run host | LXC 307 (W&B Serverless SFT, ART framework, free preview tier) |
+
+Validation plan after training: re-run Phase B briefs through the new adapter, compare Δ-sum to DeepSeek baseline. Target Δ-sum < 1.0 for production validation; 3-chapter pipeline run on litrpg/romance-drama seed before declaring deployable. See `docs/decisions.md` "Salvatore 1988 voice LoRA training kicked off."
 
 ### Together AI Tier 2 Mirrors (IN TRAINING — 2026-04-12)
 

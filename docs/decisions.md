@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-15e
+updated: 2026-04-16
 ---
 
 # Decisions
@@ -1214,3 +1214,59 @@ All three targets met (echo at target, dialogue slightly below 20% for this myst
 **Scoping (pass 1):** Bounded scenes only (both sides have `* * *` marker), 200–1500 words. Scenes <200w (transition snippets) and >1500w (monolithic, uncertain boundaries) excluded.
 
 **Pass 2 (deferred):** Long monolithic scenes + unbounded chapter-open/close scenes, segmented using boundary signals calibrated from pass 1.
+
+### Phase A complete: 777 paired (brief, prose) training beats
+*2026-04-16*
+
+**Decision:** Phase A of Path B is complete. The 6-stage decomposition pipeline (mechanical split → scene label → beat segment → brief extract → style tag → roundtrip validate) produced 777 training pairs from the Icewind Dale Trilogy.
+
+**Corpus stats:**
+- 777 beats, 83,641 prose words total
+- Median beat 100w, mean 108w (matches calibrated 100–120w target)
+- Aggregate Salvatore baseline: avg sentence 18.3w, dialogue ratio 0.28, clause complexity 0.62, sensory density 1.56 hits/100w
+- Stratified by book (Crystal Shard / Streams of Silver / Halfling's Gem) and kind (dialogue / action / description / interiority)
+- Train/val split: 703 / 74 (90/10 stratified by book × kind)
+
+**Round-trip validation (Stage 6, 20 beats × Sonnet writers):** Confirmed the brief schema is sufficient — Sonnet can reconstruct in-spec beats from briefs alone. Sentence-rhythm gap (Sonnet ~12w avg vs Salvatore 18.3w) is intentional: schema deliberately omits rhythm so the LoRA learns it from the prose side of each pair.
+
+**Output:** `scripts/lora-data/salvatore-1988-training-pairs-tagged.jsonl` (canonical), `finetune-data/salvatore-1988-sft-{train,val}.jsonl` (W&B messages format).
+
+### Phase B chunk-size verdict: 120w wins on DeepSeek baseline
+*2026-04-16 · `scripts/finetune/phase-b-chunk-size.py`*
+
+**Decision:** Confirm the calibrated ~100–120w beat target. 15 real Salvatore briefs (5 per kind) × 3 chunk sizes (80 / 120 / 160w) = 45 DeepSeek V3.2 generations, scored against the Salvatore aggregate baseline.
+
+**Result (normalized Δ-sum, lower = closer to baseline):**
+- 80w: 2.28
+- 120w: 1.81 ← winner
+- 160w: 2.11
+
+**Style gaps DeepSeek-baseline-vs-Salvatore (this is what the LoRA must close):**
+- Sentence length: DeepSeek produces 11.8–12.2w sentences regardless of target; Salvatore is 18.3w
+- Sensory density: DeepSeek 3.91–4.77 hits/100w (overdrive); Salvatore is 1.56
+- Dialogue ratio + clause complexity already track baseline at 120w
+
+**Why this matters:** DeepSeek + Howard primer (the current writer baseline) lands the planning-side dimensions but misses Salvatore on rhythm and sensory restraint. The LoRA target is therefore well-defined: pull sentences longer, dial sensory imagery back to baseline.
+
+**Ongoing:** 120w is the production beat target for any Salvatore-flavoured runs. Result file: `scripts/lora-data/phase-b-chunk-size-results.jsonl`.
+
+### Salvatore 1988 voice LoRA training kicked off
+*2026-04-16 · exp #192 · adapter `salvatore-1988-v1`*
+
+**Decision:** Submitted the Salvatore voice LoRA to W&B Serverless SFT (ART framework) on `OpenPipe/Qwen3-14B-Instruct`. This is the first Path B (1988 Salvatore action-pulp rhythm) voice-imprinting fine-tune.
+
+**Run config:**
+- Base: `OpenPipe/Qwen3-14B-Instruct`
+- Adapter name: `salvatore-1988-v1`
+- Training pairs: 703 (74 held out)
+- LoRA r=16, lr 2e-4, batch size 2, 3 epochs, cosine schedule
+- Train file: `finetune-data/salvatore-1988-sft-train.jsonl`
+- W&B run launched on LXC 307 (recovered from power outage 2026-04-16)
+
+**Tracking:** `tuning_experiment` id=192 (`lora_voice_sft`, target=writer, dimension=voice_imprint). Conclude via `bun scripts/finetune/submit-salvatore-training.ts --conclude 192 "<summary>"` once trained adapter is validated against DeepSeek baseline.
+
+**Validation plan post-training:**
+1. Pull adapter URI from W&B (`wandb-artifact:///andre14618-/novel-harness/salvatore-1988-v1:vN`)
+2. Re-run Phase B briefs through the adapter; compare Δ-sum to DeepSeek baseline (1.81)
+3. If Δ-sum < 1.0, run a 3-chapter pipeline against romance-drama/litrpg seeds for production validation
+4. If still > 1.5, debug data shape (likely sensory-density signal too weak in 100w pairs) before retraining

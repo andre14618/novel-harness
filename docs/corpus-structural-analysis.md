@@ -93,6 +93,49 @@ At ~105w average: 135 scenes × median 515w / 105w ≈ **~660 paired (beat brief
 3. Beat kinds cluster as dialogue-dominant (39%), consistent with Salvatore's exchange-heavy style
 4. Per-scene averages remarkably stable: 81–121w/beat across all 10 scenes regardless of scene length
 
-## Next: full Phase A batch decomposition
+## Phase A complete — 777 paired training beats
+*2026-04-16*
 
-Segment all 135 bounded candidate scenes using the calibrated prompt (~100–120w target, boundary signals above). Output: `scripts/lora-data/salvatore-1988-beats.jsonl`.
+Full 6-stage pipeline executed end-to-end:
+
+| Stage | Tool | Output |
+|---|---|---|
+| 1. Mechanical split | `scripts/finetune/decompose-corpus.py` | 323 raw scenes |
+| 2. Scene label | `scripts/finetune/label-scenes.py` (Sonnet sub-agents) | Bounded scene metadata |
+| 3. Beat segment | `scripts/finetune/segment-beats.py` (Sonnet sub-agents) | 777 beats from 135 bounded scenes |
+| 4. Brief extract | `scripts/finetune/extract-briefs.py` (Sonnet sub-agents, 78 batches → merge) | Per-beat brief (characters, POV, setting, tone, kind, transition_in, boundary_signal, summary) |
+| 5. Style tag | `scripts/finetune/tag-style.py` (deterministic) | Per-beat style features + aggregate baseline |
+| 6. Round-trip validate | `scripts/finetune/validate-roundtrip.py` (Sonnet writers, 20 beats) | Confirms brief schema is sufficient |
+
+**Final corpus stats:**
+- 777 beats, 83,641 prose words
+- Median 100w, mean 108w (matches calibrated target)
+- Aggregate Salvatore baseline: avg sentence 18.3w · dialogue ratio 0.28 · clause complexity 0.62 · sensory density 1.56 hits/100w
+- Train/val split: 703 / 74 (90/10 stratified by book × kind)
+- Output: `scripts/lora-data/salvatore-1988-training-pairs-tagged.jsonl` (canonical), `finetune-data/salvatore-1988-sft-{train,val}.jsonl` (W&B messages format)
+
+**Round-trip finding:** Sonnet reconstructions from briefs land in-spec on every dimension EXCEPT sentence rhythm (Sonnet ~12w avg vs Salvatore 18.3w). This is intentional — the brief deliberately omits rhythm so the LoRA learns it from the prose side of each pair.
+
+## Phase B chunk-size A/B (complete)
+*2026-04-16 · `scripts/finetune/phase-b-chunk-size.py`*
+
+15 real Salvatore briefs (5 per kind) × 3 chunk sizes (80 / 120 / 160w) = 45 DeepSeek V3.2 generations, scored against the Salvatore aggregate baseline.
+
+| size | n | avg words | avg sent | dial | clause | sens | Δ-sum |
+|---|---|---|---|---|---|---|---|
+| 80w  | 15 | 64.8  | 11.8 | 0.28 | 0.60 | 4.77 | 2.28 |
+| 120w | 15 | 92.5  | 12.1 | 0.27 | 0.62 | 3.91 | **1.81** |
+| 160w | 15 | 116.1 | 12.2 | 0.25 | 0.64 | 4.47 | 2.11 |
+
+**Verdict:** 120w wins. Confirms calibrated beat target.
+
+**Style gaps DeepSeek-vs-Salvatore (LoRA must close these):**
+- Sentences: 11.8–12.2w (DeepSeek) vs 18.3w (Salvatore) — pull longer
+- Sensory density: 3.91–4.77 hits/100w vs 1.56 — dial way back
+- Dialogue ratio + clause complexity already track baseline at 120w
+
+Result file: `scripts/lora-data/phase-b-chunk-size-results.jsonl`.
+
+## Next: training (in progress)
+
+Adapter `salvatore-1988-v1` submitted to W&B Serverless SFT (ART framework) on `OpenPipe/Qwen3-14B-Instruct`. Tracked as `tuning_experiment` id=192. See `docs/decisions.md` "Salvatore 1988 voice LoRA training kicked off" for run config and validation plan.
