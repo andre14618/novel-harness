@@ -1,12 +1,14 @@
 ---
 status: active
-updated: 2026-04-10
-derived-from: tuning_experiments #10, #86-94, #107-123, #135, #138, #140
+updated: 2026-04-16
+derived-from: tuning_experiments #10, #86-94, #107-123, #135, #138, #140, #178, #192, #194
 ---
 
 # Model Capability Matrix
 
 Statistical reference for which models perform best on which pipeline tasks. All numbers are from controlled experiments on deterministic eval sets — not anecdotal. Use this to pick teachers, select production models, and prioritize fine-tuning.
+
+For the **slot-by-slot consolidation strategy** (can the whole pipeline move to 14B?), see `docs/pipeline-14b-consolidation.md`.
 
 ---
 
@@ -198,15 +200,19 @@ Same workload shape across providers, for models available on W&B Inference:
 
 ## Fine-Tune Readiness Summary
 
-| Task | Teacher | Teacher Accuracy | Student Gap | Data Sufficient? | SFT Status |
-|------|---------|---------------:|------------:|:----------------:|:----------:|
-| Adherence checker | Qwen 235B (decomposed) | 97% | 6pp (91%→97%) | ✅ 8,524 curated | **V2 DEPLOYED** |
-| Chapter-plan checker | gpt-oss-120b | 90% | 37pp (53%→90%) | ❌ Need 200+ diverse pairs | Data collection |
-| Continuity | Claude Opus/Sonnet (TBD) | TBD | ~45pp+ | ❌ Teacher quality + premise diversity | **BLOCKED** |
-| Reference resolver | N/A | 97.5% recall | — | N/A | **OFF LIST** |
-| Tonal pass | Howard corpus | V4 > V3 on all metrics | N/A | ✅ 4,497 curated | V4 pref eval |
-| Lint fixer | Approved chapter rewrites | TBD | TBD | ❌ Need 200+ examples | Future |
-| Beat writer | Approved chapter beats | TBD | TBD | ❌ Need 500+ diverse beats | Future (high risk) |
+| Task | Teacher | Teacher Accuracy | Student Accuracy | Data | SFT Status |
+|------|---------|---------------:|----------------:|:----:|:----------:|
+| Adherence checker (events+attribution) | Sonnet 4.6 | 96% | **96%** | ✅ 2,134 curated | **V4 DEPLOYED** (exp #161) |
+| Chapter-plan checker | Sonnet 4.6 | 96% | **96%** | ✅ 520 pairs | **V2 DEPLOYED** (exp #178) |
+| Continuity | Sonnet 4.6 | TBD | — | ✅ 253 pairs / 39 scenarios | **V2 DEPLOYED** (exp #175) |
+| Reference resolver | N/A | 97.5% recall | — | N/A | **OFF LIST** (already sufficient) |
+| Tonal pass (Howard) | Howard corpus | V4 > V3 all metrics | — | ✅ 4,497 curated | **V4 on-demand only** (auto-run disabled 2026-04-15) |
+| Voice imprint (Salvatore) | Icewind Dale Trilogy (777 pairs) | N/A (forward tune) | Δ-sum 0.27 val / 0.66 original | ✅ 703 train / 74 val | **v2 SHIPPED** (exp #194) |
+| Lint fixer | 235B per-sentence outputs | ~100% on exp #72 | — | ❌ Need ~200 mined pairs | Tier 1 candidate |
+| Rewriter (beat-scoped) | DeepSeek V3.2 targeted rewrite | N/A | — | shared with beat-writer retry | Gated on beat-scope refactor |
+| Beat writer | N/A (voice LoRA, not distillation) | — | voice validated; constraint-following pending | ✅ Salvatore 777 pairs | **Production probe pending** (3-chapter gate) |
+| Planning-plotter | DeepSeek V3.2 | — | — | ❌ need ~500 pairs × 5 genres | Gated on beat-writer gate |
+| Concept agents | DeepSeek V3.2 | — | — | ❌ need ~200–500 per-agent | Gated on beat-writer gate |
 
 ---
 
