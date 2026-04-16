@@ -1373,6 +1373,25 @@ All three targets met (echo at target, dialogue slightly below 20% for this myst
 
 **Ongoing:** any future "mine production failure distribution" or "harvest training data" query should target `public.*` only. For historical comparisons, explicitly query `archive.*`. When the pipeline makes another materially different shift, repeat this pattern with a new cutoff.
 
+### All 70 existing novels archived; public starts fresh
+*2026-04-16 · migration `sql/023_archive_all_test_novels.sql`*
+
+**Decision:** Moved all 70 existing novels and their content tables to `archive.*`. `public.novels` now has zero rows. Telemetry (`llm_calls`, `pipeline_events`) stays in public — novel_id is plain text there, not FK, so records survive as an analytical substrate even without a novels row.
+
+**Why:** Every novel generated to date was testing harness behavior, not production output. With 70 novels spanning 14 distinct pipeline configurations (extractors on/off, different writers, different context assembly), any query over `public.novels` returned a grab bag of eras. Post-migration-022 we had 70 novels in public, of which 65 were pre-cutoff (archived content via novel_id filter) and 5 were post-cutoff. User directive: archive all of them so `public.novels` only contains novels currently being worked on.
+
+**Scope:**
+- **Archived wholesale:** `novels` (70 rows), `chapter_drafts`, `chapter_outlines`, `characters`, `world_bibles`, `story_spines`, `validation_passes`, `retrieval_config`, `deterministic_config`
+- **All remaining state rows archived** (they were for the 5 post-cutoff novels): `facts`, `character_states`, `relationship_states`, `character_knowledge`, `timeline_events`, `event_causes`, `knowledge_propagation`, `character_system_awareness`, `world_systems`, `cultures`, `character_cultures`, `chapter_summaries`
+
+**Kept in public:** all telemetry + experiment tables (`tuning_experiments`, `tuning_results`, `experiment_lineage`, `runs`, `run_agents`, `llm_calls`, `pipeline_events`, `lint_patterns`, `_migrations`, orchestrator tables).
+
+**Result:** public size 16 MB → **10 MB**. Archive schema now 30 tables / 147 MB. Orchestrator restart verified clean.
+
+**Reversibility:** the entire 70-novel test corpus lives in `archive.novels` + associated archive.* tables. `INSERT INTO public.novels SELECT * FROM archive.novels WHERE id = <id>` restores any specific novel.
+
+**Ongoing:** Next novel run starts populating a fresh `public.novels`. Every future novel generated under the current pipeline lives in public; when the pipeline shifts again, this-cutoff novels get archived. Pattern repeats.
+
 ### Salvatore v2 fails 3-chapter production probe — v3 retraining on harness-shaped user prompts authorized
 *2026-04-16 · exp #195*
 
