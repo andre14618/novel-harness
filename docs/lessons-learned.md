@@ -1067,6 +1067,23 @@ Phase C.3 generalization test (74 held-out val beats + 6 original-character brie
 
 **The rule:** in-context learning with a long primer does not substitute for a voice LoRA when the target includes sentence-length rhythm. A 10k-token primer closes ~40% of the Δ-sum gap vs baseline; tuning closes 85-90%. Sentence cadence lives somewhere ICL can't reliably extract from exemplars. For voice targets where rhythm matters, plan to tune even when ICL exists.
 
+### Voice LoRAs must train on the prompt shape they'll see in production (2026-04-16 · exp #195)
+Salvatore v2 LoRA passed Phase C.3 generalization (Δ-sum 0.27 on unseen val, 0.66 on original characters) but failed the 3-chapter production probe — 12 consecutive chapter-2 drafting attempts failed on the same required fact. Root cause was NOT voice or capability: it was **prompt-shape distribution shift.**
+
+The LoRA was trained on a 9-field brief (~200 tokens): `Characters / POV / Setting / Tone / Kind / Transition_in / Boundary_signal / Target_words / Summary`. Production sends ~500–1,000 tokens with additional sections the LoRA never saw: `TRANSITION BRIDGE` (last 2–3 sentences of prior beat), `LANDING TARGET` (next beat's first sentence), `CHARACTERS` (per-character speech pattern / drives / avoids / conflict / relationships / doesn't-know), resolved references, and setting on scene_start.
+
+Concrete failure modes observed:
+- **Bridge regurgitation** — the LoRA treats the TRANSITION BRIDGE as content to emit, repeating it verbatim in the next paragraph. Byte-identical sentences appeared in chapter 1 paragraphs 3 and 6.
+- **Required-fact miss** — the LoRA ignores planner requirements embedded in the beat spec because it's over-indexed on the TRANSITION BRIDGE and under-indexed on the planned facts.
+- **Character presence gap** — characters listed with snapshots are treated as background atmosphere instead of on-page presences.
+
+Phase C.3 generalization testing did NOT catch this because it used training-format briefs on held-out content. Cross-distribution content generalization (characters/settings unseen in training) was validated; cross-distribution **prompt shape** generalization was not tested.
+
+**The rule:** voice/writer LoRA evaluation must include at least one eval call with the production user-prompt assembler, not just training-format briefs. For retraining, rebuild the training corpus's user prompts through the same assembler the pipeline uses at inference. Training/serving prompt-shape symmetry is as load-bearing as training/serving output-shape symmetry.
+
+### Proper-noun blocklists must cover world elements, not just named characters (2026-04-16 · exp #195)
+Salvatore v2's system prompt blocked Drizzt/Bruenor/Wulfgar/Icewind Dale/Ten-Towns/etc. — named characters and places. Production probe chapter 1 still leaked "the coming of the drow elves" — the LoRA pulled in a world-element noun not in the blocklist. Voice LoRAs trained on a fantasy corpus carry the world taxonomy (species, magic systems, artifacts, continents) not just the proper nouns. For v3, blocklist is expanded to cover drow / dark elves / Underdark / Forgotten Realms / Crenshinibon / Mithril / etc. — the full lore vocabulary, not just people and places.
+
 ### W&B Serverless SFT is no longer free — but still trivially cheap ($3.76/month observed, $500/month cap) (2026-04-16)
 W&B transitioned out of the ART public-preview free window. Billing dashboard shows $3.76 spent April 1 – April 16 across 4 production adapters + Salvatore voice v1/v2 training + exploratory runs, against a $500/month cap. At ~$0.10–0.60 per r=16 / 700-pair / 3-epoch run on Qwen3-14B, the economics are unchanged from a solo-dev cadence perspective — still below the cost of the evaluation calls. Docs and status tables that called training "free during public preview" have been updated. The `tuning_experiment` row can optionally track $ per run now that it's measurable.
 

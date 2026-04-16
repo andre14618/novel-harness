@@ -120,6 +120,16 @@ Slots listed easiest → hardest. The harder the slot, the more evidence needed 
 
 Either outcome is informative. The probe costs ~$0.30 in compute.
 
+### v2 probe results (2026-04-16, exp #195) — gate FAILED, v3 in flight
+
+Ran on `fantasy-echo-mage` seed, 3 chapters requested. Chapter 1 approved on attempt 2. Chapter 2 failed 12 consecutive attempts. Never reached chapter 3.
+
+Root cause: **training/serving prompt-shape mismatch** — the LoRA was trained on 200-token minimal briefs, production sends 500–1,000 tokens with TRANSITION BRIDGE / LANDING TARGET / CHARACTERS sections the LoRA never saw. Voice transferred (chapter 1 reads Salvatore-inflected); the LoRA's failure mode was bridge regurgitation, required-fact misses, and character-presence gaps — all downstream of format shock.
+
+**This does NOT invalidate the 14B-as-writer direction.** The diagnosis is specific and addressable at ~$0.30 in retraining cost. v3 reformats the corpus's user prompts through the harness-style assembler (briefs + bridges + landing targets + character snapshots + settings) so training distribution matches serving distribution. If v3 passes, the consolidation thesis is alive. If v3 fails too, the creative-tier question stays closed for now and we focus on Tier 1.
+
+See `docs/voice-lora-salvatore.md §8` for the full probe post-mortem and v3 spec. See `docs/decisions.md` → "Salvatore v2 fails 3-chapter production probe — v3 retraining authorized" for the decision record.
+
 ---
 
 ## Economics sanity check
@@ -163,7 +173,7 @@ Items 1–4 are the same set enabling the 3-chapter gate, so they're shared prer
 | planning-extractor | Current: DeepSeek V3.2. Gated on beat-writer probe. | — |
 | concept (world/char/plot) | Current: DeepSeek V3.2. Gated on beat-writer probe. | — |
 | planning-plotter | Current: DeepSeek V3.2. Gated on beat-writer probe. | — |
-| beat-writer | Current: DeepSeek V3.2 + primer. **3-chapter gate pending.** | voice validated 2026-04-16 |
+| beat-writer | Current: DeepSeek V3.2 + primer. **v2 probe FAILED 2026-04-16 (exp #195) on train/serve prompt-shape mismatch.** v3 retraining on harness-shaped user prompts in progress. | v2 probe failed 2026-04-16 |
 | reference-resolver | Current: Groq Llama-3.1-8B. No migration planned (already cheap). | — |
 | planning-conversationalist | Current: Groq Qwen3-32B. Deferred indefinitely. | — |
 

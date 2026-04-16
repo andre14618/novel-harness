@@ -1352,3 +1352,41 @@ All three targets met (echo at target, dialogue slightly below 20% for this myst
 **Decision:** Note the pricing change. W&B training is now billed but cheap — $3.76 spent April 1 → April 16 across all active adapter training (4 deployed adapters + Salvatore v1/v2 voice runs + experiments), against a $500/month cap. Still functionally free at solo-dev cadence. No action required; the docs just need to stop calling it "free during public preview."
 
 **Implication:** Every experiment now has a small direct cost. `tuning_experiment` config should optionally track $ per run going forward. Current ~$0.10–0.60 per run is well below the noise floor of an abandoned experiment.
+
+### Salvatore v2 fails 3-chapter production probe — v3 retraining on harness-shaped user prompts authorized
+*2026-04-16 · exp #195*
+
+**Decision:** v2 does not become the default writer for fantasy genre seeds yet. Retrain v3 on user prompts that match production shape before trying again.
+
+**Why:** The 3-chapter probe (`fantasy-echo-mage` seed, v2 LoRA in the writer slot) failed the gate primarily on **training/serving prompt mismatch**. v1 and v2 were trained against a minimal brief-shape user prompt (~200 tokens, 9 fields). Production sends ~500–1,000 tokens with `TRANSITION BRIDGE`, `LANDING TARGET`, `CHARACTERS`, and resolved references added. The LoRA doesn't know what to do with sections it never saw in training.
+
+**Probe gate outcomes:**
+
+| Criterion | Target | Observed |
+|---|---|---|
+| Adherence first-attempt | ≥70% | ~33% |
+| Chapter-plan pass | ≥85% | ~25% |
+| Continuity blockers | ≤1 | 0 ✅ |
+| Paragraph breaks | present | present ✅ |
+
+Chapter 1 approved on attempt 2. Chapter 2 failed 12 consecutive attempts over 4 restart rounds — all on the same required fact ("Reseth's soul-etching curse imprints traumatic visions that persist"). Run terminated without producing chapter 3.
+
+**Failure modes diagnosed from chapter 1 prose:**
+1. **Transition-bridge regurgitation** — LoRA repeats the bridge verbatim instead of continuing past it. Byte-identical sentences in paragraphs 3 and 6; chunk repetition across consecutive paragraphs.
+2. **Required-fact enactment failure** — LoRA writes around specific planned facts with vague imagery.
+3. **Character presence gap** — named antagonist listed in every beat but never put on page.
+4. **World-element lore leak** — "drow elves" appeared; blocklist only covered named characters, not world nouns.
+
+**Positive findings:** voice cadence DID transfer (chapter 1 prose reads Salvatore-inflected), paragraph breaks hold, continuity-v2:v1 checker found zero issues across all attempts (inadvertent positive datapoint for the 14B checker tier), genre-slot routing worked perfectly.
+
+**Alternatives rejected:**
+- **Narrowing the user prompt at serving time** (translator from harness shape → brief shape). Rejected as a brittle patch — training cost is $0.30; retraining is the clean fix.
+- **Accepting v2 with a disclaimer.** Rejected — 12 consecutive attempts on the same required fact is not salvageable via prompt engineering.
+- **Giving up on voice LoRA as primary writer.** Rejected — voice clearly transferred on chapter 1; the mechanical failure mode is addressable.
+
+**v3 changes:**
+1. Reformat every training pair's user prompt through a harness-style assembler: original brief + TRANSITION BRIDGE (last 2–3 sentences of previous beat in same chapter) + LANDING TARGET (first sentence of next beat's summary) + CHARACTERS (per-character snapshot) + SETTING (on scene_start beats only).
+2. Expand blocklist to world elements (drow, Underdark, Mithril Hall, Crenshinibon, Ten-Towns, etc.), not just named characters.
+3. Add explicit system-prompt rule: "NEVER repeat or echo the TRANSITION BRIDGE — continue past it."
+
+**Ongoing:** Phase 1.4 (beat-scope rewriter collapse) stays deferred until v3 probe lands. Tier 2+ migration plans in `docs/pipeline-14b-consolidation.md` stay gated on v3 passing the 3-chapter probe.

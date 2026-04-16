@@ -192,7 +192,52 @@ To build a new author voice LoRA (Howard, Cook, Wolfe, etc.):
 
 ---
 
-## 8. Pointers
+## 8. v2 production probe — 2026-04-16
+
+First end-to-end production test. Routed `beat-writer` to v2 via genre-slot routing (Phase 1 harness work), ran a 3-chapter `fantasy-echo-mage` novel with all checkers on 14B. Probe experiment id=195.
+
+### Gate results (fail)
+
+| Criterion | Target | Observed |
+|---|---|---|
+| Adherence first-attempt | ≥70% | **~33%** (ch1 pass attempt 2/3; ch2 failed 12 consecutive attempts over 4 restart rounds) |
+| Chapter-plan pass | ≥85% | **~25%** |
+| Continuity blockers | ≤1 | 0 ✅ |
+| Paragraph breaks | present | present ✅ |
+| Voice Δ-sum | ≤0.5 | n/a — run never reached chapter 3 |
+
+### Root cause (diagnosed from chapter 1 prose + chapter 2 failure modes)
+
+**Training / serving shape mismatch.** v1 and v2 were trained on a minimal brief-shape user prompt (~9 fields, ~200 tokens). Production user prompt from `src/agents/writer/beat-context.ts` is richer — ~500–1000 tokens adding `TRANSITION BRIDGE` (last 2–3 sentences of prior beat), `LANDING TARGET` (first sentence of next beat), `CHARACTERS` (per-character speech pattern / drives / avoids / conflict / relationships / doesn't-know), and resolved references. The LoRA never saw these sections in training and doesn't know what to do with them.
+
+Four concrete failure modes observed:
+
+1. **Transition-bridge regurgitation.** Chapter 1 paragraph 3 and paragraph 6 were byte-identical sentences. `"Her perceptions of time... fractured under the assault. The impact fractured her radius, so she could not cast a kinetic break."` was repeated verbatim in consecutive paragraphs. The LoRA reads the bridge as content to emit, not as "what came before."
+
+2. **Required-fact enactment failure.** Chapter 2 failed 12 consecutive attempts on the same planner requirement — `"Reseth's soul-etching curse imprints traumatic visions on the victim's mind that persist after absorption"`. The LoRA wrote around the fact with vague pain/vision imagery but never dramatized the **persistent imprint**.
+
+3. **Character presence gap.** "Archmage Reseth listed but never mentioned" fired on every chapter 2 attempt. The LoRA treats Reseth as off-page atmosphere instead of a named antagonist the beats require on the page.
+
+4. **World-element lore leak.** Chapter 1 contained "until the coming of the drow elves" — the proper-noun blocklist caught named characters (Drizzt/Bruenor/etc.) but not world-element nouns (drow, Underdark, Mithril, etc.).
+
+### Positive findings
+
+- Voice cadence DID transfer. Chapter 1 prose: *"melted chunks of stone and metal scorched onto the rocky floor; broken weapons and shattered armor; and the bones of unwary victims."* Salvatore-inflected rhythm and physical grounding are present.
+- Paragraph breaks are present (v2 fix holds at inference time in production).
+- Continuity checker (`continuity-v2:v1` on 14B) found zero issues across all attempts — inadvertent positive datapoint for the 14B checker tier.
+- Genre-slot routing worked as designed. Log confirms `Writer pack: salvatore-fantasy (wandb-artifact:///andre14618-/novel-harness/salvatore-1988-v2:v1)` on every beat.
+
+### Decision: v3 retraining on harness-shaped user prompts
+
+The cheapest fix (~$0.30 training + ~2–3 hr data prep) is retraining with training-data user prompts that match production shape. v3 changes:
+
+1. **Reformat every pair's user prompt** through a harness-style assembler: original brief + TRANSITION BRIDGE (last 2–3 sentences of previous beat in same chapter) + LANDING TARGET (first sentence of next beat's summary) + CHARACTERS (per-character snapshot) + SETTING (on scene_start beats only).
+2. **Expand blocklist** to cover world elements, not just proper nouns: drow, Underdark, Mithril Hall, Crenshinibon, Ten-Towns, Forgotten Realms, etc.
+3. **Anti-repeat system-prompt rule:** "NEVER repeat or echo the TRANSITION BRIDGE — continue past it."
+
+Training cost at current W&B pricing is the same as v2 (~$0.30). Expected improvements: bridge mishandling disappears (model sees the format in training), required-fact enactment improves (system prompt rule re-emphasized), character-presence gap narrows (characters listed with snapshots in the user prompt become salient).
+
+## 9. Pointers
 
 - Code:
   - `scripts/finetune/paragraph_breaks.py` — normalize + coverage assert
@@ -200,7 +245,7 @@ To build a new author voice LoRA (Howard, Cook, Wolfe, etc.):
   - `scripts/finetune/format-salvatore-sft.py` — SFT formatter with guardrail
   - `scripts/finetune/phase-c3-generalization.py` — val + original test harness
   - `scripts/finetune/style_features.py` — style-feature extractor (sent/dial/clause/sens)
-- Experiments: id=192 (v1), id=194 (v2) in `tuning_experiments`
+- Experiments: id=192 (v1), id=194 (v2), id=195 (v2 production probe) in `tuning_experiments`
 - Decisions: `docs/decisions.md` — "Salvatore 1988 voice LoRA v2 supersedes v1"
 - Lessons: `docs/lessons-learned.md` — paragraph-break bug + voice-LoRA cross-distribution transfer + W&B pricing
 - Ingestion: `docs/corpus-ingestion.md` — paragraph-break hazard section
