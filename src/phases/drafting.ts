@@ -133,23 +133,29 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
           const worldBible = await getWorldBible(novelId)
 
           // Pre-resolve all beat references in parallel before the serial writing loop.
+          // Skipped entirely in compact mode (voice-LoRA route) — beat-context.ts
+          // omits the resolved-refs section, so the pre-fetch is wasted work.
           const refStart = Date.now()
-          const preResolvedRefs = await Promise.all(
-            outline.scenes.map(beat =>
-              resolveReferences(beat, outline, novelId, ch, characters)
-                .catch(err => {
-                  log(novelId, "warn", `Reference pre-fetch failed for a beat: ${err instanceof Error ? err.message : err}`)
-                  return { context: "", lookupCount: 0, llmUsed: false }
-                }),
-            ),
-          )
-          const totalLookups = preResolvedRefs.reduce((s, r) => s + r.lookupCount, 0)
-          const llmUsedCount = preResolvedRefs.filter(r => r.llmUsed).length
-          await trace(novelId, {
-            eventType: "reference-resolution", chapter: ch,
-            durationMs: Date.now() - refStart,
-            payload: { beats: outline.scenes.length, totalLookups, llmUsedCount },
-          })
+          const preResolvedRefs = writerPack
+            ? outline.scenes.map(() => ({ context: "", lookupCount: 0, llmUsed: false }))
+            : await Promise.all(
+              outline.scenes.map(beat =>
+                resolveReferences(beat, outline, novelId, ch, characters)
+                  .catch(err => {
+                    log(novelId, "warn", `Reference pre-fetch failed for a beat: ${err instanceof Error ? err.message : err}`)
+                    return { context: "", lookupCount: 0, llmUsed: false }
+                  }),
+              ),
+            )
+          if (!writerPack) {
+            const totalLookups = preResolvedRefs.reduce((s, r) => s + r.lookupCount, 0)
+            const llmUsedCount = preResolvedRefs.filter(r => r.llmUsed).length
+            await trace(novelId, {
+              eventType: "reference-resolution", chapter: ch,
+              durationMs: Date.now() - refStart,
+              payload: { beats: outline.scenes.length, totalLookups, llmUsedCount },
+            })
+          }
 
           const beatProses: string[] = []
           for (let bi = 0; bi < outline.scenes.length; bi++) {
@@ -158,6 +164,10 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
               previousBeatProse: beatProses[bi - 1],
               outline, characters, characterStates: charStates, worldBible,
               preResolvedRefs: preResolvedRefs[bi],
+              // Voice-LoRA routes use compact prompts (no runtime state
+              // fields, one-line character snapshots, no resolved-refs
+              // block). See docs/beat-writer-architecture.md.
+              compactMode: !!writerPack,
             })
 
             let beatProse: string | null = null

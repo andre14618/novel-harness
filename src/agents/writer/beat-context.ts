@@ -30,6 +30,12 @@ export interface BeatContextInput {
    *  resolveReferences call — used by the drafting loop to pre-fetch all beats
    *  in parallel before the serial writing loop starts. */
   preResolvedRefs?: ResolvedReferences
+  /** Strip non-load-bearing fields for voice-LoRA writers. See
+   *  docs/beat-writer-architecture.md. When true: character snapshots
+   *  collapse to one line per character (Voice + Drives only), runtime
+   *  state fields (State/With/Tension/Doesn't-know) are omitted, and
+   *  duplicate SETTING block is skipped. */
+  compactMode?: boolean
 }
 
 export interface BeatContextResult {
@@ -69,20 +75,46 @@ export async function buildBeatContext(input: BeatContextInput): Promise<BeatCon
   const beatChars = characters.filter(c => beatCharNames.includes(c.name.toLowerCase()))
 
   if (beatChars.length > 0) {
-    const snapshots = await Promise.all(beatChars.map(c =>
-      formatCharacterSnapshot(novelId, c, povChar, chapterNumber, characterStates)
-    ))
-    sections.push(`CHARACTERS:\n${snapshots.join("\n\n")}`)
+    if (input.compactMode) {
+      // Compact: one line per character, Voice + Drives only.
+      // See docs/beat-writer-architecture.md §2 for the strip rationale.
+      const lines = beatChars.map(c => {
+        const voice = c.speechPattern ?? "(voice unspecified)"
+        const drives = c.goals ?? ""
+        return drives ? `${c.name}: ${voice} — ${drives}` : `${c.name}: ${voice}`
+      })
+      sections.push(`CHARACTERS:\n${lines.join("\n")}`)
+    } else {
+      const snapshots = await Promise.all(beatChars.map(c =>
+        formatCharacterSnapshot(novelId, c, povChar, chapterNumber, characterStates)
+      ))
+      sections.push(`CHARACTERS:\n${snapshots.join("\n\n")}`)
+    }
   }
 
   // ── 5. Resolved references ─────────────────────────────────────────────
-  const refs = input.preResolvedRefs ?? await resolveReferences(beat, outline, novelId, chapterNumber, characters)
-  if (refs.context) sections.push(refs.context)
+  // Compact mode skips the reference-resolver call entirely — in
+  // voice-LoRA routing the writer prompt is kept tight; implicit-
+  // reference expansion is noise when the beat.description is direct.
+  if (!input.compactMode) {
+    const refs = input.preResolvedRefs ?? await resolveReferences(beat, outline, novelId, chapterNumber, characters)
+    if (refs.context) sections.push(refs.context)
+  }
 
   // ── 6. Setting ────────────────────────────────────────────────────────
+  // Compact mode strips the duplicate SETTING block — inline "Setting: {name}"
+  // in §1 already carries the location. Only keep the sensory line when
+  // non-empty.
   if (beatIndex === 0 || beatHasLocationChange(beat, outline)) {
     const setting = formatSetting(worldBible, outline.setting)
-    if (setting) sections.push(setting)
+    if (setting) {
+      if (input.compactMode) {
+        const sensoryLine = setting.split("\n").find(l => l.startsWith("Sensory:"))
+        if (sensoryLine) sections.push(sensoryLine)
+      } else {
+        sections.push(setting)
+      }
+    }
   }
 
   return {
