@@ -175,6 +175,51 @@ export function getModelForAgent(agentName: string): ModelAssignment | undefined
   return override ? { ...base, ...override } as ModelAssignment : base
 }
 
+// ── Genre-scoped writer packs ──────────────────────────────────────────
+// Per-novel writer override keyed on the seed's `genre` string. When a
+// genre matches, the writer routes to the pack's model + system prompt
+// instead of the default `beat-writer` assignment.
+//
+// Each pack bundles:
+//   - model          : ModelAssignment (the adapter URI for voice LoRAs)
+//   - systemPromptFile: relative to src/agents/writer/ — the training-
+//                       verbatim system prompt plus any runtime riders
+//                       (e.g. proper-noun blocklist)
+//   - usePrimer      : whether to prepend the Howard style primer.
+//                       Voice LoRAs that were trained on their own
+//                       system prompt should set this false.
+//
+// Packs are matched in order; the first regex that matches the seed's
+// genre wins. Add new packs here as voice LoRAs ship.
+
+export interface WriterGenrePack {
+  label: string
+  match: RegExp
+  model: ModelAssignment
+  systemPromptFile: string
+  usePrimer: boolean
+}
+
+export const WRITER_GENRE_PACKS: WriterGenrePack[] = [
+  {
+    label: "salvatore-fantasy",
+    match: /\b(action.?pulp|sword.?and.?sorcery|sword.?&.?sorcery|epic fantasy|heroic fantasy|dark fantasy|fantasy)\b/i,
+    model: {
+      provider: "wandb",
+      model: "wandb-artifact:///andre14618-/novel-harness/salvatore-1988-v2:v1",
+      temperature: 0.8,
+      maxTokens: 4000,
+    },
+    systemPromptFile: "beat-writer-system-salvatore.md",
+    usePrimer: false,
+  },
+]
+
+export function resolveWriterPack(genre: string | undefined): WriterGenrePack | null {
+  if (!genre) return null
+  return WRITER_GENRE_PACKS.find(p => p.match.test(genre)) ?? null
+}
+
 // ── DB generation config (autoresearcher-tunable temperature/maxTokens) ──
 
 let dbGenConfigCache: Map<string, { temperature?: number; maxTokens?: number }> | null = null

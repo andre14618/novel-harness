@@ -33,3 +33,19 @@ const primer = await loadPrimer()
 
 export const prompt = primer + rawPrompt
 export const beatPrompt = primer + rawBeatPrompt
+
+// Genre-pack variant — loaded on demand when a pack routes the writer to a
+// voice LoRA with its own system prompt (see WRITER_GENRE_PACKS in roles.ts).
+// Cache loaded files so repeated beat calls don't re-read disk.
+const packPromptCache = new Map<string, string>()
+
+export async function loadGenrePackPrompt(filename: string, usePrimer: boolean): Promise<string> {
+  const key = `${filename}|${usePrimer}`
+  const cached = packPromptCache.get(key)
+  if (cached) return cached
+  const path = new URL(filename, import.meta.url).pathname
+  const raw = await Bun.file(path).text()
+  const composed = usePrimer ? primer + raw : raw
+  packPromptCache.set(key, composed)
+  return composed
+}

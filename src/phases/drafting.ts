@@ -26,7 +26,8 @@ import { pipeline } from "../config/pipeline"
 import * as gates from "../gates"
 import { lintProse } from "../lint"
 import { fixLintIssues } from "../lint/fix"
-import { getModelForAgent } from "../models/roles"
+import { getModelForAgent, resolveWriterPack } from "../models/roles"
+import { loadGenrePackPrompt } from "../agents/writer"
 
 export async function runDraftingPhase(novelId: string): Promise<void> {
   displayPhaseHeader("Drafting — Writing chapters")
@@ -115,6 +116,18 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
           console.log(`  Writing ${outline.scenes.length} beats...`)
           emit(novelId, { type: "progress", data: { step: "beat-writer", chapter: ch, attempt: attempts, status: "running" } })
 
+          // Genre-scoped writer pack — routes this novel's beat-writer to a
+          // voice LoRA when its genre matches. Falls back to the default
+          // BEAT_WRITER_PROMPT + configured `beat-writer` model otherwise.
+          const writerPack = resolveWriterPack(novel.seed?.genre)
+          const packPrompt = writerPack
+            ? await loadGenrePackPrompt(writerPack.systemPromptFile, writerPack.usePrimer)
+            : null
+          if (writerPack) {
+            console.log(`  Writer pack: ${writerPack.label} (${writerPack.model.model})`)
+            log(novelId, "info", `Beat-writer routed to genre pack "${writerPack.label}" for genre "${novel.seed?.genre}"`)
+          }
+
           const characters = await getCharacters(novelId)
           const charStates = await getCharacterStatesAtChapter(novelId, ch)
           const worldBible = await getWorldBible(novelId)
@@ -148,7 +161,8 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
             })
 
             let beatProse: string | null = null
-            const beatWriterModel = getModelForAgent("beat-writer")
+            const beatWriterModel = writerPack?.model ?? getModelForAgent("beat-writer")
+            const beatSystemPrompt = packPrompt ?? BEAT_WRITER_PROMPT
             const beatSpec = outline.scenes[bi]
             let previousProse: string | null = null
             let previousIssues: string[] = []
@@ -165,7 +179,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
               try {
                 const response = await executeAndLog(
                   {
-                    systemPrompt: BEAT_WRITER_PROMPT,
+                    systemPrompt: beatSystemPrompt,
                     userPrompt: beatCtx.userPrompt + retryContext,
                     model: beatWriterModel?.model ?? "qwen-3-235b-a22b-instruct-2507",
                     provider: beatWriterModel?.provider ?? "cerebras",
