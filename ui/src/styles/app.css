@@ -751,17 +751,15 @@ input[type="checkbox"] {
 }
 .reader-toc-item {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 7px 10px;
+  align-items: stretch;
   background: none;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
-  cursor: pointer;
   font-family: var(--font-mono);
   font-size: 0.75rem;
   color: var(--text-muted);
   transition: all var(--transition-fast);
+  overflow: hidden;
 }
 .reader-toc-item:hover { background: var(--bg-raised); color: var(--text-primary); }
 .reader-toc-item.active {
@@ -770,6 +768,36 @@ input[type="checkbox"] {
   background: var(--accent-surface);
 }
 .reader-toc-item.approved .reader-toc-num { color: var(--accent-dim); }
+.reader-toc-label {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 10px;
+  background: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+.reader-toc-tonal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  padding: 0 8px;
+  background: none;
+  border: 0;
+  border-left: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.8rem;
+  transition: all var(--transition-fast);
+}
+.reader-toc-tonal:hover:not(:disabled) { background: var(--accent-surface); color: var(--accent); }
+.reader-toc-tonal:disabled { opacity: 0.4; cursor: not-allowed; }
 .reader-toc-num { font-weight: 600; }
 .reader-toc-words { font-size: 0.65rem; color: var(--text-muted); }
 

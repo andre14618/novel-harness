@@ -1,0 +1,702 @@
+{
+  "generated_at": "2026-04-16T13:18:08.904Z",
+  "experiment_id": 193,
+  "baseline": {
+    "avg_sentence_words": 18.3,
+    "dialogue_ratio": 0.28,
+    "clause_complexity": 0.62,
+    "sensory_density": 1.56
+  },
+  "target_words": 120,
+  "cell_meta": {
+    "A-deepseek-bare": {
+      "label": "A · DeepSeek bare",
+      "base": "DeepSeek V3.2",
+      "voice_mechanism": "bare system prompt",
+      "description": "Baseline — no exemplars, no tuning"
+    },
+    "B-deepseek-primer": {
+      "label": "B · DeepSeek + primer",
+      "base": "DeepSeek V3.2",
+      "voice_mechanism": "+10k-token Salvatore primer (31 passages)",
+      "description": "In-context learning — exemplars, no tuning"
+    },
+    "C-salvatore-lora": {
+      "label": "C · salvatore-1988-v1 LoRA",
+      "base": "OpenPipe/Qwen3-14B-Instruct",
+      "voice_mechanism": "fine-tuned LoRA (r=16, 703 pairs, 3 epochs)",
+      "description": "Tuning — no exemplars at inference time"
+    }
+  },
+  "aggregate": [
+    {
+      "cell": "A-deepseek-bare",
+      "n": 4,
+      "avg_words": 103.25,
+      "style": {
+        "avg_sentence_words": 10.600000000000001,
+        "dialogue_ratio": 0.355,
+        "clause_complexity": 0.475,
+        "sensory_density": 6.39
+      },
+      "delta_sum": 3.405
+    },
+    {
+      "cell": "B-deepseek-primer",
+      "n": 4,
+      "avg_words": 113.5,
+      "style": {
+        "avg_sentence_words": 10.55,
+        "dialogue_ratio": 0.405,
+        "clause_complexity": 0.53,
+        "sensory_density": 4.9225
+      },
+      "delta_sum": 2.67125
+    },
+    {
+      "cell": "C-salvatore-lora",
+      "n": 4,
+      "avg_words": 112.75,
+      "style": {
+        "avg_sentence_words": 15.899999999999999,
+        "dialogue_ratio": 0.4025,
+        "clause_complexity": 0.3725,
+        "sensory_density": 1.7625000000000002
+      },
+      "delta_sum": 0.7112500000000003
+    }
+  ],
+  "briefs": [
+    {
+      "beat_id": "streams_of_silver_ch20_s1_b3",
+      "brief": {
+        "beat_id": "streams_of_silver_ch20_s1_b3",
+        "scene_id": "streams_of_silver_ch20_s1",
+        "book": "streams_of_silver",
+        "chapter": 20,
+        "beat_idx": 3,
+        "kind": "dialogue",
+        "boundary_signal": "dialogue_to_narration",
+        "characters": [
+          "Sydney",
+          "Bok",
+          "Entreri",
+          "Dendybar",
+          "Bruenor"
+        ],
+        "pov": "Sydney",
+        "setting": "ruined oval chamber, underground",
+        "tone": "scheming determined",
+        "transition_in": "same action",
+        "summary": "Sydney formulates and voices her new plan — capture the dwarf and the companions to offer Dendybar in place of the lost drow.",
+        "words": 143,
+        "style": {
+          "sentence_count": 8,
+          "avg_sentence_words": 18.6,
+          "sentence_length_std": 10.4,
+          "max_sentence_words": 41,
+          "dialogue_ratio": 0.62,
+          "exclamation_count": 1,
+          "question_count": 0,
+          "clause_complexity": 0.75,
+          "sensory_density": 0.67
+        }
+      },
+      "ground_truth": {
+        "prose": "\"We will go after the others,\" she said offhandedly, as much trying to enlighten her own thoughts with the statement as to redirect the golem. \"Yes, perhaps if we deliver the dwarf and the other companions to Dendybar he will forgive our stupidity in allowing the drow to die.\"\n\nShe looked to the golem, but of course its expression had not changed to offer any encouragement.\n\n\"It should have been you in the alcove,\" Sydney muttered, her sarcasm wasted on the thing. \"Entreri could at least offer some suggestions. But no matter, I have decided. We shall follow the others and find the time when we might take them. They will tell us what we need to know about the Crystal Shard!\"\n\nBok remained motionless, awaiting her signal. Even with its most basic of thought patterns, the golem understood that Sydney best knew how they could complete their mission.",
+        "words": 149
+      },
+      "cells": [
+        {
+          "cell": "A-deepseek-bare",
+          "prose": "Sydney’s eyes narrowed, fixed on the dwarf’s retreating back. “We have lost the drow,” she said, her voice low and cold. “But we need not return to Dendybar empty-handed.”\n\nEntreri’s gaze was a blade. “Speak your plan.”\n\n“We take the dwarf. Alive. And his companions. We offer them to Dendybar in the drow’s place. A prize of flesh and steel, instead of shadow.”\n\nBok shifted, stone grinding on stone.\n\n“The wizard’s pride demands a trophy,” Sydney pressed. “This will serve. We hunt them now. All of them.”",
+          "recon_words": 87,
+          "target_words": 120,
+          "style": {
+            "sentence_count": 12,
+            "avg_sentence_words": 7.8,
+            "sentence_length_std": 4.7,
+            "max_sentence_words": 15,
+            "dialogue_ratio": 0.58,
+            "exclamation_count": 0,
+            "question_count": 0,
+            "clause_complexity": 0.25,
+            "sensory_density": 5.38
+          },
+          "delta_sum": 3.63,
+          "adherence": {
+            "characters": [
+              {
+                "name": "Sydney",
+                "mentioned": true
+              },
+              {
+                "name": "Bok",
+                "mentioned": true
+              },
+              {
+                "name": "Entreri",
+                "mentioned": true
+              },
+              {
+                "name": "Dendybar",
+                "mentioned": true
+              },
+              {
+                "name": "Bruenor",
+                "mentioned": false
+              }
+            ],
+            "wordDelta": -33,
+            "wordPctOff": -28
+          }
+        },
+        {
+          "cell": "B-deepseek-primer",
+          "prose": "Sydney’s eyes narrowed as she studied the ruined chamber. “The drow is gone,” she said, her voice low and certain. “But the dwarf and his friends remain. They are a prize in themselves.”\n\nEntreri leaned against a fallen pillar, his expression unreadable. “A consolation for your master?”\n\n“More than that.” She turned to face the silent golem. “Bok will take them. Alive. We offer Dendybar a new set of pieces for his board—a stubborn dwarf, a headstrong girl, a halfling thief. Their capture mends the tear in his plans.”\n\nShe met Entreri’s cold gaze. “He wanted the drow’s secrets. He’ll settle for the dwarf’s defiance. It is a trade he cannot refuse.”",
+          "recon_words": 112,
+          "target_words": 120,
+          "style": {
+            "sentence_count": 12,
+            "avg_sentence_words": 9.8,
+            "sentence_length_std": 5.2,
+            "max_sentence_words": 20,
+            "dialogue_ratio": 0.67,
+            "exclamation_count": 0,
+            "question_count": 1,
+            "clause_complexity": 0.25,
+            "sensory_density": 3.39
+          },
+          "delta_sum": 2.525,
+          "adherence": {
+            "characters": [
+              {
+                "name": "Sydney",
+                "mentioned": true
+              },
+              {
+                "name": "Bok",
+                "mentioned": true
+              },
+              {
+                "name": "Entreri",
+                "mentioned": true
+              },
+              {
+                "name": "Dendybar",
+                "mentioned": true
+              },
+              {
+                "name": "Bruenor",
+                "mentioned": false
+              }
+            ],
+            "wordDelta": -8,
+            "wordPctOff": -7
+          }
+        },
+        {
+          "cell": "C-salvatore-lora",
+          "prose": "Sydney's plan was taking form. She motioned for Bok to follow her back into the room. \"We must catch the dwarf and his friends,\" she whispered. \"Bring them to me, Bok, that I might deliver them to Dendybar. We have lost one associate, but I am confident that we may gain another.\" \"And Entreri?\" Bok asked, for the assassin had disappeared after the battle, too. \"Leave him to his sport,\" Sydney replied. \"He shall join us when he has finished with the goblins.\" \"But what shall I do in the meantime?\" \"Seek out the others of the guild,\" Sydney instructed. \"Tell them that we shall meet in the time of the next new moon in the city of Mithril Hall. Tell them to bring their armies.\"",
+          "recon_words": 126,
+          "target_words": 120,
+          "style": {
+            "sentence_count": 9,
+            "avg_sentence_words": 14,
+            "sentence_length_std": 8.3,
+            "max_sentence_words": 28,
+            "dialogue_ratio": 0.78,
+            "exclamation_count": 0,
+            "question_count": 2,
+            "clause_complexity": 0.22,
+            "sensory_density": 0.79
+          },
+          "delta_sum": 1.715,
+          "adherence": {
+            "characters": [
+              {
+                "name": "Sydney",
+                "mentioned": true
+              },
+              {
+                "name": "Bok",
+                "mentioned": true
+              },
+              {
+                "name": "Entreri",
+                "mentioned": true
+              },
+              {
+                "name": "Dendybar",
+                "mentioned": true
+              },
+              {
+                "name": "Bruenor",
+                "mentioned": false
+              }
+            ],
+            "wordDelta": 6,
+            "wordPctOff": 5
+          }
+        }
+      ]
+    },
+    {
+      "beat_id": "halflings_gem_ch7_s2_b6",
+      "brief": {
+        "beat_id": "halflings_gem_ch7_s2_b6",
+        "scene_id": "halflings_gem_ch7_s2",
+        "book": "halflings_gem",
+        "chapter": 7,
+        "beat_idx": 6,
+        "kind": "action",
+        "boundary_signal": "narration_to_dialogue",
+        "characters": [
+          "Bruenor",
+          "Catti-brie",
+          "Harpell wizards"
+        ],
+        "pov": "omniscient",
+        "setting": "hallway and private room, Ivy Mansion, Longsaddle",
+        "tone": "tender embarrassment",
+        "transition_in": "continues dialogue",
+        "summary": "Embarrassed by his tears before the watching Harpells, Bruenor shoves a half-dressed wizard out of a room and pulls Catti-brie inside for privacy.",
+        "words": 119,
+        "style": {
+          "sentence_count": 8,
+          "avg_sentence_words": 18.2,
+          "sentence_length_std": 5.2,
+          "max_sentence_words": 26,
+          "dialogue_ratio": 0.38,
+          "exclamation_count": 1,
+          "question_count": 0,
+          "clause_complexity": 0.88,
+          "sensory_density": 2.05
+        }
+      },
+      "ground_truth": {
+        "prose": "\"Me prayers,\" she stammered, her voice quaking with sobs. \"By the gods, I'd thought ye dead!\"\nBruenor didn't answer, trying to hold himself steady. His tears were soaking the front of Catti-brie's robe, and he felt the eyes of a crowd of Harpells behind him. Embarrassed, he pushed open a door to his side, surprising a half-clad Harpell who stood naked to the waist.\n\"Excuse-\" the wizard began, but Bruenor grabbed his shoulder and pulled him out into the hall, at the same time leading Catti-brie into the room. The door slammed in the wizard's face as he turned back to his chamber. He looked helplessly to his gathered kin, but their wide smiles and erupting laughter told him that they would be of no assistance. With a shrug, the wizard moved on about his morning business as though nothing unusual had happened.",
+        "words": 143
+      },
+      "cells": [
+        {
+          "cell": "A-deepseek-bare",
+          "prose": "Bruenor’s cheeks burned hotter than a forge. He saw the Harpells’ curious stares, felt the damp tracks on his own face. Without a word, he grabbed the nearest wizard—a man in a half-buttoned robe clutching a scroll—and shoved him bodily into the hall. The door slammed shut, the bolt thudding home. In the sudden quiet of the private chamber, he turned to Catti-brie, his voice a low, gravelly rumble.\n\n“A king’s tears,” he grumbled, not meeting her eye, “are for his kin. Not for pointy-hatted busybodies.”",
+          "recon_words": 86,
+          "target_words": 120,
+          "style": {
+            "sentence_count": 7,
+            "avg_sentence_words": 13.3,
+            "sentence_length_std": 6.5,
+            "max_sentence_words": 25,
+            "dialogue_ratio": 0.29,
+            "exclamation_count": 0,
+            "question_count": 0,
+            "clause_complexity": 0.71,
+            "sensory_density": 6.45
+          },
+          "delta_sum": 3.0450000000000004,
+          "adherence": {
+            "characters": [
+              {
+                "name": "Bruenor",
+                "mentioned": true
+              },
+              {
+                "name": "Catti-brie",
+                "mentioned": true
+              },
+              {
+                "name": "Harpell wizards",
+                "mentioned": true
+              }
+            ],
+            "wordDelta": -34,
+            "wordPctOff": -28
+          }
+        },
+        {
+          "cell": "B-deepseek-primer",
+          "prose": "Bruenor’s cheeks burned. He could feel the Harpells’ eyes on his wet face. Without a word, he grabbed the nearest wizard—a man still pulling on his robe—and shoved him bodily into the hall. The door slammed shut, the latch clicking into place.\n\n“Da?” Catti-brie asked, her voice soft.\n\nHe turned to her, the stone of the room a welcome barrier. “A moment, girl,” he grumbled, scrubbing a thick hand across his eyes. “Just a moment.”",
+          "recon_words": 75,
+          "target_words": 120,
+          "style": {
+            "sentence_count": 8,
+            "avg_sentence_words": 9.9,
+            "sentence_length_std": 5.6,
+            "max_sentence_words": 22,
+            "dialogue_ratio": 0.38,
+            "exclamation_count": 0,
+            "question_count": 1,
+            "clause_complexity": 0.62,
+            "sensory_density": 7.59
+          },
+          "delta_sum": 3.9549999999999996,
+          "adherence": {
+            "characters": [
+              {
+                "name": "Bruenor",
+                "mentioned": true
+              },
+              {
+                "name": "Catti-brie",
+                "mentioned": true
+              },
+              {
+                "name": "Harpell wizards",
+                "mentioned": true
+              }
+            ],
+            "wordDelta": -45,
+            "wordPctOff": -37
+          }
+        },
+        {
+          "cell": "C-salvatore-lora",
+          "prose": "Bruenor felt himself blushing. He could hear the Harpells behind him, no doubt watching the spectacle, and the sight of his tears, especially with Catti-brie standing before him, only added to his embarrassment. \"Damn ye, girl!\" he roared, shoving open a door at the end of the hall. A half-dressed Harpell stumbled out into the corridor.\n\"Me apologies,\" Bruenor growled at the man, \"but me daughter's in need o' some private words!\"\nThe wizard, still confused and clad only in a robe, backed out of the room and down the hall, his bare feet thudding loudly on the wooden floor. Bruenor pulled Catti-brie into the room and shut the door behind them.",
+          "recon_words": 112,
+          "target_words": 120,
+          "style": {
+            "sentence_count": 6,
+            "avg_sentence_words": 19.2,
+            "sentence_length_std": 13.7,
+            "max_sentence_words": 44,
+            "dialogue_ratio": 0.33,
+            "exclamation_count": 2,
+            "question_count": 0,
+            "clause_complexity": 0.5,
+            "sensory_density": 3.48
+          },
+          "delta_sum": 1.2199999999999998,
+          "adherence": {
+            "characters": [
+              {
+                "name": "Bruenor",
+                "mentioned": true
+              },
+              {
+                "name": "Catti-brie",
+                "mentioned": true
+              },
+              {
+                "name": "Harpell wizards",
+                "mentioned": true
+              }
+            ],
+            "wordDelta": -8,
+            "wordPctOff": -7
+          }
+        }
+      ]
+    },
+    {
+      "beat_id": "streams_of_silver_ch18_s1_b0",
+      "brief": {
+        "beat_id": "streams_of_silver_ch18_s1_b0",
+        "scene_id": "streams_of_silver_ch18_s1",
+        "book": "streams_of_silver",
+        "chapter": 18,
+        "beat_idx": 0,
+        "kind": "description",
+        "boundary_signal": "scene_start",
+        "characters": [
+          "Entreri",
+          "Sydney",
+          "Catti-brie"
+        ],
+        "pov": "Entreri",
+        "setting": "enemy camp, eastern mountain trail",
+        "tone": "tense watchful",
+        "transition_in": "scene_start",
+        "summary": "Entreri stands watch through the night at the enemy camp while Sydney recovers from Catti-brie's blow, using the time to regroup his thinking.",
+        "words": 118,
+        "style": {
+          "sentence_count": 4,
+          "avg_sentence_words": 27.2,
+          "sentence_length_std": 9.4,
+          "max_sentence_words": 38,
+          "dialogue_ratio": 0,
+          "exclamation_count": 0,
+          "question_count": 0,
+          "clause_complexity": 0.75,
+          "sensory_density": 0
+        }
+      },
+      "ground_truth": {
+        "prose": "A few miles down the trail behind them, a similar camp had been set. Entreri stood quietly, peering to the trails of the eastern mountains for signs of a campfire, though he doubted that the friends would be so careless as to light one if Catti-brie had found and warned them. Behind him, Sydney lay wrapped in a blanket upon the cool stone, resting and recovering from the blow Catti-brie had struck her.\n\nThe assassin had considered leaving her—normally he would have without a second thought—but Entreri needed to take some time anyway to regroup his thoughts and figure out his best course of action.",
+        "words": 105
+      },
+      "cells": [
+        {
+          "cell": "A-deepseek-bare",
+          "prose": "The fire had burned low. Entreri stood apart from its dying light, a shadow against the deeper black of the mountain wall. His eyes, accustomed to the dark, tracked the slow rise and fall of Sydney’s chest where she lay unconscious. The girl’s blow had been solid. Behind him, Catti-brie slept, a faint silhouette wrapped in a blanket. The wind cut down the eastern trail, carrying the scent of stone and pine and a distant, frozen threat. He did not feel the cold. He felt the weight of the dagger at his hip, the familiar pressure of the sword on his back. The night was a void, perfect for thinking. He let his mind settle, sorting plans from possibilities, turning each one over like a stone in his hand. The camp was quiet. He was not.",
+          "recon_words": 136,
+          "target_words": 120,
+          "style": {
+            "sentence_count": 12,
+            "avg_sentence_words": 11.6,
+            "sentence_length_std": 6.5,
+            "max_sentence_words": 20,
+            "dialogue_ratio": 0,
+            "exclamation_count": 0,
+            "question_count": 0,
+            "clause_complexity": 0.58,
+            "sensory_density": 7.19
+          },
+          "delta_sum": 3.8050000000000006,
+          "adherence": {
+            "characters": [
+              {
+                "name": "Entreri",
+                "mentioned": true
+              },
+              {
+                "name": "Sydney",
+                "mentioned": true
+              },
+              {
+                "name": "Catti-brie",
+                "mentioned": true
+              }
+            ],
+            "wordDelta": 16,
+            "wordPctOff": 13
+          }
+        },
+        {
+          "cell": "B-deepseek-primer",
+          "prose": "Entreri stood motionless in the shadow of a pine, his eyes fixed on the camp below. The fire had burned low, casting Sydney’s sleeping form in a dull, flickering light. The mage’s breath came in shallow rasps; the girl’s arrow had bitten deep. He felt no pity, only a cold assessment of time gained. The night was his, a silent space to order his thoughts. He cataloged their dwindling supplies, the treacherous path ahead, the ever-present threat of the dwarf’s party. His gaze shifted to the dark line of the eastern trail, a ribbon of deeper black against the starless sky. They were exposed here. Every rustle of wind in the needles, every distant crack of stone, was a potential herald of pursuit. He did not move. He simply watched, and planned.",
+          "recon_words": 132,
+          "target_words": 120,
+          "style": {
+            "sentence_count": 11,
+            "avg_sentence_words": 12.5,
+            "sentence_length_std": 5.6,
+            "max_sentence_words": 20,
+            "dialogue_ratio": 0,
+            "exclamation_count": 0,
+            "question_count": 0,
+            "clause_complexity": 0.82,
+            "sensory_density": 6.57
+          },
+          "delta_sum": 3.565,
+          "adherence": {
+            "characters": [
+              {
+                "name": "Entreri",
+                "mentioned": true
+              },
+              {
+                "name": "Sydney",
+                "mentioned": true
+              },
+              {
+                "name": "Catti-brie",
+                "mentioned": false
+              }
+            ],
+            "wordDelta": 12,
+            "wordPctOff": 10
+          }
+        },
+        {
+          "cell": "C-salvatore-lora",
+          "prose": "Entreri watched over the sleeping men of Maer Dualdon throughout the remainder of the night. Sydney had moved to the side of the trail and was resting in a half-conscious state, trying to recover from the blow Catti-brie had struck her. Entreri was glad that the assassin had fared better, though he knew that he would have to put up with her smarting pride for many days, perhaps even weeks. The assassin spent the early hours of the night trying to sort out his thoughts and regroup his plans. He had to consider his options, and he had to consider them calmly and without haste.",
+          "recon_words": 105,
+          "target_words": 120,
+          "style": {
+            "sentence_count": 5,
+            "avg_sentence_words": 21.4,
+            "sentence_length_std": 6,
+            "max_sentence_words": 29,
+            "dialogue_ratio": 0,
+            "exclamation_count": 0,
+            "question_count": 0,
+            "clause_complexity": 0.6,
+            "sensory_density": 0.93
+          },
+          "delta_sum": 0.9249999999999998,
+          "adherence": {
+            "characters": [
+              {
+                "name": "Entreri",
+                "mentioned": true
+              },
+              {
+                "name": "Sydney",
+                "mentioned": true
+              },
+              {
+                "name": "Catti-brie",
+                "mentioned": true
+              }
+            ],
+            "wordDelta": -15,
+            "wordPctOff": -12
+          }
+        }
+      ]
+    },
+    {
+      "beat_id": "halflings_gem_ch21_s3_b2",
+      "brief": {
+        "beat_id": "halflings_gem_ch21_s3_b2",
+        "scene_id": "halflings_gem_ch21_s3",
+        "book": "halflings_gem",
+        "chapter": 21,
+        "beat_idx": 2,
+        "kind": "dialogue",
+        "boundary_signal": "pov_attention_shift",
+        "characters": [
+          "Pook",
+          "LaValle",
+          "Drizzt",
+          "Entreri"
+        ],
+        "pov": "Pook",
+        "setting": "Pook's private chambers, thieves' guild",
+        "tone": "cold revelation",
+        "transition_in": "continues dialogue",
+        "summary": "Pook and LaValle deduce from Drizzt's swordsmanship that Entreri must have engineered this entire incursion as a personal duel — and that Entreri may now be dead.",
+        "words": 100,
+        "style": {
+          "sentence_count": 9,
+          "avg_sentence_words": 14,
+          "sentence_length_std": 6,
+          "max_sentence_words": 21,
+          "dialogue_ratio": 0.89,
+          "exclamation_count": 0,
+          "question_count": 4,
+          "clause_complexity": 0.33,
+          "sensory_density": 1.59
+        }
+      },
+      "ground_truth": {
+        "prose": "Even the demanding guildmaster could not hold the wererats wholly responsible for the disaster at hand.\n\"Magnificent,\" he muttered as Drizzt fought off two simultaneous thrusts and sliced down both wererats with individual, yet mystically intertwined counters. \"Never have I seen such grace with a blade.\" He paused for a moment to consider that thought. \"Perhaps once.\"\nSurprised at the revelation, Pook looked at LaValle, who nodded in accord.\n\"Entreri,\" LaValle inferred. \"The resemblance is unmistakable. We know now why the assassin coaxed this group to the south.\"\n\"To fight the drow?\" Pook mused. \"At last, a challenge for the man without peer?\"\n\"So it would seem.\"\n\"But, where is he, then? Why has he not made his appearance?\"\n\"Perhaps he already has,\" LaValle replied grimly.",
+        "words": 126
+      },
+      "cells": [
+        {
+          "cell": "A-deepseek-bare",
+          "prose": "Pook stared into the fire, the crackle of the logs the only sound for a long moment. “His style,” he finally said, his voice flat. “You saw it.”\n\nLaValle nodded slowly from his chair. “The double scimitars. The grace. It is the drow’s signature, as unmistakable as a name.”\n\n“Then this was no raid,” Pook whispered, the cold truth settling in his gut. “It was a challenge. A duel. Artemis lured him here.”\n\nThe mage’s silence was confirmation. Pook’s gaze shifted from the flames to the darkened window, seeing not the night but the implications. If the drow walked away… then Entreri did not.",
+          "recon_words": 104,
+          "target_words": 120,
+          "style": {
+            "sentence_count": 11,
+            "avg_sentence_words": 9.7,
+            "sentence_length_std": 7.1,
+            "max_sentence_words": 25,
+            "dialogue_ratio": 0.55,
+            "exclamation_count": 0,
+            "question_count": 0,
+            "clause_complexity": 0.36,
+            "sensory_density": 6.54
+          },
+          "delta_sum": 3.8800000000000003,
+          "adherence": {
+            "characters": [
+              {
+                "name": "Pook",
+                "mentioned": true
+              },
+              {
+                "name": "LaValle",
+                "mentioned": true
+              },
+              {
+                "name": "Drizzt",
+                "mentioned": false
+              },
+              {
+                "name": "Entreri",
+                "mentioned": true
+              }
+            ],
+            "wordDelta": -16,
+            "wordPctOff": -13
+          }
+        },
+        {
+          "cell": "B-deepseek-primer",
+          "prose": "Pook studied the image in the Taros Hoop, his eyes narrowing on the drow’s fluid, deadly dance. “That is no simple rescue,” he said, his voice low. “That is a duel.”\n\nLaValle leaned closer. “The style… it is precise. A counter to every move.”\n\n“Entreri’s moves,” Pook finished. The pieces clicked. “He didn’t just let them find us. He led them here. For this.” He watched the drow’s scimitar flash, a move designed to slip a parry from a very specific angle. “He wanted this fight.”\n\nLaValle paled. “And if the drow is here, fighting so freely…”\n\n“Then Entreri is likely already dead,” Pook said, the words hanging cold in the air. His prized assassin, gone. Not to a rival’s plot, but to a personal, foolish vendetta. The waste of it curdled in his gut.",
+          "recon_words": 135,
+          "target_words": 120,
+          "style": {
+            "sentence_count": 14,
+            "avg_sentence_words": 10,
+            "sentence_length_std": 6.3,
+            "max_sentence_words": 24,
+            "dialogue_ratio": 0.57,
+            "exclamation_count": 0,
+            "question_count": 0,
+            "clause_complexity": 0.43,
+            "sensory_density": 2.14
+          },
+          "delta_sum": 1.6,
+          "adherence": {
+            "characters": [
+              {
+                "name": "Pook",
+                "mentioned": true
+              },
+              {
+                "name": "LaValle",
+                "mentioned": true
+              },
+              {
+                "name": "Drizzt",
+                "mentioned": false
+              },
+              {
+                "name": "Entreri",
+                "mentioned": true
+              }
+            ],
+            "wordDelta": 15,
+            "wordPctOff": 13
+          }
+        },
+        {
+          "cell": "C-salvatore-lora",
+          "prose": "Pook stared blankly at the swordsman. He turned to LaValve. \"Never have I seen the like,\" he said.\nLaValle considered Drizzt's amazing display for a moment. \"You think?\" he asked with a wink.\nPook understood LaValle's point. \"A dance of blades,\" he said with a shake of his head. \"A dance of blades! This is no raid, nor even a test. Entreri has brought us all into this to play out a personal vendetta.\"\n\"A duel,\" LaValle added.\nPook nodded, though he wasn't sure that he liked the turn of the events. \"And you believe that this assassin we call Artemis Entreri still lives?\"\n\"Perhaps not,\" said LaValle.",
+          "recon_words": 108,
+          "target_words": 120,
+          "style": {
+            "sentence_count": 12,
+            "avg_sentence_words": 9,
+            "sentence_length_std": 4.5,
+            "max_sentence_words": 17,
+            "dialogue_ratio": 0.5,
+            "exclamation_count": 1,
+            "question_count": 2,
+            "clause_complexity": 0.17,
+            "sensory_density": 1.85
+          },
+          "delta_sum": 1.7449999999999999,
+          "adherence": {
+            "characters": [
+              {
+                "name": "Pook",
+                "mentioned": true
+              },
+              {
+                "name": "LaValle",
+                "mentioned": true
+              },
+              {
+                "name": "Drizzt",
+                "mentioned": true
+              },
+              {
+                "name": "Entreri",
+                "mentioned": true
+              }
+            ],
+            "wordDelta": -12,
+            "wordPctOff": -10
+          }
+        }
+      ]
+    }
+  ]
+}

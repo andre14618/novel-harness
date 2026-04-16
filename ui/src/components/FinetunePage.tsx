@@ -1,73 +1,98 @@
 import { useState } from "react"
 import { LoraComparePage } from "./LoraComparePage"
 import { AdaptersPage } from "./AdaptersPage"
+import { VoiceComparePage } from "./VoiceComparePage"
 
-type Tab = "adapters" | "lora"
+type Tab = "adapters" | "voice"
+
+const TABS: Array<{ id: Tab; label: string; subtitle: string }> = [
+  { id: "adapters", label: "Adapter Changelog", subtitle: "history + status" },
+  { id: "voice", label: "Voice Imprinting", subtitle: "exp #193 · capability vs tuning" },
+]
 
 export function FinetunePage() {
   const [tab, setTab] = useState<Tab>("adapters")
+  const [showArchive, setShowArchive] = useState(false)
 
   return (
     <div className="finetune-page">
-      {/* ── Overview header ─────────────────────────────────────── */}
-      <div className="finetune-header">
+      {/* ── Pinned: current fine-tune agents status ─────────────── */}
+      <div className="finetune-header" style={{ marginBottom: 16 }}>
         <section>
-          <h2>Fine-Tuning Pipeline</h2>
-          <p>
-            High-frequency mechanical agents are fine-tuned on <strong>OpenPipe/Qwen3-14B-Instruct</strong> via
-            W&B Serverless SFT (ART framework) + W&B Inference ($0.05/$0.22 per 1M tokens).
-            Training data comes from knowledge distillation: base model extracts, human reviews with Claude Code,
-            corrected outputs become SFT pairs. Prompt-engineering wins (especially per-call decomposition)
-            are exhausted before committing to SFT.
-          </p>
+          <h2 style={{ marginTop: 0 }}>Current fine-tune agents</h2>
           <table className="guide-table">
             <thead>
               <tr><th>Adapter</th><th>Task</th><th>Status</th></tr>
             </thead>
             <tbody>
               <tr><td>Adherence Checker</td><td>Beat spec vs prose (events+attribution)</td><td><strong>V4 deployed</strong> — 2,134 Sonnet-labeled pairs, 79% first-attempt pass (exp #161)</td></tr>
-              <tr><td>Tonal Pass</td><td>Per-paragraph style rewriting</td><td><strong>V4 deployed</strong> — pref eval confirmed 2026-04-11 (exp #98); V3 retired</td></tr>
               <tr><td>Chapter Plan Checker</td><td>Cross-beat coherence (pass/fail)</td><td><strong>V2 deployed</strong> — 520 pairs, 96% accuracy, 609ms (exp #178)</td></tr>
               <tr><td>Continuity</td><td>Consistency with world state</td><td><strong>V2 deployed</strong> — 253 pairs, 12x cost reduction from 235B (exp #175)</td></tr>
+              <tr><td>Tonal Pass</td><td>Per-paragraph style rewriting</td><td style={{ color: "#888" }}><em>Retired</em> — voice now lands at generation time via DeepSeek + Howard primer (2026-04-15c)</td></tr>
             </tbody>
           </table>
-        </section>
-
-        <section>
-          <h2>LoRA Style Transfer</h2>
-          <p>
-            The tonal pass uses a LoRA-tuned 14B model to rewrite each paragraph for voice
-            consistency — short punchy sentences, concrete sensory detail, minimal adjectives — while
-            preserving all factual content and dialogue verbatim.
-          </p>
-          <p>
-            Training uses <strong>back-translation</strong>: start with ground-truth stylized
-            text, use a large LLM to produce neutral/flattened versions, then train on
-            (neutral → stylized) pairs. Adapters served via W&B Inference.
-          </p>
-          <p>
-            V4 (<code>howard-tonal-v4-sft-resume:v8</code>) beats V3 on every metric — classifier 0.550 vs 0.422,
-            perplexity 3086 vs 4814, 3x faster latency. See the Adapters changelog and LoRA Compare tab below.
-          </p>
         </section>
       </div>
 
       {/* ── Tab bar ─────────────────────────────────────────────── */}
-      <div className="finetune-tab-bar">
-        <div className="studio-mode-toggle guide-mode-toggle">
-          {(["adapters", "lora"] as Tab[]).map(t => (
+      <div className="finetune-tab-bar" style={{ marginBottom: 18 }}>
+        <div className="studio-mode-toggle guide-mode-toggle" style={{ flexWrap: "wrap", gap: 6 }}>
+          {TABS.map(t => (
             <button
-              key={t}
-              className={tab === t ? "active" : ""}
-              onClick={() => setTab(t)}
+              key={t.id}
+              className={tab === t.id ? "active" : ""}
+              onClick={() => setTab(t.id)}
+              style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", padding: "8px 14px", lineHeight: 1.2 }}
             >
-              {t === "adapters" ? "Adapters" : "LoRA Compare"}
+              <span style={{ fontWeight: 600 }}>{t.label}</span>
+              <span style={{ fontSize: "0.7rem", opacity: 0.7, marginTop: 2 }}>{t.subtitle}</span>
             </button>
           ))}
         </div>
       </div>
 
-      {tab === "adapters" ? <AdaptersPage /> : <LoraComparePage />}
+      {tab === "adapters" && <AdaptersPage />}
+      {tab === "voice" && <VoiceComparePage />}
+
+      {/* ── Archive (collapsed) ─────────────────────────────────── */}
+      <div style={{ marginTop: 40, borderTop: "1px solid #2a2e3c", paddingTop: 18 }}>
+        <button
+          onClick={() => setShowArchive(v => !v)}
+          style={{
+            background: "transparent",
+            border: "1px solid #2a2e3c",
+            color: "#888",
+            padding: "6px 12px",
+            borderRadius: 6,
+            cursor: "pointer",
+            fontSize: "0.78rem",
+            letterSpacing: "0.04em",
+            textTransform: "uppercase",
+          }}
+        >
+          {showArchive ? "▾ Hide" : "▸ Show"} archive · retired artifacts
+        </button>
+        {showArchive && (
+          <div style={{ marginTop: 18 }}>
+            <div className="finetune-header">
+              <section>
+                <h3 style={{ marginTop: 0, color: "#aaa" }}>Tonal pass (retired)</h3>
+                <p style={{ color: "#aaa" }}>
+                  The tonal pass was a LoRA-tuned 14B model that rewrote each paragraph for voice
+                  consistency. V4 (<code>howard-tonal-v4-sft-resume:v8</code>) beat V3 on every metric —
+                  classifier 0.550 vs 0.422, perplexity 3086 vs 4814, 3× faster latency.
+                </p>
+                <p style={{ color: "#aaa" }}>
+                  <strong>Retired 2026-04-15c.</strong> Voice now lands at generation time via DeepSeek V3.2
+                  + Howard primer (prefix-cached, ~94% hit rate). Adapter still on W&B Inference and
+                  invokable via <code>POST /api/novel/:id/tonal-pass</code> for on-demand comparison.
+                </p>
+              </section>
+            </div>
+            <LoraComparePage />
+          </div>
+        )}
+      </div>
     </div>
   )
 }

@@ -227,6 +227,17 @@ const server = Bun.serve({
           return new Response(file, { headers: { "Content-Type": contentType } })
         }
       }
+    }
+
+    // Public JSON assets bundled into ui/public (copied to ui/dist at build time)
+    if (path.endsWith(".json") && !path.startsWith("/api/")) {
+      const jsonFile = Bun.file(resolve(UI_DIST, path.replace(/^\//, "")))
+      if (await jsonFile.exists()) {
+        return new Response(jsonFile, { headers: { "Content-Type": "application/json" } })
+      }
+    }
+
+    if (path.startsWith("/app")) {
       // HTML pages — require auth, redirect to /login if missing
       if (!isAuthed(req)) {
         return Response.redirect("/login", 302)
