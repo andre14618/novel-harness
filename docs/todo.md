@@ -17,6 +17,7 @@ Treat writer quality as an engineering problem with a measurable ground truth. D
 - Phase A (corpus decomposition): **DONE** — 777 paired (brief, prose) beats, 83,641 prose words, 703/74 train/val
 - Phase B (chunk-size A/B on DeepSeek baseline): **DONE** — 120w wins (Δ-sum 1.81); identifies the rhythm + sensory-density gaps the LoRA must close
 - Phase C (LoRA training + validation): **DONE** — `salvatore-1988-v1` trained and validated; Δ-sum 0.45 vs DeepSeek 2.45 (exp #192 concluded)
+- Phase C.2 (capability vs tuning, 3-cell A/B): **DONE** — exp #193. Tuning beats ICL by ~2.7×: primer 0.73 Δ-sum improvement; LoRA an additional 1.96. Sentence rhythm does not transfer via ICL on DeepSeek. See `docs/decisions.md` "Phase C.2 verdict."
 
 ### Phase D — production validation (next)
 1. 3-chapter pipeline run on litrpg seed with `salvatore-1988-v1` as beat-writer; compare adherence pass rate, lint counts, and structural analysis to DeepSeek + Howard primer baseline

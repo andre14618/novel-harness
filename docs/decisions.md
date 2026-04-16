@@ -1250,6 +1250,30 @@ All three targets met (echo at target, dialogue slightly below 20% for this myst
 
 **Ongoing:** 120w is the production beat target for any Salvatore-flavoured runs. Result file: `scripts/lora-data/phase-b-chunk-size-results.jsonl`.
 
+### Phase C.2 verdict: tuning beats ICL by ~2.7× on the Salvatore voice axes
+*2026-04-16 · exp #193 · `scripts/finetune/phase-c2-capability-vs-tuning.py`*
+
+**Decision:** For voice-imprinting on R.A. Salvatore's 1988 rhythm, fine-tuning decisively beats in-context exemplars on a larger base model. A ~10k-token primer closes 0.73 Δ-sum; the LoRA closes an additional 1.96 past that. Tuning effect is ~2.7× the ICL effect.
+
+**Three-cell A/B on 4 stratified briefs at 120w:**
+
+| Cell | Base | Voice mechanism | avg sent | sens | Δ-sum |
+|---|---|---|---|---|---|
+| A | DeepSeek V3.2 | bare system prompt | 10.6 | 6.39 | **3.41** |
+| B | DeepSeek V3.2 | +10k-token Salvatore primer (31 passages) | 10.6 | 4.92 | **2.67** |
+| C | OpenPipe/Qwen3-14B-Instruct | salvatore-1988-v1 LoRA | 15.9 | 1.76 | **0.71** |
+
+**Per-axis findings (what ICL can and can't do):**
+- **Sentence length does NOT transfer via ICL.** A and B both produce 10.6w sentences; only tuning pulls it to 15.9w (target 18.3w). The 31 exemplars the model sees have an 18.3w average — it reads them and still writes 10.6w sentences. Rhythm lives in something the attention layer isn't extracting from exemplars on this base.
+- **Sensory density partially transfers.** Primer reduces overdrive 6.39 → 4.92; LoRA reaches the target at 1.76 (baseline 1.56). ICL gets you part of the way on imagery restraint, nothing on cadence.
+- **Dialogue + clause noise was similar across all three** — both primer and LoRA slightly over-dialogue (~0.40 vs 0.28) and under-clause (~0.50 vs 0.62). These are less diagnostic.
+
+**Why this matters for the methodology roadmap:** the "just write a primer" path is **not** a free substitute for voice LoRAs when the target includes rhythm. The Howard primer works as a general writer default because it imprints register and imagery habits, but it wouldn't close the gap against a Howard-trained LoRA on Howard prose either — we just haven't measured that yet. The 2×2 capability-vs-tuning question is settled on this axis: at Qwen3-14B scale with 703 pairs, tuning moves dimensions ICL can't touch.
+
+**Limitation:** n=4 briefs, same seed as Phase C. Effect size is too large to be noise (1.96 Δ-sum gap on sentence length alone is structural, not statistical), but per-brief variance isn't characterized.
+
+**Output:** `scripts/lora-data/phase-c2-capability-vs-tuning-results.jsonl`, primer at `src/agents/writer/style-primer-salvatore.md`.
+
 ### Phase C verdict: salvatore-1988-v1 LoRA decisively closes the Salvatore voice gap
 *2026-04-16 · exp #192 · `scripts/finetune/phase-c-ab-salvatore-lora.py`*
 
