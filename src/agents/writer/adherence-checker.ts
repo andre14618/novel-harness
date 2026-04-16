@@ -69,19 +69,13 @@ export async function checkBeatAdherence(
     }
   }
 
-  // Word count: should be within 40-200% of target
-  const wordCount = prose.split(/\s+/).filter(Boolean).length
-  const targetWords = Math.round(outline.targetWords / Math.max(outline.scenes.length, 1))
-  if (wordCount < targetWords * 0.4) {
-    issues.push(`Too short: ${wordCount}w vs ${targetWords}w target (${Math.round(wordCount / targetWords * 100)}%)`)
-  }
-  if (wordCount > targetWords * 2.5) {
-    issues.push(`Too long: ${wordCount}w vs ${targetWords}w target (${Math.round(wordCount / targetWords * 100)}%)`)
-  }
-
-  // Dialogue check removed: false-positive rate too high for scenes where
-  // silence is intentional (tense moments, nonverbal beats). The events+attribution
-  // LLM call catches missing dialogue when the beat actually requires it.
+  // Word count check removed 2026-04-16: voice LoRAs drift on per-beat word count,
+  // and the metric was never load-bearing for prose quality. Beat size is driven by
+  // the brief's dramatic function, not a numeric target.
+  //
+  // Dialogue check also removed: false-positive rate too high for scenes where
+  // silence is intentional. The events+attribution LLM call catches missing
+  // dialogue when the beat actually requires it.
 
   // Trace deterministic results
   if (tags?.novelId) {
@@ -91,7 +85,6 @@ export async function checkBeatAdherence(
       beatIndex: tags.beatIndex,
       payload: {
         charPresence: !issues.some(i => i.includes("not found in prose")),
-        wordCountOk: !issues.some(i => i.includes("Too short") || i.includes("Too long")),
         deterministicIssues: issues.length,
       },
     })
