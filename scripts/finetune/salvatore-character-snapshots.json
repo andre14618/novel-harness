@@ -1,0 +1,141 @@
+{
+  "_comment": "Character snapshots for v3 training-data assembly. Used to fill the CHARACTERS section of harness-shaped user prompts so the LoRA learns the section's format. Minor characters (<15 appearances) fall through to the default snapshot. Fields match src/agents/writer/beat-context.ts::formatCharacterSnapshot.",
+  "Drizzt": {
+    "voice": "Formal, measured; speaks in complete sentences with scimitars of syntax; accent of the drow only on rare, heavy emotion.",
+    "drives": "Live with honor on the surface despite his drow heritage; protect his chosen companions.",
+    "avoids": "Harming the innocent; the weight of his past in the Underdark; becoming what the drow expect.",
+    "conflict": "A night-born outcast trying to make the light his home."
+  },
+  "Wulfgar": {
+    "voice": "Formal archaic cadence after Bruenor's tutelage — thees, thous, and a barbarian's directness; booming when roused.",
+    "drives": "Prove worthy of Bruenor's clan and the title of king his blood promises.",
+    "avoids": "Shaming his barbarian honor; striking a foe from behind; the softness civilization might sand off him.",
+    "conflict": "Wild tribal heritage under a dwarf-father's forge."
+  },
+  "Bruenor": {
+    "voice": "Gruff dwarf-accent, curse-seasoned, fatherly even when threatening.",
+    "drives": "Reclaim Mithril Hall; steer his adopted children safely through a world that wants them dead.",
+    "avoids": "Showing sentiment; letting the clan see him flinch.",
+    "conflict": "Iron exterior armoring a king whose love for his found family is the largest thing about him."
+  },
+  "Regis": {
+    "voice": "Smooth, persuasive, faintly theatrical; a halfling who has talked his way out of more scrapes than he has walked out of.",
+    "drives": "Comfort, warmth, a good meal, and whatever peace can be bought with a clever tongue.",
+    "avoids": "Physical danger, exposure of the ruby pendant, honest labor when charm will suffice.",
+    "conflict": "A coward's nature and a loyal heart arguing in the same skull."
+  },
+  "Catti-brie": {
+    "voice": "Direct, fearless, warm in private; a human daughter raised among dwarves who speaks a blend of both.",
+    "drives": "Hold her place in Bruenor's clan; stand beside Drizzt as more than a ward.",
+    "avoids": "Being underestimated for her human softness; being spoken to as a child.",
+    "conflict": "A heart divided between a dwarf father who will not see her grown and a drow ranger who dares not see her at all."
+  },
+  "Entreri": {
+    "voice": "Cold, precise, economical; every word a dagger laid flat.",
+    "drives": "Prove himself the finer blade by breaking Drizzt; take what he is paid to take.",
+    "avoids": "Attachment, conversation past a job, any tether that can be cut against him.",
+    "conflict": "The mirror of Drizzt's path — same lethal grace, opposite rudder."
+  },
+  "Kessell": {
+    "voice": "Whining, grandiose, prone to boasts the body cannot cash; a frightened man impersonating a tyrant.",
+    "drives": "Power through the Crystal Shard's promises; revenge on everyone who has ever laughed at him.",
+    "avoids": "Any risk that puts his own skin in reach; silence, which lets him hear himself.",
+    "conflict": "The smallest soul in Icewind Dale strapped to the largest artifact."
+  },
+  "Guenhwyvar": {
+    "voice": "Voiceless. Communicates through presence, amber-eyed attention, and the low rumble of a panther between worlds.",
+    "drives": "Serve the one who wears the onyx figurine — and earn something like companionship in return.",
+    "avoids": "Being summoned carelessly; disappointing Drizzt.",
+    "conflict": "The Astral's weight pressing through a body the material plane has to loan her."
+  },
+  "Heafstaag": {
+    "voice": "Bellowing, proud, carved from tribal cadences — the voice of a king who has never whispered.",
+    "drives": "Glory of the tribes; a death sung of around the fires.",
+    "avoids": "Appearing weak before his warriors; counsel that sounds like retreat.",
+    "conflict": "Conservative bloodright against the reforms a younger king is carving out beside him."
+  },
+  "Pook": {
+    "voice": "Soft-spoken, cultured, faintly amused — menace smoothed to velvet.",
+    "drives": "Recover the pendant; maintain his empire in Calimport.",
+    "avoids": "Direct action when proxies will do; leaving traces.",
+    "conflict": "Civilized veneer over a man who once carved his way up with his own knife."
+  },
+  "Cassius": {
+    "voice": "Diplomatic, weighing each phrase, weary of other people's politics.",
+    "drives": "Keep the Ten-Towns from killing each other long enough to face what's actually coming.",
+    "avoids": "Committing Bryn Shander prematurely; being painted as any town's partisan.",
+    "conflict": "A spokesman for ten factions, each convinced he serves the others first."
+  },
+  "Deudermont": {
+    "voice": "Formal naval authority — clear, honorable, the cadence of a captain used to being obeyed and obeying in turn.",
+    "drives": "Duty to the crown and to the Sea Sprite's crew; loyalty to Drizzt and his companions despite the law's complications.",
+    "avoids": "Breaking the nautical code; asking his men to do what he would not do first.",
+    "conflict": "A man of the law's quarterdeck befriending outlaws the law will one day demand he deliver."
+  },
+  "Dendybar": {
+    "voice": "Scheming, whispered, syllables laid down like cards from a hidden hand.",
+    "drives": "Arcane knowledge, particularly the kind that cannot be acquired honestly.",
+    "avoids": "Direct confrontation; any spell his frail body cannot survive casting.",
+    "conflict": "A mind the size of a tower housed in a body barely holding its ground."
+  },
+  "Sydney": {
+    "voice": "Eager, calculating, the rising note of a student who already hears herself as a master.",
+    "drives": "Rise above apprentice status; be seen as Dendybar's peer, not his tool.",
+    "avoids": "Emotional vulnerability; being mistaken for a lesser wizard's romantic subplot.",
+    "conflict": "Torn between the mentor who shaped her and the ambition that's starting to eye his chair."
+  },
+  "Alustriel": {
+    "voice": "Serene, silver-tongued, gentle — the cadence of a ruler who speaks for a city that prefers negotiation.",
+    "drives": "Diplomacy among the powers of the North; protecting Silverymoon; quiet favors for causes she cannot openly back.",
+    "avoids": "Unnecessary conflict; speaking feelings the office forbids her to act on.",
+    "conflict": "Veiled affection for a drow ranger she can only ever aid from a polite distance."
+  },
+  "Malchor": {
+    "voice": "Genial, knowing, slightly amused — a mage who has already seen how the story ends and is content to help it along.",
+    "drives": "Help the companions where it matters; keep the Harpells' odd house pointed toward the right side of things.",
+    "avoids": "Overt involvement; letting the companions lean on him past what he can sustain.",
+    "conflict": "A secret ally's affection for friends who can never be told the full extent of his reach."
+  },
+  "LaValle": {
+    "voice": "Crisp, competent, understated — a wizard who prefers his work to his titles.",
+    "drives": "Serve Pasha Pook well enough to keep his position and his skin.",
+    "avoids": "Open disagreement with Pook; magical extravagance when subtlety suffices.",
+    "conflict": "A professional's detachment from a guildhouse whose morals he long ago stopped examining."
+  },
+  "Biggrin": {
+    "voice": "Giant's rumble, unhurried — a captain whose confidence is the largest thing in the room and usually earned.",
+    "drives": "Command the goblinoid advance force as Kessell's lieutenant.",
+    "avoids": "Failure reported back to the tower.",
+    "conflict": "A brute's certainty bumping into adversaries who aren't behaving like prey."
+  },
+  "Jensin Brent": {
+    "voice": "Earnest, politic, more deferential than his title warrants.",
+    "drives": "Keep Caer-Dineval's place at the Ten-Towns council; survive larger men's maneuvering.",
+    "avoids": "Direct opposition to Cassius; being seen as Bryn Shander's tool.",
+    "conflict": "A small town's spokesman playing a game sized for larger communities."
+  },
+  "Glensather": {
+    "voice": "Bluff, good-humored, practical — a fisherman-spokesman at home on a pier and uncomfortable at a lectern.",
+    "drives": "Keep Easthaven sane while the council argues; protect his townsfolk's pragmatic interests.",
+    "avoids": "Flowery rhetoric; letting the meeting drift into posturing.",
+    "conflict": "Caught between solidarity with the smaller towns and the obvious weight of Bryn Shander's numbers."
+  },
+  "Revjak": {
+    "voice": "Steady, reflective, older than his years — a barbarian who has learned to listen as well as bellow.",
+    "drives": "Guide the unified tribes after Heafstaag; keep Wulfgar's reforms from splintering them.",
+    "avoids": "Reopening the old wounds between tribes; being seen as Wulfgar's regent rather than his own man.",
+    "conflict": "Honor to the old ways and loyalty to the young king rewriting them."
+  },
+  "Kemp": {
+    "voice": "Belligerent, sardonic, protective of his town's honor and his own position in it.",
+    "drives": "Targos's standing; never losing a political point to Cassius.",
+    "avoids": "Any concession that could be read as weakness.",
+    "conflict": "A spokesman whose natural combativeness is both his town's asset and its largest cost."
+  },
+  "_default": {
+    "voice": "Consistent with the scene's tone and the character's apparent station.",
+    "drives": "Aligned with the beat's planned action.",
+    "avoids": "Behaviors that would contradict the character's listed role.",
+    "conflict": "Subordinate to the POV character's arc for this beat."
+  }
+}
