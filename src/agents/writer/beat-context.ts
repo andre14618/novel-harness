@@ -76,13 +76,24 @@ export async function buildBeatContext(input: BeatContextInput): Promise<BeatCon
 
   if (beatChars.length > 0) {
     if (input.compactMode) {
-      // Compact: one line per character, Voice + Drives only.
-      // See docs/beat-writer-architecture.md §2 for the strip rationale.
-      const lines = beatChars.map(c => {
-        const voice = c.speechPattern ?? "(voice unspecified)"
-        const drives = c.goals ?? ""
-        return drives ? `${c.name}: ${voice} — ${drives}` : `${c.name}: ${voice}`
+      // Compact (revised after exp #200 regression):
+      //   Keep Voice + Drives + Avoids + Conflict on the character sheet —
+      //   these are planner side-channels for per-chapter requirements
+      //   ("Senna avoids mirrors" lives in Avoids and must reach the writer).
+      //   Strip only genuinely-runtime fields (State, With, Tension,
+      //   Doesn't-know) which are sparse and rarely load-bearing on any
+      //   given beat. See docs/beat-writer-architecture.md §6 for the
+      //   regression analysis that drove this revision.
+      const lines = beatChars.flatMap(c => {
+        const entry = [`${c.name}:`]
+        if (c.speechPattern) entry.push(`  Voice: ${c.speechPattern}`)
+        if (c.goals) entry.push(`  Drives: ${c.goals}`)
+        if (c.avoids) entry.push(`  Avoids: ${c.avoids}`)
+        if (c.internalConflict) entry.push(`  Conflict: ${c.internalConflict}`)
+        return [...entry, ""]
       })
+      // Trim trailing blank
+      while (lines.length && lines[lines.length - 1] === "") lines.pop()
       sections.push(`CHARACTERS:\n${lines.join("\n")}`)
     } else {
       const snapshots = await Promise.all(beatChars.map(c =>
@@ -93,13 +104,12 @@ export async function buildBeatContext(input: BeatContextInput): Promise<BeatCon
   }
 
   // ── 5. Resolved references ─────────────────────────────────────────────
-  // Compact mode skips the reference-resolver call entirely — in
-  // voice-LoRA routing the writer prompt is kept tight; implicit-
-  // reference expansion is noise when the beat.description is direct.
-  if (!input.compactMode) {
-    const refs = input.preResolvedRefs ?? await resolveReferences(beat, outline, novelId, chapterNumber, characters)
-    if (refs.context) sections.push(refs.context)
-  }
+  // Keep resolved-references in both modes. Exp #200 regressed when these
+  // were stripped: world-fact requirements ("Tower of Reseth sits on a
+  // fault line activated six years ago") travel through reference-resolver
+  // output and the writer can't establish them without the context.
+  const refs = input.preResolvedRefs ?? await resolveReferences(beat, outline, novelId, chapterNumber, characters)
+  if (refs.context) sections.push(refs.context)
 
   // ── 6. Setting ────────────────────────────────────────────────────────
   // Compact mode strips the duplicate SETTING block — inline "Setting: {name}"

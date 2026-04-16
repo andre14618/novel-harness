@@ -194,6 +194,12 @@ Keep this section as a bullet log so anyone picking this up cold can follow the 
 - **2026-04-16** — v3 probe reaches chapter 3 (v2 died on chapter 2). Chapter 3 fails on continuity issue (writer added character not in brief). Diagnosis: writer-adherence bug, not voice bug.
 - **2026-04-16** — 9-constraint analysis. Decision: strip non-load-bearing fields from writer prompt for voice-LoRA route. Compact mode spec'd.
 - **2026-04-16** — Per-beat drives proposal from Andre. Defer until compact-mode probe lands.
+- **2026-04-16 · exp #200** — Compact-mode probe **REGRESSED**. Chapter 1 failed 3 rounds × 3 attempts = 9 total attempts, worse than standard v3 (5 attempts to pass). Root cause: aggressive strip removed load-bearing information flow from planner → writer:
+  - `Avoids:` field was carrying per-chapter planner requirements (e.g., "Senna avoids mirrors"). Writer then had Senna look in a mirror, failing the chapter-plan check on that required fact.
+  - Resolved-references (stripped entirely in compact mode) expanded named entities with knowledge-graph facts (e.g., "Tower of Reseth" → "[built atop a dormant fault line that activated six years ago]"). Writer couldn't establish the fault-line backstory because the fact wasn't in the prompt.
+  - Continuity checks passed across all attempts — so stripping wasn't causing character drift. It was causing **required-fact misses** (a plan-check failure mode, not a continuity-check one).
+  - Conclusion: constraint count isn't the bottleneck; **planner-declared facts that live in character-sheet fields** are load-bearing because the planner uses those fields as a side-channel to require prose behaviors. Stripping those fields severs the side-channel.
+  - Next move: revise strip to be **narrower** — keep Avoids + resolved references. Strip only State/With/Tension/Doesn't-know (genuinely runtime-only, rarely load-bearing) and the duplicate SETTING block. Re-probe.
 
 Each new probe + result gets a line here.
 
