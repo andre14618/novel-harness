@@ -27,9 +27,11 @@ const togetherQwen9B: ModelAssignment = { provider: "together", model: "Qwen/Qwe
 
 export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // ── Writers (creative prose, high output) ─────────────────────────────
-  // DeepSeek V3.2 is the default writer (exp #189/#190). Howard style primer
-  // is prepended automatically via STYLE_PRIMER (default "howard") in
-  // src/agents/writer/index.ts and prefix-cached on DeepSeek at ~94% hit rate.
+  // DeepSeek V3.2 is the default writer (exp #189/#190). Howard primer/
+  // methodology retired 2026-04-16 — voice now lands through per-genre
+  // voice LoRAs (see WRITER_GENRE_PACKS below) instead of a universal
+  // style primer. STYLE_PRIMER env var still works per-run for
+  // experimentation but defaults to "none".
   "writer":                    { ...deepseekV3, temperature: 0.8, maxTokens: 8000 },
   "beat-writer":               { ...deepseekV3, temperature: 0.8, maxTokens: 4000 },
   "rewriter":                  { ...deepseekV3, temperature: 0.5, maxTokens: 8000 },
@@ -87,9 +89,10 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "chapter-plan-checker":      { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/chapter-plan-checker-v2:v1", temperature: 0.2, maxTokens: 4096 },
 
   // ── Tonal pass (per-paragraph voice rewrite, LoRA fine-tuned) ────────
-  // V4 (howard-tonal-v4-sft-resume:v8) confirmed preferred via pref eval 2026-04-11.
-  // Beats V3 on every quantitative metric (classifier 0.550 vs 0.422, perplexity 3086 vs 4814,
-  // 3× faster latency). V3 on Together AI retired.
+  // Howard methodology RETIRED 2026-04-16 — voice now handled by per-genre
+  // voice LoRAs at generation time (see WRITER_GENRE_PACKS). Adapter slot
+  // retained for the on-demand POST /api/novel/:id/tonal-pass endpoint so
+  // existing novels can still be re-voiced. Not invoked automatically.
   "tonal-pass":                { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/howard-tonal-v4-sft-resume:v8", temperature: 0.6, maxTokens: 2048 },
 
   // ── Improvement daemon ──────────────────────────────────────────────

@@ -9,7 +9,7 @@ export const pipeline = {
   // Validation
   maxValidationPasses: 3,
   maxChapterRewrites: 3,
-  tonalPass: false,           // Auto-run disabled 2026-04-15: DeepSeek+Howard primer handles voice at generation time. On-demand /api/novel/:id/tonal-pass route still works.
+  tonalPass: false,           // Auto-run disabled. Howard primer/tonal-pass methodology retired 2026-04-16; voice now lands at generation time via per-genre voice LoRAs (see WRITER_GENRE_PACKS). On-demand /api/novel/:id/tonal-pass route still works for existing novels.
 
   // State management
   embeddings: false,          // skip embedding step (beat path uses deterministic DB lookups)

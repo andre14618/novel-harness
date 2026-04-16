@@ -130,7 +130,7 @@ Two held-out sets:
 
 ## 5. Harness integration plan
 
-1. **Genre-slot routing in `src/models/roles.ts`.** Per-seed writer override: action-pulp fantasy seeds → `wandb-artifact:///andre14618-/novel-harness/salvatore-1988-v2:v1`; other seeds → DeepSeek V3.2 + Howard primer (current default).
+1. **Genre-slot routing in `src/models/roles.ts`.** Per-seed writer override: fantasy-genre seeds → `wandb-artifact:///andre14618-/novel-harness/salvatore-1988-v3` (voice LoRA with compact beat-context); other seeds → DeepSeek V3.2 (no primer — Howard methodology retired 2026-04-16; per-genre voice LoRAs replace universal primer).
 2. **Proper-noun blocklist in the LoRA system prompt.** Append: "Do not use the following names: Drizzt, Bruenor, Wulfgar, Regis, Catti-brie, Icewind Dale, Ten-Towns, Mithril Hall, Lonelywood, Bryn Shander, Targos, Crystal Shard." Expand as new leaks are observed.
 3. **Drop the per-beat word-count gate from the adherence checker for all writers.** Voice LoRAs land shorter or longer than the brief's target words. The value of the fine-tune is in cadence and prose quality — word count was never the load-bearing signal.
 4. **3-chapter production run on a Salvatore-style fantasy seed.** Gate before promoting to default in that slot.

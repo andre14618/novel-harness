@@ -30,7 +30,7 @@ This is a **strategy doc**, not a commitment. Each slot has its own eval bar. Do
 | planning-extractor | DeepSeek V3.2 | ✗ | ✓ |
 | concept (world, char, plotter) | DeepSeek V3.2 | ✗ | unknown |
 | planning-plotter | DeepSeek V3.2 | ✗ | unknown |
-| beat-writer | DeepSeek V3.2 + Howard primer | ✗ | **probing** (Salvatore v2) |
+| beat-writer | DeepSeek V3.2 (no primer, Howard retired 2026-04-16) OR Salvatore v3 LoRA on fantasy via WRITER_GENRE_PACKS | ✅ fantasy route | fantasy voice validated; other genres pending |
 | reference-resolver | Groq Llama-3.1-8B | ✗ | n/a (already cheap) |
 | adherence-events | Qwen3-14B SFT v4 | ✅ | shipped |
 | chapter-plan-checker | Qwen3-14B SFT v2 | ✅ | shipped |
@@ -83,7 +83,7 @@ Slots listed easiest → hardest. The harder the slot, the more evidence needed 
 ### Tier 3 — Constraint-following over long outputs (unresolved)
 
 #### Beat-writer
-- **Current:** DeepSeek V3.2 + Howard primer. Primary creative slot.
+- **Current:** DeepSeek V3.2 (no primer — Howard methodology retired 2026-04-16) for non-voice-LoRA routes; Salvatore v3 LoRA via `WRITER_GENRE_PACKS` for fantasy genre seeds. Primary creative slot.
 - **What's been proved:** Salvatore v2 LoRA on 14B produces target-author voice (Δ-sum 0.27 on val, 0.66 on unseen characters) with paragraph breaks and low memorization. See `docs/voice-lora-salvatore.md`.
 - **What hasn't been proved:** whether 14B with a voice LoRA can hold a ~2,000-word chapter plan in context across 15–20 serial beats without drifting off-brief, and whether chapter 3 references chapter 1 events correctly when none of the continuity is in the LoRA's training data.
 - **The gate:** 3-chapter production run with `beat-writer = salvatore-1988-v2`. Watch adherence pass rate (currently ~79% first-attempt on the 235B-adherence-checker baseline). If it holds, 14B is a viable primary writer on matched-genre seeds. If it collapses (<50%), voice LoRAs stay as opt-in style primers and the writer slot stays on DeepSeek.

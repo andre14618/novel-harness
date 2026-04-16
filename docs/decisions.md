@@ -1462,3 +1462,47 @@ Upgrade math in the other direction is also favorable: Claude Sonnet for planner
 - **Keep Cerebras lint-fixer indefinitely.** Voice-LoRA prose may still pass every pattern and the per-sentence rewrite becomes redundant work.
 
 **Ongoing:** `docs/pipeline-14b-consolidation.md` Tier 1 entry for lint-fixer updated with the conditional-deprecation gate. Action: run lint detector against v3 (or whichever voice LoRA passes the probe) 3-chapter output; decide retire-vs-migrate on measured fire rate.
+
+### Howard primer/tonal-pass methodology retired
+*2026-04-16*
+
+**Decision:** Howard primer and the Howard tonal-pass adapter are deprecated as an active methodology. Salvatore is the only style primer we maintain going forward (and for Salvatore-genre seeds the voice LoRA is the preferred route, not the primer). Default `STYLE_PRIMER` env var changes from `howard` to `none` — primers are now per-genre opt-in, not a universal default.
+
+**Why:** Howard primer was the 2026-04-15 placeholder that pushed DeepSeek voice toward a pulpy register while we built a real voice solution. Now we have a real solution — per-genre voice LoRAs via `WRITER_GENRE_PACKS` — and running a generic Howard primer on top of an already-voice-tuned writer is voice-bias-on-voice-bias. For non-fantasy genres, generic DeepSeek output is fine until we build a per-genre LoRA or primer for that genre; falling back to Howard was always a compromise.
+
+**What retired specifically:**
+- Default primer in `src/agents/writer/index.ts` — changed from `howard` to `none`.
+- `src/agents/writer/style-primer-howard.md` — deleted.
+- CLAUDE.md + pipeline-14b-consolidation.md + voice-lora-salvatore.md Howard references removed or retagged.
+- Howard tonal-pass adapter (`howard-tonal-v4-sft-resume:v8`) — **adapter retained** on W&B Inference for the on-demand `POST /api/novel/:id/tonal-pass` endpoint on existing novels, but not auto-invoked. No further Howard adapter versions planned.
+
+**Alternatives rejected:**
+- **Keep Howard as non-fantasy default.** Universal primer was always a compromise; maintaining two primer methodologies (Howard + Salvatore) adds surface area we don't need when we can opt per-genre.
+- **Delete the Howard tonal-pass adapter entirely.** Some novels in the archive were produced with it; retaining the endpoint preserves comparative-analysis capability without adding runtime cost.
+
+**Ongoing:** When a new author voice is needed (Cook, Gemmell, Howard-actual-corpus, etc.), build a voice LoRA following the Salvatore methodology (`docs/voice-lora-salvatore.md §6`), not a primer. Primers are reserved for cases where LoRA training isn't justified (low-volume, niche, or exploratory).
+
+### Compact beat-context (narrow strip) validated — v3 passes all 3 chapters in 5 attempts
+*2026-04-16 · exp #201*
+
+**Decision:** Ship the narrow-strip compact-mode for voice-LoRA routes in `src/agents/writer/beat-context.ts`. Default path (DeepSeek writer, no genre pack) stays with full context.
+
+**Why:** Exp #201 probe of v3 + narrow strip on `fantasy-echo-mage` passed ch1 (1 attempt), ch2 (1 attempt), ch3 (3 attempts) — **all three chapters approved in 5 total attempts**. v3 with full context (exp #199) needed 5 for ch1 + 4 for ch2 + failed on ch3 after 6+ attempts. v3 with aggressive strip (exp #200) failed ch1 after 9 attempts. Narrow strip is clearly the right balance.
+
+**What the narrow strip removes:**
+- CHARACTERS section: State / With / Tension / Doesn't-know (runtime-only fields, rarely load-bearing on a given beat)
+- Duplicate SETTING block (inline `Setting:` in beat-spec §1 already carries location)
+
+**What it keeps:**
+- CHARACTERS: Voice + Drives + Avoids + Conflict (planner side-channels for per-chapter requirements like "Senna avoids mirrors")
+- Resolved-references block (carries knowledge-graph world facts like fault-line backstory)
+- Sensory line on scene_start beats
+
+**What this confirms architecturally:** the 14B voice LoRA does NOT have a hard capability ceiling on complex beats. The prior probe failures (exp #199 chapter 3) came from **context noise** — runtime-only fields crowded out load-bearing ones. Narrow the context to what matters; the LoRA executes. No need for tiered escape valve or per-beat drives at this point.
+
+**Alternatives rejected:**
+- **Decomposition (DeepSeek adherence + voice polish).** Would have been the path if narrow-strip also failed. Kept in reserve as a backup architectural move.
+- **Planner-authored per-beat drives (§3 of beat-writer-architecture.md).** Still potentially useful as a cleaner information architecture but no longer needed to unblock v3 production viability.
+- **Tier 2 escape-valve (larger model rental).** Not needed at current seed difficulty.
+
+**Ongoing:** `src/agents/writer/beat-context.ts` `compactMode` is now the routing-gated default for genre-pack writers. Monitor chapter-approval rates across more seeds. If other seeds fail similarly to v3-pre-fix, revisit; if they pass, the adapter is production-ready for fantasy seeds.
