@@ -207,6 +207,10 @@ Evaluate running LoRA adapters locally on MacBook Air M4 24GB instead of W&B.
 
 - **Extend LLM call inspector tags** — `chapter` / `beat_index` / `attempt` populated for beat-writer and adherence-checker. Need to thread through reference-resolver, continuity, chapter-plan-checker, rewriter, and planner. Columns already exist; each agent's `callAgent` site needs the tags. See `docs/llm-call-inspector.md`.
 
+- **Training-data SHA256 in `tuning_experiments.config`** (2026-04-16) — add `train_file_sha256` and `val_file_sha256` fields at submission time. Finetune files on LXC (`finetune-data/*.jsonl`) can be overwritten across runs; without a content hash the `config.train_file` path becomes a dead reference once the file changes. Cheap to compute at `train-lora.py` submission time. Enables "exactly what bytes produced this adapter" verification via `sha256sum` against the file on disk or an archived copy. Back-patch existing experiments by computing hashes from current on-disk files and noting drift.
+
+- **Formatter-pipeline provenance in `tuning_experiments.config`** (2026-04-16) — add a `formatter` section recording `{script, script_commit, args, input_corpus_file, input_corpus_sha256, output_file, generated_at}`. Right now `config.train_file` points at the output but we can't tell *what produced it* without grepping git log around `commit_hash`. With this field, `bun scripts/finetune/provenance-report.ts` can print the full chain: corpus → formatter script → formatter args → training file → adapter. Back-patch v1/v2/v3/v4/v5 experiments manually with the correct formatter references.
+
 ## Pipeline Stability
 
 - **Deduplicate timeline events** — rewrite re-extractions create duplicate timeline events in DB.

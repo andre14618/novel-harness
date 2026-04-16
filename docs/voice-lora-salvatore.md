@@ -237,7 +237,57 @@ The cheapest fix (~$0.30 training + ~2–3 hr data prep) is retraining with trai
 
 Training cost at current W&B pricing is the same as v2 (~$0.30). Expected improvements: bridge mishandling disappears (model sees the format in training), required-fact enactment improves (system prompt rule re-emphasized), character-presence gap narrows (characters listed with snapshots in the user prompt become salient).
 
-## 9. Pointers
+## 9. v3 training + eval — 2026-04-16
+
+v3 was built to address the prompt-shape mismatch v2 hit in production (exp #195). Three things changed:
+
+1. **Harness-shaped user prompts.** Every training pair's user prompt now matches `src/agents/writer/beat-context.ts::buildBeatContext` output — BEAT header + POV + Setting + beat description + Characters present + TRANSITION BRIDGE + LANDING TARGET + CHARACTERS section with per-character snapshots + SETTING on scene_start beats. See `scripts/finetune/format-salvatore-v3-sft.py`.
+2. **3-variant rename augmentation per chapter.** 1 original + 2 renamed copies with fresh per-chapter rename tables drawn from `scripts/finetune/salvatore-rename-pool.json`. Sentence-level prose is byte-identical across variants aside from proper-noun tokens. Teaches "name slot is parametric."
+3. **~17% retry variants.** Production-calibrated failure distribution (event_not_enacted 40%, over_elaboration 25%, character_missing 20%, sequence_reversed 8%, tone_mismatch 7%). Deterministic degradation; assistant output is the real Salvatore prose. Teaches "given voice-correct but plot-broken prose + issue list, preserve what works, fix only what's flagged."
+
+### v3 Phase C.3 — two evals, two verdicts
+
+**Initial eval (contaminated):** Ran v3 against the same 74 val briefs that v2 was evaluated on (stratified by book × kind). Results were alarming — Δ-sum 0.10 (better than v2) but max 5-gram Jaccard **0.822** (vs v2's 0.100). Top-memorized beats all `_b0` scene-start. Looked like severe overfit.
+
+**Root cause (diagnosis):** the v2 val briefs were stratified by `(book, kind)` spread across all 54 chapters, but v3's formatter stratifies by **chapter** (5 held-out chapters). **~91% of the v2 val briefs were in chapters v3 trained on.** The 0.822 was eval contamination, not overfit.
+
+**Clean eval (v3's actual held-out val, 60 beats from 5 held-out chapters):**
+
+| Metric | Contaminated eval | Clean eval | v2 reference (on v2's val) |
+|---|---:|---:|---:|
+| Δ-sum | 0.10 | **0.45** | 0.27 |
+| 5-gram Jaccard mean | 0.066 | **0.001** | 0.003 |
+| 5-gram Jaccard max | 0.822 | **0.023** | 0.033 |
+
+**v3 generalizes normally** — max Jaccard *lower* than v2's on a truly held-out set.
+
+### What's still a real v3 signal
+
+**Original-mode Δ-sum 0.990 vs v2's 0.662** on the 6 novel-character briefs (Vordik, Corra, Irinye, Garrett — guaranteed not in any training set). Main contributor: **sensory density 2.47 vs target 1.56** (59% overshoot) — v3 writes somewhat more florid on cross-distribution content.
+
+Expanding the original-brief set from 6 to **18** (2026-04-16) — kinds: 4 description / 6 dialogue / 5 action / 3 interiority, 13 distinct POVs + 4 omniscient — gives tighter n for the v3-vs-v4-vs-v5 comparison. Loaded into `eval_briefs` under `set_name='salvatore-original-v1'`.
+
+### v4 + v5 trained in parallel (overfit hypothesis testing)
+
+**v4** (exp #197) — same v3 training data, `--epochs 1`. Tests: was the 9× gradient pass per beat (3 variants × 3 epochs) the overfit driver?
+
+**v5** (exp #198) — `--rename-variants 1 --retry-fraction 0.25` (no rename augmentation), 3 epochs. Tests: was the augmentation itself the issue? Equivalent to "v2 with new harness-shape prompts + retry variants."
+
+Both train concurrently; eval against expanded 18-brief `salvatore-original-v1` set + v3's held-out val. Comparison metric: lowest Δ-sum on `salvatore-original-v1` wins.
+
+### Eval infrastructure added (2026-04-16)
+
+Every Phase C.3 run now persists to DB instead of `/tmp/*.jsonl`:
+
+- **`eval_briefs` table** — versioned brief sets keyed by `(set_name, beat_id)`. Holds brief JSON + optional ground-truth prose + ground-truth style + notes.
+- **`eval_results` table** — per-beat results keyed to `experiment_id` + `adapter_uri` + `cell_label`. Holds generated prose, style features, delta_sum, ngram_jaccard_vs_gt, paragraph-break count, word count, lore-leak tokens.
+- **`eval_cell_summary` view** — phase-c3-compatible aggregate (`cell_delta_sum` computed on mean style, not average-of-deltas, matching the print output of `phase-c3-generalization.py`).
+- **`eval_full_provenance` view** — flattens eval_results × eval_briefs × tuning_experiments into one row with W&B run URL + artifact URL + unwound training config.
+- **`scripts/finetune/provenance-report.ts`** — `bun .../provenance-report.ts --adapter salvatore-1988-v3` prints full lineage (experiment config, adapter URIs, eval results, parent experiment chain).
+
+v2 + v3 Phase C.3 runs backfilled into `eval_results` (145 rows across 4 set_name × experiment pairs).
+
+## 10. Pointers
 
 - Code:
   - `scripts/finetune/paragraph_breaks.py` — normalize + coverage assert
@@ -245,7 +295,9 @@ Training cost at current W&B pricing is the same as v2 (~$0.30). Expected improv
   - `scripts/finetune/format-salvatore-sft.py` — SFT formatter with guardrail
   - `scripts/finetune/phase-c3-generalization.py` — val + original test harness
   - `scripts/finetune/style_features.py` — style-feature extractor (sent/dial/clause/sens)
-- Experiments: id=192 (v1), id=194 (v2), id=195 (v2 production probe) in `tuning_experiments`
+- Experiments in `tuning_experiments`: #192 (v1), #194 (v2), #195 (v2 production probe), #196 (v3), #197 (v4 — overfit hypothesis, 1 epoch), #198 (v5 — no-rename hypothesis), #199 (v3 production probe)
+- Eval DB: `SELECT * FROM eval_cell_summary ORDER BY set_name, cell_delta_sum;` for live leaderboard
+- Provenance: `bun scripts/finetune/provenance-report.ts --adapter salvatore-1988-v3` for full lineage
 - Decisions: `docs/decisions.md` — "Salvatore 1988 voice LoRA v2 supersedes v1"
 - Lessons: `docs/lessons-learned.md` — paragraph-break bug + voice-LoRA cross-distribution transfer + W&B pricing
 - Ingestion: `docs/corpus-ingestion.md` — paragraph-break hazard section

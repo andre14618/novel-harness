@@ -1084,6 +1084,29 @@ Phase C.3 generalization testing did NOT catch this because it used training-for
 ### Proper-noun blocklists must cover world elements, not just named characters (2026-04-16 · exp #195)
 Salvatore v2's system prompt blocked Drizzt/Bruenor/Wulfgar/Icewind Dale/Ten-Towns/etc. — named characters and places. Production probe chapter 1 still leaked "the coming of the drow elves" — the LoRA pulled in a world-element noun not in the blocklist. Voice LoRAs trained on a fantasy corpus carry the world taxonomy (species, magic systems, artifacts, continents) not just the proper nouns. For v3, blocklist is expanded to cover drow / dark elves / Underdark / Forgotten Realms / Crenshinibon / Mithril / etc. — the full lore vocabulary, not just people and places.
 
+### Eval-brief stratification must match training-data stratification — else evals are contaminated (2026-04-16 · exp #196)
+v3 Phase C.3 initial results showed max 5-gram Jaccard of **0.822** on the 74-brief val set — 25× higher than v2's 0.100. Looked like catastrophic overfit. It was not. Root cause: **the val briefs came from v2's formatter, which stratified by `(book, kind)`; v3's formatter stratifies by chapter.** The v2 val briefs spread across all 54 chapters; v3's training took 49 of those chapters. Roughly 91% of the "held-out" briefs I used to measure v3 were in v3's training set.
+
+Re-running on v3's actual held-out chapters produced max 5-gram Jaccard **0.023** — below v2's 0.033, normal generalization.
+
+**The rule**: when a training formatter changes stratification (from feature-based to chapter-based, from random to temporal, etc.), the eval sets from the previous regime are no longer valid held-outs. Either:
+- Store eval briefs with their upstream train/val stratification rule recorded, and flag contamination programmatically when used against a different training split, or
+- Maintain separate eval brief sets per stratification regime, and always evaluate an adapter against a set derived from *that adapter's* held-out partition.
+
+Now enforced in `eval_briefs` (set_name includes regime marker: `salvatore-val-stratified-v1` vs `salvatore-v3-actual-val`).
+
+### Rename augmentation × epochs compounds as gradient passes per beat (2026-04-16)
+v3 training: 3 rename variants per chapter × 3 epochs = **9× effective gradient passes per beat**. Training loss collapsed to 0.0096. Pre-investigation, this looked like overfit — contaminated-eval result reinforced the alarm. Post-investigation (contamination was the bug), v3 generalizes fine despite the low loss.
+
+**The rule**: low training loss is not overfit evidence on its own. The diagnostic is **held-out 5-gram Jaccard** on a truly-held-out set. A well-tuned LoRA can drive training loss below 0.02 while still paraphrasing on unseen content (max Jaccard ≤0.05) because sub-word / grammar patterns in voice are compressible. Treat loss-depth warnings ("stop before 0.2") as a soft prior, not a gate.
+
+### Cell-level Δ-sum (delta-of-means) ≠ row-level Δ-sum averaged (mean-of-deltas) (2026-04-16)
+When backfilling eval results into `eval_results`, I stored per-row `delta_sum` computed against the baseline. Averaging that column gives systematically higher values than `phase-c3-generalization.py`'s aggregate output (Jensen's inequality: `avg(|x-c|) ≥ |avg(x)-c|` for convex `|·|`).
+
+v3 clean-val numbers: phase-c3 printed `Δ-sum 0.45`; `SELECT AVG(delta_sum)` returned `1.45`; `SELECT cell_delta_sum FROM eval_cell_summary` (computed from AVG of each style feature) returns `0.447` — matching phase-c3.
+
+**The rule**: when storing per-row style metrics, compute aggregates using delta-of-means for cell comparisons (`|AVG(sent_words) - 18.3| + ...`), not mean-of-row-deltas. Both are valid but measure different things — cell-level matches the method layer's assumption of "this distribution vs baseline," row-level measures per-beat adherence variance. Store both, use the right one for the right question.
+
 ### W&B Serverless SFT is no longer free — but still trivially cheap ($3.76/month observed, $500/month cap) (2026-04-16)
 W&B transitioned out of the ART public-preview free window. Billing dashboard shows $3.76 spent April 1 – April 16 across 4 production adapters + Salvatore voice v1/v2 training + exploratory runs, against a $500/month cap. At ~$0.10–0.60 per r=16 / 700-pair / 3-epoch run on Qwen3-14B, the economics are unchanged from a solo-dev cadence perspective — still below the cost of the evaluation calls. Docs and status tables that called training "free during public preview" have been updated. The `tuning_experiment` row can optionally track $ per run now that it's measurable.
 
