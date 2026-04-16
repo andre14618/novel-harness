@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-15c
+updated: 2026-04-15e
 ---
 
 # Decisions
@@ -1168,3 +1168,49 @@ All three targets met (echo at target, dialogue slightly below 20% for this myst
 - Validate the guided 8-phase flow on 2–3 real novel runs; tune sparsity heuristics if probes misfire.
 - Chip-edit UI (click chip → inline edit or scoped "AI modify" call) not yet built — next UI iteration.
 - Post-planning editing (Option 2) and mid-run steering (Option 3) remain in `docs/todo.md`.
+
+---
+
+## Writer Voice Imprinting
+
+### Target rhythm: 1988 Salvatore action-pulp (Path B)
+*2026-04-15*
+
+**Decision:** Target the 1988 Salvatore / Icewind Dale rhythm for voice-imprinting fine-tuning. This is the "small model + data volume" hypothesis — test whether enough correctly-shaped training pairs can override a model's natural register (sustained/contemplative) and produce short, punchy, action-dominant prose.
+
+**Target profile:**
+- Beat size: ~150–200 words, uniform
+- Sentence length: 10–25 words average
+- Dominant mode: action + dialogue
+- Scene structure: strict `* * *` breaks, hard cuts, restraint over interiority
+
+**Why Path B over Path A (native-fit / 2024 Salvatore) or Path C (hybrid):** User reasoning: "I kind of want to do B because it gives me a real idea of if we can really nudge a model into doing the right thing." The 2024 rhythm is too close to what models do natively — learning nothing. Path B tests the harder, more commercially relevant question (LitRPG pacing maps to 1988 rhythm). If B succeeds, we've proven style malleability. If it fails, we know to retreat to native-fit.
+
+**Corpus:** Icewind Dale Trilogy (Crystal Shard 1988, Streams of Silver 1989, Halfling's Gem 1990). ~307K words, 79 chapters, 260 author-placed scene breaks. Pinquickle's Folly (2024) retained for late-style comparison but not in the training corpus.
+
+**Training base:** Qwen3-14B-Instruct on W&B (r=16 LoRA). DeepSeek V3.2 + Howard primer as the untuned upper baseline.
+
+**Alternatives rejected:**
+- **Path A (native-fit, 2024 Salvatore rhythm)** — too easy; doesn't test whether we can move the model away from defaults. User: "whatever we can replicate is correct as long as they're successful books" but also "I want to know if we can really nudge a model."
+- **Path C (hybrid: native-fit first, retarget later)** — lower risk but defers the interesting question. User chose to front-load the harder test.
+- **Non-Salvatore target** — both ingested corpora are Salvatore. Same author = cleaner signal (controls for vocabulary, world-building style). Genre coverage deferred until after POC.
+
+**Ongoing:**
+- Phase A: decompose bounded scenes into ~150–200w beats, build paired (brief, prose) training corpus
+- Phase B: chunk-size A/B on DeepSeek to validate target size before training
+- Phase C: 2×2 capability-vs-tuning POC on the calibrated pairs
+
+### Uniform beat size for training corpus (calibrated)
+*2026-04-15 · calibration: 10 scenes, 56 beats*
+
+**Decision:** Segment training corpus into uniform **~100–120 word beats** (median 105w). Initial target was 150–200w; calibration on 10 sample scenes showed Salvatore's natural beat is much shorter.
+
+**Why:** Uniformity is the easiest lift for a small LoRA. Variable-length targets force the model to learn length control + voice simultaneously — three objectives competing for limited r=16 capacity. Uniform shape means loss converges faster, model doesn't waste capacity on length, eval is cleaner.
+
+**Calibration evidence:** 56 beats across 10 stratified scenes. Median 105w, mean 103w, p25–p75 = 80w–126w. 90% of beats fall in 60–148w range. Only 5.4% reach the original 150–200w target. Per-scene averages stable at 81–121w regardless of scene length.
+
+**Revised yield:** 135 pass-1 scenes × ~660 beats (up from ~540 at 150–200w target). 660 pairs is comfortably above the 200–500 threshold for voice-imprinting LoRA.
+
+**Scoping (pass 1):** Bounded scenes only (both sides have `* * *` marker), 200–1500 words. Scenes <200w (transition snippets) and >1500w (monolithic, uncertain boundaries) excluded.
+
+**Pass 2 (deferred):** Long monolithic scenes + unbounded chapter-open/close scenes, segmented using boundary signals calibrated from pass 1.
