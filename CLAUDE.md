@@ -219,6 +219,7 @@ ssh novel-harness-lxc "curl -s -X POST http://localhost:3006/api/improvement/sta
 | Architectural decisions with rationale | `docs/decisions.md` |
 | Writer quality oracle (measurement layer) | `docs/writer-imitation-benchmark.md` |
 | Writer methodology design space (method layer) | `docs/writer-style-imitation-design-space.md` |
+| Corpus ingestion (PDF/EPUB → canonical text) | `docs/corpus-ingestion.md` + `scripts/finetune/ingest-corpus.py` |
 
 ## Reference docs
 
@@ -229,6 +230,7 @@ ssh novel-harness-lxc "curl -s -X POST http://localhost:3006/api/improvement/sta
 - `docs/world-knowledge-graph.md` — knowledge graph, context assembly, retrieval parameters
 - `docs/writer-imitation-benchmark.md` — Salvatore Crystal Shard deconstruction plan; 6-stage pipeline; 10 methodologies × 4 metrics scored against real published prose
 - `docs/writer-style-imitation-design-space.md` — companion method layer: 7 architectural layers × 10 end-to-end harness recipes
+- `docs/corpus-ingestion.md` — repeatable PDF/EPUB → canonical-text procedure for any new training corpus
 - `../archives/novel-harness/` — completed research docs + archived scripts/agents (outside repo) — lint pattern research, extractor agents, one-off eval scripts
 
 ## Decision Recording SOP
