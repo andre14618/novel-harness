@@ -16,14 +16,13 @@ Treat writer quality as an engineering problem with a measurable ground truth. D
 **Status (2026-04-16):**
 - Phase A (corpus decomposition): **DONE** — 777 paired (brief, prose) beats, 83,641 prose words, 703/74 train/val
 - Phase B (chunk-size A/B on DeepSeek baseline): **DONE** — 120w wins (Δ-sum 1.81); identifies the rhythm + sensory-density gaps the LoRA must close
-- Phase C (LoRA training): **IN FLIGHT** — `salvatore-1988-v1` submitted to W&B Serverless SFT (ART) on `OpenPipe/Qwen3-14B-Instruct`, exp #192
+- Phase C (LoRA training + validation): **DONE** — `salvatore-1988-v1` trained and validated; Δ-sum 0.45 vs DeepSeek 2.45 (exp #192 concluded)
 
-### Phase C — post-training validation (next, gated on training completion)
-1. Pull adapter URI from W&B (`wandb-artifact:///andre14618-/novel-harness/salvatore-1988-v1:vN`)
-2. Re-run Phase B briefs through the adapter; compare Δ-sum to DeepSeek baseline (1.81)
-3. If Δ-sum < 1.0 → 3-chapter pipeline run (romance-drama / litrpg seed) for production validation; consider promoting to default writer
-4. If Δ-sum ≥ 1.5 → debug data shape (likely sensory-density signal too weak in 100w pairs) before retraining
-5. `bun scripts/finetune/submit-salvatore-training.ts --conclude 192 "<summary>"`
+### Phase D — production validation (next)
+1. 3-chapter pipeline run on litrpg seed with `salvatore-1988-v1` as beat-writer; compare adherence pass rate, lint counts, and structural analysis to DeepSeek + Howard primer baseline
+2. 3-chapter run on romance-drama seed (voice-mismatch genre) to confirm the adapter doesn't catastrophically degrade outside its training distribution
+3. If production holds → register in `models/registry.ts` and add as an opt-in writer for genre-appropriate seeds (eventually default if it also beats DeepSeek on adherence + structural)
+4. If production regresses → keep as tonal-pass candidate (Howard tonal V4 analog for Salvatore voice), not default writer
 
 ### Phase D (deferred) — "Capability vs tuning" 2×2
 Originally planned as POC. Now superseded by the live training run — `salvatore-1988-v1` IS the small-model LoRA cell. If B > C decisively after Phase C validation, skip the 2×2; SFT at small scale answered the question. If B < C, run the larger-base cell (Llama 3.3 70B on Together, ~$2.60) to distinguish "14B too small" from "tuning doesn't move this writer-voice axis."

@@ -1250,6 +1250,26 @@ All three targets met (echo at target, dialogue slightly below 20% for this myst
 
 **Ongoing:** 120w is the production beat target for any Salvatore-flavoured runs. Result file: `scripts/lora-data/phase-b-chunk-size-results.jsonl`.
 
+### Phase C verdict: salvatore-1988-v1 LoRA decisively closes the Salvatore voice gap
+*2026-04-16 · exp #192 · `scripts/finetune/phase-c-ab-salvatore-lora.py`*
+
+**Decision:** salvatore-1988-v1 LoRA wins Phase C A/B decisively against DeepSeek baseline. Δ-sum drops from 2.45 → 0.45 (−2.00, well under the 1.0 production validation bar).
+
+**Per-dimension on 4 stratified briefs at 120w:**
+
+| Dimension | Salvatore target | DeepSeek baseline | salvatore-1988-v1 |
+|---|---|---|---|
+| avg sentence words | 18.3 | 10.8 | 16.4 (closed ~75% of gap) |
+| sensory density | 1.56 | 4.75 (overdrive) | 1.66 (on target) |
+| dialogue ratio | 0.28 | 0.37 | 0.41 |
+| clause complexity | 0.62 | 0.63 | 0.54 |
+
+**Key finding:** the LoRA cleanly addresses both Phase-B-identified gaps (short sentences + sensory overdrive). Sensory density in particular snapped from 4.75 to 1.66 — the model learned the restraint, not just the imagery.
+
+**Adapter URI:** `wandb-artifact:///andre14618-/novel-harness/salvatore-1988-v1` (live on W&B Inference).
+
+**Ongoing:** Promote to registry candidate. Next gate is a 3-chapter production run on litrpg/romance-drama seed before considering making it the default writer or an opt-in style primer alternative. Output: `scripts/lora-data/phase-c-salvatore-ab-results.jsonl`.
+
 ### Salvatore 1988 voice LoRA training kicked off
 *2026-04-16 · exp #192 · adapter `salvatore-1988-v1`*
 

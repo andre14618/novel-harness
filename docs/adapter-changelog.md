@@ -15,7 +15,7 @@ Single source of truth for fine-tuning history across all pipeline agents. One e
 
 | Adapter | Status | Current Version | Exp | Artifact URI |
 |---------|--------|----------------|-----|-------------|
-| Salvatore Voice (Path B) | **IN TRAINING** | V1 · Qwen3-14B SFT | #192 | `salvatore-1988-v1:vN` (pending) |
+| Salvatore Voice (Path B) | **VALIDATED** | V1 · Qwen3-14B SFT | #192 | `salvatore-1988-v1` (Δ-sum 0.45 vs baseline 2.45) |
 | Tonal Pass | **DEPLOYED** | V4 · W&B 14B | #98 | `howard-tonal-v4-sft-resume:v8` |
 | Adherence Checker | **DEPLOYED** | V4 · events+attribution | #161 | `adherence-checker-v4` |
 | Chapter Plan Checker | **DEPLOYED** | V2 · Sonnet teacher | #178 | `chapter-plan-checker-v2:v1` |
@@ -26,7 +26,7 @@ Single source of truth for fine-tuning history across all pipeline agents. One e
 | Relationship Timeline | RETIRED | V1 · Sonnet teacher | #187 | `relationship-timeline-v1:v1` |
 | Reference Resolver | RETIRED | — | — | Llama 3.1 8B sufficient |
 
-### Salvatore Voice V1 — Path B voice imprinting (IN TRAINING — 2026-04-16)
+### Salvatore Voice V1 — Path B voice imprinting (VALIDATED — 2026-04-16)
 
 First voice-imprinting LoRA. Targets the 1988 Salvatore action-pulp rhythm (short punchy sentences, restrained sensory imagery, dialogue-heavy beats) on top of `OpenPipe/Qwen3-14B-Instruct`.
 
@@ -44,7 +44,7 @@ First voice-imprinting LoRA. Targets the 1988 Salvatore action-pulp rhythm (shor
 | Submission script | `bun scripts/finetune/submit-salvatore-training.ts` |
 | Run host | LXC 307 (W&B Serverless SFT, ART framework, free preview tier) |
 
-Validation plan after training: re-run Phase B briefs through the new adapter, compare Δ-sum to DeepSeek baseline. Target Δ-sum < 1.0 for production validation; 3-chapter pipeline run on litrpg/romance-drama seed before declaring deployable. See `docs/decisions.md` "Salvatore 1988 voice LoRA training kicked off."
+**Phase C A/B verdict (2026-04-16):** Δ-sum 0.45 vs DeepSeek baseline 2.45 on 4 stratified briefs at 120w. Both Phase-B-identified gaps closed: avg sentence length 10.8w → 16.4w (target 18.3w), sensory density 4.75 → 1.66 hits/100w (target 1.56). Adapter live on W&B Inference. Next gate: 3-chapter production run on litrpg/romance-drama seed before promoting to default writer or opt-in style alternative. See `docs/decisions.md` "Phase C verdict."
 
 ### Together AI Tier 2 Mirrors (IN TRAINING — 2026-04-12)
 
