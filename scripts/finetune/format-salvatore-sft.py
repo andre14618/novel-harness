@@ -29,8 +29,12 @@ Usage:
 import argparse
 import json
 import random
+import sys
 from pathlib import Path
 from collections import defaultdict
+
+sys.path.insert(0, str(Path(__file__).parent))
+from paragraph_breaks import normalize_breaks, assert_minimum_coverage  # noqa: E402
 
 SYSTEM_PROMPT = """You are writing a single beat of prose in the action-pulp fantasy voice of R.A. Salvatore's 1988 Icewind Dale Trilogy. Each beat is one unit of dramatic action — a single shift in attention, one exchange, or one action sequence.
 
@@ -67,10 +71,25 @@ def main():
     ap.add_argument("--out-dir", required=True, type=Path)
     ap.add_argument("--val-frac", type=float, default=0.1)
     ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--min-break-coverage", type=float, default=0.50,
+                    help="Minimum fraction of pairs that must have \\n\\n paragraph breaks. "
+                         "Guardrail against the v1 wall-of-text bug. Set to 0.0 to disable.")
     args = ap.parse_args()
 
     random.seed(args.seed)
     pairs = [json.loads(l) for l in open(args.input)]
+
+    # Paragraph-break guardrail: normalize every prose field and assert
+    # coverage before training. Prevents the v1 Salvatore bug (wall-of-text
+    # output) from repeating silently. See scripts/finetune/paragraph_breaks.py.
+    for p in pairs:
+        p["prose"] = normalize_breaks(p["prose"])
+    assert_minimum_coverage(
+        [p["prose"] for p in pairs],
+        min_blank_break_pct=args.min_break_coverage,
+        dialogue_kinds=["dialogue"],
+        kinds=[p["brief"].get("kind", "?") for p in pairs],
+    )
 
     strata = defaultdict(list)
     for p in pairs:
@@ -109,8 +128,11 @@ def main():
     total_prose_words = sum(len(p["prose"].split()) for p in pairs)
     train_words = sum(len(p["prose"].split()) for p in train)
 
+    from paragraph_breaks import measure
+    cov = measure([p["prose"] for p in pairs])
     print(f"=== SFT format ===")
     print(f"Total pairs: {len(pairs)}")
+    print(f"Paragraph-break coverage: {cov.summary()}")
     print(f"Train: {len(train)} ({train_words:,} prose words)")
     print(f"Val:   {len(val)} ({total_prose_words-train_words:,} prose words)")
     print(f"Train → {train_path}")
