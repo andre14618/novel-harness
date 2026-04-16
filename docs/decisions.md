@@ -1353,6 +1353,26 @@ All three targets met (echo at target, dialogue slightly below 20% for this myst
 
 **Implication:** Every experiment now has a small direct cost. `tuning_experiment` config should optionally track $ per run going forward. Current ~$0.10–0.60 per run is well below the noise floor of an abandoned experiment.
 
+### Pre-2026-04-15 telemetry and state archived to `archive` schema
+*2026-04-16 · migration `sql/022_archive_stale_data.sql`*
+
+**Decision:** Moved all pre-cutoff telemetry and state-table rows into a new `archive.*` schema in the same Postgres DB. Public schema now reflects only the current pipeline shape (DeepSeek V3.2 + Howard primer writer, post-2026-04-15).
+
+**Why:** The pipeline architecture changed materially on 2026-04-15 (writer swap + primer default + beat-context assembly). Pre-cutoff telemetry and novel state came from a different pipeline and muddies calibration for any current-pipeline analysis (checker evals, writer benchmarks, failure-distribution mining for retry-variant training, daemon diagnostics).
+
+**Scope:**
+- **Archived by timestamp (< 2026-04-15):** `llm_calls`, `pipeline_events`, `issues`, `finetune_training_data`
+- **Archived by novel_id (novels created < 2026-04-15):** `facts`, `timeline_events`, `event_causes`, `knowledge_propagation`, `character_system_awareness`, `world_systems`, `cultures`, `character_cultures`, `character_states`, `relationship_states`, `character_knowledge`, `chapter_summaries`
+- **Archived wholesale (100% pre-cutoff, benchmark artifacts):** `batch_requests`, `pairwise_matchups`, `lint_issues`, `scores`, `generations`
+
+**Kept intact in `public`:** `tuning_experiments` + `tuning_results` + `experiment_lineage` (rule: never delete experiments); `runs` + `run_agents` (linked to experiments); `novels` + `chapter_drafts` + `chapter_outlines` + `characters` + `world_bibles` + `story_spines` (novel content — readers may reference historical novels).
+
+**Result:** public-schema size dropped from ~220 MB to 16 MB (87% reduction). 21 archive tables hold 141 MB of historical data, fully queryable as `archive.*`. Orchestrator restart verified clean.
+
+**Reversibility:** `INSERT INTO public.X SELECT * FROM archive.X WHERE ...` restores any subset. Archive schema is not write-protected.
+
+**Ongoing:** any future "mine production failure distribution" or "harvest training data" query should target `public.*` only. For historical comparisons, explicitly query `archive.*`. When the pipeline makes another materially different shift, repeat this pattern with a new cutoff.
+
 ### Salvatore v2 fails 3-chapter production probe — v3 retraining on harness-shaped user prompts authorized
 *2026-04-16 · exp #195*
 
