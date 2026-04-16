@@ -206,7 +206,7 @@ export const WRITER_GENRE_PACKS: WriterGenrePack[] = [
     match: /\b(action.?pulp|sword.?and.?sorcery|sword.?&.?sorcery|epic fantasy|heroic fantasy|dark fantasy|fantasy)\b/i,
     model: {
       provider: "wandb",
-      model: "wandb-artifact:///andre14618-/novel-harness/salvatore-1988-v2:v1",
+      model: "wandb-artifact:///andre14618-/novel-harness/salvatore-1988-v3",
       temperature: 0.8,
       maxTokens: 4000,
     },
