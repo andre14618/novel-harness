@@ -795,3 +795,25 @@ The remaining risk: even with perfect context, a 9B model may produce prose that
 8. OpenAI. "DPO Fine-Tuning Guide." https://developers.openai.com/cookbook/examples/fine_tuning_direct_preference_optimization_guide
 9. ZeroStylus. "Long-Text Style Transfer via Dual-Layered Structure." arXiv:2505.07888, 2025. https://arxiv.org/abs/2505.07888
 10. Raschka, S. "Practical Tips for Finetuning LLMs Using LoRA." 2023. https://magazine.sebastianraschka.com/p/practical-tips-for-finetuning-llms
+
+---
+
+## Addendum: Voice-imprint LoRA (primary-writer slot) — 2026-04-16
+
+This report's back-translation pipeline targets a **rewriter** (paragraph-in → styled-paragraph-out). A second class of voice LoRA has since been built: **voice-imprint** adapters for the **primary writer** slot (beat-brief → prose). Forward direction; no neutral intermediate.
+
+See `docs/voice-lora-salvatore.md` for the Salvatore 1988 experiment, the Phase C/C.2/C.3 evaluation design (val + original-character generalization), and the replication recipe for future voice LoRAs (Howard, Cook, etc.).
+
+Key methodology differences vs the back-translation rewriter work above:
+
+| Dimension | Rewriter (Howard tonal v4) | Primary writer (Salvatore v2) |
+|---|---|---|
+| Input | Paragraph of neutral prose | Beat brief (characters, POV, setting, tone, summary) |
+| Output | Same paragraph, restyled | Fresh prose (~100–400w) |
+| Training pairs | (neutral ↔ stylized) | (brief, real author prose) |
+| Source | Back-translation via LLM | Published novel corpus, decomposed via sub-agent pipeline |
+| Gate metric | Pref eval + classifier | Δ-sum vs corpus baseline + paragraph-break coverage + 5-gram Jaccard (memorization floor) |
+| Held-out test | Val split | Val split + **original-character** (unseen entities) |
+| Volume needed | ~500–2000 paired paragraphs | ~700 paired beats across ~300K-word corpus |
+
+The paragraph-break guardrail in `scripts/finetune/paragraph_breaks.py` applies to any SFT formatter that emits author-trained prose — both rewriter and voice-imprint. The Salvatore v1 bug is the precedent: voice absorption without break absorption is a deployment trap.

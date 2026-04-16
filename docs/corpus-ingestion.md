@@ -92,6 +92,46 @@ If any warning fires, **do not feed the file downstream**. Inspect the report an
 
 Then re-run with `--force` and re-validate.
 
+## Paragraph-break hazard (READ BEFORE TRAINING)
+
+PDF extraction routinely drops paragraph breaks in dialogue-heavy prose. `pypdf` emits one physical-PDF-line per `\n` and never promotes the turn-boundary breaks back into `\n\n`. EPUB ingestion is safer (paragraphs come from `<p>` tags) but custom-styled publishers can still collide.
+
+**The Salvatore v1 LoRA shipped this bug.** 0/6 original-character Phase C.3 generations had a single blank line between speaker turns — the model had trained on the wall-of-text and learned to reproduce it. See `docs/voice-lora-salvatore.md` and the 2026-04-16 decisions entry for the full post-mortem.
+
+**The guardrail** — every SFT formatter must call these before emitting training data:
+
+```python
+from paragraph_breaks import normalize_breaks, assert_minimum_coverage
+
+for p in pairs:
+    p["prose"] = normalize_breaks(p["prose"])
+
+assert_minimum_coverage(
+    [p["prose"] for p in pairs],
+    min_blank_break_pct=0.50,       # total corpus floor
+    dialogue_kinds=["dialogue"],     # dialogue-kind pairs must be ≥80%
+    kinds=[p["brief"].get("kind") for p in pairs],
+)
+```
+
+`normalize_breaks` is idempotent — running it on already-well-formed prose is a no-op. `assert_minimum_coverage` raises a `RuntimeError` if coverage drops below threshold. See `scripts/finetune/paragraph_breaks.py`.
+
+**Upstream check for new ingests.** After running `ingest-corpus.py`, run this one-liner against the text output:
+
+```bash
+python3 - <<'PY' scripts/lora-data/<your-ingest>.txt
+import sys
+text = open(sys.argv[1]).read()
+blocks = text.count("\n\n")
+dialogue_turns = sum(text.count("\n" + q) for q in ('"', "\u2018", "\u201c"))
+print(f"blank-line blocks: {blocks}")
+print(f"lines starting with an opening quote: {dialogue_turns}")
+print(f"dialogue-turn / block ratio: {dialogue_turns / max(1, blocks):.2f}")
+PY
+```
+
+A healthy novel-length corpus has `\n\n` blocks ≥ 2000 and `dialogue-turns / blocks ≥ 0.15` (more for dialogue-heavy authors). If the block count is low or the ratio is near zero, inspect the raw output — the extractor probably lost breaks. Fix at this stage, not at training stage.
+
 ## Spot-check checklist
 
 After validation passes, before running decomposition:

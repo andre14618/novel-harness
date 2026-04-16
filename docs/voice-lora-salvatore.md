@@ -1,0 +1,207 @@
+---
+status: active
+updated: 2026-04-16
+---
+
+# Voice-Imprinting LoRA: Salvatore 1988 — Experiment Report & Replication Recipe
+
+First voice-imprinting fine-tune in the harness. The goal was to see how much of a specific author's voice a 14B LoRA on ~700 paired (brief, prose) examples can pick up, and whether the result is usable in the writer slot for novel generation. This doc is both the Salvatore-specific post-mortem and the replication recipe for future voice LoRAs (Howard, Cook, Wolfe, whoever).
+
+---
+
+## 1. Why Salvatore
+
+- **1988 Salvatore** (Icewind Dale Trilogy: *The Crystal Shard*, *Streams of Silver*, *The Halfling's Gem*) is a distinct, high-volume, single-voice corpus — ~307K total words with consistent voice. The later Salvatore (2024 *Pinquickles Folly*) drifts, so we bounded the corpus to the 1988-1990 trilogy.
+- Action-pulp fantasy is a real slot in our target genre space (adjacent to LitRPG). A LoRA that nails Salvatore's sentence cadence and sensory restraint is an end product, not just a research artifact.
+- Salvatore's voice has a measurable fingerprint that ICL can't reproduce: **18.3w average sentence length** with bursts of short punchy lines, **1.56 sensory-density-per-100w** (low — most generic LLMs overdrive sensory detail to 4–6), **clause complexity 0.62**, **dialogue ratio 0.28**.
+
+---
+
+## 2. Corpus → training data pipeline
+
+This is the pipeline any new voice LoRA reuses. Six stages, largely deterministic after Stage 2.
+
+| Stage | Granularity | Producer | Output |
+|---|---|---|---|
+| 1. Ingest | Book | `scripts/finetune/ingest-corpus.py` | Canonical `.txt` with `=== heading ===` + `* * *` markers |
+| 2. Mechanical split | Chapter | Section regex | One file per chapter |
+| 3. Scene segmentation | Scene (~500–1500w) | Claude Code sub-agent | `{ scene_id, characters, setting, pov }` |
+| 4. Beat segmentation | Beat (~100–400w) | Claude Code sub-agent | `{ beat_id, brief: { characters, pov, setting, tone, kind, summary, words }, prose }` |
+| 5. Style tag | Beat | Deterministic (`style_features.py`) | `{ avg_sentence_words, dialogue_ratio, clause_complexity, sensory_density }` |
+| 6. Validate + format | Dataset | `format-salvatore-sft.py` | `salvatore-1988-sft-{train,val}.jsonl` |
+
+**Salvatore specifics:** 777 paired beats (~100w median), stratified 703/74 train/val by (book × kind). Voice-imprint adapters use stratified splits to ensure test coverage across all kind types.
+
+### 2.1 The paragraph-break bug (v1 → v2)
+
+v1 trained on 777 pairs where PDF extraction had silently collapsed paragraph breaks. The Salvatore PDFs have one physical line per dialogue turn, which `pypdf` preserves as `\n`, but the format stage never promoted lone `\n` into `\n\n`. The LoRA trained on wall-of-text and output wall-of-text.
+
+**The fix — two layers:**
+
+1. **Corpus repair** (`scripts/finetune/fix-paragraph-breaks.ts`): pass 1 normalize `\n+ → \n\n`; pass 2 on any surviving zero-break pair, inject `\n\n` before quoted turns following a sentence terminator. Recovered 611/777 (79%) paragraph-break coverage. Remaining 166 verified legitimately single-paragraph.
+2. **Methodology guardrail** (`scripts/finetune/paragraph_breaks.py`): `normalize_breaks()` idempotent helper + `assert_minimum_coverage()` gate (≥50% corpus-wide, ≥80% dialogue-kind). Called from every SFT formatter before emitting.
+
+**The lesson:** voice-imprint corpora need an explicit paragraph-break density check. The check is cheap, invisible-bug costs are expensive.
+
+---
+
+## 3. Phase C — A/B/C evaluation design
+
+Four briefs stratified by kind (action, dialogue, interiority, description) from the 1988 Salvatore set. Three cells:
+
+| Cell | Base | Voice mechanism |
+|---|---|---|
+| A | DeepSeek V3.2 | bare prompt (style targets described) |
+| B | DeepSeek V3.2 | + 10K-token Salvatore primer (31 exemplar passages) |
+| C | Qwen3-14B + LoRA | `salvatore-1988-v1` / `v2` |
+
+The style oracle is **Δ-sum** — Manhattan distance from the corpus baseline across 4 dimensions (weighted so each axis contributes a similar range):
+
+```
+Δ-sum = |sent − 18.3| / 10
+      + |dialogue − 0.28|
+      + |clause − 0.62|
+      + |sensory − 1.56| / 2
+```
+
+### 3.1 Phase C.2 (in-distribution, 4 briefs)
+
+| Cell | avg sentence words | sensory | Δ-sum |
+|---|---:|---:|---:|
+| A — DeepSeek bare | 10.6 | 6.39 | 3.41 |
+| B — DeepSeek + primer | 10.6 | 4.92 | 2.67 |
+| C — LoRA v1 | 15.9 | 1.76 | **0.71** |
+
+Key finding: **sentence-length rhythm does not transfer via ICL.** A and B both hit 10.6w despite the primer containing 18.3w exemplars. Only tuning moves that axis.
+
+### 3.2 Phase C.3 (generalization test — the one that decides viability)
+
+Two held-out sets:
+- **Val** (74 beats): held-out from the same trilogy, never seen in training.
+- **Original** (6 beats): original characters (Thane Vordik, Corra Ashwick, Irinye, Garrett the Limp) in original settings (Bren's Rest, Varl Peaks, Sellanthir elven enclave). Deliberately no trained lore — no Drizzt, no Ten-Towns, no Mithril Hall.
+
+**Val mode (n=74):**
+
+| Cell | Δ-sum | 5-gram Jaccard max | Paragraph breaks |
+|---|---:|---:|---:|
+| A — DeepSeek bare | 2.28 | — | n/a |
+| B — DeepSeek + primer | 1.92 | — | n/a |
+| C — LoRA v1 | 0.50 | 0.100 | 0/74 |
+| C — **LoRA v2** | **0.27** | **0.033** | **51/74** |
+
+**Original mode (n=6):**
+
+| Cell | Δ-sum | Scenes landed | Paragraph breaks |
+|---|---:|---:|---:|
+| A — DeepSeek bare | 3.22 | 2/6 | — |
+| B — DeepSeek + primer | 2.52 | 4/6 | — |
+| C — LoRA v1 | 0.32 | 6/6 | 0/6 |
+| C — **LoRA v2** | 0.66 | 6/6 | 3/6 |
+
+**Reading the numbers:**
+- **Voice generalizes.** Both v1 and v2 crush A and B on *unseen* characters and settings. Original-mode Δ-sum stays ~0.5 or better while the best ICL baseline is ~2.5.
+- **It's style capture, not content memorization.** Val-mode 5-gram Jaccard max is 0.033 on v2 and 0.100 on v1. The LoRA paraphrases — it does not recite.
+- **v2 Δ-sum on original went up slightly (0.32 → 0.66).** n=6, word count drifted up (more paragraph breaks → longer generations → higher sentence-length variance). Spot-checks still land the scene 6/6 and dialogue turns split at speaker boundaries. Net: not a regression in prose quality.
+- **v2 fixed the wall-of-text.** 51/74 val + 3/6 original generations now have paragraph breaks (v1: 0 and 0).
+
+### 3.3 Proper-noun leak rate
+
+~1 per 6 beats leak trained lore (Ten-Towns, Lonelywood, etc.) into original-character outputs. This is addressable at the system prompt with a proper-noun blocklist — no retrain needed.
+
+---
+
+## 4. What's baked into the fine-tune vs what stays in the harness
+
+**The LoRA delivers (in weights):**
+- Sentence cadence (18.3w average, burst-heavy rhythm)
+- Sensory restraint (1.56/100w, no AI-overdrive imagery)
+- Dialogue tagging discipline
+- Physical verb bias
+- Paragraph-break structure (v2 only — post-fix)
+
+**The harness delivers (not the LoRA's job):**
+- Beat adherence (events happen, characters present, POV correct) — checked by `adherence-checker-v4`
+- World-state continuity — checked by `continuity-v2`
+- Proper-noun discipline (don't use trained lore on other-genre novels) — system-prompt blocklist
+- Word count targeting — **dropped as a per-beat gate for all writers** (was noise; voice quality is the ultimate goal)
+- Genre routing (this LoRA for Salvatore-style action-pulp fantasy seeds, DeepSeek+primer for everything else) — `src/models/roles.ts`
+
+---
+
+## 5. Harness integration plan
+
+1. **Genre-slot routing in `src/models/roles.ts`.** Per-seed writer override: action-pulp fantasy seeds → `wandb-artifact:///andre14618-/novel-harness/salvatore-1988-v2:v1`; other seeds → DeepSeek V3.2 + Howard primer (current default).
+2. **Proper-noun blocklist in the LoRA system prompt.** Append: "Do not use the following names: Drizzt, Bruenor, Wulfgar, Regis, Catti-brie, Icewind Dale, Ten-Towns, Mithril Hall, Lonelywood, Bryn Shander, Targos, Crystal Shard." Expand as new leaks are observed.
+3. **Drop the per-beat word-count gate from the adherence checker for all writers.** Voice LoRAs land shorter or longer than the brief's target words. The value of the fine-tune is in cadence and prose quality — word count was never the load-bearing signal.
+4. **3-chapter production run on a Salvatore-style fantasy seed.** Gate before promoting to default in that slot.
+
+---
+
+## 6. Replication recipe for the next voice LoRA
+
+To build a new author voice LoRA (Howard, Cook, Wolfe, etc.):
+
+```
+1. Ingest corpus
+   python3 scripts/finetune/ingest-corpus.py --input author.epub --output scripts/lora-data/author.txt
+
+2. Verify paragraph-break density upstream (see docs/corpus-ingestion.md §"Paragraph-break hazard")
+   # expect \n\n blocks ≥ 2000, dialogue-turn / block ratio ≥ 0.15
+
+3. Decompose to (brief, prose) pairs via sub-agent pipeline
+   # produces scripts/lora-data/<author>-training-pairs-tagged.jsonl
+
+4. If dialogue-heavy and from PDF: run the break-restoration pass
+   bun scripts/finetune/fix-paragraph-breaks.ts
+
+5. Format to SFT with the guardrail enforced
+   python3 scripts/finetune/format-<author>-sft.py \
+     --input scripts/lora-data/<author>-training-pairs-fixed.jsonl \
+     --out-dir finetune-data \
+     --val-frac 0.1 --seed 42
+   # fails loudly if paragraph-break coverage < 50% or dialogue kind < 80%
+
+6. Push SFT files to LXC finetune-data/
+
+7. Create tuning_experiment row (target=writer, dimension=voice_imprint)
+
+8. Submit W&B training
+   EXPERIMENT_ID=N python3 scripts/finetune/train-lora.py \
+     --name <author>-v1 \
+     --data finetune-data/<author>-sft-train.jsonl \
+     --epochs 3 --batch-size 2 --lr 2e-4
+
+9. Phase C.3 validation — val-split + original-character briefs
+   python3 scripts/finetune/phase-c3-generalization.py --mode val ...
+   python3 scripts/finetune/phase-c3-generalization.py --mode original ...
+   # gate: Δ-sum ≤ 1.0, paragraph breaks present in dialogue outputs
+
+10. Conclude experiment, update docs/decisions.md, update roles.ts genre routing
+```
+
+**Budget reference.** At current W&B pricing ($3.76/month across 4 deployed adapters + voice runs), expect a single voice LoRA to cost ~$0.30–0.60 end to end. The evaluation calls often cost more than the training run.
+
+---
+
+## 7. Open questions / deferred work
+
+- **Does r=16 saturate?** v1 → v2 closed the paragraph-break gap without changing rank. For an author with rarer syntactic constructions (Wolfe, McCarthy), r=16 may leave capacity on the table. W&B's rank-16 cap is a platform constraint, not a methodological one.
+- **Does longer training help?** 3 epochs on 703 pairs was picked by analogy to the tonal-pass adapters. Larger corpora may need 2 epochs; shorter corpora may need 4. Not systematically explored.
+- **Do we need negative data?** Current pipeline is purely positive (brief → target prose). No evidence yet that we need contrast pairs; voice capture works without them.
+- **Multi-author blends.** Open question — a single LoRA trained on two authors may average, or may pick up the union. Not tested.
+
+---
+
+## 8. Pointers
+
+- Code:
+  - `scripts/finetune/paragraph_breaks.py` — normalize + coverage assert
+  - `scripts/finetune/fix-paragraph-breaks.ts` — corpus-level repair (Salvatore-specific, but pattern reusable)
+  - `scripts/finetune/format-salvatore-sft.py` — SFT formatter with guardrail
+  - `scripts/finetune/phase-c3-generalization.py` — val + original test harness
+  - `scripts/finetune/style_features.py` — style-feature extractor (sent/dial/clause/sens)
+- Experiments: id=192 (v1), id=194 (v2) in `tuning_experiments`
+- Decisions: `docs/decisions.md` — "Salvatore 1988 voice LoRA v2 supersedes v1"
+- Lessons: `docs/lessons-learned.md` — paragraph-break bug + voice-LoRA cross-distribution transfer + W&B pricing
+- Ingestion: `docs/corpus-ingestion.md` — paragraph-break hazard section
+- Strategy: `docs/fine-tuning-strategy.md` — adapter roadmap

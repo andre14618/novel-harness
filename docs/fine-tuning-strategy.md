@@ -1,13 +1,13 @@
 ---
 status: active
-updated: 2026-04-10
+updated: 2026-04-16
 ---
 
 # Fine-Tuning Strategy
 
 ## The Core Premise
 
-Training is free during W&B public preview (temporary — will become paid). Inference is $0.05/$0.22 per 1M tokens with a $2/month free credit. One base model — `OpenPipe/Qwen3-14B-Instruct` on W&B Inference — with multiple task-specific LoRA adapters. W&B is the prototyping tier; production may require migration to a provider with broader model support (see `docs/wandb-alternatives-report.md`). The cost of a failed experiment is ~$0.02 in evaluation calls.
+Training is metered (no longer free) — **$3.76 observed spend April 1 → April 16 2026 against a $500/month cap**, working out to ~$0.10–0.60 per r=16 / 700-pair / 3-epoch run on Qwen3-14B. Inference is $0.05/$0.22 per 1M tokens with a $2/month free credit. One base model — `OpenPipe/Qwen3-14B-Instruct` on W&B Inference — with multiple task-specific LoRA adapters. W&B is the prototyping tier; production may require migration to a provider with broader model support (see `docs/wandb-alternatives-report.md`). The cost of a failed experiment is roughly the training run plus ~$0.02 in evaluation calls — still trivial.
 
 This changes the math: every agent in the pipeline is a fine-tune candidate. The question is no longer "can we afford to try this?" but "what do we expect to learn?"
 
@@ -16,12 +16,13 @@ This changes the math: every agent in the pipeline is a fine-tune candidate. The
 ```
 OpenPipe/Qwen3-14B-Instruct (hot, always warm)
   ├── novel-harness/adherence-checker-v4      [DEPLOYED — events+attribution, 2134 Sonnet-labeled pairs]
-  ├── novel-harness/tonal-howard-v4           [DEPLOYED — pref eval confirmed 2026-04-11]
+  ├── novel-harness/tonal-howard-v4           [DEPLOYED — pref eval confirmed 2026-04-11; auto-run disabled 2026-04-15, on-demand only]
   ├── novel-harness/chapter-plan-checker-v2   [DEPLOYED — 96% accuracy, 609ms, exp #178]
   ├── novel-harness/continuity-v2             [DEPLOYED — 253 pairs, 12× cost reduction, exp #175]
-  ├── novel-harness/fact-extractor-v1         [PLANNED]
+  ├── novel-harness/salvatore-1988-v2         [SHIPPED — voice-imprint LoRA, Phase C.3 val Δ-sum 0.27, exp #194]
+  ├── novel-harness/fact-extractor-v1         [RETIRED — extraction removed, plan-only 2026-04-13]
   ├── novel-harness/lint-fixer-v1             [PLANNED]
-  ├── novel-harness/voice-pass-archetype-v1   [PLANNED — Phase 3, after context eng]
+  ├── novel-harness/voice-pass-archetype-v1   [SUPERSEDED — voice now lands at generation via Salvatore LoRA or DeepSeek+primer]
   └── novel-harness/beat-writer-v1            [EXPERIMENTAL — blocked on structural diversity]
 ```
 
@@ -35,7 +36,7 @@ OpenPipe/Qwen3-14B-Instruct (hot, always warm)
 | Training | W&B Serverless SFT via ART (`pip install openpipe-art`) |
 | Serving | W&B Inference, `WANDB_API_KEY` in env |
 | Inference cost | $0.05/M input · $0.22/M output |
-| Training cost | Free during public preview (temporary — will become paid) |
+| Training cost | **Metered (paid).** ~$0.10–0.60 per r=16 / ~700-pair / 3-epoch run. $3.76/month observed across all active work. $500/month cap. |
 | Storage | 5 GB free tier (pay-as-you-go). ~134 MB per adapter, ~3.7 GB per training run (auto-cleaned). Train one at a time. |
 | Max LoRA rank | 16 (W&B Inference hard limit) |
 | Training script | `scripts/finetune/train-lora.py` (Python, not Bun) |
@@ -365,6 +366,8 @@ Representative archetypes (profiles informed by modern genre study):
 **Label quality gates.** Every dataset needs a human review pass before training. Target: review 20-30% of examples manually, correct systematic errors, then scale. `scripts/build-analytical-finetune-data.ts` + `/app/finetune` review UI are the tools.
 
 **Compact input format first.** For slots where prompt compression is part of the value (continuity, chapter-plan-checker), design the compact input format before generating training data. Training data must match the inference format.
+
+**Paragraph-break guardrail (mandatory for voice/writer tunes).** PDF extraction silently loses paragraph breaks. Every SFT formatter must run `scripts/finetune/paragraph_breaks.py::normalize_breaks()` on every prose field before emitting JSONL, and call `assert_minimum_coverage()` (≥50% of pairs with `\n\n`, ≥80% on dialogue-kind pairs). The Salvatore v1 LoRA shipped wall-of-text output because this check didn't exist; v2 (with the guardrail) has paragraph breaks in 51/74 val generations. See `docs/voice-lora-salvatore.md` for the post-mortem and `docs/corpus-ingestion.md` for the upstream ingestion check.
 
 ## Data Sufficiency Assessment (2026-04-09)
 

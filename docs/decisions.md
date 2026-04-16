@@ -1314,3 +1314,41 @@ All three targets met (echo at target, dialogue slightly below 20% for this myst
 2. Re-run Phase B briefs through the adapter; compare Δ-sum to DeepSeek baseline (1.81)
 3. If Δ-sum < 1.0, run a 3-chapter pipeline against romance-drama/litrpg seeds for production validation
 4. If still > 1.5, debug data shape (likely sensory-density signal too weak in 100w pairs) before retraining
+
+### Salvatore 1988 voice LoRA v2 supersedes v1 — paragraph breaks restored, cross-distribution voice transfer confirmed
+*2026-04-16 · exp #194 · adapter `salvatore-1988-v2:v1`*
+
+**Decision:** v2 replaces v1 as the canonical Salvatore voice adapter. URI: `wandb-artifact:///andre14618-/novel-harness/salvatore-1988-v2:v1`.
+
+**Why (the bug):** v1 was trained on a corpus where PDF extraction had silently collapsed paragraph breaks — `pypdf` preserved `\n` but the downstream pipeline did not promote lone `\n` at dialogue-turn boundaries back into `\n\n`. Result: v1 learned wall-of-text output. 0/6 original-character generations had paragraph breaks. Dialogue ran together in one blob.
+
+**Fix:** `scripts/finetune/fix-paragraph-breaks.ts` rebuilds the `prose` field with two passes: (1) `\n+ → \n\n` normalization — in Salvatore's PDF, each dialogue turn already sat on its own line, so lone newlines *were* real breaks; (2) for the remaining wall-of-text pairs (no newlines at all), inject `\n\n` before any quoted turn following a sentence terminator. Result: 611/777 (79%) of pairs now have `\n\n` breaks; the remaining 166 verified legitimately single-paragraph (38 description, 49 interiority, 76 action, 3 dialogue).
+
+**Phase C.3 validation (v1 → v2):**
+
+| Test | Metric | v1 | v2 |
+|---|---|---|---|
+| Val (74 held-out) | Δ-sum | 0.50 | **0.27** |
+| Val (74 held-out) | 5-gram Jaccard max | 0.100 | **0.033** |
+| Val (74 held-out) | outputs with `\n\n` | 0/74 | **51/74** |
+| Original (6 new-character briefs) | Δ-sum | 0.32 | 0.66 |
+| Original (6 new-character briefs) | outputs with `\n\n` | 0/6 | **3/6** |
+
+**Cross-distribution generalization (Phase C.3 original mode) remains strong.** Both v1 and v2 crush A/B baselines (DeepSeek bare 3.22, DeepSeek+primer 2.52). v2's original Δ-sum regressed slightly (0.32 → 0.66) but n=6 and the longer outputs (137.8w vs v1's shorter) raise sentence-length variance — not a voice regression. Dialogue spot-checks confirm speaker turns land on separate paragraphs.
+
+**Alternatives rejected:**
+- **Post-hoc paragraph-break insertion at inference time.** Considered inserting breaks deterministically on the writer output. Rejected because it'd require a stateful parser that knows speaker turns and has to recover from mistakes — the LoRA learning to emit breaks is the root fix.
+- **Harness changes instead of LoRA retrain.** Considered relaxing word-count gate, adding proper-noun blocklist, and calling v1 "good enough." These harness changes are still needed, but wall-of-text dialogue was severe enough to block any production use.
+
+**Paragraph-break guardrail now baked into methodology.** `scripts/finetune/paragraph_breaks.py` provides `normalize_breaks()` (idempotent) and `assert_minimum_coverage()` (raises if <50% of pairs have `\n\n` or if dialogue-kind pairs dip below 80%). `scripts/finetune/format-salvatore-sft.py` calls both before emitting SFT files. Any future voice LoRA formatter must do the same — see `docs/voice-lora-salvatore.md` and `docs/corpus-ingestion.md` for the procedure.
+
+**Ongoing:**
+- v2 is not yet a default writer. Pending harness plumbing: genre-slot routing in `src/models/roles.ts`, proper-noun blocklist in the LoRA system prompt (block `Drizzt, Bruenor, Wulfgar, Regis, Catti-brie, Icewind Dale, Ten-Towns, Mithril Hall, Lonelywood, Bryn Shander, Targos, Crystal Shard`), dropping the per-beat word-count gate from the adherence checker for all writers.
+- Full 3-chapter production run on Salvatore-style fantasy seed still owed.
+
+### W&B Serverless SFT training is now metered (no longer free during public preview)
+*2026-04-16 · observed from billing dashboard*
+
+**Decision:** Note the pricing change. W&B training is now billed but cheap — $3.76 spent April 1 → April 16 across all active adapter training (4 deployed adapters + Salvatore v1/v2 voice runs + experiments), against a $500/month cap. Still functionally free at solo-dev cadence. No action required; the docs just need to stop calling it "free during public preview."
+
+**Implication:** Every experiment now has a small direct cost. `tuning_experiment` config should optionally track $ per run going forward. Current ~$0.10–0.60 per run is well below the noise floor of an abandoned experiment.

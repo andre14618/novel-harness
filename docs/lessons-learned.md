@@ -1040,6 +1040,36 @@ The adapter matched the teacher (Sonnet) almost exactly. The 82% direct agreemen
 
 **The diagnostic**: read the disagreement direction before acting on the headline number. If disagreements are predominantly `adapter=FAIL, oracle=PASS` for known FAIL cases, the adapter is more accurate. If they're predominantly `adapter=PASS, oracle=FAIL`, the adapter is under-fitting.
 
+### Paragraph breaks can silently vanish in PDF ingestion — assert coverage before every SFT emit (2026-04-16 · exp #192/#194)
+Salvatore v1 LoRA shipped a silent wall-of-text bug. The corpus came from `pypdf` + `pdfminer` fallback, which preserved `\n` per physical PDF line but never promoted single newlines at dialogue-turn boundaries into paragraph breaks. The SFT formatter didn't check. The LoRA learned: given a brief, emit a blob. 0/6 original-character Phase C.3 beats had a single `\n\n` between speaker turns. It was invisible in aggregate style metrics (Δ-sum, sentence length) because the measure doesn't penalize missing whitespace.
+
+v2 fix had two mechanical parts:
+1. **Corpus-level**: `scripts/finetune/fix-paragraph-breaks.ts` — pass 1 `\n+ → \n\n` (every extracted line in Salvatore's PDF was a real turn boundary), pass 2 for surviving wall-of-text pairs, inject `\n\n` before any quoted turn following a sentence terminator. 611/777 pairs recovered breaks; the remaining 166 were legitimately single-paragraph.
+2. **Methodology-level**: `scripts/finetune/paragraph_breaks.py` exports `normalize_breaks()` (idempotent) and `assert_minimum_coverage()` (raises if < 50% of pairs have `\n\n` or < 80% of dialogue-kind pairs have `\n\n`). Every SFT formatter calls both before emitting.
+
+Measured v1 → v2 with the fix in place: Phase C.3 val Δ-sum 0.50 → 0.27, max 5-gram Jaccard 0.100 → 0.033 (less memorization as a side effect of training on cleaner paragraphs), outputs with paragraph breaks 0/74 → 51/74.
+
+**The rule:** every new corpus ingestion must print a `\n\n` density check before downstream use. The SFT formatter gate is backstop-only; catching it upstream is faster. See `docs/corpus-ingestion.md`.
+
+### Voice LoRA on Qwen3-14B transfers to unseen characters/settings — it's style capture, not content memorization (2026-04-16 · exp #194)
+Phase C.3 generalization test (74 held-out val beats + 6 original-character briefs with deliberately unseen proper nouns — Thane Vordik, Corra Ashwick, Irinye, Garrett the Limp in Bren's Rest / Varl Peaks / Sellanthir) showed the Salvatore v1 and v2 LoRAs both crush DeepSeek bare + DeepSeek+primer baselines.
+
+| Mode | Cell | Δ-sum | scenes landed |
+|---|---|---:|---|
+| Val (n=74) | DeepSeek bare | 2.28 | — |
+| Val (n=74) | DeepSeek + 10K Salvatore primer | 1.92 | — |
+| Val (n=74) | **salvatore-1988-v2 LoRA** | **0.27** | — |
+| Original (n=6) | DeepSeek bare | 3.22 | 2/6 |
+| Original (n=6) | DeepSeek + primer | 2.52 | 4/6 |
+| Original (n=6) | **salvatore-1988-v2 LoRA** | **0.66** | **6/6** |
+
+5-gram Jaccard vs ground truth (val mode): v1 mean 0.003 / max 0.100, v2 mean 0.001 / max 0.033. Both are paraphrasing, not reciting. Voice survives when the brief names characters and places the LoRA has never seen.
+
+**The rule:** in-context learning with a long primer does not substitute for a voice LoRA when the target includes sentence-length rhythm. A 10k-token primer closes ~40% of the Δ-sum gap vs baseline; tuning closes 85-90%. Sentence cadence lives somewhere ICL can't reliably extract from exemplars. For voice targets where rhythm matters, plan to tune even when ICL exists.
+
+### W&B Serverless SFT is no longer free — but still trivially cheap ($3.76/month observed, $500/month cap) (2026-04-16)
+W&B transitioned out of the ART public-preview free window. Billing dashboard shows $3.76 spent April 1 – April 16 across 4 production adapters + Salvatore voice v1/v2 training + exploratory runs, against a $500/month cap. At ~$0.10–0.60 per r=16 / 700-pair / 3-epoch run on Qwen3-14B, the economics are unchanged from a solo-dev cadence perspective — still below the cost of the evaluation calls. Docs and status tables that called training "free during public preview" have been updated. The `tuning_experiment` row can optionally track $ per run now that it's measurable.
+
 ### Well-executed SFT distillation matches the teacher's accuracy exactly (2026-04-12 · exp #178)
 Sonnet 4.6 labeled 520 training pairs at 96% accuracy vs deterministic ground truth. After training, the 14B v2 adapter scored 96% accuracy vs the same ground truth — a near-perfect match. The student absorbed the teacher's calibration.
 
