@@ -12,3 +12,5 @@ novel.db
 scripts/lora-data/
 finetune-data/
 wandb/
+__pycache__/
+*.pyc
