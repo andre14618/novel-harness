@@ -173,6 +173,44 @@ Some fields that *feel* removable are load-bearing in specific cases:
 
 For those cases, the planner should be authoring the critical detail into the **beat description or per-beat drive**, not relying on the character sheet being threaded through. That's the cleaner pattern: load-bearing information appears in the beat, not in a separately-assembled character sheet.
 
+### Plan granularity — real fiction uses ≤3 active named characters per beat
+
+*2026-04-16 (Andre)* — observation: the planner is emitting beats with 4+ named characters all taking active roles. Real fiction rarely does this. Natural structure:
+- **1 POV character** + typically 1-2 antagonists / interlocutors actively speaking or acting
+- **Collective nouns** for groups: "the guards," "the wererats," "the army," "the cultists." The writer doesn't juggle individual identities for a group.
+- **Named characters present but passive** = marginal — they can be off-page or referenced without being individuated
+
+Our chapter-plan-checker defines "required fact" as anything the planner established. That compounds: planner names 5 characters → 5 voice snapshots → 5 required behaviors → writer must juggle. Real authors don't plan that way. They pick the 2-3 who matter and aggregate the rest.
+
+**Planner-side principle to enforce (proposed):**
+- Max 3 **named active** characters per beat
+- Any additional characters in scene become a **collective noun** in the brief ("the extraction team," "the tower's cultists")
+- Planner prompt gets an explicit instruction + CRITICAL marker (235B-class models need bad examples to follow non-obvious constraints per `docs/lessons-learned.md`)
+
+This is orthogonal to the writer-side strip and per-beat-drives work — it operates upstream at the plan stage, making beats inherently easier to execute.
+
+### Tiered escape-valve architecture
+
+*2026-04-16 (Andre)* — third major proposal: a two-tier writer stack.
+
+- **Tier 1 (default, cheap):** Qwen3-14B + voice LoRA on W&B Inference. Handles the common case at ~$0.003/chapter.
+- **Tier 2 (escape valve, on-demand):** a mid-size (32B–200B) voice-tuned model on GPU rental (RunPod / Modal), invoked when Tier 1 fails a beat after N retries. ~$0.05–0.20/chapter when fired.
+
+Why a self-hosted mid-size rather than DeepSeek SaaS as the escape valve:
+- **Own the voice tuning.** DeepSeek V3.2 SaaS can't be voice-LoRA'd; Tier 2 should preserve voice quality, not just adherence.
+- **Cheaper per call at sustained throughput** than DeepSeek on output-heavy workloads.
+- **Flexibility** to swap base model as the open-weights landscape evolves.
+
+Candidate Tier 2 bases:
+- **Qwen3-32B dense** (Groq has it; could rent + tune)
+- **Qwen3-30B-A3B** (W&B has it — though cold-start earlier; MoE with 3B active params)
+- **Qwen3-235B A22B** (larger MoE, more capability; Cerebras already serves it)
+- **Llama 3.3 70B** (well-supported on RunPod/Modal)
+
+**When to invoke Tier 2:** trigger after ≥2 failed drafting-phase restarts for a specific chapter. Tier 2 takes over for remaining attempts. Failing chapters are the minority (probably <10% of chapters), so the marginal rental cost stays low. Amortizes GPU keep-warm cost across many novels per hour.
+
+**Status:** Proposal only. Gated on proving Tier 1 alone can't reach production reliability on diverse seeds. If compact-context + planner granularity + per-beat drives get Tier 1 to ~90% chapter approval rate, we may not need Tier 2. If we're stuck at ~60%, Tier 2 becomes the path.
+
 ### Tonal range vs capability ceiling
 
 v3 works for chapters where the beat has 1–2 characters and 1–2 required events. Chapter 3 in the probe had complex climactic beats (Senna absorbing a reality-warping spell, Helix appearing for extraction, Reseth's monologue) — 4+ characters, 3+ events per beat. That's where it struggled.
@@ -200,6 +238,9 @@ Keep this section as a bullet log so anyone picking this up cold can follow the 
   - Continuity checks passed across all attempts — so stripping wasn't causing character drift. It was causing **required-fact misses** (a plan-check failure mode, not a continuity-check one).
   - Conclusion: constraint count isn't the bottleneck; **planner-declared facts that live in character-sheet fields** are load-bearing because the planner uses those fields as a side-channel to require prose behaviors. Stripping those fields severs the side-channel.
   - Next move: revise strip to be **narrower** — keep Avoids + resolved references. Strip only State/With/Tension/Doesn't-know (genuinely runtime-only, rarely load-bearing) and the duplicate SETTING block. Re-probe.
+- **2026-04-16 · exp #201 (running)** — narrow-strip v3 probe on same seed. Tests whether the revised strip is neutral (no regression) or mildly helpful. In-flight.
+- **2026-04-16 · exp #202 (running)** — DeepSeek + Howard primer probe on `fantasy-echo-mage-nopack` (genre field renamed to avoid voice-LoRA routing). Diagnostic: if DeepSeek passes cleanly, v3 has a real 14B capability ceiling on this seed. If DeepSeek also fails, the chapter plan is the bottleneck (plan-granularity issue — too many named characters / too many required facts per beat). In-flight.
+- **2026-04-16 — three new proposals recorded** (§5.3 plan granularity, §5.4 tiered escape valve, earlier §3 per-beat drives). All gated on the outcomes of #201 and #202.
 
 Each new probe + result gets a line here.
 
