@@ -1429,3 +1429,36 @@ Chapter 1 approved on attempt 2. Chapter 2 failed 12 consecutive attempts over 4
 3. Add explicit system-prompt rule: "NEVER repeat or echo the TRANSITION BRIDGE — continue past it."
 
 **Ongoing:** Phase 1.4 (beat-scope rewriter collapse) stays deferred until v3 probe lands. Tier 2+ migration plans in `docs/pipeline-14b-consolidation.md` stay gated on v3 passing the 3-chapter probe.
+
+### 14B consolidation is for high-volume slots only — planner/concept/conversationalist stay on smart models
+*2026-04-16*
+
+**Decision:** Revise the pipeline-14b-consolidation plan. Not every slot should migrate to Qwen3-14B. Planning-plotter, concept agents (world-builder / character-agent / plotter), planning-extractor, and planning-conversationalist stay on DeepSeek V3.2 indefinitely — and are upgrade candidates for even smarter models (Claude Sonnet, GPT-5) rather than downgrade candidates for 14B.
+
+**Why:** Consolidation is economic, not ideological. The cost-savings math flips on call volume:
+- Writer: ~30 calls/chapter × 30 chapters = 900 calls/novel. Moving to 14B saves ~$0.70/novel. Worth migrating if quality holds.
+- Planner + concept: ~4 calls/novel total. Moving to 14B saves ~$0.012/novel. Not worth quality risk.
+- Planner even more so: a bad plan wastes every downstream writer call, adherence check, and continuity fix. Cost asymmetry is enormous.
+
+Upgrade math in the other direction is also favorable: Claude Sonnet for planner would cost ~$1.37/novel (14× DeepSeek) but plan quality gates all downstream work. At solo-dev cadence that's trivial.
+
+**Alternatives rejected:**
+- **All-14B pipeline.** Our earlier consolidation doc implied this endpoint. Correcting: consolidation is "14B on high-volume narrow tasks, smart models on low-volume high-stakes creative tasks."
+- **Moving planner down to 14B and accepting plan-quality regression.** The downstream amplification cost doesn't support it.
+
+**Ongoing:** `docs/pipeline-14b-consolidation.md` updated with "Tier 4 — Deliberately kept on smart models" reframe. Planning-plotter / concept / planning-conversationalist explicitly marked "stay on DeepSeek" instead of "gated on beat-writer probe."
+
+### Lint-fixer is a conditional-deprecation candidate; voice-LoRA may obsolete it
+*2026-04-16*
+
+**Decision:** Before SFT'ing a 14B lint-fixer, measure lint-fire rate on voice-LoRA output. If the voice LoRA produces prose with fewer than 1 lint issue per chapter, retire the lint-fixer slot instead of migrating it.
+
+**Why:** The lint patterns (~26 of them) target AI-fiction artifacts: "the weight of", "something shifted", filler verbs, hedging adverbs, rhythm monotony, emotional-echo patterns. A voice LoRA trained on Salvatore's 1988 corpus shouldn't produce these — the corpus doesn't contain them. If voice-LoRA writing comes out clean, the whole lint-fixer stage is dead weight in the current-pipeline shape.
+
+**Additional complexity if kept:** today the lint-fixer is tone-agnostic (Cerebras 235B produces generic rewrites). In a voice-LoRA-per-genre world, the lint-fixer would need to be voice-aware — a fix that flattens voice is worse than the flagged sentence it replaces. That's additional training-data complexity (paired per-genre corpus).
+
+**Alternatives rejected:**
+- **SFT a 14B lint-fixer today.** Risk wasting training effort on a slot we may retire.
+- **Keep Cerebras lint-fixer indefinitely.** Voice-LoRA prose may still pass every pattern and the per-sentence rewrite becomes redundant work.
+
+**Ongoing:** `docs/pipeline-14b-consolidation.md` Tier 1 entry for lint-fixer updated with the conditional-deprecation gate. Action: run lint detector against v3 (or whichever voice LoRA passes the probe) 3-chapter output; decide retire-vs-migrate on measured fire rate.

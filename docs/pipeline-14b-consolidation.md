@@ -55,7 +55,8 @@ Slots listed easiest → hardest. The harder the slot, the more evidence needed 
 - **Why it moves cleanly:** Narrow task — receive flagged sentence + lint rule, emit rewrite. `docs/lessons-learned.md` exp #72 shows K2/235B/DeepSeek all at 100% on this shape; it's not a model-capability task.
 - **Data:** 200+ examples mineable from approved chapter lint-fix logs.
 - **Path:** SFT distill from 235B outputs → 14B adapter. Evaluate on lint-compliance + collateral damage metrics. Direct teacher replacement.
-- **Unblocker:** none — can do today.
+- **Conditional deprecation (2026-04-16):** Voice LoRAs may obsolete this slot entirely. Salvatore-corpus prose doesn't contain AI-fiction tells ("the weight of", "something shifted", filler verbs, etc.) — the ~26 lint patterns target AI-voice artifacts that a well-tuned voice LoRA shouldn't produce. **Before SFT'ing a lint-fixer, measure lint-fire rate on voice-LoRA output.** If lint-fire rate drops below 1 issue per chapter, the slot can be retired rather than migrated. If kept, it needs to be voice-aware (a rewrite that flattens voice is worse than the flagged sentence it fixes) — adding real complexity vs the current tone-agnostic Cerebras setup.
+- **Unblocker:** voice-LoRA fire-rate measurement. Gate: if lint-fire-rate ≤ 1/chapter post-v3-probe, retire instead of tune.
 
 #### Rewriter (beat-scoped only)
 - **Current:** DeepSeek V3.2, chapter-scoped (~1,200w in/out).
@@ -93,12 +94,20 @@ Slots listed easiest → hardest. The harder the slot, the more evidence needed 
 - **Why not today:** wait on the beat-writer gate. If 14B fails writing, it likely fails planning too (same constraint-following muscle).
 - **If we try:** SFT distill from DeepSeek on ~500 pairs across 5+ genres. Evaluate against `chapter-plan-checker` on held-out seeds.
 
-### Tier 4 — Dialogue-like free-form (defer indefinitely)
+### Tier 4 — Deliberately kept on smart models (low-volume, high-stakes)
+
+Not every slot should migrate to 14B. Low-volume, high-stakes slots where quality drives downstream amplification are better served by smart models — the cost savings are negligible and the quality risk is asymmetric.
+
+#### Planning-plotter, concept agents (world-builder, character-agent, plotter), planning-extractor
+- **Current:** DeepSeek V3.2.
+- **Verdict (2026-04-16):** **Stay on DeepSeek. Do not pursue 14B SFT.**
+- **Why:** Call volume is 1–5 per novel (planning) vs 30+ for writer per chapter. Cost savings from migrating to 14B are negligible (~$0.003/call × 4 calls = $0.012/novel). Quality stakes are asymmetric: a bad plan wastes every downstream writer call, every adherence check, every continuity fix.
+- **Upgrade path worth considering:** move planning-plotter + concept agents to an **even smarter** model (Claude Sonnet, GPT-5). ~14× per-token cost ($1.37/novel for Sonnet planning vs $0.09 DeepSeek) but plan quality gates everything downstream. At solo-dev cadence that delta is trivial.
+- **Implication:** the "everything on 14B" framing is wrong. The right framing is "**14B on high-volume narrow tasks, smart models on low-volume high-stakes creative tasks.**" Consolidation is economic, not ideological.
 
 #### Planning-conversationalist
 - **Current:** Groq Qwen3-32B. Interactive 8-phase Q&A with sparsity detection.
-- **Why defer:** multi-turn state tracking, branching conversation flow. The hardest shape of all — state survives across turns, not just within one call.
-- **Verdict:** no migration plan unless/until the creative tier (beat-writer, planning-plotter) all move successfully. If the creative tier fails to move, this certainly won't.
+- **Verdict:** **Stay off the 14B roadmap. Probably upgrade, not migrate.** Same reasoning as planner — low call volume, high-stakes shape (multi-turn conversational state over an open-ended creative elicitation). If anything worth moving here, it's upward (Sonnet/GPT-5) rather than downward to 14B.
 
 ---
 
@@ -170,9 +179,9 @@ Items 1–4 are the same set enabling the 3-chapter gate, so they're shared prer
 | voice (fantasy seeds) | **On 14B** (salvatore-1988-v2) | 2026-04-16, exp #194 |
 | lint-fixer | Current: Cerebras 235B. Next: Tier 1 SFT. | — |
 | rewriter | Current: DeepSeek V3.2. Next: beat-scope refactor. | — |
-| planning-extractor | Current: DeepSeek V3.2. Gated on beat-writer probe. | — |
-| concept (world/char/plot) | Current: DeepSeek V3.2. Gated on beat-writer probe. | — |
-| planning-plotter | Current: DeepSeek V3.2. Gated on beat-writer probe. | — |
+| planning-extractor | **Stay on DeepSeek** (2026-04-16 — low-volume / high-stakes; upgrade candidate to smarter model) | — |
+| concept (world/char/plot) | **Stay on DeepSeek** (2026-04-16 — same reasoning) | — |
+| planning-plotter | **Stay on DeepSeek** (2026-04-16 — same reasoning) | — |
 | beat-writer | Current: DeepSeek V3.2 + primer. **v2 probe FAILED 2026-04-16 (exp #195) on train/serve prompt-shape mismatch.** v3 retraining on harness-shaped user prompts in progress. | v2 probe failed 2026-04-16 |
 | reference-resolver | Current: Groq Llama-3.1-8B. No migration planned (already cheap). | — |
 | planning-conversationalist | Current: Groq Qwen3-32B. Deferred indefinitely. | — |
