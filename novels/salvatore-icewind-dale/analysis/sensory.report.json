@@ -1,0 +1,13 @@
+{
+  "analyzer": "sensory",
+  "novel": "salvatore-icewind-dale",
+  "generated_at": "2026-04-17T17:10:54.257Z",
+  "model": "deepseek-chat",
+  "beats_processed": 2470,
+  "beats_failed": 0,
+  "results_written": 2470,
+  "total_tokens": 906545,
+  "estimated_cost_usd": "0.7706",
+  "elapsed_seconds": 248,
+  "errors_sample": []
+}

@@ -389,6 +389,29 @@ Representative real diffs: `looked at → stared at`, `judgment → condemnation
 - Stage 5 (Analysis) is a plugin-style framework — ten analyzers declared in `config.yml` per novel, each producing one JSON artifact consumable by one or more harness agents (planner structural priors, beat-writer character snapshots, checker rules).
 - This document + `docs/corpus-pipeline.md` supersede the old ad-hoc Salvatore-specific scripts documented in historical experiment notes.
 
+### Regex-based prose evaluation is a last resort, not a default
+*2026-04-17*
+
+**Decision:** Any new prose-evaluation metric defaults to an LLM-based path — Sonnet subagent for one-off validation, DeepSeek (or equivalent) for corpus scale after head-to-head quality confirmation. Regex is only the primary implementation when the metric is a hard structural count (word length, paragraph count, chapter word count, lexical diversity) that regex provably handles. It is NEVER the primary signal for voice quality, prose cadence, dialogue-vs-interior-monologue, beat-kind classification, tension, or character-consistency evaluation.
+
+**Why:** regex approximations of literary signals are 85–90% accurate on surface but can miss the prose improvements we actually care about. Sentence splits break on abbreviations, em-dashes, ellipses, and numbers. Dialogue regex cannot distinguish speech from thought or handle nested quotes. Beat-kind classification is pure LLM territory. In the 2026-04-17 session a regex quote-count bug had previously produced a phantom "15.7% dialogue" measurement that surfaced as a harness weakness and drove decisions — only to be invalidated when the real dialogue-word fraction (from the same regex run properly) came out at 17.8%. Trusting regex output as evaluation signal has misled us before.
+
+**How to apply:**
+- New prose-evaluation tool → Sonnet subagent pilot (10 samples) → port to DeepSeek/Cerebras after head-to-head validation (`scripts/corpus/test-*.ts` pattern). Regex fallback only if metric is provably structural.
+- Dialogue ratio / sentence rhythm / vocabulary diversity: regex OK as cheap sanity check, never primary. Pair with LLM pairwise judging for voice/prose-quality evaluation.
+- Beat-kind distribution, cluster sustain, chapter openers/closers: these require LLM-segmented beats upstream. Regex cannot produce them.
+- Evaluation tooling defaults to the writer-imitation-benchmark pattern (`docs/writer-imitation-benchmark.md`, `eval_briefs` + `eval_results` tables) — pairwise Opus judging vs real Salvatore prose — not to regex surface stats.
+
+**Exceptions where regex is fine as primary:**
+- Word/character/paragraph counts for ingestion-stage sanity (`verify-pipeline.py` invariants).
+- Lexical diversity (type-token ratio) for training-data statistics.
+- Quote counting in validated, harness-controlled output formats.
+- Pipeline conservation invariants (I2.2, I3.2) — reconstruction ratios.
+
+**Ongoing implications:**
+- The deterministic analyzers shipped 2026-04-17 (`scripts/analysis/structural.py`, `dialogue-density.py`, `sentence-rhythm.py`, `pov-rotation.py`) are OK because they operate on LLM-segmented beat data, not raw prose. They count kinds, not classify them. The regex inside `dialogue-density.py` and `sentence-rhythm.py` is approximate but the outputs are used as statistical signatures at scale where 5–10% noise averages out; not used as per-beat judgment calls.
+- When scoping a new evaluation, budget the LLM call. Treat LLM calls as the default tool, not an optimization.
+
 ### Per-task model selection for corpus pipeline — validated head-to-head
 *2026-04-17 · scripts/corpus/test-briefs.ts + test-segment.ts + test-deepseek-dialogue.ts*
 

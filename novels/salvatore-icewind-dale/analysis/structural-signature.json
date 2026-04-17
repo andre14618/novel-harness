@@ -1,0 +1,157 @@
+{
+  "total_beats": 2470,
+  "beat_kind_distribution": {
+    "description": 0.1227,
+    "interiority": 0.2016,
+    "action": 0.3607,
+    "dialogue": 0.3146,
+    "stakes_recalibration": 0.0004
+  },
+  "cluster_sustain": {
+    "description": 0.242,
+    "interiority": 0.332,
+    "action": 0.535,
+    "dialogue": 0.499,
+    "stakes_recalibration": 0.0
+  },
+  "chapter_openers": {
+    "description": 0.446,
+    "action": 0.304,
+    "dialogue": 0.12,
+    "interiority": 0.13
+  },
+  "chapter_closers": {
+    "dialogue": 0.272,
+    "interiority": 0.326,
+    "action": 0.37,
+    "description": 0.033
+  },
+  "beats_per_scene": {
+    "mean": 7.0,
+    "median": 5,
+    "min": 1,
+    "max": 39,
+    "p10": 2,
+    "p90": 15
+  },
+  "beats_per_chapter": {
+    "mean": 26.8,
+    "median": 27,
+    "min": 4,
+    "max": 79,
+    "p10": 11,
+    "p90": 40
+  },
+  "top_trigrams": [
+    {
+      "pattern": "action \u2192 action \u2192 action",
+      "count": 202
+    },
+    {
+      "pattern": "dialogue \u2192 dialogue \u2192 dialogue",
+      "count": 160
+    },
+    {
+      "pattern": "action \u2192 action \u2192 dialogue",
+      "count": 74
+    },
+    {
+      "pattern": "action \u2192 dialogue \u2192 dialogue",
+      "count": 72
+    },
+    {
+      "pattern": "dialogue \u2192 action \u2192 action",
+      "count": 63
+    },
+    {
+      "pattern": "dialogue \u2192 dialogue \u2192 action",
+      "count": 61
+    },
+    {
+      "pattern": "action \u2192 dialogue \u2192 action",
+      "count": 60
+    },
+    {
+      "pattern": "dialogue \u2192 dialogue \u2192 interiority",
+      "count": 58
+    },
+    {
+      "pattern": "interiority \u2192 action \u2192 action",
+      "count": 58
+    },
+    {
+      "pattern": "action \u2192 action \u2192 interiority",
+      "count": 51
+    },
+    {
+      "pattern": "dialogue \u2192 action \u2192 dialogue",
+      "count": 50
+    },
+    {
+      "pattern": "interiority \u2192 interiority \u2192 interiority",
+      "count": 48
+    },
+    {
+      "pattern": "dialogue \u2192 interiority \u2192 dialogue",
+      "count": 45
+    },
+    {
+      "pattern": "description \u2192 dialogue \u2192 dialogue",
+      "count": 45
+    },
+    {
+      "pattern": "interiority \u2192 dialogue \u2192 dialogue",
+      "count": 44
+    },
+    {
+      "pattern": "action \u2192 interiority \u2192 action",
+      "count": 40
+    },
+    {
+      "pattern": "dialogue \u2192 interiority \u2192 action",
+      "count": 30
+    },
+    {
+      "pattern": "action \u2192 dialogue \u2192 interiority",
+      "count": 29
+    },
+    {
+      "pattern": "description \u2192 action \u2192 action",
+      "count": 26
+    },
+    {
+      "pattern": "interiority \u2192 action \u2192 dialogue",
+      "count": 26
+    }
+  ],
+  "per_book": {
+    "halflings_gem": {
+      "beats": 826,
+      "kind_distribution": {
+        "description": 0.0956,
+        "interiority": 0.1925,
+        "dialogue": 0.3378,
+        "action": 0.3741
+      }
+    },
+    "streams_of_silver": {
+      "beats": 786,
+      "kind_distribution": {
+        "description": 0.1196,
+        "interiority": 0.2061,
+        "dialogue": 0.3257,
+        "action": 0.3486
+      }
+    },
+    "crystal_shard": {
+      "beats": 858,
+      "kind_distribution": {
+        "description": 0.1515,
+        "interiority": 0.2063,
+        "action": 0.359,
+        "dialogue": 0.2821,
+        "stakes_recalibration": 0.0012
+      }
+    }
+  }
+}

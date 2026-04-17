@@ -1,0 +1,13 @@
+{
+  "analyzer": "chapter-hooks",
+  "novel": "salvatore-icewind-dale",
+  "generated_at": "2026-04-17T17:06:54.132Z",
+  "model": "deepseek-chat",
+  "beats_processed": 92,
+  "beats_failed": 0,
+  "results_written": 92,
+  "total_tokens": 29639,
+  "estimated_cost_usd": "0.0252",
+  "elapsed_seconds": 8,
+  "errors_sample": []
+}
