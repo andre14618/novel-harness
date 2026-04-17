@@ -1,4 +1,4 @@
-import { chapterOutlinesSchema, type ChapterOutline } from "../types"
+import { type ChapterOutline } from "../types"
 import {
   getNovel, getWorldBible, getCharacters, getStorySpine,
   saveChapterOutline, updateTotalChapters, updatePhase,
@@ -6,6 +6,7 @@ import {
 import { callAgent } from "../llm"
 import { PLANNING_PLOTTER_PROMPT } from "../prompts"
 import { buildContext as buildPlanningContext } from "../agents/planning-plotter/context"
+import { chapterSkeletonsSchema, type ChapterSkeleton } from "../agents/planning-plotter/schema"
 import { buildContext as buildBeatContext } from "../agents/planning-beats/context"
 import { schema as beatSchema, prompt as PLANNING_BEATS_PROMPT } from "../agents/planning-beats"
 import { displayPhaseHeader, presentForApproval, formatChapterOutlines } from "../cli"
@@ -44,11 +45,20 @@ export async function runPlanningPhase(novelId: string): Promise<void> {
         attempt,
         systemPrompt: PLANNING_PLOTTER_PROMPT,
         userPrompt: promptContext,
-        schema: chapterOutlinesSchema,
+        schema: chapterSkeletonsSchema,
       })
 
+      // Skeleton → ChapterOutline shape: beat fields start empty, Phase-2 fills them.
+      const skeletonChapters = (result.output.chapters as ChapterSkeleton[]).map(s => ({
+        ...s,
+        scenes: [],
+        establishedFacts: [],
+        characterStateChanges: [],
+        knowledgeChanges: [],
+      })) as ChapterOutline[]
+
       const enforcement = harness.enforce.enforceSkeletons(
-        result.output.chapters as ChapterOutline[], targetChapters, characters,
+        skeletonChapters, targetChapters, characters,
       )
       for (const w of enforcement.warnings) {
         log(novelId, "warn", `Planning skeletons: ${w}`)

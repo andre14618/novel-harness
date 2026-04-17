@@ -12,6 +12,28 @@ const factCategoryMap: Record<string, string> = {
 
 const knowledgeSourceValid = ["witnessed", "told", "overheard", "deduced", "read", "discovered"]
 
+// Phase-1 output — skeleton fields only. Rejects beat-level detail so the
+// model can't be coaxed into the 8K-truncation failure mode that blocked
+// the 2026-04-17 v3 sweep. Beat detail is Phase-2's job (planning-beats).
+export const chapterSkeletonSchema = z.object({
+  chapterNumber: z.number(),
+  title: z.string(),
+  povCharacter: z.string().default(""),
+  setting: z.string().default(""),
+  purpose: z.string().default(""),
+  targetWords: z.number().default(1000),
+  charactersPresent: z.array(z.string()).default([]),
+}).strict()
+
+export const chapterSkeletonsSchema = z.object({
+  chapters: z.array(chapterSkeletonSchema),
+})
+
+export type ChapterSkeleton = z.infer<typeof chapterSkeletonSchema>
+
+// Full ChapterOutline = Phase-1 skeleton + Phase-2 beats, merged in planning.ts.
+// Kept permissive (no .strict()) because downstream DB loads/saves round-trip
+// through this shape and may carry legacy fields from older rows.
 export const chapterOutlineSchema = z.object({
   chapterNumber: z.number(),
   title: z.string(),

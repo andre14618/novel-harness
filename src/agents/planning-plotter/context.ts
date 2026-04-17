@@ -84,7 +84,7 @@ ${charSection}
 
 ${spineSection}${directivesSection}${structuralSection}
 
-Create a detailed chapter-by-chapter outline${seed.chapterCount ? ` with exactly ${seed.chapterCount} chapters` : ""}. Each chapter should have specific scene beats that advance the plot and develop characters.${seed.chapterCount && seed.chapterCount > 5 ? `\n\nWith ${seed.chapterCount} chapters, ensure subplot threads are established early and woven through the middle, rotating POV characters across chapters where the story benefits from multiple perspectives.` : ""}${worldBible.systems?.length ? `\n\nConsider how different characters' awareness of world systems creates opportunities for dramatic tension — a character ignorant of magic witnessing it for the first time, cultural clashes when characters from different backgrounds meet, or characters navigating taboos they don't share.` : ""}`
+Produce a SKELETON outline${seed.chapterCount ? ` with exactly ${seed.chapterCount} chapters` : ""}. One compact entry per chapter — title, POV, setting, 1–2-sentence purpose, targetWords, charactersPresent. No scene beats, no world-state changes, no knowledge transfers: those come from the downstream per-chapter beat pass.${seed.chapterCount && seed.chapterCount > 5 ? `\n\nWith ${seed.chapterCount} chapters, ensure subplot threads are established early and woven through the middle, rotating POV characters across chapters where the story benefits from multiple perspectives.` : ""}${worldBible.systems?.length ? `\n\nPOV + charactersPresent should reflect that different characters have different awareness of world systems — dramatic tension comes from who-knows-what in each chapter.` : ""}`
 }
 
 export const buildPlanningContext = buildContext
