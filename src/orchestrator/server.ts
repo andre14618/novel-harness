@@ -488,7 +488,7 @@ const server = Bun.serve({
     if (path === "/api/generation-config" && req.method === "GET") {
       const { getGenerationConfig, loadGenerationConfig } = await import("../../models/roles")
       await loadGenerationConfig()
-      const agents = ["writer", "rewriter", "planning-plotter"]
+      const agents = ["writer", "planning-plotter"]
       const configs: Record<string, any> = {}
       for (const a of agents) {
         configs[a] = await getGenerationConfig(a)

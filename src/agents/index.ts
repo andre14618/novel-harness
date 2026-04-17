@@ -4,6 +4,6 @@ export * as plotter from "./plotter"
 export * as planningPlotter from "./planning-plotter"
 export * as writer from "./writer"
 export * as continuity from "./continuity"
-export * as rewriter from "./rewriter"
+// rewriter removed 2026-04-17: validation is diagnostic-only now
 export * as tonalPass from "./tonal-pass"
 export * as chapterPlanChecker from "./chapter-plan-checker"

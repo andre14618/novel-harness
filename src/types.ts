@@ -73,4 +73,4 @@ export { characterProfileSchema, characterProfilesSchema, type CharacterProfile 
 export { storySpineSchema, type StorySpine } from "./agents/plotter/schema"
 export { chapterOutlineSchema, chapterOutlinesSchema, type ChapterOutline } from "./agents/planning-plotter/schema"
 export { chapterDraftSchema } from "./agents/writer/schema"
-export { rewriterOutputSchema } from "./agents/rewriter/schema"
+// rewriterOutputSchema removed 2026-04-17

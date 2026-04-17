@@ -182,13 +182,7 @@ export const COMPONENTS: Component[] = [
     measuredBy: ["beat-specificity", "dialogue-cues", "emotional-arc"],
     category: "agent-prompt",
   },
-  {
-    id: "prompt.rewriter", name: "Rewriter Prompt",
-    description: "System prompt for fixing prose issues",
-    type: "prompt", storage: "file", path: "src/agents/rewriter/prose-rewriter-system.md",
-    measuredBy: ["prose-craft", "telling"],
-    category: "agent-prompt",
-  },
+  // rewriter prompt removed 2026-04-17 — validation is diagnostic-only
 
   // ── Concept agent prompts ──────────────────────────────────────────────
   {
@@ -334,14 +328,7 @@ export const COMPONENTS: Component[] = [
     measuredBy: ["beat-specificity", "dialogue-cues", "emotional-arc"],
     category: "generation",
   },
-  {
-    id: "gen.rewriter.temperature", name: "Rewriter Temperature",
-    description: "Controls how boldly the rewriter changes prose. Higher = more aggressive rewrites.",
-    type: "number", storage: "agent_generation_config", table: "agent_generation_config", column: "rewriter.temperature",
-    min: 0.2, max: 0.8, step: 0.05, default: 0.5,
-    measuredBy: ["prose-craft", "telling"],
-    category: "generation",
-  },
+  // gen.rewriter.temperature removed 2026-04-17 — rewriter agent deleted
 ]
 
 // ── Query helpers ─────────────────────────────────────────────────────────

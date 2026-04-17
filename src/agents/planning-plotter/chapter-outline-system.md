@@ -62,6 +62,10 @@ Create exactly 3 chapters — one per act. Guidelines:
   Good: "Gil confronts Maren about leaving — he stayed and suffered while she was gone. She has no defense."
   Good: "Tess challenges Harlan about the cover-up. He deflects with appeals to the town's economic survival."
 - Keep beat descriptions to 1-2 sentences. Longer descriptions constrain the writer's creative latitude and reduce dialogue in the output.
+- CRITICAL — required facts must live IN beat descriptions, not only in establishedFacts metadata. The writer only sees the beat description — if a fact must be established in a specific beat, the beat description must mention it explicitly. A fact in `establishedFacts` that isn't referenced by any beat description will never reach the writer's prose.
+  Bad (fact only in metadata): `establishedFacts: [{fact: "Lord Edric refuses to help"}]` + beat description: "Edric discusses the situation"
+  Good (fact in beat description): "Edric hears the evidence and explicitly refuses to act — his refusal must be unambiguous, not hedging"
+- If a character must do something specific (refuse, reveal, sacrifice, discover), the beat description should say so directly — not leave it implied. The writer takes the description literally.
 - If a document, letter, or artifact is discovered, the beat must specify it is READ or SHOWN to the reader, not summarized
 - Scenes with 2+ characters should involve tension, disagreement, or revelation — situations that demand dialogue
 

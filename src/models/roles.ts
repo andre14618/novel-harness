@@ -34,7 +34,7 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // experimentation but defaults to "none".
   "writer":                    { ...deepseekV3, temperature: 0.8, maxTokens: 8000 },
   "beat-writer":               { ...deepseekV3, temperature: 0.8, maxTokens: 4000 },
-  "rewriter":                  { ...deepseekV3, temperature: 0.5, maxTokens: 8000 },
+  // rewriter removed 2026-04-17 — validation is diagnostic-only now
 
   // ── Planners (structured creative output) ─────────────────────────────
   "world-builder":             { ...deepseekV3, maxTokens: 8192 },

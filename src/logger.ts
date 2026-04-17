@@ -131,7 +131,6 @@ function getPhaseForAgent(agent: string): string {
     "chapter-plan-checker": "drafting",
     "continuity": "drafting",
     "lint-fixer": "drafting",
-    "rewriter": "validation",
     "tonal-pass": "validation",
   }
   return PHASE_MAP[agent] ?? "unknown"
