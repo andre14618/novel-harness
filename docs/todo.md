@@ -7,6 +7,41 @@ updated: 2026-04-16
 
 Pending action items only. Ordered by impact. Completed items and decision rationale live in `docs/decisions.md`.
 
+## Fantasy Structural Context Engineering — TOP PRIORITY
+
+**Genre focus (2026-04-16 directive):** laser-focused on fantasy genre exclusively. All harness building targets action-pulp fantasy (Salvatore voice) and eventually gamelit/litrpg. Lessons learned will inform future genre expansion; we are NOT building a generalizable AI harness right now.
+
+### Planner structural priors (from `docs/salvatore-structural-analysis.md`)
+
+Feed the Salvatore corpus's structural signature into the planning-plotter prompt as explicit constraints:
+
+- [ ] **Beat-type budget per chapter**: target ~34% action / 31% dialogue / 22% interiority / 14% description. Planner prompt gets these as "aim for" targets.
+- [ ] **Opener/closer rules**: chapters open with description (43%) or action (26%); close with action (39%) or interiority (30%). Never close with description.
+- [ ] **Cluster-sustain rule**: action → action self-transition is 55.6%. Planner should sustain action sequences (3-5 beats) instead of fragmenting fights with single-beat interiority/description interludes.
+- [ ] **Scene size guidance**: 3-8 beats per scene (mean 5.5). Over 8 = split the scene. Planner gets a soft cap.
+- [ ] **Active character cap**: ≤3 named active characters per beat. Groups become collective nouns ("the orc war party", "the guards"). Per `docs/beat-writer-architecture.md` §5.3.
+- [ ] **Per-beat drives** (proposed): planner authors one-line situational drives per character per beat instead of writer translating stable traits. Deferred pending compact-mode validation.
+
+### Tension/pacing curve extraction
+
+- [ ] Build tension scorer (heuristic from sentence compression + action-verb density + stakes-language)
+- [ ] Plot tension curve for Salvatore corpus → extract characteristic shape
+- [ ] Build fantasy-tension-template as a planner constraint ("by chapter 5 of 10, tension should be 0.7")
+
+### Plot arc position tagging
+
+- [ ] Tag each Salvatore chapter with arc position (setup / rising / midpoint / escalation / dark_night / climax / resolution)
+- [ ] Verify position distribution matches three-act structure norms for fantasy
+- [ ] Build arc-position checker (evaluates planner output for structural pacing)
+
+### Additional corpus ingestion (same pipeline, more fantasy)
+
+- [ ] Ingest a second fantasy author (Gemmell Drenai series or Cook Black Company) for cross-author structural comparison
+- [ ] Run structural analysis on second corpus → compare transition matrices, beat-type budgets, opener/closer patterns
+- [ ] Identify genre-universal vs author-specific structural signatures
+
+---
+
 ## Writer Imitation Benchmark — Salvatore deconstruction (TRAINING IN FLIGHT)
 
 Treat writer quality as an engineering problem with a measurable ground truth. Deconstruct the Icewind Dale Trilogy into beat-level training pairs, build a permanent quality oracle that scores every methodology (model swap, primer change, generation unit change, SFT adapter) against actual published prose for the same beats.
