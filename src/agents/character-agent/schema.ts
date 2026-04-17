@@ -51,6 +51,11 @@ export const characterProfileSchema = z.object({
   relationships: z.array(relationshipSchema).default([]),
   culturalBackground: z.array(culturalBackgroundSchema).default([]),
   systemAwareness: z.array(systemAwarenessSchema).default([]),
+  // Voice anchors — 3–5 representative dialogue lines this character would
+  // plausibly speak. Injected into beat-writer context so the writer can
+  // condition dialogue on character voice. Populated at concept phase by
+  // the character-agent or accumulated from prior chapters.
+  exampleLines: z.array(z.string()).default([]),
 })
 export type CharacterProfile = z.infer<typeof characterProfileSchema>
 

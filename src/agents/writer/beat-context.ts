@@ -90,6 +90,12 @@ export async function buildBeatContext(input: BeatContextInput): Promise<BeatCon
         if (c.goals) entry.push(`  Drives: ${c.goals}`)
         if (c.avoids) entry.push(`  Avoids: ${c.avoids}`)
         if (c.internalConflict) entry.push(`  Conflict: ${c.internalConflict}`)
+        if (c.exampleLines && c.exampleLines.length > 0) {
+          entry.push(`  Example voiced lines:`)
+          c.exampleLines.slice(0, 5).forEach((line, i) => {
+            entry.push(`    ${i + 1}. "${line.replace(/^"|"$/g, "")}"`)
+          })
+        }
         return [...entry, ""]
       })
       // Trim trailing blank
@@ -184,6 +190,15 @@ async function formatCharacterSnapshot(
   // Knowledge constraint (what they don't know)
   if (state?.doesNotKnow?.length > 0) {
     lines.push(`  Doesn't know: ${state.doesNotKnow.slice(0, 2).join("; ")}`)
+  }
+
+  // Example voiced lines — voice anchors for dialogue generation. Matches
+  // the shape trained into Salvatore v4 (character-tagged beat-writer).
+  if (char.exampleLines && char.exampleLines.length > 0) {
+    lines.push(`  Example voiced lines:`)
+    char.exampleLines.slice(0, 5).forEach((line, i) => {
+      lines.push(`    ${i + 1}. "${line.replace(/^"|"$/g, "")}"`)
+    })
   }
 
   return lines.join("\n")

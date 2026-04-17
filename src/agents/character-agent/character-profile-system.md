@@ -18,7 +18,8 @@ Respond with ONLY valid JSON in this exact structure:
       "fears": "what they're afraid of — the specific scenario, not a vague concept",
       "relationships": [{"characterName": "Other Character", "nature": "how they relate + the specific source of tension between them"}],
       "culturalBackground": [{"cultureName": "Name from world bible cultures", "relationship": "native|adopted|outsider|rebel|exile"}],
-      "systemAwareness": [{"systemName": "Name from world bible systems", "level": "ignorant|rumors|aware|practitioner|expert", "perspective": "How they personally view/relate to this system"}]
+      "systemAwareness": [{"systemName": "Name from world bible systems", "level": "ignorant|rumors|aware|practitioner|expert", "perspective": "How they personally view/relate to this system"}],
+      "exampleLines": ["representative voiced line 1", "representative voiced line 2", "representative voiced line 3", "representative voiced line 4"]
     }
   ]
 }
@@ -64,3 +65,11 @@ System awareness — how much each character knows about world systems (magic, r
 - "expert" — deep understanding, knows edge cases and exploits
 - Include a perspective for each: how they personally feel about the system. A practitioner might love or resent their abilities. An aware character might fear or envy practitioners.
 - EVERY character should have awareness entries for EVERY system in the world bible — even "ignorant" is meaningful information for the writer
+
+Example lines — provide 4 representative dialogue lines this character would plausibly speak, each 8–25 words:
+- These are voice anchors the writer uses to match dialogue cadence, diction, dialect, and signature phrases.
+- Make them CONCRETE and varied — one short/emotional, one mid-length assertion, one question or confrontation, one longer reflective or threat-register line.
+- Each line must read as fictional dialogue this character could say in the world of the novel. NOT summary. NOT introspection. Quoted speech only.
+- Include the character's distinctive markers: dialect contractions ("ye", "tis"), signature phrases, sentence structure, tic words. If the character has dialect, USE IT in the example lines — don't translate to standard English.
+- Good (Bruenor-style dwarf): ["Ye broke that pole o' yers on me head!", "A blessing it is, that the real enemy's finally shown.", "Two score o' the stinkin' rogues we cut down, orcs besides.", "Heed his words, boy, or he'll cut ye into pieces small enough for a vulture's gullet."]
+- Bad (off-voice, too uniform): ["I will go there.", "I am ready.", "This is fine.", "Let us proceed."]
