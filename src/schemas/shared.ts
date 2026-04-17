@@ -27,8 +27,12 @@ export type BeatKind = typeof BEAT_KINDS[number]
 export const sceneBeatSchema = z.object({
   description: z.string(),
   characters: z.array(z.string()).default([]),
-  emotionalShift: z.string().default(""),
   kind: z.enum(BEAT_KINDS).default("action").catch("action"),
+  // emotionalShift removed 2026-04-17: the beat description already
+  // carries the emotional signal; a separate "hopeful → devastated"
+  // field was redundant and created checker penalties the writer was
+  // never instructed about. If emotional arc matters for a beat, the
+  // planner should encode it in the description text.
 })
 export type SceneBeat = z.infer<typeof sceneBeatSchema>
 

@@ -307,9 +307,8 @@ Purpose: ${outline.purpose}
 Target: ~${outline.targetWords} words
 
 SCENE BEATS (follow in order):
-${outline.scenes.map((s: any, i: number) => `${i + 1}. ${s.description}
-   Characters: ${s.characters.join(", ")}
-   Emotional shift: ${s.emotionalShift}`).join("\n\n")}`
+${outline.scenes.map((s: any, i: number) => `${i + 1}. [${s.kind ?? "?"}] ${s.description}
+   Characters: ${s.characters.join(", ")}`).join("\n\n")}`
 }
 
 async function formatPOVWorldView(novelId: string, povChar: CharacterProfile, cultures: any[]): Promise<string | null> {

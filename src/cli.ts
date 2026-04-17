@@ -218,7 +218,7 @@ export function formatChapterOutlines(outlines: any[]): string {
     out += `  Target: ~${o.targetWords} words\n`
     out += `  Characters: ${o.charactersPresent.join(", ")}\n`
     out += `  Scenes:\n${o.scenes.map((s: any, i: number) =>
-      `    ${i + 1}. ${s.description} [${s.emotionalShift}]`
+      `    ${i + 1}. [${s.kind ?? "?"}] ${s.description}`
     ).join("\n")}`
     return out
   }).join("\n\n")

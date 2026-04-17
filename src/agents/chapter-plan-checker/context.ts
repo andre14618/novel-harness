@@ -15,9 +15,8 @@ export function buildContext(prose: string, outline: ChapterOutline): string {
   sections.push("SCENE BEATS:")
   for (let i = 0; i < outline.scenes.length; i++) {
     const s = outline.scenes[i]
-    sections.push(`  Beat ${i + 1}: ${s.description}`)
+    sections.push(`  Beat ${i + 1} [${s.kind ?? "?"}]: ${s.description}`)
     sections.push(`    Characters: ${s.characters.join(", ")}`)
-    if (s.emotionalShift) sections.push(`    Emotional shift: ${s.emotionalShift}`)
   }
   sections.push("")
 
