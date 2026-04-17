@@ -224,19 +224,130 @@
       }
     },
     "beats": {
-      "error": "not found: /Users/andre/Desktop/personal_projects/novel-harness/novels/salvatore-icewind-dale/beats.jsonl"
+      "crystal_shard": {
+        "beats": 858,
+        "words": 89987,
+        "chapters": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          "epilogue",
+          "epilogue2",
+          "epilogue3",
+          "prelude"
+        ],
+        "scene_count": 139,
+        "chapter_count": 34
+      },
+      "halflings_gem": {
+        "beats": 826,
+        "words": 86891,
+        "chapters": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          "epilogue",
+          "epilogue2",
+          "epilogue3",
+          "prelude"
+        ],
+        "scene_count": 137,
+        "chapter_count": 29
+      },
+      "streams_of_silver": {
+        "beats": 786,
+        "words": 85870,
+        "chapters": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          "epilogue",
+          "part1",
+          "part2",
+          "part3",
+          "prelude"
+        ],
+        "scene_count": 76,
+        "chapter_count": 29
+      }
     },
     "pairs": {
       "error": "not found: /Users/andre/Desktop/personal_projects/novel-harness/novels/salvatore-icewind-dale/pairs.jsonl"
     }
   },
-  "gaps": [
-    "crystal_shard: chapters in scenes but NOT in beats: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 'epilogue', 'epilogue2', 'epilogue3', 'prelude']",
-    "halflings_gem: chapters in scenes but NOT in beats: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 'epilogue', 'epilogue2', 'epilogue3', 'prelude']",
-    "streams_of_silver: chapters in scenes but NOT in beats: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 'epilogue', 'part1', 'part2', 'part3', 'prelude']"
-  ],
+  "gaps": [],
   "summary": {
-    "clean": false,
-    "gap_count": 3
+    "clean": true,
+    "gap_count": 0
   }
 }

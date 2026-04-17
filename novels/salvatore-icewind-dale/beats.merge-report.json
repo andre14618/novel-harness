@@ -1,0 +1,1774 @@
+{
+  "novel": "salvatore-icewind-dale",
+  "scenes_expected": 352,
+  "scenes_processed": 352,
+  "scenes_with_malformed_results": [],
+  "scenes_with_zero_beats": [],
+  "scenes_missing_results": [],
+  "orphan_results": [],
+  "per_scene": {
+    "crystal_shard_ch10_s0": {
+      "raw_beats": 1,
+      "merged_beats": 1,
+      "words": 153
+    },
+    "crystal_shard_ch10_s1": {
+      "raw_beats": 6,
+      "merged_beats": 6,
+      "words": 581
+    },
+    "crystal_shard_ch10_s2": {
+      "raw_beats": 8,
+      "merged_beats": 8,
+      "words": 795
+    },
+    "crystal_shard_ch10_s3": {
+      "raw_beats": 1,
+      "merged_beats": 1,
+      "words": 93
+    },
+    "crystal_shard_ch10_s4": {
+      "raw_beats": 9,
+      "merged_beats": 8,
+      "words": 918
+    },
+    "crystal_shard_ch11_s0": {
+      "raw_beats": 6,
+      "merged_beats": 6,
+      "words": 672
+    },
+    "crystal_shard_ch11_s1": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 309
+    },
+    "crystal_shard_ch11_s2": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 341
+    },
+    "crystal_shard_ch11_s3": {
+      "raw_beats": 8,
+      "merged_beats": 8,
+      "words": 872
+    },
+    "crystal_shard_ch12_s0": {
+      "raw_beats": 5,
+      "merged_beats": 5,
+      "words": 540
+    },
+    "crystal_shard_ch12_s1": {
+      "raw_beats": 9,
+      "merged_beats": 9,
+      "words": 1014
+    },
+    "crystal_shard_ch12_s2": {
+      "raw_beats": 9,
+      "merged_beats": 9,
+      "words": 959
+    },
+    "crystal_shard_ch13_s0": {
+      "raw_beats": 7,
+      "merged_beats": 7,
+      "words": 771
+    },
+    "crystal_shard_ch13_s1": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 512
+    },
+    "crystal_shard_ch14_s0": {
+      "raw_beats": 9,
+      "merged_beats": 9,
+      "words": 924
+    },
+    "crystal_shard_ch14_s1": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 392
+    },
+    "crystal_shard_ch14_s2": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 399
+    },
+    "crystal_shard_ch14_s3": {
+      "raw_beats": 5,
+      "merged_beats": 5,
+      "words": 552
+    },
+    "crystal_shard_ch15_s0": {
+      "raw_beats": 6,
+      "merged_beats": 6,
+      "words": 684
+    },
+    "crystal_shard_ch15_s1": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 327
+    },
+    "crystal_shard_ch15_s2": {
+      "raw_beats": 8,
+      "merged_beats": 8,
+      "words": 729
+    },
+    "crystal_shard_ch15_s3": {
+      "raw_beats": 7,
+      "merged_beats": 7,
+      "words": 699
+    },
+    "crystal_shard_ch15_s4": {
+      "raw_beats": 1,
+      "merged_beats": 1,
+      "words": 95
+    },
+    "crystal_shard_ch16_s0": {
+      "raw_beats": 20,
+      "merged_beats": 20,
+      "words": 2054
+    },
+    "crystal_shard_ch16_s1": {
+      "raw_beats": 6,
+      "merged_beats": 6,
+      "words": 606
+    },
+    "crystal_shard_ch16_s2": {
+      "raw_beats": 8,
+      "merged_beats": 8,
+      "words": 849
+    },
+    "crystal_shard_ch17_s0": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 391
+    },
+    "crystal_shard_ch17_s1": {
+      "raw_beats": 6,
+      "merged_beats": 6,
+      "words": 686
+    },
+    "crystal_shard_ch17_s2": {
+      "raw_beats": 5,
+      "merged_beats": 5,
+      "words": 506
+    },
+    "crystal_shard_ch17_s3": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 403
+    },
+    "crystal_shard_ch17_s4": {
+      "raw_beats": 10,
+      "merged_beats": 10,
+      "words": 1067
+    },
+    "crystal_shard_ch18_s0": {
+      "raw_beats": 26,
+      "merged_beats": 25,
+      "words": 2665
+    },
+    "crystal_shard_ch18_s1": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 299
+    },
+    "crystal_shard_ch18_s2": {
+      "raw_beats": 8,
+      "merged_beats": 8,
+      "words": 784
+    },
+    "crystal_shard_ch18_s3": {
+      "raw_beats": 1,
+      "merged_beats": 1,
+      "words": 148
+    },
+    "crystal_shard_ch18_s4": {
+      "raw_beats": 1,
+      "merged_beats": 1,
+      "words": 79
+    },
+    "crystal_shard_ch18_s5": {
+      "raw_beats": 9,
+      "merged_beats": 9,
+      "words": 1014
+    },
+    "crystal_shard_ch18_s6": {
+      "raw_beats": 2,
+      "merged_beats": 2,
+      "words": 173
+    },
+    "crystal_shard_ch18_s7": {
+      "raw_beats": 5,
+      "merged_beats": 5,
+      "words": 472
+    },
+    "crystal_shard_ch19_s0": {
+      "raw_beats": 8,
+      "merged_beats": 7,
+      "words": 766
+    },
+    "crystal_shard_ch19_s1": {
+      "raw_beats": 5,
+      "merged_beats": 5,
+      "words": 434
+    },
+    "crystal_shard_ch19_s2": {
+      "raw_beats": 6,
+      "merged_beats": 6,
+      "words": 633
+    },
+    "crystal_shard_ch19_s3": {
+      "raw_beats": 11,
+      "merged_beats": 11,
+      "words": 1147
+    },
+    "crystal_shard_ch1_s0": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 388
+    },
+    "crystal_shard_ch1_s1": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 369
+    },
+    "crystal_shard_ch1_s2": {
+      "raw_beats": 9,
+      "merged_beats": 9,
+      "words": 883
+    },
+    "crystal_shard_ch1_s3": {
+      "raw_beats": 2,
+      "merged_beats": 2,
+      "words": 197
+    },
+    "crystal_shard_ch20_s0": {
+      "raw_beats": 9,
+      "merged_beats": 9,
+      "words": 886
+    },
+    "crystal_shard_ch20_s1": {
+      "raw_beats": 6,
+      "merged_beats": 6,
+      "words": 582
+    },
+    "crystal_shard_ch20_s2": {
+      "raw_beats": 4,
+      "merged_beats": 3,
+      "words": 321
+    },
+    "crystal_shard_ch20_s3": {
+      "raw_beats": 7,
+      "merged_beats": 6,
+      "words": 597
+    },
+    "crystal_shard_ch21_s0": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 303
+    },
+    "crystal_shard_ch21_s1": {
+      "raw_beats": 10,
+      "merged_beats": 10,
+      "words": 1047
+    },
+    "crystal_shard_ch21_s2": {
+      "raw_beats": 13,
+      "merged_beats": 13,
+      "words": 1273
+    },
+    "crystal_shard_ch22_s0": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 418
+    },
+    "crystal_shard_ch22_s1": {
+      "raw_beats": 6,
+      "merged_beats": 6,
+      "words": 574
+    },
+    "crystal_shard_ch22_s2": {
+      "raw_beats": 5,
+      "merged_beats": 5,
+      "words": 482
+    },
+    "crystal_shard_ch22_s3": {
+      "raw_beats": 7,
+      "merged_beats": 7,
+      "words": 724
+    },
+    "crystal_shard_ch22_s4": {
+      "raw_beats": 9,
+      "merged_beats": 9,
+      "words": 1016
+    },
+    "crystal_shard_ch22_s5": {
+      "raw_beats": 1,
+      "merged_beats": 1,
+      "words": 149
+    },
+    "crystal_shard_ch23_s0": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 344
+    },
+    "crystal_shard_ch23_s1": {
+      "raw_beats": 5,
+      "merged_beats": 5,
+      "words": 535
+    },
+    "crystal_shard_ch23_s2": {
+      "raw_beats": 10,
+      "merged_beats": 10,
+      "words": 983
+    },
+    "crystal_shard_ch23_s3": {
+      "raw_beats": 2,
+      "merged_beats": 2,
+      "words": 173
+    },
+    "crystal_shard_ch23_s4": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 355
+    },
+    "crystal_shard_ch24_s0": {
+      "raw_beats": 9,
+      "merged_beats": 9,
+      "words": 864
+    },
+    "crystal_shard_ch24_s1": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 333
+    },
+    "crystal_shard_ch24_s2": {
+      "raw_beats": 6,
+      "merged_beats": 6,
+      "words": 664
+    },
+    "crystal_shard_ch24_s3": {
+      "raw_beats": 17,
+      "merged_beats": 17,
+      "words": 1901
+    },
+    "crystal_shard_ch24_s4": {
+      "raw_beats": 2,
+      "merged_beats": 2,
+      "words": 196
+    },
+    "crystal_shard_ch25_s0": {
+      "raw_beats": 2,
+      "merged_beats": 2,
+      "words": 181
+    },
+    "crystal_shard_ch25_s1": {
+      "raw_beats": 5,
+      "merged_beats": 5,
+      "words": 589
+    },
+    "crystal_shard_ch25_s2": {
+      "raw_beats": 17,
+      "merged_beats": 17,
+      "words": 1983
+    },
+    "crystal_shard_ch26_s0": {
+      "raw_beats": 8,
+      "merged_beats": 7,
+      "words": 1006
+    },
+    "crystal_shard_ch27_s0": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 311
+    },
+    "crystal_shard_ch27_s1": {
+      "raw_beats": 2,
+      "merged_beats": 2,
+      "words": 238
+    },
+    "crystal_shard_ch27_s2": {
+      "raw_beats": 14,
+      "merged_beats": 14,
+      "words": 1613
+    },
+    "crystal_shard_ch27_s3": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 315
+    },
+    "crystal_shard_ch28_s0": {
+      "raw_beats": 14,
+      "merged_beats": 14,
+      "words": 1472
+    },
+    "crystal_shard_ch28_s1": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 294
+    },
+    "crystal_shard_ch28_s2": {
+      "raw_beats": 7,
+      "merged_beats": 7,
+      "words": 698
+    },
+    "crystal_shard_ch28_s3": {
+      "raw_beats": 2,
+      "merged_beats": 2,
+      "words": 191
+    },
+    "crystal_shard_ch29_s0": {
+      "raw_beats": 10,
+      "merged_beats": 10,
+      "words": 1025
+    },
+    "crystal_shard_ch29_s1": {
+      "raw_beats": 34,
+      "merged_beats": 34,
+      "words": 3416
+    },
+    "crystal_shard_ch2_s0": {
+      "raw_beats": 10,
+      "merged_beats": 10,
+      "words": 1020
+    },
+    "crystal_shard_ch2_s1": {
+      "raw_beats": 6,
+      "merged_beats": 6,
+      "words": 629
+    },
+    "crystal_shard_ch2_s2": {
+      "raw_beats": 9,
+      "merged_beats": 9,
+      "words": 974
+    },
+    "crystal_shard_ch2_s3": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 519
+    },
+    "crystal_shard_ch30_s0": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 371
+    },
+    "crystal_shard_ch30_s1": {
+      "raw_beats": 5,
+      "merged_beats": 5,
+      "words": 489
+    },
+    "crystal_shard_ch30_s10": {
+      "raw_beats": 2,
+      "merged_beats": 2,
+      "words": 189
+    },
+    "crystal_shard_ch30_s11": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 412
+    },
+    "crystal_shard_ch30_s12": {
+      "raw_beats": 2,
+      "merged_beats": 2,
+      "words": 206
+    },
+    "crystal_shard_ch30_s13": {
+      "raw_beats": 8,
+      "merged_beats": 8,
+      "words": 852
+    },
+    "crystal_shard_ch30_s14": {
+      "raw_beats": 8,
+      "merged_beats": 8,
+      "words": 835
+    },
+    "crystal_shard_ch30_s15": {
+      "raw_beats": 6,
+      "merged_beats": 6,
+      "words": 597
+    },
+    "crystal_shard_ch30_s2": {
+      "raw_beats": 2,
+      "merged_beats": 2,
+      "words": 148
+    },
+    "crystal_shard_ch30_s3": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 303
+    },
+    "crystal_shard_ch30_s4": {
+      "raw_beats": 9,
+      "merged_beats": 9,
+      "words": 959
+    },
+    "crystal_shard_ch30_s5": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 453
+    },
+    "crystal_shard_ch30_s6": {
+      "raw_beats": 2,
+      "merged_beats": 2,
+      "words": 185
+    },
+    "crystal_shard_ch30_s7": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 262
+    },
+    "crystal_shard_ch30_s8": {
+      "raw_beats": 9,
+      "merged_beats": 9,
+      "words": 1038
+    },
+    "crystal_shard_ch30_s9": {
+      "raw_beats": 8,
+      "merged_beats": 8,
+      "words": 814
+    },
+    "crystal_shard_ch3_s0": {
+      "raw_beats": 8,
+      "merged_beats": 8,
+      "words": 810
+    },
+    "crystal_shard_ch3_s1": {
+      "raw_beats": 2,
+      "merged_beats": 2,
+      "words": 289
+    },
+    "crystal_shard_ch3_s2": {
+      "raw_beats": 15,
+      "merged_beats": 15,
+      "words": 1578
+    },
+    "crystal_shard_ch4_s0": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 291
+    },
+    "crystal_shard_ch4_s1": {
+      "raw_beats": 6,
+      "merged_beats": 6,
+      "words": 590
+    },
+    "crystal_shard_ch4_s2": {
+      "raw_beats": 5,
+      "merged_beats": 5,
+      "words": 489
+    },
+    "crystal_shard_ch4_s3": {
+      "raw_beats": 5,
+      "merged_beats": 5,
+      "words": 538
+    },
+    "crystal_shard_ch4_s4": {
+      "raw_beats": 2,
+      "merged_beats": 2,
+      "words": 264
+    },
+    "crystal_shard_ch5_s0": {
+      "raw_beats": 11,
+      "merged_beats": 11,
+      "words": 1335
+    },
+    "crystal_shard_ch6_s0": {
+      "raw_beats": 16,
+      "merged_beats": 16,
+      "words": 1830
+    },
+    "crystal_shard_ch7_s0": {
+      "raw_beats": 1,
+      "merged_beats": 1,
+      "words": 86
+    },
+    "crystal_shard_ch7_s1": {
+      "raw_beats": 5,
+      "merged_beats": 5,
+      "words": 489
+    },
+    "crystal_shard_ch7_s2": {
+      "raw_beats": 9,
+      "merged_beats": 9,
+      "words": 960
+    },
+    "crystal_shard_ch7_s3": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 439
+    },
+    "crystal_shard_ch7_s4": {
+      "raw_beats": 9,
+      "merged_beats": 9,
+      "words": 945
+    },
+    "crystal_shard_ch8_s0": {
+      "raw_beats": 10,
+      "merged_beats": 10,
+      "words": 986
+    },
+    "crystal_shard_ch8_s1": {
+      "raw_beats": 5,
+      "merged_beats": 5,
+      "words": 520
+    },
+    "crystal_shard_ch8_s2": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 305
+    },
+    "crystal_shard_ch8_s3": {
+      "raw_beats": 5,
+      "merged_beats": 5,
+      "words": 506
+    },
+    "crystal_shard_ch8_s4": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 375
+    },
+    "crystal_shard_ch8_s5": {
+      "raw_beats": 2,
+      "merged_beats": 2,
+      "words": 199
+    },
+    "crystal_shard_ch8_s6": {
+      "raw_beats": 6,
+      "merged_beats": 6,
+      "words": 524
+    },
+    "crystal_shard_ch9_s0": {
+      "raw_beats": 8,
+      "merged_beats": 7,
+      "words": 875
+    },
+    "crystal_shard_ch9_s1": {
+      "raw_beats": 6,
+      "merged_beats": 6,
+      "words": 665
+    },
+    "crystal_shard_chepilogue2_s0": {
+      "raw_beats": 6,
+      "merged_beats": 4,
+      "words": 394
+    },
+    "crystal_shard_chepilogue3_s0": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 328
+    },
+    "crystal_shard_chepilogue3_s1": {
+      "raw_beats": 1,
+      "merged_beats": 1,
+      "words": 91
+    },
+    "crystal_shard_chepilogue3_s2": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 283
+    },
+    "crystal_shard_chepilogue3_s3": {
+      "raw_beats": 5,
+      "merged_beats": 5,
+      "words": 461
+    },
+    "crystal_shard_chepilogue3_s4": {
+      "raw_beats": 9,
+      "merged_beats": 9,
+      "words": 852
+    },
+    "crystal_shard_chepilogue3_s5": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 346
+    },
+    "crystal_shard_chepilogue_s0": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 435
+    },
+    "crystal_shard_chepilogue_s1": {
+      "raw_beats": 7,
+      "merged_beats": 7,
+      "words": 720
+    },
+    "crystal_shard_chprelude_s0": {
+      "raw_beats": 5,
+      "merged_beats": 4,
+      "words": 497
+    },
+    "crystal_shard_chprelude_s1": {
+      "raw_beats": 1,
+      "merged_beats": 1,
+      "words": 41
+    },
+    "halflings_gem_ch10_s0": {
+      "raw_beats": 2,
+      "merged_beats": 1,
+      "words": 131
+    },
+    "halflings_gem_ch10_s1": {
+      "raw_beats": 17,
+      "merged_beats": 17,
+      "words": 1855
+    },
+    "halflings_gem_ch10_s2": {
+      "raw_beats": 10,
+      "merged_beats": 10,
+      "words": 1162
+    },
+    "halflings_gem_ch10_s3": {
+      "raw_beats": 2,
+      "merged_beats": 2,
+      "words": 216
+    },
+    "halflings_gem_ch10_s4": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 407
+    },
+    "halflings_gem_ch11_s0": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 304
+    },
+    "halflings_gem_ch11_s1": {
+      "raw_beats": 12,
+      "merged_beats": 12,
+      "words": 1270
+    },
+    "halflings_gem_ch11_s10": {
+      "raw_beats": 1,
+      "merged_beats": 1,
+      "words": 74
+    },
+    "halflings_gem_ch11_s11": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 352
+    },
+    "halflings_gem_ch11_s12": {
+      "raw_beats": 2,
+      "merged_beats": 2,
+      "words": 191
+    },
+    "halflings_gem_ch11_s13": {
+      "raw_beats": 4,
+      "merged_beats": 3,
+      "words": 262
+    },
+    "halflings_gem_ch11_s14": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 219
+    },
+    "halflings_gem_ch11_s2": {
+      "raw_beats": 1,
+      "merged_beats": 1,
+      "words": 127
+    },
+    "halflings_gem_ch11_s3": {
+      "raw_beats": 5,
+      "merged_beats": 5,
+      "words": 444
+    },
+    "halflings_gem_ch11_s4": {
+      "raw_beats": 2,
+      "merged_beats": 2,
+      "words": 210
+    },
+    "halflings_gem_ch11_s5": {
+      "raw_beats": 2,
+      "merged_beats": 2,
+      "words": 241
+    },
+    "halflings_gem_ch11_s6": {
+      "raw_beats": 6,
+      "merged_beats": 6,
+      "words": 659
+    },
+    "halflings_gem_ch11_s7": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 312
+    },
+    "halflings_gem_ch11_s8": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 392
+    },
+    "halflings_gem_ch11_s9": {
+      "raw_beats": 3,
+      "merged_beats": 2,
+      "words": 168
+    },
+    "halflings_gem_ch12_s0": {
+      "raw_beats": 4,
+      "merged_beats": 3,
+      "words": 330
+    },
+    "halflings_gem_ch12_s1": {
+      "raw_beats": 17,
+      "merged_beats": 17,
+      "words": 1732
+    },
+    "halflings_gem_ch12_s2": {
+      "raw_beats": 7,
+      "merged_beats": 7,
+      "words": 730
+    },
+    "halflings_gem_ch13_s0": {
+      "raw_beats": 7,
+      "merged_beats": 7,
+      "words": 692
+    },
+    "halflings_gem_ch13_s1": {
+      "raw_beats": 16,
+      "merged_beats": 16,
+      "words": 1856
+    },
+    "halflings_gem_ch13_s2": {
+      "raw_beats": 7,
+      "merged_beats": 7,
+      "words": 759
+    },
+    "halflings_gem_ch14_s0": {
+      "raw_beats": 8,
+      "merged_beats": 8,
+      "words": 945
+    },
+    "halflings_gem_ch14_s1": {
+      "raw_beats": 24,
+      "merged_beats": 24,
+      "words": 2834
+    },
+    "halflings_gem_ch15_s0": {
+      "raw_beats": 5,
+      "merged_beats": 5,
+      "words": 598
+    },
+    "halflings_gem_ch15_s1": {
+      "raw_beats": 18,
+      "merged_beats": 18,
+      "words": 1986
+    },
+    "halflings_gem_ch15_s2": {
+      "raw_beats": 1,
+      "merged_beats": 1,
+      "words": 130
+    },
+    "halflings_gem_ch16_s0": {
+      "raw_beats": 12,
+      "merged_beats": 12,
+      "words": 1304
+    },
+    "halflings_gem_ch16_s1": {
+      "raw_beats": 6,
+      "merged_beats": 6,
+      "words": 658
+    },
+    "halflings_gem_ch16_s2": {
+      "raw_beats": 7,
+      "merged_beats": 7,
+      "words": 742
+    },
+    "halflings_gem_ch16_s3": {
+      "raw_beats": 9,
+      "merged_beats": 9,
+      "words": 1056
+    },
+    "halflings_gem_ch17_s0": {
+      "raw_beats": 6,
+      "merged_beats": 6,
+      "words": 661
+    },
+    "halflings_gem_ch17_s1": {
+      "raw_beats": 9,
+      "merged_beats": 9,
+      "words": 1062
+    },
+    "halflings_gem_ch17_s2": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 355
+    },
+    "halflings_gem_ch18_s0": {
+      "raw_beats": 15,
+      "merged_beats": 15,
+      "words": 1726
+    },
+    "halflings_gem_ch18_s1": {
+      "raw_beats": 7,
+      "merged_beats": 7,
+      "words": 748
+    },
+    "halflings_gem_ch18_s2": {
+      "raw_beats": 2,
+      "merged_beats": 2,
+      "words": 201
+    },
+    "halflings_gem_ch18_s3": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 321
+    },
+    "halflings_gem_ch18_s4": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 404
+    },
+    "halflings_gem_ch18_s5": {
+      "raw_beats": 6,
+      "merged_beats": 6,
+      "words": 544
+    },
+    "halflings_gem_ch18_s6": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 346
+    },
+    "halflings_gem_ch19_s0": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 323
+    },
+    "halflings_gem_ch19_s1": {
+      "raw_beats": 5,
+      "merged_beats": 5,
+      "words": 488
+    },
+    "halflings_gem_ch19_s2": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 231
+    },
+    "halflings_gem_ch19_s3": {
+      "raw_beats": 8,
+      "merged_beats": 8,
+      "words": 792
+    },
+    "halflings_gem_ch19_s4": {
+      "raw_beats": 5,
+      "merged_beats": 5,
+      "words": 535
+    },
+    "halflings_gem_ch19_s5": {
+      "raw_beats": 2,
+      "merged_beats": 2,
+      "words": 178
+    },
+    "halflings_gem_ch19_s6": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 348
+    },
+    "halflings_gem_ch19_s7": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 486
+    },
+    "halflings_gem_ch1_s0": {
+      "raw_beats": 15,
+      "merged_beats": 15,
+      "words": 1612
+    },
+    "halflings_gem_ch1_s1": {
+      "raw_beats": 7,
+      "merged_beats": 7,
+      "words": 761
+    },
+    "halflings_gem_ch1_s2": {
+      "raw_beats": 3,
+      "merged_beats": 2,
+      "words": 281
+    },
+    "halflings_gem_ch1_s3": {
+      "raw_beats": 7,
+      "merged_beats": 7,
+      "words": 803
+    },
+    "halflings_gem_ch1_s4": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 314
+    },
+    "halflings_gem_ch1_s5": {
+      "raw_beats": 1,
+      "merged_beats": 1,
+      "words": 126
+    },
+    "halflings_gem_ch20_s0": {
+      "raw_beats": 2,
+      "merged_beats": 2,
+      "words": 161
+    },
+    "halflings_gem_ch20_s1": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 483
+    },
+    "halflings_gem_ch20_s2": {
+      "raw_beats": 1,
+      "merged_beats": 1,
+      "words": 70
+    },
+    "halflings_gem_ch20_s3": {
+      "raw_beats": 5,
+      "merged_beats": 5,
+      "words": 541
+    },
+    "halflings_gem_ch20_s4": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 419
+    },
+    "halflings_gem_ch20_s5": {
+      "raw_beats": 6,
+      "merged_beats": 6,
+      "words": 626
+    },
+    "halflings_gem_ch20_s6": {
+      "raw_beats": 5,
+      "merged_beats": 5,
+      "words": 590
+    },
+    "halflings_gem_ch21_s0": {
+      "raw_beats": 5,
+      "merged_beats": 5,
+      "words": 510
+    },
+    "halflings_gem_ch21_s1": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 230
+    },
+    "halflings_gem_ch21_s2": {
+      "raw_beats": 5,
+      "merged_beats": 5,
+      "words": 508
+    },
+    "halflings_gem_ch21_s3": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 408
+    },
+    "halflings_gem_ch21_s4": {
+      "raw_beats": 5,
+      "merged_beats": 5,
+      "words": 480
+    },
+    "halflings_gem_ch21_s5": {
+      "raw_beats": 5,
+      "merged_beats": 5,
+      "words": 481
+    },
+    "halflings_gem_ch22_s0": {
+      "raw_beats": 15,
+      "merged_beats": 15,
+      "words": 1659
+    },
+    "halflings_gem_ch22_s1": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 286
+    },
+    "halflings_gem_ch22_s2": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 390
+    },
+    "halflings_gem_ch22_s3": {
+      "raw_beats": 5,
+      "merged_beats": 5,
+      "words": 501
+    },
+    "halflings_gem_ch22_s4": {
+      "raw_beats": 9,
+      "merged_beats": 9,
+      "words": 943
+    },
+    "halflings_gem_ch23_s0": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 215
+    },
+    "halflings_gem_ch23_s1": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 371
+    },
+    "halflings_gem_ch23_s2": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 364
+    },
+    "halflings_gem_ch23_s3": {
+      "raw_beats": 2,
+      "merged_beats": 2,
+      "words": 200
+    },
+    "halflings_gem_ch23_s4": {
+      "raw_beats": 5,
+      "merged_beats": 5,
+      "words": 510
+    },
+    "halflings_gem_ch23_s5": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 317
+    },
+    "halflings_gem_ch23_s6": {
+      "raw_beats": 2,
+      "merged_beats": 2,
+      "words": 191
+    },
+    "halflings_gem_ch24_s0": {
+      "raw_beats": 1,
+      "merged_beats": 1,
+      "words": 127
+    },
+    "halflings_gem_ch24_s1": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 316
+    },
+    "halflings_gem_ch24_s2": {
+      "raw_beats": 2,
+      "merged_beats": 2,
+      "words": 161
+    },
+    "halflings_gem_ch24_s3": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 299
+    },
+    "halflings_gem_ch24_s4": {
+      "raw_beats": 2,
+      "merged_beats": 2,
+      "words": 160
+    },
+    "halflings_gem_ch24_s5": {
+      "raw_beats": 12,
+      "merged_beats": 12,
+      "words": 1200
+    },
+    "halflings_gem_ch24_s6": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 409
+    },
+    "halflings_gem_ch25_s0": {
+      "raw_beats": 12,
+      "merged_beats": 12,
+      "words": 1242
+    },
+    "halflings_gem_ch25_s1": {
+      "raw_beats": 4,
+      "merged_beats": 2,
+      "words": 311
+    },
+    "halflings_gem_ch25_s2": {
+      "raw_beats": 5,
+      "merged_beats": 5,
+      "words": 500
+    },
+    "halflings_gem_ch25_s3": {
+      "raw_beats": 5,
+      "merged_beats": 5,
+      "words": 425
+    },
+    "halflings_gem_ch2_s0": {
+      "raw_beats": 6,
+      "merged_beats": 6,
+      "words": 679
+    },
+    "halflings_gem_ch2_s1": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 336
+    },
+    "halflings_gem_ch2_s2": {
+      "raw_beats": 5,
+      "merged_beats": 5,
+      "words": 491
+    },
+    "halflings_gem_ch2_s3": {
+      "raw_beats": 8,
+      "merged_beats": 8,
+      "words": 892
+    },
+    "halflings_gem_ch3_s0": {
+      "raw_beats": 2,
+      "merged_beats": 2,
+      "words": 180
+    },
+    "halflings_gem_ch3_s1": {
+      "raw_beats": 8,
+      "merged_beats": 8,
+      "words": 917
+    },
+    "halflings_gem_ch3_s2": {
+      "raw_beats": 20,
+      "merged_beats": 20,
+      "words": 2101
+    },
+    "halflings_gem_ch3_s3": {
+      "raw_beats": 2,
+      "merged_beats": 1,
+      "words": 138
+    },
+    "halflings_gem_ch4_s0": {
+      "raw_beats": 20,
+      "merged_beats": 20,
+      "words": 2105
+    },
+    "halflings_gem_ch4_s1": {
+      "raw_beats": 13,
+      "merged_beats": 13,
+      "words": 1361
+    },
+    "halflings_gem_ch4_s2": {
+      "raw_beats": 2,
+      "merged_beats": 2,
+      "words": 165
+    },
+    "halflings_gem_ch4_s3": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 426
+    },
+    "halflings_gem_ch4_s4": {
+      "raw_beats": 8,
+      "merged_beats": 8,
+      "words": 827
+    },
+    "halflings_gem_ch5_s0": {
+      "raw_beats": 39,
+      "merged_beats": 39,
+      "words": 4230
+    },
+    "halflings_gem_ch6_s0": {
+      "raw_beats": 10,
+      "merged_beats": 9,
+      "words": 1004
+    },
+    "halflings_gem_ch6_s1": {
+      "raw_beats": 6,
+      "merged_beats": 6,
+      "words": 601
+    },
+    "halflings_gem_ch6_s2": {
+      "raw_beats": 11,
+      "merged_beats": 11,
+      "words": 1158
+    },
+    "halflings_gem_ch6_s3": {
+      "raw_beats": 8,
+      "merged_beats": 8,
+      "words": 806
+    },
+    "halflings_gem_ch6_s4": {
+      "raw_beats": 3,
+      "merged_beats": 2,
+      "words": 200
+    },
+    "halflings_gem_ch6_s5": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 300
+    },
+    "halflings_gem_ch6_s6": {
+      "raw_beats": 1,
+      "merged_beats": 1,
+      "words": 35
+    },
+    "halflings_gem_ch7_s0": {
+      "raw_beats": 4,
+      "merged_beats": 3,
+      "words": 296
+    },
+    "halflings_gem_ch7_s1": {
+      "raw_beats": 10,
+      "merged_beats": 10,
+      "words": 1065
+    },
+    "halflings_gem_ch7_s2": {
+      "raw_beats": 12,
+      "merged_beats": 12,
+      "words": 1297
+    },
+    "halflings_gem_ch7_s3": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 353
+    },
+    "halflings_gem_ch8_s0": {
+      "raw_beats": 22,
+      "merged_beats": 22,
+      "words": 2370
+    },
+    "halflings_gem_ch9_s0": {
+      "raw_beats": 5,
+      "merged_beats": 5,
+      "words": 507
+    },
+    "halflings_gem_ch9_s1": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 309
+    },
+    "halflings_gem_ch9_s2": {
+      "raw_beats": 1,
+      "merged_beats": 1,
+      "words": 32
+    },
+    "halflings_gem_ch9_s3": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 280
+    },
+    "halflings_gem_ch9_s4": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 312
+    },
+    "halflings_gem_ch9_s5": {
+      "raw_beats": 5,
+      "merged_beats": 5,
+      "words": 488
+    },
+    "halflings_gem_chepilogue2_s0": {
+      "raw_beats": 8,
+      "merged_beats": 8,
+      "words": 833
+    },
+    "halflings_gem_chepilogue2_s1": {
+      "raw_beats": 1,
+      "merged_beats": 1,
+      "words": 50
+    },
+    "halflings_gem_chepilogue2_s2": {
+      "raw_beats": 1,
+      "merged_beats": 1,
+      "words": 137
+    },
+    "halflings_gem_chepilogue3_s0": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 470
+    },
+    "halflings_gem_chepilogue3_s1": {
+      "raw_beats": 3,
+      "merged_beats": 2,
+      "words": 183
+    },
+    "halflings_gem_chepilogue3_s2": {
+      "raw_beats": 2,
+      "merged_beats": 2,
+      "words": 202
+    },
+    "halflings_gem_chepilogue3_s3": {
+      "raw_beats": 9,
+      "merged_beats": 9,
+      "words": 1015
+    },
+    "halflings_gem_chepilogue_s0": {
+      "raw_beats": 11,
+      "merged_beats": 11,
+      "words": 1130
+    },
+    "halflings_gem_chprelude_s0": {
+      "raw_beats": 7,
+      "merged_beats": 6,
+      "words": 753
+    },
+    "halflings_gem_chprelude_s1": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 259
+    },
+    "streams_of_silver_ch10_s0": {
+      "raw_beats": 9,
+      "merged_beats": 9,
+      "words": 918
+    },
+    "streams_of_silver_ch10_s1": {
+      "raw_beats": 25,
+      "merged_beats": 25,
+      "words": 2655
+    },
+    "streams_of_silver_ch10_s2": {
+      "raw_beats": 2,
+      "merged_beats": 2,
+      "words": 157
+    },
+    "streams_of_silver_ch11_s0": {
+      "raw_beats": 8,
+      "merged_beats": 8,
+      "words": 881
+    },
+    "streams_of_silver_ch11_s1": {
+      "raw_beats": 9,
+      "merged_beats": 9,
+      "words": 965
+    },
+    "streams_of_silver_ch11_s2": {
+      "raw_beats": 8,
+      "merged_beats": 8,
+      "words": 946
+    },
+    "streams_of_silver_ch12_s0": {
+      "raw_beats": 28,
+      "merged_beats": 28,
+      "words": 3161
+    },
+    "streams_of_silver_ch12_s1": {
+      "raw_beats": 1,
+      "merged_beats": 1,
+      "words": 51
+    },
+    "streams_of_silver_ch12_s2": {
+      "raw_beats": 2,
+      "merged_beats": 2,
+      "words": 172
+    },
+    "streams_of_silver_ch12_s3": {
+      "raw_beats": 8,
+      "merged_beats": 8,
+      "words": 887
+    },
+    "streams_of_silver_ch13_s0": {
+      "raw_beats": 25,
+      "merged_beats": 25,
+      "words": 2999
+    },
+    "streams_of_silver_ch14_s0": {
+      "raw_beats": 22,
+      "merged_beats": 22,
+      "words": 2682
+    },
+    "streams_of_silver_ch15_s0": {
+      "raw_beats": 5,
+      "merged_beats": 5,
+      "words": 549
+    },
+    "streams_of_silver_ch15_s1": {
+      "raw_beats": 11,
+      "merged_beats": 11,
+      "words": 1279
+    },
+    "streams_of_silver_ch15_s2": {
+      "raw_beats": 2,
+      "merged_beats": 2,
+      "words": 155
+    },
+    "streams_of_silver_ch15_s3": {
+      "raw_beats": 2,
+      "merged_beats": 2,
+      "words": 199
+    },
+    "streams_of_silver_ch16_s0": {
+      "raw_beats": 27,
+      "merged_beats": 27,
+      "words": 2893
+    },
+    "streams_of_silver_ch17_s0": {
+      "raw_beats": 9,
+      "merged_beats": 9,
+      "words": 1024
+    },
+    "streams_of_silver_ch17_s1": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 356
+    },
+    "streams_of_silver_ch17_s2": {
+      "raw_beats": 20,
+      "merged_beats": 20,
+      "words": 2081
+    },
+    "streams_of_silver_ch18_s0": {
+      "raw_beats": 15,
+      "merged_beats": 15,
+      "words": 1653
+    },
+    "streams_of_silver_ch18_s1": {
+      "raw_beats": 6,
+      "merged_beats": 6,
+      "words": 637
+    },
+    "streams_of_silver_ch18_s2": {
+      "raw_beats": 8,
+      "merged_beats": 8,
+      "words": 914
+    },
+    "streams_of_silver_ch19_s0": {
+      "raw_beats": 9,
+      "merged_beats": 9,
+      "words": 976
+    },
+    "streams_of_silver_ch19_s1": {
+      "raw_beats": 2,
+      "merged_beats": 2,
+      "words": 130
+    },
+    "streams_of_silver_ch19_s2": {
+      "raw_beats": 22,
+      "merged_beats": 22,
+      "words": 2385
+    },
+    "streams_of_silver_ch19_s3": {
+      "raw_beats": 1,
+      "merged_beats": 1,
+      "words": 50
+    },
+    "streams_of_silver_ch19_s4": {
+      "raw_beats": 9,
+      "merged_beats": 9,
+      "words": 1020
+    },
+    "streams_of_silver_ch1_s0": {
+      "raw_beats": 25,
+      "merged_beats": 25,
+      "words": 2739
+    },
+    "streams_of_silver_ch20_s0": {
+      "raw_beats": 13,
+      "merged_beats": 13,
+      "words": 1449
+    },
+    "streams_of_silver_ch20_s1": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 406
+    },
+    "streams_of_silver_ch20_s2": {
+      "raw_beats": 19,
+      "merged_beats": 19,
+      "words": 2134
+    },
+    "streams_of_silver_ch20_s3": {
+      "raw_beats": 1,
+      "merged_beats": 1,
+      "words": 35
+    },
+    "streams_of_silver_ch21_s0": {
+      "raw_beats": 31,
+      "merged_beats": 31,
+      "words": 3711
+    },
+    "streams_of_silver_ch22_s0": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 434
+    },
+    "streams_of_silver_ch22_s1": {
+      "raw_beats": 12,
+      "merged_beats": 12,
+      "words": 1271
+    },
+    "streams_of_silver_ch22_s2": {
+      "raw_beats": 6,
+      "merged_beats": 6,
+      "words": 599
+    },
+    "streams_of_silver_ch22_s3": {
+      "raw_beats": 2,
+      "merged_beats": 2,
+      "words": 140
+    },
+    "streams_of_silver_ch22_s4": {
+      "raw_beats": 2,
+      "merged_beats": 2,
+      "words": 219
+    },
+    "streams_of_silver_ch22_s5": {
+      "raw_beats": 15,
+      "merged_beats": 15,
+      "words": 1451
+    },
+    "streams_of_silver_ch23_s0": {
+      "raw_beats": 13,
+      "merged_beats": 13,
+      "words": 1384
+    },
+    "streams_of_silver_ch23_s1": {
+      "raw_beats": 7,
+      "merged_beats": 7,
+      "words": 719
+    },
+    "streams_of_silver_ch23_s2": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 256
+    },
+    "streams_of_silver_ch23_s3": {
+      "raw_beats": 8,
+      "merged_beats": 8,
+      "words": 828
+    },
+    "streams_of_silver_ch23_s4": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 293
+    },
+    "streams_of_silver_ch23_s5": {
+      "raw_beats": 5,
+      "merged_beats": 5,
+      "words": 461
+    },
+    "streams_of_silver_ch24_s0": {
+      "raw_beats": 11,
+      "merged_beats": 11,
+      "words": 1147
+    },
+    "streams_of_silver_ch24_s1": {
+      "raw_beats": 2,
+      "merged_beats": 2,
+      "words": 207
+    },
+    "streams_of_silver_ch2_s0": {
+      "raw_beats": 16,
+      "merged_beats": 16,
+      "words": 1810
+    },
+    "streams_of_silver_ch2_s1": {
+      "raw_beats": 12,
+      "merged_beats": 12,
+      "words": 1300
+    },
+    "streams_of_silver_ch3_s0": {
+      "raw_beats": 5,
+      "merged_beats": 5,
+      "words": 501
+    },
+    "streams_of_silver_ch3_s1": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 466
+    },
+    "streams_of_silver_ch3_s2": {
+      "raw_beats": 8,
+      "merged_beats": 8,
+      "words": 974
+    },
+    "streams_of_silver_ch3_s3": {
+      "raw_beats": 11,
+      "merged_beats": 11,
+      "words": 1129
+    },
+    "streams_of_silver_ch4_s0": {
+      "raw_beats": 30,
+      "merged_beats": 30,
+      "words": 3353
+    },
+    "streams_of_silver_ch4_s1": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 433
+    },
+    "streams_of_silver_ch5_s0": {
+      "raw_beats": 30,
+      "merged_beats": 30,
+      "words": 3388
+    },
+    "streams_of_silver_ch6_s0": {
+      "raw_beats": 12,
+      "merged_beats": 12,
+      "words": 1317
+    },
+    "streams_of_silver_ch6_s1": {
+      "raw_beats": 2,
+      "merged_beats": 2,
+      "words": 162
+    },
+    "streams_of_silver_ch6_s2": {
+      "raw_beats": 20,
+      "merged_beats": 20,
+      "words": 2229
+    },
+    "streams_of_silver_ch6_s3": {
+      "raw_beats": 6,
+      "merged_beats": 6,
+      "words": 660
+    },
+    "streams_of_silver_ch7_s0": {
+      "raw_beats": 23,
+      "merged_beats": 23,
+      "words": 2430
+    },
+    "streams_of_silver_ch8_s0": {
+      "raw_beats": 39,
+      "merged_beats": 39,
+      "words": 4265
+    },
+    "streams_of_silver_ch8_s1": {
+      "raw_beats": 1,
+      "merged_beats": 1,
+      "words": 118
+    },
+    "streams_of_silver_ch9_s0": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 297
+    },
+    "streams_of_silver_ch9_s1": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 334
+    },
+    "streams_of_silver_ch9_s2": {
+      "raw_beats": 4,
+      "merged_beats": 4,
+      "words": 445
+    },
+    "streams_of_silver_ch9_s3": {
+      "raw_beats": 23,
+      "merged_beats": 23,
+      "words": 2541
+    },
+    "streams_of_silver_chepilogue_s0": {
+      "raw_beats": 6,
+      "merged_beats": 6,
+      "words": 593
+    },
+    "streams_of_silver_chepilogue_s1": {
+      "raw_beats": 8,
+      "merged_beats": 8,
+      "words": 746
+    },
+    "streams_of_silver_chpart1_s0": {
+      "raw_beats": 6,
+      "merged_beats": 6,
+      "words": 678
+    },
+    "streams_of_silver_chpart2_s0": {
+      "raw_beats": 7,
+      "merged_beats": 7,
+      "words": 845
+    },
+    "streams_of_silver_chpart3_s0": {
+      "raw_beats": 8,
+      "merged_beats": 8,
+      "words": 958
+    },
+    "streams_of_silver_chprelude_s0": {
+      "raw_beats": 3,
+      "merged_beats": 3,
+      "words": 268
+    },
+    "streams_of_silver_chprelude_s1": {
+      "raw_beats": 7,
+      "merged_beats": 7,
+      "words": 811
+    },
+    "streams_of_silver_chprelude_s2": {
+      "raw_beats": 1,
+      "merged_beats": 1,
+      "words": 161
+    }
+  },
+  "total_beats_raw": 2493,
+  "total_beats_after_merge": 2470,
+  "total_beats_merged": 23
+}

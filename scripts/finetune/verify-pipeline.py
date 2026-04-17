@@ -93,7 +93,7 @@ def audit_beats(beats_path: Path) -> dict:
         if "chapter" in b: per_book[bk]["chapters"].add(b["chapter"])
     for bk in per_book:
         per_book[bk]["scene_count"] = len(per_book[bk]["scenes"])
-        per_book[bk]["chapters"] = sorted(per_book[bk]["chapters"])
+        per_book[bk]["chapters"] = sorted(per_book[bk]["chapters"], key=lambda x: (isinstance(x, str), x))
         per_book[bk]["chapter_count"] = len(per_book[bk]["chapters"])
         del per_book[bk]["scenes"]
     return dict(per_book)
