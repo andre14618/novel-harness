@@ -54,30 +54,21 @@ Treat writer quality as an engineering problem with a measurable ground truth. D
 - Phase C (LoRA training + validation): **DONE** — `salvatore-1988-v1` trained and validated; Δ-sum 0.45 vs DeepSeek 2.45 (exp #192 concluded)
 - Phase C.2 (capability vs tuning, 3-cell A/B): **DONE** — exp #193. Tuning beats ICL by ~2.7×: primer 0.73 Δ-sum improvement; LoRA an additional 1.96. Sentence rhythm does not transfer via ICL on DeepSeek. See `docs/decisions.md` "Phase C.2 verdict."
 
-### Phase D — production validation (next)
-1. 3-chapter pipeline run on litrpg seed with `salvatore-1988-v1` as beat-writer; compare adherence pass rate, lint counts, and structural analysis to DeepSeek + Howard primer baseline
-2. 3-chapter run on romance-drama seed (voice-mismatch genre) to confirm the adapter doesn't catastrophically degrade outside its training distribution
-3. If production holds → register in `models/registry.ts` and add as an opt-in writer for genre-appropriate seeds (eventually default if it also beats DeepSeek on adherence + structural)
-4. If production regresses → keep as tonal-pass candidate (Howard tonal V4 analog for Salvatore voice), not default writer
+### Phase D — production validation (DONE 2026-04-16/17)
 
-### Phase D (deferred) — "Capability vs tuning" 2×2
-Originally planned as POC. Now superseded by the live training run — `salvatore-1988-v1` IS the small-model LoRA cell. If B > C decisively after Phase C validation, skip the 2×2; SFT at small scale answered the question. If B < C, run the larger-base cell (Llama 3.3 70B on Together, ~$2.60) to distinguish "14B too small" from "tuning doesn't move this writer-voice axis."
+- v3 + narrow-strip compact context passed all 3 chapters of `fantasy-echo-mage` in 5 attempts (exp #201)
+- 17-seed validation sweep completed: 6 of 13 LoRA-routed seeds completed all chapters; word-count + required-fact-miss patterns identified and addressed via structural priors + planner-level fix
+- Howard primer methodology retired 2026-04-16; per-genre voice LoRAs replace universal primer
+- Chapter-level rewriter removed 2026-04-17 — validation is diagnostic-only; beat-writer retry is the quality gate
+- See `docs/decisions.md` + `docs/voice-lora-salvatore.md` + `docs/beat-writer-architecture.md`
+
+**Next:** monitor 3-seed re-run (dark-fantasy, fantasy-healer, fantasy-debt) with structural priors + planner fact fix deployed. If word-count issue resolves with more beats/chapter, structural priors are confirmed effective.
 
 ---
 
-## Writer-side voice imprinting — DEPRIORITIZED, superseded by imitation benchmark
+## Lint fixer (conditional deprecation candidate)
 
-DeepSeek V3.2 + Howard primer is now the default writer stack (exp #189/#190/#191, see `docs/decisions.md` "DeepSeek V3.2 + Howard primer promoted to pipeline-wide default"). All voice-SFT plans below are paused pending the Salvatore imitation benchmark verdict — the benchmark will tell us whether any SFT investment (14B, larger-base, or DeepSeek-class) is justified vs. simply improving primer strategy or generation unit.
-
-**Phase 1 (Qwen3-14B beat-writer SFT)** — PAUSED. Pre-benchmark hypothesis was 14B may be under-capacity for voice imprinting. The benchmark's M4/M6 (hybrid primer at beat/scene level) will dominate this if primer is sufficient; M9/M10 (Sonnet ceiling) will clarify whether any DeepSeek-class methodology even matters. Only revisit if benchmark verdict says DeepSeek + primer leaves a large gap to M9/M10 AND a 14B SFT could plausibly close it.
-
-**Phase 2 (larger-base SFT on W&B or Together)** — PAUSED. Same gating as Phase 1 but with bigger bases (Qwen3.5 397B A17B on Together, Llama 70B, next hot W&B base when available). Training costs are meaningful ($20–100+ per run), so this path requires benchmark verdict + a clear ceiling to chase.
-
-**Phase 3 (DeepSeek experiments)** — DONE/shipped. DeepSeek as default writer and Howard primer cached at ~94% hit rate both landed as pipeline-wide defaults 2026-04-15.
-
-**Ongoing:** post-hoc tonal pass stays reachable via `POST /tonal-pass` for adapter comparison on any existing novel. Auto-run is disabled.
-
-**Lint fixer SFT** — 169 pairs with full data in `llm_calls`. 849 flagged issues in `lint_issues` across 34 patterns. Mine `(flagged_sentence, scene_context, good_rewrite)` triples from approved chapters. Target 200-300 examples across the 8 major pattern types. Not blocked by benchmark — lint is deterministic rewriting, not voice imprinting.
+Voice LoRA may make lint patterns irrelevant — Salvatore corpus prose doesn't contain AI-fiction tells. Before SFT'ing a lint-fixer, measure lint-fire rate on voice-LoRA output. If ≤1 issue/chapter, retire instead of migrate. See `docs/pipeline-14b-consolidation.md` Tier 1 conditional-deprecation gate.
 
 ## W&B Storage Management
 
@@ -153,10 +144,11 @@ All existing SFT training data was generated with screenplay-style beats (pre-ex
 - **Strip anti-pattern list from rewriter prompt** — rewriter can't self-police clichés (proven). Lint + tonal pass handles this.
 - **Skip re-extraction for prose-only rewrites** — if a rewrite fixes only cosmetic issues, extraction results remain valid.
 
-## Structural Diversity
+## Structural Diversity — PARTIALLY ADDRESSED
 
-- **Structural diversity pass** — pipeline prose is below published norms: 15.7% dialogue (published: 25–50%), 0.1 interiority verbs/100w, 7.5w avg sentence length (published: 12–18w). Needs paired training data (current output → structurally rich output) that doesn't exist yet. Block beat-writer SFT and new tonal-pass training until addressed.
-- **Analysis tracking** — run `scripts/analysis/analyze-structure.ts` after each batch of new novels to track improvement.
+- **Structural priors deployed (2026-04-17)** — planner now receives beat-type distribution targets + cluster-sustain rules + opener/closer patterns + scene-size guidance for fantasy genres via `StructuralPriors` config in genre packs. Salvatore-derived targets: 35% action / 30% dialogue / 20% interiority / 15% description.
+- **Beat-kind labeling added** — planner now emits `kind` per beat (action/dialogue/interiority/description). Writer sees `Kind: X` in beat spec header.
+- **Monitoring:** compare pipeline output structure against `docs/salvatore-structural-analysis.md` baseline after the current re-run. Track improvement via `scripts/analysis/beat-sequence-analysis.py` on new novels.
 
 ## Seeds & Data Diversity
 

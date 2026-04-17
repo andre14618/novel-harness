@@ -178,7 +178,7 @@ Items 1–4 are the same set enabling the 3-chapter gate, so they're shared prer
 | tonal-pass (on-demand) | **On 14B** (SFT v4) | 2026-04-11 |
 | voice (fantasy seeds) | **On 14B** (salvatore-1988-v2) | 2026-04-16, exp #194 |
 | lint-fixer | Current: Cerebras 235B. Next: Tier 1 SFT. | — |
-| rewriter | Current: DeepSeek V3.2. Next: beat-scope refactor. | — |
+| rewriter | **REMOVED** (2026-04-17) — validation is diagnostic-only; beat-writer retry is the quality gate | — |
 | planning-extractor | **Stay on DeepSeek** (2026-04-16 — low-volume / high-stakes; upgrade candidate to smarter model) | — |
 | concept (world/char/plot) | **Stay on DeepSeek** (2026-04-16 — same reasoning) | — |
 | planning-plotter | **Stay on DeepSeek** (2026-04-16 — same reasoning) | — |

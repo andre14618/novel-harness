@@ -43,7 +43,8 @@ Every beat-writer call gets ~500–1,000 tokens assembled deterministically:
 | Setting block | Sensory details for current location | Beat 0 or location change only |
 
 **Deliberate omissions:**
-- `emotionalShift` — excluded to prevent "telling" bias in prose
+- `emotionalShift` — **removed from schema entirely** (2026-04-17). Emotional arc is carried by the beat description text; a separate metadata field was redundant and created checker/writer mismatch.
+- Runtime state fields (State / With / Tension / Doesn't-know) — stripped in compact mode for voice-LoRA routes (2026-04-16 narrow-strip). Kept for DeepSeek writer routes.
 - World systems / facts / timeline — omitted per-beat; reserved for chapter-level validation (continuity checker)
 
 **Observed output shape (131 chapters, 5 premises, measured 2026-04-09):**
