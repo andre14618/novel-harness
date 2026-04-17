@@ -43,19 +43,13 @@ training_roles:
   - archetype_pass               # attributed dialogue feeds archetype-pass POC
   - character_reference          # character voice profiles in harness beat context
 
-# Analyzers to run in Stage 5. Each produces one file in analysis/.
-# Deterministic analyzers run locally; LLM analyzers dispatch subagents.
+# Analyzers to run in Stage 5. Each must have a concrete harness consumer
+# before it's added here — speculative analyzers were removed 2026-04-17
+# after an audit found 7 of the 10 originally declared had no planner,
+# writer, or checker reading their output.
 analyzers:
-  - structural          # beat distribution, cluster sustain, opener/closer, beats-per-chapter
-  - voice               # per-character vocabulary + dialect markers
-  - dialogue            # per-character attributed dialogue lines (POC-derived)
-  - dialogue-density    # dialogue-word % per beat kind and per chapter
-  - tension             # per-chapter tension curve (action-verb × compression × stakes-lexicon)
-  - chapter-hooks       # end-of-chapter hook-type classification (cliffhanger/tease/promise/...)
-  - sensory             # sense distribution (visual/auditory/tactile/olfactory/kinesthetic) per beat
-  - sentence-rhythm     # sentence length distribution per beat kind
-  - pov-rotation        # POV assignments + rotation cadence across the novel
-  - metaphor            # metaphor/simile density per beat kind
+  - structural          # beat distribution, cluster sustain, opener/closer, beats-per-chapter — feeds SALVATORE_PRIORS in src/models/roles.ts
+  - dialogue            # per-character attributed dialogue lines — feeds archetype-pass POC (exp #220) training pairs
 
 # Character registry — human-curated. The aliases field is used by the
 # dialogue extractor for role-description attribution (the dwarf → Bruenor).

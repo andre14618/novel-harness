@@ -178,24 +178,34 @@ characters:
 - `I4.3`: `brief.pov` is either in the novel's character registry or `"omniscient"`
 - `I4.4`: characters mentioned in `brief.characters` are either in the registry or flagged
 
-### Stage 5 — Analysis (training pairs → structural/voice signatures)
+### Stage 5 — Analysis (training pairs → structural/dialogue signatures)
 
-**Scripts:** `scripts/analysis/beat-sequence-analysis.py` (existing), `scripts/finetune/archetype-poc/extract-dialogue.py` (new, needs generalization)
+**Scope discipline (2026-04-17):** Every analyzer MUST have a concrete harness consumer — a planner, writer, checker, or experiment that reads its output. Seven speculative analyzers (tension, chapter-hooks, sensory, sentence-rhythm, pov-rotation, metaphor, voice-vocab) were scoped, prototyped, and removed after an audit found they had no consumer. New analyzers are added only when a specific harness weakness surfaces that their output would address.
+
+**Scripts:**
+- `scripts/analysis/structural.py` — deterministic; feeds `SALVATORE_PRIORS` in `src/models/roles.ts` → planner
+- `scripts/corpus/extract-dialogue.ts` — LLM-based (DeepSeek V3.2, validated against Sonnet); feeds archetype-pass POC (exp #220)
 
 **Outputs:**
-- `analysis/structural-signature.json` — beats-per-chapter stats, kind distribution, cluster-sustain rates, opener/closer patterns
-- `analysis/voice-signature.json` — per-character dialogue density, vocabulary distinctness, dialect markers
+- `analysis/structural-signature.json` — beat-kind distribution, cluster sustain, chapter openers/closers, beats-per-scene/chapter stats, trigrams
 - `analysis/dialogue-extract.jsonl` — per-character attributed dialogue lines
+- `analysis/dialogue-extract.report.json` — extraction metrics, per-character counts, attribution method distribution
 
 **Contract:**
-- Every named character in the novel's `config.characters` appears in voice-signature (or is explicitly marked as having insufficient data).
 - Structural signature is consumable by `src/models/roles.ts` as a `StructuralPriors` object.
-
-**Report:** `analysis/analysis.report.json` — per-character dialogue counts, coverage gaps.
+- Every speaker in `dialogue-extract.jsonl` must appear in `config.characters`.
 
 **Invariants:**
-- `I5.1`: structural signature has non-zero values for all kind categories
-- `I5.2`: at least 60% of `config.characters` have sufficient dialogue data (≥30 attributed lines) — warning, not blocker
+- `I5.1`: structural signature has non-zero values for all four beat kinds
+- `I5.2`: dialogue-extract has ≥30 lines for each POV character in `config.characters` — warning, not blocker
+
+**Adding a new analyzer (required discipline):**
+1. Identify the concrete harness consumer — what code will read this output, and what decision does it change? If the answer is "nothing yet," don't build it.
+2. Prototype prompt with Sonnet subagent on 10 samples.
+3. Head-to-head validate against DeepSeek or Cerebras (`scripts/corpus/test-*.ts` pattern).
+4. Ship with a `*.report.json` capturing quality metrics and cost.
+5. Wire the consumer in the same PR that ships the analyzer.
+6. Add to this spec + the novel's `config.yml`.
 
 ---
 
