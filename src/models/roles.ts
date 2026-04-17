@@ -195,12 +195,37 @@ export function getModelForAgent(agentName: string): ModelAssignment | undefined
 // Packs are matched in order; the first regex that matches the seed's
 // genre wins. Add new packs here as voice LoRAs ship.
 
+export interface StructuralPriors {
+  beatDistribution: Record<string, number>
+  clusterSustain: Record<string, [number, number]>
+  openerKinds: string[]
+  closerKinds: string[]
+  maxActiveChars: number
+  beatsPerScene: [number, number]
+  beatsPerChapter: [number, number]
+}
+
 export interface WriterGenrePack {
   label: string
   match: RegExp
   model: ModelAssignment
   systemPromptFile: string
   usePrimer: boolean
+  structuralPriors: StructuralPriors
+}
+
+// Structural priors derived from docs/salvatore-structural-analysis.md
+// (777 beats, 54 chapters, 140 scenes from the Icewind Dale Trilogy).
+// New genre packs should derive their own priors via
+// scripts/analysis/beat-sequence-analysis.py on their source corpus.
+const SALVATORE_PRIORS: StructuralPriors = {
+  beatDistribution: { action: 0.35, dialogue: 0.30, interiority: 0.20, description: 0.15 },
+  clusterSustain: { action: [3, 5], dialogue: [2, 4] },
+  openerKinds: ["description", "action"],
+  closerKinds: ["action", "interiority"],
+  maxActiveChars: 3,
+  beatsPerScene: [3, 8],
+  beatsPerChapter: [8, 21],
 }
 
 export const WRITER_GENRE_PACKS: WriterGenrePack[] = [
@@ -215,6 +240,7 @@ export const WRITER_GENRE_PACKS: WriterGenrePack[] = [
     },
     systemPromptFile: "beat-writer-system-salvatore.md",
     usePrimer: false,
+    structuralPriors: SALVATORE_PRIORS,
   },
 ]
 
@@ -222,6 +248,62 @@ export function resolveWriterPack(genre: string | undefined): WriterGenrePack | 
   if (!genre) return null
   return WRITER_GENRE_PACKS.find(p => p.match.test(genre)) ?? null
 }
+
+export function resolveStructuralPriors(genre: string | undefined): StructuralPriors | null {
+  const pack = resolveWriterPack(genre)
+  return pack?.structuralPriors ?? null
+}
+
+export function renderStructuralPriorsForPlanner(priors: StructuralPriors): string {
+  const dist = Object.entries(priors.beatDistribution)
+    .map(([k, v]) => `${k} ~${Math.round(v * 100)}%`)
+    .join(", ")
+
+  const clusters = Object.entries(priors.clusterSustain)
+    .map(([k, [lo, hi]]) => `${k} sequences should sustain ${lo}-${hi} consecutive beats`)
+    .join(". ")
+
+  return `
+STRUCTURAL PRIORS (derived from published ${priors.maxActiveChars <= 3 ? "fantasy" : "fiction"} analysis):
+
+Beat-type labeling — each beat MUST include a "kind" field:
+- "action" — physical conflict, chase, combat, urgent movement
+- "dialogue" — conversation-driven, 2+ characters exchanging speech
+- "interiority" — internal thought, reflection, emotional processing
+- "description" — scene-setting, atmosphere, worldbuilding, transition
+
+Beat-type distribution per chapter:
+  Target: ${dist}.
+  Every chapter with 2+ characters MUST have at least 2 dialogue beats.
+  Pure-action chapters can skew to 60%+ action but still need at least 1 interiority beat.
+
+Pacing — sustain sequences, don't fragment them:
+  ${clusters}.
+  Interiority and description are transitional — they lead INTO action or dialogue, not sustain on their own.
+  Two consecutive description beats is stasis; avoid it.
+
+Chapter structure:
+  Open with: ${priors.openerKinds.join(" or ")} beat. Do NOT open with interiority unless the POV character is alone.
+  Close with: ${priors.closerKinds.join(" or ")} beat. NEVER close with pure description.
+
+Scene structure:
+  ${priors.beatsPerScene[0]}-${priors.beatsPerScene[1]} beats per scene (one continuous location + timeframe).
+  Under ${priors.beatsPerScene[0]} = too sparse (combine with adjacent scene). Over ${priors.beatsPerScene[1]} = too long (split at natural pivot).
+
+Character discipline per beat:
+  CRITICAL: maximum ${priors.maxActiveChars} named characters actively speaking or acting per beat.
+  Additional characters become collective nouns: "the guards," "the goblin scouts," "the crowd."
+  If a scene has 5+ characters present, each beat focuses on the ${priors.maxActiveChars} who matter most for THAT beat's dramatic function.
+  Others can be acknowledged ("Helix waited at the extraction point") but not given active dialogue or action.
+`
+}
+
+// Universal structural rules that go in the base planner prompt regardless
+// of genre pack. These are fiction-universal, not author-specific.
+export const UNIVERSAL_STRUCTURAL_RULES = `
+Beat descriptions — keep to 1-2 sentences. Longer descriptions constrain the writer's creative latitude.
+Chapters should NOT close with pure description — the reader needs momentum or emotional resonance at chapter end.
+`
 
 // ── DB generation config (autoresearcher-tunable temperature/maxTokens) ──
 

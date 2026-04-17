@@ -13,7 +13,8 @@ Respond with ONLY valid JSON in this exact structure:
         {
           "description": "what changes dramatically — NO dialogue, NO quoted speech",
           "characters": ["Character A", "Character B"],
-          "emotionalShift": "starting emotion → ending emotion"
+          "emotionalShift": "starting emotion → ending emotion",
+          "kind": "action | dialogue | interiority | description"
         }
       ],
       "targetWords": 2500,

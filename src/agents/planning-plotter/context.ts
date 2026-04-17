@@ -3,6 +3,7 @@ import type { WorldBible } from "../world-builder/schema"
 import type { CharacterProfile } from "../character-agent/schema"
 import type { StorySpine } from "../plotter/schema"
 import { renderDirectivesForPlanner } from "../../schemas/planning-directives"
+import { resolveStructuralPriors, renderStructuralPriorsForPlanner } from "../../models/roles"
 
 export function buildContext(
   worldBible: WorldBible,
@@ -71,6 +72,9 @@ ${spine.acts.map(a => `  Act ${a.number} — ${a.name}: ${a.summary} [${a.emotio
 
   const directivesSection = seed.directives ? renderDirectivesForPlanner(seed.directives) : ""
 
+  const priors = resolveStructuralPriors(seed.genre)
+  const structuralSection = priors ? renderStructuralPriorsForPlanner(priors) : ""
+
   return `Genre: ${seed.genre}
 Premise: ${seed.premise}
 
@@ -78,7 +82,7 @@ ${worldSection}${systemsSection}${culturesSection}
 
 ${charSection}
 
-${spineSection}${directivesSection}
+${spineSection}${directivesSection}${structuralSection}
 
 Create a detailed chapter-by-chapter outline${seed.chapterCount ? ` with exactly ${seed.chapterCount} chapters` : ""}. Each chapter should have specific scene beats that advance the plot and develop characters.${seed.chapterCount && seed.chapterCount > 5 ? `\n\nWith ${seed.chapterCount} chapters, ensure subplot threads are established early and woven through the middle, rotating POV characters across chapters where the story benefits from multiple perspectives.` : ""}${worldBible.systems?.length ? `\n\nConsider how different characters' awareness of world systems creates opportunities for dramatic tension — a character ignorant of magic witnessing it for the first time, cultural clashes when characters from different backgrounds meet, or characters navigating taboos they don't share.` : ""}`
 }

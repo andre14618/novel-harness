@@ -140,6 +140,7 @@ function formatBeatSpec(beat: SceneBeat, outline: ChapterOutline, beatIndex: num
     `BEAT ${beatIndex + 1} of ${outline.scenes.length}`,
     `POV: ${outline.povCharacter}`,
     `Setting: ${outline.setting}`,
+    `Kind: ${beat.kind ?? "action"}`,
     ``,
     beat.description,
   ]

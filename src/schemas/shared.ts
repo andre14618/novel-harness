@@ -21,10 +21,14 @@ export const actSchema = z.object({
   turningPoint: z.string().optional(),
 })
 
+export const BEAT_KINDS = ["action", "dialogue", "interiority", "description"] as const
+export type BeatKind = typeof BEAT_KINDS[number]
+
 export const sceneBeatSchema = z.object({
   description: z.string(),
   characters: z.array(z.string()).default([]),
   emotionalShift: z.string().default(""),
+  kind: z.enum(BEAT_KINDS).default("action").catch("action"),
 })
 export type SceneBeat = z.infer<typeof sceneBeatSchema>
 
