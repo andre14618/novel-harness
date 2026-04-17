@@ -389,6 +389,46 @@ Representative real diffs: `looked at → stared at`, `judgment → condemnation
 - Stage 5 (Analysis) is a plugin-style framework — ten analyzers declared in `config.yml` per novel, each producing one JSON artifact consumable by one or more harness agents (planner structural priors, beat-writer character snapshots, checker rules).
 - This document + `docs/corpus-pipeline.md` supersede the old ad-hoc Salvatore-specific scripts documented in historical experiment notes.
 
+### Per-task model selection for corpus pipeline — validated head-to-head
+*2026-04-17 · scripts/corpus/test-briefs.ts + test-segment.ts + test-deepseek-dialogue.ts*
+
+**Decision:** Each stage of the corpus pipeline uses the model validated for that specific task via a 10-sample head-to-head against Sonnet. The pattern — pick 10 representative samples, run Sonnet as reference, run candidates, compare field-level — is the template for validating every new task before corpus-scale runs.
+
+**Validated model assignments:**
+
+| Stage | Primary | Fallback | Evidence |
+|---|---|---|---|
+| **Dialogue extraction** | DeepSeek V3.2 | Sonnet | 10-beat test: 100% attribution agreement with Sonnet on content overlap, 97% recall, formatting-only differences. Full-corpus run: 2,447 lines, $1.33, 5.7 min. |
+| **Brief extraction** | Cerebras Qwen 235B | DeepSeek V3.2 | 10-beat test: 90% character exact match, 80% POV match vs Sonnet. 2.2s per 10-beat batch — 15× faster than DeepSeek. Setting/tone values are semantically equivalent to Sonnet's (different phrasings). |
+| **Beat segmentation** | Cerebras Qwen 235B (scenes <1500w) | DeepSeek V3.2 (larger scenes) | 5-scene test: 99.7–100% reconstruction, 99.7–99.9% verbatim. 2.5s/scene — 40× faster than DeepSeek's 99s. Failed on 1 scene over 2000w (likely max_tokens), hence fallback. DeepSeek handles large scenes at 100% verbatim. |
+| **Analyzers** (Stage 5, unproven) | Sonnet subagent for prototyping → DeepSeek/Cerebras for corpus scale | — | Each new analyzer must pass its own 10-sample head-to-head before production. |
+
+**Why per-task rather than one-model-fits-all:**
+- Dialogue extraction: judgment-heavy (pronoun/role attribution) → DeepSeek's reasoning wins
+- Brief extraction: schema-constrained with short output → Cerebras speed wins, quality identical
+- Beat segmentation: long verbatim output → DeepSeek is cleanest but slow; Cerebras is much faster with 99.9% verbatim (trivially worse than Sonnet's 94% on the one scene where Sonnet lost fidelity)
+- Different tasks stress different model strengths. Picking one champion costs either accuracy or speed unnecessarily.
+
+**Surprise finding:** Sonnet isn't always the gold standard. On beat segmentation, DeepSeek preserved 100% of verbatim text on all 5 test scenes while Sonnet dropped to 94% on one (streams_of_silver_ch20_s2). "Gold-standard baseline" was an assumption; head-to-head validation surfaces where it breaks.
+
+**Cost at scale** for a new ~2000-beat novel bundle (Gemmell, LitRPG, Sanderson):
+- Dialogue extraction: ~$1 (DeepSeek)
+- Brief extraction: ~$0.50 (Cerebras)
+- Beat segmentation: ~$3–5 (Cerebras primary + DeepSeek fallback for large scenes)
+- **Total under $10/novel, zero session budget**
+
+**Alternatives considered:**
+- Mimo Flash for briefs: 80% character match, slower than Cerebras (7.4s vs 2.2s), no cost advantage — Cerebras wins.
+- Kimi K2 via Groq: no longer offered (404 on `moonshotai/kimi-k2-instruct-0905`).
+- GPT-4o / OpenAI: not tested yet; available via OpenRouter if a task's quality gap ever justifies the cost.
+- One-model-fits-all (just DeepSeek): valid but wasteful — Cerebras is genuinely faster + cheaper + same quality for the shapes where it works.
+
+**Ongoing implications:**
+- Any new task added to the pipeline MUST pass a 10-sample head-to-head before production use. `scripts/corpus/test-*.ts` are the templates.
+- Stage 5 analyzers (tension, chapter-hooks, sensory, etc.) should be prototyped with Sonnet subagents to prove the prompt, then ported to DeepSeek or Cerebras once the schema is validated.
+- Fallback routing (Cerebras → DeepSeek on failure) should be built into Stage 5 analyzer scripts for robustness.
+- Sonnet subagents remain the right tool for: new-task prototyping, one-off quality audits, judgment-heavy tasks where schema isn't well-defined.
+
 ### Programmatic DeepSeek V3.2 for corpus-wide extraction tasks (replaces Sonnet subagents)
 *2026-04-17 · head-to-head `scripts/corpus/test-deepseek-dialogue.ts` + full-corpus run*
 
