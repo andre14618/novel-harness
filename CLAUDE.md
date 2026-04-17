@@ -206,6 +206,7 @@ ssh novel-harness-lxc "curl -s -X POST http://localhost:3006/api/improvement/sta
 - **Services**: `novel-harness-orchestrator` (port 3006), `ntfy` (port 2586)
 - **Postgres**: `novel_harness_orchestrator` DB with pgvector extension
 - **Deploy**: `bash scripts/deploy-lxc.sh` (rsync + restart)
+- **PATH**: `~/.bashrc` on the LXC has the bun export moved ABOVE the interactive guard so `ssh novel-harness-lxc "bun ..."` works without full path. If the LXC is rebuilt, do `sed` the bun export to the top of `.bashrc` again, otherwise non-interactive SSH will fail with "bun: No such file or directory".
 - **Web UI**: `http://novel-harness:3006/app?key=<ORCHESTRATOR_API_KEY>`
 
 ## Sources of Truth
