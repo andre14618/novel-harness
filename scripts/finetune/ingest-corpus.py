@@ -100,6 +100,8 @@ def normalize_pdf_structure(raw: str) -> str:
     return text
 
 
+EPUB_SKIP_LOG: list[dict] = []  # populated during extraction; surfaced in report
+
 def extract_epub(path: Path) -> str:
     import ebooklib
     from ebooklib import epub
@@ -108,7 +110,8 @@ def extract_epub(path: Path) -> str:
     book = epub.read_epub(str(path))
     docs = list(book.get_items_of_type(ebooklib.ITEM_DOCUMENT))
 
-    # Common front/back-matter doc names to skip
+    # Common front/back-matter doc names to skip. Each skip is logged so
+    # the report surfaces what was dropped and why.
     skip_substrings = {
         "nav", "drm_notice", "cover", "title", "endpaper",
         "copyright", "about_author", "about_publisher", "dedication",
@@ -117,9 +120,12 @@ def extract_epub(path: Path) -> str:
     }
 
     out = []
+    EPUB_SKIP_LOG.clear()
     for d in docs:
         name = d.get_name().split("/")[-1].lower()
-        if any(s in name for s in skip_substrings):
+        matched = [s for s in skip_substrings if s in name]
+        if matched:
+            EPUB_SKIP_LOG.append({"doc": d.get_name(), "matched_substrings": matched})
             continue
         soup = BeautifulSoup(d.get_content(), "html.parser")
         for tag in soup(["script", "style"]):
@@ -193,6 +199,7 @@ def report(text: str) -> dict:
         "section_markers": len(matches),
         "scene_breaks": text.count("* * *"),
         "sections": sections,
+        "epub_docs_skipped": list(EPUB_SKIP_LOG),
     }
 
 

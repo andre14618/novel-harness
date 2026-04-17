@@ -1,25 +1,21 @@
 #!/usr/bin/env python3
 """Batch beat-segmentation: reads pass-1 scenes, writes segmented beats JSONL.
 
-This script prepares the input for Claude Code sub-agents. It:
-1. Reads extracted scenes from the pass-1 JSONL
-2. Writes per-scene prompt files to a temp directory
-3. Collects completed results and merges sub-60w beats
-4. Outputs final segmented beats JSONL
+Uses Claude Code sub-agents for segmentation. This script handles
+pre/post-processing only.
 
-The actual sub-agent calls happen in Claude Code (not in this script).
-This is the pre/post-processing wrapper.
+`prepare` emits per-scene prompt files + a manifest listing expected scene_ids.
+`merge` cross-checks the manifest against actual result files and warns on
+missing/orphaned/malformed results — no silent data loss.
 
 Usage:
-  # Step 1: Prepare prompts
   python3 scripts/finetune/segment-beats.py prepare \
     --scenes /tmp/salvatore-pass1-scenes.jsonl \
     --prompt-dir /tmp/beat-prompts \
     --batch-size 5
 
-  # Step 2: (Claude Code runs sub-agents on each batch)
+  # Step 2: Claude Code runs sub-agents on each batch, writes /tmp/beat-results/<scene_id>.json
 
-  # Step 3: Post-process results
   python3 scripts/finetune/segment-beats.py merge \
     --results-dir /tmp/beat-results \
     --scenes /tmp/salvatore-pass1-scenes.jsonl \
@@ -72,6 +68,9 @@ First beat always has boundary_signal "scene_start". Every word of the scene mus
 
 Return ONLY the JSON array."""
 
+REQUIRED_BEAT_FIELDS = ["beat_idx", "words", "kind", "boundary_signal", "summary",
+                        "first_sentence", "last_sentence", "text"]
+
 
 def cmd_prepare(args):
     scenes = [json.loads(l) for l in open(args.scenes)]
@@ -80,6 +79,7 @@ def cmd_prepare(args):
 
     batches = []
     batch = []
+    prepared_scene_ids = []
     for i, scene in enumerate(scenes):
         prompt = PROMPT_TEMPLATE.format(
             scene_id=scene["scene_id"],
@@ -88,6 +88,7 @@ def cmd_prepare(args):
         )
         prompt_file = prompt_dir / f"scene_{i:03d}_{scene['scene_id']}.txt"
         prompt_file.write_text(prompt)
+        prepared_scene_ids.append(scene["scene_id"])
         batch.append({
             "index": i,
             "scene_id": scene["scene_id"],
@@ -105,22 +106,23 @@ def cmd_prepare(args):
         "total_scenes": len(scenes),
         "batch_size": args.batch_size,
         "num_batches": len(batches),
+        "expected_scene_ids": prepared_scene_ids,
         "batches": batches,
     }, indent=2))
 
+    total_words = sum(s["words"] for s in scenes)
+    est_tokens = total_words * 1.3 + len(scenes) * 800
     print(f"Prepared {len(scenes)} scene prompts in {len(batches)} batches")
     print(f"Manifest: {manifest}")
-    total_words = sum(s["words"] for s in scenes)
-    est_tokens = total_words * 1.3 + len(scenes) * 800  # input prose + prompt overhead
     print(f"Estimated input tokens: ~{est_tokens/1000:.0f}K")
 
 
-def merge_small_beats(beats: list[dict], min_words: int) -> list[dict]:
-    """Merge beats smaller than min_words into the preceding beat."""
+def merge_small_beats(beats: list[dict], min_words: int) -> tuple[list[dict], int]:
+    """Merge beats under min_words into the preceding beat. Returns (merged, merged_count)."""
     if not beats:
-        return beats
-
+        return beats, 0
     merged = [beats[0]]
+    merged_count = 0
     for beat in beats[1:]:
         if beat["words"] < min_words:
             prev = merged[-1]
@@ -128,48 +130,115 @@ def merge_small_beats(beats: list[dict], min_words: int) -> list[dict]:
             prev["words"] = len(prev["text"].split())
             prev["last_sentence"] = beat["last_sentence"]
             prev["summary"] = prev["summary"].rstrip(".") + "; " + beat["summary"]
+            merged_count += 1
         else:
             merged.append(beat)
-
-    # Re-index
     for i, b in enumerate(merged):
         b["beat_idx"] = i
+    return merged, merged_count
 
-    return merged
+
+def validate_beat(beat: dict) -> list[str]:
+    """Return list of validation errors on a single beat (empty = valid)."""
+    errors = []
+    for f in REQUIRED_BEAT_FIELDS:
+        if f not in beat:
+            errors.append(f"missing field: {f}")
+    if "words" in beat and not isinstance(beat["words"], int):
+        errors.append(f"words must be int, got {type(beat['words']).__name__}")
+    if "text" in beat and (not isinstance(beat["text"], str) or not beat["text"].strip()):
+        errors.append("text is empty or not a string")
+    return errors
 
 
 def cmd_merge(args):
     results_dir = Path(args.results_dir)
     scenes = [json.loads(l) for l in open(args.scenes)]
     scene_map = {s["scene_id"]: s for s in scenes}
+    expected_ids = set(scene_map.keys())
 
     result_files = sorted(results_dir.glob("*.json"))
     if not result_files:
         sys.exit(f"No result files in {results_dir}")
 
     all_beats = []
-    stats = {"total_scenes": 0, "total_beats_raw": 0, "total_beats_merged": 0, "merged_count": 0}
+    report = {
+        "scenes_expected": len(expected_ids),
+        "scenes_processed": 0,
+        "scenes_with_malformed_results": [],
+        "scenes_with_zero_beats": [],
+        "scenes_missing_results": [],
+        "orphan_results": [],
+        "per_scene": {},
+        "total_beats_raw": 0,
+        "total_beats_after_merge": 0,
+        "total_beats_merged": 0,
+    }
 
+    processed_ids = set()
     for rf in result_files:
-        data = json.load(open(rf))
-        scene_id = data.get("scene_id", rf.stem)
-        beats = data.get("beats", data if isinstance(data, list) else [])
+        try:
+            data = json.load(open(rf))
+        except Exception as e:
+            report["scenes_with_malformed_results"].append({"file": str(rf), "error": str(e)})
+            print(f"WARN: {rf.name} is not valid JSON: {e}", file=sys.stderr)
+            continue
 
-        raw_count = len(beats)
-        beats = merge_small_beats(beats, args.min_words)
-        merged_count = raw_count - len(beats)
+        scene_id = data.get("scene_id", rf.stem)
+        raw_beats = data.get("beats", data if isinstance(data, list) else [])
+
+        # Validate each beat
+        errors_per_beat = []
+        valid_beats = []
+        for idx, beat in enumerate(raw_beats):
+            errs = validate_beat(beat)
+            if errs:
+                errors_per_beat.append({"beat_idx": idx, "errors": errs})
+            else:
+                valid_beats.append(beat)
+
+        if errors_per_beat:
+            report["scenes_with_malformed_results"].append({
+                "scene_id": scene_id,
+                "file": str(rf),
+                "errors": errors_per_beat,
+            })
+            print(f"WARN: {scene_id} had {len(errors_per_beat)} malformed beats (dropped)", file=sys.stderr)
+
+        if not valid_beats:
+            report["scenes_with_zero_beats"].append(scene_id)
+            print(f"WARN: {scene_id} produced zero valid beats", file=sys.stderr)
+            processed_ids.add(scene_id)
+            continue
+
+        raw_count = len(valid_beats)
+        merged_beats, merged_count = merge_small_beats(valid_beats, args.min_words)
 
         scene_meta = scene_map.get(scene_id, {})
-        for beat in beats:
+        for beat in merged_beats:
             beat["scene_id"] = scene_id
             beat["book"] = scene_meta.get("book", "unknown")
             beat["chapter"] = scene_meta.get("chapter", 0)
 
-        all_beats.extend(beats)
-        stats["total_scenes"] += 1
-        stats["total_beats_raw"] += raw_count
-        stats["total_beats_merged"] += len(beats)
-        stats["merged_count"] += merged_count
+        all_beats.extend(merged_beats)
+        processed_ids.add(scene_id)
+        report["scenes_processed"] += 1
+        report["total_beats_raw"] += raw_count
+        report["total_beats_after_merge"] += len(merged_beats)
+        report["total_beats_merged"] += merged_count
+        report["per_scene"][scene_id] = {
+            "raw_beats": raw_count,
+            "merged_beats": len(merged_beats),
+            "words": sum(b["words"] for b in merged_beats),
+        }
+
+        # Orphan detection: result exists but scene_id wasn't in the manifest
+        if scene_id not in expected_ids:
+            report["orphan_results"].append(scene_id)
+
+    # Missing: scene_id was expected but no result landed
+    missing = expected_ids - processed_ids
+    report["scenes_missing_results"] = sorted(missing)
 
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -177,15 +246,25 @@ def cmd_merge(args):
         for beat in all_beats:
             f.write(json.dumps(beat) + "\n")
 
+    report_path = output.with_suffix(".merge-report.json")
+    report_path.write_text(json.dumps(report, indent=2, default=str))
+
     word_counts = [b["words"] for b in all_beats]
     print(f"\n=== Beat Segmentation Results ===")
-    print(f"Scenes processed: {stats['total_scenes']}")
-    print(f"Raw beats: {stats['total_beats_raw']}")
-    print(f"After merge (<{args.min_words}w): {stats['total_beats_merged']} ({stats['merged_count']} merged)")
-    print(f"Median beat size: {sorted(word_counts)[len(word_counts)//2]}w")
-    print(f"Mean beat size: {sum(word_counts)/len(word_counts):.0f}w")
-    print(f"Total words: {sum(word_counts):,}")
+    print(f"Scenes expected: {report['scenes_expected']}")
+    print(f"Scenes processed: {report['scenes_processed']}")
+    print(f"Scenes missing results: {len(report['scenes_missing_results'])}")
+    print(f"Scenes with malformed results: {len(report['scenes_with_malformed_results'])}")
+    print(f"Scenes with zero valid beats: {len(report['scenes_with_zero_beats'])}")
+    print(f"Orphan result files: {len(report['orphan_results'])}")
+    print(f"Raw beats: {report['total_beats_raw']}")
+    print(f"After merge (<{args.min_words}w): {report['total_beats_after_merge']} ({report['total_beats_merged']} merged)")
+    if word_counts:
+        print(f"Median beat size: {sorted(word_counts)[len(word_counts)//2]}w")
+        print(f"Mean beat size: {sum(word_counts)/len(word_counts):.0f}w")
+        print(f"Total words: {sum(word_counts):,}")
     print(f"Output: {output}")
+    print(f"Report: {report_path}")
 
 
 def main():
