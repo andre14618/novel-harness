@@ -389,6 +389,31 @@ Representative real diffs: `looked at → stared at`, `judgment → condemnation
 - Stage 5 (Analysis) is a plugin-style framework — ten analyzers declared in `config.yml` per novel, each producing one JSON artifact consumable by one or more harness agents (planner structural priors, beat-writer character snapshots, checker rules).
 - This document + `docs/corpus-pipeline.md` supersede the old ad-hoc Salvatore-specific scripts documented in historical experiment notes.
 
+### Programmatic DeepSeek V3.2 for corpus-wide extraction tasks (replaces Sonnet subagents)
+*2026-04-17 · head-to-head `scripts/corpus/test-deepseek-dialogue.ts` + full-corpus run*
+
+**Decision:** Use DeepSeek V3.2 programmatically (direct API via `scripts/corpus/extract-dialogue.ts`) for corpus-wide extraction tasks that have a stable schema — dialogue extraction, beat segmentation, brief extraction. Reserve Sonnet Claude Code subagents for judgment-heavy one-offs (quality audits, new analyzer prototyping) and for tasks where the output schema is unproven.
+
+**Head-to-head validation** on 10 dialogue-heavy Salvatore beats showed:
+- **Attribution accuracy: 100%** — both models agreed on every speaker where content overlapped
+- **Content recall: ~97%** — DeepSeek captured all semantic content Sonnet did; missed 1 line out of 30
+- **Format style differs** — Sonnet splits `"Quote A," he said. "Quote B"` into two separate entries; DeepSeek joins them. Both valid training representations.
+- **Cost: 180× cheaper** at corpus scale ($1.33 for 2,470 beats vs session-budget burn on Sonnet subagents)
+- **Speed: 5.7 min** full Salvatore corpus at concurrency 30 (vs ~20 min serialized + session-budget spend for 124 Sonnet subagents)
+
+**Full corpus run** (2026-04-17) produced **2,447 attributed dialogue lines** across 2,470 beats — a **5.1× jump** from the prior Sonnet subagent extraction (478 lines) on the old partial 777-beat corpus. Zero failures. All 5 POV characters now clear 200+ lines including Catti-brie (237, up from 28 — 8.5× recovery). The archetype-pass POC (exp #220) is finally statistically viable.
+
+**Alternatives rejected:**
+- **Sonnet subagents at scale** — consumes session budget; 124 subagents were needed for brief extraction alone. Not sustainable per-novel when we add Gemmell, LitRPG, Sanderson.
+- **Mimo Flash** — usable for simple extractor tasks (already powers summary-extractor), but weaker on coreference/attribution judgment. DeepSeek's reasoning margin matters for dialogue.
+- **Sonnet via transport.ts** — would cost ~5–10× DeepSeek per call and go through the same transport infrastructure. No advantage over DeepSeek for schema-constrained tasks.
+
+**Ongoing implications:**
+- Stage 5 analyzers (tension, chapter-hooks, sensory, metaphor) should default to programmatic DeepSeek once their output schema is validated with a Sonnet-subagent pilot.
+- Any new novel bundle (Gemmell, LitRPG, Sanderson) runs the full pipeline via DeepSeek at ~$2 per novel, ~6 min wall — no session-budget impact.
+- `scripts/corpus/extract-dialogue.ts` is the reference for programmatic bundle-level extraction. Future analyzers should follow the same pattern: read bundle config, iterate beats with bounded concurrency, write to `analysis/<name>.jsonl` + `analysis/<name>.report.json`.
+- Sonnet subagents remain the right tool for: prototyping a new analyzer's prompt (before porting to DeepSeek), one-off quality audits, and judgment-heavy tasks like "review these 20 samples and tell me what's wrong."
+
 ### Salvatore bundle — complete corpus re-ingestion post-audit
 *2026-04-17 · Salvatore Icewind Dale Trilogy*
 

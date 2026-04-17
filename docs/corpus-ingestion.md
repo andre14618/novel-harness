@@ -1,10 +1,69 @@
 # Corpus Ingestion Procedure
 
-How to convert a purchased novel (PDF or EPUB) into the canonical training-corpus text format used by the writer-imitation benchmark and any downstream voice-imprinting fine-tunes.
+How to convert a purchased novel (PDF or EPUB) into a **training-ready bundle** at `novels/<key>/` that feeds voice LoRAs, planner structural priors, and character archetype work.
 
-This procedure is **idempotent and repeatable** — re-running on the same input produces byte-identical output. Every novel you ingest must go through this path so the decomposition pipeline (Stages 1–6 in `docs/writer-imitation-benchmark.md`) sees a uniform input shape.
+> **Architecture reference:** `docs/corpus-pipeline.md` defines the canonical pipeline — bundle format, 5 stages, 14 conservation invariants, verification gates. This document is the user-facing **how-to** — the recipe for running that architecture on a specific novel. Read the architecture doc first if you're designing new analyzers or touching the pipeline internals.
 
 ---
+
+## End-to-end: add a new novel
+
+The bundle CLI wraps every stage. Each stage is a separate command so you can sample-review between them.
+
+```bash
+# 1. Create the bundle directory + config
+mkdir -p novels/gemmell-drenai/{source,analysis,reports,review}
+cp ~/Downloads/legend.epub novels/gemmell-drenai/source/
+# Write novels/gemmell-drenai/config.yml (see novels/salvatore-icewind-dale/config.yml as template):
+#   - key, title, author, genre, subgenre
+#   - source_files dict mapping book_key → source/<file>
+#   - characters registry with aliases + archetypes (used for dialogue extraction)
+#   - analyzers list (declares which Stage-5 analyzers run)
+#   - review_gates (per-stage eyeball checkpoints)
+
+# 2. Stage 1 — ingest source to canonical.txt (if you haven't pre-canonicalized)
+python3 scripts/finetune/ingest-corpus.py \
+  --input novels/gemmell-drenai/source/legend.epub \
+  --output novels/gemmell-drenai/canonical.txt \
+  --json
+
+# 3. Stage 2 — scenes
+bun scripts/corpus/run.ts --novel gemmell-drenai --stage scenes
+
+# 4. Stage 3 — beats (Claude Code subagents)
+bun scripts/corpus/run.ts --novel gemmell-drenai --stage beats-prepare \
+  --prompt-dir /tmp/beat-prompts-gemmell --batch-size 5
+# Dispatch N sub-agents against /tmp/beat-prompts-gemmell/ (one per batch)
+bun scripts/corpus/run.ts --novel gemmell-drenai --stage beats-merge \
+  --results-dir /tmp/beat-results-gemmell
+
+# 5. Stage 4 — briefs (Claude Code subagents)
+bun scripts/corpus/run.ts --novel gemmell-drenai --stage briefs-prepare \
+  --prompt-dir /tmp/brief-prompts-gemmell --batch-size 20
+# Dispatch sub-agents…
+bun scripts/corpus/run.ts --novel gemmell-drenai --stage briefs-merge \
+  --results-dir /tmp/brief-results-gemmell
+
+# 6. Stage 5 — analysis (pending plugin framework; for now run individual analyzers)
+
+# 7. Verify — all 14 conservation invariants
+bun scripts/corpus/run.ts --novel gemmell-drenai --stage verify
+
+# 8. Inspect
+bun scripts/corpus/run.ts --novel gemmell-drenai --stage list
+```
+
+**Reference bundle:** `novels/salvatore-icewind-dale/` is the validated reference implementation. 2,470 training pairs across the Icewind Dale Trilogy, all invariants pass. Copy its `config.yml` as the template when adding a new novel.
+
+**What the verify step gates:** training code must call `is_training_ready(novel_key)` before loading the bundle's pairs. Bundles that fail hard invariants (missing chapters, zero-beat scenes, malformed pairs, orphan training pairs) are refused. Soft warnings surface but don't block.
+
+---
+
+## Stage 1 deep-dive: PDF/EPUB → canonical.txt
+
+The rest of this document covers Stage 1 — the raw source → canonical text conversion. Stages 2–5 are orchestrated by the bundle CLI above; their details live in `docs/corpus-pipeline.md`.
+
+**Stage 1 is idempotent and repeatable** — re-running on the same input produces byte-identical output.
 
 ## Quick start
 

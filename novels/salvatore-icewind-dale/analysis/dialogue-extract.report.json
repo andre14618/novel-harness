@@ -1,0 +1,26 @@
+{
+  "novel": "salvatore-icewind-dale",
+  "generated_at": "2026-04-17T16:04:17.271Z",
+  "model": "deepseek-chat",
+  "beats_processed": 2470,
+  "beats_failed": 0,
+  "lines_extracted": 2447,
+  "by_character": {
+    "Drizzt": 749,
+    "Wulfgar": 432,
+    "Bruenor": 761,
+    "Catti-brie": 237,
+    "Regis": 268
+  },
+  "attribution_method_counts": {
+    "flow": 396,
+    "named": 1798,
+    "role": 133,
+    "pronoun": 120
+  },
+  "total_tokens": 1566182,
+  "estimated_cost_usd": "1.3313",
+  "mean_latency_ms": 4039,
+  "elapsed_seconds": 343,
+  "errors_sample": []
+}

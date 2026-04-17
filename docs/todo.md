@@ -18,13 +18,13 @@ Reference bundle validating the canonical corpus-pipeline architecture (`docs/co
 - [ ] **Stage 5 — analysis** — 10 analyzers declared in `config.yml` (structural / voice / dialogue / dialogue-density / tension / chapter-hooks / sensory / sentence-rhythm / pov-rotation / metaphor). Plugin framework not yet built. Wave 1 wiring (structural, voice, dialogue, tension, dialogue-density, chapter-hooks) directly addresses known harness weaknesses.
 - [x] **14 conservation invariants pass** end-to-end. Salvatore bundle is now training-ready.
 
-## Archetype-Pass POC — exp #220 (BLOCKED on corpus re-extraction)
+## Archetype-Pass POC — exp #220 (UNBLOCKED)
 
-Now that the Salvatore bundle has 3.2× more beat-level training signal, the archetype-pass POC needs to re-run dialogue extraction against the new corpus:
-
-- [ ] Re-run Sonnet-subagent dialogue extraction on `novels/salvatore-icewind-dale/beats.jsonl` (2,470 beats vs prior 777). Expected yield: ~1,500 attributed dialogue lines across the 5 target characters (vs the 478 we captured before), with Catti-brie finally properly represented (Streams of Silver was 93% missing from the old corpus).
-- [ ] With ≥200 lines per character, the 4-way POC becomes statistically viable: 14B LoRA archetype-pass vs DeepSeek V3.2 with profile-prompt vs Sonnet with profile-prompt.
-- [ ] Decision tree unchanged: LoRA wins decisively → commit plug-and-play architecture. Sonnet/DeepSeek ties or wins → skip LoRA zoo, use profile-prompting.
+- [x] **Dialogue extraction re-run** (2026-04-17): DeepSeek V3.2 programmatic extraction across 2,470 beats yielded **2,447 attributed lines** — 5.1× the prior Sonnet extraction on the partial corpus. All 5 POV characters clear 200+ lines (Drizzt 749, Bruenor 761, Wulfgar 432, Regis 268, Catti-brie 237). Output at `novels/salvatore-icewind-dale/analysis/dialogue-extract.jsonl`. Cost $1.33, zero session budget. See `docs/decisions.md` "Programmatic DeepSeek V3.2 for corpus-wide extraction tasks."
+- [ ] Build training pairs for the 4-way POC: `(flat_dialogue + character_profile) → (voiced_dialogue)` across the 5 target characters. Script: `scripts/finetune/archetype-poc/format-sft.py` exists but needs pointing at the new extraction.
+- [ ] Train 14B LoRA on the pairs (~$5 W&B).
+- [ ] Run 4-way comparison: 14B LoRA with archetype-tagged prompts vs DeepSeek V3.2 with profile-prompt vs Sonnet with profile-prompt. Hold-out 50 test lines. Opus pairwise judging.
+- [ ] Decision tree: LoRA wins decisively → commit plug-and-play architecture. Sonnet/DeepSeek ties or wins → skip LoRA zoo, use profile-prompting.
 
 
 
