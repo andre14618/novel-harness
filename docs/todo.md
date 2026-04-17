@@ -7,6 +7,27 @@ updated: 2026-04-17
 
 Pending action items only. Ordered by impact. Completed items and decision rationale live in `docs/decisions.md`.
 
+## Corpus Pipeline — Salvatore bundle (STAGES 1-4 DONE)
+
+Reference bundle validating the canonical corpus-pipeline architecture (`docs/corpus-pipeline.md`, `novels/salvatore-icewind-dale/`):
+
+- [x] **Stage 1 — ingestion** — 3 books canonicalized (~307K words total)
+- [x] **Stage 2 — scene extraction** — 352 scenes across all 3 books, every chapter covered
+- [x] **Stage 3 — beat segmentation** — 2,470 beats via 71 parallel Sonnet subagents, zero failures
+- [x] **Stage 4 — brief extraction** — **2,470/2,470 training pairs** across all 3 books (124 parallel subagents: 43 for Crystal Shard + 81 for Streams/Halfling's Gem). End-to-end verify CLEAN (2026-04-17).
+- [ ] **Stage 5 — analysis** — 10 analyzers declared in `config.yml` (structural / voice / dialogue / dialogue-density / tension / chapter-hooks / sensory / sentence-rhythm / pov-rotation / metaphor). Plugin framework not yet built. Wave 1 wiring (structural, voice, dialogue, tension, dialogue-density, chapter-hooks) directly addresses known harness weaknesses.
+- [x] **14 conservation invariants pass** end-to-end. Salvatore bundle is now training-ready.
+
+## Archetype-Pass POC — exp #220 (BLOCKED on corpus re-extraction)
+
+Now that the Salvatore bundle has 3.2× more beat-level training signal, the archetype-pass POC needs to re-run dialogue extraction against the new corpus:
+
+- [ ] Re-run Sonnet-subagent dialogue extraction on `novels/salvatore-icewind-dale/beats.jsonl` (2,470 beats vs prior 777). Expected yield: ~1,500 attributed dialogue lines across the 5 target characters (vs the 478 we captured before), with Catti-brie finally properly represented (Streams of Silver was 93% missing from the old corpus).
+- [ ] With ≥200 lines per character, the 4-way POC becomes statistically viable: 14B LoRA archetype-pass vs DeepSeek V3.2 with profile-prompt vs Sonnet with profile-prompt.
+- [ ] Decision tree unchanged: LoRA wins decisively → commit plug-and-play architecture. Sonnet/DeepSeek ties or wins → skip LoRA zoo, use profile-prompting.
+
+
+
 ## Fantasy Structural Context Engineering — TOP PRIORITY
 
 **Genre focus (2026-04-16 directive):** laser-focused on fantasy genre exclusively. All harness building targets action-pulp fantasy (Salvatore voice) and eventually gamelit/litrpg. Lessons learned will inform future genre expansion; we are NOT building a generalizable AI harness right now.

@@ -368,6 +368,53 @@ Representative real diffs: `looked at → stared at`, `judgment → condemnation
 
 ---
 
+## Corpus Pipeline
+
+### Canonical corpus-bundle architecture with 14 conservation invariants
+*2026-04-17 · ref: `docs/corpus-pipeline.md`*
+
+**Decision:** Decomposition of proven novels into structured training bundles is a first-class subsystem with its own architecture, not a set of one-off scripts. Every novel lives at `novels/<key>/` as a self-contained bundle (source/, canonical.txt, scenes.jsonl, beats.jsonl, pairs.jsonl, analysis/, reports/). The pipeline has five stages (ingest → scenes → beats → briefs → analysis), each with explicit input/output contracts and schema-validated outputs. Fourteen conservation invariants span the stages, partitioned into hard-fail (block training) vs soft-warn (surface but allow). A `verify-pipeline.py` tool audits every stage end-to-end and refuses bundles with gaps. TypeScript CLI wrappers at `scripts/corpus/run.ts` orchestrate the Python engine scripts. Pipeline versioning via `pipeline_version.json` + prompt SHA hashes detects staleness when prompts change.
+
+**Why:** Previous ad-hoc scripts silently dropped **~72% of the Salvatore trilogy** between stages — a multi-stage failure that went unnoticed because nothing validated cross-stage conservation. Root cause was a single over-conservative filter (`boundary == "bounded"`) plus a silent default word-count range, but the deeper issue was architectural: no formal contracts, no end-to-end audit, no way to tell a bundle was incomplete. Any future novel decomposition (Gemmell, LitRPG, Sanderson) would have hit the same invisible failures. The harness was being built on ~28% of its intended training signal without anyone knowing.
+
+**Alternatives rejected:**
+- **Per-script point fixes** — treats symptoms, not the design flaw. Each silent-drop bug was technically small; the pattern (no cross-stage validation) was the problem.
+- **Database-backed bundle state** — overkill for a corpus shaped like files. Filesystem-as-source-of-truth is simpler, git-trackable for configs/reports, and composes cleanly with the existing gitignore discipline around raw prose.
+- **Monolithic pipeline-run script** — fragile to partial failures and hard to iterate stage-by-stage. Separate `prepare`/`merge` verbs per stage let humans sample-review between phases and enable partial re-runs.
+
+**Ongoing implications:**
+- Every new novel added goes through `bun scripts/corpus/run.ts --novel <key>` — no ad-hoc scripts.
+- Training scripts MUST call `is_training_ready(novel_key)` before loading pairs. Bundles that fail hard invariants cannot reach training code.
+- If a stage prompt changes, `pipeline_version.json` goes stale and affected bundles are surfaced for re-run. Prompts are versioned via SHA hashes in the bundle.
+- Stage 5 (Analysis) is a plugin-style framework — ten analyzers declared in `config.yml` per novel, each producing one JSON artifact consumable by one or more harness agents (planner structural priors, beat-writer character snapshots, checker rules).
+- This document + `docs/corpus-pipeline.md` supersede the old ad-hoc Salvatore-specific scripts documented in historical experiment notes.
+
+### Salvatore bundle — complete corpus re-ingestion post-audit
+*2026-04-17 · Salvatore Icewind Dale Trilogy*
+
+**Decision:** Re-ran the full Salvatore pipeline end-to-end with fixed ingestion + bundle architecture. Final state:
+
+| Metric | Before (corrupted) | After (clean) |
+|---|---|---|
+| Scenes | 140 | 352 |
+| Beats | 777 | 2,470 |
+| Training words | ~82K | 262,748 |
+| Chapter coverage | Partial | 100% all 3 books |
+| Silent data loss | 72% of trilogy | 0% |
+
+Median beat size 107w (target 80–140). Kind distribution matches published Salvatore analysis (action 36% / dialogue 32% / interiority 20% / description 12%). Scene-text reconstruction: 352/352 within 10% of source. `verify-pipeline.py`: CLEAN — no data-loss gaps detected between stages.
+
+Stage 4 (brief extraction) complete for all three books as of 2026-04-17: **2,470/2,470 training pairs, zero failures**, stored at `novels/salvatore-icewind-dale/pairs.jsonl`. Full trilogy processed via 124 parallel Sonnet subagent batches (43 for Crystal Shard + 81 for Streams/Halfling's Gem). End-to-end pipeline audit passes all 14 conservation invariants.
+
+**Why:** Any future Salvatore v4/v5 LoRA training needs to use this corpus, not the old partial one. Any future per-genre voice LoRA (Gemmell, Sanderson, LitRPG) will follow this same bundle pattern. Without this baseline, the archetype-pass POC (exp #220) would have been trained on compromised data.
+
+**Ongoing implications:**
+- Salvatore v3 LoRA was trained on the old 777-beat corpus (28% of trilogy). Any v4+ retrain should consider whether the 3.2× more training data justifies the training cost.
+- Character dialogue extraction for the archetype POC (exp #220) should re-run against this corpus, not the old extractions. Catti-brie was sparse in the old corpus mostly because Streams of Silver — her primary book — had 93% of its content missing.
+- The bundle structure makes it trivial to add Gemmell, LitRPG, Sanderson, or any other proven novel. Same `--novel <key>` CLI, same 14 invariants, same verification gate.
+
+---
+
 ## Planning
 
 ### Two-phase planner (skeleton + per-chapter beat expansion) with beat-count floor

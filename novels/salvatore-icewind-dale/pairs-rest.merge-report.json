@@ -1,0 +1,10 @@
+{
+  "novel": "ad-hoc",
+  "beats_expected": 1612,
+  "result_files_read": 81,
+  "malformed_result_files": [],
+  "malformed_briefs": [],
+  "orphan_briefs": [],
+  "beats_without_brief": [],
+  "training_pairs_written": 1612
+}

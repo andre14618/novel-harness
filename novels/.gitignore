@@ -6,6 +6,7 @@
 */scenes.jsonl
 */beats.jsonl
 */pairs.jsonl
+*/pairs-*.jsonl
 */analysis/dialogue-extract.jsonl
 */review/
 # Verification and report files ARE tracked so we can audit bundle

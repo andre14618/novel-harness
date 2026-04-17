@@ -342,7 +342,23 @@
       }
     },
     "pairs": {
-      "error": "not found: /Users/andre/Desktop/personal_projects/novel-harness/novels/salvatore-icewind-dale/pairs.jsonl"
+      "per_book": {
+        "crystal_shard": {
+          "pairs": 858
+        },
+        "halflings_gem": {
+          "pairs": 826
+        },
+        "streams_of_silver": {
+          "pairs": 786
+        }
+      },
+      "link_check": {
+        "beats_without_pair": 0,
+        "beats_without_pair_sample": [],
+        "orphan_pairs": 0,
+        "orphan_pairs_sample": []
+      }
     }
   },
   "gaps": [],
