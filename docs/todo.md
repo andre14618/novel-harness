@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-16
+updated: 2026-04-17
 ---
 
 # To Do
@@ -11,15 +11,16 @@ Pending action items only. Ordered by impact. Completed items and decision ratio
 
 **Genre focus (2026-04-16 directive):** laser-focused on fantasy genre exclusively. All harness building targets action-pulp fantasy (Salvatore voice) and eventually gamelit/litrpg. Lessons learned will inform future genre expansion; we are NOT building a generalizable AI harness right now.
 
-### Planner structural priors (from `docs/salvatore-structural-analysis.md`)
+### Planner structural priors (from `docs/salvatore-structural-analysis.md`) — SHIPPED 2026-04-17
 
-Feed the Salvatore corpus's structural signature into the planning-plotter prompt as explicit constraints:
+Salvatore corpus structural signature is now rendered into the planner prompt via `renderStructuralPriorsForPlanner()` (genre-matched through `WRITER_GENRE_PACKS`). Items marked below reflect what's live:
 
-- [ ] **Beat-type budget per chapter**: target ~34% action / 31% dialogue / 22% interiority / 14% description. Planner prompt gets these as "aim for" targets.
-- [ ] **Opener/closer rules**: chapters open with description (43%) or action (26%); close with action (39%) or interiority (30%). Never close with description.
-- [ ] **Cluster-sustain rule**: action → action self-transition is 55.6%. Planner should sustain action sequences (3-5 beats) instead of fragmenting fights with single-beat interiority/description interludes.
-- [ ] **Scene size guidance**: 3-8 beats per scene (mean 5.5). Over 8 = split the scene. Planner gets a soft cap.
-- [ ] **Active character cap**: ≤3 named active characters per beat. Groups become collective nouns ("the orc war party", "the guards"). Per `docs/beat-writer-architecture.md` §5.3.
+- [x] **Beat-type budget per chapter**: rendered in priors (~34% action / 31% dialogue / 22% interiority / 14% description).
+- [x] **Opener/closer rules**: rendered (open with description/action; close with action/interiority, never description).
+- [x] **Cluster-sustain rule**: rendered (action sequences sustain 3–5 beats; dialogue 2–4).
+- [x] **Scene size guidance**: rendered (3–8 beats per scene, mean 5.5 soft cap).
+- [x] **Active character cap**: rendered (≤3 named active characters per beat).
+- [x] **Beats-per-chapter floor enforced**: two-phase planner emits per-chapter `ceil(targetWords / 150)` beats minimum, with targeted re-expansion on miss — validated on fantasy-healer + fantasy-cultivation-void 2026-04-17.
 - [ ] **Per-beat drives** (proposed): planner authors one-line situational drives per character per beat instead of writer translating stable traits. Deferred pending compact-mode validation.
 
 ### Tension/pacing curve extraction
@@ -163,6 +164,28 @@ All existing SFT training data was generated with screenplay-style beats (pre-ex
 
 ### Phase 2 — Archetype library (no training required)
 - **15–20 named archetypes** with structured speech profiles and 3–5 canonical example dialogue lines each. Map every generated character to an archetype at concept time; beat context gets examples automatically. Target archetypes: `stoic_warrior`, `scheming_noble`, `earnest_apprentice`, `reluctant_hero`, `cynical_mentor`, `naive_innocent`, `calculating_villain`, `world_weary_professional`, `hot_tempered_youth`, `diplomatic_deceiver`, `hard_boiled_detective`, `theatrical_authority`.
+
+### Salvatore voice LoRA — multi-character distinctness options (2026-04-17)
+
+**Context:** Current Salvatore v3 trains on 777 beats from the Icewind Dale Trilogy only. It produces excellent Salvatore cadence but multi-character voice discrimination is limited because the training corpus is narrow. Below are options ordered roughly by cost; the diagnostic question is whether multi-character voice is corpus-limited (fixable cheap) or model-capacity-limited (needs 70B).
+
+- [ ] **Option A — Expand Salvatore corpus to full bibliography.** Current v3: 777 beats, one arc, Drizzt/Wulfgar/Bruenor dominant. Salvatore has 30+ novels with radically distinct voices already in-corpus (Jarlaxle's theatrical charm, Zaknafein's clipped menace, Cattie-brie's rural warmth). Ingest 3–5 more books → ~3000+ beats → retrain same 14B. Cost: ~$5–10 on W&B + ~1 day corpus-ingestion work via `scripts/finetune/ingest-corpus.py`. Risk: minimal — Salvatore's voice is consistent across his career. Expected effect: same voice, meaningfully better multi-character discrimination because the LoRA has now seen examples of him ventriloquizing many characters.
+- [ ] **Option B — Archetype-tagged training (prefix conditioning) on the expanded corpus.** Re-label each beat in the expanded corpus with an explicit archetype tag in the user prompt (`ARCHETYPE: STOIC_WARRIOR | FERAL_ROGUE | COLD_NOBLE | GRUFF_MENTOR | …`, ~8–12 total). Planner maps each POV character to the closest archetype; the tag injects into beat-writer context. Single LoRA, single call, but archetype-conditioned output. Cost: ~$10–15 training + ~2 days of labeling (Sonnet labels the corpus, human spot-checks). Risk: mushy archetype boundaries — if labeling quality is low, the model won't learn to switch cleanly. Works cleanly with the existing 3-char/beat cap (≤2 dominant archetypes per beat keeps per-class signal strong).
+- [ ] **Option C — Jump base model to 70B.** Train a LoRA on Qwen2.5-72B-Instruct or Llama-3.3-70B with same corpus (or expanded). More attention heads + better instruction-following → stronger character discrimination even from the same training signal. Keeps Salvatore voice because the LoRA targets Salvatore data. Cost: ~$50–150 training + 2–4× inference cost **per beat forever** (permanent economics tax, not a one-time fix). Risk: overkill if the real issue is training-data breadth, not base-model capacity. Only worth pursuing if (A) and (B) plateau.
+- [ ] **Option D — Stacked path: do (A) first, add (B) if needed, hold (C) in reserve.** Train Salvatore v5 on the expanded corpus as a baseline measurement. If v5 alone materially improves multi-character distinctness on evals, we're done cheap. If v5 plateaus, add archetype tags for v6. Only escalate to 70B if v6 still can't discriminate.
+
+**Recommendation:** start (A). Lowest cost, lowest risk, likeliest single-variable fix. The 14B should be able to ventriloquize multiple voices if it's seen enough varied training examples — and it hasn't, really.
+
+### Deep-authoring mode — human-in-the-loop world + planning layer (2026-04-17)
+
+**Intent:** A separate UX track from the seed-driven harness-validation flow. The harness mode runs 8 seeds in parallel unattended for capability testing. Deep-authoring mode is for novels the user actually cares about, where upfront world-building and character commitment matter more than throughput.
+
+**Scope clarification (2026-04-17):** This is a world/planning exercise, not a different writer. Salvatore voice LoRA stays. Howard-style tonal passes are NOT revived (they under-performed vs generation-time voice). The extra value comes from feeding the planner + beat-writer *richer committed material* that the user has explicitly shaped, rather than LLM extrapolation from a premise.
+
+- [ ] **Specialized conversational chats in sequence:** (1) per-character deep-dive chat for each major character (protagonist + antagonist + 1-2 supporting) building structured `SpeechProfile` + behavioral drivers + relationship nuance, (2) world/magic-system chat committing rules and constraints, (3) plot-spine chat shaping the arc. Each stage's structured output feeds the next as context, so planner lands with fully-committed material.
+- [ ] **Archetype-mapping at character-chat conclusion:** once the character is defined, map to nearest archetype (from Phase 2 archetype library above) for beat-writer voice routing. This is how deep-authoring mode and the voice LoRA stay coupled.
+- [ ] **UX trade-off:** deep-authoring is 45–90 min of human time per novel before generation starts. Not appropriate for harness validation, essential for commercial-quality output. Both paths coexist — pick at Studio entry.
+- [ ] **Context-engineering question (open):** how to elegantly pass the richer per-character material into the beat-writer without blowing out the LoRA's trained attention scope (~1500 input tokens). Likely answer: structured `SpeechProfile` + 2-3 canonical example lines per POV character, not prose paragraphs. The 3-char/beat cap keeps the context compact even for dense scenes.
 
 ### Phase 2 data — Dialogue pattern ingestion (feeds Phase 3)
 - **Archetype pattern research + synthetic generation** — study modern fiction freely to extract archetype speech patterns (what a `stoic_warrior` or `scheming_noble` sounds like is a pattern, not a copyrightable expression). Use 235B to generate synthetic training pairs from those patterns: `(flat_dialogue + archetype_profile) → (voiced_dialogue)`. Do not use verbatim copyrighted dialogue lines as training targets — extract the pattern, generate the examples. Modern genre fiction is more relevant than public domain for the seeds the pipeline targets (post-apoc, sci-fi, fantasy). Target: 400–500 pairs across 10–12 archetypes. ~$3–5 at 235B rates.

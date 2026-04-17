@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-16
+updated: 2026-04-17
 ---
 
 # Decisions
@@ -365,6 +365,27 @@ Representative real diffs: `looked at → stared at`, `judgment → condemnation
 **Why:** The motivation was unified serving (one provider). This is the wrong cost/benefit framing: the existing V3 adapter on Together AI works, the V4 adapter trained on Qwen3-14B is a capability upgrade (not just an infrastructure migration), and the right trigger for moving providers is capability — not serving consolidation. Retraining on a less-capable older base (Qwen 3.5 9B → Qwen3-14B) for infrastructure reasons was based on flawed reasoning: models should be compared on task output, not parameter count.
 
 **Ongoing:** V4 on W&B replaces V3 on Together when pref eval confirms V4 prose quality. The switchover is a capability decision, not an infrastructure cleanup.
+
+---
+
+## Planning
+
+### Two-phase planner (skeleton + per-chapter beat expansion) with beat-count floor
+*2026-04-17 · tested on fantasy-healer + fantasy-cultivation-void*
+
+**Decision:** Planning is split into two phases. Phase 1 (`planning-plotter`) emits chapter skeletons only — title, POV, setting, purpose, targetWords, charactersPresent — in a single call (~2K output tokens). Phase 2 (`planning-beats`) expands each chapter in parallel into `scenes` + `establishedFacts` + `characterStateChanges` + `knowledgeChanges`, with N parallel calls and ~4K budget each. `enforcePlanningOutput` now requires `ceil(targetWords / 150)` beats per chapter; chapters below the floor get one targeted re-expansion before the phase hard-fails.
+
+**Why:** The single-call planner was hitting DeepSeek V3.2's 8192 output-token ceiling on 10-chapter novels (fantasy-cultivation-void failed with truncated JSON mid-object) and was emitting only 3–4 beats per chapter when Salvatore's training corpus averages 14.4 beats at ~100w per beat. That shape guaranteed word-count failures — the Salvatore voice LoRA was producing exactly what it was trained for, but the planner wasn't asking for enough of it. Prior sweep (2026-04-17 earlier): dark-fantasy 37% fail rate, fantasy-healer stuck at Ch7, cultivation-void 0 chapters generated. After the split on the same two seeds: Ch1–Ch4 all approved on attempt 1/3 with word counts of 1370–1898w (vs prior 340–545w), 12–15 beats per chapter (vs prior 3–4), no JSON truncation.
+
+**Alternatives rejected:**
+- Raise single-call `maxTokens` above 8192 — not supported at DeepSeek V3.2's current API limit; would paper over the attention-scope problem anyway.
+- Keep single-call planner and just enforce a beat-count floor with retries — retries would also hit the 8K ceiling and fail.
+- Per-chapter sequential expansion (not parallel) — would add ~10× latency for no additional coherence; cross-chapter coherence already lives in the skeleton tier since every Phase 2 call sees all skeletons.
+
+**Ongoing implications:**
+- Attention-scope-per-call is now a first-class design constraint in the pipeline. Future planners targeting longer novels (20+ chapters) or more elaborate chapter metadata should split further rather than fight the output ceiling.
+- The beat-count floor formula (`ceil(targetWords / 150)`) assumes a ~100w-median-beat voice LoRA. If we retrain Salvatore with longer beat targets or swap to a different writer, update the divisor to match.
+- `src/agents/planning-beats/` is a new tunable surface for the daemon (prompt + temperature/maxTokens).
 
 ---
 
