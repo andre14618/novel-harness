@@ -40,7 +40,8 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "world-builder":             { ...deepseekV3, maxTokens: 8192 },
   "character-agent":           { ...deepseekV3, maxTokens: 8192 },
   "plotter":                   { ...deepseekV3, maxTokens: 8192 },
-  "planning-plotter":          { ...deepseekV3, temperature: 0.6, maxTokens: 8192 },
+  "planning-plotter":          { ...deepseekV3, temperature: 0.6, maxTokens: 4096 },
+  "planning-beats":            { ...deepseekV3, temperature: 0.6, maxTokens: 4096 },
 
   // ── Studio: pre-planning chat + extraction ───────────────────────────
   // Chat is high-volume, forgiving — Groq Qwen3-32B is cheap and fast enough.

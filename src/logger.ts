@@ -124,6 +124,7 @@ function getPhaseForAgent(agent: string): string {
     "character-agent": "concept",
     "plotter": "concept",
     "planning-plotter": "planning",
+    "planning-beats": "planning",
     "writer": "drafting",
     "beat-writer": "drafting",
     "reference-resolver": "drafting",

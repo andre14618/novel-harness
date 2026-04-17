@@ -177,8 +177,15 @@ export const COMPONENTS: Component[] = [
   },
   {
     id: "prompt.planning-plotter", name: "Planning Plotter Prompt",
-    description: "System prompt for chapter outline generation",
+    description: "System prompt for chapter skeleton generation (phase 1 of planning)",
     type: "prompt", storage: "file", path: "src/agents/planning-plotter/chapter-outline-system.md",
+    measuredBy: ["beat-specificity", "dialogue-cues", "emotional-arc"],
+    category: "agent-prompt",
+  },
+  {
+    id: "prompt.planning-beats", name: "Planning Beats Prompt",
+    description: "System prompt for per-chapter beat expansion (phase 2 of planning)",
+    type: "prompt", storage: "file", path: "src/agents/planning-beats/beat-expansion-system.md",
     measuredBy: ["beat-specificity", "dialogue-cues", "emotional-arc"],
     category: "agent-prompt",
   },

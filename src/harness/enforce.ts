@@ -56,10 +56,20 @@ export function enforcePlanningOutput(
     }
   }
 
-  // Enforce every chapter has at least one scene beat
+  // Enforce every chapter has at least one scene beat + meets beat-count floor
   for (const ch of chapters) {
     if (!ch.scenes || ch.scenes.length === 0) {
       errors.push(`Chapter ${ch.chapterNumber} has no scene beats`)
+      continue
+    }
+    // Voice LoRAs and the DeepSeek writer both emit ~100-140 words per beat
+    // (median 100-110 from salvatore-structural-analysis.md). Floor: ceil(
+    // targetWords / 150). A 1200w chapter needs >=8 beats, a 2000w chapter
+    // needs >=14.
+    const target = ch.targetWords ?? 1000
+    const floor = Math.max(3, Math.ceil(target / 150))
+    if (ch.scenes.length < floor) {
+      errors.push(`Chapter ${ch.chapterNumber}: ${ch.scenes.length} beats below floor ${floor} for ${target}w target`)
     }
   }
 
@@ -67,6 +77,50 @@ export function enforcePlanningOutput(
   for (const ch of chapters) {
     if (!ch.setting || ch.setting.trim().length === 0) {
       errors.push(`Chapter ${ch.chapterNumber} has no setting`)
+    }
+  }
+
+  return { valid: errors.length === 0, chapters, errors, warnings }
+}
+
+/**
+ * Lightweight validation for phase-1 skeleton output. Scenes/state are NOT
+ * yet populated (phase 2 does that), so we only check skeleton-tier fields.
+ */
+export function enforceSkeletons(
+  chapters: ChapterOutline[],
+  targetChapters: number | null,
+  characters: CharacterProfile[],
+): PlanningEnforcement {
+  const errors: string[] = []
+  const warnings: string[] = []
+  const charNames = new Set(characters.map(c => c.name.toLowerCase()))
+
+  if (targetChapters) {
+    if (chapters.length < targetChapters) {
+      errors.push(`Need ${targetChapters} chapters, got ${chapters.length}`)
+    } else if (chapters.length > targetChapters) {
+      warnings.push(`Trimming ${chapters.length} chapters to ${targetChapters}`)
+      chapters = chapters.slice(0, targetChapters)
+    }
+  }
+
+  for (let i = 0; i < chapters.length; i++) chapters[i].chapterNumber = i + 1
+
+  for (const ch of chapters) {
+    if (!ch.povCharacter) {
+      errors.push(`Chapter ${ch.chapterNumber} has no POV character`)
+    } else if (!charNames.has(ch.povCharacter.toLowerCase())) {
+      warnings.push(`Chapter ${ch.chapterNumber} POV "${ch.povCharacter}" not in character list`)
+    }
+    if (!ch.setting || ch.setting.trim().length === 0) {
+      errors.push(`Chapter ${ch.chapterNumber} has no setting`)
+    }
+    if (!ch.purpose || ch.purpose.trim().length === 0) {
+      errors.push(`Chapter ${ch.chapterNumber} has no purpose`)
+    }
+    if (!ch.targetWords || ch.targetWords < 300) {
+      warnings.push(`Chapter ${ch.chapterNumber}: targetWords ${ch.targetWords ?? 0} unusually low`)
     }
   }
 
