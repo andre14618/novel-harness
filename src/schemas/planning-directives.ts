@@ -1,10 +1,22 @@
 import { z } from "zod"
 
-// Reject archetype placeholders ("the cannibal", "the mentor", "a scholar",
-// "protagonist") as names. Major characters must have proper names so the
-// writer can attribute dialogue and the reader can track them. Role words
-// belong in `role` or `mustHaveTraits`, not `name`.
-const ARCHETYPE_NAME_RE = /^(the|a|an)\s+\w+$/i
+// Reject generic role/archetype placeholders as character names. Fantasy
+// legitimately uses "The X" naming ("The Compiler", "The Witch-King",
+// "The Darkling") so we only block explicitly generic terms, not all
+// "the + noun" patterns. The old regex /^(the|a|an)\s+\w+$/i was too
+// aggressive — it blocked legitimate fantasy names and caused concept-
+// phase failures on seeds like fantasy-archive (exp #211, 2026-04-16).
+const GENERIC_NAMES = new Set([
+  "the protagonist", "the antagonist", "the narrator", "the hero",
+  "the heroine", "the villain", "the mentor", "the sidekick", "the rival",
+  "the lover", "the love interest", "the ally", "the foil",
+  "the warrior", "the healer", "the thief", "the mage", "the wizard",
+  "the knight", "the soldier", "the guard", "the priest", "the priestess",
+  "the farmer", "the merchant", "the innkeeper", "the bartender",
+  "a warrior", "a healer", "a thief", "a mage", "a wizard",
+  "a knight", "a soldier", "a guard", "a priest", "a farmer",
+  "an assassin", "an archer", "an alchemist",
+])
 const ROLE_WORDS = new Set([
   "protagonist", "antagonist", "narrator", "hero", "heroine", "villain",
   "mentor", "sidekick", "rival", "lover", "love interest", "ally", "foil",
@@ -12,14 +24,13 @@ const ROLE_WORDS = new Set([
 export function isValidCharacterName(name: string): boolean {
   const trimmed = name.trim()
   if (!trimmed) return false
-  if (ARCHETYPE_NAME_RE.test(trimmed)) return false
+  if (GENERIC_NAMES.has(trimmed.toLowerCase())) return false
   if (ROLE_WORDS.has(trimmed.toLowerCase())) return false
-  // Must contain at least one capitalized word (proper noun).
-  if (!/[A-Z][a-zA-Z'\-]+/.test(trimmed)) return false
+  if (!/[A-Z]/.test(trimmed)) return false
   return true
 }
 const properNameSchema = z.string().refine(isValidCharacterName, {
-  message: "Character name must be a proper name, not an archetype ('the cannibal', 'the mentor') or role word. Put role descriptions in `role` or `mustHaveTraits` instead.",
+  message: "Character name must be a proper name, not a generic archetype ('the warrior', 'the mentor') or bare role word ('protagonist'). Fantasy titles like 'The Compiler' or 'The Witch-King' are fine.",
 })
 
 export const lockedCharacterSchema = z.object({
