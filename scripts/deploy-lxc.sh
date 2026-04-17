@@ -34,6 +34,7 @@ rsync -az --delete \
   --exclude 'scripts/lora-data/' \
   --exclude 'scripts/finetune/archetype-poc/*.jsonl' \
   --exclude 'scripts/finetune/archetype-poc/*.json' \
+  --exclude 'finetune-data/' \
   . novel-harness-lxc:~/apps/novel-harness/
 
 # Record which commit (or working tree state) is deployed
