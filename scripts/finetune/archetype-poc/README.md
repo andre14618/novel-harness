@@ -9,7 +9,7 @@ Three-way comparison on character-voice mimicry:
 
 ## Pipeline (sequential)
 
-1. `extract-dialogue.py` — parse `scripts/lora-data/salvatore-1988-training-pairs-tagged.jsonl` (777 beats), extract quoted dialogue with character attribution, emit `dialogue-lines.jsonl`. ~Free, local.
+1. `extract-dialogue.py` — read `novels/salvatore-icewind-dale/analysis/dialogue-extract.jsonl` (2,447 DeepSeek-extracted attributed dialogue lines from the full Icewind Dale corpus), filter to the 5 target characters with a 6..40-word gate, dedupe, cap per character, emit `dialogue-lines.jsonl`. ~Free, local. Regex-sparing: extraction was done upstream by an LLM; this step is just projection+filter.
 2. `flatten-lines.ts` — for each line, Sonnet subagent paraphrases to flat/neutral voice preserving semantic content. Emits `dialogue-pairs.jsonl` with `{char, flat, voiced}`. ~$5.
 3. `split-train-test.py` — 80/20 split stratified by character. Emits `train.jsonl` + `test.jsonl`.
 4. `format-sft.py` — `train.jsonl` → W&B-format SFT JSONL with `CHARACTER: NAME` tag in the user prompt.
@@ -21,7 +21,7 @@ Three-way comparison on character-voice mimicry:
 ## Scope guardrails
 
 - **5 characters only**: Drizzt, Bruenor, Wulfgar, Regis, Cattie-brie. All are dominant in the Icewind Dale Trilogy and already have voice profiles in `salvatore-character-snapshots.json`. Using existing character names as proxy-archetypes — generalization to portable archetype tags is v2.
-- **120 pairs total**: ~24 per character. Small enough to burn cheaply, large enough to show LoRA signal if it exists.
+- **~500 pairs total, stratified by character (~100 per character)**: upstream LLM extraction gave us ~1,400 candidate lines in the 6..40-word band across the 5 targets, so 100 each is the natural cap without over-sampling the thinner characters (Regis/Cattie-brie each have ~150 candidates). Larger than the original 120-pair budget, still cheap on Sonnet paraphrase, and gives LoRA more signal to latch onto.
 - **Each step persists to DB or disk** — nothing runs only to stdout, every artifact is replayable.
 - **DO NOT run any step before Andre approves scope.** This directory exists to be reviewed first.
 
@@ -29,11 +29,11 @@ Three-way comparison on character-voice mimicry:
 
 | step | artifact | rough size |
 |---|---|---|
-| 1 | `dialogue-lines.jsonl` | 500-1500 lines (pre-filter) |
-| 2 | `dialogue-pairs.jsonl` | 120 curated pairs |
-| 3 | `train.jsonl` + `test.jsonl` | 100 + 20 |
-| 4 | `sft-train.jsonl` + `sft-val.jsonl` | 80 + 20 |
+| 1 | `dialogue-lines.jsonl` | ~500 lines (5 chars × ~100, capped) |
+| 2 | `dialogue-pairs.jsonl` | ~500 curated pairs |
+| 3 | `train.jsonl` + `test.jsonl` | 400 + 100 |
+| 4 | `sft-train.jsonl` + `sft-val.jsonl` | 400 + 100 |
 | 5 | W&B artifact: `archetype-poc-v1` | ~130 MB |
-| 6 | `generations.jsonl` | 60 rows (20 lines × 3 systems) |
-| 7 | `judgments.jsonl` | ~180 pairwise decisions |
+| 6 | `generations.jsonl` | 300 rows (100 lines × 3 systems) |
+| 7 | `judgments.jsonl` | ~900 pairwise decisions |
 | 8 | conclusion row in `tuning_experiments` id=220 | — |

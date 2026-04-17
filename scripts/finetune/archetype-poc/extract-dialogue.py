@@ -1,94 +1,119 @@
 #!/usr/bin/env python3
 """Extract dialogue lines with character attribution from Salvatore corpus.
 
-Input:  scripts/lora-data/salvatore-1988-training-pairs-tagged.jsonl
+Input:  novels/salvatore-icewind-dale/analysis/dialogue-extract.jsonl
+        (2,447 attributed dialogue lines, DeepSeek-extracted from the full
+        Icewind Dale corpus — see docs/corpus-pipeline.md. Replaces the old
+        regex path over the 777-beat tagged training file, which yielded
+        only 39 usable lines.)
 Output: scripts/finetune/archetype-poc/dialogue-lines.jsonl
 
-Each output row: { char: str, line: str, beat_id: str, kind: str }
+Each output row: { char, line, beat_id, pattern }
+  - `line` is the raw dialogue quote (field renamed from corpus `quote`).
+  - `pattern` carries the corpus `attribution_method` (named | flow | ...)
+    so downstream steps can inspect extraction provenance.
 
 Strategy:
-  1. For each beat, scan prose for quoted strings followed by attribution
-     verbs (said, replied, asked, muttered, ...) near a character name.
-  2. Canonical character list from salvatore-character-snapshots.json.
-  3. De-duplicate identical lines (same char may have repeat phrases);
-     keep one representative.
-  4. Filter: lines must be 6+ words and <=40 words (too short = fragment,
-     too long = cross-paragraph artifact).
+  1. Stream the LLM-extracted JSONL. No regex scan of prose.
+  2. Filter to 5 target characters (Drizzt, Bruenor, Wulfgar, Regis,
+     Catti-brie). Note: corpus spells it `Catti-brie` with a single 't`;
+     we also accept `Catti-brie` for safety.
+  3. Word-length gate: 6..40 words (drop fragments and cross-paragraph
+     artifacts; matches the prior gate).
+  4. Dedupe by normalized line text per character.
+  5. Cap per character at PER_CHAR_TARGET.
 
-Target: 5 characters (Drizzt, Bruenor, Wulfgar, Regis, Cattie-brie),
-~24 lines each post-filter = ~120 lines total.
+Target: ~100 pairs per character × 5 = ~500 total (bumped from 120).
 """
 
-import json, re, sys
-from pathlib import Path
+import json
+import re
+import sys
 from collections import defaultdict
+from pathlib import Path
 
 HERE = Path(__file__).parent
-CORPUS = HERE.parent.parent / "lora-data" / "salvatore-1988-training-pairs-tagged.jsonl"
-SNAPS  = HERE.parent / "salvatore-character-snapshots.json"
-OUT    = HERE / "dialogue-lines.jsonl"
+REPO_ROOT = HERE.parent.parent.parent
+CORPUS = REPO_ROOT / "novels" / "salvatore-icewind-dale" / "analysis" / "dialogue-extract.jsonl"
+OUT = HERE / "dialogue-lines.jsonl"
 
-TARGET_CHARS = ["Drizzt", "Bruenor", "Wulfgar", "Regis", "Cattie-brie"]
-PER_CHAR_TARGET = 24
+# Canonical target set. Salvatore spells it `Catti-brie` (single 't') —
+# that's the canonical form used in salvatore-character-snapshots.json.
+# Accept both spellings on input; normalize to the canonical Catti-brie.
+TARGET_CHARS = {"Drizzt", "Bruenor", "Wulfgar", "Regis", "Catti-brie", "Catti-brie"}
+CHAR_ALIAS = {"Catti-brie": "Catti-brie"}  # normalize to snapshot spelling
+PER_CHAR_TARGET = 100
 
-ATTRIB_VERBS = r"(?:said|asked|replied|answered|muttered|whispered|shouted|growled|grumbled|cried|called|added|noted|offered|returned|agreed|demanded|protested|scoffed|chuckled|snapped|hissed|sighed|began|finished|continued|went on|told|said to)"
-# Patterns:
-#   "Quote," said X.     → post-attribution
-#   X said, "Quote."     → pre-attribution
-POST_PATTERN = re.compile(
-    r'"([^"]{10,200})[",.!?]"?\s*(?:,|\.)?\s*' + ATTRIB_VERBS + r'\s+(\w[\w-]*)',
-    re.IGNORECASE,
-)
-PRE_PATTERN = re.compile(
-    r'(\w[\w-]*)\s+' + ATTRIB_VERBS + r'[,.]?\s*"([^"]{10,200})[",.!?]"?',
-    re.IGNORECASE,
-)
 
 def word_count(s: str) -> int:
     return len(re.findall(r"\S+", s))
 
-def main():
+
+def main() -> None:
     if not CORPUS.exists():
-        sys.exit(f"corpus not found: {CORPUS} (check LXC vs local; this script expects local)")
-    per_char = defaultdict(list)
-    total_scanned = 0
+        sys.exit(f"corpus not found: {CORPUS}")
+
+    per_char: dict[str, list[dict]] = defaultdict(list)
+    total_rows = 0
+    kept_pre_cap = 0
 
     with CORPUS.open() as fh:
-        for line in fh:
-            beat = json.loads(line)
-            prose = beat.get("prose", "")
-            beat_id = beat.get("brief", {}).get("beat_id", "?")
-            total_scanned += 1
+        for raw in fh:
+            raw = raw.strip()
+            if not raw:
+                continue
+            total_rows += 1
+            row = json.loads(raw)
+            char = row.get("char", "")
+            if char not in TARGET_CHARS:
+                continue
+            quote = row.get("quote", "").strip()
+            if not quote:
+                continue
+            if not (6 <= word_count(quote) <= 40):
+                continue
+            canonical = CHAR_ALIAS.get(char, char)
+            per_char[canonical].append(
+                {
+                    "char": canonical,
+                    "line": quote,
+                    "beat_id": row.get("beat_id", "?"),
+                    "pattern": row.get("attribution_method", "unknown"),
+                }
+            )
+            kept_pre_cap += 1
 
-            for m in POST_PATTERN.finditer(prose):
-                quote, speaker = m.group(1), m.group(2)
-                speaker = speaker.capitalize()
-                if speaker in TARGET_CHARS and 6 <= word_count(quote) <= 40:
-                    per_char[speaker].append({"char": speaker, "line": quote, "beat_id": beat_id, "pattern": "post"})
-            for m in PRE_PATTERN.finditer(prose):
-                speaker, quote = m.group(1), m.group(2)
-                speaker = speaker.capitalize()
-                if speaker in TARGET_CHARS and 6 <= word_count(quote) <= 40:
-                    per_char[speaker].append({"char": speaker, "line": quote, "beat_id": beat_id, "pattern": "pre"})
-
-    # Dedupe + cap
-    final = []
-    for char in TARGET_CHARS:
-        seen = set()
-        keep = []
-        for row in per_char[char]:
-            norm = row["line"].strip().lower()
-            if norm in seen: continue
+    # Dedupe + cap per character.
+    final: list[dict] = []
+    per_char_kept: dict[str, int] = {}
+    for char in ("Drizzt", "Bruenor", "Wulfgar", "Regis", "Catti-brie"):
+        seen: set[str] = set()
+        keep: list[dict] = []
+        for item in per_char.get(char, []):
+            norm = item["line"].strip().lower()
+            if norm in seen:
+                continue
             seen.add(norm)
-            keep.append(row)
-            if len(keep) >= PER_CHAR_TARGET: break
+            keep.append(item)
+            if len(keep) >= PER_CHAR_TARGET:
+                break
+        per_char_kept[char] = len(keep)
         final.extend(keep)
-        print(f"  {char}: {len(keep)} (raw {len(per_char[char])})")
 
     with OUT.open("w") as fh:
-        for row in final:
-            fh.write(json.dumps(row) + "\n")
-    print(f"\nScanned {total_scanned} beats → {len(final)} dialogue lines → {OUT}")
+        for item in final:
+            fh.write(json.dumps(item) + "\n")
+
+    # Report.
+    print(f"Source: {CORPUS.relative_to(REPO_ROOT)}")
+    print(f"Scanned {total_rows} attributed lines")
+    print(f"Passed filters (target char + 6..40 words): {kept_pre_cap}")
+    print("Per-character kept (after dedupe + cap):")
+    for char in ("Drizzt", "Bruenor", "Wulfgar", "Regis", "Catti-brie"):
+        raw_count = len(per_char.get(char, []))
+        print(f"  {char}: {per_char_kept[char]} (raw {raw_count})")
+    print(f"\nTotal: {len(final)} dialogue lines → {OUT.relative_to(REPO_ROOT)}")
+
 
 if __name__ == "__main__":
     main()
