@@ -1,0 +1,14 @@
+# Copyrighted content — source files stay local
+*/source/
+# Stage-output files contain verbatim prose — gitignored, but their
+# *.report.json siblings are tracked for audit
+*/canonical.txt
+*/scenes.jsonl
+*/beats.jsonl
+*/pairs.jsonl
+*/analysis/dialogue-extract.jsonl
+*/review/
+# Verification and report files ARE tracked so we can audit bundle
+# state without shipping prose — these are NOT gitignored:
+# *.report.json, verification.json, pipeline_version.json,
+# analysis/*.json (except dialogue-extract.jsonl), config.yml

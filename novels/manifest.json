@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "pipeline_version": "1.0",
+  "novels": [
+    {
+      "key": "salvatore-icewind-dale",
+      "title": "The Icewind Dale Trilogy",
+      "author": "R.A. Salvatore",
+      "genre": "fantasy",
+      "subgenre": "action-pulp-fantasy",
+      "status": "ingesting",
+      "config": "novels/salvatore-icewind-dale/config.yml",
+      "added": "2026-04-17",
+      "notes": "Reference bundle validating the corpus-pipeline architecture. Bootstrap novel for the system."
+    }
+  ]
+}

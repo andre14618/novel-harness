@@ -1,0 +1,60 @@
+{
+  "books": {
+    "crystal_shard": {
+      "path": "/Users/andre/Desktop/personal_projects/novel-harness/novels/salvatore-icewind-dale/source/salvatore-crystal-shard.txt",
+      "total_scenes": 139,
+      "kept_scenes": 139,
+      "dropped_below_min": [],
+      "dropped_above_max": [],
+      "chapters_total": 30,
+      "chapters_covered": 34,
+      "missing_chapters": [],
+      "boundary_distribution": {
+        "chapter-open": 30,
+        "chapter-close": 30,
+        "bounded": 75,
+        "unbounded": 4
+      },
+      "words_kept": 105020
+    },
+    "streams_of_silver": {
+      "path": "/Users/andre/Desktop/personal_projects/novel-harness/novels/salvatore-icewind-dale/source/salvatore-streams-of-silver.txt",
+      "total_scenes": 76,
+      "kept_scenes": 76,
+      "dropped_below_min": [],
+      "dropped_above_max": [],
+      "chapters_total": 24,
+      "chapters_covered": 29,
+      "missing_chapters": [],
+      "boundary_distribution": {
+        "chapter-open": 19,
+        "bounded": 28,
+        "chapter-close": 19,
+        "unbounded": 10
+      },
+      "words_kept": 104138
+    },
+    "halflings_gem": {
+      "path": "/Users/andre/Desktop/personal_projects/novel-harness/novels/salvatore-icewind-dale/source/salvatore-halflings-gem.txt",
+      "total_scenes": 137,
+      "kept_scenes": 137,
+      "dropped_below_min": [],
+      "dropped_above_max": [],
+      "chapters_total": 25,
+      "chapters_covered": 29,
+      "missing_chapters": [],
+      "boundary_distribution": {
+        "chapter-open": 26,
+        "chapter-close": 26,
+        "bounded": 82,
+        "unbounded": 3
+      },
+      "words_kept": 96326
+    }
+  },
+  "warnings": [],
+  "total_scenes_kept": 352,
+  "total_words_kept": 305484,
+  "min_words_threshold": 0,
+  "max_words_threshold": 1000000000
+}

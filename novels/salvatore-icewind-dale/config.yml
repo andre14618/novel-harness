@@ -1,0 +1,210 @@
+# Novel bundle — R.A. Salvatore's Icewind Dale Trilogy (1988-1990)
+# This is the reference bundle that validates the corpus-pipeline architecture.
+# See docs/corpus-pipeline.md for format details.
+
+key: salvatore-icewind-dale
+title: "The Icewind Dale Trilogy"
+author: "R.A. Salvatore"
+genre: fantasy
+subgenre: action-pulp-fantasy
+year: 1988
+books:
+  - crystal_shard        # Book 1 (1988)
+  - streams_of_silver    # Book 2 (1989)
+  - halflings_gem        # Book 3 (1990)
+
+# Source files (gitignored under source/)
+source_files:
+  crystal_shard: source/salvatore-crystal-shard.txt
+  streams_of_silver: source/salvatore-streams-of-silver.txt
+  halflings_gem: source/salvatore-halflings-gem.txt
+
+# Ingestion hints (the original ingest already ran; re-run would be idempotent)
+ingestion:
+  source_format: txt         # already canonical-ized from original PDFs
+  chapter_detection: auto    # "CHAPTER N — Title" pattern
+
+# Review gates (see docs/corpus-pipeline.md §"Review gates")
+# Enabled for Gates 2, 3, 5 as this is the reference bundle — we want
+# eyeball validation at every structural decision point for Salvatore
+# since the pipeline itself is being validated here. Future novels can
+# copy this config and relax gates as confidence accumulates.
+review_gates:
+  after_ingestion: false
+  after_scenes: true
+  after_beats: true
+  after_briefs: false
+  after_analysis: true
+
+# Training intent — what this bundle is eligible to feed
+training_roles:
+  - voice_lora                   # prose is fit material for voice-LoRA training
+  - structural_signature         # structural signature feeds planner priors
+  - archetype_pass               # attributed dialogue feeds archetype-pass POC
+  - character_reference          # character voice profiles in harness beat context
+
+# Analyzers to run in Stage 5. Each produces one file in analysis/.
+# Deterministic analyzers run locally; LLM analyzers dispatch subagents.
+analyzers:
+  - structural          # beat distribution, cluster sustain, opener/closer, beats-per-chapter
+  - voice               # per-character vocabulary + dialect markers
+  - dialogue            # per-character attributed dialogue lines (POC-derived)
+  - dialogue-density    # dialogue-word % per beat kind and per chapter
+  - tension             # per-chapter tension curve (action-verb × compression × stakes-lexicon)
+  - chapter-hooks       # end-of-chapter hook-type classification (cliffhanger/tease/promise/...)
+  - sensory             # sense distribution (visual/auditory/tactile/olfactory/kinesthetic) per beat
+  - sentence-rhythm     # sentence length distribution per beat kind
+  - pov-rotation        # POV assignments + rotation cadence across the novel
+  - metaphor            # metaphor/simile density per beat kind
+
+# Character registry — human-curated. The aliases field is used by the
+# dialogue extractor for role-description attribution (the dwarf → Bruenor).
+# The archetype field feeds the archetype-pass POC (exp #220) and future
+# archetype-LoRA training.
+characters:
+  - name: Drizzt
+    full_name: "Drizzt Do'Urden"
+    aliases: ["Drizzt", "the drow", "the dark elf", "the ranger"]
+    role: protagonist
+    archetype: stoic_ranger
+    pov: true
+    books: [crystal_shard, streams_of_silver, halflings_gem]
+    voice:     "Formal, measured; speaks in complete sentences with scimitars of syntax; accent of the drow only on rare, heavy emotion."
+    drives:    "Live with honor on the surface despite his drow heritage; protect his chosen companions."
+    avoids:    "Harming the innocent; the weight of his past in the Underdark; becoming what the drow expect."
+    conflict:  "A night-born outcast trying to make the light his home."
+
+  - name: Bruenor
+    full_name: "Bruenor Battlehammer"
+    aliases: ["Bruenor", "the dwarf", "the red-bearded dwarf"]
+    role: supporting
+    archetype: gruff_mentor
+    pov: true
+    books: [crystal_shard, streams_of_silver, halflings_gem]
+    voice:     "Gruff dwarf-accent, curse-seasoned, fatherly even when threatening."
+    drives:    "Reclaim Mithril Hall; steer his adopted children safely through a world that wants them dead."
+    avoids:    "Showing sentiment; letting the clan see him flinch."
+    conflict:  "Iron-hearted exile who adopted a human daughter and a drow son."
+
+  - name: Wulfgar
+    full_name: "Wulfgar"
+    aliases: ["Wulfgar", "the barbarian", "the young barbarian"]
+    role: supporting
+    archetype: barbarian_hero
+    pov: true
+    books: [crystal_shard, streams_of_silver, halflings_gem]
+    voice:     "Formal archaic cadence after Bruenor's tutelage — thees, thous, and a barbarian's directness; booming when roused."
+    drives:    "Prove worthy of Bruenor's clan and the title of king his blood promises."
+    avoids:    "Shaming his barbarian honor; striking a foe from behind; the softness civilization might sand off him."
+    conflict:  "Wild tribal heritage under a dwarf-father's forge."
+
+  - name: Regis
+    full_name: "Regis"
+    aliases: ["Regis", "the halfling", "Rumblebelly"]
+    role: supporting
+    archetype: trickster_rogue
+    pov: true
+    books: [crystal_shard, streams_of_silver, halflings_gem]
+    voice:     "Casual, witty, sing-song; uses storyteller cadence; deflects tension with humor and pet-names."
+    drives:    "Keep his friends safe without admitting how much they mean to him; avoid the consequences of his own past."
+    avoids:    "Physical confrontation; being found by those he wronged in Calimport; straining his own comfort."
+    conflict:  "Cowardly by nature, loyal by choice — a thief who stayed because the company was worth the trouble."
+
+  - name: Catti-brie
+    full_name: "Catti-brie"
+    aliases: ["Catti-brie"]   # deliberately narrow — "the girl"/"the young woman" too ambiguous
+    role: supporting
+    archetype: rural_warmth
+    pov: true
+    books: [streams_of_silver, halflings_gem]
+    voice:     "Warm rural cadence with dwarf-dialect influence; direct and grounded; slips into 'tis/ye in emotional register."
+    drives:    "Stand alongside her adopted family as an equal — not a ward to be protected."
+    avoids:    "Being treated as fragile; the memory of her parents' deaths."
+    conflict:  "Human heart raised in a dwarven hall, loved by a drow she shouldn't."
+
+  - name: Entreri
+    full_name: "Artemis Entreri"
+    aliases: ["Entreri", "the assassin"]
+    role: antagonist
+    archetype: cold_assassin
+    books: [halflings_gem]
+
+  - name: Kessell
+    full_name: "Akar Kessell"
+    aliases: ["Kessell", "the Tyrant of Icewind Dale"]
+    role: antagonist
+    archetype: petty_tyrant
+    books: [crystal_shard]
+
+  - name: Pook
+    full_name: "Pasha Pook"
+    aliases: ["Pook", "the pasha", "the Pasha"]
+    role: antagonist
+    archetype: crime_boss
+    books: [halflings_gem]
+
+  - name: Dendybar
+    full_name: "Dendybar the Mottled"
+    aliases: ["Dendybar", "the Mottled"]
+    role: antagonist
+    archetype: scheming_wizard
+    books: [streams_of_silver]
+
+  - name: Sydney
+    full_name: "Sydney"
+    aliases: ["Sydney"]
+    role: antagonist
+    archetype: ambitious_apprentice
+    books: [streams_of_silver]
+
+  # Minor/supporting characters present but not primary voice-training targets.
+  # Listed so the dialogue extractor knows they exist and can filter them out
+  # of target-character extraction cleanly.
+  - name: Guenhwyvar
+    aliases: ["Guenhwyvar", "the panther"]
+    role: companion
+  - name: Heafstaag
+    aliases: ["Heafstaag"]
+    role: antagonist
+    books: [crystal_shard]
+  - name: Cassius
+    aliases: ["Cassius"]
+    role: authority
+    books: [crystal_shard]
+  - name: Deudermont
+    aliases: ["Deudermont", "Captain Deudermont"]
+    role: ally
+    books: [halflings_gem]
+  - name: Alustriel
+    aliases: ["Alustriel", "the Lady"]
+    role: authority
+    books: [streams_of_silver]
+  - name: Malchor
+    full_name: "Malchor Harpell"
+    aliases: ["Malchor"]
+    role: ally
+    books: [halflings_gem]
+  - name: LaValle
+    aliases: ["LaValle"]
+    role: antagonist_ally
+    books: [halflings_gem]
+  - name: Biggrin
+    aliases: ["Biggrin"]
+    role: antagonist
+    books: [crystal_shard]
+  - name: Revjak
+    aliases: ["Revjak"]
+    role: authority
+    books: [crystal_shard]
+  - name: Kemp
+    aliases: ["Kemp"]
+    role: authority
+    books: [crystal_shard]
+  - name: Jensin Brent
+    aliases: ["Jensin Brent", "Jensin"]
+    role: authority
+    books: [crystal_shard]
+  - name: Glensather
+    aliases: ["Glensather"]
+    role: authority
+    books: [crystal_shard]

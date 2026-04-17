@@ -75,7 +75,7 @@ def audit_scenes(scenes_path: Path) -> dict:
             per_book[b]["chapters"].add(s["chapter"])
     # JSON-safe
     for b in per_book:
-        per_book[b]["chapters"] = sorted(per_book[b]["chapters"])
+        per_book[b]["chapters"] = sorted(per_book[b]["chapters"], key=lambda x: (isinstance(x, str), x))
         per_book[b]["chapter_count"] = len(per_book[b]["chapters"])
     return dict(per_book)
 
@@ -145,8 +145,9 @@ def find_gaps(stages: dict) -> list[str]:
         chs_scenes = set(scenes.get(book_key, {}).get("chapters", []))
         chs_beats  = set(beats.get(book_key, {}).get("chapters", []))
 
-        missing_in_scenes = sorted(chs_corpus - chs_scenes)
-        missing_in_beats  = sorted(chs_scenes - chs_beats)
+        _sort_key = lambda x: (isinstance(x, str), x)
+        missing_in_scenes = sorted(chs_corpus - chs_scenes, key=_sort_key)
+        missing_in_beats  = sorted(chs_scenes - chs_beats, key=_sort_key)
 
         if missing_in_scenes:
             gaps.append(f"{book_key}: chapters in corpus but NOT in scenes: {missing_in_scenes}")
@@ -173,12 +174,27 @@ def find_gaps(stages: dict) -> list[str]:
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--novel", help="Bundle key (resolves all paths from novels/<key>/)")
     ap.add_argument("--corpus-dir", type=Path, default=Path("scripts/lora-data"))
     ap.add_argument("--scenes", type=Path)
     ap.add_argument("--beats", type=Path)
     ap.add_argument("--pairs", type=Path)
     ap.add_argument("--output", type=Path)
     args = ap.parse_args()
+
+    # Bundle mode resolves all paths from the bundle
+    if args.novel:
+        import sys as _sys
+        _sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from bundle import load_bundle  # noqa
+        b = load_bundle(args.novel)
+        # Use the bundle's source dir as "corpus-dir" for stage-1 invariants
+        args.corpus_dir = b.root / "source"
+        args.scenes = b.scenes_jsonl
+        args.beats = b.beats_jsonl
+        args.pairs = b.pairs_jsonl
+        if not args.output:
+            args.output = b.verification_json
 
     stages = {"corpus": audit_corpus(args.corpus_dir)}
     if args.scenes: stages["scenes"] = audit_scenes(args.scenes)

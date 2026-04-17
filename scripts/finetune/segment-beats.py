@@ -1,26 +1,23 @@
 #!/usr/bin/env python3
-"""Batch beat-segmentation: reads pass-1 scenes, writes segmented beats JSONL.
+"""Batch beat-segmentation: scenes → beats via Claude Code sub-agents.
 
-Uses Claude Code sub-agents for segmentation. This script handles
-pre/post-processing only.
+Novel-agnostic — reads paths from the bundle's config.yml.
 
 `prepare` emits per-scene prompt files + a manifest listing expected scene_ids.
-`merge` cross-checks the manifest against actual result files and warns on
-missing/orphaned/malformed results — no silent data loss.
+`merge` cross-checks the manifest against result files and surfaces
+missing/orphan/malformed results. No silent data loss.
 
 Usage:
-  python3 scripts/finetune/segment-beats.py prepare \
-    --scenes /tmp/salvatore-pass1-scenes.jsonl \
-    --prompt-dir /tmp/beat-prompts \
-    --batch-size 5
+  python3 scripts/finetune/segment-beats.py prepare --novel salvatore-icewind-dale \
+    --prompt-dir /tmp/beat-prompts --batch-size 5
 
-  # Step 2: Claude Code runs sub-agents on each batch, writes /tmp/beat-results/<scene_id>.json
+  # Claude Code runs sub-agents → /tmp/beat-results/<scene_id>.json
 
-  python3 scripts/finetune/segment-beats.py merge \
-    --results-dir /tmp/beat-results \
-    --scenes /tmp/salvatore-pass1-scenes.jsonl \
-    --output scripts/lora-data/salvatore-1988-beats.jsonl \
-    --min-words 60
+  python3 scripts/finetune/segment-beats.py merge --novel salvatore-icewind-dale \
+    --results-dir /tmp/beat-results
+
+  # Legacy (explicit paths) still supported:
+  python3 scripts/finetune/segment-beats.py prepare --scenes /tmp/scenes.jsonl ...
 """
 
 import argparse
@@ -28,7 +25,10 @@ import json
 import sys
 from pathlib import Path
 
-PROMPT_TEMPLATE = """You are segmenting a scene from R.A. Salvatore's Icewind Dale Trilogy (1988-1990) into dramatic beats for training data.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from bundle import load_bundle  # noqa: E402
+
+PROMPT_TEMPLATE = """You are segmenting a scene from {novel_description} into dramatic beats for training data.
 
 ## Task
 
@@ -72,41 +72,52 @@ REQUIRED_BEAT_FIELDS = ["beat_idx", "words", "kind", "boundary_signal", "summary
                         "first_sentence", "last_sentence", "text"]
 
 
+def resolve_paths(args):
+    """Return (scenes_path, output_path) from either bundle or explicit args."""
+    if args.novel:
+        b = load_bundle(args.novel)
+        return b.scenes_jsonl, b.beats_jsonl, b.describe_for_prompt()
+    if args.scenes:
+        out = Path(args.output) if args.output else args.scenes.with_name("beats.jsonl")
+        desc = args.novel_description or "this novel"
+        return args.scenes, out, desc
+    sys.exit("provide --novel <key> or --scenes <path>")
+
+
 def cmd_prepare(args):
-    scenes = [json.loads(l) for l in open(args.scenes)]
+    scenes_path, _, novel_desc = resolve_paths(args)
+    scenes = [json.loads(l) for l in open(scenes_path)]
     prompt_dir = Path(args.prompt_dir)
     prompt_dir.mkdir(parents=True, exist_ok=True)
 
-    batches = []
-    batch = []
-    prepared_scene_ids = []
+    batches, batch = [], []
+    prepared_ids = []
     for i, scene in enumerate(scenes):
         prompt = PROMPT_TEMPLATE.format(
+            novel_description=novel_desc,
             scene_id=scene["scene_id"],
             words=scene["words"],
             text=scene["text"],
         )
         prompt_file = prompt_dir / f"scene_{i:03d}_{scene['scene_id']}.txt"
         prompt_file.write_text(prompt)
-        prepared_scene_ids.append(scene["scene_id"])
+        prepared_ids.append(scene["scene_id"])
         batch.append({
-            "index": i,
-            "scene_id": scene["scene_id"],
-            "prompt_file": str(prompt_file),
-            "words": scene["words"],
+            "index": i, "scene_id": scene["scene_id"],
+            "prompt_file": str(prompt_file), "words": scene["words"],
         })
         if len(batch) >= args.batch_size:
-            batches.append(batch)
-            batch = []
+            batches.append(batch); batch = []
     if batch:
         batches.append(batch)
 
     manifest = prompt_dir / "manifest.json"
     manifest.write_text(json.dumps({
+        "novel": args.novel or "ad-hoc",
         "total_scenes": len(scenes),
         "batch_size": args.batch_size,
         "num_batches": len(batches),
-        "expected_scene_ids": prepared_scene_ids,
+        "expected_scene_ids": prepared_ids,
         "batches": batches,
     }, indent=2))
 
@@ -118,11 +129,8 @@ def cmd_prepare(args):
 
 
 def merge_small_beats(beats: list[dict], min_words: int) -> tuple[list[dict], int]:
-    """Merge beats under min_words into the preceding beat. Returns (merged, merged_count)."""
-    if not beats:
-        return beats, 0
-    merged = [beats[0]]
-    merged_count = 0
+    if not beats: return beats, 0
+    merged, merged_count = [beats[0]], 0
     for beat in beats[1:]:
         if beat["words"] < min_words:
             prev = merged[-1]
@@ -139,7 +147,6 @@ def merge_small_beats(beats: list[dict], min_words: int) -> tuple[list[dict], in
 
 
 def validate_beat(beat: dict) -> list[str]:
-    """Return list of validation errors on a single beat (empty = valid)."""
     errors = []
     for f in REQUIRED_BEAT_FIELDS:
         if f not in beat:
@@ -152,8 +159,9 @@ def validate_beat(beat: dict) -> list[str]:
 
 
 def cmd_merge(args):
+    scenes_path, output, _ = resolve_paths(args)
     results_dir = Path(args.results_dir)
-    scenes = [json.loads(l) for l in open(args.scenes)]
+    scenes = [json.loads(l) for l in open(scenes_path)]
     scene_map = {s["scene_id"]: s for s in scenes}
     expected_ids = set(scene_map.keys())
 
@@ -163,6 +171,7 @@ def cmd_merge(args):
 
     all_beats = []
     report = {
+        "novel": args.novel or "ad-hoc",
         "scenes_expected": len(expected_ids),
         "scenes_processed": 0,
         "scenes_with_malformed_results": [],
@@ -181,39 +190,29 @@ def cmd_merge(args):
             data = json.load(open(rf))
         except Exception as e:
             report["scenes_with_malformed_results"].append({"file": str(rf), "error": str(e)})
-            print(f"WARN: {rf.name} is not valid JSON: {e}", file=sys.stderr)
             continue
 
         scene_id = data.get("scene_id", rf.stem)
         raw_beats = data.get("beats", data if isinstance(data, list) else [])
 
-        # Validate each beat
-        errors_per_beat = []
-        valid_beats = []
-        for idx, beat in enumerate(raw_beats):
-            errs = validate_beat(beat)
+        errors_per_beat, valid_beats = [], []
+        for idx, b in enumerate(raw_beats):
+            errs = validate_beat(b)
             if errs:
                 errors_per_beat.append({"beat_idx": idx, "errors": errs})
             else:
-                valid_beats.append(beat)
-
+                valid_beats.append(b)
         if errors_per_beat:
             report["scenes_with_malformed_results"].append({
-                "scene_id": scene_id,
-                "file": str(rf),
-                "errors": errors_per_beat,
+                "scene_id": scene_id, "file": str(rf), "errors": errors_per_beat,
             })
-            print(f"WARN: {scene_id} had {len(errors_per_beat)} malformed beats (dropped)", file=sys.stderr)
-
         if not valid_beats:
             report["scenes_with_zero_beats"].append(scene_id)
-            print(f"WARN: {scene_id} produced zero valid beats", file=sys.stderr)
             processed_ids.add(scene_id)
             continue
 
         raw_count = len(valid_beats)
         merged_beats, merged_count = merge_small_beats(valid_beats, args.min_words)
-
         scene_meta = scene_map.get(scene_id, {})
         for beat in merged_beats:
             beat["scene_id"] = scene_id
@@ -227,26 +226,25 @@ def cmd_merge(args):
         report["total_beats_after_merge"] += len(merged_beats)
         report["total_beats_merged"] += merged_count
         report["per_scene"][scene_id] = {
-            "raw_beats": raw_count,
-            "merged_beats": len(merged_beats),
+            "raw_beats": raw_count, "merged_beats": len(merged_beats),
             "words": sum(b["words"] for b in merged_beats),
         }
-
-        # Orphan detection: result exists but scene_id wasn't in the manifest
         if scene_id not in expected_ids:
             report["orphan_results"].append(scene_id)
 
-    # Missing: scene_id was expected but no result landed
-    missing = expected_ids - processed_ids
-    report["scenes_missing_results"] = sorted(missing)
+    report["scenes_missing_results"] = sorted(expected_ids - processed_ids)
 
-    output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
     with open(output, "w") as f:
-        for beat in all_beats:
-            f.write(json.dumps(beat) + "\n")
+        for b in all_beats:
+            f.write(json.dumps(b) + "\n")
 
-    report_path = output.with_suffix(".merge-report.json")
+    # Report path: bundle-aware if --novel, else sibling of output
+    if args.novel:
+        b = load_bundle(args.novel)
+        report_path = b.beats_report
+    else:
+        report_path = output.with_suffix(".merge-report.json")
     report_path.write_text(json.dumps(report, indent=2, default=str))
 
     word_counts = [b["words"] for b in all_beats]
@@ -258,10 +256,9 @@ def cmd_merge(args):
     print(f"Scenes with zero valid beats: {len(report['scenes_with_zero_beats'])}")
     print(f"Orphan result files: {len(report['orphan_results'])}")
     print(f"Raw beats: {report['total_beats_raw']}")
-    print(f"After merge (<{args.min_words}w): {report['total_beats_after_merge']} ({report['total_beats_merged']} merged)")
+    print(f"After merge: {report['total_beats_after_merge']} ({report['total_beats_merged']} merged)")
     if word_counts:
         print(f"Median beat size: {sorted(word_counts)[len(word_counts)//2]}w")
-        print(f"Mean beat size: {sum(word_counts)/len(word_counts):.0f}w")
         print(f"Total words: {sum(word_counts):,}")
     print(f"Output: {output}")
     print(f"Report: {report_path}")
@@ -271,24 +268,23 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd")
 
-    prep = sub.add_parser("prepare")
-    prep.add_argument("--scenes", required=True, type=Path)
-    prep.add_argument("--prompt-dir", required=True, type=Path)
-    prep.add_argument("--batch-size", type=int, default=5)
-
-    mrg = sub.add_parser("merge")
-    mrg.add_argument("--results-dir", required=True, type=Path)
-    mrg.add_argument("--scenes", required=True, type=Path)
-    mrg.add_argument("--output", required=True, type=Path)
-    mrg.add_argument("--min-words", type=int, default=60)
+    for name in ("prepare", "merge"):
+        p = sub.add_parser(name)
+        p.add_argument("--novel", help="Bundle key")
+        p.add_argument("--scenes", type=Path, help="Ad-hoc: explicit scenes path")
+        p.add_argument("--novel-description", help="Ad-hoc: author/title for prompt templating")
+        p.add_argument("--output", type=Path, help="Ad-hoc: explicit output path")
+        if name == "prepare":
+            p.add_argument("--prompt-dir", required=True, type=Path)
+            p.add_argument("--batch-size", type=int, default=5)
+        else:
+            p.add_argument("--results-dir", required=True, type=Path)
+            p.add_argument("--min-words", type=int, default=60)
 
     args = ap.parse_args()
-    if args.cmd == "prepare":
-        cmd_prepare(args)
-    elif args.cmd == "merge":
-        cmd_merge(args)
-    else:
-        ap.print_help()
+    if args.cmd == "prepare": cmd_prepare(args)
+    elif args.cmd == "merge": cmd_merge(args)
+    else: ap.print_help()
 
 
 if __name__ == "__main__":
