@@ -1,4 +1,13 @@
+---
+status: deferred
+kind: operator-runbook
+deferred: 2026-04-18
+reactivates_when: salvatore-distinctness-conditioning-floor pilot kills at <=2/24, reopening corpus expansion per docs/decisions.md §Superseded-charters salvatore-v5-corpus-expansion
+---
+
 # Salvatore V5 Corpus Expansion Runbook
+
+> **Deferred 2026-04-18.** The `salvatore-v5-corpus-expansion` charter that motivated this runbook was superseded by `salvatore-distinctness-conditioning-floor` (commit `355417e`). Conditioning-first gets measured before corpus expansion reopens. This runbook is still correct operator guidance — reactivate it if the conditioning-first pilot fails its ship gate. See `docs/decisions.md` §Superseded-charters for the reasoning.
 
 Operator guide for Option A in `docs/todo.md`: expand the Salvatore corpus with additional book bundles, merge them with `novels/salvatore-icewind-dale/`, and stop at a hashed training-pairs artifact for human approval.
 

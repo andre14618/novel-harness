@@ -1904,6 +1904,26 @@ Log entries for charters killed by adversary review (RED verdict) and replaced b
 
 **Why SUPERSEDE vs revise:** the primary metric had to change (not continuity) and the pilot design had to change (seeds disjoint from the planner charter, written callback-density screen). New family name signals the reframing.
 
+### `salvatore-v5-corpus-expansion` (2026-04-18)
+
+**Last live at:** `7cc6322` — path `docs/charters/salvatore-v5-corpus-expansion.md`.
+
+**Superseded by:** `docs/charters/salvatore-distinctness-conditioning-floor.md` (commit `355417e`), which depends on the frozen eval at `docs/evals/salvatore-distinctness-v1.md`.
+
+**RED verdict:** `/codex:adversarial-review` 2026-04-18 (session `019da278-7118-73c2-b322-dfde6d59c253`). Six blocking issues:
+1. Cheapest counterfactual (`exampleLines` rotation) dismissed without measurement, despite v4 itself shipping on exampleLines conditioning per 2026-04-17.
+2. `salvatore-distinctness-v1` eval didn't exist but was the primary ship gate — "benchmark design is the core experiment" was inverted.
+3. Judge model unnamed — model-dependent voice judgments are documented (Archetype POC), so an unnamed judge is a judge-shopping trap.
+4. Core 4-book corpus plan was drow-heavy (Homeland / Starless Night / Servant of the Shard); the only balancing title (Sojourn) was demoted to "optional stretch."
+5. `≥15 pts` ship threshold numerology — on a 24-pair eval one flip = 4.17 points, so "+15 pts" wasn't anchored to eval resolution.
+6. Budget `$10` / `1.5 days` ignored the admitted missing eval build + manual corpus prep (~420–470 Stage 3/4 batches).
+
+**Orthogonal pre-gate:** zero of the four priority books were findable on local disk or LXC (full inventory recorded in the 2026-04-18 session transcript). Acquisition would have been a hard Step-0 prerequisite independent of charter quality.
+
+**Why SUPERSEDE vs revise:** the lever changed entirely — v1 tested corpus expansion; v2 tests runtime conditioning (exampleLines rotation) on a frozen eval before any corpus expansion. No training spend in v2. Corpus expansion reopens only if conditioning-first kills.
+
+**Companion runbook:** `scripts/corpus/salvatore-v5-runbook.md` remains in the working tree with `status: deferred` — operator-actionable if conditioning-first fails and corpus expansion is later reopened. Not superseded, not retired.
+
 ### Retrospective: the archive-directory experiment
 
 A separate `docs/charters/archive/` directory was tried on 2026-04-18 (commit `5fb4a3f` convention + `7eb3ce4` first archival) as the method for handling superseded charters. Abandoned the same day because:
