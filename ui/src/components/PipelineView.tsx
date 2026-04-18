@@ -24,14 +24,8 @@ const AGENT_ACTION: Record<string, string> = {
   "adherence-events":     "Checking beat adherence",
   "chapter-plan-checker": "Verifying chapter plan",
   "continuity":           "Checking continuity",
-  "rewriter":             "Rewriting",
   "tonal-pass":           "Applying tonal pass",
   "lint-fixer":           "Fixing lint",
-  "summary-extractor":    "Extracting summary",
-  "fact-extractor":       "Extracting facts",
-  "character-state":      "Tracking character state",
-  "relationship-timeline":"Updating relationships",
-  "graph-linker":         "Linking causal graph",
 }
 
 function agentAction(agent: string): string {
