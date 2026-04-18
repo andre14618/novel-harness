@@ -83,7 +83,7 @@ interface AgentResult<T> {
 
 interface MakeRequestResult {
   content: string
-  usage: { prompt_tokens: number; completion_tokens: number }
+  usage: { prompt_tokens: number; completion_tokens: number; cached_tokens: number }
   totalLatencyMs: number
   httpAttempts: number
   retryErrors: Array<{ status: number; delay: number }>
