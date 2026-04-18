@@ -172,3 +172,25 @@ Run before every commit:
 - `src/agents/adherence-events/` does not exist; the real adherence wrapper is `src/agents/writer/adherence-checker.ts`.
 - Decide explicitly whether `halluc-leak-salvatore` is gated by `writerPack.label === "salvatore-fantasy"` or by the actual model URI. I recommend gating by writer-pack route.
 - If Claude wants stronger retry-loop tests than the pure-helper tests above, that needs a small mock seam first; do not invent a heavy integration harness in this series.
+
+## 10. Execution decisions — 2026-04-18
+
+Recorded here after the series landed (commits `1bf119d` → `93a717b`) so any future Codex session can see what was actually chosen without re-deriving from git log.
+
+| Decision | Outcome | Rationale | Location of evidence |
+|---|---|---|---|
+| Leak gating: writer-pack label vs model URI | **Writer-pack label** (`writerPack.label === "salvatore-fantasy"`) | The leak check is about the training corpus, which `WRITER_GENRE_PACKS` uniquely identifies; URI gating breaks if the adapter is re-served under a new artifact name or if a sibling pack is trained on Salvatore data. User blessed this in response to Codex's §9 recommendation. | `src/phases/beat-checks.ts` docstring + commit `df2c5f0` |
+| Fan-out primitive: `Promise.all` vs `allSettled` | **`Promise.all`** | Every underlying helper already converts transport/schema failures into blocker issues instead of throwing, so there is no rejection path. Future checkers that violate this invariant should trigger a switch to `allSettled` — comment recorded in `beat-checks.ts`. | `src/phases/beat-checks.ts` `runBeatChecks` + commit `df2c5f0` |
+| Severity scheme | **All current issues `blocker`; `warning` reserved** | Every v3 adapter emits the same severity today. `BeatIssue.severity` is present in the type so future voting / soft-signal modes can land without a breaking change. Revisit after the production-telemetry runbook gives false-positive data. | `src/phases/beat-checks.ts` type def + `docs/todo.md` §2 |
+| Agent `maxTokens` | **512 for ungrounded, 256 for leak** | Ungrounded output is an issues array (each item has entity + excerpt), so needs more headroom. Leak output is a short token list. Both match training-call budgets. | `src/models/roles.ts` comment block + commit `6a8bbba` |
+| Config-UI grouping | **Both agents under "Validators"** | Follows the existing pattern (`chapter-plan-checker`, `continuity-*` live there). Makes operator overrides discoverable from the Config page. | `src/orchestrator/novel-routes.ts` + commit `6a8bbba` |
+| Phase mapping in telemetry | **Both agents → `"drafting"`** | Matches the existing `adherence-events` mapping; per-adapter cost/latency rolls up under the drafting phase in `llm_calls` summaries. | `src/logger.ts` `getPhaseForAgent` + commit `6a8bbba` |
+| Aggregation pureness | **Extracted `aggregateIssues()` as a pure function** | Lets the OR semantics + source tagging + retry-line formatting be unit-tested without an LLM call. `runBeatChecks()` now delegates to it. Covered by 8 tests in `beat-checks.test.ts` + 2 URI-cost tests in `registry.test.ts`. | `src/phases/beat-checks.ts` + commit `f01ff88` |
+| Integration test for the full drafting loop | **Skipped (per §7)** | The loop is DB- and transport-heavy; adding mocks for this one wire-in would invent a harness the rest of the suite doesn't have. Pure-helper tests give enough regression coverage. Revisit if future work needs a proper drafting-loop test seam. | This plan §7 + commit `f01ff88` |
+
+### What the next Codex session should know when asked about this subsystem
+
+- Wire-in is complete and live in `drafting.ts` as of commit `df2c5f0`. No separate pilot is scheduled — the next action is a production-telemetry pass over 5–10 novels per §8 of this document.
+- `adherence-events` → `halluc-ungrounded` → `halluc-leak-salvatore` is the canonical ordering used in log lines (`summarizeIssues()` in `beat-checks.ts`). If Codex proposes reordering, note that retry-line order shapes which issue the writer sees first in the rewrite prompt.
+- The `writer-pack-label` gating is the load-bearing architectural choice. Any future non-Salvatore voice LoRA needs its own paired leak adapter (open item in `docs/todo.md` §1). Per-URI gating is explicitly rejected.
+- The unified-aggregator infrastructure is now the home for any new beat-level checker; adding one means writing an agent module under `src/agents/<name>/` and updating `runBeatChecks` + `aggregateIssues` in `src/phases/beat-checks.ts`. No further architectural work required.
