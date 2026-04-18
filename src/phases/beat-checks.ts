@@ -81,10 +81,26 @@ export async function runBeatChecks(input: RunBeatChecksInput): Promise<BeatChec
       : Promise.resolve({ pass: true, issues: [] as string[] }),
   ])
 
+  return aggregateIssues({ adherence: adh.issues, ungrounded: ung.issues, leak: leak.issues })
+}
+
+export interface RawCheckerOutputs {
+  adherence: string[]
+  ungrounded: string[]
+  leak: string[]
+}
+
+/**
+ * Pure, synchronous assembly of the `BeatIssue[]` from raw checker
+ * string-lists. Exported separately from `runBeatChecks` so unit
+ * tests can exercise OR-aggregation, severity tagging, and retry-
+ * line formatting without an LLM call.
+ */
+export function aggregateIssues(outputs: RawCheckerOutputs): BeatCheckResult {
   const issues: BeatIssue[] = []
-  for (const s of adh.issues) issues.push({ source: "adherence", severity: "blocker", description: s })
-  for (const s of ung.issues) issues.push({ source: "halluc-ungrounded", severity: "blocker", description: s })
-  for (const s of leak.issues) issues.push({ source: "halluc-leak-salvatore", severity: "blocker", description: s })
+  for (const s of outputs.adherence) issues.push({ source: "adherence", severity: "blocker", description: s })
+  for (const s of outputs.ungrounded) issues.push({ source: "halluc-ungrounded", severity: "blocker", description: s })
+  for (const s of outputs.leak) issues.push({ source: "halluc-leak-salvatore", severity: "blocker", description: s })
 
   return {
     pass: issues.every(i => i.severity !== "blocker"),

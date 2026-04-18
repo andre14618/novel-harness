@@ -28,3 +28,27 @@ test("getTokenCost still discounts cached tokens for automatic-cache providers",
   // fully-cached call must cost strictly less than the uncached call.
   expect(cached).toBeLessThan(uncached)
 })
+
+test("getTokenCost finite for halluc-ungrounded-v2 W&B artifact URI", () => {
+  const cost = getTokenCost(
+    "wandb",
+    "wandb-artifact:///andre14618-/novel-harness/halluc-ungrounded-v2:v1",
+    1000,
+    500,
+    0,
+  )
+  expect(Number.isFinite(cost)).toBe(true)
+  expect(cost).toBeGreaterThan(0)
+})
+
+test("getTokenCost finite for halluc-leak-salvatore-v1 W&B artifact URI", () => {
+  const cost = getTokenCost(
+    "wandb",
+    "wandb-artifact:///andre14618-/novel-harness/halluc-leak-salvatore-v1:v1",
+    1000,
+    500,
+    0,
+  )
+  expect(Number.isFinite(cost)).toBe(true)
+  expect(cost).toBeGreaterThan(0)
+})
