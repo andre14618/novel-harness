@@ -1,11 +1,12 @@
 ---
-status: proposed
+status: revise-required
 kind: experiment-charter
 experiment-family: salvatore-voice-lora
 proposed-by: Codex
 proposed-date: 2026-04-18
 experiment-id: "#TBD allocate via createTuningExperiment()"
-adversary-verdict: pending
+adversary-verdict: RED
+adversary-reviewed: 2026-04-18
 ---
 
 # Experiment Charter — `salvatore-v5-corpus-expansion`
@@ -172,5 +173,42 @@ Tripwires before any promotion:
 
 | Reviewer | Verdict | Date | Notes |
 |----------|---------|------|-------|
-| `/codex:adversarial-review` (GPT) — primary | pending | — | pending |
-| `experiment-adversary` (Opus) — fallback only | — | — | pending only if requested |
+| `/codex:adversarial-review` (GPT) — primary | **RED** | 2026-04-18 | Session `019da278-7118-73c2-b322-dfde6d59c253`. 6 blocking, 3 warnings. Revise-required. Verdict recorded in §13.a. |
+| `experiment-adversary` (Opus) — fallback only | — | — | Not run — Codex primary returned a decisive RED |
+
+## 13. Adversary verdict summary (Codex, 2026-04-18)
+
+### 13.a RED — 6 blocking issues
+
+1. **§9.3 / §11.1 / §11.8 — Cheapest counterfactual dismissed without measurement.** §5 rejects "diversify v4 `exampleLines` only" with "does not create new supervised signal," but that's answering the wrong question — the cheap counterfactual exists precisely to *test* whether new supervised signal is needed. Project history says runtime conditioning is already a dominant lever: v4 shipped *because* per-speaker `exampleLines` changed differentiation (`docs/decisions.md` 2026-04-17), and the archetype POC explicitly favored voice-as-data via profiles/example lines (`docs/todo.md`). Fix: freeze and measure the conditioning-only counterfactual on the same distinctness eval before authorizing retraining.
+2. **§2.1 / §2.3 / §7.4 — Ship gate depends on an eval that doesn't exist.** `salvatore-distinctness-v1` is the primary ship/falsification gate but §10 admits it doesn't exist. Running training before the oracle is designed, frozen, and sanity-checked is the canonical path to uninterpretable wins. Fix: no run until the eval, baseline ladder, and scoring protocol are fixed in advance on a held-out set.
+3. **§3.6 / §7.3 — Unnamed judge invites circularity.** §7 uses "reasoning-model pairwise judge" without naming the model. Voice-family results have known model-dependent judgments (archetype POC: Sonnet+profile 55% / LoRA 33% / DeepSeek 8%). Leaving judge identity open = judge-shopping after outputs are in. Fix: name the judge and demonstrate independence from training-signal sources before any training spend.
+4. **§6.4 / §11.4 — Corpus plan still drow-heavy despite acknowledging the risk.** Three of the core four books (Homeland / Starless Night / Servant of the Shard) are justified by drow / Jarlaxle / Entreri signal. §6 itself warns against overweighting dark-elven menace. The only clear surface-world counterweight (`Sojourn`) is demoted to "optional stretch." That's not distribution control; it's hand-waving a known failure mode. Fix: prove the plan broadens voice families rather than adding denser adjacent signal.
+5. **§3.1 / §2.1 — `≥15 pts` threshold is numerology.** On a 24-pair eval, one flip is 4.17 points. "+15 pts" is faux precision unless the charter specifies exact count thresholds with variance handling. Not anchored to a frozen same-eval baseline or a production cost function. Fix: predeclare count-based thresholds matching actual eval resolution.
+6. **§9.1 — Budget ignores admitted workload.** $10 / 1.5 working days treats training as the hard part, but the charter itself says `salvatore-distinctness-v1` doesn't exist, bundle/config authoring is still manual, and Stage 3/4 corpus labor is "~420-470 batches" for the 4-book plan. Missing eval + manual corpus prep are not 1.5 days of work. Fix: remove the unsupported budget certainty or replace with measured workload.
+
+### 13.b Warnings
+
+- §3/§7's "better of v3/v4" retention comparator is a cherry-pick floor; once the eval is frozen, the exact comparator should be frozen too.
+- §6's "production distribution" description is partly asserted rather than measured from current telemetry in the reviewed packet — treat as assumption.
+- §11's "materially confused" gate language is elastic even though the rest of the section tries to look numeric.
+
+### 13.c Cheapest untried counterfactual
+
+v4 `exampleLines` / profile rotation A/B on a frozen distinctness eval, ~$0, expected ~5–15 pt distinctness movement if runtime conditioning is the real bottleneck. Run this first if the blocking issues aren't resolved.
+
+### 13.d Recommended next action
+
+**RUN CHEAPER COUNTERFACTUAL** before any corpus-expansion training.
+
+### 13.e Pending revise actions
+
+- [ ] **Build `salvatore-distinctness-v1` eval** before anything else. Freeze: 24 held-out beats spec, judge model identity, scoring protocol, variance handling. Commit the eval as a charter-separate artifact so the Salvatore V5 charter can reference it.
+- [ ] **Measure v4 `exampleLines` rotation A/B** on the frozen distinctness eval. If rotation moves the needle ≥50% of V5's hypothesized +15 pts, defer V5 entirely — conditioning is the cheaper lever.
+- [ ] Name the judge in §7. Demonstrate the judge wasn't used as a label source for v4 training data.
+- [ ] Rebalance corpus plan — either make Sojourn mandatory (or substitute a genuinely surface-world Salvatore title) to counterweight the drow/Jarlaxle/Entreri cluster, or scope the charter explicitly as "dark-elf-voice expansion" instead of "multi-character distinctness expansion."
+- [ ] Replace `≥15 pts` with count-based thresholds (e.g. "≥4 pairs improve by ≥1 assignment per 4-beat block AND no hard pair below k=2/4 correct") matching the eval's 4.17-pt-per-flip granularity.
+- [ ] Replace `$10 / 1.5 days` with a measured-workload budget: include eval-build effort + corpus-prep time (~420-470 batches) + training + comparator run.
+- [ ] **PDF acquisition gate is orthogonal** — the adversary treated it as a pre-gate per the instruction given. Even with GREEN adversary verdict, the charter still can't run until source books are on disk (currently 0 of 4 priority books present).
+
+Note on authorship: this charter was produced by Codex in session `019da262-af32-7d70-8548-bf6a6308eea0`; the adversarial review was produced by Codex in a later session `019da278-7118-73c2-b322-dfde6d59c253` with explicit instruction to attack the prior work as if written by someone else. Both sessions are distinct — same model family, different turn state.
