@@ -206,7 +206,7 @@ async function buildDynamicSections(
 
       const charStates = await getCharacterStatesAtChapter(novelId, chapterNum)
       const povState = charStates.find(cs => cs.characterId === povChar.id || cs.characterId.toLowerCase() === povChar.name.toLowerCase())
-      if (povState?.doesNotKnow?.length > 0) {
+      if (povState && povState.doesNotKnow && povState.doesNotKnow.length > 0) {
         parts.push(`  DOESN'T KNOW:\n${povState.doesNotKnow.map(d => `  - ${d}`).join("\n")}`)
       }
 
