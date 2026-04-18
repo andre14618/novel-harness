@@ -109,6 +109,29 @@ rg -n "exp #191|Verification \\(exp #191\\)|100% first-attempt pass" docs/decisi
 
 Provisional mechanism claim, to be numerically finalized only after those tables exist: if the observed V1a lift mostly came from making setup/payoff obligations explicit in planner output, the aggressive prompt-only floor should remove most of the paired failing-chapter gap relative to the frozen original prompt, while the measurement-only inference extractor will reveal how much of the remaining lift is verifier sensitivity rather than writer behavior.
 
+### 2.a Query results (filled 2026-04-18)
+
+**Query 1 — pp2-floor baseline paired chapter rows:** zero rows returned. No `pp2-floor__%` novels exist in `novels` yet — the causal pilot has not been run. This is the gate: running the `baseline / prompt / extractor` arms on the six pilot seeds is the remaining blocker to re-review. Expected cost: 6 seeds × 3 arms × 5 chapters = 90 chapter runs from `pre-planner-phase2-v1a`, plus the matched `mainv1a` observational arm on `main`.
+
+**Query 2 — `planning-beats` token headroom summary** (fantasy genre, `llm_calls.agent = 'planning-beats'`, timestamps ≥ 2026-04-15; 126 calls total; corrected scale vs the 4096-maxToken legacy runs the raw rows show, since `maxTokens` was bumped to 8192 on 2026-04-18):
+
+| stat | completion_tokens |
+|---|---|
+| min | 1,067 |
+| avg | 1,522 |
+| p95 | 1,882 |
+| max | 2,170 |
+
+Interpretation: the §8 pre-run token-shape gate (`baseline_planning_beats_completion_tokens + expected_delta_tokens_per_chapter < 7,500`) is comfortably satisfiable across the measured distribution. Even the p95 observed call at 1,882 tokens has >5,600 tokens of headroom before hitting the gate. Schema-add overhead for V1a (`requiredPayoffs` + `establishedFact.id` × avg beat count) is well under 1K tokens per chapter based on current Phase-2 output shape. **Pilot launch is NOT gated by token budget.**
+
+**Query 3 — dark-fantasy ceiling verification** via `rg -n "exp #191|Verification \(exp #191\)|100% first-attempt pass" docs/decisions.md`:
+
+Result: confirmed. `docs/decisions.md:618,626` — exp #191 (2026-04-15) measured dark-fantasy at 100% first-attempt pass on adherence-events, chapter-plan, and continuity (facts + state); no retries fired. **Dark-fantasy is excluded from the primary eval set per §6.** It remains available as a ceiling-verification datapoint only.
+
+### 2.b Finalized mechanism numbers
+
+Finalized numerical thresholds can only be pinned after Query 1 returns rows. Current charter §3 + §7 use count-based gates that don't require a pre-pilot number. No further frontmatter change needed — the charter is ready for re-review *as soon as* the 90-chapter causal pilot completes and Query 1 is re-run.
+
 ## 3. Falsification threshold
 
 The mechanism is wrong if both cheap levers fail to reduce the paired-set failing-chapter count versus the frozen original prompt, or if the only apparent gain shows up when verifier surfaces move instead of when planner output changes. In that case, abandon the claim that Phase-2 payoff schema is the causal lever and do not extend this family to V1b/V1c.
