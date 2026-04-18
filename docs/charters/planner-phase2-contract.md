@@ -1,10 +1,11 @@
 ---
-status: proposed
+status: revise-required
 kind: experiment-charter
 experiment-family: planner-phase2-contract
 proposed-by: claude (main thread)
 proposed-date: 2026-04-18
-adversary-verdict: pending
+adversary-verdict: RED
+adversary-reviewed: 2026-04-18
 ---
 
 # Experiment Charter — `planner-phase2-contract-v1`
@@ -93,8 +94,40 @@ Primary reviewer is Codex via `/charter-review` → `/codex:adversarial-review`.
 
 | Reviewer | Verdict | Date | Notes |
 |----------|---------|------|-------|
-| `/codex:adversarial-review` (GPT) — primary | **pending** | — | Run before any schema changes land on `main` |
-| `experiment-adversary` (Opus) — fallback only | — | — | Only if Codex unavailable |
+| `/codex:adversarial-review` (GPT, direct) — primary | **RED** | 2026-04-18 | Session `019da279-313c-7863-aad8-f483ff08e9d7`. 5 blocking, 2 warnings. Revise-required. Verdict recorded in §10.a. |
+| `/codex:adversarial-review` (GPT, rescue-forwarded) — independent duplicate | **RED** | 2026-04-18 | Concurring verdict from a parallel Codex run — same RED, same core critique. No dissent across the two reviews. |
+| `experiment-adversary` (Opus) — fallback only | — | — | Not run — Codex primary returned a decisive RED with an independent duplicate agreeing |
+
+### 10.a Adversary verdict summary (Codex, 2026-04-18)
+
+**RED.** The charter cannot be run as written. Worse: **parts of V1a already landed on `main` before this verdict came back**, which makes a clean baseline measurement newly expensive.
+
+Blocking issues (each cites `docs/experiment-design-rules.md §N.M`):
+
+1. **§2.1 / §2.2 — Effect-size targets ungrounded.** §2's "−30% relative deviation" and "+5 abs pts adherence first-attempt" are not backed by matched baseline rows for the actual pilot seeds. `dark-fantasy` is already at 100% first-attempt pass on adherence-events and chapter-plan in exp #191 (see `docs/decisions.md:626`); there is no headroom for the stated +5 pt claim on that seed. `fantasy-healer` and `fantasy-debt` are uncited — numbers read as vibes, not baselines. Fix: attach matched baseline rows for all three pilot seeds on the exact eval window, or delete the numeric ship/falsification thresholds.
+2. **§9.3 / §11.1 — Floor rung sandbagged; inference-time counterfactual skipped.** §4's Floor ("describe payoffs in beat descriptions") is *weaker* than the live Phase-2 prompt, which already says "Required facts must live IN beat descriptions" with explicit setup→payoff rules and orphan-fact prohibition (see `src/agents/planning-beats/beat-expansion-system.md:47-61`). §5 also omits the inference-time extraction pass explicitly flagged in the charter's own §11. V1a would look artificially good because the Floor was sandbagged. Fix: block until the strongest prompt-only Floor AND a measurement-only inference-time extraction pass are both measured on the frozen pre-V1a surface.
+3. **§3.3 / §7.1 / §9.1 — Sample underpowered by ~4 orders of magnitude.** §6 = 3 seeds × 2 runs × 3 chapters = 9 paired chapter observations. Codex ran the actual paired-binary power calc: for a 30% relative deviation reduction at §7's "P<0.05 paired" claim, power is ~0.000003 at 20% baseline deviation, ~0.000012 at 25%, ~0.000634 at 50%. Effectively zero. Fix: expand the paired sample by an order of magnitude and pre-declare the statistical unit/test, or drop all p-value language and reclassify as exploratory.
+4. **§3.1 / §4.4 / §11.5 — Measuring instrument moves with the mechanism.** §2 says the gain comes from "adherence-events + chapter-plan-checker now have structured anchors to verify," but §9.4 classifies adherence-events payoff verification as "stretch" and §11.4 admits `adherence-checker-v4` was trained without payoff signals. If the verifier is updated during V1a, any lift is "new checker rubric" not "better writing." If it isn't, the metric may miss the mechanism entirely. Fix: freeze verifier surfaces for V1a, or move verifier updates into a separate charter.
+5. **§1.2 / §11.5 — Baseline contamination: V1a already partially landed on `main`.** `docs/current-state.md:54-55` already declares "Phase-2 planner output carries structured payoff links (V1a, 2026-04-18)." The planning prompt (`src/agents/planning-beats/beat-expansion-system.md:10-18,51-61`) already requests `requiredPayoffs` and `establishedFact.id`. Schemas in `src/schemas/shared.ts` accept them. That means the "pre-V1a baseline" required for a clean A/B is no longer on `main` — anyone running the pilot today is running V1a-on-V1a. Fix: either (a) freeze and tag a pre-V1a baseline commit + re-run from that ref, (b) revert the V1a implementation commits until the Floor+inference-time counterfactuals land and are measured, or (c) stop claiming this charter tests *only* V1a.
+
+Warnings:
+
+- §8 treats the 8K output-ceiling check as a mid-pilot stop-loss instead of a pre-run shape gate, even though the 2026-04-17 two-phase-planner decision made output ceiling a first-class constraint. Discovering token-budget invalidity two chapters in is wasted pilot spend. §9.1.
+- §4's "human-authored one-seed ceiling" is never required by §7 to run before interpreting V1a. A ladder rung that can be skipped is not a ladder rung. §§2.1, 2.3.
+
+Cheapest untried counterfactual per adversary: **aggressive prompt-only Floor on the frozen pre-V1a schema**, ~$0, expected to erase most or all of the claimed V1a lift if the real mechanism is "put payoff obligation explicitly into the beat description" rather than "add new JSON fields." The live prompt already demonstrates that stronger wording is available.
+
+Recommended next action: **RUN CHEAPER COUNTERFACTUAL** (§5; rules §9.3, §11.1).
+
+### 10.b Pending revise actions
+
+- [ ] **Establish a clean pre-V1a baseline.** Either (a) tag the pre-V1a commit (the parent of `27e9dfb`) as `pre-planner-phase2-v1a`, or (b) revert commits `27e9dfb`, `28c3b8a`, `f7f3865`, `02448bc`, `c418fba` until the counterfactual measurement completes. Decision is user-level — implicates how much current-state doc drifts.
+- [ ] Measure the strongest-possible prompt-only Floor (drop-in swap of the beat-expansion system prompt with aggressive payoff-obligation wording, no schema use) on the three pilot seeds. Expected: matches or erases V1a's claimed lift.
+- [ ] Measure the inference-time extraction counterfactual ("did this beat realize an earlier setup?") on production prose without any Phase-2 schema use.
+- [ ] Attach matched baseline rows for `fantasy-healer` and `fantasy-debt` (dark-fantasy already at 100% — effectively ceilinged on adherence, use a different primary for it or drop it).
+- [ ] Expand pilot to at least 30–90 paired observations before making any significance claim, or reclassify as exploratory.
+- [ ] Freeze the verifier stack for the V1a measurement window — no adherence-events or chapter-plan-checker retraining during pilot.
+- [ ] Convert §8 truncation-risk into a pre-run shape gate: estimate expected token delta per chapter × beat count × field count ahead of time, and gate pilot launch on that estimate coming in under budget.
 
 ## 11. Open questions for adversary review
 
