@@ -22,9 +22,9 @@ What goes into each beat-writer call and how it has evolved. Covers beat context
 | Planner structural priors | **DEPLOYED** | Beat-type / cluster-sustain / opener-closer / beats-per-chapter priors injected per-genre | 2026-04-17 | — |
 | Two-phase planner (strict skeleton) | **DEPLOYED** | Phase-1 skeleton schema rejects beat-level fields; Phase-2 fills beats per chapter | 2026-04-17 (exp #221) | — |
 | Voice-baked writer | **DEPLOYED** | Salvatore v4 LoRA with per-speaker exampleLines at training time | 2026-04-17 (exp #222) | — |
-| Hallucination checker | **DEPLOYED (pending eval)** | v1 adapter trained 800-beat fresh bundle | 2026-04-18 (exp #223) | Eval + wire into drafting retry |
-| Planner Phase-2 enrichment | **PLANNED** | Add subplot_id, payoff links, speaker_directives, thematic_focus | — | Next experiment |
-| Unified issue aggregator | **PLANNED** | Adherence + hallucination + continuity into one retry path | — | After planner enrichment |
+| Hallucination checker | **WIRED 2026-04-18** | v3 two-adapter (halluc-ungrounded-v2 + halluc-leak-salvatore-v1) — fan-out per beat with OR aggregation; leak gated by `WRITER_GENRE_PACKS` label | 2026-04-18 (exp #223 + wire-in) | Production-telemetry runbook over 5–10 novels |
+| Planner Phase-2 enrichment | **PARTIALLY LIVE** | V1a (`requiredPayoffs` + `establishedFact.id`) shipped 2026-04-18; charter RED on pilot shape — cheaper-counterfactual measurement pending from `pre-planner-phase2-v1a` tag | — | Floor-first revised charter before re-pilot |
+| Unified issue aggregator | **WIRED 2026-04-18** | `src/phases/beat-checks.ts` — one `BeatIssue[]` from adherence + hallucination checkers, one merged targeted-rewrite prompt on retry; continuity not yet folded in (deprioritized) | 2026-04-18 | Fold continuity-v2 if/when re-prioritized |
 | Reader-information tracker | **PLANNED** | Track what the narrative has revealed to the reader (separate from character_knowledge) | — | Downstream |
 | World-expansion budget | **PLANNED** | Count new named entities per chapter, alert on overload | — | Downstream |
 | Craft-layer checkers (voice/show-tell/pacing) | **REJECTED** | Howard-primer methodology rejected — craft is a model-weights problem | 2026-04-18 | See decisions.md |

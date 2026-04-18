@@ -11,18 +11,26 @@ Pending action items only. Ordered by impact. Completed items and decision ratio
 
 **Architectural direction locked:** context-engineering-forward. Planner expressiveness + beat-context delivery are the quality lever. Checkers are narrow (adherence + hallucination). Craft is a model-weights problem. See `docs/decisions.md` "Context-engineering-forward architecture."
 
-### 1. Hallucination checker — wire into production retry loop (exp #223 next)
+### 1. Hallucination checker v3 — wire decomposed adapters into retry loop
 
-- [ ] Eval `hallucination-checker-v1:v1` on the held-out 160-beat val set. Target: ≥90% precision vs Sonnet ground truth.
-- [ ] If precision passes: wire into `drafting.ts` targeted-rewrite loop alongside adherence-events. Issue lists aggregate.
-- [ ] Measure production fire rate over the next 5-10 novel generations. Document patterns.
-- [ ] Active-learning harvest: any beats where the checker flagged but the human-accepted output had no actual issue → add to v2 training data as negative examples.
+**v2 rejected (2026-04-18):** pure-synth training hit 95%+ synth-val but regressed to 77.8%/51.2% natural-val. Distribution-shift. See `docs/decisions.md` 2026-04-18.
 
-### 2. Unified issue aggregator (enables scalable checker additions)
+**v3 architecture shipped + wired (2026-04-18):** decomposed into two parallel narrow adapters (see `docs/decisions.md` 2026-04-18 "v3 two-adapter architecture"):
+- [x] `halluc-ungrounded-v2` — grounded-context check, 1273 pairs (Cerebras + DeepSeek + v1 natural merged). Synth 96.8%/88.2%; natural val combined with leak: 77.8%/85.4%/81.4% F1.
+- [x] `halluc-leak-salvatore-v1` — per-writer Salvatore-leak check, prose-only input. Synth 100%/90%; natural strict-§A val 80%/40%.
+- [x] Combined via OR logic matches v1 baseline F1 (81.4 vs 82.1) with different trade-off (+7.4 recall, −8.7 precision).
+- [x] `format-v3-two-adapters.ts` builds both training sets from shared pool; `eval-combined-v3.ts` runs both adapters in parallel.
+- [x] **Wired into `drafting.ts`** (2026-04-18) — `runBeatChecks()` in `src/phases/beat-checks.ts` fans out adherence + ungrounded (always) + leak (Salvatore-route only), aggregates into unified `BeatIssue[]`, OR-gates retries. Leak gating is by `WRITER_GENRE_PACKS` label. See commits `1bf119d` → `df2c5f0` and `docs/hallucination-v3-wire-in-plan.md`.
+- [ ] **Measure production fire rate per adapter over next 5-10 novels.** Per-adapter telemetry via `llm_calls.agent` tagging already in place. Runbook: `docs/hallucination-v3-wire-in-plan.md` §8.
+- [ ] Active-learning harvest from production for v4: disagreements between ungrounded-v2 + leak + human-accepted = v4 training data.
+- [ ] Paired leak adapter for non-Salvatore writers when those LoRAs ship (Gemmell, Cook, etc.).
 
-- [ ] Refactor `drafting.ts` so adherence + hallucination + continuity all emit issues to a common queue per beat.
-- [ ] Single targeted-rewrite call addresses ALL flagged issues at once (not per-checker retries).
-- [ ] Severity tags on issues — ship-blockers (corpus leakage) trigger mandatory rewrite; polish issues (minor drift) flagged but optional.
+### 2. Unified issue aggregator (partially shipped 2026-04-18)
+
+- [x] Refactor `drafting.ts` so adherence + hallucination emit issues to a common queue per beat. Lives at `src/phases/beat-checks.ts` (`BeatIssue[]` + `runBeatChecks()` + `aggregateIssues()`).
+- [x] Single targeted-rewrite call addresses ALL flagged issues at once (not per-checker retries). `previousIssues` in drafting's retry loop now carries the merged `retryLines` from every fired checker.
+- [ ] Fold continuity-v2 into the same aggregator once the cross-chapter state charter resolves (currently invoked per-chapter, not per-beat, and deprioritized per `docs/current-state.md`).
+- [ ] Severity tags — infrastructure exists (`BeatIssue.severity: "blocker" | "warning"`) but every current checker emits only `blocker`. Reserved for future voting / soft-signal modes; revisit after the production-telemetry runbook (§1 above) gives data on false-positive rates.
 
 ### 3. Planner Phase-2 enrichment (next experiment after checker wired)
 
@@ -163,14 +171,9 @@ All existing SFT training data was generated with screenplay-style beats (pre-ex
 - V1 pilot (exp #154) superseded — V2 Sonnet labels (96% accuracy) are the definitive dataset.
 - **Next data round** — regenerate with dramatic-style beat plans (current dataset used screenplay-style). Not urgent; V2 handles dramatic beats fine in production. Revisit when first-attempt pass rate trends downward.
 
-## Continuity — V2 DEPLOYED
+## Continuity — DEPRIORITIZED (2026-04-18)
 
-**V2 adapter deployed** (2026-04-12). `continuity-v2:v1` live in `models/roles.ts` for both `continuity-facts` and `continuity-state`. 3-chapter dark-fantasy validation (novel-1776029103713): 0 false positives, 0 missed issues, 11.9× cost reduction vs Cerebras 235B ($0.0011 vs $0.0128), 204ms warm latency. See `docs/decisions.md`.
-
-- V1 pilot (exp #155) superseded by V2 — do not eval V1.
-- **Phase 2 — scale to 300 pairs** — add 10 more scenarios to `scripts/generate-continuity-data.ts` + VAR_WARNING_2 variants. Prioritize LitRPG scenarios and multi-chapter carryover. Then re-run Sonnet labeling pipeline.
-- **Compact diff format (Phase 3)** — V2 trains on full-dump format (~7,300 tokens). Compressing to ~1,000 tokens via structured diff requires new input format + new training data. Phase 3 is now unblocked.
-- **Next data round** — regenerate with dramatic-style beat plans (current dataset used screenplay-style). Not urgent; V2 handles dramatic beats fine in production.
+Continuity checker is de-emphasized in the current roadmap. The context-engineering shifts (beat-level context, trimmed state feed) mean continuity no longer operates on ~7,300-token dumps — inputs are now substantially smaller, and beat-level adherence + hallucination checks subsume most of its role. `continuity-v2:v1` remains wired in `drafting.ts` as a per-chapter check but is not an optimization focus. Phase 2 (scale to 300 pairs) and Phase 3 (compact diff format) are on hold — don't re-open without evidence the checker is catching something adherence + hallucination miss.
 
 ## Tonal Pass
 
@@ -184,6 +187,32 @@ All existing SFT training data was generated with screenplay-style beats (pre-ex
 - **Exp #159** (adherence-v3-sonnet) — partial eval done (character 61% regression documented). Conclude with notes.
 
 ## Fine-Tuning (Other)
+
+### Small-model local checker POC (NEW 2026-04-18)
+
+Research question: can we distill the current 14B checkers down to 2B or 4B bases and run them locally on Apple Silicon, with accuracy within 2-3 points of the 14B baseline? Motivation is NOT cost (savings are trivial) — it's serving independence (no W&B dependency), latency floor (50-100ms warm on MLX vs 200-600ms W&B), and headroom to run multiple checkers co-resident on 24GB RAM.
+
+**Infrastructure reality (confirmed 2026-04-18 from ART docs):**
+
+| Path | Supports 2B/4B? | Notes |
+|---|---|---|
+| **W&B ServerlessBackend (zero-ops)** | **No** | ART-on-W&B serverless supports only `OpenPipe/Qwen3-14B-Instruct` and `Qwen3-30B-A3B-Instruct`. Anything smaller requires LocalBackend. |
+| **W&B deploy_wandb() (for inference hosting)** | **No** | Separate whitelist of 4 models: Llama-3.1-{8B,70B}, Qwen3-14B, Qwen2.5-14B. |
+| **ART LocalBackend** (requires user-supplied GPUs) | **Yes** | Explicitly supports Llama-3.2-{1B,3B}, Qwen2.5-7B, plus "Qwen3 family" with vLLM (likely Qwen3-1.7B). |
+
+**Split-path POC is viable but training runs outside W&B Serverless:**
+- **Training** — ART LocalBackend on **Modal** (A100 on-demand, ~$1-3/run) or rented GPU. Can use Llama-3.2-1B, Llama-3.2-3B, or Qwen3-1.7B-Instruct. Gemma-2-2B, Phi-3.5-mini, Phi-4-mini not explicitly listed — Discord/support confirmation needed before commitment.
+- **Serving** — MLX on Apple Silicon locally. Skip W&B Inference entirely; it can't host a LoRA on any sub-8B base anyway. Ollama as operational fallback.
+
+- [ ] **2B POC — adherence-events first**. Target base: `Qwen3-1.7B-Instruct` or `Gemma-2-2B`. Task: closed binary classification, 2,134 existing training pairs + 3,000 synthetic extension via Cerebras 235B. Train on Modal/Unsloth, serve on MLX, eval head-to-head vs `adherence-checker-v4` using the `eval_results` checker columns. **Decision gate:** accuracy within 2 points AND JSON validity ≥99% → ship as a local-inference candidate in parallel with W&B (not replacement).
+- [ ] **4B POC — same task, bigger base for cross-hop reasoning**. Target base: `microsoft/Phi-3.5-mini` (3.8B) or `microsoft/Phi-4-mini-instruct` (3.8B, also served by W&B Inference so head-to-head is easier). Run after 2B result is known.
+- [ ] **Grammar-constrained decoding** — hidden risk: smaller models fail JSON schema more often. MLX supports grammar constraints; budget for either that or a lightweight retry-on-malformed parser. Spike before committing to small-model serving path.
+- [ ] **Local-inference harness integration** — `src/transport.ts` needs a `local` provider talking to MLX/Ollama. Already logged as Tier 4 evaluation elsewhere; small-model POC unblocks it.
+- [ ] **Hallucination on 2B — second POC target after adherence**. Distill hallucination-checker-v2 (once v2 ships). NER + grounding is a classic distillation target and the 2B attempt is cheap (~$15-30 all-in).
+
+Skip continuity for this experiment — it's deprioritized (see Continuity section) and the long-context task is the least favorable shape for a 2B base anyway.
+
+### Other
 
 - **Beat writer SFT** (opportunistic, high risk) — 7.8× cost reduction if it works. Shadow-run in parallel with 235B. Validation bar: adherence rate ≥ 235B baseline, lint counts ≤ baseline, 2 full novels without regression. Blocked until structural diversity in the training corpus is addressed.
 
@@ -311,16 +340,42 @@ Evaluate running LoRA adapters locally on MacBook Air M4 24GB instead of W&B.
 
 ## Infrastructure
 
+### Adapter registry (HIGH PRIORITY 2026-04-18 — schema + seed + CLI SHIPPED)
+
+**The gap (closed by `sql/027`):** previously `tuning_experiments`, `experiment_lineage`, `eval_briefs`, `eval_results` existed but no single row-per-adapter table. "What's deployed and how was it built" required grepping `src/models/roles.ts` + `docs/adapter-changelog.md` + joining tuning_experiments manually.
+
+- [x] **New table `adapter_registry`** via `sql/027_adapter_registry.sql` — applied on LXC 2026-04-18. Columns: uri (PK), name, slot, base_model, training_experiment_id → tuning_experiments, eval_experiment_ids INT[], status (deployed|candidate|retired|rejected), deployed_at, retired_at, headline_metrics JSONB, training_data_path, training_data_sha256, supersedes (self-FK for lineage), notes.
+- [x] **Seeded** with 8 adapters via `scripts/finetune/seed-adapter-registry.ts`: 5 deployed (adherence-v4, chapter-plan-v2, continuity-v2, salvatore-v4, howard-tonal-v4), 1 candidate (hallucination-v1), 1 retired (salvatore-v3), 1 rejected (archetype-poc-v1).
+- [x] **CLI `bun scripts/finetune/adapter-status.ts`** — prints slate grouped by status with headline metrics; `--deployed` and `--slot <name>` filters.
+- [ ] Cross-reference from `src/models/roles.ts`: every W&B adapter URI in roles must exist in `adapter_registry` with `status='deployed'`. Add a startup assertion that reads the registry and validates roles.ts against it.
+- [ ] UI: `/app/finetune` currently renders a static adapter table — make it query `adapter_registry` instead.
+- [ ] **Registry update hooks** — when `train-lora.py` completes, insert a `candidate` row automatically. When `concludeExperiment()` fires on a checker-eval experiment, patch `headline_metrics` on the referenced adapter. Avoids manual reseeding as new adapters land.
+
+### Experiment-lineage hardening (complements the registry)
+
+- [ ] **Training-data SHA256 in `tuning_experiments.config`** (2026-04-16) — add `train_file_sha256` and `val_file_sha256` fields at submission time. Finetune files on LXC (`finetune-data/*.jsonl`) can be overwritten across runs; without a content hash the `config.train_file` path becomes a dead reference once the file changes. Cheap to compute at `train-lora.py` submission time. Enables "exactly what bytes produced this adapter" verification via `sha256sum` against the file on disk or an archived copy. Back-patch existing experiments by computing hashes from current on-disk files and noting drift.
+- [ ] **Formatter-pipeline provenance in `tuning_experiments.config`** (2026-04-16) — add a `formatter` section recording `{script, script_commit, args, input_corpus_file, input_corpus_sha256, output_file, generated_at}`. Right now `config.train_file` points at the output but we can't tell *what produced it* without grepping git log around `commit_hash`. With this field, `bun scripts/finetune/provenance-report.ts` can print the full chain: corpus → formatter script → formatter args → training file → adapter. Back-patch v1/v2/v3/v4/v5 experiments manually with the correct formatter references.
+- [ ] **Actively use `experiment_lineage`** — link v2 training experiments to their v1 parent at `createTuningExperiment` time. Currently the table exists but is rarely populated. A simple `linkExperiment(newId, parentId, "supersedes")` call in training-submission scripts.
+- [ ] **Backfill checker eval rows** — `adherence-checker-v4`, `chapter-plan-checker-v2:v1`, `continuity-v2:v1` have headline accuracy numbers in docs but no rows in `eval_results`. Re-run their evals under the new `sql/026_checker_eval_columns.sql` schema so the whole slate is queryable from one place.
+
+### Other infra
+
 - **Extend LLM call inspector tags** — `chapter` / `beat_index` / `attempt` populated for beat-writer and adherence-checker. Need to thread through reference-resolver, continuity, chapter-plan-checker, rewriter, and planner. Columns already exist; each agent's `callAgent` site needs the tags. See `docs/llm-call-inspector.md`.
-
-- **Training-data SHA256 in `tuning_experiments.config`** (2026-04-16) — add `train_file_sha256` and `val_file_sha256` fields at submission time. Finetune files on LXC (`finetune-data/*.jsonl`) can be overwritten across runs; without a content hash the `config.train_file` path becomes a dead reference once the file changes. Cheap to compute at `train-lora.py` submission time. Enables "exactly what bytes produced this adapter" verification via `sha256sum` against the file on disk or an archived copy. Back-patch existing experiments by computing hashes from current on-disk files and noting drift.
-
-- **Formatter-pipeline provenance in `tuning_experiments.config`** (2026-04-16) — add a `formatter` section recording `{script, script_commit, args, input_corpus_file, input_corpus_sha256, output_file, generated_at}`. Right now `config.train_file` points at the output but we can't tell *what produced it* without grepping git log around `commit_hash`. With this field, `bun scripts/finetune/provenance-report.ts` can print the full chain: corpus → formatter script → formatter args → training file → adapter. Back-patch v1/v2/v3/v4/v5 experiments manually with the correct formatter references.
 
 ## Pipeline Stability
 
 - **Deduplicate timeline events** — rewrite re-extractions create duplicate timeline events in DB.
 - **Clean up stale DB data** — incomplete novels, orphan benchmark runs, experiments without conclusions.
+
+### Character-name normalization in planner + beat writer — LOW PRIORITY (2026-04-18)
+
+Not blocking anything in production today. Logged because the Stage 1 hallucination-authoring bug (scenarios carrying titled keys like `"Lord Halvern Drayce"` that broke naive first/last splitters) has a shape that could recur any time production-pipeline code starts caring about "first name" vs "surname" — e.g. a future voice adapter keyed on surname, a dialogue-attribution lint pattern, a character-knowledge graph query. For now the hallucination-checker rubric already handles title+grounded-surname cleanly via the rubric itself, and the Stage 2 generator uses a local title allowlist.
+
+When this becomes load-bearing:
+- [ ] Split title from personal name in `CharacterProfile` — `title?: string` + `firstName: string` + `lastName: string`; display form reconstructs to `"Captain Voss Marin"`.
+- [ ] Planner schema + instructions to emit structured name fields instead of a single titled string.
+- [ ] Beat-writer context renders display form but exposes canonical `firstName lastName` as grounded lookup key.
+- [ ] Centralize the title allowlist in `src/lib/name-normalizer.ts` so training-data generation and production code share one source of truth. Reference audit at `scripts/hallucination/audit-speaker-names.ts`.
 
 ## Future
 
