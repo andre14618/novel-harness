@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-17
+updated: 2026-04-18
 ---
 
 # Decisions
@@ -1748,3 +1748,154 @@ Second pass on fresh 800-beat bundle with strict rubric + 6 gold examples (`scri
 **Alternatives rejected:** (a) proceed with noisy labels — trains a checker that inherits labeling inconsistency, not fit for enterprise; (b) one-shot LLM labeling as "good enough" — full ladder costs ~$25 extra across 800 beats, cheap insurance vs retraining.
 
 **Ongoing:** Every future SFT checker (continuity-v3, chapter-plan-checker-v3, planner-adherence-v2) follows this SOP.
+
+---
+
+## Session 2026-04-18 — Hallucination-checker v2/v3 arc + architectural direction
+
+### Hallucination-checker v2 — chapter-plan methodology replicated, synth-to-natural distribution shift confirmed
+*2026-04-18 · exps #223 (v1 eval), #227 (v2 data format), #230-231 (v2 eval)*
+
+**Decision:** v2 REJECTED. Distribution shift from pure-synthetic training is the lesson.
+
+**Why:**
+- v2 replicated the chapter-plan-checker-v2 methodology (50 scenarios × 10 variants × Sonnet-flipped labels via parallel subagents) producing 500 pairs Cerebras-generated, 482/500 Sonnet match (96.4%).
+- Trained on pure-synth 400-pair training set. **Synth val: 95.1% precision / 96.7% recall / 95.9% F1** — matched chapter-plan's headline quality on equivalent measurement.
+- **Natural val (the same 160-beat set v1 was measured on): 77.8% precision / 51.2% recall / 61.8% F1.** Worse than v1's 86.5%/78%/82.1%.
+- Diagnosis: the 400-pair synth-only training taught "PASS pattern X, FAIL pattern Y" shortcuts that worked on Cerebras-style prose with our specific injection pools but didn't generalize to the natural distribution (DeepSeek + Salvatore LoRA output in real production).
+
+**Alternatives rejected:**
+- Scaling to 1000+ synth pairs without distribution diversity — chapter-plan's 520-pair precedent shows data volume alone doesn't close the gap when distribution mismatches.
+- Bigger base (Qwen3-30B) — higher serving cost forever, and the issue isn't model capacity.
+- Continuing with kitchen-sink rubric — see next decision.
+
+**Ongoing:** v2 retired. The methodology (programmatic Cerebras generation + Sonnet subagent labeling + label flipping) is validated and reusable; the scope is what needs correction.
+
+### Hallucination-checker v3 — two-adapter architecture (ungrounded-entity + Salvatore-leak), name-drift dropped
+*2026-04-18 · conversation-driven architectural decision*
+
+**Decision:** Decompose `hallucination-checker` into two narrow adapters:
+1. `halluc-ungrounded-entity` — corpus-agnostic grounded-context check. Answers "does any named entity in prose fail to appear in speakers/brief.characters/brief.setting/brief.pov/brief.summary/world_bible?" Full context in prompt.
+2. `halluc-leak-<writer>` — per-writer leak-vocabulary check. Answers "does prose contain any token from this writer's training-corpus vocabulary?" Prose-only input. Per-writer (Salvatore-first, paired with each future genre voice LoRA).
+
+`halluc-name-drift` considered and **dropped** — zero production evidence (v1's 9 natural-val FNs contained no drift cases). If production later shows drift, revisit.
+
+**Why:**
+- v2's 10-variant kitchen-sink rubric was asking one 14B adapter to learn ~20 distinct decision rules from 400 pairs. Prior lesson: `feedback_decompose_checker_calls.md` ("14B can't handle complex single-call checklists; split into focused parallel calls per dimension").
+- Grounded-entity detection and corpus-leak detection are DIFFERENT tasks: relational reasoning vs vocabulary memorization. Combining them was overloading the decision surface.
+- Leak vocabulary is **per-writer** — each fine-tuned writer (Salvatore, future Gemmell/Cook/etc.) has its own corpus-specific leak set. Hardcoded single leak adapter would hit a maintenance treadmill; per-writer adapters match the architecture.
+- Narrower tasks distill to small models better. This unblocks the small-model local-inference POC (pending).
+
+**Alternatives rejected:**
+- Three adapters (ungrounded-character + ungrounded-place + leak) — character vs place grounding uses different context subsets but same detection step; splitting further 3× the serving cost without clearer axis separation.
+- Deterministic regex for corpus-leak — brittle on variants (Mithril/Mithral Hall, "drow" as common noun), corpus-coupled, can't learn from production feedback.
+- Keeping v2 kitchen-sink with more data (1000+ pairs) — doesn't address the scope problem, just papers over it.
+
+**Ongoing:** v3 adapters shipped as `candidate` in `adapter_registry`. First training pass had a data-pipeline bug (v1 natural train not merged into ungrounded); v2 with merged data in flight.
+
+### Three-layer architecture formalized — planning / writing / checking
+*2026-04-18 · philosophical frame*
+
+**Decision:** The harness is three separable layers. Each optimizes differently. Don't cross the streams.
+
+1. **Planning layer — structural imitation.** Beat rhythms, cluster patterns, opener/closer rules, scene sizes, tension curves. Extracted from proven corpora (Salvatore reference), rendered into planner constraints via `WRITER_GENRE_PACKS`. Long-term: human-in-the-loop planning stage.
+2. **Writing layer — cadence/tone imitation.** Highest-impact fine-tune use case. Voice LoRAs (Salvatore v3/v4) per genre. Context engineering supports voice but does not replace the fine-tune.
+3. **Checker/rewriter layer — anti-hallucination + on-plan discipline.** Adherence-events, chapter-plan-checker, hallucination (ungrounded + leak), continuity (deprioritized). Narrow, independently trainable, ideally small-enough-for-local.
+
+**Strategic goal:** semi-autonomous novel writing with robust human planning + autonomous drafting. **Offline-capable** long-term via small fine-tuned models running locally (2B-14B). Small-model POCs serve both cost/latency AND are a **learning exercise** in small-model fine-tuning.
+
+**Why:**
+- Howard primer retirement (2026-04-16) showed voice transfers via weights, not prompts.
+- Each layer has a different optimization lever: planning = structural priors + schema, writing = voice LoRA, checking = narrow SFT.
+- Mixing roles (checker with creative duty, writer with discipline duty) corrupts both signals.
+
+**Alternatives rejected:**
+- Single monolithic "novel generator" — conflates layers, optimization noise, hard to test.
+- Checker-less autonomous drafting — quality regresses; anti-hallucination discipline is load-bearing.
+- Dropping the small-model track — the learning value AND offline-capability goal are both load-bearing; not just cost.
+
+**Ongoing:** New memory `project_three_layer_architecture.md`. CLAUDE.md top section updated. Every future experiment classified into one layer; cross-layer proposals questioned.
+
+### DeepSeek V3.2 preferred over Cerebras Qwen 235B for instruction-constrained writing
+*2026-04-18 · A/B during v2→v3 data generation*
+
+**Decision:** Default writer for synthetic prose generation scripts is now `deepseek-chat` (DeepSeek V3.2), not `qwen-3-235b-a22b-instruct-2507` (Cerebras).
+
+**Why:** Direct A/B measured during hallucination-checker-v2 training-data generation (500 paired runs each):
+
+| Metric | Cerebras Qwen 235B | DeepSeek V3.2 |
+|---|---|---|
+| Injection-fail rate | 4.6% | 2.0% |
+| Sonnet agreement | 96.4% | 99.4% |
+| Unintended PASS-variant contamination | 18 cases | 2 cases |
+| Dialogue-only subcase adherence | Often leaked to narration | Followed tightly |
+
+DeepSeek ~3× cleaner on instruction-constrained prose. Cerebras wins on raw speed (1-2s vs 3-5s) for bulk throughput cases.
+
+**Alternatives rejected:** Keep Cerebras as default — faster per call but contamination rate made v2 labels noisier and required rework. DeepSeek's adherence quality is the right default tradeoff for anything requiring constraint discipline.
+
+**Ongoing:** `generate-halluc-data.ts` defaults to deepseek. `docs/synthetic-labeling-sop.md` updated. New feedback memory `feedback_deepseek_over_cerebras_writing.md`. Cerebras kept for lint-fixer + bulk operations.
+
+### Continuity checker deprioritized
+*2026-04-18 · user directive*
+
+**Decision:** Continuity checker (`continuity-v2:v1`) remains wired in `drafting.ts` as a per-chapter check but is **deprioritized** in the current roadmap. Phase 2 (scale to 300 pairs) and Phase 3 (compact diff format) are on hold. Stop characterizing it as the "highest prompt-token cost agent (~7,300 tokens)" — context-engineering shifts have substantially reduced actual per-call size from the original design.
+
+**Why:**
+- Beat-level adherence + hallucination checks subsume most of continuity's role
+- Context-engineering (beat-scoped rather than chapter-dump) cut actual per-call size far below the design-era 7,300 tokens
+- User doesn't see evidence it's earning its keep in current pipeline
+
+**Alternatives rejected:**
+- Retire entirely — still wired in drafting.ts, keep for now until production evidence confirms redundancy
+- Scale to 300 pairs (Phase 2) — low ROI given deprioritization
+
+**Ongoing:** `CLAUDE.md` and `docs/adapter-changelog.md` updated to drop "highest cost" framing. Memory `feedback_continuity_deprioritized.md` locks the directive. `docs/todo.md` marks related phases on-hold.
+
+### Together AI fine-tunes require explicit per-job authorization
+*2026-04-18 · user directive*
+
+**Decision:** Never submit Together AI fine-tune jobs without explicit, per-job user approval. W&B Serverless remains the default training path; Together and Modal are opt-in only.
+
+**Why:** Together fine-tunes incur direct charges. User wants visibility on each one. W&B has been the established path for all deployed adapters.
+
+**Ongoing:** New feedback memory `feedback_together_explicit_only.md`. Single Together run submitted this session (`ft-6855dcb3-4ebe`, Qwen3-1.7B halluc POC) was explicitly authorized before submission.
+
+### Training-data preservation fix — archive before training
+*2026-04-18 · post-incident*
+
+**Decision:** `train-lora.py` now archives the training JSONL to `finetune-data/archive/<adapter>__<timestamp>__<sha256>.jsonl` BEFORE submitting to W&B.
+
+**Why:** Adherence-v4 training data was lost from LXC disk during repo cleanup (the `lora-data/` → `archives/` move); only recoverable because a local Mac copy happened to exist. Archive step ensures every training run has a durable local record tied by content hash.
+
+**Ongoing:** Applied 2026-04-18. Future training experiments get automatic archive. Manual SHA256 lookup via filename.
+
+## Superseded charters
+
+Log entries for charters killed by adversary review (RED verdict) and replaced by a successor with a new family name. Per `docs/commit-conventions.md` §Superseded-Documents, the predecessor is deleted from the working tree once superseded; this section is the append-only historical record. Recover the RED version with `git log --follow <path>` and `git show <sha>:<path>`.
+
+### `planner-phase2-contract` (2026-04-18)
+
+**Last live at:** `6dc2fe9` — path `docs/charters/planner-phase2-contract.md` (briefly also at `docs/charters/archive/planner-phase2-contract.md` between `7eb3ce4` and this supersession; the archive-directory experiment was retired the same day).
+
+**Superseded by:** `docs/charters/planner-phase2-payoff-floor.md` (commit `fcae51f`, amended with a granularity-axis eval in `14c853f`).
+
+**RED verdict:** `/codex:adversarial-review` 2026-04-18 (sessions `019da279-313c-7863-aad8-f483ff08e9d7` + rescue-forwarded duplicate). Five blocking issues:
+1. Ungrounded effect-size claims (`−30%` / `+5 pts`) not backed by matched baseline rows.
+2. Floor rung "describe payoffs in beat descriptions" was weaker than the then-live prompt, sandbagging the comparison.
+3. Sample size 3 seeds × 2 runs × 3 chapters = 9 paired observations — effectively zero statistical power to detect a 30% relative effect, despite the `P<0.05` claim.
+4. Measuring instrument moved with the mechanism (adherence-events retraining was deferred as "stretch" but the charter's lift hypothesis depended on structured-field verification).
+5. Baseline contamination — V1a schema had already landed on `main` when the charter was written; the "pre-V1a baseline" needed for a clean A/B no longer existed without either reverting or tagging. Tag `pre-planner-phase2-v1a` was created at commit `8f42eb6` to preserve the comparison point without reverting the V1a code.
+
+**Why SUPERSEDE vs revise:** the causal question changed — v1 asked "does schema enrichment help?"; v2 asks "does an aggressive prompt-only floor on the pre-V1a baseline already buy most of the V1a lift?" Different mechanism, different baseline, different metric.
+
+### Retrospective: the archive-directory experiment
+
+A separate `docs/charters/archive/` directory was tried on 2026-04-18 (commit `5fb4a3f` convention + `7eb3ce4` first archival) as the method for handling superseded charters. Abandoned the same day because:
+
+1. Duplicates what `git log --follow` already does.
+2. Creates cross-reference drift — `docs/current-state.md:54,64` went stale within hours of the first archival because the archived file's path changed.
+3. Adds a 3-step ritual per supersession event (move + frontmatter edit + README update) with no corresponding payoff.
+
+Current convention is the delete-and-log rule above. The archive dir + README were removed as part of the `planner-phase2-contract` supersession commit.
+

@@ -5,7 +5,7 @@ experiment-family: planner-phase2-payoff-floor
 proposed-by: Codex
 proposed-date: 2026-04-18
 adversary-verdict: pending
-supersedes: docs/charters/archive/planner-phase2-contract.md
+supersedes: docs/charters/planner-phase2-contract.md
 ---
 
 # Experiment Charter — `planner-phase2-payoff-floor`
