@@ -6,8 +6,23 @@
  * to push progress/gate events to connected browsers.
  */
 
+export type NovelEventType =
+  | "phase:changed"
+  | "gate:waiting"
+  | "gate:resolved"
+  | "progress"
+  | "error"
+  | "done"
+  | "connected"
+  | "tonal-start"
+  | "tonal-progress"
+  | "tonal-chapter-start"
+  | "tonal-chapter-done"
+  | "tonal-done"
+  | "tonal-error"
+
 export interface NovelEvent {
-  type: "phase:changed" | "gate:waiting" | "gate:resolved" | "progress" | "error" | "done"
+  type: NovelEventType
   data: Record<string, unknown>
   timestamp?: string
 }
