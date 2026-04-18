@@ -7,9 +7,9 @@
 
 const PHASES: { id: string; label: string; agents: string[] }[] = [
   { id: "concept",    label: "Concept",    agents: ["world-builder", "character-agent", "plotter"] },
-  { id: "planning",   label: "Planning",   agents: ["planning-plotter"] },
+  { id: "planning",   label: "Planning",   agents: ["planning-plotter", "planning-beats"] },
   { id: "drafting",   label: "Drafting",   agents: ["beat-writer", "reference-resolver", "adherence-events", "chapter-plan-checker", "continuity", "lint-fixer"] },
-  { id: "validation", label: "Validation", agents: ["rewriter", "tonal-pass"] },
+  { id: "validation", label: "Validation", agents: [] },
   { id: "done",       label: "Done",       agents: [] },
 ]
 
@@ -18,18 +18,14 @@ const AGENT_LABELS: Record<string, string> = {
   "character-agent": "Characters",
   "plotter": "Plot",
   "planning-plotter": "Chapter Plan",
+  "planning-beats": "Beat Plan",
   "beat-writer": "Beat Writer",
   "reference-resolver": "References",
   "adherence-events": "Adherence",
   "chapter-plan-checker": "Plan Check",
   "continuity": "Continuity",
   "lint-fixer": "Lint",
-  "rewriter": "Rewriter",
-  "tonal-pass": "Tonal Pass",
   "writer": "Writer",
-  "summary-extractor": "Summary",
-  "fact-extractor": "Facts",
-  "character-state": "Char State",
 }
 
 interface Props {
