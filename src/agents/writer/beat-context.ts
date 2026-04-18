@@ -153,6 +153,43 @@ function formatBeatSpec(beat: SceneBeat, outline: ChapterOutline, beatIndex: num
   if (beat.characters.length > 0) {
     lines.push(`Characters present: ${beat.characters.join(", ")}`)
   }
+
+  // Planner-Phase-2 V1a: surface payoff links. See
+  // docs/charters/planner-phase2-contract.md.
+  //
+  // (a) Setups this beat seeds — help the writer plant the fact concretely
+  //     instead of drifting around it.
+  const facts = outline.establishedFacts ?? []
+  const factById = new Map(facts.filter(f => f.id).map(f => [f.id, f.fact]))
+
+  const seeds = beat.requiredPayoffs ?? []
+  if (seeds.length > 0) {
+    const setupLines = seeds.map(p => {
+      const fact = factById.get(p.fact_id) ?? `[fact_id=${p.fact_id}]`
+      return `  - "${fact}" (lands at beat ${p.payoff_beat + 1})`
+    }).join("\n")
+    lines.push("", "SEEDS (this beat must set up):", setupLines)
+  }
+
+  // (b) Payoffs due in this beat — scan prior beats for any requiredPayoffs
+  //     whose payoff_beat is our index. Tells the writer "close these open
+  //     loops here" so setups actually land.
+  const due: { fact: string; seededAtBeat: number }[] = []
+  for (let i = 0; i < beatIndex; i++) {
+    for (const link of outline.scenes[i]?.requiredPayoffs ?? []) {
+      if (link.payoff_beat === beatIndex) {
+        due.push({
+          fact: factById.get(link.fact_id) ?? `[fact_id=${link.fact_id}]`,
+          seededAtBeat: i,
+        })
+      }
+    }
+  }
+  if (due.length > 0) {
+    const payoffLines = due.map(d => `  - "${d.fact}" (seeded in beat ${d.seededAtBeat + 1})`).join("\n")
+    lines.push("", "PAYOFFS DUE (this beat must realize):", payoffLines)
+  }
+
   return lines.join("\n")
 }
 
