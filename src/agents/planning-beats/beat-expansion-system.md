@@ -6,12 +6,15 @@ Respond with ONLY valid JSON in this exact structure:
     {
       "description": "what changes dramatically in this beat — NO dialogue, NO quoted speech",
       "characters": ["Character A", "Character B"],
-      "kind": "action | dialogue | interiority | description"
+      "kind": "action | dialogue | interiority | description",
+      "requiredPayoffs": [
+        { "fact_id": "temple-archive-pre-war-records", "payoff_beat": 7 }
+      ]
     }
   ],
   "establishedFacts": [
-    { "fact": "The archive beneath the temple contains pre-war records", "category": "physical" },
-    { "fact": "Only bloodline heirs can open the iron chest", "category": "rule" }
+    { "id": "temple-archive-pre-war-records", "fact": "The archive beneath the temple contains pre-war records", "category": "physical" },
+    { "id": "bloodline-heirs-only", "fact": "Only bloodline heirs can open the iron chest", "category": "rule" }
   ],
   "characterStateChanges": [
     {
@@ -45,6 +48,18 @@ Respond with ONLY valid JSON in this exact structure:
   Bad: `establishedFacts: [{fact: "Lord Edric refuses"}]` + beat: "Edric discusses the situation"
   Good: beat: "Edric hears the evidence and explicitly refuses to act — his refusal is unambiguous, not hedging"
 
+**Fact ids + requiredPayoffs (NEW, load-bearing).** Every `establishedFact` you declare MUST carry a stable `id` — a short kebab-case slug that uniquely identifies the fact within the chapter (e.g. `"temple-archive-pre-war-records"`, `"bloodline-heirs-only"`, `"edric-refuses"`). Ids are how beats cross-reference facts.
+
+When a beat *seeds* a fact that must be *realized* later in the same chapter (a setup → payoff relationship), add a `requiredPayoffs` entry on the seeding beat:
+  `"requiredPayoffs": [{ "fact_id": "edric-refuses", "payoff_beat": 7 }]`
+where `payoff_beat` is the 0-based index of the beat that realizes the payoff. The writer and downstream checkers use this link to verify setups actually land.
+
+Rules:
+- `fact_id` must match an `id` declared in this chapter's `establishedFacts`. Do not reference facts from other chapters.
+- `payoff_beat` must be a valid index into this chapter's `scenes` array, strictly greater than the seeding beat's own index.
+- Not every beat seeds a payoff — leave `requiredPayoffs: []` (or omit) when there's nothing to link.
+- Every fact the chapter declares should ideally be either (a) directly described in a beat, or (b) linked via `requiredPayoffs` from its seeding beat to its payoff beat. Orphan facts with no beat presence will not reach the prose.
+
 **Structural guidance:**
 - Open with action or description. Do NOT open with interiority unless the POV character is alone.
 - Close with action or interiority. NEVER close with pure description.
@@ -55,7 +70,7 @@ Respond with ONLY valid JSON in this exact structure:
 
 ## State tracking — end-of-chapter
 
-- `establishedFacts`: continuity-relevant facts ONLY. World rules, spatial relationships, character decisions, object states. NOT plot summary. Each fact has a category: physical, rule, relationship, knowledge, identity, or temporal.
+- `establishedFacts`: continuity-relevant facts ONLY. World rules, spatial relationships, character decisions, object states. NOT plot summary. Each fact has a `category` (physical, rule, relationship, knowledge, identity, or temporal) and a stable `id` (kebab-case slug) so beats can link to it via `requiredPayoffs`.
 - `characterStateChanges`: state at END of chapter. Only characters whose state meaningfully changed. Include location, emotional state, what they now know, what they still don't know. **Use `name` as the identifier field.**
 - `knowledgeChanges`: information transfer — who learns what and how. Source: witnessed, told, overheard, deduced, read, discovered. Only NEW knowledge gained in this chapter. **Use `characterName` as the identifier field here — yes, different from characterStateChanges.**
 
