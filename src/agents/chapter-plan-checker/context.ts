@@ -11,12 +11,27 @@ export function buildContext(prose: string, outline: ChapterOutline): string {
   sections.push(`Characters present: ${outline.charactersPresent.join(", ")}`)
   sections.push("")
 
+  // Planner-Phase-2 V1a: build an id→fact map so payoff links below can
+  // render the fact text inline rather than opaque ids. See
+  // docs/charters/planner-phase2-contract.md.
+  const factById = new Map(
+    (outline.establishedFacts ?? []).filter(f => f.id).map(f => [f.id, f.fact]),
+  )
+
   // Scene beats
   sections.push("SCENE BEATS:")
   for (let i = 0; i < outline.scenes.length; i++) {
     const s = outline.scenes[i]
     sections.push(`  Beat ${i + 1} [${s.kind ?? "?"}]: ${s.description}`)
     sections.push(`    Characters: ${s.characters.join(", ")}`)
+    const seeds = s.requiredPayoffs ?? []
+    if (seeds.length > 0) {
+      const parts = seeds.map(p => {
+        const fact = factById.get(p.fact_id) ?? `[${p.fact_id}]`
+        return `"${fact}" → beat ${p.payoff_beat + 1}`
+      })
+      sections.push(`    Seeds: ${parts.join("; ")}`)
+    }
   }
   sections.push("")
 
@@ -24,7 +39,8 @@ export function buildContext(prose: string, outline: ChapterOutline): string {
   if (outline.establishedFacts.length > 0) {
     sections.push("FACTS THAT SHOULD BE ESTABLISHED:")
     for (const f of outline.establishedFacts) {
-      sections.push(`  - [${f.category}] ${f.fact}`)
+      const idPart = f.id ? ` [id=${f.id}]` : ""
+      sections.push(`  - [${f.category}]${idPart} ${f.fact}`)
     }
     sections.push("")
   }
