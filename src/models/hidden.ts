@@ -1,13 +1,18 @@
 /**
  * Hidden models — models excluded from all selection dropdowns.
  *
- * Persisted to data/hidden-models.json. Keyed by "provider:modelId"
- * since the same model ID can appear on multiple providers.
+ * Persisted to state/hidden-models.json at the repo root (gitignored).
+ * Previously wrote to src/data/hidden-models.json, which put mutable
+ * runtime state under src/ and drifted the working tree on every toggle.
+ * Keyed by "provider:modelId" since the same model ID can appear on
+ * multiple providers.
  */
 
 import { resolve, dirname } from "node:path"
+import { mkdirSync } from "node:fs"
 
-const HIDDEN_FILE = resolve(dirname(new URL(import.meta.url).pathname), "../data/hidden-models.json")
+const STATE_DIR = resolve(dirname(new URL(import.meta.url).pathname), "../../state")
+const HIDDEN_FILE = resolve(STATE_DIR, "hidden-models.json")
 
 let hiddenModels = new Set<string>()
 
@@ -28,6 +33,7 @@ export async function loadHiddenModels(): Promise<void> {
 }
 
 async function save(): Promise<void> {
+  mkdirSync(STATE_DIR, { recursive: true })
   await Bun.write(
     HIDDEN_FILE,
     JSON.stringify({ hidden: [...hiddenModels].sort() }, null, 2) + "\n",
