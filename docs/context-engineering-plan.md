@@ -1,10 +1,22 @@
 ---
-status: active (implementation plan)
-updated: 2026-04-17
+status: COMPLETED (2026-04-17); superseded by docs/context-engineering.md + next-phase plan below
+updated: 2026-04-18
 depends-on: docs/salvatore-structural-analysis.md, docs/beat-writer-architecture.md
 ---
 
 # Context Engineering Plan — Fantasy Planner Structural Priors
+
+**Status 2026-04-18:** All 5 priorities shipped in 2026-04-17 via `SALVATORE_PRIORS` in `src/models/roles.ts` and `renderStructuralPriorsForPlanner()`. This plan is retained for historical reference. Current state lives in `docs/context-engineering.md`.
+
+**Next-phase context engineering** (under the 2026-04-18 context-engineering-forward architectural decision):
+- Planner Phase-2 enrichment: `subplot_id`, `establishedFact.id`, `requiredPayoffs[]`, `speaker_directives`, `thematic_focus` (see `docs/todo.md` "Current Priorities")
+- Unified issue aggregator across checkers
+- Reader-information state tracker
+- World-expansion budget per chapter
+
+---
+
+## Historical Plan (all items SHIPPED)
 
 Implementation plan for feeding structural intelligence from the Salvatore corpus analysis into the planning-plotter. Each item maps a structural finding to a specific code change + expected impact.
 

@@ -1114,3 +1114,49 @@ W&B transitioned out of the ART public-preview free window. Billing dashboard sh
 Sonnet 4.6 labeled 520 training pairs at 96% accuracy vs deterministic ground truth. After training, the 14B v2 adapter scored 96% accuracy vs the same ground truth — a near-perfect match. The student absorbed the teacher's calibration.
 
 This is the expected outcome when: (1) the teacher accuracy is high (96%), (2) the dataset is large enough to cover the variant space (520 pairs, 8 variants × 65 scenarios), and (3) the task is within the student model's capacity (structured verdict with 4 output fields, bounded reasoning). When these conditions hold, SFT distillation eliminates the teacher at inference time with no accuracy penalty. **If your teacher accuracy is high and your student comes back below teacher accuracy, the first suspects are insufficient data coverage or task capacity mismatch — not inherent limits of the approach.**
+
+## Labeling discipline (added 2026-04-18 from exp #223)
+
+### Minimal-prompt subagent labeling produces Cohen's κ ≈ 0.28 — unusable
+First hallucination-checker labeling pass on 500 beats used a minimal prompt (category names, no edge-case rules, no gold examples). Double-labeled 50-beat consistency check: **Cohen's κ = 0.285, entity F1 = 0.557.** Different Sonnet subagents applied different unwritten rules — per-beat vs novel-wide grounding, `brief.summary` inclusion, "Room 3B"/"Sector Gamma" coordinate flagging. Per-batch fail rates swung from 4% (regex-only on a leak list) to 76% (thorough extraction). Training on that data would bake inconsistency into the checker.
+
+**The rule:** a rubric without explicit resolution rules and gold examples isn't a rubric. Minimal prompts invite labeler variance. Measure κ on a sample before the full labeling run.
+
+### Rubric + ≥5 gold examples lifts κ to 0.86
+Same Sonnet model, same 30 beats, same task — only the prompt changed. Added explicit PASS list (sentence-initial common nouns, days/months, real-world refs, generic titles, cardinal coordinates, last-name aliases, title + grounded-surname), explicit FAIL list (corpus leakage tokens, ungrounded named entities), 6 gold examples covering the known edge cases (corpus leak, ungrounded entity, title alias, name drift, real-world reference, summary grounding), and resolution rules for first+new-last-name vs last-name-alias, dialogue-only character introductions, plural factions.
+
+**Result: Cohen's κ = 0.857 avg across 3 pairwise comparisons (0.889 / 0.889 / 0.792), entity F1 = 0.837. 3× improvement on κ, 1.5× on F1.** Disagreements reduced to 1-2 beats per 30, all legitimate edge cases.
+
+**The rule:** an SFT checker is only as consistent as its labels. Budget ~$5-10 for a 30-beat 3-way consistency check. Vastly cheaper than retraining a checker that inherited noisy labels.
+
+### Inter-labeler disagreement concentrates on edge cases, not core rules
+3 labelers × 30 fresh beats: all three agreed on 5 fails (Baldur's Gate, Ten-Towns as corpus leaks; Deep Folk, Guild of Thieves, Kael's Reach as ungrounded). Disagreements were exclusively on:
+- Characters grounded only in `brief.summary` (included by some, excluded by others per strict rubric field list)
+- Named sub-classes within a grounded class system ("Sparkwright"/"Regulator" inside "Classification System")
+- Single-word character names introduced in dialogue before formal grounding in later beats
+
+**The rule:** core rules (corpus leakage, obvious ungrounded entities) have near-perfect agreement. Edge cases are the noise. Train on the strict-interpretation majority vote; signal is still ~95% clean even when labelers disagree on specific beats.
+
+## Hallucination patterns (added 2026-04-18 from exp #223)
+
+### v4 voice LoRAs leak training-corpus tokens catastrophically on specific seeds — not uniformly
+800 fresh-pipeline beats across 12 novels: ~25% beat-level hallucination rate overall, but **bimodal by novel** not uniform. Per-batch fail rates ranged 11-14% (clean novels) to 34-52% (novels with systemic corpus import). The "Cassius" novel had 31 of 41 failures in a single chapter 1; the "Veridia bridge" novel imported Icewind Dale geography (Ten-Towns ×6, Bryn Shander ×4, Maer Dualdon ×4, Luskan, Termalaine). Other novels on different seeds had zero corpus leakage.
+
+**The rule:** voice LoRA leakage isn't a uniform noise floor. Trigger appears to be genre-similarity to training corpus — fantasy-bridge, fantasy-succession with generic fantasy settings look like Icewind Dale to the model; war-healing and sci-fi settings don't. Production mitigation: hallucination checker rewrite loop. Long-term fix: v5 training data with rename augmentation and anti-parroting recipe.
+
+### DeepSeek and v4 hallucinate differently
+Fresh 800-beat bundle split 400 v4 / 400 DeepSeek. v4 hallucinations are dominated by Salvatore-corpus token leakage (Drizzt, Ten-Towns, drow, Mithril Hall). DeepSeek hallucinations are dominated by novel-internal fabrications (invented guilds, book titles, rival noble houses, minor characters) with zero corpus leakage.
+
+**The rule:** a hallucination checker trained on one writer's output will under-generalize to the other. If production could swap writer models, train on mixed-writer data. Balanced bundles (50/50) give checker robustness across both patterns.
+
+## Architecture discipline (added 2026-04-18)
+
+### Craft-as-prompt-rules fails the same way primers fail
+Session considered building voice-consistency, show-vs-tell, pacing, dialogue-naturalness, sentence-rhythm checkers — all encoding craft rules as instructions or post-hoc checks. This is the retired Howard primer methodology reincarnated: encode style rules in a 5K-token primer, ask a capable model to imitate. Howard was retired 2026-04-16 because the results were either mechanical (the model hit metrics but the prose read flat) or the model ignored most rules anyway.
+
+**The rule:** craft is a model-weights problem, not a prompt-instruction problem. If craft falls short, the lever is upgrading the model (bigger base, richer fine-tune data, frontier + few-shot), NOT adding prompt instructions or post-hoc craft checkers. Context engineering handles WHAT to write; the model handles HOW. Keep the split clean.
+
+### Negative-set checks on prose have 0/3 track record — don't build them
+Codebase history: deterministic character-presence check (positive set: "is named character X in prose?") works reliably at ~99%. Three negative-set checks have been proposed or built and removed: word-count (voice LoRAs drift, metric never load-bearing), dialogue-presence (false-positive on silent beats), hallucination-checker deterministic proper-noun allowlist (variant matching, sentence-initial capitalization, legitimate writer introductions all produce false positives).
+
+**The rule:** positive-set checks ("is this required thing here?") can be deterministic; negative-set checks ("is there something here that shouldn't be?") require an LLM. If you reach for a regex to enumerate what might be wrong, you're in the wrong tool.

@@ -1662,3 +1662,89 @@ Upgrade math in the other direction is also favorable: Claude Sonnet for planner
 - **Tier 2 escape-valve (larger model rental).** Not needed at current seed difficulty.
 
 **Ongoing:** `src/agents/writer/beat-context.ts` `compactMode` is now the routing-gated default for genre-pack writers. Monitor chapter-approval rates across more seeds. If other seeds fail similarly to v3-pre-fix, revisit; if they pass, the adapter is production-ready for fantasy seeds.
+
+### Planner Phase-1 strict skeleton schema — 8K output truncation fixed
+*2026-04-17 · exp #221*
+
+**Decision:** Phase-1 of the two-phase planner now uses strict `chapterSkeletonSchema` that rejects `scenes`, `establishedFacts`, `characterStateChanges`, `knowledgeChanges` fields. User prompt rewritten to request "SKELETON outline — no scene beats, no world-state changes." Stale DB `agent_generation_config` row forcing maxTokens=8192 deleted.
+
+**Why:** The "two-phase split" shipped morning of 2026-04-17 wasn't actually skeleton-only. Schema accepted beat fields via `.default([])`, user prompt said "specific scene beats", system prompt said opposite. DeepSeek followed the concrete instruction, bloated chapter 1 to ~5K tokens, truncated at chapter 3, retry died at max_tokens=8192 with truncated JSON. Four fantasy seeds never completed in the v3 sweep because of this (fantasy-healer, fantasy-archive, fantasy-cartographer, fantasy-cultivation-void).
+
+**Verified on 4 previously-stalled seeds:** all produce clean 10-chapter plans with zero truncations, 59–83% token headroom. Phase-1 output is now 1,284–1,484 tokens (was blowing to 8,192).
+
+**Collateral finding:** 8 of 10 "completed" v3 sweep novels hit max_tokens=8192 exactly on Phase-1 retry — `enforcePlanningOutput` silently accepted partial-parse output from truncated JSON. Not audited; archived via `seed_json.abandoned = true`.
+
+**Alternatives rejected:** (a) retry-loop stripping beat detail — rejected because strict-schema means nothing to strip; (b) tight maxTokens ceiling — schema is the real guard, not token budget.
+
+**Ongoing:** Planner Phase-1 runs at ~20% of ceiling on every call. Retry logic is defense-in-depth dead code.
+
+### Voice-baked beat-writer shipped — Salvatore v4 is fantasy default
+*2026-04-17 · exp #222*
+
+**Decision:** `salvatore-1988-v4` replaces `salvatore-1988-v3` in `WRITER_GENRE_PACKS`. v4 trained on full 2,470-beat Icewind Dale trilogy (3.2× v3's 777 crystal_shard subset) with per-speaker profiles + 3 example voiced lines injected into every training user prompt (anti-leakage sampled from OTHER beats where that character spoke). Harness gained `CharacterProfile.exampleLines` schema field; `character-agent` generates 4 voice anchors per character at concept phase; `beat-writer` context injects them under each speaker profile.
+
+**Why:** v3 produced decent Salvatore-narrator voice but didn't differentiate characters. v4's training shape teaches voice-conditional dialogue as part of beat writing. Validated via 42-beat fork-writer test on fantasy-healer — characters use their actual voice anchors (Sylvie's farm metaphors, Jien's single-word terseness, Voss's cold strategic framing) vs v3's generic register.
+
+**Caveat:** v4 occasionally echoes exampleLines verbatim (Voss emitted his literal example line "One life balances ten thousand" in generated prose). Training-data shape allows memorization. v5 recipe (if needed): multiple example-set variants per training row to break one-to-one mapping.
+
+**Alternatives rejected:** (a) dialogue-only LoRA zoo per character — archetype POC #220 showed DeepSeek+few-shot matches dialogue-rewrite LoRA on voice; maintenance overhead unjustified; (b) Sonnet dialogue post-pass on already-voiced v4 prose — tested empirically, near-no-op (archetype LoRA) or over-caricature (DeepSeek+few-shot). Base LoRA is the right layer.
+
+**Ongoing:** v3 retained on W&B for rollback. Monitor verbatim-echo rate in production.
+
+### Context-engineering-forward architecture — craft is a model problem, not a prompt problem
+*2026-04-18*
+
+**Decision:** The novel-harness architecture commits to **context engineering + planner expressiveness** as the primary quality lever. Checkers are narrow: only adherence (did writer follow the plan?) and hallucination (did writer invent things not in context?). Craft-layer issues — voice drift, show/tell, pacing, dialogue naturalness, rhythm — are handled by **upgrading the model** (better LoRA, bigger base, frontier + few-shot), not by building craft checkers or encoding craft-rules as prompt instructions.
+
+**Why:** Session proposed voice-consistency checker, show-vs-tell detector, pacing checker, dialogue-naturalness checker, sentence-rhythm analyzer. User correctly identified this as reincarnating the retired Howard primer methodology — fine-grained style rules in a 5K-token primer produce either mechanical output that hits metrics but reads flat, or the model ignores most rules anyway. Howard was retired 2026-04-16 for exactly this reason.
+
+**The clean split:**
+
+| Layer | Responsibility | Where it lives |
+|-------|----------------|----------------|
+| What to write — plot, characters, facts, setting, beats, payoffs, subplots, theme | Context engineering | Planner output + beat-context assembly |
+| How to write it — voice, rhythm, show/tell, dialogue style, sentence craft | Model weights | Writer model (LoRA or frontier) |
+| Did the writer follow the plan? | Adherence check | `adherence-checker-v4` |
+| Did the writer invent things? | Hallucination check | `hallucination-checker-v1` (exp #223) |
+
+**What this closes off:** no voice-consistency checker SFT, no show-vs-tell checker, no pacing checker, no dialogue-naturalness checker, no craft priors encoded as inference-time prompt instructions.
+
+**What this opens up:** planner Phase-2 enrichment (next experiment) adds `subplot_id` per beat, `establishedFact.id` cross-references, `requiredPayoffs[]` linked to prior fact IDs, `speaker_directives` per beat (content, not voice), `thematic_focus`. Beat-context updates to surface new planner fields. Unified issue aggregator — all checker outputs into one targeted rewrite per beat. Model-upgrade path (v5 LoRA with anti-parroting recipe, 70B fine-tune, frontier + richer few-shot) as the knob for craft improvements.
+
+**Alternatives rejected:** (a) craft-priors-as-prompt-instructions — the Howard trap, empirically failed; (b) more fine-tunes per craft dimension — fine-tune proliferation without commensurate quality gains; (c) hybrid prompt+model split — conceptual clarity > marginal flexibility.
+
+**Ongoing:** Next experiment after hallucination-checker ships is planner Phase-2 enrichment. Craft investments route through model upgrades.
+
+### Hallucination-checker narrow scope — two categories, no taxonomy
+*2026-04-18 · exp #223*
+
+**Decision:** `hallucination-checker-v1` output schema is `{pass: bool, issues: [{entity, excerpt}]}` — no `kind` field, no category taxonomy. Training targets two failure classes but doesn't distinguish them in output: corpus leakage (Salvatore-corpus tokens) and ungrounded named entities (proper nouns not in speakers/brief/world_bible).
+
+**Why:** Rewriter doesn't need to know whether an issue is corpus-leakage or novel-internal invention — it just needs the list of entities to remove/replace. Adding `kind` is analytics metadata that forces a brittle classification call. Adherence-checker-v4 shipped without kind taxonomy and achieves 96% precision; same shape here.
+
+**Pattern match to adherence-checker evolution:** adherence started with 5 dimensions, pruned to 2 after setting (0% fire rate) and tangent (4.3%, mostly planner bugs) got cut. Start narrow; expand on evidence.
+
+**Alternatives rejected:** (a) multi-category schema with `unknown_location`/`corpus_leakage`/`attribute_drift`/`fact_contradiction` — only the first two showed with any frequency in prototype; rest speculative; (b) deterministic proper-noun allowlist check — negative-set checks on prose have 0/3 track record (word-count, dialogue-presence both removed for false positives); variant matching, sentence-initial capitalization, legitimate writer introductions all cause false-positives.
+
+**Ongoing:** If production telemetry shows consistent misses on a specific class, narrow additions can be made. Start-narrow-then-expand-on-evidence matches the adherence trajectory.
+
+### Enterprise-grade labeling SOP — rubric + gold examples + κ monitoring
+*2026-04-18 · exp #223*
+
+**Decision:** Every SFT-for-checker labeling campaign must: (1) have a written rubric with explicit resolution rules for edge cases, (2) include ≥5 gold-example labels embedded in every labeler prompt, (3) measure inter-labeler agreement (Cohen's κ) on a double-labeled 30-beat sample before investing in the full set, (4) target κ ≥ 0.7 / entity-F1 ≥ 0.7 for usable training data.
+
+**Why:** First labeling pass on 500 stale-pipeline beats used a minimal prompt. Different subagents applied different unwritten rules (per-beat vs novel-wide grounding, summary inclusion, coordinate-name flagging). Result: Cohen's κ = 0.285 (below "fair" threshold), entity F1 = 0.557. Training on that would inherit the inconsistency.
+
+Second pass on fresh 800-beat bundle with strict rubric + 6 gold examples (`scripts/hallucination/labeling-rubric.md`) produced: κ = 0.857 avg (three pairwise 0.889 / 0.889 / 0.792), entity F1 = 0.837 avg. **3× improvement on κ, 1.5× on F1.** Same Sonnet model, same beats, same task — only the prompt changed.
+
+**Concrete SOP** (to be added to `docs/synthetic-labeling-sop.md`):
+1. Draft rubric: explicit PASS categories, FAIL categories, edge-case resolution rules, 5+ gold examples with rationale
+2. Embed rubric + gold examples in every labeler subagent prompt
+3. Dispatch N labelers (batched for parallelism)
+4. Before merging labels: dispatch 3 independent labelers on a 30-beat stratified sample (same rubric) to measure pairwise κ + entity F1
+5. If κ ≥ 0.7 → proceed to training
+6. If κ < 0.7 → identify disagreement categories, tighten rubric with more gold examples for those cases, re-label disputed batches
+
+**Alternatives rejected:** (a) proceed with noisy labels — trains a checker that inherits labeling inconsistency, not fit for enterprise; (b) one-shot LLM labeling as "good enough" — full ladder costs ~$25 extra across 800 beats, cheap insurance vs retraining.
+
+**Ongoing:** Every future SFT checker (continuity-v3, chapter-plan-checker-v3, planner-adherence-v2) follows this SOP.

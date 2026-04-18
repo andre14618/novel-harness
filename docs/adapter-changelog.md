@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-16
+updated: 2026-04-18
 ---
 
 # Adapter Changelog
@@ -15,15 +15,16 @@ Single source of truth for fine-tuning history across all pipeline agents. One e
 
 | Adapter | Status | Current Version | Exp | Artifact URI |
 |---------|--------|----------------|-----|-------------|
-| Salvatore Voice (Path B) | **VALIDATED** | V1 · Qwen3-14B SFT | #192 | `salvatore-1988-v1` (Δ-sum 0.45 vs baseline 2.45) |
-| Tonal Pass | **DEPLOYED** | V4 · W&B 14B | #98 | `howard-tonal-v4-sft-resume:v8` |
+| Salvatore Voice (Fantasy Writer) | **DEPLOYED** | V4 · voice-baked beat-writer | #222 | `salvatore-1988-v4` — shipped 2026-04-17 as fantasy default |
+| Tonal Pass | DEPLOYED (on-demand only) | V4 · W&B 14B | #98 | `howard-tonal-v4-sft-resume:v8` — Howard methodology retired 2026-04-16 |
 | Adherence Checker | **DEPLOYED** | V4 · events+attribution | #161 | `adherence-checker-v4` |
 | Chapter Plan Checker | **DEPLOYED** | V2 · Sonnet teacher | #178 | `chapter-plan-checker-v2:v1` |
 | Continuity | **DEPLOYED** | V2 · Sonnet teacher | #175 | `continuity-v2:v1` |
-| Fact Extractor | RETIRED | V1 · Sonnet teacher | #187 | `fact-extractor-v1:v1` |
-| Summary Extractor | RETIRED | V1 · Sonnet teacher | #187 | `summary-extractor-v1:v1` |
-| Character State | RETIRED | V1 · Sonnet teacher | #187 | `character-state-v1:v1` |
-| Relationship Timeline | RETIRED | V1 · Sonnet teacher | #187 | `relationship-timeline-v1:v1` |
+| Hallucination Checker | **DEPLOYED (pending eval)** | V1 · 800-beat fresh bundle | #223 | `hallucination-checker-v1:v1` (shipped 2026-04-18) |
+| Archetype POC (dialogue rewrite) | VALIDATED (not in pipeline) | V1 · 5-character dialogue LoRA | #220 | `archetype-poc-v1` — voice POC; dialogue post-pass architecture rejected |
+| Salvatore V3 | RETAINED (rollback) | V3 · 777 crystal_shard pairs | #196 | `salvatore-1988-v3` |
+| Salvatore V1–V2 | SUPERSEDED | — | #192, #195 | — |
+| Fact / Summary / Character / Relationship extractors | RETIRED | V1 · Sonnet teacher | #187 | — |
 | Reference Resolver | RETIRED | — | — | Llama 3.1 8B sufficient |
 
 ### Salvatore Voice V1 — Path B voice imprinting (VALIDATED — 2026-04-16)
@@ -278,6 +279,9 @@ All 4 extractor adapters have system prompts frozen in training data. Changing t
 
 | Adapter | Priority | Status | Blocker |
 |---------|----------|--------|---------|
-| Lint Fixer | Low | PLANNED | Mine approved chapters for 200–300 cliché rewrite triples |
-| Beat Writer | High risk | PLANNED | Blocked on structural diversity (15.7% dialogue vs 25–50% published norm) |
-| Character Voice | Future | BLOCKED | Requires speech profiles per character first |
+| Salvatore v5 (anti-parroting) | Medium | CONDITIONAL | Only if verbatim echo rate becomes a visible production problem. Data recipe: multiple example-set variants per training row (K=5), example-count jitter, example-drop (~10% no-examples), synthetic paraphrase pool |
+| Hallucination Checker v2 | Medium | DEFERRED | After production telemetry shows what v1 misses; active-learning loop |
+| Planner-Adherence (payoff + directive enforcement) | Medium | DEFERRED | Gated on planner Phase-2 enrichment shipping first |
+| Lint Fixer | Low | DEFERRED | Mine approved chapters for 200–300 cliché rewrite triples; gated on lint-fire-rate measurement |
+| Craft-layer checkers (voice/show-tell/pacing) | REJECTED 2026-04-18 | — | Architectural decision: craft is a model-weights problem, not a prompt/checker problem. See `docs/decisions.md` |
+| Character Voice (per-character LoRA zoo) | REJECTED 2026-04-18 | — | Archetype POC #220 showed DeepSeek+few-shot matches a dialogue LoRA. Zoo maintenance doesn't justify the delta. |

@@ -1,11 +1,46 @@
 ---
 status: active
-updated: 2026-04-17
+updated: 2026-04-18
 ---
 
 # To Do
 
 Pending action items only. Ordered by impact. Completed items and decision rationale live in `docs/decisions.md`.
+
+## Current Priorities (2026-04-18)
+
+**Architectural direction locked:** context-engineering-forward. Planner expressiveness + beat-context delivery are the quality lever. Checkers are narrow (adherence + hallucination). Craft is a model-weights problem. See `docs/decisions.md` "Context-engineering-forward architecture."
+
+### 1. Hallucination checker — wire into production retry loop (exp #223 next)
+
+- [ ] Eval `hallucination-checker-v1:v1` on the held-out 160-beat val set. Target: ≥90% precision vs Sonnet ground truth.
+- [ ] If precision passes: wire into `drafting.ts` targeted-rewrite loop alongside adherence-events. Issue lists aggregate.
+- [ ] Measure production fire rate over the next 5-10 novel generations. Document patterns.
+- [ ] Active-learning harvest: any beats where the checker flagged but the human-accepted output had no actual issue → add to v2 training data as negative examples.
+
+### 2. Unified issue aggregator (enables scalable checker additions)
+
+- [ ] Refactor `drafting.ts` so adherence + hallucination + continuity all emit issues to a common queue per beat.
+- [ ] Single targeted-rewrite call addresses ALL flagged issues at once (not per-checker retries).
+- [ ] Severity tags on issues — ship-blockers (corpus leakage) trigger mandatory rewrite; polish issues (minor drift) flagged but optional.
+
+### 3. Planner Phase-2 enrichment (next experiment after checker wired)
+
+Add to chapter outline output:
+- [ ] `subplot_id` per beat — tags which narrative thread advances
+- [ ] `establishedFact.id` as stable identifiers for cross-referencing
+- [ ] `requiredPayoffs: [{fact_id, payoff_beat}]` — planner links setups to payoffs explicitly
+- [ ] `speaker_directives` per beat — per-character: what each speaker specifically advances/reveals/conceals (content, not voice)
+- [ ] `thematic_focus` — which aspect of theme this beat leans on
+- [ ] Update `beat-context.ts` to surface new fields to the writer
+- [ ] Extend adherence-events to verify payoffs land and directives are honored
+
+### 4. Context-engineering direction — other items
+
+- [ ] Reader-information state tracker — "what has the narrative revealed so far" separate from character_knowledge
+- [ ] World-expansion budget per chapter (count new named entities; alert on overload)
+
+---
 
 ## Corpus Pipeline — Salvatore bundle (STAGES 1-4 DONE)
 
@@ -18,13 +53,13 @@ Reference bundle validating the canonical corpus-pipeline architecture (`docs/co
 - [ ] **Stage 5 — analysis** — 10 analyzers declared in `config.yml` (structural / voice / dialogue / dialogue-density / tension / chapter-hooks / sensory / sentence-rhythm / pov-rotation / metaphor). Plugin framework not yet built. Wave 1 wiring (structural, voice, dialogue, tension, dialogue-density, chapter-hooks) directly addresses known harness weaknesses.
 - [x] **14 conservation invariants pass** end-to-end. Salvatore bundle is now training-ready.
 
-## Archetype-Pass POC — exp #220 (UNBLOCKED)
+## Archetype-Pass POC — exp #220 (COMPLETED 2026-04-17)
 
-- [x] **Dialogue extraction re-run** (2026-04-17): DeepSeek V3.2 programmatic extraction across 2,470 beats yielded **2,447 attributed lines** — 5.1× the prior Sonnet extraction on the partial corpus. All 5 POV characters clear 200+ lines (Drizzt 749, Bruenor 761, Wulfgar 432, Regis 268, Catti-brie 237). Output at `novels/salvatore-icewind-dale/analysis/dialogue-extract.jsonl`. Cost $1.33, zero session budget. See `docs/decisions.md` "Programmatic DeepSeek V3.2 for corpus-wide extraction tasks."
-- [ ] Build training pairs for the 4-way POC: `(flat_dialogue + character_profile) → (voiced_dialogue)` across the 5 target characters. Script: `scripts/finetune/archetype-poc/format-sft.py` exists but needs pointing at the new extraction.
-- [ ] Train 14B LoRA on the pairs (~$5 W&B).
-- [ ] Run 4-way comparison: 14B LoRA with archetype-tagged prompts vs DeepSeek V3.2 with profile-prompt vs Sonnet with profile-prompt. Hold-out 50 test lines. Opus pairwise judging.
-- [ ] Decision tree: LoRA wins decisively → commit plug-and-play architecture. Sonnet/DeepSeek ties or wins → skip LoRA zoo, use profile-prompting.
+- [x] Dialogue extraction + training-pair build + 14B LoRA training (`archetype-poc-v1`)
+- [x] 3-way comparison: LoRA vs DeepSeek+profile vs Sonnet+profile — 300 Opus pairwise judgments
+- [x] **Verdict: Sonnet+profile wins 55% / LoRA 33% / DeepSeek 8%.** Decision tree resolved: LoRA-zoo architecture rejected; voice-as-data via exampleLines + in-context few-shot is the pattern. See `docs/decisions.md` "Context-engineering-forward architecture."
+- [x] Follow-up (reframed) test: DeepSeek + 5 few-shot examples matches archetype-poc-v1 LoRA on per-line dialogue voice. Confirms context-first approach.
+- [x] Learning baked into v4 writer LoRA (exp #222) — per-speaker exampleLines injected at training-time AND inference-time.
 
 
 

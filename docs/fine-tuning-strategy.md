@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-16
+updated: 2026-04-18
 ---
 
 # Fine-Tuning Strategy
@@ -16,14 +16,15 @@ This changes the math: every agent in the pipeline is a fine-tune candidate. The
 ```
 OpenPipe/Qwen3-14B-Instruct (hot, always warm)
   ├── novel-harness/adherence-checker-v4      [DEPLOYED — events+attribution, 2134 Sonnet-labeled pairs]
-  ├── novel-harness/tonal-howard-v4           [DEPLOYED — pref eval confirmed 2026-04-11; auto-run disabled 2026-04-15, on-demand only]
   ├── novel-harness/chapter-plan-checker-v2   [DEPLOYED — 96% accuracy, 609ms, exp #178]
   ├── novel-harness/continuity-v2             [DEPLOYED — 253 pairs, 12× cost reduction, exp #175]
-  ├── novel-harness/salvatore-1988-v2         [SHIPPED — voice-imprint LoRA, Phase C.3 val Δ-sum 0.27, exp #194]
+  ├── novel-harness/hallucination-checker-v1  [DEPLOYED pending eval — 800 beats fresh bundle, exp #223, shipped 2026-04-18]
+  ├── novel-harness/salvatore-1988-v4         [DEPLOYED — fantasy writer default, full trilogy + exampleLines, exp #222]
+  ├── novel-harness/salvatore-1988-v3         [RETAINED — v4 rollback]
+  ├── novel-harness/howard-tonal-v4           [ON-DEMAND ONLY — auto-run disabled 2026-04-15; methodology retired 2026-04-16]
+  ├── novel-harness/archetype-poc-v1          [NOT IN PIPELINE — dialogue-rewrite validator; post-pass architecture rejected]
   ├── novel-harness/fact-extractor-v1         [RETIRED — extraction removed, plan-only 2026-04-13]
-  ├── novel-harness/lint-fixer-v1             [PLANNED]
-  ├── novel-harness/voice-pass-archetype-v1   [SUPERSEDED — voice now lands at generation via Salvatore LoRA or DeepSeek+primer]
-  └── novel-harness/beat-writer-v1            [EXPERIMENTAL — blocked on structural diversity]
+  └── novel-harness/beat-writer-v1            [REJECTED — craft belongs to writer LoRA, not a separate adapter; see decisions.md]
 ```
 
 ---
@@ -123,6 +124,10 @@ Until condition 1 is true, RunPod is an infrastructure cost, not a cost saving. 
 
 ## Candidate Slots — Priority Ordered
 
+> **Architectural update 2026-04-18:** The harness commits to **context-engineering-forward**: planner expressiveness + beat-context delivery are the primary quality lever; checkers are narrow and only cover what the plan can't predict (adherence, hallucination). Craft-layer issues (voice drift, show/tell, pacing, dialogue naturalness) are **model-weights problems**, addressed by upgrading the writer (v5 LoRA, 70B SFT, frontier + few-shot), not by building craft checkers or prompt instructions. See `docs/decisions.md` "Context-engineering-forward architecture".
+>
+> Slots marked REJECTED below are deliberately not being built under this architecture.
+
 ### 1. Continuity — V2 DEPLOYED
 
 **Current**: W&B `continuity-v2:v1` (Qwen3-14B SFT) · 2 parallel decomposed calls (facts + state) · ~204ms warm latency · $0.0001/call · **11.9× cost reduction** from Cerebras 235B
@@ -164,6 +169,38 @@ Until condition 1 is true, RunPod is an infrastructure cost, not a cost saving. 
 **Next steps**: (a) eval V3-sonnet against decision gate once training completes; (b) if passes: swap production to V3-sonnet, then pursue tiered retry policy (events/character hard gate, setting/tangent soft gate) + 3-chapter romance-drama end-to-end validation; (c) GRPO/RL reward loop after V3-sonnet is validated.
 
 **Legacy data**: 160 flat-format pairs (exp #99–#100) in `lora-data/adherence-checker-pairs.jsonl` are superseded by the decomposed format.
+
+---
+
+### 2.5. Hallucination Checker — V1 DEPLOYED (pending eval, 2026-04-18)
+
+**Current**: W&B `hallucination-checker-v1:v1` (Qwen3-14B SFT) · single LLM call · 640 Sonnet-labeled train / 160 val · κ = 0.857 on inter-labeler agreement · matches adherence-checker-v4 house recipe.
+
+**Task**: Per-beat hallucination detection. Two failure classes:
+- **Corpus leakage (A)** — named entities from R.A. Salvatore's Icewind Dale / Forgotten Realms (Drizzt, Mithril Hall, Ten-Towns, drow, etc.) appearing in non-Salvatore novels. Structural artifact of v4's Salvatore-trained LoRA weights.
+- **Ungrounded named entity (B)** — proper nouns introduced in prose that aren't in speakers, brief.characters, brief.setting, or world_bible_excerpt.
+
+Output: `{pass: bool, issues: [{entity, excerpt}]}` — no `kind` taxonomy, rewriter just gets the list.
+
+**Data pipeline (exp #223)**:
+- 14 fresh-pipeline novels generated 2026-04-18 with current production stack (v4 LoRA + strict planner Phase-1 + exampleLines). 50/50 writer split via `WRITER_MODEL_OVERRIDE` env var (v4 vs DeepSeek).
+- 800 beats mined, labeled by 10 parallel Sonnet subagents with strict rubric + 6 gold examples (`scripts/hallucination/labeling-rubric.md`).
+- Consistency check on 30 beats by 3 independent labelers: Cohen's κ = 0.857 avg, entity F1 = 0.837. **3× improvement over first pass on stale-pipeline data** (κ = 0.285 with minimal prompt).
+- Training: 640 rows, 3 epochs, W&B Serverless SFT, ~$3 cost, 5-6 min wall time.
+
+**Key design choices:**
+- Narrow output schema (no `kind` field) matches adherence-checker-v4 — start narrow, expand on production evidence.
+- Mixed 50/50 v4/DeepSeek training so checker generalizes across writer models (v4 leaks Salvatore corpus; DeepSeek fabricates internally — different patterns).
+- No deterministic pre-filter — negative-set checks on prose have 0/3 track record in this codebase; LLM does all detection.
+
+**Findings from the labeling round (see `docs/hallucination-checker-findings.md`):**
+- Fresh pipeline fail rate ~25% — roughly 2× cleaner than stale v3-era (42-63%), driven mostly by planner fix.
+- v4 corpus leakage is **seed-concentrated, not uniform** — specific novels hit 34-52% fail rate (Cassius novel, Veridia-bridge with IWD geography imports) while other novels on different seeds have zero leakage.
+- Inter-labeler disagreement concentrates on legitimate edge cases (`brief.summary` grounding, named sub-classes within grounded systems, characters grounded only in summary).
+
+**Next steps**: eval v1 on held-out 160-beat val set; if precision ≥ 90%, wire into drafting.ts retry loop as a parallel per-beat check alongside adherence-events. Issue lists aggregate into the existing targeted-rewrite retry.
+
+**Data generation template for future checkers** — this run's labeling SOP is the new enterprise standard. See `docs/synthetic-labeling-sop.md` for the κ monitoring gate.
 
 ---
 

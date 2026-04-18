@@ -1,13 +1,15 @@
 ---
 status: active
-updated: 2026-04-11
+updated: 2026-04-18
 ---
 
 # Context Engineering
 
 What goes into each beat-writer call and how it has evolved. Covers beat context assembly, character voice, extraction mode, structural diversity, and retrieval. Parallel to `docs/adapter-changelog.md` — this tracks context changes; that tracks trained adapters.
 
-**Status legend:** DEPLOYED · IN PROGRESS · PLANNED · DISCONFIRMED · BLOCKED · RETIRED
+**Architectural direction (2026-04-18):** harness commits to **context-engineering-forward**: planner expressiveness + beat-context delivery are the primary quality lever. Craft belongs to the writer model (v4 LoRA / frontier + few-shot), not prompt instructions. Checkers only cover what plans can't predict — adherence (plan-following) and hallucination (external-fact grounding). See `docs/decisions.md` "Context-engineering-forward architecture."
+
+**Status legend:** DEPLOYED · IN PROGRESS · PLANNED · DISCONFIRMED · BLOCKED · RETIRED · REJECTED
 
 ---
 
@@ -16,13 +18,18 @@ What goes into each beat-writer call and how it has evolved. Covers beat context
 | Area | Status | Current State | Since | Next Action |
 |------|--------|--------------|-------|-------------|
 | Beat context skeleton | DEPLOYED | Bridge + landing + chars + refs + setting | 2026-04-08 | — |
-| Speech profiles | **PLANNED** | Free-text `speechPattern` field | — | Phase 1: structured schema |
-| Planner dialogue targets | **PLANNED** | No guidance | — | Add to planning-plotter prompt |
-| Archetype library | **PLANNED** | None | — | Phase 2: 15–20 archetypes |
-| Extraction mode | **DONE** | `"plan"` — LLM extractors removed | 2026-04-13 | — |
+| Character exampleLines | **DEPLOYED** | 4 voice anchors per character at concept phase, injected into beat-writer context | 2026-04-17 (exp #222) | — |
+| Planner structural priors | **DEPLOYED** | Beat-type / cluster-sustain / opener-closer / beats-per-chapter priors injected per-genre | 2026-04-17 | — |
+| Two-phase planner (strict skeleton) | **DEPLOYED** | Phase-1 skeleton schema rejects beat-level fields; Phase-2 fills beats per chapter | 2026-04-17 (exp #221) | — |
+| Voice-baked writer | **DEPLOYED** | Salvatore v4 LoRA with per-speaker exampleLines at training time | 2026-04-17 (exp #222) | — |
+| Hallucination checker | **DEPLOYED (pending eval)** | v1 adapter trained 800-beat fresh bundle | 2026-04-18 (exp #223) | Eval + wire into drafting retry |
+| Planner Phase-2 enrichment | **PLANNED** | Add subplot_id, payoff links, speaker_directives, thematic_focus | — | Next experiment |
+| Unified issue aggregator | **PLANNED** | Adherence + hallucination + continuity into one retry path | — | After planner enrichment |
+| Reader-information tracker | **PLANNED** | Track what the narrative has revealed to the reader (separate from character_knowledge) | — | Downstream |
+| World-expansion budget | **PLANNED** | Count new named entities per chapter, alert on overload | — | Downstream |
+| Craft-layer checkers (voice/show-tell/pacing) | **REJECTED** | Howard-primer methodology rejected — craft is a model-weights problem | 2026-04-18 | See decisions.md |
+| Extraction mode | **DEPLOYED** | `"plan"` — LLM extractors removed | 2026-04-13 | — |
 | Semantic retrieval | RETIRED (idle) | Infrastructure exists, disabled | 2026-04-07 | Not before beat-writer SFT |
-| Structural diversity | **BLOCKED** | 15.7% dialogue, 7.5w sentences | Measured 2026-04-09 | Paired training data needed |
-| Together AI removal | **PLANNED** | V4 confirmed, V3 retired | Decided 2026-04-11 | Remove from registry.ts + env |
 
 ---
 
