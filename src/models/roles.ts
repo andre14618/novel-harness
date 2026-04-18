@@ -319,7 +319,7 @@ let dbGenConfigCache: Map<string, { temperature?: number; maxTokens?: number }> 
 /** Load all agent generation overrides from DB into cache */
 export async function loadGenerationConfig(): Promise<void> {
   try {
-    const db = (await import("../data/connection")).default
+    const db = (await import("../db/connection")).default
     const rows = await db`SELECT agent_name, temperature, max_tokens FROM agent_generation_config`
     dbGenConfigCache = new Map()
     for (const r of rows) {
@@ -335,7 +335,7 @@ export async function loadGenerationConfig(): Promise<void> {
 
 /** Save a generation config override (for autoresearcher) */
 export async function saveGenerationConfig(agentName: string, config: { temperature?: number; maxTokens?: number }): Promise<void> {
-  const db = (await import("../data/connection")).default
+  const db = (await import("../db/connection")).default
   await db`INSERT INTO agent_generation_config (agent_name, temperature, max_tokens, updated_at)
            VALUES (${agentName}, ${config.temperature ?? null}, ${config.maxTokens ?? null}, now())
            ON CONFLICT (agent_name) DO UPDATE SET

@@ -86,7 +86,7 @@ Return JSON: {"fixed": "the corrected sentence"}`,
 
       const promptTokens = response.usage?.prompt_tokens ?? 0
       const completionTokens = response.usage?.completion_tokens ?? 0
-      const { getTokenCost } = await import("../../../models/registry")
+      const { getTokenCost } = await import("../../models/registry")
       costUsd += getTokenCost(config.provider as any, config.model, promptTokens, completionTokens)
 
       // Validate

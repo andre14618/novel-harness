@@ -37,8 +37,8 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
   // ── Full model registry (for Models page) ───────────────────────────
   if (path === "/api/models/registry" && req.method === "GET") {
     try {
-      const { MODELS, PROVIDERS } = await import("../../models/registry")
-      const { getHiddenModels, isModelHidden } = await import("../../models/hidden")
+      const { MODELS, PROVIDERS } = await import("../models/registry")
+      const { getHiddenModels, isModelHidden } = await import("../models/hidden")
       const providers = Object.fromEntries(
         Object.entries(PROVIDERS).map(([name, p]) => [name, {
           tier: p.tier,
@@ -70,7 +70,7 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
   // ── Toggle model hidden state ──────────────────────────────────────
   if (path === "/api/models/hidden" && req.method === "POST") {
     try {
-      const { setModelHidden } = await import("../../models/hidden")
+      const { setModelHidden } = await import("../models/hidden")
       const { provider, modelId, hidden } = await req.json() as { provider: string; modelId: string; hidden: boolean }
       await setModelHidden(provider, modelId, hidden)
       return Response.json({ ok: true })
@@ -82,9 +82,9 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
   // ── Models config (available models + current agent assignments) ────
   if (path === "/api/novel/config" && req.method === "GET") {
     try {
-      const { MODELS, PROVIDERS } = await import("../../models/registry")
-      const { getAgentConfig, getAgentOverrides, AGENT_MODELS } = await import("../../models/roles")
-      const { isModelHidden, getHiddenModels } = await import("../../models/hidden")
+      const { MODELS, PROVIDERS } = await import("../models/registry")
+      const { getAgentConfig, getAgentOverrides, AGENT_MODELS } = await import("../models/roles")
+      const { isModelHidden, getHiddenModels } = await import("../models/hidden")
 
       // Only include visible models in dropdown lists
       const models = MODELS.filter(m => !isModelHidden(m.provider, m.id)).map(m => ({
@@ -138,8 +138,8 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
   if (agentConfigMatch && req.method === "PUT") {
     const agentName = decodeURIComponent(agentConfigMatch[1])
     try {
-      const { MODELS, PROVIDERS } = await import("../../models/registry")
-      const { AGENT_MODELS, setAgentOverride, getAgentConfig } = await import("../../models/roles")
+      const { MODELS, PROVIDERS } = await import("../models/registry")
+      const { AGENT_MODELS, setAgentOverride, getAgentConfig } = await import("../models/roles")
 
       if (!AGENT_MODELS[agentName]) {
         return Response.json({ error: `Unknown agent: ${agentName}` }, { status: 404 })
@@ -184,7 +184,7 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
   // ── Persist overrides to roles.ts ────────────────────────────────
   if (path === "/api/novel/config/persist" && req.method === "POST") {
     try {
-      const { persistOverrides } = await import("../../models/roles")
+      const { persistOverrides } = await import("../models/roles")
       const result = await persistOverrides()
       return Response.json({ ok: true, ...result })
     } catch (err) {
@@ -196,7 +196,7 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
   if (agentConfigMatch && req.method === "DELETE") {
     const agentName = decodeURIComponent(agentConfigMatch[1])
     try {
-      const { AGENT_MODELS, clearAgentOverride, getAgentConfig } = await import("../../models/roles")
+      const { AGENT_MODELS, clearAgentOverride, getAgentConfig } = await import("../models/roles")
 
       if (!AGENT_MODELS[agentName]) {
         return Response.json({ error: `Unknown agent: ${agentName}` }, { status: 404 })

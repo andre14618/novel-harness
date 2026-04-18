@@ -280,7 +280,7 @@ const server = Bun.serve({
 
     if (path === "/api/experiments" && req.method === "GET") {
       try {
-        const { getAllExperiments } = await import("../../data/db")
+        const { getAllExperiments } = await import("../db/ops")
         const limit = parseInt(url.searchParams.get("limit") ?? "50")
         return Response.json(await getAllExperiments(limit))
       } catch (err) {
@@ -292,7 +292,7 @@ const server = Bun.serve({
     if (experimentDetailMatch && req.method === "GET") {
       try {
         const id = parseInt(experimentDetailMatch[1])
-        const { getExperimentRuns, getExperimentScores, getExperimentCost, getExperimentLintSummary } = await import("../../data/db")
+        const { getExperimentRuns, getExperimentScores, getExperimentCost, getExperimentLintSummary } = await import("../db/ops")
         const [runs, scores, cost, lint] = await Promise.all([
           getExperimentRuns(id), getExperimentScores(id), getExperimentCost(id), getExperimentLintSummary(id),
         ])
@@ -317,7 +317,7 @@ const server = Bun.serve({
         const id = parseInt(experimentGensMatch[1])
         const limit = parseInt(url.searchParams.get("limit") ?? "20")
         const offset = parseInt(url.searchParams.get("offset") ?? "0")
-        const { getExperimentGenerations } = await import("../../data/db")
+        const { getExperimentGenerations } = await import("../db/ops")
         return Response.json(await getExperimentGenerations(id, limit, offset))
       } catch (err) {
         return Response.json({ error: String(err) }, { status: 500 })
@@ -358,7 +358,7 @@ const server = Bun.serve({
     if (experimentSummaryMatch && req.method === "GET") {
       try {
         const id = parseInt(experimentSummaryMatch[1])
-        const { getExperimentScores, getExperimentCost, getExperimentLintSummary } = await import("../../data/db")
+        const { getExperimentScores, getExperimentCost, getExperimentLintSummary } = await import("../db/ops")
         const [exp] = await (await import("./db")).default`
           SELECT id, experiment_type, description, conclusion, timestamp, commit_hash, target, dimension
           FROM tuning_experiments WHERE id = ${id}
@@ -409,8 +409,8 @@ const server = Bun.serve({
     // Model registry for experiment builder
     if (path === "/api/models" && req.method === "GET") {
       try {
-        const { MODELS } = await import("../../models/registry")
-        const { isModelHidden } = await import("../../models/hidden")
+        const { MODELS } = await import("../models/registry")
+        const { isModelHidden } = await import("../models/hidden")
         const models = MODELS
           .filter(m => !isModelHidden(m.provider, m.id))
           .map(m => ({
@@ -486,7 +486,7 @@ const server = Bun.serve({
 
     // ── Agent Generation Config API ──────────────────────────────────
     if (path === "/api/generation-config" && req.method === "GET") {
-      const { getGenerationConfig, loadGenerationConfig } = await import("../../models/roles")
+      const { getGenerationConfig, loadGenerationConfig } = await import("../models/roles")
       await loadGenerationConfig()
       const agents = ["writer", "planning-plotter"]
       const configs: Record<string, any> = {}
@@ -500,7 +500,7 @@ const server = Bun.serve({
     if (genMatch && req.method === "PUT") {
       const agentName = decodeURIComponent(genMatch[1])
       const body = await req.json() as { temperature?: number; maxTokens?: number }
-      const { saveGenerationConfig } = await import("../../models/roles")
+      const { saveGenerationConfig } = await import("../models/roles")
       await saveGenerationConfig(agentName, body)
       return Response.json({ ok: true })
     }
