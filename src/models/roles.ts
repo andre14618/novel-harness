@@ -7,6 +7,13 @@
  */
 
 import type { ProviderName } from "./registry"
+import { resolve, dirname } from "node:path"
+import { mkdirSync } from "node:fs"
+
+// Persistent overrides live outside src/ so the web UI's "Save to File"
+// button doesn't drift the checked-in source tree on every click.
+const STATE_DIR = resolve(dirname(new URL(import.meta.url).pathname), "../../state")
+const OVERRIDES_FILE = resolve(STATE_DIR, "agent-overrides.json")
 
 export interface ModelAssignment {
   provider: ProviderName
@@ -117,60 +124,44 @@ export function getAgentOverrides(): Record<string, Partial<ModelAssignment>> {
 }
 
 /**
- * Persist current overrides into AGENT_MODELS source and clear the override map.
- * Rewrites this file (models/roles.ts) with the merged config.
+ * Persist the current override map to state/agent-overrides.json so it
+ * survives restart. Previously this rewrote src/models/roles.ts via regex,
+ * which drifted the checked-in source on every production toggle — now
+ * runtime state stays out of src/.
  */
 export async function persistOverrides(): Promise<{ changed: string[] }> {
   const overrides = [...runtimeOverrides.entries()]
-  if (overrides.length === 0) return { changed: [] }
+  const changed = overrides.filter(([name]) => AGENT_MODELS[name] !== undefined).map(([name]) => name)
 
-  const filePath = new URL(import.meta.url).pathname
-  const src = await Bun.file(filePath).text()
-
-  let result = src
-  const changed: string[] = []
-
-  for (const [agentName, override] of overrides) {
-    const base = AGENT_MODELS[agentName]
-    if (!base) continue
-
-    const merged = { ...base, ...override }
-
-    // Build the new value string
-    const parts: string[] = [
-      `provider: "${merged.provider}"`,
-      `model: "${merged.model}"`,
-    ]
-    if (merged.temperature !== undefined) parts.push(`temperature: ${merged.temperature}`)
-    if (merged.maxTokens !== undefined) parts.push(`maxTokens: ${merged.maxTokens}`)
-    if (merged.thinking) parts.push(`thinking: true`)
-
-    const newValue = `{ ${parts.join(", ")} }`
-
-    // Match the line:  "agentName":  { ... },
-    const pattern = new RegExp(
-      `("${agentName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}":\\s*)\\{[^}]+\\}`,
-    )
-
-    if (pattern.test(result)) {
-      result = result.replace(pattern, `$1${newValue}`)
-      changed.push(agentName)
-
-      // Also update the runtime AGENT_MODELS object
-      AGENT_MODELS[agentName] = merged
-    }
+  mkdirSync(STATE_DIR, { recursive: true })
+  const payload = {
+    overrides: Object.fromEntries(overrides),
+    savedAt: new Date().toISOString(),
   }
-
-  if (changed.length > 0) {
-    await Bun.write(filePath, result)
-    // Clear overrides since they're now in the source
-    for (const name of changed) {
-      runtimeOverrides.delete(name)
-    }
-  }
+  await Bun.write(OVERRIDES_FILE, JSON.stringify(payload, null, 2) + "\n")
 
   return { changed }
 }
+
+/**
+ * Load persisted overrides from state/agent-overrides.json (if it exists)
+ * and merge them into the runtimeOverrides map. Called once at module
+ * load so a restart re-applies the user's last saved config.
+ */
+async function loadPersistedOverrides(): Promise<void> {
+  try {
+    const file = Bun.file(OVERRIDES_FILE)
+    if (!(await file.exists())) return
+    const data = await file.json() as { overrides?: Record<string, Partial<ModelAssignment>> }
+    for (const [name, override] of Object.entries(data.overrides ?? {})) {
+      runtimeOverrides.set(name, override)
+    }
+  } catch {
+    // Corrupt file or unreadable — ignore; user can re-save from the UI.
+  }
+}
+
+await loadPersistedOverrides()
 
 export function getModelForAgent(agentName: string): ModelAssignment | undefined {
   const base = AGENT_MODELS[agentName]
