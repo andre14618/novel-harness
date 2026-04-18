@@ -1,0 +1,324 @@
+{
+  "drizzt": {
+    "name": "Drizzt",
+    "canonical_lines": [
+      {
+        "line": "The gods know that I owe you more than that, my friend. Of course I'll train him.",
+        "book": "The Crystal Shard",
+        "chapter": 12,
+        "speaker": "Drizzt",
+        "source_type": "direct"
+      },
+      {
+        "line": "No more a slave than I.",
+        "book": "The Crystal Shard",
+        "chapter": 14,
+        "speaker": "Drizzt",
+        "source_type": "direct"
+      },
+      {
+        "line": "We are both indebted to the dwarf. I owe him my life many times over and thus have agreed to teach you my skill in battle. You follow an oath that you made to him in exchange for your life. Thus you are obliged to learn what I have to teach. I am no man's master, nor would I ever want to be.",
+        "book": "The Crystal Shard",
+        "chapter": 14,
+        "speaker": "Drizzt",
+        "source_type": "direct"
+      },
+      {
+        "line": "My people kill.",
+        "book": "The Crystal Shard",
+        "chapter": 15,
+        "speaker": "Drizzt",
+        "source_type": "direct"
+      },
+      {
+        "line": "This is vengeance. Let the giants see us, let them feel the terror of impending doom!",
+        "book": "The Crystal Shard",
+        "chapter": 16,
+        "speaker": "Drizzt",
+        "source_type": "direct"
+      }
+    ],
+    "tics": [
+      "Complete, balanced sentences even under pressure",
+      "Moral framing and self-scrutiny arrive naturally in speech",
+      "Recasts hierarchy as debt, obligation, or chosen honor rather than domination",
+      "Threats stay calm and formal instead of slangy or boastful"
+    ],
+    "avoid": [
+      "Rustic dwarf dialect",
+      "Playful cruelty or swaggering taunts",
+      "Mercenary indifference",
+      "Loose, jokey banter with no moral center"
+    ]
+  },
+  "bruenor": {
+    "name": "Bruenor",
+    "canonical_lines": [
+      {
+        "line": "Get the notion outa yer head!",
+        "book": "The Crystal Shard",
+        "chapter": 12,
+        "speaker": "Bruenor",
+        "source_type": "direct"
+      },
+      {
+        "line": "Yer mine 'til the last days of fall, don't ye forget that!",
+        "book": "The Crystal Shard",
+        "chapter": 12,
+        "speaker": "Bruenor",
+        "source_type": "direct"
+      },
+      {
+        "line": "Ye've a spirit as wild as the tundra, ye've ne'er been, nor will ye ever be, a slave to any dwarf or man!",
+        "book": "The Crystal Shard",
+        "chapter": 12,
+        "speaker": "Bruenor",
+        "source_type": "direct"
+      },
+      {
+        "line": "Get me a pig-squealin' giant to kill!",
+        "book": "The Crystal Shard",
+        "chapter": 16,
+        "speaker": "Bruenor",
+        "source_type": "direct"
+      },
+      {
+        "line": "But don't ye never forget that ever ye'll be me boy!",
+        "book": "The Crystal Shard",
+        "chapter": 20,
+        "speaker": "Bruenor",
+        "source_type": "direct"
+      }
+    ],
+    "tics": [
+      "Dwarf dialect drives the line: ye, yer, outa, suren, ne'er",
+      "Commands arrive as a bark, boast, or insult, but care leaks through",
+      "Paternal possessives like me boy and my girl carry emotional weight",
+      "Violence is phrased in blunt, bodily, practical terms"
+    ],
+    "avoid": [
+      "Polished courtly phrasing",
+      "Abstract philosophizing",
+      "Gentle hedging or apology-first speech",
+      "Detached, bloodless tactical language"
+    ]
+  },
+  "catti-brie": {
+    "name": "Catti-brie",
+    "canonical_lines": [
+      {
+        "line": "What drives you, I cannot tell. Luck to you on your adventure, but if you're taking it for no better reason than you have named, you're wasting your life:",
+        "book": "The Crystal Shard",
+        "chapter": 12,
+        "speaker": "Catti-brie",
+        "source_type": "direct"
+      },
+      {
+        "line": "What indeed? Do you think that you hold it all in your oversized hands for no better reason than what you hold in your pants?",
+        "book": "The Crystal Shard",
+        "chapter": 12,
+        "speaker": "Catti-brie",
+        "source_type": "direct"
+      },
+      {
+        "line": "Farewell, Wulfgar, son of Beornegar. When next we meet, I'll mark well your lessons of humility!",
+        "book": "The Crystal Shard",
+        "chapter": 14,
+        "speaker": "Catti-brie",
+        "source_type": "direct"
+      },
+      {
+        "line": "I'll stay with the lever. You'll have enough to look after your own head up there. And someone has to be here to drop the tunnels; we cannot let goblins claim our halls as our home!",
+        "book": "The Crystal Shard",
+        "chapter": 29,
+        "speaker": "Catti-brie",
+        "source_type": "direct"
+      },
+      {
+        "line": "Ye've truer friends than ever ye'll know, and not for the way ye twirl a sword. Ye've others who would call themselves friend if only they could get inside the length of yer arm - if only ye'd learn to look.",
+        "book": "The Halfling's Gem",
+        "chapter": 16,
+        "speaker": "Catti-brie",
+        "source_type": "direct"
+      }
+    ],
+    "tics": [
+      "Direct second-person challenge; she cuts through evasion fast",
+      "Warmth is braided with teasing, flirtation, or hard truth",
+      "Dwarf-inflected phrasing surfaces when she is emotional or emphatic",
+      "Speaks as a participant with agency, never as a protected bystander"
+    ],
+    "avoid": [
+      "Submissive deference",
+      "Cold sadism",
+      "Long detached philosophizing",
+      "Passive, observational dialogue that refuses commitment"
+    ]
+  },
+  "entreri": {
+    "name": "Entreri",
+    "canonical_lines": [
+      {
+        "line": "You are a thief, or you are weak. Either way you shall find no mercy in my heart. Either way you deserve the wrath of Pook!",
+        "book": "The Halfling's Gem",
+        "chapter": 2,
+        "speaker": "Entreri",
+        "source_type": "direct"
+      },
+      {
+        "line": "I take no chances.",
+        "book": "The Halfling's Gem",
+        "chapter": 2,
+        "speaker": "Entreri",
+        "source_type": "direct"
+      },
+      {
+        "line": "Companion? Why would I desire a companion, little fool? What gain could I hope to make?",
+        "book": "The Halfling's Gem",
+        "chapter": 2,
+        "speaker": "Entreri",
+        "source_type": "direct"
+      },
+      {
+        "line": "I ask nothing of your business with them. Tell me only which one of the four it concerns.",
+        "book": "Streams of Silver",
+        "chapter": 9,
+        "speaker": "Entreri",
+        "source_type": "direct"
+      },
+      {
+        "line": "But I have the information I need. What do I gain in an alliance with you?",
+        "book": "Streams of Silver",
+        "chapter": 9,
+        "speaker": "Entreri",
+        "source_type": "direct"
+      }
+    ],
+    "tics": [
+      "Clipped, economical lines; questions are used like scalpels",
+      "Contempt is precise and calm, not loud",
+      "Frames people in terms of leverage, utility, and liability",
+      "Threats sound inevitable rather than theatrical"
+    ],
+    "avoid": [
+      "Warm reassurance",
+      "Rustic dialect",
+      "Moral confession or sentimental memory",
+      "Loose camaraderie"
+    ]
+  },
+  "jarlaxle": {
+    "name": "Jarlaxle",
+    "canonical_lines": [
+      {
+        "line": "Where is the pirate, Pinochet?",
+        "book": "The Halfling's Gem",
+        "chapter": 17,
+        "speaker": "Pook",
+        "source_type": "nearest_match",
+        "note": "No direct Jarlaxle dialogue exists in the Icewind Dale trilogy bundle; Pook's cultured, amused pressure is the closest in-bundle proxy for leverage-heavy theatrical banter."
+      },
+      {
+        "line": "Ah, Entreri, ever you prove a headache, however well you serve me.",
+        "book": "The Halfling's Gem",
+        "chapter": 17,
+        "speaker": "Pook",
+        "source_type": "nearest_match",
+        "note": "Nearest-match proxy from Pook."
+      },
+      {
+        "line": "No, wait. Let me first have a cage built for it. Guenhwyvar will be mine in time. It will learn discipline.",
+        "book": "The Halfling's Gem",
+        "chapter": 17,
+        "speaker": "Pook",
+        "source_type": "nearest_match",
+        "note": "Nearest-match proxy from Pook."
+      },
+      {
+        "line": "But I have one more gift to give to you: a map to a treasure that you can recover this very day.",
+        "book": "The Halfling's Gem",
+        "chapter": 1,
+        "speaker": "Malchor",
+        "source_type": "nearest_match",
+        "note": "Nearest-match proxy from Malchor's playful, performative guidance."
+      },
+      {
+        "line": "A mask. An enchanted mask that will allow you to hide your heritage and walk freely as a surface elf - or as a man, if that suits you.",
+        "book": "The Halfling's Gem",
+        "chapter": 1,
+        "speaker": "Malchor",
+        "source_type": "nearest_match",
+        "note": "Nearest-match proxy from Malchor."
+      }
+    ],
+    "tics": [
+      "Amused indirection; the line often performs while it pressures",
+      "Questions, gifts, and favors are used as leverage",
+      "Cultivated polish masks command intent",
+      "Charm can pivot into predation without changing the outward smoothness"
+    ],
+    "avoid": [
+      "Plain earnest sincerity",
+      "Rustic dwarf dialect",
+      "Joyless clipped minimalism",
+      "Heavy moral self-condemnation"
+    ]
+  },
+  "zaknafein": {
+    "name": "Zaknafein",
+    "canonical_lines": [
+      {
+        "line": "My people kill.",
+        "book": "The Crystal Shard",
+        "chapter": 15,
+        "speaker": "Drizzt",
+        "source_type": "nearest_match",
+        "note": "No direct Zaknafein dialogue exists in the Icewind Dale trilogy bundle; Drizzt's drow-ethos confession is the closest in-bundle proxy for compressed, disciplined drow severity."
+      },
+      {
+        "line": "They kill without mercy.",
+        "book": "The Crystal Shard",
+        "chapter": 15,
+        "speaker": "Drizzt",
+        "source_type": "nearest_match",
+        "note": "Nearest-match proxy from Drizzt."
+      },
+      {
+        "line": "They kill without passion.",
+        "book": "The Crystal Shard",
+        "chapter": 15,
+        "speaker": "Drizzt",
+        "source_type": "nearest_match",
+        "note": "Nearest-match proxy from Drizzt."
+      },
+      {
+        "line": "No more a slave than I.",
+        "book": "The Crystal Shard",
+        "chapter": 14,
+        "speaker": "Drizzt",
+        "source_type": "nearest_match",
+        "note": "Nearest-match proxy from Drizzt's teacher register."
+      },
+      {
+        "line": "Perhaps it was the most important that I will ever teach.",
+        "book": "The Crystal Shard",
+        "chapter": 14,
+        "speaker": "Drizzt",
+        "source_type": "nearest_match",
+        "note": "Nearest-match proxy from Drizzt's teacher register."
+      }
+    ],
+    "tics": [
+      "Compressed sentences with a drow-coded moral edge",
+      "Instruction and judgment arrive in the same breath",
+      "Discipline is valued over dominance or spectacle",
+      "Emotion is tightly contained until it hardens into severity"
+    ],
+    "avoid": [
+      "Bright optimism",
+      "Playful showmanship",
+      "Rustic warmth",
+      "Rambling exposition"
+    ]
+  }
+}
