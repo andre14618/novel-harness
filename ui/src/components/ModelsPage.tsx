@@ -30,7 +30,7 @@ interface RegistryData {
   hiddenModels: string[]
 }
 
-const API_KEY = new URLSearchParams(window.location.search).get("key") ?? ""
+// Auth via nh_session cookie — same-origin fetch sends it automatically.
 
 function fmt(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
@@ -60,7 +60,7 @@ export function ModelsPage() {
   const [showHidden, setShowHidden] = useState(false)
 
   function loadRegistry() {
-    fetch("/api/models/registry", { headers: { "x-api-key": API_KEY } })
+    fetch("/api/models/registry", { credentials: "same-origin" })
       .then(r => r.json())
       .then(setData)
       .catch(e => setError(String(e)))

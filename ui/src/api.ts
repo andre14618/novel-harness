@@ -1,8 +1,6 @@
-// Auth: cookie-based (nh_session set by /login). Falls back to ?key= for backward compat.
-const API_KEY = new URLSearchParams(window.location.search).get("key") ?? ""
-
+// Auth: cookie-based (nh_session set by /login). The `?key=` URL fallback
+// was removed; browser sessions must sign in via /login first.
 const headers: Record<string, string> = {
-  ...(API_KEY && { "x-api-key": API_KEY }),
   "Content-Type": "application/json",
 }
 
@@ -202,7 +200,6 @@ export type ExportFormat = "markdown" | "txt" | "json"
 export function exportNovelURL(novelId: string, format: ExportFormat, approvedOnly = false): string {
   const params = new URLSearchParams({ format })
   if (approvedOnly) params.set("approved", "true")
-  if (API_KEY) params.set("key", API_KEY)
   return `/api/novel/${novelId}/export?${params.toString()}`
 }
 

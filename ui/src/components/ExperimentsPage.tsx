@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 
-const API_KEY = new URLSearchParams(window.location.search).get("key") ?? ""
-const api = (path: string) => fetch(`${path}${path.includes("?") ? "&" : "?"}key=${API_KEY}`)
+// Auth via nh_session cookie — same-origin fetch sends it automatically.
+const api = (path: string) => fetch(path, { credentials: "same-origin" })
 
 interface Experiment {
   id: number

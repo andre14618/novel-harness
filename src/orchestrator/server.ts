@@ -40,18 +40,19 @@ function parseCookies(req: Request): Record<string, string> {
   return cookies
 }
 
+// Machine clients: `x-api-key` header. Browser sessions: nh_session cookie
+// from /login. The previous `?key=...` query-param fallback leaked the API
+// key into browser history, logs, and any URL copy/paste, so it's gone.
 function checkAuth(req: Request): Response | null {
-  // API callers: header or query param (API key)
-  const apiKey = req.headers.get("x-api-key") || new URL(req.url).searchParams.get("key")
+  const apiKey = req.headers.get("x-api-key")
   if (apiKey === API_KEY) return null
-  // Browser sessions: cookie (session token)
   const cookie = parseCookies(req).nh_session
   if (cookie === SESSION_TOKEN) return null
   return Response.json({ error: "Unauthorized" }, { status: 401 })
 }
 
 function isAuthed(req: Request): boolean {
-  const apiKey = req.headers.get("x-api-key") || new URL(req.url).searchParams.get("key")
+  const apiKey = req.headers.get("x-api-key")
   if (apiKey === API_KEY) return true
   const cookie = parseCookies(req).nh_session
   return cookie === SESSION_TOKEN

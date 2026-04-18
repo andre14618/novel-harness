@@ -22,7 +22,7 @@ Inspect what an agent received and produced for a given novel/chapter/beat. Use 
 
 1. **Identify the question.** Get a clean statement from the user: which novel, which chapter/beat, which agent. If the user only has a symptom ("the chapter feels off"), ask which chapter and which dimension you should look at.
 
-2. **Open the inspector first if you can.** The fastest path is `http://novel-harness:3006/app/llm-calls?key=<ORCHESTRATOR_API_KEY>`. Filter by novel + agent + chapter + beat. Click a row for the full prompt/response. If you're working in the terminal, use SQL (step 3).
+2. **Open the inspector first if you can.** The fastest path is `http://novel-harness:3006/app/llm-calls` (sign in at `/login` first — the `?key=` URL fallback has been removed). Filter by novel + agent + chapter + beat. Click a row for the full prompt/response. If you're working in the terminal, use SQL (step 3).
 
 3. **SQL fallback.** Query the LXC Postgres directly via `data/connection.ts`. Always check `information_schema.columns` first if you're unsure of a column name. Useful patterns:
 

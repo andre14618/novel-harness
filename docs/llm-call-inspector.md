@@ -12,7 +12,7 @@ This is the home for context engineering. If you're trying to figure out *why* t
 
 ## Where to find it
 
-- **Web UI**: `/app/llm-calls?key=<ORCHESTRATOR_API_KEY>` (nav item: **Inspector**)
+- **Web UI**: `/app/llm-calls` (nav item: **Inspector**). Sign in at `/login` first — the `?key=` URL fallback has been removed.
 - **API**:
   - `GET /api/novel/llm-calls?novel_id=…&agent=…&chapter=…&beat_index=…&limit=…` — list view (metadata only)
   - `GET /api/novel/llm-calls/:id` — single row with full prompt + response text
