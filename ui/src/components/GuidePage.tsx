@@ -19,6 +19,52 @@ export function GuidePage() {
           </section>
 
           <section>
+            <h2>Three-Layer Architecture</h2>
+            <p>
+              The harness is three separable layers, each optimized differently. Don't cross the streams.
+            </p>
+            <div className="guide-layer-grid">
+              <div className="guide-layer">
+                <h3>Planning Layer</h3>
+                <p className="guide-layer-subtitle">structural imitation</p>
+                <p>
+                  Imitates the structure of successful storytelling: beat rhythms, cluster patterns,
+                  opener/closer rules, scene sizes, tension curves. Extracted from proven corpora
+                  (Salvatore reference) and rendered into planner constraints via <code>WRITER_GENRE_PACKS</code>.
+                  Long-term: robust human-in-the-loop planning stage where the author shapes
+                  world/character/arc commitments.
+                </p>
+              </div>
+              <div className="guide-layer">
+                <h3>Writing Layer</h3>
+                <p className="guide-layer-subtitle">cadence/tone imitation</p>
+                <p>
+                  Matches prose rhythm, voice, dialogue patterns, sensory density of a target
+                  genre/author. This is the <strong>highest-impact fine-tune use case</strong> —
+                  cadence transfers via model weights in ways prompts/few-shot cannot match.
+                  Voice LoRAs (Salvatore v3/v4) per genre. Context engineering supports voice
+                  but does not replace the fine-tune.
+                </p>
+              </div>
+              <div className="guide-layer">
+                <h3>Checker Layer</h3>
+                <p className="guide-layer-subtitle">anti-hallucination + on-plan discipline</p>
+                <p>
+                  Adherence-events, chapter-plan-checker, hallucination (ungrounded + per-writer leak).
+                  These don't add creative value — they add discipline, catching things the
+                  autonomous drafter introduces. Each check is narrow, independently trainable,
+                  ideally small enough to run locally.
+                </p>
+              </div>
+            </div>
+            <p>
+              <strong>Strategic goal:</strong> semi-autonomous novel writing. Author shapes the plan;
+              the harness drafts. Offline-capable long-term via small fine-tuned models (2B-14B)
+              running locally, no API dependencies at inference.
+            </p>
+          </section>
+
+          <section>
             <h2>Architecture</h2>
             <pre className="guide-arch">{`
 LXC 307 (192.168.1.108)
@@ -48,10 +94,13 @@ LXC 307 (192.168.1.108)
 │
 └── Fine-Tuning (W&B Inference)
     └── OpenPipe/Qwen3-14B-Instruct LoRA adapters
-        ├── tonal-pass v4 (deployed — pref eval confirmed 2026-04-11)
+        ├── salvatore-1988 v4 (deployed — fantasy voice, character-tagged beat-writer)
         ├── adherence-checker v4 (deployed — events+attribution, 2134 Sonnet-labeled pairs)
         ├── chapter-plan-checker v2 (deployed — 96% accuracy, 609ms, exp #178)
-        └── continuity v2 (deployed — 253 pairs, 12x cost reduction, exp #175)
+        ├── continuity v2 (deployed but deprioritized — subsumed by beat-level checks)
+        ├── tonal-pass v4 (on-demand only — Howard methodology retired 2026-04-16)
+        ├── halluc-ungrounded-v2 (candidate — grounded-context check, 1273 pairs)
+        └── halluc-leak-salvatore-v1 (candidate — per-writer leak vocabulary, prose-only)
           `.trim()}</pre>
           </section>
 
@@ -135,10 +184,12 @@ LXC 307 (192.168.1.108)
                 <div className="flow-num">4</div>
                 <div>
                   <strong>Validation Phase</strong>
-                  <p>Deterministic consistency checks across all chapters. Issues trigger automatic
-                     rewrites via <em>Rewriter</em>. Up to 3 passes until convergence.
-                     <em>Tonal Pass</em> applies voice styling after all issues are resolved.</p>
-                  <p className="flow-agents">Agents: rewriter, tonal-pass</p>
+                  <p>Diagnostic-only. Deterministic checks run across all chapters and open issues
+                     are logged, but there is no autonomous rewriter — the beat-writer retry loop
+                     in drafting is the quality gate. Tonal pass auto-run is disabled; voice lands
+                     at generation time via per-genre voice LoRAs (see <code>WRITER_GENRE_PACKS</code>
+                     in <code>src/models/roles.ts</code>). The on-demand
+                     <code>POST /api/novel/:id/tonal-pass</code> endpoint is still available.</p>
                 </div>
               </div>
 
