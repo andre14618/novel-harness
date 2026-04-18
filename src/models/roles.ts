@@ -247,7 +247,13 @@ export const WRITER_GENRE_PACKS: WriterGenrePack[] = [
 
 export function resolveWriterPack(genre: string | undefined): WriterGenrePack | null {
   if (!genre) return null
-  return WRITER_GENRE_PACKS.find(p => p.match.test(genre)) ?? null
+  const pack = WRITER_GENRE_PACKS.find(p => p.match.test(genre)) ?? null
+  if (pack && process.env.WRITER_MODEL_OVERRIDE) {
+    // Runtime override for A/B comparisons — overrides the pack's model only.
+    // Profile + structural priors stay the same so the only variable is the model.
+    return { ...pack, model: { ...pack.model, model: process.env.WRITER_MODEL_OVERRIDE, provider: (process.env.WRITER_PROVIDER_OVERRIDE as any) ?? pack.model.provider } }
+  }
+  return pack
 }
 
 export function resolveStructuralPriors(genre: string | undefined): StructuralPriors | null {
