@@ -18,7 +18,14 @@ const knowledgeSourceValid = ["witnessed", "told", "overheard", "deduced", "read
 export const chapterBeatsSchema = z.object({
   scenes: z.array(sceneBeatSchema),
 
+  // Planner-Phase-2 V1a addition: `id` is a stable, kebab-case slug the
+  // planner assigns per fact (e.g. "temple-archive-pre-war-records") so
+  // beats can reference the fact via `sceneBeatSchema.requiredPayoffs[].fact_id`.
+  // Default is an empty string so legacy rows round-trip; the prompt asks for
+  // a non-empty id going forward.
+  // See docs/charters/planner-phase2-contract.md.
   establishedFacts: z.array(z.object({
+    id: z.string().default(""),
     fact: z.string(),
     category: z.string().transform(v => factCategoryMap[v.toLowerCase()] ?? v.toLowerCase()),
   })).default([]),

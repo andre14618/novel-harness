@@ -44,8 +44,13 @@ export const chapterOutlineSchema = z.object({
   targetWords: z.number().default(1000),
   charactersPresent: z.array(z.string()).default([]),
 
-  // World state updates — what changes in this chapter
+  // World state updates — what changes in this chapter. `id` is a stable
+  // kebab-case slug assigned by planning-beats (see Planner-Phase-2 V1a in
+  // docs/charters/planner-phase2-contract.md); optional here because this
+  // outline schema also deserializes legacy rows written before the field
+  // existed. Matches the id field on planning-beats/schema.ts.
   establishedFacts: z.array(z.object({
+    id: z.string().default(""),
     fact: z.string(),
     category: z.string().transform(v => factCategoryMap[v.toLowerCase()] ?? v.toLowerCase()),
   })).default([]),
