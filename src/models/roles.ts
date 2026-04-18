@@ -69,6 +69,14 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // 512 tokens: V4 trained on Sonnet labels which include fuller evidence quotes than V2.
   "adherence-events":          { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/adherence-checker-v4", temperature: 0.1, maxTokens: 512 },
 
+  // ── Hallucination checkers (v3 two-adapter architecture) ──────────────
+  // Both adapters trained on the same pool (Cerebras + DeepSeek synth +
+  // v1 natural) but with narrowed rubrics (see scripts/hallucination/
+  // format-v3-two-adapters.ts). Combined via OR in src/phases/drafting.ts:
+  // any fired adapter = retry. Telemetry via llm_calls.agent.
+  "halluc-ungrounded":         { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/halluc-ungrounded-v2:v1", temperature: 0.1, maxTokens: 512 },
+  "halluc-leak-salvatore":     { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/halluc-leak-salvatore-v1:v1", temperature: 0.1, maxTokens: 256 },
+
   // ── Extractors (structured extraction from prose) ─────────────────────
   "summary-extractor":         { ...mimoFlash, temperature: 0.2, maxTokens: 8192 },
   "fact-extractor":            { ...mimoFlash, temperature: 0.1, maxTokens: 8192 },

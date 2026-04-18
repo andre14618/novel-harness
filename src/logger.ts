@@ -129,6 +129,8 @@ function getPhaseForAgent(agent: string): string {
     "beat-writer": "drafting",
     "reference-resolver": "drafting",
     "adherence-events": "drafting",
+    "halluc-ungrounded": "drafting",
+    "halluc-leak-salvatore": "drafting",
     "chapter-plan-checker": "drafting",
     "continuity": "drafting",
     "lint-fixer": "drafting",

@@ -101,7 +101,7 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
         writers: { label: "Writers", description: "Creative prose generation", agents: ["writer", "beat-writer"] },
         planners: { label: "Planners", description: "World, characters, plot, chapter outlines", agents: ["world-builder", "character-agent", "plotter", "planning-plotter"] },
         beatSupport: { label: "Beat Support", description: "Cheap/fast structural tasks for beat-level writing", agents: ["reference-resolver", "adherence-events"] },
-        validators: { label: "Validators", description: "Plan adherence and continuity checks", agents: ["chapter-plan-checker", "continuity-facts", "continuity-state"] },
+        validators: { label: "Validators", description: "Plan adherence, hallucination, and continuity checks", agents: ["chapter-plan-checker", "halluc-ungrounded", "halluc-leak-salvatore", "continuity-facts", "continuity-state"] },
         lintTonal: { label: "Lint & Tonal", description: "AI-tell detection and style transfer", agents: ["lint-fixer", "tonal-pass"] },
         improvement: { label: "Improvement", description: "Autonomous prompt tuning daemon", agents: ["improver"] },
       }
