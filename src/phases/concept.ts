@@ -55,15 +55,18 @@ async function runConceptAgent<T>(
         userPrompt: currentContext,
         schema,
       })
+      // schema is typed `any` so callAgent infers T=unknown here; the caller
+      // supplies the real T via runConceptAgent's generic, so the cast is safe.
+      const output = result.output as T
 
       emit(novelId, { type: "progress", data: { step: agentName, status: "complete" } })
 
       const decision = await presentForApproval(
-        novelId, gateId, gateTitle, formatFn(result.output),
+        novelId, gateId, gateTitle, formatFn(output),
       )
 
       if (decision === "approve") {
-        return result.output
+        return output
       }
 
       if (decision === "revise") {
@@ -115,10 +118,10 @@ export async function runConceptPhase(novelId: string, seed: SeedInput): Promise
   const needsSpine = !existingSpine
 
   // Step 1: World-builder runs first (character-agent needs systems/cultures)
-  let worldBible: WorldBible | null = existingWorld
+  let worldBible: WorldBible
   if (needsWorld) {
     console.log("\n  [1/3] World Builder...")
-    worldBible = await runConceptAgent(
+    worldBible = await runConceptAgent<WorldBible>(
       novelId, "world-builder", WORLD_BUILDER_PROMPT, contexts.world,
       worldBibleSchema, "concept:world-bible", "World Bible", formatWorldBible,
     )
@@ -128,6 +131,8 @@ export async function runConceptPhase(novelId: string, seed: SeedInput): Promise
     log(novelId, "checkpoint", "World bible saved")
   } else {
     console.log("\n  [1/3] World Bible — already saved, skipping")
+    // `existingWorld` is non-null because needsWorld was false.
+    worldBible = existingWorld!
   }
 
   // Step 2: Character-agent + plotter run in parallel (both need world bible)
