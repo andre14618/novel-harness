@@ -130,7 +130,45 @@ Result: confirmed. `docs/decisions.md:618,626` — exp #191 (2026-04-15) measure
 
 ### 2.b Finalized mechanism numbers
 
-Finalized numerical thresholds can only be pinned after Query 1 returns rows. Current charter §3 + §7 use count-based gates that don't require a pre-pilot number. No further frontmatter change needed — the charter is ready for re-review *as soon as* the 90-chapter causal pilot completes and Query 1 is re-run.
+Finalized numerical thresholds can only be pinned after Query 1 returns rows. Current charter §3 + §7 use count-based gates that don't require a pre-pilot number. No further frontmatter change needed — the charter is ready for re-review *as soon as* the §2.d mini-pilot (or its escalation to the full pilot) completes and Query 1 is re-run.
+
+### 2.c Writer configuration (locked 2026-04-18)
+
+All causal rows in this charter run under the **production fantasy writer route**, not a cleaner experimental proxy. The charter's causal question is whether V1a's schema churn is justified on the shipped path — not whether it would work under a different writer. Per Codex session `019da2ff-1192-7f13-a925-310f23e42702`, using DeepSeek as a cleaner probe would reproduce the same external-validity mistake v1 made in a different form.
+
+Locked writer configuration for every arm:
+
+- **Beat-writer model**: `salvatore-1988-v4` (W&B artifact `wandb-artifact:///andre14618-/novel-harness/salvatore-1988-v4`) via the `salvatore-fantasy` pack in `src/models/roles.ts` `WRITER_GENRE_PACKS`.
+- **Writer context mode**: `compactMode: true` — the default for voice-LoRA routes per `src/phases/drafting.ts:168`.
+- **System prompt**: `beat-writer-system-salvatore.md` via `loadGenrePackPrompt`.
+- **Structural priors**: `SALVATORE_PRIORS` injected at planner time (for the `main` V1a arm and for any arm that extends beyond the mini-pilot).
+- **`WRITER_MODEL_OVERRIDE`**: explicitly UNSET. Any pilot run that leaks a non-default override invalidates its own row.
+
+This configuration is identical across arms 1-3 (`baseline` / `prompt` / `extractor`) running from the `pre-planner-phase2-v1a` tag, and across the `mainv1a` observational row on current `main`. The *only* variable between arms is the Phase-2 planner surface; writer + checkers are frozen.
+
+### 2.d Pre-launch mini-pilot (C+): paired `baseline + prompt` on a 15-chapter subset
+
+Codex's recommended cheapest-partial-that-still-answers-the-charter. A baseline-only run (Claude's original C) measures headroom but cannot answer the charter's core question; a paired `baseline` vs `prompt` mini-pilot directly tests whether the cheap lever closes the gap — at a fraction of the full-pilot spend.
+
+**Subset:**
+
+- Seeds: `fantasy-archive`, `fantasy-cartographer`, `fantasy-debt` (3 of the 6 primary seeds from §6).
+- Chapters per seed: 1 through 5.
+- Arms: `baseline` and `prompt` from the `pre-planner-phase2-v1a` tag. `extractor` and `mainv1a` arms deferred to escalation.
+- Total: 3 seeds × 5 chapters × 2 arms = **30 paired chapter runs**.
+- Writer configuration: §2.c locked values.
+
+**Primary output:** a 30-row table matching Query 1's shape (arm × seed × chapter × `failing_chapter` × `validation_fail` × `drafting_retry`), attached to §2.a.
+
+**Escalation rule — declared before launch:**
+
+1. **If `prompt` materially beats `baseline`** on the mini-pilot (prompt's failing-chapter count ≤ baseline's failing-chapter count by ≥3 chapters across the 15 paired slots, or no seed shows prompt ≥ baseline): **expand to the full 6-seed pilot + add the `extractor` arm** per §6. Run the §4 `mainv1a` observational row concurrently on `main`.
+2. **If `baseline` is already near-ceiling** (failing-chapter count ≤ 2 of 15 on baseline): **stop without spending on the rest.** The six pilot seeds were selected too easy; re-scope the seed set before running more arms. This is the dark-fantasy-style exit.
+3. **If `prompt` does not materially beat `baseline`** (within ±2 chapters across 15 slots, baseline not at ceiling): **the cheap lever didn't work on the subset** — still expand to the full 6-seed pilot because variance across 15 slots is high; only abandon after the full pilot under the same criterion.
+
+**Budget for mini-pilot:** 30 chapter runs × median fantasy-chapter cost (query in §8) ≈ **$1.5–$5 compute**; **2–4 wall-clock hours** given seed parallelism on LXC. No adversary re-review triggered by the mini-pilot itself — escalation-or-stop lands first, then re-review is called on the completed three-arm table per §11.
+
+**Operational note:** arms 1-3 run from a checkout of the `pre-planner-phase2-v1a` tag (commit `8f42eb6`), not from `main`. The `mainv1a` row runs on current `main`. Run the tagged arms first to avoid a mid-pilot deploy-lxc collision.
 
 ## 3. Falsification threshold
 
