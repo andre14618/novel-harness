@@ -612,21 +612,26 @@ const server = Bun.serve({
     // ── Docs API ────────────────────────────────────────────────────
     if (path === "/api/docs" && req.method === "GET") {
       try {
+        const showHidden = url.searchParams.get("showHidden") === "true"
         const docsDir = resolve(import.meta.dir, "../../docs")
         const files = readdirSync(docsDir)
           .filter(f => f.endsWith(".md"))
           .map(f => {
             const filePath = resolve(docsDir, f)
             const stat = Bun.file(filePath)
-            // Extract title from first heading or use filename
             const content = readFileSync(filePath, "utf-8")
             const titleMatch = content.match(/^#\s+(.+)/m)
+            // Parse YAML frontmatter for hidden flag
+            const fmMatch = content.match(/^---\n([\s\S]*?)\n---/)
+            const hidden = fmMatch ? /^hidden:\s*true\s*$/m.test(fmMatch[1]!) : false
             return {
               filename: f,
               title: titleMatch?.[1] ?? f.replace(/\.md$/, ""),
               size: stat.size,
+              hidden,
             }
           })
+          .filter(d => showHidden || !d.hidden)
           .sort((a, b) => {
             const pinned = ["todo.md", "decisions.md", "lessons-learned.md"]
             const ai = pinned.indexOf(a.filename)
@@ -637,6 +642,42 @@ const server = Bun.serve({
             return a.title.localeCompare(b.title)
           })
         return Response.json({ docs: files })
+      } catch (err) {
+        return Response.json({ error: String(err) }, { status: 500 })
+      }
+    }
+
+    // Toggle the `hidden:` frontmatter flag on a doc. Behind the authed
+    // surface (the `checkAuth` gate above gates every route past /api/run).
+    const docsHiddenMatch = path.match(/^\/api\/docs\/(.+)\/hidden$/)
+    if (docsHiddenMatch && req.method === "POST") {
+      try {
+        const filename = decodeURIComponent(docsHiddenMatch[1]!)
+        if (filename.includes("..") || filename.includes("/")) {
+          return Response.json({ error: "Invalid filename" }, { status: 400 })
+        }
+        const body = await req.json() as { hidden?: boolean }
+        const desired = body.hidden !== false   // default to hidden=true if omitted
+        const filePath = resolve(import.meta.dir, "../../docs", filename)
+        const file = Bun.file(filePath)
+        if (!await file.exists()) return Response.json({ error: "Not found" }, { status: 404 })
+        let content = await file.text()
+
+        const fmMatch = content.match(/^---\n([\s\S]*?)\n---/)
+        if (fmMatch) {
+          const fm = fmMatch[1]!
+          let newFm: string
+          if (/^hidden:/m.test(fm)) {
+            newFm = fm.replace(/^hidden:.*$/m, `hidden: ${desired}`)
+          } else {
+            newFm = fm + `\nhidden: ${desired}`
+          }
+          content = content.replace(fmMatch[0], `---\n${newFm}\n---`)
+        } else {
+          content = `---\nhidden: ${desired}\n---\n\n` + content
+        }
+        await Bun.write(filePath, content)
+        return Response.json({ filename, hidden: desired })
       } catch (err) {
         return Response.json({ error: String(err) }, { status: 500 })
       }

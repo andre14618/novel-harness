@@ -1262,6 +1262,106 @@ input[type="checkbox"] {
 }
 .docs-reader-body { min-width: 0; }
 
+/* Hidden-doc flag controls */
+.docs-hidden-badge {
+  display: inline-block;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: var(--bg-inset);
+  color: var(--text-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  padding: 1px 6px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+.docs-tile-hidden {
+  opacity: 0.55;
+  border-style: dashed !important;
+}
+.docs-tile-hidden:hover { opacity: 0.9; }
+.docs-tile-toggle {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-tertiary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: all var(--transition-fast);
+}
+.docs-tile { position: relative; }
+.docs-tile-toggle:hover {
+  background: var(--bg-inset);
+  border-color: var(--accent-dim);
+  color: var(--accent);
+}
+.docs-toggle-hidden-btn {
+  background: var(--bg-inset);
+  border: 1px solid var(--border-default);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 0.72rem;
+  padding: 3px 10px;
+  cursor: pointer;
+  margin-left: auto;
+  transition: all var(--transition-fast);
+}
+.docs-toggle-hidden-btn:hover {
+  background: var(--bg-raised);
+  border-color: var(--accent-dim);
+  color: var(--accent);
+}
+.docs-show-hidden-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  margin-left: auto;
+}
+.docs-show-hidden-toggle input { cursor: pointer; }
+
+/* Three-layer architecture grid on Guide page */
+.guide-layer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin: 20px 0;
+}
+.guide-layer {
+  background: var(--bg-inset);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 18px 20px;
+}
+.guide-layer h3 {
+  margin: 0 0 2px 0;
+  font-size: 0.95rem;
+  color: var(--accent);
+}
+.guide-layer-subtitle {
+  margin: 0 0 12px 0;
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.guide-layer p:last-child { margin-bottom: 0; }
+.guide-layer code {
+  background: var(--bg-raised);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 0.85em;
+}
+
 /* Markdown body styling */
 .markdown-body { color: var(--text-secondary); font-size: 0.82rem; line-height: 1.8; }
 .markdown-body h1 { color: var(--accent); font-size: 1.3rem; margin: 0 0 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-subtle); }

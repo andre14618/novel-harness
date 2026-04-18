@@ -449,14 +449,23 @@ export interface DocEntry {
   filename: string
   title: string
   size: number
+  hidden: boolean
 }
 
-export function listDocs() {
-  return fetchJSON<{ docs: DocEntry[] }>("/api/docs")
+export function listDocs(showHidden = false) {
+  const qs = showHidden ? "?showHidden=true" : ""
+  return fetchJSON<{ docs: DocEntry[] }>(`/api/docs${qs}`)
 }
 
 export function getDoc(filename: string) {
   return fetchJSON<{ filename: string; title: string; content: string }>(`/api/docs/${encodeURIComponent(filename)}`)
+}
+
+export function setDocHidden(filename: string, hidden: boolean) {
+  return fetchJSON<{ filename: string; hidden: boolean }>(
+    `/api/docs/${encodeURIComponent(filename)}/hidden`,
+    { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hidden }) },
+  )
 }
 
 // ── Fine-tune Training Data ──────────────────────────────────────────
