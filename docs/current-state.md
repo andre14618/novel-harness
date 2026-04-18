@@ -67,8 +67,8 @@ Primary code references:
 
 The active narrow checkers are:
 
-- adherence
-- hallucination
+- **adherence** — `adherence-events` runs inside the beat drafting retry loop.
+- **hallucination** — the beat drafting retry loop now runs `halluc-ungrounded-v2` on every beat and `halluc-leak-salvatore-v1` on Salvatore-routed beats; any fired adapter contributes blocker issues to the same targeted rewrite prompt. Leak gating is by `WRITER_GENRE_PACKS` label (`salvatore-fantasy`), not by inference model URI. OR-aggregation across checkers — one blocker from any checker forces retry. Per-adapter telemetry via `llm_calls.agent`.
 
 Continuity remains part of the system, but the architectural direction is that checkers stay narrow and load-bearing rather than expanding into a large craft-checker zoo.
 

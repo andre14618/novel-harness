@@ -11,7 +11,7 @@ import { WRITER_AGENT_PROMPT, BEAT_WRITER_PROMPT, CHAPTER_PLAN_CHECKER_PROMPT } 
 import { buildContext as buildWriterContext } from "../agents/writer/context"
 import { buildBeatContext } from "../agents/writer/beat-context"
 import { resolveReferences } from "../agents/writer/reference-resolver"
-import { checkBeatAdherence } from "../agents/writer/adherence-checker"
+import { runBeatChecks, summarizeIssues } from "./beat-checks"
 import { checkContinuity } from "../agents/continuity/check"
 import { buildContext as buildChapterPlanCheckContext } from "../agents/chapter-plan-checker/context"
 import { chapterPlanCheckSchema } from "../agents/chapter-plan-checker/schema"
@@ -211,25 +211,30 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                 const prose = response.content?.trim()
                 if (!prose || prose.length < 50) continue
 
-                // Adherence check — tagged with the same keys as the beat-writer call above
-                // so they group together in the inspector view.
-                const adherence = await checkBeatAdherence(
+                // Beat-level check fan-out — adherence + hallucination checkers
+                // run in parallel and their issues are aggregated. Any blocker
+                // from any checker forces retry (OR semantics). All calls are
+                // tagged with the same keys as the beat-writer call above so
+                // they group together in the inspector view.
+                const checks = await runBeatChecks({
                   prose,
-                  outline.scenes[bi],
+                  beat: outline.scenes[bi],
                   outline,
                   characters,
-                  { novelId, chapter: ch, beatIndex: bi, attempt: retry + 1 },
-                )
-                if (adherence.pass || retry === pipeline.maxBeatRetries) {
+                  worldBible,
+                  writerPackLabel: writerPack?.label ?? null,
+                  tags: { novelId, chapter: ch, beatIndex: bi, attempt: retry + 1 },
+                })
+                if (checks.pass || retry === pipeline.maxBeatRetries) {
                   beatProse = prose
-                  if (!adherence.pass) {
-                    log(novelId, "warn", `Beat ${bi + 1} adherence issues accepted after max retries: ${adherence.issues.join("; ")}`)
+                  if (!checks.pass) {
+                    log(novelId, "warn", `Beat ${bi + 1} issues accepted after max retries: ${summarizeIssues(checks.issues)}`)
                   }
                   break
                 }
                 previousProse = prose
-                previousIssues = adherence.issues
-                log(novelId, "info", `Beat ${bi + 1} retry ${retry + 1}: ${adherence.issues.join("; ")}`)
+                previousIssues = checks.retryLines
+                log(novelId, "info", `Beat ${bi + 1} retry ${retry + 1}: ${summarizeIssues(checks.issues)}`)
               } catch (err) {
                 log(novelId, "warn", `Beat ${bi + 1} attempt ${retry + 1} failed: ${err instanceof Error ? err.message : err}`)
               }
