@@ -845,12 +845,15 @@ export function getTokenCost(
   if (!model) return 0
 
   // cached_tokens is a SUBSET of prompt_tokens. Bill the miss portion at the
-  // full input rate and the cached portion at (input * (1 - cache.discount)).
-  // Providers without a cache discount (or with cachedTokens=0) effectively
-  // fall through to the original calculation.
+  // full input rate and the cached portion at the discounted rate. Only apply
+  // cached-rate math when the provider advertises automatic caching AND the
+  // caller observed a non-zero cachedTokens; otherwise fall back to the plain
+  // input rate so providers with cache.type === "none" don't produce NaN.
   const cache = PROVIDERS[provider]?.cache
-  const cachedRate = cache ? model.pricing.input * (1 - cache.discount) : model.pricing.input
-  const cached = Math.min(cachedTokens, promptTokens)
+  const cacheActive = cache?.type === "automatic" && cachedTokens > 0
+  const discount = cacheActive ? (cache.discount ?? 0) : 0
+  const cachedRate = model.pricing.input * (1 - discount)
+  const cached = cacheActive ? Math.min(cachedTokens, promptTokens) : 0
   const miss = promptTokens - cached
 
   return (miss * model.pricing.input + cached * cachedRate + completionTokens * model.pricing.output) / 1_000_000
