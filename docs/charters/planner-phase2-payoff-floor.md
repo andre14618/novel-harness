@@ -148,6 +148,35 @@ Primary metric for this charter is **failing chapters across the 30 paired seed/
 | JUSTIFY schema | `main` V1a beats the aggressive prompt-only floor by `>=2` failing chapters across the paired set, and every `planning-beats` call for the measured rows stays under `7,500` completion tokens | Treat the V1a schema as causally justified enough to remain the active floor for any future V1b/V1c discussion |
 | KILL causal claim | Neither cheap lever reduces failing chapters versus baseline, or the apparent lift disappears when verifier surfaces are frozen, or any candidate arm that requires schema growth cannot stay under `7,500` completion tokens | Abandon the claim that payoff-schema enrichment is the right lever and redirect to a cheaper family |
 
+## 7.a Granularity axis — secondary measurement (required)
+
+User-directed addition 2026-04-18. The §7 failing-chapter count is a pass/fail surface; it answers *whether* the beat-writer lands a chapter that clears checkers. It does **not** distinguish whether the beat-writer received granular enough structure to produce *qualitatively better* prose at the beat level. The Floor arm (aggressive prompt) and the `main` V1a arm (explicit `SEEDS` / `PAYOFFS DUE` fields rendered into beat context) can plausibly hit identical §7 failing-chapter counts while producing beat-level prose that differs in kind — e.g. V1a realizing a seeded payoff with a crisper named referent, the Floor arm covering it more diffusely. That qualitative delta is the relevant signal for a beat-focused writer, and a pass/fail charter that ignores it will *under-value the schema lever even when schema is the right choice.*
+
+**Required secondary measurement.** In addition to §7's failing-chapter count, score each (seed, chapter) slot on a pairwise granularity axis.
+
+Protocol:
+
+1. For every (seed, chapter) slot where arm A and arm B both produced prose that passed §7 (or both failed — exclude mixed-outcome pairs), assemble the full chapter prose from each arm.
+2. Identify the set of seeded payoff pairs the planner declared for that chapter: `{ (setup_beat_index, payoff_beat_index, fact_description) }`. On the Floor arm these come from the aggressive-prompt "[plants payoff for beat N: FACT]" / "[pays off FACT from beat M]" markers. On the V1a arm they come from `establishedFact.id` + `requiredPayoffs` fields. On the baseline arm (frozen original prompt) they are extracted post-hoc by the measurement-only inference extractor from §5.
+3. For each payoff pair, present the two arms' prose excerpts covering the payoff beat side-by-side to a named reasoning judge. The judge answers one question: *"Which output realizes the seeded payoff at the beat-level with a more specific named referent and a more concretely-dramatized fact?"* Options: arm-A / arm-B / tie / neither-realizes-it.
+4. Score: per-arm `realized_with_granularity` count across all payoff pairs in the pilot. Report per-seed and pooled. Do **not** average the judge responses into a score; report the raw distribution.
+
+**Judge identity (named to avoid circularity):** `claude-opus-4-7` (Anthropic). Rationale: not used as a label source in any Phase-2 planner or beat-writer training pipeline, distinct model family from the beat-writer stack (DeepSeek V3.2 + Salvatore LoRA on Qwen3-14B). Cross-reference `docs/decisions.md` 2026-04-17 Archetype POC for the circularity discipline.
+
+**Granularity axis gates (independent of §7 failing-chapter count):**
+
+| Outcome on granularity axis | Condition | Action |
+|---|---|---|
+| V1a delivers distinct granularity lift | `main` V1a realizes `≥N+3` payoff pairs more than the Floor, where `N` is the Floor arm's realized count, across the 30 paired slots | Count as evidence that schema is doing work beyond what prompt alone delivers, even if §7 failing-chapter gates would otherwise KILL. Promote to re-examination of the §7 JUSTIFY gate. |
+| V1a and Floor are granularity-tied | V1a advantage is `<3` payoff pairs | Combine with §7 count to decide. No granularity justification for schema from this pilot. |
+| Floor beats V1a on granularity | Floor realizes more payoff pairs than V1a | Flag as a material surprise; do not ship either until root-caused. |
+
+**What this catches that §7 misses.** A chapter that passes adherence-events by dramatizing *some* events from the plan but substitutes a generic noun ("the artifact") for a seeded named fact ("the iron chest of the bloodline heirs") will score identically on §7 failing-chapter count whether the planner gave the writer an `establishedFact.id=bloodline-iron-chest` or a loose prompt instruction. The granularity axis is the only axis in this charter that forces the judge to look at *whether the named referent from the plan actually reaches the prose.*
+
+**What this axis does not measure.** Prose quality in aggregate (cadence, voice, rhythm — those live in the writer-imitation-benchmark family), adherence-events-style enactment (that's §7), or continuity / hallucination (those are their own checkers). This axis is narrow by design: does structured planner output reach the beat-writer's prose as structured content, or does it get smoothed away?
+
+**Cost.** `30 slots × avg 4 payoff pairs per chapter × 1 judge call per pair ≈ 120 judge calls`. On `claude-opus-4-7` at typical chapter-payoff-excerpt sizes, estimate $1–$3 added to the pilot budget in §8. Fold into the §8 cap; do not request a separate budget line.
+
 ## 8. Budget
 
 - **Spend cap:** `median_cost_recent_3ch_fantasy_run_from_llm_calls × 12 causal runs + eval/judge spend`. Fill `median_cost_recent_3ch_fantasy_run_from_llm_calls` with this query, not intuition:
