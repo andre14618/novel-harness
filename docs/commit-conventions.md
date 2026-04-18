@@ -75,59 +75,55 @@ docs-impact: none
 
 ## Superseded Documents
 
-When a charter, plan, runbook, or other living doc is replaced by a successor — most often because an adversary review returned RED and the revision was substantial enough to earn a new family name — the original is archived, not deleted. History stays recoverable; the active surface stays small.
+When a charter, plan, runbook, or living doc is replaced by a successor that earned a **new family name** (different causal question, different baseline, different metric, different scope) — most often after a RED adversary verdict — retire the predecessor by **deleting it from the working tree** and recording the supersession in `docs/decisions.md`. The active directory stays current; git preserves the history.
 
-### The convention
+### Rules
 
-1. **Mark the original's frontmatter** with:
-   ```yaml
-   status: superseded
-   superseded_by: docs/charters/new-name.md   # forward pointer
-   archived: YYYY-MM-DD
-   ```
-   Preserve any existing `adversary-verdict` / `original-verdict` field. The reason for supersession should be visible in frontmatter without opening git log.
+1. **Delete the predecessor from the working tree.** Git keeps it at its last committed SHA; `git log --follow <path>` finds it. Do NOT leave the file in place marked `superseded`, and do NOT move it to an archive directory — either option piles up clutter an active contributor has to skip over.
 
-2. **Move the file to the archive directory.**
-   - Charters: `docs/charters/archive/`
-   - Plans / runbooks tied to a superseded or deferred charter: stay in-place with `status: deferred` if the doc is still operator-actionable after a potential future pivot, or move to the relevant archive sibling if genuinely irrelevant.
+2. **Successor carries a `supersedes:` frontmatter pointer** at the predecessor's ex-path. The target no longer exists on `main` — that's the point. Readers who want the RED version run `git log --follow <that-path>` and pull it from history.
 
-3. **Update the archive README** with a one-line entry: original filename, date archived, one-line reason, forward link to successor.
+3. **Record the supersession in `docs/decisions.md`** under the `## Superseded charters` section (appended chronologically — follows the existing decisions-notebook convention). Each entry contains: predecessor filename, date, one-paragraph reason (cite adversary verdict session if applicable), git SHA at which the RED version was last live on `main`, forward link to the successor.
 
-4. **Add a `supersedes:` frontmatter field to the successor** pointing back at the original. Bidirectional links survive refactoring better than one-way pointers.
-
-5. **Commit the archive move as one atomic commit** with the `[archive]` prefix. Body names original + successor + reason. Example:
+4. **Commit the supersession as a single atomic commit** with prefix `[supersede]`. Body: what was killed, what replaced it, one-line reason, git SHA reference. Example:
 
    ```
-   [archive] planner-phase2-contract → planner-phase2-payoff-floor
+   [supersede] planner-phase2-contract → planner-phase2-payoff-floor
 
-   Original returned RED from /codex:adversarial-review 2026-04-18
-   (session 019da279-…). Superseded by a counterfactual-first rewrite
-   that tests the cheap prompt-only Floor against pre-planner-phase2-v1a
-   before any schema claim. See docs/charters/archive/README.md.
+   Killed by RED verdict from /codex:adversarial-review 2026-04-18
+   (session 019da279-313c-7863-aad8-f483ff08e9d7). Successor tests
+   the cheap prompt-only Floor against pre-planner-phase2-v1a
+   before any schema claim.
+
+   Last live at 6dc2fe9. Successor: docs/charters/planner-phase2-payoff-floor.md.
+   Log entry: docs/decisions.md §Superseded-charters.
 
    docs-impact: none
    ```
 
-6. **Do NOT amend the successor in the same commit as the archive move.** The successor was already committed when it was written; the move commit should touch only the original + the archive index.
+### When NOT to supersede
+
+- **Typo fix, numeric update, rubric tightening** — edit in place. Same path, same family name.
+- **Doc retires with no replacement** — delete, record under `## Retired docs` in `decisions.md` with the reason. No successor pointer because there's no successor.
+- **Plan / runbook whose charter is deferred but reactivatable** — mark `status: deferred` in-place with a one-line pointer to what conditions would reactivate it. Don't delete.
+
+### Why in-place-with-markers and archive-directory were both rejected
+
+- **In-place-with-`status: superseded`** pollutes the active directory with dead charters; every contributor has to mentally skip past RED predecessors to find what's live.
+- **Archive directory** (tried 2026-04-18, abandoned same day) duplicates git's job, adds a 3-step ritual per supersession event, and already produced stale cross-references the first time it was applied. See `docs/decisions.md` §Superseded-charters for the retrospective.
 
 ### Status taxonomy
 
-Living docs carry a `status` frontmatter field. Valid values:
+Living docs that exist in the working tree carry a `status` frontmatter field:
 
-| value | meaning | lifecycle |
-|---|---|---|
-| `active` | canonical current truth, currently in effect | stays in place |
-| `frozen-YYYY-MM-DD` | artifact intentionally frozen (eval specs, reference bundles) | stays in place; a change requires a v2 |
-| `proposed` | charter not yet adversary-reviewed | stays in place |
-| `revise-required` | adversary review returned RED or YELLOW | stays in place until SUPERSEDE decision |
-| `superseded` | replaced by another doc | moves to `/archive/` per convention above |
-| `retired` | no longer relevant, no replacement | moves to `/archive/` |
-| `deferred` | paused; may reactivate | stays in place with marker |
-| `template` / `example` | reference material | stays in place |
-| `work-order` | direction document produced for the implementer | stays in place until executed; then `archived` |
+| value | meaning |
+|---|---|
+| `active` | canonical current truth, in effect |
+| `frozen-YYYY-MM-DD` | artifact intentionally frozen (eval specs, reference bundles); changes require a v2 artifact |
+| `proposed` | charter not yet adversary-reviewed |
+| `revise-required` | adversary review returned RED or YELLOW; awaiting SUPERSEDE or revise decision |
+| `deferred` | paused; may reactivate later under stated conditions |
+| `template` / `example` | reference material |
+| `work-order` | direction document for the implementer |
 
-### When to supersede vs revise
-
-- **Revise in place** when the doc's frame stays the same and the changes are tightening rather than reframing (updated numbers, clarified metric, fixed typo). Adversary verdicts on small revisions typically don't require a new family name.
-- **Supersede** when the causal question, baseline, metric, or scope has changed enough that the new charter shares only a topic — not a hypothesis — with the old one. The new family name signals the reframing.
-- **Retire** when the lever being tested has been abandoned (e.g. the Howard-primer methodology) and nothing is taking its place.
+Superseded and retired docs have no `status:` because they no longer exist in the working tree — they live only in git history and in the `decisions.md` log.
