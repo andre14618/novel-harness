@@ -2,6 +2,16 @@ export function GuidePage() {
   return (
     <>
       <div className="guide-content">
+          <section className="guide-canonical-callout">
+            <p>
+              <strong>Canonical current state:</strong>{" "}
+              <a href="/app/docs?doc=current-state.md"><code>docs/current-state.md</code></a>{" "}
+              is the authoritative description of the live system — active pipeline, retired
+              methodologies, verification gates. If any doc (including this page) disagrees with
+              it, that doc wins. Read it first when orienting.
+            </p>
+          </section>
+
           <section>
             <h2>What This Does</h2>
             <p>

@@ -1330,6 +1330,23 @@ input[type="checkbox"] {
 .docs-show-hidden-toggle input { cursor: pointer; }
 
 /* Three-layer architecture grid on Guide page */
+.guide-canonical-callout {
+  background: var(--accent-surface);
+  border: 1px solid var(--accent-dim);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-bottom: 1.25rem !important;
+}
+.guide-canonical-callout p { margin: 0; font-size: 0.84rem; line-height: 1.55; }
+.guide-canonical-callout a { color: var(--accent); }
+.guide-canonical-callout code {
+  background: var(--bg-raised);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 0.85em;
+}
+
 .guide-layer-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));

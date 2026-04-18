@@ -4,6 +4,8 @@ AI-assisted novel creation harness — deterministic code controls flow, LLMs ar
 
 Built on the principles from [Harness Engineering](https://martinfowler.com/articles/exploring-gen-ai/harness-engineering.html).
 
+> **Canonical current state**: [`docs/current-state.md`](docs/current-state.md) is the authoritative description of the live system — active pipeline, retired methodologies, verification gates. If any doc (including this README) disagrees with it, that doc wins. Read it first when orienting.
+
 ## How It Works
 
 The harness is a **state machine** moving through four phases:
