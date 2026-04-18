@@ -28,7 +28,7 @@ export function FinetunePage() {
               <tr><td>Adherence Checker</td><td>Beat spec vs prose (events+attribution)</td><td><strong>V4 deployed</strong> — 2,134 Sonnet-labeled pairs, 79% first-attempt pass (exp #161)</td></tr>
               <tr><td>Chapter Plan Checker</td><td>Cross-beat coherence (pass/fail)</td><td><strong>V2 deployed</strong> — 520 pairs, 96% accuracy, 609ms (exp #178)</td></tr>
               <tr><td>Continuity</td><td>Consistency with world state</td><td><strong>V2 deployed</strong> — 253 pairs, 12x cost reduction from 235B (exp #175)</td></tr>
-              <tr><td>Tonal Pass</td><td>Per-paragraph style rewriting</td><td style={{ color: "#888" }}><em>Retired</em> — voice now lands at generation time via DeepSeek + Howard primer (2026-04-15c)</td></tr>
+              <tr><td>Tonal Pass (auto)</td><td>Per-paragraph style rewriting</td><td style={{ color: "#888" }}><em>Retired 2026-04-16</em> — voice now lands at generation time via per-genre voice LoRAs (e.g. salvatore-1988-v3 for fantasy). On-demand <code>POST /api/novel/:id/tonal-pass</code> still works.</td></tr>
             </tbody>
           </table>
         </section>
@@ -83,9 +83,12 @@ export function FinetunePage() {
                   classifier 0.550 vs 0.422, perplexity 3086 vs 4814, 3× faster latency.
                 </p>
                 <p style={{ color: "#aaa" }}>
-                  <strong>Retired 2026-04-15c.</strong> Voice now lands at generation time via DeepSeek V3.2
-                  + Howard primer (prefix-cached, ~94% hit rate). Adapter still on W&B Inference and
-                  invokable via <code>POST /api/novel/:id/tonal-pass</code> for on-demand comparison.
+                  <strong>Auto-run retired 2026-04-16.</strong> Voice now lands at generation time via
+                  per-genre voice LoRAs wired through <code>WRITER_GENRE_PACKS</code> in
+                  <code>src/models/roles.ts</code> (fantasy seeds → salvatore-1988-v3). Howard primer
+                  methodology was deprecated the same day: voice transfers via weights, not few-shot
+                  prompts. The V4 adapter is retained on W&B Inference and invokable via
+                  <code>POST /api/novel/:id/tonal-pass</code> for on-demand comparison on existing novels.
                 </p>
               </section>
             </div>
