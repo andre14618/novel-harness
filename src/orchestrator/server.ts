@@ -112,11 +112,24 @@ function trackProcess(proc: ReturnType<typeof Bun.spawn>, label: string): number
   return pid
 }
 
-function spawnNovel(seed?: string): number {
-  let cmd = "bun src/index.ts --auto"
-  if (seed) cmd += ` --seed ${seed}`
+const SEED_NAME = /^[a-z0-9][a-z0-9_-]*$/i
 
-  const proc = Bun.spawn(["bash", "-c", cmd], {
+function spawnNovel(seed?: string): number {
+  const args = ["bun", "src/index.ts", "--auto"]
+  if (seed) {
+    // Reject anything that isn't a plain seed-name token before it ever
+    // reaches the filesystem, then confirm the seed file exists.
+    if (!SEED_NAME.test(seed)) {
+      throw new Error(`Invalid seed name: ${seed}`)
+    }
+    const seedPath = resolve(HARNESS_ROOT, "src/seeds", `${seed}.json`)
+    if (!existsSync(seedPath)) {
+      throw new Error(`Unknown seed: ${seed}`)
+    }
+    args.push("--seed", seed)
+  }
+
+  const proc = Bun.spawn(args, {
     cwd: HARNESS_ROOT,
     env: { ...process.env },
     stdout: "pipe",
@@ -148,6 +161,62 @@ function getActiveRuns() {
     .slice(0, 20)
 }
 
+
+function loginPageHtml(): string {
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Novel Harness — Sign in</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  body { font-family: system-ui, sans-serif; background: #0e1117; color: #e6edf3;
+         display: flex; min-height: 100vh; align-items: center; justify-content: center; margin: 0 }
+  form { background: #161b22; padding: 32px; border-radius: 8px; border: 1px solid #30363d;
+         min-width: 320px; display: flex; flex-direction: column; gap: 12px }
+  h1 { font-size: 18px; margin: 0 0 8px 0 }
+  input { background: #0d1117; color: #e6edf3; border: 1px solid #30363d;
+          padding: 8px 10px; border-radius: 6px; font: inherit }
+  button { background: #238636; color: white; border: 0; padding: 9px 16px;
+           border-radius: 6px; cursor: pointer; font: inherit }
+  button:disabled { opacity: 0.6; cursor: default }
+  .err { color: #f85149; font-size: 13px; min-height: 1em }
+</style>
+</head>
+<body>
+<form id="f">
+  <h1>Novel Harness</h1>
+  <input id="pw" type="password" autocomplete="current-password" placeholder="Password" autofocus required />
+  <button id="b" type="submit">Sign in</button>
+  <div class="err" id="e"></div>
+</form>
+<script>
+  const f = document.getElementById("f");
+  const pw = document.getElementById("pw");
+  const b = document.getElementById("b");
+  const e = document.getElementById("e");
+  f.addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    b.disabled = true; e.textContent = "";
+    try {
+      const res = await fetch("/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: pw.value }),
+      });
+      if (res.ok) { location.href = "/app"; return; }
+      const j = await res.json().catch(() => ({}));
+      e.textContent = j.error || "Sign in failed";
+    } catch (err) {
+      e.textContent = String(err);
+    } finally {
+      b.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>`
+}
 
 // ── HTTP Server ─────────────────────────────────────────────────────────
 
