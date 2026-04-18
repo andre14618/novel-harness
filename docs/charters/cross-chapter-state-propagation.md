@@ -1,10 +1,11 @@
 ---
-status: proposed
+status: revise-required
 kind: experiment-charter
 experiment-family: cross-chapter-state
 proposed-by: claude (main thread)
 proposed-date: 2026-04-18
-adversary-verdict: pending
+adversary-verdict: RED
+adversary-reviewed: 2026-04-18
 ---
 
 # Experiment Charter — `cross-chapter-state-propagation-v1`
@@ -91,8 +92,39 @@ Primary reviewer is Codex via `/charter-review`. Block on YELLOW or RED. Iterate
 
 | Reviewer | Verdict | Date | Notes |
 |----------|---------|------|-------|
-| `/codex:adversarial-review` (GPT) — primary | **pending** | — | Run before any planning.ts change lands on `main` |
-| `experiment-adversary` (Opus) — fallback only | — | — | — |
+| `/codex:adversarial-review` (GPT) — primary | **RED** | 2026-04-18 | 5 blocking, 3 warnings. Charter revise-required before pilot. See session `019da27c-b704-7d23-b1bf-3eb7004b6389` for full verdict. Summary below. |
+| `experiment-adversary` (Opus) — fallback only | — | — | Not run — Codex primary returned a decisive RED |
+
+### 10.a Adversary verdict summary (Codex, 2026-04-18)
+
+**RED.** The charter must be revised before any `planning.ts` change lands or pilot runs.
+
+Blocking issues (each cites `docs/experiment-design-rules.md §N.M`):
+
+1. **§3.1 — Primary metric not aligned to current architecture.** The charter uses `continuity-v2` deviation rate as the primary ship signal, but `docs/current-state.md:66-73` explicitly marks continuity as *deprioritized*. A ±25% move on a deprioritized checker doesn't cleanly answer whether cross-chapter state propagation matters. Fix: either prove continuity-v2 is a reliable decision metric on this eval set, or replace it as the primary criterion.
+2. **§11.5 / §2.1 — Confound with adjacent experiment.** This charter and `planner-phase2-contract-v1` share the same 3 fantasy seeds and both touch Phase-2 planner behavior. Any measured delta could come from Phase-2 schema (`establishedFact.id`, `requiredPayoffs`, already live per `src/schemas/shared.ts`), from serial prior-state propagation, or both. Fix: isolate the baseline before running on the shared pilot set.
+3. **§4.6 — Mechanism / architecture mismatch.** The charter claims V1 tests "fully-expanded beats + end-of-chapter state," but the actual `priorChapters` renderer (`src/agents/planning-beats/context.ts:14-21,56-58`) surfaces only `characterStateChanges` and `establishedFacts` — it *omits* `knowledgeChanges` entirely. Mechanism doesn't match architecture; makes the reader-info split in §11.5 untestable-by-shape. Fix: narrow the mechanism claim to the actual state surface delivered, or accept that results will be uninterpretable.
+4. **§6.4 / §7.1 — Seeds biased away from hypothesized failure mode.** §6 admits the 3 pilot seeds were picked for clean Salvatore voice routing, not heavy cross-chapter callbacks. 18–27 chapter samples on low-callback seeds is not decision-grade evidence for a cross-chapter-state lever. Fix: justify the seeds as stress cases or stop treating null/win on them as dispositive.
+5. **§11.5 — Self-contradictory comparison protocol.** §5/§11.2 require Floor+ and V1 "in the same pilot," §8 says cut V1 short if Floor+ wins early, and §7 says ship Floor+ if it lands within 10% of V1. No coherent decision rule covers Floor+ vs V1 vs near-tie. Fix: define an interpretable comparison policy up front.
+
+Warnings (non-blocking but address in conclusion):
+
+- The "missing control arm" framing in §11.6 is wrong — the current `Floor` / `Current prod` IS the no-state control (parallel with `priorChapters: []`). The real flaw is the undefined Floor+ vs V1 decision policy.
+- `endsWith` at the Phase-1 skeleton surface is cleanly additive; no schema collision with the Phase-2 V1a `establishedFact.id` / `requiredPayoffs` already shipped. Risk is experiment confound (§11.5), not type collision.
+- Deferring reader-information state isn't obviously wrong scope discipline, but the current `priorChapters` renderer already mixes some character knowledge (`knows`) while omitting other knowledge surfaces (`knowledgeChanges`). Any conclusion applies only to the partial state feed actually tested.
+
+Cheapest untried counterfactual per adversary: the charter's own Floor+ arm (`endsWith` skeleton hint) against the current parallel baseline, ~$0, expected ~50–80% of V1's quality movement if the real gap is "Phase 2 needs a terse end-state hint" rather than full serialization. Should answer most of the question before paying the serial-latency tax.
+
+Recommended next action: **REVISE CHARTER (§3.1, §4.6, §11.5).**
+
+### 10.b Pending revise actions
+
+- [ ] Drop continuity-v2 as the primary ship signal; replace with a metric tied to the deliberate mechanism (e.g. planner-side fact-reference integrity across chapters, or a chapter-to-chapter contradiction audit that isn't continuity-v2 itself).
+- [ ] Either serialize pilot scheduling vs `planner-phase2-contract-v1` (run this experiment strictly *after* the Phase-2 pilot completes and its delta is measured), or change seed set so the two experiments don't share the same 18 chapters.
+- [ ] Narrow §2 mechanism language to match what the renderer actually delivers (characterStateChanges + establishedFacts, not knowledgeChanges).
+- [ ] Swap or add seeds selected for heavy cross-chapter callbacks, or reduce the scope of the charter's ship/kill claims accordingly.
+- [ ] Define a complete decision matrix for Floor+ × V1 × near-tie up front — including what a near-tie does (e.g. default to Floor+ on latency grounds).
+- [ ] Ground the 8× latency ceiling in an actual `llm_calls` measurement rather than intuition. Decision 2026-04-17 ("two-phase planner") already predicted ~10× — cite it explicitly or correct it with fresh data.
 
 ## 11. Open questions for adversary review
 
