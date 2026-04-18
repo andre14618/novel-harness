@@ -723,4 +723,4 @@ const server = Bun.serve({
 })
 
 console.log(`Orchestrator running at http://localhost:${server.port}`)
-console.log(`Novel UI: http://localhost:${server.port}/app?key=${API_KEY}`)
+console.log(`Novel UI: http://localhost:${server.port}/app  (sign in at /login)`)
