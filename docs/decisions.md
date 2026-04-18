@@ -1889,6 +1889,21 @@ Log entries for charters killed by adversary review (RED verdict) and replaced b
 
 **Why SUPERSEDE vs revise:** the causal question changed — v1 asked "does schema enrichment help?"; v2 asks "does an aggressive prompt-only floor on the pre-V1a baseline already buy most of the V1a lift?" Different mechanism, different baseline, different metric.
 
+### `cross-chapter-state-propagation` (2026-04-18)
+
+**Last live at:** `96b0cb1` — path `docs/charters/cross-chapter-state-propagation.md`.
+
+**Superseded by:** `docs/charters/cross-chapter-endswith-floor.md` (commit `524beee`).
+
+**RED verdict:** `/codex:adversarial-review` 2026-04-18 (session `019da27c-b704-7d23-b1bf-3eb7004b6389`). Five blocking issues:
+1. Primary ship metric was `continuity-v2` deviation, but `docs/current-state.md` marks continuity as deprioritized — a ±25% move on a deprioritized checker doesn't answer whether cross-chapter state propagation matters.
+2. Confound with the adjacent planner charter — both used the same three fantasy seeds and both touched Phase-2 behavior, so any measured delta couldn't be attributed cleanly.
+3. Mechanism claimed "full prior-chapter state" but the actual `planning-beats/context.ts` `priorChapters` renderer surfaces only `characterStateChanges` + `establishedFacts` and omits `knowledgeChanges` entirely.
+4. Seeds were selected for clean Salvatore voice routing, not for heavy cross-chapter callbacks — biased away from the hypothesized failure mode.
+5. Self-contradictory comparison protocol — Floor+ vs V1 vs near-tie had no coherent decision rule across §5 / §7 / §8.
+
+**Why SUPERSEDE vs revise:** the primary metric had to change (not continuity) and the pilot design had to change (seeds disjoint from the planner charter, written callback-density screen). New family name signals the reframing.
+
 ### Retrospective: the archive-directory experiment
 
 A separate `docs/charters/archive/` directory was tried on 2026-04-18 (commit `5fb4a3f` convention + `7eb3ce4` first archival) as the method for handling superseded charters. Abandoned the same day because:
