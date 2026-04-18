@@ -51,12 +51,17 @@ Reference:
 - Writer routing is genre-aware.
 - For fantasy seeds, the active default is the Salvatore voice LoRA route.
 - For non-matching genres, the default writer path is DeepSeek.
+- **Phase-2 planner output carries structured payoff links (V1a, 2026-04-18).** Each `establishedFact` gets a stable kebab-case `id`; per-beat `requiredPayoffs: [{fact_id, payoff_beat}]` links setups to the later beat that realizes them. The writer sees resolved "SEEDS (this beat must set up…)" and "PAYOFFS DUE (this beat must realize…)" sections in beat context. The chapter-plan-checker receives the same structured links. Pilot measurement is gated on an adversary-GREEN verdict on `docs/charters/planner-phase2-contract.md`. V1b (`speaker_directives`) and V1c (`subplot_id` + `thematic_focus`) are explicitly gated on V1a results.
 
 Primary code references:
 
 - `src/models/roles.ts`
 - `src/agents/writer/`
+- `src/agents/writer/beat-context.ts` — SEEDS / PAYOFFS DUE rendering
+- `src/agents/planning-beats/` — Phase-2 output producing the structured links
+- `src/schemas/shared.ts` — `sceneBeatSchema.requiredPayoffs` + `payoffLinkSchema`
 - `docs/context-engineering.md`
+- `docs/charters/planner-phase2-contract.md`
 
 ### Active quality controls
 
