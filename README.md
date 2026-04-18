@@ -36,15 +36,15 @@ For each chapter, beats are written serially. For each beat:
 Failed checks trigger targeted rewrites. All checkers are fine-tuned Qwen3-14B adapters on W&B Inference.
 
 ### Phase 4: Validation
-Chapters failing deterministic checks are rewritten automatically. After convergence, a **Tonal Pass** runs once across all chapters — per-paragraph LoRA voice rewrite using a fine-tuned adapter.
+Diagnostic-only. Deterministic checks run and issues are logged; the chapter-level rewriter was removed because the beat-writer retry loop in drafting is the quality gate. The tonal-pass auto-run is disabled — voice lands at generation time via per-genre voice LoRAs (see `WRITER_GENRE_PACKS` in `src/models/roles.ts`). The on-demand `POST /api/novel/:id/tonal-pass` endpoint still works for existing novels.
 
 ## Stack
 
 - **Runtime**: Bun
-- **LLM**: Multi-provider. Assignments per agent in `src/models/roles.ts`. Active providers: Cerebras (fast inference, primary writer), Groq (fast inference, reference resolver), W&B Inference (fine-tuned checker adapters), OpenRouter, OpenAI, DeepSeek
+- **LLM**: Multi-provider. Assignments per agent in `src/models/roles.ts`. Default writer is DeepSeek V3.2; fantasy seeds route to the Salvatore voice LoRA via `WRITER_GENRE_PACKS`. Other active providers: Cerebras (lint-fixer), Groq (reference-resolver), W&B Inference (fine-tuned checker + voice adapters), OpenRouter, OpenAI
 - **DB**: Single Postgres (`novel_harness_orchestrator`) — all novel content, world state, experiments, LLM calls, and cost tracking
-- **Fine-tuning**: W&B Serverless SFT (ART framework) → W&B Inference. Base model: `OpenPipe/Qwen3-14B-Instruct`. Active adapters: adherence-checker-v4, chapter-plan-checker-v2, continuity-v2, howard-tonal-v4 (tonal pass)
-- **Transport**: `src/transport.ts` — DirectTransport (real-time HTTP with retries) and BatchTransport (async batch API)
+- **Fine-tuning**: W&B Serverless SFT (ART framework) → W&B Inference. Base model: `OpenPipe/Qwen3-14B-Instruct`. Active adapters: adherence-checker-v4, chapter-plan-checker-v2, continuity-v2, salvatore-1988-v3 (fantasy voice LoRA). The howard-tonal-v4 adapter is retained for on-demand tonal-pass only.
+- **Transport**: `src/transport.ts` — DirectTransport (real-time HTTP with retries). Per-call telemetry persists to `llm_calls`.
 - **UI**: React + Vite served at `/app`
 
 ## Quick Start
@@ -79,11 +79,12 @@ scripts/
   analysis/     ← ad-hoc inspection and smoke tests
   finetune/     ← W&B/LoRA training pipeline
   lint/         ← lint pattern research and maintenance
-sql/            ← 20 numbered Postgres migration files
+sql/            ← 27 numbered Postgres migration files
 ui/             ← React + Vite SPA (The Studio, Pipeline View, Config, Experiments)
 docs/           ← decisions.md, lessons-learned.md, fine-tuning-strategy.md, ...
-tests/          ← Bun test suite
 ```
+
+Unit tests live next to their source (e.g. `src/models/registry.test.ts`) and run via `bun test`.
 
 ## Web UI
 
