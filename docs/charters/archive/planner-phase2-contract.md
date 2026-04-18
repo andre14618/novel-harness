@@ -1,12 +1,16 @@
 ---
-status: revise-required
+status: superseded
 kind: experiment-charter
 experiment-family: planner-phase2-contract
 proposed-by: claude (main thread)
 proposed-date: 2026-04-18
 adversary-verdict: RED
 adversary-reviewed: 2026-04-18
+superseded_by: docs/charters/planner-phase2-payoff-floor.md
+archived: 2026-04-18
 ---
+
+> **Archived 2026-04-18** — superseded by [`planner-phase2-payoff-floor.md`](../planner-phase2-payoff-floor.md). Retained here for historical audit trail per `docs/commit-conventions.md` "Superseded Documents." See [`docs/charters/archive/README.md`](README.md) for the full index.
 
 # Experiment Charter — `planner-phase2-contract-v1`
 
