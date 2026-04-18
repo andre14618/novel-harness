@@ -67,11 +67,35 @@ interface TrackedProcess {
   label: string
   startedAt: string
   stdout: string[]
+  stderr: string[]
   exitCode: number | null
 }
 
 const processes = new Map<number, TrackedProcess>()
 const MAX_TRACKED = 20
+
+// Bun types proc.stdout/stderr as `number | ReadableStream | undefined`
+// depending on how the stream was requested. When "pipe" is used the runtime
+// hands back a real ReadableStream, but the static type union still includes
+// `number`, so narrow before calling getReader().
+function pipeToBuffer(stream: unknown, buffer: string[], maxLines = 300): void {
+  if (!stream || typeof stream === "number" || !(stream instanceof ReadableStream)) return
+  const reader = (stream as ReadableStream<Uint8Array>).getReader()
+  const decoder = new TextDecoder()
+  ;(async () => {
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        const lines = decoder.decode(value).split("\n")
+        for (const line of lines) {
+          if (line.trim()) buffer.push(line)
+        }
+        if (buffer.length > maxLines) buffer.splice(0, buffer.length - maxLines)
+      }
+    } catch {}
+  })()
+}
 
 function trackProcess(proc: ReturnType<typeof Bun.spawn>, label: string): number {
   const pid = proc.pid
@@ -79,27 +103,13 @@ function trackProcess(proc: ReturnType<typeof Bun.spawn>, label: string): number
     proc, type: "novel", label,
     startedAt: new Date().toISOString(),
     stdout: [],
+    stderr: [],
     exitCode: null,
   }
   processes.set(pid, tracked)
 
-  if (proc.stdout) {
-    const reader = proc.stdout.getReader()
-    const decoder = new TextDecoder()
-    ;(async () => {
-      try {
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-          const lines = decoder.decode(value).split("\n")
-          for (const line of lines) {
-            if (line.trim()) tracked.stdout.push(line)
-          }
-          if (tracked.stdout.length > 300) tracked.stdout.splice(0, tracked.stdout.length - 300)
-        }
-      } catch {}
-    })()
-  }
+  pipeToBuffer(proc.stdout, tracked.stdout)
+  pipeToBuffer(proc.stderr, tracked.stderr)
 
   proc.exited.then(code => { tracked.exitCode = code })
 
@@ -151,6 +161,8 @@ function getProcessStatus(pid: number) {
     exitCode: p.exitCode,
     stdoutLines: p.stdout.length,
     stdout: p.stdout.slice(-100).join("\n"),
+    stderrLines: p.stderr.length,
+    stderr: p.stderr.slice(-50).join("\n"),
   }
 }
 
