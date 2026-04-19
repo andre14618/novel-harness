@@ -160,11 +160,12 @@ Codex's recommended cheapest-partial-that-still-answers-the-charter. A baseline-
 
 **Primary output:** a 30-row table matching Query 1's shape (arm × seed × chapter × `failing_chapter` × `validation_fail` × `drafting_retry`), attached to §2.a.
 
-**Escalation rule — declared before launch:**
+**Escalation rule — declared before launch:** uses the §7 decision rule directly. Summarized here for operational reference only — §7 is the source of truth.
 
-1. **If `prompt` materially beats `baseline`** on the mini-pilot (prompt's failing-chapter count ≤ baseline's failing-chapter count by ≥3 chapters across the 15 paired slots, or no seed shows prompt ≥ baseline): **expand to the full 6-seed pilot + add the `extractor` arm** per §6. Run the §4 `mainv1a` observational row concurrently on `main`.
-2. **If `baseline` is already near-ceiling** (failing-chapter count ≤ 2 of 15 on baseline): **stop without spending on the rest.** The six pilot seeds were selected too easy; re-scope the seed set before running more arms. This is the dark-fantasy-style exit.
-3. **If `prompt` does not materially beat `baseline`** (within ±2 chapters across 15 slots, baseline not at ceiling): **the cheap lever didn't work on the subset** — still expand to the full 6-seed pilot because variance across 15 slots is high; only abandon after the full pilot under the same criterion.
+1. **SHIP** — mean paired `Δ retry_ratio ≥ 0.03` AND prompt wins ≥ 11/15 slots → cheap prompt lever is sufficient; V1a schema not justified by this pilot.
+2. **JUSTIFY** — mean paired `Δ` within ±0.02 AND `mainv1a` beats both later → expand to full 6-seed pilot + add `extractor` + run `mainv1a` observational.
+3. **KILL** — mean paired `Δ` within ±0.015 AND baseline pilot mean `retry_ratio ≤ 0.20` → seeds too easy; re-scope before spending more.
+4. **ITERATE** — everything else → expand to full 6-seed pilot under the same §7 rule.
 
 **Budget for mini-pilot (measured, not estimated):** 6 full-novel runs (3 seeds × 2 arms × 1 novel each, chapterCount=10 per seed; measure only chapters 1–5). Per-run token totals from the 16 clean-cost fantasy runs since 2026-04-15: wandb 320K in / 37K out = $0.024; deepseek 106K in / 27K out ≈ $0.02–$0.06; cerebras 3.4K in / 907 out = $0.003; groq negligible. **~$0.05–$0.10 per full run → ~$0.30–$0.60 total** for the mini-pilot. **Wall clock: 1.5–4 h** depending on LXC serialization — each 10-chapter novel runs roughly 15–45 min end-to-end on the tagged ref. No adversary re-review triggered by the mini-pilot itself — escalation-or-stop lands first, then re-review is called on the completed three-arm table per §11.
 
@@ -176,7 +177,7 @@ Codex's recommended cheapest-partial-that-still-answers-the-charter. A baseline-
 
 ## 3. Falsification threshold
 
-The mechanism is wrong if both cheap levers fail to reduce the paired-set failing-chapter count versus the frozen original prompt, or if the only apparent gain shows up when verifier surfaces move instead of when planner output changes. In that case, abandon the claim that Phase-2 payoff schema is the causal lever and do not extend this family to V1b/V1c.
+The mechanism is wrong if both cheap levers fail to reduce paired-set `retry_ratio` (per §7) versus the frozen original prompt, or if the only apparent gain shows up when verifier surfaces move instead of when planner output changes. In that case, abandon the claim that Phase-2 payoff schema is the causal lever and do not extend this family to V1b/V1c.
 
 ## 4. Baseline ladder
 
@@ -204,14 +205,44 @@ Mismatch note: `dark-fantasy` is intentionally excluded from the primary eval se
 
 ## 7. Success criteria
 
-Primary metric for this charter is **failing chapters across the 30 paired seed/chapter slots**, where a chapter counts as failing if pass 1 logs `validation_passes.status = 'has_issues'` or if drafting required a second `beat-writer` attempt within that chapter under frozen verifier surfaces. Always report `gap_closure = (floor - baseline) / (V1a - baseline)` on that same failing-chapter metric. Do not use p-values.
+### 7.a Primary metric (locked 2026-04-18)
+
+**Primary metric:** `retry_ratio = retry_count / total_beat_attempts` per matched chapter-slot, where:
+- `retry_count` = count of `llm_calls` rows with `agent='beat-writer'` AND `attempt > 1` for that (novel, chapter).
+- `total_beat_attempts` = count of all `llm_calls` rows with `agent='beat-writer'` for that (novel, chapter), all attempts.
+
+**Aggregate:** unweighted mean paired improvement `Δ = baseline_retry_ratio − prompt_retry_ratio` across the 15 matched (seed, chapter) slots. Positive Δ means the prompt arm reduced retries vs baseline.
+
+**Slot win:** counted ONLY when the prompt arm's full-precision retry_ratio is strictly lower than baseline's on the same (seed, chapter) slot. Ties do not count as wins.
+
+**Explicitly NOT used:** no chapter weighting, no attempt weighting, no pooled beat-level rate. These would let chapter-5 giants (48 / 85 / 146 attempts) dominate the 15-slot pilot and turn the decision metric back into a workload-size signal instead of a chapter-level behavior signal.
+
+### 7.b Decision rule
 
 | Outcome | Condition | Action |
 |---------|-----------|--------|
-| SHIP cheap floor | The aggressive prompt-only floor reduces failing chapters versus baseline, and `main` V1a beats the prompt-only floor by `<=1` failing chapter across the paired set | Treat schema churn as not yet justified by this charter; keep V1a live on `main`, but do not use this charter as evidence for extending the schema family |
-| ITERATE | The aggressive prompt-only floor and `main` V1a differ by exactly `2` failing chapters across the paired set, or the inference extractor materially changes the ranking between arms, or the token-shape gate data is still ambiguous | Re-charter with the completed tables and a narrower claim about where the remaining gap lives |
-| JUSTIFY schema | `main` V1a beats the aggressive prompt-only floor by `>=2` failing chapters across the paired set, and every `planning-beats` call for the measured rows stays under `7,500` completion tokens | Treat the V1a schema as causally justified enough to remain the active floor for any future V1b/V1c discussion |
-| KILL causal claim | Neither cheap lever reduces failing chapters versus baseline, or the apparent lift disappears when verifier surfaces are frozen, or any candidate arm that requires schema growth cannot stay under `7,500` completion tokens | Abandon the claim that payoff-schema enrichment is the right lever and redirect to a cheaper family |
+| **SHIP** prompt floor (V1a unjustified) | mean paired `Δ ≥ 0.03` AND prompt wins `≥ 11/15` slots | Cheap prompt lever is sufficient. Keep V1a live on `main`; do NOT extend to V1b/V1c on the strength of this pilot. |
+| **JUSTIFY** schema (escalate) | mean paired `Δ` within `±0.02` AND `mainv1a` observational row beats both arms by `≥ 0.02` once added | Schema may be doing real work. Expand to the full 6-seed pilot per §6 + add the `extractor` arm + run `mainv1a`. Re-derive thresholds at full-pilot scale. |
+| **KILL** causal claim | mean paired `Δ` within `±0.015` AND baseline pilot mean `retry_ratio ≤ 0.20` | Seeds insufficiently stressed; re-scope before further spend. |
+| **ITERATE** | everything else | Expand to full 6-seed pilot under the same §7 rule. |
+
+**Load-bearing axis:** the `≥ 11/15` slot-win rule. Under a null of 50% per-slot win rate, binomial P(≥11 wins / 15) ≈ 0.059 — hard enough to hit by luck alone but not so strict that a mini-pilot can't satisfy it. The `Δ ≥ 0.03` mean is a materiality backstop preventing ship on a pile of microscopic wins.
+
+**Practical-sameness bands:** `±0.02` and `±0.015` define when arms are effectively identical. They're asymmetric by design — KILL is stricter on sameness because it triggers re-scoping, while JUSTIFY is looser because it only triggers escalation (not a terminal decision).
+
+**Token-shape gate:** the `< 7,500 completion tokens` pre-run check from §8 still applies. Any arm whose chapter exceeds that gate fails for a token-budget reason independent of this metric.
+
+**No p-values.** Effect-size rules only.
+
+### 7.c Why this metric replaced the original binary `failing_chapter`
+
+The original §7 used `failing_chapter = validation_fail OR drafting_retry` (binary, per chapter). Baseline measurement revealed:
+- `validation_fail` signal: 0/15 chapter-slots. Zero variance → no detectable effect possible.
+- `drafting_retry` signal: 14/15 chapter-slots (93% saturation). Given ~20 beats per chapter and the observed ~30% beat-level retry rate, P(≥1 retry per chapter) is near 1.
+
+Combined, `failing_chapter` was saturated at 14/15 on baseline alone — a metric that can't distinguish a 1-retry chapter from a 43-retry chapter both flagged "failing." Codex session `019da330-c950-7d03-86bf-1847d7653fe0` verified the saturation and issued HALT-AND-RESPEC; session `019da336-081e-72b1-b191-dae888e9dd26` locked the replacement metric + numeric thresholds above using baseline-only data, before any prompt-arm data was examined.
+
+The prompt-arm runs were still executing when the respec landed; data collection was allowed to continue operationally but all analysis was frozen until this §7.a/b was committed. Analysis under the new metric begins only from commits *after* this one.
 
 ## 7.a Granularity axis — secondary measurement (required)
 
