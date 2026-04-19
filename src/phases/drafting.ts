@@ -625,7 +625,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                   }).catch(err => log(novelId, "warn", `logRevision failed: ${err instanceof Error ? err.message : err}`))
                   pendingExhaustion = {
                     kind: "reviser-rejected",
-                    novelId, chapter: ch, outline, prose,
+                    novelId, chapter: ch, attempt: attempts, outline, prose,
                     unresolvedDeviations: deviationsForLog,
                     reviserHistory: { attemptedScenes: revisedScenes, rejectionReason: `revised beat count ${revisedScenes.length} < floor ${minBeats}` },
                   }
@@ -642,7 +642,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                   }).catch(err => log(novelId, "warn", `logRevision failed: ${err instanceof Error ? err.message : err}`))
                   pendingExhaustion = {
                     kind: "reviser-rejected",
-                    novelId, chapter: ch, outline, prose,
+                    novelId, chapter: ch, attempt: attempts, outline, prose,
                     unresolvedDeviations: deviationsForLog,
                     reviserHistory: { attemptedScenes: revisedScenes, rejectionReason: `new characters: ${newCharacters.join(", ")}` },
                   }
@@ -687,7 +687,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                 }).catch(logErr => log(novelId, "warn", `logRevision failed: ${logErr instanceof Error ? logErr.message : logErr}`))
                 pendingExhaustion = {
                   kind: "reviser-rejected",
-                  novelId, chapter: ch, outline, prose,
+                  novelId, chapter: ch, attempt: attempts, outline, prose,
                   unresolvedDeviations: deviationsForLog,
                   reviserHistory: { attemptedScenes: [], rejectionReason: `reviser threw: ${errMsg.slice(0, 200)}` },
                 }
@@ -715,7 +715,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
               }).catch(err => log(novelId, "warn", `logRevision failed: ${err instanceof Error ? err.message : err}`))
               pendingExhaustion = {
                 kind: "plan-check-exhausted",
-                novelId, chapter: ch, outline, prose,
+                novelId, chapter: ch, attempt: attempts, outline, prose,
                 unresolvedDeviations: out.deviations ?? [],
               }
               bail = true
@@ -885,7 +885,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                 }).catch(err => log(novelId, "warn", `logRevision failed: ${err instanceof Error ? err.message : err}`))
                 pendingExhaustion = {
                   kind: "reviser-rejected",
-                  novelId, chapter: ch, outline, prose,
+                  novelId, chapter: ch, attempt: attempts, outline, prose,
                   unresolvedDeviations: blockersAsDeviations,
                   reviserHistory: { attemptedScenes: revisedScenes, rejectionReason: `[validation] revised beat count ${revisedScenes.length} < floor ${minBeats}` },
                 }
@@ -902,7 +902,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                 }).catch(err => log(novelId, "warn", `logRevision failed: ${err instanceof Error ? err.message : err}`))
                 pendingExhaustion = {
                   kind: "reviser-rejected",
-                  novelId, chapter: ch, outline, prose,
+                  novelId, chapter: ch, attempt: attempts, outline, prose,
                   unresolvedDeviations: blockersAsDeviations,
                   reviserHistory: { attemptedScenes: revisedScenes, rejectionReason: `[validation] new characters: ${newCharacters.join(", ")}` },
                 }
@@ -939,7 +939,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
               }).catch(logErr => log(novelId, "warn", `logRevision failed: ${logErr instanceof Error ? logErr.message : logErr}`))
               pendingExhaustion = {
                 kind: "reviser-rejected",
-                novelId, chapter: ch, outline, prose,
+                novelId, chapter: ch, attempt: attempts, outline, prose,
                 unresolvedDeviations: blockersAsDeviations,
                 reviserHistory: { attemptedScenes: [], rejectionReason: `[validation] reviser threw: ${errMsg.slice(0, 200)}` },
               }
@@ -951,7 +951,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
             log(novelId, "warn", `Validation still failing — not escalating to reviser (${reason}); falling through to plan-assist gate`)
             pendingExhaustion = {
               kind: "plan-check-exhausted",
-              novelId, chapter: ch, outline, prose,
+              novelId, chapter: ch, attempt: attempts, outline, prose,
               unresolvedDeviations: currentBlockers.map(b => ({ description: `[validation] ${b}`, beat_index: null as number | null })),
             }
           }

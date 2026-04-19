@@ -1082,6 +1082,19 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
     return Response.json({ ok: true, novelId, chapter, action: parsed.data.action })
   }
 
+  // ── Plan-assist exhaustion telemetry (read) ──────────────────────────
+  const exhaustionsMatch = path.match(/^\/api\/novel\/([^/]+)\/exhaustions$/)
+  if (exhaustionsMatch && req.method === "GET") {
+    const novelId = exhaustionsMatch[1]
+    try {
+      const { listExhaustionsForNovel } = await import("../db/chapter-exhaustions")
+      const rows = await listExhaustionsForNovel(novelId)
+      return Response.json({ exhaustions: rows })
+    } catch (err) {
+      return Response.json({ error: String(err) }, { status: 500 })
+    }
+  }
+
   // ── SSE event stream ───────────────────────────────────────────────
   const eventsMatch = path.match(/^\/api\/novel\/([^/]+)\/events$/)
   if (eventsMatch && req.method === "GET") {

@@ -817,3 +817,22 @@ export interface RevisionStats {
 export function getNovelRevisions(novelId: string) {
   return fetchJSON<{ stats: RevisionStats; rows: RevisionRow[] }>(`/api/novel/${encodeURIComponent(novelId)}/revisions`)
 }
+
+export interface ExhaustionRow {
+  id: number
+  novelId: string
+  chapter: number
+  attempt: number
+  firedAt: string
+  kind: "plan-check-exhausted" | "reviser-rejected"
+  resolverMode: "auto" | "cli" | "web"
+  unresolvedDeviations: Array<{ description: string; beat_index: number | null }>
+  reviserHistory: { attemptedScenes: unknown[]; rejectionReason: string } | null
+  decidedAt: string | null
+  decision: "edit-plan" | "override" | "abort" | null
+  decisionDetails: unknown | null
+}
+
+export function getNovelExhaustions(novelId: string) {
+  return fetchJSON<{ exhaustions: ExhaustionRow[] }>(`/api/novel/${encodeURIComponent(novelId)}/exhaustions`)
+}

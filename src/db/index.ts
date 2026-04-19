@@ -6,6 +6,7 @@ export {
 } from "./world"
 export { saveChapterOutline, getChapterOutline, getChapterOutlines, isPlanCheckOverridden, setPlanCheckOverridden } from "./outlines"
 export { logRevision, listRevisionsForNovel, hashIssueSig, canonicalizeDeviations, type RevisionOutcome, type LogRevisionInput, type RevisionRow } from "./chapter-revisions"
+export { logExhaustionFired, logExhaustionResolved, listExhaustionsForNovel, type ExhaustionKind, type ExhaustionRow } from "./chapter-exhaustions"
 export {
   saveChapterDraft, approveChapterDraft, getApprovedDraft, unapproveChapterDraft, deleteChapterDrafts,
   saveTonalPassDraft, getTonalPassDraft, deleteTonalPassDrafts,

@@ -15,6 +15,7 @@ import { emit, hasClients } from "./events"
 import { trace } from "./trace"
 import type { ChapterOutline } from "./types"
 import type { SceneBeat } from "./schemas/shared"
+import { logExhaustionFired, logExhaustionResolved } from "./db/chapter-exhaustions"
 
 export interface GateDecision {
   action: "approve" | "revise" | "reject"
@@ -49,6 +50,9 @@ export interface PlanAssistGatePayload {
   kind: "plan-check-exhausted" | "reviser-rejected"
   novelId: string
   chapter: number
+  /** Outer drafting attempt that fired this gate. Used for telemetry; payload
+   *  is constructed in drafting.ts which has the attempts counter in scope. */
+  attempt: number
   outline: ChapterOutline
   prose: string
   unresolvedDeviations: Array<{ description: string; beat_index: number | null }>
@@ -113,6 +117,22 @@ export function requestPlanAssist(
   payload: PlanAssistGatePayload,
   mode: GateResolverMode,
 ): Promise<PlanAssistDecision> {
+  // Telemetry row fires for every gate open — including auto mode, where
+  // the row persists as "pending" (no decision) because the run bails
+  // synchronously via PipelineBailError. Fire-and-forget; DB hiccups
+  // don't break the gate flow.
+  logExhaustionFired({
+    novelId: payload.novelId,
+    chapter: payload.chapter,
+    attempt: payload.attempt,
+    kind: payload.kind,
+    resolverMode: mode,
+    unresolvedDeviations: payload.unresolvedDeviations,
+    reviserHistory: payload.reviserHistory ?? null,
+  }).catch(err => {
+    console.warn(`[gates] logExhaustionFired failed: ${err instanceof Error ? err.message : err}`)
+  })
+
   if (mode === "auto") {
     throw new PipelineBailError(payload.kind, payload.novelId, payload.chapter, payload)
   }
@@ -174,6 +194,16 @@ export function resolvePlanAssist(
     durationMs: waitMs,
     payload: { action: decision.action },
   }).catch(() => {})
+
+  // Telemetry — persist the decision on the matching row. Fire-and-forget.
+  logExhaustionResolved({
+    novelId,
+    chapter,
+    decision: decision.action,
+    decisionDetails: decision.action === "edit-plan" ? decision.outline : null,
+  }).catch(err => {
+    console.warn(`[gates] logExhaustionResolved failed: ${err instanceof Error ? err.message : err}`)
+  })
 
   return true
 }

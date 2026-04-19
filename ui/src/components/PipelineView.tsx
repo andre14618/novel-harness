@@ -10,6 +10,7 @@ import { TraceTimeline } from "./TraceTimeline"
 import { PipelineFlow } from "./PipelineFlow"
 import { LiveMeters } from "./LiveMeters"
 import { RevisionsPanel } from "./RevisionsPanel"
+import { ExhaustionsPanel } from "./ExhaustionsPanel"
 import { LiveProse, type LiveBeat } from "./LiveProse"
 import { agentActionLabel } from "../agent-labels"
 
@@ -537,6 +538,7 @@ export function PipelineView() {
         />
 
         {state.id && <RevisionsPanel novelId={state.id} />}
+        {state.id && <ExhaustionsPanel novelId={state.id} />}
 
         {stalled && (
           <div className="card" style={{ borderColor: "#e2b714", textAlign: "center" }}>

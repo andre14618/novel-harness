@@ -48,6 +48,10 @@ mock.module("../logger", () => ({
 
 mock.module("../events", () => ({ emit: () => {} }))
 mock.module("../trace", () => ({ trace: async () => {} }))
+mock.module("../db/chapter-exhaustions", () => ({
+  logExhaustionFired: async () => 0,
+  logExhaustionResolved: async () => true,
+}))
 
 mock.module("../db", () => ({
   getNovel: async () => ({

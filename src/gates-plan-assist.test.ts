@@ -9,8 +9,13 @@
 import { test, expect, mock } from "bun:test"
 
 // events.ts does not touch DB, but trace() does — stub it so the test
-// doesn't require a live connection.
+// doesn't require a live connection. chapter-exhaustions writes telemetry
+// rows from gates.ts; same reason to stub.
 mock.module("./trace", () => ({ trace: async () => {} }))
+mock.module("./db/chapter-exhaustions", () => ({
+  logExhaustionFired: async () => 0,
+  logExhaustionResolved: async () => true,
+}))
 
 import {
   requestPlanAssist,
@@ -27,6 +32,7 @@ function makePayload(novelId: string, chapter: number): PlanAssistGatePayload {
     kind: "plan-check-exhausted",
     novelId,
     chapter,
+    attempt: 1,
     outline: {
       chapterNumber: chapter,
       title: "Stub Chapter",
