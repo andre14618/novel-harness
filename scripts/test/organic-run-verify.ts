@@ -353,9 +353,37 @@ async function main(): Promise<void> {
   console.log(`──────────────────────────────────────────────────────────`)
   await dumpDiagnostics(novelId)
 
-  // 6. Verdict
+  // 6. Verdict + experiment conclusion
+  //
+  // CLAUDE.md rule 2: every benchmark run links to an experiment via
+  // EXPERIMENT_ID=N. If the caller pre-registered the run (recommended)
+  // we conclude the experiment with the structured outcome so the row is
+  // queryable without log scraping. Unset EXPERIMENT_ID just skips the
+  // conclusion — the run still produces its exit code.
+  const passed = failures.length === 0
+  const expIdRaw = process.env.EXPERIMENT_ID
+  if (expIdRaw) {
+    const expId = parseInt(expIdRaw, 10)
+    if (Number.isFinite(expId)) {
+      try {
+        const { concludeExperiment } = await import("../../src/db/ops")
+        const conclusionBody = passed
+          ? `PASS — novel=${novelId}, chapter_exhaustions=0, lastRunError=null. Clean-run contract satisfied.`
+          : `FAIL — novel=${novelId}. Failures: ${failures.map(f => `[${f}]`).join(" ")}`
+        await concludeExperiment(expId, conclusionBody)
+        console.log(`\n[experiment] Concluded #${expId}: ${passed ? "PASS" : "FAIL"}`)
+      } catch (err) {
+        console.warn(`[experiment] concludeExperiment(${expId}) failed: ${err instanceof Error ? err.message : err}`)
+      }
+    } else {
+      console.warn(`[experiment] EXPERIMENT_ID="${expIdRaw}" is not a number — skipping conclusion`)
+    }
+  } else {
+    console.warn(`[experiment] No EXPERIMENT_ID set — run is untracked. Per CLAUDE.md rule 2, set EXPERIMENT_ID=N before kicking off.`)
+  }
+
   console.log(`\n──────────────────────────────────────────────────────────`)
-  if (failures.length === 0) {
+  if (passed) {
     console.log(`  VERDICT: PASS`)
     console.log(`    novel=${novelId}`)
     console.log(`    chapter_exhaustions=0, lastRunError=null`)

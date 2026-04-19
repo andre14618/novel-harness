@@ -14,6 +14,33 @@ origin: Codex threads a65ba6ef7290fdf25 (strategy) + ad350aa657ec1c9b1 (validati
 
 **Only on a human-approved ticket.** Never pick the next `docs/todo.md` item autonomously. Approved = user says "ship X" or explicit allowlist in a handoff doc. On ambiguous input, ask which ticket first.
 
+## Phase 0 — Create tuning_experiment (MANDATORY)
+
+**Before any code work.** CLAUDE.md rule 1: every experiment goes in the DB. Rule 2: every benchmark run links to an experiment via `EXPERIMENT_ID=N`.
+
+```ts
+import { createTuningExperiment } from "src/db/ops"
+const expId = await createTuningExperiment(
+  "charter" | "validation_sweep" | "infrastructure" | "checker-eval" | ..., // existing type enum
+  "<one-line description — what + why>",
+  { /* structured config: commits, codex threads, pass criteria, etc. */ },
+  { target: "<what>", dimension: "<axis>" },
+)
+```
+
+- **Architectural / charter work** (Round A/B-style multi-commit effort with Codex verdicts): `experiment_type='charter'`. Config includes `commits`, `codex_thread_ids`, `codex_final_verdict`, `codex_confidence`.
+- **Benchmark / validation runs** (organic-run-verify, R-campaign replays, cross-novel sweeps): `experiment_type='validation_sweep'` or existing matching type. Config includes seed, env, pass criteria, related_charter.
+- **Fine-tune trainings**: `experiment_type='sft_training'` — matches existing convention.
+
+**EXPERIMENT_ID discipline:**
+- Script runs: export `EXPERIMENT_ID=N` so logs link back
+- LLM calls: `llm_calls.experiment_id` should be populated where applicable
+- Commit body: cite the experiment ID (e.g., "Linked to experiment #237") when the commit ships code behind the experiment
+
+**Concluding:** call `concludeExperiment(expId, conclusion)` at end-of-work with the outcome (Codex verdict, pass/fail, measured Δ, whatever is load-bearing). NEVER delete experiments per rule in CLAUDE.md.
+
+**Pair every experiment with a decisions.md entry** when it produces a design choice or rules a path out. Cite the experiment ID and date in the entry.
+
 ## Phase 1 — Plan
 
 Write a plan with:

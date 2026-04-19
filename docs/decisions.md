@@ -1937,6 +1937,37 @@ DeepSeek ~3× cleaner on instruction-constrained prose. Cerebras wins on raw spe
 
 ---
 
+### Round A + Round B architecture — non-blind-retry shipped, V2 interceptor Phase 1 coexisting with V1
+*2026-04-19 · exp #237 (charter) + #238 (pre-registered validation_sweep, pending execution)*
+
+**Decision:** The non-blind-retry exhaustion-handler architecture shipped in two rounds on 2026-04-19, with a V2 transport-level debug-injection interceptor layered in parallel (Phase 1; coexists with V1 env flags in `src/phases/drafting.ts`). `revisionUsed` now persists to `chapter_outlines.revision_used` (sql/031) so the reviser hard cap survives process restart. `scripts/cleanup-orphans.ts` cascade-deletes across 26 novel-scoped tables for test-novel hygiene. Post-settle `validation-check` trace added so validation-path false-fires are distinguishable from genuine exhaustions. Organic-run-verify script written and pre-registered as experiment #238 (not yet executed).
+
+**Why:** Codex review `a252aecbb785a0eb3` (pre-Round-A) flagged `revisionUsed` as the last remaining restart-reset gap after the exhaustion-handler architecture shipped earlier. Round A closed that gap and the adjacent test-harness + cleanup gaps. Round B added the V2 transport interceptor spec (Codex thread `a892e3f5b4c79a3ea`) to eliminate the "instrument every new call site" fragility class that caused the two seam-recheck bugs (`fed9e4a`, `4ad2413`) earlier this week. A clean no-forced-flags validation run was required because every exhaustion test to date forced failure paths — we had no proof the handlers stay idle on a normal run.
+
+**Codex verdicts:**
+- Round A: `aad6d3503db164b1f` flagged 3 HIGH bugs (fire-and-forget DB write window on revisionUsed; R3 trace-replay race; 4 missing FK tables in cleanup-orphans) → all fixed in commit `0c9fa3b` → re-review thread `ac5ae1215077a1bee` PASS @ 90%, no blockers.
+- Round B: `a1f0d145132145414` hot-review (full-diff + 3 narrow questions) returned CONDITIONAL PASS @ 84% with 2 MEDIUM findings (llm.ts enrichment outside try/catch; organic-run-verify missing V2-store probe) → both fixed in commit `c0704bd`. M3 (Zod per-kind validation on `POST /api/debug/inject`) deferred with rationale: env gate blocks prod adversaries; malformed rules from test scripts fail loudly when fired.
+- Preflight caught one additional bug before Codex review (`ef4aa1b` — retryErrors local type widening). Validates the Lever 3 (preflight) pattern on first use.
+
+**Workflow overhaul (paired decision):** Today's multi-agent pattern (plan → Codex plan-triage → Codex plan review → parallel Sonnet subagents → preflight → Codex implementation review → fix once → deploy → validate → docs → retrospective) produced measurable quality gains (7 real bugs caught across Round A+B; zero regressions shipped to LXC). Codifies as `.claude/skills/implement-ticket.md` (11 phases, 9 exit triggers, mandatory Phase 0 = create tuning_experiment). Session retrospective TEMPLATE.md now mandates 7 telemetry fields (wall_clock_min, codex_reviews, rework_passes, bugs_caught_by_codex, bugs_caught_by_preflight, bugs_escaped_to_prod, preflight_false_positives) so future workflow decisions are data-driven. See Codex consultation threads `a65ba6ef7290fdf25` (5-lever strategic analysis) + `ad350aa657ec1c9b1` (overhaul validation).
+
+**Invariants decision (next-session #1 priority):** 5 starting invariants — revisionUsed restart persistence; seam-recheck symmetry (syntactic); subscribe-before-start (syntactic); branch-symmetric event emission (narrow scope, NOT global proof); body-already-used detection (syntactic). **Invariants MUST be blocking preflight gates, not debug-only** (Codex thread `ad350aa657ec1c9b1` Q6: non-blocking invariants become theater; the highest-probability failure mode for the whole overhaul).
+
+**Alternatives rejected:**
+- **Autonomous-loop runtime** — Codex and I agreed the scoped v1 IS the workflow we ship as documentation, NOT as runtime automation. Surface area too large; recreates the "free-running review gate" failure mode warned against in `docs/codex-usage.md`.
+- **Standing Codex threads as default** — deferred pending a telemetry-instrumented experiment in one future session. Anchoring risk is real; keep fresh threads with manual preamble headers as the default.
+- **Preflight as separate subsystem** — collapsed INTO invariants work. Preflight remains the wrapper/gate; invariants are one of its contents. Syntactic invariants subsume 80% of what a standalone preflight regex bundle would catch.
+
+**Ongoing:**
+- Experiment #238 (organic-run-verify) pending execution on LXC. Will self-conclude via `EXPERIMENT_ID=238` env var in `scripts/test/organic-run-verify.ts`. Pass gate: zero `chapter_exhaustions` rows + no `PipelineBailError` + zero active V2 rules in `GET /api/debug/active`.
+- Invariants work queued as next-session #1. Plan lives in `docs/next-session-plan.md` once regenerated.
+- Commit-pinned reviews formalized in the skill doc (every Codex prompt cites `git show <sha>`).
+- Deferred: autonomous loop as runtime; standing thread experiment; `src/invariants/debug.ts` blocking gate; cached generic-reasoning doc for Codex review preambles.
+
+**Commit chain:** Round A `0c9b1ef`, `f1f844f`, `83ffce0`, `0c9fa3b`, `c3e0c08`. Round B `a1f4842`, `b25f01e`, `7cdc0de`, `ef4aa1b`, `c0704bd`. Workflow overhaul `a0d396e`. Pending end-of-session commit links to this decisions entry + threads experiment #237/#238 references.
+
+---
+
 ## Superseded charters
 
 Log entries for charters killed by adversary review (RED verdict) and replaced by a successor with a new family name. Per `docs/commit-conventions.md` §Superseded-Documents, the predecessor is deleted from the working tree once superseded; this section is the append-only historical record. Recover the RED version with `git log --follow <path>` and `git show <sha>:<path>`.
