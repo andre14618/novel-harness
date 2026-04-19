@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { decidePlanAssist, type PlanAssistPayload } from "../api"
+import { OutlineEditor } from "./OutlineEditor"
 
 interface Props {
   novelId: string
@@ -9,39 +10,50 @@ interface Props {
 }
 
 /**
- * Minimal stub — step 2 of docs/exhaustion-handler-design.md. Edit-plan
- * uses a raw JSON textarea for now; step 4 of the design memo will ship
- * the proper outline editor.
+ * Renders when the drafting pipeline hits a plan-assist gate
+ * (docs/exhaustion-handler-design.md). Three decisions surface here:
+ *   - edit-plan — structured OutlineEditor (with raw-JSON escape hatch)
+ *   - override — persists plan_check_overridden=true for the chapter
+ *   - abort    — stops the drafting phase; user resumes later manually
  */
 export function PlanAssistPanel({ novelId, chapter, payload, onDecided }: Props) {
   const [deciding, setDeciding] = useState(false)
   const [mode, setMode] = useState<"choose" | "edit">("choose")
-  const [outlineJson, setOutlineJson] = useState(() => JSON.stringify(payload.outline, null, 2))
   const [error, setError] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState<string | null>(null)
 
-  async function submit(action: "edit-plan" | "override" | "abort") {
+  async function submitEditPlan(outline: any) {
     setDeciding(true)
     setError(null)
     try {
-      if (action === "edit-plan") {
-        let parsed: any
-        try {
-          parsed = JSON.parse(outlineJson)
-        } catch (parseErr: any) {
-          setError(`Outline JSON parse failed: ${parseErr.message}`)
-          setDeciding(false)
-          return
-        }
-        await decidePlanAssist(novelId, chapter, { action: "edit-plan", outline: parsed })
-        setSubmitted("Outline edit submitted — pipeline restarting with new plan…")
-      } else if (action === "override") {
-        await decidePlanAssist(novelId, chapter, { action: "override" })
-        setSubmitted("Override recorded — pipeline will bypass blocking checks for this chapter.")
-      } else {
-        await decidePlanAssist(novelId, chapter, { action: "abort" })
-        setSubmitted("Chapter aborted — drafting phase will stop. Resume after manual fix.")
-      }
+      await decidePlanAssist(novelId, chapter, { action: "edit-plan", outline })
+      setSubmitted("Outline edit submitted — pipeline restarting with new plan…")
+      setTimeout(onDecided, 1000)
+    } catch (err: any) {
+      setError(err.message ?? String(err))
+      setDeciding(false)
+    }
+  }
+
+  async function submitOverride() {
+    setDeciding(true)
+    setError(null)
+    try {
+      await decidePlanAssist(novelId, chapter, { action: "override" })
+      setSubmitted("Override recorded — pipeline will bypass blocking checks for this chapter.")
+      setTimeout(onDecided, 1000)
+    } catch (err: any) {
+      setError(err.message ?? String(err))
+      setDeciding(false)
+    }
+  }
+
+  async function submitAbort() {
+    setDeciding(true)
+    setError(null)
+    try {
+      await decidePlanAssist(novelId, chapter, { action: "abort" })
+      setSubmitted("Chapter aborted — drafting phase will stop. Resume after manual fix.")
       setTimeout(onDecided, 1000)
     } catch (err: any) {
       setError(err.message ?? String(err))
@@ -93,41 +105,29 @@ export function PlanAssistPanel({ novelId, chapter, payload, onDecided }: Props)
         </div>
       )}
 
-      {error && <p style={{ color: "#e74c3c", fontSize: "0.85rem", marginTop: "0.6rem" }}>{error}</p>}
-
       {mode === "edit" ? (
-        <div style={{ marginTop: "0.8rem" }}>
-          <p style={{ fontSize: "0.8rem", color: "#888", marginBottom: "0.3rem" }}>
-            Paste or edit the full ChapterOutline JSON below. Server-side
-            validation will reject partial or malformed outlines.
-          </p>
-          <textarea
-            value={outlineJson}
-            onChange={e => setOutlineJson(e.target.value)}
-            style={{ width: "100%", minHeight: "300px", fontFamily: "monospace", fontSize: "0.8rem" }}
-            autoFocus
-          />
-          <div className="gate-actions" style={{ marginTop: "0.6rem" }}>
-            <button onClick={() => submit("edit-plan")} disabled={deciding}>
-              {deciding ? "Submitting…" : "Submit edited plan"}
+        <OutlineEditor
+          initialOutline={payload.outline}
+          onSubmit={submitEditPlan}
+          onCancel={() => { setMode("choose"); setError(null) }}
+          submitting={deciding}
+          error={error}
+        />
+      ) : (
+        <>
+          {error && <p style={{ color: "#e74c3c", fontSize: "0.85rem", marginTop: "0.6rem" }}>{error}</p>}
+          <div className="gate-actions" style={{ marginTop: "0.8rem" }}>
+            <button onClick={() => setMode("edit")} disabled={deciding}>
+              Edit plan
             </button>
-            <button className="secondary" onClick={() => setMode("choose")} disabled={deciding}>
-              Back
+            <button className="secondary" onClick={submitOverride} disabled={deciding}>
+              {deciding ? "…" : "Override (ship anyway)"}
+            </button>
+            <button className="danger" onClick={submitAbort} disabled={deciding}>
+              Abort chapter
             </button>
           </div>
-        </div>
-      ) : (
-        <div className="gate-actions" style={{ marginTop: "0.8rem" }}>
-          <button onClick={() => setMode("edit")} disabled={deciding}>
-            Edit plan (JSON)
-          </button>
-          <button className="secondary" onClick={() => submit("override")} disabled={deciding}>
-            {deciding ? "…" : "Override (ship anyway)"}
-          </button>
-          <button className="danger" onClick={() => submit("abort")} disabled={deciding}>
-            Abort chapter
-          </button>
-        </div>
+        </>
       )}
     </div>
   )
