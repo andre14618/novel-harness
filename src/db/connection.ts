@@ -70,7 +70,7 @@ async function getAppliedMigrations(): Promise<Set<string>> {
 export async function migrate() {
   await ensureMigrationsTable()
   const applied = await getAppliedMigrations()
-  const sqlDir = resolve(import.meta.dir, "../sql")
+  const sqlDir = resolve(import.meta.dir, "../../sql")
 
   let files: string[]
   try {
