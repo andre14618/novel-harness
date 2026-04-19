@@ -1,7 +1,8 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { LoraComparePage } from "./LoraComparePage"
 import { AdaptersPage } from "./AdaptersPage"
 import { VoiceComparePage } from "./VoiceComparePage"
+import { listAdapters, type Adapter } from "../api"
 
 type Tab = "adapters" | "voice"
 
@@ -9,6 +10,85 @@ const TABS: Array<{ id: Tab; label: string; subtitle: string }> = [
   { id: "adapters", label: "Adapter Changelog", subtitle: "history + status" },
   { id: "voice", label: "Voice Imprinting", subtitle: "exp #193 · capability vs tuning" },
 ]
+
+function summarizeMetrics(m: Record<string, any> | null): string {
+  if (!m) return "—"
+  const parts: string[] = []
+  if (m.accuracy != null) parts.push(`acc ${(m.accuracy * 100).toFixed(0)}%`)
+  if (m.precision != null && m.recall != null) parts.push(`P/R ${(m.precision * 100).toFixed(0)}/${(m.recall * 100).toFixed(0)}`)
+  if (m.f1 != null) parts.push(`F1 ${m.f1.toFixed(2)}`)
+  if (m.latency_ms != null) parts.push(`${m.latency_ms}ms`)
+  if (m.delta_sum != null) parts.push(`Δsum ${m.delta_sum.toFixed(3)}`)
+  if (m.max_jaccard != null) parts.push(`maxJ ${m.max_jaccard.toFixed(3)}`)
+  return parts.length ? parts.join(" · ") : "—"
+}
+
+function DeployedSlate() {
+  const [adapters, setAdapters] = useState<Adapter[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    listAdapters().then(setAdapters).catch(err => setError(String(err)))
+  }, [])
+
+  if (error) return <p style={{ color: "#c95" }}>Failed to load adapters: {error}</p>
+  if (!adapters) return <p style={{ color: "#888" }}>Loading adapters…</p>
+
+  const deployed = adapters.filter(a => a.status === "deployed")
+  const candidates = adapters.filter(a => a.status === "candidate")
+
+  return (
+    <>
+      <table className="guide-table">
+        <thead>
+          <tr><th>Adapter</th><th>Slot</th><th>Headline metrics</th><th>Provenance</th></tr>
+        </thead>
+        <tbody>
+          {deployed.map(a => {
+            const exps = [
+              a.trainingExperimentId ? `train #${a.trainingExperimentId}` : null,
+              a.evalExperimentIds.length ? `eval [${a.evalExperimentIds.join(",")}]` : null,
+            ].filter(Boolean).join(" · ")
+            return (
+              <tr key={a.uri}>
+                <td><strong>{a.name}</strong></td>
+                <td style={{ color: "#aaa" }}>{a.slot ?? "—"}</td>
+                <td>{summarizeMetrics(a.headlineMetrics)}</td>
+                <td style={{ color: "#888", fontSize: "0.82rem" }}>{exps || "—"}</td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+      {candidates.length > 0 && (
+        <>
+          <h3 style={{ marginTop: 18, marginBottom: 8, fontSize: "0.9rem", color: "#aaa", textTransform: "uppercase", letterSpacing: "0.04em" }}>Candidates — not wired in</h3>
+          <table className="guide-table">
+            <thead>
+              <tr><th>Adapter</th><th>Slot</th><th>Headline metrics</th><th>Provenance</th></tr>
+            </thead>
+            <tbody>
+              {candidates.map(a => {
+                const exps = [
+                  a.trainingExperimentId ? `train #${a.trainingExperimentId}` : null,
+                  a.evalExperimentIds.length ? `eval [${a.evalExperimentIds.join(",")}]` : null,
+                ].filter(Boolean).join(" · ")
+                return (
+                  <tr key={a.uri}>
+                    <td>{a.name}</td>
+                    <td style={{ color: "#aaa" }}>{a.slot ?? "—"}</td>
+                    <td>{summarizeMetrics(a.headlineMetrics)}</td>
+                    <td style={{ color: "#888", fontSize: "0.82rem" }}>{exps || "—"}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </>
+      )}
+    </>
+  )
+}
 
 export function FinetunePage() {
   const [tab, setTab] = useState<Tab>("adapters")
@@ -20,17 +100,7 @@ export function FinetunePage() {
       <div className="finetune-header" style={{ marginBottom: 16 }}>
         <section>
           <h2 style={{ marginTop: 0 }}>Current fine-tune agents</h2>
-          <table className="guide-table">
-            <thead>
-              <tr><th>Adapter</th><th>Task</th><th>Status</th></tr>
-            </thead>
-            <tbody>
-              <tr><td>Adherence Checker</td><td>Beat spec vs prose (events+attribution)</td><td><strong>V4 deployed</strong> — 2,134 Sonnet-labeled pairs, 79% first-attempt pass (exp #161)</td></tr>
-              <tr><td>Chapter Plan Checker</td><td>Cross-beat coherence (pass/fail)</td><td><strong>V2 deployed</strong> — 520 pairs, 96% accuracy, 609ms (exp #178)</td></tr>
-              <tr><td>Continuity</td><td>Consistency with world state</td><td><strong>V2 deployed</strong> — 253 pairs, 12x cost reduction from 235B (exp #175)</td></tr>
-              <tr><td>Tonal Pass (auto)</td><td>Per-paragraph style rewriting</td><td style={{ color: "#888" }}><em>Retired 2026-04-16</em> — voice now lands at generation time via per-genre voice LoRAs (e.g. salvatore-1988-v3 for fantasy). On-demand <code>POST /api/novel/:id/tonal-pass</code> still works.</td></tr>
-            </tbody>
-          </table>
+          <DeployedSlate />
         </section>
       </div>
 
