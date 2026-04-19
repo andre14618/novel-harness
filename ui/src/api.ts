@@ -647,3 +647,29 @@ export function getTrace(novelId: string, filters: { chapter?: number; event_typ
   const qs = params.toString()
   return fetchJSON<TraceEvent[]>(`/api/novel/${novelId}/trace${qs ? `?${qs}` : ""}`)
 }
+
+// ── Adapter registry ──────────────────────────────────────────────────
+
+export type AdapterStatus = "deployed" | "candidate" | "retired" | "rejected"
+
+export interface Adapter {
+  uri: string
+  name: string
+  slot: string | null
+  baseModel: string | null
+  status: AdapterStatus
+  trainingExperimentId: number | null
+  evalExperimentIds: number[]
+  deployedAt: string | null
+  retiredAt: string | null
+  headlineMetrics: Record<string, any> | null
+  trainingDataPath: string | null
+  trainingDataSha256: string | null
+  supersedes: string | null
+  notes: string | null
+  trainingConclusion: string | null
+}
+
+export function listAdapters() {
+  return fetchJSON<Adapter[]>("/api/adapters")
+}

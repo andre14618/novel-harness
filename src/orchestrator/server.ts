@@ -506,6 +506,17 @@ const server = Bun.serve({
     }
 
 
+    // Adapter registry — deployed slate + provenance for FinetunePage
+    if (path === "/api/adapters" && req.method === "GET") {
+      try {
+        const { adapters } = await import("../harness")
+        const rows = await adapters.listAdapters()
+        return Response.json(rows)
+      } catch (err) {
+        return Response.json({ error: String(err) }, { status: 500 })
+      }
+    }
+
     // ── Retrieval Config API ─────────────────────────────────────────
     if (path === "/api/retrieval-config/defaults" && req.method === "GET") {
       const { DEFAULT_CONFIG } = await import("../db/retrieval")
