@@ -125,9 +125,17 @@ flag.
 ### Failure mode — reviser rejected on validation path
 
 If the validation-driven reviser's output fails the post-revision sanity
-checks (beat floor, no new characters), fall through to the `plan-assist`
-gate (path B) — same human-decision surface, payload `kind: "reviser-rejected"`
-with `reviserHistory.rejectionReason` populated from the validation attempt.
+checks (beat floor, no new characters), the target end-state is to fall
+through to the `plan-assist` gate (path B) — same human-decision surface,
+payload `kind: "reviser-rejected"` with `reviserHistory.rejectionReason`
+populated from the validation attempt.
+
+**Ordering caveat** (per Codex review 2026-04-19): if path (C) ships before
+the `plan-assist` gate scaffolding, its reviser-rejected fallback stays as
+the current blind-bail behavior (i.e., `bail = true; continue` → blind
+outer restart). Explicit TODO in `drafting.ts` to rewire to the gate once
+A/B land. This preserves the "fail as current system does" contract for
+the intermediate shipping state instead of requiring gate infra on day 1.
 
 ## Shared infrastructure
 
@@ -147,18 +155,23 @@ with `reviserHistory.rejectionReason` populated from the validation attempt.
 
 ## Implementation order (for next session)
 
-1. `buildContextForValidation` + validation-driven reviser escalation (path C).
-   Lowest-risk — pure code path, no UI, no new gate type. Most of the
-   infrastructure already exists; it's ~40 lines of additions in drafting.ts
-   mirroring the plan-check escalation pattern.
+1. **Path (C) with scoped no-gate fallback** — `buildContextForValidation` +
+   validation-driven reviser escalation. Reviser-accepted → outer restart with
+   revised plan (existing pattern). Reviser-rejected OR reviser-threw → blind
+   bail (current behavior), with `TODO(exhaustion-gate)` comment marking the
+   rewire point. No new gate, no UI, no new telemetry table; ~40 lines of
+   additions in drafting.ts mirroring the plan-check escalation pattern.
 2. `plan-assist` gate scaffolding — new gate type, SSE event, throw-on-auto
    behavior. No UI yet; CLI mode prompts work end-to-end.
-3. Wire paths (A) + (B) to the gate.
+3. Wire paths (A) + (B) to the gate, and rewire path (C)'s reviser-rejected
+   fallback from step 1's blind-bail to the gate.
 4. UI — `PlanAssistPanel` in Studio.
 5. `chapter_exhaustions` telemetry table + query surface.
 
 Steps 1-3 unblock the "exhaustion never silently restarts" invariant. Steps
-4-5 polish the observability surface.
+4-5 polish the observability surface. Codex review 2026-04-19 validated
+this ordering (step 1 cannot fully realize its spec without step 2, so step
+1 explicitly scopes to the no-fallback case as a shipping-checkpoint state).
 
 ## Open questions
 

@@ -193,9 +193,11 @@ test("reviser fires exactly once across 3 outer attempts when plan-check persist
 
   expect(saveChapterOutlineCallCount).toBe(1)
 
-  // Attempts 2 and 3 must skip escalation via the "already revised" path.
+  // Attempts 2 and 3 must each hit the "already revised" skip path —
+  // exactly once per attempt, so 2 total. A weaker `>=1` would pass if
+  // revisionUsed leaked but one attempt still fired a second reviser.
   const skipLines = logCalls.filter(l => l.includes("already revised this chapter"))
-  expect(skipLines.length).toBeGreaterThanOrEqual(1)
+  expect(skipLines.length).toBe(2)
 
   // plan-check ran at least once per attempt (3 attempts) and additional
   // times inside each attempt's settle loop. Exact count is implementation
@@ -215,10 +217,10 @@ test("reviser fires exactly once across 3 outer attempts when reviser throws (er
   const reviserErrorLogs = logCalls.filter(l => l.includes("Chapter-plan-reviser failed"))
   expect(reviserErrorLogs.length).toBe(1)
 
-  // revisionUsed is set BEFORE the call, so even though the reviser threw
-  // we must NOT see a second escalation on attempts 2 or 3.
+  // revisionUsed is set BEFORE the reviser call, so even though reviser
+  // threw, both attempts 2 and 3 must hit the skip path — exactly 2 logs.
   const skipLines = logCalls.filter(l => l.includes("already revised this chapter"))
-  expect(skipLines.length).toBeGreaterThanOrEqual(1)
+  expect(skipLines.length).toBe(2)
 
   expect(saveChapterOutlineCallCount).toBe(0)
 })
