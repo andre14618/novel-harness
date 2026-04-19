@@ -44,6 +44,7 @@
  */
 
 import db from "../../src/db/connection"
+import { watchForExpectations, type SSEEventMatcher } from "./lib/sse-watcher"
 
 // ── CLI flags ────────────────────────────────────────────────────────────
 const args = process.argv.slice(2)
@@ -204,10 +205,64 @@ async function runR1_autoBailPlanCheck(assumeEnvSet: boolean): Promise<TestResul
   try {
     const seed = makeTestSeed("Rynn")
     const novelId = await startNovel(seed, "auto")
-    console.log(`  [R1] novel=${novelId}, waiting for idle...`)
+    console.log(`  [R1] novel=${novelId}, waiting for SSE signal chain...`)
 
-    const state = await waitForIdle(novelId, 1_500_000)
-    assert(!state.active, "Novel should be idle after bail")
+    // SSE expectations — must fire in order. Fail fast on timeout (5 min each)
+    // instead of blind polling for up to 25 min.
+    const expectations: SSEEventMatcher[] = [
+      {
+        name: "debug-inject with forcePlanCheck=fail",
+        timeoutMs: 300_000,
+        match: e =>
+          e.type === "trace" &&
+          e.data.eventType === "debug-inject" &&
+          e.data.forcePlanCheck === "fail",
+      },
+      {
+        // KEY signal: the forced plan-check actually fired inside the pipeline.
+        name: "plan-check-outcome pass=false forcedPlanCheck=true",
+        timeoutMs: 300_000,
+        match: e =>
+          e.type === "trace" &&
+          e.data.eventType === "plan-check-outcome" &&
+          e.data.pass === false &&
+          e.data.forcedPlanCheck === true,
+      },
+      {
+        name: "gate:plan-assist event fires",
+        timeoutMs: 300_000,
+        match: e => e.type === "gate:plan-assist",
+      },
+      {
+        // Auto mode bails — stream ends with error (PipelineBailError) or done.
+        name: "terminal error (PipelineBailError) or done",
+        timeoutMs: 300_000,
+        match: e =>
+          (e.type === "error" && /PipelineBailError/.test(JSON.stringify(e.data))) ||
+          e.type === "done",
+      },
+    ]
+
+    const sseResults = await watchForExpectations({
+      novelId,
+      apiBase: API_BASE,
+      apiKey: API_KEY,
+      expectations,
+      overallTimeoutMs: 25 * 60_000,
+      onEvent: e => {
+        if (["trace", "gate:plan-assist", "error", "done"].includes(e.type)) {
+          const tag = e.type === "trace" ? `trace:${e.data.eventType}` : e.type
+          console.log(`  [R1][EVENT] ${novelId} ${tag}`)
+        }
+      },
+    })
+
+    for (const r of sseResults) {
+      assert(r.matched, `SSE expectation "${r.name}" did not match: ${r.error}`)
+    }
+
+    // DB assertions — cheap confirmation after SSE watch resolves
+    const state = await (await apiGet(`/api/novel/${novelId}/state`)).json() as any
     assert(state.lastRunError !== null, "lastRunError should be populated")
     assert(state.lastRunError?.kind === "plan-assist-bail",
       `Expected kind=plan-assist-bail, got: ${state.lastRunError?.kind}`)
@@ -216,7 +271,6 @@ async function runR1_autoBailPlanCheck(assumeEnvSet: boolean): Promise<TestResul
     assert(state.lastRunError?.chapter === 1,
       `Expected chapter=1, got: ${state.lastRunError?.chapter}`)
 
-    // DB assertions
     const exhRows = await db`
       SELECT * FROM chapter_exhaustions
       WHERE novel_id = ${novelId}
@@ -257,9 +311,60 @@ async function runR5_validationPath(assumeEnvSet: boolean): Promise<TestResult> 
   try {
     const seed = makeTestSeed("Sera")
     const novelId = await startNovel(seed, "auto")
-    console.log(`  [R5] novel=${novelId}, waiting for idle...`)
+    console.log(`  [R5] novel=${novelId}, waiting for SSE signal chain...`)
 
-    const state = await waitForIdle(novelId, 1_500_000)
+    const expectations: SSEEventMatcher[] = [
+      {
+        name: "debug-inject with forceValidation=pov",
+        timeoutMs: 300_000,
+        match: e =>
+          e.type === "trace" &&
+          e.data.eventType === "debug-inject" &&
+          e.data.forceValidation === "pov",
+      },
+      {
+        // Validation blocked — the forced validation blocker fired.
+        name: "validation-check passed=false",
+        timeoutMs: 300_000,
+        match: e =>
+          e.type === "trace" &&
+          e.data.eventType === "validation-check" &&
+          e.data.passed === false,
+      },
+      {
+        // Gate fires — either reviser-rejected (sanity check rejected) or
+        // plan-check-exhausted (reviser-accept-then-skip path).
+        name: "gate:plan-assist event fires",
+        timeoutMs: 300_000,
+        match: e => e.type === "gate:plan-assist",
+      },
+      {
+        name: "terminal error or done",
+        timeoutMs: 300_000,
+        match: e => e.type === "error" || e.type === "done",
+      },
+    ]
+
+    const sseResults = await watchForExpectations({
+      novelId,
+      apiBase: API_BASE,
+      apiKey: API_KEY,
+      expectations,
+      overallTimeoutMs: 25 * 60_000,
+      onEvent: e => {
+        if (["trace", "gate:plan-assist", "error", "done"].includes(e.type)) {
+          const tag = e.type === "trace" ? `trace:${e.data.eventType}` : e.type
+          console.log(`  [R5][EVENT] ${novelId} ${tag}`)
+        }
+      },
+    })
+
+    for (const r of sseResults) {
+      assert(r.matched, `SSE expectation "${r.name}" did not match: ${r.error}`)
+    }
+
+    // DB assertions — cheap confirmation after SSE watch resolves
+    const state = await (await apiGet(`/api/novel/${novelId}/state`)).json() as any
     assert(!state.active, "Novel should be idle after bail")
     assert(state.lastRunError !== null, "lastRunError should be populated (auto bail expected)")
 
@@ -308,13 +413,64 @@ async function runR6_reviserRejected(assumeEnvSet: boolean): Promise<TestResult>
   try {
     const seed = makeTestSeed("Korr")
     const novelId = await startNovel(seed, "auto")
-    console.log(`  [R6] novel=${novelId}, waiting for idle...`)
+    console.log(`  [R6] novel=${novelId}, waiting for SSE signal chain...`)
 
-    const state = await waitForIdle(novelId, 1_500_000)
+    const expectations: SSEEventMatcher[] = [
+      {
+        name: "debug-inject with forcePlanCheck=fail and forceReviser=reject",
+        timeoutMs: 300_000,
+        match: e =>
+          e.type === "trace" &&
+          e.data.eventType === "debug-inject" &&
+          e.data.forcePlanCheck === "fail" &&
+          e.data.forceReviser === "reject",
+      },
+      {
+        name: "plan-check-outcome pass=false",
+        timeoutMs: 300_000,
+        match: e =>
+          e.type === "trace" &&
+          e.data.eventType === "plan-check-outcome" &&
+          e.data.pass === false,
+      },
+      {
+        // KEY discriminator: gate kind must be reviser-rejected when the reviser
+        // sanity check rejects the returned plan.
+        name: "gate:plan-assist with kind=reviser-rejected",
+        timeoutMs: 300_000,
+        match: e =>
+          e.type === "gate:plan-assist" &&
+          e.data.kind === "reviser-rejected",
+      },
+      {
+        name: "terminal error or done",
+        timeoutMs: 300_000,
+        match: e => e.type === "error" || e.type === "done",
+      },
+    ]
+
+    const sseResults = await watchForExpectations({
+      novelId,
+      apiBase: API_BASE,
+      apiKey: API_KEY,
+      expectations,
+      overallTimeoutMs: 25 * 60_000,
+      onEvent: e => {
+        if (["trace", "gate:plan-assist", "error", "done"].includes(e.type)) {
+          const tag = e.type === "trace" ? `trace:${e.data.eventType}` : e.type
+          console.log(`  [R6][EVENT] ${novelId} ${tag} ${e.type === "gate:plan-assist" ? `kind=${e.data.kind}` : ""}`)
+        }
+      },
+    })
+
+    for (const r of sseResults) {
+      assert(r.matched, `SSE expectation "${r.name}" did not match: ${r.error}`)
+    }
+
+    // DB assertions — cheap confirmation after SSE watch resolves
+    const state = await (await apiGet(`/api/novel/${novelId}/state`)).json() as any
     assert(!state.active, "Novel should be idle")
     assert(state.lastRunError !== null, "lastRunError should be populated")
-    // Either plan-assist-bail with reviser-rejected kind, or the reviser
-    // rejection gets followed by plan-check-exhausted — either is valid here.
     const validKinds = ["plan-assist-bail"]
     assert(validKinds.includes(state.lastRunError?.kind),
       `Expected kind in [${validKinds.join(",")}], got: ${state.lastRunError?.kind}`)
@@ -354,9 +510,59 @@ async function runR7_reviserSingleEscalation(assumeEnvSet: boolean): Promise<Tes
   try {
     const seed = makeTestSeed("Tamsin")
     const novelId = await startNovel(seed, "auto")
-    console.log(`  [R7] novel=${novelId}, waiting for idle...`)
+    console.log(`  [R7] novel=${novelId}, waiting for SSE signal chain...`)
 
-    await waitForIdle(novelId, 1_500_000)
+    // Same chain as R1 — the test value-add is the DB assertion for exactly
+    // one non-skip revision row (single-escalation guarantee). The SSE watch
+    // just gives us a fast fail if the signal chain breaks.
+    const expectations: SSEEventMatcher[] = [
+      {
+        name: "debug-inject with forcePlanCheck=fail",
+        timeoutMs: 300_000,
+        match: e =>
+          e.type === "trace" &&
+          e.data.eventType === "debug-inject" &&
+          e.data.forcePlanCheck === "fail",
+      },
+      {
+        name: "plan-check-outcome pass=false",
+        timeoutMs: 300_000,
+        match: e =>
+          e.type === "trace" &&
+          e.data.eventType === "plan-check-outcome" &&
+          e.data.pass === false,
+      },
+      {
+        name: "gate:plan-assist event fires",
+        timeoutMs: 300_000,
+        match: e => e.type === "gate:plan-assist",
+      },
+      {
+        name: "terminal error or done",
+        timeoutMs: 300_000,
+        match: e => e.type === "error" || e.type === "done",
+      },
+    ]
+
+    const sseResults = await watchForExpectations({
+      novelId,
+      apiBase: API_BASE,
+      apiKey: API_KEY,
+      expectations,
+      overallTimeoutMs: 25 * 60_000,
+      onEvent: e => {
+        if (["trace", "gate:plan-assist", "error", "done"].includes(e.type)) {
+          const tag = e.type === "trace" ? `trace:${e.data.eventType}` : e.type
+          console.log(`  [R7][EVENT] ${novelId} ${tag}`)
+        }
+      },
+    })
+
+    for (const r of sseResults) {
+      assert(r.matched, `SSE expectation "${r.name}" did not match: ${r.error}`)
+    }
+
+    // DB assertions — exactly one non-skip revision row is the test value-add.
 
     const allRevisions = await db`
       SELECT outcome FROM chapter_revisions WHERE novel_id = ${novelId} ORDER BY id

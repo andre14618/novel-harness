@@ -25,6 +25,7 @@
  */
 
 import db from "../../src/db/connection"
+import { watchForExpectations, watchForTerminal, type SSEEventMatcher } from "./lib/sse-watcher"
 
 // ── CLI flags ────────────────────────────────────────────────────────────
 const args = process.argv.slice(2)
@@ -155,13 +156,29 @@ async function runR2_webOverride(): Promise<TestResult> {
   try {
     const seed = makeTestSeed("Rynn")
     const novelId = await startNovel(seed, "web")
-    console.log(`  [R2] novel=${novelId}, waiting for gate...`)
+    console.log(`  [R2] novel=${novelId}, waiting for SSE gate signal...`)
 
-    // Gate opens when plan-check is exhausted after the settle loop
-    const stateAtGate = await waitForGate(novelId, 90_000)
+    // Wait for the gate:plan-assist event — replaces polling waitForGate().
+    const gateEvent = await watchForTerminal({
+      novelId,
+      apiBase: API_BASE,
+      apiKey: API_KEY,
+      terminalTypes: ["gate:plan-assist"],
+      timeoutMs: 90_000,
+      onEvent: e => {
+        if (["gate:plan-assist", "error", "done"].includes(e.type)) {
+          console.log(`  [R2][EVENT] ${novelId} ${e.type}`)
+        }
+      },
+    })
+    assert(gateEvent !== null, "Expected gate:plan-assist SSE event within 90s")
+    assert(gateEvent!.type === "gate:plan-assist", `Expected gate:plan-assist, got ${gateEvent!.type}`)
+    assert(gateEvent!.data.chapter === 1,
+      `Expected gate for chapter 1, got chapter=${gateEvent!.data.chapter}`)
+
+    // Confirm state endpoint also sees the gate (cheap read after SSE confirmed it)
+    const stateAtGate = await (await apiGet(`/api/novel/${novelId}/state`)).json() as any
     assert(stateAtGate.pendingPlanAssist !== null, "pendingPlanAssist should be set when gate opens")
-    assert(stateAtGate.pendingPlanAssist.chapter === 1,
-      `Expected gate for chapter 1, got chapter=${stateAtGate.pendingPlanAssist.chapter}`)
 
     // Submit override decision
     const decideR = await apiPost(`/api/novel/${novelId}/plan-assist/1/decide`, { action: "override" })
@@ -169,6 +186,36 @@ async function runR2_webOverride(): Promise<TestResult> {
     const decideBody = await decideR.json() as any
     assert(decideBody.ok === true, `decide response ok not true: ${JSON.stringify(decideBody)}`)
     assert(decideBody.action === "override", `Expected action=override in response, got: ${decideBody.action}`)
+
+    // Wait for gate:plan-assist-resolved, then phase:changed or done.
+    const postDecideResult = await watchForExpectations({
+      novelId,
+      apiBase: API_BASE,
+      apiKey: API_KEY,
+      expectations: [
+        {
+          name: "gate:plan-assist-resolved after override",
+          timeoutMs: 30_000,
+          match: e =>
+            e.type === "gate:plan-assist-resolved" &&
+            e.data.action === "override",
+        },
+        {
+          name: "phase:changed or done after gate resolved",
+          timeoutMs: 120_000,
+          match: e => e.type === "phase:changed" || e.type === "done",
+        },
+      ],
+      overallTimeoutMs: 180_000,
+      onEvent: e => {
+        if (["gate:plan-assist-resolved", "phase:changed", "done", "error"].includes(e.type)) {
+          console.log(`  [R2][EVENT] ${novelId} ${e.type}`)
+        }
+      },
+    })
+    for (const r of postDecideResult) {
+      assert(r.matched, `SSE expectation "${r.name}" did not match: ${r.error}`)
+    }
 
     // DB: plan_check_overridden should now be true
     const outlineRows = await db`
@@ -189,10 +236,9 @@ async function runR2_webOverride(): Promise<TestResult> {
     assert(overrideRow !== undefined,
       `Expected decision='override' in chapter_exhaustions, found: ${exhRows.map((r: any) => r.decision).join(",")}`)
 
-    // Wait for novel to finish (or hit maxDraftAttempts) — gate resolved,
-    // plan-check skipped, approval gate should open then auto-advance or idle
-    console.log(`  [R2] override submitted, waiting for novel to settle...`)
-    await waitForIdle(novelId, 120_000)
+    // Novel may still be running after override — check that we're post-gate.
+    // Final guard comes from the SSE watch above (gate resolved + phase advanced).
+    console.log(`  [R2] override submitted and gate resolved.`)
 
     // Final guard: exactly ONE chapter_exhaustions row — no second gate fire
     const exhFinal = await db`
@@ -219,12 +265,28 @@ async function runR3_webEditPlan(): Promise<TestResult> {
   try {
     const seed = makeTestSeed("Kaela")
     const novelId = await startNovel(seed, "web")
-    console.log(`  [R3] novel=${novelId}, waiting for gate...`)
+    console.log(`  [R3] novel=${novelId}, waiting for SSE gate signal...`)
 
-    const stateAtGate = await waitForGate(novelId, 90_000)
+    // Wait for gate:plan-assist SSE event — replaces polling waitForGate().
+    const gateEvent = await watchForTerminal({
+      novelId,
+      apiBase: API_BASE,
+      apiKey: API_KEY,
+      terminalTypes: ["gate:plan-assist"],
+      timeoutMs: 90_000,
+      onEvent: e => {
+        if (["gate:plan-assist", "error", "done"].includes(e.type)) {
+          console.log(`  [R3][EVENT] ${novelId} ${e.type}`)
+        }
+      },
+    })
+    assert(gateEvent !== null, "Expected gate:plan-assist SSE event within 90s")
+    assert(gateEvent!.data.chapter === 1,
+      `Expected gate for chapter 1, got chapter=${gateEvent!.data.chapter}`)
+
+    // Confirm state endpoint also sees the gate (needed to get existingOutline payload)
+    const stateAtGate = await (await apiGet(`/api/novel/${novelId}/state`)).json() as any
     assert(stateAtGate.pendingPlanAssist !== null, "pendingPlanAssist should be set when gate opens")
-    assert(stateAtGate.pendingPlanAssist.chapter === 1,
-      `Expected gate for chapter 1, got chapter=${stateAtGate.pendingPlanAssist.chapter}`)
 
     // The payload carries the current outline — use it as the base for the replacement
     const existingOutline = stateAtGate.pendingPlanAssist.payload?.outline ?? null
@@ -303,8 +365,22 @@ async function runR3_webEditPlan(): Promise<TestResult> {
     console.log(`  [R3] testing empty-scenes semantic guard...`)
     const seed2 = makeTestSeed("Vael")
     const novelId2 = await startNovel(seed2, "web")
-    console.log(`  [R3] guard novel=${novelId2}, waiting for gate...`)
-    await waitForGate(novelId2, 90_000)
+    console.log(`  [R3] guard novel=${novelId2}, waiting for SSE gate signal...`)
+
+    // Wait for gate:plan-assist SSE event for the guard novel.
+    const guardGateEvent = await watchForTerminal({
+      novelId: novelId2,
+      apiBase: API_BASE,
+      apiKey: API_KEY,
+      terminalTypes: ["gate:plan-assist"],
+      timeoutMs: 90_000,
+      onEvent: e => {
+        if (["gate:plan-assist", "error"].includes(e.type)) {
+          console.log(`  [R3][EVENT] guard=${novelId2} ${e.type}`)
+        }
+      },
+    })
+    assert(guardGateEvent !== null, "Expected gate:plan-assist SSE event for guard novel within 90s")
 
     // Fetch the outline from state to build a structurally-valid but empty-scenes body
     const guardStateR = await apiGet(`/api/novel/${novelId2}/state`)
@@ -358,12 +434,24 @@ async function runR4_webAbort(): Promise<TestResult> {
   try {
     const seed = makeTestSeed("Dael")
     const novelId = await startNovel(seed, "web")
-    console.log(`  [R4] novel=${novelId}, waiting for gate...`)
+    console.log(`  [R4] novel=${novelId}, waiting for SSE gate signal...`)
 
-    const stateAtGate = await waitForGate(novelId, 90_000)
-    assert(stateAtGate.pendingPlanAssist !== null, "pendingPlanAssist should be set when gate opens")
-    assert(stateAtGate.pendingPlanAssist.chapter === 1,
-      `Expected gate for chapter 1, got chapter=${stateAtGate.pendingPlanAssist.chapter}`)
+    // Wait for gate:plan-assist SSE event — replaces polling waitForGate().
+    const gateEvent = await watchForTerminal({
+      novelId,
+      apiBase: API_BASE,
+      apiKey: API_KEY,
+      terminalTypes: ["gate:plan-assist"],
+      timeoutMs: 90_000,
+      onEvent: e => {
+        if (["gate:plan-assist", "error", "done"].includes(e.type)) {
+          console.log(`  [R4][EVENT] ${novelId} ${e.type}`)
+        }
+      },
+    })
+    assert(gateEvent !== null, "Expected gate:plan-assist SSE event within 90s")
+    assert(gateEvent!.data.chapter === 1,
+      `Expected gate for chapter 1, got chapter=${gateEvent!.data.chapter}`)
 
     // Record the timestamp just before abort so we can check for post-abort LLM calls
     const abortIssuedAt = new Date().toISOString()
@@ -375,9 +463,41 @@ async function runR4_webAbort(): Promise<TestResult> {
     assert(decideBody.ok === true, `decide response ok not true: ${JSON.stringify(decideBody)}`)
     assert(decideBody.action === "abort", `Expected action=abort in response, got: ${decideBody.action}`)
 
-    // Poll until active===false
-    console.log(`  [R4] abort submitted, waiting for novel to stop...`)
-    const finalState = await waitForIdle(novelId, 60_000)
+    // Wait for gate:plan-assist-resolved (confirms abort was processed) then
+    // check for stream close (done) or error — abort does not advance phase.
+    console.log(`  [R4] abort submitted, waiting for gate resolution...`)
+    const postAbortResult = await watchForExpectations({
+      novelId,
+      apiBase: API_BASE,
+      apiKey: API_KEY,
+      expectations: [
+        {
+          name: "gate:plan-assist-resolved with action=abort",
+          timeoutMs: 30_000,
+          match: e =>
+            e.type === "gate:plan-assist-resolved" &&
+            e.data.action === "abort",
+        },
+        {
+          // After abort the run stops — stream closes (done) or error fires.
+          name: "done or error after abort",
+          timeoutMs: 60_000,
+          match: e => e.type === "done" || e.type === "error",
+        },
+      ],
+      overallTimeoutMs: 120_000,
+      onEvent: e => {
+        if (["gate:plan-assist-resolved", "done", "error"].includes(e.type)) {
+          console.log(`  [R4][EVENT] ${novelId} ${e.type}`)
+        }
+      },
+    })
+    for (const r of postAbortResult) {
+      assert(r.matched, `SSE expectation "${r.name}" did not match: ${r.error}`)
+    }
+
+    // DB-backed phase check — authoritative after SSE confirms abort processed.
+    const finalState = await (await apiGet(`/api/novel/${novelId}/state`)).json() as any
     assert(finalState.active === false, "Novel should be inactive after abort")
 
     // phase should still be 'drafting' (not advanced past it)

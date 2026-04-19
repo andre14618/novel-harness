@@ -471,6 +471,16 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                 emotional_arc_correct: undefined,
               }
             : planCheckSettled.value.output
+          await trace(novelId, {
+            eventType: "plan-check-outcome", chapter: ch,
+            payload: {
+              pass: out.pass,
+              rewritePass: 0,
+              forcedPlanCheck: inject.forcePlanCheck === "fail",
+              deviationCount: out.deviations?.length ?? 0,
+              source: inject.forcePlanCheck === "fail" ? "forced-synth" : "initial",
+            },
+          })
           let rewritePass = 0
           const canSettle = beatProses.length === outline.scenes.length
 
@@ -584,6 +594,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
             // plan-check call above. Without this the forced-fail path
             // would settle on the first real LLM response (typically
             // pass=true), skipping the exhaustion handler entirely.
+            let recheckSource: "recheck" | "forced-recheck-synth"
             if (inject.forcePlanCheck === "fail") {
               out = {
                 pass: false as const,
@@ -591,6 +602,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                 setting_match: undefined,
                 emotional_arc_correct: undefined,
               }
+              recheckSource = "forced-recheck-synth"
             } else {
               const recheck = await callAgent({
                 novelId, agentName: "chapter-plan-checker",
@@ -600,7 +612,18 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                 schema: chapterPlanCheckSchema,
               })
               out = recheck.output
+              recheckSource = "recheck"
             }
+            await trace(novelId, {
+              eventType: "plan-check-outcome", chapter: ch,
+              payload: {
+                pass: out.pass,
+                rewritePass,
+                forcedPlanCheck: inject.forcePlanCheck === "fail",
+                deviationCount: out.deviations?.length ?? 0,
+                source: recheckSource,
+              },
+            })
           }
 
           if (!out.pass) {

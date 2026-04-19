@@ -33,6 +33,9 @@ export type TraceEventType =
   | "state-extraction"
   | "gate-wait"
   | "gate-resolve"
+  | "plan-assist-wait"
+  | "plan-assist-resolve"
+  | "plan-check-outcome"
   | "debug-inject"
   | "error"
 
