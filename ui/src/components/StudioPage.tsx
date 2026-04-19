@@ -198,16 +198,20 @@ export function StudioPage() {
   // ── Reload state on SSE events ────────────────────────────────────────
   useEffect(() => {
     if (!lastEvent || !activeNovelId) return
-    if (["phase:changed", "gate:waiting", "gate:resolved", "done"].includes(lastEvent.type)) {
+    if ([
+      "phase:changed", "gate:waiting", "gate:resolved",
+      "gate:plan-assist", "gate:plan-assist-resolved",
+      "done",
+    ].includes(lastEvent.type)) {
       loadState()
       listNovels().then(r => setNovels(r.novels)).catch(() => {})
     }
-    // Also trigger state reload on trace `gate-wait` events. The live SSE
-    // `gate:waiting` packet can be lost (reconnect, backgrounded tab) — the
-    // trace row is the durable signal that a gate is pending.
+    // Also trigger state reload on trace `gate-wait` / `plan-assist-wait`
+    // events. The live SSE packet can be lost (reconnect, backgrounded
+    // tab) — the trace row is the durable signal that a gate is pending.
     if (lastEvent.type === "trace") {
       const et = (lastEvent as any).data?.eventType
-      if (et === "gate-wait") loadState()
+      if (et === "gate-wait" || et === "plan-assist-wait") loadState()
     }
     // Refresh artifact previews when a phase completes or a concept/planning
     // agent finishes (so world/characters/spine/outlines populate as they land).

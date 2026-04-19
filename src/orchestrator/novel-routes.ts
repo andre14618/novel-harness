@@ -1055,6 +1055,25 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
       )
     }
 
+    // Semantic guard: an edited outline with an empty scenes array would
+    // produce an empty chapter (beat-writer loop has nothing to iterate).
+    // Reject before resolving the gate so the user gets an immediate 400
+    // instead of a silent empty-prose chapter.
+    if (parsed.data.action === "edit-plan") {
+      if (parsed.data.outline.chapterNumber !== chapter) {
+        return Response.json(
+          { error: `outline.chapterNumber (${parsed.data.outline.chapterNumber}) must match URL chapter (${chapter})` },
+          { status: 400 },
+        )
+      }
+      if (!parsed.data.outline.scenes || parsed.data.outline.scenes.length === 0) {
+        return Response.json(
+          { error: "edit-plan requires at least one beat in outline.scenes" },
+          { status: 400 },
+        )
+      }
+    }
+
     const resolved = gates.resolvePlanAssist(novelId, chapter, parsed.data)
     if (!resolved) {
       return Response.json({ error: "No pending plan-assist gate for that novel/chapter" }, { status: 404 })

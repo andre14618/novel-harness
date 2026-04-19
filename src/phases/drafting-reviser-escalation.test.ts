@@ -18,6 +18,8 @@ import { mock, test, expect, beforeEach, afterEach } from "bun:test"
 let reviserBehavior: "accept" | "throw" = "accept"
 let planCheckBehavior: "fail" | "pass" = "fail"
 let validateBehavior: "pass" | "fail-pov" = "pass"
+let overrideInitial = false
+let overrideSetCount = 0
 let reviserCallCount = 0
 let planCheckCallCount = 0
 let saveChapterOutlineCallCount = 0
@@ -75,8 +77,13 @@ mock.module("../db", () => ({
   updatePhase: async () => {},
   logRevision: async () => {},
   canonicalizeDeviations: (devs: any[]) => JSON.stringify(devs),
-  isPlanCheckOverridden: async () => false,
-  setPlanCheckOverridden: async () => {},
+  // `overrideInitial` is the persisted value at the TOP of each attempt.
+  // A test that wants "override effective from attempt 1" sets it true
+  // via beforeEach override. The real DB would flip this to true on the
+  // NEXT attempt after setPlanCheckOverridden fires; we track writes
+  // via overrideSetCount for assertion without re-reading.
+  isPlanCheckOverridden: async () => overrideInitial,
+  setPlanCheckOverridden: async (_n: string, _c: number, _v: boolean) => { overrideSetCount++ },
 }))
 
 mock.module("../llm", () => ({
@@ -182,6 +189,8 @@ beforeEach(() => {
   reviserBehavior = "accept"
   planCheckBehavior = "fail"
   validateBehavior = "pass"
+  overrideInitial = false
+  overrideSetCount = 0
   reviserCallCount = 0
   planCheckCallCount = 0
   saveChapterOutlineCallCount = 0
@@ -306,4 +315,24 @@ test("validation path — reviser fires exactly once when validation blockers pe
   // fires via the "else" fall-through).
   expect(gateFires.length).toBe(2)
   expect(gateFires.every(g => g.kind === "plan-check-exhausted")).toBe(true)
+})
+
+test("plan-check override suppresses plan-check + validation-reviser when persisted", async () => {
+  // Simulates "override was set on a prior session and persisted;
+  // now drafting resumes for this chapter." isPlanCheckOverridden
+  // returns true at the top of EVERY attempt, so plan-check must never
+  // fire, validation blockers must not bail, and no gate ever opens.
+  overrideInitial = true
+  planCheckBehavior = "fail"   // would fail if called — must not be called
+  validateBehavior = "fail-pov" // blockers present but must not bail
+
+  await runDraftingPhase("test-novel")
+
+  expect(planCheckCallCount).toBe(0)
+  expect(reviserCallCount).toBe(0)
+  expect(gateFires.length).toBe(0)
+  expect(overrideSetCount).toBe(0) // no new override writes
+
+  const overrideLogs = logCalls.filter(l => l.includes("plan-check override active"))
+  expect(overrideLogs.length).toBe(3) // one per attempt (3 attempts)
 })

@@ -407,7 +407,11 @@ export function PipelineView() {
   // Reload state on relevant SSE events
   useEffect(() => {
     if (!lastEvent) return
-    if (["phase:changed", "gate:waiting", "gate:resolved", "done"].includes(lastEvent.type)) {
+    if ([
+      "phase:changed", "gate:waiting", "gate:resolved",
+      "gate:plan-assist", "gate:plan-assist-resolved",
+      "done",
+    ].includes(lastEvent.type)) {
       loadState()
     }
   }, [lastEvent, loadState])
