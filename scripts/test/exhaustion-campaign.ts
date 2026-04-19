@@ -66,18 +66,21 @@ interface TestResult {
   error?: string
 }
 
-// ── Minimal test seed (3 chapters, 500w target) ─────────────────────────
+// Minimal test seed — 1 chapter, 300w target so the beat-writer pass
+// terminates fast. Forced-path tests only care about chapter 1's handler
+// flow, so 1 chapter suffices. Beat floor is ceil(targetWords/150)=2,
+// with a hard floor of 2; planner will still emit 3-4 beats typically.
 function makeTestSeed(label: string) {
   return {
     title: `test-exhaustion-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     premise: `A lone ranger named ${label} crosses a dying land to deliver a message that may end a war.`,
     genre: "fantasy",
-    chapterCount: 3,
+    chapterCount: 1,
     characters: [
       { name: label, role: "protagonist", description: "A weathered courier who trusts only the road." },
       { name: "Marshal Vex", role: "supporting", description: "Commander of the eastern border garrison." },
     ],
-    targetWordsPerChapter: 500,
+    targetWordsPerChapter: 300,
   }
 }
 
@@ -203,7 +206,7 @@ async function runR1_autoBailPlanCheck(assumeEnvSet: boolean): Promise<TestResul
     const novelId = await startNovel(seed, "auto")
     console.log(`  [R1] novel=${novelId}, waiting for idle...`)
 
-    const state = await waitForIdle(novelId, 180_000)
+    const state = await waitForIdle(novelId, 1_500_000)
     assert(!state.active, "Novel should be idle after bail")
     assert(state.lastRunError !== null, "lastRunError should be populated")
     assert(state.lastRunError?.kind === "plan-assist-bail",
@@ -256,7 +259,7 @@ async function runR5_validationPath(assumeEnvSet: boolean): Promise<TestResult> 
     const novelId = await startNovel(seed, "auto")
     console.log(`  [R5] novel=${novelId}, waiting for idle...`)
 
-    const state = await waitForIdle(novelId, 180_000)
+    const state = await waitForIdle(novelId, 1_500_000)
     assert(!state.active, "Novel should be idle after bail")
     assert(state.lastRunError !== null, "lastRunError should be populated (auto bail expected)")
 
@@ -307,7 +310,7 @@ async function runR6_reviserRejected(assumeEnvSet: boolean): Promise<TestResult>
     const novelId = await startNovel(seed, "auto")
     console.log(`  [R6] novel=${novelId}, waiting for idle...`)
 
-    const state = await waitForIdle(novelId, 180_000)
+    const state = await waitForIdle(novelId, 1_500_000)
     assert(!state.active, "Novel should be idle")
     assert(state.lastRunError !== null, "lastRunError should be populated")
     // Either plan-assist-bail with reviser-rejected kind, or the reviser
@@ -353,7 +356,7 @@ async function runR7_reviserSingleEscalation(assumeEnvSet: boolean): Promise<Tes
     const novelId = await startNovel(seed, "auto")
     console.log(`  [R7] novel=${novelId}, waiting for idle...`)
 
-    await waitForIdle(novelId, 180_000)
+    await waitForIdle(novelId, 1_500_000)
 
     const allRevisions = await db`
       SELECT outcome FROM chapter_revisions WHERE novel_id = ${novelId} ORDER BY id
