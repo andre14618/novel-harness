@@ -72,6 +72,11 @@ export async function watchForExpectations(params: {
     abort.abort(new Error(`SSE overall timeout after ${overallTimeoutMs}ms`))
   }, overallTimeoutMs)
 
+  // Diagnostic timers — declared here so the outer finally can clear them
+  // even if the try block throws before they're armed.
+  let stallLogInterval: ReturnType<typeof setInterval> | null = null
+  let hardStallTimer: ReturnType<typeof setTimeout> | null = null
+
   // ── Fix Q10b: Seed matcher state from /trace before opening SSE ─────────
   // Track event IDs we've already processed from the trace seed so the live
   // SSE stream can skip duplicates.
@@ -152,13 +157,51 @@ export async function watchForExpectations(params: {
 
     let matcherTimer: ReturnType<typeof setTimeout> | null = null
 
+    // ── Stall detector ──────────────────────────────────────────────────
+    // Tracks every event's arrival time + type. Fires every 30s while the
+    // matcher chain is stuck. Lets tests diagnose "what's actually happening"
+    // instead of blind-waiting through the matcher's full timeout.
+    let lastEventAt = Date.now()
+    let lastEventType: string = "(none yet)"
+    let eventsSinceHeartbeat = 0
+    let unexpectedEventTypes: Record<string, number> = {}
+    stallLogInterval = setInterval(() => {
+      const pendingName = expectations[pendingIdx]?.name ?? "(none)"
+      const ageSinceEvent = Math.round((Date.now() - lastEventAt) / 1000)
+      const unexpectedSummary = Object.entries(unexpectedEventTypes)
+        .map(([t, c]) => `${t}=${c}`)
+        .join(", ") || "none"
+      console.log(
+        `  [STALL-CHECK] waiting="${pendingName}" | ` +
+        `last-event=${lastEventType} (${ageSinceEvent}s ago) | ` +
+        `events-in-window=${eventsSinceHeartbeat} | ` +
+        `unexpected-types={${unexpectedSummary}}`,
+      )
+      eventsSinceHeartbeat = 0
+      unexpectedEventTypes = {}
+    }, 30_000)
+
+    // Hard-stall abort: if no ANY event arrives for 5 min, fail fast.
+    function armHardStallTimer() {
+      if (hardStallTimer) clearTimeout(hardStallTimer)
+      hardStallTimer = setTimeout(() => {
+        const ageSec = Math.round((Date.now() - lastEventAt) / 1000)
+        abort.abort(
+          new Error(
+            `SSE hard-stall: no events for ${ageSec}s while awaiting "${expectations[pendingIdx]?.name}". Last event type: ${lastEventType}. Unexpected types observed: ${JSON.stringify(unexpectedEventTypes)}`,
+          ),
+        )
+      }, 300_000) // 5 min
+    }
+    armHardStallTimer()
+
     function armMatcherTimer() {
       if (matcherTimer) clearTimeout(matcherTimer)
       const timeoutMs = expectations[pendingIdx]?.timeoutMs ?? 300_000
       matcherTimer = setTimeout(() => {
         abort.abort(
           new Error(
-            `SSE matcher "${expectations[pendingIdx]?.name}" timed out after ${timeoutMs}ms`,
+            `SSE matcher "${expectations[pendingIdx]?.name}" timed out after ${timeoutMs}ms. Last event type: ${lastEventType}. Unexpected types observed: ${JSON.stringify(unexpectedEventTypes)}`,
           ),
         )
       }, timeoutMs)
@@ -170,6 +213,12 @@ export async function watchForExpectations(params: {
 
     // Helper: run the normal matcher chain against one event
     function processEvent(event: { type: string; data: Record<string, any> }): void {
+      // Liveness tracking for the stall detector
+      lastEventAt = Date.now()
+      lastEventType = event.type
+      eventsSinceHeartbeat++
+      armHardStallTimer()  // reset the no-event watchdog on every event
+
       onEvent?.(event)
 
       // Fix Q5: only fast-fail on error events that no pending matcher accepts
@@ -196,6 +245,19 @@ export async function watchForExpectations(params: {
             armMatcherTimer()
           } else {
             if (matcherTimer) clearTimeout(matcherTimer)
+          }
+        } else {
+          // Unmatched event — track type so stall logs surface it. Especially
+          // surfaces unexpected gate events (gate:waiting when we expected
+          // gate:plan-assist), phase changes, etc.
+          unexpectedEventTypes[event.type] = (unexpectedEventTypes[event.type] ?? 0) + 1
+          // Loud log for high-signal mismatches that likely indicate a different
+          // pipeline flow than the test anticipated.
+          if (["gate:waiting", "gate:resolved", "phase:changed", "done"].includes(event.type)) {
+            console.log(
+              `  [UNEXPECTED] event=${event.type} (data: ${JSON.stringify(event.data).slice(0, 120)}) ` +
+              `while awaiting "${expectations[pendingIdx]?.name}"`,
+            )
           }
         }
       }
@@ -276,6 +338,8 @@ export async function watchForExpectations(params: {
     return results
   } finally {
     clearTimeout(overallTimer)
+    if (stallLogInterval) clearInterval(stallLogInterval)
+    if (hardStallTimer) clearTimeout(hardStallTimer)
     if (!abort.signal.aborted) abort.abort()
   }
 }

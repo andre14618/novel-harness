@@ -89,6 +89,58 @@ async function startNovel(seed: object, mode: "auto" | "web"): Promise<string> {
   return data.novelId as string
 }
 
+/**
+ * Background loop: auto-approve every approval gate (gate:waiting) that
+ * opens while we're waiting for the plan-assist gate to fire. Web-mode
+ * runs have 4 pre-drafting approval gates (world-bible, characters,
+ * story-spine, plan). Without this, the novel stalls at the first one
+ * and plan-assist never gets a chance to trigger.
+ *
+ * Returns an AbortController — call .abort() after the test's main
+ * watch completes to shut down the background loop cleanly.
+ */
+function startApprovalGateAutoApprover(novelId: string): AbortController {
+  const abort = new AbortController()
+  void (async () => {
+    try {
+      const resp = await fetch(`${API_BASE}/api/novel/${novelId}/events`, {
+        headers: {
+          "Accept": "text/event-stream",
+          ...(API_KEY ? { "x-api-key": API_KEY } : {}),
+        },
+        signal: abort.signal,
+      })
+      if (!resp.ok || !resp.body) return
+      const reader = resp.body.getReader()
+      const decoder = new TextDecoder()
+      let buf = ""
+      while (!abort.signal.aborted) {
+        const { value, done } = await reader.read().catch(() => ({ value: undefined, done: true }))
+        if (done) break
+        buf += decoder.decode(value, { stream: true })
+        const frames = buf.split("\n\n")
+        buf = frames.pop() ?? ""
+        for (const frame of frames) {
+          const dataLine = frame.split("\n").find(l => l.startsWith("data:"))
+          if (!dataLine) continue
+          try {
+            const event = JSON.parse(dataLine.slice(5).trim())
+            if (event.type === "gate:waiting" && event.data?.gateId) {
+              const gateId = event.data.gateId
+              console.log(`  [auto-approve] gate ${gateId} on ${novelId}`)
+              await apiPost(
+                `/api/novel/${novelId}/gate/${encodeURIComponent(gateId)}/decide`,
+                { action: "approve" },
+              ).catch(() => {})
+            }
+          } catch { /* skip malformed */ }
+        }
+      }
+    } catch { /* aborted or transport error — ok */ }
+  })()
+  return abort
+}
+
 // ── Assertion helpers ────────────────────────────────────────────────────
 function assert(cond: boolean, message: string): void {
   if (!cond) throw new Error(`Assertion failed: ${message}`)
@@ -115,6 +167,7 @@ async function runR2_webOverride(): Promise<TestResult> {
   try {
     const seed = makeTestSeed("Rynn")
     const novelId = await startNovel(seed, "web")
+    const autoApprover = startApprovalGateAutoApprover(novelId)
     console.log(`  [R2] novel=${novelId}, waiting for SSE gate signal...`)
 
     // Wait for the gate:plan-assist event — replaces polling waitForGate().
@@ -211,7 +264,10 @@ async function runR2_webOverride(): Promise<TestResult> {
       details: `novelId=${novelId}, plan_check_overridden=true, decision=override, exhaustion_count=1`,
     }
   } catch (e) {
+    try { autoApprover.abort() } catch {}
     return { name, pass: false, error: String(e) }
+  } finally {
+    try { autoApprover.abort() } catch {}
   }
 }
 
@@ -224,6 +280,7 @@ async function runR3_webEditPlan(): Promise<TestResult> {
   try {
     const seed = makeTestSeed("Kaela")
     const novelId = await startNovel(seed, "web")
+    const autoApprover = startApprovalGateAutoApprover(novelId)
     console.log(`  [R3] novel=${novelId}, waiting for SSE gate signal...`)
 
     // Wait for gate:plan-assist SSE event — replaces polling waitForGate().
@@ -380,7 +437,10 @@ async function runR3_webEditPlan(): Promise<TestResult> {
                `decision_details_scenes=${detailsSceneCount}; guard 400 test passed`,
     }
   } catch (e) {
+    try { autoApprover.abort() } catch {}
     return { name, pass: false, error: String(e) }
+  } finally {
+    try { autoApprover.abort() } catch {}
   }
 }
 
@@ -393,6 +453,7 @@ async function runR4_webAbort(): Promise<TestResult> {
   try {
     const seed = makeTestSeed("Dael")
     const novelId = await startNovel(seed, "web")
+    const autoApprover = startApprovalGateAutoApprover(novelId)
     console.log(`  [R4] novel=${novelId}, waiting for SSE gate signal...`)
 
     // Wait for gate:plan-assist SSE event — replaces polling waitForGate().
@@ -499,7 +560,10 @@ async function runR4_webAbort(): Promise<TestResult> {
       details: `novelId=${novelId}, phase=drafting, decision=abort, post_abort_beat_writer_calls=0`,
     }
   } catch (e) {
+    try { autoApprover.abort() } catch {}
     return { name, pass: false, error: String(e) }
+  } finally {
+    try { autoApprover.abort() } catch {}
   }
 }
 
