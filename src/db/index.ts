@@ -4,7 +4,7 @@ export {
   saveWorldBible, getWorldBible, saveCharacter, getCharacters, saveStorySpine, getStorySpine,
   updateCharacterFields, updateWorldBibleFields, updateStorySpineFields,
 } from "./world"
-export { saveChapterOutline, getChapterOutline, getChapterOutlines } from "./outlines"
+export { saveChapterOutline, getChapterOutline, getChapterOutlines, isPlanCheckOverridden, setPlanCheckOverridden } from "./outlines"
 export { logRevision, listRevisionsForNovel, hashIssueSig, canonicalizeDeviations, type RevisionOutcome, type LogRevisionInput, type RevisionRow } from "./chapter-revisions"
 export {
   saveChapterDraft, approveChapterDraft, getApprovedDraft, unapproveChapterDraft, deleteChapterDrafts,

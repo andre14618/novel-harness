@@ -281,6 +281,16 @@ export function decideGate(novelId: string, gateId: string, action: "approve" | 
   })
 }
 
+export function decidePlanAssist(novelId: string, chapter: number, decision: PlanAssistDecision) {
+  return fetchJSON<{ ok: boolean; novelId: string; chapter: number; action: string }>(
+    `/api/novel/${novelId}/plan-assist/${chapter}/decide`,
+    {
+      method: "POST",
+      body: JSON.stringify(decision),
+    },
+  )
+}
+
 export function getNovelConfig() {
   return fetchJSON<NovelConfig>("/api/novel/config")
 }
@@ -598,7 +608,28 @@ export interface NovelListItem {
   active: boolean
   seed: SeedInfo | null
   pendingGate: { gateId: string; title: string } | null
+  pendingPlanAssist?: { chapter: number; kind: string } | null
 }
+
+// ── Plan-assist gate types (step 2 of exhaustion-handler-design) ──────
+
+export interface PlanAssistPayload {
+  kind: "plan-check-exhausted" | "reviser-rejected"
+  novelId: string
+  chapter: number
+  outline: any  // ChapterOutline — runtime shape varies; treat as JSON blob for UI display
+  prose: string
+  unresolvedDeviations: Array<{ description: string; beat_index: number | null }>
+  reviserHistory?: {
+    attemptedScenes: any[]
+    rejectionReason: string
+  }
+}
+
+export type PlanAssistDecision =
+  | { action: "edit-plan"; outline: any }
+  | { action: "override" }
+  | { action: "abort" }
 
 export interface NovelState {
   id: string
@@ -608,11 +639,22 @@ export interface NovelState {
   createdAt: string
   active: boolean
   activeError?: string
-  lastRunError?: { error: string; at: string } | null
+  // `error` is the legacy field kept for UI back-compat; new consumers
+  // can branch on `kind` for structured data (plan-assist-bail surfaces
+  // bailKind + chapter).
+  lastRunError?:
+    | { kind: "error"; error: string; message: string; at: string }
+    | { kind: "plan-assist-bail"; error: string; bailKind: string; chapter: number; message: string; at: string }
+    | { error: string; at: string }
+    | null
   pendingGate: {
     gateId: string
     title: string
     content: string
+  } | null
+  pendingPlanAssist?: {
+    chapter: number
+    payload: PlanAssistPayload
   } | null
 }
 

@@ -4,6 +4,7 @@ import { getNovelState, getNovelConfig, resumeNovel, getTrace, getAllChapters } 
 import type { NovelState, NovelConfig, SSEEvent, TraceEvent } from "../api"
 import { useNovelSSE } from "../hooks/useNovelSSE"
 import { GatePanel } from "./GatePanel"
+import { PlanAssistPanel } from "./PlanAssistPanel"
 import { EventLog } from "./EventLog"
 import { TraceTimeline } from "./TraceTimeline"
 import { PipelineFlow } from "./PipelineFlow"
@@ -591,6 +592,20 @@ export function PipelineView() {
                     gateId={state.pendingGate.gateId}
                     title={state.pendingGate.title}
                     content={state.pendingGate.content}
+                    onDecided={loadState}
+                  />
+                </div>
+              </div>
+            )}
+
+            {state.pendingPlanAssist && (
+              <div className="tl-entry tl-gate" style={{ marginTop: "1rem" }}>
+                <div className="tl-dot gate" />
+                <div className="tl-body" style={{ width: "100%" }}>
+                  <PlanAssistPanel
+                    novelId={novelId!}
+                    chapter={state.pendingPlanAssist.chapter}
+                    payload={state.pendingPlanAssist.payload}
                     onDecided={loadState}
                   />
                 </div>

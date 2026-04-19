@@ -5,6 +5,7 @@ import {
   saveChapterDraft, approveChapterDraft, getApprovedDraft,
   saveIssue, updateCurrentChapter, updatePhase,
   logRevision, canonicalizeDeviations,
+  isPlanCheckOverridden, setPlanCheckOverridden,
 } from "../db"
 import type { SceneBeat } from "../schemas/shared"
 import { callAgent, executeAndLog } from "../llm"
@@ -23,7 +24,7 @@ import {
 } from "../agents/chapter-plan-reviser/context"
 import { chapterBeatsSchema as chapterPlanReviseSchema, prompt as CHAPTER_PLAN_REVISER_PROMPT } from "../agents/chapter-plan-reviser"
 import { validateChapterDraft } from "../validation"
-import { displayPhaseHeader, displayProgress, presentForApproval, getRevisionNotes } from "../cli"
+import { displayPhaseHeader, displayProgress, presentForApproval, presentForExhaustion, getRevisionNotes } from "../cli"
 import { emit } from "../events"
 import { log } from "../logger"
 import { trace } from "../trace"
@@ -31,6 +32,7 @@ import { savePlannedState } from "../planned-state"
 import { diffPlanAgainstState, type PriorCharacterState } from "../state-diff"
 import { pipeline } from "../config/pipeline"
 import * as gates from "../gates"
+import { PipelineBailError, type PlanAssistGatePayload } from "../gates"
 import { lintProse } from "../lint"
 import { fixLintIssues } from "../lint/fix"
 import { getModelForAgent, resolveWriterPack, type WriterGenrePack } from "../models/roles"
@@ -160,11 +162,28 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
     const maxAttempts = pipeline.maxDraftAttempts
     let revisionUsed = false
     let lastUnresolvedSig = ""
+    let chapterAborted = false
 
-    while (!approved && attempts < maxAttempts) {
+    while (!approved && attempts < maxAttempts && !chapterAborted) {
       attempts++
       console.log(`\n  --- Chapter ${ch}: "${outline.title}" (attempt ${attempts}/${maxAttempts}) ---`)
       log(novelId, "info", `Chapter ${ch} "${outline.title}" attempt ${attempts}`)
+
+      // Per-chapter override — persistent across attempts. When the user
+      // picks "override" at a plan-assist gate (see
+      // docs/exhaustion-handler-design.md), plan-check and validation-driven
+      // reviser escalation are suppressed for this chapter. Validation still
+      // runs (cheap, informational) but its blockers don't bail the attempt.
+      const planCheckOverridden = await isPlanCheckOverridden(novelId, ch)
+      if (planCheckOverridden) {
+        console.log(`  [OVERRIDE] plan-check + validation-reviser skipped for chapter ${ch} (persisted flag)`)
+        log(novelId, "info", `Chapter ${ch} plan-check override active — skipping blocking checks`)
+      }
+
+      // Populated at exhaustion sites below; fires a plan-assist gate at
+      // the end of the attempt so every cause aggregates into one decision
+      // point for the user. Null = no gate needed this attempt.
+      let pendingExhaustion: PlanAssistGatePayload | null = null
 
       // 1-2. Context assembly + writer (beat-level or chapter-level)
       let prose: string
@@ -387,7 +406,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
       emit(novelId, { type: "progress", data: { step: "continuity", chapter: ch, status: "running" } })
 
       const [planCheckSettled, continuitySettled] = await Promise.allSettled([
-        pipeline.chapterPlanCheck
+        (pipeline.chapterPlanCheck && !planCheckOverridden)
           ? callAgent({
               novelId, agentName: "chapter-plan-checker",
               chapter: ch, attempt: attempts,
@@ -420,7 +439,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
       // Chapter-level issues (beat_index=null) are mapped heuristically:
       //   setting_match=false      → beat 0 (location established early)
       //   emotional_arc_correct=false → last 2 beats (arc lands at closer)
-      if (pipeline.chapterPlanCheck) {
+      if (pipeline.chapterPlanCheck && !planCheckOverridden) {
         if (planCheckSettled.status === "fulfilled" && planCheckSettled.value !== null) {
           let out = planCheckSettled.value.output
           let rewritePass = 0
@@ -604,6 +623,12 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                     outcome: "rejected_beat_floor",
                     rejectionReason: `revised beat count ${revisedScenes.length} < floor ${minBeats}`,
                   }).catch(err => log(novelId, "warn", `logRevision failed: ${err instanceof Error ? err.message : err}`))
+                  pendingExhaustion = {
+                    kind: "reviser-rejected",
+                    novelId, chapter: ch, outline, prose,
+                    unresolvedDeviations: deviationsForLog,
+                    reviserHistory: { attemptedScenes: revisedScenes, rejectionReason: `revised beat count ${revisedScenes.length} < floor ${minBeats}` },
+                  }
                 } else if (newCharacters.length > 0) {
                   log(novelId, "warn", `Reviser introduced new characters [${newCharacters.join(", ")}] — rejecting revision`)
                   console.log(`  Reviser output rejected: new characters not in original plan`)
@@ -615,6 +640,12 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                     outcome: "rejected_new_characters",
                     rejectionReason: `new characters: ${newCharacters.join(", ")}`,
                   }).catch(err => log(novelId, "warn", `logRevision failed: ${err instanceof Error ? err.message : err}`))
+                  pendingExhaustion = {
+                    kind: "reviser-rejected",
+                    novelId, chapter: ch, outline, prose,
+                    unresolvedDeviations: deviationsForLog,
+                    reviserHistory: { attemptedScenes: revisedScenes, rejectionReason: `new characters: ${newCharacters.join(", ")}` },
+                  }
                 } else {
                   // Accept the revision. Cast through unknown because
                   // chapterBeatsSchema's z.infer resolves some defaulted fields
@@ -645,14 +676,21 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
               } catch (err) {
                 log(novelId, "error", `Chapter-plan-reviser failed for chapter ${ch}: ${err instanceof Error ? err.message : err}`)
                 console.error(`  Reviser error: ${err instanceof Error ? err.message : err}`)
+                const errMsg = err instanceof Error ? err.message : String(err)
                 await logRevision({
                   novelId, chapter: ch, attempt: attempts,
                   deviations: deviationsForLog,
                   originalBeats: originalBeatsSnapshot,
                   revisedBeats: null,
                   outcome: "error",
-                  rejectionReason: err instanceof Error ? err.message.slice(0, 200) : String(err).slice(0, 200),
+                  rejectionReason: errMsg.slice(0, 200),
                 }).catch(logErr => log(novelId, "warn", `logRevision failed: ${logErr instanceof Error ? logErr.message : logErr}`))
+                pendingExhaustion = {
+                  kind: "reviser-rejected",
+                  novelId, chapter: ch, outline, prose,
+                  unresolvedDeviations: deviationsForLog,
+                  reviserHistory: { attemptedScenes: [], rejectionReason: `reviser threw: ${errMsg.slice(0, 200)}` },
+                }
                 bail = true
               }
             } else {
@@ -666,7 +704,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                 : skipOutcome === "skip_duplicate_sig"
                   ? "identical issue signature as last revision"
                   : "beat-level state not available"
-              log(novelId, "warn", `Plan check still failing — not escalating to reviser (${reasonText}); falling through to chapter restart`)
+              log(novelId, "warn", `Plan check still failing — not escalating to reviser (${reasonText}); falling through to plan-assist gate`)
               await logRevision({
                 novelId, chapter: ch, attempt: attempts,
                 deviations: out.deviations ?? [],
@@ -675,6 +713,11 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                 outcome: skipOutcome,
                 rejectionReason: reasonText,
               }).catch(err => log(novelId, "warn", `logRevision failed: ${err instanceof Error ? err.message : err}`))
+              pendingExhaustion = {
+                kind: "plan-check-exhausted",
+                novelId, chapter: ch, outline, prose,
+                unresolvedDeviations: out.deviations ?? [],
+              }
               bail = true
             }
 
@@ -697,7 +740,9 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
       // chapter restart. Drafting-mode blockers (word-count + pov-missing)
       // route to beats via routeValidationBlockers(), then we call
       // beat-writer on only those beats with issue descriptions.
-      if (!validation.passed) {
+      // Skipped entirely when plan-check override is active — the user
+      // explicitly chose to ship this chapter past blocking checks.
+      if (!validation.passed && !planCheckOverridden) {
         console.log(`  Validation FAILED:`)
         validation.blockers.forEach(b => console.log(`    BLOCKER: ${b}`))
         validation.warnings.forEach(w => console.log(`    WARNING: ${w}`))
@@ -838,6 +883,12 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                   outcome: "rejected_beat_floor",
                   rejectionReason: `[validation] revised beat count ${revisedScenes.length} < floor ${minBeats}`,
                 }).catch(err => log(novelId, "warn", `logRevision failed: ${err instanceof Error ? err.message : err}`))
+                pendingExhaustion = {
+                  kind: "reviser-rejected",
+                  novelId, chapter: ch, outline, prose,
+                  unresolvedDeviations: blockersAsDeviations,
+                  reviserHistory: { attemptedScenes: revisedScenes, rejectionReason: `[validation] revised beat count ${revisedScenes.length} < floor ${minBeats}` },
+                }
               } else if (newCharacters.length > 0) {
                 log(novelId, "warn", `Reviser introduced new characters [${newCharacters.join(", ")}] — rejecting revision (validation path)`)
                 console.log(`  Reviser output rejected: new characters not in original plan`)
@@ -849,6 +900,12 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                   outcome: "rejected_new_characters",
                   rejectionReason: `[validation] new characters: ${newCharacters.join(", ")}`,
                 }).catch(err => log(novelId, "warn", `logRevision failed: ${err instanceof Error ? err.message : err}`))
+                pendingExhaustion = {
+                  kind: "reviser-rejected",
+                  novelId, chapter: ch, outline, prose,
+                  unresolvedDeviations: blockersAsDeviations,
+                  reviserHistory: { attemptedScenes: revisedScenes, rejectionReason: `[validation] new characters: ${newCharacters.join(", ")}` },
+                }
               } else {
                 outline = {
                   ...outline,
@@ -871,20 +928,32 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
             } catch (err) {
               log(novelId, "error", `Chapter-plan-reviser failed for chapter ${ch} (validation path): ${err instanceof Error ? err.message : err}`)
               console.error(`  Reviser error: ${err instanceof Error ? err.message : err}`)
+              const errMsg = err instanceof Error ? err.message : String(err)
               await logRevision({
                 novelId, chapter: ch, attempt: attempts,
                 deviations: blockersAsDeviations,
                 originalBeats: originalBeatsSnapshotV,
                 revisedBeats: null,
                 outcome: "error",
-                rejectionReason: err instanceof Error ? `[validation] ${err.message.slice(0, 200)}` : `[validation] ${String(err).slice(0, 200)}`,
+                rejectionReason: `[validation] ${errMsg.slice(0, 200)}`,
               }).catch(logErr => log(novelId, "warn", `logRevision failed: ${logErr instanceof Error ? logErr.message : logErr}`))
+              pendingExhaustion = {
+                kind: "reviser-rejected",
+                novelId, chapter: ch, outline, prose,
+                unresolvedDeviations: blockersAsDeviations,
+                reviserHistory: { attemptedScenes: [], rejectionReason: `[validation] reviser threw: ${errMsg.slice(0, 200)}` },
+              }
             }
           } else {
             const reason = revisionUsed
               ? "already revised this chapter"
               : "beat-level state not available"
-            log(novelId, "warn", `Validation still failing — not escalating to reviser (${reason}); falling through to chapter restart`)
+            log(novelId, "warn", `Validation still failing — not escalating to reviser (${reason}); falling through to plan-assist gate`)
+            pendingExhaustion = {
+              kind: "plan-check-exhausted",
+              novelId, chapter: ch, outline, prose,
+              unresolvedDeviations: currentBlockers.map(b => ({ description: `[validation] ${b}`, beat_index: null as number | null })),
+            }
           }
           bail = true
         }
@@ -907,6 +976,41 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
         log(novelId, "error", `Continuity check failed for chapter ${ch}: ${continuitySettled.reason}`)
         console.error(`  Continuity check failed: ${continuitySettled.reason instanceof Error ? continuitySettled.reason.message : continuitySettled.reason}`)
         bail = true
+      }
+
+      // Plan-assist gate — fire ONCE per attempt if any exhaustion site set
+      // pendingExhaustion. Aggregates all causes into a single decision
+      // point. Auto mode throws PipelineBailError (let it propagate — halts
+      // the run loudly). CLI/web mode returns a decision.
+      if (pendingExhaustion && bail) {
+        const decision = await presentForExhaustion(pendingExhaustion)
+        if (decision.action === "edit-plan") {
+          // User supplied a full replacement outline. Validated against
+          // chapterOutlineSchema at the route. Persist and continue the
+          // attempt loop — next attempt uses the new plan.
+          outline = {
+            ...outline,
+            ...decision.outline,
+            chapterNumber: outline.chapterNumber,  // defensive: preserve chapter identity
+          } as ChapterOutline
+          await saveChapterOutline(novelId, outline)
+          log(novelId, "info", `Chapter ${ch} outline edited via plan-assist gate: ${outline.scenes.length} beats`)
+          console.log(`  [PLAN-ASSIST] outline edited, restarting attempt with new plan`)
+        } else if (decision.action === "override") {
+          // Persist the skip flag so subsequent attempts of this chapter
+          // (and any later resume) bypass plan-check + validation-reviser
+          // without re-firing the gate. The chapter draft will still hit
+          // the end-of-chapter approval gate for human sign-off.
+          await setPlanCheckOverridden(novelId, ch, true)
+          log(novelId, "info", `Chapter ${ch} plan-check overridden via plan-assist gate`)
+          console.log(`  [PLAN-ASSIST] override persisted, restarting attempt with checks skipped`)
+        } else {
+          // Abort — stop this chapter. Novel stays in "drafting" phase so
+          // the user can resume after manual intervention.
+          log(novelId, "warn", `Chapter ${ch} aborted by user at plan-assist gate (kind=${pendingExhaustion.kind})`)
+          console.log(`  [PLAN-ASSIST] chapter aborted by user.`)
+          chapterAborted = true
+        }
       }
 
       if (bail) continue
@@ -1038,6 +1142,13 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
       durationMs: Date.now() - chapterStart,
       payload: { approved, attempts },
     })
+
+    if (chapterAborted) {
+      log(novelId, "warn", `Chapter ${ch} aborted via plan-assist gate — stopping drafting phase. Resume after manual intervention.`)
+      console.log(`\n  Chapter ${ch} aborted by user at plan-assist gate.`)
+      console.log("  Stopping drafting. Resume later after manual outline edit or clearing the override.")
+      return
+    }
 
     if (!approved) {
       log(novelId, "error", `Chapter ${ch} failed after ${maxAttempts} attempts`)

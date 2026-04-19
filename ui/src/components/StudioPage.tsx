@@ -10,6 +10,7 @@ import {
 } from "../api"
 import { useNovelSSE } from "../hooks/useNovelSSE"
 import { GatePanel } from "./GatePanel"
+import { PlanAssistPanel } from "./PlanAssistPanel"
 import { PipelineFlow } from "./PipelineFlow"
 import { LiveMeters } from "./LiveMeters"
 import { DirectorChat } from "./DirectorChat"
@@ -149,9 +150,10 @@ export function StudioPage() {
     if (!activeNovelId) return
     if (!state?.active) return
     if (state.pendingGate) return
+    if (state.pendingPlanAssist) return
     const t = setInterval(loadState, 8000)
     return () => clearInterval(t)
-  }, [activeNovelId, state?.active, state?.pendingGate, loadState])
+  }, [activeNovelId, state?.active, state?.pendingGate, state?.pendingPlanAssist, loadState])
 
   // ── Hydrate historical trace events on novel change ───────────────────
   const lastHydratedRef = useRef<string | null>(null)
@@ -900,6 +902,20 @@ export function StudioPage() {
                     gateId={state.pendingGate.gateId}
                     title={state.pendingGate.title}
                     content={state.pendingGate.content}
+                    onDecided={loadState}
+                  />
+                </div>
+              </div>
+            )}
+
+            {state.pendingPlanAssist && (
+              <div className="tl-entry tl-gate" style={{ marginTop: "1rem" }}>
+                <div className="tl-dot gate" />
+                <div className="tl-body" style={{ width: "100%" }}>
+                  <PlanAssistPanel
+                    novelId={activeNovelId!}
+                    chapter={state.pendingPlanAssist.chapter}
+                    payload={state.pendingPlanAssist.payload}
                     onDecided={loadState}
                   />
                 </div>

@@ -21,6 +21,7 @@ let validateBehavior: "pass" | "fail-pov" = "pass"
 let reviserCallCount = 0
 let planCheckCallCount = 0
 let saveChapterOutlineCallCount = 0
+let gateFires: { kind: string; chapter: number }[] = []
 let logCalls: string[] = []
 let consoleLines: string[] = []
 
@@ -74,6 +75,8 @@ mock.module("../db", () => ({
   updatePhase: async () => {},
   logRevision: async () => {},
   canonicalizeDeviations: (devs: any[]) => JSON.stringify(devs),
+  isPlanCheckOverridden: async () => false,
+  setPlanCheckOverridden: async () => {},
 }))
 
 mock.module("../llm", () => ({
@@ -138,6 +141,14 @@ mock.module("../cli", () => ({
   displayPhaseHeader: () => {},
   displayProgress: () => {},
   presentForApproval: async () => "reject",
+  // Return "override" so attempts 2 and 3 don't abort mid-test — the
+  // mocked setPlanCheckOverridden is a no-op, so plan-check still fires
+  // on the next attempt and the original skip-log invariants hold.
+  // Records each gate fire so the test can assert the wire-in is live.
+  presentForExhaustion: async (payload: any) => {
+    gateFires.push({ kind: payload.kind, chapter: payload.chapter })
+    return { action: "override" }
+  },
   getRevisionNotes: async () => [],
 }))
 mock.module("../planned-state", () => ({ savePlannedState: async () => {} }))
@@ -174,6 +185,7 @@ beforeEach(() => {
   reviserCallCount = 0
   planCheckCallCount = 0
   saveChapterOutlineCallCount = 0
+  gateFires = []
   logCalls = []
   consoleLines = []
   console.log = (...args: any[]) => { consoleLines.push(args.map(a => String(a)).join(" ")) }
@@ -213,6 +225,12 @@ test("reviser fires exactly once across 3 outer attempts when plan-check persist
   // times inside each attempt's settle loop. Exact count is implementation
   // detail — we just want to confirm multiple attempts happened.
   expect(planCheckCallCount).toBeGreaterThanOrEqual(3)
+
+  // Gate wire-in — attempts 2 and 3 hit the exhausted path and fire the
+  // plan-assist gate with kind=plan-check-exhausted. Attempt 1 accepts
+  // the reviser revision, so no gate fires there.
+  expect(gateFires.length).toBe(2)
+  expect(gateFires.every(g => g.kind === "plan-check-exhausted")).toBe(true)
 })
 
 test("reviser fires exactly once across 3 outer attempts when reviser throws (error path)", async () => {
@@ -235,6 +253,13 @@ test("reviser fires exactly once across 3 outer attempts when reviser throws (er
   expect(skipLines.length).toBe(2)
 
   expect(saveChapterOutlineCallCount).toBe(0)
+
+  // Gate wire-in — attempt 1 fires reviser-rejected (reviser threw),
+  // attempts 2 and 3 fire plan-check-exhausted. Three fires total.
+  expect(gateFires.length).toBe(3)
+  expect(gateFires[0].kind).toBe("reviser-rejected")
+  expect(gateFires[1].kind).toBe("plan-check-exhausted")
+  expect(gateFires[2].kind).toBe("plan-check-exhausted")
 })
 
 test("validation path — reviser fires exactly once when validation blockers persist", async () => {
@@ -274,4 +299,11 @@ test("validation path — reviser fires exactly once when validation blockers pe
   // plan-check ran exactly once per outer attempt (no settle loop kicks
   // because pass=true means the settle precondition `!out.pass` fails).
   expect(planCheckCallCount).toBe(3)
+
+  // Gate wire-in for validation path — attempts 2 and 3 fire
+  // plan-check-exhausted via the validation branch (revisionUsed=true,
+  // so the validation-reviser can't run; the unified plan-assist gate
+  // fires via the "else" fall-through).
+  expect(gateFires.length).toBe(2)
+  expect(gateFires.every(g => g.kind === "plan-check-exhausted")).toBe(true)
 })
