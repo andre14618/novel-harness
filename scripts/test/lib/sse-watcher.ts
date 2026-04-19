@@ -158,13 +158,26 @@ export async function watchForExpectations(params: {
     let matcherTimer: ReturnType<typeof setTimeout> | null = null
 
     // ── Stall detector ──────────────────────────────────────────────────
-    // Tracks every event's arrival time + type. Fires every 30s while the
-    // matcher chain is stuck. Lets tests diagnose "what's actually happening"
-    // instead of blind-waiting through the matcher's full timeout.
+    // Tracks every event's arrival time + subtype. Fires every 10s while
+    // the matcher chain is stuck. Per Codex review ac6e95d3d010bac03:
+    //   - 10s interval (was 30s) — 3x faster detection, still tidy
+    //   - subtype-aware snapshot (trace:agent-complete agent=beat-writer,
+    //     not collapsed to "trace") — most pipeline events ARE trace, so
+    //     the bare type is information-free without the subtype
     let lastEventAt = Date.now()
-    let lastEventType: string = "(none yet)"
+    let lastEventLabel: string = "(none yet)"
     let eventsSinceHeartbeat = 0
     let unexpectedEventTypes: Record<string, number> = {}
+
+    function labelForEvent(e: { type: string; data: Record<string, any> }): string {
+      if (e.type === "trace") {
+        const subtype = e.data?.eventType ?? "?"
+        const agent = e.data?.agent
+        return agent ? `trace:${subtype} agent=${agent}` : `trace:${subtype}`
+      }
+      return e.type
+    }
+
     stallLogInterval = setInterval(() => {
       const pendingName = expectations[pendingIdx]?.name ?? "(none)"
       const ageSinceEvent = Math.round((Date.now() - lastEventAt) / 1000)
@@ -173,13 +186,13 @@ export async function watchForExpectations(params: {
         .join(", ") || "none"
       console.log(
         `  [STALL-CHECK] waiting="${pendingName}" | ` +
-        `last-event=${lastEventType} (${ageSinceEvent}s ago) | ` +
+        `last-event=${lastEventLabel} (${ageSinceEvent}s ago) | ` +
         `events-in-window=${eventsSinceHeartbeat} | ` +
-        `unexpected-types={${unexpectedSummary}}`,
+        `unexpected={${unexpectedSummary}}`,
       )
       eventsSinceHeartbeat = 0
       unexpectedEventTypes = {}
-    }, 30_000)
+    }, 10_000)
 
     // Hard-stall abort: if no ANY event arrives for 5 min, fail fast.
     function armHardStallTimer() {
@@ -212,10 +225,16 @@ export async function watchForExpectations(params: {
     }
 
     // Helper: run the normal matcher chain against one event
+    // Dedup-per-label UNEXPECTED log state (loud only on first 3 of each
+    // label to avoid flooding when pipeline is emitting steady unexpected
+    // activity).
+    const unexpectedLogCounts: Record<string, number> = {}
+    const UNEXPECTED_LOG_CAP_PER_LABEL = 3
+
     function processEvent(event: { type: string; data: Record<string, any> }): void {
       // Liveness tracking for the stall detector
       lastEventAt = Date.now()
-      lastEventType = event.type
+      lastEventLabel = labelForEvent(event)
       eventsSinceHeartbeat++
       armHardStallTimer()  // reset the no-event watchdog on every event
 
@@ -247,16 +266,20 @@ export async function watchForExpectations(params: {
             if (matcherTimer) clearTimeout(matcherTimer)
           }
         } else {
-          // Unmatched event — track type so stall logs surface it. Especially
-          // surfaces unexpected gate events (gate:waiting when we expected
-          // gate:plan-assist), phase changes, etc.
-          unexpectedEventTypes[event.type] = (unexpectedEventTypes[event.type] ?? 0) + 1
-          // Loud log for high-signal mismatches that likely indicate a different
-          // pipeline flow than the test anticipated.
-          if (["gate:waiting", "gate:resolved", "phase:changed", "done"].includes(event.type)) {
+          // Unmatched event — track label for the stall-log summary AND
+          // loud-log the first few occurrences of each distinct label.
+          // Per Codex review ac6e95d3d010bac03: widened from 4-type
+          // whitelist to ALL unmatched events (dedup prevents flood).
+          const label = labelForEvent(event)
+          unexpectedEventTypes[label] = (unexpectedEventTypes[label] ?? 0) + 1
+          const loudCount = (unexpectedLogCounts[label] ?? 0) + 1
+          unexpectedLogCounts[label] = loudCount
+          if (loudCount <= UNEXPECTED_LOG_CAP_PER_LABEL) {
+            const dataSnippet = JSON.stringify(event.data).slice(0, 120)
+            const more = loudCount === UNEXPECTED_LOG_CAP_PER_LABEL ? " (further occurrences suppressed)" : ""
             console.log(
-              `  [UNEXPECTED] event=${event.type} (data: ${JSON.stringify(event.data).slice(0, 120)}) ` +
-              `while awaiting "${expectations[pendingIdx]?.name}"`,
+              `  [UNEXPECTED] ${label} (data: ${dataSnippet}) ` +
+              `while awaiting "${expectations[pendingIdx]?.name}"${more}`,
             )
           }
         }
