@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-19
+updated: 2026-04-19b
 ---
 
 # To Do
@@ -58,50 +58,42 @@ checks (`1c367d6`), revision persistence (`a1476b7`), revision telemetry
 
 Codex review (session ac8df7a8 + ac7442d6) flagged remaining work:
 
-- [ ] **Stub test — reviser escalation fires exactly once per chapter.**
-  Mock chapter-plan-checker to return `pass=false` three times on the same
-  chapter; assert log line `Escalating to chapter-plan-reviser` appears
-  exactly once, and that `revisionUsed` prevents a second escalation even
-  after an outer-attempt restart. Deterministic, no LLM cost.
-- [ ] **Check validation run `novel-1776570866700`** (kicked off 2026-04-19).
-  Specific verification queries once phase=done:
+- [x] **Stub test — reviser escalation fires exactly once per chapter.**
+  Shipped 2026-04-19 in `src/phases/drafting-reviser-escalation.test.ts`
+  (commit `73542f8`). Covers both accepted and thrown reviser-call paths.
+- [x] **Fix `migrate()` pathing bug.** Shipped 2026-04-19 (`ce64e28`).
+  Path resolves `../../sql` from `src/db/`. Regression test in
+  `src/db/migrate-path.test.ts`. `_migrations` backfilled on LXC with
+  rows 021-025, 028 (had been applied manually) before the fix deployed
+  so the migrator would not re-run destructive 022/023.
+- [ ] **Validation run** — novel `novel-1776570866700` was killed by an
+  orchestrator restart at 2026-04-19 03:58:36 mid-beat-2 of chapter 1.
+  User direction 2026-04-19: not worth salvaging. Kick off a fresh
+  validation run when telemetry-gathering returns as a priority;
+  verification queries below still apply.
   - chapter-plan-checker reject rate per chapter (target: <10%, down from
     35-44% pre-fix baseline on pp2-floor__* novels) — query `llm_calls`
-    WHERE agent='chapter-plan-checker' AND novel_id='novel-1776570866700',
+    WHERE agent='chapter-plan-checker' AND novel_id=<new-id>,
     count rows where `response_content` contains `"pass":false`.
   - reviser invocation + acceptance rate — `SELECT outcome, COUNT(*) FROM
-    chapter_revisions WHERE novel_id='novel-1776570866700' GROUP BY outcome`.
+    chapter_revisions WHERE novel_id=<new-id> GROUP BY outcome`.
   - retry_ratio (rows with attempt>1 / total) on beat-writer calls,
     compared to the 3 pp2-floor fantasy-debt cells.
-  - Inspect RevisionsPanel at `/app/novel-1776570866700` — does it render
-    real telemetry? Zero-state and expanded-table both valid shapes.
+  - Inspect RevisionsPanel at `/app/<new-id>` — renders real telemetry?
   - If reject rate still high OR reviser acceptance low: root-cause before
     declaring the non-blind-retry architecture validated.
-- [ ] **Human gate for plan-check-exhausted** — when targeted rewrites
-  AND reviser both fail, raise a CLI/UI gate instead of blind outer
-  restart. Path hits `bail=true` at `src/phases/drafting.ts` plan-check
-  branch when `revisionUsed` is already true. Per Codex thread 1: "this
-  path already exhausted automated structural repair; another outer blind
-  attempt replays the same failure with no new context."
-- [ ] **Upstream escalation for validation-exhausted** — word-count /
-  pov-missing blockers that survive targeted-rewrite settle should
-  escalate to the planner (reviser-style), not another blind outer
-  attempt. Per Codex: "validation blockers are deterministic drafting-
-  shape problems; a fresh full redraft is less likely to help than a
-  plan/beat-shape adjustment once targeted beat expansion has failed."
-- [ ] **Human gate for reviser-rejected plans** — the post-revision
-  sanity checks (beat floor, no new characters) can reject a reviser
-  output; currently that falls through to blind restart. Gate it.
+- [ ] **Exhaustion-handler implementation** — design memo at
+  `docs/exhaustion-handler-design.md` (2026-04-19) covers all three
+  remaining exhaustion paths:
+  (A) plan-check-exhausted + (B) reviser-rejected unified under a single
+  `plan-assist` human gate (must NOT auto-approve in auto mode —
+  `src/cli.ts:99-102` caveat), (C) validation-exhausted as a reviser-style
+  escalation using a new `buildContextForValidation` context builder.
+  Implementation order: start with (C), then gate scaffolding, then
+  paths (A)+(B), then UI + telemetry table.
 - [ ] **Continuity-throws stays blind** — by design per Codex (transport
   instability, not content failure; human intervention cost too high for
   a transient checker outage). No change needed.
-- [ ] **Fix `migrate()` pathing bug** (pre-existing, out of scope for
-  the telemetry work). `src/db/connection.ts:73` does
-  `resolve(import.meta.dir, "../sql")` which resolves to `src/sql`
-  instead of repo-root `sql/`. Migrations have been silently skipping
-  since commit `1df80a2`; sql files are applied manually via
-  `db.unsafe()`. Swap to a `fileURLToPath(new URL("../../sql", ...))`
-  or `process.cwd()` anchor + add a regression test.
 
 ---
 
