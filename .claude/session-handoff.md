@@ -20,7 +20,12 @@ If you see any active runs in `bun scripts/lib/in-flight.ts list`, something was
 
 ## Start-here priorities for next session
 
-1. **5 starting invariants** — see canonical registry at [`docs/invariants.md`](../docs/invariants.md). Per Codex Q6 (`ad350aa657ec1c9b1`): invariants MUST be blocking, NOT debug-only. Today's telemetry: 9 bugs caught by Codex vs 1 by preflight — invariants rebalance that. All 5 entries currently `planned`; ship `scripts/lint/invariants-check.ts` + `src/invariants/` + integration-test extensions to move them to `shipped`.
+1. **5 starting invariants — implementation ticket.** Registry is live at [`docs/invariants.md`](../docs/invariants.md) (exp #242, shipped 2026-04-19). All 5 entries currently `planned` — the next ticket implements them. Per Codex Q6 (`ad350aa657ec1c9b1`): invariants MUST be blocking preflight gates, NOT debug-only.
+   - Ship `scripts/lint/invariants-check.ts` (AST walker + regex passes for invariants #2, #3, #5)
+   - Ship `src/invariants/` runtime assertions for invariants #1, #4
+   - Ship `.claude/invariants-allowlist.yaml` (empty initially)
+   - Wire into preflight per skill doc Phase 5
+   - Move entries from `planned` → `shipped` in the registry status table
 
 2. ~~`scripts/status.ts`~~ **DONE 2026-04-19** — shipped in commit `413bf12` + `5da3475` (exp #241). One-shot dashboard; run `bun scripts/status.ts`.
 
