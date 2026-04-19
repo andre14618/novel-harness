@@ -1,6 +1,6 @@
 import { chapterDraftSchema } from "../types"
 import {
-  getNovel, getChapterOutline, getCharacters, getFactsUpToChapter,
+  getNovel, getChapterOutline, saveChapterOutline, getCharacters, getFactsUpToChapter,
   getCharacterStatesAtChapter, getAllCharacterStatesBeforeChapter, getWorldBible,
   saveChapterDraft, approveChapterDraft, getApprovedDraft,
   saveIssue, updateCurrentChapter, updatePhase,
@@ -602,8 +602,12 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                     characterStateChanges: revised.output.characterStateChanges ?? outline.characterStateChanges,
                     knowledgeChanges: revised.output.knowledgeChanges ?? outline.knowledgeChanges,
                   } as ChapterOutline
-                  log(novelId, "info", `Chapter plan revised: ${outline.scenes.length} beats (was ${beatProses.length})`)
-                  console.log(`  Revised plan: ${outline.scenes.length} beats. Restarting chapter draft with revised plan.`)
+                  // Persist the revised outline so a later outer-attempt
+                  // restart picks up the revision instead of falling back to
+                  // the original plan (getChapterOutline re-reads from DB).
+                  await saveChapterOutline(novelId, outline)
+                  log(novelId, "info", `Chapter plan revised: ${outline.scenes.length} beats (was ${beatProses.length}); persisted to chapter_outlines`)
+                  console.log(`  Revised plan: ${outline.scenes.length} beats. Persisted. Restarting chapter draft with revised plan.`)
                 }
                 bail = true
               } catch (err) {
