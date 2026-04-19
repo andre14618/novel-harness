@@ -7,6 +7,7 @@ import { GuidePage } from "./components/GuidePage"
 import { FinetunePage } from "./components/FinetunePage"
 import { ContextEngineeringPage } from "./components/ContextEngineeringPage"
 import { DocsPage } from "./components/DocsPage"
+import { ChartersPage } from "./components/ChartersPage"
 import { NovelReadView } from "./components/NovelReadView"
 import { StudioPage } from "./components/StudioPage"
 import "./styles/app.css"
@@ -23,6 +24,7 @@ createRoot(document.getElementById("root")!).render(
           <Route path="/context" element={<ContextEngineeringPage />} />
           <Route path="/finetune" element={<FinetunePage />} />
           <Route path="/docs" element={<DocsPage />} />
+          <Route path="/charters" element={<ChartersPage />} />
           <Route path="/todo" element={<Navigate to="/docs?doc=todo.md" replace />} />
           <Route path="/compare" element={<Navigate to="/guide" replace />} />
           <Route path="/read" element={<NovelReadView />} />

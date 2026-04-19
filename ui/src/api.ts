@@ -673,3 +673,29 @@ export interface Adapter {
 export function listAdapters() {
   return fetchJSON<Adapter[]>("/api/adapters")
 }
+
+// ── Charters ──────────────────────────────────────────────────────────
+
+export interface CharterMeta {
+  slug: string
+  title: string
+  status: string | null
+  kind: string | null
+  experimentFamily: string | null
+  proposedBy: string | null
+  proposedDate: string | null
+  adversaryVerdict: string | null
+  supersedes: string | null
+  supersededBy: string | null
+  extras: Record<string, string>
+}
+
+export interface CharterFull extends CharterMeta { body: string }
+
+export function listCharters() {
+  return fetchJSON<CharterMeta[]>("/api/charters")
+}
+
+export function getCharter(slug: string) {
+  return fetchJSON<CharterFull>(`/api/charters/${encodeURIComponent(slug)}`)
+}
