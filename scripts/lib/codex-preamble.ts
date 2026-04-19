@@ -57,25 +57,42 @@ async function main() {
   lines.push(``)
   lines.push(`> Regenerated preamble. Commit-pinned to \`${headSha}\`. Cite \`git show ${headSha}\` in any review response.`)
   lines.push(``)
+  // Codex review a3af80e8eb4312169 Q4: runtime topology note so reviewers
+  // don't conflate local shell state with target-runtime state (the
+  // explicit failure class #6 also called out below).
+  lines.push(`> **Runtime topology:** orchestrator + Postgres on the LXC host; local shell state may differ from target runtime. SSH/API probes are authoritative.`)
+  lines.push(``)
 
   // ── 1. Experiments ──────────────────────────────────────────────────
-  const { open, recent } = await fetchExperiments()
-  lines.push(`## Open experiments (${open.length})`)
-  if (open.length === 0) {
-    lines.push(`- none`)
+  const expFetch = await fetchExperiments()
+  if (!expFetch.ok) {
+    // Codex review a3af80e8eb4312169 Q3/MEDIUM: surface unavailability
+    // explicitly. A silent "(none)" is a false signal.
+    lines.push(`## Open experiments`)
+    lines.push(`- unavailable (SSH/DB fetch failed: ${truncate(expFetch.reason ?? "unknown", 100)})`)
+    lines.push(``)
+    lines.push(`## Recently closed (top ${MAX_CLOSED_EXPS})`)
+    lines.push(`- unavailable (SSH/DB fetch failed)`)
+    lines.push(``)
   } else {
-    for (const e of open.slice(0, MAX_OPEN_EXPS)) {
+    const { open, open_total, recent } = expFetch
+    lines.push(`## Open experiments (${open_total})`)
+    if (open_total === 0) {
+      lines.push(`- none`)
+    } else {
+      for (const e of open.slice(0, MAX_OPEN_EXPS)) {
+        lines.push(`- #${e.id} [${e.experiment_type}] ${truncate(e.description, 120)}`)
+      }
+      if (open_total > MAX_OPEN_EXPS) lines.push(`- …${open_total - MAX_OPEN_EXPS} more (query tuning_experiments WHERE conclusion IS NULL)`)
+    }
+    lines.push(``)
+
+    lines.push(`## Recently closed (top ${MAX_CLOSED_EXPS})`)
+    for (const e of recent.slice(0, MAX_CLOSED_EXPS)) {
       lines.push(`- #${e.id} [${e.experiment_type}] ${truncate(e.description, 120)}`)
     }
-    if (open.length > MAX_OPEN_EXPS) lines.push(`- …${open.length - MAX_OPEN_EXPS} more (query tuning_experiments WHERE conclusion IS NULL)`)
+    lines.push(``)
   }
-  lines.push(``)
-
-  lines.push(`## Recently closed (top ${MAX_CLOSED_EXPS})`)
-  for (const e of recent.slice(0, MAX_CLOSED_EXPS)) {
-    lines.push(`- #${e.id} [${e.experiment_type}] ${truncate(e.description, 120)}`)
-  }
-  lines.push(``)
 
   // ── 2. Architectural decisions (titles from decisions.md) ───────────
   lines.push(`## Architectural decisions (last ${DAYS_FOR_DECISIONS} days)`)
@@ -138,26 +155,38 @@ async function gitHead(): Promise<string> {
 }
 
 interface ExpRow { id: number; experiment_type: string; description: string; timestamp: string }
+interface ExpFetch {
+  ok: boolean
+  reason?: string
+  open: ExpRow[]
+  open_total: number    // distinct from open.length — may be capped below real count
+  recent: ExpRow[]
+}
 
-async function fetchExperiments(): Promise<{ open: ExpRow[]; recent: ExpRow[] }> {
+async function fetchExperiments(): Promise<ExpFetch> {
   // Run via SSH on LXC (Postgres is there, not on local machine).
-  // Uses a tiny inline bun script so we don't need to bundle pg client locally.
+  // Codex review a3af80e8eb4312169 LOW: separate COUNT(*) so header isn't
+  // capped silently when open rows >20.
   const cmd = `cd ~/apps/novel-harness && bun -e '
     import db from "./src/db/connection"
     const open = await db\`SELECT id, experiment_type, description, timestamp FROM tuning_experiments WHERE conclusion IS NULL ORDER BY id DESC LIMIT 20\`
+    const [openCount] = await db\`SELECT COUNT(*)::int AS n FROM tuning_experiments WHERE conclusion IS NULL\`
     const recent = await db\`SELECT id, experiment_type, description, timestamp FROM tuning_experiments WHERE conclusion IS NOT NULL ORDER BY timestamp DESC LIMIT 10\`
-    console.log(JSON.stringify({ open, recent }))
+    console.log(JSON.stringify({ open, open_total: openCount.n, recent }))
     process.exit(0)
   '`
   const r = await Bun.$`ssh novel-harness-lxc ${cmd}`.quiet().nothrow()
   if (r.exitCode !== 0) {
-    console.error(`[codex-preamble] warning: experiment fetch failed (${r.stderr.toString().slice(0, 200)}) — emitting empty`)
-    return { open: [], recent: [] }
+    const reason = r.stderr.toString().slice(0, 200).trim() || `exit ${r.exitCode}`
+    console.error(`[codex-preamble] warning: experiment fetch failed — ${reason}`)
+    return { ok: false, reason, open: [], open_total: 0, recent: [] }
   }
   try {
-    return JSON.parse(r.stdout.toString()) as { open: ExpRow[]; recent: ExpRow[] }
-  } catch {
-    return { open: [], recent: [] }
+    const parsed = JSON.parse(r.stdout.toString()) as Omit<ExpFetch, "ok">
+    return { ok: true, ...parsed }
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err)
+    return { ok: false, reason, open: [], open_total: 0, recent: [] }
   }
 }
 
@@ -169,24 +198,29 @@ function extractRecentDecisionTitles(days: number): string[] {
 
   // Parse entries. Format per docs/decisions.md: each entry starts with
   // `### Title` followed on the next non-blank line by `*YYYY-MM-DD · …*`.
+  //
+  // Codex review a3af80e8eb4312169 Q2/MEDIUM: parse into {title, date}
+  // pairs and sort descending by date BEFORE the caller truncates.
+  // docs/decisions.md is not fully reverse-chronological; without this
+  // sort, newer entries can be dropped in favor of file-order precedence.
   const lines = content.split("\n")
-  const entries: string[] = []
+  const parsed: { title: string; date: string; dateObj: Date }[] = []
   for (let i = 0; i < lines.length; i++) {
     const titleMatch = lines[i].match(/^### (.+)$/)
     if (!titleMatch) continue
-    // Look ahead for the date line within 3 lines
     for (let j = i + 1; j < Math.min(i + 4, lines.length); j++) {
       const dateMatch = lines[j].match(/^\*(\d{4}-\d{2}-\d{2})/)
       if (dateMatch) {
         const entryDate = new Date(dateMatch[1])
         if (entryDate >= cutoff) {
-          entries.push(`${titleMatch[1]} (${dateMatch[1]})`)
+          parsed.push({ title: titleMatch[1], date: dateMatch[1], dateObj: entryDate })
         }
         break
       }
     }
   }
-  return entries
+  parsed.sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime())
+  return parsed.map(p => `${p.title} (${p.date})`)
 }
 
 interface PatternEntry { slug: string; summary: string }

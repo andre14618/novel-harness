@@ -1,14 +1,16 @@
-# novel-harness Codex preamble — 2026-04-19T20:20:47.530Z
+# novel-harness Codex preamble — 2026-04-19T20:26:44.591Z
 
-> Regenerated preamble. Commit-pinned to `ce34df9`. Cite `git show ce34df9` in any review response.
+> Regenerated preamble. Commit-pinned to `413bf12`. Cite `git show 413bf12` in any review response.
 
-## Open experiments (20)
+> **Runtime topology:** orchestrator + Postgres on the LXC host; local shell state may differ from target runtime. SSH/API probes are authoritative.
+
+## Open experiments (55)
 - #241 [infrastructure] Status dashboard + Codex preamble generator. Completes session-handoff ranked priorities #2 + #3. scripts/status.ts = o…
 - #236 [charter] Charter — planner-phase2-payoff-floor (mini-pilot: does an aggressive prompt-only setup/payoff floor on pre-planner-pha…
 - #229 [sft_training] Small-model POC — Qwen3-1.7B halluc-checker on Together AI (400-pair v2 train set)
 - #205 [validation_sweep] v3 narrow-strip production sweep on fantasy-system-heretic
 - #204 [validation_sweep] v3 narrow-strip production sweep on fantasy-tower-cartographer
-- …15 more (query tuning_experiments WHERE conclusion IS NULL)
+- …50 more (query tuning_experiments WHERE conclusion IS NULL)
 
 ## Recently closed (top 5)
 - #240 [infrastructure] WorkflowPage UI — visual dashboard of the Claude+Codex orchestration pattern captured in .claude/skills/implement-ticke…
@@ -18,16 +20,16 @@
 - #235 [data-generation] halluc-leak-salvatore vocabulary expansion — 49 tokens × 5 examples via DeepSeek
 
 ## Architectural decisions (last 7 days)
-- Extractor V1 adapters trained — structural eval passed, content eval pending (2026-04-13)
-- Extraction architecture audit — 3 of 4 extractors redundant with planner (2026-04-13)
-- Tonal pass V4 verdict — lexical-only, dead end as a voice tool; writer-side style training is the path forward (2026-04-14)
-- Tonal pass stores a separate version; on-demand run for existing novels (2026-04-14)
-- Canonical corpus-bundle architecture with 14 conservation invariants (2026-04-17)
-- Regex-based prose evaluation is a last resort, not a default (2026-04-17)
-- Per-task model selection for corpus pipeline — validated head-to-head (2026-04-17)
-- Programmatic DeepSeek V3.2 for corpus-wide extraction tasks (replaces Sonnet subagents) (2026-04-17)
-- Salvatore bundle — complete corpus re-ingestion post-audit (2026-04-17)
-- Two-phase planner (skeleton + per-chapter beat expansion) with beat-count floor (2026-04-17)
+- Exhaustion-handler 5-step architecture canonicalized (2026-04-19)
+- Debug-injection MVP as test-only infrastructure (2026-04-19)
+- PipelineBailError auto-mode contract (2026-04-19)
+- Non-blind-retry as canonical quality gate (2026-04-19)
+- Round A + Round B architecture — non-blind-retry shipped, V2 interceptor Phase 1 coexisting with V1 (2026-04-19)
+- Context-engineering-forward architecture — craft is a model problem, not a prompt problem (2026-04-18)
+- Hallucination-checker narrow scope — two categories, no taxonomy (2026-04-18)
+- Enterprise-grade labeling SOP — rubric + gold examples + κ monitoring (2026-04-18)
+- Hallucination-checker v2 — chapter-plan methodology replicated, synth-to-natural distribution shift confirmed (2026-04-18)
+- Hallucination-checker v3 — two-adapter architecture (ungrounded-entity + Salvatore-leak), name-drift dropped (2026-04-18)
 - …40 more (see docs/decisions.md)
 
 ## Pattern watch-list (docs/patterns/)
