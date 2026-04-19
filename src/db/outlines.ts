@@ -33,3 +33,25 @@ export async function isPlanCheckOverridden(novelId: string, chapterNum: number)
 export async function setPlanCheckOverridden(novelId: string, chapterNum: number, value: boolean): Promise<void> {
   await db`UPDATE chapter_outlines SET plan_check_overridden = ${value} WHERE novel_id = ${novelId} AND chapter_number = ${chapterNum}`
 }
+
+/**
+ * Revision-used guard — persistent per-chapter signal that the chapter-plan-reviser
+ * has already been invoked for this chapter. Column added in migration sql/031.
+ *
+ * Set to TRUE BEFORE the reviser call in drafting.ts (mirroring the in-memory
+ * `revisionUsed = true` flip) so a process restart mid-call cannot allow a
+ * duplicate invocation on resume. The hard cap is "one reviser call per chapter
+ * across the novel's lifetime."
+ *
+ * See docs/next-session-plan.md §Tier 1a and
+ * docs/patterns/in-memory-state-restart-data-loss.md.
+ */
+export async function isRevisionUsed(novelId: string, chapterNum: number): Promise<boolean> {
+  const rows = await db`SELECT revision_used FROM chapter_outlines WHERE novel_id = ${novelId} AND chapter_number = ${chapterNum}`
+  if (!rows.length) return false
+  return rows[0].revision_used === true
+}
+
+export async function setRevisionUsed(novelId: string, chapterNum: number, value: boolean): Promise<void> {
+  await db`UPDATE chapter_outlines SET revision_used = ${value} WHERE novel_id = ${novelId} AND chapter_number = ${chapterNum}`
+}

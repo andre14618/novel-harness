@@ -88,6 +88,10 @@ mock.module("../db", () => ({
   // via overrideSetCount for assertion without re-reading.
   isPlanCheckOverridden: async () => overrideInitial,
   setPlanCheckOverridden: async (_n: string, _c: number, _v: boolean) => { overrideSetCount++ },
+  // revisionUsed persistence (sql/031) — start false so existing tests
+  // exercise the same fresh-chapter path as before the DB-backed init.
+  isRevisionUsed: async () => false,
+  setRevisionUsed: async () => {},
 }))
 
 mock.module("../llm", () => ({

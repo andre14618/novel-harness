@@ -8,11 +8,12 @@ test("migrate() path resolves to repo-root sql/ (not src/sql/)", async () => {
   // Lower bound grows as migrations land; bump with each new sql file
   // so CI catches ordering/naming regressions (Codex review
   // aab899143d8326c77 Q9).
-  expect(files.length).toBeGreaterThanOrEqual(30)
+  expect(files.length).toBeGreaterThanOrEqual(31)
   expect(files).toContain("001_initial.sql")
   expect(files).toContain("028_chapter_revisions.sql")
   expect(files).toContain("029_plan_check_overridden.sql")
   expect(files).toContain("030_chapter_exhaustions.sql")
+  expect(files).toContain("031_chapter_outlines_revision_used.sql")
 
   // migrate() applies files in lexical sort order. All files must follow
   // the `NNN_description.sql` convention so their lexical order matches

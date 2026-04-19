@@ -6,6 +6,7 @@ import {
   saveIssue, updateCurrentChapter, updatePhase,
   logRevision, canonicalizeDeviations,
   isPlanCheckOverridden, setPlanCheckOverridden,
+  isRevisionUsed, setRevisionUsed,
 } from "../db"
 import type { SceneBeat } from "../schemas/shared"
 import { callAgent, executeAndLog } from "../llm"
@@ -161,7 +162,10 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
     let approved = false
     let attempts = 0
     const maxAttempts = pipeline.maxDraftAttempts
-    let revisionUsed = false
+    let revisionUsed = await isRevisionUsed(novelId, ch)
+    if (revisionUsed) {
+      log(novelId, "info", `Chapter ${ch} revisionUsed=true (persisted from prior attempt) — reviser skip path will fire`)
+    }
     let lastUnresolvedSig = ""
     let chapterAborted = false
 
@@ -645,7 +649,12 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
               log(novelId, "info", `Invoking chapter-plan-reviser for chapter ${ch}: ${(out.deviations ?? []).length} unresolved issues`)
               // Mark revision as used BEFORE the call so a schema/transport
               // failure can't trigger a second revision on the next attempt.
+              // Local flag first (drives control flow for remainder of this
+              // attempt); DB write second (survives process restart).
               revisionUsed = true
+              setRevisionUsed(novelId, ch, true).catch(err =>
+                log(novelId, "warn", `setRevisionUsed failed (non-fatal — in-memory flag still holds): ${err instanceof Error ? err.message : err}`)
+              )
               lastUnresolvedSig = issueSig
               const deviationsForLog = out.deviations ?? []
               const originalBeatsSnapshot = [...outline.scenes]
@@ -937,7 +946,12 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
           if (!revisionUsed && canSettleForRevision) {
             console.log(`  Escalating to chapter-plan-reviser (persistent validation blockers)`)
             log(novelId, "info", `Invoking chapter-plan-reviser for chapter ${ch} (validation path): ${currentBlockers.length} unresolved blockers`)
+            // Local flag first (drives control flow for remainder of this
+            // attempt); DB write second (survives process restart).
             revisionUsed = true
+            setRevisionUsed(novelId, ch, true).catch(err =>
+              log(novelId, "warn", `setRevisionUsed failed (non-fatal — in-memory flag still holds): ${err instanceof Error ? err.message : err}`)
+            )
             // Prefix descriptions with "[validation] " so the issue_sig hash
             // namespace can't collide with a future plan-check deviation that
             // happens to land on beat_index=null with matching text. The
