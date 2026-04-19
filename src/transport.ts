@@ -79,7 +79,7 @@ export class DirectTransport implements LLMTransport {
     const providerDef = PROVIDERS[request.provider]
     const apiKey = getApiKey(request.provider)
     const maxRetries = 3
-    const retryErrors: Array<{ status: number; delay: number }> = []
+    const retryErrors: Array<{ status: number; delay: number; error?: string }> = []
     let httpAttempts = 0
     const startTime = performance.now()
 
