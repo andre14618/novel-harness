@@ -4,8 +4,9 @@ import {
   getCharacterStatesAtChapter, getAllCharacterStatesBeforeChapter, getWorldBible,
   saveChapterDraft, approveChapterDraft, getApprovedDraft,
   saveIssue, updateCurrentChapter, updatePhase,
-  logRevision,
+  logRevision, canonicalizeDeviations,
 } from "../db"
+import type { SceneBeat } from "../schemas/shared"
 import { callAgent, executeAndLog } from "../llm"
 import { getTransport } from "../transport"
 import { WRITER_AGENT_PROMPT, BEAT_WRITER_PROMPT, CHAPTER_PLAN_CHECKER_PROMPT } from "../prompts"
@@ -547,7 +548,9 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
             // the while-attempt loop). The signature check is redundant
             // given the hard cap but kept as a defense-in-depth guard in
             // case the cap is loosened later.
-            const issueSig = (out.deviations ?? []).map(d => `${d.beat_index ?? "c"}:${d.description}`).sort().join("|")
+            // Shared canonicalization with the telemetry hash — guarantees
+            // skip dedupe and issue_sig stay in sync.
+            const issueSig = canonicalizeDeviations(out.deviations ?? [])
             const canRevise = !revisionUsed && issueSig !== lastUnresolvedSig && canSettle
 
             if (canRevise) {
@@ -577,7 +580,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                 // If any check fails we keep the original outline; the outer
                 // attempt will re-run with unchanged plan (a known no-op
                 // retry, but safer than drafting against a garbage plan).
-                const revisedScenes = revised.output.scenes ?? []
+                const revisedScenes: SceneBeat[] = (revised.output.scenes ?? []) as SceneBeat[]
                 const minBeats = Math.max(3, Math.ceil(outline.targetWords / 300))
                 const originalCharacters = new Set([
                   outline.povCharacter,
@@ -594,7 +597,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                     novelId, chapter: ch, attempt: attempts,
                     deviations: deviationsForLog,
                     originalBeats: originalBeatsSnapshot,
-                    revisedBeats: revisedScenes as any,
+                    revisedBeats: revisedScenes,
                     outcome: "rejected_beat_floor",
                     rejectionReason: `revised beat count ${revisedScenes.length} < floor ${minBeats}`,
                   }).catch(err => log(novelId, "warn", `logRevision failed: ${err instanceof Error ? err.message : err}`))
@@ -605,7 +608,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                     novelId, chapter: ch, attempt: attempts,
                     deviations: deviationsForLog,
                     originalBeats: originalBeatsSnapshot,
-                    revisedBeats: revisedScenes as any,
+                    revisedBeats: revisedScenes,
                     outcome: "rejected_new_characters",
                     rejectionReason: `new characters: ${newCharacters.join(", ")}`,
                   }).catch(err => log(novelId, "warn", `logRevision failed: ${err instanceof Error ? err.message : err}`))

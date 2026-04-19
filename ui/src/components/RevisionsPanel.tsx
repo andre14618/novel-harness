@@ -42,10 +42,24 @@ export function RevisionsPanel({ novelId }: { novelId: string }) {
     getNovelRevisions(novelId).then(setData).catch(e => setError(String(e)))
   }, [novelId])
 
-  if (error) return null // Silent fail — panel is optional
-  if (!data || data.stats.total === 0) return null // Nothing to show
+  if (error) {
+    return (
+      <div style={{ marginTop: 14, padding: 10, border: "1px solid #2a2e3c", borderRadius: 6, background: "#1a1d28", color: "#c95", fontSize: "0.82rem" }}>
+        Failed to load revisions: {error}
+      </div>
+    )
+  }
+  if (!data) return null // Still loading
 
   const { stats, rows } = data
+
+  if (stats.total === 0) {
+    return (
+      <div style={{ marginTop: 14, padding: 10, border: "1px solid #2a2e3c", borderRadius: 6, background: "#1a1d28", color: "#888", fontSize: "0.82rem" }}>
+        Plan revisions: <strong style={{ color: "#aaa" }}>none</strong> — chapter-plan-checker has not escalated to the reviser for any chapter in this novel.
+      </div>
+    )
+  }
   const acceptPct = stats.acceptanceRate != null ? `${(stats.acceptanceRate * 100).toFixed(0)}%` : "—"
 
   return (

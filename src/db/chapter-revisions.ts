@@ -23,14 +23,34 @@ export interface LogRevisionInput {
   rejectionReason?: string | null
 }
 
-/** Canonicalize deviations into a SHA256 hash that's stable across prompt-
- *  wording jitter but changes when the underlying issue set changes. */
+/** Canonicalize a deviation set into a deterministic JSON string.
+ *  Shared by telemetry hashing AND the drafting skip-dedupe check so the
+ *  two stay in sync. JSON encoding avoids the delimiter-collision hazard
+ *  of joining free-text descriptions with `:` / `|`. */
+export function canonicalizeDeviations(deviations: ChapterPlanDeviation[]): string {
+  const normalized = deviations
+    .map(d => ({
+      b: d.beat_index ?? null,
+      // Collapse all internal whitespace runs to single space + lowercase +
+      // trim, so wording jitter like double-spaces or trailing punctuation
+      // doesn't produce a different signature.
+      d: d.description.trim().toLowerCase().replace(/\s+/g, " "),
+    }))
+    .sort((a, b) => {
+      const ba = a.b ?? -1
+      const bb = b.b ?? -1
+      if (ba !== bb) return ba - bb
+      return a.d < b.d ? -1 : a.d > b.d ? 1 : 0
+    })
+  return JSON.stringify(normalized)
+}
+
+/** Canonicalize deviations into a SHA256 hash that's stable across
+ *  prompt-wording jitter but changes when the underlying issue set
+ *  changes. Uses canonicalizeDeviations() so telemetry + skip dedupe
+ *  agree on what counts as "the same issue set". */
 export function hashIssueSig(deviations: ChapterPlanDeviation[]): string {
-  const canonical = deviations
-    .map(d => `${d.beat_index ?? "c"}:${d.description.trim().toLowerCase()}`)
-    .sort()
-    .join("|")
-  return createHash("sha256").update(canonical).digest("hex").slice(0, 16)
+  return createHash("sha256").update(canonicalizeDeviations(deviations)).digest("hex").slice(0, 16)
 }
 
 export async function logRevision(input: LogRevisionInput): Promise<void> {
