@@ -16,6 +16,25 @@ import { DirectorChat } from "./DirectorChat"
 import { ArtifactPreviews } from "./ArtifactPreviews"
 import { agentActionLabel } from "../agent-labels"
 
+// Novel IDs matching these shapes are treated as experiment/pilot runs and
+// hidden from the Studio picker by default (toggle via Show experiments).
+// Keep this heuristic conservative: if someone names a real novel "pp2-…"
+// we'll hide it, but that's easy to recover by flipping the toggle.
+const EXPERIMENT_ID_PATTERNS = [
+  /__/,                       // double-underscore convention (pp2-floor__prompt__seed__ts)
+  /^pp2-/,                    // planner-phase2 pilot/floor variants
+  /^pilot-/,                  // generic pilot runs
+  /^eval-/,                   // eval harness runs
+  /^leak-/,                   // leak-detector data gen
+  /^halluc-/,                 // hallucination-checker data gen
+  /^voice-probe-/,            // voice probes
+  /^fantasy-debt-/,           // charter-named mini-pilot seeds
+]
+
+function isExperimentNovel(id: string): boolean {
+  return EXPERIMENT_ID_PATTERNS.some(re => re.test(id))
+}
+
 interface LLMCallRow {
   id: string
   agent: string
@@ -74,6 +93,9 @@ export function StudioPage() {
   const [_config, setConfig] = useState<NovelConfig | null>(null)
   const [resuming, setResuming] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [showExperiments, setShowExperiments] = useState(() =>
+    typeof localStorage !== "undefined" && localStorage.getItem("studio-show-experiments") === "true",
+  )
   const { events, connected, lastEvent, seedEvents } = useNovelSSE(activeNovelId)
 
   const [liveCalls, setLiveCalls] = useState<LLMCallRow[]>([])
@@ -492,9 +514,14 @@ export function StudioPage() {
                 lastHydratedRef.current = null
               }}>Clear</button>
             )}
-            <button className="studio-novels-btn" onClick={() => setPickerOpen(true)}>
-              {novels.length === 1 ? "Read Novel" : "Read Novels"} <span className="studio-novels-count">{novels.length}</span>
-            </button>
+            {(() => {
+              const pickerCount = showExperiments ? novels.length : novels.filter(n => !isExperimentNovel(n.id)).length
+              return (
+                <button className="studio-novels-btn" onClick={() => setPickerOpen(true)}>
+                  {pickerCount === 1 ? "Read Novel" : "Read Novels"} <span className="studio-novels-count">{pickerCount}</span>
+                </button>
+              )
+            })()}
             <span className={`connected-dot ${connected ? "on" : "off"}`} />
           </div>
         </div>
@@ -537,8 +564,10 @@ export function StudioPage() {
 
       {/* ── Novel picker popout ───────────────────────────────────── */}
       {pickerOpen && (() => {
-        const current = novels.find(n => n.id === activeNovelId) ?? novels[0] ?? null
-        const rest = novels.filter(n => n.id !== current?.id)
+        const visibleNovels = showExperiments ? novels : novels.filter(n => !isExperimentNovel(n.id))
+        const hiddenCount = novels.length - visibleNovels.length
+        const current = visibleNovels.find(n => n.id === activeNovelId) ?? visibleNovels[0] ?? null
+        const rest = visibleNovels.filter(n => n.id !== current?.id)
         const tileInfo = (n: NovelListItem) => ({
           status: n.phase === "done" ? "done" : n.active ? "running" : n.phase,
           dateStr: (() => { const d = new Date(n.createdAt); return `${d.getMonth()+1}/${d.getDate()}` })(),
@@ -548,7 +577,20 @@ export function StudioPage() {
           <div className="novel-picker-overlay" onClick={() => setPickerOpen(false)}>
             <div className="novel-picker-panel" onClick={e => e.stopPropagation()}>
               <div className="novel-picker-header">
-                <span>{novels.length === 1 ? "Read Novel" : "Read Novels"}</span>
+                <span>{visibleNovels.length === 1 ? "Read Novel" : "Read Novels"}</span>
+                <label style={{ marginLeft: "auto", marginRight: 12, display: "flex", alignItems: "center", gap: 6, fontSize: "0.78rem", color: "#aaa", cursor: "pointer" }}>
+                  <input
+                    type="checkbox"
+                    checked={showExperiments}
+                    onChange={e => {
+                      const next = e.target.checked
+                      setShowExperiments(next)
+                      if (typeof localStorage !== "undefined") localStorage.setItem("studio-show-experiments", String(next))
+                    }}
+                  />
+                  Show experiments
+                  {!showExperiments && hiddenCount > 0 && <span style={{ color: "#666" }}>({hiddenCount} hidden)</span>}
+                </label>
                 <button className="novel-picker-close" onClick={() => setPickerOpen(false)}>×</button>
               </div>
               <div className="novel-picker-body">
