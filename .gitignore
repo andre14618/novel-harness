@@ -15,3 +15,6 @@ finetune-data/
 wandb/
 __pycache__/
 *.pyc
+
+# Ephemeral in-flight run registry — per-machine runtime state only
+.claude/in-flight/

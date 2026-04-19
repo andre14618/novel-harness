@@ -14,6 +14,20 @@ origin: Codex threads a65ba6ef7290fdf25 (strategy) + ad350aa657ec1c9b1 (validati
 
 **Only on a human-approved ticket.** Never pick the next `docs/todo.md` item autonomously. Approved = user says "ship X" or explicit allowlist in a handoff doc. On ambiguous input, ask which ticket first.
 
+## Phase -1 — Session start (MANDATORY, before any ticket work)
+
+Before starting ANY work in a session (ticket or not):
+
+1. **Read `.claude/session-handoff.md`** — short living state doc from the prior session. Contains: what's in flight, pending Codex reviews, unresolved decisions, recent architectural decisions (last 48h). If the handoff is stale (updated > 48h) or missing, fall back to `bun scripts/status.ts` (once it ships) or manual reconstruction via `git log --oneline -20 | head` + most recent `docs/sessions/` retrospective.
+
+2. **List in-flight runs:** `bun scripts/lib/in-flight.ts list`. Each entry represents a background process launched from a prior session. For each:
+   - Verify LXC process alive: `ssh novel-harness-lxc 'pgrep -af <cmd fragment>'`. If dead + experiment row still open → the run crashed silently; query logs to reconstruct, then remove the registry entry.
+   - Verify experiment row: `SELECT conclusion IS NOT NULL FROM tuning_experiments WHERE id = ?`. If the process ended but the experiment never concluded, conclude it manually with a recovered outcome.
+
+3. **Check `docs/todo.md`** for priority shifts.
+
+Only then start ticket work. Skipping Phase -1 means the session operates with stale assumptions — Codex thread IDs from last session may not be in-context, in-flight runs may get double-started, and telemetry chains can silently break.
+
 ## Phase 0 — Create tuning_experiment (MANDATORY)
 
 **Before any code work.** CLAUDE.md rule 1: every experiment goes in the DB. Rule 2: every benchmark run links to an experiment via `EXPERIMENT_ID=N`.
@@ -36,6 +50,24 @@ const expId = await createTuningExperiment(
 - Script runs: export `EXPERIMENT_ID=N` so logs link back
 - LLM calls: `llm_calls.experiment_id` should be populated where applicable
 - Commit body: cite the experiment ID (e.g., "Linked to experiment #237") when the commit ships code behind the experiment
+
+**In-flight registry discipline:** Any background launch (nohup LXC process, long campaign, async eval, training job) MUST write an entry to the local in-flight registry so session-crash or user-switch doesn't lose track:
+
+```bash
+bun scripts/lib/in-flight.ts add '{
+  "run_id": "<novel_id or campaign slug>",
+  "kind": "novel-run" | "campaign" | "eval" | "training" | "other",
+  "exp_id": <N>,
+  "pid": <PID if known>,
+  "host": "lxc",
+  "log_path": "/tmp/<name>.log",
+  "launched_at": "<ISO>",
+  "expected_finish_at": "<ISO or null>",
+  "description": "<one line>"
+}'
+```
+
+Registry lives at `.claude/in-flight/active.json` (gitignored). On run finish, remove the entry: `bun scripts/lib/in-flight.ts remove <run_id>`. Scripts that auto-conclude their experiment row (like `organic-run-verify.ts`) should also auto-remove their registry entry in the same finally block.
 
 **Concluding:** call `concludeExperiment(expId, conclusion)` at end-of-work with the outcome (Codex verdict, pass/fail, measured Δ, whatever is load-bearing). NEVER delete experiments per rule in CLAUDE.md.
 
@@ -145,6 +177,20 @@ Runs in parallel with Phase 9 validation wall-clock (20-45 min dead time otherwi
 Write `docs/sessions/YYYY-MM-DD-{slug}.md` per `docs/sessions/TEMPLATE.md`. **Telemetry frontmatter is mandatory** — missing fields fail the review. See template.
 
 If a pattern recurs across 2+ sessions → elevate to `docs/patterns/{slug}.md`.
+
+## Phase 12 — Session close (handoff for the next session)
+
+Before ending the session:
+
+1. **Update `.claude/session-handoff.md`** — overwrite with current state:
+   - What's in flight (pull from `.claude/in-flight/active.json`)
+   - What's pending Codex review (any open threads)
+   - Unresolved decisions / next-session priorities
+   - Recent architectural decisions (last 48h, pointers to `docs/decisions.md`)
+   - Commit chain this session
+   - "If you just landed here and don't know what's going on" paragraph
+2. **Confirm no in-flight runs are silently dropped** — each must either have completed (registry removed + experiment concluded) OR be explicitly documented in the handoff with "next session please check on X."
+3. **Commit the handoff doc** in the same commit as the session retrospective (or a separate `[docs]` commit if the retrospective has separate review).
 
 ## Exit triggers (stop and escalate)
 
