@@ -174,61 +174,41 @@ function findSeamSites(sf: ts.SourceFile): SeamSite[] {
 }
 
 /**
- * Find the nearest enclosing top-level function (FunctionDeclaration /
- * ArrowFunction / FunctionExpression / MethodDeclaration) for a node.
- * Falls back to the source file if none found.
+ * Text-window proximity check for the guard.
+ *
+ * Rationale (Codex review `a01385f5` HIGH #1): function-scope subtree scan
+ * over-accepts — a new unguarded call anywhere in the same function passes
+ * because a sibling site's guard is somewhere in the function body. A per-
+ * site text-line window (±WINDOW_LINES around the call) catches that
+ * regression class while still accepting the real HEAD sites whose guards
+ * live on their result-processing branch, not immediately adjacent.
+ *
+ * The 50-line window was chosen by measuring HEAD: the largest call-to-
+ * guard distance is 40 lines (chapter-plan-checker initial call at
+ * drafting.ts:425 paired with `inject.forcePlanCheck` at :470). Using
+ * 50 adds a small margin; a regression >50 lines away from any guard
+ * FAILS. If future sites need a wider window, either refactor the seam
+ * to move the guard closer, or use `// @noninjectable` + allowlist.
  */
-function enclosingFunction(node: ts.Node): ts.Node {
-  let cur: ts.Node | undefined = node.parent
-  let last: ts.Node | undefined = undefined
-  while (cur) {
-    if (
-      ts.isFunctionDeclaration(cur) ||
-      ts.isArrowFunction(cur) ||
-      ts.isFunctionExpression(cur) ||
-      ts.isMethodDeclaration(cur)
-    ) {
-      last = cur
-      // Keep going to find the OUTERMOST (we want top-level function body).
-    }
-    cur = cur.parent
-  }
-  return last ?? node.getSourceFile()
-}
+const SEAM_WINDOW_LINES = 50
 
-/**
- * Returns true if anywhere within `root`'s subtree there is a
- * PropertyAccessExpression `inject.<forceName>` or ElementAccessExpression
- * `inject["<forceName>"]`.
- */
-function subtreeHasForceRef(root: ts.Node, forceName: string): boolean {
-  let found = false
-  function visit(node: ts.Node) {
-    if (found) return
-    if (
-      ts.isPropertyAccessExpression(node) &&
-      ts.isIdentifier(node.expression) &&
-      node.expression.text === "inject" &&
-      ts.isIdentifier(node.name) &&
-      node.name.text === forceName
-    ) {
-      found = true
-      return
-    }
-    if (
-      ts.isElementAccessExpression(node) &&
-      ts.isIdentifier(node.expression) &&
-      node.expression.text === "inject" &&
-      ts.isStringLiteral(node.argumentExpression) &&
-      node.argumentExpression.text === forceName
-    ) {
-      found = true
-      return
-    }
-    ts.forEachChild(node, visit)
+function textWindowHasForceRef(
+  sf: ts.SourceFile,
+  siteLine: number,
+  forceName: string,
+): boolean {
+  const text = sf.getFullText()
+  const lines = text.split("\n")
+  const lo = Math.max(0, siteLine - 1 - SEAM_WINDOW_LINES)
+  const hi = Math.min(lines.length, siteLine + SEAM_WINDOW_LINES)
+  const needle1 = `inject.${forceName}`
+  const needle2 = `inject["${forceName}"]`
+  const needle3 = `inject['${forceName}']`
+  for (let i = lo; i < hi; i++) {
+    const l = lines[i]
+    if (l.includes(needle1) || l.includes(needle2) || l.includes(needle3)) return true
   }
-  visit(root)
-  return found
+  return false
 }
 
 /**
@@ -259,8 +239,7 @@ function checkSeamRecheckSymmetry(
 
   for (const site of sites) {
     if (hasNonInjectableComment(sf, site.line)) continue
-    const fn = enclosingFunction(site.node)
-    if (subtreeHasForceRef(fn, site.forceName)) continue
+    if (textWindowHasForceRef(sf, site.line, site.forceName)) continue
 
     // Not guarded — check allowlist before reporting.
     const hit = isAllowlisted(allowlist, INV_SEAM_RECHECK, rel, site.line)

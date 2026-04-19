@@ -9,8 +9,9 @@
  * schema/transport error can't trigger a second invocation). This test
  * exercises both happy-path and throwing-path behavior.
  *
- * Mocks at the module boundary — every `callAgent`/`executeAndLog`/DB/gate call
- * is stubbed, so no LLM or DB state is touched.
+ * Mocks at the module boundary — every `callAgent`/`executeAndLog`/DB call
+ * is stubbed, so no LLM or DB state is touched. `../gates` is intentionally
+ * NOT mocked for invariant #4; see the note on that block below.
  */
 import { mock, test, expect, beforeEach, afterEach } from "bun:test"
 
@@ -29,10 +30,11 @@ let consoleLines: string[] = []
 
 // ── Invariant #4 (exp #243) shared mock state ───────────────────────
 // When `useRealPresentForExhaustion` is true, the `../cli` mock replicates
-// the real `src/cli.ts:179-222 presentForExhaustion` logic, branching on
-// `invariant4ResolverMode` and delegating to the `../gates` mock's
-// `requestPlanAssist` (which the test swaps per-mode). When false (default),
-// existing tests keep their `{action:"override"}` stub behavior.
+// the real `src/cli.ts:179-222 presentForExhaustion` logic and delegates
+// to the REAL `../gates.requestPlanAssist` (gates.ts is NOT mocked in this
+// file — see the note near `../lint` mock below). When false (default),
+// existing tests keep their `{action:"override"}` stub behavior and never
+// touch gates.
 //
 // State kept on `globalThis` rather than module-local vars because
 // bun:test's module-mock registry is process-global: when both
@@ -234,50 +236,14 @@ mock.module("../planned-state", () => ({ savePlannedState: async () => {} }))
 mock.module("../state-diff", () => ({
   diffPlanAgainstState: () => ({ ok: true, conflicts: [] }),
 }))
-// Minimal PipelineBailError shim — matches the real `../gates` export shape
-// enough for drafting.ts's `import { PipelineBailError } from "../gates"` and
-// the test's catch-instanceof check. Only relevant in invariant #4 tests.
-class InvariantFourPipelineBailError extends Error {
-  constructor(
-    public readonly kind: string,
-    public readonly novelId: string,
-    public readonly chapter: number,
-    public readonly payload: unknown,
-  ) {
-    super(`Pipeline bailed at plan-assist gate (chapter ${chapter}, kind ${kind})`)
-    this.name = "PipelineBailError"
-  }
-}
-mock.module("../gates", () => ({
-  getPending: () => null,
-  getPendingPlanAssist: () => null,
-  resolvePlanAssist: () => false,
-  PipelineBailError: InvariantFourPipelineBailError,
-  requestPlanAssist: async (payload: { kind: string; chapter: number }, mode: string) => {
-    const s = getInvariant4State()
-    if (!s.useRealPresentForExhaustion) {
-      // Existing tests never exercise this path — the `../cli`
-      // stub short-circuits before reaching gates.requestPlanAssist.
-      throw new Error("gates.requestPlanAssist called from an existing test path (unexpected)")
-    }
-    s.requestPlanAssistPayloads.push({
-      kind: payload.kind,
-      chapter: payload.chapter,
-      mode,
-    })
-    // Replicate real `src/gates.ts:requestPlanAssist` event emission in ALL
-    // modes — the invariant asserts event-type parity across modes, so this
-    // MUST fire the same `gate:plan-assist` event regardless of branch.
-    s.emittedEvents.push({
-      type: "gate:plan-assist",
-      data: { kind: payload.kind, chapter: payload.chapter },
-    })
-    if (mode === "auto") {
-      throw new InvariantFourPipelineBailError(payload.kind, "test-novel", payload.chapter, payload)
-    }
-    return s.planAssistDecision
-  },
-}))
+// NOTE: `../gates` is intentionally NOT mocked (Codex review a01385f5 HIGH
+// #2). The invariant-#4 test drives through the REAL `src/gates.ts` module
+// so that a regression of commit a2118e1 — where auto mode silently skipped
+// the `gate:plan-assist` emit — surfaces. Lower-level sinks (`../events`,
+// `../trace`, `../db/chapter-exhaustions`) ARE mocked above. Existing tests
+// never touch gates because their `../cli` mock short-circuits via
+// `{action: "override"}` before `presentForExhaustion` reaches the gates
+// module.
 mock.module("../lint", () => ({
   lintProse: async () => ({ totalIssues: 0, counts: {}, issues: [] }),
 }))
@@ -450,10 +416,17 @@ test("validation path — reviser fires exactly once when validation blockers pe
 // PipelineBailError in auto mode and resolves a canned decision in web
 // mode. Event-type sequences emitted during the gate-fire transition MUST
 // be identical across modes. Payload details (timestamps, modes) may differ.
-test("Invariant #4: plan-assist gate fires the same event sequence in auto and web modes", async () => {
-  // Shared driver: plan-check persistently fails → attempt 1 accepts
-  // reviser revision; attempt 2 hits the "already revised" skip path and
-  // sets pendingExhaustion=plan-check-exhausted → fires the plan-assist gate.
+test("Invariant #4: plan-assist gate fires the same `gate:plan-assist` event in auto and web modes", async () => {
+  // Drives through the REAL `src/gates.ts` module (Codex review a01385f5
+  // HIGH #2). The previous revision of this test mocked `requestPlanAssist`
+  // and the mock itself pushed the `gate:plan-assist` event, which meant
+  // the assertion verified the mock — not the real branching that commit
+  // a2118e1 fixed. Now: real gates.requestPlanAssist runs; emit() is
+  // captured via the `../events` mock; resolution in web mode goes through
+  // real gates.resolvePlanAssist.
+  const { PipelineBailError, resolvePlanAssist, getPendingPlanAssist } =
+    await import("../gates")
+
   planCheckBehavior = "fail"
   validateBehavior = "pass"
   reviserBehavior = "accept"
@@ -465,24 +438,21 @@ test("Invariant #4: plan-assist gate fires the same event sequence in auto and w
   st.emittedEvents = []
   st.requestPlanAssistPayloads = []
 
-  let autoBailCaught = false
+  let autoBailCaught: unknown = null
   try {
     await runDraftingPhase("test-novel")
   } catch (err) {
-    // PipelineBailError instance check — the invariant-four shim class is
-    // what BOTH mock files export as `PipelineBailError`; whichever file's
-    // `../gates` mock wins in bun's global registry, the thrown class has
-    // `.name === "PipelineBailError"`.
-    autoBailCaught = err instanceof Error && (err as Error).name === "PipelineBailError"
+    autoBailCaught = err
   }
-  expect(autoBailCaught).toBe(true)
+  expect(autoBailCaught).toBeInstanceOf(PipelineBailError)
 
   const autoEvents = [...st.emittedEvents]
-  const autoRequestPayloads = [...st.requestPlanAssistPayloads]
 
   // ── B. Web mode ─────────────────────────────────────────────────────
-  // Reset counters + shared state for the second entry. Keep
-  // useRealPresentForExhaustion=true — we want the same real-replication path.
+  // Reset counters for the second entry. Same driver; resolverMode flips
+  // to "web" so real gates.requestPlanAssist returns a pending Promise.
+  // We kick drafting off un-awaited, poll for the gate to register, then
+  // resolve with {action: "abort"} which lets drafting return cleanly.
   reviserBehavior = "accept"
   planCheckBehavior = "fail"
   validateBehavior = "pass"
@@ -497,41 +467,35 @@ test("Invariant #4: plan-assist gate fires the same event sequence in auto and w
   st.emittedEvents = []
   st.requestPlanAssistPayloads = []
   st.resolverMode = "web"
-  st.planAssistDecision = { action: "abort" } // drafting returns after abort
 
-  await runDraftingPhase("test-novel")
+  const webDraftP = runDraftingPhase("test-novel").catch(() => { /* no bail expected */ })
+  // Poll every 5ms up to 5s for the gate to register in real gates.ts's
+  // pending map. Typical registration time is <100ms but be generous.
+  let resolved = false
+  for (let i = 0; i < 1000; i++) {
+    await new Promise(r => setTimeout(r, 5))
+    if (getPendingPlanAssist("test-novel")) {
+      resolvePlanAssist("test-novel", 1, { action: "abort" })
+      resolved = true
+      break
+    }
+  }
+  expect(resolved).toBe(true)
+  await webDraftP
 
   const webEvents = [...st.emittedEvents]
-  const webRequestPayloads = [...st.requestPlanAssistPayloads]
 
-  // ── The invariant: event-type sequences match ───────────────────────
-  // Both modes must emit at least one `gate:plan-assist` event — this is
-  // the event type that flipped between modes in the a2118e1 class of bug.
-  const autoGateEventTypes = autoEvents
-    .filter(e => e.type.startsWith("gate:"))
-    .map(e => e.type)
-    .join("|")
-  const webGateEventTypes = webEvents
-    .filter(e => e.type.startsWith("gate:"))
-    .map(e => e.type)
-    .join("|")
-
-  expect(autoGateEventTypes.length).toBeGreaterThan(0)
-  expect(webGateEventTypes).toBe(autoGateEventTypes)
-
-  // Both modes invoked requestPlanAssist with the same `kind`. The
-  // resolver-mode param naturally differs (auto vs web) — but the gate
-  // kind is the structural signal the orchestrator uses downstream.
-  expect(autoRequestPayloads.length).toBeGreaterThan(0)
-  expect(webRequestPayloads.length).toBeGreaterThan(0)
-  expect(autoRequestPayloads[0].kind).toBe(webRequestPayloads[0].kind)
-  expect(autoRequestPayloads[0].chapter).toBe(webRequestPayloads[0].chapter)
-
-  // And the resolver-mode param that reached requestPlanAssist DID branch
-  // per the test's driver — confirming real `presentForExhaustion` was
-  // actually exercised (not the legacy stub).
-  expect(autoRequestPayloads[0].mode).toBe("auto")
-  expect(webRequestPayloads[0].mode).toBe("web")
+  // ── The invariant: `gate:plan-assist` fires identically in both modes.
+  // This is the named state transition in the invariant whitelist. A
+  // regression of commit a2118e1 (auto-mode silent gate) would push the
+  // auto count to 0; a regression that double-emits would push either to
+  // 2+. Payload details (kind, chapter) must also match across modes.
+  const autoFires = autoEvents.filter(e => e.type === "gate:plan-assist")
+  const webFires = webEvents.filter(e => e.type === "gate:plan-assist")
+  expect(autoFires.length).toBe(1)
+  expect(webFires.length).toBe(1)
+  expect((autoFires[0].data as any).kind).toBe((webFires[0].data as any).kind)
+  expect((autoFires[0].data as any).chapter).toBe((webFires[0].data as any).chapter)
 })
 
 test("plan-check override suppresses plan-check + validation-reviser when persisted", async () => {

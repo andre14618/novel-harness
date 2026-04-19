@@ -197,46 +197,12 @@ mock.module("../planned-state", () => ({ savePlannedState: async () => {} }))
 mock.module("../state-diff", () => ({
   diffPlanAgainstState: () => ({ ok: true, conflicts: [] }),
 }))
-// Minimal PipelineBailError shim matches drafting.ts's value-level import
-// of `PipelineBailError` from `../gates`. Existing persistence tests never
-// throw this (they go through the override path), but if the sibling file's
-// invariant-#4 test sets useRealPresentForExhaustion=true and THIS file's
-// mock wins in bun's global registry, the real-replication path needs a
-// valid error class available.
-class InvariantFourPipelineBailError_Persistence extends Error {
-  constructor(
-    public readonly kind: string,
-    public readonly novelId: string,
-    public readonly chapter: number,
-    public readonly payload: unknown,
-  ) {
-    super(`Pipeline bailed at plan-assist gate (chapter ${chapter}, kind ${kind})`)
-    this.name = "PipelineBailError"
-  }
-}
-mock.module("../gates", () => ({
-  getPending: () => null,
-  getPendingPlanAssist: () => null,
-  resolvePlanAssist: () => false,
-  PipelineBailError: InvariantFourPipelineBailError_Persistence,
-  requestPlanAssist: async (payload: { kind: string; chapter: number }, mode: string) => {
-    const state = (globalThis as any).__invariant4State
-    if (!state || !state.useRealPresentForExhaustion) {
-      throw new Error("gates.requestPlanAssist called from an unexpected test path")
-    }
-    state.requestPlanAssistPayloads.push({ kind: payload.kind, chapter: payload.chapter, mode })
-    state.emittedEvents.push({
-      type: "gate:plan-assist",
-      data: { kind: payload.kind, chapter: payload.chapter },
-    })
-    if (mode === "auto") {
-      throw new InvariantFourPipelineBailError_Persistence(
-        payload.kind, "test-novel", payload.chapter, payload,
-      )
-    }
-    return state.planAssistDecision
-  },
-}))
+// NOTE: `../gates` is intentionally NOT mocked (Codex review a01385f5 HIGH
+// #2). Persistence tests never trip the plan-assist gate themselves — they
+// go through the `{action: "override"}` stub in the `../cli` mock above.
+// The sibling file's invariant-#4 test DOES exercise real gates, so
+// leaving the module unmocked here keeps behavior consistent if bun's
+// global registry routes drafting.ts through this file's mocks.
 mock.module("../lint", () => ({
   lintProse: async () => ({ totalIssues: 0, counts: {}, issues: [] }),
 }))
