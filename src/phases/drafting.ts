@@ -838,6 +838,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
         let validationPass = 0
         const canSettle = beatProses.length === outline.scenes.length
         let currentBlockers = validation.blockers
+        let currentWarnings = validation.warnings
 
         while (currentBlockers.length > 0 && validationPass < pipeline.maxChapterPlanRewritePasses && canSettle) {
           const perBeat = routeValidationBlockers(currentBlockers, outline, beatProses)
@@ -925,6 +926,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
             recheck = validateChapterDraft(prose, outline)
           }
           currentBlockers = recheck.blockers
+          currentWarnings = recheck.warnings
           if (currentBlockers.length === 0) {
             console.log(`  Validation: passed after ${validationPass} targeted rewrite pass(es)`)
             log(novelId, "info", `Validation passed after ${validationPass} targeted rewrite pass(es)`)
@@ -932,6 +934,31 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
             console.log(`  Validation still failing (${currentBlockers.length} blockers remain)`)
           }
         }
+
+        // Post-settle trace — emit the final validation-settle outcome so test
+        // campaigns (organic-run-verify + R5/R6-style exhaustion campaigns)
+        // can assert the post-settle state the same way plan-check has
+        // `plan-check-outcome` events. Mirrors the initial validation-check
+        // trace at ~line 449 but with source="post-settle" and the final
+        // rewritePassCount + settled flag. Emitted before the reviser
+        // escalation block so the sequence is unambiguous:
+        //   1. validation-check source=initial (blockers=N)
+        //   2. validation-check source=post-settle (settled=true/false, rewritePassCount=K)
+        //   3. [iff !settled] reviser escalation → chapter_revisions row
+        await trace(novelId, {
+          eventType: "validation-check", chapter: ch,
+          payload: {
+            source: "post-settle",
+            passed: currentBlockers.length === 0,
+            blockerCount: currentBlockers.length,
+            warningCount: currentWarnings.length,
+            blockers: currentBlockers,
+            warnings: currentWarnings,
+            rewritePassCount: validationPass,
+            settled: currentBlockers.length === 0,
+            forcedValidation: inject.forceValidation ?? null,
+          },
+        })
 
         if (currentBlockers.length > 0) {
           currentBlockers.forEach(b => console.log(`    UNRESOLVED BLOCKER: ${b}`))
