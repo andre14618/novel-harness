@@ -886,10 +886,30 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
             }
           }
 
-          // Re-validate after rewrites
+          // Re-validate after rewrites. Mirror the same DEBUG_FORCE_VALIDATION
+          // synthesis used on the initial call (drafting.ts ~436-448); without
+          // this, forced-validation tests settle the loop on the first real
+          // recheck that passes and the exhaustion handler is bypassed — the
+          // same class of gap as the plan-check recheck fixed in fed9e4a.
+          // Codex seam-gap audit a1e06c61f62e901e7 flagged this site.
           prose = beatProses.join("\n\n")
           wordCount = prose.split(/\s+/).filter(Boolean).length
-          const recheck = validateChapterDraft(prose, outline)
+          let recheck: ReturnType<typeof validateChapterDraft>
+          if (inject.forceValidation === "pov") {
+            recheck = {
+              passed: false,
+              blockers: [`POV character "${outline.povCharacter}" never mentioned in draft`],
+              warnings: [],
+            }
+          } else if (inject.forceValidation === "word-count") {
+            recheck = {
+              passed: false,
+              blockers: [`Chapter too short: 100 words (minimum 500)`],
+              warnings: [],
+            }
+          } else {
+            recheck = validateChapterDraft(prose, outline)
+          }
           currentBlockers = recheck.blockers
           if (currentBlockers.length === 0) {
             console.log(`  Validation: passed after ${validationPass} targeted rewrite pass(es)`)
