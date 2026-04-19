@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-19b
+updated: 2026-04-19c
 ---
 
 # To Do
@@ -101,6 +101,13 @@ Codex review (session ac8df7a8 + ac7442d6) flagged remaining work:
   shipped above. Full auto-recovery (re-fire the gate on resume so drafting
   loop can re-await) needs drafting.ts attempt-loop changes to re-enter the
   exhaustion branch on novel resume. Flagged by Codex review a252aecbb785a0eb3.
+- [x] **`revisionUsed` persisted to chapter_outlines.revision_used** — shipped
+  2026-04-19 in commit `0c9b1ef` (migration sql/031 + `isRevisionUsed` /
+  `setRevisionUsed` in `src/db/outlines.ts` + await-then-flip at both reviser
+  invocation sites in `src/phases/drafting.ts`). Two-case regression test
+  in `drafting-revision-used-persistence.test.ts` plus a DB-reject case
+  proving the reviser doesn't fire when persistence fails (Codex review
+  aad6d35 HIGH A, fix commit `0c9fa3b`).
 - [x] **Propagate `callerId` into transport** — shipped 2026-04-19 in commit
   `13f8143`. src/llm.ts makeRequest threads agentName; executeAndLog sets
   callerId on the effectiveRequest. Timeout log `[LLM] TIMEOUT:` now names
@@ -112,7 +119,14 @@ Codex review (session ac8df7a8 + ac7442d6) flagged remaining work:
   instability, not content failure; human intervention cost too high for
   a transient checker outage). No change needed.
 - [ ] **Historical-superseded doc pass** — recommended by Codex (review ac11a277b179df8b0). Several docs contain current-tense statements that are now stale: `decisions.md` (references to chapter-plan-checker-v2 as deployed, Howard primer as "under evaluation"), `adapter-changelog.md`, `lessons-learned.md` earlier sections, `fine-tuning-strategy.md`, `adapter-training-reference.md`, `retry-surface-audit.md`. Pass: add inline "Superseded by …" callouts, not rewrites. Separate commit from code changes.
-- [ ] **Kill-orphan helper** — test campaign runs create novels that stall at gates and are never approved. These orphan novels accumulate in the DB and clutter the novel picker. Add a cleanup command (e.g. `bun scripts/cleanup-orphans.ts`) that deletes novels with `status='pending'` older than N hours and no chapters drafted, with a `--dry-run` flag.
+- [x] **Kill-orphan helper** — shipped 2026-04-19 in commit `83ffce0` as
+  `scripts/cleanup-orphans.ts`. Cascade delete across 26 novel-scoped tables
+  (22 with FK → novels(id) + 4 no-FK telemetry); default dry-run, `--apply`
+  required; pattern defaults to `test-*`; excludes novels with approved
+  drafts; active-phase novels need 2-hour idle guard; per-novel transaction.
+  Codex review aad6d35 HIGH C flagged 4 missing FK tables in the initial
+  list — fixed in commit `0c9fa3b`; dry-run on live DB finds 5 stale test
+  novels and queries all 26 tables without error.
 
 ---
 
