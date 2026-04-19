@@ -17,5 +17,6 @@ import * as deterministic from "./deterministic"
 import * as registry from "./registry"
 import * as enforce from "./enforce"
 import * as adapters from "./adapters"
+import * as charters from "./charters"
 
-export { experiments, context, embeddings, graph, novels, deterministic, registry, enforce, adapters }
+export { experiments, context, embeddings, graph, novels, deterministic, registry, enforce, adapters, charters }

@@ -506,6 +506,29 @@ const server = Bun.serve({
     }
 
 
+    // Charter browser — frontmatter-parsed views over docs/charters/*.md
+    if (path === "/api/charters" && req.method === "GET") {
+      try {
+        const { charters } = await import("../harness")
+        const list = await charters.listCharters()
+        return Response.json(list)
+      } catch (err) {
+        return Response.json({ error: String(err) }, { status: 500 })
+      }
+    }
+
+    const charterMatch = path.match(/^\/api\/charters\/([a-zA-Z0-9_-]+)$/)
+    if (charterMatch && req.method === "GET") {
+      try {
+        const { charters } = await import("../harness")
+        const c = await charters.getCharter(charterMatch[1])
+        if (!c) return Response.json({ error: "not found" }, { status: 404 })
+        return Response.json(c)
+      } catch (err) {
+        return Response.json({ error: String(err) }, { status: 500 })
+      }
+    }
+
     // Adapter registry — deployed slate + provenance for FinetunePage
     if (path === "/api/adapters" && req.method === "GET") {
       try {
