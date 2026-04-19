@@ -14,26 +14,7 @@ import { PipelineFlow } from "./PipelineFlow"
 import { LiveMeters } from "./LiveMeters"
 import { DirectorChat } from "./DirectorChat"
 import { ArtifactPreviews } from "./ArtifactPreviews"
-
-// ── Agent display labels ────────────────────────────────────────────────
-const AGENT_ACTION: Record<string, string> = {
-  "world-builder":        "Building the world",
-  "character-agent":      "Casting characters",
-  "plotter":              "Sketching the plot",
-  "planning-plotter":     "Planning the chapter",
-  "writer":               "Writing the chapter",
-  "beat-writer":          "Writing beat",
-  "reference-resolver":   "Resolving references",
-  "adherence-events":     "Checking beat adherence",
-  "chapter-plan-checker": "Verifying chapter plan",
-  "continuity":           "Checking continuity",
-  "tonal-pass":           "Applying tonal pass",
-  "lint-fixer":           "Fixing lint",
-}
-
-function agentAction(agent: string): string {
-  return AGENT_ACTION[agent] ?? agent
-}
+import { agentActionLabel } from "../agent-labels"
 
 interface LLMCallRow {
   id: string
@@ -300,7 +281,7 @@ export function StudioPage() {
             }
           }
           active.delete(agent)
-          const label = AGENT_ACTION[agent] ?? agent
+          const label = agentActionLabel(agent)
           const loc = d.chapter != null ? (d.beatIndex != null ? `Ch ${d.chapter}, beat ${d.beatIndex + 1}` : `Ch ${d.chapter}`) : undefined
           const errSnippet = d.error ? String(d.error).split("\n")[0].slice(0, 120) : undefined
           narratives.push({ kind: "fail", ts: tsMs, text: `${label} failed${loc ? ` — ${loc}` : ""}`, detail: errSnippet })
@@ -899,7 +880,7 @@ function ActivityRow({ call }: { call: LLMCallRow }) {
   const failed = call.status === "fail"
   const stale = call.status === "stale"
 
-  let title = agentAction(call.agent)
+  let title = agentActionLabel(call.agent)
   if (call.agent === "beat-writer" && call.beatIndex != null) {
     title = `${title} ${call.beatIndex + 1}${call.meta?.totalBeats ? `/${call.meta.totalBeats}` : ""}`
   }

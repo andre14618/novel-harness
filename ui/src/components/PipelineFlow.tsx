@@ -5,28 +5,15 @@
  * is and what's happening right now.
  */
 
+import { agentShortLabel } from "../agent-labels"
+
 const PHASES: { id: string; label: string; agents: string[] }[] = [
   { id: "concept",    label: "Concept",    agents: ["world-builder", "character-agent", "plotter"] },
   { id: "planning",   label: "Planning",   agents: ["planning-plotter", "planning-beats"] },
-  { id: "drafting",   label: "Drafting",   agents: ["beat-writer", "reference-resolver", "adherence-events", "chapter-plan-checker", "continuity", "lint-fixer"] },
+  { id: "drafting",   label: "Drafting",   agents: ["beat-writer", "reference-resolver", "adherence-events", "halluc-ungrounded", "halluc-leak-salvatore", "chapter-plan-checker", "continuity", "lint-fixer"] },
   { id: "validation", label: "Validation", agents: [] },
   { id: "done",       label: "Done",       agents: [] },
 ]
-
-const AGENT_LABELS: Record<string, string> = {
-  "world-builder": "World",
-  "character-agent": "Characters",
-  "plotter": "Plot",
-  "planning-plotter": "Chapter Plan",
-  "planning-beats": "Beat Plan",
-  "beat-writer": "Beat Writer",
-  "reference-resolver": "References",
-  "adherence-events": "Adherence",
-  "chapter-plan-checker": "Plan Check",
-  "continuity": "Continuity",
-  "lint-fixer": "Lint",
-  "writer": "Writer",
-}
 
 interface Props {
   currentPhase: string
@@ -66,7 +53,7 @@ export function PipelineFlow({ currentPhase, activeAgents, completedAgents }: Pr
             return (
               <div key={agent} className={cls}>
                 <span className="agent-pill-dot" />
-                {AGENT_LABELS[agent] ?? agent}
+                {agentShortLabel(agent)}
               </div>
             )
           })}

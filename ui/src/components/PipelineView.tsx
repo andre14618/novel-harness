@@ -9,28 +9,7 @@ import { TraceTimeline } from "./TraceTimeline"
 import { PipelineFlow } from "./PipelineFlow"
 import { LiveMeters } from "./LiveMeters"
 import { LiveProse, type LiveBeat } from "./LiveProse"
-
-// ── Agent display labels ────────────────────────────────────────────────
-// Drives the human-readable text shown in the activity feed when an LLM call
-// lands. Short verb-first phrasing reads like a status line, not a log entry.
-const AGENT_ACTION: Record<string, string> = {
-  "world-builder":        "Building the world",
-  "character-agent":      "Casting characters",
-  "plotter":              "Sketching the plot",
-  "planning-plotter":     "Planning the chapter",
-  "writer":               "Writing the chapter",
-  "beat-writer":          "Writing beat",
-  "reference-resolver":   "Resolving references",
-  "adherence-events":     "Checking beat adherence",
-  "chapter-plan-checker": "Verifying chapter plan",
-  "continuity":           "Checking continuity",
-  "tonal-pass":           "Applying tonal pass",
-  "lint-fixer":           "Fixing lint",
-}
-
-function agentAction(agent: string): string {
-  return AGENT_ACTION[agent] ?? agent
-}
+import { agentActionLabel } from "../agent-labels"
 
 interface LLMCallRow {
   id: string
@@ -302,7 +281,7 @@ export function PipelineView() {
             }
           }
           active.delete(agent)
-          const label = AGENT_ACTION[agent] ?? agent
+          const label = agentActionLabel(agent)
           const loc = d.chapter != null
             ? d.beatIndex != null ? `Ch ${d.chapter}, beat ${d.beatIndex + 1}` : `Ch ${d.chapter}`
             : undefined
@@ -637,7 +616,7 @@ function ActivityRow({ call }: { call: LLMCallRow }) {
   const running = call.status === "running"
   const failed = call.status === "fail"
 
-  let title = agentAction(call.agent)
+  let title = agentActionLabel(call.agent)
   if (call.agent === "beat-writer" && call.beatIndex != null) {
     title = `${title} ${call.beatIndex + 1}${call.meta?.totalBeats ? `/${call.meta.totalBeats}` : ""}`
   }

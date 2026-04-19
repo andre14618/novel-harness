@@ -14,6 +14,8 @@ const AGENT_LABELS: Record<string, string> = {
   "planning-beats": "Planning Beats",
   "reference-resolver": "Reference Resolver",
   "adherence-events": "Adherence Events",
+  "halluc-ungrounded": "Hallucination — Ungrounded Entities",
+  "halluc-leak-salvatore": "Hallucination — Salvatore Corpus Leak",
   "chapter-plan-checker": "Chapter Plan Checker",
   "lint-fixer": "Lint Fixer",
   "tonal-pass": "Tonal Pass",
