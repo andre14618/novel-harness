@@ -60,10 +60,12 @@ export function subscribeSSE(novelId: string): ReadableStream<Uint8Array> {
         timestamp: new Date().toISOString(),
       })
 
-      // Send keepalive every 5s to prevent idle-socket timeout on
-      // clients that treat long silence as a dead connection (Bun fetch
-      // closes SSE connections on ~10s idle reads by default). 5s is
-      // frequent enough for all known consumers without hammering.
+      // Send keepalive every 5s. Primarily structural belt + suspenders —
+      // the Bun.serve idleTimeout override in src/orchestrator/server.ts
+      // is the root-cause fix for the "socket closed unexpectedly" issue
+      // (Codex review a2d16769d75b1d9cc Q4). Keepalive kept for clients
+      // behind proxies/firewalls that may drop idle TCP connections
+      // independent of the server-side idleTimeout.
       const keepalive = setInterval(() => {
         try {
           controller.enqueue(encoder.encode(": keepalive\n\n"))

@@ -236,6 +236,11 @@ function loginPageHtml(): string {
 const server = Bun.serve({
   port: 3006,
   hostname: "0.0.0.0",
+  // Disable the Bun default idleTimeout for SSE long-polling. Without
+  // this, connections drop ~10s into silent periods (e.g., concept-phase
+  // LLM calls) even with keepalive frames. Per Codex review
+  // a2d16769d75b1d9cc Q4 — the structural fix vs the keepalive workaround.
+  idleTimeout: 0,
 
   async fetch(req) {
     const url = new URL(req.url)

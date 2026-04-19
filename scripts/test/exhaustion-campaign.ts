@@ -103,34 +103,6 @@ async function apiGet(path: string): Promise<Response> {
   })
 }
 
-// ── Polling helper ───────────────────────────────────────────────────────
-async function waitFor<T>(
-  fn: () => Promise<T | null>,
-  timeoutMs = 120_000,
-  intervalMs = 1_000,
-): Promise<T> {
-  const deadline = Date.now() + timeoutMs
-  while (Date.now() < deadline) {
-    const result = await fn()
-    if (result !== null) return result
-    await Bun.sleep(intervalMs)
-  }
-  throw new Error(`waitFor timed out after ${timeoutMs}ms`)
-}
-
-// Poll novel state until active===false (run finished or stalled).
-async function waitForIdle(novelId: string, timeoutMs = 120_000): Promise<any> {
-  return waitFor(
-    async () => {
-      const r = await apiGet(`/api/novel/${novelId}/state`)
-      if (!r.ok) return null
-      const state = await r.json() as any
-      return state.active === false ? state : null
-    },
-    timeoutMs,
-  )
-}
-
 // ── Start a novel and get its id ─────────────────────────────────────────
 async function startNovel(seed: object, mode: "auto" | "web"): Promise<string> {
   const r = await apiPost("/api/novel/start", { customSeed: seed, mode })

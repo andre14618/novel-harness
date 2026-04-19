@@ -142,6 +142,28 @@ export async function requestPlanAssist(
     return 0
   })
 
+  // Emit the gate-opened events in ALL modes (including auto) so that
+  // pipeline observers and test runners waiting for gate:plan-assist are
+  // notified before the auto-mode throw. Previously these were inside the
+  // Promise constructor which was never reached in auto mode, causing
+  // auto-mode waiters to hang indefinitely.
+  emit(payload.novelId, {
+    type: "gate:plan-assist",
+    data: {
+      kind: payload.kind,
+      chapter: payload.chapter,
+      outline: payload.outline,
+      prose: payload.prose,
+      unresolvedDeviations: payload.unresolvedDeviations,
+      reviserHistory: payload.reviserHistory ?? null,
+    },
+  })
+  trace(payload.novelId, {
+    eventType: "plan-assist-wait",
+    chapter: payload.chapter,
+    payload: { kind: payload.kind },
+  }).catch(() => {})
+
   if (mode === "auto") {
     await fireP
     throw new PipelineBailError(payload.kind, payload.novelId, payload.chapter, payload)
@@ -157,23 +179,6 @@ export async function requestPlanAssist(
       createdAt: Date.now(),
     }
     pendingPlanAssistGates.set(key, gate)
-
-    emit(payload.novelId, {
-      type: "gate:plan-assist",
-      data: {
-        kind: payload.kind,
-        chapter: payload.chapter,
-        outline: payload.outline,
-        prose: payload.prose,
-        unresolvedDeviations: payload.unresolvedDeviations,
-        reviserHistory: payload.reviserHistory ?? null,
-      },
-    })
-    trace(payload.novelId, {
-      eventType: "plan-assist-wait",
-      chapter: payload.chapter,
-      payload: { kind: payload.kind },
-    }).catch(() => {})
   })
 }
 

@@ -39,8 +39,13 @@ export type SSEWatchResult = {
 
 /**
  * Subscribes to /api/novel/:id/events and resolves when ALL expected matchers
- * fire (in order). Rejects if any matcher times out or an `error` event arrives
- * on the stream.
+ * fire (in order). Rejects if any matcher times out or an unexpected `error`
+ * event arrives on the stream.
+ *
+ * Race-safety: before opening the SSE stream, this function seeds the matcher
+ * chain from GET /api/novel/:id/trace so that events which fired between
+ * startNovel() and the SSE connect are not missed. If all expectations match
+ * from the trace seed alone, the SSE stream is never opened.
  */
 export async function watchForExpectations(params: {
   novelId: string
@@ -67,7 +72,67 @@ export async function watchForExpectations(params: {
     abort.abort(new Error(`SSE overall timeout after ${overallTimeoutMs}ms`))
   }, overallTimeoutMs)
 
+  // ── Fix Q10b: Seed matcher state from /trace before opening SSE ─────────
+  // Track event IDs we've already processed from the trace seed so the live
+  // SSE stream can skip duplicates.
+  const seenEventIds = new Set<number>()
+
+  let pendingIdx = 0
+  let matcherStart = Date.now()
+
   try {
+    // Fetch historical trace rows and replay them through the matcher chain.
+    // This closes the race between POST /start (fire-and-forget) and SSE connect.
+    try {
+      const traceUrl = `${apiBase}/api/novel/${novelId}/trace?limit=500`
+      const traceResp = await fetch(traceUrl, {
+        headers: apiKey ? { "x-api-key": apiKey } : {},
+      })
+      if (traceResp.ok) {
+        const traceRows: any[] = await traceResp.json()
+        for (const row of traceRows) {
+          // Mark this DB row as seen so the live SSE stream skips it
+          if (row.id != null) seenEventIds.add(row.id)
+
+          // Reconstruct the SSE event shape that trace() broadcasts:
+          //   { type: "trace", data: { id, eventType, chapter, beatIndex, agent, ...payload } }
+          const event = {
+            type: "trace" as string,
+            data: {
+              id: row.id,
+              eventType: row.event_type,
+              chapter: row.chapter,
+              beatIndex: row.beat_index,
+              agent: row.agent,
+              llmCallId: row.llm_call_id,
+              durationMs: row.duration_ms,
+              ...(row.payload ?? {}),
+            } as Record<string, any>,
+          }
+
+          onEvent?.(event)
+
+          if (pendingIdx < expectations.length) {
+            const matcher = expectations[pendingIdx]
+            if (matcher.match(event)) {
+              const elapsed = Date.now() - matcherStart
+              results.push({ name: matcher.name, matched: true, event, elapsedMs: elapsed })
+              pendingIdx++
+              matcherStart = Date.now()
+            }
+          }
+        }
+      }
+    } catch {
+      // Trace fetch failures are non-fatal — fall through to live SSE stream
+    }
+
+    // All expectations satisfied from trace seed — done without SSE connect
+    if (pendingIdx >= expectations.length) {
+      return results
+    }
+
+    // ── Open SSE stream for remaining expectations ──────────────────────
     const url = `${apiBase}/api/novel/${novelId}/events`
     const resp = await fetch(url, {
       headers: {
@@ -85,8 +150,6 @@ export async function watchForExpectations(params: {
     const decoder = new TextDecoder()
     let buf = ""
 
-    let pendingIdx = 0
-    let matcherStart = Date.now()
     let matcherTimer: ReturnType<typeof setTimeout> | null = null
 
     function armMatcherTimer() {
@@ -101,9 +164,41 @@ export async function watchForExpectations(params: {
       }, timeoutMs)
     }
 
-    if (expectations.length > 0) {
-      matcherStart = Date.now()
+    if (pendingIdx < expectations.length) {
       armMatcherTimer()
+    }
+
+    // Helper: run the normal matcher chain against one event
+    function processEvent(event: { type: string; data: Record<string, any> }): void {
+      onEvent?.(event)
+
+      // Fix Q5: only fast-fail on error events that no pending matcher accepts
+      if (event.type === "error") {
+        const accepted =
+          pendingIdx < expectations.length && expectations[pendingIdx].match(event)
+        if (!accepted) {
+          if (matcherTimer) clearTimeout(matcherTimer)
+          throw new Error(
+            `Unexpected error event while awaiting "${expectations[pendingIdx]?.name}": ${JSON.stringify(event.data)}`,
+          )
+        }
+        // Fall through — let the normal matcher handle it below
+      }
+
+      if (pendingIdx < expectations.length) {
+        const matcher = expectations[pendingIdx]
+        if (matcher.match(event)) {
+          const elapsed = Date.now() - matcherStart
+          results.push({ name: matcher.name, matched: true, event, elapsedMs: elapsed })
+          pendingIdx++
+          if (pendingIdx < expectations.length) {
+            matcherStart = Date.now()
+            armMatcherTimer()
+          } else {
+            if (matcherTimer) clearTimeout(matcherTimer)
+          }
+        }
+      }
     }
 
     // Parse the stream until all matchers fire or we exhaust
@@ -151,31 +246,12 @@ export async function watchForExpectations(params: {
 
         const event = { type: parsed.type ?? "", data: parsed.data ?? {} }
 
-        onEvent?.(event)
-
-        // Pipeline error — fail fast
-        if (event.type === "error") {
-          if (matcherTimer) clearTimeout(matcherTimer)
-          throw new Error(
-            `SSE stream reported pipeline error: ${JSON.stringify(event.data)}`,
-          )
+        // Fix Q10b dedup: skip trace events we already processed from the seed
+        if (event.type === "trace" && event.data.id != null && seenEventIds.has(event.data.id)) {
+          continue
         }
 
-        // Try matching against current expectation
-        if (pendingIdx < expectations.length) {
-          const matcher = expectations[pendingIdx]
-          if (matcher.match(event)) {
-            const elapsed = Date.now() - matcherStart
-            results.push({ name: matcher.name, matched: true, event, elapsedMs: elapsed })
-            pendingIdx++
-            if (pendingIdx < expectations.length) {
-              matcherStart = Date.now()
-              armMatcherTimer()
-            } else {
-              if (matcherTimer) clearTimeout(matcherTimer)
-            }
-          }
-        }
+        processEvent(event)
       }
     }
 
