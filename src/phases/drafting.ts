@@ -580,14 +580,27 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
             prose = beatProses.join("\n\n")
             wordCount = prose.split(/\s+/).filter(Boolean).length
             console.log(`  Rewrite complete — re-running plan check on ${wordCount}w prose`)
-            const recheck = await callAgent({
-              novelId, agentName: "chapter-plan-checker",
-              chapter: ch, attempt: attempts + rewritePass * 10,
-              systemPrompt: CHAPTER_PLAN_CHECKER_PROMPT,
-              userPrompt: buildChapterPlanCheckContext(prose, outline),
-              schema: chapterPlanCheckSchema,
-            })
-            out = recheck.output
+            // Seam A (settle-loop recheck) — same force as the initial
+            // plan-check call above. Without this the forced-fail path
+            // would settle on the first real LLM response (typically
+            // pass=true), skipping the exhaustion handler entirely.
+            if (inject.forcePlanCheck === "fail") {
+              out = {
+                pass: false as const,
+                deviations: [{ description: "forced plan-check failure via DEBUG_FORCE_PLAN_CHECK=fail (recheck)", beat_index: 0 as number | null }],
+                setting_match: undefined,
+                emotional_arc_correct: undefined,
+              }
+            } else {
+              const recheck = await callAgent({
+                novelId, agentName: "chapter-plan-checker",
+                chapter: ch, attempt: attempts + rewritePass * 10,
+                systemPrompt: CHAPTER_PLAN_CHECKER_PROMPT,
+                userPrompt: buildChapterPlanCheckContext(prose, outline),
+                schema: chapterPlanCheckSchema,
+              })
+              out = recheck.output
+            }
           }
 
           if (!out.pass) {
