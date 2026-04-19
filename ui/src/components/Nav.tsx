@@ -4,6 +4,7 @@ const PAGES = [
   { path: "/studio", label: "The Studio" },
   { path: "/guide", label: "Overview" },
   { path: "/context", label: "Context Engineering" },
+  { path: "/workflow", label: "Workflow" },
   { path: "/finetune", label: "Fine-Tuning" },
   { path: "/docs", label: "Docs" },
 ]

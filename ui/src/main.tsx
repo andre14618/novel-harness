@@ -6,6 +6,7 @@ import { PipelineView } from "./components/PipelineView"
 import { GuidePage } from "./components/GuidePage"
 import { FinetunePage } from "./components/FinetunePage"
 import { ContextEngineeringPage } from "./components/ContextEngineeringPage"
+import { WorkflowPage } from "./components/WorkflowPage"
 import { DocsPage } from "./components/DocsPage"
 import { ChartersPage } from "./components/ChartersPage"
 import { ExperimentFamiliesPage } from "./components/ExperimentFamiliesPage"
@@ -23,6 +24,7 @@ createRoot(document.getElementById("root")!).render(
           <Route path="/studio" element={<StudioPage />} />
           <Route path="/guide" element={<GuidePage />} />
           <Route path="/context" element={<ContextEngineeringPage />} />
+          <Route path="/workflow" element={<WorkflowPage />} />
           <Route path="/finetune" element={<FinetunePage />} />
           <Route path="/docs" element={<DocsPage />} />
           <Route path="/charters" element={<ChartersPage />} />
