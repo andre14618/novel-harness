@@ -16,7 +16,7 @@ This changes the math: every agent in the pipeline is a fine-tune candidate. The
 ```
 OpenPipe/Qwen3-14B-Instruct (hot, always warm)
   ├── novel-harness/adherence-checker-v4      [DEPLOYED — events+attribution, 2134 Sonnet-labeled pairs]
-  ├── novel-harness/chapter-plan-checker-v2   [DEPLOYED — 96% accuracy, 609ms, exp #178]
+  ├── novel-harness/chapter-plan-checker-v2   [RETIRED 2026-04-18 — slot now runs DeepSeek V3.2 base after ~92% FP audit; see docs/decisions.md]
   ├── novel-harness/continuity-v2             [DEPLOYED — 253 pairs, 12× cost reduction, exp #175]
   ├── novel-harness/hallucination-checker-v1  [DEPLOYED pending eval — 800 beats fresh bundle, exp #223, shipped 2026-04-18]
   ├── novel-harness/salvatore-1988-v4         [DEPLOYED — fantasy writer default, full trilogy + exampleLines, exp #222]
@@ -218,9 +218,15 @@ Output: `{pass: bool, issues: [{entity, excerpt}]}` — no `kind` taxonomy, rewr
 
 ---
 
-### 4. Chapter Plan Checker — V2 DEPLOYED
+### 4. Chapter Plan Checker — V2 RETIRED 2026-04-18
 
-**Current**: W&B `chapter-plan-checker-v2:v1` (Qwen3-14B SFT) · 96% accuracy vs Sonnet ground truth · 609ms avg · $0.00005/call. Replaced gpt-oss-120b (78% accuracy, ~1,700ms, ~$0.0007/call). See `docs/decisions.md` exp #178.
+> **Superseded 2026-04-18:** `chapter-plan-checker-v2:v1` was retired after a dual-oracle audit (Sonnet + Codex gpt-5.4) found ~92% false-positive rate on real production fantasy plans, despite 96% synthetic accuracy in exp #178. Distribution drift between training (uniform planner-style beat descriptions) and production (dramatic-style beats) broke the adapter. The slot now runs **DeepSeek V3.2 base** with the same `plan-adherence-system.md` prompt. See `docs/decisions.md` "Chapter-plan-checker-v2:v1 SFT adapter retired". SFT recalibration on production distribution is deferred (low-priority, `docs/todo.md`).
+
+**Current**: DeepSeek V3.2 base · same `plan-adherence-system.md` prompt · no adapter overhead. Historical V2 adapter `chapter-plan-checker-v2:v1` retained on W&B artifact only.
+
+*The section below describes the V2 history and is retained for reference.*
+
+**Previous**: W&B `chapter-plan-checker-v2:v1` (Qwen3-14B SFT) · 96% accuracy vs Sonnet ground truth · 609ms avg · $0.00005/call. Replaced gpt-oss-120b (78% accuracy, ~1,700ms, ~$0.0007/call). See `docs/decisions.md` exp #178.
 
 **Zero-shot test (exp #107, 2026-04-08)**: Ran base Qwen3-14B-Instruct on W&B side-by-side with the 120B oracle across 80 synthetic pairs (10 scenarios × 8 variants, same methodology as adherence-checker exp #99–#101).
 

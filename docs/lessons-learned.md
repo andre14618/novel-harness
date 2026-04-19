@@ -558,6 +558,8 @@ The pattern across the four-task series:
 
 (Commits `d09bcd2` data generator, `7a7044a` baseline script, `916fd63` checklist script; experiments #117 flat, #118 checklist)
 
+> **Superseded 2026-04-19:** This section describes the pre-retirement SFT approach for chapter-plan-checker. `chapter-plan-checker-v2:v1` was retired 2026-04-18 (see `docs/decisions.md` "Chapter-plan-checker-v2:v1 SFT adapter retired") after a production FP audit found ~92% false-positive rate on real fantasy plans despite 96% accuracy on synthetic eval. The slot now runs DeepSeek V3.2 base with the same `plan-adherence-system.md` prompt. The non-blind-retry architecture (targeted rewrites → `chapter-plan-reviser` → plan-assist gate) replaces the blind-restart pattern discussed here. See `docs/exhaustion-handler-design.md`.
+
 ### Chapter-plan-checker teacher head-to-head: gpt-oss-120b beats Qwen 235B by 9pp, the right teacher is task-specific (2026-04-08)
 
 Follow-up to the four-task ladder series. Exp #107 measured base Qwen3-14B against gpt-oss-120b (the production chapter-plan-checker model) on the 80-pair synthetic eval and got 58% agreement — but **Qwen 235B was never in that ladder**. Earlier in this session I had been claiming gpt-oss-120b is "roughly peer-tier with Qwen 235B" based on the continuity baseline. That claim turns out to be wrong on chapter-plan-checker, and the way it's wrong matters for the SFT teacher decision.
@@ -658,6 +660,8 @@ Per-beat **helps the small models, hurts the strong ones**. The regression on gp
 
 - **Adherence-checker SFT urgency drops dramatically.** The 14B base on the *decomposed* prompt is 91%, not 79%. The gap to the 235B teacher (97%) is now 6pp, not 17pp. SFT may not be needed at all if 91% is acceptable for the production slot. If SFT still happens, the teacher signal should come from the decomposed 235B (97%), not the flat one.
 - **The decomposed prompt is the new production prompt for adherence-checker.** Cheapest improvement on the table. Wired into `src/agents/writer/adherence-checker.ts` as 4 parallel calls; latency unchanged (parallel) but per-pair token cost ~3-4× because each call has its own system prompt.
+> **Superseded 2026-04-19:** The guidance below ("chapter-plan-checker stays on single-call gpt-oss-120b") reflects pre-retirement state. `chapter-plan-checker-v2:v1` was trained and deployed (exp #178) then retired 2026-04-18 after ~92% FP rate on real fantasy plans. The slot now runs DeepSeek V3.2 base; blind-restart patterns replaced by the non-blind-retry architecture. See `docs/decisions.md` and `docs/exhaustion-handler-design.md`.
+
 - **Chapter-plan-checker stays on single-call gpt-oss-120b.** Per-beat is NOT the production swap. SFT distillation from gpt-oss-120b on the existing 80 synthetic pairs is still the path. The per-beat experiment is a useful disconfirmation, not a regression we deploy.
 - **The "atomization helps for N independent checks" lesson from #109 is retained but refined.** The original lesson was correct *within one call* (structured checklist output schema). It does NOT transfer to *across calls* when the items being decomposed are sequential same-type items rather than orthogonal facets.
 

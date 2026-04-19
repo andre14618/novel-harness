@@ -51,7 +51,9 @@ Respond with ONLY valid JSON in this exact shape:
 
 ---
 
-### 2. chapter-plan-checker (chapter-plan-checker-v2:v1)
+### 2. chapter-plan-checker (chapter-plan-checker-v2:v1) — RETIRED 2026-04-18
+
+> **Superseded 2026-04-18:** This adapter is no longer the live `roles.ts` agent. `chapter-plan-checker-v2:v1` was retired after ~92% FP on real production fantasy plans (distribution drift from synthetic training data). The `chapter-plan-checker` slot now routes to **DeepSeek V3.2 base** with the same `plan-adherence-system.md` prompt. Artifact retained on W&B for historical reference only. See `docs/decisions.md` "Chapter-plan-checker-v2:v1 SFT adapter retired".
 
 | Field | Value |
 |-------|-------|
@@ -61,7 +63,7 @@ Respond with ONLY valid JSON in this exact shape:
 | **Epochs** | 2 |
 | **Experiment** | #178 |
 | **Data file** | `scripts/lora-data/chapter-plan-checker-pairs.jsonl` |
-| **roles.ts agent** | `chapter-plan-checker` |
+| **roles.ts agent** | `chapter-plan-checker` — **RETIRED, now DeepSeek V3.2 base** |
 
 **Frozen system prompt** (2,343 chars, from `src/agents/chapter-plan-checker/plan-adherence-system.md`):
 
@@ -237,7 +239,7 @@ Starts with: `You are a relationship and timeline analyst for fiction.`
 | `src/agents/summary-extractor/chapter-summary-system.md` | summary-extractor-v1 | **NO** — retrain required (already drifted) |
 | `src/agents/character-state/state-extractor-system.md` | character-state-v1 | **NO** — retrain required (already drifted) |
 | `src/agents/relationship-timeline/timeline-extractor-system.md` | relationship-timeline-v1 | **NO** — retrain required |
-| `src/agents/chapter-plan-checker/plan-adherence-system.md` | chapter-plan-checker-v2:v1 | **NO** — retrain required |
+| `src/agents/chapter-plan-checker/plan-adherence-system.md` | chapter-plan-checker-v2:v1 (RETIRED 2026-04-18) | **YES** — adapter retired; prompt now runs on DeepSeek V3.2 base, freely editable |
 | `src/agents/continuity/fact-check-system.md` | continuity-v2:v1 | **NO** — retrain required |
 | `src/agents/continuity/state-check-system.md` | continuity-v2:v1 | **NO** — retrain required |
 | `src/agents/writer/adherence-checker.ts` (inline) | adherence-checker-v4 | **NO** — retrain required |

@@ -18,9 +18,9 @@ Single source of truth for fine-tuning history across all pipeline agents. One e
 | Salvatore Voice (Fantasy Writer) | **DEPLOYED** | V4 · voice-baked beat-writer | #222 | `salvatore-1988-v4` — shipped 2026-04-17 as fantasy default |
 | Tonal Pass | DEPLOYED (on-demand only) | V4 · W&B 14B | #98 | `howard-tonal-v4-sft-resume:v8` — Howard methodology retired 2026-04-16 |
 | Adherence Checker | **DEPLOYED** | V4 · events+attribution | #161 | `adherence-checker-v4` |
-| Chapter Plan Checker | **DEPLOYED** | V2 · Sonnet teacher | #178 | `chapter-plan-checker-v2:v1` |
+| Chapter Plan Checker | **RETIRED 2026-04-18** | V2 · Sonnet teacher (retired) | #178 | `chapter-plan-checker-v2:v1` — slot now runs DeepSeek V3.2 base; see 2026-04-18 entry in `docs/decisions.md` |
 | Continuity | **DEPLOYED** | V2 · Sonnet teacher | #175 | `continuity-v2:v1` |
-| Hallucination Checker | **DEPLOYED (pending eval)** | V1 · 800-beat fresh bundle | #223 | `hallucination-checker-v1:v1` (shipped 2026-04-18) |
+| Hallucination Checker | CANDIDATE (v3 two-adapter) | V3 · ungrounded + leak parallel | — | `halluc-ungrounded-v2:v1` + `halluc-leak-salvatore-v1:v1` — v2 kitchen-sink REJECTED 2026-04-18 |
 | Archetype POC (dialogue rewrite) | VALIDATED (not in pipeline) | V1 · 5-character dialogue LoRA | #220 | `archetype-poc-v1` — voice POC; dialogue post-pass architecture rejected |
 | Salvatore V3 | RETAINED (rollback) | V3 · 777 crystal_shard pairs | #196 | `salvatore-1988-v3` |
 | Salvatore V1–V2 | SUPERSEDED | — | #192, #195 | — |
@@ -134,7 +134,7 @@ Migrated to `OpenPipe/Qwen3-14B-Instruct` on W&B Inference. Beats V3 on every me
 - Superseded by V2 Sonnet labels (96% accuracy)
 
 ### V2 · Sonnet labels `chapter-plan-checker-v2:v1` (exp #170 train / #178 eval, 2026-04-12)
-**Status: DEPLOYED**
+**Status: RETIRED 2026-04-18** — replaced by DeepSeek V3.2 base after ~92% FP audit on real fantasy plans (see `docs/decisions.md` 2026-04-18 entry). Adapter artifact retained on W&B; not wired in `roles.ts`.
 
 - **Dataset:** 520 pairs (65 scenarios × 8 variants), Sonnet 4.6 teacher
 - **Eval (exp #178):** 96% accuracy vs Sonnet ground truth (vs 78% for gpt-oss-120b oracle)
@@ -146,7 +146,7 @@ Migrated to `OpenPipe/Qwen3-14B-Instruct` on W&B Inference. Beats V3 on every me
 
 ## Continuity Checker
 
-**Task:** Per-chapter check against world state tables (facts, character states). 2 parallel decomposed calls (continuity-facts + continuity-state). Largest prompt-token cost in the pipeline (~7,300 in/call — full fact/state dump).  
+**Task:** Per-chapter check against world state tables (facts, character states). 2 parallel decomposed calls (continuity-facts + continuity-state). **De-emphasized (2026-04-18)** — context-engineering shifts have reduced actual per-call size substantially from the original "7,300 token dump" design, and beat-level adherence + hallucination checks are subsuming this role. Future work below is retained for historical reference only.  
 **Base model:** `OpenPipe/Qwen3-14B-Instruct` on W&B Inference
 
 ### V1 · Sonnet teacher (exp #155)
@@ -166,18 +166,11 @@ Migrated to `OpenPipe/Qwen3-14B-Instruct` on W&B Inference. Beats V3 on every me
 - **Training:** 3 epochs, batch size 2, cosine LR 2e-4, LoRA rank 16
 - **Decomposed prompts:** `fact-check-system.md` (contradictions vs established facts), `state-check-system.md` (character location/knowledge consistency)
 
-### V3 · Scale to 300 pairs (planned)
-**Status: PLANNED**
+### V3 · Scale to 300 pairs (DEPRIORITIZED 2026-04-18)
+**Status: ON HOLD — continuity de-emphasized in roadmap**
 
-- Add 10 more scenarios to generator + VAR_WARNING_2 variants
-- Prioritize LitRPG scenarios and multi-chapter carryover
-- Regenerate with dramatic-style beat plans
-
-### V4 · Compact diff format (planned)
-**Status: PLANNED — unblocked now that V2 is validated**
-
-- V2 trains on full-dump format (~7,300 tokens/call)
-- Compressing to ~1,000 tokens via structured diff requires new input format + new training data
+### V4 · Compact diff format (DEPRIORITIZED 2026-04-18)
+**Status: ON HOLD — premise (~7,300 token full dump) no longer reflects current pipeline behavior**
 
 ---
 
@@ -280,7 +273,9 @@ All 4 extractor adapters have system prompts frozen in training data. Changing t
 | Adapter | Priority | Status | Blocker |
 |---------|----------|--------|---------|
 | Salvatore v5 (anti-parroting) | Medium | CONDITIONAL | Only if verbatim echo rate becomes a visible production problem. Data recipe: multiple example-set variants per training row (K=5), example-count jitter, example-drop (~10% no-examples), synthetic paraphrase pool |
-| Hallucination Checker v2 | Medium | DEFERRED | After production telemetry shows what v1 misses; active-learning loop |
+| Hallucination Checker v2 (kitchen sink) | REJECTED 2026-04-18 | — | Pure-synth training hit 95%+ synth val but regressed to 77.8%/51.2% on natural val. Replaced by v3 two-adapter decomposition (ungrounded + leak). See `docs/decisions.md` 2026-04-18. |
+| Hallucination Checker v3 (decomposed, candidate) | High | CANDIDATE | `halluc-ungrounded-v2:v1` + `halluc-leak-salvatore-v1:v1` shipped as candidates 2026-04-18. Combined natural val: 81.4 F1 (matches v1 at 82.1). Next: wire into `drafting.ts`, measure production fire rates per adapter. |
+| Per-writer leak adapters (Gemmell, Cook, etc.) | Low | PLANNED | Paired with each future genre voice LoRA. Follow `halluc-leak-salvatore-v1` recipe. |
 | Planner-Adherence (payoff + directive enforcement) | Medium | DEFERRED | Gated on planner Phase-2 enrichment shipping first |
 | Lint Fixer | Low | DEFERRED | Mine approved chapters for 200–300 cliché rewrite triples; gated on lint-fire-rate measurement |
 | Craft-layer checkers (voice/show-tell/pacing) | REJECTED 2026-04-18 | — | Architectural decision: craft is a model-weights problem, not a prompt/checker problem. See `docs/decisions.md` |

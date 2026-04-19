@@ -4,6 +4,8 @@ updated: 2026-04-12
 status: shipped
 ---
 
+> **Superseded 2026-04-19:** This document reflects the pre-exhaustion-handler retry architecture as of 2026-04-12. Two key points are now stale: (1) the chapter-plan-checker row in §Chapter-level references `gpt-oss-120b` — that slot was retired 2026-04-18 and now runs DeepSeek V3.2 base (see `docs/decisions.md`); (2) the retry semantics described here predated the non-blind-retry / exhaustion-handler 5-step architecture shipped 2026-04-19. For the current retry contract see `docs/current-state.md` and `docs/exhaustion-handler-design.md`.
+
 # Retry Surface Audit & Tightening Plan
 
 ## Executive Summary

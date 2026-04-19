@@ -1870,6 +1870,59 @@ DeepSeek ~3× cleaner on instruction-constrained prose. Cerebras wins on raw spe
 
 **Ongoing:** Applied 2026-04-18. Future training experiments get automatic archive. Manual SHA256 lookup via filename.
 
+## Session 2026-04-19 — Exhaustion-handler architecture + debug-injection + non-blind-retry
+
+### Exhaustion-handler 5-step architecture canonicalized
+*2026-04-19 · commits ce64e28..1d1b4e1 + 7d53dac..83772dd*
+
+**Decision:** The retry/escalation architecture for drafting-phase quality failures is formalized as a 5-step exhaustion-handler: (1) targeted beat rewrites on adherence failure; (2) chapter-plan-checker flags route to beat-targeted rewrites (`maxChapterPlanRewritePasses=2`); (3) on rewrite-budget exhaustion, escalate once per chapter to `chapter-plan-reviser` (hard cap via `revisionUsed`); (4) on reviser exhaustion, fire `gate:plan-assist` (web/CLI decisions: edit-plan/override/abort); (5) in auto mode, gate emits SSE event then throws `PipelineBailError` (`lastRunError.kind='plan-assist-bail'`). UI surfaces the gate via `PlanAssistPanel` + `ExhaustionsPanel`. Test tooling ships as `DEBUG_FORCE_*` env flags + campaign runners. All prior blind-restart patterns are retired.
+
+**Why:** Targeted rewrites + reviser escalation + plan-assist gate is the canonical non-blind-retry architecture. Each step is narrower and more informative than a blind restart. The plan-assist gate makes auto-mode exhaustion loud and surfaceable rather than a silent auto-approval. See `docs/exhaustion-handler-design.md` for the full design memo.
+
+**Ongoing implications:** `src/gates.ts` is the single source for gate fire logic. Auto throw at lines ~167-170. `chapter_exhaustions` table logs telemetry per-exhaustion event. `chapter_revisions` table (sql/028) logs reviser outcomes. Any new quality gate must follow the same `pendingExhaustion` → gate-fire epilogue pattern in `src/phases/drafting.ts`.
+
+---
+
+### Debug-injection MVP as test-only infrastructure
+*2026-04-19 · `src/config/debug-injection.ts`*
+
+**Decision:** `DEBUG_FORCE_PLAN_CHECK`, `DEBUG_FORCE_VALIDATION`, and `DEBUG_FORCE_REVISER` env flags are the canonical testing surface for triggering exhaustion paths without natural failures. `src/config/debug-injection.ts` exports the flags; strict no-op when env unset — zero production footprint. Codex audit `ae23f96a5f5cf8247` recommended a V2 transport-interceptor pattern as the durable evolution; V2 is being specced separately (parallel Codex agent). MVP ships today for immediate campaign testing.
+
+**Ongoing:** V2 transport interceptor spec in progress; when it lands, `debug-injection.ts` may be retired or absorbed into it.
+
+---
+
+### PipelineBailError auto-mode contract
+*2026-04-19 · `src/gates.ts` lines ~167-170*
+
+**Decision:** In auto mode, plan-assist gates do NOT silently auto-approve. The gate emits a `gate:plan-assist` SSE event with the full deviation context, then throws `PipelineBailError`. The run halts with `lastRunError.kind='plan-assist-bail'` so the Studio/API caller knows why the run stopped. This is a deliberate contract: auto runs surface exhaustion as a bail, not a silent bypass.
+
+**Why:** Silent auto-approval of exhausted chapters would ship low-quality prose without any signal to the author. The bail is an invitation: either fix the plan, override knowingly, or abort.
+
+---
+
+### Non-blind-retry as canonical quality gate
+*2026-04-19 · `src/phases/drafting.ts`*
+
+**Decision:** All prior blind-restart retry patterns are replaced. Every exhaustion point is wrapped in `pendingExhaustion` → gate-fire epilogue. The escalation order is: beat-targeted rewrite → chapter-plan-reviser (once, hard-capped by `revisionUsed`) → plan-assist gate or auto-bail. No path in the drafting phase restarts from scratch without targeted context.
+
+**Why:** Blind retries roll the dice again without fixing the root cause. Targeted rewrites pass the checker's specific failures back to the writer. The reviser edits the plan rather than rewriting blind. The gate gives the author agency at the boundary of automated capability.
+
+---
+
+### Chapter-plan-checker-v2:v1 SFT adapter retired — DeepSeek V3.2 base replaces it
+*2026-04-18 (backdated — missing from decisions.md until now)*
+
+**Decision:** `chapter-plan-checker-v2:v1` (Qwen3-14B SFT, exp #170/#178) retired from production. The slot now runs **DeepSeek V3.2 base** with the same `plan-adherence-system.md` prompt. `models/roles.ts` updated accordingly.
+
+**Why:** A dual-oracle audit (Sonnet + Codex gpt-5.4) found ~92% false-positive rate on real fantasy chapter plans, despite the adapter's measured 96% accuracy on exp #178 synthetic eval. Root cause: distribution drift — the 520 synthetic training pairs used planner-generated beat descriptions with uniform structure, but production fantasy plans use dramatic-style beats (shorter, less prescriptive, no explicit event lists). The adapter learned to detect schema deviations in a training distribution that no longer matches production. DeepSeek V3.2 base handles the narrow 3-question check natively without the distribution sensitivity. SFT recalibration on the current production distribution is deferred to `docs/todo.md` low-priority.
+
+**Alternatives rejected:** Retrain v3 on dramatic-beat production pairs — valid but low-priority given DeepSeek handles it correctly today. Keep v2 in production — 92% FP rate on real plans is unacceptable.
+
+**Ongoing:** The adapter artifact remains on W&B for historical reference. The `plan-adherence-system.md` prompt is unchanged and now runs against DeepSeek base — no prompt freeze constraint. See `docs/adapter-changelog.md` and `docs/adapter-training-reference.md` for updated status.
+
+---
+
 ## Superseded charters
 
 Log entries for charters killed by adversary review (RED verdict) and replaced by a successor with a new family name. Per `docs/commit-conventions.md` §Superseded-Documents, the predecessor is deleted from the working tree once superseded; this section is the append-only historical record. Recover the RED version with `git log --follow <path>` and `git show <sha>:<path>`.
