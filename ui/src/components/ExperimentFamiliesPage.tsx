@@ -16,7 +16,7 @@ function statusBadge(e: FamilyExperiment): { label: string; color: string } {
 
 function FamilyCard({ family }: { family: FamilySummary }) {
   const [expanded, setExpanded] = useState(false)
-  const { charter, runs, totalExperiments, concludedCount, latestAt } = family
+  const { charter, charterSlug, runs, totalExperiments, concludedCount, latestAt } = family
 
   return (
     <div style={{
@@ -28,8 +28,8 @@ function FamilyCard({ family }: { family: FamilySummary }) {
     }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 14, flexWrap: "wrap", marginBottom: 8 }}>
         <h3 style={{ margin: 0, fontSize: "1.05rem" }}>
-          {charter ? (
-            <Link to={`/charters?charter=${family.family}`} style={{ color: "#dce" }}>
+          {charter && charterSlug ? (
+            <Link to={`/charters?charter=${charterSlug}`} style={{ color: "#dce" }}>
               {family.family}
             </Link>
           ) : (

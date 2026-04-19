@@ -26,22 +26,31 @@ export interface FamilyExperimentRow {
 export interface FamilySummary {
   family: string
   charter: FamilyExperimentRow | null
+  charterSlug: string | null
   runs: FamilyExperimentRow[]
   totalExperiments: number
   latestAt: string | null
   concludedCount: number
 }
 
-function rowToExp(r: any): FamilyExperimentRow {
+interface RowWithConfig {
+  exp: FamilyExperimentRow
+  charterSlug: string | null
+}
+
+function rowToExp(r: any): RowWithConfig {
   const cfg = typeof r.config === "string" ? JSON.parse(r.config) : (r.config ?? {})
   return {
-    id: r.id,
-    timestamp: new Date(r.timestamp).toISOString(),
-    description: r.description,
-    status: r.status ?? null,
-    conclusion: r.conclusion ?? null,
-    experimentType: r.experiment_type ?? null,
-    kind: cfg?.kind ?? null,
+    exp: {
+      id: r.id,
+      timestamp: new Date(r.timestamp).toISOString(),
+      description: r.description,
+      status: r.status ?? null,
+      conclusion: r.conclusion ?? null,
+      experimentType: r.experiment_type ?? null,
+      kind: cfg?.kind ?? null,
+    },
+    charterSlug: typeof cfg?.charter_slug === "string" ? cfg.charter_slug : null,
   }
 }
 
@@ -54,28 +63,29 @@ export async function listFamilies(): Promise<FamilySummary[]> {
     ORDER BY timestamp ASC
   `) as any[]
 
-  const byFamily = new Map<string, FamilyExperimentRow[]>()
+  const byFamily = new Map<string, RowWithConfig[]>()
   for (const r of rows) {
     const fam = r.family as string
     if (!fam) continue
-    const exp = rowToExp(r)
     const list = byFamily.get(fam) ?? []
-    list.push(exp)
+    list.push(rowToExp(r))
     byFamily.set(fam, list)
   }
 
   const summaries: FamilySummary[] = []
-  for (const [family, exps] of byFamily) {
-    const charter = exps.find(e => e.kind === "charter") ?? null
-    const runs = exps.filter(e => e.kind !== "charter")
-    const latestAt = exps.reduce<string | null>((acc, e) => !acc || e.timestamp > acc ? e.timestamp : acc, null)
+  for (const [family, items] of byFamily) {
+    const charterRow = items.find(i => i.exp.kind === "charter") ?? null
+    const runs = items.filter(i => i.exp.kind !== "charter").map(i => i.exp)
+    const all = items.map(i => i.exp)
+    const latestAt = all.reduce<string | null>((acc, e) => !acc || e.timestamp > acc ? e.timestamp : acc, null)
     summaries.push({
       family,
-      charter,
+      charter: charterRow?.exp ?? null,
+      charterSlug: charterRow?.charterSlug ?? null,
       runs,
-      totalExperiments: exps.length,
+      totalExperiments: all.length,
       latestAt,
-      concludedCount: exps.filter(e => e.conclusion != null).length,
+      concludedCount: all.filter(e => e.conclusion != null).length,
     })
   }
 

@@ -715,6 +715,7 @@ export interface FamilyExperiment {
 export interface FamilySummary {
   family: string
   charter: FamilyExperiment | null
+  charterSlug: string | null
   runs: FamilyExperiment[]
   totalExperiments: number
   latestAt: string | null
