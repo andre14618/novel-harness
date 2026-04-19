@@ -29,31 +29,44 @@ const HARNESS_ROOT = process.env.HARNESS_ROOT ?? "/home/andre/apps/novel-harness
 const activeRuns = new Map<string, { startedAt: string; error?: string }>()
 // Preserve the last error for a novel after its run has exited, so the UI
 // can surface it. `PipelineBailError` from plan-assist gates is captured
-// structurally (kind, chapter, message) so the UI can distinguish a real
-// crash from an exhaustion-gate halt. Cleared when a new run starts.
+// structurally (bailKind, chapter, message) so the UI can distinguish a
+// real crash from an exhaustion-gate halt.
+//
+// The legacy `error` field is kept on both variants for UI backward-compat
+// (existing consumers at ui/src/api.ts and PipelineView/StudioPage read
+// .error). New consumers should branch on `.kind` and use structured
+// fields. Cleared when a new run starts.
 type LastRunError =
-  | { kind: "error"; message: string; at: string }
-  | { kind: "plan-assist-bail"; bailKind: string; chapter: number; message: string; at: string }
+  | { kind: "error"; error: string; message: string; at: string }
+  | { kind: "plan-assist-bail"; error: string; bailKind: string; chapter: number; message: string; at: string }
 const lastRunErrors = new Map<string, LastRunError>()
 
 function captureRunError(novelId: string, err: unknown): void {
   if (err instanceof PipelineBailError) {
     lastRunErrors.set(novelId, {
       kind: "plan-assist-bail",
+      error: err.message,
       bailKind: err.kind,
       chapter: err.chapter,
       message: err.message,
       at: new Date().toISOString(),
     })
   } else {
+    const message = err instanceof Error ? err.message : String(err)
     lastRunErrors.set(novelId, {
       kind: "error",
-      message: err instanceof Error ? err.message : String(err),
+      error: message,
+      message,
       at: new Date().toISOString(),
     })
   }
 }
 
+// The edit-plan variant requires a FULL replacement ChapterOutline. Partial
+// JSON-patch-style edits are not supported on this route — the design memo
+// mentions patches as a future enhancement but the V1 wire contract is
+// "submit the whole outline or nothing." Partial bodies are rejected at
+// Zod parse time with a 400.
 const planAssistDecisionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("edit-plan"), outline: chapterOutlineSchema }),
   z.object({ action: z.literal("override") }),

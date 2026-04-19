@@ -173,6 +173,18 @@ Steps 1-3 unblock the "exhaustion never silently restarts" invariant. Steps
 this ordering (step 1 cannot fully realize its spec without step 2, so step
 1 explicitly scopes to the no-fallback case as a shipping-checkpoint state).
 
+### Step 3 caveat (flagged by Codex review a0e0567af62b0fb9a)
+
+Step 2 adds the backend surface (`pendingPlanAssist` on /list + /:id/state,
+`POST /api/novel/:id/plan-assist/:chapter/decide`), but Studio does not
+render or decide on plan-assist gates yet. When step 3 wires the gate into
+`drafting.ts`, the web-mode flow will silently stall unless either:
+(a) step 3 also ships a minimal `decidePlanAssist()` API client + a
+`PlanAssistPanel` stub (or extends `GatePanel` with a plan-assist branch),
+or (b) step 3 is explicitly scoped to CLI-mode-only until step 4 lands the
+full UI panel. Option (a) is preferred — keeps web users from getting into
+a dead gate state.
+
 ## Open questions
 
 1. **How many times can "override and draft" fire per chapter?** Currently

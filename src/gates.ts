@@ -293,7 +293,21 @@ export type CurrentGate =
   | { kind: "approval"; gateId: string; title: string; content: string }
   | { kind: "plan-assist"; chapter: number; payload: PlanAssistGatePayload }
 
+/**
+ * In normal pipeline flow the two gate types are mutually exclusive —
+ * plan-assist fires on drafting exhaustion (pipeline blocked awaiting
+ * structural input), approval fires at end-of-chapter after a successful
+ * draft. If both are ever open simultaneously (defensive coding: shouldn't
+ * happen), plan-assist wins because it blocks forward progress, while
+ * approval is a routine checkpoint that can be resolved second. This order
+ * also avoids silently masking an exhaustion gate behind an approval gate
+ * for list/state endpoints.
+ */
 export function getPendingGate(novelId: string): CurrentGate | null {
+  const planAssist = getPendingPlanAssist(novelId)
+  if (planAssist) {
+    return { kind: "plan-assist", chapter: planAssist.chapter, payload: planAssist.payload }
+  }
   const approval = getPending(novelId)
   if (approval) {
     return {
@@ -302,10 +316,6 @@ export function getPendingGate(novelId: string): CurrentGate | null {
       title: approval.title,
       content: approval.content,
     }
-  }
-  const planAssist = getPendingPlanAssist(novelId)
-  if (planAssist) {
-    return { kind: "plan-assist", chapter: planAssist.chapter, payload: planAssist.payload }
   }
   return null
 }
