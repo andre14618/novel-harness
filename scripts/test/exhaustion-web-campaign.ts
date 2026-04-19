@@ -101,49 +101,124 @@ async function startNovel(seed: object, mode: "auto" | "web"): Promise<string> {
  * story-spine, plan). Without this, the novel stalls at the first one
  * and plan-assist never gets a chance to trigger.
  *
+ * Robustness improvements (Fix 2):
+ *   - SSE is the primary path; a DB poll every 10s is the belt-and-suspenders
+ *     fallback in case SSE hiccups or a gate:waiting event is missed.
+ *   - SSE stream errors are retried up to 3 times before giving up.
+ *   - Failed decide POSTs emit console.warn instead of being silently swallowed.
+ *
  * Returns an AbortController — call .abort() after the test's main
  * watch completes to shut down the background loop cleanly.
  */
 function startApprovalGateAutoApprover(novelId: string): AbortController {
   const abort = new AbortController()
-  void (async () => {
+  // Track gate IDs already auto-approved so the poll fallback doesn't
+  // double-POST (idempotent on the server side, but noisy).
+  const approvedGateIds = new Set<string>()
+
+  async function approveGate(gateId: string, source: "sse" | "poll"): Promise<void> {
+    if (approvedGateIds.has(gateId)) return
+    approvedGateIds.add(gateId)
+    console.log(`  [auto-approve][${source}] gate ${gateId} on ${novelId}`)
+    const r = await apiPost(
+      `/api/novel/${novelId}/gate/${encodeURIComponent(gateId)}/decide`,
+      { action: "approve" },
+    )
+    if (!r.ok) {
+      console.warn(`  [auto-approve][${source}] WARN: decide POST failed for gate ${gateId} (${r.status}) on novel ${novelId}`)
+    }
+  }
+
+  // ── DB-poll fallback: every 10s check /state for a pending approval gate ──
+  const pollInterval = setInterval(async () => {
+    if (abort.signal.aborted) return
     try {
-      const resp = await fetch(`${API_BASE}/api/novel/${novelId}/events`, {
-        headers: {
-          "Accept": "text/event-stream",
-          ...(API_KEY ? { "x-api-key": API_KEY } : {}),
-        },
-        signal: abort.signal,
-      })
-      if (!resp.ok || !resp.body) return
-      const reader = resp.body.getReader()
-      const decoder = new TextDecoder()
-      let buf = ""
-      while (!abort.signal.aborted) {
-        const { value, done } = await reader.read().catch(() => ({ value: undefined, done: true }))
-        if (done) break
-        buf += decoder.decode(value, { stream: true })
-        const frames = buf.split("\n\n")
-        buf = frames.pop() ?? ""
-        for (const frame of frames) {
-          const dataLine = frame.split("\n").find(l => l.startsWith("data:"))
-          if (!dataLine) continue
-          try {
-            const event = JSON.parse(dataLine.slice(5).trim())
-            if (event.type === "gate:waiting" && event.data?.gateId) {
-              const gateId = event.data.gateId
-              console.log(`  [auto-approve] gate ${gateId} on ${novelId}`)
-              await apiPost(
-                `/api/novel/${novelId}/gate/${encodeURIComponent(gateId)}/decide`,
-                { action: "approve" },
-              ).catch(() => {})
+      const stateR = await apiGet(`/api/novel/${novelId}/state`)
+      if (!stateR.ok) return
+      const state = await stateR.json() as any
+      const gateId = state.pendingGate?.gateId
+      if (gateId && typeof gateId === "string") {
+        await approveGate(gateId, "poll")
+      }
+    } catch { /* non-fatal — SSE is primary */ }
+  }, 10_000)
+
+  // ── SSE primary path: react immediately to gate:waiting events ───────────
+  void (async () => {
+    let retries = 0
+    const maxRetries = 3
+    while (!abort.signal.aborted && retries <= maxRetries) {
+      try {
+        const resp = await fetch(`${API_BASE}/api/novel/${novelId}/events`, {
+          headers: {
+            "Accept": "text/event-stream",
+            ...(API_KEY ? { "x-api-key": API_KEY } : {}),
+          },
+          signal: abort.signal,
+        })
+        if (!resp.ok || !resp.body) {
+          retries++
+          if (retries <= maxRetries) {
+            console.warn(`  [auto-approve] SSE connect failed (${resp.status}), retry ${retries}/${maxRetries}`)
+            await new Promise(res => setTimeout(res, 2_000))
+          }
+          continue
+        }
+        // Successful connect — reset retry counter
+        retries = 0
+        const reader = resp.body.getReader()
+        const decoder = new TextDecoder()
+        let buf = ""
+        let streamError = false
+        while (!abort.signal.aborted) {
+          const { value, done } = await reader.read().catch(err => {
+            if (!abort.signal.aborted) {
+              console.warn(`  [auto-approve] SSE read error: ${err instanceof Error ? err.message : err}`)
+              streamError = true
             }
-          } catch { /* skip malformed */ }
+            return { value: undefined as Uint8Array | undefined, done: true }
+          })
+          if (done) break
+          buf += decoder.decode(value, { stream: true })
+          const frames = buf.split("\n\n")
+          buf = frames.pop() ?? ""
+          for (const frame of frames) {
+            const dataLine = frame.split("\n").find(l => l.startsWith("data:"))
+            if (!dataLine) continue
+            try {
+              const event = JSON.parse(dataLine.slice(5).trim())
+              if (event.type === "gate:waiting" && event.data?.gateId) {
+                await approveGate(event.data.gateId, "sse")
+              }
+            } catch { /* skip malformed */ }
+          }
+        }
+        // If stream ended due to an error (not abort), retry
+        if (streamError && !abort.signal.aborted) {
+          retries++
+          if (retries <= maxRetries) {
+            console.warn(`  [auto-approve] SSE stream dropped, retry ${retries}/${maxRetries}`)
+            await new Promise(res => setTimeout(res, 2_000))
+          }
+        }
+      } catch (err) {
+        if (abort.signal.aborted) break
+        retries++
+        if (retries <= maxRetries) {
+          console.warn(`  [auto-approve] SSE error: ${err instanceof Error ? err.message : err}, retry ${retries}/${maxRetries}`)
+          await new Promise(res => setTimeout(res, 2_000))
         }
       }
-    } catch { /* aborted or transport error — ok */ }
+    }
   })()
-  return abort
+
+  // Wrap the AbortController to also clear the poll interval on abort
+  const outerAbort = new AbortController()
+  outerAbort.signal.addEventListener("abort", () => {
+    clearInterval(pollInterval)
+    abort.abort()
+  })
+  return outerAbort
 }
 
 // ── Assertion helpers ────────────────────────────────────────────────────
@@ -359,6 +434,44 @@ async function runR3_webEditPlan(): Promise<TestResult> {
     assert(decideBody.ok === true, `decide response ok not true: ${JSON.stringify(decideBody)}`)
     assert(decideBody.action === "edit-plan", `Expected action=edit-plan in response, got: ${decideBody.action}`)
 
+    // Fix (R3 race): wait for the drafting-loop to advance past the edit-plan
+    // branch before querying chapter_outlines.
+    //
+    // The decide POST resolves the gate synchronously — `gate:plan-assist-resolved`
+    // fires before the response returns. But the drafting loop's edit-plan branch
+    // runs async after gate resolution:
+    //   gate.resolve(decision) → drafting.ts: outline = {...}; await saveChapterOutline(...)
+    //                                          bail=true → continue → next attempt top
+    //   debug-inject fires at the top of the next attempt (DEBUG_FORCE_PLAN_CHECK=fail
+    //   means hasAnyInjection()=true, so trace("debug-inject") is always emitted).
+    //
+    // Waiting for debug-inject (or plan-check-outcome as a fallback for the
+    // re-check that follows immediately) guarantees saveChapterOutline has landed.
+    console.log(`  [R3] waiting for drafting loop to advance past edit-plan branch...`)
+    const postEditResult = await watchForExpectations({
+      novelId,
+      apiBase: API_BASE,
+      apiKey: API_KEY,
+      expectations: [
+        {
+          name: "drafting loop advanced past edit-plan (debug-inject or plan-check-outcome)",
+          timeoutMs: 60_000,
+          match: e =>
+            (e.type === "trace" && e.data.eventType === "debug-inject") ||
+            (e.type === "trace" && e.data.eventType === "plan-check-outcome"),
+        },
+      ],
+      overallTimeoutMs: 60_000,
+      onEvent: e => {
+        if (e.type === "trace" && (e.data.eventType === "debug-inject" || e.data.eventType === "plan-check-outcome")) {
+          console.log(`  [R3][EVENT] ${novelId} trace:${e.data.eventType}`)
+        }
+      },
+    })
+    for (const r of postEditResult) {
+      assert(r.matched, `Expected drafting loop to advance after edit-plan: ${r.error}`)
+    }
+
     // DB: chapter_outlines.outline_json should now have the replacement scenes
     const outlineRows = await db`
       SELECT outline_json FROM chapter_outlines
@@ -474,12 +587,17 @@ async function runR4_webAbort(): Promise<TestResult> {
     console.log(`  [R4] novel=${novelId}, waiting for SSE gate signal...`)
 
     // Wait for gate:plan-assist SSE event — replaces polling waitForGate().
+    // 30-min budget (was 15 min): concept phase is 3 DeepSeek calls (~1-2 min
+    // each on slow days) + planning (~1 min) + drafting beat loop + plan-check
+    // settle loop. 30 min gives headroom for API slow periods without being
+    // excessive. The campaign-level bash `timeout 1800` wrapper still caps
+    // everything at 30 min total.
     const gateEvent = await watchForTerminal({
       novelId,
       apiBase: API_BASE,
       apiKey: API_KEY,
       terminalTypes: ["gate:plan-assist"],
-      timeoutMs: 900_000,
+      timeoutMs: 1_800_000,
       onEvent: e => {
         if (["gate:plan-assist", "error", "done"].includes(e.type)) {
           console.log(`  [R4][EVENT] ${novelId} ${e.type}`)
