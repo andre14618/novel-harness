@@ -541,16 +541,21 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
             out.deviations?.forEach(d => console.log(`    UNRESOLVED DEVIATION (beat ${d.beat_index ?? "chapter-level"}): ${d.description}`))
 
             // Planner escalation — pass unresolved issues back to the
-            // chapter-plan-reviser ONCE per chapter. If the reviser produces
-            // a new plan, replace outline.scenes + restart drafting for this
-            // chapter attempt. If we already revised or the issue signature
-            // is identical to a prior revision's input, skip (bounded loop).
+            // chapter-plan-reviser at most ONCE per chapter (across all
+            // attempts). `revisionUsed` is chapter-scoped (declared outside
+            // the while-attempt loop). The signature check is redundant
+            // given the hard cap but kept as a defense-in-depth guard in
+            // case the cap is loosened later.
             const issueSig = (out.deviations ?? []).map(d => `${d.beat_index ?? "c"}:${d.description}`).sort().join("|")
             const canRevise = !revisionUsed && issueSig !== lastUnresolvedSig && canSettle
 
             if (canRevise) {
               console.log(`  Escalating to chapter-plan-reviser (persistent issues)`)
               log(novelId, "info", `Invoking chapter-plan-reviser for chapter ${ch}: ${(out.deviations ?? []).length} unresolved issues`)
+              // Mark revision as used BEFORE the call so a schema/transport
+              // failure can't trigger a second revision on the next attempt.
+              revisionUsed = true
+              lastUnresolvedSig = issueSig
               try {
                 const reviseCtx = buildChapterPlanReviseContext(
                   outline,
@@ -564,22 +569,42 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                   userPrompt: reviseCtx,
                   schema: chapterPlanReviseSchema,
                 })
-                // Merge skeleton fields + replace plan fields. Cast through
-                // unknown because chapterBeatsSchema's z.infer resolves some
-                // defaulted fields as optional while chapterOutlineSchema
-                // resolves them as required; both produce the same runtime
-                // shape after parse, so the cast is safe.
-                outline = {
-                  ...outline,
-                  scenes: revised.output.scenes,
-                  establishedFacts: revised.output.establishedFacts ?? outline.establishedFacts,
-                  characterStateChanges: revised.output.characterStateChanges ?? outline.characterStateChanges,
-                  knowledgeChanges: revised.output.knowledgeChanges ?? outline.knowledgeChanges,
-                } as ChapterOutline
-                revisionUsed = true
-                lastUnresolvedSig = issueSig
-                log(novelId, "info", `Chapter plan revised: ${outline.scenes.length} beats (was ${beatProses.length})`)
-                console.log(`  Revised plan: ${outline.scenes.length} beats. Restarting chapter draft with revised plan.`)
+
+                // Post-revision sanity checks — reject obviously bad plans.
+                // If any check fails we keep the original outline; the outer
+                // attempt will re-run with unchanged plan (a known no-op
+                // retry, but safer than drafting against a garbage plan).
+                const revisedScenes = revised.output.scenes ?? []
+                const minBeats = Math.max(3, Math.ceil(outline.targetWords / 300))
+                const originalCharacters = new Set([
+                  outline.povCharacter,
+                  ...(outline.charactersPresent ?? []),
+                  ...outline.scenes.flatMap(s => s.characters ?? []),
+                ].filter(Boolean))
+                const revisedCharacters = new Set(revisedScenes.flatMap(s => s.characters ?? []))
+                const newCharacters = [...revisedCharacters].filter(c => !originalCharacters.has(c))
+
+                if (revisedScenes.length < minBeats) {
+                  log(novelId, "warn", `Reviser returned too few beats (${revisedScenes.length} < ${minBeats}) — rejecting revision`)
+                  console.log(`  Reviser output rejected: ${revisedScenes.length} beats below floor of ${minBeats}`)
+                } else if (newCharacters.length > 0) {
+                  log(novelId, "warn", `Reviser introduced new characters [${newCharacters.join(", ")}] — rejecting revision`)
+                  console.log(`  Reviser output rejected: new characters not in original plan`)
+                } else {
+                  // Accept the revision. Cast through unknown because
+                  // chapterBeatsSchema's z.infer resolves some defaulted fields
+                  // as optional while chapterOutlineSchema resolves them as
+                  // required; both produce the same runtime shape after parse.
+                  outline = {
+                    ...outline,
+                    scenes: revisedScenes,
+                    establishedFacts: revised.output.establishedFacts ?? outline.establishedFacts,
+                    characterStateChanges: revised.output.characterStateChanges ?? outline.characterStateChanges,
+                    knowledgeChanges: revised.output.knowledgeChanges ?? outline.knowledgeChanges,
+                  } as ChapterOutline
+                  log(novelId, "info", `Chapter plan revised: ${outline.scenes.length} beats (was ${beatProses.length})`)
+                  console.log(`  Revised plan: ${outline.scenes.length} beats. Restarting chapter draft with revised plan.`)
+                }
                 bail = true
               } catch (err) {
                 log(novelId, "error", `Chapter-plan-reviser failed for chapter ${ch}: ${err instanceof Error ? err.message : err}`)
@@ -588,7 +613,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
               }
             } else {
               const reason = revisionUsed
-                ? "already revised this attempt"
+                ? "already revised this chapter"
                 : issueSig === lastUnresolvedSig
                   ? "identical issue signature as last revision"
                   : "beat-level state not available"

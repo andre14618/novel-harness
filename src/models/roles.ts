@@ -108,9 +108,12 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "chapter-plan-checker":      { ...deepseekV3, temperature: 0.2, maxTokens: 4096 },
 
   // ── Chapter plan reviser ─────────────────────────────────────────────
-  // Only invoked when targeted beat rewrites + validation settle both
-  // exhaust — passes persistent unresolved issues back to a dedicated
-  // revision agent that produces the smallest plan edit to eliminate them.
+  // Invoked ONCE per chapter (across all drafting attempts) when the
+  // chapter-plan-checker settle loop exhausts its in-place rewrite budget.
+  // Takes original plan + current prose + persistent unresolved issues and
+  // returns the smallest beat-list edit that would make the issues
+  // satisfiable. Validation-failure paths (word count, pov-missing) do NOT
+  // invoke the reviser — those are routed to targeted beat rewrites only.
   // Same DeepSeek model as the checker; higher maxTokens since output is a
   // full beats+state JSON (matches planning-beats shape).
   "chapter-plan-reviser":      { ...deepseekV3, temperature: 0.3, maxTokens: 6144 },
