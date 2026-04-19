@@ -254,6 +254,31 @@ async function main(): Promise<void> {
     }
   }
 
+  // V2 store contamination check — Round B added an in-memory injection store
+  // behind DEBUG_ENABLE_INJECTION. A leftover rule from a previous test run
+  // could silently contaminate this "clean" run and produce a false failure.
+  // GET /api/debug/active returns [] when the store is empty OR when the env
+  // gate is off (the route 404s, caught below). Any non-empty result is a hard
+  // abort. Codex review a1f0d145132145414 M2.
+  try {
+    const activeR = await apiGet(`/api/debug/active`)
+    if (activeR.ok) {
+      const activeBody = await activeR.json() as { rules?: unknown[] }
+      const rules = Array.isArray(activeBody.rules) ? activeBody.rules : []
+      if (rules.length > 0) {
+        console.error(`  [ABORT] V2 injection store has ${rules.length} active rule(s) on the orchestrator.`)
+        console.error(`          The organic-run contract requires a clean store.`)
+        console.error(`          Clear with: curl -X DELETE $API_BASE/api/debug/clear/<novelId-or-wildcard> -H 'x-api-key: ...'`)
+        console.error(`          Or restart the orchestrator (store is in-memory only).`)
+        process.exit(2)
+      }
+    }
+    // activeR not ok = env gate off (404) or auth fail — both acceptable.
+    // If the env gate is off, no rules can be registered anyway.
+  } catch (err) {
+    console.warn(`  [warn] /api/debug/active probe failed (${err instanceof Error ? err.message : err}) — continuing, store may be unreachable`)
+  }
+
   // 1. Load seed with chapter override
   let seed: SeedFile
   try {

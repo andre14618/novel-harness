@@ -245,12 +245,24 @@ export async function executeAndLog(
   // chapter/beat/attempt without having to re-derive fields from callerId.
   // See docs/debug-injection-v2-spec.md §1 (both wrapper paths enrich so both
   // converge correctly in transport).
-  const debugContext: import("./debug/injection-types").DebugContext = {
-    novelId,
-    agentName,
-    chapter: tags?.chapter,
-    beatIndex: tags?.beatIndex,
-    attempt: tags?.attempt,
+  //
+  // Fail-open: if enrichment throws (e.g. Proxy'd tags with throwing getter),
+  // fall back to a minimal context so the real LLM call still reaches transport.
+  // The interceptor itself fails-open on unknown fields. Codex review
+  // a1f0d145132145414 M1: this construction was previously outside any catch,
+  // so a throw here would take down a real LLM call.
+  let debugContext: import("./debug/injection-types").DebugContext
+  try {
+    debugContext = {
+      novelId,
+      agentName,
+      chapter: tags?.chapter,
+      beatIndex: tags?.beatIndex,
+      attempt: tags?.attempt,
+    }
+  } catch (err) {
+    console.warn(`[debug-inject] debugContext enrichment failed for ${agentName}: ${err instanceof Error ? err.message : err}`)
+    debugContext = { agentName }
   }
 
   const effectiveRequest: import("./transport").LLMRequest =
@@ -505,12 +517,21 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
   // V2 debug-injection metadata — enrich every LLMRequest that flows from
   // callAgent so the transport-level interceptor can match rules by
   // agent/novel/chapter/beat/attempt. See docs/debug-injection-v2-spec.md §1.
-  const debugContext: import("./debug/injection-types").DebugContext = {
-    novelId: config.novelId,
-    agentName: config.agentName ?? "unknown",
-    chapter: config.chapter,
-    beatIndex: config.beatIndex,
-    attempt: config.attempt,
+  //
+  // Fail-open: matches the executeAndLog path above. Codex review
+  // a1f0d145132145414 M1.
+  let debugContext: import("./debug/injection-types").DebugContext
+  try {
+    debugContext = {
+      novelId: config.novelId,
+      agentName: config.agentName ?? "unknown",
+      chapter: config.chapter,
+      beatIndex: config.beatIndex,
+      attempt: config.attempt,
+    }
+  } catch (err) {
+    console.warn(`[debug-inject] debugContext enrichment failed for ${config.agentName ?? "unknown"}: ${err instanceof Error ? err.message : err}`)
+    debugContext = { agentName: config.agentName ?? "unknown" }
   }
 
   try {
