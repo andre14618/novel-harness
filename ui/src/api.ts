@@ -699,3 +699,32 @@ export function listCharters() {
 export function getCharter(slug: string) {
   return fetchJSON<CharterFull>(`/api/charters/${encodeURIComponent(slug)}`)
 }
+
+// ── Experiment families ───────────────────────────────────────────────
+
+export interface FamilyExperiment {
+  id: number
+  timestamp: string
+  description: string
+  status: string | null
+  conclusion: string | null
+  experimentType: string | null
+  kind: string | null
+}
+
+export interface FamilySummary {
+  family: string
+  charter: FamilyExperiment | null
+  runs: FamilyExperiment[]
+  totalExperiments: number
+  latestAt: string | null
+  concludedCount: number
+}
+
+export function listExperimentFamilies() {
+  return fetchJSON<FamilySummary[]>("/api/experiment-families")
+}
+
+export function getExperimentFamily(family: string) {
+  return fetchJSON<FamilySummary>(`/api/experiment-families/${encodeURIComponent(family)}`)
+}

@@ -506,6 +506,29 @@ const server = Bun.serve({
     }
 
 
+    // Experiment families — charter-linked rollups over tuning_experiments
+    if (path === "/api/experiment-families" && req.method === "GET") {
+      try {
+        const { experimentFamilies } = await import("../harness")
+        const rows = await experimentFamilies.listFamilies()
+        return Response.json(rows)
+      } catch (err) {
+        return Response.json({ error: String(err) }, { status: 500 })
+      }
+    }
+
+    const famMatch = path.match(/^\/api\/experiment-families\/([^/]+)$/)
+    if (famMatch && req.method === "GET") {
+      try {
+        const { experimentFamilies } = await import("../harness")
+        const fam = await experimentFamilies.getFamily(decodeURIComponent(famMatch[1]))
+        if (!fam) return Response.json({ error: "not found" }, { status: 404 })
+        return Response.json(fam)
+      } catch (err) {
+        return Response.json({ error: String(err) }, { status: 500 })
+      }
+    }
+
     // Charter browser — frontmatter-parsed views over docs/charters/*.md
     if (path === "/api/charters" && req.method === "GET") {
       try {
