@@ -201,7 +201,7 @@ export async function watchForExpectations(params: {
         const ageSec = Math.round((Date.now() - lastEventAt) / 1000)
         abort.abort(
           new Error(
-            `SSE hard-stall: no events for ${ageSec}s while awaiting "${expectations[pendingIdx]?.name}". Last event type: ${lastEventType}. Unexpected types observed: ${JSON.stringify(unexpectedEventTypes)}`,
+            `SSE hard-stall: no events for ${ageSec}s while awaiting "${expectations[pendingIdx]?.name}". Last event type: ${lastEventLabel}. Unexpected types observed: ${JSON.stringify(unexpectedEventTypes)}`,
           ),
         )
       }, 300_000) // 5 min
@@ -214,7 +214,7 @@ export async function watchForExpectations(params: {
       matcherTimer = setTimeout(() => {
         abort.abort(
           new Error(
-            `SSE matcher "${expectations[pendingIdx]?.name}" timed out after ${timeoutMs}ms. Last event type: ${lastEventType}. Unexpected types observed: ${JSON.stringify(unexpectedEventTypes)}`,
+            `SSE matcher "${expectations[pendingIdx]?.name}" timed out after ${timeoutMs}ms. Last event type: ${lastEventLabel}. Unexpected types observed: ${JSON.stringify(unexpectedEventTypes)}`,
           ),
         )
       }, timeoutMs)

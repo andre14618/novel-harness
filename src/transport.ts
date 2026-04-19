@@ -43,7 +43,7 @@ export interface LLMResponse {
   usage: { prompt_tokens: number; completion_tokens: number; cached_tokens: number }
   latencyMs: number
   httpAttempts: number
-  retryErrors: Array<{ status: number; delay: number }>
+  retryErrors: Array<{ status: number; delay: number; error?: string }>
 }
 
 export interface LLMTransport {
@@ -115,6 +115,11 @@ export class DirectTransport implements LLMTransport {
       ? { [providerDef.authHeader]: apiKey, "Content-Type": "application/json" }
       : { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" }
 
+    // Q4: Timeout/abort retries are capped separately to prevent worst-case blow-out.
+    // maxRetries=3 → 4 attempts × 5min timeout = 20min+; cap timeout retries at 2
+    // total attempts (1 retry) to keep worst-case ~10min for genuinely-hung calls.
+    let timeoutAttempts = 0
+
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       httpAttempts++
       // Bound every outbound LLM fetch. Without a timeout, a silently-dropped
@@ -125,11 +130,39 @@ export class DirectTransport implements LLMTransport {
       // very-large-output adapters if needed.
       const timeoutMs = parseInt(process.env.LLM_REQUEST_TIMEOUT_MS ?? "300000", 10)
       const controller = new AbortController()
-      const timer = setTimeout(() => controller.abort(new Error(`LLM fetch timeout after ${timeoutMs}ms`)), timeoutMs)
+      // Q8: Emit a log line immediately when the timeout fires so it is visible
+      // in journalctl/stdout, not just in the llm_calls row post-hoc.
+      const agentTag = request.callerId ? ` agent=${request.callerId}` : ""
+      const timer = setTimeout(() => {
+        console.log(`  [LLM] TIMEOUT: ${request.provider}/${apiModel}${agentTag} after ${timeoutMs}ms (attempt ${attempt + 1}/${maxRetries + 1})`)
+        controller.abort(new Error(`LLM fetch timeout after ${timeoutMs}ms`))
+      }, timeoutMs)
+
+      // Q2: Wrap fetch in try/catch so AbortError and network errors (TypeError
+      // "fetch failed") flow through the retry loop instead of propagating out
+      // immediately. The original code called clearTimeout only in `finally` but
+      // the error still escaped before the 429/5xx guard — so "flow through the
+      // retry loop" was false. This fixes that.
       let res: Response
       try {
         res = await fetch(providerDef.apiUrl, { method: "POST", headers, body, signal: controller.signal })
+      } catch (err) {
+        clearTimeout(timer)
+        const isAbort = err instanceof Error && (err.name === "AbortError" || /abort/i.test(err.message))
+        const delay = (attempt + 1) * 5000
+        retryErrors.push({ status: 0, delay, error: err instanceof Error ? err.message : String(err) })
+        // Q4: Abort/timeout errors have their own cap (2 total attempts = 1 retry).
+        if (isAbort) timeoutAttempts++
+        if (attempt === maxRetries || (isAbort && timeoutAttempts > 1)) {
+          throw new Error(`LLM request failed after ${attempt + 1} attempt(s): ${err instanceof Error ? err.message : String(err)}`)
+        }
+        console.log(`  [LLM] ${request.provider}/${apiModel} ${isAbort ? "timeout" : "network error"} — retrying in ${delay / 1000}s (attempt ${attempt + 1}/${maxRetries + 1}): ${err instanceof Error ? err.message : err}`)
+        await Bun.sleep(delay)
+        continue
       } finally {
+        // Always clear the fetch-level timer; for the catch path we already
+        // cleared above, but clearTimeout is idempotent so the double-call here
+        // is safe (catch path hit both, success path hits only this one).
         clearTimeout(timer)
       }
 
@@ -138,9 +171,9 @@ export class DirectTransport implements LLMTransport {
         retryErrors.push({ status: res.status, delay })
         if (attempt === maxRetries) {
           const text = await res.text()
-          throw new Error(`LLM request failed after ${maxRetries} retries: ${res.status} ${text}`)
+          throw new Error(`LLM request failed after ${maxRetries + 1} attempts: ${res.status} ${text}`)
         }
-        console.log(`  [LLM] ${request.provider}/${apiModel} ${res.status} — retrying in ${delay / 1000}s (attempt ${attempt + 1}/${maxRetries})...`)
+        console.log(`  [LLM] ${request.provider}/${apiModel} ${res.status} — retrying in ${delay / 1000}s (attempt ${attempt + 1}/${maxRetries + 1})...`)
         await Bun.sleep(delay)
         continue
       }
@@ -195,6 +228,13 @@ function extractUsage(raw: any): { prompt_tokens: number; completion_tokens: num
 // Parses an OpenAI-compatible chat completion stream (data: {json}\n\n lines).
 // Returns accumulated content and final usage. Invokes onChunk per delta so
 // the caller can forward tokens to the UI in real time.
+//
+// Q5: Each reader.read() is raced against a per-chunk idle timeout (default
+// 60 s, overridable via LLM_STREAM_IDLE_TIMEOUT_MS). The outer fetch timeout
+// is cleared before consumeSSEStream runs, so a mid-stream silent stall —
+// server accepts the connection, sends headers, then stops writing tokens —
+// would otherwise hang forever. The idle timer resets on every received chunk
+// because we re-enter the loop and re-arm.
 async function consumeSSEStream(
   res: Response,
   onChunk?: (delta: string) => void,
@@ -205,40 +245,62 @@ async function consumeSSEStream(
   let buffer = ""
   let content = ""
   let usage = { prompt_tokens: 0, completion_tokens: 0, cached_tokens: 0 }
+  const chunkIdleTimeoutMs = parseInt(process.env.LLM_STREAM_IDLE_TIMEOUT_MS ?? "60000", 10)
 
-  while (true) {
-    const { value, done } = await reader.read()
-    if (done) break
-    buffer += decoder.decode(value, { stream: true })
+  try {
+    while (true) {
+      // Race the body read against an idle timeout. Re-armed every iteration so
+      // each received chunk resets the clock.
+      let idleTimer: ReturnType<typeof setTimeout> | null = null
+      const readPromise = reader.read()
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        idleTimer = setTimeout(
+          () => reject(new Error(`SSE chunk idle timeout after ${chunkIdleTimeoutMs}ms`)),
+          chunkIdleTimeoutMs,
+        )
+      })
 
-    // Lines are separated by \n\n in SSE. Split but keep trailing partial.
-    const parts = buffer.split("\n\n")
-    buffer = parts.pop() ?? ""
-    for (const part of parts) {
-      const line = part.trim()
-      if (!line) continue
-      if (!line.startsWith("data:")) continue
-      const payload = line.slice(5).trim()
-      if (payload === "[DONE]") continue
+      let chunk: ReadableStreamReadResult<Uint8Array>
       try {
-        const chunk = JSON.parse(payload)
-        if (chunk.error) throw new Error(`stream error: ${JSON.stringify(chunk.error)}`)
-        const delta: string | undefined = chunk.choices?.[0]?.delta?.content
-        if (delta) {
-          content += delta
-          if (onChunk) {
-            try { onChunk(delta) } catch { /* never let UI callbacks break the stream */ }
+        chunk = await Promise.race([readPromise, timeoutPromise]) as ReadableStreamReadResult<Uint8Array>
+      } finally {
+        if (idleTimer !== null) clearTimeout(idleTimer)
+      }
+
+      if (chunk.done) break
+      buffer += decoder.decode(chunk.value, { stream: true })
+
+      // Lines are separated by \n\n in SSE. Split but keep trailing partial.
+      const parts = buffer.split("\n\n")
+      buffer = parts.pop() ?? ""
+      for (const part of parts) {
+        const line = part.trim()
+        if (!line) continue
+        if (!line.startsWith("data:")) continue
+        const payload = line.slice(5).trim()
+        if (payload === "[DONE]") continue
+        try {
+          const parsed = JSON.parse(payload)
+          if (parsed.error) throw new Error(`stream error: ${JSON.stringify(parsed.error)}`)
+          const delta: string | undefined = parsed.choices?.[0]?.delta?.content
+          if (delta) {
+            content += delta
+            if (onChunk) {
+              try { onChunk(delta) } catch { /* never let UI callbacks break the stream */ }
+            }
           }
+          if (parsed.usage) {
+            usage = extractUsage(parsed.usage)
+          }
+        } catch (err) {
+          // Swallow parse errors for malformed chunks; the stream may contain
+          // provider-specific lines we don't care about.
+          if ((err as Error).message?.startsWith("stream error")) throw err
         }
-        if (chunk.usage) {
-          usage = extractUsage(chunk.usage)
-        }
-      } catch (err) {
-        // Swallow parse errors for malformed chunks; the stream may contain
-        // provider-specific lines we don't care about.
-        if ((err as Error).message?.startsWith("stream error")) throw err
       }
     }
+  } finally {
+    reader.cancel().catch(() => {})
   }
 
   return { content, usage }
