@@ -20,8 +20,6 @@ If you see any active runs in `bun scripts/lib/in-flight.ts list`, something was
 
 ## Start-here priorities for next session
 
-Ranked. Pick one; don't try to do all three.
-
 1. **5 starting invariants** (`src/invariants/` + `scripts/lint/invariants-check.ts` + blocking preflight gate). Per Codex Q6 (`ad350aa657ec1c9b1`): invariants MUST be blocking, NOT debug-only. Today's telemetry: 9 bugs caught by Codex vs 1 by preflight — invariants rebalance that.
    - `revisionUsed` restart persistence (integration-test assertion)
    - Seam-recheck symmetry (syntactic AST scan on `drafting.ts`)
@@ -29,9 +27,9 @@ Ranked. Pick one; don't try to do all three.
    - Branch-symmetric event emission (narrow scope on today's broken transitions, NOT global)
    - Body-already-used detection (syntactic regex on test scripts)
 
-2. **`scripts/status.ts`** (~80 lines) — one-shot dashboard. Queries in-flight registry + `tuning_experiments` open rows + LXC `pgrep` + orchestrator `/state`. Run at session start + before sleep + after crash suspicion. Codex passed this shape @ `ac9d7f955daf2511d` Q4.
+2. ~~`scripts/status.ts`~~ **DONE 2026-04-19** — shipped in commit `413bf12` + `5da3475` (exp #241). One-shot dashboard; run `bun scripts/status.ts`.
 
-3. **`docs/codex-preamble.md`** (≤200 lines) — regenerated from repo HEAD on every Codex call. NOT a narrative mini-doc; pointers + timestamps + 2-3 load-bearing facts per Codex `ac9d7f955daf2511d` Q3. Compress hard — stale preambles anchor Codex the wrong way.
+3. ~~`docs/codex-preamble.md`~~ **DONE 2026-04-19** — generator at `scripts/lib/codex-preamble.ts`, emits `docs/codex-preamble.md`. Regenerate with `bun scripts/lib/codex-preamble.ts --emit`. 55 lines under a 200-line hard cap. Codex review `a3af80e8eb4312169` HOLD → all 3 findings fixed in `5da3475`.
 
 ## Deferred / flagged
 
