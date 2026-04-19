@@ -340,33 +340,35 @@ async function runR5_validationPath(assumeEnvSet: boolean): Promise<TestResult> 
     assert(!state.active, "Novel should be idle after bail")
     assert(state.lastRunError !== null, "lastRunError should be populated (auto bail expected)")
 
-    // chapter_revisions should have a row from the validation-path reviser.
-    // The validation reviser either accepts (outcome='accepted') or is rejected
-    // (outcome like 'rejected_*'). In either case the deviations carry the
-    // "[validation]" prefix we inject. We accept any non-skip outcome.
+    // chapter_revisions should have at least one row (reviser fired).
+    // The [validation] source tag lives on chapter_exhaustions.unresolved_deviations
+    // (not on chapter_revisions — that table has outline_before/outline_after,
+    // no deviations column). An accepted validation-path revision has
+    // rejection_reason=null, so the legacy rejection_reason-only check would
+    // miss it.
     const revRows = await db`
       SELECT * FROM chapter_revisions
       WHERE novel_id = ${novelId}
     ` as any[]
+    assert(revRows.length >= 1,
+      `Expected >=1 chapter_revisions row (reviser should have fired), got 0`)
 
-    const validationRows = revRows.filter((r: any) =>
-      // Look for the [validation] prefix in rejection_reason or deviations JSONB
-      (r.rejection_reason && r.rejection_reason.includes("[validation]")) ||
-      (r.deviations && JSON.stringify(r.deviations).includes("[validation]"))
-    )
-
-    assert(validationRows.length >= 1,
-      `Expected >=1 chapter_revisions row with [validation] tag, got ${validationRows.length}. All rows: ${JSON.stringify(revRows.map((r: any) => ({ outcome: r.outcome, rejection_reason: r.rejection_reason })))}`)
-
-    // chapter_exhaustions should have a row
+    // chapter_exhaustions should have a row AND its unresolved_deviations
+    // should carry the [validation] prefix — that's the authoritative proof
+    // the gate fired from the validation-branch skip path.
     const exhRows = await db`
       SELECT * FROM chapter_exhaustions WHERE novel_id = ${novelId}
     ` as any[]
     assert(exhRows.length >= 1, `Expected >=1 exhaustion row, got ${exhRows.length}`)
+    const validationTaggedExh = exhRows.filter((r: any) =>
+      JSON.stringify(r.unresolved_deviations ?? []).includes("[validation]")
+    )
+    assert(validationTaggedExh.length >= 1,
+      `Expected >=1 exhaustion row with [validation] deviation, got ${validationTaggedExh.length}. All rows: ${JSON.stringify(exhRows.map((r: any) => ({ kind: r.kind, decision: r.decision })))}`)
 
     return {
       name, pass: true,
-      details: `novelId=${novelId}, validation-path revisions=${validationRows.length}, exhaustions=${exhRows.length}`,
+      details: `novelId=${novelId}, revisions=${revRows.length}, exhaustions=${exhRows.length}, validation-tagged=${validationTaggedExh.length}`,
     }
   } catch (e) {
     return { name, pass: false, error: String(e) }
