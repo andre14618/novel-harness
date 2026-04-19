@@ -56,7 +56,22 @@ mock.module("../logger", () => ({
   log: (_n: string, _l: string, msg: string) => { logCalls.push(msg) },
 }))
 
-mock.module("../events", () => ({ emit: () => {} }))
+// Invariant #4 cross-file compatibility: the sibling
+// `drafting-reviser-escalation.test.ts` parks an `__invariant4State` slot
+// on `globalThis` so EITHER file's `../events` / `../gates` / `../cli`
+// mock can route through the real-replication path. This file never
+// enables that path (its `useRealPresentForExhaustion` stays false), but
+// we must not step on the sibling's state when both files run in the
+// same `bun test` invocation (bun's module-mock registry is process-global
+// and drafting binds to whichever mock registered first).
+mock.module("../events", () => ({
+  emit: (_novelId: string, event: { type: string; data: unknown }) => {
+    const state = (globalThis as any).__invariant4State
+    if (state && state.useRealPresentForExhaustion) {
+      state.emittedEvents.push({ type: event.type, data: event.data })
+    }
+  },
+}))
 mock.module("../trace", () => ({ trace: async () => {} }))
 mock.module("../db/chapter-exhaustions", () => ({
   logExhaustionFired: async () => 0,
@@ -165,6 +180,14 @@ mock.module("../cli", () => ({
   displayProgress: () => {},
   presentForApproval: async () => "reject",
   presentForExhaustion: async (payload: any) => {
+    // Sibling-invariant-#4 route: delegate to the real-replication path
+    // when the sibling test file has flipped the global flag. See
+    // drafting-reviser-escalation.test.ts for the orchestration.
+    const state = (globalThis as any).__invariant4State
+    if (state && state.useRealPresentForExhaustion) {
+      const { requestPlanAssist } = await import("../gates")
+      return await (requestPlanAssist as any)(payload, state.resolverMode)
+    }
     gateFires.push({ kind: payload.kind, chapter: payload.chapter })
     return { action: "override" }
   },
@@ -174,7 +197,46 @@ mock.module("../planned-state", () => ({ savePlannedState: async () => {} }))
 mock.module("../state-diff", () => ({
   diffPlanAgainstState: () => ({ ok: true, conflicts: [] }),
 }))
-mock.module("../gates", () => ({ getPending: () => null }))
+// Minimal PipelineBailError shim matches drafting.ts's value-level import
+// of `PipelineBailError` from `../gates`. Existing persistence tests never
+// throw this (they go through the override path), but if the sibling file's
+// invariant-#4 test sets useRealPresentForExhaustion=true and THIS file's
+// mock wins in bun's global registry, the real-replication path needs a
+// valid error class available.
+class InvariantFourPipelineBailError_Persistence extends Error {
+  constructor(
+    public readonly kind: string,
+    public readonly novelId: string,
+    public readonly chapter: number,
+    public readonly payload: unknown,
+  ) {
+    super(`Pipeline bailed at plan-assist gate (chapter ${chapter}, kind ${kind})`)
+    this.name = "PipelineBailError"
+  }
+}
+mock.module("../gates", () => ({
+  getPending: () => null,
+  getPendingPlanAssist: () => null,
+  resolvePlanAssist: () => false,
+  PipelineBailError: InvariantFourPipelineBailError_Persistence,
+  requestPlanAssist: async (payload: { kind: string; chapter: number }, mode: string) => {
+    const state = (globalThis as any).__invariant4State
+    if (!state || !state.useRealPresentForExhaustion) {
+      throw new Error("gates.requestPlanAssist called from an unexpected test path")
+    }
+    state.requestPlanAssistPayloads.push({ kind: payload.kind, chapter: payload.chapter, mode })
+    state.emittedEvents.push({
+      type: "gate:plan-assist",
+      data: { kind: payload.kind, chapter: payload.chapter },
+    })
+    if (mode === "auto") {
+      throw new InvariantFourPipelineBailError_Persistence(
+        payload.kind, "test-novel", payload.chapter, payload,
+      )
+    }
+    return state.planAssistDecision
+  },
+}))
 mock.module("../lint", () => ({
   lintProse: async () => ({ totalIssues: 0, counts: {}, issues: [] }),
 }))
@@ -209,6 +271,10 @@ beforeEach(() => {
   consoleLines = []
   gateFires = []
   saveChapterOutlineCallCount = 0
+  // Ensure the sibling invariant-#4 global state is OFF during this file's
+  // tests — they use the legacy {action:"override"} stub path.
+  const state = (globalThis as any).__invariant4State
+  if (state) state.useRealPresentForExhaustion = false
   console.log = (...args: any[]) => { consoleLines.push(args.map(a => String(a)).join(" ")) }
   console.error = (...args: any[]) => { consoleLines.push(args.map(a => String(a)).join(" ")) }
 })
@@ -307,4 +373,77 @@ test("(b) resumed chapter: isRevisionUsed=true suppresses reviser — skip_alrea
 
   // No new DB write — the flag is already true, no reason to re-set it
   expect(setRevisionUsedCalls.length).toBe(0)
+})
+
+// ── Invariant #1 (exp #243) — restart persistence regression belt ────
+//
+// Simulates process-restart BETWEEN reviser-fire and outcome-log completion.
+// The DB-backed `isRevisionUsed` / `setRevisionUsed` pair must ensure that
+// across pre-restart + post-restart drafting entries, the total non-skip
+// chapter_revisions write count is EXACTLY 1. A regression of commit a2118e1
+// (in-memory-only flag) would let the post-restart entry fire a second
+// reviser call and log a second non-skip outcome.
+test("Invariant #1: reviser-then-restart → total non-skip chapter_revisions writes stays at 1", async () => {
+  // ── Pre-restart attempt ─────────────────────────────────────────────
+  // Fresh chapter, plan-check fails, reviser fires once, outcome logged.
+  isRevisionUsedInitial = false
+  planCheckBehavior = "fail"
+
+  await runDraftingPhase("test-novel")
+
+  const preRestartReviserCalls = reviserCallCount
+  const preRestartNonSkipOutcomes = logRevisionOutcomes.filter(
+    o => o !== "skip_already_revised"
+      && o !== "skip_duplicate_sig"
+      && o !== "skip_no_beat_state",
+  ).length
+
+  // Reviser fired once; one non-skip outcome was logged in the pre-restart
+  // session (setRevisionUsed(true) completed before the "restart").
+  expect(preRestartReviserCalls).toBe(1)
+  expect(preRestartNonSkipOutcomes).toBe(1)
+
+  // ── Simulate process restart ────────────────────────────────────────
+  // The DB persisted revision_used=true. All in-memory state is cleared,
+  // but the cumulative non-skip outcome count carries forward (we're
+  // checking the invariant across BOTH attempts).
+  isRevisionUsedInitial = true
+  planCheckBehavior = "fail"
+  reviserCallCount = 0
+  setRevisionUsedCalls = []
+  callOrder = []
+  logCalls = []
+  consoleLines = []
+  gateFires = []
+  saveChapterOutlineCallCount = 0
+  // Do NOT reset logRevisionOutcomes — we're asserting on the cumulative
+  // total. A second reviser firing would push a second non-skip outcome.
+
+  await runDraftingPhase("test-novel")
+
+  // ── Assertions — the invariant ─────────────────────────────────────
+  // Post-restart: reviser must NOT fire a second time.
+  expect(reviserCallCount).toBe(0)
+
+  // setRevisionUsed(true) must NOT be called again (flag already persisted).
+  expect(setRevisionUsedCalls.length).toBe(0)
+
+  // Startup log for resumed chapter confirms the persisted flag was detected.
+  const persistedLogs = logCalls.filter(l => l.includes("persisted from prior attempt"))
+  expect(persistedLogs.length).toBe(1)
+
+  // THE INVARIANT: cumulative non-skip chapter_revisions writes across both
+  // pre-restart and post-restart sessions MUST remain at exactly 1.
+  // A regression of commit a2118e1 would push this to >= 2.
+  const cumulativeNonSkip = logRevisionOutcomes.filter(
+    o => o !== "skip_already_revised"
+      && o !== "skip_duplicate_sig"
+      && o !== "skip_no_beat_state",
+  ).length
+  expect(cumulativeNonSkip).toBe(1)
+
+  // And the post-restart attempt must have logged at least one skip_already_revised
+  // row — proving the skip path actually fired.
+  const postRestartSkips = logRevisionOutcomes.filter(o => o === "skip_already_revised")
+  expect(postRestartSkips.length).toBeGreaterThanOrEqual(1)
 })
