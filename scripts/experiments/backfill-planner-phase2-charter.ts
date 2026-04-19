@@ -27,11 +27,11 @@ const CONFIG = {
   primary_metric: {
     name: "retry_ratio",
     formula: "COUNT(*) FILTER (WHERE attempt > 1) / COUNT(*) over beat-writer llm_calls per (arm, seed, chapter)",
-    delta_sign: "prompt minus baseline; lower is better; SHIP requires negative delta",
+    delta_sign: "Δ = baseline_retry_ratio − prompt_retry_ratio; positive Δ = prompt arm reduced retries (charter §7.a)",
     aggregation: "mean of paired cell deltas across 15 (3 seeds x 5 chapters) cells, unweighted",
   },
   decision_thresholds: {
-    ship: { delta_max: -0.03, min_wins: 11, total_cells: 15 },
+    ship: { delta_min: 0.03, min_wins: 11, total_cells: 15 },
     justify: { delta_abs_max: 0.02 },
     kill: { delta_abs_max: 0.015, baseline_mean_max: 0.20 },
     otherwise: "iterate / inconclusive",
