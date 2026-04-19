@@ -1,0 +1,699 @@
+#!/usr/bin/env bun
+/**
+ * Syntactic preflight checker for the invariants in `docs/invariants.md`.
+ *
+ * Ships three of the five registry invariants (the runtime ones live in
+ * `.test.ts` files under `src/phases/`):
+ *
+ *   #2 Seam-recheck symmetry         — AST walk over `src/phases/drafting.ts`
+ *   #3 Trace-seeded watcher          — AST walk over `scripts/test/**\/*.ts`
+ *   #5 Body-already-used detection   — regex over `src/**\/*.ts` + `scripts/**\/*.ts`
+ *
+ * Exit 0 on green, 1 on any violation.
+ *
+ * Flags:
+ *   --self-test    Run against `tests/invariants-fixtures/*.ts`; each file
+ *                  MUST fire its declared expected-invariant. Exit 0 iff
+ *                  every fixture fires correctly.
+ *   --target PATH  Scan a single file (used by --self-test internally).
+ *
+ * Known false-negative (documented in `docs/plans/2026-04-19-5-invariants.md`
+ * §#5): invariant #5 is regex-only. Non-template-literal double-consumes
+ * (e.g. `await X.text(); ...; await X.json()`) are NOT caught. An AST
+ * detector is deferred to a future ticket.
+ */
+
+import { readFileSync, readdirSync, statSync } from "node:fs"
+import { resolve, relative, join } from "node:path"
+import ts from "typescript"
+import { loadAllowlist, isAllowlisted, type AllowlistEntry } from "./invariants-allowlist"
+
+// ── Invariant names (exact match with docs/invariants.md status table) ───
+const INV_SEAM_RECHECK = "Seam-recheck symmetry"
+const INV_WATCHER = "Trace-seeded watcher for post-start event assertions"
+const INV_BODY_USED = "Body-already-used detection"
+
+const REPO_ROOT = process.cwd()
+
+interface Violation {
+  invariant: string
+  file: string
+  line: number
+  detail: string
+}
+
+// ── CLI arg parsing ──────────────────────────────────────────────────────
+function parseArgs(argv: string[]): { selfTest: boolean; target: string | null } {
+  let selfTest = false
+  let target: string | null = null
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i]
+    if (a === "--self-test") selfTest = true
+    else if (a === "--target") {
+      target = argv[++i] ?? null
+      if (!target) {
+        console.error("invariants-check: --target requires a path argument")
+        process.exit(2)
+      }
+    } else {
+      console.error(`invariants-check: unknown argument ${a}`)
+      process.exit(2)
+    }
+  }
+  return { selfTest, target }
+}
+
+// ── File walkers ─────────────────────────────────────────────────────────
+function walkDir(dir: string, exts: string[], excludes: string[] = []): string[] {
+  const out: string[] = []
+  const stack = [dir]
+  while (stack.length > 0) {
+    const cur = stack.pop()!
+    let entries: string[]
+    try {
+      entries = readdirSync(cur)
+    } catch {
+      continue
+    }
+    for (const name of entries) {
+      const full = join(cur, name)
+      if (excludes.some(ex => full.includes(ex))) continue
+      let st
+      try {
+        st = statSync(full)
+      } catch {
+        continue
+      }
+      if (st.isDirectory()) stack.push(full)
+      else if (exts.some(ex => name.endsWith(ex))) out.push(full)
+    }
+  }
+  return out
+}
+
+function relPath(abs: string): string {
+  return relative(REPO_ROOT, abs).replaceAll("\\", "/")
+}
+
+// ── Invariant #2 — Seam-recheck symmetry ─────────────────────────────────
+/**
+ * For each CallExpression in `src/phases/drafting.ts` where:
+ *   - agent = "chapter-plan-checker" or "chapter-plan-reviser" (via the
+ *     `agentName: "..."` property passed to `callAgent({...})`)
+ *   - OR callee is `validateChapterDraft`
+ *
+ * PASS iff SOME ancestor Block/For/While/If body (within the same top-level
+ * function) contains a reference to the matching `inject.forceXxx` identifier:
+ *   chapter-plan-checker → inject.forcePlanCheck
+ *   chapter-plan-reviser → inject.forceReviser
+ *   validateChapterDraft → inject.forceValidation
+ *
+ * Also PASS if the CallExpression's line ±2 has a `// @noninjectable`
+ * comment.
+ */
+interface SeamSite {
+  line: number
+  kind: "chapter-plan-checker" | "chapter-plan-reviser" | "validateChapterDraft"
+  forceName: "forcePlanCheck" | "forceReviser" | "forceValidation"
+  node: ts.CallExpression
+}
+
+function findSeamSites(sf: ts.SourceFile): SeamSite[] {
+  const sites: SeamSite[] = []
+  function visit(node: ts.Node) {
+    if (ts.isCallExpression(node)) {
+      const callee = node.expression
+      // Detect `validateChapterDraft(...)`
+      if (ts.isIdentifier(callee) && callee.text === "validateChapterDraft") {
+        sites.push({
+          line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1,
+          kind: "validateChapterDraft",
+          forceName: "forceValidation",
+          node,
+        })
+      }
+      // Detect `callAgent({ ..., agentName: "chapter-plan-checker" | "chapter-plan-reviser", ... })`
+      if (
+        ts.isIdentifier(callee) &&
+        callee.text === "callAgent" &&
+        node.arguments.length >= 1 &&
+        ts.isObjectLiteralExpression(node.arguments[0])
+      ) {
+        const obj = node.arguments[0] as ts.ObjectLiteralExpression
+        for (const prop of obj.properties) {
+          if (
+            ts.isPropertyAssignment(prop) &&
+            ts.isIdentifier(prop.name) &&
+            prop.name.text === "agentName" &&
+            ts.isStringLiteral(prop.initializer)
+          ) {
+            const agentName = prop.initializer.text
+            if (agentName === "chapter-plan-checker") {
+              sites.push({
+                line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1,
+                kind: "chapter-plan-checker",
+                forceName: "forcePlanCheck",
+                node,
+              })
+            } else if (agentName === "chapter-plan-reviser") {
+              sites.push({
+                line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1,
+                kind: "chapter-plan-reviser",
+                forceName: "forceReviser",
+                node,
+              })
+            }
+          }
+        }
+      }
+    }
+    ts.forEachChild(node, visit)
+  }
+  visit(sf)
+  return sites
+}
+
+/**
+ * Find the nearest enclosing top-level function (FunctionDeclaration /
+ * ArrowFunction / FunctionExpression / MethodDeclaration) for a node.
+ * Falls back to the source file if none found.
+ */
+function enclosingFunction(node: ts.Node): ts.Node {
+  let cur: ts.Node | undefined = node.parent
+  let last: ts.Node | undefined = undefined
+  while (cur) {
+    if (
+      ts.isFunctionDeclaration(cur) ||
+      ts.isArrowFunction(cur) ||
+      ts.isFunctionExpression(cur) ||
+      ts.isMethodDeclaration(cur)
+    ) {
+      last = cur
+      // Keep going to find the OUTERMOST (we want top-level function body).
+    }
+    cur = cur.parent
+  }
+  return last ?? node.getSourceFile()
+}
+
+/**
+ * Returns true if anywhere within `root`'s subtree there is a
+ * PropertyAccessExpression `inject.<forceName>` or ElementAccessExpression
+ * `inject["<forceName>"]`.
+ */
+function subtreeHasForceRef(root: ts.Node, forceName: string): boolean {
+  let found = false
+  function visit(node: ts.Node) {
+    if (found) return
+    if (
+      ts.isPropertyAccessExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === "inject" &&
+      ts.isIdentifier(node.name) &&
+      node.name.text === forceName
+    ) {
+      found = true
+      return
+    }
+    if (
+      ts.isElementAccessExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === "inject" &&
+      ts.isStringLiteral(node.argumentExpression) &&
+      node.argumentExpression.text === forceName
+    ) {
+      found = true
+      return
+    }
+    ts.forEachChild(node, visit)
+  }
+  visit(root)
+  return found
+}
+
+/**
+ * Check for a `// @noninjectable` comment within ±2 lines of the site.
+ */
+function hasNonInjectableComment(sf: ts.SourceFile, line: number): boolean {
+  const text = sf.getFullText()
+  const lines = text.split("\n")
+  const lo = Math.max(0, line - 3)
+  const hi = Math.min(lines.length, line + 2)
+  for (let i = lo; i < hi; i++) {
+    if (lines[i].includes("@noninjectable")) return true
+  }
+  return false
+}
+
+function checkSeamRecheckSymmetry(
+  draftingPath: string,
+  allowlist: AllowlistEntry[],
+): { violations: Violation[]; allowlisted: number; siteCount: number } {
+  const abs = resolve(REPO_ROOT, draftingPath)
+  const rel = relPath(abs)
+  const src = readFileSync(abs, "utf8")
+  const sf = ts.createSourceFile(rel, src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)
+  const sites = findSeamSites(sf)
+  const violations: Violation[] = []
+  let allowlistedCount = 0
+
+  for (const site of sites) {
+    if (hasNonInjectableComment(sf, site.line)) continue
+    const fn = enclosingFunction(site.node)
+    if (subtreeHasForceRef(fn, site.forceName)) continue
+
+    // Not guarded — check allowlist before reporting.
+    const hit = isAllowlisted(allowlist, INV_SEAM_RECHECK, rel, site.line)
+    if (hit) {
+      console.log(`allowlisted: ${INV_SEAM_RECHECK} @ ${rel}:${site.line} (expires ${hit.expires})`)
+      allowlistedCount++
+      continue
+    }
+    violations.push({
+      invariant: INV_SEAM_RECHECK,
+      file: rel,
+      line: site.line,
+      detail: `${site.kind} call site has no enclosing inject.${site.forceName} guard`,
+    })
+  }
+  return { violations, allowlisted: allowlistedCount, siteCount: sites.length }
+}
+
+// ── Invariant #3 — Trace-seeded watcher ──────────────────────────────────
+/**
+ * For each function-like node in `scripts/test/**\/*.ts`:
+ *   - PRECONDITION: body contains `startNovel(...)` call OR
+ *     `apiPost("/api/novel/start", ...)` call.
+ *   - Event consumption evidence:
+ *     (a) string literal matching /^(gate:|phase:|llm-call-|trace$|error$|done$)/
+ *     (b) PropertyAccess/ElementAccess on `event|e|evt|gateEvent|sseEvent|*Event|*Evt`
+ *         for members {eventType, type, data, chapter, agent}
+ *     (c) fetch to URL containing `/api/novel/` + (`/events` OR `/trace`)
+ *   - If BOTH, body MUST also contain `watchForExpectations(...)` or
+ *     `watchForTerminal(...)` (same body — subtree walk).
+ */
+const EVENT_MEMBER_NAMES = new Set(["eventType", "type", "data", "chapter", "agent"])
+const EVENT_IDENT_SUFFIX = /(^event$|^e$|^evt$|^gateEvent$|^sseEvent$|Event$|Evt$)/
+
+function bodyStartsNovel(body: ts.Node): boolean {
+  let found = false
+  function visit(n: ts.Node) {
+    if (found) return
+    if (ts.isCallExpression(n)) {
+      const cal = n.expression
+      if (ts.isIdentifier(cal) && cal.text === "startNovel") {
+        found = true
+        return
+      }
+      if (
+        ts.isIdentifier(cal) &&
+        cal.text === "apiPost" &&
+        n.arguments.length >= 1 &&
+        ts.isStringLiteralLike(n.arguments[0]) &&
+        (n.arguments[0] as ts.StringLiteralLike).text === "/api/novel/start"
+      ) {
+        found = true
+        return
+      }
+    }
+    ts.forEachChild(n, visit)
+  }
+  visit(body)
+  return found
+}
+
+function bodyConsumesEvents(body: ts.Node): boolean {
+  let found = false
+  function visit(n: ts.Node) {
+    if (found) return
+    // (a) event-type literal prefixes
+    if (ts.isStringLiteralLike(n)) {
+      const s = (n as ts.StringLiteralLike).text
+      if (/^(gate:|phase:|llm-call-)/.test(s) || s === "trace" || s === "error" || s === "done") {
+        found = true
+        return
+      }
+      // (c) URL endpoint detection
+      if (/\/api\/novel\/.+\/(events|trace)\b/.test(s) || /\/api\/novel\/\$\{[^}]+\}\/(events|trace)\b/.test(s)) {
+        found = true
+        return
+      }
+    }
+    if (ts.isTemplateExpression(n)) {
+      const raw = n.getText()
+      if (/\/api\/novel\/[^`]+\/(events|trace)\b/.test(raw)) {
+        found = true
+        return
+      }
+    }
+    // (b) event-shaped property accesses
+    if (ts.isPropertyAccessExpression(n)) {
+      const obj = n.expression
+      const mem = n.name.text
+      if (ts.isIdentifier(obj) && EVENT_IDENT_SUFFIX.test(obj.text) && EVENT_MEMBER_NAMES.has(mem)) {
+        found = true
+        return
+      }
+      // Optional-chain access (a?.b) is represented as PropertyAccess with
+      // questionDotToken — ts-morph handles it in .expression too, so the
+      // base case above covers it. Also handle nested: `e.data?.eventType`.
+      if (ts.isPropertyAccessExpression(obj)) {
+        const base = obj.expression
+        if (ts.isIdentifier(base) && EVENT_IDENT_SUFFIX.test(base.text) && EVENT_MEMBER_NAMES.has(mem)) {
+          found = true
+          return
+        }
+      }
+    }
+    if (ts.isElementAccessExpression(n)) {
+      const obj = n.expression
+      if (ts.isIdentifier(obj) && EVENT_IDENT_SUFFIX.test(obj.text)) {
+        found = true
+        return
+      }
+    }
+    ts.forEachChild(n, visit)
+  }
+  visit(body)
+  return found
+}
+
+function bodyHasWatcher(body: ts.Node): boolean {
+  let found = false
+  function visit(n: ts.Node) {
+    if (found) return
+    if (ts.isCallExpression(n)) {
+      const cal = n.expression
+      if (ts.isIdentifier(cal) && (cal.text === "watchForExpectations" || cal.text === "watchForTerminal")) {
+        found = true
+        return
+      }
+    }
+    ts.forEachChild(n, visit)
+  }
+  visit(body)
+  return found
+}
+
+function collectFunctionBodies(sf: ts.SourceFile): { body: ts.Node; line: number }[] {
+  const out: { body: ts.Node; line: number }[] = []
+  function visit(n: ts.Node) {
+    if (
+      (ts.isFunctionDeclaration(n) ||
+        ts.isFunctionExpression(n) ||
+        ts.isArrowFunction(n) ||
+        ts.isMethodDeclaration(n)) &&
+      n.body
+    ) {
+      const line = sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1
+      out.push({ body: n.body, line })
+    }
+    ts.forEachChild(n, visit)
+  }
+  visit(sf)
+  return out
+}
+
+function checkTraceWatcher(
+  files: string[],
+  allowlist: AllowlistEntry[],
+): { violations: Violation[]; allowlisted: number; siteCount: number } {
+  const violations: Violation[] = []
+  let allowlistedCount = 0
+  let siteCount = 0
+  for (const abs of files) {
+    const rel = relPath(abs)
+    const src = readFileSync(abs, "utf8")
+    const sf = ts.createSourceFile(rel, src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)
+    const bodies = collectFunctionBodies(sf)
+    for (const { body, line } of bodies) {
+      if (!bodyStartsNovel(body)) continue
+      if (!bodyConsumesEvents(body)) continue
+      siteCount++
+      if (bodyHasWatcher(body)) continue
+      const hit = isAllowlisted(allowlist, INV_WATCHER, rel, line)
+      if (hit) {
+        console.log(`allowlisted: ${INV_WATCHER} @ ${rel}:${line} (expires ${hit.expires})`)
+        allowlistedCount++
+        continue
+      }
+      violations.push({
+        invariant: INV_WATCHER,
+        file: rel,
+        line,
+        detail:
+          "function starts novel + consumes events but has no watchForExpectations/watchForTerminal call",
+      })
+    }
+  }
+  return { violations, allowlisted: allowlistedCount, siteCount }
+}
+
+// ── Invariant #5 — Body-already-used detection ───────────────────────────
+/**
+ * Regex match on `${await <ident>.<method>()}` inside a template literal;
+ * then scan the next ~80 lines (or until enclosing brace depth returns to
+ * the starting depth) for `await <ident>.<method>()` with the SAME ident
+ * and a DIFFERENT method.
+ *
+ * NOTE: this catches only the template-literal-first shape (the 5505985 bug).
+ * Sequential plain `await X.text(); ... await X.json()` calls are deferred
+ * to an AST detector.
+ */
+const RE_TEMPLATE_AWAIT =
+  /\$\{await\s+(\w+)\.(text|json|arrayBuffer|blob)\(\)\}/g
+const BODY_METHODS = ["text", "json", "arrayBuffer", "blob"]
+
+function checkBodyAlreadyUsed(
+  files: string[],
+  allowlist: AllowlistEntry[],
+): { violations: Violation[]; allowlisted: number; siteCount: number } {
+  const violations: Violation[] = []
+  let allowlistedCount = 0
+  let siteCount = 0
+  for (const abs of files) {
+    const rel = relPath(abs)
+    const src = readFileSync(abs, "utf8")
+    const lines = src.split("\n")
+    // Precompute character-offset → line lookup via cumulative length.
+    const lineStarts: number[] = [0]
+    for (let i = 0; i < lines.length; i++) lineStarts.push(lineStarts[i] + lines[i].length + 1)
+    function offsetToLine(off: number): number {
+      let lo = 0
+      let hi = lineStarts.length - 1
+      while (lo < hi) {
+        const m = (lo + hi) >> 1
+        if (lineStarts[m + 1] > off) hi = m
+        else lo = m + 1
+      }
+      return lo
+    }
+
+    RE_TEMPLATE_AWAIT.lastIndex = 0
+    let m: RegExpExecArray | null
+    while ((m = RE_TEMPLATE_AWAIT.exec(src)) !== null) {
+      const ident = m[1]
+      const method = m[2]
+      const startOff = m.index
+      const startLine = offsetToLine(startOff)
+      siteCount++
+      // Scan next ~80 lines or until brace depth returns to 0 from start.
+      const endLine = Math.min(lines.length - 1, startLine + 80)
+      // Build the follow-up slice starting AFTER this match.
+      let follow = ""
+      for (let i = startLine + 1; i <= endLine; i++) follow += lines[i] + "\n"
+      // Look for another body-method on the same ident with different method.
+      const other = BODY_METHODS.filter(mt => mt !== method)
+      const otherRe = new RegExp(
+        `await\\s+${ident}\\.(${other.join("|")})\\(\\)`,
+        "g",
+      )
+      const hit = otherRe.exec(follow)
+      if (!hit) continue
+      // Locate violation line (relative to file).
+      const offInSlice = hit.index
+      let cumulative = 0
+      let violLine = startLine + 1
+      for (let i = startLine + 1; i <= endLine; i++) {
+        const ll = lines[i].length + 1
+        if (cumulative + ll > offInSlice) {
+          violLine = i
+          break
+        }
+        cumulative += ll
+      }
+      const allowHit = isAllowlisted(allowlist, INV_BODY_USED, rel, violLine + 1)
+      if (allowHit) {
+        console.log(
+          `allowlisted: ${INV_BODY_USED} @ ${rel}:${violLine + 1} (expires ${allowHit.expires})`,
+        )
+        allowlistedCount++
+        continue
+      }
+      violations.push({
+        invariant: INV_BODY_USED,
+        file: rel,
+        line: violLine + 1,
+        detail: `Response body \`${ident}\` consumed twice: \`.${method}()\` in template literal then \`.${hit[1]}()\` later`,
+      })
+    }
+  }
+  return { violations, allowlisted: allowlistedCount, siteCount }
+}
+
+// ── Target sets ──────────────────────────────────────────────────────────
+const DRAFTING_PATH = "src/phases/drafting.ts"
+const TEST_SCRIPT_GLOB_DIR = "scripts/test"
+const FIXTURE_DIR = "tests/invariants-fixtures"
+
+function collectScriptTestFiles(): string[] {
+  return walkDir(resolve(REPO_ROOT, TEST_SCRIPT_GLOB_DIR), [".ts"], [
+    "/lib/",
+    "/node_modules/",
+  ])
+}
+
+function collectAllSourceFiles(): string[] {
+  const files: string[] = []
+  files.push(...walkDir(resolve(REPO_ROOT, "src"), [".ts", ".tsx"], ["node_modules"]))
+  files.push(
+    ...walkDir(resolve(REPO_ROOT, "scripts"), [".ts"], [
+      "node_modules",
+    ]),
+  )
+  // Exclude fixture dir (intentional violations).
+  return files.filter(f => !relPath(f).startsWith(FIXTURE_DIR))
+}
+
+// ── Reporting ────────────────────────────────────────────────────────────
+function reportViolations(vs: Violation[]): void {
+  for (const v of vs) {
+    console.error(`INVARIANT_FAILURE: ${v.invariant}`)
+    console.error(`  file: ${v.file}`)
+    console.error(`  line: ${v.line}`)
+    console.error(`  detail: ${v.detail}`)
+  }
+}
+
+// ── Self-test mode ───────────────────────────────────────────────────────
+/**
+ * Runs the checker against each fixture in `tests/invariants-fixtures/`.
+ * Expected expected-invariant is declared via a top-of-file comment:
+ *   // expected-invariant-failure: <slug>
+ *
+ * Slug → invariant-name:
+ *   seam-recheck-symmetry                                      → #2
+ *   trace-seeded-watcher-for-post-start-event-assertions       → #3
+ *   body-already-used-detection                                → #5
+ */
+const SLUG_TO_INV: Record<string, string> = {
+  "seam-recheck-symmetry": INV_SEAM_RECHECK,
+  "trace-seeded-watcher-for-post-start-event-assertions": INV_WATCHER,
+  "body-already-used-detection": INV_BODY_USED,
+}
+
+function readExpectedSlug(abs: string): string | null {
+  const src = readFileSync(abs, "utf8")
+  const m = src.match(/^\/\/\s*expected-invariant-failure:\s*(\S+)/m)
+  return m ? m[1] : null
+}
+
+function runSelfTest(): number {
+  const fixtureDir = resolve(REPO_ROOT, FIXTURE_DIR)
+  const fixtures = walkDir(fixtureDir, [".ts"], []).filter(
+    p => !p.endsWith("README.md") && !relPath(p).endsWith("/README.ts"),
+  )
+  if (fixtures.length === 0) {
+    console.error(`invariants-check --self-test: no fixtures found in ${FIXTURE_DIR}`)
+    return 1
+  }
+  let failures = 0
+  const allowlist: AllowlistEntry[] = [] // fixtures bypass allowlist
+  for (const abs of fixtures) {
+    const rel = relPath(abs)
+    const slug = readExpectedSlug(abs)
+    if (!slug) {
+      console.error(`self-test FAIL: ${rel} has no \`// expected-invariant-failure: ...\` header`)
+      failures++
+      continue
+    }
+    const expected = SLUG_TO_INV[slug]
+    if (!expected) {
+      console.error(`self-test FAIL: ${rel} has unknown slug \`${slug}\``)
+      failures++
+      continue
+    }
+    // Dispatch based on expected invariant.
+    let fired: Violation[] = []
+    if (expected === INV_SEAM_RECHECK) {
+      // Treat the fixture file as a stand-in for drafting.ts.
+      const res = checkSeamRecheckSymmetry(rel, allowlist)
+      fired = res.violations
+    } else if (expected === INV_WATCHER) {
+      const res = checkTraceWatcher([abs], allowlist)
+      fired = res.violations
+    } else if (expected === INV_BODY_USED) {
+      const res = checkBodyAlreadyUsed([abs], allowlist)
+      fired = res.violations
+    }
+    const matched = fired.find(v => v.invariant === expected)
+    if (matched) {
+      console.log(
+        `self-test OK:   ${rel} fired ${expected} @ line ${matched.line}`,
+      )
+    } else {
+      console.error(
+        `self-test FAIL: ${rel} expected ${expected} to fire, got ${fired.length} violation(s):`,
+      )
+      for (const v of fired) console.error(`  - ${v.invariant} @ line ${v.line}: ${v.detail}`)
+      failures++
+    }
+  }
+  if (failures > 0) {
+    console.error(`invariants-check --self-test: ${failures}/${fixtures.length} fixture(s) failed to fire`)
+    return 1
+  }
+  console.log(`invariants-check --self-test: ${fixtures.length}/${fixtures.length} fixtures fired their expected invariants`)
+  return 0
+}
+
+// ── Default scan mode ────────────────────────────────────────────────────
+function runDefaultScan(targetFile: string | null): number {
+  const allowlist = loadAllowlist()
+
+  // #2
+  let inv2: ReturnType<typeof checkSeamRecheckSymmetry>
+  if (targetFile) {
+    inv2 = checkSeamRecheckSymmetry(targetFile, allowlist)
+  } else {
+    inv2 = checkSeamRecheckSymmetry(DRAFTING_PATH, allowlist)
+  }
+
+  // #3
+  const testFiles = targetFile ? [resolve(REPO_ROOT, targetFile)] : collectScriptTestFiles()
+  const inv3 = checkTraceWatcher(testFiles, allowlist)
+
+  // #5
+  const allSources = targetFile ? [resolve(REPO_ROOT, targetFile)] : collectAllSourceFiles()
+  const inv5 = checkBodyAlreadyUsed(allSources, allowlist)
+
+  const allViolations = [...inv2.violations, ...inv3.violations, ...inv5.violations]
+  const totalSites = inv2.siteCount + inv3.siteCount + inv5.siteCount
+
+  if (allViolations.length > 0) {
+    reportViolations(allViolations)
+    console.error(
+      `\ninvariants-check: 3 syntactic invariants, ${totalSites} sites scanned, ${allViolations.length} violation(s)`,
+    )
+    return 1
+  }
+  console.log(
+    `invariants-check: 3 syntactic invariants, ${totalSites} sites scanned, 0 violations`,
+  )
+  return 0
+}
+
+// ── Main ─────────────────────────────────────────────────────────────────
+const { selfTest, target } = parseArgs(process.argv.slice(2))
+const code = selfTest ? runSelfTest() : runDefaultScan(target)
+process.exit(code)

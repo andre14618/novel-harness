@@ -1,0 +1,72 @@
+# Invariants allowlist — scoped exceptions for invariant failures.
+#
+# Canonical spec: docs/invariants.md §Allowlist.
+#
+# Each entry is a file/line-scoped exception under a STILL-SHIPPED invariant.
+# It does NOT change the invariant's overall status. If every instance of an
+# invariant is allowlisted, delete the invariant instead.
+#
+# Entry format (all fields required):
+#
+# - invariant: "<exact name from docs/invariants.md status table>"
+#   file: "<path relative to repo root>"
+#   line: <approximate; used for diagnostics, not exact match>
+#   reason: "<justification — one sentence, referencing an edge case or deferred fix>"
+#   added: "YYYY-MM-DD"
+#   expires: "YYYY-MM-DD"        # HARD 30-day max from `added`; renew or refactor by then
+#   owner: "<github-handle>"
+#
+# Loader behavior (scripts/lint/invariants-allowlist.ts):
+#   - Rejects entries where `expires` is in the past (fail LOUDLY, exit 1).
+#   - Fail-CLOSED on missing file: returns empty array + single warning.
+#   - Allowlist entries are a smell. Each one is either (a) a real edge case
+#     the invariant should be refined to accommodate, or (b) a bug waiting to
+#     happen. Don't accumulate them.
+#
+# Example (commented; NOT active):
+#
+# - invariant: "Trace-seeded watcher for post-start event assertions"
+#   file: "scripts/test/exhaustion-auto-campaign.ts"
+#   line: 42
+#   reason: "Test intentionally starts a novel without a watcher to prove the handler stays quiet — expected to fail by design."
+#   added: "2026-04-19"
+#   expires: "2026-05-19"
+#   owner: "andre14618"
+
+entries:
+  # HEAD-baseline entries added 2026-04-19 by Slice A of exp #243.
+  # All four sites are the "error-path throw, success-path .json()" idiom:
+  # `if (!res.ok) throw new Error(`... ${await res.text()}`); const j = await res.json()`.
+  # The regex invariant #5 cannot distinguish throw-shortcircuit from
+  # actual double-consume. An AST detector (deferred) would see the throw
+  # on the error branch and skip. Until then, these need targeted
+  # refactors (read body ONCE into a variable) or a narrowed invariant.
+  # Tracked under exp #243 follow-up; renew or refactor by 2026-05-19.
+  - invariant: "Body-already-used detection"
+    file: "src/db/embed.ts"
+    line: 50
+    reason: "Error-path throw short-circuits; .json() only runs on success branch. Regex can't see the throw."
+    added: "2026-04-19"
+    expires: "2026-05-19"
+    owner: "andre14618"
+  - invariant: "Body-already-used detection"
+    file: "scripts/finetune/archetype-poc/flatten-deepseek.ts"
+    line: 67
+    reason: "Error-path throw short-circuits; .json() only runs on success branch. Regex can't see the throw."
+    added: "2026-04-19"
+    expires: "2026-05-19"
+    owner: "andre14618"
+  - invariant: "Body-already-used detection"
+    file: "scripts/corpus/test-deepseek-dialogue.ts"
+    line: 80
+    reason: "Error-path throw short-circuits; .json() only runs on success branch. Regex can't see the throw."
+    added: "2026-04-19"
+    expires: "2026-05-19"
+    owner: "andre14618"
+  - invariant: "Body-already-used detection"
+    file: "scripts/hallucination/smoke-eval.ts"
+    line: 42
+    reason: "Error-path throw short-circuits; .json() only runs on success branch. Regex can't see the throw."
+    added: "2026-04-19"
+    expires: "2026-05-19"
+    owner: "andre14618"
