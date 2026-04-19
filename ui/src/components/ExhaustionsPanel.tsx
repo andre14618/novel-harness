@@ -38,16 +38,24 @@ function KindPill({ kind }: { kind: ExhaustionRow["kind"] }) {
   )
 }
 
-export function ExhaustionsPanel({ novelId }: { novelId: string }) {
+interface Props {
+  novelId: string
+  /** Bump to force a refetch — parent increments this on gate-resolution
+   *  SSE events so the panel doesn't go stale mid-run. */
+  refreshKey?: number | string
+}
+
+export function ExhaustionsPanel({ novelId, refreshKey }: Props) {
   const [rows, setRows] = useState<ExhaustionRow[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [expanded, setExpanded] = useState(false)
+  const [reloadTick, setReloadTick] = useState(0)
 
   useEffect(() => {
     getNovelExhaustions(novelId)
       .then(r => setRows(r.exhaustions))
       .catch(e => setError(String(e)))
-  }, [novelId])
+  }, [novelId, refreshKey, reloadTick])
 
   if (error) {
     return (
@@ -87,22 +95,30 @@ export function ExhaustionsPanel({ novelId }: { novelId: string }) {
       marginTop: 14, padding: 12, border: "1px solid #2a2e3c",
       borderRadius: 6, background: "#1a1d28",
     }}>
-      <div
-        onClick={() => setExpanded(v => !v)}
-        style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}
-      >
-        <span style={{ fontSize: "0.9rem", fontWeight: 600, color: "#dce" }}>
-          {expanded ? "▾" : "▸"} Plan-assist gates
-        </span>
-        <span style={{ color: "#888", fontSize: "0.82rem" }}>
-          {rows.length} fire{rows.length !== 1 ? "s" : ""}
-          {pending > 0 && ` · ${pending} pending`}
-          {Object.entries(byDecision)
-            .filter(([k]) => k !== "pending")
-            .map(([k, v]) => ` · ${v} ${k}`)
-            .join("")}
-          {" · ch "}{chapters.join(", ")}
-        </span>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <div
+          onClick={() => setExpanded(v => !v)}
+          style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", flex: 1 }}
+        >
+          <span style={{ fontSize: "0.9rem", fontWeight: 600, color: "#dce" }}>
+            {expanded ? "▾" : "▸"} Plan-assist gates
+          </span>
+          <span style={{ color: "#888", fontSize: "0.82rem" }}>
+            {rows.length} fire{rows.length !== 1 ? "s" : ""}
+            {pending > 0 && ` · ${pending} pending`}
+            {Object.entries(byDecision)
+              .filter(([k]) => k !== "pending")
+              .map(([k, v]) => ` · ${v} ${k}`)
+              .join("")}
+            {" · ch "}{chapters.join(", ")}
+          </span>
+        </div>
+        <button
+          onClick={() => setReloadTick(t => t + 1)}
+          className="secondary"
+          style={{ padding: "2px 8px", fontSize: "0.72rem" }}
+          title="Refresh"
+        >↻</button>
       </div>
 
       {expanded && (

@@ -51,11 +51,15 @@ function makePayload(novelId: string, chapter: number): PlanAssistGatePayload {
   }
 }
 
-test("auto mode throws PipelineBailError with correct shape", () => {
+test("auto mode throws PipelineBailError with correct shape", async () => {
+  // requestPlanAssist is async — the thrown PipelineBailError surfaces
+  // as a rejected promise after awaiting the telemetry insert. await +
+  // catch reproduces the auto-mode bail semantics that the orchestrator
+  // sees at runtime (promise rejection caught by captureRunError).
   const payload = makePayload("auto-novel", 1)
   let caught: unknown = null
   try {
-    requestPlanAssist(payload, "auto")
+    await requestPlanAssist(payload, "auto")
   } catch (err) {
     caught = err
   }

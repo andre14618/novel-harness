@@ -134,13 +134,38 @@ export function OutlineEditor({ initialOutline, onSubmit, onCancel, submitting, 
   }
 
   function switchToStructured() {
+    let parsed: OutlineLike
     try {
-      const parsed = JSON.parse(rawJson) as OutlineLike
-      setOutline(parsed)
+      parsed = JSON.parse(rawJson) as OutlineLike
+    } catch (e: any) {
+      setRawJsonError(`Can't switch back — JSON parse failed: ${e.message}`)
+      return
+    }
+    // Minimal shape check — the structured form renders scenes.map() and
+    // beat.characters.map() unguarded. Malformed-but-parseable JSON can
+    // crash React if those aren't arrays. Reject with an inline error
+    // instead of setting state that would render into NaN/undefined.
+    if (!Array.isArray(parsed?.scenes)) {
+      setRawJsonError("Can't switch back — outline.scenes must be an array.")
+      return
+    }
+    // Normalize per-beat shape so the structured form has arrays to iterate.
+    const normalizedScenes = parsed.scenes.map((s: any, i: number) => {
+      if (!s || typeof s !== "object") {
+        throw new Error(`scenes[${i}] must be an object`)
+      }
+      return {
+        ...s,
+        description: typeof s.description === "string" ? s.description : "",
+        characters: Array.isArray(s.characters) ? s.characters : [],
+      }
+    })
+    try {
+      setOutline({ ...parsed, scenes: normalizedScenes })
       setRawJsonError(null)
       setViewMode("structured")
     } catch (e: any) {
-      setRawJsonError(`Can't switch back — JSON parse failed: ${e.message}`)
+      setRawJsonError(`Can't switch back — ${e.message}`)
     }
   }
 

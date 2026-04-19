@@ -113,15 +113,23 @@ export class PipelineBailError extends Error {
  * event with the full payload. Returns a promise that resolves when the
  * gate is resolved via `resolvePlanAssist`.
  */
-export function requestPlanAssist(
+export async function requestPlanAssist(
   payload: PlanAssistGatePayload,
   mode: GateResolverMode,
 ): Promise<PlanAssistDecision> {
   // Telemetry row fires for every gate open — including auto mode, where
   // the row persists as "pending" (no decision) because the run bails
-  // synchronously via PipelineBailError. Fire-and-forget; DB hiccups
-  // don't break the gate flow.
-  logExhaustionFired({
+  // synchronously via PipelineBailError.
+  //
+  // Auto mode: AWAIT the insert before throwing. The run is about to
+  // bail and the orchestrator's catch handler logs lastRunError from
+  // the thrown error, but without the row landing first there's no
+  // durable record of WHY the run bailed. The ~1 DB round-trip on the
+  // auto-mode bail path is acceptable cost for this observability.
+  //
+  // Web/CLI mode: fire-and-forget is fine — the gate waits for a user
+  // decision which takes orders of magnitude longer than the insert.
+  const fireP = logExhaustionFired({
     novelId: payload.novelId,
     chapter: payload.chapter,
     attempt: payload.attempt,
@@ -131,9 +139,11 @@ export function requestPlanAssist(
     reviserHistory: payload.reviserHistory ?? null,
   }).catch(err => {
     console.warn(`[gates] logExhaustionFired failed: ${err instanceof Error ? err.message : err}`)
+    return 0
   })
 
   if (mode === "auto") {
+    await fireP
     throw new PipelineBailError(payload.kind, payload.novelId, payload.chapter, payload)
   }
 

@@ -405,6 +405,10 @@ export function PipelineView() {
     activityEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [liveCalls.length])
 
+  // Bump this on plan-assist SSE events so ExhaustionsPanel (and any
+  // other derived panels) refetch durable data instead of going stale.
+  const [exhaustionsRefreshKey, setExhaustionsRefreshKey] = useState(0)
+
   // Reload state on relevant SSE events
   useEffect(() => {
     if (!lastEvent) return
@@ -414,6 +418,9 @@ export function PipelineView() {
       "done",
     ].includes(lastEvent.type)) {
       loadState()
+    }
+    if (lastEvent.type === "gate:plan-assist" || lastEvent.type === "gate:plan-assist-resolved") {
+      setExhaustionsRefreshKey(k => k + 1)
     }
   }, [lastEvent, loadState])
 
@@ -538,7 +545,7 @@ export function PipelineView() {
         />
 
         {state.id && <RevisionsPanel novelId={state.id} />}
-        {state.id && <ExhaustionsPanel novelId={state.id} />}
+        {state.id && <ExhaustionsPanel novelId={state.id} refreshKey={exhaustionsRefreshKey} />}
 
         {stalled && (
           <div className="card" style={{ borderColor: "#e2b714", textAlign: "center" }}>
