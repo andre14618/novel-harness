@@ -74,11 +74,7 @@ Codex review (session ac8df7a8 + ac7442d6) flagged remaining work:
   both `kind="plan-check-exhausted"` and `kind="reviser-rejected"` (commits `5767ab9` + `8fd2097`).
 - [x] **`chapter_exhaustions` telemetry** — shipped (commit `22fd021`). Table, `GET /api/novel/:id/exhaustions`, `ExhaustionsPanel`. UI live in commit `1d1b4e1`.
 - [x] **Debug-injection MVP** — shipped (commits `7d53dac`..`4ad2413`). `src/config/debug-injection.ts` with `DEBUG_FORCE_PLAN_CHECK`, `DEBUG_FORCE_VALIDATION`, `DEBUG_FORCE_REVISER` flags.
-- [ ] **Validation run** — novel `novel-1776570866700` was killed by an
-  orchestrator restart at 2026-04-19 03:58:36 mid-beat-2 of chapter 1.
-  User direction 2026-04-19: not worth salvaging. Kick off a fresh
-  validation run on a full new novel (no forced injection) when telemetry-gathering returns as a priority;
-  verification queries below still apply.
+- [ ] **Fresh end-to-end validation run (no DEBUG_FORCE_* flags)** — The R-labeled campaign tests (R0/R1/R5/R6/R7) validated exhaustion-handler paths via forced injection. What they did NOT validate is whether the handlers stay silent on a normal novel that never exhausts retries. Run a fresh novel end-to-end with no `DEBUG_FORCE_*` env vars set and confirm: no spurious `chapter_exhaustions` rows, no `PipelineBailError` on a clean run. Verification queries still apply once the novel completes:
   - chapter-plan-checker reject rate per chapter (target: <10%, down from
     35-44% pre-fix baseline on pp2-floor__* novels) — query `llm_calls`
     WHERE agent='chapter-plan-checker' AND novel_id=<new-id>,
@@ -98,6 +94,8 @@ Codex review (session ac8df7a8 + ac7442d6) flagged remaining work:
 - [ ] **Continuity-throws stays blind** — by design per Codex (transport
   instability, not content failure; human intervention cost too high for
   a transient checker outage). No change needed.
+- [ ] **Historical-superseded doc pass** — recommended by Codex (review ac11a277b179df8b0). Several docs contain current-tense statements that are now stale: `decisions.md` (references to chapter-plan-checker-v2 as deployed, Howard primer as "under evaluation"), `adapter-changelog.md`, `lessons-learned.md` earlier sections, `fine-tuning-strategy.md`, `adapter-training-reference.md`, `retry-surface-audit.md`. Pass: add inline "Superseded by …" callouts, not rewrites. Separate commit from code changes.
+- [ ] **Kill-orphan helper** — test campaign runs create novels that stall at gates and are never approved. These orphan novels accumulate in the DB and clutter the novel picker. Add a cleanup command (e.g. `bun scripts/cleanup-orphans.ts`) that deletes novels with `status='pending'` older than N hours and no chapters drafted, with a `--dry-run` flag.
 
 ---
 

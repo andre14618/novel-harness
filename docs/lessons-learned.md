@@ -1160,3 +1160,86 @@ Session considered building voice-consistency, show-vs-tell, pacing, dialogue-na
 Codebase history: deterministic character-presence check (positive set: "is named character X in prose?") works reliably at ~99%. Three negative-set checks have been proposed or built and removed: word-count (voice LoRAs drift, metric never load-bearing), dialogue-presence (false-positive on silent beats), hallucination-checker deterministic proper-noun allowlist (variant matching, sentence-initial capitalization, legitimate writer introductions all produce false positives).
 
 **The rule:** positive-set checks ("is this required thing here?") can be deterministic; negative-set checks ("is there something here that shouldn't be?") require an LLM. If you reach for a regex to enumerate what might be wrong, you're in the wrong tool.
+
+### Pure-synthetic SFT training causes distribution shift on natural val (hallucination-checker v2, 2026-04-18)
+
+Replicated chapter-plan-checker-v2's methodology (50 scenarios × 10 variants, Cerebras-generated prose, Sonnet-labeled, flipped on mismatch) producing 500 pairs at 96.4% Sonnet agreement. Trained the hallucination-checker on 400 of those pure-synth pairs.
+
+**Synth val: 95.1% precision / 96.7% recall** — parity with chapter-plan's headline.
+
+**Natural val (same 160-beat set v1 was measured on): 77.8% precision / 51.2% recall** — actively worse than v1's 86.5%/78%.
+
+**Diagnosis:** the model learned "PASS pattern X, FAIL pattern Y" shortcuts that worked on Cerebras-style prose with our specific injection pools but didn't generalize to natural production distribution (DeepSeek + Salvatore LoRA output).
+
+**The fix that worked** (v3, combined ungrounded+leak adapters with v1 natural train merged): 77.8% precision / 85.4% recall / 81.4 F1 — matches v1 F1 baseline with different trade-off.
+
+**The rule:** synthetic-only training data creates synthetic-good-natural-bad adapters. If production distribution differs from your synth generator's output, merge in natural data OR generate synth prose using the actual production writer chain. Never evaluate only on synth val — always run the natural val in parallel before declaring a win.
+
+### Decomposition beats kitchen-sink rubrics for 14B narrow-task training (hallucination v3, 2026-04-18)
+
+v2 asked one adapter to learn ~20 decision rules (§A corpus leak vocabulary + §B grounded-entity detection + §C edge cases like dialogue-only, first+new-last, title+grounded) from 400 pairs. Natural-val regression (61.8 F1 vs v1's 82.1) vindicated the decomposition instinct logged in `feedback_decompose_checker_calls.md`.
+
+v3 splits into:
+- `halluc-ungrounded-entity` — relational reasoning (is token grounded?), full brief+WB+speakers context
+- `halluc-leak-<writer>` — vocabulary memorization (is token in this writer's corpus leak list?), prose-only context
+
+Each adapter trains a narrower decision boundary on focused data. Combined via OR logic in `drafting.ts`. Preserves v1 baseline F1 with better recall. Sets up cleaner small-model distillation per adapter (narrower task → smaller viable model size).
+
+**The rule:** if one 14B adapter is asked to learn N orthogonal rules from M training pairs where M/N < ~100, decompose. Serving cost stays comparable with parallel calls; telemetry improves (per-axis fire rates); retraining narrows.
+
+### Leak detection is per-writer, not universal (2026-04-18)
+
+Each fine-tuned writer LoRA has its own corpus-vocabulary leak set, a direct artifact of the training corpus. Salvatore LoRA leaks Drizzt/Mithril Hall/drow. A future Gemmell LoRA would leak Druss/Waylander/Drenai. A Cook LoRA would leak Croaker/Black Company/Taglios.
+
+**The rule:** leak-detection adapters pair with writer LoRAs. One-leak-adapter-for-all-writers is a maintenance treadmill that gets worse as we add genre voices. `halluc-leak-salvatore-v1` is the pattern; every new writer LoRA gets a paired `halluc-leak-<writer>-v1`. No hardcoded regex lists — the adapter learns the vocabulary from training examples, and adapts as the corpus evolves.
+
+## 2026-04-19 — Exhaustion-handler architecture + debug-injection MVP
+
+### Debug-injection seams must cover EVERY call site for an agent, not just the first
+
+When `src/config/debug-injection.ts` env flags were first wired in, injection was applied at the initial call site but missed the settle-loop recheck paths. Plan-check rechecks (`fed9e4a`) and validation rechecks (`4ad2413`) both had live code that bypassed the forced-failure env flags. These bugs were invisible in unit tests (tests don't exercise the settle loop) and only surfaced during campaign runs that specifically needed forced failures. Two separate fixes were required for the same bug class.
+
+**The rule:** when injecting a fault at a logical decision point, enumerate every path that re-enters that decision point. Settle loops and retry branches are the canonical missed sites. The durable fix is a V2 transport-interceptor that intercepts at the transport layer before any call path can branch — see `docs/todo.md` §5.
+
+### Post-implementation Codex review is non-optional, not just for "hard" changes
+
+The auto-mode `gate:plan-assist` SSE emit was wired inside a Promise constructor that was only reachable when `gate.mode === "web"`. Code compiled, all tests passed (tests ran in web mode), but auto-mode runs would reach the plan-assist gate and stall silently — a contract violation that would have hung Phase 2 campaign runs for 15+ minutes each. The fix was caught by Codex gpt-5.4 review (a2d16769d75b1d9cc) in a routine post-ship review pass. No test regressed before the review ran.
+
+**The rule:** correctness bugs in conditionally-reachable paths don't show up in tests that never exercise the inactive branch. Codex review is not a quality signal for "hard" code only — it catches mode-specific path errors that test coverage misses by construction.
+
+### Polling-based test runners hide pipeline bugs; SSE watchers with structured trace events give fast-fail
+
+The first campaign runner polled `/state` on a fixed interval. The plan-check seam bug (fed9e4a) took 3 minutes per test to surface because polling was blind to which stage the pipeline was stuck at. Replacing the runner with an SSE watcher + structured `plan-check-outcome` and `validation-check-outcome` trace events dropped detection to <30s.
+
+**The rule:** if a test runner can't distinguish "pipeline passed this gate" from "pipeline is still in this gate," you can't fast-fail. Add structured outcome events at every decision point; the watcher subscribes and exits as soon as the expected event arrives. The investment is one new event type per gate, paid once.
+
+### Subscribe-before-start is required; late attachment misses early events
+
+The first SSE-based runner opened the `/events` stream after `POST /start` returned, which created a race condition where early `debug-inject` and `plan-check-outcome` events could arrive before the stream was attached. Fix: open the SSE connection first, then send `POST /start`; additionally, seed the watcher from `GET /api/novel/:id/trace` (replaying persisted rows, deduping by id) before attaching the live stream.
+
+**The rule:** any event-driven test watcher that doesn't seed from the trace first is racy. Structure: (1) open SSE, (2) GET /trace to replay history, (3) POST /start. The dedup by event id makes replaying harmless even if some events arrived in the live stream first. (commits `59f8fff`, `a2118e1`)
+
+### Bun fetch idle timeout silently drops SSE streams — set idleTimeout: 0 on Bun.serve
+
+SSE campaign runs dropped connections after ~10s of pipeline silence even with keepalive frames being sent. Root cause: `Bun.serve` defaults to a non-zero idle timeout that closes connections it considers idle, independent of whether the client has disconnected. A 5s keepalive interval was added as belt-and-suspenders, but the structural fix is `idleTimeout: 0` in the serve config so the server never terminates a stream due to silence.
+
+**The rule:** `Bun.serve` idle timeout is not the same as a TCP keepalive. It's a server-side policy that fires on output silence. Always set `idleTimeout: 0` for SSE and WebSocket handlers. The keepalive frame is still useful for proxies and load balancers upstream that may have their own idle timeout policies. (commit `a2118e1`)
+
+### Parallel Sonnet subagents materially shorten multi-file implementation
+
+Single-subagent sequential handoffs (subagent A writes file 1, passes context to subagent B for file 2) serialize work that has no real dependency. When the work decomposes into disjoint files — e.g. the five exhaustion-handler steps each touching distinct files — dispatching multiple Sonnet subagents in parallel, then routing the aggregate to a single Codex review pass, consistently shortened wall-clock time compared to sequential handoffs. Codex review catches cross-subagent inconsistencies before they land.
+
+**The rule:** plan the decomposition, assign disjoint file sets to parallel Sonnets, do one aggregate Codex review at the end. Don't serialize unless there are genuine data-flow dependencies between files. Codified as CLAUDE.md rule 10.
+
+### Test assertions must read the correct column name
+
+R5 initially asserted `chapter_revisions.deviations` — a column that doesn't exist on the table. The actual column for deviation payload is `outline_before` / `outline_after` on `chapter_revisions`, and the `[validation]` source tag lives on `chapter_exhaustions.unresolved_deviations`. The test compiled and the migration ran cleanly; the wrong assertion only surfaced when the test executed and the column query returned null instead of the expected content.
+
+**The rule:** before writing any test assertion that reads a DB column, query `information_schema.columns` for the table first (same rule as the general DB query discipline in CLAUDE.md). Column names on checker/telemetry tables don't follow an obvious pattern — `deviations` sounds right for a revisions table but it's `outline_before`/`outline_after`. (commit `91140c5`)
+
+### Fast-fail SSE watchers must distinguish expected errors from unexpected errors
+
+The first draft of `watchForExpectations` rejected the test on any `error` SSE event. Auto-mode `PipelineBailError` correctly emits an error event when forced-failure flags trigger the bail path — it's the expected outcome for R1 and similar auto-mode tests. The watcher's blanket rejection caused R1 to fail even though the pipeline was behaving correctly.
+
+**The rule:** an SSE watcher's rejection path must check whether the error event satisfies an expectation in the matcher chain before treating it as a failure. Only reject on errors that no matcher claims. Otherwise auto-mode bail paths — which are correct behavior — look identical to unexpected crashes. (Codex Q5 in a2d16769d75b1d9cc)
+
