@@ -649,12 +649,17 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
               log(novelId, "info", `Invoking chapter-plan-reviser for chapter ${ch}: ${(out.deviations ?? []).length} unresolved issues`)
               // Mark revision as used BEFORE the call so a schema/transport
               // failure can't trigger a second revision on the next attempt.
-              // Local flag first (drives control flow for remainder of this
-              // attempt); DB write second (survives process restart).
+              //
+              // AWAIT the DB write first — if we can't persist the guard,
+              // we must NOT fire the reviser. Fire-and-forget (prior shape)
+              // had a durable-inconsistency bug: on DB write rejection, the
+              // reviser would still run, saveChapterOutline would write the
+              // revised outline, but revision_used would stay FALSE; a later
+              // restart would then allow a second reviser call. A single-row
+              // UPDATE on local Postgres is sub-millisecond, so this trades
+              // nothing for correctness. Codex review 5c9e... (Round A).
+              await setRevisionUsed(novelId, ch, true)
               revisionUsed = true
-              setRevisionUsed(novelId, ch, true).catch(err =>
-                log(novelId, "warn", `setRevisionUsed failed (non-fatal — in-memory flag still holds): ${err instanceof Error ? err.message : err}`)
-              )
               lastUnresolvedSig = issueSig
               const deviationsForLog = out.deviations ?? []
               const originalBeatsSnapshot = [...outline.scenes]
@@ -946,12 +951,10 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
           if (!revisionUsed && canSettleForRevision) {
             console.log(`  Escalating to chapter-plan-reviser (persistent validation blockers)`)
             log(novelId, "info", `Invoking chapter-plan-reviser for chapter ${ch} (validation path): ${currentBlockers.length} unresolved blockers`)
-            // Local flag first (drives control flow for remainder of this
-            // attempt); DB write second (survives process restart).
+            // See plan-check site above for rationale. AWAIT the DB write —
+            // if we can't persist the guard, the reviser must NOT fire.
+            await setRevisionUsed(novelId, ch, true)
             revisionUsed = true
-            setRevisionUsed(novelId, ch, true).catch(err =>
-              log(novelId, "warn", `setRevisionUsed failed (non-fatal — in-memory flag still holds): ${err instanceof Error ? err.message : err}`)
-            )
             // Prefix descriptions with "[validation] " so the issue_sig hash
             // namespace can't collide with a future plan-check deviation that
             // happens to land on beat_index=null with matching text. The

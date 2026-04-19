@@ -122,13 +122,18 @@ async function countRows(table: string, novelId: string): Promise<number> {
  * Tables without FK (chapter_revisions, chapter_exhaustions, llm_calls, pipeline_events,
  * finetune_training_data) have no ordering constraint but are included for completeness.
  *
- * Source of truth audit:
+ * Source of truth audit (verified against information_schema.constraint_column_usage
+ * on the live DB — Codex review C, HIGH: prior list omitted 4 FK tables that
+ * would cause DELETE FROM novels to throw an FK-constraint error):
  *   sql/010_novel_data.sql          → characters, world_bibles, story_spines,
  *                                      chapter_outlines, chapter_drafts, chapter_summaries,
- *                                      facts, character_states, issues, validation_passes,
- *                                      world_systems, cultures, character_cultures,
+ *                                      facts, character_states, issues, validation_passes
+ *   sql/011_vector_graph.sql        → world_systems, cultures, character_cultures,
  *                                      character_system_awareness, relationship_states,
- *                                      timeline_events, character_knowledge
+ *                                      timeline_events, character_knowledge,
+ *                                      event_causes, knowledge_propagation,
+ *                                      retrieval_config
+ *   sql/012_deterministic_config.sql → deterministic_config
  *   sql/016_finetune_training_data.sql → finetune_training_data (novel_id nullable, no FK)
  *   sql/017_llm_call_inspection.sql    → llm_calls.novel_id (no FK)
  *   sql/020_pipeline_events.sql        → pipeline_events (no FK)
@@ -144,6 +149,8 @@ const NOVEL_SCOPED_TABLES: string[] = [
   "llm_calls",
   "finetune_training_data",
   // FK tables: leaf → parent order within each FK chain
+  "event_causes",
+  "knowledge_propagation",
   "character_knowledge",
   "timeline_events",
   "relationship_states",
@@ -151,6 +158,8 @@ const NOVEL_SCOPED_TABLES: string[] = [
   "character_cultures",
   "cultures",
   "world_systems",
+  "retrieval_config",
+  "deterministic_config",
   "validation_passes",
   "issues",
   "character_states",

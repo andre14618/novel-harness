@@ -434,52 +434,41 @@ async function runR3_webEditPlan(): Promise<TestResult> {
     assert(decideBody.ok === true, `decide response ok not true: ${JSON.stringify(decideBody)}`)
     assert(decideBody.action === "edit-plan", `Expected action=edit-plan in response, got: ${decideBody.action}`)
 
-    // Fix (R3 race): wait for the drafting-loop to advance past the edit-plan
-    // branch before querying chapter_outlines.
+    // Fix (R3 race v2): poll chapter_outlines directly for the unique
+    // replacement-beat marker text. The previous watchForExpectations
+    // approach matched trace:debug-inject / trace:plan-check-outcome, but
+    // both events fire at attempt top BEFORE the edit-plan branch runs
+    // (Codex review B, HIGH). watchForExpectations replays the full prior
+    // trace history on connect, so a stale pre-edit event could satisfy
+    // the match and let the DB read race the saveChapterOutline write.
     //
-    // The decide POST resolves the gate synchronously — `gate:plan-assist-resolved`
-    // fires before the response returns. But the drafting loop's edit-plan branch
-    // runs async after gate resolution:
-    //   gate.resolve(decision) → drafting.ts: outline = {...}; await saveChapterOutline(...)
-    //                                          bail=true → continue → next attempt top
-    //   debug-inject fires at the top of the next attempt (DEBUG_FORCE_PLAN_CHECK=fail
-    //   means hasAnyInjection()=true, so trace("debug-inject") is always emitted).
-    //
-    // Waiting for debug-inject (or plan-check-outcome as a fallback for the
-    // re-check that follows immediately) guarantees saveChapterOutline has landed.
-    console.log(`  [R3] waiting for drafting loop to advance past edit-plan branch...`)
-    const postEditResult = await watchForExpectations({
-      novelId,
-      apiBase: API_BASE,
-      apiKey: API_KEY,
-      expectations: [
-        {
-          name: "drafting loop advanced past edit-plan (debug-inject or plan-check-outcome)",
-          timeoutMs: 60_000,
-          match: e =>
-            (e.type === "trace" && e.data.eventType === "debug-inject") ||
-            (e.type === "trace" && e.data.eventType === "plan-check-outcome"),
-        },
-      ],
-      overallTimeoutMs: 60_000,
-      onEvent: e => {
-        if (e.type === "trace" && (e.data.eventType === "debug-inject" || e.data.eventType === "plan-check-outcome")) {
-          console.log(`  [R3][EVENT] ${novelId} trace:${e.data.eventType}`)
+    // The unique marker `R3 replacement beat 1:` can ONLY appear in
+    // outline_json.scenes[0].description after saveChapterOutline runs in
+    // the edit-plan branch — matching on it gives us strict ordering
+    // independent of trace event timing.
+    const expectedMarker = replacementScenes[0].description
+    console.log(`  [R3] polling chapter_outlines for replacement beats...`)
+    const pollDeadline = Date.now() + 30_000
+    let savedOutline: any = null
+    let savedSceneCount = -1
+    while (Date.now() < pollDeadline) {
+      const rows = await db`
+        SELECT outline_json FROM chapter_outlines
+        WHERE novel_id = ${novelId} AND chapter_number = 1
+      ` as any[]
+      if (rows.length > 0) {
+        const candidate = rows[0].outline_json
+        const firstDesc = candidate?.scenes?.[0]?.description ?? ""
+        if (firstDesc === expectedMarker) {
+          savedOutline = candidate
+          savedSceneCount = Array.isArray(candidate.scenes) ? candidate.scenes.length : -1
+          break
         }
-      },
-    })
-    for (const r of postEditResult) {
-      assert(r.matched, `Expected drafting loop to advance after edit-plan: ${r.error}`)
+      }
+      await new Promise(res => setTimeout(res, 500))
     }
-
-    // DB: chapter_outlines.outline_json should now have the replacement scenes
-    const outlineRows = await db`
-      SELECT outline_json FROM chapter_outlines
-      WHERE novel_id = ${novelId} AND chapter_number = 1
-    ` as any[]
-    assert(outlineRows.length > 0, "No chapter_outlines row found for chapter 1")
-    const savedOutline = outlineRows[0].outline_json
-    const savedSceneCount = Array.isArray(savedOutline?.scenes) ? savedOutline.scenes.length : -1
+    assert(savedOutline !== null,
+      `Replacement outline never landed in chapter_outlines within 30s (expected beat[0]="${expectedMarker}")`)
     assert(savedSceneCount === replacementScenes.length,
       `Expected ${replacementScenes.length} scenes in saved outline, got ${savedSceneCount}`)
 

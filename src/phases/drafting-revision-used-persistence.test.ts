@@ -23,7 +23,12 @@ import { mock, test, expect, beforeEach, afterEach } from "bun:test"
 
 // ── Shared mock state (reset per test) ─────────────────────────────────
 let isRevisionUsedInitial = false
+// Tracks the exact sequence of interesting calls so tests can assert
+// "setRevisionUsed(true) was called BEFORE the reviser LLM call"
+// (Codex review D: ordering invariant).
+let callOrder: string[] = []
 let setRevisionUsedCalls: boolean[] = []
+let setRevisionUsedShouldReject = false
 let reviserCallCount = 0
 let planCheckBehavior: "fail" | "pass" = "fail"
 let logRevisionOutcomes: string[] = []
@@ -92,7 +97,13 @@ mock.module("../db", () => ({
   // The persistence pair under test — isRevisionUsedInitial is set per-test
   // to simulate fresh vs. resumed chapter state.
   isRevisionUsed: async () => isRevisionUsedInitial,
-  setRevisionUsed: async (_n: string, _c: number, v: boolean) => { setRevisionUsedCalls.push(v) },
+  setRevisionUsed: async (_n: string, _c: number, v: boolean) => {
+    callOrder.push(`setRevisionUsed(${v})`)
+    setRevisionUsedCalls.push(v)
+    if (setRevisionUsedShouldReject) {
+      throw new Error("simulated DB write failure")
+    }
+  },
 }))
 
 mock.module("../llm", () => ({
@@ -104,6 +115,7 @@ mock.module("../llm", () => ({
       }
     }
     if (config.agentName === "chapter-plan-reviser") {
+      callOrder.push("reviserCall")
       reviserCallCount++
       // Return a valid plan with enough beats to clear the sanity checks
       return { output: {
@@ -187,7 +199,9 @@ const originalConsoleError = console.error
 
 beforeEach(() => {
   isRevisionUsedInitial = false
+  callOrder = []
   setRevisionUsedCalls = []
+  setRevisionUsedShouldReject = false
   reviserCallCount = 0
   planCheckBehavior = "fail"
   logRevisionOutcomes = []
@@ -222,6 +236,16 @@ test("(a) fresh chapter: reviser fires and setRevisionUsed(true) is called befor
   const trueWrites = setRevisionUsedCalls.filter(v => v === true)
   expect(trueWrites.length).toBeGreaterThanOrEqual(1)
 
+  // ORDERING INVARIANT (Codex review D, HIGH): setRevisionUsed(true) MUST
+  // be AWAITED before the reviser LLM call. If this order reverses, a
+  // restart after a successful reviser call but before the (fire-and-forget)
+  // DB write would let the reviser fire again.
+  const firstSet = callOrder.indexOf("setRevisionUsed(true)")
+  const firstReviser = callOrder.indexOf("reviserCall")
+  expect(firstSet).toBeGreaterThanOrEqual(0)
+  expect(firstReviser).toBeGreaterThanOrEqual(0)
+  expect(firstSet).toBeLessThan(firstReviser)
+
   // The log message confirming reviser invocation must appear
   const invokeLogs = logCalls.filter(l => l.includes("Invoking chapter-plan-reviser"))
   expect(invokeLogs.length).toBe(1)
@@ -229,6 +253,31 @@ test("(a) fresh chapter: reviser fires and setRevisionUsed(true) is called befor
   // No "persisted from prior attempt" startup log — this is a fresh chapter
   const persistedLogs = logCalls.filter(l => l.includes("persisted from prior attempt"))
   expect(persistedLogs.length).toBe(0)
+})
+
+test("(c) DB write failure: setRevisionUsed rejects → reviser is NOT called", async () => {
+  // Regression for Codex review A (HIGH): prior fire-and-forget shape let
+  // the reviser run even when the persistence write failed, leaving a
+  // durable revision_used=FALSE after a successful revision. After the
+  // await-before-reviser fix, the reviser must NOT fire.
+  isRevisionUsedInitial = false
+  planCheckBehavior = "fail"
+  setRevisionUsedShouldReject = true
+
+  // runDraftingPhase may swallow or rethrow the error — we don't care about
+  // the final state, only that the reviser didn't run.
+  await runDraftingPhase("test-novel").catch(() => { /* expected */ })
+
+  // Reviser must NOT have fired — the guard couldn't be persisted
+  expect(reviserCallCount).toBe(0)
+
+  // setRevisionUsed was attempted (the await threw)
+  expect(setRevisionUsedCalls.length).toBeGreaterThanOrEqual(1)
+
+  // callOrder should have the setRevisionUsed attempt but NOT a reviserCall
+  // following it in the same attempt sequence
+  expect(callOrder).toContain("setRevisionUsed(true)")
+  expect(callOrder).not.toContain("reviserCall")
 })
 
 test("(b) resumed chapter: isRevisionUsed=true suppresses reviser — skip_already_revised logged", async () => {
