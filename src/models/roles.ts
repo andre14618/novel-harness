@@ -107,6 +107,14 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // context engineering takes precedence over local-model SFT for now.
   "chapter-plan-checker":      { ...deepseekV3, temperature: 0.2, maxTokens: 4096 },
 
+  // ── Chapter plan reviser ─────────────────────────────────────────────
+  // Only invoked when targeted beat rewrites + validation settle both
+  // exhaust — passes persistent unresolved issues back to a dedicated
+  // revision agent that produces the smallest plan edit to eliminate them.
+  // Same DeepSeek model as the checker; higher maxTokens since output is a
+  // full beats+state JSON (matches planning-beats shape).
+  "chapter-plan-reviser":      { ...deepseekV3, temperature: 0.3, maxTokens: 6144 },
+
   // ── Tonal pass (per-paragraph voice rewrite, LoRA fine-tuned) ────────
   // Howard methodology RETIRED 2026-04-16 — voice now handled by per-genre
   // voice LoRAs at generation time (see WRITER_GENRE_PACKS). Adapter slot

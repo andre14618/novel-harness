@@ -1,13 +1,17 @@
 import { z } from "zod"
 
-const deviationSchema = z.union([
+export type ChapterPlanDeviation = { description: string; beat_index: number | null }
+
+// Coerce legacy string deviations into {description, beat_index: null} before
+// the object schema parses. Cast the ZodType to the resolved output so
+// z.infer downstream lands on ChapterPlanDeviation instead of `unknown`.
+const deviationSchema = z.preprocess(
+  v => typeof v === "string" ? { description: v, beat_index: null } : v,
   z.object({
     description: z.string(),
     beat_index: z.number().int().nullable(),
   }),
-  // Fallback: legacy string form — we coerce to {description, beat_index: null}
-  z.string().transform(s => ({ description: s, beat_index: null as number | null })),
-])
+) as unknown as z.ZodType<ChapterPlanDeviation>
 
 export const schema = z.object({
   setting_match: z.object({
@@ -21,4 +25,3 @@ export const schema = z.object({
 })
 
 export const chapterPlanCheckSchema = schema
-export type ChapterPlanDeviation = { description: string; beat_index: number | null }

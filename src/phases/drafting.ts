@@ -15,6 +15,8 @@ import { runBeatChecks, summarizeIssues } from "./beat-checks"
 import { checkContinuity } from "../agents/continuity/check"
 import { buildContext as buildChapterPlanCheckContext } from "../agents/chapter-plan-checker/context"
 import { chapterPlanCheckSchema } from "../agents/chapter-plan-checker/schema"
+import { buildContext as buildChapterPlanReviseContext } from "../agents/chapter-plan-reviser/context"
+import { chapterBeatsSchema as chapterPlanReviseSchema, prompt as CHAPTER_PLAN_REVISER_PROMPT } from "../agents/chapter-plan-reviser"
 import { validateChapterDraft } from "../validation"
 import { displayPhaseHeader, displayProgress, presentForApproval, getRevisionNotes } from "../cli"
 import { emit } from "../events"
@@ -108,7 +110,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
     displayProgress(ch - 1, totalChapters, `Chapter ${ch}`)
     emit(novelId, { type: "progress", data: { step: "drafting", chapter: ch, totalChapters, status: "starting" } })
 
-    let outline
+    let outline: ChapterOutline
     try {
       outline = await getChapterOutline(novelId, ch)
     } catch (err) {
@@ -151,6 +153,8 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
     let approved = false
     let attempts = 0
     const maxAttempts = pipeline.maxDraftAttempts
+    let revisionUsed = false
+    let lastUnresolvedSig = ""
 
     while (!approved && attempts < maxAttempts) {
       attempts++
@@ -535,9 +539,64 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
 
           if (!out.pass) {
             out.deviations?.forEach(d => console.log(`    UNRESOLVED DEVIATION (beat ${d.beat_index ?? "chapter-level"}): ${d.description}`))
-            log(novelId, "warn", `Plan check still failing after ${rewritePass} targeted rewrite pass(es) — escalating to chapter restart`)
+
+            // Planner escalation — pass unresolved issues back to the
+            // chapter-plan-reviser ONCE per chapter. If the reviser produces
+            // a new plan, replace outline.scenes + restart drafting for this
+            // chapter attempt. If we already revised or the issue signature
+            // is identical to a prior revision's input, skip (bounded loop).
+            const issueSig = (out.deviations ?? []).map(d => `${d.beat_index ?? "c"}:${d.description}`).sort().join("|")
+            const canRevise = !revisionUsed && issueSig !== lastUnresolvedSig && canSettle
+
+            if (canRevise) {
+              console.log(`  Escalating to chapter-plan-reviser (persistent issues)`)
+              log(novelId, "info", `Invoking chapter-plan-reviser for chapter ${ch}: ${(out.deviations ?? []).length} unresolved issues`)
+              try {
+                const reviseCtx = buildChapterPlanReviseContext(
+                  outline,
+                  prose,
+                  (out.deviations ?? []).map(d => `[beat ${d.beat_index ?? "chapter-level"}] ${d.description}`),
+                )
+                const revised = await callAgent({
+                  novelId, agentName: "chapter-plan-reviser",
+                  chapter: ch, attempt: attempts,
+                  systemPrompt: CHAPTER_PLAN_REVISER_PROMPT,
+                  userPrompt: reviseCtx,
+                  schema: chapterPlanReviseSchema,
+                })
+                // Merge skeleton fields + replace plan fields. Cast through
+                // unknown because chapterBeatsSchema's z.infer resolves some
+                // defaulted fields as optional while chapterOutlineSchema
+                // resolves them as required; both produce the same runtime
+                // shape after parse, so the cast is safe.
+                outline = {
+                  ...outline,
+                  scenes: revised.output.scenes,
+                  establishedFacts: revised.output.establishedFacts ?? outline.establishedFacts,
+                  characterStateChanges: revised.output.characterStateChanges ?? outline.characterStateChanges,
+                  knowledgeChanges: revised.output.knowledgeChanges ?? outline.knowledgeChanges,
+                } as ChapterOutline
+                revisionUsed = true
+                lastUnresolvedSig = issueSig
+                log(novelId, "info", `Chapter plan revised: ${outline.scenes.length} beats (was ${beatProses.length})`)
+                console.log(`  Revised plan: ${outline.scenes.length} beats. Restarting chapter draft with revised plan.`)
+                bail = true
+              } catch (err) {
+                log(novelId, "error", `Chapter-plan-reviser failed for chapter ${ch}: ${err instanceof Error ? err.message : err}`)
+                console.error(`  Reviser error: ${err instanceof Error ? err.message : err}`)
+                bail = true
+              }
+            } else {
+              const reason = revisionUsed
+                ? "already revised this attempt"
+                : issueSig === lastUnresolvedSig
+                  ? "identical issue signature as last revision"
+                  : "beat-level state not available"
+              log(novelId, "warn", `Plan check still failing — not escalating to reviser (${reason}); falling through to chapter restart`)
+              bail = true
+            }
+
             emit(novelId, { type: "progress", data: { step: "plan-check", chapter: ch, status: "failed" } })
-            bail = true
           } else {
             if (rewritePass > 0) {
               console.log(`  Plan check: passed after ${rewritePass} targeted rewrite pass(es)`)
