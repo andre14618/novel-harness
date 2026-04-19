@@ -729,3 +729,49 @@ export function listExperimentFamilies() {
 export function getExperimentFamily(family: string) {
   return fetchJSON<FamilySummary>(`/api/experiment-families/${encodeURIComponent(family)}`)
 }
+
+// ── Chapter-plan-reviser telemetry ────────────────────────────────────
+
+export type RevisionOutcome =
+  | "accepted"
+  | "rejected_beat_floor"
+  | "rejected_new_characters"
+  | "error"
+  | "skip_already_revised"
+  | "skip_duplicate_sig"
+  | "skip_no_beat_state"
+
+export interface RevisionRow {
+  id: number
+  novelId: string
+  chapter: number
+  attempt: number
+  invokedAt: string
+  issueSig: string
+  issueCount: number
+  originalBeatCount: number
+  revisedBeatCount: number | null
+  outlineBefore: unknown[] | null
+  outlineAfter: unknown[] | null
+  outcome: RevisionOutcome
+  rejectionReason: string | null
+}
+
+export interface RevisionStats {
+  novelId: string
+  total: number
+  invocations: number
+  accepted: number
+  rejectedBeatFloor: number
+  rejectedNewCharacters: number
+  errors: number
+  skipAlreadyRevised: number
+  skipDuplicateSig: number
+  skipNoBeatState: number
+  acceptanceRate: number | null
+  affectedChapters: number[]
+}
+
+export function getNovelRevisions(novelId: string) {
+  return fetchJSON<{ stats: RevisionStats; rows: RevisionRow[] }>(`/api/novel/${encodeURIComponent(novelId)}/revisions`)
+}

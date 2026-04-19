@@ -8,6 +8,7 @@ import { EventLog } from "./EventLog"
 import { TraceTimeline } from "./TraceTimeline"
 import { PipelineFlow } from "./PipelineFlow"
 import { LiveMeters } from "./LiveMeters"
+import { RevisionsPanel } from "./RevisionsPanel"
 import { LiveProse, type LiveBeat } from "./LiveProse"
 import { agentActionLabel } from "../agent-labels"
 
@@ -529,6 +530,8 @@ export function PipelineView() {
           endedAt={runEndedAt}
           done={state.phase === "done"}
         />
+
+        {state.id && <RevisionsPanel novelId={state.id} />}
 
         {stalled && (
           <div className="card" style={{ borderColor: "#e2b714", textAlign: "center" }}>
