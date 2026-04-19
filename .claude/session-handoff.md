@@ -24,7 +24,7 @@ If you see any active runs in `bun scripts/lib/in-flight.ts list`, something was
 
 2. ~~`scripts/status.ts`~~ **DONE 2026-04-19** — shipped in commit `413bf12` + `5da3475` (exp #241). One-shot dashboard; run `bun scripts/status.ts`.
 
-3. ~~`docs/codex-preamble.md`~~ **DONE 2026-04-19** — generator at `scripts/lib/codex-preamble.ts`, emits `docs/codex-preamble.md`. Regenerate with `bun scripts/lib/codex-preamble.ts --emit`. 55 lines under a 200-line hard cap. Codex review `a3af80e8eb4312169` HOLD → all 3 findings fixed in `5da3475`.
+3. ~~`docs/codex-preamble.md`~~ **DONE 2026-04-19** — generator at `scripts/lib/codex-preamble.ts`, emits `docs/codex-preamble.md`. Regenerate with `bun scripts/lib/codex-preamble.ts --emit`. ~57 lines under a 200-line hard cap (regenerates per-invocation). Codex review `a3af80e8eb4312169` HOLD → all 3 findings fixed in `5da3475`. Now also points at `docs/invariants.md` as canonical registry (commit `9ed7980`).
 
 ## Deferred / flagged
 

@@ -33,7 +33,7 @@ Each invariant gets an entry below with:
 - **Catches** — bug class; 1+ commit SHAs of instances
 - **Assertion** — the exact rule
 - **Implementation** — file path (or `planned` / `blocked`)
-- **Status** — `planned` / `shipped` / `blocked-<reason>` / `allowlisted-<expiry>`
+- **Status** — `planned` / `shipped` / `blocked-<reason>` (allowlist entries are file/line-scope exceptions under a still-shipped invariant; see Allowlist section)
 - **Allowlist** — temporary exceptions with expiry dates (if applicable)
 - **Pattern doc** — `docs/patterns/<slug>.md` if elevated
 
@@ -70,13 +70,14 @@ Each invariant gets an entry below with:
 - **Implementation:** planned — `scripts/lint/invariants-check.ts` + use `@typescript-eslint/parser` or Bun's built-in AST traversal.
 - **Status:** planned
 
-### 3. Subscribe-before-start
+### 3. Trace-seeded watcher for post-start event assertions
 
 - **Shape:** syntactic (lint)
-- **Catches:** SSE race where events fire before watcher attaches. Instance: commits `f1f844f` + later `0c9fa3b` fixed the R3/R4 race. The original R3/R4 harness subscribed AFTER the POST /start, so early events were missed.
-- **Assertion:** In `scripts/test/**/*.ts`, for any function where `apiPost("/api/novel/start", ...)` or `startNovel(...)` is called, the SAME function must also call `watchForExpectations(...)` or `watchForTerminal(...)` or `subscribeSSE(...)` BEFORE the start POST. Lint rule: reverse-control-flow — for each `startNovel` call, walk up the AST and verify a watcher-attach call precedes it in the same function scope.
-- **Implementation:** planned — same `scripts/lint/invariants-check.ts`.
+- **Catches:** SSE race where events fire before the watcher attaches. Instance: commits `f1f844f` + later `0c9fa3b` fixed the R3/R4 race. The current safe pattern does NOT require subscribing before `startNovel` — `scripts/test/lib/sse-watcher.ts` seeds the matcher chain from `GET /trace` BEFORE opening SSE (see `sse-watcher.ts:45-48,80-100`). What's unsafe is asserting on post-start events without using the trace-seeded helpers at all.
+- **Assertion:** In `scripts/test/**/*.ts`, for any function that (a) calls `startNovel(...)` OR `apiPost("/api/novel/start", ...)` AND (b) makes assertions or match conditions referencing trace/SSE events (e.g. references to event-type strings `"gate:"`, `"trace:"`, `"llm-call-"`, `"phase-"`, `"error"`, `"done"`, or property accesses on `event.data` / `e.data` from an SSE stream), the SAME function MUST also call one of `watchForExpectations(...)` / `watchForTerminal(...)`. Direct `fetch()` against `/api/novel/:id/events` or raw `subscribeSSE` without the trace-seed preamble IS the race; require the helper.
+- **Implementation:** planned — AST walk in `scripts/lint/invariants-check.ts`.
 - **Status:** planned
+- **Correction history:** original invariant draft required the watcher-attach to precede `startNovel` in control flow; that was wrong and would have flagged current safe production code (`exhaustion-web-campaign.ts:249-255, 367-373`, `organic-run-verify.ts:107-117`). Corrected per Codex review `ac669b6ed0fcf4109` HIGH.
 
 ### 4. Branch-symmetric event emission
 
@@ -107,19 +108,27 @@ From `docs/codex-preamble.md` FAILURE_CLASSES list; these are known bug classes 
 
 ---
 
-## Allowlist format
+## Allowlist
 
-When an invariant must be temporarily bypassed (e.g., a legitimate edge case that's too narrow to encode in the check), add an entry here:
+**Canonical file:** `.claude/invariants-allowlist.yaml` (gitignored? NO — committed, so exceptions are visible in code review; if we move to gitignored, we lose the review trail).
+
+**Loader contract:** `scripts/lint/invariants-check.ts` reads this file at start. Each invariant's checker is passed the matching entries for its name; the checker decides how to honor them (skip the specific file/line, relax the rule, etc.). If the allowlist file is missing, the check runs with zero exceptions (fail-closed).
+
+**Entry format:**
 
 ```yaml
-- invariant: "Subscribe-before-start"
+- invariant: "Trace-seeded watcher for post-start event assertions"  # exact name match
   file: "scripts/test/exhaustion-auto-campaign.ts"
-  line: 42
+  line: 42                              # approximate; used for diagnostics, not matched exactly
   reason: "This test intentionally starts a novel without a watcher to prove the handler stays quiet — expected to fail the invariant by design."
   added: "YYYY-MM-DD"
-  expires: "YYYY-MM-DD"  # Hard 30-day max; renew or refactor by then
+  expires: "YYYY-MM-DD"                 # HARD 30-day max; renew or refactor by then
   owner: "<github-handle>"
 ```
+
+**Expiry enforcement:** the loader rejects entries with `expires` in the past. Renewing requires an edit to the YAML + a fresh 30-day expiry + re-justification in `reason` (git blame is the audit trail).
+
+**Status vocabulary note:** an invariant's status in the summary table is `planned | shipped | blocked-<reason>`. Individual allowlist entries live at file/line scope and do NOT make the invariant itself `allowlisted` — they're scoped exceptions under a still-shipped invariant. If EVERY instance of an invariant is allowlisted, delete the invariant instead.
 
 Allowlist entries are a smell. Each one is either (a) a real edge case the invariant should be refined to accommodate, or (b) a bug waiting to happen under a different input. Don't accumulate them — refactor or narrow the invariant.
 

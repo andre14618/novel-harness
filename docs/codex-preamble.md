@@ -1,6 +1,6 @@
-# novel-harness Codex preamble — 2026-04-19T22:36:40.196Z
+# novel-harness Codex preamble — 2026-04-19T22:41:54.883Z
 
-> Regenerated preamble. Commit-pinned to `f8e531a`. Cite `git show f8e531a` in any review response.
+> Regenerated preamble. Commit-pinned to `9ed7980`. Cite `git show 9ed7980` in any review response.
 
 > **Runtime topology:** orchestrator + Postgres on the LXC host; local shell state may differ from target runtime. SSH/API probes are authoritative.
 
