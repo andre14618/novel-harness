@@ -28,6 +28,57 @@ import { lintProse } from "../lint"
 import { fixLintIssues } from "../lint/fix"
 import { getModelForAgent, resolveWriterPack, type WriterGenrePack } from "../models/roles"
 import { loadGenrePackPrompt } from "../agents/writer"
+import type { ChapterOutline } from "../types"
+
+/**
+ * Route validation blockers to specific beat indices for targeted rewrites.
+ * Drafting-mode blockers come in two flavors (see src/validation.ts:21-37):
+ *   - word-count blockers: "Chapter too short: …" / "Chapter far below target: …"
+ *   - pov-missing blocker: 'POV character "X" never mentioned in draft'
+ *
+ * Heuristics (no LLM call):
+ *   - word-count → expand the two shortest beats
+ *   - pov-missing → rewrite the beat that plans the POV character with the
+ *     smallest cast size (tie-break earliest index)
+ */
+function routeValidationBlockers(
+  blockers: string[],
+  outline: ChapterOutline,
+  beatProses: string[],
+): Map<number, string[]> {
+  const perBeat = new Map<number, string[]>()
+  const addTo = (idx: number, desc: string) => {
+    if (idx < 0 || idx >= outline.scenes.length) return
+    const list = perBeat.get(idx) ?? []
+    list.push(desc)
+    perBeat.set(idx, list)
+  }
+
+  for (const blocker of blockers) {
+    if (blocker.includes("too short") || blocker.includes("far below target")) {
+      const withLen = beatProses
+        .map((p, i) => ({ i, len: p.split(/\s+/).filter(Boolean).length }))
+        .sort((a, b) => a.len - b.len)
+      const targets = withLen.slice(0, Math.min(2, withLen.length))
+      for (const t of targets) {
+        addTo(t.i, `Chapter is under the target word count — expand this beat with additional description, interiority, or dialogue as the beat's purpose allows.`)
+      }
+    } else if (blocker.startsWith("POV character") && blocker.includes("never mentioned")) {
+      const pov = outline.povCharacter
+      const candidates = outline.scenes
+        .map((s, i) => ({ i, castSize: s.characters?.length ?? 0, hasPov: s.characters?.includes(pov) }))
+        .filter(c => c.hasPov)
+        .sort((a, b) => a.castSize - b.castSize || a.i - b.i)
+      const target = candidates[0] ?? { i: 0 }
+      addTo(target.i, `POV character "${pov}" must be dramatized — ensure this beat puts "${pov}" on the page by name or clear referent.`)
+    } else {
+      // Unknown blocker type — append to beat 0 as last resort
+      addTo(0, `Validation issue: ${blocker}`)
+    }
+  }
+
+  return perBeat
+}
 
 export async function runDraftingPhase(novelId: string): Promise<void> {
   displayPhaseHeader("Drafting — Writing chapters")
@@ -501,13 +552,99 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
         }
       }
 
-      // Validation result handling
+      // Validation result handling — targeted beat rewrite instead of full
+      // chapter restart. Drafting-mode blockers (word-count + pov-missing)
+      // route to beats via routeValidationBlockers(), then we call
+      // beat-writer on only those beats with issue descriptions.
       if (!validation.passed) {
         console.log(`  Validation FAILED:`)
         validation.blockers.forEach(b => console.log(`    BLOCKER: ${b}`))
         validation.warnings.forEach(w => console.log(`    WARNING: ${w}`))
         log(novelId, "warn", `Validation failed: ${validation.blockers.join("; ")}`)
-        bail = true
+
+        let validationPass = 0
+        const canSettle = beatProses.length === outline.scenes.length
+        let currentBlockers = validation.blockers
+
+        while (currentBlockers.length > 0 && validationPass < pipeline.maxChapterPlanRewritePasses && canSettle) {
+          const perBeat = routeValidationBlockers(currentBlockers, outline, beatProses)
+          if (perBeat.size === 0) break
+
+          validationPass++
+          console.log(`  Validation pass ${validationPass}/${pipeline.maxChapterPlanRewritePasses}: rewriting ${perBeat.size} beats (${[...perBeat.keys()].sort((a, b) => a - b).join(",")})`)
+          log(novelId, "info", `Validation settle pass ${validationPass}: targeted rewrite of beats [${[...perBeat.keys()].sort((a, b) => a - b).join(",")}]`)
+
+          const beatWriterModel = writerPack?.model ?? getModelForAgent("beat-writer")
+          const beatSystemPrompt = packPrompt ?? BEAT_WRITER_PROMPT
+          const characters = await getCharacters(novelId)
+          const charStates = await getCharacterStatesAtChapter(novelId, ch)
+          const worldBible = await getWorldBible(novelId)
+
+          for (const [bi, issueDescriptions] of [...perBeat.entries()].sort(([a], [b]) => a - b)) {
+            const beatSpec = outline.scenes[bi]
+            const preResolved = await resolveReferences(beatSpec, outline, novelId, ch, characters)
+              .catch(() => ({ context: "", lookupCount: 0, llmUsed: false }))
+            const beatCtx = await buildBeatContext({
+              novelId, chapterNumber: ch, beatIndex: bi,
+              previousBeatProse: beatProses[bi - 1],
+              outline, characters, characterStates: charStates, worldBible,
+              preResolvedRefs: preResolved,
+              compactMode: !!writerPack,
+            })
+            const priorProse = beatProses[bi]
+            const retryContext = `\n\n--- TARGETED REWRITE (validation) ---\nYour previous prose for this beat:\n---\n${priorProse.slice(0, 2000)}\n---\nValidation issues found:\n${issueDescriptions.map(s => `- ${s}`).join("\n")}\nRewrite this beat to address the issues above while preserving what works.`
+            try {
+              const response = await executeAndLog(
+                {
+                  systemPrompt: beatSystemPrompt,
+                  userPrompt: beatCtx.userPrompt + retryContext,
+                  model: beatWriterModel?.model ?? "qwen-3-235b-a22b-instruct-2507",
+                  provider: beatWriterModel?.provider ?? "cerebras",
+                  temperature: beatWriterModel?.temperature ?? 0.8,
+                  maxTokens: beatWriterModel?.maxTokens ?? 4000,
+                  responseFormat: { type: "text" },
+                },
+                novelId,
+                "beat-writer",
+                { chapter: ch, beatIndex: bi, attempt: attempts + validationPass * 20 },
+                {
+                  stream: true,
+                  meta: {
+                    beatDescription: beatSpec.description,
+                    beatCharacters: beatSpec.characters,
+                    totalBeats: outline.scenes.length,
+                    chapterTitle: outline.title,
+                    rewriteSource: "validation",
+                  },
+                },
+              )
+              const rewritten = response.content?.trim()
+              if (rewritten && rewritten.length >= 50) {
+                beatProses[bi] = rewritten
+              }
+            } catch (err) {
+              log(novelId, "warn", `Beat ${bi + 1} validation rewrite failed: ${err instanceof Error ? err.message : err}`)
+            }
+          }
+
+          // Re-validate after rewrites
+          prose = beatProses.join("\n\n")
+          wordCount = prose.split(/\s+/).filter(Boolean).length
+          const recheck = validateChapterDraft(prose, outline)
+          currentBlockers = recheck.blockers
+          if (currentBlockers.length === 0) {
+            console.log(`  Validation: passed after ${validationPass} targeted rewrite pass(es)`)
+            log(novelId, "info", `Validation passed after ${validationPass} targeted rewrite pass(es)`)
+          } else {
+            console.log(`  Validation still failing (${currentBlockers.length} blockers remain)`)
+          }
+        }
+
+        if (currentBlockers.length > 0) {
+          currentBlockers.forEach(b => console.log(`    UNRESOLVED BLOCKER: ${b}`))
+          log(novelId, "warn", `Validation still failing after ${validationPass} targeted rewrite pass(es) — escalating to chapter restart`)
+          bail = true
+        }
       } else if (validation.warnings.length > 0) {
         validation.warnings.forEach(w => console.log(`    WARNING: ${w}`))
       }
