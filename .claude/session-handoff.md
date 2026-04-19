@@ -1,66 +1,81 @@
 ---
-status: active-session
+status: session-closed
 updated: 2026-04-19
-session_id: 82192dba-f3ef-4e79-9fbe-049ebbf4fe69
+session_closed_at: 2026-04-19T19:50:00Z
 ---
 
 # Session handoff — novel-harness
 
-**Purpose:** short living state doc. Overwritten at session close. Next session reads this FIRST before reconstructing from git/todo/sessions. If stale (`updated` > 48h old), treat as unreliable and fall back to `bun scripts/status.ts` (once that ships) + manual reconstruction.
+**Purpose:** short living state doc. Next session reads this FIRST before reconstructing from git/todo/sessions. If stale (`updated` > 48h old), treat as unreliable and fall back to `bun scripts/status.ts` (not yet shipped — see next-session priority #2) + manual reconstruction.
 
 ## What's in flight RIGHT NOW
 
-See `.claude/in-flight/active.json` for structured data. Human summary:
+**Nothing.** Today's organic-run-verify completed (experiment #239 PASS). In-flight registry is empty (pruned at session close).
 
-- **novel-1776626490042** — organic-run-verify validation (experiment #238).
-  - Host: LXC 307, PID 215487, log `/tmp/organic-run-238.log`
-  - Seed: fantasy-healer, 1 chapter, auto mode, no `DEBUG_FORCE_*` flags
-  - Launched 2026-04-19 ~19:21 UTC, expected finish within 45 min
-  - Pass gate: zero `chapter_exhaustions` rows + no `PipelineBailError` + zero active V2 rules
-  - Script auto-concludes experiment #238 on finish with structured PASS/FAIL
+If you see any active runs in `bun scripts/lib/in-flight.ts list`, something was launched between session close and your session-start. Investigate before starting new work.
 
 ## What's pending Codex review
 
-- Nothing blocking. Round A (`ac5ae1215077a1bee` PASS @ 90%) and Round B (`a1f0d145132145414` CONDITIONAL PASS @ 84%, M1/M2 fixed in `c0704bd`, M3 deferred) both verified. Workflow-overhaul validation in `ad350aa657ec1c9b1`.
+**Nothing open.** Final session-close thread `ab0b2dcea718737cf` returned `RESIDUAL_WORK_2` — two known-deferred items (see below), not blocking.
 
-- **Pending next session:** Codex design review of the in-flight registry + session handoff scaffolding shipped in the same commit as this doc (see commit log). Design detailed below.
+## Start-here priorities for next session
 
-## Decisions unresolved / flagged for next session
+Ranked. Pick one; don't try to do all three.
 
-- **M3 (Zod per-kind validation on `POST /api/debug/inject`)** — deferred. Env gate blocks prod adversaries; malformed test-script rules fail loudly. Worth a 20-min follow-up next session.
-- **Codex preamble doc `docs/codex-preamble.md`** — not yet written. Should be ≤200 lines canonical repo state auto-prepended to every Codex review. Contents planned: pointers to `docs/current-state.md`, active experiments, recent architectural decisions (last 7 days), pattern watch-list, repo-specific failure classes. Next-session priority.
-- **`scripts/status.ts`** — queries in-flight registry + DB experiments + LXC `pgrep` + orchestrator `/state`, prints a dashboard. Small (~60 lines). Next-session priority.
-- **5 starting invariants** (per `docs/decisions.md` "Round A + Round B architecture" entry) — next-session #1. Must be blocking preflight gates, not debug-only (Codex Q6).
+1. **5 starting invariants** (`src/invariants/` + `scripts/lint/invariants-check.ts` + blocking preflight gate). Per Codex Q6 (`ad350aa657ec1c9b1`): invariants MUST be blocking, NOT debug-only. Today's telemetry: 9 bugs caught by Codex vs 1 by preflight — invariants rebalance that.
+   - `revisionUsed` restart persistence (integration-test assertion)
+   - Seam-recheck symmetry (syntactic AST scan on `drafting.ts`)
+   - Subscribe-before-start (syntactic lint on `scripts/test/lib/*`)
+   - Branch-symmetric event emission (narrow scope on today's broken transitions, NOT global)
+   - Body-already-used detection (syntactic regex on test scripts)
+
+2. **`scripts/status.ts`** (~80 lines) — one-shot dashboard. Queries in-flight registry + `tuning_experiments` open rows + LXC `pgrep` + orchestrator `/state`. Run at session start + before sleep + after crash suspicion. Codex passed this shape @ `ac9d7f955daf2511d` Q4.
+
+3. **`docs/codex-preamble.md`** (≤200 lines) — regenerated from repo HEAD on every Codex call. NOT a narrative mini-doc; pointers + timestamps + 2-3 load-bearing facts per Codex `ac9d7f955daf2511d` Q3. Compress hard — stale preambles anchor Codex the wrong way.
+
+## Deferred / flagged
+
+- **M3 Zod per-kind validation** on `POST /api/debug/inject` — 20-min
+  follow-up. Env gate blocks prod adversaries; malformed test rules
+  fail loudly when fired. Not urgent.
+- **V2 transport interceptor Phase 2** — retire V1 env flags. Needs an
+  equivalence test matrix (seven V1 seams × V2 rule-backed equivalents).
+- **Codex RESIDUAL_WORK_2 note:** the organic-run-verify #239 PASS is
+  narrow — didn't exercise rewrite/reviser/exhaustion branches. Combined
+  with today's forced R-campaigns the architecture is validated. Worth
+  noting for future "what counts as validation" discussions.
 
 ## Recent architectural decisions (last 48h)
 
 Full entries in `docs/decisions.md`:
-- **Non-blind-retry architecture shipped** (exp #237 charter, concluded). Plan-assist gate, chapter-plan-reviser, `chapter_exhaustions` telemetry.
-- **V2 transport interceptor Phase 1** coexists with V1 env flags. Routes hard-404 when `DEBUG_ENABLE_INJECTION` unset.
-- **`revisionUsed` persistence** to `chapter_outlines.revision_used` (sql/031) — reviser hard cap survives restart.
-- **Workflow overhaul** — `.claude/skills/implement-ticket.md` + mandatory session telemetry. Invariants first (not speculative dispatch), invariants must be blocking.
+- **Round A + Round B architecture** (exp #237 charter) — non-blind-retry
+  + V2 transport interceptor Phase 1 + workflow overhaul (skill doc +
+  telemetry).
+- Experiments #238 (FAIL — env contamination) + #239 (PASS — clean run).
 
-## Session-start protocol (read before starting work)
+## Session-start protocol
 
-1. Read this handoff doc first.
-2. Check in-flight registry: `bun scripts/lib/in-flight.ts list`
-3. Verify health of any listed in-flight runs:
-   - LXC process alive? `ssh novel-harness-lxc 'pgrep -af <cmd>'`
-   - Experiment row open? Query `tuning_experiments` for `conclusion IS NULL`
-   - Log file still being written? `ssh novel-harness-lxc 'stat <log_path>'`
-4. Read `docs/todo.md` priorities section.
-5. Read `docs/current-state.md` if the last update is within this week; else read most recent session retrospective in `docs/sessions/`.
-6. Only then start new work. Every new background launch MUST write an in-flight registry entry per `.claude/skills/implement-ticket.md` Phase 0.
+1. Read this doc FIRST.
+2. `bun scripts/lib/in-flight.ts list` — must be empty (expected) or
+   investigate.
+3. `bun scripts/lib/in-flight.ts prune` — cleans ghosts.
+4. Check `docs/todo.md` priorities section.
+5. **Emit the mandatory session-start receipt:**
+   `session-start: handoff ✓ in-flight ✓ todo ✓`
+6. Only then start new work.
 
-## Session-close protocol (before session ends)
+## Session-close protocol (what today did)
 
-1. Ensure no in-flight runs are silently dropped — each must either:
-   - (a) Have completed (registry entry removed OR auto-concluded experiment row)
-   - (b) Be documented here with clear "next session please check on X"
-2. Commit this doc + any experiment conclusions + session retrospective per `docs/sessions/TEMPLATE.md`.
-3. Update `docs/todo.md` if priorities shifted.
+- 15 commits on main (see retrospective at
+  `docs/sessions/2026-04-19-workflow-overhaul.md` for the supersession
+  chains + Codex exchanges + telemetry)
+- Deployed (commit `d00993b` pushed to LXC; WorkflowPage live at
+  `/app/workflow`)
+- Experiment #239 auto-concluded PASS
+- Registry pruned
+- This handoff overwritten with close state
 
-## Commit chain this session
+## Commit chain this session (15 commits, full set)
 
 ```
 0c9b1ef  revisionUsed persistence (Round A)
@@ -68,19 +83,31 @@ f1f844f  R3/R4 race fixes
 83ffce0  cleanup-orphans script
 0c9fa3b  Codex Round A 3-HIGH-bug fixes
 c3e0c08  todo.md Round A done
-a1f4842  organic-run-verify + validation-check trace (Round B)
+a1f4842  organic-run-verify + post-settle validation-check trace (Round B)
 b25f01e  V2 transport interceptor Phase 1
 7cdc0de  doc supersession pass (continuation)
 ef4aa1b  preflight-caught retryErrors type fix
 c0704bd  Codex Round B MEDIUM follow-ups
 a0d396e  implement-ticket skill + session telemetry
 7787a24  experiment tracking + Phase 0 mandatory
-(this commit)  in-flight registry + session handoff scaffolding
+e8886c1  in-flight registry + session handoff scaffolding
+687e651  Codex scaffolding review fixes (verify_pattern + receipts + env probe)
+d00993b  WorkflowPage UI — visual map at /app/workflow
+(plus this commit — retrospective + handoff close)
 ```
 
 ## If you just landed here and don't know what's going on
 
-1. The `novel-harness` repo is mid-session through a large workflow-scaffolding push.
-2. A validation run is likely still executing on LXC — see in-flight registry above.
-3. Architectural state is stable. No HIGH bugs open. Workflow overhaul landed; ops scaffolding (this doc + registry) is the last piece.
-4. The SOP is: short check-back cadence (~120s) on background runs per user preference — see `feedback_short_checkback_cadence.md` in Claude memory.
+The `novel-harness` repo completed a large workflow-scaffolding push on
+2026-04-19. Key artifacts live at:
+
+- `.claude/skills/implement-ticket.md` — the workflow (13 phases)
+- `docs/sessions/2026-04-19-workflow-overhaul.md` — today's retrospective
+- `docs/decisions.md` "Round A + Round B architecture" — the authoritative
+  decision log
+- `/app/workflow` (UI) — visual dashboard of the orchestration pattern
+
+The SOP is: short check-back cadence (~120s) on background runs; use
+parallel Sonnet subagents for decomposable implementation; commit-pinned
+reviews; mandatory Phase 0 experiment tracking; mandatory session-start
+receipt.
