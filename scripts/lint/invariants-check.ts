@@ -174,39 +174,70 @@ function findSeamSites(sf: ts.SourceFile): SeamSite[] {
 }
 
 /**
- * Text-window proximity check for the guard.
+ * Line-window proximity check, AST-scoped.
  *
- * Rationale (Codex review `a01385f5` HIGH #1): function-scope subtree scan
- * over-accepts — a new unguarded call anywhere in the same function passes
- * because a sibling site's guard is somewhere in the function body. A per-
- * site text-line window (±WINDOW_LINES around the call) catches that
- * regression class while still accepting the real HEAD sites whose guards
- * live on their result-processing branch, not immediately adjacent.
+ * Rationale (Codex review `a01385f5` HIGH #1 + `acf3a597` follow-up): the
+ * original function-scope subtree scan over-accepted — any guard anywhere
+ * in the enclosing function passed, so a new unguarded sibling call slipped
+ * through. The first fix was a raw text substring scan of ±50 lines, but
+ * that accepted comments and string literals that happened to contain
+ * `inject.forceXxx` text.
+ *
+ * Current rule: collect all real AST nodes of shape `inject.<forceName>`
+ * or `inject["<forceName>"]` in the source file (PropertyAccessExpression
+ * / ElementAccessExpression), map them to their line numbers, and check
+ * whether any of those lines falls within ±SEAM_WINDOW_LINES of the call
+ * site. Comments and string literals are naturally excluded because the
+ * TypeScript parser does not emit AST nodes for them of that shape.
  *
  * The 50-line window was chosen by measuring HEAD: the largest call-to-
  * guard distance is 40 lines (chapter-plan-checker initial call at
- * drafting.ts:425 paired with `inject.forcePlanCheck` at :470). Using
- * 50 adds a small margin; a regression >50 lines away from any guard
- * FAILS. If future sites need a wider window, either refactor the seam
- * to move the guard closer, or use `// @noninjectable` + allowlist.
+ * drafting.ts:425 paired with `inject.forcePlanCheck` at :470). 50 adds a
+ * small margin; a regression >50 lines from any real guard node FAILS.
+ * If a future seam legitimately exceeds 50 lines, either refactor to move
+ * the guard closer, annotate with `// @noninjectable`, or add an allowlist
+ * entry with a 30-day expiry per `docs/invariants.md` §Allowlist.
  */
 const SEAM_WINDOW_LINES = 50
 
-function textWindowHasForceRef(
-  sf: ts.SourceFile,
+/**
+ * Collect the line numbers of every AST node of shape `inject.<forceName>`
+ * or `inject["<forceName>"]` (literal property-access, not identifier
+ * shadowing or string-literal text). Returns a sorted array of 1-indexed
+ * line numbers, one per occurrence.
+ */
+function collectForceRefLines(sf: ts.SourceFile, forceName: string): number[] {
+  const lines: number[] = []
+  function visit(node: ts.Node): void {
+    if (
+      ts.isPropertyAccessExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === "inject" &&
+      ts.isIdentifier(node.name) &&
+      node.name.text === forceName
+    ) {
+      lines.push(sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1)
+    } else if (
+      ts.isElementAccessExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === "inject" &&
+      ts.isStringLiteralLike(node.argumentExpression) &&
+      node.argumentExpression.text === forceName
+    ) {
+      lines.push(sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1)
+    }
+    ts.forEachChild(node, visit)
+  }
+  visit(sf)
+  return lines.sort((a, b) => a - b)
+}
+
+function lineWindowHasForceRef(
+  forceRefLines: number[],
   siteLine: number,
-  forceName: string,
 ): boolean {
-  const text = sf.getFullText()
-  const lines = text.split("\n")
-  const lo = Math.max(0, siteLine - 1 - SEAM_WINDOW_LINES)
-  const hi = Math.min(lines.length, siteLine + SEAM_WINDOW_LINES)
-  const needle1 = `inject.${forceName}`
-  const needle2 = `inject["${forceName}"]`
-  const needle3 = `inject['${forceName}']`
-  for (let i = lo; i < hi; i++) {
-    const l = lines[i]
-    if (l.includes(needle1) || l.includes(needle2) || l.includes(needle3)) return true
+  for (const l of forceRefLines) {
+    if (Math.abs(l - siteLine) <= SEAM_WINDOW_LINES) return true
   }
   return false
 }
@@ -237,9 +268,16 @@ function checkSeamRecheckSymmetry(
   const violations: Violation[] = []
   let allowlistedCount = 0
 
+  // Precompute force-ref line indexes per forceName so each site check is O(N).
+  const forceRefIndex = new Map<string, number[]>()
+  for (const forceName of ["forcePlanCheck", "forceValidation", "forceReviser"]) {
+    forceRefIndex.set(forceName, collectForceRefLines(sf, forceName))
+  }
+
   for (const site of sites) {
     if (hasNonInjectableComment(sf, site.line)) continue
-    if (textWindowHasForceRef(sf, site.line, site.forceName)) continue
+    const refLines = forceRefIndex.get(site.forceName) ?? []
+    if (lineWindowHasForceRef(refLines, site.line)) continue
 
     // Not guarded — check allowlist before reporting.
     const hit = isAllowlisted(allowlist, INV_SEAM_RECHECK, rel, site.line)

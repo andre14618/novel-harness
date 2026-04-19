@@ -4,6 +4,14 @@
 // anywhere within the text window around the call site. Mirrors the
 // fed9e4a regression class. Invariant #2 MUST fire on this file.
 //
+// Comment-bypass regression belt: this block contains the literal text
+// `inject.forcePlanCheck` to verify the checker's AST-scoped pass
+// (scripts/lint/invariants-check.ts `collectForceRefLines`) correctly
+// ignores comments and string-literal text — only real AST nodes of
+// shape `inject.forcePlanCheck` count toward the ±50-line window. If
+// this fixture ever stops firing, the checker has regressed into raw
+// text matching (Codex review acf3a597 follow-up).
+//
 // Not run — intentionally malformed relative to drafting.ts. Fed only
 // via `scripts/lint/invariants-check.ts --self-test`.
 
