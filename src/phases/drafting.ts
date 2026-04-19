@@ -26,7 +26,7 @@ import { pipeline } from "../config/pipeline"
 import * as gates from "../gates"
 import { lintProse } from "../lint"
 import { fixLintIssues } from "../lint/fix"
-import { getModelForAgent, resolveWriterPack } from "../models/roles"
+import { getModelForAgent, resolveWriterPack, type WriterGenrePack } from "../models/roles"
 import { loadGenrePackPrompt } from "../agents/writer"
 
 export async function runDraftingPhase(novelId: string): Promise<void> {
@@ -109,6 +109,11 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
       // 1-2. Context assembly + writer (beat-level or chapter-level)
       let prose: string
       let wordCount: number
+      // Hoisted so the chapter-plan-checker settle loop (further down) can
+      // run targeted beat rewrites without rebuilding state.
+      let beatProses: string[] = []
+      let writerPack: WriterGenrePack | null = null
+      let packPrompt: string | null = null
 
       if (pipeline.beatLevelWriting && outline.scenes.length > 0) {
         // ── Beat-level generation ───────────────────────────────────────
@@ -119,8 +124,8 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
           // Genre-scoped writer pack — routes this novel's beat-writer to a
           // voice LoRA when its genre matches. Falls back to the default
           // BEAT_WRITER_PROMPT + configured `beat-writer` model otherwise.
-          const writerPack = resolveWriterPack(novel.seed?.genre)
-          const packPrompt = writerPack
+          writerPack = resolveWriterPack(novel.seed?.genre)
+          packPrompt = writerPack
             ? await loadGenrePackPrompt(writerPack.systemPromptFile, writerPack.usePrimer)
             : null
           if (writerPack) {
@@ -155,7 +160,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
             payload: { beats: outline.scenes.length, totalLookups, llmUsedCount },
           })
 
-          const beatProses: string[] = []
+          beatProses = []
           for (let bi = 0; bi < outline.scenes.length; bi++) {
             const beatCtx = await buildBeatContext({
               novelId, chapterNumber: ch, beatIndex: bi,
@@ -345,17 +350,150 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
       })
       let bail = false
 
-      // Plan check result handling
+      // Plan check result handling — targeted beat rewrite instead of full
+      // chapter restart. When chapter-plan-checker returns pass=false, we
+      // route each deviation to the specific beat it references
+      // (deviation.beat_index) and call beat-writer only on those beats,
+      // then re-run the checker. Up to maxChapterPlanRewritePasses in-place
+      // passes before we give up and escalate to bail=true (full restart).
+      //
+      // Chapter-level issues (beat_index=null) are mapped heuristically:
+      //   setting_match=false      → beat 0 (location established early)
+      //   emotional_arc_correct=false → last 2 beats (arc lands at closer)
       if (pipeline.chapterPlanCheck) {
         if (planCheckSettled.status === "fulfilled" && planCheckSettled.value !== null) {
-          const out = planCheckSettled.value.output
+          let out = planCheckSettled.value.output
+          let rewritePass = 0
+          const canSettle = beatProses.length === outline.scenes.length
+
+          while (!out.pass && rewritePass < pipeline.maxChapterPlanRewritePasses && canSettle) {
+            const devs = out.deviations ?? []
+            devs.forEach(d => console.log(`    DEVIATION (beat ${d.beat_index ?? "chapter-level"}): ${d.description}`))
+
+            // Map deviations → Map<beatIdx, string[]>
+            const perBeat = new Map<number, string[]>()
+            const addTo = (idx: number, desc: string) => {
+              if (idx < 0 || idx >= outline.scenes.length) return
+              const list = perBeat.get(idx) ?? []
+              list.push(desc)
+              perBeat.set(idx, list)
+            }
+            for (const d of devs) {
+              if (d.beat_index != null) {
+                addTo(d.beat_index, d.description)
+              }
+            }
+            // Heuristic routing for chapter-level issues (no beat_index)
+            const hasChapterLevel = devs.some(d => d.beat_index == null)
+            if (hasChapterLevel || (out.setting_match && !out.setting_match.matches)) {
+              if (out.setting_match && !out.setting_match.matches) {
+                addTo(0, `Chapter setting mismatch — planned "${out.setting_match.planned}" but prose observed "${out.setting_match.observed}"`)
+              }
+            }
+            if (out.emotional_arc_correct === false) {
+              const lastN = outline.scenes.length >= 12 ? 3 : 2
+              for (let i = outline.scenes.length - lastN; i < outline.scenes.length; i++) {
+                addTo(i, "Emotional arc reversed from plan — the closing beats should land the planned emotion direction, not invert it")
+              }
+            }
+            // Any remaining chapter-level deviation strings get appended to beat 0 as a last resort
+            for (const d of devs) {
+              if (d.beat_index == null && out.setting_match?.matches !== false && out.emotional_arc_correct !== false) {
+                addTo(0, d.description)
+              }
+            }
+
+            if (perBeat.size === 0) {
+              log(novelId, "warn", "Plan check failed but no beat mapping — escalating to full restart")
+              bail = true
+              break
+            }
+
+            rewritePass++
+            console.log(`  Plan check pass ${rewritePass}/${pipeline.maxChapterPlanRewritePasses}: rewriting ${perBeat.size} beats (${[...perBeat.keys()].sort((a, b) => a - b).join(",")})`)
+            log(novelId, "info", `Plan-check settle pass ${rewritePass}: targeted rewrite of beats [${[...perBeat.keys()].sort((a, b) => a - b).join(",")}]`)
+
+            // Rewrite each affected beat — reuses the beat-writer TARGETED REWRITE
+            // prompt shape from the per-beat retry loop above.
+            const beatWriterModel = writerPack?.model ?? getModelForAgent("beat-writer")
+            const beatSystemPrompt = packPrompt ?? BEAT_WRITER_PROMPT
+            const characters = await getCharacters(novelId)
+            const charStates = await getCharacterStatesAtChapter(novelId, ch)
+            const worldBible = await getWorldBible(novelId)
+
+            for (const [bi, issueDescriptions] of [...perBeat.entries()].sort(([a], [b]) => a - b)) {
+              const beatSpec = outline.scenes[bi]
+              const preResolved = await resolveReferences(beatSpec, outline, novelId, ch, characters)
+                .catch(() => ({ context: "", lookupCount: 0, llmUsed: false }))
+              const beatCtx = await buildBeatContext({
+                novelId, chapterNumber: ch, beatIndex: bi,
+                previousBeatProse: beatProses[bi - 1],
+                outline, characters, characterStates: charStates, worldBible,
+                preResolvedRefs: preResolved,
+                compactMode: !!writerPack,
+              })
+              const priorProse = beatProses[bi]
+              const retryContext = `\n\n--- TARGETED REWRITE (chapter-plan check) ---\nYour previous prose for this beat:\n---\n${priorProse.slice(0, 2000)}\n---\nChapter-plan issues found:\n${issueDescriptions.map(s => `- ${s}`).join("\n")}\nRewrite this beat to address the issues above while preserving what works.`
+              try {
+                const response = await executeAndLog(
+                  {
+                    systemPrompt: beatSystemPrompt,
+                    userPrompt: beatCtx.userPrompt + retryContext,
+                    model: beatWriterModel?.model ?? "qwen-3-235b-a22b-instruct-2507",
+                    provider: beatWriterModel?.provider ?? "cerebras",
+                    temperature: beatWriterModel?.temperature ?? 0.8,
+                    maxTokens: beatWriterModel?.maxTokens ?? 4000,
+                    responseFormat: { type: "text" },
+                  },
+                  novelId,
+                  "beat-writer",
+                  { chapter: ch, beatIndex: bi, attempt: attempts + rewritePass * 10 },
+                  {
+                    stream: true,
+                    meta: {
+                      beatDescription: beatSpec.description,
+                      beatCharacters: beatSpec.characters,
+                      totalBeats: outline.scenes.length,
+                      chapterTitle: outline.title,
+                      rewriteSource: "chapter-plan-check",
+                    },
+                  },
+                )
+                const rewritten = response.content?.trim()
+                if (rewritten && rewritten.length >= 50) {
+                  beatProses[bi] = rewritten
+                }
+              } catch (err) {
+                log(novelId, "warn", `Beat ${bi + 1} plan-check rewrite failed: ${err instanceof Error ? err.message : err}`)
+              }
+            }
+
+            // Rebuild prose from the updated beat list and re-run plan check
+            prose = beatProses.join("\n\n")
+            wordCount = prose.split(/\s+/).filter(Boolean).length
+            console.log(`  Rewrite complete — re-running plan check on ${wordCount}w prose`)
+            const recheck = await callAgent({
+              novelId, agentName: "chapter-plan-checker",
+              chapter: ch, attempt: attempts + rewritePass * 10,
+              systemPrompt: CHAPTER_PLAN_CHECKER_PROMPT,
+              userPrompt: buildChapterPlanCheckContext(prose, outline),
+              schema: chapterPlanCheckSchema,
+            })
+            out = recheck.output
+          }
+
           if (!out.pass) {
-            out.deviations?.forEach(d => console.log(`    DEVIATION: ${d}`))
-            log(novelId, "warn", `Plan check failed: ${(out.deviations ?? []).join("; ")}`)
+            out.deviations?.forEach(d => console.log(`    UNRESOLVED DEVIATION (beat ${d.beat_index ?? "chapter-level"}): ${d.description}`))
+            log(novelId, "warn", `Plan check still failing after ${rewritePass} targeted rewrite pass(es) — escalating to chapter restart`)
             emit(novelId, { type: "progress", data: { step: "plan-check", chapter: ch, status: "failed" } })
             bail = true
           } else {
-            console.log("  Plan check: passed")
+            if (rewritePass > 0) {
+              console.log(`  Plan check: passed after ${rewritePass} targeted rewrite pass(es)`)
+              log(novelId, "info", `Plan check passed after ${rewritePass} targeted rewrite pass(es)`)
+            } else {
+              console.log("  Plan check: passed")
+            }
             emit(novelId, { type: "progress", data: { step: "plan-check", chapter: ch, status: "complete" } })
           }
         } else if (planCheckSettled.status === "rejected") {
