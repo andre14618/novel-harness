@@ -800,7 +800,12 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
             console.log(`  Escalating to chapter-plan-reviser (persistent validation blockers)`)
             log(novelId, "info", `Invoking chapter-plan-reviser for chapter ${ch} (validation path): ${currentBlockers.length} unresolved blockers`)
             revisionUsed = true
-            const blockersAsDeviations = currentBlockers.map(b => ({ description: b, beat_index: null as number | null }))
+            // Prefix descriptions with "[validation] " so the issue_sig hash
+            // namespace can't collide with a future plan-check deviation that
+            // happens to land on beat_index=null with matching text. The
+            // prompt-side uses the raw currentBlockers (no prefix); only the
+            // telemetry rows carry the source tag.
+            const blockersAsDeviations = currentBlockers.map(b => ({ description: `[validation] ${b}`, beat_index: null as number | null }))
             const originalBeatsSnapshotV = [...outline.scenes]
             try {
               const reviseCtx = buildChapterPlanReviseContextForValidation(outline, prose, currentBlockers)

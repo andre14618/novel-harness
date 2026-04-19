@@ -188,6 +188,8 @@ afterEach(() => {
 // ── Tests ──────────────────────────────────────────────────────────────
 
 test("reviser fires exactly once across 3 outer attempts when plan-check persistently fails (accepted path)", async () => {
+  planCheckBehavior = "fail"
+  validateBehavior = "pass"
   reviserBehavior = "accept"
   await runDraftingPhase("test-novel")
 
@@ -214,6 +216,8 @@ test("reviser fires exactly once across 3 outer attempts when plan-check persist
 })
 
 test("reviser fires exactly once across 3 outer attempts when reviser throws (error path)", async () => {
+  planCheckBehavior = "fail"
+  validateBehavior = "pass"
   reviserBehavior = "throw"
   await runDraftingPhase("test-novel")
 
@@ -266,4 +270,8 @@ test("validation path — reviser fires exactly once when validation blockers pe
     l.includes("Escalating to chapter-plan-reviser (persistent issues)"),
   )
   expect(planCheckEscalates.length).toBe(0)
+
+  // plan-check ran exactly once per outer attempt (no settle loop kicks
+  // because pass=true means the settle precondition `!out.pass` fails).
+  expect(planCheckCallCount).toBe(3)
 })
