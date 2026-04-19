@@ -4,6 +4,7 @@ import {
   getCharacterStatesAtChapter, getAllCharacterStatesBeforeChapter, getWorldBible,
   saveChapterDraft, approveChapterDraft, getApprovedDraft,
   saveIssue, updateCurrentChapter, updatePhase,
+  logRevision,
 } from "../db"
 import { callAgent, executeAndLog } from "../llm"
 import { getTransport } from "../transport"
@@ -556,6 +557,8 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
               // failure can't trigger a second revision on the next attempt.
               revisionUsed = true
               lastUnresolvedSig = issueSig
+              const deviationsForLog = out.deviations ?? []
+              const originalBeatsSnapshot = [...outline.scenes]
               try {
                 const reviseCtx = buildChapterPlanReviseContext(
                   outline,
@@ -587,9 +590,25 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                 if (revisedScenes.length < minBeats) {
                   log(novelId, "warn", `Reviser returned too few beats (${revisedScenes.length} < ${minBeats}) — rejecting revision`)
                   console.log(`  Reviser output rejected: ${revisedScenes.length} beats below floor of ${minBeats}`)
+                  await logRevision({
+                    novelId, chapter: ch, attempt: attempts,
+                    deviations: deviationsForLog,
+                    originalBeats: originalBeatsSnapshot,
+                    revisedBeats: revisedScenes as any,
+                    outcome: "rejected_beat_floor",
+                    rejectionReason: `revised beat count ${revisedScenes.length} < floor ${minBeats}`,
+                  }).catch(err => log(novelId, "warn", `logRevision failed: ${err instanceof Error ? err.message : err}`))
                 } else if (newCharacters.length > 0) {
                   log(novelId, "warn", `Reviser introduced new characters [${newCharacters.join(", ")}] — rejecting revision`)
                   console.log(`  Reviser output rejected: new characters not in original plan`)
+                  await logRevision({
+                    novelId, chapter: ch, attempt: attempts,
+                    deviations: deviationsForLog,
+                    originalBeats: originalBeatsSnapshot,
+                    revisedBeats: revisedScenes as any,
+                    outcome: "rejected_new_characters",
+                    rejectionReason: `new characters: ${newCharacters.join(", ")}`,
+                  }).catch(err => log(novelId, "warn", `logRevision failed: ${err instanceof Error ? err.message : err}`))
                 } else {
                   // Accept the revision. Cast through unknown because
                   // chapterBeatsSchema's z.infer resolves some defaulted fields
@@ -608,20 +627,48 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                   await saveChapterOutline(novelId, outline)
                   log(novelId, "info", `Chapter plan revised: ${outline.scenes.length} beats (was ${beatProses.length}); persisted to chapter_outlines`)
                   console.log(`  Revised plan: ${outline.scenes.length} beats. Persisted. Restarting chapter draft with revised plan.`)
+                  await logRevision({
+                    novelId, chapter: ch, attempt: attempts,
+                    deviations: deviationsForLog,
+                    originalBeats: originalBeatsSnapshot,
+                    revisedBeats: outline.scenes,
+                    outcome: "accepted",
+                  }).catch(err => log(novelId, "warn", `logRevision failed: ${err instanceof Error ? err.message : err}`))
                 }
                 bail = true
               } catch (err) {
                 log(novelId, "error", `Chapter-plan-reviser failed for chapter ${ch}: ${err instanceof Error ? err.message : err}`)
                 console.error(`  Reviser error: ${err instanceof Error ? err.message : err}`)
+                await logRevision({
+                  novelId, chapter: ch, attempt: attempts,
+                  deviations: deviationsForLog,
+                  originalBeats: originalBeatsSnapshot,
+                  revisedBeats: null,
+                  outcome: "error",
+                  rejectionReason: err instanceof Error ? err.message.slice(0, 200) : String(err).slice(0, 200),
+                }).catch(logErr => log(novelId, "warn", `logRevision failed: ${logErr instanceof Error ? logErr.message : logErr}`))
                 bail = true
               }
             } else {
-              const reason = revisionUsed
-                ? "already revised this chapter"
+              const skipOutcome = revisionUsed
+                ? "skip_already_revised" as const
                 : issueSig === lastUnresolvedSig
+                  ? "skip_duplicate_sig" as const
+                  : "skip_no_beat_state" as const
+              const reasonText = skipOutcome === "skip_already_revised"
+                ? "already revised this chapter"
+                : skipOutcome === "skip_duplicate_sig"
                   ? "identical issue signature as last revision"
                   : "beat-level state not available"
-              log(novelId, "warn", `Plan check still failing — not escalating to reviser (${reason}); falling through to chapter restart`)
+              log(novelId, "warn", `Plan check still failing — not escalating to reviser (${reasonText}); falling through to chapter restart`)
+              await logRevision({
+                novelId, chapter: ch, attempt: attempts,
+                deviations: out.deviations ?? [],
+                originalBeats: outline.scenes,
+                revisedBeats: null,
+                outcome: skipOutcome,
+                rejectionReason: reasonText,
+              }).catch(err => log(novelId, "warn", `logRevision failed: ${err instanceof Error ? err.message : err}`))
               bail = true
             }
 

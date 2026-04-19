@@ -5,6 +5,7 @@ export {
   updateCharacterFields, updateWorldBibleFields, updateStorySpineFields,
 } from "./world"
 export { saveChapterOutline, getChapterOutline, getChapterOutlines } from "./outlines"
+export { logRevision, listRevisionsForNovel, hashIssueSig, type RevisionOutcome, type LogRevisionInput, type RevisionRow } from "./chapter-revisions"
 export {
   saveChapterDraft, approveChapterDraft, getApprovedDraft, unapproveChapterDraft, deleteChapterDrafts,
   saveTonalPassDraft, getTonalPassDraft, deleteTonalPassDrafts,
