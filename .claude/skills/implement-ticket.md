@@ -140,14 +140,9 @@ Preflight failures HALT — no Codex cycle until green. Two failures on the same
 
 Lives in `src/invariants/` + `scripts/lint/invariants-check.ts`. Runs as part of preflight. Codex agreed (thread `ad350aa657ec1c9b1` Q6): **if invariants stay behind a DEBUG flag, they become theater.**
 
-Starting set (2026-04-19):
-- `revisionUsed` restart persistence — at-most-one-non-skip `chapter_revisions` row per (novel, chapter) in integration runs
-- Seam-recheck symmetry — every `DEBUG_FORCE_*` branch in `drafting.ts` must appear at ALL recheck sites (syntactic AST scan)
-- Subscribe-before-start — any `apiPost(.../start)` in test harnesses must be preceded by `watchForExpectations`/`watchForTerminal` in the same function (syntactic)
-- Branch-symmetric event emission — narrow scope: specific state transitions that broke today (auto-mode plan-assist emit; validation-path settle exit); NOT a global symmetry proof (Codex Q3 caveat)
-- Body-already-used detection — any template literal with `await X.text()` AND `await X.json()` on the same Response is flagged (syntactic)
+**Canonical registry: [`docs/invariants.md`](../../docs/invariants.md)**. Don't maintain an inline list here — the registry has schema, shape taxonomy (syntactic / runtime / cross-state / LLM-check), allowlist format, and every planned/shipped invariant with commit refs.
 
-New invariant added only when a bug class recurs across 2+ sessions. Temporary allowlist file (`.claude/invariants-allowlist.yaml`) for intentional violations with expiry.
+New invariant added only when a bug class recurs across 2+ sessions (same elevation criterion as `docs/patterns/`).
 
 ## Phase 6 — Codex implementation review
 

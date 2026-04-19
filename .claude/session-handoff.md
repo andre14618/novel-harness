@@ -20,12 +20,7 @@ If you see any active runs in `bun scripts/lib/in-flight.ts list`, something was
 
 ## Start-here priorities for next session
 
-1. **5 starting invariants** (`src/invariants/` + `scripts/lint/invariants-check.ts` + blocking preflight gate). Per Codex Q6 (`ad350aa657ec1c9b1`): invariants MUST be blocking, NOT debug-only. Today's telemetry: 9 bugs caught by Codex vs 1 by preflight — invariants rebalance that.
-   - `revisionUsed` restart persistence (integration-test assertion)
-   - Seam-recheck symmetry (syntactic AST scan on `drafting.ts`)
-   - Subscribe-before-start (syntactic lint on `scripts/test/lib/*`)
-   - Branch-symmetric event emission (narrow scope on today's broken transitions, NOT global)
-   - Body-already-used detection (syntactic regex on test scripts)
+1. **5 starting invariants** — see canonical registry at [`docs/invariants.md`](../docs/invariants.md). Per Codex Q6 (`ad350aa657ec1c9b1`): invariants MUST be blocking, NOT debug-only. Today's telemetry: 9 bugs caught by Codex vs 1 by preflight — invariants rebalance that. All 5 entries currently `planned`; ship `scripts/lint/invariants-check.ts` + `src/invariants/` + integration-test extensions to move them to `shipped`.
 
 2. ~~`scripts/status.ts`~~ **DONE 2026-04-19** — shipped in commit `413bf12` + `5da3475` (exp #241). One-shot dashboard; run `bun scripts/status.ts`.
 

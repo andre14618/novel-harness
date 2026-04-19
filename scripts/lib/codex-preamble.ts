@@ -117,6 +117,7 @@ async function main() {
 
   // ── 4. Failure classes ──────────────────────────────────────────────
   lines.push(`## Repo-specific failure classes to look for`)
+  lines.push(`> Canonical registry: \`docs/invariants.md\`. The list below is the quick-reference subset.`)
   for (let i = 0; i < FAILURE_CLASSES.length; i++) {
     lines.push(`${i + 1}. ${FAILURE_CLASSES[i]}`)
   }
@@ -129,6 +130,7 @@ async function main() {
   lines.push(`- Session retrospectives → \`docs/sessions/YYYY-MM-DD-*.md\``)
   lines.push(`- Full pattern docs → \`docs/patterns/<slug>.md\``)
   lines.push(`- Full decisions rationale → \`docs/decisions.md\` (titles above, full bodies there)`)
+  lines.push(`- Full invariants registry → \`docs/invariants.md\` (shape taxonomy + allowlist + status)`)
   lines.push(``)
 
   // ── Line count enforcement ──────────────────────────────────────────

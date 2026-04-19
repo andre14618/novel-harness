@@ -252,6 +252,9 @@ ssh novel-harness-lxc "curl -s -X POST http://localhost:3006/api/improvement/sta
 - `docs/todo.md` — **living to-do** — pending action items only
 - `docs/decisions.md` — **architectural decisions with rationale** — append-only record of what was decided and why
 - `docs/lessons-learned.md` — **read before designing agents, rubrics, or experiments**
+- `docs/invariants.md` — **canonical invariants registry** — structural-property checks that run as blocking preflight gates. 4 shapes (syntactic / runtime / cross-state / LLM-check). Shift-left layer between tests and Codex review.
+- `.claude/skills/implement-ticket.md` — **canonical workflow** — 13-phase Claude+Codex orchestration pattern. Source of truth for Phase -1 through Phase 12 + 9 exit triggers + 7 telemetry fields. See `/app/workflow` for the rendered dashboard.
+- `docs/workflow-portable.md` — genericized version of the skill doc for drop-in use in other projects
 - `docs/commit-conventions.md` — commit message format
 - `docs/world-knowledge-graph.md` — knowledge graph, context assembly, retrieval parameters
 - `docs/writer-imitation-benchmark.md` — Salvatore Crystal Shard deconstruction plan; 6-stage pipeline; 10 methodologies × 4 metrics scored against real published prose
