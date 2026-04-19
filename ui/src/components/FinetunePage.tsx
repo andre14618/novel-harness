@@ -37,8 +37,17 @@ function DeployedSlate() {
   const deployed = adapters.filter(a => a.status === "deployed")
   const candidates = adapters.filter(a => a.status === "candidate")
 
+  if (deployed.length === 0 && candidates.length === 0) {
+    return <p style={{ color: "#888" }}>
+      No adapters in <code>adapter_registry</code>. Run <code>bun scripts/finetune/seed-adapter-registry.ts</code> to seed the deployed slate.
+    </p>
+  }
+
   return (
     <>
+      {deployed.length === 0 ? (
+        <p style={{ color: "#888" }}>No deployed adapters. Candidates listed below.</p>
+      ) : (
       <table className="guide-table">
         <thead>
           <tr><th>Adapter</th><th>Slot</th><th>Headline metrics</th><th>Provenance</th></tr>
@@ -60,6 +69,7 @@ function DeployedSlate() {
           })}
         </tbody>
       </table>
+      )}
       {candidates.length > 0 && (
         <>
           <h3 style={{ marginTop: 18, marginBottom: 8, fontSize: "0.9rem", color: "#aaa", textTransform: "uppercase", letterSpacing: "0.04em" }}>Candidates — not wired in</h3>

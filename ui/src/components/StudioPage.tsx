@@ -594,6 +594,13 @@ export function StudioPage() {
                 <button className="novel-picker-close" onClick={() => setPickerOpen(false)}>×</button>
               </div>
               <div className="novel-picker-body">
+                {visibleNovels.length === 0 && (
+                  <div style={{ padding: 32, textAlign: "center", color: "#888" }}>
+                    {novels.length === 0
+                      ? "No novels yet — start one with the bar above."
+                      : `All ${hiddenCount} novel${hiddenCount === 1 ? "" : "s"} are experiment/pilot runs. Toggle "Show experiments" to view them.`}
+                  </div>
+                )}
                 {/* Featured current novel */}
                 {current && (() => {
                   const { status, dateStr, premise } = tileInfo(current)
