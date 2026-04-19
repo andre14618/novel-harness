@@ -85,11 +85,13 @@ For every chapter attempt, failure paths are ordered from most-targeted to least
 
 Every reviser invocation is logged to `chapter_revisions` with outcome (accepted / rejected_beat_floor / rejected_new_characters / error / skip_*), issue signature hash, and pre/post beat snapshots. Surfaced via `GET /api/novel/:id/revisions` and the Studio pipeline view's `RevisionsPanel`.
 
-**Known remaining blind-retry paths (backlog, per `docs/todo.md` §5):**
+**Exhaustion-handler architecture (shipped 2026-04-19, see `docs/exhaustion-handler-design.md`):**
 
-- Plan-check + reviser both exhausted → currently blind; should convert to human gate.
-- Validation targeted-rewrites exhausted → currently blind; should escalate to planner revision (reviser-style).
-- Reviser output rejected by sanity checks → currently blind; should convert to human gate.
+- Plan-check + reviser both exhausted → **`plan-assist` human gate** in web mode (`PlanAssistPanel`: override / edit-plan / abort); **`PipelineBailError`** in auto-mode (run halts loudly, `lastRunError` written to novel state).
+- Validation targeted-rewrites exhausted → **validation-driven reviser escalation** (`buildContextForValidation` path, path C). If reviser rejects, falls through to the same `plan-assist` gate.
+- Reviser output rejected by sanity checks → **`plan-assist` gate** with `kind="reviser-rejected"` payload.
+
+Exhaustion events are recorded in `chapter_exhaustions` table. Query via `GET /api/novel/:id/exhaustions`; surfaced in Studio via `ExhaustionsPanel` (SSE-refreshed).
 
 ### Validation and retry shape
 
@@ -105,6 +107,9 @@ Primary code references:
 - `src/phases/beat-checks.ts` — BeatIssue aggregator
 - `src/agents/chapter-plan-reviser/` — planner-escalation agent
 - `src/db/chapter-revisions.ts` + `sql/028_chapter_revisions.sql` — reviser telemetry
+- `src/db/chapter-exhaustions.ts` + `sql/029_chapter_exhaustions.sql` — exhaustion-gate telemetry
+- `src/gates.ts` — plan-assist gate type + auto-mode PipelineBailError path
+- `ui/src/components/ExhaustionsPanel.tsx` — Studio SSE-refreshed exhaustion timeline
 - `src/config/pipeline.ts`
 - `src/orchestrator/novel-routes.ts`
 

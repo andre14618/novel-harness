@@ -60,16 +60,24 @@ Codex review (session ac8df7a8 + ac7442d6) flagged remaining work:
 
 - [x] **Stub test — reviser escalation fires exactly once per chapter.**
   Shipped 2026-04-19 in `src/phases/drafting-reviser-escalation.test.ts`
-  (commit `73542f8`). Covers both accepted and thrown reviser-call paths.
-- [x] **Fix `migrate()` pathing bug.** Shipped 2026-04-19 (`ce64e28`).
+  (commits `73542f8` + `6eb9bd9`). Covers both accepted and thrown reviser-call paths.
+- [x] **Fix `migrate()` pathing bug.** Shipped 2026-04-19 (commits `ce64e28` + `6eb9bd9`).
   Path resolves `../../sql` from `src/db/`. Regression test in
   `src/db/migrate-path.test.ts`. `_migrations` backfilled on LXC with
   rows 021-025, 028 (had been applied manually) before the fix deployed
   so the migrator would not re-run destructive 022/023.
+- [x] **Human gate for plan-check-exhausted** — shipped as `plan-assist` gate
+  (commits `2f012de`..`e75ee01`). Web-mode: `PlanAssistPanel` with override/edit-plan/abort decisions. Auto-mode: `PipelineBailError` thrown, `lastRunError` written to state.
+- [x] **Upstream escalation for validation-exhausted** — shipped path (C)
+  (commits `e829b81` + `8ee7e3f`). `buildContextForValidation` + validation-driven reviser escalation.
+- [x] **Human gate for reviser-rejected plans** — same `plan-assist` gate covers
+  both `kind="plan-check-exhausted"` and `kind="reviser-rejected"` (commits `5767ab9` + `8fd2097`).
+- [x] **`chapter_exhaustions` telemetry** — shipped (commit `22fd021`). Table, `GET /api/novel/:id/exhaustions`, `ExhaustionsPanel`. UI live in commit `1d1b4e1`.
+- [x] **Debug-injection MVP** — shipped (commits `7d53dac`..`4ad2413`). `src/config/debug-injection.ts` with `DEBUG_FORCE_PLAN_CHECK`, `DEBUG_FORCE_VALIDATION`, `DEBUG_FORCE_REVISER` flags.
 - [ ] **Validation run** — novel `novel-1776570866700` was killed by an
   orchestrator restart at 2026-04-19 03:58:36 mid-beat-2 of chapter 1.
   User direction 2026-04-19: not worth salvaging. Kick off a fresh
-  validation run when telemetry-gathering returns as a priority;
+  validation run on a full new novel (no forced injection) when telemetry-gathering returns as a priority;
   verification queries below still apply.
   - chapter-plan-checker reject rate per chapter (target: <10%, down from
     35-44% pre-fix baseline on pp2-floor__* novels) — query `llm_calls`
@@ -82,15 +90,11 @@ Codex review (session ac8df7a8 + ac7442d6) flagged remaining work:
   - Inspect RevisionsPanel at `/app/<new-id>` — renders real telemetry?
   - If reject rate still high OR reviser acceptance low: root-cause before
     declaring the non-blind-retry architecture validated.
-- [ ] **Exhaustion-handler implementation** — design memo at
-  `docs/exhaustion-handler-design.md` (2026-04-19) covers all three
-  remaining exhaustion paths:
-  (A) plan-check-exhausted + (B) reviser-rejected unified under a single
-  `plan-assist` human gate (must NOT auto-approve in auto mode —
-  `src/cli.ts:99-102` caveat), (C) validation-exhausted as a reviser-style
-  escalation using a new `buildContextForValidation` context builder.
-  Implementation order: start with (C), then gate scaffolding, then
-  paths (A)+(B), then UI + telemetry table.
+- [ ] **V2 transport interceptor** — recommended by Codex (review ae23f96a5f5cf8247)
+  as follow-on to the debug-injection MVP. Cleaner seam than env flags for
+  injecting faults at the transport layer.
+- [ ] **`src/invariants/debug.ts`** — recommended by Codex (review ae23f96a5f5cf8247)
+  as a centralized invariant-assertion module replacing the scattered `DEBUG_FORCE_*` checks.
 - [ ] **Continuity-throws stays blind** — by design per Codex (transport
   instability, not content failure; human intervention cost too high for
   a transient checker outage). No change needed.

@@ -1,5 +1,5 @@
 ---
-status: design
+status: shipped
 updated: 2026-04-19
 ---
 
@@ -10,8 +10,9 @@ outer-attempt restart (`bail = true; continue`). A blind restart replays the
 same failure with no new context and wastes a full chapter's LLM budget. This
 memo specs targeted handlers for each.
 
-Scope: design only. Implementation is a separate PR. Aligned with Codex
-gpt-5.4 review 2026-04-19 (see `docs/non-blind-retry-session-plan.md` §"Corrections from Codex review").
+All 5 implementation steps shipped across commits ce64e28..1d1b4e1. Implementation is complete; this memo is retained as the post-mortem design reference.
+
+Aligned with Codex gpt-5.4 review 2026-04-19 (see `docs/non-blind-retry-session-plan.md` §"Corrections from Codex review").
 
 ## Today's exhaustion paths
 
@@ -153,20 +154,13 @@ the intermediate shipping state instead of requiring gate infra on day 1.
 5. **Extend `revisionUsed` semantics** — document that it caps the TOTAL
    reviser calls per chapter across plan-check + validation paths.
 
-## Implementation order (for next session)
+## Implementation order
 
-1. **Path (C) with scoped no-gate fallback** — `buildContextForValidation` +
-   validation-driven reviser escalation. Reviser-accepted → outer restart with
-   revised plan (existing pattern). Reviser-rejected OR reviser-threw → blind
-   bail (current behavior), with `TODO(exhaustion-gate)` comment marking the
-   rewire point. No new gate, no UI, no new telemetry table; ~40 lines of
-   additions in drafting.ts mirroring the plan-check escalation pattern.
-2. `plan-assist` gate scaffolding — new gate type, SSE event, throw-on-auto
-   behavior. No UI yet; CLI mode prompts work end-to-end.
-3. Wire paths (A) + (B) to the gate, and rewire path (C)'s reviser-rejected
-   fallback from step 1's blind-bail to the gate.
-4. UI — `PlanAssistPanel` in Studio.
-5. `chapter_exhaustions` telemetry table + query surface.
+1. **Path (C) with scoped no-gate fallback** — DONE (commits e829b81 + 8ee7e3f). `buildContextForValidation` + validation-driven reviser escalation. Reviser-accepted → outer restart with revised plan. Reviser-rejected → blind bail with `TODO(exhaustion-gate)` comment.
+2. **`plan-assist` gate scaffolding** — DONE (commits 2f012de + bd61f96). New gate type, SSE event, throw-on-auto (`PipelineBailError`) behavior. CLI mode prompts work end-to-end.
+3. **Wire paths (A) + (B) to the gate, rewire path (C) fallback** — DONE (commits 5767ab9 + 8fd2097). Includes minimal `PlanAssistPanel` stub so web-mode gate doesn't deadlock.
+4. **UI — structured outline editor** — DONE (commit e75ee01). `OutlineEditor` with structured ↔ raw-JSON toggle; `PlanAssistPanel` shows unresolved deviations, last-attempt prose, and three decision buttons.
+5. **`chapter_exhaustions` telemetry table + query surface** — DONE (commits 22fd021 + 1d1b4e1). Table, `GET /api/novel/:id/exhaustions`, `ExhaustionsPanel` in Studio.
 
 Steps 1-3 unblock the "exhaustion never silently restarts" invariant. Steps
 4-5 polish the observability surface. Codex review 2026-04-19 validated
@@ -199,3 +193,15 @@ a dead gate state.
    shouldn't trip on an idle gate. Likely no change needed — gates block the
    pipeline cleanly without consuming an attempt — but verify when
    implementing.
+
+## Validation & observability
+
+Shipped test and debug infrastructure for exercising and monitoring the exhaustion paths:
+
+- **`src/config/debug-injection.ts`** — `DEBUG_FORCE_PLAN_CHECK`, `DEBUG_FORCE_VALIDATION`, `DEBUG_FORCE_REVISER` env flags that short-circuit check/reviser outcomes for test runs without touching the beat-writer path.
+- **`scripts/test/exhaustion-campaign.ts`** — automated campaign runner for R0, R1, R5, R6, R7; asserts DB state and prints pass/fail table.
+- **`scripts/test/exhaustion-web-campaign.ts`** — SSE-based variant that watches the event stream and fast-fails on the expected error chain, suitable for web-mode gate tests.
+- **`scripts/test/exhaustion-report.ts`** — post-campaign report aggregating `chapter_exhaustions` + `chapter_revisions` rows across a test run.
+- **`chapter_exhaustions` table** (`sql/029_chapter_exhaustions.sql`) — records every gate fire with `kind`, `resolver_mode`, `decision`, `decision_details` JSONB, `reviser_history` JSONB.
+- **`GET /api/novel/:id/exhaustions`** — query surface for the table; consumed by `ExhaustionsPanel`.
+- **`ui/src/components/ExhaustionsPanel.tsx`** — Studio panel that SSE-refreshes within 1s of a gate resolve; shows exhaustion timeline per chapter.

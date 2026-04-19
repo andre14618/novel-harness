@@ -125,15 +125,14 @@ Open Studio with an R2/R3-style active gate. Manual verifications:
 
 Already verified post-deploy — `_migrations` table stable at 30 rows, no "Applying migration:" re-application in logs across the session's 6 deploys.
 
-## Infrastructure work
+## Shipped tooling
 
-Small:
+- **`src/config/debug-injection.ts`** — `DEBUG_FORCE_PLAN_CHECK`, `DEBUG_FORCE_VALIDATION`, `DEBUG_FORCE_REVISER` env flags; injected at the check/reviser call sites in `src/phases/drafting.ts`. No-op when unset.
+- **`scripts/test/exhaustion-campaign.ts`** — automated runner for R0, R1, R5, R6, R7; asserts DB state, prints pass/fail table.
+- **`scripts/test/exhaustion-web-campaign.ts`** — SSE-event-based variant: subscribes to the novel's event stream before starting the run, watches for `gate:plan-assist` or `pipeline-bail-error`, and fast-fails on the expected chain without polling.
+- **`scripts/test/exhaustion-report.ts`** — aggregates `chapter_exhaustions` + `chapter_revisions` rows after a campaign pass.
 
-1. **Add debug flags to `src/phases/drafting.ts`** — 3 `if (process.env.DEBUG_FORCE_*)` branches in the plan-check call, validation call, and reviser-accept sanity path. ~30 lines total.
-2. **Add a test-runner script** — `scripts/test/exhaustion-handler-campaign.ts` that runs R1-R7 sequentially, asserts DB state, prints pass/fail table.
-3. **Wire flag documentation** — comment block at top of `drafting.ts` listing the DEBUG_FORCE_* flags and their effects.
-
-R8 stays manual (UI test).
+R8 stays manual (UI/SSE test).
 
 ## Analysis + Codex cross-check
 
@@ -142,6 +141,14 @@ After tests run:
 2. For any FAIL, root-cause: is it a real bug in the implementation, or a test harness bug?
 3. Send full results + any surprising findings to Codex for an independent read
 4. File any real bugs as new commits with regression coverage
+
+### Review catches
+
+Bugs surfaced by Codex review mid-campaign — the pattern: after every test-infra commit, Codex reviews before executing the campaign.
+
+- **`fed9e4a`** — plan-check settle-loop recheck seam gap: after a targeted rewrite, the checker was not rechecking against the updated prose slice, so a passing rewrite could still be reported as failing.
+- **`4ad2413`** — validation settle-loop recheck seam gap: same class of bug in the validation targeted-rewrite path.
+- **Codex review a2d16769d75b1d9cc** — four issues caught before the SSE-based runner was executed: (1) auto-mode `gate:plan-assist` SSE event was not being emitted before the `PipelineBailError` throw; (2) SSE subscribe-before-start race in `exhaustion-web-campaign.ts`; (3) fast-fail-on-error was swallowing non-exhaustion errors silently; (4) Bun `idleTimeout` needed to be set on the test server to prevent premature connection drops during long gate-wait periods.
 
 ## Open questions for Codex before executing
 
