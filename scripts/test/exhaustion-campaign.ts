@@ -51,6 +51,9 @@ const assumeEnv   = args.includes("--assume-env")
 const skipEnvTests = args.includes("--skip-env-tests")
 const baseArg = args.find(a => a.startsWith("--base="))
 const keyArg  = args.find(a => a.startsWith("--api-key="))
+const onlyArg = args.find(a => a.startsWith("--only="))
+const onlyFilter = onlyArg ? new Set(onlyArg.slice("--only=".length).split(",").map(s => s.trim().toUpperCase())) : null
+function runsThis(tag: string): boolean { return !onlyFilter || onlyFilter.has(tag) }
 
 const API_BASE = baseArg ? baseArg.slice("--base=".length) : (process.env.ORCHESTRATOR_URL ?? "http://localhost:3006")
 const API_KEY  = keyArg  ? keyArg.slice("--api-key=".length) : (process.env.ORCHESTRATOR_API_KEY ?? "")
@@ -421,27 +424,28 @@ async function main(): Promise<void> {
   const results: TestResult[] = []
 
   // R0 always runs — no env flags needed
-  console.log("Running R0...")
-  results.push(await runR0_schemaSmoke())
+  if (runsThis("R0")) {
+    console.log("Running R0...")
+    results.push(await runR0_schemaSmoke())
+  }
 
   if (!skipEnvTests) {
-    // R1: requires DEBUG_FORCE_PLAN_CHECK=fail on orchestrator
-    console.log("Running R1...")
-    results.push(await runR1_autoBailPlanCheck(assumeEnv))
-
-    // R5: requires DEBUG_FORCE_VALIDATION=pov on orchestrator
-    // NOTE: R5 uses a different env flag than R1/R6/R7. You must restart the
-    // orchestrator between R5 and the others if running all in sequence.
-    console.log("Running R5 (requires DEBUG_FORCE_VALIDATION=pov on orchestrator)...")
-    results.push(await runR5_validationPath(assumeEnv))
-
-    // R6: requires DEBUG_FORCE_PLAN_CHECK=fail + DEBUG_FORCE_REVISER=reject on orchestrator
-    console.log("Running R6 (requires DEBUG_FORCE_PLAN_CHECK=fail + DEBUG_FORCE_REVISER=reject)...")
-    results.push(await runR6_reviserRejected(assumeEnv))
-
-    // R7: same env as R1 (DEBUG_FORCE_PLAN_CHECK=fail only)
-    console.log("Running R7 (requires DEBUG_FORCE_PLAN_CHECK=fail on orchestrator)...")
-    results.push(await runR7_reviserSingleEscalation(assumeEnv))
+    if (runsThis("R1")) {
+      console.log("Running R1 (requires DEBUG_FORCE_PLAN_CHECK=fail)...")
+      results.push(await runR1_autoBailPlanCheck(assumeEnv))
+    }
+    if (runsThis("R5")) {
+      console.log("Running R5 (requires DEBUG_FORCE_VALIDATION=pov)...")
+      results.push(await runR5_validationPath(assumeEnv))
+    }
+    if (runsThis("R6")) {
+      console.log("Running R6 (requires DEBUG_FORCE_PLAN_CHECK=fail + DEBUG_FORCE_REVISER=reject)...")
+      results.push(await runR6_reviserRejected(assumeEnv))
+    }
+    if (runsThis("R7")) {
+      console.log("Running R7 (requires DEBUG_FORCE_PLAN_CHECK=fail)...")
+      results.push(await runR7_reviserSingleEscalation(assumeEnv))
+    }
   } else {
     console.log("  [--skip-env-tests] Skipping R1/R5/R6/R7")
   }
