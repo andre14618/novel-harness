@@ -35,15 +35,17 @@ function parseFrontmatter(raw: string): { meta: Record<string, string>; body: st
   if (end < 0) return { meta: {}, body: raw }
   const yaml = raw.slice(3, end).trim()
   const body = raw.slice(end + 4).replace(/^\n/, "")
+  let parsed: any = {}
+  try {
+    parsed = Bun.YAML.parse(yaml) ?? {}
+  } catch {
+    return { meta: {}, body }
+  }
+  if (typeof parsed !== "object" || Array.isArray(parsed)) return { meta: {}, body }
   const meta: Record<string, string> = {}
-  for (const line of yaml.split("\n")) {
-    const m = line.match(/^([a-zA-Z][a-zA-Z0-9_-]*):\s*(.*)$/)
-    if (!m) continue
-    let val = m[2].trim()
-    if ((val.startsWith("\"") && val.endsWith("\"")) || (val.startsWith("'") && val.endsWith("'"))) {
-      val = val.slice(1, -1)
-    }
-    meta[m[1]] = val
+  for (const [k, v] of Object.entries(parsed)) {
+    if (v == null) continue
+    meta[k] = typeof v === "string" ? v : JSON.stringify(v)
   }
   return { meta, body }
 }
