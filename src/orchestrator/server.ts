@@ -20,6 +20,30 @@ import { overviewPageHtml } from "./overview-page"
 
 await migrate()
 
+// ── Startup orphan sweep ─────────────────────────────────────────────────────
+// Surface any plan-assist gate rows that are still pending (decided_at IS NULL)
+// from before this process started. These are irrecoverable in this session —
+// the in-memory Promise that was waiting for a decision died with the previous
+// process. We log them so operators know to resume those novels.
+//
+// We do NOT auto-mark them as orphaned here: the operator may choose to let the
+// novel run resume naturally (which will re-open the gate), or call
+// POST /api/novel/:id/plan-assist/:chapter/mark-orphaned to close them out.
+;(async () => {
+  try {
+    const { listOrphanedExhaustions } = await import("../db/chapter-exhaustions")
+    const orphans = await listOrphanedExhaustions(60_000)
+    for (const row of orphans) {
+      console.warn(
+        `[startup] Orphaned plan-assist gate: novel_id=${row.novelId} chapter=${row.chapter} kind=${row.kind} fired_at=${row.firedAt} — gate is lost after restart; user must resume the novel to retry`
+      )
+    }
+  } catch (err) {
+    // Non-fatal: orphan detection is best-effort at startup
+    console.warn(`[startup] Orphan sweep failed: ${err instanceof Error ? err.message : err}`)
+  }
+})()
+
 const API_KEY = process.env.ORCHESTRATOR_API_KEY
 if (!API_KEY) throw new Error("ORCHESTRATOR_API_KEY not set")
 

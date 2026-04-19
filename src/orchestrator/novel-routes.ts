@@ -1364,5 +1364,53 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
     return Response.json({ gates: gates.listPending() })
   }
 
+  // ── Orphaned plan-assist gates (cross-novel) ─────────────────────────
+  // Returns all chapter_exhaustions rows that have no decision and were
+  // fired more than 60 s ago — gates that survived a restart will appear
+  // here. Useful for operators who want to see what needs cleanup without
+  // tailing logs.
+  if (path === "/api/novel/orphaned-gates" && req.method === "GET") {
+    try {
+      const { listOrphanedExhaustions } = await import("../db/chapter-exhaustions")
+      const orphaned = await listOrphanedExhaustions()
+      return Response.json({ orphaned })
+    } catch (err) {
+      return Response.json({ error: String(err) }, { status: 500 })
+    }
+  }
+
+  // ── Mark a pending plan-assist gate orphaned ─────────────────────────
+  // Closes out the newest undecided exhaustion row for (novelId, chapter)
+  // with decision='orphaned'. Lets operators clean up stale rows without
+  // having to resume the novel.
+  const markOrphanedMatch = path.match(/^\/api\/novel\/([^/]+)\/plan-assist\/(\d+)\/mark-orphaned$/)
+  if (markOrphanedMatch && req.method === "POST") {
+    const novelId = markOrphanedMatch[1]
+    const chapter = parseInt(markOrphanedMatch[2], 10)
+    try {
+      const { listExhaustionsForNovel, markExhaustionOrphaned } = await import("../db/chapter-exhaustions")
+
+      // Find the newest pending row for this (novelId, chapter)
+      const all = await listExhaustionsForNovel(novelId)
+      const pending = all
+        .filter(r => r.chapter === chapter && r.decidedAt === null)
+        .sort((a, b) => b.firedAt.localeCompare(a.firedAt))
+      if (pending.length === 0) {
+        return Response.json({ error: "No pending plan-assist gate for that novel/chapter" }, { status: 404 })
+      }
+
+      const row = pending[0]!
+      const updated = await markExhaustionOrphaned(row.id, "manually marked orphaned via API")
+      if (!updated) {
+        // Race: row was decided between the list and the update
+        return Response.json({ error: "Row was already decided" }, { status: 409 })
+      }
+
+      return Response.json({ ok: true, id: row.id })
+    } catch (err) {
+      return Response.json({ error: String(err) }, { status: 500 })
+    }
+  }
+
   return null
 }

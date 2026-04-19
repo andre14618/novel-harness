@@ -243,6 +243,7 @@ export async function executeAndLog(
     opts?.stream && novelId
       ? {
           ...request,
+          callerId: agentName,
           streaming: true,
           onChunk: (delta: string) => {
             broadcastLLMToken(novelId, {
@@ -253,7 +254,7 @@ export async function executeAndLog(
             })
           },
         }
-      : request
+      : { ...request, callerId: agentName }
 
   // In-flight heartbeat — emits a trace:llm-in-flight event every 5s while
   // the fetch is open. Gives test watchers a liveness signal during
@@ -381,6 +382,7 @@ async function makeRequest(
   provider: ProviderConfig,
   model: string,
   providerName: ProviderName,
+  agentName: string,
 ): Promise<MakeRequestResult> {
   const response: LLMResponse = await getTransport().execute({
     systemPrompt,
@@ -391,6 +393,7 @@ async function makeRequest(
     maxTokens,
     responseFormat: { type: "json_object" },
     extraBody: provider.extraBody(),
+    callerId: agentName,
   })
   return {
     content: response.content,
@@ -483,7 +486,7 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
   }
 
   try {
-    requestResult = await makeRequest(config.systemPrompt, userPrompt, temperature, maxTokens, provider, model, providerName)
+    requestResult = await makeRequest(config.systemPrompt, userPrompt, temperature, maxTokens, provider, model, providerName, config.agentName ?? "unknown")
     content = requestResult.content
 
     totalTokens.prompt += requestResult.usage.prompt_tokens
@@ -501,7 +504,7 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
       jsonExtractionRetried = true
       const retryResult = await makeRequest(
         config.systemPrompt + "\n\nIMPORTANT: Respond with ONLY valid JSON. No markdown, no commentary.",
-        config.userPrompt, temperature, maxTokens, provider, model, providerName,
+        config.userPrompt, temperature, maxTokens, provider, model, providerName, config.agentName ?? "unknown",
       )
       requestResult = retryResult
       content = retryResult.content
