@@ -239,11 +239,26 @@ export async function executeAndLog(
   // every content delta onto the SSE bus as an llm-token event. The accumulated
   // content is still returned via the normal LLMResponse.content so callers
   // don't need to care about the stream.
+  //
+  // V2 debug-injection metadata: enrich LLMRequest with a debugContext payload
+  // so the transport-level interceptor can match rules by agent/novel/
+  // chapter/beat/attempt without having to re-derive fields from callerId.
+  // See docs/debug-injection-v2-spec.md §1 (both wrapper paths enrich so both
+  // converge correctly in transport).
+  const debugContext: import("./debug/injection-types").DebugContext = {
+    novelId,
+    agentName,
+    chapter: tags?.chapter,
+    beatIndex: tags?.beatIndex,
+    attempt: tags?.attempt,
+  }
+
   const effectiveRequest: import("./transport").LLMRequest =
     opts?.stream && novelId
       ? {
           ...request,
           callerId: agentName,
+          debugContext,
           streaming: true,
           onChunk: (delta: string) => {
             broadcastLLMToken(novelId, {
@@ -254,7 +269,7 @@ export async function executeAndLog(
             })
           },
         }
-      : { ...request, callerId: agentName }
+      : { ...request, callerId: agentName, debugContext }
 
   // In-flight heartbeat — emits a trace:llm-in-flight event every 5s while
   // the fetch is open. Gives test watchers a liveness signal during
@@ -383,6 +398,7 @@ async function makeRequest(
   model: string,
   providerName: ProviderName,
   agentName: string,
+  debugContext?: import("./debug/injection-types").DebugContext,
 ): Promise<MakeRequestResult> {
   const response: LLMResponse = await getTransport().execute({
     systemPrompt,
@@ -394,6 +410,7 @@ async function makeRequest(
     responseFormat: { type: "json_object" },
     extraBody: provider.extraBody(),
     callerId: agentName,
+    debugContext,
   })
   return {
     content: response.content,
@@ -485,8 +502,19 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
     }, 5000)
   }
 
+  // V2 debug-injection metadata — enrich every LLMRequest that flows from
+  // callAgent so the transport-level interceptor can match rules by
+  // agent/novel/chapter/beat/attempt. See docs/debug-injection-v2-spec.md §1.
+  const debugContext: import("./debug/injection-types").DebugContext = {
+    novelId: config.novelId,
+    agentName: config.agentName ?? "unknown",
+    chapter: config.chapter,
+    beatIndex: config.beatIndex,
+    attempt: config.attempt,
+  }
+
   try {
-    requestResult = await makeRequest(config.systemPrompt, userPrompt, temperature, maxTokens, provider, model, providerName, config.agentName ?? "unknown")
+    requestResult = await makeRequest(config.systemPrompt, userPrompt, temperature, maxTokens, provider, model, providerName, config.agentName ?? "unknown", debugContext)
     content = requestResult.content
 
     totalTokens.prompt += requestResult.usage.prompt_tokens
@@ -504,7 +532,7 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
       jsonExtractionRetried = true
       const retryResult = await makeRequest(
         config.systemPrompt + "\n\nIMPORTANT: Respond with ONLY valid JSON. No markdown, no commentary.",
-        config.userPrompt, temperature, maxTokens, provider, model, providerName, config.agentName ?? "unknown",
+        config.userPrompt, temperature, maxTokens, provider, model, providerName, config.agentName ?? "unknown", debugContext,
       )
       requestResult = retryResult
       content = retryResult.content

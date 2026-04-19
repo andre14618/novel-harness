@@ -1412,5 +1412,73 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
     }
   }
 
+  // ── V2 debug-injection routes ───────────────────────────────────────
+  // All three routes hard-return 404 unless DEBUG_ENABLE_INJECTION === "true".
+  // This is deliberately a production-hostile flag — hiding the surface via
+  // 404 (not 403) makes non-test deployments look like the routes don't
+  // exist at all. Per Codex review add543640220037e1, Phase 1 relaxes the
+  // per-ID guard (no "test-*" check) because /api/novel/start auto-generates
+  // novel-${Date.now()} IDs. The env gate is the sole guard; deferred to
+  // Phase 2.
+  if (path === "/api/debug/inject" && req.method === "POST") {
+    const { isDebugInjectionEnabled } = await import("../debug/transport-interceptor")
+    if (!isDebugInjectionEnabled()) return new Response("Not found", { status: 404 })
+    try {
+      const { registerInjectionRule } = await import("../debug/injection-store")
+      const body = await req.json() as import("../debug/injection-types").InjectionRule
+      if (!body?.match?.agentName || typeof body.match.agentName !== "string") {
+        return Response.json({ error: "match.agentName is required" }, { status: 400 })
+      }
+      if (!body?.action?.kind) {
+        return Response.json({ error: "action.kind is required" }, { status: 400 })
+      }
+      // `delay` is rejected in Phase 1 (see docs/debug-injection-v2-spec.md
+      // open decision #1, resolved in Codex review add543640220037e1).
+      if (body.action.kind === "delay") {
+        return Response.json(
+          { error: "action.kind='delay' is deferred in Phase 1. See docs/debug-injection-v2-spec.md." },
+          { status: 400 },
+        )
+      }
+      const allowedKinds = new Set(["force-result", "force-error", "rate-limit"])
+      if (!allowedKinds.has(body.action.kind)) {
+        return Response.json(
+          { error: `Unknown action.kind: ${body.action.kind}. Allowed: ${[...allowedKinds].join(", ")}` },
+          { status: 400 },
+        )
+      }
+      const registered = registerInjectionRule(body)
+      return Response.json({ ok: true, rule: registered })
+    } catch (err) {
+      return Response.json({ error: String(err) }, { status: 400 })
+    }
+  }
+
+  if (path === "/api/debug/active" && req.method === "GET") {
+    const { isDebugInjectionEnabled } = await import("../debug/transport-interceptor")
+    if (!isDebugInjectionEnabled()) return new Response("Not found", { status: 404 })
+    try {
+      const { listInjectionRules } = await import("../debug/injection-store")
+      const rules = listInjectionRules()
+      return Response.json({ rules })
+    } catch (err) {
+      return Response.json({ error: String(err) }, { status: 500 })
+    }
+  }
+
+  const debugClearMatch = path.match(/^\/api\/debug\/clear\/([^/]+)$/)
+  if (debugClearMatch && req.method === "DELETE") {
+    const { isDebugInjectionEnabled } = await import("../debug/transport-interceptor")
+    if (!isDebugInjectionEnabled()) return new Response("Not found", { status: 404 })
+    try {
+      const { clearInjectionRulesForNovel } = await import("../debug/injection-store")
+      const novelId = decodeURIComponent(debugClearMatch[1])
+      const removed = clearInjectionRulesForNovel(novelId)
+      return Response.json({ ok: true, novelId, removed })
+    } catch (err) {
+      return Response.json({ error: String(err) }, { status: 500 })
+    }
+  }
+
   return null
 }

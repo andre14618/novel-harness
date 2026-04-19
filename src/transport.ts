@@ -14,6 +14,8 @@ import {
   PROVIDERS, getApiKey, getModel,
   type ProviderName,
 } from "./models/registry"
+import { maybeInterceptTransportCall } from "./debug/transport-interceptor"
+import type { DebugContext } from "./debug/injection-types"
 // ── Types ────────────────────────────────────────────────────────────────
 
 export interface LLMRequest {
@@ -33,6 +35,13 @@ export interface LLMRequest {
   // full accumulated string so callers don't need to care about streaming.
   streaming?: boolean
   onChunk?: (delta: string) => void
+  // V2 debug-injection metadata. Enriched at the wrapper layer (llm.ts) so
+  // the transport-level interceptor can match rules without re-deriving
+  // agent/novel context from callerId or the provider body. Optional —
+  // callers that bypass the wrapper (the conversationalist chat and
+  // artifact-adjuster routes) pass no debugContext, and the interceptor
+  // treats that as "no match."
+  debugContext?: DebugContext
 }
 
 export interface LLMResponse {
@@ -73,6 +82,22 @@ export class DirectTransport implements LLMTransport {
     const retryErrors: Array<{ status: number; delay: number }> = []
     let httpAttempts = 0
     const startTime = performance.now()
+
+    // V2 debug-injection: pre-loop interception. Only `force-result` fires
+    // here — it short-circuits BEFORE the first fetch attempt so the test
+    // rule doesn't consume a retry budget. Fail-open: if the interceptor
+    // crashes, treat it as "no match" and proceed to the fetch loop.
+    const preLoop = maybeInterceptTransportCall(request.debugContext, "pre-loop")
+    if (preLoop.kind === "force-result") {
+      // Match the normal success-path return shape: stamp latencyMs from
+      // the wall clock so downstream logging sees a non-zero value even
+      // when the action doesn't specify one.
+      const synthetic = preLoop.response
+      return {
+        ...synthetic,
+        latencyMs: synthetic.latencyMs || (performance.now() - startTime),
+      }
+    }
 
     const tokenParam = request.useMaxCompletionTokens
       ? { max_completion_tokens: request.maxTokens }
@@ -145,7 +170,22 @@ export class DirectTransport implements LLMTransport {
       // retry loop" was false. This fixes that.
       let res: Response
       try {
-        res = await fetch(providerDef.apiUrl, { method: "POST", headers, body, signal: controller.signal })
+        // V2 debug-injection: in-loop interception. Only `force-error` and
+        // `rate-limit` fire here — they're designed to exercise the retry
+        // machinery exactly like a real provider fault. `force-error` throws
+        // (goes into the catch below → retry or give up based on attempt
+        // count and timeoutAttempts); `rate-limit` returns a synthetic
+        // Response that the 429/5xx branch below will treat like a real 429.
+        // Fail-open: matcher errors are swallowed inside the interceptor.
+        const inLoop = maybeInterceptTransportCall(request.debugContext, "in-loop")
+        if (inLoop.kind === "throw") {
+          throw inLoop.error
+        }
+        if (inLoop.kind === "response") {
+          res = inLoop.response
+        } else {
+          res = await fetch(providerDef.apiUrl, { method: "POST", headers, body, signal: controller.signal })
+        }
       } catch (err) {
         clearTimeout(timer)
         const isAbort = err instanceof Error && (err.name === "AbortError" || /abort/i.test(err.message))
