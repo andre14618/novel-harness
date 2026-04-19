@@ -63,13 +63,20 @@ Codex review (session ac8df7a8 + ac7442d6) flagged remaining work:
   chapter; assert log line `Escalating to chapter-plan-reviser` appears
   exactly once, and that `revisionUsed` prevents a second escalation even
   after an outer-attempt restart. Deterministic, no LLM cost.
-- [ ] **Live single-seed 10-chapter fantasy-debt run — already kicked off
-  as `novel-1776570866700` (2026-04-19) to produce first real telemetry
-  rows.** Verify post-run: chapter-plan-checker reject rate drops from
-  35-44% baseline to expected ~5-10% under DeepSeek; reviser invocations
-  produce accepted plans at high rate; revised chapters pass on the next
-  attempt (end-to-end chain validation). Compare against pre-fix pilot
-  baseline cells.
+- [ ] **Check validation run `novel-1776570866700`** (kicked off 2026-04-19).
+  Specific verification queries once phase=done:
+  - chapter-plan-checker reject rate per chapter (target: <10%, down from
+    35-44% pre-fix baseline on pp2-floor__* novels) — query `llm_calls`
+    WHERE agent='chapter-plan-checker' AND novel_id='novel-1776570866700',
+    count rows where `response_content` contains `"pass":false`.
+  - reviser invocation + acceptance rate — `SELECT outcome, COUNT(*) FROM
+    chapter_revisions WHERE novel_id='novel-1776570866700' GROUP BY outcome`.
+  - retry_ratio (rows with attempt>1 / total) on beat-writer calls,
+    compared to the 3 pp2-floor fantasy-debt cells.
+  - Inspect RevisionsPanel at `/app/novel-1776570866700` — does it render
+    real telemetry? Zero-state and expanded-table both valid shapes.
+  - If reject rate still high OR reviser acceptance low: root-cause before
+    declaring the non-blind-retry architecture validated.
 - [ ] **Human gate for plan-check-exhausted** — when targeted rewrites
   AND reviser both fail, raise a CLI/UI gate instead of blind outer
   restart. Path hits `bail=true` at `src/phases/drafting.ts` plan-check
