@@ -188,6 +188,7 @@ src/
 8. **Use `nohup` for long-running LXC scripts.** Never pipe SSH output through `head` or filters that close the pipe — it sends SIGPIPE and kills the process. Use `nohup ... > /tmp/foo.log 2>&1 &` and check progress via `tail`.
 9. **Never deploy while data generation is running.** `deploy-lxc.sh` uses `rsync --delete`, which deletes any LXC file that doesn't exist locally — including in-progress `scripts/lora-data/` output. The script now checks for active generation processes and prompts before continuing. `scripts/lora-data/` is also excluded from rsync so generated datasets are never overwritten.
 10. **Default to parallel Sonnet subagents for implementation.** When work can be decomposed into independent chunks (disjoint files, or worktree-isolatable), spawn MULTIPLE `Agent` subagents (Sonnet) in a single message so they run concurrently. Single-subagent hand-offs are a missed speed lever. Codex review runs ONCE on the aggregated commits at the end, not per-subagent.
+11. **Spawn a documentation subagent after meaningful work.** After a PR-sized chunk lands (one big commit or a series), launch a Sonnet subagent to update `docs/current-state.md` + append to `docs/lessons-learned.md` + refresh `docs/todo.md`. Runs in parallel with the next implementation chunk. Keeps the human oriented without re-reading commits. Skip only for trivial changes.
 
 ## Running
 

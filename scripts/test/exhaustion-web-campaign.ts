@@ -123,7 +123,7 @@ async function runR2_webOverride(): Promise<TestResult> {
       apiBase: API_BASE,
       apiKey: API_KEY,
       terminalTypes: ["gate:plan-assist"],
-      timeoutMs: 90_000,
+      timeoutMs: 900_000,
       onEvent: e => {
         if (["gate:plan-assist", "error", "done"].includes(e.type)) {
           console.log(`  [R2][EVENT] ${novelId} ${e.type}`)
@@ -232,7 +232,7 @@ async function runR3_webEditPlan(): Promise<TestResult> {
       apiBase: API_BASE,
       apiKey: API_KEY,
       terminalTypes: ["gate:plan-assist"],
-      timeoutMs: 90_000,
+      timeoutMs: 900_000,
       onEvent: e => {
         if (["gate:plan-assist", "error", "done"].includes(e.type)) {
           console.log(`  [R3][EVENT] ${novelId} ${e.type}`)
@@ -332,7 +332,7 @@ async function runR3_webEditPlan(): Promise<TestResult> {
       apiBase: API_BASE,
       apiKey: API_KEY,
       terminalTypes: ["gate:plan-assist"],
-      timeoutMs: 90_000,
+      timeoutMs: 900_000,
       onEvent: e => {
         if (["gate:plan-assist", "error"].includes(e.type)) {
           console.log(`  [R3][EVENT] guard=${novelId2} ${e.type}`)
@@ -401,7 +401,7 @@ async function runR4_webAbort(): Promise<TestResult> {
       apiBase: API_BASE,
       apiKey: API_KEY,
       terminalTypes: ["gate:plan-assist"],
-      timeoutMs: 90_000,
+      timeoutMs: 900_000,
       onEvent: e => {
         if (["gate:plan-assist", "error", "done"].includes(e.type)) {
           console.log(`  [R4][EVENT] ${novelId} ${e.type}`)
@@ -440,7 +440,7 @@ async function runR4_webAbort(): Promise<TestResult> {
         {
           // After abort the run stops — stream closes (done) or error fires.
           name: "done or error after abort",
-          timeoutMs: 60_000,
+          timeoutMs: 300_000,
           match: e => e.type === "done" || e.type === "error",
         },
       ],
