@@ -19,6 +19,9 @@ CHECKS TO FILL OUT:
    - the prose introduces a major plot contradiction (e.g., a character dies when the plan has them alive later, a resolved conflict is re-opened without cause, a character knows something they shouldn't yet)
 
 4. **deviations** — list every specific problem you identified. Empty list if pass=true.
+   Each deviation MUST have:
+   - `description` — the specific problem in plain English
+   - `beat_index` — the 0-indexed beat number in the plan's beats[] array that the problem refers to. Use `null` ONLY when the problem is chapter-level and cannot be attributed to a specific beat (e.g. setting mismatch spanning the whole chapter, or an emotional arc that drifts across many beats).
 
 DO NOT flag these as deviations — they are normal creative interpretation:
 - Paraphrased dialogue
@@ -34,5 +37,7 @@ Respond with ONLY valid JSON in this exact shape:
   "setting_match": { "planned": "...", "observed": "...", "matches": true },
   "emotional_arc_correct": true,
   "pass": true,
-  "deviations": []
+  "deviations": [
+    { "description": "Taryn refuses the offer, but plan's beat 10 requires acceptance", "beat_index": 10 }
+  ]
 }

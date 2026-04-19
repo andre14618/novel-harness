@@ -5,6 +5,7 @@ export const pipeline = {
   beatLevelWriting: true,     // use beat-level context + generation
   maxBeatRetries: 2,          // retries per beat on adherence failure
   chapterPlanCheck: true,     // validate assembled prose against chapter plan
+  maxChapterPlanRewritePasses: 2, // when chapter-plan-checker fails, rewrite affected beats in place up to N times before escalating to full chapter restart
 
   // Validation
   maxValidationPasses: 3,
