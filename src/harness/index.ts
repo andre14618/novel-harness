@@ -19,5 +19,6 @@ import * as enforce from "./enforce"
 import * as adapters from "./adapters"
 import * as charters from "./charters"
 import * as experimentFamilies from "./experiment-families"
+import * as chapterRevisions from "./chapter-revisions"
 
-export { experiments, context, embeddings, graph, novels, deterministic, registry, enforce, adapters, charters, experimentFamilies }
+export { experiments, context, embeddings, graph, novels, deterministic, registry, enforce, adapters, charters, experimentFamilies, chapterRevisions }

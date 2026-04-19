@@ -1038,6 +1038,22 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
     }
   }
 
+  // ── Chapter-plan-reviser telemetry ──────────────────────────────────
+  const revisionsMatch = path.match(/^\/api\/novel\/([^/]+)\/revisions$/)
+  if (revisionsMatch && req.method === "GET") {
+    const novelId = revisionsMatch[1]
+    try {
+      const { chapterRevisions } = await import("../harness")
+      const [rows, stats] = await Promise.all([
+        chapterRevisions.listRevisionsForNovel(novelId),
+        chapterRevisions.revisionStats(novelId),
+      ])
+      return Response.json({ stats, rows })
+    } catch (err) {
+      return Response.json({ error: String(err) }, { status: 500 })
+    }
+  }
+
   // ── Delete novel ────────────────────────────────────────────────────
   const deleteMatch = path.match(/^\/api\/novel\/([^/]+)$/)
   if (deleteMatch && req.method === "DELETE") {
