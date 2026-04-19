@@ -28,6 +28,14 @@ Before starting ANY work in a session (ticket or not):
 
 Only then start ticket work. Skipping Phase -1 means the session operates with stale assumptions — Codex thread IDs from last session may not be in-context, in-flight runs may get double-started, and telemetry chains can silently break.
 
+**Mandatory session-start receipt** (Codex review `ac9d7f955daf2511d` Q2): the FIRST substantive response in any session MUST include a one-line receipt confirming each Phase -1 step fired:
+
+> `session-start: handoff ✓ in-flight ✓ todo ✓`
+
+Missing or partial receipt is visible friction. If a step legitimately can't run (e.g., handoff doc missing), call it out explicitly: `session-start: handoff MISSING — falling back to git log; in-flight ✓; todo ✓`. This creates enforcement without needing hooks — every session that skips Phase -1 is visibly skipping the receipt.
+
+**Environmental contamination check for benchmark runs:** Orchestrator process env is separate from the client shell. Before launching ANY validation/benchmark run that depends on "clean" state, probe `GET /api/health/debug-flags` to verify no `DEBUG_FORCE_*` are set in the orchestrator. Don't trust `process.env` in the launching script — it only sees your shell. Experiment #238 failed because the orchestrator had a stale systemd drop-in from earlier campaigns; the script's local paranoia check didn't catch it.
+
 ## Phase 0 — Create tuning_experiment (MANDATORY)
 
 **Before any code work.** CLAUDE.md rule 1: every experiment goes in the DB. Rule 2: every benchmark run links to an experiment via `EXPERIMENT_ID=N`.
@@ -68,6 +76,8 @@ bun scripts/lib/in-flight.ts add '{
 ```
 
 Registry lives at `.claude/in-flight/active.json` (gitignored). On run finish, remove the entry: `bun scripts/lib/in-flight.ts remove <run_id>`. Scripts that auto-conclude their experiment row (like `organic-run-verify.ts`) should also auto-remove their registry entry in the same finally block.
+
+**Schema gotchas (Codex review `ac9d7f955daf2511d` Q1):** PID alone is not durable across host reboots — include `verify_pattern` (a `pgrep -f` fragment) and `host_boot_id` (from `/proc/sys/kernel/random/boot_id`) so Phase -1 can do deterministic health checks. The registry helper's `prune` command uses these to distinguish alive / ghost / reboot / unchecked and auto-cleans anything that isn't alive or unchecked. Run `bun scripts/lib/in-flight.ts prune` during Phase -1 to kill ghost entries — the #1 risk for the registry is ghost accumulation → operator distrust → ceremony (Codex Q5).
 
 **Concluding:** call `concludeExperiment(expId, conclusion)` at end-of-work with the outcome (Codex verdict, pass/fail, measured Δ, whatever is load-bearing). NEVER delete experiments per rule in CLAUDE.md.
 

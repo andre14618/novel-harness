@@ -254,6 +254,31 @@ async function main(): Promise<void> {
     }
   }
 
+  // Orchestrator env contamination check — experiment #238 FAILed because the
+  // orchestrator had DEBUG_FORCE_PLAN_CHECK=fail still set in its systemd drop-in
+  // from earlier R-campaign tests. Paranoia-checking local env (below) is not
+  // enough — the orchestrator runs in a SEPARATE process with its own env.
+  // GET /api/health/debug-flags always returns the current state.
+  try {
+    const healthR = await apiGet(`/api/health/debug-flags`)
+    if (healthR.ok) {
+      const flags = await healthR.json() as Record<string, string | null>
+      const active = Object.entries(flags).filter(([k, v]) => k.startsWith("DEBUG_FORCE_") && v !== null)
+      if (active.length > 0) {
+        console.error(`  [ABORT] Orchestrator has forced-fail env vars set:`)
+        for (const [k, v] of active) console.error(`          ${k}=${v}`)
+        console.error(`          These are set in the systemd drop-in`)
+        console.error(`          (/etc/systemd/system/novel-harness-orchestrator.service.d/debug.conf).`)
+        console.error(`          Clear + daemon-reload + restart the service, then retry.`)
+        process.exit(2)
+      }
+    } else {
+      console.warn(`  [warn] /api/health/debug-flags probe returned ${healthR.status} — orchestrator may be outdated (missing endpoint). Proceeding at own risk.`)
+    }
+  } catch (err) {
+    console.warn(`  [warn] /api/health/debug-flags probe failed (${err instanceof Error ? err.message : err}) — continuing at own risk`)
+  }
+
   // V2 store contamination check — Round B added an in-memory injection store
   // behind DEBUG_ENABLE_INJECTION. A leftover rule from a previous test run
   // could silently contaminate this "clean" run and produce a false failure.

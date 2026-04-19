@@ -1412,6 +1412,24 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
     }
   }
 
+  // ── Orchestrator health — DEBUG_FORCE_* flag visibility ────────────
+  // Always accessible (no env gate). Returns which DEBUG_FORCE_* flags
+  // are set in the orchestrator's process env. Purpose: organic-run
+  // validation scripts can abort at startup if the orchestrator is
+  // contaminated with forced-fail env vars from an earlier campaign —
+  // closes the gap discovered by experiment #238 (FAIL was
+  // environmental, not a handler bug). Values are booleans only; never
+  // echo raw env values since these are debug knobs not secrets but the
+  // surface shouldn't invite direct reads of arbitrary env.
+  if (path === "/api/health/debug-flags" && req.method === "GET") {
+    return Response.json({
+      DEBUG_FORCE_PLAN_CHECK: process.env.DEBUG_FORCE_PLAN_CHECK ?? null,
+      DEBUG_FORCE_VALIDATION: process.env.DEBUG_FORCE_VALIDATION ?? null,
+      DEBUG_FORCE_REVISER: process.env.DEBUG_FORCE_REVISER ?? null,
+      DEBUG_ENABLE_INJECTION: process.env.DEBUG_ENABLE_INJECTION ?? null,
+    })
+  }
+
   // ── V2 debug-injection routes ───────────────────────────────────────
   // All three routes hard-return 404 unless DEBUG_ENABLE_INJECTION === "true".
   // This is deliberately a production-hostile flag — hiding the surface via
