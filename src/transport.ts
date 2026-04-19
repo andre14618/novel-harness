@@ -117,7 +117,21 @@ export class DirectTransport implements LLMTransport {
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       httpAttempts++
-      const res = await fetch(providerDef.apiUrl, { method: "POST", headers, body })
+      // Bound every outbound LLM fetch. Without a timeout, a silently-dropped
+      // provider connection (DeepSeek in particular) leaves the fetch hanging
+      // forever because there's no EOF to close the response. 5min is well
+      // above the p99 (world-builder max is ~120s) so legitimate slow calls
+      // still complete; unbound the cap via LLM_REQUEST_TIMEOUT_MS env for
+      // very-large-output adapters if needed.
+      const timeoutMs = parseInt(process.env.LLM_REQUEST_TIMEOUT_MS ?? "300000", 10)
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(new Error(`LLM fetch timeout after ${timeoutMs}ms`)), timeoutMs)
+      let res: Response
+      try {
+        res = await fetch(providerDef.apiUrl, { method: "POST", headers, body, signal: controller.signal })
+      } finally {
+        clearTimeout(timer)
+      }
 
       if (res.status === 429 || res.status >= 500) {
         const delay = (attempt + 1) * 5000
