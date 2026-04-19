@@ -44,18 +44,23 @@ interface TestResult {
   error?: string
 }
 
-// ── Minimal test seed (3 chapters, 500w target) ──────────────────────────
+// Minimal test seed — 1 chapter only. With DEBUG_FORCE_PLAN_CHECK=fail
+// firing on every chapter, multi-chapter seeds produce additional
+// gates that the single-test runner doesn't handle (R2's override on
+// chapter 1 doesn't stop chapter 2 from firing a new gate, inflating
+// exhaustion_count and breaking the per-test assertion). Single chapter
+// keeps each test's scope clean. Matches the auto-mode campaign seed.
 function makeTestSeed(label: string) {
   return {
     title: `test-exhaustion-web-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     premise: `A lone ranger named ${label} crosses a dying land to deliver a message that may end a war.`,
     genre: "fantasy",
-    chapterCount: 3,
+    chapterCount: 1,
     characters: [
       { name: label, role: "protagonist", description: "A weathered courier who trusts only the road." },
       { name: "Marshal Vex", role: "supporting", description: "Commander of the eastern border garrison." },
     ],
-    targetWordsPerChapter: 500,
+    targetWordsPerChapter: 300,
   }
 }
 
@@ -209,9 +214,13 @@ async function runR2_webOverride(): Promise<TestResult> {
         {
           name: "gate:plan-assist-resolved after override",
           timeoutMs: 30_000,
+          // Accept EITHER the native gate:plan-assist-resolved SSE event OR
+          // the trace:plan-assist-resolve row (persisted to pipeline_events).
+          // The native event fires synchronously on POST — if the watcher
+          // opens after POST returns, only the trace seed catches it.
           match: e =>
-            e.type === "gate:plan-assist-resolved" &&
-            e.data.action === "override",
+            (e.type === "gate:plan-assist-resolved" && e.data.action === "override") ||
+            (e.type === "trace" && e.data.eventType === "plan-assist-resolve" && e.data.action === "override"),
         },
         {
           name: "phase:changed or done after gate resolved",
@@ -370,12 +379,18 @@ async function runR3_webEditPlan(): Promise<TestResult> {
     const editRow = exhRows.find((r: any) => r.decision === "edit-plan")
     assert(editRow !== undefined,
       `Expected decision='edit-plan' in chapter_exhaustions, found: ${exhRows.map((r: any) => r.decision).join(",")}`)
-    // decision_details JSONB should reflect the submitted outline (check scenes length)
-    const detailsSceneCount = Array.isArray(editRow.decision_details?.scenes)
-      ? editRow.decision_details.scenes.length
+    // decision_details JSONB should reflect the submitted outline (check scenes length).
+    // Bun.sql + `::jsonb` cast stores objects passed through JSON.stringify
+    // as jsonb-of-type-string (the raw JSON text is quoted back into a string
+    // value). Same pattern exists on chapter_revisions.outline_before/after.
+    // Parse the string if we find one.
+    const rawDetails = editRow.decision_details
+    const detailsObj = typeof rawDetails === "string" ? JSON.parse(rawDetails) : rawDetails
+    const detailsSceneCount = Array.isArray(detailsObj?.scenes)
+      ? detailsObj.scenes.length
       : -1
     assert(detailsSceneCount === replacementScenes.length,
-      `Expected decision_details.scenes.length=${replacementScenes.length}, got ${detailsSceneCount}`)
+      `Expected decision_details.scenes.length=${replacementScenes.length}, got ${detailsSceneCount} (rawType=${typeof rawDetails})`)
 
     // ── Semantic guard sub-test: empty scenes → 400 ──────────────────────
     // Use a FRESH novel so the gate is open when we submit the invalid body.
@@ -497,9 +512,10 @@ async function runR4_webAbort(): Promise<TestResult> {
         {
           name: "gate:plan-assist-resolved with action=abort",
           timeoutMs: 30_000,
+          // See R2 rationale: same race, same dual-source matcher.
           match: e =>
-            e.type === "gate:plan-assist-resolved" &&
-            e.data.action === "abort",
+            (e.type === "gate:plan-assist-resolved" && e.data.action === "abort") ||
+            (e.type === "trace" && e.data.eventType === "plan-assist-resolve" && e.data.action === "abort"),
         },
         {
           // After abort the run stops — stream closes (done) or error fires.
