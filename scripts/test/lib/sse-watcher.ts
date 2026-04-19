@@ -271,16 +271,25 @@ export async function watchForExpectations(params: {
           // Per Codex review ac6e95d3d010bac03: widened from 4-type
           // whitelist to ALL unmatched events (dedup prevents flood).
           const label = labelForEvent(event)
-          unexpectedEventTypes[label] = (unexpectedEventTypes[label] ?? 0) + 1
-          const loudCount = (unexpectedLogCounts[label] ?? 0) + 1
-          unexpectedLogCounts[label] = loudCount
-          if (loudCount <= UNEXPECTED_LOG_CAP_PER_LABEL) {
-            const dataSnippet = JSON.stringify(event.data).slice(0, 120)
-            const more = loudCount === UNEXPECTED_LOG_CAP_PER_LABEL ? " (further occurrences suppressed)" : ""
-            console.log(
-              `  [UNEXPECTED] ${label} (data: ${dataSnippet}) ` +
-              `while awaiting "${expectations[pendingIdx]?.name}"${more}`,
-            )
+
+          // llm-in-flight is a pure liveness heartbeat (Codex review
+          // a13ff46cc19e58d5a) — counts for lastEventAt liveness tracking
+          // but is NOT a signal event. Skip the unexpected counter + loud
+          // log so 5s heartbeats don't pollute the stall summary.
+          if (event.type === "trace" && event.data?.eventType === "llm-in-flight") {
+            // already counted in eventsSinceHeartbeat; nothing else to do
+          } else {
+            unexpectedEventTypes[label] = (unexpectedEventTypes[label] ?? 0) + 1
+            const loudCount = (unexpectedLogCounts[label] ?? 0) + 1
+            unexpectedLogCounts[label] = loudCount
+            if (loudCount <= UNEXPECTED_LOG_CAP_PER_LABEL) {
+              const dataSnippet = JSON.stringify(event.data).slice(0, 120)
+              const more = loudCount === UNEXPECTED_LOG_CAP_PER_LABEL ? " (further occurrences suppressed)" : ""
+              console.log(
+                `  [UNEXPECTED] ${label} (data: ${dataSnippet}) ` +
+                `while awaiting "${expectations[pendingIdx]?.name}"${more}`,
+              )
+            }
           }
         }
       }

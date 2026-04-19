@@ -37,6 +37,7 @@ export type TraceEventType =
   | "plan-assist-resolve"
   | "plan-check-outcome"
   | "debug-inject"
+  | "llm-in-flight"
   | "error"
 
 export interface TraceEvent {

@@ -255,6 +255,34 @@ export async function executeAndLog(
         }
       : request
 
+  // In-flight heartbeat — emits a trace:llm-in-flight event every 5s while
+  // the fetch is open. Gives test watchers a liveness signal during
+  // non-streaming calls (concept/planning/checkers) that would otherwise
+  // sit silent for 30-60s on slow providers like DeepSeek. Non-persistent
+  // (SSE-only, not written to pipeline_events) to avoid DB noise. Codex
+  // review a13ff46cc19e58d5a recommended this shape vs global streaming.
+  let heartbeatTimer: ReturnType<typeof setInterval> | null = null
+  if (novelId) {
+    heartbeatTimer = setInterval(() => {
+      try {
+        emit(novelId, {
+          type: "trace" as any,
+          data: {
+            eventType: "llm-in-flight",
+            agent: agentName,
+            provider: request.provider,
+            model: request.model,
+            chapter: tags?.chapter,
+            beatIndex: tags?.beatIndex,
+            attempt: tags?.attempt,
+            elapsedMs: Date.now() - startedAt,
+          },
+          timestamp: new Date().toISOString(),
+        })
+      } catch { /* ignore emit errors — liveness only */ }
+    }, 5000)
+  }
+
   try {
     response = await getTransport().execute(effectiveRequest)
     return response
@@ -262,6 +290,7 @@ export async function executeAndLog(
     caughtError = err
     throw err
   } finally {
+    if (heartbeatTimer) clearInterval(heartbeatTimer)
     if (novelId) {
       const failed = caughtError != null
       const latencyMs = response?.latencyMs ?? (Date.now() - startedAt)
@@ -426,6 +455,33 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
     }).catch(err => console.error(`[trace] llm-call-start failed:`, err))
   }
 
+  // In-flight heartbeat — emits trace:llm-in-flight every 5s while the
+  // request is open. Matches the executeAndLog pattern. Required for
+  // test watchers to distinguish "slow DeepSeek call" from "stalled
+  // pipeline" during concept/planning/checker phases that don't stream.
+  // Non-persistent SSE-only. Codex review a13ff46cc19e58d5a.
+  let heartbeatTimer: ReturnType<typeof setInterval> | null = null
+  if (config.novelId) {
+    heartbeatTimer = setInterval(() => {
+      try {
+        emit(config.novelId!, {
+          type: "trace" as any,
+          data: {
+            eventType: "llm-in-flight",
+            agent: config.agentName ?? "unknown",
+            provider: providerName,
+            model,
+            chapter: config.chapter,
+            beatIndex: config.beatIndex,
+            attempt: config.attempt,
+            elapsedMs: Date.now() - startedAt,
+          },
+          timestamp: new Date().toISOString(),
+        })
+      } catch { /* ignore emit errors — liveness only */ }
+    }, 5000)
+  }
+
   try {
     requestResult = await makeRequest(config.systemPrompt, userPrompt, temperature, maxTokens, provider, model, providerName)
     content = requestResult.content
@@ -475,6 +531,7 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
     caughtError = err
     throw err
   } finally {
+    if (heartbeatTimer) clearInterval(heartbeatTimer)
     // Always log when we have a novel context — even when makeRequest threw
     // (requestResult is null) or zod validation failed. This is the troubleshooting
     // guarantee: every attempt produces exactly one row.
