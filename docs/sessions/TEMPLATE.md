@@ -4,6 +4,19 @@ updated: YYYY-MM-DD
 duration: ~Xh
 commits: N
 subagents_spawned: M
+
+# ── Workflow telemetry (mandatory as of 2026-04-19) ──────────────────────
+# Origin: Codex threads a65ba6ef7290fdf25 + ad350aa657ec1c9b1.
+# Goal: stop making workflow decisions on vibes; build a dataset.
+# Missing fields → retrospective is rejected; fill with 0 if the metric
+# didn't fire, never omit.
+wall_clock_min: 0
+codex_reviews: 0                    # total Codex calls (plan-triage + plan-review + impl-review + narrow-Qs)
+rework_passes: 0                    # fix-commits that followed a Codex CHANGE / NEEDS-WORK / HIGH finding
+bugs_caught_by_codex: 0             # # of real bugs Codex flagged that unit tests missed
+bugs_caught_by_preflight: 0         # # of real bugs preflight (tests + typecheck + invariants) caught pre-Codex
+bugs_escaped_to_prod: 0             # # of bugs discovered after deploy
+preflight_false_positives: 0        # # of preflight halts that turned out to be non-bugs (allowlist candidates)
 ---
 
 # {Session theme} — YYYY-MM-DD
