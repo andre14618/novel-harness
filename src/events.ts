@@ -60,14 +60,17 @@ export function subscribeSSE(novelId: string): ReadableStream<Uint8Array> {
         timestamp: new Date().toISOString(),
       })
 
-      // Send keepalive every 30s to prevent connection timeout
+      // Send keepalive every 5s to prevent idle-socket timeout on
+      // clients that treat long silence as a dead connection (Bun fetch
+      // closes SSE connections on ~10s idle reads by default). 5s is
+      // frequent enough for all known consumers without hammering.
       const keepalive = setInterval(() => {
         try {
           controller.enqueue(encoder.encode(": keepalive\n\n"))
         } catch {
           clearInterval(keepalive)
         }
-      }, 30000)
+      }, 5000)
     },
     cancel() {
       clients.get(novelId)?.delete(myController)
