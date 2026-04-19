@@ -28,9 +28,13 @@ function FamilyCard({ family }: { family: FamilySummary }) {
     }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 14, flexWrap: "wrap", marginBottom: 8 }}>
         <h3 style={{ margin: 0, fontSize: "1.05rem" }}>
-          <Link to={`/charters?charter=${family.family}`} style={{ color: "#dce" }}>
-            {family.family}
-          </Link>
+          {charter ? (
+            <Link to={`/charters?charter=${family.family}`} style={{ color: "#dce" }}>
+              {family.family}
+            </Link>
+          ) : (
+            <span style={{ color: "#dce" }}>{family.family}</span>
+          )}
         </h3>
         <span style={{ color: "#888", fontSize: "0.82rem" }}>
           {totalExperiments} experiment{totalExperiments !== 1 ? "s" : ""}
@@ -40,9 +44,13 @@ function FamilyCard({ family }: { family: FamilySummary }) {
           latest {formatDate(latestAt)}
         </span>
       </div>
-      {charter && (
+      {charter ? (
         <p style={{ color: "#aaa", fontSize: "0.88rem", margin: "4px 0 10px" }}>
           <strong style={{ color: "#9ac" }}>charter #{charter.id}</strong> — {charter.description}
+        </p>
+      ) : (
+        <p style={{ color: "#c95", fontSize: "0.82rem", margin: "4px 0 10px" }}>
+          ⚠ No charter row for this family — runs exist but the charter is unseeded.
         </p>
       )}
       {runs.length > 0 && (
