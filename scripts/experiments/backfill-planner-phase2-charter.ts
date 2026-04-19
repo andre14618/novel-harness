@@ -2,12 +2,12 @@
  * Backfill a tuning_experiments row for the planner-phase2-payoff-floor charter.
  *
  * The charter was drafted and a mini-pilot launched before an experiment row
- * existed. This script is idempotent — if a row already exists with
- * config->>experiment_family = 'planner-phase2-payoff-floor' and
- * config->>kind = 'charter', it no-ops.
+ * existed. Idempotent on insert; pass --update to overwrite the existing row's
+ * config/description (use this after editing the canonical block below).
  *
  * Usage:
  *   bun scripts/experiments/backfill-planner-phase2-charter.ts
+ *   bun scripts/experiments/backfill-planner-phase2-charter.ts --update
  */
 
 import db from "../../src/db/connection"
@@ -16,7 +16,32 @@ import { createTuningExperiment } from "../../src/db/ops"
 const FAMILY = "planner-phase2-payoff-floor"
 const CHARTER_SLUG = "planner-phase2-payoff-floor"
 
+const DESCRIPTION = "Charter — planner-phase2-payoff-floor (mini-pilot: does an aggressive prompt-only setup/payoff floor on pre-planner-phase2-v1a recover enough of main V1a lift?)"
+
+const CONFIG = {
+  kind: "charter",
+  experiment_family: FAMILY,
+  charter_slug: CHARTER_SLUG,
+  charter_path: `docs/charters/${CHARTER_SLUG}.md`,
+  arms: ["baseline", "prompt", "mainv1a"],
+  primary_metric: {
+    name: "retry_ratio",
+    formula: "COUNT(*) FILTER (WHERE attempt > 1) / COUNT(*) over beat-writer llm_calls per (arm, seed, chapter)",
+    delta_sign: "prompt minus baseline; lower is better; SHIP requires negative delta",
+    aggregation: "mean of paired cell deltas across 15 (3 seeds x 5 chapters) cells, unweighted",
+  },
+  decision_thresholds: {
+    ship: { delta_max: -0.03, min_wins: 11, total_cells: 15 },
+    justify: { delta_abs_max: 0.02 },
+    kill: { delta_abs_max: 0.015, baseline_mean_max: 0.20 },
+    otherwise: "iterate / inconclusive",
+  },
+  supersedes: "planner-phase2-contract-v1",
+}
+
 async function main() {
+  const update = process.argv.includes("--update")
+
   const existing = (await db`
     SELECT id, description, status
     FROM tuning_experiments
@@ -26,26 +51,29 @@ async function main() {
     LIMIT 1
   `) as any[]
 
-  if (existing.length) {
+  if (existing.length && !update) {
     const row = existing[0]
     console.log(`Charter experiment already backfilled: #${row.id} (${row.status ?? "no status"})`)
     console.log(`  description: ${row.description}`)
+    console.log(`  pass --update to overwrite the row's description and config from this script`)
+    return
+  }
+
+  if (existing.length && update) {
+    const row = existing[0]
+    await db`
+      UPDATE tuning_experiments
+      SET description = ${DESCRIPTION}, config = ${CONFIG}
+      WHERE id = ${row.id}
+    `
+    console.log(`Updated charter experiment #${row.id} for family '${FAMILY}'.`)
     return
   }
 
   const id = await createTuningExperiment(
     "charter",
-    "Charter — planner-phase2-payoff-floor (mini-pilot: does an aggressive prompt-only setup/payoff floor on pre-planner-phase2-v1a recover enough of main V1a lift?)",
-    {
-      kind: "charter",
-      experiment_family: FAMILY,
-      charter_slug: CHARTER_SLUG,
-      charter_path: `docs/charters/${CHARTER_SLUG}.md`,
-      arms: ["baseline", "prompt", "mainv1a"],
-      primary_metric: "retry_ratio",
-      decision_thresholds: { ship: 0.03, justify: 0.02, kill: 0.015 },
-      supersedes: "planner-phase2-contract-v1",
-    },
+    DESCRIPTION,
+    CONFIG,
     { target: FAMILY, dimension: "planning" },
   )
 
