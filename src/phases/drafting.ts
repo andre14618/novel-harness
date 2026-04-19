@@ -31,6 +31,7 @@ import { trace } from "../trace"
 import { savePlannedState } from "../planned-state"
 import { diffPlanAgainstState, type PriorCharacterState } from "../state-diff"
 import { pipeline } from "../config/pipeline"
+import { loadInjection, hasAnyInjection, injectionSummary } from "../config/debug-injection"
 import * as gates from "../gates"
 import { PipelineBailError, type PlanAssistGatePayload } from "../gates"
 import { lintProse } from "../lint"
@@ -178,6 +179,16 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
       if (planCheckOverridden) {
         console.log(`  [OVERRIDE] plan-check + validation-reviser skipped for chapter ${ch} (persisted flag)`)
         log(novelId, "info", `Chapter ${ch} plan-check override active — skipping blocking checks`)
+      }
+
+      // Debug injection — test-campaign-plan.md §"Debug injection".
+      // Parsed per-attempt (not at module load) so orchestrator restarts
+      // aren't required to change flags mid-session.
+      // Strict no-op when no DEBUG_FORCE_* env vars are set.
+      const inject = loadInjection()
+      if (hasAnyInjection(inject)) {
+        log(novelId, "warn", `[DEBUG-INJECT] ${injectionSummary(inject)}`)
+        await trace(novelId, { eventType: "debug-inject", chapter: ch, payload: inject as any })
       }
 
       // Populated at exhaustion sites below; fires a plan-assist gate at
@@ -422,7 +433,15 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
         })(),
       ])
 
-      const validation = validateChapterDraft(prose, outline)
+      // Seam B — DEBUG_FORCE_VALIDATION=pov|word-count: replace the validation
+      // result with a synthesized failure so the validation-driven reviser
+      // escalation path fires without the prose actually being short/POV-missing.
+      const _rawValidation = validateChapterDraft(prose, outline)
+      const validation = (inject.forceValidation === "pov")
+        ? { passed: false as const, blockers: [`POV character "${outline.povCharacter}" never mentioned in draft`], warnings: _rawValidation.warnings }
+        : (inject.forceValidation === "word-count")
+          ? { passed: false as const, blockers: [`Chapter too short: 100 words (minimum 500)`], warnings: _rawValidation.warnings }
+          : _rawValidation
       await trace(novelId, {
         eventType: "validation-check", chapter: ch,
         payload: { passed: validation.passed, blockers: validation.blockers, warnings: validation.warnings },
@@ -441,7 +460,17 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
       //   emotional_arc_correct=false → last 2 beats (arc lands at closer)
       if (pipeline.chapterPlanCheck && !planCheckOverridden) {
         if (planCheckSettled.status === "fulfilled" && planCheckSettled.value !== null) {
-          let out = planCheckSettled.value.output
+          // Seam A — DEBUG_FORCE_PLAN_CHECK=fail: replace the checker output
+          // with a synthesized failure so the exhaustion handler fires without
+          // needing the LLM to actually return pass=false.
+          let out = (inject.forcePlanCheck === "fail")
+            ? {
+                pass: false as const,
+                deviations: [{ description: "forced plan-check failure via DEBUG_FORCE_PLAN_CHECK=fail", beat_index: 0 as number | null }],
+                setting_match: undefined,
+                emotional_arc_correct: undefined,
+              }
+            : planCheckSettled.value.output
           let rewritePass = 0
           const canSettle = beatProses.length === outline.scenes.length
 
@@ -590,13 +619,21 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                   prose,
                   (out.deviations ?? []).map(d => `[beat ${d.beat_index ?? "chapter-level"}] ${d.description}`),
                 )
-                const revised = await callAgent({
-                  novelId, agentName: "chapter-plan-reviser",
-                  chapter: ch, attempt: attempts,
-                  systemPrompt: CHAPTER_PLAN_REVISER_PROMPT,
-                  userPrompt: reviseCtx,
-                  schema: chapterPlanReviseSchema,
-                })
+                // Seam C — DEBUG_FORCE_REVISER: intercept the reviser call
+                // before it reaches the LLM so the rejection / throw paths
+                // fire deterministically in tests.
+                if (inject.forceReviser === "throw") {
+                  throw new Error("forced reviser throw via DEBUG_FORCE_REVISER=throw")
+                }
+                const revised = inject.forceReviser === "reject"
+                  ? { output: { scenes: [{ description: "forced single-beat plan", characters: [outline.povCharacter], kind: "description" as const, setting: outline.setting, pov: outline.povCharacter }], establishedFacts: [], characterStateChanges: [], knowledgeChanges: [] } }
+                  : await callAgent({
+                      novelId, agentName: "chapter-plan-reviser",
+                      chapter: ch, attempt: attempts,
+                      systemPrompt: CHAPTER_PLAN_REVISER_PROMPT,
+                      userPrompt: reviseCtx,
+                      schema: chapterPlanReviseSchema,
+                    })
 
                 // Post-revision sanity checks — reject obviously bad plans.
                 // If any check fails we keep the original outline; the outer
@@ -854,13 +891,20 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
             const originalBeatsSnapshotV = [...outline.scenes]
             try {
               const reviseCtx = buildChapterPlanReviseContextForValidation(outline, prose, currentBlockers)
-              const revised = await callAgent({
-                novelId, agentName: "chapter-plan-reviser",
-                chapter: ch, attempt: attempts,
-                systemPrompt: CHAPTER_PLAN_REVISER_PROMPT,
-                userPrompt: reviseCtx,
-                schema: chapterPlanReviseSchema,
-              })
+              // Seam C (validation path) — DEBUG_FORCE_REVISER: same intercept
+              // as the plan-check reviser path above.
+              if (inject.forceReviser === "throw") {
+                throw new Error("forced reviser throw via DEBUG_FORCE_REVISER=throw")
+              }
+              const revised = inject.forceReviser === "reject"
+                ? { output: { scenes: [{ description: "forced single-beat plan", characters: [outline.povCharacter], kind: "description" as const, setting: outline.setting, pov: outline.povCharacter }], establishedFacts: [], characterStateChanges: [], knowledgeChanges: [] } }
+                : await callAgent({
+                    novelId, agentName: "chapter-plan-reviser",
+                    chapter: ch, attempt: attempts,
+                    systemPrompt: CHAPTER_PLAN_REVISER_PROMPT,
+                    userPrompt: reviseCtx,
+                    schema: chapterPlanReviseSchema,
+                  })
 
               const revisedScenes: SceneBeat[] = (revised.output.scenes ?? []) as SceneBeat[]
               const minBeats = Math.max(3, Math.ceil(outline.targetWords / 300))

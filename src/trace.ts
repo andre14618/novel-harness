@@ -33,6 +33,7 @@ export type TraceEventType =
   | "state-extraction"
   | "gate-wait"
   | "gate-resolve"
+  | "debug-inject"
   | "error"
 
 export interface TraceEvent {
