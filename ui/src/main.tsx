@@ -8,6 +8,7 @@ import { FinetunePage } from "./components/FinetunePage"
 import { ContextEngineeringPage } from "./components/ContextEngineeringPage"
 import { DocsPage } from "./components/DocsPage"
 import { ChartersPage } from "./components/ChartersPage"
+import { ExperimentFamiliesPage } from "./components/ExperimentFamiliesPage"
 import { NovelReadView } from "./components/NovelReadView"
 import { StudioPage } from "./components/StudioPage"
 import "./styles/app.css"
@@ -31,7 +32,7 @@ createRoot(document.getElementById("root")!).render(
           <Route path="/:novelId/read" element={<NovelReadView />} />
           {/* Redirects for removed tabs — still accessible via direct URL */}
           <Route path="/config" element={<Navigate to="/guide" replace />} />
-          <Route path="/experiments" element={<Navigate to="/guide" replace />} />
+          <Route path="/experiments" element={<ExperimentFamiliesPage />} />
           <Route path="/models" element={<Navigate to="/guide" replace />} />
           <Route path="/llm-calls" element={<Navigate to="/guide" replace />} />
           <Route path="/costs" element={<Navigate to="/guide" replace />} />
