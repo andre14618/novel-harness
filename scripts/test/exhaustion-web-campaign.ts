@@ -183,7 +183,7 @@ async function runR2_webOverride(): Promise<TestResult> {
         }
       },
     })
-    assert(gateEvent !== null, "Expected gate:plan-assist SSE event within 90s")
+    assert(gateEvent !== null, "Expected gate:plan-assist SSE event within timeout")
     assert(gateEvent!.type === "gate:plan-assist", `Expected gate:plan-assist, got ${gateEvent!.type}`)
     assert(gateEvent!.data.chapter === 1,
       `Expected gate for chapter 1, got chapter=${gateEvent!.data.chapter}`)
@@ -194,8 +194,9 @@ async function runR2_webOverride(): Promise<TestResult> {
 
     // Submit override decision
     const decideR = await apiPost(`/api/novel/${novelId}/plan-assist/1/decide`, { action: "override" })
-    assert(decideR.ok, `decide returned ${decideR.status}: ${await decideR.text()}`)
-    const decideBody = await decideR.json() as any
+    const decideText = await decideR.text()
+    assert(decideR.ok, `decide returned ${decideR.status}: ${decideText}`)
+    const decideBody = JSON.parse(decideText) as any
     assert(decideBody.ok === true, `decide response ok not true: ${JSON.stringify(decideBody)}`)
     assert(decideBody.action === "override", `Expected action=override in response, got: ${decideBody.action}`)
 
@@ -296,7 +297,7 @@ async function runR3_webEditPlan(): Promise<TestResult> {
         }
       },
     })
-    assert(gateEvent !== null, "Expected gate:plan-assist SSE event within 90s")
+    assert(gateEvent !== null, "Expected gate:plan-assist SSE event within timeout")
     assert(gateEvent!.data.chapter === 1,
       `Expected gate for chapter 1, got chapter=${gateEvent!.data.chapter}`)
 
@@ -343,8 +344,9 @@ async function runR3_webEditPlan(): Promise<TestResult> {
       action: "edit-plan",
       outline: replacementOutline,
     })
-    assert(decideR.ok, `decide returned ${decideR.status}: ${await decideR.text()}`)
-    const decideBody = await decideR.json() as any
+    const decideText = await decideR.text()
+    assert(decideR.ok, `decide returned ${decideR.status}: ${decideText}`)
+    const decideBody = JSON.parse(decideText) as any
     assert(decideBody.ok === true, `decide response ok not true: ${JSON.stringify(decideBody)}`)
     assert(decideBody.action === "edit-plan", `Expected action=edit-plan in response, got: ${decideBody.action}`)
 
@@ -469,7 +471,7 @@ async function runR4_webAbort(): Promise<TestResult> {
         }
       },
     })
-    assert(gateEvent !== null, "Expected gate:plan-assist SSE event within 90s")
+    assert(gateEvent !== null, "Expected gate:plan-assist SSE event within timeout")
     assert(gateEvent!.data.chapter === 1,
       `Expected gate for chapter 1, got chapter=${gateEvent!.data.chapter}`)
 
@@ -478,8 +480,9 @@ async function runR4_webAbort(): Promise<TestResult> {
 
     // Submit abort decision
     const decideR = await apiPost(`/api/novel/${novelId}/plan-assist/1/decide`, { action: "abort" })
-    assert(decideR.ok, `decide returned ${decideR.status}: ${await decideR.text()}`)
-    const decideBody = await decideR.json() as any
+    const decideText = await decideR.text()
+    assert(decideR.ok, `decide returned ${decideR.status}: ${decideText}`)
+    const decideBody = JSON.parse(decideText) as any
     assert(decideBody.ok === true, `decide response ok not true: ${JSON.stringify(decideBody)}`)
     assert(decideBody.action === "abort", `Expected action=abort in response, got: ${decideBody.action}`)
 
