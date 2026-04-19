@@ -128,11 +128,15 @@ Parallel where disjoint. Single message, multiple Agent tool uses (CLAUDE.md rul
 
 **Preflight is a blocking gate.** Runs on the aggregated commit set before Codex implementation review. Sits between subagent completion and Phase 6.
 
-Preflight bundle:
-1. `bun test src/` — expected pass count (pre-existing failures documented inline)
-2. `bunx tsc --noEmit` — no NEW errors (pre-existing implicit-any failures allowlisted)
-3. Migration-path test if `sql/` moved
-4. **Invariants** (see next section)
+Canonical invocation: **`bun scripts/preflight.ts`**. The wrapper runs every step and aggregates exit codes — exit 0 means all green.
+
+Preflight bundle (what the wrapper runs):
+1. `bun test src/` — tolerates a `BASELINE_TEST_FAILURES` count (documented inline in the wrapper). NEW failures above baseline HALT.
+2. `bunx tsc --noEmit` — tolerates a `BASELINE_TSC_ERRORS` count (pre-existing implicit-any debt). NEW errors HALT.
+3. `bun scripts/lint/invariants-check.ts` — default scan.
+4. `bun scripts/lint/invariants-check.ts --self-test` — fixture rot check (each known-bad fixture MUST fire its declared invariant).
+
+(Migration-path tests for sql/ changes are a manual add-on when a ticket touches `sql/`.)
 
 Preflight failures HALT — no Codex cycle until green. Two failures on the same root cause → escalate to human.
 

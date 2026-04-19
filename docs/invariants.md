@@ -41,11 +41,11 @@ Each invariant gets an entry below with:
 
 | # | Name | Shape | Status |
 |---|---|---|---|
-| 1 | revisionUsed restart persistence | runtime | planned |
-| 2 | Seam-recheck symmetry | syntactic | planned |
-| 3 | Subscribe-before-start | syntactic | planned |
-| 4 | Branch-symmetric event emission | runtime (narrow) | planned |
-| 5 | Body-already-used detection | syntactic | planned |
+| 1 | revisionUsed restart persistence | runtime | shipped (exp #243, `src/phases/drafting-revision-used-persistence.test.ts`) |
+| 2 | Seam-recheck symmetry | syntactic | shipped (exp #243, `scripts/lint/invariants-check.ts` + `tests/invariants-fixtures/seam-recheck-asymmetry.ts`) |
+| 3 | Trace-seeded watcher for post-start event assertions | syntactic | shipped (exp #243, `scripts/lint/invariants-check.ts` + `tests/invariants-fixtures/watcher-missing.ts`) |
+| 4 | Branch-symmetric event emission | runtime (narrow) | shipped (exp #243, `src/phases/drafting-reviser-escalation.test.ts`) |
+| 5 | Body-already-used detection | syntactic | shipped (exp #243, `scripts/lint/invariants-check.ts` + `tests/invariants-fixtures/body-already-used.ts`) |
 
 **Ratio target:** within 3-5 sessions after invariants ship, `bugs_caught_by_preflight` should catch up to or exceed `bugs_caught_by_codex` on the recurring bug classes named below. If the ratio doesn't move, invariants are theater — re-evaluate the shapes.
 
@@ -58,8 +58,8 @@ Each invariant gets an entry below with:
 - **Shape:** runtime
 - **Catches:** Fire-and-forget DB write race. In-memory guards that must survive restart but don't get awaited. Instance: commit `0c9fa3b` fixed via await-then-flip; caught by Codex thread `aad6d3503db164b1f` HIGH A.
 - **Assertion:** For any (novel_id, chapter_number), across the full drafting lifetime (including mid-run process restarts), `chapter_revisions` must contain AT MOST ONE row with `outcome != 'skip_already_revised'` and `outcome != 'skip_duplicate_sig'` and `outcome != 'skip_no_beat_state'`. If this invariant fires, the reviser hard cap was violated.
-- **Implementation:** planned — integration test in `src/phases/drafting-revision-used-persistence.test.ts` should extend to cover the restart case (kill process mid-reviser-call, resume, assert zero double-fires).
-- **Status:** planned
+- **Implementation:** shipped at `src/phases/drafting-revision-used-persistence.test.ts` → "Invariant #1: reviser-then-restart → total non-skip chapter_revisions writes stays at 1". Simulates process-restart between reviser-fire and outcome-log, asserts cumulative non-skip write count stays at exactly 1 across pre-restart and post-restart entries.
+- **Status:** shipped (exp #243, commits `10ce979`)
 - **Pattern doc:** `docs/patterns/in-memory-state-restart-data-loss.md`
 
 ### 2. Seam-recheck symmetry
@@ -67,16 +67,16 @@ Each invariant gets an entry below with:
 - **Shape:** syntactic (AST walk)
 - **Catches:** Missed recheck sites for DEBUG_FORCE_* env injection. Instances: commits `fed9e4a` (plan-check settle-loop recheck missed) + `4ad2413` (validation settle-loop recheck missed). Both shipped; both caught only after the next session's forced-flag campaign revealed them.
 - **Assertion:** In `src/phases/drafting.ts`, every branch that reads `inject.forceXxx` (where `Xxx` ∈ `PlanCheck`, `Validation`, `Reviser`) must appear at ALL sites where the corresponding check runs — including initial invocation AND every recheck inside a settle loop. AST rule: find all call sites of `chapter-plan-checker` / `validateChapterDraft` / `chapter-plan-reviser`; for each, assert the surrounding 10-line block contains a matching `inject.forceXxx` guard OR the block is explicitly annotated `// @noninjectable`.
-- **Implementation:** planned — `scripts/lint/invariants-check.ts` + use `@typescript-eslint/parser` or Bun's built-in AST traversal.
-- **Status:** planned
+- **Implementation:** shipped at `scripts/lint/invariants-check.ts` `checkSeamRecheckSymmetry()`. Uses `typescript` compiler API to find call sites of `callAgent({agentName: "chapter-plan-checker"|"chapter-plan-reviser"})` and `validateChapterDraft(...)`, then checks whether any real AST node of shape `inject.forceXxx` exists within ±50 source lines of the call (comments and string literals excluded via AST-only matching). Regression belt: `tests/invariants-fixtures/seam-recheck-asymmetry.ts` with zero-guard recheck + comment-bypass trap line.
+- **Status:** shipped (exp #243, commits `ce6452c` + `7afe4dd` + `dedc0b6`)
 
 ### 3. Trace-seeded watcher for post-start event assertions
 
 - **Shape:** syntactic (lint)
 - **Catches:** SSE race where events fire before the watcher attaches. Instance: commits `f1f844f` + later `0c9fa3b` fixed the R3/R4 race. The current safe pattern does NOT require subscribing before `startNovel` — `scripts/test/lib/sse-watcher.ts` seeds the matcher chain from `GET /trace` BEFORE opening SSE (see `sse-watcher.ts:45-48,80-100`). What's unsafe is asserting on post-start events without using the trace-seeded helpers at all.
 - **Assertion:** In `scripts/test/**/*.ts`, for any function that (a) calls `startNovel(...)` OR `apiPost("/api/novel/start", ...)` AND (b) makes assertions or match conditions referencing trace/SSE events (e.g. references to event-type strings `"gate:"`, `"trace:"`, `"llm-call-"`, `"phase-"`, `"error"`, `"done"`, or property accesses on `event.data` / `e.data` from an SSE stream), the SAME function MUST also call one of `watchForExpectations(...)` / `watchForTerminal(...)`. Direct `fetch()` against `/api/novel/:id/events` or raw `subscribeSSE` without the trace-seed preamble IS the race; require the helper.
-- **Implementation:** planned — AST walk in `scripts/lint/invariants-check.ts`.
-- **Status:** planned
+- **Implementation:** shipped at `scripts/lint/invariants-check.ts` `checkTraceWatcher()`. AST walk over `scripts/test/**/*.ts`; detection surface: string literals matching `/^(gate:|phase:|llm-call-|trace$|error$|done$)/`, property/element access on event-shaped identifier names, direct fetches of `/events` or `/trace` endpoints. Regression belt: `tests/invariants-fixtures/watcher-missing.ts`.
+- **Status:** shipped (exp #243, commit `ce6452c`)
 - **Correction history:** original invariant draft required the watcher-attach to precede `startNovel` in control flow; that was wrong and would have flagged current safe production code (`exhaustion-web-campaign.ts:249-255, 367-373`, `organic-run-verify.ts:107-117`). Corrected per Codex review `ac669b6ed0fcf4109` HIGH.
 
 ### 4. Branch-symmetric event emission
@@ -84,16 +84,16 @@ Each invariant gets an entry below with:
 - **Shape:** runtime (narrow)
 - **Catches:** Asymmetric event emission between auto-mode and web-mode branches. Instance: commit `a2118e1` fixed auto-mode `gate:plan-assist` silence (the event fired on web branch but not auto branch because of a Promise-constructor ordering bug).
 - **Assertion:** Narrow scope — NOT a global symmetry proof. For each named state transition in a whitelist (initially: plan-assist gate fire, validation settle exit, drafting-complete), both auto-mode and web-mode execution paths must emit the same trace event type with structurally-comparable payloads. Integration test: run a forced scenario in both modes, diff the `pipeline_events` stream, assert the event-type sequence matches.
-- **Implementation:** planned — extend `src/phases/drafting-reviser-escalation.test.ts` with a mode-parameterized variant.
-- **Status:** planned
+- **Implementation:** shipped at `src/phases/drafting-reviser-escalation.test.ts` → "Invariant #4: plan-assist gate fires the same `gate:plan-assist` event in auto and web modes". Drives through REAL `src/gates.ts` (unmocked); auto mode catches real `PipelineBailError`, web mode polls the real pending-gate map then calls real `resolvePlanAssist()`. Assertion narrowed to `gate:plan-assist` emit parity with matching kind + chapter.
+- **Status:** shipped (exp #243, commits `10ce979` + `7afe4dd`)
 
 ### 5. Body-already-used detection
 
 - **Shape:** syntactic (regex / lint)
 - **Catches:** Fetch/Response body consumed twice. Instance: commit `5505985` fixed a template-literal that eagerly called `await X.text()` before `await X.json()` on the same Response.
 - **Assertion:** In any `.ts` file, if a Response-typed variable `X` has `await X.text()` in its scope, then `await X.json()` / `await X.arrayBuffer()` / `await X.blob()` on the same `X` must NOT appear after it. Equivalent for any ordering of two body-consuming calls. Regex approximation: find `\$\{await\s+(\w+)\.(text|json|arrayBuffer|blob)\(\)\}` followed later by `await\s+\1\.(text|json|arrayBuffer|blob)\(\)`.
-- **Implementation:** planned — `scripts/lint/invariants-check.ts` regex pass. AST version deferred (regex catches 95% of real cases).
-- **Status:** planned
+- **Implementation:** shipped at `scripts/lint/invariants-check.ts` `checkBodyAlreadyUsed()`. Regex detector for the template-literal shape. Non-template-literal double-consumes (sequential `await X.text()` then `await X.json()`) are NOT caught — AST detector deferred to future ticket; known instances allowlisted with 30-day expiry (4 entries in `.claude/invariants-allowlist.yaml`, all `if (!res.ok) throw ... ${await res.text()}` short-circuit patterns).
+- **Status:** shipped (exp #243, commit `ce6452c`)
 
 ---
 
