@@ -1,11 +1,11 @@
 ---
 status: portable
-origin: novel-harness 2026-04-19 workflow overhaul
+origin: extracted from a first-party multi-agent session; see appendix for provenance
 ---
 
 # Portable Claude ↔ Codex orchestration workflow
 
-Drop-in skill doc for any project using Claude Code (or any Claude agent) that has access to a second reviewer model (Codex, another Claude, GPT-5+, whatever). Captures the pattern that shipped 15 clean commits in one day on novel-harness. See `docs/sessions/2026-04-19-workflow-overhaul.md` in that repo for telemetry + supersession chains proving the shape.
+Drop-in skill doc for any project using Claude Code (or any Claude agent) that has access to a second reviewer model (Codex, another Claude, GPT-5+, whatever). Captures a 13-phase pattern validated on a real project in a single day of heavy use; see **Appendix — Example provenance** at the end for the specific numbers and context.
 
 **Intent:** copy this file into your new project's `.claude/skills/` (or equivalent docs directory). Customize the bracketed `[CUSTOMIZE]` blocks. The 13-phase structure + exit triggers + telemetry are the load-bearing pieces; those stay as-is.
 
@@ -14,11 +14,11 @@ Drop-in skill doc for any project using Claude Code (or any Claude agent) that h
 ## Prerequisites
 
 - A primary implementation model (Claude Code or similar) that can dispatch parallel subagents
-- A secondary review model accessible as a tool (Codex gpt-5.4, another Claude, etc.) — **must be a different model family than the implementer** for genuine independence
+- A secondary review model accessible as a tool (Codex gpt-5.4, another Claude, etc.). **Prefer a different provider or model family** for genuine independence. If unavailable, same-model review is still useful when run in a separate thread with commit-pinned inputs — but treat it as lower-independence (the protocol is what buys you most of the value: bounded questions with `file:line` refs, commit-pinned review, not the model diversity per se).
 - A git repo with atomic-commit discipline
 - An experiment tracking surface (DB table, markdown log, whatever) so architectural work is durably recorded
-- A deploy path for the project (local dev server, staging, production — whatever "ship" means for you)
-- `[CUSTOMIZE]` — note your specific infrastructure: what's your equivalent of LXC + nohup? systemd? k8s? local dev? bare `&`?
+- A deploy/runtime path, **if applicable** (dev server, staging, production, etc. — a library project or research codebase can skip Phase 8; see Phase 8-10 variants)
+- `[CUSTOMIZE]` — note your specific infrastructure: what's your equivalent of a remote runtime + background-process launcher? systemd? k8s? local dev? bare `&`? Skip if not applicable.
 
 ## When to invoke
 
@@ -129,18 +129,30 @@ Fix only Codex-flagged issues. Re-review ONCE on the fix delta. HIGH findings af
 
 ## Phase 8 — Deploy
 
-`[CUSTOMIZE]` — your deploy command/flow. Verify service restart + migrations + no new regressions in startup/health checks. Two deploy failures → escalate.
+**Variant by project type:**
+- **Service / app** — REQUIRED. Your deploy command/flow. Verify service restart + migrations + no new regressions in startup/health checks. Two deploy failures → escalate.
+- **Library** — OPTIONAL. `npm publish` / `cargo publish` / equivalent. Often deferred until Phase 11 bundles multiple tickets.
+- **Research / notebook** — N/A. Skip to Phase 9.
+
+`[CUSTOMIZE]` — your deploy command/flow for the applicable variant.
 
 ## Phase 9 — Validate
 
-Deterministic check when possible. Integration run for broader coverage (accepted as fuzzy). Pass gate must be declared in the plan. Ambiguous outcomes escalate.
+Deterministic check when possible (preferred). Broader integration/end-to-end run for coverage when the system's behavior is emergent (accepted as fuzzy). Pass gate must be declared in the plan. Ambiguous outcomes escalate.
+
+**Variant by project type:**
+- **Deterministic-only** (most libraries, pure functions) — one-pass unit + property tests. Often complete in seconds.
+- **Mixed** (services with side effects) — deterministic tests + a smaller integration run.
+- **Heavy integration** (systems with emergent behavior: agents, simulations, distributed systems) — long-running validation (minutes to an hour+). This is the case where Phase 10 parallelism matters.
 
 ## Phase 10 — Docs subagent (parallel)
 
-Runs IN PARALLEL with Phase 9 validation wall-clock (20-45 min dead time otherwise). Updates:
+REQUIRED when Phase 9 has meaningful wall-clock (> ~5 min). OPTIONAL when validation is seconds. Updates:
 - Authoritative current-state doc
 - Todo / priorities
 - Lessons-learned log
+
+If Phase 9 is fast, run docs serially after it — no parallelism needed.
 
 ## Phase 11 — Session retrospective
 
@@ -192,19 +204,6 @@ Takes 3-5 sessions before the numbers are comparatively useful.
 
 ---
 
-## What this workflow delivers (proven 2026-04-19)
-
-**On one novel-harness session (day 1, first run through the pattern):**
-- 15 clean commits, zero regressions shipped to LXC
-- 9 real bugs caught by Codex (3 HIGH + 2 MEDIUM + 4 CHANGE across 3 review passes)
-- 1 bug caught by preflight (type widening) — validated the Lever 3 shift-left
-- 1 bug escaped to "prod" (LXC env contamination from stale systemd drop-in) — produced a new pattern + endpoint + skill-doc update the same session
-- Wall-clock: ~5 hours for an end-to-end hardening + architecture + UI + scaffolding push that would normally take 2-3 days
-
-Parallel subagents are the multiplier, Codex cycles are the fixed cost of quality.
-
----
-
 ## Artifacts you'll want in any project
 
 - `.claude/skills/implement-ticket.md` — this doc, customized to your project
@@ -226,8 +225,8 @@ Lessons paid for in full on 2026-04-19:
 
 - **Don't run Codex reviews on uncommitted workspace state.** Pin every review to `git show <sha>`.
 - **Don't fire-and-forget a write that IS a guard.** Await the write before the action it guards. Fire-and-forget is only safe when the follow-up is compensating.
-- **Don't use trace events as "happened after X" signals** if the event system replays history on connect.
-- **Don't trust your own process env** when validating a clean state for a different process. Probe the target.
+- **Don't use replayable observability streams as ordering guarantees.** Events that replay history on reconnect can satisfy "happened after X" assertions with stale data. Use explicit state polling with a unique marker.
+- **Validate target-runtime state from the target runtime.** Local env checks don't catch contamination in the remote/separate process you're actually testing. Expose a health/introspection endpoint and probe it.
 - **Don't stay in a per-subagent Codex review pattern.** Review runs ONCE on the aggregated diff. Per-subagent reviews are wasted cycles.
 - **Don't let invariants stay behind a DEBUG flag.** Non-blocking shift-left becomes theater. Block on preflight.
 - **Don't automate the full loop.** Documentation is the artifact; automation is an optimization. The user picks tickets.
@@ -239,10 +238,29 @@ Lessons paid for in full on 2026-04-19:
 
 1. Copy this file to `.claude/skills/implement-ticket.md` (or equivalent)
 2. Replace every `[CUSTOMIZE]` block with project specifics
-3. Identify your project's 3-5 starting invariants (look at the last 3 months of post-ship bugs — pattern them)
-4. Set up your experiment tracking surface
-5. Write your first session-handoff doc (can be empty: "nothing in flight, start here: <ticket>")
-6. Commit the skill doc
-7. On your next ticket, emit the session-start receipt and walk the phases
+3. **Seed the minimum artifact set** — these three are load-bearing for cross-session continuity, don't skip:
+   - `.claude/session-handoff.md` (can start empty: "nothing in flight, start here: <ticket>")
+   - `.claude/in-flight/` registry directory (gitignored) + registry helper script
+   - Session retrospective template (copy `docs/sessions/TEMPLATE.md` pattern — 7 telemetry fields in frontmatter)
+4. **Seed 3-5 starting invariants.** For new projects without bug history, seed from: (a) architecture promises (things you claim your system does — test each is actually true), (b) unsafe boundaries (inputs from untrusted sources, async/retry/persistence seams), (c) irreversible actions (deletes, writes to shared state, migrations). Replace these with bug-pattern invariants once you have 2-3 months of post-ship history.
+5. Set up your experiment tracking surface (DB table, markdown log, Notion, whatever)
+6. Commit the skill doc + artifact set
+7. On your next ticket, emit the session-start receipt (`session-start: handoff ✓ in-flight ✓ todo ✓`) and walk the phases
 
 First 2-3 tickets will feel heavy. Phases 2 + 5 + 11 pay for themselves by ticket 4.
+
+---
+
+## Appendix — Example provenance
+
+This doc was extracted from a single-day heavy-use session on a real multi-agent project (2026-04-19). Numbers from that session:
+
+- 15 clean commits shipped, zero regressions reached the deployed runtime
+- 9 real bugs caught by the secondary reviewer (3 HIGH + 2 MEDIUM + 4 CHANGE across 3 review passes)
+- 1 bug caught by preflight (type widening) before any review cycle ran — validated the shift-left
+- 1 bug escaped to the deployed runtime (environmental contamination from a stale systemd config) — produced a new pattern + health endpoint + skill-doc update within the same session
+- Wall-clock: ~5 hours for an end-to-end hardening + architecture + UI + scaffolding push that would normally take 2-3 days
+
+The project was a beat-first AI novel-generation harness with 30+ LLM agents, a Postgres state machine, and a long integration-test wall-clock (20-45 min per organic run). The pattern showed most value on exactly the kind of work that's hard to unit-test: async retry paths, persistence-after-restart, multi-agent coordination.
+
+Parallel subagents are the multiplier. Reviewer cycles are the fixed cost of quality. The 13-phase scaffold is what makes both composable.
