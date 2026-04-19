@@ -63,7 +63,9 @@ export function GuidePage() {
                   Adherence-events, chapter-plan-checker, hallucination (ungrounded + per-writer leak).
                   These don't add creative value — they add discipline, catching things the
                   autonomous drafter introduces. Each check is narrow, independently trainable,
-                  ideally small enough to run locally.
+                  ideally small enough to run locally. When a check fires, issues route to
+                  beat-targeted rewrites; if the targeted loop exhausts for chapter-plan issues,
+                  we escalate once to a chapter-plan-reviser agent instead of blind chapter restart.
                 </p>
               </div>
             </div>
@@ -105,12 +107,12 @@ LXC 307 (192.168.1.108)
 └── Fine-Tuning (W&B Inference)
     └── OpenPipe/Qwen3-14B-Instruct LoRA adapters
         ├── salvatore-1988 v4 (deployed — fantasy voice, character-tagged beat-writer)
-        ├── adherence-checker v4 (deployed — events+attribution, 2134 Sonnet-labeled pairs)
-        ├── chapter-plan-checker v2 (deployed — 96% accuracy, 609ms, exp #178)
+        ├── adherence-checker v4 (deployed — events+attribution, 2134 Sonnet-labeled pairs, beat-level)
+        ├── halluc-ungrounded-v2 (deployed 2026-04-18 — grounded-context check, beat-level)
+        ├── halluc-leak-salvatore-v1 (deployed 2026-04-18 — per-writer leak vocab, Salvatore route only)
         ├── continuity v2 (deployed but deprioritized — subsumed by beat-level checks)
-        ├── tonal-pass v4 (on-demand only — Howard methodology retired 2026-04-16)
-        ├── halluc-ungrounded-v2 (candidate — grounded-context check, 1273 pairs)
-        └── halluc-leak-salvatore-v1 (candidate — per-writer leak vocabulary, prose-only)
+        ├── chapter-plan-checker v2 (RETIRED 2026-04-18 — ~92% FP on real fantasy plans, slot → DeepSeek V3.2 base)
+        └── tonal-pass v4 (on-demand only — Howard methodology retired 2026-04-16)
           `.trim()}</pre>
           </section>
 
@@ -184,7 +186,9 @@ LXC 307 (192.168.1.108)
                     </div>
                   </div>
                   <p className="flow-agents">Agents: reference-resolver, beat-writer, adherence-events,
-                     chapter-plan-checker, continuity-facts, continuity-state, lint-fixer</p>
+                     halluc-ungrounded, halluc-leak-salvatore (Salvatore-route only),
+                     chapter-plan-checker, continuity-facts, continuity-state, chapter-plan-reviser
+                     (only on targeted-rewrite exhaustion), lint-fixer</p>
                 </div>
               </div>
 

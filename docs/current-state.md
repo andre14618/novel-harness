@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-18
+updated: 2026-04-19
 role: canonical-current-truth
 ---
 
@@ -69,8 +69,27 @@ The active narrow checkers are:
 
 - **adherence** — `adherence-events` runs inside the beat drafting retry loop.
 - **hallucination** — the beat drafting retry loop now runs `halluc-ungrounded-v2` on every beat and `halluc-leak-salvatore-v1` on Salvatore-routed beats; any fired adapter contributes blocker issues to the same targeted rewrite prompt. Leak gating is by `WRITER_GENRE_PACKS` label (`salvatore-fantasy`), not by inference model URI. OR-aggregation across checkers — one blocker from any checker forces retry. Per-adapter telemetry via `llm_calls.agent`.
+- **chapter-plan-checker** — runs per chapter, currently **DeepSeek V3.2 base model** (swapped from the retired W&B `chapter-plan-checker-v2` SFT adapter on 2026-04-18 after a dual-oracle audit found ~92% false-positive rate on real fantasy plans). Emits beat-indexed `deviations` that route to **beat-targeted rewrites** inside the chapter attempt, not full-chapter restart. On targeted-rewrite budget exhaustion (`pipeline.maxChapterPlanRewritePasses=2`), escalates **once per chapter** to the `chapter-plan-reviser` agent (DeepSeek V3.2 @ temp 0.3, 6144 maxTokens) which produces the smallest plan-edit that would make the issues satisfiable. Revised outlines are persisted to `chapter_outlines` so a state-machine re-dispatch picks up the revision. Sanity-checked for beat-floor and character-drift before acceptance.
+- **validation** — deterministic checks for word count and POV presence. Blockers route to **beat-targeted rewrites** (shortest-beat expand for word count, smallest-cast-beat-that-plans-POV for pov-missing) via the same targeted-rewrite loop as plan-check. Falls back to blind chapter restart only after targeted-rewrite budget exhaustion.
 
 Continuity remains part of the system, but the architectural direction is that checkers stay narrow and load-bearing rather than expanding into a large craft-checker zoo.
+
+### Retry / escalation flow (2026-04-19)
+
+For every chapter attempt, failure paths are ordered from most-targeted to least-targeted:
+
+1. **Per-beat adherence / hallucination** — `runBeatChecks()` in `src/phases/beat-checks.ts` aggregates checker output into `BeatIssue[]`; any blocker triggers a targeted beat rewrite with the specific issue descriptions. Budget: `pipeline.maxBeatRetries=2` per beat.
+2. **Chapter-plan-checker fail** — deviations route to beat-targeted rewrites (up to `maxChapterPlanRewritePasses=2`). If the chapter plan still fails, escalate once to `chapter-plan-reviser`; restart the chapter attempt with the revised plan.
+3. **Validation fail** — word-count + pov-missing blockers route to beat-targeted rewrites (same budget). Blind restart only if targeted exhaust.
+4. **Continuity error (transport throw)** — blind restart. Deliberately kept as blind by design; a transient checker outage doesn't need planner intervention.
+
+Every reviser invocation is logged to `chapter_revisions` with outcome (accepted / rejected_beat_floor / rejected_new_characters / error / skip_*), issue signature hash, and pre/post beat snapshots. Surfaced via `GET /api/novel/:id/revisions` and the Studio pipeline view's `RevisionsPanel`.
+
+**Known remaining blind-retry paths (backlog, per `docs/todo.md` §5):**
+
+- Plan-check + reviser both exhausted → currently blind; should convert to human gate.
+- Validation targeted-rewrites exhausted → currently blind; should escalate to planner revision (reviser-style).
+- Reviser output rejected by sanity checks → currently blind; should convert to human gate.
 
 ### Validation and retry shape
 
@@ -82,6 +101,10 @@ Continuity remains part of the system, but the architectural direction is that c
 Primary code references:
 
 - `src/phases/validation.ts`
+- `src/phases/drafting.ts` — beat-targeted rewrite + reviser escalation paths
+- `src/phases/beat-checks.ts` — BeatIssue aggregator
+- `src/agents/chapter-plan-reviser/` — planner-escalation agent
+- `src/db/chapter-revisions.ts` + `sql/028_chapter_revisions.sql` — reviser telemetry
 - `src/config/pipeline.ts`
 - `src/orchestrator/novel-routes.ts`
 

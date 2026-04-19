@@ -110,6 +110,13 @@ export function FinetunePage() {
       <div className="finetune-header" style={{ marginBottom: 16 }}>
         <section>
           <h2 style={{ marginTop: 0 }}>Current fine-tune agents</h2>
+          <p style={{ color: "#aaa", fontSize: "0.88rem", marginBottom: 12 }}>
+            Context engineering takes precedence over local-model SFT until harness baselines are clean
+            (decision 2026-04-18). When an SFT adapter drifts in production, we swap to a base model
+            with the same prompt rather than recalibrating the adapter. <strong>Chapter-plan-checker v2
+            was retired 2026-04-18</strong> after a dual-oracle audit revealed ~92% false-positive rate
+            on real fantasy plans; slot is now DeepSeek V3.2. SFT recalibration on TODO as low-priority.
+          </p>
           <DeployedSlate />
         </section>
       </div>

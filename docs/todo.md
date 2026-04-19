@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-18
+updated: 2026-04-19
 ---
 
 # To Do
@@ -47,6 +47,54 @@ Add to chapter outline output:
 
 - [ ] Reader-information state tracker — "what has the narrative revealed so far" separate from character_knowledge
 - [ ] World-expansion budget per chapter (count new named entities; alert on overload)
+
+### 5. Non-blind-retry architecture — follow-through (2026-04-19)
+
+Shipped: chapter-plan-checker swap to DeepSeek V3.2 base (commit `1e52baf`),
+beat-targeted rewrites for plan-check + validation (`892944f`, `1125287`),
+chapter-plan-reviser agent + escalation (`5d8e5d3`), post-revision sanity
+checks (`1c367d6`), revision persistence (`a1476b7`), revision telemetry
++ `/api/novel/:id/revisions` + RevisionsPanel (`18f4444..343b266`).
+
+Codex review (session ac8df7a8 + ac7442d6) flagged remaining work:
+
+- [ ] **Stub test — reviser escalation fires exactly once per chapter.**
+  Mock chapter-plan-checker to return `pass=false` three times on the same
+  chapter; assert log line `Escalating to chapter-plan-reviser` appears
+  exactly once, and that `revisionUsed` prevents a second escalation even
+  after an outer-attempt restart. Deterministic, no LLM cost.
+- [ ] **Live single-seed 10-chapter fantasy-debt run — already kicked off
+  as `novel-1776570866700` (2026-04-19) to produce first real telemetry
+  rows.** Verify post-run: chapter-plan-checker reject rate drops from
+  35-44% baseline to expected ~5-10% under DeepSeek; reviser invocations
+  produce accepted plans at high rate; revised chapters pass on the next
+  attempt (end-to-end chain validation). Compare against pre-fix pilot
+  baseline cells.
+- [ ] **Human gate for plan-check-exhausted** — when targeted rewrites
+  AND reviser both fail, raise a CLI/UI gate instead of blind outer
+  restart. Path hits `bail=true` at `src/phases/drafting.ts` plan-check
+  branch when `revisionUsed` is already true. Per Codex thread 1: "this
+  path already exhausted automated structural repair; another outer blind
+  attempt replays the same failure with no new context."
+- [ ] **Upstream escalation for validation-exhausted** — word-count /
+  pov-missing blockers that survive targeted-rewrite settle should
+  escalate to the planner (reviser-style), not another blind outer
+  attempt. Per Codex: "validation blockers are deterministic drafting-
+  shape problems; a fresh full redraft is less likely to help than a
+  plan/beat-shape adjustment once targeted beat expansion has failed."
+- [ ] **Human gate for reviser-rejected plans** — the post-revision
+  sanity checks (beat floor, no new characters) can reject a reviser
+  output; currently that falls through to blind restart. Gate it.
+- [ ] **Continuity-throws stays blind** — by design per Codex (transport
+  instability, not content failure; human intervention cost too high for
+  a transient checker outage). No change needed.
+- [ ] **Fix `migrate()` pathing bug** (pre-existing, out of scope for
+  the telemetry work). `src/db/connection.ts:73` does
+  `resolve(import.meta.dir, "../sql")` which resolves to `src/sql`
+  instead of repo-root `sql/`. Migrations have been silently skipping
+  since commit `1df80a2`; sql files are applied manually via
+  `db.unsafe()`. Swap to a `fileURLToPath(new URL("../../sql", ...))`
+  or `process.cwd()` anchor + add a regression test.
 
 ---
 

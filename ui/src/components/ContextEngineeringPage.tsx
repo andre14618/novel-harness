@@ -370,14 +370,14 @@ function PipelineSVG() {
       <A x1={660} y1={p4y + 52} x2={660} y2={p4y + 60} />
 
       {/* Plan Check — blocking */}
-      <N x={60} y={p4y + 60} w={285} h={58} type="blocking" label="Plan Check" sub="prose vs plan structure" sub2="W&B chapter-plan-checker-v2" />
+      <N x={60} y={p4y + 60} w={285} h={58} type="blocking" label="Plan Check" sub="prose vs plan structure" sub2="DeepSeek V3.2 base (2026-04-18)" />
 
       {/* Continuity — warning */}
       <N x={520} y={p4y + 60} w={285} h={58} type="warn" label="Continuity" sub="facts + character states" sub2="W&B continuity-v2 (2 parallel calls)" />
 
       {/* Retry arrow from Plan Check → back up to Phase 3 */}
       <P d={`M 60,${p4y + 89} L 25,${p4y + 89} Q 18,${p4y + 89} 18,${p4y + 82} L 18,${p3y + n3h / 2 + n3y - p3y + 8} Q 18,${p3y + n3h / 2 + n3y - p3y} 26,${p3y + n3h / 2 + n3y - p3y}`} kind="retry" />
-      <text x={14} y={p4y + 10} className="cs-retry-label" textAnchor="middle" transform={`rotate(-90, 14, ${(p3y + p4y + 89) / 2})`}>fail → redraft</text>
+      <text x={14} y={p4y + 10} className="cs-retry-label" textAnchor="middle" transform={`rotate(-90, 14, ${(p3y + p4y + 89) / 2})`}>fail → beat-targeted rewrite or reviser</text>
 
       {/* Rejoin + sequential label */}
       <line x1={200} y1={p4y + 118} x2={200} y2={p4y + 128} className="ca" />
