@@ -140,6 +140,14 @@ function parseArgs() {
 
 // ── Queries ───────────────────────────────────────────────────────────────────
 
+// Bun.sql passes a JS string array as a comma-joined text parameter, not a
+// Postgres array literal, so `ANY(${arr})` fails with "malformed array
+// literal". Wrap via `string_to_array(${csv}, ',')` — safe because novel
+// IDs are `novel-${Date.now()}-${rand}` format and never contain commas.
+function idsClause(ids: string[]): string {
+  return ids.join(",")
+}
+
 async function fetchNovelIds(args: { novelId: string | null; since: string | null }): Promise<string[]> {
   if (args.novelId) return [args.novelId]
 
@@ -163,7 +171,7 @@ async function fetchExhaustions(novelIds: string[]): Promise<ExhaustionRaw[]> {
            decided_at::text AS decided_at,
            decision, decision_details
     FROM chapter_exhaustions
-    WHERE novel_id = ANY(${novelIds})
+    WHERE novel_id = ANY(string_to_array(${idsClause(novelIds)}, ','))
     ORDER BY novel_id, chapter, fired_at
   ` as any[]
   return rows as ExhaustionRaw[]
@@ -177,7 +185,7 @@ async function fetchRevisions(novelIds: string[]): Promise<RevisionRaw[]> {
            issue_sig, issue_count, original_beat_count, revised_beat_count,
            outcome, rejection_reason
     FROM chapter_revisions
-    WHERE novel_id = ANY(${novelIds})
+    WHERE novel_id = ANY(string_to_array(${idsClause(novelIds)}, ','))
     ORDER BY novel_id, chapter, invoked_at
   ` as any[]
   return rows as RevisionRaw[]
@@ -189,7 +197,7 @@ async function fetchNovels(novelIds: string[]): Promise<NovelMeta[]> {
     SELECT id, phase, seed_json, current_chapter, total_chapters,
            updated_at::text AS updated_at
     FROM novels
-    WHERE id = ANY(${novelIds})
+    WHERE id = ANY(string_to_array(${idsClause(novelIds)}, ','))
   ` as any[]
   return rows as NovelMeta[]
 }
