@@ -88,9 +88,26 @@ Codex review (session ac8df7a8 + ac7442d6) flagged remaining work:
     declaring the non-blind-retry architecture validated.
 - [ ] **V2 transport interceptor** — recommended by Codex (review ae23f96a5f5cf8247)
   as follow-on to the debug-injection MVP. Cleaner seam than env flags for
-  injecting faults at the transport layer.
+  injecting faults at the transport layer. Full spec at
+  `docs/debug-injection-v2-spec.md` (Codex a892e3f5b4c79a3ea).
 - [ ] **`src/invariants/debug.ts`** — recommended by Codex (review ae23f96a5f5cf8247)
   as a centralized invariant-assertion module replacing the scattered `DEBUG_FORCE_*` checks.
+- [x] **Orphan plan-assist gate detection (MVP)** — shipped 2026-04-19 in commit
+  `13f8143`. Startup sweep in `src/orchestrator/server.ts` logs every pending
+  row older than 60s. `GET /api/novel/orphaned-gates` + `POST /api/novel/:id/
+  plan-assist/:chapter/mark-orphaned` for cleanup. ExhaustionDecision now
+  includes "orphaned".
+- [ ] **Full restart recovery for plan-assist gates** — MVP orphan detection
+  shipped above. Full auto-recovery (re-fire the gate on resume so drafting
+  loop can re-await) needs drafting.ts attempt-loop changes to re-enter the
+  exhaustion branch on novel resume. Flagged by Codex review a252aecbb785a0eb3.
+- [x] **Propagate `callerId` into transport** — shipped 2026-04-19 in commit
+  `13f8143`. src/llm.ts makeRequest threads agentName; executeAndLog sets
+  callerId on the effectiveRequest. Timeout log `[LLM] TIMEOUT:` now names
+  the agent reliably.
+- [ ] **Clean no-forced-flags validation run** — every scripted test today
+  used `DEBUG_FORCE_*`. Run a real novel end-to-end with no force injection
+  to confirm the exhaustion handlers stay quiet when nothing's wrong.
 - [ ] **Continuity-throws stays blind** — by design per Codex (transport
   instability, not content failure; human intervention cost too high for
   a transient checker outage). No change needed.
