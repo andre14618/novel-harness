@@ -1,7 +1,7 @@
 import type { SeedInput, CharacterSketch } from "./types"
 import * as readline from "node:readline"
 import * as gates from "./gates"
-import type { GateDecision, GateResolverMode } from "./gates"
+import type { GateDecision, GateResolverMode, PlanAssistDecision, PlanAssistGatePayload } from "./gates"
 
 // Auto mode — skips all human gates
 export let autoMode = false
@@ -160,6 +160,65 @@ export async function getRevisionNotes(): Promise<string[]> {
     notes.push(note)
   }
   return notes
+}
+
+/**
+ * Present a plan-assist exhaustion gate. Auto mode rethrows the
+ * PipelineBailError from `requestPlanAssist` so the run halts loudly
+ * (see docs/exhaustion-handler-design.md §"Auto-mode behavior").
+ *
+ * CLI mode: `[o]verride / [a]bort` only. Full plan edits require the web
+ * UI — CLI readline is a poor surface for multi-line JSON input, and
+ * step-4 of the design memo covers the Studio panel for edit-plan.
+ *
+ * Web mode: registers the gate + waits for /api/novel/plan-assist/resolve.
+ *
+ * Scaffolding only — no callers in this commit. Step 3 of the design
+ * memo wires this into drafting.ts paths (A), (B), and rewires (C).
+ */
+export async function presentForExhaustion(
+  payload: PlanAssistGatePayload,
+): Promise<PlanAssistDecision> {
+  console.log(`\n${"─".repeat(60)}`)
+  console.log(`  PLAN-ASSIST GATE — ${payload.kind} (chapter ${payload.chapter})`)
+  console.log("─".repeat(60))
+  console.log(`  Unresolved issues (${payload.unresolvedDeviations.length}):`)
+  for (const d of payload.unresolvedDeviations) {
+    const beat = d.beat_index == null ? "chapter-level" : `beat ${d.beat_index}`
+    console.log(`    - [${beat}] ${d.description}`)
+  }
+  if (payload.reviserHistory) {
+    console.log(`  Reviser was invoked and rejected: ${payload.reviserHistory.rejectionReason}`)
+  }
+  console.log("─".repeat(60))
+
+  // requestPlanAssist throws synchronously in auto mode — we let it
+  // propagate. CLI and web modes return a pending promise.
+  const gatePromise = gates.requestPlanAssist(payload, resolverMode)
+
+  if (resolverMode === "cli") {
+    const cliPromise = (async (): Promise<PlanAssistDecision> => {
+      while (true) {
+        const answer = await ask("[o]verride / [a]bort? ")
+        const lower = answer.toLowerCase()
+        if (lower === "o" || lower === "override") return { action: "override" }
+        if (lower === "a" || lower === "abort") return { action: "abort" }
+        console.log("  Please enter 'o' or 'a' (edit-plan is web-only in the scaffolding commit)")
+      }
+    })()
+
+    const decision = await Promise.race([gatePromise, cliPromise])
+    if (gates.getPendingPlanAssist(payload.novelId)) {
+      gates.resolvePlanAssist(payload.novelId, payload.chapter, decision)
+    }
+    return decision
+  }
+
+  // Web mode
+  console.log("  [WAITING] Plan-assist pending in web UI...")
+  const decision = await gatePromise
+  console.log(`  [WEB] ${decision.action}`)
+  return decision
 }
 
 export function displayPhaseHeader(phase: string): void {

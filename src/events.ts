@@ -20,6 +20,8 @@ export type NovelEventType =
   | "tonal-chapter-done"
   | "tonal-done"
   | "tonal-error"
+  | "gate:plan-assist"
+  | "gate:plan-assist-resolved"
 
 export interface NovelEvent {
   type: NovelEventType

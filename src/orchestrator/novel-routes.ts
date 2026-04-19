@@ -13,20 +13,52 @@ import { readdirSync, readFileSync, existsSync } from "node:fs"
 import { resolve, basename } from "node:path"
 import { subscribeSSE } from "../events"
 import * as gates from "../gates"
+import { PipelineBailError } from "../gates"
 import { initDB, createNovel, getNovel } from "../db"
 import { setAutoMode, setResolverMode } from "../cli"
 import { runNovel } from "../state-machine"
 import { initNovelRun } from "../logger"
 import type { SeedInput } from "../types"
+import { chapterOutlineSchema } from "../agents/planning-plotter/schema"
 import db from "../db/connection"
+import { z } from "zod"
 
 const HARNESS_ROOT = process.env.HARNESS_ROOT ?? "/home/andre/apps/novel-harness"
 
 // Track in-process novel runs
 const activeRuns = new Map<string, { startedAt: string; error?: string }>()
 // Preserve the last error for a novel after its run has exited, so the UI
-// can surface it. Cleared when a new run starts.
-const lastRunErrors = new Map<string, { error: string; at: string }>()
+// can surface it. `PipelineBailError` from plan-assist gates is captured
+// structurally (kind, chapter, message) so the UI can distinguish a real
+// crash from an exhaustion-gate halt. Cleared when a new run starts.
+type LastRunError =
+  | { kind: "error"; message: string; at: string }
+  | { kind: "plan-assist-bail"; bailKind: string; chapter: number; message: string; at: string }
+const lastRunErrors = new Map<string, LastRunError>()
+
+function captureRunError(novelId: string, err: unknown): void {
+  if (err instanceof PipelineBailError) {
+    lastRunErrors.set(novelId, {
+      kind: "plan-assist-bail",
+      bailKind: err.kind,
+      chapter: err.chapter,
+      message: err.message,
+      at: new Date().toISOString(),
+    })
+  } else {
+    lastRunErrors.set(novelId, {
+      kind: "error",
+      message: err instanceof Error ? err.message : String(err),
+      at: new Date().toISOString(),
+    })
+  }
+}
+
+const planAssistDecisionSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("edit-plan"), outline: chapterOutlineSchema }),
+  z.object({ action: z.literal("override") }),
+  z.object({ action: z.literal("abort") }),
+])
 
 /**
  * Handle all /api/novel/* routes. Returns null if the path doesn't match.
@@ -238,7 +270,7 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
     try {
       const rows = await db`SELECT id, phase, current_chapter, total_chapters, created_at, seed_json FROM novels ORDER BY created_at DESC`
       const novels = rows.map(row => {
-        const pending = gates.getPending(row.id)
+        const current = gates.getPendingGate(row.id)
         return {
           id: row.id,
           phase: row.phase,
@@ -247,7 +279,12 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
           createdAt: row.created_at,
           active: activeRuns.has(row.id),
           seed: row.seed_json,
-          pendingGate: pending ? { gateId: pending.gateId, title: pending.title } : null,
+          pendingGate: current?.kind === "approval"
+            ? { gateId: current.gateId, title: current.title }
+            : null,
+          pendingPlanAssist: current?.kind === "plan-assist"
+            ? { chapter: current.chapter, kind: current.payload.kind }
+            : null,
         }
       })
       return Response.json({ novels })
@@ -408,7 +445,7 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
         })
         .catch(err => {
           activeRuns.delete(novelId)
-          lastRunErrors.set(novelId, { error: String(err), at: new Date().toISOString() })
+          captureRunError(novelId, err)
           console.error(`[novel-api] Novel ${novelId} failed:`, err)
         })
 
@@ -456,7 +493,7 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
       .then(() => { activeRuns.delete(novelId) })
       .catch(err => {
         activeRuns.delete(novelId)
-        lastRunErrors.set(novelId, { error: String(err), at: new Date().toISOString() })
+        captureRunError(novelId, err)
         console.error(`[novel-api] Novel ${novelId} resume failed:`, err)
       })
 
@@ -492,7 +529,7 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
       .then(() => { activeRuns.delete(novelId) })
       .catch(err => {
         activeRuns.delete(novelId)
-        lastRunErrors.set(novelId, { error: String(err), at: new Date().toISOString() })
+        captureRunError(novelId, err)
         console.error(`[novel-api] Novel ${novelId} redraft failed:`, err)
       })
 
@@ -507,7 +544,7 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
       const rows = await db`SELECT * FROM novels WHERE id = ${novelId}`
       if (!rows.length) return Response.json({ error: "Novel not found" }, { status: 404 })
       const row = rows[0]
-      const pending = gates.getPending(novelId)
+      const current = gates.getPendingGate(novelId)
 
       return Response.json({
         id: row.id,
@@ -518,7 +555,12 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
         active: activeRuns.has(novelId),
         activeError: activeRuns.get(novelId)?.error,
         lastRunError: lastRunErrors.get(novelId) ?? null,
-        pendingGate: pending ? { gateId: pending.gateId, title: pending.title, content: pending.content } : null,
+        pendingGate: current?.kind === "approval"
+          ? { gateId: current.gateId, title: current.title, content: current.content }
+          : null,
+        pendingPlanAssist: current?.kind === "plan-assist"
+          ? { chapter: current.chapter, payload: current.payload }
+          : null,
       })
     } catch (err) {
       return Response.json({ error: String(err) }, { status: 500 })
@@ -811,7 +853,7 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
 
         emit(novelId, { type: "tonal-done", data: { totalChapters: targets.length } })
       } catch (err) {
-        lastRunErrors.set(novelId, { error: String(err), at: new Date().toISOString() })
+        captureRunError(novelId, err)
         emit(novelId, { type: "tonal-error", data: { error: String(err) } })
         console.error(`[novel-api] Tonal pass failed for ${novelId}:`, err)
       } finally {
@@ -980,6 +1022,32 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
     }
 
     return Response.json({ ok: true, gateId, action: body.action })
+  }
+
+  // ── Plan-assist gate resolve ────────────────────────────────────────
+  // Parallel to /gate/:id/decide but scoped to (novelId, chapter) and
+  // decoded via a Zod discriminated union so the edit-plan path carries
+  // a validated ChapterOutline.
+  const planAssistMatch = path.match(/^\/api\/novel\/([^/]+)\/plan-assist\/(\d+)\/decide$/)
+  if (planAssistMatch && req.method === "POST") {
+    const novelId = planAssistMatch[1]
+    const chapter = parseInt(planAssistMatch[2], 10)
+
+    const rawBody = await req.json().catch(() => null)
+    const parsed = planAssistDecisionSchema.safeParse(rawBody)
+    if (!parsed.success) {
+      return Response.json(
+        { error: "Invalid plan-assist decision", issues: parsed.error.issues },
+        { status: 400 },
+      )
+    }
+
+    const resolved = gates.resolvePlanAssist(novelId, chapter, parsed.data)
+    if (!resolved) {
+      return Response.json({ error: "No pending plan-assist gate for that novel/chapter" }, { status: 404 })
+    }
+
+    return Response.json({ ok: true, novelId, chapter, action: parsed.data.action })
   }
 
   // ── SSE event stream ───────────────────────────────────────────────

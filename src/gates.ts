@@ -13,6 +13,8 @@
 
 import { emit, hasClients } from "./events"
 import { trace } from "./trace"
+import type { ChapterOutline } from "./types"
+import type { SceneBeat } from "./schemas/shared"
 
 export interface GateDecision {
   action: "approve" | "revise" | "reject"
@@ -34,6 +36,163 @@ const pendingGates = new Map<string, PendingGate>()
 
 function gateKey(novelId: string, gateId: string): string {
   return `${novelId}::${gateId}`
+}
+
+// ── Plan-assist gate (exhaustion handler — design memo step 2) ────────
+
+/**
+ * Payload surfaced when the drafting pipeline exhausts automated repair.
+ * `kind` discriminates the cause; `reviserHistory` is only present when a
+ * reviser ran and was rejected by post-revision sanity checks.
+ */
+export interface PlanAssistGatePayload {
+  kind: "plan-check-exhausted" | "reviser-rejected"
+  novelId: string
+  chapter: number
+  outline: ChapterOutline
+  prose: string
+  unresolvedDeviations: Array<{ description: string; beat_index: number | null }>
+  reviserHistory?: {
+    attemptedScenes: SceneBeat[]
+    rejectionReason: string
+  }
+}
+
+/**
+ * Discriminated decision shape. `edit-plan` carries a replacement outline
+ * (validated server-side). `override` skips plan-check for remaining
+ * attempts of this chapter — step 3 will persist this durably. `abort`
+ * stops the chapter and propagates the bail out to the run.
+ */
+export type PlanAssistDecision =
+  | { action: "edit-plan"; outline: ChapterOutline }
+  | { action: "override" }
+  | { action: "abort" }
+
+interface PendingPlanAssistGate {
+  novelId: string
+  chapter: number
+  payload: PlanAssistGatePayload
+  resolve: (decision: PlanAssistDecision) => void
+  createdAt: number
+}
+
+const pendingPlanAssistGates = new Map<string, PendingPlanAssistGate>()
+
+function planAssistKey(novelId: string, chapter: number): string {
+  return `${novelId}::ch${chapter}`
+}
+
+/**
+ * Error raised when the drafting pipeline halts at a plan-assist gate in
+ * auto mode. Auto-mode runs cannot invent an operator decision — halting
+ * loudly is preferred over silent exhaustion-masking. The orchestrator
+ * catch handler captures this structurally in `lastRunErrors`.
+ */
+export class PipelineBailError extends Error {
+  constructor(
+    public readonly kind: PlanAssistGatePayload["kind"],
+    public readonly novelId: string,
+    public readonly chapter: number,
+    public readonly payload: PlanAssistGatePayload,
+  ) {
+    super(`Pipeline bailed at plan-assist gate (chapter ${chapter}, kind ${kind})`)
+    this.name = "PipelineBailError"
+  }
+}
+
+/**
+ * Request a plan-assist decision at a drafting-exhaustion point.
+ *
+ * Auto mode: throws `PipelineBailError` synchronously. The run halts loudly.
+ * Web/CLI mode: registers a pending gate and emits `gate:plan-assist` SSE
+ * event with the full payload. Returns a promise that resolves when the
+ * gate is resolved via `resolvePlanAssist`.
+ */
+export function requestPlanAssist(
+  payload: PlanAssistGatePayload,
+  mode: GateResolverMode,
+): Promise<PlanAssistDecision> {
+  if (mode === "auto") {
+    throw new PipelineBailError(payload.kind, payload.novelId, payload.chapter, payload)
+  }
+
+  return new Promise<PlanAssistDecision>((resolve) => {
+    const key = planAssistKey(payload.novelId, payload.chapter)
+    const gate: PendingPlanAssistGate = {
+      novelId: payload.novelId,
+      chapter: payload.chapter,
+      payload,
+      resolve,
+      createdAt: Date.now(),
+    }
+    pendingPlanAssistGates.set(key, gate)
+
+    emit(payload.novelId, {
+      type: "gate:plan-assist",
+      data: {
+        kind: payload.kind,
+        chapter: payload.chapter,
+        outline: payload.outline,
+        prose: payload.prose,
+        unresolvedDeviations: payload.unresolvedDeviations,
+        reviserHistory: payload.reviserHistory ?? null,
+      },
+    })
+    trace(payload.novelId, {
+      eventType: "plan-assist-wait",
+      chapter: payload.chapter,
+      payload: { kind: payload.kind },
+    }).catch(() => {})
+  })
+}
+
+/**
+ * Resolve a pending plan-assist gate. Returns false when no gate is
+ * waiting for the given (novelId, chapter).
+ */
+export function resolvePlanAssist(
+  novelId: string,
+  chapter: number,
+  decision: PlanAssistDecision,
+): boolean {
+  const key = planAssistKey(novelId, chapter)
+  const gate = pendingPlanAssistGates.get(key)
+  if (!gate) return false
+
+  pendingPlanAssistGates.delete(key)
+  gate.resolve(decision)
+
+  emit(novelId, {
+    type: "gate:plan-assist-resolved",
+    data: { chapter, action: decision.action },
+  })
+  const waitMs = Date.now() - gate.createdAt
+  trace(novelId, {
+    eventType: "plan-assist-resolve",
+    chapter,
+    durationMs: waitMs,
+    payload: { action: decision.action },
+  }).catch(() => {})
+
+  return true
+}
+
+/**
+ * First pending plan-assist gate for a novel (at most one per chapter;
+ * typically at most one per novel at a time). Separate from
+ * `getPending()` which only covers approval gates.
+ */
+export function getPendingPlanAssist(
+  novelId: string,
+): Omit<PendingPlanAssistGate, "resolve"> | null {
+  for (const gate of pendingPlanAssistGates.values()) {
+    if (gate.novelId === novelId) {
+      const { resolve: _, ...rest } = gate
+      return rest
+    }
+  }
+  return null
 }
 
 /**
@@ -122,4 +281,31 @@ export function getMode(autoMode: boolean): GateResolverMode {
   // If we detect we're running inside the orchestrator (not a TTY), use web mode
   if (!process.stdin.isTTY) return "web"
   return "cli"
+}
+
+/**
+ * Unified "what gate is open on this novel" view across both gate types.
+ * Prefer this over `getPending()` for any surface that should render
+ * either an approval gate or a plan-assist gate (e.g. the state endpoint,
+ * the novel list). Returns null when no gate is open.
+ */
+export type CurrentGate =
+  | { kind: "approval"; gateId: string; title: string; content: string }
+  | { kind: "plan-assist"; chapter: number; payload: PlanAssistGatePayload }
+
+export function getPendingGate(novelId: string): CurrentGate | null {
+  const approval = getPending(novelId)
+  if (approval) {
+    return {
+      kind: "approval",
+      gateId: approval.gateId,
+      title: approval.title,
+      content: approval.content,
+    }
+  }
+  const planAssist = getPendingPlanAssist(novelId)
+  if (planAssist) {
+    return { kind: "plan-assist", chapter: planAssist.chapter, payload: planAssist.payload }
+  }
+  return null
 }
