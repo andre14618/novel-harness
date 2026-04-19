@@ -163,13 +163,16 @@ All existing SFT training data was generated with screenplay-style beats (pre-ex
 - **V4 deployed and concluded** (exp #161, 2026-04-12) — `adherence-checker-v4` live at 512 token budget. Production eval: 79% first-attempt pass (23/30 beats), all failures resolved on retry, zero false positives. V2 config removed from `models/roles.ts` (dead — never invoked at runtime, only `adherence-events` is called). See `docs/decisions.md`.
 - **GRPO/RL reward loop** (conditional, post-V4 validation) — adherence-checker is the only pipeline agent with a clean automatic reward signal (deterministic checks + synthetic labels). Design a GRPO loop on W&B/ART. Now unblocked since V4 is validated.
 
-## Chapter Plan Checker — DONE
+## Chapter Plan Checker — REVERTED to DeepSeek V3.2 base (2026-04-18)
 
-**V2 adapter deployed** (2026-04-12). `chapter-plan-checker-v2:v1` live in `models/roles.ts`. 96% accuracy vs Sonnet ground truth (vs 78% for gpt-oss-120b), 609ms latency. Validated on 520-pair oracle comparison (exp #178) + 3-chapter dark-fantasy production run (all chapters passed first attempt). See `docs/decisions.md`.
+**SFT adapter `chapter-plan-checker-v2:v1` removed from active duty 2026-04-18** after planner-phase2 pilot audit revealed ~92% false-positive rate on real fantasy plans (12-row dual-oracle audit by Sonnet + Codex gpt-5.4 — both flagged 11/12 verdicts as wrong). The adapter hallucinated a "required fact must be verbatim" failure mode not present in its system prompt; validated 96% accuracy from exp #178 did not generalize to live fantasy-genre plans. Distribution drift between training scenarios and production output. Now using DeepSeek V3.2 with the same system prompt — handles the 3-question yes/no check natively.
 
-- Scope narrowed (2026-04-12): cross-beat properties only — setting coherence, emotional arc, major plot contradictions.
-- V1 pilot (exp #154) superseded — V2 Sonnet labels (96% accuracy) are the definitive dataset.
-- **Next data round** — regenerate with dramatic-style beat plans (current dataset used screenplay-style). Not urgent; V2 handles dramatic beats fine in production. Revisit when first-attempt pass rate trends downward.
+### Low-priority — SFT recalibration (deferred until after context engineering work)
+
+- Don't re-open without evidence DeepSeek V3.2 is creating real friction (cost or latency budget exceeded).
+- Context engineering takes precedence over local-model SFT experimentation. The whole "small model offline harness" north-star is downstream of having clean baselines and a working context-engineering layer first.
+- If we revisit: regenerate training data on real harness output (not synthetic scenarios), explicitly punish "missing fact" rejections that are actually paraphrased, expand variant set beyond the original 8.
+- V1 pilot (exp #154) and V2 (exp #170/#178) datasets retained for reference.
 
 ## Continuity — DEPRIORITIZED (2026-04-18)
 

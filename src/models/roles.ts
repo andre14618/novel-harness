@@ -97,12 +97,15 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // sentence-level rewrites where DeepSeek's voice advantage doesn't help.
   "lint-fixer":                { ...cerebrasQwen235B, temperature: 0.2 },
 
-  // ── Chapter plan checker (structural adherence, fine-tune target) ────
-  // Was on llama-3.1-8b-instant but the model couldn't reason through the planner's
-  // structural requirements and kept bouncing valid prose, spinning the drafting retry
-  // loop. Now on gpt-oss-120b which serves as the distillation source for the eventual
-  // LoRA fine-tune.
-  "chapter-plan-checker":      { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/chapter-plan-checker-v2:v1", temperature: 0.2, maxTokens: 4096 },
+  // ── Chapter plan checker (structural adherence) ────────────────────
+  // Reverted to DeepSeek V3.2 base model 2026-04-18 after a dual-oracle
+  // audit (Sonnet + Codex gpt-5.4) on 12 pilot FAILs showed the SFT adapter
+  // chapter-plan-checker-v2:v1 hallucinated a fail mode ("required fact not
+  // verbatim") not present in its prompt. Observed false-positive rate ~92%
+  // vs validated 96% accuracy on Phase C.3 evals (exp #178) — distribution
+  // drift on real fantasy plans. SFT recalibration on TODO as low-priority;
+  // context engineering takes precedence over local-model SFT for now.
+  "chapter-plan-checker":      { ...deepseekV3, temperature: 0.2, maxTokens: 4096 },
 
   // ── Tonal pass (per-paragraph voice rewrite, LoRA fine-tuned) ────────
   // Howard methodology RETIRED 2026-04-16 — voice now handled by per-genre
