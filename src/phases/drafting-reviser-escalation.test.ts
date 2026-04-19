@@ -16,6 +16,8 @@ import { mock, test, expect, beforeEach, afterEach } from "bun:test"
 
 // ── Shared mock state (reset per test) ─────────────────────────────────
 let reviserBehavior: "accept" | "throw" = "accept"
+let planCheckBehavior: "fail" | "pass" = "fail"
+let validateBehavior: "pass" | "fail-pov" = "pass"
 let reviserCallCount = 0
 let planCheckCallCount = 0
 let saveChapterOutlineCallCount = 0
@@ -78,12 +80,10 @@ mock.module("../llm", () => ({
   callAgent: async (config: any) => {
     if (config.agentName === "chapter-plan-checker") {
       planCheckCallCount++
-      return { output: {
-        pass: false,
-        deviations: [{ description: "persistent deviation", beat_index: 0 }],
-        setting_match: null,
-        emotional_arc_correct: null,
-      } }
+      return { output: planCheckBehavior === "pass"
+        ? { pass: true, deviations: [], setting_match: null, emotional_arc_correct: null }
+        : { pass: false, deviations: [{ description: "persistent deviation", beat_index: 0 }], setting_match: null, emotional_arc_correct: null }
+      }
     }
     if (config.agentName === "chapter-plan-reviser") {
       reviserCallCount++
@@ -121,13 +121,18 @@ mock.module("../agents/continuity/check", () => ({
 }))
 mock.module("../agents/chapter-plan-checker/context", () => ({ buildContext: () => "ctx" }))
 mock.module("../agents/chapter-plan-checker/schema", () => ({ chapterPlanCheckSchema: {} }))
-mock.module("../agents/chapter-plan-reviser/context", () => ({ buildContext: () => "ctx" }))
+mock.module("../agents/chapter-plan-reviser/context", () => ({
+  buildContext: () => "ctx",
+  buildContextForValidation: () => "ctx-validation",
+}))
 mock.module("../agents/chapter-plan-reviser", () => ({
   chapterBeatsSchema: {},
   prompt: "reviser-prompt",
 }))
 mock.module("../validation", () => ({
-  validateChapterDraft: () => ({ passed: true, blockers: [], warnings: [] }),
+  validateChapterDraft: () => validateBehavior === "pass"
+    ? { passed: true, blockers: [], warnings: [] }
+    : { passed: false, blockers: [`POV character "Alice" never mentioned in draft`], warnings: [] },
 }))
 mock.module("../cli", () => ({
   displayPhaseHeader: () => {},
@@ -163,6 +168,9 @@ const originalConsoleLog = console.log
 const originalConsoleError = console.error
 
 beforeEach(() => {
+  reviserBehavior = "accept"
+  planCheckBehavior = "fail"
+  validateBehavior = "pass"
   reviserCallCount = 0
   planCheckCallCount = 0
   saveChapterOutlineCallCount = 0
@@ -223,4 +231,39 @@ test("reviser fires exactly once across 3 outer attempts when reviser throws (er
   expect(skipLines.length).toBe(2)
 
   expect(saveChapterOutlineCallCount).toBe(0)
+})
+
+test("validation path — reviser fires exactly once when validation blockers persist", async () => {
+  // Plan-check passes cleanly; validation fails on POV-missing and does
+  // not resolve after targeted rewrites. Reviser must be invoked from the
+  // validation branch, share the same `revisionUsed` chapter-wide hard cap
+  // as the plan-check branch, and skip on attempts 2 and 3.
+  planCheckBehavior = "pass"
+  validateBehavior = "fail-pov"
+  reviserBehavior = "accept"
+  await runDraftingPhase("test-novel")
+
+  expect(reviserCallCount).toBe(1)
+
+  const validationInvokes = logCalls.filter(l =>
+    l.includes("Invoking chapter-plan-reviser") && l.includes("validation path"),
+  )
+  expect(validationInvokes.length).toBe(1)
+
+  const escalatingLines = consoleLines.filter(l =>
+    l.includes("Escalating to chapter-plan-reviser (persistent validation blockers)"),
+  )
+  expect(escalatingLines.length).toBe(1)
+
+  expect(saveChapterOutlineCallCount).toBe(1)
+
+  // Attempts 2 and 3 hit the skip path via the SAME revisionUsed flag.
+  const skipLines = logCalls.filter(l => l.includes("already revised this chapter"))
+  expect(skipLines.length).toBe(2)
+
+  // No plan-check-driven reviser — plan-check is mocked to always pass.
+  const planCheckEscalates = consoleLines.filter(l =>
+    l.includes("Escalating to chapter-plan-reviser (persistent issues)"),
+  )
+  expect(planCheckEscalates.length).toBe(0)
 })

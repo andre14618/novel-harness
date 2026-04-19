@@ -17,7 +17,10 @@ import { runBeatChecks, summarizeIssues } from "./beat-checks"
 import { checkContinuity } from "../agents/continuity/check"
 import { buildContext as buildChapterPlanCheckContext } from "../agents/chapter-plan-checker/context"
 import { chapterPlanCheckSchema } from "../agents/chapter-plan-checker/schema"
-import { buildContext as buildChapterPlanReviseContext } from "../agents/chapter-plan-reviser/context"
+import {
+  buildContext as buildChapterPlanReviseContext,
+  buildContextForValidation as buildChapterPlanReviseContextForValidation,
+} from "../agents/chapter-plan-reviser/context"
 import { chapterBeatsSchema as chapterPlanReviseSchema, prompt as CHAPTER_PLAN_REVISER_PROMPT } from "../agents/chapter-plan-reviser"
 import { validateChapterDraft } from "../validation"
 import { displayPhaseHeader, displayProgress, presentForApproval, getRevisionNotes } from "../cli"
@@ -780,7 +783,104 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
 
         if (currentBlockers.length > 0) {
           currentBlockers.forEach(b => console.log(`    UNRESOLVED BLOCKER: ${b}`))
-          log(novelId, "warn", `Validation still failing after ${validationPass} targeted rewrite pass(es) — escalating to chapter restart`)
+          log(novelId, "warn", `Validation still failing after ${validationPass} targeted rewrite pass(es)`)
+
+          // Path (C) — validation-driven reviser escalation.
+          // See docs/exhaustion-handler-design.md §"Path (C)".
+          // revisionUsed is a CHAPTER-SCOPED hard cap shared with the
+          // plan-check reviser path, so at most ONE reviser call per chapter
+          // regardless of whether it originates from plan-check or validation.
+          // Post-revision sanity checks mirror the plan-check branch.
+          //
+          // TODO(exhaustion-gate): when the plan-assist gate ships (step 2
+          // of the design memo), reviser-rejected / reviser-threw branches
+          // below should fall through to the gate instead of blind bail.
+          const canSettleForRevision = beatProses.length === outline.scenes.length
+          if (!revisionUsed && canSettleForRevision) {
+            console.log(`  Escalating to chapter-plan-reviser (persistent validation blockers)`)
+            log(novelId, "info", `Invoking chapter-plan-reviser for chapter ${ch} (validation path): ${currentBlockers.length} unresolved blockers`)
+            revisionUsed = true
+            const blockersAsDeviations = currentBlockers.map(b => ({ description: b, beat_index: null as number | null }))
+            const originalBeatsSnapshotV = [...outline.scenes]
+            try {
+              const reviseCtx = buildChapterPlanReviseContextForValidation(outline, prose, currentBlockers)
+              const revised = await callAgent({
+                novelId, agentName: "chapter-plan-reviser",
+                chapter: ch, attempt: attempts,
+                systemPrompt: CHAPTER_PLAN_REVISER_PROMPT,
+                userPrompt: reviseCtx,
+                schema: chapterPlanReviseSchema,
+              })
+
+              const revisedScenes: SceneBeat[] = (revised.output.scenes ?? []) as SceneBeat[]
+              const minBeats = Math.max(3, Math.ceil(outline.targetWords / 300))
+              const originalCharacters = new Set([
+                outline.povCharacter,
+                ...(outline.charactersPresent ?? []),
+                ...outline.scenes.flatMap(s => s.characters ?? []),
+              ].filter(Boolean))
+              const revisedCharacters = new Set(revisedScenes.flatMap(s => s.characters ?? []))
+              const newCharacters = [...revisedCharacters].filter(c => !originalCharacters.has(c))
+
+              if (revisedScenes.length < minBeats) {
+                log(novelId, "warn", `Reviser returned too few beats (${revisedScenes.length} < ${minBeats}) — rejecting revision (validation path)`)
+                console.log(`  Reviser output rejected: ${revisedScenes.length} beats below floor of ${minBeats}`)
+                await logRevision({
+                  novelId, chapter: ch, attempt: attempts,
+                  deviations: blockersAsDeviations,
+                  originalBeats: originalBeatsSnapshotV,
+                  revisedBeats: revisedScenes,
+                  outcome: "rejected_beat_floor",
+                  rejectionReason: `[validation] revised beat count ${revisedScenes.length} < floor ${minBeats}`,
+                }).catch(err => log(novelId, "warn", `logRevision failed: ${err instanceof Error ? err.message : err}`))
+              } else if (newCharacters.length > 0) {
+                log(novelId, "warn", `Reviser introduced new characters [${newCharacters.join(", ")}] — rejecting revision (validation path)`)
+                console.log(`  Reviser output rejected: new characters not in original plan`)
+                await logRevision({
+                  novelId, chapter: ch, attempt: attempts,
+                  deviations: blockersAsDeviations,
+                  originalBeats: originalBeatsSnapshotV,
+                  revisedBeats: revisedScenes,
+                  outcome: "rejected_new_characters",
+                  rejectionReason: `[validation] new characters: ${newCharacters.join(", ")}`,
+                }).catch(err => log(novelId, "warn", `logRevision failed: ${err instanceof Error ? err.message : err}`))
+              } else {
+                outline = {
+                  ...outline,
+                  scenes: revisedScenes,
+                  establishedFacts: revised.output.establishedFacts ?? outline.establishedFacts,
+                  characterStateChanges: revised.output.characterStateChanges ?? outline.characterStateChanges,
+                  knowledgeChanges: revised.output.knowledgeChanges ?? outline.knowledgeChanges,
+                } as ChapterOutline
+                await saveChapterOutline(novelId, outline)
+                log(novelId, "info", `Chapter plan revised (validation path): ${outline.scenes.length} beats (was ${beatProses.length}); persisted to chapter_outlines`)
+                console.log(`  Revised plan: ${outline.scenes.length} beats. Persisted. Restarting chapter draft with revised plan.`)
+                await logRevision({
+                  novelId, chapter: ch, attempt: attempts,
+                  deviations: blockersAsDeviations,
+                  originalBeats: originalBeatsSnapshotV,
+                  revisedBeats: outline.scenes,
+                  outcome: "accepted",
+                }).catch(err => log(novelId, "warn", `logRevision failed: ${err instanceof Error ? err.message : err}`))
+              }
+            } catch (err) {
+              log(novelId, "error", `Chapter-plan-reviser failed for chapter ${ch} (validation path): ${err instanceof Error ? err.message : err}`)
+              console.error(`  Reviser error: ${err instanceof Error ? err.message : err}`)
+              await logRevision({
+                novelId, chapter: ch, attempt: attempts,
+                deviations: blockersAsDeviations,
+                originalBeats: originalBeatsSnapshotV,
+                revisedBeats: null,
+                outcome: "error",
+                rejectionReason: err instanceof Error ? `[validation] ${err.message.slice(0, 200)}` : `[validation] ${String(err).slice(0, 200)}`,
+              }).catch(logErr => log(novelId, "warn", `logRevision failed: ${logErr instanceof Error ? logErr.message : logErr}`))
+            }
+          } else {
+            const reason = revisionUsed
+              ? "already revised this chapter"
+              : "beat-level state not available"
+            log(novelId, "warn", `Validation still failing — not escalating to reviser (${reason}); falling through to chapter restart`)
+          }
           bail = true
         }
       } else if (validation.warnings.length > 0) {
