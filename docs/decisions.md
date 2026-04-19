@@ -83,6 +83,8 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 ### Chapter-plan-checker per-beat decomposition DISCONFIRMED
 *2026-04-08 · exp #123*
 
+> **Superseded 2026-04-18:** The "single flat call" routing decided here is still the shape of the check, but the call itself no longer runs a 14B SFT adapter. `chapter-plan-checker-v2:v1` was retired after a dual-oracle audit found ~92% FP on real fantasy plans; the slot now runs **DeepSeek V3.2 base** with the same `plan-adherence-system.md` prompt. See 2026-04-18 entry "Chapter-plan-checker-v2:v1 SFT adapter retired — DeepSeek V3.2 base replaces it" below.
+
 **Decision:** Chapter-plan-checker stays as a single flat call over the full chapter. Per-beat parallel calls were tested and rejected.
 
 **Why:** Per-beat decomposition compounds error multiplicatively (0.9⁴ ≈ 66% pair-level accuracy at 90% per-beat for a 4-beat chapter). More critically, it cannot detect cross-beat properties like FAIL_REVERSED_ARC (0–22% across all models in per-beat mode). gpt-oss-120b regressed 90% → 64%; Qwen 235B regressed 81% → 72%.
@@ -163,6 +165,8 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ### Extractor V1 adapters trained — structural eval passed, content eval pending
 *2026-04-13 · exp #187*
+
+> **Superseded 2026-04-13 (same day):** None of the four extractor adapters shipped. Plan-only `extractionMode` was validated on 7 novels (134 checks, 0 failures) and the entire LLM extractor subsystem was removed from the active pipeline. See "Plan-only extractionMode validated — LLM extractors removed" entry below.
 
 **Decision:** Trained 4 extractor LoRA adapters on W&B (Qwen3-14B-Instruct) to replace Cerebras 235B extraction calls. All 4 produce valid JSON, correct schemas, and valid enum values. Content accuracy via Sonnet-as-judge eval is pending before deployment.
 
@@ -617,6 +621,8 @@ Clipped declarative rhythm with sudden expansions into sensory/clinical detail �
 ### DeepSeek V3.2 + Howard primer promoted to pipeline-wide default
 *2026-04-15 · exp #191 (verification run, 3-ch dark-fantasy, full DeepSeek stack)*
 
+> **Superseded 2026-04-16:** Howard primer (`STYLE_PRIMER=howard`) was retired — default is now `STYLE_PRIMER=none`, and fantasy seeds route through the Salvatore voice LoRA via `WRITER_GENRE_PACKS` instead of a generic primer. The DeepSeek V3.2 default-writer flip stands; the "Howard primer as universal default" part of this decision does not. See "Howard primer/tonal-pass methodology retired" entry below.
+
 **Decision:** DeepSeek V3.2 (`deepseek-chat`) becomes the default for all generative/creative roles in the harness. Howard style primer (`STYLE_PRIMER=howard`) becomes default-on. Tonal pass auto-run is disabled (on-demand endpoint retained). Cerebras Qwen 235B is retained only for `lint-fixer`.
 
 **Roles swapped to DeepSeek V3.2:** `writer`, `beat-writer`, `rewriter`, `world-builder`, `character-agent`, `plotter`, `planning-plotter`, `planning-extractor`, `artifact-adjuster`, `relationship-timeline`.
@@ -750,6 +756,8 @@ Clipped declarative rhythm with sudden expansions into sensory/clinical detail �
 
 ### Chapter-plan-checker: Sonnet 4.6 adopted as teacher — gpt-oss superseded
 *(2026-04-11 · exp #158)*
+
+> **Superseded 2026-04-18:** The Sonnet-teacher V2 SFT adapter trained from this data (`chapter-plan-checker-v2:v1`) was retired after ~92% false-positive rate on real fantasy plans. Teacher-selection methodology here is still valid if/when the adapter is retrained on a production-matched distribution; right now the slot runs DeepSeek V3.2 base instead. See "Chapter-plan-checker-v2:v1 SFT adapter retired" entry below.
 
 **Decision:** Switch from gpt-oss-120b to Sonnet 4.6 as the oracle teacher for all chapter-plan-checker SFT data. V2 data collection uses Sonnet labels only.
 
@@ -924,6 +932,8 @@ Character call regressed 21pp vs V2. Root cause identified (see below). Other ca
 
 ### Base 14B not viable for chapter plan checker (reconfirmed)
 *(2026-04-12 · exp #107 still current)*
+
+> **Superseded 2026-04-18:** Neither gpt-oss-120b nor base Qwen3-14B is the current production model for chapter-plan-checker — the slot runs **DeepSeek V3.2 base** with the narrow 3-question prompt. The 14B SFT path (`chapter-plan-checker-v2`) was trained (exp #178) and subsequently retired after a ~92% FP audit on real fantasy plans. See "Chapter-plan-checker-v2:v1 SFT adapter retired" entry below.
 
 **Decision:** Keep chapter plan checker on gpt-oss-120b. Do NOT swap to base Qwen3-14B.
 
@@ -1146,6 +1156,8 @@ All three targets met (echo at target, dialogue slightly below 20% for this myst
 ### Chapter-plan-checker-v2 adapter trained (exp #170)
 *(2026-04-12)*
 
+> **Superseded 2026-04-18:** Adapter `chapter-plan-checker-v2:v1` was deployed then retired after ~92% FP on real fantasy plans. The artifact remains on W&B for historical reference but is no longer wired into `roles.ts`. See "Chapter-plan-checker-v2:v1 SFT adapter retired" entry below.
+
 **Decision:** Submit chapter-plan-checker-v2 to W&B Serverless SFT. Adapter available for eval.
 
 **Data:** 520 pairs (65 scenarios × 8 variants), Sonnet 4.6 teacher labels, 96% overall accuracy. 3 epochs, Qwen3-14B-Instruct base, batch size 2, cosine LR.
@@ -1177,6 +1189,8 @@ All three targets met (echo at target, dialogue slightly below 20% for this myst
 
 ### Chapter-plan-checker-v2 validated and deployed
 *(2026-04-12 · exp #178)*
+
+> **Superseded 2026-04-18:** This deployment was reversed. `chapter-plan-checker-v2:v1` was retired after a dual-oracle audit (Sonnet + Codex gpt-5.4) found ~92% false-positive rate on real fantasy chapter plans despite its validated 96% accuracy on exp #178's synthetic eval. The slot now routes to **DeepSeek V3.2 base** with the same `plan-adherence-system.md` prompt. Deviations are beat-indexed and route to targeted rewrites; on rewrite-budget exhaustion, escalate once per chapter to `chapter-plan-reviser`. See "Chapter-plan-checker-v2:v1 SFT adapter retired" entry below.
 
 **Decision:** Swap chapter-plan-checker from `gpt-oss-120b` (Groq) to `chapter-plan-checker-v2:v1` (W&B). Deployed in `models/roles.ts`.
 

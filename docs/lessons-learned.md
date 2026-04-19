@@ -916,6 +916,8 @@ The teacher ladder (table above) measured accuracy on **synthetic pairs with una
 
 **V2 remains the production adapter.** Mixed-teacher is a dead end. If specific V2 weak spots need improvement (FAIL_MISSING_SUBTLE 78.6%, FAIL_TANGENT_HARD 69%), the path is targeted data curation on those variants within the single-teacher (235B) framework, or evaluating a frontier model (Sonnet) as teacher on disagreement cases only.
 
+> **Superseded 2026-04-12:** V2 was itself retired in favor of V4 (`adherence-checker-v4`, exp #161) — single events+attribution call replacing the 4-call decomposed architecture, 2,134 Sonnet-labeled pairs, 79% first-attempt pass rate in production. See `docs/decisions.md` "Adherence checker V4: Sonnet re-labeling + W&B training submitted" and `docs/adapter-changelog.md`.
+
 (Exp #140 teacher ladder commit `93e0f6a`; V3 training exp #145; V3 eval exp #146 commit `0b7a138`; ref experiments #122 Qwen 235B, #138 gpt-oss)
 
 ### Sonnet 4.6 as adherence teacher: 96.5% accuracy, better than 235B but below V2.1 threshold (2026-04-10)
@@ -1031,6 +1033,9 @@ The harness originally optimized for adherence checker pass rates. The planner w
 ## SFT Distillation
 
 ### Evaluate SFT adapters against ground truth, not against the oracle you're replacing — direct agreement is wrong when the oracle is imperfect (2026-04-12 · exp #178)
+
+> **Superseded 2026-04-18 (adapter only, methodology stands):** The methodology lesson below (direct-agreement vs ground-truth as the correct swap gate) remains load-bearing. The `chapter-plan-checker-v2` adapter itself was retired 2026-04-18 after production audit found ~92% false-positive rate on real fantasy plans — distribution drift between synthetic training pairs and production dramatic-style beats. The slot now runs DeepSeek V3.2 base. See `docs/decisions.md` "Chapter-plan-checker-v2:v1 SFT adapter retired."
+
 chapter-plan-checker-v2 eval: direct agreement between the 14B SFT adapter and the production oracle (gpt-oss-120b) was 82%. The automated verdict said "KEEP ORACLE." But this was the wrong signal:
 
 | Model | Accuracy vs Sonnet ground truth |
@@ -1115,6 +1120,9 @@ v3 clean-val numbers: phase-c3 printed `Δ-sum 0.45`; `SELECT AVG(delta_sum)` re
 W&B transitioned out of the ART public-preview free window. Billing dashboard shows $3.76 spent April 1 – April 16 across 4 production adapters + Salvatore voice v1/v2 training + exploratory runs, against a $500/month cap. At ~$0.10–0.60 per r=16 / 700-pair / 3-epoch run on Qwen3-14B, the economics are unchanged from a solo-dev cadence perspective — still below the cost of the evaluation calls. Docs and status tables that called training "free during public preview" have been updated. The `tuning_experiment` row can optionally track $ per run now that it's measurable.
 
 ### Well-executed SFT distillation matches the teacher's accuracy exactly (2026-04-12 · exp #178)
+
+> **Superseded 2026-04-18 (adapter only, methodology stands):** The chapter-plan-checker-v2 adapter referenced below achieved the described 96% match on synthetic ground truth but was later retired after ~92% false-positive rate on real fantasy production plans (distribution drift between training pairs and production). The distillation lesson here — teacher quality ceiling propagates cleanly to the student — is unchanged and remains applicable to any future SFT run that passes a production-distribution audit. See `docs/decisions.md` "Chapter-plan-checker-v2:v1 SFT adapter retired."
+
 Sonnet 4.6 labeled 520 training pairs at 96% accuracy vs deterministic ground truth. After training, the 14B v2 adapter scored 96% accuracy vs the same ground truth — a near-perfect match. The student absorbed the teacher's calibration.
 
 This is the expected outcome when: (1) the teacher accuracy is high (96%), (2) the dataset is large enough to cover the variant space (520 pairs, 8 variants × 65 scenarios), and (3) the task is within the student model's capacity (structured verdict with 4 output fields, bounded reasoning). When these conditions hold, SFT distillation eliminates the teacher at inference time with no accuracy penalty. **If your teacher accuracy is high and your student comes back below teacher accuracy, the first suspects are insufficient data coverage or task capacity mismatch — not inherent limits of the approach.**

@@ -64,6 +64,8 @@ Check status: `python3 scripts/train-together.py --status`
 
 ## Tonal Pass
 
+> **Superseded 2026-04-16:** Howard methodology retired. Auto-run disabled 2026-04-15 (`pipeline.tonalPass=false`) and not reinstated; voice now lands at generation time via per-genre voice LoRAs (Salvatore v4 for fantasy). The V4 Howard adapter is retained on W&B Inference for the **on-demand** `POST /api/novel/:id/tonal-pass` endpoint on existing novels only — it does NOT run once post-validation during fresh novel generation. See `docs/decisions.md` "Howard primer/tonal-pass methodology retired" and "Tonal pass V4 verdict — lexical-only, dead end as a voice tool."
+
 **Task:** Per-paragraph voice rewrite toward Howard/pulp-fantasy register. Dialogue-only paragraphs skipped. Runs once post-validation across all approved chapters.  
 **Base model (current):** `OpenPipe/Qwen3-14B-Instruct` on W&B Inference  
 **Training data:** Howard corpus + curated pipeline output pairs
@@ -200,6 +202,8 @@ Based on the adherence V2 calibration point (8,524 pairs → 90% oracle agreemen
 ---
 
 ## Extraction Agents — V1 (exp #187, 2026-04-13)
+
+> **Superseded 2026-04-13 (same day):** All four extractor adapters were retired before production deployment. Plan-only `extractionMode` was validated on 7 novels (134 continuity checks, 0 failures) and the entire LLM extractor subsystem — `fact-extractor`, `summary-extractor`, `character-state`, `relationship-timeline`, `graph-linker` — was removed from the active pipeline. Planner-declared state (`establishedFacts`, `characterStateChanges`, `knowledgeChanges`) is the sole world-state source. Adapters below are retained as W&B artifacts only. The "EVAL / BLOCKED pending plan-only validation" status lines throughout this section are historical; none of these adapters are deployed and none are planned for deployment. See `docs/decisions.md` "Plan-only extractionMode validated — LLM extractors removed."
 
 **Task:** Post-approval extraction of facts, summaries, character states, and relationship timelines from chapter prose. Currently Cerebras 235B ($4.78/14d combined across 4 agents).
 **Base model:** `OpenPipe/Qwen3-14B-Instruct` on W&B Inference

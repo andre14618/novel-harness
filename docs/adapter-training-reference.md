@@ -125,6 +125,11 @@ Rewrite this paragraph. Make the prose vivid, concrete, and direct.
 
 ---
 
+<details>
+<summary>Historical — In-Training Adapters (Phase 4, retired 2026-04-13)</summary>
+
+> **Superseded 2026-04-13 (same day as training):** None of the four extractor adapters below were deployed. Plan-only `extractionMode` validated on 7 novels (134 continuity checks, 0 failures) and the entire LLM extractor subsystem was removed from the active pipeline the same day. The adapter artifacts remain on W&B for archival reference only. The "Status: Training" / "Status: Pending training" / "Prompt drift: MISMATCH" lines below are preserved as historical record — NONE of these adapters are wired in `roles.ts`, and the "retrain required" guidance in the prompt quick-reference at the bottom of this document is effectively moot for these four adapters. See `docs/decisions.md` "Plan-only extractionMode validated — LLM extractors removed."
+
 ## In-Training Adapters (Phase 4 — 2026-04-13)
 
 ### 5. fact-extractor (fact-extractor-v1)
@@ -228,6 +233,8 @@ Starts with: `You are a relationship and timeline analyst for fiction.`
 **User prompt format:** Chapter prose + characters + relationships + world systems.
 
 **Sequence length concern:** 100% over 2,048 tokens, 51% over 4,096. Average ~4,086 tokens. Most severe truncation risk.
+
+</details>
 
 ---
 

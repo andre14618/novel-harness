@@ -27,6 +27,8 @@ OpenPipe/Qwen3-14B-Instruct (hot, always warm)
   └── novel-harness/beat-writer-v1            [REJECTED — craft belongs to writer LoRA, not a separate adapter; see decisions.md]
 ```
 
+> **Superseded 2026-04-18 (same-day session):** The `hallucination-checker-v1` line above is drifted. V1's single-adapter kitchen-sink was superseded the same day by the v3 two-adapter architecture — `halluc-ungrounded-v2:v1` (corpus-agnostic grounded-entity check) and `halluc-leak-salvatore-v1:v1` (per-writer Salvatore-corpus vocabulary check), combined via OR logic. V2 kitchen-sink was REJECTED (distribution shift from pure-synth training). V3 adapters are status `candidate` in `adapter_registry` — not yet wired into `drafting.ts`. See `docs/decisions.md` "Hallucination-checker v3 — two-adapter architecture" and "Hallucination-checker v2 — chapter-plan methodology replicated, synth-to-natural distribution shift confirmed."
+
 ---
 
 ## Infrastructure
@@ -174,6 +176,8 @@ Until condition 1 is true, RunPod is an infrastructure cost, not a cost saving. 
 
 ### 2.5. Hallucination Checker — V1 DEPLOYED (pending eval, 2026-04-18)
 
+> **Superseded 2026-04-18:** V1's single-adapter kitchen-sink was superseded within the same session by the v3 two-adapter architecture: `halluc-ungrounded-v2:v1` (corpus-agnostic grounded-entity check) + `halluc-leak-salvatore-v1:v1` (per-writer Salvatore-corpus vocabulary check), combined via OR logic. V2 kitchen-sink was REJECTED (distribution shift from pure-synth training). V3 adapters are status `candidate` in `adapter_registry` and not yet wired into `drafting.ts`. See `docs/decisions.md` "Hallucination-checker v3 — two-adapter architecture" and "Hallucination-checker v2 — chapter-plan methodology replicated, synth-to-natural distribution shift confirmed."
+
 **Current**: W&B `hallucination-checker-v1:v1` (Qwen3-14B SFT) · single LLM call · 640 Sonnet-labeled train / 160 val · κ = 0.857 on inter-labeler agreement · matches adherence-checker-v4 house recipe.
 
 **Task**: Per-beat hallucination detection. Two failure classes:
@@ -289,6 +293,8 @@ Output: `{pass: bool, issues: [{entity, excerpt}]}` — no `kind` taxonomy, rewr
 
 ### 6. Fact Extractor
 
+> **Superseded 2026-04-13:** The fact-extractor slot no longer exists. The entire LLM extractor subsystem (fact-extractor, summary-extractor, character-state, relationship-timeline, graph-linker) was removed from the active pipeline after plan-only `extractionMode` validated with zero regression across 7 novels. Planner-declared state is the sole world-state source. See `docs/decisions.md` "Plan-only extractionMode validated — LLM extractors removed."
+
 **Current**: Unnamed model · 17-20 facts/chapter · target 8-15 · over-extracts
 
 **The opportunity**: The extractor consistently over-extracts — captures minor background details that clutter the fact store and degrade deterministic query precision. A fine-tuned model trained on labeled examples of "keep this / drop this" learns the right selection threshold.
@@ -333,6 +339,8 @@ Output: `{pass: bool, issues: [{entity, excerpt}]}` — no `kind` taxonomy, rewr
 
 ### 9. Rewriter
 
+> **Superseded 2026-04-17/2026-04-19:** Chapter-level rewriter removed from the validation phase; validation is now **diagnostic-only**. Beat-writer retries with targeted rewrites in `drafting.ts` are the quality gate. On plan-check exhaustion, the pipeline escalates once per chapter to `chapter-plan-reviser` (editing the plan); on reviser exhaustion, the `plan-assist` gate fires (human intervention in web mode; `PipelineBailError` in auto mode). There is no "rerun full chapters on validation failures" path left to fine-tune. See `docs/current-state.md` and `docs/exhaustion-handler-design.md`.
+
 **Current**: Cerebras Qwen 235B · runs on validation failures · reruns full chapters
 
 **The opportunity**: The rewriter currently receives a chapter + list of issues and must fix specific problems without touching the rest. A fine-tuned model trained on (chapter, issue_list, fixed_chapter) triples would learn which issues it can actually fix surgically vs. which require more significant rewrites.
@@ -344,6 +352,8 @@ Output: `{pass: bool, issues: [{entity, excerpt}]}` — no `kind` taxonomy, rewr
 ---
 
 ### 10. Voice-Pass LoRA (Phase 3 — after context engineering in production)
+
+> **Superseded 2026-04-17/2026-04-18:** Post-hoc voice-pass architecture was rejected. Voice-conditional dialogue now lands at generation time via the Salvatore v4 beat-writer LoRA (exp #222), which was trained on full trilogy corpus with per-speaker profiles + 3 example voiced lines injected into every training user prompt. Archetype POC #220 confirmed DeepSeek + few-shot dialogue matches a dialogue-rewrite LoRA empirically, so maintaining a per-character LoRA zoo is rejected (see `docs/adapter-changelog.md` "Character Voice (per-character LoRA zoo) REJECTED 2026-04-18" and `docs/decisions.md` "Voice-baked beat-writer shipped — Salvatore v4 is fantasy default").
 
 **Architecture**: Same pattern as tonal pass. Beat-writer generates voice-agnostic prose; voice-pass rewrites dialogue-only paragraphs conditioned on the character's `SpeechProfile`. The two passes are complementary: tonal pass touches narrative prose and skips dialogue; voice-pass touches only dialogue. Non-overlapping at the paragraph level.
 
@@ -393,6 +403,8 @@ Representative archetypes (profiles informed by modern genre study):
 ---
 
 ### 11. Character Voice Checker (Future — after voice-pass is in production)
+
+> **Superseded 2026-04-18:** Craft-layer checkers (voice-consistency, show-vs-tell, pacing, dialogue-naturalness, sentence-rhythm) were collectively rejected in the context-engineering-forward architecture decision. Craft is a model-weights problem — fix via writer upgrade (Salvatore v5, 70B SFT, frontier + few-shot), not via checkers or prompt-rule encoding. See `docs/decisions.md` "Context-engineering-forward architecture — craft is a model problem, not a prompt problem" and `docs/adapter-changelog.md` "Craft-layer checkers (voice/show-tell/pacing) REJECTED 2026-04-18."
 
 **The opportunity**: A per-beat classifier that checks whether dialogue matches a character's `SpeechProfile`. Once the voice-pass LoRA is generating voiced dialogue, the checker can be trained from pairs the voice-pass produces — no separate labeling pipeline needed.
 
