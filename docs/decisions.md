@@ -2032,3 +2032,41 @@ A separate `docs/charters/archive/` directory was tried on 2026-04-18 (commit `5
 
 Current convention is the delete-and-log rule above. The archive dir + README were removed as part of the `planner-phase2-contract` supersession commit.
 
+---
+
+## Checker architecture
+
+### beat-entity-list V1 shipped — halluc-ungrounded fire rate −16 pts on fantasy-debt
+*2026-04-20 · exp #254 · charter `docs/charters/beat-entity-list-v1.md` · commit `ff555bc`*
+
+**Decision:** `BEAT_ENTITY_LIST_VARIANT=v1` is the new default for the halluc-ungrounded checker. When the writer drafts a beat, the checker now sees a `Beat-entities:` sub-line inside the WORLD BIBLE block, derived from `outline.establishedFacts[*].fact` proper nouns + the prior beat's `description` proper nouns via the shared helper at `src/phases/beat-entity-list.ts`. The derivation is done at check time — no planner-schema change.
+
+**Evidence (within-seed ladder on `fantasy-debt`, 3 chapters, frozen plan):**
+- V0 (no change, current prod): 44.9% ungrounded fire rate (44/98 calls, novel-1776698676238).
+- V1 (checker-derived): 28.9% (37/128, novel-1776698676238-v1) — **Δ = −16.0 pts**. Chapter-1 V1 numbers inflated because the non-auto launch re-ran ch1 on resume; chapters 2-3 alone are a clean comparison (V0 38.2% → V1 15.4%, Δ = −22.8 pts).
+- Precision floor: 87.5% (14 TP / 2 FP) via 10-fire Sonnet adjudication of solo-ungrounded fires 49213/49221/49225/49257/49293/49314/49342/49429/49488/49586. Both FPs flagged "Aldric" despite it being in Beat-entities — known adapter overfire on already-grounded entities, ~17% of fires, below the 50% Class-B kill threshold.
+- Adherence regression: 0 fires → 0 fires (±2 pts required). Degenerate-list: 0% (15% ceiling). All five charter gates cleared.
+
+**Why:** the 2026-04-20 production audit on 7 novels (`docs/halluc-v3-production-report-2026-04-20.md`) identified the root cause of the 46.7% baseline fire rate as a context-surface mismatch — the writer sees the full chapter outline + transition bridge + character snapshots; the checker sees only beat.description + world-bible names. Legitimate continuity references (entities mentioned in earlier beats or in `establishedFacts`) fired as ungrounded. V1 closes that gap cheaply via shared derivation.
+
+**Alternatives rejected per charter §7 ladder:**
+- **V2 (writer-only allowlist)** — skipped. V1 drops ≥15 pts means running V2 cannot improve the SHIP decision and only adds noise if V2 silently regresses something.
+- **V3 (full stack, derived)** — skipped. Same reasoning.
+- **V4 (planner-emitted `sceneBeat.mentionedEntities`)** — deferred. Only opens if V1/V2/V3 plateau short of the gate; V1 cleared it.
+- Harder retry-wording alone — already shipped 2026-04-20 (commits `1bdc422` + `4471cac`) with retry clearance of 9%; surface gap, not wording, was the dominant failure mode.
+- Retrain with widened surface — reserved for the 17% Class-B residual (Aldric overfire), not the primary lever.
+
+**Class A/B/C attribution on V1 fires (46 entities sampled):**
+- **Class B** (adapter overfires despite visibility): ~17%. All were "Aldric" — the protagonist is in `beat.characters`, so in bibleKnown, but adapter still flagged. Adapter-attention issue, not a surface issue. Below 50% kill → derived-source lever remains viable.
+- **Class A/C** (not in checker surface): ~83%. Split roughly between Salvatore corpus leaks (Waterdeep, Luskan, Ten-Towns, Bryn Shander, Do'Urden, Baldur's Gate, Drossen Ironbelly — LoRA leakage that halluc-leak-salvatore under-fired on; 0 fires on this seed is a separate finding) and novel-specific writer inventions (Veynbridge, Bremen, Mottled Masks, Consortium, Plaza of the Three Horses, Brennan's Guild). Both are legitimate ungrounded fires per the checker's own system prompt.
+
+**Ongoing implications:**
+- `halluc-leak-salvatore-v1:v1` fired 0 times on this seed despite 7+ Salvatore-corpus names in V1 fires — adapter under-firing warrants a separate ticket. See active-learning harvest note in `docs/todo.md` §1.
+- Beat-entity derivation is now shared infrastructure. V2 (writer-side allowlist) can be reopened cheaply if future writer-invention pressure justifies it.
+- The 2-FP residual (Aldric flagged despite Beat-entities) is the signal for a future adapter retrain with wider grounded-surface training data.
+- `scripts/variant/clone-for-variant.ts` (plan-freeze infra) is kept — future within-seed ladder experiments reuse it.
+
+**Instrumentation:** every halluc-ungrounded call now writes `groundedSources: {variant, bible[], from_brief[], derived_outline_fact[], derived_prior_beat[], planner_emitted[]}` into `llm_calls.request_json` — queryable via standard JSONB path operators after the `request_json` double-encode fix (commit `ff555bc`). Mechanism-falsifier queries documented in the charter §3.
+
+**Class-of-bug caught mid-run:** `logLLMCall` was JSON.stringify-wrapping `request_json` before passing it to Bun.sql's tagged template (which auto-serialises JSONB). Result: Postgres stored the object as a JSONB *string type* — nested path operators always returned NULL. Latent since sql/018. Exposed only when the charter's mechanism-falsifier needed `request_json #> '{groundedSources,...}'`. See commit `ff555bc`.
+

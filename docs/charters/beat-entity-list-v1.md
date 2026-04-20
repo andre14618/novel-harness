@@ -1,11 +1,21 @@
 ---
-status: approved
+status: shipped
 kind: experiment-charter
 name: beat-entity-list-v1
 owner: andre
 date: 2026-04-20
 revision: 6 (post-Codex-YELLOW round 5 — 2026-04-20)
+shipped: 2026-04-20 (exp #254 — V1 cleared all 5 gates; V2/V3/V4 skipped per §7)
 ---
+
+**Outcome (2026-04-20):** V1 SHIPPED. Fire rate 44.9% (V0) → 28.9% (V1),
+Δ=−16.0 pts (ch2+3 clean: −22.8 pts). Precision 87.5% (14 TP / 2 FP
+via 10-fire Sonnet adjudication). Adherence 0% both variants. Class-B
+17% (below 50% kill). Degenerate 0%. `BEAT_ENTITY_LIST_VARIANT=v1` is
+now the default in `src/agents/halluc-ungrounded/index.ts`. V2/V3/V4 not
+run per §7 skip rules. See `docs/decisions.md` "beat-entity-list V1
+shipped (2026-04-20)".
+
 
 # Experiment Charter — `beat-entity-list-v1`
 
