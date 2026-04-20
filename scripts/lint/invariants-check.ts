@@ -523,52 +523,79 @@ function enclosingFunctionOf(node: ts.Node): ts.Node {
 }
 
 /**
- * Resolve an Identifier to its nearest declaration node in the current
- * source file, walking the scope chain outward from the identifier's
- * position. Returns null if the identifier isn't declared locally (imports,
- * globals, closure captures beyond the file).
+ * Resolve an Identifier to its nearest lexical declaration, respecting
+ * JavaScript block scoping. Walks UP from the identifier through scope-
+ * introducing ancestors (Block / Function parameter list / For* init /
+ * CatchClause binding / SourceFile). At each scope, searches direct
+ * declarations in that scope for a name match. Returns the first (nearest-
+ * enclosing) match. Falls back to `null` for imports, globals, or closure
+ * captures beyond the enclosing function's file.
  *
- * Scan is lexical: variable/param/binding nodes that contain the usage and
- * whose declared identifier matches by text.
+ * Bug this replaces (Codex review `a0b8a5d7` HIGH): the prior DFS-from-
+ * function-root visitor returned the FIRST declaration encountered in
+ * source order, not the nearest lexical scope. An inner `{ const res = ...
+ * }` would mis-group with an outer `const res = ...` declared earlier
+ * in the same function body.
  */
 function resolveIdentifierDeclaration(
   id: ts.Identifier,
   enclosingFn: ts.Node,
 ): ts.Node | null {
   const name = id.text
-  let match: ts.Node | null = null
-  function visit(n: ts.Node) {
-    if (match) return
-    // Don't descend into nested functions (different scope).
-    if (
-      n !== enclosingFn &&
-      (ts.isFunctionDeclaration(n) ||
-        ts.isFunctionExpression(n) ||
-        ts.isArrowFunction(n) ||
-        ts.isMethodDeclaration(n))
-    ) {
-      // Still check parameter list of the nested function if the usage is inside it.
-      if (id.pos >= n.pos && id.end <= n.end) {
-        ts.forEachChild(n, visit)
+
+  function declaresInScope(scope: ts.Node): ts.Node | null {
+    let match: ts.Node | null = null
+    function scan(n: ts.Node) {
+      if (match) return
+      // Don't cross a nested scope boundary — Block/Function/For/Catch.
+      // (The outer walk handles those separately.)
+      if (n !== scope && isNewScope(n)) return
+
+      if (
+        (ts.isVariableDeclaration(n) || ts.isParameter(n) || ts.isBindingElement(n)) &&
+        ts.isIdentifier(n.name) &&
+        n.name.text === name
+      ) {
+        match = n
+        return
       }
-      return
+      if (ts.isFunctionDeclaration(n) && n.name && n.name.text === name) {
+        match = n
+        return
+      }
+      ts.forEachChild(n, scan)
     }
-    if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.name.text === name) {
-      match = n
-      return
-    }
-    if (ts.isParameter(n) && ts.isIdentifier(n.name) && n.name.text === name) {
-      match = n
-      return
-    }
-    if (ts.isBindingElement(n) && ts.isIdentifier(n.name) && n.name.text === name) {
-      match = n
-      return
-    }
-    ts.forEachChild(n, visit)
+    ts.forEachChild(scope, scan)
+    return match
   }
-  visit(enclosingFn)
-  return match
+
+  // Walk up ancestors. At each scope-introducing node, check its direct
+  // declarations. First match wins (nearest enclosing scope).
+  let cur: ts.Node | undefined = id.parent
+  while (cur) {
+    if (isNewScope(cur) || cur === enclosingFn) {
+      const hit = declaresInScope(cur)
+      if (hit) return hit
+    }
+    if (cur === enclosingFn) break
+    cur = cur.parent
+  }
+  return null
+}
+
+function isNewScope(n: ts.Node): boolean {
+  return (
+    ts.isBlock(n) ||
+    ts.isSourceFile(n) ||
+    ts.isFunctionDeclaration(n) ||
+    ts.isFunctionExpression(n) ||
+    ts.isArrowFunction(n) ||
+    ts.isMethodDeclaration(n) ||
+    ts.isForStatement(n) ||
+    ts.isForOfStatement(n) ||
+    ts.isForInStatement(n) ||
+    ts.isCatchClause(n)
+  )
 }
 
 /**
@@ -665,6 +692,35 @@ function blockEndsInThrowOrReturn(stmt: ts.Statement): boolean {
       !stmt.catchClause || blockEndsInThrowOrReturn(stmt.catchClause.block)
     return tryEnds && catchEnds
   }
+  if (ts.isSwitchStatement(stmt)) {
+    // A switch terminates iff EVERY clause's fall-through path ends in a
+    // terminal statement AND a `default` clause exists (otherwise an
+    // unmatched scrutinee falls out of the switch without executing any
+    // clause, which is non-terminal).
+    //
+    // Partial MEDIUM fix (Codex review `a0b8a5d7`): this handles the common
+    // "every case returns/throws + default present" pattern. More exotic
+    // switch patterns (fall-through between cases, nested labels) are
+    // deferred; detector defaults to `false` (non-terminal) for anything
+    // it can't prove, which is the conservative direction.
+    const clauses = stmt.caseBlock.clauses
+    const hasDefault = clauses.some(c => ts.isDefaultClause(c))
+    if (!hasDefault) return false
+    for (const clause of clauses) {
+      const stmts = clause.statements
+      if (stmts.length === 0) return false  // fall-through → non-terminal
+      const last = stmts[stmts.length - 1]
+      if (!blockEndsInThrowOrReturn(last)) return false
+    }
+    return true
+  }
+  // Loop statements — bounded handling. `while (true) { ... break }` and
+  // `for (;;)` are terminal iff their body unconditionally `throw`s or
+  // `return`s (a `break` exits the loop without escaping the enclosing
+  // function, so it's NOT terminal for the outer scope). Most loop shapes
+  // are non-terminal because the condition can be false on first iter.
+  // Detector stays `false` for loops as a conservative default; this is a
+  // known limitation documented in `docs/invariants.md` §#5.
   return false
 }
 
@@ -682,7 +738,10 @@ function blockEndsInThrowOrReturn(stmt: ts.Statement): boolean {
  *   - IfStatement: terminates iff BOTH then-branch terminates AND an else
  *     branch exists that terminates. If no else branch, fall-through is
  *     possible → not terminal.
- *   - SwitchStatement: not handled — conservative false.
+ *   - SwitchStatement: terminal iff every clause's last statement is
+ *     terminal AND a `default` clause exists. Other shapes → false.
+ *   - Loop statements: not handled — conservative false (loop body `break`s
+ *     exit the loop, not the enclosing function).
  */
 function alwaysTerminates(stmt: ts.Statement): boolean {
   return blockEndsInThrowOrReturn(stmt)

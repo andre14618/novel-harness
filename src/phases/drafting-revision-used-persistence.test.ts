@@ -20,6 +20,7 @@
  * Mocks at the module boundary — no LLM or DB state is touched.
  */
 import { mock, test, expect, beforeEach, afterEach } from "bun:test"
+import type { BeatIssue, RawCheckerOutputs } from "./beat-checks"
 
 // ── Shared mock state (reset per test) ─────────────────────────────────
 let isRevisionUsedInitial = false
@@ -165,19 +166,19 @@ mock.module("./beat-checks", () => ({
   // Real-signature parity with `src/phases/beat-checks.ts:99-142` —
   // `summarizeIssues` must also mirror the real impl because
   // `beat-checks.test.ts` asserts group-by-source formatting on it.
-  formatRetryLine: (issue: any) => issue.description,
-  aggregateIssues: (outputs: { adherence: string[]; ungrounded: string[]; leak: string[] }) => {
-    const issues: any[] = []
+  formatRetryLine: (issue: BeatIssue) => issue.description,
+  aggregateIssues: (outputs: RawCheckerOutputs) => {
+    const issues: BeatIssue[] = []
     for (const s of outputs.adherence) issues.push({ source: "adherence", severity: "blocker", description: s })
     for (const s of outputs.ungrounded) issues.push({ source: "halluc-ungrounded", severity: "blocker", description: s })
     for (const s of outputs.leak) issues.push({ source: "halluc-leak-salvatore", severity: "blocker", description: s })
     return {
-      pass: issues.every((i: any) => i.severity !== "blocker"),
+      pass: issues.every(i => i.severity !== "blocker"),
       issues,
-      retryLines: issues.map((i: any) => i.description),
+      retryLines: issues.map(i => i.description),
     }
   },
-  summarizeIssues: (issues: any[]) => {
+  summarizeIssues: (issues: BeatIssue[]) => {
     if (issues.length === 0) return "no issues"
     const bySource: Record<string, string[]> = {}
     for (const i of issues) {
