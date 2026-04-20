@@ -1,7 +1,7 @@
 ---
 status: session-closed
 updated: 2026-04-19
-session_closed_at: 2026-04-19T23:45:00Z
+session_closed_at: 2026-04-19T23:55:00Z
 ---
 
 # Session handoff — novel-harness
@@ -12,40 +12,47 @@ session_closed_at: 2026-04-19T23:45:00Z
 
 ## What's pending Codex review
 
-**Nothing open.** Final session thread `aff17da16c4bf5a25` returned
-RESOLVED + no new issues on `8cc3d2c`. Exp #244 + #246 concluded PASS.
-Exp #245 concluded SUBSUMED.
+**Nothing open.** All 4 tickets this session concluded PASS:
+- T4 (exp #247), T5 (exp #248), T6 (exp #249), T7 (exp #250)
+- Catch-up impl reviews `a0d7f936` (T6) + `aa684958` (T7) both GREEN.
 
 ## Start-here priorities for next session
 
-1. **Measure the ratio (ongoing).** Across 2 sessions now:
-   `bugs_caught_by_preflight = 0`, `bugs_caught_by_codex = 4+` this session.
-   Invariants are currently preventing REGRESSIONS, not catching new bugs.
-   The ratio tips when a preflight-caught regression lands. 3 more sessions
-   remain in the exp #243 window — watch for it.
+**Strongly recommended: resist more meta-work. Ship a product ticket.**
 
-2. **Loop-statement reachability (low priority).** The T1 detector
-   currently treats ALL loops as non-terminal (conservative false). Open a
-   ticket if a HEAD site ever legitimately hits this — none today.
+Today's session and yesterday's were both scaffolding-heavy: invariants, preflight, pattern docs, workflow tiers, taxonomy. The infrastructure is real but product value accumulated is thin. Ratio target still 0 bugs caught by preflight vs 5+ by Codex. Next session should flip that.
 
-3. **Receiver aliasing (low priority).** `const body = res; await
-   body.text(); await res.json()` — same Response, different identifiers.
-   The detector misses this because it groups by declaration-node identity.
-   Same deferral: open a ticket only when a real HEAD site surfaces.
+### Option A (highest signal, full-tier ticket)
+
+**Planner Phase-2 `requiredPayoffs` enrichment** — `docs/todo.md` §3. Add `requiredPayoffs: [{fact_id, payoff_beat}]` to chapter outline schema. Planner links setups to payoffs explicitly. Chapter-plan-checker gains a new directly-testable invariant (every fact_id mentioned has a payoff_beat that actually mentions it). Measurable creative-quality delta.
+
+Scope: 1-2 days. Touches planner prompts, `src/schemas/shared.ts`, `chapter-plan-checker`, beat-context surfacing. Full-tier pipeline (not Codex-implement — this is behavior-changing + multi-file).
+
+### Option B (quick wins, light-tier)
+
+1. Update `feedback_ticket_class_routing.md` + Phase 0.5 portable-doc to make "Phase 6 impl review is NOT optional" explicit. (Today caught a skip.)
+2. Elevate the `scope-local-vs-function-scope-control-transfers` pattern if it recurs one more time.
+
+### Option C (production telemetry)
+
+Measure hallucination checker v3 production fire rate (`docs/todo.md` §1 open bullet). Needs 5-10 organic novels with telemetry collection. Pure ops — no code changes needed unless fire rate suggests adapter retuning.
 
 ## Deferred / flagged
 
-- Pattern elevation candidate: `docs/patterns/bun-test-module-mock-hygiene.md` — seen 2 sessions now (exp #243 surfaced, exp #246 fixed). One more recurrence would trigger elevation.
-- Pattern elevation candidate: `docs/patterns/ast-over-text-for-syntactic-invariants.md` — 3 recurrences now (T1 invariant #5 regex → AST + the invariant #2 text-substring → AST from exp #243). Strong elevation signal. If the next syntactic invariant starts with regex, elevate preemptively.
+- **Loop-statement reachability edge cases** — T4 handles `while(true)`, `for(;;)`, `do-while`. Still missed: labeled break/continue, `for (; true ;)`, `!0`/`1 === 1` truthiness. Conservative-false for all unmissed cases. No HEAD site needs them today.
+- **Receiver aliasing in invariant #5** — `const body = res; body.text(); res.json()`. Not caught. Defer until a HEAD instance appears.
+- **Scaffolding saturation check** — if next session drifts into another meta ticket unprompted, stop and ask whether it's actually load-bearing. Three scaffolding-heavy sessions in a row = drift signal.
 
 ## Recent architectural decisions (last 48h)
 
 Full entries in `docs/decisions.md`:
-- **Invariants registry shipped** (exp #242).
-- **5 starting invariants shipped** (exp #243).
-- **Invariant #5 widened to AST-based detection** (exp #244) — retired 4 allowlist entries, 2 new fixtures, control-flow reachability with switch/try/if + throw/return-only `exitsFunction` for scope-local distinction.
-- **bun:test cross-file mock hygiene** (exp #246) — full-shape mocks mandatory; `BASELINE_TEST_FAILURES` at 0.
-- **T2 subsumed by T1** (exp #245) — parallel plan triage caught redundancy.
+- **Invariants registry shipped** (exp #242) + **5 invariants shipped** (exp #243) — canonical preflight gate.
+- **Invariant #5 widened to AST** (exp #244) — retired 4 allowlist entries.
+- **Invariant #5 loop reachability** (exp #247) — `while(true)/for(;;)/do-while`.
+- **Pattern elevations** (exp #248, #249) — AST-over-text + bun:test mock hygiene.
+- **TrackedWorkType taxonomy** (exp #250) — `ticket` default, `charter` reserved, widened-literal tail.
+- **Pipeline tiering** (Phase 0.5 in portable doc) — light / full / hybrid routing.
+- **Mock pollution fix** (exp #246) — `BASELINE_TEST_FAILURES → 0`.
 
 ## Session-start protocol
 
@@ -60,32 +67,19 @@ Before dispatching subagents whose work touches `.claude/*.yaml`: Claude main wr
 
 ## Session-close protocol (what today did)
 
-- 5 substantive commits on main: `70f814d`, `b8b5967`, `b5cb37a`, `8cc3d2c` (plus this docs commit).
-- Experiments #244 + #246 auto-concluded PASS; #245 SUBSUMED.
+- **9 substantive commits** this session: `70f814d`, `b8b5967`, `b5cb37a`, `8cc3d2c`, `7e21f7b`, `b3a3195`, `d93ffc4`, `037e004`, `252a01f`, `ac5e499` (plus this docs commit).
+- Experiments #244, #246, #247, #248, #249, #250 auto-concluded PASS; #245 SUBSUMED.
+- Retrospectives at `docs/sessions/2026-04-19-5-invariants.md` (prior), `docs/sessions/2026-04-19-t1-t3.md` (prior), `docs/sessions/2026-04-19-t4-t7.md` (this session).
 - Registry pruned.
-- Retrospectives at `docs/sessions/2026-04-19-5-invariants.md` (prior session) + `docs/sessions/2026-04-19-t1-t3.md` (this session).
-
-## Commit chain this session (5 substantive + docs)
-
-```
-70f814d  [lint] widen invariant #5 to AST-based detection (exp #244) — T1 impl
-b8b5967  [test] fix beat-checks cross-file mock pollution (exp #246) — T3 impl
-b5cb37a  [fix] Codex a0b8a5d7 + acd8a3a3 — T1 HIGH/MEDIUM + T3 LOW delta
-8cc3d2c  [fix] Codex a76243c1 — switch-clause break mis-classified as terminal
-(plus this docs + retrospective commit)
-```
 
 ## If you just landed here and don't know what's going on
 
-Today extended the 5-invariants baseline from exp #243 with two follow-up
-tickets: T1 widened invariant #5 to AST-based (retiring the 4 HEAD
-allowlist entries), T3 fixed a bun:test mock pollution issue (dropping
-`BASELINE_TEST_FAILURES` to 0). T2 was closed as subsumed by T1 via Codex
-parallel-plan triage — save of ~30min.
+Two scaffolding-heavy sessions completed on 2026-04-19 building out:
+1. The 5 invariants + preflight gate (exp #243) — now load-bearing in all future tickets.
+2. 2 pattern docs elevated from session retrospectives.
+3. Ticket-class routing tier (light / full / hybrid) in `docs/workflow-portable.md` Phase 0.5 — **start here if you want to understand why some tickets go to Codex directly vs the full pipeline**.
+4. `TrackedWorkType` widened-literal union in `src/db/ops.ts` — every new experiment row picks from canonical labels.
 
-Preflight: 71 pass / 0 fail / 0 new tsc errors / 112 invariant sites / 0
-violations / 5/5 self-test. Run `bun scripts/preflight.ts` before any
-Codex cycle.
+**The infrastructure is real but user-facing novel-writing progress today was thin.** Resist another meta ticket unless it's load-bearing for the specific product work you're about to start. Pick Phase-2 planner enrichment (Option A) or a measurement ticket (Option C) over more orchestration scaffolding.
 
-The invariants registry at `docs/invariants.md` remains source-of-truth.
-The SOP is documented in `.claude/skills/implement-ticket.md`.
+SOP: parallel Sonnet subagents for multi-file impl, Codex-implement mode for docs/config-only tickets, commit-pinned reviews, session-start receipt, one light-tier NEVER skips Phase 6 review (today's lesson).
