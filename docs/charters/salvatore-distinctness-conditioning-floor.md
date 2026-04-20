@@ -66,24 +66,34 @@ No v3 rung, no Sonnet rung, no H2 rung. This charter tests one lever. Other rung
 ## 6. Distribution match
 
 - **Train set stratification:** not applicable; no training arm.
-- **Eval surface:** the **live `buildBeatContext` path** running real 3-chapter fantasy novels. Transition bridges, landing-target sentences, resolved references, setting, multi-character cards, adherence-retry logic, chapter-plan-checker, halluc-leak regex — all production-on. Every beat in both arms uses the same plan, the same references, the same POV, the same adherence pass count — the ONLY difference is which `exampleLines` subset the fantasy writer pack exposes for that beat.
+- **Eval surface:** the **live `buildBeatContext` path** running a real fantasy novel draft. Transition bridges, landing-target sentences, resolved references, setting, multi-character cards, adherence-retry logic, chapter-plan-checker, halluc-leak regex — all production-on.
+- **Arm isolation via plan-freeze + clone.** Both arms draft from an **identical frozen plan**. The source-of-truth arm runs once with `WRITER_CONDITIONING=fixed`, landing the plan into `chapter_outlines` + world-bible + characters + facts + character_states + character_knowledge. The second arm is created via `scripts/variant/clone-for-variant.ts` — a transactional deep-copy of every pre-drafting table keyed by `novel_id` — and re-drafts from `phase=drafting, current_chapter=1` with `WRITER_CONDITIONING=rotation`. Planner output, character profiles, `exampleLines` surface, and all upstream references are literally shared by construction. Closes round-3 blocker #1.
+- **Pre-registered pair set.** After the source-of-truth novel's plan freezes but **before the rotation arm drafts a single beat**, `scripts/evals/conditioning-floor-pair-builder.ts` reads the frozen `chapter_outlines`, filters to beats with `kind==="dialogue"` and `characters.length >= 2`, stratifies round-robin across chapters, and emits a JSONL of up to `N=20` beat pre-registrations (minimum N=10, below which the charter aborts per §8). The pair-set is committed BEFORE rotation drafting, so conditioning cannot change which beats are eligible for judgment. Beats where either arm fails to produce prose are counted as losses in the final tally (not dropped). Closes round-3 blocker #2.
 - **Frozen seed:** `fantasy-archive`. Committed in charter at run time; not author-selectable at launch. If `fantasy-archive` is unrunnable at launch (e.g., DB drift), switch to `fantasy-cartographer` and re-commit the charter before running. No mid-run seed swap.
-- **Blind judging:** gpt-5.4 via Codex plugin. Judge never sees arm labels, sees only anonymized prose pairs with matched scene context (POV, intended speakers, beat purpose). Pairwise prompt + rubric committed to `docs/evals/conditioning-floor-judge-prompt.md` before §7 runs.
-- **Production distribution:** this IS the production distribution. The only proxy is "one fantasy seed, 3 chapters" vs "all fantasy seeds, all chapter lengths." That scope cut is acknowledged; a follow-on second-seed pilot runs only if the first pilot is borderline.
+- **Blind judging:** gpt-5.4 via Codex plugin (`codex exec --model gpt-5.4 -c model_reasoning_effort=high`). Judge never sees arm labels — `scripts/evals/conditioning-floor-judge.ts` shuffles A/B per pair via sha256(seed+pair_id) and unshuffles verdicts after. Pairwise prompt + rubric frozen in `docs/evals/conditioning-floor-judge-prompt.md`. Verdicts persist to `public.eval_results` with `set_name='conditioning-floor-slim-live-v1'`. Closes round-3 blocker #3.
+- **Production distribution:** this IS the production distribution for the drafting path. The only remaining proxy is "one fantasy seed, 3 chapters" vs "all fantasy seeds, all chapter lengths." That scope cut is acknowledged; a follow-on second-seed pilot runs only if the first pilot is borderline.
 
 ## 7. Success criteria
 
-Primary metric is blind pairwise win-rate on matched scenes between the two novel runs. Secondary metrics are adherence-event count and halluc-leak Rung 0 regex fire-rate, per chapter.
+Primary metric is blind pairwise win-rate across the pre-registered pair set. Secondary metrics are adherence-event count and halluc-leak Rung 0 regex fire-rate, per chapter.
 
-Matched scenes are constructed by `scripts/evals/conditioning-floor-pair-builder.ts` (committed before run) — it finds beats where both runs produced prose and the beat archetype is one of `threat / reassurance / tactical_planning / banter` with ≥2 characters speaking. Target pair count: `20` (if the runs produce fewer than 20 eligible matched pairs, document the shortfall and run the judge on all pairs produced).
+**Pair set size is fixed at N pairs pre-registered before the rotation arm drafts.** `N` is determined by what `conditioning-floor-pair-builder.ts` produces on the frozen source plan:
 
-| Outcome | Condition | Action |
+- If the eligible-beat count ≥ 20, `N = 20`.
+- If 10 ≤ eligible-beat count < 20, `N` is the actual eligible count and thresholds below scale proportionally (rounded to nearest integer). The exact N used is committed to the output JSON and `docs/decisions.md`.
+- If eligible-beat count < 10, the charter aborts under §8 and is not rerun on the same source plan.
+
+**Thresholds below are written for `N = 20`.** If `N < 20`, multiply each threshold by `N / 20` and round: SHIP = `round(0.65 · N)`, ITERATE lower-bound = `round(0.55 · N)`, KILL = `round(0.50 · N)`.
+
+Beats where either arm failed to produce prose, or produced <50 words, are counted as losses for that arm (NOT dropped from N). This prevents intervention-induced eligibility shrinkage.
+
+| Outcome | Condition (N=20) | Action |
 |---------|-----------|--------|
-| SHIP rotation | Rotation wins `>= 13/20` pairs, adherence regresses by `<= +2 events/chapter`, halluc-leak does not regress at all | Ship `conditioning: "rotation"` as the default in the fantasy `WRITER_GENRE_PACKS` entry. Document the decision in `docs/decisions.md`. No new infra charter needed — the flag is already in place. |
-| ITERATE | Rotation wins `11-12/20` OR `>= 13/20` but adherence regresses by `+3 events/chapter` OR one halluc-leak fire appears | Do not ship. Run the second seed (`fantasy-cartographer`) as a confirmation pilot before deciding. Document the residual by pair. |
-| KILL | Rotation wins `<= 10/20`, OR adherence regresses by `>= +3 events/chapter` on a `>= 13/20` result, OR halluc-leak regression > 0 | End the conditioning-first claim. Reopen `salvatore-v5-corpus-expansion` as a separate charter with its own pre-gate. |
+| SHIP rotation | Rotation wins `>= 13/N` pairs, adherence regresses by `<= +2 events/chapter` across all 3 chapters, halluc-leak Rung 0 regex fire count does not regress at all | Ship `conditioning: "rotation"` as the default in the fantasy `WRITER_GENRE_PACKS` entry (remove the env-var gate, set pack-level default to "rotation"). Document in `docs/decisions.md`. No new infra charter needed — the flag is already in place. |
+| ITERATE | Rotation wins `11-12/N` OR `>= 13/N` but adherence regresses by `+3 events/chapter` OR one or more halluc-leak fires appear | Do not ship. Run the second seed (`fantasy-cartographer`) as a confirmation pilot using the same clone-based workflow before deciding. Document the residual by pair. |
+| KILL | Rotation wins `<= 10/N`, OR adherence regresses by `>= +3 events/chapter` on a `>= 13/N` result, OR halluc-leak regression > 0 | End the conditioning-first claim. Reopen `salvatore-v5-corpus-expansion` as a separate charter with its own pre-gate. |
 
-Interpretation: count units for pairs and events. Do not convert to percentages or rates.
+Interpretation: count units for pairs and events. Do not convert to percentages or rates when reporting.
 
 ## 8. Budget
 
@@ -106,10 +116,11 @@ Real numbers from `public.llm_calls` (2026-04-20) on recent fantasy runs:
 - Work order: [docs/charters/revision-work-order-2026-04-18.md](/Users/andre/Desktop/personal_projects/novel-harness/docs/charters/revision-work-order-2026-04-18.md)
 - Frozen distinctness eval (source of judge choice + rubric shape): [docs/evals/salvatore-distinctness-v1.md](/Users/andre/Desktop/personal_projects/novel-harness/docs/evals/salvatore-distinctness-v1.md)
 - Proxy scorer retained as infra only: [scripts/evals/run-salvatore-distinctness-v1.ts](/Users/andre/Desktop/personal_projects/novel-harness/scripts/evals/run-salvatore-distinctness-v1.ts)
-- **Runtime conditioning surface (to be extended before run):** [src/agents/writer/beat-context.ts](/Users/andre/Desktop/personal_projects/novel-harness/src/agents/writer/beat-context.ts), [src/models/roles.ts](/Users/andre/Desktop/personal_projects/novel-harness/src/models/roles.ts) (WRITER_GENRE_PACKS)
-- **Pilot runner (to be committed before run):** `scripts/evals/run-conditioning-floor-live.ts`
-- **Pairwise judge prompt (to be committed before run):** `docs/evals/conditioning-floor-judge-prompt.md`
-- **Matched-pair builder (to be committed before run):** `scripts/evals/conditioning-floor-pair-builder.ts`
+- **Runtime conditioning surface (landed commit `6c0897c`):** [src/agents/writer/beat-context.ts](/Users/andre/Desktop/personal_projects/novel-harness/src/agents/writer/beat-context.ts), [src/models/roles.ts](/Users/andre/Desktop/personal_projects/novel-harness/src/models/roles.ts) — `WRITER_CONDITIONING=fixed|rotation` env-var override on the fantasy `WRITER_GENRE_PACKS` entry, wired into both `buildBeatContext` render paths via `pickExampleLineSubset`. 15 unit tests passing.
+- **Plan-freeze clone (pre-existing from beat-entity-list-v1 charter):** [scripts/variant/clone-for-variant.ts](/Users/andre/Desktop/personal_projects/novel-harness/scripts/variant/clone-for-variant.ts) — transactional deep-copy of `novels + world_bibles + characters + chapter_outlines + facts + character_states + character_knowledge + relationship_states + timeline_events`. Source must exist, target must not.
+- **Matched-pair builder (landed commit `6c0897c`):** [scripts/evals/conditioning-floor-pair-builder.ts](/Users/andre/Desktop/personal_projects/novel-harness/scripts/evals/conditioning-floor-pair-builder.ts) — reads frozen `chapter_outlines`, filters to dialogue beats with ≥2 characters, stratifies round-robin, emits JSONL. Aborts below N=10. 15 unit tests passing.
+- **Frozen pairwise judge prompt (landed commit `76f7733`):** [docs/evals/conditioning-floor-judge-prompt.md](/Users/andre/Desktop/personal_projects/novel-harness/docs/evals/conditioning-floor-judge-prompt.md) — gpt-5.4 system + user prompt, voice-distinctness rubric (not identity-assignment), frozen-2026-04-20.
+- **Judge wrapper (landed commit `26ae698`):** [scripts/evals/conditioning-floor-judge.ts](/Users/andre/Desktop/personal_projects/novel-harness/scripts/evals/conditioning-floor-judge.ts) — seeded sha256 shuffle, `codex exec` invocation, retries with backoff, persistence to `public.eval_results`. Trivial Codex test-call confirmed during build (`{"winner":"A","reasoning":"test call successful"}`). 8 unit tests passing.
 - Retention / lineage: [docs/voice-lora-salvatore.md](/Users/andre/Desktop/personal_projects/novel-harness/docs/voice-lora-salvatore.md)
 - Prior-art judge precedent: [docs/decisions.md](/Users/andre/Desktop/personal_projects/novel-harness/docs/decisions.md) (`2026-04-17 Archetype POC`)
 
@@ -176,16 +187,22 @@ This revision (`slim-live-v1`) adopts the round-2 cheapest-untried-counterfactua
 
 ## 11. Open questions / readiness gate
 
-Must close before §7 runs:
+- **(closed) Frozen eval surface:** [docs/evals/salvatore-distinctness-v1.md](/Users/andre/Desktop/personal_projects/novel-harness/docs/evals/salvatore-distinctness-v1.md) — status: frozen-2026-04-18; judge gpt-5.4.
+- **(closed) Proxy scorer TODOs:** commits `e54b1fe` + `e9c8474`. Remains in-repo as infra; not invoked by this charter.
+- **(closed) Conditioning feature flag in `WRITER_GENRE_PACKS`:** commit `6c0897c`. Env-var override `WRITER_CONDITIONING=fixed|rotation` on the fantasy pack, wired through both `buildBeatContext` render paths. 15 tests.
+- **(closed) Plan-freeze clone:** pre-existing `scripts/variant/clone-for-variant.ts` from the beat-entity-list charter. Transactional deep-copy of every pre-drafting table keyed by `novel_id`.
+- **(closed) Matched-pair builder:** commit `6c0897c`. Filters to dialogue + ≥2 characters, round-robin stratifies across chapters, aborts below N=10. 15 tests.
+- **(closed) Pairwise judge prompt + rubric:** commit `76f7733`. Frozen-2026-04-20 voice-distinctness rubric.
+- **(closed) Judge wrapper:** commit `26ae698`. sha256 seeded shuffle, `codex exec --model gpt-5.4`, retries, persistence to `public.eval_results`. Trivial Codex test-call confirmed during build. 8 tests.
+- **(open) Round-4 adversary re-review:** all prior open gates closed. Request round 4 against the concrete artifacts + this §6/§7/§11 revision.
+- **(open) Pilot runner script:** `scripts/evals/run-conditioning-floor-live.ts` — orchestrator that (1) runs the fixed arm end-to-end, (2) invokes `clone-for-variant.ts` to clone into a new novel id, (3) invokes the pair-builder against the source novel's frozen plan, (4) re-drafts the clone with `WRITER_CONDITIONING=rotation`, (5) assembles the pair JSONL with prose from both novels, (6) invokes the judge wrapper, (7) writes the decision artifact to `docs/decisions.md` or a committed result file. This is orchestration only — all component pieces are landed. To be written after round-4 GREEN so the runner targets a greenlit charter.
 
-- **(closed) Frozen eval surface:** [docs/evals/salvatore-distinctness-v1.md](/Users/andre/Desktop/personal_projects/novel-harness/docs/evals/salvatore-distinctness-v1.md) is frozen with `status: frozen-2026-04-18` and names `gpt-5.4` as the judge.
-- **(closed) Proxy scorer TODOs:** commit `e54b1fe` + `e9c8474`. Not required for this revision's gate but remains in-repo as infra.
-- **(open) Round-3 adversary re-review:** required before any of the new infrastructure below is committed.
-- **(open) Conditioning feature flag in `WRITER_GENRE_PACKS`:** add `conditioning: "fixed" | "rotation"` to the fantasy pack; wire into `src/agents/writer/beat-context.ts` so `exampleLines` rendering honors the flag. Committed, reversible via config, no hand-edits.
-- **(open) Pilot runner script:** `scripts/evals/run-conditioning-floor-live.ts` — takes a seed, runs both arms end-to-end via the existing novel pipeline, persists results to `public.novels` under two separate novel ids that share a common `conditioning_floor_pilot_id`.
-- **(open) Matched-pair builder:** `scripts/evals/conditioning-floor-pair-builder.ts` — pulls beats where both runs produced prose and the beat has ≥2 characters speaking; emits a committed pair-JSONL.
-- **(open) Pairwise judge prompt + rubric:** `docs/evals/conditioning-floor-judge-prompt.md` — frozen before run, checked in, used by whatever wrapper invokes Codex `gpt-5.4`.
-- **(open) Judge wrapper:** one-shot script or subagent invocation that reads the pair-JSONL, calls Codex plugin pairwise, writes verdicts back to `public.eval_results` with a shared `eval_id` tying them to the pilot runs.
+### Post-outcome paths
+
+- **Ship path:** if `slim-live-v1` passes §7, remove the env-var gate and set `conditioning: "rotation"` as the pack-level default in the fantasy `WRITER_GENRE_PACKS` entry. Inference-local flag flip; no new infra charter. Record in `docs/decisions.md`.
+- **Iterate path:** if §7 emits ITERATE, re-run on seed `fantasy-cartographer` using the same clone-based workflow, then decide.
+- **Fail path:** if §7 emits KILL, reopen `salvatore-v5-corpus-expansion` as a separate charter (PDF acquisition is its own pre-gate).
+- **H2 reopens only as a new charter**, gated on H1 winning first AND a runtime-contract change that lets `buildBeatContext` accept preset-indexed `tics`/`avoid` arrays.
 
 Post-win path: if `slim-live-v1` passes §7, ship `conditioning: "rotation"` as default in the fantasy pack. Inference-local flag flip; no new infra charter. If telemetry / preset-state plumbing later become useful, that is a separate charter (not scope creep here).
 
