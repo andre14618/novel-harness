@@ -109,6 +109,15 @@ The same checklist had opposite effects on three models: Llama 8B +18pp (rescued
 ### 4.6 Check prompt assumptions against the architecture, not just the eval
 The adherence-checker setting prompt said "no setting markers → false." The beat-context code only injects setting on beat 0 or location change. Mid-chapter beats never have setting markers by design. **Read the production data shape before writing the check prompt.** *(Production run post-exp #122.)*
 
+### 4.7 Build a parity harness for any experiment that intervenes on production code paths
+When an experiment modifies code that the live production pipeline also runs (writer, checker, planner, context-builder, etc.), build a byte-parity harness that diffs the experimental-path request against a real `llm_calls` row from a drafted production run for the same coordinates. Run it BEFORE any judging. A non-zero diff aborts the pilot; an expected-delta region (e.g., a specific prompt section that IS the intervention) is annotated and allowed.
+
+Why: over 7 rounds of adversarial review on the `salvatore-distinctness-conditioning-floor` charter, the parity harness caught two silent regressions no unit test could have: (1) a 4-line-vs-5-line preset mismatch that made the experiment a no-op on production characters, and (2) a pack-level `conditioning: "fixed"` default that silently dropped one exampleLine from every production novel beat.
+
+What to diff: model, provider, temperature, max_tokens, system_prompt, user_prompt. For multi-arm experiments, run the harness per-arm with the arm's config active — control arm byte-equal to live, treatment arms byte-equal to live except in documented delta regions.
+
+Canonical implementation: [`scripts/evals/conditioning-floor-parity-check.ts`](/Users/andre/Desktop/personal_projects/novel-harness/scripts/evals/conditioning-floor-parity-check.ts) — model new parity harnesses on its shape. *(Added 2026-04-20 after the conditioning-floor charter's 7-round review cycle.)*
+
 ---
 
 ## 5. Teacher Selection for Fine-Tuning
@@ -250,4 +259,58 @@ All models (K2, 32B, 235B) change 63-78% of characters when reproducing a full c
 [ ] Smoke run (16 pairs) planned before full run
 [ ] If checker change: 3-chapter romance-drama pilot scheduled after
 [ ] Experiment linked to related prior experiments in config JSON
+[ ] If the experiment intervenes on a production code path (writer,
+    checker, planner, context-builder): parity harness built and passing
+    against a real llm_calls row for the same coordinates. Per §4.7.
+    Skip only for pure evaluation tasks that don't rerun production
+    code with an experimental knob.
 ```
+
+---
+
+## 11. Lever Selection: Before Fine-Tuning
+
+Fine-tuning is the most expensive lever — in dollars, in time, and in the risk of teaching the model the wrong generalization. Every fine-tune charter must show that cheaper levers have been **measured** (not just "considered") and failed. Every rule in this section was violated by at least one of the three hallucination-checker v3 retrains on 2026-04-18 that produced F1 regressions.
+
+### 11.1 Lever hierarchy — cheapest-first
+
+When a checker, writer, or extractor underperforms, work this ladder top-down. Do not skip rungs.
+
+| Rung | Lever | Cost | When it works |
+|------|-------|------|---------------|
+| 1 | **Prompt edit** — schema, examples, field ordering, verdict-last | ~$0 | Model has the capability but is mis-calibrated or mis-framed (§4) |
+| 2 | **Inference-time post-processing** — regex, threshold tuning, voting, rejection sampling, OR/AND with a deterministic check | ~$0 | The signal is in the output distribution; a cheap wrapper extracts it |
+| 3 | **Decomposition** — split one call into N focused parallel calls | low | 14B+ cannot handle complex single-call checklists (§4.1) |
+| 4 | **Data curation** — remove cross-contaminated labels from existing train set | low | Current train distribution teaches the wrong boundary (§6.2, §6.3) |
+| 5 | **Teacher swap** — regenerate existing training data with a better-scoring teacher | moderate | Current teacher is weak on a specific variant (§5.3) |
+| 6 | **Data expansion** — generate more examples in under-covered variants | moderate–high | Signal exists but coverage is thin (§6.4) |
+| 7 | **Fine-tune retrain** — new adapter on new data | high | All rungs 1–6 measured and insufficient |
+| 8 | **Base model swap** — different foundation | highest | Capacity floor hit |
+
+### 11.2 Regex/deterministic post-processing is the cheapest counterfactual for any vocabulary or list-match task
+
+If the task reduces to "does this output contain any token from a known list?", a regex against the list is a perfect-precision deterministic check. The only reason to fine-tune for list-matching is if the list is unknown at inference time. The Salvatore leak-detector violated this on 2026-04-18: the §A vocabulary list is static and known; a regex pass would have hit 100% precision at $0. The fine-tune instead taught the model to match *style* and produced false positives like `Frostvale`, `Seven-Towns`, `Baldur's Gate`. *(Leak-v2 eval, 2026-04-18.)*
+
+### 11.3 Class rebalance without calibration analysis is not an improvement — it is a trade-off
+
+Shifting the training prior from 62/38 PASS/FAIL to 50/50 predictably lifts recall and drops precision in the same direction. The net F1 movement is small and depends on the production class distribution. **Before rebalancing, measure whether the production-equivalent eval favors recall or precision.** If the production cost function favors precision (e.g., FPs trigger retries that consume writer budget), rebalancing toward FAIL is the *wrong* direction regardless of class imbalance. *(Ungrounded-v3, 2026-04-18: +10 pt recall / −14 pt precision / −0.5 pt F1. Production cost function favors precision. Net wrong direction.)*
+
+### 11.4 Data expansion must add *distinct* signal, not denser copies of the same signal
+
+5× prose examples per vocabulary token teaches the model that the token-context pattern matters, not the token itself. If all 5 examples are authored by the same generator in the same cadence, the model learns "this cadence implies leak" and generalizes to the cadence. **Diversity of generator, prose length, grammatical position, and co-occurring vocabulary must vary across the 5 examples, or density reduces to redundancy.** *(Leak-v2 vocab expansion, 2026-04-18: DeepSeek-generated, similar prose shapes, model generalized to Salvatore-adjacent *style*, not to the list.)*
+
+### 11.5 "Improvement" without an ablation is not an improvement
+
+If the charter proposes Change A + Change B, at least one of the three runs must isolate each change. Bundled changes produce uninterpretable results: if F1 drops, which change caused it? If F1 rises, which change is load-bearing for the next iteration? Ablation is cheap compared to a second misdirected retrain six experiments later.
+
+### 11.6 When the natural-val eval regresses, the first question is "did the production distribution change?" not "how do we re-train?"
+
+If the model's eval-distribution data is old and production distribution has shifted, the answer is to rebuild the eval, not retrain the model. Pull fresh `llm_calls` samples, label them, and see whether the regression is real or an artifact of eval staleness. *(Hallucination natural-val has not been refreshed since exp #223 — age unknown to the 2026-04-18 retrains.)*
+
+### 11.7 Stop rule: three failed retrains on the same adapter family means the lever is wrong
+
+After three consecutive charters in the same adapter family fail to beat baseline on the production-equivalent eval, stop attempting that adapter family for the session. The next charter must propose a *different lever* (see 11.1) or explicitly justify the fourth attempt with new evidence. This is not a quota — it is a forcing function to step back and re-examine the problem framing. *(Hallucination checker v2/v3/v3-rebalance/leak-v2 is at 4. Next hallucination-checker experiment requires re-examination, not a fifth adapter.)*
+
+### 11.8 Fine-tune charter must cite which rungs 1–6 were measured
+
+Every fine-tune charter's §5 ("Cheapest counterfactuals considered") must name specific measured results for at least rungs 1, 2, and 4 on the current production model. "Considered and rejected because X" without a measurement is not a rejection — it is a guess. The adversary review (`/charter-review` — Codex primary, Opus fallback; see `docs/experiment-adversary-prompt.md`) will block any charter whose rejections are unmeasured.
