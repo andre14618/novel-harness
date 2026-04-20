@@ -1,11 +1,11 @@
 ---
-status: proposed
+status: needs-revision
 kind: experiment-charter
 experiment-family: salvatore-distinctness-conditioning-floor
 proposed-by: Codex
 proposed-date: 2026-04-18
 revised-date: 2026-04-20
-adversary-verdict: RED
+adversary-verdict: RED (round 2)
 adversary-review-date: 2026-04-20
 supersedes: docs/charters/salvatore-v5-corpus-expansion.md
 depends_on: docs/evals/salvatore-distinctness-v1.md
@@ -144,12 +144,13 @@ Interpretation rule: use count units for all cell/event/deviation thresholds. Do
 
 ## 10. Adversary review
 
-§11 readiness gate satisfied by commit `e54b1fe` (scorer TODOs closed: generation, judge, shuffler, arm-config schema). Primary reviewer ran 2026-04-20 and returned **RED**. Charter requires revision before re-review.
+§11 readiness gate satisfied by commit `e54b1fe` (scorer TODOs closed: generation, judge, shuffler, arm-config schema). Primary reviewer ran twice on 2026-04-20 — both rounds returned **RED**. Charter requires another revision before a third review round.
 
 | Reviewer | Verdict | Date | Notes |
 |----------|---------|------|-------|
-| `/codex:adversarial-review` (GPT) — primary | RED | 2026-04-20 | Three blocking issues (see verdict block below). Recommended next action: REVISE CHARTER. |
-| `experiment-adversary` (Opus) — fallback only | pending | pending | Only run if Codex is unavailable or a second opinion is explicitly requested after Codex review |
+| `/codex:adversarial-review` (GPT) — primary, round 1 | RED | 2026-04-20 | Bundled lever, distribution mismatch with live writer, threshold metric not producible. Addressed by commits `1749d16` (charter revision) + `e9c8474` (profile-rotation scorer mode). |
+| `/codex:adversarial-review` (GPT) — primary, round 2 | RED | 2026-04-20 | Round-1 blocker #1 partially closed; blockers #2 and #3 replaced by three new architectural problems (see §10.2 below). Recommended next action: REVISE CHARTER. |
+| `experiment-adversary` (Opus) — fallback only | pending | pending | Only run if Codex is unavailable or a second opinion is explicitly requested |
 
 ### 10.1 Primary reviewer verdict (2026-04-20, commit `e54b1fe` scorer state)
 
@@ -171,6 +172,27 @@ Interpretation rule: use count units for all cell/event/deviation thresholds. Do
 > RECOMMENDED NEXT ACTION: REVISE CHARTER.
 
 Codex full output: background job `bshvls959`, thread `019dac87-b12a-7d30-9e47-32656ee7e7b4`.
+
+### 10.2 Primary reviewer verdict round 2 (2026-04-20, post-revision `1749d16` + `e9c8474`)
+
+> VERDICT: RED
+>
+> SUMMARY: No-ship: round-1 blocker #1 is only partially closed, blocker #2 is narrowed but replaced by an ad hoc live pilot, and blocker #3 is replaced by a new same-ladder comparability failure, so the revised charter is still not interpretable enough to run (§2.1, §4.6, §1.2, exp #195).
+>
+> BLOCKING ISSUES (must fix before run, numbered):
+> 1. **Axis 2 / Axis 7 — no shared fixed-v4 baseline across proxy arms.** §6-§7 assume H1/H2/v3/ceiling are comparable against one fixed-v4 baseline, but the landed scorer is two-arm only and re-generates fresh v4 outputs for every run (temperature `0.8`; the seed only stabilizes shuffle order). Cross-run v4 draws differ, so the winning-arm decision is cross-run noise-prone rather than same-ladder comparable under §2.1 / §9.4. The charter also departs from the frozen eval artifact, which still requires separate A/B/C reporting and a three-sweep summary (`docs/evals/salvatore-distinctness-v1.md:83-84,136-147,151-165`). Fix: add a shared-baseline or multi-arm runner (single cached fixed-v4 corpus used by all comparisons, or a true multi-arm matrix in one frozen batch) before using the proxy gate. If the frozen eval must stay single-run, update the eval artifact and charter together, not just the charter.
+> 2. **Axis 4 / Axis 7 — H2 is not the live writer surface.** The revised charter treats H2 as ship-eligible on the live `buildBeatContext` path, but `src/agents/writer/beat-context.ts:89-97,203-239` renders free-text `speechPattern` and `avoids` strings plus `exampleLines`, not preset-indexed `tics`/`avoid` arrays. Only the proxy scorer has preset-indexed `tics`/`avoid` arrays and `profile-rotation` logic. A proxy H2 win cannot advance to §7.2 without inventing a new runtime representation and override path. Under §4.6 and exp #195, this is still an architecture/prompt-shape mismatch. Fix: either narrow ship-eligible proxy wins to H1 only, or land committed runtime profile-subset artifacts plus a real `buildBeatContext` override path before H2 is allowed to advance past the proxy gate.
+> 3. **Axis 7 — §7.2 is ad hoc and unreproducible.** Pilot ship depends on "subagent-eyeball distinctness" being better "more often than not" — no frozen judge model, no frozen blind A/B count, no frozen pairwise rubric. Voice judgments are model-dependent per exp #220; §3.6 requires reasoning-model pairwise judges. Separately, §11 still allows hand-edited `WRITER_GENRE_PACKS` runs reverted without persistence, which violates commit-before-run reproducibility (§1.2). A borderline pilot pass would be neither auditable nor rerunnable. Fix: replace §7.2 with a committed pilot runner or feature-flagged config path, freeze a named reasoning judge + blind pairwise protocol, remove the manual in-place `WRITER_GENRE_PACKS` fallback.
+>
+> WARNINGS:
+> - Axis 4 — pilot seed is still author-chosen at launch from three options; ship gate not fully frozen before the proxy result (§2.1).
+>
+> CHEAPEST UNTRIED COUNTERFACTUAL:
+> ExampleLines-only H1 A/B on the live `buildBeatContext` surface with a committed conditioning override and frozen reasoning judge. ~$0 training spend, expected to show whether any distinctness lift survives production prompt shape before H2 / runtime-contract work (§4.6, exp #195).
+>
+> RECOMMENDED NEXT ACTION: REVISE CHARTER.
+
+Codex full output: background job `bgr2j1057`.
 
 ## 11. Open questions / readiness gate
 
