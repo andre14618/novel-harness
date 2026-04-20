@@ -90,6 +90,31 @@ describe("pickExampleLineSubset — rotation mode", () => {
   })
 })
 
+// ── Production default (conditioning === undefined) ──────────────────────
+
+describe("pickExampleLineSubset — production default (undefined)", () => {
+  it("returns raw slice(0,5) unchanged on a 4-line array (preserves live behavior)", () => {
+    const four = ["line0", "line1", "line2", "line3"]
+    expect(pickExampleLineSubset(four, 0, 0, undefined)).toEqual(four)
+    expect(pickExampleLineSubset(four, 5, 7, undefined)).toEqual(four)
+  })
+
+  it("returns first 5 lines on a 5-line array", () => {
+    expect(pickExampleLineSubset(FIVE_LINES, 0, 0, undefined)).toEqual(FIVE_LINES)
+  })
+
+  it("returns first 5 lines on a 6-line array (slice cap)", () => {
+    expect(pickExampleLineSubset(SIX_LINES, 0, 0, undefined)).toEqual(SIX_LINES.slice(0, 5))
+  })
+
+  it("chapter and beat coordinates are ignored in production mode", () => {
+    const four = ["a", "b", "c", "d"]
+    expect(pickExampleLineSubset(four, 0, 0, undefined)).toEqual(four)
+    expect(pickExampleLineSubset(four, 1, 1, undefined)).toEqual(four)
+    expect(pickExampleLineSubset(four, 99, 99, undefined)).toEqual(four)
+  })
+})
+
 // ── Short-array fallback ──────────────────────────────────────────────────
 
 describe("pickExampleLineSubset — short array fallback", () => {

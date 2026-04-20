@@ -260,7 +260,13 @@ export const WRITER_GENRE_PACKS: WriterGenrePack[] = [
     systemPromptFile: "beat-writer-system-salvatore.md",
     usePrimer: false,
     structuralPriors: SALVATORE_PRIORS,
-    conditioning: "fixed",
+    // conditioning intentionally unset at pack level. Undefined = production
+    // behavior (raw lines.slice(0, 5) — what live novels have always used).
+    // The env-var override WRITER_CONDITIONING=fixed|rotation is set only by
+    // the conditioning-floor replay runner; it does NOT alter live novel
+    // drafting. Changed 2026-04-20 after parity harness caught a regression
+    // where pack-level default "fixed" was dropping the 4th exampleLine on
+    // every production beat.
   },
 ]
 

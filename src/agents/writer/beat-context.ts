@@ -56,23 +56,34 @@ const CANONICAL_LINE_PRESET_INDEXES_4: Record<"preset-a" | "preset-b" | "preset-
 const PRESET_CYCLE: Array<"preset-a" | "preset-b" | "preset-c"> = ["preset-a", "preset-b", "preset-c"]
 
 /**
- * Pick a 3-line subset of a character's exampleLines based on the current
+ * Pick a subset of a character's exampleLines based on the current
  * conditioning mode and (chapter, beat) coordinates.
  *
- * Fixed mode:   always returns preset-a.
- * Rotation mode: cycles preset-a → b → c → a … by (chapterNumber * 100 + beatIndex) % 3.
+ * Undefined (production default): return lines.slice(0, 5) — the behavior
+ *   live novels have always shipped. No preset logic applied. This is what
+ *   any non-experiment code path gets.
+ * Fixed mode:   always returns preset-a (experiment intervention, not
+ *   production).
+ * Rotation mode: cycles preset-a → b → c → a … by (chapter * 100 + beat) % 3
+ *   (experiment intervention, not production).
  *
  * Selects the 4-line preset family when the array has exactly 4 elements
- * (production default), the 5-line family when it has ≥5, and falls back to
- * the raw slice when there are fewer than 4 lines (not enough to form
- * distinct 3-line subsets).
+ * (production default for experiment arms), the 5-line family when it has
+ * ≥5 (legacy / hand-curated eval characters), and falls back to the raw
+ * slice when there are fewer than 4 lines (not enough to form distinct
+ * 3-line subsets).
+ *
+ * Changed 2026-04-20 after parity harness caught that pack-level default
+ * "fixed" was regressing production to 3-of-4 lines on every beat.
  */
 export function pickExampleLineSubset(
   lines: string[],
   chapterNumber: number,
   beatIndex: number,
-  conditioning: "fixed" | "rotation",
+  conditioning: "fixed" | "rotation" | undefined,
 ): string[] {
+  // Production default: undefined conditioning → raw slice, unchanged.
+  if (conditioning === undefined) return lines.slice(0, 5)
   if (lines.length < 4) return lines.slice(0, 5) // not enough lines to form distinct 3-line subsets
   const presetFamily = lines.length >= 5 ? CANONICAL_LINE_PRESET_INDEXES_5 : CANONICAL_LINE_PRESET_INDEXES_4
   if (conditioning === "fixed") {
@@ -118,8 +129,12 @@ export interface BeatContextResult {
 
 export async function buildBeatContext(input: BeatContextInput): Promise<BeatContextResult> {
   const { novelId, chapterNumber, beatIndex, previousBeatProse, outline, characters, characterStates, worldBible } = input
-  const conditioning: "fixed" | "rotation" =
-    resolveWriterPack(input.genre)?.conditioning ?? "fixed"
+  // Production default: conditioning is undefined → pickExampleLineSubset
+  // returns lines.slice(0, 5) unchanged. Only the conditioning-floor replay
+  // runner sets WRITER_CONDITIONING=fixed|rotation to activate preset logic.
+  // Live novel drafting never sees preset-narrowed exampleLines.
+  const conditioning: "fixed" | "rotation" | undefined =
+    resolveWriterPack(input.genre)?.conditioning
   const beat = outline.scenes[beatIndex]
   const povCharName = outline.povCharacter
   const povChar = characters.find(c => c.name.toLowerCase() === povCharName?.toLowerCase())
@@ -271,7 +286,7 @@ function formatBeatSpec(beat: SceneBeat, outline: ChapterOutline, beatIndex: num
 async function formatCharacterSnapshot(
   novelId: string, char: CharacterProfile, povChar: CharacterProfile | undefined,
   chapterNumber: number, beatIndex: number, characterStates: any[],
-  conditioning: "fixed" | "rotation",
+  conditioning: "fixed" | "rotation" | undefined,
 ): Promise<string> {
   const lines: string[] = [`${char.name}:`]
 

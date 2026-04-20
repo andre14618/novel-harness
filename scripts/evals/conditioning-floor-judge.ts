@@ -37,6 +37,57 @@ export type PairRow = {
   arm_a_label: string
   /** Original arm label for the text placed in the B slot before shuffling. */
   arm_b_label: string
+  // ── Loss-encoding fields (from the replay runner, charter §7) ────────────
+  //
+  // If either loss_* flag is true, or error_text is set, the pair is
+  // short-circuited: the judge call is skipped and an automatic verdict is
+  // recorded. Added 2026-04-20 after Codex round-5 blocker #3.
+  loss_fixed?: boolean
+  loss_rotation?: boolean
+  error_text?: string
+  words_fixed?: number
+  words_rotation?: number
+}
+
+/**
+ * Machine-enforced short-circuit resolution for pairs with encoded losses.
+ *
+ * Returns null if the pair is eligible for judge evaluation; otherwise
+ * returns the resolved winner_arm_label + a reason string. Both arms
+ * failing (mutual loss OR error) scores as an error row, not a tie, so it
+ * doesn't accidentally count toward the fixed/rotation tally.
+ */
+export function resolveLossShortCircuit(pair: PairRow): {
+  winner_arm_label: "fixed" | "rotation" | "tie" | "error"
+  reason: string
+} | null {
+  const hasError = !!pair.error_text
+  if (hasError && (pair.loss_fixed || pair.loss_rotation) === false) {
+    // Error without a loss flag — treat as a mutual failure.
+    return { winner_arm_label: "error", reason: `runner error: ${pair.error_text}` }
+  }
+  if (pair.loss_fixed && pair.loss_rotation) {
+    return {
+      winner_arm_label: "error",
+      reason: `both arms below min-words (fixed=${pair.words_fixed ?? 0}w, rotation=${pair.words_rotation ?? 0}w)${hasError ? `; runner error: ${pair.error_text}` : ""}`,
+    }
+  }
+  if (pair.loss_fixed) {
+    return {
+      winner_arm_label: "rotation",
+      reason: `automatic rotation win — fixed arm below min-words (fixed=${pair.words_fixed ?? 0}w)`,
+    }
+  }
+  if (pair.loss_rotation) {
+    return {
+      winner_arm_label: "fixed",
+      reason: `automatic fixed win — rotation arm below min-words (rotation=${pair.words_rotation ?? 0}w)`,
+    }
+  }
+  if (hasError) {
+    return { winner_arm_label: "error", reason: `runner error: ${pair.error_text}` }
+  }
+  return null
 }
 
 /** Judge response shape. */
@@ -398,6 +449,26 @@ async function main(): Promise<void> {
   const records: JudgmentRecord[] = []
 
   for (const pair of pairs) {
+    // Short-circuit resolution for loss/error rows — enforces charter §7 at
+    // score time before any Codex call. Closes Codex round-5 blocker #3.
+    const shortCircuit = resolveLossShortCircuit(pair)
+    if (shortCircuit !== null) {
+      const { winner_arm_label, reason } = shortCircuit
+      console.log(`Short-circuit ${pair.pair_id}: ${winner_arm_label} — ${reason}`)
+      const record: JudgmentRecord = {
+        pair_id: pair.pair_id,
+        shuffled_a_label: pair.arm_a_label,
+        shuffled_b_label: pair.arm_b_label,
+        judge_winner_position: "tie",
+        winner_arm_label,
+        reasoning: reason,
+        latency_ms: 0,
+      }
+      records.push(record)
+      await persistJudgment(record, args.experimentId)
+      continue
+    }
+
     console.log(`Judging pair ${pair.pair_id} …`)
     const { prose_a, prose_b, shuffled_a_label, shuffled_b_label } = shufflePair(pair, args.seed)
 

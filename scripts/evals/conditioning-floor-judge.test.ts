@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test"
-import { shufflePair, unshuffleVerdict, type PairRow } from "./conditioning-floor-judge"
+import {
+  shufflePair,
+  unshuffleVerdict,
+  resolveLossShortCircuit,
+  type PairRow,
+} from "./conditioning-floor-judge"
 
 function makePair(overrides: Partial<PairRow> = {}): PairRow {
   return {
@@ -113,5 +118,67 @@ describe("unshuffleVerdict — arm-label resolution", () => {
       const winnerViaB = unshuffleVerdict("B", shuffled_a_label, shuffled_b_label)
       expect(winnerViaB).toBe(shuffled_b_label)
     }
+  })
+})
+
+// ── resolveLossShortCircuit ───────────────────────────────────────────────────
+
+describe("resolveLossShortCircuit — charter §7 loss encoding", () => {
+  test("clean pair (no losses, no errors) returns null — judge evaluates normally", () => {
+    expect(resolveLossShortCircuit(makePair())).toBeNull()
+  })
+
+  test("fixed arm below min-words → automatic rotation win", () => {
+    const result = resolveLossShortCircuit(makePair({
+      loss_fixed: true,
+      words_fixed: 12,
+      words_rotation: 240,
+    }))
+    expect(result).not.toBeNull()
+    expect(result!.winner_arm_label).toBe("rotation")
+    expect(result!.reason).toContain("fixed=12w")
+  })
+
+  test("rotation arm below min-words → automatic fixed win", () => {
+    const result = resolveLossShortCircuit(makePair({
+      loss_rotation: true,
+      words_fixed: 300,
+      words_rotation: 30,
+    }))
+    expect(result).not.toBeNull()
+    expect(result!.winner_arm_label).toBe("fixed")
+    expect(result!.reason).toContain("rotation=30w")
+  })
+
+  test("both arms below min-words → error row, not a tie (doesn't count toward tally)", () => {
+    const result = resolveLossShortCircuit(makePair({
+      loss_fixed: true,
+      loss_rotation: true,
+      words_fixed: 10,
+      words_rotation: 5,
+    }))
+    expect(result).not.toBeNull()
+    expect(result!.winner_arm_label).toBe("error")
+  })
+
+  test("error_text alone (no loss flags) → error row", () => {
+    const result = resolveLossShortCircuit(makePair({
+      error_text: "transport timeout on both arms",
+    }))
+    expect(result).not.toBeNull()
+    expect(result!.winner_arm_label).toBe("error")
+  })
+
+  test("error_text combined with partial loss → that loss still wins its arm", () => {
+    // If the fixed arm lost AND there was an error, rotation still auto-wins;
+    // the error text is folded into the loss reason.
+    const result = resolveLossShortCircuit(makePair({
+      loss_fixed: true,
+      error_text: "fixed arm hit transport error",
+      words_fixed: 0,
+      words_rotation: 230,
+    }))
+    expect(result).not.toBeNull()
+    expect(result!.winner_arm_label).toBe("rotation")
   })
 })

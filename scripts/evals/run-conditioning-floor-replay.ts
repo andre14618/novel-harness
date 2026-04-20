@@ -30,12 +30,12 @@ import { getChapterOutline } from "../../src/db/outlines"
 import { getCharacters, getWorldBible } from "../../src/db/world"
 import { getCharacterStatesAtChapter } from "../../src/db/character-states"
 import { buildBeatContext } from "../../src/agents/writer/beat-context"
+import { resolveReferences, type ResolvedReferences } from "../../src/agents/writer/reference-resolver"
 import { resolveWriterPack } from "../../src/models/roles"
 import { executeAndLog } from "../../src/llm"
 import { getTokenCost } from "../../src/models/registry"
 import type { LLMRequest } from "../../src/transport"
 import type { PairRow } from "./conditioning-floor-judge"
-import { shufflePair } from "./conditioning-floor-judge"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -240,19 +240,20 @@ function countWords(text: string): number {
 export function derivePriorBeatCoords(
   chapterNumber: number,
   beatIndexInChapter: number,
-  priorChapterBeatCount: number | null
+  priorChapterBeatCount: number | null,
 ): { chapter: number; beatIndex: number } | null {
-  if (chapterNumber === 1 && beatIndexInChapter === 0) {
+  // Match live drafting contract (src/phases/drafting.ts): chapter-openers
+  // receive NO transition bridge. Prior drafting contract is beatProses[bi - 1]
+  // within the same chapter only; there is no cross-chapter bridge path.
+  // Changed 2026-04-20 after Codex round-5 blocker #4.
+  //
+  // priorChapterBeatCount is kept in the signature for API compatibility with
+  // existing unit tests but is no longer consulted.
+  void priorChapterBeatCount
+  if (beatIndexInChapter <= 0) {
     return null
   }
-  if (beatIndexInChapter > 0) {
-    return { chapter: chapterNumber, beatIndex: beatIndexInChapter - 1 }
-  }
-  // beatIndexInChapter === 0 and chapterNumber > 1
-  if (priorChapterBeatCount === null || priorChapterBeatCount === 0) {
-    return null
-  }
-  return { chapter: chapterNumber - 1, beatIndex: priorChapterBeatCount - 1 }
+  return { chapter: chapterNumber, beatIndex: beatIndexInChapter - 1 }
 }
 
 /**
@@ -260,13 +261,18 @@ export function derivePriorBeatCoords(
  *
  * Beat prose for 'beat-writer' agent calls is stored in
  * llm_calls.response_content (sql/017_llm_call_inspection.sql) with columns
- * novel_id, chapter, beat_index. We fetch the LAST non-null response for the
- * given coordinates (most-recent successful attempt).
+ * novel_id, chapter, beat_index. We fetch the FIRST (earliest by id) non-null
+ * response for the given coordinates — i.e. the prose the downstream beat
+ * actually saw when it was originally drafted. Targeted rewrites later can
+ * update llm_calls for the same beat coordinates; using the latest row would
+ * feed the replay a bridge the production writer never saw.
+ *
+ * Changed ORDER BY id DESC → ASC 2026-04-20 after Codex round-5 blocker #4.
  */
 async function getBeatProseFromLLMCalls(
   novelId: string,
   chapterNumber: number,
-  beatIndex: number
+  beatIndex: number,
 ): Promise<string | null> {
   const rows = await db<Array<{ response_content: string }>>`
     SELECT response_content
@@ -277,7 +283,7 @@ async function getBeatProseFromLLMCalls(
       AND beat_index = ${beatIndex}
       AND response_content IS NOT NULL
       AND failed IS NOT TRUE
-    ORDER BY id DESC
+    ORDER BY id ASC
     LIMIT 1
   `
   if (rows.length === 0) return null
@@ -308,12 +314,19 @@ async function readWriterSystemPrompt(systemPromptFile: string): Promise<string>
 }
 
 /**
- * Build the LLMRequest for a single beat arm call.
+ * Build the LLMRequest for a single beat arm call. The request shape MUST
+ * match the live drafting request shape from src/phases/drafting.ts exactly,
+ * or the replay isn't measuring the production writer path. The parity
+ * harness (scripts/evals/conditioning-floor-parity-check.ts) diffs this
+ * output against a real llm_calls row; the diff must be empty for any
+ * field that materially affects writer behavior.
+ *
+ * Exported for the parity harness.
  */
-function buildWriterRequest(
+export function buildWriterRequest(
   systemPrompt: string,
   userPrompt: string,
-  pack: NonNullable<ReturnType<typeof resolveWriterPack>>
+  pack: NonNullable<ReturnType<typeof resolveWriterPack>>,
 ): LLMRequest {
   return {
     systemPrompt,
@@ -322,24 +335,102 @@ function buildWriterRequest(
     provider: pack.model.provider,
     temperature: pack.model.temperature ?? 0.8,
     maxTokens: pack.model.maxTokens ?? 4000,
+    // Match the live beat-writer path exactly — src/phases/drafting.ts sends
+    // response_format: {type: "text"}. Without this, the transport layer
+    // defaults to {type: "json_object"} which changes provider-side behavior.
+    // Added 2026-04-20 after Codex round-5 critical blocker #1.
+    responseFormat: { type: "text" },
   }
 }
 
 /**
- * Call the writer for one arm, with exponential-backoff retry.
+ * Shared per-beat inputs that must be byte-identical between the two arms.
  *
- * We deliberately set WRITER_CONDITIONING in process.env before calling
- * buildBeatContext so that resolveWriterPack() picks it up. We save and
- * restore the original value after each arm.
+ * Built ONCE per beat by the caller and passed unchanged into both arm
+ * invocations. This closes Codex round-5 blocker #2: if each arm rebuilt
+ * buildBeatContext independently, resolveReferences() could return different
+ * BACKGROUND blocks via its LLM fallback path, breaking the "conditioning
+ * alone differs" claim.
+ */
+export type SharedBeatInputs = {
+  outline: Awaited<ReturnType<typeof getChapterOutline>>
+  characters: Awaited<ReturnType<typeof getCharacters>>
+  characterStates: Awaited<ReturnType<typeof getCharacterStatesAtChapter>>
+  worldBible: Awaited<ReturnType<typeof getWorldBible>>
+  preResolvedRefs: ResolvedReferences
+  previousBeatProse: string | null
+  genre: string
+}
+
+/**
+ * Build the shared per-beat inputs, resolving references exactly once. The
+ * returned payload is frozen (by convention, not by Object.freeze) — do not
+ * mutate it between arm invocations.
+ */
+async function buildSharedBeatInputs(
+  entry: PairEntry,
+  sourceNovelId: string,
+  genre: string,
+): Promise<SharedBeatInputs | { error: string }> {
+  const outline = await getChapterOutline(sourceNovelId, entry.chapter_number)
+  const characters = await getCharacters(sourceNovelId)
+  const characterStates = await getCharacterStatesAtChapter(sourceNovelId, entry.chapter_number)
+  const worldBible = await getWorldBible(sourceNovelId)
+
+  // Locate the beat spec inside the outline so resolveReferences can read it.
+  // outline.scenes is a flat array of SceneBeat rows (one per beat, not one
+  // per scene — naming is historical). Index == beat_index_in_chapter.
+  const beatSpec = outline.scenes[entry.beat_index_in_chapter]
+  if (!beatSpec) {
+    return { error: `beat_index_in_chapter ${entry.beat_index_in_chapter} out of range for chapter ${entry.chapter_number} (outline has ${outline.scenes.length} beats)` }
+  }
+
+  // Resolve references ONCE. Identical payload feeds both arms.
+  const preResolvedRefs = await resolveReferences(beatSpec, outline, sourceNovelId, entry.chapter_number, characters)
+
+  // Prior-beat prose is bounded to within-chapter (matching live drafting
+  // contract). Cross-chapter bridge disabled after Codex round-5 blocker #4.
+  let previousBeatProse: string | null = null
+  const priorCoords = derivePriorBeatCoords(
+    entry.chapter_number,
+    entry.beat_index_in_chapter,
+    null,
+  )
+  if (priorCoords !== null) {
+    const rawProse = await getBeatProseFromLLMCalls(
+      sourceNovelId,
+      priorCoords.chapter,
+      priorCoords.beatIndex,
+    )
+    if (rawProse) previousBeatProse = extractLastSentences(rawProse, 3)
+  }
+
+  return {
+    outline,
+    characters,
+    characterStates,
+    worldBible,
+    preResolvedRefs,
+    previousBeatProse,
+    genre,
+  }
+}
+
+/**
+ * Call the writer for one arm, with exponential-backoff retry. Both arms see
+ * IDENTICAL shared inputs (outline/characters/states/worldBible/refs/prior
+ * prose); the ONLY difference is the WRITER_CONDITIONING env var, which
+ * pickExampleLineSubset consults when rendering character profiles.
+ *
+ * We save and restore process.env.WRITER_CONDITIONING around each arm.
  */
 async function callWriterWithRetry(
   entry: PairEntry,
   sourceNovelId: string,
-  genre: string,
   systemPrompt: string,
   pack: NonNullable<ReturnType<typeof resolveWriterPack>>,
   conditioning: "fixed" | "rotation",
-  previousBeatProse: string | null
+  shared: SharedBeatInputs,
 ): Promise<{ prose: string; costUsd: number } | { error: string }> {
   const originalConditioning = process.env.WRITER_CONDITIONING
   process.env.WRITER_CONDITIONING = conditioning
@@ -355,29 +446,24 @@ async function callWriterWithRetry(
       }
 
       try {
-        // Rebuild beat context with the conditioning env var active
-        const outline = await getChapterOutline(sourceNovelId, entry.chapter_number)
-        const characters = await getCharacters(sourceNovelId)
-        const characterStates = await getCharacterStatesAtChapter(sourceNovelId, entry.chapter_number)
-        const worldBible = await getWorldBible(sourceNovelId)
-
         const beatCtx = await buildBeatContext({
           novelId: sourceNovelId,
           chapterNumber: entry.chapter_number,
           beatIndex: entry.beat_index_in_chapter,
-          previousBeatProse: previousBeatProse ?? undefined,
-          outline,
-          characters,
-          characterStates,
-          worldBible,
+          previousBeatProse: shared.previousBeatProse ?? undefined,
+          outline: shared.outline,
+          characters: shared.characters,
+          characterStates: shared.characterStates,
+          worldBible: shared.worldBible,
+          preResolvedRefs: shared.preResolvedRefs,
           compactMode: true,
-          genre,
+          genre: shared.genre,
         })
 
         const request = buildWriterRequest(systemPrompt, beatCtx.userPrompt, pack)
         const response = await executeAndLog(
           request,
-          undefined, // no novelId — this is a standalone eval call, not a live novel run
+          undefined, // no novelId — standalone eval call, not a live novel run
           AGENT_NAME,
           { chapter: entry.chapter_number, beatIndex: entry.beat_index_in_chapter, attempt: attempt + 1 },
           {
@@ -386,7 +472,7 @@ async function callWriterWithRetry(
               beatId: `${sourceNovelId}-ch${entry.chapter_number}-b${entry.beat_index_in_chapter}`,
               arm: conditioning,
             },
-          }
+          },
         )
 
         const costUsd = getTokenCost(
@@ -394,7 +480,7 @@ async function callWriterWithRetry(
           pack.model.model,
           response.usage.prompt_tokens,
           response.usage.completion_tokens,
-          response.usage.cached_tokens
+          response.usage.cached_tokens,
         )
 
         return { prose: response.content, costUsd }
@@ -421,11 +507,16 @@ async function callWriterWithRetry(
  * Assemble one PairRow from a pre-registered beat entry.
  *
  * Steps:
- * 1. Retrieve previous beat prose from the source novel (llm_calls).
- * 2. Call writer with conditioning="fixed" → arm A (before shuffle).
- * 3. Call writer with conditioning="rotation" → arm B (before shuffle).
- * 4. Apply minWords loss gate.
- * 5. Apply seeded shuffle.
+ * 1. Build shared beat inputs ONCE (outline, characters, states, world bible,
+ *    resolved references, prior-beat prose). Both arms see this identical
+ *    payload — closes Codex round-5 blocker #2.
+ * 2. Call writer with WRITER_CONDITIONING=fixed   → arm_a_prose
+ * 3. Call writer with WRITER_CONDITIONING=rotation → arm_b_prose
+ * 4. Apply minWords loss gate (closes Codex round-5 blocker #3 at encode
+ *    time; the judge wrapper enforces it at score time via short-circuit).
+ * 5. Emit UNSHUFFLED row (arm_a_label="fixed", arm_b_label="rotation"). The
+ *    judge wrapper owns the seeded A/B shuffle; double-shuffling here would
+ *    break seed ownership (Codex round-5 warning #1).
  */
 async function assembleOnePair(
   entry: PairEntry,
@@ -434,56 +525,49 @@ async function assembleOnePair(
   systemPrompt: string,
   pack: NonNullable<ReturnType<typeof resolveWriterPack>>,
   minWords: number,
-  seed: string
 ): Promise<{ row: ReplayPairRow; costUsd: number }> {
   const pairId = `${sourceNovelId}-ch${entry.chapter_number}-b${entry.beat_index_in_chapter}`
 
-  // Derive prior beat coordinates
-  let priorChapterBeatCount: number | null = null
-  if (entry.beat_index_in_chapter === 0 && entry.chapter_number > 1) {
-    try {
-      const priorOutline = await getChapterOutline(sourceNovelId, entry.chapter_number - 1)
-      priorChapterBeatCount = priorOutline.scenes.length
-    } catch {
-      priorChapterBeatCount = null
-    }
-  }
-
-  const priorCoords = derivePriorBeatCoords(
-    entry.chapter_number,
-    entry.beat_index_in_chapter,
-    priorChapterBeatCount
-  )
-
-  // Look up the prior beat's prose from the source novel
-  let previousBeatProse: string | null = null
-  if (priorCoords !== null) {
-    const rawProse = await getBeatProseFromLLMCalls(
-      sourceNovelId,
-      priorCoords.chapter,
-      priorCoords.beatIndex
-    )
-    if (rawProse) {
-      previousBeatProse = extractLastSentences(rawProse, 3)
+  // Build shared inputs ONCE. If this fails (e.g. beat out of range), record
+  // a mutual-loss row and move on.
+  const shared = await buildSharedBeatInputs(entry, sourceNovelId, genre)
+  if ("error" in shared) {
+    return {
+      row: {
+        pair_id: pairId,
+        pov_character: entry.pov_character,
+        characters_present: entry.characters_present,
+        beat_description: entry.description,
+        arm_a_prose: "",
+        arm_b_prose: "",
+        arm_a_label: "fixed",
+        arm_b_label: "rotation",
+        loss_fixed: true,
+        loss_rotation: true,
+        error_text: `buildSharedBeatInputs: ${shared.error}`,
+        words_fixed: 0,
+        words_rotation: 0,
+      },
+      costUsd: 0,
     }
   }
 
   let totalCost = 0
 
-  // Fixed arm (arm A before shuffle)
+  // Fixed arm
   console.log(`    [fixed] calling writer...`)
   const fixedResult = await callWriterWithRetry(
-    entry, sourceNovelId, genre, systemPrompt, pack, "fixed", previousBeatProse
+    entry, sourceNovelId, systemPrompt, pack, "fixed", shared,
   )
   const fixedProse = "error" in fixedResult ? "" : fixedResult.prose
   const fixedWords = countWords(fixedProse)
   const fixedError = "error" in fixedResult ? fixedResult.error : undefined
   if ("costUsd" in fixedResult) totalCost += fixedResult.costUsd
 
-  // Rotation arm (arm B before shuffle)
+  // Rotation arm
   console.log(`    [rotation] calling writer...`)
   const rotationResult = await callWriterWithRetry(
-    entry, sourceNovelId, genre, systemPrompt, pack, "rotation", previousBeatProse
+    entry, sourceNovelId, systemPrompt, pack, "rotation", shared,
   )
   const rotationProse = "error" in rotationResult ? "" : rotationResult.prose
   const rotationWords = countWords(rotationProse)
@@ -493,40 +577,27 @@ async function assembleOnePair(
   // Loss encoding per charter §7
   const lossFixed = fixedWords < minWords
   const lossRotation = rotationWords < minWords
-
   const errorText = [fixedError, rotationError].filter(Boolean).join("; ") || undefined
 
-  // Build the base PairRow (pre-shuffle)
-  const preShuffle: PairRow = {
-    pair_id: pairId,
-    pov_character: entry.pov_character,
-    characters_present: entry.characters_present,
-    beat_description: entry.description,
-    arm_a_prose: fixedProse,
-    arm_b_prose: rotationProse,
-    arm_a_label: "fixed",
-    arm_b_label: "rotation",
+  // Emit UNSHUFFLED row. Judge owns the shuffle (single seed owner).
+  return {
+    row: {
+      pair_id: pairId,
+      pov_character: entry.pov_character,
+      characters_present: entry.characters_present,
+      beat_description: entry.description,
+      arm_a_prose: fixedProse,
+      arm_b_prose: rotationProse,
+      arm_a_label: "fixed",
+      arm_b_label: "rotation",
+      loss_fixed: lossFixed || undefined,
+      loss_rotation: lossRotation || undefined,
+      error_text: errorText,
+      words_fixed: fixedWords || undefined,
+      words_rotation: rotationWords || undefined,
+    },
+    costUsd: totalCost,
   }
-
-  // Apply seeded A/B shuffle
-  const shuffled = shufflePair(preShuffle, seed)
-  const finalRow: ReplayPairRow = {
-    pair_id: pairId,
-    pov_character: entry.pov_character,
-    characters_present: entry.characters_present,
-    beat_description: entry.description,
-    arm_a_prose: shuffled.prose_a,
-    arm_b_prose: shuffled.prose_b,
-    arm_a_label: shuffled.shuffled_a_label,
-    arm_b_label: shuffled.shuffled_b_label,
-    loss_fixed: lossFixed || undefined,
-    loss_rotation: lossRotation || undefined,
-    error_text: errorText,
-    words_fixed: fixedWords || undefined,
-    words_rotation: rotationWords || undefined,
-  }
-
-  return { row: finalRow, costUsd: totalCost }
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
@@ -536,14 +607,17 @@ async function main(): Promise<void> {
   assertGuardrails()
 
   const args = parseArgs()
-  const { sourceNovelId, pairsPath, out, experimentId, minWords, seed } = args
+  const { sourceNovelId, pairsPath, out, experimentId, minWords } = args
+  // Note: --seed is accepted for CLI backward compatibility but not used by
+  // this script. The judge wrapper (conditioning-floor-judge.ts) owns the
+  // A/B shuffle so there is a single seed owner (Codex round-5 warning #1).
 
   console.log(`\n[replay] Source novel:   ${sourceNovelId}`)
   console.log(`[replay] Pairs file:     ${pairsPath}`)
   console.log(`[replay] Output:         ${out}`)
   console.log(`[replay] Experiment ID:  ${experimentId}`)
   console.log(`[replay] Min words:      ${minWords}`)
-  console.log(`[replay] Shuffle seed:   ${seed}`)
+  console.log(`[replay] Shuffle:        deferred to judge wrapper (single seed owner)`)
 
   // 2. Load source novel metadata
   const novelRows = await db<Array<{ phase: string; seed_json: Record<string, unknown> }>>`
@@ -603,7 +677,7 @@ async function main(): Promise<void> {
 
     try {
       const { row, costUsd } = await assembleOnePair(
-        entry, sourceNovelId, genre, systemPrompt, pack, minWords, seed
+        entry, sourceNovelId, genre, systemPrompt, pack, minWords,
       )
       rows.push(row)
       totalCostUsd += costUsd

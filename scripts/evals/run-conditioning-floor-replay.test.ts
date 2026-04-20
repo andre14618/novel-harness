@@ -271,25 +271,22 @@ describe("derivePriorBeatCoords — prior-beat lookup logic", () => {
     expect(derivePriorBeatCoords(1, 0, 5)).toBeNull()
   })
 
-  test("chapter 2 beat 0 → last beat of chapter 1", () => {
-    // chapter 1 has 8 beats (indices 0..7), so last is index 7
+  test("chapter 2 beat 0 → null (no cross-chapter bridge, matches live drafting contract)", () => {
+    // Codex round-5 blocker #4: live drafting only passes beatProses[bi-1]
+    // within the same chapter. Chapter-openers receive NO transition bridge.
     const result = derivePriorBeatCoords(2, 0, 8)
-    expect(result).toEqual({ chapter: 1, beatIndex: 7 })
+    expect(result).toBeNull()
   })
 
-  test("chapter 3 beat 0 → last beat of chapter 2", () => {
+  test("chapter 3 beat 0 → null (no cross-chapter bridge)", () => {
     const result = derivePriorBeatCoords(3, 0, 12)
-    expect(result).toEqual({ chapter: 2, beatIndex: 11 })
+    expect(result).toBeNull()
   })
 
-  test("chapter 2 beat 0 with priorChapterBeatCount=0 → null", () => {
-    // Prior chapter had no beats — treat as no prior
+  test("chapter 2 beat 0 ignores priorChapterBeatCount entirely (always null)", () => {
     expect(derivePriorBeatCoords(2, 0, 0)).toBeNull()
-  })
-
-  test("chapter 2 beat 0 with priorChapterBeatCount=null → null", () => {
-    // Prior chapter outline missing — treat as no prior
     expect(derivePriorBeatCoords(2, 0, null)).toBeNull()
+    expect(derivePriorBeatCoords(2, 0, 50)).toBeNull()
   })
 
   test("chapter 1 beat 3 → chapter 1 beat 2 (same-chapter prior)", () => {
