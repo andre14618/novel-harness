@@ -25,8 +25,10 @@
  * Exit code 0 = parity. Exit code 1 = diff present or target-beat not found.
  */
 
+import { createHash } from "node:crypto"
 import { readFile } from "node:fs/promises"
 import path from "node:path"
+import { $ } from "bun"
 import db from "../../src/db/connection"
 import { getChapterOutline } from "../../src/db/outlines"
 import { getCharacters, getWorldBible } from "../../src/db/world"
@@ -34,7 +36,7 @@ import { getCharacterStatesAtChapter } from "../../src/db/character-states"
 import { buildBeatContext } from "../../src/agents/writer/beat-context"
 import { resolveReferences } from "../../src/agents/writer/reference-resolver"
 import { resolveWriterPack } from "../../src/models/roles"
-import { buildWriterRequest } from "./run-conditioning-floor-replay"
+import { buildWriterRequest, computePresetSelection } from "./run-conditioning-floor-replay"
 
 type Arm = "raw" | "fixed" | "rotation"
 
@@ -43,6 +45,7 @@ type Args = {
   chapter: number
   beatIndex: number
   arm: Arm
+  experimentId: number | null
 }
 
 function parseArgs(): Args {
@@ -55,8 +58,9 @@ function parseArgs(): Args {
   const chapterStr = get("--chapter")
   const beatStr = get("--beat-index")
   const armStr = get("--arm") ?? "raw"
+  const experimentIdStr = get("--experiment-id")
   if (!source || !chapterStr || !beatStr) {
-    console.error("usage: bun scripts/evals/conditioning-floor-parity-check.ts --source <novel-id> --chapter <n> --beat-index <n> [--arm raw|fixed|rotation]")
+    console.error("usage: bun scripts/evals/conditioning-floor-parity-check.ts --source <novel-id> --chapter <n> --beat-index <n> [--arm raw|fixed|rotation] [--experiment-id <n>]")
     process.exit(1)
   }
   if (armStr !== "raw" && armStr !== "fixed" && armStr !== "rotation") {
@@ -68,6 +72,7 @@ function parseArgs(): Args {
     chapter: Number.parseInt(chapterStr, 10),
     beatIndex: Number.parseInt(beatStr, 10),
     arm: armStr,
+    experimentId: experimentIdStr ? Number.parseInt(experimentIdStr, 10) : null,
   }
 }
 
@@ -105,7 +110,17 @@ async function fetchLiveRequest(args: Args): Promise<{
     LIMIT 1
   `
   if (rows.length === 0) return null
-  return rows[0]
+  const row = rows[0]
+  // request_json is stored as a JSON-encoded string; parse it so downstream
+  // summarizeRequest() can read responseFormat (camelCase) mechanically.
+  if (typeof row.request_json === "string") {
+    try {
+      row.request_json = JSON.parse(row.request_json as unknown as string) as Record<string, unknown>
+    } catch {
+      row.request_json = null
+    }
+  }
+  return row
 }
 
 /**
@@ -220,6 +235,7 @@ type ComparableRequest = {
   provider: string
   temperature: number
   max_tokens: number
+  response_format: string
   system_prompt: string
   user_prompt: string
 }
@@ -232,8 +248,29 @@ function summarizeRequest(
     provider: string
     temperature: number
     max_tokens: number
+    response_format?: { type: string } | undefined
+    request_json?: Record<string, unknown> | null
   },
 ): ComparableRequest {
+  // Extract response_format mechanically. Live side: look at request_json
+  // (transport serializes responseFormat into the request body). Replay side:
+  // response_format is a direct field on the built request. Normalize both to
+  // a string so the diff is mechanical. Added per Codex round-8 blocker #2.
+  let responseFormat = "unspecified"
+  if (src.response_format?.type) {
+    responseFormat = src.response_format.type
+  } else if (src.request_json && typeof src.request_json === "object") {
+    // request_json uses camelCase `responseFormat` (from the LLMRequest
+    // envelope). Check both camelCase (typical) and snake_case (in case a
+    // future transport serializes differently) for robustness.
+    const rj = src.request_json as {
+      responseFormat?: { type?: string }
+      response_format?: { type?: string }
+    }
+    const t = rj.responseFormat?.type ?? rj.response_format?.type
+    if (t) responseFormat = t
+  }
+
   return {
     model: src.model,
     provider: src.provider,
@@ -241,18 +278,28 @@ function summarizeRequest(
     // Live-side is stored as 4-byte float so 0.8 reads back as 0.800000011920929.
     temperature: Math.round(src.temperature * 1_000_000) / 1_000_000,
     max_tokens: src.max_tokens,
+    response_format: responseFormat,
     system_prompt: src.system_prompt,
     user_prompt: src.user_prompt,
   }
 }
 
-function diffFields(live: ComparableRequest, replay: ComparableRequest, arm: Arm): string[] {
+function diffFields(
+  live: ComparableRequest,
+  replay: ComparableRequest,
+  arm: Arm,
+  chapter: number,
+  beatIndex: number,
+): string[] {
   const diffs: string[] = []
-  const simple: Array<"model" | "provider" | "temperature" | "max_tokens"> = [
-    "model", "provider", "temperature", "max_tokens",
+  const simple: Array<"model" | "provider" | "temperature" | "max_tokens" | "response_format"> = [
+    "model", "provider", "temperature", "max_tokens", "response_format",
   ]
   for (const f of simple) {
     if (live[f] !== replay[f]) {
+      // Codex round-8 blocker #2 — response_format is now in the diff.
+      // A live-side "unspecified" (not stored in request_json) vs
+      // replay-side "text" is a real mismatch we want to see, not hide.
       diffs.push(`  - ${f}:\n      live:   ${JSON.stringify(live[f])}\n      replay: ${JSON.stringify(replay[f])}`)
     }
   }
@@ -295,27 +342,54 @@ function diffFields(live: ComparableRequest, replay: ComparableRequest, arm: Arm
     if (liveBlocks.length !== replayBlocks.length) {
       diffs.push(`  - user_prompt: example-line block COUNT mismatch (live=${liveBlocks.length}, replay=${replayBlocks.length}) — suggests a per-character rendering change outside the subset logic`)
     } else {
-      // Each replay block must be a subset of its corresponding live block.
+      // Each replay block must match the EXACT ordered preset subset
+      // predicted by computePresetSelection for this (arm, chapter, beat,
+      // live_block_length). Codex round-8 blocker #1: a simple "subset"
+      // check accepted empty / duplicated / reordered blocks. We now derive
+      // the expected indexes and assert element-wise equality in order.
       for (let i = 0; i < liveBlocks.length; i++) {
         const liveEntries = parseExampleLineEntries(liveBlocks[i].content)
         const replayEntries = parseExampleLineEntries(replayBlocks[i].content)
-        const missing = replayEntries.filter(e => !liveEntries.includes(e))
-        if (missing.length > 0) {
+        const { preset_name, preset_indexes } = computePresetSelection(
+          arm, chapter, beatIndex, liveEntries.length,
+        )
+        if (preset_indexes === null) {
+          // Fall back to byte-equality if we can't compute a preset (e.g.,
+          // <4-line characters — the runner returns slice unchanged).
+          if (liveEntries.join("\n") !== replayEntries.join("\n")) {
+            diffs.push(
+              `  - user_prompt: block #${i + 1} (no preset computable, char has ${liveEntries.length} lines) — replay entries do not match live entries\n` +
+              `      live:   ${JSON.stringify(liveEntries)}\n` +
+              `      replay: ${JSON.stringify(replayEntries)}`,
+            )
+          }
+          continue
+        }
+        const expected = preset_indexes
+          .map(idx => liveEntries[idx])
+          .filter((v): v is string => typeof v === "string")
+        const matches =
+          expected.length === replayEntries.length &&
+          expected.every((e, k) => e === replayEntries[k])
+        if (!matches) {
           diffs.push(
-            `  - user_prompt: example-line block #${i + 1} contains entries NOT in the live block (expected a subset):\n` +
-            `      not in live: ${JSON.stringify(missing)}`,
+            `  - user_prompt: block #${i + 1} (${arm} arm) does NOT match the expected preset subset (${preset_name}, indexes ${JSON.stringify(preset_indexes)})\n` +
+            `      expected: ${JSON.stringify(expected)}\n` +
+            `      replay:   ${JSON.stringify(replayEntries)}\n` +
+            `      live (all ${liveEntries.length}): ${JSON.stringify(liveEntries)}`,
           )
         }
       }
     }
 
-    // Also show the expected delta so humans can eyeball it even on pass.
+    // Show the verified expected delta so humans can eyeball on pass.
     if (liveMasked === replayMasked && diffs.filter(d => d.includes("user_prompt")).length === 0) {
-      console.log(`\n── EXPECTED delta: ${arm} arm exampleLines narrowed from raw ──`)
+      console.log(`\n── EXPECTED delta: ${arm} arm exampleLines exactly match preset subset ──`)
       for (let i = 0; i < liveBlocks.length; i++) {
         const liveEntries = parseExampleLineEntries(liveBlocks[i].content)
         const replayEntries = parseExampleLineEntries(replayBlocks[i]?.content ?? "")
-        console.log(`  block #${i + 1}: live=${liveEntries.length} lines, replay=${replayEntries.length} lines`)
+        const { preset_name } = computePresetSelection(arm, chapter, beatIndex, liveEntries.length)
+        console.log(`  block #${i + 1}: live=${liveEntries.length} lines, replay=${replayEntries.length} lines (preset=${preset_name ?? "raw"})`)
       }
     }
   }
@@ -449,7 +523,7 @@ async function main(): Promise<void> {
 
     const liveSummary = summarizeRequest(live)
     const replaySummary = summarizeRequest(replay)
-    const diffs = diffFields(liveSummary, replaySummary, args.arm)
+    const diffs = diffFields(liveSummary, replaySummary, args.arm, args.chapter, args.beatIndex)
 
   console.log("── Live vs replay (compared fields) ────────────")
   console.log(`  model:       ${liveSummary.model}`)
@@ -459,22 +533,63 @@ async function main(): Promise<void> {
   console.log(`  system_prompt: live=${liveSummary.system_prompt.length}ch replay=${replaySummary.system_prompt.length}ch`)
   console.log(`  user_prompt:   live=${liveSummary.user_prompt.length}ch replay=${replaySummary.user_prompt.length}ch`)
   console.log("")
-  console.log("── Note on response_format ─────────────────────")
-  console.log("  response_format is NOT stored in llm_calls.request_json so it cannot")
-  console.log("  be verified DB-side. Match verified by code inspection:")
-  console.log("    - live:   src/phases/drafting.ts:296/575/887 — responseFormat: { type: \"text\" }")
-  console.log("    - replay: scripts/evals/run-conditioning-floor-replay.ts buildWriterRequest — responseFormat: { type: \"text\" }")
-  console.log("")
+  // response_format is now part of the mechanical diff above (read from
+  // request_json.responseFormat camelCase). Prior versions relied on code
+  // inspection because the harness didn't parse request_json — that gap is
+  // closed per Codex round-8 blocker #2.
 
-    if (diffs.length === 0) {
+
+    const passed = diffs.length === 0
+    if (passed) {
       console.log(`✓ PARITY OK — ${args.arm} arm matches live request surface for the compared fields.`)
-      process.exit(0)
     } else {
       console.log("✗ PARITY BROKEN — the following fields differ between live and replay:")
       for (const d of diffs) console.log(d)
       console.log(`\n${diffs.length} field(s) differ. Fix the replay path before running the pilot.`)
-      process.exit(1)
     }
+
+    // Persist durable pass/fail record per Codex telemetry audit #5.
+    // When --experiment-id is supplied, write one eval_results row per
+    // invocation so a later audit can SQL-prove "parity ran and passed on
+    // this commit / arm / beat" rather than relying on stdout screenshots.
+    if (args.experimentId !== null) {
+      try {
+        const commitHash = (await $`git rev-parse HEAD`.text()).trim()
+        const livePromptHash = createHash("sha256").update(live.system_prompt + "\n" + live.user_prompt).digest("hex")
+        const replayPromptHash = createHash("sha256").update(replay.system_prompt + "\n" + replay.user_prompt).digest("hex")
+        await db`
+          INSERT INTO eval_results (
+            experiment_id, set_name, beat_id, adapter_uri, cell_label,
+            correct, error_text, actual_label_json
+          ) VALUES (
+            ${args.experimentId},
+            ${`conditioning-floor-parity-${args.arm}`},
+            ${`${args.sourceNovelId}-ch${args.chapter}-b${args.beatIndex}`},
+            ${live.model},
+            ${passed ? "parity-pass" : "parity-fail"},
+            ${passed},
+            ${passed ? null : diffs.join("\n")},
+            ${{
+              commit_hash: commitHash,
+              arm: args.arm,
+              source_novel_id: args.sourceNovelId,
+              chapter: args.chapter,
+              beat_index: args.beatIndex,
+              live_prompt_sha256: livePromptHash,
+              replay_prompt_sha256: replayPromptHash,
+              live_user_prompt_length: live.user_prompt.length,
+              replay_user_prompt_length: replay.user_prompt.length,
+              verified_at: new Date().toISOString(),
+            }}
+          )
+        `
+        console.log(`[telemetry] parity record persisted to eval_results (experiment_id=${args.experimentId}, set_name=conditioning-floor-parity-${args.arm})`)
+      } catch (err) {
+        console.warn(`[telemetry] parity persistence failed: ${err instanceof Error ? err.message : err}`)
+      }
+    }
+
+    process.exit(passed ? 0 : 1)
   } finally {
     // Restore original WRITER_CONDITIONING
     if (originalConditioning === undefined) {

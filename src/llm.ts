@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { logLLMCallStructured, type LLMCallLogEntry } from "./logger"
+import { logLLMCallStructured, getRunId, type LLMCallLogEntry } from "./logger"
 import { emit } from "./events"
 import { traceAgentStart, traceAgentComplete, traceAgentFail, traceLLMCallStart, broadcastLLMToken } from "./trace"
 import {
@@ -326,7 +326,13 @@ export async function executeAndLog(
     throw err
   } finally {
     if (heartbeatTimer) clearInterval(heartbeatTimer)
-    if (novelId) {
+    // Persist llm_calls when either a novel is active OR an experiment-scoped
+    // run is active (see src/logger.ts:initExperimentRun). Closes Codex
+    // telemetry audit finding #1: prior guard of `if (novelId)` meant the
+    // conditioning-floor replay's three writer calls per beat were invisible
+    // to SQL because the runner deliberately passes novelId=undefined.
+    const hasExperimentRun = getRunId() !== null && !novelId
+    if (novelId || hasExperimentRun) {
       const failed = caughtError != null
       const latencyMs = response?.latencyMs ?? (Date.now() - startedAt)
       const promptTokens = response?.usage.prompt_tokens ?? 0
@@ -340,7 +346,7 @@ export async function executeAndLog(
         : 0
       let llmCallId: number | null = null
       try {
-        llmCallId = await logLLMCallStructured(novelId, {
+        llmCallId = await logLLMCallStructured(novelId ?? null, {
           timestamp: new Date().toISOString(),
           agent: agentName,
           model: request.model,
@@ -378,27 +384,32 @@ export async function executeAndLog(
       }
 
       // Unified trace: persists to pipeline_events + broadcasts via SSE.
-      try {
-        if (failed) {
-          await traceAgentFail(novelId, agentName, formatErrorForLog(caughtError).slice(0, 500), {
-            chapter: tags?.chapter,
-            beatIndex: tags?.beatIndex,
-            llmCallId,
-            durationMs: Math.round(latencyMs),
-          })
-        } else {
-          await traceAgentComplete(novelId, agentName, {
-            chapter: tags?.chapter,
-            beatIndex: tags?.beatIndex,
-            attempt: tags?.attempt,
-            llmCallId,
-            durationMs: Math.round(latencyMs),
-            tokens: { prompt: promptTokens, completion: completionTokens },
-            cost,
-          })
+      // Novel-scoped only — pipeline_events requires a novel_id. Experiment-
+      // scoped calls skip this block; llm_calls persistence above is
+      // sufficient for experiment-to-call SQL joins via runs.experiment_id.
+      if (novelId) {
+        try {
+          if (failed) {
+            await traceAgentFail(novelId, agentName, formatErrorForLog(caughtError).slice(0, 500), {
+              chapter: tags?.chapter,
+              beatIndex: tags?.beatIndex,
+              llmCallId,
+              durationMs: Math.round(latencyMs),
+            })
+          } else {
+            await traceAgentComplete(novelId, agentName, {
+              chapter: tags?.chapter,
+              beatIndex: tags?.beatIndex,
+              attempt: tags?.attempt,
+              llmCallId,
+              durationMs: Math.round(latencyMs),
+              tokens: { prompt: promptTokens, completion: completionTokens },
+              cost,
+            })
+          }
+        } catch (traceErr) {
+          console.error(`[trace] failed for ${agentName}:`, traceErr)
         }
-      } catch (traceErr) {
-        console.error(`[trace] failed for ${agentName}:`, traceErr)
       }
     }
   }

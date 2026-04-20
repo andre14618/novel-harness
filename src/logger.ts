@@ -29,8 +29,35 @@ export async function initNovelRun(novelId: string): Promise<number> {
   return currentRunId
 }
 
+/**
+ * Initialize an experiment-scoped run for telemetry capture. Unlike a novel
+ * run, this is keyed off a `tuning_experiments.id` instead of a novel_id, so
+ * experiment workflows (replay runners, parity harnesses, judge wrappers) can
+ * persist llm_calls rows that later join back to the experiment via
+ * runs.experiment_id → tuning_experiments.id.
+ *
+ * Added 2026-04-20 after Codex telemetry audit finding #1: the conditioning-
+ * floor replay was calling executeAndLog with novelId=undefined to avoid
+ * polluting novel traces, which also bypassed the canonical llm_calls
+ * ledger. With this path, the three writer calls per beat persist properly
+ * and are SQL-joinable by experiment.
+ */
+export async function initExperimentRun(
+  experimentId: number,
+  runType: string,
+  runRef?: string,
+  label?: string,
+): Promise<number> {
+  currentRunId = await createRun(runType, runRef, label, experimentId)
+  return currentRunId
+}
+
 export function getRunId(): number | null {
   return currentRunId
+}
+
+export function setRunIdForTest(runId: number | null): void {
+  currentRunId = runId
 }
 
 // ── Structured LLM Call Logging ──────────────────────────────────────────
@@ -76,11 +103,11 @@ export interface LLMCallLogEntry {
   errorText?: string
 }
 
-export async function logLLMCallStructured(novelId: string, entry: LLMCallLogEntry): Promise<number | null> {
+export async function logLLMCallStructured(novelId: string | null, entry: LLMCallLogEntry): Promise<number | null> {
   if (!currentRunId) {
-    // Silent drop would leave llm_calls missing rows for a live novel. Warn
-    // loudly so we notice the moment a resume path forgets to call initNovelRun().
-    console.warn(`[logger] logLLMCallStructured called with no currentRunId — dropping ${entry.agent} call for novel ${novelId}`)
+    // Silent drop would leave llm_calls missing rows. Warn loudly so we notice
+    // the moment a resume path forgets to call initNovelRun() / initExperimentRun().
+    console.warn(`[logger] logLLMCallStructured called with no currentRunId — dropping ${entry.agent} call for ${novelId ? `novel ${novelId}` : "experiment-scoped path"}`)
     return null
   }
 
@@ -108,7 +135,7 @@ export async function logLLMCallStructured(novelId: string, entry: LLMCallLogEnt
     systemPrompt: entry.systemPrompt,
     userPrompt: entry.userPrompt,
     responseContent: entry.responseContent,
-    novelId,
+    novelId: novelId ?? undefined,
     chapter: entry.chapter,
     beatIndex: entry.beatIndex,
     attempt: entry.attempt,

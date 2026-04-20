@@ -44,6 +44,7 @@ import { buildBeatContext } from "../../src/agents/writer/beat-context"
 import { resolveReferences, type ResolvedReferences } from "../../src/agents/writer/reference-resolver"
 import { resolveWriterPack } from "../../src/models/roles"
 import { executeAndLog } from "../../src/llm"
+import { initExperimentRun } from "../../src/logger"
 import { getTokenCost } from "../../src/models/registry"
 import type { LLMRequest } from "../../src/transport"
 import type { PairRow } from "./conditioning-floor-judge"
@@ -95,6 +96,31 @@ export type ReplayPairRow = PairRow & {
 }
 
 /**
+ * Per-arm telemetry captured on each writer call. Persisted into the
+ * ReplayTriplet and the triplet-audit JSON so post-hoc attribution can
+ * distinguish conditioning deltas from cache-hit variance, token drift, or
+ * latency noise. Closes Codex telemetry audit finding #2.
+ */
+export type ArmTelemetry = {
+  prose: string
+  words: number
+  prompt_tokens: number
+  completion_tokens: number
+  cached_tokens: number
+  latency_ms: number
+  http_attempts: number
+  retry_errors: Array<{ status: number; delay: number; error?: string }>
+  cost_usd: number
+  /** Preset chosen for this arm. "preset-a" for fixed, rotating for rotation, null for raw. */
+  preset_name: "preset-a" | "preset-b" | "preset-c" | null
+  /** The exampleLines indexes shown in the prompt. null for raw (shows all). */
+  preset_indexes: number[] | null
+  /** SHA-256 of the user prompt for cheap byte-level replay auditing. */
+  user_prompt_hash: string
+  error_text?: string
+}
+
+/**
  * Internal triplet holding all three arm results for a single beat.
  * Assembled before being fanned out into three PairRow JSONLs.
  */
@@ -103,6 +129,15 @@ export type ReplayTriplet = {
   pov_character: string
   characters_present: string[]
   beat_description: string
+  raw: ArmTelemetry
+  fixed: ArmTelemetry
+  rotation: ArmTelemetry
+  loss_raw: boolean
+  loss_fixed: boolean
+  loss_rotation: boolean
+  error_text?: string
+  cost_usd: number
+  // Legacy fields preserved for backward compat with fan-out functions + tests.
   raw_prose: string
   fixed_prose: string
   rotation_prose: string
@@ -112,11 +147,6 @@ export type ReplayTriplet = {
   http_attempts_raw: number
   http_attempts_fixed: number
   http_attempts_rotation: number
-  loss_raw: boolean
-  loss_fixed: boolean
-  loss_rotation: boolean
-  error_text?: string
-  cost_usd: number
 }
 
 type ParsedArgs = {
@@ -485,13 +515,6 @@ async function buildSharedBeatInputs(
 type ArmConditioning = "raw" | "fixed" | "rotation"
 
 /**
- * Result from one arm call.
- */
-type ArmResult =
-  | { prose: string; costUsd: number; httpAttempts: number }
-  | { error: string }
-
-/**
  * Call the writer for one arm. noRetries: true is set in buildWriterRequest, so
  * a single provider error immediately returns an error result — no retry loop.
  *
@@ -502,6 +525,34 @@ type ArmResult =
  * The env var is always restored to its original state (or deleted if it wasn't
  * set) after the call, regardless of success or failure.
  */
+/**
+ * Compute the preset_name and preset_indexes that pickExampleLineSubset
+ * will select for the given arm + beat coordinates + character line count.
+ * Mirrors the logic in src/agents/writer/beat-context.ts so we can persist
+ * per-arm preset selection into telemetry without refactoring the renderer.
+ * Closes Codex telemetry audit finding #2 (preset metadata not persisted).
+ */
+export function computePresetSelection(
+  conditioning: ArmConditioning,
+  chapterNumber: number,
+  beatIndex: number,
+  charLineCount: number,
+): { preset_name: "preset-a" | "preset-b" | "preset-c" | null; preset_indexes: number[] | null } {
+  if (conditioning === "raw") return { preset_name: null, preset_indexes: null }
+  if (charLineCount < 4) return { preset_name: null, preset_indexes: null }
+  const INDEXES_5: Record<"preset-a" | "preset-b" | "preset-c", number[]> = {
+    "preset-a": [0, 1, 2], "preset-b": [0, 3, 4], "preset-c": [1, 3, 4],
+  }
+  const INDEXES_4: Record<"preset-a" | "preset-b" | "preset-c", number[]> = {
+    "preset-a": [0, 1, 2], "preset-b": [0, 1, 3], "preset-c": [1, 2, 3],
+  }
+  const CYCLE: Array<"preset-a" | "preset-b" | "preset-c"> = ["preset-a", "preset-b", "preset-c"]
+  const family = charLineCount >= 5 ? INDEXES_5 : INDEXES_4
+  const preset: "preset-a" | "preset-b" | "preset-c" =
+    conditioning === "fixed" ? "preset-a" : CYCLE[(chapterNumber * 100 + beatIndex) % 3]
+  return { preset_name: preset, preset_indexes: family[preset] }
+}
+
 async function callWriterArm(
   entry: PairEntry,
   sourceNovelId: string,
@@ -509,15 +560,23 @@ async function callWriterArm(
   pack: NonNullable<ReturnType<typeof resolveWriterPack>>,
   conditioning: ArmConditioning,
   shared: SharedBeatInputs,
-): Promise<ArmResult> {
+): Promise<ArmTelemetry | { error: string }> {
   const originalConditioning = process.env.WRITER_CONDITIONING
 
-  // Set / delete env var for this arm
   if (conditioning === "raw") {
     delete process.env.WRITER_CONDITIONING
   } else {
     process.env.WRITER_CONDITIONING = conditioning
   }
+
+  // POV character's exampleLines count — drives which preset family
+  // pickExampleLineSubset uses. Mirrors src/agents/writer/beat-context.ts.
+  const povCharLines = shared.characters.find(
+    c => c.name.toLowerCase() === entry.pov_character.toLowerCase(),
+  )?.exampleLines?.length ?? 0
+  const { preset_name, preset_indexes } = computePresetSelection(
+    conditioning, entry.chapter_number, entry.beat_index_in_chapter, povCharLines,
+  )
 
   try {
     const beatCtx = await buildBeatContext({
@@ -534,10 +593,12 @@ async function callWriterArm(
       genre: shared.genre,
     })
 
+    const userPromptHash = createHash("sha256").update(beatCtx.userPrompt).digest("hex")
+
     const request = buildWriterRequest(systemPrompt, beatCtx.userPrompt, pack)
     const response = await executeAndLog(
       request,
-      undefined, // no novelId — standalone eval call, not a live novel run
+      undefined, // no novelId — experiment-scoped run handles llm_calls persistence
       AGENT_NAME,
       { chapter: entry.chapter_number, beatIndex: entry.beat_index_in_chapter, attempt: 1 },
       {
@@ -545,6 +606,10 @@ async function callWriterArm(
           evalId: EVAL_ID,
           beatId: `${sourceNovelId}-ch${entry.chapter_number}-b${entry.beat_index_in_chapter}`,
           arm: conditioning,
+          source_novel_id: sourceNovelId,
+          preset_name,
+          preset_indexes,
+          user_prompt_hash: userPromptHash,
         },
       },
     )
@@ -559,15 +624,23 @@ async function callWriterArm(
 
     return {
       prose: response.content,
-      costUsd,
-      httpAttempts: response.httpAttempts,
+      words: countWords(response.content),
+      prompt_tokens: response.usage.prompt_tokens,
+      completion_tokens: response.usage.completion_tokens,
+      cached_tokens: response.usage.cached_tokens,
+      latency_ms: response.latencyMs,
+      http_attempts: response.httpAttempts,
+      retry_errors: response.retryErrors,
+      cost_usd: costUsd,
+      preset_name,
+      preset_indexes,
+      user_prompt_hash: userPromptHash,
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     console.warn(`    [${conditioning}] call failed: ${message.slice(0, 120)}`)
     return { error: message }
   } finally {
-    // Always restore original env state
     if (originalConditioning === undefined) {
       delete process.env.WRITER_CONDITIONING
     } else {
@@ -632,78 +705,58 @@ async function assembleOneTriplet(
     }
   }
 
-  let totalCost = 0
+  /**
+   * Build a sentinel ArmTelemetry for an arm that errored/aborted. Keeps the
+   * ReplayTriplet shape uniform even when the writer call never returned.
+   */
+  const sentinel = (errText: string): ArmTelemetry => ({
+    prose: "", words: 0, prompt_tokens: 0, completion_tokens: 0, cached_tokens: 0,
+    latency_ms: 0, http_attempts: 0, retry_errors: [], cost_usd: 0,
+    preset_name: null, preset_indexes: null, user_prompt_hash: "",
+    error_text: errText,
+  })
 
-  // Raw arm — production default (WRITER_CONDITIONING unset)
+  const resolveArm = (r: ArmTelemetry | { error: string }): ArmTelemetry =>
+    "error" in r ? sentinel(r.error) : r
+
   console.log(`    [raw] calling writer...`)
-  const rawResult = await callWriterArm(entry, sourceNovelId, systemPrompt, pack, "raw", shared)
-  const rawProse = "error" in rawResult ? "" : rawResult.prose
-  const rawWords = countWords(rawProse)
-  const rawHttpAttempts = "error" in rawResult ? 0 : rawResult.httpAttempts
-  const rawError = "error" in rawResult ? rawResult.error : undefined
-  if ("costUsd" in rawResult) totalCost += rawResult.costUsd
-
-  // Fixed arm
+  const rawTel = resolveArm(await callWriterArm(entry, sourceNovelId, systemPrompt, pack, "raw", shared))
   console.log(`    [fixed] calling writer...`)
-  const fixedResult = await callWriterArm(entry, sourceNovelId, systemPrompt, pack, "fixed", shared)
-  const fixedProse = "error" in fixedResult ? "" : fixedResult.prose
-  const fixedWords = countWords(fixedProse)
-  const fixedHttpAttempts = "error" in fixedResult ? 0 : fixedResult.httpAttempts
-  const fixedError = "error" in fixedResult ? fixedResult.error : undefined
-  if ("costUsd" in fixedResult) totalCost += fixedResult.costUsd
-
-  // Rotation arm
+  const fixedTel = resolveArm(await callWriterArm(entry, sourceNovelId, systemPrompt, pack, "fixed", shared))
   console.log(`    [rotation] calling writer...`)
-  const rotationResult = await callWriterArm(entry, sourceNovelId, systemPrompt, pack, "rotation", shared)
-  const rotationProse = "error" in rotationResult ? "" : rotationResult.prose
-  const rotationWords = countWords(rotationProse)
-  const rotationHttpAttempts = "error" in rotationResult ? 0 : rotationResult.httpAttempts
-  const rotationError = "error" in rotationResult ? rotationResult.error : undefined
-  if ("costUsd" in rotationResult) totalCost += rotationResult.costUsd
+  const rotationTel = resolveArm(await callWriterArm(entry, sourceNovelId, systemPrompt, pack, "rotation", shared))
+
+  const totalCost = rawTel.cost_usd + fixedTel.cost_usd + rotationTel.cost_usd
 
   // Defense-in-depth: if any arm retried despite noRetries=true, the pair is
   // contaminated by asymmetric retry behavior — mark as error.
   const retryViolations: string[] = []
-  if (rawHttpAttempts > 1) retryViolations.push(`raw arm made ${rawHttpAttempts} HTTP attempts`)
-  if (fixedHttpAttempts > 1) retryViolations.push(`fixed arm made ${fixedHttpAttempts} HTTP attempts`)
-  if (rotationHttpAttempts > 1) retryViolations.push(`rotation arm made ${rotationHttpAttempts} HTTP attempts`)
-
-  const retryErrorText = retryViolations.length > 0
-    ? `noRetries violated: ${retryViolations.join("; ")}`
-    : undefined
+  if (rawTel.http_attempts > 1) retryViolations.push(`raw arm made ${rawTel.http_attempts} HTTP attempts`)
+  if (fixedTel.http_attempts > 1) retryViolations.push(`fixed arm made ${fixedTel.http_attempts} HTTP attempts`)
+  if (rotationTel.http_attempts > 1) retryViolations.push(`rotation arm made ${rotationTel.http_attempts} HTTP attempts`)
+  const retryErrorText = retryViolations.length > 0 ? `noRetries violated: ${retryViolations.join("; ")}` : undefined
 
   // Triplet-level abort on ANY arm failure (Codex round-7 blocker #2).
-  //
-  // Prior behavior: a writer error on one arm produced empty prose → loss for
-  // that arm only. With arms called in fixed order (raw → fixed → rotation)
-  // and transport.noRetries=true, any transient provider fault (429, 5xx,
-  // timeout) becomes an immediate arm-loss. Rotation is always last and so is
-  // systematically most exposed to accumulated backoff / transport state.
-  // That lets infra noise, not conditioning, decide the winner.
-  //
-  // New behavior: if ANY arm errored or retried, the WHOLE triplet is marked
-  // error and all three pair sets drop the beat (error row, automatic
-  // exclusion per resolveLossShortCircuit). Order bias goes away because any
-  // single-arm failure voids the triplet rather than penalizing one arm.
-  const anyArmErrored = rawError !== undefined || fixedError !== undefined || rotationError !== undefined
+  const anyArmErrored = !!(rawTel.error_text || fixedTel.error_text || rotationTel.error_text)
   const tripletAbort = retryErrorText !== undefined || anyArmErrored
 
   if (tripletAbort) {
     const erroredArms: string[] = []
-    if (rawError) erroredArms.push(`raw: ${rawError}`)
-    if (fixedError) erroredArms.push(`fixed: ${fixedError}`)
-    if (rotationError) erroredArms.push(`rotation: ${rotationError}`)
+    if (rawTel.error_text) erroredArms.push(`raw: ${rawTel.error_text}`)
+    if (fixedTel.error_text) erroredArms.push(`fixed: ${fixedTel.error_text}`)
+    if (rotationTel.error_text) erroredArms.push(`rotation: ${rotationTel.error_text}`)
     if (retryErrorText) erroredArms.push(retryErrorText)
     console.warn(`    [TRIPLET-ABORT] ${erroredArms.join("; ")} — all three pair sets drop this beat`)
   }
 
-  const baseErrorText = [rawError, fixedError, rotationError, retryErrorText].filter(Boolean).join("; ") || undefined
+  const baseErrorText = [rawTel.error_text, fixedTel.error_text, rotationTel.error_text, retryErrorText]
+    .filter(Boolean).join("; ") || undefined
 
   // Loss encoding per charter §7. Triplet-abort forces all three arms to
   // loss; otherwise per-arm word-count gate applies.
-  const lossRaw = tripletAbort || rawWords < minWords
-  const lossFixed = tripletAbort || fixedWords < minWords
-  const lossRotation = tripletAbort || rotationWords < minWords
+  const lossRaw = tripletAbort || rawTel.words < minWords
+  const lossFixed = tripletAbort || fixedTel.words < minWords
+  const lossRotation = tripletAbort || rotationTel.words < minWords
 
   return {
     triplet: {
@@ -711,20 +764,24 @@ async function assembleOneTriplet(
       pov_character: entry.pov_character,
       characters_present: entry.characters_present,
       beat_description: entry.description,
-      raw_prose: rawProse,
-      fixed_prose: fixedProse,
-      rotation_prose: rotationProse,
-      words_raw: rawWords,
-      words_fixed: fixedWords,
-      words_rotation: rotationWords,
-      http_attempts_raw: rawHttpAttempts,
-      http_attempts_fixed: fixedHttpAttempts,
-      http_attempts_rotation: rotationHttpAttempts,
+      raw: rawTel,
+      fixed: fixedTel,
+      rotation: rotationTel,
       loss_raw: lossRaw,
       loss_fixed: lossFixed,
       loss_rotation: lossRotation,
       error_text: baseErrorText,
       cost_usd: totalCost,
+      // Legacy flat fields for backward-compat with fan-out + existing tests.
+      raw_prose: rawTel.prose,
+      fixed_prose: fixedTel.prose,
+      rotation_prose: rotationTel.prose,
+      words_raw: rawTel.words,
+      words_fixed: fixedTel.words,
+      words_rotation: rotationTel.words,
+      http_attempts_raw: rawTel.http_attempts,
+      http_attempts_fixed: fixedTel.http_attempts,
+      http_attempts_rotation: rotationTel.http_attempts,
     },
     costUsd: totalCost,
   }
@@ -809,6 +866,45 @@ export function tripletToRawVsFixed(t: ReplayTriplet): ReplayPairRow {
   }
 }
 
+// ── Experiment-spine helpers (Codex telemetry audit #6) ─────────────────────
+
+async function sha256OfFile(p: string): Promise<string> {
+  const content = await readFile(path.resolve(p), "utf8")
+  return createHash("sha256").update(content).digest("hex")
+}
+
+/**
+ * Validate that the tuning_experiments row exists and has a non-null
+ * commit_hash, then merge replay provenance metadata into its config JSON.
+ * Fails closed if either check breaks — Codex telemetry audit #6 flagged
+ * that createTuningExperiment() allows commit_hash to be null and the replay
+ * CLI wasn't updating the config with source novel, pair-file SHA, artifact
+ * paths, etc. After this, the experiment row has the full replay provenance
+ * and the run can be SQL-joined back to it via runs.experiment_id.
+ */
+async function validateAndUpdateExperimentSpine(
+  experimentId: number,
+  meta: Record<string, unknown>,
+): Promise<void> {
+  const rows = await db<Array<{ id: number; commit_hash: string | null; config: Record<string, unknown> | null }>>`
+    SELECT id, commit_hash, config FROM tuning_experiments WHERE id = ${experimentId}
+  `
+  if (rows.length === 0) {
+    console.error(`[replay] tuning_experiments row ${experimentId} not found — create it first`)
+    process.exit(1)
+  }
+  const row = rows[0]
+  if (!row.commit_hash) {
+    console.error(`[replay] tuning_experiments.commit_hash is NULL for experiment ${experimentId} — fail-closed per Codex audit #6`)
+    console.error(`[replay] fix: re-create the experiment after committing the runtime state, or UPDATE tuning_experiments SET commit_hash = ... WHERE id = ${experimentId}`)
+    process.exit(1)
+  }
+  const existing = row.config ?? {}
+  const merged = { ...existing, replay: meta }
+  await db`UPDATE tuning_experiments SET config = ${merged} WHERE id = ${experimentId}`
+  console.log(`[replay] tuning_experiments #${experimentId} spine OK (commit ${row.commit_hash.slice(0, 8)}); config.replay updated`)
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
@@ -827,10 +923,39 @@ async function main(): Promise<void> {
   const outRawVsFixed = `${outPrefix}-raw-vs-fixed.jsonl`
   const outTriplets = `${outPrefix}-triplets.json`
 
+  // 1a. Telemetry spine — verify the experiment row, assert commit_hash, and
+  // update config JSON with the full replay provenance. Closes Codex audit #6.
+  await validateAndUpdateExperimentSpine(experimentId, {
+    source_novel_id: sourceNovelId,
+    pairs_path: pairsPath,
+    pairs_sha256: await sha256OfFile(pairsPath),
+    min_words: minWords,
+    out_prefix: outPrefix,
+    out_files: {
+      fixed_vs_rotation: outFixedVsRotation,
+      raw_vs_rotation: outRawVsRotation,
+      raw_vs_fixed: outRawVsFixed,
+      triplets: outTriplets,
+    },
+    no_retries: true,
+    started_at: new Date().toISOString(),
+  })
+
+  // 1b. Telemetry spine — create an experiment-scoped run so every writer call
+  // lands in llm_calls under runs.experiment_id = this experiment. Closes
+  // Codex audit #1 (writer calls previously bypassed the canonical ledger).
+  const runId = await initExperimentRun(
+    experimentId,
+    "conditioning-floor-replay",
+    sourceNovelId,
+    "slim-live-v1-replay-3arm",
+  )
+
   console.log(`\n[replay] Source novel:   ${sourceNovelId}`)
   console.log(`[replay] Pairs file:     ${pairsPath}`)
   console.log(`[replay] Out prefix:     ${outPrefix}`)
   console.log(`[replay] Experiment ID:  ${experimentId}`)
+  console.log(`[replay] Run ID:         ${runId}  (runs.experiment_id=${experimentId} for SQL joins)`)
   console.log(`[replay] Min words:      ${minWords}`)
   console.log(`[replay] Shuffle:        deferred to judge wrapper (single seed owner)`)
   console.log(`[replay] Arms:           raw / fixed / rotation`)
