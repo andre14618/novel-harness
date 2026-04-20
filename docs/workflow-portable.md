@@ -55,6 +55,23 @@ Register the ticket in your experiment tracking system BEFORE code work. Commit 
 
 `[CUSTOMIZE]` — tool for experiment creation (DB insert, markdown log, notion entry, whatever). The discipline is the row, not the storage.
 
+## Phase 0.5 — Pick pipeline tier (MANDATORY)
+
+Not every ticket needs the full 13-phase pipeline. Route by ticket class:
+
+| Tier | When to pick | Flow |
+|---|---|---|
+| **Light** | Docs-only. Single-file. Pattern elevation. SOP / config wording. Typed-union additions. Anything behavior-preserving with no cross-file coupling. | Skip Phases 2-4. Hand the plan directly to the review model with "implement this, single commit, respect the plan exactly." Review the resulting commit (Phase 6), fix once (Phase 7), land. ~1-2 review-model calls. |
+| **Full** | Multi-file code. State machines. Migrations. Event contracts. Retries. Gates. Persistence. Restart behavior. Async boundaries. Anything with scope-creep risk OR that benefits from parallel slicing across disjoint files. | Run all phases as written. 3-5 review-model calls. |
+| **Hybrid** | Medium tickets where plan-triage value is high (sibling tickets might be redundant) but implementation collapses to one file. | Run Phases 1-3 (plan + triage + review). Skip Phase 4 subagent; hand to review model for impl. Still do Phase 6 review. |
+
+**Selection discipline:**
+- On ambiguity, default to `full` — the extra plan-triage round catches cross-ticket subsumption cheaply.
+- If the ticket touches a behavior boundary (state machine, async, retry, gate, migration), force `full` regardless of file count.
+- Batching multiple tickets in one session? Run Phase 2 (plan-triage) on ALL of them before any implementation — parallel triages catch subsumption between tickets (e.g. one ticket makes another unnecessary).
+
+**Why this tier exists:** the full pipeline was optimized for architectural charters. For routine ticket work, the plan-triage gate's main value (cross-ticket conflict detection) is near-zero when there's one docs-only ticket in flight. Light tier spends ~40% less wall-clock and ~60-70% fewer review-model calls with comparable artifact quality on the classes it covers. First validated 2026-04-19 on a pattern-elevation and typed-union-addition pair.
+
 ## Phase 1 — Plan
 
 Write a plan with:
