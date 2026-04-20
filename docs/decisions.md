@@ -2070,3 +2070,49 @@ Current convention is the delete-and-log rule above. The archive dir + README we
 
 **Class-of-bug caught mid-run:** `logLLMCall` was JSON.stringify-wrapping `request_json` before passing it to Bun.sql's tagged template (which auto-serialises JSONB). Result: Postgres stored the object as a JSONB *string type* — nested path operators always returned NULL. Latent since sql/018. Exposed only when the charter's mechanism-falsifier needed `request_json #> '{groundedSources,...}'`. See commit `ff555bc`.
 
+### halluc-leak-salvatore: regex OR-combine shipped at inference (Rung 0)
+*2026-04-20 · exp-derived (charter `docs/scoping/halluc-leak-salvatore-v2.md` §5) · commit `cc57752`*
+
+**Decision:** `checkHallucLeakSalvatore` now runs a 59-token case-insensitive regex against beat prose in parallel with the W&B adapter call, unions the results, and fires on either side. Regex token list lives at `src/agents/halluc-leak-salvatore/regex-leak.ts` — union of `scripts/hallucination/expand-leak-vocab.ts` LEAK_TOKENS + scoping doc §B additions (Waterdeep, Baldur's Gate, Harpells, Chionthar, Neverwinter, Menzoberranzan, Gauntlgrym, Helm's Hold, Sea of Swords, Sea Sprite, Drossen Ironbelly, Nine-Towns).
+
+**Evidence (production-wide, 3,081 halluc-leak-salvatore calls across 32 Salvatore-routed novels since 2026-04-18 wire-in):**
+- Adapter-alone beats flagged: 158.
+- OR-combined beats flagged: 208 — **Δ = +50 (+31.6% recall)**.
+- Top adapter misses caught by regex: Harpells (35), Baldur's Gate (32), Waterdeep (15). Spot-checked ≥95% precision on 5 randomly sampled regex-only fires via Sonnet adjudication — all unambiguous corpus leaks in dialogue/narration.
+- Residual adapter-only catches (regex FNs): 12 beats — "dark elf" (generic not in token list), "Rumblebelly's" (possessive edge case), "mithril" (lowercase standalone). Three genuine regex FNs logged to `docs/todo.md` for a widen pass.
+
+**Why:** earlier aggregate queries suggested `halluc-leak-salvatore` fired 0 times on the beat-entity-list V1 charter seed, which looked like adapter under-recall. That claim was a query bug (see `docs/lessons-learned.md` "Verify output schema before asserting a zero-fire baseline"). The real fire rate is 7% production-wide with partial recall on canonical FR names — a training-data gap (Waterdeep + Baldur's Gate not in v1 positive examples). Rung 0 asked: does a regex closing that gap OR-combined with v1 hit ≥85% precision / ≥75% recall? Both cleared comfortably at ~95% / ~95%.
+
+**Alternatives rejected:**
+- **SFT retrain `halluc-leak-salvatore-v2`** — deferred. The scoping doc's Rung 0 ladder explicitly gated SFT on regex failing. Regex passed, so no training spend.
+- **Corpus stripping at inference (regex-replace entities in prose before adapter call)** — rejected: breaks semantic continuity; prose downstream of regex-strip is no longer what the reader sees.
+- **Widen the v1 adapter's grounded surface** — off-distribution per the leak adapter's training shape.
+
+**Ongoing implications:**
+- The regex token list needs to mirror every future adapter's training vocabulary — when a non-Salvatore voice LoRA ships (Gemmell, Cook, etc.) it needs its own regex sibling. Per-writer, per memory `project_three_layer_architecture.md` "leak detection is per-writer."
+- Three regex FNs (verbeeg — in list but missed, Aegis-fang — in list but missed, possessive forms of list tokens) need a followup regex-widen pass. Logged to `docs/todo.md`.
+- Retraining pathway (v5-stripped ablation at `docs/ablation/salvatore-v5-stripped.md`) is independent of Rung 0 and still available — it addresses **weight-level** leakage (writer LoRA leaking corpus tokens before any detector runs), not detection. Gated on: (1) conditioning-floor charter verdict and (2) user decisions on 4 design gates (brief-side stripping scope, placeholder strategy, sequencing, rename-augmentation interaction).
+
+**Full report:** `docs/rung-0-regex-ceiling-results.md`.
+
+### V1a payoff-floor pilot — ITERATE (2 of 4 arms run)
+*2026-04-20 · exp #256 · charter `docs/charters/planner-phase2-payoff-floor.md`*
+
+**Decision:** ITERATE per charter §7. The aggressive prompt-only setup/payoff floor on `pre-planner-phase2-v1a` did not recover the V1a lift — mean paired Δ retry_ratio = **−0.0309** across 15 (seed, chapter) slots on 3 fantasy seeds. Slot wins: prompt 6, baseline 8, ties 1. Stddev 0.1256. Directional signal is consistent with "V1a schema is the causal lever," but only 2 of 4 charter arms were run (scoping error at launch; missing `extractor` measurement-only arm + `mainv1a` observational reference row). V1b (`speaker_directives`) and V1c (`subplot_id` + `thematic_focus`) remain gated on a completed 4-arm pilot.
+
+**Evidence:** see `docs/pp2-floor-pilot-results.md` for the 15-row table and the full §7 decision walkthrough. 6 novel IDs enumerated there.
+
+**Why this is still useful despite the scoping error:** the prompt-only arm was the weakest of the four arms — if it had won, we could have declared V1a schema unnecessary with just 2 arms. It did not win. The directional signal survives the scope gap.
+
+**Alternatives rejected:**
+- **Declare V1a causal, unblock V1b/V1c** — rejected. Stddev 0.1256 across 15 slots means the 0.03 Δ is within 1σ/√15 noise. Without `extractor` we can't separate planner-JSON-shape causation from verifier sensitivity; without `mainv1a` we can't anchor to current-prod behavior.
+- **KILL V1a schema family** — rejected. §3 falsification requires both cheap levers (prompt + extractor) to fail; only prompt tested.
+- **Expand directly to 6 seeds skipping the 2 missing arms** — rejected. Missing arms are the cheaper counterfactuals; run them first before doubling seed count.
+
+**Ongoing implications:**
+- Next session: run `extractor` + `mainv1a` arms on the same 3 seeds before expanding to 6 seeds. Estimated ~$0.30–$0.60 + 1.5–4h wall clock.
+- Worktree at `~/apps/nh-pp2-floor` is preserved; beat-expansion prompt file restored to baseline MD5 `ee928170` post-run.
+- V1b/V1c charters should NOT be written yet. Writing them before the 4-arm pilot completes would invite RED verdicts for "declaring causation on incomplete data."
+- The scoping error (reducing 4 arms to 2 at launch) is captured in `docs/lessons-learned.md` as a charter-fidelity pattern.
+
+
