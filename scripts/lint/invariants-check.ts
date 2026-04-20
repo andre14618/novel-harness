@@ -665,6 +665,35 @@ function collectBodyConsumeSites(sf: ts.SourceFile): BodyConsumeSite[] {
  * expression, etc.). Recurses into the then/else branches of IfStatements
  * only when the statement itself is an IfStatement.
  */
+/**
+ * Stricter variant of `blockEndsInThrowOrReturn`: counts ONLY statements
+ * that exit the enclosing function. `break` and `continue` are explicitly
+ * NOT terminal here — they're scope-local (break exits a switch or loop;
+ * continue jumps to the next loop iteration) and fall through to the
+ * statement AFTER the enclosing switch/loop, which is reachable code.
+ *
+ * Used by the switch-statement terminator classifier (Codex review
+ * `a76243c1` MEDIUM follow-up).
+ */
+function exitsFunction(stmt: ts.Statement): boolean {
+  if (ts.isThrowStatement(stmt) || ts.isReturnStatement(stmt)) return true
+  if (ts.isBlock(stmt)) {
+    const last = stmt.statements[stmt.statements.length - 1]
+    return last !== undefined && exitsFunction(last)
+  }
+  if (ts.isIfStatement(stmt)) {
+    if (!stmt.elseStatement) return false
+    return exitsFunction(stmt.thenStatement) && exitsFunction(stmt.elseStatement)
+  }
+  if (ts.isTryStatement(stmt)) {
+    if (stmt.finallyBlock && exitsFunction(stmt.finallyBlock)) return true
+    const tryEnds = exitsFunction(stmt.tryBlock)
+    const catchEnds = !stmt.catchClause || exitsFunction(stmt.catchClause.block)
+    return tryEnds && catchEnds
+  }
+  return false
+}
+
 function blockEndsInThrowOrReturn(stmt: ts.Statement): boolean {
   if (
     ts.isThrowStatement(stmt) ||
@@ -694,13 +723,19 @@ function blockEndsInThrowOrReturn(stmt: ts.Statement): boolean {
   }
   if (ts.isSwitchStatement(stmt)) {
     // A switch terminates iff EVERY clause's fall-through path ends in a
-    // terminal statement AND a `default` clause exists (otherwise an
-    // unmatched scrutinee falls out of the switch without executing any
-    // clause, which is non-terminal).
+    // statement that exits the ENCLOSING FUNCTION (throw or return) AND a
+    // `default` clause exists (otherwise an unmatched scrutinee falls out
+    // of the switch without executing any clause, which is non-terminal).
     //
-    // Partial MEDIUM fix (Codex review `a0b8a5d7`): this handles the common
-    // "every case returns/throws + default present" pattern. More exotic
-    // switch patterns (fall-through between cases, nested labels) are
+    // Note (Codex review `a76243c1` MEDIUM follow-up): `break` and
+    // `continue` are SCOPE-LOCAL — `break` inside a switch clause exits
+    // the switch itself, NOT the enclosing function. A switch whose every
+    // clause ends in `break` falls through to the statement AFTER the
+    // switch, so it's NOT terminal for outer-scope reachability. We use
+    // the stricter `exitsFunction` helper here (throw/return only) instead
+    // of `blockEndsInThrowOrReturn`.
+    //
+    // Other switch shapes (fall-through between cases, nested labels) are
     // deferred; detector defaults to `false` (non-terminal) for anything
     // it can't prove, which is the conservative direction.
     const clauses = stmt.caseBlock.clauses
@@ -710,7 +745,7 @@ function blockEndsInThrowOrReturn(stmt: ts.Statement): boolean {
       const stmts = clause.statements
       if (stmts.length === 0) return false  // fall-through → non-terminal
       const last = stmts[stmts.length - 1]
-      if (!blockEndsInThrowOrReturn(last)) return false
+      if (!exitsFunction(last)) return false
     }
     return true
   }
