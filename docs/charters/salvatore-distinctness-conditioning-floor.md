@@ -1,205 +1,178 @@
 ---
-status: needs-revision
+status: proposed
 kind: experiment-charter
 experiment-family: salvatore-distinctness-conditioning-floor
 proposed-by: Codex
 proposed-date: 2026-04-18
 revised-date: 2026-04-20
-adversary-verdict: RED (round 2)
+revision: slim-live-v1 (round 3)
+adversary-verdict: RED (rounds 1 + 2) — revised for round 3
 adversary-review-date: 2026-04-20
 supersedes: docs/charters/salvatore-v5-corpus-expansion.md
 depends_on: docs/evals/salvatore-distinctness-v1.md
 ---
 
-# Experiment Charter — `salvatore-distinctness-conditioning-floor`
+# Experiment Charter — `salvatore-distinctness-conditioning-floor` (slim-live-v1)
 
-Supersedes the RED `salvatore-v5-corpus-expansion` charter. This charter is conditioning-first by design: test the measured inference-time floor on the frozen distinctness eval before reopening any corpus-expansion claim.
+**Revision history.** Rounds 1 and 2 both returned RED against the proxy-eval framing (§10.1, §10.2). This revision (`slim-live-v1`) collapses the charter to Codex's cheapest untried counterfactual: an H1-only A/B on the live `buildBeatContext` surface, with a committed conditioning override and the gpt-5.4 judge already frozen in [docs/evals/salvatore-distinctness-v1.md](/Users/andre/Desktop/personal_projects/novel-harness/docs/evals/salvatore-distinctness-v1.md). The proxy scorer is NOT the charter gate. The proxy scorer and its arm-config JSONs remain in the repo as unit-tested infrastructure but are not invoked here.
 
-**Revision 2026-04-20** addresses all three blocking issues from §10.1 (Codex adversarial review RED verdict):
-- Splits the conditioning lever into two independent knobs (example-line rotation vs profile-field rotation) with their own arms — closes blocker #1 (bundled lever).
-- Adds a live-writer pilot on `buildBeatContext` as a required ship gate; no default-rollout claim from proxy eval alone — closes blocker #2 (distribution mismatch).
-- Rewrites success thresholds to the single-run aggregate the scorer emits (total exact-assignment cells across the rotation cycle); drops the per-sweep min/max/mean wording the tooling does not produce — closes blocker #3 (metric not producible).
-- Corrects the §4 ceiling rung label: the shipped `sonnet-profile` arm is `profile-only` (no exampleLines), not the looser "Sonnet+profile" phrasing — closes the warning.
+**Scope cuts from the previous revision:**
+
+- **H2 dropped.** The production `buildBeatContext` path renders free-text `speechPattern` / `avoids` strings plus an `exampleLines` array; it does not accept preset-indexed `tics`/`avoid` arrays. A profile-field-rotation win would be unshippable without a new runtime contract. If H1 wins, H2 reopens as its own separate charter with runtime-contract work as a pre-gate. (Closes round-2 blocker #2.)
+- **Proxy eval dropped as ship metric.** The two-arm scorer re-generates fresh fixed-v4 output every run at temperature 0.8, making cross-run arm comparisons noise-prone. This charter tests only on the live writer surface where same-ladder comparability is guaranteed by construction. (Closes round-2 blocker #1.)
+- **Pilot infrastructure committed before run.** A `conditioning: "fixed" | "rotation"` field in `WRITER_GENRE_PACKS`, wiring in `buildBeatContext`, a committed pilot-runner script, and a committed pairwise-judge prompt + rubric all land BEFORE §7 runs. No hand-edits, no in-place reverts. (Closes round-2 blocker #3.)
 
 ## 1. Question
 
-On the frozen distinctness eval, does rotating **either** the `exampleLines` subset **or** the profile fields (`tics`/`avoid`) at v4 inference improve multi-character separation enough, and does that lift survive the live `buildBeatContext` writer surface, so corpus expansion can wait?
+On one frozen fantasy seed, does rotating `exampleLines` subsets at v4 inference on the live `buildBeatContext` path produce more distinct character voices than fixed conditioning, measured by blind pairwise judgment on the same matched scenes from both runs?
 
 ## 2. Hypothesis
 
-Two independent sub-hypotheses, each with its own causal claim:
-
-**H1 (example-line rotation).** **If** `salvatore-1988-v4` keeps the same adapter but rotates frozen `exampleLines` subsets at inference across presets `preset-a`/`preset-b`/`preset-c` (arm `v4-rotation`), `tics`/`avoid` held fixed, **then** the primary metric (aggregate exact-assignment cells across the 24-cell proxy eval) improves by at least `+4` over fixed v4, **because** one-subset luck and paraphrase collapse are the cheapest remaining explanation for v4 blur given the adapter already bakes character-conditioned `exampleLines` into training.
-
-**H2 (profile-field rotation).** **If** `salvatore-1988-v4` rotates the profile fields (`tics`/`avoid`) across three frozen profile-subset presets (arm `v4-profile-rotation`), `exampleLines` held fixed at `preset-a`, **then** the same primary metric improves by at least `+4` over fixed v4, **because** the profile payload carries per-character deontic/prosodic cues that may be the load-bearing conditioning surface rather than the example lines themselves.
-
-Either H1 or H2 winning on the proxy eval is a candidate signal; **neither is a ship signal on its own**. §7 adds a live-writer pilot as the ship gate.
-
-Retention floor applies to both: `salvatore-original-v1` plus held-out val Δ-sum worsens by no more than `+0.10` versus fixed v4.
+**If** `salvatore-1988-v4` keeps the same adapter and the fantasy `WRITER_GENRE_PACKS` entry rotates `exampleLines` subsets across `preset-a → preset-b → preset-c` per beat, with `speechPattern` / `avoids` / all other writer context unchanged, **then** on the frozen fantasy seed the rotation run will win blind pairwise distinctness judgments against the fixed run on at least `12/20` matched scenes, while retention on `salvatore-original-v1` does not regress (the adapter is unchanged, so retention is structurally identical — this is a check, not a measurement), **because** the remaining multi-character blur in v4 output is more likely an over-reliance on a single cached example-line subset than a missing-corpus problem, and rotating that surface per beat is the cheapest test of that claim.
 
 Primary metric artifact:
-- [docs/evals/salvatore-distinctness-v1.md](/Users/andre/Desktop/personal_projects/novel-harness/docs/evals/salvatore-distinctness-v1.md)
+- [docs/evals/salvatore-distinctness-v1.md](/Users/andre/Desktop/personal_projects/novel-harness/docs/evals/salvatore-distinctness-v1.md) provides the frozen judge choice (`gpt-5.4` via the Codex plugin) and the pairwise-voice-distinctness rubric shape. This charter inherits both. It does not produce a new distinctness eval artifact.
 
-Secondary retention artifacts:
-- [docs/voice-lora-salvatore.md](/Users/andre/Desktop/personal_projects/novel-harness/docs/voice-lora-salvatore.md)
-- [docs/writer-imitation-benchmark.md](/Users/andre/Desktop/personal_projects/novel-harness/docs/writer-imitation-benchmark.md)
-
-This charter inherits the frozen judge choice and circularity rationale from the eval artifact. It does not reopen judge selection.
+This charter does not reopen judge selection. It does not reopen retention methodology — the adapter is unchanged.
 
 ## 3. Falsification threshold
 
-The conditioning-first mechanism is wrong if **all** of the following fire:
+Rotation is not the lever if any of:
 
-1. Both H1 and H2 rotation arms gain `<=+2` aggregate cells versus fixed v4 on the proxy eval. No isolated surface moves the metric.
-2. OR — whichever rotation arm shows the largest proxy-eval gain fails to reproduce on the live `buildBeatContext` pilot (gain collapses to `<=+1` on the pilot's adherence + hallucination + eyeball-distinctness composite).
-3. OR — retention regresses by `>+0.10 Δ-sum` versus v4 on `salvatore-original-v1` plus held-out val for whichever rotation arm otherwise passed the proxy gate.
+1. Rotation wins `<= 10/20` matched scenes on the blind pairwise judge. Tie or near-tie under blind judging means the conditioning change does not produce detectable distinctness lift.
+2. Rotation introduces a net adherence-event regression of `> +2 events per chapter` averaged across the three chapters.
+3. Rotation introduces a net halluc-leak Rung 0 regex fire-rate regression (any increase is a regression — the regex is exact-match).
 
-If any prong fires, kill the conditioning-first approach and reopen corpus expansion as a candidate in a separate charter. PDF acquisition for corpus expansion remains a pre-gate there, not in this charter.
+If any prong fires, kill the conditioning-first claim and reopen `salvatore-v5-corpus-expansion` as a candidate in a separate charter (PDF acquisition is that charter's pre-gate, not this one's).
 
 ## 4. Baseline ladder
 
-| Slot | Model / config | Purpose |
-|------|----------------|---------|
-| Floor | `salvatore-1988-v3` | Earlier writer LoRA before full-trilogy corpus and runtime `exampleLines` conditioning |
-| Current prod | `salvatore-1988-v4` + fixed `preset-a` conditioning | Fixed-conditioning baseline |
-| Example-line rotation (H1) | `salvatore-1988-v4` + rotated `exampleLines` subsets, `tics`/`avoid` held fixed | Primary test arm for H1 |
-| Profile-field rotation (H2) | `salvatore-1988-v4` + rotated `tics`/`avoid`, `exampleLines` held fixed at `preset-a` | Primary test arm for H2 |
-| Ceiling (profile-only) | Sonnet-4.6 with `profile-only` conditioning (tics + avoid, no exampleLines) — matches exp `#220` archetype POC | Stronger instruction-following anchor for the distinctness axis; labelled `profile-only` to match what the shipped arm config emits |
+| Slot | Config | Purpose |
+|------|--------|---------|
+| Baseline | `salvatore-1988-v4` + `conditioning: "fixed"` in the fantasy `WRITER_GENRE_PACKS` (exampleLines always drawn from `preset-a`) | Control arm — what production does today |
+| Test | `salvatore-1988-v4` + `conditioning: "rotation"` (exampleLines cycle preset-a → preset-b → preset-c per beat) | Treatment arm — the question |
 
-No training arm. All arms use the frozen proxy eval (§6). The live-writer pilot (§7.2) is a separate run, not a rung.
+No v3 rung, no Sonnet rung, no H2 rung. This charter tests one lever. Other rungs belong to other charters.
 
 ## 5. Cheapest counterfactuals considered
 
-| Lever | Estimated cost | Disposition |
-|-------|----------------|-------------|
-| v4 + rotated `exampleLines` subsets (H1 arm) on the proxy eval | Eval-generation + pairwise judging for one arm | MUST-MEASURE. Isolates example-line contribution. |
-| v4 + rotated profile fields (H2 arm) on the proxy eval | Same | MUST-MEASURE. Isolates profile-payload contribution. The pre-revision charter had this bundled with H1 and/or flagged as a follow-on; revision promotes it to primary so a win can be attributed to a specific surface. |
-| 3-chapter fantasy pilot on live `buildBeatContext` with the winning proxy arm | Full writer + checker passes on a single seed | MUST-MEASURE before any ship action. Confirms the proxy lift survives production prompt shape (per exp #195 lesson). |
-| Combined rotation (both `exampleLines` AND `tics`/`avoid` rotating together) | Same as H1 / H2 | DEFERRED. Only run if both H1 and H2 win and the question is whether combining them compounds. Not a ship gate. |
-| Corpus expansion retrain (`salvatore-v5-corpus-expansion`) | Training + corpus-prep + eval spend | EXPLICITLY DEFERRED. Reopen only if both conditioning arms fail and the separate corpus charter clears its own source-acquisition gate. |
-
-Work-order reminder: `src/agents/writer/beat-context.ts` is the runtime surface for the live pilot because `exampleLines`, `tics`, and `avoid` are all rendered there under each character profile.
+| Lever | Cost | Disposition |
+|-------|------|-------------|
+| H1 live A/B via a committed conditioning flag on `buildBeatContext` with blind gpt-5.4 pairwise judging | ~$0.10 writer spend; judge routed through Codex plugin (no API cost) | **MUST-MEASURE.** This is the primary arm of the charter. |
+| H2 (profile-field rotation) on live runtime | Requires new runtime contract for preset-indexed `tics`/`avoid` arrays | **DEFERRED.** Reopens only if H1 wins and the question becomes "does profile rotation compound the win?" |
+| Proxy eval on `salvatore-distinctness-v1` frozen beats | ~$0.02 writer spend; judge via Codex | **REJECTED as ship gate.** Round 1 / round 2 adversary review established the proxy is too far from `buildBeatContext` (exp #195) and its two-arm runner re-draws fixed-v4 across runs, violating same-ladder comparability (§2.1, §9.4). Kept as unit-tested infrastructure but not invoked by this charter. |
+| Corpus expansion retrain (`salvatore-v5-corpus-expansion`) | Training + corpus-prep + eval spend | **EXPLICITLY DEFERRED.** Reopen only if H1 fails. PDF acquisition remains that charter's pre-gate. |
 
 ## 6. Distribution match
 
-- **Train set stratification:** Not applicable. This is an inference-conditioning ablation charter, not a training-data change.
-- **Proxy-eval stratification:** The proxy run is the frozen [docs/evals/salvatore-distinctness-v1.md](/Users/andre/Desktop/personal_projects/novel-harness/docs/evals/salvatore-distinctness-v1.md) surface: `24` assignment cells, `3` hard pairs, `4` beat archetypes, `3` fixed rotation presets per character. That yields `24` per-arm generations under single-run rotation. The charter compares four non-baseline arms against fixed v4: `v3`, `v4-rotation` (H1), `v4-profile-rotation` (H2), and `sonnet-profile` (ceiling), for `24 × 4 = 96` generations + `48` judge calls × `4` comparisons = `192` judge calls.
-- **Proxy-eval caveat (Codex RED blocker #2).** The proxy scorer uses a stripped single-speaker dialogue prompt (beat spec + character profile only). It does NOT exercise the live `buildBeatContext` path with transition bridges, landing-target sentences, resolved references, setting, or multi-character cards. exp #195 already showed Salvatore writer conclusions can fail once the real prompt shape lands. The proxy is a triage surface, not a ship gate.
-- **Live-pilot stratification (§7.2).** A single fantasy seed (`fantasy-archive`, `fantasy-cartographer`, or `fantasy-debt` — author's choice at pilot launch) run for 3 chapters end-to-end with the winning proxy arm's conditioning vs fixed v4, same adapter, same prompt otherwise. Measured on: adherence-checker fire rate, chapter-plan-checker deviation count, halluc-leak Rung 0 regex fire rate, subagent-eyeball distinctness score across voiced lines. No new training data, no new judge, no widened seed pool on this charter.
-
-Known proxy-eval mismatch, inherited transparently from the frozen eval:
-
-- `Jarlaxle` and `Zaknafein` do not exist as direct speaking characters in the Icewind Dale trilogy bundle on disk, so [docs/evals/salvatore-distinctness-v1.md](/Users/andre/Desktop/personal_projects/novel-harness/docs/evals/salvatore-distinctness-v1.md) freezes them as explicitly disclosed nearest-match proxy cards. `Jarlaxle` proxies derive from `Pook` / `Malchor`; `Zaknafein` proxies derive from `Drizzt`'s drow-coded confession / teaching register.
-- This limitation is acceptable only because it is frozen and disclosed in the eval spec up front. The charter inherits that limitation; it does not hide it.
+- **Train set stratification:** not applicable; no training arm.
+- **Eval surface:** the **live `buildBeatContext` path** running real 3-chapter fantasy novels. Transition bridges, landing-target sentences, resolved references, setting, multi-character cards, adherence-retry logic, chapter-plan-checker, halluc-leak regex — all production-on. Every beat in both arms uses the same plan, the same references, the same POV, the same adherence pass count — the ONLY difference is which `exampleLines` subset the fantasy writer pack exposes for that beat.
+- **Frozen seed:** `fantasy-archive`. Committed in charter at run time; not author-selectable at launch. If `fantasy-archive` is unrunnable at launch (e.g., DB drift), switch to `fantasy-cartographer` and re-commit the charter before running. No mid-run seed swap.
+- **Blind judging:** gpt-5.4 via Codex plugin. Judge never sees arm labels, sees only anonymized prose pairs with matched scene context (POV, intended speakers, beat purpose). Pairwise prompt + rubric committed to `docs/evals/conditioning-floor-judge-prompt.md` before §7 runs.
+- **Production distribution:** this IS the production distribution. The only proxy is "one fantasy seed, 3 chapters" vs "all fantasy seeds, all chapter lengths." That scope cut is acknowledged; a follow-on second-seed pilot runs only if the first pilot is borderline.
 
 ## 7. Success criteria
 
-### 7.1 Proxy-eval gate (triage; produced by the scorer)
+Primary metric is blind pairwise win-rate on matched scenes between the two novel runs. Secondary metrics are adherence-event count and halluc-leak Rung 0 regex fire-rate, per chapter.
 
-Primary metric is the frozen `salvatore-distinctness-v1` aggregate exact-assignment cell count per arm (out of `24`), reported by [scripts/evals/run-salvatore-distinctness-v1.ts](/Users/andre/Desktop/personal_projects/novel-harness/scripts/evals/run-salvatore-distinctness-v1.ts) as `arms.arm_{a,b}.exact_assignment_cells_total` plus per-pair counts out of `8` cells each. This is a **single-run aggregate**, not a per-sweep min/max/mean; the rotation arms exercise all three presets across the 24-cell generation cycle but the scorer does not partition output by preset.
-
-Secondary metric is retention on `salvatore-original-v1` plus held-out val, measured as Δ-sum change versus v4.
+Matched scenes are constructed by `scripts/evals/conditioning-floor-pair-builder.ts` (committed before run) — it finds beats where both runs produced prose and the beat archetype is one of `threat / reassurance / tactical_planning / banter` with ≥2 characters speaking. Target pair count: `20` (if the runs produce fewer than 20 eligible matched pairs, document the shortfall and run the judge on all pairs produced).
 
 | Outcome | Condition | Action |
 |---------|-----------|--------|
-| PROXY PASS (candidate for pilot) | Either H1 or H2 arm adds `>=+4` aggregate cells over fixed v4, AND no anchor pair falls below `3/8`, AND retention worsens by `<=+0.10 Δ-sum` versus v4 | Escalate the winning arm to §7.2 live-writer pilot. Do NOT promote to default routing from the proxy alone. |
-| PROXY ITERATE | The arm shows a gain of `+3/24` OR a weaker retention breach (`+0.10 < Δ-sum <= +0.20`) | Document the residual failure by pair; decide whether to run the pilot anyway, run the combined-rotation counterfactual first, or re-scope to corpus expansion. |
-| PROXY KILL | Both H1 and H2 arms gain `<=+2/24`, OR retention breach `> +0.20 Δ-sum` for both | End the conditioning-first claim on this charter. Reopen corpus expansion separately, with PDF acquisition treated as that charter's pre-gate. |
+| SHIP rotation | Rotation wins `>= 13/20` pairs, adherence regresses by `<= +2 events/chapter`, halluc-leak does not regress at all | Ship `conditioning: "rotation"` as the default in the fantasy `WRITER_GENRE_PACKS` entry. Document the decision in `docs/decisions.md`. No new infra charter needed — the flag is already in place. |
+| ITERATE | Rotation wins `11-12/20` OR `>= 13/20` but adherence regresses by `+3 events/chapter` OR one halluc-leak fire appears | Do not ship. Run the second seed (`fantasy-cartographer`) as a confirmation pilot before deciding. Document the residual by pair. |
+| KILL | Rotation wins `<= 10/20`, OR adherence regresses by `>= +3 events/chapter` on a `>= 13/20` result, OR halluc-leak regression > 0 | End the conditioning-first claim. Reopen `salvatore-v5-corpus-expansion` as a separate charter with its own pre-gate. |
 
-### 7.2 Live-writer pilot gate (ship gate; produced by a real 3-chapter novel run)
-
-Only runs if §7.1 emits PROXY PASS for at least one arm. Pilot compares fixed v4 vs the winning arm's conditioning on one fantasy seed, 3 chapters, under the live `buildBeatContext` path.
-
-| Outcome | Condition | Action |
-|---------|-----------|--------|
-| PILOT PASS (ship) | Winning arm holds a discernible distinctness lift on the live pilot (subagent-eyeball distinctness: the rotation chapters are judged more distinct in a blind A/B more often than not), adherence-checker fire rate does not regress by more than `+2 events per chapter` versus fixed v4, halluc-leak Rung 0 regex fire rate does not regress at all, chapter-plan-checker deviation count does not regress by more than `+1 per chapter` | Promote rotation to default v4 conditioning in `WRITER_GENRE_PACKS` fantasy route IF the implementation stays inference-local. If production needs preset-state plumbing, telemetry changes, or a broader runtime contract, that is a new charter, not scope creep hidden inside this one. |
-| PILOT ITERATE | Mixed: distinctness lift is real but one of the regression gates fires | Document and decide between a second seed, a scope-narrowed shipping gate (e.g., behind a feature flag), or kill. |
-| PILOT KILL | No discernible distinctness lift, OR a regression gate fires cleanly | End the conditioning-first claim. Reopen corpus expansion. |
-
-Interpretation rule: use count units for all cell/event/deviation thresholds. Do not translate these gates into points or percentages.
+Interpretation: count units for pairs and events. Do not convert to percentages or rates.
 
 ## 8. Budget
 
-- **Spend cap:** No training budget. This charter pays only for eval-generation + pairwise judging + one 3-chapter live novel run.
-- **Workload anchor:** Use the same pairwise-judging workload shape as exp `#220`, scaled to this eval's 4-comparison arm count. Live-pilot workload anchored to a standard 3-chapter fantasy novel run (~30 beats + standard checker passes).
-- **Estimate formula:**
-  - Proxy: `(24 generations per arm × 4 comparison arms × avg_cost_per_beat_generation) + (48 pairwise judge calls per comparison × 4 comparisons × avg_cost_per_gpt54_judge_call)`
-  - Pilot: `one 3-chapter novel run × avg_cost_per_fantasy_novel_run` (anchor against recent `novels` rows with `seed_key LIKE 'fantasy-%'` in `llm_calls` aggregation).
-- **Why this stays formula-only in draft:** recent `llm_calls` were not queryable from the current workspace during charter drafting, so freezing a dollar number here would be invented precision.
-- **Pre-run fill-in rule:** If recent `llm_calls` are queryable at launch time, replace the average-cost placeholders with measured recent values and freeze the resulting dollar amount before running. If recent `llm_calls` are not queryable, keep the formula explicit and treat the estimate as anchored to exp `#220` pairwise workload + recent fantasy novel run cost rather than an invented numeric certainty.
-- **Time cap:** Under one working day for proxy generation + judging. The pilot is a separate ~3-hour wall-clock run on the LXC (one fantasy novel, 3 chapters).
-- **Stop if:** the frozen eval surface changes, the named judge changes, or the comparison requires editing anything beyond inference conditioning / eval orchestration.
+Real numbers from `public.llm_calls` (2026-04-20) on recent fantasy runs:
+
+- 5-chapter fantasy novel cost: **$0.03–$0.10 total**, writer component **$0.01–$0.05**.
+- Extrapolated 3-chapter fantasy novel cost: **$0.02–$0.06 total** per arm.
+- Two-arm A/B: **~$0.05–$0.12 total writer + checker + plan spend.**
+- Judge: gpt-5.4 via Codex plugin — routed through `${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs`, no direct API cost to this project's accounting.
+- Second seed pilot (only if §7 emits ITERATE): ~$0.05–$0.12 additional.
+- **Total expected spend: under $1** even including the fallback second seed. No training spend.
+
+**Time cap:** under one working day for both novel runs (parallelizable on LXC) + judge pass + write-up.
+
+**Stop if:** the W&B Inference serving breaks mid-run, the Codex plugin becomes unavailable, the pilot runner detects unequal plan-checker pass counts between the two arms (beats were written under different retry states), OR the matched-pair count falls below 10.
 
 ## 9. Linked context
 
-- RED original superseded here: [docs/charters/salvatore-v5-corpus-expansion.md](/Users/andre/Desktop/personal_projects/novel-harness/docs/charters/salvatore-v5-corpus-expansion.md)
+- RED predecessor: [docs/charters/salvatore-v5-corpus-expansion.md](/Users/andre/Desktop/personal_projects/novel-harness/docs/charters/salvatore-v5-corpus-expansion.md)
 - Work order: [docs/charters/revision-work-order-2026-04-18.md](/Users/andre/Desktop/personal_projects/novel-harness/docs/charters/revision-work-order-2026-04-18.md)
-- Frozen eval spec: [docs/evals/salvatore-distinctness-v1.md](/Users/andre/Desktop/personal_projects/novel-harness/docs/evals/salvatore-distinctness-v1.md)
-- Frozen beat pool: [docs/evals/salvatore-distinctness-v1-beats.jsonl](/Users/andre/Desktop/personal_projects/novel-harness/docs/evals/salvatore-distinctness-v1-beats.jsonl)
-- Frozen voice cards: [docs/evals/salvatore-distinctness-v1-voice-cards.json](/Users/andre/Desktop/personal_projects/novel-harness/docs/evals/salvatore-distinctness-v1-voice-cards.json)
-- Scoring script skeleton / remaining implementation gate: [scripts/evals/run-salvatore-distinctness-v1.ts](/Users/andre/Desktop/personal_projects/novel-harness/scripts/evals/run-salvatore-distinctness-v1.ts)
-- Runtime conditioning surface: [src/agents/writer/beat-context.ts](/Users/andre/Desktop/personal_projects/novel-harness/src/agents/writer/beat-context.ts)
-- Retention / lineage context: [docs/voice-lora-salvatore.md](/Users/andre/Desktop/personal_projects/novel-harness/docs/voice-lora-salvatore.md), [docs/writer-imitation-benchmark.md](/Users/andre/Desktop/personal_projects/novel-harness/docs/writer-imitation-benchmark.md)
-- Decision precedent for model-dependent voice judgments: [docs/decisions.md](/Users/andre/Desktop/personal_projects/novel-harness/docs/decisions.md) (`2026-04-17 Archetype POC`)
+- Frozen distinctness eval (source of judge choice + rubric shape): [docs/evals/salvatore-distinctness-v1.md](/Users/andre/Desktop/personal_projects/novel-harness/docs/evals/salvatore-distinctness-v1.md)
+- Proxy scorer retained as infra only: [scripts/evals/run-salvatore-distinctness-v1.ts](/Users/andre/Desktop/personal_projects/novel-harness/scripts/evals/run-salvatore-distinctness-v1.ts)
+- **Runtime conditioning surface (to be extended before run):** [src/agents/writer/beat-context.ts](/Users/andre/Desktop/personal_projects/novel-harness/src/agents/writer/beat-context.ts), [src/models/roles.ts](/Users/andre/Desktop/personal_projects/novel-harness/src/models/roles.ts) (WRITER_GENRE_PACKS)
+- **Pilot runner (to be committed before run):** `scripts/evals/run-conditioning-floor-live.ts`
+- **Pairwise judge prompt (to be committed before run):** `docs/evals/conditioning-floor-judge-prompt.md`
+- **Matched-pair builder (to be committed before run):** `scripts/evals/conditioning-floor-pair-builder.ts`
+- Retention / lineage: [docs/voice-lora-salvatore.md](/Users/andre/Desktop/personal_projects/novel-harness/docs/voice-lora-salvatore.md)
+- Prior-art judge precedent: [docs/decisions.md](/Users/andre/Desktop/personal_projects/novel-harness/docs/decisions.md) (`2026-04-17 Archetype POC`)
 
 ## 10. Adversary review
 
-§11 readiness gate satisfied by commit `e54b1fe` (scorer TODOs closed: generation, judge, shuffler, arm-config schema). Primary reviewer ran twice on 2026-04-20 — both rounds returned **RED**. Charter requires another revision before a third review round.
+Rounds 1 and 2 (below) both returned **RED** against earlier revisions. This is round 3 — awaiting re-review of `slim-live-v1`.
 
 | Reviewer | Verdict | Date | Notes |
 |----------|---------|------|-------|
-| `/codex:adversarial-review` (GPT) — primary, round 1 | RED | 2026-04-20 | Bundled lever, distribution mismatch with live writer, threshold metric not producible. Addressed by commits `1749d16` (charter revision) + `e9c8474` (profile-rotation scorer mode). |
-| `/codex:adversarial-review` (GPT) — primary, round 2 | RED | 2026-04-20 | Round-1 blocker #1 partially closed; blockers #2 and #3 replaced by three new architectural problems (see §10.2 below). Recommended next action: REVISE CHARTER. |
-| `experiment-adversary` (Opus) — fallback only | pending | pending | Only run if Codex is unavailable or a second opinion is explicitly requested |
+| `/codex:adversarial-review` (GPT) — round 1 | RED | 2026-04-20 | Bundled lever + distribution mismatch + threshold not producible. Addressed by revision `1749d16` (split lever) + `e9c8474` (scorer profile-rotation mode). |
+| `/codex:adversarial-review` (GPT) — round 2 | RED | 2026-04-20 | Partial H1/H2 split didn't close the underlying issue: proxy can't support same-ladder comparability, H2 has no live analog, pilot was ad hoc. Addressed by this revision (`slim-live-v1`) — proxy dropped, H2 deferred to its own charter, pilot infrastructure committed before run. |
+| `/codex:adversarial-review` (GPT) — round 3 | pending | pending | Re-review target for `slim-live-v1`. |
+| `experiment-adversary` (Opus) — fallback only | pending | pending | Only run if Codex is unavailable or a second opinion is explicitly requested. |
 
-### 10.1 Primary reviewer verdict (2026-04-20, commit `e54b1fe` scorer state)
+### 10.1 Round-1 verdict (pre-revision)
 
 > VERDICT: RED
 >
 > SUMMARY: No-ship: the charter's causal claim, ship metric, and rollout decision are misaligned with the landed scorer, so even a win would not cleanly tell you whether live v4 conditioning improved enough to defer corpus expansion (§11.5, §7.1, exp #195).
 >
-> BLOCKING ISSUES (must fix before run, numbered):
-> 1. **Axis 1 / Axis 3 — bundled lever.** §5 defines the tested lever as rotating `exampleLines` / profile subsets, but the landed scorer/configs only vary example-line subsets and never isolate profile contribution; that bundled, misnamed intervention is uninterpretable under §11.5. Fix: scope the charter to example-line rotation only, or add explicit profile-surface arms before treating this as a conditioning-family result.
-> 2. **Axis 4 / Axis 7 — distribution mismatch with live writer surface.** §6 treats `salvatore-distinctness-v1` as close to the shipped v4 runtime and §7 allows direct promotion, but exp #195 already showed Salvatore writer conclusions can fail once the real prompt shape lands; under §4.6 and §7.1 this proxy is too far from `buildBeatContext` to justify default rollout. The scorer uses a stripped single-speaker dialogue prompt, not the production `buildBeatContext` path with transition bridge, landing target, resolved references, setting, and multiple character cards. Fix: require a production-shaped A/B pilot on the live writer surface before any ship action.
-> 3. **Axis 5 / Axis 7 — threshold metric not producible.** §7 gates on the three-sweep protocol and count thresholds, but the linked scorer/arm configs do not emit separate A/B/C sweep totals or mean/min/max; they collapse presets into one report, violating §11.5 and leaving the ship/kill rules unverifiable. Fix: land explicit sweep-level configs/reporting or rewrite the charter to the single-run metric the tooling can actually produce.
+> BLOCKING ISSUES:
+> 1. **Bundled lever.** §5 defines the tested lever as rotating `exampleLines` / profile subsets, but the landed scorer only varies example-line subsets. Fix: scope the charter to example-line rotation only, or add explicit profile-surface arms.
+> 2. **Distribution mismatch with live writer surface.** §6 treats `salvatore-distinctness-v1` as close to the shipped v4 runtime, but exp #195 already showed Salvatore writer conclusions can fail once the real prompt shape lands. Fix: require a production-shaped A/B pilot on the live writer surface before any ship action.
+> 3. **Threshold metric not producible.** §7 gates on three-sweep min/max/mean, but the scorer collapses presets into one aggregate. Fix: land explicit sweep-level configs/reporting or rewrite the charter to the single-run metric the tooling can actually produce.
 >
-> WARNINGS:
-> - Axis 2 — §4 calls the ceiling "Sonnet+profile" from exp #220, but the shipped ceiling arm is `profile-only` (no exampleLines), so the ladder anchor is weaker than claimed (§2.1, exp #220).
->
-> CHEAPEST UNTRIED COUNTERFACTUAL:
-> ExampleLines-only fixed-vs-rotation A/B/C runs on the live `buildBeatContext` surface, plus one 3-chapter fantasy pilot; ~$0 training spend, expected to show whether any distinctness lift survives production prompt shape before corpus work (§4.6, §7.1, exp #195).
->
-> RECOMMENDED NEXT ACTION: REVISE CHARTER.
+> Full output: background job `bshvls959`.
 
-Codex full output: background job `bshvls959`, thread `019dac87-b12a-7d30-9e47-32656ee7e7b4`.
-
-### 10.2 Primary reviewer verdict round 2 (2026-04-20, post-revision `1749d16` + `e9c8474`)
+### 10.2 Round-2 verdict (post-1749d16 + e9c8474)
 
 > VERDICT: RED
 >
-> SUMMARY: No-ship: round-1 blocker #1 is only partially closed, blocker #2 is narrowed but replaced by an ad hoc live pilot, and blocker #3 is replaced by a new same-ladder comparability failure, so the revised charter is still not interpretable enough to run (§2.1, §4.6, §1.2, exp #195).
+> SUMMARY: Round-1 blocker #1 only partially closed; blocker #2 narrowed but replaced by an ad hoc live pilot; blocker #3 replaced by a new same-ladder comparability failure.
 >
-> BLOCKING ISSUES (must fix before run, numbered):
-> 1. **Axis 2 / Axis 7 — no shared fixed-v4 baseline across proxy arms.** §6-§7 assume H1/H2/v3/ceiling are comparable against one fixed-v4 baseline, but the landed scorer is two-arm only and re-generates fresh v4 outputs for every run (temperature `0.8`; the seed only stabilizes shuffle order). Cross-run v4 draws differ, so the winning-arm decision is cross-run noise-prone rather than same-ladder comparable under §2.1 / §9.4. The charter also departs from the frozen eval artifact, which still requires separate A/B/C reporting and a three-sweep summary (`docs/evals/salvatore-distinctness-v1.md:83-84,136-147,151-165`). Fix: add a shared-baseline or multi-arm runner (single cached fixed-v4 corpus used by all comparisons, or a true multi-arm matrix in one frozen batch) before using the proxy gate. If the frozen eval must stay single-run, update the eval artifact and charter together, not just the charter.
-> 2. **Axis 4 / Axis 7 — H2 is not the live writer surface.** The revised charter treats H2 as ship-eligible on the live `buildBeatContext` path, but `src/agents/writer/beat-context.ts:89-97,203-239` renders free-text `speechPattern` and `avoids` strings plus `exampleLines`, not preset-indexed `tics`/`avoid` arrays. Only the proxy scorer has preset-indexed `tics`/`avoid` arrays and `profile-rotation` logic. A proxy H2 win cannot advance to §7.2 without inventing a new runtime representation and override path. Under §4.6 and exp #195, this is still an architecture/prompt-shape mismatch. Fix: either narrow ship-eligible proxy wins to H1 only, or land committed runtime profile-subset artifacts plus a real `buildBeatContext` override path before H2 is allowed to advance past the proxy gate.
-> 3. **Axis 7 — §7.2 is ad hoc and unreproducible.** Pilot ship depends on "subagent-eyeball distinctness" being better "more often than not" — no frozen judge model, no frozen blind A/B count, no frozen pairwise rubric. Voice judgments are model-dependent per exp #220; §3.6 requires reasoning-model pairwise judges. Separately, §11 still allows hand-edited `WRITER_GENRE_PACKS` runs reverted without persistence, which violates commit-before-run reproducibility (§1.2). A borderline pilot pass would be neither auditable nor rerunnable. Fix: replace §7.2 with a committed pilot runner or feature-flagged config path, freeze a named reasoning judge + blind pairwise protocol, remove the manual in-place `WRITER_GENRE_PACKS` fallback.
+> BLOCKING ISSUES:
+> 1. **No shared fixed-v4 baseline across proxy arms.** Scorer is two-arm only; re-generates fresh v4 outputs per run at temperature 0.8. Cross-run v4 draws differ; winning-arm decision is cross-run noise-prone (§2.1, §9.4).
+> 2. **H2 is not the live writer surface.** `buildBeatContext` renders free-text `speechPattern`/`avoids` plus `exampleLines`, not preset-indexed `tics`/`avoid` arrays. A proxy H2 win cannot advance to §7.2 without a new runtime representation (§4.6, exp #195).
+> 3. **§7.2 is ad hoc and unreproducible.** No frozen judge model, no blind A/B count, no pairwise rubric. §11 manual `WRITER_GENRE_PACKS` fallback violates §1.2.
 >
-> WARNINGS:
-> - Axis 4 — pilot seed is still author-chosen at launch from three options; ship gate not fully frozen before the proxy result (§2.1).
+> WARNING: pilot seed is author-selectable at launch (§2.1).
 >
-> CHEAPEST UNTRIED COUNTERFACTUAL:
-> ExampleLines-only H1 A/B on the live `buildBeatContext` surface with a committed conditioning override and frozen reasoning judge. ~$0 training spend, expected to show whether any distinctness lift survives production prompt shape before H2 / runtime-contract work (§4.6, exp #195).
+> CHEAPEST UNTRIED COUNTERFACTUAL: ExampleLines-only H1 A/B on the live `buildBeatContext` surface with a committed conditioning override and frozen reasoning judge, ~$0 training spend (§4.6, exp #195).
 >
 > RECOMMENDED NEXT ACTION: REVISE CHARTER.
+>
+> Full output: background job `bgr2j1057`.
 
-Codex full output: background job `bgr2j1057`.
+This revision (`slim-live-v1`) adopts the round-2 cheapest-untried-counterfactual verbatim, drops H2, freezes the seed in-charter, freezes the judge choice, and commits all pilot infrastructure (feature flag, pilot runner, pair builder, judge prompt) before §7 runs. The previous "hand-edit WRITER_GENRE_PACKS and revert" path is explicitly removed from §11.
 
 ## 11. Open questions / readiness gate
 
-- Original gate ("do not re-review until `salvatore-distinctness-v1` exists as a frozen eval artifact with a named judge and the charter is scoped to conditioning-first rather than corpus expansion") — **closed** by the frozen eval spec (`status: frozen-2026-04-18`, judge `gpt-5.4`).
-- Scorer-implementation gate — **closed by commit `e54b1fe` (2026-04-20).** `generateSample()`, `judgePair()`, `shufflePairDeterministic()`, and the on-disk arm-config schema all shipped.
-- Adversary-review gate — **in flight.** Codex returned RED on 2026-04-20 against the pre-revision charter (§10.1). This revision restructures the lever into H1/H2, rewrites §7 into proxy + pilot gates, and downgrades the proxy eval from a ship metric to a triage metric. Re-review required before executing §7.1 proxy generation.
-- **Scorer extension gate — open.** The H2 arm (`v4-profile-rotation`) requires the scorer to gain a new `conditioning: "profile-rotation"` mode that rotates `tics`/`avoid` across frozen profile-subset presets while holding `exampleLines` fixed at `preset-a`. A corresponding `docs/evals/arm-configs/v4-profile-rotation.json` must land. Cannot run §7.1 before this lands.
-- **Live-writer pilot plumbing gate — open.** No existing script runs a 3-chapter novel with a conditioning override on the `buildBeatContext` surface. Either (a) the conditioning override is plumbed through `WRITER_GENRE_PACKS` / `buildBeatContext` temporarily with a feature flag, or (b) the pilot runs are hand-configured by editing the `WRITER_GENRE_PACKS` fantasy pack in place (not persisted) and reverted after the pilot novels land in `public.novels`. §7.2 cannot run before this is chosen.
-- Open post-win path: if the pilot passes, does rotation ship behind a feature flag or as the unconditional default? Inference-local implementation is allowed here; anything broader (preset-state plumbing, telemetry changes, runtime contract changes) spawns a new charter.
-- Corpus-expansion acquisition remains orthogonal. If both arms fail §7.1, reopen the corpus charter separately and treat source-book acquisition as that charter's pre-gate.
+Must close before §7 runs:
+
+- **(closed) Frozen eval surface:** [docs/evals/salvatore-distinctness-v1.md](/Users/andre/Desktop/personal_projects/novel-harness/docs/evals/salvatore-distinctness-v1.md) is frozen with `status: frozen-2026-04-18` and names `gpt-5.4` as the judge.
+- **(closed) Proxy scorer TODOs:** commit `e54b1fe` + `e9c8474`. Not required for this revision's gate but remains in-repo as infra.
+- **(open) Round-3 adversary re-review:** required before any of the new infrastructure below is committed.
+- **(open) Conditioning feature flag in `WRITER_GENRE_PACKS`:** add `conditioning: "fixed" | "rotation"` to the fantasy pack; wire into `src/agents/writer/beat-context.ts` so `exampleLines` rendering honors the flag. Committed, reversible via config, no hand-edits.
+- **(open) Pilot runner script:** `scripts/evals/run-conditioning-floor-live.ts` — takes a seed, runs both arms end-to-end via the existing novel pipeline, persists results to `public.novels` under two separate novel ids that share a common `conditioning_floor_pilot_id`.
+- **(open) Matched-pair builder:** `scripts/evals/conditioning-floor-pair-builder.ts` — pulls beats where both runs produced prose and the beat has ≥2 characters speaking; emits a committed pair-JSONL.
+- **(open) Pairwise judge prompt + rubric:** `docs/evals/conditioning-floor-judge-prompt.md` — frozen before run, checked in, used by whatever wrapper invokes Codex `gpt-5.4`.
+- **(open) Judge wrapper:** one-shot script or subagent invocation that reads the pair-JSONL, calls Codex plugin pairwise, writes verdicts back to `public.eval_results` with a shared `eval_id` tying them to the pilot runs.
+
+Post-win path: if `slim-live-v1` passes §7, ship `conditioning: "rotation"` as default in the fantasy pack. Inference-local flag flip; no new infra charter. If telemetry / preset-state plumbing later become useful, that is a separate charter (not scope creep here).
+
+Post-fail path: if `slim-live-v1` fails §7, reopen `salvatore-v5-corpus-expansion` separately. PDF acquisition remains its own pre-gate.
+
+H2 reopens only as a new charter, gated on H1 winning first.
