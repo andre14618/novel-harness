@@ -1,0 +1,7 @@
+{
+  "label": "v4-fixed",
+  "adapter": "wandb-artifact:///andre14618-/novel-harness/salvatore-1988-v4",
+  "preset": "preset-a",
+  "conditioning": "fixed",
+  "notes": "Current prod adapter with a locked frozen exampleLines subset."
+}

@@ -1,7 +1,10 @@
 #!/usr/bin/env bun
 
+import { createHash } from "node:crypto"
 import { mkdir, readFile, writeFile } from "node:fs/promises"
 import path from "node:path"
+import { createTuningExperiment } from "../../src/db/ops"
+import { executeAndLog, extractJSON, type ProviderName } from "../../src/llm"
 
 type CharacterName =
   | "Drizzt"
@@ -21,7 +24,8 @@ type CharacterId =
 
 type BeatArchetype = "threat" | "reassurance" | "tactical_planning" | "banter"
 type PairId = "drizzt_vs_entreri" | "bruenor_vs_catti-brie" | "jarlaxle_vs_zaknafein"
-type PresetName = "fixed" | "preset-a" | "preset-b" | "preset-c"
+type PresetName = "preset-a" | "preset-b" | "preset-c"
+type ConditioningMode = "fixed" | "rotation" | "profile-only"
 
 type BeatRow = {
   id: string
@@ -49,12 +53,36 @@ type VoiceCard = {
 
 type VoiceCardMap = Record<CharacterId, VoiceCard>
 
-type ArmConfig = {
+/**
+ * Stable arm-config JSON schema for `docs/evals/arm-configs/*.json`.
+ *
+ * Required fields:
+ * - `label`: human-readable arm name for reports
+ * - `adapter`: target model identifier. Supported here:
+ *   - `wandb-artifact:///...` for W&B-served adapters
+ *   - plain model ids such as `anthropic/claude-sonnet-4.6`
+ * - `preset`: one frozen sweep id from `docs/evals/salvatore-distinctness-v1.md`
+ *   (`preset-a`, `preset-b`, `preset-c`). This is the fixed subset for
+ *   `conditioning: "fixed"`, the starting sweep for `conditioning: "rotation"`,
+ *   and the sweep tag carried through reports for `conditioning: "profile-only"`.
+ * - `conditioning`:
+ *   - `fixed`: lock the chosen preset for every generation call
+ *   - `rotation`: rotate deterministically across `preset-a -> preset-b -> preset-c`
+ *     on successive generation calls, starting from `preset`
+ *   - `profile-only`: render profile/tics/avoid only; omit example lines
+ *
+ * Optional fields:
+ * - `notes`: free-form operator note persisted into the experiment config
+ *
+ * Generation settings are intentionally NOT configurable per file. This eval
+ * resolves them from the frozen preset surface so callers do not invent
+ * run-local temperatures or max-token values.
+ */
+export type ArmConfig = {
   label: string
   adapter: string
   preset: PresetName
-  temperature?: number
-  max_tokens?: number
+  conditioning: ConditioningMode
   notes?: string
 }
 
@@ -75,11 +103,15 @@ type GeneratedSample = {
   beat_archetype: BeatArchetype
   prompt: string
   output: string
+  voice_card: VoiceCard
 }
 
 type JudgeAssignment = {
   output_a_character: CharacterName
   output_b_character: CharacterName
+  left_score: 0 | 1
+  right_score: 0 | 1
+  verdict: boolean
   reasoning?: string
 }
 
@@ -125,12 +157,14 @@ type EvalReport = {
   eval_id: "salvatore-distinctness-v1"
   judge_model: string
   generated_at: string
+  exp_id: number
   inputs: {
     beats_path: string
     voice_cards_path: string
     arm_a_config_path: string
     arm_b_config_path: string
     seed: string
+    pair_limit?: number
   }
   arms: {
     arm_a: ArmReport
@@ -142,8 +176,18 @@ type EvalReport = {
   }
 }
 
+type ParsedArgs = {
+  armAConfigPath: string
+  armBConfigPath: string
+  judgeModel: string
+  out: string
+  seed: string
+  pairLimit?: number
+}
+
 const BEATS_PATH = new URL("../../docs/evals/salvatore-distinctness-v1-beats.jsonl", import.meta.url)
 const VOICE_CARDS_PATH = new URL("../../docs/evals/salvatore-distinctness-v1-voice-cards.json", import.meta.url)
+const WRITER_SYSTEM_PROMPT_PATH = new URL("../../src/agents/writer/beat-writer-system-salvatore.md", import.meta.url)
 
 const HARD_PAIRS: Array<{ pair_id: PairId; left: CharacterName; left_id: CharacterId; right: CharacterName; right_id: CharacterId }> = [
   { pair_id: "drizzt_vs_entreri", left: "Drizzt", left_id: "drizzt", right: "Entreri", right_id: "entreri" },
@@ -153,27 +197,24 @@ const HARD_PAIRS: Array<{ pair_id: PairId; left: CharacterName; left_id: Charact
 
 const ALL_CHARACTERS: CharacterName[] = ["Drizzt", "Bruenor", "Catti-brie", "Entreri", "Jarlaxle", "Zaknafein"]
 const ALL_BEATS: BeatArchetype[] = ["threat", "reassurance", "tactical_planning", "banter"]
+const PRESET_SEQUENCE: PresetName[] = ["preset-a", "preset-b", "preset-c"]
+const PRESET_SETTINGS: Record<PresetName, { temperature: number; maxTokens: number }> = {
+  "preset-a": { temperature: 0.8, maxTokens: 4000 },
+  "preset-b": { temperature: 0.8, maxTokens: 4000 },
+  "preset-c": { temperature: 0.8, maxTokens: 4000 }
+}
 
-/*
-TODO block for Claude follow-on implementation:
-1. Wire `generateSample()` to the real generation backend so an arm config can call the target adapter with the frozen beat prompt and the selected voice-card subset.
-2. Wire `judgePair()` to the real judge API call using the named judge model from the frozen spec (`gpt-5.4` by default).
-3. Replace `shufflePairDeterministic()` with a real seeded shuffler that is stable across reruns and explicitly logged in the report.
-4. Decide the stable arm-config schema on disk; this skeleton expects JSON with at least `{ label, adapter, preset }`.
-*/
-
-function parseArgs() {
-  const args = process.argv.slice(2)
+function parseArgs(argv: string[] = process.argv.slice(2)): ParsedArgs {
   const get = (flag: string) => {
-    const idx = args.indexOf(flag)
-    return idx >= 0 && idx + 1 < args.length ? args[idx + 1] : undefined
+    const idx = argv.indexOf(flag)
+    return idx >= 0 && idx + 1 < argv.length ? argv[idx + 1] : undefined
   }
 
-  if (args.includes("--help") || args.includes("-h")) {
+  if (argv.includes("--help") || argv.includes("-h")) {
     console.log(
       "usage: bun scripts/evals/run-salvatore-distinctness-v1.ts " +
       "--arm-a-config <path> --arm-b-config <path> --judge-model <name> " +
-      "[--out <path>] [--seed <string>]"
+      "[--out <path>] [--seed <string>] [--pair-limit <n>]"
     )
     process.exit(0)
   }
@@ -183,17 +224,23 @@ function parseArgs() {
   const judgeModel = get("--judge-model")
   const out = get("--out") ?? "output/evals/salvatore-distinctness-v1-report.json"
   const seed = get("--seed") ?? "salvatore-distinctness-v1"
+  const pairLimitRaw = get("--pair-limit")
+  const pairLimit = pairLimitRaw ? Number.parseInt(pairLimitRaw, 10) : undefined
 
   if (!armAConfigPath || !armBConfigPath || !judgeModel) {
     console.error(
       "usage: bun scripts/evals/run-salvatore-distinctness-v1.ts " +
       "--arm-a-config <path> --arm-b-config <path> --judge-model <name> " +
-      "[--out <path>] [--seed <string>]"
+      "[--out <path>] [--seed <string>] [--pair-limit <n>]"
     )
     process.exit(1)
   }
 
-  return { armAConfigPath, armBConfigPath, judgeModel, out, seed }
+  if (pairLimit !== undefined && (!Number.isInteger(pairLimit) || pairLimit < 1)) {
+    throw new Error(`--pair-limit must be a positive integer, got ${pairLimitRaw}`)
+  }
+
+  return { armAConfigPath, armBConfigPath, judgeModel, out, seed, pairLimit }
 }
 
 async function readJson<T>(filePath: string): Promise<T> {
@@ -207,6 +254,40 @@ async function readJsonLines<T>(filePath: string): Promise<T[]> {
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line) => JSON.parse(line) as T)
+}
+
+export function validateArmConfig(config: unknown, filePath: string): ArmConfig {
+  if (!config || typeof config !== "object") {
+    throw new Error(`Arm config ${filePath} must be a JSON object`)
+  }
+
+  const row = config as Record<string, unknown>
+  const preset = row.preset
+  const conditioning = row.conditioning
+
+  if (typeof row.label !== "string" || row.label.trim() === "") {
+    throw new Error(`Arm config ${filePath} missing non-empty string field "label"`)
+  }
+  if (typeof row.adapter !== "string" || row.adapter.trim() === "") {
+    throw new Error(`Arm config ${filePath} missing non-empty string field "adapter"`)
+  }
+  if (preset !== "preset-a" && preset !== "preset-b" && preset !== "preset-c") {
+    throw new Error(`Arm config ${filePath} has invalid "preset": ${String(preset)}`)
+  }
+  if (conditioning !== "fixed" && conditioning !== "rotation" && conditioning !== "profile-only") {
+    throw new Error(`Arm config ${filePath} has invalid "conditioning": ${String(conditioning)}`)
+  }
+  if (row.notes !== undefined && typeof row.notes !== "string") {
+    throw new Error(`Arm config ${filePath} field "notes" must be a string when present`)
+  }
+
+  return {
+    label: row.label,
+    adapter: row.adapter,
+    preset,
+    conditioning,
+    notes: row.notes as string | undefined
+  }
 }
 
 function keyFor(character: CharacterName, beat: BeatArchetype) {
@@ -263,9 +344,7 @@ function validateArtifacts(beats: BeatRow[], voiceCards: VoiceCardMap) {
 }
 
 function selectVoiceCard(card: VoiceCard, preset: PresetName): VoiceCard {
-  if (preset === "fixed") return card
-
-  const presetIndexes: Record<Exclude<PresetName, "fixed">, number[]> = {
+  const presetIndexes: Record<PresetName, number[]> = {
     "preset-a": [0, 1, 2],
     "preset-b": [0, 3, 4],
     "preset-c": [1, 3, 4]
@@ -275,15 +354,115 @@ function selectVoiceCard(card: VoiceCard, preset: PresetName): VoiceCard {
   return { ...card, canonical_lines: picked }
 }
 
+function stripExampleLines(card: VoiceCard): VoiceCard {
+  return { ...card, canonical_lines: [] }
+}
+
+function presetForGeneration(arm: ArmConfig, generationIndex: number): PresetName {
+  if (arm.conditioning !== "rotation") {
+    return arm.preset
+  }
+
+  const startIndex = PRESET_SEQUENCE.indexOf(arm.preset)
+  return PRESET_SEQUENCE[(startIndex + generationIndex) % PRESET_SEQUENCE.length]
+}
+
+function buildVoiceCardForGeneration(arm: ArmConfig, baseCard: VoiceCard, generationIndex: number): { card: VoiceCard; preset: PresetName } {
+  const preset = presetForGeneration(arm, generationIndex)
+  const selected = selectVoiceCard(baseCard, preset)
+  if (arm.conditioning === "profile-only") {
+    return { card: stripExampleLines(selected), preset }
+  }
+  return { card: selected, preset }
+}
+
+function renderCharacterProfile(card: VoiceCard): string {
+  const lines = [`${card.name}:`, `  Voice: ${card.tics.join("; ")}`, `  Avoids: ${card.avoid.join("; ")}`]
+  if (card.canonical_lines.length > 0) {
+    lines.push("  Example voiced lines:")
+    card.canonical_lines.forEach((row, index) => {
+      lines.push(`    ${index + 1}. "${row.line.replace(/^"|"$/g, "")}"`)
+    })
+  }
+  return lines.join("\n")
+}
+
+function buildGenerationPrompt(beat: BeatRow, card: VoiceCard): string {
+  return [
+    "BEAT 1 of 1",
+    `POV: ${beat.character}`,
+    "Setting: (unspecified)",
+    "Kind: dialogue",
+    "",
+    beat.prompt,
+    `Characters present: ${beat.character}`,
+    "",
+    `CHARACTERS:\n${renderCharacterProfile(card)}`
+  ].join("\n")
+}
+
+function inferProvider(modelOrAdapter: string): ProviderName {
+  if (modelOrAdapter.startsWith("wandb-artifact:///")) return "wandb"
+  if (modelOrAdapter.startsWith("anthropic/")) return "openrouter"
+  if (modelOrAdapter.startsWith("gpt-")) return "openai"
+  if (modelOrAdapter.startsWith("deepseek-")) return "deepseek"
+  if (modelOrAdapter.startsWith("qwen/") || modelOrAdapter.startsWith("google/") || modelOrAdapter.startsWith("moonshotai/")) {
+    return "openrouter"
+  }
+  throw new Error(`Unable to infer provider for model/adapter "${modelOrAdapter}"`)
+}
+
+async function loadWriterSystemPrompt(): Promise<string> {
+  return readFile(WRITER_SYSTEM_PROMPT_PATH, "utf8")
+}
+
 async function generateSample(
   arm: ArmConfig,
   beat: BeatRow,
-  card: VoiceCard
+  card: VoiceCard,
+  preset: PresetName
 ): Promise<GeneratedSample> {
-  void arm
-  void beat
-  void card
-  throw new Error("TODO: wire generation backend in generateSample()")
+  const settings = PRESET_SETTINGS[preset]
+  const systemPrompt = await loadWriterSystemPrompt()
+  const userPrompt = buildGenerationPrompt(beat, card)
+  const response = await executeAndLog(
+    {
+      systemPrompt,
+      userPrompt,
+      model: arm.adapter,
+      provider: inferProvider(arm.adapter),
+      temperature: settings.temperature,
+      maxTokens: settings.maxTokens,
+      responseFormat: { type: "text" }
+    },
+    undefined,
+    "salvatore-distinctness-generate",
+    undefined,
+    {
+      meta: {
+        evalId: "salvatore-distinctness-v1",
+        armLabel: arm.label,
+        conditioning: arm.conditioning,
+        beatId: beat.id,
+        beatArchetype: beat.beat_archetype,
+        character: beat.character,
+        preset
+      }
+    }
+  )
+
+  return {
+    arm_label: arm.label,
+    adapter: arm.adapter,
+    preset,
+    beat_id: beat.id,
+    character: beat.character,
+    character_id: beat.target_voice_card_id,
+    beat_archetype: beat.beat_archetype,
+    prompt: beat.prompt,
+    output: response.content.trim(),
+    voice_card: card
+  }
 }
 
 async function generateArmCorpus(
@@ -293,22 +472,59 @@ async function generateArmCorpus(
 ): Promise<Map<string, GeneratedSample>> {
   const out = new Map<string, GeneratedSample>()
 
-  for (const beat of beats) {
-    const card = selectVoiceCard(voiceCards[beat.target_voice_card_id], arm.preset)
-    const sample = await generateSample(arm, beat, card)
+  for (const [index, beat] of beats.entries()) {
+    const resolved = buildVoiceCardForGeneration(arm, voiceCards[beat.target_voice_card_id], index)
+    const sample = await generateSample(arm, beat, resolved.card, resolved.preset)
     out.set(beat.id, sample)
   }
 
   return out
 }
 
-function shufflePairDeterministic(
+function buildDeterministicPairId(left: GeneratedSample, right: GeneratedSample): string {
+  return [left.beat_id, right.beat_id].sort().join("::")
+}
+
+export function shufflePairDeterministic(
   left: GeneratedSample,
   right: GeneratedSample,
   seed: string
 ): { output_a: GeneratedSample; output_b: GeneratedSample } {
-  void seed
-  throw new Error("TODO: replace shufflePairDeterministic() with a real seeded shuffler")
+  const pairId = buildDeterministicPairId(left, right)
+  const digest = createHash("sha256")
+    .update(`${seed}:${pairId}`)
+    .digest()
+  const pick = digest.readUInt32BE(0)
+  return pick % 2 === 0
+    ? { output_a: left, output_b: right }
+    : { output_a: right, output_b: left }
+}
+
+function buildVoiceCardJudgeSection(card: VoiceCard): string {
+  const lines = [
+    `VOICE CARD — ${card.name}`,
+    "Tics:",
+    ...card.tics.map((row) => `- ${row}`),
+    "Avoid:",
+    ...card.avoid.map((row) => `- ${row}`)
+  ]
+
+  if (card.canonical_lines.length > 0) {
+    lines.push("Canonical lines:")
+    card.canonical_lines.forEach((row, index) => {
+      lines.push(`${index + 1}. "${row.line.replace(/^"|"$/g, "")}"`)
+    })
+  }
+
+  return lines.join("\n")
+}
+
+function normalizeCharacterName(raw: string, allowed: CharacterName[]): CharacterName {
+  const match = allowed.find((row) => row.toLowerCase() === raw.trim().toLowerCase())
+  if (!match) {
+    throw new Error(`Judge returned character "${raw}" outside allowed set ${allowed.join(", ")}`)
+  }
+  return match
 }
 
 async function judgePair(
@@ -317,11 +533,81 @@ async function judgePair(
   shuffled: { output_a: GeneratedSample; output_b: GeneratedSample },
   voiceCards: [VoiceCard, VoiceCard]
 ): Promise<JudgeAssignment> {
-  void judgeModel
-  void task
-  void shuffled
-  void voiceCards
-  throw new Error("TODO: wire judge API call in judgePair()")
+  const pairCharacters = [task.left.character, task.right.character].sort()
+  const systemPrompt = [
+    "You are scoring a frozen pairwise voice-assignment eval.",
+    "You will be shown two anonymized outputs, both intended voice cards, and the hard pair only as an unordered identity set.",
+    "Assign Output A and Output B to the correct character using diction, cadence, dialect, tone, rhythm, and the frozen voice-card cues.",
+    "A judgment is exact-assignment only: either fully right or fully swapped.",
+    `Respond with ONLY valid JSON in this exact shape: {"output_a_character":"${pairCharacters[0]}","output_b_character":"${pairCharacters[1]}","reasoning":"..."}`,
+    `Only these character names are valid for this call: ${pairCharacters.join(", ")}.`
+  ].join("\n")
+
+  const userPrompt = [
+    `PAIR (unordered target identities): ${pairCharacters.join(" / ")}`,
+    `BEAT ARCHETYPE: ${task.beat_archetype}`,
+    "",
+    buildVoiceCardJudgeSection(voiceCards[0]),
+    "",
+    buildVoiceCardJudgeSection(voiceCards[1]),
+    "",
+    "Output A:",
+    shuffled.output_a.output,
+    "",
+    "Output B:",
+    shuffled.output_b.output
+  ].join("\n")
+
+  const response = await executeAndLog(
+    {
+      systemPrompt,
+      userPrompt,
+      model: judgeModel,
+      provider: inferProvider(judgeModel),
+      temperature: 0,
+      maxTokens: 512,
+      responseFormat: { type: "json_object" }
+    },
+    undefined,
+    "salvatore-distinctness-judge",
+    undefined,
+    {
+      meta: {
+        evalId: "salvatore-distinctness-v1",
+        pairId: task.pair_id,
+        beatArchetype: task.beat_archetype,
+        judgeModel
+      }
+    }
+  )
+
+  const parsed = JSON.parse(extractJSON(response.content)) as {
+    output_a_character?: string
+    output_b_character?: string
+    reasoning?: string
+  }
+
+  if (!parsed.output_a_character || !parsed.output_b_character) {
+    throw new Error(`Judge returned incomplete assignment: ${response.content}`)
+  }
+
+  const outputA = normalizeCharacterName(parsed.output_a_character, [task.left.character, task.right.character])
+  const outputB = normalizeCharacterName(parsed.output_b_character, [task.left.character, task.right.character])
+  if (outputA === outputB) {
+    throw new Error(`Judge assigned both outputs to ${outputA}`)
+  }
+
+  const leftScore = outputA === shuffled.output_a.character ? 1 : 0
+  const rightScore = outputB === shuffled.output_b.character ? 1 : 0
+
+  return {
+    output_a_character: outputA,
+    output_b_character: outputB,
+    left_score: leftScore,
+    right_score: rightScore,
+    verdict: leftScore === 1 && rightScore === 1,
+    reasoning: typeof parsed.reasoning === "string" ? parsed.reasoning : undefined
+  }
 }
 
 function buildEmptyConfusionMatrix(): ConfusionMatrix {
@@ -346,7 +632,6 @@ async function scoreArm(
   arm: ArmConfig,
   generated: Map<string, GeneratedSample>,
   tasks: PairTask[],
-  voiceCards: VoiceCardMap,
   judgeModel: string,
   seed: string
 ): Promise<ArmReport> {
@@ -370,10 +655,7 @@ async function scoreArm(
       judgeModel,
       task,
       shuffled,
-      [
-        selectVoiceCard(voiceCards[task.left.target_voice_card_id], arm.preset),
-        selectVoiceCard(voiceCards[task.right.target_voice_card_id], arm.preset)
-      ]
+      [shuffled.output_a.voice_card, shuffled.output_b.voice_card]
     )
 
     const exact = exactAssignmentCells(
@@ -409,7 +691,7 @@ async function scoreArm(
     judgments.push(record)
     perPairScores[task.pair_id].exact_assignment_cells += exact
     perPairScores[task.pair_id].pairwise_calls_total += 1
-    if (exact === 2) perPairScores[task.pair_id].pairwise_calls_correct += 1
+    if (judged.verdict) perPairScores[task.pair_id].pairwise_calls_correct += 1
 
     confusion[task.beat_archetype][record.expected.output_a][record.judged.output_a] += 1
     confusion[task.beat_archetype][record.expected.output_b][record.judged.output_b] += 1
@@ -431,41 +713,78 @@ async function scoreArm(
   }
 }
 
-async function main() {
-  const args = parseArgs()
+function uniqueBeatRowsForTasks(tasks: PairTask[]): BeatRow[] {
+  const seen = new Set<string>()
+  const rows: BeatRow[] = []
+  for (const task of tasks) {
+    for (const row of [task.left, task.right]) {
+      if (!seen.has(row.id)) {
+        seen.add(row.id)
+        rows.push(row)
+      }
+    }
+  }
+  return rows
+}
 
+export async function runSalvatoreDistinctnessEval(args: ParsedArgs): Promise<{ report: EvalReport; expId: number }> {
   const beatsPath = BEATS_PATH.pathname
   const voiceCardsPath = VOICE_CARDS_PATH.pathname
-  const [beats, voiceCards, armA, armB] = await Promise.all([
+  const [beats, voiceCards, armARaw, armBRaw] = await Promise.all([
     readJsonLines<BeatRow>(beatsPath),
     readJson<VoiceCardMap>(voiceCardsPath),
-    readJson<ArmConfig>(path.resolve(args.armAConfigPath)),
-    readJson<ArmConfig>(path.resolve(args.armBConfigPath))
+    readJson<unknown>(path.resolve(args.armAConfigPath)),
+    readJson<unknown>(path.resolve(args.armBConfigPath))
   ])
 
   validateArtifacts(beats, voiceCards)
-  const tasks = buildPairTasks(beats)
+  const armA = validateArmConfig(armARaw, path.resolve(args.armAConfigPath))
+  const armB = validateArmConfig(armBRaw, path.resolve(args.armBConfigPath))
+
+  const allTasks = buildPairTasks(beats)
+  const tasks = args.pairLimit ? allTasks.slice(0, args.pairLimit) : allTasks
+  const beatsToGenerate = uniqueBeatRowsForTasks(tasks)
+
+  const expId = await createTuningExperiment(
+    "infrastructure",
+    `salvatore-distinctness-v1 eval orchestration: ${armA.label} vs ${armB.label}`,
+    {
+      eval_id: "salvatore-distinctness-v1",
+      judge_model: args.judgeModel,
+      arm_a: armA,
+      arm_b: armB,
+      beats_path: beatsPath,
+      voice_cards_path: voiceCardsPath,
+      out_path: path.resolve(args.out),
+      seed: args.seed,
+      pair_limit: args.pairLimit ?? null
+    },
+    { target: "salvatore-distinctness-conditioning-floor", dimension: "conditioning" }
+  )
+  console.log(`exp_id=${expId}`)
 
   const [armACorpus, armBCorpus] = await Promise.all([
-    generateArmCorpus(armA, beats, voiceCards),
-    generateArmCorpus(armB, beats, voiceCards)
+    generateArmCorpus(armA, beatsToGenerate, voiceCards),
+    generateArmCorpus(armB, beatsToGenerate, voiceCards)
   ])
 
   const [armAReport, armBReport] = await Promise.all([
-    scoreArm(armA, armACorpus, tasks, voiceCards, args.judgeModel, args.seed),
-    scoreArm(armB, armBCorpus, tasks, voiceCards, args.judgeModel, args.seed)
+    scoreArm(armA, armACorpus, tasks, args.judgeModel, args.seed),
+    scoreArm(armB, armBCorpus, tasks, args.judgeModel, args.seed)
   ])
 
   const report: EvalReport = {
     eval_id: "salvatore-distinctness-v1",
     judge_model: args.judgeModel,
     generated_at: new Date().toISOString(),
+    exp_id: expId,
     inputs: {
       beats_path: beatsPath,
       voice_cards_path: voiceCardsPath,
       arm_a_config_path: path.resolve(args.armAConfigPath),
       arm_b_config_path: path.resolve(args.armBConfigPath),
-      seed: args.seed
+      seed: args.seed,
+      pair_limit: args.pairLimit
     },
     arms: {
       arm_a: armAReport,
@@ -480,9 +799,17 @@ async function main() {
   await mkdir(path.dirname(path.resolve(args.out)), { recursive: true })
   await writeFile(path.resolve(args.out), JSON.stringify(report, null, 2) + "\n", "utf8")
   console.log(`Wrote ${path.resolve(args.out)}`)
+
+  return { report, expId }
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.stack ?? error.message : String(error))
-  process.exit(1)
-})
+async function main() {
+  await runSalvatoreDistinctnessEval(parseArgs())
+}
+
+if (import.meta.main) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.stack ?? error.message : String(error))
+    process.exit(1)
+  })
+}

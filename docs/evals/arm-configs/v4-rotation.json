@@ -1,0 +1,7 @@
+{
+  "label": "v4-rotation",
+  "adapter": "wandb-artifact:///andre14618-/novel-harness/salvatore-1988-v4",
+  "preset": "preset-a",
+  "conditioning": "rotation",
+  "notes": "Same adapter as v4-fixed, but rotates the frozen exampleLines subsets deterministically across calls."
+}

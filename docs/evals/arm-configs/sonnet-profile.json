@@ -1,0 +1,7 @@
+{
+  "label": "sonnet-profile",
+  "adapter": "anthropic/claude-sonnet-4.6",
+  "preset": "preset-a",
+  "conditioning": "profile-only",
+  "notes": "Sonnet ceiling arm from the archetype POC, rendered without exampleLines."
+}

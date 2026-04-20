@@ -1,0 +1,7 @@
+{
+  "label": "v3",
+  "adapter": "wandb-artifact:///andre14618-/novel-harness/salvatore-1988-v3",
+  "preset": "preset-a",
+  "conditioning": "fixed",
+  "notes": "Baseline floor arm from the charter baseline ladder."
+}
