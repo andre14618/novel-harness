@@ -45,10 +45,9 @@ TS/JS AST shapes.
 Parse the file and collect the real nodes of the shape you care about. Then apply
 the invariant against AST-backed facts:
 
-- Use `typescript` compiler API or `ts-morph` when the rule needs lexical scope,
-  declaration identity, or precise node kinds.
-- Use `Bun.Transpiler` only when you need a lightweight parse/transpile surface and
-  the rule does not depend on richer semantic walks.
+- Use the `typescript` compiler API when the rule needs lexical scope,
+  declaration identity, or precise node kinds — both shipped recurrences
+  (invariant #2, invariant #5) use `ts.createSourceFile` + visitor walks.
 - Group identifiers by declaration node, not name string.
 - Treat comments and string literals as non-evidence unless the invariant is
   explicitly about text.
@@ -84,9 +83,13 @@ the invariant against AST-backed facts:
 ## Canonical fix
 
 Prefer AST traversal from the first implementation when the invariant is about
-syntactic meaning, not text presence. For this repo, that usually means a
-`typescript` compiler API walk in `scripts/lint/invariants-check.ts`; for simpler
-source-shape checks, `ts-morph` is also acceptable.
+syntactic meaning, not text presence. For this repo, that means a `typescript`
+compiler API walk in `scripts/lint/invariants-check.ts`.
+
+Fixing commits:
+- Invariant #2 (function-scope over-acceptance → AST collector): `dedc0b6`.
+- Invariant #5 (template-literal regex → AST receiver/path analysis):
+  `70f814d` → hardened via `b5cb37a` and `8cc3d2c`.
 
 ## Recurrences
 
