@@ -42,7 +42,7 @@
  * lands or nothing does.
  */
 
-import { db } from "../../src/db/connection"
+import db from "../../src/db/connection"
 
 interface Args {
   source: string
