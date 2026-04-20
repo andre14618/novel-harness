@@ -133,7 +133,8 @@ Rounds 1 and 2 (below) both returned **RED** against earlier revisions. This is 
 | `/codex:adversarial-review` (GPT) — round 1 | RED | 2026-04-20 | Bundled lever + distribution mismatch + threshold not producible. Addressed by revision `1749d16` (split lever) + `e9c8474` (scorer profile-rotation mode). |
 | `/codex:adversarial-review` (GPT) — round 2 | RED | 2026-04-20 | Partial H1/H2 split didn't close the underlying issue: proxy can't support same-ladder comparability, H2 has no live analog, pilot was ad hoc. Addressed by this revision (`slim-live-v1`) — proxy dropped, H2 deferred to its own charter, pilot infrastructure committed before run. |
 | `/codex:adversarial-review` (GPT) — round 3 | RED | 2026-04-20 | Within-live-surface isolation confound, post-hoc pair set, unwritten judge protocol. See §10.3. |
-| `/codex:adversarial-review` (GPT) — round 4 | pending | pending | Re-review target after the §11 infrastructure lands. |
+| `/codex:adversarial-review` (GPT) — round 4 | RED | 2026-04-20 | H1 likely a no-op on 4-line production characters; pilot runner still owns load-bearing §7 logic. See §10.4. |
+| `/codex:adversarial-review` (GPT) — round 5 | pending | pending | Re-review after the 4-line preset fix + pair-assembler land. |
 | `experiment-adversary` (Opus) — fallback only | pending | pending | Only run if Codex is unavailable or a second opinion is explicitly requested. |
 
 ### 10.1 Round-1 verdict (pre-revision)
@@ -184,6 +185,20 @@ This revision (`slim-live-v1`) adopts the round-2 cheapest-untried-counterfactua
 > RECOMMENDED NEXT ACTION: land the infrastructure, then request round 4.
 >
 > Full output: background job `bm8n9s9pg`.
+
+### 10.4 Round-4 verdict (post-revision `3bb483d` + infra commits)
+
+> VERDICT: RED
+>
+> SUMMARY: No-ship. H1 live-surface lever is likely a runtime no-op on the deployed 4-anchor `exampleLines` surface; the deferred pilot runner still owns the loss-counting and pair-assembly logic that makes §7 reproducible. Round-1 blockers: 1 CLOSED, 2+3 REPLACED BY NEW BLOCKERS. Round-2 blockers: 1 CLOSED, 2+3 REPLACED BY NEW BLOCKERS. Round-3 blockers: 1 CLOSED, 2+3 REPLACED BY NEW BLOCKERS.
+>
+> BLOCKING ISSUES:
+> 1. **[critical] H1 conditioning is likely a no-op on the current live runtime.** `pickExampleLineSubset()` in `src/agents/writer/beat-context.ts` short-circuits when a character has fewer than 4 `exampleLines` and its preset indexes `[0,1,2]/[0,3,4]/[1,3,4]` assume 5 canonical lines. The deployed character-agent (`src/agents/character-agent/character-profile-system.md:22,69-75`) generates exactly 4 voice anchors per character; the frozen distinctness eval (`docs/evals/salvatore-distinctness-v1.md:75-81`) assumes 5. On 4-line characters, rotation degenerates: `preset-a` returns 3 lines, `preset-b` and `preset-c` drop to 2 (index 4 missing). Fixed always returns 3. A judged delta would reflect "sometimes 3 lines, sometimes 2" — not a clean subset-rotation ablation. Architecture-vs-prompt mismatch under §4.6; non-interpretable under §11.5. Fix: either persist ≥5 canonical `exampleLines` per judged speaker with a pre-run seed audit for that invariant, or redesign presets around the deployed 4-line surface and freeze the eval artifact against that reality.
+> 2. **[high] Landed artifacts are not runnable end-to-end without the pilot runner.** The judge wrapper consumes `PairRow{pair_id, arm_a_prose, arm_b_prose, arm_a_label, arm_b_label}`. The pair-builder emits only beat coordinates + metadata. The missing `run-conditioning-floor-live.ts` is NOT orchestration-only glue — it is the only place where the charter's load-bearing rules would be enforced: mapping pre-registered beats to both novels, encoding missing-or-<50-word outputs as losses, aborting on unequal plan-checker pass counts, emitting the pair-row JSONL. Under §1.2 and §3.6 the protocol is not reproducibly producible until that code lands; manual assembly could reintroduce the post-hoc selection problem (§2.1, §9.4). Fix: commit the runner (or a narrower committed pair-assembly step that implements pair-row construction + loss-encoding + stop-rule enforcement) BEFORE greenlighting.
+>
+> RECOMMENDED NEXT ACTION: land the 4-line preset fix and the pair-assembler, then request round 5.
+>
+> Full output: background job `bqr4ytw7a`.
 
 ## 11. Open questions / readiness gate
 
