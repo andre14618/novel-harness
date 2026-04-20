@@ -1,54 +1,112 @@
 ---
-status: queued
+status: in-progress
 from_session: docs/sessions/2026-04-20-halluc-v1-and-rung0-and-v1a-pilot.md
 created: 2026-04-20
+last_updated: 2026-04-20
 ---
 
-# Next-Session Plan (queued from 2026-04-20 close)
+# Next-Session Plan (live queue, 2026-04-20 onward)
 
 Prioritized queue at 2026-04-20 session close. Start from the top.
 Supersedes stale queue in `docs/next-session-plan.md` (which is from
 the 2026-04-19 exhaustion-handler session and unrelated).
 
-## 1. Land or iterate Codex's conditioning-floor scorer (uncommitted)
+## 1. Conditioning-floor scorer landed (2026-04-20) — DONE
 
-**Context.** Session ended with Codex CLI job `bc1biuhtt` still in flight. It had produced the following uncommitted work:
+Commit `e54b1fe` closed all four scorer TODOs (generation wired to
+`executeAndLog` on the target adapter with per-arm voice-card subset
+selection, judge wired to `gpt-5.4`, sha256-keyed deterministic
+shuffler, stable arm-config JSON schema with 4 configs). Follow-on
+commit `e9c8474` added the `profile-rotation` conditioning mode + new
+`v4-profile-rotation.json` arm config to support the revised charter's
+H2 lever (see item #2a).
 
-- Modified: `scripts/evals/run-salvatore-distinctness-v1.ts`
-- Created: `scripts/evals/run-salvatore-distinctness-v1.test.ts`
-- Created: `docs/evals/arm-configs/` (README.md + `v3.json`, `v4-fixed.json`, `v4-rotation.json`, `sonnet-profile.json`)
+## 2. Conditioning-floor charter adversary review — first round RED, revised, round 2 pending
 
-**What to do:**
+**Round 1 (2026-04-20, Codex job `bshvls959`): RED.** Three blocking
+issues + one warning recorded in charter §10.1 (commit `be133c5`):
+bundled lever, distribution mismatch with live writer surface,
+threshold metric not producible by the scorer.
 
-1. Check `git status` — if files still uncommitted, the Codex job either completed silently or is still going. Look for a `tuning_experiments` row with `target='salvatore-distinctness-conditioning-floor'` to find its exp_id.
-2. Review the diff. The 4 TODOs to verify closed:
-   - `generateSample()` (was line 286) wired to inference backend with per-arm voice-card subset selection.
-   - `judgePair()` (was line 324) wired to `gpt-5.4`.
-   - `shufflePairDeterministic()` (was line 311) replaced with sha256-keyed seeded shuffler.
-   - Arm-config schema documented + 4 JSONs match charter §4 ladder.
-3. Run the smoke test from Codex's instructions (1 beat, 1 pair) — should reach generation loop without throwing `TODO`.
-4. If acceptable, commit and deploy.
-5. If not, iterate with a narrow follow-up prompt.
+**Revision (2026-04-20, commit `1749d16`).** Charter restructured:
 
-## 2. Trigger Codex adversary re-review of the conditioning-floor charter
+- §2 hypothesis split into two sub-hypotheses — H1 (exampleLines rotation, tics/avoid fixed) and H2 (profile-field rotation, exampleLines fixed).
+- §7 split into 7.1 proxy-eval gate (triage only, single-run aggregate) and 7.2 live-writer pilot gate (ship gate, 3-chapter fantasy novel on real `buildBeatContext` path).
+- §4 ceiling relabeled "profile-only" to match the shipped `sonnet-profile.json` arm config.
+- Falsification threshold in §3 converted to three-prong AND logic.
+- §8 budget updated to 4 comparison arms + one pilot novel run.
 
-Once the scorer lands:
+**Scorer follow-on (commit `e9c8474`).** Added `profile-rotation`
+conditioning mode to the scorer + `v4-profile-rotation.json` arm config.
+Closes the §11 scorer-extension gate.
+
+### 2a. Next action — adversary re-review (round 2)
 
 ```
 /codex:adversarial-review docs/charters/salvatore-distinctness-conditioning-floor.md
 ```
 
-The §11 readiness gate (scorer is functional) is the only thing holding the charter. Expect GREEN if the scorer works.
+Expect GREEN or narrow-YELLOW, since the three round-1 blockers have
+been addressed structurally (not just reworded). If GREEN, proceed to
+item #3 proxy-eval run. If YELLOW on one axis, iterate narrowly; if RED
+again, this charter's approach is wrong and we consider dropping it in
+favor of the raw corpus-expansion path.
 
-## 3. Run the conditioning-floor 3-arm eval
+## 3. Run the §7.1 proxy-eval (four non-baseline arms vs fixed v4)
 
-If GREEN: run 3 arms × 72 generations + 3 comparisons × 48 judge calls = 216 generations + 144 judge calls. Charter §8 budgets under one working day. No training spend.
+Gated on item #2a GREEN verdict.
 
-Arms: `v3`, `v4-fixed`, `v4-rotation`, `sonnet-profile` (baseline ladder per charter §4). Use the arm-config JSONs at `docs/evals/arm-configs/`.
+**Arm configs** (`docs/evals/arm-configs/`): `v3.json`, `v4-fixed.json`
+(baseline), `v4-rotation.json` (H1), `v4-profile-rotation.json` (H2),
+`sonnet-profile.json` (ceiling).
 
-Decision gates per charter §7: SHIP (≥4/24 rotation gain, retention intact), ITERATE (middle), KILL (≤2/24).
+**Workload:** 4 comparison arms × 24 generations = 96 generations, plus
+48 judge calls × 4 comparisons = 192 gpt-5.4 judge calls. Charter §8
+budgets under one working day, no training spend.
 
-## 4. Complete V1a pilot — the two missing arms (not the full 6-seed expansion)
+**Command shape:**
+
+```
+EXPERIMENT_ID=<from scorer auto-create> bun scripts/evals/run-salvatore-distinctness-v1.ts \
+  --arm-a-config docs/evals/arm-configs/v4-fixed.json \
+  --arm-b-config docs/evals/arm-configs/v4-rotation.json \
+  --judge-model gpt-5.4
+```
+
+Repeat for each non-baseline vs v4-fixed pairing.
+
+**Decision gates per charter §7.1:** PROXY PASS (≥+4/24 aggregate gain for at least one of H1/H2, retention intact), PROXY ITERATE (middle), PROXY KILL (both ≤+2/24 or retention breach).
+
+## 4. §7.2 live-writer pilot — gated on both item #3 proxy-eval pass AND plumbing decision
+
+Gated on item #3 emitting PROXY PASS for at least one arm, AND on the
+open "pilot plumbing" gate in charter §11.
+
+**Pilot plumbing decision (do before running):** the scorer's proxy
+eval does not exercise `buildBeatContext`. A pilot needs either
+
+- (a) feature-flag plumbing: add an env-var or `WRITER_GENRE_PACKS`
+  override so a novel run can select `fixed | rotation | profile-rotation`
+  conditioning for `exampleLines`/`tics`/`avoid`. Clean, reversible,
+  takes ~1-2 hours.
+- (b) in-place override: temporarily edit `WRITER_GENRE_PACKS` fantasy
+  pack to the winning conditioning, run pilots, revert. Faster but
+  leaves the real runtime in an inconsistent state during pilots.
+
+Recommend (a) — session retrospectives show in-place edits to shared
+state cause regressions in unrelated runs.
+
+**Pilot workload:** one fantasy seed (`fantasy-archive`,
+`fantasy-cartographer`, or `fantasy-debt` — choose at launch), 3
+chapters, fixed v4 vs winning arm conditioning, same prompt otherwise.
+Measure adherence events, chapter-plan-checker deviations, halluc-leak
+Rung 0 fire rate, subagent-eyeball distinctness.
+
+**Decision gates per charter §7.2:** PILOT PASS (ship to default),
+PILOT ITERATE (flag-gated ship or second seed), PILOT KILL (reopen
+corpus expansion).
+
+## 5. Complete V1a pilot — the two missing arms (not the full 6-seed expansion)
 
 **Context.** Exp #256 ran 2 of 4 charter arms. See `docs/pp2-floor-pilot-results.md` for the partial data and the scoping-error rationale.
 
@@ -61,7 +119,7 @@ Decision gates per charter §7: SHIP (≥4/24 rotation gain, retention intact), 
 
 **After data lands**: combine with existing 2-arm data, run charter §7 decision rule across the complete 4-arm ladder, trigger adversary re-review.
 
-## 5. halluc-leak-salvatore regex FN widen pass
+## 6. halluc-leak-salvatore regex FN widen pass
 
 **Context.** Commit `cc57752` shipped Rung 0 regex OR-combine. Residual 12 beats where adapter fired but regex missed:
 
@@ -72,7 +130,7 @@ Decision gates per charter §7: SHIP (≥4/24 rotation gain, retention intact), 
 
 **Effort.** ~1 hour, $0. Add unit tests first (`regex-leak.test.ts`) covering the 12 miss cases, then fix pattern until all green.
 
-## 6. Resolve v5-stripped design gates (only if conditioning-floor verdict argues for it)
+## 7. Resolve v5-stripped design gates (only if conditioning-floor verdict argues for it)
 
 **Context.** `docs/ablation/salvatore-v5-stripped.md` is fully scoped, strip script ran successfully, training command gated on 4 decisions. Codex verdicts: a3 / b1 / c3 / d2. My disagreement: c2 (sequence after conditioning-floor) instead of c3 (merge into one eval).
 
@@ -86,7 +144,7 @@ Decision gates per charter §7: SHIP (≥4/24 rotation gain, retention intact), 
 
 **If conditioning-floor fails**: v5-stripped becomes a higher-priority alternative path for voice-without-leak. Resolve (a)/(b)/(d) via inline user chat; apply (c) as sequenced (already done).
 
-## 7. Other low-priority follow-ups
+## 8. Other low-priority follow-ups
 
 - **Component-isolation testing methodology** (`docs/component-isolation-testing.md`) — pilot a replay harness on a real change to validate the framework.
 - **ungrounded v4 active-learning harvest** — `scripts/hallucination/harvest-v4-candidates.ts` is a read-only stub; blocker is no `llm_call_adjudications` persistent label table. Separate decision.
