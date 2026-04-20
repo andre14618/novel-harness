@@ -674,8 +674,28 @@ function collectBodyConsumeSites(sf: ts.SourceFile): BodyConsumeSite[] {
  *
  * Used by the switch-statement terminator classifier (Codex review
  * `a76243c1` MEDIUM follow-up).
+ *
+ * Loop-statement handling (T4 / exp #247):
+ *   - `while (true) { body }` — terminal iff `exitsFunction(body)` AND no
+ *     break/continue targets this loop.
+ *   - `for (;;) { body }` (condition absent) — same rule.
+ *   - `do { body } while (cond)` — terminal iff `exitsFunction(body)` AND
+ *     no break/continue targets this loop, REGARDLESS of `cond` (body
+ *     runs unconditionally once). Codex thread `aef73a30` HIGH: gating
+ *     on `isLiteralTrue(cond)` here would be a false negative for
+ *     `do { return } while (someCondition)`.
+ *
+ * Documented false negatives (kept as conservative `false`):
+ *   - `for (; true ;)` (condition is a literal-true expression rather than
+ *     absent) — `isLiteralTrue` is not applied to the `for` header; only
+ *     `condition === undefined` trips the terminal path.
+ *   - `!0` / `1 === 1` / numeric `1` — `isLiteralTrue` accepts only
+ *     `TrueKeyword` (optionally parenthesized), not truthy constants.
+ *   - Labeled `break outer` / `continue outer` targeting an outer loop
+ *     from within a nested loop — treated conservatively as targeting
+ *     this loop (i.e. non-terminal) until a label-aware resolver lands.
  */
-function exitsFunction(stmt: ts.Statement): boolean {
+export function exitsFunction(stmt: ts.Statement): boolean {
   if (ts.isThrowStatement(stmt) || ts.isReturnStatement(stmt)) return true
   if (ts.isBlock(stmt)) {
     const last = stmt.statements[stmt.statements.length - 1]
@@ -691,7 +711,161 @@ function exitsFunction(stmt: ts.Statement): boolean {
     const catchEnds = !stmt.catchClause || exitsFunction(stmt.catchClause.block)
     return tryEnds && catchEnds
   }
+  if (ts.isWhileStatement(stmt) || ts.isForStatement(stmt) || ts.isDoStatement(stmt)) {
+    // Require: body unconditionally exits the function AND no break/continue
+    // inside the body targets THIS loop.
+    if (!exitsFunction(stmt.statement)) return false
+    if (containsBreakOrContinueTargeting(stmt.statement, stmt)) return false
+    if (ts.isWhileStatement(stmt)) {
+      return isLiteralTrue(stmt.expression)
+    }
+    if (ts.isForStatement(stmt)) {
+      // for(;;) has no condition AST node. `for (; true ;)` is deliberately
+      // NOT recognized here — documented false negative.
+      return stmt.condition === undefined
+    }
+    // DoStatement: body runs at least once unconditionally. Terminal iff
+    // body exits on every path AND nothing targets this loop — regardless
+    // of the `while (cond)` condition. (Codex thread `aef73a30` HIGH.)
+    return true
+  }
   return false
+}
+
+/**
+ * Returns true iff `expr` is the TRUE keyword, optionally wrapped in
+ * one or more `ParenthesizedExpression` layers. Deliberately narrow:
+ * rejects `1`, `!0`, `1 === 1`, and any other truthy expression. The
+ * classifier only recognizes the literal `true` shape to avoid taking a
+ * general constant-folding dependency.
+ */
+function isLiteralTrue(expr: ts.Expression): boolean {
+  if (expr.kind === ts.SyntaxKind.TrueKeyword) return true
+  if (ts.isParenthesizedExpression(expr)) return isLiteralTrue(expr.expression)
+  return false
+}
+
+/**
+ * Returns true iff `node`'s subtree contains a `break` or `continue`
+ * statement whose effective target is `loopStmt`.
+ *
+ * Capture rules (differ per keyword):
+ *   - `break` is captured by the nearest enclosing LOOP or SWITCH, so
+ *     when scanning for a `break` that would target our loop we skip
+ *     nested LOOP subtrees AND nested SWITCH subtrees.
+ *   - `continue` is captured by the nearest enclosing LOOP only;
+ *     switches do NOT capture `continue`. So we skip nested LOOP
+ *     subtrees but DESCEND into nested SWITCH subtrees.
+ *
+ * Always skip nested Function* subtrees (different scope).
+ *
+ * Labeled breaks/continues: treated conservatively — return true on any
+ * encounter regardless of label match, since a label-aware resolver
+ * isn't implemented yet. In practice labeled loops are vanishingly
+ * rare in this codebase.
+ */
+function containsBreakOrContinueTargeting(node: ts.Node, loopStmt: ts.Node): boolean {
+  let found = false
+  function visit(n: ts.Node): void {
+    if (found) return
+    if (
+      ts.isFunctionDeclaration(n) ||
+      ts.isFunctionExpression(n) ||
+      ts.isArrowFunction(n) ||
+      ts.isMethodDeclaration(n)
+    ) {
+      // Different scope — break/continue inside doesn't reach our loop.
+      return
+    }
+    if (ts.isBreakStatement(n)) {
+      // Labeled break: conservatively treat as targeting our loop.
+      if (n.label) {
+        found = true
+        return
+      }
+      // Unlabeled break always targets nearest loop-or-switch. Since we
+      // SKIP nested loop/switch subtrees during the walk, reaching this
+      // node means our loop is the nearest capturer.
+      found = true
+      return
+    }
+    if (ts.isContinueStatement(n)) {
+      if (n.label) {
+        found = true
+        return
+      }
+      // Unlabeled continue targets nearest LOOP. Nested loops are
+      // skipped during the walk, so reaching here means our loop is it.
+      found = true
+      return
+    }
+    // Skip nested loops entirely — break/continue there targets THEM,
+    // not us (whether we're a loop ourselves or a switch scanning a
+    // continue doesn't matter; the nearest loop captures).
+    if (ts.isWhileStatement(n) || ts.isForStatement(n) || ts.isDoStatement(n) ||
+        ts.isForOfStatement(n) || ts.isForInStatement(n)) {
+      if (n !== loopStmt) return
+      // If n === loopStmt, we're at the root — descend into its body only.
+      ts.forEachChild(n, visit)
+      return
+    }
+    // Switch capture rule depends on whether we're looking for break or
+    // continue. Since a single walk handles both, we descend into
+    // switches but the scanner for `break` inside a switch must NOT
+    // count — a break there targets the switch. Implement by marking
+    // "inside switch" state. Simpler: branch into a helper.
+    if (ts.isSwitchStatement(n)) {
+      // Inside a nested switch, break targets the switch (not our loop),
+      // but continue still targets our loop. Use a dedicated sub-walker.
+      scanInsideSwitch(n)
+      return
+    }
+    ts.forEachChild(n, visit)
+  }
+  function scanInsideSwitch(switchNode: ts.SwitchStatement): void {
+    function innerVisit(n: ts.Node): void {
+      if (found) return
+      if (
+        ts.isFunctionDeclaration(n) ||
+        ts.isFunctionExpression(n) ||
+        ts.isArrowFunction(n) ||
+        ts.isMethodDeclaration(n)
+      ) return
+      // break here targets the switch → ignore.
+      if (ts.isBreakStatement(n)) {
+        if (n.label) {
+          // Labeled break could target our loop — conservative.
+          found = true
+        }
+        return
+      }
+      if (ts.isContinueStatement(n)) {
+        // continue does NOT target the switch; it targets nearest loop.
+        // Since nested loops are skipped, reaching this inside the
+        // switch means it targets our loop.
+        if (n.label) {
+          found = true
+          return
+        }
+        found = true
+        return
+      }
+      // Nested loops: break/continue inside them target THEM, not us.
+      if (ts.isWhileStatement(n) || ts.isForStatement(n) || ts.isDoStatement(n) ||
+          ts.isForOfStatement(n) || ts.isForInStatement(n)) {
+        return
+      }
+      // Nested switch: same rules re-apply; delegate recursively.
+      if (ts.isSwitchStatement(n)) {
+        scanInsideSwitch(n)
+        return
+      }
+      ts.forEachChild(n, innerVisit)
+    }
+    ts.forEachChild(switchNode, innerVisit)
+  }
+  ts.forEachChild(node, visit)
+  return found
 }
 
 function blockEndsInThrowOrReturn(stmt: ts.Statement): boolean {
@@ -749,13 +923,12 @@ function blockEndsInThrowOrReturn(stmt: ts.Statement): boolean {
     }
     return true
   }
-  // Loop statements — bounded handling. `while (true) { ... break }` and
-  // `for (;;)` are terminal iff their body unconditionally `throw`s or
-  // `return`s (a `break` exits the loop without escaping the enclosing
-  // function, so it's NOT terminal for the outer scope). Most loop shapes
-  // are non-terminal because the condition can be false on first iter.
-  // Detector stays `false` for loops as a conservative default; this is a
-  // known limitation documented in `docs/invariants.md` §#5.
+  // Loop statements — for the `blockEndsInThrowOrReturn` path (which
+  // accepts `break` / `continue` as scope-local terminators) we stay
+  // conservative and return false. Outer-scope reachability (where
+  // break/continue do NOT escape the enclosing function) is handled by
+  // `exitsFunction` (T4 / exp #247), which recognizes `while(true)`,
+  // `for(;;)`, and `do-while` loops whose bodies unconditionally exit.
   return false
 }
 
@@ -775,8 +948,10 @@ function blockEndsInThrowOrReturn(stmt: ts.Statement): boolean {
  *     possible → not terminal.
  *   - SwitchStatement: terminal iff every clause's last statement is
  *     terminal AND a `default` clause exists. Other shapes → false.
- *   - Loop statements: not handled — conservative false (loop body `break`s
- *     exit the loop, not the enclosing function).
+ *   - Loop statements: not handled here — `alwaysTerminates` delegates to
+ *     `blockEndsInThrowOrReturn`, whose loop branch stays conservative
+ *     (false). Outer-scope loop-terminator recognition lives in
+ *     `exitsFunction` (T4 / exp #247).
  */
 function alwaysTerminates(stmt: ts.Statement): boolean {
   return blockEndsInThrowOrReturn(stmt)
@@ -1133,6 +1308,11 @@ function runDefaultScan(targetFile: string | null): number {
 }
 
 // ── Main ─────────────────────────────────────────────────────────────────
-const { selfTest, target } = parseArgs(process.argv.slice(2))
-const code = selfTest ? runSelfTest() : runDefaultScan(target)
-process.exit(code)
+// Only run the CLI when executed directly — importers (e.g. the unit
+// test file `invariants-check.test.ts`) must be able to pull in
+// `exitsFunction` without triggering a full lint pass and process.exit.
+if (import.meta.main) {
+  const { selfTest, target } = parseArgs(process.argv.slice(2))
+  const code = selfTest ? runSelfTest() : runDefaultScan(target)
+  process.exit(code)
+}
