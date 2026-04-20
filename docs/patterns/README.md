@@ -25,5 +25,6 @@ Shape (see `TEMPLATE.md` — not yet written, use existing patterns as reference
 
 ## Index
 
+- [ast-over-text-for-syntactic-invariants](ast-over-text-for-syntactic-invariants.md) — syntactic invariants should traverse AST nodes, not reason from text windows or regex surfaces.
 - [in-memory-state-restart-data-loss](in-memory-state-restart-data-loss.md) — flags/maps/caches that reset on restart → correctness drift. First seen 2026-04-19 across 3 sites.
 - [fetch-without-abortcontroller](fetch-without-abortcontroller.md) — outbound fetches that hang forever on silent socket drop. First seen 2026-04-19 (DeepSeek world-builder 7+ min hang).

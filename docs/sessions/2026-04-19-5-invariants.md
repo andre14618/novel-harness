@@ -67,7 +67,7 @@ Implemented all 5 invariants from `docs/invariants.md` (exp #242 registry) as bl
 
 ## 4. Class-of-bug patterns
 
-- **AST beats text for syntactic checks** — seen 2x this session (initial function-scope over-accept; text-window comment bypass). Elevating to `docs/patterns/ast-over-text-for-syntactic-invariants.md` deferred — wait for one more recurrence per elevation criterion.
+- **AST beats text for syntactic checks** — elevated to `docs/patterns/ast-over-text-for-syntactic-invariants.md`. This session supplied the first two recurrences: invariant #2 failed as function-scope over-acceptance, then again as text-window comment/string bypass before the AST fix landed (`ce6452c` -> `7afe4dd` -> `dedc0b6`).
 - **Mock-the-sink-not-the-subject** — the test must exercise the module whose branching is the subject of the assertion; mocking that module turns the test into mock-introspection. Seen 1x.
 - **Fixture rot via raw text matching** — a fixture that was valid under a text-window rule becomes trivially-passing under an AST rule (and vice versa); self-test gate catches this at the shipping boundary. Seen 1x directly (seam-recheck fixture) + documented as lesson.
 
