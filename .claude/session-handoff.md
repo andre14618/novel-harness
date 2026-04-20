@@ -1,111 +1,119 @@
 ---
 status: session-closed
 updated: 2026-04-19
-session_closed_at: 2026-04-19T19:50:00Z
+session_closed_at: 2026-04-19T22:30:00Z
 ---
 
 # Session handoff — novel-harness
 
-**Purpose:** short living state doc. Next session reads this FIRST before reconstructing from git/todo/sessions. If stale (`updated` > 48h old), treat as unreliable and fall back to `bun scripts/status.ts` (not yet shipped — see next-session priority #2) + manual reconstruction.
+**Purpose:** short living state doc. Next session reads this FIRST.
 
 ## What's in flight RIGHT NOW
 
-**Nothing.** Today's organic-run-verify completed (experiment #239 PASS). In-flight registry is empty (pruned at session close).
-
-If you see any active runs in `bun scripts/lib/in-flight.ts list`, something was launched between session close and your session-start. Investigate before starting new work.
+**Nothing.** Registry empty (`bun scripts/lib/in-flight.ts list` → no runs).
+If you see any active runs, something was launched between session close
+and your session-start. Investigate before starting new work.
 
 ## What's pending Codex review
 
-**Nothing open.** Final session-close thread `ab0b2dcea718737cf` returned `RESIDUAL_WORK_2` — two known-deferred items (see below), not blocking.
+**Nothing open.** Final session thread `ac2bb23e2682785f0` returned
+RESOLVED + CLEAN. 5-invariants ticket concluded (exp #243).
 
 ## Start-here priorities for next session
 
-1. **5 starting invariants — implementation ticket.** Registry is live at [`docs/invariants.md`](../docs/invariants.md) (exp #242, shipped 2026-04-19). All 5 entries currently `planned` — the next ticket implements them. Per Codex Q6 (`ad350aa657ec1c9b1`): invariants MUST be blocking preflight gates, NOT debug-only.
-   - Ship `scripts/lint/invariants-check.ts` (AST walker + regex passes for invariants #2, #3, #5)
-   - Ship `src/invariants/` runtime assertions for invariants #1, #4
-   - Ship `.claude/invariants-allowlist.yaml` (empty initially)
-   - Wire into preflight per skill doc Phase 5
-   - Move entries from `planned` → `shipped` in the registry status table
+1. **Measure the ratio.** `docs/invariants.md` §Ratio target: within 3-5
+   sessions `bugs_caught_by_preflight` should match or exceed
+   `bugs_caught_by_codex` on recurring classes. Track via session-
+   retrospective telemetry (`wall_clock_min`, `bugs_caught_by_*`,
+   `preflight_false_positives`). If ratio doesn't move, invariants are
+   theater — revisit shape taxonomy.
 
-2. ~~`scripts/status.ts`~~ **DONE 2026-04-19** — shipped in commit `413bf12` + `5da3475` (exp #241). One-shot dashboard; run `bun scripts/status.ts`.
+2. **Invariant #5 allowlist refactor ticket.** 4 allowlist entries in
+   `.claude/invariants-allowlist.yaml` expire 2026-05-19. Each is an
+   `if (!res.ok) throw \`... ${await res.text()}\`; const j = await res.json()`
+   idiom the template-literal regex false-positives on. Either refactor
+   each to `const txt = await res.text(); if (!res.ok) throw ...` OR widen
+   the invariant to AST-scoped detection that recognizes throw
+   short-circuit. Sites: `src/db/embed.ts:50`,
+   `scripts/finetune/archetype-poc/flatten-deepseek.ts:67`,
+   `scripts/corpus/test-deepseek-dialogue.ts:80`,
+   `scripts/hallucination/smoke-eval.ts:42`.
 
-3. ~~`docs/codex-preamble.md`~~ **DONE 2026-04-19** — generator at `scripts/lib/codex-preamble.ts`, emits `docs/codex-preamble.md`. Regenerate with `bun scripts/lib/codex-preamble.ts --emit`. ~57 lines under a 200-line hard cap (regenerates per-invocation). Codex review `a3af80e8eb4312169` HOLD → all 3 findings fixed in `5da3475`. Now also points at `docs/invariants.md` as canonical registry (commit `9ed7980`).
+3. **BASELINE_TEST_FAILURES → 0.** `scripts/preflight.ts` tolerates 1 pre-
+   existing failure in `src/phases/beat-checks.test.ts`. Root cause: cross-
+   file mock pollution — `drafting-*.test.ts` mock `./beat-checks` without
+   re-exporting `aggregateIssues`, and the mock persists when
+   `beat-checks.test.ts` loads later in the same `bun test src/` process.
+   Fix: either re-export `aggregateIssues` from the mocks, or isolate
+   test-file load order. Preflight unblocks to cleanly green once fixed.
 
 ## Deferred / flagged
 
-- **M3 Zod per-kind validation** on `POST /api/debug/inject` — 20-min
-  follow-up. Env gate blocks prod adversaries; malformed test rules
-  fail loudly when fired. Not urgent.
-- **V2 transport interceptor Phase 2** — retire V1 env flags. Needs an
-  equivalence test matrix (seven V1 seams × V2 rule-backed equivalents).
-- **Codex RESIDUAL_WORK_2 note:** the organic-run-verify #239 PASS is
-  narrow — didn't exercise rewrite/reviser/exhaustion branches. Combined
-  with today's forced R-campaigns the architecture is validated. Worth
-  noting for future "what counts as validation" discussions.
+- Invariant #2 / #3 MEDIUM findings from Codex thread `a01385f5` — broad
+  event-consumption detector + cross-file `globalThis.__invariant4State`
+  fragility. Deferred per "invariants are not a test substitute."
+  Adapter tests + fixtures remain the regression belts. Revisit if the
+  MEDIUM class recurs.
+- Invariant #5 AST-scoped detector — the full assertion ("any two body-
+  consuming calls on same Response") needs AST support. Deferred.
+- `docs/patterns/ast-over-text-for-syntactic-invariants.md` — elevation
+  candidate. Pattern observed 2x this session (function-scope →
+  text-window → AST). Wait for one more recurrence per elevation
+  criterion before committing the pattern doc.
 
 ## Recent architectural decisions (last 48h)
 
 Full entries in `docs/decisions.md`:
-- **Round A + Round B architecture** (exp #237 charter) — non-blind-retry
-  + V2 transport interceptor Phase 1 + workflow overhaul (skill doc +
-  telemetry).
-- Experiments #238 (FAIL — env contamination) + #239 (PASS — clean run).
+- **Invariants registry shipped** (exp #242) — `docs/invariants.md` is the
+  canonical source for all invariants + allowlist format.
+- **5 starting invariants shipped** (exp #243) — all 5 entries flipped
+  `planned → shipped`; `scripts/preflight.ts` is the canonical
+  pre-Codex-review gate.
+- (Pre-today) Round A + Round B architecture (exp #237 charter).
 
 ## Session-start protocol
 
 1. Read this doc FIRST.
-2. `bun scripts/lib/in-flight.ts list` — must be empty (expected) or
-   investigate.
+2. `bun scripts/lib/in-flight.ts list` — must be empty or investigate.
 3. `bun scripts/lib/in-flight.ts prune` — cleans ghosts.
-4. Check `docs/todo.md` priorities section.
-5. **Emit the mandatory session-start receipt:**
+4. Check `docs/todo.md` priorities.
+5. Emit mandatory session-start receipt:
    `session-start: handoff ✓ in-flight ✓ todo ✓`
 6. Only then start new work.
 
+Before dispatching subagents whose work touches `.claude/*.yaml` or
+similar sandbox-gated paths: Claude main writes the file scaffolding
+FIRST. Subagents extend. (Observed 2026-04-19 — Slice A lost one
+dispatch to a Write denial on `.claude/invariants-allowlist.yaml`.)
+
 ## Session-close protocol (what today did)
 
-- 15 commits on main (see retrospective at
-  `docs/sessions/2026-04-19-workflow-overhaul.md` for the supersession
-  chains + Codex exchanges + telemetry)
-- Deployed (commit `d00993b` pushed to LXC; WorkflowPage live at
-  `/app/workflow`)
-- Experiment #239 auto-concluded PASS
-- Registry pruned
-- This handoff overwritten with close state
+- 5 commits on main: `ce6452c`, `10ce979`, `7afe4dd`, `dedc0b6`, `2c29b91`
+  (plus retrospective + handoff + docs-subagent edits).
+- Experiment #243 auto-concluded PASS.
+- Registry pruned (no in-flight runs).
+- This handoff overwritten with close state.
+- Retrospective at `docs/sessions/2026-04-19-5-invariants.md`.
 
-## Commit chain this session (15 commits, full set)
+## Commit chain this session (5 substantive commits)
 
 ```
-0c9b1ef  revisionUsed persistence (Round A)
-f1f844f  R3/R4 race fixes
-83ffce0  cleanup-orphans script
-0c9fa3b  Codex Round A 3-HIGH-bug fixes
-c3e0c08  todo.md Round A done
-a1f4842  organic-run-verify + post-settle validation-check trace (Round B)
-b25f01e  V2 transport interceptor Phase 1
-7cdc0de  doc supersession pass (continuation)
-ef4aa1b  preflight-caught retryErrors type fix
-c0704bd  Codex Round B MEDIUM follow-ups
-a0d396e  implement-ticket skill + session telemetry
-7787a24  experiment tracking + Phase 0 mandatory
-e8886c1  in-flight registry + session handoff scaffolding
-687e651  Codex scaffolding review fixes (verify_pattern + receipts + env probe)
-d00993b  WorkflowPage UI — visual map at /app/workflow
-(plus this commit — retrospective + handoff close)
+ce6452c  [lint] scripts/lint/invariants-check.ts + fixtures (Slice A)
+10ce979  [test] extend drafting tests — invariants #1 + #4 (Slice B)
+7afe4dd  [fix] Codex a01385f5 — invariants HIGH #1 + HIGH #2
+dedc0b6  [fix] Codex acf3a597 — HIGH #1 follow-up (AST-scoped guard scan)
+2c29b91  [process] Slice C — preflight wrapper + flip registry to shipped
+(plus this commit + docs subagent edits)
 ```
 
 ## If you just landed here and don't know what's going on
 
-The `novel-harness` repo completed a large workflow-scaffolding push on
-2026-04-19. Key artifacts live at:
+`novel-harness` completed a 5-invariants implementation push on
+2026-04-19. The registry lives at `docs/invariants.md` — every invariant
+ships with commit refs + an implementation file. The blocking preflight
+is `bun scripts/preflight.ts` — run it before any Codex cycle.
 
-- `.claude/skills/implement-ticket.md` — the workflow (13 phases)
-- `docs/sessions/2026-04-19-workflow-overhaul.md` — today's retrospective
-- `docs/decisions.md` "Round A + Round B architecture" — the authoritative
-  decision log
-- `/app/workflow` (UI) — visual dashboard of the orchestration pattern
-
-The SOP is: short check-back cadence (~120s) on background runs; use
-parallel Sonnet subagents for decomposable implementation; commit-pinned
-reviews; mandatory Phase 0 experiment tracking; mandatory session-start
-receipt.
+SOP remains: parallel Sonnet subagents for decomposable implementation;
+commit-pinned Codex reviews; mandatory Phase 0 experiment tracking;
+session-start receipt; `.claude/*.yaml` scaffolding written by Claude
+main before subagent dispatch.

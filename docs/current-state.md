@@ -155,6 +155,20 @@ If a change affects model cost accounting, also verify representative `getTokenC
 
 If a change affects eventing or orchestration, verify the backend event contract and process supervision path explicitly.
 
+## Preflight Invariants
+
+Structural-property checks that run as blocking preflight gates — the shift-left layer between tests and Codex review. Canonical invocation: `bun scripts/preflight.ts`. Five invariants are live (exp #243, commits `ce6452c`, `10ce979`, `7afe4dd`, `dedc0b6`, `2c29b91`); each targets a recurring bug class previously caught only by Codex. See `docs/invariants.md` for the canonical registry (assertion text, pattern docs, allowlist policy) — that file is the source of truth.
+
+Live checks:
+
+- **#1 revisionUsed restart persistence** (runtime) — reviser hard-cap holds across mid-run process restart. `src/phases/drafting-revision-used-persistence.test.ts`.
+- **#2 Seam-recheck symmetry** (syntactic, AST) — every `chapter-plan-checker` / `chapter-plan-reviser` / `validateChapterDraft` call site inside `src/phases/drafting.ts` has a matching `inject.forceXxx` guard within ±50 source lines, including settle-loop rechecks. `scripts/lint/invariants-check.ts` `checkSeamRecheckSymmetry()`.
+- **#3 Trace-seeded watcher** (syntactic, AST) — any test file that references SSE/trace event shapes must route through `watchForExpectations` / `watchForTerminal` (which seed from `GET /trace` before attaching the live stream). `scripts/lint/invariants-check.ts` `checkTraceWatcher()`.
+- **#4 Branch-symmetric event emission** (runtime, narrow) — auto-mode and web-mode both emit `gate:plan-assist` with matching payload; drives through real `src/gates.ts` without mocking. `src/phases/drafting-reviser-escalation.test.ts`.
+- **#5 Body-already-used detection** (syntactic, regex) — catches template-literal double-consume of `Response` bodies (`${await res.text()}` followed by `await res.json()` on the same variable). `scripts/lint/invariants-check.ts` `checkBodyAlreadyUsed()`. Non-template double-consumes are not caught yet; AST detector deferred — four known short-circuit-error-throw sites are allowlisted in `.claude/invariants-allowlist.yaml` with 30-day expiry.
+
+Baseline at ship time: `BASELINE_TEST_FAILURES = 1` in preflight, documenting a cross-file `bun:test` mock-pollution issue affecting `src/phases/beat-checks.test.ts` loading — tracked as follow-up, not blocking.
+
 ## Documentation Contract
 
 To keep the repo from drifting:
@@ -201,6 +215,7 @@ If yes, update this file.
 
 - **Exhaustion-handler architecture fully shipped.** All five design-memo steps are live: plan-check escalation to chapter-plan-reviser, validation-path reviser escalation (path C), `plan-assist` human gate (web mode: `PlanAssistPanel` override/edit-plan/abort; auto-mode: `PipelineBailError`), `chapter_exhaustions` telemetry table + `GET /api/novel/:id/exhaustions` + `ExhaustionsPanel` in Studio.
 - **Debug-injection MVP live.** `src/config/debug-injection.ts` with `DEBUG_FORCE_PLAN_CHECK`, `DEBUG_FORCE_VALIDATION`, `DEBUG_FORCE_REVISER` env flags. Campaign tests R0/R1/R5/R6/R7 all passing; R2/R3/R4 in flight with 15-minute web-mode timeouts.
+- **Preflight invariants shipped (exp #243).** Five blocking preflight checks live via `bun scripts/preflight.ts` — covers restart persistence, seam-recheck symmetry, trace-seeded SSE watcher discipline, branch-symmetric event emission, and body-already-used detection. Commits `ce6452c`, `10ce979`, `7afe4dd`, `dedc0b6`, `2c29b91`. Registry at `docs/invariants.md`. Codex final verdict PASS after two fix-pass iterations.
 - **Next pending work (from Codex follow-on reviews):** V2 transport-interceptor (Codex ae23f96a5f5cf8247) as the durable replacement for scattered env-flag injection seams; `src/invariants/debug.ts` centralized assertion module; historical-superseded doc pass across decisions.md + adapter-changelog.md + lessons-learned.md + fine-tuning-strategy.md + adapter-training-reference.md + retry-surface-audit.md (Codex ac11a277b179df8b0).
 
 ## Current Known Gaps

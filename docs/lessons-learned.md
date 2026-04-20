@@ -1255,3 +1255,17 @@ The first draft of `watchForExpectations` rejected the test on any `error` SSE e
 
 **The rule:** an SSE watcher's rejection path must check whether the error event satisfies an expectation in the matcher chain before treating it as a failure. Only reject on errors that no matcher claims. Otherwise auto-mode bail paths — which are correct behavior — look identical to unexpected crashes. (Codex Q5 in a2d16769d75b1d9cc)
 
+## 2026-04-19 — Preflight invariants (exp #243)
+
+### Preflight invariants: AST-scoped beats text-substring, always
+
+Invariant #2 (seam-recheck symmetry) went through three implementations before landing clean. First pass used function-scope substring search, which missed a recheck in an arrow-function helper. Second pass widened to a ±N-line text window, which Codex rejected because a commented-out `inject.forcePlanCheck` inside the window would falsely satisfy the assertion. Third pass used the TypeScript compiler API to find real AST nodes only, with comments and string literals excluded. Only the AST pass survived review. **The rule:** an invariant's precision matters more than its coverage at ship time. A checker that greenlights buggy code because a comment mentions the right identifier is worse than no checker at all — it gives false confidence. Pay the cost of the AST walk on day one. (commits `ce6452c` → `7afe4dd` → `dedc0b6`)
+
+### Mocking the thing you're testing defeats the test
+
+Invariant #4's first Slice-B implementation stubbed `gates.requestPlanAssist`, pushed synthetic events into a local array, and asserted against that array. Codex caught it: the invariant is about whether the real `src/gates.ts` module emits `gate:plan-assist` symmetrically across auto and web modes, and stubbing that module's `requestPlanAssist` means the test asserts only what the stub was written to push — it can't fail on a real emission asymmetry. The fix drove through the unmocked `src/gates.ts`, catching `PipelineBailError` in auto mode and polling the real pending-gate map in web mode. **The rule:** when the invariant is about a real module's branching behaviour, don't mock that module — drive through it. If it's too hard to drive through, the invariant has the wrong shape for a runtime test and probably wants a syntactic check instead. (commits `10ce979` + `7afe4dd`)
+
+### Bun:test cross-file mock pollution
+
+`bun:test` module mocks are process-global, not test-file-scoped. A test file that calls `mock.module("./X", () => ({ foo: ... }))` without re-exporting every symbol that other callers of `./X` import will break any later test file in the same process that loads `./X` for real. Concretely: mocking `./beat-checks` in one test without re-exporting its full shape breaks `beat-checks.test.ts` when it loads later in the bun test run. This is now documented as `BASELINE_TEST_FAILURES = 1` in preflight — a temporary carve-out until a mock-hygiene refactor lands. **The rule:** before using `mock.module` in a shared test tree, either mock at the transport seam below the module you're testing, or re-export the full module shape via the mock factory so unrelated callers don't blow up. Single-file mock isolation is not free in bun.
+

@@ -11,6 +11,23 @@ Pending action items only. Ordered by impact. Completed items and decision ratio
 
 **Architectural direction locked:** context-engineering-forward. Planner expressiveness + beat-context delivery are the quality lever. Checkers are narrow (adherence + hallucination). Craft is a model-weights problem. See `docs/decisions.md` "Context-engineering-forward architecture."
 
+### 0. Preflight invariants — DONE (exp #243, 2026-04-19)
+
+Five starting blocking preflight invariants shipped per `docs/invariants.md` registry. Canonical invocation: `bun scripts/preflight.ts`. Codex final verdict PASS after 2 fix-pass iterations.
+
+- [x] **Invariant #1** — revisionUsed restart persistence (runtime). Commit `10ce979`.
+- [x] **Invariant #2** — Seam-recheck symmetry (AST). Commits `ce6452c` + `7afe4dd` + `dedc0b6`.
+- [x] **Invariant #3** — Trace-seeded watcher for post-start event assertions (AST lint). Commit `ce6452c`.
+- [x] **Invariant #4** — Branch-symmetric event emission (runtime, narrow). Commits `10ce979` + `7afe4dd`.
+- [x] **Invariant #5** — Body-already-used detection (regex). Commit `ce6452c`.
+- [x] **Registry doc** — `docs/invariants.md` updated with shipped statuses. Commit `2c29b91`.
+
+Follow-ups (low priority):
+
+- [ ] **Widen invariant #5 to AST-based detection** — current regex catches only the template-literal shape (`${await res.text()}` then `await res.json()`). Sequential non-template double-consumes (`const a = await res.text(); const b = await res.json();`) are not caught. Deferred to a future ticket; known sites covered by allowlist.
+- [ ] **Refactor the 4 HEAD allowlist entries for invariant #5** — `.claude/invariants-allowlist.yaml` has 4 short-circuit `if (!res.ok) throw ... ${await res.text()}` patterns marked with 30-day expiry. Before expiry, either refactor the call sites to consume the body once (e.g. read into a variable, then branch on ok) or re-confirm as intentional allowlist.
+- [ ] **Tighten `BASELINE_TEST_FAILURES` to 0** — preflight currently accepts 1 baseline failure documenting a cross-file `bun:test` mock-pollution issue (module mocks are process-global; mocking `./X` without re-exporting X's full shape breaks `X.test.ts` loading when it runs later in the same process — affects `src/phases/beat-checks.test.ts`). Proper fix is a mock-hygiene refactor across the affected test files; once landed, drop the baseline to 0 so regressions fail immediately.
+
 ### 1. Hallucination checker v3 — wire decomposed adapters into retry loop
 
 **v2 rejected (2026-04-18):** pure-synth training hit 95%+ synth-val but regressed to 77.8%/51.2% natural-val. Distribution-shift. See `docs/decisions.md` 2026-04-18.
