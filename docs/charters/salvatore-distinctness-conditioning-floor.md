@@ -174,7 +174,9 @@ Rounds 1 and 2 (below) both returned **RED** against earlier revisions. This is 
 | `/codex:adversarial-review` (GPT) — round 4 | RED | 2026-04-20 | H1 likely a no-op on 4-line production characters; pilot runner still owns load-bearing §7 logic. See §10.4. |
 | `/codex:adversarial-review` (GPT) — round 5 | RED | 2026-04-20 | 4 concrete blockers (responseFormat, per-arm refs, loss-encoding, chapter-opener bridge) + 2 warnings. All addressed by commit `254fb71`. See §10.6 round-6 bookkeeping. |
 | `/codex:adversarial-review` (GPT) — round 6 | RED | 2026-04-20 | All round-5 items CLOSED. Two new narrower blockers: baseline-ladder omits real production (#1) + transport retries not audit-trailed (#2). See §10.7. |
-| `/codex:adversarial-review` (GPT) — round 7 | pending | pending | Re-review target after the round-6 blockers are addressed. |
+| `/codex:adversarial-review` (GPT) — round 7 | RED | 2026-04-20 | Three concrete fixable blockers: stale direct-flip ship path, arm order bias under noRetries, permissive parity harness. Addressed by commits `e3ab436` (charter + runner + parity tightening). See §10.8. |
+| `/codex:adversarial-review` (GPT) — round 8 | RED | 2026-04-20 | Round-7 #1 #2 CLOSED. Round-7 #3 replaced by two new narrower concerns: subset-not-exact-match and response_format not mechanically compared. Addressed by commit `453a323`. See §10.9. |
+| `/codex:adversarial-review` (GPT) — round 9 | pending | pending | Re-review after the round-8 fixes + telemetry-audit gaps #1/#2/#5/#6. |
 | `experiment-adversary` (Opus) — fallback only | pending | pending | Only run if Codex is unavailable or a second opinion is explicitly requested. |
 
 ### 10.1 Round-1 verdict (pre-revision)
@@ -283,6 +285,34 @@ Overall judgment: "conditioning alone" did NOT hold under whole-novel A/B; the h
 > RECOMMENDED NEXT ACTION: add raw as a third arm (or reframe §4/§7 as conditioning-lever-only and open a separate production-replacement charter), handle transport retries explicitly, then round 7.
 >
 > Full output: background job `bxr34bz4k`.
+
+### 10.8 Round-7 verdict (post-revision commit `4b3ed17` three-arm + charter `8eb5b1c`)
+
+> VERDICT: RED
+>
+> BLOCKING ISSUES:
+> 1. **[high] Charter contradictory ship paths.** §7 row said "open production-replacement charter" while §11 post-outcome still said "ship conditioning rotation as default" — two incompatible post-SHIP actions. Fix: remove the stale direct-flip language.
+> 2. **[high] Arm order bias under noRetries.** Runner always called raw → fixed → rotation; with `noRetries: true` a transient 429/5xx immediately failed the current arm, and rotation (always last) was systematically most exposed. Fix: treat any arm error as triplet-level abort so all three pair sets drop the beat.
+> 3. **[high] Permissive parity harness.** `isDivergenceInsideExampleLines` just checked if the first diff came AFTER an `Example voiced lines:` marker; didn't verify the diff ENDED inside the block. Post-block drift in refs/bridge/setting could pass as PARITY OK. Fix: structured-segment diff with explicit block mask + subset check.
+>
+> All three addressed by commit `e3ab436`. Full output: background job `b4pjbvmil`.
+
+### 10.9 Round-8 verdict (post-revision commit `e3ab436`)
+
+> VERDICT: RED
+>
+> SUMMARY: Round-7 #1 and #2 CLOSED. Round-7 #3 replaced by two new narrower concerns on the parity harness.
+>
+> BLOCKING ISSUES:
+> 1. **[high] Non-raw parity still accepted arbitrary in-block drift.** The subset check only verified replay entries appeared SOMEWHERE in the live block; didn't verify the EXACT ordered preset subset. Empty, duplicated, or reordered replay blocks would have passed.
+> 2. **[medium] `response_format` was not mechanically compared.** The field that caused round-5 RED was still verified by code inspection only; `ComparableRequest` dropped it from the summary. A future regression in that field couldn't be auto-caught.
+>
+> Both addressed by commit `453a323`:
+> - `computePresetSelection()` exported from the runner; parity harness now asserts exact ordered preset-subset match (not just subset) via `diffFields(live, replay, arm, chapter, beatIndex)`.
+> - `fetchLiveRequest` parses `request_json` JSON-string; `summarizeRequest` reads `responseFormat` (camelCase) from the envelope; `diffFields` includes response_format in the simple-field diff.
+> - Parity re-verified on LXC with tightened check: all three arms still ✓.
+>
+> Full output: background job `b0k69t0yr`.
 
 ## 11. Open questions / readiness gate
 
