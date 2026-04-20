@@ -7,17 +7,28 @@
  * (slim-live-v1-replay).
  *
  * Closes Codex leak #4 (the previousBeatProse feedback-loop confound) by
- * construction: both arms replay against the same source-novel prior-beat prose,
+ * construction: all arms replay against the same source-novel prior-beat prose,
  * so only the exampleLines subset differs at the writer call site.
+ *
+ * Three-arm design (Codex round-6 blocker #1):
+ *   raw      — production default (WRITER_CONDITIONING unset → lines.slice(0,5))
+ *   fixed    — preset-a subset always (WRITER_CONDITIONING=fixed)
+ *   rotation — cycles preset-a/b/c (WRITER_CONDITIONING=rotation)
  *
  * Usage:
  *   bun scripts/evals/run-conditioning-floor-replay.ts \
  *     --source <novel-id> \
  *     --pairs output/evals/conditioning-floor-pairs.jsonl \
  *     --experiment-id <n> \
- *     [--out output/evals/conditioning-floor-replay-pairs.jsonl] \
+ *     [--out output/evals/conditioning-floor-pairs] \
  *     [--min-words 50] \
  *     [--seed conditioning-floor-v1-replay]
+ *
+ * Output (--out is a path PREFIX):
+ *   <prefix>-fixed-vs-rotation.jsonl   — ship gate (arm_a=fixed, arm_b=rotation)
+ *   <prefix>-raw-vs-rotation.jsonl     — diagnostic (arm_a=raw, arm_b=rotation)
+ *   <prefix>-raw-vs-fixed.jsonl        — descriptive (arm_a=raw, arm_b=fixed)
+ *   <prefix>-triplets.json             — full three-arm audit log
  */
 
 import { createHash } from "node:crypto"
@@ -51,24 +62,67 @@ type PairEntry = {
   description: string
 }
 
-/** Extended PairRow with replay-specific fields. */
+/**
+ * Extended PairRow with replay-specific fields.
+ *
+ * loss_a / loss_b generalize the old loss_fixed / loss_rotation naming.
+ * The old field names are preserved for backward compatibility (the judge reads
+ * them if loss_a / loss_b are absent).
+ */
 export type ReplayPairRow = PairRow & {
-  /** true if the fixed arm produced fewer than minWords */
+  /** true if arm_a produced fewer than minWords */
+  loss_a?: boolean
+  /** true if arm_b produced fewer than minWords */
+  loss_b?: boolean
+  /** @deprecated Use loss_a. Kept for backward compat with old judge versions. */
   loss_fixed?: boolean
-  /** true if the rotation arm produced fewer than minWords */
+  /** @deprecated Use loss_b. Kept for backward compat with old judge versions. */
   loss_rotation?: boolean
-  /** error text if either arm failed all retries */
+  /** error text if any arm failed all retries */
   error_text?: string
-  /** word count produced by fixed arm */
+  /** word count produced by arm_a */
+  words_a?: number
+  /** word count produced by arm_b */
+  words_b?: number
+  /** @deprecated Use words_a. Kept for backward compat. */
   words_fixed?: number
-  /** word count produced by rotation arm */
+  /** @deprecated Use words_b. Kept for backward compat. */
   words_rotation?: number
+  /** Number of HTTP attempts made for arm_a (should be 1 with noRetries) */
+  http_attempts_a?: number
+  /** Number of HTTP attempts made for arm_b (should be 1 with noRetries) */
+  http_attempts_b?: number
+}
+
+/**
+ * Internal triplet holding all three arm results for a single beat.
+ * Assembled before being fanned out into three PairRow JSONLs.
+ */
+export type ReplayTriplet = {
+  pair_id: string
+  pov_character: string
+  characters_present: string[]
+  beat_description: string
+  raw_prose: string
+  fixed_prose: string
+  rotation_prose: string
+  words_raw: number
+  words_fixed: number
+  words_rotation: number
+  http_attempts_raw: number
+  http_attempts_fixed: number
+  http_attempts_rotation: number
+  loss_raw: boolean
+  loss_fixed: boolean
+  loss_rotation: boolean
+  error_text?: string
+  cost_usd: number
 }
 
 type ParsedArgs = {
   sourceNovelId: string
   pairsPath: string
-  out: string
+  outPrefix: string
   experimentId: number
   minWords: number
   seed: string
@@ -78,10 +132,9 @@ type ParsedArgs = {
 
 const EVAL_ID = "conditioning-floor-slim-live-v1-replay"
 const AGENT_NAME = "conditioning-floor-replay"
-const DEFAULT_OUT = "output/evals/conditioning-floor-replay-pairs.jsonl"
+const DEFAULT_OUT_PREFIX = "output/evals/conditioning-floor-pairs"
 const DEFAULT_MIN_WORDS = 50
 const DEFAULT_SEED = "conditioning-floor-v1-replay"
-const MAX_RETRIES = 3
 
 // ── Guardrails ────────────────────────────────────────────────────────────────
 
@@ -139,7 +192,7 @@ export function assertGuardrails(env: Record<string, string | undefined> = proce
     for (const v of violations) {
       console.error(`  - ${v}`)
     }
-    console.error("\nFix the above before running. Both arms must see IDENTICAL writer routing.")
+    console.error("\nFix the above before running. All arms must see IDENTICAL writer routing.")
     process.exit(1)
   }
 
@@ -160,7 +213,7 @@ function parseArgs(argv: string[] = process.argv.slice(2)): ParsedArgs {
       "  --source <novel-id> \\\n" +
       "  --pairs <path.jsonl> \\\n" +
       "  --experiment-id <n> \\\n" +
-      "  [--out <path>] \\\n" +
+      "  [--out <prefix>] \\\n" +
       "  [--min-words <n>] \\\n" +
       "  [--seed <string>]"
     )
@@ -190,7 +243,7 @@ function parseArgs(argv: string[] = process.argv.slice(2)): ParsedArgs {
     process.exit(1)
   }
 
-  const out = get("--out") ?? DEFAULT_OUT
+  const outPrefix = get("--out") ?? DEFAULT_OUT_PREFIX
   const minWordsRaw = get("--min-words")
   const minWords = minWordsRaw !== undefined ? Number.parseInt(minWordsRaw, 10) : DEFAULT_MIN_WORDS
   if (minWordsRaw !== undefined && (!Number.isInteger(minWords) || minWords < 1)) {
@@ -202,7 +255,7 @@ function parseArgs(argv: string[] = process.argv.slice(2)): ParsedArgs {
   return {
     sourceNovelId,
     pairsPath: path.resolve(pairsPath),
-    out: path.resolve(out),
+    outPrefix: path.resolve(outPrefix),
     experimentId,
     minWords,
     seed,
@@ -321,6 +374,10 @@ async function readWriterSystemPrompt(systemPromptFile: string): Promise<string>
  * output against a real llm_calls row; the diff must be empty for any
  * field that materially affects writer behavior.
  *
+ * noRetries: true is set per charter §6 experiment-discipline guarantee —
+ * ensures "conditioning alone differs" isn't contaminated by one arm retrying
+ * and another not. Added 2026-04-20 after Codex adversarial round 6 blocker #2.
+ *
  * Exported for the parity harness.
  */
 export function buildWriterRequest(
@@ -340,13 +397,17 @@ export function buildWriterRequest(
     // defaults to {type: "json_object"} which changes provider-side behavior.
     // Added 2026-04-20 after Codex round-5 critical blocker #1.
     responseFormat: { type: "text" },
+    // Experiment-discipline flag: zero retries so all arms have identical
+    // retry behavior. One arm quietly retrying would break the "conditioning
+    // alone differs" claim. See LLMRequest.noRetries in src/transport.ts.
+    noRetries: true,
   }
 }
 
 /**
- * Shared per-beat inputs that must be byte-identical between the two arms.
+ * Shared per-beat inputs that must be byte-identical between all three arms.
  *
- * Built ONCE per beat by the caller and passed unchanged into both arm
+ * Built ONCE per beat by the caller and passed unchanged into all arm
  * invocations. This closes Codex round-5 blocker #2: if each arm rebuilt
  * buildBeatContext independently, resolveReferences() could return different
  * BACKGROUND blocks via its LLM fallback path, breaking the "conditioning
@@ -385,7 +446,7 @@ async function buildSharedBeatInputs(
     return { error: `beat_index_in_chapter ${entry.beat_index_in_chapter} out of range for chapter ${entry.chapter_number} (outline has ${outline.scenes.length} beats)` }
   }
 
-  // Resolve references ONCE. Identical payload feeds both arms.
+  // Resolve references ONCE. Identical payload feeds all arms.
   const preResolvedRefs = await resolveReferences(beatSpec, outline, sourceNovelId, entry.chapter_number, characters)
 
   // Prior-beat prose is bounded to within-chapter (matching live drafting
@@ -417,82 +478,96 @@ async function buildSharedBeatInputs(
 }
 
 /**
- * Call the writer for one arm, with exponential-backoff retry. Both arms see
- * IDENTICAL shared inputs (outline/characters/states/worldBible/refs/prior
- * prose); the ONLY difference is the WRITER_CONDITIONING env var, which
- * pickExampleLineSubset consults when rendering character profiles.
- *
- * We save and restore process.env.WRITER_CONDITIONING around each arm.
+ * Conditioning arm identifier. "raw" means production-default: WRITER_CONDITIONING
+ * is unset so resolveWriterPack returns pack.conditioning = undefined and
+ * pickExampleLineSubset returns lines.slice(0, 5).
  */
-async function callWriterWithRetry(
+type ArmConditioning = "raw" | "fixed" | "rotation"
+
+/**
+ * Result from one arm call.
+ */
+type ArmResult =
+  | { prose: string; costUsd: number; httpAttempts: number }
+  | { error: string }
+
+/**
+ * Call the writer for one arm. noRetries: true is set in buildWriterRequest, so
+ * a single provider error immediately returns an error result — no retry loop.
+ *
+ * For the "raw" arm, WRITER_CONDITIONING is temporarily DELETED so that
+ * resolveWriterPack returns pack.conditioning = undefined (real production
+ * behavior). For "fixed" and "rotation" arms it is set to the respective value.
+ *
+ * The env var is always restored to its original state (or deleted if it wasn't
+ * set) after the call, regardless of success or failure.
+ */
+async function callWriterArm(
   entry: PairEntry,
   sourceNovelId: string,
   systemPrompt: string,
   pack: NonNullable<ReturnType<typeof resolveWriterPack>>,
-  conditioning: "fixed" | "rotation",
+  conditioning: ArmConditioning,
   shared: SharedBeatInputs,
-): Promise<{ prose: string; costUsd: number } | { error: string }> {
+): Promise<ArmResult> {
   const originalConditioning = process.env.WRITER_CONDITIONING
-  process.env.WRITER_CONDITIONING = conditioning
 
-  let lastError: Error | null = null
+  // Set / delete env var for this arm
+  if (conditioning === "raw") {
+    delete process.env.WRITER_CONDITIONING
+  } else {
+    process.env.WRITER_CONDITIONING = conditioning
+  }
 
   try {
-    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-      if (attempt > 0) {
-        const backoffMs = 2 ** attempt * 1000
-        await new Promise((r) => setTimeout(r, backoffMs))
-        console.warn(`    retry ${attempt}/${MAX_RETRIES - 1} (${conditioning} arm, pair ${entry.global_beat_index})`)
-      }
+    const beatCtx = await buildBeatContext({
+      novelId: sourceNovelId,
+      chapterNumber: entry.chapter_number,
+      beatIndex: entry.beat_index_in_chapter,
+      previousBeatProse: shared.previousBeatProse ?? undefined,
+      outline: shared.outline,
+      characters: shared.characters,
+      characterStates: shared.characterStates,
+      worldBible: shared.worldBible,
+      preResolvedRefs: shared.preResolvedRefs,
+      compactMode: true,
+      genre: shared.genre,
+    })
 
-      try {
-        const beatCtx = await buildBeatContext({
-          novelId: sourceNovelId,
-          chapterNumber: entry.chapter_number,
-          beatIndex: entry.beat_index_in_chapter,
-          previousBeatProse: shared.previousBeatProse ?? undefined,
-          outline: shared.outline,
-          characters: shared.characters,
-          characterStates: shared.characterStates,
-          worldBible: shared.worldBible,
-          preResolvedRefs: shared.preResolvedRefs,
-          compactMode: true,
-          genre: shared.genre,
-        })
+    const request = buildWriterRequest(systemPrompt, beatCtx.userPrompt, pack)
+    const response = await executeAndLog(
+      request,
+      undefined, // no novelId — standalone eval call, not a live novel run
+      AGENT_NAME,
+      { chapter: entry.chapter_number, beatIndex: entry.beat_index_in_chapter, attempt: 1 },
+      {
+        meta: {
+          evalId: EVAL_ID,
+          beatId: `${sourceNovelId}-ch${entry.chapter_number}-b${entry.beat_index_in_chapter}`,
+          arm: conditioning,
+        },
+      },
+    )
 
-        const request = buildWriterRequest(systemPrompt, beatCtx.userPrompt, pack)
-        const response = await executeAndLog(
-          request,
-          undefined, // no novelId — standalone eval call, not a live novel run
-          AGENT_NAME,
-          { chapter: entry.chapter_number, beatIndex: entry.beat_index_in_chapter, attempt: attempt + 1 },
-          {
-            meta: {
-              evalId: EVAL_ID,
-              beatId: `${sourceNovelId}-ch${entry.chapter_number}-b${entry.beat_index_in_chapter}`,
-              arm: conditioning,
-            },
-          },
-        )
+    const costUsd = getTokenCost(
+      pack.model.provider,
+      pack.model.model,
+      response.usage.prompt_tokens,
+      response.usage.completion_tokens,
+      response.usage.cached_tokens,
+    )
 
-        const costUsd = getTokenCost(
-          pack.model.provider,
-          pack.model.model,
-          response.usage.prompt_tokens,
-          response.usage.completion_tokens,
-          response.usage.cached_tokens,
-        )
-
-        return { prose: response.content, costUsd }
-      } catch (err) {
-        lastError = err instanceof Error ? err : new Error(String(err))
-        console.warn(`    [${conditioning}] attempt ${attempt + 1} failed: ${lastError.message.slice(0, 120)}`)
-      }
+    return {
+      prose: response.content,
+      costUsd,
+      httpAttempts: response.httpAttempts,
     }
-
-    return { error: lastError?.message ?? `${MAX_RETRIES} retries exhausted` }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    console.warn(`    [${conditioning}] call failed: ${message.slice(0, 120)}`)
+    return { error: message }
   } finally {
-    // Always restore the original conditioning value
+    // Always restore original env state
     if (originalConditioning === undefined) {
       delete process.env.WRITER_CONDITIONING
     } else {
@@ -501,52 +576,57 @@ async function callWriterWithRetry(
   }
 }
 
-// ── Pair assembly ─────────────────────────────────────────────────────────────
+// ── Triplet assembly ──────────────────────────────────────────────────────────
 
 /**
- * Assemble one PairRow from a pre-registered beat entry.
+ * Assemble one ReplayTriplet from a pre-registered beat entry.
  *
  * Steps:
  * 1. Build shared beat inputs ONCE (outline, characters, states, world bible,
- *    resolved references, prior-beat prose). Both arms see this identical
+ *    resolved references, prior-beat prose). All arms see this identical
  *    payload — closes Codex round-5 blocker #2.
- * 2. Call writer with WRITER_CONDITIONING=fixed   → arm_a_prose
- * 3. Call writer with WRITER_CONDITIONING=rotation → arm_b_prose
- * 4. Apply minWords loss gate (closes Codex round-5 blocker #3 at encode
- *    time; the judge wrapper enforces it at score time via short-circuit).
- * 5. Emit UNSHUFFLED row (arm_a_label="fixed", arm_b_label="rotation"). The
- *    judge wrapper owns the seeded A/B shuffle; double-shuffling here would
- *    break seed ownership (Codex round-5 warning #1).
+ * 2. Call writer with WRITER_CONDITIONING unset     → raw arm
+ * 3. Call writer with WRITER_CONDITIONING=fixed     → fixed arm
+ * 4. Call writer with WRITER_CONDITIONING=rotation  → rotation arm
+ * 5. Check httpAttempts on each response (defense-in-depth): if any arm
+ *    retried despite noRetries=true, record the pair as an error so it's
+ *    excluded from judging (contaminated by asymmetric retry).
+ * 6. Apply minWords loss gate per charter §7.
  */
-async function assembleOnePair(
+async function assembleOneTriplet(
   entry: PairEntry,
   sourceNovelId: string,
   genre: string,
   systemPrompt: string,
   pack: NonNullable<ReturnType<typeof resolveWriterPack>>,
   minWords: number,
-): Promise<{ row: ReplayPairRow; costUsd: number }> {
+): Promise<{ triplet: ReplayTriplet; costUsd: number }> {
   const pairId = `${sourceNovelId}-ch${entry.chapter_number}-b${entry.beat_index_in_chapter}`
 
   // Build shared inputs ONCE. If this fails (e.g. beat out of range), record
-  // a mutual-loss row and move on.
+  // a mutual-loss triplet and move on.
   const shared = await buildSharedBeatInputs(entry, sourceNovelId, genre)
   if ("error" in shared) {
     return {
-      row: {
+      triplet: {
         pair_id: pairId,
         pov_character: entry.pov_character,
         characters_present: entry.characters_present,
         beat_description: entry.description,
-        arm_a_prose: "",
-        arm_b_prose: "",
-        arm_a_label: "fixed",
-        arm_b_label: "rotation",
+        raw_prose: "",
+        fixed_prose: "",
+        rotation_prose: "",
+        words_raw: 0,
+        words_fixed: 0,
+        words_rotation: 0,
+        http_attempts_raw: 0,
+        http_attempts_fixed: 0,
+        http_attempts_rotation: 0,
+        loss_raw: true,
         loss_fixed: true,
         loss_rotation: true,
         error_text: `buildSharedBeatInputs: ${shared.error}`,
-        words_fixed: 0,
-        words_rotation: 0,
+        cost_usd: 0,
       },
       costUsd: 0,
     }
@@ -554,49 +634,158 @@ async function assembleOnePair(
 
   let totalCost = 0
 
+  // Raw arm — production default (WRITER_CONDITIONING unset)
+  console.log(`    [raw] calling writer...`)
+  const rawResult = await callWriterArm(entry, sourceNovelId, systemPrompt, pack, "raw", shared)
+  const rawProse = "error" in rawResult ? "" : rawResult.prose
+  const rawWords = countWords(rawProse)
+  const rawHttpAttempts = "error" in rawResult ? 0 : rawResult.httpAttempts
+  const rawError = "error" in rawResult ? rawResult.error : undefined
+  if ("costUsd" in rawResult) totalCost += rawResult.costUsd
+
   // Fixed arm
   console.log(`    [fixed] calling writer...`)
-  const fixedResult = await callWriterWithRetry(
-    entry, sourceNovelId, systemPrompt, pack, "fixed", shared,
-  )
+  const fixedResult = await callWriterArm(entry, sourceNovelId, systemPrompt, pack, "fixed", shared)
   const fixedProse = "error" in fixedResult ? "" : fixedResult.prose
   const fixedWords = countWords(fixedProse)
+  const fixedHttpAttempts = "error" in fixedResult ? 0 : fixedResult.httpAttempts
   const fixedError = "error" in fixedResult ? fixedResult.error : undefined
   if ("costUsd" in fixedResult) totalCost += fixedResult.costUsd
 
   // Rotation arm
   console.log(`    [rotation] calling writer...`)
-  const rotationResult = await callWriterWithRetry(
-    entry, sourceNovelId, systemPrompt, pack, "rotation", shared,
-  )
+  const rotationResult = await callWriterArm(entry, sourceNovelId, systemPrompt, pack, "rotation", shared)
   const rotationProse = "error" in rotationResult ? "" : rotationResult.prose
   const rotationWords = countWords(rotationProse)
+  const rotationHttpAttempts = "error" in rotationResult ? 0 : rotationResult.httpAttempts
   const rotationError = "error" in rotationResult ? rotationResult.error : undefined
   if ("costUsd" in rotationResult) totalCost += rotationResult.costUsd
 
-  // Loss encoding per charter §7
-  const lossFixed = fixedWords < minWords
-  const lossRotation = rotationWords < minWords
-  const errorText = [fixedError, rotationError].filter(Boolean).join("; ") || undefined
+  // Defense-in-depth: if any arm retried despite noRetries=true, the pair is
+  // contaminated by asymmetric retry behavior — mark as error.
+  const retryViolations: string[] = []
+  if (rawHttpAttempts > 1) retryViolations.push(`raw arm made ${rawHttpAttempts} HTTP attempts`)
+  if (fixedHttpAttempts > 1) retryViolations.push(`fixed arm made ${fixedHttpAttempts} HTTP attempts`)
+  if (rotationHttpAttempts > 1) retryViolations.push(`rotation arm made ${rotationHttpAttempts} HTTP attempts`)
 
-  // Emit UNSHUFFLED row. Judge owns the shuffle (single seed owner).
+  const retryErrorText = retryViolations.length > 0
+    ? `noRetries violated: ${retryViolations.join("; ")}`
+    : undefined
+
+  // If retry violation, mark ALL arms as loss so all pairs from this triplet
+  // are excluded from judging.
+  if (retryErrorText) {
+    console.warn(`    [RETRY-VIOLATION] ${retryErrorText} — marking triplet as error`)
+  }
+
+  const baseErrorText = [rawError, fixedError, rotationError, retryErrorText].filter(Boolean).join("; ") || undefined
+
+  // Loss encoding per charter §7
+  const lossRaw = retryErrorText !== undefined || rawWords < minWords
+  const lossFixed = retryErrorText !== undefined || fixedWords < minWords
+  const lossRotation = retryErrorText !== undefined || rotationWords < minWords
+
   return {
-    row: {
+    triplet: {
       pair_id: pairId,
       pov_character: entry.pov_character,
       characters_present: entry.characters_present,
       beat_description: entry.description,
-      arm_a_prose: fixedProse,
-      arm_b_prose: rotationProse,
-      arm_a_label: "fixed",
-      arm_b_label: "rotation",
-      loss_fixed: lossFixed || undefined,
-      loss_rotation: lossRotation || undefined,
-      error_text: errorText,
-      words_fixed: fixedWords || undefined,
-      words_rotation: rotationWords || undefined,
+      raw_prose: rawProse,
+      fixed_prose: fixedProse,
+      rotation_prose: rotationProse,
+      words_raw: rawWords,
+      words_fixed: fixedWords,
+      words_rotation: rotationWords,
+      http_attempts_raw: rawHttpAttempts,
+      http_attempts_fixed: fixedHttpAttempts,
+      http_attempts_rotation: rotationHttpAttempts,
+      loss_raw: lossRaw,
+      loss_fixed: lossFixed,
+      loss_rotation: lossRotation,
+      error_text: baseErrorText,
+      cost_usd: totalCost,
     },
     costUsd: totalCost,
+  }
+}
+
+// ── Triplet → PairRow fan-out ─────────────────────────────────────────────────
+
+/**
+ * Convert a triplet into a PairRow for the fixed-vs-rotation pair set (ship gate).
+ * arm_a = fixed, arm_b = rotation.
+ */
+export function tripletToFixedVsRotation(t: ReplayTriplet): ReplayPairRow {
+  return {
+    pair_id: t.pair_id,
+    pov_character: t.pov_character,
+    characters_present: t.characters_present,
+    beat_description: t.beat_description,
+    arm_a_prose: t.fixed_prose,
+    arm_b_prose: t.rotation_prose,
+    arm_a_label: "fixed",
+    arm_b_label: "rotation",
+    loss_a: t.loss_fixed || undefined,
+    loss_b: t.loss_rotation || undefined,
+    // backward compat aliases
+    loss_fixed: t.loss_fixed || undefined,
+    loss_rotation: t.loss_rotation || undefined,
+    error_text: t.error_text,
+    words_a: t.words_fixed || undefined,
+    words_b: t.words_rotation || undefined,
+    words_fixed: t.words_fixed || undefined,
+    words_rotation: t.words_rotation || undefined,
+    http_attempts_a: t.http_attempts_fixed || undefined,
+    http_attempts_b: t.http_attempts_rotation || undefined,
+  }
+}
+
+/**
+ * Convert a triplet into a PairRow for the raw-vs-rotation pair set (diagnostic).
+ * arm_a = raw, arm_b = rotation.
+ */
+export function tripletToRawVsRotation(t: ReplayTriplet): ReplayPairRow {
+  return {
+    pair_id: t.pair_id,
+    pov_character: t.pov_character,
+    characters_present: t.characters_present,
+    beat_description: t.beat_description,
+    arm_a_prose: t.raw_prose,
+    arm_b_prose: t.rotation_prose,
+    arm_a_label: "raw",
+    arm_b_label: "rotation",
+    loss_a: t.loss_raw || undefined,
+    loss_b: t.loss_rotation || undefined,
+    error_text: t.error_text,
+    words_a: t.words_raw || undefined,
+    words_b: t.words_rotation || undefined,
+    http_attempts_a: t.http_attempts_raw || undefined,
+    http_attempts_b: t.http_attempts_rotation || undefined,
+  }
+}
+
+/**
+ * Convert a triplet into a PairRow for the raw-vs-fixed pair set (descriptive).
+ * arm_a = raw, arm_b = fixed.
+ */
+export function tripletToRawVsFixed(t: ReplayTriplet): ReplayPairRow {
+  return {
+    pair_id: t.pair_id,
+    pov_character: t.pov_character,
+    characters_present: t.characters_present,
+    beat_description: t.beat_description,
+    arm_a_prose: t.raw_prose,
+    arm_b_prose: t.fixed_prose,
+    arm_a_label: "raw",
+    arm_b_label: "fixed",
+    loss_a: t.loss_raw || undefined,
+    loss_b: t.loss_fixed || undefined,
+    error_text: t.error_text,
+    words_a: t.words_raw || undefined,
+    words_b: t.words_fixed || undefined,
+    http_attempts_a: t.http_attempts_raw || undefined,
+    http_attempts_b: t.http_attempts_fixed || undefined,
   }
 }
 
@@ -607,17 +796,25 @@ async function main(): Promise<void> {
   assertGuardrails()
 
   const args = parseArgs()
-  const { sourceNovelId, pairsPath, out, experimentId, minWords } = args
+  const { sourceNovelId, pairsPath, outPrefix, experimentId, minWords } = args
   // Note: --seed is accepted for CLI backward compatibility but not used by
   // this script. The judge wrapper (conditioning-floor-judge.ts) owns the
   // A/B shuffle so there is a single seed owner (Codex round-5 warning #1).
 
+  // Derive output file paths from prefix
+  const outFixedVsRotation = `${outPrefix}-fixed-vs-rotation.jsonl`
+  const outRawVsRotation = `${outPrefix}-raw-vs-rotation.jsonl`
+  const outRawVsFixed = `${outPrefix}-raw-vs-fixed.jsonl`
+  const outTriplets = `${outPrefix}-triplets.json`
+
   console.log(`\n[replay] Source novel:   ${sourceNovelId}`)
   console.log(`[replay] Pairs file:     ${pairsPath}`)
-  console.log(`[replay] Output:         ${out}`)
+  console.log(`[replay] Out prefix:     ${outPrefix}`)
   console.log(`[replay] Experiment ID:  ${experimentId}`)
   console.log(`[replay] Min words:      ${minWords}`)
   console.log(`[replay] Shuffle:        deferred to judge wrapper (single seed owner)`)
+  console.log(`[replay] Arms:           raw / fixed / rotation`)
+  console.log(`[replay] noRetries:      true (charter §6 experiment discipline)`)
 
   // 2. Load source novel metadata
   const novelRows = await db<Array<{ phase: string; seed_json: Record<string, unknown> }>>`
@@ -666,7 +863,7 @@ async function main(): Promise<void> {
   console.log(`[replay] Pairs loaded:   ${entries.length}`)
 
   // 6. Process each pair
-  const rows: ReplayPairRow[] = []
+  const triplets: ReplayTriplet[] = []
   let totalCostUsd = 0
   let lossCount = 0
   let errorCount = 0
@@ -676,56 +873,88 @@ async function main(): Promise<void> {
     console.log(`\n[replay] Processing ${label} — "${entry.description.slice(0, 60)}..."`)
 
     try {
-      const { row, costUsd } = await assembleOnePair(
+      const { triplet, costUsd } = await assembleOneTriplet(
         entry, sourceNovelId, genre, systemPrompt, pack, minWords,
       )
-      rows.push(row)
+      triplets.push(triplet)
       totalCostUsd += costUsd
 
-      const hadLoss = row.loss_fixed || row.loss_rotation
-      const hadError = !!row.error_text
+      const hadLoss = triplet.loss_raw || triplet.loss_fixed || triplet.loss_rotation
+      const hadError = !!triplet.error_text
 
-      if (hadError) {
+      if (hadError && triplet.loss_raw && triplet.loss_fixed && triplet.loss_rotation) {
         errorCount++
-        console.log(`  [SKIP] error: ${row.error_text}`)
+        console.log(`  [SKIP] error: ${triplet.error_text}`)
       } else if (hadLoss) {
         lossCount++
-        const lossArms = [row.loss_fixed && "fixed", row.loss_rotation && "rotation"].filter(Boolean).join("+")
-        console.log(`  [LOSS] ${lossArms} arm(s) below ${minWords}-word threshold (fixed=${row.words_fixed}w, rotation=${row.words_rotation}w)`)
+        const lossArms = [
+          triplet.loss_raw && "raw",
+          triplet.loss_fixed && "fixed",
+          triplet.loss_rotation && "rotation",
+        ].filter(Boolean).join("+")
+        console.log(`  [LOSS] ${lossArms} arm(s) below ${minWords}-word threshold (raw=${triplet.words_raw}w, fixed=${triplet.words_fixed}w, rotation=${triplet.words_rotation}w)`)
       } else {
-        console.log(`  [OK]   fixed=${row.words_fixed}w, rotation=${row.words_rotation}w, cost=$${costUsd.toFixed(5)}`)
+        console.log(`  [OK]   raw=${triplet.words_raw}w, fixed=${triplet.words_fixed}w, rotation=${triplet.words_rotation}w, cost=$${costUsd.toFixed(5)}`)
       }
     } catch (err) {
       const errorText = err instanceof Error ? err.message : String(err)
       console.error(`  [ERROR] unexpected error on pair ${label}: ${errorText}`)
 
-      // Emit a loss row so the pair is counted (not dropped) per charter §7
-      rows.push({
+      // Emit a full-loss triplet so the pair is counted (not dropped) per charter §7
+      triplets.push({
         pair_id: `${sourceNovelId}-ch${entry.chapter_number}-b${entry.beat_index_in_chapter}`,
         pov_character: entry.pov_character,
         characters_present: entry.characters_present,
         beat_description: entry.description,
-        arm_a_prose: "",
-        arm_b_prose: "",
-        arm_a_label: "fixed",
-        arm_b_label: "rotation",
+        raw_prose: "",
+        fixed_prose: "",
+        rotation_prose: "",
+        words_raw: 0,
+        words_fixed: 0,
+        words_rotation: 0,
+        http_attempts_raw: 0,
+        http_attempts_fixed: 0,
+        http_attempts_rotation: 0,
+        loss_raw: true,
         loss_fixed: true,
         loss_rotation: true,
         error_text: errorText,
-        words_fixed: 0,
-        words_rotation: 0,
+        cost_usd: 0,
       })
       errorCount++
     }
   }
 
-  // 7. Write JSONL output
-  await mkdir(path.dirname(out), { recursive: true })
-  const jsonl = rows.map((r) => JSON.stringify(r)).join("\n") + "\n"
-  await writeFile(out, jsonl, "utf8")
+  // 7. Fan triplets out into three PairRow JSONL files
+  const fixedVsRotationRows = triplets.map(tripletToFixedVsRotation)
+  const rawVsRotationRows = triplets.map(tripletToRawVsRotation)
+  const rawVsFixedRows = triplets.map(tripletToRawVsFixed)
 
-  // 8. Persist results to eval_results for provenance
-  for (const row of rows) {
+  await mkdir(path.dirname(outPrefix), { recursive: true })
+
+  await writeFile(
+    outFixedVsRotation,
+    fixedVsRotationRows.map((r) => JSON.stringify(r)).join("\n") + "\n",
+    "utf8"
+  )
+  await writeFile(
+    outRawVsRotation,
+    rawVsRotationRows.map((r) => JSON.stringify(r)).join("\n") + "\n",
+    "utf8"
+  )
+  await writeFile(
+    outRawVsFixed,
+    rawVsFixedRows.map((r) => JSON.stringify(r)).join("\n") + "\n",
+    "utf8"
+  )
+  await writeFile(
+    outTriplets,
+    JSON.stringify(triplets, null, 2) + "\n",
+    "utf8"
+  )
+
+  // 8. Persist results to eval_results for provenance (one row per triplet)
+  for (const triplet of triplets) {
     try {
       await db`
         INSERT INTO eval_results (
@@ -740,36 +969,56 @@ async function main(): Promise<void> {
         ) VALUES (
           ${experimentId},
           ${EVAL_ID},
-          ${row.pair_id},
+          ${triplet.pair_id},
           ${pack.model.model},
           ${"assembled"},
-          ${JSON.stringify({ loss_fixed: row.loss_fixed ?? false, loss_rotation: row.loss_rotation ?? false, words_fixed: row.words_fixed ?? 0, words_rotation: row.words_rotation ?? 0 })},
+          ${JSON.stringify({
+            loss_raw: triplet.loss_raw,
+            loss_fixed: triplet.loss_fixed,
+            loss_rotation: triplet.loss_rotation,
+            words_raw: triplet.words_raw,
+            words_fixed: triplet.words_fixed,
+            words_rotation: triplet.words_rotation,
+            http_attempts_raw: triplet.http_attempts_raw,
+            http_attempts_fixed: triplet.http_attempts_fixed,
+            http_attempts_rotation: triplet.http_attempts_rotation,
+          })},
           ${0},
-          ${row.error_text ?? null}
+          ${triplet.error_text ?? null}
         )
       `
     } catch (dbErr) {
-      console.warn(`[warn] Failed to persist eval_result for ${row.pair_id}: ${dbErr instanceof Error ? dbErr.message : dbErr}`)
+      console.warn(`[warn] Failed to persist eval_result for ${triplet.pair_id}: ${dbErr instanceof Error ? dbErr.message : dbErr}`)
     }
   }
 
   // 9. Summary
-  const validPairs = rows.filter((r) => !r.loss_fixed && !r.loss_rotation && !r.error_text)
+  const validTriplets = triplets.filter((t) => !t.loss_raw && !t.loss_fixed && !t.loss_rotation && !t.error_text)
   console.log("\n── Replay Summary ───────────────────────────────────────")
-  console.log(`  Total pairs processed:     ${rows.length}`)
-  console.log(`  Valid pairs (both arms OK): ${validPairs.length}`)
-  console.log(`  Pairs with a loss arm:     ${lossCount}`)
-  console.log(`  Pairs with errors:         ${errorCount}`)
-  console.log(`  Total writer call cost:    $${totalCostUsd.toFixed(5)}`)
-  console.log(`  Output file:               ${out}`)
+  console.log(`  Total pairs processed:          ${triplets.length}`)
+  console.log(`  Valid triplets (all arms OK):   ${validTriplets.length}`)
+  console.log(`  Pairs with a loss arm:          ${lossCount}`)
+  console.log(`  Pairs with errors:              ${errorCount}`)
+  console.log(`  Total writer call cost:         $${totalCostUsd.toFixed(5)}`)
+  console.log("")
+  console.log(`  Output files:`)
+  console.log(`    Ship gate:   ${outFixedVsRotation}`)
+  console.log(`    Diagnostic:  ${outRawVsRotation}`)
+  console.log(`    Descriptive: ${outRawVsFixed}`)
+  console.log(`    Audit log:   ${outTriplets}`)
   console.log("")
   console.log("  Per-pair word counts:")
-  for (const row of rows) {
-    const status = row.error_text ? "[ERR]" : (row.loss_fixed || row.loss_rotation ? "[LOSS]" : "[OK]")
-    console.log(`    ${status} ${row.pair_id}: fixed=${row.words_fixed ?? 0}w, rotation=${row.words_rotation ?? 0}w`)
+  for (const triplet of triplets) {
+    const status = triplet.error_text
+      ? "[ERR]"
+      : (triplet.loss_raw || triplet.loss_fixed || triplet.loss_rotation ? "[LOSS]" : "[OK]")
+    console.log(`    ${status} ${triplet.pair_id}: raw=${triplet.words_raw}w, fixed=${triplet.words_fixed}w, rotation=${triplet.words_rotation}w`)
   }
   console.log("─────────────────────────────────────────────────────────")
-  console.log(`\nDone. Pass ${out} to conditioning-floor-judge.ts.`)
+  console.log(`\nDone. Pass the pair JSONLs to conditioning-floor-judge.ts with --set-name to control eval_results.set_name:`)
+  console.log(`  Ship gate:   --pairs ${outFixedVsRotation} --set-name conditioning-floor-slim-live-v1-replay-fixed-vs-rotation`)
+  console.log(`  Diagnostic:  --pairs ${outRawVsRotation} --set-name conditioning-floor-slim-live-v1-replay-raw-vs-rotation`)
+  console.log(`  Descriptive: --pairs ${outRawVsFixed} --set-name conditioning-floor-slim-live-v1-replay-raw-vs-fixed`)
 }
 
 if (import.meta.main) {

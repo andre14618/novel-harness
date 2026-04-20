@@ -5,7 +5,7 @@
  *
  * Pairwise voice-distinctness judge for the conditioning-floor-slim-live-v1 eval.
  *
- * Reads a JSONL of matched arm pairs produced by the pilot runner, calls
+ * Reads a JSONL of matched arm pairs produced by the replay runner, calls
  * gpt-5.4 via `codex exec` for each pair, unshuffles the verdict back to the
  * original arm labels, and persists results to public.eval_results.
  *
@@ -14,7 +14,8 @@
  *     --pairs <path.jsonl> \
  *     --experiment-id <n> \
  *     [--out <path>] \
- *     [--seed <string>]
+ *     [--seed <string>] \
+ *     [--set-name <string>]
  */
 
 import { createHash } from "node:crypto"
@@ -25,7 +26,7 @@ import db from "../../src/db/connection"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-/** One row from the pilot-runner pair JSONL. */
+/** One row from the replay-runner pair JSONL. */
 export type PairRow = {
   pair_id: string
   pov_character: string
@@ -39,49 +40,84 @@ export type PairRow = {
   arm_b_label: string
   // ── Loss-encoding fields (from the replay runner, charter §7) ────────────
   //
-  // If either loss_* flag is true, or error_text is set, the pair is
+  // loss_a / loss_b are the canonical names. loss_fixed / loss_rotation are
+  // backward-compat aliases written by old runner versions; the judge reads
+  // both. Callers should prefer loss_a / loss_b going forward.
+  //
+  // If either loss flag is true, or error_text is set, the pair is
   // short-circuited: the judge call is skipped and an automatic verdict is
   // recorded. Added 2026-04-20 after Codex round-5 blocker #3.
+  /** true if arm_a produced fewer than minWords */
+  loss_a?: boolean
+  /** true if arm_b produced fewer than minWords */
+  loss_b?: boolean
+  /** @deprecated Use loss_a. Read for backward compat with old runner output. */
   loss_fixed?: boolean
+  /** @deprecated Use loss_b. Read for backward compat with old runner output. */
   loss_rotation?: boolean
   error_text?: string
+  words_a?: number
+  words_b?: number
+  /** @deprecated Use words_a */
   words_fixed?: number
+  /** @deprecated Use words_b */
   words_rotation?: number
+  /** Number of HTTP attempts made by the runner for arm_a (defense-in-depth) */
+  http_attempts_a?: number
+  /** Number of HTTP attempts made by the runner for arm_b (defense-in-depth) */
+  http_attempts_b?: number
 }
 
 /**
  * Machine-enforced short-circuit resolution for pairs with encoded losses.
  *
+ * Reads loss_a / loss_b canonically; falls back to loss_fixed / loss_rotation
+ * for backward compat with old runner output. Reason strings use the actual
+ * arm_a_label / arm_b_label values from the pair (not hardcoded "fixed" /
+ * "rotation") so the reason is accurate across all three pair sets.
+ *
  * Returns null if the pair is eligible for judge evaluation; otherwise
  * returns the resolved winner_arm_label + a reason string. Both arms
  * failing (mutual loss OR error) scores as an error row, not a tie, so it
- * doesn't accidentally count toward the fixed/rotation tally.
+ * doesn't accidentally count toward the tally.
  */
 export function resolveLossShortCircuit(pair: PairRow): {
-  winner_arm_label: "fixed" | "rotation" | "tie" | "error"
+  winner_arm_label: string
   reason: string
 } | null {
+  // Resolve effective loss flags — prefer new names, fall back to old names
+  const lossA = pair.loss_a ?? pair.loss_fixed ?? false
+  const lossB = pair.loss_b ?? pair.loss_rotation ?? false
+
+  // Resolve word counts for use in reason strings
+  const wordsA = pair.words_a ?? pair.words_fixed ?? 0
+  const wordsB = pair.words_b ?? pair.words_rotation ?? 0
+
+  const labelA = pair.arm_a_label
+  const labelB = pair.arm_b_label
+
   const hasError = !!pair.error_text
-  if (hasError && (pair.loss_fixed || pair.loss_rotation) === false) {
+
+  if (hasError && !lossA && !lossB) {
     // Error without a loss flag — treat as a mutual failure.
     return { winner_arm_label: "error", reason: `runner error: ${pair.error_text}` }
   }
-  if (pair.loss_fixed && pair.loss_rotation) {
+  if (lossA && lossB) {
     return {
       winner_arm_label: "error",
-      reason: `both arms below min-words (fixed=${pair.words_fixed ?? 0}w, rotation=${pair.words_rotation ?? 0}w)${hasError ? `; runner error: ${pair.error_text}` : ""}`,
+      reason: `both arms below min-words (${labelA}=${wordsA}w, ${labelB}=${wordsB}w)${hasError ? `; runner error: ${pair.error_text}` : ""}`,
     }
   }
-  if (pair.loss_fixed) {
+  if (lossA) {
     return {
-      winner_arm_label: "rotation",
-      reason: `automatic rotation win — fixed arm below min-words (fixed=${pair.words_fixed ?? 0}w)`,
+      winner_arm_label: labelB,
+      reason: `automatic ${labelB} win — ${labelA} arm below min-words (${labelA}=${wordsA}w)`,
     }
   }
-  if (pair.loss_rotation) {
+  if (lossB) {
     return {
-      winner_arm_label: "fixed",
-      reason: `automatic fixed win — rotation arm below min-words (rotation=${pair.words_rotation ?? 0}w)`,
+      winner_arm_label: labelA,
+      reason: `automatic ${labelA} win — ${labelB} arm below min-words (${labelB}=${wordsB}w)`,
     }
   }
   if (hasError) {
@@ -116,11 +152,12 @@ type ParsedArgs = {
   experimentId: number
   out: string
   seed: string
+  setName: string
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const SET_NAME = "conditioning-floor-slim-live-v1"
+const DEFAULT_SET_NAME = "conditioning-floor-slim-live-v1-replay"
 const ADAPTER_URI = "salvatore-1988-v4"
 const DEFAULT_OUT = "output/evals/conditioning-floor-judgments.json"
 const DEFAULT_SEED = "conditioning-floor-v1"
@@ -147,7 +184,8 @@ function parseArgs(argv: string[] = process.argv.slice(2)): ParsedArgs {
       "  --pairs <path.jsonl> \\\n" +
       "  --experiment-id <n> \\\n" +
       "  [--out <path>] \\\n" +
-      "  [--seed <string>]"
+      "  [--seed <string>] \\\n" +
+      "  [--set-name <string>]"
     )
     process.exit(0)
   }
@@ -156,6 +194,7 @@ function parseArgs(argv: string[] = process.argv.slice(2)): ParsedArgs {
   const experimentIdRaw = get("--experiment-id")
   const out = get("--out") ?? DEFAULT_OUT
   const seed = get("--seed") ?? DEFAULT_SEED
+  const setName = get("--set-name") ?? DEFAULT_SET_NAME
 
   if (!pairsPath) {
     console.error("error: --pairs is required")
@@ -172,7 +211,7 @@ function parseArgs(argv: string[] = process.argv.slice(2)): ParsedArgs {
     process.exit(1)
   }
 
-  return { pairsPath: path.resolve(pairsPath), experimentId, out: path.resolve(out), seed }
+  return { pairsPath: path.resolve(pairsPath), experimentId, out: path.resolve(out), seed, setName }
 }
 
 // ── I/O helpers ───────────────────────────────────────────────────────────────
@@ -383,7 +422,8 @@ async function judgeWithRetry(
 
 async function persistJudgment(
   record: JudgmentRecord,
-  experimentId: number
+  experimentId: number,
+  setName: string
 ): Promise<void> {
   const actualLabelJson = {
     winner: record.judge_winner_position,
@@ -404,7 +444,7 @@ async function persistJudgment(
       error_text
     ) VALUES (
       ${experimentId},
-      ${SET_NAME},
+      ${setName},
       ${record.pair_id},
       ${ADAPTER_URI},
       ${record.winner_arm_label},
@@ -443,6 +483,7 @@ async function main(): Promise<void> {
   const args = parseArgs()
 
   console.log(`Reading pairs from ${args.pairsPath}`)
+  console.log(`Set name: ${args.setName}`)
   const pairs = await readJsonLines<PairRow>(args.pairsPath)
   console.log(`Loaded ${pairs.length} pairs`)
 
@@ -465,7 +506,7 @@ async function main(): Promise<void> {
         latency_ms: 0,
       }
       records.push(record)
-      await persistJudgment(record, args.experimentId)
+      await persistJudgment(record, args.experimentId, args.setName)
       continue
     }
 
@@ -489,7 +530,7 @@ async function main(): Promise<void> {
       console.log(`  → winner: ${winner} (judge said ${verdict.winner}) — ${verdict.reasoning.slice(0, 80)}`)
     } catch (err) {
       const errorText = err instanceof Error ? err.message : String(err)
-      console.error(`  ✗ error on pair ${pair.pair_id}: ${errorText}`)
+      console.error(`  error on pair ${pair.pair_id}: ${errorText}`)
       record = {
         pair_id: pair.pair_id,
         shuffled_a_label,
@@ -503,7 +544,7 @@ async function main(): Promise<void> {
     }
 
     records.push(record)
-    await persistJudgment(record, args.experimentId)
+    await persistJudgment(record, args.experimentId, args.setName)
   }
 
   const summary = computeSummary(records)
@@ -514,7 +555,7 @@ async function main(): Promise<void> {
   }
 
   const output = {
-    set_name: SET_NAME,
+    set_name: args.setName,
     experiment_id: args.experimentId,
     seed: args.seed,
     generated_at: new Date().toISOString(),
