@@ -24,12 +24,18 @@ export interface HallucUngroundedResult {
 }
 
 /** Parses the BEAT_ENTITY_LIST_VARIANT env into a canonical variant tag.
- *  The checker-side is active for v1 and v3; v2 is writer-only. Unknown
- *  / unset values behave as v0 (current prod — no changes). */
+ *  The checker-side is active for v1 and v3; v2 is writer-only.
+ *
+ *  **Default: v1** (promoted 2026-04-20 after exp #254 — charter ladder
+ *  found V1 drops the ungrounded fire rate by 16 pts vs V0 on fantasy-debt,
+ *  clears all 5 gates: magnitude (−16), adherence (0±0), degenerate (0%),
+ *  Class-B (17%), precision (87.5%). See docs/decisions.md. Set
+ *  `BEAT_ENTITY_LIST_VARIANT=v0` to opt out for regression testing.
+ */
 function resolveVariant(): "v0" | "v1" | "v2" | "v3" | "v4" {
-  const raw = (process.env.BEAT_ENTITY_LIST_VARIANT ?? "v0").toLowerCase()
-  if (raw === "v1" || raw === "v2" || raw === "v3" || raw === "v4") return raw
-  return "v0"
+  const raw = (process.env.BEAT_ENTITY_LIST_VARIANT ?? "v1").toLowerCase()
+  if (raw === "v0" || raw === "v1" || raw === "v2" || raw === "v3" || raw === "v4") return raw
+  return "v1"
 }
 
 /**
