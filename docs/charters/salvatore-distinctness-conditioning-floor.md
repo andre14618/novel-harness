@@ -5,24 +5,32 @@ experiment-family: salvatore-distinctness-conditioning-floor
 proposed-by: Codex
 proposed-date: 2026-04-18
 revised-date: 2026-04-20
-revision: slim-live-v1-replay (round 5)
-adversary-verdict: RED (rounds 1–4) — revised for round 5
+revision: slim-live-v1-replay-3arm (round 7)
+adversary-verdict: RED (rounds 1–6) — revised for round 7
 adversary-review-date: 2026-04-20
 supersedes: docs/charters/salvatore-v5-corpus-expansion.md
 depends_on: docs/evals/salvatore-distinctness-v1.md
 ---
 
-# Experiment Charter — `salvatore-distinctness-conditioning-floor` (slim-live-v1-replay)
+# Experiment Charter — `salvatore-distinctness-conditioning-floor` (slim-live-v1-replay-3arm)
 
-**Revision history.** Four RED rounds preceded this revision:
+**Revision history.** Six RED rounds preceded this revision:
 - Rounds 1 + 2 killed the proxy-eval framing (§10.1, §10.2).
 - Round 3 killed the whole-novel A/B framing — even with plan-freeze + clone, running two full novels through the drafting pipeline re-runs upstream concept and planning work (§10.3).
 - Round 4 killed the initial live-surface framing — the 4-line exampleLines preset bug + the deferred pilot runner owned load-bearing decision logic (§10.4).
-- A follow-on targeted diagnosis (Codex, `a49597f22`) then identified five latent leaks in the "conditioning alone differs" claim even with clone-for-variant. The fatal one was the `previousBeatProse` feedback loop in `src/phases/drafting.ts`: any per-beat divergence propagates into later beats' context, so arm isolation breaks at the first beat that diverges (always beat 0, because that's what we're testing).
+- A targeted diagnosis (Codex `a49597f22`) then surfaced the fatal `previousBeatProse` feedback loop (§10.5).
+- Round 5 validated the per-beat replay framing but flagged four concrete implementation blockers (responseFormat, per-arm refs, loss-encoding, chapter-opener bridge) + two warnings (§10.6). All closed by commit `254fb71`.
+- Round 6 confirmed round-5 items closed but opened two narrower concerns (§10.7): the baseline ladder omitted shipped-production, and transport retries were unaudited.
 
-**This revision (`slim-live-v1-replay`)** solves feedback-loop isolation by construction: instead of running two full novels, we **replay individual beats** from a single already-drafted source novel. For each pre-registered beat, `buildBeatContext` is rendered twice — once with `WRITER_CONDITIONING=fixed`, once with `WRITER_CONDITIONING=rotation` — against the SAME source-novel `previousBeatProse`, `landingTarget`, `outline`, `characters`, `characterStates`, and `worldBible`. The writer is called with each prompt separately. Both calls see byte-identical context except for the exampleLines subset.
+**This revision (`slim-live-v1-replay-3arm`)** closes round 6 by adding a third arm: **`raw`** (production default — `WRITER_CONDITIONING` unset → `lines.slice(0, 5)`, matching prior live-novel behavior byte-for-byte per the parity harness). Three arms per beat:
 
-**Research-discipline tradeoff acknowledged up front.** This measures **beat-local conditioning isolation**: "on matched beats, does rotation's subset produce more distinct character voices than fixed's?" It does NOT measure whole-novel rotation policy (cumulative feedback effects across 30 beats). The user chose this explicitly — Codex's round-3 counterfactual "full-novel policy A/B" was deemed too noisy for the charter's claim. If beat-local H1 wins, a follow-on whole-novel policy charter is justified; if beat-local H1 loses, the conditioning-first approach is dead and corpus expansion reopens.
+- **`raw`** — production control (what shipped novels do today). Included as a diagnostic, NOT as the ship gate.
+- **`fixed`** — `preset-a` subset always (`WRITER_CONDITIONING=fixed`). Ship-gate control.
+- **`rotation`** — cycles `preset-a/b/c` (`WRITER_CONDITIONING=rotation`). Ship-gate treatment.
+
+The runner emits three PairRow JSONLs per run: `fixed-vs-rotation` (ship gate), `raw-vs-rotation` and `raw-vs-fixed` (diagnostic). Transport retries are disabled for all arms (`LLMRequest.noRetries: true`, transport commit `851913d`), so one arm cannot silently re-roll while another fails fast. Per-arm `http_attempts` is recorded; any pair with `http_attempts > 1` on either arm is marked `error` and excluded from judging.
+
+**Research-discipline tradeoff acknowledged up front.** This measures **beat-local conditioning isolation**: "on matched beats, does rotation's subset produce more distinct character voices than fixed's (or raw's)?" It does NOT measure whole-novel rotation policy (cumulative feedback effects across 30 beats). That tradeoff was accepted in round 3 — a whole-novel A/B can't clean-isolate conditioning under the live drafting pipeline's `previousBeatProse` feedback loop. If beat-local H1 wins, a follow-on whole-novel policy charter with a different methodology is justified; if beat-local H1 loses, the conditioning-first approach is dead and corpus expansion reopens.
 
 **Scope cuts (cumulative across all revisions):**
 
@@ -33,11 +41,13 @@ depends_on: docs/evals/salvatore-distinctness-v1.md
 
 ## 1. Question
 
-On matched beats replayed from a single source novel, does rotating `exampleLines` subsets at the v4 `buildBeatContext` call produce more distinct character voices than fixed conditioning on the same beat?
+On matched beats replayed from a single source novel, does rotating `exampleLines` subsets at the v4 `buildBeatContext` call produce more distinct character voices than fixed `preset-a` conditioning on the same beat? Secondarily: how do both experimental arms (`fixed` and `rotation`) compare against the **`raw` shipped-production** path (same v4 adapter, no preset logic)?
 
 ## 2. Hypothesis
 
-**If** we pre-register ~20 dialogue-multi-character beats from a single already-drafted fantasy source novel, then for each beat render `buildBeatContext` twice (once with `WRITER_CONDITIONING=fixed`, once with `WRITER_CONDITIONING=rotation`) against identical source-novel `previousBeatProse`, `landingTarget`, `outline`, `characters`, `characterStates`, and `worldBible`, and call `salvatore-1988-v4` with each prompt, **then** the rotation arm will win blind pairwise distinctness judgments on at least `13/20` matched beats (adjusted proportionally for smaller N ≥ 10), **because** if the remaining multi-character blur in v4 output stems from over-reliance on a single cached example-line subset, swapping in different 3-line subsets per beat should produce measurably more differentiated dialogue register.
+**Primary (ship-gate, `fixed` vs `rotation`):** **If** we pre-register ~20 dialogue-multi-character beats from a single already-drafted fantasy source novel, then for each beat render `buildBeatContext` against identical source-novel inputs under THREE conditioning states (`raw`, `fixed`, `rotation`) and call `salvatore-1988-v4` once per state, **then** the rotation arm will win blind pairwise distinctness judgments against the fixed arm on at least `13/20` matched beats (adjusted proportionally for smaller N ≥ 10), **because** if the remaining multi-character blur in v4 output stems from over-reliance on a single cached example-line subset, swapping in different 3-line subsets per beat should produce measurably more differentiated dialogue register than holding it on `preset-a`.
+
+**Diagnostic (`raw` vs `rotation`, `raw` vs `fixed`):** not a ship gate. Reports how each experimental arm compares against real shipped production. Informs a follow-on production-replacement charter if (and only if) the ship-gate passes.
 
 Primary metric artifact:
 - [docs/evals/salvatore-distinctness-v1.md](/Users/andre/Desktop/personal_projects/novel-harness/docs/evals/salvatore-distinctness-v1.md) provides the frozen judge choice (`gpt-5.4` via the Codex plugin) and the pairwise-voice-distinctness rubric shape. This charter inherits both.
@@ -48,51 +58,58 @@ This charter does not reopen judge selection. It does not reopen retention metho
 
 Rotation is not the lever if:
 
-1. Rotation wins `<= 10/N` matched beats on blind pairwise judging (thresholds scale proportionally for N < 20 per §7).
-2. Rotation produces prose that triggers halluc-leak Rung 0 regex fires at any rate above zero — the regex is exact-match, so any regression vs the fixed arm is a fail. (Adherence events are not measured in beat-local replay because the replay bypasses the full drafting pipeline by design.)
+1. Rotation wins `<= 10/N` matched beats against the **fixed** arm on blind pairwise judging (thresholds scale proportionally for N < 20 per §7). This is the ship gate.
+2. Rotation produces prose that triggers halluc-leak Rung 0 regex fires at any rate above the fixed arm — the regex is exact-match, so any regression vs fixed is a fail. (Adherence events are not measured in beat-local replay because the replay bypasses the full drafting pipeline by design.)
 
-If either prong fires, kill the conditioning-first claim and reopen `salvatore-v5-corpus-expansion` as a separate charter (PDF acquisition is that charter's pre-gate).
+If either prong fires, kill the conditioning-first claim and reopen `salvatore-v5-corpus-expansion` as a separate charter (PDF acquisition is that charter's pre-gate). The `raw` vs `rotation` result is reported but does not gate this charter's kill/ship decision — it feeds the follow-on production-replacement charter.
 
-Secondary follow-on (post-win only): if beat-local H1 wins, a separate whole-novel policy charter addresses the policy question Codex round 3 could not clean-isolate. That charter would use a different methodology (perhaps accepting the feedback-loop confound and measuring cumulative effect on cheaper telemetry).
+Secondary follow-on (post-win only): if beat-local H1 wins, a separate whole-novel policy charter + production-replacement charter address the two questions this charter deliberately defers (cumulative-effect policy and raw-vs-rotation under live-pipeline conditions).
 
 ## 4. Baseline ladder
 
-| Slot | Config | Purpose |
-|------|--------|---------|
-| Baseline | `salvatore-1988-v4` + `conditioning: "fixed"` in the fantasy `WRITER_GENRE_PACKS` (exampleLines always drawn from `preset-a`) | Control arm — what production does today |
-| Test | `salvatore-1988-v4` + `conditioning: "rotation"` (exampleLines cycle preset-a → preset-b → preset-c per beat) | Treatment arm — the question |
+| Slot | Config | Role | Purpose |
+|------|--------|------|---------|
+| Raw (production) | `salvatore-1988-v4`, `WRITER_CONDITIONING` **unset** → `lines.slice(0, 5)` unchanged. Byte-identical to shipped live novels (parity harness verified). | Diagnostic | Real shipped-production surface. Not the ship gate here. |
+| Fixed | `salvatore-1988-v4` + `WRITER_CONDITIONING=fixed` → `preset-a` subset (3-of-4 for 4-line characters, 3-of-5 for 5-line). | Ship-gate control | Isolates "which 3 lines" as the only lever vs rotation. |
+| Rotation | `salvatore-1988-v4` + `WRITER_CONDITIONING=rotation` → cycles `preset-a/b/c` by `(chapter*100 + beat_index) % 3`. | Ship-gate treatment | The hypothesis under test. |
 
-No v3 rung, no Sonnet rung, no H2 rung. This charter tests one lever. Other rungs belong to other charters.
+No v3 rung, no Sonnet rung, no H2 rung. This charter tests one conditioning lever; the raw arm is descriptive. Other rungs belong to other charters.
 
 ## 5. Cheapest counterfactuals considered
 
 | Lever | Cost | Disposition |
 |-------|------|-------------|
-| H1 live A/B via a committed conditioning flag on `buildBeatContext` with blind gpt-5.4 pairwise judging | ~$0.10 writer spend; judge routed through Codex plugin (no API cost) | **MUST-MEASURE.** This is the primary arm of the charter. |
+| H1 three-arm replay (raw + fixed + rotation) via committed conditioning flag on `buildBeatContext` with blind gpt-5.4 pairwise judging | ~$0.15 writer spend (3 arms × 20 beats); judge routed through Codex plugin (no direct API cost) | **MUST-MEASURE.** Ship gate is `fixed` vs `rotation`; `raw` comparisons are diagnostic. |
 | H2 (profile-field rotation) on live runtime | Requires new runtime contract for preset-indexed `tics`/`avoid` arrays | **DEFERRED.** Reopens only if H1 wins and the question becomes "does profile rotation compound the win?" |
 | Proxy eval on `salvatore-distinctness-v1` frozen beats | ~$0.02 writer spend; judge via Codex | **REJECTED as ship gate.** Round 1 / round 2 adversary review established the proxy is too far from `buildBeatContext` (exp #195) and its two-arm runner re-draws fixed-v4 across runs, violating same-ladder comparability (§2.1, §9.4). Kept as unit-tested infrastructure but not invoked by this charter. |
+| Whole-novel policy A/B | Two full novel runs + pipeline retries + reviser passes | **REJECTED for this charter.** `previousBeatProse` feedback loop (Codex leak #4, §10.5) prevents clean isolation. Follow-on charter only if H1 ship-gate passes. |
 | Corpus expansion retrain (`salvatore-v5-corpus-expansion`) | Training + corpus-prep + eval spend | **EXPLICITLY DEFERRED.** Reopen only if H1 fails. PDF acquisition remains that charter's pre-gate. |
 
 ## 6. Distribution match
 
 - **Train set stratification:** not applicable; no training arm.
 - **Eval surface:** the **production `buildBeatContext` + writer call path**, invoked directly (NOT through the full drafting pipeline). `pickExampleLineSubset` + production character cards + real world-bible + real previousBeatProse from a source novel. Transition bridges, landing targets, resolved references all come from the source novel's drafted state.
-- **Arm isolation via per-beat replay.** For each pre-registered beat:
-  1. Reconstruct `BeatContextInput` from the source novel's frozen DB state: outline row, character rows (ORDER BY id — stable post commit `268d06d`), character states at that chapter, world bible, previous beat's prose from the `beats` table, genre from `novels.seed_json`.
-  2. Set `WRITER_CONDITIONING=fixed`, call `buildBeatContext(inputs)`. Call the writer on the result. Capture prose → `arm_a_prose`.
-  3. Set `WRITER_CONDITIONING=rotation`, call `buildBeatContext(inputs)` with the SAME inputs. Call the writer. Capture prose → `arm_b_prose`.
-  Both calls see identical context except for the `exampleLines` subset selected by `pickExampleLineSubset`. No drafting-pipeline feedback loop, no chapter-plan-checker rewrites, no adherence retries. `previousBeatProse` comes from the source novel and is shared between arms. Closes Codex leak #4 by construction.
-- **Experiment guardrails (Codex leaks #2, #5).** At runner startup, assert and abort if any of: `WRITER_MODEL_OVERRIDE`, `WRITER_PROVIDER_OVERRIDE`, `STYLE_PRIMER`, `DEBUG_FORCE_*` env vars are set; or `state/agent-overrides.json` is non-empty. Transport-layer auto-retries are disabled for this experiment (or every retry is recorded in the output so the pair can be excluded).
-- **Pre-registered pair set.** `scripts/evals/conditioning-floor-pair-builder.ts` reads the source novel's frozen `chapter_outlines`, filters to beats with `kind==="dialogue"` and `characters.length >= 2`, stratifies round-robin across chapters, emits JSONL of up to `N=20` beat pre-registrations. Runs ONCE against the source novel BEFORE either arm's replay. Beats where either arm fails to produce `>=50` words are counted as losses for that arm (not dropped from N). Closes round-3 blocker #2.
+- **Arm isolation via per-beat three-arm replay.** For each pre-registered beat:
+  1. Reconstruct `BeatContextInput` ONCE from the source novel's frozen DB state: outline row, character rows (ORDER BY id — stable post commit `268d06d`), character states at that chapter, world bible, previous beat's prose (from `llm_calls.response_content` where `agent='beat-writer'`, ORDER BY id ASC — earliest-attempt, not post-rewrite), genre from `novels.seed_json`. **Reference resolution runs ONCE** via `resolveReferences` and the same `preResolvedRefs` is passed to all three arm builds.
+  2. For each arm in `[raw, fixed, rotation]`: toggle `WRITER_CONDITIONING` (DELETE for raw, set for fixed/rotation), render `buildBeatContext(sharedInputs)`, call the writer with `LLMRequest.noRetries: true`. Capture prose + `http_attempts` from the LLMResponse.
+  3. All three arm calls see byte-identical context except for the `exampleLines` subset selected by `pickExampleLineSubset`. No drafting-pipeline feedback loop, no chapter-plan-checker rewrites, no adherence retries, no transport auto-retries. Closes Codex leaks #2, #4, #5 and round-6 blockers #1, #2 by construction.
+- **Three-arm output fan-out.** The runner assembles a `ReplayTriplet` per beat (raw + fixed + rotation prose + per-arm word counts + per-arm `http_attempts`) and emits FOUR artifacts:
+  - `<prefix>-fixed-vs-rotation.jsonl` (ship-gate pair set)
+  - `<prefix>-raw-vs-rotation.jsonl` (diagnostic)
+  - `<prefix>-raw-vs-fixed.jsonl` (diagnostic)
+  - `<prefix>-triplets.json` (full three-arm audit log, all prose + metadata)
+- **Experiment guardrails (Codex leaks #2, #5).** Runner startup aborts if any of `WRITER_MODEL_OVERRIDE`, `WRITER_PROVIDER_OVERRIDE`, `STYLE_PRIMER`, `DEBUG_FORCE_*` env vars are set or `state/agent-overrides.json` is non-empty. Writer calls pass `noRetries: true` so any retry is a hard abort rather than silent re-roll; defense-in-depth, runner excludes any triplet where `http_attempts > 1` on any arm.
+- **Pre-registered pair set.** `scripts/evals/conditioning-floor-pair-builder.ts` reads the source novel's frozen `chapter_outlines`, filters to beats with `kind==="dialogue"` and `characters.length >= 2`, stratifies round-robin across chapters, emits JSONL of up to `N=20` beat pre-registrations. Runs ONCE against the source novel BEFORE the replay. Same N drives all three pair sets. Beats where any arm fails to produce `>=50` words are counted as losses for that arm (not dropped from N). Closes round-3 blocker #2.
 - **Frozen source novel.** A recent drafted fantasy novel from `public.novels` with `id LIKE '%fantasy-archive%'`, `phase='done'`, `total_chapters >= 3`. Source novel id is committed to `docs/decisions.md` + the output JSON at launch; not author-selectable at replay time. If the preferred source is unusable, a fallback (`fantasy-cartographer` or `fantasy-debt`) is selected and committed BEFORE replay begins.
-- **Blind judging:** gpt-5.4 via Codex plugin (`codex exec --model gpt-5.4 -c model_reasoning_effort=high`). Judge never sees arm labels — `scripts/evals/conditioning-floor-judge.ts` shuffles A/B per pair via sha256(seed+pair_id) and unshuffles verdicts after. Pairwise prompt + rubric frozen in `docs/evals/conditioning-floor-judge-prompt.md`. Verdicts persist to `public.eval_results` with `set_name='conditioning-floor-slim-live-v1-replay'`. Closes round-3 blocker #3.
+- **Blind judging:** gpt-5.4 via Codex plugin (`codex exec --model gpt-5.4 -c model_reasoning_effort=high`). Judge is invoked THREE times — once per pair set — with distinct `--set-name` values so `eval_results` rows are partitionable (`...-fixed-vs-rotation`, `...-raw-vs-rotation`, `...-raw-vs-fixed`). Judge never sees arm labels — `scripts/evals/conditioning-floor-judge.ts` shuffles A/B per pair via sha256(seed+pair_id) and unshuffles verdicts after. Pairwise prompt + rubric frozen in `docs/evals/conditioning-floor-judge-prompt.md`. Runner emits UNSHUFFLED pair rows (arm_a always the pair's first arm label, arm_b always the second); judge is the single seed owner. Closes round-3 blocker #3 + round-5 warning #1.
+- **Parity evidence (parity harness).** `scripts/evals/conditioning-floor-parity-check.ts --arm raw|fixed|rotation` diffs the replay writer request for a real beat against the same beat's `llm_calls` row. On source `pp2-floor__prompt__fantasy-debt__1776710485411` chapter 5 beat 22 (2026-04-20, commit `851913d`): raw → ✓ byte-equal to live (model, provider, temperature, max_tokens, system_prompt 2842ch, user_prompt 2025ch); fixed and rotation → byte-equal to live EXCEPT inside the "Example voiced lines:" block (expected delta — that's the intervention). Response format match verified by code inspection (`src/phases/drafting.ts:296/575/887` vs `buildWriterRequest` — both `{ type: "text" }`; not stored in `llm_calls.request_json`).
 - **Production distribution — acknowledged scope cut.** This measures beat-local H1 isolation, NOT whole-novel policy effect. The feedback-loop confound that would make whole-novel isolation impossible is explicitly abandoned here; see §1 discussion. If beat-local H1 wins, a follow-on whole-novel policy charter takes a different methodological approach.
 
 ## 7. Success criteria
 
-Primary metric is blind pairwise win-rate across the pre-registered beat replays. Secondary metric is halluc-leak Rung 0 regex fire-rate across all generated prose per arm. Adherence-event count is dropped from the gate in this revision — the replay runner bypasses the drafting pipeline by design, so adherence isn't meaningfully measurable.
+**Primary (ship-gate) metric:** blind pairwise win-rate on the **`fixed-vs-rotation`** pair set. **Secondary (ship-gate) metric:** halluc-leak Rung 0 regex fire-rate on rotation's combined prose vs fixed's combined prose. **Diagnostic metrics** (descriptive, not ship-gate): win-rate on `raw-vs-rotation` and `raw-vs-fixed` pair sets. Adherence-event count is dropped from the gate in this revision — the replay runner bypasses the drafting pipeline by design, so adherence isn't meaningfully measurable.
 
-**Pair set size is fixed at N pairs pre-registered before the rotation arm drafts.** `N` is determined by what `conditioning-floor-pair-builder.ts` produces on the frozen source plan:
+**Pair set size is fixed at N pairs pre-registered before the replay runs.** Same N drives all three pair sets. `N` is determined by what `conditioning-floor-pair-builder.ts` produces on the frozen source plan:
 
 - If the eligible-beat count ≥ 20, `N = 20`.
 - If 10 ≤ eligible-beat count < 20, `N` is the actual eligible count and thresholds below scale proportionally (rounded to nearest integer). The exact N used is committed to the output JSON and `docs/decisions.md`.
@@ -100,30 +117,30 @@ Primary metric is blind pairwise win-rate across the pre-registered beat replays
 
 **Thresholds below are written for `N = 20`.** If `N < 20`, multiply each threshold by `N / 20` and round: SHIP = `round(0.65 · N)`, ITERATE lower-bound = `round(0.55 · N)`, KILL = `round(0.50 · N)`.
 
-Beats where either arm failed to produce prose, or produced <50 words, are counted as losses for that arm (NOT dropped from N). This prevents intervention-induced eligibility shrinkage.
+Beats where any arm failed to produce prose, or produced <50 words, or had `http_attempts > 1`, are counted as losses for that arm (NOT dropped from N). This prevents intervention-induced eligibility shrinkage.
 
-| Outcome | Condition (N=20) | Action |
+| Outcome | Ship-gate condition (fixed-vs-rotation, N=20) | Action |
 |---------|-----------|--------|
-| SHIP rotation | Rotation wins `>= 13/N` pairs AND halluc-leak Rung 0 regex fire count on rotation's combined prose does not exceed fixed's | Ship `conditioning: "rotation"` as the default in the fantasy `WRITER_GENRE_PACKS` entry (remove the env-var gate, set pack-level default to "rotation"). Document in `docs/decisions.md`. Open a follow-on whole-novel policy charter to check cumulative effects before broader rollout. |
-| ITERATE | Rotation wins `11-12/N` OR `>= 13/N` but halluc-leak regression `> 0` | Do not ship. Re-run replay against a second source novel (`fantasy-cartographer` or `fantasy-debt`) before deciding. Document the residual by pair. |
-| KILL | Rotation wins `<= 10/N` | End the conditioning-first claim. Reopen `salvatore-v5-corpus-expansion` as a separate charter with its own pre-gate. |
+| SHIP rotation | Rotation wins `>= 13/N` pairs on fixed-vs-rotation AND halluc-leak Rung 0 regex fire count on rotation's combined prose does not exceed fixed's | **Do NOT silently replace production.** Record decision in `docs/decisions.md`. Open a **production-replacement charter** that uses the `raw-vs-rotation` diagnostic data from this run as its starting evidence and gates any pack-level default change. Reason: this charter's `fixed` arm is NOT the shipped production path; a ship-gate pass here justifies a production charter, not a direct pack default change. |
+| ITERATE | Rotation wins `11-12/N` on fixed-vs-rotation OR `>= 13/N` but halluc-leak regression `> 0` | Do not ship. Re-run three-arm replay against a second source novel (`fantasy-cartographer` or `fantasy-debt`) before deciding. Document the residual by pair. |
+| KILL | Rotation wins `<= 10/N` on fixed-vs-rotation | End the conditioning-first claim. Reopen `salvatore-v5-corpus-expansion` as a separate charter with its own pre-gate. |
+
+**Diagnostic reporting (required, not gating):** the experiment write-up must include a table of all three pair sets with win counts per arm + halluc-leak fire counts. `raw-vs-rotation` and `raw-vs-fixed` results do not change the SHIP/ITERATE/KILL decision on this charter but feed the follow-on production-replacement charter.
 
 Interpretation: count units for pairs and events. Do not convert to percentages or rates when reporting.
 
 ## 8. Budget
 
-Real numbers from `public.llm_calls` (2026-04-20) on recent fantasy runs:
+Writer spend per arm per beat is ~$0.0005–$0.002 (one `buildBeatContext` → one `salvatore-1988-v4` W&B call). Three arms × 20 beats:
 
-- 5-chapter fantasy novel cost: **$0.03–$0.10 total**, writer component **$0.01–$0.05**.
-- Extrapolated 3-chapter fantasy novel cost: **$0.02–$0.06 total** per arm.
-- Two-arm A/B: **~$0.05–$0.12 total writer + checker + plan spend.**
-- Judge: gpt-5.4 via Codex plugin — routed through `${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs`, no direct API cost to this project's accounting.
-- Second seed pilot (only if §7 emits ITERATE): ~$0.05–$0.12 additional.
-- **Total expected spend: under $1** even including the fallback second seed. No training spend.
+- **Writer spend:** 3 arms × 20 beats ≈ 60 W&B Inference calls. Expected $0.05–$0.15 total.
+- **Judge:** gpt-5.4 via Codex plugin, invoked three times (one per pair set), ~20 judgments each = 60 total. No direct API cost (routed through the Codex plugin's own billing channel, not our `llm_calls` ledger).
+- **Second source pilot (only if §7 emits ITERATE):** another 60 W&B calls + 60 judge calls = additional $0.05–$0.15.
+- **Total expected spend: well under $1** even including the fallback second source. No training spend.
 
-**Time cap:** under one working day for both novel runs (parallelizable on LXC) + judge pass + write-up.
+**Time cap:** under one working day for the replay + three judge passes + write-up.
 
-**Stop if:** the W&B Inference serving breaks mid-run, the Codex plugin becomes unavailable, the pilot runner detects unequal plan-checker pass counts between the two arms (beats were written under different retry states), OR the matched-pair count falls below 10.
+**Stop if:** the W&B Inference serving breaks mid-run (any arm hits `http_attempts > 1`); the Codex plugin becomes unavailable; the matched-pair count falls below 10; or the parity harness reports a new non-expected delta on any arm.
 
 ## 9. Linked context
 
@@ -131,11 +148,14 @@ Real numbers from `public.llm_calls` (2026-04-20) on recent fantasy runs:
 - Work order: [docs/charters/revision-work-order-2026-04-18.md](/Users/andre/Desktop/personal_projects/novel-harness/docs/charters/revision-work-order-2026-04-18.md)
 - Frozen distinctness eval (source of judge choice + rubric shape): [docs/evals/salvatore-distinctness-v1.md](/Users/andre/Desktop/personal_projects/novel-harness/docs/evals/salvatore-distinctness-v1.md)
 - Proxy scorer retained as infra only: [scripts/evals/run-salvatore-distinctness-v1.ts](/Users/andre/Desktop/personal_projects/novel-harness/scripts/evals/run-salvatore-distinctness-v1.ts)
-- **Runtime conditioning surface (commits `6c0897c` + `b800457`):** [src/agents/writer/beat-context.ts](/Users/andre/Desktop/personal_projects/novel-harness/src/agents/writer/beat-context.ts), [src/models/roles.ts](/Users/andre/Desktop/personal_projects/novel-harness/src/models/roles.ts) — `WRITER_CONDITIONING=fixed|rotation` env-var override on the fantasy `WRITER_GENRE_PACKS` entry, wired into both `buildBeatContext` render paths via `pickExampleLineSubset`. **4-line preset family + 5-line preset family** (b800457), so production characters (4 exampleLines) get real subset rotation not a no-op. 20 unit tests passing.
+- **Runtime conditioning surface (commits `6c0897c` + `b800457` + `254fb71`):** [src/agents/writer/beat-context.ts](/Users/andre/Desktop/personal_projects/novel-harness/src/agents/writer/beat-context.ts), [src/models/roles.ts](/Users/andre/Desktop/personal_projects/novel-harness/src/models/roles.ts) — `WRITER_CONDITIONING=fixed|rotation` env-var override on the fantasy `WRITER_GENRE_PACKS` entry, wired into both `buildBeatContext` render paths via `pickExampleLineSubset`. 4-line preset family + 5-line preset family (b800457). **Pack-level conditioning is unset by default** (254fb71) — production behavior is `lines.slice(0, 5)` unchanged, matching prior live novel drafting. The env var is only set by the replay runner.
 - **Stable character render order (commit `268d06d`):** [src/db/world.ts](/Users/andre/Desktop/personal_projects/novel-harness/src/db/world.ts) — `getCharacters` now has `ORDER BY id` so prompt bytes are stable between arms.
+- **Transport `noRetries` flag (commit `851913d`):** [src/transport.ts](/Users/andre/Desktop/personal_projects/novel-harness/src/transport.ts) — new `LLMRequest.noRetries` boolean. When true, `DirectTransport` performs 0 retries (1 total attempt). Default false — production paths unchanged. The replay runner sets it to `true` per charter §6 experiment discipline.
 - **Matched-pair builder (commit `6c0897c`):** [scripts/evals/conditioning-floor-pair-builder.ts](/Users/andre/Desktop/personal_projects/novel-harness/scripts/evals/conditioning-floor-pair-builder.ts) — reads source `chapter_outlines`, filters to dialogue beats with ≥2 characters, stratifies round-robin, emits JSONL. Aborts below N=10. 15 unit tests passing.
+- **Three-arm replay runner (commit `4b3ed17`):** [scripts/evals/run-conditioning-floor-replay.ts](/Users/andre/Desktop/personal_projects/novel-harness/scripts/evals/run-conditioning-floor-replay.ts) — three-arm per-beat replay (raw + fixed + rotation). Emits 4 files per run: three pair JSONLs + one triplet audit JSON. Startup guardrails for env-var overrides + persisted agent overrides. `noRetries: true` on all writer calls; defense-in-depth exclusion of any triplet with `http_attempts > 1`. 66 unit tests passing.
+- **Parity harness (commit `851913d`):** [scripts/evals/conditioning-floor-parity-check.ts](/Users/andre/Desktop/personal_projects/novel-harness/scripts/evals/conditioning-floor-parity-check.ts) — `--arm raw|fixed|rotation` byte-diffs the replay writer request against a real `llm_calls` row for the same beat. Raw arm is byte-equal to live; fixed/rotation arms are byte-equal EXCEPT inside the `Example voiced lines:` block (expected delta, logged separately). Used as a pre-run gate: any new non-expected delta aborts the pilot.
 - **Frozen pairwise judge prompt (commit `76f7733`):** [docs/evals/conditioning-floor-judge-prompt.md](/Users/andre/Desktop/personal_projects/novel-harness/docs/evals/conditioning-floor-judge-prompt.md) — gpt-5.4 system + user prompt, voice-distinctness rubric (not identity-assignment), frozen-2026-04-20.
-- **Judge wrapper (commit `26ae698`):** [scripts/evals/conditioning-floor-judge.ts](/Users/andre/Desktop/personal_projects/novel-harness/scripts/evals/conditioning-floor-judge.ts) — seeded sha256 shuffle, `codex exec` invocation, retries with backoff, persistence to `public.eval_results`. Trivial Codex test-call confirmed during build. 8 unit tests passing.
+- **Judge wrapper (commit `26ae698` + `4b3ed17`):** [scripts/evals/conditioning-floor-judge.ts](/Users/andre/Desktop/personal_projects/novel-harness/scripts/evals/conditioning-floor-judge.ts) — seeded sha256 shuffle, `codex exec` invocation, persistence to `public.eval_results`. `--set-name` flag added so three pair-set runs emit to distinct `eval_results.set_name` values. `resolveLossShortCircuit` generalized to `loss_a` / `loss_b` with backward compat; reason strings use the actual arm labels. Single seed owner.
 - **Per-beat replay runner (landing in parallel):** `scripts/evals/run-conditioning-floor-replay.ts` — reconstructs `buildBeatContext` inputs from the source novel's frozen DB state, renders twice with fixed vs rotation conditioning, invokes the writer directly, emits PairRow JSONL for the judge. Enforces startup guardrails against `WRITER_MODEL_OVERRIDE` / `WRITER_PROVIDER_OVERRIDE` / `STYLE_PRIMER` / `DEBUG_FORCE_*` / non-empty agent-overrides. Subsumes the Codex round-4 blocker #2 pilot runner by owning the load-bearing loss-encoding and pair-assembly logic.
 - **Proxy scorer (unused by this charter):** [scripts/evals/run-salvatore-distinctness-v1.ts](/Users/andre/Desktop/personal_projects/novel-harness/scripts/evals/run-salvatore-distinctness-v1.ts) — retained as infra; not invoked.
 - **Clone-for-variant (unused by this revision):** [scripts/variant/clone-for-variant.ts](/Users/andre/Desktop/personal_projects/novel-harness/scripts/variant/clone-for-variant.ts) — was round-3's workflow; replaced by per-beat replay which sidesteps both the known clone-list gap (Codex leak #1: missing `story_spines` + concept knowledge-graph tables) and the unfixable feedback-loop confound (Codex leak #4).
@@ -266,20 +286,23 @@ Overall judgment: "conditioning alone" did NOT hold under whole-novel A/B; the h
 
 ## 11. Open questions / readiness gate
 
-- **(closed) Frozen eval surface:** [docs/evals/salvatore-distinctness-v1.md](/Users/andre/Desktop/personal_projects/novel-harness/docs/evals/salvatore-distinctness-v1.md) — status: frozen-2026-04-18; judge gpt-5.4.
-- **(closed) Proxy scorer TODOs:** commits `e54b1fe` + `e9c8474`. Remains in-repo as infra; not invoked by this charter.
-- **(closed) Conditioning flag + 4-line preset fix:** commits `6c0897c` + `b800457`. Env-var override wired through both render paths; 4-line preset family matches production character-agent output (20 tests).
-- **(closed) Stable character render order:** commit `268d06d`. `getCharacters` ORDER BY id — prompt bytes stable between arms.
-- **(closed) Matched-pair builder:** commit `6c0897c`. 15 tests.
-- **(closed) Pairwise judge prompt + rubric:** commit `76f7733`. Frozen-2026-04-20.
-- **(closed) Judge wrapper:** commit `26ae698`. Codex test-call confirmed. 8 tests.
-- **(landing) Per-beat replay runner:** `scripts/evals/run-conditioning-floor-replay.ts` — per-beat isolation by construction (shared source-novel previousBeatProse), startup guardrails for Codex leaks #2/#5, subsumes the Codex round-4 blocker #2 pilot runner. Currently being implemented by a parallel Sonnet subagent; commit pending at charter-commit time.
-- **(open) Round-5 adversary re-review:** request once the replay runner lands.
+- **(closed)** Frozen eval surface: `docs/evals/salvatore-distinctness-v1.md` — frozen-2026-04-18; judge gpt-5.4.
+- **(closed)** Proxy scorer TODOs: commits `e54b1fe` + `e9c8474`. Retained as infra; not invoked here.
+- **(closed)** Conditioning flag + 4-line preset fix + production-regression fix: commits `6c0897c` + `b800457` + `254fb71`. Pack-level conditioning unset by default.
+- **(closed)** Stable character render order: commit `268d06d`.
+- **(closed)** Matched-pair builder: commit `6c0897c`. 15 tests.
+- **(closed)** Pairwise judge prompt: commit `76f7733`.
+- **(closed)** Judge wrapper + `--set-name`: commits `26ae698` + `4b3ed17`.
+- **(closed)** Per-beat replay runner (original 2-arm): commit `b56adcf`; round-5 fixes in `254fb71`.
+- **(closed)** Three-arm refactor (raw + fixed + rotation): commit `4b3ed17`. Emits 4 files (3 pair JSONLs + 1 triplet audit JSON). `noRetries: true` on all writer calls; `http_attempts > 1` exclusion. 66 tests.
+- **(closed)** Transport `noRetries` flag: commit `851913d`.
+- **(closed)** Parity harness arm-aware: commit `851913d`. Raw / fixed / rotation each validated against a real beat on LXC (2026-04-20 source `pp2-floor__prompt__fantasy-debt__1776710485411` ch 5 beat 22): all three ✓.
+- **(open)** Round-7 adversary re-review: request now.
 
 ### Post-outcome paths
 
-- **Ship path:** if §7 emits SHIP, remove the env-var gate and set `conditioning: "rotation"` as the pack-level default in the fantasy `WRITER_GENRE_PACKS` entry. Inference-local flag flip; no new infra charter. Record in `docs/decisions.md`. **Open a follow-on whole-novel-policy charter** to confirm cumulative effects before broader rollout — beat-local isolation doesn't prove cumulative rotation across a novel works.
-- **Iterate path:** if §7 emits ITERATE, re-run replay against a second source novel (different drafted fantasy seed) before deciding.
+- **Ship path:** if §7 ship-gate emits SHIP, **do NOT directly flip the pack default to "rotation".** The `fixed` arm is not shipped production. Instead: record decision in `docs/decisions.md` and open a follow-on **production-replacement charter** that uses this run's `raw-vs-rotation` diagnostic data as starting evidence. That charter decides whether to flip the pack default (and may require additional evidence — e.g. a whole-novel policy pilot — per the cumulative-effect caveat).
+- **Iterate path:** if §7 emits ITERATE, re-run three-arm replay against a second source novel (different drafted fantasy seed) before deciding.
 - **Fail path:** if §7 emits KILL, reopen `salvatore-v5-corpus-expansion` as a separate charter (PDF acquisition is its own pre-gate).
 - **H2 reopens only as a new charter**, gated on H1 winning first AND a runtime-contract change that lets `buildBeatContext` accept preset-indexed `tics`/`avoid` arrays (production currently renders free-text `speechPattern` / `avoids`).
 - **Whole-novel policy question (separately).** Codex correctly flagged that per-beat isolation can't answer "does rotation policy help across a full novel?" — feedback-loop confounds prevent clean isolation there. A future charter with a different methodology (e.g. accepting the confound and measuring cumulative effect on cheap telemetry) is justified only if beat-local H1 wins.
