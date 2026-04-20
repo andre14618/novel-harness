@@ -544,7 +544,7 @@ export async function logLLMCall(runId: number, data: LLMCallData): Promise<numb
       ${data.novelId ?? null},
       ${data.beatIndex ?? null},
       ${data.attempt ?? null},
-      ${data.requestJson ? JSON.stringify(data.requestJson) : null},
+      ${data.requestJson ?? null},
       ${data.failed ?? false},
       ${data.errorText ?? null}
     )
