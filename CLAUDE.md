@@ -178,7 +178,7 @@ src/
 
 ## Rules
 
-1. **Every experiment goes in the DB.** Use `harness.experiments.createTuningExperiment()` + `concludeExperiment()`. Never delete experiments.
+1. **Every tracked work item goes in the DB.** Use `harness.experiments.createTuningExperiment(type, ...)` + `concludeExperiment()`. Prefer canonical `TrackedWorkType` values (see `src/db/ops.ts`); default to `'ticket'` for standard engineering work. `'charter'` is reserved for multi-commit architectural efforts with multiple Codex review rounds. Never delete experiments.
 2. **Every benchmark run links to an experiment** via `EXPERIMENT_ID=N`.
 3. **All results persist to the DB.** Never write scripts that only output to stdout.
 4. **Use the service layer.** Data access goes through `src/harness/` — no inline SQL in daemon, benchmarks, or UI code.

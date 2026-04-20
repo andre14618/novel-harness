@@ -784,8 +784,24 @@ async function getGitCommitHash(): Promise<string | null> {
   } catch { return null }
 }
 
+export type TrackedWorkType =
+  | "ticket"           // DEFAULT — engineering ticket (feature / bugfix / refactor / docs)
+  | "charter"          // multi-commit architectural effort with multiple Codex review rounds
+  | "sft_training"     // LoRA / SFT training run
+  | "validation_sweep" // benchmark sweep with quantitative outcome
+  | "checker_eval"     // checker / adapter quality eval
+  | "infrastructure"   // infra migration, tooling, deploy work
+  | (string & {});     // tail: preserves compilation for all historical labels
+
+/**
+ * Records a tracked work item in `tuning_experiments`.
+ * Use `"ticket"` for standard engineering work: features, bugfixes, refactors, and docs.
+ * Use `"charter"` only for multi-commit architectural efforts with multiple Codex review rounds.
+ * Use `"sft_training"`, `"validation_sweep"`, `"checker_eval"`, and `"infrastructure"` for training, benchmark/eval, checker quality, and infra/tooling work.
+ * Historical labels still compile via the string tail, but new callers should prefer canonical `TrackedWorkType` values.
+ */
 export async function createTuningExperiment(
-  type: string, description: string, config: Record<string, any>,
+  type: TrackedWorkType, description: string, config: Record<string, any>,
   opts?: { target?: string; dimension?: string },
 ): Promise<number> {
   const commitHash = await getGitCommitHash()

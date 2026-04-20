@@ -43,7 +43,7 @@ const PHASES: Phase[] = [
     summary: "MANDATORY before any code work. Register experiment row; export EXPERIMENT_ID; add in-flight registry entry if launching anything background.",
     notes: [
       "CLAUDE.md rule 1: every experiment goes in the DB",
-      "Experiment types: charter / validation_sweep / sft_training / checker-eval / infrastructure",
+      "Experiment types: ticket / charter / validation_sweep / sft_training / checker_eval / infrastructure",
     ],
   },
   {

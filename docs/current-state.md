@@ -43,6 +43,11 @@ Reference:
 
 - `docs/decisions.md` — "Context-engineering-forward architecture"
 
+### Tracked work taxonomy
+
+Tracked work taxonomy: all work items (tickets, training runs, evals, infra) are recorded as `tuning_experiments`.
+The canonical types are defined in `src/db/ops.ts` as `TrackedWorkType`; use `'ticket'` as the default for standard engineering commits.
+
 ## Active Pipeline
 
 ### Planning and generation

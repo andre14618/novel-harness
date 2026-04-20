@@ -39,11 +39,12 @@ Missing or partial receipt is visible friction. If a step legitimately can't run
 ## Phase 0 — Create tuning_experiment (MANDATORY)
 
 **Before any code work.** CLAUDE.md rule 1: every experiment goes in the DB. Rule 2: every benchmark run links to an experiment via `EXPERIMENT_ID=N`.
+Use type `'ticket'` (the default `TrackedWorkType`) for standard engineering work; reserve `'charter'` for multi-commit architectural efforts with multiple Codex review rounds.
 
 ```ts
 import { createTuningExperiment } from "src/db/ops"
 const expId = await createTuningExperiment(
-  "charter" | "validation_sweep" | "infrastructure" | "checker-eval" | ..., // existing type enum
+  "ticket" | "charter" | "validation_sweep" | "infrastructure" | "checker_eval" | ..., // existing type enum
   "<one-line description — what + why>",
   { /* structured config: commits, codex threads, pass criteria, etc. */ },
   { target: "<what>", dimension: "<axis>" },
@@ -121,6 +122,7 @@ Parallel where disjoint. Single message, multiple Agent tool uses (CLAUDE.md rul
 - Exact file ownership scope + explicit "do NOT touch" list
 - Codex decisions from Phase 2-3 that constrain implementation
 - Test requirements (unit tests mandatory; coverage expectations named)
+- If the subagent will author `mock.module()` calls, point it at `docs/patterns/bun-test-module-mock-hygiene.md` — in `bun:test`, partial mocks leak across sibling files.
 - Commit contract (one commit, message format, do NOT push, do NOT deploy)
 - Report-back shape (<200 word summary, files + tests + design deviations + commit SHA)
 
@@ -135,6 +137,8 @@ Preflight bundle (what the wrapper runs):
 2. `bunx tsc --noEmit` — tolerates a `BASELINE_TSC_ERRORS` count (pre-existing implicit-any debt). NEW errors HALT.
 3. `bun scripts/lint/invariants-check.ts` — default scan.
 4. `bun scripts/lint/invariants-check.ts --self-test` — fixture rot check (each known-bad fixture MUST fire its declared invariant).
+
+If a ticket touched `mock.module()` or shared test helpers, re-run whole-suite `bun test src/` on Bun v1.3.11 (`af24e281`) as a rot check; single-file test runs do not exercise process-global mock leakage.
 
 (Migration-path tests for sql/ changes are a manual add-on when a ticket touches `sql/`.)
 
