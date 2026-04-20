@@ -121,7 +121,8 @@ Rounds 1 and 2 (below) both returned **RED** against earlier revisions. This is 
 |----------|---------|------|-------|
 | `/codex:adversarial-review` (GPT) — round 1 | RED | 2026-04-20 | Bundled lever + distribution mismatch + threshold not producible. Addressed by revision `1749d16` (split lever) + `e9c8474` (scorer profile-rotation mode). |
 | `/codex:adversarial-review` (GPT) — round 2 | RED | 2026-04-20 | Partial H1/H2 split didn't close the underlying issue: proxy can't support same-ladder comparability, H2 has no live analog, pilot was ad hoc. Addressed by this revision (`slim-live-v1`) — proxy dropped, H2 deferred to its own charter, pilot infrastructure committed before run. |
-| `/codex:adversarial-review` (GPT) — round 3 | pending | pending | Re-review target for `slim-live-v1`. |
+| `/codex:adversarial-review` (GPT) — round 3 | RED | 2026-04-20 | Within-live-surface isolation confound, post-hoc pair set, unwritten judge protocol. See §10.3. |
+| `/codex:adversarial-review` (GPT) — round 4 | pending | pending | Re-review target after the §11 infrastructure lands. |
 | `experiment-adversary` (Opus) — fallback only | pending | pending | Only run if Codex is unavailable or a second opinion is explicitly requested. |
 
 ### 10.1 Round-1 verdict (pre-revision)
@@ -157,6 +158,21 @@ Rounds 1 and 2 (below) both returned **RED** against earlier revisions. This is 
 > Full output: background job `bgr2j1057`.
 
 This revision (`slim-live-v1`) adopts the round-2 cheapest-untried-counterfactual verbatim, drops H2, freezes the seed in-charter, freezes the judge choice, and commits all pilot infrastructure (feature flag, pilot runner, pair builder, judge prompt) before §7 runs. The previous "hand-edit WRITER_GENRE_PACKS and revert" path is explicitly removed from §11.
+
+### 10.3 Round-3 verdict (post-revision `8ee48dd` slim-live-v1)
+
+> VERDICT: RED
+>
+> SUMMARY: Round-1 blocker #1 and round-2 blocker #2 are closed because H2 and the proxy ship gate were removed. But round-1 blocker #2 is replaced by a within-live-surface isolation confound, round-1 blocker #3 is still open, and round-2 blockers #1 and #3 remain open in new forms because the A/B is not frozen to a shared pre-drafting source, the scored pair set is output-dependent and can fall below its own thresholds, and the blind-judge protocol is still an unreviewed promise (§1.2, §2.1, §3.6, §9.4, §11.5, exp #195).
+>
+> BLOCKING ISSUES:
+> 1. **Live A/B still does not isolate the conditioning lever.** §6 says both arms use the same plan, references, and POV, but §11's only concrete runner description is two end-to-end novel runs through the existing pipeline. That means planner output, character profiles, and upstream-generated `exampleLines` surface can drift between arms before drafting begins, so any distinctness delta is still a bundled intervention rather than an H1 ablation (§11.5); exp #195 already showed Salvatore conclusions flip when the runtime shape changes. Fix: freeze a single pre-drafting source novel and compare draft-only clones. Reuse the existing `scripts/variant/clone-for-variant.ts` pattern so `chapter_outlines`, character cards, resolved state, and references are shared, and `conditioning` is the only arm difference.
+> 2. **Scored pair set is post-hoc; thresholds unproducible when N drops below 20.** §7 defines matched scenes only AFTER generation (the pair-builder scores beats where both runs produced prose with ≥2 speakers). That lets the intervention change which scenes are eligible (§2.1, §9.4). The charter says to judge all pairs if fewer than 20, but SHIP/ITERATE/KILL remain hard-coded to `>=13/20`, `11-12/20`, `<=10/20`, so the decision rule is ill-defined under the fallback path. Fix: pre-register the exact beat IDs to score BEFORE drafting, or count missing/ineligible beats as losses. Freeze the minimum N and define SHIP/ITERATE/KILL as a function of that fixed N up front.
+> 3. **Round-2 reproducibility blocker deferred, not closed.** The charter treats the frozen `salvatore-distinctness-v1` artifact as supplying the judge choice and rubric shape, but that artifact freezes identity-assignment on synthetic voice-card prompts — not the new live-scene A/B "which arm is more distinct" judgment. The actual decision-critical artifacts (pairwise prompt, judge wrapper, pair-builder, result-writing path) remain open §11 gates scheduled AFTER round-3 review. Approving this charter would be approving unwritten infrastructure, leaving round-2 blocker #3 materially open under §1.2, and §3.6 makes the exact pairwise-judge protocol load-bearing rather than an implementation detail. Fix: land `docs/evals/conditioning-floor-judge-prompt.md`, the judge wrapper, and the pair-builder now; then re-review the charter against those concrete artifacts.
+>
+> RECOMMENDED NEXT ACTION: land the infrastructure, then request round 4.
+>
+> Full output: background job `bm8n9s9pg`.
 
 ## 11. Open questions / readiness gate
 
