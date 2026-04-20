@@ -1,58 +1,53 @@
 ---
 status: session-closed
 updated: 2026-04-19
-session_closed_at: 2026-04-19T23:55:00Z
+session_closed_at: 2026-04-20T00:15:00Z
 ---
 
 # Session handoff — novel-harness
 
 ## What's in flight RIGHT NOW
 
-**Nothing.** `bun scripts/lib/in-flight.ts list` → no runs.
+**Nothing.** `bun scripts/lib/in-flight.ts list` → empty.
 
-## What's pending Codex review
+## What's pending review
 
-**Nothing open.** All 4 tickets this session concluded PASS:
-- T4 (exp #247), T5 (exp #248), T6 (exp #249), T7 (exp #250)
-- Catch-up impl reviews `a0d7f936` (T6) + `aa684958` (T7) both GREEN.
+**Nothing open.** Final thread for T8/T9/T10 was Claude-main self-review (Codex sandbox blocked T10's Codex review surface). All experiments this session concluded PASS.
 
 ## Start-here priorities for next session
 
-**Strongly recommended: resist more meta-work. Ship a product ticket.**
+**Default: pick a product ticket. Three consecutive scaffolding-heavy sessions is the limit.**
 
-Today's session and yesterday's were both scaffolding-heavy: invariants, preflight, pattern docs, workflow tiers, taxonomy. The infrastructure is real but product value accumulated is thin. Ratio target still 0 bugs caught by preflight vs 5+ by Codex. Next session should flip that.
+### Option A — highest product signal
 
-### Option A (highest signal, full-tier ticket)
+**Planner Phase-2 `requiredPayoffs` enrichment** (`docs/todo.md` §3). Add `requiredPayoffs: [{fact_id, payoff_beat}]` to chapter outline schema. Planner links setups→payoffs explicitly. Chapter-plan-checker gets a new mechanizable invariant (every declared fact_id has a payoff_beat that actually mentions it). Direct creative-quality delta.
 
-**Planner Phase-2 `requiredPayoffs` enrichment** — `docs/todo.md` §3. Add `requiredPayoffs: [{fact_id, payoff_beat}]` to chapter outline schema. Planner links setups to payoffs explicitly. Chapter-plan-checker gains a new directly-testable invariant (every fact_id mentioned has a payoff_beat that actually mentions it). Measurable creative-quality delta.
+Scope: 1-2 days. Touches `src/schemas/shared.ts`, planner prompts, `chapter-plan-checker`, `beat-context.ts`. Full-tier pipeline — behavior-changing, multi-file.
 
-Scope: 1-2 days. Touches planner prompts, `src/schemas/shared.ts`, `chapter-plan-checker`, beat-context surfacing. Full-tier pipeline (not Codex-implement — this is behavior-changing + multi-file).
+### Option B — measurement
 
-### Option B (quick wins, light-tier)
+**Hallucination checker v3 production fire-rate** (`docs/todo.md` §1 open bullet). 5-10 organic novels with telemetry collection. Pure ops; no new code unless fire rate suggests adapter retuning.
 
-1. Update `feedback_ticket_class_routing.md` + Phase 0.5 portable-doc to make "Phase 6 impl review is NOT optional" explicit. (Today caught a skip.)
-2. Elevate the `scope-local-vs-function-scope-control-transfers` pattern if it recurs one more time.
+### Option C — compound value from today's kits
 
-### Option C (production telemetry)
-
-Measure hallucination checker v3 production fire rate (`docs/todo.md` §1 open bullet). Needs 5-10 organic novels with telemetry collection. Pure ops — no code changes needed unless fire rate suggests adapter retuning.
+**First real use of `workflows_starter/` in the tandem Claude-run repo.** Copy `invariants-starter/` in; run against that repo's HEAD; surface friction; refine templates. This is the validation that separates useful-scaffolding from decoration.
 
 ## Deferred / flagged
 
-- **Loop-statement reachability edge cases** — T4 handles `while(true)`, `for(;;)`, `do-while`. Still missed: labeled break/continue, `for (; true ;)`, `!0`/`1 === 1` truthiness. Conservative-false for all unmissed cases. No HEAD site needs them today.
-- **Receiver aliasing in invariant #5** — `const body = res; body.text(); res.json()`. Not caught. Defer until a HEAD instance appears.
-- **Scaffolding saturation check** — if next session drifts into another meta ticket unprompted, stop and ask whether it's actually load-bearing. Three scaffolding-heavy sessions in a row = drift signal.
+- **Loop-statement reachability edge cases** — labeled break/continue, `for (; true ;)`, `!0` truthiness. Invariants #5 T4 handles the common cases.
+- **Receiver aliasing in invariant #5** — `const body = res; body.text(); res.json()`. Not caught.
+- **Codex sandbox boundary variability** — seen in T5 (commit lock) and T10 (cross-directory write). Third recurrence would trigger pattern elevation.
+- **T4-T7 experiment labels** — all `charter`, should be `ticket` per the taxonomy T7 itself shipped. Bootstrap artifact; not backfilling.
 
 ## Recent architectural decisions (last 48h)
 
 Full entries in `docs/decisions.md`:
-- **Invariants registry shipped** (exp #242) + **5 invariants shipped** (exp #243) — canonical preflight gate.
-- **Invariant #5 widened to AST** (exp #244) — retired 4 allowlist entries.
-- **Invariant #5 loop reachability** (exp #247) — `while(true)/for(;;)/do-while`.
-- **Pattern elevations** (exp #248, #249) — AST-over-text + bun:test mock hygiene.
-- **TrackedWorkType taxonomy** (exp #250) — `ticket` default, `charter` reserved, widened-literal tail.
-- **Pipeline tiering** (Phase 0.5 in portable doc) — light / full / hybrid routing.
-- **Mock pollution fix** (exp #246) — `BASELINE_TEST_FAILURES → 0`.
+- **Invariants registry + 5 invariants shipped** (#242, #243) — blocking preflight gate.
+- **Invariant #5 widened to AST-based** (#244) + **loop reachability** (#247).
+- **Pattern elevations** (#248, #249) — AST-over-text + bun-test mock hygiene.
+- **TrackedWorkType taxonomy** (#250) — `ticket` default, `charter` reserved.
+- **Pipeline tiering** — Phase 0.5 in workflow-portable; light tier validated on 3 tickets.
+- **`workflows_starter/` created** (#251, #252, #253) — cross-project orchestration artifacts at `/Users/andre/Desktop/personal_projects/workflows_starter/`. NOT a git repo. Houses: PRINCIPLES.md, workflow-portable.md, invariants-starter/, preflight-starter/, session-templates/, patterns-starter/.
 
 ## Session-start protocol
 
@@ -63,23 +58,31 @@ Full entries in `docs/decisions.md`:
 5. Emit `session-start: handoff ✓ in-flight ✓ todo ✓`.
 6. Only then start new work.
 
-Before dispatching subagents whose work touches `.claude/*.yaml`: Claude main writes the file scaffolding FIRST.
+## Session-close protocol (what this session did)
 
-## Session-close protocol (what today did)
+- **2 substantive commits** in novel-harness: `9b074c6` (move workflow-portable.md out) + this docs commit.
+- **14 files + 3 anchors** landed in `workflows_starter/` (not versioned; loose files).
+- **Experiments concluded PASS**: #251, #252, #253.
+- Retrospective at `docs/sessions/2026-04-19-t8-t10.md`.
 
-- **9 substantive commits** this session: `70f814d`, `b8b5967`, `b5cb37a`, `8cc3d2c`, `7e21f7b`, `b3a3195`, `d93ffc4`, `037e004`, `252a01f`, `ac5e499` (plus this docs commit).
-- Experiments #244, #246, #247, #248, #249, #250 auto-concluded PASS; #245 SUBSUMED.
-- Retrospectives at `docs/sessions/2026-04-19-5-invariants.md` (prior), `docs/sessions/2026-04-19-t1-t3.md` (prior), `docs/sessions/2026-04-19-t4-t7.md` (this session).
-- Registry pruned.
+## Commit chain this session
+
+```
+9b074c6  [docs] Move workflow-portable.md to shared workflows_starter/ directory
+(plus this docs commit)
+```
+
+Outside novel-harness at `/Users/andre/Desktop/personal_projects/workflows_starter/`:
+- PRINCIPLES.md, README.md, workflow-portable.md
+- invariants-starter/{README, 3 .template, fixtures/README.template, allowlist.template}
+- preflight-starter/{README, preflight.ts.template}
+- session-templates/{README, retrospective.template, handoff.template, in-flight-registry.template}
+- patterns-starter/{README, PATTERN.md.template}
 
 ## If you just landed here and don't know what's going on
 
-Two scaffolding-heavy sessions completed on 2026-04-19 building out:
-1. The 5 invariants + preflight gate (exp #243) — now load-bearing in all future tickets.
-2. 2 pattern docs elevated from session retrospectives.
-3. Ticket-class routing tier (light / full / hybrid) in `docs/workflow-portable.md` Phase 0.5 — **start here if you want to understand why some tickets go to Codex directly vs the full pipeline**.
-4. `TrackedWorkType` widened-literal union in `src/db/ops.ts` — every new experiment row picks from canonical labels.
+Today: morning had real product work (exhaustion handler + race fixes), then 3 scaffolding-heavy sessions back-to-back (invariants + tiering + portable-starter-kits). The scaffolding is real but **three straight sessions without user-visible novel-writing progress is the drift signal**. Next session's default is a product ticket — planner enrichment preferred (Option A above).
 
-**The infrastructure is real but user-facing novel-writing progress today was thin.** Resist another meta ticket unless it's load-bearing for the specific product work you're about to start. Pick Phase-2 planner enrichment (Option A) or a measurement ticket (Option C) over more orchestration scaffolding.
+The new `workflows_starter/` at `/Users/andre/Desktop/personal_projects/workflows_starter/` is your cross-project home for orchestration machinery. novel-harness keeps project-specific versions; `workflows_starter/` keeps the shared templates. Don't copy between them unless extracting a proven pattern from novel-harness into the starter, or importing a starter template into novel-harness with customization.
 
-SOP: parallel Sonnet subagents for multi-file impl, Codex-implement mode for docs/config-only tickets, commit-pinned reviews, session-start receipt, one light-tier NEVER skips Phase 6 review (today's lesson).
+SOP still: parallel subagents for multi-file impl, Codex-implement for docs/config-only tickets, Phase 6 review is NEVER optional, session-start receipt, commit-pinned reviews.
