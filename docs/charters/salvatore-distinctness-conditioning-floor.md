@@ -152,7 +152,9 @@ Rounds 1 and 2 (below) both returned **RED** against earlier revisions. This is 
 | `/codex:adversarial-review` (GPT) — round 2 | RED | 2026-04-20 | Partial H1/H2 split didn't close the underlying issue: proxy can't support same-ladder comparability, H2 has no live analog, pilot was ad hoc. Addressed by this revision (`slim-live-v1`) — proxy dropped, H2 deferred to its own charter, pilot infrastructure committed before run. |
 | `/codex:adversarial-review` (GPT) — round 3 | RED | 2026-04-20 | Within-live-surface isolation confound, post-hoc pair set, unwritten judge protocol. See §10.3. |
 | `/codex:adversarial-review` (GPT) — round 4 | RED | 2026-04-20 | H1 likely a no-op on 4-line production characters; pilot runner still owns load-bearing §7 logic. See §10.4. |
-| `/codex:adversarial-review` (GPT) — round 5 | pending | pending | Re-review after the 4-line preset fix + pair-assembler land. |
+| `/codex:adversarial-review` (GPT) — round 5 | RED | 2026-04-20 | 4 concrete blockers (responseFormat, per-arm refs, loss-encoding, chapter-opener bridge) + 2 warnings. All addressed by commit `254fb71`. See §10.6 round-6 bookkeeping. |
+| `/codex:adversarial-review` (GPT) — round 6 | RED | 2026-04-20 | All round-5 items CLOSED. Two new narrower blockers: baseline-ladder omits real production (#1) + transport retries not audit-trailed (#2). See §10.7. |
+| `/codex:adversarial-review` (GPT) — round 7 | pending | pending | Re-review target after the round-6 blockers are addressed. |
 | `experiment-adversary` (Opus) — fallback only | pending | pending | Only run if Codex is unavailable or a second opinion is explicitly requested. |
 
 ### 10.1 Round-1 verdict (pre-revision)
@@ -229,6 +231,38 @@ Not a full adversarial review — a focused pressure-test of the single architec
 5. **Mutable agent overrides** — `state/agent-overrides.json` loaded at module start. Addressed by replay-runner startup guardrails.
 
 Overall judgment: "conditioning alone" did NOT hold under whole-novel A/B; the highest-impact leak was #4. This revision (`slim-live-v1-replay`) abandons whole-novel A/B in response.
+
+### 10.6 Round-5 verdict (post-revision `slim-live-v1-replay` commit `b56adcf`)
+
+> VERDICT: RED
+>
+> SUMMARY: Replay revision still does not cleanly measure "conditioning alone differs". The runner changes the writer request shape (responseFormat), re-resolves references per arm, and never enforces the charter's loss-scoring rule.
+>
+> BLOCKING ISSUES:
+> 1. **[critical] Replay writer calls are not production-shaped.** `buildWriterRequest()` omits `responseFormat`, transport defaults to `{ type: "json_object" }`. Live drafting explicitly sends `{ type: "text" }`. Not measuring the production writer path.
+> 2. **[high] Both arms can see different BACKGROUND context because refs are re-resolved per arm.** `callWriterWithRetry()` rebuilds `buildBeatContext()` without `preResolvedRefs`; `resolveReferences()` LLM fallback can return different BACKGROUND blocks even when `exampleLines` are identical.
+> 3. **[high] Charter §7 loss-counting not implemented in scoring path.** Runner encodes `loss_fixed` / `loss_rotation` / `error_text` but the judge loop still sends every pair to Codex and decides the winner from prose positions only. A sub-50-word arm could tie or win.
+> 4. **[high] Previous-beat reconstruction does not match the live drafting contract.** Replay reads latest prior prose from `llm_calls`; live drafting uses `beatProses[bi-1]` within the same chapter only. Cross-chapter bridge injection + post-hoc-rewrite contamination.
+>
+> WARNINGS:
+> - Both runner and judge apply A/B shuffles — double-shuffle; seed ownership ambiguous.
+> - Transport retries remain enabled and are not surfaced in replay output.
+>
+> Full output: background job `b32qgup4t`. **All four blockers + warning #1 CLOSED by commit `254fb71`; warning #2 (retries) re-opens as round-6 blocker #2.**
+
+### 10.7 Round-6 verdict (post-revision commit `254fb71` + parity harness)
+
+> VERDICT: RED
+>
+> SUMMARY: All round-5 blockers + both warnings are CLOSED. Two new narrower concerns remain: the baseline ladder no longer includes the real shipped-production path, and transport retries are still unaudited.
+>
+> BLOCKING ISSUES:
+> 1. **[high] Baseline ladder no longer includes the real shipped-production writer surface.** §4 still says `conditioning: "fixed"` is "what production does today", but commit `254fb71` intentionally unset pack-level conditioning (roles.ts) to fix a silent production-behavior regression. `pickExampleLineSubset` now keeps live novels on raw `lines.slice(0, 5)` unless the replay runner sets `WRITER_CONDITIONING=fixed|rotation`. The experiment now compares two experiment-only preset modes; neither matches shipped production. The parity harness confirms raw-live parity but does NOT validate `fixed` or `rotation` parity against real-world prompts. A rotation-beats-fixed win would justify "rotation beats the preset-a subset", NOT the §7 ship action of replacing current production. Fix: add the real production path (conditioning undefined, raw 4-line slice) as the control arm; rewrite §4/§7 around that baseline; extend the parity harness to validate `raw` / `fixed` / `rotation` separately.
+> 2. **[medium] Replay pairs can still be contaminated by hidden transport retries with no audit trail.** Charter §6 promised "transport auto-retries disabled OR every retry recorded so the pair can be excluded". Neither is true: `executeAndLog` still uses default DirectTransport which retries on 429/5xx/timeouts (`src/transport.ts`). When called with `novelId=undefined` (as the replay runner does to avoid polluting novel traces), retry metadata (`httpAttempts`, `retryErrors`) does NOT persist to `llm_calls`. A pair where one arm retried and the other didn't is no longer "conditioning alone differs" and there's no machine-readable way to quarantine it. Fix: either add an explicit no-retry mode for replay calls, OR persist per-arm `httpAttempts`/`retryErrors` into the PairRow / eval_results and exclude retried pairs before judging.
+>
+> RECOMMENDED NEXT ACTION: add raw as a third arm (or reframe §4/§7 as conditioning-lever-only and open a separate production-replacement charter), handle transport retries explicitly, then round 7.
+>
+> Full output: background job `bxr34bz4k`.
 
 ## 11. Open questions / readiness gate
 
