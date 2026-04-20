@@ -322,6 +322,11 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                   characters,
                   worldBible,
                   writerPackLabel: writerPack?.label ?? null,
+                  // Prior beat in the same chapter — consumed by the
+                  // halluc-ungrounded checker under the beat-entity-list
+                  // charter (v1/v3) to ground legitimate continuity
+                  // references.
+                  prevBeat: bi > 0 ? outline.scenes[bi - 1] : undefined,
                   tags: { novelId, chapter: ch, beatIndex: bi, attempt: retry + 1 },
                 })
                 if (checks.pass || retry === pipeline.maxBeatRetries) {

@@ -56,6 +56,10 @@ export interface RunBeatChecksInput {
    *  default writer route is active. Only "salvatore-fantasy" enables
    *  the Salvatore leak checker. */
   writerPackLabel: string | null
+  /** Immediately-preceding scene beat in the same chapter, if any.
+   *  Consumed by the halluc-ungrounded checker under the beat-entity-list
+   *  charter (v1/v3) to surface prior-beat entities as grounded. */
+  prevBeat?: SceneBeat
   tags?: { novelId?: string; chapter?: number; beatIndex?: number; attempt?: number }
 }
 
@@ -66,7 +70,7 @@ export interface RunBeatChecksInput {
  * so `Promise.all` is safe — no rejection path to handle.
  */
 export async function runBeatChecks(input: RunBeatChecksInput): Promise<BeatCheckResult> {
-  const { prose, beat, outline, characters, worldBible, writerPackLabel, tags } = input
+  const { prose, beat, outline, characters, worldBible, writerPackLabel, prevBeat, tags } = input
 
   const runLeak = writerPackLabel === "salvatore-fantasy"
 
@@ -75,7 +79,7 @@ export async function runBeatChecks(input: RunBeatChecksInput): Promise<BeatChec
   // checker violates that invariant, switch this site to allSettled.
   const [adh, ung, leak] = await Promise.all([
     checkBeatAdherence(prose, beat, outline, characters, tags),
-    checkHallucUngrounded(prose, beat, outline, characters, worldBible, tags),
+    checkHallucUngrounded(prose, beat, outline, characters, worldBible, tags, { prevBeat }),
     runLeak
       ? checkHallucLeakSalvatore(prose, tags)
       : Promise.resolve({ pass: true, issues: [] as string[] }),

@@ -5,6 +5,7 @@ import { callAgent } from "../../llm"
 import type { ChapterOutline, CharacterProfile, SceneBeat } from "../../types"
 import { buildContext } from "./context"
 import { hallucUngroundedSchema, type HallucUngroundedOutput } from "./schema"
+import { deriveBeatEntities, extractProperNouns } from "../../phases/beat-entity-list"
 
 export { buildContext, hallucUngroundedSchema }
 export type { HallucUngroundedOutput }
@@ -22,11 +23,30 @@ export interface HallucUngroundedResult {
   issues: string[]   // normalized to the BeatIssue.description shape
 }
 
+/** Parses the BEAT_ENTITY_LIST_VARIANT env into a canonical variant tag.
+ *  The checker-side is active for v1 and v3; v2 is writer-only. Unknown
+ *  / unset values behave as v0 (current prod — no changes). */
+function resolveVariant(): "v0" | "v1" | "v2" | "v3" | "v4" {
+  const raw = (process.env.BEAT_ENTITY_LIST_VARIANT ?? "v0").toLowerCase()
+  if (raw === "v1" || raw === "v2" || raw === "v3" || raw === "v4") return raw
+  return "v0"
+}
+
 /**
  * Runtime wrapper for the `halluc-ungrounded-v2:v1` W&B adapter. Called
  * from the beat drafting retry loop. Never throws — any transport or
  * schema failure is normalized into a blocking issue so the drafting
  * loop can still decide whether to retry or accept.
+ *
+ * Beat-entity-list charter (docs/charters/beat-entity-list-v1.md):
+ * when `BEAT_ENTITY_LIST_VARIANT` is `v1` or `v3`, derive a per-beat
+ * entity list from the outline's establishedFacts + prior-beat
+ * description via `deriveBeatEntities` and surface it to the adapter as
+ * a `Beat-entities:` sub-line inside the WORLD BIBLE block. In every
+ * variant (including v0) we write a `groundedSources` object to
+ * `llm_calls.request_json` so the mechanism-falsifier can join fired
+ * entities against per-source provenance (bible / from_brief /
+ * derived_outline_fact / derived_prior_beat / planner_emitted).
  */
 export async function checkHallucUngrounded(
   prose: string,
@@ -35,8 +55,49 @@ export async function checkHallucUngrounded(
   characters: CharacterProfile[],
   worldBible: any,
   tags?: { novelId?: string; chapter?: number; beatIndex?: number; attempt?: number },
+  opts?: { prevBeat?: SceneBeat },
 ): Promise<HallucUngroundedResult> {
-  const userPrompt = buildContext(prose, beat, outline, characters, worldBible)
+  const variant = resolveVariant()
+  const derive = variant === "v1" || variant === "v3"
+
+  const derivation = derive ? deriveBeatEntities(beat, outline, opts?.prevBeat) : null
+
+  const userPrompt = buildContext(
+    prose, beat, outline, characters, worldBible,
+    derive ? { beatEntities: derivation!.entities } : undefined,
+  )
+
+  // Per charter §3 + §9: write the provenance-tagged grounded-surface
+  // snapshot into request_json for the mechanism-falsifier. Bible and
+  // from_brief are always populated (they're in every variant's
+  // surface); derived_* are only populated when the variant activates
+  // derivation; planner_emitted is reserved for V4.
+  const bibleNames = [
+    ...(worldBible?.locations ?? []).map((l: any) => l?.name).filter(Boolean),
+    ...(worldBible?.cultures ?? []).map((c: any) => c?.name).filter(Boolean),
+    ...(worldBible?.systems ?? []).map((s: any) => s?.name).filter(Boolean),
+  ]
+  // Re-derive From-brief so the snapshot matches what buildContext
+  // surfaces. We compute it here (rather than extracting from the
+  // rendered prompt string) because the From-brief line is filtered
+  // against bibleKnown, and we want the provenance tag to reflect the
+  // *final* set the checker actually saw.
+  const briefSources = [beat.description ?? "", outline.setting ?? ""].join(" \n ")
+  const bibleKnown = new Set<string>()
+  for (const n of [...bibleNames, ...beat.characters, outline.povCharacter]) {
+    if (n) bibleKnown.add(String(n).toLowerCase())
+  }
+  const fromBrief = extractProperNouns(briefSources).filter(e => !bibleKnown.has(e.toLowerCase()))
+
+  const groundedSources = {
+    variant,
+    bible: bibleNames,
+    from_brief: fromBrief,
+    derived_outline_fact: derivation?.sources.derivedOutlineFact ?? [],
+    derived_prior_beat: derivation?.sources.derivedPriorBeat ?? [],
+    planner_emitted: [] as string[],
+  }
+
   try {
     const result = await callAgent({
       novelId: tags?.novelId,
@@ -47,6 +108,7 @@ export async function checkHallucUngrounded(
       systemPrompt: HALLUC_UNGROUNDED_SYSTEM,
       userPrompt,
       schema: hallucUngroundedSchema,
+      logMetadata: { groundedSources },
     })
     const output = result.output
     if (output.pass) return { pass: true, issues: [] }

@@ -68,6 +68,13 @@ interface AgentConfig<T> {
   agentName?: string
   provider?: ProviderName  // override global provider for this call
   model?: string           // override global model for this call
+  // Extra call-site metadata folded into `llm_calls.request_json` at log
+  // time. Used by the beat-entity-list charter (groundedSources provenance
+  // tags) and any future caller that needs to persist structured
+  // per-call context queryable via request_json JSONB operators without
+  // paying for a dedicated column. Never contains prompt text — those
+  // already live in system_prompt / user_prompt columns.
+  logMetadata?: Record<string, any>
   // Drill-down tags persisted to llm_calls for the inspector view.
   // Pass these from callers that know which beat / chapter / attempt
   // they're working in (drafting loop, retry loops, etc.).
@@ -628,6 +635,8 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
         // Reconstruct the request envelope for reproducibility. We don't have
         // the literal extraBody/responseFormat from inside makeRequest here,
         // so we re-derive from the same provider config makeRequest used.
+        // Per-call structured metadata (e.g. groundedSources for the
+        // beat-entity-list charter) is merged in via config.logMetadata.
         requestJson: {
           model,
           provider: providerName,
@@ -637,6 +646,7 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
           responseFormat: { type: "json_object" },
           extraBody: provider.extraBody(),
           needsNothink,
+          ...(config.logMetadata ?? {}),
         },
         failed,
         errorText: caughtError ? formatErrorForLog(caughtError) : undefined,
