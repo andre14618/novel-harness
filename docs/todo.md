@@ -56,14 +56,16 @@ Follow-ups (low priority):
 
 ### 3. Planner Phase-2 enrichment (next experiment after checker wired)
 
-Add to chapter outline output:
-- [ ] `subplot_id` per beat — tags which narrative thread advances
-- [ ] `establishedFact.id` as stable identifiers for cross-referencing
-- [ ] `requiredPayoffs: [{fact_id, payoff_beat}]` — planner links setups to payoffs explicitly
-- [ ] `speaker_directives` per beat — per-character: what each speaker specifically advances/reveals/conceals (content, not voice)
-- [ ] `thematic_focus` — which aspect of theme this beat leans on
-- [ ] Update `beat-context.ts` to surface new fields to the writer
-- [ ] Extend adherence-events to verify payoffs land and directives are honored
+Add to chapter outline output. **V1a shipped 2026-04-18** per `docs/current-state.md:59` — pilot measurement gated on an adversary-GREEN verdict on `docs/charters/planner-phase2-contract.md`; V1b/V1c gated on V1a pilot results.
+
+- [x] `establishedFact.id` as stable identifiers for cross-referencing — shipped V1a. `src/schemas/shared.ts:32` `payoffLinkSchema`.
+- [x] `requiredPayoffs: [{fact_id, payoff_beat}]` — planner links setups to payoffs explicitly. Shipped V1a. `src/schemas/shared.ts:45`.
+- [x] Update `beat-context.ts` to surface new fields to the writer — shipped V1a with SEEDS / PAYOFFS DUE blocks. `src/agents/writer/beat-context.ts`.
+- [ ] **Check V1a pilot status** — current-state.md says "gated on an adversary-GREEN verdict on `docs/charters/planner-phase2-contract.md`." If pilot has run, decide V1b/V1c. If not, run it.
+- [ ] `subplot_id` per beat — tags which narrative thread advances. **V1c — gated on V1a pilot results.**
+- [ ] `speaker_directives` per beat — per-character: what each speaker specifically advances/reveals/conceals (content, not voice). **V1b — gated on V1a pilot results.**
+- [ ] `thematic_focus` — which aspect of theme this beat leans on. **V1c — gated on V1a pilot results.**
+- [ ] Extend adherence-events to verify payoffs land and directives are honored — gated on V1b/V1c shipping.
 
 ### 4. Context-engineering direction — other items
 
