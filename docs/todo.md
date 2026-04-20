@@ -38,8 +38,12 @@ Follow-ups (low priority):
 - [x] Combined via OR logic matches v1 baseline F1 (81.4 vs 82.1) with different trade-off (+7.4 recall, −8.7 precision).
 - [x] `format-v3-two-adapters.ts` builds both training sets from shared pool; `eval-combined-v3.ts` runs both adapters in parallel.
 - [x] **Wired into `drafting.ts`** (2026-04-18) — `runBeatChecks()` in `src/phases/beat-checks.ts` fans out adherence + ungrounded (always) + leak (Salvatore-route only), aggregates into unified `BeatIssue[]`, OR-gates retries. Leak gating is by `WRITER_GENRE_PACKS` label. See commits `1bf119d` → `df2c5f0` and `docs/hallucination-v3-wire-in-plan.md`.
-- [ ] **Measure production fire rate per adapter over next 5-10 novels.** Per-adapter telemetry via `llm_calls.agent` tagging already in place. Runbook: `docs/hallucination-v3-wire-in-plan.md` §8.
-- [ ] Active-learning harvest from production for v4: disagreements between ungrounded-v2 + leak + human-accepted = v4 training data.
+- [x] **Measure production fire rate per adapter over 7 clean novels.** Done 2026-04-20 on panel of 7 natural Salvatore-routed novels (261 beat attempts). Full report: `docs/halluc-v3-production-report-2026-04-20.md`. Headline: adherence 10.8%, ungrounded 46.7% (precision 60–75% on solo fires; dominant FP is adapter overfiring on brief-grounded proper nouns), leak 15.7%. Retry clearance poor (9–28%) → prescribed action per runbook §8.10 is retry-wording fix + context tweak before retraining.
+- [ ] **Follow-on actions from the 2026-04-20 report** (ordered by leverage):
+  - Tighten retry-context wording for halluc-ungrounded fires; measure clearance rate on next 5 novels.
+  - Fix brief-grounded-entity FP class via context change (`src/agents/halluc-ungrounded/context.ts` — surface brief-introduced proper nouns alongside world-bible names); measure FP rate on next 5 novels. Retraining only if context fix doesn't close the gap.
+  - Non-Salvatore-route verification on next non-fantasy novel run (code-gated today but no production evidence).
+- [ ] Active-learning harvest from production for v4: 76 solo-ungrounded fires in the current panel are candidate v4 training seeds; combine with adapter disagreement + human-accept signal.
 - [ ] Paired leak adapter for non-Salvatore writers when those LoRAs ship (Gemmell, Cook, etc.).
 
 ### 2. Unified issue aggregator (partially shipped 2026-04-18)
@@ -91,7 +95,7 @@ Codex review (session ac8df7a8 + ac7442d6) flagged remaining work:
   both `kind="plan-check-exhausted"` and `kind="reviser-rejected"` (commits `5767ab9` + `8fd2097`).
 - [x] **`chapter_exhaustions` telemetry** — shipped (commit `22fd021`). Table, `GET /api/novel/:id/exhaustions`, `ExhaustionsPanel`. UI live in commit `1d1b4e1`.
 - [x] **Debug-injection MVP** — shipped (commits `7d53dac`..`4ad2413`). `src/config/debug-injection.ts` with `DEBUG_FORCE_PLAN_CHECK`, `DEBUG_FORCE_VALIDATION`, `DEBUG_FORCE_REVISER` flags.
-- [ ] **Fresh end-to-end validation run (no DEBUG_FORCE_* flags)** — The R-labeled campaign tests (R0/R1/R5/R6/R7) validated exhaustion-handler paths via forced injection. What they did NOT validate is whether the handlers stay silent on a normal novel that never exhausts retries. Run a fresh novel end-to-end with no `DEBUG_FORCE_*` env vars set and confirm: no spurious `chapter_exhaustions` rows, no `PipelineBailError` on a clean run. Verification queries still apply once the novel completes:
+- [x] **Fresh end-to-end validation run (no DEBUG_FORCE_* flags)** — DONE 2026-04-20 on the 7-novel natural panel used for the halluc-v3 measurement pass. 0 `chapter_exhaustions`, 0 `chapter_revisions`, 0 `PipelineBailError` across 261 beat attempts; chapter-plan-checker reject rate 0% (vs 35–44% pp2-floor baseline). Non-blind-retry handlers are silent on clean novels. Full evidence in `docs/halluc-v3-production-report-2026-04-20.md`. Verification queries still apply once the novel completes:
   - chapter-plan-checker reject rate per chapter (target: <10%, down from
     35-44% pre-fix baseline on pp2-floor__* novels) — query `llm_calls`
     WHERE agent='chapter-plan-checker' AND novel_id=<new-id>,
@@ -129,9 +133,7 @@ Codex review (session ac8df7a8 + ac7442d6) flagged remaining work:
   `13f8143`. src/llm.ts makeRequest threads agentName; executeAndLog sets
   callerId on the effectiveRequest. Timeout log `[LLM] TIMEOUT:` now names
   the agent reliably.
-- [ ] **Clean no-forced-flags validation run** — every scripted test today
-  used `DEBUG_FORCE_*`. Run a real novel end-to-end with no force injection
-  to confirm the exhaustion handlers stay quiet when nothing's wrong.
+- [x] **Clean no-forced-flags validation run** — DONE 2026-04-20 (see the "Fresh end-to-end validation run" item above — same panel, same evidence).
 - [ ] **Continuity-throws stays blind** — by design per Codex (transport
   instability, not content failure; human intervention cost too high for
   a transient checker outage). No change needed.
