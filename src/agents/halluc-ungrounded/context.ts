@@ -26,9 +26,12 @@ import type { ChapterOutline, CharacterProfile, SceneBeat } from "../../types"
  * to treat as ground truth.
  */
 
-/** Sentence-initial common words and pronouns that often look like proper
- *  nouns after capitalization but aren't. Keep narrow — over-filtering here
- *  re-opens the FP class we're trying to close. */
+/** Common sentence-initial words that look like proper nouns after
+ *  capitalization but aren't. Used to drop *single-word* matches. Kept narrow
+ *  — over-filtering here re-opens the FP class we're trying to close.
+ *  Titles like Marshal/Captain/Lord/Lady are excluded because standalone
+ *  "Marshal" can stand in for a named Marshal, and multi-word "Marshal Vex"
+ *  already escapes this filter (see the multi-word logic below). */
 const PROPER_NOUN_STOPWORDS = new Set([
   "The", "A", "An",
   "He", "She", "It", "They", "We", "I", "You", "Me", "Him", "Her", "Them", "Us",
@@ -39,7 +42,21 @@ const PROPER_NOUN_STOPWORDS = new Set([
   "Where", "Why", "How", "What", "Who", "Whom", "Whose", "Which",
   "Perhaps", "Maybe", "Sometimes", "Always", "Never", "Often", "Once",
   "Yes", "No", "Well", "Still", "Just",
-  "Her", "Him", "Sir", "Lord", "Lady", "Captain", "Marshal", "Sergeant",
+])
+
+/** Sentence-starter stopwords that also need to be stripped from the FRONT
+ *  of multi-word matches. E.g., "When Rynn stopped..." would otherwise
+ *  surface "When Rynn" as a brief entity. "The"/"An"/"A" are NOT in this
+ *  set because they legitimately start place names like "The Ashen Wastes". */
+const LEADING_STRIP_STOPWORDS = new Set([
+  "He", "She", "It", "They", "We", "I", "You",
+  "His", "Her", "Their", "Our", "My", "Your",
+  "This", "That", "These", "Those",
+  "But", "And", "Or", "Nor", "So", "Yet",
+  "If", "When", "Then", "Now", "Before", "After", "While", "Until", "Since",
+  "Where", "Why", "How", "What", "Who", "Whom", "Whose", "Which",
+  "Perhaps", "Maybe", "Sometimes", "Always", "Never", "Often", "Once",
+  "Yes", "No", "Well", "Still", "Just",
 ])
 
 /** Extract capitalized multi-word proper-noun spans from a short text.
@@ -54,9 +71,17 @@ function extractProperNouns(text: string): string[] {
   const seen = new Set<string>()
   const out: string[] = []
   for (const m of text.matchAll(pattern)) {
-    const raw = m[0].trim()
-    // Skip single-word stopwords. For multi-word spans, keep — "The Ashen Wastes"
-    // is a real name even though "The" is a stopword by itself.
+    let raw = m[0].trim()
+    // For multi-word spans that start with a sentence-starter stopword,
+    // strip successive leading stopwords so "When Rynn" → "Rynn" and
+    // "But Kael said" → "Kael". Repeat to handle chains like "And Then".
+    while (raw.includes(" ")) {
+      const firstWord = raw.slice(0, raw.indexOf(" "))
+      if (!LEADING_STRIP_STOPWORDS.has(firstWord)) break
+      raw = raw.slice(raw.indexOf(" ") + 1).trim()
+    }
+    // Now apply the full single-word stopword filter to either a genuinely
+    // single-word match or the remainder after stripping.
     const isSingleWord = !raw.includes(" ")
     if (isSingleWord && PROPER_NOUN_STOPWORDS.has(raw)) continue
     // Skip spans of length < 3 — typically noise ("Go", "No").

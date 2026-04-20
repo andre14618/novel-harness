@@ -98,6 +98,39 @@ test("extractProperNouns: dedupes", () => {
   expect(names.filter(n => n === "Heartstone")).toHaveLength(1)
 })
 
+test("extractProperNouns: strips leading sentence-starter stopwords from multi-word matches", () => {
+  // "When Rynn" / "But Kael" / "Then Marshal Vex" would otherwise leak through
+  // the multi-word filter. Keep the payload, drop the starter.
+  const names = extractProperNouns("When Rynn arrived, but Kael was gone. Then Marshal Vex spoke.")
+  expect(names).toContain("Rynn")
+  expect(names).toContain("Kael")
+  expect(names).toContain("Marshal Vex")
+  expect(names).not.toContain("When Rynn")
+  expect(names).not.toContain("But Kael")
+  expect(names).not.toContain("Then Marshal Vex")
+})
+
+test("extractProperNouns: keeps 'The <Name>' because 'The' starts real place names", () => {
+  // "The Ashen Wastes" is a real place name — don't strip "The" from
+  // multi-word spans; keep the whole thing so the adapter sees it intact.
+  const names = extractProperNouns("They crossed The Ashen Wastes on foot.")
+  expect(names).toContain("The Ashen Wastes")
+})
+
+test("extractProperNouns: rank+name 'Marshal Vex' preserved", () => {
+  // Codex called this out — titles like Marshal/Captain standalone get
+  // filtered, but attached to a name they must survive.
+  const names = extractProperNouns("Marshal Vex gave the order.")
+  expect(names).toContain("Marshal Vex")
+})
+
+test("extractProperNouns: hyphenated and apostrophe names preserved", () => {
+  // Fantasy corpus has lots of these: "Aegis-fang", "Catti-brie", possessives.
+  const names = extractProperNouns("She carried Aegis-fang. He called out to Catti-brie.")
+  expect(names).toContain("Aegis-fang")
+  expect(names).toContain("Catti-brie")
+})
+
 test("buildContext: From-brief line surfaces brief-only proper nouns and dedupes against world bible", () => {
   const beat = {
     description: "Kael cryptically hints that the war is fueled by a cursed artifact called the Heartstone.",

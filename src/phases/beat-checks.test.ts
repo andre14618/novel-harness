@@ -66,15 +66,24 @@ test("summarizeIssues: groups by source with counts + joins descriptions", () =>
   expect(s).toContain(" | ") // group separator
 })
 
-test("formatRetryLine: adherence passes through; ungrounded+leak append resolution guidance", () => {
+test("formatRetryLine: adherence passes through; ungrounded+leak append pinned resolution guidance", () => {
+  // Pin the exact clauses so drift in the wording trips the test rather than
+  // silently changing the writer's retry prompt. If you deliberately change
+  // the wording, update this assertion and the mirrored mocks in
+  // drafting-revision-used-persistence.test.ts + drafting-reviser-escalation.test.ts.
   expect(
     formatRetryLine({ source: "adherence", severity: "blocker", description: "D" }),
   ).toBe("D")
-  const u = formatRetryLine({ source: "halluc-ungrounded", severity: "blocker", description: "D" })
-  expect(u.startsWith("D")).toBe(true)
-  expect(u).toContain("beat brief or world bible")
-  expect(u).toContain("remove the reference")
-  const l = formatRetryLine({ source: "halluc-leak-salvatore", severity: "blocker", description: "D" })
-  expect(l.startsWith("D")).toBe(true)
-  expect(l).toContain("generic descriptor")
+
+  expect(
+    formatRetryLine({ source: "halluc-ungrounded", severity: "blocker", description: "D" }),
+  ).toBe(
+    "D — Fix: replace with an entity from the beat brief or world bible, or remove the reference entirely. Do not invent new named entities.",
+  )
+
+  expect(
+    formatRetryLine({ source: "halluc-leak-salvatore", severity: "blocker", description: "D" }),
+  ).toBe(
+    `D — Fix: remove the token or replace with a generic descriptor (e.g. "the drow warrior" instead of a Salvatore-corpus proper name).`,
+  )
 })
