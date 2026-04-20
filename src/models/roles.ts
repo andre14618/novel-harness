@@ -226,6 +226,11 @@ export interface WriterGenrePack {
   systemPromptFile: string
   usePrimer: boolean
   structuralPriors: StructuralPriors
+  /** Controls how exampleLines are sampled in beat-context.ts.
+   *  "fixed"    — always use preset-a (indexes [0,1,2])
+   *  "rotation" — cycle preset-a/b/c by (chapter * 100 + beat) % 3
+   *  Default: "fixed". Set WRITER_CONDITIONING env var to override at runtime. */
+  conditioning?: "fixed" | "rotation"
 }
 
 // Structural priors from novels/salvatore-icewind-dale/analysis/structural-signature.json
@@ -255,18 +260,33 @@ export const WRITER_GENRE_PACKS: WriterGenrePack[] = [
     systemPromptFile: "beat-writer-system-salvatore.md",
     usePrimer: false,
     structuralPriors: SALVATORE_PRIORS,
+    conditioning: "fixed",
   },
 ]
 
 export function resolveWriterPack(genre: string | undefined): WriterGenrePack | null {
   if (!genre) return null
   const pack = WRITER_GENRE_PACKS.find(p => p.match.test(genre)) ?? null
-  if (pack && process.env.WRITER_MODEL_OVERRIDE) {
+  if (!pack) return null
+
+  let result = pack
+
+  if (process.env.WRITER_MODEL_OVERRIDE) {
     // Runtime override for A/B comparisons — overrides the pack's model only.
     // Profile + structural priors stay the same so the only variable is the model.
-    return { ...pack, model: { ...pack.model, model: process.env.WRITER_MODEL_OVERRIDE, provider: (process.env.WRITER_PROVIDER_OVERRIDE as any) ?? pack.model.provider } }
+    result = { ...result, model: { ...result.model, model: process.env.WRITER_MODEL_OVERRIDE, provider: (process.env.WRITER_PROVIDER_OVERRIDE as any) ?? result.model.provider } }
   }
-  return pack
+
+  const conditioningEnv = process.env.WRITER_CONDITIONING
+  if (conditioningEnv === "fixed" || conditioningEnv === "rotation") {
+    // Runtime override for A/B conditioning comparisons — overrides exampleLines
+    // sampling mode only. Set WRITER_CONDITIONING=rotation to enable per-beat
+    // preset cycling (see beat-context.ts pickExampleLineSubset).
+    result = { ...result, conditioning: conditioningEnv }
+  }
+  // Invalid WRITER_CONDITIONING values fall through to the pack default.
+
+  return result
 }
 
 export function resolveStructuralPriors(genre: string | undefined): StructuralPriors | null {

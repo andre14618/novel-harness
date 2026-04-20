@@ -15,7 +15,53 @@
 
 import { getRelationshipBetween, getCharacterStatesAtChapter } from "../../db"
 import { resolveReferences, type ResolvedReferences } from "./reference-resolver"
+import { resolveWriterPack } from "../../models/roles"
 import type { ChapterOutline, CharacterProfile, SceneBeat } from "../../types"
+
+// ── exampleLines conditioning presets ────────────────────────────────────
+// Preset definitions are frozen and shared with the distinctness eval scorer
+// at scripts/evals/run-salvatore-distinctness-v1.ts.
+//
+//   preset-a: indexes [0, 1, 2] — the "fixed" mode default
+//   preset-b: indexes [0, 3, 4]
+//   preset-c: indexes [1, 3, 4]
+//
+// These match docs/evals/salvatore-distinctness-v1.md §"Preset definitions".
+const CANONICAL_LINE_PRESET_INDEXES: Record<"preset-a" | "preset-b" | "preset-c", number[]> = {
+  "preset-a": [0, 1, 2],
+  "preset-b": [0, 3, 4],
+  "preset-c": [1, 3, 4],
+}
+const PRESET_CYCLE: Array<"preset-a" | "preset-b" | "preset-c"> = ["preset-a", "preset-b", "preset-c"]
+
+/**
+ * Pick a 3-line subset of a character's exampleLines based on the current
+ * conditioning mode and (chapter, beat) coordinates.
+ *
+ * Fixed mode:   always returns preset-a (indexes [0, 1, 2]).
+ * Rotation mode: cycles preset-a → b → c → a … by (chapterNumber * 100 + beatIndex) % 3.
+ *
+ * Falls back to the raw slice when the array is too short to form distinct presets
+ * (fewer than 5 lines — presets b/c need indexes up to 4).
+ */
+export function pickExampleLineSubset(
+  lines: string[],
+  chapterNumber: number,
+  beatIndex: number,
+  conditioning: "fixed" | "rotation",
+): string[] {
+  if (lines.length < 5) return lines.slice(0, 5) // not enough lines to form distinct subsets
+  if (conditioning === "fixed") {
+    return CANONICAL_LINE_PRESET_INDEXES["preset-a"]
+      .map(i => lines[i])
+      .filter((v): v is string => typeof v === "string")
+  }
+  const presetIdx = (chapterNumber * 100 + beatIndex) % 3
+  const preset = PRESET_CYCLE[presetIdx]
+  return CANONICAL_LINE_PRESET_INDEXES[preset]
+    .map(i => lines[i])
+    .filter((v): v is string => typeof v === "string")
+}
 
 export interface BeatContextInput {
   novelId: string
@@ -36,6 +82,9 @@ export interface BeatContextInput {
    *  state fields (State/With/Tension/Doesn't-know) are omitted, and
    *  duplicate SETTING block is skipped. */
   compactMode?: boolean
+  /** Seed genre string — used to resolve the writer pack's conditioning mode
+   *  for exampleLines subset selection. When omitted, falls back to "fixed". */
+  genre?: string
 }
 
 export interface BeatContextResult {
@@ -45,6 +94,8 @@ export interface BeatContextResult {
 
 export async function buildBeatContext(input: BeatContextInput): Promise<BeatContextResult> {
   const { novelId, chapterNumber, beatIndex, previousBeatProse, outline, characters, characterStates, worldBible } = input
+  const conditioning: "fixed" | "rotation" =
+    resolveWriterPack(input.genre)?.conditioning ?? "fixed"
   const beat = outline.scenes[beatIndex]
   const povCharName = outline.povCharacter
   const povChar = characters.find(c => c.name.toLowerCase() === povCharName?.toLowerCase())
@@ -92,7 +143,7 @@ export async function buildBeatContext(input: BeatContextInput): Promise<BeatCon
         if (c.internalConflict) entry.push(`  Conflict: ${c.internalConflict}`)
         if (c.exampleLines && c.exampleLines.length > 0) {
           entry.push(`  Example voiced lines:`)
-          c.exampleLines.slice(0, 5).forEach((line, i) => {
+          pickExampleLineSubset(c.exampleLines, chapterNumber, beatIndex, conditioning).forEach((line, i) => {
             entry.push(`    ${i + 1}. "${line.replace(/^"|"$/g, "")}"`)
           })
         }
@@ -103,7 +154,7 @@ export async function buildBeatContext(input: BeatContextInput): Promise<BeatCon
       sections.push(`CHARACTERS:\n${lines.join("\n")}`)
     } else {
       const snapshots = await Promise.all(beatChars.map(c =>
-        formatCharacterSnapshot(novelId, c, povChar, chapterNumber, characterStates)
+        formatCharacterSnapshot(novelId, c, povChar, chapterNumber, beatIndex, characterStates, conditioning)
       ))
       sections.push(`CHARACTERS:\n${snapshots.join("\n\n")}`)
     }
@@ -195,7 +246,8 @@ function formatBeatSpec(beat: SceneBeat, outline: ChapterOutline, beatIndex: num
 
 async function formatCharacterSnapshot(
   novelId: string, char: CharacterProfile, povChar: CharacterProfile | undefined,
-  chapterNumber: number, characterStates: any[],
+  chapterNumber: number, beatIndex: number, characterStates: any[],
+  conditioning: "fixed" | "rotation",
 ): Promise<string> {
   const lines: string[] = [`${char.name}:`]
 
@@ -233,7 +285,7 @@ async function formatCharacterSnapshot(
   // the shape trained into Salvatore v4 (character-tagged beat-writer).
   if (char.exampleLines && char.exampleLines.length > 0) {
     lines.push(`  Example voiced lines:`)
-    char.exampleLines.slice(0, 5).forEach((line, i) => {
+    pickExampleLineSubset(char.exampleLines, chapterNumber, beatIndex, conditioning).forEach((line, i) => {
       lines.push(`    ${i + 1}. "${line.replace(/^"|"$/g, "")}"`)
     })
   }

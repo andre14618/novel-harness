@@ -265,6 +265,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
               // fields, one-line character snapshots, no resolved-refs
               // block). See docs/beat-writer-architecture.md.
               compactMode: !!writerPack,
+              genre: novel.seed?.genre,
             })
 
             let beatProse: string | null = null
@@ -558,6 +559,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                 outline, characters, characterStates: charStates, worldBible,
                 preResolvedRefs: preResolved,
                 compactMode: !!writerPack,
+                genre: novel.seed?.genre,
               })
               const priorProse = beatProses[bi]
               const retryContext = `\n\n--- TARGETED REWRITE (chapter-plan check) ---\nYour previous prose for this beat:\n---\n${priorProse.slice(0, 2000)}\n---\nChapter-plan issues found:\n${issueDescriptions.map(s => `- ${s}`).join("\n")}\nRewrite this beat to address the issues above while preserving what works.`
@@ -869,6 +871,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
               outline, characters, characterStates: charStates, worldBible,
               preResolvedRefs: preResolved,
               compactMode: !!writerPack,
+              genre: novel.seed?.genre,
             })
             const priorProse = beatProses[bi]
             const retryContext = `\n\n--- TARGETED REWRITE (validation) ---\nYour previous prose for this beat:\n---\n${priorProse.slice(0, 2000)}\n---\nValidation issues found:\n${issueDescriptions.map(s => `- ${s}`).join("\n")}\nRewrite this beat to address the issues above while preserving what works.`
