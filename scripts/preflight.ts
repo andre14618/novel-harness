@@ -23,17 +23,19 @@ import { spawnSync } from "node:child_process"
 const BASELINE_TSC_ERRORS = 26
 
 /**
- * Baseline of pre-existing `bun test src/` failures recorded at invariant-
- * ship time. src/phases/beat-checks.test.ts has a cross-file mock
- * collision: drafting-*.test.ts mock `./beat-checks` without re-exporting
- * `aggregateIssues`, and when beat-checks.test.ts loads later in the same
- * process it inherits the stale mock. Pre-existing on 90f5fa6 (2 fails / 1
- * error); after invariant-#1/#4 tests land (4 additional pass), baseline
- * is 1 fail / 1 error. Fix belongs to a separate ticket that reorganizes
- * the mock boundary; this preflight tolerates the baseline to avoid
- * blocking on pre-existing debt.
+ * Baseline of pre-existing `bun test src/` failures. Now 0: T3 (exp #246)
+ * resolved the cross-file `bun:test` mock-pollution issue that previously
+ * caused `src/phases/beat-checks.test.ts` to SyntaxError when a sibling
+ * drafting test ran first in the same process. The fix extends the two
+ * `mock.module("./beat-checks", ...)` bodies in
+ * `src/phases/drafting-reviser-escalation.test.ts` and
+ * `src/phases/drafting-revision-used-persistence.test.ts` to re-export
+ * the full beat-checks shape (`aggregateIssues` / `formatRetryLine` /
+ * `summarizeIssues` with real-signature parity). With the baseline at 0,
+ * any new failure fails preflight immediately instead of hiding in the
+ * tolerance window.
  */
-const BASELINE_TEST_FAILURES = 1
+const BASELINE_TEST_FAILURES = 0
 
 interface StepResult {
   name: string

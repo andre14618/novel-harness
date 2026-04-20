@@ -39,14 +39,6 @@ RESOLVED + CLEAN. 5-invariants ticket concluded (exp #243).
    `scripts/corpus/test-deepseek-dialogue.ts:80`,
    `scripts/hallucination/smoke-eval.ts:42`.
 
-3. **BASELINE_TEST_FAILURES → 0.** `scripts/preflight.ts` tolerates 1 pre-
-   existing failure in `src/phases/beat-checks.test.ts`. Root cause: cross-
-   file mock pollution — `drafting-*.test.ts` mock `./beat-checks` without
-   re-exporting `aggregateIssues`, and the mock persists when
-   `beat-checks.test.ts` loads later in the same `bun test src/` process.
-   Fix: either re-export `aggregateIssues` from the mocks, or isolate
-   test-file load order. Preflight unblocks to cleanly green once fixed.
-
 ## Deferred / flagged
 
 - Invariant #2 / #3 MEDIUM findings from Codex thread `a01385f5` — broad

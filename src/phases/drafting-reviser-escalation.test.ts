@@ -177,9 +177,38 @@ mock.module("../agents/writer/beat-context", () => ({
 mock.module("../agents/writer/reference-resolver", () => ({
   resolveReferences: async () => ({ context: "", lookupCount: 0, llmUsed: false }),
 }))
+// NOTE: `bun:test` module mocks are process-global. Any test that mocks
+// `./beat-checks` MUST re-export its full shape — otherwise, when
+// `src/phases/beat-checks.test.ts` loads later in the same `bun test src/`
+// process, it inherits this mock and SyntaxErrors on the missing
+// `aggregateIssues` / `formatRetryLine` named imports. See exp #246.
 mock.module("./beat-checks", () => ({
   runBeatChecks: async () => ({ pass: true, issues: [], retryLines: [] }),
-  summarizeIssues: () => "no issues",
+  // Real-signature parity with `src/phases/beat-checks.ts:99-142` —
+  // `summarizeIssues` must also mirror the real impl because
+  // `beat-checks.test.ts` asserts group-by-source formatting on it.
+  formatRetryLine: (issue: any) => issue.description,
+  aggregateIssues: (outputs: { adherence: string[]; ungrounded: string[]; leak: string[] }) => {
+    const issues: any[] = []
+    for (const s of outputs.adherence) issues.push({ source: "adherence", severity: "blocker", description: s })
+    for (const s of outputs.ungrounded) issues.push({ source: "halluc-ungrounded", severity: "blocker", description: s })
+    for (const s of outputs.leak) issues.push({ source: "halluc-leak-salvatore", severity: "blocker", description: s })
+    return {
+      pass: issues.every((i: any) => i.severity !== "blocker"),
+      issues,
+      retryLines: issues.map((i: any) => i.description),
+    }
+  },
+  summarizeIssues: (issues: any[]) => {
+    if (issues.length === 0) return "no issues"
+    const bySource: Record<string, string[]> = {}
+    for (const i of issues) {
+      ;(bySource[i.source] ??= []).push(i.description)
+    }
+    return Object.entries(bySource)
+      .map(([src, descs]) => `${src}(${descs.length}): ${descs.join("; ")}`)
+      .join(" | ")
+  },
 }))
 mock.module("../agents/continuity/check", () => ({
   checkContinuity: async () => ({ issues: [] }),
