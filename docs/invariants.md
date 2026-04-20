@@ -89,11 +89,11 @@ Each invariant gets an entry below with:
 
 ### 5. Body-already-used detection
 
-- **Shape:** syntactic (regex / lint)
+- **Shape:** syntactic (AST)
 - **Catches:** Fetch/Response body consumed twice. Instance: commit `5505985` fixed a template-literal that eagerly called `await X.text()` before `await X.json()` on the same Response.
-- **Assertion:** In any `.ts` file, if a Response-typed variable `X` has `await X.text()` in its scope, then `await X.json()` / `await X.arrayBuffer()` / `await X.blob()` on the same `X` must NOT appear after it. Equivalent for any ordering of two body-consuming calls. Regex approximation: find `\$\{await\s+(\w+)\.(text|json|arrayBuffer|blob)\(\)\}` followed later by `await\s+\1\.(text|json|arrayBuffer|blob)\(\)`.
-- **Implementation:** shipped at `scripts/lint/invariants-check.ts` `checkBodyAlreadyUsed()`. Regex detector for the template-literal shape. Non-template-literal double-consumes (sequential `await X.text()` then `await X.json()`) are NOT caught — AST detector deferred to future ticket; known instances allowlisted with 30-day expiry (4 entries in `.claude/invariants-allowlist.yaml`, all `if (!res.ok) throw ... ${await res.text()}` short-circuit patterns).
-- **Status:** shipped (exp #243, commit `ce6452c`)
+- **Assertion:** In any `.ts` file, for any Response-like receiver `X` within a single function scope, at most one body-consuming call (`X.text()` / `X.json()` / `X.arrayBuffer()` / `X.blob()`) can execute on any real control-flow path. Any source-ordered pair of body-consuming calls on the same receiver is a violation, regardless of which method comes first — unless the first call is inside a control-flow branch (if/else/try/catch) that unconditionally terminates via throw/return/continue/break before reaching the second.
+- **Implementation:** shipped at `scripts/lint/invariants-check.ts` `checkBodyAlreadyUsed()`. AST walk using the `typescript` compiler API: collects every body-consuming call, groups by `(enclosingFunction, receiverDeclaration)` with `(enclosingFunction, receiverShape)` as fallback for unresolvable receivers, then flags any source-ordered pair whose branch-containing-first does NOT always terminate. Receivers that construct fresh objects at the call site (`new Response(...).text()`, `(await fn()).text()`) are excluded from grouping. Regression belt: `tests/invariants-fixtures/body-already-used.ts` (template-literal shape), `body-already-used-sequential.ts` (plain sequential double-consume), `body-already-used-json-first.ts` (ordering-symmetry `.json()` → `.text()`).
+- **Status:** shipped (exp #243, commit `ce6452c`); widened to AST detection (exp #244, 2026-04-19)
 
 ---
 

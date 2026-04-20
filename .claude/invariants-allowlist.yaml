@@ -33,40 +33,4 @@
 #   expires: "2026-05-19"
 #   owner: "andre14618"
 
-entries:
-  # HEAD-baseline entries added 2026-04-19 by Slice A of exp #243.
-  # All four sites are the "error-path throw, success-path .json()" idiom:
-  # `if (!res.ok) throw new Error(`... ${await res.text()}`); const j = await res.json()`.
-  # The regex invariant #5 cannot distinguish throw-shortcircuit from
-  # actual double-consume. An AST detector (deferred) would see the throw
-  # on the error branch and skip. Until then, these need targeted
-  # refactors (read body ONCE into a variable) or a narrowed invariant.
-  # Tracked under exp #243 follow-up; renew or refactor by 2026-05-19.
-  - invariant: "Body-already-used detection"
-    file: "src/db/embed.ts"
-    line: 50
-    reason: "Error-path throw short-circuits; .json() only runs on success branch. Regex can't see the throw."
-    added: "2026-04-19"
-    expires: "2026-05-19"
-    owner: "andre14618"
-  - invariant: "Body-already-used detection"
-    file: "scripts/finetune/archetype-poc/flatten-deepseek.ts"
-    line: 67
-    reason: "Error-path throw short-circuits; .json() only runs on success branch. Regex can't see the throw."
-    added: "2026-04-19"
-    expires: "2026-05-19"
-    owner: "andre14618"
-  - invariant: "Body-already-used detection"
-    file: "scripts/corpus/test-deepseek-dialogue.ts"
-    line: 80
-    reason: "Error-path throw short-circuits; .json() only runs on success branch. Regex can't see the throw."
-    added: "2026-04-19"
-    expires: "2026-05-19"
-    owner: "andre14618"
-  - invariant: "Body-already-used detection"
-    file: "scripts/hallucination/smoke-eval.ts"
-    line: 42
-    reason: "Error-path throw short-circuits; .json() only runs on success branch. Regex can't see the throw."
-    added: "2026-04-19"
-    expires: "2026-05-19"
-    owner: "andre14618"
+entries: []

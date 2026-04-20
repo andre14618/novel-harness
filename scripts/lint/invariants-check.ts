@@ -7,7 +7,7 @@
  *
  *   #2 Seam-recheck symmetry         — AST walk over `src/phases/drafting.ts`
  *   #3 Trace-seeded watcher          — AST walk over `scripts/test/**\/*.ts`
- *   #5 Body-already-used detection   — regex over `src/**\/*.ts` + `scripts/**\/*.ts`
+ *   #5 Body-already-used detection   — AST walk over `src/**\/*.ts` + `scripts/**\/*.ts`
  *
  * Exit 0 on green, 1 on any violation.
  *
@@ -16,11 +16,6 @@
  *                  MUST fire its declared expected-invariant. Exit 0 iff
  *                  every fixture fires correctly.
  *   --target PATH  Scan a single file (used by --self-test internally).
- *
- * Known false-negative (documented in `docs/plans/2026-04-19-5-invariants.md`
- * §#5): invariant #5 is regex-only. Non-template-literal double-consumes
- * (e.g. `await X.text(); ...; await X.json()`) are NOT caught. An AST
- * detector is deferred to a future ticket.
  */
 
 import { readFileSync, readdirSync, statSync } from "node:fs"
@@ -466,20 +461,366 @@ function checkTraceWatcher(
   return { violations, allowlisted: allowlistedCount, siteCount }
 }
 
-// ── Invariant #5 — Body-already-used detection ───────────────────────────
+// ── Invariant #5 — Body-already-used detection (AST) ─────────────────────
 /**
- * Regex match on `${await <ident>.<method>()}` inside a template literal;
- * then scan the next ~80 lines (or until enclosing brace depth returns to
- * the starting depth) for `await <ident>.<method>()` with the SAME ident
- * and a DIFFERENT method.
+ * AST detector for double-consumes of Response body streams. Flags any
+ * source-ordered pair of body-consuming method calls (`.text()`, `.json()`,
+ * `.arrayBuffer()`, `.blob()`) on the same receiver within the same
+ * enclosing function, method-name-agnostic.
  *
- * NOTE: this catches only the template-literal-first shape (the 5505985 bug).
- * Sequential plain `await X.text(); ... await X.json()` calls are deferred
- * to an AST detector.
+ * Widened from the earlier template-literal regex per `docs/plans/
+ * 2026-04-19-t1-invariant-5-ast.md` (exp #244). The regex caught only the
+ * commit-5505985 template-literal shape; the AST walk catches plain
+ * sequential double-consumes as well.
+ *
+ * Grouping key (Codex review `ac53ffe9` MEDIUM): `(file, receiverDeclaration,
+ * enclosingFunction)` when the receiver resolves to a local declaration,
+ * falling back to `(file, name, enclosingFunction)` for property-access
+ * receivers or parameters of outer closures. Name-only grouping was wrong
+ * — it conflated shadowed bindings.
+ *
+ * Reachability heuristic (conservative — only flag real bugs): suppress a
+ * pair when the FIRST call sits inside an `IfStatement` branch (then or
+ * else) that terminates in `throw` or `return` AND the SECOND call is a
+ * sibling statement in the enclosing block positioned AFTER the
+ * IfStatement. This matches the 4 HEAD `if (!res.ok) throw ... ${await
+ * res.text()}; const j = await res.json()` sites. Anything else flags.
  */
-const RE_TEMPLATE_AWAIT =
-  /\$\{await\s+(\w+)\.(text|json|arrayBuffer|blob)\(\)\}/g
-const BODY_METHODS = ["text", "json", "arrayBuffer", "blob"]
+const BODY_METHODS = new Set(["text", "json", "arrayBuffer", "blob"])
+
+interface BodyConsumeSite {
+  call: ts.CallExpression
+  method: string
+  line: number
+  // Receiver identification:
+  //   - `decl` is the VariableDeclaration / ParameterDeclaration / BindingElement
+  //     where the receiver identifier was declared, if resolvable locally.
+  //   - `fallbackKey` is a stable string keying by enclosing function + receiver
+  //     shape (identifier name or property access) when decl is null.
+  decl: ts.Node | null
+  fallbackKey: string
+  enclosingFn: ts.Node
+}
+
+function enclosingFunctionOf(node: ts.Node): ts.Node {
+  let n: ts.Node | undefined = node.parent
+  while (n) {
+    if (
+      ts.isFunctionDeclaration(n) ||
+      ts.isFunctionExpression(n) ||
+      ts.isArrowFunction(n) ||
+      ts.isMethodDeclaration(n) ||
+      ts.isConstructorDeclaration(n) ||
+      ts.isGetAccessorDeclaration(n) ||
+      ts.isSetAccessorDeclaration(n) ||
+      ts.isSourceFile(n)
+    ) {
+      return n
+    }
+    n = n.parent
+  }
+  return node.getSourceFile()
+}
+
+/**
+ * Resolve an Identifier to its nearest declaration node in the current
+ * source file, walking the scope chain outward from the identifier's
+ * position. Returns null if the identifier isn't declared locally (imports,
+ * globals, closure captures beyond the file).
+ *
+ * Scan is lexical: variable/param/binding nodes that contain the usage and
+ * whose declared identifier matches by text.
+ */
+function resolveIdentifierDeclaration(
+  id: ts.Identifier,
+  enclosingFn: ts.Node,
+): ts.Node | null {
+  const name = id.text
+  let match: ts.Node | null = null
+  function visit(n: ts.Node) {
+    if (match) return
+    // Don't descend into nested functions (different scope).
+    if (
+      n !== enclosingFn &&
+      (ts.isFunctionDeclaration(n) ||
+        ts.isFunctionExpression(n) ||
+        ts.isArrowFunction(n) ||
+        ts.isMethodDeclaration(n))
+    ) {
+      // Still check parameter list of the nested function if the usage is inside it.
+      if (id.pos >= n.pos && id.end <= n.end) {
+        ts.forEachChild(n, visit)
+      }
+      return
+    }
+    if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.name.text === name) {
+      match = n
+      return
+    }
+    if (ts.isParameter(n) && ts.isIdentifier(n.name) && n.name.text === name) {
+      match = n
+      return
+    }
+    if (ts.isBindingElement(n) && ts.isIdentifier(n.name) && n.name.text === name) {
+      match = n
+      return
+    }
+    ts.forEachChild(n, visit)
+  }
+  visit(enclosingFn)
+  return match
+}
+
+/**
+ * Describe the receiver of a property-access expression as a stable
+ * fallback key string. Covers identifiers and simple property chains
+ * (e.g. `this.res`, `state.response`). Fall back to the raw text for
+ * anything weirder.
+ */
+function receiverKey(expr: ts.Expression): string {
+  if (ts.isIdentifier(expr)) return `ident:${expr.text}`
+  if (ts.isPropertyAccessExpression(expr)) {
+    return `${receiverKey(expr.expression)}.${expr.name.text}`
+  }
+  if (expr.kind === ts.SyntaxKind.ThisKeyword) return "this"
+  return `text:${expr.getText()}`
+}
+
+function collectBodyConsumeSites(sf: ts.SourceFile): BodyConsumeSite[] {
+  const sites: BodyConsumeSite[] = []
+  function visit(node: ts.Node) {
+    if (ts.isCallExpression(node)) {
+      const callee = node.expression
+      if (ts.isPropertyAccessExpression(callee) && ts.isIdentifier(callee.name)) {
+        const method = callee.name.text
+        if (BODY_METHODS.has(method) && node.arguments.length === 0) {
+          const receiver = callee.expression
+          // Skip receivers that construct a fresh object at each call site
+          // (NewExpression, CallExpression, ParenthesizedExpression wrapping
+          // either). Each invocation yields a different Response-like
+          // instance, so pairing two such calls is spurious.
+          const unwrapped = ts.isParenthesizedExpression(receiver)
+            ? receiver.expression
+            : receiver
+          if (ts.isNewExpression(unwrapped) || ts.isCallExpression(unwrapped)) {
+            ts.forEachChild(node, visit)
+            return
+          }
+          const enclosingFn = enclosingFunctionOf(node)
+          let decl: ts.Node | null = null
+          let fallbackKey: string
+          if (ts.isIdentifier(receiver)) {
+            decl = resolveIdentifierDeclaration(receiver, enclosingFn)
+            fallbackKey = `ident:${receiver.text}`
+          } else {
+            fallbackKey = receiverKey(receiver)
+          }
+          sites.push({
+            call: node,
+            method,
+            line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1,
+            decl,
+            fallbackKey,
+            enclosingFn,
+          })
+        }
+      }
+    }
+    ts.forEachChild(node, visit)
+  }
+  visit(sf)
+  return sites
+}
+
+/**
+ * Return true iff `stmt` terminates its containing block unconditionally
+ * via throw or return (allowing a trailing block statement, a single throw
+ * expression, etc.). Recurses into the then/else branches of IfStatements
+ * only when the statement itself is an IfStatement.
+ */
+function blockEndsInThrowOrReturn(stmt: ts.Statement): boolean {
+  if (
+    ts.isThrowStatement(stmt) ||
+    ts.isReturnStatement(stmt) ||
+    ts.isContinueStatement(stmt) ||
+    ts.isBreakStatement(stmt)
+  ) {
+    return true
+  }
+  if (ts.isBlock(stmt)) {
+    const last = stmt.statements[stmt.statements.length - 1]
+    return last !== undefined && blockEndsInThrowOrReturn(last)
+  }
+  if (ts.isIfStatement(stmt)) {
+    if (!stmt.elseStatement) return false
+    return blockEndsInThrowOrReturn(stmt.thenStatement) && blockEndsInThrowOrReturn(stmt.elseStatement)
+  }
+  if (ts.isTryStatement(stmt)) {
+    // A try-statement terminates iff its try-block terminates AND, if a
+    // catch clause exists, the catch-block also terminates. A finally
+    // block that unconditionally returns/throws makes it terminate too.
+    if (stmt.finallyBlock && blockEndsInThrowOrReturn(stmt.finallyBlock)) return true
+    const tryEnds = blockEndsInThrowOrReturn(stmt.tryBlock)
+    const catchEnds =
+      !stmt.catchClause || blockEndsInThrowOrReturn(stmt.catchClause.block)
+    return tryEnds && catchEnds
+  }
+  return false
+}
+
+/**
+ * Return true iff every execution path that enters `stmt` exits `stmt` via
+ * throw or return (i.e. control flow never falls through to the statement
+ * after `stmt` in the enclosing block).
+ *
+ * Covers:
+ *   - ThrowStatement / ReturnStatement (trivially terminal).
+ *   - Block: terminates iff its last statement terminates (recursively),
+ *     OR iff any statement inside it terminates the containing function —
+ *     use the "last-statement" approximation; it's conservative (returns
+ *     false when unsure) and matches the patterns we care about.
+ *   - IfStatement: terminates iff BOTH then-branch terminates AND an else
+ *     branch exists that terminates. If no else branch, fall-through is
+ *     possible → not terminal.
+ *   - SwitchStatement: not handled — conservative false.
+ */
+function alwaysTerminates(stmt: ts.Statement): boolean {
+  return blockEndsInThrowOrReturn(stmt)
+}
+
+/**
+ * Returns the nearest enclosing Statement ancestor (the one whose parent
+ * is a Block, SourceFile, ModuleBlock, CaseClause, DefaultClause, or
+ * another container). Used to find sibling-position ordering.
+ */
+function enclosingStatement(node: ts.Node): ts.Statement | null {
+  let n: ts.Node | undefined = node
+  while (n) {
+    if (
+      n.parent &&
+      (ts.isBlock(n.parent) ||
+        ts.isSourceFile(n.parent) ||
+        ts.isModuleBlock(n.parent) ||
+        ts.isCaseClause(n.parent) ||
+        ts.isDefaultClause(n.parent))
+    ) {
+      if (
+        ts.isStatement(n) ||
+        ts.isVariableStatement(n) ||
+        ts.isExpressionStatement(n) ||
+        ts.isIfStatement(n) ||
+        ts.isReturnStatement(n) ||
+        ts.isThrowStatement(n) ||
+        ts.isBlock(n)
+      ) {
+        return n as ts.Statement
+      }
+    }
+    n = n.parent
+  }
+  return null
+}
+
+/**
+ * Heuristic: is the first call made unreachable-before-`second` by a
+ * short-circuit control-flow idiom?
+ *
+ * Strategy: find the nearest common ancestor block of the two calls. The
+ * first call sits inside some top-level child statement `A` of that block;
+ * the second sits inside a different top-level child statement `B` (or the
+ * same one — in which case fall-through applies). If `A` precedes `B` in
+ * source order AND `A` always terminates control flow (every path through
+ * `A` throws or returns), then control never falls through from the first
+ * call to the second → suppress.
+ *
+ * This covers:
+ *   - `if (!ok) throw ...; second`  (A = IfStatement with terminating then-branch
+ *     and no else — doesn't always-terminate, BUT since second runs only when
+ *     the if condition is false, and first is inside the then-branch, they're
+ *     mutually exclusive; we want to suppress this case.)
+ *   - Multiple sibling route branches: `if (path==="a") { first; return }`
+ *     then later `if (path==="b") { second; return }` — first's containing
+ *     IfStatement has a terminating then-branch; if path === "a" we return
+ *     and never reach second; if path !== "a" we never entered first. Either
+ *     way, they're mutually exclusive.
+ *
+ * Refined rule: suppress iff A precedes B AND the branch of A containing
+ * first terminates in throw/return. Rationale: if the branch containing
+ * first terminates, there's no path from first to second that stays in
+ * source order (either first aborts, or first was never entered).
+ */
+function firstUnreachableBeforeSecond(
+  first: ts.CallExpression,
+  second: ts.CallExpression,
+): boolean {
+  // Walk `first` up to each enclosing Statement ancestor. For each, check
+  // whether `second` is in a LATER sibling of the same parent block AND
+  // whether the branch-of-first terminates.
+  let firstAncestor: ts.Node | undefined = first
+  while (firstAncestor) {
+    const parent = firstAncestor.parent
+    if (!parent) break
+    if (
+      ts.isBlock(parent) ||
+      ts.isSourceFile(parent) ||
+      ts.isModuleBlock(parent) ||
+      ts.isCaseClause(parent) ||
+      ts.isDefaultClause(parent)
+    ) {
+      // firstAncestor is a top-level statement in `parent`. Is second in a
+      // later sibling of the same parent?
+      if (second.pos >= firstAncestor.end && second.end <= parent.end) {
+        // Find second's direct child-of-parent ancestor.
+        let secondAncestor: ts.Node | undefined = second
+        while (secondAncestor && secondAncestor.parent !== parent) {
+          secondAncestor = secondAncestor.parent
+        }
+        if (secondAncestor && secondAncestor !== firstAncestor && secondAncestor.pos >= firstAncestor.end) {
+          // Check the branch of firstAncestor containing `first` terminates.
+          if (branchContainingTerminates(firstAncestor as ts.Node, first)) {
+            return true
+          }
+        }
+      }
+    }
+    firstAncestor = parent
+  }
+  return false
+}
+
+/**
+ * Given a statement `stmt` containing `inner`, check whether the smallest
+ * sub-branch of `stmt` that contains `inner` terminates in throw/return.
+ *
+ * - If stmt is an IfStatement: identify which branch (then/else) contains
+ *   inner; return whether that branch's last statement terminates.
+ * - If stmt is a Block: return whether its last statement terminates
+ *   (inner must be somewhere inside; if first call aborts before the
+ *   last, it's still terminated at block exit).
+ * - If stmt is a VariableStatement / ExpressionStatement containing inner:
+ *   stmt does not terminate (falls through).
+ * - Otherwise: false (conservative).
+ */
+function branchContainingTerminates(stmt: ts.Node, inner: ts.Node): boolean {
+  if (ts.isThrowStatement(stmt) || ts.isReturnStatement(stmt)) return true
+  if (ts.isIfStatement(stmt)) {
+    const inThen = inner.pos >= stmt.thenStatement.pos && inner.end <= stmt.thenStatement.end
+    const inElse =
+      stmt.elseStatement !== undefined &&
+      inner.pos >= stmt.elseStatement.pos &&
+      inner.end <= stmt.elseStatement.end
+    if (inThen) return blockEndsInThrowOrReturn(stmt.thenStatement) || alwaysTerminates(stmt.thenStatement)
+    if (inElse) return blockEndsInThrowOrReturn(stmt.elseStatement!) || alwaysTerminates(stmt.elseStatement!)
+    return false
+  }
+  if (ts.isBlock(stmt)) {
+    const last = stmt.statements[stmt.statements.length - 1]
+    return last !== undefined && (blockEndsInThrowOrReturn(last) || alwaysTerminates(last))
+  }
+  // For ForStatement, WhileStatement, etc.: treat as non-terminating
+  // (loops may exit normally). Conservative.
+  return false
+}
 
 function checkBodyAlreadyUsed(
   files: string[],
@@ -491,68 +832,55 @@ function checkBodyAlreadyUsed(
   for (const abs of files) {
     const rel = relPath(abs)
     const src = readFileSync(abs, "utf8")
-    const lines = src.split("\n")
-    // Precompute character-offset → line lookup via cumulative length.
-    const lineStarts: number[] = [0]
-    for (let i = 0; i < lines.length; i++) lineStarts.push(lineStarts[i] + lines[i].length + 1)
-    function offsetToLine(off: number): number {
-      let lo = 0
-      let hi = lineStarts.length - 1
-      while (lo < hi) {
-        const m = (lo + hi) >> 1
-        if (lineStarts[m + 1] > off) hi = m
-        else lo = m + 1
+    const sf = ts.createSourceFile(rel, src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)
+    const sites = collectBodyConsumeSites(sf)
+    siteCount += sites.length
+
+    // Group by (enclosingFn, receiver-key). receiver-key prefers the
+    // declaration-node identity; falls back to the shape string.
+    const groups = new Map<string, BodyConsumeSite[]>()
+    for (const s of sites) {
+      const receiverId = s.decl
+        ? `decl@${(s.decl as any).pos}:${(s.decl as any).end}`
+        : s.fallbackKey
+      const fnId = `fn@${(s.enclosingFn as any).pos}:${(s.enclosingFn as any).end}`
+      const key = `${fnId}::${receiverId}`
+      let arr = groups.get(key)
+      if (!arr) {
+        arr = []
+        groups.set(key, arr)
       }
-      return lo
+      arr.push(s)
     }
 
-    RE_TEMPLATE_AWAIT.lastIndex = 0
-    let m: RegExpExecArray | null
-    while ((m = RE_TEMPLATE_AWAIT.exec(src)) !== null) {
-      const ident = m[1]
-      const method = m[2]
-      const startOff = m.index
-      const startLine = offsetToLine(startOff)
-      siteCount++
-      // Scan next ~80 lines or until brace depth returns to 0 from start.
-      const endLine = Math.min(lines.length - 1, startLine + 80)
-      // Build the follow-up slice starting AFTER this match.
-      let follow = ""
-      for (let i = startLine + 1; i <= endLine; i++) follow += lines[i] + "\n"
-      // Look for another body-method on the same ident with different method.
-      const other = BODY_METHODS.filter(mt => mt !== method)
-      const otherRe = new RegExp(
-        `await\\s+${ident}\\.(${other.join("|")})\\(\\)`,
-        "g",
-      )
-      const hit = otherRe.exec(follow)
-      if (!hit) continue
-      // Locate violation line (relative to file).
-      const offInSlice = hit.index
-      let cumulative = 0
-      let violLine = startLine + 1
-      for (let i = startLine + 1; i <= endLine; i++) {
-        const ll = lines[i].length + 1
-        if (cumulative + ll > offInSlice) {
-          violLine = i
-          break
+    for (const group of groups.values()) {
+      if (group.length < 2) continue
+      group.sort((a, b) => a.call.getStart(sf) - b.call.getStart(sf))
+      // Check each source-ordered pair. Any reachable pair flags.
+      for (let i = 0; i < group.length; i++) {
+        for (let j = i + 1; j < group.length; j++) {
+          const first = group[i]
+          const second = group[j]
+          if (firstUnreachableBeforeSecond(first.call, second.call)) continue
+          // FLAG: violation reported at the SECOND call's line.
+          const allowHit = isAllowlisted(allowlist, INV_BODY_USED, rel, second.line)
+          if (allowHit) {
+            console.log(
+              `allowlisted: ${INV_BODY_USED} @ ${rel}:${second.line} (expires ${allowHit.expires})`,
+            )
+            allowlistedCount++
+            // Only count one allowlist hit per pair; continue inner loop so
+            // later pairs on the same receiver still get checked.
+            continue
+          }
+          violations.push({
+            invariant: INV_BODY_USED,
+            file: rel,
+            line: second.line,
+            detail: `Response body consumed twice on same receiver: \`.${first.method}()\` @ line ${first.line} then \`.${second.method}()\` @ line ${second.line}`,
+          })
         }
-        cumulative += ll
       }
-      const allowHit = isAllowlisted(allowlist, INV_BODY_USED, rel, violLine + 1)
-      if (allowHit) {
-        console.log(
-          `allowlisted: ${INV_BODY_USED} @ ${rel}:${violLine + 1} (expires ${allowHit.expires})`,
-        )
-        allowlistedCount++
-        continue
-      }
-      violations.push({
-        invariant: INV_BODY_USED,
-        file: rel,
-        line: violLine + 1,
-        detail: `Response body \`${ident}\` consumed twice: \`.${method}()\` in template literal then \`.${hit[1]}()\` later`,
-      })
     }
   }
   return { violations, allowlisted: allowlistedCount, siteCount }
