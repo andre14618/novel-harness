@@ -61,7 +61,7 @@ Add to chapter outline output. **V1a shipped 2026-04-18** per `docs/current-stat
 - [x] `establishedFact.id` as stable identifiers for cross-referencing — shipped V1a. `src/schemas/shared.ts:32` `payoffLinkSchema`.
 - [x] `requiredPayoffs: [{fact_id, payoff_beat}]` — planner links setups to payoffs explicitly. Shipped V1a. `src/schemas/shared.ts:45`.
 - [x] Update `beat-context.ts` to surface new fields to the writer — shipped V1a with SEEDS / PAYOFFS DUE blocks. `src/agents/writer/beat-context.ts`.
-- [ ] **Check V1a pilot status** — current-state.md says "gated on an adversary-GREEN verdict on `docs/charters/planner-phase2-contract.md`." If pilot has run, decide V1b/V1c. If not, run it.
+- [ ] **Run V1a mini-pilot** — V1a CODE shipped but the pilot never ran. Original `planner-phase2-contract.md` got RED on 2026-04-18; superseded by `docs/charters/planner-phase2-payoff-floor.md` (status: proposed, adversary-verdict pending). The pilot is a 3-arm paired ablation on `pre-planner-phase2-v1a` tag: 3 seeds × 2 arms (`baseline` vs `prompt` floor) × 5 chapters = 30 chapter runs (~$0.30–$0.60, 1.5–4h). Novels must be named `pp2-floor__<arm>__<seed>__<timestamp>` per charter §2. Once data lands, the adversary re-review unblocks V1b (`speaker_directives`) + V1c (`subplot_id` + `thematic_focus`).
 - [ ] `subplot_id` per beat — tags which narrative thread advances. **V1c — gated on V1a pilot results.**
 - [ ] `speaker_directives` per beat — per-character: what each speaker specifically advances/reveals/conceals (content, not voice). **V1b — gated on V1a pilot results.**
 - [ ] `thematic_focus` — which aspect of theme this beat leans on. **V1c — gated on V1a pilot results.**
