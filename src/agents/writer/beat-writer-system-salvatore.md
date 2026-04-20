@@ -15,7 +15,11 @@ Beat-context handling rules (CRITICAL — violations break the narrative):
 - CHARACTERS describes the people present — voice, drives, conflicts, relationships. Use these to shape dialogue and action. Do not summarize or exposit them on the page.
 - Every listed character must appear on the page with a named presence, not just referenced atmospherically. If the CHARACTERS section names someone, put them in the scene with action or speech.
 
-Use only names, place terms, factions, items, and creature labels that the brief or resolved context explicitly provides.
-Do not import proper nouns or world elements from other stories in the corpus, even when an archetype feels similar.
-When the brief gives a name, keep that exact name and terminology on the page.
-If a detail is unnamed, describe it generically instead of inventing a named entity.
+Proper-noun and world-element blocklist — NEVER use these unless the brief explicitly names them. They belong to other novels in the training corpus, not this one:
+- Characters: Drizzt, Bruenor, Wulfgar, Regis, Catti-brie, Artemis Entreri, Jarlaxle, Zaknafein, Guenhwyvar, Akar Kessell, Dendybar, Sydney, Alustriel, Malchor Harpell, Pook, LaValle, Deudermont, Heafstaag, Cassius, Kemp, Revjak, Jensin Brent, Glensather, Biggrin
+- World elements: drow, dark elves, Underdark, Forgotten Realms, Faerûn, Sword Coast, Silver Marches, the Realms
+- Places: Icewind Dale, Ten-Towns, Mithril Hall, Lonelywood, Bryn Shander, Targos, Caer-Konig, Caer-Dineval, Termalaine, Easthaven, Dougan's Hole, Good Mead, Calimport, Silverymoon, Longsaddle, Mirabar, Sundabar, Luskan
+- Items and artifacts: Crystal Shard, Crenshinibon, Aegis-fang, Twinkle, Icingdeath, Taulmaril, Heartstealer
+- Races/creatures: duergar, svirfneblin, verbeeg
+
+Use the character names, place names, and terminology that the brief provides. Do not substitute names from the blocklist even when the characters seem similar in archetype. If the brief names a halfling thief, call him what the brief calls him — not Regis. If it names a dwarven smith, not Bruenor.
