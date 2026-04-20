@@ -25,7 +25,7 @@ type CharacterId =
 type BeatArchetype = "threat" | "reassurance" | "tactical_planning" | "banter"
 type PairId = "drizzt_vs_entreri" | "bruenor_vs_catti-brie" | "jarlaxle_vs_zaknafein"
 type PresetName = "preset-a" | "preset-b" | "preset-c"
-type ConditioningMode = "fixed" | "rotation" | "profile-only"
+type ConditioningMode = "fixed" | "rotation" | "profile-rotation" | "profile-only"
 
 type BeatRow = {
   id: string
@@ -66,10 +66,18 @@ type VoiceCardMap = Record<CharacterId, VoiceCard>
  *   `conditioning: "fixed"`, the starting sweep for `conditioning: "rotation"`,
  *   and the sweep tag carried through reports for `conditioning: "profile-only"`.
  * - `conditioning`:
- *   - `fixed`: lock the chosen preset for every generation call
- *   - `rotation`: rotate deterministically across `preset-a -> preset-b -> preset-c`
- *     on successive generation calls, starting from `preset`
- *   - `profile-only`: render profile/tics/avoid only; omit example lines
+ *   - `fixed`: lock the chosen preset for every generation call (applies to
+ *     example lines; tics/avoid rendered in full)
+ *   - `rotation`: rotate `canonical_lines` subsets deterministically across
+ *     `preset-a -> preset-b -> preset-c` on successive generation calls,
+ *     starting from `preset`. `tics` and `avoid` render in full.
+ *   - `profile-rotation`: rotate `tics`/`avoid` subsets deterministically
+ *     across the same preset cycle starting from `preset`, while holding
+ *     `canonical_lines` FIXED at `preset-a`. Isolates the profile-field
+ *     contribution to conditioning (charter H2).
+ *   - `profile-only`: render profile (`tics`/`avoid`) only; omit example
+ *     lines entirely. `tics` and `avoid` render in full at the chosen
+ *     `preset` slot.
  *
  * Optional fields:
  * - `notes`: free-form operator note persisted into the experiment config
@@ -274,7 +282,12 @@ export function validateArmConfig(config: unknown, filePath: string): ArmConfig 
   if (preset !== "preset-a" && preset !== "preset-b" && preset !== "preset-c") {
     throw new Error(`Arm config ${filePath} has invalid "preset": ${String(preset)}`)
   }
-  if (conditioning !== "fixed" && conditioning !== "rotation" && conditioning !== "profile-only") {
+  if (
+    conditioning !== "fixed" &&
+    conditioning !== "rotation" &&
+    conditioning !== "profile-rotation" &&
+    conditioning !== "profile-only"
+  ) {
     throw new Error(`Arm config ${filePath} has invalid "conditioning": ${String(conditioning)}`)
   }
   if (row.notes !== undefined && typeof row.notes !== "string") {
@@ -343,15 +356,28 @@ function validateArtifacts(beats: BeatRow[], voiceCards: VoiceCardMap) {
   }
 }
 
-function selectVoiceCard(card: VoiceCard, preset: PresetName): VoiceCard {
-  const presetIndexes: Record<PresetName, number[]> = {
-    "preset-a": [0, 1, 2],
-    "preset-b": [0, 3, 4],
-    "preset-c": [1, 3, 4]
-  }
+const CANONICAL_LINE_PRESET_INDEXES: Record<PresetName, number[]> = {
+  "preset-a": [0, 1, 2],
+  "preset-b": [0, 3, 4],
+  "preset-c": [1, 3, 4]
+}
 
-  const picked = presetIndexes[preset].map((index) => card.canonical_lines[index])
+const PROFILE_FIELD_PRESET_INDEXES: Record<PresetName, number[]> = {
+  "preset-a": [0, 1, 2],
+  "preset-b": [0, 1, 3],
+  "preset-c": [1, 2, 3]
+}
+
+function selectVoiceCard(card: VoiceCard, preset: PresetName): VoiceCard {
+  const picked = CANONICAL_LINE_PRESET_INDEXES[preset].map((index) => card.canonical_lines[index])
   return { ...card, canonical_lines: picked }
+}
+
+function selectProfileSubset(card: VoiceCard, preset: PresetName): VoiceCard {
+  const indexes = PROFILE_FIELD_PRESET_INDEXES[preset]
+  const tics = indexes.map((i) => card.tics[i]).filter((v): v is string => typeof v === "string")
+  const avoid = indexes.map((i) => card.avoid[i]).filter((v): v is string => typeof v === "string")
+  return { ...card, tics, avoid }
 }
 
 function stripExampleLines(card: VoiceCard): VoiceCard {
@@ -359,7 +385,7 @@ function stripExampleLines(card: VoiceCard): VoiceCard {
 }
 
 function presetForGeneration(arm: ArmConfig, generationIndex: number): PresetName {
-  if (arm.conditioning !== "rotation") {
+  if (arm.conditioning !== "rotation" && arm.conditioning !== "profile-rotation") {
     return arm.preset
   }
 
@@ -367,8 +393,16 @@ function presetForGeneration(arm: ArmConfig, generationIndex: number): PresetNam
   return PRESET_SEQUENCE[(startIndex + generationIndex) % PRESET_SEQUENCE.length]
 }
 
-function buildVoiceCardForGeneration(arm: ArmConfig, baseCard: VoiceCard, generationIndex: number): { card: VoiceCard; preset: PresetName } {
+export function buildVoiceCardForGeneration(arm: ArmConfig, baseCard: VoiceCard, generationIndex: number): { card: VoiceCard; preset: PresetName } {
   const preset = presetForGeneration(arm, generationIndex)
+
+  if (arm.conditioning === "profile-rotation") {
+    // Hold exampleLines fixed at preset-a; rotate tics/avoid across a/b/c
+    // starting from `preset`. Isolates profile-field contribution.
+    const withFixedLines = selectVoiceCard(baseCard, "preset-a")
+    return { card: selectProfileSubset(withFixedLines, preset), preset }
+  }
+
   const selected = selectVoiceCard(baseCard, preset)
   if (arm.conditioning === "profile-only") {
     return { card: stripExampleLines(selected), preset }

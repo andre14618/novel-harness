@@ -1,0 +1,7 @@
+{
+  "label": "v4-profile-rotation",
+  "adapter": "wandb-artifact:///andre14618-/novel-harness/salvatore-1988-v4",
+  "preset": "preset-a",
+  "conditioning": "profile-rotation",
+  "notes": "Isolates charter H2: rotates tics/avoid across preset-a/b/c while holding canonical_lines fixed at preset-a. Answers whether the profile payload (not exampleLines) is the load-bearing conditioning surface."
+}
