@@ -1,17 +1,18 @@
 /**
  * Unit tests for pickExampleLineSubset.
  *
- * Preset cycle math:
+ * Preset cycle math (both families):
  *   presetIdx = (chapterNumber * 100 + beatIndex) % 3
- *   0 → preset-a [0,1,2]
- *   1 → preset-b [0,3,4]
- *   2 → preset-c [1,3,4]
+ *   0 → preset-a
+ *   1 → preset-b
+ *   2 → preset-c
  *
- * Examples:
- *   chapter=0, beat=0  → (0*100+0)%3 = 0 → preset-a
- *   chapter=1, beat=0  → (1*100+0)%3 = 1 → preset-b [0,3,4]
- *   chapter=1, beat=1  → (1*100+1)%3 = 2 → preset-c [1,3,4]
- *   chapter=1, beat=2  → (1*100+2)%3 = 0 → preset-a [0,1,2]
+ * 5-line family:   preset-a [0,1,2]  preset-b [0,3,4]  preset-c [1,3,4]
+ * 4-line family:   preset-a [0,1,2]  preset-b [0,1,3]  preset-c [1,2,3]
+ *
+ * The 4-line family is the production default (character-agent emits 4
+ * exampleLines per character). The 5-line family is used when characters
+ * ship with ≥5 lines (legacy / hand-curated eval cases).
  */
 
 import { describe, it, expect } from "bun:test"
@@ -19,6 +20,7 @@ import { pickExampleLineSubset } from "./beat-context"
 
 const FIVE_LINES = ["line0", "line1", "line2", "line3", "line4"]
 const SIX_LINES  = ["line0", "line1", "line2", "line3", "line4", "line5"]
+const FOUR_LINES = ["line0", "line1", "line2", "line3"]
 
 // ── Fixed mode ────────────────────────────────────────────────────────────
 
@@ -107,15 +109,43 @@ describe("pickExampleLineSubset — short array fallback", () => {
     expect(pickExampleLineSubset(two, 5, 3, "rotation")).toEqual(["a", "b"])
   })
 
-  it("length-3 array returns unchanged (fewer than 5 lines)", () => {
+  it("length-3 array returns unchanged (fewer than 4 lines)", () => {
     const three = ["x", "y", "z"]
     expect(pickExampleLineSubset(three, 0, 0, "fixed")).toEqual(["x", "y", "z"])
     expect(pickExampleLineSubset(three, 2, 1, "rotation")).toEqual(["x", "y", "z"])
   })
+})
 
-  it("length-4 array returns unchanged (fewer than 5 lines)", () => {
-    const four = ["a", "b", "c", "d"]
-    expect(pickExampleLineSubset(four, 0, 0, "fixed")).toEqual(["a", "b", "c", "d"])
-    expect(pickExampleLineSubset(four, 1, 0, "rotation")).toEqual(["a", "b", "c", "d"])
+// ── 4-line preset family (production default) ─────────────────────────────
+
+describe("pickExampleLineSubset — 4-line preset family", () => {
+  it("fixed mode returns 4-line preset-a [0,1,2] on 4-line array", () => {
+    expect(pickExampleLineSubset(FOUR_LINES, 0, 0, "fixed")).toEqual(["line0", "line1", "line2"])
+    expect(pickExampleLineSubset(FOUR_LINES, 99, 99, "fixed")).toEqual(["line0", "line1", "line2"])
+  })
+
+  it("rotation chapter=0 beat=0 → preset-a [0,1,2]", () => {
+    expect(pickExampleLineSubset(FOUR_LINES, 0, 0, "rotation")).toEqual(["line0", "line1", "line2"])
+  })
+
+  it("rotation chapter=1 beat=0 → preset-b [0,1,3]", () => {
+    // (100 % 3) = 1 → preset-b
+    expect(pickExampleLineSubset(FOUR_LINES, 1, 0, "rotation")).toEqual(["line0", "line1", "line3"])
+  })
+
+  it("rotation chapter=1 beat=1 → preset-c [1,2,3]", () => {
+    // (101 % 3) = 2 → preset-c
+    expect(pickExampleLineSubset(FOUR_LINES, 1, 1, "rotation")).toEqual(["line1", "line2", "line3"])
+  })
+
+  it("all three 4-line rotation presets are distinct", () => {
+    const subsets = [0, 1, 2].map(bi => pickExampleLineSubset(FOUR_LINES, 0, bi, "rotation"))
+    expect(subsets[0]).not.toEqual(subsets[1])
+    expect(subsets[1]).not.toEqual(subsets[2])
+    expect(subsets[0]).not.toEqual(subsets[2])
+  })
+
+  it("5-line array still uses 5-line presets (preset-b = [0,3,4])", () => {
+    expect(pickExampleLineSubset(FIVE_LINES, 1, 0, "rotation")).toEqual(["line0", "line3", "line4"])
   })
 })
