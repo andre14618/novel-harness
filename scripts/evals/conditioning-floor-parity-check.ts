@@ -263,34 +263,73 @@ function diffFields(live: ComparableRequest, replay: ComparableRequest, arm: Arm
       `      replay head: ${JSON.stringify(replay.system_prompt.slice(0, 120))}`,
     )
   }
-  if (live.user_prompt !== replay.user_prompt) {
-    const firstDiff = findFirstDivergence(live.user_prompt, replay.user_prompt)
-    const divergenceInsideExampleLines = isDivergenceInsideExampleLines(
-      live.user_prompt,
-      replay.user_prompt,
-      firstDiff,
-    )
-    const isExpected = arm !== "raw" && divergenceInsideExampleLines
 
-    const liveTail = live.user_prompt.slice(-300)
-    const replayTail = replay.user_prompt.slice(-300)
-    const label = isExpected ? "user_prompt (EXPECTED exampleLines delta for non-raw arm)" : "user_prompt"
-    const entry =
-      `  - ${label}: differs (live=${live.user_prompt.length}ch, replay=${replay.user_prompt.length}ch)\n` +
-      `      first divergence at char ${firstDiff}:\n` +
-      `        live:   ${JSON.stringify(live.user_prompt.slice(firstDiff, firstDiff + 160))}\n` +
-      `        replay: ${JSON.stringify(replay.user_prompt.slice(firstDiff, firstDiff + 160))}\n` +
-      `      trailing 300ch:\n` +
-      `        live:   ${JSON.stringify(liveTail)}\n` +
-      `        replay: ${JSON.stringify(replayTail)}`
-    if (!isExpected) {
-      diffs.push(entry)
+  // User-prompt comparison is structured-segment-aware after Codex round-7
+  // blocker #3. For non-raw arms, the ONLY allowed delta is inside the
+  // per-character "Example voiced lines:" blocks. Everywhere else (beat
+  // spec, transition bridge, landing target, character profile fields other
+  // than example lines, setting, background) must match live byte-for-byte.
+  if (arm === "raw") {
+    // Raw arm: strict byte-equality required.
+    if (live.user_prompt !== replay.user_prompt) {
+      diffs.push(buildUserPromptDiffEntry(live.user_prompt, replay.user_prompt, "user_prompt (raw arm — strict byte-equality required)"))
+    }
+  } else {
+    // Non-raw: mask the example-lines blocks, then require strict byte-
+    // equality on the masked strings. Additionally, each replay block must
+    // be a valid subset of the corresponding live block (same entries, just
+    // fewer of them — matches what pickExampleLineSubset does).
+    const liveBlocks = extractExampleLineBlocks(live.user_prompt)
+    const replayBlocks = extractExampleLineBlocks(replay.user_prompt)
+    const liveMasked = maskExampleLineBlocks(live.user_prompt, liveBlocks)
+    const replayMasked = maskExampleLineBlocks(replay.user_prompt, replayBlocks)
+
+    if (liveMasked !== replayMasked) {
+      diffs.push(buildUserPromptDiffEntry(
+        liveMasked,
+        replayMasked,
+        `user_prompt (${arm} arm — non-exampleLines section drift; masked diff)`,
+      ))
+    }
+
+    if (liveBlocks.length !== replayBlocks.length) {
+      diffs.push(`  - user_prompt: example-line block COUNT mismatch (live=${liveBlocks.length}, replay=${replayBlocks.length}) — suggests a per-character rendering change outside the subset logic`)
     } else {
+      // Each replay block must be a subset of its corresponding live block.
+      for (let i = 0; i < liveBlocks.length; i++) {
+        const liveEntries = parseExampleLineEntries(liveBlocks[i].content)
+        const replayEntries = parseExampleLineEntries(replayBlocks[i].content)
+        const missing = replayEntries.filter(e => !liveEntries.includes(e))
+        if (missing.length > 0) {
+          diffs.push(
+            `  - user_prompt: example-line block #${i + 1} contains entries NOT in the live block (expected a subset):\n` +
+            `      not in live: ${JSON.stringify(missing)}`,
+          )
+        }
+      }
+    }
+
+    // Also show the expected delta so humans can eyeball it even on pass.
+    if (liveMasked === replayMasked && diffs.filter(d => d.includes("user_prompt")).length === 0) {
       console.log(`\n── EXPECTED delta: ${arm} arm exampleLines narrowed from raw ──`)
-      console.log(entry)
+      for (let i = 0; i < liveBlocks.length; i++) {
+        const liveEntries = parseExampleLineEntries(liveBlocks[i].content)
+        const replayEntries = parseExampleLineEntries(replayBlocks[i]?.content ?? "")
+        console.log(`  block #${i + 1}: live=${liveEntries.length} lines, replay=${replayEntries.length} lines`)
+      }
     }
   }
   return diffs
+}
+
+function buildUserPromptDiffEntry(a: string, b: string, label: string): string {
+  const firstDiff = findFirstDivergence(a, b)
+  return (
+    `  - ${label}: differs (live=${a.length}ch, replay=${b.length}ch)\n` +
+    `      first divergence at char ${firstDiff}:\n` +
+    `        live:   ${JSON.stringify(a.slice(firstDiff, firstDiff + 160))}\n` +
+    `        replay: ${JSON.stringify(b.slice(firstDiff, firstDiff + 160))}`
+  )
 }
 
 function findFirstDivergence(a: string, b: string): number {
@@ -302,28 +341,73 @@ function findFirstDivergence(a: string, b: string): number {
 }
 
 /**
- * For non-raw arms, the ONLY expected delta vs live is inside the
- * "Example voiced lines:" block of the CHARACTERS section. Everything else
- * (beat spec, transition bridge, landing target, character profile fields
- * other than example lines, setting) must match raw byte-for-byte.
- *
- * This helper decides whether a divergence at `firstDiff` falls inside that
- * block. Heuristic: walk back from firstDiff to find the most recent
- * "Example voiced lines:" marker; if found within the CHARACTERS section for
- * the prompt, the divergence is expected for non-raw arms.
+ * Locate every "Example voiced lines:" block in a prompt. A block starts at
+ * the marker line and includes all following indented numbered-entry lines
+ * (`    N. "..."`) until a line that doesn't match that pattern. Returns
+ * start/end offsets + content for each block.
  */
-function isDivergenceInsideExampleLines(live: string, replay: string, firstDiff: number): boolean {
+function extractExampleLineBlocks(prompt: string): Array<{ start: number; end: number; content: string }> {
   const marker = "Example voiced lines:"
-  const liveBefore = live.slice(0, firstDiff)
-  const replayBefore = replay.slice(0, firstDiff)
-  const liveMarker = liveBefore.lastIndexOf(marker)
-  const replayMarker = replayBefore.lastIndexOf(marker)
-  if (liveMarker === -1 || replayMarker === -1) return false
-  // Both strings must have reached the CHARACTERS section's example-lines
-  // block before the first divergence point — and nothing newline-delimited
-  // AFTER that marker but BEFORE firstDiff should indicate we've already
-  // exited the block into a different section.
-  return true
+  const entryRegex = /^\s{4,}\d+\.\s/
+  const blocks: Array<{ start: number; end: number; content: string }> = []
+  let searchFrom = 0
+  while (true) {
+    const markerIdx = prompt.indexOf(marker, searchFrom)
+    if (markerIdx === -1) break
+    // Find the line start containing the marker, so the block's start is at
+    // the beginning of that line (usually "  Example voiced lines:").
+    const lineStart = prompt.lastIndexOf("\n", markerIdx) + 1
+    // Advance past the marker line.
+    let cursor = prompt.indexOf("\n", markerIdx)
+    if (cursor === -1) {
+      // No newline after marker — block is just the marker line.
+      blocks.push({ start: lineStart, end: prompt.length, content: prompt.slice(lineStart) })
+      break
+    }
+    cursor += 1
+    // Accumulate indented entry lines.
+    while (cursor < prompt.length) {
+      const nextNl = prompt.indexOf("\n", cursor)
+      const lineEnd = nextNl === -1 ? prompt.length : nextNl
+      const line = prompt.slice(cursor, lineEnd)
+      if (!entryRegex.test(line)) break
+      cursor = nextNl === -1 ? prompt.length : nextNl + 1
+    }
+    blocks.push({ start: lineStart, end: cursor, content: prompt.slice(lineStart, cursor) })
+    searchFrom = cursor
+  }
+  return blocks
+}
+
+/**
+ * Replace every exampleLines block with a fixed placeholder so we can
+ * byte-compare the NON-exampleLines sections across arms. If the replay has
+ * drifted anywhere outside the blocks, the masked strings will differ and
+ * the parity check will fail — this is the tightening Codex round-7 wanted.
+ */
+function maskExampleLineBlocks(prompt: string, blocks: Array<{ start: number; end: number }>): string {
+  if (blocks.length === 0) return prompt
+  // Walk backwards so earlier splice operations don't invalidate later offsets.
+  let result = prompt
+  for (let i = blocks.length - 1; i >= 0; i--) {
+    const b = blocks[i]
+    result = result.slice(0, b.start) + "<EXAMPLE_LINES_BLOCK>\n" + result.slice(b.end)
+  }
+  return result
+}
+
+/**
+ * Parse a block's entry lines into a canonical string list (unquoted,
+ * unnumbered) so two blocks can be compared as sets regardless of numbering
+ * or surrounding whitespace.
+ */
+function parseExampleLineEntries(blockContent: string): string[] {
+  const entries: string[] = []
+  for (const line of blockContent.split("\n")) {
+    const match = line.match(/^\s{4,}\d+\.\s+"(.*)"\s*$/)
+    if (match) entries.push(match[1])
+  }
+  return entries
 }
 
 function findFirstDivergence(a: string, b: string): number {

@@ -109,14 +109,26 @@ The same checklist had opposite effects on three models: Llama 8B +18pp (rescued
 ### 4.6 Check prompt assumptions against the architecture, not just the eval
 The adherence-checker setting prompt said "no setting markers → false." The beat-context code only injects setting on beat 0 or location change. Mid-chapter beats never have setting markers by design. **Read the production data shape before writing the check prompt.** *(Production run post-exp #122.)*
 
-### 4.7 Build a parity harness for any experiment that intervenes on production code paths
-When an experiment modifies code that the live production pipeline also runs (writer, checker, planner, context-builder, etc.), build a byte-parity harness that diffs the experimental-path request against a real `llm_calls` row from a drafted production run for the same coordinates. Run it BEFORE any judging. A non-zero diff aborts the pilot; an expected-delta region (e.g., a specific prompt section that IS the intervention) is annotated and allowed.
+### 4.7 Build a parity harness for any experiment that changes how a production LLM request is CONSTRUCTED
+When an experiment modifies code that produces the request bytes a live production LLM call also emits (writer, checker, planner, context-builder prompt assembly; model-config resolution; tokenizer/format wrapping), build a **request-construction parity harness** that diffs the experimental-path outgoing request against a real `llm_calls` row from a drafted production run for the same coordinates. Run it BEFORE any judging. A non-zero diff outside explicitly-declared delta spans aborts the pilot.
 
-Why: over 7 rounds of adversarial review on the `salvatore-distinctness-conditioning-floor` charter, the parity harness caught two silent regressions no unit test could have: (1) a 4-line-vs-5-line preset mismatch that made the experiment a no-op on production characters, and (2) a pack-level `conditioning: "fixed"` default that silently dropped one exampleLine from every production novel beat.
+**Scope — what this rule covers:** only the request-construction layer. System prompt, user prompt (structured-segment diff, not first-divergence-only), model, provider, temperature, max_tokens, response_format. For multi-arm experiments, per-arm: control arm byte-equal to live; treatment arms byte-equal to live outside declared delta spans.
 
-What to diff: model, provider, temperature, max_tokens, system_prompt, user_prompt. For multi-arm experiments, run the harness per-arm with the arm's config active — control arm byte-equal to live, treatment arms byte-equal to live except in documented delta regions.
+**Scope — what this rule does NOT cover.** A request-byte parity harness does not verify any of these; flag them separately in the charter if the experiment touches them:
+- **Response parsing / schema** — if the experiment changes how the raw LLM response is parsed into agent output, add a response-parse parity check (apply both parsers to a corpus of real responses; compare.)
+- **Retry / transport audit behavior** — if the experiment changes retry count, retry conditions, or how retry metadata persists (see `src/transport.ts`), add a retry-audit parity check that replays a known-429 response and compares `httpAttempts` + `retryErrors` shape.
+- **DB write-shape / side-effects** — if the experiment changes what gets written to `llm_calls`, `eval_results`, `pipeline_events`, or similar persistence layers, add a write-shape parity check that diffs the INSERT payloads.
 
-Canonical implementation: [`scripts/evals/conditioning-floor-parity-check.ts`](/Users/andre/Desktop/personal_projects/novel-harness/scripts/evals/conditioning-floor-parity-check.ts) — model new parity harnesses on its shape. *(Added 2026-04-20 after the conditioning-floor charter's 7-round review cycle.)*
+**Explicit not-applicable exemptions** (charter must name which applies if §4.7 is skipped):
+- **Pure evaluation task** — experiment only reads existing data / runs offline scoring; no new production-shape request is constructed.
+- **Model or weight swap only** — experiment changes ONLY the model name / LoRA artifact URI while request construction is byte-identical to production.
+- **Analysis-only** — experiment generates reports or statistics from `llm_calls` / `eval_results` without invoking any production code path.
+
+If an experiment falls in none of the above categories and skips the parity harness, the charter must name an alternative invariant and a one-sentence rationale.
+
+**Why:** over 7 rounds of adversarial review on the `salvatore-distinctness-conditioning-floor` charter, the parity harness caught two silent regressions that no unit test could have: (1) a 4-line-vs-5-line preset mismatch that made the experiment a no-op on production characters, and (2) a pack-level `conditioning: "fixed"` default that silently dropped one exampleLine from every production novel beat. A subsequent Codex round-7 review also caught a permissive-diff bug in the harness's first implementation (suppressed ALL post-marker drift instead of only the allowed spans) — fixed via structured-segment diff with explicit mask + subset check.
+
+**Canonical implementation:** [`scripts/evals/conditioning-floor-parity-check.ts`](/Users/andre/Desktop/personal_projects/novel-harness/scripts/evals/conditioning-floor-parity-check.ts) — uses `extractExampleLineBlocks` + `maskExampleLineBlocks` for structured-segment diff. Model new parity harnesses on its shape. *(Added 2026-04-20 after the conditioning-floor charter's review cycle. Refined per Codex SOP audit.)*
 
 ---
 
@@ -259,11 +271,17 @@ All models (K2, 32B, 235B) change 63-78% of characters when reproducing a full c
 [ ] Smoke run (16 pairs) planned before full run
 [ ] If checker change: 3-chapter romance-drama pilot scheduled after
 [ ] Experiment linked to related prior experiments in config JSON
-[ ] If the experiment intervenes on a production code path (writer,
-    checker, planner, context-builder): parity harness built and passing
+[ ] Request-construction parity harness: if the experiment changes
+    how outgoing LLM requests are constructed on any production code
+    path (writer, checker, planner, context-builder, prompt assembly,
+    model-config resolution), build and pass a structured-segment diff
     against a real llm_calls row for the same coordinates. Per §4.7.
-    Skip only for pure evaluation tasks that don't rerun production
-    code with an experimental knob.
+    Skip categories (charter must name one): pure evaluation task,
+    model/weight-only swap, analysis-only.
+[ ] Sibling parity gates (add separately if the experiment touches
+    these layers): response-parse parity, retry-audit parity, DB
+    write-shape parity. Per §4.7. Request-byte parity does NOT cover
+    these layers.
 ```
 
 ---

@@ -51,7 +51,10 @@ If any of these would plausibly hit the target at <10% of the proposed cost, tha
 - **Train set stratification:** ...
 - **Eval set stratification:** ...
 - **Production distribution (real beats in `llm_calls`):** ...
-- **Parity harness (per `experiment-design-rules.md` §4.7):** If this experiment intervenes on a production code path (writer, checker, planner, context-builder), name the parity-harness script that will run before judging and the real `llm_calls` coordinates it will diff against. Expected-delta regions (e.g., "exampleLines block") are enumerated here. If the experiment does NOT run production code with an experimental knob, write "not applicable — pure evaluation task, no parity harness needed" with a one-sentence rationale.
+- **Parity harness (per `experiment-design-rules.md` §4.7):**
+  - **Request-construction parity:** If this experiment changes how LLM requests are constructed on any production code path, name the harness script, the real `llm_calls` coordinates it will diff against, and the expected-delta spans (e.g., specific prompt regions that ARE the intervention). A structured-segment diff is required (see `scripts/evals/conditioning-floor-parity-check.ts`); first-divergence suppression is insufficient.
+  - **Sibling parity gates (add if applicable):** name any additional parity checks — response-parse parity (if the experiment changes response handling), retry-audit parity (if retry behavior changes), DB write-shape parity (if eval_results / llm_calls / pipeline_events writes change). Request-byte parity does NOT cover these layers.
+  - **Skip category (if applicable):** name ONE of {pure evaluation task, model/weight-only swap, analysis-only} OR name an alternative invariant + one-sentence rationale if none of those fit.
 
 Flag any mismatch. `experiment-design-rules.md` §7.1 — expect 5–10 pt generalization penalty; mismatch widens it.
 

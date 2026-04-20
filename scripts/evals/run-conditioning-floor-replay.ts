@@ -672,18 +672,38 @@ async function assembleOneTriplet(
     ? `noRetries violated: ${retryViolations.join("; ")}`
     : undefined
 
-  // If retry violation, mark ALL arms as loss so all pairs from this triplet
-  // are excluded from judging.
-  if (retryErrorText) {
-    console.warn(`    [RETRY-VIOLATION] ${retryErrorText} — marking triplet as error`)
+  // Triplet-level abort on ANY arm failure (Codex round-7 blocker #2).
+  //
+  // Prior behavior: a writer error on one arm produced empty prose → loss for
+  // that arm only. With arms called in fixed order (raw → fixed → rotation)
+  // and transport.noRetries=true, any transient provider fault (429, 5xx,
+  // timeout) becomes an immediate arm-loss. Rotation is always last and so is
+  // systematically most exposed to accumulated backoff / transport state.
+  // That lets infra noise, not conditioning, decide the winner.
+  //
+  // New behavior: if ANY arm errored or retried, the WHOLE triplet is marked
+  // error and all three pair sets drop the beat (error row, automatic
+  // exclusion per resolveLossShortCircuit). Order bias goes away because any
+  // single-arm failure voids the triplet rather than penalizing one arm.
+  const anyArmErrored = rawError !== undefined || fixedError !== undefined || rotationError !== undefined
+  const tripletAbort = retryErrorText !== undefined || anyArmErrored
+
+  if (tripletAbort) {
+    const erroredArms: string[] = []
+    if (rawError) erroredArms.push(`raw: ${rawError}`)
+    if (fixedError) erroredArms.push(`fixed: ${fixedError}`)
+    if (rotationError) erroredArms.push(`rotation: ${rotationError}`)
+    if (retryErrorText) erroredArms.push(retryErrorText)
+    console.warn(`    [TRIPLET-ABORT] ${erroredArms.join("; ")} — all three pair sets drop this beat`)
   }
 
   const baseErrorText = [rawError, fixedError, rotationError, retryErrorText].filter(Boolean).join("; ") || undefined
 
-  // Loss encoding per charter §7
-  const lossRaw = retryErrorText !== undefined || rawWords < minWords
-  const lossFixed = retryErrorText !== undefined || fixedWords < minWords
-  const lossRotation = retryErrorText !== undefined || rotationWords < minWords
+  // Loss encoding per charter §7. Triplet-abort forces all three arms to
+  // loss; otherwise per-arm word-count gate applies.
+  const lossRaw = tripletAbort || rawWords < minWords
+  const lossFixed = tripletAbort || fixedWords < minWords
+  const lossRotation = tripletAbort || rotationWords < minWords
 
   return {
     triplet: {

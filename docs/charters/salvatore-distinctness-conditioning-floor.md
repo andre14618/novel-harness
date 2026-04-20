@@ -306,9 +306,3 @@ Overall judgment: "conditioning alone" did NOT hold under whole-novel A/B; the h
 - **Fail path:** if §7 emits KILL, reopen `salvatore-v5-corpus-expansion` as a separate charter (PDF acquisition is its own pre-gate).
 - **H2 reopens only as a new charter**, gated on H1 winning first AND a runtime-contract change that lets `buildBeatContext` accept preset-indexed `tics`/`avoid` arrays (production currently renders free-text `speechPattern` / `avoids`).
 - **Whole-novel policy question (separately).** Codex correctly flagged that per-beat isolation can't answer "does rotation policy help across a full novel?" — feedback-loop confounds prevent clean isolation there. A future charter with a different methodology (e.g. accepting the confound and measuring cumulative effect on cheap telemetry) is justified only if beat-local H1 wins.
-
-Post-win path: if `slim-live-v1` passes §7, ship `conditioning: "rotation"` as default in the fantasy pack. Inference-local flag flip; no new infra charter. If telemetry / preset-state plumbing later become useful, that is a separate charter (not scope creep here).
-
-Post-fail path: if `slim-live-v1` fails §7, reopen `salvatore-v5-corpus-expansion` separately. PDF acquisition remains its own pre-gate.
-
-H2 reopens only as a new charter, gated on H1 winning first.
