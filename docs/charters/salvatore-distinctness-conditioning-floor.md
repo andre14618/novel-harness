@@ -1,10 +1,11 @@
 ---
-status: proposed
+status: needs-revision
 kind: experiment-charter
 experiment-family: salvatore-distinctness-conditioning-floor
 proposed-by: Codex
 proposed-date: 2026-04-18
-adversary-verdict: pending
+adversary-verdict: RED
+adversary-review-date: 2026-04-20
 supersedes: docs/charters/salvatore-v5-corpus-expansion.md
 depends_on: docs/evals/salvatore-distinctness-v1.md
 ---
@@ -107,12 +108,33 @@ Interpretation rule: use count units only. Do not translate these gates into poi
 
 ## 10. Adversary review
 
-Leave all slots pending. This charter is not ready for re-review until the §11 gate is satisfied.
+§11 readiness gate satisfied by commit `e54b1fe` (scorer TODOs closed: generation, judge, shuffler, arm-config schema). Primary reviewer ran 2026-04-20 and returned **RED**. Charter requires revision before re-review.
 
 | Reviewer | Verdict | Date | Notes |
 |----------|---------|------|-------|
-| `/codex:adversarial-review` (GPT) — primary | pending | pending | Hold until the §11 readiness gate is satisfied |
+| `/codex:adversarial-review` (GPT) — primary | RED | 2026-04-20 | Three blocking issues (see verdict block below). Recommended next action: REVISE CHARTER. |
 | `experiment-adversary` (Opus) — fallback only | pending | pending | Only run if Codex is unavailable or a second opinion is explicitly requested after Codex review |
+
+### 10.1 Primary reviewer verdict (2026-04-20, commit `e54b1fe` scorer state)
+
+> VERDICT: RED
+>
+> SUMMARY: No-ship: the charter's causal claim, ship metric, and rollout decision are misaligned with the landed scorer, so even a win would not cleanly tell you whether live v4 conditioning improved enough to defer corpus expansion (§11.5, §7.1, exp #195).
+>
+> BLOCKING ISSUES (must fix before run, numbered):
+> 1. **Axis 1 / Axis 3 — bundled lever.** §5 defines the tested lever as rotating `exampleLines` / profile subsets, but the landed scorer/configs only vary example-line subsets and never isolate profile contribution; that bundled, misnamed intervention is uninterpretable under §11.5. Fix: scope the charter to example-line rotation only, or add explicit profile-surface arms before treating this as a conditioning-family result.
+> 2. **Axis 4 / Axis 7 — distribution mismatch with live writer surface.** §6 treats `salvatore-distinctness-v1` as close to the shipped v4 runtime and §7 allows direct promotion, but exp #195 already showed Salvatore writer conclusions can fail once the real prompt shape lands; under §4.6 and §7.1 this proxy is too far from `buildBeatContext` to justify default rollout. The scorer uses a stripped single-speaker dialogue prompt, not the production `buildBeatContext` path with transition bridge, landing target, resolved references, setting, and multiple character cards. Fix: require a production-shaped A/B pilot on the live writer surface before any ship action.
+> 3. **Axis 5 / Axis 7 — threshold metric not producible.** §7 gates on the three-sweep protocol and count thresholds, but the linked scorer/arm configs do not emit separate A/B/C sweep totals or mean/min/max; they collapse presets into one report, violating §11.5 and leaving the ship/kill rules unverifiable. Fix: land explicit sweep-level configs/reporting or rewrite the charter to the single-run metric the tooling can actually produce.
+>
+> WARNINGS:
+> - Axis 2 — §4 calls the ceiling "Sonnet+profile" from exp #220, but the shipped ceiling arm is `profile-only` (no exampleLines), so the ladder anchor is weaker than claimed (§2.1, exp #220).
+>
+> CHEAPEST UNTRIED COUNTERFACTUAL:
+> ExampleLines-only fixed-vs-rotation A/B/C runs on the live `buildBeatContext` surface, plus one 3-chapter fantasy pilot; ~$0 training spend, expected to show whether any distinctness lift survives production prompt shape before corpus work (§4.6, §7.1, exp #195).
+>
+> RECOMMENDED NEXT ACTION: REVISE CHARTER.
+
+Codex full output: background job `bshvls959`, thread `019dac87-b12a-7d30-9e47-32656ee7e7b4`.
 
 ## 11. Open questions / readiness gate
 
