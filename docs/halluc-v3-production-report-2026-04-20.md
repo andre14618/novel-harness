@@ -80,15 +80,27 @@ Ungrounded clears on 9% of retries. Most fired beats stay fired after one retry.
 
 ## Precision on solo-ungrounded fires (runbook §8 step 5)
 
-Sampled 20 solo-ungrounded beats (3 each from 6 novels, 2 from the 7th), adjudicated by 4 parallel Sonnet subagents reading the exact `halluc_ungrounded_user_prompt` the adapter saw.
+Sampled 20 solo-ungrounded beats (3 each from 6 novels, 2 from the 7th), adjudicated by 4 parallel Sonnet subagents.
 
-**Verdict: 12 TP / 5 FP / 3 borderline (lean-FP)** → precision 60% (conservative) to 75% (charitable). Below the 77.8% combined natural-val reported in `docs/decisions.md`, but with a clear single-class failure mode.
+**Initial verdict: 12 TP / 5 FP / 3 borderline.** Revised after 2026-04-20 offline replay below.
 
-**Dominant FP pattern — adapter overfires on brief-grounded entities.** Verified directly on one sample (novel-1776608639218 ch=3 beat=5): the `BEAT BRIEF: Summary` the adapter saw literally contained "a cursed artifact called the **Heartstone**", and the adapter flagged `Heartstone` as ungrounded anyway. The adapter is treating `WORLD BIBLE (names only)` as the canonical grounded-entity set and under-weighting proper nouns introduced in the brief summary.
+### REVISED FINDING — 2026-04-20 offline replay
 
-Other examples of the same pattern: "Baldur's Gate" and "Spine of the World" (verbatim in brief), "Frostbite Citadel" and "Council" (verbatim in brief), "Syndicate" (in brief dialogue), "Lake Communities" (in transition bridge).
+Initial precision was miscalibrated. Building `extractProperNouns()` + re-running the adapter on all 20 samples with a "From-brief:" line appended to `WORLD BIBLE` surfaced the real signal: the adapter almost never sees the "FP" entities the subagents flagged as in-brief, because subagents drifted to the **writer's** wider `beat_brief_excerpt` field (transition bridge + chapter outline + resolved refs) instead of the checker's narrower BEAT BRIEF. Direct inspection confirmed: of the 20 samples, only `Heartstone` (novel-1776608639218 ch=3 beat=5) was actually in the checker's `Summary` text. The From-brief fix cleared it 1/1.
 
-True positives were consistently clean — Salvatore-corpus leaks the leak adapter missed (Bremen's Run, Harpells) plus writer-invented polities (Rimeport, Southhold, Orc Kingdoms, Balennar Keep).
+Spot-check on another subagent-labeled "FP": `Baldur's Gate` in novel-1776608639218 ch=1 beat=4. The checker's BEAT BRIEF Summary says `"Vex reveals the message must cross the Ashen Wastes to Saltford Crossing..."`; no mention of Baldur's Gate. The entity lives only in the writer's transition bridge / chapter context and correctly fires as ungrounded from the checker's view.
+
+**Corrected precision estimate: ~90%+.** The adapter is well-calibrated to its narrow grounded surface. The dominant "miss" pattern is a **context-surface mismatch between writer and checker**, not adapter overfire:
+
+- Writer sees: beat brief + transition bridge + chapter outline + world bible + resolved refs.
+- Checker sees: `beat.description` + world-bible names + speaker names.
+- Entities the writer uses from transition-bridges / chapter outlines (not the beat description) correctly fire from the checker's view.
+
+True positives were clean either way — Salvatore-corpus leaks the leak adapter missed (Bremen's Run, Harpells) plus writer-invented polities (Rimeport, Southhold, Orc Kingdoms, Balennar Keep).
+
+### Why the 46.7% ungrounded fire rate remains high
+
+With ~90% precision, the 46.7% fire rate means the writer is genuinely producing ungrounded entities on nearly half of beat attempts — this is a **writer / planner issue, not an adapter issue**. The writer introduces named entities from the transition bridge or chapter-level context that never land in the per-beat grounded surface. Fixing this is a planner / context-engineering problem, not a retraining problem.
 
 ## Leak-route gating (runbook §8 step 8)
 
@@ -96,15 +108,19 @@ All 7 panel novels are Salvatore-routed. `halluc-leak-salvatore` fired on 40/255
 
 ## Actions (ordered by leverage)
 
-1. **Tighten retry-context wording for halluc-ungrounded.** Runbook §8.10 prescribed action. Current retry line is "remove or ground `<entity>`." Writer often preserves the entity across retries because the prompt doesn't surface *what should replace it* or that the entity may be a Salvatore-corpus leak. Proposal: add "This entity is not in your beat brief or world bible. Either replace with a grounded entity from the list below, or remove the reference entirely." Measure clearance rate on the next 5 novels.
+1. **Tighten retry-context wording for halluc-ungrounded.** SHIPPED (`src/phases/beat-checks.ts` `formatRetryLine`). Retry line now includes the resolution space: "replace with an entity from the beat brief or world bible, or remove the reference entirely. Do not invent new named entities." Leak wording similarly expanded. Measure clearance rate on the next 5 novels.
 
-2. **Address brief-grounded-entity FP class.** Two options, in order of cost:
-   - (a) **Context fix (cheap, try first):** extract proper-noun candidates from `beat.description` and add them to `WORLD BIBLE (names only)` → `Locations` or a new `This Beat's Grounded Entities` bullet. No retraining; changes only `src/agents/halluc-ungrounded/context.ts`. Measure FP rate on the next 5 novels.
-   - (b) **Retraining (only if 2a doesn't close the gap):** regenerate `format-v3-two-adapters.ts` training set with brief-introduced proper nouns treated as grounded. Tag `docs/decisions.md` and rebuild adapter.
+2. **Narrow brief-extraction context fix — SHIPPED.** `src/agents/halluc-ungrounded/context.ts` now extracts proper-noun candidates from `beat.description` + `outline.setting` and adds a `From-brief:` line to the `WORLD BIBLE (names only)` block. Flipped 1/1 of the true in-scope FP cases in the offline replay (Heartstone). Correctly does not touch the 19 samples whose "FPs" were actually context-surface mismatches.
 
-3. **Non-fantasy route verification.** Open — when the next non-fantasy novel runs, confirm `halluc-leak-salvatore` generates zero `llm_calls` rows on that route.
+3. **Context-surface mismatch between writer and checker — NEW, root cause of the remaining 46.7% fire rate.** The writer's grounded surface (beat brief + transition bridge + chapter outline + resolved refs) is wider than the checker's (`beat.description` + world-bible names + speaker names). The writer pulls named entities from the wider surface; the checker correctly fires. Fix options:
+   - (a) **Enrich `beat.description` at plan-time** so entities the transition bridge or chapter outline assume also land in the per-beat grounded text. Planner-level change; requires updating `src/agents/planning-beats/` schema or prompt.
+   - (b) **Widen the checker's grounded surface** to include `transitionBridge` and/or `outline.establishedFacts`. Off-distribution for the current adapter; would require retraining or tolerating some precision loss.
+   - (c) **Suppress writer entity introduction not grounded in beat.description.** Writer prompt could be told to avoid naming new entities absent from its own beat brief. Hard to enforce reliably.
+   - Start with (a) — cheapest, most principled.
 
-4. **v4 active-learning harvest.** Still open (`docs/todo.md` §1). The 76 solo-ungrounded fires are a candidate seed for v4 disagreement mining.
+4. **Non-fantasy route verification.** Open — when the next non-fantasy novel runs, confirm `halluc-leak-salvatore` generates zero `llm_calls` rows on that route.
+
+5. **v4 active-learning harvest.** Still open (`docs/todo.md` §1). Corrected view: the 76 solo-ungrounded fires are mostly TRUE positives — a good candidate for v4 distillation but not a retraining-priority signal.
 
 ## What I'm NOT recommending
 

@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test"
-import { buildContext } from "./context"
+import { buildContext, extractProperNouns } from "./context"
 
 const baseBeat = {
   description: "Kael finds the torn map behind the tavern hearth.",
@@ -74,4 +74,55 @@ test("PROSE TO CHECK section carries prose verbatim at the end", () => {
   const prose = "She lit the lamp. It guttered."
   const out = buildContext(prose, baseBeat as any, baseOutline, baseChars, baseWorldBible)
   expect(out.endsWith(prose)).toBe(true)
+})
+
+test("extractProperNouns: picks single- and multi-word proper nouns, filters stopwords", () => {
+  const text = "Kael cryptically hints that the war is fueled by a cursed artifact called the Heartstone, which drains the land."
+  const names = extractProperNouns(text)
+  expect(names).toContain("Kael")
+  expect(names).toContain("Heartstone")
+  expect(names).not.toContain("The")
+  expect(names).not.toContain("She")
+})
+
+test("extractProperNouns: picks multi-word spans with connectors", () => {
+  const names = extractProperNouns("Tamsin rode along the Dust Road from Baldur's Gate to the Spine of the World.")
+  expect(names).toContain("Tamsin")
+  expect(names).toContain("Dust Road")
+  expect(names).toContain("Baldur's Gate")
+  expect(names).toContain("Spine of the World")
+})
+
+test("extractProperNouns: dedupes", () => {
+  const names = extractProperNouns("Heartstone corrupts leaders. The Heartstone hums.")
+  expect(names.filter(n => n === "Heartstone")).toHaveLength(1)
+})
+
+test("buildContext: From-brief line surfaces brief-only proper nouns and dedupes against world bible", () => {
+  const beat = {
+    description: "Kael cryptically hints that the war is fueled by a cursed artifact called the Heartstone.",
+    kind: "dialogue" as const,
+    characters: ["Kael"],
+    requiredPayoffs: [],
+  } as any
+  const outline = { ...baseOutline, setting: "The Broken Anchor" }
+  const out = buildContext("prose", beat, outline, baseChars, baseWorldBible)
+  expect(out).toContain("From-brief:")
+  expect(out).toContain("Heartstone")
+  // "The Broken Anchor" is already in the bible Locations list — don't duplicate into From-brief
+  const fromBriefLine = out.split("\n").find(l => l.trim().startsWith("From-brief:")) ?? ""
+  expect(fromBriefLine).not.toContain("The Broken Anchor")
+})
+
+test("buildContext: From-brief line renders '(none)' when brief has no proper nouns", () => {
+  const beat = {
+    description: "she ran toward him in the dark.",
+    kind: "action" as const,
+    characters: ["Kael"],
+    requiredPayoffs: [],
+  } as any
+  const outline = { ...baseOutline, setting: "" }
+  const out = buildContext("prose", beat, outline, baseChars, { locations: [], cultures: [], systems: [] })
+  // Kael is in beat.characters so it's in bibleKnown; should be excluded from From-brief.
+  expect(out).toContain("From-brief: (none)")
 })

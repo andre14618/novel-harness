@@ -113,13 +113,22 @@ export function aggregateIssues(outputs: RawCheckerOutputs): BeatCheckResult {
  * Shape each issue into the hint the writer receives in the targeted
  * rewrite prompt. The source-specific verb nudges the writer toward
  * the right fix without exposing checker internals.
+ *
+ * Retry-wording expansion — 2026-04-20: the raw
+ * "Ungrounded entity X — context: ..." and "Salvatore corpus-leak token X"
+ * descriptions told the writer *what* was wrong but not *how* to fix it;
+ * clearance rate on the 2026-04-20 panel was 9% for ungrounded and 28%
+ * for leak because the writer tended to preserve the flagged token. The
+ * appended guidance lines tell the writer the valid resolution space
+ * (replace with brief/bible entity, or remove the reference). See
+ * docs/halluc-v3-production-report-2026-04-20.md.
  */
 export function formatRetryLine(issue: BeatIssue): string {
   switch (issue.source) {
     case "halluc-ungrounded":
-      return issue.description
+      return `${issue.description} — Fix: replace with an entity from the beat brief or world bible, or remove the reference entirely. Do not invent new named entities.`
     case "halluc-leak-salvatore":
-      return issue.description
+      return `${issue.description} — Fix: remove the token or replace with a generic descriptor (e.g. "the drow warrior" instead of a Salvatore-corpus proper name).`
     case "adherence":
     default:
       return issue.description

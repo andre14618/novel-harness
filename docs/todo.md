@@ -39,10 +39,13 @@ Follow-ups (low priority):
 - [x] `format-v3-two-adapters.ts` builds both training sets from shared pool; `eval-combined-v3.ts` runs both adapters in parallel.
 - [x] **Wired into `drafting.ts`** (2026-04-18) — `runBeatChecks()` in `src/phases/beat-checks.ts` fans out adherence + ungrounded (always) + leak (Salvatore-route only), aggregates into unified `BeatIssue[]`, OR-gates retries. Leak gating is by `WRITER_GENRE_PACKS` label. See commits `1bf119d` → `df2c5f0` and `docs/hallucination-v3-wire-in-plan.md`.
 - [x] **Measure production fire rate per adapter over 7 clean novels.** Done 2026-04-20 on panel of 7 natural Salvatore-routed novels (261 beat attempts). Full report: `docs/halluc-v3-production-report-2026-04-20.md`. Headline: adherence 10.8%, ungrounded 46.7% (precision 60–75% on solo fires; dominant FP is adapter overfiring on brief-grounded proper nouns), leak 15.7%. Retry clearance poor (9–28%) → prescribed action per runbook §8.10 is retry-wording fix + context tweak before retraining.
-- [ ] **Follow-on actions from the 2026-04-20 report** (ordered by leverage):
-  - Tighten retry-context wording for halluc-ungrounded fires; measure clearance rate on next 5 novels.
-  - Fix brief-grounded-entity FP class via context change (`src/agents/halluc-ungrounded/context.ts` — surface brief-introduced proper nouns alongside world-bible names); measure FP rate on next 5 novels. Retraining only if context fix doesn't close the gap.
-  - Non-Salvatore-route verification on next non-fantasy novel run (code-gated today but no production evidence).
+- [x] **Retry-wording + From-brief context fix** — SHIPPED 2026-04-20. `src/phases/beat-checks.ts` `formatRetryLine` now tells the writer the valid resolution space; `src/agents/halluc-ungrounded/context.ts` now extracts proper-noun candidates from `beat.description` + `outline.setting` and adds a `From-brief:` line to the WORLD BIBLE block. Offline replay on 20 samples: flipped 1/1 of the true in-scope FPs (Heartstone); 19 "FPs" from the original adjudication were actually context-surface mismatches (see below), not adapter issues.
+- [ ] **Measure retry clearance + FP rate on next 3-5 natural novels** with the shipped fixes. Baseline: ungrounded clearance 9%, leak clearance 28%, any-checker fire 54.9%. Target: clearance doubles.
+- [ ] **Context-surface mismatch between writer and checker** — root cause of the 46.7% fire rate, revealed by the 2026-04-20 offline replay. Adapter precision is ~90%, not 60-75% as first reported — the writer brings entities from transition-bridge + chapter outline + resolved refs into prose that the checker's narrower `beat.description` + world-bible view correctly fires on. Fix options, cheapest first:
+  - (a) Enrich `beat.description` at plan-time (`src/agents/planning-beats/`) so entities assumed by transition bridges or chapter outlines land in the per-beat grounded text.
+  - (b) Widen the checker's grounded surface (off-distribution for current adapter; needs retraining or tolerance).
+  - (c) Constrain the writer to avoid introducing entities absent from its own beat brief.
+- [ ] **Non-Salvatore-route verification** on next non-fantasy novel run (code-gated today but no production evidence).
 - [ ] Active-learning harvest from production for v4: 76 solo-ungrounded fires in the current panel are candidate v4 training seeds; combine with adapter disagreement + human-accept signal.
 - [ ] Paired leak adapter for non-Salvatore writers when those LoRAs ship (Gemmell, Cook, etc.).
 

@@ -188,16 +188,38 @@ mock.module("./beat-checks", () => ({
   // Real-signature parity with `src/phases/beat-checks.ts:99-142` —
   // `summarizeIssues` must also mirror the real impl because
   // `beat-checks.test.ts` asserts group-by-source formatting on it.
-  formatRetryLine: (issue: BeatIssue) => issue.description,
+  formatRetryLine: (issue: BeatIssue) => {
+    // Mirror real formatRetryLine (src/phases/beat-checks.ts) so cross-file
+    // module-mock bleed doesn't break beat-checks.test.ts assertions on the
+    // resolution-space guidance suffix.
+    switch (issue.source) {
+      case "halluc-ungrounded":
+        return `${issue.description} — Fix: replace with an entity from the beat brief or world bible, or remove the reference entirely. Do not invent new named entities.`
+      case "halluc-leak-salvatore":
+        return `${issue.description} — Fix: remove the token or replace with a generic descriptor (e.g. "the drow warrior" instead of a Salvatore-corpus proper name).`
+      default:
+        return issue.description
+    }
+  },
   aggregateIssues: (outputs: RawCheckerOutputs) => {
     const issues: BeatIssue[] = []
     for (const s of outputs.adherence) issues.push({ source: "adherence", severity: "blocker", description: s })
     for (const s of outputs.ungrounded) issues.push({ source: "halluc-ungrounded", severity: "blocker", description: s })
     for (const s of outputs.leak) issues.push({ source: "halluc-leak-salvatore", severity: "blocker", description: s })
+    const fmt = (i: BeatIssue): string => {
+      switch (i.source) {
+        case "halluc-ungrounded":
+          return `${i.description} — Fix: replace with an entity from the beat brief or world bible, or remove the reference entirely. Do not invent new named entities.`
+        case "halluc-leak-salvatore":
+          return `${i.description} — Fix: remove the token or replace with a generic descriptor (e.g. "the drow warrior" instead of a Salvatore-corpus proper name).`
+        default:
+          return i.description
+      }
+    }
     return {
       pass: issues.every(i => i.severity !== "blocker"),
       issues,
-      retryLines: issues.map(i => i.description),
+      retryLines: issues.map(fmt),
     }
   },
   summarizeIssues: (issues: BeatIssue[]) => {
