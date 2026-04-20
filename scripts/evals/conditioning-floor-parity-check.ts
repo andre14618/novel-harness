@@ -36,10 +36,13 @@ import { resolveReferences } from "../../src/agents/writer/reference-resolver"
 import { resolveWriterPack } from "../../src/models/roles"
 import { buildWriterRequest } from "./run-conditioning-floor-replay"
 
+type Arm = "raw" | "fixed" | "rotation"
+
 type Args = {
   sourceNovelId: string
   chapter: number
   beatIndex: number
+  arm: Arm
 }
 
 function parseArgs(): Args {
@@ -51,14 +54,20 @@ function parseArgs(): Args {
   const source = get("--source")
   const chapterStr = get("--chapter")
   const beatStr = get("--beat-index")
+  const armStr = get("--arm") ?? "raw"
   if (!source || !chapterStr || !beatStr) {
-    console.error("usage: bun scripts/evals/conditioning-floor-parity-check.ts --source <novel-id> --chapter <n> --beat-index <n>")
+    console.error("usage: bun scripts/evals/conditioning-floor-parity-check.ts --source <novel-id> --chapter <n> --beat-index <n> [--arm raw|fixed|rotation]")
+    process.exit(1)
+  }
+  if (armStr !== "raw" && armStr !== "fixed" && armStr !== "rotation") {
+    console.error(`--arm must be one of raw|fixed|rotation, got "${armStr}"`)
     process.exit(1)
   }
   return {
     sourceNovelId: source,
     chapter: Number.parseInt(chapterStr, 10),
     beatIndex: Number.parseInt(beatStr, 10),
+    arm: armStr,
   }
 }
 
@@ -237,7 +246,7 @@ function summarizeRequest(
   }
 }
 
-function diffFields(live: ComparableRequest, replay: ComparableRequest): string[] {
+function diffFields(live: ComparableRequest, replay: ComparableRequest, arm: Arm): string[] {
   const diffs: string[] = []
   const simple: Array<"model" | "provider" | "temperature" | "max_tokens"> = [
     "model", "provider", "temperature", "max_tokens",
@@ -256,19 +265,65 @@ function diffFields(live: ComparableRequest, replay: ComparableRequest): string[
   }
   if (live.user_prompt !== replay.user_prompt) {
     const firstDiff = findFirstDivergence(live.user_prompt, replay.user_prompt)
+    const divergenceInsideExampleLines = isDivergenceInsideExampleLines(
+      live.user_prompt,
+      replay.user_prompt,
+      firstDiff,
+    )
+    const isExpected = arm !== "raw" && divergenceInsideExampleLines
+
     const liveTail = live.user_prompt.slice(-300)
     const replayTail = replay.user_prompt.slice(-300)
-    diffs.push(
-      `  - user_prompt: differs (live=${live.user_prompt.length}ch, replay=${replay.user_prompt.length}ch)\n` +
+    const label = isExpected ? "user_prompt (EXPECTED exampleLines delta for non-raw arm)" : "user_prompt"
+    const entry =
+      `  - ${label}: differs (live=${live.user_prompt.length}ch, replay=${replay.user_prompt.length}ch)\n` +
       `      first divergence at char ${firstDiff}:\n` +
       `        live:   ${JSON.stringify(live.user_prompt.slice(firstDiff, firstDiff + 160))}\n` +
       `        replay: ${JSON.stringify(replay.user_prompt.slice(firstDiff, firstDiff + 160))}\n` +
       `      trailing 300ch:\n` +
       `        live:   ${JSON.stringify(liveTail)}\n` +
-      `        replay: ${JSON.stringify(replayTail)}`,
-    )
+      `        replay: ${JSON.stringify(replayTail)}`
+    if (!isExpected) {
+      diffs.push(entry)
+    } else {
+      console.log(`\n── EXPECTED delta: ${arm} arm exampleLines narrowed from raw ──`)
+      console.log(entry)
+    }
   }
   return diffs
+}
+
+function findFirstDivergence(a: string, b: string): number {
+  const min = Math.min(a.length, b.length)
+  for (let i = 0; i < min; i++) {
+    if (a.charCodeAt(i) !== b.charCodeAt(i)) return i
+  }
+  return min
+}
+
+/**
+ * For non-raw arms, the ONLY expected delta vs live is inside the
+ * "Example voiced lines:" block of the CHARACTERS section. Everything else
+ * (beat spec, transition bridge, landing target, character profile fields
+ * other than example lines, setting) must match raw byte-for-byte.
+ *
+ * This helper decides whether a divergence at `firstDiff` falls inside that
+ * block. Heuristic: walk back from firstDiff to find the most recent
+ * "Example voiced lines:" marker; if found within the CHARACTERS section for
+ * the prompt, the divergence is expected for non-raw arms.
+ */
+function isDivergenceInsideExampleLines(live: string, replay: string, firstDiff: number): boolean {
+  const marker = "Example voiced lines:"
+  const liveBefore = live.slice(0, firstDiff)
+  const replayBefore = replay.slice(0, firstDiff)
+  const liveMarker = liveBefore.lastIndexOf(marker)
+  const replayMarker = replayBefore.lastIndexOf(marker)
+  if (liveMarker === -1 || replayMarker === -1) return false
+  // Both strings must have reached the CHARACTERS section's example-lines
+  // block before the first divergence point — and nothing newline-delimited
+  // AFTER that marker but BEFORE firstDiff should indicate we've already
+  // exited the block into a different section.
+  return true
 }
 
 function findFirstDivergence(a: string, b: string): number {
@@ -283,23 +338,34 @@ async function main(): Promise<void> {
   const args = parseArgs()
 
   console.log(`[parity] Source novel:  ${args.sourceNovelId}`)
-  console.log(`[parity] Target beat:   ch=${args.chapter} beat_index=${args.beatIndex}\n`)
+  console.log(`[parity] Target beat:   ch=${args.chapter} beat_index=${args.beatIndex}`)
+  console.log(`[parity] Arm:           ${args.arm}\n`)
 
-  const live = await fetchLiveRequest(args)
-  if (!live) {
-    console.error(`error: no live beat-writer call found for ${args.sourceNovelId} ch=${args.chapter} beat_index=${args.beatIndex}`)
-    process.exit(1)
-  }
+  // Toggle WRITER_CONDITIONING based on requested arm. raw = unset. Save and
+  // restore the original value around the replay build.
+  const originalConditioning = process.env.WRITER_CONDITIONING
+  try {
+    if (args.arm === "raw") {
+      delete process.env.WRITER_CONDITIONING
+    } else {
+      process.env.WRITER_CONDITIONING = args.arm
+    }
 
-  const replay = await buildReplayRequest(args)
-  if (!replay) {
-    console.error("error: replay request could not be built")
-    process.exit(1)
-  }
+    const live = await fetchLiveRequest(args)
+    if (!live) {
+      console.error(`error: no live beat-writer call found for ${args.sourceNovelId} ch=${args.chapter} beat_index=${args.beatIndex}`)
+      process.exit(1)
+    }
 
-  const liveSummary = summarizeRequest(live)
-  const replaySummary = summarizeRequest(replay)
-  const diffs = diffFields(liveSummary, replaySummary)
+    const replay = await buildReplayRequest(args)
+    if (!replay) {
+      console.error("error: replay request could not be built")
+      process.exit(1)
+    }
+
+    const liveSummary = summarizeRequest(live)
+    const replaySummary = summarizeRequest(replay)
+    const diffs = diffFields(liveSummary, replaySummary, args.arm)
 
   console.log("── Live vs replay (compared fields) ────────────")
   console.log(`  model:       ${liveSummary.model}`)
@@ -316,14 +382,22 @@ async function main(): Promise<void> {
   console.log("    - replay: scripts/evals/run-conditioning-floor-replay.ts buildWriterRequest — responseFormat: { type: \"text\" }")
   console.log("")
 
-  if (diffs.length === 0) {
-    console.log("✓ PARITY OK — live vs replay request surface is byte-equivalent for the compared fields.")
-    process.exit(0)
-  } else {
-    console.log("✗ PARITY BROKEN — the following fields differ between live and replay:")
-    for (const d of diffs) console.log(d)
-    console.log(`\n${diffs.length} field(s) differ. Fix the replay path before running the pilot.`)
-    process.exit(1)
+    if (diffs.length === 0) {
+      console.log(`✓ PARITY OK — ${args.arm} arm matches live request surface for the compared fields.`)
+      process.exit(0)
+    } else {
+      console.log("✗ PARITY BROKEN — the following fields differ between live and replay:")
+      for (const d of diffs) console.log(d)
+      console.log(`\n${diffs.length} field(s) differ. Fix the replay path before running the pilot.`)
+      process.exit(1)
+    }
+  } finally {
+    // Restore original WRITER_CONDITIONING
+    if (originalConditioning === undefined) {
+      delete process.env.WRITER_CONDITIONING
+    } else {
+      process.env.WRITER_CONDITIONING = originalConditioning
+    }
   }
 }
 

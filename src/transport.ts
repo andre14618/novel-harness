@@ -42,6 +42,13 @@ export interface LLMRequest {
   // artifact-adjuster routes) pass no debugContext, and the interceptor
   // treats that as "no match."
   debugContext?: DebugContext
+  // Experiment-discipline flag: when true, DirectTransport does ZERO retries.
+  // A single 429/5xx/timeout fails the call immediately. Used by the
+  // conditioning-floor replay runner (per charter §6) so one arm can't silently
+  // retry while the other doesn't — that would contaminate "conditioning alone
+  // differs". Default false (normal retry behavior for all production paths).
+  // Added 2026-04-20 after Codex adversarial round 6 blocker #2.
+  noRetries?: boolean
 }
 
 export interface LLMResponse {
@@ -78,7 +85,9 @@ export class DirectTransport implements LLMTransport {
   async execute(request: LLMRequest): Promise<LLMResponse> {
     const providerDef = PROVIDERS[request.provider]
     const apiKey = getApiKey(request.provider)
-    const maxRetries = 3
+    // request.noRetries (charter §6 experiment discipline): 0 retries → 1 total
+    // attempt. Otherwise default 3 retries → 4 total attempts.
+    const maxRetries = request.noRetries ? 0 : 3
     const retryErrors: Array<{ status: number; delay: number; error?: string }> = []
     let httpAttempts = 0
     const startTime = performance.now()
