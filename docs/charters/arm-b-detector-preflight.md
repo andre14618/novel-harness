@@ -4,7 +4,7 @@ kind: experiment-charter
 name: arm-b-detector-preflight
 owner: andre
 date: 2026-04-21
-revision: 5 (post-Codex-YELLOW round 4 — 2026-04-21)
+revision: 6 (post-Codex-YELLOW round 5 — 2026-04-21)
 ---
 
 # Experiment Charter — `arm-b-detector-preflight`
@@ -217,16 +217,17 @@ infeasible on this novel; switch novel selection (re-review required)
   Implements structured-segment diff per `experiment-design-rules.md`
   §4.7 extending the structure from
   `scripts/evals/conditioning-floor-parity-check.ts`.
-- **Critical — operate on the pre-join `sections: string[]` array, NOT
-  on the post-join user-prompt bytes.** `beat-context.ts:227` joins
-  sections with `\n\n`, and in non-compact mode the CHARACTERS section
-  at `beat-context.ts:195-199` contains internal `\n\n` delimiters via
-  `snapshots.join("\n\n")`. A naive `userPrompt.split("\n\n")` cannot
-  recover the original `sections[]`. The parity script therefore
-  imports `buildBeatContext` directly and compares the returned
-  `sections` array (exposed by adding an `_sections` debug field to
-  the return value for the duration of the preflight; the existing
-  `userPrompt` string remains the live production contract).
+- **Sections recovery from stored `user_prompt` bytes.** `beat-context.ts:
+  227` joins sections with `\n\n`, and in non-compact mode the
+  CHARACTERS section at `beat-context.ts:195-199` contains internal
+  `\n\n` delimiters via `snapshots.join("\n\n")`. A naive
+  `userPrompt.split("\n\n")` cannot recover the original `sections[]`.
+  The dry-run parser therefore splits on `\n\n` and then merges
+  adjacent splits back into a single section whenever the second split
+  does NOT start with a recognized section-header prefix. Header-prefix
+  list is the closed set below. The beat-spec section at index 0 has
+  no fixed header; the parser treats everything before the first
+  recognized header as the beat-spec section.
 - **Live section structure is conditional**, not fixed-index. Present
   (and in this order) only when their trigger holds:
 
@@ -271,15 +272,31 @@ infeasible on this novel; switch novel selection (re-review required)
          recovers `sections[]` even though the CHARACTERS section
          contains internal `\n\n` delimiters in non-compact mode
          (`beat-context.ts:195`).
-      4. Archive the recovered signature (sections[] headers + byte
-         lengths + per-section SHA-256) to
-         `scripts/evals/preflight-arm-b-parity-baseline.json`.
+      4. Archive BOTH (a) the full recovered sections[] as
+         `sections: string[]` (the actual section strings — needed
+         at runtime to construct Arm B and verify byte-equality
+         post-insertion) AND (b) a per-section integrity signature
+         (header prefix + byte length + SHA-256) to
+         `scripts/evals/preflight-arm-b-parity-baseline.json`. The
+         signature is used to detect tampering/drift between dry-run
+         and runtime; the section strings are used for construction
+         and comparison. Also archive the persisted envelope fields
+         (`model`, `provider`, `temperature`, `maxTokens`,
+         `responseFormat`) and the full `system_prompt` column.
 
   Any beat whose row can't satisfy steps 2–4 is dropped from the
   pool. If more than 30% of the pool is unrecoverable, abort the
   preflight and re-select — the source novel is too old or too
   schema-drifted to support the contract. Do not proceed with
   a partial pool.
+
+  The 30% threshold is heuristic — per `experiment-design-rules.md`
+  §11.6 any non-trivial miss rate on a post-`sql/017_llm_call_inspection.sql`
+  novel (which is when the `system_prompt` / `user_prompt` columns
+  were added) should be treated as schema-drift evidence and
+  investigated before proceeding, not averaged over. If the dry-run
+  miss rate is 10–30% on a recent novel, abort anyway and record the
+  schema-drift symptom.
 - **Arm B construction — operate on Arm A's recovered `sections[]`,
   not on live `buildBeatContext`.** Arm B builds its prompt by
   inserting exactly one new `ENRICHED CONTEXT:` section into Arm A's
@@ -532,7 +549,8 @@ and GO/CAUTION/NO-GO thresholds that were not in the verdict text.
 | `/codex:adversarial-review` (GPT) — round 2 | YELLOW | 2026-04-21 | Job `a74c1b24e966ef252`. Two residual blockers — all addressed in revision 3. (Verdict detail retained in commit `4b9ae65` message.) |
 | `/codex:adversarial-review` (GPT) — round 3 | YELLOW | 2026-04-21 | Job `a233169484d5102a1`. Two residual blockers: (1) band-value inconsistency — §7 has 12.5/25pt bands but §1 says "within 10pt", §3 references "±10pt band" and "10–15pt band", §5 still says "enough for a 10pt band". A `-12.4pt` result is simultaneously GO (§7) and "not within 10pt" (§1). Fix: align every band reference to 12.5pt/25pt. (2) Parity underspecifies resolver replay — `buildBeatContext` takes `preResolvedRefs` as input (drafting.ts:282), so if Arm A re-runs `buildBeatContext` without archived `preResolvedRefs`, `resolveReferences()` may call LLM fallback (non-deterministic). Also §6 identifies refs section as "position-with-no-header" but `reference-resolver.ts:150` actually emits a `BACKGROUND:` header. Fix: archive + replay `preResolvedRefs` + `compactMode` + writer-pack inputs; identify refs section by `BACKGROUND:`; confirm system/model/provider/temperature/maxTokens/response_format are also checked per §4.7. Named counterfactual: offline archival parity dry-run + fire-prior audit (~$0). |
 | `/codex:adversarial-review` (GPT) — round 4 | YELLOW | 2026-04-21 | Job `ac683bf10b86afc5c`. One residual blocker: §6 claimed `preResolvedRefs` was recoverable from `llm_calls.request_json`, but `requestEnvelopeForLog` (`src/llm.ts:197`) strips prompt fields before persistence — they go to `system_prompt` / `user_prompt` columns only. Fix: reframe Arm A as byte-replay of stored `user_prompt` bytes; Arm B constructs by inserting ENRICHED CONTEXT section into the recovered `sections[]`. Warning: `buildBeatContext` calls `getRelationshipBetween()` in non-compact mode (`beat-context.ts:286`) — moot under byte-replay since `buildBeatContext` is never re-executed. Named counterfactual: offline archival parity dry-run (~$0) — now adopted as a mandatory preflight-to-the-preflight in revision 5. |
-| `/codex:adversarial-review` (GPT) — round 5 | — | — | (pending) |
+| `/codex:adversarial-review` (GPT) — round 5 | YELLOW | 2026-04-21 | Job `ab8e849aa0e16739c`. Two residual blockers — both my own cleanup failures in revision 5: (1) §6 still contained leftover "import `buildBeatContext` and compare `_sections`" language from revision 4, contradicting the new byte-replay contract below. (2) Dry-run archived only "signature (headers + byte lengths + SHA-256)" but Arm B construction + byte-equality assertion require the full section strings. Also: 30% unrecoverable abort threshold is heuristic; Codex flagged that per §11.6 any non-trivial miss rate on a post-`sql/017` novel should be treated as schema-drift evidence, not averaged over. Codex explicitly confirms the byte-replay substrate is correct — blockers are cleanup, not structural. |
+| `/codex:adversarial-review` (GPT) — round 6 | — | — | (pending) |
 | `experiment-adversary` (Opus) — fallback only | — | — | — |
 
 Block run on YELLOW or RED. Iterate the charter, not the run. If
