@@ -4,6 +4,7 @@ kind: experiment-charter
 name: arm-d-writer-upgrade
 owner: andre
 date: 2026-04-21
+revision: 3 (post-Codex-YELLOW round 1 + user design pushback — 2026-04-21)
 parent-charter: docs/charters/arm-b-direct-pairwise.md (revision 2)
 ---
 
@@ -64,34 +65,79 @@ Pre-registered, mirrors arm-b-direct-pairwise §3.
   prose quality; keep the track; redirect context-engineering and
   redraft-gate effort. The 2026-04-21 negative signals reflect the
   failure of specific levers, NOT of the track itself.
-- **Middle range / CAUTION** → measurement is underpowered or the two
-  arms are close enough that the pairwise instrument can't
-  distinguish them at N=20. Expand to N=40 or accept ambiguity and
-  let other axes (cost, deployment, voice-specificity) decide.
+- **Middle range at N=20 → AUTO-EXPAND to N=40** (revision-3 fix for
+  Codex round-1 blocker #3). arm-b-direct-pairwise-v1 returned
+  CAUTION at 11-9 with 20/20 decisive pairs on the same instrument,
+  confirming that N=20 is near the noise floor. This charter
+  pre-commits to continuing with the remaining 20 beats from the
+  40-beat manifest (`output/evals/arm-b-preflight-pool-manifest-rev9.json`)
+  when N=20 returns CAUTION. Total is then N=40 primary pairs (exact
+  binomial threshold: 27/40 decisive for p ≤ 0.019). "Accept
+  ambiguity at N=20" is NOT an allowed endpoint for this charter —
+  the strategic decision the user needs to make requires a clearer
+  signal than 20 pairs can resolve at the current near-null effect
+  size.
 - **Retest ≥ 2/4 flips OR calibration ≥ 2/5 non-TIE** → INCONCLUSIVE,
   same rules as arm-b-direct-pairwise §3.
 
 ## 4. Baseline ladder
 
 Two arms only. Same 20-beat pool as arm-b-direct-pairwise-v1.
+**Single-variable design** — the only thing that differs between arms
+is the writer (model + provider). The prompt, context, and envelope
+fields are identical.
+
+**Revision-3 design rationale (user pushback on revision 2's
+two-variable "natural prompts per arm" framing):**
+
+The question "does the LoRA do something the base doesn't" is most
+fairly answered by giving both writers the exact prompt the harness
+produces today on the Salvatore-routed fantasy path — because that
+is the prompt shape Salvatore v4 was TRAINED on (777 beat-brief→
+prose pairs from Icewind Dale Trilogy, formatted as the current
+harness beat-writer compact-mode output). Evaluating the LoRA
+against a base model on the LoRA's training-distribution prompt is
+the product question: *on the operational prompts the harness sends
+today, does the LoRA outperform a capable base?*
+
+Revision 2 argued "give DeepSeek a different (non-compact) prompt so
+it isn't handicapped." The user rejected that: DeepSeek has no
+specialized prompt shape — it's a general-purpose API model. There's
+no "DeepSeek-natural prompt" to compare against Salvatore-natural;
+there's only "the prompt the harness sends." Designing a different
+prompt specifically for DeepSeek would be solving a problem that
+doesn't exist at this stage.
+
+This design therefore deliberately rejects Codex round-1 blocker
+#1's "add Arm D'" suggestion. Both arms get the SAME prompt bytes.
+
+**Blocker #2 (adjudicator familiarity) is still fixed** — Arm A is
+FRESHLY generated today rather than reused from arm-b-direct-pairwise-v1,
+so the adjudicator sees unfamiliar prose on both sides and doesn't
+carry over this-morning's anchoring.
 
 | Slot | Arm | What it is |
 |------|-----|------------|
-| Current prod | **A: Salvatore v4 LoRA** | Already generated in `eval_results` for `set_name='arm-b-direct-pairwise-v1'`. Cell label `A-baseline`. Byte-replay of stored production prompts. |
-| Writer upgrade | **D: DeepSeek V3.2 base** | Fresh generation: same stored system_prompt + user_prompt bytes sent to `deepseek/deepseek-chat` (or whatever the harness's current non-voice-LoRA default is — see `src/models/roles.ts` `WRITER_GENRE_PACKS` fallback). Envelope differs from Arm A on `model` and `provider` ONLY. |
+| Current prod | **A: Salvatore v4 LoRA** | FRESH generation today from the 20-beat pool. Uses the byte-equal stored production prompts from `output/evals/arm-b-direct-pairwise-baseline.json` (same prompts the arm-b run used). Envelope: `model='wandb-artifact:///andre14618-/novel-harness/salvatore-1988-v4'`, `provider='wandb'`, `temperature=0.8`, `maxTokens=4000`, `responseFormat={type:'text'}`. |
+| Writer upgrade | **D: DeepSeek V3.2 base** | FRESH generation today. **Same prompt bytes as Arm A** — same `system_prompt` + `user_prompt` for each beat. Envelope differs from Arm A on `model` and `provider` ONLY: `model='deepseek/deepseek-v3.2-exp'` (or whatever the harness's current non-voice-LoRA default resolves to per `src/models/roles.ts`), `provider` resolves to the DeepSeek-serving provider. All other envelope fields byte-equal. |
 
-**Bundled-lever acknowledgment (§11.5 of `experiment-design-rules.md`):**
-The stored prompt is Salvatore-optimized (compact-mode per-character
-directives built for the voice LoRA's training distribution). Sending
-the same prompt to DeepSeek is asking a base model to perform on a
-prompt shape it wasn't specialized for. This is a DELIBERATE bundled
-test — the real product question is "what does the harness produce if
-we swap the writer without redesigning the prompt." A cleaner
-single-variable test would require regenerating prompts in non-compact
-mode for DeepSeek; that's scoped out as a follow-on only if Arm D
-produces a CAUTION verdict and the ambiguity matters. Under a decisive
-verdict either direction, the prompt-shape confound is not the
-explanation.
+**Envelope verification:** per Codex round-1 warning, temperature /
+maxTokens / responseFormat are already aligned at `0.8 / 4000 /
+text` across both routes in `src/models/roles.ts`. Runner asserts
+envelope byte-equality (except on `model`/`provider`) before the
+first generation; aborts on drift.
+
+**Acknowledged single-variable-test limitation:** the prompt is
+Salvatore-specialized in the trivial sense that compact-mode
+character snapshots were chosen to match Salvatore's training
+distribution. If DeepSeek performs worse on this prompt than it
+would on a prompt redesigned for its capabilities, that's a
+product-relevant fact: the harness currently produces this prompt
+shape, and a DeepSeek-as-writer decision would require either
+accepting DeepSeek's performance on the current shape or rebuilding
+the prompt assembler. Neither option is "unfair" — both are real
+product tradeoffs. The charter's outcome is interpreted in that
+frame.
 
 ## 5. Cheapest counterfactuals considered
 
@@ -203,4 +249,5 @@ newly-discovered structural concern → escalate.
 
 | Reviewer | Verdict | Date | Notes |
 |----------|---------|------|-------|
-| `/codex:adversarial-review` (GPT) — primary | — | — | (pending) |
+| `/codex:adversarial-review` (GPT) — round 1 | YELLOW | 2026-04-21 | Job `a3f55e32b1ed11772`. Three blockers: (1) bundled-lever on prompt shape — proposed adding Arm D' with non-compact prompt; (2) adjudicator familiarity with reused Arm A prose from arm-b; (3) "accept ambiguity at N=20" allowed by §7 despite arm-b already hitting CAUTION at that N. Resolved in revision 3: **(1) REJECTED per user design pushback** — DeepSeek has no specialized prompt shape, so "same prompt to both" IS the fair product comparison on the harness's operational prompt the LoRA was trained on; (2) FIXED via fresh Arm A regeneration today (no arm-b-reuse); (3) FIXED via pre-committed N=40 auto-expand on CAUTION. No round 2 per §10 "fix and proceed" discipline since (1) is a design-intuition choice, not a protocol gap. |
+| `/codex:adversarial-review` (GPT) — round 2 | N/A per §10 | 2026-04-21 | Skipped intentionally. User's pivot direction ("native API usage + proper context + other techniques") is the forward-looking context; Arm D is the forcing function before that direction is committed. Review tower is not the bottleneck. |

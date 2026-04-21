@@ -128,8 +128,24 @@ Per `docs/charters/arm-d-writer-upgrade.md` §3:
 ## Open questions for the full synthesis (post-Arm D)
 
 1. If the pivot is justified (DeepSeek wins Arm D): what is the named
-   tone/voice/character mechanism? Options floating in conversation:
-   - Stronger base model alone, accept the voice it produces
+   tone/voice/character mechanism?
+
+   **User's stated direction (2026-04-21, post-Codex-consult):**
+   "exploring in the native API usage landscape with proper context
+   and other techniques is more likely to be the way forward." This
+   is the user beginning to name the alternative that Codex flagged
+   as load-bearing — specifically:
+
+   - **Native API writer** (no voice LoRA) as the base.
+   - **Proper context** as the primary lever for quality — richer,
+     better-targeted context assembly rather than weight-level voice
+     imprinting.
+   - **"Other techniques"** unnamed but implied: probably style-
+     transfer post-passes, editing-pass workflows, or multi-stage
+     generation (structure-from-base + surface-polish via a second
+     call). Not yet specified.
+
+   Other options floating in conversation:
    - Few-shot exemplars at prompt-time (this is what Howard primer
      tried and why it was retired — would need a novel approach)
    - Inference-time style-transfer post-pass (doesn't exist; would
