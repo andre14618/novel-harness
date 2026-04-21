@@ -2166,3 +2166,32 @@ The probe falsifies the assumption behind targeted-critique rewriting for LoRA-g
 - Three-layer doctrine challenged by Codex independent evaluation (jobs `bre6gu89b`, `bsbwl0v3g`): the "voice lives only in weights, editors cannot add craft" claim was flagged as architecturally inconsistent with cross-layer feedback routing already in the system. The redraft gate is itself a context-engineering intervention that crosses the writing/checking boundary. Doctrine is **not retracted** but the blanket "don't cross streams" framing overstates the separation.
 - `src/lint/quality-detectors.ts` is now a production module (repetition, underlength). Future quality signals go here.
 - `src/agents/writer/retry-context.ts` is the canonical location for retry-prompt construction (extracted from drafting.ts inline logic, commit `3c5313d`).
+
+---
+
+### Voice-LoRA track frozen; DeepSeek V3.2 base becomes the strategic writer target
+*2026-04-21 · retrospective `docs/retrospectives/2026-04-21-lora-track-evidence.md`; strategic Codex consult `acc1b47d14ce265f4`; decomposed-audit design consult `ae0e768d3292eb256`*
+
+**Decision:** The voice-LoRA writer track (Salvatore v3/v4/v5 lineage) is FROZEN for new investment. DeepSeek V3.2 base becomes the strategic target writer for the harness. Existing Salvatore v4 adapter stays in production `WRITER_GENRE_PACKS` routing until the voice-shaping ablation (`voice-shaping-ablation-v1`) produces a direct replacement recommendation.
+
+The pivot is a **freeze**, not a retirement. The LoRA infrastructure (W&B Inference serving, training pipeline, eval harness) is retained for future use if the voice-shaping program determines a bigger base model with weight-level fine-tuning is the answer. What's frozen is the current-cycle investment in Salvatore-adjacent levers.
+
+**Why:** four 2026-04-21 negative signals on LoRA-adjacent levers (conditioning-floor KILL exp #258, rewrite-capability probe, quality-redraft gate 0-fires, arm-b-direct-pairwise weak A-lean 11-9 CAUTION) established the "current LoRA-side levers are failing" claim per the three-claim framework in the retrospective. arm-d-writer-upgrade ran as the forcing function for the stronger claim "LoRA is empirically worse than a strong untuned base"; the formal pairwise verdict was skipped after Codex's decomposed-audit design consult (`ae0e768d3292eb256`) found that pairwise on this corpus is bias-confounded (sensory-richness bias correlates with DeepSeek's 16/20 longer-pair advantage, documented in lessons-learned §29-30). Directional evidence from the arm-d run itself — DeepSeek median 172w vs Salvatore 90w, DeepSeek fire rate 10% vs Salvatore 20%, Salvatore 2863w loop outlier — was strong enough in combination with the earlier signals to commit the pivot without waiting for a formal adjudication instrument the project doesn't have.
+
+**Why NOT "retire the entire fine-tune thesis":** 14B-LoRA voice transfer failing at this scale is not evidence that weight-level voice imitation is impossible at larger scales. The pivot is to prompt+pipeline-level voice shaping on a capable base FIRST; if that falls short, returning to fine-tuning on a 70B+ base remains on the table. The three distinct claims Codex called out (current-levers-failing / LoRA-worse-than-base / fine-tune-thesis-wrong) have evidence for 1, partial evidence for 2, none for 3.
+
+**Alternatives rejected:**
+- **Keep pushing Salvatore-adjacent micro-levers** (v5 corpus expansion, different fine-tune family, different sampling tricks). Rejected on the "four negatives in a day" pattern — specific levers are failing, not random variance.
+- **Retire voice-LoRA entirely, move to API-only for all writers.** Rejected as premature: no evidence the voice-LoRA infrastructure is fundamentally wrong at bigger scales. Preserve the capability; pause the investment.
+- **Accept 11-9 arm-b-direct-pairwise as sufficient evidence** for LoRA supremacy. Rejected: arm-b tested enrichment vs baseline, not LoRA vs base; the CAUTION verdict said context engineering isn't a lever, not that LoRA is winning.
+- **Run formal pairwise adjudication on arm-d** to settle the LoRA-vs-base comparison. Rejected post-Codex-consult: holistic pairwise is structurally confounded on this corpus (sensory-richness bias correlates with DeepSeek's length advantage); an ensemble of AI judges shares the same bias; manual adjudication would take 45min for a verdict already supported by directional evidence.
+
+**Ongoing implications:**
+
+- **`WRITER_GENRE_PACKS` in `src/models/roles.ts`** — fantasy genres still route to Salvatore v4 in production. This is NOT changing today. The `voice-shaping-ablation-v1` charter will produce a candidate replacement or confirm the LoRA is still the best available option.
+- **`docs/charters/salvatore-v5-corpus-expansion.md`** (queued/deferred) — remains queued but decapitalized. Do NOT start corpus acquisition or training work until the voice-shaping program resolves.
+- **New charter shipped:** `docs/charters/voice-shaping-ablation-v1.md` — first experiment under the pivot. Six arms on DeepSeek V3.2: bare baseline, style-guide system prompt, few-shot reference passages, stronger per-character speaker directives, two-stage voice transfer, metric-gated retry. Decomposed audit (voice-shape metrics + adherence + halluc-leak kill gate + character-distinctness audit) per Codex recommendation. ~$0.20 cap.
+- **Howard primer methodology retirement rationale (2026-04-16) is refined:** that decision established "prompt-based voice transfer doesn't work at 14B." It does NOT establish "prompt-based voice transfer never works." DeepSeek V3.2 is much larger; in-context learning is a different regime at that scale. The voice-shaping ablation explicitly tests whether this regime change matters.
+- **Retrospective `docs/retrospectives/2026-04-21-lora-track-evidence.md`** is now the canonical narrative of the pivot. This decision entry is the decision; the retrospective is the evidence/context.
+- **Product-identity implication (per Codex consult §4):** if voice-shaping fails to match the LoRA's voice quality, the harness's commercial differentiator shifts from "offline-capable Salvatore-voice imitation" to "planner/context/checker harness around an API writer." That re-framing is deferred to post-voice-shaping-ablation synthesis. Not decided yet.
+- **Howard primer V4 adapter on W&B** (retired for automatic routing 2026-04-16) remains available for the on-demand `POST /api/novel/:id/tonal-pass` endpoint. Unchanged by this pivot.
