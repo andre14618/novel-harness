@@ -4,7 +4,7 @@ kind: experiment-charter
 name: arm-b-detector-preflight
 owner: andre
 date: 2026-04-21
-revision: 3 (post-Codex-YELLOW round 2 — 2026-04-21)
+revision: 4 (post-Codex-YELLOW round 3 — 2026-04-21)
 ---
 
 # Experiment Charter — `arm-b-detector-preflight`
@@ -14,16 +14,23 @@ question, two arms, **dynamic beat count** (≥8 adjudicated fires/arm or
 20 beats cap), human-adjudicated. Named by Codex as the cheapest-untried
 counterfactual in the ladder's charter review (job `aabc1fd419f0be2b2`).
 
-Revision 2 addressed five round-1 blockers. Revision 3 addresses two
-residual blockers from Codex round 2 (job `a74c1b24e966ef252`):
-(a) outcome-table overlap between §3 INCONCLUSIVE and §7 CAUTION at
-the same `<8 fires` state, stale "10-beat" fragments in §2/§5, and
-decision bands narrower than the 8-fire adjudication floor can resolve
-(12.5pt-per-label step); (b) parity contract that assumed stable
-section positions, when in fact four sections in
-`src/agents/writer/beat-context.ts` are conditional AND the CHARACTERS
-section contains internal `\n\n` delimiters that break split-on-
-blank-line recovery of the `sections[]` array.
+Revision 2 addressed five round-1 blockers. Revision 3 addressed two
+round-2 blockers (outcome-table overlap + parity-contract mismatch).
+Revision 4 addresses two round-3 residual blockers (job
+`a233169484d5102a1`): (a) band-value inconsistency — §1, §3, and §5
+still carried stale 10pt / 10–15pt language after §7's bands were
+recalibrated to 12.5pt/25pt, leaving a `-12.4pt` result as both GO
+(§7) and "not within 10pt" (§1); revision 4 aligns every band
+reference to the discretization-calibrated values; (b) parity contract
+underspecified resolver replay — `buildBeatContext` takes
+`preResolvedRefs` as input (`src/phases/drafting.ts` → `beat-context.ts:
+207`) and falls back to an LLM-capable `resolveReferences()` on miss,
+so Arm A replay without archived `preResolvedRefs` is non-deterministic;
+revision 4 enumerates the full archival-field list, corrects the refs
+section header from "position-with-no-header" to `BACKGROUND:` per
+`reference-resolver.ts:150`, and adds a cross-cut §4.7 field-check
+contract covering systemPrompt / model / provider / temperature /
+maxTokens / responseFormat.
 
 ## 1. Question
 
@@ -34,7 +41,8 @@ distribution** (enriched context: `speaker_directives` + reader-info
 state slice + targeted world-bible expansion keyed to beat entities)?
 
 Restated as a falsifiable concrete: is detector precision on Arm B
-prose within 10pt of detector precision on Arm A prose?
+prose within 12.5pt (one label at the 8-fire discretization floor;
+see §7) of detector precision on Arm A prose?
 
 Per `experiment-design-rules.md` §3.2 / §9.2 / §11.6, a production-
 calibrated detector is a provisional instrument when the input
@@ -69,9 +77,9 @@ load-bearing signal.
 
 Stated before results. Sample-size rebased against exp #254's shipped
 V1 baseline (28.9% fire rate): at that rate 10 beats → ~2.9 fires/arm,
-20 beats → ~5.8 fires/arm. To resolve a 10–15pt precision band we
-need ≥8 adjudicated fires per arm — driving the dynamic stop rule
-below.
+20 beats → ~5.8 fires/arm. To resolve a 12.5pt / 25pt precision band
+(one and two labels of drop at the 8-fire floor — see §7) we need ≥8
+adjudicated fires per arm. That drives the dynamic stop rule below.
 
 - **Dynamic stop rule** (replaces "10 beats fixed"): generate beats
   sequentially. After each beat, count cumulative adjudicable fires
@@ -87,8 +95,8 @@ below.
   Arm B of the full ladder; revise `replay-ladder-v1` Arm B oracle
   to human adjudication primary, detector exploratory only.
 - **Fewer than 8 adjudicable fires on either arm at the 20-beat cap.**
-  Measurement too sparse for the ±10pt decision band even after
-  budgeting. Abort; record as inconclusive; the right corrective is
+  Measurement too sparse for the 12.5pt / 25pt decision band even
+  after budgeting. Abort; record as inconclusive; the right corrective is
   either a higher-fire-prior beat stratum (lore-heavy only) or a
   different detector, not more beats of the same stratification.
 - **Human adjudicator self-disagrees on ≥2 of the 4 silent retest
@@ -124,7 +132,7 @@ instrument-validation preflights.
 | Skip preflight, run `replay-ladder-v1` directly with detector as oracle | $2 | Rejected by Codex charter review (verdict RED, 2026-04-21) — detector validity under enriched-context shift is the load-bearing assumption the full ladder cannot test from within its own design |
 | Skip preflight, run `replay-ladder-v1` with human-only oracle on all arms | $2 + 4–6h human time | Scope creep; preflight answer may obviate the human oracle on Arms A/C/D where the detector is already calibrated |
 | Detector adjudication on Arm A alone (sanity check only) | $0.25 + 30min | Doesn't answer the distribution-shift question — Arm A is the calibration distribution |
-| Fixed 40-beat plan (no dynamic stop) | $1.50 + 3h | Overshoots: at 28.9% V1 fire rate, 40 beats → ~11.6 fires/arm expected, enough for a 10pt band but 2× the writer/adjudication budget of the dynamic stop |
+| Fixed 40-beat plan (no dynamic stop) | $1.50 + 3h | Overshoots: at 28.9% V1 fire rate, 40 beats → ~11.6 fires/arm expected. That would tighten the discretization step from 12.5pt (at 8 fires) to 8.3pt (at 12 fires), but charter bands are pre-registered at 12.5pt/25pt so the extra precision is not exploited — 2× the writer/adjudication budget for no decision-rule gain |
 | Dynamic stop with minimum floor raised to 12 fires/arm | $2+ + 3h+ | At 28.9% fire rate, 12 fires/arm needs ~42 beats — blows the 20-beat cap and the wall-clock budget. Rejected in favor of widening decision bands to match the 8-fire discretization |
 
 ## 6. Distribution match
@@ -208,19 +216,50 @@ infeasible on this novel; switch novel selection (re-review required)
       [TRANSITION BRIDGE]      only if previousBeatProse exists (chapter 1 beat 0 omits)
       [LANDING TARGET]         only if outline.scenes[beatIndex+1] exists (last beat omits)
       [CHARACTERS]             only if beatChars.length > 0
-      [Resolved references]    only if refs.context non-empty
+      [BACKGROUND]             only if refs.context non-empty (header emitted by reference-resolver.ts:150)
       [SETTING / Sensory:]     only if beatIndex === 0 OR beatHasLocationChange()
 
-  Section identity is detected by header prefix (`TRANSITION BRIDGE`,
-  `LANDING TARGET`, `CHARACTERS:`, `SETTING:` / `Sensory:`) or by
-  position-with-no-header for `refs.context`.
+  Section identity is detected by header prefix: `TRANSITION BRIDGE`,
+  `LANDING TARGET`, `CHARACTERS:`, `BACKGROUND:`, or `SETTING:` /
+  `Sensory:`. The beat-spec section at index 0 is identified by
+  position, not by a header prefix.
 - **Arm A parity — pre-registered baseline.** For each beat in the
-  pre-registered pool, pull the production `llm_calls.request_json`
-  and extract its `sections[]` by re-running `buildBeatContext` with
-  archived inputs (deterministic given novel state). Store the
-  section signature (headers + lengths + checksum per section) in
-  `scripts/evals/preflight-arm-b-parity-baseline.json` before
-  generation.
+  pre-registered pool, archive the exact `buildBeatContext` inputs
+  used at the original production call. Because `buildBeatContext`
+  takes `preResolvedRefs` as an input parameter (see
+  `src/phases/drafting.ts` drafting loop + `beat-context.ts:207`) and
+  falls back to calling `resolveReferences()` — which can invoke an
+  LLM on resolver misses — when `preResolvedRefs` is missing, Arm A
+  replay MUST archive and pass the original `preResolvedRefs`
+  payload. Otherwise Arm A is non-deterministic. Required archival
+  fields per beat:
+
+      - novelId, chapterNumber, beatIndex
+      - outline (full ChapterOutline as persisted at the time)
+      - characters (Character[] from getCharacters at that chapter)
+      - characterStates (CharacterState[] from getCharacterStatesAtChapter)
+      - worldBible (as persisted at that chapter)
+      - preResolvedRefs (the exact payload passed in the production call)
+      - previousBeatProse (if the beat was not the first of its chapter)
+      - compactMode (true for Salvatore-routed / voice-LoRA production; verify per novel)
+      - genre (from seed) — determines writer-pack conditioning
+      - Writer-pack resolution result (voice-LoRA route vs DeepSeek route)
+
+  These are extracted from `llm_calls.request_json` plus the DB
+  snapshot at the chapter-approved time. Store the resulting section
+  signature (headers + per-section byte-length + per-section SHA-256
+  checksum) in `scripts/evals/preflight-arm-b-parity-baseline.json`
+  before generation. If any of the archival fields cannot be
+  reconstructed for a given beat (e.g., production call pre-dates a
+  schema migration), drop that beat from the pool and record the
+  omission — do not fabricate a replacement value.
+- **Cross-cut parity fields (per `experiment-design-rules.md` §4.7).**
+  In addition to the `sections[]` contract, the parity script must
+  confirm byte-equal match on every non-prompt field of the writer
+  request envelope: `systemPrompt`, `model`, `provider`, `temperature`,
+  `maxTokens`, `responseFormat`. Arm D in the full ladder would be the
+  one arm whitelisting `model`/`provider` shifts — neither Arm A nor
+  Arm B is permitted to differ on those fields under this preflight.
 - **Arm B invariant — relative to setting anchor, not absolute index.**
   Exactly ONE new section is inserted into Arm B's `sections[]` with
   the header prefix `ENRICHED CONTEXT:`. Insertion position:
@@ -432,7 +471,9 @@ and GO/CAUTION/NO-GO thresholds that were not in the verdict text.
 | Reviewer | Verdict | Date | Notes |
 |----------|---------|------|-------|
 | `/codex:adversarial-review` (GPT) — round 1 | YELLOW | 2026-04-21 | Job `a768a8ffc489ea83d`. Shape accepted; five blockers on charter-level details: (1) Sample size vs band resolution — used 44.9% baseline fire rate but exp #254 SHIPPED V1 at 28.9%, so 10 beats → ~2.9 fires/arm, and a 10pt/15pt band at that N is label granularity not signal (§3.1). (2) Self-consistency rule internally inconsistent — §3 says "≥2/10 retests," §7 only creates 2 retests. Not a real reliability control (exp #258 lesson). (3) Strata predicates use `characters_present` but live schema is `beat.characters`; dialogue regex brittle; lore-match normalization undefined — violates §7.1. (4) Parity anchors "WORLD BIBLE section" / "BEAT CONTEXT section" don't exist in the live writer-request surface assembled from `beat-context.ts` + resolver output — §4.7 mask-too-much risk per exp #258. (5) `UNCLEAR => FP` asymmetrically biases the primary metric against Arm B — enriched context changes what counts as grounded, concentrating UNCLEAR on B. Warnings: 3-sample non-fire audit too thin for recall claim (keep descriptive only); "arm identity masked" overstated — call it hypothesis-masked; a NO-GO invalidates the bundled enrichment package per §11.5, not individual sub-blocks. All 5 blockers + 3 warnings addressed in revision 2. |
-| `/codex:adversarial-review` (GPT) — round 2 | YELLOW | 2026-04-21 | Job `a74c1b24e966ef252`. Two residual blockers on revision 2: (1) outcome-table overlap — §3 says `<8 fires at cap` = INCONCLUSIVE but §7 table also routes that state to CAUTION when precision looks good. Stale "10 stratified beats" text still present in §2; stale "10 beats × 45% = 9 fires/arm" in §5 contradicts §3's 28.9% rebased prior. At 8-fire floor precision step is 12.5pt — 10pt GO band is sub-label-resolution. (2) Parity contract still mismatches live `beat-context.ts` — four sections are conditional (transition bridge only if prior beat; characters only if beat has chars; refs only if context non-empty; setting only at chapter start / location change), so "exactly one new section at position 5" is not a stable invariant. Separately, CHARACTERS section in non-compact mode joins snapshots with `\n\n`, so splitting prompt bytes on `\n\n` does not recover `sections[]`. Fix (1): make `<N` at cap strictly INCONCLUSIVE, delete stale text, match decision bands to discretization. Fix (2): diff pre-join `sections[]` array, not post-join bytes; invariant is "Arm B inserts exactly one `ENRICHED CONTEXT:` section immediately before setting or at end of array if no setting." Named counterfactual: offline archival parity + fire-prior audit on chosen novel/strata (~$0). |
+| `/codex:adversarial-review` (GPT) — round 2 | YELLOW | 2026-04-21 | Job `a74c1b24e966ef252`. Two residual blockers — all addressed in revision 3. (Verdict detail retained in commit `4b9ae65` message.) |
+| `/codex:adversarial-review` (GPT) — round 3 | YELLOW | 2026-04-21 | Job `a233169484d5102a1`. Two residual blockers: (1) band-value inconsistency — §7 has 12.5/25pt bands but §1 says "within 10pt", §3 references "±10pt band" and "10–15pt band", §5 still says "enough for a 10pt band". A `-12.4pt` result is simultaneously GO (§7) and "not within 10pt" (§1). Fix: align every band reference to 12.5pt/25pt. (2) Parity underspecifies resolver replay — `buildBeatContext` takes `preResolvedRefs` as input (drafting.ts:282), so if Arm A re-runs `buildBeatContext` without archived `preResolvedRefs`, `resolveReferences()` may call LLM fallback (non-deterministic). Also §6 identifies refs section as "position-with-no-header" but `reference-resolver.ts:150` actually emits a `BACKGROUND:` header. Fix: archive + replay `preResolvedRefs` + `compactMode` + writer-pack inputs; identify refs section by `BACKGROUND:`; confirm system/model/provider/temperature/maxTokens/response_format are also checked per §4.7. Named counterfactual: offline archival parity dry-run + fire-prior audit (~$0). |
+| `/codex:adversarial-review` (GPT) — round 4 | — | — | (pending) |
 | `experiment-adversary` (Opus) — fallback only | — | — | — |
 
 Block run on YELLOW or RED. Iterate the charter, not the run. If
