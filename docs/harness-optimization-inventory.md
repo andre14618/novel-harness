@@ -1,8 +1,10 @@
 ---
-status: draft
+status: amended-post-codex
 kind: inventory
+revision: 2
 date: 2026-04-21
 purpose: Full enumeration of every tunable surface in the harness for the autonomous-loop subsystem (docs/designs/autonomous-context-loop.md). Answers "what can the loop actually change?"
+codex-review: Consult output captured 2026-04-21 — verdict PROCEED WITH AMENDMENTS. Revision 2 applies all 4 amendments inline. See "Codex amendments applied" block at end.
 ---
 
 # Harness Optimization Inventory
@@ -98,18 +100,19 @@ complete knob list.
 | Model | model | `roles.ts:planning-beats` | DeepSeek V3.2 | Y |
 | Temperature | config-float | `roles.ts` + DB | 0.6 | Y |
 | Max tokens | config-int | `roles.ts` | 8192 | Y |
+| `SeedInput.directives` → `renderDirectivesForPlanner()` threading | prompt-rider | `src/types.ts` + `src/agents/planning-beats/context.ts:71-73` | passthrough from Studio Director chat | Y |
 | Beat-description richness tier (compact / standard / rich) | prompt-variant | file | standard | Y |
 | `establishedFacts` per-beat target (0 / 1-2 / 3-5) | prompt-rider | file | implicit | Y |
 | `knowledgeChanges` explicitness (implicit / named-character / named-+-reason) | prompt-rider | file | implicit | Y |
 | Payoff-link depth in `beat.description` (0 / 1-hop / 2-hop) | prompt-rider | file | 1-hop (V1a) | Y |
 | Beat-count floor multiplier (0.8× / 1.0× / 1.2× of ceil(targetWords/150)) | code | `src/phases/planning.ts` enforcePlanningOutput | 1.0× | Y |
-| Beat-kind distribution priors | code | `roles.ts:SALVATORE_PRIORS` | fantasy preset | Y (per genre pack) |
-| Cluster-sustain ranges | code | `roles.ts:SALVATORE_PRIORS` | fantasy preset | Y |
-| Opener/closer kinds | code | `roles.ts:SALVATORE_PRIORS` | description/action openers, action/interiority closers | Y |
-| Max active chars per beat | code | `roles.ts:SALVATORE_PRIORS` | 3 | Y |
-| Beats-per-scene range | code | `roles.ts:SALVATORE_PRIORS` | [2, 15] | Y |
-| Beats-per-chapter range | code | `roles.ts:SALVATORE_PRIORS` | [11, 40] | Y |
-| Universal structural rules rider | prompt-const | `roles.ts:UNIVERSAL_STRUCTURAL_RULES` | current | Y |
+| Universal structural rules rider | prompt-const | `roles.ts:UNIVERSAL_STRUCTURAL_RULES` | current | **later** (demoted per Codex: shared by `planning-plotter` + `planning-beats` via `src/agents/planning-plotter/context.ts:75-76` and `src/agents/planning-beats/context.ts:72-73` — editing it breaks Phase 0 attribution) |
+| Beat-kind distribution priors (`SALVATORE_PRIORS`) | code | `roles.ts:240-248` | fantasy preset | **later** (demoted per Codex: shared priors touch planner AND beat-context reads at `roles.ts:298-345`, not isolated to `planning-beats`) |
+| Cluster-sustain ranges | code | `roles.ts:SALVATORE_PRIORS` | fantasy preset | **later** (same reason) |
+| Opener/closer kinds | code | `roles.ts:SALVATORE_PRIORS` | description/action openers, action/interiority closers | **later** (same reason) |
+| Max active chars per beat | code | `roles.ts:SALVATORE_PRIORS` | 3 | **later** (same reason) |
+| Beats-per-scene range | code | `roles.ts:SALVATORE_PRIORS` | [2, 15] | **later** (same reason) |
+| Beats-per-chapter range | code | `roles.ts:SALVATORE_PRIORS` | [11, 40] | **later** (same reason) |
 
 ### 1.3 Planning-level state schema (what planner MAY output)
 
@@ -227,7 +230,9 @@ shifts the writer distribution enough to invalidate a checker.
 |---|---|---|---|---|
 | System prompt | prompt | `file:src/agents/chapter-plan-reviser/plan-revision-system.md` | current | later |
 | Model | model | `roles.ts` | DeepSeek V3.2 base | later |
-| Post-revision sanity checks (beat-floor / new-characters) | code | `src/agents/chapter-plan-reviser/index.ts` | current | Y |
+| Temperature | config-float | `roles.ts:chapter-plan-reviser` | 0.3 | later |
+| Max tokens | config-int | `roles.ts` | 6144 | later |
+| Post-revision sanity checks (beat-floor / new-characters) | code | `src/phases/drafting.ts:748-759` (inline guard; reviser module delegates to drafting-loop enforcement) | current | Y |
 | Telemetry outcome enum | code | `sql/028` | 7 outcomes | N |
 
 ### 3.6 `continuity-v2` (de-emphasized per program direction)
@@ -243,8 +248,10 @@ shifts the writer distribution enough to invalidate a checker.
 | Surface | Type | Storage | Current default | Loop-tunable? |
 |---|---|---|---|---|
 | Repetition-loop detector thresholds | code | `src/lint/quality-detectors.ts` | current | Y |
-| Underlength threshold | config-int | `src/config/pipeline.ts:qualityRedraftMinWords` | 100 | Y |
-| `qualityRedraftEnabled` | config-bool | `src/config/pipeline.ts` + per-novel override | false | Y (per-novel scope) |
+| Per-novel `qualityRedraftEnabled` | config-bool | `SeedInput.pipelineOverrides.qualityRedraftEnabled` (`src/types.ts:24-27` → `src/phases/drafting.ts:53-60`) | false | Y (canonical per-novel-override pattern) |
+| Per-novel `qualityRedraftMinWords` | config-int | `SeedInput.pipelineOverrides.qualityRedraftMinWords` (same path as above) | 100 | Y |
+| Global `qualityRedraftEnabled` fallback | config-bool | `src/config/pipeline.ts` | false | Y (rarely touched; prefer per-novel override) |
+| Global `qualityRedraftMinWords` fallback | config-int | `src/config/pipeline.ts` | 100 | Y |
 
 ---
 
@@ -316,16 +323,23 @@ intervention to one novel/eval cell.
 
 ### C.8 Environment-variable overrides
 
+Per Codex amendment: the first four should migrate to DB-backed
+per-novel config (same pattern as `seed.pipelineOverrides.qualityRedraft*`)
+because they currently leak process-wide via module-load env reads
+(`src/agents/writer/index.ts:19-36`, `src/models/roles.ts:280-292`).
+The autonomous loop cannot safely toggle them per-iteration while they
+stay env-backed.
+
 | Var | Controls | Loop-tunable? |
 |---|---|---|
-| `STYLE_PRIMER` | primer type (none/howard) | Y |
-| `WRITER_MODEL_OVERRIDE` | per-pack writer model | Y (already used by eval runners) |
-| `WRITER_PROVIDER_OVERRIDE` | per-pack writer provider | Y |
-| `WRITER_CONDITIONING` | exampleLines preset mode | Y |
-| `BENCHMARK_SEEDS` | eval-run seed filter | Y (eval-time only) |
-| `BENCHMARK_RUNS` | runs per seed | Y |
+| `STYLE_PRIMER` | primer type (none/howard) | **migrate-to-DB** → then Y |
+| `WRITER_MODEL_OVERRIDE` | per-pack writer model | **migrate-to-DB** → then Y |
+| `WRITER_PROVIDER_OVERRIDE` | per-pack writer provider | **migrate-to-DB** → then Y |
+| `WRITER_CONDITIONING` | exampleLines preset mode | **migrate-to-DB** → then Y |
+| `BENCHMARK_SEEDS` | eval-run seed filter | Y (eval-time only; stays env — runner scope) |
+| `BENCHMARK_RUNS` | runs per seed | Y (runner scope) |
 | `EXPERIMENT_ID` | attach run to an experiment | Y (telemetry; not a lever) |
-| `LLM_TRANSPORT` | direct / batch | Y (cost/latency axis) |
+| `LLM_TRANSPORT` | direct / batch | **N** (operational, not a prose-quality knob; consistent with the "Outside the knob surface" section) |
 
 ---
 
@@ -371,18 +385,76 @@ max_tokens, richness tier, establishedFacts target, knowledgeChanges
 explicitness, payoff-link depth, beat-count floor multiplier). All
 others frozen.
 
-## Open questions for Codex review
+## Codex amendments applied (2026-04-21)
 
-1. Is this enumeration complete? Missing surfaces?
-2. Any surface marked `Y` that should be `N` (or vice versa) given
-   the coordination risks named in `autonomous-context-loop.md`?
-3. Does the "Sub-loop 3 opens on distribution drift" rule need a
-   concrete detector — i.e., how would the loop *know* when a
-   Sub-loop 1 or 2 winner has drifted the writer distribution enough
-   to invalidate a checker?
-4. Schema changes (§1.3) are frozen as contracts. Is that correct,
-   or should schema evolution be its own sub-loop with formal
-   migration steps?
-5. Cross-cutting §C.8 env vars: should some of these move into DB-
-   backed config so the loop can toggle them per-iteration without
-   shell-out?
+Consult verdict: **PROCEED WITH AMENDMENTS**. Four amendments applied
+inline in this revision:
+
+1. **Missing surfaces added.**
+   - `SeedInput.directives` + `renderDirectivesForPlanner()` threading
+     on `planning-beats` (§1.2) and implicitly on `planning-plotter`
+     (§1.1 via `context.ts:73-76`).
+   - `qualityRedraftEnabled` + `qualityRedraftMinWords` per-novel rows
+     made explicit under §3.7 (was previously folded into the generic
+     C.7 bucket).
+   - `chapter-plan-reviser` temperature + max_tokens rows added (§3.5).
+   - `chapter-plan-reviser` beat-floor guard location corrected to
+     `src/phases/drafting.ts:748-759` (§3.5).
+
+2. **Three surfaces demoted Y → later** because they sit on shared
+   dependencies and would destroy Phase 0 attribution:
+   - `UNIVERSAL_STRUCTURAL_RULES` (shared by both planner stages —
+     moved to `later` in §1.2).
+   - All six `SALVATORE_PRIORS` rows (beat-kind dist, cluster-sustain,
+     opener/closer kinds, max-active-chars, beats-per-scene,
+     beats-per-chapter — shared with beat-context reads in
+     `roles.ts:298-345`; moved to `later` in §1.2).
+   - `LLM_TRANSPORT` demoted `Y → N` in §C.8 for consistency with
+     the "Outside the knob surface" freeze.
+
+3. **Schema evolution is a separate versioned-migration sub-loop,
+   not a tuning lever** (per Q4 of Codex review). Planner schema
+   (§1.3) stays frozen for Phase 0. When a schema change is
+   warranted, the required migration shape is: versioned schema →
+   dual-write old + new → adapter-backed checker replay on frozen
+   labeled sets → backfill → cutover. Document but do not implement
+   pre-Phase-0.
+
+4. **Checker-drift detector** (per Q5): defer KL-style writer-
+   distribution metrics — no stable input feature distribution is
+   defined today. Use a **calibration-substrate detector** instead:
+   replay any upstream Phase 0 candidate winner through the frozen
+   labeled `eval_results` checker sets; **open Sub-loop 3 when any
+   checker's precision drops >5pt OR F1 drops >3pt** on that frozen
+   set. This anchors on the design doc's named downstream-replay
+   mechanism (`autonomous-context-loop.md:202-209, 223-230`), not on
+   a hypothetical live-drift signal.
+
+5. **Cheapest untried counterfactual** (Codex Q7, load-bearing for
+   Phase 0 GO/NO-GO): before spending budget on the full autonomous
+   loop, run a 5-chapter planner-only A/B —
+   - **Arm A (control):** current `planning-beats` default.
+   - **Arm B (loud variant):** richer beat descriptions,
+     `establishedFacts` target 3-5, `knowledgeChanges` named+reason,
+     1.2× beat-count floor.
+   - **Score:** planner-native outputs (beat-count-floor,
+     `establishedFacts` coverage, `knowledgeChanges` coverage,
+     payoff-link realization) + `chapter-plan-checker` pass rate.
+   - **Purpose:** verify the knob surface is declaratively
+     expressible and measurably responsive before the loop spends
+     real budget. If the loud variant doesn't move planner-native
+     metrics beyond noise, the loop's knob space is broken before
+     Phase 0 starts.
+
+## Remaining Phase 0 gating work (from amendments)
+
+- [ ] Migrate `STYLE_PRIMER`, `WRITER_MODEL_OVERRIDE`,
+      `WRITER_PROVIDER_OVERRIDE`, `WRITER_CONDITIONING` from env vars
+      to `seed.pipelineOverrides.*` so the loop can toggle per-novel.
+- [ ] Implement the calibration-substrate drift detector on a replay
+      harness (frozen `eval_results` sets + checker-precision/F1
+      deltas).
+- [ ] Run the 5-chapter planner-only A/B cheapest-counterfactual.
+      GO/NO-GO gate for the autonomous loop's Phase 0.
+- [ ] Build the held-out 10-beat replay set on a second novel
+      (named in design doc but not yet constructed).
