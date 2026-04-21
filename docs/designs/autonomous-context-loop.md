@@ -62,10 +62,72 @@ regression because the checker hasn't recalibrated. Codex-as-proposer
 has to reason over mixed parameter spaces and mixed objectives —
 known to degrade.
 
-The fix is **three bounded sub-loops + one composition rule**, not
+The fix is **four bounded sub-loops + one composition rule**, not
 one broad loop.
 
 ## Layer decomposition
+
+Four tiers, ordered upstream → downstream. Each tier's winner gates
+on downstream replay before ship. Phase 0 starts at Sub-loop 1
+(`planning-beats`); Sub-loop 0 (concept/world-building) is on the
+map per user direction 2026-04-21 ("we can further decompose it to
+world building sections upstream from planning") but is deferred
+pending Sub-loop 1 convergence — concept changes are farthest from
+audited per-beat failures and attribution is hardest there, so the
+sub-loop that's closest to the oracle goes first.
+
+### Sub-loop 0: Concept / world-building layer (upstream of planning)
+
+**Scope (ordered by ROI within tier):**
+- `world-builder` prompt (setting spine, magic/tech systems,
+  cultures, geography; outputs `world_bible`).
+- `character-agent` prompt (character profiles, relationships,
+  drives/avoids/conflicts, `exampleLines`).
+- `plotter` prompt (initial story arc before chapter-level
+  planning).
+
+**Knobs (Phase N; not Phase 0):**
+
+| Knob | Range | Default |
+|---|---|---|
+| `world-builder` systems depth | names-only / brief-rules / full-rules-+-edges | brief-rules |
+| `world-builder` culture count floor | 1 / 3 / 5 | existing default |
+| `world-builder` geography granularity | region / region-+-sites / sites-+-routes | region |
+| `character-agent` relationship-graph depth | dyad / triad / full-N | dyad |
+| `character-agent` `exampleLines` count per character | 2 / 4 / 8 | 4 (per schema-of-record) |
+| `character-agent` signature-phrasing extraction | off / passive / enforced | off |
+| `plotter` arc-shape prior | free / hero-journey / genre-pack-locked | free |
+
+**Measurement axes (primary):**
+1. Downstream planning-beats quality — when concept output changes,
+   does `planning-beats` produce higher-richness beats on all the
+   Sub-loop 1 primary metrics? This is the **load-bearing measurement
+   for this tier** because concept output is consumed by planning,
+   not by prose directly.
+2. Downstream writing quality — full decomposed audit after
+   replaying frozen planner + frozen writer against the new concept
+   output.
+3. Concept-native richness signals:
+   - World entity graph size (characters + places + systems + edges).
+   - Character `exampleLines` distinctness spread (inter-character
+     lexical divergence on the same seeded prompts).
+   - Cross-reference density (does character X reference
+     world-system Y? does place A constrain event B?).
+4. Concept-phase token cost (input + output for all concept calls).
+
+**Why deferred from Phase 0:** Codex consult `af1875be5a79f4e3b`
+flagged concept-layer optimization as lower-yield early —
+"concept changes are farther from the audited per-beat failures and
+will be harder to attribute cleanly in Phase 0." Attribution goes
+through two downstream layers (planner then writer), which means
+more confounding paths. Open Sub-loop 0 only after Sub-loop 1 has
+converged AND its winners are shipping a meaningful delta on
+downstream prose, so that Sub-loop 0's attribution path is
+well-conditioned.
+
+**Phase 0 policy for Sub-loop 0:** the concept layer is **frozen at
+current production prompts** while Sub-loops 1 and 2 run. This
+isolates the upstream variable and prevents cross-tier confounds.
 
 ### Sub-loop 1: Planning layer
 
@@ -74,8 +136,6 @@ one broad loop.
   calls per novel; owns `establishedFacts`, `characterStateChanges`,
   `knowledgeChanges`).
 - `planning-plotter` prompt (chapter skeletons).
-- `world-builder`, `character-agent` (deferred until beats/plotter
-  sub-loops converge; farther from audited per-beat defects).
 
 **Knobs (Phase 0 = `planning-beats` only):**
 
