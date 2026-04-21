@@ -1,11 +1,11 @@
 ---
-status: approved
+status: proposed
 kind: experiment-charter
 name: arm-b-detector-preflight
 owner: andre
 date: 2026-04-21
-revision: 6 (Codex GREEN round 6 — 2026-04-21)
-approved: 2026-04-21 (Codex `/codex:adversarial-review` round 6, job `a1bce27f1ac39e95b`)
+revision: 7 (post-INCONCLUSIVE run — widen beat cap)
+prior-approval-invalidated: 2026-04-21 (revision 6 approved + executed as exp #260; INCONCLUSIVE per charter §3 math error — see docs/charters/arm-b-detector-preflight-results.md)
 ---
 
 # Experiment Charter — `arm-b-detector-preflight`
@@ -14,6 +14,41 @@ Preflight for `replay-ladder-v1` (RED-blocked, commit `33a84f1`). One
 question, two arms, **dynamic beat count** (≥8 adjudicated fires/arm or
 20 beats cap), human-adjudicated. Named by Codex as the cheapest-untried
 counterfactual in the ladder's charter review (job `aabc1fd419f0be2b2`).
+
+Revision 7 addresses the single material flaw surfaced by executing
+revision 6 as exp #260 (`docs/charters/arm-b-detector-preflight-results.md`):
+the §3 8-fire-per-arm adjudicable floor + §8 20-beat cap were
+mathematically incompatible at the V1 28.9% production fire rate that
+revision 2 had rebased to. At 20 beats × 0.289 ≈ 5.8 fires/arm
+expected, the floor could not be reached in expectation — and the
+live run yielded 2 fires on A and 3 on B, locking the verdict to
+INCONCLUSIVE regardless of any label pattern.
+
+Revision 7 widens the §8 beat cap to **40**, keeping the 8-fire floor
+intact and restoring charter-internal consistency:
+
+    40 beats × 0.289 ≈ 11.6 fires/arm expected (cleanly above the
+    8-fire floor with room for stratum-level variance)
+
+The cap must exceed both the expectation AND the per-arm 8-fire minimum
+with slack so that a below-expectation run still clears the floor. 40
+is the smallest round number that satisfies that. At 30 beats,
+expected = 8.67 fires/arm — technically above 8 but with no slack; a
+single-sigma-below run (≈ 6.8 fires/arm) would fail the floor.
+
+Revision 7 also:
+
+- Preserves revision 6's full §6 parity contract, stratification
+  predicates, UNCLEAR-exclusion policy, 12.5pt/25pt decision bands,
+  and byte-replay Arm A contract. Those were all proven sound by the
+  exp #260 live run (100% parity yield, 0 writer errors, clean
+  detector calls, clean DB writes). No structural changes beyond the
+  cap widen.
+- Updates §8 budget to reflect 4× scale (not 2× — writer cost is
+  linear in beats but human adjudication time scales with the fire
+  count, which at the new cap is ~2× the revision-6 expected load).
+- Adds an explicit floor-vs-cap consistency note in §3 so the
+  invariant that produced the revision-6 bug is named, not implicit.
 
 Revision 5 addresses one round-4 residual blocker (job
 `ac683bf10b86afc5c`): Arm A replay overclaimed recoverability of
@@ -74,7 +109,7 @@ full ladder.
 ## 2. Hypothesis
 
 **If** we regenerate a pre-registered stratified pool of beats (up to
-20 per §3 dynamic stop rule) through two arms (A: baseline, B: +enriched
+40 per §3 dynamic stop rule) through two arms (A: baseline, B: +enriched
 context) and adjudicate every `halluc-ungrounded` detector fire on each
 arm against a shared human-labeled ground-truth (TP / FP / UNCLEAR),
 **then** detector precision on Arm B will be within one-label-of-noise
@@ -95,17 +130,33 @@ load-bearing signal.
 ## 3. Falsification threshold
 
 Stated before results. Sample-size rebased against exp #254's shipped
-V1 baseline (28.9% fire rate): at that rate 10 beats → ~2.9 fires/arm,
-20 beats → ~5.8 fires/arm. To resolve a 12.5pt / 25pt precision band
-(one and two labels of drop at the 8-fire floor — see §7) we need ≥8
-adjudicated fires per arm. That drives the dynamic stop rule below.
+V1 baseline (28.9% fire rate) and against the exp #260 live-run
+observation (20% on arm A, 30% on arm B, right at expectation).
 
-- **Dynamic stop rule** (replaces "10 beats fixed"): generate beats
-  sequentially. After each beat, count cumulative adjudicable fires
-  per arm (fires excluding UNCLEAR; see §7). Stop when either
-  (a) both arms have ≥8 adjudicable fires, OR (b) 20 beats have been
-  generated. Beats are generated in the pre-registered stratum order
-  from §6, so sampling is still reproducible.
+**Floor-vs-cap consistency invariant (new in revision 7 — named here
+so it cannot go implicit across revisions).** The §8 beat cap must
+be large enough that the expected fire count AT the V1 production
+rate MINUS one-sigma variance still exceeds the §3 adjudicable floor
+on each arm. At V1 fire rate p = 0.289 and one-sigma variance
+`sqrt(N*p*(1-p))`:
+
+    | N  | expected | 1-sigma below  |
+    |----|----------|----------------|
+    | 20 |  5.78    |  3.75  ← below floor; revision 6 ran here |
+    | 30 |  8.67    |  6.19  ← below floor; too tight |
+    | 40 | 11.56    |  8.72  ← above floor; revision 7 chooses here |
+
+Revision 7 therefore sets the cap at **40 beats**. Below-sigma runs
+are still possible (the run could produce <8 fires on one arm even
+at 40 beats) — that case is handled by the INCONCLUSIVE outcome in
+§7, not by re-running.
+
+- **Dynamic stop rule:** generate beats sequentially. After each beat,
+  count cumulative adjudicable fires per arm (fires excluding UNCLEAR;
+  see §7). Stop when either (a) both arms have ≥8 adjudicable fires,
+  OR (b) **40 beats** have been generated. Beats are generated in the
+  pre-registered stratum order from §6, so sampling is still
+  reproducible.
 - **Detector precision on Arm B drops >25pt vs Arm A** (post-stop,
   computed per §7 formula — band calibrated to the 8-fire discretization
   floor: one label at that sample is 12.5pt, so >25pt = ≥2 labels of
@@ -113,11 +164,14 @@ adjudicated fires per arm. That drives the dynamic stop rule below.
   enriched-context distribution. KILL detector-as-primary-oracle on
   Arm B of the full ladder; revise `replay-ladder-v1` Arm B oracle
   to human adjudication primary, detector exploratory only.
-- **Fewer than 8 adjudicable fires on either arm at the 20-beat cap.**
-  Measurement too sparse for the 12.5pt / 25pt decision band even
-  after budgeting. Abort; record as inconclusive; the right corrective is
-  either a higher-fire-prior beat stratum (lore-heavy only) or a
-  different detector, not more beats of the same stratification.
+- **Fewer than 8 adjudicable fires on either arm at the 40-beat cap.**
+  Even-at-expectation produced a below-sigma run. Measurement too
+  sparse for the 12.5pt / 25pt decision band. Abort; record as
+  inconclusive. The right corrective is either a higher-fire-prior
+  beat stratum, a different detector, or a fire-rate-tolerant oracle
+  (not another ratchet of the beat cap — 40 is already calibrated
+  against 1-sigma-below expectation per the floor/cap invariant
+  table above).
 - **Human adjudicator self-disagrees on ≥2 of the 4 silent retest
   adjudications** (see §7 — 4 pre-registered adjudications are silently
   re-presented in shuffled order + arm-masked at the end of the pass).
@@ -151,8 +205,10 @@ instrument-validation preflights.
 | Skip preflight, run `replay-ladder-v1` directly with detector as oracle | $2 | Rejected by Codex charter review (verdict RED, 2026-04-21) — detector validity under enriched-context shift is the load-bearing assumption the full ladder cannot test from within its own design |
 | Skip preflight, run `replay-ladder-v1` with human-only oracle on all arms | $2 + 4–6h human time | Scope creep; preflight answer may obviate the human oracle on Arms A/C/D where the detector is already calibrated |
 | Detector adjudication on Arm A alone (sanity check only) | $0.25 + 30min | Doesn't answer the distribution-shift question — Arm A is the calibration distribution |
-| Fixed 40-beat plan (no dynamic stop) | $1.50 + 3h | Overshoots: at 28.9% V1 fire rate, 40 beats → ~11.6 fires/arm expected. That would tighten the discretization step from 12.5pt (at 8 fires) to 8.3pt (at 12 fires), but charter bands are pre-registered at 12.5pt/25pt so the extra precision is not exploited — 2× the writer/adjudication budget for no decision-rule gain |
-| Dynamic stop with minimum floor raised to 12 fires/arm | $2+ + 3h+ | At 28.9% fire rate, 12 fires/arm needs ~42 beats — blows the 20-beat cap and the wall-clock budget. Rejected in favor of widening decision bands to match the 8-fire discretization |
+| Keep revision 6 cap (20 beats) | exp #260 ran this — $0.0023 + zero adjudication time | REJECTED BY EXECUTION: produced 2 fires A, 3 fires B at V1 rate, locked the verdict to INCONCLUSIVE regardless of label pattern. The 8-fire floor is not reachable in expectation at N=20. |
+| Lower the floor instead of widening the cap (e.g., 4 fires/arm) | $0.0023 + ~30min | Rejected: at 4 fires/arm the discretization step is 25pt (1 label), which is equal to the NO-GO threshold. Any interior verdict becomes indistinguishable from noise. The floor is load-bearing. |
+| Widen the cap to 30 | $0.005 + ~2h | Rejected: 30 beats yields 8.67 fires/arm expected — above the floor but with zero variance slack. One-sigma-below runs produce ~6.8 fires/arm, re-triggering INCONCLUSIVE. 30 is the smallest cap that satisfies expectation-only; 40 is the smallest that satisfies expectation AND 1-sigma-below. |
+| Switch detector to adherence-events or combined beat-checks (46.7% prod rate) | $0.01 + 3h | Deferred as the Option 3 successor (separate charter) per `docs/charters/arm-b-detector-preflight-results.md`. Changes the measurement question ("does context preserve aggregated beat-check precision" vs "does context preserve halluc-ungrounded precision"). Correct-scale but larger scope than a floor fix. |
 
 ## 6. Distribution match
 
@@ -481,32 +537,36 @@ separate ablation charter.
 
 ## 8. Budget
 
-Recalibrated in revision 2 against the 20-beat cap (not 10) and the
-V1 production fire rate (28.9%, not 44.9% V0).
+Recalibrated in revision 7 against the 40-beat cap (2× revision 6's
+20-beat cap) and exp #260's observed per-beat cost (~$0.00023, 4× lower
+than the revision-2 estimate because the Salvatore v4 LoRA is cheaper
+in practice than the speculative $0.02/call).
 
-- **Spend cap:** $2 hard. Expected: 2 arms × up to 20 beats = ≤40 beat
-  generations at Salvatore-v4 W&B Inference rates (~$0.02/call) =
-  ~$0.80 writer spend + ~$0.05 incidental. The $2 cap leaves headroom
-  for regeneration on transient infrastructure failures.
-- **Wall-clock cap:** 3 hours from charter GREEN to result table
-  committed. Writer generation ~30 min (sequential to respect W&B
-  rate limits); parity harness ~10 min; adjudication pass up to
-  2h (see below); writeup ~20 min.
-- **Human-time cap:** 2 hours for adjudication. Expected load at
-  8 fires/arm: 16 fire adjudications + 4 silent retests (re-use
-  from the 16) + 6 non-fire audits (3 per arm) = 22 distinct packets
-  at ~4–5 min each including the retest presentations. The 20-beat
-  cap with fire rates at the production average gives at most
-  ~12 adjudicable fires/arm, so the upper bound is ~30 distinct
-  packets ≈ 2.5h — if that ceiling is hit, split across two sessions
-  to preserve adjudicator reliability.
+- **Spend cap:** $4 hard. Expected: 2 arms × up to 40 beats = ≤80
+  writer calls at exp #260's observed ~$0.00023/call = ~$0.02 writer
+  spend. Plus ≤80 halluc-ungrounded detector calls at similar
+  W&B Inference rates = ~$0.02. The $4 cap leaves 100× headroom for
+  regeneration, detector retries, or a LoRA-pricing-model change.
+- **Wall-clock cap:** 4 hours from charter GREEN to result table
+  committed. Writer + detector generation ~25 min (sequential through
+  W&B Inference; exp #260 produced 10 beats in ~6 min, scale 4×);
+  parity harness ~10 min; adjudication pass up to 3h (see below);
+  writeup ~30 min.
+- **Human-time cap:** 3 hours for adjudication. Expected load at
+  V1 fire rate (28.9%) on 40 beats: ~11.6 fires/arm × 2 arms +
+  6 non-fire audits (3 per arm) + 4 silent retests sampled from fires
+  = ~33 distinct packets at ~4–5 min each. Upper bound at expectation
+  plus 1-sigma (≈ 14.4 fires/arm) is ~39 packets ≈ 3h. Split across
+  two sessions if the count approaches the upper bound — preserves
+  adjudicator reliability per §7's retest-consistency check.
 - **Stop if:** parity harness reports delta outside whitelisted span on
   any beat (§6 abort condition); either arm fails to reach 8
-  adjudicable fires by the 20-beat cap (§3 INCONCLUSIVE);
-  adjudicator self-disagrees on ≥2/4 retests (§3 retest kill);
-  UNCLEAR rate >25% on either arm (§3 UNCLEAR abort); any beat
-  generation errors on Arm A (baseline stability issue — bigger
-  problem than this preflight).
+  adjudicable fires by the 40-beat cap (§3 INCONCLUSIVE —
+  calibrated against 1-sigma-below expectation, so this would be a
+  genuinely anomalous run); adjudicator self-disagrees on ≥2/4
+  retests (§3 retest kill); UNCLEAR rate >25% on either arm (§3
+  UNCLEAR abort); any beat generation errors on Arm A (baseline
+  stability issue — bigger problem than this preflight).
 
 ## 9. Linked context
 
@@ -551,7 +611,9 @@ and GO/CAUTION/NO-GO thresholds that were not in the verdict text.
 | `/codex:adversarial-review` (GPT) — round 3 | YELLOW | 2026-04-21 | Job `a233169484d5102a1`. Two residual blockers: (1) band-value inconsistency — §7 has 12.5/25pt bands but §1 says "within 10pt", §3 references "±10pt band" and "10–15pt band", §5 still says "enough for a 10pt band". A `-12.4pt` result is simultaneously GO (§7) and "not within 10pt" (§1). Fix: align every band reference to 12.5pt/25pt. (2) Parity underspecifies resolver replay — `buildBeatContext` takes `preResolvedRefs` as input (drafting.ts:282), so if Arm A re-runs `buildBeatContext` without archived `preResolvedRefs`, `resolveReferences()` may call LLM fallback (non-deterministic). Also §6 identifies refs section as "position-with-no-header" but `reference-resolver.ts:150` actually emits a `BACKGROUND:` header. Fix: archive + replay `preResolvedRefs` + `compactMode` + writer-pack inputs; identify refs section by `BACKGROUND:`; confirm system/model/provider/temperature/maxTokens/response_format are also checked per §4.7. Named counterfactual: offline archival parity dry-run + fire-prior audit (~$0). |
 | `/codex:adversarial-review` (GPT) — round 4 | YELLOW | 2026-04-21 | Job `ac683bf10b86afc5c`. One residual blocker: §6 claimed `preResolvedRefs` was recoverable from `llm_calls.request_json`, but `requestEnvelopeForLog` (`src/llm.ts:197`) strips prompt fields before persistence — they go to `system_prompt` / `user_prompt` columns only. Fix: reframe Arm A as byte-replay of stored `user_prompt` bytes; Arm B constructs by inserting ENRICHED CONTEXT section into the recovered `sections[]`. Warning: `buildBeatContext` calls `getRelationshipBetween()` in non-compact mode (`beat-context.ts:286`) — moot under byte-replay since `buildBeatContext` is never re-executed. Named counterfactual: offline archival parity dry-run (~$0) — now adopted as a mandatory preflight-to-the-preflight in revision 5. |
 | `/codex:adversarial-review` (GPT) — round 5 | YELLOW | 2026-04-21 | Job `ab8e849aa0e16739c`. Two residual blockers — both my own cleanup failures in revision 5: (1) §6 still contained leftover "import `buildBeatContext` and compare `_sections`" language from revision 4, contradicting the new byte-replay contract below. (2) Dry-run archived only "signature (headers + byte lengths + SHA-256)" but Arm B construction + byte-equality assertion require the full section strings. Also: 30% unrecoverable abort threshold is heuristic; Codex flagged that per §11.6 any non-trivial miss rate on a post-`sql/017` novel should be treated as schema-drift evidence, not averaged over. Codex explicitly confirms the byte-replay substrate is correct — blockers are cleanup, not structural. |
-| `/codex:adversarial-review` (GPT) — round 6 | **GREEN** | 2026-04-21 | Job `a1bce27f1ac39e95b`. Both round-5 blockers resolved. Two non-blocking warnings: (a) N=8 fire floor still has writer-sampling noise; results near the −12.5pt boundary should be written up as edge-of-resolution rather than strong evidence (acknowledged in §7 — bands quantized to floor). (b) §6 restates the runtime parity invariant twice (editorial duplication, consistent — not a structural conflict). **Recommendation: PROCEED WITH RUN.** |
+| `/codex:adversarial-review` (GPT) — round 6 | GREEN | 2026-04-21 | Job `a1bce27f1ac39e95b`. Revision 6 approved; executed as exp #260 with the charter-design flaw (floor-vs-cap incompatibility) undetected. Revision 7 supersedes. |
+| execution outcome — exp #260 | INCONCLUSIVE | 2026-04-21 | See `docs/charters/arm-b-detector-preflight-results.md`. Two live-execution bugs fixed (commit `0ff8646`), infrastructure proven sound, but §3 adjudicable floor mathematically unreachable at §8 cap given V1 28.9% production fire rate. Revision 7 widens cap to 40 to restore floor/cap consistency. |
+| `/codex:adversarial-review` (GPT) — round 7 | — | — | (pending — revision 7) |
 | `experiment-adversary` (Opus) — fallback only | — | — | — |
 
 Block run on YELLOW or RED. Iterate the charter, not the run. If
