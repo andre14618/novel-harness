@@ -1,0 +1,388 @@
+---
+status: draft
+kind: inventory
+date: 2026-04-21
+purpose: Full enumeration of every tunable surface in the harness for the autonomous-loop subsystem (docs/designs/autonomous-context-loop.md). Answers "what can the loop actually change?"
+---
+
+# Harness Optimization Inventory
+
+Every knob, prompt, model slot, threshold, and pipeline flag that the
+autonomous loop could legitimately change. Organized by the four-tier
+sub-loop decomposition from `docs/designs/autonomous-context-loop.md`
+(Sub-loop 0 concept → 1 planning → 2 writing → 3 checker), plus
+cross-cutting surfaces (pipeline flags, model assignments, retry
+policy) that don't belong to any single tier.
+
+Column key:
+
+- **Surface**: what the knob is
+- **Type**: `prompt` / `model` / `config-int` / `config-float` /
+  `config-bool` / `template` / `threshold` / `schema`
+- **Storage**: where the value lives — `file:<path>` / `db:<table>` /
+  `code:<const>` / `env:<var>` / `roles.ts`
+- **Current default**: what production uses today
+- **Loop-tunable?**: whether the autonomous loop should be allowed to
+  change it in Phase 0+. `N` = should stay frozen; `Y` = open to
+  exploration; `later` = deferred to a post-Phase-0 sub-loop.
+
+---
+
+## Sub-loop 0 — Concept / world-building layer
+
+Frozen in Phase 0 (attribution through two downstream layers makes
+early-phase measurement noisy). Enumerated so the next phase has a
+complete knob list.
+
+### 0.1 `world-builder`
+
+| Surface | Type | Storage | Current default | Loop-tunable? |
+|---|---|---|---|---|
+| System prompt | prompt | `file:src/agents/world-builder/world-bible-system.md` | current | later |
+| Model | model | `roles.ts:world-builder` | DeepSeek V3.2 | later |
+| Temperature | config-float | DB `agent_generation_config` | 0.7 (default) | later |
+| Max tokens | config-int | `roles.ts` | 8192 | later |
+| Output schema richness | schema | `file:src/agents/world-builder/schema.ts` | current | later |
+| Culture count floor (prompt rider) | prompt | `file:…/world-bible-system.md` | implicit | later |
+| Systems depth (names / brief-rules / full-rules+edges) | prompt-variant | `file:…/world-bible-system.md` | implicit | later |
+| Geography granularity (region / region+sites / sites+routes) | prompt-variant | `file:…/world-bible-system.md` | implicit | later |
+
+### 0.2 `character-agent`
+
+| Surface | Type | Storage | Current default | Loop-tunable? |
+|---|---|---|---|---|
+| System prompt | prompt | `file:src/agents/character-agent/character-profile-system.md` | current | later |
+| Model | model | `roles.ts:character-agent` | DeepSeek V3.2 | later |
+| Temperature / Max tokens | config | `roles.ts` | 0.7 / 8192 | later |
+| `exampleLines` count per character | schema | `file:…/character-profile-system.md:22` | 4 | later (schema-of-record — changes cascade to beat-context preset math) |
+| Relationship-graph depth (dyad / triad / full-N) | prompt-variant | file | implicit | later |
+| Signature-phrasing extraction (off / passive / enforced) | prompt-variant | file | off | later |
+
+### 0.3 `plotter` (story spine before chapter-level planning)
+
+| Surface | Type | Storage | Current default | Loop-tunable? |
+|---|---|---|---|---|
+| System prompt | prompt | `file:src/agents/plotter/story-structure-system.md` | current | later |
+| Model | model | `roles.ts:plotter` | DeepSeek V3.2 | later |
+| Arc-shape prior (free / hero-journey / genre-pack-locked) | prompt-variant | file | free | later |
+
+### 0.4 Pre-planning chat (Studio Director)
+
+| Surface | Type | Storage | Current default | Loop-tunable? |
+|---|---|---|---|---|
+| `planning-conversationalist` prompt | prompt | `file:src/agents/planning-conversationalist/` | current | later |
+| `planning-extractor` prompt | prompt | `file:src/agents/planning-extractor/` | current | later |
+| Model — conversationalist | model | `roles.ts` | Groq Qwen3-32B | later |
+| Model — extractor | model | `roles.ts` | DeepSeek V3.2 | later |
+
+---
+
+## Sub-loop 1 — Planning layer (Phase 0 target)
+
+### 1.1 `planning-plotter` (chapter skeletons)
+
+| Surface | Type | Storage | Current default | Loop-tunable? |
+|---|---|---|---|---|
+| System prompt | prompt | `file:src/agents/planning-plotter/chapter-outline-system.md` | current | Y |
+| Model | model | `roles.ts:planning-plotter` | DeepSeek V3.2 | Y (narrow set: DeepSeek / Cerebras 235B / Kimi K2) |
+| Temperature | config-float | `roles.ts` + DB | 0.6 | Y |
+| Max tokens | config-int | `roles.ts` | 8192 | Y |
+| Chapter-level richness tier | prompt-variant | file | implicit | Y |
+| POV-assignment explicitness | prompt-variant | file | implicit | Y |
+
+### 1.2 `planning-beats` (per-chapter beat expansion — Phase 0 PRIMARY)
+
+| Surface | Type | Storage | Current default | Loop-tunable? |
+|---|---|---|---|---|
+| System prompt | prompt | `file:src/agents/planning-beats/beat-expansion-system.md` | current | Y |
+| Model | model | `roles.ts:planning-beats` | DeepSeek V3.2 | Y |
+| Temperature | config-float | `roles.ts` + DB | 0.6 | Y |
+| Max tokens | config-int | `roles.ts` | 8192 | Y |
+| Beat-description richness tier (compact / standard / rich) | prompt-variant | file | standard | Y |
+| `establishedFacts` per-beat target (0 / 1-2 / 3-5) | prompt-rider | file | implicit | Y |
+| `knowledgeChanges` explicitness (implicit / named-character / named-+-reason) | prompt-rider | file | implicit | Y |
+| Payoff-link depth in `beat.description` (0 / 1-hop / 2-hop) | prompt-rider | file | 1-hop (V1a) | Y |
+| Beat-count floor multiplier (0.8× / 1.0× / 1.2× of ceil(targetWords/150)) | code | `src/phases/planning.ts` enforcePlanningOutput | 1.0× | Y |
+| Beat-kind distribution priors | code | `roles.ts:SALVATORE_PRIORS` | fantasy preset | Y (per genre pack) |
+| Cluster-sustain ranges | code | `roles.ts:SALVATORE_PRIORS` | fantasy preset | Y |
+| Opener/closer kinds | code | `roles.ts:SALVATORE_PRIORS` | description/action openers, action/interiority closers | Y |
+| Max active chars per beat | code | `roles.ts:SALVATORE_PRIORS` | 3 | Y |
+| Beats-per-scene range | code | `roles.ts:SALVATORE_PRIORS` | [2, 15] | Y |
+| Beats-per-chapter range | code | `roles.ts:SALVATORE_PRIORS` | [11, 40] | Y |
+| Universal structural rules rider | prompt-const | `roles.ts:UNIVERSAL_STRUCTURAL_RULES` | current | Y |
+
+### 1.3 Planning-level state schema (what planner MAY output)
+
+| Surface | Type | Storage | Current default | Loop-tunable? |
+|---|---|---|---|---|
+| `establishedFacts[]` shape | schema | `src/agents/planning-beats/schema.ts` | current | N (contract; schema changes break checker replay) |
+| `characterStateChanges[]` shape | schema | same | current | N |
+| `knowledgeChanges[]` shape | schema | same | current | N |
+| `requiredPayoffs[]` shape (fact_id, payoff_beat) | schema | same | current | N |
+
+---
+
+## Sub-loop 2 — Writing layer
+
+### 2.1 `beat-writer` — system prompt & model
+
+| Surface | Type | Storage | Current default | Loop-tunable? |
+|---|---|---|---|---|
+| System prompt — default (DeepSeek route) | prompt | `file:src/agents/writer/beat-writer-system.md` | current | Y |
+| System prompt — voice-LoRA route (Salvatore v4) | prompt | `file:src/agents/writer/beat-writer-system-salvatore.md` | training-verbatim | N (training contract) |
+| Model — default | model | `roles.ts:beat-writer` | DeepSeek V3.2 | Y |
+| Model — fantasy route | model | `WRITER_GENRE_PACKS` | Salvatore v4 LoRA | N (frozen per 2026-04-21 pivot until replacement ships) |
+| Temperature | config-float | `roles.ts` + DB | 0.8 | Y |
+| Max tokens | config-int | `roles.ts` | 4000 | Y |
+| Style primer on/off | prompt-rider | `roles.ts:WriterGenrePack.usePrimer` + env `STYLE_PRIMER` | none (Howard retired) | Y |
+| Fallback chapter-level writer prompt | prompt | `file:src/agents/writer/prose-writer-system.md` | current | Y (rarely fires) |
+
+### 2.2 `buildBeatContext` — context-construction knobs
+
+All surface through `BeatContextInput` in `src/agents/writer/beat-context.ts`:
+
+| Knob | Type | Storage | Current default | Loop-tunable? |
+|---|---|---|---|---|
+| `compactMode` | config-bool | per-call | true on voice-LoRA, false otherwise | Y |
+| `beatEntityListVariant` (`v0` / `v1` / `v3`) | prompt-variant | code | `v1` (exp #254) | Y |
+| `readerInfoStateEnabled` | config-bool | not yet threaded | false | Y (needs wiring) |
+| `readerInfoStateDepth` (chapter-scoped / novel-scoped) | config-enum | not yet threaded | n/a | Y |
+| `worldExpansionBudget` (0 / brief-entity-keyed / full-entities) | config-enum | not yet threaded | 0 | Y |
+| `worldExpansionMaxBytes` (0 / 1000 / 3000 / 8000) | config-int | not yet threaded | 0 | Y |
+| `transitionBridgeSentences` (0 / 1 / 3 / 5) | config-int | code | 3 | Y |
+| `landingTargetEnabled` | config-bool | code | true | Y |
+| `priorBeatEstablishedFacts` (thread `getFactsUpToChapter`) | config-bool | not yet threaded | false | Y |
+| `speakerDirectivesDepth` (compact / directives / directives+cadence) | config-enum | `voice-shaping-prompts.ts` | compact | Y |
+| `payoffLinksVisible` | config-bool | code | true (V1a shipped) | Y |
+| `toolsMode` | config-bool | not yet threaded | false | Y |
+| `exampleLines` conditioning (fixed / rotation / undefined=raw-slice) | config-enum | `WriterGenrePack.conditioning` + env `WRITER_CONDITIONING` | undefined (raw slice) in production | Y |
+| Setting-block inclusion rules (beat 0 only / location-change) | code | `beat-context.ts` | location-change + beat 0 | Y |
+| Reference-resolver output threading | code | `reference-resolver.ts` | current | Y |
+
+### 2.3 `reference-resolver`
+
+| Surface | Type | Storage | Current default | Loop-tunable? |
+|---|---|---|---|---|
+| System prompt | prompt | inline in `src/agents/writer/reference-resolver.ts` | current | Y |
+| Model | model | `roles.ts:reference-resolver` | Groq Llama 3.1 8B | Y (narrow: Llama / Qwen / Kimi) |
+| Temperature | config-float | `roles.ts` | 0.1 | Y |
+| Max tokens | config-int | `roles.ts` | 512 | Y |
+
+### 2.4 Voice-shaping prompt assemblers
+
+| Surface | Type | Storage | Current default | Loop-tunable? |
+|---|---|---|---|---|
+| D1 style-guide block | prompt-const | `src/agents/writer/voice-shaping-prompts.ts` | current | Y |
+| D2 few-shot passage selection | code | same | 3 passages, stratified | Y |
+| D3 character-voice directives block | prompt-const | same | current | Y |
+
+---
+
+## Sub-loop 3 — Checker layer
+
+**Critical rule from design doc:** this sub-loop optimizes only
+against frozen labeled ground-truth (`eval_results` sets), NOT against
+live generation. It does not open until a Sub-loop 1 or 2 winner
+shifts the writer distribution enough to invalidate a checker.
+
+### 3.1 `adherence-events`
+
+| Surface | Type | Storage | Current default | Loop-tunable? |
+|---|---|---|---|---|
+| System prompt | prompt | `file:src/agents/writer/adherence-checker.ts` (inline) | current | later |
+| Model (SFT adapter URI) | model | `roles.ts` | `wandb:…adherence-checker-v4` | later (recalibrate only on writer-dist drift) |
+| Temperature / Max tokens | config | `roles.ts` | 0.1 / 512 | later |
+| Retry trigger rules | code | `src/phases/drafting.ts` | events-fail → targeted rewrite | later |
+
+### 3.2 `halluc-ungrounded`
+
+| Surface | Type | Storage | Current default | Loop-tunable? |
+|---|---|---|---|---|
+| System prompt | prompt | `file:src/agents/halluc-ungrounded/halluc-ungrounded-system.md` | current | later |
+| Model | model | `roles.ts` | `wandb:…halluc-ungrounded-v2:v1` | later |
+| Grounded-context inclusion (speakers / brief / world_bible subsets) | code | `src/agents/halluc-ungrounded/context.ts` | current | later |
+| Schema (fire/no-fire + evidence) | schema | `schema.ts` | current | N |
+
+### 3.3 `halluc-leak-salvatore` (per-writer leak detector)
+
+| Surface | Type | Storage | Current default | Loop-tunable? |
+|---|---|---|---|---|
+| Regex vocabulary | code | `src/agents/halluc-leak-salvatore/regex-leak.ts` | corpus-derived | later |
+| Adapter prompt | prompt | `file:…/halluc-leak-salvatore-system.md` | current | later |
+| Model | model | `roles.ts` | `wandb:…halluc-leak-salvatore-v1:v1` | later |
+| OR-combine rule (regex OR adapter) | code | `src/phases/drafting.ts` | OR | later |
+
+### 3.4 `chapter-plan-checker`
+
+| Surface | Type | Storage | Current default | Loop-tunable? |
+|---|---|---|---|---|
+| System prompt | prompt | `file:src/agents/chapter-plan-checker/plan-adherence-system.md` | current | later |
+| Model | model | `roles.ts` | DeepSeek V3.2 base | later |
+| Beat-indexed deviation schema | schema | `schema.ts` | `{description, beat_index}` | N |
+| Max rewrite passes | config-int | `src/config/pipeline.ts:maxChapterPlanRewritePasses` | 2 | Y (pipeline-level) |
+
+### 3.5 `chapter-plan-reviser`
+
+| Surface | Type | Storage | Current default | Loop-tunable? |
+|---|---|---|---|---|
+| System prompt | prompt | `file:src/agents/chapter-plan-reviser/plan-revision-system.md` | current | later |
+| Model | model | `roles.ts` | DeepSeek V3.2 base | later |
+| Post-revision sanity checks (beat-floor / new-characters) | code | `src/agents/chapter-plan-reviser/index.ts` | current | Y |
+| Telemetry outcome enum | code | `sql/028` | 7 outcomes | N |
+
+### 3.6 `continuity-v2` (de-emphasized per program direction)
+
+| Surface | Type | Storage | Current default | Loop-tunable? |
+|---|---|---|---|---|
+| Facts prompt | prompt | `file:src/agents/continuity/fact-check-system.md` | current | later (de-emphasized) |
+| State prompt | prompt | `file:src/agents/continuity/state-check-system.md` | current | later |
+| Model | model | `roles.ts:continuity-facts / continuity-state` | `wandb:…continuity-v2:v1` | later |
+
+### 3.7 Quality detectors (local, deterministic)
+
+| Surface | Type | Storage | Current default | Loop-tunable? |
+|---|---|---|---|---|
+| Repetition-loop detector thresholds | code | `src/lint/quality-detectors.ts` | current | Y |
+| Underlength threshold | config-int | `src/config/pipeline.ts:qualityRedraftMinWords` | 100 | Y |
+| `qualityRedraftEnabled` | config-bool | `src/config/pipeline.ts` + per-novel override | false | Y (per-novel scope) |
+
+---
+
+## Cross-cutting surfaces
+
+### C.1 Pipeline-level control flags (`src/config/pipeline.ts`)
+
+| Knob | Type | Current default | Loop-tunable? |
+|---|---|---|---|
+| `maxDraftAttempts` | config-int | 3 | Y |
+| `maxPhaseRestarts` | config-int | 2 | Y |
+| `beatLevelWriting` | config-bool | true | N (architectural) |
+| `maxBeatRetries` | config-int | 2 | Y |
+| `chapterPlanCheck` | config-bool | true | N (gate contract) |
+| `maxChapterPlanRewritePasses` | config-int | 2 | Y |
+| `maxValidationPasses` | config-int | 3 | Y |
+| `maxChapterRewrites` | config-int | 3 | N (diagnostic-only since 2026-04-17) |
+| `tonalPass` | config-bool | false | N (retired 2026-04-16) |
+| `qualityRedraftEnabled` | config-bool | false | Y (per-novel override) |
+| `qualityRedraftMinWords` | config-int | 100 | Y |
+| `embeddings` | config-bool | false | N (beat path is deterministic) |
+| `defaultTargetWords` | config-int | 1000 | Y |
+| `minWords` | config-int | 500 | Y |
+
+### C.2 Retry & rewrite policy
+
+| Surface | Type | Storage | Current default | Loop-tunable? |
+|---|---|---|---|---|
+| Retry-prompt construction (`buildRetryPrompt`) | prompt-assembler | `src/agents/writer/retry-context.ts` | current | Y |
+| Targeted-rewrite input threading (prose + issues) | code | `src/phases/drafting.ts` | current | Y |
+| Redraft-from-scratch path (quality-defect detected) | code | `drafting.ts` | off by default | Y |
+| Reviser → targeted beat rewrite vs full chapter restart threshold | code | `drafting.ts` | settle-loop budget | Y |
+
+### C.3 Model-role assignments (global)
+
+Entire `AGENT_MODELS` map in `src/models/roles.ts` is a knob surface.
+Loop-tunable for the narrower roles (reference-resolver, planner,
+chapter-plan-checker); NOT tunable for adapter-URI fields (adherence,
+halluc-*, continuity) where the model IS the adapter and swapping
+requires a training run.
+
+### C.4 Retrieval / deterministic config (legacy surfaces)
+
+The 9 retrieval params + 6 deterministic causal weights in
+`src/harness/registry.ts` remain DB-backed and UI-adjustable, but
+with `pipeline.embeddings=false` and the beat path using deterministic
+lookups, these are effectively inactive. **Not loop-tunable in Phase 0+
+until embeddings are re-enabled** (no plan to do so per current direction).
+
+### C.5 Context / embedding templates (legacy)
+
+12 templates in `context_templates` and `embedding_templates` tables
+per `src/harness/registry.ts`. Same status as C.4 — inactive while
+embeddings are off.
+
+### C.6 Structural priors (per genre pack)
+
+`WRITER_GENRE_PACKS` in `roles.ts` bundle `StructuralPriors` objects
+derived from corpus analysis. Sub-loop 1 can propose new values
+(covered in §1.2) but the pack-selection logic itself is frozen
+(genre-regex match order, structural-priors schema).
+
+### C.7 Per-novel `seed.pipelineOverrides`
+
+Per-novel escape hatch for pipeline flags. Loop-tunable — the loop
+should prefer setting `seed.pipelineOverrides.*` over editing
+`src/config/pipeline.ts` so that A/B measurement isolates the
+intervention to one novel/eval cell.
+
+### C.8 Environment-variable overrides
+
+| Var | Controls | Loop-tunable? |
+|---|---|---|
+| `STYLE_PRIMER` | primer type (none/howard) | Y |
+| `WRITER_MODEL_OVERRIDE` | per-pack writer model | Y (already used by eval runners) |
+| `WRITER_PROVIDER_OVERRIDE` | per-pack writer provider | Y |
+| `WRITER_CONDITIONING` | exampleLines preset mode | Y |
+| `BENCHMARK_SEEDS` | eval-run seed filter | Y (eval-time only) |
+| `BENCHMARK_RUNS` | runs per seed | Y |
+| `EXPERIMENT_ID` | attach run to an experiment | Y (telemetry; not a lever) |
+| `LLM_TRANSPORT` | direct / batch | Y (cost/latency axis) |
+
+---
+
+## Outside the knob surface (explicitly frozen)
+
+For completeness — things someone might think of as a lever but which
+are intentionally NOT tunable by the autonomous loop:
+
+- **Database schema** (`sql/*.sql`): migrations only. Schema changes
+  cascade across eval-results comparability.
+- **Transport layer** (`src/transport.ts`): pluggability exists but
+  choosing transport is an operational decision, not a quality lever.
+- **Gate abstraction** (`src/gates.ts`, `src/events.ts`): approval
+  mode is a user choice, not a prose-quality knob.
+- **LoRA adapter URIs in adapter-based checker slots**: changing the
+  URI means swapping the trained model. Considered "later"-tier and
+  only after the writer-distribution makes a recalibration necessary.
+- **Fine-tune hyperparameters** (`scripts/finetune/train-lora.py`,
+  W&B SFT configs): not in scope for the prose-quality loop; lives
+  in a separate training-side experiment track.
+- **Corpus pipeline** (`scripts/corpus/run.ts`, bundles under
+  `novels/<key>/`): changes the training data distribution —
+  out-of-scope for the prose-quality loop.
+- **Lint detector regex catalog** (`src/lint/detectors/*`): sourced
+  from craft references per memory `feedback_lint_sourcing`. Not
+  adjustable by the loop; adjustments require research + citation.
+
+---
+
+## Summary by tier
+
+| Tier | Tunable surfaces (approx) | Phase 0 opens? |
+|---|---|---|
+| Sub-loop 0 (concept) | ~15 | Deferred |
+| Sub-loop 1 (planning) | ~22 | **Yes — primary** |
+| Sub-loop 2 (writing) | ~20 | Yes — secondary (after Sub-loop 1 converges) |
+| Sub-loop 3 (checker) | ~18 | Deferred (opens on distribution drift) |
+| Cross-cutting (pipeline / retry / env) | ~15 | Y where marked above |
+
+Phase 0 active surface (per design doc): **`planning-beats` subset of
+Sub-loop 1 only** — approximately 8 knobs (system prompt, temp,
+max_tokens, richness tier, establishedFacts target, knowledgeChanges
+explicitness, payoff-link depth, beat-count floor multiplier). All
+others frozen.
+
+## Open questions for Codex review
+
+1. Is this enumeration complete? Missing surfaces?
+2. Any surface marked `Y` that should be `N` (or vice versa) given
+   the coordination risks named in `autonomous-context-loop.md`?
+3. Does the "Sub-loop 3 opens on distribution drift" rule need a
+   concrete detector — i.e., how would the loop *know* when a
+   Sub-loop 1 or 2 winner has drifted the writer distribution enough
+   to invalidate a checker?
+4. Schema changes (§1.3) are frozen as contracts. Is that correct,
+   or should schema evolution be its own sub-loop with formal
+   migration steps?
+5. Cross-cutting §C.8 env vars: should some of these move into DB-
+   backed config so the loop can toggle them per-iteration without
+   shell-out?
