@@ -4,7 +4,7 @@ kind: experiment-charter
 name: arm-b-detector-preflight
 owner: andre
 date: 2026-04-21
-revision: 4 (post-Codex-YELLOW round 3 — 2026-04-21)
+revision: 5 (post-Codex-YELLOW round 4 — 2026-04-21)
 ---
 
 # Experiment Charter — `arm-b-detector-preflight`
@@ -14,9 +14,27 @@ question, two arms, **dynamic beat count** (≥8 adjudicated fires/arm or
 20 beats cap), human-adjudicated. Named by Codex as the cheapest-untried
 counterfactual in the ladder's charter review (job `aabc1fd419f0be2b2`).
 
+Revision 5 addresses one round-4 residual blocker (job
+`ac683bf10b86afc5c`): Arm A replay overclaimed recoverability of
+`preResolvedRefs` from `llm_calls.request_json`, but `src/llm.ts:197`
+strips prompts from the envelope before persisting. Revision 5
+reframes Arm A as byte-replay of the stored production `system_prompt`
++ `user_prompt` columns (no `buildBeatContext` re-execution needed),
+adds a mandatory offline-archival dry-run (the §5 counterfactual from
+round 4) that recovers `sections[]` from the stored `user_prompt` via
+header-prefix parsing, and confirms the resolver-LLM-fallback /
+relationship-state-DB-read non-determinism paths are avoided entirely
+because Arm B also constructs from Arm A's recovered sections[] rather
+than re-running `buildBeatContext`.
+
+Revision 4 addressed two round-3 residual blockers. Revision 3
+addressed two round-2 blockers. Revision 2 addressed five round-1
+blockers. Full chain preserved in §10.
+
+Legacy context (retained for reference):
 Revision 2 addressed five round-1 blockers. Revision 3 addressed two
 round-2 blockers (outcome-table overlap + parity-contract mismatch).
-Revision 4 addresses two round-3 residual blockers (job
+Revision 4 addressed two round-3 residual blockers (job
 `a233169484d5102a1`): (a) band-value inconsistency — §1, §3, and §5
 still carried stale 10pt / 10–15pt language after §7's bands were
 recalibrated to 12.5pt/25pt, leaving a `-12.4pt` result as both GO
@@ -223,43 +241,83 @@ infeasible on this novel; switch novel selection (re-review required)
   `LANDING TARGET`, `CHARACTERS:`, `BACKGROUND:`, or `SETTING:` /
   `Sensory:`. The beat-spec section at index 0 is identified by
   position, not by a header prefix.
-- **Arm A parity — pre-registered baseline.** For each beat in the
-  pre-registered pool, archive the exact `buildBeatContext` inputs
-  used at the original production call. Because `buildBeatContext`
-  takes `preResolvedRefs` as an input parameter (see
-  `src/phases/drafting.ts` drafting loop + `beat-context.ts:207`) and
-  falls back to calling `resolveReferences()` — which can invoke an
-  LLM on resolver misses — when `preResolvedRefs` is missing, Arm A
-  replay MUST archive and pass the original `preResolvedRefs`
-  payload. Otherwise Arm A is non-deterministic. Required archival
-  fields per beat:
+- **Arm A replay = byte-replay of the stored production prompt, not
+  re-execution of `buildBeatContext`.** `src/llm.ts:197`
+  (`requestEnvelopeForLog`) strips `systemPrompt` and `userPrompt`
+  from the JSON envelope and persists them in the dedicated
+  `llm_calls.system_prompt` and `llm_calls.user_prompt` columns. The
+  stored prompt bytes ARE the archival record — no reconstruction
+  of `preResolvedRefs` (or any other `buildBeatContext` input) is
+  needed or possible from the envelope alone. Arm A replay sends the
+  stored `system_prompt` + `user_prompt` verbatim to the writer
+  model with the persisted envelope fields (model, provider,
+  temperature, maxTokens, responseFormat) byte-equal to the original.
+- **Arm A recoverability check — offline archival dry-run (§5
+  counterfactual, mandatory pre-flight to the pre-flight).** Before
+  any beat generation, run the dry-run:
 
-      - novelId, chapterNumber, beatIndex
-      - outline (full ChapterOutline as persisted at the time)
-      - characters (Character[] from getCharacters at that chapter)
-      - characterStates (CharacterState[] from getCharacterStatesAtChapter)
-      - worldBible (as persisted at that chapter)
-      - preResolvedRefs (the exact payload passed in the production call)
-      - previousBeatProse (if the beat was not the first of its chapter)
-      - compactMode (true for Salvatore-routed / voice-LoRA production; verify per novel)
-      - genre (from seed) — determines writer-pack conditioning
-      - Writer-pack resolution result (voice-LoRA route vs DeepSeek route)
+      1. For each beat in the pre-registered pool, pull the
+         `llm_calls` row with `agent='beat-writer'`, `failed IS NOT
+         TRUE`, matching (novel_id, chapter, beat_index), ordered by
+         `id ASC LIMIT 1`.
+      2. Assert `system_prompt IS NOT NULL`, `user_prompt IS NOT
+         NULL`, and all required envelope fields present on
+         `request_json`.
+      3. Parse `user_prompt` into `sections[]` by splitting on `\n\n`
+         and then merging adjacent splits into a single section when
+         the second split does NOT start with a recognized section
+         header prefix (`TRANSITION BRIDGE`, `LANDING TARGET`,
+         `CHARACTERS:`, `BACKGROUND:`, `SETTING:`, `Sensory:`). This
+         recovers `sections[]` even though the CHARACTERS section
+         contains internal `\n\n` delimiters in non-compact mode
+         (`beat-context.ts:195`).
+      4. Archive the recovered signature (sections[] headers + byte
+         lengths + per-section SHA-256) to
+         `scripts/evals/preflight-arm-b-parity-baseline.json`.
 
-  These are extracted from `llm_calls.request_json` plus the DB
-  snapshot at the chapter-approved time. Store the resulting section
-  signature (headers + per-section byte-length + per-section SHA-256
-  checksum) in `scripts/evals/preflight-arm-b-parity-baseline.json`
-  before generation. If any of the archival fields cannot be
-  reconstructed for a given beat (e.g., production call pre-dates a
-  schema migration), drop that beat from the pool and record the
-  omission — do not fabricate a replacement value.
+  Any beat whose row can't satisfy steps 2–4 is dropped from the
+  pool. If more than 30% of the pool is unrecoverable, abort the
+  preflight and re-select — the source novel is too old or too
+  schema-drifted to support the contract. Do not proceed with
+  a partial pool.
+- **Arm B construction — operate on Arm A's recovered `sections[]`,
+  not on live `buildBeatContext`.** Arm B builds its prompt by
+  inserting exactly one new `ENRICHED CONTEXT:` section into Arm A's
+  recovered `sections[]` at the setting-anchor position defined
+  above, then joining with `\n\n` to produce the Arm B user_prompt.
+  Arm B's system_prompt and envelope fields are byte-equal to
+  Arm A's. This avoids the `buildBeatContext` non-determinism path
+  (no `resolveReferences()` LLM fallback risk; no relationship-state
+  DB read from `getRelationshipBetween()` at `beat-context.ts:286`
+  — addressed in Codex round-4 warning — because we are not calling
+  `buildBeatContext` at all).
+- **Parity check (runtime, per beat):**
+
+      1. Load Arm A's recovered sections[] from the archival baseline.
+      2. Build Arm B's sections[] by inserting the ENRICHED CONTEXT
+         block at the setting-anchor position.
+      3. Assert len(Arm B sections) == len(Arm A sections) + 1.
+      4. Find the ENRICHED CONTEXT section in Arm B (must appear
+         exactly once, with header prefix `ENRICHED CONTEXT:`).
+      5. Remove it from Arm B's sections to produce sections_B'.
+      6. Assert sections_B' == Arm A sections byte-equal by index.
+      7. Assert Arm B's system_prompt == Arm A's system_prompt byte-
+         equal. Assert Arm B's envelope fields (model, provider,
+         temperature, maxTokens, responseFormat) all byte-equal to
+         Arm A's.
+
+- **Abort condition:** any violation of steps 3–7 fails parity for
+  that beat. Log the structured diff (showing per-index section
+  identity + byte length + first divergence offset) and abort the
+  preflight — do not silently re-emit.
 - **Cross-cut parity fields (per `experiment-design-rules.md` §4.7).**
-  In addition to the `sections[]` contract, the parity script must
-  confirm byte-equal match on every non-prompt field of the writer
-  request envelope: `systemPrompt`, `model`, `provider`, `temperature`,
-  `maxTokens`, `responseFormat`. Arm D in the full ladder would be the
-  one arm whitelisting `model`/`provider` shifts — neither Arm A nor
-  Arm B is permitted to differ on those fields under this preflight.
+  Steps 7 above cover this. `llm_calls.request_json` carries
+  timestamp-adjacent fields (e.g., request_id, a tracing id) that
+  are NOT part of the envelope whitelist and are excluded from the
+  byte-equality check. The whitelist is explicitly: `model`,
+  `provider`, `temperature`, `maxTokens`, `responseFormat`, plus
+  `system_prompt` and `user_prompt` columns. Any other field
+  variation is tolerated (and expected).
 - **Arm B invariant — relative to setting anchor, not absolute index.**
   Exactly ONE new section is inserted into Arm B's `sections[]` with
   the header prefix `ENRICHED CONTEXT:`. Insertion position:
@@ -473,7 +531,8 @@ and GO/CAUTION/NO-GO thresholds that were not in the verdict text.
 | `/codex:adversarial-review` (GPT) — round 1 | YELLOW | 2026-04-21 | Job `a768a8ffc489ea83d`. Shape accepted; five blockers on charter-level details: (1) Sample size vs band resolution — used 44.9% baseline fire rate but exp #254 SHIPPED V1 at 28.9%, so 10 beats → ~2.9 fires/arm, and a 10pt/15pt band at that N is label granularity not signal (§3.1). (2) Self-consistency rule internally inconsistent — §3 says "≥2/10 retests," §7 only creates 2 retests. Not a real reliability control (exp #258 lesson). (3) Strata predicates use `characters_present` but live schema is `beat.characters`; dialogue regex brittle; lore-match normalization undefined — violates §7.1. (4) Parity anchors "WORLD BIBLE section" / "BEAT CONTEXT section" don't exist in the live writer-request surface assembled from `beat-context.ts` + resolver output — §4.7 mask-too-much risk per exp #258. (5) `UNCLEAR => FP` asymmetrically biases the primary metric against Arm B — enriched context changes what counts as grounded, concentrating UNCLEAR on B. Warnings: 3-sample non-fire audit too thin for recall claim (keep descriptive only); "arm identity masked" overstated — call it hypothesis-masked; a NO-GO invalidates the bundled enrichment package per §11.5, not individual sub-blocks. All 5 blockers + 3 warnings addressed in revision 2. |
 | `/codex:adversarial-review` (GPT) — round 2 | YELLOW | 2026-04-21 | Job `a74c1b24e966ef252`. Two residual blockers — all addressed in revision 3. (Verdict detail retained in commit `4b9ae65` message.) |
 | `/codex:adversarial-review` (GPT) — round 3 | YELLOW | 2026-04-21 | Job `a233169484d5102a1`. Two residual blockers: (1) band-value inconsistency — §7 has 12.5/25pt bands but §1 says "within 10pt", §3 references "±10pt band" and "10–15pt band", §5 still says "enough for a 10pt band". A `-12.4pt` result is simultaneously GO (§7) and "not within 10pt" (§1). Fix: align every band reference to 12.5pt/25pt. (2) Parity underspecifies resolver replay — `buildBeatContext` takes `preResolvedRefs` as input (drafting.ts:282), so if Arm A re-runs `buildBeatContext` without archived `preResolvedRefs`, `resolveReferences()` may call LLM fallback (non-deterministic). Also §6 identifies refs section as "position-with-no-header" but `reference-resolver.ts:150` actually emits a `BACKGROUND:` header. Fix: archive + replay `preResolvedRefs` + `compactMode` + writer-pack inputs; identify refs section by `BACKGROUND:`; confirm system/model/provider/temperature/maxTokens/response_format are also checked per §4.7. Named counterfactual: offline archival parity dry-run + fire-prior audit (~$0). |
-| `/codex:adversarial-review` (GPT) — round 4 | — | — | (pending) |
+| `/codex:adversarial-review` (GPT) — round 4 | YELLOW | 2026-04-21 | Job `ac683bf10b86afc5c`. One residual blocker: §6 claimed `preResolvedRefs` was recoverable from `llm_calls.request_json`, but `requestEnvelopeForLog` (`src/llm.ts:197`) strips prompt fields before persistence — they go to `system_prompt` / `user_prompt` columns only. Fix: reframe Arm A as byte-replay of stored `user_prompt` bytes; Arm B constructs by inserting ENRICHED CONTEXT section into the recovered `sections[]`. Warning: `buildBeatContext` calls `getRelationshipBetween()` in non-compact mode (`beat-context.ts:286`) — moot under byte-replay since `buildBeatContext` is never re-executed. Named counterfactual: offline archival parity dry-run (~$0) — now adopted as a mandatory preflight-to-the-preflight in revision 5. |
+| `/codex:adversarial-review` (GPT) — round 5 | — | — | (pending) |
 | `experiment-adversary` (Opus) — fallback only | — | — | — |
 
 Block run on YELLOW or RED. Iterate the charter, not the run. If
