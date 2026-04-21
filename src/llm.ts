@@ -346,6 +346,16 @@ export async function executeAndLog(
         : 0
       let llmCallId: number | null = null
       try {
+        // Merge opts.meta into requestJson so experiment-scoped calls can
+        // be SQL-filtered by `request_json->'meta'->>'arm'` etc. Closes
+        // Codex round-9 blocker #1: prior code persisted only
+        // requestEnvelopeForLog(request) and dropped opts.meta before the
+        // DB write, so the three conditioning-floor replay writer calls
+        // per beat were indistinguishable in llm_calls.
+        const requestEnvelope = requestEnvelopeForLog(request)
+        const requestJsonWithMeta = opts?.meta
+          ? { ...requestEnvelope, meta: opts.meta }
+          : requestEnvelope
         llmCallId = await logLLMCallStructured(novelId ?? null, {
           timestamp: new Date().toISOString(),
           agent: agentName,
@@ -375,7 +385,7 @@ export async function executeAndLog(
           chapter: tags?.chapter,
           beatIndex: tags?.beatIndex,
           attempt: tags?.attempt,
-          requestJson: requestEnvelopeForLog(request),
+          requestJson: requestJsonWithMeta,
           failed,
           errorText: caughtError ? formatErrorForLog(caughtError) : undefined,
         })

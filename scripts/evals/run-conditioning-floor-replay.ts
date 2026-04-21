@@ -36,6 +36,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises"
 import { existsSync, readFileSync } from "node:fs"
 import path from "node:path"
 import { resolve, dirname } from "node:path"
+import { $ } from "bun"
 import db from "../../src/db/connection"
 import { getChapterOutline } from "../../src/db/outlines"
 import { getCharacters, getWorldBible } from "../../src/db/world"
@@ -156,6 +157,7 @@ type ParsedArgs = {
   experimentId: number
   minWords: number
   seed: string
+  allowStaleCommit: boolean
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -281,6 +283,7 @@ function parseArgs(argv: string[] = process.argv.slice(2)): ParsedArgs {
     process.exit(1)
   }
   const seed = get("--seed") ?? DEFAULT_SEED
+  const allowStaleCommit = argv.includes("--allow-stale-commit")
 
   return {
     sourceNovelId,
@@ -289,6 +292,7 @@ function parseArgs(argv: string[] = process.argv.slice(2)): ParsedArgs {
     experimentId,
     minWords,
     seed,
+    allowStaleCommit,
   }
 }
 
@@ -340,23 +344,53 @@ export function derivePriorBeatCoords(
 }
 
 /**
- * Retrieve per-beat prose from llm_calls for the source novel.
+ * Retrieve per-beat prose from llm_calls for the source novel, matching what
+ * the drafter's in-memory `beatProses[bi - 1]` held when beat N first fired.
  *
- * Beat prose for 'beat-writer' agent calls is stored in
- * llm_calls.response_content (sql/017_llm_call_inspection.sql) with columns
- * novel_id, chapter, beat_index. We fetch the FIRST (earliest by id) non-null
- * response for the given coordinates — i.e. the prose the downstream beat
- * actually saw when it was originally drafted. Targeted rewrites later can
- * update llm_calls for the same beat coordinates; using the latest row would
- * feed the replay a bridge the production writer never saw.
+ * Background: in drafting.ts beat N's first attempt reads `beatProses[N-1]`,
+ * which is whatever beat N-1 had MOST RECENTLY been written to by the time
+ * beat N was drafted. Later rewrites of beat N-1 update the in-memory array
+ * (and llm_calls), but beat N's live prompt was captured against the
+ * pre-rewrite version. We reproduce that view with timestamp correlation:
  *
- * Changed ORDER BY id DESC → ASC 2026-04-20 after Codex round-5 blocker #4.
+ *   1. Find the EARLIEST successful beat-writer row for (chapter, beat_index)
+ *      — that's when the target beat's live prompt was built.
+ *   2. Find the LATEST successful beat-writer row for (chapter, beat_index-1)
+ *      whose timestamp is STRICTLY BEFORE that first-attempt timestamp.
+ *      That's the prior-beat prose held in `beatProses[bi - 1]` at the time.
+ *
+ * Codex round-9 parity regression: a prior ASC-only query picked the first
+ * beat-2 write even when beat-3 was drafted against a LATER beat-2 rewrite.
+ * The fantasy-debt source novel has 2-9 rewrites per beat, so the drift was
+ * widespread (e.g., pronoun vs full-name in the transition bridge).
  */
 async function getBeatProseFromLLMCalls(
   novelId: string,
   chapterNumber: number,
   beatIndex: number,
+  targetBeatFirstAttemptTs: Date | null,
 ): Promise<string | null> {
+  if (targetBeatFirstAttemptTs === null) {
+    // Fallback: no anchor timestamp supplied → earliest successful (pre-rewrite).
+    // Matches old behavior; used when the caller doesn't have a target beat.
+    const rows = await db<Array<{ response_content: string }>>`
+      SELECT response_content
+      FROM llm_calls
+      WHERE novel_id = ${novelId}
+        AND agent = 'beat-writer'
+        AND chapter = ${chapterNumber}
+        AND beat_index = ${beatIndex}
+        AND response_content IS NOT NULL
+        AND failed IS NOT TRUE
+      ORDER BY id ASC
+      LIMIT 1
+    `
+    if (rows.length === 0) return null
+    return rows[0].response_content
+  }
+
+  // Timestamp-anchored: pick the LATEST prior-beat success BEFORE the target
+  // beat's first drafting attempt.
   const rows = await db<Array<{ response_content: string }>>`
     SELECT response_content
     FROM llm_calls
@@ -366,11 +400,35 @@ async function getBeatProseFromLLMCalls(
       AND beat_index = ${beatIndex}
       AND response_content IS NOT NULL
       AND failed IS NOT TRUE
-    ORDER BY id ASC
+      AND timestamp < ${targetBeatFirstAttemptTs.toISOString()}
+    ORDER BY timestamp DESC
     LIMIT 1
   `
   if (rows.length === 0) return null
   return rows[0].response_content
+}
+
+/**
+ * Find the first-attempt timestamp for a given (novel, chapter, beat_index)
+ * beat-writer call. Used as the anchor for prior-beat prose lookup.
+ */
+async function getBeatFirstAttemptTimestamp(
+  novelId: string,
+  chapterNumber: number,
+  beatIndex: number,
+): Promise<Date | null> {
+  const rows = await db<Array<{ timestamp: Date }>>`
+    SELECT timestamp
+    FROM llm_calls
+    WHERE novel_id = ${novelId}
+      AND agent = 'beat-writer'
+      AND chapter = ${chapterNumber}
+      AND beat_index = ${beatIndex}
+    ORDER BY timestamp ASC
+    LIMIT 1
+  `
+  if (rows.length === 0) return null
+  return new Date(rows[0].timestamp)
 }
 
 /**
@@ -481,6 +539,10 @@ async function buildSharedBeatInputs(
 
   // Prior-beat prose is bounded to within-chapter (matching live drafting
   // contract). Cross-chapter bridge disabled after Codex round-5 blocker #4.
+  // Prior-beat prose uses timestamp-anchored lookup so we pick the version
+  // the live drafter had in beatProses[bi-1] at the target beat's FIRST
+  // attempt, not the pre-rewrite or post-rewrite extremes. Closes Codex
+  // round-9 parity regression.
   let previousBeatProse: string | null = null
   const priorCoords = derivePriorBeatCoords(
     entry.chapter_number,
@@ -488,10 +550,14 @@ async function buildSharedBeatInputs(
     null,
   )
   if (priorCoords !== null) {
+    const targetFirstTs = await getBeatFirstAttemptTimestamp(
+      sourceNovelId, entry.chapter_number, entry.beat_index_in_chapter,
+    )
     const rawProse = await getBeatProseFromLLMCalls(
       sourceNovelId,
       priorCoords.chapter,
       priorCoords.beatIndex,
+      targetFirstTs,
     )
     if (rawProse) previousBeatProse = extractLastSentences(rawProse, 3)
   }
@@ -678,36 +744,11 @@ async function assembleOneTriplet(
 
   // Build shared inputs ONCE. If this fails (e.g. beat out of range), record
   // a mutual-loss triplet and move on.
-  const shared = await buildSharedBeatInputs(entry, sourceNovelId, genre)
-  if ("error" in shared) {
-    return {
-      triplet: {
-        pair_id: pairId,
-        pov_character: entry.pov_character,
-        characters_present: entry.characters_present,
-        beat_description: entry.description,
-        raw_prose: "",
-        fixed_prose: "",
-        rotation_prose: "",
-        words_raw: 0,
-        words_fixed: 0,
-        words_rotation: 0,
-        http_attempts_raw: 0,
-        http_attempts_fixed: 0,
-        http_attempts_rotation: 0,
-        loss_raw: true,
-        loss_fixed: true,
-        loss_rotation: true,
-        error_text: `buildSharedBeatInputs: ${shared.error}`,
-        cost_usd: 0,
-      },
-      costUsd: 0,
-    }
-  }
-
   /**
    * Build a sentinel ArmTelemetry for an arm that errored/aborted. Keeps the
    * ReplayTriplet shape uniform even when the writer call never returned.
+   * Codex round-9 blocker #3: every failure path must emit sentinel telemetry
+   * for ALL three arms so triplets.json stays schema-uniform on failure.
    */
   const sentinel = (errText: string): ArmTelemetry => ({
     prose: "", words: 0, prompt_tokens: 0, completion_tokens: 0, cached_tokens: 0,
@@ -718,6 +759,44 @@ async function assembleOneTriplet(
 
   const resolveArm = (r: ArmTelemetry | { error: string }): ArmTelemetry =>
     "error" in r ? sentinel(r.error) : r
+
+  const shared = await buildSharedBeatInputs(entry, sourceNovelId, genre)
+  if ("error" in shared) {
+    // Uniform-schema failure: emit sentinel ArmTelemetry for all three arms
+    // so triplets.json still contains raw/fixed/rotation fields on failure
+    // (same shape as the happy path).
+    const errText = `buildSharedBeatInputs: ${shared.error}`
+    const rawSentinel = sentinel(errText)
+    const fixedSentinel = sentinel(errText)
+    const rotationSentinel = sentinel(errText)
+    return {
+      triplet: {
+        pair_id: pairId,
+        pov_character: entry.pov_character,
+        characters_present: entry.characters_present,
+        beat_description: entry.description,
+        raw: rawSentinel,
+        fixed: fixedSentinel,
+        rotation: rotationSentinel,
+        loss_raw: true,
+        loss_fixed: true,
+        loss_rotation: true,
+        error_text: errText,
+        cost_usd: 0,
+        // Legacy flat fields for backward-compat.
+        raw_prose: "",
+        fixed_prose: "",
+        rotation_prose: "",
+        words_raw: 0,
+        words_fixed: 0,
+        words_rotation: 0,
+        http_attempts_raw: 0,
+        http_attempts_fixed: 0,
+        http_attempts_rotation: 0,
+      },
+      costUsd: 0,
+    }
+  }
 
   console.log(`    [raw] calling writer...`)
   const rawTel = resolveArm(await callWriterArm(entry, sourceNovelId, systemPrompt, pack, "raw", shared))
@@ -885,6 +964,7 @@ async function sha256OfFile(p: string): Promise<string> {
 async function validateAndUpdateExperimentSpine(
   experimentId: number,
   meta: Record<string, unknown>,
+  allowStaleCommit: boolean,
 ): Promise<void> {
   const rows = await db<Array<{ id: number; commit_hash: string | null; config: Record<string, unknown> | null }>>`
     SELECT id, commit_hash, config FROM tuning_experiments WHERE id = ${experimentId}
@@ -899,10 +979,39 @@ async function validateAndUpdateExperimentSpine(
     console.error(`[replay] fix: re-create the experiment after committing the runtime state, or UPDATE tuning_experiments SET commit_hash = ... WHERE id = ${experimentId}`)
     process.exit(1)
   }
+
+  // Codex round-9 blocker #2: non-null commit_hash is necessary but not
+  // sufficient. The row may have been created at commit A while we're
+  // replaying from commit B, which means the "validated" commit on the row
+  // no longer names the code that actually produces the results. Compare to
+  // HEAD and abort on mismatch unless --allow-stale-commit is set.
+  //
+  // Truncate HEAD to 12 chars to match what getGitCommitHash() stores
+  // (src/db/ops.ts). Both values come from the local checkout's `.git`, so
+  // the comparison is consistent even though LXC's .git may be stale vs
+  // the dev machine (rsync deploy syncs source but not .git).
+  const headCommitFull = (await $`git rev-parse HEAD`.text()).trim()
+  const headCommit = headCommitFull.slice(0, 12)
+  const commitMismatch = headCommit !== row.commit_hash
+  if (commitMismatch && !allowStaleCommit) {
+    console.error(`[replay] COMMIT MISMATCH — tuning_experiments.commit_hash=${row.commit_hash.slice(0, 8)} but HEAD=${headCommit.slice(0, 8)}`)
+    console.error(`[replay] the experiment row names code that is NOT the code running right now`)
+    console.error(`[replay] fix: create a new tuning_experiments row at the current HEAD, OR pass --allow-stale-commit to explicitly run against divergent code (recorded in config.replay.stale_commit)`)
+    process.exit(1)
+  }
+
+  const enrichedMeta: Record<string, unknown> = {
+    ...meta,
+    head_commit_at_launch: headCommitFull,
+    head_commit_short: headCommit,
+    experiment_row_commit: row.commit_hash,
+    stale_commit_override: commitMismatch ? true : false,
+  }
   const existing = row.config ?? {}
-  const merged = { ...existing, replay: meta }
+  const merged = { ...existing, replay: enrichedMeta }
   await db`UPDATE tuning_experiments SET config = ${merged} WHERE id = ${experimentId}`
-  console.log(`[replay] tuning_experiments #${experimentId} spine OK (commit ${row.commit_hash.slice(0, 8)}); config.replay updated`)
+  const flag = commitMismatch ? `(STALE COMMIT, override active)` : ``
+  console.log(`[replay] tuning_experiments #${experimentId} spine OK (exp=${row.commit_hash.slice(0, 8)}, HEAD=${headCommit.slice(0, 8)}) ${flag}`.trim())
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
@@ -939,7 +1048,7 @@ async function main(): Promise<void> {
     },
     no_retries: true,
     started_at: new Date().toISOString(),
-  })
+  }, args.allowStaleCommit)
 
   // 1b. Telemetry spine — create an experiment-scoped run so every writer call
   // lands in llm_calls under runs.experiment_id = this experiment. Closes
@@ -1045,12 +1154,28 @@ async function main(): Promise<void> {
       const errorText = err instanceof Error ? err.message : String(err)
       console.error(`  [ERROR] unexpected error on pair ${label}: ${errorText}`)
 
-      // Emit a full-loss triplet so the pair is counted (not dropped) per charter §7
+      // Emit a full-loss triplet so the pair is counted (not dropped) per charter §7.
+      // Codex round-9 blocker #3: sentinel ArmTelemetry for all three arms so
+      // triplets.json schema stays uniform on failure.
+      const sentinel: ArmTelemetry = {
+        prose: "", words: 0, prompt_tokens: 0, completion_tokens: 0, cached_tokens: 0,
+        latency_ms: 0, http_attempts: 0, retry_errors: [], cost_usd: 0,
+        preset_name: null, preset_indexes: null, user_prompt_hash: "",
+        error_text: errorText,
+      }
       triplets.push({
         pair_id: `${sourceNovelId}-ch${entry.chapter_number}-b${entry.beat_index_in_chapter}`,
         pov_character: entry.pov_character,
         characters_present: entry.characters_present,
         beat_description: entry.description,
+        raw: { ...sentinel },
+        fixed: { ...sentinel },
+        rotation: { ...sentinel },
+        loss_raw: true,
+        loss_fixed: true,
+        loss_rotation: true,
+        error_text: errorText,
+        cost_usd: 0,
         raw_prose: "",
         fixed_prose: "",
         rotation_prose: "",
@@ -1060,11 +1185,6 @@ async function main(): Promise<void> {
         http_attempts_raw: 0,
         http_attempts_fixed: 0,
         http_attempts_rotation: 0,
-        loss_raw: true,
-        loss_fixed: true,
-        loss_rotation: true,
-        error_text: errorText,
-        cost_usd: 0,
       })
       errorCount++
     }

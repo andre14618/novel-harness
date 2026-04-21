@@ -172,21 +172,52 @@ async function buildReplayRequest(args: Args): Promise<{
   // Reconstruct the bridge the same way the replay runner does so the
   // user_prompt parity check actually matches end-to-end. Only chapter > 1
   // beats or beat_index > 0 have a bridge; chapter-opener beats pass null
-  // per derivePriorBeatCoords.
+  // per derivePriorBeatCoords. Uses timestamp-anchored lookup so the replay
+  // sees the same prior-beat prose the live drafter had in beatProses[bi-1]
+  // at the target beat's FIRST attempt (matching the runner's
+  // getBeatProseFromLLMCalls flow).
   let previousBeatProse: string | undefined
   if (args.beatIndex > 0) {
-    const rows = await db<Array<{ response_content: string }>>`
-      SELECT response_content
+    const tsRows = await db<Array<{ timestamp: Date }>>`
+      SELECT timestamp
       FROM llm_calls
       WHERE novel_id = ${args.sourceNovelId}
         AND agent = 'beat-writer'
         AND chapter = ${args.chapter}
-        AND beat_index = ${args.beatIndex - 1}
-        AND response_content IS NOT NULL
-        AND failed IS NOT TRUE
-      ORDER BY id ASC
+        AND beat_index = ${args.beatIndex}
+      ORDER BY timestamp ASC
       LIMIT 1
     `
+    const anchor = tsRows.length > 0 ? new Date(tsRows[0].timestamp) : null
+    let rows: Array<{ response_content: string }>
+    if (anchor !== null) {
+      rows = await db<Array<{ response_content: string }>>`
+        SELECT response_content
+        FROM llm_calls
+        WHERE novel_id = ${args.sourceNovelId}
+          AND agent = 'beat-writer'
+          AND chapter = ${args.chapter}
+          AND beat_index = ${args.beatIndex - 1}
+          AND response_content IS NOT NULL
+          AND failed IS NOT TRUE
+          AND timestamp < ${anchor.toISOString()}
+        ORDER BY timestamp DESC
+        LIMIT 1
+      `
+    } else {
+      rows = await db<Array<{ response_content: string }>>`
+        SELECT response_content
+        FROM llm_calls
+        WHERE novel_id = ${args.sourceNovelId}
+          AND agent = 'beat-writer'
+          AND chapter = ${args.chapter}
+          AND beat_index = ${args.beatIndex - 1}
+          AND response_content IS NOT NULL
+          AND failed IS NOT TRUE
+        ORDER BY id ASC
+        LIMIT 1
+      `
+    }
     if (rows.length > 0) {
       const raw = rows[0].response_content
       const sentences = raw.split(/(?<=[.!?])\s+/).filter((s) => s.trim().length > 0)
