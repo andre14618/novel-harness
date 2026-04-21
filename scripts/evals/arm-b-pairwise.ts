@@ -71,6 +71,13 @@ interface PacketMapping {
   eval_result_id_a: number
   eval_result_id_b: number
   retest_of: string | null
+  /**
+   * Revision 2 addition per Codex round-1 warning (1): calibration
+   * packets where BOTH sides are the same arm's prose. Expected label
+   * is TIE; if the adjudicator picks a winner, it signals preference
+   * priors decoupled from arm identity. Primary pairs have this null.
+   */
+  calibration_kind: "A-vs-A" | "B-vs-B" | null
 }
 
 interface LabelRow {
@@ -87,9 +94,10 @@ export interface PairwiseVerdict {
   b_wins: number
   ties: number
   total_pairs: number
-  // Effective win counts with ties as 0.5 per arm
-  a_score: number
-  b_score: number
+  // Decisive = a_wins + b_wins (ties excluded from the binomial denominator
+  // per Codex round-1 YELLOW blocker #1, job `ae40043cc3262a8b2`). Ties
+  // as 0.5 breaks the binomial model: can't have fractional successes.
+  decisive_pairs: number
   retest_flips: number
   retest_count: number
 }
@@ -97,17 +105,46 @@ export interface PairwiseVerdict {
 // ── Verdict (pure, tested) ────────────────────────────────────────────
 
 /**
- * One-tailed binomial threshold: at N=20 fair coin, P(X ≥ 14) ≈ 0.0577
- * two-tailed → ≈ 0.0289 one-tailed. P(X ≥ 15) ≈ 0.021 one-tailed. The
- * charter uses the 14-of-20 threshold ("p < 0.025" colloquially) for
- * operational simplicity; we preserve that wording here. For other N
- * values the threshold scales: we derive it as ceil(0.7 * N), which
- * matches 14 at N=20. A stricter implementation should use a proper
- * binomial table; this is acceptable for N in [10, 40].
+ * Decisive-win threshold at p ≤ 0.025 one-tailed binomial. Ties are
+ * excluded from the denominator (they're uninformative about direction
+ * and fractional-successes break the binomial model).
+ *
+ * Exact thresholds (computed from the binomial distribution):
+ *   N_decisive = 10 → 9 decisive wins (p ≈ 0.011)
+ *   N_decisive = 15 → 12 (p ≈ 0.018)
+ *   N_decisive = 20 → 15 (p ≈ 0.021)  ← charter default
+ *   N_decisive = 25 → 18 (p ≈ 0.022)
+ *   N_decisive = 30 → 20 (p ≈ 0.049 — above threshold; use 21: p ≈ 0.021)
+ *
+ * For N_decisive outside the table we fall back to the normal
+ * approximation `ceil(N/2 + 1.96·√(N/4))`, which is conservative in
+ * this range. The charter's default path is N=20 where 15 is exact.
  */
-function winThreshold(N: number): number {
-  return Math.ceil(0.7 * N)
+function decisiveThreshold(nDecisive: number): number {
+  // Exact table entries, keyed by N_decisive
+  const EXACT: Record<number, number> = {
+    10: 9, 11: 9, 12: 10, 13: 10, 14: 11, 15: 12,
+    16: 12, 17: 13, 18: 13, 19: 14, 20: 15,
+    21: 15, 22: 16, 23: 16, 24: 17, 25: 18,
+    26: 18, 27: 19, 28: 19, 29: 20, 30: 21,
+    31: 21, 32: 22, 33: 23, 34: 23, 35: 24,
+    36: 24, 37: 25, 38: 26, 39: 26, 40: 27,
+  }
+  if (EXACT[nDecisive] !== undefined) return EXACT[nDecisive]
+  // Normal approximation fallback for N outside [10, 40]
+  return Math.ceil(nDecisive / 2 + 1.96 * Math.sqrt(nDecisive / 4))
 }
+
+/**
+ * Minimum decisive-pair count required before a GO/NO-GO verdict is
+ * even computable. If ties dominate, the test is underpowered and we
+ * must return CAUTION regardless of the decisive win ratio.
+ *
+ * At N_primary=20, requiring ≥14 decisive pairs means ties can account
+ * for at most 6/20 = 30% of primary packets — matching the spirit of
+ * the per-fire charter's 25% UNCLEAR abort threshold.
+ */
+const MIN_DECISIVE_FRACTION = 0.70
 
 export function computePairwiseVerdict(
   aWins: number,
@@ -116,39 +153,43 @@ export function computePairwiseVerdict(
   retestFlips: number,
   retestCount: number,
 ): PairwiseVerdict {
-  const total = aWins + bWins + ties
-  const aScore = aWins + ties * 0.5
-  const bScore = bWins + ties * 0.5
-  const threshold = winThreshold(total)
-
-  // INCONCLUSIVE evaluated FIRST — position-bias check dominates
-  if (retestCount > 0 && retestFlips >= 2) {
-    return {
-      verdict: "INCONCLUSIVE",
-      reason: `adjudicator-position bias: ${retestFlips}/${retestCount} retest flips exceeds 2-flip kill threshold`,
-      action: "Adjudicator-position bias dominates. Do not report a verdict. Larger N or second adjudicator required.",
-      a_wins: aWins,
-      b_wins: bWins,
-      ties,
-      total_pairs: total,
-      a_score: aScore,
-      b_score: bScore,
-      retest_flips: retestFlips,
-      retest_count: retestCount,
-    }
-  }
+  const totalPrimary = aWins + bWins + ties
+  const decisive = aWins + bWins
+  const threshold = decisiveThreshold(decisive)
+  const minDecisive = Math.ceil(MIN_DECISIVE_FRACTION * totalPrimary)
 
   const shared = {
     a_wins: aWins, b_wins: bWins, ties,
-    total_pairs: total, a_score: aScore, b_score: bScore,
+    total_pairs: totalPrimary,
+    decisive_pairs: decisive,
     retest_flips: retestFlips, retest_count: retestCount,
+  }
+
+  // INCONCLUSIVE evaluated FIRST — position-bias check dominates all outcomes
+  if (retestCount > 0 && retestFlips >= 2) {
+    return {
+      ...shared,
+      verdict: "INCONCLUSIVE",
+      reason: `adjudicator-position bias: ${retestFlips}/${retestCount} retest flips exceeds 2-flip kill threshold`,
+      action: "Adjudicator-position bias dominates. Do not report a verdict. Larger N or second adjudicator required.",
+    }
+  }
+
+  // Underpowered: too many ties to compute a directional verdict
+  if (decisive < minDecisive) {
+    return {
+      ...shared,
+      verdict: "CAUTION",
+      reason: `underpowered: only ${decisive}/${totalPrimary} decisive pairs (ties=${ties}). Need ≥${minDecisive} decisive (${Math.round(MIN_DECISIVE_FRACTION * 100)}% of N) for a directional test.`,
+      action: "Tie rate too high for the binomial test. Expand N, tighten the adjudication rubric, or treat as null and move capital to another lever.",
+    }
   }
 
   if (bWins >= threshold) {
     return {
       ...shared,
       verdict: "GO",
-      reason: `Arm B wins ${bWins}/${total} ≥ ${threshold} threshold (one-tailed binomial p < 0.025)`,
+      reason: `Arm B wins ${bWins}/${decisive} decisive pairs ≥ ${threshold} threshold (one-tailed binomial p ≤ 0.025, ties excluded)`,
       action: "Context engineering stays on the board. Proceed to a simplified replay-ladder that excludes detector-as-primary-oracle.",
     }
   }
@@ -156,14 +197,14 @@ export function computePairwiseVerdict(
     return {
       ...shared,
       verdict: "NO-GO",
-      reason: `Arm A wins ${aWins}/${total} ≥ ${threshold} threshold (one-tailed binomial p < 0.025)`,
+      reason: `Arm A wins ${aWins}/${decisive} decisive pairs ≥ ${threshold} threshold (one-tailed binomial p ≤ 0.025, ties excluded)`,
       action: "Enriched context is net-negative for this corpus. Retire the package; consider alternate enrichment designs before re-charter.",
     }
   }
   return {
     ...shared,
     verdict: "CAUTION",
-    reason: `middle range: A=${aWins}, B=${bWins}, T=${ties} — neither arm clears the ${threshold}-win threshold at N=${total}`,
+    reason: `middle range: A=${aWins}, B=${bWins}, T=${ties} — neither arm clears the ${threshold}-of-${decisive}-decisive threshold at N=${totalPrimary}`,
     action: "Expand to N ≈ 40 pairs or treat as null and move capital to another lever.",
   }
 }
@@ -308,9 +349,12 @@ async function runEmit(setName: string, outDir: string): Promise<void> {
     proseByEvalId.set(b.b.id, b.b.generated_prose!)
   }
 
-  // Build mappings (one per complete beat)
+  // Build primary mappings (one per complete beat).
+  // Per-pair A/B-side seed is distinct from packet-order seed per
+  // charter §6 dual-seed discipline (revision 2, Codex round-1
+  // warning 2).
   const mappings: PacketMapping[] = completeBeats.map(b => {
-    const aIsV1 = seededShuffleBoolean(`${setName}:${b.beat_id}:order`)
+    const aIsV1 = seededShuffleBoolean(`${setName}:${b.beat_id}:side`)
     return {
       packet_id: randomPacketId(),
       beat_id: b.beat_id,
@@ -319,11 +363,15 @@ async function runEmit(setName: string, outDir: string): Promise<void> {
       eval_result_id_a: b.a.id,
       eval_result_id_b: b.b.id,
       retest_of: null,
+      calibration_kind: null,
     }
   })
 
   // 4 silent retests, with version order SWAPPED vs original
-  const retestSources = shuffle(mappings, `${setName}:retest`).slice(0, Math.min(4, mappings.length))
+  const retestSources = shuffle(mappings, `${setName}:retest`).slice(
+    0,
+    Math.min(4, mappings.length),
+  )
   const retests: PacketMapping[] = retestSources.map(src => ({
     packet_id: randomPacketId(),
     beat_id: src.beat_id,
@@ -332,21 +380,70 @@ async function runEmit(setName: string, outDir: string): Promise<void> {
     eval_result_id_a: src.eval_result_id_a,
     eval_result_id_b: src.eval_result_id_b,
     retest_of: src.packet_id,
+    calibration_kind: null,
   }))
 
-  const allPackets = [...mappings, ...retests]
-  const ordered = shuffle(allPackets, `${setName}:order`)
+  // 5 calibration packets (revision 2, Codex round-1 warning 1):
+  // 3 A-vs-A, 2 B-vs-B, sampled deterministically from the primary
+  // pool. Both sides show the SAME arm's prose — any non-TIE label
+  // is evidence of adjudicator preference-priors decoupled from arm
+  // identity. The INCONCLUSIVE rule in §7 kicks in at ≥ 2/5
+  // calibration failures.
+  const calibSources = shuffle(completeBeats, `${setName}:calibration`).slice(
+    0,
+    Math.min(5, completeBeats.length),
+  )
+  const calibrations: PacketMapping[] = calibSources.map((src, i) => {
+    const kind: "A-vs-A" | "B-vs-B" = i < 3 ? "A-vs-A" : "B-vs-B"
+    const arm: Arm = kind === "A-vs-A" ? "A-baseline" : "B-enriched"
+    const evalId = kind === "A-vs-A" ? src.a.id : src.b.id
+    return {
+      packet_id: randomPacketId(),
+      beat_id: src.beat_id,
+      version_1_is: arm,
+      version_2_is: arm,
+      eval_result_id_a: evalId,
+      eval_result_id_b: evalId,
+      retest_of: null,
+      calibration_kind: kind,
+    }
+  })
+
+  const allPackets = [...mappings, ...retests, ...calibrations]
+  // Packet-order seed is distinct from the per-pair side seed above
+  const ordered = shuffle(allPackets, `${setName}:packet-order`)
 
   const mappingByPacket = new Map(allPackets.map(m => [m.packet_id, m]))
   const packetTexts = ordered.map(p =>
     renderPacket(p.packet_id, mappingByPacket.get(p.packet_id)!, proseByEvalId, !!p.retest_of),
   )
 
+  // Insert a visible mid-run break marker after the 12th non-calibration
+  // packet in ordered. Helps pacing per charter §8; adjudicator can stop
+  // there, take a break, resume. Calibration packets are not natural
+  // break points (adjudicator can't distinguish them from primary pairs).
+  const breakPosition = (() => {
+    let nonCalib = 0
+    for (let i = 0; i < ordered.length; i++) {
+      if (!ordered[i].calibration_kind) nonCalib++
+      if (nonCalib === 12) return i + 1  // after this packet
+    }
+    return -1
+  })()
+  const packetTextsWithBreak = packetTexts.slice()
+  if (breakPosition > 0 && breakPosition < packetTextsWithBreak.length) {
+    packetTextsWithBreak.splice(
+      breakPosition,
+      0,
+      "## — Suggested mid-session break —\n\nRest your eyes for a few minutes before continuing. Fatigue-correlated drift is a known pairwise-adjudication hazard.\n\n---",
+    )
+  }
+
   const md = [
     `# Arm B Direct Pairwise — Adjudication Packets`,
     "",
     `**Set:** ${setName}`,
-    `**Packets:** ${ordered.length} (${mappings.length} pairs + ${retests.length} silent retests)`,
+    `**Packets:** ${ordered.length} = ${mappings.length} primary + ${retests.length} silent retests + ${calibrations.length} calibration`,
     "",
     "## Adjudication rubric (per docs/charters/arm-b-direct-pairwise.md §7)",
     "",
@@ -354,17 +451,21 @@ async function runEmit(setName: string, outDir: string): Promise<void> {
     "",
     "- **VERSION-1-WINS** — Version 1 is meaningfully better.",
     "- **VERSION-2-WINS** — Version 2 is meaningfully better.",
-    "- **TIE** — Genuinely indistinguishable or effectively equal. Counts as 0.5 per arm.",
+    "- **TIE** — Genuinely indistinguishable or effectively equal.",
     "",
-    "Notes column is optional: a few words on what drove the call (voice, grounding, pacing, specificity, etc.). Useful for the results writeup.",
+    "**Notes column required on primary pairs (1–2 sentences):** what drove the call (voice, grounding, pacing, specificity, dialogue, setting detail, etc.). Preserves auditability without collapsing into a checklist. Empty notes are acceptable only for TIE packets and for repeats that feel identical to an earlier decision.",
     "",
-    "Position is randomized per packet. Four silent retests are embedded in the bundle with swapped version order — if you flip the winner on any retest, that's position-bias signal; the verdict script will flag it.",
+    "**Embedded controls:**",
+    "- Four silent retests with swapped version order — if you flip the winner on any, that's position-bias; the verdict script flags ≥2 flips as INCONCLUSIVE.",
+    "- Five calibration packets where BOTH sides are the same arm's prose — expected label is TIE. ≥2 non-TIE labels across the five routes the run to INCONCLUSIVE per charter §3.",
+    "",
+    "You do NOT know which packets are retests or calibrations. Judge every packet on its own merits.",
     "",
     "Fill in labels.tsv. Do NOT edit mapping.json or this file.",
     "",
     "---",
     "",
-    packetTexts.join("\n\n"),
+    packetTextsWithBreak.join("\n\n"),
   ].join("\n")
 
   const tsv = ["packet_id\tlabel\tnotes", ...ordered.map(p => `${p.packet_id}\t\t`)].join("\n")
@@ -413,31 +514,61 @@ async function runIngest(bundleDir: string): Promise<void> {
 
   let aWins = 0, bWins = 0, ties = 0
   let retestCount = 0, retestFlips = 0
+  let calibrationCount = 0, calibrationFails = 0
 
   for (const p of mappingFile.packets) {
+    const label = labelByPacket.get(p.packet_id)!.label
+
+    // Calibration packets (A-vs-A or B-vs-B) — expected TIE; any
+    // non-TIE label is a calibration failure per charter §3.
+    if (p.calibration_kind) {
+      calibrationCount++
+      if (label !== "TIE") calibrationFails++
+      continue
+    }
+
+    // Silent retests — compare winner against the original packet
     if (p.retest_of) {
       retestCount++
       const origLabel = labelByPacket.get(p.retest_of)!.label
       const origP = mappingByPacket.get(p.retest_of)!
       const origWinner = winnerArm(origP, origLabel)
-      const retestWinner = winnerArm(p, labelByPacket.get(p.packet_id)!.label)
+      const retestWinner = winnerArm(p, label)
       if (origWinner !== retestWinner) retestFlips++
       continue
     }
-    const winner = winnerArm(p, labelByPacket.get(p.packet_id)!.label)
+
+    // Primary pairs — the only packets whose winners count toward the
+    // binomial test
+    const winner = winnerArm(p, label)
     if (winner === "TIE") ties++
     else if (winner === "A-baseline") aWins++
     else bWins++
   }
 
-  const verdict = computePairwiseVerdict(aWins, bWins, ties, retestFlips, retestCount)
+  // Calibration-check kill per charter §3 (Codex round-1 warning 1):
+  // ≥ 2/5 calibration packets labeled non-TIE signals adjudicator
+  // preference priors decoupled from arm identity — INCONCLUSIVE.
+  const calibrationFailsThreshold = 2
+  const calibrationFailed =
+    calibrationCount > 0 && calibrationFails >= calibrationFailsThreshold
+
+  let verdict = computePairwiseVerdict(aWins, bWins, ties, retestFlips, retestCount)
+  if (calibrationFailed) {
+    verdict = {
+      ...verdict,
+      verdict: "INCONCLUSIVE",
+      reason: `calibration check failed: ${calibrationFails}/${calibrationCount} same-arm packets labeled non-TIE (threshold: ≥ ${calibrationFailsThreshold}). Adjudicator is manufacturing preferences from identical prose.`,
+      action: "Adjudicator preference priors dominate. Do not report a verdict. Tighten the rubric or use a different adjudicator before retry.",
+    }
+  }
 
   console.log("")
   console.log(`[ingest-pairwise] ${mappingFile.set_name}`)
-  console.log(`  primary pairs (retests excluded): A=${aWins}  B=${bWins}  TIE=${ties}  total=${aWins+bWins+ties}`)
-  console.log(`  score (ties split): A=${verdict.a_score.toFixed(1)}  B=${verdict.b_score.toFixed(1)}`)
+  console.log(`  primary pairs (retests+calibration excluded): A=${aWins}  B=${bWins}  TIE=${ties}  total=${aWins + bWins + ties}`)
+  console.log(`  decisive pairs (ties excluded): ${verdict.decisive_pairs}`)
   console.log(`  retests: ${retestFlips}/${retestCount} flips`)
-  console.log(`  win threshold at N=${verdict.total_pairs}: ${winThreshold(verdict.total_pairs)}`)
+  console.log(`  calibration: ${calibrationFails}/${calibrationCount} non-TIE (threshold: ≥${calibrationFailsThreshold})`)
   console.log("")
   console.log(`[ingest-pairwise] VERDICT: ${verdict.verdict} — ${verdict.reason}`)
   console.log(`  Action: ${verdict.action}`)
