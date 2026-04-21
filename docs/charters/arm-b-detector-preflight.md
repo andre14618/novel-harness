@@ -192,19 +192,21 @@ expected fires/arm when it's included. (The predicate remains in §6
 as a descriptive-only classification for the results writeup, but
 does not drive pool selection.)
 
-Realized pool on the chosen novel (`novel-1776690840208`):
+Realized pool on the chosen novel (`novel-1776690840208`) — canonical
+numbers from `scripts/evals/preflight-arm-b-stratum-audit.ts` output
+on 2026-04-21:
 
     | stratum | count | measured_p | expected fires |
     |---------|-------|------------|----------------|
-    | lore    |   16  |    31.3%   |      5.01      |
-    | state   |   10  |    20.0%   |      2.00      |
-    | none    |   14  |    30.8%   |      4.31      |
-    | total   |   40  |       —    |     11.31      |
+    | lore    |   16  |    31.25%  |      5.00      |
+    | state   |   10  |    20.00%  |      2.00      |
+    | none    |   14  |    31.30%  |      4.38      |
+    | total   |   40  |       —    |     11.38      |
 
-Poisson-binomial std = 2.83; **1-sigma below = 8.48**. Clears the
-8-fire adjudicable floor with ~0.48 slack — tight but real. The
+Poisson-binomial std = 2.84; **1-sigma below = 8.55**. Clears the
+8-fire adjudicable floor with ~0.55 slack — tight but real. The
 INCONCLUSIVE outcome in §7 remains the safety net for runs that dip
-below 8 despite the 0.48-σ buffer.
+below 8 despite the 0.55-σ buffer.
 
 **Measured rates on candidate novels** (pre-registered audit result,
 2026-04-21, query against `llm_calls` response_content pass field):
