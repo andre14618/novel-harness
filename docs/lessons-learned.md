@@ -1307,3 +1307,23 @@ The `planner-phase2-payoff-floor` charter §4 specifies a 4-arm ladder: `baselin
 
 The V1a pilot launcher script (`scripts/run-pp2-floor.ts` in the `~/apps/nh-pp2-floor` worktree) mutates `src/agents/planning-beats/beat-expansion-system.md` in-place when the `--arm prompt` is passed — writes the floor variant over the baseline. It does NOT restore the baseline on completion. If I had kicked off V1a pilot work again without restoring, future `baseline`-arm runs would silently execute the floor prompt. Caught at session close by a `git checkout` of the worktree file (MD5 `ee928170`). **The rule:** when a script mutates persistent state as part of an experiment arm (prompt files, adapter configs, env files), the launcher should register its own cleanup — either restore on exit, or emit a post-hoc restore command for the next session to run. Absent that, the session retro must explicitly list the restore step.
 
+## 2026-04-21 — Conditioning-floor KILL + rewrite-capability probe + quality-redraft gate
+
+### Parity harnesses catch silent production regressions that unit tests miss
+
+Over seven rounds of adversarial review on the `salvatore-distinctness-conditioning-floor` charter, the parity harness caught two silent regressions before any judging ran: (1) a 4-line-vs-5-line preset mismatch that made the experiment a no-op on production characters, and (2) a pack-level `conditioning: "fixed"` default that silently dropped one exampleLine from every production novel beat. Neither regression was catchable by unit tests because both required diffing the outgoing LLM request bytes against a real `llm_calls` row — the test suite has no production data to diff against. The parity harness is the only tool that sees the actual request shape.
+
+**The rule:** for any experiment that changes how a production LLM request is constructed (prompt assembly, model config, context builder, format wrapping), build a parity harness first and run it before any judging. The §4.7 SOP in `docs/experiment-design-rules.md` formalises this. Canonical implementation: `scripts/evals/conditioning-floor-parity-check.ts`. (Commit `edb630a`, exp #258)
+
+### `codex exec` does not compose under concurrency — use Agent subagents for batch judging
+
+The gpt-5.4 cross-judge run on 20 beat-pairs for the conditioning-floor charter used `spawn("codex exec", ...)` × 20 in parallel. It hung with zero returns after 16+ minutes. The root cause: each `codex exec` invocation spins up its own app-server subprocess; running N concurrently means N app-server processes competing for the same port/socket. The Codex plugin is designed for sequential invocation from Claude Code, not for being spawned as a subprocess pool.
+
+**The rule:** for batch parallel judging (eval panels, pairwise runs, multi-arm scoring), use Claude Code Agent subagents instead of `codex exec`. Agent subagents parallelize cleanly; `codex exec` blocks. Sequential `codex exec` invocations for single-shot analysis tasks are fine — the constraint is concurrency. (Commit `639712e`, memory `feedback_codex_plugin_subagentic_concurrency.md`)
+
+### Small voice-trained LoRAs may lack rewrite capability — redraft-from-scratch is a meaningful alternative
+
+Two probes on the Salvatore v4 LoRA (exploratory + rigorous via production `buildRetryPrompt`) showed the adapter cannot escape a V1 prose anchor when given V1 + critique as context: 8/20 pairs were byte-verbatim V1, 11/20 near-match, 1/20 genuinely different. The production retry shape (which feeds V1 prose in context for continuity) was worse for rewrite than a hand-built shape — the V1 anchor is the dominant force, not prompt structure.
+
+**The rule:** before designing a critique-rewrite loop for a voice-trained LoRA, probe whether the adapter can actually rewrite at all. Use the production retry-context builder (`src/agents/writer/retry-context.ts`) as the test harness — it's what the pipeline will actually send. If the adapter anchors to V1, the right design is "detect defects → no-critique redraft (blank context, fresh sample)" rather than "feed V1 + critique and ask for improvement." Redraft-from-scratch avoids the anchor problem entirely. (Commits `eb3e7c8`, `893bb26`)
+
