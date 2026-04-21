@@ -472,9 +472,12 @@ const server = Bun.serve({
         }
 
         if (action === "ingest" && req.method === "POST") {
-          // Shell out to the ingest CLI — keep the verdict logic in one place
+          // Shell out to the ingest CLI — keep the verdict logic in one place.
+          // `process.execPath` resolves to the running Bun binary; under
+          // systemd the default PATH doesn't include `bun` so passing the
+          // literal string fails with "Executable not found".
           const proc = Bun.spawn(
-            ["bun", "scripts/evals/arm-b-pairwise.ts", "--ingest", "--bundle", bundleDir],
+            [process.execPath, "scripts/evals/arm-b-pairwise.ts", "--ingest", "--bundle", bundleDir],
             { cwd: HARNESS_ROOT, stdout: "pipe", stderr: "pipe" },
           )
           const stdout = await new Response(proc.stdout).text()
