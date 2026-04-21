@@ -1,15 +1,18 @@
 ---
-status: proposed
+status: concluded-kill
 kind: experiment-charter
 experiment-family: salvatore-distinctness-conditioning-floor
 proposed-by: Codex
 proposed-date: 2026-04-18
 revised-date: 2026-04-20
+concluded-date: 2026-04-21
 revision: slim-live-v1-replay-3arm (round 7)
-adversary-verdict: RED (rounds 1–6) — revised for round 7
+adversary-verdict: RED rounds 1-9 (see §10); final outcome KILL per §7 (rotation 7/20)
 adversary-review-date: 2026-04-20
 supersedes: docs/charters/salvatore-v5-corpus-expansion.md
 depends_on: docs/evals/salvatore-distinctness-v1.md
+conclusion_experiment_id: 258
+conclusion_decision: KILL
 ---
 
 # Experiment Charter — `salvatore-distinctness-conditioning-floor` (slim-live-v1-replay-3arm)

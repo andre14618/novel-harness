@@ -2116,3 +2116,31 @@ Current convention is the delete-and-log rule above. The archive dir + README we
 - The scoping error (reducing 4 arms to 2 at launch) is captured in `docs/lessons-learned.md` as a charter-fidelity pattern.
 
 
+
+### `salvatore-distinctness-conditioning-floor` KILL — rotation fails ship gate 7/20
+*2026-04-21 · exp #258 · charter `docs/charters/salvatore-distinctness-conditioning-floor.md` (slim-live-v1-replay-3arm)*
+
+**Decision:** KILL the conditioning-first lever. Per charter §7, rotation wins **7 / 20** matched beats against fixed (preset-a) on blind Sonnet pairwise voice-distinctness judgment. §7 thresholds (N=20): SHIP ≥13, ITERATE 11–12, **KILL ≤10**. Rotation is well below the kill threshold.
+
+**Ship gate detail:**
+- 3 pairs auto-resolved to fixed because rotation produced <50 words (ch1-b4 40w, ch5-b5 45w, ch1-b10 49w) — rotation reliability problem, not just distinctness.
+- 10 / 17 judged pairs went to fixed. Sonnet repeatedly flagged rotation prose with repetition-loop degeneration (e.g. ch2-b12 B arm: "Would it also show false debts? / I mean, the power allocations—they don't match the verified marks, see?" repeating verbatim three times, collapsing voice distinction).
+- 7 / 17 judged pairs went to rotation, on clean register-contrast wins.
+
+**Halluc-leak Rung 0 regex fire counts across 20 beats × 3 arms:** raw=5, fixed=6, rotation=**1**. Rotation PASSES the halluc-leak gate (rotation ≤ fixed). Interesting independent signal: rotation produces less Salvatore-corpus leak (likely because rotated example lines reduce over-fit to cached Crystal Shard vocabulary) — but this does not override the primary distinctness gate per §7.
+
+**Why Sonnet-only, not gpt-5.4 confirmation:** the gpt-5.4 cross-judge run (via `codex exec` in a concurrent subprocess pool) hung with zero returns after 16+ min. Turned out to be a wrong invocation pattern — `spawn("codex exec", ...)` × N is not a supported concurrent pattern (each call spins up its own app-server subprocess; they block). Captured as a memory for future sessions (`~/.claude/projects/.../memory/feedback_codex_plugin_subagentic_concurrency.md`). Sonnet-only verdict stands: the 7/20 signal has 3 short-circuit wins mechanical + 10 confidently-reasoned fixed-wins, so gpt-5.4 would have to flip 6+ decisions to move rotation into ITERATE — unlikely given Sonnet cited concrete degeneration evidence (repetition loops).
+
+**Evidence:** `output/evals/conditioning-floor-pilot-v1-judgments-fixed-vs-rotation-sonnet.json` has all 20 verdicts + summary. Full replay telemetry in `public.llm_calls` joinable via `runs.experiment_id = 258`. Parity harness confirmed all three arms byte-equal to live prompt bytes (modulo intended exampleLines delta) on pre-run audit.
+
+**Alternatives rejected:**
+- **Run gpt-5.4 sequentially (no concurrency) and wait ~3 hours** — rejected. KILL signal is already strong; 3 auto-wins alone require rotation to win 13/17 judged pairs to reach SHIP, and Sonnet gave it 7/17 with concrete reasoning. Marginal value of cross-judge confirmation is low relative to wall-clock cost.
+- **Lower gpt-5.4 reasoning effort to medium** — rejected. Breaks §3.6 frozen judge discipline; would need to rerun at high later.
+- **Rerun on a second source novel before killing** — rejected. §7 KILL path does not require second-source confirmation; ITERATE does.
+
+**Ongoing implications:**
+- Reopen `salvatore-v5-corpus-expansion` as a separate charter (per §7 KILL post-outcome path). PDF acquisition is that charter's pre-gate, not this one's.
+- The conditioning-floor infra (three-arm replay runner, parity harness, judge wrapper, pair-builder) stays in the repo as reusable scaffold. The Agent-subagent judge path replaces `codex exec` for concurrent eval batches going forward.
+- H2 (profile-field rotation) stays deferred; the runtime has no preset-indexed profile representation, and H1 failed.
+- `docs/experiment-design-rules.md §4.7` (parity-harness SOP) stays; the conditioning-floor harness remains the canonical implementation and was validated end-to-end on this pilot.
+- Nine rounds of adversarial review (§10.1-§10.9 in the charter) produced a clean, measurable KILL verdict — the investment in the review cycle was substantial but the experiment is interpretable because of it.

@@ -153,6 +153,7 @@ type ParsedArgs = {
   out: string
   seed: string
   setName: string
+  concurrency: number
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -195,6 +196,8 @@ function parseArgs(argv: string[] = process.argv.slice(2)): ParsedArgs {
   const out = get("--out") ?? DEFAULT_OUT
   const seed = get("--seed") ?? DEFAULT_SEED
   const setName = get("--set-name") ?? DEFAULT_SET_NAME
+  const concurrencyRaw = get("--concurrency")
+  const concurrency = concurrencyRaw ? Number.parseInt(concurrencyRaw, 10) : 1
 
   if (!pairsPath) {
     console.error("error: --pairs is required")
@@ -210,8 +213,12 @@ function parseArgs(argv: string[] = process.argv.slice(2)): ParsedArgs {
     console.error(`error: --experiment-id must be a positive integer, got ${experimentIdRaw}`)
     process.exit(1)
   }
+  if (!Number.isInteger(concurrency) || concurrency < 1 || concurrency > 20) {
+    console.error(`error: --concurrency must be a positive integer 1-20, got ${concurrencyRaw}`)
+    process.exit(1)
+  }
 
-  return { pairsPath: path.resolve(pairsPath), experimentId, out: path.resolve(out), seed, setName }
+  return { pairsPath: path.resolve(pairsPath), experimentId, out: path.resolve(out), seed, setName, concurrency }
 }
 
 // ── I/O helpers ───────────────────────────────────────────────────────────────
@@ -487,16 +494,15 @@ async function main(): Promise<void> {
   const pairs = await readJsonLines<PairRow>(args.pairsPath)
   console.log(`Loaded ${pairs.length} pairs`)
 
-  const records: JudgmentRecord[] = []
-
-  for (const pair of pairs) {
+  // Judge one pair — used by both sequential and concurrent paths.
+  async function judgeOne(pair: PairRow): Promise<JudgmentRecord> {
     // Short-circuit resolution for loss/error rows — enforces charter §7 at
     // score time before any Codex call. Closes Codex round-5 blocker #3.
     const shortCircuit = resolveLossShortCircuit(pair)
     if (shortCircuit !== null) {
       const { winner_arm_label, reason } = shortCircuit
       console.log(`Short-circuit ${pair.pair_id}: ${winner_arm_label} — ${reason}`)
-      const record: JudgmentRecord = {
+      return {
         pair_id: pair.pair_id,
         shuffled_a_label: pair.arm_a_label,
         shuffled_b_label: pair.arm_b_label,
@@ -505,33 +511,28 @@ async function main(): Promise<void> {
         reasoning: reason,
         latency_ms: 0,
       }
-      records.push(record)
-      await persistJudgment(record, args.experimentId, args.setName)
-      continue
     }
 
     console.log(`Judging pair ${pair.pair_id} …`)
     const { prose_a, prose_b, shuffled_a_label, shuffled_b_label } = shufflePair(pair, args.seed)
 
-    let record: JudgmentRecord
-
     try {
       const { verdict, latencyMs } = await judgeWithRetry(pair, prose_a, prose_b)
       const winner = unshuffleVerdict(verdict.winner, shuffled_a_label, shuffled_b_label)
-      record = {
+      console.log(`  → ${pair.pair_id}: winner=${winner} (judge said ${verdict.winner}) — ${verdict.reasoning.slice(0, 80)}`)
+      return {
         pair_id: pair.pair_id,
         shuffled_a_label,
         shuffled_b_label,
         judge_winner_position: verdict.winner,
         winner_arm_label: winner,
         reasoning: verdict.reasoning,
-        latency_ms: latencyMs
+        latency_ms: latencyMs,
       }
-      console.log(`  → winner: ${winner} (judge said ${verdict.winner}) — ${verdict.reasoning.slice(0, 80)}`)
     } catch (err) {
       const errorText = err instanceof Error ? err.message : String(err)
       console.error(`  error on pair ${pair.pair_id}: ${errorText}`)
-      record = {
+      return {
         pair_id: pair.pair_id,
         shuffled_a_label,
         shuffled_b_label,
@@ -539,13 +540,30 @@ async function main(): Promise<void> {
         winner_arm_label: "error",
         reasoning: "",
         latency_ms: 0,
-        error: errorText
+        error: errorText,
       }
     }
-
-    records.push(record)
-    await persistJudgment(record, args.experimentId, args.setName)
   }
+
+  // Concurrency-limited worker pool. Each worker takes the next available
+  // pair index from a shared counter and processes it. Safe because pairs
+  // don't share state. Persistence happens per-pair (independent INSERTs).
+  // Added to shorten wall clock: high-effort gpt-5.4 judge calls are ~5min
+  // each, so a sequential 20-pair run is ~1.5 hrs. At concurrency=5 it's ~20 min.
+  const records: JudgmentRecord[] = new Array(pairs.length)
+  let nextIdx = 0
+  console.log(`[judge] concurrency=${args.concurrency}, pairs=${pairs.length}`)
+  const worker = async (): Promise<void> => {
+    while (true) {
+      const myIdx = nextIdx++
+      if (myIdx >= pairs.length) return
+      const pair = pairs[myIdx]
+      const record = await judgeOne(pair)
+      records[myIdx] = record
+      await persistJudgment(record, args.experimentId, args.setName)
+    }
+  }
+  await Promise.all(Array.from({ length: args.concurrency }, () => worker()))
 
   const summary = computeSummary(records)
 
