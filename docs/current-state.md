@@ -233,6 +233,24 @@ If yes, update this file.
 - **Three-layer doctrine: Codex challenge noted.** Codex independent evaluation (jobs `bre6gu89b`, `bsbwl0v3g`) pushed back on "voice lives only in weights, editors can't add craft" as unproven and architecturally inconsistent — the quality-redraft gate is itself a cross-layer intervention. Doctrine not retracted but the absolute "don't cross streams" framing is softened: the layer assignments describe default optimization strategy, not a hard prohibition on context-engineering interactions across layers.
 - **Rewrite-capability-probe charter: round-1 RED, not yet re-reviewed.** Commits `ca76090` + `d36bfae`. The rigorous probe (`eb3e7c8`) provided the decisive empirical evidence; charter needs a round-2 pass or formal withdrawal per `docs/todo.md`.
 
+### Late 2026-04-21 — voice-LoRA track pivot + voice-shaping ablation
+
+- **LoRA-track pivot committed.** Commit `1af5189`. `docs/decisions.md` entry "Voice-LoRA track frozen; DeepSeek V3.2 base becomes the strategic writer target" formalizes the shift after four negative signals on LoRA-adjacent levers (conditioning-floor KILL, rewrite-capability probe, quality-redraft 0-fires, arm-b-direct-pairwise CAUTION) and a Codex strategic consult (`acc1b47d14ce265f4`). **Freeze, not retirement** — Salvatore v4 remains in production `WRITER_GENRE_PACKS` fantasy routing; what's frozen is new investment in Salvatore-adjacent micro-levers.
+- **2026-04-21 retrospective doc.** `docs/retrospectives/2026-04-21-lora-track-evidence.md` — first entry in the new `docs/retrospectives/` directory class per Codex consult doc-scope correction (retrospectives capture evidence arcs; decisions.md captures decisions; lessons-learned.md captures distilled rules; current-state captures live truth). Status: draft until voice-shaping-ablation-v1 resolves.
+- **Three new lessons-learned rules** (commit `1af5189`): (1) N≥3-round step-back rule from the 9-round arm-b-preflight arc; (2) AI-judge pairwise bias-confound when length correlates with arm identity; (3) 14B-voice-fine-tune failure mode is scale-specific, not thesis-wide.
+- **Charter lineage through the 2026-04-21 arc:**
+  - `docs/charters/arm-b-detector-preflight.md` — 9 rounds, eventually superseded by arm-b-direct-pairwise per meta-consult
+  - `docs/charters/arm-b-direct-pairwise.md` (revision 2) + results memo — CAUTION 11-9
+  - `docs/charters/arm-d-writer-upgrade.md` (revision 3) + results memo — formal adjudication skipped per Codex design consult; pivot committed on directional evidence
+  - `docs/charters/voice-shaping-ablation-v1.md` (revision 2) — first experiment under the post-pivot architecture
+- **New infrastructure under the pivot** (commit `34898d3`):
+  - `scripts/evals/voice-shape-metrics.ts` — 5-feature voice-shape extraction (mean sentence length, sentence-length std, dialogue ratio, clause complexity, sensory density), per-feature standardized distance to a reference, `countImprovedFeatures` for charter's "≥3 of 5" rule. 16 unit tests.
+  - `scripts/evals/voice-shape-reference.json` + `voice-reference-passages.json` — frozen 10-passage Salvatore reference distribution (stratified 3/3/2/2 across kinds) + 5 few-shot excerpts. Deterministic via seed `voice-shape-reference-v1-2026-04-21`.
+  - `src/agents/writer/voice-shaping-prompts.ts` — prompt fragments for D1 (style guide), D2 (few-shot reference passages), D3 (character voice directives). NOT imported from production paths.
+  - `scripts/evals/run-voice-shaping-ablation.ts` — 4-arm runner with inline parity assertions.
+- **React UI: pairwise adjudication page** at `/app/pairwise/:bundle`. Commit `41df605` + `d9536cf`. Server-side packet parsing, one-at-a-time review with keyboard shortcuts (1/2/3 → label+advance; ←/→ step), auto-save on click, "Compute verdict" button appears when all packets labeled. Used for arm-b-direct-pairwise-v1 (completed) and arm-d-writer-upgrade-v1 (skipped per consult); generalized to any `set_name` in `eval_results` with two distinct cell_labels.
+- **Post-Codex-consult process discipline.** After the arm-b preflight hit 9 rounds, meta-consult became the canonical "is this the right instrument" check. Three meta-consults in the 2026-04-21 arc (`a738b4bb2879c39d0` shape; `acc1b47d14ce265f4` strategic pivot; `ae0e768d3292eb256` decomposed-audit design) each redirected material work — documented as a repeatable pattern in lessons-learned.
+
 ## Current Session (2026-04-20)
 
 - **beat-entity-list V1 shipped (exp #254).** `halluc-ungrounded` now receives a `Beat-entities:` sub-line derived at check-time from `outline.establishedFacts` + prior-beat `description` via `src/phases/beat-entity-list.ts:deriveBeatEntities`. On-seed fire rate dropped 44.9% → 28.9% (−16 pts), precision 87.5% on 10-fire Sonnet adjudication, all 5 charter gates cleared. `BEAT_ENTITY_LIST_VARIANT=v1` is now the default. See hallucination bullet above (line 76) for full detail + commit SHAs.
