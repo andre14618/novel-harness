@@ -137,7 +137,7 @@ complete knob list.
 | Model — fantasy route | model | `WRITER_GENRE_PACKS` | Salvatore v4 LoRA | N (frozen per 2026-04-21 pivot until replacement ships) |
 | Temperature | config-float | `roles.ts` + DB | 0.8 | Y |
 | Max tokens | config-int | `roles.ts` | 4000 | Y |
-| Style primer on/off | prompt-rider | `roles.ts:WriterGenrePack.usePrimer` + env `STYLE_PRIMER` | none (Howard retired) | Y |
+| Style primer on/off | prompt-rider | `roles.ts:WriterGenrePack.usePrimer` + env `STYLE_PRIMER` | none (Howard retired 2026-04-16; Salvatore is the only valid primer going forward) | Y |
 | Fallback chapter-level writer prompt | prompt | `file:src/agents/writer/prose-writer-system.md` | current | Y (rarely fires) |
 
 ### 2.2 `buildBeatContext` — context-construction knobs
@@ -332,7 +332,7 @@ stay env-backed.
 
 | Var | Controls | Loop-tunable? |
 |---|---|---|
-| `STYLE_PRIMER` | primer type (none/howard) | **migrate-to-DB** → then Y |
+| `STYLE_PRIMER` | primer type (none / salvatore — **never howard**; Howard methodology retired 2026-04-16) | **migrate-to-DB** → then Y |
 | `WRITER_MODEL_OVERRIDE` | per-pack writer model | **migrate-to-DB** → then Y |
 | `WRITER_PROVIDER_OVERRIDE` | per-pack writer provider | **migrate-to-DB** → then Y |
 | `WRITER_CONDITIONING` | exampleLines preset mode | **migrate-to-DB** → then Y |
