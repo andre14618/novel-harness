@@ -1,10 +1,11 @@
 ---
-status: proposed
+status: needs-revision
 kind: experiment-charter
 experiment-family: rewrite-capability-probe
 proposed-by: Claude + user + Codex strategic consult (2026-04-21)
 proposed-date: 2026-04-21
-adversary-verdict: pending
+adversary-verdict: RED (round 1)
+adversary-review-date: 2026-04-21
 supersedes: none
 depends_on: docs/decisions.md (conditioning-floor KILL entry, 2026-04-21)
 ---
@@ -111,12 +112,31 @@ Real numbers from `public.llm_calls`:
 
 ## 10. Adversary review
 
-Awaiting round 1.
+Round 1 returned **RED** with four concrete findings. Charter requires revision before re-review.
 
 | Reviewer | Verdict | Date | Notes |
 |----------|---------|------|-------|
-| `/codex:adversarial-review` (GPT) — round 1 | pending | pending | First adversarial review on this charter. |
+| `/codex:adversarial-review` (GPT) — round 1 | RED | 2026-04-21 | 4 findings: isolation confound, tiny N gate, unwritten infra, Sonnet-as-both-critique-and-judge circularity. See §10.1. |
+| `/codex:adversarial-review` (GPT) — round 2 | pending | pending | Re-review target after revisions land. |
 | `experiment-adversary` (Opus) — fallback | pending | pending | Only if Codex unavailable or user requests second opinion. |
+
+### 10.1 Round-1 verdict (2026-04-21, pre-revision commit `ca76090`)
+
+> VERDICT: RED — no-ship; the charter still does not isolate critique as the causal lever, bases its main decision on a tiny post-selected subset, and leaves load-bearing protocol artifacts unresolved.
+>
+> BLOCKING ISSUES:
+>
+> 1. **[critical] Axis 1/3 — Bundled lever, same failure mode as early conditioning-floor rounds.** Arm (a) uses fresh BeatContext; arm (b) uses the production retry-context builder (which adds prior-prose scaffold + issue formatting beyond just the critique). Intervention changes scaffold + prompt shape, not just critique. Under §11.5, a win/loss cannot answer whether critique is actionable — only whether the full retry template beats a fresh redraft. Fix: add an ablated control where both arms use the same retry-context builder and the same V1 prose, differing only in issue text (real critique vs empty/no-op critique).
+>
+> 2. **[high] Axis 4/7 — Decision-driving gate rests on 4-6 beats.** H1 is defined on `N_rep ≈ 4-6` from Sonnet-flagged repetition failures in the killed pilot. Rounded thresholds unstable (3/5 = 60%, 4/6 = 67%); one or two pair flips change the outcome. Below the smoke-run caution in §3.3. Fix: pre-register a materially larger repetition-specific eval across multiple drafted novels, or demote H1 to exploratory.
+>
+> 3. **[high] Axis 6 — Decision-critical artifacts still open, repeating the conditioning-floor failure mode.** §11 leaves retry-context builder extraction, arm-(b) parity harness, detector implementation, critique artifact generator, frozen judge prompt, and judge wrapper all open. The prior charter was blocked in rounds §10.3-§10.4 for the same "approve unwritten infrastructure now, land it later" pattern. §1.2 + §3.6 treat those artifacts as part of the experiment contract. Fix: commit the arm-(b) builder, parity script, critique artifact format, frozen judge prompt, and judge wrapper FIRST; then resubmit.
+>
+> 4. **[medium] Axis 5 — Sonnet is both critique source AND judge.** Charter uses Sonnet to identify voice-collapse subset and generate critique strings, then uses Sonnet for pairwise judging. §7.3 anti-circularity rule: a positive result is compatible with "Sonnet prefers outputs that satisfy Sonnet-authored critiques" rather than "the LoRA can rewrite." Cuts against frozen-judge rationale in `docs/evals/salvatore-distinctness-v1.md:98-108` and `docs/evals/conditioning-floor-judge-prompt.md:14-16`. Fix: separate critique generation from evaluation across model families.
+>
+> RECOMMENDED NEXT ACTION: redesign the arm contrast, expand N, land the artifacts, decouple judge from critique source. THEN resubmit.
+>
+> Full output: background job `bb9i51an9`.
 
 ## 11. Open questions / readiness gates
 
