@@ -4,7 +4,7 @@ kind: experiment-charter
 name: arm-b-detector-preflight
 owner: andre
 date: 2026-04-21
-revision: 7 (post-INCONCLUSIVE run — widen beat cap)
+revision: 8 (post-Codex-YELLOW round 7 — text propagation + IID→measured + source-novel gate)
 prior-approval-invalidated: 2026-04-21 (revision 6 approved + executed as exp #260; INCONCLUSIVE per charter §3 math error — see docs/charters/arm-b-detector-preflight-results.md)
 ---
 
@@ -12,7 +12,7 @@ prior-approval-invalidated: 2026-04-21 (revision 6 approved + executed as exp #2
 
 Preflight for `replay-ladder-v1` (RED-blocked, commit `33a84f1`). One
 question, two arms, **dynamic beat count** (≥8 adjudicated fires/arm or
-20 beats cap), human-adjudicated. Named by Codex as the cheapest-untried
+40 beats cap), human-adjudicated. Named by Codex as the cheapest-untried
 counterfactual in the ladder's charter review (job `aabc1fd419f0be2b2`).
 
 Revision 7 addresses the single material flaw surfaced by executing
@@ -133,23 +133,77 @@ Stated before results. Sample-size rebased against exp #254's shipped
 V1 baseline (28.9% fire rate) and against the exp #260 live-run
 observation (20% on arm A, 30% on arm B, right at expectation).
 
-**Floor-vs-cap consistency invariant (new in revision 7 — named here
-so it cannot go implicit across revisions).** The §8 beat cap must
-be large enough that the expected fire count AT the V1 production
-rate MINUS one-sigma variance still exceeds the §3 adjudicable floor
-on each arm. At V1 fire rate p = 0.289 and one-sigma variance
-`sqrt(N*p*(1-p))`:
+**Floor-vs-cap consistency check (heuristic — named here so it cannot
+go implicit across revisions).** The §8 beat cap must be large enough
+that the expected fire count on the chosen source novel MINUS one-sigma
+variance still exceeds the §3 adjudicable floor on each arm. This is a
+DESIGN HEURISTIC, not a probabilistic bound: it treats per-beat fires
+as iid Bernoulli with fire rate `p` measured on the source novel,
+which overstates certainty under §6's deliberate stratification
+(stratum-specific rates differ — see audit below). The heuristic's
+purpose is to catch gross mismatches (revision 6's infeasibility) not
+to guarantee coverage — that's what the INCONCLUSIVE outcome in §7 is
+for.
+
+At V1 production fire rate p = 0.289 (cross-novel average, from exp
+#254's shipped-V1 panel) with one-sigma variance `sqrt(N*p*(1-p))`:
 
     | N  | expected | 1-sigma below  |
     |----|----------|----------------|
     | 20 |  5.78    |  3.75  ← below floor; revision 6 ran here |
     | 30 |  8.67    |  6.19  ← below floor; too tight |
-    | 40 | 11.56    |  8.72  ← above floor; revision 7 chooses here |
+    | 40 | 11.56    |  8.72  ← above floor; revision 7+ choose here |
 
-Revision 7 therefore sets the cap at **40 beats**. Below-sigma runs
-are still possible (the run could produce <8 fires on one arm even
-at 40 beats) — that case is handled by the INCONCLUSIVE outcome in
-§7, not by re-running.
+**Source-novel eligibility gate (new in revision 8, per Codex round-7
+counterfactual).** The IID heuristic above is only valid if the
+chosen source novel's MEASURED fire rate is within ±5pt of the charter's
+`p = 0.289` assumption. Before any generation spend, the parity dry-run
+(§6) MUST also produce a stratum-rate audit from historical
+`llm_calls` on the candidate novel, via the protocol in
+`scripts/evals/preflight-arm-b-stratum-audit.ts` (to create, per
+§9). The chosen novel's overall halluc-ungrounded fire rate must satisfy:
+
+    measured_p_overall ∈ [0.24, 0.34]
+
+If the measured rate is below the band, re-select source novel (the
+revision-7-on-novel-1776690960321 run measured 16.1% and was
+invalidated by this gate post-hoc — this is how the gate is supposed
+to work, not a charter failure). If above the band, the novel may
+still be used but log the deviation; high-fire novels clear the floor
+trivially and don't threaten interpretation.
+
+**Measured rates on candidate novels** (pre-registered audit result,
+2026-04-21, query against `llm_calls` response_content pass field):
+
+    | novel_id                          | rate    | beats | eligible? |
+    |-----------------------------------|---------|-------|-----------|
+    | novel-1776698676238               | 44.9%   |   98  | above band; deferred to cross-check |
+    | novel-1776617131094               | 36.2%   |   69  | above band; too small |
+    | novel-1776737831613               | 31.7%   |  123  | above band |
+    | novel-1776690840208               | 30.1%   |  305  | **in band — chosen** |
+    | novel-1776698676238-v1            | 28.9%   |  128  | in band; alternate |
+    | novel-1776686559204               | 21.5%   |  209  | below band; REJECTED |
+    | novel-1776690960321 (revision 7)  | 16.1%   |  311  | below band; REJECTED (revision-7 initial target) |
+
+**Chosen source novel: `novel-1776690840208`** (epic-fantasy,
+Salvatore-routed, 10 approved chapters, 30.1% overall halluc-ungrounded
+fire rate). Stratum breakdown on this novel:
+
+- dialogue-heavy (§6 predicate): 2 qualifying / 0 fires = 0% (sparse)
+- lore-heavy: 16 qualifying / 5 fires = 31.3%
+- state-leaning: 10 qualifying / 2 fires = 20.0%
+- none (§6 fallback): 115 qualifying / 36 fires = 31.3%
+
+The dialogue-heavy stratum is consistently sparse across all candidate
+novels — the planner rarely assigns `kind='dialogue'`. Revision 8 keeps
+the dialogue target (16 of 40) but expects the selection logic to fall
+through to other strata when dialogue-qualifying beats are below target.
+This is not a charter failure; §6 already permits smaller-than-target
+per-stratum fills as long as the 40-beat cap is respected.
+
+Below-sigma runs are still possible (the run could produce <8 fires on
+one arm even at 40 beats on a 30%-rate novel) — that case is handled
+by the INCONCLUSIVE outcome in §7, not by re-running.
 
 - **Dynamic stop rule:** generate beats sequentially. After each beat,
   count cumulative adjudicable fires per arm (fires excluding UNCLEAR;
@@ -212,22 +266,38 @@ instrument-validation preflights.
 
 ## 6. Distribution match
 
-**Novel selection.** Same novel as `replay-ladder-v1` §6 would use —
-most recent completed Salvatore-routed fantasy novel with ≥40 approved
-beats. Fixing the novel here means the preflight's answer transfers
-directly to the full ladder without re-selection confounds.
+**Novel selection.** Revision 8 target: **`novel-1776690840208`**
+(epic-fantasy, Salvatore-routed, 10 approved chapters, 30.1% measured
+halluc-ungrounded fire rate — in the §3 eligibility band `[0.24, 0.34]`).
+Selected after the revision-7-initial target `novel-1776690960321`
+(16.1% rate) was invalidated by the §3 source-novel eligibility gate.
+Full candidate table in §3. If `novel-1776690840208` becomes unavailable
+at run time (deleted / schema-drifted / etc.), the §3 alternate is
+`novel-1776698676238-v1` at 28.9% — re-review not required if the
+alternate is used and logged.
+
+**Stratum-rate audit pre-run (mandatory, §3 gate).** Before the parity
+dry-run generates the baseline, `scripts/evals/preflight-arm-b-stratum-audit.ts`
+(to create per §9) re-runs the stratum classification against the
+chosen novel's historical `llm_calls` to confirm the overall fire rate
+is still in the eligibility band and to log per-stratum fire rates to
+the charter's results memo. If the re-audit rate is outside `[0.24,
+0.34]` at run time (e.g., rates drifted due to schema changes), ABORT
+and re-select novel.
 
 **Stratification** — executable rules against the live schema
 (`src/schemas/shared.ts:38` `sceneBeatSchema` — fields `characters:
 string[]`, `kind: "action" | "dialogue" | "interiority" | "description"`,
-`description: string`). Used at both initial pool selection (up to 20
-beats) and stop-rule termination.
+`description: string`). Used at both initial pool selection (up to 40
+beats — the revision-7 §8 cap) and stop-rule termination.
 
-Target composition when the stop rule triggers at 20 beats
-(proportional scale-down at earlier stops — e.g., at 10 beats the
-proportional target is 4/3/3):
+Target composition when the stop rule triggers at 40 beats
+(proportional scale-down at earlier stops — e.g., at 20 beats the
+proportional target is 8/6/6). Revision 8 preserves revision 7's
+proportional shape (2:1.5:1.5 dialogue:lore:state) rescaled from 20 to
+40:
 
-- **Dialogue-heavy — 8 of 20 beats.** Primary predicate: `beat.kind ===
+- **Dialogue-heavy — 16 of 40 beats.** Primary predicate: `beat.kind ===
   "dialogue"` AND `beat.characters.length ≥ 3`. Fallback (ORed in) if
   primary set is under target: beats where the production prose
   contains ≥ 4 dialogue-tagged matches of the regex
@@ -235,7 +305,7 @@ proportional target is 4/3/3):
   executed against the `llm_calls.response_content` of the approved
   beat-writer row. Regex is documented as a fallback heuristic, not a
   primary signal. Brittle-match disclaimer is acceptable for this role.
-- **Lore-heavy — 6 of 20 beats.** `beat.description` contains a
+- **Lore-heavy — 12 of 40 beats.** `beat.description` contains a
   case-insensitive word-boundary match for any entity name from the
   entity set constructed at query time:
 
@@ -252,7 +322,7 @@ proportional target is 4/3/3):
   must NOT appear in any earlier beat's `description` in the same
   chapter (checked by running the same normalized regex against each
   prior `scenes[i].description` for `i < beatIndex`).
-- **State-leaning — 6 of 20 beats.** `chapter ≥ 3` AND
+- **State-leaning — 12 of 40 beats.** `chapter ≥ 3` AND
   `beat.description` matches the case-insensitive regex
   `/\b(remember(s|ed|ing)?|recall(s|ed|ing)?|know(s|n|ew)?|recogni[sz]e(s|d|ing)?|wonder(s|ed|ing)?\s+whether|already|still|again|(for|since)\s+(the|her|his|their)\s+(first|last))\b/i`.
   Pattern is checked into the runner script and committed before any
@@ -262,7 +332,7 @@ proportional target is 4/3/3):
 ascending by `(chapter, beat_index)`, take the first N matching. If a
 stratum returns fewer than its target (e.g., only 4 lore-heavy beats
 exist), the deficit is NOT reallocated to another stratum — instead
-the run proceeds with a smaller pool and the stop rule's 20-beat cap
+the run proceeds with a smaller pool and the stop rule's 40-beat cap
 still applies. If a stratum returns 0 matches, the preflight is
 infeasible on this novel; switch novel selection (re-review required)
 — do not silently relax the predicate.
@@ -514,7 +584,7 @@ value.**
 
 | Outcome | Precedence / Condition | Action |
 |---------|------------------------|--------|
-| **INCONCLUSIVE** | Checked FIRST. Fires on either arm < 8 at 20-beat cap, OR UNCLEAR rate > 25% on either arm (§3), OR ≥ 2/4 retest flips (§3). | Record inconclusive. Do NOT emit GO/CAUTION/NO-GO. Re-charter with higher-fire-prior stratum, different detector, or revised adjudication policy. |
+| **INCONCLUSIVE** | Checked FIRST. Fires on either arm < 8 at 40-beat cap, OR UNCLEAR rate > 25% on either arm (§3), OR ≥ 2/4 retest flips (§3). | Record inconclusive. Do NOT emit GO/CAUTION/NO-GO. Re-charter with higher-fire-prior stratum, different detector, or revised adjudication policy. |
 | **NO-GO** | Checked second. `precision_B − precision_A < −25pt`. | Detector-as-primary-oracle not viable on Arm B. Redesign `replay-ladder-v1` Arm B oracle to human-adjudication primary. |
 | **CAUTION** | Checked third. `−25pt ≤ precision_B − precision_A < −12.5pt`. | Proceed to full ladder but downgrade Arm B detector evidence to secondary; add a 10-beat human sidecar on Arm B specifically for prose-quality check. |
 | **GO** | Default when none of the above apply. Implies `precision_B − precision_A ≥ −12.5pt` AND both arms met 8-fire floor AND UNCLEAR ≤ 25% both arms AND retest consistency passed. | Proceed to revise `replay-ladder-v1` with detector as primary oracle on Arm B (retain other blockers' fixes). |
@@ -538,7 +608,7 @@ separate ablation charter.
 ## 8. Budget
 
 Recalibrated in revision 7 against the 40-beat cap (2× revision 6's
-20-beat cap) and exp #260's observed per-beat cost (~$0.00023, 4× lower
+prior cap) and exp #260's observed per-beat cost (~$0.00023, 4× lower
 than the revision-2 estimate because the Salvatore v4 LoRA is cheaper
 in practice than the speculative $0.02/call).
 
@@ -583,13 +653,24 @@ in practice than the speculative $0.02/call).
   - `docs/decisions.md` 2026-04-21: "Rewrite-capability probe" — source
     of the "V1 anchor" concern that motivates holding the writer
     constant in this preflight
-- **Code that must be committed before run:**
-  - Enriched-context builder module (feature-flagged, production-safe):
-    `src/agents/writer/enriched-context.ts` (to create)
-  - Preflight runner: `scripts/evals/run-arm-b-preflight.ts` (to create)
-  - Parity harness: `scripts/evals/preflight-arm-b-parity.ts` (to create)
+- **Code already committed (revision 6 execution):**
+  - Enriched-context builder: `src/agents/writer/enriched-context.ts`
+    (commit `4c2ba6e`; feature-flagged, never imported from production)
+  - Shared section parser: `scripts/evals/beat-prompt-sections.ts`
+    (commit `d0a95f7`)
+  - Parity harness: `scripts/evals/preflight-arm-b-parity.ts` (commits
+    `d0a95f7`, `0ff8646`)
+  - Preflight runner: `scripts/evals/run-arm-b-preflight.ts` (commit
+    `4fb8001`)
   - Adjudication helper: `scripts/evals/preflight-arm-b-adjudicate.ts`
-    (emits blinded markdown pairs + retest shuffle)
+    (commits `f17bd4b`, `0ff8646`)
+- **Code to commit before revision 8 run:**
+  - Stratum-rate audit: `scripts/evals/preflight-arm-b-stratum-audit.ts`
+    — new per revision 8's §3 gate. Queries historical `llm_calls` for
+    the chosen source novel, computes overall + per-stratum fire rates,
+    asserts overall ∈ `[0.24, 0.34]`, writes the audit result to
+    `output/evals/arm-b-preflight-stratum-audit-<novel_id>.json` for
+    the results memo to reference.
 - **`tuning_experiment` ID will be:** assigned by
   `createTuningExperiment(type='preflight')` at charter GREEN.
 
@@ -613,7 +694,8 @@ and GO/CAUTION/NO-GO thresholds that were not in the verdict text.
 | `/codex:adversarial-review` (GPT) — round 5 | YELLOW | 2026-04-21 | Job `ab8e849aa0e16739c`. Two residual blockers — both my own cleanup failures in revision 5: (1) §6 still contained leftover "import `buildBeatContext` and compare `_sections`" language from revision 4, contradicting the new byte-replay contract below. (2) Dry-run archived only "signature (headers + byte lengths + SHA-256)" but Arm B construction + byte-equality assertion require the full section strings. Also: 30% unrecoverable abort threshold is heuristic; Codex flagged that per §11.6 any non-trivial miss rate on a post-`sql/017` novel should be treated as schema-drift evidence, not averaged over. Codex explicitly confirms the byte-replay substrate is correct — blockers are cleanup, not structural. |
 | `/codex:adversarial-review` (GPT) — round 6 | GREEN | 2026-04-21 | Job `a1bce27f1ac39e95b`. Revision 6 approved; executed as exp #260 with the charter-design flaw (floor-vs-cap incompatibility) undetected. Revision 7 supersedes. |
 | execution outcome — exp #260 | INCONCLUSIVE | 2026-04-21 | See `docs/charters/arm-b-detector-preflight-results.md`. Two live-execution bugs fixed (commit `0ff8646`), infrastructure proven sound, but §3 adjudicable floor mathematically unreachable at §8 cap given V1 28.9% production fire rate. Revision 7 widens cap to 40 to restore floor/cap consistency. |
-| `/codex:adversarial-review` (GPT) — round 7 | — | — | (pending — revision 7) |
+| `/codex:adversarial-review` (GPT) — round 7 | YELLOW | 2026-04-21 | Job `a3716aa364f4f2717`. Two blockers: (1) cap widen not propagated — preamble, §6 pool/stratum targets, §7 INCONCLUSIVE row still say "20 beats"; (2) floor-vs-cap invariant assumes IID Bernoulli at `p=0.289` but §6 deliberately stratifies toward higher-fire beats (dialogue/lore/state) — per `experiment-design-rules.md` §7.1/§11.6, distribution shift must be measured not assumed. Named counterfactual: pre-run stratum-rate audit on §6 predicates via `eval_cell_summary` (~$0, replaces IID guess with measured Poisson-binomial bounds). Fix: both. |
+| `/codex:adversarial-review` (GPT) — round 8 | — | — | (pending — revision 8: text propagation + IID→heuristic reframe + source-novel eligibility gate + `novel-1776690840208` chosen per stratum audit) |
 | `experiment-adversary` (Opus) — fallback only | — | — | — |
 
 Block run on YELLOW or RED. Iterate the charter, not the run. If
