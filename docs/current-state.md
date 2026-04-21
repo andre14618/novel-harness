@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-19
+updated: 2026-04-21
 role: canonical-current-truth
 ---
 
@@ -222,6 +222,16 @@ If yes, update this file.
 - **Debug-injection MVP live.** `src/config/debug-injection.ts` with `DEBUG_FORCE_PLAN_CHECK`, `DEBUG_FORCE_VALIDATION`, `DEBUG_FORCE_REVISER` env flags. Campaign tests R0/R1/R5/R6/R7 all passing; R2/R3/R4 in flight with 15-minute web-mode timeouts.
 - **Preflight invariants shipped (exp #243).** Five blocking preflight checks live via `bun scripts/preflight.ts` — covers restart persistence, seam-recheck symmetry, trace-seeded SSE watcher discipline, branch-symmetric event emission, and body-already-used detection. Commits `ce6452c`, `10ce979`, `7afe4dd`, `dedc0b6`, `2c29b91`. Registry at `docs/invariants.md`. Codex final verdict PASS after two fix-pass iterations.
 - **Next pending work (from Codex follow-on reviews):** V2 transport-interceptor (Codex ae23f96a5f5cf8247) as the durable replacement for scattered env-flag injection seams; `src/invariants/debug.ts` centralized assertion module; historical-superseded doc pass across decisions.md + adapter-changelog.md + lessons-learned.md + fine-tuning-strategy.md + adapter-training-reference.md + retry-surface-audit.md (Codex ac11a277b179df8b0).
+
+## Current Session (2026-04-21)
+
+- **Quality-redraft gate shipped (behind flag, default OFF).** Commit `893bb26`. Two quality detectors live in `src/lint/quality-detectors.ts` (repetition-loop + underlength, 24 unit tests). `detectSyncDefects()` is wired into `src/phases/drafting.ts`; when detectors fire, the beat is redrafted from scratch (no V1 prose in context, no critique) rather than retried with critique. Flag: `pipeline.qualityRedraftEnabled` (default `false`); override with `QUALITY_REDRAFT_ENABLED=true` env var. Measurement run (novel PID 315593 on LXC) pending; flag turns on by default only after production data confirms redraft pass rate ≥ standard retry path. See `docs/decisions.md` "Salvatore v4 LoRA cannot rewrite with critique."
+- **`src/agents/writer/retry-context.ts` extracted** (commit `3c5313d`). `buildRetryPrompt()` logic moved from inline drafting.ts to this dedicated module. Canonical source for retry-prompt construction — future probe harnesses and test fixtures should import from here.
+- **`src/lint/quality-detectors.ts` is a new production module** (commit `ea74d90`). Repetition-loop detector + underlength detector, 24 unit tests. Future per-beat quality signals go here before wiring into the gate.
+- **Salvatore conditioning-floor KILLED** (commit `639712e`, exp #258). Per-beat exampleLines rotation lost 7/20 to fixed preset-a on blind Sonnet pairwise distinctness judgment. Three auto-resolved pairs due to underlength (<50 words). Rotation also showed repetition-loop degeneration. Conditioning tricks are a closed chapter. Next lever: `salvatore-v5-corpus-expansion` (separate charter, pre-gated on PDF acquisition).
+- **Parity harness SOP formalised** (commit `edb630a`). §4.7 added to `docs/experiment-design-rules.md`; new bullet in experiment charter template; pre-run checklist item. Canonical implementation: `scripts/evals/conditioning-floor-parity-check.ts`. Codex SOP-audit confirmed the rule and scope language as written.
+- **Three-layer doctrine: Codex challenge noted.** Codex independent evaluation (jobs `bre6gu89b`, `bsbwl0v3g`) pushed back on "voice lives only in weights, editors can't add craft" as unproven and architecturally inconsistent — the quality-redraft gate is itself a cross-layer intervention. Doctrine not retracted but the absolute "don't cross streams" framing is softened: the layer assignments describe default optimization strategy, not a hard prohibition on context-engineering interactions across layers.
+- **Rewrite-capability-probe charter: round-1 RED, not yet re-reviewed.** Commits `ca76090` + `d36bfae`. The rigorous probe (`eb3e7c8`) provided the decisive empirical evidence; charter needs a round-2 pass or formal withdrawal per `docs/todo.md`.
 
 ## Current Session (2026-04-20)
 
