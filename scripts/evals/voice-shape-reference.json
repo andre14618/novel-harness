@@ -1,0 +1,220 @@
+{
+  "seed": "voice-shape-reference-v1-2026-04-21",
+  "corpus": "novels/salvatore-icewind-dale/pairs.jsonl",
+  "stratum_targets": {
+    "action": 3,
+    "dialogue": 3,
+    "interiority": 2,
+    "description": 2
+  },
+  "n": 10,
+  "reference": {
+    "n": 10,
+    "means": {
+      "meanSentenceLength": 21.607127250768553,
+      "sentenceLengthStd": 11.304934375626667,
+      "dialogueRatio": 0.2712682509844547,
+      "clauseComplexity": 1.2485025723069203,
+      "sensoryDensity": 0.005324883112201853
+    },
+    "stds": {
+      "meanSentenceLength": 8.456134320529749,
+      "sentenceLengthStd": 5.763448281346592,
+      "dialogueRatio": 0.3034292662140421,
+      "clauseComplexity": 0.618723530741204,
+      "sensoryDensity": 0.006843625614053814
+    }
+  },
+  "passages": [
+    {
+      "brief_summary": {
+        "beat_id": "crystal_shard_ch22_s0_b3",
+        "book": "crystal_shard",
+        "chapter": 22,
+        "kind": "action",
+        "words": 127
+      },
+      "prose_preview": "Drizzt revealed a small pouch hanging on a fine silver chain around his neck. \"A…",
+      "features": {
+        "meanSentenceLength": 15.11111111111111,
+        "sentenceLengthStd": 12.20086517879413,
+        "dialogueRatio": 0.2081151832460733,
+        "clauseComplexity": 0.8888888888888888,
+        "sensoryDensity": 0.014814814814814815,
+        "totalWords": 136,
+        "sentenceCount": 9
+      }
+    },
+    {
+      "brief_summary": {
+        "beat_id": "crystal_shard_ch17_s0_b1",
+        "book": "crystal_shard",
+        "chapter": 17,
+        "kind": "action",
+        "words": 131
+      },
+      "prose_preview": "Though they had marched without rest throughout half of the night and most of th…",
+      "features": {
+        "meanSentenceLength": 20,
+        "sentenceLengthStd": 5.5377492419453835,
+        "dialogueRatio": 0.3659730722154223,
+        "clauseComplexity": 0.7142857142857143,
+        "sensoryDensity": 0,
+        "totalWords": 140,
+        "sentenceCount": 7
+      }
+    },
+    {
+      "brief_summary": {
+        "beat_id": "crystal_shard_ch17_s4_b5",
+        "book": "crystal_shard",
+        "chapter": 17,
+        "kind": "action",
+        "words": 120
+      },
+      "prose_preview": "Drizzt was the closest to the charging giants. He let the first two pass, concen…",
+      "features": {
+        "meanSentenceLength": 21.6,
+        "sentenceLengthStd": 12.798437404620925,
+        "dialogueRatio": 0.37623762376237624,
+        "clauseComplexity": 1,
+        "sensoryDensity": 0,
+        "totalWords": 108,
+        "sentenceCount": 5
+      }
+    },
+    {
+      "brief_summary": {
+        "beat_id": "streams_of_silver_ch21_s0_b11",
+        "book": "streams_of_silver",
+        "chapter": 21,
+        "kind": "dialogue",
+        "words": 136
+      },
+      "prose_preview": "\"Could the miners prove worse than the fate you offer?\" Drizzt asked with a sarc…",
+      "features": {
+        "meanSentenceLength": 12.9375,
+        "sentenceLengthStd": 5.626944108483752,
+        "dialogueRatio": 0.23495934959349593,
+        "clauseComplexity": 0.875,
+        "sensoryDensity": 0,
+        "totalWords": 207,
+        "sentenceCount": 16
+      }
+    },
+    {
+      "brief_summary": {
+        "beat_id": "halflings_gem_ch14_s1_b8",
+        "book": "halflings_gem",
+        "chapter": 14,
+        "kind": "dialogue",
+        "words": 120
+      },
+      "prose_preview": "\"Fifty more for ye if ye can get us hooked with a caravan for Calimport,\" Brueno…",
+      "features": {
+        "meanSentenceLength": 11.434782608695652,
+        "sentenceLengthStd": 9.647543667391679,
+        "dialogueRatio": 0.4921363040629096,
+        "clauseComplexity": 0.782608695652174,
+        "sensoryDensity": 0.007434944237918215,
+        "totalWords": 263,
+        "sentenceCount": 23
+      }
+    },
+    {
+      "brief_summary": {
+        "beat_id": "crystal_shard_ch11_s1_b1",
+        "book": "crystal_shard",
+        "chapter": 11,
+        "kind": "dialogue",
+        "words": 139
+      },
+      "prose_preview": "\"If yer talent for the craft is keen,\" his father had said, \"and ye're lucky eno…",
+      "features": {
+        "meanSentenceLength": 30.4,
+        "sentenceLengthStd": 9.154233993076646,
+        "dialogueRatio": 0.9717223650385605,
+        "clauseComplexity": 2.4,
+        "sensoryDensity": 0.006666666666666667,
+        "totalWords": 152,
+        "sentenceCount": 5
+      }
+    },
+    {
+      "brief_summary": {
+        "beat_id": "streams_of_silver_ch6_s2_b5",
+        "book": "streams_of_silver",
+        "chapter": 6,
+        "kind": "interiority",
+        "words": 130
+      },
+      "prose_preview": "Wulfgar did not immediately respond. They had tested his strength, and now were …",
+      "features": {
+        "meanSentenceLength": 20,
+        "sentenceLengthStd": 10.469001862641921,
+        "dialogueRatio": 0,
+        "clauseComplexity": 1,
+        "sensoryDensity": 0,
+        "totalWords": 120,
+        "sentenceCount": 6
+      }
+    },
+    {
+      "brief_summary": {
+        "beat_id": "halflings_gem_ch22_s4_b8",
+        "book": "halflings_gem",
+        "chapter": 22,
+        "kind": "interiority",
+        "words": 129
+      },
+      "prose_preview": "Drizzt could only pray that he had appealed to the small part of rationale acces…",
+      "features": {
+        "meanSentenceLength": 16.454545454545453,
+        "sentenceLengthStd": 11.936194002810412,
+        "dialogueRatio": 0.0635386119257087,
+        "clauseComplexity": 1.0909090909090908,
+        "sensoryDensity": 0.00546448087431694,
+        "totalWords": 181,
+        "sentenceCount": 11
+      }
+    },
+    {
+      "brief_summary": {
+        "beat_id": "streams_of_silver_ch17_s1_b1",
+        "book": "streams_of_silver",
+        "chapter": 17,
+        "kind": "description",
+        "words": 128
+      },
+      "prose_preview": "An hour later, the structures came into view. Like giant houses of cards, great …",
+      "features": {
+        "meanSentenceLength": 35.333333333333336,
+        "sentenceLengthStd": 26.102362600602522,
+        "dialogueRatio": 0,
+        "clauseComplexity": 2.3333333333333335,
+        "sensoryDensity": 0.018867924528301886,
+        "totalWords": 106,
+        "sentenceCount": 3
+      }
+    },
+    {
+      "brief_summary": {
+        "beat_id": "streams_of_silver_chprelude_s1_b5",
+        "book": "streams_of_silver",
+        "chapter": "prelude",
+        "kind": "description",
+        "words": 131
+      },
+      "prose_preview": "Every so often, Drizzt dropped back the dozen yards or so to check on the fourth…",
+      "features": {
+        "meanSentenceLength": 32.8,
+        "sentenceLengthStd": 9.57601169589929,
+        "dialogueRatio": 0,
+        "clauseComplexity": 1.4,
+        "sensoryDensity": 0,
+        "totalWords": 164,
+        "sentenceCount": 5
+      }
+    }
+  ]
+}
