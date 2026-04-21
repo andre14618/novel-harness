@@ -1,8 +1,9 @@
 ---
-status: draft (pending Arm D resolution)
+status: complete
 kind: retrospective
 topic: voice-LoRA-track-evidence
 date: 2026-04-21
+updated: 2026-04-21 (voice-shaping-ablation-v1 resolved; flipped draft→complete)
 ---
 
 # 2026-04-21 Retrospective — Voice-LoRA Track Evidence
@@ -38,6 +39,7 @@ added to this retrospective in the full-synthesis pass if needed.
 | 2 | Rewrite-capability probe | exp #259 probe | Salvatore v4 LoRA cannot meaningfully rewrite from critique; it can only redraft from scratch. Output is V1-prose-anchored when V1 is in context. See `docs/decisions.md` "Rewrite capability probe." |
 | 3 | Quality-redraft gate measurement | Novel PID 315593 | 0 detector fires across the run; the shipped redraft-gate never triggered. Detector thresholds likely too strict OR the novel sat below the mean fire rate. See `docs/decisions.md` 2026-04-21 "Quality-redraft gate" for the gate design + this outcome. |
 | 4 | arm-b-direct-pairwise-v1 | N=20 blind human pairwise, exp (TBD — created by runner) | Salvatore v4 + enriched context lost 9-11 to Salvatore v4 + current context. CAUTION verdict. Enriched context is not a lever worth paying for on this corpus. See `docs/charters/arm-b-direct-pairwise-results.md`. |
+| 5 | voice-shaping-ablation-v1 | Decomposed audit (voice-shape metrics + halluc-leak regex) on 4 DeepSeek arms, N=20 beats, no holistic pairwise | **FLAT vs D0** on charter's ≥3-of-5 conjunctive rule. No prompt-level intervention (D1 style guide, D2 few-shot, D3 character directives) clears the threshold vs bare DeepSeek because **D0 is already close to the Salvatore reference distribution** on most features (mean sentence length 0.89σ, sentence-length std 0.39σ, clause complexity 0.37σ). **D2 did NOT leak corpus tokens** (0/20 fires) despite including actual Salvatore excerpts in the system prompt — falsifies the "few-shot at DeepSeek scale = structural leak" worry. Salvatore v4 itself leaks 3/20 = 15% (Waterdeep, Maer Dualdon). Cost: $0.0221. See `docs/charters/voice-shaping-ablation-v1-results.md`. |
 
 **Pattern:** four negatives in a single day on four distinct
 LoRA-adjacent levers. Not coincidence — consistent with the prior
@@ -189,7 +191,23 @@ Per `docs/charters/arm-d-writer-upgrade.md` §3:
 
 - Parent charter: `docs/charters/arm-b-direct-pairwise.md` (revision 2)
 - Results memo: `docs/charters/arm-b-direct-pairwise-results.md`
-- Forcing function: `docs/charters/arm-d-writer-upgrade.md`
+- Forcing function: `docs/charters/arm-d-writer-upgrade.md` + `docs/charters/arm-d-writer-upgrade-results.md`
+- Voice-shaping ablation: `docs/charters/voice-shaping-ablation-v1.md` + `docs/charters/voice-shaping-ablation-v1-results.md`
 - Meta-consult: job `acc1b47d14ce265f4` (this doc's origin)
+- Decomposed-audit design consult: job `ae0e768d3292eb256`
 - Preflight ancestor: `docs/charters/arm-b-detector-preflight.md`
   + `docs/charters/arm-b-detector-preflight-results.md`
+
+## Final verdict (added 2026-04-21 on retrospective close)
+
+The 2026-04-21 arc resolved as follows:
+
+1. **Claim 1 (current LoRA-side levers are failing):** CONFIRMED. Four signals in signals table above + the voice-shaping ablation's finding that Salvatore v4 leaks corpus tokens at 15% while DeepSeek at 0%. LoRA-adjacent micro-lever investment is closed.
+
+2. **Claim 2 (LoRA is empirically worse than a strong untuned base):** PARTIALLY CONFIRMED at distribution level. DeepSeek V3.2 bare (D0) is CLOSER to the Salvatore reference distribution on 3 of 5 voice-shape features (mean sentence length, sentence-length std, clause complexity — all under 1σ). Salvatore v4 is closer only on dialogue ratio (0.01σ vs D0's 0.79σ). The LoRA's distribution has catastrophic outliers (39w to 2863w range) that DeepSeek avoids. Whether this resolves to "LoRA is worse" depends on whether dialogue-ratio fidelity outweighs distributional instability + corpus leak for the product.
+
+3. **Claim 3 (fine-tune thesis wrong):** NOT CLAIMED. Freeze-not-retire posture preserved. 14B-scale fine-tune failure is scale-specific per the lessons-learned rule. Larger-base fine-tuning remains an open option if voice-shape ceiling becomes a limit.
+
+**Operational recommendation (pre-registered, from voice-shaping-results §next steps):** Adopt bare DeepSeek V3.2 for fantasy route in production (Option 1), pending a full-novel validation run. Redirect engineering effort from voice-imitation to character-distinctness (Option 4) — the actual craft-quality lever reader-perceivable quality depends on.
+
+Three-layer architecture holds: planning layer unchanged, writing layer swaps to DeepSeek-base, checker layer unchanged (adherence + halluc-ungrounded + halluc-leak + continuity still run). What changes is the writer; everything else proceeds as-was.
