@@ -15,6 +15,7 @@ import { WRITER_AGENT_PROMPT, BEAT_WRITER_PROMPT, CHAPTER_PLAN_CHECKER_PROMPT } 
 import { buildContext as buildWriterContext } from "../agents/writer/context"
 import { buildBeatContext } from "../agents/writer/beat-context"
 import { resolveReferences } from "../agents/writer/reference-resolver"
+import { buildRetryPrompt } from "../agents/writer/retry-context"
 import { runBeatChecks, summarizeIssues } from "./beat-checks"
 import { checkContinuity } from "../agents/continuity/check"
 import { buildContext as buildChapterPlanCheckContext } from "../agents/chapter-plan-checker/context"
@@ -275,20 +276,21 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
             let previousProse: string | null = null
             let previousIssues: string[] = []
             for (let retry = 0; retry <= pipeline.maxBeatRetries; retry++) {
-              let retryContext = ""
-              if (retry > 0 && previousProse && previousIssues.length > 0) {
-                const hasEventIssue = previousIssues.some(i => i.includes("not enacted"))
-                const priorBeatProse = bi > 0 ? beatProses[bi - 1] : null
-                const alignmentNote = hasEventIssue && priorBeatProse
-                  ? `\nNote: The previous beat's prose (below) may already cover some of this beat's actions — this is natural prose flow. Focus on actions NOT yet dramatized. Do not duplicate what the prior beat already covered.\n\nPrevious beat's prose (last 500 chars):\n---\n${priorBeatProse.slice(-500)}\n---\n`
-                  : ""
-                retryContext = `\n\n--- TARGETED REWRITE ---\nYour previous prose for this beat:\n---\n${previousProse.slice(0, 2000)}\n---\nIssues found:\n${previousIssues.map(i => `- ${i}`).join("\n")}${alignmentNote}\nRewrite this beat to address the issues above while preserving what works.`
-              }
+              const { userPrompt: resolvedUserPrompt } = retry > 0 && previousProse && previousIssues.length > 0
+                ? buildRetryPrompt({
+                    beatContext: beatCtx,
+                    systemPrompt: beatSystemPrompt,
+                    v1Prose: previousProse,
+                    issues: previousIssues,
+                    attempt: retry + 1,
+                    priorBeatProse: bi > 0 ? beatProses[bi - 1] : null,
+                  })
+                : { userPrompt: beatCtx.userPrompt }
               try {
                 const response = await executeAndLog(
                   {
                     systemPrompt: beatSystemPrompt,
-                    userPrompt: beatCtx.userPrompt + retryContext,
+                    userPrompt: resolvedUserPrompt,
                     model: beatWriterModel?.model ?? "qwen-3-235b-a22b-instruct-2507",
                     provider: beatWriterModel?.provider ?? "cerebras",
                     temperature: beatWriterModel?.temperature ?? 0.8,
