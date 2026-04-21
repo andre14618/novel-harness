@@ -12,6 +12,12 @@
  * drafting path. Non-empty diff => the replay is not measuring what the
  * production writer actually saw, and the charter claim breaks.
  *
+ * Added: --mode retry — validates the arm (b) retry-context builder against a
+ * real historical llm_calls row with attempt > 1. Looks up the first retry
+ * attempt for the given (source, chapter, beat_index), re-extracts the v1 prose
+ * and checker issues from the request, then reconstructs via buildRetryPrompt.
+ * Output shape is identical to fresh mode: ✓ PARITY OK or a structured diff.
+ *
  * Codex round-5 counterfactual: this harness is the cheapest way to catch
  * surface mismatches (responseFormat, preResolvedRefs, character ordering,
  * etc.) before any judge spend.
@@ -36,15 +42,18 @@ import { getCharacterStatesAtChapter } from "../../src/db/character-states"
 import { buildBeatContext } from "../../src/agents/writer/beat-context"
 import { resolveReferences } from "../../src/agents/writer/reference-resolver"
 import { resolveWriterPack } from "../../src/models/roles"
+import { buildRetryPrompt } from "../../src/agents/writer/retry-context"
 import { buildWriterRequest, computePresetSelection } from "./run-conditioning-floor-replay"
 
 type Arm = "raw" | "fixed" | "rotation"
+type Mode = "fresh" | "retry"
 
 type Args = {
   sourceNovelId: string
   chapter: number
   beatIndex: number
   arm: Arm
+  mode: Mode
   experimentId: number | null
 }
 
@@ -58,13 +67,18 @@ function parseArgs(): Args {
   const chapterStr = get("--chapter")
   const beatStr = get("--beat-index")
   const armStr = get("--arm") ?? "raw"
+  const modeStr = get("--mode") ?? "fresh"
   const experimentIdStr = get("--experiment-id")
   if (!source || !chapterStr || !beatStr) {
-    console.error("usage: bun scripts/evals/conditioning-floor-parity-check.ts --source <novel-id> --chapter <n> --beat-index <n> [--arm raw|fixed|rotation] [--experiment-id <n>]")
+    console.error("usage: bun scripts/evals/conditioning-floor-parity-check.ts --source <novel-id> --chapter <n> --beat-index <n> [--arm raw|fixed|rotation] [--mode fresh|retry] [--experiment-id <n>]")
     process.exit(1)
   }
   if (armStr !== "raw" && armStr !== "fixed" && armStr !== "rotation") {
     console.error(`--arm must be one of raw|fixed|rotation, got "${armStr}"`)
+    process.exit(1)
+  }
+  if (modeStr !== "fresh" && modeStr !== "retry") {
+    console.error(`--mode must be one of fresh|retry, got "${modeStr}"`)
     process.exit(1)
   }
   return {
@@ -72,6 +86,7 @@ function parseArgs(): Args {
     chapter: Number.parseInt(chapterStr, 10),
     beatIndex: Number.parseInt(beatStr, 10),
     arm: armStr,
+    mode: modeStr,
     experimentId: experimentIdStr ? Number.parseInt(experimentIdStr, 10) : null,
   }
 }
@@ -515,12 +530,246 @@ function parseExampleLineEntries(blockContent: string): string[] {
   return entries
 }
 
-function findFirstDivergence(a: string, b: string): number {
-  const min = Math.min(a.length, b.length)
-  for (let i = 0; i < min; i++) {
-    if (a.charCodeAt(i) !== b.charCodeAt(i)) return i
+// ── Retry-mode helpers ──────────────────────────────────────────────────────
+
+/**
+ * Fetch the first retry attempt row for a beat: agent='beat-writer',
+ * attempt > 1, not failed. This is the live request that arm (b) of the
+ * rewrite-capability-probe must reproduce. Returns null if no retry row
+ * exists for the given coordinates.
+ */
+async function fetchLiveRetryRequest(args: Args): Promise<{
+  system_prompt: string
+  user_prompt: string
+  model: string
+  provider: string
+  temperature: number
+  max_tokens: number
+  request_json: Record<string, unknown> | null
+} | null> {
+  const rows = await db<Array<{
+    system_prompt: string
+    user_prompt: string
+    model: string
+    provider: string
+    temperature: number
+    max_tokens: number
+    request_json: Record<string, unknown> | null
+  }>>`
+    SELECT system_prompt, user_prompt, model, provider, temperature, max_tokens, request_json
+    FROM llm_calls
+    WHERE novel_id = ${args.sourceNovelId}
+      AND agent = 'beat-writer'
+      AND chapter = ${args.chapter}
+      AND beat_index = ${args.beatIndex}
+      AND attempt > 1
+      AND failed IS NOT TRUE
+    ORDER BY id ASC
+    LIMIT 1
+  `
+  if (rows.length === 0) return null
+  const row = rows[0]
+  if (typeof row.request_json === "string") {
+    try {
+      row.request_json = JSON.parse(row.request_json as unknown as string) as Record<string, unknown>
+    } catch {
+      row.request_json = null
+    }
   }
-  return min
+  return row
+}
+
+/**
+ * Extract v1 prose and issues from a live retry user_prompt.
+ *
+ * The retry-context builder appends a well-structured "--- TARGETED REWRITE ---"
+ * block to the vanilla beat context. We parse it out to recover v1Prose and
+ * the issues array so we can call buildRetryPrompt with the same inputs.
+ *
+ * If the block cannot be found, returns null (the row is not a real retry row).
+ */
+function extractRetryContext(userPrompt: string): {
+  vanillaPrompt: string
+  v1Prose: string
+  issues: string[]
+} | null {
+  const marker = "\n\n--- TARGETED REWRITE ---\n"
+  const idx = userPrompt.indexOf(marker)
+  if (idx === -1) return null
+
+  const vanillaPrompt = userPrompt.slice(0, idx)
+  const block = userPrompt.slice(idx + marker.length)
+
+  // Parse v1 prose: between "Your previous prose for this beat:\n---\n" and "\n---\n"
+  const proseMarkerStart = "Your previous prose for this beat:\n---\n"
+  const proseMarkerEnd = "\n---\n"
+  const proseStart = block.indexOf(proseMarkerStart)
+  if (proseStart === -1) return null
+  const proseContentStart = proseStart + proseMarkerStart.length
+  const proseEnd = block.indexOf(proseMarkerEnd, proseContentStart)
+  if (proseEnd === -1) return null
+  const v1Prose = block.slice(proseContentStart, proseEnd)
+
+  // Parse issues: between "Issues found:\n" and the next blank line or end of block
+  const issuesMarker = "Issues found:\n"
+  const issuesStart = block.indexOf(issuesMarker, proseEnd)
+  if (issuesStart === -1) return null
+  const issuesContentStart = issuesStart + issuesMarker.length
+
+  // Issues end at the next block that is NOT a "- " bullet, or at end.
+  // The block may be followed by an alignment note or "Rewrite this beat..." line.
+  const issuesLines: string[] = []
+  const remaining = block.slice(issuesContentStart)
+  for (const line of remaining.split("\n")) {
+    if (line.startsWith("- ")) {
+      issuesLines.push(line.slice(2))
+    } else if (line === "" || line.startsWith("Note:") || line.startsWith("Rewrite")) {
+      break
+    }
+  }
+
+  return { vanillaPrompt, v1Prose, issues: issuesLines }
+}
+
+/**
+ * Reconstruct the replay runner's retry request for arm (b) of the
+ * rewrite-capability-probe. Calls buildBeatContext + buildRetryPrompt to
+ * assemble the same bytes production would send on a checker-failure retry.
+ *
+ * Input: the live retry row (to borrow model/provider/temperature/max_tokens
+ * and recover v1Prose+issues), plus the shared DB state to rebuild the
+ * vanilla beat context.
+ */
+async function buildReplayRetryRequest(args: Args, liveRetry: {
+  system_prompt: string
+  user_prompt: string
+  model: string
+  provider: string
+  temperature: number
+  max_tokens: number
+  request_json: Record<string, unknown> | null
+}): Promise<{
+  system_prompt: string
+  user_prompt: string
+  model: string
+  provider: string
+  temperature: number
+  max_tokens: number
+  response_format: { type: string } | undefined
+} | null> {
+  // Parse vanilla prompt + v1 prose + issues from the live retry user_prompt.
+  const parsed = extractRetryContext(liveRetry.user_prompt)
+  if (!parsed) {
+    console.error("error: live retry row does not contain a '--- TARGETED REWRITE ---' block — not a checker-failure retry")
+    return null
+  }
+  const { v1Prose, issues } = parsed
+
+  // Rebuild the vanilla beat context the same way buildReplayRequest does.
+  const novelRows = await db<Array<{ seed_json: Record<string, unknown> }>>`
+    SELECT seed_json FROM novels WHERE id = ${args.sourceNovelId}
+  `
+  if (novelRows.length === 0) {
+    console.error(`novel ${args.sourceNovelId} not found`)
+    return null
+  }
+  const genre = (novelRows[0].seed_json as { genre?: string }).genre
+
+  const outline = await getChapterOutline(args.sourceNovelId, args.chapter)
+  const characters = await getCharacters(args.sourceNovelId)
+  const characterStates = await getCharacterStatesAtChapter(args.sourceNovelId, args.chapter)
+  const worldBible = await getWorldBible(args.sourceNovelId)
+  const beatSpec = outline.scenes[args.beatIndex]
+  if (!beatSpec) {
+    console.error(`beat ${args.beatIndex} out of range for chapter ${args.chapter}`)
+    return null
+  }
+
+  // Reconstruct previousBeatProse the same timestamp-anchored way fresh mode does.
+  let previousBeatProse: string | undefined
+  if (args.beatIndex > 0) {
+    const tsRows = await db<Array<{ timestamp: Date }>>`
+      SELECT timestamp FROM llm_calls
+      WHERE novel_id = ${args.sourceNovelId}
+        AND agent = 'beat-writer'
+        AND chapter = ${args.chapter}
+        AND beat_index = ${args.beatIndex}
+        AND attempt > 1
+      ORDER BY timestamp ASC LIMIT 1
+    `
+    const anchor = tsRows.length > 0 ? new Date(tsRows[0].timestamp) : null
+    let prevRows: Array<{ response_content: string }>
+    if (anchor !== null) {
+      prevRows = await db<Array<{ response_content: string }>>`
+        SELECT response_content FROM llm_calls
+        WHERE novel_id = ${args.sourceNovelId}
+          AND agent = 'beat-writer'
+          AND chapter = ${args.chapter}
+          AND beat_index = ${args.beatIndex - 1}
+          AND response_content IS NOT NULL AND failed IS NOT TRUE
+          AND timestamp < ${anchor.toISOString()}
+        ORDER BY timestamp DESC LIMIT 1
+      `
+    } else {
+      prevRows = await db<Array<{ response_content: string }>>`
+        SELECT response_content FROM llm_calls
+        WHERE novel_id = ${args.sourceNovelId}
+          AND agent = 'beat-writer'
+          AND chapter = ${args.chapter}
+          AND beat_index = ${args.beatIndex - 1}
+          AND response_content IS NOT NULL AND failed IS NOT TRUE
+        ORDER BY id ASC LIMIT 1
+      `
+    }
+    if (prevRows.length > 0) {
+      const raw = prevRows[0].response_content
+      const sentences = raw.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 0)
+      previousBeatProse = sentences.slice(-3).join(" ")
+    }
+  }
+
+  const preResolvedRefs = await resolveReferences(beatSpec, outline, args.sourceNovelId, args.chapter, characters)
+  const beatCtx = await buildBeatContext({
+    novelId: args.sourceNovelId,
+    chapterNumber: args.chapter,
+    beatIndex: args.beatIndex,
+    previousBeatProse,
+    outline,
+    characters,
+    characterStates,
+    worldBible,
+    preResolvedRefs,
+    compactMode: !!resolveWriterPack(genre),
+    genre,
+  })
+
+  // Reconstruct the retry prompt via the production builder.
+  const { systemPrompt, userPrompt } = buildRetryPrompt({
+    beatContext: beatCtx,
+    systemPrompt: liveRetry.system_prompt,
+    v1Prose,
+    issues,
+    attempt: 2, // First retry — what we fetched.
+    priorBeatProse: args.beatIndex > 0 ? previousBeatProse ?? null : null,
+  })
+
+  // Extract response_format from live request_json for consistency.
+  let responseFormat: { type: string } | undefined
+  if (liveRetry.request_json && typeof liveRetry.request_json === "object") {
+    const rj = liveRetry.request_json as { responseFormat?: { type?: string }; response_format?: { type?: string } }
+    const t = rj.responseFormat?.type ?? rj.response_format?.type
+    if (t) responseFormat = { type: t }
+  }
+
+  return {
+    system_prompt: systemPrompt,
+    user_prompt: userPrompt,
+    model: liveRetry.model,
+    provider: liveRetry.provider,
+    temperature: liveRetry.temperature,
+    max_tokens: liveRetry.max_tokens,
+    response_format: responseFormat,
+  }
 }
 
 async function main(): Promise<void> {
@@ -528,7 +777,8 @@ async function main(): Promise<void> {
 
   console.log(`[parity] Source novel:  ${args.sourceNovelId}`)
   console.log(`[parity] Target beat:   ch=${args.chapter} beat_index=${args.beatIndex}`)
-  console.log(`[parity] Arm:           ${args.arm}\n`)
+  console.log(`[parity] Arm:           ${args.arm}`)
+  console.log(`[parity] Mode:          ${args.mode}\n`)
 
   // Toggle WRITER_CONDITIONING based on requested arm. raw = unset. Save and
   // restore the original value around the replay build.
@@ -540,16 +790,43 @@ async function main(): Promise<void> {
       process.env.WRITER_CONDITIONING = args.arm
     }
 
-    const live = await fetchLiveRequest(args)
-    if (!live) {
-      console.error(`error: no live beat-writer call found for ${args.sourceNovelId} ch=${args.chapter} beat_index=${args.beatIndex}`)
-      process.exit(1)
-    }
+    let live: Awaited<ReturnType<typeof fetchLiveRequest>>
+    let replay: Awaited<ReturnType<typeof buildReplayRequest>>
 
-    const replay = await buildReplayRequest(args)
-    if (!replay) {
-      console.error("error: replay request could not be built")
-      process.exit(1)
+    if (args.mode === "retry") {
+      // ── Retry mode: validate arm (b) of the rewrite-capability-probe ───
+      // Look up a real historical checker-failure retry row and verify that
+      // buildRetryPrompt reproduces its user_prompt byte-for-byte.
+      const liveRetry = await fetchLiveRetryRequest(args)
+      if (!liveRetry) {
+        console.error(
+          `error: no live beat-writer retry call found for ${args.sourceNovelId} ` +
+          `ch=${args.chapter} beat_index=${args.beatIndex} with attempt > 1 and failed IS NOT TRUE.\n` +
+          `       Ensure the source novel has at least one checker-triggered beat retry at these coordinates.`
+        )
+        process.exit(1)
+      }
+      live = liveRetry
+
+      const retryReplay = await buildReplayRetryRequest(args, liveRetry)
+      if (!retryReplay) {
+        console.error("error: retry replay request could not be built")
+        process.exit(1)
+      }
+      replay = retryReplay
+    } else {
+      // ── Fresh mode (default): validate arm (a) fresh-draft surface ──────
+      live = await fetchLiveRequest(args)
+      if (!live) {
+        console.error(`error: no live beat-writer call found for ${args.sourceNovelId} ch=${args.chapter} beat_index=${args.beatIndex}`)
+        process.exit(1)
+      }
+
+      replay = await buildReplayRequest(args)
+      if (!replay) {
+        console.error("error: replay request could not be built")
+        process.exit(1)
+      }
     }
 
     const liveSummary = summarizeRequest(live)
@@ -594,7 +871,7 @@ async function main(): Promise<void> {
             correct, error_text, actual_label_json
           ) VALUES (
             ${args.experimentId},
-            ${`conditioning-floor-parity-${args.arm}`},
+            ${`conditioning-floor-parity-${args.mode}-${args.arm}`},
             ${`${args.sourceNovelId}-ch${args.chapter}-b${args.beatIndex}`},
             ${live.model},
             ${passed ? "parity-pass" : "parity-fail"},
@@ -614,7 +891,7 @@ async function main(): Promise<void> {
             }}
           )
         `
-        console.log(`[telemetry] parity record persisted to eval_results (experiment_id=${args.experimentId}, set_name=conditioning-floor-parity-${args.arm})`)
+        console.log(`[telemetry] parity record persisted to eval_results (experiment_id=${args.experimentId}, set_name=conditioning-floor-parity-${args.mode}-${args.arm})`)
       } catch (err) {
         console.warn(`[telemetry] parity persistence failed: ${err instanceof Error ? err.message : err}`)
       }
