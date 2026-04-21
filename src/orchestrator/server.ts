@@ -399,6 +399,98 @@ const server = Bun.serve({
       }
     }
 
+    // ── Pairwise adjudication (arm-b-direct-pairwise) ──────────────────
+    // Per `docs/charters/arm-b-direct-pairwise.md`. Serves the blinded
+    // packet bundle + label read/write + ingest verdict to the React UI.
+    // Arm identity stays server-side (mapping.json is never exposed to
+    // the client — only resolved to Version-1 / Version-2 prose).
+
+    const pairwiseBundleMatch = path.match(/^\/api\/pairwise\/([a-zA-Z0-9_-]+)\/(state|label|ingest)$/)
+    if (pairwiseBundleMatch) {
+      const bundleName = pairwiseBundleMatch[1]
+      const action = pairwiseBundleMatch[2]
+      const bundleDir = resolve(HARNESS_ROOT, "output/evals/pairwise", bundleName)
+      const packetsPath = resolve(bundleDir, "packets.md")
+      const mappingPath = resolve(bundleDir, "mapping.json")
+      const labelsPath = resolve(bundleDir, "labels.tsv")
+
+      try {
+        if (action === "state" && req.method === "GET") {
+          // Parse packets.md into {packet_id, version_1_prose, version_2_prose, is_retest_or_calibration_hint}.
+          // The hint is false for every packet — UI never distinguishes
+          // primary / retest / calibration. That blindness is load-bearing.
+          const packetsMd = await Bun.file(packetsPath).text()
+          const sections = packetsMd.split(/^### Packet /m).slice(1)
+          const packets = sections.map(s => {
+            const idMatch = s.match(/^([a-f0-9]{12})/)
+            const packetId = idMatch ? idMatch[1] : ""
+            // Split "**Version 1:**\n\n...\n\n---\n\n**Version 2:**\n\n...\n\n---"
+            const v1Match = s.match(/\*\*Version 1:\*\*\s*\n\n([\s\S]*?)\n\n---\n\n\*\*Version 2:\*\*/)
+            const v2Match = s.match(/\*\*Version 2:\*\*\s*\n\n([\s\S]*?)\n\n---\s*$/)
+            return {
+              packet_id: packetId,
+              version_1_prose: v1Match ? v1Match[1].trim() : "",
+              version_2_prose: v2Match ? v2Match[1].trim() : "",
+            }
+          }).filter(p => p.packet_id)
+
+          // Load current labels (may not exist yet if adjudicator hasn't touched it)
+          const labelsFile = Bun.file(labelsPath)
+          const labels: Record<string, { label: string; notes: string }> = {}
+          if (await labelsFile.exists()) {
+            const text = await labelsFile.text()
+            const lines = text.split("\n").slice(1)  // skip header
+            for (const line of lines) {
+              if (!line.trim()) continue
+              const [pid, label, notes] = line.split("\t")
+              if (pid) labels[pid.trim()] = { label: (label ?? "").trim(), notes: (notes ?? "").trim() }
+            }
+          }
+
+          return Response.json({ bundle: bundleName, packets, labels })
+        }
+
+        if (action === "label" && req.method === "PUT") {
+          const body = await req.json() as { packet_id: string; label: string; notes?: string }
+          if (!body.packet_id) return Response.json({ error: "packet_id required" }, { status: 400 })
+          // Load current labels.tsv, update or insert the row, write back
+          const file = Bun.file(labelsPath)
+          const text = (await file.exists()) ? await file.text() : "packet_id\tlabel\tnotes\n"
+          const lines = text.split("\n")
+          const header = lines[0]
+          const rows: Record<string, string> = {}
+          for (let i = 1; i < lines.length; i++) {
+            const line = lines[i]
+            if (!line.trim()) continue
+            const pid = line.split("\t")[0]?.trim()
+            if (pid) rows[pid] = line
+          }
+          rows[body.packet_id] = `${body.packet_id}\t${body.label ?? ""}\t${body.notes ?? ""}`
+          const out = [header, ...Object.values(rows)].join("\n") + "\n"
+          await Bun.write(labelsPath, out)
+          return Response.json({ ok: true })
+        }
+
+        if (action === "ingest" && req.method === "POST") {
+          // Shell out to the ingest CLI — keep the verdict logic in one place
+          const proc = Bun.spawn(
+            ["bun", "scripts/evals/arm-b-pairwise.ts", "--ingest", "--bundle", bundleDir],
+            { cwd: HARNESS_ROOT, stdout: "pipe", stderr: "pipe" },
+          )
+          const stdout = await new Response(proc.stdout).text()
+          const stderr = await new Response(proc.stderr).text()
+          await proc.exited
+          return Response.json({
+            exit_code: proc.exitCode ?? -1,
+            stdout,
+            stderr,
+          })
+        }
+      } catch (err) {
+        return Response.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
+      }
+    }
+
     const experimentDetailMatch = path.match(/^\/api\/experiments\/(\d+)$/)
     if (experimentDetailMatch && req.method === "GET") {
       try {
