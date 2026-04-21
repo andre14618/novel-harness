@@ -34,6 +34,7 @@ import { trace } from "../trace"
 import { savePlannedState } from "../planned-state"
 import { diffPlanAgainstState, type PriorCharacterState } from "../state-diff"
 import { pipeline } from "../config/pipeline"
+import type { SeedInput } from "../types"
 import { loadInjection, hasAnyInjection, injectionSummary } from "../config/debug-injection"
 import * as gates from "../gates"
 import { PipelineBailError, type PlanAssistGatePayload } from "../gates"
@@ -42,6 +43,22 @@ import { fixLintIssues } from "../lint/fix"
 import { getModelForAgent, resolveWriterPack, type WriterGenrePack } from "../models/roles"
 import { loadGenrePackPrompt } from "../agents/writer"
 import type { ChapterOutline } from "../types"
+
+/**
+ * Merge per-novel `seed.pipelineOverrides` onto the module-level pipeline
+ * defaults. Used only for knobs the orchestrator must scope per-novel
+ * (e.g. qualityRedraftEnabled). Read once at the top of `runDraftingPhase`
+ * so every beat/chapter in the run sees the same effective config.
+ */
+function effectivePipeline(seed: SeedInput): typeof pipeline {
+  const o = seed.pipelineOverrides
+  if (!o) return pipeline
+  return {
+    ...pipeline,
+    qualityRedraftEnabled: o.qualityRedraftEnabled ?? pipeline.qualityRedraftEnabled,
+    qualityRedraftMinWords: o.qualityRedraftMinWords ?? pipeline.qualityRedraftMinWords,
+  }
+}
 
 /**
  * Route validation blockers to specific beat indices for targeted rewrites.
@@ -99,6 +116,10 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
 
   const novel = await getNovel(novelId)
   const totalChapters = novel.totalChapters
+  const eff = effectivePipeline(novel.seed)
+  if (eff.qualityRedraftEnabled !== pipeline.qualityRedraftEnabled) {
+    log(novelId, "info", `Drafting: pipelineOverrides applied — qualityRedraftEnabled=${eff.qualityRedraftEnabled}`)
+  }
 
   console.log(`  Drafting ${totalChapters} chapters (approved chapters will be skipped)\n`)
   log(novelId, "info", `Drafting phase: ${totalChapters} chapters`)
@@ -340,8 +361,8 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                 // checks passed, the next retry iteration uses the pure-redraft path
                 // (no V1, no critique) by clearing previousProse/previousIssues.
                 // Default disabled; opt-in via pipeline.qualityRedraftEnabled.
-                const qualityDefects = pipeline.qualityRedraftEnabled
-                  ? detectSyncDefects(prose, { minWords: pipeline.qualityRedraftMinWords })
+                const qualityDefects = eff.qualityRedraftEnabled
+                  ? detectSyncDefects(prose, { minWords: eff.qualityRedraftMinWords })
                   : []
                 const hasQualityDefect = qualityDefects.length > 0
 

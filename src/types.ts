@@ -16,6 +16,15 @@ export interface SeedInput {
   characters: CharacterSketch[]
   chapterCount?: number
   directives?: import("./schemas/planning-directives").PlanningDirectives
+  /**
+   * Per-novel pipeline overrides. Scope knobs that today leak process-wide
+   * via env vars (e.g. QUALITY_REDRAFT_ENABLED) belong here so the
+   * orchestrator can run two novels with different settings concurrently.
+   */
+  pipelineOverrides?: {
+    qualityRedraftEnabled?: boolean
+    qualityRedraftMinWords?: number
+  }
 }
 
 // ── Stored types (DB rows) ─────────────────────────────────────────────────

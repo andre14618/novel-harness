@@ -17,8 +17,12 @@ export const pipeline = {
   // the same BeatContext. No V1 prose, no critique — pure re-sampling.
   // Motivated by the 2026-04-21 rewrite-capability-probe result: the writer
   // LoRA doesn't meaningfully rewrite V1+critique, but it CAN redraft from
-  // scratch. Default false; enable per-novel via pipeline override for
-  // measurement runs.
+  // scratch. Default off; enable per-novel via `seed.pipelineOverrides`
+  // (written by the `--quality-redraft` CLI flag or the orchestrator's
+  // novel-creation endpoint). Env-var wiring removed 2026-04-21 — a
+  // module-load-time process.env read couldn't be scoped per-novel under
+  // the orchestrator service, so a measurement run could silently flip the
+  // flag for every subsequent novel.
   qualityRedraftEnabled: false,
   qualityRedraftMinWords: 100,  // underlength threshold for the detector
 

@@ -17,6 +17,7 @@
  *   --auto                Auto-approve all gates
  *   --resume <novelId>    Resume existing novel
  *   --batch               Use batch API for judging
+ *   --quality-redraft     Enable per-beat quality-defect redraft gate (per-novel)
  *
  * Env var fallbacks (for CI/remote execution):
  *   BENCHMARK_SEEDS  → --seeds
@@ -54,6 +55,8 @@ export interface RunConfig {
   resumeId: string | null
   /** Use batch API. */
   batch: boolean
+  /** Enable per-beat quality-defect redraft gate on this run. */
+  qualityRedraft: boolean
 }
 
 let _config: RunConfig | null = null
@@ -82,6 +85,7 @@ export function getRunConfig(): RunConfig {
     auto: hasFlag("--auto"),
     resumeId: arg("--resume") ?? null,
     batch: hasFlag("--batch"),
+    qualityRedraft: hasFlag("--quality-redraft"),
   }
 
   return _config
@@ -103,6 +107,7 @@ export function logRunConfig(config: RunConfig): void {
   if (config.sourceRun) parts.push(`Source run: ${config.sourceRun}`)
   if (config.auto) parts.push("Auto mode")
   if (config.batch) parts.push("Batch mode")
+  if (config.qualityRedraft) parts.push("Quality-redraft gate: ON")
   if (config.resumeId) parts.push(`Resume: ${config.resumeId}`)
   console.log(`  Config: ${parts.join(" | ")}`)
 }

@@ -3,8 +3,14 @@ import { collectSeedInput, closeInput, setAutoMode, setResolverMode } from "./cl
 import { getMode } from "./gates"
 import { runNovel } from "./state-machine"
 import { initNovelRun } from "./logger"
-import { getRunConfig, logRunConfig } from "./config/run"
+import { getRunConfig, logRunConfig, type RunConfig } from "./config/run"
 import type { SeedInput } from "./types"
+
+function applyRunOverrides(seed: SeedInput, config: RunConfig): void {
+  if (config.qualityRedraft) {
+    seed.pipelineOverrides = { ...(seed.pipelineOverrides ?? {}), qualityRedraftEnabled: true }
+  }
+}
 
 async function loadSeed(name: string): Promise<SeedInput> {
   const path = new URL(`./seeds/${name}.json`, import.meta.url).pathname
@@ -40,6 +46,7 @@ async function main() {
   } else if (config.auto) {
     const seed = await loadSeed(config.seed)
     if (config.chapters) seed.chapterCount = config.chapters
+    applyRunOverrides(seed, config)
 
     novelId = `novel-${Date.now()}`
     await initDB(novelId)
@@ -50,6 +57,7 @@ async function main() {
   } else {
     const seed = await collectSeedInput()
     if (config.chapters) seed.chapterCount = config.chapters
+    applyRunOverrides(seed, config)
 
     novelId = `novel-${Date.now()}`
     await initDB(novelId)
