@@ -31,6 +31,7 @@ import db from "../../src/db/connection"
 import { getChapterOutline } from "../../src/db/outlines"
 import { getCharacters, getWorldBible } from "../../src/db/world"
 import { createTuningExperiment, concludeExperiment } from "../../src/db/ops"
+import { initExperimentRun } from "../../src/logger"
 import { executeAndLog } from "../../src/llm"
 import { checkHallucUngrounded } from "../../src/agents/halluc-ungrounded"
 import { getTokenCost } from "../../src/models/registry"
@@ -218,6 +219,12 @@ async function main() {
       },
     )
     console.log(`[arm-d] created experiment #${experimentId}`)
+  }
+
+  // Persist llm_calls per Codex consult `a67d200f4fe05168a` (2026-04-21).
+  if (experimentId !== null) {
+    const runId = await initExperimentRun(experimentId, "eval", args.setName, `arm-d-writer-upgrade ${args.setName}`)
+    console.log(`[arm-d] initialized run #${runId} (llm_calls persistence enabled)`)
   }
 
   let totalCost = 0

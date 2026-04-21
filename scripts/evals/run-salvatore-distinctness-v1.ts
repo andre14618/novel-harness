@@ -4,6 +4,7 @@ import { createHash } from "node:crypto"
 import { mkdir, readFile, writeFile } from "node:fs/promises"
 import path from "node:path"
 import { createTuningExperiment } from "../../src/db/ops"
+import { initExperimentRun } from "../../src/logger"
 import { executeAndLog, extractJSON, type ProviderName } from "../../src/llm"
 
 type CharacterName =
@@ -796,6 +797,10 @@ export async function runSalvatoreDistinctnessEval(args: ParsedArgs): Promise<{ 
     { target: "salvatore-distinctness-conditioning-floor", dimension: "conditioning" }
   )
   console.log(`exp_id=${expId}`)
+
+  // Persist llm_calls per Codex consult `a67d200f4fe05168a` (2026-04-21).
+  const runId = await initExperimentRun(expId, "eval", `distinctness-${armA.label}-vs-${armB.label}`, `salvatore-distinctness-v1 ${armA.label} vs ${armB.label}`)
+  console.log(`[distinctness] initialized run #${runId} (llm_calls persistence enabled)`)
 
   const [armACorpus, armBCorpus] = await Promise.all([
     generateArmCorpus(armA, beatsToGenerate, voiceCards),

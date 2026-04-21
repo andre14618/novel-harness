@@ -25,6 +25,7 @@ import { readFile } from "node:fs/promises"
 import path from "node:path"
 import db from "../../src/db/connection"
 import { createTuningExperiment, concludeExperiment } from "../../src/db/ops"
+import { initExperimentRun } from "../../src/logger"
 import { executeAndLog } from "../../src/llm"
 import { getTokenCost } from "../../src/models/registry"
 import { getAblationArms, type ArmConfig } from "../../src/agents/writer/voice-shaping-prompts"
@@ -214,6 +215,15 @@ async function main() {
       },
     )
     console.log(`[voice-shaping] created experiment #${experimentId}`)
+  }
+
+  // Initialize a run row so executeAndLog persists llm_calls with
+  // run_id → runs.experiment_id (FK chain per sql/003). Without this,
+  // llm_calls rows are silently dropped — see Codex consult
+  // `a67d200f4fe05168a` (2026-04-21).
+  if (experimentId !== null) {
+    const runId = await initExperimentRun(experimentId, "eval", args.setName, `voice-shaping-ablation-v1 ${args.setName}`)
+    console.log(`[voice-shaping] initialized run #${runId} (llm_calls persistence enabled)`)
   }
 
   let totalCost = 0

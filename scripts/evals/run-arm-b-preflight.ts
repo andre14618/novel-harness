@@ -37,6 +37,7 @@ import { getCharacters, getWorldBible } from "../../src/db/world"
 import { getCharacterStatesAtChapter } from "../../src/db/character-states"
 import { getFactsUpToChapter } from "../../src/db/facts"
 import { createTuningExperiment, concludeExperiment } from "../../src/db/ops"
+import { initExperimentRun } from "../../src/logger"
 import { executeAndLog } from "../../src/llm"
 import { checkHallucUngrounded } from "../../src/agents/halluc-ungrounded"
 import {
@@ -346,6 +347,12 @@ async function main() {
       },
     )
     console.log(`[preflight] created experiment #${experimentId}`)
+  }
+
+  // Persist llm_calls per Codex consult `a67d200f4fe05168a` (2026-04-21).
+  if (experimentId !== null) {
+    const runId = await initExperimentRun(experimentId, "eval", args.setName, `arm-b-preflight ${args.setName}`)
+    console.log(`[preflight] initialized run #${runId} (llm_calls persistence enabled)`)
   }
 
   const allResults: Array<{ armA: PerBeatResult; armB: PerBeatResult; enrichedBytes: number }> = []
