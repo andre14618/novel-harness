@@ -1,11 +1,21 @@
 ---
 status: active
-updated: 2026-04-19c
+updated: 2026-04-21
 ---
 
 # To Do
 
 Pending action items only. Ordered by impact. Completed items and decision rationale live in `docs/decisions.md`.
+
+## Current Priorities (2026-04-21)
+
+### NEW — Post-session items (2026-04-21)
+
+- [ ] **Measure `qualityRedraftEnabled` in production.** Novel PID 315593 is running on LXC as of 2026-04-21. After completion, query `llm_calls` for redraft-triggered beats (agent='beat-writer', attempt>1 where prior attempt was a redraft) and measure whether redraft prose passes adherence on first attempt vs retried prose from standard retry path. Decision gate: if redraft-pass rate ≥ standard-retry-pass rate on matched beats, flip flag ON by default. See `docs/decisions.md` "quality-redraft gate" and commit `893bb26`.
+- [ ] **rewrite-capability-probe charter: round-2 re-review or formal withdrawal.** Charter (`docs/charters/rewrite-capability-probe.md`) got a round-1 RED verdict (commit `d36bfae`). Session context: the rigorous probe (commit `eb3e7c8`) provided the decisive evidence that was needed. The directional signal (LoRA cannot rewrite with critique) is now clear enough to consider the charter's research question answered, making round-2 review optional. Options: (a) write a brief "verdict: answered" addendum to the charter and close, or (b) run round-2 re-review focused only on whether the redraft-gate design adequately addresses the probe's findings. Decision call for next session.
+- [ ] **`salvatore-v5-corpus-expansion` charter.** Per the conditioning-floor KILL decision (commit `639712e`, `docs/decisions.md`), corpus expansion is the next lever for multi-character distinctness. Pre-gate: PDF acquisition for 3–5 additional Salvatore novels beyond the Icewind Dale Trilogy. Charter should follow Option D from `docs/todo.md` "Salvatore voice LoRA" section (expand corpus → train v5 → measure distinctness before adding archetype tags).
+- [ ] **Context-engineering priority items (from CLAUDE.md strategic direction).** Session set the direction: context engineering + editing passes + writer-model upgrade over more conditioning tricks. Specific items: (a) `speaker_directives` per beat (V1b — gated on completed 4-arm V1a pilot), (b) reader-information state tracker, (c) world-expansion budget per chapter. See §3 and §4 below.
+- [ ] **Concurrent-Codex invocation research (low priority).** The `codex exec` subprocess pool hung on the conditioning-floor cross-judge run (16+ min, zero returns). Investigate whether a Codex CLI flag or wrapper pattern enables safe sequential-batch invocation for eval automation, or confirm Agent subagents are the only safe parallel path. See `docs/lessons-learned.md` "codex exec does not compose under concurrency."
 
 ## Current Priorities (2026-04-18)
 
