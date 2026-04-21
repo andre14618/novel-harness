@@ -1,10 +1,11 @@
 ---
-status: proposed
+status: approved
 kind: experiment-charter
 name: arm-b-detector-preflight
 owner: andre
 date: 2026-04-21
-revision: 6 (post-Codex-YELLOW round 5 — 2026-04-21)
+revision: 6 (Codex GREEN round 6 — 2026-04-21)
+approved: 2026-04-21 (Codex `/codex:adversarial-review` round 6, job `a1bce27f1ac39e95b`)
 ---
 
 # Experiment Charter — `arm-b-detector-preflight`
@@ -550,7 +551,7 @@ and GO/CAUTION/NO-GO thresholds that were not in the verdict text.
 | `/codex:adversarial-review` (GPT) — round 3 | YELLOW | 2026-04-21 | Job `a233169484d5102a1`. Two residual blockers: (1) band-value inconsistency — §7 has 12.5/25pt bands but §1 says "within 10pt", §3 references "±10pt band" and "10–15pt band", §5 still says "enough for a 10pt band". A `-12.4pt` result is simultaneously GO (§7) and "not within 10pt" (§1). Fix: align every band reference to 12.5pt/25pt. (2) Parity underspecifies resolver replay — `buildBeatContext` takes `preResolvedRefs` as input (drafting.ts:282), so if Arm A re-runs `buildBeatContext` without archived `preResolvedRefs`, `resolveReferences()` may call LLM fallback (non-deterministic). Also §6 identifies refs section as "position-with-no-header" but `reference-resolver.ts:150` actually emits a `BACKGROUND:` header. Fix: archive + replay `preResolvedRefs` + `compactMode` + writer-pack inputs; identify refs section by `BACKGROUND:`; confirm system/model/provider/temperature/maxTokens/response_format are also checked per §4.7. Named counterfactual: offline archival parity dry-run + fire-prior audit (~$0). |
 | `/codex:adversarial-review` (GPT) — round 4 | YELLOW | 2026-04-21 | Job `ac683bf10b86afc5c`. One residual blocker: §6 claimed `preResolvedRefs` was recoverable from `llm_calls.request_json`, but `requestEnvelopeForLog` (`src/llm.ts:197`) strips prompt fields before persistence — they go to `system_prompt` / `user_prompt` columns only. Fix: reframe Arm A as byte-replay of stored `user_prompt` bytes; Arm B constructs by inserting ENRICHED CONTEXT section into the recovered `sections[]`. Warning: `buildBeatContext` calls `getRelationshipBetween()` in non-compact mode (`beat-context.ts:286`) — moot under byte-replay since `buildBeatContext` is never re-executed. Named counterfactual: offline archival parity dry-run (~$0) — now adopted as a mandatory preflight-to-the-preflight in revision 5. |
 | `/codex:adversarial-review` (GPT) — round 5 | YELLOW | 2026-04-21 | Job `ab8e849aa0e16739c`. Two residual blockers — both my own cleanup failures in revision 5: (1) §6 still contained leftover "import `buildBeatContext` and compare `_sections`" language from revision 4, contradicting the new byte-replay contract below. (2) Dry-run archived only "signature (headers + byte lengths + SHA-256)" but Arm B construction + byte-equality assertion require the full section strings. Also: 30% unrecoverable abort threshold is heuristic; Codex flagged that per §11.6 any non-trivial miss rate on a post-`sql/017` novel should be treated as schema-drift evidence, not averaged over. Codex explicitly confirms the byte-replay substrate is correct — blockers are cleanup, not structural. |
-| `/codex:adversarial-review` (GPT) — round 6 | — | — | (pending) |
+| `/codex:adversarial-review` (GPT) — round 6 | **GREEN** | 2026-04-21 | Job `a1bce27f1ac39e95b`. Both round-5 blockers resolved. Two non-blocking warnings: (a) N=8 fire floor still has writer-sampling noise; results near the −12.5pt boundary should be written up as edge-of-resolution rather than strong evidence (acknowledged in §7 — bands quantized to floor). (b) §6 restates the runtime parity invariant twice (editorial duplication, consistent — not a structural conflict). **Recommendation: PROCEED WITH RUN.** |
 | `experiment-adversary` (Opus) — fallback only | — | — | — |
 
 Block run on YELLOW or RED. Iterate the charter, not the run. If
