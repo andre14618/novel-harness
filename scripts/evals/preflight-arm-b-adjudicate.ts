@@ -55,8 +55,27 @@ interface EvalResultRow {
   beat_id: string
   cell_label: Arm
   generated_prose: string | null
-  actual_label_json: { pass: boolean; issues: string[] } | null
+  /**
+   * JSONB column; Bun's postgres driver returns it as a STRING that needs
+   * JSON.parse, not as an already-parsed object. Normalize via
+   * `parseLabelJson` before inspecting the `pass` field.
+   */
+  actual_label_json: string | { pass: boolean; issues: string[] } | null
   error_text: string | null
+}
+
+function parseLabelJson(
+  raw: EvalResultRow["actual_label_json"],
+): { pass: boolean; issues: string[] } | null {
+  if (raw === null || raw === undefined) return null
+  if (typeof raw === "string") {
+    try {
+      return JSON.parse(raw)
+    } catch {
+      return null
+    }
+  }
+  return raw
 }
 
 interface PacketMapping {
@@ -218,7 +237,8 @@ function renderPacket(
   row: EvalResultRow,
   isFire: boolean,
 ): string {
-  const issues = row.actual_label_json?.issues ?? []
+  const parsed = parseLabelJson(row.actual_label_json)
+  const issues = parsed?.issues ?? []
   const kind = isFire ? "FIRE" : "NON-FIRE (FN audit sample)"
   const lines: string[] = []
   lines.push(`### Packet ${packetId}`)
@@ -255,12 +275,14 @@ async function runEmit(
   }
   console.log(`[emit] loaded ${rows.length} eval_results rows`)
 
-  // Partition
-  const fires = rows.filter(
-    r => r.actual_label_json && !r.actual_label_json.pass && !r.error_text,
+  // Partition. JSONB comes back as a STRING from the pg driver (even though
+  // the column type is jsonb), so we parse up front.
+  const parsedRows = rows.map(r => ({ ...r, parsed: parseLabelJson(r.actual_label_json) }))
+  const fires = parsedRows.filter(
+    r => r.parsed !== null && !r.parsed.pass && !r.error_text,
   )
-  const nonFires = rows.filter(
-    r => r.actual_label_json && r.actual_label_json.pass && !r.error_text,
+  const nonFires = parsedRows.filter(
+    r => r.parsed !== null && r.parsed.pass && !r.error_text,
   )
   const firesA = fires.filter(r => r.cell_label === "A-baseline")
   const firesB = fires.filter(r => r.cell_label === "B-enriched")

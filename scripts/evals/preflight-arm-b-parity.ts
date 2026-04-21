@@ -60,7 +60,11 @@ interface LlmCallRow {
   beat_index: number
   system_prompt: string | null
   user_prompt: string | null
-  request_json: Record<string, unknown>
+  model: string | null
+  provider: string | null
+  temperature: number | null
+  max_tokens: number | null
+  request_json: string | null  // stored as TEXT, not JSONB — must JSON.parse
 }
 
 interface ArchivedBaseline {
@@ -95,19 +99,24 @@ const ENVELOPE_FIELD_NAMES = [
 
 // ── Helpers ───────────────────────────────────────────────────────────
 
-function extractEnvelope(request_json: Record<string, unknown>): EnvelopeFields {
+function extractEnvelope(row: LlmCallRow): EnvelopeFields {
+  // Dedicated columns are the source of truth for model/provider/temperature/
+  // max_tokens. `request_json` is stored as TEXT (not JSONB) so we parse it
+  // only to recover `responseFormat`, which has no dedicated column.
+  let parsedRequest: Record<string, unknown> = {}
+  if (row.request_json) {
+    try {
+      parsedRequest = JSON.parse(row.request_json) as Record<string, unknown>
+    } catch {
+      // corrupted row — leave responseFormat as null
+    }
+  }
   return {
-    model: String(request_json.model ?? ""),
-    provider: String(request_json.provider ?? ""),
-    temperature:
-      typeof request_json.temperature === "number"
-        ? (request_json.temperature as number)
-        : null,
-    maxTokens:
-      typeof request_json.maxTokens === "number"
-        ? (request_json.maxTokens as number)
-        : null,
-    responseFormat: request_json.responseFormat ?? null,
+    model: row.model ?? "",
+    provider: row.provider ?? "",
+    temperature: row.temperature,
+    maxTokens: row.max_tokens,
+    responseFormat: parsedRequest.responseFormat ?? null,
   }
 }
 
@@ -136,7 +145,8 @@ export type { EnvelopeFields }
 
 async function loadBeatRow(llmCallId: number): Promise<LlmCallRow> {
   const rows = await db<LlmCallRow[]>`
-    SELECT id, novel_id, chapter, beat_index, system_prompt, user_prompt, request_json
+    SELECT id, novel_id, chapter, beat_index, system_prompt, user_prompt,
+           model, provider, temperature, max_tokens, request_json
     FROM llm_calls
     WHERE id = ${llmCallId}
     LIMIT 1
@@ -350,7 +360,7 @@ export async function checkBeatParity(
     // reused verbatim. Compare against baseline to detect mid-run drift.
     liveSystemPrompt: row.system_prompt,
     baselineSystemPrompt: baselineBeat.system_prompt,
-    liveEnvelope: extractEnvelope(row.request_json),
+    liveEnvelope: extractEnvelope(row),
     baselineEnvelope: baselineBeat.envelope,
   })
 }
@@ -397,7 +407,7 @@ async function runDryRun(
         sections,
         signature: computeSignature(sections),
         system_prompt: row.system_prompt,
-        envelope: extractEnvelope(row.request_json),
+        envelope: extractEnvelope(row),
       })
     } catch (e) {
       dropped++
