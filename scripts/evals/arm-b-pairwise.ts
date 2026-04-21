@@ -51,7 +51,13 @@ import db from "../../src/db/connection"
 
 // ── Types ──────────────────────────────────────────────────────────────
 
-type Arm = "A-baseline" | "B-enriched"
+// Arm label is the `cell_label` column of eval_results. Two arm-label
+// strings are expected per set; the emitter auto-detects which two are
+// present and pairs them. The pair convention is "left-arm vs right-arm"
+// where the two are sorted alphabetically (so A-baseline < B-enriched,
+// A-salvatore-v4 < D-deepseek-v3.2, etc.) — this is purely for
+// deterministic naming; the arm identity is hypothesis-masked in packets.
+type Arm = string
 type VersionPos = "1" | "2"
 type PairwiseLabel = "VERSION-1-WINS" | "VERSION-2-WINS" | "TIE" | ""
 
@@ -279,9 +285,12 @@ function renderPacket(
   mapping: PacketMapping,
   proseByEvalId: Map<number, string>,
   isRetest: boolean,
+  labelA: Arm,
 ): string {
+  // eval_result_id_a always corresponds to labelA; eval_result_id_b to labelB.
+  // Pick the id for whichever arm is shown as Version 1.
   const v1EvalId =
-    mapping.version_1_is === "A-baseline"
+    mapping.version_1_is === labelA
       ? mapping.eval_result_id_a
       : mapping.eval_result_id_b
   const v2EvalId = v1EvalId === mapping.eval_result_id_a
@@ -322,13 +331,25 @@ async function runEmit(setName: string, outDir: string): Promise<void> {
     process.exit(2)
   }
 
-  // Group by beat_id; keep only beats with both A and B present with prose and no errors
+  // Auto-detect the two arm labels present in this set. For the charter
+  // to be valid, exactly TWO distinct cell_labels must appear (e.g.,
+  // A-baseline / B-enriched for arm-b-direct-pairwise; A-salvatore-v4 /
+  // D-deepseek-v3.2 for arm-d-writer-upgrade).
+  const distinctLabels = [...new Set(rows.map(r => r.cell_label))].sort()
+  if (distinctLabels.length !== 2) {
+    console.error(`[emit-pairwise] expected exactly 2 cell_labels in set ${setName}; found ${distinctLabels.length}: ${distinctLabels.join(", ")}`)
+    process.exit(2)
+  }
+  const [labelA, labelB] = distinctLabels
+  console.log(`[emit-pairwise] detected arms: ${labelA} vs ${labelB}`)
+
+  // Group by beat_id; keep only beats with both arms present with prose and no errors
   const byBeat = new Map<string, { a?: EvalRow; b?: EvalRow }>()
   for (const r of rows) {
     if (!r.generated_prose || r.error_text) continue
     const entry = byBeat.get(r.beat_id) ?? {}
-    if (r.cell_label === "A-baseline") entry.a = r
-    else if (r.cell_label === "B-enriched") entry.b = r
+    if (r.cell_label === labelA) entry.a = r
+    else if (r.cell_label === labelB) entry.b = r
     byBeat.set(r.beat_id, entry)
   }
 
@@ -358,8 +379,8 @@ async function runEmit(setName: string, outDir: string): Promise<void> {
     return {
       packet_id: randomPacketId(),
       beat_id: b.beat_id,
-      version_1_is: aIsV1 ? "A-baseline" : "B-enriched",
-      version_2_is: aIsV1 ? "B-enriched" : "A-baseline",
+      version_1_is: aIsV1 ? labelA : labelB,
+      version_2_is: aIsV1 ? labelB : labelA,
       eval_result_id_a: b.a.id,
       eval_result_id_b: b.b.id,
       retest_of: null,
@@ -395,7 +416,7 @@ async function runEmit(setName: string, outDir: string): Promise<void> {
   )
   const calibrations: PacketMapping[] = calibSources.map((src, i) => {
     const kind: "A-vs-A" | "B-vs-B" = i < 3 ? "A-vs-A" : "B-vs-B"
-    const arm: Arm = kind === "A-vs-A" ? "A-baseline" : "B-enriched"
+    const arm: Arm = kind === "A-vs-A" ? labelA : labelB
     const evalId = kind === "A-vs-A" ? src.a.id : src.b.id
     return {
       packet_id: randomPacketId(),
@@ -415,7 +436,7 @@ async function runEmit(setName: string, outDir: string): Promise<void> {
 
   const mappingByPacket = new Map(allPackets.map(m => [m.packet_id, m]))
   const packetTexts = ordered.map(p =>
-    renderPacket(p.packet_id, mappingByPacket.get(p.packet_id)!, proseByEvalId, !!p.retest_of),
+    renderPacket(p.packet_id, mappingByPacket.get(p.packet_id)!, proseByEvalId, !!p.retest_of, labelA),
   )
 
   // Insert a visible mid-run break marker after the 12th non-calibration
@@ -475,7 +496,13 @@ async function runEmit(setName: string, outDir: string): Promise<void> {
   await writeFile(path.resolve(outDir, "labels.tsv"), tsv + "\n")
   await writeFile(
     path.resolve(outDir, "mapping.json"),
-    JSON.stringify({ set_name: setName, packets: allPackets, ordered_packet_ids: ordered.map(p => p.packet_id) }, null, 2),
+    JSON.stringify({
+      set_name: setName,
+      arm_a_label: labelA,
+      arm_b_label: labelB,
+      packets: allPackets,
+      ordered_packet_ids: ordered.map(p => p.packet_id),
+    }, null, 2),
   )
   console.log(`[emit-pairwise] wrote ${ordered.length} packets to ${outDir}`)
 }
@@ -487,9 +514,24 @@ async function runIngest(bundleDir: string): Promise<void> {
   const mappingText = await readFile(path.resolve(bundleDir, "mapping.json"), "utf8")
   const mappingFile = JSON.parse(mappingText) as {
     set_name: string
+    arm_a_label?: Arm   // present in bundles emitted after 2026-04-21
+    arm_b_label?: Arm
     packets: PacketMapping[]
     ordered_packet_ids: string[]
   }
+  // Backward-compat: older bundles (e.g. arm-b-direct-pairwise-v1)
+  // didn't persist arm labels in mapping.json; derive from the packets'
+  // version_1_is / version_2_is values.
+  const labelSet = new Set<Arm>()
+  for (const p of mappingFile.packets) {
+    labelSet.add(p.version_1_is)
+    labelSet.add(p.version_2_is)
+  }
+  const allLabels = [...labelSet].sort()
+  const labelA = mappingFile.arm_a_label ?? allLabels[0]
+  const labelB = mappingFile.arm_b_label ?? allLabels[1]
+  console.log(`[ingest-pairwise] arms: ${labelA} (Arm A / first-sorted) vs ${labelB} (Arm B / second-sorted)`)
+
   const labels = parsePairwiseLabelsTsv(labelsText)
   const labelByPacket = new Map(labels.map(l => [l.packet_id, l]))
   const mappingByPacket = new Map(mappingFile.packets.map(p => [p.packet_id, p]))
@@ -542,7 +584,7 @@ async function runIngest(bundleDir: string): Promise<void> {
     // binomial test
     const winner = winnerArm(p, label)
     if (winner === "TIE") ties++
-    else if (winner === "A-baseline") aWins++
+    else if (winner === labelA) aWins++
     else bWins++
   }
 
