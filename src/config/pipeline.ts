@@ -12,6 +12,16 @@ export const pipeline = {
   maxChapterRewrites: 3,
   tonalPass: false,           // Auto-run disabled. Howard primer/tonal-pass methodology retired 2026-04-16; voice now lands at generation time via per-genre voice LoRAs (see WRITER_GENRE_PACKS). On-demand /api/novel/:id/tonal-pass route still works for existing novels.
 
+  // Quality redraft — when existing checkers pass but local quality detectors
+  // fire (repetition loops, underlength), force a no-critique redraft with
+  // the same BeatContext. No V1 prose, no critique — pure re-sampling.
+  // Motivated by the 2026-04-21 rewrite-capability-probe result: the writer
+  // LoRA doesn't meaningfully rewrite V1+critique, but it CAN redraft from
+  // scratch. Default false; enable per-novel via pipeline override for
+  // measurement runs.
+  qualityRedraftEnabled: false,
+  qualityRedraftMinWords: 100,  // underlength threshold for the detector
+
   // State management
   embeddings: false,          // skip embedding step (beat path uses deterministic DB lookups)
 

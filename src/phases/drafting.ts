@@ -16,6 +16,7 @@ import { buildContext as buildWriterContext } from "../agents/writer/context"
 import { buildBeatContext } from "../agents/writer/beat-context"
 import { resolveReferences } from "../agents/writer/reference-resolver"
 import { buildRetryPrompt } from "../agents/writer/retry-context"
+import { detectSyncDefects } from "../lint/quality-detectors"
 import { runBeatChecks, summarizeIssues } from "./beat-checks"
 import { checkContinuity } from "../agents/continuity/check"
 import { buildContext as buildChapterPlanCheckContext } from "../agents/chapter-plan-checker/context"
@@ -332,16 +333,41 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                   prevBeat: bi > 0 ? outline.scenes[bi - 1] : undefined,
                   tags: { novelId, chapter: ch, beatIndex: bi, attempt: retry + 1 },
                 })
-                if (checks.pass || retry === pipeline.maxBeatRetries) {
+                // Quality defects (repetition / underlength) detected AFTER existing
+                // checker pipeline. Motivated by 2026-04-21 rewrite-capability-probe:
+                // the Salvatore LoRA doesn't meaningfully rewrite V1+critique, but
+                // it can redraft from scratch. When quality defects fire AND existing
+                // checks passed, the next retry iteration uses the pure-redraft path
+                // (no V1, no critique) by clearing previousProse/previousIssues.
+                // Default disabled; opt-in via pipeline.qualityRedraftEnabled.
+                const qualityDefects = pipeline.qualityRedraftEnabled
+                  ? detectSyncDefects(prose, { minWords: pipeline.qualityRedraftMinWords })
+                  : []
+                const hasQualityDefect = qualityDefects.length > 0
+
+                if ((checks.pass && !hasQualityDefect) || retry === pipeline.maxBeatRetries) {
                   beatProse = prose
                   if (!checks.pass) {
                     log(novelId, "warn", `Beat ${bi + 1} issues accepted after max retries: ${summarizeIssues(checks.issues)}`)
+                  } else if (hasQualityDefect) {
+                    log(novelId, "warn", `Beat ${bi + 1} quality defect(s) accepted after max retries: ${qualityDefects.map(d => d.kind).join(",")}`)
                   }
                   break
                 }
-                previousProse = prose
-                previousIssues = checks.retryLines
-                log(novelId, "info", `Beat ${bi + 1} retry ${retry + 1}: ${summarizeIssues(checks.issues)}`)
+
+                if (!checks.pass) {
+                  // Existing retry-with-critique path — same as before.
+                  previousProse = prose
+                  previousIssues = checks.retryLines
+                  log(novelId, "info", `Beat ${bi + 1} retry ${retry + 1}: ${summarizeIssues(checks.issues)}`)
+                } else {
+                  // Quality-defect redraft path — no V1, no critique. Next loop
+                  // iteration's buildRetryPrompt short-circuits to vanilla
+                  // beatCtx.userPrompt (since previousIssues is empty).
+                  previousProse = null
+                  previousIssues = []
+                  log(novelId, "info", `Beat ${bi + 1} retry ${retry + 1} (quality redraft): ${qualityDefects.map(d => d.kind).join(",")}`)
+                }
               } catch (err) {
                 log(novelId, "warn", `Beat ${bi + 1} attempt ${retry + 1} failed: ${err instanceof Error ? err.message : err}`)
               }
