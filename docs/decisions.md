@@ -2144,3 +2144,25 @@ Current convention is the delete-and-log rule above. The archive dir + README we
 - H2 (profile-field rotation) stays deferred; the runtime has no preset-indexed profile representation, and H1 failed.
 - `docs/experiment-design-rules.md §4.7` (parity-harness SOP) stays; the conditioning-floor harness remains the canonical implementation and was validated end-to-end on this pilot.
 - Nine rounds of adversarial review (§10.1-§10.9 in the charter) produced a clean, measurable KILL verdict — the investment in the review cycle was substantial but the experiment is interpretable because of it.
+
+### Salvatore v4 LoRA cannot rewrite with critique — quality-redraft gate ships instead
+*2026-04-21 · commits `893bb26` (gate), `eb3e7c8` (rigorous probe)*
+
+**Decision:** The "targeted-critique rewrite" path — giving the adapter V1 prose plus a structured critique and asking it to improve — does not work for the Salvatore v4 LoRA. The gate design collapses accordingly: detect quality defects, then trigger a **no-critique redraft** (same writer, fresh sampling, no V1 prose in context). Shipped behind `pipeline.qualityRedraftEnabled` flag, default OFF. Detector lives in `src/lint/quality-detectors.ts` (repetition + underlength; 24 unit tests). Gate wired into `src/phases/drafting.ts` via `detectSyncDefects`.
+
+**Why:** two probes falsified the rewrite hypothesis:
+1. **Exploratory probe** (`scripts/evals/run-rewrite-probe-rigorous.ts`, ea74d90) — hand-built retry shape; adapter produced near-verbatim V1 prose.
+2. **Rigorous probe** (`eb3e7c8`) — used the production `buildRetryPrompt()` path (now extracted to `src/agents/writer/retry-context.ts`, commit `3c5313d`). Results: 8/20 pairs byte-verbatim V1, 11/20 near-match, 1/20 genuinely different. The **production retry shape was worse for rewrite** than the hand-built shape — feeding V1 prose as context strongly anchors the adapter to it.
+
+The probe falsifies the assumption behind targeted-critique rewriting for LoRA-generated beats. The adapter can produce fresh prose (it generates beat-0 cleanly from blank context) but cannot escape a V1 anchor.
+
+**Alternatives rejected:**
+- **Add more critique structure** — rejected. The structural critique is not the bottleneck; the V1 prose anchor is. More structure would not remove V1 from context.
+- **Strip V1 prose from the retry prompt** — this *is* the quality-redraft design. Rather than a workaround, it's a first-class path.
+- **Use a non-LoRA model for rewrites** — future option, not current scope; the redraft-from-scratch path avoids needing a separate model.
+
+**Ongoing implications:**
+- The `qualityRedraftEnabled` flag is default OFF. A measurement run (novel PID 315593 on LXC as of 2026-04-21) will determine whether redraft-from-scratch improves output quality in production before the flag is turned on by default.
+- Three-layer doctrine challenged by Codex independent evaluation (jobs `bre6gu89b`, `bsbwl0v3g`): the "voice lives only in weights, editors cannot add craft" claim was flagged as architecturally inconsistent with cross-layer feedback routing already in the system. The redraft gate is itself a context-engineering intervention that crosses the writing/checking boundary. Doctrine is **not retracted** but the blanket "don't cross streams" framing overstates the separation.
+- `src/lint/quality-detectors.ts` is now a production module (repetition, underlength). Future quality signals go here.
+- `src/agents/writer/retry-context.ts` is the canonical location for retry-prompt construction (extracted from drafting.ts inline logic, commit `3c5313d`).
