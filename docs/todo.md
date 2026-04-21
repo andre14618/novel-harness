@@ -447,10 +447,18 @@ The chat UI is a reusable shell; the question is *where in the pipeline* it plug
   - Transcript persisted per gate event for audit / daemon training data
 - **Risk**: high. Every agent site that calls `callAgent` needs to accept/route steering. Steering can contradict already-persisted `planned_state`, so drafting-phase steering may need partial plan invalidation. Defer until #1 and #2 have validated the chat UX.
 
-## Autoresearcher / Daemon
+## Autonomous Improvement Loop (post-daemon)
 
-- **Rename daemon → autoresearcher** across codebase.
-- **Refocus on structured quality signals** — adherence pass rates, plan check rates, lint counts, extraction precision/recall. Remove all LLM judge and embedding-related optimization targets.
+Old `Improvement Daemon` deleted. Replacement in progress on the
+`autonomous-harness-loop` branch. See `docs/designs/autonomous-context-loop.md`
+(revision 2, Codex-reviewed) and `docs/harness-optimization-inventory.md`
+(revision 2, Codex-amended). Phase 0 gating work tracked in
+`scripts/autonomous-loop/README.md` "Prerequisites" section:
+
+- Migrate 4 env-var writer overrides to `seed.pipelineOverrides.*`
+- Build the calibration-substrate drift detector
+- Run Codex's cheapest-counterfactual: 5-chapter planner-only A/B
+- Build held-out 10-beat replay set on a second novel
 
 ## Local Apple Silicon Inference (Tier 4 Evaluation)
 

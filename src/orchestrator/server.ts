@@ -3,7 +3,6 @@
  *
  * Runs on LXC 307 (port 3006). Combines:
  * - Batch API polling (every 30 min)
- * - Improvement daemon (manual trigger only)
  * - Dashboard (HTML status page)
  * - REST API for status queries
  *

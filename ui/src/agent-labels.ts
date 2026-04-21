@@ -37,8 +37,8 @@ const SHORT_LABELS: Record<string, string> = {
   // Prose polish
   "lint-fixer": "Lint",
   "tonal-pass": "Tonal Pass",
-  // Improvement daemon
-  "improver": "Improver",
+  // Lint research (offline scripts only)
+  "improver": "Lint Research",
 }
 
 /** Verb-first phrasing for the activity feed. Reads as a status line. */

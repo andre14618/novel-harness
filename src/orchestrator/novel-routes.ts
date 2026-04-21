@@ -148,7 +148,7 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
         beatSupport: { label: "Beat Support", description: "Cheap/fast structural tasks for beat-level writing", agents: ["reference-resolver", "adherence-events"] },
         validators: { label: "Validators", description: "Plan adherence, hallucination, and continuity checks", agents: ["chapter-plan-checker", "halluc-ungrounded", "halluc-leak-salvatore", "continuity-facts", "continuity-state"] },
         lintTonal: { label: "Lint & Tonal", description: "AI-tell detection and style transfer", agents: ["lint-fixer", "tonal-pass"] },
-        improvement: { label: "Improvement", description: "Autonomous prompt tuning daemon", agents: ["improver"] },
+        lintResearch: { label: "Lint Research", description: "Offline lint-pattern tooling (scripts/lint/*). Not in the pipeline; kept for lint-discoverer/lint-improver scripts.", agents: ["improver"] },
       }
 
       // Effective assignments (static + overrides merged)

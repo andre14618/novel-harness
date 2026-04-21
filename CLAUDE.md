@@ -107,24 +107,18 @@ Quality measured via structured pass/fail checks, not LLM scoring (1-10 judges s
 
 Archived benchmarks (infrastructure kept): context quality, prose penalties, planning scores, extraction scores, pairwise comparison. The continuity benchmark and `cross-chapter-continuity` agent were removed in 2026-04 (the per-chapter `continuity` checker subsumes that role).
 
-### Improvement Daemon
-`src/orchestrator/daemon-loop.ts` — autonomous improvement loop:
-1. Diagnose weakest dimension (`src/harness/scores.ts`)
-2. Build improver context (`src/orchestrator/improve.ts` → `src/harness/`)
-3. Propose change via LLM (improver agent)
-4. Benchmark → evaluate → keep/revert
-5. Synthesize conclusion for future cycles
+### Autonomous Improvement Loop — status 2026-04-21
 
-All daemon data access goes through `src/harness/` service layer. No inline SQL in daemon code.
+**The old `Improvement Daemon` (`src/orchestrator/daemon-loop.ts` + `src/orchestrator/improve.ts`) has been deleted.** It predated the planner-split, beat-level context, voice-LoRA track, quality-redraft gate, and the decomposed-audit instrument — its knob space covered only the legacy retrieval/context-template/gen-config surfaces, which are now mostly inactive (`pipeline.embeddings=false`).
 
-**Optimization surfaces** (in `src/harness/registry.ts`):
-- Agent prompts for the live agents (concept, planning, writing, checking)
-- 6 deterministic causal parameters (`deterministic_config` table)
-- 6 context format templates (`context_templates` table — per-item rendering formats)
-- 8 generation parameters (`agent_generation_config` table — temperature/maxTokens per agent)
-- Model assignments (visible in registry, not daemon-tunable)
+Replacement in progress on the `autonomous-harness-loop` branch. See:
+- `docs/designs/autonomous-context-loop.md` — subsystem design (revision 2, Codex-reviewed)
+- `docs/harness-optimization-inventory.md` — the full tunable-surface catalog (revision 2, Codex-amended)
+- `scripts/autonomous-loop/` — driver scaffolding (skeleton, guarded off until Phase 0 prerequisites ship)
 
-The daemon rotates between prompt, config, and template proposals per iteration, using the component registry to discover surfaces per quality dimension.
+Forward-looking shape borrows Karpathy's autoresearch pattern: per-sub-loop target file, one-metric or Pareto-pair scoring, git-as-history, `program.md` for human strategy updates. Multi-proposer pool (Codex GPT-5.4 / Claude Opus / DeepSeek / Kimi) drives hypothesis proposal; deterministic Bun driver handles control flow + cost caps + kill-switch.
+
+**`src/harness/registry.ts`** remains as a static catalog of legacy tunable surfaces (retrieval, context templates, deterministic causal weights, gen-config). It is NOT the autonomous-loop knob space — that lives in `docs/harness-optimization-inventory.md` and spans the four-tier sub-loop decomposition (concept / planning / writing / checker). The registry is kept for the UI's Config page but is not load-bearing for the new loop.
 
 ### Web UI
 `ui/`, React + Vite, served at `/app`. Nav has 5 items — living pages are JSX with visuals; reference docs are markdown in the Docs browser:
@@ -203,9 +197,6 @@ ssh novel-harness-lxc "cd ~/apps/novel-harness && bun src/index.ts --auto --seed
 
 # Orchestrator (systemd service)
 ssh novel-harness-lxc "sudo systemctl status novel-harness-orchestrator"
-
-# Improvement daemon
-ssh novel-harness-lxc "curl -s -X POST http://localhost:3006/api/improvement/start -H 'x-api-key: <key>'"
 ```
 
 ## Key env vars

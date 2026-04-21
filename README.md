@@ -102,16 +102,9 @@ React SPA served at `/app` on the orchestrator (port 3006):
 | `/app/models` | Searchable model registry |
 | `/app/guide` | Architecture diagrams and pipeline docs |
 
-## Improvement Daemon
+## Autonomous Improvement Loop
 
-Autonomous improvement loop running on LXC via the orchestrator:
-1. Diagnose weakest quality dimension
-2. Build improver context from DB
-3. Propose change via LLM
-4. Run benchmark → evaluate → keep or revert
-5. Record conclusion for future cycles
-
-Start via: `curl -X POST http://novel-harness:3006/api/improvement/start -H 'x-api-key: <key>'`
+The original `Improvement Daemon` was deleted — its knob space only covered legacy retrieval/context-template surfaces that are now mostly inactive (`pipeline.embeddings=false`). Replacement is in progress on the `autonomous-harness-loop` branch borrowing the autoresearch pattern (Karpathy 2026). See `docs/designs/autonomous-context-loop.md` and `scripts/autonomous-loop/README.md`.
 
 ## Seeds
 

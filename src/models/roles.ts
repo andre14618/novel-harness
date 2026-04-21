@@ -125,7 +125,12 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // existing novels can still be re-voiced. Not invoked automatically.
   "tonal-pass":                { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/howard-tonal-v4-sft-resume:v8", temperature: 0.6, maxTokens: 2048 },
 
-  // ── Improvement daemon ──────────────────────────────────────────────
+  // ── Lint research (offline scripts only — NOT in the pipeline) ─────
+  // Used by scripts/lint/lint-discover.ts + scripts/lint/lint-discover-lib.ts
+  // for lint-pattern research. Retained from the (deleted) Improvement
+  // Daemon role; kept alive because the lint tooling imports it. When the
+  // autoresearch loop on the autonomous-harness-loop branch lands, this
+  // role may be repurposed or dropped.
   "improver":                  { ...deepseekV3, maxTokens: 8192 },
 }
 
