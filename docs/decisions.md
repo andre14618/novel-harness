@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-18
+updated: 2026-04-21
 ---
 
 # Decisions
@@ -2195,3 +2195,34 @@ The pivot is a **freeze**, not a retirement. The LoRA infrastructure (W&B Infere
 - **Retrospective `docs/retrospectives/2026-04-21-lora-track-evidence.md`** is now the canonical narrative of the pivot. This decision entry is the decision; the retrospective is the evidence/context.
 - **Product-identity implication (per Codex consult §4):** if voice-shaping fails to match the LoRA's voice quality, the harness's commercial differentiator shifts from "offline-capable Salvatore-voice imitation" to "planner/context/checker harness around an API writer." That re-framing is deferred to post-voice-shaping-ablation synthesis. Not decided yet.
 - **Howard primer V4 adapter on W&B** (retired for automatic routing 2026-04-16) remains available for the on-demand `POST /api/novel/:id/tonal-pass` endpoint. Unchanged by this pivot.
+
+---
+
+### tier-ordering-validation-v1 killed; 3-tier sequential ordering stays as working hypothesis
+*2026-04-21 · exp #264 · charter `docs/charters/tier-ordering-validation-v1.md` · results `docs/charters/tier-ordering-validation-v1-results.md` · retrospective `docs/sessions/2026-04-21-tier-ordering-probe.md`*
+
+**Decision:** The `tier-ordering-validation-v1` charter — commissioned to empirically test whether the autonomous-loop roadmap's Tier 1 (structural planning) and Tier 2 (writer quality) can be sequentially optimized or require parallel-coupled optimization — is fully killed across both lever versions. The 3-tier sequential ordering assumption is promoted from "to be validated" to "working hypothesis, revisit if Tier 1 winners collapse under Tier 2 writer swaps." The cheapest-untried-counterfactual probe space at chapter-scale is exhausted for this specific question.
+
+**Why:** The roadmap revision 2 (commit `db9d8f6`) landed an explicit 2×2 design to validate the tier ordering — {baseline planner, loud planner variant} × {DeepSeek V3.2, Salvatore v4 LoRA}. The Opus `experiment-adversary` fallback (Codex SlashCommand tool unavailable in session) returned RED with 7 blockers + 4 warnings + a $0.60 synthetic-loud-planner probe as cheapest-untried-counterfactual. Two lever versions were then falsified in sequence:
+
+1. **v1 lever (establishedFacts + characterStateChanges density) — killed by terrain survey (commit `9956f62`).** The intended lever doesn't reach the writer prompt under the current `src/agents/writer/beat-context.ts`. Orphan `establishedFacts` are only read to build a factById lookup map; the writer sees them only when explicitly linked via `beat.requiredPayoffs` (SEEDS / PAYOFFS DUE blocks at lines 255-281). `characterStateChanges` from the outline is never rendered to the writer at all. The $0.60 probe would have measured byte-equal writer outputs — a $0 code-level audit rescued the budget.
+
+2. **v2 lever (requiredPayoffs density) — killed by probe (exp #264, commit `b4426fb`).** After pivoting to a writer-visible lever, the probe ran on 52 beat-writer calls (2 chapters × 2 variants × 13 beats) for $0.028 actual (21× under budget). Marginal adherence-pass delta was −7.7pt (baseline 23/26 = 88.5% → loud 21/26 = 80.8%), which tripped the driver's NEGATIVE threshold but failed the correct matched-pairs McNemar test at p ≈ 0.68 (4 P→F regressions / 2 F→P recoveries / 6 discordant pairs). The writer IS visibly responding to the lever — extra SEEDS blocks compete with core-beat attention, producing occasional action inversions and truncations — but the net effect sits within sampling noise at n=26/cell.
+
+**What this establishes:**
+- Density-manipulation as a planner-side lever at chapter-probe scale does not produce a signal on adherence-pass-rate with a cheap instrument. The ordering question at this resolution is unanswerable for the budget tier the roadmap allocated.
+- Two distinct structural-state surfaces that the roadmap conflated — the *outline schema* (planner output) and the *writer render set* (`beat-context.ts` concatenation) — are now named as separate concepts. See lessons-learned §"Writer-visible state surface is narrower than outline schema."
+- Chapter-probe instruments with binary pass/fail at n=26/cell have a noise floor around ±6pt. Future probes at this scale need finer-grained metrics or more sampling units. See lessons-learned §"Adherence-pass-rate has a noise floor at n=26/cell."
+
+**Alternatives rejected:**
+- **Commission the full 2×2 as revised** — the single-writer stage-1 probe came in FLAT. Multiplying that by a second writer and a ceiling anchor would compound noise, not resolve it.
+- **Expand to a 2×3 with Llama 8B ceiling anchor (adversary's blocker #7)** — same objection; the per-cell signal is too weak to survive additional-writer comparison.
+- **Accept the script's marginal NEGATIVE verdict at face value** — rejected after McNemar analysis; the driver's ±5pt threshold was too tight for the realized sample size.
+- **Treat the ordering as falsified by the FLAT result** — rejected. The probe doesn't discriminate; absence of evidence is not evidence of absence. The ordering assumption is unvalidated, not disproven.
+
+**Ongoing implications:**
+- **Roadmap revision 2 (`docs/autonomous-loop-roadmap-2026-04-21.md`) stays authoritative** with one semantic update applied via this decision entry: the "Validating the ordering" §2×2 design is no longer executable as specified; the ordering is a working hypothesis to revisit under the "Tier 1 winners collapse under Tier 2 writer swaps" trigger documented in charter §11 Fork 3.
+- **Next Tier 1 work: ship the writer-visible threading** (`todo.md` item). Bulk `establishedFacts` injection into `beat-context.ts`, `worldExpansionBudget` wiring, `priorBeatEstablishedFacts` via `getFactsUpToChapter`. These are the un-shipped glue the terrain survey identified, and the three Tier 1B items the roadmap explicitly names as "most-unshipped." Measurement must be at full-novel scale via decomposed audit, not chapter-probe — the latter's noise floor is now demonstrated.
+- **Adversary-review process caveat:** the Codex SlashCommand invocation path was unavailable mid-session; the Opus `experiment-adversary` fallback substituted per the skill's documented fallback rule. The fallback's RED verdict + cheapest-untried-counterfactual still steered the session to the correct kill. Worth making the primary Codex path more resilient, but the fallback mechanism worked as designed.
+- **Pattern for future charters — "terrain-survey preflight":** before any experiment that assumes "planner output X reaches writer Y," add a $0 render-surface audit as an explicit preflight item alongside the adversary-review gate. This session shows the audit is cheap, high-signal, and can kill entire experiment branches before LLM spend. Documented as a rule in lessons-learned §"Terrain-survey before probe implementation."
+- **Cost-estimate discipline reinforced:** the adversary's $0.60 budget was 21× over the actual $0.028 because per-token estimates don't account for DeepSeek prefix caching (280-320 cached tokens per call on the primer surface). Future charter §7 budgets should anchor on `SELECT sum(total_cost_usd) FROM llm_calls WHERE agent='beat-writer' ...` for any recent beat-scale run, not per-token ceilings. Reinforces memory `feedback_query_llm_calls_for_costs`.
