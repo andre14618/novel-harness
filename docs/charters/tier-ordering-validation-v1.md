@@ -1,11 +1,25 @@
 ---
-status: proposed
+status: killed
 kind: experiment-charter
 name: tier-ordering-validation-v1
 owner: andre
 date: 2026-04-21
 parent-context: docs/autonomous-loop-roadmap-2026-04-21.md (revision 2)
+killed-by: terrain survey 2026-04-21 — see §11 below
 ---
+
+> **STATUS: KILLED (2026-04-21).** The Opus adversary review flagged
+> 7 blockers and recommended a $0.60 synthetic-loud-planner probe as
+> cheapest-untried-counterfactual. While surveying the codebase to
+> build the probe driver, we confirmed that the charter's "loud
+> planner variant" lever — inflating `establishedFacts` +
+> `characterStateChanges` on the chapter outline — does NOT reach the
+> writer prompt under the current `beat-context.ts` flow. Orphan
+> facts not linked via `requiredPayoffs` are invisible to the writer;
+> `characterStateChanges` from the outline is not rendered at all.
+> The lever is vacuous. See §11 for the full finding and next-step
+> options. Charter is superseded by whatever comes out of the
+> follow-up decision.
 
 # Experiment Charter — `tier-ordering-validation-v1`
 
@@ -324,3 +338,117 @@ worth answering, budget shape is right — but running as-specified
 produces an undefendable verdict. Fixes 1–7 take <30 min each in
 the charter at $0 experiment cost. Under those revisions: YELLOW
 with named tweaks, then GREEN.
+
+---
+
+## 11. Post-review terrain survey (2026-04-21) — charter KILLED
+
+Following the adversary's cheapest-untried-counterfactual, I began
+surveying `src/agents/writer/beat-context.ts` to plan the
+$0.60 synthetic-loud-planner probe driver. The survey surfaced a
+structural flaw the adversary review did not catch that makes the
+entire charter's lever vacuous regardless of how the protocol is
+tightened.
+
+### Finding
+
+The charter defines "loud planner variant" as: floor of 3
+`establishedFacts` per beat + floor of 1 `characterStateChange` per
+beat where POV has a `Drives` entry. Both fields exist on
+`ChapterOutline` (`src/agents/planning-plotter/schema.ts:52–85`)
+and are produced by `planning-beats`
+(`src/phases/planning.ts:207–212`).
+
+**However** — `src/agents/writer/beat-context.ts` renders neither
+field bulk-wise in the writer prompt:
+
+- Lines 252–253 read `outline.establishedFacts` **only to build a
+  `factById` lookup map**, not to render a facts block.
+- Lines 255–262 render the `SEEDS (this beat must set up):` block
+  by iterating over `beat.requiredPayoffs` (NOT
+  `establishedFacts`) and looking up the fact text by
+  `p.fact_id`.
+- Lines 264–281 render the `PAYOFFS DUE (this beat must realize):`
+  block by scanning earlier beats' `requiredPayoffs` whose
+  `payoff_beat` equals the current index.
+- `characterStateChanges` from the outline is **never rendered**;
+  character state in the writer prompt comes from `characterStates`
+  (end-of-chapter per-character state queried separately from the
+  DB) at lines 302–316, not from the outline field the charter
+  proposed to move.
+
+**Consequence:** a planner that declares 3 `establishedFacts` per
+beat but does NOT link them via `requiredPayoffs` produces byte-equal
+writer prompts to a planner that declares 1 fact per beat. Adding
+`characterStateChanges` to the outline changes nothing the writer
+sees. The "loud variant" is invisible to the downstream writer, so
+no delta — positive, negative, or sign-flipped — can exist to
+measure.
+
+The adversary's Blocker #2 (bundled lever) and Blocker #6 (writer
+parity skipped without invariant) are both subsumed by a deeper
+issue: **the lever does not exist on the writer code path at all**.
+
+### Why the probe did not need to run
+
+The adversary's cheapest-counterfactual was designed to test
+"does the writer respond to structured-state density at all?" with
+the synthetic-loud transformation applied to the outline. The
+terrain-survey answer is **no, it cannot respond** — because the
+transformation does not propagate to the writer's prompt bytes.
+$0 probe replaces the $0.60 probe. This is a strictly stronger
+version of the cheapest-untried-counterfactual pattern: the
+counterfactual itself is a no-op.
+
+### Implications for the roadmap (revision 2)
+
+- Roadmap revision 2 names "writer-visible context levers
+  (structural state richness)" as Tier 1B. This finding confirms
+  Tier 1B is not-yet-shipped in a stronger sense than previously
+  documented: the `establishedFacts` threading requires writer-side
+  rendering work, not just a planner prompt edit.
+- The intended Tier 1A vs Tier 1B separation ("planner output
+  shape" vs "what the writer consumes") is NOT cleanly
+  decomposable under the current `beat-context.ts`. Planner knobs
+  that change fields beat-context doesn't render are invisible;
+  only knobs touching fields beat-context DOES render (beat
+  descriptions, `requiredPayoffs`, character name lists, POV,
+  setting) produce writer-side signal.
+- The roadmap's "Validating the ordering" §(2×2 design example)
+  used "worldExpansionBudget + signature-phrasing extraction" as
+  the concrete lever in the narrative description. Those are
+  Tier 1B levers too, and `worldExpansionBudget` is documented as
+  wired-but-zero in program-direction-2026-04-21. Both faces of the
+  2×2 design are blocked on shipping Tier 1B first.
+
+### Next-step options
+
+1. **Ship Tier 1B writer-visible context threading first** (inject a
+   bulk "ESTABLISHED FACTS FOR THIS CHAPTER" section into
+   `beat-context.ts`, wire `worldExpansionBudget`, thread
+   `priorBeatEstablishedFacts` via `getFactsUpToChapter`), THEN
+   re-scope the ordering-validation charter against a lever that
+   actually reaches the writer. This matches the program-direction
+   thesis that Tier 1B is "highest-ROI most-unshipped." But it
+   eliminates the cheap pre-validation of the tier ordering itself.
+2. **Pivot the lever to `requiredPayoffs` density.** This field
+   already reaches the writer at `beat-context.ts:255–281` via
+   SEEDS/PAYOFFS DUE blocks. Test whether forcing the planner to
+   emit ≥2 `requiredPayoffs` per beat (vs. the current unbounded
+   output) moves adherence + distinctness under the two writers.
+   Restores the cheapest-counterfactual shape without a code change.
+3. **Kill ordering validation entirely** and accept the 3-tier
+   sequential ordering as a working assumption; revisit if Tier 1
+   winners repeatedly collapse under Tier 2 writer swaps. Matches
+   "act on the next step" discipline but leaves the ordering
+   unvalidated.
+
+This decision is an architectural fork — recommend escalating to the
+user rather than picking silently.
+
+### Commit trace for audit
+
+- `db9d8f6` — roadmap revision 2
+- `76a7667` — charter v1 draft
+- `cca9f57` — Opus adversary RED verdict recorded
+- (this commit) — terrain-survey kill + next-step options
