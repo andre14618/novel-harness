@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-10
+updated: 2026-04-21
 ---
 
 # Lessons Learned
@@ -1350,4 +1350,28 @@ The Salvatore v1→v4 LoRAs (trained on OpenPipe/Qwen3-14B-Instruct) had structu
 The Howard primer methodology retirement (2026-04-16) established "prompt-based voice transfer doesn't work at 14B" — in-context learning is too weak at that scale to substitute for weight-level training. But this claim was specifically about 14B bases. At DeepSeek V3.2 scale (~685B-MoE, 37B-active), in-context style learning is a fundamentally different regime.
 
 **The rule:** when a voice-trained fine-tune family hits multiple structural limits, the question to ask isn't "fine-tuning is wrong" — it's "is this base too small for the job?" Before retiring the fine-tune thesis, test prompt+pipeline voice-shaping on a bigger base first. If that fails too, the question becomes "is there a bigger base where fine-tuning is tractable." The 14B-LoRA failure modes (corpus leak, V1 anchor, rewrite incapability) are compounded by *base size + corpus size + task narrowness*, and any of those dimensions can resolve them independently.
+
+### Terrain-survey before probe implementation (2026-04-21, exp #264)
+
+When the cheapest-untried-counterfactual pattern fires and you scope a probe around an intended lever, do a $0 code-level survey of the lever's wire-up BEFORE building the probe driver. On the `tier-ordering-validation-v1` charter (commits `76a7667` → `9956f62`), the adversary-recommended $0.60 probe was going to intervene on `outline.establishedFacts` + `outline.characterStateChanges` density — but a half-hour read of `src/agents/writer/beat-context.ts:255-281` revealed that orphan `establishedFacts` don't reach the writer (only those linked via `beat.requiredPayoffs` render as SEEDS / PAYOFFS DUE blocks), and `characterStateChanges` from the outline is never rendered to the writer at all. The v1 lever was vacuous. Pivoting to the v2 lever (`requiredPayoffs` density) produced a running probe — which then came in FLAT within noise (exp #264, commit `b4426fb`), but the charter-kill + pivot was the saved work, not the probe itself.
+
+**The rule:** a code-level render-surface audit costs $0 and a single subagent. Run it before any intervention that assumes "planner output X reaches writer Y." Charter templates should include a "terrain-survey" preflight item alongside the adversary-review gate.
+
+### Adherence-pass-rate has a noise floor at n=26/cell chapter-probe scale (2026-04-21, exp #264)
+
+The `tier-ordering-probe-v1` drove 52 beat-writer calls across 2 cells × 26 beats each (2 chapters × 13 beats on `novel-1776691080571`). Marginal rates came in at 88.5% / 80.8% pass = −7.7pt delta, which tripped the driver's "NEGATIVE" threshold but failed the correct matched-pairs McNemar test at p ≈ 0.68. Δ within roughly 2 beats is sub-threshold at this sample size — binary pass/fail on a ~85% baseline has a ≥1σ noise band around ±6pt. The writer was visibly responding to the lever (P→F regressions traced to extra SEEDS blocks competing with core-beat attention; F→P recoveries fixed character-presence failures) but the net effect stayed in sampling noise.
+
+**The rule:** if the expected effect size is smaller than ~10pt on a binary pass/fail metric, the chapter-probe instrument (n=26/cell) can't resolve it. Use either (a) finer-grained metrics than pass/fail (voice-shape distance, per-issue fire rates, decomposed audit facets), or (b) full-novel sampling scale across a multi-chapter rotation fixture. The script's ±5pt threshold was too tight given the sample size — future probes should wire in the McNemar check alongside the marginal delta.
+
+### Writer-visible state surface is narrower than outline schema (2026-04-21, exp #264)
+
+The harness has two distinct structural-state surfaces that prior roadmap drafts conflated: the *outline schema* (what the planner produces and the DB stores — `establishedFacts`, `characterStateChanges`, `requiredPayoffs`, `subplot_id`, etc.) and the *writer render set* (what `beat-context.ts` actually concatenates into the beat-writer prompt). These are not the same. Per the terrain survey (commit `9956f62`, reading `src/agents/writer/beat-context.ts:255-281`): only `requiredPayoffs`-linked facts render as SEEDS / PAYOFFS DUE; orphan facts build a lookup map but never surface to the writer; outline-level `characterStateChanges` is entirely unrendered. Any "planner-side structural state lever" discussion that assumes a new outline field is automatically writer-visible is wrong by default.
+
+**The rule:** before assigning tiering or proposing probes, grep the writer context-assembly code (`src/agents/writer/beat-context.ts`, `src/agents/writer/reference-resolver.ts`) for the field name. If it's not rendered, the lever requires a code change in the writer context surface — a different (and usually larger) scope than a planner-prompt intervention. Tier the *shipping work*, not the *hypothesized effect*.
+
+### DeepSeek beat-writer real cost is ~20× under per-token estimates (2026-04-21, exp #264)
+
+The tier-ordering-probe-v1 was budgeted at $0.60 by the adversary review and came in at $0.028 — writer cost $0.0279 across 52 beat-writer calls (~$0.0005/beat), plus ~$0.005 in adherence-checker calls. On DeepSeek V3.2 at ~9,800 input + ~500 output tokens per beat, the per-token formula predicts ~$0.01/beat, but prefix caching (~280-320 cached tokens/call on the primer surface) drops realistic cost to $0.001-$0.002/beat in practice. This reinforces the existing memory `feedback_query_llm_calls_for_costs`: always pull actuals from `public.llm_calls` for cost estimates, never compute from per-token prices.
+
+**The rule:** for any beat-scale probe using DeepSeek V3.2, anchor the cost estimate in a `SELECT sum(total_cost_usd) FROM llm_calls WHERE agent='beat-writer' AND novel_id=<recent-novel> GROUP BY novel_id` query before writing the charter §7 budget. The adversary review's generic per-token estimate is a ceiling, not a forecast.
 
