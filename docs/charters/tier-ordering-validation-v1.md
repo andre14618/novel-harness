@@ -218,7 +218,109 @@ Primary: Codex `/charter-review` → `/codex:adversarial-review`.
 
 | Reviewer | Verdict | Date | Notes |
 |----------|---------|------|-------|
-| `/codex:adversarial-review` (GPT) — primary | pending | — | — |
-| `experiment-adversary` (Opus) — fallback only | — | — | only if Codex unavailable |
+| `/codex:adversarial-review` (GPT) — primary | not run | 2026-04-21 | SlashCommand tool unavailable in session; Codex plugin invocation failed on first try; user directed fallback. |
+| `experiment-adversary` (Opus) — fallback | **RED** | 2026-04-21 | 7 blockers + 4 warnings + cheapest-counterfactual. Summary below. |
 
 Block execution on YELLOW or RED. Iterate the charter, not the run.
+
+### Opus experiment-adversary verdict (2026-04-21) — RED
+
+**Summary.** Two of four primary metrics (plot-point coverage,
+payoff-link completion) do not exist in the codebase — grep of
+`src/` and `scripts/evals/` returns only the `requiredPayoffs`
+schema field at `src/schemas/shared.ts:32`, no measurement code.
+Design doc `autonomous-context-loop.md` line 161 mislabels
+payoff-link realization as an "existing V1a metric" when only the
+schema field exists. Hidden dev scope + rigged-dimension
+load-bearing lever make the verdict uninterpretable regardless of
+execution quality.
+
+**Blocking issues:**
+1. **Metrics are vaporware** (§9.2, axis 6). Drop to
+   `{adherence-events, character-distinctness}` (N=2) OR land the
+   missing metrics as charters-of-their-own first.
+2. **Bundled lever** (§11.5). "Loud variant" mixes
+   `establishedFacts` density (floor 3/beat) and
+   `characterStateChanges` (floor 1 on POV-with-Drives). Single-knob
+   arm missing. Restrict to `establishedFacts` density only OR
+   expand to 2×3.
+3. **Adherence-events reward-hacking unmitigated** (§11.1). More
+   declared facts → more targets the checker scores against. If
+   per-beat credit is normalized by declared-event count, loud cell
+   inflates pass rate independent of structural cohesion. Add
+   deterministic decomposition into (per-event precision, per-event
+   recall, event-count delta) — mirrors voice-shaping-ablation-v1
+   word-count residualization pattern.
+4. **OR-ed falsification inflates Type-I error** (§3.4). Three
+   falsification conditions × 4 metrics at n=5 — joint Type-I rate
+   under H0 is substantially above 5%. Require per-metric
+   conjunctive gate (≥2 of 3 conditions fire on SAME metric) OR
+   Bonferroni-adjust (single-metric 2σ → 3σ; Spearman <0.5 on ≥2
+   metrics, not "any").
+5. **n=5 within-cell σ is statistically unidentified** (§7.1).
+   σ-estimator CI half-width ~60% at n=5; the 2σ magnitude gate is
+   effectively random. Pre-register σ from prior arm-d writer-upgrade
+   variance OR pre-commit to n=8 (60% cost bump, ~$1.80 extra).
+6. **Writer-stage parity skipped** (§4.7). Writer user_prompt is
+   constructed from planner output — it DIFFERS between baseline
+   and loud cells by design (facts + state sections). Parity harness
+   only diffs planning stage. Add writer-stage invariant:
+   "byte-equal EXCEPT for ESTABLISHED FACTS and CHARACTER STATE
+   sections; envelope (model/provider/temp/maxTokens/responseFormat)
+   byte-equal." Enforce with parity script on first beat of each
+   cell. Pattern:
+   `scripts/evals/conditioning-floor-parity-check.ts`.
+7. **Baseline ladder missing writer ceiling anchor** (§2.1–2.3).
+   Ordering hypothesis is ABOUT writer-invariance of planner lift;
+   testing across only DeepSeek V3.2 + Salvatore v4 (two writers
+   that program-direction-2026-04-21 calls "near-ceiling at similar
+   scale") cannot distinguish writer-invariant lift from
+   writer-pair-specific lift. Add Arm E (Loud planner + Llama 8B on
+   Groq, <$0.05 incremental) as low-ceiling anchor.
+
+**Warnings:**
+- Roadmap-charter lever mismatch: roadmap §"Validating the ordering"
+  named the lever as Tier 1B/1C (worldExpansionBudget +
+  signature-phrasing extraction); charter uses Tier 1A planner
+  density. Acknowledge the divergence + justify.
+- Metric independence: adherence-events and plot-point coverage both
+  read plan-fidelity. If plot-point lands, pre-register Spearman
+  correlation between metrics; if >0.6, restate threshold as "3/4 of
+  underlying-independent-axes" not "3/4 of reported metrics."
+- Assignment confound: Salvatore v4 was trained on corpus matching
+  current-planner shape. Loud planner shifts distribution AWAY from
+  its training data. Under adapter-specific-distribution-shift
+  alternative, Salvatore v4 degrades while DeepSeek gains → sign
+  flip → false falsification. Add interpretation rule: if sign flip
+  occurs AND Salvatore is the losing side, audit whether regressions
+  cluster on beats with high establishedFacts-count delta; if yes,
+  flag as adapter-distribution-shift, not tier-ordering falsification.
+- `seed.pipelineOverrides` concurrency not audited. Add sentence:
+  "2×2 driver runs cells sequentially on service with no other
+  novels queued; each cell's planner prompt materialized before
+  planning-beats calls and verified via --print-active-prompt
+  assertion in first llm_calls row." OR wire
+  `--planner-prompt-file=...` into the driver to pass prompt
+  explicitly.
+- Roadmap consequence of falsification is over-stated. Temper §3
+  conclusion to: "If falsified AND not explained by blockers 2/3/6,
+  commission follow-on 2×3 with metrics landed, THEN restructure."
+
+**Cheapest untried counterfactual (~$0.60, ~1 hour):**
+Synthetic-loud-planner probe. Take current baseline planning output
+for 5 rotation chapters. Programmatically apply "loud" density
+floors to it (duplicate adjacent facts to reach floor of 3; add
+characterStateChanges to POV-with-Drives beats). Feed baseline vs
+synthetically-loud planning output through current writer for 2
+chapters × 2 writers = 4 chapter-runs (not 20). Run
+adherence-events + character-distinctness on the 4 cells. Answers
+the SHAPE of the question: does the writer respond to
+structured-state density at all? If 4-cell probe shows zero delta
+on both writers, full 2×2 won't produce signal — kill before the
+expensive run. If signed delta, proceed to the revised full 2×2.
+
+**Recommended action: REVISE CHARTER.** The ordering question is
+worth answering, budget shape is right — but running as-specified
+produces an undefendable verdict. Fixes 1–7 take <30 min each in
+the charter at $0 experiment cost. Under those revisions: YELLOW
+with named tweaks, then GREEN.
