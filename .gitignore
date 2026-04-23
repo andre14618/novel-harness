@@ -18,3 +18,9 @@ __pycache__/
 
 # Ephemeral in-flight run registry — per-machine runtime state only
 .claude/in-flight/
+
+# Subagent worktrees — isolated per-session, never committed
+.claude/worktrees/
+
+# Scheduled-task state — per-machine runtime state only
+.claude/scheduled_tasks.lock
