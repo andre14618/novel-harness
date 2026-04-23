@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-21
+updated: 2026-04-23
 ---
 
 # Lessons Learned
@@ -1374,4 +1374,18 @@ The harness has two distinct structural-state surfaces that prior roadmap drafts
 The tier-ordering-probe-v1 was budgeted at $0.60 by the adversary review and came in at $0.028 — writer cost $0.0279 across 52 beat-writer calls (~$0.0005/beat), plus ~$0.005 in adherence-checker calls. On DeepSeek V3.2 at ~9,800 input + ~500 output tokens per beat, the per-token formula predicts ~$0.01/beat, but prefix caching (~280-320 cached tokens/call on the primer surface) drops realistic cost to $0.001-$0.002/beat in practice. This reinforces the existing memory `feedback_query_llm_calls_for_costs`: always pull actuals from `public.llm_calls` for cost estimates, never compute from per-token prices.
 
 **The rule:** for any beat-scale probe using DeepSeek V3.2, anchor the cost estimate in a `SELECT sum(total_cost_usd) FROM llm_calls WHERE agent='beat-writer' AND novel_id=<recent-novel> GROUP BY novel_id` query before writing the charter §7 budget. The adversary review's generic per-token estimate is a ceiling, not a forecast.
+
+## Autonomous Loop Infrastructure
+
+### Drift detection requires two distinct data surfaces: frozen baseline + live replay (2026-04-23)
+
+Phase 0 prereq #2 (drift detector) revealed a structural distinction: the *frozen baseline* (precision/recall/F1 computed from labeled `eval_results` rows linked to a specific `experiment_id`) and the *live replay* (re-running the adapter against the same `eval_briefs` today) are independent pipeline stages that gate on different prerequisites. The baseline read is always available; live replay requires the adapter to be callable (prereq #1: env→DB config migration must ship first so per-novel adapter routing doesn't use module-level env reads). Building the DB reads, delta math, and gate logic as a fully-wired skeleton — with the replay call stubbed — lets the table be seeded, gate logic be validated, and the downstream consumer (driver.ts Sub-loop 3 trigger) be wired BEFORE the inference plumbing is ready.
+
+**The rule:** when an autonomous-loop component has a hard dependency on another prereq, implement the DB reads + math + write path fully and stub only the external call. A row with `error_text = "current metrics unavailable (replay stub active)"` is more useful than no row — it proves the migration ran, the gate math is correct, and the driver's `trips_gate` read path can be tested on synthetic data.
+
+### Checker drift is silent without automated replay (2026-04-23)
+
+Prior to the drift detector, checker regressions caused by upstream context changes (planner output structure, beat-context surface, world-bible format) only became visible when production fire rates spiked — at which point multiple chapters had already been affected. The eval_results + eval_briefs tables contain the frozen ground truth to catch this at the adapter level, but no automated replay existed. The drift_checks table + detector script create the first monitoring layer between "adapter trained + eval'd" and "fire rate changed in production." Gate thresholds (>5pt precision OR >3pt F1) are deliberately conservative: a 5pt precision drop on a 85%-precision checker doubles the false-positive rate, which meaningfully degrades targeted-rewrite precision for the writer.
+
+**The rule:** every checker adapter that is wired into the production drafting retry loop should have a drift_checks row produced at least once per week (or any time the planner/context surface changes). The detector is the canary; the adapter_registry.headline_metrics is the frozen snapshot it runs against.
 

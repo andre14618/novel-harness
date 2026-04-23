@@ -270,6 +270,11 @@ If yes, update this file.
 - **Conditioning-floor scorer implementation in flight.** Codex CLI job running in background — implementing the 4 TODOs in `scripts/evals/run-salvatore-distinctness-v1.ts` + arm-config JSONs. Session closed before Codex reported; work is uncommitted on `main` and needs the session-end review (listed in `docs/next-session-plan.md`).
 - **Component-isolation testing methodology proposed** (commit `7794735`). `docs/component-isolation-testing.md` — framework for when to test harness components offline (replay against existing `llm_calls`, plan-diff, beat-rewriter) vs e2e. Status: proposed. Motivated by observing that recent charters (including the V1a pilot above) could have been cheaper with replay harnesses.
 
+## Current Session (2026-04-23)
+
+- **Drift detector skeleton shipped (Phase 0 prereq #2).** `scripts/autonomous-loop/drift-detector.ts` + migration `sql/032_drift_checks.sql`. The detector reads frozen `eval_results` baselines from the DB, computes precision/recall/F1 deltas per adapter, applies the gate thresholds (>5pt precision OR >3pt F1 regression trips the gate), and writes verdicts to `drift_checks`. CLI: `bun scripts/autonomous-loop/drift-detector.ts --adapters halluc-ungrounded-v2,halluc-leak-salvatore-v1`. **Live replay inference is stubbed** (returns null for current metrics) — gated on prereq #1 (env→DB config migration); the stub populates `error_text` so rows are still written. The DB read, delta math, gate logic, and migration are fully implemented.
+- **Migration 032 is next.** `sql/032_drift_checks.sql` adds the `drift_checks` table (run_id, adapter, frozen_run_id, precision/recall/F1 frozen+current+delta, trips_gate, gate_reason, brief_count, error_text, ran_at).
+
 ## Current Known Gaps
 
 These are known cleanup items, not contradictions in the operating model:
