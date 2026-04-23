@@ -28,9 +28,12 @@ See: docs/fine-tuning-strategy.md
 
 import argparse
 import asyncio
+import hashlib
 import json
 import os
+import shutil
 import sys
+from datetime import datetime
 from pathlib import Path
 
 
@@ -112,6 +115,38 @@ def fmt_bytes(n: int) -> str:
     if n < 1024 * 1024 * 1024:
         return f"{n / (1024 * 1024):.1f} MB"
     return f"{n / (1024 * 1024 * 1024):.2f} GB"
+
+
+def archive_training_data(data_path: str, adapter_name: str) -> tuple[str, str]:
+    """
+    Copy the training JSONL to finetune-data/archive/ with a stable name
+    (adapter + SHA256). Prevents training data loss from W&B post-run
+    cleanup (the `lora-data/` → `archive/` move that wiped adherence-v4's
+    data earlier in the project).
+
+    Returns (archive_path, sha256_hex).
+    """
+    src = Path(data_path)
+    sha = hashlib.sha256()
+    with open(src, "rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            sha.update(chunk)
+    sha_hex = sha.hexdigest()
+
+    archive_dir = Path("finetune-data/archive")
+    archive_dir.mkdir(parents=True, exist_ok=True)
+
+    ts = datetime.now().strftime("%Y%m%d-%H%M%S")
+    archive_name = f"{adapter_name}__{ts}__{sha_hex[:12]}.jsonl"
+    archive_path = archive_dir / archive_name
+
+    if not archive_path.exists():
+        shutil.copy2(src, archive_path)
+        print(f"  Archived training data: {archive_path} (sha256={sha_hex[:16]}...)")
+    else:
+        print(f"  Archive already exists (content hash stable): {archive_path}")
+
+    return str(archive_path), sha_hex
 
 
 async def cleanup_training_artifacts(model, args: argparse.Namespace) -> None:
@@ -245,6 +280,13 @@ async def train(args: argparse.Namespace) -> None:
     print(f"  peak lr      : {args.lr}")
     print(f"  schedule     : {args.schedule}")
     print(f"  warmup ratio : {args.warmup}")
+    print()
+
+    # Archive training data + compute SHA256 BEFORE any training. Defends
+    # against the data-loss pattern that bit adherence-v4 (directive 2026-04-18).
+    print("Archiving training data...")
+    archive_path, data_sha256 = archive_training_data(data_path, args.name)
+    print(f"  sha256 : {data_sha256}")
     print()
 
     if args.dry_run:
