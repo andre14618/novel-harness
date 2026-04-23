@@ -16,9 +16,23 @@
  * ceiling clears the ≥85% precision / ≥75% recall gate, so OR-combine
  * at inference is the correct intervention. No SFT spend required.
  *
+ * Regex widen (2026-04-23): three residual FN classes closed:
+ *   1. Possessive-suffix tolerance — `buildRegex` now appends an optional
+ *      `(?:'s?|s')` group after each token, so "Rumblebelly's" and
+ *      "Harpells'" both match. The lookahead checks the char AFTER the
+ *      optional suffix so word-boundary semantics are preserved.
+ *   2. "dark elf" variants — added "dark elf", "dark elves", "drow elf",
+ *      "drow elves". Generic-sounding but Salvatore-corpus-signature per
+ *      the Rung 0 adapter-only sample.
+ *   3. Standalone "mithril" — added as a token. The regex is already
+ *      case-insensitive (`gi`), so "Mithril Hall" was matching the two-word
+ *      form but standalone "mithril" (lowercase) was not in the list.
+ *
  * Token list: union of
  *   - `scripts/hallucination/expand-leak-vocab.ts` LEAK_TOKENS
  *   - scoping doc §B additions (production-confirmed gaps)
+ *   - 2026-04-23 widen additions (possessive-suffix + dark-elf variants
+ *     + standalone mithril)
  *
  * Keep this list in sync with `scripts/hallucination/rung-0-regex-ceiling.ts`
  * — any production gap we discover should land in both places.
@@ -43,8 +57,12 @@ const LEAK_TOKENS = [
   // Items
   "Crystal Shard", "Crenshinibon", "Aegis-fang", "Twinkle", "Icingdeath",
   "Taulmaril",
-  // Races / creatures
-  "drow", "verbeeg", "duergar",
+  // Races / creatures — longer alternations before shorter so the regex
+  // engine prefers "drow elf"/"dark elves" over the bare "drow"/"dark" prefix
+  "dark elves", "dark elf", "drow elves", "drow elf", "drow",
+  "duergar", "verbeeg",
+  // Standalone corpus-vocabulary terms (case-insensitive via `gi` flag)
+  "mithril",
   // exp-#254 additions
   "Drossen Ironbelly", "Harpells", "Nine-Towns",
 ]
@@ -53,7 +71,16 @@ function buildRegex(tokens: string[]): RegExp {
   const escaped = tokens.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
   // Word-boundary assertions that allow apostrophes and hyphens inside tokens
   // but don't match substring contexts (e.g. "drow" must not match "drowsy").
-  return new RegExp(`(?<=^|[^\\w'-])(?:${escaped.join("|")})(?=[^\\w'-]|$)`, "gi")
+  //
+  // The optional `(?:'s?|s')` suffix handles possessive forms:
+  //   "Rumblebelly's" — token + 's
+  //   "Harpells'"     — token ending in s + '  (plural possessive)
+  // The lookahead checks the character AFTER the optional suffix so word
+  // boundaries are preserved for non-possessive contexts too.
+  return new RegExp(
+    `(?<=^|[^\\w'-])(?:${escaped.join("|")})(?:'s?|s')?(?=[^\\w'-]|$)`,
+    "gi"
+  )
 }
 
 const LEAK_REGEX = buildRegex(LEAK_TOKENS)

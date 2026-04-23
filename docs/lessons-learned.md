@@ -7,6 +7,11 @@ updated: 2026-04-23
 
 Hard-won principles from experiments, failures, and debugging. Each entry has evidence — experiment IDs, commit hashes, or specific observations. Read this before designing new agents, rubrics, benchmarks, or pipeline integrations.
 
+## Regex
+
+### Alternation ordering is load-bearing in JS regex
+JavaScript regex engines use leftmost-match semantics: in an alternation `(a|ab)`, the engine prefers the FIRST matching alternative, not the longest. So to match "dark elves" correctly when "dark" is also a valid token, the longer form MUST appear first in the alternation list. This bit the 2026-04-23 halluc-leak-salvatore widen — adding "dark elf" and "drow elf" required placing them before bare "drow"/"dark" in `LEAK_TOKENS`. The same constraint applies to any regex alternation derived from a token list: sort longest-first at build time, or be explicit about ordering in the source list. (W4 widen, commit TBD)
+
 ## LLM Evaluation
 
 ### Pairwise judges have strong position bias — use reasoning models
