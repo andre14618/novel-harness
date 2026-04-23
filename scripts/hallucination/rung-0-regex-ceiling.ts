@@ -54,8 +54,12 @@ const TOKENS = [
   // Items
   "Crystal Shard", "Crenshinibon", "Aegis-fang", "Twinkle", "Icingdeath",
   "Taulmaril",
-  // Races / creatures (lowercase)
-  "drow", "verbeeg", "duergar",
+  // Races / creatures — longer alternations before shorter so the regex
+  // engine prefers "drow elf"/"dark elves" over the bare "drow"/"dark" prefix
+  "dark elves", "dark elf", "drow elves", "drow elf", "drow",
+  "duergar", "verbeeg",
+  // Standalone corpus-vocabulary terms (case-insensitive via `gi` flag)
+  "mithril",
   // Scoping-doc exp-#254 additions
   "Drossen Ironbelly", "Harpells", "Nine-Towns",
 ]
@@ -66,7 +70,12 @@ function buildRegex(): RegExp {
   const escaped = TOKENS.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
   // Wrap each alt in (^|\W) ... (?=\W|$) so "drow" doesn't match "drowsy" or "drown".
   // Using lookbehind + lookahead for word boundaries without consuming chars.
-  return new RegExp(`(?<=^|[^\\w'-])(?:${escaped.join("|")})(?=[^\\w'-]|$)`, "gi")
+  // Optional `(?:'s?|s')` suffix handles possessive forms ("Rumblebelly's",
+  // "Harpells'"); lookahead checks the char AFTER the suffix.
+  return new RegExp(
+    `(?<=^|[^\\w'-])(?:${escaped.join("|")})(?:'s?|s')?(?=[^\\w'-]|$)`,
+    "gi"
+  )
 }
 
 interface Row {
