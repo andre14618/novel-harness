@@ -1,0 +1,66 @@
+{
+  "description": "beat 0 but worldBible has no matching location — formatSetting returns null, so SETTING block suppressed; full mode",
+  "input": {
+    "novelId": "test-novel-19",
+    "chapterNumber": 1,
+    "beatIndex": 0,
+    "outline": {
+      "chapterNumber": 1,
+      "title": "Unmapped",
+      "povCharacter": "Drizzt",
+      "setting": "an unnamed clearing",
+      "purpose": "no world-bible match",
+      "scenes": [
+        {
+          "description": "Drizzt makes camp under unfamiliar stars.",
+          "characters": ["Drizzt"],
+          "kind": "action",
+          "requiredPayoffs": []
+        }
+      ],
+      "targetWords": 500,
+      "charactersPresent": ["Drizzt"],
+      "establishedFacts": [],
+      "characterStateChanges": [],
+      "knowledgeChanges": []
+    },
+    "characters": [
+      {
+        "id": "drizzt-001",
+        "name": "Drizzt",
+        "role": "drow ranger",
+        "backstory": "",
+        "traits": [],
+        "speechPattern": "formal and measured",
+        "internalConflict": "",
+        "goals": "find belonging",
+        "fears": "",
+        "relationships": [],
+        "culturalBackground": [],
+        "systemAwareness": [],
+        "exampleLines": []
+      }
+    ],
+    "characterStates": [],
+    "worldBible": {
+      "locations": [
+        {
+          "name": "Mithril Hall",
+          "description": "Ancestral dwarven stronghold.",
+          "sensoryDetails": "forge-warm air"
+        },
+        {
+          "name": "Bryn Shander",
+          "description": "Largest of the Ten Towns.",
+          "sensoryDetails": "tallow smoke"
+        }
+      ]
+    },
+    "preResolvedRefs": {
+      "context": "",
+      "lookupCount": 0,
+      "llmUsed": false
+    },
+    "compactMode": false
+  }
+}

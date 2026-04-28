@@ -1,0 +1,66 @@
+{
+  "description": "beat with empty preResolvedRefs.context — resolved-references section suppressed (no block emitted); compact mode",
+  "input": {
+    "novelId": "test-novel-10",
+    "chapterNumber": 5,
+    "beatIndex": 0,
+    "outline": {
+      "chapterNumber": 5,
+      "title": "The Approach",
+      "povCharacter": "Drizzt",
+      "setting": "Mithril Hall",
+      "purpose": "set the scene",
+      "scenes": [
+        {
+          "description": "Drizzt walks alone toward the chamber doors.",
+          "characters": ["Drizzt"],
+          "kind": "interiority",
+          "requiredPayoffs": []
+        }
+      ],
+      "targetWords": 600,
+      "charactersPresent": ["Drizzt"],
+      "establishedFacts": [],
+      "characterStateChanges": [],
+      "knowledgeChanges": []
+    },
+    "characters": [
+      {
+        "id": "drizzt-001",
+        "name": "Drizzt",
+        "role": "drow ranger",
+        "backstory": "",
+        "traits": [],
+        "speechPattern": "formal and measured",
+        "internalConflict": "torn between heritage and chosen path",
+        "goals": "find belonging",
+        "fears": "",
+        "relationships": [],
+        "culturalBackground": [],
+        "systemAwareness": [],
+        "exampleLines": [
+          "By the stars.",
+          "I have walked alone.",
+          "Trust is earned.",
+          "Honor still has weight."
+        ]
+      }
+    ],
+    "characterStates": [],
+    "worldBible": {
+      "locations": [
+        {
+          "name": "Mithril Hall",
+          "description": "Ancestral dwarven stronghold.",
+          "sensoryDetails": "forge-warm air, deep stone hum"
+        }
+      ]
+    },
+    "preResolvedRefs": {
+      "context": "",
+      "lookupCount": 0,
+      "llmUsed": false
+    },
+    "compactMode": true
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "description": "fantasy genre triggers WRITER_GENRE_PACKS salvatore pack (whose `conditioning` is undefined → still slice(0,5)). Validates the genre code path returns the expected pack but conditioning stays unset → 4 lines render. Compact mode (per drafting.ts route).",
+  "input": {
+    "novelId": "test-novel-15",
+    "chapterNumber": 1,
+    "beatIndex": 0,
+    "genre": "fantasy",
+    "outline": {
+      "chapterNumber": 1,
+      "title": "Salvatore-genre beat",
+      "povCharacter": "Drizzt",
+      "setting": "tundra",
+      "purpose": "fantasy pack route",
+      "scenes": [
+        {
+          "description": "Drizzt sits beneath a frozen sky and considers the road.",
+          "characters": ["Drizzt"],
+          "kind": "interiority",
+          "requiredPayoffs": []
+        }
+      ],
+      "targetWords": 800,
+      "charactersPresent": ["Drizzt"],
+      "establishedFacts": [],
+      "characterStateChanges": [],
+      "knowledgeChanges": []
+    },
+    "characters": [
+      {
+        "id": "drizzt-001",
+        "name": "Drizzt",
+        "role": "drow ranger",
+        "backstory": "",
+        "traits": [],
+        "speechPattern": "formal and measured",
+        "internalConflict": "torn between heritage and path",
+        "goals": "find belonging",
+        "fears": "",
+        "relationships": [],
+        "culturalBackground": [],
+        "systemAwareness": [],
+        "exampleLines": [
+          "By the stars.",
+          "I have walked alone.",
+          "Trust is earned.",
+          "Honor still has weight."
+        ]
+      }
+    ],
+    "characterStates": [],
+    "worldBible": {
+      "locations": [
+        {
+          "name": "tundra",
+          "description": "Frozen flatlands stretching to the horizon.",
+          "sensoryDetails": "wind-bite, glassed snow"
+        }
+      ]
+    },
+    "preResolvedRefs": {
+      "context": "",
+      "lookupCount": 0,
+      "llmUsed": false
+    },
+    "compactMode": true
+  }
+}

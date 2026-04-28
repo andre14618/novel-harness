@@ -1,0 +1,85 @@
+{
+  "description": "beat with requiredPayoffs (seeds — facts this beat must set up); full mode",
+  "input": {
+    "novelId": "test-novel-07",
+    "chapterNumber": 1,
+    "beatIndex": 0,
+    "outline": {
+      "chapterNumber": 1,
+      "title": "The Letter",
+      "povCharacter": "Wulfgar",
+      "setting": "Bruenor's Hall",
+      "purpose": "plant the inciting fact",
+      "scenes": [
+        {
+          "description": "Wulfgar receives a letter sealed with a forgotten crest.",
+          "characters": ["Wulfgar"],
+          "kind": "action",
+          "requiredPayoffs": [
+            {"fact_id": "letter-existence", "payoff_beat": 2},
+            {"fact_id": "crest-meaning", "payoff_beat": 3}
+          ]
+        },
+        {
+          "description": "He turns the seal toward the firelight.",
+          "characters": ["Wulfgar"],
+          "kind": "interiority",
+          "requiredPayoffs": []
+        },
+        {
+          "description": "He breaks the seal and reads the letter.",
+          "characters": ["Wulfgar"],
+          "kind": "action",
+          "requiredPayoffs": []
+        },
+        {
+          "description": "The crest reveals the sender's house.",
+          "characters": ["Wulfgar"],
+          "kind": "interiority",
+          "requiredPayoffs": []
+        }
+      ],
+      "targetWords": 2000,
+      "charactersPresent": ["Wulfgar"],
+      "establishedFacts": [
+        {"id": "letter-existence", "fact": "A sealed letter from the south arrives at the hall", "category": "knowledge"},
+        {"id": "crest-meaning", "fact": "The wax seal bears the lost crest of House Vellaen", "category": "knowledge"}
+      ],
+      "characterStateChanges": [],
+      "knowledgeChanges": []
+    },
+    "characters": [
+      {
+        "id": "wulfgar-001",
+        "name": "Wulfgar",
+        "role": "barbarian son of Beornegar",
+        "backstory": "",
+        "traits": [],
+        "speechPattern": "earnest and deliberate, prone to oaths",
+        "internalConflict": "torn between his clan's expectations and his own bond",
+        "goals": "prove worthy of his father's name",
+        "fears": "",
+        "relationships": [],
+        "culturalBackground": [],
+        "systemAwareness": [],
+        "exampleLines": []
+      }
+    ],
+    "characterStates": [],
+    "worldBible": {
+      "locations": [
+        {
+          "name": "Bruenor's Hall",
+          "description": "The dwarven hold's great hearth chamber.",
+          "sensoryDetails": "smoke, ale-warm air, hammers in the next chamber"
+        }
+      ]
+    },
+    "preResolvedRefs": {
+      "context": "",
+      "lookupCount": 0,
+      "llmUsed": false
+    },
+    "compactMode": false
+  }
+}

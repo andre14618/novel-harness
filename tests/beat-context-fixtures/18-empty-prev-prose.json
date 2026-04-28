@@ -1,0 +1,62 @@
+{
+  "description": "previousBeatProse is whitespace — extractLastSentences returns null, so no TRANSITION BRIDGE emitted; full mode, beat 1",
+  "input": {
+    "novelId": "test-novel-18",
+    "chapterNumber": 1,
+    "beatIndex": 1,
+    "previousBeatProse": "   \n\n   ",
+    "outline": {
+      "chapterNumber": 1,
+      "title": "Hollow Bridge",
+      "povCharacter": "Drizzt",
+      "setting": "the road",
+      "purpose": "exercise empty-bridge fallthrough",
+      "scenes": [
+        {
+          "description": "Drizzt looks out toward the morning.",
+          "characters": ["Drizzt"],
+          "kind": "interiority",
+          "requiredPayoffs": []
+        },
+        {
+          "description": "He shoulders his pack and starts walking.",
+          "characters": ["Drizzt"],
+          "kind": "action",
+          "requiredPayoffs": []
+        }
+      ],
+      "targetWords": 800,
+      "charactersPresent": ["Drizzt"],
+      "establishedFacts": [],
+      "characterStateChanges": [],
+      "knowledgeChanges": []
+    },
+    "characters": [
+      {
+        "id": "drizzt-001",
+        "name": "Drizzt",
+        "role": "drow ranger",
+        "backstory": "",
+        "traits": [],
+        "speechPattern": "formal and measured",
+        "internalConflict": "",
+        "goals": "find belonging",
+        "fears": "",
+        "relationships": [],
+        "culturalBackground": [],
+        "systemAwareness": [],
+        "exampleLines": []
+      }
+    ],
+    "characterStates": [],
+    "worldBible": {
+      "locations": []
+    },
+    "preResolvedRefs": {
+      "context": "",
+      "lookupCount": 0,
+      "llmUsed": false
+    },
+    "compactMode": false
+  }
+}

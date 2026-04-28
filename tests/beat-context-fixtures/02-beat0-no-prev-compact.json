@@ -1,0 +1,73 @@
+{
+  "description": "beat 0, no previous prose, compact mode (compactMode true), single character, setting matches world bible",
+  "input": {
+    "novelId": "test-novel-02",
+    "chapterNumber": 1,
+    "beatIndex": 0,
+    "outline": {
+      "chapterNumber": 1,
+      "title": "The Crossing",
+      "povCharacter": "Drizzt",
+      "setting": "Icewind Dale",
+      "purpose": "introduce the dale and the protagonist",
+      "scenes": [
+        {
+          "description": "Drizzt watches the dawn break over the tundra and reflects on the harsh climate.",
+          "characters": ["Drizzt"],
+          "kind": "interiority",
+          "requiredPayoffs": []
+        },
+        {
+          "description": "A merchant caravan crests the ridge and Drizzt approaches them cautiously.",
+          "characters": ["Drizzt"],
+          "kind": "action",
+          "requiredPayoffs": []
+        }
+      ],
+      "targetWords": 1800,
+      "charactersPresent": ["Drizzt"],
+      "establishedFacts": [],
+      "characterStateChanges": [],
+      "knowledgeChanges": []
+    },
+    "characters": [
+      {
+        "id": "drizzt-001",
+        "name": "Drizzt",
+        "role": "protagonist drow ranger",
+        "backstory": "",
+        "traits": [],
+        "speechPattern": "formal and measured, with occasional Drow phrases",
+        "internalConflict": "torn between his heritage and his chosen path",
+        "avoids": "crowds and direct confrontation with strangers",
+        "goals": "find belonging on the surface",
+        "fears": "",
+        "relationships": [],
+        "culturalBackground": [],
+        "systemAwareness": [],
+        "exampleLines": [
+          "By the stars, the cold here cuts deeper than any blade.",
+          "I have walked alone for many years; another night holds no fear.",
+          "Trust is earned, not asked for.",
+          "There is honor even in this exile."
+        ]
+      }
+    ],
+    "characterStates": [],
+    "worldBible": {
+      "locations": [
+        {
+          "name": "Icewind Dale",
+          "description": "A frozen northern land of three harsh towns and the looming peaks of the Spine of the World.",
+          "sensoryDetails": "biting wind, the smell of pine smoke, the crunch of dry snow underfoot"
+        }
+      ]
+    },
+    "preResolvedRefs": {
+      "context": "",
+      "lookupCount": 0,
+      "llmUsed": false
+    },
+    "compactMode": true
+  }
+}

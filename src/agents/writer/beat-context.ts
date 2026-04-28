@@ -11,11 +11,36 @@
  *
  * emotionalShift is deliberately excluded — naming emotions biases toward telling.
  * The beat description encodes emotional trajectory through action.
+ *
+ * ──────────────────────────────────────────────────────────────────────────
+ * D1 (2026-04-28): split into a typed-slot data layer + a pure renderer.
+ *
+ * - `buildBeatContextSlots` owns ALL async/data selection: conditioning
+ *   resolution, compact-vs-full async branching, relationship/state lookups,
+ *   reference resolution, exampleLines preset selection, location-change
+ *   heuristic, setting visibility decision.
+ *
+ * - `renderBeatContext` (in `./beat-context-render.ts`) is pure deterministic
+ *   string assembly. No async, no DB, no I/O. Takes a fully-prepared
+ *   `BeatContext` and emits the user prompt; the `compact` flag drives
+ *   per-character formatting (collapsed vs full snapshot blocks) and the
+ *   setting block (compact strips the title+description, keeping only the
+ *   "Sensory: …" line).
+ *
+ * - `buildBeatContext` is preserved as a thin composer. Existing call sites
+ *   in drafting.ts:282, 605, 917 keep working without changes; the public
+ *   surface (BeatContextInput, BeatContextResult, pickExampleLineSubset)
+ *   is unchanged.
+ *
+ * Byte-parity is enforced by `tests/beat-context-parity.test.ts` against
+ * `tests/beat-context-fixtures/legacy-snapshot.ts`. The legacy snapshot
+ * stays in the suite long-term as a regression check (Codex round-3 Q2).
  */
 
-import { getRelationshipBetween, getCharacterStatesAtChapter } from "../../db"
+import { getRelationshipBetween } from "../../db"
 import { resolveReferences, type ResolvedReferences } from "./reference-resolver"
 import { resolveWriterPack } from "../../models/roles"
+import { renderBeatContext } from "./beat-context-render"
 import type { ChapterOutline, CharacterProfile, SceneBeat } from "../../types"
 
 // ── exampleLines conditioning presets ────────────────────────────────────
@@ -98,6 +123,8 @@ export function pickExampleLineSubset(
     .filter((v): v is string => typeof v === "string")
 }
 
+// ── Public input/output (unchanged) ──────────────────────────────────────
+
 export interface BeatContextInput {
   novelId: string
   chapterNumber: number
@@ -127,223 +154,288 @@ export interface BeatContextResult {
   targetWords: number
 }
 
-export async function buildBeatContext(input: BeatContextInput): Promise<BeatContextResult> {
+// ── Typed slots (D1) ─────────────────────────────────────────────────────
+// These types describe what `buildBeatContextSlots` produces and what
+// `renderBeatContext` consumes. They are the integration surface for future
+// context levers (voice-shaping, characterStateChanges wiring, etc.) — each
+// such lever becomes a `BeatContext → BeatContext` transform behind a flag.
+
+export interface SeedLink {
+  /** Pre-resolved fact text (factById lookup already applied by builder). */
+  fact: string
+  /** 0-based beat index where the seeded payoff lands. */
+  landsAtBeat: number
+}
+
+export interface PayoffDue {
+  /** Pre-resolved fact text. */
+  fact: string
+  /** 0-based beat index that originally seeded this payoff. */
+  seededAtBeat: number
+}
+
+export interface BeatSpec {
+  beatNumber: number
+  totalBeats: number
+  pov: string
+  setting: string
+  kind: string
+  description: string
+  charactersPresent: string[]
+  /** requiredPayoffs of THIS beat (this beat must set them up). */
+  seeds: SeedLink[]
+  /** requiredPayoffs of EARLIER beats whose payoff_beat === this index. */
+  payoffsDue: PayoffDue[]
+}
+
+export interface CharacterSnapshot {
+  /** Required. */
+  name: string
+  /** Required. Empty array if the character has no exampleLines. Already
+   *  passed through pickExampleLineSubset so the renderer just emits as-is. */
+  exampleLines: string[]
+  voice?: string
+  drives?: string
+  avoids?: string
+  conflict?: string
+  state?: string
+  withPov?: { trustLevel: string; dynamic: string; tension?: string }
+  doesNotKnow?: string[]
+  /** POV character's display name as used in the legacy "With X: …" line.
+   *  This is the canonical name from CharacterProfile (povChar.name), NOT
+   *  the raw `outline.povCharacter` string — casing matches the character
+   *  profile lookup. Only populated when `withPov` is also populated.
+   *  Internal-use field for the renderer; downstream consumers reading
+   *  typed slot data can ignore it.
+   */
+  povDisplayName?: string
+}
+
+export interface SettingBlock {
+  name: string
+  description?: string
+  sensoryDetails?: string
+}
+
+export interface BeatContext {
+  beatSpec: BeatSpec
+  /** Last N sentences of the previous beat's prose, ready to render. Null
+   *  when there is no previous beat or extraction yielded nothing. */
+  transitionBridge: string | null
+  /** First sentence of the NEXT beat's description. Null when no next beat
+   *  exists or the description is empty. */
+  landingTarget: string | null
+  characterSnapshots: CharacterSnapshot[]
+  /** ResolvedReferences.context, or null when empty. */
+  resolvedReferencesText: string | null
+  /** Setting payload — null when section is suppressed (not beat 0 AND no
+   *  location-change heuristic fire) OR no matching world-bible location. */
+  setting: SettingBlock | null
+}
+
+// ── Slot builder (D1) ────────────────────────────────────────────────────
+
+export async function buildBeatContextSlots(input: BeatContextInput): Promise<BeatContext> {
   const { novelId, chapterNumber, beatIndex, previousBeatProse, outline, characters, characterStates, worldBible } = input
-  // Production default: conditioning is undefined → pickExampleLineSubset
-  // returns lines.slice(0, 5) unchanged. Only the conditioning-floor replay
-  // runner sets WRITER_CONDITIONING=fixed|rotation to activate preset logic.
-  // Live novel drafting never sees preset-narrowed exampleLines.
+
   const conditioning: "fixed" | "rotation" | undefined =
     resolveWriterPack(input.genre)?.conditioning
   const beat = outline.scenes[beatIndex]
   const povCharName = outline.povCharacter
   const povChar = characters.find(c => c.name.toLowerCase() === povCharName?.toLowerCase())
-  const targetWords = Math.round(outline.targetWords / Math.max(outline.scenes.length, 1))
 
-  const sections: string[] = []
-
-  // ── 1. Beat spec ──────────────────────────────────────────────────────
-  sections.push(formatBeatSpec(beat, outline, beatIndex))
-
-  // ── 2. Transition bridge ──────────────────────────────────────────────
-  if (previousBeatProse) {
-    const bridge = extractLastSentences(previousBeatProse, 3)
-    if (bridge) sections.push(`TRANSITION BRIDGE (continue from here):\n${bridge}`)
-  }
-
-  // ── 3. Landing target ─────────────────────────────────────────────────
-  const nextBeat = outline.scenes[beatIndex + 1]
-  if (nextBeat) {
-    const firstSentence = nextBeat.description.split(/[.!?]/)[0]?.trim()
-    if (firstSentence) {
-      sections.push(`LANDING TARGET (end connecting toward this):\nNext beat: ${firstSentence}`)
-    }
-  }
-
-  // ── 4. Character snapshot ─────────────────────────────────────────────
-  const beatCharNames = beat.characters.map(n => n.toLowerCase())
-  const beatChars = characters.filter(c => beatCharNames.includes(c.name.toLowerCase()))
-
-  if (beatChars.length > 0) {
-    if (input.compactMode) {
-      // Compact (revised after exp #200 regression):
-      //   Keep Voice + Drives + Avoids + Conflict on the character sheet —
-      //   these are planner side-channels for per-chapter requirements
-      //   ("Senna avoids mirrors" lives in Avoids and must reach the writer).
-      //   Strip only genuinely-runtime fields (State, With, Tension,
-      //   Doesn't-know) which are sparse and rarely load-bearing on any
-      //   given beat. See docs/beat-writer-architecture.md §6 for the
-      //   regression analysis that drove this revision.
-      const lines = beatChars.flatMap(c => {
-        const entry = [`${c.name}:`]
-        if (c.speechPattern) entry.push(`  Voice: ${c.speechPattern}`)
-        if (c.goals) entry.push(`  Drives: ${c.goals}`)
-        if (c.avoids) entry.push(`  Avoids: ${c.avoids}`)
-        if (c.internalConflict) entry.push(`  Conflict: ${c.internalConflict}`)
-        if (c.exampleLines && c.exampleLines.length > 0) {
-          entry.push(`  Example voiced lines:`)
-          pickExampleLineSubset(c.exampleLines, chapterNumber, beatIndex, conditioning).forEach((line, i) => {
-            entry.push(`    ${i + 1}. "${line.replace(/^"|"$/g, "")}"`)
-          })
-        }
-        return [...entry, ""]
-      })
-      // Trim trailing blank
-      while (lines.length && lines[lines.length - 1] === "") lines.pop()
-      sections.push(`CHARACTERS:\n${lines.join("\n")}`)
-    } else {
-      const snapshots = await Promise.all(beatChars.map(c =>
-        formatCharacterSnapshot(novelId, c, povChar, chapterNumber, beatIndex, characterStates, conditioning)
-      ))
-      sections.push(`CHARACTERS:\n${snapshots.join("\n\n")}`)
-    }
-  }
-
-  // ── 5. Resolved references ─────────────────────────────────────────────
-  // Keep resolved-references in both modes. Exp #200 regressed when these
-  // were stripped: world-fact requirements ("Tower of Reseth sits on a
-  // fault line activated six years ago") travel through reference-resolver
-  // output and the writer can't establish them without the context.
-  const refs = input.preResolvedRefs ?? await resolveReferences(beat, outline, novelId, chapterNumber, characters)
-  if (refs.context) sections.push(refs.context)
-
-  // ── 6. Setting ────────────────────────────────────────────────────────
-  // Compact mode strips the duplicate SETTING block — inline "Setting: {name}"
-  // in §1 already carries the location. Only keep the sensory line when
-  // non-empty.
-  if (beatIndex === 0 || beatHasLocationChange(beat, outline)) {
-    const setting = formatSetting(worldBible, outline.setting)
-    if (setting) {
-      if (input.compactMode) {
-        const sensoryLine = setting.split("\n").find(l => l.startsWith("Sensory:"))
-        if (sensoryLine) sections.push(sensoryLine)
-      } else {
-        sections.push(setting)
-      }
-    }
-  }
-
-  return {
-    userPrompt: sections.filter(Boolean).join("\n\n"),
-    targetWords,
-  }
-}
-
-// ── Formatters ──────────────────────────────────────────────────────────
-
-function formatBeatSpec(beat: SceneBeat, outline: ChapterOutline, beatIndex: number): string {
-  const lines = [
-    `BEAT ${beatIndex + 1} of ${outline.scenes.length}`,
-    `POV: ${outline.povCharacter}`,
-    `Setting: ${outline.setting}`,
-    `Kind: ${beat.kind ?? "action"}`,
-    ``,
-    beat.description,
-  ]
-  if (beat.characters.length > 0) {
-    lines.push(`Characters present: ${beat.characters.join(", ")}`)
-  }
-
-  // Planner-Phase-2 V1a: surface payoff links. See
-  // docs/charters/planner-phase2-contract.md.
-  //
-  // (a) Setups this beat seeds — help the writer plant the fact concretely
-  //     instead of drifting around it.
+  // Beat spec slot ────────────────────────────────────────────────────────
   const facts = outline.establishedFacts ?? []
   const factById = new Map(facts.filter(f => f.id).map(f => [f.id, f.fact]))
 
-  const seeds = beat.requiredPayoffs ?? []
-  if (seeds.length > 0) {
-    const setupLines = seeds.map(p => {
-      const fact = factById.get(p.fact_id) ?? `[fact_id=${p.fact_id}]`
-      return `  - "${fact}" (lands at beat ${p.payoff_beat + 1})`
-    }).join("\n")
-    lines.push("", "SEEDS (this beat must set up):", setupLines)
-  }
+  const seeds: SeedLink[] = (beat.requiredPayoffs ?? []).map(p => ({
+    fact: factById.get(p.fact_id) ?? `[fact_id=${p.fact_id}]`,
+    landsAtBeat: p.payoff_beat,
+  }))
 
-  // (b) Payoffs due in this beat — scan prior beats for any requiredPayoffs
-  //     whose payoff_beat is our index. Tells the writer "close these open
-  //     loops here" so setups actually land.
-  const due: { fact: string; seededAtBeat: number }[] = []
+  const payoffsDue: PayoffDue[] = []
   for (let i = 0; i < beatIndex; i++) {
     for (const link of outline.scenes[i]?.requiredPayoffs ?? []) {
       if (link.payoff_beat === beatIndex) {
-        due.push({
+        payoffsDue.push({
           fact: factById.get(link.fact_id) ?? `[fact_id=${link.fact_id}]`,
           seededAtBeat: i,
         })
       }
     }
   }
-  if (due.length > 0) {
-    const payoffLines = due.map(d => `  - "${d.fact}" (seeded in beat ${d.seededAtBeat + 1})`).join("\n")
-    lines.push("", "PAYOFFS DUE (this beat must realize):", payoffLines)
+
+  const beatSpec: BeatSpec = {
+    beatNumber: beatIndex + 1,
+    totalBeats: outline.scenes.length,
+    pov: outline.povCharacter,
+    setting: outline.setting,
+    kind: beat.kind ?? "action",
+    description: beat.description,
+    charactersPresent: beat.characters,
+    seeds,
+    payoffsDue,
   }
 
-  return lines.join("\n")
+  // Transition bridge slot ────────────────────────────────────────────────
+  let transitionBridge: string | null = null
+  if (previousBeatProse) {
+    transitionBridge = extractLastSentences(previousBeatProse, 3)
+  }
+
+  // Landing target slot ───────────────────────────────────────────────────
+  let landingTarget: string | null = null
+  const nextBeat = outline.scenes[beatIndex + 1]
+  if (nextBeat) {
+    const firstSentence = nextBeat.description.split(/[.!?]/)[0]?.trim()
+    if (firstSentence) landingTarget = firstSentence
+  }
+
+  // Character snapshot slot ───────────────────────────────────────────────
+  // Compact mode AVOIDS the async Promise.all/getRelationshipBetween calls
+  // (data-selection concern, NOT a rendering concern). Full mode does the
+  // relationship + state lookups so the renderer has the data to emit.
+  const beatCharNames = beat.characters.map(n => n.toLowerCase())
+  const beatChars = characters.filter(c => beatCharNames.includes(c.name.toLowerCase()))
+
+  let characterSnapshots: CharacterSnapshot[] = []
+  if (beatChars.length > 0) {
+    if (input.compactMode) {
+      // Compact path: synchronous, no DB. Renderer emits Voice/Drives/Avoids
+      // /Conflict + Example voiced lines only — runtime state fields and
+      // relationship-to-POV are omitted by design (see docs/beat-writer-
+      // architecture.md §6).
+      characterSnapshots = beatChars.map(c => buildSnapshotCompact(c, chapterNumber, beatIndex, conditioning))
+    } else {
+      // Full path: async per-character, includes relationship lookup.
+      characterSnapshots = await Promise.all(beatChars.map(c =>
+        buildSnapshotFull(novelId, c, povChar, chapterNumber, beatIndex, characterStates, conditioning),
+      ))
+    }
+  }
+
+  // Resolved references slot ──────────────────────────────────────────────
+  const refs = input.preResolvedRefs ?? await resolveReferences(beat, outline, novelId, chapterNumber, characters)
+  const resolvedReferencesText = refs.context ? refs.context : null
+
+  // Setting slot ──────────────────────────────────────────────────────────
+  // Section visibility heuristic lives in the slot builder — null means
+  // "not rendered." Beat 0 always shows; later beats only show when
+  // beatHasLocationChange detects a transition.
+  let setting: SettingBlock | null = null
+  if (beatIndex === 0 || beatHasLocationChange(beat, outline)) {
+    setting = lookupSetting(worldBible, outline.setting)
+  }
+
+  return {
+    beatSpec,
+    transitionBridge,
+    landingTarget,
+    characterSnapshots,
+    resolvedReferencesText,
+    setting,
+  }
 }
 
-async function formatCharacterSnapshot(
-  novelId: string, char: CharacterProfile, povChar: CharacterProfile | undefined,
-  chapterNumber: number, beatIndex: number, characterStates: any[],
+// ── Public composer (preserved interface) ────────────────────────────────
+
+export async function buildBeatContext(input: BeatContextInput): Promise<BeatContextResult> {
+  const ctx = await buildBeatContextSlots(input)
+  const targetWords = Math.round(input.outline.targetWords / Math.max(input.outline.scenes.length, 1))
+  return {
+    userPrompt: renderBeatContext(ctx, { compact: !!input.compactMode }),
+    targetWords,
+  }
+}
+
+// ── Snapshot builders (slot-side, async-or-sync per compactMode) ─────────
+
+function buildSnapshotCompact(
+  char: CharacterProfile,
+  chapterNumber: number,
+  beatIndex: number,
   conditioning: "fixed" | "rotation" | undefined,
-): Promise<string> {
-  const lines: string[] = [`${char.name}:`]
+): CharacterSnapshot {
+  const exampleLines = char.exampleLines && char.exampleLines.length > 0
+    ? pickExampleLineSubset(char.exampleLines, chapterNumber, beatIndex, conditioning)
+    : []
+  const snap: CharacterSnapshot = {
+    name: char.name,
+    exampleLines,
+  }
+  if (char.speechPattern) snap.voice = char.speechPattern
+  if (char.goals) snap.drives = char.goals
+  if (char.avoids) snap.avoids = char.avoids
+  if (char.internalConflict) snap.conflict = char.internalConflict
+  return snap
+}
 
-  // Speech pattern — the critical anchor
-  if (char.speechPattern) lines.push(`  Voice: ${char.speechPattern}`)
+async function buildSnapshotFull(
+  novelId: string,
+  char: CharacterProfile,
+  povChar: CharacterProfile | undefined,
+  chapterNumber: number,
+  beatIndex: number,
+  characterStates: any[],
+  conditioning: "fixed" | "rotation" | undefined,
+): Promise<CharacterSnapshot> {
+  const exampleLines = char.exampleLines && char.exampleLines.length > 0
+    ? pickExampleLineSubset(char.exampleLines, chapterNumber, beatIndex, conditioning)
+    : []
+  const snap: CharacterSnapshot = {
+    name: char.name,
+    exampleLines,
+  }
+  if (char.speechPattern) snap.voice = char.speechPattern
+  if (char.goals) snap.drives = char.goals
+  if (char.avoids) snap.avoids = char.avoids
+  if (char.internalConflict) snap.conflict = char.internalConflict
 
-  // Behavioral drivers — how they act, not just how they talk
-  if (char.goals) lines.push(`  Drives: ${char.goals}`)
-  if (char.avoids) lines.push(`  Avoids: ${char.avoids}`)
-  if (char.internalConflict) lines.push(`  Conflict: ${char.internalConflict}`)
-
-  // Current emotional/tactical state
   const state = characterStates.find(
-    cs => cs.characterId === char.id || cs.characterId?.toLowerCase() === char.name.toLowerCase()
+    cs => cs.characterId === char.id || cs.characterId?.toLowerCase() === char.name.toLowerCase(),
   )
-  if (state?.emotionalState) lines.push(`  State: ${state.emotionalState}`)
+  if (state?.emotionalState) snap.state = state.emotionalState
 
-  // Relationship to POV (just the current dynamic, not full arc)
   if (povChar && char.id !== povChar.id) {
     try {
       const rel = await getRelationshipBetween(novelId, povChar.id, char.id, chapterNumber)
       if (rel) {
-        lines.push(`  With ${povChar.name}: [${rel.trustLevel}] ${rel.dynamic}`)
-        if (rel.tension) lines.push(`    Tension: ${rel.tension}`)
+        const withPov: { trustLevel: string; dynamic: string; tension?: string } = {
+          trustLevel: rel.trustLevel,
+          dynamic: rel.dynamic,
+        }
+        if (rel.tension) withPov.tension = rel.tension
+        snap.withPov = withPov
+        // Stash the canonical POV display name so the pure renderer can
+        // emit "With ${povName}: …" without having to look up the
+        // character profile. Matches the legacy line which uses
+        // povChar.name from the CharacterProfile lookup.
+        snap.povDisplayName = povChar.name
       }
     } catch { /* no relationship data yet */ }
   }
 
-  // Knowledge constraint (what they don't know)
   if (state?.doesNotKnow?.length > 0) {
-    lines.push(`  Doesn't know: ${state.doesNotKnow.slice(0, 2).join("; ")}`)
+    snap.doesNotKnow = state.doesNotKnow.slice(0, 2)
   }
 
-  // Example voiced lines — voice anchors for dialogue generation. Matches
-  // the shape trained into Salvatore v4 (character-tagged beat-writer).
-  if (char.exampleLines && char.exampleLines.length > 0) {
-    lines.push(`  Example voiced lines:`)
-    pickExampleLineSubset(char.exampleLines, chapterNumber, beatIndex, conditioning).forEach((line, i) => {
-      lines.push(`    ${i + 1}. "${line.replace(/^"|"$/g, "")}"`)
-    })
-  }
-
-  return lines.join("\n")
+  return snap
 }
 
-function formatSetting(worldBible: any, settingName: string): string | null {
+// ── Helpers (slot-side data selection only) ──────────────────────────────
+
+function lookupSetting(worldBible: any, settingName: string): SettingBlock | null {
   const locations = worldBible?.locations ?? []
   const match = locations.find(
     (l: any) => l.name.toLowerCase().includes(settingName.toLowerCase()) ||
-         settingName.toLowerCase().includes(l.name.toLowerCase())
+         settingName.toLowerCase().includes(l.name.toLowerCase()),
   )
   if (!match) return null
 
-  let section = `SETTING: ${match.name}`
-  if (match.description) section += `\n${match.description}`
-  if (match.sensoryDetails) section += `\nSensory: ${match.sensoryDetails}`
-  return section
+  const block: SettingBlock = { name: match.name }
+  if (match.description) block.description = match.description
+  if (match.sensoryDetails) block.sensoryDetails = match.sensoryDetails
+  return block
 }
 
 function extractLastSentences(prose: string, count: number): string | null {

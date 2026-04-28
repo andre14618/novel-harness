@@ -1,0 +1,70 @@
+{
+  "description": "characters with empty exampleLines arrays — Example voiced lines section suppressed for each; full mode",
+  "input": {
+    "novelId": "test-novel-13",
+    "chapterNumber": 2,
+    "beatIndex": 0,
+    "outline": {
+      "chapterNumber": 2,
+      "title": "Quiet",
+      "povCharacter": "Drizzt",
+      "setting": "high meadow",
+      "purpose": "no dialogue voicing required",
+      "scenes": [
+        {
+          "description": "Drizzt and Catti-brie walk in silence under a clear sky.",
+          "characters": ["Drizzt", "Catti-brie"],
+          "kind": "interiority",
+          "requiredPayoffs": []
+        }
+      ],
+      "targetWords": 800,
+      "charactersPresent": ["Drizzt", "Catti-brie"],
+      "establishedFacts": [],
+      "characterStateChanges": [],
+      "knowledgeChanges": []
+    },
+    "characters": [
+      {
+        "id": "drizzt-001",
+        "name": "Drizzt",
+        "role": "drow ranger",
+        "backstory": "",
+        "traits": [],
+        "speechPattern": "formal and measured",
+        "internalConflict": "torn between heritage and path",
+        "goals": "find belonging",
+        "fears": "",
+        "relationships": [],
+        "culturalBackground": [],
+        "systemAwareness": [],
+        "exampleLines": []
+      },
+      {
+        "id": "catti-001",
+        "name": "Catti-brie",
+        "role": "warrior",
+        "backstory": "",
+        "traits": [],
+        "speechPattern": "warm with a Northland lilt",
+        "internalConflict": "loyal but restless",
+        "goals": "find her own road",
+        "fears": "",
+        "relationships": [],
+        "culturalBackground": [],
+        "systemAwareness": [],
+        "exampleLines": []
+      }
+    ],
+    "characterStates": [],
+    "worldBible": {
+      "locations": []
+    },
+    "preResolvedRefs": {
+      "context": "",
+      "lookupCount": 0,
+      "llmUsed": false
+    },
+    "compactMode": false
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "description": "character with sparse data — no goals, avoids, internalConflict, exampleLines, no speechPattern; renderer skips the missing lines",
+  "input": {
+    "novelId": "test-novel-12",
+    "chapterNumber": 1,
+    "beatIndex": 0,
+    "outline": {
+      "chapterNumber": 1,
+      "title": "Bare Beat",
+      "povCharacter": "Stranger",
+      "setting": "the road",
+      "purpose": "minimal character",
+      "scenes": [
+        {
+          "description": "The stranger walks the road in silence.",
+          "characters": ["Stranger"],
+          "kind": "action",
+          "requiredPayoffs": []
+        }
+      ],
+      "targetWords": 400,
+      "charactersPresent": ["Stranger"],
+      "establishedFacts": [],
+      "characterStateChanges": [],
+      "knowledgeChanges": []
+    },
+    "characters": [
+      {
+        "id": "stranger-001",
+        "name": "Stranger",
+        "role": "unknown traveler",
+        "backstory": "",
+        "traits": [],
+        "speechPattern": "",
+        "goals": "",
+        "fears": "",
+        "relationships": [],
+        "culturalBackground": [],
+        "systemAwareness": [],
+        "exampleLines": []
+      }
+    ],
+    "characterStates": [],
+    "worldBible": {
+      "locations": []
+    },
+    "preResolvedRefs": {
+      "context": "",
+      "lookupCount": 0,
+      "llmUsed": false
+    },
+    "compactMode": false
+  }
+}

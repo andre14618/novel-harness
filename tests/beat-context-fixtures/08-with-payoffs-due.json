@@ -1,0 +1,80 @@
+{
+  "description": "beat at index 2 with payoffs due from beat 0 (a payoff_beat:2 link declared in an earlier beat); full mode, no location change so setting suppressed",
+  "input": {
+    "novelId": "test-novel-08",
+    "chapterNumber": 4,
+    "beatIndex": 2,
+    "previousBeatProse": "He turned the page slowly. The ink had bled. The signature was clear.",
+    "outline": {
+      "chapterNumber": 4,
+      "title": "The Reading",
+      "povCharacter": "Wulfgar",
+      "setting": "Bruenor's Hall",
+      "purpose": "the planted facts realize",
+      "scenes": [
+        {
+          "description": "Wulfgar finds the letter again on the workbench.",
+          "characters": ["Wulfgar"],
+          "kind": "action",
+          "requiredPayoffs": [
+            {"fact_id": "letter-existence", "payoff_beat": 2},
+            {"fact_id": "crest-meaning", "payoff_beat": 2}
+          ]
+        },
+        {
+          "description": "He sits by the firelight to look at it once more.",
+          "characters": ["Wulfgar"],
+          "kind": "interiority",
+          "requiredPayoffs": []
+        },
+        {
+          "description": "He breaks the seal and reads the contents aloud to himself.",
+          "characters": ["Wulfgar"],
+          "kind": "dialogue",
+          "requiredPayoffs": []
+        }
+      ],
+      "targetWords": 1500,
+      "charactersPresent": ["Wulfgar"],
+      "establishedFacts": [
+        {"id": "letter-existence", "fact": "A sealed letter from the south arrives at the hall", "category": "knowledge"},
+        {"id": "crest-meaning", "fact": "The wax seal bears the lost crest of House Vellaen", "category": "knowledge"}
+      ],
+      "characterStateChanges": [],
+      "knowledgeChanges": []
+    },
+    "characters": [
+      {
+        "id": "wulfgar-001",
+        "name": "Wulfgar",
+        "role": "barbarian",
+        "backstory": "",
+        "traits": [],
+        "speechPattern": "earnest and deliberate",
+        "internalConflict": "torn between expectations and bond",
+        "goals": "prove worthy of his name",
+        "fears": "",
+        "relationships": [],
+        "culturalBackground": [],
+        "systemAwareness": [],
+        "exampleLines": []
+      }
+    ],
+    "characterStates": [],
+    "worldBible": {
+      "locations": [
+        {
+          "name": "Bruenor's Hall",
+          "description": "The hold's hearth chamber.",
+          "sensoryDetails": "smoke and ale-warm air"
+        }
+      ]
+    },
+    "preResolvedRefs": {
+      "context": "",
+      "lookupCount": 0,
+      "llmUsed": false
+    },
+    "compactMode": false
+  }
+}
