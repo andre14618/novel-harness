@@ -484,7 +484,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
 
       const [planCheckSettled, continuitySettled] = await Promise.allSettled([
         (pipeline.chapterPlanCheck && !planCheckOverridden)
-          ? callAgent({
+          ? callAgent({  // @noninjectable — V1 inject.forcePlanCheck removed in D4a; V2 transport-interceptor + v1-bridge handles forced failures.
               novelId, agentName: "chapter-plan-checker",
               chapter: ch, attempt: attempts,
               systemPrompt: CHAPTER_PLAN_CHECKER_PROMPT,
@@ -526,19 +526,17 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
       //   emotional_arc_correct=false → last 2 beats (arc lands at closer)
       if (pipeline.chapterPlanCheck && !planCheckOverridden) {
         if (planCheckSettled.status === "fulfilled" && planCheckSettled.value !== null) {
-          // Seam A — DEBUG_FORCE_PLAN_CHECK=fail: replace the checker output
-          // with a synthesized failure so the exhaustion handler fires without
-          // needing the LLM to actually return pass=false.
-          // V1 seam stays at the caller through D4a; D4b migrates to V2
-          // transport-interceptor.
-          const initialPlanCheckResult = (inject.forcePlanCheck === "fail")
-            ? {
-                pass: false as const,
-                deviations: [{ description: "forced plan-check failure via DEBUG_FORCE_PLAN_CHECK=fail", beat_index: 0 as number | null }],
-                setting_match: undefined,
-                emotional_arc_correct: undefined,
-              }
-            : planCheckSettled.value.output
+          // V1 inline short-circuit for `DEBUG_FORCE_PLAN_CHECK=fail` was
+          // removed in D4a — interception now lives in the V2 transport
+          // layer (`src/debug/transport-interceptor.ts`). The
+          // `src/debug/v1-bridge.ts` module translates the legacy env var
+          // into a `force-result` rule on `chapter-plan-checker` at
+          // orchestrator startup, so the chapter-plan-checker callAgent
+          // already returns `{ pass: false, ... }` here. The
+          // `inject.forcePlanCheck === "fail"` read below stays for
+          // telemetry payload parity (campaign R1/R6/R7 SSE matchers
+          // assert the `forcedPlanCheck` + `source` fields).
+          const initialPlanCheckResult = planCheckSettled.value.output
           await trace(novelId, {
             eventType: "plan-check-outcome", chapter: ch,
             payload: {
@@ -552,9 +550,6 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
           const canSettle = beatProses.length === outline.scenes.length
 
           // D3 settle loop. Caller closures own:
-          //   - V1 debug-injection synthesis on the `check` recheck path
-          //     (mirrors the pre-D3 Seam A recheck guard until D4a migrates
-          //     it to the V2 transport-interceptor)
           //   - per-deviation routing (chapter-level fallbacks for
           //     setting_match / emotional_arc_correct, last-resort
           //     append-to-beat-0)
@@ -562,6 +557,10 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
           //     prose/wordCount before the next recheck
           // Loop owns: while-loop, budget, single recheck dispatch site,
           // ascending sequential rewriteBeat dispatch, telemetry hooks.
+          // V1 inline `forcePlanCheck === "fail"` short-circuit was removed
+          // in D4a — see initial-check comment above; the V2
+          // transport-interceptor now handles the synthesis at the
+          // chapter-plan-checker callAgent boundary.
           let currentRewritePass = 0
           const planSettleOutcome = await runSettleLoop<typeof initialPlanCheckResult>({
             initialResult: initialPlanCheckResult,
@@ -569,14 +568,6 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
               prose = beatProses.join("\n\n")
               wordCount = prose.split(/\s+/).filter(Boolean).length
               console.log(`  Rewrite complete — re-running plan check on ${wordCount}w prose`)
-              if (inject.forcePlanCheck === "fail") {
-                return {
-                  pass: false as const,
-                  deviations: [{ description: "forced plan-check failure via DEBUG_FORCE_PLAN_CHECK=fail (recheck)", beat_index: 0 as number | null }],
-                  setting_match: undefined,
-                  emotional_arc_correct: undefined,
-                }
-              }
               const recheck = await callAgent({
                 novelId, agentName: "chapter-plan-checker",
                 chapter: ch, attempt: attempts + currentRewritePass * 10,
@@ -770,20 +761,8 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                 lastUnresolvedSig = issueSig
               },
               callReviser: async (userPrompt) => {
-                // V1 DEBUG_FORCE_REVISER seams stay at the caller until D4a
-                // migrates them to the V2 transport-interceptor. See
-                // docs/plans/2026-04-28-drafting-deepenings.md.
-                if (inject.forceReviser === "throw") {
-                  throw new Error("forced reviser throw via DEBUG_FORCE_REVISER=throw")
-                }
-                if (inject.forceReviser === "reject") {
-                  // Match the pre-refactor synthesized 1-beat plan byte-for-byte.
-                  // Cast through `unknown` because SceneBeat's static type doesn't
-                  // include `setting` / `pov`, but the runtime tolerates extra
-                  // properties (zod parses, doesn't strict-strip).
-                  return { output: { scenes: [{ description: "forced single-beat plan", characters: [outline.povCharacter], kind: "description" as const, setting: outline.setting, pov: outline.povCharacter }], establishedFacts: [], characterStateChanges: [], knowledgeChanges: [] } } as unknown as ReviserResponse
-                }
-                return await callAgent({
+                // V1 DEBUG_FORCE_REVISER short-circuits removed in D4a — V2 transport-interceptor + v1-bridge intercepts at agent boundary.
+                return await callAgent({  // @noninjectable
                   novelId, agentName: "chapter-plan-reviser",
                   chapter: ch, attempt: attempts,
                   systemPrompt: CHAPTER_PLAN_REVISER_PROMPT,
@@ -1060,15 +1039,8 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
               revisionUsed = true
             },
             callReviser: async (userPrompt) => {
-              if (inject.forceReviser === "throw") {
-                throw new Error("forced reviser throw via DEBUG_FORCE_REVISER=throw")
-              }
-              if (inject.forceReviser === "reject") {
-                // See plan-check site above: cast through `unknown` to preserve
-                // the pre-refactor synthesis byte-for-byte.
-                return { output: { scenes: [{ description: "forced single-beat plan", characters: [outline.povCharacter], kind: "description" as const, setting: outline.setting, pov: outline.povCharacter }], establishedFacts: [], characterStateChanges: [], knowledgeChanges: [] } } as unknown as ReviserResponse
-              }
-              return await callAgent({
+              // V1 DEBUG_FORCE_REVISER short-circuits removed in D4a (see plan-check site above) — V2 transport-interceptor handles throw/reject.
+              return await callAgent({  // @noninjectable
                 novelId, agentName: "chapter-plan-reviser",
                 chapter: ch, attempt: attempts,
                 systemPrompt: CHAPTER_PLAN_REVISER_PROMPT,

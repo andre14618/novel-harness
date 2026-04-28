@@ -19,8 +19,10 @@
  *     so a schema/transport error can't leak revision_used=FALSE into the
  *     DB and let a later restart fire a second reviser call). See the
  *     persistence test at `drafting-revision-used-persistence.test.ts (c)`.
- *   - Reviser LLM call dispatch (caller-supplied `callReviser` closure so
- *     V1 `DEBUG_FORCE_REVISER` seams stay at the caller until D4a).
+ *   - Reviser LLM call dispatch (caller-supplied `callReviser` closure;
+ *     V1 `DEBUG_FORCE_REVISER` short-circuits removed in D4a — the V2
+ *     transport-interceptor + `src/debug/v1-bridge.ts` now handles
+ *     debug-injection at the agent boundary instead).
  *   - Sanity checks: beat floor (`Math.max(3, ceil(targetWords / 300))`)
  *     and no-new-characters.
  *   - Telemetry (`logRevision` callback) for `chapter_revisions` rows.
@@ -142,11 +144,10 @@ export interface ReviserPolicyInput {
    */
   markRevisionUsed: () => Promise<void>
   /**
-   * The actual LLM dispatch. Caller wires this to `callAgent({...})` for
-   * production, or to a debug-injection short-circuit for the V1
-   * `DEBUG_FORCE_REVISER` seams. The V1 seams live at the caller until
-   * D4a migrates them to the V2 transport-interceptor — see
-   * `docs/plans/2026-04-28-drafting-deepenings.md`.
+   * The actual LLM dispatch. Caller wires this to `callAgent({...})`.
+   * Debug-injection (V1 `DEBUG_FORCE_REVISER` env vars) is intercepted
+   * in the V2 transport layer via `src/debug/v1-bridge.ts` since D4a;
+   * the closure no longer carries an inline short-circuit.
    *
    * The caller's closure is responsible for any agentName / chapter /
    * attempt / system-prompt / schema wiring. The policy module only knows

@@ -275,6 +275,10 @@ If yes, update this file.
 - **Drift detector skeleton shipped (Phase 0 prereq #2).** `scripts/autonomous-loop/drift-detector.ts` + migration `sql/032_drift_checks.sql`. The detector reads frozen `eval_results` baselines from the DB, computes precision/recall/F1 deltas per adapter, applies the gate thresholds (>5pt precision OR >3pt F1 regression trips the gate), and writes verdicts to `drift_checks`. CLI: `bun scripts/autonomous-loop/drift-detector.ts --adapters halluc-ungrounded-v2,halluc-leak-salvatore-v1`. **Live replay inference is stubbed** (returns null for current metrics) — gated on prereq #1 (env→DB config migration); the stub populates `error_text` so rows are still written. The DB read, delta math, gate logic, and migration are fully implemented.
 - **Migration 032 is next.** `sql/032_drift_checks.sql` adds the `drift_checks` table (run_id, adapter, frozen_run_id, precision/recall/F1 frozen+current+delta, trips_gate, gate_reason, brief_count, error_text, ran_at).
 
+## Current Session (2026-04-28)
+
+- **Drafting-layer deepenings landed (D1–D4a).** Per `docs/plans/2026-04-28-drafting-deepenings.md` (Codex GREEN round 4): D1 typed `BeatContext` slots + pure renderer + 20-fixture byte-parity gate (`b2669f9`); D2 `attemptRevision` policy module owning the reviser dispatch + sanity checks + `revisionUsed` write-before-call guard (`a16f72d`); D3 generic `runSettleLoop<T>` shell consolidating both plan-check and validation rewrite loops behind one shape (`2688f28`); D4a migrates the `DEBUG_FORCE_PLAN_CHECK` / `DEBUG_FORCE_REVISER` env-var seams from inline guards in `drafting.ts` to V2 transport-interceptor rules registered at orchestrator boot via `src/debug/v1-bridge.ts`. `DEBUG_FORCE_VALIDATION` stays at V1 until D4b lands the deterministic-check interception layer. Invariant #2 (Seam-recheck symmetry) stays live; the three plan-check/reviser call sites now carry `// @noninjectable` markers (transport handles it).
+
 ## Current Known Gaps
 
 These are known cleanup items, not contradictions in the operating model:
