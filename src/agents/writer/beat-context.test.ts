@@ -16,7 +16,10 @@
  */
 
 import { describe, it, expect } from "bun:test"
-import { pickExampleLineSubset } from "./beat-context"
+// Import directly from the implementation module so this test bypasses the
+// process-global module mocks that the drafting tests install on
+// `./beat-context`. See `./example-line-subset.ts` header for the rationale.
+import { pickExampleLineSubset } from "./example-line-subset"
 
 const FIVE_LINES = ["line0", "line1", "line2", "line3", "line4"]
 const SIX_LINES  = ["line0", "line1", "line2", "line3", "line4", "line5"]
