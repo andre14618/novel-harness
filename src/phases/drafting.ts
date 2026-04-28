@@ -44,6 +44,7 @@ import {
   type ReviserIssue,
   type ReviserResponse,
 } from "./reviser-policy"
+import { runSettleLoop } from "./settle-loop"
 import { lintProse } from "../lint"
 import { fixLintIssues } from "../lint/fix"
 import { getModelForAgent, resolveWriterPack, type WriterGenrePack } from "../models/roles"
@@ -528,7 +529,9 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
           // Seam A — DEBUG_FORCE_PLAN_CHECK=fail: replace the checker output
           // with a synthesized failure so the exhaustion handler fires without
           // needing the LLM to actually return pass=false.
-          let out = (inject.forcePlanCheck === "fail")
+          // V1 seam stays at the caller through D4a; D4b migrates to V2
+          // transport-interceptor.
+          const initialPlanCheckResult = (inject.forcePlanCheck === "fail")
             ? {
                 pass: false as const,
                 deviations: [{ description: "forced plan-check failure via DEBUG_FORCE_PLAN_CHECK=fail", beat_index: 0 as number | null }],
@@ -539,72 +542,89 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
           await trace(novelId, {
             eventType: "plan-check-outcome", chapter: ch,
             payload: {
-              pass: out.pass,
+              pass: initialPlanCheckResult.pass,
               rewritePass: 0,
               forcedPlanCheck: inject.forcePlanCheck === "fail",
-              deviationCount: out.deviations?.length ?? 0,
+              deviationCount: initialPlanCheckResult.deviations?.length ?? 0,
               source: inject.forcePlanCheck === "fail" ? "forced-synth" : "initial",
             },
           })
-          let rewritePass = 0
           const canSettle = beatProses.length === outline.scenes.length
 
-          while (!out.pass && rewritePass < pipeline.maxChapterPlanRewritePasses && canSettle) {
-            const devs = out.deviations ?? []
-            devs.forEach(d => console.log(`    DEVIATION (beat ${d.beat_index ?? "chapter-level"}): ${d.description}`))
-
-            // Map deviations → Map<beatIdx, string[]>
-            const perBeat = new Map<number, string[]>()
-            const addTo = (idx: number, desc: string) => {
-              if (idx < 0 || idx >= outline.scenes.length) return
-              const list = perBeat.get(idx) ?? []
-              list.push(desc)
-              perBeat.set(idx, list)
-            }
-            for (const d of devs) {
-              if (d.beat_index != null) {
-                addTo(d.beat_index, d.description)
+          // D3 settle loop. Caller closures own:
+          //   - V1 debug-injection synthesis on the `check` recheck path
+          //     (mirrors the pre-D3 Seam A recheck guard until D4a migrates
+          //     it to the V2 transport-interceptor)
+          //   - per-deviation routing (chapter-level fallbacks for
+          //     setting_match / emotional_arc_correct, last-resort
+          //     append-to-beat-0)
+          //   - mutating beatProses[bi] on accepted rewrites and refreshing
+          //     prose/wordCount before the next recheck
+          // Loop owns: while-loop, budget, single recheck dispatch site,
+          // ascending sequential rewriteBeat dispatch, telemetry hooks.
+          let currentRewritePass = 0
+          const planSettleOutcome = await runSettleLoop<typeof initialPlanCheckResult>({
+            initialResult: initialPlanCheckResult,
+            check: async () => {
+              prose = beatProses.join("\n\n")
+              wordCount = prose.split(/\s+/).filter(Boolean).length
+              console.log(`  Rewrite complete — re-running plan check on ${wordCount}w prose`)
+              if (inject.forcePlanCheck === "fail") {
+                return {
+                  pass: false as const,
+                  deviations: [{ description: "forced plan-check failure via DEBUG_FORCE_PLAN_CHECK=fail (recheck)", beat_index: 0 as number | null }],
+                  setting_match: undefined,
+                  emotional_arc_correct: undefined,
+                }
               }
-            }
-            // Heuristic routing for chapter-level issues (no beat_index)
-            const hasChapterLevel = devs.some(d => d.beat_index == null)
-            if (hasChapterLevel || (out.setting_match && !out.setting_match.matches)) {
-              if (out.setting_match && !out.setting_match.matches) {
-                addTo(0, `Chapter setting mismatch — planned "${out.setting_match.planned}" but prose observed "${out.setting_match.observed}"`)
+              const recheck = await callAgent({
+                novelId, agentName: "chapter-plan-checker",
+                chapter: ch, attempt: attempts + currentRewritePass * 10,
+                systemPrompt: CHAPTER_PLAN_CHECKER_PROMPT,
+                userPrompt: buildChapterPlanCheckContext(prose, outline),
+                schema: chapterPlanCheckSchema,
+              })
+              return recheck.output as typeof initialPlanCheckResult
+            },
+            isPass: r => r.pass,
+            route: r => {
+              const devs = r.deviations ?? []
+              devs.forEach(d => console.log(`    DEVIATION (beat ${d.beat_index ?? "chapter-level"}): ${d.description}`))
+              const perBeat = new Map<number, string[]>()
+              const addTo = (idx: number, desc: string) => {
+                if (idx < 0 || idx >= outline.scenes.length) return
+                const list = perBeat.get(idx) ?? []
+                list.push(desc)
+                perBeat.set(idx, list)
               }
-            }
-            if (out.emotional_arc_correct === false) {
-              const lastN = outline.scenes.length >= 12 ? 3 : 2
-              for (let i = outline.scenes.length - lastN; i < outline.scenes.length; i++) {
-                addTo(i, "Emotional arc reversed from plan — the closing beats should land the planned emotion direction, not invert it")
+              for (const d of devs) {
+                if (d.beat_index != null) addTo(d.beat_index, d.description)
               }
-            }
-            // Any remaining chapter-level deviation strings get appended to beat 0 as a last resort
-            for (const d of devs) {
-              if (d.beat_index == null && out.setting_match?.matches !== false && out.emotional_arc_correct !== false) {
-                addTo(0, d.description)
+              const hasChapterLevel = devs.some(d => d.beat_index == null)
+              if (hasChapterLevel || (r.setting_match && !r.setting_match.matches)) {
+                if (r.setting_match && !r.setting_match.matches) {
+                  addTo(0, `Chapter setting mismatch — planned "${r.setting_match.planned}" but prose observed "${r.setting_match.observed}"`)
+                }
               }
-            }
-
-            if (perBeat.size === 0) {
-              log(novelId, "warn", "Plan check failed but no beat mapping — escalating to full restart")
-              bail = true
-              break
-            }
-
-            rewritePass++
-            console.log(`  Plan check pass ${rewritePass}/${pipeline.maxChapterPlanRewritePasses}: rewriting ${perBeat.size} beats (${[...perBeat.keys()].sort((a, b) => a - b).join(",")})`)
-            log(novelId, "info", `Plan-check settle pass ${rewritePass}: targeted rewrite of beats [${[...perBeat.keys()].sort((a, b) => a - b).join(",")}]`)
-
-            // Rewrite each affected beat — reuses the beat-writer TARGETED REWRITE
-            // prompt shape from the per-beat retry loop above.
-            const beatWriterModel = writerPack?.model ?? getModelForAgent("beat-writer")
-            const beatSystemPrompt = packPrompt ?? BEAT_WRITER_PROMPT
-            const characters = await getCharacters(novelId)
-            const charStates = await getCharacterStatesAtChapter(novelId, ch)
-            const worldBible = await getWorldBible(novelId)
-
-            for (const [bi, issueDescriptions] of [...perBeat.entries()].sort(([a], [b]) => a - b)) {
+              if (r.emotional_arc_correct === false) {
+                const lastN = outline.scenes.length >= 12 ? 3 : 2
+                for (let i = outline.scenes.length - lastN; i < outline.scenes.length; i++) {
+                  addTo(i, "Emotional arc reversed from plan — the closing beats should land the planned emotion direction, not invert it")
+                }
+              }
+              for (const d of devs) {
+                if (d.beat_index == null && r.setting_match?.matches !== false && r.emotional_arc_correct !== false) {
+                  addTo(0, d.description)
+                }
+              }
+              return perBeat
+            },
+            rewriteBeat: async (bi, issueDescriptions) => {
+              const beatWriterModel = writerPack?.model ?? getModelForAgent("beat-writer")
+              const beatSystemPrompt = packPrompt ?? BEAT_WRITER_PROMPT
+              const characters = await getCharacters(novelId)
+              const charStates = await getCharacterStatesAtChapter(novelId, ch)
+              const worldBible = await getWorldBible(novelId)
               const beatSpec = outline.scenes[bi]
               const preResolved = await resolveReferences(beatSpec, outline, novelId, ch, characters)
                 .catch(() => ({ context: "", lookupCount: 0, llmUsed: false }))
@@ -631,7 +651,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                   },
                   novelId,
                   "beat-writer",
-                  { chapter: ch, beatIndex: bi, attempt: attempts + rewritePass * 10 },
+                  { chapter: ch, beatIndex: bi, attempt: attempts + currentRewritePass * 10 },
                   {
                     stream: true,
                     meta: {
@@ -646,51 +666,47 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                 const rewritten = response.content?.trim()
                 if (rewritten && rewritten.length >= 50) {
                   beatProses[bi] = rewritten
+                  return rewritten
                 }
+                return null
               } catch (err) {
                 log(novelId, "warn", `Beat ${bi + 1} plan-check rewrite failed: ${err instanceof Error ? err.message : err}`)
+                return null
               }
-            }
-
-            // Rebuild prose from the updated beat list and re-run plan check
-            prose = beatProses.join("\n\n")
-            wordCount = prose.split(/\s+/).filter(Boolean).length
-            console.log(`  Rewrite complete — re-running plan check on ${wordCount}w prose`)
-            // Seam A (settle-loop recheck) — same force as the initial
-            // plan-check call above. Without this the forced-fail path
-            // would settle on the first real LLM response (typically
-            // pass=true), skipping the exhaustion handler entirely.
-            let recheckSource: "recheck" | "forced-recheck-synth"
-            if (inject.forcePlanCheck === "fail") {
-              out = {
-                pass: false as const,
-                deviations: [{ description: "forced plan-check failure via DEBUG_FORCE_PLAN_CHECK=fail (recheck)", beat_index: 0 as number | null }],
-                setting_match: undefined,
-                emotional_arc_correct: undefined,
-              }
-              recheckSource = "forced-recheck-synth"
-            } else {
-              const recheck = await callAgent({
-                novelId, agentName: "chapter-plan-checker",
-                chapter: ch, attempt: attempts + rewritePass * 10,
-                systemPrompt: CHAPTER_PLAN_CHECKER_PROMPT,
-                userPrompt: buildChapterPlanCheckContext(prose, outline),
-                schema: chapterPlanCheckSchema,
+            },
+            budget: pipeline.maxChapterPlanRewritePasses,
+            canSettle: () => canSettle,
+            onPassStart: async (passNumber, perBeat) => {
+              currentRewritePass = passNumber
+              console.log(`  Plan check pass ${passNumber}/${pipeline.maxChapterPlanRewritePasses}: rewriting ${perBeat.size} beats (${[...perBeat.keys()].sort((a, b) => a - b).join(",")})`)
+              log(novelId, "info", `Plan-check settle pass ${passNumber}: targeted rewrite of beats [${[...perBeat.keys()].sort((a, b) => a - b).join(",")}]`)
+            },
+            onIteration: async (passNumber, result) => {
+              await trace(novelId, {
+                eventType: "plan-check-outcome", chapter: ch,
+                payload: {
+                  pass: result.pass,
+                  rewritePass: passNumber,
+                  forcedPlanCheck: inject.forcePlanCheck === "fail",
+                  deviationCount: result.deviations?.length ?? 0,
+                  source: inject.forcePlanCheck === "fail" ? "forced-recheck-synth" : "recheck",
+                },
               })
-              out = recheck.output
-              recheckSource = "recheck"
-            }
-            await trace(novelId, {
-              eventType: "plan-check-outcome", chapter: ch,
-              payload: {
-                pass: out.pass,
-                rewritePass,
-                forcedPlanCheck: inject.forcePlanCheck === "fail",
-                deviationCount: out.deviations?.length ?? 0,
-                source: recheckSource,
-              },
-            })
+            },
+          })
+
+          // Resolve the post-loop `out` from the settle outcome. Mirror the
+          // pre-D3 control flow: `no-routing` was a `bail = true; break`
+          // followed by the unchanged-out path; `ineligible` corresponds
+          // to canSettle=false, where the original loop never ran and the
+          // initial result drove escalation; `exhausted` and `accepted`
+          // both have a finalResult.
+          if (planSettleOutcome.kind === "no-routing") {
+            log(novelId, "warn", "Plan check failed but no beat mapping — escalating to full restart")
           }
+          const out = planSettleOutcome.kind === "ineligible"
+            ? initialPlanCheckResult
+            : planSettleOutcome.finalResult
 
           if (!out.pass) {
             out.deviations?.forEach(d => console.log(`    UNRESOLVED DEVIATION (beat ${d.beat_index ?? "chapter-level"}): ${d.description}`))
@@ -805,9 +821,10 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
 
             emit(novelId, { type: "progress", data: { step: "plan-check", chapter: ch, status: "failed" } })
           } else {
-            if (rewritePass > 0) {
-              console.log(`  Plan check: passed after ${rewritePass} targeted rewrite pass(es)`)
-              log(novelId, "info", `Plan check passed after ${rewritePass} targeted rewrite pass(es)`)
+            const passes = planSettleOutcome.kind === "accepted" ? planSettleOutcome.passes : 0
+            if (passes > 0) {
+              console.log(`  Plan check: passed after ${passes} targeted rewrite pass(es)`)
+              log(novelId, "info", `Plan check passed after ${passes} targeted rewrite pass(es)`)
             } else {
               console.log("  Plan check: passed")
             }
@@ -830,26 +847,59 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
         validation.warnings.forEach(w => console.log(`    WARNING: ${w}`))
         log(novelId, "warn", `Validation failed: ${validation.blockers.join("; ")}`)
 
-        let validationPass = 0
         const canSettle = beatProses.length === outline.scenes.length
         let currentBlockers = validation.blockers
         let currentWarnings = validation.warnings
+        let currentValidationPass = 0
+        type ValidationCheckResult = ReturnType<typeof validateChapterDraft>
 
-        while (currentBlockers.length > 0 && validationPass < pipeline.maxChapterPlanRewritePasses && canSettle) {
-          const perBeat = routeValidationBlockers(currentBlockers, outline, beatProses)
-          if (perBeat.size === 0) break
-
-          validationPass++
-          console.log(`  Validation pass ${validationPass}/${pipeline.maxChapterPlanRewritePasses}: rewriting ${perBeat.size} beats (${[...perBeat.keys()].sort((a, b) => a - b).join(",")})`)
-          log(novelId, "info", `Validation settle pass ${validationPass}: targeted rewrite of beats [${[...perBeat.keys()].sort((a, b) => a - b).join(",")}]`)
-
-          const beatWriterModel = writerPack?.model ?? getModelForAgent("beat-writer")
-          const beatSystemPrompt = packPrompt ?? BEAT_WRITER_PROMPT
-          const characters = await getCharacters(novelId)
-          const charStates = await getCharacterStatesAtChapter(novelId, ch)
-          const worldBible = await getWorldBible(novelId)
-
-          for (const [bi, issueDescriptions] of [...perBeat.entries()].sort(([a], [b]) => a - b)) {
+        // D3 settle loop. Caller closures own:
+        //   - V1 forceValidation synthesis on the recheck path (Seam B
+        //     stays at the caller through D4a)
+        //   - per-pass success/failure log lines (was inline at the
+        //     pre-D3 site between line 943-948), kept inside `check` so
+        //     they fire after every recheck
+        // Loop owns: while-loop, budget, single recheck dispatch site,
+        // ascending sequential rewriteBeat dispatch, telemetry hooks.
+        await runSettleLoop<ValidationCheckResult>({
+          initialResult: validation,
+          check: async () => {
+            prose = beatProses.join("\n\n")
+            wordCount = prose.split(/\s+/).filter(Boolean).length
+            let recheck: ValidationCheckResult
+            if (inject.forceValidation === "pov") {
+              recheck = {
+                passed: false,
+                blockers: [`POV character "${outline.povCharacter}" never mentioned in draft`],
+                warnings: [],
+              }
+            } else if (inject.forceValidation === "word-count") {
+              recheck = {
+                passed: false,
+                blockers: [`Chapter too short: 100 words (minimum 500)`],
+                warnings: [],
+              }
+            } else {
+              recheck = validateChapterDraft(prose, outline)
+            }
+            currentBlockers = recheck.blockers
+            currentWarnings = recheck.warnings
+            if (currentBlockers.length === 0) {
+              console.log(`  Validation: passed after ${currentValidationPass} targeted rewrite pass(es)`)
+              log(novelId, "info", `Validation passed after ${currentValidationPass} targeted rewrite pass(es)`)
+            } else {
+              console.log(`  Validation still failing (${currentBlockers.length} blockers remain)`)
+            }
+            return recheck
+          },
+          isPass: r => r.passed,
+          route: r => routeValidationBlockers(r.blockers, outline, beatProses),
+          rewriteBeat: async (bi, issueDescriptions) => {
+            const beatWriterModel = writerPack?.model ?? getModelForAgent("beat-writer")
+            const beatSystemPrompt = packPrompt ?? BEAT_WRITER_PROMPT
+            const characters = await getCharacters(novelId)
+            const charStates = await getCharacterStatesAtChapter(novelId, ch)
+            const worldBible = await getWorldBible(novelId)
             const beatSpec = outline.scenes[bi]
             const preResolved = await resolveReferences(beatSpec, outline, novelId, ch, characters)
               .catch(() => ({ context: "", lookupCount: 0, llmUsed: false }))
@@ -876,7 +926,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                 },
                 novelId,
                 "beat-writer",
-                { chapter: ch, beatIndex: bi, attempt: attempts + validationPass * 20 },
+                { chapter: ch, beatIndex: bi, attempt: attempts + currentValidationPass * 20 },
                 {
                   stream: true,
                   meta: {
@@ -891,74 +941,51 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
               const rewritten = response.content?.trim()
               if (rewritten && rewritten.length >= 50) {
                 beatProses[bi] = rewritten
+                return rewritten
               }
+              return null
             } catch (err) {
               log(novelId, "warn", `Beat ${bi + 1} validation rewrite failed: ${err instanceof Error ? err.message : err}`)
+              return null
             }
-          }
-
-          // Re-validate after rewrites. Mirror the same DEBUG_FORCE_VALIDATION
-          // synthesis used on the initial call (drafting.ts ~436-448); without
-          // this, forced-validation tests settle the loop on the first real
-          // recheck that passes and the exhaustion handler is bypassed — the
-          // same class of gap as the plan-check recheck fixed in fed9e4a.
-          // Codex seam-gap audit a1e06c61f62e901e7 flagged this site.
-          prose = beatProses.join("\n\n")
-          wordCount = prose.split(/\s+/).filter(Boolean).length
-          let recheck: ReturnType<typeof validateChapterDraft>
-          if (inject.forceValidation === "pov") {
-            recheck = {
-              passed: false,
-              blockers: [`POV character "${outline.povCharacter}" never mentioned in draft`],
-              warnings: [],
-            }
-          } else if (inject.forceValidation === "word-count") {
-            recheck = {
-              passed: false,
-              blockers: [`Chapter too short: 100 words (minimum 500)`],
-              warnings: [],
-            }
-          } else {
-            recheck = validateChapterDraft(prose, outline)
-          }
-          currentBlockers = recheck.blockers
-          currentWarnings = recheck.warnings
-          if (currentBlockers.length === 0) {
-            console.log(`  Validation: passed after ${validationPass} targeted rewrite pass(es)`)
-            log(novelId, "info", `Validation passed after ${validationPass} targeted rewrite pass(es)`)
-          } else {
-            console.log(`  Validation still failing (${currentBlockers.length} blockers remain)`)
-          }
-        }
-
-        // Post-settle trace — emit the final validation-settle outcome so test
-        // campaigns (organic-run-verify + R5/R6-style exhaustion campaigns)
-        // can assert the post-settle state the same way plan-check has
-        // `plan-check-outcome` events. Mirrors the initial validation-check
-        // trace at ~line 449 but with source="post-settle" and the final
-        // rewritePassCount + settled flag. Emitted before the reviser
-        // escalation block so the sequence is unambiguous:
-        //   1. validation-check source=initial (blockers=N)
-        //   2. validation-check source=post-settle (settled=true/false, rewritePassCount=K)
-        //   3. [iff !settled] reviser escalation → chapter_revisions row
-        await trace(novelId, {
-          eventType: "validation-check", chapter: ch,
-          payload: {
-            source: "post-settle",
-            passed: currentBlockers.length === 0,
-            blockerCount: currentBlockers.length,
-            warningCount: currentWarnings.length,
-            blockers: currentBlockers,
-            warnings: currentWarnings,
-            rewritePassCount: validationPass,
-            settled: currentBlockers.length === 0,
-            forcedValidation: inject.forceValidation ?? null,
+          },
+          budget: pipeline.maxChapterPlanRewritePasses,
+          canSettle: () => canSettle,
+          onPassStart: async (passNumber, perBeat) => {
+            currentValidationPass = passNumber
+            console.log(`  Validation pass ${passNumber}/${pipeline.maxChapterPlanRewritePasses}: rewriting ${perBeat.size} beats (${[...perBeat.keys()].sort((a, b) => a - b).join(",")})`)
+            log(novelId, "info", `Validation settle pass ${passNumber}: targeted rewrite of beats [${[...perBeat.keys()].sort((a, b) => a - b).join(",")}]`)
+          },
+          onSettleComplete: async () => {
+            // Post-settle trace — emit the final validation-settle outcome so
+            // test campaigns (organic-run-verify + R5/R6-style exhaustion
+            // campaigns) can assert the post-settle state the same way
+            // plan-check has `plan-check-outcome` events. Emitted before the
+            // reviser escalation block so the sequence is unambiguous:
+            //   1. validation-check source=initial (blockers=N)
+            //   2. validation-check source=post-settle (settled=true/false,
+            //      rewritePassCount=K)
+            //   3. [iff !settled] reviser escalation → chapter_revisions row
+            await trace(novelId, {
+              eventType: "validation-check", chapter: ch,
+              payload: {
+                source: "post-settle",
+                passed: currentBlockers.length === 0,
+                blockerCount: currentBlockers.length,
+                warningCount: currentWarnings.length,
+                blockers: currentBlockers,
+                warnings: currentWarnings,
+                rewritePassCount: currentValidationPass,
+                settled: currentBlockers.length === 0,
+                forcedValidation: inject.forceValidation ?? null,
+              },
+            })
           },
         })
 
         if (currentBlockers.length > 0) {
           currentBlockers.forEach(b => console.log(`    UNRESOLVED BLOCKER: ${b}`))
-          log(novelId, "warn", `Validation still failing after ${validationPass} targeted rewrite pass(es)`)
+          log(novelId, "warn", `Validation still failing after ${currentValidationPass} targeted rewrite pass(es)`)
 
           // Path (C) — validation-driven reviser escalation.
           // See docs/exhaustion-handler-design.md §"Path (C)".
