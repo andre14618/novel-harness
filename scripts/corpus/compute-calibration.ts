@@ -72,13 +72,17 @@ function parseArgs(): Args {
     console.error("Usage: bun scripts/corpus/compute-calibration.ts --novel=<key> --book=<book> [--dim=value-charge|promise|mice|mckee-gap|character-arcs|all] [--matcher=llm|tokens] [--key-suffix=<variant>] [--gold-suffix=<variant>] [--key-file=<path>] [--key-stamp=<YYYYMMDDTHHMMSS>] [--gold-stamp=<YYYYMMDDTHHMMSS>]")
     process.exit(2)
   }
+  // Empty-string flag values (`--key-suffix=`) collapse to null so they
+  // explicitly request "no variant" — otherwise `?? null` leaves `""`,
+  // which won't match `variant: null` in the resolver.
+  const orNull = (s: string | undefined) => (s && s.length > 0 ? s : null)
   return {
     novel, book, dim, matcher,
-    keySuffix: map["key-suffix"] ?? null,
-    goldSuffix: map["gold-suffix"] ?? null,
-    keyFile: map["key-file"] ?? null,
-    keyStamp: map["key-stamp"] ?? null,
-    goldStamp: map["gold-stamp"] ?? null,
+    keySuffix: orNull(map["key-suffix"]),
+    goldSuffix: orNull(map["gold-suffix"]),
+    keyFile: orNull(map["key-file"]),
+    keyStamp: orNull(map["key-stamp"]),
+    goldStamp: orNull(map["gold-stamp"]),
   }
 }
 
@@ -391,8 +395,15 @@ async function llmMatchPromises(gold: PromiseGoldRow[], pred: PromiseKeyRow[]): 
   // Pre-filter the candidate pool with the chapter-window gate so the
   // matcher's prompt stays focused (the model still re-checks the
   // constraint per rule 2 in the system prompt).
+  //
+  // ID prefixing: predicted and gold lists frequently share the same
+  // `p###` ID scheme (extractor and judge both use the same prompt
+  // shape). The matcher LLM hallucinates a `g###` namespace when it
+  // sees identical IDs in both inputs. Prefix every input ID with
+  // `pred_` / `gold_` to force a unique namespace, then strip the
+  // prefix before looking up in the original maps.
   const predRows = pred.map(p => ({
-    id: p.promise_id,
+    id: `pred_${p.promise_id}`,
     text: p.promise_text,
     opened_chapter: p.opened_chapter_label,
     opened_index: p.opened_chapter_index,
@@ -400,7 +411,7 @@ async function llmMatchPromises(gold: PromiseGoldRow[], pred: PromiseKeyRow[]): 
     closed_index: p.closed_chapter_index,
   }))
   const goldRows = gold.map(g => ({
-    id: g.sample_id,
+    id: `gold_${g.sample_id}`,
     text: g.promise_text,
     opened_chapter: g.opened_chapter_label,
     opened_index: g.opened_chapter_index,
@@ -446,14 +457,21 @@ Identify matched (predicted_id, gold_id) pairs per the system rules. Return only
   }
 
   // Reject pairs the model emitted with chapter-distance > 1 (rule 2).
+  // Model returns `pred_<id>` and `gold_<id>` per the prefixing convention;
+  // strip the prefix before the original-row lookup. Tolerate either form
+  // (the model occasionally drops the prefix when IDs look unique enough).
   const predById = new Map(pred.map(p => [p.promise_id, p]))
   const goldById = new Map(gold.map(g => [g.sample_id, g]))
+  const stripPrefix = (id: string, ns: "pred" | "gold") =>
+    id.startsWith(`${ns}_`) ? id.slice(ns.length + 1) : id
   const checked: PromiseMatch[] = []
   for (const m of finalMatches) {
-    const p = predById.get(m.predicted_id)
-    const g = goldById.get(m.gold_id)
+    const predRawId = stripPrefix(m.predicted_id, "pred")
+    const goldRawId = stripPrefix(m.gold_id, "gold")
+    const p = predById.get(predRawId)
+    const g = goldById.get(goldRawId)
     if (!p || !g) {
-      console.log(`  [match] skip unknown id pair pred=${m.predicted_id} gold=${m.gold_id}`)
+      console.log(`  [match] skip unknown id pair pred=${m.predicted_id}→${predRawId} gold=${m.gold_id}→${goldRawId}`)
       continue
     }
     if (Math.abs(p.opened_chapter_index - g.opened_chapter_index) > 1) {
