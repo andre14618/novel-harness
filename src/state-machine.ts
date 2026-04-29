@@ -1,13 +1,15 @@
 import { getNovel } from "./db"
-import { runConceptPhase } from "./phases/concept"
-import { runPlanningPhase } from "./phases/planning"
-import { runDraftingPhase } from "./phases/drafting"
-import { runValidationPhase } from "./phases/validation"
+import { runConceptPhase, loadConceptOutput } from "./phases/concept"
+import { runPlanningPhase, loadPlanningOutput } from "./phases/planning"
+import { runDraftingPhase, loadDraftingOutput } from "./phases/drafting"
+import { runValidationPhase, loadValidationOutput } from "./phases/validation"
 import { getTokenUsage } from "./llm"
 import { emit } from "./events"
+import { log } from "./logger"
 import { pipeline } from "./config/pipeline"
 import { trace } from "./trace"
 import db from "./db/connection"
+import type { PhaseName } from "./phases/contract"
 
 export async function runNovel(novelId: string): Promise<void> {
   const startedAt = Date.now()
@@ -73,6 +75,20 @@ export async function runNovel(novelId: string): Promise<void> {
     })
 
     novel = await getNovel(novelId)
+
+    // P6a — exercise the new loadXOutput functions against production DB
+    // state for completed phases. Read-only; result discarded. Surfaces
+    // any loader bug (missing required artifact, schema-of-record drift)
+    // as a warn log without affecting the legacy driver's progress. P6b1
+    // promotes loaders into the live driver path.
+    if (novel.phase !== currentPhase) {
+      try {
+        await exerciseLoader(currentPhase, novelId)
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        log(novelId, "warn", `[P6a] ${currentPhase} loadOutput threw: ${msg}`)
+      }
+    }
   }
 
   const wallMs = Date.now() - startedAt
@@ -87,6 +103,18 @@ export async function runNovel(novelId: string): Promise<void> {
   await printRunSummary(novelId, wallMs, usage)
 
   emit(novelId, { type: "done", data: { novelId, tokens: usage } })
+}
+
+/** P6a — exercise loadXOutput for the just-completed phase, discarding the
+ *  result. Throws are caught by the caller and logged at warn level so a
+ *  loader bug surfaces without breaking the legacy driver. */
+async function exerciseLoader(phase: PhaseName, novelId: string): Promise<void> {
+  switch (phase) {
+    case "concept":    await loadConceptOutput(novelId);    return
+    case "planning":   await loadPlanningOutput(novelId);   return
+    case "drafting":   await loadDraftingOutput(novelId);   return
+    case "validation": await loadValidationOutput(novelId); return
+  }
 }
 
 function formatDuration(ms: number): string {
