@@ -176,14 +176,13 @@ export async function runConceptPhase(novelId: string, seed: SeedInput): Promise
 
   await Promise.all(pending)
 
-  await updatePhase(novelId, "planning")
-  emit(novelId, { type: "phase:changed", data: { phase: "planning" } })
+  // P6b1: phase transition (updatePhase + matching emit) is now driver-owned.
+  // The phase-complete log + console message stays here; the driver writes the
+  // novels.phase row and emits phase:changed for the next phase on its own
+  // entry.
   log(novelId, "checkpoint", "Concept phase complete → planning")
   console.log("\n  Concept phase complete. Advancing to Planning.\n")
 
-  // P2: Phase contract — return typed completion. Existing legacy callers
-  // (state-machine pre-P6b1) ignore the return value; the new conceptPhase
-  // wrapper consumes it.
   const output = await loadConceptOutput(novelId)
   return { kind: "complete", output }
 }

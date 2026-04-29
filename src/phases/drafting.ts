@@ -59,7 +59,7 @@ import type { ChapterOutline } from "../types"
  * (e.g. qualityRedraftEnabled). Read once at the top of `runDraftingPhase`
  * so every beat/chapter in the run sees the same effective config.
  */
-function effectivePipeline(seed: SeedInput): typeof pipeline {
+export function effectivePipeline(seed: SeedInput): typeof pipeline {
   const o = seed.pipelineOverrides
   if (!o) return pipeline
   return {
@@ -1275,8 +1275,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
     }
   }
 
-  await updatePhase(novelId, "validation")
-  emit(novelId, { type: "phase:changed", data: { phase: "validation" } })
+  // P6b1: phase transition is driver-owned.
   log(novelId, "info", "All chapters drafted. Advancing to validation.")
   console.log("\n  All chapters drafted. Advancing to Validation.\n")
 

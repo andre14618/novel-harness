@@ -168,8 +168,7 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
   await updateTotalChapters(novelId, chapters.length)
   log(novelId, "checkpoint", `${chapters.length} chapter outlines saved`)
 
-  await updatePhase(novelId, "drafting")
-  emit(novelId, { type: "phase:changed", data: { phase: "drafting" } })
+  // P6b1: phase transition is driver-owned.
   log(novelId, "checkpoint", "Planning phase complete → drafting")
   console.log("\n  Planning phase complete. Advancing to Drafting.\n")
 

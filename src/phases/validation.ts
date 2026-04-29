@@ -126,8 +126,7 @@ export async function runValidationPhase(novelId: string): Promise<PhaseResult<V
     log(novelId, "checkpoint", "Tonal pass complete")
   }
 
-  await updatePhase(novelId, "done")
-  emit(novelId, { type: "phase:changed", data: { phase: "done" } })
+  // P6b1: phase transition is driver-owned.
   log(novelId, "checkpoint", "Validation phase complete → done")
   console.log("\n  Validation phase complete.\n")
 
