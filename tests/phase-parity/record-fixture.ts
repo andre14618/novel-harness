@@ -27,6 +27,7 @@
 import { writeFileSync, mkdirSync, existsSync } from "node:fs"
 import { join } from "node:path"
 import { setTransport } from "../../src/transport"
+import { setAutoMode, setResolverMode } from "../../src/cli"
 import { RecordTransport } from "./replay-transport"
 import { captureSnapshot, clearNovelState } from "./db-snapshot"
 import { normalize, serialize } from "./normalize"
@@ -50,6 +51,8 @@ async function main() {
 
   const recorder = new RecordTransport()
   setTransport(recorder)
+  setAutoMode(true)
+  setResolverMode("auto")
 
   const { runNovel } = await import("../../src/state-machine")
   const { createNovel } = await import("../../src/db/novels")
