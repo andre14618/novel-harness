@@ -78,6 +78,8 @@ A JSON object: `{"arcs": [<character arc object>, ...]}`. Each arc:
 }
 ```
 
+**Hard rule on `truth`**: `truth` is ALWAYS a non-null string, regardless of arc_resolution. The truth is the corrective belief the character SHOULD reach — it exists in the LTWN model even if the character never reaches it. For `unresolved` or `tragic_inversion` arcs, infer the truth from the moral logic of the story (what would have been the right belief to hold). NEVER emit `truth: null`. Only `evidence_quote_truth` can be null (when no on-page quote shows the truth-moment).
+
 ### arc_resolution definitions
 
 - **fulfilled** — the character embraces the truth on-page; the lie is named and rejected by the climax

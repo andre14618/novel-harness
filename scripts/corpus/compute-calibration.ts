@@ -40,6 +40,16 @@ interface Args {
   book: string
   dim: "value-charge" | "promise" | "mice" | "mckee-gap" | "character-arcs" | "all"
   matcher: "llm" | "tokens"
+  /** Suffix for the key (extractor output) file, e.g. "pro" → <dim>-key.pro.jsonl.
+   *  Null means no suffix (default extractor Flash output). */
+  keySuffix: string | null
+  /** Suffix for the gold (judge output) file, e.g. "flash" → <dim>-gold.flash.jsonl.
+   *  Null means no suffix (default Pro judge output). */
+  goldSuffix: string | null
+  /** Full custom path for the key file (overrides suffix logic). Useful for
+   *  promise Pro-extractor cells where the key is promises.pro.json (not in
+   *  structure-gold/). */
+  keyFile: string | null
 }
 
 function parseArgs(): Args {
@@ -54,10 +64,33 @@ function parseArgs(): Args {
   const matcherRaw = map["matcher"] ?? "llm"
   const matcher = matcherRaw === "tokens" ? "tokens" : "llm"
   if (!novel || !book) {
-    console.error("Usage: bun scripts/corpus/compute-calibration.ts --novel=<key> --book=<book> [--dim=value-charge|promise|mice|mckee-gap|character-arcs|all] [--matcher=llm|tokens]")
+    console.error("Usage: bun scripts/corpus/compute-calibration.ts --novel=<key> --book=<book> [--dim=value-charge|promise|mice|mckee-gap|character-arcs|all] [--matcher=llm|tokens] [--key-suffix=<str>] [--gold-suffix=<str>] [--key-file=<path>]")
     process.exit(2)
   }
-  return { novel, book, dim, matcher }
+  return {
+    novel, book, dim, matcher,
+    keySuffix: map["key-suffix"] ?? null,
+    goldSuffix: map["gold-suffix"] ?? null,
+    keyFile: map["key-file"] ?? null,
+  }
+}
+
+/** Build the file path for a key or gold file given an optional suffix.
+ *  When suffix is null, uses the canonical name (no suffix).
+ *  When suffix is "pro", returns e.g. "value-charge-key.pro.jsonl". */
+function suffixedPath(dir: string, stem: string, suffix: string | null): string {
+  if (suffix === null) return join(dir, `${stem}.jsonl`)
+  return join(dir, `${stem}.${suffix}.jsonl`)
+}
+
+/** Build the output calibration file name from the suffix pair.
+ *  When both suffixes null: "<book>.json"
+ *  When suffixes present: "<book>.<keySuffix-or-default>x<goldSuffix-or-default>.json" */
+function calibrationOutputName(book: string, keySuffix: string | null, goldSuffix: string | null): string {
+  if (keySuffix === null && goldSuffix === null) return `${book}.json`
+  const k = keySuffix ?? "flash"
+  const g = goldSuffix ?? "pro"
+  return `${book}.${k}x${g}.json`
 }
 
 async function readJsonl<T>(path: string): Promise<T[]> {
@@ -994,12 +1027,19 @@ function aggregateVerdict(cells: CellVerdict[]): "SCOPED PASS" | "PARTIAL" | "FA
 
 async function main() {
   const args = parseArgs()
-  console.log(`[calibration] novel=${args.novel} book=${args.book} dim=${args.dim}`)
+  const suffixDesc = [
+    args.keySuffix ? `key-suffix=${args.keySuffix}` : null,
+    args.goldSuffix ? `gold-suffix=${args.goldSuffix}` : null,
+    args.keyFile ? `key-file=<custom>` : null,
+  ].filter(Boolean).join(" ")
+  console.log(`[calibration] novel=${args.novel} book=${args.book} dim=${args.dim}${suffixDesc ? " " + suffixDesc : ""}`)
   const goldDir = join(REPO_ROOT, "novels", args.novel, "structure-gold", args.book)
 
   const out: Record<string, any> = {
     novel: args.novel,
     book: args.book,
+    keySuffix: args.keySuffix,
+    goldSuffix: args.goldSuffix,
     computedAt: new Date().toISOString(),
     cells: {},
   }
@@ -1007,8 +1047,8 @@ async function main() {
   let cellVerdicts: { dim: string; verdict: CellVerdict }[] = []
 
   if (args.dim === "value-charge" || args.dim === "all") {
-    const goldPath = join(goldDir, "value-charge-gold.jsonl")
-    const keyPath = join(goldDir, "value-charge-key.jsonl")
+    const goldPath = suffixedPath(goldDir, "value-charge-gold", args.goldSuffix)
+    const keyPath = args.keyFile ?? suffixedPath(goldDir, "value-charge-key", args.keySuffix)
     if (existsSync(goldPath) && existsSync(keyPath)) {
       const gold = await readJsonl<ValueChargeGold>(goldPath)
       const key = await readJsonl<ValueChargeKey>(keyPath)
@@ -1018,29 +1058,47 @@ async function main() {
       cellVerdicts.push({ dim: "value-charge", verdict })
       console.log(`[calibration] value-charge: ${verdict.verdict} — ${verdict.reason}`)
     } else {
-      console.log(`[calibration] value-charge: no gold file at ${goldPath}; skipping`)
+      console.log(`[calibration] value-charge: gold=${goldPath} key=${keyPath}; one or both missing, skipping`)
     }
   }
 
   if (args.dim === "promise" || args.dim === "all") {
-    const goldPath = join(goldDir, "promise-gold.jsonl")
-    const keyPath = join(goldDir, "promise-key.jsonl")
+    const goldPath = suffixedPath(goldDir, "promise-gold", args.goldSuffix)
+    // For promise, the key file is promises.json (not in structure-gold/) unless
+    // --key-file is specified. The key file is NOT a .jsonl but a full JSON object;
+    // we read it specially and reshape to PromiseKeyRow[].
+    const keyPath = args.keyFile ?? suffixedPath(goldDir, "promise-key", args.keySuffix)
     if (existsSync(goldPath) && existsSync(keyPath)) {
       const gold = await readJsonl<PromiseGoldRow>(goldPath)
-      const key = await readJsonl<PromiseKeyRow>(keyPath)
+      // Promise key file shape varies by source:
+      //   - structure-gold/<book>/promise-key.jsonl  → JSONL (standard sampler output)
+      //   - structure/<book>/promises.json           → wrapped { novel, book, promises:[] }
+      //   - structure/<book>/promises.pro.json       → wrapped (Pro extractor output)
+      // Distinguish by extension rather than content sniffing — the .json
+      // suffix means a single wrapped object, .jsonl means line-delimited.
+      let key: PromiseKeyRow[]
+      if (keyPath.endsWith(".json")) {
+        const parsed = JSON.parse(await Bun.file(keyPath).text()) as
+          | { promises?: PromiseKeyRow[] }
+          | PromiseKeyRow[]
+        key = Array.isArray(parsed) ? parsed : (parsed.promises ?? [])
+      } else {
+        // .jsonl (or no extension) — line-delimited
+        key = await readJsonl<PromiseKeyRow>(keyPath)
+      }
       const metrics = await computePromiseMetrics(gold, key, args.matcher)
       const verdict = promiseVerdict(metrics)
       out.cells["promise"] = { metrics, verdict }
       cellVerdicts.push({ dim: "promise", verdict })
       console.log(`[calibration] promise (matcher=${args.matcher}): ${verdict.verdict} — ${verdict.reason}`)
     } else {
-      console.log(`[calibration] promise: no gold file at ${goldPath}; skipping`)
+      console.log(`[calibration] promise: gold=${goldPath} key=${keyPath}; one or both missing, skipping`)
     }
   }
 
   if (args.dim === "mice" || args.dim === "all") {
-    const goldPath = join(goldDir, "mice-gold.jsonl")
-    const keyPath = join(goldDir, "mice-key.jsonl")
+    const goldPath = suffixedPath(goldDir, "mice-gold", args.goldSuffix)
+    const keyPath = args.keyFile ?? suffixedPath(goldDir, "mice-key", args.keySuffix)
     if (existsSync(goldPath) && existsSync(keyPath)) {
       const gold = await readJsonl<MiceGoldRow>(goldPath)
       const key = await readJsonl<MiceKeyRow>(keyPath)
@@ -1050,13 +1108,13 @@ async function main() {
       cellVerdicts.push({ dim: "mice", verdict })
       console.log(`[calibration] mice: ${verdict.verdict} — ${verdict.reason}`)
     } else {
-      console.log(`[calibration] mice: no gold file at ${goldPath}; skipping`)
+      console.log(`[calibration] mice: gold=${goldPath} key=${keyPath}; one or both missing, skipping`)
     }
   }
 
   if (args.dim === "mckee-gap" || args.dim === "all") {
-    const goldPath = join(goldDir, "mckee-gap-gold.jsonl")
-    const keyPath = join(goldDir, "mckee-gap-key.jsonl")
+    const goldPath = suffixedPath(goldDir, "mckee-gap-gold", args.goldSuffix)
+    const keyPath = args.keyFile ?? suffixedPath(goldDir, "mckee-gap-key", args.keySuffix)
     if (existsSync(goldPath) && existsSync(keyPath)) {
       const gold = await readJsonl<McKeeGapGoldRow>(goldPath)
       const key = await readJsonl<McKeeGapKeyRow>(keyPath)
@@ -1066,13 +1124,13 @@ async function main() {
       cellVerdicts.push({ dim: "mckee-gap", verdict })
       console.log(`[calibration] mckee-gap: ${verdict.verdict} — ${verdict.reason}`)
     } else {
-      console.log(`[calibration] mckee-gap: no gold file at ${goldPath}; skipping`)
+      console.log(`[calibration] mckee-gap: gold=${goldPath} key=${keyPath}; one or both missing, skipping`)
     }
   }
 
   if (args.dim === "character-arcs" || args.dim === "all") {
-    const goldPath = join(goldDir, "character-arcs-gold.jsonl")
-    const keyPath = join(goldDir, "character-arcs-key.jsonl")
+    const goldPath = suffixedPath(goldDir, "character-arcs-gold", args.goldSuffix)
+    const keyPath = args.keyFile ?? suffixedPath(goldDir, "character-arcs-key", args.keySuffix)
     if (existsSync(goldPath) && existsSync(keyPath)) {
       const goldRows = await readJsonl<CharacterArcsGoldRow>(goldPath)
       const keyRows = await readJsonl<CharacterArcsKeyRow>(keyPath)
@@ -1089,7 +1147,7 @@ async function main() {
         console.log(`[calibration] character-arcs: gold file present but no valid row (error or missing gold_character_arcs); skipping`)
       }
     } else {
-      console.log(`[calibration] character-arcs: no gold file at ${goldPath}; skipping`)
+      console.log(`[calibration] character-arcs: gold=${goldPath} key=${keyPath}; one or both missing, skipping`)
     }
   }
 
@@ -1105,7 +1163,8 @@ async function main() {
 
   const outDir = join(REPO_ROOT, "novels", args.novel, "structure-calibration")
   mkdirSync(outDir, { recursive: true })
-  const outPath = join(outDir, `${args.book}.json`)
+  const outFilename = calibrationOutputName(args.book, args.keySuffix, args.goldSuffix)
+  const outPath = join(outDir, outFilename)
   await Bun.write(outPath, JSON.stringify(out, null, 2))
   console.log(`[calibration] wrote → ${outPath}`)
 }

@@ -218,6 +218,31 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
     provider: "deepseek", model: "deepseek-v4-pro",
     thinking: true, temperature: 0.1, maxTokens: 16_384,
   },
+  // ── Flash variants of judge roles for 2×2 calibration matrix ──────────
+  // Tests whether Flash can play the judge role as well as Pro on the same
+  // prompts. Same temp/maxTokens/thinking as Pro judge so the model is the
+  // only varying factor.
+  "structure-value-charge-judge-flash": {
+    provider: "deepseek", model: "deepseek-v4-flash",
+    thinking: true, temperature: 0.1, maxTokens: 16_384,
+  },
+  "structure-promise-judge-flash": {
+    provider: "deepseek", model: "deepseek-v4-flash",
+    thinking: true, temperature: 0.3, maxTokens: 32_768,
+  },
+  "structure-character-arcs-judge-flash": {
+    provider: "deepseek", model: "deepseek-v4-flash",
+    thinking: true, temperature: 0.3, maxTokens: 32_768,
+  },
+  "structure-mice-judge-flash": {
+    provider: "deepseek", model: "deepseek-v4-flash",
+    thinking: true, temperature: 0.1, maxTokens: 16_384,
+  },
+  "structure-mckee-gap-judge-flash": {
+    provider: "deepseek", model: "deepseek-v4-flash",
+    thinking: true, temperature: 0.1, maxTokens: 16_384,
+  },
+
   // Promise pair-matcher — used by compute-calibration.ts to bridge
   // paraphrased predicted-vs-gold promise text. Replaces the old
   // Jaccard/Levenshtein gate which silently rejected semantically-equal

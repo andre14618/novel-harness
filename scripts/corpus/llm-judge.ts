@@ -41,6 +41,7 @@ interface Args {
   book: string
   dim: "value-charge" | "promise" | "mice" | "mckee-gap" | "character-arcs"
   maxPrompts: number | null
+  judgeModel: "flash" | "pro"
 }
 
 function parseArgs(): Args {
@@ -53,7 +54,7 @@ function parseArgs(): Args {
   const book = map["book"]
   const dim = map["dim"]
   if (!novel || !book || !dim) {
-    console.error("Usage: bun scripts/corpus/llm-judge.ts --novel=<key> --book=<book> --dim=<value-charge|promise|mice|mckee-gap|character-arcs> [--max-prompts=N]")
+    console.error("Usage: bun scripts/corpus/llm-judge.ts --novel=<key> --book=<book> --dim=<value-charge|promise|mice|mckee-gap|character-arcs> [--max-prompts=N] [--judge-model=flash|pro]")
     process.exit(2)
   }
   const validDims = ["value-charge", "promise", "mice", "mckee-gap", "character-arcs"]
@@ -61,10 +62,16 @@ function parseArgs(): Args {
     console.error(`--dim must be one of: ${validDims.join(", ")}. Got: ${dim}`)
     process.exit(2)
   }
+  const judgeModelRaw = map["judge-model"] ?? "pro"
+  if (judgeModelRaw !== "flash" && judgeModelRaw !== "pro") {
+    console.error(`--judge-model must be "flash" or "pro". Got: ${judgeModelRaw}`)
+    process.exit(2)
+  }
   const maxPromptsRaw = map["max-prompts"]
   return {
     novel, book, dim,
     maxPrompts: maxPromptsRaw ? parseInt(maxPromptsRaw, 10) : null,
+    judgeModel: judgeModelRaw as "flash" | "pro",
   }
 }
 
@@ -143,7 +150,7 @@ interface CharacterArcsPrompt {
   }>
 }
 
-async function judgeValueCharge(args: Args, prompts: ValueChargePrompt[]) {
+async function judgeValueCharge(args: Args, prompts: ValueChargePrompt[], agentName: string) {
   // The judge needs ±1 chapter context like the extractor. Pull the
   // normalized beats so the judge sees the same surface as the
   // extractor — anything less is unfair to the comparison.
@@ -184,7 +191,7 @@ async function judgeValueCharge(args: Args, prompts: ValueChargePrompt[]) {
       prose: p.scene_text,
       prevChapterBeats,
       nextChapterBeats,
-    }, { agentName: "structure-value-charge-judge" })
+    }, { agentName })
 
     if (result.ok && result.output) {
       out.push({
@@ -205,7 +212,7 @@ async function judgeValueCharge(args: Args, prompts: ValueChargePrompt[]) {
   return out
 }
 
-async function judgePromises(args: Args, prompts: PromisePrompt[]) {
+async function judgePromises(args: Args, prompts: PromisePrompt[], agentName: string) {
   // Per R6 §2 promise gold protocol: the judge reads chapter beats fresh
   // and emits a promise list. We invoke extractPromises on the FULL
   // book's beats (re-flattening from chapter-grouped prompts) so the
@@ -230,12 +237,13 @@ async function judgePromises(args: Args, prompts: PromisePrompt[]) {
     return a.beat_idx - b.beat_idx
   })
 
-  console.log(`  [judge promise] running 2-pass on ${allBeats.length} beats via V4 Pro thinking-on`)
+  const judgeLabel = args.judgeModel === "flash" ? "Flash thinking-on" : "V4 Pro thinking-on"
+  console.log(`  [judge promise] running 2-pass on ${allBeats.length} beats via ${judgeLabel}`)
   const result = await extractPromises({
     novelKey: args.novel,
     bookKey: args.book,
     beats: allBeats,
-  }, { agentName: "structure-promise-judge" })
+  }, { agentName })
 
   if (!result.ok) {
     console.error(`  [judge promise] FAIL: ${result.error}`)
@@ -257,7 +265,7 @@ async function judgePromises(args: Args, prompts: PromisePrompt[]) {
   }))
 }
 
-async function judgeMice(args: Args, prompts: MicePrompt[]) {
+async function judgeMice(args: Args, prompts: MicePrompt[], agentName: string) {
   // Same ±1-chapter beat context approach as judgeValueCharge — the MICE
   // judgment needs surrounding context to disambiguate thread-open vs.
   // thread-progress.
@@ -298,7 +306,7 @@ async function judgeMice(args: Args, prompts: MicePrompt[]) {
       prose: p.scene_text,
       prevChapterBeats,
       nextChapterBeats,
-    }, { agentName: "structure-mice-judge" })
+    }, { agentName })
 
     if (result.ok && result.output) {
       out.push({
@@ -319,7 +327,7 @@ async function judgeMice(args: Args, prompts: MicePrompt[]) {
   return out
 }
 
-async function judgeMckeeGap(args: Args, prompts: MckeeGapPrompt[]) {
+async function judgeMckeeGap(args: Args, prompts: MckeeGapPrompt[], agentName: string) {
   const out: any[] = []
   let i = 0
   for (const p of prompts) {
@@ -338,7 +346,7 @@ async function judgeMckeeGap(args: Args, prompts: MckeeGapPrompt[]) {
       },
       pov: p.pov,
       priorBeat: p.prior_beat,
-    }, { agentName: "structure-mckee-gap-judge" })
+    }, { agentName })
 
     if (result.ok && result.output) {
       out.push({
@@ -361,7 +369,7 @@ async function judgeMckeeGap(args: Args, prompts: MckeeGapPrompt[]) {
   return out
 }
 
-async function judgeCharacterArcs(args: Args, prompts: CharacterArcsPrompt[]) {
+async function judgeCharacterArcs(args: Args, prompts: CharacterArcsPrompt[], agentName: string) {
   // character-arcs prompt is ONE row per book; consume the first (and
   // typically only) prompt row.
   const out: any[] = []
@@ -384,7 +392,7 @@ async function judgeCharacterArcs(args: Args, prompts: CharacterArcsPrompt[]) {
       novelKey: p.novel,
       bookKey: p.book,
       beats,
-    }, { agentName: "structure-character-arcs-judge" })
+    }, { agentName })
 
     if (result.ok && result.arcs) {
       out.push({
@@ -405,7 +413,8 @@ async function judgeCharacterArcs(args: Args, prompts: CharacterArcsPrompt[]) {
 
 async function main() {
   const args = parseArgs()
-  console.log(`[llm-judge] novel=${args.novel} book=${args.book} dim=${args.dim} judge=V4 Pro`)
+  const judgeLabel = args.judgeModel === "flash" ? "Flash" : "V4 Pro"
+  console.log(`[llm-judge] novel=${args.novel} book=${args.book} dim=${args.dim} judge=${judgeLabel}`)
 
   const goldDir = join(REPO_ROOT, "novels", args.novel, "structure-gold", args.book)
   const promptsPath = join(goldDir, `${args.dim}-prompts.jsonl`)
@@ -418,26 +427,38 @@ async function main() {
   const prompts = args.maxPrompts !== null ? promptsRaw.slice(0, args.maxPrompts) : promptsRaw
   console.log(`[llm-judge] loaded ${promptsRaw.length} prompts (using ${prompts.length})`)
 
-  const judgeAgentMap: Record<string, string> = {
-    "value-charge": "structure-value-charge-judge",
-    "promise": "structure-promise-judge",
-    "mice": "structure-mice-judge",
-    "mckee-gap": "structure-mckee-gap-judge",
-    "character-arcs": "structure-character-arcs-judge",
-  }
+  // Route judge agents based on --judge-model flag.
+  // Flash variants use the same prompts/schemas through a weaker model so
+  // the model is the only varying factor in the 2×2 calibration matrix.
+  const judgeAgentMap: Record<string, string> = args.judgeModel === "flash"
+    ? {
+      "value-charge": "structure-value-charge-judge-flash",
+      "promise": "structure-promise-judge-flash",
+      "mice": "structure-mice-judge-flash",
+      "mckee-gap": "structure-mckee-gap-judge-flash",
+      "character-arcs": "structure-character-arcs-judge-flash",
+    }
+    : {
+      "value-charge": "structure-value-charge-judge",
+      "promise": "structure-promise-judge",
+      "mice": "structure-mice-judge",
+      "mckee-gap": "structure-mckee-gap-judge",
+      "character-arcs": "structure-character-arcs-judge",
+    }
 
+  const dimAgent = judgeAgentMap[args.dim]!
   const startedAt = new Date().toISOString()
   let goldRows: any[] = []
   if (args.dim === "value-charge") {
-    goldRows = await judgeValueCharge(args, prompts)
+    goldRows = await judgeValueCharge(args, prompts, dimAgent)
   } else if (args.dim === "promise") {
-    goldRows = await judgePromises(args, prompts)
+    goldRows = await judgePromises(args, prompts, dimAgent)
   } else if (args.dim === "mice") {
-    goldRows = await judgeMice(args, prompts as MicePrompt[])
+    goldRows = await judgeMice(args, prompts as MicePrompt[], dimAgent)
   } else if (args.dim === "mckee-gap") {
-    goldRows = await judgeMckeeGap(args, prompts as MckeeGapPrompt[])
+    goldRows = await judgeMckeeGap(args, prompts as MckeeGapPrompt[], dimAgent)
   } else {
-    goldRows = await judgeCharacterArcs(args, prompts as CharacterArcsPrompt[])
+    goldRows = await judgeCharacterArcs(args, prompts as CharacterArcsPrompt[], dimAgent)
   }
 
   const finishedAt = new Date().toISOString()
@@ -445,15 +466,17 @@ async function main() {
   const nFailed = goldRows.filter(r => !!r.error).length
 
   mkdirSync(goldDir, { recursive: true })
-  const goldPath = join(goldDir, `${args.dim}-gold.jsonl`)
-  const metaPath = join(goldDir, `${args.dim}-judge-meta.json`)
+  // File path suffix: flash judge writes .flash.jsonl; pro judge keeps existing name (no suffix).
+  const fileSuffix = args.judgeModel === "flash" ? ".flash" : ""
+  const goldPath = join(goldDir, `${args.dim}-gold${fileSuffix}.jsonl`)
+  const metaPath = join(goldDir, `${args.dim}-judge-meta${fileSuffix}.json`)
   await writeJsonl(goldPath, goldRows)
   await Bun.write(metaPath, JSON.stringify({
     novel: args.novel,
     book: args.book,
     dim: args.dim,
     judgeAgent: judgeAgentMap[args.dim],
-    judgeModel: "deepseek-v4-pro",
+    judgeModel: args.judgeModel === "flash" ? "deepseek-v4-flash" : "deepseek-v4-pro",
     n_prompts: prompts.length,
     n_succeeded: nSucceeded,
     n_failed: nFailed,
@@ -462,7 +485,8 @@ async function main() {
   }, null, 2))
   console.log(`[llm-judge] wrote ${goldRows.length} gold rows → ${goldPath}`)
   console.log(`[llm-judge] wrote meta → ${metaPath}`)
-  console.log(`[llm-judge] next: bun scripts/corpus/compute-calibration.ts --novel=${args.novel} --book=${args.book} --dim=${args.dim}`)
+  const suffixFlag = args.judgeModel === "flash" ? " --gold-suffix=flash" : ""
+  console.log(`[llm-judge] next: bun scripts/corpus/compute-calibration.ts --novel=${args.novel} --book=${args.book} --dim=${args.dim}${suffixFlag}`)
 }
 
 main().catch(err => {

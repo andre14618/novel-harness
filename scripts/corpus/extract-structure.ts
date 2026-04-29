@@ -38,6 +38,7 @@ interface Args {
   maxScenes: number | null
   skipPromise: boolean
   skipValueCharge: boolean
+  extractorModel: "flash" | "pro"
 }
 
 function parseArgs(): Args {
@@ -58,16 +59,22 @@ function parseArgs(): Args {
   const novel = typeof map["novel"] === "string" ? map["novel"] : null
   const book = typeof map["book"] === "string" ? map["book"] : null
   if (!novel || !book) {
-    console.error("Usage: bun scripts/corpus/extract-structure.ts --novel <key> --book <book> [--max-scenes N] [--skip-promise] [--skip-value-charge]")
+    console.error("Usage: bun scripts/corpus/extract-structure.ts --novel <key> --book <book> [--max-scenes N] [--skip-promise] [--skip-value-charge] [--extractor-model=flash|pro]")
     process.exit(2)
   }
   const maxScenesRaw = map["max-scenes"]
   const maxScenes = typeof maxScenesRaw === "string" ? Number(maxScenesRaw) : null
+  const extractorModelRaw = typeof map["extractor-model"] === "string" ? map["extractor-model"] : "flash"
+  if (extractorModelRaw !== "flash" && extractorModelRaw !== "pro") {
+    console.error(`--extractor-model must be "flash" or "pro". Got: ${extractorModelRaw}`)
+    process.exit(2)
+  }
   return {
     novel, book,
     maxScenes: maxScenes === null || Number.isNaN(maxScenes) ? null : maxScenes,
     skipPromise: map["skip-promise"] === true,
     skipValueCharge: map["skip-value-charge"] === true,
+    extractorModel: extractorModelRaw as "flash" | "pro",
   }
 }
 
@@ -144,8 +151,13 @@ async function runValueChargeForBook(args: {
   beats: BeatRow[]
   pairs: PairRow[]
   maxScenes: number | null
+  /** When "pro", override extractor agent to the Pro judge role (capability gradient). */
+  extractorModel?: "flash" | "pro"
 }): Promise<SceneTag[]> {
   const { scenes, beats, pairs, maxScenes } = args
+  // Pro extractor routes to the judge role (stronger capability gradient).
+  // Flash uses the default extractor agent (no override needed).
+  const agentOverride = args.extractorModel === "pro" ? "structure-value-charge-judge" : undefined
 
   // Group beats by chapter for fast prev/next lookup. Beats are
   // already canonically ordered from the preflight; chapter buckets
@@ -201,18 +213,19 @@ async function runValueChargeForBook(args: {
       .map(b => ({ chapter: b.chapter, summary: b.summary }))
 
     process.stdout.write(`  [${i}/${targetScenes.length}] ${sceneId} ... `)
+    const agentOpts = agentOverride ? { agentName: agentOverride } : undefined
     let attempts = 0
     let result = await extractValueCharge({
       brief, prose: s.text,
       prevChapterBeats, nextChapterBeats,
-    })
+    }, agentOpts)
     attempts++
     if (!result.ok) {
       // single retry — schemas mismatches happen on V4 Flash with
       // lower-temp prompts.
       result = await extractValueCharge({
         brief, prose: s.text, prevChapterBeats, nextChapterBeats,
-      })
+      }, agentOpts)
       attempts++
     }
     if (result.ok && result.output) {
@@ -245,6 +258,8 @@ async function runPromiseForBook(args: {
   novelKey: string
   bookKey: string
   beats: BeatRow[]
+  /** When "pro", override extractor agent to the Pro judge role (capability gradient). */
+  extractorModel?: "flash" | "pro"
 }): Promise<{ promises: FullPromise[]; openOnlyCount: number; closuresCount: number; error?: string }> {
   const beatsForPromise: PromiseBeatRow[] = args.beats.map(b => ({
     chapter_label: String(b.chapter),
@@ -255,11 +270,13 @@ async function runPromiseForBook(args: {
     first_sentence: b.first_sentence,
   }))
   console.log(`[extract-structure] promise: ${beatsForPromise.length} beats → 2-pass extraction`)
+  // Pro extractor routes through the judge agent (stronger capability gradient).
+  const agentOpts = args.extractorModel === "pro" ? { agentName: "structure-promise-judge" } : undefined
   const result = await extractPromises({
     novelKey: args.novelKey,
     bookKey: args.bookKey,
     beats: beatsForPromise,
-  })
+  }, agentOpts)
   if (!result.ok) {
     console.error(`[extract-structure] promise FAIL: ${result.error}`)
     return { promises: [], openOnlyCount: result.openOnly?.length ?? 0, closuresCount: 0, error: result.error }
@@ -274,7 +291,8 @@ async function runPromiseForBook(args: {
 
 async function main() {
   const args = parseArgs()
-  console.log(`[extract-structure] novel=${args.novel} book=${args.book}`)
+  const modelLabel = args.extractorModel === "pro" ? "V4 Pro (judge role as extractor)" : "Flash"
+  console.log(`[extract-structure] novel=${args.novel} book=${args.book} extractor=${modelLabel}`)
 
   // Step 1 — normalize (preflight). Pure structural; no LLM.
   console.log(`[extract-structure] step 1: normalize`)
@@ -291,6 +309,9 @@ async function main() {
   const outDir = join(REPO_ROOT, "novels", args.novel, "structure", args.book)
   mkdirSync(outDir, { recursive: true })
 
+  // File path suffix: pro extractor writes .pro variant files; flash keeps existing names.
+  const fileSuffix = args.extractorModel === "pro" ? ".pro" : ""
+
   // Step 3 — value-charge per scene
   let valueChargeTags: SceneTag[] = []
   if (!args.skipValueCharge) {
@@ -298,8 +319,9 @@ async function main() {
       bookKey: args.book,
       scenes, beats, pairs,
       maxScenes: args.maxScenes,
+      extractorModel: args.extractorModel,
     })
-    await writeJsonl(join(outDir, "value-charge.jsonl"), valueChargeTags)
+    await writeJsonl(join(outDir, `value-charge${fileSuffix}.jsonl`), valueChargeTags)
   } else {
     console.log(`[extract-structure] step 3 (value-charge) skipped per --skip-value-charge`)
   }
@@ -311,8 +333,9 @@ async function main() {
   if (!args.skipPromise) {
     promiseResult = await runPromiseForBook({
       novelKey: args.novel, bookKey: args.book, beats,
+      extractorModel: args.extractorModel,
     })
-    await Bun.write(join(outDir, "promises.json"), JSON.stringify({
+    await Bun.write(join(outDir, `promises${fileSuffix}.json`), JSON.stringify({
       novel: args.novel, book: args.book,
       promises: promiseResult.promises,
       openOnlyCount: promiseResult.openOnlyCount,
@@ -327,6 +350,7 @@ async function main() {
   const summary = {
     novel: args.novel,
     book: args.book,
+    extractorModel: args.extractorModel,
     extractedAt: new Date().toISOString(),
     scenesProcessed: valueChargeTags.length,
     valueChargeOk: valueChargeTags.filter(t => t.ok).length,
