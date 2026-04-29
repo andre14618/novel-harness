@@ -206,6 +206,54 @@ The raw numbers live in `crystal_shard.json` (and `<book>.<keyx>x<gold>.json` fo
 
 ---
 
+### Step 8: Phase C — temperature, ensemble, and Tier 3 experiments
+
+**Motivation:** Phase B revealed that the promise dim has TWO ceilings (capability + stochasticity). Phase C tests four hypotheses to determine which lever to pull, and exposes an important meta-question: **is the Pro judge itself a stable ground truth?**
+
+**Standing rule for this section:** every experiment writes its hypothesis FIRST, then methodology, then results, then conclusion + action. No reverse-engineering hypotheses to fit results.
+
+#### C.1 — Sonnet Tier 3 ground truth on promise
+
+**Hypothesis:** Sonnet (Anthropic) is an independent model family from DeepSeek; if Sonnet's promise list overlaps highly with V4 Pro judge's (say 75%+ shared), that validates Pro judge as ground truth and the extractor recall problem is real. If Sonnet finds a quite different shape (different count, low overlap), Pro judge is itself a noisy signal and our entire calibration framework needs Tier 3 anchoring.
+
+**Methodology:** Spawn a Sonnet subagent with the same promise extraction prompt and same beats. Get a promise list. Use the V4 Pro pair-matcher to compute overlap with both Pro extractor (22 promises) and Pro judge gold (30 promises). Single Sonnet call.
+
+**Status:** in flight (Round 1 parallel).
+
+**Expected outcome:** Either confirms Pro judge as defensible gold OR motivates Tier 3 anchoring as standard practice for stochastic-schema dims (promise specifically).
+
+#### C.2 — Pro judge self-consistency
+
+**Hypothesis:** Pro at T=0.3 has ~30% run-to-run variance (revealed by Phase B). Re-running the Pro judge on the same prompts should produce a different 30-promise list. If gold_v1 vs gold_v2 agreement is low (under 0.85), the "gold" is itself a stochastic sample, not a stable target. Our extractor calibrations are unfairly penalizing Pro extractor for missing promises that the judge finds *only on this particular run*.
+
+**Methodology:** Re-run llm-judge.ts for promise. Generate `promise-gold.v2.jsonl`. Use V4 Pro pair-matcher to compare to existing `promise-gold.jsonl`. Compute matched/unmatched.
+
+**Status:** queued.
+
+**Expected outcome:** Establishes whether the "Pro gold" we've been calibrating against is genuinely fixed or run-dependent. If matched < 0.85, the entire promise calibration needs to switch to ensemble or T=0 gold.
+
+#### C.3 — Pro promise extractor at T=0
+
+**Hypothesis:** Temperature is the stochasticity lever. T=0 deterministic extraction should produce a more stable promise list, closer to whatever the model's "best" interpretation is. If Pro@T=0 recall vs Pro judge gold rises from 0.47 to 0.65+, temperature is the fix; if it stays around 0.47, the variance is from something else (attention on long context, prompt scaffolding, chapter batching).
+
+**Methodology:** Fork `structure-promise-judge` to a `structure-promise-extract-pro-t0` role with temperature=0. Run extract-structure.ts at T=0 (re-using the --extractor-model=pro path with the new role variant). Compute calibration vs existing Pro judge gold.
+
+**Status:** queued (small code change required).
+
+**Expected outcome:** Either temperature is the lever (PASS path opens) OR there's a deeper architectural issue (attention, batching, prompt length).
+
+#### C.4 — Mice prompt iteration
+
+**Hypothesis:** Mice CELL MARGINAL (P=0.731, just below 0.78 PASS gate) is driven by ambiguous "thread closes" definitions. Sanderson's MICE framework leaves close criteria fuzzy — what counts as "closing" a Milieu thread in a scene that revisits a setting?
+
+**Methodology:** Spawn a Sonnet subagent to draft a sharper mice system prompt with explicit close-criterion examples (4 public-domain illustrations of M/I/C/E thread close, drawn from non-fantasy sources to avoid corpus contamination). Re-extract on Flash with the new prompt. Re-judge with Pro. Re-calibrate.
+
+**Status:** queued.
+
+**Expected outcome:** P rises to 0.78+, F1 to 0.85+. If P rises but recall drops, we've over-corrected and need to reset.
+
+---
+
 ## Cost+model conclusions across all phases
 
 | Strategy | F1 (best dim) | F1 (worst dim) | Total cost/book | Recommendation |
