@@ -1,23 +1,24 @@
 ---
-status: draft (pending Codex R4 adversarial review)
+status: draft (pending Codex R5 adversarial review)
 kind: experiment-charter
 name: corpus-structural-decomposition-v1
 owner: andre
 date: 2026-04-29
-revision: 4
-pre-gate: 1 LitRPG novel PDF on disk (local or LXC) before R4 review.
+revision: 5
+pre-gate: 1 LitRPG novel PDF on disk (local or LXC) before R5 review.
 parent-context: docs/research/writing-frameworks/SYNTHESIS.md, docs/corpus-pipeline.md, docs/todo.md "Three-bucket forward plan"
 adversary-verdict:
-  R1: RED (codex:codex-rescue gpt-5.5 effort=high, agent a2dfdb5c339c911f8, 2026-04-29) — premature 6-extractor build, mixed strata, uncalibrated CV gate, confidence-gated encodeability. Named cheapest counterfactual: "Stratified Top-2 Calibration Pilot, ~$2-4."
-  R2: YELLOW (codex:codex-rescue gpt-5.5 effort=high, agent aed14f4069c607b16, 2026-04-29) — 3 blockers (threshold grounding vs. halluc-v3 precedent, PromiseRegistry metric undefined, gold baseline reliability) + 3 warnings + 2 suggestions. Recommended action: revise; pilot architecturally on track.
-  R3: YELLOW (codex:codex-rescue gpt-5.5 effort=high, agent a78a3f201ecc4bf63, 2026-04-29) — 3 blockers (PromiseRegistry 1-25% rule unsupported, source field-name mismatch with real corpus, beats.jsonl narrative-order violation) + 6 warnings + 2 suggestions. Recommended action: ITERATE-R4; remaining issues are protocol-level not architectural.
+  R1: RED (codex:codex-rescue gpt-5.5 effort=high, agent a2dfdb5c339c911f8, 2026-04-29) — premature 6-extractor build. Cheapest counterfactual: "Stratified Top-2 Calibration Pilot, ~$2-4."
+  R2: YELLOW (codex:codex-rescue gpt-5.5 effort=high, agent aed14f4069c607b16, 2026-04-29) — 3 protocol-level blockers + 3 warnings + 2 suggestions. Pilot architecturally on track.
+  R3: YELLOW (codex:codex-rescue gpt-5.5 effort=high, agent a78a3f201ecc4bf63, 2026-04-29) — 3 source-shape blockers + 6 warnings + 2 suggestions.
+  R4: YELLOW (codex:codex-rescue gpt-5.5 effort=high, agent afcade8df722c3a13, 2026-04-29) — R4 resolved all R3 issues correctly (verified). 2 NEW blockers from deeper file inspection: source-normalization spec drops epilogue chapters (92 rows in beats.jsonl have chapter ∈ {epilogue, epilogue2, epilogue3}, plus streams_of_silver has part1/part2/part3); sort key references nonexistent `scene_idx` field (real field is `scene_id`). 3 warnings (NER pipeline unnamed; F1≈1−d not a real multi-class bound; LitRPG ingest reserve range). Recommended action: ITERATE-R5.
 ---
 
 # Experiment Charter — `corpus-structural-decomposition-v1`
 
-## 0. Tl;dr (R4 — calibration pilot, source-shape-corrected)
+## 0. Tl;dr (R5 — calibration pilot, full-domain corpus normalization)
 
-**R2 pivoted from R1's full-build to a calibration pilot. R3 hardened the pilot's scoring protocol per R2 YELLOW. R4 corrects the source-shape claims per Codex R3 YELLOW — the corpus files use different field names than R3 wrote, and `beats.jsonl` is not in narrative order, both of which would have broken Stage 6 implementation.**
+**R5 closes the deeper source-shape gaps Codex R4 caught from direct file inspection: epilogue/part chapters (92+ rows) and `scene_id`-not-`scene_idx`. R4's normalization spec was incomplete; R5 replaces it with a per-book label-domain mapping that handles the full set of observed chapter labels.**
 
 R1 (RED) attempted 5–10 books × 6 extractors as a decision-grade priors document; rejected for premature full-build, mixed strata, uncalibrated CV gate, confidence-gated encodeability. R2 (YELLOW) collapsed to a 2-book × 2-dimension calibration pilot; rejected for unanchored F1 thresholds, undefined PromiseRegistry scoring unit, and gold-baseline reliability not measured. R3 keeps R2's scope and tightens the protocol:
 
@@ -38,7 +39,8 @@ This is a **read-only** pilot — no runtime-pipeline impact, no harness changes
 - **R1 (RED):** Codex (`a2dfdb5c339c911f8`, gpt-5.5 effort=high) flagged 4 blockers + 3 warnings. Named cheapest counterfactual: "Stratified Top-2 Calibration Pilot, ~$2-4." Recommended action: RUN CHEAPER COUNTERFACTUAL.
 - **R2 (YELLOW):** Codex (`aed14f4069c607b16`, gpt-5.5 effort=high) confirmed scope-pivot landed cleanly (R1 attack surfaces 3, 4, 5, 7, 9 closed). 3 remaining blockers were protocol-level. Recommended action: revise.
 - **R3 (YELLOW):** Codex (`a78a3f201ecc4bf63`, gpt-5.5 effort=high) found 3 source-shape blockers: (1) the §2 PromiseRegistry invariant "every promise must have evidence in chapters 1–25%" is not supported by SYNTHESIS.md and would mark legit mid-book promises as errors; (2) the field selectors `book_id=crystal-shard` don't match the actual corpus (real fields: top-level `book` in scenes/beats, nested `brief.book` in pairs); (3) `beats.jsonl` is not in narrative order, breaking PromiseRegistry's full-novel reasoning. 6 warnings + 2 suggestions. Recommended action: ITERATE-R4.
-- **R4 (this revision):** integrates all 3 R3 blockers + 6 warnings + 2 suggestions. Verified actual corpus shape via direct file inspection. Pilot is now protocol-complete and source-shape-correct.
+- **R4 (YELLOW):** Codex (`afcade8df722c3a13`, gpt-5.5 effort=high) confirmed all R3 issues resolved correctly. Found 2 NEW source-shape blockers from deeper file inspection: (a) `beats.jsonl` has `epilogue/epilogue2/epilogue3` chapter labels (92 rows in crystal_shard alone) plus `streams_of_silver` has `part1/part2/part3`, none in `verification.json.chapters_found` — R4's `[prelude, 1..N]` canonical ordering would silently drop these; (b) sort key referenced `scene_idx` but real field is `scene_id`. 3 warnings + 2 suggestions. Recommended action: ITERATE-R5.
+- **R5 (this revision):** integrates both R4 blockers + 3 warnings + 2 suggestions. Source normalization rewritten with per-book full-domain chapter-label mapping; sort key uses `scene_id`-derived `scene_ordinal`. PromiseRegistry chapter fields now carry both raw label and canonical index. NER pipeline named explicitly. F1 bound reframed as intuition.
 
 ## 1. Question (R3 — cost-function-anchored)
 
@@ -105,7 +107,7 @@ The cited production-clearing checker baseline is **halluc-v3 at P=0.778 / R=0.8
   - A predicted promise matches a gold promise IFF ALL THREE conditions hold:
     1. `|predicted.opened_chapter − gold.opened_chapter| ≤ 1` (1-chapter window for chapter-edge ambiguity), AND
     2. text similarity ≥ threshold: `Jaccard token similarity ≥ 0.5` OR `Levenshtein ratio ≥ 0.6` over normalized text (lowercase, strip punctuation, drop function words), AND
-    3. **(R3 W2 fix — actor/object disambiguator):** the predicted and gold promises share at least one named entity (character / object / location) extracted from `promise_text` via a deterministic NER pass. Two promises with high lexical overlap but disjoint entity sets (e.g., "Drizzt promises to free Catti-brie" vs. "Drizzt promises to fight Artemis Entreri") FAIL condition 3 and do NOT match.
+    3. **(R3 W2 + R4 W1 fix — actor/object disambiguator with named NER stack):** the predicted and gold promises share at least one named entity (character / object / location) extracted from `promise_text` via a deterministic NER pass. Two promises with high lexical overlap but disjoint entity sets (e.g., "Drizzt promises to free Catti-brie" vs. "Drizzt promises to fight Artemis Entreri") FAIL condition 3 and do NOT match. **NER pipeline (R4 W1 fix)**: hybrid of (a) `spacy en_core_web_sm` for `PERSON | ORG | LOC | GPE` extraction (handles capitalized multi-token names well), AUGMENTED with (b) a lightweight DeepSeek V4 Flash extraction call when spacy returns < 2 entities per promise (~10% of fantasy-prose cases per the harness's existing entity-aware checks). Spacy is the primary; LLM augmentation is the fallback for low-recall fantasy proper nouns. Augmentation cost is amortized into adjudication-helper budget line in §8.
   - **Tie-break (R3 W2 fix)**: when multiple predictions match a single gold (or vice-versa) per conditions 1–3, the adjudicator hand-disambiguates. Tie-break decisions logged in `structure-gold/promises-tiebreaks.jsonl` for audit.
   - Each gold promise matches AT MOST one predicted promise (greedy assignment by combined Jaccard + Levenshtein score, with manual tie-break override).
   - Unmatched predictions → false positives. Unmatched gold → false negatives.
@@ -126,7 +128,7 @@ The cited production-clearing checker baseline is **halluc-v3 at P=0.778 / R=0.8
 - **Adjudicator-drift guard (R2 blocker 3 fix; R3 W3 grounding)**:
   - 10% of each dimension's gold rows are silently retested: the adjudicator is presented the same source data again (different shuffle order, ≥1 day apart) WITHOUT being told it's a retest.
   - Self-disagreement rate computed: `# rows where 1st label ≠ 2nd label / # retest rows`.
-  - **Engineering choice — kill rule at >15% (R3 W3 grounding)**: 15% is an **explicit pilot heuristic, not a sourced fact**. Rationale: (a) at >15% self-disagreement on a 4-class enum like `payoff_quality`, the ground-truth signal is below the noise floor for an F1≥0.71 claim (the upper-bound F1 on a label set with self-disagreement=d is ≈ 1−d, so 15% drift caps achievable F1 at ~0.85, well above our 0.71 floor — pushing the kill threshold higher would let cells claim PASS on labels that aren't reproducible); (b) calibrating on κ would require a second rater, which the pilot scope explicitly defers. R4 follow-on may revise to a κ-based threshold once a second rater enters.
+  - **Engineering choice — kill rule at >15% (R3 W3 + R4 W2 grounding)**: 15% is an **explicit pilot heuristic, not a sourced fact, and not a derived bound**. Rough intuition (NOT a real multi-class bound — R4 W2 fix): when a labeler self-disagrees on ~15% of binary calls, an extractor predicting that labeler can't distinguish itself from the noise floor much above 85% accuracy on those calls; multi-class enums make this looser and asymmetric, but the directional signal is "high self-disagreement caps how strict we should be in our F1 floor." Pushing the kill threshold higher would let cells claim PASS on labels that aren't reproducible. Calibrating on κ would require a second rater, which the pilot scope explicitly defers. Follow-on charters with a 2nd rater can revise to a κ-based threshold.
   - **Engineering choice — ≥1-day retest gap (R3 W3 grounding)**: 1 day is **arbitrary; chosen as the smallest interval that defeats trivial short-term recall**. R4 follow-on may revise after observing actual drift behavior (if drift is 0% at 1 day, gap is fine; if high, revisit).
   - **Kill verdict**: if self-disagreement > 15% on any (dimension × stratum) cell, that cell's verdict is **NULL-GOLD** — the schema is too subjective for single-rater pilot **on that cell**. Other cells are unaffected (R3 W4 fix; previously NULL-GOLD-DOMINANT over-aggregated).
   - **Warn band**: if self-disagreement is 10%–15%, gold is usable but the F1 calibration carries a ±0.05 uncertainty band. Reflected in §7 verdict gates.
@@ -182,20 +184,61 @@ Stage 6 (structure) reads `novels/<key>/{scenes,beats,pairs}.jsonl` + `analysis/
 
 Pure read-only over Stages 1–5. Cleanly resumable. No `analysis/` overwrites.
 
-### Source normalization (R3 B2 + B3 fix — pre-flight invariant)
+### Source normalization (R3 B2 + B3 + R4 B1 + B2 fix — full-domain pre-flight invariant)
 
 Before either extractor runs, Stage 6 invokes `scripts/corpus/normalize-for-structure.ts` which produces normalized per-book working files in `novels/<key>/structure-tmp/<book>/`:
 
-1. **Per-book slice.** Read `scenes.jsonl` and filter rows where `row.book == <book>`; read `beats.jsonl` and filter where `row.book == <book>`; read `pairs.jsonl` and filter where `row.brief.book == <book>` (note: top-level `book` for scenes/beats, NESTED `brief.book` for pairs — verified field-by-field against the actual files; R3 B2 fix).
-2. **Canonical chapter ordering.** Per-book chapter order is established from `verification.json` (Stage 1 output). Chapter tokens are heterogeneous: `scenes.jsonl` uses string `"prelude"` for prologue and ints `1, 2, 3, ...` for numbered chapters; `beats.jsonl` uses ints only and has no `"prelude"` rows. Canonical ordering: `[prelude, 1, 2, 3, ..., N]` per book per `verification.json.stages.corpus.<book>.chapters_found` plus an explicit prelude prefix.
-3. **Sort each per-book file** by `(chapter_canonical_index, scene_idx, beat_idx)`. The `chapter_canonical_index` is computed from the canonical ordering above (prelude → 0, ch1 → 1, ch2 → 2, ...).
-4. **Verification invariant (Stage 6 pre-flight):**
-   - All filtered rows accounted for (`input_rows == output_rows + dropped_other_book`).
-   - Sort is stable and complete (`output[i+1].chapter_canonical_index >= output[i].chapter_canonical_index`).
-   - Every chapter listed in `verification.json` for the book has at least one row in the per-book sliced output (catches scene/beat-loss bugs).
+1. **Per-book slice.** Read `scenes.jsonl` and filter rows where `row.book == <book>`; read `beats.jsonl` and filter where `row.book == <book>`; read `pairs.jsonl` and filter where `row.brief.book == <book>` (note: top-level `book` for scenes/beats, NESTED `brief.book` for pairs — verified against actual files via direct inspection; R3 B2 fix).
+
+2. **Full per-book chapter-label domain (R4 B1 fix).** Verified by direct read against `novels/salvatore-icewind-dale/beats.jsonl`, the actual chapter-label domain per book is:
+   - `crystal_shard`: `prelude` (str), `1..30` (int), `epilogue` `epilogue2` `epilogue3` (str)
+   - `halflings_gem`: `prelude`, `1..25`, `epilogue` `epilogue2` `epilogue3`
+   - `streams_of_silver`: `prelude`, `1..24`, `part1` `part2` `part3` (str — these are part-headers between chapter ranges, NOT chapters), `epilogue`
+   `verification.json.stages.corpus.<book>.chapters_found` contains ONLY the integer chapters and silently misses the string-labeled ones. **R5 derives the canonical chapter domain from the OBSERVED labels in `beats.jsonl` (not from `verification.json`)**, then sorts per a fixed label-class precedence:
+   ```
+   precedence: prelude (-1), part1 (50), part2 (51), part3 (52), <int N> (N), epilogue (1000), epilogue2 (1001), epilogue3 (1002)
+   ```
+   The `chapter_canonical_index` is the integer above; raw labels are preserved alongside it. (Note: `part*` labels in streams_of_silver are part-headers within the book; their precedence-50 placement is arbitrary but stable. They typically have few or no own beat rows, but if present they sort between integer chapters and epilogues — adjudicator-side review during pilot will verify whether this placement is semantically correct or whether part-headers should be filtered out before extraction. Decision logged in R5 attack list.)
+
+3. **Sort key (R4 B2 fix).** `beats.jsonl` rows have `scene_id` (string like `"crystal_shard_ch10_s0"`), NOT `scene_idx` as R4 wrote. R5 derives `scene_ordinal` by parsing `scene_id`:
+   ```
+   scene_id = "<book>_ch<chapter>_s<scene_ordinal>"  e.g. "crystal_shard_ch10_s0"
+                                                          OR "crystal_shard_chprelude_s0"
+                                                          OR "crystal_shard_chepilogue_s0"
+   scene_ordinal = parse_int(scene_id.rsplit('_s', 1)[1])
+   ```
+   Sort key: `(chapter_canonical_index, scene_ordinal, beat_idx)`. All three fields exist on every row (verified).
+
+4. **Verification invariants (Stage 6 pre-flight):**
+   - **Coverage invariant**: all filtered rows accounted for (`input_rows == output_rows + dropped_other_book`).
+   - **Sort stability invariant**: every consecutive pair satisfies the sort key.
+   - **Full-domain invariant (R4 B1 fix)**: every chapter LABEL observed in the per-book sliced rows maps to a `chapter_canonical_index` in the precedence above; rejection on any unmapped label.
+   - **Scene-ordinal invariant (R4 B2 fix)**: every row's `scene_id` parses cleanly to `(chapter, scene_ordinal)`; rejection on parse failure.
+   - **No silent drop of epilogue/part rows (R4 B1 fix)**: post-sort row count equals filtered row count.
    - `pairs.jsonl` is NOT sorted (used only for value-charge per-scene context lookup, not for full-novel ordering).
 
-This step is non-trivial because R3 attempted to write extractor logic that assumed `beats.jsonl` was already in narrative order; verified against the actual file (`head -3 novels/salvatore-icewind-dale/beats.jsonl` starts at `crystal_shard ch10`, not ch1 or prelude — the file is in append-order from the corpus-pipeline build, NOT narrative order). Without this normalization step, the PromiseRegistry extractor would receive an out-of-order beat sequence and reason about "promise opened in chapter 10" relative to a 0-indexed file position that has nothing to do with the book's narrative order.
+This step is non-trivial because R3 assumed `beats.jsonl` was already in narrative order (verified false: file starts at `crystal_shard ch10`, contains epilogue/part rows at arbitrary positions). Without this normalization step, the PromiseRegistry extractor would either drop the 92+ epilogue/part rows or interleave them with main-body chapters in their append order.
+
+### PromiseRegistry chapter representation (R4 B1 fix)
+
+R5 changes the per-promise schema to carry BOTH raw label and canonical index (was R4: numeric-only). Final canonical schema:
+```
+{
+  promise_id:                 string (UUID),
+  promise_text:               string (≤200 chars),
+  opened_chapter_label:       string,         // raw, e.g. "10" or "prelude" or "epilogue"
+  opened_chapter_index:       int,            // canonical, e.g. 10, -1, 1000
+  closed_chapter_label:       string | null,
+  closed_chapter_index:       int | null,
+  hint_chapter_labels:        string[],
+  hint_chapter_indices:       int[],
+  payoff_quality:             enum,
+  evidence_quote_open:        string,
+  evidence_quote_close:       string | null,
+  confidence:                 float,
+}
+```
+Matching policy condition 1 (chapter window) compares INDICES: `|predicted.opened_chapter_index − gold.opened_chapter_index| ≤ 1`. The 1-chapter window is in canonical-index space; e.g., `prelude` (-1) is window-adjacent to chapter 1 (1) only via the integer-int gap of 2 (so prelude and ch1 do NOT match — that's intentional, prelude is structurally distinct).
 
 ### Extractor decomposability (R1 issue 7 fix)
 
@@ -333,11 +376,11 @@ Single explicit formula:
 **Per-book Stage 6 total: ~$0.055/book. 2 books: ~$0.11 base.**
 **Retry buffer (Stage 6 only) at 3×** (schema-mismatch + prompt iteration): $0.11 × 3 = **$0.33** (inclusive).
 **Adjudication helper Sonnet** (first-pass tagging assist for ambiguous rows; ~60-100 calls/dimension at ~$0.005/call): **$0.50.**
-**LitRPG Stages 1–5 ingest cost (R3 W5 fix — was missing in R3 §8).** Per `docs/corpus-pipeline.md` Stages 1–5 estimate ~$10/novel for a fresh LitRPG bundle (PDF→text + scene/beat segmentation + brief generation + analysis). Reserve: **$10.**
+**LitRPG Stages 1–5 ingest cost (R3 W5 + R4 W3 fix — range, not point estimate).** Per `docs/corpus-pipeline.md` Stages 1–5 estimate **~$10–20/novel** for a fresh LitRPG bundle (PDF→text + scene/beat segmentation + brief generation + analysis). LitRPG novels can be longer than fantasy (HWFWM Bk1 is ~150K words, Cradle Bk1 is ~70K), so the high end is realistic. Reserve **$20** to bound it.
 
-**Pilot total: $0.33 + $0.50 + $10.00 = ~$10.83. Round-up reserve: ~$12.**
+**Pilot total: $0.33 + $0.50 + $20.00 = ~$20.83. Round-up reserve: ~$22.**
 
-R3 had budgeted ~$1.50 (Stage-6-only). R4's ~$12 reflects the missing LitRPG ingest line. Still well under Codex R1's named counterfactual estimate ("~$2-4 for Stage 6 only") plus the standard ingest reserve.
+R3 had budgeted ~$1.50 (Stage-6-only). R4 had ~$12 with `~$10` ingest line. R5's ~$22 reflects the corpus-pipeline's actual range estimate. Still well under any benchmark re-train cost ($50+ per W&B SFT run).
 
 ### Time
 
@@ -375,7 +418,8 @@ LitRPG PDF acquisition: TBD per `salvatore-v5-corpus-expansion.md` pattern. May 
 | codex:codex-rescue gpt-5.5 effort=high | 2026-04-29 | **R1 RED** | `a2dfdb5c339c911f8` |
 | codex:codex-rescue gpt-5.5 effort=high | 2026-04-29 | **R2 YELLOW** | `aed14f4069c607b16` |
 | codex:codex-rescue gpt-5.5 effort=high | 2026-04-29 | **R3 YELLOW** | `a78a3f201ecc4bf63` |
-| (R4 pending) | (pending) | (pending) | (pending) |
+| codex:codex-rescue gpt-5.5 effort=high | 2026-04-29 | **R4 YELLOW** | `afcade8df722c3a13` |
+| (R5 pending) | (pending) | (pending) | (pending) |
 
 ### R1 verbatim verdict (preserved for audit)
 
@@ -421,17 +465,28 @@ LitRPG PDF acquisition: TBD per `salvatore-v5-corpus-expansion.md` pattern. May 
 >
 > RECOMMENDED NEXT ACTION: ITERATE-R4.
 
-R4 integrates all 3 R3 blockers + 6 warnings + 2 suggestions. Submit R4 to Codex for follow-up review before implementation begins.
+### R4 verbatim verdict (preserved for audit)
 
-### R4 attack surfaces for Codex
+> VERDICT: YELLOW
+>
+> BLOCKING ISSUES:
+> 1. (B1) Canonical chapter domain mismatch. `beats.jsonl` has `epilogue, epilogue2, epilogue3` rows NOT in `verification.json.chapters_found`. PromiseRegistry int-only chapter fields would silently drop epilogue openings/payoffs. Fix: derive canonical order from observed labels per book, store both raw label and canonical index, add invariant.
+> 2. (B2) Sort key references nonexistent `scene_idx`. Real field is `scene_id` (string). Without declared derivation, narrative sorting is ambiguous. Fix: define `scene_ordinal` derivation from `scene_id` explicitly.
+>
+> WARNINGS: NER disambiguator stack still unnamed; F1≈1−d is a heuristic not a real multi-class bound; LitRPG ingest reserve `~$10` should be `~$10–20`.
+>
+> RECOMMENDED NEXT ACTION: ITERATE-R5.
 
-- **Source normalization invariants completeness.** R4 §3 added per-book slicing + canonical ordering + 4 pre-flight invariants. Have I missed an invariant (e.g., a row in `pairs.jsonl` whose `brief.book` doesn't match any row in `scenes.jsonl` for the same scene_id)?
-- **Canonical chapter ordering for prelude.** R4 §3 says "prelude → 0, ch1 → 1, ch2 → 2." Is this correct for `verification.json`? `chapters_found` for crystal_shard is `[1, 2, ..., N]` with no explicit prelude; the prelude appears in scenes.jsonl but NOT in `chapters_found`. Need to verify this assumption against the actual `verification.json`.
-- **Actor/object disambiguator (R3 W2 fix)** uses NER on `promise_text`. NER quality varies — what NER pipeline? `spacy en_core_web_sm`? `Stanford CoreNLP`? An LLM-based extractor? Each has different precision/recall on fantasy proper nouns.
-- **Drift-guard 15% threshold rationale (R3 W3 fix)** anchored to "F1 upper-bound = 1−d." Is the 1−d relationship correct for multi-class enums (where label disagreement on one of 4 classes ≠ disagreement on a binary)?
-- **NULL-GOLD-ONLY new verdict (R4 §7).** Only fires when ALL 4 cells are NULL-GOLD. Is this verdict reachable in practice, or is the threshold so tight it's never used?
-- **F1 ≥ 0.71 floor (R3 carryover).** Still anchored to halluc-v3 0.81 minus 0.10 for "harder task / pilot scope." Codex didn't push back on this in R3; verify R4 wording is consistent.
-- **Budget reconciliation (R3 W5 fix).** R4 added ~$10 LitRPG ingest line. Is the corpus-pipeline.md ~$10/novel estimate current, or stale?
-- **Cost-function asymmetry (R3 carryover).** Could PromiseRegistry actually be precision-first under harness behavior? Verify the writer's response to a false-positive promise constraint.
-- **Pivot history accuracy.** R4's pivot history attributes specific R3 findings to specific blockers. Verify these attributions match the verbatim R3 verdict above.
-- **Suggested meta-attack.** With 4 rounds of YELLOW, the marginal value of R5 is low. Is R4 GREEN-ready, or does R4 introduce new gaps that R5 would need to close?
+R5 integrates both R4 blockers + 3 warnings + 2 suggestions. Submit R5 to Codex for follow-up review before implementation begins.
+
+### R5 attack surfaces for Codex
+
+- **Full chapter-label domain.** R5 §3 enumerates per-book domain incl. `epilogue/epilogue2/epilogue3` for crystal_shard + halflings_gem, plus `part1/part2/part3` for streams_of_silver. Are there other label classes I haven't seen (e.g., `interlude`, `intermission`)? Should the precedence map be data-driven (extracted from observed labels) rather than hard-coded?
+- **Part-headers in streams_of_silver.** R5 places `part1/2/3` at precedence 50 (between integers and epilogue). Is that semantically right, or are part-headers actually structural separators that should be FILTERED from the per-book sequence (so they don't pollute Promise reasoning)? R5 §3 logs the decision as adjudicator-side review during pilot.
+- **`scene_id` parser robustness.** R5 says `scene_id.rsplit('_s', 1)[1]` extracts the scene ordinal. Does this work for ALL scene_id values? Edge case: `crystal_shard_chprelude_s0` parses cleanly; what about `crystal_shard_chepilogue_s10` — does `rsplit('_s', 1)` correctly find the trailing `_s10`? (Likely yes, but verify.)
+- **Promise schema with both label + index.** R5 doubles the chapter fields. Adjudication is now slightly more verbose (rater needs to write the label; the index is computed). Is the doubled schema worth it, or should canonical-index-only suffice with a `chapter_canonical_index_to_label()` helper?
+- **NER pipeline (spacy + LLM augmentation fallback).** Is the 2-entity threshold the right augmentation trigger? Could be 1-entity-or-fewer, or could be confidence-driven. Pilot may need to log this and tune.
+- **F1 ≈ 1−d intuition reframe.** R5 explicitly labels it "intuition, not a bound." Is that enough, or should the kill-rule rationale be reframed entirely (e.g., "we want the kill threshold low enough that NULL-GOLD cells are recoverable by adding a 2nd rater later — 15% is the largest disagreement we'd accept on a single rater before requiring arbitration")?
+- **Budget range $20.** R5 reserves $20 for LitRPG ingest. Is this still bounded? HWFWM Bk1 is ~150K words; if scene segmentation is per-1K-word chunks, that's ~150 LLM calls in Stage 2 alone, before briefs (Stage 3 again ~150 calls).
+- **GREEN-readiness judgment (R4 carryover).** With 5 rounds in, is R5 finally GREEN-ready, or has R5 introduced its own gaps? At this point, the marginal value of R6 is approaching the cost of paused implementation.
+- **Pre-implementation checklist completeness.** R5's source-normalization spec is detailed enough to write `scripts/corpus/normalize-for-structure.ts` directly. Is anything else still ambiguous enough to block implementation?
