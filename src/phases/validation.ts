@@ -3,6 +3,7 @@ import {
   saveIssue, saveValidationPass,
   updatePhase, saveTonalPassDraft,
 } from "../db"
+import db from "../db/connection"
 import { runTonalPass } from "../agents/tonal-pass/run"
 import { validateChapterDraft } from "../validation"
 import { displayPhaseHeader } from "../cli"
@@ -10,6 +11,7 @@ import { emit } from "../events"
 import { log } from "../logger"
 import { trace } from "../trace"
 import { pipeline } from "../config/pipeline"
+import type { Phase, PhaseResult, ValidationOutput, DraftingOutput } from "./contract"
 
 const MAX_PASSES = pipeline.maxValidationPasses
 
@@ -26,7 +28,7 @@ const MAX_PASSES = pipeline.maxValidationPasses
 // Validation still runs deterministic checks and logs issues. Tonal pass
 // (on-demand) still works for existing novels.
 
-export async function runValidationPhase(novelId: string): Promise<void> {
+export async function runValidationPhase(novelId: string): Promise<PhaseResult<ValidationOutput>> {
   displayPhaseHeader("Validation — Cross-chapter consistency check")
   log(novelId, "info", "Validation phase started")
   emit(novelId, { type: "phase:changed", data: { phase: "validation" } })
@@ -128,4 +130,57 @@ export async function runValidationPhase(novelId: string): Promise<void> {
   emit(novelId, { type: "phase:changed", data: { phase: "done" } })
   log(novelId, "checkpoint", "Validation phase complete → done")
   console.log("\n  Validation phase complete.\n")
+
+  const output = await loadValidationOutput(novelId)
+  return { kind: "complete", output }
+}
+
+/** Reconstruct ValidationOutput from DB. Called on resume by the typed
+ *  driver (P6b1+). Only invoked when novel.phase has advanced to 'done'. */
+export async function loadValidationOutput(novelId: string): Promise<ValidationOutput> {
+  const novel = await getNovel(novelId)
+  const totalChapters = novel.totalChapters
+
+  const passRow = ((await db.unsafe(
+    `SELECT COALESCE(MAX(pass_number), 0)::int AS n FROM validation_passes WHERE novel_id = $1`,
+    [novelId],
+  )) as Array<{ n: number }>)[0]
+  const passes = passRow?.n ?? 0
+
+  // Inline query for chapter column — `getOpenIssues()` returns
+  // ContinuityIssue which doesn't carry chapter (db/issues.ts:13-18 strips
+  // it). The contract's openIssuesAtEnd needs (chapter, description,
+  // severity); pulling raw is simpler than widening the existing helper.
+  const openIssueRows = (await db.unsafe(
+    `SELECT chapter, severity, description FROM issues WHERE novel_id = $1 AND status = 'open' ORDER BY chapter, description`,
+    [novelId],
+  )) as Array<{ chapter: number; severity: string; description: string }>
+
+  const tonalRows = (await db.unsafe(
+    `SELECT DISTINCT chapter_number FROM chapter_drafts WHERE novel_id = $1 AND status = 'tonal-pass' ORDER BY chapter_number`,
+    [novelId],
+  )) as Array<{ chapter_number: number }>
+
+  return {
+    totalChapters,
+    passes,
+    openIssuesAtEnd: openIssueRows.map(r => ({
+      chapter: r.chapter,
+      description: r.description,
+      severity: r.severity,
+    })),
+    tonalPassChapters: tonalRows.map(r => r.chapter_number),
+  }
+}
+
+/** P5 — Phase<DraftingOutput, ValidationOutput> wrapper. Not yet consumed
+ *  by the state-machine; P6b1 flips the driver to use it. */
+export const validationPhase: Phase<DraftingOutput, ValidationOutput> = {
+  name: "validation",
+  async run(_input, ctx) {
+    return runValidationPhase(ctx.novelId)
+  },
+  async loadOutput(novelId) {
+    return loadValidationOutput(novelId)
+  },
 }
