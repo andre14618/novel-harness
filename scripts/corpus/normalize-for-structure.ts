@@ -254,9 +254,15 @@ async function main() {
   console.log(`[normalize] wrote → ${result.outputDir}`)
 }
 
-main().catch(err => {
-  console.error("[normalize] fatal:", err.message)
-  process.exit(1)
-})
+// Only run main() when invoked directly as the script. When extract-structure.ts
+// (or any other driver) imports this module to call `normalize()` programmatically,
+// running main() at import time would parse the parent's argv (which contains
+// flags like --extractor-model that normalize doesn't recognize) and exit(2).
+if (import.meta.main) {
+  main().catch(err => {
+    console.error("[normalize] fatal:", err.message)
+    process.exit(1)
+  })
+}
 
 export { normalize, CHAPTER_PRECEDENCE, parseSceneOrdinal, SCENE_ID_RE }

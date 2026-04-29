@@ -11,11 +11,14 @@ This is the practical guide for running Stage 6 of the corpus pipeline on a new 
 ## What you get at the end
 
 - **Per-dim calibration verdict** (CELL PASS / MARGINAL / FAIL / NULL-GOLD) for each (book, dimension) cell at `novels/<key>/structure-calibration/<book>.json`.
+- **Per-book conclusions document** at `novels/<key>/structure-calibration/<book>-conclusions.md` — human-readable interpretation: what the numbers mean, what to ship, what to fix, what to defer. This is the load-bearing artifact for downstream decisions.
 - **Empirical distribution** of structural tags from a proven novel — e.g., polarity-shift distribution for value-charge, promise-count and open/close spans for promise.
 - **Trustworthiness signal**: the verdict tells you whether the cheap V4 Flash extractor agrees with the stronger V4 Pro judge well enough to ship the distribution as a planner constraint.
 - **Audit trail**: prompts, sampled rows, judge outputs, per-field disagreement breakdown — all on disk.
 
 A CELL PASS on a dim means: the distribution from that dim is calibrated enough to add to the planner as a structural target. See "What to do with a CELL PASS" below.
+
+> **Standing rule (2026-04-29)**: every analysis run produces a **conclusion + action**, not just numbers. The per-book `<book>-conclusions.md` file is **mandatory** alongside the verdict JSON. Each step in the walkthrough below has a **Conclusion** subsection — you fill it in as you run the step. If you're done with the steps but the conclusions doc is empty, you're not actually done.
 
 ---
 
@@ -259,6 +262,24 @@ Open `novels/<novel>/structure-calibration/<book>.json`. Each cell has `metrics`
 3. **Record the decision.** Add an entry to `docs/decisions.md`: which dim on which book CELL PASSed, the P/R/F1 numbers, and what planner constraint was derived. Commit the calibration file. Create a `tuning_experiment` DB record via `harness.experiments.createTuningExperiment()` linking the commit.
 
 4. **Do not generalize across books yet.** A CELL PASS on `crystal_shard` (fantasy, 1988) is a calibration claim on that single book. Generalizing to a different stratum (Sanderson Mistborn, Robertson Breakers) requires running the same pipeline on those books. See [`docs/corpus-wide-analysis-todo.md`](corpus-wide-analysis-todo.md) for the roadmap.
+
+---
+
+## Step 7 (mandatory) — write the conclusions doc
+
+After running the calibration + audit, you have a JSON verdict file. **You are NOT done yet.** Write the conclusion + action interpretation to `novels/<novel>/structure-calibration/<book>-conclusions.md`. The JSON file is the raw signal; the markdown is what people read to decide what to do.
+
+**Format** — copy the template from an existing book (start with [`novels/salvatore-icewind-dale/structure-calibration/crystal_shard-conclusions.md`](../novels/salvatore-icewind-dale/structure-calibration/crystal_shard-conclusions.md)). It has:
+
+1. **Summary verdict table** — one row per dim with the conclusion sentence (not just the verdict label)
+2. **What this means for the planner** — broken into "ship now" (CELL PASS), "hold" (MARGINAL), "don't ship" (FAIL), "investigate" (NULL-GOLD)
+3. **Per-step conclusions** — one section per analysis step you ran (extraction, calibration, matcher fix, judge re-runs, A/B comparisons). Each ends with a **Conclusion + Action** pair.
+4. **Cost ledger** — calls + total spend per step
+5. **Next decisions** — concrete things you or another operator should do based on what was learned
+
+**Why this is mandatory:** raw P/R/F1 numbers aren't load-bearing for downstream decisions. Conclusions are. Without an explicit interpretation, you (or someone re-reading this in a month) has to re-derive what each verdict means in context. The conclusions doc is where the value of the calibration actually lands.
+
+**Pattern note:** when you re-run a step (e.g. promise judge with a 15-min timeout, or fix a matcher policy and re-calibrate), append a new dated entry to the conclusions file rather than rewriting the old one. The history of what was tried is the audit trail.
 
 ---
 
