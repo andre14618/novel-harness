@@ -1,0 +1,5027 @@
+{
+  "novelId": "fantasy-system-heretic",
+  "tables": {
+    "chapter_drafts": [
+      {
+        "chapter_number": 1,
+        "created_at": "<TS>",
+        "novel_id": "fantasy-system-heretic",
+        "prose": "<HASH:5ca0d44b99bfec86>",
+        "status": "approved",
+        "version": 1,
+        "word_count": 1457
+      },
+      {
+        "chapter_number": 2,
+        "created_at": "<TS>",
+        "novel_id": "fantasy-system-heretic",
+        "prose": "<HASH:0ef6517894823f8e>",
+        "status": "draft",
+        "version": 1,
+        "word_count": 1851
+      },
+      {
+        "chapter_number": 2,
+        "created_at": "<TS>",
+        "novel_id": "fantasy-system-heretic",
+        "prose": "<HASH:f2349c391b61af9e>",
+        "status": "approved",
+        "version": 2,
+        "word_count": 1852
+      },
+      {
+        "chapter_number": 3,
+        "created_at": "<TS>",
+        "novel_id": "fantasy-system-heretic",
+        "prose": "<HASH:10dece2a605a7090>",
+        "status": "draft",
+        "version": 1,
+        "word_count": 1324
+      },
+      {
+        "chapter_number": 3,
+        "created_at": "<TS>",
+        "novel_id": "fantasy-system-heretic",
+        "prose": "<HASH:079bc234eebc1f50>",
+        "status": "approved",
+        "version": 2,
+        "word_count": 1330
+      }
+    ],
+    "chapter_exhaustions": [],
+    "chapter_outlines": [
+      {
+        "chapter_number": 1,
+        "novel_id": "fantasy-system-heretic",
+        "outline_json": {
+          "title": "The Arbiter's Arrival",
+          "scenes": [
+            {
+              "kind": "action",
+              "characters": [
+                "Maret"
+              ],
+              "description": "Maret enters the Scribe's Hall, nods to the senior scribe, and takes her seat in the alcove. She checks the day's intake ledger for any new files mentioning anomalies, a habit born of paranoia.",
+              "requiredPayoffs": []
+            },
+            {
+              "kind": "interiority",
+              "characters": [
+                "Maret"
+              ],
+              "description": "Maret spots a sealed dispatch from the capital, marked 'Arbiter Cassel — Sector 7.' Her throat tightens as she reads it; the Arbiter is coming about a statistical anomaly—her anomaly.",
+              "requiredPayoffs": [
+                {
+                  "fact_id": "arbiter-cassel-investigation",
+                  "payoff_beat": 4
+                }
+              ]
+            },
+            {
+              "kind": "interiority",
+              "characters": [
+                "Maret"
+              ],
+              "description": "Maret forces herself to breathe. She thinks of the iron bar she bent yesterday, now hidden under a loose floorboard at home. She must not react when questioned.",
+              "requiredPayoffs": [
+                {
+                  "fact_id": "hidden-iron-bar",
+                  "payoff_beat": 7
+                }
+              ]
+            },
+            {
+              "kind": "dialogue",
+              "characters": [
+                "Maret",
+                "Journeyman Theo"
+              ],
+              "description": "Journeyman Theo approaches Maret's desk, leaning casually. He asks if she's heard about the Arbiter's visit, noting her tension. She deflects with a comment about paperwork, but he doesn't press.",
+              "requiredPayoffs": [
+                {
+                  "fact_id": "theo-loyalty",
+                  "payoff_beat": 10
+                }
+              ]
+            },
+            {
+              "kind": "action",
+              "characters": [
+                "Arbiter Cassel",
+                "Maret"
+              ],
+              "description": "The main door opens. Arbiter Cassel enters, his dark robes and silver badge marking his authority. He announces his purpose to the room—an investigation into a statistical anomaly in the sector—and his gaze settles on Maret.",
+              "requiredPayoffs": []
+            },
+            {
+              "kind": "dialogue",
+              "characters": [
+                "Maret",
+                "Arbiter Cassel"
+              ],
+              "description": "Cassel requests Maret's personnel file and a private workspace. Maret leads him to a side room, her voice steady as she offers to fetch the records. He notes her professionalism but watches her hands.",
+              "requiredPayoffs": []
+            },
+            {
+              "kind": "action",
+              "characters": [
+                "Maret",
+                "Arbiter Cassel"
+              ],
+              "description": "Maret retrieves her file from the archive, resisting the urge to alter it. She hands it to Cassel, who opens it immediately and scans the stat page.",
+              "requiredPayoffs": []
+            },
+            {
+              "kind": "dialogue",
+              "characters": [
+                "Maret",
+                "Arbiter Cassel"
+              ],
+              "description": "Cassel reads aloud: Strength 3. He then places a witness statement on the desk—a blacksmith who claims Maret bent an iron bar with her bare hands. 'Explain this,' he says. Maret denies it, calling the witness mistaken.",
+              "requiredPayoffs": []
+            },
+            {
+              "kind": "interiority",
+              "characters": [
+                "Maret"
+              ],
+              "description": "Maret's heart pounds, but she keeps her face neutral. She knows one wrong word will expose her. She deflects by questioning the witness's reliability and offering to submit to a simple strength test—which she plans to fail.",
+              "requiredPayoffs": []
+            },
+            {
+              "kind": "action",
+              "characters": [
+                "Arbiter Cassel",
+                "Maret"
+              ],
+              "description": "Cassel accepts the proposed test but warns that the System does not err. He closes the file and informs her he will observe her for the next three days. He leaves the room, but his presence lingers.",
+              "requiredPayoffs": []
+            },
+            {
+              "kind": "dialogue",
+              "characters": [
+                "Maret",
+                "Journeyman Theo"
+              ],
+              "description": "Theo appears at the door. He says quietly that he knows she's hiding something, but that he'll back her story if she needs it. His offer is sincere; she thanks him but says nothing.",
+              "requiredPayoffs": []
+            },
+            {
+              "kind": "interiority",
+              "characters": [
+                "Maret"
+              ],
+              "description": "Alone at her desk, Maret stares at the row of ledgers. She knows Cassel will not stop until he proves the System right—or wrong. She begins planning her next move, but every path leads toward exposure.",
+              "requiredPayoffs": []
+            }
+          ],
+          "purpose": "Establish Maret's precarious routine of hiding her true strength behind false stats, and shatter it when Arbiter Cassel arrives to investigate the anomaly—forcing her to confront the immediate threat of exposure while she tries to deflect his scrutiny through careful paperwork.",
+          "setting": "The Scribe's Hall, Veridell",
+          "targetWords": 1500,
+          "povCharacter": "Maret",
+          "chapterNumber": 1,
+          "establishedFacts": [
+            {
+              "id": "arbiter-cassel-investigation",
+              "fact": "Arbiter Cassel has arrived to investigate a statistical anomaly in Sector 7, which is Maret's sector",
+              "category": "knowledge"
+            },
+            {
+              "id": "hidden-iron-bar",
+              "fact": "Maret bent an iron bar with her hands and hid it under a floorboard at her lodging",
+              "category": "physical"
+            },
+            {
+              "id": "theo-loyalty",
+              "fact": "Journeyman Theo is loyal to Maret and willing to cover for her",
+              "category": "relationship"
+            },
+            {
+              "id": "maret-recorded-stats",
+              "fact": "Maret's official stats are STR:3, DEX:3, VIT:8, INT:14, WIS:15, CHA:10",
+              "category": "knowledge"
+            },
+            {
+              "id": "system-does-not-err",
+              "fact": "Arbiter Cassel firmly believes the System does not make mistakes",
+              "category": "knowledge"
+            }
+          ],
+          "knowledgeChanges": [
+            {
+              "source": "read",
+              "knowledge": "The Arbiter is specifically investigating her anomaly",
+              "characterName": "Maret"
+            },
+            {
+              "source": "deduced",
+              "knowledge": "A witness reported the iron bar incident to the Arbiter",
+              "characterName": "Maret"
+            },
+            {
+              "source": "witnessed",
+              "knowledge": "There is a witness report of Maret bending iron",
+              "characterName": "Arbiter Cassel"
+            },
+            {
+              "source": "overheard",
+              "knowledge": "The Arbiter is investigating Maret",
+              "characterName": "Journeyman Theo"
+            }
+          ],
+          "charactersPresent": [
+            "Maret",
+            "Arbiter Cassel",
+            "Journeyman Theo"
+          ],
+          "characterStateChanges": [
+            {
+              "name": "Maret",
+              "knows": [
+                "Cassel is investigating her anomaly",
+                "a witness reported her bending an iron bar"
+              ],
+              "location": "The Scribe's Hall, Veridell",
+              "doesNotKnow": [
+                "what Cassel's next step will be after the strength test",
+                "Theo's full willingness to lie for her"
+              ],
+              "emotionalState": "anxious but composed, actively planning to deceive the Arbiter"
+            },
+            {
+              "name": "Arbiter Cassel",
+              "knows": [
+                "Maret's recorded stats",
+                "witness report of unusual strength"
+              ],
+              "location": "The Scribe's Hall, Veridell",
+              "doesNotKnow": [
+                "that Maret actually has much higher strength",
+                "the source of the stat anomaly"
+              ],
+              "emotionalState": "methodical, suspicious, patient"
+            },
+            {
+              "name": "Journeyman Theo",
+              "knows": [
+                "Maret is hiding something",
+                "Arbiter Cassel's investigation targets her"
+              ],
+              "location": "The Scribe's Hall, Veridell",
+              "doesNotKnow": [
+                "the exact nature of Maret's secret",
+                "the true extent of her strength"
+              ],
+              "emotionalState": "concerned but loyal, offering support"
+            }
+          ]
+        },
+        "plan_check_overridden": false,
+        "revision_used": false
+      },
+      {
+        "chapter_number": 2,
+        "novel_id": "fantasy-system-heretic",
+        "outline_json": {
+          "title": "The System's Trap",
+          "scenes": [
+            {
+              "kind": "action",
+              "characters": [
+                "Maret"
+              ],
+              "description": "Maret tries to access the System records on her stats but discovers Cassel has already flagged and locked the relevant data, blocking any alteration attempt.",
+              "requiredPayoffs": [
+                {
+                  "fact_id": "maret-falsification-failed",
+                  "payoff_beat": 5
+                }
+              ]
+            },
+            {
+              "kind": "dialogue",
+              "characters": [
+                "Maret",
+                "Arbiter Cassel"
+              ],
+              "description": "Arbiter Cassel enters the scribe hall and confronts Maret about the anomaly, asking pointed questions about her stat history and recent activities.",
+              "requiredPayoffs": []
+            },
+            {
+              "kind": "dialogue",
+              "characters": [
+                "Maret",
+                "Arbiter Cassel"
+              ],
+              "description": "Maret deflects using technical jargon and references to standard procedures, but Cassel remains unconvinced and notes every evasion.",
+              "requiredPayoffs": []
+            },
+            {
+              "kind": "dialogue",
+              "characters": [
+                "Maret",
+                "Journeyman Theo"
+              ],
+              "description": "Maret leaves the hall and meets Theo at the Hearthfire Inn, where she partially admits the investigation is worse than she thought.",
+              "requiredPayoffs": []
+            },
+            {
+              "kind": "dialogue",
+              "characters": [
+                "Maret",
+                "Journeyman Theo"
+              ],
+              "description": "Theo offers to use his adventurer contacts to dig into Cassel's background, but Maret is reluctant to involve him further.",
+              "requiredPayoffs": []
+            },
+            {
+              "kind": "dialogue",
+              "characters": [
+                "Maret",
+                "Arbiter Cassel"
+              ],
+              "description": "Cassel summons Maret to his office and presents the evidence of her failed record tampering, showing her own signature in the access log.",
+              "requiredPayoffs": []
+            },
+            {
+              "kind": "action",
+              "characters": [
+                "Maret",
+                "Arbiter Cassel"
+              ],
+              "description": "Cassel produces a sealed file from the System's central archives, marked with a date eight years ago, and places it on the desk.",
+              "requiredPayoffs": [
+                {
+                  "fact_id": "sealed-file-exists",
+                  "payoff_beat": 7
+                }
+              ]
+            },
+            {
+              "kind": "interiority",
+              "characters": [
+                "Maret"
+              ],
+              "description": "Maret opens the file and reads the System's own notation: her stat discrepancy was noted at her Binding and deliberately left uncorrected without explanation.",
+              "requiredPayoffs": [
+                {
+                  "fact_id": "system-deliberate-omission",
+                  "payoff_beat": 8
+                }
+              ]
+            },
+            {
+              "kind": "dialogue",
+              "characters": [
+                "Maret",
+                "Arbiter Cassel"
+              ],
+              "description": "Cassel explains that the System's deliberate omission means this is no mere error but a fundamental anomaly, and only a Revelation Rite can resolve it.",
+              "requiredPayoffs": []
+            },
+            {
+              "kind": "dialogue",
+              "characters": [
+                "Maret",
+                "Arbiter Cassel"
+              ],
+              "description": "Cassel threatens to petition for the revocation of Journeyman Theo's class if Maret does not voluntarily submit to the Revelation Rite within twenty-four hours.",
+              "requiredPayoffs": [
+                {
+                  "fact_id": "cassel-threat-theo-class",
+                  "payoff_beat": 15
+                }
+              ]
+            },
+            {
+              "kind": "interiority",
+              "characters": [
+                "Maret"
+              ],
+              "description": "Maret's mind races as she realizes the choice: reveal her true nature or let Theo lose everything he has.",
+              "requiredPayoffs": []
+            },
+            {
+              "kind": "dialogue",
+              "characters": [
+                "Maret",
+                "Arbiter Cassel"
+              ],
+              "description": "Maret tries to negotiate a delay or alternative, but Cassel is immovable, citing System protocols and his Arbiter authority.",
+              "requiredPayoffs": []
+            },
+            {
+              "kind": "dialogue",
+              "characters": [
+                "Maret",
+                "Arbiter Cassel"
+              ],
+              "description": "Cassel grants her until dawn to decide, then dismisses her with the warning that Theo's fate is now in her hands.",
+              "requiredPayoffs": []
+            },
+            {
+              "kind": "interiority",
+              "characters": [
+                "Maret"
+              ],
+              "description": "Maret walks through the city streets alone, replaying Cassel's words and the sealed file, feeling the weight of eight years of deception.",
+              "requiredPayoffs": []
+            },
+            {
+              "kind": "dialogue",
+              "characters": [
+                "Maret",
+                "Journeyman Theo"
+              ],
+              "description": "Theo finds Maret at the Hearthfire Inn and offers reassurance, but she cannot tell him the full truth; she sends him away for his own safety.",
+              "requiredPayoffs": []
+            },
+            {
+              "kind": "interiority",
+              "characters": [
+                "Maret"
+              ],
+              "description": "Alone, Maret makes her decision: she will submit to the Revelation Rite to protect Theo, whatever the cost to herself.",
+              "requiredPayoffs": []
+            },
+            {
+              "kind": "action",
+              "characters": [
+                "Maret"
+              ],
+              "description": "The next morning, Maret walks toward the Arbiter's Office, her steps steady but her heart pounding, ready to face the truth.",
+              "requiredPayoffs": []
+            }
+          ],
+          "purpose": "Maret's attempts to falsify records and appear normal fail as Cassel tightens his investigation, culminating in a sealed file revealing the System deliberately left her stats uncorrected for eight years—then Cassel threatens to revoke Theo's class unless she submits to the Revelation Rite, forcing her to choose between her secret and her friend.",
+          "setting": "The Scribe's Hall, The Hearthfire Inn, The Arbiter's Office",
+          "targetWords": 2000,
+          "povCharacter": "Maret",
+          "chapterNumber": 2,
+          "establishedFacts": [
+            {
+              "id": "maret-falsification-failed",
+              "fact": "Cassel locked the System records, blocking Maret's attempt to alter her stats",
+              "category": "physical"
+            },
+            {
+              "id": "sealed-file-exists",
+              "fact": "A sealed System file from eight years ago notes Maret's stat discrepancy",
+              "category": "physical"
+            },
+            {
+              "id": "system-deliberate-omission",
+              "fact": "The System deliberately left Maret's false stats uncorrected since her Binding",
+              "category": "temporal"
+            },
+            {
+              "id": "cassel-threat-theo-class",
+              "fact": "Cassel will use his Arbiter authority to revoke Theo's class if Maret does not undergo the Revelation Rite",
+              "category": "rule"
+            }
+          ],
+          "knowledgeChanges": [
+            {
+              "source": "read",
+              "knowledge": "The System deliberately kept her stats false since Binding",
+              "characterName": "Maret"
+            },
+            {
+              "source": "told",
+              "knowledge": "Cassel can revoke Theo's class as leverage",
+              "characterName": "Maret"
+            },
+            {
+              "source": "discovered",
+              "knowledge": "Her attempt to alter records was detected and blocked",
+              "characterName": "Maret"
+            }
+          ],
+          "charactersPresent": [
+            "Maret",
+            "Arbiter Cassel",
+            "Journeyman Theo"
+          ],
+          "characterStateChanges": [
+            {
+              "name": "Maret",
+              "knows": [
+                "The System deliberately kept her stats false",
+                "Cassel can revoke Theo's class",
+                "She must undergo the Revelation Rite"
+              ],
+              "location": "approaching the Arbiter's Office",
+              "doesNotKnow": [
+                "Theo witnessed her reading the sealed file",
+                "What her true class will be revealed as"
+              ],
+              "emotionalState": "terrified but resolute after choosing to submit to protect Theo"
+            },
+            {
+              "name": "Arbiter Cassel",
+              "knows": [
+                "Maret attempted to falsify records",
+                "The System deliberately omitted correction",
+                "His threat forced her hand"
+              ],
+              "location": "the Arbiter's Office",
+              "doesNotKnow": [
+                "Maret's true class or the nature of the anomaly"
+              ],
+              "emotionalState": "satisfied and confident that Maret will comply"
+            },
+            {
+              "name": "Journeyman Theo",
+              "knows": [
+                "The investigation is serious",
+                "Maret is in danger"
+              ],
+              "location": "the Hearthfire Inn",
+              "doesNotKnow": [
+                "Cassel's threat to revoke his class",
+                "The sealed file contents"
+              ],
+              "emotionalState": "worried but trusting Maret's judgment"
+            }
+          ]
+        },
+        "plan_check_overridden": false,
+        "revision_used": false
+      },
+      {
+        "chapter_number": 3,
+        "novel_id": "fantasy-system-heretic",
+        "outline_json": {
+          "title": "The True Number",
+          "scenes": [
+            {
+              "kind": "action",
+              "characters": [
+                "Maret",
+                "Arbiter Cassel",
+                "Journeyman Theo"
+              ],
+              "description": "Maret stands at the center of the Guild Council Chamber, facing the System crystal on its pedestal. Arbiter Cassel and Journeyman Theo watch from opposite sides of the circular table, the tension palpable as the Revelation Rite begins.",
+              "requiredPayoffs": []
+            },
+            {
+              "kind": "action",
+              "characters": [
+                "Arbiter Cassel",
+                "Maret"
+              ],
+              "description": "Cassel formally recites the terms of the Revelation Rite, his voice echoing in the domed hall. He reads from a System-issued scroll, detailing that Maret's class and true stats will be revealed and recorded, and that she must accept any consequences.",
+              "requiredPayoffs": []
+            },
+            {
+              "kind": "action",
+              "characters": [
+                "Maret"
+              ],
+              "description": "Maret nods once, steps forward, and presses her palm flat against the cool surface of the crystal. The chamber lights dim as the System begins scanning her, blue light pulsing through her veins from the point of contact.",
+              "requiredPayoffs": []
+            },
+            {
+              "kind": "action",
+              "characters": [
+                "Maret",
+                "Arbiter Cassel",
+                "Journeyman Theo"
+              ],
+              "description": "Instead of displaying her false stats, the crystal projects a cascade of floating numbers—then freezes on a single line: 'Class: Anomaly – Authority: Anomaly Hunter.' The air hums with the System's validation, a sound Maret has never heard before.",
+              "requiredPayoffs": [
+                {
+                  "fact_id": "maret-true-class-anomaly",
+                  "payoff_beat": 10
+                }
+              ]
+            },
+            {
+              "kind": "action",
+              "characters": [
+                "Arbiter Cassel"
+              ],
+              "description": "Cassel's composure cracks—his eyes widen, and he takes a half-step back before catching himself. He rereads the floating text as if it might change, but the System holds steady, a soft chime confirming the record is permanent.",
+              "requiredPayoffs": []
+            },
+            {
+              "kind": "action",
+              "characters": [
+                "Journeyman Theo",
+                "Maret"
+              ],
+              "description": "Theo releases a breath he'd been holding, a grin spreading across his face. He sees Maret's true class and understands the weight of her secret at last, his acceptance clear in his posture.",
+              "requiredPayoffs": []
+            },
+            {
+              "kind": "action",
+              "characters": [
+                "Maret"
+              ],
+              "description": "A new message scrolls across the crystal: 'Anomaly validated. Existence consistent with System design. Deploy to investigate further aberrations.' The words solidify Maret's new role, transforming her from suspect to agent of the System itself.",
+              "requiredPayoffs": [
+                {
+                  "fact_id": "maret-anomaly-hunter-authority",
+                  "payoff_beat": 12
+                }
+              ]
+            },
+            {
+              "kind": "dialogue",
+              "characters": [
+                "Arbiter Cassel",
+                "Maret"
+              ],
+              "description": "Cassel recovers his analytical demeanor and steps forward, extending his hand to Maret. He proposes an alliance: he will officially close the case and recommend her appointment as an anomaly hunter, if she agrees to work with him to investigate other System discrepancies.",
+              "requiredPayoffs": [
+                {
+                  "fact_id": "cassel-alliance-terms",
+                  "payoff_beat": 9
+                }
+              ]
+            },
+            {
+              "kind": "action",
+              "characters": [
+                "Maret",
+                "Arbiter Cassel",
+                "Journeyman Theo"
+              ],
+              "description": "Maret hesitates, then takes his hand. She accepts the terms: she will report to Cassel, but will retain autonomy in the field. The handshake seals the uneasy compact, witnessed by Theo and the silent Guild Council.",
+              "requiredPayoffs": []
+            },
+            {
+              "kind": "interiority",
+              "characters": [
+                "Maret"
+              ],
+              "description": "The crystal pulses once more and withdraws the display. Maret's hand comes away warm, the scent of ozone lingering. She now knows her true class is Anomaly—neither human standard nor deviation, but a role the System itself created.",
+              "requiredPayoffs": []
+            },
+            {
+              "kind": "action",
+              "characters": [
+                "Arbiter Cassel",
+                "Maret"
+              ],
+              "description": "Cassel signals to a scribe outside, who enters with a new contract. The document outlines Maret's duties as an anomaly hunter, including a stipend and access to restricted archives. He places it on the table for her to sign.",
+              "requiredPayoffs": []
+            },
+            {
+              "kind": "interiority",
+              "characters": [
+                "Maret"
+              ],
+              "description": "Maret reviews the contract silently, noting the clauses that grant her unusual freedom—her status is unique, and the System seems to have written the terms itself. She signs with her scribe's quill, the ink glowing briefly as the System records her mark.",
+              "requiredPayoffs": []
+            },
+            {
+              "kind": "dialogue",
+              "characters": [
+                "Arbiter Cassel",
+                "Maret",
+                "Journeyman Theo"
+              ],
+              "description": "After the signing, Cassel outlines the first mission: a village two days north reports creatures acting with unnatural intelligence. He expects Maret to leave at dawn. Theo volunteers to accompany her, and Cassel approves without objection.",
+              "requiredPayoffs": []
+            },
+            {
+              "kind": "interiority",
+              "characters": [
+                "Maret",
+                "Journeyman Theo"
+              ],
+              "description": "Maret looks at the crystal one last time, her reflection clear in its surface. She feels the weight of her new responsibility—and the first flicker of freedom in eight years. She turns and walks out of the chamber, Theo falling into step beside her, the doors closing behind them.",
+              "requiredPayoffs": []
+            }
+          ],
+          "purpose": "In the Revelation Rite, Maret chooses to reveal her true class—Anomaly—and the System validates her existence, transforming her from fugitive to authorized anomaly hunter; she and Cassel forge an uneasy alliance, leaving her with hard-won freedom but the weight of a new responsibility.",
+          "setting": "The Guild Council Chamber",
+          "targetWords": 1800,
+          "povCharacter": "Maret",
+          "chapterNumber": 3,
+          "establishedFacts": [
+            {
+              "id": "maret-true-class-anomaly",
+              "fact": "Maret's true class is Anomaly, a unique class granted by the System to authorize anomaly investigation.",
+              "category": "identity"
+            },
+            {
+              "id": "maret-anomaly-hunter-authority",
+              "fact": "Maret is officially appointed as an anomaly hunter with authority to investigate System discrepancies, access restricted archives, and a stipend.",
+              "category": "knowledge"
+            },
+            {
+              "id": "cassel-alliance-terms",
+              "fact": "Arbiter Cassel and Maret form an uneasy alliance: she reports to him but retains field autonomy; he recommended her appointment.",
+              "category": "relationship"
+            }
+          ],
+          "knowledgeChanges": [
+            {
+              "source": "discovered",
+              "knowledge": "Her true class is Anomaly, not any standard class",
+              "characterName": "Maret"
+            },
+            {
+              "source": "witnessed",
+              "knowledge": "She is now an anomaly hunter with System authority",
+              "characterName": "Maret"
+            },
+            {
+              "source": "witnessed",
+              "knowledge": "Maret is a genuine System anomaly, not a fraud",
+              "characterName": "Arbiter Cassel"
+            },
+            {
+              "source": "witnessed",
+              "knowledge": "Maret's true class is Anomaly",
+              "characterName": "Journeyman Theo"
+            }
+          ],
+          "charactersPresent": [
+            "Maret",
+            "Arbiter Cassel",
+            "Journeyman Theo"
+          ],
+          "characterStateChanges": [
+            {
+              "name": "Maret",
+              "knows": [
+                "her true class is Anomaly",
+                "she is now an anomaly hunter",
+                "Cassel is an uneasy ally"
+              ],
+              "location": "Guild Council Chamber",
+              "doesNotKnow": [
+                "the full extent of Cassel's intentions",
+                "what the first mission will entail exactly"
+              ],
+              "emotionalState": "relieved but burdened by new responsibility"
+            },
+            {
+              "name": "Arbiter Cassel",
+              "knows": [
+                "Maret is a genuine anomaly validated by the System",
+                "the System intends her to hunt other anomalies",
+                "his own faith in the System is intact but tested"
+              ],
+              "location": "Guild Council Chamber",
+              "doesNotKnow": [
+                "Maret's true loyalty",
+                "how the System will use her"
+              ],
+              "emotionalState": "professionally composed but shaken by the System's validation"
+            },
+            {
+              "name": "Journeyman Theo",
+              "knows": [
+                "Maret's true class",
+                "she is an anomaly hunter",
+                "his own class is safe"
+              ],
+              "location": "Guild Council Chamber",
+              "doesNotKnow": [
+                "the details of the first mission"
+              ],
+              "emotionalState": "proud and relieved, ready to support Maret"
+            }
+          ]
+        },
+        "plan_check_overridden": false,
+        "revision_used": false
+      }
+    ],
+    "chapter_revisions": [],
+    "character_cultures": [
+      {
+        "character_id": "char_cassel",
+        "culture_id": "cult_arbiters",
+        "novel_id": "fantasy-system-heretic",
+        "relationship": "native"
+      },
+      {
+        "character_id": "char_cassel",
+        "culture_id": "cult_scribes",
+        "novel_id": "fantasy-system-heretic",
+        "relationship": "outsider"
+      },
+      {
+        "character_id": "char_cassel",
+        "culture_id": "cult_veridell",
+        "novel_id": "fantasy-system-heretic",
+        "relationship": "native"
+      },
+      {
+        "character_id": "char_maret",
+        "culture_id": "cult_arbiters",
+        "novel_id": "fantasy-system-heretic",
+        "relationship": "outsider"
+      },
+      {
+        "character_id": "char_maret",
+        "culture_id": "cult_scribes",
+        "novel_id": "fantasy-system-heretic",
+        "relationship": "native"
+      },
+      {
+        "character_id": "char_maret",
+        "culture_id": "cult_veridell",
+        "novel_id": "fantasy-system-heretic",
+        "relationship": "native"
+      },
+      {
+        "character_id": "char_theo",
+        "culture_id": "cult_arbiters",
+        "novel_id": "fantasy-system-heretic",
+        "relationship": "outsider"
+      },
+      {
+        "character_id": "char_theo",
+        "culture_id": "cult_scribes",
+        "novel_id": "fantasy-system-heretic",
+        "relationship": "outsider"
+      },
+      {
+        "character_id": "char_theo",
+        "culture_id": "cult_veridell",
+        "novel_id": "fantasy-system-heretic",
+        "relationship": "native"
+      }
+    ],
+    "character_knowledge": [
+      {
+        "category": "event",
+        "chapter_learned": 1,
+        "character_id": "char_cassel",
+        "embedding": null,
+        "id": "character_knowledge:2d6e61319b92c202",
+        "is_false": false,
+        "knowledge": "There is a witness report of Maret bending iron",
+        "novel_id": "fantasy-system-heretic",
+        "source": "witnessed",
+        "source_character_id": null,
+        "source_event_id": null,
+        "tsv": "'bend':8A 'event':10B 'iron':9A 'maret':7A 'report':5A 'wit':4A,11C"
+      },
+      {
+        "category": "event",
+        "chapter_learned": 1,
+        "character_id": "char_maret",
+        "embedding": null,
+        "id": "character_knowledge:afe3763b0438cec2",
+        "is_false": false,
+        "knowledge": "A witness reported the iron bar incident to the Arbiter",
+        "novel_id": "fantasy-system-heretic",
+        "source": "deduced",
+        "source_character_id": null,
+        "source_event_id": null,
+        "tsv": "'arbit':10A 'bar':6A 'deduc':12C 'event':11B 'incid':7A 'iron':5A 'report':3A 'wit':2A"
+      },
+      {
+        "category": "event",
+        "chapter_learned": 1,
+        "character_id": "char_maret",
+        "embedding": null,
+        "id": "character_knowledge:bcfba272cf1c3ec1",
+        "is_false": false,
+        "knowledge": "The Arbiter is specifically investigating her anomaly",
+        "novel_id": "fantasy-system-heretic",
+        "source": "read",
+        "source_character_id": null,
+        "source_event_id": null,
+        "tsv": "'anomali':7A 'arbit':2A 'event':8B 'investig':5A 'read':9C 'specif':4A"
+      },
+      {
+        "category": "event",
+        "chapter_learned": 1,
+        "character_id": "char_theo",
+        "embedding": null,
+        "id": "character_knowledge:b55e4c6a0ff5e9d3",
+        "is_false": false,
+        "knowledge": "The Arbiter is investigating Maret",
+        "novel_id": "fantasy-system-heretic",
+        "source": "overheard",
+        "source_character_id": null,
+        "source_event_id": null,
+        "tsv": "'arbit':2A 'event':6B 'investig':4A 'maret':5A 'overheard':7C"
+      },
+      {
+        "category": "event",
+        "chapter_learned": 2,
+        "character_id": "char_maret",
+        "embedding": null,
+        "id": "character_knowledge:477725b1f571f073",
+        "is_false": false,
+        "knowledge": "Cassel can revoke Theo's class as leverage",
+        "novel_id": "fantasy-system-heretic",
+        "source": "told",
+        "source_character_id": null,
+        "source_event_id": null,
+        "tsv": "'cassel':1A 'class':6A 'event':9B 'leverag':8A 'revok':3A 'theo':4A 'told':10C"
+      },
+      {
+        "category": "event",
+        "chapter_learned": 2,
+        "character_id": "char_maret",
+        "embedding": null,
+        "id": "character_knowledge:a556801f429e379e",
+        "is_false": false,
+        "knowledge": "Her attempt to alter records was detected and blocked",
+        "novel_id": "fantasy-system-heretic",
+        "source": "discovered",
+        "source_character_id": null,
+        "source_event_id": null,
+        "tsv": "'alter':4A 'attempt':2A 'block':9A 'detect':7A 'discov':11C 'event':10B 'record':5A"
+      },
+      {
+        "category": "event",
+        "chapter_learned": 2,
+        "character_id": "char_maret",
+        "embedding": null,
+        "id": "character_knowledge:2623df8714fe03c8",
+        "is_false": false,
+        "knowledge": "The System deliberately kept her stats false since Binding",
+        "novel_id": "fantasy-system-heretic",
+        "source": "read",
+        "source_character_id": null,
+        "source_event_id": null,
+        "tsv": "'bind':9A 'deliber':3A 'event':10B 'fals':7A 'kept':4A 'read':11C 'sinc':8A 'stat':6A 'system':2A"
+      },
+      {
+        "category": "event",
+        "chapter_learned": 3,
+        "character_id": "char_cassel",
+        "embedding": null,
+        "id": "character_knowledge:cba24a5f848dcc2f",
+        "is_false": false,
+        "knowledge": "Maret is a genuine System anomaly, not a fraud",
+        "novel_id": "fantasy-system-heretic",
+        "source": "witnessed",
+        "source_character_id": null,
+        "source_event_id": null,
+        "tsv": "'anomali':6A 'event':10B 'fraud':9A 'genuin':4A 'maret':1A 'system':5A 'wit':11C"
+      },
+      {
+        "category": "event",
+        "chapter_learned": 3,
+        "character_id": "char_maret",
+        "embedding": null,
+        "id": "character_knowledge:cfc7eb0dd86b0faa",
+        "is_false": false,
+        "knowledge": "Her true class is Anomaly, not any standard class",
+        "novel_id": "fantasy-system-heretic",
+        "source": "discovered",
+        "source_character_id": null,
+        "source_event_id": null,
+        "tsv": "'anomali':5A 'class':3A,9A 'discov':11C 'event':10B 'standard':8A 'true':2A"
+      },
+      {
+        "category": "event",
+        "chapter_learned": 3,
+        "character_id": "char_maret",
+        "embedding": null,
+        "id": "character_knowledge:f2e59fce7e5c06ad",
+        "is_false": false,
+        "knowledge": "She is now an anomaly hunter with System authority",
+        "novel_id": "fantasy-system-heretic",
+        "source": "witnessed",
+        "source_character_id": null,
+        "source_event_id": null,
+        "tsv": "'anomali':5A 'author':9A 'event':10B 'hunter':6A 'system':8A 'wit':11C"
+      },
+      {
+        "category": "event",
+        "chapter_learned": 3,
+        "character_id": "char_theo",
+        "embedding": null,
+        "id": "character_knowledge:bf6deaaafbd57171",
+        "is_false": false,
+        "knowledge": "Maret's true class is Anomaly",
+        "novel_id": "fantasy-system-heretic",
+        "source": "witnessed",
+        "source_character_id": null,
+        "source_event_id": null,
+        "tsv": "'anomali':6A 'class':4A 'event':7B 'maret':1A 'true':3A 'wit':8C"
+      }
+    ],
+    "character_states": [
+      {
+        "chapter_number": 1,
+        "character_id": "char_cassel",
+        "embedding": null,
+        "novel_id": "fantasy-system-heretic",
+        "state_json": {
+          "knows": [
+            "Maret's recorded stats",
+            "witness report of unusual strength"
+          ],
+          "location": "The Scribe's Hall, Veridell",
+          "characterId": "char_cassel",
+          "doesNotKnow": [
+            "that Maret actually has much higher strength",
+            "the source of the stat anomaly"
+          ],
+          "chapterNumber": 1,
+          "emotionalState": "methodical, suspicious, patient"
+        },
+        "tsv": "'1':35A 'actual':23A 'anomali':33A 'cassel':19A 'chapternumb':34A 'char':18A 'characterid':17A 'doesnotknow':20A 'emotionalst':36A 'hall':15A 'higher':26A 'know':1A 'locat':11A 'maret':2A,22A 'method':37A 'much':25A 'patient':39A 'record':4A 'report':7A 'scribe':13A 'sourc':29A 'stat':5A,32A 'strength':10A,27A 'suspici':38A 'unusu':9A 'veridel':16A 'wit':6A"
+      },
+      {
+        "chapter_number": 2,
+        "character_id": "char_cassel",
+        "embedding": null,
+        "novel_id": "fantasy-system-heretic",
+        "state_json": {
+          "knows": [
+            "Maret attempted to falsify records",
+            "The System deliberately omitted correction",
+            "His threat forced her hand"
+          ],
+          "location": "the Arbiter's Office",
+          "characterId": "char_cassel",
+          "doesNotKnow": [
+            "Maret's true class or the nature of the anomaly"
+          ],
+          "chapterNumber": 2,
+          "emotionalState": "satisfied and confident that Maret will comply"
+        },
+        "tsv": "'2':37A 'anomali':35A 'arbit':19A 'attempt':3A 'cassel':24A 'chapternumb':36A 'char':23A 'characterid':22A 'class':29A 'compli':45A 'confid':41A 'correct':11A 'deliber':9A 'doesnotknow':25A 'emotionalst':38A 'falsifi':5A 'forc':14A 'hand':16A 'know':1A 'locat':17A 'maret':2A,26A,43A 'natur':32A 'offic':21A 'omit':10A 'record':6A 'satisfi':39A 'system':8A 'threat':13A 'true':28A"
+      },
+      {
+        "chapter_number": 3,
+        "character_id": "char_cassel",
+        "embedding": null,
+        "novel_id": "fantasy-system-heretic",
+        "state_json": {
+          "knows": [
+            "Maret is a genuine anomaly validated by the System",
+            "the System intends her to hunt other anomalies",
+            "his own faith in the System is intact but tested"
+          ],
+          "location": "Guild Council Chamber",
+          "characterId": "char_cassel",
+          "doesNotKnow": [
+            "Maret's true loyalty",
+            "how the System will use her"
+          ],
+          "chapterNumber": 3,
+          "emotionalState": "professionally composed but shaken by the System's validation"
+        },
+        "tsv": "'3':48A 'anomali':6A,18A 'cassel':35A 'chamber':32A 'chapternumb':47A 'char':34A 'characterid':33A 'compos':51A 'council':31A 'doesnotknow':36A 'emotionalst':49A 'faith':21A 'genuin':5A 'guild':30A 'hunt':16A 'intact':26A 'intend':13A 'know':1A 'locat':29A 'loyalti':40A 'maret':2A,37A 'profession':50A 'shaken':53A 'system':10A,12A,24A,43A,56A 'test':28A 'true':39A 'use':45A 'valid':7A,58A"
+      },
+      {
+        "chapter_number": 1,
+        "character_id": "char_maret",
+        "embedding": null,
+        "novel_id": "fantasy-system-heretic",
+        "state_json": {
+          "knows": [
+            "Cassel is investigating her anomaly",
+            "a witness reported her bending an iron bar"
+          ],
+          "location": "The Scribe's Hall, Veridell",
+          "characterId": "char_maret",
+          "doesNotKnow": [
+            "what Cassel's next step will be after the strength test",
+            "Theo's full willingness to lie for her"
+          ],
+          "chapterNumber": 1,
+          "emotionalState": "anxious but composed, actively planning to deceive the Arbiter"
+        },
+        "tsv": "'1':45A 'activ':50A 'anomali':6A 'anxious':47A 'arbit':55A 'bar':14A 'bend':11A 'cassel':2A,26A 'chapternumb':44A 'char':22A 'characterid':21A 'compos':49A 'deceiv':53A 'doesnotknow':24A 'emotionalst':46A 'full':38A 'hall':19A 'investig':4A 'iron':13A 'know':1A 'lie':41A 'locat':15A 'maret':23A 'next':28A 'plan':51A 'report':9A 'scribe':17A 'step':29A 'strength':34A 'test':35A 'theo':36A 'veridel':20A 'willing':39A 'wit':8A"
+      },
+      {
+        "chapter_number": 2,
+        "character_id": "char_maret",
+        "embedding": null,
+        "novel_id": "fantasy-system-heretic",
+        "state_json": {
+          "knows": [
+            "The System deliberately kept her stats false",
+            "Cassel can revoke Theo's class",
+            "She must undergo the Revelation Rite"
+          ],
+          "location": "approaching the Arbiter's Office",
+          "characterId": "char_maret",
+          "doesNotKnow": [
+            "Theo witnessed her reading the sealed file",
+            "What her true class will be revealed as"
+          ],
+          "chapterNumber": 2,
+          "emotionalState": "terrified but resolute after choosing to submit to protect Theo"
+        },
+        "tsv": "'2':47A 'approach':22A 'arbit':24A 'cassel':9A 'chapternumb':46A 'char':28A 'characterid':27A 'choos':53A 'class':14A,41A 'deliber':4A 'doesnotknow':30A 'emotionalst':48A 'fals':8A 'file':37A 'kept':5A 'know':1A 'locat':21A 'maret':29A 'must':16A 'offic':26A 'protect':57A 'read':34A 'resolut':51A 'reveal':44A 'revel':19A 'revok':11A 'rite':20A 'seal':36A 'stat':7A 'submit':55A 'system':3A 'terrifi':49A 'theo':12A,31A,58A 'true':40A 'undergo':17A 'wit':32A"
+      },
+      {
+        "chapter_number": 3,
+        "character_id": "char_maret",
+        "embedding": null,
+        "novel_id": "fantasy-system-heretic",
+        "state_json": {
+          "knows": [
+            "her true class is Anomaly",
+            "she is now an anomaly hunter",
+            "Cassel is an uneasy ally"
+          ],
+          "location": "Guild Council Chamber",
+          "characterId": "char_maret",
+          "doesNotKnow": [
+            "the full extent of Cassel's intentions",
+            "what the first mission will entail exactly"
+          ],
+          "chapterNumber": 3,
+          "emotionalState": "relieved but burdened by new responsibility"
+        },
+        "tsv": "'3':41A 'alli':17A 'anomali':6A,11A 'burden':45A 'cassel':13A,30A 'chamber':21A 'chapternumb':40A 'char':23A 'characterid':22A 'class':4A 'council':20A 'doesnotknow':25A 'emotionalst':42A 'entail':38A 'exact':39A 'extent':28A 'first':35A 'full':27A 'guild':19A 'hunter':12A 'intent':32A 'know':1A 'locat':18A 'maret':24A 'mission':36A 'new':47A 'reliev':43A 'respons':48A 'true':3A 'uneasi':16A"
+      },
+      {
+        "chapter_number": 1,
+        "character_id": "char_theo",
+        "embedding": null,
+        "novel_id": "fantasy-system-heretic",
+        "state_json": {
+          "knows": [
+            "Maret is hiding something",
+            "Arbiter Cassel's investigation targets her"
+          ],
+          "location": "The Scribe's Hall, Veridell",
+          "characterId": "char_theo",
+          "doesNotKnow": [
+            "the exact nature of Maret's secret",
+            "the true extent of her strength"
+          ],
+          "chapterNumber": 1,
+          "emotionalState": "concerned but loyal, offering support"
+        },
+        "tsv": "'1':36A 'arbit':6A 'cassel':7A 'chapternumb':35A 'char':19A 'characterid':18A 'concern':38A 'doesnotknow':21A 'emotionalst':37A 'exact':23A 'extent':31A 'hall':16A 'hide':4A 'investig':9A 'know':1A 'locat':12A 'loyal':40A 'maret':2A,26A 'natur':24A 'offer':41A 'scribe':14A 'secret':28A 'someth':5A 'strength':34A 'support':42A 'target':10A 'theo':20A 'true':30A 'veridel':17A"
+      },
+      {
+        "chapter_number": 2,
+        "character_id": "char_theo",
+        "embedding": null,
+        "novel_id": "fantasy-system-heretic",
+        "state_json": {
+          "knows": [
+            "The investigation is serious",
+            "Maret is in danger"
+          ],
+          "location": "the Hearthfire Inn",
+          "characterId": "char_theo",
+          "doesNotKnow": [
+            "Cassel's threat to revoke his class",
+            "The sealed file contents"
+          ],
+          "chapterNumber": 2,
+          "emotionalState": "worried but trusting Maret's judgment"
+        },
+        "tsv": "'2':30A 'cassel':18A 'chapternumb':29A 'char':15A 'characterid':14A 'class':24A 'content':28A 'danger':9A 'doesnotknow':17A 'emotionalst':31A 'file':27A 'hearthfir':12A 'inn':13A 'investig':3A 'judgment':37A 'know':1A 'locat':10A 'maret':6A,35A 'revok':22A 'seal':26A 'serious':5A 'theo':16A 'threat':20A 'trust':34A 'worri':32A"
+      },
+      {
+        "chapter_number": 3,
+        "character_id": "char_theo",
+        "embedding": null,
+        "novel_id": "fantasy-system-heretic",
+        "state_json": {
+          "knows": [
+            "Maret's true class",
+            "she is an anomaly hunter",
+            "his own class is safe"
+          ],
+          "location": "Guild Council Chamber",
+          "characterId": "char_theo",
+          "doesNotKnow": [
+            "the details of the first mission"
+          ],
+          "chapterNumber": 3,
+          "emotionalState": "proud and relieved, ready to support Maret"
+        },
+        "tsv": "'3':31A 'anomali':9A 'chamber':19A 'chapternumb':30A 'char':21A 'characterid':20A 'class':5A,13A 'council':18A 'detail':25A 'doesnotknow':23A 'emotionalst':32A 'first':28A 'guild':17A 'hunter':10A 'know':1A 'locat':16A 'maret':2A,39A 'mission':29A 'proud':33A 'readi':36A 'reliev':35A 'safe':15A 'support':38A 'theo':22A 'true':4A"
+      }
+    ],
+    "character_system_awareness": [],
+    "characters": [
+      {
+        "id": "char_cassel",
+        "name": "Arbiter Cassel",
+        "novel_id": "fantasy-system-heretic",
+        "profile_json": "<HASH:10b8ec7bc3f1d2c6>"
+      },
+      {
+        "id": "char_maret",
+        "name": "Maret",
+        "novel_id": "fantasy-system-heretic",
+        "profile_json": "<HASH:65b61b344fd3945c>"
+      },
+      {
+        "id": "char_theo",
+        "name": "Journeyman Theo",
+        "novel_id": "fantasy-system-heretic",
+        "profile_json": "<HASH:7fb0753769393283>"
+      }
+    ],
+    "cultures": [
+      {
+        "customs_json": [
+          "All Arbiters wear a silver badge shaped like a balanced scale.",
+          "They perform daily System calibration rituals to ensure their own stats are accurate.",
+          "They never display their own stats publicly—it is considered 'undue influence'.",
+          "When investigating, they keep a personal log that is System-encrypted."
+        ],
+        "description": "A secretive order of investigators dedicated to preserving the integrity of the System. They are chosen from high-level individuals and are given the authority to override local laws. They operate from the capital and are seen as both respected and feared.",
+        "id": "cult_arbiters",
+        "name": "The Divine Concord (Arbiters)",
+        "novel_id": "fantasy-system-heretic",
+        "speech_influences": "Speak in deliberate, measured tones. Use precise System terminology. Often use formal titles: 'Arbiter Cassel' not 'Cassel'. Avoid small talk, stay on topic. Common phrase: 'The System does not err.'",
+        "system_views_json": {
+          "sys_framework": "The System is the ultimate authority. Their job is to protect it from corruption and anomaly. They believe anomalies are threats that must be neutralized."
+        },
+        "taboos_json": [
+          "Taking sides in local disputes",
+          "Showing favoritism",
+          "Revealing methods of investigation",
+          "Disobeying a direct order from the High Arbiter"
+        ],
+        "values_json": [
+          "Order and truth",
+          "Justice through the System",
+          "Obedience to the Divine Concord",
+          "Secrecy and impartiality"
+        ]
+      },
+      {
+        "customs_json": [
+          "Each scribe has a personal seal used to authenticate documents.",
+          "Daily check-in with the Guild Master to report any data irregularities.",
+          "Training includes memorizing System protocols and legal codes.",
+          "They are expected to remain neutral in guild disputes, even if their personal leanings differ."
+        ],
+        "description": "A guild of administrators, scholars, and record-keepers. They manage System records, local census data, and legal documentation. They are non-combatants by class but can be influential. They value knowledge and accuracy.",
+        "id": "cult_scribes",
+        "name": "The Scribe's Guild",
+        "novel_id": "fantasy-system-heretic",
+        "speech_influences": "Precise, literate, and often verbose. They use formal grammar and avoid slang. Common phrases: 'Per the System record', 'Let the ledger speak'. They tend to avoid direct confrontation and speak in passive voice.",
+        "system_views_json": {
+          "sys_framework": "The System is a tool to be cataloged and managed. They respect its authority but are aware of its complexities and occasional inconsistencies (though they would never openly say so)."
+        },
+        "taboos_json": [
+          "Altering records without authorization",
+          "Participating in combat",
+          "Revealing confidential System data",
+          "Using one's position for personal gain"
+        ],
+        "values_json": [
+          "Knowledge",
+          "Neutrality",
+          "Accuracy",
+          "Discretion"
+        ]
+      },
+      {
+        "customs_json": [
+          "Greetings often include a mention of class: 'Greetings, Scribe Maret.'",
+          "Before dangerous quests, adventurers touch their class sigil (a tattoo) for luck.",
+          "Weekly guild meetings where members discuss quests and progress.",
+          "Annual Festival of Binding, celebrating the System's gift with parades and contests."
+        ],
+        "description": "Inhabitants of Veridell, a diverse guild-based society. They are pragmatic, self-reliant, and respectful of the System. Adventurers are common; scribes are essential administrators.",
+        "id": "cult_veridell",
+        "name": "Veridellians",
+        "novel_id": "fantasy-system-heretic",
+        "speech_influences": "Formal in guild settings, but casual among friends. Common phrases: 'By the System', 'May your stats rise', 'That's an anomaly' (used for any odd event). Avoid discussing suspected data fraud openly.",
+        "system_views_json": {
+          "sys_framework": "Revered as the foundation of society. The System's rules are seen as natural law. Anomalies are feared but believed to be rare and dangerous."
+        },
+        "taboos_json": [
+          "Hiding your class or stats",
+          "Cheating the System",
+          "Deserting your guild in a crisis",
+          "Questioning the System's justice"
+        ],
+        "values_json": [
+          "Guild loyalty",
+          "Transparency of stats",
+          "Hard work and leveling",
+          "Community over individuality"
+        ]
+      }
+    ],
+    "facts": [
+      {
+        "category": "knowledge",
+        "created_at": "<TS>",
+        "embedding": null,
+        "established_in_chapter": 1,
+        "fact": "Arbiter Cassel firmly believes the System does not make mistakes",
+        "id": "facts:47cba8159f37119e",
+        "novel_id": "fantasy-system-heretic",
+        "tsv": "'arbit':2A 'believ':5A 'cassel':3A 'firm':4A 'knowledg':1B 'make':10A 'mistak':11A 'system':7A"
+      },
+      {
+        "category": "knowledge",
+        "created_at": "<TS>",
+        "embedding": null,
+        "established_in_chapter": 1,
+        "fact": "Arbiter Cassel has arrived to investigate a statistical anomaly in Sector 7, which is Maret's sector",
+        "id": "facts:3cc19b1fbd595310",
+        "novel_id": "fantasy-system-heretic",
+        "tsv": "'7':13A 'anomali':10A 'arbit':2A 'arriv':5A 'cassel':3A 'investig':7A 'knowledg':1B 'maret':16A 'sector':12A,18A 'statist':9A"
+      },
+      {
+        "category": "relationship",
+        "created_at": "<TS>",
+        "embedding": null,
+        "established_in_chapter": 1,
+        "fact": "Journeyman Theo is loyal to Maret and willing to cover for her",
+        "id": "facts:3bf7e56e6ad262fb",
+        "novel_id": "fantasy-system-heretic",
+        "tsv": "'cover':11A 'journeyman':2A 'loyal':5A 'maret':7A 'relationship':1B 'theo':3A 'will':9A"
+      },
+      {
+        "category": "physical",
+        "created_at": "<TS>",
+        "embedding": null,
+        "established_in_chapter": 1,
+        "fact": "Maret bent an iron bar with her hands and hid it under a floorboard at her lodging",
+        "id": "facts:96b5a7b1aceabbe5",
+        "novel_id": "fantasy-system-heretic",
+        "tsv": "'bar':6A 'bent':3A 'floorboard':15A 'hand':9A 'hid':11A 'iron':5A 'lodg':18A 'maret':2A 'physic':1B"
+      },
+      {
+        "category": "knowledge",
+        "created_at": "<TS>",
+        "embedding": null,
+        "established_in_chapter": 1,
+        "fact": "Maret's official stats are STR:3, DEX:3, VIT:8, INT:14, WIS:15, CHA:10",
+        "id": "facts:72c80d619f898ee7",
+        "novel_id": "fantasy-system-heretic",
+        "tsv": "'10':18A '14':14A '15':16A '3':8A,10A '8':12A 'cha':17A 'dex':9A 'int':13A 'knowledg':1B 'maret':2A 'offici':4A 'stat':5A 'str':7A 'vit':11A 'wis':15A"
+      },
+      {
+        "category": "physical",
+        "created_at": "<TS>",
+        "embedding": null,
+        "established_in_chapter": 2,
+        "fact": "A sealed System file from eight years ago notes Maret's stat discrepancy",
+        "id": "facts:ac8cc43e7af19cec",
+        "novel_id": "fantasy-system-heretic",
+        "tsv": "'ago':9A 'discrep':14A 'eight':7A 'file':5A 'maret':11A 'note':10A 'physic':1B 'seal':3A 'stat':13A 'system':4A 'year':8A"
+      },
+      {
+        "category": "physical",
+        "created_at": "<TS>",
+        "embedding": null,
+        "established_in_chapter": 2,
+        "fact": "Cassel locked the System records, blocking Maret's attempt to alter her stats",
+        "id": "facts:8ba2e8bbc6453d4f",
+        "novel_id": "fantasy-system-heretic",
+        "tsv": "'alter':12A 'attempt':10A 'block':7A 'cassel':2A 'lock':3A 'maret':8A 'physic':1B 'record':6A 'stat':14A 'system':5A"
+      },
+      {
+        "category": "rule",
+        "created_at": "<TS>",
+        "embedding": null,
+        "established_in_chapter": 2,
+        "fact": "Cassel will use his Arbiter authority to revoke Theo's class if Maret does not undergo the Revelation Rite",
+        "id": "facts:4a0f725911743874",
+        "novel_id": "fantasy-system-heretic",
+        "tsv": "'arbit':6A 'author':7A 'cassel':2A 'class':12A 'maret':14A 'revel':19A 'revok':9A 'rite':20A 'rule':1B 'theo':10A 'undergo':17A 'use':4A"
+      },
+      {
+        "category": "temporal",
+        "created_at": "<TS>",
+        "embedding": null,
+        "established_in_chapter": 2,
+        "fact": "The System deliberately left Maret's false stats uncorrected since her Binding",
+        "id": "facts:df707ef2e2826838",
+        "novel_id": "fantasy-system-heretic",
+        "tsv": "'bind':13A 'deliber':4A 'fals':8A 'left':5A 'maret':6A 'sinc':11A 'stat':9A 'system':3A 'tempor':1B 'uncorrect':10A"
+      },
+      {
+        "category": "relationship",
+        "created_at": "<TS>",
+        "embedding": null,
+        "established_in_chapter": 3,
+        "fact": "Arbiter Cassel and Maret form an uneasy alliance: she reports to him but retains field autonomy; he recommended her appointment.",
+        "id": "facts:1caa68727a501dd6",
+        "novel_id": "fantasy-system-heretic",
+        "tsv": "'allianc':9A 'appoint':21A 'arbit':2A 'autonomi':17A 'cassel':3A 'field':16A 'form':6A 'maret':5A 'recommend':19A 'relationship':1B 'report':11A 'retain':15A 'uneasi':8A"
+      },
+      {
+        "category": "knowledge",
+        "created_at": "<TS>",
+        "embedding": null,
+        "established_in_chapter": 3,
+        "fact": "Maret is officially appointed as an anomaly hunter with authority to investigate System discrepancies, access restricted archives, and a stipend.",
+        "id": "facts:d006b5b095477eaa",
+        "novel_id": "fantasy-system-heretic",
+        "tsv": "'access':16A 'anomali':8A 'appoint':5A 'archiv':18A 'author':11A 'discrep':15A 'hunter':9A 'investig':13A 'knowledg':1B 'maret':2A 'offici':4A 'restrict':17A 'stipend':21A 'system':14A"
+      },
+      {
+        "category": "identity",
+        "created_at": "<TS>",
+        "embedding": null,
+        "established_in_chapter": 3,
+        "fact": "Maret's true class is Anomaly, a unique class granted by the System to authorize anomaly investigation.",
+        "id": "facts:2ab0ca7d3eb02663",
+        "novel_id": "fantasy-system-heretic",
+        "tsv": "'anomali':7A,17A 'author':16A 'class':5A,10A 'grant':11A 'ident':1B 'investig':18A 'maret':2A 'system':14A 'true':4A 'uniqu':9A"
+      }
+    ],
+    "issues": [],
+    "llm_calls": [],
+    "novels": [
+      {
+        "created_at": "<TS>",
+        "current_chapter": 4,
+        "id": "fantasy-system-heretic",
+        "phase": "done",
+        "seed_json": {
+          "genre": "litrpg",
+          "premise": "In a world governed by the System — a divine framework that assigns every person a class, tracks their statistics, and rewards growth with tangible power — a young scribe's stats have been lying since she received them at fourteen. Her Strength reads 3. She has bent iron bars with her hands. The System has never corrected the discrepancy. Now a System Arbiter has arrived in her city to investigate an anomaly — her anomaly.",
+          "characters": [
+            {
+              "name": "Maret",
+              "role": "protagonist",
+              "description": "Scribe, early 20s. Has lived with false stats for eight years by hiding what she can do. Uses her official Scribe class as cover — the administrative access it grants lets her avoid most physical situations. Smart, secretive, deeply uncertain whether the System is protecting her or preparing something. Has never told anyone her real numbers."
+            },
+            {
+              "name": "Journeyman Theo",
+              "role": "supporting",
+              "description": "A young adventurer in Maret's city. His stats are genuinely mediocre — he knows exactly what he is and is at peace with it. Befriended Maret two years ago because she's smarter than anyone in his party. Has noticed that she avoids combat situations in ways that don't match a Scribe's normal reasons. Doesn't push. Asks good questions."
+            },
+            {
+              "name": "Arbiter Cassel",
+              "role": "antagonist",
+              "description": "System Arbiter, mid-40s. Investigates discrepancies between System records and observed reality. Genuinely believes in the System's justice — the Framework doesn't make mistakes, so anomalies must be corrected. His case file has Maret flagged as Threat Level: Unknown. He's not wrong to be cautious. He also doesn't know the System flagged her anomaly eight years ago and chose not to correct it."
+            }
+          ],
+          "chapterCount": 3
+        },
+        "total_chapters": 3,
+        "updated_at": "<TS>"
+      }
+    ],
+    "pipeline_events": [
+      {
+        "agent": "world-builder",
+        "beat_index": null,
+        "chapter": null,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:be1412c228381be4",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:06b10eaefca1dabd>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "world-builder",
+        "beat_index": null,
+        "chapter": null,
+        "duration_ms": 48048,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:b881bd9648de3edf",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:19062f05991a01e1>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "character-agent",
+        "beat_index": null,
+        "chapter": null,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:ba9f388b0512e81a",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:06b10eaefca1dabd>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "plotter",
+        "beat_index": null,
+        "chapter": null,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:222bc2f5c7d8400c",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:06b10eaefca1dabd>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "plotter",
+        "beat_index": null,
+        "chapter": null,
+        "duration_ms": 15295,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:9e55f7245366aa62",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:3de76f9392fb5f11>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "character-agent",
+        "beat_index": null,
+        "chapter": null,
+        "duration_ms": 45422,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:06251cd1c0e593b5",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:e3eafad54bac848a>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": null,
+        "chapter": null,
+        "duration_ms": 93515,
+        "event_type": "phase-complete",
+        "id": "pipeline_events:ba8ad6297355b4bf",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:89d73b050602b4ae>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "planning-plotter",
+        "beat_index": null,
+        "chapter": null,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:7f09ba04a75db7df",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:06b10eaefca1dabd>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "planning-plotter",
+        "beat_index": null,
+        "chapter": null,
+        "duration_ms": 13047,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:553080c9b3626985",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:10087b35624ec8eb>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "planning-beats",
+        "beat_index": null,
+        "chapter": 1,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:a83e0c426cf2ae6a",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:06b10eaefca1dabd>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "planning-beats",
+        "beat_index": null,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:0706267920711fc9",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:06b10eaefca1dabd>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "planning-beats",
+        "beat_index": null,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:956da24a474da128",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:06b10eaefca1dabd>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "planning-beats",
+        "beat_index": null,
+        "chapter": 3,
+        "duration_ms": 31653,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:60e0b193b598b7dd",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:be1816d34dd1a2df>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "planning-beats",
+        "beat_index": null,
+        "chapter": 2,
+        "duration_ms": 39358,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:4b2553a09ababd8c",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:0c22c9dec473e241>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "planning-beats",
+        "beat_index": null,
+        "chapter": 1,
+        "duration_ms": 40772,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:14362cdd7f7e4608",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:f7ee4768db49ce11>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": null,
+        "chapter": null,
+        "duration_ms": 53845,
+        "event_type": "phase-complete",
+        "id": "pipeline_events:576c1d15bfc7ffdb",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:5b02099ba4759406>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": null,
+        "chapter": 1,
+        "duration_ms": 1,
+        "event_type": "reference-resolution",
+        "id": "pipeline_events:fc6402f45616e8bd",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:4f78a51b56fbb5cf>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 0,
+        "chapter": 1,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:bf17650e72e49d1e",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:2ee54e0144a14b97>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 0,
+        "chapter": 1,
+        "duration_ms": 15606,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:56f559d2f21bdf1a",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:4e483892399049c2>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": 0,
+        "chapter": 1,
+        "duration_ms": null,
+        "event_type": "adherence-deterministic",
+        "id": "pipeline_events:cbe11364effaedb0",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:514a60ca31bd5561>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 0,
+        "chapter": 1,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:c510c46b07be3f0a",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:daf810a598cb75ca>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 0,
+        "chapter": 1,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:30127e638b655daa",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:1e9641196ffef377>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 0,
+        "chapter": 1,
+        "duration_ms": 2922,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:a164ab609367b7d3",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:01243d8f5cef4f1f>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 0,
+        "chapter": 1,
+        "duration_ms": 3434,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:68a4fe2f7d675090",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:f400778408be56f5>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 0,
+        "chapter": 1,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:a2c49079f5ba207c",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:fffb97d1a7066bb5>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 0,
+        "chapter": 1,
+        "duration_ms": 9901,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:cb6e7db939739cc8",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:390d1d29869e0a1a>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 0,
+        "chapter": 1,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:16104f5a17ec16a5",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:61ae4cebbb45efe2>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 0,
+        "chapter": 1,
+        "duration_ms": 9901,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:28502275cf2e3909",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:37c165da79af0819>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "writer",
+        "beat_index": null,
+        "chapter": 1,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:9687b287be4f7ef5",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:06b10eaefca1dabd>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "writer",
+        "beat_index": null,
+        "chapter": 1,
+        "duration_ms": 27330,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:bbabf2ddc4ba1e57",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:9fcd53c4eab37ab8>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "chapter-plan-checker",
+        "beat_index": null,
+        "chapter": 1,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:522afe1f299065f8",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:06b10eaefca1dabd>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "continuity-facts",
+        "beat_index": null,
+        "chapter": 1,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:8574ee901106dd74",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:800d8306c6b3a9f7>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "continuity-state",
+        "beat_index": null,
+        "chapter": 1,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:147d31bd4f810779",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:800d8306c6b3a9f7>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "continuity-facts",
+        "beat_index": null,
+        "chapter": 1,
+        "duration_ms": 2286,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:443db1334a71d2a9",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:76bce723c3d2f1bc>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "continuity-state",
+        "beat_index": null,
+        "chapter": 1,
+        "duration_ms": 2298,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:a6401db0646b1821",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:36555f3242e06312>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "chapter-plan-checker",
+        "beat_index": null,
+        "chapter": 1,
+        "duration_ms": 6120,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:97e9689ff836b7bf",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:81ec452f03def51f>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": null,
+        "chapter": 1,
+        "duration_ms": null,
+        "event_type": "validation-check",
+        "id": "pipeline_events:e7a489636fad39df",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:4fbc2d5e810541d3>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": null,
+        "chapter": 1,
+        "duration_ms": null,
+        "event_type": "plan-check-outcome",
+        "id": "pipeline_events:38a9d59257776809",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:f9591d0a7f5afee1>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": null,
+        "chapter": 1,
+        "duration_ms": 34,
+        "event_type": "lint-detect",
+        "id": "pipeline_events:3844a9a5bcaa6d5c",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:c91a27c6abc483e2>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": null,
+        "chapter": 1,
+        "duration_ms": 22,
+        "event_type": "state-extraction",
+        "id": "pipeline_events:c102d653032ec13e",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:0f569692686fce47>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": null,
+        "chapter": 1,
+        "duration_ms": 62529,
+        "event_type": "chapter-complete",
+        "id": "pipeline_events:cd55a1d7e3d565c3",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:e1acaae415d0498b>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": null,
+        "chapter": 2,
+        "duration_ms": 1,
+        "event_type": "reference-resolution",
+        "id": "pipeline_events:05947025c96d20be",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:90509cadbc910319>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 0,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:1f174ff138e38837",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:b7beaa7d508cc2ed>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 0,
+        "chapter": 2,
+        "duration_ms": 20343,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:807e2cd306f9048e",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:31ff998f6ca2ce74>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": 0,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "adherence-deterministic",
+        "id": "pipeline_events:78c7f2d98735db5e",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:514a60ca31bd5561>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 0,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:10ba0392634a0ac6",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:daf810a598cb75ca>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 0,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:c00ef7d826e116c0",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:1e9641196ffef377>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 0,
+        "chapter": 2,
+        "duration_ms": 1258,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:582c4ea52378aae5",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:a6ebf8a008e860e9>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 0,
+        "chapter": 2,
+        "duration_ms": 1362,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:3aab9723a6bcc503",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:45406262f9ecd488>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 0,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:ad9cc89a6683ba30",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:00c28fe6c8155da2>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 0,
+        "chapter": 2,
+        "duration_ms": 19495,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:78c08f8dcaaa4821",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:4fce6644e1f52394>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": 0,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "adherence-deterministic",
+        "id": "pipeline_events:343e788b624d1a42",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:514a60ca31bd5561>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 0,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:7136e96fd47ed942",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:b17f604140848ed7>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 0,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:e6cc12195cf0636e",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:ebc96d8aac0242a2>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 0,
+        "chapter": 2,
+        "duration_ms": 541,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:02ddea32a887ef0e",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:2961d549112513c9>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 0,
+        "chapter": 2,
+        "duration_ms": 1358,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:dc05c81435d7945b",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:0e2ae753bfb1f30f>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 0,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:3ab99a8bb27368e1",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:a2b6793af2e8e525>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 0,
+        "chapter": 2,
+        "duration_ms": 21189,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:d4b4f86161674c3f",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:11d08e6b8f303afc>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 0,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:b6e561f1b7205c9b",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:1c38f6d53d01df80>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": 0,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "adherence-deterministic",
+        "id": "pipeline_events:ff5695f88902c466",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:514a60ca31bd5561>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 0,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:7b3d082d650c9bcd",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:1fc4e83742812689>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 0,
+        "chapter": 2,
+        "duration_ms": 209,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:cb47fba8631c467d",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:990b4b51492bcd0f>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 0,
+        "chapter": 2,
+        "duration_ms": 863,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:71b146235775f491",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:8601866d220232b7>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 1,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:47403e893f81691e",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:63a0019314b5d4ee>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 1,
+        "chapter": 2,
+        "duration_ms": 26231,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:5f9017be492ccb2b",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:f5d052cb7505556a>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": 1,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "adherence-deterministic",
+        "id": "pipeline_events:619e203b7d71d2d7",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:514a60ca31bd5561>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 1,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:f8907f51bb30661b",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:daf810a598cb75ca>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 1,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:29cb72ffa1519c3e",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:1e9641196ffef377>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 1,
+        "chapter": 2,
+        "duration_ms": 1190,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:d209a292c52decd3",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:4ccfac29fbcdad50>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 1,
+        "chapter": 2,
+        "duration_ms": 2025,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:826ba57fa8ce82f8",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:7901a402e375f52d>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 1,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:e463797713463cd3",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:8e7bf6b29fc87aea>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 1,
+        "chapter": 2,
+        "duration_ms": 16266,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:783a8af8c26540a3",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:3e315dd36a1495dd>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": 1,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "adherence-deterministic",
+        "id": "pipeline_events:e126e3874f7e1a2d",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:514a60ca31bd5561>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 1,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:091975832a922323",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:b17f604140848ed7>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 1,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:98729d9dbc4d89b3",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:ebc96d8aac0242a2>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 1,
+        "chapter": 2,
+        "duration_ms": 236,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:f78157c63980bec1",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:962dc5b17aff2f3a>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 1,
+        "chapter": 2,
+        "duration_ms": 1130,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:235653868a6543f1",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:b22076881c5ae002>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 2,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:f12bacb6e0f25483",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:1a0ef7ddba284fa6>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 2,
+        "chapter": 2,
+        "duration_ms": 19147,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:0e0ec5628d9a7d2e",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:6cb91f2fc12d9fbb>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": 2,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "adherence-deterministic",
+        "id": "pipeline_events:ea9f249d41b51f13",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:514a60ca31bd5561>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 2,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:aea15a142a89c173",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:daf810a598cb75ca>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 2,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:609739dfdc2c5a6a",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:1e9641196ffef377>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 2,
+        "chapter": 2,
+        "duration_ms": 325,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:135d41415530016d",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:9c8164adf74b97e1>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 2,
+        "chapter": 2,
+        "duration_ms": 1059,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:93f356cdeac72148",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:c1c89eeaeb9a2944>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 3,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:d60c317460ebc06e",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:4c39cadb79b68feb>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 3,
+        "chapter": 2,
+        "duration_ms": 21237,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:fc1d9fc8f816e676",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:26763ec30ed9ac34>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": 3,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "adherence-deterministic",
+        "id": "pipeline_events:96d5130591a342b1",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:5bcba207d435c7da>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 3,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:8d1cd05326fa9d71",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:daf810a598cb75ca>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 3,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:d01f1780b27dc08f",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:1e9641196ffef377>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 3,
+        "chapter": 2,
+        "duration_ms": 1485,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:5282d3160e3ebdbd",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:46ed592af2f451ef>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 3,
+        "chapter": 2,
+        "duration_ms": 1939,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:a092cbfdbf0b1fd1",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:af5d8d8c23582364>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 3,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:c23a311d82ff00b5",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:37d48bf48168e6ce>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 3,
+        "chapter": 2,
+        "duration_ms": 18723,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:40e707c46a2923c4",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:02a2ca58a072a34a>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": 3,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "adherence-deterministic",
+        "id": "pipeline_events:efc8bbf09d0baecc",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:5bcba207d435c7da>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 3,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:d743b1e5779f00c7",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:b17f604140848ed7>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 3,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:8d79e4ade5af6d71",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:ebc96d8aac0242a2>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 3,
+        "chapter": 2,
+        "duration_ms": 532,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:cd3f8e436b4b6197",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:8dd6c43a96365195>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 3,
+        "chapter": 2,
+        "duration_ms": 766,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:5c0e5ede1327e003",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:c6120d33bf16ed94>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 3,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:a6a784749cebe422",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:26c699d5ac1dac80>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 3,
+        "chapter": 2,
+        "duration_ms": 20904,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:3fecc50e982bf853",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:3e67f8e7a0dd08f2>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": 3,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "adherence-deterministic",
+        "id": "pipeline_events:db50e6454f1ed6fd",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:514a60ca31bd5561>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 3,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:b257f49f0da38573",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:1c38f6d53d01df80>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 3,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:0c3e0685f6b0ea3a",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:1fc4e83742812689>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 3,
+        "chapter": 2,
+        "duration_ms": 1599,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:e7fd48d9bacbd09b",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:a2dc21d7ea88fd2c>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 3,
+        "chapter": 2,
+        "duration_ms": 2270,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:cf4f995979c54f1f",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:0fee18bf5598295a>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 4,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:16af21efdfbc5f4f",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:8d0a4d63d42fb0eb>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 4,
+        "chapter": 2,
+        "duration_ms": 11840,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:2d2ad4c6b3fe1a39",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:7ebd91f1cde00da0>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": 4,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "adherence-deterministic",
+        "id": "pipeline_events:12ec5ec321de1f21",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:5bcba207d435c7da>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 4,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:fffc14dd0e358dc3",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:daf810a598cb75ca>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 4,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:20b4b61d9e0dfdb1",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:1e9641196ffef377>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 4,
+        "chapter": 2,
+        "duration_ms": 436,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:de7db46a5e0dc91c",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:1e8afcc0c6cd3209>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 4,
+        "chapter": 2,
+        "duration_ms": 469,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:6ced81d180aff672",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:2cdef6cfb5657cfc>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 4,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:1c1b9c045f429f4b",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:fdc14c5eb55a9755>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 4,
+        "chapter": 2,
+        "duration_ms": 8746,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:383169c13c144138",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:9a39dfa9af7d1d17>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 4,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:73832374b44f4415",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:7ee8a763b46767a8>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 4,
+        "chapter": 2,
+        "duration_ms": 8746,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:d745fafd0d5ff8c0",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:ada611052e72bd4d>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "writer",
+        "beat_index": null,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:690075b0ed963c0d",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:06b10eaefca1dabd>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "writer",
+        "beat_index": null,
+        "chapter": 2,
+        "duration_ms": 41418,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:2a22cb5d6b938af5",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:58b4264e7ef78686>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "chapter-plan-checker",
+        "beat_index": null,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:03362c8a34ab0395",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:06b10eaefca1dabd>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "continuity-facts",
+        "beat_index": null,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:6a9e4e069b584aa4",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:800d8306c6b3a9f7>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "continuity-state",
+        "beat_index": null,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:2f4ff97cb5974ed4",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:800d8306c6b3a9f7>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "continuity-facts",
+        "beat_index": null,
+        "chapter": 2,
+        "duration_ms": 620,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:68f9a4d84e13ea11",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:57e94aee26cde935>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "continuity-state",
+        "beat_index": null,
+        "chapter": 2,
+        "duration_ms": 760,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:fb2ebdae505d5a03",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:812c87551918b9f7>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "chapter-plan-checker",
+        "beat_index": null,
+        "chapter": 2,
+        "duration_ms": 12363,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:c97636fc1d611484",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:cb766f504773146e>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": null,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "validation-check",
+        "id": "pipeline_events:6f3a911d4d0c82c8",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:4fbc2d5e810541d3>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": null,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "plan-check-outcome",
+        "id": "pipeline_events:be55e20354e5e7f5",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:f9591d0a7f5afee1>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": null,
+        "chapter": 2,
+        "duration_ms": 54,
+        "event_type": "lint-detect",
+        "id": "pipeline_events:53fc2790ee1b5aea",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:6de5b6f19917d522>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "lint-fixer",
+        "beat_index": null,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:b1a50a974b6501bf",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:0bfa6ea6b916143b>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "lint-fixer",
+        "beat_index": null,
+        "chapter": 2,
+        "duration_ms": 383,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:f201f8e486b44bd7",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:c081da951c25ae74>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "lint-fixer",
+        "beat_index": null,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:d9ecb3dc198b9219",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:0bfa6ea6b916143b>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "lint-fixer",
+        "beat_index": null,
+        "chapter": 2,
+        "duration_ms": 297,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:a76107ba2794145d",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:210856c8694982e2>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "lint-fixer",
+        "beat_index": null,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:28e7bd121afaab1f",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:0bfa6ea6b916143b>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "lint-fixer",
+        "beat_index": null,
+        "chapter": 2,
+        "duration_ms": 499,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:415adfb886244d24",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:9576ad8ccceffc8e>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": null,
+        "chapter": 2,
+        "duration_ms": 1249,
+        "event_type": "lint-fix-llm",
+        "id": "pipeline_events:de65c1cffded944a",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:b7f7aa07521885e1>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": null,
+        "chapter": 2,
+        "duration_ms": 13,
+        "event_type": "state-extraction",
+        "id": "pipeline_events:d1cc37e822073572",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:0f569692686fce47>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": null,
+        "chapter": 2,
+        "duration_ms": 272674,
+        "event_type": "chapter-complete",
+        "id": "pipeline_events:e24a773bb22acbb3",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:e1acaae415d0498b>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "reference-resolver",
+        "beat_index": null,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:5039be18195ff0dc",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:1713d42ca1123f9b>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "reference-resolver",
+        "beat_index": null,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:f9c153380ba38161",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:1713d42ca1123f9b>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "reference-resolver",
+        "beat_index": null,
+        "chapter": 3,
+        "duration_ms": 132,
+        "event_type": "agent-fail",
+        "id": "pipeline_events:dbe23317761fa234",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:698afaa7f8ebf9a3>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "reference-resolver",
+        "beat_index": null,
+        "chapter": 3,
+        "duration_ms": 159,
+        "event_type": "agent-fail",
+        "id": "pipeline_events:66de8ce1b27d13f4",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:698afaa7f8ebf9a3>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": null,
+        "chapter": 3,
+        "duration_ms": 163,
+        "event_type": "reference-resolution",
+        "id": "pipeline_events:2d53eb59b380ad97",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:9e461a6f67d6c78d>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 0,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:f4974dff73f491a4",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:86b88beb46e719ae>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 0,
+        "chapter": 3,
+        "duration_ms": 14529,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:110a5646ef1114f8",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:8bd7c052f70d852b>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": 0,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "adherence-deterministic",
+        "id": "pipeline_events:cf42272e84a40cd7",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:514a60ca31bd5561>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 0,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:a017dfeac0079e28",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:daf810a598cb75ca>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 0,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:79389686841a247a",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:1e9641196ffef377>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 0,
+        "chapter": 3,
+        "duration_ms": 456,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:15f7b25b53f2384f",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:ef72c80ad79f7210>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 0,
+        "chapter": 3,
+        "duration_ms": 903,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:4412140374ff2db9",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:33c26142ad44c998>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 1,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:9905d7313c2125c8",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:dd095c3e7e225601>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 1,
+        "chapter": 3,
+        "duration_ms": 11280,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:64dcc25d46edfabf",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:7f785588b9abd9bd>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": 1,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "adherence-deterministic",
+        "id": "pipeline_events:35f2ee230304a81d",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:514a60ca31bd5561>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 1,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:da9399b3647fc69d",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:daf810a598cb75ca>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 1,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:914a601529a95d79",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:1e9641196ffef377>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 1,
+        "chapter": 3,
+        "duration_ms": 202,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:ad445fd00b023f8b",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:7c3b320c6d91977f>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 1,
+        "chapter": 3,
+        "duration_ms": 1288,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:026065b0547d37a3",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:b5cb572cc9e70542>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 2,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:9c5d69330835db13",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:f7ab669184804856>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 2,
+        "chapter": 3,
+        "duration_ms": 11589,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:fe16a376e8fbdefc",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:387bc80951f6f91d>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": 2,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "adherence-deterministic",
+        "id": "pipeline_events:d760cdb1a8206ee8",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:514a60ca31bd5561>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 2,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:6e2432e323b91795",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:daf810a598cb75ca>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 2,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:e187056304e4bcb1",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:1e9641196ffef377>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 2,
+        "chapter": 3,
+        "duration_ms": 423,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:61a14a67623eaa76",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:cabe112b421bd2e7>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 2,
+        "chapter": 3,
+        "duration_ms": 622,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:e365a66b829ca95f",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:9765670efcd3a722>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 2,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:133579019f47aff9",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:465bb93f7512d972>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 2,
+        "chapter": 3,
+        "duration_ms": 14732,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:00f8e04acfb8260f",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:cfc383bd835cac99>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": 2,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "adherence-deterministic",
+        "id": "pipeline_events:24f680d829748287",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:514a60ca31bd5561>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 2,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:48b6b68be79a4fbb",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:b17f604140848ed7>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 2,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:bb41d41dbedead91",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:ebc96d8aac0242a2>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 2,
+        "chapter": 3,
+        "duration_ms": 661,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:8b253bb7e56c8ba7",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:d16e398f8a1193a0>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 2,
+        "chapter": 3,
+        "duration_ms": 778,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:89fb62728a7ee737",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:9744452d2630801e>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 2,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:fdcd8a6504013452",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:88ae1425e366c3a9>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 2,
+        "chapter": 3,
+        "duration_ms": 11874,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:cc939d2c1710b05a",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:8005a3528bdda330>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": 2,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "adherence-deterministic",
+        "id": "pipeline_events:4c29492435979305",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:514a60ca31bd5561>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 2,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:f672bcfa7c2b5600",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:1c38f6d53d01df80>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 2,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:e9880da7ed77332b",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:1fc4e83742812689>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 2,
+        "chapter": 3,
+        "duration_ms": 558,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:794d49b214c18ad9",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:61081d648922f2cf>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 2,
+        "chapter": 3,
+        "duration_ms": 691,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:6fb2441da86c0a77",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:ee8aa2b6582fba5c>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 3,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:c2deb0b8a2cb8e8c",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:086c2d4dd8464f2c>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 3,
+        "chapter": 3,
+        "duration_ms": 10529,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:fbfa074a2ede35e6",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:dc9a9420d89b89a1>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": 3,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "adherence-deterministic",
+        "id": "pipeline_events:c0ca0a7bfff9c8eb",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:5bcba207d435c7da>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 3,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:f24b35d952ac0f65",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:daf810a598cb75ca>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 3,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:402f7748e8fae192",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:1e9641196ffef377>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 3,
+        "chapter": 3,
+        "duration_ms": 472,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:f454f4ed3959b6dd",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:efd23647c343768f>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 3,
+        "chapter": 3,
+        "duration_ms": 1108,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:cdb2f9c23d200bb5",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:ce3ddff31dc4b33c>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 3,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:28f564ae1a229a6f",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:28d25e634ca65f30>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 3,
+        "chapter": 3,
+        "duration_ms": 8205,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:29b13acc40b64837",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:4fe72d992875f29a>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": 3,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "adherence-deterministic",
+        "id": "pipeline_events:6e6a3454708141b1",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:5bcba207d435c7da>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 3,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:e799fd21071eb75d",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:b17f604140848ed7>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 3,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:5dddc21bd88d8d07",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:ebc96d8aac0242a2>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 3,
+        "chapter": 3,
+        "duration_ms": 197,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:8e1ca2c1a2f0ad9c",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:500b50b5ffd4cb8d>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 3,
+        "chapter": 3,
+        "duration_ms": 920,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:8a2cf532d813b951",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:5062e0f957106918>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 3,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:e54e5a502ff0c6eb",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:90092341a32899eb>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 3,
+        "chapter": 3,
+        "duration_ms": 12286,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:c9699e03f2707d06",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:03b674eed074840f>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": 3,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "adherence-deterministic",
+        "id": "pipeline_events:b7ae94740290fce8",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:514a60ca31bd5561>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 3,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:c3899a0888725cd9",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:1c38f6d53d01df80>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 3,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:8b4b930a1d567392",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:1fc4e83742812689>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 3,
+        "chapter": 3,
+        "duration_ms": 205,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:8fcd186f3b178ca7",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:1c6a3ecf7ac43035>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 3,
+        "chapter": 3,
+        "duration_ms": 787,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:8dfafff52a3ae5a3",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:34cee02610a251c6>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 4,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:f2af43174fe3b957",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:5a627e1f4e4acb09>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 4,
+        "chapter": 3,
+        "duration_ms": 13513,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:a1ce97789e9cba0c",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:a24c1e727a873358>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 4,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:b56fca35490d40db",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:daf810a598cb75ca>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": 4,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "adherence-deterministic",
+        "id": "pipeline_events:6d0227dcff8c7c2d",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:514a60ca31bd5561>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 4,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:db300270b04685bd",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:1e9641196ffef377>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 4,
+        "chapter": 3,
+        "duration_ms": 192,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:5e9c28c31a884778",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:b63060ee456705b7>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 4,
+        "chapter": 3,
+        "duration_ms": 826,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:2e6eb62af2c4a448",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:d648609eddc883ca>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 5,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:8eb3909d71bcfd46",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:9d3d2e4fee39db9d>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 5,
+        "chapter": 3,
+        "duration_ms": 19068,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:5520f63bf74b7a20",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:d29e694631ef2a26>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": 5,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "adherence-deterministic",
+        "id": "pipeline_events:0a6cb5340a94b2c6",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:5bcba207d435c7da>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 5,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:4bf94ff63462953f",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:daf810a598cb75ca>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 5,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:9355ba7ecc76cfdf",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:1e9641196ffef377>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 5,
+        "chapter": 3,
+        "duration_ms": 202,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:b151fd8226b8e999",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:15e93dc297390c25>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 5,
+        "chapter": 3,
+        "duration_ms": 1002,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:e1df03b701b9efe8",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:067bbd2762078558>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 5,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:421a57968ca8b76a",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:81deaa107732e237>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 5,
+        "chapter": 3,
+        "duration_ms": 18722,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:4f311a8489251c35",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:7bc0d85fc35defbb>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": 5,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "adherence-deterministic",
+        "id": "pipeline_events:63f872932521ab84",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:514a60ca31bd5561>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 5,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:8cd7a22824ef86ce",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:b17f604140848ed7>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 5,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:22d05829031fb982",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:ebc96d8aac0242a2>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 5,
+        "chapter": 3,
+        "duration_ms": 468,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:8c83338e3e766a5b",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:df9b731cd0a36db6>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 5,
+        "chapter": 3,
+        "duration_ms": 1165,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:9ea338869d450ac7",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:4e2822c2806e8fb5>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 6,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:0bc71cdc9f35e34e",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:e8222b249beebaa5>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 6,
+        "chapter": 3,
+        "duration_ms": 31000,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:ee543258f247561a",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:e0e57b6170c04a9e>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": 6,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "adherence-deterministic",
+        "id": "pipeline_events:cf6a2212532efe34",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:514a60ca31bd5561>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 6,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:2f88f806fe0b35c2",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:daf810a598cb75ca>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 6,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:7a27bb60906e99f2",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:1e9641196ffef377>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 6,
+        "chapter": 3,
+        "duration_ms": 200,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:9041009930a9bfe6",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:0c9030c243d727b4>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 6,
+        "chapter": 3,
+        "duration_ms": 753,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:578bf419829b7e13",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:7cd4d2657a0ea44e>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 7,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:1b0c42ad4978b330",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:ccce9bcceb1c22ef>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 7,
+        "chapter": 3,
+        "duration_ms": 11442,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:3192e695a9e76dfd",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:53a5380a9ce3b561>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": 7,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "adherence-deterministic",
+        "id": "pipeline_events:982504365e3e0c32",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:514a60ca31bd5561>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 7,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:428e808d93bdd8eb",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:daf810a598cb75ca>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 7,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:edcca08c21a17b2c",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:1e9641196ffef377>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 7,
+        "chapter": 3,
+        "duration_ms": 439,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:b0099c049ad071d6",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:fe6bdead335170c0>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 7,
+        "chapter": 3,
+        "duration_ms": 865,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:b67e8382a2e4f886",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:e451015424f99896>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 7,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:f5b6c6b88e8326dd",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:3e3c60a7acded9e4>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 7,
+        "chapter": 3,
+        "duration_ms": 10390,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:17be5e84c9515b76",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:9529d039e13b81b2>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": 7,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "adherence-deterministic",
+        "id": "pipeline_events:05073fe27bbac873",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:514a60ca31bd5561>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 7,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:a17fd838b5349805",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:b17f604140848ed7>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 7,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:d6ce19653461173f",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:ebc96d8aac0242a2>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "adherence-events",
+        "beat_index": 7,
+        "chapter": 3,
+        "duration_ms": 865,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:c0e6868670696e69",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:742007bff10a6aa2>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "halluc-ungrounded",
+        "beat_index": 7,
+        "chapter": 3,
+        "duration_ms": 204,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:d117783dec1551cd",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:f5752ade0da58219>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 8,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:abe875295050b734",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:71aa7f8f4ae03202>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 8,
+        "chapter": 3,
+        "duration_ms": 8372,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:5542644e9fc6734b",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:66bdcecf7df46614>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 8,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:38cf4960ed8f0b1f",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:4314c2f656aead4d>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 8,
+        "chapter": 3,
+        "duration_ms": 8372,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:04fb6fce95cb06c2",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:f89d3f5e7ba9fbcb>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 8,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:fa8f9496eeab36ec",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:3c711784d18b8298>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "beat-writer",
+        "beat_index": 8,
+        "chapter": 3,
+        "duration_ms": 8372,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:a7a2a6914341c6c2",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:89039e04dc716b11>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "writer",
+        "beat_index": null,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:316f559f2c4d16ce",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:06b10eaefca1dabd>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "writer",
+        "beat_index": null,
+        "chapter": 3,
+        "duration_ms": 27403,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:d92fd4c87f72b2ed",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:075b072311ae91fd>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "chapter-plan-checker",
+        "beat_index": null,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:7accaa40180e2835",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:06b10eaefca1dabd>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "continuity-facts",
+        "beat_index": null,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:f12a6a2a1c075b14",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:800d8306c6b3a9f7>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "continuity-state",
+        "beat_index": null,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:8d3b6d49f8f2a527",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:800d8306c6b3a9f7>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "continuity-facts",
+        "beat_index": null,
+        "chapter": 3,
+        "duration_ms": 532,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:0857bd583cfb0a36",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:0b540edd49c9fdfd>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "continuity-state",
+        "beat_index": null,
+        "chapter": 3,
+        "duration_ms": 757,
+        "event_type": "agent-fail",
+        "id": "pipeline_events:5634f5c181754884",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:7ab2d49c67424919>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "chapter-plan-checker",
+        "beat_index": null,
+        "chapter": 3,
+        "duration_ms": 11806,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:8c7efdd12847d230",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:a8ad3933bd449b30>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": null,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "validation-check",
+        "id": "pipeline_events:7de588e8c185b61c",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:4fbc2d5e810541d3>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": null,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "plan-check-outcome",
+        "id": "pipeline_events:d7540c32523e2b0f",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:f9591d0a7f5afee1>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": null,
+        "chapter": 3,
+        "duration_ms": 21,
+        "event_type": "lint-detect",
+        "id": "pipeline_events:8bb62483dea5760f",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:1a580fe7e34712e9>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "lint-fixer",
+        "beat_index": null,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:5273ca69b361e41b",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:0bfa6ea6b916143b>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "lint-fixer",
+        "beat_index": null,
+        "chapter": 3,
+        "duration_ms": 256,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:c56b89c7b5353ee5",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:8c7bfe1304af7b80>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "lint-fixer",
+        "beat_index": null,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "llm-call-start",
+        "id": "pipeline_events:b10519f17566fa98",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:0bfa6ea6b916143b>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": "lint-fixer",
+        "beat_index": null,
+        "chapter": 3,
+        "duration_ms": 193,
+        "event_type": "agent-complete",
+        "id": "pipeline_events:57bb4cc11b2a7871",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:41b1f550861319f5>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": null,
+        "chapter": 3,
+        "duration_ms": 475,
+        "event_type": "lint-fix-llm",
+        "id": "pipeline_events:7d845ac5b7f9020b",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:c4f739cf2470266a>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": null,
+        "chapter": 3,
+        "duration_ms": 18,
+        "event_type": "state-extraction",
+        "id": "pipeline_events:5a60aed0a2ac9dae",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:0f569692686fce47>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": null,
+        "chapter": 3,
+        "duration_ms": 259599,
+        "event_type": "chapter-complete",
+        "id": "pipeline_events:8685adc1149a8d94",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:e1acaae415d0498b>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": null,
+        "chapter": null,
+        "duration_ms": 594811,
+        "event_type": "phase-complete",
+        "id": "pipeline_events:918b91db2a11a570",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:07f4449e6e11f4fb>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": null,
+        "chapter": 1,
+        "duration_ms": null,
+        "event_type": "validation-check",
+        "id": "pipeline_events:22f7ae167b75e836",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:b624f7f5ee5d950a>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": null,
+        "chapter": 2,
+        "duration_ms": null,
+        "event_type": "validation-check",
+        "id": "pipeline_events:0f1b880458b86e46",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:c4046842edc8a46f>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": null,
+        "chapter": 3,
+        "duration_ms": null,
+        "event_type": "validation-check",
+        "id": "pipeline_events:c4ba4fecd08588c6",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:23d98c720fecde81>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      },
+      {
+        "agent": null,
+        "beat_index": null,
+        "chapter": null,
+        "duration_ms": 16,
+        "event_type": "phase-complete",
+        "id": "pipeline_events:56f531b102e95dea",
+        "llm_call_id": null,
+        "novel_id": "fantasy-system-heretic",
+        "payload": "<HASH:e12988db87083cc4>",
+        "run_id": null,
+        "timestamp": "<TS>"
+      }
+    ],
+    "story_spines": [
+      {
+        "content_json": "<HASH:1549f93af073f872>",
+        "novel_id": "fantasy-system-heretic"
+      }
+    ],
+    "validation_passes": [
+      {
+        "chapter_number": 1,
+        "created_at": "<TS>",
+        "issues_found": 0,
+        "novel_id": "fantasy-system-heretic",
+        "pass_number": 1,
+        "status": "passed"
+      },
+      {
+        "chapter_number": 2,
+        "created_at": "<TS>",
+        "issues_found": 0,
+        "novel_id": "fantasy-system-heretic",
+        "pass_number": 1,
+        "status": "passed"
+      },
+      {
+        "chapter_number": 3,
+        "created_at": "<TS>",
+        "issues_found": 0,
+        "novel_id": "fantasy-system-heretic",
+        "pass_number": 1,
+        "status": "passed"
+      }
+    ],
+    "world_bibles": [
+      {
+        "content_json": "<HASH:f25bd1b5dc01be5e>",
+        "novel_id": "fantasy-system-heretic"
+      }
+    ],
+    "world_systems": [
+      {
+        "constraints_json": [
+          "The System cannot create something from nothing; it only catalogs and rewards effort.",
+          "It cannot take away a class without a high-level ritual (forbidden except in extreme cases).",
+          "It does not reveal the future or hidden information—only what is directly observed or recorded.",
+          "Anomalies are outside its understanding; it can only flag them for Arbiter intervention."
+        ],
+        "description": "A divine, omnipresent framework that assigns classes, tracks stats, grants skills, and governs leveling. It is believed to be infallible and just. The System manifests as translucent blue interface screens, audible chimes, and floating numbers for stats and levels. It enforces the 'laws of reality' in this world.",
+        "id": "sys_framework",
+        "manifestations_json": [
+          "People see stat numbers floating above others' heads (if they choose to display them).",
+          "Skill descriptions appear in the mind when focusing on a spell or technique.",
+          "System Messages: 'You have gained experience' or 'New skill unlocked' appear as blue text with a chime."
+        ],
+        "name": "The System",
+        "novel_id": "fantasy-system-heretic",
+        "rules_json": [
+          "Every person receives a class at age 14 during a Binding Ceremony, performed by a priest of the Divine Concord.",
+          "Stats are measured from 1–100 (human baseline). Leveling increases stats and may unlock new abilities or class evolutions.",
+          "Certain actions (like killing monsters) grant experience. Quests can give bonus XP or items.",
+          "The System cannot be deceived by mortals—any attempt to falsify stats is always detected, except in cases of true anomaly.",
+          "Anomalies are rare and are presumed to be errors in reality; they must be corrected by Arbiters."
+        ],
+        "type": "magic",
+        "vocabulary_json": [
+          "Binding",
+          "Level up",
+          "Stat array",
+          "Class evolution",
+          "Anomaly",
+          "Arbiter",
+          "XP (experience points)",
+          "Skill slots"
+        ]
+      }
+    ]
+  }
+}
