@@ -14,33 +14,37 @@ The raw numbers live in `crystal_shard.json` (and `<book>.<keyx>x<gold>.json` fo
 
 ---
 
-## Summary verdict (as of 2026-04-29)
+## Summary verdict (as of 2026-04-29 v1 close-out)
 
-**Aggregated: SCOPED PASS** — character-arcs landed CELL PASS, pulling the aggregated verdict above FAIL.
+**Aggregated: SCOPED PASS** — character-arcs is shipped; mckee-gap binary is shippable; the rest re-calibrate under v2 (decomposed + Sonnet anchor; design at `docs/designs/decomposed-extractor-sonnet-anchor-v1.md`).
 
-| Dim | Verdict | Conclusion |
+| Dim | v1 Verdict | Conclusion |
 |---|---|---|
-| value-charge | NULL-GOLD (artifact) | Flash polarity tagging is **likely reliable** — F1=0.94 binary is strong. NULL-GOLD verdict is the n=5 retest pool tripping the 15% disagreement threshold (sample-size noise, not real). |
-| promise | CELL FAIL F1=0.41 | Flash extractor is **NOT reliable** for promise — recall=0.30 means it misses ~70% of promises Pro finds, specifically Chekhov's-gun setup-payoff bridges. Either upgrade to Pro extractor or accept partial recall. |
-| character-arcs | **CELL PASS** F1=1.00 | Flash extractor is **reliable** for character identification + LTWN structure. arc_resolution agreement 67% (above 65% PASS gate). Ship as planner constraint. |
-| mice | CELL MARGINAL P=0.731 F1=0.776 | Flash extractor is **borderline reliable** for MICE thread tagging. P=0.73 is below the 0.78 PASS gate but above the 0.65 FAIL floor. Expand retest pool + retune prompt before declaring it shippable. |
-| mckee-gap | extraction in flight | Pending. |
+| value-charge | NULL-GOLD (artifact) | Flash polarity tagging is **likely reliable** — F1=0.94 binary is strong. NULL-GOLD verdict is the n=5 retest pool tripping the 15% disagreement threshold (sample-size noise, not real). v2 re-calibrates with Sonnet anchor + larger retest. |
+| promise | NULL-GOLD-LIKE (post-Phase C) | Gold v1↔v2 Jaccard 0.326 — the rubric admits two structurally different interpretations. v2 splits into `arc-promise` (close ≥5 chapters out) + `setup-payoff-bridge` (close ≤3 chapters out) sub-dims. |
+| character-arcs | **CELL PASS — SHIPPED** F1=1.00 | Flash extractor is reliable for character identification + LTWN structure. arc_resolution agreement 67%. Live in harness as of commit `4ec5d8b` (LTWN + arc_resolution enum on `characterProfileSchema`; planner renders the arc block). |
+| mice | CELL MARGINAL P=0.731 F1=0.776 | Borderline; v2 decomposes into 4 parallel binary calls per scene (one per M/I/C/E thread type). |
+| mckee-gap | **CELL PASS (binary)** F1=0.892, P=0.925, R=0.860 | Binary "gap or no gap" is strong and shippable as a per-beat soft prior. Per-field enums (gap_size 0.58, gap_type 0.56) below gate; v2 keeps single-call shape but anchors against Sonnet to test enum lift. |
 
 ---
 
 ## What this means for the planner
 
-**Ship now (CELL PASS):**
-- character-arcs distribution: derive from crystal_shard's 6 main characters. Add to concept-phase character-agent context as a target distribution of (arc_resolution, lie/truth/want/need shape).
+**Shipped (live in harness):**
+- character-arcs (commit `4ec5d8b`): LTWN + arc_resolution enum on `characterProfileSchema`; `planning-plotter/context.ts` renders the arc block; `character-profile-system.md` documents the structure + distribution targets (≥1 tragic_inversion, ≤50% fulfilled for a 5–8 character cast).
 
-**Hold (MARGINAL):**
-- mice: don't ship yet, but the schema is structurally sound. Iterate on prompt to lift P from 0.73 → 0.78.
+**Ship soon (post-design-commit):**
+- mckee-gap binary "gap density" prior — a per-beat soft prior into `planning-beats/beat-expansion-system.md` per `docs/structural-dims-to-harness-mapping.md` §4: "Crystal Shard target: > 60% of beats carry a gap; pure 'no gap' beats should not run more than 2 consecutive."
 
-**Don't ship (FAIL):**
-- promise: V4 Flash extractor is the wrong cost shape for this dim. Decision needed: (a) upgrade to V4 Pro extractor (~10× cost per book), (b) sharpen Flash prompt for setup-payoff bridges, or (c) accept 30% recall and ship a partial registry.
+**Hold for v2 re-calibration:**
+- mice: 4 parallel binary sub-calls per scene (target P ≥ 0.78 under v2 measurement plan).
+- value-charge per-scene polarity / lifeValue: Sonnet-anchored re-calibration with retest expansion to retire NULL-GOLD verdict (binary signal already strong).
+- mckee-gap per-field `gap_size` and `gap_type` enums: Sonnet-anchored re-calibration to test enum agreement lift.
 
-**Investigate (NULL-GOLD):**
-- value-charge: re-run with retest pool n ≥ 20 to retire the small-n artifact. Underlying signal (F1=0.94 binary) is strong — likely a CELL PASS once retest noise drops.
+**Re-scope under v2:**
+- promise: split into `arc-promise` (close ≥5 chapters out) + `setup-payoff-bridge` (close ≤3 chapters out). Each sub-dim has tighter rubric latitude than monolithic "promise."
+
+See `docs/designs/decomposed-extractor-sonnet-anchor-v1.md` for the v2 measurement plan and decision rationale.
 
 ---
 
@@ -575,6 +579,65 @@ Five subagents + one inline analysis ran concurrently. All seven completed; resu
 | **Phase C round 2 subtotal** | ~880 | **~$0.55** |
 
 Cumulative on crystal_shard: ~$3.85. Trivially affordable.
+
+---
+
+## Session 2026-04-29 23:44 UTC — McKee-gap v1 verdict (Phase C v1 close-out)
+
+McKee-gap calibration completed under v1 architecture (Flash extractor × Pro judge). Closes the v1 phase of Phase C; v2 (decomposed + Sonnet anchor) is documented in the next section.
+
+**Output:** [`crystal_shard.20260429T234411.json`](crystal_shard.20260429T234411.json) — full metrics + verdict.
+
+### Verdict — CELL PASS
+
+| Metric | Value | Threshold | Status |
+|---|---|---|---|
+| n (sample) | 52 (of 55; 3 judge failures) | — | sufficient |
+| Precision | **0.925** | ≥ 0.78 | PASS |
+| Recall | **0.860** | ≥ 0.65 | PASS |
+| F1 | **0.892** | ≥ 0.78 | PASS |
+| gap_size per-field agreement | 0.577 (30/52) | ≥ 0.78 | **below** |
+| gap_type per-field agreement | 0.558 (29/52) | ≥ 0.78 | **below** |
+| Retest self-disagreement | 0.40 (2/5) | ≤ 0.15 | **above** (n=5 noise) |
+
+**Reading the verdict carefully.** F1=0.892 is on the **binary "did the judge call any gap"** question — strong agreement on whether a beat carries a gap-of-some-kind. The per-field enums (gap_size 4-class and gap_type 6-class) are below the PASS gate. Retest self-disagreement is 40% but on n=5 only — same small-sample artifact that drove value-charge's NULL-GOLD verdict.
+
+This is structurally the same shape as **value-charge** Phase A:
+- value-charge binary F1=0.94, polarity-shift agreement 0.76, lifeValue agreement 0.56
+- mckee-gap binary F1=0.89, gap_size agreement 0.58, gap_type agreement 0.56
+
+In both dims: load-bearing binary signal is strong; multi-class enum agreements are borderline. Both share the same architectural pressure — a single Flash call deciding multi-class enum without explicit category-criterion constraints.
+
+### Conclusion + Action
+
+**Ship status:**
+- **Binary "gap or no gap"** — shippable as a planner constraint immediately. 81% of beats in Crystal Shard carry SOME gap (corpus-level finding from R2.1); F1=0.89 cross-model is enough to feed this into the planner as a target distribution.
+- **`gap_size` and `gap_type` enums** — HOLD until v2 re-calibration. Likely lift under the decomposed + Sonnet-anchor architecture (the v2 design doc explicitly calls out mckee-gap retains single-call shape but anchors against Sonnet).
+
+**Action:** mckee-gap binary distribution can flow into the harness mapping (per `docs/structural-dims-to-harness-mapping.md` §4) as a per-beat soft prior — "Crystal Shard target: > 60% of beats carry a gap." The full `gap_size`/`gap_type` shape ships only when v2 re-calibration lands.
+
+### Updated front-matter verdict table (final v1 row)
+
+| Dim | Verdict | Notes |
+|---|---|---|
+| value-charge | NULL-GOLD (artifact) → expected CELL PASS post-v2 | Binary F1=0.94 strong; n=5 retest noise tripped NULL-GOLD verdict gate |
+| promise | NULL-GOLD-LIKE | Gold v1↔v2 Jaccard 0.326 (Sonnet pair-matcher confirms 0.357); rubric-latitude problem; v2 splits into `arc-promise` + `setup-payoff-bridge` |
+| **character-arcs** | **CELL PASS — SHIPPED** | F1=1.00 character ID + LTWN; arc_resolution agreement 0.67. Live in harness commit `4ec5d8b` |
+| mice | CELL MARGINAL P=0.731 F1=0.776 | v2 decomposes into 4 parallel binary calls per scene |
+| **mckee-gap** | **CELL PASS (binary)** F1=0.892, P=0.925, R=0.860 | Per-field enum agreements (gap_size 0.58, gap_type 0.56) below gate; v2 single-call retained, Sonnet anchor expected to lift enums |
+
+**Aggregated v1 verdict:** SCOPED PASS — character-arcs (shipped) + mckee-gap (binary, holding for v2 enum lift) + value-charge (binary, holding for retest expansion); promise + mice need v2 architecture.
+
+### Cost ledger delta (Phase C v1 close-out)
+
+| Step | Calls | Cost |
+|---|---|---|
+| McKee-gap sample-for-adjudication | 0 (deterministic) | $0.00 |
+| McKee-gap Pro judge (55 prompts, 52 ok / 3 fail) | 55 | ~$0.30 (matches estimate) |
+| McKee-gap calibration | 0 (post-fix) | $0.00 |
+| **v1 close-out subtotal** | 55 | **~$0.30** |
+
+Cumulative on crystal_shard under v1 architecture: **~$4.15**. Final v1 spend.
 
 ---
 
