@@ -1,14 +1,15 @@
 ---
-status: draft (pending Codex R3 adversarial review)
+status: draft (pending Codex R4 adversarial review)
 kind: subsystem-design
 name: eval-testing-module-v1
 owner: andre
 date: 2026-04-29
-revision: 3
+revision: 4
 parent-context: docs/todo.md "Three-bucket forward plan", docs/eval-infrastructure.md, docs/charters/corpus-structural-decomposition-v1.md (sibling — Bucket 1)
 adversary-verdict:
-  R1: RED (codex:codex-rescue gpt-5.5 effort=high, agent aff15da9fb18060ec, 2026-04-29) — 5 blockers (suite-definition round-trip undefined, multi-seed schema breaks, artifact_ref too thin for eval_results composition, M3 codegen scoped against wrong surface, M6 no-behavior-change parity not modeled), 6 warnings, named cheapest counterfactual: "planning-beats-only migration v1; cut M3/M4/M5/human-ratings/eval_results composition." Recommended action: RUN CHEAPER COUNTERFACTUAL.
-  R2: RED (codex:codex-rescue gpt-5.5 effort=high, agent a5219c7acd0f457fb, 2026-04-29) — pivot landed cleanly (R1 issues 2/3/4 closed) but 2 partial-closures + 3 warnings: G4 normative semantics still underspecified (`expected_chapter_count` source unstated); suite-definition still has dual authority (code registry AND `config_json`); `_loader.ts` reintroduces v2-shaped abstraction; numeric-parity contract inconsistent; bootstrap edge unnamed. Recommended action: ITERATE-R3.
+  R1: RED (codex:codex-rescue gpt-5.5 effort=high, agent aff15da9fb18060ec, 2026-04-29) — 5 blockers, 6 warnings, named cheapest counterfactual: "planning-beats-only migration v1." Recommended action: RUN CHEAPER COUNTERFACTUAL.
+  R2: RED (codex:codex-rescue gpt-5.5 effort=high, agent a5219c7acd0f457fb, 2026-04-29) — pivot landed cleanly (R1 issues 2/3/4 closed); 2 partial-closures + 3 warnings. Recommended action: ITERATE-R3.
+  R3: RED (codex:codex-rescue gpt-5.5 effort=high, agent a8d5abb7dd78315fd, 2026-04-29) — R3 materially closed both R2 blockers (R3 attack surfaces 1/2/3/5/6/9 SAFE per Codex). 1 remaining blocker: gate-evaluator signature is singular `cell` but verdict over `{default, loud}` needs variant-keyed inputs (G4 must bind explicitly to loud). 4 warnings + 2 suggestions. Named cheapest counterfactual: "variant-keyed gate-input patch (~45-60 min)". Recommended action: ITERATE-R4.
 related:
   - docs/eval-infrastructure.md (existing eval_briefs/eval_results layer this design composes with — v2 territory)
   - docs/designs/phase-variant-comparison.md (the one-off precedent v1 migrates)
@@ -18,31 +19,33 @@ related:
   - ui/src/components/NovelReadView.tsx:325-360 (paragraph-aligned diff renderer — v2 territory)
 ---
 
-# Durable Eval / Testing Module — Design Sketch (Revision 2)
+# Durable Eval / Testing Module — Design Sketch (Revision 4)
 
-## 0. Tl;dr (R3 — protocol-tightened planning-beats migration)
+## 0. Tl;dr (R4 — variant-keyed gate evaluator)
 
-**R2 pivoted from R1's "any harness experiment" framing to a planning-beats-only migration. R3 hardens the protocol per Codex R2 RED-but-ITERATE.**
+**R3 closed both R2 blockers (Codex R3 confirmed surfaces 1/2/3/5/6/9 SAFE). R4 closes the remaining R3 blocker: the gate evaluator's signature was singular-cell but the verdict spans `{default, loud}`. Plus 4 fixable nits.**
 
-R1 (RED) was generalized too far before any concrete use shipped. R2 (RED, but Codex confirmed R1 issues 2/3/4 closed) collapsed scope to one-screen-only migration with code-registered suites + cell-normalized schema + first-class runner-state fields. Two issues remained: G4 parity semantics still underspecified (the doc didn't name where `expected_chapter_count` comes from) and suite-definition had dual authority (code registry AND `test_suites.config_json`). R3 closes both:
+R1 (RED) was generalized too far before any concrete use shipped. R2 (RED) collapsed scope to one-screen-only migration. R3 (RED) made code the source of truth, gave G4 a 3-condition spec, and named the bootstrap edge — but the gate-evaluator pseudocode took a singular `cell` while the verdict for `phase-variant-screen-v1` is over BOTH variants (G1/G2/G3 are inter-variant ratios; G4 is loud-specific). R4 fixes the verdict-input contract:
 
-- **One precedent only**: v1 migrates `phase-variant-comparison-r5` to a durable shape. Same as R2.
-- **Code is the single source of truth (R2 blocker 2 fix)**: `defineSuite()` in code is authoritative; `test_suites` is a write-through mirror with `config_hash` for drift detection. `test_runs.resolved_snapshot` is the immutable per-run audit artifact.
-- **G4 parity semantics fully specified (R2 blocker 1 fix)**: `expected_chapter_count` is sourced from `test_runs.resolved_snapshot.seed_chapter_count` (captured from `seed.chapterCount` at run-suite entry). G4 PASSES iff `phase_result_kind === "complete" AND outline_parse_ok === true AND outline_count === expected_chapter_count`. All four fields are first-class columns / fields of `test_run_cells` + `test_runs`.
-- **Bootstrap edge specified (R2 warning 3 fix)**: `src/harness/eval-tests.ts` imports `./suites/index.ts`, which imports each individual suite file. `runSuite()` calls `assertBootstrapped()` at entry to guard against unregistered IDs.
-- **`_loader.ts` cut from v1 (R2 warning 1 fix)**: existing `planning-beats/index.ts` env-var seam is left UNCHANGED. v2 lifts it into a shared helper when a second agent needs it.
-- **Numeric-parity contract canonicalized (R2 warning 2 fix)**: v1 metrics are integer counts → exact equality. Per-metric tolerance specified at metric-definition time for any future non-integer metric.
-- **No UI, no human ratings, no LLM-judge integration, no `eval_results` composition.** All v2. Same as R2.
+- **One precedent only**: v1 migrates `phase-variant-comparison-r5` to a durable shape. Same as R2/R3.
+- **Code is the single source of truth (R2 blocker 2 + R3 W3 fix)**: `defineSuite()` in code is authoritative; `test_suites` is a write-through mirror updated ONLY by `registerBuiltInSuites()` (NOT by `defineSuite()` — clarification per R3 W3). `last_config_hash_change_commit` is renamed `last_config_hash_change_commit` to match what the column actually means. `test_runs.resolved_snapshot` is the immutable per-run audit artifact.
+- **G4 parity semantics fully specified + variant-bound (R2 blocker 1 + R3 blocker 1 fix)**: `expected_chapter_count` is sourced from `test_runs.resolved_snapshot.per_seed.<seed_key>.chapter_count` (captured from `seed.chapterCount` at `runSuite()` entry; required-non-null per R3 W1 fix). The gate evaluator signature is `(cellsByVariant, run, metricsByVariant, thresholds)` — variant-keyed (R3 blocker 1 fix). G4 binds EXPLICITLY to `cellsByVariant.loud` (the rider-targeting variant).
+- **Bootstrap edge specified + non-CLI helper (R2 warning 3 + R3 S2 fix)**: `src/harness/eval-tests.ts` imports `./suites/index.ts`, which imports each individual suite file. A shared `ensureBootstrapped()` helper lets non-CLI callers (tests, future server routes) trigger the bootstrap without re-implementing the sequence.
+- **`_loader.ts` cut from v1 (R2 warning 1 + R3 W3 sweep)**: existing `planning-beats/index.ts` env-var seam is left UNCHANGED. R3's stale references in §2 (lines 80, 89) are removed in R4. v2 lifts it into a shared helper when a second agent needs it.
+- **Numeric-parity contract corrected (R2 warning 2 + R3 W2 fix)**: v1 metrics are NOT all integer — `facts_median` and `know_median` can be non-integer when `chapter_count` is even (median of even-count list averages middle pair). Canonical rule: **exact numeric equality at the metric's declared scale** (`NUMERIC(12,4)` storage). v1 acceptance values (`facts_median=8`, `know_median=5`, `total_beats=43`) happen to be integer because the 2026-04-29 known-good run was on a 3-chapter seed (odd → no averaging). Future seeds with even chapter counts will produce halves; the equality rule still holds.
+- **Parity test required (R3 W4 fix)**: `tests/eval-test-parity.test.ts` is REQUIRED in CI (PR-level, not nightly). Module's stated purpose is "same verdict on same input"; an optional parity test is too weak.
+- **No UI, no human ratings, no LLM-judge integration, no `eval_results` composition.** All v2. Same as R2/R3.
 
-R3 acceptance: `bun scripts/eval-test/run.ts phase-variant-loud-rider-v2 --seed=fantasy-system-heretic` produces the SAME `SCREEN-PASS` verdict and EXACT-EQUAL integer metric values as `bun scripts/phase-eval/probe-planning-beats.ts` on the same inputs. (`facts_median=8`, `know_median=5`, `total_beats=43` — the 2026-04-29 known-good values.)
+R4 acceptance: `bun scripts/eval-test/run.ts phase-variant-loud-rider-v2 --seed=fantasy-system-heretic` produces the SAME `SCREEN-PASS` verdict and EXACT-NUMERIC-EQUAL metric values (at NUMERIC(12,4) declared scale) as `bun scripts/phase-eval/probe-planning-beats.ts` on the same inputs. (`facts_median=8`, `know_median=5`, `total_beats=43` — the 2026-04-29 known-good values.)
 
-**v1 scope: ~3 working days.** Same as R2; M1 (`_loader.ts`) cut, M2-M5 unchanged.
+**v1 scope: ~3 working days + ~1h for the variant-keyed gate-input patch + parity-test scaffold.** Same as R3 modulo the variant-keyed fix.
 
 ## Pivot history
 
-- **R1 (RED):** Codex (`aff15da9fb18060ec`, gpt-5.5 effort=high) flagged 5 blockers + 6 warnings. Named cheapest counterfactual: "planning-beats-only migration; cut M3 broad codegen, cut M4/M5 UI, cut human ratings, cut `eval_results` composition." Recommended next action: RUN CHEAPER COUNTERFACTUAL.
-- **R2 (RED, ITERATE-R3):** Codex (`a5219c7acd0f457fb`, gpt-5.5 effort=high) confirmed R1 issues 2/3/4 closed (multi-seed schema, eval_results composition deferral, M3 codegen scoped down). Two issues partially closed: G4 normative semantics still underspecified (`expected_chapter_count` source unstated); suite-definition still had dual authority (code + `config_json`). 3 warnings: `_loader.ts` reintroduces v2-shaped abstraction; numeric-parity contract inconsistent; bootstrap edge unnamed. Recommended action: ITERATE-R3.
-- **R3 (this revision):** integrated all 2 R2 blockers + 3 warnings. Suite-definition is now code-authoritative; `test_suites` is a write-through mirror with `config_hash` for drift detection. G4 parity gets full normative spec including `expected_chapter_count` source. Bootstrap edge named explicitly. `_loader.ts` cut from v1. Numeric-parity canonicalized.
+- **R1 (RED):** Codex (`aff15da9fb18060ec`, gpt-5.5 effort=high) flagged 5 blockers + 6 warnings. Named cheapest counterfactual: "planning-beats-only migration; cut M3 broad codegen, cut M4/M5 UI, cut human ratings, cut `eval_results` composition." Recommended action: RUN CHEAPER COUNTERFACTUAL.
+- **R2 (RED, ITERATE-R3):** Codex (`a5219c7acd0f457fb`, gpt-5.5 effort=high) confirmed R1 issues 2/3/4 closed. Two partial-closures + 3 warnings. Recommended action: ITERATE-R3.
+- **R3 (RED, ITERATE-R4):** Codex (`a8d5abb7dd78315fd`, gpt-5.5 effort=high) confirmed both R2 blockers genuinely closed AND most R3 attack surfaces SAFE (1, 2, 3, 5, 6, 9). 1 remaining blocker: gate evaluator signature is singular `cell` but verdict over `{default, loud}` needs variant-keyed input — G4 must bind explicitly to the loud cell. 4 warnings (chapterCount-may-be-null, integer-equality wording incorrect for even chapter counts, mirror/bootstrap residual contradictions, parity test should be required not optional) + 2 suggestions (canonicalize spec, ensureBootstrapped helper for non-CLI). Named cheapest counterfactual: "variant-keyed gate-input patch (~45-60 min)." Recommended action: ITERATE-R4.
+- **R4 (this revision):** integrated the R3 blocker + all 4 warnings + both suggestions. Gate evaluator signature is now `(cellsByVariant, run, metricsByVariant, thresholds)`; G4 binds explicitly to `cellsByVariant.loud`. Numeric-parity rule corrected. Mirror/bootstrap inconsistencies swept in §2/§3/§5. Parity test promoted to required. `canonicalizeSuiteConfig()` shape spelled out. `ensureBootstrapped()` helper added for non-CLI callers.
 
 ## 1. Goal (R2)
 
@@ -77,7 +80,7 @@ v2 work happens via separate design docs that cite this v1 + extend the schema. 
   - NO `compareRuns()`, NO `submitHumanRating()` in v1.
 - **One concrete suite registered**: `phase-variant-loud-rider-v2` migrating the existing planning-beats screen (Codex R1 issue 5 fix + warning 6: pick the SHIPPED probe shape as authoritative, not the chartered shape).
 - **Concrete gate evaluator**: `applyGates(metrics, cellState, gates) → verdict` operates on (named metric values, named cell state fields like `outline_parse_ok`, ordered predicate table). Codex R1 issue 5 fix: G4 (structural validity) is now a first-class `test_run_cells.outline_parse_ok` column, not a hidden runner-state ghost.
-- **Existing planning-beats env-var seam** (`src/agents/planning-beats/index.ts:6-8`) stays unchanged. A shared `src/agents/_loader.ts` helper exports `loadPrompt(defaultPath, envVar)` and `planning-beats/index.ts` is refactored to use it. The helper is not applied to any other agent in v1 (Codex R1 issue 4 fix — heterogeneous prompt-loading sites are v2 territory).
+- **Existing planning-beats env-var seam** (`src/agents/planning-beats/index.ts:6-8`) stays UNCHANGED in v1 (R3 W3 sweep — earlier R3 text mentioned a `_loader.ts` helper; that mention is removed in R4). v2 introduces a shared helper when a second agent needs an env-var seam — abstraction unjustified at one consumer.
 - **CLI runner** at `scripts/eval-test/run.ts`:
   - `bun scripts/eval-test/run.ts <suite-id> --seed=<key> [--keep-novels] [--exp-id=<id>]`
   - One-suite-one-seed in v1; multi-seed is a v2 concern but the schema supports it from day 1 via `test_run_cells`.
@@ -86,7 +89,7 @@ v2 work happens via separate design docs that cite this v1 + extend the schema. 
 ### Out of scope (v1, defer to v2)
 
 - **Any second agent migration.** Only planning-beats in v1. Generalization happens after v1 ships and we have one durable suite to extend FROM.
-- **Broad per-agent codegen.** v1's shared `loadPrompt()` helper is touched only in `planning-beats/index.ts`. Codex R1 issue 4 verified the other agents (writer, reference-resolver, halluc-*, continuity, tonal-pass) have heterogeneous prompt-loading patterns that need hand-care. Don't fight those in v1.
+- **Broad per-agent codegen.** No agent module is touched in v1 (R3 W3 sweep — earlier R3 mentioned a `loadPrompt()` helper; cut). Codex R1 issue 4 verified the other agents (writer, reference-resolver, halluc-*, continuity, tonal-pass) have heterogeneous prompt-loading patterns that need hand-care. Don't fight those in v1.
 - **Cross-novel diff UI.** Defer. The existing phase-variant probe has no UI — migration proof doesn't need one. Codex R1 warning 4: "M5 is not load-bearing for the first proof."
 - **Leaderboard UI.** Same reasoning.
 - **Human-rating widget.** Same.
@@ -102,8 +105,10 @@ v2 work happens via separate design docs that cite this v1 + extend the schema. 
 
 -- Suite identity. WRITE-THROUGH MIRROR of code-registered suites.
 -- Code (src/harness/suites/<id>.ts files) is the single source of truth
--- (R2 blocker 2 fix). DB row is created/updated by defineSuite() at module
--- load. config_hash detects drift between commits.
+-- (R2 blocker 2 + R3 W3 fix). The DB row is created/updated by the
+-- explicit `registerBuiltInSuites()` call (NOT by `defineSuite()` —
+-- `defineSuite()` is sync and only updates the in-memory registry).
+-- config_hash detects drift between commits.
 CREATE TABLE IF NOT EXISTS test_suites (
   id                  SERIAL PRIMARY KEY,
   suite_id            TEXT NOT NULL UNIQUE,                -- 'phase-variant-loud-rider-v2'
@@ -112,14 +117,15 @@ CREATE TABLE IF NOT EXISTS test_suites (
   -- only; runSuite() reads from the in-memory registry, NOT this column.
   -- (R2 blocker 2 fix — config_json is data only, code is authoritative.)
   config_json         JSONB NOT NULL,
-  -- SHA-256 of config_json. defineSuite() computes the hash; if a row
-  -- exists with a different hash, defineSuite() UPDATES the row + logs a
-  -- "suite redefined since prior register" warning. (R2 blocker 2 fix —
-  -- drift detection.)
+  -- SHA-256 of canonicalized config_json (R3 S1 fix — see
+  -- canonicalizeSuiteConfig() in §5). registerBuiltInSuites() computes
+  -- the hash; if the existing row has a different hash, the row is
+  -- UPDATED + a console warning is emitted. (R2 blocker 2 fix.)
   config_hash         TEXT NOT NULL,
-  -- Last commit at which the suite was registered (best-effort; null OK
-  -- when running off uncommitted code).
-  last_registered_commit TEXT,
+  -- (R3 W3 fix — column renamed from `last_registered_commit` because
+  -- it only updates when the config_hash changes, not on every register.)
+  -- Captures the commit at the most recent hash change for forensics.
+  last_config_hash_change_commit TEXT,
   created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at          TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -201,9 +207,9 @@ CREATE INDEX idx_test_metric_cell ON test_metric_results(cell_id);
 
 ### Why this shape
 
-- **Code is the single source of truth for suite definitions (R2 blocker 2 fix).** Suite definitions live in `src/harness/suites/<suite-id>.ts` files. `defineSuite(id, def)` registers them in module-scope memory. `test_suites` rows are CREATED/UPDATED as a write-through mirror by `defineSuite()` at module load. `runSuite()` reads the in-memory registry, NEVER `test_suites.config_json`. The DB row exists for audit/cross-machine inspection only.
+- **Code is the single source of truth for suite definitions (R2 blocker 2 + R3 W3 fix).** Suite definitions live in `src/harness/suites/<suite-id>.ts` files. `defineSuite(id, def)` is **sync** — it ONLY updates the in-memory registry. The async write-through to `test_suites` table happens in `registerBuiltInSuites()` (see §5 bootstrap). `runSuite()` reads from the in-memory registry, NEVER `test_suites.config_json`. The DB row exists for audit/cross-machine inspection only.
 
-- **`config_hash` detects drift.** When `defineSuite()` registers a suite at module load, it SHA-256s the `config_json` representation; if the existing DB row has a different hash, `defineSuite()` UPDATES the row + emits a console warning ("suite phase-variant-loud-rider-v2 redefined since prior register; check git log for the suite file"). Future runs of `runSuite()` proceed with the new in-memory definition. The `last_registered_commit` column captures the git commit at register time for forensics.
+- **`config_hash` detects drift.** `registerBuiltInSuites()` SHA-256s the canonicalized config (see `canonicalizeSuiteConfig()` in §5); if the existing DB row has a different hash, the row is UPDATED + a console warning is emitted ("suite phase-variant-loud-rider-v2 redefined since prior register; check git log for the suite file"). Future runs of `runSuite()` proceed with the new in-memory definition. The `last_config_hash_change_commit` column captures the git commit at the hash change for forensics; it does NOT update on no-op registration calls.
 
 - **`test_runs.resolved_snapshot`** stores the full resolved config (all variant prompt paths copied verbatim, all metric impls resolved to their registry ID, all gate predicates resolved to their evaluator ID) at run-time, PLUS per-seed `chapter_count` (sourced from the seed's `chapterCount` field at `runSuite()` entry). This is the immutable record the autonomous-context-loop will eventually consume. v1 readers MUST be tolerant of additive fields (R2 suggestion 4); a `snapshot_version` field will be introduced in v2 if a non-additive shape change is ever needed.
 
@@ -297,7 +303,7 @@ export function assertBootstrapped(): void {
 }
 ```
 
-### Bootstrap edge (R2 warning 3 fix)
+### Bootstrap edge (R2 warning 3 + R3 S2 fix — ensureBootstrapped helper for non-CLI callers)
 
 `defineSuite()` registration is side-effect-import-driven, but the entry point is explicit:
 
@@ -307,18 +313,17 @@ import "./phase-variant-loud-rider-v2"     // each suite file calls defineSuite(
 // Future v2 suites added here.
 
 export async function registerBuiltInSuites(): Promise<void> {
-  // After all defineSuite() calls have run (side-effect of imports above),
-  // write-through-mirror to test_suites table for every registered suite.
+  if (BOOTSTRAPPED) return                      // idempotent (R3 S2 fix)
   for (const [id, def] of Object.entries(SUITE_REGISTRY)) {
-    const configJson = JSON.stringify(canonicalizeSuiteConfig(def))   // sorted keys for stable hash
+    const configJson = JSON.stringify(canonicalizeSuiteConfig(def))
     const configHash = sha256(configJson)
     await db`
-      INSERT INTO test_suites (suite_id, description, config_json, config_hash, last_registered_commit)
+      INSERT INTO test_suites (suite_id, description, config_json, config_hash, last_config_hash_change_commit)
       VALUES (${id}, ${def.description ?? null}, ${configJson}::jsonb, ${configHash}, ${currentCommitSha()})
       ON CONFLICT (suite_id) DO UPDATE SET
         config_json = EXCLUDED.config_json,
         config_hash = EXCLUDED.config_hash,
-        last_registered_commit = EXCLUDED.last_registered_commit,
+        last_config_hash_change_commit = EXCLUDED.last_config_hash_change_commit,
         updated_at = now()
       WHERE test_suites.config_hash != EXCLUDED.config_hash
       RETURNING (xmax = 0) AS inserted
@@ -327,44 +332,103 @@ export async function registerBuiltInSuites(): Promise<void> {
   }
   BOOTSTRAPPED = true
 }
+
+// R3 S2 fix — non-CLI helper. Tests, future server routes, and any other
+// caller that doesn't go through scripts/eval-test/run.ts can call this
+// to ensure the bootstrap has run. CLI runner can also call it; idempotent.
+export async function ensureBootstrapped(): Promise<void> {
+  if (!BOOTSTRAPPED) await registerBuiltInSuites()
+}
 ```
 
-`scripts/eval-test/run.ts` calls `registerBuiltInSuites()` ONCE before `runSuite()` is invoked. This makes the bootstrap path explicit (R2 warning 3 fix); silent module-load side-effects are no longer the only thing standing between "registered" and "callable."
+### `canonicalizeSuiteConfig()` shape (R3 S1 fix)
+
+Pure data shape. Sorted-key JSON serialization is sufficient for this internal hash surface; full RFC 8785 JCS is unnecessary.
+
+```ts
+function canonicalizeSuiteConfig(def: SuiteDefinition): CanonicalConfig {
+  return {
+    variants: def.variants
+      .map(v => ({ label: v.label, promptOverrides: sortedKeys(v.promptOverrides) }))
+      .sort((a, b) => a.label.localeCompare(b.label)),
+    seedSet: [...def.seedSet].sort(),
+    metrics: def.metrics
+      .map(m => ({ name: m.name, tolerance: m.tolerance ?? null }))   // NO impl reference; metric impl resolution is a runtime concern
+      .sort((a, b) => a.name.localeCompare(b.name)),
+    gates: {
+      evaluator: def.gates.evaluator,
+      thresholds: sortedKeys(def.gates.thresholds),
+    },
+  }
+}
+```
+
+Two suites with the same canonical config but different metric `impl` functions are treated as **the same suite for hashing purposes**. The metric registry resolves `name` → `impl` at runtime; if two source files register different impls under the same name, that's a bug caught by the metric registry's own duplicate check, NOT by `config_hash`.
+
+`scripts/eval-test/run.ts` calls `ensureBootstrapped()` at startup. Tests and any future non-CLI callers do the same.
 
 ```ts
 export async function runSuite(id: string, opts: RunOptions): Promise<TestRunId> {
-  assertBootstrapped()
+  assertBootstrapped()                            // alternative: await ensureBootstrapped() if caller is willing to pay the once-per-process cost
   const def = SUITE_REGISTRY[id]
   if (!def) throw new Error(`eval-tests: unknown suite '${id}' — registered suites: ${Object.keys(SUITE_REGISTRY).join(', ')}`)
-  // ... orchestration: build resolved_snapshot, insert test_runs row, fan
-  //     out cells, spawn child per (seed × variant), collect outputs,
-  //     run metric impls, evaluate gates, write verdict.
+
+  // R3 W1 fix — fail fast if any selected seed lacks a finite chapterCount.
+  // SeedInput.chapterCount is optional in the schema but G4 requires it;
+  // refusing the run early is better than producing an undefined verdict.
+  for (const seedKey of opts.seeds ?? def.seedSet) {
+    const seed = await loadSeed(seedKey)
+    if (!Number.isFinite(seed.chapterCount)) {
+      throw new Error(`eval-tests: seed '${seedKey}' has no finite chapterCount; v1 suites require it for G4 evaluation`)
+    }
+  }
+
+  // ... orchestration: build resolved_snapshot (incl. per-seed chapter_count),
+  //     insert test_runs row, fan out cells, spawn child per (seed × variant),
+  //     collect outputs, run metric impls, build cellsByVariant +
+  //     metricsByVariant, evaluate gates per-(run, seed), write verdict.
 }
 
 export async function getRunResults(runId: number): Promise<TestRunResults> { ... }
 ```
 
-Gate evaluators live in `src/harness/eval-test-gates.ts` as a registry:
+Gate evaluators live in `src/harness/eval-test-gates.ts` as a registry. **R3 blocker 1 fix: signature is variant-keyed.** `runSuite()` calls each evaluator ONCE PER (run, seed), passing a `cellsByVariant` map and a `metricsByVariant` map (both keyed by variant label). Output is the per-(run, seed) verdict.
+
 ```ts
+type CellState = { phase_result_kind: string | null; outline_parse_ok: boolean | null;
+                   outline_count: number | null; seed_key: string }
+type MetricByVariant = Record<string, number>   // { default: 5, loud: 8 }
+type GateInputs = {
+  cellsByVariant: Record<string, CellState>     // { default: <cell>, loud: <cell> }
+  run: { resolved_snapshot: any }                // for expected_chapter_count
+  metricsByVariant: Record<string, MetricByVariant>   // { facts_median: { default, loud }, ... }
+  thresholds: Record<string, number>
+}
+
 export const GATE_EVALUATORS = {
-  'phase-variant-screen-v1': (cell, run, metrics, thresholds) => {
-    // R2 blocker 1 fix: G4 reads ALL THREE cell fields + the per-seed
-    // expected_chapter_count from resolved_snapshot.
-    const expected = run.resolved_snapshot.per_seed[cell.seed_key].chapter_count
-    const G4 = cell.phase_result_kind === 'complete'
-            && cell.outline_parse_ok === true
-            && cell.outline_count === expected
+  'phase-variant-screen-v1': ({ cellsByVariant, run, metricsByVariant, thresholds }: GateInputs) => {
+    // R3 blocker 1 fix: G4 binds EXPLICITLY to cellsByVariant.loud
+    // (the rider-targeting variant). The default cell's structural
+    // validity is reported in run-level telemetry but does NOT gate
+    // the verdict — phase-variant-comparison.md §"Decision criteria"
+    // makes G4 loud-specific.
+    const loudCell = cellsByVariant.loud
+    const expected = run.resolved_snapshot.per_seed[loudCell.seed_key].chapter_count
+    const G4 = loudCell.phase_result_kind === 'complete'
+            && loudCell.outline_parse_ok === true
+            && loudCell.outline_count === expected
 
-    // G1/G2/G3 read metric values by name. Threshold parameterization is
-    // sufficient because the verdict-table ordering is fixed for this
-    // evaluator identity (a different ordering = a different evaluator id).
-    const G1 = metrics.facts_median.loud >= thresholds.facts_median_floor
-            && metrics.facts_median.loud >= thresholds.facts_median_ratio * metrics.facts_median.default
-    const G2 = metrics.know_median.loud >= thresholds.know_median_floor
-            && metrics.know_median.loud >= thresholds.know_median_ratio * metrics.know_median.default
-    const G3 = metrics.total_beats.loud >= thresholds.total_beats_ratio * metrics.total_beats.default
+    // G1/G2/G3: inter-variant ratios + floors. Read loud's metric value
+    // and ratio against default's metric value. Both must be present
+    // (asserted at runSuite() entry).
+    const G1 = metricsByVariant.facts_median.loud >= thresholds.facts_median_floor
+            && metricsByVariant.facts_median.loud >= thresholds.facts_median_ratio * metricsByVariant.facts_median.default
+    const G2 = metricsByVariant.know_median.loud >= thresholds.know_median_floor
+            && metricsByVariant.know_median.loud >= thresholds.know_median_ratio * metricsByVariant.know_median.default
+    const G3 = metricsByVariant.total_beats.loud >= thresholds.total_beats_ratio * metricsByVariant.total_beats.default
 
-    // Ordered predicate table:
+    // Ordered predicate table (verdict ordering belongs to evaluator
+    // identity; a different ordering = a different evaluator id):
     if (!G4) return 'SCREEN-FAIL (broken)'
     if (!(G1 && G2 && G3)) return 'SCREEN-FAIL (non-compliant)'
     return 'SCREEN-PASS'
@@ -415,17 +479,17 @@ Step-by-step:
    bun scripts/eval-test/run.ts phase-variant-loud-rider-v2 --seed=fantasy-system-heretic
    ```
 3. Compare verdict + metric values against the existing probe's known good 2026-04-29 run output (preserved in `docs/sessions/2026-04-29-phase-eval-probe.md`).
-4. **Acceptance — exact equality (R3 R2 warning 2 fix)**: `verdict='SCREEN-PASS'` AND `facts_median=8` AND `know_median=5` AND `total_beats=43`. v1 metrics are integer counts; the canonical numeric-parity rule for v1 is **exact integer equality**. Any difference fails acceptance. Future non-integer metrics declare per-metric tolerance at metric-definition time; v1 has no such metrics.
+4. **Acceptance — exact numeric equality at declared scale (R3 W2 fix)**: `verdict='SCREEN-PASS'` AND `facts_median=8` AND `know_median=5` AND `total_beats=43`. The canonical numeric-parity rule for v1 is **exact equality at the metric's declared scale** (`NUMERIC(12,4)` for all v1 metrics). The 2026-04-29 known-good run was on a 3-chapter seed (odd), so all v1 metric values land on integer boundaries — but this is incidental, not a general rule. Future seeds with even chapter counts produce halves (`facts_median = 7.5` is valid); the equality rule still holds at NUMERIC scale.
 
 If acceptance passes, the bespoke `scripts/phase-eval/probe-planning-beats.ts` + `print-screen-verdict.ts` files are KEPT in place with a docstring header pointing to the new module (`src/harness/suites/phase-variant-loud-rider-v2.ts`). Per Codex R2 suggestion 5, docstring redirect is sufficient — no `archive/` move needed for v1.
 
-**Optional CI guard (R3 attack surface 8)**: a `tests/eval-test-parity.test.ts` test runs both the old probe and the new module against `fantasy-system-heretic` and asserts equal verdict + equal integer metrics. Would catch silent drift if someone mutates either path. Cost: ~2× one probe run = ~$0.20 per CI invocation. Recommended as a once-per-PR check, not every-commit.
+**Required CI guard (R3 W4 fix)**: `tests/eval-test-parity.test.ts` runs both the old probe and the new module against `fantasy-system-heretic` and asserts equal verdict + equal numeric metrics at NUMERIC(12,4) scale. **REQUIRED at PR time** (was "optional" in R3 — the module's stated purpose is "same verdict on same input," and this subsystem already saw spec/implementation drift in R3's own pseudocode; an optional parity test is too weak). Cost: ~2× one probe run = ~$0.20 per CI invocation. Acceptable for PR-level CI; nightly is a fallback if PR cost is unacceptable.
 
 ## 7. v1 implementation slices (R3 — M1 cut)
 
 | Slice | Files | Effort | Acceptance |
 |---|---|---|---|
-| M0 | `sql/033_eval_testing_module.sql` (4 tables, includes `config_hash` + `last_registered_commit` on `test_suites`) | ~1h | 4 tables created on local + LXC; canonical `expected_chapter_count` derivation from `resolved_snapshot.per_seed.<seed_key>.chapter_count` documented in migration comment. |
+| M0 | `sql/033_eval_testing_module.sql` (4 tables, includes `config_hash` + `last_config_hash_change_commit` on `test_suites`) | ~1h | 4 tables created on local + LXC; canonical `expected_chapter_count` derivation from `resolved_snapshot.per_seed.<seed_key>.chapter_count` documented in migration comment. |
 | M2 | `src/harness/eval-tests.ts` (registry + `runSuite()` orchestration + `registerBuiltInSuites()` write-through) + `src/harness/eval-test-gates.ts` (`phase-variant-screen-v1` evaluator with full G4 semantics) | ~1d | `runSuite()` callable in unit test against a fixture. `assertBootstrapped()` errors loudly when `registerBuiltInSuites()` not called. Gate evaluator unit-tested against synthetic SCREEN-PASS, SCREEN-FAIL (broken), SCREEN-FAIL (non-compliant) inputs. |
 | M3 | `scripts/eval-test/run.ts` (calls `registerBuiltInSuites()` at startup) + `run-variant.ts` (child process, sets `PLANNING_BEATS_PROMPT_OVERRIDE`, writes cell-status JSON for parent) | ~0.5d | CLI runs end-to-end on `fantasy-system-heretic`; persists rows in 4 tables (`test_runs` + `test_run_cells` + `test_metric_results` + experiment row). |
 | M4 | Suite file: `src/harness/suites/phase-variant-loud-rider-v2.ts` (calls `defineSuite()`) + `src/harness/suites/index.ts` (re-exports) | ~0.5d | Suite resolves at module load; metrics + gates wired. `defineSuite()` UPSERTs the row in `test_suites` with current `config_hash`. |
@@ -468,7 +532,7 @@ Each of these gets its own design doc that cites this v1. Don't pre-design them 
 
 ### Implementation cost
 
-- M0 (4-table migration with `config_hash` + `last_registered_commit`): ~1h.
+- M0 (4-table migration with `config_hash` + `last_config_hash_change_commit`): ~1h.
 - M2 (service layer + gate evaluator with full G4 semantics + bootstrap helper): ~1d.
 - M3 (CLI runner + child variant + `registerBuiltInSuites()` call): ~0.5d.
 - M4 (suite file + `suites/index.ts` bootstrap edge): ~0.5d.
@@ -506,7 +570,8 @@ The module is zero-cost orchestration. v1's only suite is the existing planning-
 |---|---|---|---|
 | codex:codex-rescue gpt-5.5 effort=high | 2026-04-29 | **R1 RED** | `aff15da9fb18060ec` |
 | codex:codex-rescue gpt-5.5 effort=high | 2026-04-29 | **R2 RED (ITERATE)** | `a5219c7acd0f457fb` |
-| (R3 pending) | (pending) | (pending) | (pending) |
+| codex:codex-rescue gpt-5.5 effort=high | 2026-04-29 | **R3 RED (ITERATE)** | `a8d5abb7dd78315fd` |
+| (R4 pending) | (pending) | (pending) | (pending) |
 
 ### R1 verbatim verdict (preserved for audit)
 
@@ -545,16 +610,39 @@ The module is zero-cost orchestration. v1's only suite is the existing planning-
 >
 > RECOMMENDED NEXT ACTION: ITERATE-R3.
 
-R3 integrates all 2 R2 blockers + 3 warnings + 4 of 5 suggestions. Submit R3 to Codex for follow-up review before implementation begins.
+### R3 verbatim verdict (preserved for audit)
 
-R3 attack surfaces for Codex:
+> VERDICT: RED
+>
+> BLOCKING ISSUES:
+> 1. Run-level verdict contract still under-specified. `phase-variant-screen-v1` computes G1/G2/G3 from both variants but G4 from a singular `cell` and never binds that `cell` to `variant_label='loud'`. Shipped precedent is single run-level verdict over `{default, loud}` with G4 loud-specific. Current API can yield wrong verdict or two competing verdicts. Fix: variant-keyed evaluator input (`cellsByVariant.default/loud` + `metricsByVariant`); evaluate once per `(run, seed)` with G4 explicitly bound to `loud`.
+>
+> WARNINGS:
+> 1. `expected_chapter_count` better grounded but design assumes `seed.chapterCount` exists; `SeedInput.chapterCount` is optional. G4 undefined for any seed lacking it. Fix: fail fast in `runSuite()` if any selected seed lacks finite `chapterCount`.
+> 2. Numeric-parity still misstated. `facts_median` and `know_median` not guaranteed integer because precedent median averages middle pair on even chapter counts. `NUMERIC(12,4)` is fine; "exact integer equality" is not a correct general rule. Fix: "exact numeric equality at the metric's declared scale," or constrain v1 suites to odd chapter counts.
+> 3. Mirror/bootstrap story has stale contradictions. Scope still mentions `_loader.ts`. §3 says `defineSuite()` writes `test_suites`; §5 says only `registerBuiltInSuites()` does. `last_registered_commit` only updates on hash change so name is misleading. Fix: one consistency sweep.
+> 4. Old-vs-new parity test optional is too weak. Module's purpose is "same verdict on same input," and this subsystem already saw spec/implementation drift. Fix: required in PR or nightly CI.
+>
+> SUGGESTIONS:
+> 1. Spell out `canonicalizeSuiteConfig()` concretely as a pure data shape; sorted-key JSON is sufficient (full RFC 8785 JCS unnecessary for internal hash surface).
+> 2. Add a tiny shared bootstrap helper for non-CLI callers.
+>
+> ATTACK-SURFACE MAP (per Codex): surfaces 1, 2, 3, 5, 6, 9 = SAFE; surface 4 = WARNING; surfaces 7, 8 = SUGGESTION.
+>
+> CHEAPEST UNTRIED COUNTERFACTUAL: variant-keyed gate-input patch (~45-60 minutes) — keep the whole R3 shape but replace the singular `cell` input with explicit `{default, loud}` cell-state map and rewrite pseudocode/acceptance text around that single contract.
+>
+> RECOMMENDED NEXT ACTION: ITERATE-R4.
 
-- **Code-as-source-of-truth pattern.** R3 makes code authoritative; `test_suites` is a write-through mirror with `config_hash`. Is `assertBootstrapped()` + `registerBuiltInSuites()` a clean contract, or does it leave a window between `defineSuite()` and the bootstrap call where state is partially initialized?
-- **`config_hash` drift detection.** R3 logs a warning on hash mismatch and updates the row. Should drift be FATAL instead (abort `runSuite()` until the operator acknowledges)? Hash-changed-but-still-runs feels permissive.
-- **G4 normative spec.** R3 says G4 := `phase_result_kind = 'complete'` AND `outline_parse_ok = TRUE` AND `outline_count = expected_chapter_count`. Have I missed a runner-state field? E.g., is "all chapter outlines have at least one beat" needed, or is `outline_parse_ok` (which checks zod validation including non-empty `scenes` array) sufficient?
-- **`expected_chapter_count` source.** R3 says it comes from `resolved_snapshot.per_seed.<seed_key>.chapter_count`, which itself comes from `seed.chapterCount` at `runSuite()` entry. Is `seed.chapterCount` the right field to capture? What if the seed doesn't have `chapterCount` (some seeds use `targetWords` or other fields)?
-- **`canonicalizeSuiteConfig()` for stable hashing.** R3 says "sorted keys for stable hash." Is JSON-canonical sorting sufficient, or do I need full RFC 8785 JCS? `MetricFn` references won't survive serialization — how are metric impls represented in the hashed config? (Probably by metric `name` string only, with the assumption that two suites with the same metric names but different impls are an error caught at `runSuite()` entry.)
-- **Numeric-parity contract for v1.** Integer metrics are exact-equal. Is `NUMERIC(12,4)` storage actually safe for integer round-trip in PostgreSQL? Or does `NUMERIC` lose precision when reading back via `Bun.sql` (which may type-coerce to JS number → IEEE 754 → integer representation)?
-- **Bootstrap edge.** R3 says `scripts/eval-test/run.ts` calls `registerBuiltInSuites()` at startup. Are there other entry points that need it (orchestrator HTTP server? unit tests?)? If yes, they all need the same call — is there a way to make it implicit-but-safe (e.g., `eval-tests.ts` itself calls it lazily on first `runSuite()`)?
-- **Migration plan now keeps bespoke scripts as docstring-only reference.** Is that sufficient, or should there be a CI test that runs both old + new on the same input and asserts equal verdict? (Codex R2 suggestion 5 says docstring is OK, but a CI comparison test would catch silent drift.)
-- **What's the v2 trigger?** R3 says "v2 lifts `_loader.ts` when a second agent needs an env-var seam." Is that the right trigger, or is the trigger "another charter wants to run this module"? Define explicitly.
+R4 integrates the R3 blocker + all 4 warnings + both suggestions. Submit R4 to Codex for follow-up review before implementation begins.
+
+R4 attack surfaces for Codex:
+
+- **Variant-keyed gate evaluator signature.** R4 §5 changed signature to `(cellsByVariant, run, metricsByVariant, thresholds)`. Verify G4 binds correctly to `cellsByVariant.loud` for the phase-variant-screen-v1 evaluator and is NOT also reading default's runner state implicitly. Are there race conditions when one variant's cell has crashed (no `loud` cell exists; G4 evaluator should return `SCREEN-FAIL (broken)` cleanly).
+- **`runSuite()` chapterCount fail-fast.** R4 §5 added preflight that throws if any selected seed has non-finite `chapterCount`. Are there seeds that legitimately don't have one but should still be runnable in v1? Should `--chapter-count=N` CLI override be supported in v1, or is "use a different seed" sufficient?
+- **`canonicalizeSuiteConfig()` shape.** R4 §5 spells out the canonical config: `{variants[label, promptOverrides], seedSet[], metrics[name, tolerance], gates[evaluator, thresholds]}`. `MetricFn` references survive only by `name`. Is this enough, or does the hash need to capture more (e.g., the metric registry's commit SHA at register time)?
+- **`ensureBootstrapped()` helper.** R4 §5 added it for non-CLI callers. Is it idempotent under concurrent calls (e.g., two unit tests racing to bootstrap)? Should it be wrapped in a mutex?
+- **Numeric-parity wording.** R4 §0/§6 changed to "exact numeric equality at the metric's declared scale" (NUMERIC(12,4)). Verify `Bun.sql` round-trips NUMERIC(12,4) without IEEE 754 precision loss. If it does, is the right fix to compare via SQL `=` operator (server-side comparison) rather than reading both values into JS and comparing?
+- **CI parity test promotion to required.** R4 §6 says PR-level CI runs `tests/eval-test-parity.test.ts`. Cost ~$0.20 per PR. Is that acceptable, or should we use the CI nightly window instead? Check the existing CI cost budget if known.
+- **Mirror/bootstrap consistency sweep.** R4 swept §2 (lines 80, 89), §3 (`last_registered_commit` → `last_config_hash_change_commit`), §5 (`registerBuiltInSuites()` is the sole writer). Verify no remaining contradictions. Particularly check whether `_loader.ts` is fully gone from §0/§2/§7.
+- **`last_config_hash_change_commit` semantics.** R4 column comment says "captures commit at hash change for forensics; does NOT update on no-op registration." Is the commit captured BEFORE or AFTER the schema change in the same commit? Edge case: commit A registers suite; commit B is a no-op refactor; commit C changes the suite. Does the column point to A or C?
+- **R4 budget reality.** R4 added ~1h for the variant-keyed gate-input patch + parity-test scaffold. Is this realistic, or is the gate evaluator change actually larger (touches metric collection + runSuite() orchestration too)?
