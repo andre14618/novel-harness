@@ -396,3 +396,184 @@ Cumulative across all phases on crystal_shard: ~$3.30. Still trivial.
 - [docs/corpus-extraction-explained.md](../../../docs/corpus-extraction-explained.md) — what each dim produces and why
 - [docs/corpus-structural-decomposition.md](../../../docs/corpus-structural-decomposition.md) — operator walkthrough
 - [docs/corpus-wide-analysis-todo.md](../../../docs/corpus-wide-analysis-todo.md) — strategic roadmap for corpus expansion
+
+---
+
+## Session 2026-04-29 23:00 UTC — Phase C Round 2 Results
+
+Round 1 (above) closed the temperature/Tier-3 questions and re-classified promise as NULL-GOLD-LIKE. Round 2 was launched in parallel with the goal of (a) reaching additional conclusions while waiting on mckee-gap full-corpus extraction, (b) unblocking the four non-promise dims with concrete prompt + harness changes, and (c) opening avenues we hadn't explored yet (cardinality pivot, cross-book/cross-author).
+
+Five subagents + one inline analysis ran concurrently. All seven completed; results below.
+
+### R2.1 — McKee-gap full-corpus extraction (V3 rerun)
+
+**Output:** [`mckee-gap.20260429T225927.jsonl`](../structure/crystal_shard/mckee-gap.20260429T225927.jsonl) (824 rows) + [`extract-mckee-gap-summary.20260429T225927.json`](../structure/crystal_shard/extract-mckee-gap-summary.20260429T225927.json). (Files renamed from legacy un-stamped names retroactively — the v3 extractor process kicked off before the stamping refactor landed at commit `2785076`. Data integrity preserved; rename used `extractedAt` from the summary as the canonical stamp.)
+
+| Field | Distribution |
+|---|---|
+| `gap_size` | none 158 (19%), small 152 (18%), medium 263 (32%), large 248 (30%) |
+| `gap_type` | reversal 244 (30%), revelation 183 (22%), undermining 147 (18%), escalation 83 (10%), none 159 (19%), other 5 |
+| Coverage | 858 beats total → 824 tagged (34 chapter-openers skipped per design) → 821 ok / 3 fail / 71 abstain |
+
+**Conclusion:** McKee-gap distribution is **not flat** — Salvatore's prose is dominated by `medium`+`large` gaps (62% of beats) and 81% of beats carry SOME gap (none-type only 19%). Among non-zero types, **reversal** (30%) and **revelation** (22%) lead — consistent with Salvatore's action-pulp pattern (a beat sets up an expectation; the next page upends or upgrades it). This is the first numerically-explicit corpus-derived planner constraint for tension cadence.
+
+**Action:** Calibration sample + Pro judge in flight (separate task). Verdict pending; if F1 ≥ 0.70 on `gap_size` binary (none vs any-gap), ship as soft prior in `planning-beats/beat-expansion-system.md` per the harness mapping (R2.5).
+
+### R2.2 — Promise cardinality pivot
+
+**Hypothesis:** discrete-set Jaccard (0.326 v1↔v2) may be unfairly punishing — the task is gold-text-fragile but per-chapter open-DENSITY profile might be stable. If chapter-2 universally gets 3-5 promise opens and chapter-6 universally gets 0, the planner-relevant signal (where in the book opens cluster) could be load-bearing even when the specific promise lists differ.
+
+**Methodology:** [`scripts/corpus/cardinality.ts`](../../../scripts/corpus/cardinality.ts) loads all six promise sources, tabulates per-chapter open/close counts and span distributions, and computes pairwise per-chapter-opens correlation across all 6 sources.
+
+**Output:** [`crystal_shard.20260429T230455.cardinality.json`](crystal_shard.20260429T230455.cardinality.json) and [`crystal_shard.20260429T225549.cardinality.json`](crystal_shard.20260429T225549.cardinality.json).
+
+**Per-chapter opens correlation matrix (Pearson):**
+
+| | Flash | Pro@T=0.3 | Pro@T=0 | Gold v1 | Gold v2 | Sonnet |
+|---|---|---|---|---|---|---|
+| Flash | 1.000 | 0.505 | 0.343 | 0.335 | 0.549 | 0.604 |
+| Pro@T=0.3 | 0.505 | 1.000 | 0.678 | 0.552 | 0.555 | 0.466 |
+| Pro@T=0 | 0.343 | 0.678 | 1.000 | **0.742** | 0.465 | 0.184 |
+| Gold v1 | 0.335 | 0.552 | **0.742** | 1.000 | **0.447** | 0.307 |
+| Gold v2 | 0.549 | 0.555 | 0.465 | **0.447** | 1.000 | 0.380 |
+| Sonnet | 0.604 | 0.466 | 0.184 | 0.307 | 0.380 | 1.000 |
+
+**Span distribution comparison:**
+
+| Source | n | mean | median | same-ch | 1-3 | 4-8 | 9+ |
+|---|---|---|---|---|---|---|---|
+| Flash | 14 | 148.7 | 6 | 3 | 4 | 1 | 6 |
+| Pro@T=0.3 | 22 | 139.5 | 3 | 7 | 5 | 2 | 8 |
+| Pro@T=0 | 18 | 59.3 | 3 | 4 | 5 | 4 | 4 |
+| **Gold v1** | 30 | **104.0** | 5 | 8 | 6 | 7 | 9 |
+| **Gold v2** | 23 | **4.0** | 0 | **15** | 2 | 1 | 5 |
+| Sonnet | 35 | 121.1 | 11 | 4 | 6 | 5 | 19 |
+
+**Conclusions:**
+
+1. **Cardinality is partially stabler than discrete-set Jaccard, but not enough to save the dim.** Gold v1 ↔ Gold v2 per-chapter-opens correlation is 0.447, vs discrete-set Jaccard 0.326 — a small lift but the same magnitude of instability. Both signals are dominated by the SAME judge stochasticity.
+
+2. **Pro@T=0 ↔ Pro judge gold v1 correlation is 0.742** — the strongest pair. T=0 extraction aligns most closely with whichever specific gold sample happened to fix that side of the calibration. This is consistent with the C.3 finding (extractor stochasticity is small; judge stochasticity dominates).
+
+3. **Gold v2's span distribution is structurally different from gold v1.** Same model, same prompts, T=0.3 — but v1 has mean=104 (dominated by series-hook far-payoff promises) while v2 has mean=4 with median 0 (dominated by within-chapter setup-payoffs). **The judge is not just choosing different promises run-to-run; it is choosing different STRUCTURAL DEFINITIONS of "what counts as a promise."** Two valid reads of the rubric: "I'm tracking arc-spanning threats" (v1) vs "I'm tracking small Chekhov bridges" (v2). This is the underlying engine of the gold-stochasticity ceiling.
+
+4. **Stable structural facts ARE present at the macro level.** Six chapters universally empty across all 6 sources (ch6, ch14, ch18); chapter 2 universally dense (3-5 opens). These are real corpus-level signals robust to judge variance — but they are too coarse to feed into a per-beat planner prompt directly.
+
+**Action:** Cardinality alone does not resolve the promise dim. Promotes a different lever: **promise-rubric specification.** The judge isn't unstable because of temperature or model variance; it's unstable because the rubric admits two structurally different interpretations. Ensemble gold won't fix this — the two definitions don't intersect well. The real fix is **prompt-level disambiguation**: split "promise" into two sub-dims (arc-promise + setup-payoff bridge) with separate rubrics, or pick one and exclude the other. Tracked as new Phase C exit task.
+
+### R2.3 — Sonnet pair-matcher confirms v1↔v2 gold instability
+
+**Hypothesis (Round 1 follow-up):** Round 1's v1↔v2 Jaccard of 0.326 was computed via the V4 Pro pair-matcher. If Pro itself is stochastic, the matcher could be UNDER-matching (false-rejecting paraphrases). A Sonnet pair-matcher (different model family) gives a second independent measurement of the same overlap.
+
+**Methodology:** Sonnet subagent re-ran the V4 Pro pair-matcher logic on the same v1 and v2 promise lists with the same chapter-window±1 constraint and 1:1 matching rule.
+
+**Result:** Sonnet pair-matcher returned **15 shared** (vs Pro's 14 shared, Δ=1). Jaccard = 15 / (30 + 27 − 15) = **0.357** (vs Pro's 0.326, Δ=+3pp).
+
+**Conclusion:** The gold instability is REAL, not an artifact of conservative pair-matching. Two independent models (V4 Pro, Sonnet) agree within 1 promise on the v1↔v2 overlap. The shared / max(v1,v2) ratio is ~0.50 either way — only half the promises in the larger gold list appear in the smaller.
+
+**Action:** Pair-matcher choice no longer load-bearing. The discrete-set ceiling holds. Re-confirms R2.2's conclusion: the instability lives in the rubric itself, not the matcher.
+
+### R2.4 — Mice prompt v2 (close-criterion sharpening)
+
+**Hypothesis (C.4):** Mice CELL MARGINAL P=0.731 is driven by ambiguous "thread close" definitions. If we add explicit hard close-criteria (M = depart + obligation resolved + spatial question answered; I = answer delivered, not hypothesis formed; C = decisive choice + narrative treats as completion; E = new stable status quo) plus 4 public-domain worked examples (Conan Doyle / Austen / Twain / Verne), Flash should be more conservative on `closes_thread = true` and lift P to ≥0.78.
+
+**Output:** [`src/agents/structure-mice/mice-system-v2-draft.md`](../../../src/agents/structure-mice/mice-system-v2-draft.md) — 237 lines (vs v1's 175).
+
+**Key changes:**
+- New "CLOSE CRITERIA — read before tagging any closes_thread = true" section, with 4 hard-rule subsections (one per thread type).
+- 4 public-domain worked examples WITH counter-examples (Hound of the Baskervilles for M; P&P for I; Huck Finn for C; Around the World in 80 Days for E).
+- New M-vs-E tie-break rule (default M as primary, E as secondary).
+- Confidence calibration table preserved from v1.
+- "Hard rules" expanded from 6 to 7 (added explicit close-criterion gate).
+
+**Status:** Draft; not yet routed to the Flash extractor. Calibration re-run (extract → Pro judge → compute) deferred until after the harness-prompt commit lands so the v2 prompt becomes the canonical mice-system.md.
+
+**Action:** Ship the draft as the canonical prompt in the same commit as Round 2 work. Re-extract on the new prompt + re-judge + re-calibrate as a follow-up cycle. Target: P ≥ 0.78. Risk noted in subagent output: over-correction may drop recall — if R drops > 5pp without P rising > 5pp, revert v2 and iterate again.
+
+### R2.5 — Value-charge prompt v2 (3-step lattice + commit-to-sign)
+
+**Hypothesis:** Value-charge NULL-GOLD verdict is driven partly by sample-size (n=5 retest) but also by Flash defaulting to `polarity = 0` for genuinely-shifted scenes that are subjectively ambiguous. If the prompt provides an explicit 3-step internal scale (+1 / 0 / -1) and a "commit to + or − first; 0 is fallback of last resort" instruction, Flash should reduce false-`0` calls and lift the per-scene polarity agreement.
+
+**Output:** [`src/agents/structure-value-charge/value-charge-system-v2-draft.md`](../../../src/agents/structure-value-charge/value-charge-system-v2-draft.md) — 179 lines (vs v1's 67).
+
+**Key changes:**
+- New "POLARITY CRITERION" section with the 3-step internal scale and the explicit "commit to ± first" rule.
+- 4 worked examples drawn from public-domain canon (Conan Doyle's *Scandal in Bohemia* for hope-despair `+`, Verne for freedom-slavery `−`, Austen for `0` rare-case, Stoker for `0→−` final-position rule).
+- "Circumstance shift = value shift" hard rule — when external facts change (gained ally, lost ally), do not flatten to `0` based on internal-state ambiguity.
+- "Cliffhangers are NOT automatically `0`" rule — measure entry-to-exit on the in-scene axis, not on meta-narrative resolution status.
+- Polarity values restricted to `+ | - | 0` only (no `mixed` — confirmed via existing schema).
+
+**Status:** Draft; not yet routed.
+
+**Action:** Ship the draft. Re-extract + re-judge with retest pool n ≥ 20 (currently n=5) to retire the NULL-GOLD verdict. Target: Flash×Pro polarity agreement ≥ 0.80 (was 0.76). Combined with the larger retest, this should land CELL PASS.
+
+### R2.6 — Harness prompt-injection mapping
+
+**Output:** [`docs/structural-dims-to-harness-mapping.md`](../../../docs/structural-dims-to-harness-mapping.md) — concrete file/line/schema injection plan per dim.
+
+**Per-dim mapping summary:**
+
+| Dim | Status | Site | Constraint | Effort |
+|---|---|---|---|---|
+| character-arcs | **CELL PASS** — ship now | `src/agents/character-agent/context.ts:30` + `schema.ts` | Hard schema (LTWN + arc_resolution enum) | 1 commit, 0 planner changes |
+| mice | MARGINAL — hold for v2 prompt | `src/schemas/shared.ts` (sceneBeatSchema) + `planning-beats/beat-expansion-system.md` | Soft prior (per-beat optional) | 1 commit after C.4 lands |
+| value-charge | NULL-GOLD — hold for retest | same as mice | Soft prior (per-beat optional) | 1 commit after retest expand |
+| mckee-gap | TBD — pending calibration | same as mice | Soft prior (per-beat optional) | 1 commit after verdict |
+| promise | NULL-GOLD-LIKE — parked | `plotter/story-structure-system.md` + existing `requiredPayoffs` | Park until rubric-disambiguation | 0 commits now |
+
+**Key insight from the mapping:** `requiredPayoffs` already exists on `sceneBeatSchema` and handles intra-chapter setup-payoffs. We do NOT need a new beat-level promise mechanism — only a chapter/act-level promise registry, which depends on the (parked) promise dim. **The other four dims share a single injection target:** `sceneBeatSchema` in `src/schemas/shared.ts` + the Phase-2 `beat-expansion-system.md` prompt. One schema PR can carry mice + value-charge + mckee-gap as optional fields, gated by their respective verdicts.
+
+**Action:** Ship character-arcs first (hard constraint, immediate). Cluster the other three into a single `sceneBeatSchema` extension PR once their individual verdicts land.
+
+### R2.7 — Cross-book + cross-author brief
+
+**Output:** [`docs/cross-book-cross-author-brief.md`](../../../docs/cross-book-cross-author-brief.md).
+
+**Recommendation:** Run **Streams of Silver** (2nd Salvatore book, 104K words, already on disk and in the bundle config) FIRST to test author-stability of the crystal_shard distributions. Then run **Jim Butcher's Storm Front** (Dresden Files #1, 90K, urban fantasy, first-person POV) as the cross-author probe.
+
+**Rationale (concise):**
+- Streams of Silver Stage 1-5 already done at the trilogy level; only `normalize-for-structure --book streams_of_silver` is required before Stage 6. Sub-second prep, $2-3 LLM cost. Validates whether crystal_shard's distributions are author-fingerprint or single-book artifact.
+- Storm Front's first-person POV stress-tests character-arc extractor's F1=1.00. Series structure stress-tests promise (parked) but provides a second data point. ~$15 acquisition + ~$2 extraction. Mistborn rejected (3× cost, 4-act structure confounds comparison); Robertson Breakers rejected (genre-too-distant).
+
+**Combined timeline:** ~12-14h wall-clock, ~3h author oversight, ~$18-20 LLM cost at promo (saves ~$15 vs post-promo).
+
+**Risks flagged:** (a) Promise dim should be skipped on both new books until ensemble gold ships; (b) Streams of Silver scene-break count is only 47 (vs 105 for crystal_shard) — verify breaks before extractors; (c) Storm Front first-person POV may degrade character-arc F1 — budget one prompt iteration if MARGINAL.
+
+**Action:** Park as scheduled work. Do NOT block on it. Land character-arcs harness integration first; if F1=1.00 holds on Streams of Silver, the Salvatore fingerprint becomes author-level and we can ship `WRITER_GENRE_PACKS["fantasy"]` with the LTWN distribution as a hard prior.
+
+### Updated decision matrix (post-Round 2)
+
+| Dim | Round 1 verdict | Round 2 verdict | Next move |
+|---|---|---|---|
+| character-arcs | CELL PASS | CELL PASS (unchanged) | **Ship harness integration NOW** (LTWN + arc_resolution enum on `characterProfileSchema`) |
+| mice | CELL MARGINAL P=0.731 | v2 prompt drafted | Re-extract on v2 → re-judge → re-calibrate; target P ≥ 0.78 |
+| value-charge | NULL-GOLD (n=5 noise) | v2 prompt drafted | Re-extract on v2 → expand retest n ≥ 20; target CELL PASS |
+| mckee-gap | extraction in flight | full corpus done; calibration in flight | When judge completes, compute calibration; ship soft prior if F1 ≥ 0.70 |
+| promise | NULL-GOLD-LIKE | confirmed by Sonnet pair-matcher + cardinality | **Re-scope dim into arc-promise + setup-payoff sub-dims**; park current rubric |
+
+### New avenues opened by Round 2
+
+1. **Promise rubric disambiguation as the real lever** — not temperature, not ensemble, not Tier 3. The judge produces two structurally different interpretations of the same prompt at T=0.3. Splitting the rubric is a separate research task, NOT blocking the other four dims.
+
+2. **Single-PR schema injection for mice/value-charge/mckee-gap** — the harness mapping shows all three can share `sceneBeatSchema` extensions. We can land the schema scaffolding now (with all three fields optional) and gate the prompt-level activation per-verdict.
+
+3. **Cross-book / cross-author distinction is a real architectural fork** — author-stable distributions justify the per-`WRITER_GENRE_PACKS` granularity; genre-stable distributions imply we collapse to genre-level priors. Streams of Silver answers this in ~$3 + 30 min if we prioritize.
+
+4. **Macro-level promise structure IS extractable** — chapters 6/14/18 universally empty, chapter 2 universally dense (every source agrees). A chapter-density planner constraint ("chapter 2 should host 3+ promise opens; chapters 6/14/18 should not introduce new arcs") is shippable from the macro-level cardinality data even if the per-promise list is unstable. Lower-priority but unblocked.
+
+### Cost ledger delta (Phase C Round 2)
+
+| Step | Calls | Total cost |
+|---|---|---|
+| McKee-gap full corpus extraction (V3 rerun) | 824 | ~$0.25 (Flash) |
+| Cardinality analysis (no LLM) | 0 | $0.00 |
+| Sonnet pair-matcher subagent | 1 | subagent (separate billing) |
+| Mice / value-charge prompt drafts (subagent) | 0 LLM in repo | subagent |
+| Harness mapping doc (subagent) | 0 LLM | subagent |
+| Cross-book brief (subagent) | 0 LLM | subagent |
+| McKee-gap calibration (sample + Pro judge, in flight) | 55 | ~$0.30 (est) |
+| **Phase C round 2 subtotal** | ~880 | **~$0.55** |
+
+Cumulative on crystal_shard: ~$3.85. Trivially affordable.
+
+---
