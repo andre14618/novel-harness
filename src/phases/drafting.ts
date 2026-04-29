@@ -1,6 +1,6 @@
 import { chapterDraftSchema } from "../types"
 import {
-  getNovel, getChapterOutline, saveChapterOutline, getCharacters, getFactsUpToChapter,
+  getNovel, getChapterOutline, getChapterOutlines, saveChapterOutline, getCharacters, getFactsUpToChapter,
   getCharacterStatesAtChapter, getAllCharacterStatesBeforeChapter, getWorldBible,
   saveChapterDraft, approveChapterDraft, getApprovedDraft,
   saveIssue, updateCurrentChapter, updatePhase,
@@ -8,6 +8,8 @@ import {
   isPlanCheckOverridden, setPlanCheckOverridden,
   isRevisionUsed, setRevisionUsed,
 } from "../db"
+import db from "../db/connection"
+import type { Phase, PhaseResult, DraftingOutput, PlanningOutput, RevisionOutcome, ExhaustionKind } from "./contract"
 import type { SceneBeat } from "../schemas/shared"
 import { callAgent, executeAndLog } from "../llm"
 import { getTransport } from "../transport"
@@ -117,7 +119,7 @@ function routeValidationBlockers(
   return perBeat
 }
 
-export async function runDraftingPhase(novelId: string): Promise<void> {
+export async function runDraftingPhase(novelId: string): Promise<PhaseResult<DraftingOutput>> {
   displayPhaseHeader("Drafting — Writing chapters")
   emit(novelId, { type: "phase:changed", data: { phase: "drafting" } })
 
@@ -156,7 +158,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
       log(novelId, "error", `Failed to load outline for chapter ${ch}: ${err}`)
       console.error(`  Error loading outline for chapter ${ch}. Stopping.`)
       emit(novelId, { type: "error", data: { step: "drafting", chapter: ch, error: "Failed to load outline" } })
-      return
+      return { kind: "paused", reason: `outline-load-failed:ch${ch}` }
     }
 
     // Pre-write plan-vs-state diff (non-blocking — logs conflicts as warnings).
@@ -1262,14 +1264,14 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
       log(novelId, "warn", `Chapter ${ch} aborted via plan-assist gate — stopping drafting phase. Resume after manual intervention.`)
       console.log(`\n  Chapter ${ch} aborted by user at plan-assist gate.`)
       console.log("  Stopping drafting. Resume later after manual outline edit or clearing the override.")
-      return
+      return { kind: "paused", reason: `plan-assist-gate-aborted:ch${ch}` }
     }
 
     if (!approved) {
       log(novelId, "error", `Chapter ${ch} failed after ${maxAttempts} attempts`)
       console.log(`\n  Chapter ${ch} failed after ${maxAttempts} attempts.`)
       console.log("  Stopping drafting. Resume later with --resume flag.")
-      return
+      return { kind: "paused", reason: `chapter-attempts-exhausted:ch${ch}` }
     }
   }
 
@@ -1277,4 +1279,77 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
   emit(novelId, { type: "phase:changed", data: { phase: "validation" } })
   log(novelId, "info", "All chapters drafted. Advancing to validation.")
   console.log("\n  All chapters drafted. Advancing to Validation.\n")
+
+  const output = await loadDraftingOutput(novelId)
+  return { kind: "complete", output }
+}
+
+/** Reconstruct DraftingOutput from DB. Called on resume by the typed
+ *  driver (P6b1+). Only invoked when novel.phase has advanced past
+ *  drafting — at that point all approved chapters have status='approved'
+ *  rows in chapter_drafts. Reads from chapter_drafts, chapter_exhaustions,
+ *  chapter_revisions, chapter_outlines, facts, character_states,
+ *  character_knowledge. */
+export async function loadDraftingOutput(novelId: string): Promise<DraftingOutput> {
+  const approvedRows = (await db.unsafe(
+    `SELECT DISTINCT chapter_number FROM chapter_drafts WHERE novel_id = $1 AND status = 'approved' ORDER BY chapter_number`,
+    [novelId],
+  )) as Array<{ chapter_number: number }>
+
+  const exhaustionRows = (await db.unsafe(
+    `SELECT chapter, kind FROM chapter_exhaustions WHERE novel_id = $1 ORDER BY chapter, attempt`,
+    [novelId],
+  )) as Array<{ chapter: number; kind: string }>
+
+  const revisionRows = (await db.unsafe(
+    `SELECT chapter, outcome FROM chapter_revisions WHERE novel_id = $1 ORDER BY chapter, attempt`,
+    [novelId],
+  )) as Array<{ chapter: number; outcome: string }>
+
+  const outlines = await getChapterOutlines(novelId)
+  const planCheckOverridden = await Promise.all(
+    outlines.map(async o => ({
+      ch: o.chapterNumber,
+      overridden: await isPlanCheckOverridden(novelId, o.chapterNumber),
+    })),
+  )
+
+  const factsCount = ((await db.unsafe(
+    `SELECT COUNT(*)::int AS n FROM facts WHERE novel_id = $1`,
+    [novelId],
+  )) as Array<{ n: number }>)[0]?.n ?? 0
+  const characterStatesCount = ((await db.unsafe(
+    `SELECT COUNT(*)::int AS n FROM character_states WHERE novel_id = $1`,
+    [novelId],
+  )) as Array<{ n: number }>)[0]?.n ?? 0
+  const knowledgeChangesCount = ((await db.unsafe(
+    `SELECT COUNT(*)::int AS n FROM character_knowledge WHERE novel_id = $1`,
+    [novelId],
+  )) as Array<{ n: number }>)[0]?.n ?? 0
+
+  return {
+    approvedChapters: approvedRows.map(r => r.chapter_number),
+    exhaustions: exhaustionRows.map(r => ({
+      chapter: r.chapter,
+      kind: r.kind as ExhaustionKind,
+    })),
+    revisions: revisionRows.map(r => ({
+      chapter: r.chapter,
+      outcome: r.outcome as RevisionOutcome,
+    })),
+    planCheckOverridden: planCheckOverridden.filter(p => p.overridden).map(p => p.ch),
+    plannedStateWritten: { factsCount, characterStatesCount, knowledgeChangesCount },
+  }
+}
+
+/** P4 — Phase<PlanningOutput, DraftingOutput> wrapper. Not yet consumed by
+ *  the state-machine; P6b1 flips the driver to use it. */
+export const draftingPhase: Phase<PlanningOutput, DraftingOutput> = {
+  name: "drafting",
+  async run(_input, ctx) {
+    return runDraftingPhase(ctx.novelId)
+  },
+  async loadOutput(novelId) {
+    return loadDraftingOutput(novelId)
+  },
 }
