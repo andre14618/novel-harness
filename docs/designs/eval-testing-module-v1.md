@@ -1,614 +1,425 @@
 ---
-status: draft (pending Codex R5 adversarial review)
+status: draft (pending Codex R6 adversarial review)
 kind: subsystem-design
 name: eval-testing-module-v1
 owner: andre
 date: 2026-04-29
-revision: 5
+revision: 6
 parent-context: docs/todo.md "Three-bucket forward plan", docs/eval-infrastructure.md, docs/charters/corpus-structural-decomposition-v1.md (sibling — Bucket 1)
 adversary-verdict:
   R1: RED (codex:codex-rescue gpt-5.5 effort=high, agent aff15da9fb18060ec, 2026-04-29) — 5 blockers, 6 warnings, named cheapest counterfactual: "planning-beats-only migration v1." Recommended action: RUN CHEAPER COUNTERFACTUAL.
   R2: RED (codex:codex-rescue gpt-5.5 effort=high, agent a5219c7acd0f457fb, 2026-04-29) — pivot landed cleanly (R1 issues 2/3/4 closed); 2 partial-closures + 3 warnings. Recommended action: ITERATE-R3.
   R3: RED (codex:codex-rescue gpt-5.5 effort=high, agent a8d5abb7dd78315fd, 2026-04-29) — R3 materially closed both R2 blockers. 1 remaining blocker: variant-keyed gate input. Recommended action: ITERATE-R4.
   R4: RED (codex:codex-rescue gpt-5.5 effort=high, agent af3ba587dd7f32694, 2026-04-29) — R4 fully closed the R3 core shape bug (evaluator is variant-keyed; G4 binds to loud). 1 remaining blocker: `phase-variant-screen-v1` evaluator throws on broken paths instead of returning `SCREEN-FAIL (broken)` cleanly — fix is 3-4 lines (total-function guard before metric dereference). 3 warnings (config_hash misses code identity; mirror/bootstrap/numeric wording sweep partial; ensureBootstrapped not single-flight under concurrent races) + 2 suggestions (parity-test 4-decimal string compare; tl;dr rename typo). Recommended action: ITERATE-R5.
+  R5: RED (codex:codex-rescue gpt-5.5 effort=high, agent a1be2e9cb25a0eaab, 2026-04-29) — R5 closed R4's total-function blocker, BUT after 5 polish rounds Codex flagged two NEW blockers that revealed the design is over-instrumented for the current need. (1) Axis 3 cheapest-first: `decisions.md` records the probe as "the canonical first instrument before committing to harness changes," and there's no stated promotion gate for graduating from probe to module — module is a higher-cost lever per `experiment-design-rules.md §11.1`. (2) Axis 7 parity invariant too weak: §6 requires only one-seed verdict + 3 metric-string matches, but §4.7 requires request-construction parity when rewriting code around a production LLM path. Plus 3 warnings (verdict storage singular vs per-(run,seed) plural; missing 4th G-metric `state_changes_median`; broken-path metric population contract implicit). Named cheapest counterfactual: "Keep `scripts/phase-eval/probe-planning-beats.ts` as the runner and store/report its JSON outputs directly via a tiny append-only result index — ~$0 engineering, expected ~100% of the immediate directional signal." Recommended action: RUN CHEAPER COUNTERFACTUAL.
 related:
   - docs/eval-infrastructure.md (existing eval_briefs/eval_results layer this design composes with — v2 territory)
-  - docs/designs/phase-variant-comparison.md (the one-off precedent v1 migrates)
+  - docs/designs/phase-variant-comparison.md (the one-off precedent the result index reads from)
   - docs/designs/autonomous-context-loop.md (sibling subsystem; v2 schema readiness consideration)
-  - scripts/phase-eval/ (the bespoke scripts being made durable)
+  - scripts/phase-eval/ (the canonical first instrument; v1 keeps it as-is and only adds a result index)
   - sql/024_eval_briefs_and_results.sql (existing tables; v1 does NOT compose with these)
-  - ui/src/components/NovelReadView.tsx:325-360 (paragraph-aligned diff renderer — v2 territory)
+  - docs/decisions.md (probe-as-canonical-first-instrument decision; promotion-gate criteria)
+  - docs/experiment-design-rules.md §4.7 (request-construction parity rule that v1 sidesteps via "no production code path rewritten" exemption)
 ---
 
-# Durable Eval / Testing Module — Design Sketch (Revision 5)
+# Durable Eval / Testing Module — Design Sketch (Revision 6)
 
-## 0. Tl;dr (R5 — total-function gate evaluator + cleanup sweep)
+## 0. Tl;dr (R6 — pivot to probe + tiny result index per Codex R5 cheapest counterfactual)
 
-**R4 closed the R3 variant-keyed blocker. R5 closes the remaining R4 blocker (gate evaluator dereferenced `cellsByVariant.loud` BEFORE checking the broken-path guard, throwing on `loud=undefined` instead of returning `SCREEN-FAIL (broken)`) + 3 cleanup warnings + 2 suggestions. No new architectural change.**
+**Five rounds of Codex review (R1–R5) progressively shrank the module from 6 slices and 4 tables to 5 slices and 4 tables, but the R5 verdict revealed a more fundamental problem: after polishing the harness for 5 rounds, Codex re-attacked the instrument-question fit and flagged that the heavier instrument was never actually justified vs the existing probe. R6 takes Codex's named cheapest counterfactual: keep `scripts/phase-eval/probe-planning-beats.ts` as the runner and add a tiny append-only result index so probe outputs are queryable without re-running the script.**
 
-R1 (RED) was generalized too far. R2 (RED) collapsed scope to one-screen-only migration. R3 (RED) made code the source of truth + named the bootstrap edge. R4 (RED) made the gate evaluator variant-keyed. R5 makes the gate evaluator a TOTAL function over its declared input domain (no exceptions on broken-cell paths) and sweeps the residual stale references R4 missed.
+The R5 verdict's two blockers were:
 
-- **One precedent only**: v1 migrates `phase-variant-comparison-r5` to a durable shape. Same as R2/R3/R4.
-- **Code is the single source of truth (R2 blocker 2 + R3 W3 + R4 W2 sweep)**: `defineSuite()` in code is authoritative; `test_suites` is a write-through mirror updated ONLY by `registerBuiltInSuites()`. `last_registered_commit` was renamed TO `last_config_hash_change_commit` to match the column's actual update semantics (only updates on hash change). `test_runs.resolved_snapshot` is the immutable per-run audit artifact.
-- **`config_hash` detects DATA-CONFIG drift only (R4 W1 fix)**: `config_hash` covers `{variants, seedSet, metric names + tolerances, gate evaluator id, gate thresholds}`. It does NOT cover code identity (the metric `impl` function bodies, the gate evaluator's source). Code-identity provenance is the `test_runs.git_commit` field captured at `runSuite()` entry. A code-only change to a metric impl with no surface change shows as identical `config_hash` but different `git_commit`; that's the documented split.
-- **G4 parity semantics + variant-bound (R3 blocker 1 + R4 closure)**: `expected_chapter_count` is sourced from `test_runs.resolved_snapshot.per_seed.<seed_key>.chapter_count`. Gate evaluator signature is `(cellsByVariant, run, metricsByVariant, thresholds)` — variant-keyed. G4 binds EXPLICITLY to `cellsByVariant.loud`.
-- **Gate evaluator is a TOTAL function (R4 B1 fix — NEW in R5)**: `phase-variant-screen-v1` checks the broken-path guard FIRST — verifies `cellsByVariant.loud` exists, `phase_result_kind === 'complete'`, `outline_parse_ok === true`, `outline_count` is finite, AND the expected count is readable from the snapshot. Only if ALL guards pass does it compute G1/G2/G3 ratios. Any guard miss returns `SCREEN-FAIL (broken)` cleanly. No `undefined.foo` throws; no metric NaN if a variant cell crashed; no implicit reliance on metric collection succeeding.
-- **`ensureBootstrapped()` is single-flight (R4 W3 fix — NEW in R5)**: an in-flight bootstrap promise is memoized; concurrent callers race to read the SAME promise instead of each kicking off a duplicate `registerBuiltInSuites()` write batch.
-- **Bootstrap edge + non-CLI helper (R3 S2 closure)**: `src/harness/eval-tests.ts` imports `./suites/index.ts`. `ensureBootstrapped()` is the shared helper for non-CLI callers (tests, future server routes).
-- **`_loader.ts` cut from v1 + ALL stale refs swept (R2 warning 1 + R4 W2 fix — completed in R5)**: existing `planning-beats/index.ts` env-var seam is UNCHANGED in v1. R4 missed §11 line 561 mentioning `_loader.ts`; R5 sweeps it.
-- **Numeric-parity contract corrected + ALL stale wording swept (R3 W2 + R4 W2 fix — completed in R5)**: canonical rule is **exact numeric equality at the metric's declared scale** (`NUMERIC(12,4)` storage). R4 missed §3 lines 230-234 ("EXACT EQUALITY at integer scale"), §7 line 496 ("`defineSuite()` UPSERTs"), §9 line 524 ("exact integer equality"); R5 sweeps them.
-- **Parity test required + 4-decimal-string compare (R3 W4 + R4 S1 fix)**: `tests/eval-test-parity.test.ts` runs at PR-level CI; it normalizes both old + new metric values to 4-decimal strings (`Number(x).toFixed(4)`) and compares strings, sidestepping IEEE 754 hazards on the JS round-trip even though `NUMERIC(12,4)` would round-trip cleanly.
-- **No UI, no human ratings, no LLM-judge integration, no `eval_results` composition.** All v2.
+1. **Axis 3 — cheapest-first not justified.** `decisions.md` records the probe as "the canonical first instrument for ANY planner-prompt change going forward." After 5 rounds polishing the heavier instrument, no entry in this design names a promotion gate for when probe results graduate to harness work (e.g., N planned reruns, cross-run analysis the probe+JSON cannot answer, a concrete consumer that needs DB queryability now).
+2. **Axis 7 — parity invariant too weak.** v1 (R5) rewrites the runner/orchestrator around `runPlanningPhase` but only requires one-seed verdict + three metric-string matches as parity. Per `experiment-design-rules.md §4.7`, code rewrites around production LLM paths require request-construction parity (byte-diff of outgoing request bytes) or a named skip-category exemption. R5 named neither.
 
-R5 acceptance: `bun scripts/eval-test/run.ts phase-variant-loud-rider-v2 --seed=fantasy-system-heretic` produces the SAME `SCREEN-PASS` verdict and EQUAL-AT-4-DECIMAL-STRING metric values as `bun scripts/phase-eval/probe-planning-beats.ts` on the same inputs. (`facts_median=8.0000`, `know_median=5.0000`, `total_beats=43.0000` — the 2026-04-29 known-good values.)
+R6 sidesteps both: don't rewrite the runner. Keep the probe. Make probe output queryable via a single new table (`phase_eval_runs`) plus a thin write-helper invoked by the existing probe at the END of its run. No service-layer module, no gate evaluator code path, no bootstrap edge, no canonical-config hashing, no parity-test CI guard. The probe stays the source of truth; the table is a queryable mirror of its `summary.json` + verdict line.
 
-**v1 scope: ~3 working days + ~30 min for the total-function gate-evaluator patch + single-flight bootstrap + sweep cleanup + parity-test string normalization.** Same as R4 modulo the R5 polish.
+The original goal — "make the existing probe durable, rerunnable, and queryable" — is satisfied:
+
+- **Durable**: probe + `phase_eval_runs` row.
+- **Rerunnable**: probe is unchanged; rerunning produces a new row.
+- **Queryable**: `SELECT verdict, summary_json -> 'g_metrics' -> 'facts_median' FROM phase_eval_runs WHERE probe_name='phase-variant-comparison' AND git_commit='...'` answers "what was loud variant's facts_median on the 2026-04-29 run?" in one query.
+
+What R6 does NOT do (deliberate non-scope, deferred to v2):
+
+- No `test_suites` / `test_runs` / `test_run_cells` / `test_metric_results` tables. v2 introduces these IF AND ONLY IF a concrete second consumer materializes (a second probe shape, an autonomous-loop integration, an LLM-judge composition). Until then, one table is enough.
+- No service layer at `src/harness/eval-tests.ts`. v2 introduces it WHEN a second probe needs the same shape.
+- No gate evaluator registry. The probe's existing `print-screen-verdict.ts` keeps writing the verdict line.
+- No suite definitions in code, no canonical-config hashing, no bootstrap edge. None of those infrastructure pieces is justified by one probe.
+- No request-construction parity test. R6 doesn't rewrite production code paths, so `experiment-design-rules.md §4.7` doesn't apply (the "Pure evaluation task" exemption — see §4.7 explicit not-applicable categories).
+- No CI-required parity test. There's nothing to compare; the probe IS the runner.
+
+R6 acceptance: `bun scripts/phase-eval/probe-planning-beats.ts ... --persist` produces the SAME `summary.json` + verdict the existing probe always produced AND ALSO inserts one row into `phase_eval_runs` with `(probe_name, git_commit, experiment_id, seeds_used, summary_json, verdict, ran_at)`. The probe's stdout/exit-code is unchanged. Without `--persist`, behavior is identical to today.
+
+**Promotion gate (R5 B1 fix).** Defer the heavier module unless one of these triggers fires:
+
+1. A second probe shape (not planning-beats) needs the same persistence + query surface. (One probe = no abstraction needed; two probes = candidate for a small shared helper, NOT necessarily the full module.)
+2. The autonomous-context-loop (`docs/designs/autonomous-context-loop.md`) reaches a stage where it needs immutable per-iteration parameter snapshots that the probe's flat row doesn't capture cleanly.
+3. A cross-run analysis question lands that requires joining on metric values per (seed, variant) — i.e., something `summary_json -> 'g_metrics'` JSONB queries cannot answer ergonomically in production-traffic volume.
+4. An LLM-judge or human-rating consumer needs to attach to per-cell artifacts (Codex R1 issue 3 territory).
+
+If none of these fire over the next 2–3 probe runs, the module stays deferred — that IS the canonical signal that the cheap instrument is sufficient.
+
+**v1 scope: ~0.5 working day** — one migration file (1 table), one ~40-line write helper invoked by the probe behind a `--persist` flag, one ~20-line CLI reader (`bun scripts/phase-eval/list-runs.ts`). No new src/ module. No service layer. No tests beyond a smoke test that the row lands.
 
 ## Pivot history
 
 - **R1 (RED):** Codex (`aff15da9fb18060ec`, gpt-5.5 effort=high) flagged 5 blockers + 6 warnings. Named cheapest counterfactual: "planning-beats-only migration; cut M3 broad codegen, cut M4/M5 UI, cut human ratings, cut `eval_results` composition." Recommended action: RUN CHEAPER COUNTERFACTUAL.
 - **R2 (RED, ITERATE-R3):** Codex (`a5219c7acd0f457fb`, gpt-5.5 effort=high) confirmed R1 issues 2/3/4 closed. Two partial-closures + 3 warnings. Recommended action: ITERATE-R3.
-- **R3 (RED, ITERATE-R4):** Codex (`a8d5abb7dd78315fd`, gpt-5.5 effort=high) confirmed both R2 blockers genuinely closed AND most R3 attack surfaces SAFE (1, 2, 3, 5, 6, 9). 1 remaining blocker: gate evaluator signature is singular `cell` but verdict over `{default, loud}` needs variant-keyed input — G4 must bind explicitly to the loud cell. 4 warnings (chapterCount-may-be-null, integer-equality wording incorrect for even chapter counts, mirror/bootstrap residual contradictions, parity test should be required not optional) + 2 suggestions (canonicalize spec, ensureBootstrapped helper for non-CLI). Named cheapest counterfactual: "variant-keyed gate-input patch (~45-60 min)." Recommended action: ITERATE-R4.
-- **R4 (RED, ITERATE-R5):** Codex (`af3ba587dd7f32694`, gpt-5.5 effort=high) confirmed the R3 variant-keyed blocker fully closed. 1 remaining blocker: `phase-variant-screen-v1` reads `cellsByVariant.loud.seed_key` and `metricsByVariant.*.loud/default` BEFORE the broken-path guard, throwing on `loud=undefined` instead of returning `SCREEN-FAIL (broken)`. 3 warnings (config_hash misses code identity; mirror/bootstrap/numeric-wording sweep partial — §3 lines 230-234, §7 line 496, §9 line 524, §11 line 561 still stale; ensureBootstrapped not single-flight under concurrent races) + 2 suggestions (parity-test 4-decimal string compare; tl;dr rename typo). Named cheapest counterfactual: "make `phase-variant-screen-v1` a total function: return `SCREEN-FAIL (broken)` before any `cellsByVariant.loud` or metric dereference (3-4 line change)." Recommended action: ITERATE-R5.
-- **R5 (this revision):** integrated the R4 blocker (gate evaluator is now a total function over its declared input domain — broken-path guard runs FIRST, before any `cellsByVariant.loud` or metric dereference) + all 3 warnings (config_hash drift narrowed to data-config-only with code provenance via `test_runs.git_commit`; mirror/bootstrap/numeric-wording sweep finished — §3 lines 230-234, §7 line 496, §9 line 524, §11 line 561 all corrected; `ensureBootstrapped()` is single-flight via in-flight promise memoization) + both suggestions (parity test compares normalized 4-decimal strings; tl;dr rename typo fixed: "renamed FROM `last_registered_commit` TO `last_config_hash_change_commit`").
+- **R3 (RED, ITERATE-R4):** Codex (`a8d5abb7dd78315fd`, gpt-5.5 effort=high) confirmed both R2 blockers genuinely closed AND most R3 attack surfaces SAFE (1, 2, 3, 5, 6, 9). 1 remaining blocker: gate evaluator signature is singular `cell` but verdict over `{default, loud}` needs variant-keyed input — G4 must bind explicitly to the loud cell. 4 warnings + 2 suggestions. Named cheapest counterfactual: "variant-keyed gate-input patch (~45-60 min)." Recommended action: ITERATE-R4.
+- **R4 (RED, ITERATE-R5):** Codex (`af3ba587dd7f32694`, gpt-5.5 effort=high) confirmed the R3 variant-keyed blocker fully closed. 1 remaining blocker: `phase-variant-screen-v1` reads `cellsByVariant.loud.seed_key` and `metricsByVariant.*.loud/default` BEFORE the broken-path guard. 3 warnings + 2 suggestions. Named cheapest counterfactual: "make `phase-variant-screen-v1` a total function (3-4 line change)." Recommended action: ITERATE-R5.
+- **R5 (RED, RUN CHEAPER COUNTERFACTUAL):** Codex (`a1be2e9cb25a0eaab`, gpt-5.5 effort=high) confirmed R4's total-function blocker closed but flagged TWO NEW blockers that revealed the design was over-instrumented for the current need. (1) Axis 3 cheapest-first: `decisions.md` records the probe as "the canonical first instrument before committing to harness changes," and after 5 polish rounds no entry justifies the module vs probe-as-instrument. (2) Axis 7 parity invariant too weak: §6 acceptance is one-seed verdict + 3 metric-string matches, but §4.7 requires request-construction parity for code rewrites around production LLM paths. Plus 3 warnings (verdict-storage singular vs per-(run,seed); 4th G-metric `state_changes_median` missing from migration; broken-path metric population contract implicit). Named cheapest counterfactual: "Keep `scripts/phase-eval/probe-planning-beats.ts` as the runner and store/report its JSON outputs directly via a tiny append-only result index — ~$0 engineering, ~100% of the immediate directional signal." Recommended action: RUN CHEAPER COUNTERFACTUAL.
+- **R6 (this revision):** Took the R5 cheapest counterfactual. Module deferred. Probe stays the source of truth. One new table (`phase_eval_runs`) holds an append-only mirror of probe `summary.json` + verdict per run. ~0.5 day implementation. Promotion gate explicitly named (§0): defer the heavier module until a second probe shape, an autonomous-loop integration, a cross-run analysis JSONB cannot answer, or an LLM-judge consumer materializes. §4.7 doesn't apply (probe is unchanged; "Pure evaluation task" exemption). All four G-metrics (facts_median, know_median, state_changes_median, total_beats) carry through verbatim from probe summary.json. Verdict-storage shape collapsed from per-cell to per-run because the probe already produces a single per-run verdict line.
 
-## 1. Goal (R2)
+## 1. Goal (R6)
 
-Make ONE bespoke variant-comparison script (`scripts/phase-eval/probe-planning-beats.ts` + `print-screen-verdict.ts`) durable, rerunnable, and queryable — without changing what it does or what verdict it produces.
+Make the existing `scripts/phase-eval/probe-planning-beats.ts` durable, rerunnable, and queryable — without rewriting any production code path. Store its `summary.json` + verdict output in an append-only DB table so future runs are queryable in SQL.
 
-**v1 acceptance test:** for the same `(seed, variant prompts)` input, `runSuite("phase-variant-loud-rider-v2", {seed: "fantasy-system-heretic"})` produces the SAME `SCREEN-PASS` verdict as the existing probe script. Same metric values. Same gate evaluation. Same exit code.
+**v1 acceptance test:** running the existing probe with a new `--persist` flag produces (a) IDENTICAL stdout/exit-code/file output as today AND (b) one new `phase_eval_runs` row containing `(probe_name, git_commit, experiment_id, seeds_used, summary_json, verdict, ran_at)`. Without `--persist`, behavior is byte-identical to today.
 
-**Why:** the existing probe is a 200-line one-off. Running it again later means re-implementing it. Persisting it once with code-registered metrics and an immutable run snapshot lets future Andre query "what was loud variant's `facts_median` on the 2026-04-29 run?" without re-reading commit logs and re-running scripts. That's the core value, isolated.
+**Why:** the existing probe IS the canonical first instrument per `docs/decisions.md`. Running it again later already works — it's a 200-line bun script, and re-running just produces a fresh `summary.json`. The ONLY missing piece is "queryability" — the question "what was loud variant's `facts_median` on the 2026-04-29 run?" today requires re-reading commit logs and re-running scripts. One table answers it in SQL. That is the core value, narrowly isolated.
 
-**v2 (roadmapped, NOT in v1):**
-- Generalize to a second agent (e.g., chapter-plan-checker) by extracting a shared `loadPrompt(defaultPath, envVar)` helper.
-- Add UI (cross-novel diff page + leaderboard).
-- Add human-rating widget + LLM-judge integration.
-- Compose with `eval_briefs` / `eval_results` for voice-shape-distance metrics.
-- Schema additions for autonomous-context-loop integration (per-iteration parameter vectors).
+**Why NOT a heavier module (per Codex R5 verdict):** five rounds of review polished a 4-table service-layer module without anyone confirming the probe couldn't already answer the standing question. Per `experiment-design-rules.md §11.1`, building a higher-cost lever without a stated promotion gate is anti-pattern. R6's promotion gate (see §0) explicitly defers the module until a concrete second consumer materializes. Until then, one table and one write helper are enough.
 
-v2 work happens via separate design docs that cite this v1 + extend the schema. R2 explicitly does NOT pre-design v2 — every Codex review round confirmed pre-designed generalization is the failure mode.
+**v2 (roadmapped, NOT in v1) — ONLY when a promotion-gate trigger fires:**
 
-## 2. Scope (R2)
+- Second probe shape needs the same persistence + query surface → introduce a small shared write helper (NOT necessarily the full module).
+- Autonomous-context-loop needs immutable per-iteration parameter snapshots beyond what the flat row captures → design `test_runs.resolved_snapshot` shape with the loop's actual usage in front of it.
+- Cross-run JSONB query becomes ergonomically painful at production volume → normalize metric values into a per-(run, metric) table.
+- Human-rating widget or LLM-judge consumer needs to attach to per-cell artifacts → design the artifact-set abstraction with that consumer in front of it (Codex R1 issue 3 territory).
+
+v2 work happens via separate design docs. R6 explicitly does NOT pre-design v2 — every Codex review round (R1–R5) confirmed pre-designed generalization is the failure mode.
+
+## 2. Scope (R6)
 
 ### In scope (v1)
 
-- **3 new tables** (revised from R1's 4 — `test_human_ratings` deferred to v2):
-  - `test_suites` — code-registered suite identifier + persisted data-only configuration.
-  - `test_runs` — one row per execution; snapshots the fully resolved variant config at run time (Codex R1 issue 1 fix: round-trip is suite-id+resolved-snapshot, not JSONB-to-function).
-  - `test_run_cells` — keyed by `(run_id, seed_key, variant_label)` (Codex R1 issue 2 fix); carries per-cell novel id, completion status, and runner-state validity flags (e.g., `outline_parse_ok`, `phase_result_kind`).
-- **`test_metric_results`** stays simple: per-(cell, metric) numeric value + structured raw value. NO `artifact_ref` to `eval_results` (Codex R1 issue 3 fix — defer composition to v2).
-- **Service layer module** at `src/harness/eval-tests.ts`:
-  - Code-registered suite registry: `defineSuite(id, def) → registers in module-scope map`.
-  - `runSuite(id, opts) → TestRunId` — orchestration only; metric impls live in code, looked up from registry.
-  - `getRunResults(runId) → TestRunResults` — DB join over runs + cells + metrics.
-  - NO `compareRuns()`, NO `submitHumanRating()` in v1.
-- **One concrete suite registered**: `phase-variant-loud-rider-v2` migrating the existing planning-beats screen (Codex R1 issue 5 fix + warning 6: pick the SHIPPED probe shape as authoritative, not the chartered shape).
-- **Concrete gate evaluator**: `applyGates(metrics, cellState, gates) → verdict` operates on (named metric values, named cell state fields like `outline_parse_ok`, ordered predicate table). Codex R1 issue 5 fix: G4 (structural validity) is now a first-class `test_run_cells.outline_parse_ok` column, not a hidden runner-state ghost.
-- **Existing planning-beats env-var seam** (`src/agents/planning-beats/index.ts:6-8`) stays UNCHANGED in v1 (R3 W3 sweep — earlier R3 text mentioned a `_loader.ts` helper; that mention is removed in R4). v2 introduces a shared helper when a second agent needs an env-var seam — abstraction unjustified at one consumer.
-- **CLI runner** at `scripts/eval-test/run.ts`:
-  - `bun scripts/eval-test/run.ts <suite-id> --seed=<key> [--keep-novels] [--exp-id=<id>]`
-  - One-suite-one-seed in v1; multi-seed is a v2 concern but the schema supports it from day 1 via `test_run_cells`.
-- **Concept-cache scoping** (Codex R1 warning 2 fix): documented as PER-RUN (each `runSuite()` call mints a fresh concept-done snapshot novel id). No global cache. Matches the existing probe's behavior at `scripts/phase-eval/probe-planning-beats.ts:140-143`.
+- **One new table**: `phase_eval_runs` — append-only mirror of probe `summary.json` + verdict per run. See §3.
+- **One ~40-line write helper**, invoked at the end of `scripts/phase-eval/probe-planning-beats.ts` behind a `--persist` flag. Reads the in-memory `summary` object the probe already builds and the verdict line from `print-screen-verdict.ts`, INSERTs one row.
+- **One ~20-line CLI reader**: `bun scripts/phase-eval/list-runs.ts [--probe=<name>] [--limit=<N>]` — `SELECT` from `phase_eval_runs` ordered by `ran_at DESC`, prints a compact tabular summary.
+- **Probe is otherwise UNCHANGED.** No new agent, no service layer, no gate evaluator code path, no new entry point in `src/`.
 
-### Out of scope (v1, defer to v2)
+### Out of scope (v1, defer to v2 — gated by §0 promotion criteria)
 
-- **Any second agent migration.** Only planning-beats in v1. Generalization happens after v1 ships and we have one durable suite to extend FROM.
-- **Broad per-agent codegen.** No agent module is touched in v1 (R3 W3 sweep — earlier R3 mentioned a `loadPrompt()` helper; cut). Codex R1 issue 4 verified the other agents (writer, reference-resolver, halluc-*, continuity, tonal-pass) have heterogeneous prompt-loading patterns that need hand-care. Don't fight those in v1.
-- **Cross-novel diff UI.** Defer. The existing phase-variant probe has no UI — migration proof doesn't need one. Codex R1 warning 4: "M5 is not load-bearing for the first proof."
-- **Leaderboard UI.** Same reasoning.
-- **Human-rating widget.** Same.
-- **LLM-judge integration.** Same. (Codex R1 warning 3: existing transport already supports judge calls; v2 just needs the telemetry/agent-name plumbing.)
-- **`eval_briefs` / `eval_results` composition.** v2. Codex R1 issue 3: the artifact-set abstraction needs design before this works; punt.
-- **Autonomous-context-loop integration.** v2. Codex R1 warning 1: the schema needs immutable resolved-config snapshot for that to work; v1 schema lays the foundation but the loop integration is its own design.
-- **"Any harness experiment" framing.** Codex R1 warning 5: this module is for full-pipeline variant comparisons of the phase-variant-screen shape. Corpus charter (Bucket 1) is read-only and outside; voice-shaping ablations need additional composition layers (also v2).
+- `test_suites` / `test_runs` / `test_run_cells` / `test_metric_results` tables. Not justified by one probe.
+- Service layer at `src/harness/eval-tests.ts`. Not justified by one probe.
+- Code-registered suite registry / canonical-config hashing / write-through mirror / bootstrap edge / single-flight `ensureBootstrapped()`. All R3–R5 polish addressed problems that don't exist in this scope.
+- Variant-keyed gate evaluator + total-function broken-path semantics. The probe's existing `print-screen-verdict.ts` already produces the verdict line; v1 just persists it as a string.
+- Code-registered metric impls. The probe already computes metrics into `summary.json`; v1 just persists the JSONB.
+- Request-construction parity test (`experiment-design-rules.md §4.7`). v1 doesn't rewrite any production code path — the probe IS the runner. The "Pure evaluation task" exemption applies (the persistence helper reads probe outputs and writes a row; it constructs no LLM requests).
+- CI parity test (`tests/eval-test-parity.test.ts`). There's nothing to compare; the probe IS the source of truth. The smoke test in §6 checks "row landed with expected fields"; that's sufficient.
+- Cross-novel diff UI / leaderboard UI / human-rating widget / LLM-judge integration / `eval_briefs`–`eval_results` composition / autonomous-context-loop integration. All v2 (each gated by §0 criteria).
+- "Any harness experiment" framing — Codex R1 warning 5 still applies.
 
-## 3. Data model (R2)
+## 3. Data model (R6)
 
 ```sql
--- New: sql/033_eval_testing_module.sql
+-- New: sql/033_phase_eval_runs.sql
 
--- Suite identity. WRITE-THROUGH MIRROR of code-registered suites.
--- Code (src/harness/suites/<id>.ts files) is the single source of truth
--- (R2 blocker 2 + R3 W3 fix). The DB row is created/updated by the
--- explicit `registerBuiltInSuites()` call (NOT by `defineSuite()` —
--- `defineSuite()` is sync and only updates the in-memory registry).
--- config_hash detects DATA-CONFIG drift only — variants, seedSet, metric
--- names + tolerances, gate evaluator id, and gate thresholds. It does
--- NOT cover code identity (metric impl function bodies, gate evaluator
--- source). Code-identity provenance is captured per-run as
--- test_runs.git_commit (R4 W1 fix).
-CREATE TABLE IF NOT EXISTS test_suites (
+-- Append-only mirror of scripts/phase-eval/probe-planning-beats.ts output.
+-- One row per probe invocation. Probe `summary.json` is stored verbatim in
+-- summary_json; the verdict line from `print-screen-verdict.ts` is stored
+-- in `verdict`. NO normalization of metrics, NO per-cell rows, NO suite
+-- registry — the probe IS the source of truth, this table is just a
+-- queryable mirror.
+CREATE TABLE IF NOT EXISTS phase_eval_runs (
   id                  SERIAL PRIMARY KEY,
-  suite_id            TEXT NOT NULL UNIQUE,                -- 'phase-variant-loud-rider-v2'
-  description         TEXT,
-  -- Mirror of the code-defined suite at last register-time. Audit purpose
-  -- only; runSuite() reads from the in-memory registry, NOT this column.
-  -- (R2 blocker 2 fix — config_json is data only, code is authoritative.)
-  config_json         JSONB NOT NULL,
-  -- SHA-256 of canonicalized config_json (R3 S1 fix — see
-  -- canonicalizeSuiteConfig() in §5). registerBuiltInSuites() computes
-  -- the hash; if the existing row has a different hash, the row is
-  -- UPDATED + a console warning is emitted. (R2 blocker 2 fix.)
-  config_hash         TEXT NOT NULL,
-  -- (R3 W3 fix — column renamed from `last_registered_commit` because
-  -- it only updates when the config_hash changes, not on every register.)
-  -- Captures the commit at the most recent hash change for forensics.
-  last_config_hash_change_commit TEXT,
-  created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at          TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE TABLE IF NOT EXISTS test_runs (
-  id                  SERIAL PRIMARY KEY,
-  suite_id            TEXT NOT NULL REFERENCES test_suites(suite_id),
+  -- The probe's logical name. Today: 'phase-variant-comparison'. If a
+  -- second probe shape ships with a different verdict contract, it picks
+  -- a different probe_name (e.g. 'chapter-plan-screen').
+  probe_name          TEXT NOT NULL,
+  -- Captured at probe entry. Used to disambiguate two runs of the same
+  -- probe across different code-paths in the harness (e.g. before vs
+  -- after a writer change). Also satisfies §4.7 code-identity provenance.
+  git_commit          TEXT NOT NULL,
+  -- Optional FK to the tuning_experiments row this run is part of. NULL
+  -- when probe runs ad-hoc without an experiment id.
   experiment_id       INT REFERENCES tuning_experiments(id),
-  git_commit          TEXT NOT NULL,                       -- captured at runSuite() entry
-  -- Snapshot of the fully resolved suite config + selected variant subset
-  -- + selected seed subset + per-seed expected_chapter_count + git commit,
-  -- at run time. v1 readers MUST be tolerant of additive fields (R2
-  -- suggestion 4); a snapshot_version field will be added in v2 if a
-  -- breaking change to the snapshot shape becomes necessary.
-  --
-  -- Required fields (v1):
-  --   suite_id, suite_config_hash, variants, seeds[],
-  --   per_seed: { seed_key, chapter_count, premise_hash, ... },
-  --   gates: { evaluator_id, thresholds }
-  resolved_snapshot   JSONB NOT NULL,
-  status              TEXT NOT NULL,                       -- 'running' | 'complete' | 'failed' | 'cancelled'
-  started_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
-  completed_at        TIMESTAMPTZ,
-  verdict             TEXT,                                -- 'SCREEN-PASS' | 'SCREEN-FAIL (...)' | NULL
+  -- The seeds used in this probe run. For phase-variant-comparison this
+  -- is a single-element array today (`["fantasy-system-heretic"]`); the
+  -- probe could grow to multi-seed without schema change.
+  seeds_used          TEXT[] NOT NULL,
+  -- Variant labels used. Today: ["default", "loud"]. Stored as a small
+  -- JSONB rather than a flat array because each variant carries its
+  -- prompt path, which the probe already records in summary.json.
+  -- Redundant with summary_json -> 'variants' but kept as a dedicated
+  -- column so cheap "which variants did this run cover" queries don't
+  -- need JSONB extraction.
+  variant_labels      TEXT[] NOT NULL,
+  -- The probe's summary.json verbatim. Carries everything the probe
+  -- already records: per-variant outlines, g_metrics
+  -- (facts_median, know_median, state_changes_median, total_beats),
+  -- per-(seed, variant) outline counts, etc. v1 readers tolerate
+  -- additive fields (Codex R2 suggestion 4 still applies even at this
+  -- scope — when the probe gains a new metric, old readers should
+  -- silently skip it).
+  summary_json        JSONB NOT NULL,
+  -- The verdict line produced by print-screen-verdict.ts. Today this is
+  -- one of: 'SCREEN-PASS' | 'SCREEN-FAIL (broken)' | 'SCREEN-FAIL (non-compliant)'.
+  -- Stored as a free-text TEXT column (not an enum) because the probe's
+  -- verdict contract may evolve and a free-text column is forward-compat.
+  verdict             TEXT NOT NULL,
+  ran_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
+  -- Free-text notes the operator can pass via --note='...'. NULL if not
+  -- provided. Useful for ad-hoc context ("first run after V4 Flash swap"
+  -- etc.).
   notes               TEXT
 );
-CREATE INDEX idx_test_runs_suite ON test_runs(suite_id);
-CREATE INDEX idx_test_runs_exp ON test_runs(experiment_id);
-
--- Per-cell row. Replaces R1's variant_novel_ids JSONB on test_runs,
--- which broke for multi-seed (Codex R1 issue 2). One row per
--- (run, seed, variant) cell. Carries first-class runner-state fields
--- the gate evaluator reads (R1 issue 5 + R2 blocker 1 fix — full G4
--- semantics).
-CREATE TABLE IF NOT EXISTS test_run_cells (
-  id                  SERIAL PRIMARY KEY,
-  run_id              INT NOT NULL REFERENCES test_runs(id),
-  seed_key            TEXT NOT NULL,                       -- 'fantasy-system-heretic'
-  variant_label       TEXT NOT NULL,                       -- 'default' | 'loud' | ...
-  novel_id            UUID NOT NULL,                       -- the cloned-from-concept-done novel for this cell
-  cell_status         TEXT NOT NULL,                       -- 'pending' | 'running' | 'phase-complete' | 'phase-failed'
-  -- G4 (structural validity) parity fields. v1 gate evaluator reads:
-  --   G4 := phase_result_kind = 'complete'
-  --       AND outline_parse_ok = TRUE
-  --       AND outline_count = (test_runs.resolved_snapshot ->>
-  --                             ('per_seed.' || seed_key || '.chapter_count'))::int
-  -- (R2 blocker 1 fix — expected_chapter_count source is the per-seed
-  -- snapshot field captured in resolved_snapshot at runSuite() entry.)
-  phase_result_kind   TEXT,                                -- 'complete' | 'paused' | NULL on crash
-  outline_parse_ok    BOOLEAN,                             -- did all chapter outlines schema-validate?
-  outline_count       INT,                                 -- N produced (compared to expected_chapter_count)
-  error_text          TEXT,
-  started_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
-  completed_at        TIMESTAMPTZ,
-  UNIQUE(run_id, seed_key, variant_label)
-);
-CREATE INDEX idx_test_cells_run ON test_run_cells(run_id);
-
--- Per-(cell, metric) row. NO artifact_ref to eval_results in v1.
--- v2 adds an artifact-set abstraction (Codex R1 issue 3 — needs design).
-CREATE TABLE IF NOT EXISTS test_metric_results (
-  id                  SERIAL PRIMARY KEY,
-  cell_id             INT NOT NULL REFERENCES test_run_cells(id),
-  metric_name         TEXT NOT NULL,                       -- registry-resolved name
-  -- v1 metrics are integer counts (facts_median, know_median, total_beats
-  -- — all from chapter_outlines.outline_json field counts). Stored as
-  -- NUMERIC(12,4) for forward-compat; v1 gate evaluator compares with
-  -- exact equality (acceptance contract — R2 warning 2 fix).
-  -- Future non-integer metrics declare per-metric tolerance at metric
-  -- definition time; the gate evaluator reads it from the metric registry.
-  numeric_value       NUMERIC(12,4),
-  raw_value           JSONB,                               -- structured detail (per-chapter breakdown etc.)
-  error_text          TEXT,
-  created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE(cell_id, metric_name)
-);
-CREATE INDEX idx_test_metric_cell ON test_metric_results(cell_id);
+CREATE INDEX idx_phase_eval_runs_probe ON phase_eval_runs(probe_name);
+CREATE INDEX idx_phase_eval_runs_exp ON phase_eval_runs(experiment_id);
+CREATE INDEX idx_phase_eval_runs_ran ON phase_eval_runs(ran_at DESC);
 ```
 
 ### Why this shape
 
-- **Code is the single source of truth for suite definitions (R2 blocker 2 + R3 W3 fix).** Suite definitions live in `src/harness/suites/<suite-id>.ts` files. `defineSuite(id, def)` is **sync** — it ONLY updates the in-memory registry. The async write-through to `test_suites` table happens in `registerBuiltInSuites()` (see §5 bootstrap). `runSuite()` reads from the in-memory registry, NEVER `test_suites.config_json`. The DB row exists for audit/cross-machine inspection only.
+- **Probe is the source of truth (R5 cheapest counterfactual).** The probe already builds an in-memory `summary` object and writes it to disk as `summary.json`. The persistence helper reads that same object from memory at the END of the probe's run and INSERTs one row. There is NO second computation, NO normalization, NO re-parsing of probe output — the row is byte-for-byte the probe's own output.
 
-- **`config_hash` detects DATA-CONFIG drift only (R4 W1 fix).** `registerBuiltInSuites()` SHA-256s the canonicalized config (see `canonicalizeSuiteConfig()` in §5). The hash covers `{variants[label, promptOverrides], seedSet, metric names + tolerances, gate evaluator id, gate thresholds}`. It does NOT cover code identity — metric `impl` function bodies and the gate evaluator's source are deliberately excluded. If the existing DB row has a different hash, the row is UPDATED + a console warning is emitted ("suite phase-variant-loud-rider-v2 redefined since prior register; check git log for the suite file"). The `last_config_hash_change_commit` column captures the git commit at the hash change for forensics; it does NOT update on no-op registration calls.
+- **Why `summary_json` is JSONB, not normalized columns.** Three reasons. (1) The probe is the contract; if it adds a 5th G-metric tomorrow, the row reads the new metric for free without a schema migration. (2) Cross-run JSONB queries are ergonomic at this volume — single-digit rows per week. (3) When/if cross-run analysis becomes painful, that IS the §0 promotion-gate trigger to normalize into a per-(run, metric) table.
 
-  **Code-identity provenance** lives separately at `test_runs.git_commit`, captured at `runSuite()` entry. A code-only change to a metric impl with no surface change shows as identical `config_hash` but different `git_commit`; the parity-test CI guard (§6) catches behavior drift even when the data-config hash is unchanged. This is the documented split: data-config drift is row-level, code-identity drift is run-level.
+- **Why `verdict` is free-text, not enum.** The probe's verdict contract may evolve. A free-text column lets the probe add a verdict variant ("SCREEN-MARGINAL" etc.) without a migration. Today the contract is `{SCREEN-PASS | SCREEN-FAIL (broken) | SCREEN-FAIL (non-compliant)}`; tomorrow it may differ.
 
-- **`test_runs.resolved_snapshot`** stores the full resolved config (all variant prompt paths copied verbatim, all metric impls resolved to their registry ID, all gate predicates resolved to their evaluator ID) at run-time, PLUS per-seed `chapter_count` (sourced from the seed's `chapterCount` field at `runSuite()` entry). This is the immutable record the autonomous-context-loop will eventually consume. v1 readers MUST be tolerant of additive fields (R2 suggestion 4); a `snapshot_version` field will be introduced in v2 if a non-additive shape change is ever needed.
+- **Why `git_commit` (Codex R5 W1 fix).** Code-identity provenance. Two runs of the same probe at different commits may produce different metric values; the row pins both to the row. This satisfies `experiment-design-rules.md §4.7`'s code-identity hook even though §4.7 doesn't strictly apply (probe is unchanged; "Pure evaluation task" exemption — see §6).
 
-- **`test_run_cells` normalizes the (seed, variant) matrix.** Multi-seed support is free — `test_run_cells` rows multiply across the matrix. v1 only uses one seed per run, but the schema doesn't constrain that. Codex R1 issue 2 fix.
+- **Why `seeds_used` and `variant_labels` are dedicated columns despite being also in `summary_json`.** Cheap top-level filter without JSONB extraction. `SELECT * FROM phase_eval_runs WHERE 'fantasy-system-heretic' = ANY(seeds_used)` beats a JSONB navigation by a non-trivial multiplier and is more readable.
 
-- **`test_run_cells` runner-state fields fully specify G4 (R2 blocker 1 fix)**. The G4 predicate IS:
-  ```
-  G4(cell, run) := cell.phase_result_kind = 'complete'
-                AND cell.outline_parse_ok = TRUE
-                AND cell.outline_count = expected_chapter_count(cell, run)
-  expected_chapter_count(cell, run) :=
-    (run.resolved_snapshot -> 'per_seed' -> cell.seed_key ->> 'chapter_count')::int
-  ```
-  The gate evaluator reads `cell.outline_parse_ok = true` AND `cell.outline_count = expected_chapter_count` AND `cell.phase_result_kind = 'complete'`. All three conditions must hold. A partial-but-parseable run (e.g., 2 of 3 chapters complete) FAILS G4 because `outline_count = 2 ≠ expected = 3`.
+- **No suite registry, no canonical-config hash, no bootstrap edge.** The probe's prompt-override paths are passed at the CLI; if the operator changes them, that's a different invocation that produces a different `summary_json`. There is no second runtime that needs to know "what is the canonical config for this probe at commit X" — the answer is "read the probe's source at commit X." Code IS the source of truth without a registry.
 
-- **No `artifact_ref`** in v1's `test_metric_results`. v2 adds an artifact-set abstraction when `eval_results` composition is actually needed. Codex R1 issue 3: don't ship a half-designed pointer that won't survive its first real use.
+- **No `test_run_cells`, no per-(seed, variant) normalized rows.** The probe today uses a single seed and produces ONE verdict line. If that grows to N seeds × M variants with per-cell verdicts, the §0 promotion-gate trigger fires (specifically: "test_runs.verdict singular vs per-(run, seed) plurality" — Codex R5 W1). Until then, JSONB navigation handles cross-cell drilldown for free.
 
-- **Numeric-parity contract (R2 warning 2 + R3 W2 + R4 W2 fix)**: v1 metrics are derived from `chapter_outlines.outline_json` field-count operations. `total_beats` is integer by construction. `facts_median` and `know_median` are NOT guaranteed integer — when `chapter_count` is even, the median averages the middle pair and produces halves. Storage is `NUMERIC(12,4)`; the canonical acceptance contract is **exact numeric equality at the metric's declared scale** (NUMERIC(12,4) round-trip equality, NOT integer equality). The 2026-04-29 known-good run was on a 3-chapter seed (odd count, no averaging), so v1 acceptance values land on integer boundaries — incidental, not a general rule. Future non-integer metrics (e.g., voice-shape distance) declare per-metric tolerance at definition time:
-  ```ts
-  { name: 'voice_shape_distance', impl: ..., tolerance: 0.0001 }
-  ```
-  The gate evaluator reads `tolerance` from the metric registry; if absent, exact-at-declared-scale equality is assumed.
+### Why NOT pretend to compose with `eval_briefs` / `eval_results`
 
-### Why NOT touch `eval_briefs` / `eval_results` in v1
+`eval_briefs` is per-beat single-shot generation. v1 is full-pipeline variant comparison persistence. Different problem. Codex R1 issue 3: composition between them needs an artifact-set abstraction; v1 doesn't pretend to compose. The §0 promotion-gate trigger for that consumer (LLM-judge or human-rating attaching to per-cell artifacts) explicitly defers it.
 
-`eval_briefs` is per-beat single-shot generation. v1 is full-pipeline variant comparison. Different problem. Composition between them needs an artifact-set abstraction (Codex R1 issue 3 suggested fix). v2 designs that abstraction with concrete use cases in front of it (e.g., voice-shape-distance metric over an ablation arm's beats). v1 doesn't pretend to compose.
+### Why §4.7 doesn't apply (Codex R5 B2 fix)
 
-### Why no `test_human_ratings` in v1
+`experiment-design-rules.md §4.7` requires a request-construction parity harness when an experiment "modifies code that produces the request bytes a live production LLM call also emits." R6 modifies NO production code. The probe stays as-is; the persistence helper reads the probe's existing in-memory output and writes a row. No agent prompt, no `callAgent` wrapper, no transport layer is touched.
 
-v1 acceptance is "produce the same SCREEN-PASS verdict as the existing probe." That is a deterministic test, no human in the loop. Human ratings need a UI to be useful, which v1 doesn't have. Both are v2.
+The §4.7 explicit-not-applicable category that applies here: **"Pure evaluation task — experiment only reads existing data / runs offline scoring; no new production-shape request is constructed."** R6 lands strictly inside that exemption.
 
-## 4. Variant runner (R3 — minimal, no new abstraction)
+If a future v2 reintroduces a service-layer module that REWRITES `runSuite()` orchestration around `runPlanningPhase` (the R5 design's actual production-code rewrite), THAT future v2 design must add a §4.7 request-construction parity harness. R6 does not, because R6 doesn't.
 
-The phase-variant probe already works. v1's runner reuses its child-process pattern verbatim:
+## 4. Probe runner (R6 — UNCHANGED)
 
-- Existing `src/agents/planning-beats/index.ts:6-8` env-var seam stays UNCHANGED. (R2 warning 1 fix — `_loader.ts` was v2-shaped abstraction pressure; cut from v1.)
-- No agent module is touched in v1. Codex R1 issue 4: heterogeneous prompt-loading sites (writer's primer composition, halluc-*'s readFileSync, continuity/tonal-pass's outside-of-index loaders) are v2's problem when a second agent needs an env-var seam.
-- v2 will introduce a shared `loadPrompt(defaultPath, envVar)` helper at the point where two or more agents need it; the abstraction is unjustified at one consumer.
+The probe at `scripts/phase-eval/probe-planning-beats.ts` is unchanged in v1. It still:
 
-`scripts/eval-test/run-variant.ts` is a thin wrapper over the existing `scripts/phase-eval/run-variant.ts` shape:
-- Reads suite-resolved config from a temp file (parent → child handoff).
-- Sets `PLANNING_BEATS_PROMPT_OVERRIDE` env var per variant.
-- Calls `runPlanningPhase(novelId)`.
-- Writes outline output + cell-status fields (`phase_result_kind`, `outline_parse_ok`, `outline_count`, `error_text`) to a JSON file the parent reads.
+- Spawns concept once → clones per variant → spawns child process per variant with the env var pre-set → aggregates per-variant `outlines.json` into `summary.json` (per `docs/decisions.md` 2026-04-XX entry).
+- Uses the existing `src/agents/planning-beats/index.ts:6-8` env-var seam UNCHANGED.
+- Produces the same stdout, the same `summary.json` file, the same exit code as today.
 
-Per Codex R1 warning 6, the v1 runner adopts the SHIPPED probe shape (argv for novel/output + env for prompt override) as authoritative. The chartered "larger env-var bundle" version (per `phase-variant-comparison.md` §"Runner") is NOT implemented; the chartered text is updated post-v1 to reflect the actual shipped contract.
+The ONLY change to the probe is a single new flag — `--persist` — which (when set) calls a small write helper at the END of the probe's run, AFTER `summary.json` has been written and the verdict line has been printed. See §5.
 
-### Concept-cache scoping (Codex R1 warning 2 fix)
+### Process-isolation rationale (carried over from prior revisions)
 
-`runSuite()` mints a fresh concept-done snapshot per (run, seed) — same behavior as `scripts/phase-eval/probe-planning-beats.ts:140-143`. There is NO global cache. If a future suite wants to share concepts across runs, that's a v2+ optimization.
+Unchanged: module-level prompt cache + global `currentRunId` + global transport mean each variant runs in its own child process. The phase-variant-comparison charter §"Why child processes" already established this; v1 doesn't touch any of it.
 
-### Process-isolation rationale
+## 5. Persistence helper (R6 — minimal, in-tree)
 
-Unchanged from R1 §4: module-level prompt cache + global `currentRunId` + global transport mean each variant runs in its own child process. The phase-variant-comparison charter §"Why child processes" already established this; v1 doesn't relitigate.
-
-## 5. Service layer (R5 — code-authoritative, single-flight bootstrap, total-function gate evaluator)
-
-`src/harness/eval-tests.ts`:
+The persistence helper lives in `scripts/phase-eval/persist-run.ts` (NOT under `src/harness/` — there is no service-layer module in v1; see §0). It exports one function:
 
 ```ts
-type SuiteDefinition = {
-  variants: { label: string; promptOverrides: { 'planning-beats': string } }[]
-  seedSet: string[]                                 // v1: always single-element
-  metrics: { name: string; impl: MetricFn; tolerance?: number }[]   // code-registered
-  gates: GateDefinition                             // code-registered ordered predicate table
+import { sql } from "../../src/db"
+
+type PersistRunInput = {
+  probeName: string
+  gitCommit: string
+  experimentId?: number | null
+  seedsUsed: string[]
+  variantLabels: string[]
+  summaryJson: unknown                            // the probe's in-memory summary object
+  verdict: string                                 // the verdict line print-screen-verdict.ts produced
+  notes?: string | null
 }
 
-type MetricFn = (ctx: MetricCtx) => Promise<MetricResult>
-type MetricCtx = { novelId: string; seedKey: string; variant: string; db: typeof Bun.sql }
-type MetricResult = { numericValue?: number; rawValue?: any; errorText?: string }
-
-type GateDefinition = {
-  evaluator: 'phase-variant-screen-v1'              // named evaluator from a code registry
-  thresholds: Record<string, number>                // e.g. { facts_median_floor: 8, facts_median_ratio: 1.5, ... }
-}
-
-// Module-scope registry. CODE IS THE SOURCE OF TRUTH (R2 blocker 2 fix).
-// test_suites table is a write-through mirror; runSuite() reads from this
-// in-memory registry, never from test_suites.config_json.
-const SUITE_REGISTRY: Record<string, SuiteDefinition> = {}
-let BOOTSTRAPPED = false
-// R4 W3 fix: in-flight bootstrap promise so concurrent callers race to the
-// SAME promise instead of each kicking off a duplicate write batch.
-let BOOTSTRAP_INFLIGHT: Promise<void> | null = null
-
-export function defineSuite(id: string, def: SuiteDefinition): void {
-  SUITE_REGISTRY[id] = def
-  // Async write-through to test_suites table happens in registerBuiltInSuites()
-  // batch at bootstrap time, NOT here (defineSuite() is sync).
-}
-
-export function assertBootstrapped(): void {
-  if (!BOOTSTRAPPED) throw new Error("eval-tests: registerBuiltInSuites() not called")
+export async function persistPhaseEvalRun(input: PersistRunInput): Promise<number> {
+  const [{ id }] = await sql`
+    INSERT INTO phase_eval_runs (
+      probe_name, git_commit, experiment_id,
+      seeds_used, variant_labels,
+      summary_json, verdict, notes
+    ) VALUES (
+      ${input.probeName}, ${input.gitCommit}, ${input.experimentId ?? null},
+      ${input.seedsUsed}, ${input.variantLabels},
+      ${JSON.stringify(input.summaryJson)}::jsonb,
+      ${input.verdict},
+      ${input.notes ?? null}
+    )
+    RETURNING id
+  `
+  return id
 }
 ```
 
-### Bootstrap edge (R2 warning 3 + R3 S2 fix — ensureBootstrapped helper for non-CLI callers)
-
-`defineSuite()` registration is side-effect-import-driven, but the entry point is explicit:
+The probe entry point (`scripts/phase-eval/probe-planning-beats.ts`) gains a flag:
 
 ```ts
-// src/harness/suites/index.ts — the bootstrap edge
-import "./phase-variant-loud-rider-v2"     // each suite file calls defineSuite() at top level
-// Future v2 suites added here.
-
-export async function registerBuiltInSuites(): Promise<void> {
-  if (BOOTSTRAPPED) return                      // idempotent (R3 S2 fix)
-  for (const [id, def] of Object.entries(SUITE_REGISTRY)) {
-    const configJson = JSON.stringify(canonicalizeSuiteConfig(def))
-    const configHash = sha256(configJson)
-    await db`
-      INSERT INTO test_suites (suite_id, description, config_json, config_hash, last_config_hash_change_commit)
-      VALUES (${id}, ${def.description ?? null}, ${configJson}::jsonb, ${configHash}, ${currentCommitSha()})
-      ON CONFLICT (suite_id) DO UPDATE SET
-        config_json = EXCLUDED.config_json,
-        config_hash = EXCLUDED.config_hash,
-        last_config_hash_change_commit = EXCLUDED.last_config_hash_change_commit,
-        updated_at = now()
-      WHERE test_suites.config_hash != EXCLUDED.config_hash
-      RETURNING (xmax = 0) AS inserted
-    `
-    // ON CONFLICT log a warning if config drifted; otherwise silent.
-  }
-  BOOTSTRAPPED = true
-}
-
-// R3 S2 + R4 W3 fix — non-CLI helper, single-flight under concurrent calls.
-// Tests, future server routes, and any other caller that doesn't go through
-// scripts/eval-test/run.ts can call this to ensure the bootstrap has run.
-// Concurrent callers race to read the SAME in-flight promise instead of each
-// kicking off a duplicate registerBuiltInSuites() write batch.
-export async function ensureBootstrapped(): Promise<void> {
-  if (BOOTSTRAPPED) return
-  if (BOOTSTRAP_INFLIGHT) {                     // a prior call is still running; await its promise
-    await BOOTSTRAP_INFLIGHT
-    return
-  }
-  BOOTSTRAP_INFLIGHT = registerBuiltInSuites()
-    .finally(() => { BOOTSTRAP_INFLIGHT = null })
-  await BOOTSTRAP_INFLIGHT
+// At the END of probe execution, after summary.json + verdict are produced:
+if (args.persist) {
+  const { persistPhaseEvalRun } = await import("./persist-run")
+  const runId = await persistPhaseEvalRun({
+    probeName: "phase-variant-comparison",
+    gitCommit: await currentGitCommit(),         // existing helper or `git rev-parse HEAD`
+    experimentId: args.expId ?? null,
+    seedsUsed: [args.seed],                      // single-element today
+    variantLabels: variants.map(v => v.label),   // already in scope
+    summaryJson: summary,                         // the in-memory object that was just written to disk
+    verdict: verdictLine,                         // the line printed by print-screen-verdict.ts
+    notes: args.note ?? null,
+  })
+  console.error(`[probe] persisted as phase_eval_runs.id=${runId}`)
 }
 ```
 
-### `canonicalizeSuiteConfig()` shape (R3 S1 fix)
+That is the entire service layer. Three things to note:
 
-Pure data shape. Sorted-key JSON serialization is sufficient for this internal hash surface; full RFC 8785 JCS is unnecessary.
+1. **No new src/ module.** The helper is colocated with the probe under `scripts/phase-eval/` because it serves exactly one caller. If a second probe materializes (the §0 promotion-gate trigger), the helper moves to `src/harness/eval-tests.ts` AT THAT MOMENT — not pre-emptively.
+2. **No bootstrap edge.** `persistPhaseEvalRun()` is called explicitly at probe end. Nothing imports it as a side-effect; nothing needs to be "registered."
+3. **No verdict computation here.** The helper takes `verdict` as a free-text string — `print-screen-verdict.ts` already produced it. There is no gate evaluator in v1.
 
-```ts
-function canonicalizeSuiteConfig(def: SuiteDefinition): CanonicalConfig {
-  return {
-    variants: def.variants
-      .map(v => ({ label: v.label, promptOverrides: sortedKeys(v.promptOverrides) }))
-      .sort((a, b) => a.label.localeCompare(b.label)),
-    seedSet: [...def.seedSet].sort(),
-    metrics: def.metrics
-      .map(m => ({ name: m.name, tolerance: m.tolerance ?? null }))   // NO impl reference; metric impl resolution is a runtime concern
-      .sort((a, b) => a.name.localeCompare(b.name)),
-    gates: {
-      evaluator: def.gates.evaluator,
-      thresholds: sortedKeys(def.gates.thresholds),
-    },
-  }
-}
-```
-
-Two suites with the same canonical config but different metric `impl` functions are treated as **the same suite for hashing purposes**. The metric registry resolves `name` → `impl` at runtime; if two source files register different impls under the same name, that's a bug caught by the metric registry's own duplicate check, NOT by `config_hash`.
-
-`scripts/eval-test/run.ts` calls `ensureBootstrapped()` at startup. Tests and any future non-CLI callers do the same.
+### CLI reader (`scripts/phase-eval/list-runs.ts`)
 
 ```ts
-export async function runSuite(id: string, opts: RunOptions): Promise<TestRunId> {
-  assertBootstrapped()                            // alternative: await ensureBootstrapped() if caller is willing to pay the once-per-process cost
-  const def = SUITE_REGISTRY[id]
-  if (!def) throw new Error(`eval-tests: unknown suite '${id}' — registered suites: ${Object.keys(SUITE_REGISTRY).join(', ')}`)
-
-  // R3 W1 fix — fail fast if any selected seed lacks a finite chapterCount.
-  // SeedInput.chapterCount is optional in the schema but G4 requires it;
-  // refusing the run early is better than producing an undefined verdict.
-  for (const seedKey of opts.seeds ?? def.seedSet) {
-    const seed = await loadSeed(seedKey)
-    if (!Number.isFinite(seed.chapterCount)) {
-      throw new Error(`eval-tests: seed '${seedKey}' has no finite chapterCount; v1 suites require it for G4 evaluation`)
-    }
-  }
-
-  // ... orchestration: build resolved_snapshot (incl. per-seed chapter_count),
-  //     insert test_runs row, fan out cells, spawn child per (seed × variant),
-  //     collect outputs, run metric impls, build cellsByVariant +
-  //     metricsByVariant, evaluate gates per-(run, seed), write verdict.
-}
-
-export async function getRunResults(runId: number): Promise<TestRunResults> { ... }
+const args = parseArgs()                            // --probe=... --limit=...
+const rows = await sql`
+  SELECT id, probe_name, git_commit, experiment_id,
+         seeds_used, variant_labels, verdict, ran_at, notes
+  FROM phase_eval_runs
+  WHERE (${args.probe ?? null}::text IS NULL OR probe_name = ${args.probe ?? null})
+  ORDER BY ran_at DESC
+  LIMIT ${args.limit ?? 20}
+`
+console.table(rows)
 ```
 
-Gate evaluators live in `src/harness/eval-test-gates.ts` as a registry. **R3 blocker 1 + R4 B1 fix: signature is variant-keyed AND the evaluator is a TOTAL function over its declared input domain.** `runSuite()` calls each evaluator ONCE PER (run, seed), passing a `cellsByVariant` map and a `metricsByVariant` map (both keyed by variant label). Output is the per-(run, seed) verdict.
+That is the CLI reader. ~20 lines. Detailed-row inspection uses the DB directly (`bun -e "..."` or `psql`) — no need for a richer CLI in v1.
 
-The R4 verdict found that `phase-variant-screen-v1` was reading `cellsByVariant.loud.seed_key` and `metricsByVariant.*.loud/default` BEFORE the broken-path guard — so `loud=undefined` (variant-cell crashed) or a missing metric (NaN from a failed impl) would throw `TypeError: cannot read properties of undefined` instead of returning `SCREEN-FAIL (broken)` cleanly. R5's evaluator runs the broken-path guard FIRST and dereferences only after.
+### What's explicitly NOT in the v1 service layer
 
-```ts
-type CellState = { phase_result_kind: string | null; outline_parse_ok: boolean | null;
-                   outline_count: number | null; seed_key: string }
-type MetricByVariant = Record<string, number | undefined>   // { default: 5, loud: 8 } — undefined if metric impl errored
-type GateInputs = {
-  cellsByVariant: Record<string, CellState | undefined>     // { default: <cell>, loud: <cell|undefined> }
-  run: { resolved_snapshot: any }                            // for expected_chapter_count
-  metricsByVariant: Record<string, MetricByVariant>          // { facts_median: { default, loud }, ... }
-  thresholds: Record<string, number>
-}
-type Verdict = 'SCREEN-PASS' | 'SCREEN-FAIL (non-compliant)' | 'SCREEN-FAIL (broken)'
+- `defineSuite()` / suite registry / `runSuite()` orchestrator. v2 only.
+- Gate evaluator registry / `phase-variant-screen-v1` total function. The probe's `print-screen-verdict.ts` already produces the verdict; v1 stores it as a string. The R3-R5 polish around variant-keyed signatures, broken-path guards, and total-function semantics is moot at this scope.
+- `canonicalizeSuiteConfig()` / `config_hash` / `last_config_hash_change_commit`. There IS no canonical config to hash — the probe's prompt-override paths are CLI args, recorded verbatim in `summary_json`. R3-R5 polish moot.
+- `ensureBootstrapped()` / single-flight promise / `assertBootstrapped()`. There IS no bootstrap to enforce. R5 polish moot.
+- `compareRuns()` / `submitHumanRating()` / LLM-judge orchestration / `eval_results` composition. v2 only, gated by §0.
 
-export const GATE_EVALUATORS = {
-  'phase-variant-screen-v1': ({ cellsByVariant, run, metricsByVariant, thresholds }: GateInputs): Verdict => {
-    // R4 B1 fix — TOTAL function. Broken-path guard runs FIRST. Returns
-    // SCREEN-FAIL (broken) on ANY missing precondition without throwing.
-    // Order matters: do all reads via optional-chain / typeof checks
-    // before any plain dereference.
+### R5→R6 retrospective (preserved for audit trail)
 
-    const loudCell = cellsByVariant.loud
-    if (!loudCell) return 'SCREEN-FAIL (broken)'                        // variant cell crashed before any state was written
-    if (loudCell.phase_result_kind !== 'complete') return 'SCREEN-FAIL (broken)'
-    if (loudCell.outline_parse_ok !== true) return 'SCREEN-FAIL (broken)'
-    if (typeof loudCell.outline_count !== 'number') return 'SCREEN-FAIL (broken)'
+R1–R5 polished a service-layer module under `src/harness/eval-tests.ts` with: a code-registered suite registry (`defineSuite()` / `SUITE_REGISTRY`); a write-through mirror in `test_suites` with `config_hash` drift detection; a `runSuite()` orchestrator that built a `resolved_snapshot` and fanned out cells; a per-`(run, seed)` variant-keyed gate evaluator (`phase-variant-screen-v1`) that ran a total-function broken-path guard before computing G1/G2/G3 ratios; an `ensureBootstrapped()` helper memoizing an in-flight bootstrap promise; a `canonicalizeSuiteConfig()` pure-data-shape sorter; a parity test comparing `Number(x).toFixed(4)` strings.
 
-    const perSeed = run.resolved_snapshot?.per_seed?.[loudCell.seed_key]
-    const expected = perSeed?.chapter_count
-    if (typeof expected !== 'number') return 'SCREEN-FAIL (broken)'     // snapshot missing or malformed
+Every piece of that machinery was justified internally — but Codex R5 attacked the LEVEL not the SHAPE: against the criterion in `decisions.md` ("the probe is the canonical first instrument before committing to harness changes"), the entire module was a higher-cost lever without a stated promotion gate. The cheapest counterfactual was to keep the probe as the runner and add a tiny result index. R6 takes that.
 
-    if (loudCell.outline_count !== expected) return 'SCREEN-FAIL (broken)'
+The R5 design sketch is preserved at git commit `3a1effd` (one revision back) for the day a §0 promotion-gate trigger fires.
 
-    // All G4 conditions held. The default cell's structural validity is
-    // reported in run-level telemetry but does NOT gate the verdict —
-    // phase-variant-comparison.md §"Decision criteria" makes G4 loud-specific.
-
-    // G1/G2/G3: inter-variant ratios + floors. Both variant metric values
-    // must be finite numbers; if either metric impl errored, treat as broken.
-    const fmL = metricsByVariant.facts_median?.loud
-    const fmD = metricsByVariant.facts_median?.default
-    const kmL = metricsByVariant.know_median?.loud
-    const kmD = metricsByVariant.know_median?.default
-    const tbL = metricsByVariant.total_beats?.loud
-    const tbD = metricsByVariant.total_beats?.default
-    if (![fmL, fmD, kmL, kmD, tbL, tbD].every(v => typeof v === 'number' && Number.isFinite(v))) {
-      return 'SCREEN-FAIL (broken)'
-    }
-
-    const G1 = fmL! >= thresholds.facts_median_floor
-            && fmL! >= thresholds.facts_median_ratio * fmD!
-    const G2 = kmL! >= thresholds.know_median_floor
-            && kmL! >= thresholds.know_median_ratio * kmD!
-    const G3 = tbL! >= thresholds.total_beats_ratio * tbD!
-
-    // Ordered predicate table (verdict ordering belongs to evaluator
-    // identity; a different ordering = a different evaluator id):
-    if (!(G1 && G2 && G3)) return 'SCREEN-FAIL (non-compliant)'
-    return 'SCREEN-PASS'
-  },
-}
-```
-
-The evaluator's input domain is `{cellsByVariant: {default, loud?}, run, metricsByVariant: {facts_median, know_median, total_beats}, thresholds}` where every leaf is potentially `undefined`. Every read on any potentially-`undefined` field uses optional-chain or a `typeof` check; every guard miss returns `SCREEN-FAIL (broken)` immediately. The result: no `TypeError` propagates out of the evaluator regardless of what the variant runners or metric impls did or didn't produce. The unit tests in M2 (§7) include synthetic inputs covering: `loud` cell missing, `phase_result_kind='paused'`, `outline_parse_ok=false`, `outline_count=null`, `resolved_snapshot.per_seed.<seed>` missing, individual metric values `undefined`/`NaN`, and the happy path.
-
-Future suites with different verdict-table ORDERING add their own evaluator to this registry (per R2 suggestion 1 — verdict ordering belongs to the evaluator identity, not parameterized). Future suites with the same ordering but different thresholds reuse `phase-variant-screen-v1` with different `config_json.thresholds` values.
-
-### What's NOT in the service layer (R3 — same as R2)
-
-- `compareRuns()` — v2.
-- `submitHumanRating()` — v2.
-- LLM-judge orchestration — v2.
-- Resume support — v2.
-- `eval_results` composition — v2.
-
-## 6. Migration of phase-variant-comparison (the v1 acceptance test)
+## 6. Acceptance test (R6)
 
 Step-by-step:
 
-1. Define the suite in code (`src/harness/suites/phase-variant-loud-rider-v2.ts`):
-   ```ts
-   import { defineSuite } from '../eval-tests'
-   import { factsMedian, knowMedian, totalBeats } from '../metrics/phase-variant'
-
-   defineSuite('phase-variant-loud-rider-v2', {
-     variants: [
-       { label: 'default', promptOverrides: { 'planning-beats': 'scripts/phase-eval/variants/planning-beats/default.md' } },
-       { label: 'loud',    promptOverrides: { 'planning-beats': 'scripts/phase-eval/variants/planning-beats/loud.md' } },
-     ],
-     seedSet: ['fantasy-system-heretic'],
-     // R3: integer metrics only. No tolerance specified → exact equality.
-     metrics: [
-       { name: 'facts_median', impl: factsMedian },        // moved from print-screen-verdict.ts
-       { name: 'know_median',  impl: knowMedian },
-       { name: 'total_beats',  impl: totalBeats },
-     ],
-     gates: {
-       evaluator: 'phase-variant-screen-v1',
-       thresholds: { facts_median_floor: 8, facts_median_ratio: 1.5, know_median_floor: 3, know_median_ratio: 1.5, total_beats_ratio: 1.10 },
-     },
-   })
-   ```
-   Bootstrap edge: `src/harness/suites/index.ts` imports this file. `scripts/eval-test/run.ts` calls `registerBuiltInSuites()` at startup, which UPSERTs the row in `test_suites` (with hash drift detection).
-2. Run via CLI:
+1. Run the existing probe end-to-end with `--persist`:
    ```sh
-   bun scripts/eval-test/run.ts phase-variant-loud-rider-v2 --seed=fantasy-system-heretic
+   bun scripts/phase-eval/probe-planning-beats.ts \
+     --seed=fantasy-system-heretic \
+     --variants=default,loud \
+     --persist \
+     --note="R6 acceptance run"
    ```
-3. Compare verdict + metric values against the existing probe's known good 2026-04-29 run output (preserved in `docs/sessions/2026-04-29-phase-eval-probe.md`).
-4. **Acceptance — exact numeric equality at declared scale, compared as 4-decimal strings (R3 W2 + R4 S1 fix)**: `verdict='SCREEN-PASS'` AND `facts_median.toFixed(4)==='8.0000'` AND `know_median.toFixed(4)==='5.0000'` AND `total_beats.toFixed(4)==='43.0000'`. The canonical numeric-parity rule for v1 is **exact equality at the metric's declared scale** (`NUMERIC(12,4)` for all v1 metrics). To sidestep IEEE 754 hazards on the JS round-trip from `Bun.sql` even though `NUMERIC(12,4)` would round-trip cleanly, the parity test compares `Number(x).toFixed(4)` strings rather than raw JS numbers. The 2026-04-29 known-good run was on a 3-chapter seed (odd), so all v1 metric values land on integer boundaries (`8.0000` etc.) — but this is incidental, not a general rule. Future seeds with even chapter counts produce halves (`facts_median.toFixed(4)==='7.5000'` is valid); the string-equality rule still holds at NUMERIC scale.
+2. Verify the probe's stdout, exit code, and `summary.json` file output are byte-identical to a baseline run WITHOUT `--persist`. Specifically: the verdict line in stdout reads `SCREEN-PASS`, the `summary.json` matches the 2026-04-29 known-good values (`facts_median=8`, `know_median=5`, `state_changes_median=...`, `total_beats=43` — all four G-metrics, NOT the three the R5 design migrated; Codex R5 W2 fix).
+3. Verify exactly one row landed in `phase_eval_runs`:
+   ```sql
+   SELECT id, probe_name, git_commit, seeds_used, variant_labels, verdict
+   FROM phase_eval_runs
+   ORDER BY ran_at DESC
+   LIMIT 1;
+   ```
+   The row's `probe_name='phase-variant-comparison'`, `seeds_used={fantasy-system-heretic}`, `variant_labels={default,loud}`, `verdict='SCREEN-PASS'`, `summary_json -> 'g_metrics' -> 'facts_median' = '8'::jsonb`.
+4. Run the CLI reader and verify it returns the row:
+   ```sh
+   bun scripts/phase-eval/list-runs.ts --probe=phase-variant-comparison --limit=1
+   ```
 
-If acceptance passes, the bespoke `scripts/phase-eval/probe-planning-beats.ts` + `print-screen-verdict.ts` files are KEPT in place with a docstring header pointing to the new module (`src/harness/suites/phase-variant-loud-rider-v2.ts`). Per Codex R2 suggestion 5, docstring redirect is sufficient — no `archive/` move needed for v1.
+If acceptance passes, no further migration work is needed. The probe stays the source of truth; the row stays as a queryable mirror.
 
-**Required CI guard (R3 W4 + R4 S1 fix)**: `tests/eval-test-parity.test.ts` runs both the old probe and the new module against `fantasy-system-heretic` and asserts equal verdict + equal `Number(metric).toFixed(4)` strings for each registered metric. **REQUIRED at PR time** (was "optional" in R3 — the module's stated purpose is "same verdict on same input," and this subsystem already saw spec/implementation drift in R3's own pseudocode; an optional parity test is too weak). String comparison sidesteps IEEE 754 round-trip hazards even though `NUMERIC(12,4)` would round-trip cleanly through `Bun.sql`. Cost: ~2× one probe run = ~$0.20 per CI invocation. Acceptable for PR-level CI; nightly is a fallback if PR cost is unacceptable.
+**Why no §4.7 parity harness:** R6 doesn't rewrite any production code path. The persistence helper reads the probe's existing in-memory `summary` object and writes a row. Per `experiment-design-rules.md §4.7` "Pure evaluation task" exemption, no request-construction parity harness is required. (The earlier R5 design DID rewrite the runner around `runPlanningPhase`; that design's missing parity harness was a Codex R5 blocker. R6 sidesteps the rewrite, so the harness is moot.)
 
-## 7. v1 implementation slices (R3 — M1 cut)
+**Smoke test (in tests/):** `tests/persist-phase-eval-run.test.ts` (~30 lines) — calls `persistPhaseEvalRun()` with a fixture summary, then `SELECT`s the row back and asserts every column round-tripped. NOT required at PR-level CI (cost zero — no LLM call); runs via `bun test`. Catches DB-schema drift if anyone touches `sql/033_phase_eval_runs.sql` or `persist-run.ts` later.
+
+## 7. v1 implementation slices (R6 — collapsed)
 
 | Slice | Files | Effort | Acceptance |
 |---|---|---|---|
-| M0 | `sql/033_eval_testing_module.sql` (4 tables, includes `config_hash` + `last_config_hash_change_commit` on `test_suites`) | ~1h | 4 tables created on local + LXC; canonical `expected_chapter_count` derivation from `resolved_snapshot.per_seed.<seed_key>.chapter_count` documented in migration comment. |
-| M2 | `src/harness/eval-tests.ts` (registry + `runSuite()` orchestration + `registerBuiltInSuites()` write-through) + `src/harness/eval-test-gates.ts` (`phase-variant-screen-v1` evaluator with full G4 semantics) | ~1d | `runSuite()` callable in unit test against a fixture. `assertBootstrapped()` errors loudly when `registerBuiltInSuites()` not called. Gate evaluator unit-tested against synthetic SCREEN-PASS, SCREEN-FAIL (broken), SCREEN-FAIL (non-compliant) inputs. |
-| M3 | `scripts/eval-test/run.ts` (calls `registerBuiltInSuites()` at startup) + `run-variant.ts` (child process, sets `PLANNING_BEATS_PROMPT_OVERRIDE`, writes cell-status JSON for parent) | ~0.5d | CLI runs end-to-end on `fantasy-system-heretic`; persists rows in 4 tables (`test_runs` + `test_run_cells` + `test_metric_results` + experiment row). |
-| M4 | Suite file: `src/harness/suites/phase-variant-loud-rider-v2.ts` (calls `defineSuite()` at module load) + `src/harness/suites/index.ts` (imports each suite). Optional: invoke `registerBuiltInSuites()` from a small unit test that asserts the row landed. | ~0.5d | Suite resolves at module load; metrics + gates wired. `registerBuiltInSuites()` (NOT `defineSuite()`) is the function that UPSERTs the row in `test_suites` with current `config_hash` — verified at the M3 CLI invocation as well. |
-| M5 | Acceptance run + parity proof | ~0.5d | New module's `Number(metric).toFixed(4)` strings EXACTLY EQUAL the 2026-04-29 known-good probe output: `verdict='SCREEN-PASS'`, `facts_median='8.0000'`, `know_median='5.0000'`, `total_beats='43.0000'`. NUMERIC(12,4)-scale string equality. |
+| M0 | `sql/033_phase_eval_runs.sql` (1 table) | ~30 min | Table created on local + LXC; smoke test inserts + reads a fixture row. |
+| M1 | `scripts/phase-eval/persist-run.ts` (~40 lines) + `--persist` flag wiring in `probe-planning-beats.ts` | ~1.5h | Probe with `--persist` produces same stdout/exit-code/`summary.json` AND inserts one `phase_eval_runs` row. Without `--persist`, behavior unchanged. |
+| M2 | `scripts/phase-eval/list-runs.ts` (~20 lines) | ~30 min | `bun scripts/phase-eval/list-runs.ts` returns recent rows in tabular form. |
+| M3 | `tests/persist-phase-eval-run.test.ts` smoke test | ~30 min | `bun test tests/persist-phase-eval-run.test.ts` passes on local + LXC. |
+| M4 | Acceptance run on `fantasy-system-heretic` + verify row landed | ~30 min | Acceptance step 3 above passes — row visible via SQL + CLI reader. |
 
-**Total v1: ~3 working days.** R3 cut M1 (`_loader.ts` deferred to v2 — R2 warning 1 fix). 5 slices instead of 6. R5 polish (total-function guard, single-flight bootstrap, parity-test string normalization, broken-path unit-test matrix) all land inside M2's ~1d budget.
+**Total v1: ~0.5 working day** (was R5's ~3 working days). Drop in scope = one of the largest single deltas in this design's history; that IS the value of taking the cheapest counterfactual.
 
-(R1 had M0–M6 = 5 days; R2 had M0–M5 = 3.5 days; R3 = ~3 days; R4/R5 = ~3 days.)
+(R1 had M0–M6 = 5 days; R2/R3/R4/R5 had M0–M5 = ~3 days; R6 = M0–M4 = ~0.5 day.)
 
-## 8. v2 roadmap (NOT in this design — explicit non-scope)
+## 8. v2 roadmap — gated by §0 promotion criteria
 
-Each v2 item has named open questions that v1 doesn't pretend to answer:
+R6 explicitly defers the entire heavier module. v2 starts only when one of §0's promotion-gate triggers fires:
 
-- **Second agent migration** (e.g., chapter-plan-checker). Open: how does the shared `loadPrompt()` helper extend to agents with non-uniform prompt-loading patterns (`writer`'s primer composition, `halluc-*`'s `readFileSync`)? Likely needs a small per-agent shim in addition to the helper.
-- **UI** (`/app/eval-tests/<runId>/...` cross-novel diff page + leaderboard). Open: does the existing `NovelReadView` paragraph-aligned diff renderer survive cross-variant alignment when paragraph counts differ materially? Existing tonal-pass already tolerates this; verify on a real cross-novel run before designing the UI.
-- **Human-rating widget**. Open: rubric definition shape (suite-level config? per-metric? per-rater?). Inter-rater κ implementation.
-- **LLM-judge integration**. Open: per-judge prompt registration (`src/agents/judges/<rubric-id>/`?). Telemetry plumbing so judge calls land with the right `agent` and `phase` fields in `llm_calls`.
-- **`eval_results` composition** via artifact-set abstraction. Open: is the right shape a join table (`test_metric_results_artifact_sets` join), a structured ref keyed by `(experiment_id, set_name, cell_label)`, or something simpler?
-- **Autonomous-context-loop integration**. Open: does the loop want per-iteration parameter vectors stored as `test_runs.resolved_snapshot` rows it walks, or does it want a separate `loop_iterations` table that joins to `test_runs`?
+1. **Second probe shape**. A non-planning-beats probe (e.g. chapter-plan-screen or a writer-arm screen) needs the same persistence + query surface. v2.1 = small shared write helper; v2.2 = service-layer module IF AND ONLY IF a third probe materializes.
+2. **Autonomous-context-loop integration** (`docs/designs/autonomous-context-loop.md`). The loop reaches a stage where it needs immutable per-iteration parameter snapshots that the flat `phase_eval_runs.summary_json` doesn't capture cleanly. v2 introduces the `test_runs.resolved_snapshot` shape with the loop's actual usage in front of it.
+3. **Cross-run JSONB query becomes painful at production volume.** v2 normalizes a per-(run, metric) table for ergonomic SQL-level analytics. Today's volume is single-digit rows per week; today this is moot.
+4. **LLM-judge or human-rating consumer** wants to attach to per-cell artifacts. v2 designs the artifact-set abstraction with that consumer in front of it (Codex R1 issue 3 territory).
+5. **Cross-novel diff UI** / leaderboard UI. v2.
 
-Each of these gets its own design doc that cites this v1. Don't pre-design them now — Codex R1's refrain across 5 issues was "stop generalizing before one concrete use lands."
+Each of these gets its own design doc that cites this v1 + the R5 retrospective at commit `3a1effd`. The R5 design IS pre-designed work for trigger 1+2 — when a trigger fires, that design is the starting point, not blank. The R6 pivot just declines to ship pre-designed work without a confirmed consumer.
 
-## 9. Constraints + non-goals (R5)
+**Anti-pattern guard**: Codex R1's refrain across 5 issues was "stop generalizing before one concrete use lands." R5's verdict added a meta-version: "stop polishing the heavier instrument when the cheaper instrument is already shipped." R6 reflects both rules.
 
-1. **One precedent in v1.** Planning-beats screen migration only. No second migration before v1 ships.
-2. **Code is the single source of truth.** Suite definitions live in code (`src/harness/suites/<id>.ts`). `test_suites` is a write-through mirror with `config_hash`. `runSuite()` reads from the in-memory registry, never from the DB row. Codex R2 blocker 2 fix.
-3. **No multi-novel `variant_novel_ids` JSONB.** `test_run_cells` is the per-cell normalized table. Codex R1 issue 2.
-4. **No `eval_results` composition pointer.** v2. Codex R1 issue 3.
-5. **No agent module touched in v1.** Existing `planning-beats/index.ts` env-var seam stays as-is. `_loader.ts` is v2 (R2 warning 1 fix). Codex R1 issue 4 also satisfied: no broad codegen.
-6. **First-class runner state with full G4 spec.** G4 := `phase_result_kind = 'complete' AND outline_parse_ok = TRUE AND outline_count = expected_chapter_count`, where `expected_chapter_count` is sourced from `resolved_snapshot.per_seed.<seed_key>.chapter_count` captured at `runSuite()` entry. Codex R1 issue 5 + R2 blocker 1 fix.
-7. **Numeric parity is exact equality at the metric's declared scale** (`NUMERIC(12,4)` for all v1 metrics). Compared as `Number(x).toFixed(4)` strings to sidestep IEEE 754 round-trip hazards. Non-integer metrics declare per-metric tolerance at definition time. Codex R2 warning 2 + R3 W2 + R4 S1/W2 fix.
-8. **Bootstrap is explicit.** `registerBuiltInSuites()` is called by `scripts/eval-test/run.ts` at startup. `assertBootstrapped()` errors loudly if `runSuite()` is called before. Codex R2 warning 3 fix.
-9. **No UI in v1.** Codex R1 warning 4.
-10. **No "any harness experiment" claim.** Codex R1 warning 5: this module is for full-pipeline variant comparisons of the phase-variant-screen shape.
-11. **`resolved_snapshot` is additive-tolerant.** v1 readers MUST tolerate unknown fields. Codex R2 suggestion 4. v2 introduces `snapshot_version` if a non-additive shape change is needed.
-12. **Atomic commits per CLAUDE.md rule 5.** Each M-slice = one commit.
-13. **MVP is parity-grade, not exhaustive.** The acceptance test is "same verdict on same input." Skip everything that doesn't directly support that test.
+## 9. Constraints + non-goals (R6)
 
-## 10. Budget (R5)
+1. **No production code path is rewritten.** The probe stays exactly as-is; only the `--persist` flag wiring at the end is added. `experiment-design-rules.md §4.7` "Pure evaluation task" exemption applies.
+2. **One probe, one table.** No suite registry, no service-layer module, no gate evaluator code path. Per Codex R5: defer the heavier module until §0 promotion-gate triggers fire.
+3. **Probe output is the source of truth.** The `phase_eval_runs` row mirrors the probe's `summary_json` + verdict line verbatim. There is NO secondary computation, NO normalization, NO re-parsing.
+4. **All four G-metrics carry through verbatim.** `facts_median`, `know_median`, `state_changes_median`, `total_beats` — the 4-metric set the probe actually produces (Codex R5 W2 fix). The R5 design's 3-metric subset was an over-narrowing.
+5. **No `eval_briefs` / `eval_results` composition.** Codex R1 issue 3 still applies; v2 only.
+6. **No agent module touched in v1.** Existing `planning-beats/index.ts` env-var seam stays as-is. The probe already uses it; the persistence helper doesn't touch it.
+7. **No UI in v1.** Codex R1 warning 4.
+8. **No "any harness experiment" claim.** Codex R1 warning 5.
+9. **`summary_json` is additive-tolerant.** v1 readers MUST tolerate unknown fields the probe may add later. Codex R2 suggestion 4.
+10. **Atomic commits per CLAUDE.md rule 5.** M0–M4 = up to 5 commits.
+11. **Promotion gate is explicit (§0).** Defer the heavier module until a concrete second consumer materializes. `docs/decisions.md` records the probe as "the canonical first instrument before committing to harness changes"; this design honors that.
+
+## 10. Budget (R6)
 
 ### Implementation cost
 
-- M0 (4-table migration with `config_hash` + `last_config_hash_change_commit`): ~1h.
-- M2 (service layer + total-function gate evaluator with full G4 semantics + single-flight bootstrap helper + broken-path unit-test matrix): ~1d.
-- M3 (CLI runner + child variant + `registerBuiltInSuites()` call): ~0.5d.
-- M4 (suite file + `suites/index.ts` bootstrap edge): ~0.5d.
-- M5 (acceptance + 4-decimal-string parity proof): ~0.5d.
+- M0 (1-table migration): ~30 min.
+- M1 (persist-run.ts + `--persist` flag wiring): ~1.5h.
+- M2 (list-runs.ts CLI reader): ~30 min.
+- M3 (smoke test): ~30 min.
+- M4 (acceptance run + row verification): ~30 min.
 
-**v1 total: ~3 working days. ~1 week calendar.** R3 cut M1 (`_loader.ts` deferred to v2). R5 polish folds into M2.
+**v1 total: ~0.5 working day. ~1 calendar day.** R6 cut everything outside the cheapest counterfactual.
 
 ### Runtime cost
 
-The module is zero-cost orchestration. v1's only suite is the existing planning-beats screen which costs ~$0.10/run. v2 suites budget themselves.
+Zero new LLM cost. The probe's existing run cost (~$0.10/run for 2 variants × 1 seed × planner phase) is unchanged. The persistence helper is a single SQL INSERT.
 
 ### Risk surface
 
-- **Parity proof might reveal silent drift between bespoke and module verdict logic.** Mitigation: M5's acceptance test compares numeric values + verdict against the 2026-04-29 known-good output, recorded in `docs/sessions/2026-04-29-phase-eval-probe.md`. Discrepancies block M5 acceptance; resolve before declaring v1 done.
-- **The phase-variant probe scripts already drifted from their charter.** Codex R1 warning 6: the shipped probe uses argv + one env var, the chartered version describes a "larger env-var bundle." v1 picks the shipped shape as authoritative; the charter is updated post-v1 with a note that the shipped contract is the source of truth.
-- **`test_runs.resolved_snapshot` JSONB grows unbounded as future suites get larger.** Mitigation: v1 has 1 suite with ~2 variants × 1 seed × 3 metrics. Snapshot rows are KB-scale. v2 with multi-seed × multi-variant × multi-metric needs a size budget but that's v2's concern.
-- **Code registry diverges from DB suite_id over time.** Mitigation: `runSuite()` errors loudly on a `suite_id` not in the registry. CI test asserts every registered suite has a corresponding `test_suites` row + vice versa.
+- **Probe's in-memory `summary` object shape may not be a clean ground-truth representation.** Mitigation: M1 reads the SAME object the probe already writes to `summary.json`. If the disk file is a faithful artifact (it is — operators have been reading it for two weeks), the row is too. Smoke test in M3 round-trips the JSONB to catch any silent encoding loss.
+- **`summary_json` grows over time as the probe gains metrics.** Today it's a few hundred bytes; even at 100× growth a JSONB column handles it.
+- **A future second probe shape ships before §0 promotion gate is honored.** Mitigation: §0 explicitly names the trigger (a concrete second probe). The risk is operator-discipline-driven; the gate is policy, not technical enforcement. If the discipline lapses, the worst case is one duplicated `persist-run.ts`, easily refactored at promotion time.
+- **§4.7 parity harness is genuinely needed and v1 punted incorrectly.** Mitigation: §6 "Why no §4.7 parity harness" documents the exemption. If the exemption is wrong, the row mirror gives no false signal; the probe IS the runner, so the row reflects whatever the probe produces. There is no alternative implementation to drift from.
 
 ## 11. Linked context
 
-- `docs/eval-infrastructure.md` — existing per-beat eval surface; v2 composition target only.
-- `docs/designs/phase-variant-comparison.md` — the precedent v1 migrates. Specifically R5's verdict computation (§"Decision criteria") is the parity target for `phase-variant-screen-v1` gate evaluator.
-- `scripts/phase-eval/{probe-planning-beats,run-variant,print-screen-verdict}.ts` — the bespoke scripts v1 makes durable. NOT deleted; kept as parity reference.
-- `scripts/variant/clone-for-variant.ts` — concept-done clone helper v1 reuses unchanged.
-- `src/agents/planning-beats/index.ts:6-8` — the env-var seam pattern v1 leaves UNCHANGED. v2 introduces a shared `loadPrompt(defaultPath, envVar)` helper when a second consumer needs the same shape. R5 swept the prior `_loader.ts` mention here per R3 W3 + R4 W2 cleanup.
-- `src/harness/index.ts` — service-layer entry point v1 extends with `eval-tests`.
-- `sql/024_eval_briefs_and_results.sql` — existing tables v1 does NOT touch; v2 composes.
-- `docs/designs/autonomous-context-loop.md` — sibling subsystem; v1 lays the immutable-snapshot foundation that v2 will integrate.
+- `docs/decisions.md` — records the probe as "the canonical first instrument for ANY planner-prompt change going forward." R6 honors that decision; the heavier module (R1–R5 design) is deferred via §0 promotion gate.
+- `docs/experiment-design-rules.md` §4.7 — request-construction parity rule. R6 sidesteps via "Pure evaluation task" exemption (no production code rewritten); §11.1 cheapest-first lever rule. R6 is the cheapest first lever per Codex R5.
+- `docs/eval-infrastructure.md` — existing per-beat eval surface; v2 composition target only (gated by §0).
+- `docs/designs/phase-variant-comparison.md` — the precedent the probe implements. R6 leaves it unchanged.
+- `scripts/phase-eval/{probe-planning-beats,run-variant,print-screen-verdict}.ts` — the canonical first instrument. R6 adds a `--persist` flag wiring at the end of `probe-planning-beats.ts`; nothing else changes.
+- `scripts/variant/clone-for-variant.ts` — concept-done clone helper. Unchanged in v1.
+- `src/agents/planning-beats/index.ts:6-8` — env-var seam. Unchanged in v1; the probe already uses it.
+- `sql/024_eval_briefs_and_results.sql` — existing tables v1 does NOT touch; v2 composes (gated by §0).
+- `docs/designs/autonomous-context-loop.md` — sibling subsystem; §0 promotion-gate trigger 2.
 - `docs/todo.md` "Three-bucket forward plan" — v1 is Bucket 2.
 - `docs/charters/corpus-structural-decomposition-v1.md` — sibling Bucket 1 charter; v1 explicitly does NOT compose with corpus-decomp output.
+- Git commit `3a1effd` — R5 design sketch preserved for the day a §0 promotion-gate trigger fires.
 
 ## 12. Adversary review
 
@@ -618,7 +429,8 @@ The module is zero-cost orchestration. v1's only suite is the existing planning-
 | codex:codex-rescue gpt-5.5 effort=high | 2026-04-29 | **R2 RED (ITERATE)** | `a5219c7acd0f457fb` |
 | codex:codex-rescue gpt-5.5 effort=high | 2026-04-29 | **R3 RED (ITERATE)** | `a8d5abb7dd78315fd` |
 | codex:codex-rescue gpt-5.5 effort=high | 2026-04-29 | **R4 RED (ITERATE)** | `af3ba587dd7f32694` |
-| (R5 pending) | (pending) | (pending) | (pending) |
+| codex:codex-rescue gpt-5.5 effort=high | 2026-04-29 | **R5 RED (RUN CHEAPER)** | `a1be2e9cb25a0eaab` |
+| (R6 pending) | (pending) | (pending) | (pending) |
 
 ### R1 verbatim verdict (preserved for audit)
 
@@ -702,14 +514,34 @@ The module is zero-cost orchestration. v1's only suite is the existing planning-
 >
 > RECOMMENDED NEXT ACTION: ITERATE-R5.
 
-R5 integrates the R4 blocker + all 3 warnings + both suggestions. Submit R5 to Codex for follow-up review before implementation begins.
+### R5 verbatim verdict (preserved for audit)
 
-R5 attack surfaces for Codex:
+> VERDICT: RED
+>
+> SUMMARY: R5 closes the R4 total-function bug, but the design still has not justified why a 4-table/module build is the next cheapest instrument after the already-shipped `scripts/phase-eval/` probe, and it still leaves §4.7 parity discipline under-specified for the runner rewrite.
+>
+> BLOCKING ISSUES:
+> 1. Axis 3 — cheapest-first trigger missing. `decisions.md` records the probe as "the canonical first instrument … before committing to harness changes," while `eval-testing-module-v1 §1/§10` justifies the new subsystem mainly as future query convenience, not a measured decision need. After 5 adversary rounds, `lessons-learned.md` says to re-check instrument-question fit rather than keep polishing the heavier instrument. Per `experiment-design-rules.md §11.1`, this is still a higher-cost lever without a stated promotion gate. Fix: add an explicit trigger for when probe results graduate to harness work (e.g. N planned reruns/arms, cross-run analysis the probe+reports cannot answer, or a concrete consumer that needs DB queryability now), or defer the module and keep using `scripts/phase-eval/`.
+> 2. Axis 7 — parity invariant too weak for a design whose sole success claim is "same verdict on same input." `eval-testing-module-v1 §6` requires only one-seed verdict + three metric-string matches, but `experiment-design-rules.md §4.7` requires request-construction parity or a named alternative invariant when code is rewritten around a production LLM path. `lessons-learned.md` cites two silent regressions that only request-byte parity caught. Because v1 rewrites the runner/orchestrator around `runPlanningPhase`, one-seed output parity is not a strong enough invariant unless the doc explicitly says why. Fix: add old-probe-vs-new-runner request-construction parity for the planner call shape, or explicitly name the §4.7 skip category / alternative invariant and tighten it beyond one-seed end-output matching.
+>
+> WARNINGS:
+> - Axis 6 — `test_runs.verdict` is singular while the evaluator output is "per-(run, seed) verdict"; the first multi-seed suite will not have a canonical place to store two seed-level verdicts. Narrow the claim or normalize verdict storage before v2.
+> - Axis 6 — The probe reports four G-metrics including state-changes/chapter; `phase-variant-comparison.md §Decision criteria` and `eval-testing-module-v1 §6` migrate only `facts_median`, `know_median`, `total_beats` plus structural G4. Reconcile so "same metric values" is either literally true or explicitly narrowed to the verdict-driving metrics.
+> - Axis 5 — broken-path population contract for `metricsByVariant` left implicit (whole metric omitted vs variant key omitted). Not a correctness bug but should be written once to avoid future suite-specific assumptions.
+>
+> CHEAPEST UNTRIED COUNTERFACTUAL: Keep `scripts/phase-eval/probe-planning-beats.ts` as the runner and store/report its JSON outputs directly via a tiny append-only result index — ~$0 engineering, expected ~100% of the immediate directional signal the project designated as the first instrument before harness work.
+>
+> RECOMMENDED NEXT ACTION: RUN CHEAPER COUNTERFACTUAL
 
-- **Total-function gate evaluator.** R5 §5 reordered the broken-path guard to run FIRST — `cellsByVariant.loud` presence + `phase_result_kind === 'complete'` + `outline_parse_ok === true` + `outline_count` typeof number + `resolved_snapshot.per_seed.<seed>.chapter_count` typeof number — before any metric dereference. Metric dereferences also use optional-chain + `Number.isFinite` checks. Verify the evaluator now returns `SCREEN-FAIL (broken)` (not a thrown `TypeError`) under EVERY way a real run can produce missing/malformed input: variant cell crashed before status write, metric impl threw and was logged with `numeric_value=NULL`, `resolved_snapshot.per_seed[seed_key]` missing because the seed wasn't in the snapshot, `outline_count=null`. Are there input shapes that still slip through?
-- **`SuiteDefinition.metrics` runtime contract under broken-path.** Does `runSuite()` populate `metricsByVariant.<name>.<variant> = undefined` (or omit the variant key entirely) when a metric impl throws? Either is fine for the evaluator's optional-chain reads, but the contract should be specified. R5 didn't pin this down — if `metricsByVariant.facts_median = undefined` (whole metric missing) vs `metricsByVariant.facts_median = {default: 5}` (loud missing), the optional-chain handles both, but the population contract should be explicit.
-- **`config_hash` data-config-only narrowing.** R5 §3 says the hash covers `{variants, seedSet, metric names + tolerances, gate id, thresholds}` and EXCLUDES code identity. Is the boundary correct? Is the gate evaluator's THRESHOLD object hashed (yes, §5 `canonicalizeSuiteConfig`) but its predicate ORDERING NOT hashed (it's encoded in the evaluator id)? What if someone adds a metric to the registry with the same name but different tolerance — does the hash change? (Yes via §5.)
-- **`ensureBootstrapped()` single-flight under failure.** R5 §5 stores the in-flight promise in `BOOTSTRAP_INFLIGHT` and clears it via `.finally()`. If `registerBuiltInSuites()` rejects, `BOOTSTRAPPED` stays `false`, `BOOTSTRAP_INFLIGHT` clears, and a subsequent caller will retry. Is that the right failure semantic, or should the rejection be sticky (e.g., "the DB is unreachable; don't retry per-call")?
-- **Numeric-parity 4-decimal-string compare.** R5 §6 + §9 use `Number(x).toFixed(4)`. This rounds half-to-even at the 4th decimal. `Bun.sql` returns `NUMERIC(12,4)` as a JS string already in decimal-canonical form ("8.0000"); is `Number(x).toFixed(4)` lossy compared to the raw string from `Bun.sql`? If yes, should the parity test compare the raw string the driver returns?
-- **Mirror/bootstrap/numeric-wording sweep completeness.** R5 swept §3 lines 230-234, §7 line 496 (M4 row + M5 row), §9 line 524, §11 line 561, and updated §0 to remove the rename typo. Check whether any other line still says "integer equality," still mentions `defineSuite()` writing to DB, or still references `_loader.ts`.
-- **R5 budget reality.** R5 added ~30 min for the total-function gate-evaluator patch + single-flight bootstrap + sweep cleanup + parity-test string normalization. Is this realistic, or do the unit-test additions for the broken-path matrix (loud missing, metric NaN, snapshot missing, etc.) make it closer to ~1.5h?
+R6 takes Codex's named cheapest counterfactual. Submit R6 to Codex for follow-up review.
+
+R6 attack surfaces for Codex:
+
+- **§0 promotion-gate criteria.** R6 names 4 triggers for graduating from probe + result index to a heavier module: second probe shape, autonomous-loop integration needing immutable snapshots, cross-run JSONB query becoming painful, LLM-judge/human-rating consumer attaching to per-cell artifacts. Are these triggers concrete enough to operationalize? Specifically, what's "painful" in trigger 3 — cross-run JSONB scan time, query readability, both? Should there be a quantitative threshold (e.g., "when cross-run analysis requires >3 nested `->` operators on `summary_json`, normalize")?
+- **§4.7 "Pure evaluation task" exemption.** R6 §6 + §11 cite `experiment-design-rules.md §4.7`'s "Pure evaluation task" exemption: "experiment only reads existing data / runs offline scoring; no new production-shape request is constructed." R6 reads the probe's in-memory output and writes a row — no LLM call. Verify this is the correct exemption category. (The other category that could apply: "Analysis-only — generates reports/statistics from `llm_calls` / `eval_results` without invoking any production code path." Both seem to fit; the doc cites Pure-evaluation-task because the persistence helper IS the experimental code path, even though it doesn't invoke production.)
+- **`summary_json` JSONB shape contract.** R6 §3 says `summary_json` is the probe's `summary` object verbatim. The probe's actual shape includes `g_metrics` (4 metrics: facts_median, know_median, state_changes_median, total_beats), per-variant outline arrays, per-(seed, variant) outline counts. Is "verbatim probe output" a stable enough contract for downstream queries, or should there be a thin `summary_version` field for forward-compat?
+- **`variant_labels` redundancy with `summary_json`.** R6 §3 keeps `variant_labels` as a top-level column despite redundancy with `summary_json -> 'variants'`. Is a TEXT[] column the right shape vs a JSONB[]? When the probe gains a third variant (e.g., 'verbose'), does inserting `{default,loud,verbose}` work cleanly with the existing index?
+- **Smoke test scope.** R6 M3 specifies a ~30-line smoke test for `persistPhaseEvalRun()`. Should the smoke test ALSO verify the probe's `--persist` flag wiring (i.e., end-to-end probe-with-flag → row landed)? That would cost ~$0.10 LLM (the probe runs the real planner) but catches the wiring bug in addition to the helper bug. R6 left this out to keep the smoke test fast; should it be optional/nightly instead?
+- **Probe stays as truth across `--persist` / no-`--persist` paths.** R6 acceptance step 2 requires byte-identical probe stdout/exit-code/`summary.json` between `--persist` and no-`--persist` runs. Verify the persistence helper has no side effect on those outputs (e.g., the helper logs a `[probe] persisted as phase_eval_runs.id=N` line to stderr — is that "byte-identical" or a violation?). Stderr-vs-stdout split is the natural answer; pin it down.
+- **R6 budget reality.** R6 says ~0.5 working day total. M0 is 30 min (single-table migration), M1 is 1.5h (helper + flag wiring), M2 is 30 min (CLI reader), M3 is 30 min (smoke test), M4 is 30 min (acceptance run). Verify nothing is missing — does the LXC deploy + LXC migration apply count toward the budget? Per CLAUDE.md rule 6, sql/** changes need deploy + apply on LXC.
+- **R6 vs R5 retrospective fairness.** R6 §5 retrospective + §0 frame the R5 design as over-engineered. Is that fair? R5 was responding to genuine R1-R4 verdicts at each round, and the R5 design IS a coherent shape — Codex R5's verdict was that the LEVEL was wrong, not that the SHAPE was wrong. Verify the §0 framing doesn't undersell R5's design; the R5 commit `3a1effd` is preserved as starting point for the day a promotion gate trigger fires.
