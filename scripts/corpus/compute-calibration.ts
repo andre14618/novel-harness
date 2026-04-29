@@ -478,9 +478,13 @@ Identify matched (predicted_id, gold_id) pairs per the system rules. Return only
       console.log(`  [match] reject chapter-window violation: pred ch${p.opened_chapter_index} vs gold ch${g.opened_chapter_index} — ${p.promise_text.slice(0, 60)}…`)
       continue
     }
+    // Store the STRIPPED raw IDs so downstream metric computation
+    // (which keys on `pred.promise_id` / `gold.sample_id` from the
+    // original input rows) can join. Prefixed IDs (`pred_p001` /
+    // `gold_p001`) only exist for the LLM-prompt namespace.
     checked.push({
-      gold_id: m.gold_id,
-      predicted_id: m.predicted_id,
+      gold_id: goldRawId,
+      predicted_id: predRawId,
       matcher: "llm",
       score: m.confidence,
       reason: m.reason,
