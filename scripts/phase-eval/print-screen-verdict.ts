@@ -20,7 +20,8 @@
  *   bun scripts/phase-eval/print-screen-verdict.ts --summary=<path-to-summary.json>
  */
 
-import { readFileSync } from "node:fs"
+import { readFileSync, existsSync } from "node:fs"
+import { dirname, basename, join, isAbsolute } from "node:path"
 
 interface ChapterOutline {
   scenes?: Array<unknown>
@@ -89,6 +90,24 @@ function main() {
   }
   const summaryPath = summaryArg.split("=", 2)[1]!
   const summary = JSON.parse(readFileSync(summaryPath, "utf-8")) as Summary
+  // Path portability: outlinesPath in summary.json may be absolute (LXC
+  // path) when the probe ran on the executor and we rsync'd the output
+  // tree to local. If the absolute path doesn't exist, fall back to
+  // resolving the per-variant outlines.json relative to the summary file.
+  const summaryDir = dirname(summaryPath)
+  const resolveOutlinesPath = (v: VariantBlock): string => {
+    if (isAbsolute(v.outlinesPath)) {
+      if (existsSync(v.outlinesPath)) return v.outlinesPath
+      // Legacy: summary.json from cross-machine run carried absolute LXC path.
+      // Fall back to summaryDir + variant subdir + outlines.json.
+      const local = join(summaryDir, v.id, basename(v.outlinesPath))
+      if (existsSync(local)) return local
+      throw new Error(`outlines not found for variant ${v.id}: tried ${v.outlinesPath} and ${local}`)
+    }
+    const local = join(summaryDir, v.outlinesPath)
+    if (existsSync(local)) return local
+    throw new Error(`outlines not found for variant ${v.id}: ${local}`)
+  }
 
   console.log(`Phase-eval screen verdict — seed=${summary.seed} run=${summary.runTag}`)
   console.log(`Concept snapshot: ${summary.conceptSnapshotId}`)
@@ -96,7 +115,7 @@ function main() {
 
   const perVariant: Record<string, ReturnType<typeof metricsForVariant>> = {}
   for (const v of summary.variants) {
-    perVariant[v.id] = metricsForVariant(v.outlinesPath)
+    perVariant[v.id] = metricsForVariant(resolveOutlinesPath(v))
   }
 
   const headers = ["variant", "chapters", "G3 beats/ch (mean)", "G1 facts/ch (median)", "G2 know/ch (mean)", "G4 state/ch (mean)"]

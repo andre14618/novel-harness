@@ -169,7 +169,9 @@ async function main() {
     variantNovelIds[variant] = targetNovelId
   }
 
-  // Step 4: aggregate.
+  // Step 4: aggregate. Paths in summary.json are written relative to the
+  // summary file (variant subdir + filename) so the verdict reader can
+  // resolve them after rsync between machines.
   const summary = {
     seed: args.seed,
     runTag,
@@ -179,7 +181,7 @@ async function main() {
       id: v,
       promptFile: join(args.variantDir, `${v}.md`),
       novelId: variantNovelIds[v],
-      outlinesPath: join(args.outputBase, v, "outlines.json"),
+      outlinesPath: `${v}/outlines.json`,
     })),
   }
   const summaryPath = join(args.outputBase, "summary.json")
