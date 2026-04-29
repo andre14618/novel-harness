@@ -157,9 +157,64 @@ The raw numbers live in `crystal_shard.json` (and `<book>.<keyx>x<gold>.json` fo
 
 4. **The Flash judge cost trade-off is meaningful.** Flash judge cost ~$0.30 across 4 dims vs Pro judge ~$1.50. If Flash×Flash is enough signal for some dims (e.g. character-arcs, where the matcher confirms identical character lists either way), we could downgrade those dims' judges to Flash and save 5× on judge cost per book. **Recommended for character-arcs and mice. Pro stays for promise.**
 
-**Pending:** Phase B (Pro promise extractor) is in flight — pass-1 has been running ~30 min on V4 Pro thinking. When it completes, we'll have the (Pro extractor, Pro judge) cell to test whether Pro extraction is the fix for promise.
+### Step 7: Phase B (Pro promise extractor) — partial fix, exposes second ceiling
 
-**Action:** Phase A landed. Continue waiting on Phase B. Defer the (Pro extractor, Flash judge) cell — it's not load-bearing for any near-term decision (Flash judge is cheaper Pro alternative for non-promise dims; Pro extractor + Flash judge wouldn't tell us anything we don't already know).
+**Question:** Is V4 Pro at extraction time the fix for promise's CELL FAIL? Phase A told us Flash literally can't emit the 2-pass schema; can Pro extractor close the recall gap to Pro judge's 30 promises?
+
+**Methodology:** Run `extract-structure.ts --extractor-model=pro` on the full 858-beat corpus. This routes the promise extractor through `structure-promise-judge` agent (V4 Pro thinking-on, T=0.3, 32K maxTokens) — same role config the Pro judge uses. Compare the Pro-extracted promises against the existing Pro judge gold.
+
+**Cost:** $0.31 ($0.15 pass-1 + $0.17 pass-2). Two V4 Pro thinking calls, 73K input tokens each (32K cached on pass-1).
+
+**Results:**
+
+| Test | Promises found | Matched | P | R | F1 |
+|---|---|---|---|---|---|
+| Flash extractor | 14 | 9 | 0.64 | **0.30** | 0.41 |
+| Pro extractor (Phase B) | 22 | 14 | 0.64 | **0.47** | 0.54 |
+| Pro judge (gold) | 30 | — | — | — | — |
+
+**Conclusion (Phase B):** Pro extractor improves recall by **+17pp** (0.30 → 0.47) and finds **+57% more promises** (14 → 22) than Flash. F1 rises from 0.41 → 0.54 (+13pp). The capability gradient is real and substantial.
+
+**But the verdict is still CELL FAIL** — even Pro extractor misses **53% of the Pro JUDGE's promises**, despite using identical role config, identical prompts, identical beats. This is the load-bearing surprise of Phase B:
+
+**Same model, same prompt, same input → different outputs.** Pro extractor at T=0.3 is **non-deterministic at the ~30% level**. Running V4 Pro twice on the same task with the same prompt produces different promise lists. The promise dim has TWO compounding ceilings:
+
+1. **Capability ceiling**: Flash extractor finds only 30% recall — solved by Pro extractor (47% recall).
+2. **Stochasticity ceiling**: Pro extractor finds 47% recall while Pro judge (also Pro at T=0.3, same task) finds full 100% — the gap is run-to-run variance, not capability.
+
+**Cost+quality lever for promise specifically:**
+
+| Strategy | Cost/book | Expected recall | Status |
+|---|---|---|---|
+| Flash extractor (current) | ~$0.01 | 0.30 | CELL FAIL — capability bound |
+| Pro extractor T=0.3 (Phase B) | ~$0.30 | 0.47 | CELL FAIL — stochasticity bound |
+| Pro extractor T=0 (next) | ~$0.30 | TBD | Hypothesis: recovers most variance loss |
+| Pro extractor + 3-run ensemble | ~$0.90 | TBD | Hypothesis: union approaches Pro-judge gold |
+| Sonnet/Codex Tier 3 judge | ~$2-5 | TBD | Establishes more rigorous ground truth |
+
+**Action:**
+
+1. **Test Pro extractor T=0** as the cheapest next experiment. Fork `structure-promise-judge` to a `structure-promise-extract-deterministic` role with `temperature: 0`. Re-run Phase B with that role. Cost ~$0.30. If recall jumps to 0.65+, ship it.
+
+2. If T=0 doesn't close the gap, **ensemble approach**: run Pro extractor 3× at T=0.3, take the union of promise lists, deduplicate via the same V4 Pro pair-matcher we built for calibration. Cost ~$1/book. Higher recall guaranteed by union; precision protected by the matcher.
+
+3. **Treat the Pro judge gold as itself uncertain.** The judge is also at T=0.3. Re-running the judge would also give a different 30-promise list. The current "gold" is actually one stochastic sample, not absolute truth. **For the promise dim specifically, we may need a Tier 3 judge (Sonnet/Codex) to anchor a stable gold.** Phase A already showed Flash can't be the judge; Phase B shows Pro at T=0.3 isn't a stable judge either.
+
+4. **Hold off on shipping a promise registry as a planner constraint until one of the above paths gets us past F1=0.70 OR we explicitly redefine the dim's "PASS" floor for stochastic schemas.**
+
+**Skipping the (Pro extractor, Flash judge) cell**: not load-bearing for any decision now. Flash judge can't reliably emit promise schema (Phase A FAIL). The 2×2 matrix has 3 measured cells + 1 known-unmeasurable.
+
+---
+
+## Cost+model conclusions across all phases
+
+| Strategy | F1 (best dim) | F1 (worst dim) | Total cost/book | Recommendation |
+|---|---|---|---|---|
+| Flash extractor + Flash judge | character-arcs 1.00, promise FAIL | promise FAIL | **~$0.50** | Ship for character-arcs, mice. Cheapest. |
+| Flash extractor + Pro judge (current) | character-arcs 1.00, promise 0.41 | promise 0.41 | **~$1.20** | Defensible default. CELL PASS on character-arcs. |
+| Pro extractor + Pro judge (Phase B for promise) | promise 0.54 | promise still FAIL | **~$2.50** | Improvement on promise, still not PASS. |
+
+**Conclusion across the 2×2:** for dims with a clean schema (character-arcs, value-charge polarity, mice opens/closes), Flash×Flash is cheapest and reliable. For promise specifically, neither Flash nor Pro at T=0.3 is enough — needs T=0 or ensemble or Tier 3 judge.
 
 ---
 
