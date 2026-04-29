@@ -506,16 +506,22 @@ intentional behavior change + secondary fallout".
 Parity: NOT byte-equal at the orchestrator log level (paused runs now log
 differently). Phase-internal behavior remains byte-equal.
 
-### P7 — Delete legacy `runXPhase` exports (only after P6b2)
+### P7 — Tighten legacy `runXPhase` exports (only after P6b2)
 
-**Files**: each phase file, plus state-machine.
+**Files**: each phase file.
 
-After P6b lands and parity holds, the legacy `runConceptPhase` etc. are dead
-exports (the `runXPhase` functions now return `PhaseResult<T>` and are
-called only via the wrappers, which can be inlined or the legacy export
-deleted). Decision per phase: inline `runXPhase` into the wrapper's `run`
-method, or keep `runXPhase` as a private helper called by the wrapper.
-Default to private helper unless the body is small.
+The original P7 plan was to delete `runConceptPhase`/`runPlanningPhase`/
+`runDraftingPhase`/`runValidationPhase` as dead exports. That premise is
+false: discovered during P7 implementation that they have 14 external
+callers — `src/phases/drafting-revision-used-persistence.test.ts` (5
+calls), `src/phases/drafting-reviser-escalation.test.ts` (6 calls), and
+3 scripts (`scripts/fork-writer-test.ts`, `scripts/fork-writer-v4-llama.ts`,
+`scripts/test-planner-isolated.ts`). The tests exercise the phase body
+directly with mocks; the scripts compose phases manually for ablation
+runs that intentionally bypass the driver.
+
+Action: keep the exports, add a JSDoc to each pointing at the Phase<I,O>
+wrapper as the canonical driver-consumer entry point.
 
 Parity: full.
 

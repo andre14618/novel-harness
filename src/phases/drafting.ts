@@ -119,6 +119,11 @@ function routeValidationBlockers(
   return perBeat
 }
 
+/** Drafting phase implementation. Kept exported for tests
+ *  (drafting-revision-used-persistence.test.ts,
+ *  drafting-reviser-escalation.test.ts) that exercise the phase body
+ *  directly. Driver consumers should use `draftingPhase` (the Phase<I,O>
+ *  wrapper) instead. */
 export async function runDraftingPhase(novelId: string): Promise<PhaseResult<DraftingOutput>> {
   displayPhaseHeader("Drafting — Writing chapters")
   emit(novelId, { type: "phase:changed", data: { phase: "drafting" } })

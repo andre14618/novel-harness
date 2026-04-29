@@ -28,6 +28,9 @@ const MAX_PASSES = pipeline.maxValidationPasses
 // Validation still runs deterministic checks and logs issues. Tonal pass
 // (on-demand) still works for existing novels.
 
+/** Validation phase implementation. Kept exported for symmetry with the
+ *  other phases; no external callers today. Driver consumers should use
+ *  `validationPhase` (the Phase<I,O> wrapper) instead. */
 export async function runValidationPhase(novelId: string): Promise<PhaseResult<ValidationOutput>> {
   displayPhaseHeader("Validation — Cross-chapter consistency check")
   log(novelId, "info", "Validation phase started")

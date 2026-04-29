@@ -16,6 +16,10 @@ import { emit } from "../events"
 import { log } from "../logger"
 import * as harness from "../harness"
 
+/** Planning phase implementation. Kept exported for tests and scripts that
+ *  compose phases outside the runNovel driver (see scripts/fork-writer-*.ts,
+ *  scripts/test-planner-isolated.ts). Driver consumers should use
+ *  `planningPhase` (the Phase<I,O> wrapper) instead. */
 export async function runPlanningPhase(novelId: string): Promise<PhaseResult<PlanningOutput>> {
   displayPhaseHeader("Planning — Creating chapter-by-chapter outline")
   log(novelId, "info", "Planning phase started")

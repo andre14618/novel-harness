@@ -99,6 +99,10 @@ async function runConceptAgent<T>(
   throw new Error(`${agentName} failed after ${pipeline.maxDraftAttempts} attempts`)
 }
 
+/** Concept phase implementation. Kept exported for tests and scripts that
+ *  compose phases outside the runNovel driver (see scripts/fork-writer-*.ts,
+ *  scripts/test-planner-isolated.ts). Driver consumers should use
+ *  `conceptPhase` (the Phase<I,O> wrapper) instead. */
 export async function runConceptPhase(novelId: string, seed: SeedInput): Promise<PhaseResult<ConceptOutput>> {
   displayPhaseHeader("Concept — Building your world, characters, and story")
   log(novelId, "info", `Concept phase started. Premise: ${seed.premise.slice(0, 100)}`)
