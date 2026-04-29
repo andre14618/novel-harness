@@ -326,44 +326,49 @@ async function main() {
         FROM retrieval_config WHERE novel_id = ${source}
       `
     }
-  })
 
-  // ─── Post-condition audit ──────────────────────────────────────────
+    // ─── Post-condition audits (INSIDE the transaction) ────────────────
+    //
+    // Audits run inside the tx so any failure (row-count mismatch,
+    // unexpected post-concept rows on a concept-done target, missing
+    // table) throws and rolls back the entire clone. Without the
+    // rollback the caller would see a committed half-cloned novel.
 
-  const cloneTables: readonly string[] = targetPhase === "drafting"
-    ? [...COMMON_CLONE_TABLES, ...DRAFTING_ONLY_CLONE_TABLES]
-    : [...COMMON_CLONE_TABLES, ...CONCEPT_DONE_ONLY_CLONE_TABLES]
+    const cloneTables: readonly string[] = targetPhase === "drafting"
+      ? [...COMMON_CLONE_TABLES, ...DRAFTING_ONLY_CLONE_TABLES]
+      : [...COMMON_CLONE_TABLES, ...CONCEPT_DONE_ONLY_CLONE_TABLES]
 
-  const mismatches: string[] = []
-  for (const t of cloneTables) {
-    const [srcRow] = await db.unsafe(`SELECT COUNT(*)::int AS n FROM ${t} WHERE novel_id = $1`, [source]) as any
-    const [tgtRow] = await db.unsafe(`SELECT COUNT(*)::int AS n FROM ${t} WHERE novel_id = $1`, [target]) as any
-    const src = Number(srcRow?.n ?? 0)
-    const tgt = Number(tgtRow?.n ?? 0)
-    if (src !== tgt) mismatches.push(`${t}: source=${src} target=${tgt}`)
-    else console.log(`  ${t.padEnd(28)} ${src} rows copied`)
-  }
-  if (mismatches.length > 0) {
-    console.error("\n  Row-count mismatch detected:")
-    for (const m of mismatches) console.error(`    ${m}`)
-    process.exit(1)
-  }
-
-  // concept-done mode: assert MUST-be-absent set is all empty on target.
-  if (targetPhase === "concept-done") {
-    const violations: string[] = []
-    for (const t of CONCEPT_DONE_MUST_BE_ABSENT) {
-      const [tgtRow] = await db.unsafe(`SELECT COUNT(*)::int AS n FROM ${t} WHERE novel_id = $1`, [target]) as any
+    const mismatches: string[] = []
+    for (const t of cloneTables) {
+      const [srcRow] = await tx.unsafe(`SELECT COUNT(*)::int AS n FROM ${t} WHERE novel_id = $1`, [source]) as any
+      const [tgtRow] = await tx.unsafe(`SELECT COUNT(*)::int AS n FROM ${t} WHERE novel_id = $1`, [target]) as any
+      const src = Number(srcRow?.n ?? 0)
       const tgt = Number(tgtRow?.n ?? 0)
-      if (tgt !== 0) violations.push(`${t}: target has ${tgt} rows (expected 0 for concept-done)`)
+      if (src !== tgt) mismatches.push(`${t}: source=${src} target=${tgt}`)
+      else console.log(`  ${t.padEnd(28)} ${src} rows copied`)
     }
-    if (violations.length > 0) {
-      console.error("\n  MUST-be-absent assertion failed:")
-      for (const v of violations) console.error(`    ${v}`)
-      process.exit(1)
+    if (mismatches.length > 0) {
+      console.error("\n  Row-count mismatch detected:")
+      for (const m of mismatches) console.error(`    ${m}`)
+      throw new Error(`clone audit failed: row-count mismatch on ${mismatches.length} tables (rolling back)`)
     }
-    console.log(`  (asserted ${CONCEPT_DONE_MUST_BE_ABSENT.length} post-concept tables empty on target)`)
-  }
+
+    // concept-done mode: assert MUST-be-absent set is all empty on target.
+    if (targetPhase === "concept-done") {
+      const violations: string[] = []
+      for (const t of CONCEPT_DONE_MUST_BE_ABSENT) {
+        const [tgtRow] = await tx.unsafe(`SELECT COUNT(*)::int AS n FROM ${t} WHERE novel_id = $1`, [target]) as any
+        const tgt = Number(tgtRow?.n ?? 0)
+        if (tgt !== 0) violations.push(`${t}: target has ${tgt} rows (expected 0 for concept-done)`)
+      }
+      if (violations.length > 0) {
+        console.error("\n  MUST-be-absent assertion failed:")
+        for (const v of violations) console.error(`    ${v}`)
+        throw new Error(`clone audit failed: ${violations.length} post-concept table(s) non-empty on concept-done target (rolling back)`)
+      }
+      console.log(`  (asserted ${CONCEPT_DONE_MUST_BE_ABSENT.length} post-concept tables empty on target)`)
+    }
+  })
 
   console.log(`\n  Cloned ${source} → ${target} (phase='${targetNovelPhase}', current_chapter=1)`)
 }

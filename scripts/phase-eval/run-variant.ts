@@ -20,7 +20,10 @@
  *       --novel-id=<cloned-concept-done-novel-id> \
  *       --output-dir=<absolute-output-dir>
  *
- * Output: <output-dir>/outlines.json — array of ChapterOutline (planner output).
+ * Output: <output-dir>/outlines.json — JSON object
+ *   { novelId, promptOverride, outlines: ChapterOutline[] } where the
+ *   `outlines` array is the planner's per-chapter output. The verdict
+ *   reader reads `.outlines` from this shape.
  */
 
 import { writeFileSync, mkdirSync } from "node:fs"
