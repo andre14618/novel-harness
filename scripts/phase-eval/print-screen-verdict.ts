@@ -34,7 +34,16 @@
  *
  * Usage:
  *   bun scripts/phase-eval/print-screen-verdict.ts \
- *     --summary=<path-to-summary.json>
+ *     --summary=<path-to-summary.json> \
+ *     [--persist]                    persist a row to phase_eval_runs
+ *     [--exp-id=<n>]                 link the row to a tuning_experiments id
+ *     [--note='...']                 free-text operator note
+ *
+ * Persistence is OFF by default — without --persist this script behaves
+ * exactly as before (stdout + exit code only). With --persist, after
+ * computing the verdict, an append-only row is INSERTed into
+ * phase_eval_runs (see sql/033_phase_eval_runs.sql). See
+ * docs/designs/eval-testing-module-v1.md (R6).
  */
 
 import { readFileSync, existsSync } from "node:fs"
@@ -151,10 +160,10 @@ function readSeedChapterCount(seedName: string, charterDefault: number): number 
   }
 }
 
-function main(): void {
+async function main(): Promise<void> {
   const summaryArg = process.argv.find(a => a.startsWith("--summary="))
   if (!summaryArg) {
-    console.error("usage: bun print-screen-verdict.ts --summary=<path-to-summary.json>")
+    console.error("usage: bun print-screen-verdict.ts --summary=<path-to-summary.json> [--persist] [--exp-id=<n>] [--note='...']")
     process.exit(2)
   }
   const summaryPath = summaryArg.split("=", 2)[1]!
@@ -162,6 +171,18 @@ function main(): void {
     console.error(`summary not found: ${summaryPath}`)
     process.exit(2)
   }
+
+  // Optional persistence flags (R6 — see docs/designs/eval-testing-module-v1.md).
+  const persist = process.argv.includes("--persist")
+  const expIdArg = process.argv.find(a => a.startsWith("--exp-id="))
+  const noteArg = process.argv.find(a => a.startsWith("--note="))
+  const expId = expIdArg ? Number(expIdArg.split("=", 2)[1]) : undefined
+  if (expIdArg && !Number.isFinite(expId)) {
+    console.error(`--exp-id must be an integer, got: ${expIdArg}`)
+    process.exit(2)
+  }
+  const note = noteArg ? noteArg.split("=", 2)[1] : undefined
+
   const summary = JSON.parse(readFileSync(summaryPath, "utf-8")) as Summary
   const summaryDir = dirname(summaryPath)
 
@@ -239,7 +260,43 @@ function main(): void {
 
   console.log(`Verdict: ${verdict}`)
   console.log(`Exit: ${exitCode}`)
+
+  // R6 persistence (optional, OFF by default). After verdict + metrics
+  // are computed and printed, INSERT a single row into phase_eval_runs
+  // mirroring the augmented summary + verdict line. See
+  // docs/designs/eval-testing-module-v1.md §5.
+  if (persist) {
+    const { persistPhaseEvalRun, currentGitCommit } = await import("./persist-run")
+    const augmentedSummary = {
+      ...summary,
+      g_metrics: m,
+      gates: { G1, G2, G3, G4 },
+      expected_chapters: expectedChapters,
+    }
+    try {
+      const runId = await persistPhaseEvalRun({
+        probeName: "phase-variant-comparison",
+        gitCommit: currentGitCommit(),
+        experimentId: expId ?? null,
+        seedsUsed: [summary.seed],
+        variantLabels: summary.variants.map(v => v.id),
+        summaryJson: augmentedSummary,
+        verdict,
+        notes: note ?? null,
+      })
+      console.log(`Persisted as phase_eval_runs.id=${runId}`)
+    } catch (err) {
+      // Persistence failure must NOT mask the verdict. Print + exit
+      // with the verdict's own exit code; the operator can re-persist
+      // later with the same summary file if needed.
+      console.error(`[verdict] WARN: --persist failed: ${(err as Error).message}`)
+    }
+  }
+
   process.exit(exitCode)
 }
 
-main()
+main().catch(err => {
+  console.error("[verdict] fatal:", err)
+  process.exit(1)
+})
