@@ -359,11 +359,33 @@
         "orphan_pairs": 0,
         "orphan_pairs_sample": []
       }
+    },
+    "structure": {
+      "book": "crystal_shard",
+      "issues": [
+        "value-charge evidence: 12 OK rows have evidence_quote not found verbatim in scene prose"
+      ],
+      "scenes_in_book": 139,
+      "value_charge_path": "novels/salvatore-icewind-dale/structure/crystal_shard/value-charge.jsonl",
+      "value_charge_rows": 139,
+      "value_charge_ok": 139,
+      "value_charge_fail": 0,
+      "value_charge_polarity_invalid": 0,
+      "value_charge_polarity_inconsistent": 0,
+      "value_charge_quote_not_in_source": 12,
+      "promises_path": "novels/salvatore-icewind-dale/structure/crystal_shard/promises.json",
+      "promises_rows": 14,
+      "promises_payoff_invalid": 0,
+      "promises_monotonicity_violations": 0,
+      "promises_consistency_violations": 0,
+      "clean": false
     }
   },
-  "gaps": [],
+  "gaps": [
+    "[structure/crystal_shard] value-charge evidence: 12 OK rows have evidence_quote not found verbatim in scene prose"
+  ],
   "summary": {
-    "clean": true,
-    "gap_count": 0
+    "clean": false,
+    "gap_count": 1
   }
 }

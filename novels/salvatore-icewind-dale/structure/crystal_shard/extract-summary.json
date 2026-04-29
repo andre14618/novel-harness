@@ -1,0 +1,12 @@
+{
+  "novel": "salvatore-icewind-dale",
+  "book": "crystal_shard",
+  "extractedAt": "2026-04-29T18:47:05.607Z",
+  "scenesProcessed": 0,
+  "valueChargeOk": 0,
+  "valueChargeFail": 0,
+  "promiseOpenCount": 14,
+  "promiseClosureCount": 14,
+  "promiseMerged": 14,
+  "promiseError": null
+}

@@ -1,0 +1,80 @@
+{
+  "novel": "salvatore-icewind-dale",
+  "book": "crystal_shard",
+  "computedAt": "2026-04-29T20:30:41.748Z",
+  "cells": {
+    "value-charge": {
+      "metrics": {
+        "n": 54,
+        "precision": 0.94,
+        "recall": 0.94,
+        "f1": 0.94,
+        "polarityAgreement": 0.7592592592592593,
+        "perField": {
+          "valueIn": {
+            "agree": 39,
+            "n": 54,
+            "rate": 0.7222222222222222
+          },
+          "valueOut": {
+            "agree": 43,
+            "n": 54,
+            "rate": 0.7962962962962963
+          },
+          "lifeValue": {
+            "agree": 30,
+            "n": 54,
+            "rate": 0.5555555555555556
+          },
+          "polarity": {
+            "agree": 41,
+            "n": 54,
+            "rate": 0.7592592592592593
+          }
+        },
+        "retestSelfDisagreement": {
+          "n": 5,
+          "disagree": 2,
+          "rate": 0.4
+        },
+        "confidenceCurve": [
+          {
+            "threshold": 0.5,
+            "n": 54,
+            "precision": 0.7592592592592593
+          },
+          {
+            "threshold": 0.7,
+            "n": 50,
+            "precision": 0.78
+          },
+          {
+            "threshold": 0.8,
+            "n": 49,
+            "precision": 0.7959183673469388
+          },
+          {
+            "threshold": 0.9,
+            "n": 40,
+            "precision": 0.775
+          }
+        ],
+        "judgeFailures": 1
+      },
+      "verdict": {
+        "verdict": "NULL-GOLD",
+        "reason": "adjudicator self-disagreement 40.0% > 15%"
+      }
+    }
+  },
+  "aggregatedVerdict": "NULL-GOLD-ONLY",
+  "cellVerdicts": [
+    {
+      "dim": "value-charge",
+      "verdict": {
+        "verdict": "NULL-GOLD",
+        "reason": "adjudicator self-disagreement 40.0% > 15%"
+      }
+    }
+  ]
+}
