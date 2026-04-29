@@ -20,7 +20,7 @@ An invariant has one of four shapes. Shape determines cost + coverage tradeoffs.
 | **Syntactic** | AST walk / regex / lint rule over source files | ~milliseconds | Structural patterns visible in the code itself (e.g. "every DEBUG flag has N call sites"). |
 | **Runtime** | Assertion fires during test execution | Seconds (test wall-clock) | Properties that only manifest during execution (e.g. "at most one row per X across process lifetime"). |
 | **Cross-state** | Query against persisted state (DB, filesystem, etc.) | ~seconds (query cost) | Consistency between two stores (e.g. "if flag=TRUE then row exists in Y"). |
-| **LLM-check** | Fast model (Haiku / Cerebras Qwen 235B / DeepSeek V3.2) judges a diff | ~2-5 seconds, $0.001-0.01 | Semantic patterns regex can't phrase (e.g. "does this diff access a Response body twice"). |
+| **LLM-check** | Fast model (Haiku / Cerebras Qwen 235B / DeepSeek V4 Flash) judges a diff | ~2-5 seconds, $0.001-0.01 | Semantic patterns regex can't phrase (e.g. "does this diff access a Response body twice"). |
 
 LLM-check is the newest shape, not yet implemented. Plan: ships as a script that takes a diff on stdin + a prompt template, returns PASS/FAIL. Same three-layer logic as the content checkers (adherence/hallucination/chapter-plan) — narrow tasks, small models, OR-gated.
 

@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-21
+updated: 2026-04-29
 ---
 
 # Decisions
@@ -2226,3 +2226,61 @@ The pivot is a **freeze**, not a retirement. The LoRA infrastructure (W&B Infere
 - **Adversary-review process caveat:** the Codex SlashCommand invocation path was unavailable mid-session; the Opus `experiment-adversary` fallback substituted per the skill's documented fallback rule. The fallback's RED verdict + cheapest-untried-counterfactual still steered the session to the correct kill. Worth making the primary Codex path more resilient, but the fallback mechanism worked as designed.
 - **Pattern for future charters — "terrain-survey preflight":** before any experiment that assumes "planner output X reaches writer Y," add a $0 render-surface audit as an explicit preflight item alongside the adversary-review gate. This session shows the audit is cheap, high-signal, and can kill entire experiment branches before LLM spend. Documented as a rule in lessons-learned §"Terrain-survey before probe implementation."
 - **Cost-estimate discipline reinforced:** the adversary's $0.60 budget was 21× over the actual $0.028 because per-token estimates don't account for DeepSeek prefix caching (280-320 cached tokens per call on the primer surface). Future charter §7 budgets should anchor on `SELECT sum(total_cost_usd) FROM llm_calls WHERE agent='beat-writer' ...` for any recent beat-scale run, not per-token ceilings. Reinforces memory `feedback_query_llm_calls_for_costs`.
+
+## Session 2026-04-29 — DeepSeek V4 Flash swap + per-agent thinking-mode toggle
+
+### DeepSeek V3.2 → V4 Flash pipeline-wide; thinking mode is per-agent
+*2026-04-29 · commit `eb2993d`*
+
+**Decision:** All DeepSeek-using slots route to **DeepSeek V4 Flash** (replacing V3.2). Thinking mode is OFF by default; ON only on three slots that reason over multi-element structure with cross-element dependencies — `planning-beats`, `chapter-plan-checker`, `chapter-plan-reviser`. Decision rule documented as a comment block above `deepseekV4Flash` in `src/models/roles.ts` so future model swaps inherit the rule.
+
+**Why:** V4 Flash is DeepSeek's current production tier with optional thinking mode. The instinct to flip `thinking: true` for all 10 DeepSeek-using slots was caught by the user ("are they literally all being used for thinking?") — thinking tokens cost latency and money in exchange for *multi-step structural reasoning*, not for creative output or one-shot transforms. The three thinking-on slots all run cross-beat / multi-element analyses (14-beat per-chapter expansion + state flow; cross-beat coherence judgment over 14 beats; smallest-edit diff over a multi-issue cluster); the other seven (writer, world-builder, character-agent, plotter, planning-plotter, planning-extractor, artifact-adjuster) are creative or one-shot and stay non-thinking.
+
+**Implementation surface:**
+- `src/models/registry.ts` — added `deepseek-v4-flash` ($0.14 / $0.28 / $0.0028 cache hit; thinking optional; maxOutput 64K) and `deepseek-v4-pro` ($1.74 / $3.48 base, currently 75% off until 2026-05-31; thinking always-on; reserved as escalation, NOT routed in `roles.ts`). Removed legacy `deepseek-chat` and `deepseek-reasoner` entries entirely (no aliases).
+- `src/models/roles.ts` — renamed `deepseekV3` → `deepseekV4Flash` constant; thinking-true set is exactly `{planning-beats, chapter-plan-checker, chapter-plan-reviser}`.
+- `src/llm.ts` — `thinking: boolean` plumbed through `makeRequest()` into the request body as `{ thinking: { type: "enabled" } }` for the deepseek provider only. Other providers ignore the flag.
+- 22+ scripts string-replaced from `deepseek-chat` → `deepseek-v4-flash`.
+
+**Alternatives rejected:**
+- **Set `thinking: true` everywhere DeepSeek runs.** Was the initial implementation; user pushback corrected it. Latency cost not justified for one-shot creative slots.
+- **Keep V3.2 as the live default and add V4 Flash as opt-in.** No reason to maintain two API tiers when V4 Flash is the current production family — clutter for no benefit. V4 Pro stays in the registry as the escalation tier.
+- **Use V4 Pro by default for the thinking slots.** ~12× output cost vs Flash at base rate; reserved for cases where Flash thinking proves insufficient. Pricing source: `https://api-docs.deepseek.com/quick_start/pricing` (V4 Pro base $1.74/$3.48; V4 Flash $0.14/$0.28).
+
+**Ongoing implications:**
+- Any new DeepSeek-using slot defaults to non-thinking; the comment block above `deepseekV4Flash` is the source-of-truth decision rule. Adding `thinking: true` requires the slot to justify it against the multi-element-structural-reasoning criterion.
+- Latency baselines (CLAUDE.md says ~30s/beat on V3.2) need re-measuring after the first end-to-end novel run on V4 Flash. Flagged in current-state.md.
+- V4 Pro is registered but unrouted — escalation lever for any slot whose Flash-thinking output proves insufficient. The 75% promo discount expires 2026-05-31, after which the base $1.74/$3.48 rate returns.
+
+### Phase-eval probe scaffold (variant runner via env-var seam)
+*2026-04-29 · commits `a031980` (Slice 0a) + `c6ef9a5` (Slice 1) + `9de6a78` + `d024ce8`*
+
+**Decision:** Ship a cheap-probe instrument for testing planner-prompt variants side-by-side without building a full harness. Implementation lives in `scripts/phase-eval/` + the `PLANNING_BEATS_PROMPT_OVERRIDE` env-var seam in `src/agents/planning-beats/index.ts`. The probe is offline tooling, NOT part of the runtime pipeline — production novels are unaffected.
+
+**Why:** The phase-variant-comparison charter (`docs/designs/phase-variant-comparison.md`) went through 4 rounds of Codex `gpt-5.5 effort=high` adversarial review (R1 RED through R4 RED, R5 GREEN). Each round named a cheaper counterfactual; following that pattern collapsed scope from a 14h harness build (R1) to a $0.30 5-chapter planner-only A/B (R5) — final scope ≈ 5% of original. The instrument's purpose is to let prompt-shape changes get a directional signal in minutes for cents, before committing to harness changes.
+
+**Implementation:**
+- `scripts/variant/clone-for-variant.ts` extended with `--target-phase=concept-done` flag (Slice 0a) — produces a frozen concept-snapshot novel that variants can clone from, ensuring all variants plan against identical concept state.
+- `src/agents/planning-beats/index.ts` reads `PLANNING_BEATS_PROMPT_OVERRIDE` (absolute path) at module load via top-level await.
+- `scripts/phase-eval/probe-planning-beats.ts` (parent): runs concept once → clones per variant → spawns child process per variant with the env var pre-set → aggregates per-variant `outlines.json` into `summary.json`. Each variant runs in its own bun subprocess to get a fresh module graph (top-level await caches forever in-process).
+- `scripts/phase-eval/run-variant.ts` (child): runs planning phase only, dumps `chapter_outlines.outline_json` to disk.
+- `scripts/phase-eval/print-screen-verdict.ts`: pure deps-free metric computer — reports G1-G4 (median facts/chapter, mean knowledge/chapter, mean beats/chapter, mean state-changes/chapter) with test-minus-control deltas. Charter R5 framing — directional, not compliance.
+
+**First-run result (default vs loud, `fantasy-system-heretic` seed, 3 chapters):** ΔG1=+5 facts/chapter (median 3 → 8), ΔG3=+4.3 beats/chapter (mean 10 → 14.3), ΔG2=+1.3 knowledge transfers/chapter, ΔG4=+0.3 state changes/chapter. Strong directional signal that prompt-shape is a load-bearing planner lever even on V4 Flash thinking-mode. Sample size below charter spec (3 chapters vs 5 — used the smallest current-target-genre seed); next probe should add temperature-noise band or use a 5-chapter litrpg seed.
+
+**Alternatives rejected:**
+- **In-process variant cycling.** Top-level `await Bun.file(prompt).text()` in `planning-beats/index.ts` caches the prompt for the life of the process; in-process cycling silently applies the FIRST variant's prompt to ALL subsequent variants. Per-variant child processes are mandatory.
+- **Charter R1's full harness build.** 14h scope; deferred until probe results justify the investment. R5 probe covers the immediate need at 5% of the cost.
+- **Including chapter-plan-checker in the probe (R3 charter).** Required prose input; incompatible with planner-only scope. Codex R3 flagged via direct `src/agents/chapter-plan-checker/context.ts:13` cite. Dropped in R4.
+
+**Ongoing implications:**
+- The probe is the canonical first instrument for ANY planner-prompt change going forward. Spawn → measure → decide before committing to harness work.
+- If probe results across multiple seeds + variants justify it, fold the env-var seam into the harness as a permanent prompt-pinning surface (e.g., `pipelineOverrides.promptOverrides[agent]`). Until then, it stays offline tooling.
+- The same child-process variant runner pattern generalizes to ANY agent whose prompt is loaded via top-level await (i.e., all of them). Future probe scripts can clone the `run-variant.ts` shape per-agent.
+
+### Schema-of-record drift caught at runtime — `thematic_tags` was dropped in sql/013
+*2026-04-29 · commit `9de6a78`*
+
+**Decision:** Slice 0a's `CONCEPT_DONE_MUST_BE_ABSENT` audit list (in `scripts/variant/clone-for-variant.ts`) included `thematic_tags`, which was created in sql/011 but DROPPED in sql/013 (`drop_themes_unify_defaults`). The first phase-eval probe run failed at the audit step with `relation "thematic_tags" does not exist`. Fix: removed `thematic_tags` from the list, added a comment citing the sql/011 CREATE + sql/013 DROP.
+
+**Why this is recorded:** memory `feedback_schema_of_record_check` says: "Before landing code that assumes array size / enum / structural shape, grep the production schema-of-record and confirm." This session is the concrete cite — `grep -rn thematic_tags sql/` would have caught the drift in <5 seconds before commit. The rule applies to ALL constants that mirror schema state (table lists, column lists, enum values).

@@ -209,10 +209,10 @@ Same workload shape across providers, for models available on W&B Inference:
 | Tonal pass (Howard) | Howard corpus | V4 > V3 all metrics | — | ✅ 4,497 curated | **V4 on-demand only** (auto-run disabled 2026-04-15) |
 | Voice imprint (Salvatore) | Icewind Dale Trilogy (777 pairs) | N/A (forward tune) | Δ-sum 0.27 val / 0.66 original | ✅ 703 train / 74 val | **v2 SHIPPED** (exp #194) |
 | Lint fixer | 235B per-sentence outputs | ~100% on exp #72 | — | ❌ Need ~200 mined pairs | Tier 1 candidate |
-| Rewriter (beat-scoped) | DeepSeek V3.2 targeted rewrite | N/A | — | shared with beat-writer retry | Gated on beat-scope refactor |
+| Rewriter (beat-scoped) | DeepSeek V4 Flash targeted rewrite | N/A | — | shared with beat-writer retry | Gated on beat-scope refactor |
 | Beat writer | N/A (voice LoRA, not distillation) | — | voice validated; constraint-following pending | ✅ Salvatore 777 pairs | **Production probe pending** (3-chapter gate) |
-| Planning-plotter | DeepSeek V3.2 | — | — | ❌ need ~500 pairs × 5 genres | Gated on beat-writer gate |
-| Concept agents | DeepSeek V3.2 | — | — | ❌ need ~200–500 per-agent | Gated on beat-writer gate |
+| Planning-plotter | DeepSeek V4 Flash | — | — | ❌ need ~500 pairs × 5 genres | Gated on beat-writer gate |
+| Concept agents | DeepSeek V4 Flash | — | — | ❌ need ~200–500 per-agent | Gated on beat-writer gate |
 
 ---
 

@@ -43,7 +43,7 @@ Diagnostic-only. Deterministic checks run and issues are logged; the chapter-lev
 ## Stack
 
 - **Runtime**: Bun
-- **LLM**: Multi-provider. Assignments per agent in `src/models/roles.ts`. Default writer is DeepSeek V3.2; fantasy seeds route to the Salvatore voice LoRA via `WRITER_GENRE_PACKS`. Other active providers: Cerebras (lint-fixer), Groq (reference-resolver), W&B Inference (fine-tuned checker + voice adapters), OpenRouter, OpenAI
+- **LLM**: Multi-provider. Assignments per agent in `src/models/roles.ts`. Default writer is DeepSeek V4 Flash (V3.2 → V4 Flash swap landed 2026-04-29); fantasy seeds route to the Salvatore voice LoRA via `WRITER_GENRE_PACKS`. Thinking mode is per-agent — ON only on `planning-beats`, `chapter-plan-checker`, `chapter-plan-reviser`. Other active providers: Cerebras (lint-fixer), Groq (reference-resolver), W&B Inference (fine-tuned checker + voice adapters), OpenRouter, OpenAI
 - **DB**: Single Postgres (`novel_harness_orchestrator`) — all novel content, world state, experiments, LLM calls, and cost tracking
 - **Fine-tuning**: W&B Serverless SFT (ART framework) → W&B Inference. Base model: `OpenPipe/Qwen3-14B-Instruct`. Active adapters: adherence-checker-v4, chapter-plan-checker-v2, continuity-v2, salvatore-1988-v3 (fantasy voice LoRA). The howard-tonal-v4 adapter is retained for on-demand tonal-pass only.
 - **Transport**: `src/transport.ts` — DirectTransport (real-time HTTP with retries). Per-call telemetry persists to `llm_calls`.

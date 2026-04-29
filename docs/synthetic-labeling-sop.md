@@ -9,7 +9,7 @@ Operational guide for collecting SFT training data using parallel Claude Code su
 
 ## Writer model selection (updated 2026-04-18)
 
-For synthetic prose generation in training-data pipelines, **DeepSeek V3.2 (`deepseek-chat`) is the default writer**, not Cerebras Qwen 235B. Measured 2026-04-18 (hallucination-checker-v2 A/B): DS hit 99.4% Sonnet agreement + 2% injection-fail rate vs Cerebras's 96.4% + 4.6%. DS is ~3× cleaner on instruction-constrained prose.
+For synthetic prose generation in training-data pipelines, **DeepSeek V4 Flash (`deepseek-v4-flash`) is the default writer** (V3.2 → V4 Flash swap landed 2026-04-29; V3.2's measured advantage carries forward as same-family successor), not Cerebras Qwen 235B. Measured 2026-04-18 on V3.2 (hallucination-checker-v2 A/B): DS hit 99.4% Sonnet agreement + 2% injection-fail rate vs Cerebras's 96.4% + 4.6%. DS is ~3× cleaner on instruction-constrained prose.
 
 Keep Cerebras only when raw throughput trumps adherence (e.g., bulk fire-and-forget exploration). For any scripted tool that generates training data, scenarios, or adherence-sensitive probes, use DeepSeek.
 

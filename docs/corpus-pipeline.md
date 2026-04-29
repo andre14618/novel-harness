@@ -184,7 +184,7 @@ characters:
 
 **Scripts:**
 - `scripts/analysis/structural.py` — deterministic; feeds `SALVATORE_PRIORS` in `src/models/roles.ts` → planner
-- `scripts/corpus/extract-dialogue.ts` — LLM-based (DeepSeek V3.2, validated against Sonnet); feeds archetype-pass POC (exp #220)
+- `scripts/corpus/extract-dialogue.ts` — LLM-based (DeepSeek V4 Flash, validated against Sonnet on V3.2; V3.2 → V4 Flash swap landed 2026-04-29); feeds archetype-pass POC (exp #220)
 
 **Outputs:**
 - `analysis/structural-signature.json` — beat-kind distribution, cluster sustain, chapter openers/closers, beats-per-scene/chapter stats, trigrams

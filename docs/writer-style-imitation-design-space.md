@@ -119,7 +119,7 @@ Single call vs structured multi-call pipelines.
 | **Multi-turn refinement** | 2–4 | 2–4× | moderate | conversation-style "now make it more X" iterations |
 | **Two-stage: structure → prose** | 2 | 2× | moderate | when planner-output is too sparse — expand to scene-skeleton first |
 | **Multi-agent debate** | 4–6 | 4–6× | mixed | "Salvatore-voice" agent vs "modern-clarity" agent → judge picks. Research-tier. |
-| **Reasoner + writer cascade** | 2 | 2–3× | moderate | DeepSeek R1 / o3 plans the scene, DeepSeek V3.2 writes — splits planning capacity from generation |
+| **Reasoner + writer cascade** | 2 | 2–3× | moderate | DeepSeek V4 Flash thinking-on plans the scene, V4 Flash non-thinking writes — splits planning capacity from generation |
 | **Sentence-by-sentence rhythm rewrite** | 30+ | 30× | small | post-hoc — moves to Layer 7 |
 
 ---
@@ -130,7 +130,9 @@ Where the tokens come from. Often paired with Layer 2b (training) choices.
 
 | model | params | $/M (in/out) | LoRA-tunable | comment |
 |---|---|---|---|---|
-| **DeepSeek V3.2** (current) | 685B MoE | $0.28 / $0.42, cached $0.028 | no public path | current default. Cheap, capable, prefix-cached. |
+| **DeepSeek V4 Flash** (current) | 685B MoE | $0.14 / $0.28, cached $0.0028 | no public path | current default (V3.2 → V4 Flash swap landed 2026-04-29). Cheap, capable, prefix-cached. Optional thinking mode. |
+| **DeepSeek V4 Pro** | undisclosed | $1.74 / $3.48 (75% off until 2026-05-31) | no public path | escalation tier; thinking always-on. NOT routed by default. |
+| **DeepSeek V3.2** | 685B MoE | $0.28 / $0.42, cached $0.028 | no public path | retired 2026-04-29, kept here for historical comparison only |
 | **DeepSeek V3.1** | 685B MoE | $0.60 / $1.70 (Together) | unclear | older sibling, no advantage |
 | **Sonnet 4.5** | undisclosed (likely ~500B-1T) | $3 / $15, cached $0.30 | no | gold standard for literary prose; ~10× DeepSeek |
 | **Opus 4.6** | undisclosed (larger) | $15 / $75, cached $1.50 | no | best available; ~50× DeepSeek; reserve for highest-stakes |
@@ -198,7 +200,7 @@ L1: Howard raw corpus (existing)
 L2: Static Howard primer (cached)
 L3: Beat
 L4: Single-shot
-L5: DeepSeek V3.2
+L5: DeepSeek V4 Flash
 L6: Single output
 L7: Lint pass
 ```
@@ -210,7 +212,7 @@ L1: Salvatore deconstructed corpus (Phase 0 deliverable)
 L2: Hybrid primer (5K cached fundamentals + 2K dynamic per-scene retrieved)
 L3: Scene
 L4: Single-shot
-L5: DeepSeek V3.2
+L5: DeepSeek V4 Flash
 L6: Single output
 L7: Lint pass
 ```
@@ -294,7 +296,7 @@ L1: Salvatore deconstructed corpus
 L2: Hybrid primer
 L3: Scene
 L4: Single-shot, parallel N=3
-L5: DeepSeek V3.2
+L5: DeepSeek V4 Flash
 L6: Best-of-3 selected by Salvatore-style classifier
 L7: Lint pass
 ```

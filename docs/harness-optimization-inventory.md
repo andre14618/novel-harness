@@ -41,7 +41,7 @@ complete knob list.
 | Surface | Type | Storage | Current default | Loop-tunable? |
 |---|---|---|---|---|
 | System prompt | prompt | `file:src/agents/world-builder/world-bible-system.md` | current | later |
-| Model | model | `roles.ts:world-builder` | DeepSeek V3.2 | later |
+| Model | model | `roles.ts:world-builder` | DeepSeek V4 Flash | later |
 | Temperature | config-float | DB `agent_generation_config` | 0.7 (default) | later |
 | Max tokens | config-int | `roles.ts` | 8192 | later |
 | Output schema richness | schema | `file:src/agents/world-builder/schema.ts` | current | later |
@@ -54,7 +54,7 @@ complete knob list.
 | Surface | Type | Storage | Current default | Loop-tunable? |
 |---|---|---|---|---|
 | System prompt | prompt | `file:src/agents/character-agent/character-profile-system.md` | current | later |
-| Model | model | `roles.ts:character-agent` | DeepSeek V3.2 | later |
+| Model | model | `roles.ts:character-agent` | DeepSeek V4 Flash | later |
 | Temperature / Max tokens | config | `roles.ts` | 0.7 / 8192 | later |
 | `exampleLines` count per character | schema | `file:…/character-profile-system.md:22` | 4 | later (schema-of-record — changes cascade to beat-context preset math) |
 | Relationship-graph depth (dyad / triad / full-N) | prompt-variant | file | implicit | later |
@@ -65,7 +65,7 @@ complete knob list.
 | Surface | Type | Storage | Current default | Loop-tunable? |
 |---|---|---|---|---|
 | System prompt | prompt | `file:src/agents/plotter/story-structure-system.md` | current | later |
-| Model | model | `roles.ts:plotter` | DeepSeek V3.2 | later |
+| Model | model | `roles.ts:plotter` | DeepSeek V4 Flash | later |
 | Arc-shape prior (free / hero-journey / genre-pack-locked) | prompt-variant | file | free | later |
 
 ### 0.4 Pre-planning chat (Studio Director)
@@ -75,7 +75,7 @@ complete knob list.
 | `planning-conversationalist` prompt | prompt | `file:src/agents/planning-conversationalist/` | current | later |
 | `planning-extractor` prompt | prompt | `file:src/agents/planning-extractor/` | current | later |
 | Model — conversationalist | model | `roles.ts` | Groq Qwen3-32B | later |
-| Model — extractor | model | `roles.ts` | DeepSeek V3.2 | later |
+| Model — extractor | model | `roles.ts` | DeepSeek V4 Flash | later |
 
 ---
 
@@ -86,7 +86,7 @@ complete knob list.
 | Surface | Type | Storage | Current default | Loop-tunable? |
 |---|---|---|---|---|
 | System prompt | prompt | `file:src/agents/planning-plotter/chapter-outline-system.md` | current | Y |
-| Model | model | `roles.ts:planning-plotter` | DeepSeek V3.2 | Y (narrow set: DeepSeek / Cerebras 235B / Kimi K2) |
+| Model | model | `roles.ts:planning-plotter` | DeepSeek V4 Flash | Y (narrow set: DeepSeek / Cerebras 235B / Kimi K2) |
 | Temperature | config-float | `roles.ts` + DB | 0.6 | Y |
 | Max tokens | config-int | `roles.ts` | 8192 | Y |
 | Chapter-level richness tier | prompt-variant | file | implicit | Y |
@@ -97,7 +97,7 @@ complete knob list.
 | Surface | Type | Storage | Current default | Loop-tunable? |
 |---|---|---|---|---|
 | System prompt | prompt | `file:src/agents/planning-beats/beat-expansion-system.md` | current | Y |
-| Model | model | `roles.ts:planning-beats` | DeepSeek V3.2 | Y |
+| Model | model | `roles.ts:planning-beats` | DeepSeek V4 Flash (thinking ON) | Y |
 | Temperature | config-float | `roles.ts` + DB | 0.6 | Y |
 | Max tokens | config-int | `roles.ts` | 8192 | Y |
 | `SeedInput.directives` → `renderDirectivesForPlanner()` threading | prompt-rider | `src/types.ts` + `src/agents/planning-beats/context.ts:71-73` | passthrough from Studio Director chat | Y |
@@ -133,7 +133,7 @@ complete knob list.
 |---|---|---|---|---|
 | System prompt — default (DeepSeek route) | prompt | `file:src/agents/writer/beat-writer-system.md` | current | Y |
 | System prompt — voice-LoRA route (Salvatore v4) | prompt | `file:src/agents/writer/beat-writer-system-salvatore.md` | training-verbatim | N (training contract) |
-| Model — default | model | `roles.ts:beat-writer` | DeepSeek V3.2 | Y |
+| Model — default | model | `roles.ts:beat-writer` | DeepSeek V4 Flash | Y |
 | Model — fantasy route | model | `WRITER_GENRE_PACKS` | Salvatore v4 LoRA | N (frozen per 2026-04-21 pivot until replacement ships) |
 | Temperature | config-float | `roles.ts` + DB | 0.8 | Y |
 | Max tokens | config-int | `roles.ts` | 4000 | Y |
@@ -220,7 +220,7 @@ shifts the writer distribution enough to invalidate a checker.
 | Surface | Type | Storage | Current default | Loop-tunable? |
 |---|---|---|---|---|
 | System prompt | prompt | `file:src/agents/chapter-plan-checker/plan-adherence-system.md` | current | later |
-| Model | model | `roles.ts` | DeepSeek V3.2 base | later |
+| Model | model | `roles.ts` | DeepSeek V4 Flash thinking ON base | later |
 | Beat-indexed deviation schema | schema | `schema.ts` | `{description, beat_index}` | N |
 | Max rewrite passes | config-int | `src/config/pipeline.ts:maxChapterPlanRewritePasses` | 2 | Y (pipeline-level) |
 
@@ -229,7 +229,7 @@ shifts the writer distribution enough to invalidate a checker.
 | Surface | Type | Storage | Current default | Loop-tunable? |
 |---|---|---|---|---|
 | System prompt | prompt | `file:src/agents/chapter-plan-reviser/plan-revision-system.md` | current | later |
-| Model | model | `roles.ts` | DeepSeek V3.2 base | later |
+| Model | model | `roles.ts` | DeepSeek V4 Flash thinking ON base | later |
 | Temperature | config-float | `roles.ts:chapter-plan-reviser` | 0.3 | later |
 | Max tokens | config-int | `roles.ts` | 6144 | later |
 | Post-revision sanity checks (beat-floor / new-characters) | code | `src/phases/drafting.ts:748-759` (inline guard; reviser module delegates to drafting-loop enforcement) | current | Y |

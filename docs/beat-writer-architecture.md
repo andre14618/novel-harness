@@ -197,7 +197,7 @@ This is orthogonal to the writer-side strip and per-beat-drives work — it oper
 - **Tier 2 (escape valve, on-demand):** a mid-size (32B–200B) voice-tuned model on GPU rental (RunPod / Modal), invoked when Tier 1 fails a beat after N retries. ~$0.05–0.20/chapter when fired.
 
 Why a self-hosted mid-size rather than DeepSeek SaaS as the escape valve:
-- **Own the voice tuning.** DeepSeek V3.2 SaaS can't be voice-LoRA'd; Tier 2 should preserve voice quality, not just adherence.
+- **Own the voice tuning.** DeepSeek V4 Flash SaaS can't be voice-LoRA'd; Tier 2 should preserve voice quality, not just adherence.
 - **Cheaper per call at sustained throughput** than DeepSeek on output-heavy workloads.
 - **Flexibility** to swap base model as the open-weights landscape evolves.
 
