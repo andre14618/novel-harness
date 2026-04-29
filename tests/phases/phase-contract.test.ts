@@ -49,9 +49,21 @@ describe("Phase<I,O> contract", () => {
   })
 
   it("phase names cover the full PhaseName union", () => {
-    // Compile-time check: assigning each name to PhaseName confirms
-    // the union is exhaustively populated by the live phase set.
-    const names: PhaseName[] = ["concept", "planning", "drafting", "validation"]
-    expect(PHASES.map(p => p.name).sort()).toEqual([...names].sort())
+    // Live-surface check: read `phase.name` off each wrapper (not the
+    // hardcoded label in the PHASES table) and confirm the set matches
+    // the PhaseName union literal-for-literal. A wrapper that drifts
+    // its `name` field would fail here.
+    const live = PHASES.map(p => p.phase.name).sort()
+    const expected: PhaseName[] = ["concept", "drafting", "planning", "validation"]
+    expect(live).toEqual(expected)
   })
+
+  // Discriminated-return testing (PhaseResult.kind === "complete" |
+  // "paused") is intentionally out of scope here. Calling phase.run()
+  // requires a populated DB + stubbed transport; that coverage lives in
+  // the integration tests (drafting-revision-used-persistence,
+  // drafting-reviser-escalation) and the byte-parity harness. The
+  // type system pins the discriminant statically, so a contract test
+  // that runtime-asserts `result.kind` would only fire if both the
+  // wrapper *and* TypeScript were broken simultaneously.
 })

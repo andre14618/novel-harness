@@ -512,13 +512,15 @@ differently). Phase-internal behavior remains byte-equal.
 
 The original P7 plan was to delete `runConceptPhase`/`runPlanningPhase`/
 `runDraftingPhase`/`runValidationPhase` as dead exports. That premise is
-false: discovered during P7 implementation that they have 14 external
-callers — `src/phases/drafting-revision-used-persistence.test.ts` (5
+false: discovered during P7 implementation that they have 17 external
+usages — `src/phases/drafting-revision-used-persistence.test.ts` (5
 calls), `src/phases/drafting-reviser-escalation.test.ts` (6 calls), and
 3 scripts (`scripts/fork-writer-test.ts`, `scripts/fork-writer-v4-llama.ts`,
-`scripts/test-planner-isolated.ts`). The tests exercise the phase body
-directly with mocks; the scripts compose phases manually for ablation
-runs that intentionally bypass the driver.
+`scripts/test-planner-isolated.ts`) that each invoke `runConceptPhase`
++ `runPlanningPhase` (6 calls total). No external caller exists for
+`runValidationPhase`. The tests exercise the phase body directly with
+mocks; the scripts compose phases manually for ablation runs that
+intentionally bypass the driver.
 
 Action: keep the exports, add a JSDoc to each pointing at the Phase<I,O>
 wrapper as the canonical driver-consumer entry point.
@@ -527,11 +529,22 @@ Parity: full.
 
 ### P8 — Phase contract tests
 
-**Files**: `tests/phases/{concept,planning,drafting,validation}.test.ts`.
+**Files**: `tests/phases/phase-contract.test.ts`.
 
-Per-phase tests at the new interface. Each test feeds a recorded
-`PhaseInput` plus a stubbed transport, and asserts on the returned
-`PhaseResult.output`. Tests live alongside the parity harness.
+The original plan was four per-phase test files exercising recorded
+`PhaseInput` against a stubbed transport. Discovered during P8 that
+behavior coverage is already provided by the integration tests
+(`src/phases/drafting-revision-used-persistence.test.ts`,
+`drafting-reviser-escalation.test.ts`, `settle-loop.test.ts`) and the
+byte-parity harness (`tests/phase-parity/`). Adding four superficial
+re-runs of the integration suite at a different file path would be
+duplicative.
+
+Collapsed to a single file that pins the wrapper shape only: `name`
+matches the canonical PhaseName literal, `run` is AsyncFunction,
+`loadOutput` is AsyncFunction, registry has uniqueness + name-coverage
+invariants. Behavioral coverage of `run`/`loadOutput` continues to
+live in the integration tests + parity harness.
 
 **Out of scope**: redesigning Phase internals (e.g., extracting
 ChapterDraftLoop from drafting.ts — separate candidate).
