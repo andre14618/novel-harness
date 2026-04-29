@@ -1,21 +1,41 @@
 ---
-status: draft (pending Codex R6 adversarial review)
+status: draft (pending Codex R7 adversarial review)
 kind: experiment-charter
 name: corpus-structural-decomposition-v1
 owner: andre
 date: 2026-04-29
-revision: 6
-pre-gate: NONE — R6 collapses to single-book crystal_shard smoke. The Salvatore bundle exists on disk; LitRPG ingest is deferred to a follow-on charter that runs only if the smoke clears.
-parent-context: docs/research/writing-frameworks/SYNTHESIS.md, docs/corpus-pipeline.md, docs/todo.md "Three-bucket forward plan"
+revision: 7
+pre-gate: NONE — single-book crystal_shard smoke against the existing Salvatore bundle. R7 swaps the human-gold protocol for an LLM-judge protocol; no new ingest dependencies.
+parent-context: docs/research/writing-frameworks/SYNTHESIS.md, docs/corpus-pipeline.md, docs/todo.md "Three-bucket forward plan", docs/structure-sonnet-judge-rubric.md
 adversary-verdict:
   R1: RED (codex:codex-rescue gpt-5.5 effort=high, agent a2dfdb5c339c911f8, 2026-04-29) — premature 6-extractor build. Cheapest counterfactual: "Stratified Top-2 Calibration Pilot, ~$2-4."
   R2: YELLOW (codex:codex-rescue gpt-5.5 effort=high, agent aed14f4069c607b16, 2026-04-29) — 3 protocol-level blockers + 3 warnings + 2 suggestions. Pilot architecturally on track.
   R3: YELLOW (codex:codex-rescue gpt-5.5 effort=high, agent a78a3f201ecc4bf63, 2026-04-29) — 3 source-shape blockers + 6 warnings + 2 suggestions.
   R4: YELLOW (codex:codex-rescue gpt-5.5 effort=high, agent afcade8df722c3a13, 2026-04-29) — R4 resolved all R3 issues correctly (verified). 2 NEW blockers from deeper file inspection: source-normalization spec drops epilogue chapters (92 rows in beats.jsonl have chapter ∈ {epilogue, epilogue2, epilogue3}, plus streams_of_silver has part1/part2/part3); sort key references nonexistent `scene_idx` field (real field is `scene_id`). 3 warnings (NER pipeline unnamed; F1≈1−d not a real multi-class bound; LitRPG ingest reserve range). Recommended action: ITERATE-R5.
   R5: YELLOW (codex:codex-rescue gpt-5.5 effort=high, agent a9d06835481391bd5, 2026-04-29) — R5 closed R4's source-shape bugs. 3 NEW blockers + 1 warning. (1) Axis 4: LitRPG bundle does not exist on disk; manifest.json lists only salvatore-icewind-dale; the 2-stratum pilot cannot run as chartered. (2) Axis 5: PromiseRegistry schema inconsistent end-to-end — §2 + §3-extractor use int-only `opened_chapter`, §3.1 uses `*_label + *_index`. P/R/F1 join rule undefined at exactly the place the run needs it. (3) Axis 7: §1 falsification rule and §7 aggregation rule produce incompatible verdicts on the same result matrix (e.g., both pass fantasy + both fail LitRPG would be FAIL per §1 but SCOPED PASS per §7). 1 warning: streams_of_silver part1/2/3 are substantive narrative beats; 50/51/52 ordinal mapping is safe only scoped to crystal_shard. Named cheapest counterfactual: "Single-book crystal_shard instrumentation smoke (~$0.10-0.50 LLM cost) to flush schema and join-contract defects before paying LitRPG ingest." Recommended action: REVISE CHARTER (ITERATE-R6).
+  R6: NOT REVIEWED — R6 was the cheapest-counterfactual implementation of R5; user pivoted directly to implementation. R6 deliverables 1-6 (+ verify-pipeline.py extension) shipped on `phase-variant-screen` branch as part of Bucket 1 implementation work (commits TBD).
+  R7: PENDING — R7 swaps the R6 human-gold protocol for an LLM-judge protocol (V4 Pro auto-judge + optional Sonnet/Codex subagent for premium-sample arbitration). Motivation: human single-rater gold consumes ~90-150 min adjudicator time per dimension, blocking the smoke verdict. R7 trades adjudicator time for LLM compute (~$0.05-0.50). Independence shifts from "human vs LLM" to "capability-gradient + cross-family-arbitrated" — see §2 R7 update.
 ---
 
 # Experiment Charter — `corpus-structural-decomposition-v1`
+
+## 0a. Tl;dr (R7 — LLM-judge replaces single-human-rater gold)
+
+**R7 takes R6's design as-is for extraction, normalization, and verdict computation, and swaps the human-gold protocol for an LLM-judge protocol. Two-tier independence: V4 Pro reasoning-tier as automated baseline judge, Sonnet / Codex subagents as premium sample arbiters. The R6 verdict gates (§7) are unchanged; only the gold producer changes.**
+
+R6 was implementation-shipped (extractor agents, normalize-for-structure preflight, sampler, calibration script, verify-pipeline Stage 6 audit) on the `phase-variant-screen` branch as part of Bucket 1. The `crystal_shard` extraction completed (139 scenes × value-charge + full-book PromiseRegistry pass). The R6 verdict was blocked at the human-gold step — ~90-150 min × 2 dimensions of single-rater adjudication time — so R7 swaps the gold producer.
+
+**R7 protocol changes (vs R6 §2):**
+- Replace "Andre adjudicates 30-50 rows per dimension, single rater" with "V4 Pro auto-judges 30-50 rows per dimension via `scripts/corpus/llm-judge.ts`."
+- Replace "10% silent retest of Andre's labels" with "single-judge run; for self-consistency, a second V4 Pro pass with a different seed measures judge stability." (Sample-level only; not gating.)
+- Add "premium-sample arbitration: Sonnet/Codex subagent re-labels the 10 lowest-V4-Pro-confidence rows; cross-judge disagreement flags rows for the operator." Per `docs/structure-sonnet-judge-rubric.md`.
+- Independence axis: R6 had "human vs LLM" (orthogonal but blocked by human time). R7 has "capability-gradient (Pro reasoning > Flash extractor) + cross-family arbitration (Sonnet/Codex on a sample)." Acknowledged trade: in-family judge captures less of the extractor's blind-spots than a true cross-family judge would; the Sonnet/Codex sample-pass on the ambiguous quartile is the mitigation.
+
+**What does NOT change:** R6 §1 hypothesis floors, §3 extraction pipeline, §6 invariants, §7 verdict gates (all four CELL PASS / MARGINAL / FAIL / NULL-GOLD predicates apply identically; the gold rows fed in are now LLM-produced rather than human).
+
+**Caveat acknowledged in writing:** R7's verdict measures "extractor ↔ LLM-judge agreement," not "extractor ↔ ground truth." This is a strictly weaker claim than R6's. The R6 human-gold path remains a valid follow-on if R7's verdict comes back FAIL or PARTIAL and the operator wants to verify whether the failure is a true extractor problem or a judge-calibration problem. R7's deliverables include the prompts.jsonl files, so the human-gold path stays a single `bun scripts/corpus/sample-for-adjudication.ts` invocation away.
+
+**R7 budget delta:** + ~$0.05-0.50 V4 Pro auto-judge calls. Sonnet / Codex subagent passes are billed externally to the harness (Claude Code session compute). Net cost increase: <$1 per dimension. Net adjudicator-time savings: ~90-150 min per dimension.
 
 ## 0. Tl;dr (R6 — single-book crystal_shard smoke per Codex R5 cheapest counterfactual)
 
@@ -48,7 +68,8 @@ This is a **read-only** smoke — no runtime-pipeline impact, no harness changes
 - **R3 (YELLOW):** Codex (`a78a3f201ecc4bf63`, gpt-5.5 effort=high) found 3 source-shape blockers (PromiseRegistry chapter-window invariant, real field selectors, beats.jsonl not in narrative order). 6 warnings + 2 suggestions. Recommended action: ITERATE-R4.
 - **R4 (YELLOW):** Codex (`afcade8df722c3a13`, gpt-5.5 effort=high) found 2 NEW source-shape blockers from deeper file inspection (epilogue/part chapter labels, scene_id vs scene_idx). 3 warnings + 2 suggestions. Recommended action: ITERATE-R5.
 - **R5 (YELLOW, REVISE-R6):** Codex (`a9d06835481391bd5`, gpt-5.5 effort=high) confirmed R5 cleared R4's source-shape bugs. 3 NEW blockers: (1) Axis 4: LitRPG bundle does not exist on disk; the 2-stratum pilot cannot run as chartered; (2) Axis 5: PromiseRegistry schema inconsistent end-to-end — §2 + §3-extractor int-only `opened_chapter`, §3.1 `*_label + *_index`; P/R/F1 join rule undefined; (3) Axis 7: §1 falsification + §7 aggregation produce incompatible verdicts on the same result matrix. 1 warning: streams_of_silver part1/2/3 mapping must be scoped to that book only. Named cheapest counterfactual: "Single-book crystal_shard instrumentation smoke (~$0.10-0.50 LLM cost) to flush schema and join-contract defects before paying LitRPG ingest." Recommended action: REVISE-R6.
-- **R6 (this revision):** Took the R5 cheapest counterfactual. Scope collapsed from 2 books × 2 dimensions to 1 book (crystal_shard) × 2 dimensions. LitRPG ingest deferred to a follow-on charter that opens only if R6 smoke clears. PromiseRegistry schema unified end-to-end on `*_label + *_index` (R5 B2 fix). §1 falsification REPLACED with a single rule that cites §7 verdict gates (R5 B3 fix — single source of truth for verdict function). Streams_of_silver part1/2/3 mapping scoped to that book only and out of R6's run scope (R5 W1 fix). Budget collapsed from ~$22 + ~5.75 days to ~$0.10–0.50 + ~2 days.
+- **R6 (NOT REVIEWED, IMPLEMENTATION-SHIPPED):** Took the R5 cheapest counterfactual. Scope collapsed from 2 books × 2 dimensions to 1 book (crystal_shard) × 2 dimensions. LitRPG ingest deferred to a follow-on charter that opens only if R6 smoke clears. PromiseRegistry schema unified end-to-end on `*_label + *_index` (R5 B2 fix). §1 falsification REPLACED with a single rule that cites §7 verdict gates (R5 B3 fix — single source of truth for verdict function). Streams_of_silver part1/2/3 mapping scoped to that book only and out of R6's run scope (R5 W1 fix). Budget collapsed from ~$22 + ~5.75 days to ~$0.10–0.50 + ~2 days. Implementation landed on `phase-variant-screen` (extractor agents, preflight, sampler, calibration script, verify-pipeline.py Stage 6 audit). Verdict was blocked at the human-gold step — Codex review skipped per user direction; pivot directly to R7.
+- **R7 (this revision):** Swap human-gold protocol for LLM-judge. V4 Pro auto-judges 30-50 rows per dimension via `scripts/corpus/llm-judge.ts`; Sonnet/Codex subagents re-label the lowest-confidence quartile per `docs/structure-sonnet-judge-rubric.md`. Verdict gates unchanged. Acknowledged trade-off: R7 measures "extractor ↔ LLM-judge agreement" not "extractor ↔ ground truth"; R6 human-gold path preserved as single-command escape if R7 verdict warrants. ~$0.05-0.50 LLM-cost delta; ~90-150 min adjudicator-time saved per dimension.
 
 ## 1. Question (R6 — single-book smoke)
 
@@ -144,22 +165,20 @@ If §7's aggregated verdict is **SCOPED PASS** or **PARTIAL** on crystal_shard f
   - For matched (predicted, gold) pairs only: report `payoff_quality` agreement rate (4-class enum, expected ≥ 0.70 if extractor is calibrated).
   - Free-form text variant rejected per R2 blocker 2.
 
-- **Human-adjudicated gold subset (R6 single-book scope)**:
-  - **value-charge**: 30–50 random samples for crystal_shard. Sampled uniformly at random from extractor-output scenes.
-  - **PromiseRegistry**: 30–50 hand-identified promises for crystal_shard (NOT extractor output — adjudicator reads chapter beats fresh and identifies promises directly).
-  - Andre adjudicates (sole rater for the smoke — inter-rater κ deferred to follow-on charters with a second human rater).
-  - Adjudication recorded in `novels/salvatore-icewind-dale/structure-gold/crystal_shard/{value-charge,promises}.jsonl`.
-  - Adjudication BLINDED to extractor output (no priming).
-  - Adjudication uses the same schema as the LLM extractor; disagreement at any field is a "miss."
+- **LLM-judge gold subset (R7 — replaces R6 human-gold protocol)**:
+  - **value-charge**: 30-50 random samples for crystal_shard. Sampled uniformly at random from extractor-output scenes (same sampling code as R6).
+  - **PromiseRegistry**: judge reads chapter beats fresh and identifies promises directly (NOT extractor output — same protocol as R6 except the judge is V4 Pro, not Andre).
+  - **Primary judge**: DeepSeek V4 Pro thinking-on (`scripts/corpus/llm-judge.ts`), routed via `structure-{value-charge,promise}-judge` agent roles. Pricing: $1.74/$3.48 per 1M tokens (75%-off promo until 2026-05-31: $0.435/$0.87). For a 50-row pass: ~$0.05-0.20.
+  - **Cross-family arbiter (premium sample)**: Sonnet (Anthropic) and Codex (gpt-5.5) via Agent subagent on the lowest-V4-Pro-confidence quartile (~10 rows). Per `docs/structure-sonnet-judge-rubric.md`. Subagent compute is billed to the Claude Code session, not the harness.
+  - Gold recorded in `novels/salvatore-icewind-dale/structure-gold/crystal_shard/{value-charge,promise}-gold.jsonl`. Same on-disk shape as R6's human-gold; `compute-calibration.ts` consumes either source identically.
+  - Judging is BLINDED to extractor output (the prompt files contain only source prose / chapter beats; no extractor labels leak in).
+  - Judge uses the same schema and the same system prompt as the LLM extractor; disagreement at any field is a "miss" — identical to the R6 schema-disagreement convention.
 
-- **Adjudicator-drift guard (R2 blocker 3 fix; R3 W3 grounding)**:
-  - 10% of each dimension's gold rows are silently retested: the adjudicator is presented the same source data again (different shuffle order, ≥1 day apart) WITHOUT being told it's a retest.
-  - Self-disagreement rate computed: `# rows where 1st label ≠ 2nd label / # retest rows`.
-  - **Engineering choice — kill rule at >15% (R3 W3 + R4 W2 grounding)**: 15% is an **explicit pilot heuristic, not a sourced fact, and not a derived bound**. Rough intuition (NOT a real multi-class bound — R4 W2 fix): when a labeler self-disagrees on ~15% of binary calls, an extractor predicting that labeler can't distinguish itself from the noise floor much above 85% accuracy on those calls; multi-class enums make this looser and asymmetric, but the directional signal is "high self-disagreement caps how strict we should be in our F1 floor." Pushing the kill threshold higher would let cells claim PASS on labels that aren't reproducible. Calibrating on κ would require a second rater, which the pilot scope explicitly defers. Follow-on charters with a 2nd rater can revise to a κ-based threshold.
-  - **Engineering choice — ≥1-day retest gap (R3 W3 grounding)**: 1 day is **arbitrary; chosen as the smallest interval that defeats trivial short-term recall**. R4 follow-on may revise after observing actual drift behavior (if drift is 0% at 1 day, gap is fine; if high, revisit).
-  - **Kill verdict**: if self-disagreement > 15% on any (dimension × crystal_shard) cell, that cell's verdict is **NULL-GOLD** — the schema is too subjective for single-rater smoke **on that cell**. The other cell is unaffected (R3 W4 fix; previously NULL-GOLD-DOMINANT over-aggregated). At R6's single-stratum scope there are 2 cells: `value-charge × crystal_shard`, `PromiseRegistry × crystal_shard`.
-  - **Warn band**: if self-disagreement is 10%–15%, gold is usable but the F1 calibration carries a ±0.05 uncertainty band. Reflected in §7 verdict gates.
-  - If self-disagreement < 10%, gold is treated as reliable.
+- **Judge-stability guard (R7 — replaces R6 adjudicator-drift)**:
+  - **Single-judge stability**: V4 Pro is run with `temperature: 0.1` (value-charge) / `0.3` (promise) and a fixed prompt; same prompt + same model + same config gives near-deterministic output (sample-level variance < 5% empirically on similar tasks per `docs/lessons-learned.md`). For self-consistency confirmation, the operator MAY run a second pass via `bun scripts/corpus/llm-judge.ts ... --max-prompts=10` on a 10-row subset and diff polarity / promise_id assignments.
+  - **Cross-judge disagreement on the lowest-confidence quartile** is the R7 analog of R6's drift retest. If V4 Pro and Sonnet (or V4 Pro and Codex) disagree on > 20% of the lowest-confidence subset, the cell's verdict carries a ±0.05 F1 uncertainty band (same band as R6 §7) AND the operator routes those rows through Andre human-gold for the cell pass.
+  - **NULL-GOLD trigger replaced**: R6 NULL-GOLD fired on adjudicator self-disagreement > 15%. R7 NULL-GOLD fires when (a) cross-judge disagreement > 30% on the sample AND (b) Andre's manual review of 5 disagreed rows confirms the schema is genuinely ambiguous (rather than judge-noise). The operator's manual review is logged as a brief note in `structure-gold/<book>/<dim>-judge-notes.md`.
+  - **Acknowledged trade**: R7's stability guard is weaker than R6's adjudicator-drift retest because LLM judges are more deterministic than humans. The R7 mitigation is the cross-family Sonnet/Codex sample, which catches systematic V4 Pro biases that a same-judge retest never would.
 
 - **Calibration metrics** (per dimension on crystal_shard):
   - Precision, recall, F1 against gold.
@@ -317,16 +336,21 @@ R6 outputs are crystal_shard-only:
 
 The follow-on LitRPG-extension charter introduces the second stratum's directory and the cross-stratum stratification-difference test.
 
-## 4. Deliverables (R6)
+## 4. Deliverables (R7)
 
-1. **2 new extractor agents** under `src/agents/structure-value-charge/` and `src/agents/structure-promise/` — emit the canonical `*_label + *_index` PromiseRegistry schema (R5 B2 fix completed in R6).
-2. **`scripts/corpus/extract-structure.ts`** — Stage 6 smoke driver, hardcoded to crystal_shard for v1.
-3. **`scripts/corpus/sample-for-adjudication.ts`** — gold-set sampler.
-4. **`scripts/corpus/compute-calibration.ts`** — precision/recall/F1 + confidence calibration curve.
-5. **Extended `verify-pipeline.py`** — Stage 6 smoke invariants (semantic invariants per dimension, evidence-quote substring check, schema check, coverage check, full-domain chapter-label invariant per §3).
-6. **Reference novel processed**: `crystal_shard` slice of `salvatore-icewind-dale` bundle (fantasy stratum). NO LitRPG novel processed in R6.
-7. **`docs/charters/corpus-structural-decomposition-v1-results.md`** — verdict charter post-smoke, citing `structure-calibration/crystal_shard.json` and naming whether either extractor cleared its dimension's pre-registered hypothesis from §1 (value-charge: P ≥ 0.78 AND R ≥ 0.65 AND F1 ≥ 0.71; PromiseRegistry: R ≥ 0.80 AND P ≥ 0.65 AND F1 ≥ 0.71).
-8. **Decision-doc entry** in `docs/decisions.md`: smoke result + follow-on routing (LITRPG-EXTENSION-CHARTER / NO-CHARTER / SINGLE-DIM-ONLY).
+R6's deliverables 1-6 shipped on `phase-variant-screen` branch. R7 adds 9 + 10 + 11; deliverables 7 + 8 still depend on the smoke verdict.
+
+1. **2 new extractor agents** under `src/agents/structure-value-charge/` and `src/agents/structure-promise/` — emit the canonical `*_label + *_index` PromiseRegistry schema (R5 B2 fix completed in R6). **SHIPPED.**
+2. **`scripts/corpus/extract-structure.ts`** — Stage 6 smoke driver, hardcoded to crystal_shard for v1. **SHIPPED.**
+3. **`scripts/corpus/sample-for-adjudication.ts`** — gold-set sampler. **SHIPPED.**
+4. **`scripts/corpus/compute-calibration.ts`** — precision/recall/F1 + confidence calibration curve. **SHIPPED.**
+5. **Extended `verify-pipeline.py`** — Stage 6 smoke invariants (semantic invariants per dimension, evidence-quote substring check, schema check, coverage check, full-domain chapter-label invariant per §3). **SHIPPED.**
+6. **Reference novel processed**: `crystal_shard` slice of `salvatore-icewind-dale` bundle (fantasy stratum). NO LitRPG novel processed in R6/R7. **SHIPPED via extract-structure.ts run.**
+7. **`docs/charters/corpus-structural-decomposition-v1-results.md`** — verdict charter post-smoke, citing `structure-calibration/crystal_shard.json` and naming whether either extractor cleared its dimension's pre-registered hypothesis from §1 (value-charge: P ≥ 0.78 AND R ≥ 0.65 AND F1 ≥ 0.71; PromiseRegistry: R ≥ 0.80 AND P ≥ 0.65 AND F1 ≥ 0.71). **PENDING gold + calibration runs.**
+8. **Decision-doc entry** in `docs/decisions.md`: smoke result + follow-on routing (LITRPG-EXTENSION-CHARTER / NO-CHARTER / SINGLE-DIM-ONLY). **PENDING smoke verdict.**
+9. **`scripts/corpus/llm-judge.ts`** (R7 NEW) — V4 Pro auto-judge driver. Reads `<dim>-prompts.jsonl`, re-runs extractor prompts/schemas through V4 Pro judge agents, emits `<dim>-gold.jsonl`. **SHIPPED.**
+10. **`docs/structure-sonnet-judge-rubric.md`** (R7 NEW) — rubric for routing premium-sample arbitration through Sonnet (via Agent subagent) or Codex (via codex:codex-rescue). Documents the cross-family judge protocol + cross-judge disagreement metrics + anti-patterns. **SHIPPED.**
+11. **Two judge agent roles** in `src/models/roles.ts` (R7 NEW): `structure-value-charge-judge` and `structure-promise-judge`, both routing to V4 Pro thinking-on. **SHIPPED.**
 
 ## 5. Cheapest counterfactuals considered (R6)
 
@@ -411,6 +435,22 @@ Single explicit formula:
 
 R3 had budgeted ~$1.50 (Stage-6-only). R4 had ~$12. R5 had ~$22. R6 collapses to ~$1 by deferring the LitRPG stratum entirely. Still well under any benchmark re-train cost.
 
+### R7 LLM-judge cost delta (replaces human time, not LLM extraction)
+
+The R6 extraction-side budget is unchanged. R7 ADDS judge calls and SUBTRACTS adjudicator time:
+
+**V4 Pro auto-judge cost** (`structure-{value-charge,promise}-judge` roles):
+- Pricing: $1.74/$3.48 per 1M tokens base; $0.435/$0.87 promo (75%-off until 2026-05-31).
+- value-charge: 50 rows × (1.5K input + 1K output) = 75K + 50K = $0.131 + $0.174 = **$0.305 base / $0.076 promo**.
+- PromiseRegistry: 2 passes × (50K input + 4K output) = 100K + 8K = $0.174 + $0.028 = **$0.202 base / $0.051 promo**.
+- Both dims: **$0.51 base / $0.13 promo**.
+
+**Sonnet/Codex subagent cost (premium sample)**: billed externally to the harness; ~10-row arbitration sample per dim consumes ~5-10 minutes of subagent compute total. No direct LLM cost in `llm_calls` ledger (subagents run in the orchestrator's billing, not the harness account).
+
+**Adjudicator time saved**: R6's gold protocol required ~30-50 samples × ~3 min/sample × 2 dims + ~45 min for retest = ~3-5h adjudicator time. R7 returns this time to the operator. The R7 cross-judge sanity-check on 10 disagreed rows costs ~5 min.
+
+**R7 total budget delta**: + ~$0.50 LLM, − 3-5h adjudicator. Net: ~$1.50 per smoke for both dimensions, ~3 working days end-to-end (was ~3 days for R6 because adjudication was the long tail; R7 collapses that).
+
 ### Time
 
 - Source normalization step (R3 B3): ~0.5 day (new pre-flight script + invariants).
@@ -451,7 +491,8 @@ LitRPG PDF acquisition becomes a follow-on charter's pre-gate IFF R6 verdict is 
 | codex:codex-rescue gpt-5.5 effort=high | 2026-04-29 | **R3 YELLOW** | `a78a3f201ecc4bf63` |
 | codex:codex-rescue gpt-5.5 effort=high | 2026-04-29 | **R4 YELLOW** | `afcade8df722c3a13` |
 | codex:codex-rescue gpt-5.5 effort=high | 2026-04-29 | **R5 YELLOW (REVISE-R6)** | `a9d06835481391bd5` |
-| (R6 pending) | (pending) | (pending) | (pending) |
+| (R6 not reviewed — implementation-shipped) | 2026-04-29 | NOT REVIEWED | n/a |
+| (R7 pending) | (pending) | (pending) | (pending) |
 
 ### R1 verbatim verdict (preserved for audit)
 
@@ -531,11 +572,22 @@ R6 takes Codex's named cheapest counterfactual. Submit R6 to Codex for follow-up
 
 ### R6 attack surfaces for Codex
 
+(Preserved for context; R6 was implementation-shipped without Codex review at user direction. R7 attack surfaces below extend these.)
+
 - **Single-stratum verdict aggregation.** R6 §7 collapses the verdict function to per-cell within crystal_shard's 2 cells. §1 falsification is replaced by a §7 reference (R5 B3 fix). Verify the §7 aggregated rule is now the SOLE verdict function and §1 cannot fire incompatibly. Are there cells the smoke could produce that §7's table doesn't cover (e.g., one cell PASS, one cell NULL-GOLD — does that map to SCOPED PASS cleanly per the table)?
-- **PromiseRegistry schema unification on `*_label + *_index`.** R6 §2 + §3 + §3.1 all use the canonical `*_label + *_index` representation; the extractor agent emits both in a single pass; the matching policy joins on `*_index`. Verify there's no remaining int-only or label-only schema slip in §1, §2, §3, §3.1, §7. (Codex R5 specifically called out §3.1 vs §3-extractor inconsistency; R6 swept §3 to match §3.1.)
-- **Streams_of_silver mapping scoping.** R6 §3 keeps the streams_of_silver `{part1: 50, part2: 51, part3: 52}` mapping as documentation but explicitly notes it's NOT used in R6 (R6 processes only crystal_shard). Verify (a) crystal_shard's actual chapter-label domain doesn't include `part*`, (b) the `crystal_shard` precedence in R6 §3 is closed at its observed labels, (c) the streams_of_silver mapping note doesn't leak into the smoke's actual normalization logic.
-- **Crystal_shard chapter-label domain completeness.** R6 §3 says crystal_shard's domain is `{prelude, 1..30, epilogue, epilogue2, epilogue3}`. Codex R5 confirmed this against `beats.jsonl` content. Verify: are there scene_ids in the bundle that map to chapter labels OUTSIDE this set? E.g., does any row have `scene_id` matching `crystal_shard_chinterlude_s*` or `crystal_shard_chappendix_s*`? (Likely no, but R6 is making it the definitive domain — should be verified once.)
-- **Cheapest-counterfactual fidelity.** Codex R5 named the smoke as "~$0.10–0.50 LLM cost." R6 §8 budgets ~$1 inclusive of retry buffer + adjudication helper. Is the gap (~2× Codex's lower bound) defensible, or did R6 add cost beyond the counterfactual?
-- **Scope-cut completeness.** R6 cut: LitRPG bundle, secondary stratification question, tertiary CV-CI sanity check, R5's per-stratum aggregation rule. Is anything still in the doc that depends on having 2 strata or 2 books? Specifically check §2 "Out of scope" — does it still mention the LitRPG pre-gate as if it's part of v1?
+- **PromiseRegistry schema unification on `*_label + *_index`.** R6 §2 + §3 + §3.1 all use the canonical `*_label + *_index` representation; the extractor agent emits both in a single pass; the matching policy joins on `*_index`. Verify there's no remaining int-only or label-only schema slip in §1, §2, §3, §3.1, §7.
+- **Streams_of_silver mapping scoping.** R6 §3 keeps the streams_of_silver `{part1: 50, part2: 51, part3: 52}` mapping as documentation but explicitly notes it's NOT used in R6.
+- **Crystal_shard chapter-label domain completeness.** R6 §3 says crystal_shard's domain is `{prelude, 1..30, epilogue, epilogue2, epilogue3}`. Verified empirically during R7 implementation: 858 beats / 34 chapters, all labels match this domain, scene_id parses 100% clean.
+- **Cheapest-counterfactual fidelity.** Codex R5 named the smoke as "~$0.10–0.50 LLM cost." R6 budgets ~$1 inclusive of retry buffer + adjudication helper.
+- **Scope-cut completeness.** R6 cut: LitRPG bundle, secondary stratification question, tertiary CV-CI sanity check.
+
+### R7 attack surfaces for Codex
+
+- **Capability-gradient independence vs same-family bias.** R7 §2 argues V4 Pro thinking-on is "independent enough" from V4 Flash non-thinking because of the capability gradient. Codex R6 W1 (raised but not addressed because R6 was not reviewed) flagged the in-family contamination risk for the Sonnet helper case. R7's case is stronger because Pro >> Flash, but it's still in-family. Is the cross-family Sonnet/Codex sample on the lowest-confidence quartile a sufficient mitigation, or does R7 need the full Sonnet/Codex pass on every row to clear the contamination concern?
+- **NULL-GOLD trigger weakening.** R6's NULL-GOLD fired on adjudicator self-disagreement > 15% — a quantitatively-grounded heuristic backed by per-judge variance. R7's NULL-GOLD fires on cross-judge disagreement > 30% AND a manual review of 5 disagreed rows. The "AND manual review" gate is operator-discretion-shaped and re-introduces single-rater dependence at the trigger boundary. Is R7's NULL-GOLD trigger architectural-equivalent to R6's, or is it strictly weaker?
+- **Stability guard correctness.** R7 says "V4 Pro at temp=0.1 / 0.3 with fixed prompt is near-deterministic, sample variance < 5% per docs/lessons-learned.md." Verify the lessons-learned citation actually supports this for V4 Pro on extraction tasks (rather than for V3.2 / Flash).
+- **Verdict claim weakening.** R7's verdict measures "extractor ↔ LLM-judge agreement" not "extractor ↔ ground truth." R7 §0a acknowledges this in writing. Is the acknowledgment sufficient — or does the verdict gate language in §7 (CELL PASS / MARGINAL / FAIL / NULL-GOLD) need to change to reflect that it's now an agreement metric rather than a calibration metric?
+- **Sonnet/Codex subagent path is documentation, not code.** Unlike V4 Pro auto-judge (which has a runnable script), the cross-family arbitration step is a markdown doc that requires the operator (or Claude in a session) to spawn the subagent manually. Is this enough scaffolding for the protocol to actually run, or does R7 need a runnable orchestrator script for the subagent path too?
+- **R6 was not Codex-reviewed.** R7 inherits R6's design and adds the LLM-judge protocol on top. Any R6 attack surface Codex would have flagged is now an R7 attack surface. Codex MUST review R7 with R6's design as part of scope, not just the R7 deltas.
 - **Falsification rule change.** R6 replaced §1's "both extractors fall below their dimension's hypothesis on at least one stratum → close the family" with "§7 aggregated FAIL → close the family." Is this a faithful rewrite, or did R6 make falsification weaker (e.g., R5's rule could fail because the LitRPG-only stratum failed; R6's rule needs BOTH cells to fail because R6 has only one stratum)? At single-stratum scope, "FAIL means both crystal_shard cells failed" — Codex should verify this matches the falsification intent (the family-level conclusion is "extractors are unreliable on the data we have," which on a single book translates to "both dimensions failed on this book").
 - **Post-smoke decision tree.** R6 §0 says: SCOPED PASS or PARTIAL → follow-on charter with LitRPG materialized; FAIL → close family. PARTIAL has a "MAY iterate one round on prompts" clause — does R6 preserve enough of the smoke artifacts (gold, calibration, normalized files) to support that prompt iteration without re-running adjudication? If iterating means re-adjudicating, the budget needs another ~0.5 day.

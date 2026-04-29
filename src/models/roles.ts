@@ -157,6 +157,78 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // autoresearch loop on the autonomous-harness-loop branch lands, this
   // role may be repurposed or dropped.
   "improver":                  { ...deepseekV4Flash, maxTokens: 8192 },
+
+  // ── Corpus structural extractors (Stage 6 — offline scripts ONLY) ───
+  // Per docs/charters/corpus-structural-decomposition-v1.md (R6) §3.
+  // Invoked from scripts/corpus/extract-structure.ts to tag a corpus
+  // bundle with per-scene value-charge + per-novel PromiseRegistry
+  // structural metadata. NOT in the runtime drafting pipeline; produces
+  // calibration evidence for downstream Bucket 3 charters.
+  //
+  // value-charge: non-thinking + low-temp because the schema is small
+  // (5 enum fields + an evidence quote), per-scene scope is narrow,
+  // and we want repeatable outputs for the calibration smoke.
+  // promise: thinking-ON because cross-chapter promise-payoff reasoning
+  // needs extended deliberation across the full novel context (~50K in).
+  // maxTokens policy across all structural extractors — be GENEROUS.
+  // Output cost is metered on tokens emitted, not the cap; bumping
+  // maxTokens just removes silent truncation risk on long evidence
+  // quotes / multi-element schemas. Caps below give 4-8× headroom over
+  // observed worst-case outputs from the crystal_shard run.
+  "structure-value-charge":    { ...deepseekV4Flash, temperature: 0.1, maxTokens: 4096 },
+  "structure-promise":         { ...deepseekV4Flash, thinking: true, temperature: 0.3, maxTokens: 32_768 },
+  "structure-character-arcs":  { ...deepseekV4Flash, thinking: true, temperature: 0.3, maxTokens: 16_384 },
+  "structure-mice":            { ...deepseekV4Flash, temperature: 0.1, maxTokens: 4096 },
+  "structure-mckee-gap":       { ...deepseekV4Flash, temperature: 0.1, maxTokens: 8192 },
+
+  // ── Stage 6 LLM-judge slots (cross-tier, NOT in the runtime pipeline) ─
+  // Per docs/charters/corpus-structural-decomposition-v1.md (R7 pivot).
+  // Replaces the R6 single-human-rater gold protocol with an automated
+  // LLM judge that re-runs the same prompts/schemas as the extractor
+  // through a stronger model. The capability gradient (V4 Pro reasoning
+  // > V4 Flash non-thinking/thinking-on) gives independence-by-strength;
+  // for premium semantic validation, route a sample subset through the
+  // Sonnet / Codex subagent paths documented in the charter.
+  //
+  // V4 Pro pricing: $1.74/$3.48 per 1M tokens (75%-off promo until
+  // 2026-05-31: $0.435/$0.87). For a 50-row judge pass: ~$0.17 base /
+  // ~$0.04 promo; cheap enough that running twice for self-consistency
+  // is also affordable.
+  // V4 Pro thinking-mode chews tokens before emitting JSON. Be generous
+  // — the 75%-off promo (until 2026-05-31) makes 16-32K caps trivial in
+  // cost. A truncated judge call wastes the entire row plus needs a
+  // retry, which costs more than just provisioning headroom upfront.
+  "structure-value-charge-judge": {
+    provider: "deepseek", model: "deepseek-v4-pro",
+    thinking: true, temperature: 0.1, maxTokens: 16_384,
+  },
+  "structure-promise-judge": {
+    provider: "deepseek", model: "deepseek-v4-pro",
+    thinking: true, temperature: 0.3, maxTokens: 32_768,
+  },
+  "structure-character-arcs-judge": {
+    provider: "deepseek", model: "deepseek-v4-pro",
+    thinking: true, temperature: 0.3, maxTokens: 32_768,
+  },
+  "structure-mice-judge": {
+    provider: "deepseek", model: "deepseek-v4-pro",
+    thinking: true, temperature: 0.1, maxTokens: 16_384,
+  },
+  "structure-mckee-gap-judge": {
+    provider: "deepseek", model: "deepseek-v4-pro",
+    thinking: true, temperature: 0.1, maxTokens: 16_384,
+  },
+  // Promise pair-matcher — used by compute-calibration.ts to bridge
+  // paraphrased predicted-vs-gold promise text. Replaces the old
+  // Jaccard/Levenshtein gate which silently rejected semantically-equal
+  // promises that happened to share few tokens (e.g. "Errtu will pursue
+  // the crystal shard" vs "Errtu, a powerful demon, seeks Crenshinibon"
+  // share 2 tokens / Jaccard ~0.17, but they are the same narrative
+  // promise). V4 Pro emits a single batched mapping per book.
+  "structure-promise-match": {
+    provider: "deepseek", model: "deepseek-v4-pro",
+    thinking: true, temperature: 0.0, maxTokens: 16_384,
+  },
 }
 
 // ── Runtime overrides (set via web UI, cleared on restart) ──────────────
