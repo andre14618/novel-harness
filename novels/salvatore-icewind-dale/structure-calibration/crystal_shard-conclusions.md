@@ -254,6 +254,102 @@ The raw numbers live in `crystal_shard.json` (and `<book>.<keyx>x<gold>.json` fo
 
 ---
 
+## Session 2026-04-29 22:36 UTC — Phase C Round 1 Results
+
+This section is append-only per the standing rule; the C.1–C.4 hypothesis blocks above are not edited. Results below either confirm or invalidate them; supersession is documented inline.
+
+### C.1 result — Sonnet Tier 3 ground truth
+
+**Output:** [`promises.20260429T215322.sonnet.json`](../structure/crystal_shard/promises.20260429T215322.sonnet.json) — 38 promises.
+
+| Source | Count | Notes |
+|---|---|---|
+| Flash extractor | 14 | Default extractor; clearly under-reads |
+| Pro extractor (T=0.3) | 22 | Phase B 2×2 cell |
+| Pro judge gold v1 (T=0.3) | 30 | First Pro judge run on prompts |
+| Pro judge gold v2 (T=0.3) | 27 | C.2 Pro judge rerun, identical config |
+| Sonnet Tier 3 | 38 | Subagent extraction, single call |
+
+Sonnet's 38 promises decompose into 32 satisfied, 3 partially satisfied, and 3 unsatisfied/open within this book. The 3 open ones are clear series hooks (Errtu's century-long revenge vow, the Dendybar/Luskan conspiracy, the drow-house vendetta over Masoj's death) — all paid off in later books, not authorial failures. The Pro judge gold runs caught most of the satisfied promises but missed roughly half the series-hook setups, which is what drives the Sonnet count higher than v1/v2.
+
+**Conclusion:** Sonnet finds promises Pro judge misses, AND finds essentially all the promises Pro judge finds. The qualitative gap is recall: Pro judge under-emits clear authorial-intent series hooks. **Sonnet is a defensible Tier 3 anchor for "exhaustive" promise extraction.**
+
+**Action:** Use Sonnet's 38-promise list as the recall ceiling reference going forward. Pro extractor's 22 promises = 22/38 = 58% of the Sonnet ceiling; that's the real "extractor recall" if Sonnet is taken as ground truth.
+
+### C.2 result — Pro judge self-consistency
+
+**Output:** [`crystal_shard.20260429T223642.v1xv2.json`](crystal_shard.20260429T223642.v1xv2.json) — direct V4 Pro pair-matcher between the two judge gold runs.
+
+| Metric | Value |
+|---|---|
+| v1 size | 30 |
+| v2 size | 27 |
+| shared | 14 |
+| v1-only | 16 |
+| v2-only | 13 |
+| Jaccard | **0.326** |
+| shared / max(v1, v2) | 0.467 |
+| shared / min(v1, v2) | 0.519 |
+
+**Two consecutive Pro judge runs (same model, same prompts, T=0.3) overlap on 14 of 43 unique promises — 47% of the larger run, 52% of the smaller.** v1 has 16 promises that v2 didn't catch. v2 has 13 that v1 missed. This is the **gold-stochasticity ceiling**.
+
+If we treat v1 as gold and v2 as predicted: tp=14, fp=13, fn=16 → **F1 = 0.491**. That's the upper bound on calibration F1 between any Pro extractor and any single Pro judge gold run — because Pro vs Pro at the gold level only achieves F1=0.49.
+
+**Conclusion (invalidates C.2 hypothesis pre-condition):** The hypothesis was "if v1↔v2 < 0.85 the gold is unstable." It's 0.326. The promise gold is **profoundly unstable**. Single-run Pro judge gold cannot serve as a precision/recall reference for the promise dim — the metric is dominated by gold variance, not extractor variance.
+
+**Action:** Ship the **gold-stability ceiling F1 = 0.491** as a metadata field on every promise calibration verdict so future readers know the metric's noise floor. Promote calibration policy to ensemble gold (intersection of N≥3 Pro judge runs, or union for recall-weighted) before re-judging the promise PASS gate. Track in [`docs/todo.md`](../../../docs/todo.md) as a Phase C exit task.
+
+### C.3 result — Pro extractor at T=0
+
+**Outputs:**
+- Extraction: [`promises.20260429T221035.pro-t0.json`](../structure/crystal_shard/promises.20260429T221035.pro-t0.json) — 22 promises.
+- Calibrations: [`crystal_shard.20260429T222440.pro-t0xv1.json`](crystal_shard.20260429T222440.pro-t0xv1.json) and [`crystal_shard.20260429T222441.pro-t0xv2.json`](crystal_shard.20260429T222441.pro-t0xv2.json).
+
+| Cell | matched | predN | goldN | P | R | **F1** |
+|---|---|---|---|---|---|---|
+| Pro@T=0.3 vs v1 (Phase B baseline, restated post-fix) | 14 | 22 | 30 | 0.636 | 0.467 | 0.538 |
+| Pro@T=0.3 vs v2 | 15 | 22 | 27 | 0.682 | 0.556 | **0.612** |
+| Pro@T=0   vs v1 | 16 | 22 | 30 | 0.727 | 0.533 | **0.615** |
+| Pro@T=0   vs v2 | 12 | 22 | 27 | 0.545 | 0.444 | 0.490 |
+
+**Pro@T=0 produces the same count (22) as Pro@T=0.3** — temperature did not change the model's output cardinality. F1 against v1 went UP (0.538 → 0.615) but F1 against v2 went DOWN (0.612 → 0.490). The two T=0 calibrations span F1 0.490 → 0.615; the two T=0.3 calibrations span 0.538 → 0.612. The **range across gold versions ≈ 0.12 F1** in either temperature. **The variance is dominated by which gold run you chose, not the extractor temperature.**
+
+The Pro extractor's best F1 (0.615) is **higher than the Pro judge's self-consistency F1 (0.491)** — the extractor matches a particular gold sample as well as another gold sample does. That's the saturation signal.
+
+**Conclusion (partial supersession of C.3 hypothesis):** Hypothesis was "T=0 should fix the extractor stochasticity." The diagnosis was wrong: the stochasticity is on the **judge** side, not the extractor. T=0 mostly preserved the same 22 promises but interacted with which gold they happened to align with. C.3 does not unlock a PASS path.
+
+**Action:** Stop trying to lift extractor F1 in isolation. Switch to ensemble gold (per C.2 action) and re-evaluate every extractor against the ensemble. Likely to find the picture stabilizes substantially under intersection-of-3 gold.
+
+### Cross-cutting: promise dim verdict updated
+
+Pre-Phase C the promise dim was at CELL FAIL with the v1 Pro gold (F1=0.41 reported in Phase A; 0.538 with the matcher fix). The Phase C results re-frame the verdict: **the dim is currently NULL-GOLD-LIKE** — not because adjudicator self-disagreement on retests was high, but because two independent runs of the same judge produce nearly disjoint promise lists. We cannot honestly assert CELL PASS / FAIL until the gold is anchored.
+
+| What is settled | What is not |
+|---|---|
+| Sonnet 38 ≥ Pro judge 27–30 ≥ Pro extractor 22 ≥ Flash 14 | Whether any extractor beats the gold-stability ceiling |
+| Pro extractor matches gold ~as well as gold matches gold | The "true" promise count for crystal_shard |
+| Temperature is not the lever | Whether prompt iteration changes things |
+
+**Standing recommendation:** Park the promise dim's PASS/FAIL until ensemble gold lands. Ship the OTHER four dims (value-charge, mice, mckee-gap, character-arcs) on their existing verdicts. Do NOT block corpus expansion on the promise dim.
+
+### C.4 status
+
+Not yet run. Lower priority now that C.1–C.3 closed the temperature/Tier-3 questions. Keep queued for the mice marginal-precision tightening.
+
+### Cost ledger delta this session (Phase C Round 1)
+
+| Step | Calls | Total cost |
+|---|---|---|
+| C.1 Sonnet Tier 3 (subagent) | 1 | ~$0.00 (subagent path, billed separately) |
+| C.2 Pro judge rerun (v2) | 2 | ~$0.30 |
+| C.3 Pro@T=0 extraction | 2 | ~$0.30 |
+| C.2.a/b/C.3.a/b/v1xv2 calibrations | 5 (after fixes ~8) | ~$0.20 |
+| **Phase C round 1 subtotal** | ~12 | **~$0.80** |
+
+Cumulative across all phases on crystal_shard: ~$3.30. Still trivial.
+
+---
+
 ## Cost+model conclusions across all phases
 
 | Strategy | F1 (best dim) | F1 (worst dim) | Total cost/book | Recommendation |

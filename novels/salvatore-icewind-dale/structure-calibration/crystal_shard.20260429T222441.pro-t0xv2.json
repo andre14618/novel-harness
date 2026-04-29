@@ -1,0 +1,462 @@
+{
+  "novel": "salvatore-icewind-dale",
+  "book": "crystal_shard",
+  "run_id": "20260429T222441",
+  "keySuffix": "pro-t0",
+  "goldSuffix": "v2",
+  "matcher": "llm",
+  "computedAt": "2026-04-29T22:24:41.910Z",
+  "cells": {
+    "promise": {
+      "metrics": {
+        "goldN": 27,
+        "predN": 22,
+        "matchedN": 12,
+        "precision": 0.5454545454545454,
+        "recall": 0.4444444444444444,
+        "f1": 0.4897959183673469,
+        "matcher": "llm",
+        "matched": [
+          {
+            "gold_id": "p001",
+            "predicted_id": "p001",
+            "matcher": "llm",
+            "score": 0.95,
+            "reason": "Both describe Errtu's goal to possess the crystal shard, introduced in the prelude."
+          },
+          {
+            "gold_id": "p003",
+            "predicted_id": "p003",
+            "matcher": "llm",
+            "score": 0.95,
+            "reason": "Both refer to the united barbarian tribes attacking Ten-Towns, introduced in chapter 2."
+          },
+          {
+            "gold_id": "p006",
+            "predicted_id": "p006",
+            "matcher": "llm",
+            "score": 0.95,
+            "reason": "Both express Bruenor's desire to reclaim Mithril Hall, introduced in chapter 5."
+          },
+          {
+            "gold_id": "p005",
+            "predicted_id": "p007",
+            "matcher": "llm",
+            "score": 0.95,
+            "reason": "Both reveal the sentient crystal shard's manipulative nature, introduced in chapter 4."
+          },
+          {
+            "gold_id": "p011",
+            "predicted_id": "p010",
+            "matcher": "llm",
+            "score": 0.95,
+            "reason": "Both describe Bruenor forging a legendary warhammer, introduced in chapter 11."
+          },
+          {
+            "gold_id": "p012",
+            "predicted_id": "p011",
+            "matcher": "llm",
+            "score": 0.95,
+            "reason": "Both establish that Drizzt will train Wulfgar, introduced in chapter 12."
+          },
+          {
+            "gold_id": "p007",
+            "predicted_id": "p013",
+            "matcher": "llm",
+            "score": 0.85,
+            "reason": "Both involve Heafstaag's survival after the battle, setting up his return as a future threat."
+          },
+          {
+            "gold_id": "p024",
+            "predicted_id": "p016",
+            "matcher": "llm",
+            "score": 0.95,
+            "reason": "Both describe Regis entering Cryshal-Tirith as an emissary to use the pendant on Kessell, in chapter 27."
+          },
+          {
+            "gold_id": "p026",
+            "predicted_id": "p018",
+            "matcher": "llm",
+            "score": 0.95,
+            "reason": "Both are about the companions' quest to find Mithril Hall, introduced in chapter 30."
+          },
+          {
+            "gold_id": "p002",
+            "predicted_id": "p019",
+            "matcher": "llm",
+            "score": 0.95,
+            "reason": "Both promise that Regis's past with the thieves' guild will catch up to him, introduced in chapter 2."
+          },
+          {
+            "gold_id": "p016",
+            "predicted_id": "p020",
+            "matcher": "llm",
+            "score": 0.95,
+            "reason": "Both highlight the disunity of Ten-Towns preventing an effective defense, introduced in chapter 19."
+          },
+          {
+            "gold_id": "p018",
+            "predicted_id": "p022",
+            "matcher": "llm",
+            "score": 0.95,
+            "reason": "Both concern Drizzt acquiring a magical scimitar from the dragon's hoard, in chapter 22."
+          }
+        ],
+        "unmatchedGold": [
+          {
+            "sample_id": "p004",
+            "promise_text": "Ten-Towns is fractured by internal rivalries, making a unified defense against external threats difficult.",
+            "opened_chapter_label": "2",
+            "opened_chapter_index": 2,
+            "closed_chapter_label": null,
+            "closed_chapter_index": null,
+            "payoff_quality": "unsatisfied",
+            "confidence": 0.8
+          },
+          {
+            "sample_id": "p008",
+            "promise_text": "Wulfgar, a barbarian indentured to Bruenor, nears the end of his service, harboring a blood-debt and great potential.",
+            "opened_chapter_label": "9",
+            "opened_chapter_index": 9,
+            "closed_chapter_label": "20",
+            "closed_chapter_index": 20,
+            "payoff_quality": "satisfied",
+            "confidence": 0.9
+          },
+          {
+            "sample_id": "p009",
+            "promise_text": "Akar Kessell is assembling a vast multi-tribe monster army to conquer Icewind Dale.",
+            "opened_chapter_label": "10",
+            "opened_chapter_index": 10,
+            "closed_chapter_label": "23",
+            "closed_chapter_index": 23,
+            "payoff_quality": "satisfied",
+            "confidence": 0.95
+          },
+          {
+            "sample_id": "p010",
+            "promise_text": "The demon Errtu enters the material plane seeking Crenshinibon and becomes Kessell's general.",
+            "opened_chapter_label": "10",
+            "opened_chapter_index": 10,
+            "closed_chapter_label": "10",
+            "closed_chapter_index": 10,
+            "payoff_quality": "satisfied",
+            "confidence": 0.9
+          },
+          {
+            "sample_id": "p013",
+            "promise_text": "Wulfgar receives the magical hammer Aegis-fang and swears a conditional oath not to raise it against Ten-Towns.",
+            "opened_chapter_label": "12",
+            "opened_chapter_index": 12,
+            "closed_chapter_label": "12",
+            "closed_chapter_index": 12,
+            "payoff_quality": "satisfied",
+            "confidence": 0.95
+          },
+          {
+            "sample_id": "p014",
+            "promise_text": "Errtu secretly plots to betray Kessell and claim the crystal shard for itself.",
+            "opened_chapter_label": "13",
+            "opened_chapter_index": 13,
+            "closed_chapter_label": "13",
+            "closed_chapter_index": 13,
+            "payoff_quality": "partially_satisfied",
+            "confidence": 0.7
+          },
+          {
+            "sample_id": "p015",
+            "promise_text": "Heafstaag is magically coerced into serving Kessell, fostering deep resentment.",
+            "opened_chapter_label": "13",
+            "opened_chapter_index": 13,
+            "closed_chapter_label": "22",
+            "closed_chapter_index": 22,
+            "payoff_quality": "satisfied",
+            "confidence": 0.9
+          },
+          {
+            "sample_id": "p017",
+            "promise_text": "Wulfgar departs on a secret personal quest, implied to involve a dragon.",
+            "opened_chapter_label": "20",
+            "opened_chapter_index": 20,
+            "closed_chapter_label": "21",
+            "closed_chapter_index": 21,
+            "payoff_quality": "satisfied",
+            "confidence": 0.95
+          },
+          {
+            "sample_id": "p019",
+            "promise_text": "The dwarves of Mithril Hall survive the initial clash and will fight again.",
+            "opened_chapter_label": "23",
+            "opened_chapter_index": 23,
+            "closed_chapter_label": "23",
+            "closed_chapter_index": 23,
+            "payoff_quality": "satisfied",
+            "confidence": 0.95
+          },
+          {
+            "sample_id": "p020",
+            "promise_text": "Drizzt summons Errtu using its true name to force it to reveal Cryshal-Tirith's weakness.",
+            "opened_chapter_label": "25",
+            "opened_chapter_index": 25,
+            "closed_chapter_label": "25",
+            "closed_chapter_index": 25,
+            "payoff_quality": "satisfied",
+            "confidence": 0.9
+          },
+          {
+            "sample_id": "p021",
+            "promise_text": "Errtu vows a century-long revenge after Drizzt banishes it back to the Abyss.",
+            "opened_chapter_label": "25",
+            "opened_chapter_index": 25,
+            "closed_chapter_label": "25",
+            "closed_chapter_index": 25,
+            "payoff_quality": "satisfied",
+            "confidence": 0.9
+          },
+          {
+            "sample_id": "p022",
+            "promise_text": "Wulfgar, now king, rallies the barbarian tribes to fight against Kessell's army.",
+            "opened_chapter_label": "26",
+            "opened_chapter_index": 26,
+            "closed_chapter_label": "26",
+            "closed_chapter_index": 26,
+            "payoff_quality": "satisfied",
+            "confidence": 0.9
+          },
+          {
+            "sample_id": "p023",
+            "promise_text": "The dwarves prepare a surprise tunnel assault from beneath the enemy encampment.",
+            "opened_chapter_label": "27",
+            "opened_chapter_index": 27,
+            "closed_chapter_label": "29",
+            "closed_chapter_index": 29,
+            "payoff_quality": "satisfied",
+            "confidence": 0.9
+          },
+          {
+            "sample_id": "p025",
+            "promise_text": "Regis tricks Kessell into believing there are traitors in his ranks, aiming to sow chaos.",
+            "opened_chapter_label": "28",
+            "opened_chapter_index": 28,
+            "closed_chapter_label": "28",
+            "closed_chapter_index": 28,
+            "payoff_quality": "satisfied",
+            "confidence": 0.9
+          },
+          {
+            "sample_id": "p027",
+            "promise_text": "The assassin Artemis Entreri, sent by Pasha Pook, is hunting Regis.",
+            "opened_chapter_label": "epilogue3",
+            "opened_chapter_index": 1002,
+            "closed_chapter_label": null,
+            "closed_chapter_index": null,
+            "payoff_quality": "unsatisfied",
+            "confidence": 0.9
+          }
+        ],
+        "unmatchedPredicted": [
+          {
+            "promise_id": "p002",
+            "promise_text": "The wizards Eldeluc and Dendybar will discard or eliminate Akar Kessell after using him to kill Morkai.",
+            "opened_chapter_label": "1",
+            "opened_chapter_index": 1,
+            "closed_chapter_label": "4",
+            "closed_chapter_index": 4,
+            "hint_chapter_labels": [],
+            "hint_chapter_indices": [],
+            "payoff_quality": "satisfied",
+            "evidence_quote_open": "Eldeluc smiled evilly.",
+            "evidence_quote_close": "He understood now that he had been no more than a pawn in their devious designs to rid themselves of Morkai the Red.",
+            "confidence": 1
+          },
+          {
+            "promise_id": "p004",
+            "promise_text": "Regis's ruby pendant has persuasive magical power.",
+            "opened_chapter_label": "5",
+            "opened_chapter_index": 5,
+            "closed_chapter_label": "6",
+            "closed_chapter_index": 6,
+            "hint_chapter_labels": [
+              "6"
+            ],
+            "hint_chapter_indices": [
+              6
+            ],
+            "payoff_quality": "satisfied",
+            "evidence_quote_open": "But it is there - I see it clearly and know the legend of such a stone.",
+            "evidence_quote_close": "Ten-seconds passed and Kemp had not blinked.",
+            "confidence": 1
+          },
+          {
+            "promise_id": "p005",
+            "promise_text": "Drizzt can summon a powerful panther ally named Guenhwyvar from the onyx figurine.",
+            "opened_chapter_label": "2",
+            "opened_chapter_index": 2,
+            "closed_chapter_label": "7",
+            "closed_chapter_index": 7,
+            "hint_chapter_labels": [],
+            "hint_chapter_indices": [],
+            "payoff_quality": "satisfied",
+            "evidence_quote_open": "Bruenor asks after Guenhwyvar and Drizzt produces the onyx figurine, explaining the panther needs rest.",
+            "evidence_quote_close": "the great panther was beside him.",
+            "confidence": 1
+          },
+          {
+            "promise_id": "p008",
+            "promise_text": "Kessell vows never to be a pawn again and will seek power and respect.",
+            "opened_chapter_label": "4",
+            "opened_chapter_index": 4,
+            "closed_chapter_label": "24",
+            "closed_chapter_index": 24,
+            "hint_chapter_labels": [
+              "10"
+            ],
+            "hint_chapter_indices": [
+              10
+            ],
+            "payoff_quality": "partially_satisfied",
+            "evidence_quote_open": "vowing he will never again be a stooge",
+            "evidence_quote_close": "I am Akar Kessell, Tyrant of Icewind Dale!",
+            "confidence": 0.8
+          },
+          {
+            "promise_id": "p009",
+            "promise_text": "Akar Kessell will gather an army and become a tyrant threatening Icewind Dale.",
+            "opened_chapter_label": "4",
+            "opened_chapter_index": 4,
+            "closed_chapter_label": "23",
+            "closed_chapter_index": 23,
+            "hint_chapter_labels": [
+              "10",
+              "13",
+              "15"
+            ],
+            "hint_chapter_indices": [
+              10,
+              13,
+              15
+            ],
+            "payoff_quality": "satisfied",
+            "evidence_quote_open": "Kessell decides he needs a castle and, guided unknowingly by Crenshinibon, discovers a duplicate crystal and intuitively understands his role in using it.",
+            "evidence_quote_close": "Kessell's army swept around Lac Dinneshere and crashed into Caer-Konig.",
+            "confidence": 1
+          },
+          {
+            "promise_id": "p012",
+            "promise_text": "Wulfgar intends to undertake a dangerous personal mission related to his tribal heritage.",
+            "opened_chapter_label": "12",
+            "opened_chapter_index": 12,
+            "closed_chapter_label": "22",
+            "closed_chapter_index": 22,
+            "hint_chapter_labels": [
+              "20"
+            ],
+            "hint_chapter_indices": [
+              20
+            ],
+            "payoff_quality": "satisfied",
+            "evidence_quote_open": "\"Of adventures and an unfulfilled vow,\" Wulfgar said mysteriously.",
+            "evidence_quote_close": "slayer of the frost giant chieftain, Biggrin; and dragon's bane!",
+            "confidence": 1
+          },
+          {
+            "promise_id": "p014",
+            "promise_text": "Errtu will betray Kessell and attempt to take the crystal shard for himself.",
+            "opened_chapter_label": "10",
+            "opened_chapter_index": 10,
+            "closed_chapter_label": null,
+            "closed_chapter_index": null,
+            "hint_chapter_labels": [
+              "13"
+            ],
+            "hint_chapter_indices": [
+              13
+            ],
+            "payoff_quality": "unsatisfied",
+            "evidence_quote_open": "Errtu accepts with a wicked bow.",
+            "evidence_quote_close": null,
+            "confidence": 1
+          },
+          {
+            "promise_id": "p015",
+            "promise_text": "A band of verbeeg giants hidden in a lair near Ten-Towns will be discovered and confronted by the heroes.",
+            "opened_chapter_label": "15",
+            "opened_chapter_index": 15,
+            "closed_chapter_label": "18",
+            "closed_chapter_index": 18,
+            "hint_chapter_labels": [
+              "16"
+            ],
+            "hint_chapter_indices": [
+              16
+            ],
+            "payoff_quality": "satisfied",
+            "evidence_quote_open": "A band of verbeeg led by a frost giant slips into a secret lair near Ten-Towns under cover of a violent storm, carrying weapons and supplies for Akar Kessell's army.",
+            "evidence_quote_close": "the monster suddenly staggered and fell dead.",
+            "confidence": 1
+          },
+          {
+            "promise_id": "p017",
+            "promise_text": "Drizzt will attempt to assassinate Akar Kessell.",
+            "opened_chapter_label": "24",
+            "opened_chapter_index": 24,
+            "closed_chapter_label": "29",
+            "closed_chapter_index": 29,
+            "hint_chapter_labels": [
+              "25",
+              "28"
+            ],
+            "hint_chapter_indices": [
+              25,
+              28
+            ],
+            "payoff_quality": "satisfied",
+            "evidence_quote_open": "unnerved by the wizard's power over normally independent tribes, resolves to attempt to kill him before retreating to rest.",
+            "evidence_quote_close": "I am Drizzt Do'Urden, and I have come to kill you.",
+            "confidence": 1
+          },
+          {
+            "promise_id": "p021",
+            "promise_text": "Kessell can communicate and observe through magic mirrors, posing a surveillance threat.",
+            "opened_chapter_label": "19",
+            "opened_chapter_index": 19,
+            "closed_chapter_label": "4",
+            "closed_chapter_index": 4,
+            "hint_chapter_labels": [
+              "20"
+            ],
+            "hint_chapter_indices": [
+              20
+            ],
+            "payoff_quality": "satisfied",
+            "evidence_quote_open": "A gaunt mage's face appears in the mirror demanding Biggrin's presence.",
+            "evidence_quote_close": "\"Come to me,\" he commanded.",
+            "confidence": 1
+          }
+        ]
+      },
+      "verdict": {
+        "verdict": "CELL FAIL",
+        "reason": "F1=0.490 R=0.444 below floor"
+      }
+    }
+  },
+  "sources": {
+    "promise": {
+      "goldPath": "/Users/andre/Desktop/personal_projects/novel-harness/novels/salvatore-icewind-dale/structure-gold/crystal_shard/promise-gold.20260429T220650.v2.jsonl",
+      "goldRunId": "20260429T220650",
+      "keyPath": "/Users/andre/Desktop/personal_projects/novel-harness/novels/salvatore-icewind-dale/structure/crystal_shard/promises.20260429T221035.pro-t0.json",
+      "keyRunId": "20260429T221035"
+    }
+  },
+  "aggregatedVerdict": "FAIL",
+  "cellVerdicts": [
+    {
+      "dim": "promise",
+      "verdict": {
+        "verdict": "CELL FAIL",
+        "reason": "F1=0.490 R=0.444 below floor"
+      }
+    }
+  ]
+}
