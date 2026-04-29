@@ -6,10 +6,15 @@ import { validationPhase, loadValidationOutput } from "./phases/validation"
 import { getTokenUsage } from "./llm"
 import { emit } from "./events"
 import { log } from "./logger"
-import { pipeline } from "./config/pipeline"
 import { trace } from "./trace"
 import db from "./db/connection"
 import type { Phase, PhaseCtx, PhaseName, PhaseResult } from "./phases/contract"
+
+// runNovel return shape. P6b2 promotes paused from "loop forever waiting for
+// progress" to "exit cleanly and let the caller decide whether to resume."
+export type RunOutcome =
+  | { outcome: "complete" }
+  | { outcome: "paused"; phase: PhaseName; reason: string }
 
 // ── Typed driver wiring ────────────────────────────────────────────────────
 
@@ -42,11 +47,9 @@ const LOADERS: Record<PhaseName, (novelId: string) => Promise<unknown>> = {
 
 // ── runNovel ───────────────────────────────────────────────────────────────
 
-export async function runNovel(novelId: string): Promise<void> {
+export async function runNovel(novelId: string): Promise<RunOutcome> {
   const startedAt = Date.now()
   let novel = await getNovel(novelId)
-  let prevSignature = ""
-  let stuckCount = 0
 
   // P6b1: build PhaseCtx once per runNovel; immutable for the duration of
   // this invocation.
@@ -68,23 +71,6 @@ export async function runNovel(novelId: string): Promise<void> {
   }
 
   while (novel.phase !== "done") {
-    // The outer busy-retry guard stays in P6b1 (preserves today's semantics).
-    // P6b2 removes this when paused returns travel back to runNovel's caller.
-    const signature = `${novel.phase}:${novel.currentChapter}`
-    if (signature === prevSignature) {
-      stuckCount++
-      if (stuckCount > pipeline.maxPhaseRestarts) {
-        throw new Error(
-          `Phase "${novel.phase}" stuck at chapter ${novel.currentChapter} after ${stuckCount} restarts without progress. ` +
-          `Increase pipeline.maxPhaseRestarts or investigate why the phase is failing.`,
-        )
-      }
-      console.log(`  [state-machine] Phase "${novel.phase}" did not advance — restart ${stuckCount}/${pipeline.maxPhaseRestarts}`)
-    } else {
-      stuckCount = 0
-    }
-    prevSignature = signature
-
     const phaseStart = Date.now()
     const currentPhase = novel.phase as PhaseName
     const idx = PHASE_INDEX[currentPhase]
@@ -113,20 +99,22 @@ export async function runNovel(novelId: string): Promise<void> {
       payload: { phase: currentPhase },
     })
 
-    if (result.kind === "complete") {
-      // Driver-owned phase transition. Pipe the typed output forward and
-      // advance novels.phase. The matching `phase:changed` emit happens on
-      // the next phase's own entry (preserving the current event surface).
-      pipe = result.output
-      const next = NEXT_PHASE[currentPhase]
-      await updatePhase(novelId, next)
-      emit(novelId, { type: "phase:changed", data: { phase: next } })
-    } else {
-      // Paused: the phase did not advance. The outer busy-retry guard above
-      // catches loop-spin; resume after operator intervention re-runs this
-      // phase from the top. P6b2 will change paused to return-to-caller.
-      log(novelId, "info", `[driver] phase ${currentPhase} returned paused: ${result.reason}`)
+    if (result.kind === "paused") {
+      // P6b2: paused returns travel back to the caller. The novel's DB phase
+      // is unchanged — resume picks up where this phase left off. The outer
+      // busy-retry guard from P6b1 is removed; loop-spin protection now
+      // belongs to whoever decides to resume (orchestrator / operator).
+      log(novelId, "info", `[driver] phase ${currentPhase} paused: ${result.reason}`)
+      return { outcome: "paused", phase: currentPhase, reason: result.reason }
     }
+
+    // Driver-owned phase transition. Pipe the typed output forward and
+    // advance novels.phase. The matching `phase:changed` emit happens on
+    // the next phase's own entry (preserving the current event surface).
+    pipe = result.output
+    const next = NEXT_PHASE[currentPhase]
+    await updatePhase(novelId, next)
+    emit(novelId, { type: "phase:changed", data: { phase: next } })
 
     novel = await getNovel(novelId)
 
@@ -155,6 +143,8 @@ export async function runNovel(novelId: string): Promise<void> {
   await printRunSummary(novelId, wallMs, usage)
 
   emit(novelId, { type: "done", data: { novelId, tokens: usage } })
+
+  return { outcome: "complete" }
 }
 
 function formatDuration(ms: number): string {

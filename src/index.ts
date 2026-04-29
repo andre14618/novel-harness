@@ -69,7 +69,11 @@ async function main() {
   console.log(`  Central DB run: ${runId}`)
 
   try {
-    await runNovel(novelId)
+    const result = await runNovel(novelId)
+    if (result.outcome === "paused") {
+      console.log(`\nPaused at ${result.phase}: ${result.reason}`)
+      console.log(`Resume with: bun src/index.ts --resume ${novelId}`)
+    }
   } catch (err) {
     console.error("\nError:", err instanceof Error ? err.message : err)
     console.log(`\nYou can resume with: bun src/index.ts --resume ${novelId}`)

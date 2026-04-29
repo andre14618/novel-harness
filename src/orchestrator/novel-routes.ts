@@ -452,9 +452,13 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
 
       // Start pipeline as floating promise (fire-and-forget)
       runNovel(novelId)
-        .then(() => {
+        .then(result => {
           activeRuns.delete(novelId)
-          console.log(`[novel-api] Novel ${novelId} completed`)
+          if (result.outcome === "paused") {
+            console.log(`[novel-api] Novel ${novelId} paused at ${result.phase}: ${result.reason}`)
+          } else {
+            console.log(`[novel-api] Novel ${novelId} completed`)
+          }
         })
         .catch(err => {
           activeRuns.delete(novelId)
@@ -503,7 +507,12 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
     activeRuns.set(novelId, { startedAt: new Date().toISOString() })
 
     runNovel(novelId)
-      .then(() => { activeRuns.delete(novelId) })
+      .then(result => {
+        activeRuns.delete(novelId)
+        if (result.outcome === "paused") {
+          console.log(`[novel-api] Novel ${novelId} paused at ${result.phase}: ${result.reason}`)
+        }
+      })
       .catch(err => {
         activeRuns.delete(novelId)
         captureRunError(novelId, err)
@@ -539,7 +548,12 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
     lastRunErrors.delete(novelId)
     activeRuns.set(novelId, { startedAt: new Date().toISOString() })
     runNovel(novelId)
-      .then(() => { activeRuns.delete(novelId) })
+      .then(result => {
+        activeRuns.delete(novelId)
+        if (result.outcome === "paused") {
+          console.log(`[novel-api] Novel ${novelId} redraft paused at ${result.phase}: ${result.reason}`)
+        }
+      })
       .catch(err => {
         activeRuns.delete(novelId)
         captureRunError(novelId, err)
