@@ -20,6 +20,50 @@ A CELL PASS on a dim means: the distribution from that dim is calibrated enough 
 
 > **Standing rule (2026-04-29)**: every analysis run produces a **conclusion + action**, not just numbers. The per-book `<book>-conclusions.md` file is **mandatory** alongside the verdict JSON. Each step in the walkthrough below has a **Conclusion** subsection — you fill it in as you run the step. If you're done with the steps but the conclusions doc is empty, you're not actually done.
 
+> **Standing rule (2026-04-29) — no overwrites**: every output file is **immutable on disk**. Re-running an extractor or judge writes a NEW timestamped file; the prior file is preserved. The `<book>-conclusions.md` doc is **append-only** — new analysis sessions add a new dated section (`## Session YYYY-MM-DD HH:MM — <step or focus>`); existing sections are never edited. If a prior conclusion is invalidated, write a new section that references the old one rather than rewriting it. The audit trail of what we believed at each point matters as much as the current state.
+
+### Output filename convention
+
+All scripts in `scripts/corpus/` follow the same pattern:
+
+```
+<base>.<run_id>[.<variant>].<ext>
+```
+
+- `<run_id>` — UTC `YYYYMMDDTHHMMSS` stamped at write time by `nowStamp()` from `scripts/corpus/_run-stamp.ts`.
+- `<variant>` — optional sub-tag (e.g. `pro`, `pro-t0`, `flash`, `sonnet`) when the file represents a specific model/temperature combination.
+
+Examples:
+
+```
+promises.20260429T213820.json                 # Flash extractor default
+promises.20260429T213820.pro.json             # V4 Pro extractor
+promises.20260429T215322.sonnet.json          # Sonnet Tier 3 hand-extraction
+value-charge.20260429T183957.jsonl            # value-charge per-scene tags
+promise-gold.20260429T201219.jsonl            # V4 Pro judge gold
+promise-gold.20260429T212435.flash.jsonl      # V4 Flash judge gold
+crystal_shard.20260429T220528.json            # calibration verdict
+crystal_shard.20260429T212822.flashxflash.json # 2×2 cell calibration verdict
+```
+
+There is **no `<base>.<ext>` canonical filename for new writes** — the absence of a fixed name is what makes overwrites structurally impossible. To find the latest output, glob the directory and pick the max-stamp file. The corpus scripts already do this via `findLatestStamped()` / `resolveLatestInput()`. Pre-2026-04-29 un-stamped files are preserved as a legacy fallback so existing tooling keeps reading until those files are migrated; new writes always go to stamped paths.
+
+### Pinning to a specific run
+
+`compute-calibration.ts` accepts:
+
+- `--key-stamp=<YYYYMMDDTHHMMSS>` — pin the key file to that exact stamp (otherwise: latest matching variant)
+- `--gold-stamp=<YYYYMMDDTHHMMSS>` — pin the gold file
+- `--key-suffix=<variant>` / `--gold-suffix=<variant>` — variant tag (e.g. `pro`, `flash`)
+- `--key-file=<full-path>` — bypass resolution entirely
+
+`sample-for-adjudication.ts` accepts:
+
+- `--source-stamp=<YYYYMMDDTHHMMSS>` — pin the source extractor file
+- `--source-variant=<variant>` — variant tag
+
+The calibration output JSON embeds the resolved `goldPath`, `goldRunId`, `keyPath`, `keyRunId` per cell under `sources.<dim>` so every verdict has a full provenance trail.
+
 ---
 
 ## Prerequisites — Stages 1-5
