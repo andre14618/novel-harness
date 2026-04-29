@@ -42,7 +42,7 @@ const POOLS = JSON.parse(
 // throughput cases where speed outweighs adherence quality.
 const WRITER_PROVIDER = (process.env.HALLUC_WRITER_PROVIDER ?? "deepseek") as "cerebras" | "deepseek"
 const WRITER_MODEL = process.env.HALLUC_WRITER_MODEL
-  ?? (WRITER_PROVIDER === "deepseek" ? "deepseek-chat" : "qwen-3-235b-a22b-instruct-2507")
+  ?? (WRITER_PROVIDER === "deepseek" ? "deepseek-v4-flash" : "qwen-3-235b-a22b-instruct-2507")
 const OUT_SUFFIX = process.env.HALLUC_OUT_SUFFIX ?? "raw"
 
 const OUT_PATH = join(import.meta.dir, "..", "..", "finetune-data", `halluc-checker-v2-pairs-${OUT_SUFFIX}.jsonl`)

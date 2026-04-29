@@ -20,7 +20,7 @@ import type { ChapterOutline } from "../src/types"
 
 const V4    = "wandb-artifact:///andre14618-/novel-harness/salvatore-1988-v4"
 const LLAMA = "llama-3.3-70b-versatile"
-const DS    = "deepseek-chat"
+const DS    = "deepseek-v4-flash"
 
 interface ProviderCfg { url: string; key: string; model: string }
 

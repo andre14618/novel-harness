@@ -28,35 +28,60 @@ const DEFAULTS = { temperature: 0.7, maxTokens: 4096, thinking: false } as const
 const groqQwen32B: ModelAssignment = { provider: "groq", model: "qwen/qwen3-32b" }
 const cerebrasQwen235B: ModelAssignment = { provider: "cerebras", model: "qwen-3-235b-a22b-instruct-2507" }
 const groqKimiK2: ModelAssignment = { provider: "groq", model: "moonshotai/kimi-k2-instruct-0905" }
-const deepseekV3: ModelAssignment = { provider: "deepseek", model: "deepseek-chat" }
+// DeepSeek V4 Flash — single API model. Thinking mode is a per-agent toggle
+// via the `thinking` flag. When true, llm.ts injects `thinking: {type:
+// "enabled"}` into the request body. Same pricing in both modes
+// ($0.14/$0.28 per 1M; cache hit $0.0028/M).
+//
+// Decision rule for setting `thinking: true` on an agent:
+//   - YES if the agent does multi-step reasoning under structural constraints
+//     (cross-beat coherence judgment, minimal-edit planning, structural
+//     sequencing). Reasoning tokens are billed but pay back in output quality.
+//   - NO for creative/prose generation (writer, beat-writer) — reasoning
+//     adds latency without quality gain on creative output.
+//   - NO for one-shot extraction/revision (planning-extractor,
+//     artifact-adjuster) — single-step transforms don't need think tokens.
+//   - NO for design-with-creative-output (world-builder, character-agent,
+//     plotter, planning-plotter) — these emit creative artifacts; thinking
+//     mode adds cost without proportional quality lift.
+//
+// Toggle individual agents by adding/removing `thinking: true` in the
+// AGENT_MODELS entry below — no other plumbing required. v4-pro exists in
+// the registry as a reasoning-tier escalation but is NOT routed by default
+// (~12× output cost vs Flash at base rate; reserved for cases where Flash
+// thinking proves insufficient).
+const deepseekV4Flash: ModelAssignment = { provider: "deepseek", model: "deepseek-v4-flash" }
 const mimoFlash: ModelAssignment = { provider: "mimo", model: "mimo-v2-flash" }
 const togetherQwen9B: ModelAssignment = { provider: "together", model: "Qwen/Qwen3.5-9B" }
 
 export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // ── Writers (creative prose, high output) ─────────────────────────────
-  // DeepSeek V3.2 is the default writer (exp #189/#190). Howard primer/
+  // DeepSeek V4 Flash non-thinking. Prose generation doesn't benefit from
+  // reasoning tokens (creative output, not multi-step inference); thinking
+  // mode would slow per-beat latency without quality lift. Howard primer/
   // methodology retired 2026-04-16 — voice now lands through per-genre
-  // voice LoRAs (see WRITER_GENRE_PACKS below) instead of a universal
-  // style primer. STYLE_PRIMER env var still works per-run for
-  // experimentation but defaults to "none".
-  "writer":                    { ...deepseekV3, temperature: 0.8, maxTokens: 8000 },
-  "beat-writer":               { ...deepseekV3, temperature: 0.8, maxTokens: 4000 },
+  // voice LoRAs (see WRITER_GENRE_PACKS below).
+  "writer":                    { ...deepseekV4Flash, temperature: 0.8, maxTokens: 8000 },
+  "beat-writer":               { ...deepseekV4Flash, temperature: 0.8, maxTokens: 4000 },
   // rewriter removed 2026-04-17 — validation is diagnostic-only now
 
   // ── Planners (structured creative output) ─────────────────────────────
-  "world-builder":             { ...deepseekV3, maxTokens: 8192 },
-  "character-agent":           { ...deepseekV3, maxTokens: 8192 },
-  "plotter":                   { ...deepseekV3, maxTokens: 8192 },
-  "planning-plotter":          { ...deepseekV3, temperature: 0.6, maxTokens: 8192 },
-  "planning-beats":            { ...deepseekV3, temperature: 0.6, maxTokens: 8192 },
+  // Most planners emit creative artifacts and don't benefit from think tokens.
+  // planning-beats is the exception: per-chapter beat sequencing + state-flow
+  // tracking is real multi-step reasoning, so it gets thinking: true.
+  "world-builder":             { ...deepseekV4Flash, maxTokens: 8192 },
+  "character-agent":           { ...deepseekV4Flash, maxTokens: 8192 },
+  "plotter":                   { ...deepseekV4Flash, maxTokens: 8192 },
+  "planning-plotter":          { ...deepseekV4Flash, temperature: 0.6, maxTokens: 8192 },
+  "planning-beats":            { ...deepseekV4Flash, thinking: true, temperature: 0.6, maxTokens: 8192 },
 
   // ── Studio: pre-planning chat + extraction ───────────────────────────
-  // Chat is high-volume, forgiving — Groq Qwen3-32B is cheap and fast enough.
-  // Extractor is load-bearing (one-shot compile of transcript → PlanningDirectives
-  // that drives the planner) — DeepSeek for fidelity.
+  // Chat: Groq Qwen3-32B (high-volume, cheap).
+  // Extractor: one-shot transcript → PlanningDirectives. Single-step, no
+  // thinking. Adjuster: light revision under feedback. Single-step, no thinking.
   "planning-conversationalist": { ...groqQwen32B, temperature: 0.65, maxTokens: 2048 },
-  "planning-extractor":         { ...deepseekV3, temperature: 0.2, maxTokens: 2048 },
-  "artifact-adjuster":          { ...deepseekV3, temperature: 0.3, maxTokens: 2048 },
+  "planning-extractor":         { ...deepseekV4Flash, temperature: 0.2, maxTokens: 2048 },
+  "artifact-adjuster":          { ...deepseekV4Flash, temperature: 0.3, maxTokens: 2048 },
 
   // ── Beat support ──────────────────────────────────────────────────────
   // reference-resolver stays on Llama 3.1 8B Groq — set-union over implicit
@@ -81,7 +106,7 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "summary-extractor":         { ...mimoFlash, temperature: 0.2, maxTokens: 8192 },
   "fact-extractor":            { ...mimoFlash, temperature: 0.1, maxTokens: 8192 },
   "character-state":           { ...mimoFlash, temperature: 0.1, maxTokens: 8192 },
-  "relationship-timeline":     { ...deepseekV3, temperature: 0.2, maxTokens: 8192 },
+  "relationship-timeline":     { ...deepseekV4Flash, temperature: 0.2, maxTokens: 8192 },
   "graph-linker":              { ...mimoFlash, temperature: 0.2, maxTokens: 4096 },
 
   // ── Validators (analytical checks) ────────────────────────────────────
@@ -105,7 +130,7 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // vs validated 96% accuracy on Phase C.3 evals (exp #178) — distribution
   // drift on real fantasy plans. SFT recalibration on TODO as low-priority;
   // context engineering takes precedence over local-model SFT for now.
-  "chapter-plan-checker":      { ...deepseekV3, temperature: 0.2, maxTokens: 4096 },
+  "chapter-plan-checker":      { ...deepseekV4Flash, thinking: true, temperature: 0.2, maxTokens: 4096 },
 
   // ── Chapter plan reviser ─────────────────────────────────────────────
   // Invoked ONCE per chapter (across all drafting attempts) when the
@@ -116,7 +141,7 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // invoke the reviser — those are routed to targeted beat rewrites only.
   // Same DeepSeek model as the checker; higher maxTokens since output is a
   // full beats+state JSON (matches planning-beats shape).
-  "chapter-plan-reviser":      { ...deepseekV3, temperature: 0.3, maxTokens: 6144 },
+  "chapter-plan-reviser":      { ...deepseekV4Flash, thinking: true, temperature: 0.3, maxTokens: 6144 },
 
   // ── Tonal pass (per-paragraph voice rewrite, LoRA fine-tuned) ────────
   // Howard methodology RETIRED 2026-04-16 — voice now handled by per-genre
@@ -131,7 +156,7 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // Daemon role; kept alive because the lint tooling imports it. When the
   // autoresearch loop on the autonomous-harness-loop branch lands, this
   // role may be repurposed or dropped.
-  "improver":                  { ...deepseekV3, maxTokens: 8192 },
+  "improver":                  { ...deepseekV4Flash, maxTokens: 8192 },
 }
 
 // ── Runtime overrides (set via web UI, cleared on restart) ──────────────

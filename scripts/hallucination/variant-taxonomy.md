@@ -13,7 +13,7 @@ v1 landed **86.5% precision / 78.0% recall / 82.1% F1 / 91.3% accuracy** on the 
 
 **Authoritative rubric:** `labeling-rubric.md`. **Labeling SOP:** `docs/synthetic-labeling-sop.md`. This doc adds generation recipes only.
 
-**Writer-model update (2026-04-18):** default writer for synthetic prose generation is now **DeepSeek V3.2 (`deepseek-chat`)**, not Cerebras Qwen 235B. Measured A/B on v2 generation: DS=99.4% Sonnet agreement vs Cerebras=96.4%. Generator supports both via `HALLUC_WRITER_PROVIDER` env var (`deepseek` or `cerebras`). Cerebras remains a valid choice when speed outweighs adherence quality.
+**Writer-model update (2026-04-18):** default writer for synthetic prose generation is now **DeepSeek V3.2 (`deepseek-v4-flash`)**, not Cerebras Qwen 235B. Measured A/B on v2 generation: DS=99.4% Sonnet agreement vs Cerebras=96.4%. Generator supports both via `HALLUC_WRITER_PROVIDER` env var (`deepseek` or `cerebras`). Cerebras remains a valid choice when speed outweighs adherence quality.
 
 ## What chapter-plan did that we're copying
 

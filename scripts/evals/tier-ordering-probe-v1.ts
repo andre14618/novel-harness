@@ -35,7 +35,7 @@
  *
  * PERSISTENCE:
  *   eval_results with set_name='tier-ordering-probe-v1', cell_label in
- *   {baseline, loud}, adapter_uri='deepseek-chat'. `actual_label_json`
+ *   {baseline, loud}, adapter_uri='deepseek-v4-flash'. `actual_label_json`
  *   holds the adherence-events result; `correct` mirrors adherence.pass.
  */
 
@@ -54,9 +54,9 @@ import { checkBeatAdherence } from "../../src/agents/writer/adherence-checker"
 import { BEAT_WRITER_PROMPT } from "../../src/prompts"
 import type { ChapterOutline, SceneBeat } from "../../src/types"
 
-const DEEPSEEK_MODEL = "deepseek-chat"
+const DEEPSEEK_MODEL = "deepseek-v4-flash"
 const DEEPSEEK_PROVIDER: ProviderName = "deepseek"
-const ADAPTER_URI = "deepseek-chat"
+const ADAPTER_URI = "deepseek-v4-flash"
 const PAYOFF_FLOOR = 3
 
 interface GenResult {

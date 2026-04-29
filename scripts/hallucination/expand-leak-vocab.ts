@@ -124,7 +124,7 @@ Return {"prose": "..."}.`
     systemPrompt: GEN_SYSTEM,
     userPrompt,
     provider: "deepseek",
-    model: "deepseek-chat",
+    model: "deepseek-v4-flash",
     temperature: 0.85,
     maxTokens: 400,
   })
@@ -178,7 +178,7 @@ async function main() {
       tokens: LEAK_TOKENS.length,
       examples_per_token: EXAMPLES_PER_TOKEN,
       target_pairs: tasks.length,
-      writer: "deepseek-chat",
+      writer: "deepseek-v4-flash",
     },
     { target: "halluc-leak-salvatore-v2", dimension: "vocab-coverage" },
   )

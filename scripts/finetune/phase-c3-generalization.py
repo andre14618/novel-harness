@@ -181,7 +181,7 @@ async def main_async(args):
             "label": "A-deepseek-bare",
             "url": "https://api.deepseek.com/v1/chat/completions",
             "env_key": "DEEPSEEK_API_KEY",
-            "model": "deepseek-chat",
+            "model": "deepseek-v4-flash",
             "system": BARE_SYSTEM,
         })
     if args.cells == "all":
@@ -189,7 +189,7 @@ async def main_async(args):
             "label": "B-deepseek-primer",
             "url": "https://api.deepseek.com/v1/chat/completions",
             "env_key": "DEEPSEEK_API_KEY",
-            "model": "deepseek-chat",
+            "model": "deepseek-v4-flash",
             "system": primed_system,
         })
     cells.append({

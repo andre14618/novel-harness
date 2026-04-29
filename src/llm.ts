@@ -33,7 +33,7 @@ const MODEL_DEFAULTS: Record<string, string> = {
   groq: "qwen/qwen3-32b",
   openrouter: "qwen/qwen3-32b",
   openai: "gpt-5.4-mini",
-  deepseek: "deepseek-chat",
+  deepseek: "deepseek-v4-flash",
 }
 
 // Global defaults from .env
@@ -438,8 +438,16 @@ async function makeRequest(
   model: string,
   providerName: ProviderName,
   agentName: string,
+  thinking: boolean,
   debugContext?: import("./debug/injection-types").DebugContext,
 ): Promise<MakeRequestResult> {
+  // DeepSeek V4 Flash exposes thinking mode via a request-body parameter
+  // (`thinking: {type: "enabled"}` per https://api-docs.deepseek.com/).
+  // Off by default — enabled per-agent via roles.ts thinking flag.
+  const thinkingExtra: Record<string, any> = (providerName === "deepseek" && thinking)
+    ? { thinking: { type: "enabled" } }
+    : {}
+
   const response: LLMResponse = await getTransport().execute({
     systemPrompt,
     userPrompt,
@@ -448,7 +456,7 @@ async function makeRequest(
     temperature,
     maxTokens,
     responseFormat: { type: "json_object" },
-    extraBody: provider.extraBody(),
+    extraBody: { ...provider.extraBody(), ...thinkingExtra },
     callerId: agentName,
     debugContext,
   })
@@ -563,7 +571,7 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
   }
 
   try {
-    requestResult = await makeRequest(config.systemPrompt, userPrompt, temperature, maxTokens, provider, model, providerName, config.agentName ?? "unknown", debugContext)
+    requestResult = await makeRequest(config.systemPrompt, userPrompt, temperature, maxTokens, provider, model, providerName, config.agentName ?? "unknown", thinking, debugContext)
     content = requestResult.content
 
     totalTokens.prompt += requestResult.usage.prompt_tokens
@@ -581,7 +589,7 @@ export async function callAgent<T>(config: AgentConfig<T>): Promise<AgentResult<
       jsonExtractionRetried = true
       const retryResult = await makeRequest(
         config.systemPrompt + "\n\nIMPORTANT: Respond with ONLY valid JSON. No markdown, no commentary.",
-        config.userPrompt, temperature, maxTokens, provider, model, providerName, config.agentName ?? "unknown", debugContext,
+        config.userPrompt, temperature, maxTokens, provider, model, providerName, config.agentName ?? "unknown", thinking, debugContext,
       )
       requestResult = retryResult
       content = retryResult.content

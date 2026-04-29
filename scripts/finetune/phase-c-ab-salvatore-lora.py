@@ -54,7 +54,7 @@ MODELS = [
         "label": "deepseek-baseline",
         "url": "https://api.deepseek.com/v1/chat/completions",
         "env_key": "DEEPSEEK_API_KEY",
-        "model": "deepseek-chat",
+        "model": "deepseek-v4-flash",
     },
     {
         "label": "salvatore-1988-v1",

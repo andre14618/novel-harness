@@ -55,7 +55,7 @@ const ARMS: ArmSpec[] = [
   },
   {
     cell_label: "D-deepseek-v3.2",
-    model: "deepseek-chat",
+    model: "deepseek-v4-flash",
     provider: "deepseek" as ProviderName,
   },
 ]

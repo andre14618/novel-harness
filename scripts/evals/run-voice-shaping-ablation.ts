@@ -32,7 +32,7 @@ import { getAblationArms, type ArmConfig } from "../../src/agents/writer/voice-s
 import type { LLMRequest } from "../../src/transport"
 import type { ProviderName } from "../../src/models/registry"
 
-const DEEPSEEK_MODEL = "deepseek-chat"
+const DEEPSEEK_MODEL = "deepseek-v4-flash"
 const DEEPSEEK_PROVIDER: ProviderName = "deepseek"
 
 interface ArchivedBaseline {

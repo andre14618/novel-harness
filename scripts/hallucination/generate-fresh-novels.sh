@@ -5,7 +5,7 @@
 #
 # Tracking: novel_ids will be timestamp-based. We'll mine by writer model
 # in llm_calls (v4 → 'wandb-artifact:///...salvatore-1988-v4',
-# deepseek → 'deepseek-chat').
+# deepseek → 'deepseek-v4-flash').
 
 cd ~/apps/novel-harness
 set -a; source .env; set +a
@@ -28,7 +28,7 @@ done
 for seed in "${DS_SEEDS[@]}"; do
   log=/tmp/halluc-novel-ds-${seed}.log
   echo "  Launching deepseek / $seed → $log"
-  ( export WRITER_MODEL_OVERRIDE="deepseek-chat" WRITER_PROVIDER_OVERRIDE="deepseek"
+  ( export WRITER_MODEL_OVERRIDE="deepseek-v4-flash" WRITER_PROVIDER_OVERRIDE="deepseek"
     nohup bun src/index.ts --auto --seed "$seed" --chapters 5 > "$log" 2>&1 ) &
   sleep 1
 done
