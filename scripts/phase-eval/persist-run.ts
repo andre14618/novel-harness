@@ -28,10 +28,26 @@ export interface PersistRunInput {
   notes?: string | null
 }
 
+/** Format a JS string array as a Postgres TEXT[] literal:
+ *  ["a", "b"] → '{"a","b"}'. Quotes each value and escapes embedded
+ *  backslashes + double-quotes per pg's array_in grammar.
+ *
+ *  Bun.SQL serializes JS arrays as JSON ('["a","b"]'), which Postgres
+ *  rejects with `malformed array literal` because TEXT[] expects
+ *  curly-brace-wrapped values, not square-bracket. So we hand-format
+ *  the literal string and bind it as text + cast to text[]. */
+function pgArray(xs: string[]): string {
+  if (xs.length === 0) return "{}"
+  const escaped = xs.map(x => `"${x.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`)
+  return `{${escaped.join(",")}}`
+}
+
 export async function persistPhaseEvalRun(input: PersistRunInput): Promise<number> {
-  // Cast TEXT[] arrays explicitly: Bun.SQL binds JS arrays as JSON by
-  // default, but the column expects pg's TEXT[] type — `::text[]` on a
-  // JSONB-encoded array converts cleanly through pg's array_in.
+  const seedsLit = pgArray(input.seedsUsed)
+  const variantsLit = pgArray(input.variantLabels)
+  // Bun.SQL serializes JS objects as JSON automatically when binding
+  // to a JSONB column — DON'T pre-stringify here, that double-encodes
+  // and stores the value as a JSON string rather than a JSON object.
   const rows = await db`
     INSERT INTO phase_eval_runs (
       probe_name, git_commit, experiment_id,
@@ -39,8 +55,8 @@ export async function persistPhaseEvalRun(input: PersistRunInput): Promise<numbe
       summary_json, verdict, notes
     ) VALUES (
       ${input.probeName}, ${input.gitCommit}, ${input.experimentId ?? null},
-      ${input.seedsUsed}::text[], ${input.variantLabels}::text[],
-      ${JSON.stringify(input.summaryJson)}::jsonb,
+      ${seedsLit}::text[], ${variantsLit}::text[],
+      ${input.summaryJson},
       ${input.verdict},
       ${input.notes ?? null}
     )
