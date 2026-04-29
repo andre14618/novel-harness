@@ -385,7 +385,9 @@ const promiseMatchSchema = z.object({
   matches: z.array(z.object({
     predicted_id: z.string(),
     gold_id: z.string(),
-    confidence: z.number().min(0).max(1),
+    // V4 Pro occasionally returns confidence as a string ("0.95" instead
+    // of 0.95). Coerce to number — the schema then enforces the range.
+    confidence: z.coerce.number().min(0).max(1),
     reason: z.string(),
   })),
 })
@@ -866,7 +868,8 @@ const characterMatchSchema = z.object({
   matches: z.array(z.object({
     pred_name: z.string(),
     gold_name: z.string(),
-    confidence: z.number().min(0).max(1),
+    // Same string-confidence coercion as the promise matcher above.
+    confidence: z.coerce.number().min(0).max(1),
     reason: z.string(),
   })),
 })
