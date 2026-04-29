@@ -40,8 +40,10 @@
  *   - chapter_outlines, chapter_drafts, chapter_summaries, facts,
  *     character_states, character_knowledge, relationship_states,
  *     timeline_events, issues, validation_passes, chapter_revisions,
- *     chapter_exhaustions, event_causes, knowledge_propagation,
- *     thematic_tags
+ *     chapter_exhaustions, event_causes, knowledge_propagation
+ *
+ * Note: `thematic_tags` was created in sql/011 but DROPPED in sql/013;
+ * intentionally omitted from the audit list.
  *
  * Mirrored write-sites in `src/planned-state.ts`:
  *   - facts              ← src/db/facts.ts:4   saveFact
@@ -150,7 +152,6 @@ const CONCEPT_DONE_MUST_BE_ABSENT = [
   "chapter_exhaustions",
   "event_causes",
   "knowledge_propagation",
-  "thematic_tags",
 ] as const
 
 async function main() {
