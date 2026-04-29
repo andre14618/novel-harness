@@ -29,6 +29,7 @@ import { join } from "node:path"
 import { normalize } from "./normalize-for-structure"
 import { extractValueCharge, type ValueChargeOutput } from "../../src/agents/structure-value-charge"
 import { extractPromises, type FullPromise, type PromiseBeatRow } from "../../src/agents/structure-promise"
+import { nowStamp, stampedPath } from "./_run-stamp"
 
 const REPO_ROOT = new URL("../..", import.meta.url).pathname
 
@@ -38,7 +39,7 @@ interface Args {
   maxScenes: number | null
   skipPromise: boolean
   skipValueCharge: boolean
-  extractorModel: "flash" | "pro"
+  extractorModel: "flash" | "pro" | "pro-t0"
 }
 
 function parseArgs(): Args {
@@ -65,8 +66,8 @@ function parseArgs(): Args {
   const maxScenesRaw = map["max-scenes"]
   const maxScenes = typeof maxScenesRaw === "string" ? Number(maxScenesRaw) : null
   const extractorModelRaw = typeof map["extractor-model"] === "string" ? map["extractor-model"] : "flash"
-  if (extractorModelRaw !== "flash" && extractorModelRaw !== "pro") {
-    console.error(`--extractor-model must be "flash" or "pro". Got: ${extractorModelRaw}`)
+  if (extractorModelRaw !== "flash" && extractorModelRaw !== "pro" && extractorModelRaw !== "pro-t0") {
+    console.error(`--extractor-model must be "flash", "pro", or "pro-t0". Got: ${extractorModelRaw}`)
     process.exit(2)
   }
   return {
@@ -74,7 +75,7 @@ function parseArgs(): Args {
     maxScenes: maxScenes === null || Number.isNaN(maxScenes) ? null : maxScenes,
     skipPromise: map["skip-promise"] === true,
     skipValueCharge: map["skip-value-charge"] === true,
-    extractorModel: extractorModelRaw as "flash" | "pro",
+    extractorModel: extractorModelRaw as "flash" | "pro" | "pro-t0",
   }
 }
 
@@ -151,13 +152,17 @@ async function runValueChargeForBook(args: {
   beats: BeatRow[]
   pairs: PairRow[]
   maxScenes: number | null
-  /** When "pro", override extractor agent to the Pro judge role (capability gradient). */
-  extractorModel?: "flash" | "pro"
+  /** "pro" / "pro-t0" override extractor agent to the Pro judge role (capability gradient).
+   *  "pro-t0" further pins T=0 via the `-t0` agent variant (C.3 self-consistency probe). */
+  extractorModel?: "flash" | "pro" | "pro-t0"
 }): Promise<SceneTag[]> {
   const { scenes, beats, pairs, maxScenes } = args
   // Pro extractor routes to the judge role (stronger capability gradient).
   // Flash uses the default extractor agent (no override needed).
-  const agentOverride = args.extractorModel === "pro" ? "structure-value-charge-judge" : undefined
+  // pro-t0 has no value-charge variant yet; fall back to the standard judge role.
+  const agentOverride = (args.extractorModel === "pro" || args.extractorModel === "pro-t0")
+    ? "structure-value-charge-judge"
+    : undefined
 
   // Group beats by chapter for fast prev/next lookup. Beats are
   // already canonically ordered from the preflight; chapter buckets
@@ -258,8 +263,9 @@ async function runPromiseForBook(args: {
   novelKey: string
   bookKey: string
   beats: BeatRow[]
-  /** When "pro", override extractor agent to the Pro judge role (capability gradient). */
-  extractorModel?: "flash" | "pro"
+  /** "pro" / "pro-t0" override extractor agent to the Pro judge role (capability gradient).
+   *  "pro-t0" routes to the T=0 variant for the C.3 self-consistency probe. */
+  extractorModel?: "flash" | "pro" | "pro-t0"
 }): Promise<{ promises: FullPromise[]; openOnlyCount: number; closuresCount: number; error?: string }> {
   const beatsForPromise: PromiseBeatRow[] = args.beats.map(b => ({
     chapter_label: String(b.chapter),
@@ -271,7 +277,13 @@ async function runPromiseForBook(args: {
   }))
   console.log(`[extract-structure] promise: ${beatsForPromise.length} beats → 2-pass extraction`)
   // Pro extractor routes through the judge agent (stronger capability gradient).
-  const agentOpts = args.extractorModel === "pro" ? { agentName: "structure-promise-judge" } : undefined
+  // pro-t0 routes through the T=0 judge variant (C.3 experiment).
+  const promiseAgent = args.extractorModel === "pro-t0"
+    ? "structure-promise-judge-t0"
+    : args.extractorModel === "pro"
+      ? "structure-promise-judge"
+      : null
+  const agentOpts = promiseAgent ? { agentName: promiseAgent } : undefined
   const result = await extractPromises({
     novelKey: args.novelKey,
     bookKey: args.bookKey,
@@ -291,8 +303,13 @@ async function runPromiseForBook(args: {
 
 async function main() {
   const args = parseArgs()
-  const modelLabel = args.extractorModel === "pro" ? "V4 Pro (judge role as extractor)" : "Flash"
-  console.log(`[extract-structure] novel=${args.novel} book=${args.book} extractor=${modelLabel}`)
+  const runStamp = nowStamp()
+  const modelLabel = args.extractorModel === "pro-t0"
+    ? "V4 Pro T=0 (judge-t0 role)"
+    : args.extractorModel === "pro"
+      ? "V4 Pro (judge role as extractor)"
+      : "Flash"
+  console.log(`[extract-structure] novel=${args.novel} book=${args.book} extractor=${modelLabel} stamp=${runStamp}`)
 
   // Step 1 — normalize (preflight). Pure structural; no LLM.
   console.log(`[extract-structure] step 1: normalize`)
@@ -309,11 +326,18 @@ async function main() {
   const outDir = join(REPO_ROOT, "novels", args.novel, "structure", args.book)
   mkdirSync(outDir, { recursive: true })
 
-  // File path suffix: pro extractor writes .pro variant files; flash keeps existing names.
-  const fileSuffix = args.extractorModel === "pro" ? ".pro" : ""
+  // Variant tag: pro / pro-t0 emit a per-model variant; flash has no variant.
+  // Output files follow `<base>.<stamp>[.<variant>].<ext>` per the
+  // immutable-output convention (memory: feedback_no_overwrite_runs.md).
+  const variant: string | null = args.extractorModel === "pro-t0"
+    ? "pro-t0"
+    : args.extractorModel === "pro"
+      ? "pro"
+      : null
 
   // Step 3 — value-charge per scene
   let valueChargeTags: SceneTag[] = []
+  let valueChargePath: string | null = null
   if (!args.skipValueCharge) {
     valueChargeTags = await runValueChargeForBook({
       bookKey: args.book,
@@ -321,7 +345,8 @@ async function main() {
       maxScenes: args.maxScenes,
       extractorModel: args.extractorModel,
     })
-    await writeJsonl(join(outDir, `value-charge${fileSuffix}.jsonl`), valueChargeTags)
+    valueChargePath = stampedPath({ dir: outDir, base: "value-charge", stamp: runStamp, variant, ext: "jsonl" })
+    await writeJsonl(valueChargePath, valueChargeTags)
   } else {
     console.log(`[extract-structure] step 3 (value-charge) skipped per --skip-value-charge`)
   }
@@ -330,13 +355,17 @@ async function main() {
   let promiseResult: { promises: FullPromise[]; openOnlyCount: number; closuresCount: number; error?: string } = {
     promises: [], openOnlyCount: 0, closuresCount: 0,
   }
+  let promisesPath: string | null = null
   if (!args.skipPromise) {
     promiseResult = await runPromiseForBook({
       novelKey: args.novel, bookKey: args.book, beats,
       extractorModel: args.extractorModel,
     })
-    await Bun.write(join(outDir, `promises${fileSuffix}.json`), JSON.stringify({
+    promisesPath = stampedPath({ dir: outDir, base: "promises", stamp: runStamp, variant, ext: "json" })
+    await Bun.write(promisesPath, JSON.stringify({
       novel: args.novel, book: args.book,
+      run_id: runStamp,
+      extractor_model: args.extractorModel,
       promises: promiseResult.promises,
       openOnlyCount: promiseResult.openOnlyCount,
       closuresCount: promiseResult.closuresCount,
@@ -350,6 +379,7 @@ async function main() {
   const summary = {
     novel: args.novel,
     book: args.book,
+    run_id: runStamp,
     extractorModel: args.extractorModel,
     extractedAt: new Date().toISOString(),
     scenesProcessed: valueChargeTags.length,
@@ -359,8 +389,13 @@ async function main() {
     promiseClosureCount: promiseResult.closuresCount,
     promiseMerged: promiseResult.promises.length,
     promiseError: promiseResult.error ?? null,
+    outputs: {
+      valueCharge: valueChargePath,
+      promises: promisesPath,
+    },
   }
-  await Bun.write(join(outDir, "extract-summary.json"), JSON.stringify(summary, null, 2))
+  const summaryPath = stampedPath({ dir: outDir, base: "extract-summary", stamp: runStamp, variant, ext: "json" })
+  await Bun.write(summaryPath, JSON.stringify(summary, null, 2))
   console.log(`[extract-structure] done → ${outDir}`)
   console.log(`[extract-structure] summary: ${JSON.stringify(summary, null, 2)}`)
 }

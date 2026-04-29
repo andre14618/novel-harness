@@ -32,7 +32,31 @@ import { existsSync, mkdirSync } from "node:fs"
 import { join } from "node:path"
 import { randomUUID } from "node:crypto"
 
+import { nowStamp, stampedPath, resolveLatestInput, resolveExactStamp } from "./_run-stamp"
+
 const REPO_ROOT = new URL("../..", import.meta.url).pathname
+
+/** Resolve a structure-file source for the sampler.
+ *  Default: latest stamped, no variant, with legacy un-stamped fallback.
+ *  --source-stamp pins against an exact stamp; --source-variant filters by variant tag. */
+function resolveSource(opts: {
+  bundleDir: string
+  book: string
+  base: string
+  ext: string
+  stamp: string | null
+  variant: string | null
+}): string {
+  const dir = join(opts.bundleDir, "structure", opts.book)
+  if (opts.stamp) {
+    const exact = resolveExactStamp({ dir, base: opts.base, ext: opts.ext, stamp: opts.stamp, variant: opts.variant })
+    if (!exact) throw new Error(`source not found at exact stamp: ${opts.base}.${opts.stamp}${opts.variant ? "." + opts.variant : ""}.${opts.ext}`)
+    return exact.path
+  }
+  const latest = resolveLatestInput({ dir, base: opts.base, ext: opts.ext, variant: opts.variant })
+  if (!latest) throw new Error(`source not found: ${opts.base}${opts.variant ? "." + opts.variant : ""}.${opts.ext} (no stamped or legacy file in ${dir})`)
+  return latest.path
+}
 
 interface Args {
   novel: string
@@ -43,6 +67,10 @@ interface Args {
   seed: number
   /** Fraction of samples to also include in the silent retest pool. */
   retestPct: number
+  /** Pin source extraction to an exact stamp (default: latest matching variant). */
+  sourceStamp: string | null
+  /** Variant filter on source extraction (e.g. "pro", "pro-t0", "sonnet"). */
+  sourceVariant: string | null
 }
 
 function parseArgs(): Args {
@@ -75,6 +103,8 @@ function parseArgs(): Args {
     n: map["n"] ? parseInt(map["n"], 10) : 50,
     seed: map["seed"] ? parseInt(map["seed"], 10) : 42,
     retestPct: map["retest-pct"] ? parseFloat(map["retest-pct"]) : 0.10,
+    sourceStamp: map["source-stamp"] ?? null,
+    sourceVariant: map["source-variant"] ?? null,
   }
 }
 
@@ -143,8 +173,11 @@ interface SceneTextRow {
 
 async function sampleValueCharge(args: Args): Promise<{ prompts: any[]; key: any[] }> {
   const bundleDir = join(REPO_ROOT, "novels", args.novel)
-  const tagsPath = join(bundleDir, "structure", args.book, "value-charge.jsonl")
-  if (!existsSync(tagsPath)) throw new Error(`value-charge tags not found: ${tagsPath}`)
+  const tagsPath = resolveSource({
+    bundleDir, book: args.book, base: "value-charge", ext: "jsonl",
+    stamp: args.sourceStamp, variant: args.sourceVariant,
+  })
+  console.log(`[sample] value-charge source: ${tagsPath}`)
   const tags = await readJsonl<ValueChargeRow>(tagsPath)
   const okTags = tags.filter(t => t.ok)
   if (okTags.length < args.n) {
@@ -287,8 +320,11 @@ async function buildPovMap(bundleDir: string): Promise<Map<string, string | null
 
 async function sampleMice(args: Args): Promise<{ prompts: any[]; key: any[] }> {
   const bundleDir = join(REPO_ROOT, "novels", args.novel)
-  const tagsPath = join(bundleDir, "structure", args.book, "mice.jsonl")
-  if (!existsSync(tagsPath)) throw new Error(`mice tags not found: ${tagsPath}`)
+  const tagsPath = resolveSource({
+    bundleDir, book: args.book, base: "mice", ext: "jsonl",
+    stamp: args.sourceStamp, variant: args.sourceVariant,
+  })
+  console.log(`[sample] mice source: ${tagsPath}`)
   const tags = await readJsonl<MiceRow>(tagsPath)
   const okTags = tags.filter(t => t.ok)
   if (okTags.length < args.n) {
@@ -361,8 +397,11 @@ async function sampleMice(args: Args): Promise<{ prompts: any[]; key: any[] }> {
 
 async function sampleMckeeGap(args: Args): Promise<{ prompts: any[]; key: any[] }> {
   const bundleDir = join(REPO_ROOT, "novels", args.novel)
-  const tagsPath = join(bundleDir, "structure", args.book, "mckee-gap.jsonl")
-  if (!existsSync(tagsPath)) throw new Error(`mckee-gap tags not found: ${tagsPath}`)
+  const tagsPath = resolveSource({
+    bundleDir, book: args.book, base: "mckee-gap", ext: "jsonl",
+    stamp: args.sourceStamp, variant: args.sourceVariant,
+  })
+  console.log(`[sample] mckee-gap source: ${tagsPath}`)
   const tags = await readJsonl<McKeeGapRow>(tagsPath)
   const okTags = tags.filter(t => t.ok)
   if (okTags.length < args.n) {
@@ -499,8 +538,11 @@ async function sampleMckeeGap(args: Args): Promise<{ prompts: any[]; key: any[] 
 
 async function sampleCharacterArcs(args: Args): Promise<{ prompts: any[]; key: any[] }> {
   const bundleDir = join(REPO_ROOT, "novels", args.novel)
-  const docPath = join(bundleDir, "structure", args.book, "character-arcs.json")
-  if (!existsSync(docPath)) throw new Error(`character-arcs.json not found: ${docPath}`)
+  const docPath = resolveSource({
+    bundleDir, book: args.book, base: "character-arcs", ext: "json",
+    stamp: args.sourceStamp, variant: args.sourceVariant,
+  })
+  console.log(`[sample] character-arcs source: ${docPath}`)
   const doc = JSON.parse(await Bun.file(docPath).text()) as CharacterArcsDoc
 
   const tmpBeatsPath = join(bundleDir, "structure-tmp", args.book, "beats.jsonl")
@@ -550,8 +592,11 @@ async function sampleCharacterArcs(args: Args): Promise<{ prompts: any[]; key: a
 
 async function samplePromises(args: Args): Promise<{ prompts: any[]; key: any[] }> {
   const bundleDir = join(REPO_ROOT, "novels", args.novel)
-  const docPath = join(bundleDir, "structure", args.book, "promises.json")
-  if (!existsSync(docPath)) throw new Error(`promises.json not found: ${docPath}`)
+  const docPath = resolveSource({
+    bundleDir, book: args.book, base: "promises", ext: "json",
+    stamp: args.sourceStamp, variant: args.sourceVariant,
+  })
+  console.log(`[sample] promises source: ${docPath}`)
   const doc = JSON.parse(await Bun.file(docPath).text()) as PromisesDoc
 
   // For PromiseRegistry, the gold protocol per R6 §2 is: the adjudicator
@@ -587,7 +632,8 @@ async function samplePromises(args: Args): Promise<{ prompts: any[]; key: any[] 
 
 async function main() {
   const args = parseArgs()
-  console.log(`[sample] novel=${args.novel} book=${args.book} dim=${args.dim} n=${args.n} seed=${args.seed}`)
+  const runStamp = nowStamp()
+  console.log(`[sample] novel=${args.novel} book=${args.book} dim=${args.dim} n=${args.n} seed=${args.seed} stamp=${runStamp}`)
 
   let result: { prompts: any[]; key: any[] }
   if (args.dim === "value-charge") {
@@ -606,8 +652,10 @@ async function main() {
   const outDir = join(REPO_ROOT, "novels", args.novel, "structure-gold", args.book)
   mkdirSync(outDir, { recursive: true })
 
-  const promptsPath = join(outDir, `${args.dim}-prompts.jsonl`)
-  const keyPath = join(outDir, `${args.dim}-key.jsonl`)
+  // Stamped paired output per memory `feedback_no_overwrite_runs.md`.
+  // Prompts and key share the same stamp so they remain joinable.
+  const promptsPath = stampedPath({ dir: outDir, base: `${args.dim}-prompts`, stamp: runStamp, ext: "jsonl" })
+  const keyPath = stampedPath({ dir: outDir, base: `${args.dim}-key`, stamp: runStamp, ext: "jsonl" })
 
   // Strip retest flag from the prompt file so adjudicator doesn't see
   // which samples are retests.
@@ -620,7 +668,7 @@ async function main() {
 
   console.log(`[sample] wrote ${prompts.length} prompts → ${promptsPath}`)
   console.log(`[sample] wrote ${key.length} key rows → ${keyPath}`)
-  console.log(`[sample] adjudicate by labeling each prompt fresh in <dim>-gold.jsonl, then run compute-calibration.ts`)
+  console.log(`[sample] adjudicate by labeling each prompt fresh in <dim>-gold.<stamp>.jsonl, then run compute-calibration.ts`)
 }
 
 main().catch(err => {

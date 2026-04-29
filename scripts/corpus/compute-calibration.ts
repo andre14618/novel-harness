@@ -32,6 +32,7 @@ import { join } from "node:path"
 import { z } from "zod"
 
 import { callAgent } from "../../src/llm"
+import { nowStamp, resolveExactStamp, resolveLatestInput, stampedPath } from "./_run-stamp"
 
 const REPO_ROOT = new URL("../..", import.meta.url).pathname
 
@@ -40,16 +41,20 @@ interface Args {
   book: string
   dim: "value-charge" | "promise" | "mice" | "mckee-gap" | "character-arcs" | "all"
   matcher: "llm" | "tokens"
-  /** Suffix for the key (extractor output) file, e.g. "pro" → <dim>-key.pro.jsonl.
-   *  Null means no suffix (default extractor Flash output). */
+  /** Variant for the key (extractor output) file, e.g. "pro" → <dim>-key.<stamp>.pro.jsonl.
+   *  Null means no variant (default extractor Flash output). */
   keySuffix: string | null
-  /** Suffix for the gold (judge output) file, e.g. "flash" → <dim>-gold.flash.jsonl.
-   *  Null means no suffix (default Pro judge output). */
+  /** Variant for the gold (judge output) file, e.g. "flash" → <dim>-gold.<stamp>.flash.jsonl.
+   *  Null means no variant (default Pro judge output). */
   goldSuffix: string | null
-  /** Full custom path for the key file (overrides suffix logic). Useful for
-   *  promise Pro-extractor cells where the key is promises.pro.json (not in
+  /** Full custom path for the key file (overrides resolution logic entirely). Useful for
+   *  promise Pro-extractor cells where the key is promises.<stamp>.pro.json (not in
    *  structure-gold/). */
   keyFile: string | null
+  /** Pin the key file to an exact stamp (default: latest matching variant). */
+  keyStamp: string | null
+  /** Pin the gold file to an exact stamp (default: latest matching variant). */
+  goldStamp: string | null
 }
 
 function parseArgs(): Args {
@@ -64,7 +69,7 @@ function parseArgs(): Args {
   const matcherRaw = map["matcher"] ?? "llm"
   const matcher = matcherRaw === "tokens" ? "tokens" : "llm"
   if (!novel || !book) {
-    console.error("Usage: bun scripts/corpus/compute-calibration.ts --novel=<key> --book=<book> [--dim=value-charge|promise|mice|mckee-gap|character-arcs|all] [--matcher=llm|tokens] [--key-suffix=<str>] [--gold-suffix=<str>] [--key-file=<path>]")
+    console.error("Usage: bun scripts/corpus/compute-calibration.ts --novel=<key> --book=<book> [--dim=value-charge|promise|mice|mckee-gap|character-arcs|all] [--matcher=llm|tokens] [--key-suffix=<variant>] [--gold-suffix=<variant>] [--key-file=<path>] [--key-stamp=<YYYYMMDDTHHMMSS>] [--gold-stamp=<YYYYMMDDTHHMMSS>]")
     process.exit(2)
   }
   return {
@@ -72,25 +77,46 @@ function parseArgs(): Args {
     keySuffix: map["key-suffix"] ?? null,
     goldSuffix: map["gold-suffix"] ?? null,
     keyFile: map["key-file"] ?? null,
+    keyStamp: map["key-stamp"] ?? null,
+    goldStamp: map["gold-stamp"] ?? null,
   }
 }
 
-/** Build the file path for a key or gold file given an optional suffix.
- *  When suffix is null, uses the canonical name (no suffix).
- *  When suffix is "pro", returns e.g. "value-charge-key.pro.jsonl". */
-function suffixedPath(dir: string, stem: string, suffix: string | null): string {
-  if (suffix === null) return join(dir, `${stem}.jsonl`)
-  return join(dir, `${stem}.${suffix}.jsonl`)
+/** Resolve a gold/key file with stamp + variant + legacy fallback.
+ *  - When stamp is set, requires an exact match.
+ *  - When stamp is null, returns the latest stamped match for the variant,
+ *    or falls back to the legacy un-stamped path `<stem>[.<variant>].<ext>`.
+ *  - Returns null when nothing exists. */
+function resolveSuffixed(opts: {
+  dir: string
+  stem: string
+  variant: string | null
+  stamp: string | null
+  ext: string
+}): { path: string; stamp: string | null } | null {
+  if (opts.stamp) {
+    const exact = resolveExactStamp({
+      dir: opts.dir, base: opts.stem, ext: opts.ext, stamp: opts.stamp, variant: opts.variant,
+    })
+    return exact ? { path: exact.path, stamp: exact.stamp } : null
+  }
+  const latest = resolveLatestInput({
+    dir: opts.dir, base: opts.stem, ext: opts.ext, variant: opts.variant,
+  })
+  return latest ? { path: latest.path, stamp: latest.stamp } : null
 }
 
-/** Build the output calibration file name from the suffix pair.
- *  When both suffixes null: "<book>.json"
- *  When suffixes present: "<book>.<keySuffix-or-default>x<goldSuffix-or-default>.json" */
-function calibrationOutputName(book: string, keySuffix: string | null, goldSuffix: string | null): string {
-  if (keySuffix === null && goldSuffix === null) return `${book}.json`
+/** Build the output calibration file name. Stamp is always present. Variant
+ *  pair is appended when either suffix is set so cell-cells stay distinguishable.
+ *  Examples:
+ *    <book>.20260429T2200.json
+ *    <book>.20260429T2200.proxflash.json
+ *    <book>.20260429T2200.flashxflash.json */
+function calibrationOutputName(book: string, stamp: string, keySuffix: string | null, goldSuffix: string | null): string {
+  if (keySuffix === null && goldSuffix === null) return `${book}.${stamp}.json`
   const k = keySuffix ?? "flash"
   const g = goldSuffix ?? "pro"
-  return `${book}.${k}x${g}.json`
+  return `${book}.${stamp}.${k}x${g}.json`
 }
 
 async function readJsonl<T>(path: string): Promise<T[]> {
@@ -1027,113 +1053,153 @@ function aggregateVerdict(cells: CellVerdict[]): "SCOPED PASS" | "PARTIAL" | "FA
 
 async function main() {
   const args = parseArgs()
+  const computedStamp = nowStamp()
   const suffixDesc = [
     args.keySuffix ? `key-suffix=${args.keySuffix}` : null,
     args.goldSuffix ? `gold-suffix=${args.goldSuffix}` : null,
+    args.keyStamp ? `key-stamp=${args.keyStamp}` : null,
+    args.goldStamp ? `gold-stamp=${args.goldStamp}` : null,
     args.keyFile ? `key-file=<custom>` : null,
   ].filter(Boolean).join(" ")
-  console.log(`[calibration] novel=${args.novel} book=${args.book} dim=${args.dim}${suffixDesc ? " " + suffixDesc : ""}`)
+  console.log(`[calibration] novel=${args.novel} book=${args.book} dim=${args.dim} computedStamp=${computedStamp}${suffixDesc ? " " + suffixDesc : ""}`)
   const goldDir = join(REPO_ROOT, "novels", args.novel, "structure-gold", args.book)
+  const structureDir = join(REPO_ROOT, "novels", args.novel, "structure", args.book)
 
   const out: Record<string, any> = {
     novel: args.novel,
     book: args.book,
+    run_id: computedStamp,
     keySuffix: args.keySuffix,
     goldSuffix: args.goldSuffix,
+    matcher: args.matcher,
     computedAt: new Date().toISOString(),
     cells: {},
+    sources: {} as Record<string, { goldPath: string; goldRunId: string | null; keyPath: string; keyRunId: string | null }>,
   }
 
   let cellVerdicts: { dim: string; verdict: CellVerdict }[] = []
 
   if (args.dim === "value-charge" || args.dim === "all") {
-    const goldPath = suffixedPath(goldDir, "value-charge-gold", args.goldSuffix)
-    const keyPath = args.keyFile ?? suffixedPath(goldDir, "value-charge-key", args.keySuffix)
-    if (existsSync(goldPath) && existsSync(keyPath)) {
-      const gold = await readJsonl<ValueChargeGold>(goldPath)
-      const key = await readJsonl<ValueChargeKey>(keyPath)
+    const goldR = resolveSuffixed({ dir: goldDir, stem: "value-charge-gold", variant: args.goldSuffix, stamp: args.goldStamp, ext: "jsonl" })
+    const keyR = args.keyFile
+      ? { path: args.keyFile, stamp: null }
+      : resolveSuffixed({ dir: goldDir, stem: "value-charge-key", variant: args.keySuffix, stamp: args.keyStamp, ext: "jsonl" })
+    if (goldR && keyR) {
+      const gold = await readJsonl<ValueChargeGold>(goldR.path)
+      const key = await readJsonl<ValueChargeKey>(keyR.path)
       const metrics = computeValueChargeMetrics(gold, key)
       const verdict = valueChargeVerdict(metrics)
       out.cells["value-charge"] = { metrics, verdict }
+      out.sources["value-charge"] = { goldPath: goldR.path, goldRunId: goldR.stamp, keyPath: keyR.path, keyRunId: keyR.stamp }
       cellVerdicts.push({ dim: "value-charge", verdict })
       console.log(`[calibration] value-charge: ${verdict.verdict} — ${verdict.reason}`)
+      console.log(`  ↳ gold=${goldR.path} (run=${goldR.stamp ?? "legacy"})`)
+      console.log(`  ↳ key =${keyR.path} (run=${keyR.stamp ?? "legacy"})`)
     } else {
-      console.log(`[calibration] value-charge: gold=${goldPath} key=${keyPath}; one or both missing, skipping`)
+      console.log(`[calibration] value-charge: gold or key not resolvable; skipping`)
     }
   }
 
   if (args.dim === "promise" || args.dim === "all") {
-    const goldPath = suffixedPath(goldDir, "promise-gold", args.goldSuffix)
-    // For promise, the key file is promises.json (not in structure-gold/) unless
-    // --key-file is specified. The key file is NOT a .jsonl but a full JSON object;
-    // we read it specially and reshape to PromiseKeyRow[].
-    const keyPath = args.keyFile ?? suffixedPath(goldDir, "promise-key", args.keySuffix)
-    if (existsSync(goldPath) && existsSync(keyPath)) {
-      const gold = await readJsonl<PromiseGoldRow>(goldPath)
+    const goldR = resolveSuffixed({ dir: goldDir, stem: "promise-gold", variant: args.goldSuffix, stamp: args.goldStamp, ext: "jsonl" })
+    // For promise, the key file may be a wrapped JSON (promises.<stamp>[.<variant>].json
+    // in structure/<book>/) or a JSONL (promise-key.<stamp>.jsonl in structure-gold/).
+    // The default behaviour now: if no --key-file is given, look in structure/<book>/
+    // for the latest promises.<stamp>[.<variant>].json (this is the actual extractor
+    // output, not a sampled key). Fallback to structure-gold/ promise-key.* for
+    // pre-2026-04-29 sampler outputs.
+    let keyR: { path: string; stamp: string | null } | null
+    if (args.keyFile) {
+      keyR = { path: args.keyFile, stamp: null }
+    } else {
+      const fromStructure = resolveSuffixed({
+        dir: structureDir, stem: "promises", variant: args.keySuffix, stamp: args.keyStamp, ext: "json",
+      })
+      if (fromStructure) {
+        keyR = fromStructure
+      } else {
+        keyR = resolveSuffixed({ dir: goldDir, stem: "promise-key", variant: args.keySuffix, stamp: args.keyStamp, ext: "jsonl" })
+      }
+    }
+    if (goldR && keyR) {
+      const gold = await readJsonl<PromiseGoldRow>(goldR.path)
       // Promise key file shape varies by source:
-      //   - structure-gold/<book>/promise-key.jsonl  → JSONL (standard sampler output)
-      //   - structure/<book>/promises.json           → wrapped { novel, book, promises:[] }
-      //   - structure/<book>/promises.pro.json       → wrapped (Pro extractor output)
-      // Distinguish by extension rather than content sniffing — the .json
-      // suffix means a single wrapped object, .jsonl means line-delimited.
+      //   - structure-gold/<book>/promise-key.<stamp>.jsonl  → JSONL (sampler output)
+      //   - structure/<book>/promises.<stamp>[.<variant>].json → wrapped { novel, book, promises:[] }
+      // Distinguish by extension — the .json suffix means a single wrapped
+      // object, .jsonl means line-delimited.
       let key: PromiseKeyRow[]
-      if (keyPath.endsWith(".json")) {
-        const parsed = JSON.parse(await Bun.file(keyPath).text()) as
+      if (keyR.path.endsWith(".json")) {
+        const parsed = JSON.parse(await Bun.file(keyR.path).text()) as
           | { promises?: PromiseKeyRow[] }
           | PromiseKeyRow[]
         key = Array.isArray(parsed) ? parsed : (parsed.promises ?? [])
       } else {
-        // .jsonl (or no extension) — line-delimited
-        key = await readJsonl<PromiseKeyRow>(keyPath)
+        key = await readJsonl<PromiseKeyRow>(keyR.path)
       }
       const metrics = await computePromiseMetrics(gold, key, args.matcher)
       const verdict = promiseVerdict(metrics)
       out.cells["promise"] = { metrics, verdict }
+      out.sources["promise"] = { goldPath: goldR.path, goldRunId: goldR.stamp, keyPath: keyR.path, keyRunId: keyR.stamp }
       cellVerdicts.push({ dim: "promise", verdict })
       console.log(`[calibration] promise (matcher=${args.matcher}): ${verdict.verdict} — ${verdict.reason}`)
+      console.log(`  ↳ gold=${goldR.path} (run=${goldR.stamp ?? "legacy"})`)
+      console.log(`  ↳ key =${keyR.path} (run=${keyR.stamp ?? "legacy"})`)
     } else {
-      console.log(`[calibration] promise: gold=${goldPath} key=${keyPath}; one or both missing, skipping`)
+      console.log(`[calibration] promise: gold or key not resolvable; skipping`)
     }
   }
 
   if (args.dim === "mice" || args.dim === "all") {
-    const goldPath = suffixedPath(goldDir, "mice-gold", args.goldSuffix)
-    const keyPath = args.keyFile ?? suffixedPath(goldDir, "mice-key", args.keySuffix)
-    if (existsSync(goldPath) && existsSync(keyPath)) {
-      const gold = await readJsonl<MiceGoldRow>(goldPath)
-      const key = await readJsonl<MiceKeyRow>(keyPath)
+    const goldR = resolveSuffixed({ dir: goldDir, stem: "mice-gold", variant: args.goldSuffix, stamp: args.goldStamp, ext: "jsonl" })
+    const keyR = args.keyFile
+      ? { path: args.keyFile, stamp: null }
+      : resolveSuffixed({ dir: goldDir, stem: "mice-key", variant: args.keySuffix, stamp: args.keyStamp, ext: "jsonl" })
+    if (goldR && keyR) {
+      const gold = await readJsonl<MiceGoldRow>(goldR.path)
+      const key = await readJsonl<MiceKeyRow>(keyR.path)
       const metrics = computeMiceMetrics(gold, key)
       const verdict = miceVerdict(metrics)
       out.cells["mice"] = { metrics, verdict }
+      out.sources["mice"] = { goldPath: goldR.path, goldRunId: goldR.stamp, keyPath: keyR.path, keyRunId: keyR.stamp }
       cellVerdicts.push({ dim: "mice", verdict })
       console.log(`[calibration] mice: ${verdict.verdict} — ${verdict.reason}`)
+      console.log(`  ↳ gold=${goldR.path} (run=${goldR.stamp ?? "legacy"})`)
+      console.log(`  ↳ key =${keyR.path} (run=${keyR.stamp ?? "legacy"})`)
     } else {
-      console.log(`[calibration] mice: gold=${goldPath} key=${keyPath}; one or both missing, skipping`)
+      console.log(`[calibration] mice: gold or key not resolvable; skipping`)
     }
   }
 
   if (args.dim === "mckee-gap" || args.dim === "all") {
-    const goldPath = suffixedPath(goldDir, "mckee-gap-gold", args.goldSuffix)
-    const keyPath = args.keyFile ?? suffixedPath(goldDir, "mckee-gap-key", args.keySuffix)
-    if (existsSync(goldPath) && existsSync(keyPath)) {
-      const gold = await readJsonl<McKeeGapGoldRow>(goldPath)
-      const key = await readJsonl<McKeeGapKeyRow>(keyPath)
+    const goldR = resolveSuffixed({ dir: goldDir, stem: "mckee-gap-gold", variant: args.goldSuffix, stamp: args.goldStamp, ext: "jsonl" })
+    const keyR = args.keyFile
+      ? { path: args.keyFile, stamp: null }
+      : resolveSuffixed({ dir: goldDir, stem: "mckee-gap-key", variant: args.keySuffix, stamp: args.keyStamp, ext: "jsonl" })
+    if (goldR && keyR) {
+      const gold = await readJsonl<McKeeGapGoldRow>(goldR.path)
+      const key = await readJsonl<McKeeGapKeyRow>(keyR.path)
       const metrics = computeMckeeGapMetrics(gold, key)
       const verdict = mckeeGapVerdict(metrics)
       out.cells["mckee-gap"] = { metrics, verdict }
+      out.sources["mckee-gap"] = { goldPath: goldR.path, goldRunId: goldR.stamp, keyPath: keyR.path, keyRunId: keyR.stamp }
       cellVerdicts.push({ dim: "mckee-gap", verdict })
       console.log(`[calibration] mckee-gap: ${verdict.verdict} — ${verdict.reason}`)
+      console.log(`  ↳ gold=${goldR.path} (run=${goldR.stamp ?? "legacy"})`)
+      console.log(`  ↳ key =${keyR.path} (run=${keyR.stamp ?? "legacy"})`)
     } else {
-      console.log(`[calibration] mckee-gap: gold=${goldPath} key=${keyPath}; one or both missing, skipping`)
+      console.log(`[calibration] mckee-gap: gold or key not resolvable; skipping`)
     }
   }
 
   if (args.dim === "character-arcs" || args.dim === "all") {
-    const goldPath = suffixedPath(goldDir, "character-arcs-gold", args.goldSuffix)
-    const keyPath = args.keyFile ?? suffixedPath(goldDir, "character-arcs-key", args.keySuffix)
-    if (existsSync(goldPath) && existsSync(keyPath)) {
-      const goldRows = await readJsonl<CharacterArcsGoldRow>(goldPath)
-      const keyRows = await readJsonl<CharacterArcsKeyRow>(keyPath)
+    const goldR = resolveSuffixed({ dir: goldDir, stem: "character-arcs-gold", variant: args.goldSuffix, stamp: args.goldStamp, ext: "jsonl" })
+    const keyR = args.keyFile
+      ? { path: args.keyFile, stamp: null }
+      : resolveSuffixed({ dir: goldDir, stem: "character-arcs-key", variant: args.keySuffix, stamp: args.keyStamp, ext: "jsonl" })
+    if (goldR && keyR) {
+      const goldRows = await readJsonl<CharacterArcsGoldRow>(goldR.path)
+      const keyRows = await readJsonl<CharacterArcsKeyRow>(keyR.path)
       // character-arcs emits ONE row per book — take the first valid pair.
       const goldRow = goldRows.find(g => !g.error && g.gold_character_arcs)
       const keyRow = keyRows[0]
@@ -1141,13 +1207,16 @@ async function main() {
         const metrics = await computeCharacterArcsMetrics(goldRow, keyRow)
         const verdict = characterArcsVerdict(metrics)
         out.cells["character-arcs"] = { metrics, verdict }
+        out.sources["character-arcs"] = { goldPath: goldR.path, goldRunId: goldR.stamp, keyPath: keyR.path, keyRunId: keyR.stamp }
         cellVerdicts.push({ dim: "character-arcs", verdict })
         console.log(`[calibration] character-arcs: ${verdict.verdict} — ${verdict.reason}`)
+        console.log(`  ↳ gold=${goldR.path} (run=${goldR.stamp ?? "legacy"})`)
+        console.log(`  ↳ key =${keyR.path} (run=${keyR.stamp ?? "legacy"})`)
       } else {
         console.log(`[calibration] character-arcs: gold file present but no valid row (error or missing gold_character_arcs); skipping`)
       }
     } else {
-      console.log(`[calibration] character-arcs: gold=${goldPath} key=${keyPath}; one or both missing, skipping`)
+      console.log(`[calibration] character-arcs: gold or key not resolvable; skipping`)
     }
   }
 
@@ -1163,7 +1232,7 @@ async function main() {
 
   const outDir = join(REPO_ROOT, "novels", args.novel, "structure-calibration")
   mkdirSync(outDir, { recursive: true })
-  const outFilename = calibrationOutputName(args.book, args.keySuffix, args.goldSuffix)
+  const outFilename = calibrationOutputName(args.book, computedStamp, args.keySuffix, args.goldSuffix)
   const outPath = join(outDir, outFilename)
   await Bun.write(outPath, JSON.stringify(out, null, 2))
   console.log(`[calibration] wrote → ${outPath}`)

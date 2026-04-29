@@ -33,6 +33,7 @@ import { extractPromises, type PromiseBeatRow } from "../../src/agents/structure
 import { extractMice } from "../../src/agents/structure-mice"
 import { extractMckeeGap } from "../../src/agents/structure-mckee-gap"
 import { extractCharacterArcs, type CharacterArcsBeatRow } from "../../src/agents/structure-character-arcs"
+import { nowStamp, stampedPath, resolveLatestInput } from "./_run-stamp"
 
 const REPO_ROOT = new URL("../..", import.meta.url).pathname
 
@@ -413,15 +414,24 @@ async function judgeCharacterArcs(args: Args, prompts: CharacterArcsPrompt[], ag
 
 async function main() {
   const args = parseArgs()
+  const runStamp = nowStamp()
   const judgeLabel = args.judgeModel === "flash" ? "Flash" : "V4 Pro"
-  console.log(`[llm-judge] novel=${args.novel} book=${args.book} dim=${args.dim} judge=${judgeLabel}`)
+  console.log(`[llm-judge] novel=${args.novel} book=${args.book} dim=${args.dim} judge=${judgeLabel} stamp=${runStamp}`)
 
   const goldDir = join(REPO_ROOT, "novels", args.novel, "structure-gold", args.book)
-  const promptsPath = join(goldDir, `${args.dim}-prompts.jsonl`)
-  if (!existsSync(promptsPath)) {
-    console.error(`[llm-judge] ${args.dim}-prompts.jsonl not found at ${promptsPath}; run sample-for-adjudication.ts first`)
+  // Resolve the prompts file: prefer the latest stamped run, fall back to legacy un-stamped.
+  // Per memory `feedback_no_overwrite_runs.md`: re-runs of the sampler emit a new
+  // stamped prompts/key pair; the judge picks up the latest.
+  const promptsResolved = resolveLatestInput({
+    dir: goldDir, base: `${args.dim}-prompts`, ext: "jsonl",
+  })
+  if (!promptsResolved) {
+    console.error(`[llm-judge] ${args.dim}-prompts.jsonl not found in ${goldDir}; run sample-for-adjudication.ts first`)
     process.exit(1)
   }
+  const promptsPath = promptsResolved.path
+  const promptsRunId = promptsResolved.stamp
+  console.log(`[llm-judge] prompts from ${promptsPath} (source=${promptsResolved.source}, stamp=${promptsRunId ?? "legacy"})`)
 
   const promptsRaw = await readJsonl<any>(promptsPath)
   const prompts = args.maxPrompts !== null ? promptsRaw.slice(0, args.maxPrompts) : promptsRaw
@@ -466,15 +476,19 @@ async function main() {
   const nFailed = goldRows.filter(r => !!r.error).length
 
   mkdirSync(goldDir, { recursive: true })
-  // File path suffix: flash judge writes .flash.jsonl; pro judge keeps existing name (no suffix).
-  const fileSuffix = args.judgeModel === "flash" ? ".flash" : ""
-  const goldPath = join(goldDir, `${args.dim}-gold${fileSuffix}.jsonl`)
-  const metaPath = join(goldDir, `${args.dim}-judge-meta${fileSuffix}.json`)
+  // Stamped output per memory `feedback_no_overwrite_runs.md`. The "flash"
+  // variant goes through stampedPath as a sub-tag; pro judge has no variant.
+  const variant: string | null = args.judgeModel === "flash" ? "flash" : null
+  const goldPath = stampedPath({ dir: goldDir, base: `${args.dim}-gold`, stamp: runStamp, variant, ext: "jsonl" })
+  const metaPath = stampedPath({ dir: goldDir, base: `${args.dim}-judge-meta`, stamp: runStamp, variant, ext: "json" })
   await writeJsonl(goldPath, goldRows)
   await Bun.write(metaPath, JSON.stringify({
     novel: args.novel,
     book: args.book,
     dim: args.dim,
+    run_id: runStamp,
+    prompts_run_id: promptsRunId,
+    prompts_path: promptsPath,
     judgeAgent: judgeAgentMap[args.dim],
     judgeModel: args.judgeModel === "flash" ? "deepseek-v4-flash" : "deepseek-v4-pro",
     n_prompts: prompts.length,

@@ -206,6 +206,14 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
     provider: "deepseek", model: "deepseek-v4-pro",
     thinking: true, temperature: 0.3, maxTokens: 32_768,
   },
+  // T=0 variant for Phase C.3 — tests whether the run-to-run stochasticity
+  // observed in Phase B (Pro extractor F1=0.54 / Pro judge gold F1=1.00,
+  // ~30% variance on identical input) is just temperature noise. Same
+  // role config except temperature=0. Cost identical.
+  "structure-promise-judge-t0": {
+    provider: "deepseek", model: "deepseek-v4-pro",
+    thinking: true, temperature: 0, maxTokens: 32_768,
+  },
   "structure-character-arcs-judge": {
     provider: "deepseek", model: "deepseek-v4-pro",
     thinking: true, temperature: 0.3, maxTokens: 32_768,

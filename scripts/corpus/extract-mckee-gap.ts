@@ -35,6 +35,7 @@ import { join } from "node:path"
 
 import { normalize } from "./normalize-for-structure"
 import { extractMckeeGap, type McKeeGapOutput } from "../../src/agents/structure-mckee-gap"
+import { nowStamp, stampedPath } from "./_run-stamp"
 
 const REPO_ROOT = new URL("../..", import.meta.url).pathname
 const PROGRESS_LOG_EVERY = 50
@@ -261,7 +262,8 @@ async function runMckeeGapForBook(args: {
 
 async function main() {
   const args = parseArgs()
-  console.log(`[extract-mckee-gap] novel=${args.novel} book=${args.book}`)
+  const runStamp = nowStamp()
+  console.log(`[extract-mckee-gap] novel=${args.novel} book=${args.book} stamp=${runStamp}`)
 
   // Step 1 — normalize (preflight). Pure structural; no LLM.
   console.log(`[extract-mckee-gap] step 1: normalize`)
@@ -277,12 +279,14 @@ async function main() {
   const outDir = join(REPO_ROOT, "novels", args.novel, "structure", args.book)
   mkdirSync(outDir, { recursive: true })
 
-  // Step 3 — McKee Gap per beat
+  // Step 3 — McKee Gap per beat. Stamped output per
+  // memory `feedback_no_overwrite_runs.md`.
   const gapTags = await runMckeeGapForBook({
     beats, pairs,
     maxBeats: args.maxBeats,
   })
-  await writeJsonl(join(outDir, "mckee-gap.jsonl"), gapTags)
+  const gapPath = stampedPath({ dir: outDir, base: "mckee-gap", stamp: runStamp, ext: "jsonl" })
+  await writeJsonl(gapPath, gapTags)
 
   // Step 4 — summary
   const oks = gapTags.filter(t => t.ok) as BeatGapOut[]
@@ -297,6 +301,7 @@ async function main() {
   const summary = {
     novel: args.novel,
     book: args.book,
+    run_id: runStamp,
     extractedAt: new Date().toISOString(),
     beatsTotal: beats.length,
     beatsTagged: gapTags.length,
@@ -306,8 +311,10 @@ async function main() {
     abstain: abstainCount,
     gapSizeCounts: sizeCounts,
     gapTypeCounts: typeCounts,
+    outputs: { mckeeGap: gapPath },
   }
-  await Bun.write(join(outDir, "extract-mckee-gap-summary.json"), JSON.stringify(summary, null, 2))
+  const summaryPath = stampedPath({ dir: outDir, base: "extract-mckee-gap-summary", stamp: runStamp, ext: "json" })
+  await Bun.write(summaryPath, JSON.stringify(summary, null, 2))
   console.log(`[extract-mckee-gap] done → ${outDir}`)
   console.log(`[extract-mckee-gap] summary: ${JSON.stringify(summary, null, 2)}`)
 }

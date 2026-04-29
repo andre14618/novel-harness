@@ -31,6 +31,7 @@ import {
   extractCharacterArcs,
   type CharacterArc, type CharacterArcsBeatRow,
 } from "../../src/agents/structure-character-arcs"
+import { nowStamp, stampedPath } from "./_run-stamp"
 
 const REPO_ROOT = new URL("../..", import.meta.url).pathname
 
@@ -110,7 +111,8 @@ async function runCharacterArcsForBook(args: {
 
 async function main() {
   const args = parseArgs()
-  console.log(`[extract-character-arcs] novel=${args.novel} book=${args.book}`)
+  const runStamp = nowStamp()
+  console.log(`[extract-character-arcs] novel=${args.novel} book=${args.book} stamp=${runStamp}`)
 
   // Step 1 — normalize (preflight). Pure structural; no LLM.
   console.log(`[extract-character-arcs] step 1: normalize`)
@@ -125,12 +127,15 @@ async function main() {
   const outDir = join(REPO_ROOT, "novels", args.novel, "structure", args.book)
   mkdirSync(outDir, { recursive: true })
 
-  // Step 3 — character-arcs (single pass) for the whole book
+  // Step 3 — character-arcs (single pass) for the whole book.
+  // Stamped output per memory `feedback_no_overwrite_runs.md`.
   const result = await runCharacterArcsForBook({
     novelKey: args.novel, bookKey: args.book, beats,
   })
-  await Bun.write(join(outDir, "character-arcs.json"), JSON.stringify({
+  const arcsPath = stampedPath({ dir: outDir, base: "character-arcs", stamp: runStamp, ext: "json" })
+  await Bun.write(arcsPath, JSON.stringify({
     novel: args.novel, book: args.book,
+    run_id: runStamp,
     arcs: result.arcs,
     error: result.error ?? null,
   }, null, 2))
@@ -139,6 +144,7 @@ async function main() {
   const summary = {
     novel: args.novel,
     book: args.book,
+    run_id: runStamp,
     extractedAt: new Date().toISOString(),
     beatsRead: beats.length,
     arcsCount: result.arcs.length,
@@ -147,8 +153,10 @@ async function main() {
       return acc
     }, {}),
     error: result.error ?? null,
+    outputs: { characterArcs: arcsPath },
   }
-  await Bun.write(join(outDir, "extract-character-arcs-summary.json"), JSON.stringify(summary, null, 2))
+  const summaryPath = stampedPath({ dir: outDir, base: "extract-character-arcs-summary", stamp: runStamp, ext: "json" })
+  await Bun.write(summaryPath, JSON.stringify(summary, null, 2))
   console.log(`[extract-character-arcs] done → ${outDir}`)
   console.log(`[extract-character-arcs] summary: ${JSON.stringify(summary, null, 2)}`)
 }
