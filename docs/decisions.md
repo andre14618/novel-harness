@@ -2284,3 +2284,41 @@ The pivot is a **freeze**, not a retirement. The LoRA infrastructure (W&B Infere
 **Decision:** Slice 0a's `CONCEPT_DONE_MUST_BE_ABSENT` audit list (in `scripts/variant/clone-for-variant.ts`) included `thematic_tags`, which was created in sql/011 but DROPPED in sql/013 (`drop_themes_unify_defaults`). The first phase-eval probe run failed at the audit step with `relation "thematic_tags" does not exist`. Fix: removed `thematic_tags` from the list, added a comment citing the sql/011 CREATE + sql/013 DROP.
 
 **Why this is recorded:** memory `feedback_schema_of_record_check` says: "Before landing code that assumes array size / enum / structural shape, grep the production schema-of-record and confirm." This session is the concrete cite — `grep -rn thematic_tags sql/` would have caught the drift in <5 seconds before commit. The rule applies to ALL constants that mirror schema state (table lists, column lists, enum values).
+
+### Corpus structural-decomposition v2 — decomposed extractor + Sonnet anchor
+*2026-04-29 · design doc: `docs/designs/decomposed-extractor-sonnet-anchor-v1.md`*
+
+**Decision:** The corpus structural-decomposition pipeline (R7 charter) pivots from monolithic Flash extractor + Pro judge calibration to a two-change architecture:
+
+1. **Decomposed extractor.** Mice splits from one 4-way classification + 6 fields per scene into 4 parallel binary calls per scene (one per M/I/C/E thread type). Promise splits into two sub-dims with disjoint close-distance windows: `arc-promise` (close ≥ 5 chapters from open) and `setup-payoff-bridge` (close ≤ 3 chapters from open). Value-charge and mckee-gap stay as single calls (already enum-shaped on every load-bearing field).
+
+2. **Sonnet anchor replaces Pro judge.** Anthropic Sonnet runs once per dim per book on a 50-scene sample, producing the calibration ground truth. Flash runs on the full corpus and is scored against the Sonnet anchor on the 50-scene overlap. Pro judge is retired from this pipeline.
+
+Character-arcs is not part of this pivot — already shipped at F1=1.00 (commit `4ec5d8b`).
+
+**Why:** Phase C (Crystal Shard, 2026-04-29) revealed two compounding failure modes in the v1 architecture:
+
+- *Cognitive load.* Mice asks Flash to handle 4 thread definitions + open/close criteria + secondary thread + descriptor + quote in one call. Result: F1=0.776 / P=0.731 (CELL MARGINAL). Same failure pattern as adherence-checker pre-decomposition; same fix: split per-dimension. Memory `feedback_decompose_checker_calls.md`.
+- *Gold stochasticity.* Two consecutive Pro judge runs on identical promise prompts at T=0.3 produced 30 vs 27 promises with only 14 shared (Jaccard 0.326). The judge wasn't picking different promises — it was picking different *definitions* of "promise" each run (gold v1 mean payoff span 104 chapters; gold v2 mean span 4). Same model + same prompt + multiple defensible rubric interpretations. Sonnet pair-matcher confirmed the instability (15 shared, Δ=1). Memory `feedback_gold_stability_first.md`.
+
+Both failure modes are rubric-latitude problems at different layers. Decomposition tightens cognitive latitude (mice); sub-dim splitting tightens semantic latitude (promise → arc-promise + bridge). Sonnet anchor replaces a same-family judge (Pro shares biases with Flash) with an independent-family ground truth that was already validated as a higher-recall oracle (Phase C.1, Sonnet found 38 promises vs Pro's 27–30; nearly all of Pro's plus the series-hook setups Pro missed).
+
+**Alternatives rejected:**
+- *Ensemble gold (intersection/union of N Pro runs).* Doesn't fix rubric latitude — the two structurally different categorizations don't intersect well.
+- *T=0 deterministic.* Tested in Phase C.3. Same 22 promises but different alignment to which gold sample fixed each side; F1 against gold v1 went up while F1 against gold v2 went down. Variance is in the judge, not the temperature.
+- *More prompt examples.* Tested via `mice-system-v2-draft.md` and `value-charge-system-v2-draft.md`. Sharper-but-still-monolithic prompts don't bypass the cognitive-load ceiling.
+- *Sonnet for the FULL corpus extraction.* 5–10× cost increase over the anchor pattern; the 50-scene anchor + Flash full-corpus shape captures the directional answer at $14–27/book vs $50–100/book.
+- *Codex GPT-5.5 instead of Sonnet as anchor.* Both are independent of DeepSeek family; either would work. Sonnet is the existing subagent path (Phase C.1 used it). Memory `feedback_codex_gpt54_subagents.md` reserves Codex for adversarial review and parallel analysis.
+
+**How to apply:**
+- New corpus-decomposition runs use the v2 architecture from the start.
+- Existing Crystal Shard verdicts: character-arcs (CELL PASS) stays shipped; mice / promise / value-charge / mckee-gap re-calibrate under v2 before any harness integration.
+- Cross-book validation (Streams of Silver, Storm Front per `docs/cross-book-cross-author-brief.md`) starts under v2.
+- Cost projection: ~$14–27/book at promo pricing (5–10× the v1 cost). Acceptable per `feedback_query_llm_calls_for_costs.md` — corpus-wide research is trivial absolute spend, the savings come from getting the right answer once instead of running unstable calibration cycles. Crystal Shard alone burned ~$3.85 on v1 with the promise dim parked.
+
+**Ongoing implications:**
+- Mice prompt v2 draft (`src/agents/structure-mice/mice-system-v2-draft.md`) is NOT promoted to canonical. Its close-criteria absorb into the 4 per-thread sub-prompts as source material.
+- Value-charge prompt v2 draft (`src/agents/structure-value-charge/value-charge-system-v2-draft.md`) is NOT promoted as-is either. Its 3-step lattice + commit-to-sign rules absorb into the still-monolithic value-charge prompt for the Sonnet-anchored re-calibration.
+- Sonnet self-consistency check is a hard gate per dim before any extractor calibration: ≥ 0.85 Jaccard required to anchor; < 0.70 means re-scope the sub-dim. This generalizes the existing memory `feedback_gold_stability_first.md` from "lessons learned" to "standing pre-flight check."
+- Implementation order: (1) Sonnet self-consistency on the 4 modified dims (~$8–15, half-day wall-clock); (2) sub-prompt drafting for dims that pass Gate 1; (3) Flash extraction + calibration; (4) per-dim ship/hold verdict.
+- Adversary review (Codex `codex-rescue gpt-5.5 effort=high`) scheduled after the Phase C close-out commits to the conclusions doc — gives a complete v1 baseline to evaluate against.

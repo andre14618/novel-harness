@@ -577,3 +577,81 @@ Five subagents + one inline analysis ran concurrently. All seven completed; resu
 Cumulative on crystal_shard: ~$3.85. Trivially affordable.
 
 ---
+
+## Session 2026-04-29 ~23:30 UTC — Architectural pivot to v2 (decomposed extractor + Sonnet anchor)
+
+The Round 2 findings (gold stochasticity ceiling on promise; mice CELL MARGINAL on cognitive load; cross-model dim agreement only matters when the rubric admits one interpretation) generalize into a single architectural pivot. Captured as a draft design doc and decision-record entry; this section in the conclusions doc records the calibration-side context for that pivot.
+
+### What we're changing
+
+| Layer | v1 (Phase A/B/C above) | v2 (going forward) |
+|---|---|---|
+| Extractor — mice | One Flash call per scene: 4-way classification + opens/closes + secondary + descriptor + quote | 4 parallel binary Flash calls per scene (one per M/I/C/E thread type), each emitting `{is_dominant, opens, closes}` |
+| Extractor — promise | One Flash/Pro call → free-text descriptor + (open_ch, close_ch) | Two sub-dims: `arc-promise` (close ≥ 5 chapters out) + `setup-payoff-bridge` (close ≤ 3 chapters out), each its own extractor + anchor |
+| Extractor — value-charge | One Flash call (already enum-shaped on every load-bearing field) | UNCHANGED on prompt shape; v2 prompt draft's 3-step lattice + commit-to-sign absorbs in for the next re-calibration |
+| Extractor — mckee-gap | One Flash call (enum on `gap_size` and `gap_type`) | UNCHANGED |
+| Extractor — character-arcs | One Flash call (closed cast + LTWN + arc_resolution enum) | UNCHANGED — already shipped (CELL PASS, commit `4ec5d8b`) |
+| Calibration anchor | V4 Pro judge (~$0.30–1.50/book/dim) | Sonnet one-shot oracle on a 50-scene sample (~$0.50–1.50/book/dim) |
+| Pre-flight | None — calibration ran straight through | **Sonnet self-consistency Jaccard ≥ 0.85 hard gate per dim before extractor calibration** |
+
+### Why the pivot
+
+Two findings from Phase C (above) compose:
+
+1. **Mice CELL MARGINAL** = cognitive load problem. Same shape as the 2026-04-08 adherence-checker fix (memory `feedback_decompose_checker_calls.md`).
+2. **Promise NULL-GOLD-LIKE** = rubric-latitude problem. Free-text promise descriptors admit two structurally different interpretations of "promise" (arc-spanning threats vs within-chapter Chekhov bridges). Same model + same prompt + multiple defensible interpretations → unstable gold (memory `feedback_gold_stability_first.md`).
+
+Both are rubric-latitude problems at different layers. Decomposition tightens cognitive latitude; sub-dim splitting tightens semantic latitude. Sonnet anchor replaces a same-family judge (Pro shares biases with Flash) with an independent-family ground truth that was already validated as a higher-recall oracle in C.1 (Sonnet 38 promises vs Pro's 27-30, nearly-all-superset).
+
+### Why we documented it as a pivot, not just a "next iteration"
+
+Three reasons:
+
+- **It supersedes the v2 prompt drafts** (`mice-system-v2-draft.md`, `value-charge-system-v2-draft.md`) as the destination architecture. The drafts become source material for sub-prompts, not canonical prompts.
+- **It changes the calibration shape** for every future corpus run (Streams of Silver, Storm Front). Cross-book validation should run under v2 from the start, not v1.
+- **It changes the cost profile** ~5-10× per book ($2.50 → $14-27 at promo pricing). Worth recording explicitly so future readers understand why corpus runs got expensive.
+
+### Per-dim re-calibration cost projection (v2)
+
+| Dim | Sonnet stability check (50 × 2) | Decomposed Flash extraction | Sonnet anchor (50 × 1) | Total |
+|---|---|---|---|---|
+| mice (4 sub-calls) | $1–3 | $1–2 | $0.50–1.50 | $2.50–6.50 |
+| arc-promise | $0.50–1.50 | $0.30–0.60 | $0.25–0.75 | $1–3 |
+| setup-payoff-bridge | $0.50–1.50 | $0.30–0.60 | $0.25–0.75 | $1–3 |
+| value-charge | $1–2 | $0.30–0.60 | $0.50–1.00 | $2–4 |
+| mckee-gap | $1–2 | $0.30–0.60 | $0.50–1.00 | $2–4 |
+| **Total per book** | **$4–10** | **$2.20–4.40** | **$2–5** | **$8.50–20.50** |
+
+Crystal Shard rerun under v2: ~$10–15 incremental cost on top of the ~$3.85 already spent under v1. Total Crystal Shard reference cost would be ~$15–20 — still trivially affordable for a fully-validated reference book.
+
+### Pass criteria per dim under v2
+
+A dim ships its v2 verdict when **both**:
+
+1. **Sonnet self-consistency Jaccard ≥ 0.85** on the 50-scene sample (anchor is stable).
+2. **Flash × Sonnet F1 ≥ 0.78** AND ≥ 5pp improvement over the v1 Flash×Pro baseline (or ≥ 0.78 absolute for new sub-dims like arc-promise / setup-payoff-bridge).
+
+If anchor stability fails (< 0.70 Jaccard), the sub-dim is re-scoped before any extractor calibration. If anchor stable but F1 low, decompose further or sharpen sub-rubric.
+
+### Implementation order (post-McKee-gap close-out)
+
+1. McKee-gap v1 calibration completes (Pro judge in flight). Verdict appended to this doc as Round 2 close-out.
+2. v1 Phase C is committed and frozen as the baseline. Adversary review (Codex `codex-rescue gpt-5.5 effort=high`) on the v2 design doc against the v1 baseline.
+3. Gate 1 — Sonnet self-consistency on the 4 modified dims. ~$8–15. Half-day wall-clock with subagent path. Per-dim go/no-go gate.
+4. Gate 2 — Sub-prompt drafts for dims that pass Gate 1.
+5. Gate 3 — Flash extraction under v2 + Sonnet anchor calibration. Per-dim verdicts.
+6. Cross-book runs (Streams of Silver, Storm Front) start under v2.
+
+### What is NOT changing
+
+- **Character-arcs is shipped under v1.** F1=1.00 character identification + LTWN. No architectural pressure to re-touch. A future Sonnet-anchored validation is on the table when convenient (Open Question #4 in the design doc) but not blocking.
+- **Pipeline scripts (extract-structure.ts, llm-judge.ts, etc.).** v2 is an architecture shift, not a tooling rewrite. Same `_run-stamp.ts` / no-overwrite convention. Same `compute-calibration.ts` shape. New per-dim sub-prompts; new model role for Sonnet-anchor calls; same pipeline runner.
+- **The v1 verdict numbers in the front-matter table.** They stay as the v1 baseline. v2 verdicts will be appended as a separate row in each per-dim verdict table.
+
+### Linked context
+
+- Design doc: [`docs/designs/decomposed-extractor-sonnet-anchor-v1.md`](../../../docs/designs/decomposed-extractor-sonnet-anchor-v1.md)
+- Decision record: `docs/decisions.md` "Corpus structural-decomposition v2 — decomposed extractor + Sonnet anchor"
+- Source rubric material: `src/agents/structure-mice/mice-system-v2-draft.md` + `src/agents/structure-value-charge/value-charge-system-v2-draft.md` (absorbed, not promoted)
+
+---
