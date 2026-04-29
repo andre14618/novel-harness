@@ -1301,8 +1301,14 @@ export async function loadDraftingOutput(novelId: string): Promise<DraftingOutpu
     [novelId],
   )) as Array<{ chapter: number; kind: string }>
 
+  // ORDER BY (chapter, invoked_at, id) matches the existing helper at
+  // db/chapter-revisions.ts:92-100. Two revisions can share (chapter,
+  // attempt) — one from the plan-check path (drafting.ts:740-775) and one
+  // from the validation path (drafting.ts:1015-1053). Sorting by attempt
+  // alone is non-deterministic across runs; invoked_at preserves the
+  // emission order, with id as the in-millisecond tie-breaker.
   const revisionRows = (await db.unsafe(
-    `SELECT chapter, outcome FROM chapter_revisions WHERE novel_id = $1 ORDER BY chapter, attempt`,
+    `SELECT chapter, outcome FROM chapter_revisions WHERE novel_id = $1 ORDER BY chapter, invoked_at, id`,
     [novelId],
   )) as Array<{ chapter: number; outcome: string }>
 
