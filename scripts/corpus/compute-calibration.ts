@@ -38,7 +38,7 @@ const REPO_ROOT = new URL("../..", import.meta.url).pathname
 interface Args {
   novel: string
   book: string
-  dim: "value-charge" | "promise" | "all"
+  dim: "value-charge" | "promise" | "mice" | "mckee-gap" | "character-arcs" | "all"
   matcher: "llm" | "tokens"
 }
 
@@ -50,11 +50,11 @@ function parseArgs(): Args {
   }
   const novel = map["novel"]
   const book = map["book"]
-  const dim = (map["dim"] ?? "all") as "value-charge" | "promise" | "all"
+  const dim = (map["dim"] ?? "all") as Args["dim"]
   const matcherRaw = map["matcher"] ?? "llm"
   const matcher = matcherRaw === "tokens" ? "tokens" : "llm"
   if (!novel || !book) {
-    console.error("Usage: bun scripts/corpus/compute-calibration.ts --novel=<key> --book=<book> [--dim=value-charge|promise|all] [--matcher=llm|tokens]")
+    console.error("Usage: bun scripts/corpus/compute-calibration.ts --novel=<key> --book=<book> [--dim=value-charge|promise|mice|mckee-gap|character-arcs|all] [--matcher=llm|tokens]")
     process.exit(2)
   }
   return { novel, book, dim, matcher }
@@ -461,6 +461,444 @@ async function computePromiseMetrics(gold: PromiseGoldRow[], pred: PromiseKeyRow
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// MICE (per-scene MICE-thread calibration)
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface MiceKeyRow {
+  sample_id: string
+  scene_id: string
+  llm_output: {
+    primary_thread: "M" | "I" | "C" | "E"
+    secondary_thread: "M" | "I" | "C" | "E" | null
+    opens_thread: boolean
+    closes_thread: boolean
+    thread_descriptor: string
+    confidence: number
+    evidence_quote: string
+    abstain_reason: string | null
+  }
+  is_retest_of_prior_sample?: boolean
+}
+
+interface MiceGoldRow {
+  sample_id: string
+  scene_id: string
+  output?: {
+    primary_thread: "M" | "I" | "C" | "E"
+    secondary_thread: "M" | "I" | "C" | "E" | null
+    opens_thread: boolean
+    closes_thread: boolean
+    thread_descriptor: string
+    confidence?: number
+    abstain_reason?: string | null
+  }
+  error?: string
+}
+
+interface MiceMetrics {
+  n: number
+  judgeFailures: number
+  precision: number
+  recall: number
+  f1: number
+  /** Lead metric — primary_thread exact-match rate. Named primaryThreadAgreement
+   *  (not polarityAgreement) so callers can distinguish MICE from value-charge. */
+  primaryThreadAgreement: number
+  perField: {
+    primary_thread: { agree: number; n: number; rate: number }
+    secondary_thread: { agree: number; n: number; rate: number }
+    opens_thread: { agree: number; n: number; rate: number }
+    closes_thread: { agree: number; n: number; rate: number }
+  }
+  retestSelfDisagreement: { n: number; disagree: number; rate: number } | null
+}
+
+function computeMiceMetrics(gold: MiceGoldRow[], key: MiceKeyRow[]): MiceMetrics {
+  const judgeFailures = gold.filter(g => !g.output).length
+  const goldOk = gold.filter((g): g is MiceGoldRow & { output: NonNullable<MiceGoldRow["output"]> } => !!g.output)
+  const keyById = new Map(key.map(k => [k.sample_id, k]))
+  const matched: Array<{ g: typeof goldOk[number]; k: MiceKeyRow }> = []
+  for (const g of goldOk) {
+    const k = keyById.get(g.sample_id)
+    if (k) matched.push({ g, k })
+  }
+
+  // Lead metric: primary_thread exact-match rate.
+  const primaryAgree = matched.filter(({ g, k }) => g.output.primary_thread === k.llm_output.primary_thread).length
+  const primaryThreadAgreement = matched.length === 0 ? 0 : primaryAgree / matched.length
+
+  // Binary "thread fired" call: thread fired if opens_thread OR closes_thread.
+  // TP: both gold and pred fired; FP: pred fired, gold did not; FN: gold fired, pred did not.
+  let tp = 0, fp = 0, fn = 0
+  for (const { g, k } of matched) {
+    const goldFired = g.output.opens_thread || g.output.closes_thread
+    const predFired = k.llm_output.opens_thread || k.llm_output.closes_thread
+    if (predFired && goldFired) tp++
+    else if (predFired && !goldFired) fp++
+    else if (!predFired && goldFired) fn++
+  }
+  const precision = (tp + fp) === 0 ? 0 : tp / (tp + fp)
+  const recall = (tp + fn) === 0 ? 0 : tp / (tp + fn)
+  const f1 = (precision + recall) === 0 ? 0 : 2 * precision * recall / (precision + recall)
+
+  // Per-field agreement rates.
+  const perField: MiceMetrics["perField"] = {
+    primary_thread: { agree: 0, n: matched.length, rate: 0 },
+    secondary_thread: { agree: 0, n: matched.length, rate: 0 },
+    opens_thread: { agree: 0, n: matched.length, rate: 0 },
+    closes_thread: { agree: 0, n: matched.length, rate: 0 },
+  }
+  for (const { g, k } of matched) {
+    if (g.output.primary_thread === k.llm_output.primary_thread) perField.primary_thread.agree++
+    if (g.output.secondary_thread === k.llm_output.secondary_thread) perField.secondary_thread.agree++
+    if (g.output.opens_thread === k.llm_output.opens_thread) perField.opens_thread.agree++
+    if (g.output.closes_thread === k.llm_output.closes_thread) perField.closes_thread.agree++
+  }
+  for (const f of Object.keys(perField) as Array<keyof typeof perField>) {
+    perField[f].rate = matched.length === 0 ? 0 : perField[f].agree / matched.length
+  }
+
+  // Adjudicator self-disagreement on primary_thread (same scene_id, multiple gold rows).
+  const goldByScene = new Map<string, MiceGoldRow[]>()
+  for (const g of gold) {
+    const arr = goldByScene.get(g.scene_id) ?? []
+    arr.push(g)
+    goldByScene.set(g.scene_id, arr)
+  }
+  let retestN = 0, retestDisagree = 0
+  for (const [, golds] of goldByScene) {
+    if (golds.length < 2) continue
+    for (let i = 0; i < golds.length; i++) {
+      for (let j = i + 1; j < golds.length; j++) {
+        retestN++
+        if (golds[i]!.output?.primary_thread !== golds[j]!.output?.primary_thread) retestDisagree++
+      }
+    }
+  }
+  const retestSelfDisagreement = retestN === 0 ? null : { n: retestN, disagree: retestDisagree, rate: retestDisagree / retestN }
+
+  return { n: matched.length, judgeFailures, precision, recall, f1, primaryThreadAgreement, perField, retestSelfDisagreement }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// McKee Gap (per-beat gap calibration)
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface McKeeGapKeyRow {
+  sample_id: string
+  scene_id: string
+  beat_idx: number
+  llm_output: {
+    povExpectation: string
+    actualOutcome: string
+    gap_size: "none" | "small" | "medium" | "large"
+    gap_type: "none" | "reversal" | "escalation" | "revelation" | "undermining" | "other"
+    confidence: number
+    evidence_quote: string
+    abstain_reason: string | null
+  }
+  is_retest_of_prior_sample?: boolean
+}
+
+interface McKeeGapGoldRow {
+  sample_id: string
+  scene_id: string
+  beat_idx: number
+  output?: {
+    povExpectation: string
+    actualOutcome: string
+    gap_size: "none" | "small" | "medium" | "large"
+    gap_type: "none" | "reversal" | "escalation" | "revelation" | "undermining" | "other"
+    confidence?: number
+    abstain_reason?: string | null
+  }
+  error?: string
+}
+
+interface McKeeGapMetrics {
+  n: number
+  judgeFailures: number
+  precision: number
+  recall: number
+  f1: number
+  /** Lead metric — gap_size exact-match rate. */
+  gapSizeAgreement: number
+  perField: {
+    gap_size: { agree: number; n: number; rate: number }
+    gap_type: { agree: number; n: number; rate: number }
+  }
+  retestSelfDisagreement: { n: number; disagree: number; rate: number } | null
+}
+
+function computeMckeeGapMetrics(gold: McKeeGapGoldRow[], key: McKeeGapKeyRow[]): McKeeGapMetrics {
+  const judgeFailures = gold.filter(g => !g.output).length
+  const goldOk = gold.filter((g): g is McKeeGapGoldRow & { output: NonNullable<McKeeGapGoldRow["output"]> } => !!g.output)
+  // Join via (scene_id, beat_idx) tuple.
+  const keyByTuple = new Map(key.map(k => [`${k.scene_id}::${k.beat_idx}`, k]))
+  const matched: Array<{ g: typeof goldOk[number]; k: McKeeGapKeyRow }> = []
+  for (const g of goldOk) {
+    const k = keyByTuple.get(`${g.scene_id}::${g.beat_idx}`)
+    if (k) matched.push({ g, k })
+  }
+
+  // Lead metric: gap_size exact-match rate.
+  const sizeAgree = matched.filter(({ g, k }) => g.output.gap_size === k.llm_output.gap_size).length
+  const gapSizeAgreement = matched.length === 0 ? 0 : sizeAgree / matched.length
+
+  // Binary "gap fired" call: gap fired if gap_size != "none".
+  let tp = 0, fp = 0, fn = 0
+  for (const { g, k } of matched) {
+    const goldFired = g.output.gap_size !== "none"
+    const predFired = k.llm_output.gap_size !== "none"
+    if (predFired && goldFired) tp++
+    else if (predFired && !goldFired) fp++
+    else if (!predFired && goldFired) fn++
+  }
+  const precision = (tp + fp) === 0 ? 0 : tp / (tp + fp)
+  const recall = (tp + fn) === 0 ? 0 : tp / (tp + fn)
+  const f1 = (precision + recall) === 0 ? 0 : 2 * precision * recall / (precision + recall)
+
+  // Per-field agreement.
+  const perField: McKeeGapMetrics["perField"] = {
+    gap_size: { agree: 0, n: matched.length, rate: 0 },
+    gap_type: { agree: 0, n: matched.length, rate: 0 },
+  }
+  for (const { g, k } of matched) {
+    if (g.output.gap_size === k.llm_output.gap_size) perField.gap_size.agree++
+    if (g.output.gap_type === k.llm_output.gap_type) perField.gap_type.agree++
+  }
+  for (const f of Object.keys(perField) as Array<keyof typeof perField>) {
+    perField[f].rate = matched.length === 0 ? 0 : perField[f].agree / matched.length
+  }
+
+  // Adjudicator self-disagreement on gap_size (same (scene_id, beat_idx) tuple, multiple gold rows).
+  const goldByTuple = new Map<string, McKeeGapGoldRow[]>()
+  for (const g of gold) {
+    const key = `${g.scene_id}::${g.beat_idx}`
+    const arr = goldByTuple.get(key) ?? []
+    arr.push(g)
+    goldByTuple.set(key, arr)
+  }
+  let retestN = 0, retestDisagree = 0
+  for (const [, golds] of goldByTuple) {
+    if (golds.length < 2) continue
+    for (let i = 0; i < golds.length; i++) {
+      for (let j = i + 1; j < golds.length; j++) {
+        retestN++
+        if (golds[i]!.output?.gap_size !== golds[j]!.output?.gap_size) retestDisagree++
+      }
+    }
+  }
+  const retestSelfDisagreement = retestN === 0 ? null : { n: retestN, disagree: retestDisagree, rate: retestDisagree / retestN }
+
+  return { n: matched.length, judgeFailures, precision, recall, f1, gapSizeAgreement, perField, retestSelfDisagreement }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Character Arcs (per-book, LLM character-name matcher)
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface CharacterArc {
+  character_name: string
+  lie: string
+  truth: string
+  want: string
+  need: string
+  arc_resolution: "fulfilled" | "partial" | "unresolved" | "tragic_inversion"
+  evidence_quote_lie: string
+  evidence_quote_truth: string | null
+  confidence: number
+}
+
+interface CharacterArcsKeyRow {
+  sample_id: string
+  predicted_character_arcs: CharacterArc[]
+}
+
+interface CharacterArcsGoldRow {
+  sample_id: string
+  gold_character_arcs?: CharacterArc[]
+  error?: string
+}
+
+interface CharacterArcMatch {
+  pred_name: string
+  gold_name: string
+  confidence: number
+  reason: string
+}
+
+interface CharacterArcsMetrics {
+  charactersInPred: number
+  charactersInGold: number
+  charactersMatched: number
+  precision: number
+  recall: number
+  f1: number
+  /** Exact arc_resolution enum agreement over matched character pairs. */
+  arcResolutionAgreementRate: number
+  /** LTWN (Lie/Truth/Want/Need) field presence agreement rate.
+   *
+   * NOTE: This is a DEGENERATE baseline — a field is counted as "agreed" if
+   * BOTH pred and gold have a non-empty value for it. True semantic agreement
+   * (whether the lie/truth/want/need are the same) requires per-field LLM
+   * judging and is deferred to a follow-on calibration pass. Track this
+   * limitation explicitly when interpreting the metric. */
+  ltwnPresenceAgreementRate: number
+  matched: CharacterArcMatch[]
+}
+
+const CHARACTER_MATCH_SYSTEM = `You are an editorial analyst comparing two lists of \
+character arcs extracted from the same novel by two different readers (an AI \
+extractor and a stronger AI judge). A "character arc" is a record of one \
+character's internal Lie/Truth/Want/Need journey across the book.
+
+You will receive:
+  • PREDICTED — arcs identified by the extractor, each with character_name plus arc fields.
+  • GOLD — arcs identified by the judge, in the same shape.
+
+Your job is to identify which (pred_name, gold_name) PAIRS refer to the SAME \
+character, even when the names differ. Use these rules:
+
+1. Same character = same fictional individual. "Drizzt" matches "Drizzt Do'Urden" \
+matches "the dark elf hero" — all refer to the same person.
+
+2. Different characters with similar roles do NOT match. If both lists have a \
+"mentor figure" but they are different people in the story, do not match them.
+
+3. A predicted arc matches AT MOST ONE gold arc (and vice versa). If two \
+predictions could match the same gold character, pick the closer match and \
+leave the other unmatched.
+
+4. When in doubt, DO NOT match. False positives corrupt calibration more than \
+false negatives.
+
+For each match, emit:
+  • pred_name and gold_name (exact strings from the input)
+  • confidence in [0, 1] — how sure you are these refer to the same character
+  • reason — one short sentence explaining why they are the same person.
+
+Only return matches you are confident about. Unmatched names are tracked separately.`
+
+const characterMatchSchema = z.object({
+  matches: z.array(z.object({
+    pred_name: z.string(),
+    gold_name: z.string(),
+    confidence: z.number().min(0).max(1),
+    reason: z.string(),
+  })),
+})
+
+async function llmMatchCharacters(pred: CharacterArc[], gold: CharacterArc[]): Promise<CharacterArcMatch[]> {
+  const predRows = pred.map(p => ({ name: p.character_name, arc_resolution: p.arc_resolution }))
+  const goldRows = gold.map(g => ({ name: g.character_name, arc_resolution: g.arc_resolution }))
+
+  const userPrompt = `PREDICTED (${predRows.length} character arcs):
+${JSON.stringify(predRows, null, 2)}
+
+GOLD (${goldRows.length} character arcs):
+${JSON.stringify(goldRows, null, 2)}
+
+Identify matched (pred_name, gold_name) pairs per the system rules. Return only matches you are confident about. Emit a JSON object matching the schema { "matches": [ { pred_name, gold_name, confidence, reason } ] }.`
+
+  console.log(`  [match] V4 Pro character-matching: ${predRows.length} predicted × ${goldRows.length} gold`)
+  const result = await callAgent({
+    agentName: "structure-character-match" as any,
+    systemPrompt: CHARACTER_MATCH_SYSTEM,
+    userPrompt,
+    schema: characterMatchSchema,
+  })
+  const matches = result.output.matches
+  console.log(`  [match] V4 Pro returned ${matches.length} character pair(s)`)
+
+  // Enforce 1:1 — keep highest-confidence match per pred_name, then per gold_name.
+  const byPred = new Map<string, typeof matches[number]>()
+  const byGold = new Map<string, typeof matches[number]>()
+  for (const m of matches) {
+    const cur = byPred.get(m.pred_name)
+    if (!cur || m.confidence > cur.confidence) byPred.set(m.pred_name, m)
+  }
+  for (const m of byPred.values()) {
+    const cur = byGold.get(m.gold_name)
+    if (!cur || m.confidence > cur.confidence) byGold.set(m.gold_name, m)
+  }
+  const finalMatches = [...byGold.values()]
+  if (finalMatches.length !== matches.length) {
+    console.log(`  [match] dedupe collapsed ${matches.length} → ${finalMatches.length}`)
+  }
+
+  // Validate that all returned names exist in the input lists.
+  const predNames = new Set(pred.map(p => p.character_name))
+  const goldNames = new Set(gold.map(g => g.character_name))
+  const checked: CharacterArcMatch[] = []
+  for (const m of finalMatches) {
+    if (!predNames.has(m.pred_name)) {
+      console.log(`  [match] skip unknown pred_name: ${m.pred_name}`)
+      continue
+    }
+    if (!goldNames.has(m.gold_name)) {
+      console.log(`  [match] skip unknown gold_name: ${m.gold_name}`)
+      continue
+    }
+    checked.push({ pred_name: m.pred_name, gold_name: m.gold_name, confidence: m.confidence, reason: m.reason })
+  }
+  return checked
+}
+
+async function computeCharacterArcsMetrics(goldRow: CharacterArcsGoldRow, keyRow: CharacterArcsKeyRow): Promise<CharacterArcsMetrics> {
+  const pred = keyRow.predicted_character_arcs
+  const gold = goldRow.gold_character_arcs ?? []
+
+  const matched = await llmMatchCharacters(pred, gold)
+
+  const tp = matched.length
+  const fp = pred.length - tp
+  const fn = gold.length - tp
+  const precision = (tp + fp) === 0 ? 0 : tp / (tp + fp)
+  const recall = (tp + fn) === 0 ? 0 : tp / (tp + fn)
+  const f1 = (precision + recall) === 0 ? 0 : 2 * precision * recall / (precision + recall)
+
+  // Build lookup maps for matched pairs.
+  const predByName = new Map(pred.map(p => [p.character_name, p]))
+  const goldByName = new Map(gold.map(g => [g.character_name, g]))
+
+  let arcResolutionAgree = 0
+  // LTWN presence agreement: degenerate baseline — count a field as "agreed"
+  // if both pred and gold have a non-empty value. True semantic comparison
+  // (whether lie/truth/want/need descriptions are equivalent) requires
+  // per-field LLM judging and is deferred to a follow-on calibration pass.
+  let ltwnPresenceAgree = 0
+  let ltwnTotal = 0
+  const ltwnFields: Array<keyof CharacterArc & ("lie" | "truth" | "want" | "need")> = ["lie", "truth", "want", "need"]
+  for (const m of matched) {
+    const p = predByName.get(m.pred_name)
+    const g = goldByName.get(m.gold_name)
+    if (!p || !g) continue
+    if (p.arc_resolution === g.arc_resolution) arcResolutionAgree++
+    for (const f of ltwnFields) {
+      ltwnTotal++
+      if (p[f] && g[f]) ltwnPresenceAgree++
+    }
+  }
+  const arcResolutionAgreementRate = matched.length === 0 ? 0 : arcResolutionAgree / matched.length
+  const ltwnPresenceAgreementRate = ltwnTotal === 0 ? 0 : ltwnPresenceAgree / ltwnTotal
+
+  return {
+    charactersInPred: pred.length,
+    charactersInGold: gold.length,
+    charactersMatched: tp,
+    precision, recall, f1,
+    arcResolutionAgreementRate,
+    ltwnPresenceAgreementRate,
+    matched,
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Verdict gates
+// ─────────────────────────────────────────────────────────────────────────────
+
 interface CellVerdict {
   verdict: "CELL PASS" | "CELL MARGINAL" | "CELL FAIL" | "NULL-GOLD"
   reason: string
@@ -495,6 +933,55 @@ function promiseVerdict(m: PromiseMetrics): CellVerdict {
     return { verdict: "CELL MARGINAL", reason: `R=${m.recall.toFixed(3)} F1=${m.f1.toFixed(3)} in marginal band` }
   }
   return { verdict: "CELL FAIL", reason: `R=${m.recall.toFixed(3)} F1=${m.f1.toFixed(3)} fails all bands` }
+}
+
+function miceVerdict(m: MiceMetrics): CellVerdict {
+  // NULL-GOLD gate: adjudicator self-disagreement > 15% AND retest pool ≥ 20.
+  // The n-floor prevents a tiny retest pool (e.g. 3 retests) from invalidating
+  // an otherwise usable gold set.
+  if (m.retestSelfDisagreement && m.retestSelfDisagreement.rate > 0.15 && m.retestSelfDisagreement.n >= 20) {
+    return { verdict: "NULL-GOLD", reason: `adjudicator self-disagreement ${(m.retestSelfDisagreement.rate * 100).toFixed(1)}% > 15% (n=${m.retestSelfDisagreement.n})` }
+  }
+  // Precision-first gates (same shape as value-charge).
+  if (m.precision >= 0.78 && m.recall >= 0.65 && m.f1 >= 0.71) {
+    return { verdict: "CELL PASS", reason: `P=${m.precision.toFixed(3)} R=${m.recall.toFixed(3)} F1=${m.f1.toFixed(3)} ≥ thresholds` }
+  }
+  if (m.f1 < 0.60 || m.precision < 0.65) {
+    return { verdict: "CELL FAIL", reason: `F1=${m.f1.toFixed(3)} P=${m.precision.toFixed(3)} below floor` }
+  }
+  if (m.precision >= 0.65 && m.precision < 0.78 && m.f1 >= 0.60) {
+    return { verdict: "CELL MARGINAL", reason: `P=${m.precision.toFixed(3)} F1=${m.f1.toFixed(3)} in marginal band` }
+  }
+  return { verdict: "CELL FAIL", reason: `P=${m.precision.toFixed(3)} F1=${m.f1.toFixed(3)} fails all bands` }
+}
+
+function mckeeGapVerdict(m: McKeeGapMetrics): CellVerdict {
+  // NULL-GOLD gate: same shape as MICE (n-floor of 20).
+  if (m.retestSelfDisagreement && m.retestSelfDisagreement.rate > 0.15 && m.retestSelfDisagreement.n >= 20) {
+    return { verdict: "NULL-GOLD", reason: `adjudicator self-disagreement ${(m.retestSelfDisagreement.rate * 100).toFixed(1)}% > 15% (n=${m.retestSelfDisagreement.n})` }
+  }
+  // Precision-first gates (same shape as value-charge).
+  if (m.precision >= 0.78 && m.recall >= 0.65 && m.f1 >= 0.71) {
+    return { verdict: "CELL PASS", reason: `P=${m.precision.toFixed(3)} R=${m.recall.toFixed(3)} F1=${m.f1.toFixed(3)} ≥ thresholds` }
+  }
+  if (m.f1 < 0.60 || m.precision < 0.65) {
+    return { verdict: "CELL FAIL", reason: `F1=${m.f1.toFixed(3)} P=${m.precision.toFixed(3)} below floor` }
+  }
+  if (m.precision >= 0.65 && m.precision < 0.78 && m.f1 >= 0.60) {
+    return { verdict: "CELL MARGINAL", reason: `P=${m.precision.toFixed(3)} F1=${m.f1.toFixed(3)} in marginal band` }
+  }
+  return { verdict: "CELL FAIL", reason: `P=${m.precision.toFixed(3)} F1=${m.f1.toFixed(3)} fails all bands` }
+}
+
+function characterArcsVerdict(m: CharacterArcsMetrics): CellVerdict {
+  // No NULL-GOLD path — single emission per book, no retest pool.
+  if (m.f1 >= 0.80 && m.arcResolutionAgreementRate >= 0.65) {
+    return { verdict: "CELL PASS", reason: `F1=${m.f1.toFixed(3)} arcResolution=${m.arcResolutionAgreementRate.toFixed(3)} ≥ thresholds` }
+  }
+  if (m.f1 >= 0.60 && m.arcResolutionAgreementRate >= 0.50) {
+    return { verdict: "CELL MARGINAL", reason: `F1=${m.f1.toFixed(3)} arcResolution=${m.arcResolutionAgreementRate.toFixed(3)} in marginal band` }
+  }
+  return { verdict: "CELL FAIL", reason: `F1=${m.f1.toFixed(3)} arcResolution=${m.arcResolutionAgreementRate.toFixed(3)} below floor` }
 }
 
 function aggregateVerdict(cells: CellVerdict[]): "SCOPED PASS" | "PARTIAL" | "FAIL" | "NULL-GOLD-ONLY" {
@@ -548,6 +1035,61 @@ async function main() {
       console.log(`[calibration] promise (matcher=${args.matcher}): ${verdict.verdict} — ${verdict.reason}`)
     } else {
       console.log(`[calibration] promise: no gold file at ${goldPath}; skipping`)
+    }
+  }
+
+  if (args.dim === "mice" || args.dim === "all") {
+    const goldPath = join(goldDir, "mice-gold.jsonl")
+    const keyPath = join(goldDir, "mice-key.jsonl")
+    if (existsSync(goldPath) && existsSync(keyPath)) {
+      const gold = await readJsonl<MiceGoldRow>(goldPath)
+      const key = await readJsonl<MiceKeyRow>(keyPath)
+      const metrics = computeMiceMetrics(gold, key)
+      const verdict = miceVerdict(metrics)
+      out.cells["mice"] = { metrics, verdict }
+      cellVerdicts.push({ dim: "mice", verdict })
+      console.log(`[calibration] mice: ${verdict.verdict} — ${verdict.reason}`)
+    } else {
+      console.log(`[calibration] mice: no gold file at ${goldPath}; skipping`)
+    }
+  }
+
+  if (args.dim === "mckee-gap" || args.dim === "all") {
+    const goldPath = join(goldDir, "mckee-gap-gold.jsonl")
+    const keyPath = join(goldDir, "mckee-gap-key.jsonl")
+    if (existsSync(goldPath) && existsSync(keyPath)) {
+      const gold = await readJsonl<McKeeGapGoldRow>(goldPath)
+      const key = await readJsonl<McKeeGapKeyRow>(keyPath)
+      const metrics = computeMckeeGapMetrics(gold, key)
+      const verdict = mckeeGapVerdict(metrics)
+      out.cells["mckee-gap"] = { metrics, verdict }
+      cellVerdicts.push({ dim: "mckee-gap", verdict })
+      console.log(`[calibration] mckee-gap: ${verdict.verdict} — ${verdict.reason}`)
+    } else {
+      console.log(`[calibration] mckee-gap: no gold file at ${goldPath}; skipping`)
+    }
+  }
+
+  if (args.dim === "character-arcs" || args.dim === "all") {
+    const goldPath = join(goldDir, "character-arcs-gold.jsonl")
+    const keyPath = join(goldDir, "character-arcs-key.jsonl")
+    if (existsSync(goldPath) && existsSync(keyPath)) {
+      const goldRows = await readJsonl<CharacterArcsGoldRow>(goldPath)
+      const keyRows = await readJsonl<CharacterArcsKeyRow>(keyPath)
+      // character-arcs emits ONE row per book — take the first valid pair.
+      const goldRow = goldRows.find(g => !g.error && g.gold_character_arcs)
+      const keyRow = keyRows[0]
+      if (goldRow && keyRow) {
+        const metrics = await computeCharacterArcsMetrics(goldRow, keyRow)
+        const verdict = characterArcsVerdict(metrics)
+        out.cells["character-arcs"] = { metrics, verdict }
+        cellVerdicts.push({ dim: "character-arcs", verdict })
+        console.log(`[calibration] character-arcs: ${verdict.verdict} — ${verdict.reason}`)
+      } else {
+        console.log(`[calibration] character-arcs: gold file present but no valid row (error or missing gold_character_arcs); skipping`)
+      }
+    } else {
+      console.log(`[calibration] character-arcs: no gold file at ${goldPath}; skipping`)
     }
   }
 

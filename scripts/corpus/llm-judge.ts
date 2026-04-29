@@ -30,13 +30,16 @@ import { join } from "node:path"
 
 import { extractValueCharge } from "../../src/agents/structure-value-charge"
 import { extractPromises, type PromiseBeatRow } from "../../src/agents/structure-promise"
+import { extractMice } from "../../src/agents/structure-mice"
+import { extractMckeeGap } from "../../src/agents/structure-mckee-gap"
+import { extractCharacterArcs, type CharacterArcsBeatRow } from "../../src/agents/structure-character-arcs"
 
 const REPO_ROOT = new URL("../..", import.meta.url).pathname
 
 interface Args {
   novel: string
   book: string
-  dim: "value-charge" | "promise"
+  dim: "value-charge" | "promise" | "mice" | "mckee-gap" | "character-arcs"
   maxPrompts: number | null
 }
 
@@ -50,11 +53,12 @@ function parseArgs(): Args {
   const book = map["book"]
   const dim = map["dim"]
   if (!novel || !book || !dim) {
-    console.error("Usage: bun scripts/corpus/llm-judge.ts --novel=<key> --book=<book> --dim=<value-charge|promise> [--max-prompts=N]")
+    console.error("Usage: bun scripts/corpus/llm-judge.ts --novel=<key> --book=<book> --dim=<value-charge|promise|mice|mckee-gap|character-arcs> [--max-prompts=N]")
     process.exit(2)
   }
-  if (dim !== "value-charge" && dim !== "promise") {
-    console.error(`--dim must be one of: value-charge, promise. Got: ${dim}`)
+  const validDims = ["value-charge", "promise", "mice", "mckee-gap", "character-arcs"]
+  if (!validDims.includes(dim)) {
+    console.error(`--dim must be one of: ${validDims.join(", ")}. Got: ${dim}`)
     process.exit(2)
   }
   const maxPromptsRaw = map["max-prompts"]
@@ -87,6 +91,51 @@ interface PromisePrompt {
   chapter_index: number
   chapter_label: string
   beats: Array<{
+    scene_id: string
+    beat_idx: number
+    summary: string
+    first_sentence?: string
+  }>
+}
+
+interface MicePrompt {
+  sample_id: string
+  dim: "mice"
+  scene_id: string
+  chapter_label: string
+  chapter_index: number
+  scene_ordinal: number
+  scene_text: string
+}
+
+interface MckeeGapPrompt {
+  sample_id: string
+  dim: "mckee-gap"
+  scene_id: string
+  beat_idx: number
+  chapter_label: string
+  chapter_index: number
+  scene_ordinal: number
+  beat_summary: string
+  beat_first_sentence?: string
+  beat_text: string
+  pov: string | null
+  prior_beat: {
+    chapter: string | number
+    scene_id: string
+    beat_idx: number
+    summary: string
+  } | null
+}
+
+interface CharacterArcsPrompt {
+  sample_id: string
+  dim: "character-arcs"
+  novel: string
+  book: string
+  beats: Array<{
+    chapter_label: string
+    chapter_index: number
     scene_id: string
     beat_idx: number
     summary: string
@@ -208,6 +257,152 @@ async function judgePromises(args: Args, prompts: PromisePrompt[]) {
   }))
 }
 
+async function judgeMice(args: Args, prompts: MicePrompt[]) {
+  // Same ±1-chapter beat context approach as judgeValueCharge — the MICE
+  // judgment needs surrounding context to disambiguate thread-open vs.
+  // thread-progress.
+  const tmpBeatsPath = join(REPO_ROOT, "novels", args.novel, "structure-tmp", args.book, "beats.jsonl")
+  const beats = await readJsonl<{ chapter: string | number; scene_id: string; beat_idx: number; summary: string; _chapter_canonical_index: number }>(tmpBeatsPath)
+  const beatsByChIdx = new Map<number, typeof beats>()
+  for (const b of beats) {
+    const arr = beatsByChIdx.get(b._chapter_canonical_index) ?? []
+    arr.push(b)
+    beatsByChIdx.set(b._chapter_canonical_index, arr)
+  }
+  const chapterIndices = [...beatsByChIdx.keys()].sort((a, b) => a - b)
+
+  const out: any[] = []
+  let i = 0
+  for (const p of prompts) {
+    i++
+    const chIdx = p.chapter_index
+    const chPos = chapterIndices.indexOf(chIdx)
+    const prevChIdx = chPos > 0 ? chapterIndices[chPos - 1] : undefined
+    const nextChIdx = chPos < chapterIndices.length - 1 ? chapterIndices[chPos + 1] : undefined
+    const prevChapterBeats = (prevChIdx !== undefined ? beatsByChIdx.get(prevChIdx) ?? [] : [])
+      .map(b => ({ chapter: b.chapter, summary: b.summary }))
+    const nextChapterBeats = (nextChIdx !== undefined ? beatsByChIdx.get(nextChIdx) ?? [] : [])
+      .map(b => ({ chapter: b.chapter, summary: b.summary }))
+
+    process.stdout.write(`  [${i}/${prompts.length}] judge ${p.scene_id} ... `)
+    const result = await extractMice({
+      brief: {
+        summary: "(judge re-tag — synthesize fresh from the prose)",
+        beat_id: p.scene_id,
+        chapter: p.chapter_label,
+        characters: [],
+        pov: null,
+        setting: null,
+        tone: null,
+      },
+      prose: p.scene_text,
+      prevChapterBeats,
+      nextChapterBeats,
+    }, { agentName: "structure-mice-judge" })
+
+    if (result.ok && result.output) {
+      out.push({
+        sample_id: p.sample_id,
+        scene_id: p.scene_id,
+        output: result.output,
+      })
+      console.log(`OK dominant=${result.output.dominant_thread}`)
+    } else {
+      out.push({
+        sample_id: p.sample_id,
+        scene_id: p.scene_id,
+        error: result.error ?? "unknown",
+      })
+      console.log(`FAIL ${result.error}`)
+    }
+  }
+  return out
+}
+
+async function judgeMckeeGap(args: Args, prompts: MckeeGapPrompt[]) {
+  const out: any[] = []
+  let i = 0
+  for (const p of prompts) {
+    i++
+    const beatId = `${p.scene_id}_b${p.beat_idx}`
+    process.stdout.write(`  [${i}/${prompts.length}] judge ${beatId} ... `)
+    const result = await extractMckeeGap({
+      beat: {
+        beat_id: beatId,
+        chapter: p.chapter_label,
+        scene_id: p.scene_id,
+        beat_idx: p.beat_idx,
+        summary: p.beat_summary,
+        first_sentence: p.beat_first_sentence,
+        text: p.beat_text,
+      },
+      pov: p.pov,
+      priorBeat: p.prior_beat,
+    }, { agentName: "structure-mckee-gap-judge" })
+
+    if (result.ok && result.output) {
+      out.push({
+        sample_id: p.sample_id,
+        scene_id: p.scene_id,
+        beat_idx: p.beat_idx,
+        output: result.output,
+      })
+      console.log(`OK gap=${result.output.gap_type}`)
+    } else {
+      out.push({
+        sample_id: p.sample_id,
+        scene_id: p.scene_id,
+        beat_idx: p.beat_idx,
+        error: result.error ?? "unknown",
+      })
+      console.log(`FAIL ${result.error}`)
+    }
+  }
+  return out
+}
+
+async function judgeCharacterArcs(args: Args, prompts: CharacterArcsPrompt[]) {
+  // character-arcs prompt is ONE row per book; consume the first (and
+  // typically only) prompt row.
+  const out: any[] = []
+  let i = 0
+  for (const p of prompts) {
+    i++
+    process.stdout.write(`  [${i}/${prompts.length}] judge character-arcs ${p.novel}/${p.book} ... `)
+
+    // Convert prompt beats to CharacterArcsBeatRow shape (fields match 1:1).
+    const beats: CharacterArcsBeatRow[] = p.beats.map(b => ({
+      chapter_label: b.chapter_label,
+      chapter_index: b.chapter_index,
+      scene_id: b.scene_id,
+      beat_idx: b.beat_idx,
+      summary: b.summary,
+      first_sentence: b.first_sentence,
+    }))
+
+    const result = await extractCharacterArcs({
+      novelKey: p.novel,
+      bookKey: p.book,
+      beats,
+    }, { agentName: "structure-character-arcs-judge" })
+
+    if (result.ok && result.arcs) {
+      out.push({
+        sample_id: p.sample_id,
+        gold_character_arcs: result.arcs,
+      })
+      console.log(`OK arcs=${result.arcs.length}`)
+    } else {
+      out.push({
+        sample_id: p.sample_id,
+        error: result.error ?? "unknown",
+      })
+      console.log(`FAIL ${result.error}`)
+    }
+  }
+  return out
+}
+
 async function main() {
   const args = parseArgs()
   console.log(`[llm-judge] novel=${args.novel} book=${args.book} dim=${args.dim} judge=V4 Pro`)
@@ -223,12 +418,31 @@ async function main() {
   const prompts = args.maxPrompts !== null ? promptsRaw.slice(0, args.maxPrompts) : promptsRaw
   console.log(`[llm-judge] loaded ${promptsRaw.length} prompts (using ${prompts.length})`)
 
+  const judgeAgentMap: Record<string, string> = {
+    "value-charge": "structure-value-charge-judge",
+    "promise": "structure-promise-judge",
+    "mice": "structure-mice-judge",
+    "mckee-gap": "structure-mckee-gap-judge",
+    "character-arcs": "structure-character-arcs-judge",
+  }
+
+  const startedAt = new Date().toISOString()
   let goldRows: any[] = []
   if (args.dim === "value-charge") {
     goldRows = await judgeValueCharge(args, prompts)
-  } else {
+  } else if (args.dim === "promise") {
     goldRows = await judgePromises(args, prompts)
+  } else if (args.dim === "mice") {
+    goldRows = await judgeMice(args, prompts as MicePrompt[])
+  } else if (args.dim === "mckee-gap") {
+    goldRows = await judgeMckeeGap(args, prompts as MckeeGapPrompt[])
+  } else {
+    goldRows = await judgeCharacterArcs(args, prompts as CharacterArcsPrompt[])
   }
+
+  const finishedAt = new Date().toISOString()
+  const nSucceeded = goldRows.filter(r => !r.error).length
+  const nFailed = goldRows.filter(r => !!r.error).length
 
   mkdirSync(goldDir, { recursive: true })
   const goldPath = join(goldDir, `${args.dim}-gold.jsonl`)
@@ -238,14 +452,13 @@ async function main() {
     novel: args.novel,
     book: args.book,
     dim: args.dim,
-    judgeAgent: args.dim === "value-charge" ? "structure-value-charge-judge" : "structure-promise-judge",
+    judgeAgent: judgeAgentMap[args.dim],
     judgeModel: "deepseek-v4-pro",
-    extractorModel: "deepseek-v4-flash",
-    promptsLoaded: promptsRaw.length,
-    promptsJudged: prompts.length,
-    goldRowsEmitted: goldRows.length,
-    judgedAt: new Date().toISOString(),
-    notes: "V4 Pro thinking-on as auto-judge. Independence is by capability gradient (Pro reasoning > Flash). For cross-family premium judgment, see docs/structure-sonnet-judge-rubric.md.",
+    n_prompts: prompts.length,
+    n_succeeded: nSucceeded,
+    n_failed: nFailed,
+    started_at: startedAt,
+    finished_at: finishedAt,
   }, null, 2))
   console.log(`[llm-judge] wrote ${goldRows.length} gold rows → ${goldPath}`)
   console.log(`[llm-judge] wrote meta → ${metaPath}`)

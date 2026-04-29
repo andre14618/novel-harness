@@ -229,6 +229,15 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
     provider: "deepseek", model: "deepseek-v4-pro",
     thinking: true, temperature: 0.0, maxTokens: 16_384,
   },
+  // V4 Pro semantic character-name matcher for character-arcs calibration.
+  // Matches characters across pred/gold lists by fictional identity
+  // ("Drizzt" = "Drizzt Do'Urden" = "the dark elf hero"). Single batched
+  // call per book; larger maxTokens than promise-match because arc fields
+  // (lie/truth/want/need) are longer than promise_text snippets.
+  "structure-character-match": {
+    provider: "deepseek", model: "deepseek-v4-pro",
+    thinking: true, temperature: 0.0, maxTokens: 8_192,
+  },
 }
 
 // ── Runtime overrides (set via web UI, cleared on restart) ──────────────
