@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-23
+updated: 2026-04-29
 ---
 
 # Lessons Learned
@@ -1393,4 +1393,36 @@ Phase 0 prereq #2 (drift detector) revealed a structural distinction: the *froze
 Prior to the drift detector, checker regressions caused by upstream context changes (planner output structure, beat-context surface, world-bible format) only became visible when production fire rates spiked — at which point multiple chapters had already been affected. The eval_results + eval_briefs tables contain the frozen ground truth to catch this at the adapter level, but no automated replay existed. The drift_checks table + detector script create the first monitoring layer between "adapter trained + eval'd" and "fire rate changed in production." Gate thresholds (>5pt precision OR >3pt F1) are deliberately conservative: a 5pt precision drop on a 85%-precision checker doubles the false-positive rate, which meaningfully degrades targeted-rewrite precision for the writer.
 
 **The rule:** every checker adapter that is wired into the production drafting retry loop should have a drift_checks row produced at least once per week (or any time the planner/context surface changes). The detector is the canary; the adapter_registry.headline_metrics is the frozen snapshot it runs against.
+
+## 2026-04-29 — V4 Flash swap, variant-runner architecture, charter convergence
+
+### Thinking-mode is per-agent, not blanket-on for a model family
+
+The DeepSeek V3.2 → V4 Flash swap (commit `eb2993d`) initially set `thinking: true` for all 10 DeepSeek-using slots out of a "newer model, more capability, why not" reflex. User pushback ("are they literally all being used for thinking?") forced the right framing: thinking tokens cost latency and money in exchange for *multi-step structural reasoning*, not for creative output or one-shot transforms. The decision rule that landed: thinking ON only when the agent reasons over multi-element structure with cross-element dependencies — `planning-beats` (14-beat per-chapter expansion with state-flow tracking), `chapter-plan-checker` (cross-beat coherence judgment over 14 beats), `chapter-plan-reviser` (smallest-edit diff over a multi-issue cluster). Writers, one-shot extractors, planners that emit creative artifacts (world-builder, character-agent, plotter, planning-plotter) all stay non-thinking.
+
+**The rule:** when a model family adds an optional thinking/reasoning mode, evaluate per-agent against the structural-reasoning criterion before flipping the flag. Default is OFF; the agent must justify the latency and cost. Source of truth: comment block above `deepseekV4Flash` in `src/models/roles.ts`. (Commit `eb2993d`)
+
+### DeepSeek V4 Pro is NOT priced like V4 Flash — re-check pricing per variant
+
+V4 Flash: $0.14 input / $0.28 output / $0.0028 cache hit. V4 Pro: $1.74 input / $3.48 output base (currently 75% off until 2026-05-31, so ~$0.435/$0.87 promo, but the base-rate floor returns 2026-06-01). I assumed parity initially because both are "DeepSeek V4 family." Actual gap: ~12× output cost at base rate. Pricing source: `https://api-docs.deepseek.com/quick_start/pricing`.
+
+**The rule:** any new model variant added to `src/models/registry.ts` requires a fresh pricing check against the provider's docs page — never copy from a sibling entry assuming parity. Variant suffixes (-flash, -pro, -reasoner) often signal a price-tier shift, not just a capability shift. Same trap: provider promo pricing has expiry dates that need to land in the entry comment so future audits can spot expired discounts. (Commit `eb2993d`)
+
+### Non-interactive harness drivers must explicitly disable approval gates
+
+`tests/phase-parity/record-fixture.ts` hung silently on LXC because the planning phase calls `presentForApproval()` for the world bible, and `autoMode` defaults to false. Background SSH jobs can't answer the prompt, so the run blocks forever. Fix (commit `cd55f0f`): call `setAutoMode(true)` + `setResolverMode("auto")` before `runNovel`. This is a class-of-bug pattern: any new test/eval/benchmark/probe driver that calls a phase containing a gate must explicitly disable the gates, or it will hang silently in any non-interactive context (LXC SSH, CI, nohup-backgrounded jobs).
+
+**The rule:** every non-interactive harness driver — record-fixture scripts, benchmark loops, probe parents, replay tools — must include a `setAutoMode(true)` + `setResolverMode("auto")` preamble before invoking phases. Add this to the boilerplate for any new driver. The cost of forgetting is a silent hang (sometimes detected only after hours of "the job is still running"). (Commit `cd55f0f`)
+
+### Top-level `await Bun.file(...)` at module load caches forever — variant cycling needs child processes
+
+The planning-beats agent loaded its prompt via top-level await at module import. In-process variant cycling (e.g., a probe runner that swaps the prompt file mid-run) silently applies the FIRST variant's prompt to ALL subsequent variants, because the module graph caches the first `await Bun.file(path).text()` result for the lifetime of the process. There is no good in-process invalidation hook. Fix: per-variant child processes via `spawn()`, with the override path passed via env var (`PLANNING_BEATS_PROMPT_OVERRIDE`) and read at module load in the fresh module graph. Each variant gets a fresh bun subprocess.
+
+**The rule:** any variant runner that swaps a top-level-await constant (prompt file, schema file, config file loaded at import) must spawn fresh processes per variant — do NOT attempt in-process cycling. The pattern is: parent driver writes the variant config, sets env, spawns child; child reads env at module load; results write to disk; parent aggregates. Building this with in-process cycling is a bug factory because the cache invalidation is implicit and silent. (Commits `a031980` + `c6ef9a5`, `scripts/phase-eval/probe-planning-beats.ts`)
+
+### Charter R5 cheapest-counterfactual reinforcement — concrete cite
+
+The `phase-variant-comparison` charter went through 4 rounds of Codex `gpt-5.5 effort=high` adversarial review (R1-R4 all RED). Each round named a specific cheaper counterfactual that the charter's instrument failed to address. Treating each named counterfactual as a *pivot recommendation* (per the existing `feedback_codex_counterfactual_signal` memory) — rather than as something to refute in the next revision — collapsed the charter scope from a 14-hour harness build (R1) to a $0.30 5-chapter planner-only probe (R5). The converged scope is roughly 5% of the original.
+
+**The rule (reinforcement, not new):** the existing `feedback_codex_counterfactual_signal` memory says "treat the named cheapest-untried-counterfactual as a pivot recommendation, not an alternative to refute." This session is the concrete cite — a 4-round arc where each round's named counterfactual was the right pivot. If a charter is hitting 3+ rounds with each round naming a finer counterfactual, the right move is the meta-consult ("is this the right instrument") plus the cheapest-counterfactual pivot, not another revision. (Charter at `docs/designs/phase-variant-comparison.md`, commit `42ae810`)
 

@@ -1,11 +1,20 @@
 ---
 status: active
-updated: 2026-04-21
+updated: 2026-04-29
 ---
 
 # To Do
 
 Pending action items only. Ordered by impact. Completed items and decision rationale live in `docs/decisions.md`.
+
+## Current Priorities (2026-04-29)
+
+### Phase-eval probe scaffold + parity fixture P0b
+
+- [ ] **Wait for parity fixture P0b recorder to finish on LXC, then commit fixture artifacts.** Recorder running as of session close: `bun tests/phase-parity/record-fixture.ts fantasy-system-heretic` PID 823157, log `/tmp/parity-record-fantasy-system-heretic.log`. On completion: commit `tests/phase-parity/fixtures/reference-run/{transport-fixture,expected-snapshot,seed}.json`. Seed choice rationale: smallest current-target-genre (litrpg) seed available; 3 chapters keeps the fixture cheap to re-record.
+- [ ] **Run the first phase-eval probe end-to-end against `fantasy-system-heretic`.** Driver chain: `scripts/phase-eval/probe-planning-beats.ts` (concept once → clone-for-variant per variant → spawn `run-variant.ts`) → aggregate `summary.json` → `scripts/phase-eval/print-screen-verdict.ts` reports G1-G4 deltas. Charter framing is directional, not compliance — interpret the verdict as signal magnitude, not pass/fail. Capture results in a brief retrospective at `docs/sessions/2026-04-29-phase-eval-probe.md`.
+- [ ] **Codex pass on Slice 1 (planning-beats override seam, run-variant child, probe parent, verdict script).** User is running this themselves; queued here for tracking. Targets: `src/agents/planning-beats/index.ts` (env-var seam), `scripts/phase-eval/{run-variant,probe-planning-beats,print-screen-verdict}.ts`, variant prompt files.
+- [ ] **Decide post-probe scaling.** After first-probe results: choose between (a) scale to 2 more variants on the same screen, (b) change the screen (e.g., add hallucination-fire-rate as a G5 metric), (c) fold the `PLANNING_BEATS_PROMPT_OVERRIDE` env-var seam into the harness as a permanent prompt-pinning surface (e.g., `pipelineOverrides.promptOverrides[agent]`), or (d) close the probe out as instrument-validated and return to context-engineering work. Decision should land in a session retrospective, not this todo.
 
 ## Current Priorities (2026-04-21)
 
@@ -298,13 +307,13 @@ All existing SFT training data was generated with screenplay-style beats (pre-ex
 - **V4 deployed and concluded** (exp #161, 2026-04-12) — `adherence-checker-v4` live at 512 token budget. Production eval: 79% first-attempt pass (23/30 beats), all failures resolved on retry, zero false positives. V2 config removed from `models/roles.ts` (dead — never invoked at runtime, only `adherence-events` is called). See `docs/decisions.md`.
 - **GRPO/RL reward loop** (conditional, post-V4 validation) — adherence-checker is the only pipeline agent with a clean automatic reward signal (deterministic checks + synthetic labels). Design a GRPO loop on W&B/ART. Now unblocked since V4 is validated.
 
-## Chapter Plan Checker — REVERTED to DeepSeek V3.2 base (2026-04-18)
+## Chapter Plan Checker — DeepSeek V4 Flash thinking-mode base (2026-04-29 swap from V3.2)
 
-**SFT adapter `chapter-plan-checker-v2:v1` removed from active duty 2026-04-18** after planner-phase2 pilot audit revealed ~92% false-positive rate on real fantasy plans (12-row dual-oracle audit by Sonnet + Codex gpt-5.4 — both flagged 11/12 verdicts as wrong). The adapter hallucinated a "required fact must be verbatim" failure mode not present in its system prompt; validated 96% accuracy from exp #178 did not generalize to live fantasy-genre plans. Distribution drift between training scenarios and production output. Now using DeepSeek V3.2 with the same system prompt — handles the 3-question yes/no check natively.
+**SFT adapter `chapter-plan-checker-v2:v1` removed from active duty 2026-04-18** after planner-phase2 pilot audit revealed ~92% false-positive rate on real fantasy plans (12-row dual-oracle audit by Sonnet + Codex gpt-5.4 — both flagged 11/12 verdicts as wrong). The adapter hallucinated a "required fact must be verbatim" failure mode not present in its system prompt; validated 96% accuracy from exp #178 did not generalize to live fantasy-genre plans. Distribution drift between training scenarios and production output. Now using **DeepSeek V4 Flash with thinking mode ON** (V3.2 → V4 Flash swap landed 2026-04-29, commit `eb2993d`) with the same system prompt — handles the 3-question yes/no check natively.
 
 ### Low-priority — SFT recalibration (deferred until after context engineering work)
 
-- Don't re-open without evidence DeepSeek V3.2 is creating real friction (cost or latency budget exceeded).
+- Don't re-open without evidence DeepSeek V4 Flash is creating real friction (cost or latency budget exceeded).
 - Context engineering takes precedence over local-model SFT experimentation. The whole "small model offline harness" north-star is downstream of having clean baselines and a working context-engineering layer first.
 - If we revisit: regenerate training data on real harness output (not synthetic scenarios), explicitly punish "missing fact" rejections that are actually paraphrased, expand variant set beyond the original 8.
 - V1 pilot (exp #154) and V2 (exp #170/#178) datasets retained for reference.
