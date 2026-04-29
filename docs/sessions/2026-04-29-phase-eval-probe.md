@@ -1,13 +1,13 @@
 ---
 status: retrospective
 updated: 2026-04-29
-duration: ~5h
-commits: 8
-subagents_spawned: 1
-wall_clock_min: 300
-codex_reviews: 4
-rework_passes: 4
-bugs_caught_by_codex: 5
+duration: ~7h
+commits: 14
+subagents_spawned: 2
+wall_clock_min: 420
+codex_reviews: 5
+rework_passes: 5
+bugs_caught_by_codex: 8
 bugs_caught_by_preflight: 1
 bugs_escaped_to_prod: 1
 preflight_false_positives: 0
@@ -75,10 +75,18 @@ DeepSeek V3.2 → V4 Flash swap landed pipeline-wide (commit `eb2993d`), with th
    - **Codex found:** RED — `chapter_outlines.scenes_json` doesn't exist (actual: `outline_json`); G1 not computable (establishedFacts is chapter-level); G2 tautological (characterName required field); runner approval gate unspecified; compliance language unsupported by N=5
    - **Fix:** R5 charter (commit `42ae810`) — outline_json column, chapter-level G1, volume-based G2, runner setAutoMode(true), directional language only
    - **Sufficient?** yes — R5 was committed and implementation proceeded; user explicitly said "after integrating these this latest review proceed with implementation. i will have codex make a pass to fix after the implementation"
+5. **Thread:** `a09d5baaad90af744` (codex:codex-rescue gpt-5.5 effort=high adversarial review on Slice 1 implementation)
+   - **Original commit claim:** Slice 1 phase-eval probe scaffold + V4 Flash plumbing + the 2 follow-up fixes (commits `c6ef9a5`, `9de6a78`, `d024ce8`, `eb2993d`)
+   - **Codex found:** RED — (a) verdict script `print-screen-verdict.ts` did not implement the charter G1-G4 screen at all (computed mean/median on wrong fields, never applied 1.5x/8/3/1.10 thresholds, never emitted SCREEN-PASS/SCREEN-FAIL or exit-code-driven verdict); (b) clone-for-variant audits ran AFTER the transaction committed — failed audit left half-cloned novel with no rollback; (c) orphan DB state on child crash — chapter_outlines saved one row at a time outside transaction, no parent cleanup. Plus 3 warnings (parent module-graph polluted by planning-beats top-level-await via `src/prompts.ts` barrel; snapshot phase column never updated; `--concept-snapshot-id` not validated) and 2 applicable suggestions.
+   - **Fix:** commit `28c2e57` — full verdict-script rewrite, audits moved inside transaction, parent cleanup pass via `clearNovelState`, direct prompt imports in `src/phases/concept.ts`, snapshot phase UPDATE, snapshot validation. Re-ran verdict on existing probe data → SCREEN-PASS confirmed (loud cleared all 4 gates).
+   - **Sufficient?** yes — all blockers + applicable warnings + suggestions integrated; one needs-verification item (legacy abs-path fallback shape) left as-is because the only legacy producer matched the current fallback layout.
 
 ## 4. Class-of-bug patterns
 
 - **Schema-of-record drift** — code constants (`CONCEPT_DONE_MUST_BE_ABSENT` table list, charter schema citations) carrying forward DROPPED table/column references; seen at 2 sites this session (`thematic_tags` in clone-for-variant audit, `scenes_json` in charter R3). Both caught only at runtime / Codex review, not preflight. Pattern recurs ≥2 times → candidate for elevation to `docs/patterns/schema-of-record-drift.md` with grep-based preflight check.
+- **Implementation-vs-spec drift** — verdict-script implemented a "directional reporter" (mean/median + delta printout) when the charter §G specified an ordered-predicate table with explicit thresholds, exit codes, and SCREEN-PASS/SCREEN-FAIL emission. Codex caught this at end-of-session review. The charter language was clear; the implementation translated it into a more comfortable shape (descriptive metrics) that lost the load-bearing decision logic. **The rule:** when a charter specifies thresholds + ordered predicates + exit codes, the implementation must emit the verdict per spec, not a softer descriptive form. Cite charter §G inline in the script's header so the spec/implementation correspondence is visible.
+- **Audit-after-commit transaction trap** — clone-for-variant ran the post-condition audit OUTSIDE the `db.begin()` transaction, so audit failure left committed half-state with no rollback. The script's header comment claimed "all-or-nothing" but the transaction boundary didn't enclose the audit. **The rule:** any "all-or-nothing" claim about a multi-step DB operation must enclose ALL the validation logic inside the transaction. Use `tx.unsafe(...)` not `db.unsafe(...)` inside the begin callback. Pattern repeats — `feedback_atomic_commits` is the close cousin.
+- **Module-graph pollution from broad barrels** — `src/prompts.ts` re-exports prompt files from every agent. Importing the barrel for one prompt loads ALL prompts as a side effect (each via top-level await). The probe parent imported `runConceptPhase`, which imported the barrel, which silently loaded `planning-beats`'s default prompt before child processes had a chance to set the override env var. Child-process isolation rescued the bug today, but the pattern is fragile. **The rule:** in module graphs where one re-export carries a load-bearing side effect (top-level await, registration, etc.), prefer direct imports of the specific symbols you need rather than the broad barrel. Direct imports are surface-area control.
 - **Approval-gate hang in non-interactive drivers** — `record-fixture.ts` blocked silently on world-bible approval because autoMode defaulted to false; seen at 1 site this session, but the pattern is general (any new test/eval/probe driver that calls phases with gates). The fix is a 2-line preamble (`setAutoMode(true)` + `setResolverMode("auto")`); the bug is silence — no error, just hang. Adding to driver boilerplate checklist.
 - **Top-level-await module caching across variants** — `await Bun.file(...)` at module import caches forever in-process; seen at 1 site this session (planning-beats prompt). The general pattern: any tunable surface loaded via top-level await is per-process, not per-call. Variant runners MUST spawn fresh processes; in-process cycling is broken.
 - **Cross-machine path serialization** — `summary.json` written on LXC carried absolute LXC paths that didn't exist after rsync to local; verdict reader exploded with ENOENT. Pattern: any cross-machine artifact that references file paths must serialize relative paths, and readers must accept relative + resolve against the artifact's directory.
@@ -97,8 +105,15 @@ One workflow observation: the harness blocks `sleep N; cmd` to prevent polling s
 
 ## 6. Open questions / next-session focus
 
-- **Codex pass on Slice 1 still pending.** User stated they will run it. Targets: `src/agents/planning-beats/index.ts` (env-var seam — `process.env` read at module load), `scripts/phase-eval/{run-variant,probe-planning-beats,print-screen-verdict}.ts`, variant prompt files, and the `clone-for-variant.ts` audit-list fix.
+- **Codex pass on Slice 1 completed end-of-session (RED → integrated).** Codex `gpt-5.5 effort=high` review (thread `a09d5baaad90af744`) returned RED with 3 blockers + 3 warnings + 2 suggestions. Integrated in commit `28c2e57`:
+  - **G1-G4 screen wrong end-to-end.** Verdict script implemented mean/median on the wrong fields and never applied charter thresholds. Rewrote against charter §G — ordered predicate table, exit 0 for SCREEN-PASS / 1 for SCREEN-FAIL, validates each outline against `chapterBeatsSchema`. Re-ran on existing probe data → SCREEN-PASS (loud cleared all 4 gates).
+  - **Clone audits ran outside the transaction.** Moved row-count + MUST-be-absent audits inside `db.begin()` so audit failure rolls back the entire clone instead of leaving a half-cloned novel committed.
+  - **Orphan DB state on child crash.** Probe parent now tracks all created novels and clears them via `clearNovelState` on failure (always) and on success by default (DB rows are throwaway; `--keep-novels` opts out).
+  - **Module-graph pollution.** `src/phases/concept.ts` imports the 3 concept prompts directly from agent modules instead of via `src/prompts.ts` barrel — eliminates the side-effect load of planning-beats's default prompt into the probe parent process.
+  - **Snapshot phase not stored.** Probe now UPDATEs `novels.phase = 'planning'` after concept completes so the stored row matches the snapshot state.
+  - **`--concept-snapshot-id` validation.** Probe verifies user-supplied snapshot exists, has phase='concept'|'planning', and has world_bibles + characters rows before cloning.
+- **Probe scaffold is now Codex-clean.** All blockers fixed; one needs-verification suggestion left as-is (legacy abs-path fallback shape — only producer used the layout the current fallback handles).
 - **Probe sample size.** Charter R5 specified 5 chapters per variant; we used the smallest current-target-genre seed (`fantasy-system-heretic`, 3 chapters) to keep cost low. The first run (3 chapters per variant, 1 run per variant, no temperature variance baseline) showed strong directional signal (ΔG1=+5, ΔG3=+4.3) but the sample is below the charter's spec. Next probe should either run a 5-chapter litrpg seed (none currently exists at chapter 5) or run 3 separate runs at temperature=0.6 to get a noise band.
 - **Decision pending: scale or pivot.** Per todo.md "post-probe scaling decision" item: (a) scale to 2 more variants on the same screen, (b) add a G5 metric (e.g., halluc-fire-rate at draft time), (c) fold the env-var seam into harness as a permanent prompt-pinning surface (`pipelineOverrides.promptOverrides[agent]`), or (d) close the probe out as instrument-validated and return to context-engineering work. Decision should land in next session's retrospective.
 
-If you're reading this on the next session, **start here:** the phase-eval probe scaffold is implementation-ready and the first run produced a clean directional signal. The user is queued to run a Codex pass on Slice 1 — don't pre-empt it. The instrument's main remaining gap is sample size (3 chapters, 1 run per variant). The next decision is scaling vs. pivoting per todo.md.
+If you're reading this on the next session, **start here:** the phase-eval probe scaffold is Codex-reviewed and integrated (commit `28c2e57`). First run on `fantasy-system-heretic` (3 chapters) produced a SCREEN-PASS verdict — loud variant cleared G1 (facts_median 8 ≥ 1.5×3 AND ≥8), G2 (know_median 5 ≥ 1.5×3 AND ≥3), G3 (total_beats 43 ≥ 1.10×30), G4 (3 outlines parse). Sample is below charter spec (5 chapters, multiple noise-band runs); next decision per todo.md is whether to (a) re-run on a 5-chapter seed, (b) add temperature noise band on the same seed, (c) fold the env-var seam into harness as `pipelineOverrides.promptOverrides`, or (d) close as instrument-validated and pivot to context-engineering work.
