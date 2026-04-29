@@ -37,8 +37,13 @@ const TABLE_ORDERS: Record<string, string> = {
   chapter_exhaustions:             "novel_id, chapter, attempt",
   validation_passes:               "novel_id, pass_number, chapter_number",
   issues:                          "novel_id, chapter, description",
-  llm_calls:                       "novel_id, chapter NULLS FIRST, beat_index NULLS FIRST, attempt NULLS FIRST, agent, timestamp",
-  pipeline_events:                 "novel_id, timestamp, id",
+  // Ordering avoids timestamp tie-breakers — duplicate-key rows (same
+  // agent+chapter+beat_index+attempt for llm_calls; same key fields for
+  // pipeline_events) should sort by SERIAL `id` (insertion order). Two
+  // runs that produce the same logical sequence get the same relative
+  // positions even when wall-clock millis differ or collide.
+  llm_calls:                       "novel_id, chapter NULLS FIRST, beat_index NULLS FIRST, attempt NULLS FIRST, agent, id",
+  pipeline_events:                 "novel_id, id",
 }
 
 /** Columns that contain large text/JSONB and should be hashed in normalize.ts

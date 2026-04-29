@@ -54,7 +54,11 @@ const REMAP_PK_CONFIG: Record<string, string[]> = {
   chapter_exhaustions:  ["novel_id", "chapter", "attempt"],
   issues:               ["novel_id", "chapter", "description"],
   llm_calls:            ["novel_id", "chapter", "beat_index", "attempt", "agent"],
-  pipeline_events:      ["novel_id", "event_type"],
+  // pipeline_events: tighter business key (chapter/beat_index/agent) so two
+  // runs that produce the same event sequence get identical stable ids per
+  // event, not just per (novel, event_type) bucket. rowIdx handles
+  // intra-bucket discrimination for duplicates.
+  pipeline_events:      ["novel_id", "chapter", "beat_index", "event_type", "agent"],
 }
 
 const HASHED_KEY = new Set(HASHED_FIELDS.map(({ table, field }) => `${table}.${field}`))
