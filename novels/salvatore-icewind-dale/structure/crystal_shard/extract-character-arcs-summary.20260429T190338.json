@@ -1,0 +1,13 @@
+{
+  "novel": "salvatore-icewind-dale",
+  "book": "crystal_shard",
+  "extractedAt": "2026-04-29T19:03:38.762Z",
+  "beatsRead": 858,
+  "arcsCount": 6,
+  "arcsByResolution": {
+    "fulfilled": 2,
+    "partial": 3,
+    "tragic_inversion": 1
+  },
+  "error": null
+}

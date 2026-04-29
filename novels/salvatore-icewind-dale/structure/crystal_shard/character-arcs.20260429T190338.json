@@ -1,0 +1,73 @@
+{
+  "novel": "salvatore-icewind-dale",
+  "book": "crystal_shard",
+  "arcs": [
+    {
+      "character_name": "Drizzt Do'Urden",
+      "lie": "I must earn acceptance through heroic deeds because my dark elf heritage makes me irredeemable.",
+      "truth": "My own self-respect and moral choices define my worth, not the acceptance of others.",
+      "want": "To protect Ten-Towns and find a place where he is accepted.",
+      "need": "To accept that he is already worthy and that belonging is not earned by deeds alone.",
+      "arc_resolution": "fulfilled",
+      "evidence_quote_lie": "They owe me nothing.",
+      "evidence_quote_truth": "I have my own self-respect.",
+      "confidence": 0.9
+    },
+    {
+      "character_name": "Bruenor Battlehammer",
+      "lie": "The true glory of my people lies in reclaiming Mithril Hall; our current life is just temporary.",
+      "truth": "Home is where my heart is – my found family is as valuable as ancestral halls.",
+      "want": "To find Mithril Hall and restore dwarven honor.",
+      "need": "To accept that his life in Icewind Dale with his friends is already meaningful.",
+      "arc_resolution": "partial",
+      "evidence_quote_lie": "Bruenor's thoughts drift to Mithril Hall, his lost ancestral home of silver rivers and dwarven smiths, and to the clan's exile and dwindling numbers.",
+      "evidence_quote_truth": "Drizzt promises to accompany Bruenor to Mithril Hall in the spring, and the dying dwarf smiles with contentment.",
+      "confidence": 0.85
+    },
+    {
+      "character_name": "Wulfgar",
+      "lie": "My worth is measured by my strength, my heritage, and my ability to defeat opponents.",
+      "truth": "True leadership comes from compassion, alliance, and fighting for others, not personal glory.",
+      "want": "To regain his honor, free his people from Heafstaag, and prove himself as a warrior.",
+      "need": "To learn that he can serve others without needing to dominate or prove himself in combat.",
+      "arc_resolution": "fulfilled",
+      "evidence_quote_lie": "\"I am Wulfgar, son of Beornegar,\" he boasted proudly, throwing back his broad shoulders and straightening his firm jaw.",
+      "evidence_quote_truth": "\"It is a matter we shall discuss after we have completed our task,\" Wulfgar answered.",
+      "confidence": 0.9
+    },
+    {
+      "character_name": "Regis",
+      "lie": "Comfort and self-preservation are the highest goods; I can avoid danger by manipulating others with my ruby pendant.",
+      "truth": "I have the courage to step up for others, and my actions can make a real difference.",
+      "want": "To enjoy a comfortable, easy life free from danger and responsibility.",
+      "need": "To take responsibility and use his skills for the greater good.",
+      "arc_resolution": "partial",
+      "evidence_quote_lie": "Regis had much to be proud of when he left the council hall later that day, and his hopes for the survival of Ten-Towns had returned.",
+      "evidence_quote_truth": "Regis steels himself, vows to try the deception, and receives Cassius's grim final order to surrender the city if the plan fails before marching out the gate.",
+      "confidence": 0.8
+    },
+    {
+      "character_name": "Akar Kessell",
+      "lie": "Power and respect from others are the ultimate goals; I can achieve greatness by seizing control through fear.",
+      "truth": "True power requires inner strength and wisdom, not just a magic relic and external dominance.",
+      "want": "To become a feared tyrant and command respect from all.",
+      "need": "To recognize his own inadequacy and stop being a tool of Crenshinibon.",
+      "arc_resolution": "tragic_inversion",
+      "evidence_quote_lie": "He could become the conqueror; he could make people, even the wizards in the Hosttower, tremble at the mere mention of his name.",
+      "evidence_quote_truth": null,
+      "confidence": 0.95
+    },
+    {
+      "character_name": "Catti-brie",
+      "lie": "In a male-dominated world, I must prove my worth as a warrior to be taken seriously.",
+      "truth": "I am already valued for who I am, and my courage speaks for itself.",
+      "want": "To be respected as a warrior and to take an active role in battle.",
+      "need": "To trust that her value does not depend on proving herself in combat.",
+      "arc_resolution": "partial",
+      "evidence_quote_lie": "Catti-brie fires back with a blunt sexual challenge that leaves Wulfgar blushing, then pivots to accuse him of worrying about Bruenor.",
+      "evidence_quote_truth": "Catti-brie decides to stay at the lever, reassures Bruenor with faith in his survival, and kisses him goodbye.",
+      "confidence": 0.7
+    }
+  ],
+  "error": null
+}

@@ -1,0 +1,315 @@
+{
+  "novel": "salvatore-icewind-dale",
+  "book": "crystal_shard",
+  "promises": [
+    {
+      "promise_id": "p001",
+      "promise_text": "Errtu will pursue the crystal shard Crenshinibon to gain its power.",
+      "opened_chapter_label": "prelude",
+      "opened_chapter_index": -1,
+      "closed_chapter_label": "25",
+      "closed_chapter_index": 25,
+      "hint_chapter_labels": [
+        "10",
+        "13",
+        "25"
+      ],
+      "hint_chapter_indices": [
+        10,
+        13,
+        25
+      ],
+      "payoff_quality": "partially_satisfied",
+      "evidence_quote_open": "Errtu sits on its mushroom throne in the Abyss, impatiently awaiting news of the relic Crenshinibon.",
+      "evidence_quote_close": "Errtu is banished, issuing its century-long vow of revenge as it dissolves into steam and vapor while the scimitar clangs to the stone.",
+      "confidence": 0.9
+    },
+    {
+      "promise_id": "p002",
+      "promise_text": "Akar Kessell's ambition and murder of Morkai will lead to his rise as a tyrant.",
+      "opened_chapter_label": "1",
+      "opened_chapter_index": 1,
+      "closed_chapter_label": "24",
+      "closed_chapter_index": 24,
+      "hint_chapter_labels": [
+        "4",
+        "10",
+        "13",
+        "20",
+        "24",
+        "28"
+      ],
+      "hint_chapter_indices": [
+        4,
+        10,
+        13,
+        20,
+        24,
+        28
+      ],
+      "payoff_quality": "satisfied",
+      "evidence_quote_open": "Kessell remains against the wall, needing its tangible support, and continues to shake for long minutes. His ambition reasserts itself as he imagines the status and chamber in the Hosttower he has now earned.",
+      "evidence_quote_close": "Kessell erupts in outrage at being forgotten and proclaims himself Tyrant of Icewind Dale, demanding the people's submission.",
+      "confidence": 0.95
+    },
+    {
+      "promise_id": "p003",
+      "promise_text": "Regis's past theft from Pasha Pook will catch up to him.",
+      "opened_chapter_label": "2",
+      "opened_chapter_index": 2,
+      "closed_chapter_label": "epilogue3",
+      "closed_chapter_index": 1002,
+      "hint_chapter_labels": [
+        "epilogue3"
+      ],
+      "hint_chapter_indices": [
+        1002
+      ],
+      "payoff_quality": "satisfied",
+      "evidence_quote_open": "Back in the southern land of Calimshan, the halfling had been climbing a fast ladder to Associate Guildmaster in one of the most prominent thieves' guilds in the port city of Calimport. ... until he stole one ruby from the Pasha Pook's collection... and cannot understand why the Pasha is still furious.",
+      "evidence_quote_close": "Regis spots the stranger first and recognizes the emerald-hilted dagger of Artemis Entreri, Pasha Pook's prime assassin.",
+      "confidence": 0.95
+    },
+    {
+      "promise_id": "p004",
+      "promise_text": "The barbarian tribes will attack Ten-Towns.",
+      "opened_chapter_label": "2",
+      "opened_chapter_index": 2,
+      "closed_chapter_label": "8",
+      "closed_chapter_index": 8,
+      "hint_chapter_labels": [
+        "3",
+        "7"
+      ],
+      "hint_chapter_indices": [
+        3,
+        7
+      ],
+      "payoff_quality": "satisfied",
+      "evidence_quote_open": "Drizzt presses on despite sunlight sickness because ominous signs — empty barbarian caves, abandoned migration trails, and war drums — warn of imminent attack on Ten-Towns.",
+      "evidence_quote_close": "The barbarian horde enters Bremen's Run in restrained silence, following deBernezan's plan for a surprise attack on Ten-Towns.",
+      "confidence": 1
+    },
+    {
+      "promise_id": "p005",
+      "promise_text": "Bruenor will seek to reclaim Mithril Hall.",
+      "opened_chapter_label": "5",
+      "opened_chapter_index": 5,
+      "closed_chapter_label": "epilogue3",
+      "closed_chapter_index": 1002,
+      "hint_chapter_labels": [
+        "11",
+        "12",
+        "30",
+        "epilogue3"
+      ],
+      "hint_chapter_indices": [
+        5,
+        11,
+        12,
+        30,
+        1002
+      ],
+      "payoff_quality": "satisfied",
+      "evidence_quote_open": "Bruenor's thoughts drift to Mithril Hall, his lost ancestral home of silver rivers and dwarven smiths, and to the clan's exile and dwindling numbers.",
+      "evidence_quote_close": "One fine morning in early spring, the time finally came for Drizzt and Bruenor to leave.",
+      "confidence": 0.9
+    },
+    {
+      "promise_id": "p006",
+      "promise_text": "The ruby pendant will be used to influence the council and others.",
+      "opened_chapter_label": "5",
+      "opened_chapter_index": 5,
+      "closed_chapter_label": "6",
+      "closed_chapter_index": 6,
+      "hint_chapter_labels": [
+        "6",
+        "8",
+        "19",
+        "27",
+        "28"
+      ],
+      "hint_chapter_indices": [
+        6,
+        8,
+        19,
+        27,
+        28
+      ],
+      "payoff_quality": "satisfied",
+      "evidence_quote_open": "Drizzt explains the political calculus of winning the council through Regis and his ruby, while Bruenor doubts both Regis's influence and the stone's magic.",
+      "evidence_quote_close": "The ruby's magic works — Kemp stares unblinking for twenty seconds, then mechanically declares support for the alliance, shocking Regis and triggering a cascade of spokesmen joining the pact.",
+      "confidence": 1
+    },
+    {
+      "promise_id": "p007",
+      "promise_text": "Aegis-fang, the warhammer, will be given to Wulfgar and become a mighty weapon.",
+      "opened_chapter_label": "11",
+      "opened_chapter_index": 11,
+      "closed_chapter_label": "12",
+      "closed_chapter_index": 12,
+      "hint_chapter_labels": [
+        "12",
+        "14",
+        "16",
+        "18",
+        "21"
+      ],
+      "hint_chapter_indices": [
+        11,
+        12,
+        14,
+        16,
+        18,
+        21
+      ],
+      "payoff_quality": "satisfied",
+      "evidence_quote_open": "Bruenor takes the silver mallet and chisel and begins carving runes into the mithril, hearing the metals ring with a pure note. ... 'Aegis-fang,' Bruenor replied without thinking, the name flowing from him before he even had time to consider it.",
+      "evidence_quote_close": "Bruenor awkwardly produces the warhammer Aegis-fang from the hallway and tosses it to Wulfgar with a gruff demand for a conditional oath.",
+      "confidence": 1
+    },
+    {
+      "promise_id": "p008",
+      "promise_text": "Kessell's army will attack Ten-Towns.",
+      "opened_chapter_label": "10",
+      "opened_chapter_index": 10,
+      "closed_chapter_label": "23",
+      "closed_chapter_index": 23,
+      "hint_chapter_labels": [
+        "13",
+        "20",
+        "23",
+        "24"
+      ],
+      "hint_chapter_indices": [
+        10,
+        13,
+        20,
+        23,
+        24
+      ],
+      "payoff_quality": "satisfied",
+      "evidence_quote_open": "Kessell surveys his swelling army of goblins, orcs, ogres, trolls, verbeeg, and frost giants assembled around the plateau of Cryshal-Tirith.",
+      "evidence_quote_close": "Kessell's army sweeps around Lac Dinneshere and crashes into Caer-Konig before the fishing fleet can return to port.",
+      "confidence": 1
+    },
+    {
+      "promise_id": "p009",
+      "promise_text": "Errtu will raise a second Cryshal-Tirith tower.",
+      "opened_chapter_label": "13",
+      "opened_chapter_index": 13,
+      "closed_chapter_label": "24",
+      "closed_chapter_index": 24,
+      "hint_chapter_labels": [
+        "24",
+        "28"
+      ],
+      "hint_chapter_indices": [
+        13,
+        24,
+        28
+      ],
+      "payoff_quality": "satisfied",
+      "evidence_quote_open": "Kessell orders Errtu to raise a second Cryshal-Tirith tower using a replica crystal; Errtu protests the enormous drain but is silenced and departs.",
+      "evidence_quote_close": "The crystal shard absorbs the first ray of dawn and begins its ritual growth, drinking all sunlight and slowly rising into the tower Cryshal-Tirith.",
+      "confidence": 0.95
+    },
+    {
+      "promise_id": "p010",
+      "promise_text": "Wulfgar will face the white dragon Icingdeath to claim its treasure and prove himself.",
+      "opened_chapter_label": "21",
+      "opened_chapter_index": 21,
+      "closed_chapter_label": "22",
+      "closed_chapter_index": 22,
+      "hint_chapter_labels": [
+        "22",
+        "26"
+      ],
+      "hint_chapter_indices": [
+        21,
+        22,
+        26
+      ],
+      "payoff_quality": "satisfied",
+      "evidence_quote_open": "Wulfgar pauses in tribute to his dead father and resolves to succeed where all others have died. ... Wulfgar knew better, though. His father stumbled upon the cave entrance and spent years secretly gathering intelligence on the dragon before being killed.",
+      "evidence_quote_close": "Half-conscious, Wulfgar spots the huge icicle above the dragon and launches Aegis-fang upward in a last desperate throw.",
+      "confidence": 1
+    },
+    {
+      "promise_id": "p011",
+      "promise_text": "Errtu will betray or scheme against Kessell to gain the shard.",
+      "opened_chapter_label": "10",
+      "opened_chapter_index": 10,
+      "closed_chapter_label": "13",
+      "closed_chapter_index": 13,
+      "hint_chapter_labels": [
+        "13",
+        "25"
+      ],
+      "hint_chapter_indices": [
+        10,
+        13,
+        25
+      ],
+      "payoff_quality": "partially_satisfied",
+      "evidence_quote_open": "Errtu privately judges Kessell unfit to lead and reveals it secretly offered the shard a deal to replace him, which Crenshinibon refused because it prefers a weak master.",
+      "evidence_quote_close": "Errtu privately judges Kessell unfit to lead and reveals it secretly offered the shard a deal to replace him, which Crenshinibon refused because it prefers a weak master.",
+      "confidence": 0.85
+    },
+    {
+      "promise_id": "p012",
+      "promise_text": "Regis will attempt to deceive Kessell as an emissary.",
+      "opened_chapter_label": "27",
+      "opened_chapter_index": 27,
+      "closed_chapter_label": "27",
+      "closed_chapter_index": 27,
+      "hint_chapter_labels": [
+        "28"
+      ],
+      "hint_chapter_indices": [
+        27,
+        28
+      ],
+      "payoff_quality": "satisfied",
+      "evidence_quote_open": "Cassius reveals his plan: send Regis as emissary to charm Kessell, shocking the halfling who had only come to observe.",
+      "evidence_quote_close": "The ruby pendant snares Kessell; Regis whispers of secret information and private ears, and the mesmerized wizard agrees to hear him inside the tower.",
+      "confidence": 0.95
+    },
+    {
+      "promise_id": "p013",
+      "promise_text": "Drizzt will confront and banish Errtu.",
+      "opened_chapter_label": "25",
+      "opened_chapter_index": 25,
+      "closed_chapter_label": "25",
+      "closed_chapter_index": 25,
+      "hint_chapter_labels": [
+        "29"
+      ],
+      "hint_chapter_indices": [
+        25,
+        29
+      ],
+      "payoff_quality": "satisfied",
+      "evidence_quote_open": "Drizzt plans to use deception with Errtu to extract knowledge of Kessell's weakness, then scrapes protective runes into the dell's walls while knowing their design is imperfect. ... He summoned the demon by its true name.",
+      "evidence_quote_close": "Steam poured from Errtu's exposed entrails and enveloped the combatants.",
+      "confidence": 1
+    },
+    {
+      "promise_id": "p014",
+      "promise_text": "Artemis Entreri, Pasha Pook's assassin, has come for Regis.",
+      "opened_chapter_label": "epilogue3",
+      "opened_chapter_index": 1002,
+      "closed_chapter_label": "epilogue3",
+      "closed_chapter_index": 1002,
+      "hint_chapter_labels": [],
+      "hint_chapter_indices": [],
+      "payoff_quality": "satisfied",
+      "evidence_quote_open": "A warehouseman delivers word of a mysterious man from Luskan asking for Regis and offering gold, and the sight of the gold is all the halfling needs to set off at once. ... Luck saves Regis when he spots the stranger first and recognizes the emerald-hilted dagger of Artemis Entreri, Pasha Pook's prime assassin.",
+      "evidence_quote_close": "Once again, sheer luck saved the halfling's life, for he saw the stranger before the stranger saw him.",
+      "confidence": 1
+    }
+  ],
+  "openOnlyCount": 14,
+  "closuresCount": 14,
+  "error": null
+}
