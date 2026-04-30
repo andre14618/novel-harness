@@ -731,3 +731,104 @@ If anchor stability fails (< 0.70 Jaccard), the sub-dim is re-scoped before any 
 - Source rubric material: `src/agents/structure-mice/mice-system-v2-draft.md` + `src/agents/structure-value-charge/value-charge-system-v2-draft.md` (absorbed, not promoted)
 
 ---
+
+## Session 2026-04-30 00:21 UTC — Cheapest-counterfactual mice test (Codex pivot validation)
+
+Both Codex reviews of the v2 design converged on the same recommendation: **before committing to the 4-binary-call mice decomposition + the broader v2 architecture, run the cheapest counterfactual** — monolithic Flash × Sonnet anchor on a frozen sample, with two Sonnet runs to measure anchor self-consistency. Memory `feedback_codex_counterfactual_signal` standing rule: when Codex returns RED with a named cheapest-untried-counterfactual, treat it as a pivot recommendation, not an alternative to refute.
+
+**Per the user direction: Sonnet runs use Claude Code subagents, not API calls** (memory `feedback_sonnet_subagents`). 8 subagents total: 4 batches × 2 runs. Total wall-clock ~3 minutes (subagents ran in parallel).
+
+### Hypothesis
+
+If Sonnet's self-consistency on the existing monolithic mice rubric is **≥0.85 Jaccard on `primary_thread`** AND Flash × Sonnet F1 ≥ 0.78 on the binary "thread fired" call, the v2 4-binary-call decomposition is unnecessary. Ship the monolithic shape with a Sonnet anchor.
+
+If anchor stability is `< 0.70`, the rubric is too latitude-permissive to anchor against — the same problem we identified for promise (R2.2/R2.3), now suspected for mice. Re-scope before any extractor calibration.
+
+If F1 ≥ 0.78 but stability is borderline, the architecture question is genuinely open and needs a larger sample to resolve.
+
+### Methodology
+
+Sample: **30 unique scenes** from the existing mice sample (the original adjudication sample contained 33 rows but 3 duplicate `scene_id`s; deduping leaves 30 distinct scenes). Output written to `/tmp/sonnet-mice-test/run{1,2}-batch-{1,2,3,4}.jsonl`.
+
+Each subagent received:
+- The current monolithic mice rubric (`src/agents/structure-mice/mice-system.md`, 175 lines, untouched — NOT the v2 draft).
+- A batch of 8–9 scene texts.
+- Strict output schema instructions.
+- Explicit "do not try to match run-1; this is a self-consistency check" framing on run-2.
+
+The Flash baseline came from the existing book-wide extraction (`mice.20260429T202249.jsonl`, 858 beats), filtered to the 30 sampled scenes.
+
+Analysis script: `/tmp/sonnet-mice-test/analyze.ts`. Output: [`crystal_shard.20260430T002127.cheapest-counterfactual-mice.json`](crystal_shard.20260430T002127.cheapest-counterfactual-mice.json).
+
+### Results
+
+**Sonnet self-consistency (run-1 × run-2, n=30):**
+
+| Field | Agreement | Note |
+|---|---|---|
+| `primary_thread` (per-field) | **0.800** (24/30) | C vs E confusion concentrated in 4 of the 6 disagreements |
+| `secondary_thread` | 0.733 (22/30) | |
+| `opens_thread` | 0.900 (27/30) | binary fields more stable than 4-class enum |
+| `closes_thread` | 0.933 (28/30) | |
+| **`primary_thread` Jaccard (discrete-tuple)** | **0.667** | **BELOW 0.70 floor → "anchor unusable" per v2 gates** |
+
+Confusion matrix on `primary_thread` (rows = run-1, cols = run-2):
+
+```
+         M    I    C    E
+   M     5    0    0    0      Milieu: 5/5 = 100% (unambiguous)
+   I     0    5    0    1      Inquiry: 5/6 = 83%
+   C     0    0    6    3      Character: 6/9 = 67% — 3 leak to Event
+   E     0    1    1    8      Event: 8/10 = 80% — 1 each to I, C
+```
+
+**The C↔E boundary owns the instability.** 4 of the 6 cross-run disagreements are scenes where one Sonnet run says "Character thread dominates" and the other says "Event thread dominates." This is a **rubric-latitude problem at the C/E boundary**, not random model noise.
+
+**Flash × Sonnet (binary "thread fired" = opens_thread || closes_thread):**
+
+| Anchor | tp | fp | fn | tn | P | R | F1 |
+|---|---|---|---|---|---|---|---|
+| Sonnet run-1 | 18 | 5 | 4 | 3 | 0.783 | 0.818 | **0.800** |
+| Sonnet run-2 | 15 | 8 | 4 | 3 | 0.652 | 0.789 | **0.714** |
+
+**Flash F1 range across the two anchors: 0.714–0.800 (Δ=8.6pp; mean=0.757).** The 0.78 PASS gate falls *inside* the range. Whether Flash mice "passes" depends on which Sonnet run you happened to fix as gold. This is the **Sonnet-anchor analog of the C.2 Pro-judge gold-stability ceiling** — same shape, different model family.
+
+For comparison: Phase A Flash × Pro F1 was 0.776, Phase A Flash × Flash (self) was 0.809. Sonnet anchor sits in the same band as Pro and self-judge — the family of the anchor is **not** the dominant variable on the F1 measurement; the rubric latitude is.
+
+### Conclusion
+
+Both gates fail. Rephrasing:
+
+1. **Anchor stability gate**: 0.667 Jaccard, below the 0.70 floor. Per the v2 design doc's own thresholds, the monolithic mice rubric is **unusable as a Sonnet anchor** — re-scoping required before any extractor calibration.
+2. **F1 gate**: 0.757 mean (0.714 worst case, 0.800 best case). Below the 0.78 PASS gate on the mean; range straddles the gate. **Decomposition is not refuted by this result; it is corroborated** — the rubric admits two defensible reads of every C↔E scene, and a single 4-way classifier inherits the union of both ambiguities. A binary "is Character present?" sub-call has a tighter cognitive scope and is the right shape to lift each sub-call's stability above 0.85.
+3. **Both Codex reviews predicted that monolithic Flash × Sonnet might lift past 0.78 simply because Sonnet is a different family from DeepSeek.** This was disconfirmed. The cross-family anchor does NOT structurally fix the F1 problem; the bound is on the rubric, not the anchor model.
+
+What we learned that neither the v1 conclusions nor the v2 design captured:
+
+- **Sonnet anchor is itself rubric-latitude-vulnerable.** The v2 design implicitly treated Sonnet as a "different family ≈ stable anchor" — this was wrong. Sonnet has the same kind of latitude problem on this rubric that Pro had on promise (R2.2). Cross-family is necessary but not sufficient.
+- **The v2 architecture's preflight-gate design IS validated.** The Sonnet self-consistency Jaccard ≥ 0.85 gate is exactly the right shape to catch this — and it caught it before any extractor calibration runs were committed. Without the preflight, we'd have run Phase D extractor calibration against an unstable anchor and reported numbers we couldn't trust.
+- **Promise dim has the same shape (preliminary).** The Sonnet promise run-2 (in flight: 66 promises vs run-1's 38; pair-matching pending) suggests Sonnet's anchor is unstable for promise too. The Sonnet 38 ≥ Pro 27–30 ≥ Flash 14 framing in C.1 was a single-run snapshot; anchoring against it would have been premature.
+
+### Action
+
+1. **Decompose mice into 4 binary calls per scene** as the v2 design specified, AND run a fresh Sonnet self-consistency check per sub-call. The hypothesis is each sub-call hits ≥0.85 because the cognitive scope is one thread type, not "pick the dominant of four." If even the binary sub-calls don't clear 0.85, the rubric needs a structural rewrite — not just decomposition.
+2. **Treat the v2 design's anchor-stability gate as load-bearing, not procedural.** The mice cheapest-counterfactual is the first concrete validation that the gate catches real problems. Adopt the gate as a hard preflight for every dim under v2.
+3. **Defer the "anchor unusable → re-scope" interpretation pending the binary-decomposition test.** The 0.667 Jaccard is on the **monolithic** rubric. The v2 architecture's first move is to test whether the binary sub-calls retire that latitude. If they do, the architecture's promise holds. If they don't, the dim itself may be irreducibly latitude-permissive on this corpus, and we re-scope mice rather than retry it.
+4. **Promise pair-matcher result (R1×R2 Sonnet)** in flight via separate subagent. When complete, append to this section as a confirming/disconfirming data point on whether the rubric-latitude problem generalizes across dims.
+5. **Sample size note:** n=30 for both gates. The v2 design specifies n=50; the dedup loss from sampler-side duplicates pushed us to n=30. Re-run sampling with `--seed 42 --n 50` against the deduped 858-beat corpus before committing to any v2 extractor verdict. (Sample-size note: 30 unique scenes from a sampler that requested 33 means ~9% of the requested distinct samples collided. Investigate `sample-for-adjudication.ts` for the dup-collision bug.)
+
+### Cost ledger delta (cheapest-counterfactual)
+
+| Step | Calls | Cost |
+|---|---|---|
+| Sonnet mice run-1 (4 subagents) | 33 scene labels | subagent (separate billing) |
+| Sonnet mice run-2 (4 subagents) | 33 scene labels | subagent (separate billing) |
+| Flash mice extraction (already on disk) | 858 | already in v1 budget |
+| Analysis script (no LLM) | 0 | $0.00 |
+| Sonnet promise run-2 (1 subagent, 66 promises) | 1 task | subagent |
+| Sonnet promise R1×R2 pair-matcher (subagent, in flight) | 1 task | subagent |
+| **Subtotal** | 9 subagents + analysis | **~$0.00 in API; subagent cost separate** |
+
+Cumulative on crystal_shard at promo pricing: ~$4.15 + 0 (this round subagent-only) = **~$4.15**.
+
+---

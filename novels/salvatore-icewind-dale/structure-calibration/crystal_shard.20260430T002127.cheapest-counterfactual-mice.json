@@ -1,0 +1,154 @@
+{
+  "computedAt": "2026-04-30T00:21:27.425Z",
+  "n": 30,
+  "sonnetSelfConsistency": {
+    "fields": [
+      {
+        "field": "primary_thread",
+        "agree": 24,
+        "n": 30,
+        "rate": 0.8
+      },
+      {
+        "field": "secondary_thread",
+        "agree": 22,
+        "n": 30,
+        "rate": 0.7333333333333333
+      },
+      {
+        "field": "opens_thread",
+        "agree": 27,
+        "n": 30,
+        "rate": 0.9
+      },
+      {
+        "field": "closes_thread",
+        "agree": 28,
+        "n": 30,
+        "rate": 0.9333333333333333
+      }
+    ],
+    "primaryThreadJaccard": 0.6666666666666666,
+    "confusion": {
+      "M": {
+        "M": 5,
+        "I": 0,
+        "C": 0,
+        "E": 0
+      },
+      "I": {
+        "M": 0,
+        "I": 5,
+        "C": 0,
+        "E": 1
+      },
+      "C": {
+        "M": 0,
+        "I": 0,
+        "C": 6,
+        "E": 3
+      },
+      "E": {
+        "M": 0,
+        "I": 1,
+        "C": 1,
+        "E": 8
+      }
+    }
+  },
+  "flashVsSonnet": {
+    "n": 30,
+    "againstRun1": {
+      "goldRun": "sonnet-run-1",
+      "fields": [
+        {
+          "field": "primary_thread",
+          "agree": 16,
+          "n": 30,
+          "rate": 0.5333333333333333
+        },
+        {
+          "field": "secondary_thread",
+          "agree": 19,
+          "n": 30,
+          "rate": 0.6333333333333333
+        },
+        {
+          "field": "opens_thread",
+          "agree": 18,
+          "n": 30,
+          "rate": 0.6
+        },
+        {
+          "field": "closes_thread",
+          "agree": 23,
+          "n": 30,
+          "rate": 0.7666666666666667
+        }
+      ],
+      "binaryThreadFired": {
+        "tp": 18,
+        "fp": 5,
+        "fn": 4,
+        "tn": 3,
+        "precision": 0.782608695652174,
+        "recall": 0.8181818181818182,
+        "f1": 0.8
+      }
+    },
+    "againstRun2": {
+      "goldRun": "sonnet-run-2",
+      "fields": [
+        {
+          "field": "primary_thread",
+          "agree": 18,
+          "n": 30,
+          "rate": 0.6
+        },
+        {
+          "field": "secondary_thread",
+          "agree": 18,
+          "n": 30,
+          "rate": 0.6
+        },
+        {
+          "field": "opens_thread",
+          "agree": 17,
+          "n": 30,
+          "rate": 0.5666666666666667
+        },
+        {
+          "field": "closes_thread",
+          "agree": 23,
+          "n": 30,
+          "rate": 0.7666666666666667
+        }
+      ],
+      "binaryThreadFired": {
+        "tp": 15,
+        "fp": 8,
+        "fn": 4,
+        "tn": 3,
+        "precision": 0.6521739130434783,
+        "recall": 0.7894736842105263,
+        "f1": 0.7142857142857143
+      }
+    },
+    "f1Range": {
+      "min": 0.7142857142857143,
+      "max": 0.8,
+      "range": 0.08571428571428574,
+      "mean": 0.7571428571428571
+    }
+  },
+  "gates": {
+    "stabilityFloor": 0.7,
+    "stabilityPass": 0.85,
+    "f1Pass": 0.78
+  },
+  "verdicts": {
+    "stability": "UNSTABLE (< 0.7, anchor unusable)",
+    "f1": "BELOW (< 0.78)",
+    "pivot": "ANCHOR UNUSABLE — re-scope mice rubric before any extractor calibration"
+  }
+}
