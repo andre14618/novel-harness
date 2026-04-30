@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-29
+updated: 2026-04-30
 ---
 
 # Decisions
@@ -2322,3 +2322,117 @@ Both failure modes are rubric-latitude problems at different layers. Decompositi
 - Sonnet self-consistency check is a hard gate per dim before any extractor calibration: ≥ 0.85 Jaccard required to anchor; < 0.70 means re-scope the sub-dim. This generalizes the existing memory `feedback_gold_stability_first.md` from "lessons learned" to "standing pre-flight check."
 - Implementation order: (1) Sonnet self-consistency on the 4 modified dims (~$8–15, half-day wall-clock); (2) sub-prompt drafting for dims that pass Gate 1; (3) Flash extraction + calibration; (4) per-dim ship/hold verdict.
 - Adversary review (Codex `codex-rescue gpt-5.5 effort=high`) scheduled after the Phase C close-out commits to the conclusions doc — gives a complete v1 baseline to evaluate against.
+
+### Sonnet-anchor v2 Gate 1 outcomes — Crystal Shard sceneBeatSchema soft priors landed
+*2026-04-30 · commits `42745ce` → `c5b3f3d` → `c48a232` → `81d228a` → `cd4347a` (`novels/salvatore-icewind-dale/structure-calibration/crystal_shard-conclusions.md` sessions 00:01 / 00:48 / 01:22 / 01:35 / 01:47 / 01:54 UTC)*
+
+**Decision:** With Sonnet self-consistency at n=50 + binary-collapse re-aggregation + beat-level extension, four corpus-derived structural priors land on `sceneBeatSchema` and are documented as planning-beats soft-prior text. Each shipped enum is the **intersection** of scene-level AND beat-level Jaccard ≥ 0.85 — the granularity-aware ship gate (see SOP below). The promise dim stays parked behind the v2 sub-dim split (open question, not regression). McKee-gap binary stays NEAR at the scene-level boundary; queued for rubric sharpen.
+
+| Field | Pre-session shape | Post-session shape | Anchor Jaccard (scene / beat) |
+|---|---|---|---|
+| `valueShift` (3-class +/-/0) | shipped | RETIRED — anchor unstable | 0.639 / 0.786 |
+| `valueShifted` (binary) | — | ADDED, replaces above | **0.887–0.923 / 0.852** |
+| `gapPresent` (binary) | drafted | shipped with low-confidence caveat | **0.818 NEAR / pending** |
+| `lifeValueAxes` (5 binary axes) | 3 shipped (life-death, ethics, relational) | EXPANDED to 5; agency + aspiration added | life-death 0.887/0.923, agency 0.724 NEAR / **0.852 PASS**, ethics 0.923/0.961, relational 0.923/0.961, aspiration 0.754 NEAR / **0.852 PASS** |
+| `miceActive` (4 threads → enum subset) | drafted (M/I/C/E) | NARROWED to `["I"]` only | I 0.961/**0.887**, C 0.961/0.754 NEAR, E 0.923/0.818 NEAR |
+| `miceOpens` | drafted (M/I/C/E) | NARROWED to `["M","I"]` | M PASS/**0.961**, I PASS/**0.887**, E 0.852/0.818 NEAR |
+| `miceCloses` | drafted (M/I/C/E) | UNCHANGED — all four pass at both granularities | all four 0.887–1.000 |
+
+All fields are **soft priors** with `optional()` or `default([])` semantics. Empty / omitted is valid; checkers MUST NOT block on these fields. Round-trips unchanged with legacy plans.
+
+**Why:**
+- *valueShift binary collapse.* The 3-class `+/-/0` polarity tag was at J=0.639 on a 50-scene Sonnet self-consistency wave (UNSTABLE per `feedback_gold_stability_first`). The cheapest-untried-counterfactual was data-only re-aggregation on the existing waves: collapse `+|-` → `shifted=true` and `0` → `shifted=false`. Result: J=0.887–0.923 at scene level on the same Sonnet runs that scored 0.639 on 3-class. Beat-level Sonnet self-consistency (waves stripped to binary-only rubric) confirmed J=0.852 — at the ship bar — without any new labeling. Net: zero new LLM calls, anchor instability resolved.
+- *gapPresent.* Cross-model F1 (Flash × Pro) on the original mckee-gap field was 0.892 (looked PASS); but Sonnet self-consistency on "any gap vs none" is 0.818, NEAR. Binary-collapse from `gap_size` × `gap_type` partitions doesn't recover it — the borderline cases shift between "small" and "no gap" between runs. Field shipped with explicit "low-confidence soft prior; checkers MUST NOT block" caveat; rubric sharpen queued.
+- *lifeValueAxes.* The 5-class single-pick enum was J=0.639 (scene) / 0.786 (beat) — UNSTABLE. Binary multi-tag collapse (each axis independently y/n) PASSES all 5 at beat level. Schema operates at beat level (`sceneBeatSchema`), so beat-stable wins. agency (0.724→0.852) and aspiration (0.754→0.852) IMPROVE from scene to beat granularity — granularity rotation finding (see new SOP).
+- *Mice granularity rotation.* All 4 mice threads scored ≥ 0.85 at scene-level on the original wave. Re-running at beat-level showed THREE subfields degrade to NEAR (`miceActive` C/E, `miceOpens` E) while the rest improve or hold. Schema operates at beat level, so the per-field enum is the **intersection** of scene-level AND beat-level PASS sets. Closing events stable across both granularities; opening + active events more granularity-sensitive.
+
+**Alternatives rejected:**
+- *Pick the larger 3-class enum and ship it anyway.* User's standing rule: rubric latitude with Sonnet J<0.85 means the gold is unstable, so any extractor F1 measured against it is dominated by judge variance. Shipping it would propagate hidden noise into the planner's structural priors.
+- *Re-label at higher temperature / with more examples to recover the 3-class polarity.* The same-model + same-prompt instability is structural rubric latitude, not temperature noise (per `feedback_gold_stability_first`). Tested via mckee-gap binary collapse: borderline cases stay borderline.
+- *Ship scene-stable mice subfields without re-checking at beat granularity.* This is exactly what the granularity rotation finding rules out — `sceneBeatSchema` operates at beat level, so anchor stability MUST be measured at beat level for any beat-emitted field. Caught by Codex review on the n=50 expansion.
+- *Wait for v2 Flash extractor calibration before adding any priors to the schema.* The Sonnet anchor IS the gold; Flash calibration measures whether the cheap extractor matches it. Schema fields (planner soft priors) need only the gold to be stable, not the cheap extractor. Decoupling unblocked the schema work.
+
+**How to apply:**
+- New planner outputs use the post-session schema. Beat-level reference distributions documented in `src/schemas/shared.ts` comments + `src/agents/planning-beats/beat-expansion-system.md` "Corpus-derived soft priors" block.
+- Chapter-skeleton priors (`chapter-outline-system.md`) are **NOT** updated yet — the chapter-level mice rollup uses the older Flash monolithic extractor (anchor ~0.667). Reverted the speculative edit; new v2 mice re-extraction in flight at session end (4 dims × 2 runs = 8 subagents on 139 scenes). After v2 high-stability data lands, re-aggregate chapter-level rhythm and re-cut the plotter prompt.
+- Existing tests round-trip unchanged: legacy plans without these fields validate fine; the four `SceneBeat` literals in `src/agents/writer/enriched-context.test.ts` were updated with empty defaults.
+- Cross-book validation (Streams of Silver, Storm Front per `docs/cross-book-cross-author-brief.md`) starts under v2 once Crystal Shard chapter-level rollup lands cleanly.
+
+**Ongoing implications:**
+- The schema commits closing this gate are: `42745ce` (initial valueShift + gapPresent), `c5b3f3d` (mice* drafts + valueShift caveat), `c48a232` (valueShift→valueShifted + lifeValueAxes 5 binary), `81d228a` (beat-level binary-only validation), `cd4347a` (mice granularity rotation narrowing).
+- The chapter-outline-system.md prompt edit was REVERTED in this session because its chapter mice priors came from the older monolithic-rubric extractor. Do not promote the chapter-level mice priors into the plotter prompt until v2 high-stability data lands. (Provenance check: a chapter-level rollup is only safe to use as planner prior if the underlying scene-level labels come from a Sonnet J ≥ 0.85 anchor or a Flash extractor calibrated against one.)
+- Schema field reference distributions live in `src/schemas/shared.ts` block comments — re-running the same n=50 stability check on a different book SHOULD reproduce these distributions to within ±5%; if not, that's evidence the priors are author-specific rather than corpus-general.
+
+### Binary-collapse-before-relabel SOP — try every binary collapse on existing data before authorizing new labeling waves
+*2026-04-30 · `novels/salvatore-icewind-dale/structure-calibration/crystal_shard-conclusions.md` session ~01:35 UTC, commits `b061779` + `c48a232`*
+
+**Decision:** When a stochastic-schema dim's anchor Jaccard falls below 0.85, **before** authorizing a new labeling wave (Sonnet anchor at $5–10/dim, several hours wall clock), exhaustively try data-only binary-collapse re-aggregations on the existing waves. The 3-class polarity → binary "did it move" collapse on existing valueShift waves recovered J from 0.639 to 0.887–0.923 with zero new LLM calls. Same pattern recovered lifeValueAxes (5-class single-pick → 5 independent binary tags).
+
+**Why:** The cost asymmetry is large — binary-collapse analysis is a 50-line script; new labeling wave is real money + wall-clock + risk of cascading other re-aggregations downstream. Binary collapses also produce *cleaner* schema fields than 3+-class enums for the same use case (planner soft prior, downstream checker doesn't gate on them, planner just reasons over them) — fewer choices to be inconsistent on. The right shape was hidden in the existing data; the labeling wave would have only confirmed that the unstable rubric stays unstable.
+
+**Alternatives rejected:**
+- *Tighten the rubric and re-label.* Tested with mckee-gap binary collapse on existing waves: borderline gap-vs-no-gap cases stay borderline regardless of rubric polish, because the source instability is *interpretation latitude*, not rubric ambiguity within a fixed interpretation. Re-labeling at a sharper rubric is still useful (queued for mckee-gap), but it's the second move, not the first.
+- *Ship the unstable enum and let downstream checkers absorb the noise.* User standing rule + memory `feedback_gold_stability_first`: anchor instability dominates extractor F1 and propagates into harness behavior silently. The schema is upstream of extractor calibration; instability there compounds.
+
+**How to apply:**
+- Step 0 (gold-stability check): two-run Sonnet self-consistency, J ≥ 0.85 to ship.
+- Step 1 (cheapest counterfactual on FAIL): enumerate binary collapses of the failing enum. Score each binary partition's J on the existing run pair. Ship the binary that passes; use the existing data to estimate beat-level reference distributions.
+- Step 2 (only if all binary collapses fail): rubric sharpen + re-label.
+- Step 3 (only if rubric sharpen fails): split into sub-dims with disjoint criteria.
+
+**Ongoing implications:**
+- This SOP is upstream of `feedback_gold_stability_first`: that memory says "measure first." This SOP says "if you fail the measurement, the cheapest fix is data-only collapse, not relabeling." Add to corpus-decomposition runbook + memory.
+- Generalizes to ANY stochastic-schema dim, not just structural priors. Adherence/continuity/hallucination rubric drift can be debugged the same way: collapse the failing class boundary, re-score, decide.
+
+### Granularity-aware ship gates — fields emitted at beat level must clear anchor Jaccard at BOTH scene AND beat level
+*2026-04-30 · `novels/salvatore-icewind-dale/structure-calibration/crystal_shard-conclusions.md` session ~01:54 UTC, commit `cd4347a`*
+
+**Decision:** When a calibration anchor wave is run at scene level but the schema field operates at beat level (or vice versa), the ship gate is the **intersection** of the two granularities, not just the higher number. Specifically: any field on `sceneBeatSchema` (which planner emits at beat level) ships only if Sonnet self-consistency Jaccard ≥ 0.85 at BOTH the scene-level reference wave AND a beat-level confirmation wave on the same rubric (or vice versa). The granularity at which the field is emitted in production is the load-bearing one.
+
+**Why:** The n=50 beat-level extension wave (~01:54 UTC) revealed asymmetric granularity behavior on the mice and lifeValue enums: some scene-PASS subfields degrade at beat level (mice C/E activity 0.961→0.754; mice E opens 0.852→0.818), while some scene-NEAR subfields IMPROVE at beat level (lifeValueAxes agency 0.724→0.852, aspiration 0.754→0.852). The mechanism: smaller text spans (beats) reduce ambiguity for some rubric questions ("which mice thread is *active* in this 200-word beat?") and increase it for others ("does this beat *open* a thread that the next scene picks up?"). The field's emission granularity dictates where the anchor MUST be stable.
+
+**Alternatives rejected:**
+- *Use scene-level anchor for everything (anchor sample is cheaper at scene granularity — fewer items per book).* Caught by Codex review pass on the n=50 expansion: emits-at-beat fields validated only at scene level can degrade silently in production. The lifeValueAxes 5-class case was the original prompt to add agency/aspiration on the back of scene-NEAR scores; the beat-level wave then justified shipping them at beat-level granularity.
+- *Use beat-level anchor for everything (since the schema is at beat level).* Loses the granularity-rotation signal — fields that are stable at scene but degrade at beat are exactly the ones the rotation check needs to catch. Need both directions.
+- *Pick the granularity per-field based on the rubric's nature.* Too easy to get wrong (false confidence). Cheaper to run the n=50 cross-granularity check once.
+
+**How to apply:**
+- Run the anchor wave at the granularity that's cheapest to label (usually scene, since fewer items per book).
+- For any field that fails or is borderline at that granularity, OR that emits at a different granularity than the anchor, run a confirmation wave at the OTHER granularity on the same rubric.
+- Ship a field only if BOTH passes are ≥ 0.85.
+- Document the granularity-rotation result in the schema field comment so future readers see which granularity is load-bearing.
+
+**Ongoing implications:**
+- Adds a second dimension to gold-stability checks: "stable across same-config runs" AND "stable across granularity rotations." Generalizes to ANY rubric where the input span size differs across pipeline stages (chapter→scene→beat).
+- Promotes the existing memory `feedback_gold_stability_first` from "single-granularity check" to "granularity-aware check." Memory entry will be updated.
+- Cost: adds ~$5–10 per dim per book to the gold-stability budget. Acceptable per `feedback_query_llm_calls_for_costs` — the savings come from catching silent degradations before they hit harness production.
+
+### Chapter-level structural patterns — 7 priors extractable from existing corpus pipeline (no new LLM calls)
+*2026-04-30 · `novels/salvatore-icewind-dale/structure-calibration/crystal_shard-conclusions.md` session ~02:05 UTC*
+
+**Decision:** The 5-stage corpus pipeline (`docs/corpus-pipeline.md`) already produces a queryable hierarchy: chapter (37) → scene (139) → beat (858) → pair (858) for Crystal Shard. This makes 7 chapter-level structural patterns extractable as planner soft priors via pure data aggregation. **Pattern 5 (chapter-level mice rhythm) is parked** until v2 high-stability mice data lands; the other 6 patterns ship as candidate plotter-prompt priors pending cross-book validation (Streams of Silver, Halfling's Gem) to confirm they generalize.
+
+**The 7 patterns** (Crystal Shard reference):
+1. **Chapter length distribution** — median 2,534w / 24 beats; range 394–8,113w. Action-fantasy default `targetWords ≈ 2500` (top of current "longer novels" band). Beat-count expectation `targetWords / 100`, not `/ 150` (current floor).
+2. **Beat kind distribution** — action 35.9%, dialogue 28.2%, interiority 20.6%, description 15.2%.
+3. **Chapter opener / closer kinds** — 50% of chapters open with description; 0% close with description; 41% close with action; 35% close with interiority. Current planner rule "open with action or description; close with action or interiority; never close with pure description" empirically validated.
+4. **Within-chapter position effects** — description front-loads (q0=25% → q4=9%); dialogue mid-peaks (q0=18% → q2=38% → q4=30%); action steady (~35–40%); interiority flat (~21%). Implies a chapter shape: descriptive setup → dialogue-driven development → action/interiority climax.
+5. **Chapter-level mice rhythm** *(PARKED)* — comes from monolithic Flash extractor with anchor ≈ 0.667; rolled up across 34 chapters but provenance-flagged. Re-aggregation pending v2 mice re-extraction.
+6. **Opens/closes per chapter** — mean 2.44 opens, 1.00 closes per chapter; 56% of chapters have both; 35% only opens (setup); 6% only closes; 3% neither. Threads accumulate across chapters; closes happen at book end. (Requires v2 mice for production-quality pattern.)
+7. **Beat boundary signals** — segmenter vocabulary distribution: pov_attention_shift 22%, stakes_recalibration 17%, scene_start 16%, action_shift 15%, speaker_change 13%, narration_to_dialogue 11%, dialogue_to_narration 5%, sensory_channel_change 2%, interiority 0.1%. Useful as beat-segmenter priors.
+
+**Why:** The corpus pipeline's existing output (`scenes.jsonl` + `beats.jsonl` + `structure/<book>/mice.jsonl`) already encodes the chapter→scene→beat hierarchy. Chapter-level patterns are aggregate statistics over many beats, so per-instance label noise washes out — the dominant thread of a 5-scene chapter is robust to one mis-tagged scene. Repeatable across books because the pipeline normalizes input shape.
+
+**Alternatives rejected:**
+- *Compute chapter-level patterns from scene labels emitted by the unstable monolithic Flash extractor and ship them.* Aggregate-over-noise reasoning lets us *describe* what the existing data says, but chapter mice rhythm being the **central** pattern (Pattern 5) means we want it to come from a Sonnet J ≥ 0.85 anchor, not a J=0.667 extractor, before promoting it to a planner prior. Patterns 1–4, 7 don't depend on mice labels at all; they ship.
+- *Ship chapter-level rhythm priors based on Crystal Shard alone.* The whole point of corpus structural decomposition is to find patterns that generalize. Cross-book validation (Streams of Silver, Halfling's Gem, Storm Front) is the gate for promoting any pattern from "Crystal Shard quirk" to "action-fantasy-genre prior."
+
+**How to apply:**
+- Patterns 1–4 + 7: candidate plotter-prompt edits — adjust `targetWords` band guidance, opener/closer kind defaults, within-chapter rhythm. Land only AFTER cross-book validation reproduces them within ±5–10% on Streams of Silver.
+- Pattern 5 + 6: REQUIRE v2 high-stability mice data first. The 8 subagents in flight at session end (M / I-v2 / C / E × 2 runs each on 139 scenes) produce that data.
+- Build a `genre-priors.json` per genre (action-fantasy / urban-fantasy-mystery / litrpg) that the planner reads at chapter-skeleton time. Each genre gets its own corpus-derived rhythm; cross-genre patterns are explicit (don't assume mystery and action-fantasy share opener distributions).
+
+**Ongoing implications:**
+- Cross-book validation work (Streams of Silver Stage 6 + Storm Front cross-author) gains a concrete deliverable: re-run `chapter-level-structural.ts` and `chapter-mice-rollup.ts` on those books, compare distributions. Brief at `docs/cross-book-cross-author-brief.md`.
+- The repeatable shape — `chapter` / `scene_id` / `beat_idx` fields on every record — is documented in `docs/corpus-pipeline.md`; this decision validates that the Stage 6 design pays off for downstream planner-prior extraction with zero additional LLM calls.
+- Stale-data risk: Pattern 5 chapter mice rollup is currently pulled from monolithic-rubric Flash output. After v2 mice re-extraction, regenerate `crystal_shard.<stamp>.chapter-mice-rollup.json` from the high-stability binary sub-decisions. Old artifact is preserved (timestamped per `feedback_no_overwrite_runs`); new artifact cites the v2 data and supersedes it for plotter-prior purposes.

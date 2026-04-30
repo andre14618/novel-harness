@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-29
+updated: 2026-04-30
 ---
 
 # Lessons Learned
@@ -1435,4 +1435,57 @@ The instability was traced to a deeper issue: same model + same prompt + T=0.3 p
 The four other dims on the same R7 charter (value-charge, mice, mckee-gap, character-arcs) didn't exhibit this behavior — character-arcs hit F1=1.00 cleanly, value-charge F1=0.94, mice F1=0.776 (marginal). The differentiating property is rubric latitude: the promise rubric admits structurally different interpretations; the others enumerate concrete categories with closer constraints. Stochasticity is not uniform across structural dims.
 
 **The rule:** before running extractor-vs-judge calibration on any stochastic-schema dim (free-text fields, open-ended categorization, judge enumeration), measure judge self-consistency first via two same-config runs. If Jaccard < 0.7 between consecutive judge runs, the gold itself is too unstable to anchor extractor calibration — fix the rubric or split into tighter sub-rubrics before building extractor-vs-judge metrics. The failure mode is silent: extractor F1 numbers look meaningful but are dominated by judge variance, not extractor capability. Cardinality pivots (per-chapter density, span distribution) inherit the same ceiling and don't bypass it. (Phase C results captured in `novels/salvatore-icewind-dale/structure-calibration/crystal_shard-conclusions.md`, commits `bcbdf58` + `9e45ece`)
+
+## 2026-04-30 — Sonnet anchor n=50 + binary-collapse + granularity-rotation findings
+
+### Cross-model F1 ≠ anchor stability — they measure different things
+
+The original mckee-gap dim shipped on a Flash × Pro F1 of 0.892 — a CELL PASS verdict that looked solid for harness integration. When the same rubric ran through a Sonnet self-consistency check (Sonnet vs Sonnet on identical prompts, n=50 Crystal Shard scenes), the binary "any gap vs none" Jaccard was 0.818 — NEAR the 0.85 ship bar but not at it. Same dim, two different measurements, two different verdicts. Cross-model F1 measures whether *two different judges* agree on the same input; anchor self-consistency measures whether *the same judge* gives the same answer on the same input twice. They can diverge sharply when the rubric admits multiple interpretations: two models may settle on different-but-internally-consistent interpretations, producing high F1 between them while EACH being internally noisy across re-runs.
+
+The valueShift dim showed the inverse: Flash × Sonnet polarity F1 looked publishable while Sonnet self-consistency on the 3-class enum was J=0.639 (UNSTABLE). The binary-collapse re-aggregation from `+|-|0` to `shifted: yes/no` recovered J=0.887 at scene level — the cross-model F1 had been inflating confidence on a fundamentally noisy gold.
+
+**The rule:** treat cross-model F1 and anchor self-consistency as INDEPENDENT gates. A dim ships only when BOTH pass. Cross-model F1 catches "extractor disagrees with the oracle"; anchor stability catches "the oracle disagrees with itself." Skipping the anchor check is silent because cross-model F1 numbers can look fine on top of an unstable gold. (Crystal Shard Phase C n=50 expansion, `novels/salvatore-icewind-dale/structure-calibration/crystal_shard-conclusions.md` session 2026-04-30 ~01:22 UTC, commit `97190b2`.)
+
+### Granularity rotation — fields validated at scene-level can degrade at beat-level (and vice versa)
+
+The Crystal Shard n=50 wave validated the mice and lifeValueAxes enums at scene granularity (one Sonnet decision per ~500-word scene). The schema (`sceneBeatSchema`) emits these tags at beat granularity (one decision per ~100-word beat). Running a beat-level confirmation wave on the same rubric revealed asymmetric behavior:
+
+- *Some scene-PASS subfields degraded at beat level.* miceActive C and E dropped from 0.961 / 0.923 to 0.754 / 0.818 (NEAR). miceOpens E dropped from 0.852 to 0.818 (NEAR). Mechanism: "is C-thread active in this 200-word beat?" admits more borderline cases than "is C-thread active in this 500-word scene?" because a beat may show C-content without it being the beat's structural focus.
+- *Some scene-NEAR subfields IMPROVED at beat level.* lifeValueAxes agency went from 0.724 (NEAR) to 0.852 (PASS); aspiration from 0.754 to 0.852. Mechanism: a beat usually moves on one axis, so axis-attribution is less ambiguous at beat granularity than at scene granularity (a 500-word scene may move on multiple axes, forcing the judge to pick).
+
+The granularity at which a field is *emitted in production* is the load-bearing one for ship gates. A field that operates at beat-level but anchors at scene-level only can degrade silently in production.
+
+**The rule:** when a calibration anchor wave is run at one granularity but the schema field emits at another, run a confirmation wave at the OTHER granularity. Ship the field only if Jaccard ≥ 0.85 at BOTH granularities (the intersection). Document the granularity-rotation result in the schema field comment so future readers see which granularity is load-bearing. Generalizes to any rubric where input span size differs across pipeline stages (chapter→scene→beat). (Crystal Shard beat-level extension wave, `novels/salvatore-icewind-dale/structure-calibration/crystal_shard-conclusions.md` session 2026-04-30 ~01:54 UTC, commit `cd4347a`.)
+
+### Binary-collapse-before-relabel — the cheapest counterfactual for FAILED gold-stability checks is data-only re-aggregation
+
+When the valueShift 3-class enum failed Sonnet self-consistency at J=0.639, the obvious next move was a new labeling wave with a sharper rubric. Instead, the cheapest-untried-counterfactual was data-only: collapse `+|-` → `shifted=true` and `0` → `shifted=false`, re-score the existing run pair. Result: J=0.887 at scene level on the SAME wave that scored 0.639 on the 3-class — zero new LLM calls, anchor instability resolved. The same pattern applied to lifeValueAxes (5-class single-pick → 5 independent binary tags), recovering anchor stability at beat level for all 5 classes.
+
+A new labeling wave costs $5–10 + several hours wall-clock + downstream re-aggregation risk. A binary-collapse pass is a 50-line script. The cost asymmetry argues for making collapse the FIRST move on a FAIL, not a fallback after re-labeling fails. Binary collapses also produce *cleaner* schema fields than 3+-class enums for soft-prior use cases (planner reasons over the field; no checker gates on it) — fewer choices to be inconsistent on.
+
+The mckee-gap binary collapse on existing waves did NOT recover the rubric (borderline gap-vs-no-gap cases stayed borderline at J=0.818). That's still a useful outcome: a failed binary collapse is the signal that the source instability is *interpretation latitude*, not enum granularity, so the next move IS rubric sharpening or sub-dim splitting.
+
+**The rule:** the canonical pre-flight order on a FAILED gold-stability check is:
+1. Two-run Sonnet self-consistency, J ≥ 0.85 to ship.
+2. (On FAIL) enumerate binary collapses of the failing enum. Score each on the existing run pair. Ship the binary that passes; estimate distribution from the existing data.
+3. (Only if all binary collapses fail) rubric sharpen + re-label.
+4. (Only if rubric sharpen fails) split into sub-dims with disjoint criteria.
+
+This is upstream of the existing "measure self-consistency first" lesson — that lesson says "measure"; this one says "if the measurement fails, the cheapest fix is data-only collapse." Generalizes to any stochastic-schema dim, not just structural priors. (Crystal Shard binary-collapse re-analysis, `novels/salvatore-icewind-dale/structure-calibration/crystal_shard-conclusions.md` session 2026-04-30 ~01:35 UTC, commits `b061779` + `c48a232`.)
+
+### Aggregate corpus patterns are robust to per-instance label noise — chapter-level rollup beats per-scene calibration for some uses
+
+The Crystal Shard chapter-level mice rollup (Pattern 5 of the chapter-structural patterns) was computed from the monolithic Flash extractor's per-scene output, despite that extractor's anchor Jaccard being only ~0.667 (UNSTABLE per-scene). At the chapter rollup granularity (5 scenes per chapter on average, 34 chapters), the dominant thread of a chapter is robust to one mis-tagged scene — per-instance noise washes out in the aggregate. So even though the per-scene labels can't anchor extractor calibration, "what's the typical opening thread of a Salvatore chapter?" is a stable population statistic over 34 chapters.
+
+The flip side: the chapter-level rollup was tempting to promote into the planner's chapter-skeleton prompt as a soft prior. We started to write that prompt edit, then pulled back — because the planner reads the priors as authoritative, and "robust to one mis-tagged scene per chapter" is not the same as "reliable enough to instruct the planner with." Provenance bar for planner priors: scene-level labels must come from a Sonnet J ≥ 0.85 anchor or a Flash extractor calibrated against one. The chapter-level rollup is fine as exploratory analysis or as a sanity-check against v2 results; promoting it to a planner prior would propagate the rubric instability into harness behavior.
+
+**The rule:** aggregate-over-noise reasoning is fine for exploratory data analysis ("what does this corpus look like?"), but chapter-level rollups derived from a J<0.85 extractor are NOT eligible to become planner prompt priors until the underlying scene-level labels come from a stable anchor. For exploratory use only; flag with anchor-stability caveat in the artifact. (Crystal Shard chapter-level structural session 2026-04-30 ~02:05 UTC, conclusions doc.)
+
+### Preserve every analysis run; never overwrite — the conclusions doc is append-only
+
+The conclusions doc accumulated 9+ session entries (~1,840 lines) over Phase C, each timestamped (e.g., "Session 2026-04-30 ~01:35 UTC — binary-collapse re-analysis"). Every analysis output is similarly stamped (`crystal_shard.<YYYYMMDDTHHMMSS>.<dim>.json`). Re-running an analysis writes a NEW timestamped file rather than overwriting the prior one. This pattern paid off concretely this session: the mckee-gap binary collapse re-aggregation referenced the n=50 wave's raw labels still on disk; the lifeValueAxes 5-class → 5-binary collapse referenced the same wave's labels for all 5 axes; the value-charge 3-class → binary collapse referenced the same. None of those analyses required new labeling because the source data was preserved.
+
+Overwriting an analysis output (typical wave: "let me re-run this script with a different threshold and replace the file") would have cost real money and wall-clock to recover. The append-only conclusions doc + timestamped artifacts are cheap insurance.
+
+**The rule:** every analysis script writes timestamped output (`<base>.<YYYYMMDDTHHMMSS>.ext`). Conclusions docs are append-only — new sessions append, never edit prior sections. Generalizes the existing memory `feedback_no_overwrite_runs` from "policy" to "load-bearing pattern that enabled three downstream binary-collapse recoveries this session at zero new LLM cost." (Crystal Shard Phase C close-out, conclusions doc commits across 2026-04-30.)
 
