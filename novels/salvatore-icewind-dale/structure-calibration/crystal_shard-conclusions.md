@@ -815,7 +815,7 @@ What we learned that neither the v1 conclusions nor the v2 design captured:
 2. **Treat the v2 design's anchor-stability gate as load-bearing, not procedural.** The mice cheapest-counterfactual is the first concrete validation that the gate catches real problems. Adopt the gate as a hard preflight for every dim under v2.
 3. **Defer the "anchor unusable → re-scope" interpretation pending the binary-decomposition test.** The 0.667 Jaccard is on the **monolithic** rubric. The v2 architecture's first move is to test whether the binary sub-calls retire that latitude. If they do, the architecture's promise holds. If they don't, the dim itself may be irreducibly latitude-permissive on this corpus, and we re-scope mice rather than retry it.
 4. **Promise pair-matcher result (R1×R2 Sonnet)** in flight via separate subagent. When complete, append to this section as a confirming/disconfirming data point on whether the rubric-latitude problem generalizes across dims.
-5. **Sample size note:** n=30 for both gates. The v2 design specifies n=50; the dedup loss from sampler-side duplicates pushed us to n=30. Re-run sampling with `--seed 42 --n 50` against the deduped 858-beat corpus before committing to any v2 extractor verdict. (Sample-size note: 30 unique scenes from a sampler that requested 33 means ~9% of the requested distinct samples collided. Investigate `sample-for-adjudication.ts` for the dup-collision bug.)
+5. **Sample size note:** n=30 unique for both gates. The 33→30 dedup is **not a bug** — `sample-for-adjudication.ts` intentionally appends a retest pool (~10% of N, with new `sample_id`s but the same `scene_id`s) so the silent retest measures intra-run consistency. For N=30 with retest_pct ~0.10, the prompt file has 30+3=33 entries where 3 scenes appear twice. The retest mechanism is the same one that produced the value-charge n=5 retest pool (N=50 × 10% = 5) — when scaling the v2 sample to N=50, expect 55 prompts → 50 unique scenes. The dedup-to-unique step is correct for cross-run self-consistency Jaccard; intra-run agreement on the 3 retest pairs is a separate (in-run) measurement that the analysis script does not currently surface.
 
 ### Cost ledger delta (cheapest-counterfactual)
 
@@ -826,9 +826,53 @@ What we learned that neither the v1 conclusions nor the v2 design captured:
 | Flash mice extraction (already on disk) | 858 | already in v1 budget |
 | Analysis script (no LLM) | 0 | $0.00 |
 | Sonnet promise run-2 (1 subagent, 66 promises) | 1 task | subagent |
-| Sonnet promise R1×R2 pair-matcher (subagent, in flight) | 1 task | subagent |
-| **Subtotal** | 9 subagents + analysis | **~$0.00 in API; subagent cost separate** |
+| Sonnet promise R1×R2 pair-matcher (1 subagent) | 1 task | subagent |
+| **Subtotal** | 10 subagents + analysis | **~$0.00 in API; subagent cost separate** |
 
 Cumulative on crystal_shard at promo pricing: ~$4.15 + 0 (this round subagent-only) = **~$4.15**.
+
+### Promise pair-matcher result (R1 × R2 Sonnet × Sonnet)
+
+**Output:** [`crystal_shard.20260430T002500.sonnet-promise-r1xr2.json`](crystal_shard.20260430T002500.sonnet-promise-r1xr2.json) (after cleaning a trailing-XML artifact in the subagent output; see methodology note below).
+
+**Shape comparison:**
+
+| Source | Promise count |
+|---|---|
+| Sonnet run-1 (C.1 baseline, 2026-04-29 21:53 UTC) | 38 |
+| Sonnet run-2 (this session, 2026-04-30 00:21 UTC) | 66 |
+| Pro judge gold v1 (C.2 baseline) | 30 |
+| Pro judge gold v2 (C.2 baseline) | 27 |
+
+**Pair-matcher counts (recomputed from the matched array; the subagent's narrative numbers had off-by-internal-accounting errors that don't affect the matched pairs themselves):**
+
+| Metric | Value |
+|---|---|
+| Sonnet R1×R2 shared | **37 of 38** (= 97.4% of R1) |
+| R1-only (R1 found, R2 missed) | 1 |
+| R2-only (R2 found, R1 missed) | 29 |
+| Jaccard | **0.552** |
+| shared / max(38, 66) | **0.561** |
+| shared / min(38, 66) | **0.974** |
+
+**Conclusion — failure-mode split between mice and promise.** The Sonnet anchor instability has a different shape per dim:
+
+- **Mice (this session):** symmetric disagreement on the same scene set. 6 of 30 scenes flip primary_thread between runs; the C↔E boundary owns 4 of those 6. **Rubric-latitude problem at the boundary** — both reads of "Character vs Event" are defensible per the rubric.
+- **Promise (this session):** asymmetric containment. Run-1 (38) is a 97%-subset of Run-2 (66). The instability is **recall-density drift, not classification flip** — Sonnet at run-2 found nearly all of run-1's promises plus 29 more. R1-only is 1 promise; the disagreement is overwhelmingly "run-2 went deeper."
+
+These two failure modes need different v2 fixes:
+
+| Failure mode | Dim | v2 fix |
+|---|---|---|
+| Boundary latitude (symmetric flip) | mice | Decompose into binary sub-calls (M/I/C/E each Y/N). Narrows the rubric scope per call. |
+| Recall-density drift (asymmetric near-subset) | promise | Ensemble of N≥3 runs with union deduplication via pair-matcher; or anchor on a "depth-bounded" sub-rubric (e.g., arc-promise only — promises that close ≥5 chapters out and ARE explicit obligations) where recall-density is bounded by the sub-dim definition. |
+
+**The v2 design's preflight gate (Sonnet self-consistency Jaccard ≥ 0.85) catches both failure modes, but the response to a fail differs:**
+- Boundary-latitude fail → decompose
+- Recall-density fail → ensemble + sub-dim depth-bound
+
+**Action:** Update the v2 design doc to distinguish boundary-latitude vs recall-density failure modes, and to specify ensemble + sub-dim depth-bound as the response to recall-density (not just "decompose"). The current v2 doc treats "Sonnet self-consistency < 0.70" as a single bucket; this finding shows the response is dim-specific.
+
+**Methodology note:** The Sonnet pair-matcher subagent appended a trailing `</content></invoke>` XML block to the JSON output, requiring a strip-and-re-parse to consume. The narrative summary fields in the subagent output (`shared: 32, run1Only: 5, run2Only: 34, jaccard: 0.444`) were internally inconsistent with the `matched` array (37 unique 1:1 pairs). The numbers above are recomputed from the matched array using deterministic dedup (`{shared = |unique r1 ids in matched|, run1Only = |R1| − shared, run2Only = |R2| − shared, jaccard = shared / (R1 ∪ R2)}`). The subagent's pair-by-pair matching judgement is the load-bearing output; the tallies were not.
 
 ---
