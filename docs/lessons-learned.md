@@ -1521,3 +1521,27 @@ The Pattern 26 false-negative finding was almost lost. The Sonnet-anchor subagen
 
 The trigger surface for a lessons-learned entry: (a) any LLM probe that returns surprising prevalence numbers, (b) any calibration check that PASSES or FAILS unexpectedly, (c) any methodology hop (e.g., point-estimate → directional re-score, single-axis → compositional follow-up, scene-level → beat-level granularity rotation), (d) any tool/library/API gotcha that cost more than 10 minutes to diagnose, (e) any "we already had this lesson encoded somewhere but missed it" moment. (Pattern 26 follow-up + user feedback 2026-04-30: "we need to always capture lessons learned please force that behavior in claude.md etc.")
 
+### Aggregate-only patterns can survive while per-book patterns fail — gate at per-book level for cross-author/cross-corpus claims
+
+Pattern 32 (chapter-seam transition shape) join produced a strongest aggregate independence-outlier of `foreshadow → time-cut-announcement` at 3.6× over marginal. Compelling-looking signal in the aggregate. Per-book breakdown: 3 occurrences in crystal_shard, 0 in streams_of_silver, 0 in halflings_gem. The aggregate signal is *entirely book-1-driven* — a planner rule built from the aggregate would encode a pattern that two of three books actively don't reproduce.
+
+The same effect appeared earlier in the conditioning-floor / Salvatore charter work and in the original "DIVERGE = not eligible" framing for Patterns 2/3/4/7 — aggregate metrics smooth over per-book divergence, and book-1-heavy effects show up disproportionately because Salvatore's first book has the most conventional structural patterns and the most observations in some axes.
+
+**The rule:** when validating cross-book or cross-corpus directional patterns, the gate must be applied **per-book**, not on the aggregate. An aggregate effect is necessary-but-not-sufficient — the per-book breakdown reveals whether it's a real cross-corpus pattern or a single-corpus quirk that happens to dominate the pool. Operationally:
+
+- For ranking patterns: check that the ordering reproduces in EACH book independently, not just the pooled ranking.
+- For lift/ratio patterns: check that the effect direction reproduces in each book; ratio magnitude can vary, but a pattern that's 0× in 2 of 3 books should not ship as a planner prior.
+- For modal-class patterns: per-book modal class should agree (or top-2 set should agree) — pooled modal class is misleading.
+
+This generalizes the existing `feedback_eval_stratification` (brief sets must match training-data stratification) to "any cross-corpus claim must be validated per-corpus, not on pooled aggregates." (Pattern 32 chapter-seam transitions, commit `ad33e98`, 2026-04-30; per-book breakdown table in the JSON artifact `crystal_shard.20260430T124052.chapter-seam-transitions.json`.)
+
+### Parallel subagents writing to the same append-only doc need atomic write-then-rename, not raw append
+
+Patterns 28 / 32 / 33 / 37 all ran in parallel on 2026-04-30 and all appended to the same `crystal_shard-conclusions.md` document. Three race conditions surfaced: (1) P33 found a merge-conflict marker left by P28 and resolved it by keeping only P33's section in the staged tree (P28 addendum stayed unstaged), (2) P37 found another conflict + concurrent stash, resolved by stashing the unrelated diff (the P28 addendum) before committing, (3) P32's commit accidentally deleted the P28 addendum entirely because P32 read its base before P28's `474585b` landed and then committed against the now-stale base, requiring a restore commit `7e5de0f`.
+
+The naive "git pull → edit → git add → git commit" pattern does not survive concurrency on an append-only narrative doc when 4+ agents write near-simultaneously. The git mechanics work — every file ends up correct after the dust settles — but the cost is N follow-up commits to restore clobbered sections, plus the cognitive load of reasoning about whose work might be in stash@{N}.
+
+**The rule:** when N ≥ 3 parallel subagents will all append to the same shared append-only document, the commit pattern must be: (a) read HEAD's version of the doc IMMEDIATELY before staging (not at the start of work), (b) append your new section, (c) `git add` the doc, (d) `git commit` atomically with `git pull --rebase` retry on push failure. Or, equivalently: have each subagent write its conclusions section to a per-subagent file (e.g., `conclusions/<pattern>.md`) and have a single later commit gather them into the shared doc. The append-to-shared model assumes serial execution.
+
+Operational fix for the next parallel batch: each measurement subagent writes a per-pattern conclusions stub at `novels/<key>/structure-calibration/conclusions-stubs/<pattern>.md`, and a periodic sweep (or a final-step subagent) gathers stubs into the canonical conclusions doc. Decouples the JSON artifact commit (which never conflicts — unique filenames) from the narrative append (which always conflicts under parallelism). (Patterns 28/32/33/37 race conditions, 2026-04-30; commits `474585b`, `7e5de0f`, `11cafad`, `37f297f`.)
+
