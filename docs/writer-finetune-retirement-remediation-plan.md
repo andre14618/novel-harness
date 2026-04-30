@@ -39,7 +39,7 @@ Those defects must be fixed before another writer-route verdict is meaningful.
 - Slice 1 code path is implemented: `WRITER_GENRE_PACKS` now carries explicit `compactContext` and `leakProfile` metadata. Runtime base-model overrides keep fantasy structural priors but clear LoRA-specific compact context and Salvatore leak checks unless explicitly overridden.
 - Slice 2 code path is implemented: lint-fixed prose is guarded by deterministic integrity checks before it can replace the raw draft. The exp #265 corruption shapes (`blade.She`, `againShe`, `.ind her`) are covered by tests.
 - Slice 3 clean validation ran as exp #268 (`novel-1777580634348`) and returned NO-SHIP for checker/approval-policy reasons, not for word count. Route decoupling was verified (`beat-writer|deepseek|deepseek-v4-flash`, `compact=false`, `leak=none`), but unresolved beat-check issues, continuity blockers, malformed dialogue, duplicate seams, and location drift still reached approval. See `docs/base-deepseek-clean-validation-268.md`.
-- Still pending: Slice 4 checker/oracle remediation for impossible knowledge, role/location-state drift, and caught-but-nonblocking checker failures.
+- Slice 4 checker-policy remediation started in exp #269: unresolved beat-check blockers and continuity blockers now stop approval, and deterministic final-prose integrity blocks duplicate spans / malformed quotes before approval. Still pending: an independent chapter-level oracle fixture for stitched-beat coherence and named-entity/lore grounding.
 
 ## Remediation Slices
 

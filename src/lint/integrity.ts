@@ -8,7 +8,7 @@
  */
 
 export interface LintFixIntegrityIssue {
-  kind: "fused-boundary" | "camel-fusion" | "duplicate-sentence"
+  kind: "fused-boundary" | "camel-fusion" | "duplicate-sentence" | "duplicate-fragment" | "quote-integrity"
   excerpt: string
 }
 
@@ -31,6 +31,16 @@ export function validateLintFixIntegrity(original: string, fixed: string): LintF
   }
 
   return { pass: issues.length === 0, issues }
+}
+
+export function detectProseIntegrityIssues(text: string): LintFixIntegrityIssue[] {
+  return dedupeIssues([
+    ...detectFusedBoundaries(text),
+    ...detectCamelFusions(text),
+    ...detectAdjacentDuplicateSentences(text),
+    ...detectNearbyDuplicateFragments(text),
+    ...detectQuoteIntegrity(text),
+  ])
 }
 
 function detectFusedBoundaries(text: string): LintFixIntegrityIssue[] {
@@ -56,17 +66,77 @@ function detectCamelFusions(text: string): LintFixIntegrityIssue[] {
 }
 
 function detectNewDuplicateSentences(original: string, fixed: string): LintFixIntegrityIssue[] {
-  const issues: LintFixIntegrityIssue[] = []
   const originalNorm = normalizeSentenceStream(original)
-  const sentences = extractSentences(fixed)
+  const issues = detectAdjacentDuplicateSentences(fixed)
+  return issues.filter(issue => !originalNorm.includes((issue as any).pairNorm ?? ""))
+}
+
+function detectAdjacentDuplicateSentences(text: string): Array<LintFixIntegrityIssue & { pairNorm?: string }> {
+  const issues: Array<LintFixIntegrityIssue & { pairNorm?: string }> = []
+  const sentences = extractSentences(text)
   for (let i = 1; i < sentences.length; i++) {
     const prev = normalizeSentence(sentences[i - 1].text)
     const cur = normalizeSentence(sentences[i].text)
     if (!prev || prev !== cur) continue
     const pairNorm = `${prev} ${cur}`
-    if (originalNorm.includes(pairNorm)) continue
-    issues.push({ kind: "duplicate-sentence", excerpt: sentences[i].text.trim().slice(0, 120) })
+    issues.push({ kind: "duplicate-sentence", excerpt: sentences[i].text.trim().slice(0, 120), pairNorm })
   }
+  return dedupeIssues(issues) as Array<LintFixIntegrityIssue & { pairNorm?: string }>
+}
+
+function detectQuoteIntegrity(text: string): LintFixIntegrityIssue[] {
+  const issues: LintFixIntegrityIssue[] = []
+  const paragraphs = text.split(/\n{2,}/)
+  for (const paragraph of paragraphs) {
+    const p = paragraph.replace(/\s+/g, " ").trim()
+    if (!p) continue
+
+    const quoteCount = countMatches(p, /"/g)
+    const curlyOpen = countMatches(p, /“/g)
+    const curlyClose = countMatches(p, /”/g)
+    const firstQuote = p.indexOf('"')
+
+    if (quoteCount % 2 !== 0) {
+      issues.push({ kind: "quote-integrity", excerpt: p.slice(0, 160) })
+      continue
+    }
+    if (curlyOpen !== curlyClose) {
+      issues.push({ kind: "quote-integrity", excerpt: p.slice(0, 160) })
+      continue
+    }
+    if (p.includes('""') || p.includes("””")) {
+      issues.push({ kind: "quote-integrity", excerpt: p.slice(0, 160) })
+      continue
+    }
+    // Missing opening quote: paragraph begins with apparent dialogue and the
+    // first quote closes a sentence rather than opening quoted speech.
+    if (firstQuote > 0 && /[.!?]$/.test(p.slice(0, firstQuote))) {
+      issues.push({ kind: "quote-integrity", excerpt: p.slice(0, 160) })
+    }
+  }
+  return dedupeIssues(issues)
+}
+
+function detectNearbyDuplicateFragments(text: string): LintFixIntegrityIssue[] {
+  const issues: LintFixIntegrityIssue[] = []
+  const tokens = [...text.matchAll(/[A-Za-z']+/g)].map(m => ({ token: m[0].toLowerCase(), index: m.index ?? 0 }))
+  const seen = new Map<string, { tokenIndex: number; charIndex: number }>()
+  const gramSize = 8
+  const maxTokenDistance = 120
+
+  for (let i = 0; i <= tokens.length - gramSize; i++) {
+    const gram = tokens.slice(i, i + gramSize).map(t => t.token).join(" ")
+    const prev = seen.get(gram)
+    if (prev && i - prev.tokenIndex <= maxTokenDistance) {
+      issues.push({ kind: "duplicate-fragment", excerpt: contextExcerpt(text, tokens[i].index) })
+      // One report per nearby duplicated span is enough to block approval;
+      // suppress overlapping n-grams from the same repeated passage.
+      i += maxTokenDistance
+      continue
+    }
+    if (!prev) seen.set(gram, { tokenIndex: i, charIndex: tokens[i].index })
+  }
+
   return dedupeIssues(issues)
 }
 
@@ -89,6 +159,10 @@ function normalizeSentence(sentence: string): string {
     .replace(/[^a-z0-9' ]+/g, " ")
     .replace(/\s+/g, " ")
     .trim()
+}
+
+function countMatches(text: string, re: RegExp): number {
+  return text.match(re)?.length ?? 0
 }
 
 function contextExcerpt(text: string, index: number): string {

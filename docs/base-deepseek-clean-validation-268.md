@@ -105,9 +105,9 @@ Minimal acceptance rule: validation can pass only if every blocker-class dimensi
 
 ## Next Step
 
-Open a checker-oracle remediation ticket. The smallest useful implementation is:
+Checker-oracle remediation started in exp #269. The smallest useful implementation is:
 
-1. Make continuity `blocker` issues blocking in drafting approval.
-2. Preserve unresolved beat-check blockers after retry exhaustion and route them to chapter failure / plan-assist instead of auto-approval.
-3. Add deterministic quote-integrity and duplicate-span guards before chapter approval.
-4. Add a chapter-level oracle fixture using `novel-1777580634348` before adding any new LLM checker surface.
+1. Make continuity `blocker` issues blocking in drafting approval. Implemented in exp #269.
+2. Preserve unresolved beat-check blockers after retry exhaustion and route them to chapter failure / plan-assist instead of auto-approval. Implemented in exp #269.
+3. Add deterministic quote-integrity and duplicate-span guards before chapter approval. Implemented in exp #269.
+4. Add a chapter-level oracle fixture using `novel-1777580634348` before adding any new LLM checker surface. Still pending.

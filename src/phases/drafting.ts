@@ -49,7 +49,8 @@ import {
 import { runSettleLoop } from "./settle-loop"
 import { lintProse } from "../lint"
 import { fixLintIssues } from "../lint/fix"
-import { validateLintFixIntegrity } from "../lint/integrity"
+import { detectProseIntegrityIssues, validateLintFixIntegrity } from "../lint/integrity"
+import { buildCheckerBlockerDeviations, type AcceptedBeatCheckIssues } from "./checker-blockers"
 import { getModelForAgent, resolveWriterPack, type WriterGenrePack, type WriterLeakProfile } from "../models/roles"
 import { loadGenrePackPrompt } from "../agents/writer"
 import type { ChapterOutline } from "../types"
@@ -248,6 +249,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
       let packPrompt: string | null = null
       let writerCompactContext = false
       let writerLeakProfile: WriterLeakProfile | null = null
+      let acceptedBeatCheckIssues: AcceptedBeatCheckIssues[] = []
 
       if (pipeline.beatLevelWriting && outline.scenes.length > 0) {
         // ── Beat-level generation ───────────────────────────────────────
@@ -389,6 +391,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                   beatProse = prose
                   if (!checks.pass) {
                     log(novelId, "warn", `Beat ${bi + 1} issues accepted after max retries: ${summarizeIssues(checks.issues)}`)
+                    acceptedBeatCheckIssues.push({ beatIndex: bi, issues: checks.issues })
                   } else if (hasQualityDefect) {
                     log(novelId, "warn", `Beat ${bi + 1} quality defect(s) accepted after max retries: ${qualityDefects.map(d => d.kind).join(",")}`)
                   }
@@ -1105,6 +1108,25 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
         bail = true
       }
 
+      const checkerBlockers = buildCheckerBlockerDeviations({
+        acceptedBeatIssues: acceptedBeatCheckIssues,
+        continuityIssues: issues,
+      })
+      if (checkerBlockers.length > 0 && !planCheckOverridden) {
+        checkerBlockers.forEach(d => console.log(`    CHECKER BLOCKER (beat ${d.beat_index ?? "chapter-level"}): ${d.description}`))
+        log(novelId, "warn", `Checker blockers remain after retries: ${checkerBlockers.map(d => d.description).join("; ")}`)
+        pendingExhaustion ??= {
+          kind: "plan-check-exhausted",
+          novelId,
+          chapter: ch,
+          attempt: attempts,
+          outline,
+          prose,
+          unresolvedDeviations: checkerBlockers,
+        }
+        bail = true
+      }
+
       // Plan-assist gate — fire ONCE per attempt if any exhaustion site set
       // pendingExhaustion. Aggregates all causes into a single decision
       // point. Auto mode throws PipelineBailError (let it propagate — halts
@@ -1220,6 +1242,29 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
         log(novelId, "warn", `Lint/fix failed for chapter ${ch}: ${err}`)
         console.log(`  Lint failed (non-blocking): ${err instanceof Error ? err.message : err}`)
       }
+
+      const proseIntegrityIssues = detectProseIntegrityIssues(prose)
+      if (proseIntegrityIssues.length > 0) {
+        await trace(novelId, {
+          eventType: "prose-integrity-check", chapter: ch,
+          payload: { passed: false, issues: proseIntegrityIssues },
+        })
+        const summary = proseIntegrityIssues.map(i => `${i.kind}: ${i.excerpt}`).join("; ")
+        log(novelId, "warn", `Prose integrity failed for chapter ${ch}: ${summary}`)
+        console.log(`  Prose integrity FAILED (${proseIntegrityIssues.length} issues); retrying chapter`)
+        for (const issue of proseIntegrityIssues) {
+          await saveIssue(novelId, {
+            severity: "blocker",
+            description: `Prose integrity ${issue.kind}: ${issue.excerpt}`,
+            chapter: ch,
+          })
+        }
+        continue
+      }
+      await trace(novelId, {
+        eventType: "prose-integrity-check", chapter: ch,
+        payload: { passed: true, issues: [] },
+      })
 
       // 5. Human gate
       let displayContent = prose

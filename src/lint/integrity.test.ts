@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { validateLintFixIntegrity } from "./integrity"
+import { detectProseIntegrityIssues, validateLintFixIntegrity } from "./integrity"
 
 describe("validateLintFixIntegrity", () => {
   test("passes unchanged prose", () => {
@@ -49,5 +49,40 @@ describe("validateLintFixIntegrity", () => {
     const result = validateLintFixIntegrity(original, fixed)
 
     expect(result.issues.some(i => i.kind === "duplicate-sentence")).toBe(false)
+  })
+})
+
+describe("detectProseIntegrityIssues", () => {
+  test("detects approved-prose duplicate seam", () => {
+    const issues = detectProseIntegrityIssues(
+      "He set his daughter down on the cot. He set his daughter down on the cot.",
+    )
+
+    expect(issues.some(i => i.kind === "duplicate-sentence")).toBe(true)
+  })
+
+  test("detects adjacent duplicate fragment seam from exp #268", () => {
+    const prose = `Wren's father's face crumpled. He set his daughter down on the cot with a tenderness that made Istra's chest tighten, then turned, his hands outstretched.
+
+"Please," he said. "She's all I have left."
+
+He set his daughter down on the cot with a tenderness that made Istra's chest tighten, then turned, his hands outstretched. "Please," he said. "She's all I have left."`
+    const issues = detectProseIntegrityIssues(prose)
+
+    expect(issues.some(i => i.kind === "duplicate-fragment")).toBe(true)
+  })
+
+  test("detects malformed dialogue from exp #268", () => {
+    const malformed = `Then I will revoke your license myself." He folded his hands. "The malady kills, Colleague. We will investigate when the crisis abates." He slid the parchment closer. "That is the best I can offer.""`
+    const issues = detectProseIntegrityIssues(malformed)
+
+    expect(issues.some(i => i.kind === "quote-integrity")).toBe(true)
+  })
+
+  test("allows ordinary balanced dialogue", () => {
+    const prose = `"Report," Istra said. He bowed. "The patient is awake."`
+    const issues = detectProseIntegrityIssues(prose)
+
+    expect(issues.filter(i => i.kind === "quote-integrity")).toEqual([])
   })
 })
