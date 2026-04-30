@@ -1,0 +1,114 @@
+{
+  "computedAt": "2026-04-30T00:52:20.299Z",
+  "test": "flash-x-sonnet-polarity-f1",
+  "n": 30,
+  "flashSource": "novels/salvatore-icewind-dale/structure/crystal_shard/value-charge.jsonl",
+  "sonnetR1Source": "/tmp/sonnet-tier2/value-charge/run1-batch{A,B}.jsonl",
+  "sonnetR2Source": "/tmp/sonnet-tier2/value-charge/run2-batch{A,B}.jsonl",
+  "vsR1": {
+    "agreement": 0.8333333333333334,
+    "macroF1": 0.5572649572649574,
+    "binaryF1": 0.983050847457627,
+    "conf": {
+      "0": {
+        "0": 0,
+        "+": 0,
+        "-": 0
+      },
+      "+": {
+        "0": 1,
+        "+": 17,
+        "-": 2
+      },
+      "-": {
+        "0": 0,
+        "+": 2,
+        "-": 8
+      }
+    },
+    "perClass": {
+      "0": {
+        "p": 0,
+        "r": 0,
+        "f1": 0
+      },
+      "+": {
+        "p": 0.8947368421052632,
+        "r": 0.85,
+        "f1": 0.8717948717948718
+      },
+      "-": {
+        "p": 0.8,
+        "r": 0.8,
+        "f1": 0.8000000000000002
+      }
+    },
+    "bin": {
+      "tp": 29,
+      "fp": 0,
+      "fn": 1,
+      "tn": 0,
+      "precision": 1,
+      "recall": 0.9666666666666667,
+      "f1": 0.983050847457627
+    }
+  },
+  "vsR2": {
+    "agreement": 0.8,
+    "macroF1": 0.5362123256860098,
+    "binaryF1": 0.9655172413793104,
+    "conf": {
+      "0": {
+        "0": 0,
+        "+": 0,
+        "-": 1
+      },
+      "+": {
+        "0": 1,
+        "+": 17,
+        "-": 2
+      },
+      "-": {
+        "0": 0,
+        "+": 2,
+        "-": 7
+      }
+    },
+    "perClass": {
+      "0": {
+        "p": 0,
+        "r": 0,
+        "f1": 0
+      },
+      "+": {
+        "p": 0.8947368421052632,
+        "r": 0.85,
+        "f1": 0.8717948717948718
+      },
+      "-": {
+        "p": 0.7,
+        "r": 0.7777777777777778,
+        "f1": 0.7368421052631577
+      }
+    },
+    "bin": {
+      "tp": 28,
+      "fp": 1,
+      "fn": 1,
+      "tn": 0,
+      "precision": 0.9655172413793104,
+      "recall": 0.9655172413793104,
+      "f1": 0.9655172413793104
+    }
+  },
+  "range": {
+    "macroMin": 0.5362123256860098,
+    "macroMax": 0.5572649572649574,
+    "macroMean": 0.5467386414754836,
+    "binMin": 0.9655172413793104,
+    "binMax": 0.983050847457627,
+    "binMean": 0.9742840444184687
+  },
+  "gate": 0.78,
+  "verdict": "PARTIAL PASS — binary 'shifted vs not' is shippable; 3-way enum (+/-/0) needs more anchor calibration before ship."
+}
