@@ -170,12 +170,10 @@ export function FinetunePage() {
                   classifier 0.550 vs 0.422, perplexity 3086 vs 4814, 3× faster latency.
                 </p>
                 <p style={{ color: "#aaa" }}>
-                  <strong>Auto-run retired 2026-04-16.</strong> Voice now lands at generation time via
-                  per-genre voice LoRAs wired through <code>WRITER_GENRE_PACKS</code> in
-                  <code>src/models/roles.ts</code> (fantasy seeds → salvatore-1988-v3). Howard primer
-                  methodology was deprecated the same day: voice transfers via weights, not few-shot
-                  prompts. The V4 adapter is retained on W&B Inference and invokable via
-                  <code>POST /api/novel/:id/tonal-pass</code> for on-demand comparison on existing novels.
+                  <strong>Runtime generation retired.</strong> The base-writer workflow no longer routes
+                  through per-genre voice LoRAs or tonal-pass generation. Historical tonal rows remain
+                  readable for existing novels, but new <code>POST /api/novel/:id/tonal-pass</code> calls
+                  return <code>410 Gone</code>.
                 </p>
               </section>
             </div>

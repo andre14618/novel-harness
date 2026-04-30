@@ -40,15 +40,3 @@ test("getTokenCost finite for halluc-ungrounded-v2 W&B artifact URI", () => {
   expect(Number.isFinite(cost)).toBe(true)
   expect(cost).toBeGreaterThan(0)
 })
-
-test("getTokenCost finite for halluc-leak-salvatore-v1 W&B artifact URI", () => {
-  const cost = getTokenCost(
-    "wandb",
-    "wandb-artifact:///andre14618-/novel-harness/halluc-leak-salvatore-v1:v1",
-    1000,
-    500,
-    0,
-  )
-  expect(Number.isFinite(cost)).toBe(true)
-  expect(cost).toBeGreaterThan(0)
-})

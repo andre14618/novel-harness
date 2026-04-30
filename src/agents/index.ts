@@ -6,5 +6,5 @@ export * as planningBeats from "./planning-beats"
 export * as writer from "./writer"
 export * as continuity from "./continuity"
 // rewriter removed 2026-04-17: validation is diagnostic-only now
-export * as tonalPass from "./tonal-pass"
 export * as chapterPlanChecker from "./chapter-plan-checker"
+export * as functionalStateChecker from "./functional-state-checker"

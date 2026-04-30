@@ -1,10 +1,8 @@
 import {
   getNovel, getChapterOutline, getApprovedDraft, getOpenIssues,
   saveIssue, saveValidationPass,
-  updatePhase, saveTonalPassDraft,
 } from "../db"
 import db from "../db/connection"
-import { runTonalPass } from "../agents/tonal-pass/run"
 import { validateChapterDraft } from "../validation"
 import { displayPhaseHeader } from "../cli"
 import { emit } from "../events"
@@ -25,8 +23,7 @@ const MAX_PASSES = pipeline.maxValidationPasses
 //    phase passes chapters at high enough rates that validation-phase
 //    rewriting rarely fired.
 //
-// Validation still runs deterministic checks and logs issues. Tonal pass
-// (on-demand) still works for existing novels.
+// Validation still runs deterministic checks and logs issues.
 
 /** Validation phase implementation. Kept exported for symmetry with the
  *  other phases; no external callers today. Driver consumers should use
@@ -93,40 +90,6 @@ export async function runValidationPhase(novelId: string): Promise<PhaseResult<V
         log(novelId, "warn", `Validation: ${remainingIssues.length} issues remain — rewriter removed, issues logged only`)
       }
     }
-  }
-
-  // ── Tonal pass (per-paragraph voice rewrite) ─────────────────────────
-  if (pipeline.tonalPass) {
-    console.log("\n  --- Tonal pass: voice rewrite ---")
-    log(novelId, "info", "Tonal pass started")
-    emit(novelId, { type: "phase:changed", data: { phase: "tonal-pass" } })
-
-    for (let ch = 1; ch <= totalChapters; ch++) {
-      const draft = await getApprovedDraft(novelId, ch)
-      if (!draft) continue
-
-      console.log(`  Chapter ${ch}: running tonal pass...`)
-
-      try {
-        const result = await runTonalPass(novelId, ch, draft.prose)
-
-        if (result.paragraphsRewritten > 0) {
-          const wordCount = result.prose.split(/\s+/).filter(Boolean).length
-          await saveTonalPassDraft(novelId, ch, result.prose, wordCount)
-          const outline = await getChapterOutline(novelId, ch)
-          const dir = `output/${novelId}`
-          await Bun.write(`${dir}/chapter-${ch}.md`, `# Chapter ${ch}: ${outline.title}\n\n${result.prose}`)
-          console.log(`  Chapter ${ch}: ${result.paragraphsRewritten}/${result.paragraphsTotal} paragraphs rewritten (${result.paragraphsSkipped} dialogue skipped)`)
-        } else {
-          console.log(`  Chapter ${ch}: no changes needed`)
-        }
-      } catch (err) {
-        log(novelId, "warn", `Tonal pass failed for ch${ch}: ${err}`)
-        console.log(`  Chapter ${ch}: tonal pass failed (non-blocking) — ${err instanceof Error ? err.message : err}`)
-      }
-    }
-
-    log(novelId, "checkpoint", "Tonal pass complete")
   }
 
   // P6b1: phase transition is driver-owned.

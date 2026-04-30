@@ -2,20 +2,20 @@ import type { ChapterOutline, CharacterProfile, SceneBeat } from "../../types"
 import { extractProperNouns } from "../../phases/beat-entity-list"
 
 /**
- * Render the grounded-context check prompt. Keeps strictly to the
- * training-shape fields from `scripts/hallucination/format-v3-two-adapters.ts`:
+ * Render the grounded-context check prompt. Keeps the checker bounded to a
+ * writer-visible evidence surface:
  *
  *   BEAT BRIEF    — summary / kind / pov / characters / setting
  *   WORLD BIBLE   — locations / cultures / systems (names only)
  *                 + From-brief: proper nouns extracted from the brief itself,
- *                   surfacing them in the shape the adapter attends best to.
+ *                   surfacing them in the shape the checker attends best to.
  *                   The training prompt already treats brief.summary as
  *                   grounded, but the 2026-04-20 production audit found the
- *                   adapter under-attends to prose-form Summary text and
+ *                   prior checker under-attended to prose-form Summary text and
  *                   flags brief-named entities (e.g. "Heartstone" from a
  *                   Summary saying "a cursed artifact called the Heartstone").
  *                   Duplicating those entities into the names-only list
- *                   gives the adapter a second, shape-preferred signal.
+ *                   gives the checker a second, shape-preferred signal.
  *                   See docs/halluc-v3-production-report-2026-04-20.md.
  *                 + Beat-entities (V1+ only): derived proper nouns from
  *                   outline.establishedFacts + prior-beat description,
@@ -44,9 +44,9 @@ export function buildContext(
   const cultures = (worldBible?.cultures ?? []).map((c: any) => c?.name).filter(Boolean)
   const systems = (worldBible?.systems ?? []).map((s: any) => s?.name).filter(Boolean)
 
-  // Extract brief-introduced proper nouns and expose them to the adapter.
+  // Extract brief-introduced proper nouns and expose them to the checker.
   // Dedupe against the canonical bible lists so we don't echo names the
-  // adapter already sees.
+  // checker already sees.
   const bibleKnown = new Set<string>()
   for (const n of [...locs, ...cultures, ...systems, ...beat.characters, outline.povCharacter]) {
     if (n) bibleKnown.add(String(n).toLowerCase())

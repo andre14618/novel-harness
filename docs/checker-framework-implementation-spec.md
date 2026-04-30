@@ -170,24 +170,43 @@ Out of scope:
 This checker must use the same evidence surface as the writer. If the writer saw
 something that the checker did not, the checker is under-scoped, not strict.
 
-### Route-Specific Leak Profile
+### Retired Corpus-Leak Profile
 
-Question: did a writer trained on a known corpus leak forbidden corpus tokens?
+Route-specific corpus-leak checking is retired with the Salvatore writer-LoRA
+route. It should not re-enter runtime unless a future writer is again trained on
+a known copyrighted/named-entity corpus and the leak profile is explicitly part
+of that route's risk model.
 
-Inputs:
+### Functional Story-State Checks
 
-- prose
-- route `leakProfile`
-- explicit user/seed allowlist when available
+Question: can the planned state be safely persisted from the approved prose?
 
-Output:
+Initial deterministic checks:
 
-- leaked token findings
+- payoff links must reference an existing `establishedFact.id`
+- payoff links must point at a valid beat index
+- payoff links must point to a later beat than the setup beat
+- established fact IDs referenced by payoff links must not be duplicated
+
+Initial bounded LLM warning checks until oracle-calibrated:
+
+- planned facts missing from chapter prose
+- knowledge changes missing from chapter prose
+- character-state changes missing from chapter prose
+- planned state contradicted by chapter prose
+
+Runtime model:
+
+- `functional-state-checker`
+- DeepSeek V4 Flash non-thinking
+- strict JSON
+- at most 10 findings
+- exact prose quote required for contradiction findings
 
 Runtime gating:
 
-- Salvatore leak check only when `leakProfile === "salvatore"`
-- no leak check on base DeepSeek fantasy route
+- deterministic payoff graph failures are blockers
+- semantic planned-state grounding findings are approval-visible warnings until precision is known
 
 ## Layer 3 — Chapter Coherence Checks
 
@@ -329,7 +348,7 @@ Minimum gates:
 ### Rung 2 — Production Natural Panel
 
 - 5-10 novels or 200-300 beat attempts
-- include base DeepSeek route and Salvatore fallback route
+- include fantasy and non-fantasy base-DeepSeek routes
 - sample fires and passes
 - metrics: solo-fire precision, co-fire matrix, retry clearance, accepted blocker
   count, blocker escape count, cost, latency
@@ -406,6 +425,6 @@ Acceptance:
 
 ## Next Concrete Step
 
-Start with Slice A and Slice B before running another base-writer validation.
-Without source-scoped policy and deterministic fixture gates, a new validation
-run can still produce ambiguous evidence.
+Next step: run a base-writer validation with the retired LoRA path removed and
+the first functional checks enabled, then sample functional-state warnings before
+promoting any semantic grounding finding to blocker status.

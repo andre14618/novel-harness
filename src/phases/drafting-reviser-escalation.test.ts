@@ -266,9 +266,7 @@ mock.module("../lint/fix", () => ({
 }))
 mock.module("../models/roles", () => ({
   getModelForAgent: () => ({ provider: "cerebras", model: "qwen-3-235b-a22b-instruct-2507", temperature: 0.8, maxTokens: 4000 }),
-  resolveWriterPack: () => null,
 }))
-mock.module("../agents/writer", () => ({ loadGenrePackPrompt: async () => null }))
 mock.module("../prompts", () => ({
   WRITER_AGENT_PROMPT: "w", BEAT_WRITER_PROMPT: "bw", CHAPTER_PLAN_CHECKER_PROMPT: "pc",
 }))

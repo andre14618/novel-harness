@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef, useMemo } from "react"
 import { useParams, useNavigate, Link } from "react-router-dom"
-import { listNovels, getNovelState, getAllChapters, getStorySpine, exportNovelURL, runTonalPass, type ChapterData, type NovelState, type NovelListItem } from "../api"
-import { useNovelSSE } from "../hooks/useNovelSSE"
+import { listNovels, getNovelState, getAllChapters, getStorySpine, exportNovelURL, type ChapterData, type NovelState, type NovelListItem } from "../api"
 
 type ViewMode = "original" | "tonal" | "diff"
 
@@ -21,9 +20,6 @@ export function NovelReadView() {
   const [activeChapter, setActiveChapter] = useState(1)
   const [loading, setLoading] = useState(true)
   const [pickerOpen, setPickerOpen] = useState(false)
-  const [tonalRunning, setTonalRunning] = useState(false)
-  const [tonalError, setTonalError] = useState<string | null>(null)
-  const [tonalProgress, setTonalProgress] = useState<{ chapter: number; chapterIndex: number; totalChapters: number; paragraph: number; totalParagraphs: number; rewritten: number } | null>(null)
   const chapterRefs = useRef<Map<number, HTMLDivElement>>(new Map())
   const qs = window.location.search
 
@@ -66,69 +62,6 @@ export function NovelReadView() {
     ]).finally(() => setLoading(false))
   }, [novelId])
 
-  // SSE — drives per-paragraph progress and end-of-run state.
-  // Iterate the full events array (processed-index ref) instead of relying on
-  // `lastEvent`: React batches setState from the EventSource onmessage, so a
-  // tonal-chapter-start immediately followed by a tonal-progress can collapse
-  // — only the last one's handler runs, leaving chapterIndex stuck at 0.
-  const { events } = useNovelSSE(novelId ?? null)
-  const processedIdx = useRef(0)
-
-  useEffect(() => {
-    processedIdx.current = 0
-  }, [novelId])
-
-  useEffect(() => {
-    if (events.length <= processedIdx.current) return
-    for (let i = processedIdx.current; i < events.length; i++) {
-      const { type, data } = events[i] as { type: string; data: any }
-      if (type === "tonal-start") {
-        setTonalRunning(true)
-        setTonalError(null)
-        setTonalProgress({ chapter: 0, chapterIndex: 0, totalChapters: data.totalChapters, paragraph: 0, totalParagraphs: 0, rewritten: 0 })
-      } else if (type === "tonal-chapter-start") {
-        setTonalProgress(p => ({ ...(p ?? { paragraph: 0, totalParagraphs: 0, rewritten: 0 }), chapter: data.chapter, chapterIndex: data.chapterIndex, totalChapters: data.totalChapters }))
-      } else if (type === "tonal-progress") {
-        setTonalProgress(p => ({
-          chapter: data.chapter,
-          chapterIndex: p?.chapterIndex ?? 0,
-          totalChapters: p?.totalChapters ?? 0,
-          paragraph: data.paragraph,
-          totalParagraphs: data.totalParagraphs,
-          rewritten: data.rewritten,
-        }))
-      } else if (type === "tonal-chapter-done") {
-        if (novelId) loadChapters(novelId)
-      } else if (type === "tonal-done") {
-        setTonalRunning(false)
-        setTonalProgress(null)
-        if (novelId) loadChapters(novelId)
-      } else if (type === "tonal-error") {
-        setTonalRunning(false)
-        setTonalProgress(null)
-        setTonalError(data.error)
-      }
-    }
-    processedIdx.current = events.length
-  }, [events, novelId])
-
-  // Safety poll — in case SSE drops, reconcile against /state
-  useEffect(() => {
-    if (!novelId || !tonalRunning) return
-    const t = setInterval(async () => {
-      const s = await getNovelState(novelId).catch(() => null)
-      if (!s) return
-      setState(s)
-      if (!s.active) {
-        setTonalRunning(false)
-        setTonalProgress(null)
-        if (s.lastRunError) setTonalError(s.lastRunError.error)
-        await loadChapters(novelId)
-      }
-    }, 5000)
-    return () => clearInterval(t)
-  }, [novelId, tonalRunning])
-
   const tonalByChapter = useMemo(() => {
     const m = new Map<number, ChapterData>()
     for (const c of tonalChapters) if (c.status === "tonal-pass") m.set(c.chapter, c)
@@ -136,17 +69,6 @@ export function NovelReadView() {
   }, [tonalChapters])
 
   const hasAnyTonal = tonalByChapter.size > 0
-
-  const onRunTonal = async (chapter?: number) => {
-    if (!novelId) return
-    setTonalError(null)
-    try {
-      await runTonalPass(novelId, chapter ? { chapter, regenerate: true } : {})
-      setTonalRunning(true)
-    } catch (err) {
-      setTonalError(err instanceof Error ? err.message : String(err))
-    }
-  }
 
   const scrollToChapter = (ch: number) => {
     setActiveChapter(ch)
@@ -206,7 +128,7 @@ export function NovelReadView() {
 
         {novelId && chapters.length > 0 && (
           <div className="reader-export">
-            <div className="reader-export-label">Tonal Pass</div>
+            <div className="reader-export-label">Retired Tonal Versions</div>
             {hasAnyTonal ? (
               <div className="reader-view-modes">
                 <button className={`reader-mode-btn ${viewMode === "original" ? "active" : ""}`} onClick={() => setViewMode("original")}>Original</button>
@@ -214,32 +136,8 @@ export function NovelReadView() {
                 <button className={`reader-mode-btn ${viewMode === "diff" ? "active" : ""}`} onClick={() => setViewMode("diff")}>Diff</button>
               </div>
             ) : (
-              <div className="reader-tonal-empty">No tonal pass yet</div>
+              <div className="reader-tonal-empty">Tonal pass generation is retired</div>
             )}
-            <button className="reader-export-btn" onClick={() => onRunTonal()} disabled={tonalRunning || state?.active} style={{ width: "100%", marginTop: "0.35rem" }}>
-              {tonalRunning ? "Running…" : hasAnyTonal ? "Re-run (all chapters)" : "Run Tonal Pass (all)"}
-            </button>
-            {tonalRunning && tonalProgress && (
-              <div className="reader-tonal-progress">
-                {tonalProgress.totalChapters > 0 && (
-                  <div className="reader-tonal-chapter">
-                    Ch {tonalProgress.chapterIndex}/{tonalProgress.totalChapters}
-                    {tonalProgress.chapter > 0 && ` · #${tonalProgress.chapter}`}
-                  </div>
-                )}
-                {tonalProgress.totalParagraphs > 0 && (
-                  <>
-                    <div className="reader-tonal-bar">
-                      <div className="reader-tonal-bar-fill" style={{ width: `${(tonalProgress.paragraph / tonalProgress.totalParagraphs) * 100}%` }} />
-                    </div>
-                    <div className="reader-tonal-meta">
-                      {tonalProgress.paragraph}/{tonalProgress.totalParagraphs} paragraphs · {tonalProgress.rewritten} rewritten
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-            {tonalError && <div className="reader-tonal-error">{tonalError}</div>}
             <div className="reader-export-label" style={{ marginTop: "0.85rem" }}>Export</div>
             <div className="reader-export-row">
               <a href={exportNovelURL(novelId, "markdown")} className="reader-export-btn">.md</a>
@@ -280,8 +178,6 @@ export function NovelReadView() {
 
         <nav className="reader-toc">
           {chapters.map(ch => {
-            const hasTonal = tonalByChapter.has(ch.chapter)
-            const isRunning = tonalRunning && tonalProgress?.chapter === ch.chapter
             return (
               <div
                 key={ch.chapter}
@@ -290,14 +186,6 @@ export function NovelReadView() {
                 <button className="reader-toc-label" onClick={() => scrollToChapter(ch.chapter)}>
                   <span className="reader-toc-num">Ch {ch.chapter}</span>
                   <span className="reader-toc-words">{ch.wordCount}w</span>
-                </button>
-                <button
-                  className="reader-toc-tonal"
-                  onClick={(e) => { e.stopPropagation(); onRunTonal(ch.chapter) }}
-                  disabled={tonalRunning || state?.active}
-                  title={hasTonal ? `Re-run tonal pass on Ch ${ch.chapter}` : `Run tonal pass on Ch ${ch.chapter}`}
-                >
-                  {isRunning ? "…" : hasTonal ? "↻" : "▶"}
                 </button>
               </div>
             )

@@ -157,11 +157,10 @@ function getPhaseForAgent(agent: string): string {
     "reference-resolver": "drafting",
     "adherence-events": "drafting",
     "halluc-ungrounded": "drafting",
-    "halluc-leak-salvatore": "drafting",
+    "functional-state-checker": "drafting",
     "chapter-plan-checker": "drafting",
     "continuity": "drafting",
     "lint-fixer": "drafting",
-    "tonal-pass": "validation",
   }
   return PHASE_MAP[agent] ?? "unknown"
 }

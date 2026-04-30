@@ -9,7 +9,6 @@ export { logRevision, listRevisionsForNovel, hashIssueSig, canonicalizeDeviation
 export { logExhaustionFired, logExhaustionResolved, listExhaustionsForNovel, listOrphanedExhaustions, markExhaustionOrphaned, type ExhaustionKind, type ExhaustionDecision, type ExhaustionRow } from "./chapter-exhaustions"
 export {
   saveChapterDraft, approveChapterDraft, getApprovedDraft, unapproveChapterDraft, deleteChapterDrafts,
-  saveTonalPassDraft, getTonalPassDraft, deleteTonalPassDrafts,
 } from "./drafts"
 export { saveChapterSummary, getRecentSummaries } from "./summaries"
 export { saveFact, getFactsUpToChapter, getFactsForChapter, clearFactsForChapter } from "./facts"

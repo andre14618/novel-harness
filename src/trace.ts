@@ -30,6 +30,7 @@ export type TraceEventType =
   | "lint-fix-rejected"
   | "prose-integrity-check"
   | "validation-check"
+  | "functional-check"
   | "adherence-deterministic"
   | "reference-resolution"
   | "state-extraction"

@@ -1,11 +1,6 @@
 import { z } from "zod"
 
-/**
- * Output schema for the `halluc-ungrounded-v2:v1` W&B adapter. Shape
- * matches the training pairs produced by
- * `scripts/hallucination/format-v3-two-adapters.ts` — see the
- * UNGROUNDED_SYSTEM constant there for the labeling rubric.
- */
+/** Output schema for the bounded entity-grounding checker. */
 export const hallucUngroundedSchema = z.object({
   pass: z.boolean(),
   issues: z.array(z.object({

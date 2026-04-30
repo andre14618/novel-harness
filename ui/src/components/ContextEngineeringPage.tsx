@@ -119,15 +119,15 @@ export function ContextEngineeringPage() {
             <div className="ce-output-arrow" />
             <div className="ce-output-box">
               <h3>Beat Writer</h3>
-              <div className="ce-output-detail">Cerebras Qwen 235B</div>
+              <div className="ce-output-detail">DeepSeek V4 Flash</div>
               <div className="ce-output-detail">~391 tokens out, ~2.1s</div>
               <div className="ce-output-result">300-500 words of prose</div>
             </div>
             <div className="ce-output-arrow" />
             <div className="ce-output-box ce-output-box--check">
               <h3>Adherence Check</h3>
-              <div className="ce-output-detail">Deterministic + LLM (W&B 14B)</div>
-              <div className="ce-output-detail">character presence, word count, events, attribution</div>
+              <div className="ce-output-detail">Deterministic + bounded V4 Flash</div>
+              <div className="ce-output-detail">character presence, events, attribution</div>
               <div className="ce-output-result ce-output-result--retry">fail &rarr; targeted rewrite with specific issues</div>
             </div>
           </div>
@@ -370,10 +370,10 @@ function PipelineSVG() {
       <A x1={660} y1={p4y + 52} x2={660} y2={p4y + 60} />
 
       {/* Plan Check — blocking */}
-      <N x={60} y={p4y + 60} w={285} h={58} type="blocking" label="Plan Check" sub="prose vs plan structure" sub2="DeepSeek V3.2 base (2026-04-18)" />
+      <N x={60} y={p4y + 60} w={285} h={58} type="blocking" label="Plan Check" sub="prose vs plan structure" sub2="DeepSeek V4 Flash thinking" />
 
       {/* Continuity — warning */}
-      <N x={520} y={p4y + 60} w={285} h={58} type="warn" label="Continuity" sub="facts + character states" sub2="W&B continuity-v2 (2 parallel calls)" />
+      <N x={520} y={p4y + 60} w={285} h={58} type="warn" label="Continuity" sub="facts + character states" sub2="DeepSeek V4 Flash (2 parallel calls)" />
 
       {/* Retry arrow from Plan Check → back up to Phase 3 */}
       <P d={`M 60,${p4y + 89} L 25,${p4y + 89} Q 18,${p4y + 89} 18,${p4y + 82} L 18,${p3y + n3h / 2 + n3y - p3y + 8} Q 18,${p3y + n3h / 2 + n3y - p3y} 26,${p3y + n3h / 2 + n3y - p3y}`} kind="retry" />

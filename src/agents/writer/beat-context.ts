@@ -39,7 +39,6 @@
 
 import { getRelationshipBetween } from "../../db"
 import { resolveReferences, type ResolvedReferences } from "./reference-resolver"
-import { resolveWriterPack } from "../../models/roles"
 import { renderBeatContext } from "./beat-context-render"
 import type { ChapterOutline, CharacterProfile, SceneBeat } from "../../types"
 
@@ -67,8 +66,8 @@ export interface BeatContextInput {
    *  resolveReferences call — used by the drafting loop to pre-fetch all beats
    *  in parallel before the serial writing loop starts. */
   preResolvedRefs?: ResolvedReferences
-  /** Strip non-load-bearing fields for voice-LoRA writers. See
-   *  docs/beat-writer-architecture.md. When true: character snapshots
+  /** Legacy compact rendering for offline eval scripts. Runtime drafting does
+   *  not set this. When true: character snapshots
    *  collapse to one line per character (Voice + Drives only), runtime
    *  state fields (State/With/Tension/Doesn't-know) are omitted, and
    *  duplicate SETTING block is skipped. */
@@ -167,8 +166,7 @@ export interface BeatContext {
 export async function buildBeatContextSlots(input: BeatContextInput): Promise<BeatContext> {
   const { novelId, chapterNumber, beatIndex, previousBeatProse, outline, characters, characterStates, worldBible } = input
 
-  const conditioning: "fixed" | "rotation" | undefined =
-    resolveWriterPack(input.genre)?.conditioning
+  const conditioning = resolveConditioningOverride()
   const beat = outline.scenes[beatIndex]
   const povCharName = outline.povCharacter
   const povChar = characters.find(c => c.name.toLowerCase() === povCharName?.toLowerCase())
@@ -230,10 +228,8 @@ export async function buildBeatContextSlots(input: BeatContextInput): Promise<Be
   let characterSnapshots: CharacterSnapshot[] = []
   if (beatChars.length > 0) {
     if (input.compactMode) {
-      // Compact path: synchronous, no DB. Renderer emits Voice/Drives/Avoids
-      // /Conflict + Example voiced lines only — runtime state fields and
-      // relationship-to-POV are omitted by design (see docs/beat-writer-
-      // architecture.md §6).
+      // Legacy compact path: synchronous, no DB. Kept for offline eval scripts;
+      // live drafting uses the full runtime state surface.
       characterSnapshots = beatChars.map(c => buildSnapshotCompact(c, chapterNumber, beatIndex, conditioning))
     } else {
       // Full path: async per-character, includes relationship lookup.
@@ -264,6 +260,11 @@ export async function buildBeatContextSlots(input: BeatContextInput): Promise<Be
     resolvedReferencesText,
     setting,
   }
+}
+
+function resolveConditioningOverride(): "fixed" | "rotation" | undefined {
+  const raw = process.env.WRITER_CONDITIONING
+  return raw === "fixed" || raw === "rotation" ? raw : undefined
 }
 
 // ── Public composer (preserved interface) ────────────────────────────────

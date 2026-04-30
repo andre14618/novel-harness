@@ -23,8 +23,6 @@ export interface ModelAssignment {
   thinking?: boolean     // default: false
 }
 
-export type WriterLeakProfile = "salvatore"
-
 const DEFAULTS = { temperature: 0.7, maxTokens: 4096, thinking: false } as const
 
 const groqQwen32B: ModelAssignment = { provider: "groq", model: "qwen/qwen3-32b" }
@@ -54,15 +52,14 @@ const groqKimiK2: ModelAssignment = { provider: "groq", model: "moonshotai/kimi-
 // thinking proves insufficient).
 const deepseekV4Flash: ModelAssignment = { provider: "deepseek", model: "deepseek-v4-flash" }
 const mimoFlash: ModelAssignment = { provider: "mimo", model: "mimo-v2-flash" }
-const togetherQwen9B: ModelAssignment = { provider: "together", model: "Qwen/Qwen3.5-9B" }
 
 export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // ── Writers (creative prose, high output) ─────────────────────────────
   // DeepSeek V4 Flash non-thinking. Prose generation doesn't benefit from
   // reasoning tokens (creative output, not multi-step inference); thinking
-  // mode would slow per-beat latency without quality lift. Howard primer/
-  // methodology retired 2026-04-16 — fantasy voice currently lands through
-  // the Salvatore genre pack below.
+  // mode would slow per-beat latency without quality lift. Writer-layer LoRA
+  // routing is retired; genre-specific data now affects planner structure,
+  // not the drafting model or context shape.
   "writer":                    { ...deepseekV4Flash, temperature: 0.8, maxTokens: 8000 },
   "beat-writer":               { ...deepseekV4Flash, temperature: 0.8, maxTokens: 4000 },
   // rewriter removed 2026-04-17 — validation is diagnostic-only now
@@ -92,17 +89,20 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // benchmark via scripts/best-of-n-experiment.ts).
   "reference-resolver":        { provider: "groq", model: "llama-3.1-8b-instant", temperature: 0.1, maxTokens: 512 },
 
-  // V4 adapter: events+attribution merged prompt, Sonnet-labeled, 2134 examples (exp #161).
-  // 512 tokens: V4 trained on Sonnet labels which include fuller evidence quotes than V2.
-  "adherence-events":          { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/adherence-checker-v4", temperature: 0.1, maxTokens: 512 },
+  // Runtime checkers default to bounded DeepSeek V4 Flash non-thinking calls.
+  // Existing W&B checker adapters are retained only as historical artifacts;
+  // they are not the active base-writer workflow.
+  "adherence-events":          { ...deepseekV4Flash, temperature: 0.1, maxTokens: 512 },
 
-  // ── Hallucination checkers (v3 two-adapter architecture) ──────────────
-  // Both adapters trained on the same pool (Cerebras + DeepSeek synth +
-  // v1 natural) but with narrowed rubrics (see scripts/hallucination/
-  // format-v3-two-adapters.ts). Combined via OR in src/phases/drafting.ts:
-  // any fired adapter = retry. Telemetry via llm_calls.agent.
-  "halluc-ungrounded":         { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/halluc-ungrounded-v2:v1", temperature: 0.1, maxTokens: 512 },
-  "halluc-leak-salvatore":     { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/halluc-leak-salvatore-v1:v1", temperature: 0.1, maxTokens: 256 },
+  // ── Entity grounding ───────────────────────────────────────────────────
+  // Corpus-leak detection was tied to the retired Salvatore writer LoRA path.
+  // The remaining grounding check judges only against the writer-visible
+  // evidence surface and runs on base DeepSeek V4 Flash.
+  "halluc-ungrounded":         { ...deepseekV4Flash, temperature: 0.1, maxTokens: 512 },
+
+  // Planned story-state grounding. Warning-only until oracle calibration;
+  // deterministic payoff-link integrity remains in src/phases/functional-checks.ts.
+  "functional-state-checker":  { ...deepseekV4Flash, temperature: 0.1, maxTokens: 1536 },
 
   // ── Extractors (structured extraction from prose) ─────────────────────
   "summary-extractor":         { ...mimoFlash, temperature: 0.2, maxTokens: 8192 },
@@ -114,10 +114,8 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // ── Validators (analytical checks) ────────────────────────────────────
   // continuity: decomposed into 2 parallel calls (facts + state) via check.ts.
   // Sub-check aliases — same model, distinct agent names for tracing in llm_calls.
-  // V2 adapter: 253 Sonnet-labeled pairs (39 scenarios × 6-7 variants), 3 epochs on Qwen3-14B.
-  // Swapped from Cerebras 235B → W&B continuity-v2 adapter (2026-04-12).
-  "continuity-facts":          { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/continuity-v2:v1", temperature: 0.2, maxTokens: 2048 },
-  "continuity-state":          { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/continuity-v2:v1", temperature: 0.2, maxTokens: 2048 },
+  "continuity-facts":          { ...deepseekV4Flash, temperature: 0.1, maxTokens: 2048 },
+  "continuity-state":          { ...deepseekV4Flash, temperature: 0.1, maxTokens: 2048 },
 
   // ── Lint fixer (per-sentence creative fixes via LLM) ──────────────────
   // Stays on Cerebras 235B — high call count (6–17/run), latency-sensitive,
@@ -144,12 +142,6 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // Same DeepSeek model as the checker; higher maxTokens since output is a
   // full beats+state JSON (matches planning-beats shape).
   "chapter-plan-reviser":      { ...deepseekV4Flash, thinking: true, temperature: 0.3, maxTokens: 6144 },
-
-  // ── Tonal pass (per-paragraph voice rewrite, LoRA fine-tuned) ────────
-  // Howard methodology RETIRED 2026-04-16. Adapter slot retained for the
-  // on-demand POST /api/novel/:id/tonal-pass endpoint so existing novels can
-  // still be re-voiced. Not invoked automatically.
-  "tonal-pass":                { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/howard-tonal-v4-sft-resume:v8", temperature: 0.6, maxTokens: 2048 },
 
   // ── Lint research (offline scripts only — NOT in the pipeline) ─────
   // Used by scripts/lint/lint-discover.ts + scripts/lint/lint-discover-lib.ts
@@ -337,27 +329,10 @@ export function getModelForAgent(agentName: string): ModelAssignment | undefined
   return override ? { ...base, ...override } as ModelAssignment : base
 }
 
-// ── Genre-scoped writer packs ──────────────────────────────────────────
-// Per-novel writer override keyed on the seed's `genre` string. When a
-// genre matches, the writer routes to the pack's model + system prompt
-// instead of the default `beat-writer` assignment.
-//
-// Each pack bundles:
-//   - model          : ModelAssignment (base model or adapter URI)
-//   - systemPromptFile: relative to src/agents/writer/ — the training-
-//                       verbatim system prompt plus any runtime riders
-//                       (e.g. proper-noun blocklist)
-//   - usePrimer      : whether to prepend the Howard style primer.
-//                       Voice LoRAs that were trained on their own
-//                       system prompt should set this false.
-//   - compactContext : whether the route uses the compact LoRA-trained beat
-//                      context instead of the richer default runtime surface
-//   - leakProfile    : optional corpus-leak checker profile for writer routes
-//                      trained on a known corpus
-//
-// Packs are matched in order; the first regex that matches the seed's
-// genre wins. A pack can carry corpus-derived prompts/priors with or without
-// a fine-tuned writer adapter.
+// ── Genre-scoped structural priors ───────────────────────────────────────
+// Genre matching now feeds the planner only. The beat writer always uses the
+// base `beat-writer` model assignment and full runtime context; no genre match
+// can swap in a LoRA adapter, compact prompt, or corpus-leak profile.
 
 export interface StructuralPriors {
   beatDistribution: Record<string, number>
@@ -369,23 +344,10 @@ export interface StructuralPriors {
   beatsPerChapter: [number, number]
 }
 
-export interface WriterGenrePack {
+export interface StructuralGenrePack {
   label: string
   match: RegExp
-  model: ModelAssignment
-  systemPromptFile: string
-  usePrimer: boolean
-  /** Whether this route should use the compact beat context trained for
-   * writer LoRAs. Base-model routes should leave this false so they receive
-   * the richer default runtime state surface. */
-  compactContext: boolean
-  leakProfile?: WriterLeakProfile
   structuralPriors: StructuralPriors
-  /** Controls how exampleLines are sampled in beat-context.ts.
-   *  "fixed"    — always use preset-a (indexes [0,1,2])
-   *  "rotation" — cycle preset-a/b/c by (chapter * 100 + beat) % 3
-   *  Default: "fixed". Set WRITER_CONDITIONING env var to override at runtime. */
-  conditioning?: "fixed" | "rotation"
 }
 
 // Structural priors from novels/salvatore-icewind-dale/analysis/structural-signature.json
@@ -402,81 +364,17 @@ const SALVATORE_PRIORS: StructuralPriors = {
   beatsPerChapter: [11, 40],
 }
 
-export const WRITER_GENRE_PACKS: WriterGenrePack[] = [
+export const STRUCTURAL_GENRE_PACKS: StructuralGenrePack[] = [
   {
-    label: "salvatore-fantasy",
+    label: "fantasy-structural-priors",
     match: /\b(action.?pulp|sword.?and.?sorcery|sword.?&.?sorcery|epic fantasy|heroic fantasy|dark fantasy|fantasy)\b/i,
-    // Track A validation (exp #265, 2026-04-30) tested base DeepSeek V4 Flash
-    // here and returned NO-SHIP. Keep the production route on the Salvatore
-    // voice LoRA until a cleaner replacement clears full-novel read-through.
-    model: {
-      provider: "wandb",
-      model: "wandb-artifact:///andre14618-/novel-harness/salvatore-1988-v4",
-      temperature: 0.8,
-      maxTokens: 4000,
-    },
-    systemPromptFile: "beat-writer-system-salvatore.md",
-    usePrimer: false,
-    compactContext: true,
-    leakProfile: "salvatore",
     structuralPriors: SALVATORE_PRIORS,
-    // conditioning intentionally unset at pack level. Undefined = production
-    // behavior (raw lines.slice(0, 5) — what live novels have always used).
-    // The env-var override WRITER_CONDITIONING=fixed|rotation is set only by
-    // the conditioning-floor replay runner; it does NOT alter live novel
-    // drafting. Changed 2026-04-20 after parity harness caught a regression
-    // where pack-level default "fixed" was dropping the 4th exampleLine on
-    // every production beat.
   },
 ]
 
-export function resolveWriterPack(genre: string | undefined): WriterGenrePack | null {
-  if (!genre) return null
-  const pack = WRITER_GENRE_PACKS.find(p => p.match.test(genre)) ?? null
-  if (!pack) return null
-
-  let result = pack
-
-  if (process.env.WRITER_MODEL_OVERRIDE) {
-    // Runtime override for A/B comparisons. Structural priors and prompt stay
-    // pack-scoped, but LoRA-specific compact context + leak checks do not
-    // follow a base-model override. This keeps base DeepSeek fantasy runs from
-    // accidentally executing inside the Salvatore adapter shell.
-    const provider = (process.env.WRITER_PROVIDER_OVERRIDE as ProviderName | undefined) ?? result.model.provider
-    const model = process.env.WRITER_MODEL_OVERRIDE
-    const overrideAssignment = { ...result.model, model, provider }
-    const overrideLooksLikeSalvatoreAdapter = isSalvatoreAdapter(overrideAssignment)
-    result = {
-      ...result,
-      model: overrideAssignment,
-      compactContext: overrideLooksLikeSalvatoreAdapter ? result.compactContext : false,
-      leakProfile: overrideLooksLikeSalvatoreAdapter ? result.leakProfile : undefined,
-    }
-  }
-
-  const compactContextEnv = process.env.WRITER_COMPACT_CONTEXT_OVERRIDE
-  if (compactContextEnv === "true" || compactContextEnv === "false") {
-    result = { ...result, compactContext: compactContextEnv === "true" }
-  }
-
-  const conditioningEnv = process.env.WRITER_CONDITIONING
-  if (conditioningEnv === "fixed" || conditioningEnv === "rotation") {
-    // Runtime override for A/B conditioning comparisons — overrides exampleLines
-    // sampling mode only. Set WRITER_CONDITIONING=rotation to enable per-beat
-    // preset cycling (see beat-context.ts pickExampleLineSubset).
-    result = { ...result, conditioning: conditioningEnv }
-  }
-  // Invalid WRITER_CONDITIONING values fall through to the pack default.
-
-  return result
-}
-
-function isSalvatoreAdapter(model: ModelAssignment): boolean {
-  return model.provider === "wandb" && /salvatore/i.test(model.model)
-}
-
 export function resolveStructuralPriors(genre: string | undefined): StructuralPriors | null {
-  const pack = resolveWriterPack(genre)
+  if (!genre) return null
+  const pack = STRUCTURAL_GENRE_PACKS.find(p => p.match.test(genre)) ?? null
   return pack?.structuralPriors ?? null
 }
 

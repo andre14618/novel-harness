@@ -458,7 +458,7 @@ export function StudioPage() {
         concept:    "Concept (rebuild world, characters, plot — destructive)",
         planning:   "Planning (rewrite chapter outlines — drops existing outlines)",
         drafting:   "Drafting (re-run chapter writing — keeps outlines)",
-        validation: "Validation (re-run checks + tonal pass on existing prose)",
+        validation: "Validation (re-run diagnostic checks on existing prose)",
       }
       if (!confirm(`Rewind and re-run: ${labels[rewindTo]}\n\nContinue?`)) return
     }

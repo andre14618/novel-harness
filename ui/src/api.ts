@@ -248,13 +248,6 @@ export function getChapterVersions(novelId: string, chapter: number) {
   return fetchJSON<ChapterVersions>(`/api/novel/${novelId}/chapter/${chapter}/versions`)
 }
 
-export function runTonalPass(novelId: string, opts: { chapter?: number; regenerate?: boolean } = {}) {
-  return fetchJSON<{ ok: boolean }>(`/api/novel/${novelId}/tonal-pass`, {
-    method: "POST",
-    body: JSON.stringify(opts),
-  })
-}
-
 export interface BeatData {
   chapter: number
   beatIndex: number

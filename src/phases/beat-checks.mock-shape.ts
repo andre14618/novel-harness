@@ -22,7 +22,6 @@
  */
 
 import type { BeatIssue, RawCheckerOutputs } from "./beat-checks"
-import type { WriterLeakProfile } from "../models/roles"
 
 // Keep this function in sync with `formatRetryLine` in beat-checks.ts. The
 // pinned test in beat-checks.test.ts catches drift on the real impl; this
@@ -31,8 +30,6 @@ function mirroredFormatRetryLine(issue: BeatIssue): string {
   switch (issue.source) {
     case "halluc-ungrounded":
       return `${issue.description} — Fix: replace with an entity from the beat brief or world bible, or remove the reference entirely. Do not invent new named entities.`
-    case "halluc-leak-salvatore":
-      return `${issue.description} — Fix: remove the token or replace with a generic descriptor (e.g. "the drow warrior" instead of a Salvatore-corpus proper name).`
     case "adherence":
     default:
       return issue.description
@@ -42,13 +39,11 @@ function mirroredFormatRetryLine(issue: BeatIssue): string {
 export function buildBeatChecksMock() {
   return {
     runBeatChecks: async () => ({ pass: true, issues: [] as BeatIssue[], retryLines: [] as string[] }),
-    shouldRunLeakChecker: (profile: WriterLeakProfile | null) => profile === "salvatore",
     formatRetryLine: mirroredFormatRetryLine,
     aggregateIssues: (outputs: RawCheckerOutputs) => {
       const issues: BeatIssue[] = []
       for (const s of outputs.adherence) issues.push({ source: "adherence", severity: "blocker", description: s })
       for (const s of outputs.ungrounded) issues.push({ source: "halluc-ungrounded", severity: "blocker", description: s })
-      for (const s of outputs.leak) issues.push({ source: "halluc-leak-salvatore", severity: "blocker", description: s })
       return {
         pass: issues.every(i => i.severity !== "blocker"),
         issues,

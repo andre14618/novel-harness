@@ -32,7 +32,7 @@ const WB = "wandb-artifact:///andre14618-/novel-harness"
 const QWEN14B = "OpenPipe/Qwen3-14B-Instruct"
 
 const SEEDS: AdapterSeed[] = [
-  // ── Deployed checkers ──
+  // ── Archived checker adapters ──
   {
     uri: `${WB}/adherence-checker-v4`,
     name: "adherence-checker-v4",
@@ -40,13 +40,13 @@ const SEEDS: AdapterSeed[] = [
     base_model: QWEN14B,
     training_experiment_id: 161,
     eval_experiment_ids: [161],
-    status: "deployed",
+    status: "retired",
     deployed_at: "2026-04-12",
-    retired_at: null,
+    retired_at: "2026-04-30",
     headline_metrics: { first_attempt_pass: 0.79, false_positive_rate: 0.0, eval_beats: 30, latency_ms: 955 },
     training_data_path: null,
     supersedes: null,
-    notes: "Events+attribution merged into single call. Setting/tangent/char-presence/word-count removed as gates. 2,134 Sonnet-labeled pairs.",
+    notes: "Events+attribution merged into single call. Retired from runtime in exp #272; adherence-events now uses bounded DeepSeek V4 Flash non-thinking.",
   },
   {
     uri: `${WB}/chapter-plan-checker-v2:v1`,
@@ -55,13 +55,13 @@ const SEEDS: AdapterSeed[] = [
     base_model: QWEN14B,
     training_experiment_id: null,   // SFT training row not clearly identified; labeling was #170
     eval_experiment_ids: [170, 178],
-    status: "deployed",
+    status: "retired",
     deployed_at: "2026-04-12",
-    retired_at: null,
+    retired_at: "2026-04-18",
     headline_metrics: { accuracy: 0.96, vs_gpt_oss_120b: 0.78, latency_ms: 609, eval_pairs: 520 },
     training_data_path: "lora-data/chapter-plan-checker-pairs-sonnet-v2.jsonl",
     supersedes: null,
-    notes: "65 scenarios × 8 variants = 520 pairs, 50/50 balance. Sonnet teacher labeling at 96% agreement (exp #170).",
+    notes: "65 scenarios × 8 variants = 520 pairs, 50/50 balance. Retired after production false-positive audit; chapter-plan-checker now uses DeepSeek V4 Flash thinking mode.",
   },
   {
     uri: `${WB}/continuity-v2:v1`,
@@ -70,13 +70,13 @@ const SEEDS: AdapterSeed[] = [
     base_model: QWEN14B,
     training_experiment_id: 175,
     eval_experiment_ids: [175],
-    status: "deployed",
+    status: "retired",
     deployed_at: "2026-04-12",
-    retired_at: null,
+    retired_at: "2026-04-30",
     headline_metrics: { sonnet_agreement: 0.99, latency_ms_warm: 204, cost_per_novel: 0.0011, training_pairs: 253 },
     training_data_path: null,
     supersedes: null,
-    notes: "2 parallel decomposed agents (facts + state). 3-chapter dark-fantasy validation: 0 FP, 0 missed. 11.9× cost reduction vs Cerebras 235B.",
+    notes: "2 parallel decomposed agents (facts + state). Retired from runtime in exp #272; continuity now uses bounded DeepSeek V4 Flash non-thinking.",
   },
   {
     uri: `${WB}/hallucination-checker-v1:v1`,
@@ -93,7 +93,7 @@ const SEEDS: AdapterSeed[] = [
     supersedes: null,
     notes: "Natural-distribution train (640/160 split, 74/26 PASS bias). Failed 90% precision gate. v2 with synthetic variant expansion is in flight.",
   },
-  // ── Deployed writer (voice LoRA) — order matters for supersedes FK ──
+  // ── Archived writer voice LoRAs — order matters for supersedes FK ──
   {
     uri: `${WB}/salvatore-1988-v3`,
     name: "salvatore-1988-v3",
@@ -116,15 +116,15 @@ const SEEDS: AdapterSeed[] = [
     base_model: QWEN14B,
     training_experiment_id: 197,
     eval_experiment_ids: [222],
-    status: "deployed",
+    status: "retired",
     deployed_at: "2026-04-17",
-    retired_at: null,
+    retired_at: "2026-04-30",
     headline_metrics: null,         // writer evals use different shape; to be backfilled
     training_data_path: null,
     supersedes: `${WB}/salvatore-1988-v3`,
-    notes: "Character-tagged beat-writer with per-speaker profiles + exampleLines (exp #222). Fantasy-genre routing via WRITER_GENRE_PACKS.",
+    notes: "Character-tagged beat-writer with per-speaker profiles + exampleLines (exp #222). Retired from runtime writer routing.",
   },
-  // ── Deployed tonal-pass (on-demand only) ──
+  // ── Archived tonal-pass adapter ──
   {
     uri: `${WB}/howard-tonal-v4-sft-resume:v8`,
     name: "howard-tonal-v4-sft-resume",
@@ -132,13 +132,13 @@ const SEEDS: AdapterSeed[] = [
     base_model: QWEN14B,
     training_experiment_id: 95,
     eval_experiment_ids: [95],
-    status: "deployed",
+    status: "retired",
     deployed_at: "2026-04-11",
-    retired_at: null,
+    retired_at: "2026-04-30",
     headline_metrics: null,
     training_data_path: null,
     supersedes: null,
-    notes: "Howard primer methodology retired 2026-04-16 for auto-run. Retained for POST /api/novel/:id/tonal-pass on-demand endpoint only.",
+    notes: "Howard primer methodology retired 2026-04-16; tonal-pass endpoint retired in exp #272 and now returns 410.",
   },
   // ── Candidates / non-shipped ──
   {

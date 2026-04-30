@@ -112,7 +112,7 @@ test("extractProperNouns: strips leading sentence-starter stopwords from multi-w
 
 test("extractProperNouns: keeps 'The <Name>' because 'The' starts real place names", () => {
   // "The Ashen Wastes" is a real place name — don't strip "The" from
-  // multi-word spans; keep the whole thing so the adapter sees it intact.
+  // multi-word spans; keep the whole thing so the checker sees it intact.
   const names = extractProperNouns("They crossed The Ashen Wastes on foot.")
   expect(names).toContain("The Ashen Wastes")
 })

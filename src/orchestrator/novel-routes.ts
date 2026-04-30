@@ -146,8 +146,8 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
         writers: { label: "Writers", description: "Creative prose generation", agents: ["writer", "beat-writer"] },
         planners: { label: "Planners", description: "World, characters, plot, chapter outlines", agents: ["world-builder", "character-agent", "plotter", "planning-plotter"] },
         beatSupport: { label: "Beat Support", description: "Cheap/fast structural tasks for beat-level writing", agents: ["reference-resolver", "adherence-events"] },
-        validators: { label: "Validators", description: "Plan adherence, hallucination, and continuity checks", agents: ["chapter-plan-checker", "halluc-ungrounded", "halluc-leak-salvatore", "continuity-facts", "continuity-state"] },
-        lintTonal: { label: "Lint & Tonal", description: "AI-tell detection and style transfer", agents: ["lint-fixer", "tonal-pass"] },
+        validators: { label: "Validators", description: "Plan adherence, entity grounding, functional state, and continuity checks", agents: ["chapter-plan-checker", "halluc-ungrounded", "functional-state-checker", "continuity-facts", "continuity-state"] },
+        lintTonal: { label: "Lint", description: "AI-tell detection and guarded prose cleanup", agents: ["lint-fixer"] },
         lintResearch: { label: "Lint Research", description: "Offline lint-pattern tooling (scripts/lint/*). Not in the pipeline; kept for lint-discoverer/lint-improver scripts.", agents: ["improver"] },
       }
 
@@ -814,81 +814,10 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
     }
   }
 
-  // ── Run tonal pass on-demand across all approved chapters ───────────
-  // Preserves the approved draft and stores the rewrite as a new version
-  // with status='tonal-pass'. Does not touch the state machine.
+  // ── Retired tonal pass endpoint ─────────────────────────────────────
   const tonalRunMatch = path.match(/^\/api\/novel\/([^/]+)\/tonal-pass$/)
   if (tonalRunMatch && req.method === "POST") {
-    const novelId = tonalRunMatch[1]
-    if (activeRuns.has(novelId)) {
-      return Response.json({ error: "Novel is already running" }, { status: 409 })
-    }
-
-    await initDB(novelId)
-    try {
-      await getNovel(novelId)
-    } catch {
-      return Response.json({ error: `Novel ${novelId} not found` }, { status: 404 })
-    }
-
-    const body = (await req.json().catch(() => ({}))) as { chapter?: number; regenerate?: boolean }
-    const { getApprovedDraft, saveTonalPassDraft, deleteTonalPassDrafts } = await import("../db")
-    const { runTonalPass } = await import("../agents/tonal-pass/run")
-    const { emit } = await import("../events")
-
-    await initNovelRun(novelId)
-    lastRunErrors.delete(novelId)
-    activeRuns.set(novelId, { startedAt: new Date().toISOString() })
-
-    ;(async () => {
-      try {
-        const novel = await getNovel(novelId)
-        const total = novel.totalChapters
-        const targets = body.chapter ? [body.chapter] : Array.from({ length: total }, (_, i) => i + 1)
-
-        emit(novelId, { type: "tonal-start", data: { totalChapters: targets.length, chapters: targets } })
-
-        let chapterIndex = 0
-        for (const ch of targets) {
-          chapterIndex++
-          const draft = await getApprovedDraft(novelId, ch)
-          if (!draft) continue
-          if (body.regenerate) await deleteTonalPassDrafts(novelId, ch)
-
-          emit(novelId, {
-            type: "tonal-chapter-start",
-            data: { chapter: ch, chapterIndex, totalChapters: targets.length },
-          })
-
-          const result = await runTonalPass(novelId, ch, draft.prose)
-          if (result.paragraphsRewritten > 0) {
-            const wc = result.prose.split(/\s+/).filter(Boolean).length
-            await saveTonalPassDraft(novelId, ch, result.prose, wc)
-          }
-
-          emit(novelId, {
-            type: "tonal-chapter-done",
-            data: {
-              chapter: ch,
-              chapterIndex,
-              totalChapters: targets.length,
-              rewritten: result.paragraphsRewritten,
-              total: result.paragraphsTotal,
-            },
-          })
-        }
-
-        emit(novelId, { type: "tonal-done", data: { totalChapters: targets.length } })
-      } catch (err) {
-        captureRunError(novelId, err)
-        emit(novelId, { type: "tonal-error", data: { error: String(err) } })
-        console.error(`[novel-api] Tonal pass failed for ${novelId}:`, err)
-      } finally {
-        activeRuns.delete(novelId)
-      }
-    })()
-
-    return Response.json({ ok: true, novelId, chapter: body.chapter ?? "all" })
+    return Response.json({ error: "Tonal/voice LoRA pass is retired in the base-writer workflow" }, { status: 410 })
   }
 
   // ── Per-beat prose (from llm_calls) ─────────────────────────────────

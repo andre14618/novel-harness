@@ -761,20 +761,7 @@ export const MODELS: ModelDef[] = [
     thinking: "disabled",
     maxContext: 32_000,
     maxOutput: 8_000,
-    notes: "Base Qwen 3.5 9B served via Together AI serverless. Default small-model slot for cheap structural agents (reference-resolver, adherence-checker). Same base as the tonal-pass LoRA — using the base here makes the eventual fine-tune comparison apples-to-apples.",
-  },
-  {
-    id: "qwen3.5-9b-howard-tonal-v1",
-    label: "Qwen 3.5 9B — Howard Tonal v1",
-    provider: "together",
-    params: "9B",
-    pricing: { input: 0.10, output: 0.15 },
-    thinking: "disabled",
-    maxContext: 32_000,
-    maxOutput: 2_048,
-    baseModel: "Qwen/Qwen3.5-9B",
-    lora: "andre14618_2c8c/Qwen3.5-9B-howard-tonal-v1-582d484b",
-    notes: "LoRA fine-tune for tonal pass. Back-translated Howard style. Served serverless via Together AI.",
+    notes: "Base Qwen 3.5 9B served via Together AI serverless. Retained as a cheap stock-model option; no active runtime agent routes here.",
   },
 ]
 

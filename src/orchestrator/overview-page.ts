@@ -520,9 +520,10 @@ body::after {
             ~400 tokens out). Each beat passes through a validation gauntlet:
           </p>
           <div class="phase-items">
-            <div class="item"><span class="dash">&#x2500;&#x2500;</span> <strong>Adherence checking</strong> <span class="dim">&mdash; 4 parallel sub-calls (events, setting, tangent, character) verify prose fulfills the beat spec</span></div>
+            <div class="item"><span class="dash">&#x2500;&#x2500;</span> <strong>Adherence checking</strong> <span class="dim">&mdash; deterministic character presence plus one bounded event-enactment call verifies prose fulfills the beat spec</span></div>
             <div class="item"><span class="dash">&#x2500;&#x2500;</span> <strong>Chapter plan checking</strong> <span class="dim">&mdash; structural comparison of full chapter against planning output</span></div>
             <div class="item"><span class="dash">&#x2500;&#x2500;</span> <strong>Continuity checking</strong> <span class="dim">&mdash; facts and character state verified against accumulated world state</span></div>
+            <div class="item"><span class="dash">&#x2500;&#x2500;</span> <strong>Functional state checking</strong> <span class="dim">&mdash; payoff graph invariants block, semantic planned-state grounding stays warning-class until calibrated</span></div>
             <div class="item"><span class="dash">&#x2500;&#x2500;</span> <strong>Lint</strong> <span class="dim">&mdash; ~26 deterministic patterns (clich&eacute;, hedging, emotional echo, rhythm) with per-sentence LLM rewrites</span></div>
           </div>
           <p style="margin-top: 0.6rem;">Failed beats retry with the failure reason injected as context. The chapter only advances when all checks pass.</p>
@@ -551,10 +552,9 @@ body::after {
             <h3>Validation</h3>
           </div>
           <p>
-            Chapters that fail deterministic quality checks get rewritten.
-            Once all chapters converge, a <strong>tonal pass</strong> applies a LoRA fine-tuned
-            adapter (Qwen3 14B) for per-paragraph voice rewriting &mdash; transferring stylistic
-            qualities from reference prose while preserving content. Dialogue is skipped.
+            Validation is diagnostic-only. Runtime discipline now lives in drafting: targeted
+            beat rewrites, continuity and functional state checks, and guarded lint fixes before
+            approval. Tonal/voice LoRA generation is retired; old tonal rows remain archival only.
           </p>
         </div>
 

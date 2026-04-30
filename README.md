@@ -25,27 +25,28 @@ Three agents run in parallel, each producing a structured artifact:
 Each artifact gets a human approval gate (or auto-approved with `--auto`).
 
 ### Phase 2: Planning
-All Phase 1 outputs converge into a **Planning Plotter** call that generates chapter-by-chapter outlines with scene beats (4–6 per chapter), POV assignments, character lists, and word targets. The planner also declares world state: established facts, character state changes, knowledge changes — this becomes the authoritative state source.
+All Phase 1 outputs converge into split planning calls that generate chapter skeletons and then expand each chapter into scene beats, POV assignments, character lists, state changes, and word targets. The planner also declares world state: established facts, character state changes, knowledge changes — this becomes the authoritative state source.
 
 ### Phase 3: Drafting
 For each chapter, beats are written serially. For each beat:
 1. **Reference Resolver** (pre-fetched in parallel for all beats) — resolves character/world references
 2. **Beat Writer** — generates prose from beat spec + character snapshots + transition bridge
-3. **Adherence Checker** — deterministic character-presence check + LLM call (events, attribution)
-4. **Chapter Plan Checker** — cross-beat properties: setting coherence, emotional arc, plot contradictions
-5. **Continuity Checker** — cross-references draft against established world-state facts
+3. **Adherence Checker** — deterministic character-presence check + bounded LLM event-enactment call
+4. **Entity Grounding Checker** — flags named entities not grounded in the writer-visible evidence surface
+5. **Functional Story-State Checks** — deterministic payoff-link integrity plus bounded semantic planned-state grounding before state is persisted
+6. **Chapter Plan / Continuity Checks** — cross-beat and cross-chapter story-state consistency
 
-Failed checks trigger targeted rewrites. Active checkers are a mix of deterministic guards, W&B checker adapters, and DeepSeek V4 Flash reasoning slots.
+Failed checks trigger targeted rewrites or the plan-assist gate. Active runtime checks are deterministic guards plus bounded DeepSeek V4 Flash calls; retired W&B checker/voice adapters are not part of the base-writer workflow.
 
 ### Phase 4: Validation
-Diagnostic-only. Deterministic checks run and issues are logged; the chapter-level rewriter was removed because the beat-writer retry loop in drafting is the quality gate. The tonal-pass auto-run is disabled. Fantasy writing currently uses the Salvatore `WRITER_GENRE_PACKS` route; the on-demand `POST /api/novel/:id/tonal-pass` endpoint still works for existing novels.
+Diagnostic-only. Deterministic checks run and issues are logged; the chapter-level rewriter was removed because the beat-writer retry loop in drafting is the quality gate. Tonal/voice LoRA generation is retired from runtime; old tonal-pass draft rows can still be viewed for archival comparison.
 
 ## Stack
 
 - **Runtime**: Bun
-- **LLM**: Multi-provider. Assignments per agent in `src/models/roles.ts`. Default writer is DeepSeek V4 Flash (V3.2 → V4 Flash swap landed 2026-04-29); fantasy seeds route to the Salvatore voice LoRA via `WRITER_GENRE_PACKS` (base-DeepSeek replacement was tested in exp #265 and not shipped). Thinking mode is per-agent — ON only on `planning-beats`, `chapter-plan-checker`, `chapter-plan-reviser`. Other active providers: Cerebras (lint-fixer), Groq (reference-resolver), W&B Inference (fine-tuned checker + voice adapters), OpenRouter, OpenAI
+- **LLM**: Multi-provider. Assignments per agent in `src/models/roles.ts`. Default writer is DeepSeek V4 Flash. Fantasy genre data now supplies planner structural priors only; it does not route the writer through a LoRA, compact context, or corpus-leak profile. Thinking mode is per-agent — ON only on `planning-beats`, `chapter-plan-checker`, `chapter-plan-reviser`. Other active providers: Cerebras (lint-fixer), Groq (reference-resolver), OpenRouter, OpenAI
 - **DB**: Single Postgres (`novel_harness_orchestrator`) — all novel content, world state, experiments, LLM calls, and cost tracking
-- **Fine-tuning**: W&B Serverless SFT (ART framework) → W&B Inference. Base model: `OpenPipe/Qwen3-14B-Instruct`. Active runtime adapters include checker adapters (`adherence-checker-v4`, `continuity-v2`; hallucination adapters per current-state) plus the Salvatore writer LoRA for fantasy routing. `howard-tonal-v4` is retained for on-demand tonal-pass only.
+- **Fine-tuning**: Historical W&B/Together SFT infrastructure remains for archived experiments, but no writer or checker LoRA is active in the base-writer runtime path.
 - **Transport**: `src/transport.ts` — DirectTransport (real-time HTTP with retries). Per-call telemetry persists to `llm_calls`.
 - **UI**: React + Vite served at `/app`
 

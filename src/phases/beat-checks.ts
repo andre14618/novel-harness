@@ -10,24 +10,15 @@
  * Current checkers:
  *   - adherence-events  (always)
  *   - halluc-ungrounded (always)
- *   - halluc-leak-salvatore (only on routes with the Salvatore leak profile)
- *
- * Gating decision — 2026-04-30:
- * Leak is gated by an explicit `WriterLeakProfile`, not by pack membership.
- * Fantasy structural priors can now apply to base-model routes without
- * inheriting a corpus-leak checker intended for a trained writer adapter.
  */
 
 import type { ChapterOutline, CharacterProfile, SceneBeat } from "../types"
-import type { WriterLeakProfile } from "../models/roles"
 import { checkBeatAdherence } from "../agents/writer/adherence-checker"
 import { checkHallucUngrounded } from "../agents/halluc-ungrounded"
-import { checkHallucLeakSalvatore } from "../agents/halluc-leak-salvatore"
 
 export type BeatIssueSource =
   | "adherence"
   | "halluc-ungrounded"
-  | "halluc-leak-salvatore"
 
 export interface BeatIssue {
   source: BeatIssueSource
@@ -49,9 +40,6 @@ export interface RunBeatChecksInput {
   outline: ChapterOutline
   characters: CharacterProfile[]
   worldBible: any
-  /** The resolved writer leak profile for this route, or null if no
-   *  corpus-specific leak checker applies. */
-  writerLeakProfile: WriterLeakProfile | null
   /** Immediately-preceding scene beat in the same chapter, if any.
    *  Consumed by the halluc-ungrounded checker under the beat-entity-list
    *  charter (v1/v3) to surface prior-beat entities as grounded. */
@@ -66,32 +54,22 @@ export interface RunBeatChecksInput {
  * so `Promise.all` is safe — no rejection path to handle.
  */
 export async function runBeatChecks(input: RunBeatChecksInput): Promise<BeatCheckResult> {
-  const { prose, beat, outline, characters, worldBible, writerLeakProfile, prevBeat, tags } = input
+  const { prose, beat, outline, characters, worldBible, prevBeat, tags } = input
 
-  const runLeak = shouldRunLeakChecker(writerLeakProfile)
-
-  // Parallelize the fan-out. All three helpers normalize failures into
+  // Parallelize the fan-out. Both helpers normalize failures into
   // issues and never throw, so Promise.all is safe here. If a future
   // checker violates that invariant, switch this site to allSettled.
-  const [adh, ung, leak] = await Promise.all([
+  const [adh, ung] = await Promise.all([
     checkBeatAdherence(prose, beat, outline, characters, tags),
     checkHallucUngrounded(prose, beat, outline, characters, worldBible, tags, { prevBeat }),
-    runLeak
-      ? checkHallucLeakSalvatore(prose, tags)
-      : Promise.resolve({ pass: true, issues: [] as string[] }),
   ])
 
-  return aggregateIssues({ adherence: adh.issues, ungrounded: ung.issues, leak: leak.issues })
-}
-
-export function shouldRunLeakChecker(writerLeakProfile: WriterLeakProfile | null): boolean {
-  return writerLeakProfile === "salvatore"
+  return aggregateIssues({ adherence: adh.issues, ungrounded: ung.issues })
 }
 
 export interface RawCheckerOutputs {
   adherence: string[]
   ungrounded: string[]
-  leak: string[]
 }
 
 /**
@@ -104,7 +82,6 @@ export function aggregateIssues(outputs: RawCheckerOutputs): BeatCheckResult {
   const issues: BeatIssue[] = []
   for (const s of outputs.adherence) issues.push({ source: "adherence", severity: "blocker", description: s })
   for (const s of outputs.ungrounded) issues.push({ source: "halluc-ungrounded", severity: "blocker", description: s })
-  for (const s of outputs.leak) issues.push({ source: "halluc-leak-salvatore", severity: "blocker", description: s })
 
   return {
     pass: issues.every(i => i.severity !== "blocker"),
@@ -119,20 +96,15 @@ export function aggregateIssues(outputs: RawCheckerOutputs): BeatCheckResult {
  * the right fix without exposing checker internals.
  *
  * Retry-wording expansion — 2026-04-20: the raw
- * "Ungrounded entity X — context: ..." and "Salvatore corpus-leak token X"
- * descriptions told the writer *what* was wrong but not *how* to fix it;
- * clearance rate on the 2026-04-20 panel was 9% for ungrounded and 28%
- * for leak because the writer tended to preserve the flagged token. The
- * appended guidance lines tell the writer the valid resolution space
- * (replace with brief/bible entity, or remove the reference). See
- * docs/halluc-v3-production-report-2026-04-20.md.
+ * "Ungrounded entity X — context: ..." descriptions told the writer *what*
+ * was wrong but not *how* to fix it. The appended guidance tells the writer
+ * the valid resolution space: replace with a brief/bible entity or remove the
+ * reference.
  */
 export function formatRetryLine(issue: BeatIssue): string {
   switch (issue.source) {
     case "halluc-ungrounded":
       return `${issue.description} — Fix: replace with an entity from the beat brief or world bible, or remove the reference entirely. Do not invent new named entities.`
-    case "halluc-leak-salvatore":
-      return `${issue.description} — Fix: remove the token or replace with a generic descriptor (e.g. "the drow warrior" instead of a Salvatore-corpus proper name).`
     case "adherence":
     default:
       return issue.description

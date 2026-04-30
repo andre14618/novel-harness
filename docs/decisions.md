@@ -234,6 +234,8 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 ### Writer fine-tunes are fallback, not the strategic writer route
 *2026-04-30 · follows exp #265*
 
+> Superseded operationally by exp #272: writer fine-tunes are no longer a runtime fallback; fantasy now carries structural priors only.
+
 **Decision:** Move away from writer-layer fine-tunes as the strategic path, even though Salvatore v4 remains the temporary production fallback. Future work should remediate the base-model route rather than run more Salvatore-vs-DeepSeek bake-offs designed to defend the LoRA.
 
 **Why:** The reason to leave writer fine-tunes is architectural, not just empirical: the writing layer increasingly needs complex prompt following, rich beat context, planner payoffs, character state constraints, and future context-engineering levers. A small writer LoRA trained on a narrow prompt shape is brittle when the harness evolves. Exp #265 did not prove base DeepSeek cannot replace the LoRA; it proved the migration path is blocked by route coupling and downstream corruption. Base DeepSeek was tested inside the LoRA-shaped compact route, while the approved prose was also contaminated by lint-fixer merge artifacts and planner/continuity failures.
@@ -243,12 +245,14 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 - Treat exp #265 as proof that the LoRA must remain strategic — rejected because the run was not a clean base-route test.
 - Draft another voice-shaping charter now — rejected until route decoupling, lint integrity, and planner/continuity blockers are fixed.
 
-**Ongoing:** Salvatore v4 stays available only as an operational fallback. The remediation plan is `docs/writer-finetune-retirement-remediation-plan.md`: decouple genre packs from compact LoRA context, add a lint-fixer integrity guard, rerun base DeepSeek with rich/default context, then fix planner/continuity failure classes surfaced by exp #265.
+**Ongoing:** Superseded by exp #272. Salvatore v4 no longer stays available as a runtime fallback; the surviving direction from this decision is the base-writer remediation focus.
 
 ---
 
 ### Track A did not retire the Salvatore writer LoRA
 *2026-04-30 · exp #265 · novel `novel-1777573197451`*
+
+> Superseded by exp #272: this was the first-run operational fallback policy, not the current runtime route.
 
 **Decision:** Do not retire the Salvatore writer LoRA from fantasy production routing on the first Track A validation. `WRITER_GENRE_PACKS` fantasy remains on `wandb-artifact:///andre14618-/novel-harness/salvatore-1988-v4` until a cleaner replacement clears full-novel read-through.
 
@@ -259,12 +263,14 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 - Draft a v2 voice-shaping charter immediately — rejected because the first follow-up is to isolate writer signal from lint-fixer corruption and continuity/seam bugs, not to add more prompt variables.
 - Treat the approved linted prose as the writer verdict — rejected because the raw chapter-3 opening was clean and the approved version was corrupted by the lint-fixer pass.
 
-**Ongoing:** Salvatore v4 remains the production fantasy route despite the fine-tune-free strategic direction. Track A can reopen with a cleaner measurement shape: inspect raw pre-lint drafts, add a post-lint integrity guard, and isolate continuity/seam failures before deciding whether base DeepSeek is truly worse as a writer. The fine-tune-free direction still applies to future checker changes and new SFT spend.
+**Ongoing:** Superseded by exp #272. Salvatore v4 no longer remains the production fantasy route; the useful residue is the warning not to treat lint-fixer corruption or stale checker policy as a writer verdict.
 
 ---
 
 ### Clean base-DeepSeek route validation exposed checker/approval-policy blockers
 *2026-04-30 · exp #268 · novel `novel-1777580634348` · commit `4efab0188498`*
+
+> Superseded operationally by exp #272: checker gaps still matter, but the Salvatore writer LoRA is no longer retained as runtime fallback.
 
 **Decision:** Do not retire the Salvatore writer LoRA after the clean base-DeepSeek validation run. The run verifies that route decoupling works, but it fails the ship gate because checker signals and continuity blockers can still reach approval.
 
@@ -294,6 +300,28 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 **Ongoing:** Immediate P0 follow-ups are source-scoped overrides, visible validation blockers under override, source-aware plan-assist payloads, deterministic fixture belt, and evidence-surface unification for writer context vs hallucination checks.
 
 **Implementation spec:** `docs/checker-framework-implementation-spec.md` records the concrete runtime policy: prose quality waits, deterministic checks come first, runtime LLM checks use bounded DeepSeek V4 Flash non-thinking tasks, and blocker-class checks require oracle calibration before shipping.
+
+---
+
+### Writer LoRA runtime route removed; fantasy now supplies structural priors only
+*2026-04-30 · exp #272*
+
+**Decision:** Remove the Salvatore writer-LoRA route, route-specific compact context, Salvatore corpus-leak checker, and tonal/voice LoRA generation from the live runtime workflow. Fantasy genre matching now supplies planner structural priors only. The active beat writer for all genres is DeepSeek V4 Flash non-thinking with the base beat-writer prompt and full runtime context.
+
+**Why:** The earlier fallback policy kept Salvatore v4 alive to avoid taking a writer verdict while lint/checker failures were unresolved. The new architecture decision is stronger: the harness should not depend on fragile writer/checker fine-tunes when DeepSeek V4 Flash is cheap, cacheable, and better aligned with evolving prompt/context surfaces. Keeping the LoRA shell in runtime continued to preserve obsolete compact-context and leak-check coupling. Removing it makes future validation measure the intended base-writer workflow directly.
+
+**Runtime changes:**
+- `WRITER_GENRE_PACKS` writer routing is replaced by structural genre priors only.
+- `adherence-events`, `halluc-ungrounded`, `continuity-facts`, and `continuity-state` now route to bounded DeepSeek V4 Flash non-thinking slots.
+- `halluc-leak-salvatore` and `tonal-pass` agents/scripts are removed from active code; `POST /api/novel/:id/tonal-pass` returns `410 Gone`.
+- `src/phases/functional-checks.ts` adds deterministic payoff-link integrity checks before state persistence; `functional-state-checker` uses bounded DeepSeek V4 Flash non-thinking for semantic planned-state grounding warnings.
+
+**Alternatives rejected:**
+- Keep Salvatore v4 as a production fallback until another read-through passes — rejected because it keeps the obsolete route shell alive and delays fixing the base workflow.
+- Keep the Salvatore leak checker as a generic safety net — rejected because it only makes sense for a writer trained on that corpus and becomes noise once the writer LoRA is removed.
+- Keep tonal-pass on demand — rejected because it preserves retired voice-transfer machinery and UI affordances that conflict with the base-writer workflow.
+
+**Ongoing:** Next validation should test the base writer plus the new functional checks, not a LoRA fallback. Semantic planned-state grounding findings remain warning-class; only deterministic payoff graph failures block until oracle samples justify stricter gating.
 
 ---
 

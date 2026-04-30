@@ -69,9 +69,9 @@ export async function checkBeatAdherence(
     }
   }
 
-  // Word count check removed 2026-04-16: voice LoRAs drift on per-beat word count,
-  // and the metric was never load-bearing for prose quality. Beat size is driven by
-  // the brief's dramatic function, not a numeric target.
+  // Word count check removed 2026-04-16: the metric was never load-bearing for
+  // prose quality. Beat size is driven by the brief's dramatic function, not a
+  // numeric target.
   //
   // Dialogue check also removed: false-positive rate too high for scenes where
   // silence is intentional. The events+attribution LLM call catches missing

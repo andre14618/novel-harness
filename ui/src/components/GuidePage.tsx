@@ -40,7 +40,7 @@ export function GuidePage() {
                 <p>
                   Imitates the structure of successful storytelling: beat rhythms, cluster patterns,
                   opener/closer rules, scene sizes, tension curves. Extracted from proven corpora
-                  (Salvatore reference) and rendered into planner constraints via <code>WRITER_GENRE_PACKS</code>.
+                  (Salvatore reference) and rendered into planner structural priors.
                   Long-term: robust human-in-the-loop planning stage where the author shapes
                   world/character/arc commitments.
                 </p>
@@ -49,18 +49,16 @@ export function GuidePage() {
                 <h3>Writing Layer</h3>
                 <p className="guide-layer-subtitle">cadence/tone imitation</p>
                 <p>
-                  Matches prose rhythm, voice, dialogue patterns, sensory density of a target
-                  genre/author. This is the <strong>highest-impact fine-tune use case</strong> —
-                  cadence transfers via model weights in ways prompts/few-shot cannot match.
-                  Voice LoRAs (Salvatore v3/v4) per genre. Context engineering supports voice
-                  but does not replace the fine-tune.
+                  Generates prose from the beat plan and writer-visible context. The active route
+                  is DeepSeek V4 Flash with rich/default beat context; writer LoRAs are retired
+                  from runtime.
                 </p>
               </div>
               <div className="guide-layer">
                 <h3>Checker Layer</h3>
                 <p className="guide-layer-subtitle">anti-hallucination + on-plan discipline</p>
                 <p>
-                  Adherence-events, chapter-plan-checker, hallucination (ungrounded + per-writer leak).
+                  Adherence-events, entity grounding, functional state checks, chapter-plan-checker, continuity.
                   These don't add creative value — they add discipline, catching things the
                   autonomous drafter introduces. Each check is narrow, independently trainable,
                   ideally small enough to run locally. When a check fires, issues route to
@@ -104,15 +102,11 @@ LXC 307 (192.168.1.108)
 │       ├── experiment_lineage, lint_patterns
 │       └── batches, batch_requests
 │
-└── Fine-Tuning (W&B Inference)
-    └── OpenPipe/Qwen3-14B-Instruct LoRA adapters
-        ├── salvatore-1988 v4 (deployed — fantasy voice, character-tagged beat-writer)
-        ├── adherence-checker v4 (deployed — events+attribution, 2134 Sonnet-labeled pairs, beat-level)
-        ├── halluc-ungrounded-v2 (deployed 2026-04-18 — grounded-context check, beat-level)
-        ├── halluc-leak-salvatore-v1 (deployed 2026-04-18 — per-writer leak vocab, Salvatore route only)
-        ├── continuity v2 (deployed but deprioritized — subsumed by beat-level checks)
-        ├── chapter-plan-checker v2 (RETIRED 2026-04-18 — ~92% FP on real fantasy plans, slot → DeepSeek V3.2 base)
-        └── tonal-pass v4 (on-demand only — Howard methodology retired 2026-04-16)
+└── Historical Fine-Tuning
+    └── W&B/Together LoRA artifacts retained for experiment history only
+        ├── writer LoRAs (retired from runtime)
+        ├── checker adapters (runtime slots now prefer DeepSeek V4 Flash)
+        └── tonal-pass adapters (new generation retired)
           `.trim()}</pre>
           </section>
 
@@ -186,7 +180,7 @@ LXC 307 (192.168.1.108)
                     </div>
                   </div>
                   <p className="flow-agents">Agents: reference-resolver, beat-writer, adherence-events,
-                     halluc-ungrounded, halluc-leak-salvatore (Salvatore-route only),
+                     halluc-ungrounded, functional-checks,
                      chapter-plan-checker, continuity-facts, continuity-state, chapter-plan-reviser
                      (only on targeted-rewrite exhaustion), lint-fixer</p>
                 </div>
@@ -200,10 +194,8 @@ LXC 307 (192.168.1.108)
                   <strong>Validation Phase</strong>
                   <p>Diagnostic-only. Deterministic checks run across all chapters and open issues
                      are logged, but there is no autonomous rewriter — the beat-writer retry loop
-                     in drafting is the quality gate. Tonal pass auto-run is disabled; voice lands
-                     at generation time via per-genre voice LoRAs (see <code>WRITER_GENRE_PACKS</code>
-                     in <code>src/models/roles.ts</code>). The on-demand
-                     <code>POST /api/novel/:id/tonal-pass</code> endpoint is still available.</p>
+                     in drafting is the quality gate. Tonal/voice LoRA generation is retired from
+                     runtime; old tonal comparison rows remain viewable when they exist.</p>
                 </div>
               </div>
 
@@ -255,10 +247,10 @@ LXC 307 (192.168.1.108)
                   <td>Per chapter</td>
                 </tr>
                 <tr>
-                  <td><strong>Tonal Pass</strong></td>
-                  <td>Voice consistency</td>
-                  <td>V4 LoRA-tuned 14B (W&B Inference, <code>howard-tonal-v4-sft-resume:v8</code>). Pref eval confirmed 2026-04-11.</td>
-                  <td>Post-validation</td>
+                  <td><strong>Functional Checks</strong></td>
+                  <td>Story-state persistence</td>
+                  <td>Deterministic planned-state and payoff-link integrity checks; textual-anchor gaps are warning-class.</td>
+                  <td>Per chapter</td>
                 </tr>
               </tbody>
             </table>

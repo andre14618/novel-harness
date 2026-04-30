@@ -34,4 +34,19 @@ describe("buildCheckerBlockerDeviations", () => {
       { beat_index: null, description: "[continuity] Wren location violation" },
     ])
   })
+
+  test("promotes functional blockers with their checker source", () => {
+    const deviations = buildCheckerBlockerDeviations({
+      acceptedBeatIssues: [],
+      continuityIssues: [],
+      functionalIssues: [
+        { checker: "functional-state-grounding", severity: "warning", beat_index: null, description: "soft" },
+        { checker: "payoff-link-integrity", severity: "blocker", beat_index: 2, description: "missing fact id" },
+      ],
+    })
+
+    expect(deviations).toEqual([
+      { beat_index: 2, description: "[functional:payoff-link-integrity] missing fact id" },
+    ])
+  })
 })

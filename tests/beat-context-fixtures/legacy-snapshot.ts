@@ -19,7 +19,6 @@
 
 import { getRelationshipBetween } from "../../src/db"
 import { resolveReferences, type ResolvedReferences } from "../../src/agents/writer/reference-resolver"
-import { resolveWriterPack } from "../../src/models/roles"
 import type { ChapterOutline, CharacterProfile, SceneBeat } from "../../src/types"
 
 // ── FROZEN COPY of pickExampleLineSubset ─────────────────────────────────
@@ -85,8 +84,7 @@ export interface BeatContextResultLegacy {
 
 export async function buildBeatContextLegacy(input: BeatContextInputLegacy): Promise<BeatContextResultLegacy> {
   const { novelId, chapterNumber, beatIndex, previousBeatProse, outline, characters, characterStates, worldBible } = input
-  const conditioning: "fixed" | "rotation" | undefined =
-    resolveWriterPack(input.genre)?.conditioning
+  const conditioning = resolveConditioningOverride()
   const beat = outline.scenes[beatIndex]
   const povCharName = outline.povCharacter
   const povChar = characters.find(c => c.name.toLowerCase() === povCharName?.toLowerCase())
@@ -163,6 +161,11 @@ export async function buildBeatContextLegacy(input: BeatContextInputLegacy): Pro
     userPrompt: sections.filter(Boolean).join("\n\n"),
     targetWords,
   }
+}
+
+function resolveConditioningOverride(): "fixed" | "rotation" | undefined {
+  const raw = process.env.WRITER_CONDITIONING
+  return raw === "fixed" || raw === "rotation" ? raw : undefined
 }
 
 function formatBeatSpec(beat: SceneBeat, outline: ChapterOutline, beatIndex: number): string {

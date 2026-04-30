@@ -54,9 +54,9 @@ The canonical types are defined in `src/db/ops.ts` as `TrackedWorkType`; use `'t
 
 - Concept and planning remain on smart frontier-style models, not an all-14B stack.
 - **All DeepSeek-using slots route to V4 Flash** (V3.2 → V4 Flash swap landed 2026-04-29, commit `eb2993d`). Single API model; thinking mode is a per-agent toggle. **Thinking ON only on three slots**: `planning-beats` (per-chapter beat sequencing + state-flow tracking), `chapter-plan-checker` (cross-beat coherence judgment), `chapter-plan-reviser` (minimal-edit plan diff). Decision rule + rationale in the comment block above `deepseekV4Flash` in `src/models/roles.ts`. V4 Pro exists in the registry as a reasoning-tier escalation but is NOT routed by default (~12× output cost vs Flash at base rate; reserved for cases where Flash thinking proves insufficient).
-- Writer routing is genre-aware.
-- For fantasy seeds, the active default remains the Salvatore voice LoRA route as a temporary fallback. The strategic writer direction is to migrate away from writer fine-tunes and remediate the base-DeepSeek route; see `docs/writer-finetune-retirement-remediation-plan.md`. Track A validation of base DeepSeek V4 Flash in the same pack returned NO-SHIP (exp #265, novel `novel-1777573197451`) because the test was still coupled to the LoRA-shaped compact route and exposed lint/planner blockers. The route resolver now separates structural priors from LoRA-specific compact context and leak profile: a base-model fantasy override keeps Salvatore-derived priors but uses rich/default beat context unless `WRITER_COMPACT_CONTEXT_OVERRIDE=true` is set explicitly.
-- For non-matching genres, the default writer path is DeepSeek V4 Flash (non-thinking) with the base beat-writer prompt.
+- Writer routing is no longer genre-swapped. All genres use the base `beat-writer` assignment: DeepSeek V4 Flash non-thinking with the base beat-writer prompt and rich/default beat context.
+- Fantasy seeds still receive Salvatore-derived **structural priors** in planning, but those priors no longer imply a writer LoRA, compact context, route-specific system prompt, or corpus-leak checker.
+- Writer-layer LoRA routing is retired from runtime. Historical Salvatore/tonal adapters remain only as archived experiment artifacts, not active workflow dependencies.
 - **Phase-2 planner output carries structured payoff links (V1a, 2026-04-18).** Each `establishedFact` gets a stable kebab-case `id`; per-beat `requiredPayoffs: [{fact_id, payoff_beat}]` links setups to the later beat that realizes them. The writer sees resolved "SEEDS (this beat must set up…)" and "PAYOFFS DUE (this beat must realize…)" sections in beat context. The chapter-plan-checker receives the same structured links. **Pilot not yet run.** The original `docs/charters/planner-phase2-contract.md` received a RED adversary verdict on 2026-04-18 and was superseded by `docs/charters/planner-phase2-payoff-floor.md` (status: `proposed`, adversary-verdict: `pending`). The payoff-floor charter asks the cheaper causal question from `pre-planner-phase2-v1a`: does an aggressive prompt-only floor recover most of the V1a lift? Pilot gate: 3-arm paired ablation, novels named `pp2-floor__<arm>__<seed>__<timestamp>`. V1b (`speaker_directives`) and V1c (`subplot_id` + `thematic_focus`) remain gated on the pilot result.
 
 Primary code references:
@@ -73,9 +73,10 @@ Primary code references:
 
 The active narrow checkers are:
 
-- **adherence** — `adherence-events` runs inside the beat drafting retry loop.
-- **hallucination** — the beat drafting retry loop now runs `halluc-ungrounded-v2` on every beat and `halluc-leak-salvatore-v1` only when the resolved writer route carries `leakProfile: "salvatore"`; any fired adapter contributes blocker issues to the same targeted rewrite prompt. Leak gating is explicit route metadata, not pack-label membership, so fantasy structural priors can apply to base-model routes without inheriting the Salvatore corpus-leak checker. OR-aggregation across checkers — one blocker from any checker forces retry. Per-adapter telemetry via `llm_calls.agent`. **2026-04-20 (exp #254 / commit `ff555bc`)**: `halluc-ungrounded` now receives a `Beat-entities:` sub-line in the WORLD BIBLE block derived at check-time from `outline.establishedFacts` + prior-beat `description` via `src/phases/beat-entity-list.ts:deriveBeatEntities`. Default is `BEAT_ENTITY_LIST_VARIANT=v1`; set `=v0` to opt out. Dropped the on-seed fire rate 44.9% → 28.9% (−16 pts; ch2+3 clean: −22.8 pts), precision 87.5% via 10-fire Sonnet adjudication, all 5 charter gates cleared. See `docs/charters/beat-entity-list-v1.md` and `docs/decisions.md` "beat-entity-list V1 shipped." Every call writes `groundedSources` provenance (`bible` / `from_brief` / `derived_outline_fact` / `derived_prior_beat` / `planner_emitted`) into `llm_calls.request_json` as nested JSONB — queryable via `#>` path operators after the concurrent fix to `logLLMCall` that stopped double-encoding.
-- **checker blocker policy** — unresolved beat-check blocker issues accepted after retry exhaustion and continuity `blocker` issues now halt chapter approval through the existing plan-assist exhaustion gate instead of being appended to the approved draft. Word-count overshoot remains warning-class.
+- **adherence** — `adherence-events` runs inside the beat drafting retry loop on DeepSeek V4 Flash non-thinking. It combines deterministic character-presence checks with a bounded event-enactment JSON call.
+- **entity grounding** — `halluc-ungrounded` runs on every beat on DeepSeek V4 Flash non-thinking. It checks named entities against the writer-visible evidence surface. The Salvatore/Forgotten-Realms corpus-leak checker is retired because it was coupled to the removed writer-LoRA route.
+- **functional story-state checks** — `src/phases/functional-checks.ts` blocks deterministic payoff graph failures such as missing fact IDs, duplicate fact IDs, invalid payoff beats, and backward payoff links. `functional-state-checker` then uses bounded DeepSeek V4 Flash non-thinking to judge whether planned facts/knowledge/state are semantically grounded in the chapter prose; those semantic findings are warning-class until oracle calibration.
+- **checker blocker policy** — unresolved beat-check blocker issues accepted after retry exhaustion, continuity `blocker` issues, and deterministic functional blockers now halt chapter approval through the existing plan-assist exhaustion gate instead of being appended to the approved draft. Word-count overshoot remains warning-class.
 - **lint/prose integrity guard** — after deterministic/LLM lint fixes run, `src/lint/integrity.ts` rejects malformed post-fix prose before `saveChapterDraft()` overwrites the raw draft. Before human/auto approval, the same deterministic guard blocks malformed final prose with fused boundaries, dropped-space camel fusions, adjacent duplicate sentences, nearby duplicate fragments, and quote-integrity failures. Failures emit `lint-fix-rejected` or `prose-integrity-check` trace events and retry the chapter instead of approving corrupted prose.
 - **chapter-plan-checker** — runs per chapter, currently **DeepSeek V4 Flash base, thinking mode ON** (V3.2 → V4 Flash swap landed 2026-04-29; was V3.2 base swapped from the retired W&B `chapter-plan-checker-v2` SFT adapter on 2026-04-18 after a dual-oracle audit found ~92% false-positive rate on real fantasy plans). Emits beat-indexed `deviations` that route to **beat-targeted rewrites** inside the chapter attempt, not full-chapter restart. On targeted-rewrite budget exhaustion (`pipeline.maxChapterPlanRewritePasses=2`), escalates **once per chapter** to the `chapter-plan-reviser` agent (**DeepSeek V4 Flash thinking ON** @ temp 0.3, 6144 maxTokens) which produces the smallest plan-edit that would make the issues satisfiable. Revised outlines are persisted to `chapter_outlines` so a state-machine re-dispatch picks up the revision. Sanity-checked for beat-floor and character-drift before acceptance.
 - **validation** — deterministic checks for word count and POV presence. Blockers route to **beat-targeted rewrites** (shortest-beat expand for word count, smallest-cast-beat-that-plans-POV for pov-missing) via the same targeted-rewrite loop as plan-check. Falls back to blind chapter restart only after targeted-rewrite budget exhaustion.
@@ -86,12 +87,13 @@ Continuity remains part of the system, but the architectural direction is that c
 
 For every chapter attempt, failure paths are ordered from most-targeted to least-targeted:
 
-1. **Per-beat adherence / hallucination** — `runBeatChecks()` in `src/phases/beat-checks.ts` aggregates checker output into `BeatIssue[]`; any blocker triggers a targeted beat rewrite with the specific issue descriptions. Budget: `pipeline.maxBeatRetries=2` per beat.
+1. **Per-beat adherence / entity grounding** — `runBeatChecks()` in `src/phases/beat-checks.ts` aggregates checker output into `BeatIssue[]`; any blocker triggers a targeted beat rewrite with the specific issue descriptions. Budget: `pipeline.maxBeatRetries=2` per beat.
 2. **Accepted beat-check blocker after retry exhaustion** — the beat may still be kept so the chapter can finish assembling, but the unresolved blocker is retained as a chapter-level approval blocker and routes to the plan-assist exhaustion gate before approval.
 3. **Chapter-plan-checker fail** — deviations route to beat-targeted rewrites (up to `maxChapterPlanRewritePasses=2`). If the chapter plan still fails, escalate once to `chapter-plan-reviser`; restart the chapter attempt with the revised plan.
 4. **Validation fail** — word-count + pov-missing blockers route to beat-targeted rewrites (same budget). Blind restart only if targeted exhaust. Word-count overshoot is warning-only.
-5. **Continuity blocker** — any continuity issue with severity `blocker` routes to the plan-assist exhaustion gate before approval. Continuity transport errors still blind-restart because they are checker availability failures, not story findings.
-6. **Prose-integrity blocker** — malformed final prose (duplicate adjacent spans, fused boundaries, malformed quotes) retries the chapter before approval.
+5. **Functional story-state blocker** — deterministic payoff graph blockers route to the plan-assist exhaustion gate before approval. Semantic grounding findings from `functional-state-checker` are displayed in approval content but do not block.
+6. **Continuity blocker** — any continuity issue with severity `blocker` routes to the plan-assist exhaustion gate before approval. Continuity transport errors still blind-restart because they are checker availability failures, not story findings.
+7. **Prose-integrity blocker** — malformed final prose (duplicate adjacent spans, fused boundaries, malformed quotes) retries the chapter before approval.
 
 Every reviser invocation is logged to `chapter_revisions` with outcome (accepted / rejected_beat_floor / rejected_new_characters / error / skip_*), issue signature hash, and pre/post beat snapshots. Surfaced via `GET /api/novel/:id/revisions` and the Studio pipeline view's `RevisionsPanel`.
 
@@ -106,8 +108,8 @@ Exhaustion events are recorded in `chapter_exhaustions` table. Query via `GET /a
 ### Validation and retry shape
 
 - Chapter-level rewriter is removed.
-- Tonal pass is not auto-run.
-- On-demand tonal pass remains available for comparison and archival workflows.
+- Tonal/voice LoRA generation is retired from runtime.
+- Historical tonal-pass chapter versions can still be displayed for comparison, but new tonal-pass generation returns `410 Gone`.
 - Retry pressure should route through drafting / targeted issue handling, not chapter-wide rewrite passes.
 
 Primary code references:
@@ -115,6 +117,8 @@ Primary code references:
 - `src/phases/validation.ts`
 - `src/phases/drafting.ts` — beat-targeted rewrite + reviser escalation paths
 - `src/phases/beat-checks.ts` — BeatIssue aggregator
+- `src/phases/functional-checks.ts` — deterministic payoff graph checks
+- `src/agents/functional-state-checker/` — bounded semantic planned-state grounding check
 - `src/agents/chapter-plan-reviser/` — planner-escalation agent
 - `src/db/chapter-revisions.ts` + `sql/028_chapter_revisions.sql` — reviser telemetry
 - `src/db/chapter-exhaustions.ts` + `sql/029_chapter_exhaustions.sql` — exhaustion-gate telemetry
@@ -128,9 +132,11 @@ Primary code references:
 These are not current strategy, even if older docs discuss them at length.
 
 - Universal Howard-primer-style methodology as a default writing strategy: retired
+- Writer-layer voice LoRA routing: retired from runtime
+- Route-specific Salvatore corpus-leak checker: retired with the writer-LoRA route
 - Craft encoded as large prompt-rule bundles: rejected
 - Chapter-level rewriter as a core quality mechanism: removed
-- Auto tonal-pass as part of the normal production pipeline: off
+- Tonal/voice LoRA generation: retired from runtime
 
 If a historical doc describes one of the above as current, treat that as historical context rather than live guidance.
 
@@ -141,7 +147,7 @@ Systematic improvement should prefer these levers in order:
 1. Planner output quality and expressiveness
 2. Beat-context delivery and constraint clarity
 3. Narrow checker calibration on real failure modes
-4. Writer model / LoRA upgrades
+4. Writer model upgrades
 
 Improvement should not default to:
 
@@ -240,7 +246,7 @@ If yes, update this file.
 
 ### Late 2026-04-21 — voice-LoRA track pivot + voice-shaping ablation
 
-- **LoRA-track pivot committed.** Commit `1af5189`. `docs/decisions.md` entry "Voice-LoRA track frozen; DeepSeek V3.2 base becomes the strategic writer target" formalizes the shift after four negative signals on LoRA-adjacent levers (conditioning-floor KILL, rewrite-capability probe, quality-redraft 0-fires, arm-b-direct-pairwise CAUTION) and a Codex strategic consult (`acc1b47d14ce265f4`). **Freeze, not retirement** — Salvatore v4 remains in production `WRITER_GENRE_PACKS` fantasy routing; what's frozen is new investment in Salvatore-adjacent micro-levers.
+- **LoRA-track pivot committed.** Commit `1af5189` froze new LoRA investment; exp #272 later retired writer-LoRA runtime routing entirely. The current runtime writer path is DeepSeek V4 Flash for all genres, with fantasy structural priors feeding planning only.
 - **2026-04-21 retrospective doc.** `docs/retrospectives/2026-04-21-lora-track-evidence.md` — first entry in the new `docs/retrospectives/` directory class per Codex consult doc-scope correction (retrospectives capture evidence arcs; decisions.md captures decisions; lessons-learned.md captures distilled rules; current-state captures live truth). Status: draft until voice-shaping-ablation-v1 resolves.
 - **Three new lessons-learned rules** (commit `1af5189`): (1) N≥3-round step-back rule from the 9-round arm-b-preflight arc; (2) AI-judge pairwise bias-confound when length correlates with arm identity; (3) 14B-voice-fine-tune failure mode is scale-specific, not thesis-wide.
 - **Charter lineage through the 2026-04-21 arc:**
@@ -269,7 +275,7 @@ If yes, update this file.
 - **beat-entity-list V1 shipped (exp #254).** `halluc-ungrounded` now receives a `Beat-entities:` sub-line derived at check-time from `outline.establishedFacts` + prior-beat `description` via `src/phases/beat-entity-list.ts:deriveBeatEntities`. On-seed fire rate dropped 44.9% → 28.9% (−16 pts), precision 87.5% on 10-fire Sonnet adjudication, all 5 charter gates cleared. `BEAT_ENTITY_LIST_VARIANT=v1` is now the default. See hallucination bullet above (line 76) for full detail + commit SHAs.
 - **Cross-genre smoke (exp #255) confirmed safe.** Non-Salvatore seeds show no regression with the V1 default.
 - **`logLLMCall` double-encoding fix (commit `ff555bc`).** `llm_calls.request_json` was being stored as a double-encoded string; now stored as proper JSONB. Grounded-sources provenance is queryable via `#>` path operators.
-- **halluc-leak-salvatore Rung 0 shipped (commit `cc57752`).** `checkHallucLeakSalvatore` now OR-combines a 59-token regex matcher with the W&B adapter at inference time. Production measurement on 3,081 calls: +31.6% recall, ≥95% precision on regex-only catches. Top adapter misses caught: Harpells, Baldur's Gate, Waterdeep. Zero SFT spend. Full report at `docs/rung-0-regex-ceiling-results.md`. **Widen (2026-04-23):** LEAK_TOKENS gained "dark elf"/"dark elves"/"drow elf"/"drow elves"/"mithril"; `buildRegex` now tolerates possessive suffixes (`(?:'s?|s')?`) so "Rumblebelly's" and "Harpells'" match. Closes the 12-beat adapter-only residual identified in the Rung 0 report.
+- **halluc-leak-salvatore Rung 0 shipped, then retired with the writer-LoRA route.** Commit `cc57752` is historical evidence that regex-first was cheaper than SFT for corpus-leak detection. Exp #272 removed the runtime leak checker because no active writer route is trained on the Salvatore corpus.
 - **V1a payoff-floor mini-pilot (exp #256) ran 2 of 4 arms → ITERATE.** Baseline vs aggressive-prompt-only on 3 seeds × 5 chapters. Mean paired Δ retry_ratio = −0.0309; prompt did NOT recover V1a lift, consistent with "V1a schema is the causal lever." But `extractor` + `mainv1a` arms missing (scoping error at launch); V1b/V1c still gated on the complete 4-arm pilot. Next-session action + 6 novel IDs + full table in `docs/pp2-floor-pilot-results.md`.
 - **salvatore-v5-stripped ablation scoped and parked** (commit `15843a4`). Training data stripping script already ran successfully on the 777-pair corpus (zero residual corpus tokens in stripped prose). 4 design gates pending user decision before SFT submission. Sequencing: run conditioning-floor charter (`docs/charters/salvatore-distinctness-conditioning-floor.md`) first; v5-stripped go/no-go after its verdict. See `docs/ablation/salvatore-v5-stripped.md`.
 - **Conditioning-floor scorer implementation in flight.** Codex CLI job running in background — implementing the 4 TODOs in `scripts/evals/run-salvatore-distinctness-v1.ts` + arm-config JSONs. Session closed before Codex reported; work is uncommitted on `main` and needs the session-end review (listed in `docs/next-session-plan.md`).
@@ -277,7 +283,7 @@ If yes, update this file.
 
 ## Current Session (2026-04-23)
 
-- **Drift detector skeleton shipped (Phase 0 prereq #2).** `scripts/autonomous-loop/drift-detector.ts` + migration `sql/032_drift_checks.sql`. The detector reads frozen `eval_results` baselines from the DB, computes precision/recall/F1 deltas per adapter, applies the gate thresholds (>5pt precision OR >3pt F1 regression trips the gate), and writes verdicts to `drift_checks`. CLI: `bun scripts/autonomous-loop/drift-detector.ts --adapters halluc-ungrounded-v2,halluc-leak-salvatore-v1`. **Live replay inference is stubbed** (returns null for current metrics) — gated on prereq #1 (env→DB config migration); the stub populates `error_text` so rows are still written. The DB read, delta math, gate logic, and migration are fully implemented.
+- **Drift detector skeleton shipped (Phase 0 prereq #2).** `scripts/autonomous-loop/drift-detector.ts` + migration `sql/032_drift_checks.sql`. It remains useful for archived adapter baselines, but adapter drift is no longer the active runtime checker strategy after exp #272 moved active checks to DeepSeek V4 Flash + deterministic guards.
 - **Migration 032 is next.** `sql/032_drift_checks.sql` adds the `drift_checks` table (run_id, adapter, frozen_run_id, precision/recall/F1 frozen+current+delta, trips_gate, gate_reason, brief_count, error_text, ran_at).
 
 ## Current Session (2026-04-28)
@@ -320,7 +326,7 @@ Corpus pattern mining session on the Salvatore Icewind Dale 3-book bundle. Branc
 - **Patterns 72–75 sweep landed (commit `788b7a2`) — interaction patterns + magic lexicon.** Cumulative pattern count is now ~75 patterns probed across the IWD trilogy under the directional-gate methodology. P72-75 covered unique territory the earlier waves had not exercised: P72 per-PAIR dialogue voice (PASS_PARTIAL, 3/7 pairs PASS — Bruenor is the voice-pulling anchor in all 3, harness lever is per-pair `interactionMode` planner prior + per-pair fewshot block layered above P65 per-character fewshots + pair-context lints); P73 gesture-vs-tag ratio (DIVERGE, top-kind shuffles 3/3 books, surviving axis is action consistently top-2 + BARE-rate clusters for books 2-3); P74 character-pair scene affinity (DIVERGE, top-3 intersection 0/3, stuck-together-in-2-books at lift≥1.5 for Drizzt+Wulfgar and Bruenor+Catti-brie, universal book1→book2 affinity rise 10/10 as series-progression prior); P75 magic invocation (KILL, climax-spike reproduces only in CS, 8-token shared core, magic-antagonist 2× elevation real WITHIN book but per-book localized).
 - **Mining surface approaching saturation; pivot to synthesis.** Concrete composite-prior bundles emerging from the cumulative wave: chapter-CLOSE narrator-seam (P50+P54+P55), action-beat assembly (P64+P53+P56+P66), voice-shaping bundle (P29+P39+P57+P65+P67), and now per-pair `interactionMode` (P72 layered over P65). The next priority is composite-prior synthesis → variant prompts → phase-eval probe through the existing `phase-variant-screen` instrument, NOT additional single-pattern measurements. Single-pattern coverage is high enough that the marginal pattern row is unlikely to produce a new harness lever; the marginal probe-variant arm is the higher-leverage spend.
 - **Methodology surprise — `atomic_append_section` lost 3 of 4 sections under N=4 parallel subagents.** Recovery was manual (compact reconstruction from each subagent's verdict report, all 4 sections present in `crystal_shard-conclusions.md` post-recovery, all 4 roadmap rows + JSONs landed correctly through the row/JSON helpers). The flock-protected append helper is the SECOND parallel-write failure mode the project has hit — first was raw `>>` appends with merge conflicts (Patterns 28/32/33/37), now `flock + O_APPEND` with silent loss under high parallelism. Lesson committed in this same sweep — see `docs/lessons-learned.md` "atomic_append_section is not safe under N≥3 concurrent subagent processes." Practical mitigation until the conclusions-stubs flow lands: post-run `grep -c "^## Pattern N:" target.md` against the number of parallel subagents, OR cap parallel pattern subagents at 2 when they share an append target.
-- **Three-layer architecture status (no shift this session).** Planning layer: corpus-mining is producing the structural priors that will eventually condition planner prompts; nothing has been promoted into a planner prior this session pending cross-book validation. Writing layer: still routing fantasy seeds to Salvatore v4 LoRA via `WRITER_GENRE_PACKS`, non-fantasy to DeepSeek V4 Flash; LoRA-track frozen per the 2026-04-21 pivot. Checker layer: no checker changes this session.
+- **Three-layer architecture status updated by exp #272.** Planning layer: fantasy structural priors remain available to planner prompts. Writing layer: all genres route to base DeepSeek V4 Flash, not Salvatore v4 LoRA. Checker layer: active runtime checkers are deterministic guards plus bounded DeepSeek V4 Flash calls; route-specific leak and tonal-pass code is retired.
 - **Planner status — phase-eval probe instrument matured.** `phase-variant-screen` branch carries the SCREEN-PASS verdict on the `loud` planning-beats variant against `fantasy-system-heretic` (Slice 1 end-to-end, retrospective at `docs/sessions/2026-04-29-phase-eval-probe.md`, Codex review integrated in `28c2e57`). LXC probe of the corpus-v1 plotter variant came in mixed (Pattern 1 PASS — targetWords + beat-floor lift; Pattern 3a opener stable; Pattern 3b closer REGRESSED — 0/3 vs 2/3 action; Pattern 16 facts density dropped on n=3, unstable). Two follow-ups queued: revise the plotter's closer-kind guidance to fix the P3b regression before re-probing; re-measure P16 facts density on a 5-chapter sample.
 
 ## Current Known Gaps

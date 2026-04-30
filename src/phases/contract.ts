@@ -129,8 +129,8 @@ export type ValidationOutput = {
    *  at src/phases/validation.ts:85. NOT renamed to filter-by-Validation
    *  because no source column exists in the schema. */
   openIssuesAtEnd: ReadonlyArray<{ chapter: number; description: string; severity: string }>
-  /** chapter_drafts rows with status='tonal-pass'. Empty when
-   *  pipeline.tonalPass=false. */
+  /** Historical chapter_drafts rows with status='tonal-pass'. New tonal-pass
+   *  generation is retired, but old comparison rows can still be displayed. */
   tonalPassChapters: readonly number[]
 }
 

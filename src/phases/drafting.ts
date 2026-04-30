@@ -51,8 +51,9 @@ import { lintProse } from "../lint"
 import { fixLintIssues } from "../lint/fix"
 import { detectProseIntegrityIssues, validateLintFixIntegrity } from "../lint/integrity"
 import { buildCheckerBlockerDeviations, type AcceptedBeatCheckIssues } from "./checker-blockers"
-import { getModelForAgent, resolveWriterPack, type WriterGenrePack, type WriterLeakProfile } from "../models/roles"
-import { loadGenrePackPrompt } from "../agents/writer"
+import { runFunctionalStoryChecks, type FunctionalIssue } from "./functional-checks"
+import { checkFunctionalStateGrounding } from "../agents/functional-state-checker"
+import { getModelForAgent } from "../models/roles"
 import type { ChapterOutline } from "../types"
 
 /**
@@ -245,10 +246,6 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
       // Hoisted so the chapter-plan-checker settle loop (further down) can
       // run targeted beat rewrites without rebuilding state.
       let beatProses: string[] = []
-      let writerPack: WriterGenrePack | null = null
-      let packPrompt: string | null = null
-      let writerCompactContext = false
-      let writerLeakProfile: WriterLeakProfile | null = null
       let acceptedBeatCheckIssues: AcceptedBeatCheckIssues[] = []
 
       if (pipeline.beatLevelWriting && outline.scenes.length > 0) {
@@ -257,28 +254,13 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
           console.log(`  Writing ${outline.scenes.length} beats...`)
           emit(novelId, { type: "progress", data: { step: "beat-writer", chapter: ch, attempt: attempts, status: "running" } })
 
-          // Genre-scoped writer pack — routes this novel's beat-writer to a
-          // genre-specific prompt/model when its genre matches. Falls back to
-          // the default BEAT_WRITER_PROMPT + `beat-writer` model otherwise.
-          writerPack = resolveWriterPack(novel.seed?.genre)
-          packPrompt = writerPack
-            ? await loadGenrePackPrompt(writerPack.systemPromptFile, writerPack.usePrimer)
-            : null
-          writerCompactContext = writerPack?.compactContext ?? false
-          writerLeakProfile = writerPack?.leakProfile ?? null
-          if (writerPack) {
-            console.log(`  Writer pack: ${writerPack.label} (${writerPack.model.model}, compact=${writerCompactContext}, leak=${writerLeakProfile ?? "none"})`)
-            log(novelId, "info", `Beat-writer routed to genre pack "${writerPack.label}" for genre "${novel.seed?.genre}" (compactContext=${writerCompactContext}, leakProfile=${writerLeakProfile ?? "none"})`)
-          }
-
           const characters = await getCharacters(novelId)
           const charStates = await getCharacterStatesAtChapter(novelId, ch)
           const worldBible = await getWorldBible(novelId)
 
           // Pre-resolve all beat references in parallel before the serial writing loop.
-          // Kept for all writer routes — exp #200 regressed when we skipped this
-          // for voice-LoRA routes; world-fact requirements travel through the
-          // resolved-references section and the writer can't establish them
+          // Kept for all writer routes; world-fact requirements travel through
+          // the resolved-references section and the writer can't establish them
           // without it. See docs/beat-writer-architecture.md §6.
           const refStart = Date.now()
           const preResolvedRefs = await Promise.all(
@@ -305,16 +287,12 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
               previousBeatProse: beatProses[bi - 1],
               outline, characters, characterStates: charStates, worldBible,
               preResolvedRefs: preResolvedRefs[bi],
-              // Voice-LoRA routes use compact prompts (no runtime state
-              // fields, one-line character snapshots, no resolved-refs
-              // block). See docs/beat-writer-architecture.md.
-              compactMode: writerCompactContext,
               genre: novel.seed?.genre,
             })
 
             let beatProse: string | null = null
-            const beatWriterModel = writerPack?.model ?? getModelForAgent("beat-writer")
-            const beatSystemPrompt = packPrompt ?? BEAT_WRITER_PROMPT
+            const beatWriterModel = getModelForAgent("beat-writer")
+            const beatSystemPrompt = BEAT_WRITER_PROMPT
             const beatSpec = outline.scenes[bi]
             let previousProse: string | null = null
             let previousIssues: string[] = []
@@ -367,7 +345,6 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                   outline,
                   characters,
                   worldBible,
-                  writerLeakProfile,
                   // Prior beat in the same chapter — consumed by the
                   // halluc-ungrounded checker under the beat-entity-list
                   // charter (v1/v3) to ground legitimate continuity
@@ -527,6 +504,8 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
         eventType: "validation-check", chapter: ch,
         payload: { passed: validation.passed, blockers: validation.blockers, warnings: validation.warnings },
       })
+
+      let functionalIssues: FunctionalIssue[] = []
       let bail = false
 
       // Plan check result handling — targeted beat rewrite instead of full
@@ -626,8 +605,8 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
               return perBeat
             },
             rewriteBeat: async (bi, issueDescriptions) => {
-              const beatWriterModel = writerPack?.model ?? getModelForAgent("beat-writer")
-              const beatSystemPrompt = packPrompt ?? BEAT_WRITER_PROMPT
+              const beatWriterModel = getModelForAgent("beat-writer")
+              const beatSystemPrompt = BEAT_WRITER_PROMPT
               const characters = await getCharacters(novelId)
               const charStates = await getCharacterStatesAtChapter(novelId, ch)
               const worldBible = await getWorldBible(novelId)
@@ -639,7 +618,6 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                 previousBeatProse: beatProses[bi - 1],
                 outline, characters, characterStates: charStates, worldBible,
                 preResolvedRefs: preResolved,
-                compactMode: writerCompactContext,
                 genre: novel.seed?.genre,
               })
               const priorProse = beatProses[bi]
@@ -889,8 +867,8 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
           isPass: r => r.passed,
           route: r => routeValidationBlockers(r.blockers, outline, beatProses),
           rewriteBeat: async (bi, issueDescriptions) => {
-            const beatWriterModel = writerPack?.model ?? getModelForAgent("beat-writer")
-            const beatSystemPrompt = packPrompt ?? BEAT_WRITER_PROMPT
+            const beatWriterModel = getModelForAgent("beat-writer")
+            const beatSystemPrompt = BEAT_WRITER_PROMPT
             const characters = await getCharacters(novelId)
             const charStates = await getCharacterStatesAtChapter(novelId, ch)
             const worldBible = await getWorldBible(novelId)
@@ -902,7 +880,6 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
               previousBeatProse: beatProses[bi - 1],
               outline, characters, characterStates: charStates, worldBible,
               preResolvedRefs: preResolved,
-              compactMode: writerCompactContext,
               genre: novel.seed?.genre,
             })
             const priorProse = beatProses[bi]
@@ -1091,6 +1068,33 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
         validation.warnings.forEach(w => console.log(`    WARNING: ${w}`))
       }
 
+      if (!bail) {
+        const deterministicFunctionalChecks = runFunctionalStoryChecks({ outline })
+        const semanticFunctionalChecks = await checkFunctionalStateGrounding(prose, outline, beatProses, { novelId, chapter: ch, attempt: attempts })
+        functionalIssues = [
+          ...deterministicFunctionalChecks.issues,
+          ...semanticFunctionalChecks.warnings.map(w => ({
+            checker: "functional-state-grounding" as const,
+            severity: "warning" as const,
+            beat_index: w.beat_index,
+            description: w.description,
+          })),
+        ]
+        await trace(novelId, {
+          eventType: "functional-check", chapter: ch,
+          payload: {
+            passed: functionalIssues.every(i => i.severity !== "blocker"),
+            blockers: functionalIssues.filter(i => i.severity === "blocker"),
+            warnings: functionalIssues.filter(i => i.severity === "warning"),
+            semanticCheckerError: semanticFunctionalChecks.error ?? null,
+          },
+        })
+        if (functionalIssues.length > 0) {
+          console.log(`  Functional checks: ${functionalIssues.length} issue(s)`)
+          functionalIssues.forEach(i => console.log(`    [${i.severity}] ${i.description}`))
+        }
+      }
+
       // Continuity result handling
       let issues: any[] = []
       if (continuitySettled.status === "fulfilled") {
@@ -1111,8 +1115,9 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
       const checkerBlockers = buildCheckerBlockerDeviations({
         acceptedBeatIssues: acceptedBeatCheckIssues,
         continuityIssues: issues,
+        functionalIssues,
       })
-      if (checkerBlockers.length > 0 && !planCheckOverridden) {
+      if (checkerBlockers.length > 0) {
         checkerBlockers.forEach(d => console.log(`    CHECKER BLOCKER (beat ${d.beat_index ?? "chapter-level"}): ${d.description}`))
         log(novelId, "warn", `Checker blockers remain after retries: ${checkerBlockers.map(d => d.description).join("; ")}`)
         pendingExhaustion ??= {
@@ -1270,6 +1275,9 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
       let displayContent = prose
       if (issues.length > 0) {
         displayContent += `\n\n--- CONTINUITY ISSUES ---\n${issues.map((i: any) => `[${i.severity}] ${i.description}`).join("\n")}`
+      }
+      if (functionalIssues.length > 0) {
+        displayContent += `\n\n--- FUNCTIONAL CHECKS ---\n${functionalIssues.map(i => `[${i.severity}] ${i.description}`).join("\n")}`
       }
       if (validation.warnings.length > 0) {
         displayContent += `\n\n--- VALIDATION WARNINGS ---\n${validation.warnings.join("\n")}`

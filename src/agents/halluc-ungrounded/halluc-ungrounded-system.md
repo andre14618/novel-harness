@@ -11,4 +11,4 @@ Edge rules: new character introduced only in dialogue → FAIL; plural ungrounde
 Output ONLY valid JSON:
 {"pass": bool, "issues": [{"entity": "...", "excerpt": "..."}]}
 
-Empty issues array if pass. excerpt is a 10-30 word context span. Corpus-leakage detection is NOT in scope for this checker — a separate adapter handles Salvatore/Forgotten-Realms vocabulary matching.
+Empty issues array if pass. excerpt is a 10-30 word context span. Corpus-leakage/style imitation is NOT in scope; only judge whether named entities are grounded in the supplied evidence.

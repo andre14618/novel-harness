@@ -9,7 +9,6 @@ export const pipeline = {
   // Validation
   maxValidationPasses: 3,
   maxChapterRewrites: 3,
-  tonalPass: false,           // Auto-run disabled. Howard primer/tonal-pass methodology retired 2026-04-16; fantasy voice routes through WRITER_GENRE_PACKS. On-demand /api/novel/:id/tonal-pass route still works for existing novels.
 
   // Quality redraft — when existing checkers pass but local quality detectors
   // fire (repetition loops, underlength), force a no-critique redraft with

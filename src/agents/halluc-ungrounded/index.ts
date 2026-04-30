@@ -10,9 +10,8 @@ import { deriveBeatEntities, extractProperNouns } from "../../phases/beat-entity
 export { buildContext, hallucUngroundedSchema }
 export type { HallucUngroundedOutput }
 
-// Load the training-shape system prompt from disk so updates to the
-// rubric don't require a TS recompile; matches the pattern used by
-// other adapter-backed agents in src/agents/*.
+// Load the bounded checker prompt from disk so rubric updates don't require a
+// TS recompile.
 export const HALLUC_UNGROUNDED_SYSTEM = readFileSync(
   resolve(dirname(new URL(import.meta.url).pathname), "halluc-ungrounded-system.md"),
   "utf-8",
@@ -39,7 +38,7 @@ function resolveVariant(): "v0" | "v1" | "v2" | "v3" | "v4" {
 }
 
 /**
- * Runtime wrapper for the `halluc-ungrounded-v2:v1` W&B adapter. Called
+ * Runtime wrapper for the entity-grounding checker. Called
  * from the beat drafting retry loop. Never throws — any transport or
  * schema failure is normalized into a blocking issue so the drafting
  * loop can still decide whether to retry or accept.
@@ -47,7 +46,7 @@ function resolveVariant(): "v0" | "v1" | "v2" | "v3" | "v4" {
  * Beat-entity-list charter (docs/charters/beat-entity-list-v1.md):
  * when `BEAT_ENTITY_LIST_VARIANT` is `v1` or `v3`, derive a per-beat
  * entity list from the outline's establishedFacts + prior-beat
- * description via `deriveBeatEntities` and surface it to the adapter as
+ * description via `deriveBeatEntities` and surface it to the checker as
  * a `Beat-entities:` sub-line inside the WORLD BIBLE block. In every
  * variant (including v0) we write a `groundedSources` object to
  * `llm_calls.request_json` so the mechanism-falsifier can join fired

@@ -28,15 +28,14 @@ const SHORT_LABELS: Record<string, string> = {
   // Beat-level checkers
   "adherence-events": "Adherence",
   "halluc-ungrounded": "Halluc",
-  "halluc-leak-salvatore": "Leak",
   // Chapter-level checkers
   "chapter-plan-checker": "Plan Check",
+  "functional-state-checker": "State Check",
   "continuity": "Continuity",
   "continuity-facts": "Continuity",
   "continuity-state": "Continuity",
   // Prose polish
   "lint-fixer": "Lint",
-  "tonal-pass": "Tonal Pass",
   // Lint research (offline scripts only)
   "improver": "Lint Research",
 }
@@ -57,15 +56,14 @@ const ACTION_LABELS: Record<string, string> = {
   // Beat-level checkers
   "adherence-events": "Checking beat adherence",
   "halluc-ungrounded": "Checking for ungrounded entities",
-  "halluc-leak-salvatore": "Checking for corpus leak",
   // Chapter-level checkers
   "chapter-plan-checker": "Verifying chapter plan",
+  "functional-state-checker": "Checking planned state",
   "continuity": "Checking continuity",
   "continuity-facts": "Checking continuity facts",
   "continuity-state": "Checking continuity state",
   // Prose polish
   "lint-fixer": "Fixing lint",
-  "tonal-pass": "Applying tonal pass",
 }
 
 export function agentShortLabel(agent: string): string {
