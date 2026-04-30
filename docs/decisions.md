@@ -1971,6 +1971,17 @@ DeepSeek ~3× cleaner on instruction-constrained prose. Cerebras wins on raw spe
 
 **Ongoing:** Continuity can still block on knowledge impossibilities and fact contradictions. Direct same-time location impossibilities should be caught by fact/plan checks or promoted only after oracle calibration.
 
+### Planner enforcement sanitizes invalid optional payoff scaffolding
+*2026-04-30 · exp #280 (`novel-1777590283191`)*
+
+**Decision:** Planning enforcement drops malformed `requiredPayoffs` links before outlines are saved for drafting. Dropped links include empty `fact_id`, missing `establishedFact` IDs, invalid payoff beat indexes, and non-forward same/backward payoff targets. Valid forward payoff links remain. The drafting-time functional checker still blocks invalid payoff graph links that survive enforcement, such as manually edited outlines or enforcement misses.
+
+**Why:** Exp #280 cleared the continuity policy change but bailed in chapter 1 because the planner emitted a same-beat payoff link (`payoff_beat` equal to the beat carrying the link). This was optional setup/payoff scaffolding, not prose content, and should not reach the drafting approval gate malformed.
+
+**Alternatives rejected:** Leave sanitation to the drafting checker - too late, it forces plan-assist on optional scaffolding. Regenerate the whole chapter plan on any invalid link - too expensive and unnecessary when dropping the bad optional link preserves the plan. Disable payoff-link blockers - loses protection for manually edited or future malformed graph links.
+
+**Ongoing:** Planner output remains the right boundary for scaffolding cleanup. Functional checks remain a safety net, not the primary sanitation path.
+
 ### Together AI fine-tunes require explicit per-job authorization
 *2026-04-18 · user directive*
 

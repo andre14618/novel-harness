@@ -80,7 +80,48 @@ export function enforcePlanningOutput(
     }
   }
 
+  // Payoff links are optional scaffolding. Invalid links should not survive into
+  // drafting, where they become deterministic approval blockers.
+  for (const ch of chapters) sanitizePayoffLinks(ch, warnings)
+
   return { valid: errors.length === 0, chapters, errors, warnings }
+}
+
+function sanitizePayoffLinks(ch: ChapterOutline, warnings: string[]): void {
+  const factIds = new Set(
+    (ch.establishedFacts ?? [])
+      .map(f => f.id?.trim())
+      .filter((id): id is string => Boolean(id)),
+  )
+
+  for (let beatIndex = 0; beatIndex < ch.scenes.length; beatIndex++) {
+    const beat = ch.scenes[beatIndex]
+    const original = beat.requiredPayoffs ?? []
+    if (original.length === 0) continue
+
+    const kept: typeof original = []
+    for (const link of original) {
+      const factId = link.fact_id?.trim()
+      let reason: string | null = null
+      if (!factId) {
+        reason = "empty fact_id"
+      } else if (!factIds.has(factId)) {
+        reason = `missing establishedFact "${factId}"`
+      } else if (!Number.isInteger(link.payoff_beat) || link.payoff_beat < 0 || link.payoff_beat >= ch.scenes.length) {
+        reason = `invalid payoff beat ${String(link.payoff_beat)}`
+      } else if (link.payoff_beat <= beatIndex) {
+        reason = `non-forward payoff beat ${link.payoff_beat + 1}`
+      }
+
+      if (reason) {
+        warnings.push(`Chapter ${ch.chapterNumber} beat ${beatIndex + 1}: dropped payoff link (${reason})`)
+      } else {
+        kept.push(link)
+      }
+    }
+
+    if (kept.length !== original.length) beat.requiredPayoffs = kept
+  }
 }
 
 /**
