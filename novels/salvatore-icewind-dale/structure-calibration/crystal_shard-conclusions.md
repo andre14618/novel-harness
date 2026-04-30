@@ -2682,4 +2682,69 @@ Script: `scripts/structure-calibration/try-fail-cycles.ts`
 
 ---
 
+## Session 2026-04-30 ~12:28 UTC — Patterns 22 + 23: character-pair scene density + POV duration (pure compute, 3-book IWD)
+
+Two pure-compute analyses on `beats.jsonl` + `scenes.jsonl` mining the trilogy's character-presence and POV-rotation shape. Zero LLM cost.
+
+### Methodology — character discovery (shared by both patterns)
+
+Per-book character roster derived by frequency-mining Title-Case tokens, filtering against an excluded-set of place names / races / factions / weapons / titles, then cross-referenced with the project's known canon (Drizzt, Wulfgar, Bruenor, Catti-brie, Regis, Akar Kessell book 1, Artemis Entreri books 2–3, Pasha Pook book 3). Aliases collapsed to canonical name (Drizzt ↔ Do'Urden, Bruenor ↔ Battlehammer, Regis ↔ Rumblebelly, Akar Kessell ↔ Kessell, Pasha Pook ↔ Pook). Final per-book rosters: crystal_shard 21 chars, streams_of_silver 21, halflings_gem 22. Presence threshold: ≥2 regex matches in segment (filters single-mention name-drops while preserving on-page characters).
+
+### Pattern 22 — Character-pair scene density
+
+**Per-book ensemble distribution (beat granularity, the cross-book-comparable signal):**
+
+| Book | beats | empty | solo | duo | trio | quad+ |
+|---|---:|---:|---:|---:|---:|---:|
+| crystal_shard | 858 | 33.6% | 37.9% | 21.7% | 6.3% | 0.6% |
+| streams_of_silver | 786 | 24.6% | 31.9% | 29.1% | 10.6% | 3.8% |
+| halflings_gem | 826 | 15.5% | 34.6% | 34.5% | 11.6% | 3.8% |
+
+**Modal beat ensemble = solo in all 3 books** (37.9% / 31.9% / 34.6%). Solo + duo together comprise 60–66% of beats in every book. Trio+ beats are reserved for 7–15% of any book — council scenes, multi-Companion confrontations, army moments.
+
+**Top character-pair stability (top-10 overlap across books):** 7 pairs appear in all three books' top-10 (Bruenor + Drizzt, Bruenor + Regis, Bruenor + Wulfgar, Catti-brie + Drizzt, Catti-brie + Wulfgar, Drizzt + Regis, Drizzt + Wulfgar) — the Companions-of-the-Hall core. Book-1-specific top-10 entries (Drizzt + Akar Kessell, Cassius + Kemp, Cassius + Regis) reflect the Ten-Towns politics + Kessell-arc plot threads; books 2–3 swap those out for Entreri pairings.
+
+**Scene-granularity caveat (load-bearing methodology note):** at the scene level, streams_of_silver shows 65.8% quad+ scenes vs ~26–46% in the other two books — but this is a **scene-segmentation artifact**, not a genuine ensemble-density signal. SoS scenes have median 952w/scene vs 488–565w in the other two books, so they mechanically pick up more characters. **Do not use scene-level ensemble counts cross-book without normalization.** Beat-level (median 107w/beat across all three books) is the comparable signal.
+
+### Pattern 23 — POV duration per character
+
+**Methodology pivot.** Per-beat name-mention POV inference was tried first and produced median POV-run = 1 beat (81–84% length-1 runs across all books) — implausible for Salvatore's known close-third single-scene-POV style. Root cause: per-beat counting is dominated by whoever's named/spoken-to in that beat, not the actual narrative perspective. **Rejected.**
+
+V2 method: scene-anchored POV inference. For each scene, aggregate full scene text + 3×-weighted beat summaries, count canonical-character mentions, pick dominant. Salvatore's scene-level POV is monolithic (one character per scene), so this is the natural granularity. Validated by spot-check (10/10 on cs ch11 Bruenor-at-the-forge scenes) + by Drizzt holding stable 25–34% POV share across all three books.
+
+**Per-book run-length stats:**
+
+| Book | scenes | POV runs | run length (scenes) median / mean / max | run length (beats) median / mean / max | Drizzt POV share |
+|---|---:|---:|---:|---:|---:|
+| crystal_shard | 139 | 120 | 1 / 1.16 / 3 | 6 / 7.15 / 34 | 26.6% |
+| streams_of_silver | 76 | 57 | 1 / 1.33 / 5 | 8 / 13.79 / 75 | 33.8% |
+| halflings_gem | 137 | 117 | 1 / 1.17 / 4 | 5 / 7.06 / 42 | 31.5% |
+
+**Modal POV-run = 1 scene in all 3 books** (79–87%). Two-scene runs at 9–14%. Three-or-more-scene runs at 1.7–7.1%. Beat-unit numbers are inflated for streams_of_silver because of the same scene-segmentation artifact flagged in Pattern 22; the scenes-unit median is the cleaner cross-book signal.
+
+**Drizzt is the lead-POV at 25–34% of all beats in every book.** Secondary POVs (Bruenor / Wulfgar / Regis) split most of the remainder, with book-specific POVs filling the tail (Akar Kessell + Heafstaag in cs; Artemis Entreri + Sydney + Dendybar in sos; Artemis Entreri + Pasha Pook in hg).
+
+### Conclusion + Action — both patterns
+
+**Both ship as planner priors.** Directional signal is clean across all three books for both metrics:
+- **Pattern 22 (P22) → `src/agents/planning-beats/beat-expansion-system.md`.** Add a beat-ensemble-size soft prior: bias toward solo + duo beats; modal beat should have 1 character on-page, secondary mode 2; trio+ beats ~10–15% of any chapter, reserved for council / confrontation moments. **Pair with Pattern 23 since both inform `charactersPresent`.**
+- **Pattern 23 (P23) → `src/agents/planning-plotter/chapter-outline-system.md`.** Add a POV-rotation soft prior: median POV-hold is 1 scene (cs/hg) to 2 scenes (sos), with 79–87% of POV runs being single-scene. The planner should NOT enforce one-POV-per-chapter — instead, allow 2–3 POV slots per chapter, with the lead character (seed protagonist) holding ~25–30% of total beats and 4–5 secondary POVs splitting the remainder.
+
+**Cross-pattern interaction.** P22 tells the planner _how many characters_ should be in-scene; P23 tells it _whose POV_ that scene is anchored on. Together they should drive the planner to (a) keep beat-level character counts low (1–2), (b) rotate POV at scene boundaries, not chapter boundaries, and (c) allocate POV time proportional to plot weight, with the lead character getting ~25–30% as a structural constant.
+
+**Methodology caveats** (load-bearing for both patterns):
+- **Per-beat POV inference is too noisy** — single-beat name-mention counts swap on dialogue interleave. Always anchor POV at scene-level on this corpus.
+- **Streams of Silver scene segmentation** is ~1.8× larger than the other two books' median scene size. Beat-unit numbers in sos look inflated for both ensemble-size (more chars per scene) and POV-run-length (more beats per scene-run). Use scenes-unit metrics for cross-book comparison; report beat-unit only with the segmentation caveat attached.
+- **Lead-character POV share (25–30%)** is the strongest cross-book directional constant in both patterns — likely worth a stand-alone planner constraint regardless of whether P22 or P23 ship.
+
+### Cost ledger
+
+Zero LLM cost. Pure regex compute on existing JSONL.
+
+### Artifacts
+
+- `crystal_shard.20260430T122834.char-pair-density.json` — Pattern 22 (per-book ensemble distributions at scene + beat granularity, per-chapter dominant ensemble, top-15 character pairs per book + cross-book overlap)
+- `crystal_shard.20260430T122834.pov-duration.json` — Pattern 23 (per-book POV-run stats in scenes + beats, per-character POV totals, distribution buckets, cross-book directional summary)
+
+---
 
