@@ -3748,6 +3748,126 @@ This encodes (a) the modal time-of-day anchor (`night`), (b) the modal weather a
 
 ---
 
+
+## 2026-04-30 — Pattern 39: Sentence-opener distribution (3-book pure compute)
+
+### Methodology
+
+For each of 17,959 sentences across the 3-book Icewind Dale corpus (`crystal_shard` n=5,935 / `streams_of_silver` n=5,939 / `halflings_gem` n=6,085), classify the sentence's first word/phrase by structural role using a rule-based classifier (zero LLM cost):
+
+- **subject-first** — opens with a name, pronoun, NP-determiner, or capitalized proper noun ("Drizzt drew his scimitars." / "He raised his blade." / "The dwarf grinned.")
+- **adverbial-first** — opens with -ly adverb, common non-ly adverb, or preposition starting a PP ("Carefully, he stepped forward." / "In any other place, the tribes could never have been this close.")
+- **participial-first** — opens with -ing/-ed participle followed by a comma in the first 6 tokens ("Stepping back, he raised his blade." / "Flanked by his trolls, the wizard waited.")
+- **conjunction-first** — opens with a coordinating or subordinating conjunction ("And yet, he hesitated." / "But now, they had to be content with idle threats.")
+- **dialogue-first** — first non-whitespace character is a quote mark (`"Akar Kessell!" he shouted.`)
+- **interjection-first** — opens with a known interjection ("Bah!" / "Oh, the cold!")
+- **other** — fallthrough (auxiliary-led, fragment, malformed punctuation)
+
+Decision-order is conjunctions -> interjections -> participles -> adverbs/PPs -> subject (NP) -> auxiliary -> other. Sentence splitter matches sibling P29/P34a (`(?<=[.!?])\s+`). Word tokenization is lowercase whitespace-split with surrounding-punctuation strip. Classifier source: `scripts/structure-calibration/sentence-opener-distribution.ts`. Caveats listed in the JSON `methodology.caveats` field — most relevant: participle detection requires a setting-off comma (Salvatore almost always uses one, so loss is small), and `What`/`Well` interjections cannibalize from subject-first / adverbial-first by decision order. The residual `other` bucket is 0.7–1.9% per book — small enough to confirm the classifier covers >98% of sentences cleanly.
+
+### Per-book distribution
+
+| Book | subject-first | adverbial-first | participial-first | conjunction-first | dialogue-first | interjection-first | other | n |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| crystal_shard | 55.0% | 10.3% | 1.0% | 9.0% | 22.2% | 0.4% | 1.9% | 5935 |
+| streams_of_silver | 54.2% | 6.8% | 1.2% | 6.6% | 29.7% | 0.8% | 0.7% | 5939 |
+| halflings_gem | 50.5% | 7.5% | 0.9% | 6.4% | 32.1% | 0.8% | 1.8% | 6085 |
+
+**Modal opener every book = subject-first** (50.5–55.0%). Salvatore's default narrative shape is the canonical English declarative subject-first sentence — pronoun or proper noun in slot 1.
+
+### Cross-book share-spread
+
+| Opener | min share | max share | spread | verdict |
+|---|---:|---:|---:|---|
+| subject-first | 50.5% | 55.0% | 4.5pt | stable |
+| adverbial-first | 6.8% | 10.3% | 3.5pt | stable |
+| participial-first | 0.9% | 1.2% | 0.4pt | stable |
+| conjunction-first | 6.4% | 9.0% | 2.6pt | stable |
+| dialogue-first | 22.2% | 32.1% | 9.8pt | mild-drift |
+| interjection-first | 0.4% | 0.8% | 0.4pt | stable |
+| other | 0.7% | 1.9% | 1.2pt | stable |
+
+Six of the seven opener categories are stable across all 3 books (<=5pt spread). Only `dialogue-first` drifts (9.8pt), and the drift is monotone: 22.2% -> 29.7% -> 32.1%. **This is the same series-trend already documented in P35** (rapid-share rises 0.46 -> 0.62 -> 0.68 across the trilogy as Salvatore tightens his dialogue rhythm). Pattern 39 confirms the same effect at the sentence-opener level: each book shifts ~5pt of total sentences from "subject-first / adverbial-first / conjunction-first" into "dialogue-first" as the trilogy progresses.
+
+### Per-kind aggregate (all 3 books)
+
+| Kind | subject-first | adverbial-first | participial-first | conjunction-first | dialogue-first | interjection-first | other | n |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| action | 64.2% | 10.0% | 1.8% | 7.3% | 15.7% | 0.3% | 0.7% | 6319 |
+| dialogue | 33.6% | 4.0% | 0.4% | 4.4% | 54.3% | 0.7% | 2.6% | 6589 |
+| interiority | 63.0% | 11.0% | 0.7% | 12.3% | 10.5% | 1.4% | 1.2% | 3315 |
+| description | 69.4% | 12.0% | 1.0% | 9.3% | 7.1% | 0.9% | 0.4% | 1736 |
+
+**Per-kind modal stability is 4-of-4 reproducible across every book** (`per_kind_modal_stability` all `true`):
+- `action` modal = subject-first (63.8–64.5%)
+- `dialogue` modal = dialogue-first (50.6–56.4%)
+- `interiority` modal = subject-first (60.6–65.1%)
+- `description` modal = subject-first (68.1–71.2%)
+
+### Voice-signature characterization
+
+Salvatore's sentence-opener fingerprint is a **subject-first floor with a coordination-conjunction tail**:
+
+1. **Subject-first dominance is uniform.** In every kind that isn't `dialogue` (action, interiority, description), subject-first is the modal opener at 60–70% — Salvatore writes declarative narrative the standard way. He does NOT use participial phrases as a stylistic mannerism (Tolkien does this much more); participial-first is **0.9–1.2% per book and never exceeds 2.4% in any beat-kind**. Action beats lead the trilogy at 1.8% participial-first — `action_most_participial_in_every_book = true` — so the craft hypothesis "action opens with participial phrases more than other kinds" REPRODUCES, but the absolute rate is so low (~1 in 55 action sentences) that it is a *trace* signal, not a *modal* one.
+
+2. **Conjunction-first openers are an interiority signature.** Interiority is the only kind where conjunction-first crosses 10% (12.3% aggregate, 9.3–14.7% per book). The dominant conjunction tokens are **`but` (189 in cs alone), `and` (140), `when` (50), `as` (41), `though` (35)**. This is Salvatore's "And yet…" / "But Drizzt knew…" interior-voice opener — the protagonist's mental rebuttal to the prior sentence. Action only fires conjunction-first 7.3%; description 9.3%; dialogue (within-quote rhetorical) 4.4%. **Interiority leans 1.6–1.7x more conjunction-first than action.**
+
+3. **Adverbial-first is a description-and-interiority leaning, not action.** Description hits 12.0% adverbial-first, interiority 11.0%, action 10.0%, dialogue 4.0%. The top adverbial-first tokens (`then` 72, `in` 60, `yet` 47, `with` 41, `now` 30, `there` 25) are time/place setters — exactly what description and interiority need. Action prose, despite the craft canon (Howard / King), does NOT lead on adverbial-first — it leads on `subject-first + verb` simplicity.
+
+4. **Dialogue-first is the dialogue-kind backbone.** 54.3% of dialogue-kind sentences open with a quote mark, with `"I` / `"You` / `"The` / `"And` the dominant tokens — Salvatore drops directly into speech without an attribution prelude in over half of dialogue-kind sentences. This corroborates P26 / P30 / P35: dialogue-kind beats are dialogue-saturated, with rapid back-and-forth and minimal scaffolding.
+
+5. **Top tokens per opener-kind (crystal_shard, top 5):**
+   - `subject-first`: the(770), he(524), drizzt(188), it(135), they(114) — pronouns dominate, with named-character subjects (Drizzt, Wulfgar, Bruenor, Regis) jointly contributing ~35% of named-NP openers.
+   - `adverbial-first`: then(72), in(60), yet(47), with(41), now(30) — temporal/locative setters.
+   - `conjunction-first`: but(189), and(140), when(50), as(41), though(35) — coordination + contrast.
+   - `participial-first`: small bucket; 65 total tokens with no single token > 3 occurrences (long tail of unique participial verbs — `flanked`, `brimming`, `finding`, `hearing`, `terrified`, `satisfied`, `moving`).
+
+### Cross-book stability assessment
+
+The **shape** is stable; the **dialogue-first share drifts upward across the series** by ~10 pts:
+
+- **Stable** (<=5pt cross-book spread): subject-first, adverbial-first, participial-first, conjunction-first, interjection-first, other.
+- **Drifting** (monotone across cs -> ss -> hg): dialogue-first 22.2% -> 29.7% -> 32.1% (+9.8pt). Subject-first declines 55.0% -> 54.2% -> 50.5% (-4.5pt) by the same magnitude.
+- **Per-kind modal stability**: 4-of-4 across all 3 books. Whatever the beat-kind, the modal opener is the same in every book.
+- **Action-most-participial check**: TRUE in every book (action 1.4–2.4% participial-first vs 0.4–1.2% for other kinds), but the rates are so low this is a directional curiosity rather than a writer-prompt anchor.
+
+### Conclusion + Action — Pattern 39: POSITIVE — ship as voice-prior + lint target.
+
+Recommended writer-prompt and lint targets, conditioned on `kind`:
+
+**Writer-prompt voice priors (fantasy-narrative voice anchor, all-kinds):**
+- Subject-first should dominate at **~50–55% of all sentences**. The default narrative shape is `<pronoun-or-proper-noun> + verb`.
+- Participial-first should fire on **~1% of all sentences**. Do NOT lean on "Stepping into the room, he..." as a stylistic crutch; Salvatore opens this way in roughly one sentence in 100. Action beats may go to 2% but never higher.
+- Conjunction-first openers (sentence-initial `And`, `But`, `Yet`, `Though`) should be roughly **7–9% of all sentences**, with **interiority beats elevated to 12–14%** as a voice signature. Do not flatten this; "But Drizzt knew…" / "And yet…" is part of the Salvatore interiority fingerprint.
+- Adverbial-first should sit at **~8–10% of all sentences**, with description and interiority at the top of that range (~11–12%) and dialogue at the bottom (~4%).
+- Interjection-first is **<1% of all sentences** (rare exclamatory beats only). Do not use as a stylistic mannerism.
+
+**Per-kind opener-mix targets (all reproduce across 3 books):**
+- `action`: subject-first 64% / adverbial-first 10% / dialogue-first 16% / conjunction-first 7% / participial-first 2% / rest residual.
+- `dialogue`: dialogue-first 54% / subject-first 34% / conjunction-first ~4% / adverbial-first 4% / rest residual.
+- `interiority`: subject-first 63% / **conjunction-first 12%** (signature) / adverbial-first 11% / dialogue-first 11% / rest residual.
+- `description`: subject-first 69% / adverbial-first 12% / conjunction-first 9% / dialogue-first 7% / rest residual.
+
+**Deterministic lint targets (post-write check, fire-only-if-rendered-prose-deviates):**
+- **Participial-first overuse lint**: if a beat has > **5%** of its sentences opening with a participial phrase (-ing/-ed + early comma), flag for rewrite. Salvatore's per-beat ceiling is roughly 2x the corpus mean; > 5% is a writer mannerism that doesn't match the voice. (DeepSeek base writer is plausibly at risk here — independent re-measure on a few production beats is the cheap-confirm step.)
+- **Subject-first floor lint**: if a beat (any kind) has < **35%** of its sentences opening subject-first, flag — the prose is opener-fragmented relative to corpus.
+- **Interiority conjunction-opener floor**: if an interiority-kind beat has < **5%** of its sentences opening with a conjunction (and / but / yet / though / when), flag — the beat is missing the Salvatore "interior-rebuttal" voice.
+- **Dialogue-first dominance check on dialogue-kind beats**: if a dialogue-kind beat has < **40%** of its sentences opening with a quote mark, flag — the prose is dialogue-attribution-heavy rather than dialogue-driven.
+
+**Cross-corpus comparison value.** This pattern is genre-portable; running the same classifier on a Howard, Cook, or Tolkien corpus gives an immediate voice-signature delta (e.g., Tolkien's expected participial-first rate is 5–10x Salvatore's). Useful for the writer-imitation benchmark when comparing future fine-tunes against multiple author baselines.
+
+**Relationship to other patterns.** P39 is **complementary** to:
+- **P34a** (sentence length by kind) — answers "how long are sentences" per kind. P39 answers "how do those sentences begin." Both ship as joint writer-prompt anchors.
+- **P34c** (adverb density per 100 words) — answers "how many adverbs total." P39 sub-counts how many of those adverbs are sentence-opener position (10% of sentences open adverbial across the corpus, vs ~1.85 -ly adverbs per 100 words total). The two should align to ~30% of all -ly tokens being sentence-opener, a follow-up cross-pattern check.
+- **P35** (dialogue chunk density / shape) — both find the same monotone series-trend toward more dialogue across cs -> ss -> hg. P35 measures it inside the chunk; P39 measures it at the opener level. The agreement is strong corroboration that Salvatore's late-trilogy prose tightens via dialogue volume specifically, not via sentence-rhythm changes.
+
+### Files
+
+- `crystal_shard.20260430T124730.sentence-opener-distribution.json` — full payload (per-book counts + shares + modal; per-(book, kind) counts + shares + modal; per-kind aggregate; cross-book share-spread + verdict; per-kind modal stability across books; participial-first share by kind by book; top-10 first-tokens per opener-kind per book; first-3 sentence examples per opener-kind per book for spot-check; classifier methodology + caveats).
+- `scripts/structure-calibration/sentence-opener-distribution.ts` — pure-compute classifier + analysis script (no LLM calls; $0).
+
+---
+
 ## Pattern 41 — Cross-chapter callback density — 2026-04-30
 
 **Trigger.** Series-engineering vision (`project_series_engineering_vision`) targets multi-book novels where later chapters must remember earlier ones. The harness has callback-relevant levers (planning-plotter `establishedFacts`, beat-context character snapshots, plan-only extraction) but no quantitative target for *how often* a chapter should reach back. P41 measures the corpus's actual cross-chapter callback rhythm and asks whether it grows toward late chapters consistently across the trilogy.
