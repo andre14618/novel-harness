@@ -16,15 +16,28 @@ The raw numbers live in `crystal_shard.json` (and `<book>.<keyx>x<gold>.json` fo
 
 ## Summary verdict (as of 2026-04-29 v1 close-out)
 
-**Aggregated: SCOPED PASS** — character-arcs is shipped; mckee-gap binary is shippable; the rest re-calibrate under v2 (decomposed + Sonnet anchor; design at `docs/designs/decomposed-extractor-sonnet-anchor-v1.md`).
+**Aggregated: SCOPED PASS — single-book** — character-arcs is shipped; mckee-gap binary is shippable; the rest re-calibrate under v2 (decomposed + Sonnet anchor; design at `docs/designs/decomposed-extractor-sonnet-anchor-v1.md`). All numbers below are **Crystal Shard book-scoped** until Streams of Silver / Storm Front cross-book validation lands.
 
-| Dim | v1 Verdict | Conclusion |
-|---|---|---|
-| value-charge | NULL-GOLD (artifact) | Flash polarity tagging is **likely reliable** — F1=0.94 binary is strong. NULL-GOLD verdict is the n=5 retest pool tripping the 15% disagreement threshold (sample-size noise, not real). v2 re-calibrates with Sonnet anchor + larger retest. |
-| promise | NULL-GOLD-LIKE (post-Phase C) | Gold v1↔v2 Jaccard 0.326 — the rubric admits two structurally different interpretations. v2 splits into `arc-promise` (close ≥5 chapters out) + `setup-payoff-bridge` (close ≤3 chapters out) sub-dims. |
-| character-arcs | **CELL PASS — SHIPPED** F1=1.00 | Flash extractor is reliable for character identification + LTWN structure. arc_resolution agreement 67%. Live in harness as of commit `4ec5d8b` (LTWN + arc_resolution enum on `characterProfileSchema`; planner renders the arc block). |
-| mice | CELL MARGINAL P=0.731 F1=0.776 | Borderline; v2 decomposes into 4 parallel binary calls per scene (one per M/I/C/E thread type). |
-| mckee-gap | **CELL PASS (binary)** F1=0.892, P=0.925, R=0.860 | Binary "gap or no gap" is strong and shippable as a per-beat soft prior. Per-field enums (gap_size 0.58, gap_type 0.56) below gate; v2 keeps single-call shape but anchors against Sonnet to test enum lift. |
+**How to read the verdict columns:** the headline metric for each dim is the **planner-relevant subfield** (the field the harness will actually feed into a prompt), not the binary "did the dim fire" call. Binary F1s look uniformly strong across dims (≥0.89) but the planner consumes per-scene polarity / per-beat gap_size enums / per-character arc_resolution — so those agreements gate ship status, not the binary.
+
+| Dim | v1 Verdict | Headline metric (planner-relevant) | Binary baseline | Conclusion |
+|---|---|---|---|---|
+| value-charge | NULL-GOLD (verdict-gate artifact) | per-scene polarity agreement **0.76**; lifeValue agreement **0.56** | F1=0.94 binary "any charge change" | Polarity is below 0.78 PASS gate but not by much; lifeValue 0.56 is the harder problem. NULL-GOLD verdict is the n=5 retest pool tripping the 15% disagreement threshold (**underpowered sample**; see verdict-protocol note below). v2 re-calibrates with Sonnet anchor + retest n ≥ 20. |
+| promise | NULL-GOLD-LIKE (post-Phase C) | Gold v1↔v2 Jaccard **0.326** (Sonnet pair-matcher confirms 0.357) | n/a — discrete-list dim, no binary | Rubric admits two structurally different interpretations. v2 splits into `arc-promise` (close ≥5 chapters out) + `setup-payoff-bridge` (close ≤3 chapters out) sub-dims. |
+| character-arcs | **CELL PASS — SHIPPED** | character ID **F1=1.00**; arc_resolution agreement **0.67** | n/a — character-presence is the load-bearing field | Flash extractor reliably finds the right cast and assigns LTWN structure. arc_resolution at 0.67 is 2-class boundary confusion (partial vs fulfilled), not structural failure. Live in harness as of commit `4ec5d8b` (LTWN + arc_resolution enum on `characterProfileSchema`; planner renders the arc block). |
+| mice | CELL MARGINAL | per-scene primary_thread + opens/closes binary **F1=0.776, P=0.731** | F1=0.809 self-judge (Flash×Flash) | Below 0.78 PASS gate by 5pp on cross-model. v2 decomposes into 4 parallel binary calls per scene (one per M/I/C/E thread type). |
+| mckee-gap | **CELL PASS (binary only)** | per-beat **gap_size** agreement **0.58**; **gap_type** agreement **0.56** | F1=0.892, P=0.925, R=0.860 binary "any gap" | Binary "gap or no gap" is shippable as a per-beat soft prior (60%+ of beats carry a gap). The per-field enums the planner actually wants (gap_size 4-class, gap_type 6-class) are below the PASS gate; v2 keeps single-call shape but anchors against Sonnet to test enum lift. |
+
+### Verdict-protocol note — value-charge vs mckee-gap inconsistency
+
+**Both dims posted 40% (2/5) retest self-disagreement on n=5 retest pools.** Value-charge's verdict was downgraded to NULL-GOLD on this signal; mckee-gap was waived to CELL PASS because its binary F1=0.892 was strong and the multi-class enum below-gate was treated as a separable v2 problem. The protocol applied two different rules to the same numerical signal:
+
+- **Value-charge:** "n=5 retest 40% disagreement → trip the 15% gate → NULL-GOLD."
+- **McKee-gap:** "n=5 retest 40% disagreement → call out as underpowered → grant CELL PASS on binary."
+
+This is **not a defended methodology decision**; it is verdict drift between two sessions. Either the gate should fire at the same threshold for both or both pools need to be re-measured at n ≥ 20. Tracked as a Phase C exit task. Until resolved, the SCOPED PASS aggregated verdict carries this caveat: the value-charge NULL-GOLD verdict and the mckee-gap CELL PASS verdict were posted using non-uniform protocols.
+
+**Action under v2:** Sonnet self-consistency Jaccard ≥ 0.85 hard gate replaces the retest-disagreement gate entirely. The new gate fires before extractor calibration runs, on a properly-powered 50-scene sample. This retires the protocol drift by design.
 
 ---
 
@@ -543,7 +556,7 @@ Five subagents + one inline analysis ran concurrently. All seven completed; resu
 
 **Risks flagged:** (a) Promise dim should be skipped on both new books until ensemble gold ships; (b) Streams of Silver scene-break count is only 47 (vs 105 for crystal_shard) — verify breaks before extractors; (c) Storm Front first-person POV may degrade character-arc F1 — budget one prompt iteration if MARGINAL.
 
-**Action:** Park as scheduled work. Do NOT block on it. Land character-arcs harness integration first; if F1=1.00 holds on Streams of Silver, the Salvatore fingerprint becomes author-level and we can ship `WRITER_GENRE_PACKS["fantasy"]` with the LTWN distribution as a hard prior.
+**Action:** Park as scheduled work. Do NOT block on it. Land character-arcs harness integration first. **All current Crystal Shard distributions are book-scoped, not author-scoped or genre-scoped** — the "Salvatore fingerprint" framing is premature until at least one cross-book sample lands. If F1=1.00 holds on Streams of Silver, character-arc reliability promotes from book-scoped to author-scoped (one author, two books). A genre-level claim sufficient to ship `WRITER_GENRE_PACKS["fantasy"]` with the LTWN distribution as a hard prior requires at least the Storm Front cross-author run to also pass.
 
 ### Updated decision matrix (post-Round 2)
 
@@ -551,7 +564,7 @@ Five subagents + one inline analysis ran concurrently. All seven completed; resu
 |---|---|---|---|
 | character-arcs | CELL PASS | CELL PASS (unchanged) | **Ship harness integration NOW** (LTWN + arc_resolution enum on `characterProfileSchema`) |
 | mice | CELL MARGINAL P=0.731 | v2 prompt drafted | Re-extract on v2 → re-judge → re-calibrate; target P ≥ 0.78 |
-| value-charge | NULL-GOLD (n=5 noise) | v2 prompt drafted | Re-extract on v2 → expand retest n ≥ 20; target CELL PASS |
+| value-charge | NULL-GOLD (n=5 underpowered) | v2 prompt drafted | Re-extract on v2 → expand retest n ≥ 20; target CELL PASS |
 | mckee-gap | extraction in flight | full corpus done; calibration in flight | When judge completes, compute calibration; ship soft prior if F1 ≥ 0.70 |
 | promise | NULL-GOLD-LIKE | confirmed by Sonnet pair-matcher + cardinality | **Re-scope dim into arc-promise + setup-payoff sub-dims**; park current rubric |
 
@@ -598,9 +611,9 @@ McKee-gap calibration completed under v1 architecture (Flash extractor × Pro ju
 | F1 | **0.892** | ≥ 0.78 | PASS |
 | gap_size per-field agreement | 0.577 (30/52) | ≥ 0.78 | **below** |
 | gap_type per-field agreement | 0.558 (29/52) | ≥ 0.78 | **below** |
-| Retest self-disagreement | 0.40 (2/5) | ≤ 0.15 | **above** (n=5 noise) |
+| Retest self-disagreement | 0.40 (2/5) | ≤ 0.15 | **above** (n=5 underpowered) |
 
-**Reading the verdict carefully.** F1=0.892 is on the **binary "did the judge call any gap"** question — strong agreement on whether a beat carries a gap-of-some-kind. The per-field enums (gap_size 4-class and gap_type 6-class) are below the PASS gate. Retest self-disagreement is 40% but on n=5 only — same small-sample artifact that drove value-charge's NULL-GOLD verdict.
+**Reading the verdict carefully — and flagging protocol drift.** F1=0.892 is on the **binary "did the judge call any gap"** question — strong agreement on whether a beat carries a gap-of-some-kind. The per-field enums (gap_size 4-class and gap_type 6-class) are below the PASS gate; these are the fields the planner consumes. Retest self-disagreement is 40% but on n=5 — that's an **underpowered pool**, not statistical noise that resolved one way or the other. **Value-charge had the identical signal (40% on n=5) and posted NULL-GOLD; this dim posted CELL PASS.** The protocol drift is documented in the front-matter "Verdict-protocol note." Under v2 the n=5 retest gate is replaced by a Sonnet self-consistency Jaccard ≥ 0.85 gate on a properly-powered 50-scene sample; the inconsistency retires by design.
 
 This is structurally the same shape as **value-charge** Phase A:
 - value-charge binary F1=0.94, polarity-shift agreement 0.76, lifeValue agreement 0.56
@@ -620,11 +633,11 @@ In both dims: load-bearing binary signal is strong; multi-class enum agreements 
 
 | Dim | Verdict | Notes |
 |---|---|---|
-| value-charge | NULL-GOLD (artifact) → expected CELL PASS post-v2 | Binary F1=0.94 strong; n=5 retest noise tripped NULL-GOLD verdict gate |
+| value-charge | NULL-GOLD (verdict-gate artifact) → expected CELL PASS post-v2 | Per-scene polarity 0.76, lifeValue 0.56 (planner-relevant); binary F1=0.94. n=5 retest underpowered, tripped NULL-GOLD verdict gate. |
 | promise | NULL-GOLD-LIKE | Gold v1↔v2 Jaccard 0.326 (Sonnet pair-matcher confirms 0.357); rubric-latitude problem; v2 splits into `arc-promise` + `setup-payoff-bridge` |
-| **character-arcs** | **CELL PASS — SHIPPED** | F1=1.00 character ID + LTWN; arc_resolution agreement 0.67. Live in harness commit `4ec5d8b` |
-| mice | CELL MARGINAL P=0.731 F1=0.776 | v2 decomposes into 4 parallel binary calls per scene |
-| **mckee-gap** | **CELL PASS (binary)** F1=0.892, P=0.925, R=0.860 | Per-field enum agreements (gap_size 0.58, gap_type 0.56) below gate; v2 single-call retained, Sonnet anchor expected to lift enums |
+| **character-arcs** | **CELL PASS — SHIPPED** | Character ID F1=1.00 (load-bearing field); arc_resolution agreement 0.67. Live in harness commit `4ec5d8b` |
+| mice | CELL MARGINAL | Primary_thread + opens/closes F1=0.776, P=0.731 (planner-relevant); v2 decomposes into 4 parallel binary calls per scene |
+| **mckee-gap** | **CELL PASS (binary only)** | gap_size agreement 0.58, gap_type 0.56 (planner-relevant, both below gate); binary F1=0.892, P=0.925, R=0.860. v2 single-call retained, Sonnet anchor expected to lift enums |
 
 **Aggregated v1 verdict:** SCOPED PASS — character-arcs (shipped) + mckee-gap (binary, holding for v2 enum lift) + value-charge (binary, holding for retest expansion); promise + mice need v2 architecture.
 
