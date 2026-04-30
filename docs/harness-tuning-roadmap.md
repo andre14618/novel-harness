@@ -5,88 +5,126 @@ updated: 2026-04-30
 
 # Harness Tuning Roadmap
 
-Single-page view of what we're evaluating, what's measurable, where each pattern lands. **Living doc** — update each row as variants are drafted, probed, and shipped.
+Single-page view of what's in flight, what's queued, and what's parked across the harness — corpus mining, planner-prompt variants, writer-layer ablations, and checker work. **Living doc** — update each row as work moves through the pipeline.
 
-This doc tracks the corpus-pattern → harness-prompt pipeline. Concluded architectural decisions live in `docs/decisions.md`; pending action items live in `docs/todo.md`. This roadmap is the matrix view that ties them together.
+Concluded architectural decisions live in `docs/decisions.md`; pending action items live in `docs/todo.md`. This roadmap is the matrix view that ties them together with current status.
 
-## How a pattern moves through the pipeline
+## How work moves through the pipeline
 
 ```
-corpus mining          →  pattern validated on Salvatore Crystal Shard reference
-harness mapping        →  pattern tied to a specific prompt or schema field
-variant prompt drafted →  the alternative phrasing that encodes the pattern
-phase-eval probe       →  $0.30, minutes — default vs variant, G1-G4 directional read
-cross-book validation  →  ±5-10% reproduction on Streams of Silver / Halfling's Gem
-ship / hold / pivot    →  variant lands as default, holds for more evidence, or kills
+mine                →  pattern / signal extracted from corpus or run output
+map                 →  pattern tied to a specific prompt / schema field / pipeline lever
+draft variant       →  the alternative phrasing or config that encodes the pattern
+probe               →  $0.30 phase-eval (planner) or full-novel sample (writer/checker)
+cross-book / scale  →  reproduces qualitatively in a 2nd book / scales beyond pilot N
+ship / hold / pivot →  variant lands, holds for more evidence, or kills
 ```
 
-**Probe scaffold:** `scripts/phase-eval/` (commits `a031980` + `c6ef9a5` + `9de6a78` + `d024ce8`). G1=facts/chapter, G2=knowledge transfers/chapter, G3=beats/chapter, G4=state changes/chapter. SCREEN-PASS = directional movement above the charter R5 thresholds.
+## Ship gate framing (load-bearing — re-read before defining new gates)
 
-**Anchor stability gates** (per `docs/decisions.md` 2026-04-30 SOPs): J ≥ 0.85 Sonnet self-consistency at BOTH calibration-anchor and production-emit granularities, validated at full population (n=50 is screening only).
+The user's standing rule (2026-04-30): **≥ 90% confident a pattern reproduces qualitatively is sufficient to ship as a planner prior.** Tight quantitative CIs are NOT required. Heavy statistical reads are diminishing-returns past book 2 or 3.
 
-## Active queue — non-mice corpus patterns
+Math reference (binary proportions at p≈0.5):
+- 1 book, n≈34 chapters → 95% CI ±17% (range 33–67% on a 50% point estimate)
+- 2 books → ±12%
+- 3 books → ±10%
+- 11+ books → ±5%
 
-These were identified in the Crystal Shard chapter-level structural session (2026-04-30 ~02:05 UTC, conclusions doc). All four are corpus-validated independent of the stuck mice rubric.
+Translation: cross-book validation is HIGH-VALUE for the binary "does the pattern reproduce" test (one additional book is enough to discriminate "Salvatore quirk" vs "author/genre pattern"). It's LOW-VALUE for tight quantitative priors. The current planner-prompt rules are already consistent with the wide n=34 CI; cross-book mostly answers reproduction, not precision. Don't gate variant ship decisions on CI tightness.
 
-| # | Pattern (Crystal Shard reference) | Harness target | Variant drafted? | Probe run? | Cross-book? | Verdict |
+Anchor stability gates for stochastic-schema dims (separate from pattern-shipping): J ≥ 0.85 Sonnet self-consistency at BOTH calibration-anchor AND production-emit granularities, validated at full population (n=50 is screening only). See `docs/decisions.md` 2026-04-30 SOPs.
+
+## Currently in flight (2026-04-30)
+
+| Work | Status | Notes |
+|---|---|---|
+| Voice-shaping ablation v1 synthesis (Sonnet subagent) | running | Run completed 2026-04-21 (20 beats × 4 arms, $0.0221); decomposed audit + results doc was never produced. Subagent is locating outputs, running the audit per `docs/charters/voice-shaping-ablation-v1.md`, writing `docs/charters/voice-shaping-ablation-v1-results.md`, deciding SHIP/HOLD/KILL per arm. |
+| Crystal Shard new-dim mining (Sonnet subagent) | running | Pure-aggregation pass on 6 unmined dims: POV management, character-introduction pacing, setting-change frequency, dialogue density variation, tension/pacing curve, sensory-channel distribution (best effort). Zero LLM cost. Output: timestamped JSONs + conclusions doc session entry + commit. |
+
+When both land: the corpus dim catalog grows from 7 to ~12-13 patterns; voice-shaping verdict shapes the writer-layer roadmap.
+
+## Active queue — non-mice corpus patterns (planner-prompt variants)
+
+Identified in the Crystal Shard chapter-level structural session (2026-04-30 ~02:05 UTC). Each maps to a specific prompt edit. None depends on the stuck mice rubric.
+
+| # | Pattern | Harness target | Variant drafted? | Probe run? | Cross-book? | Verdict |
 |---|---|---|---|---|---|---|
-| 1 | Length: median 2,534w / 24 beats; mean 2,647w; range 394–8,113w. Default action-fantasy `targetWords ≈ 2500`. Beat-count expectation `targetWords / 100` (current floor `/ 150` is too low). | `chapter-outline-system.md` `targetWords` band guidance | — | — | — | DRAFT |
-| 2 | Beat kind distribution: action 35.9% / dialogue 28.2% / interiority 20.6% / description 15.2%. | `beat-expansion-system.md` kind-balance soft prior | — | — | — | DRAFT |
-| 3 | Opener kind: 50% description, 26% action, 15% interiority, 9% dialogue. Closer kind: 41% action, 35% interiority, 21% dialogue, 3% description. (Current planner rule "open w/ action or description; close w/ action or interiority; never close on pure description" is empirically validated — reinforce with corpus citation.) | `chapter-outline-system.md` opener/closer guidance | — | — | — | DRAFT |
-| 4 | Within-chapter rhythm: descriptive setup → dialogue mid-peak → action/interiority climax. Description front-loads (q0=25% → q4=9%); dialogue mid-peaks (q0=18% → q2=38% → q4=30%); action steady ~35–40%; interiority flat ~21%. | `beat-expansion-system.md` position-specific guidance | — | — | — | DRAFT |
-| 7 | Beat boundary signals: pov_attention_shift 22% / stakes_recalibration 17% / scene_start 16% / action_shift 15% / speaker_change 13% / narration_to_dialogue 11%. (4-and-7 are gap-numbered — Patterns 5 + 6 are mice-dependent and parked.) | `beat-expansion-system.md` transition vocabulary as soft prior | — | — | — | DRAFT |
+| 1 | Length: median 2,534w / 24 beats; default action-fantasy `targetWords ≈ 2500`. Beat-count expectation `targetWords / 100` (current floor `/ 150` is too low). | `chapter-outline-system.md` `targetWords` band guidance | needs `PLANNING_PLOTTER_PROMPT_OVERRIDE` seam first | — | — | DRAFT |
+| 2 | Beat kind distribution: action 36% / dialogue 28% / interiority 21% / description 15%. | `beat-expansion-system.md` kind-balance soft prior | — | — | — | DRAFT (lower priority) |
+| 3 | Opener kind: 50% description, 26% action, 15% interiority, 9% dialogue. Closer kind: 41% action, 35% interiority, 21% dialogue, 3% description. | `chapter-outline-system.md` opener/closer guidance | needs plotter seam | — | — | DRAFT |
+| 4 | Within-chapter rhythm: descriptive setup → dialogue mid-peak → action/interiority climax. Description front-loads (q0=25% → q4=9%); dialogue mid-peaks (q0=18% → q2=38% → q4=30%). | `beat-expansion-system.md` position-specific guidance | — | — | — | DRAFT |
+| 7 | Beat boundary signals: pov_attention_shift 22% / stakes_recalibration 17% / scene_start 16% / action_shift 15% / speaker_change 13% / narration_to_dialogue 11%. | `beat-expansion-system.md` transition vocabulary as soft prior | — | — | — | DRAFT |
+| (TBD) | New dims from in-flight subagent — placeholder rows added when mining lands | — | — | — | — | PENDING SUBAGENT |
 
-**First move:** draft variants 1 + 3 (highest-leverage on planner-side; both touch chapter-outline-system.md so they can A/B together). Probe against `fantasy-system-heretic` (already tested on the loud variant — clean SCREEN-PASS baseline). Cross-book validate by running `chapter-level-structural.ts` on Streams of Silver before landing.
+**Sequencing (revised 2026-04-30):**
 
-## Schema-shipped soft priors (live)
+1. Wait for in-flight subagents to land (voice-shaping verdict + new-dim catalog).
+2. Add `PLANNING_PLOTTER_PROMPT_OVERRIDE` env-var seam to `src/agents/planning-plotter/index.ts` (mirrors the existing planning-beats seam from commit `a031980`). Small code addition; unblocks Patterns 1 + 3 probes.
+3. Draft variants for Patterns 3 + 4 + 7 first (existing `PLANNING_BEATS_PROMPT_OVERRIDE` supports them via beat-expansion edits — actually 3 needs the plotter seam since opener/closer guidance is plotter-side; Patterns 4 + 7 are beat-expansion).
+4. Cross-book wave on Streams of Silver covering existing 7 patterns + new dims + voice-shaping reference, in ONE batch (more efficient than per-pattern cross-book).
+5. Land winners as defaults per the 90%+ qualitative-reproduction gate; document the per-pattern verdict in `docs/decisions.md`.
 
-Current state of `sceneBeatSchema` corpus-derived fields. All optional / default-empty; checkers MUST NOT block on them. Status reflects 2026-04-30 anchor-stability findings.
+## Schema-shipped soft priors (live, on `sceneBeatSchema`)
+
+All optional / default-empty; checkers MUST NOT block on these fields. Status reflects 2026-04-30 anchor-stability findings.
 
 | Field | Schema state | Anchor stability | Notes |
 |---|---|---|---|
 | `valueShifted` (binary) | shipped | scene 0.887–0.923 / beat 0.852 | Stable. Replaces 3-class `valueShift` (J=0.639). Commit `c48a232`. |
-| `gapPresent` (binary) | shipped w/ caveat | scene 0.818 NEAR / beat pending | Rubric sharpen queued (next move). Commit `42745ce`. |
-| `lifeValueAxes` (5 binary) | shipped | beat 0.852–0.961 (all 5 axes) | Stable at beat granularity. agency / aspiration improved scene→beat. Commit `c48a232` + `cd4347a`. |
+| `gapPresent` (binary) | shipped w/ caveat | scene 0.818 NEAR / beat pending | Rubric sharpen queued. Commit `42745ce`. |
+| `lifeValueAxes` (5 binary) | shipped | beat 0.852–0.961 (all 5) | Stable at beat. agency / aspiration IMPROVED scene→beat. Commits `c48a232` + `cd4347a`. |
 | `miceActive=["I"]` | shipped | beat n=50: 0.887 / scene n=139: **0.313 FAIL** | n=50 wave was sample-underpowered. See parked. Commit `cd4347a`. |
-| `miceOpens=["M","I"]` | shipped | beat n=50: 0.887–0.961 / scene n=139: **0.10–0.36 FAIL** | n=50 wave was sample-underpowered. See parked. Commit `cd4347a`. |
-| `miceCloses=["M","I","C","E"]` | shipped | beat n=50: 0.887–1.000 / scene n=139: **0.14–0.75 FAIL** | n=50 wave was sample-underpowered. See parked. Commit `cd4347a`. |
+| `miceOpens=["M","I"]` | shipped | beat n=50: 0.887–0.961 / scene n=139: **0.10–0.36 FAIL** | Same. Commit `cd4347a`. |
+| `miceCloses=["M","I","C","E"]` | shipped | beat n=50: 0.887–1.000 / scene n=139: **0.14–0.75 FAIL** | Same. Commit `cd4347a`. |
 
-The mice fields are SAFE in production (soft priors, no checker gates), but are not eligible to support a planner prior in `chapter-outline-system.md` until rubric stability is recovered at full corpus.
+Mice fields are SAFE in production (soft priors, no checker gates) but not eligible to back planner-prompt priors until rubric stability is recovered at full corpus.
 
-## Parked / blocked
+## Other harness-quality work (non-corpus)
 
-| Item | Why parked | Gate to unpark | Estimated cost |
+These are the items the user pointed out as the actual production-quality bottleneck — corpus tuning matters less than these for current output quality.
+
+| Work | Status | Why this matters | Estimate |
 |---|---|---|---|
-| Pattern 5: chapter-level mice rhythm (E 56% / C 18% / M 12% / I 3% openers and closers) | Underlying mice rubric J<0.85 at full corpus | Rubric sharpen + beat-level full-corpus pass | $8 + half-day |
-| Pattern 6: opens/closes per chapter (mean 2.44 / 1.00; threads accumulate across chapters) | Same — depends on mice rubric stability | Same | Bundled with Pattern 5 |
-| `chapter-outline-system.md` plotter prompt re-cut with mice priors | Same | Same | Bundled |
-| Beat-level full-corpus mice extraction | Awaiting rubric sharpen first (binary collapse already done; rubric polish is the canonical next step on FAIL) | Sharpened v2 mice prompt | $8 + half-day |
-| v2 mice rubric sharpen on opens / dominant | Lower priority for single-book harness tuning | Series-engineering work begins (multi-book commitment) | Rubric edit + test wave |
-| Promise dim Sonnet self-consistency | Sub-dim split (arc-promise + setup-payoff-bridge) not yet tested | Split sub-prompts + n=50 probe | $5–10 |
-| McKee-gap rubric sharpen | `gapPresent` at scene-level J=0.818 NEAR | Sharpened rubric + n=50 retest | $3 |
-| Streams of Silver Stage 6 | Methodology not yet locked on Crystal Shard | Patterns 1 / 3 / 4 / 7 probed AND landed; or rubric sharpen lands | $3 + 30 min |
-| Halfling's Gem cross-book validation | Same | Streams of Silver landed | $3 + 30 min |
-| Storm Front (Butcher) cross-author probe | Same; cross-genre signal expectation: I-thread should dominate | Salvatore intra-author validation lands | $15 acquisition + $2 extraction |
+| Voice-shaping ablation v1 synthesis | in flight | Writer-layer signal — does prompt-level voice shaping ship a candidate, or confirm the LoRA-track-pivot was correct? | (subagent in flight) |
+| Halluc-checker v3 production fire-rate report follow-up | pending | Production fires: ungrounded 46.7%, leak 15.7%, retry clearance 9–28%. Retry-wording fix shipped 2026-04-20; needs re-measurement. | Half-day re-eval |
+| Tier 1B writer-visible threading | pending | Most "planner-side state" doesn't reach the writer (terrain survey, exp #264). Bulk facts injection + worldExpansionBudget + priorBeatEstablishedFacts via getFactsUpToChapter. | Multi-day code change |
+| Salvatore v5 corpus expansion charter | DRAFT, gated | Distinctness improvements via Legacy of the Drow corpus. Pre-gate: PDFs on disk. | (gated) |
+| Speaker-directives V1b (per-beat) | gated on V1a pilot | Context-engineering item. | Half-day after gate |
 
-## Why mice work comes back later
+## Parked / blocked (mice + adjacent)
 
-Single-book harness tuning: mice tags are soft priors with no checker gates → lower lift than Patterns 1 / 3 / 4 / 7. Defer.
+| Item | Why parked | Gate to unpark |
+|---|---|---|
+| Pattern 5: chapter-level mice rhythm | Underlying mice rubric J<0.85 at full corpus | Rubric sharpen + beat-level full-corpus pass land |
+| Pattern 6: opens/closes per chapter | Same | Same |
+| `chapter-outline-system.md` plotter prompt re-cut with mice priors | Same | Same |
+| Beat-level full-corpus mice extraction | Awaiting rubric sharpen first | Sharpened v2 mice prompt |
+| v2 mice rubric sharpen on opens / dominant | Lower lift than non-mice patterns for current single-book quality | Concrete unparking signal (TBD — see "Why mice stays parked" below) |
+| Promise dim Sonnet self-consistency | Sub-dim split (arc-promise + setup-payoff-bridge) not yet tested | Single-book quality bottleneck cleared OR series-engineering becomes a real near-term commitment |
+| McKee-gap rubric sharpen | `gapPresent` at scene-level J=0.818 NEAR | Same |
+| Streams of Silver / Halfling's Gem / Storm Front | Methodology + dim catalog not locked | New-dim mining lands; cross-book wave then covers everything |
 
-Multi-book series engineering (the commercial unlock per memory `project_series_engineering_vision`): mice-thread tracking across books would be load-bearing for cross-book character-arc continuity, thread-debt accounting (opens in book N must close by book N+M), and narrative-spine alignment between volumes. Mice is also the highest-rubric-latitude dim across the 5 R7 dims — the methodological proof that decomposed Sonnet anchor + binary collapse + granularity rotation generalizes to hard rubrics. Rubric stability becomes the entry-gate to series engineering.
+## Why mice stays parked (revised 2026-04-30)
+
+Per-beat mice tags are soft priors with no checker gates. For current single-book harness tuning, they produce lower measurable lift than the non-mice corpus patterns (1 / 3 / 4 / 7) and the current production-quality work (voice-shaping, halluc-checker re-eval, writer-visible threading). That's the full justification for deferral.
+
+Earlier drafts of this roadmap tied mice's "comes back" to multi-book series engineering. **Walked back 2026-04-30:** series engineering is a future state, not a current priority — single-book quality is the live bottleneck. A deferral doesn't need a future-rationale; "lower lift than alternatives now" is sufficient. Mice rubric work might be unparking-triggered by something concrete later (e.g., a downstream feature that needs stable per-scene thread tagging), or it may stay parked indefinitely. That's fine.
 
 ## Charters & briefs (the controlling docs)
 
 - `docs/charters/corpus-structural-decomposition-v1.md` — Bucket 1 charter for the broader corpus mining program
 - `docs/designs/decomposed-extractor-sonnet-anchor-v1.md` — v2 architecture design (Sonnet anchor + decomposed extractors)
 - `docs/cross-book-cross-author-brief.md` — cross-book validation methodology
-- `novels/salvatore-icewind-dale/structure-calibration/crystal_shard-conclusions.md` — append-only Crystal Shard analysis log (~2000 lines, 9+ session entries)
-- `docs/designs/phase-variant-comparison.md` — phase-eval probe scaffold charter (R1–R5 with adversary review)
+- `novels/salvatore-icewind-dale/structure-calibration/crystal_shard-conclusions.md` — append-only Crystal Shard analysis log (~2000 lines, 10+ session entries)
+- `docs/designs/phase-variant-comparison.md` — phase-eval probe scaffold charter (R1–R5)
+- `docs/charters/voice-shaping-ablation-v1.md` — writer-layer ablation (synthesis in flight)
 - `docs/decisions.md` 2026-04-30 entries — concluded SOPs (binary-collapse-before-relabel, granularity-aware ship gates, sceneBeatSchema soft-prior expansion, chapter-level structural patterns)
 
 ## Update protocol
 
 - When a variant prompt is drafted: fill the "Variant drafted?" cell with the path/commit.
-- When a probe runs: fill "Probe run?" with the result summary (G1-G4 deltas) + commit.
+- When a probe runs: fill "Probe run?" with G1-G4 deltas + commit.
 - When cross-book validation lands: fill "Cross-book?" with the verdict.
-- When a pattern ships / holds / pivots: update "Verdict" and add an entry to `docs/decisions.md`.
-- When parked items unpark: move them to active queue with rationale.
+- When a pattern ships / holds / pivots: update "Verdict" and add a `docs/decisions.md` entry.
+- When parked items unpark: move them to the active queue with the unparking rationale.
+- When in-flight work lands: move from the "Currently in flight" table to wherever it belongs.
