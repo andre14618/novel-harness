@@ -1960,6 +1960,17 @@ DeepSeek ~3× cleaner on instruction-constrained prose. Cerebras wins on raw spe
 
 **Ongoing:** `CLAUDE.md` and `docs/adapter-changelog.md` updated to drop "highest cost" framing. Memory `feedback_continuity_deprioritized.md` locks the directive. `docs/todo.md` marks related phases on-hold.
 
+### Previous-state continuity locations are warning-class
+*2026-04-30 · exp #279 (`novel-1777588579141`)*
+
+**Decision:** `continuity-state` location findings derived from previous-chapter character states are warning-class, not approval blockers. The checker now receives the current chapter outline so planned movement and end-of-chapter states are visible, but location-type state violations are still normalized to non-blocking severity at merge time. Knowledge violations remain blocker-class by default.
+
+**Why:** Exp #279 blocked chapter 2 after chapter 1 approval because Aldric's previous state said Chancel Infirmary while the current chapter plan explicitly moved him to his High Ward study. The same check also treated Wren being in "the infirmary" as not being in the Chancel Infirmary. Previous-state location is useful context, but it is not an invariant across chapter boundaries.
+
+**Alternatives rejected:** Keep all state violations as blockers - caused false plan-assist bails on planned movement. Remove location checks entirely - loses useful drift telemetry. Trust prompt wording only - leaves blocker policy dependent on one LLM severity choice.
+
+**Ongoing:** Continuity can still block on knowledge impossibilities and fact contradictions. Direct same-time location impossibilities should be caught by fact/plan checks or promoted only after oracle calibration.
+
 ### Together AI fine-tunes require explicit per-job authorization
 *2026-04-18 · user directive*
 

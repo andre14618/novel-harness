@@ -487,7 +487,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
         (async () => {
           const facts = await getFactsUpToChapter(novelId, ch)
           const charStates = await getCharacterStatesAtChapter(novelId, ch)
-          return checkContinuity(prose, facts, charStates, { novelId, chapter: ch, attempt: attempts })
+          return checkContinuity(prose, facts, charStates, { novelId, chapter: ch, attempt: attempts, outline })
         })(),
       ])
 

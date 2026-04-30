@@ -13,7 +13,7 @@
 
 import { callAgent } from "../../llm"
 import { z } from "zod"
-import type { Fact, CharacterState, ContinuityIssue } from "../../types"
+import type { Fact, CharacterState, ChapterOutline, ContinuityIssue } from "../../types"
 
 // ── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -30,10 +30,13 @@ const stateCheckSchema = z.object({
   violations: z.array(z.object({
     character: z.string(),
     type: z.enum(["location", "knowledge"]),
+    severity: z.enum(["blocker", "warning", "nit"]).optional(),
     evidence: z.string(),
     reasoning: z.string(),
   })).default([]),
 })
+
+type StateViolation = z.infer<typeof stateCheckSchema>["violations"][number]
 
 // ── Prompts (loaded from .md files for readability) ─────────────────────────
 
@@ -46,21 +49,28 @@ export interface ContinuityResult {
   issues: ContinuityIssue[]
 }
 
+export interface ContinuityOptions {
+  novelId?: string
+  chapter?: number
+  attempt?: number
+  outline?: ChapterOutline
+}
+
 export async function checkContinuity(
   draft: string,
   facts: Fact[],
   charStates: CharacterState[],
-  tags?: { novelId?: string; chapter?: number; attempt?: number },
+  options?: ContinuityOptions,
 ): Promise<ContinuityResult> {
 
   // Build user prompts — each call gets the draft + its own context slice
   const factUserPrompt = buildFactUserPrompt(draft, facts)
-  const stateUserPrompt = buildStateUserPrompt(draft, charStates)
+  const stateUserPrompt = buildStateUserPrompt(draft, charStates, options?.outline)
 
   const baseTags = {
-    novelId: tags?.novelId,
-    chapter: tags?.chapter,
-    attempt: tags?.attempt,
+    novelId: options?.novelId,
+    chapter: options?.chapter,
+    attempt: options?.attempt,
   }
 
   // ── 2 parallel calls ───────────────────────────────────────────────────
@@ -105,12 +115,7 @@ export async function checkContinuity(
 
   if (stateResult.status === "fulfilled") {
     for (const v of stateResult.value.output.violations ?? []) {
-      issues.push({
-        severity: "blocker",
-        description: `${v.character} ${v.type} violation: ${v.reasoning}`,
-        conflictsWith: v.evidence,
-        suggestedFix: undefined,
-      })
+      issues.push(stateViolationToIssue(v))
     }
   } else {
     issues.push({
@@ -136,14 +141,42 @@ function buildFactUserPrompt(draft: string, facts: Fact[]): string {
   return prompt
 }
 
-function buildStateUserPrompt(draft: string, charStates: CharacterState[]): string {
+export function buildStateUserPrompt(draft: string, charStates: CharacterState[], outline?: ChapterOutline): string {
   let prompt = `CHAPTER DRAFT:\n${draft}\n\n`
+  if (outline) {
+    prompt += `CURRENT CHAPTER PLAN (expected movements and end-state changes):\n`
+    prompt += `Chapter ${outline.chapterNumber}: "${outline.title}"\n`
+    prompt += `Setting: ${outline.setting}\n`
+    prompt += `Characters present: ${outline.charactersPresent.join(", ")}\n`
+    if (outline.scenes.length > 0) {
+      prompt += `Planned beats:\n${outline.scenes.map((s, i) => `  ${i + 1}. ${s.description} [characters: ${s.characters.join(", ")}]`).join("\n")}\n`
+    }
+    if (outline.characterStateChanges.length > 0) {
+      prompt += `Planned end-of-chapter states:\n${outline.characterStateChanges.map(cs =>
+        `  ${cs.name}: location=${cs.location}, knows=${cs.knows.join("; ") || "(none)"}`
+      ).join("\n")}\n`
+    }
+    prompt += `\n`
+  }
   if (charStates.length > 0) {
-    prompt += `CHARACTER STATES (as of previous chapter):\n${charStates.map(cs =>
+    prompt += `CHARACTER STATES (as of previous chapter; starting context, not an immovable location requirement):\n${charStates.map(cs =>
       `${cs.characterId}: at ${cs.location}, feeling ${cs.emotionalState}, knows: ${cs.knows.join("; ")}`
     ).join("\n")}\n`
   } else {
     prompt += `CHARACTER STATES:\n(none)\n`
   }
   return prompt
+}
+
+export function stateViolationToIssue(v: StateViolation): ContinuityIssue {
+  // Previous-chapter locations are starting-state hints. A later chapter can move
+  // characters off-page or through planned scene transitions, so keep location
+  // concerns visible without letting them halt the run as checker blockers.
+  const severity = v.type === "location" ? (v.severity === "nit" ? "nit" : "warning") : (v.severity ?? "blocker")
+  return {
+    severity,
+    description: `${v.character} ${v.type} violation: ${v.reasoning}`,
+    conflictsWith: v.evidence,
+    suggestedFix: undefined,
+  }
 }

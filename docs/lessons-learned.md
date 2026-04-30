@@ -14,6 +14,9 @@ JavaScript regex engines use leftmost-match semantics: in an alternation `(a|ab)
 
 ## LLM Evaluation
 
+### Previous-chapter character locations are not blocker evidence by themselves (2026-04-30)
+Exp #279 (`novel-1777588579141`) reached chapter 2 on the base DeepSeek writer route, then `continuity-state` blocked on Aldric moving from the Chancel Infirmary to his planned High Ward study and Wren appearing in "the infirmary" despite the chapter setting being the Chancel Infirmary. Rule: a previous-state location is a starting hint, not an immutable invariant. Location drift from previous state should be warning-class unless the checker has explicit same-time/impossibility evidence or a current-plan contradiction. Pass the current chapter plan into location-sensitive checkers before asking them to judge movement.
+
 ### Pipeline pass state is not an oracle when checker findings are diagnostic
 Exp #268 (`novel-1777580634348`) completed validation while the drafting log had unresolved accepted beat-check issues and continuity emitted chapter-level `blocker` findings. The run was mechanically useful (base DeepSeek route with rich context worked), but the final `Validation phase complete` state was not evidence of story-quality pass. Rule: for writer-route decisions, inspect checker findings and approval policy separately from final pipeline phase; if any checker is diagnostic-only or accepts unresolved blockers after retry exhaustion, run an independent quote-required oracle or deterministic fixture before treating the novel as validation evidence. Word-count warnings can stay warnings; unresolved story-logic/checker blockers cannot.
 
