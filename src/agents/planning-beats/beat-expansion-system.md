@@ -68,6 +68,13 @@ Rules:
 - Maximum 3 named characters actively speaking/acting per beat. Additional characters become collective nouns: "the guards," "the crowd."
 - Sustain sequences; don't fragment them. Two consecutive description beats is stasis; avoid it.
 
+**Corpus-derived soft priors** (Crystal Shard / Salvatore action-fantasy reference; both fields are optional on `sceneBeatSchema`, omit when uncertain):
+
+- `valueShift: '+' | '-' | '0'` — does this beat shift the dominant value positively, negatively, or leave it static? Reference distribution from Crystal Shard: ~67% positive shifts, ~32% negative, ~1% neutral. Maintain rough rhythm at chapter level — back-to-back same-direction beats can sustain momentum, but more than 4 in a row of one polarity flattens tension. The pattern Salvatore uses: alternating + / − stretches with occasional 0 holds.
+- `gapPresent: boolean` — does this beat carry a McKee-gap (POV expected X; got Y, where Y differs meaningfully from X)? Reference distribution from Crystal Shard: > 60% of beats carry a gap; pure "no gap" beats (expectation matches outcome cleanly) should not run more than 2 consecutive. Beats with gaps drive engagement; gap-less beats are bridges between gaps and should be brief.
+
+These are SOFT PRIORS — the planner doesn't have to set them on every beat. Set them when you're confident; leave undefined when you're guessing. Downstream checkers will use the priors as a soft signal but will not block on them.
+
 ## State tracking — end-of-chapter
 
 - `establishedFacts`: continuity-relevant facts ONLY. World rules, spatial relationships, character decisions, object states. NOT plot summary. Each fact has a `category` (physical, rule, relationship, knowledge, identity, or temporal) and a stable `id` (kebab-case slug) so beats can link to it via `requiredPayoffs`.
