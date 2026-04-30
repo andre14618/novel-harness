@@ -1,0 +1,573 @@
+{
+  "computedAt": "2026-04-30T01:20:55.579Z",
+  "per_dim": [
+    {
+      "thread": "M",
+      "fields": {
+        "is_present": {
+          "label": "mice-M",
+          "field": "is_present",
+          "n": 50,
+          "agree": 44,
+          "agreeRate": 0.88,
+          "jaccard": 0.7857142857142857,
+          "classes": {
+            "false": {
+              "run1": 27,
+              "run2": 31
+            },
+            "true": {
+              "run1": 23,
+              "run2": 19
+            }
+          },
+          "verdict": "BORDERLINE"
+        },
+        "is_dominant": {
+          "label": "mice-M",
+          "field": "is_dominant",
+          "n": 50,
+          "agree": 44,
+          "agreeRate": 0.88,
+          "jaccard": 0.7857142857142857,
+          "classes": {
+            "false": {
+              "run1": 39,
+              "run2": 37
+            },
+            "true": {
+              "run1": 11,
+              "run2": 13
+            }
+          },
+          "verdict": "BORDERLINE"
+        },
+        "opens": {
+          "label": "mice-M",
+          "field": "opens",
+          "n": 50,
+          "agree": 49,
+          "agreeRate": 0.98,
+          "jaccard": 0.9607843137254902,
+          "classes": {
+            "false": {
+              "run1": 44,
+              "run2": 43
+            },
+            "true": {
+              "run1": 6,
+              "run2": 7
+            }
+          },
+          "verdict": "PASS"
+        },
+        "closes": {
+          "label": "mice-M",
+          "field": "closes",
+          "n": 50,
+          "agree": 49,
+          "agreeRate": 0.98,
+          "jaccard": 0.9607843137254902,
+          "classes": {
+            "false": {
+              "run1": 50,
+              "run2": 49
+            },
+            "true": {
+              "run1": 0,
+              "run2": 1
+            }
+          },
+          "verdict": "PASS"
+        }
+      },
+      "tuple": {
+        "label": "mice-M",
+        "fields": [
+          "is_present",
+          "is_dominant",
+          "opens",
+          "closes"
+        ],
+        "n": 50,
+        "agree": 37,
+        "agreeRate": 0.74,
+        "jaccard": 0.5873015873015873,
+        "verdict": "UNSTABLE"
+      }
+    },
+    {
+      "thread": "I-v2",
+      "fields": {
+        "is_present": {
+          "label": "mice-I-v2",
+          "field": "is_present",
+          "n": 50,
+          "agree": 49,
+          "agreeRate": 0.98,
+          "jaccard": 0.9607843137254902,
+          "classes": {
+            "false": {
+              "run1": 47,
+              "run2": 48
+            },
+            "true": {
+              "run1": 3,
+              "run2": 2
+            }
+          },
+          "verdict": "PASS"
+        },
+        "is_dominant": {
+          "label": "mice-I-v2",
+          "field": "is_dominant",
+          "n": 50,
+          "agree": 50,
+          "agreeRate": 1,
+          "jaccard": 1,
+          "classes": {
+            "false": {
+              "run1": 50,
+              "run2": 50
+            }
+          },
+          "verdict": "PASS"
+        },
+        "opens": {
+          "label": "mice-I-v2",
+          "field": "opens",
+          "n": 50,
+          "agree": 50,
+          "agreeRate": 1,
+          "jaccard": 1,
+          "classes": {
+            "false": {
+              "run1": 48,
+              "run2": 48
+            },
+            "true": {
+              "run1": 2,
+              "run2": 2
+            }
+          },
+          "verdict": "PASS"
+        },
+        "closes": {
+          "label": "mice-I-v2",
+          "field": "closes",
+          "n": 50,
+          "agree": 49,
+          "agreeRate": 0.98,
+          "jaccard": 0.9607843137254902,
+          "classes": {
+            "false": {
+              "run1": 49,
+              "run2": 50
+            },
+            "true": {
+              "run1": 1,
+              "run2": 0
+            }
+          },
+          "verdict": "PASS"
+        }
+      },
+      "tuple": {
+        "label": "mice-I-v2",
+        "fields": [
+          "is_present",
+          "is_dominant",
+          "opens",
+          "closes"
+        ],
+        "n": 50,
+        "agree": 49,
+        "agreeRate": 0.98,
+        "jaccard": 0.9607843137254902,
+        "verdict": "PASS"
+      }
+    },
+    {
+      "thread": "C",
+      "fields": {
+        "is_present": {
+          "label": "mice-C",
+          "field": "is_present",
+          "n": 50,
+          "agree": 49,
+          "agreeRate": 0.98,
+          "jaccard": 0.9607843137254902,
+          "classes": {
+            "true": {
+              "run1": 28,
+              "run2": 29
+            },
+            "false": {
+              "run1": 22,
+              "run2": 21
+            }
+          },
+          "verdict": "PASS"
+        },
+        "is_dominant": {
+          "label": "mice-C",
+          "field": "is_dominant",
+          "n": 50,
+          "agree": 43,
+          "agreeRate": 0.86,
+          "jaccard": 0.7543859649122807,
+          "classes": {
+            "false": {
+              "run1": 36,
+              "run2": 35
+            },
+            "true": {
+              "run1": 14,
+              "run2": 15
+            }
+          },
+          "verdict": "BORDERLINE"
+        },
+        "opens": {
+          "label": "mice-C",
+          "field": "opens",
+          "n": 50,
+          "agree": 45,
+          "agreeRate": 0.9,
+          "jaccard": 0.8181818181818182,
+          "classes": {
+            "false": {
+              "run1": 40,
+              "run2": 41
+            },
+            "true": {
+              "run1": 10,
+              "run2": 9
+            }
+          },
+          "verdict": "BORDERLINE"
+        },
+        "closes": {
+          "label": "mice-C",
+          "field": "closes",
+          "n": 50,
+          "agree": 48,
+          "agreeRate": 0.96,
+          "jaccard": 0.9230769230769231,
+          "classes": {
+            "false": {
+              "run1": 42,
+              "run2": 44
+            },
+            "true": {
+              "run1": 8,
+              "run2": 6
+            }
+          },
+          "verdict": "PASS"
+        }
+      },
+      "tuple": {
+        "label": "mice-C",
+        "fields": [
+          "is_present",
+          "is_dominant",
+          "opens",
+          "closes"
+        ],
+        "n": 50,
+        "agree": 40,
+        "agreeRate": 0.8,
+        "jaccard": 0.6666666666666666,
+        "verdict": "UNSTABLE"
+      }
+    },
+    {
+      "thread": "E",
+      "fields": {
+        "is_present": {
+          "label": "mice-E",
+          "field": "is_present",
+          "n": 50,
+          "agree": 48,
+          "agreeRate": 0.96,
+          "jaccard": 0.9230769230769231,
+          "classes": {
+            "true": {
+              "run1": 32,
+              "run2": 30
+            },
+            "false": {
+              "run1": 18,
+              "run2": 20
+            }
+          },
+          "verdict": "PASS"
+        },
+        "is_dominant": {
+          "label": "mice-E",
+          "field": "is_dominant",
+          "n": 50,
+          "agree": 41,
+          "agreeRate": 0.82,
+          "jaccard": 0.6949152542372882,
+          "classes": {
+            "true": {
+              "run1": 22,
+              "run2": 15
+            },
+            "false": {
+              "run1": 28,
+              "run2": 35
+            }
+          },
+          "verdict": "UNSTABLE"
+        },
+        "opens": {
+          "label": "mice-E",
+          "field": "opens",
+          "n": 50,
+          "agree": 46,
+          "agreeRate": 0.92,
+          "jaccard": 0.8518518518518519,
+          "classes": {
+            "false": {
+              "run1": 39,
+              "run2": 43
+            },
+            "true": {
+              "run1": 11,
+              "run2": 7
+            }
+          },
+          "verdict": "PASS"
+        },
+        "closes": {
+          "label": "mice-E",
+          "field": "closes",
+          "n": 50,
+          "agree": 50,
+          "agreeRate": 1,
+          "jaccard": 1,
+          "classes": {
+            "false": {
+              "run1": 47,
+              "run2": 47
+            },
+            "true": {
+              "run1": 3,
+              "run2": 3
+            }
+          },
+          "verdict": "PASS"
+        }
+      },
+      "tuple": {
+        "label": "mice-E",
+        "fields": [
+          "is_present",
+          "is_dominant",
+          "opens",
+          "closes"
+        ],
+        "n": 50,
+        "agree": 38,
+        "agreeRate": 0.76,
+        "jaccard": 0.6129032258064516,
+        "verdict": "UNSTABLE"
+      }
+    },
+    {
+      "dim": "value-charge-v2",
+      "fields": {
+        "polarity": {
+          "label": "value-charge-v2",
+          "field": "polarity",
+          "n": 50,
+          "agree": 39,
+          "agreeRate": 0.78,
+          "jaccard": 0.639344262295082,
+          "classes": {
+            "0": {
+              "run1": 6,
+              "run2": 4
+            },
+            "+": {
+              "run1": 29,
+              "run2": 27
+            },
+            "-": {
+              "run1": 15,
+              "run2": 19
+            }
+          },
+          "verdict": "UNSTABLE"
+        },
+        "lifeValue": {
+          "label": "value-charge-v2",
+          "field": "lifeValue",
+          "n": 50,
+          "agree": 39,
+          "agreeRate": 0.78,
+          "jaccard": 0.639344262295082,
+          "classes": {
+            "aspiration": {
+              "run1": 12,
+              "run2": 17
+            },
+            "relational": {
+              "run1": 8,
+              "run2": 8
+            },
+            "life-death": {
+              "run1": 14,
+              "run2": 17
+            },
+            "agency": {
+              "run1": 13,
+              "run2": 7
+            },
+            "ethics": {
+              "run1": 3,
+              "run2": 1
+            }
+          },
+          "verdict": "UNSTABLE"
+        },
+        "valueIn": {
+          "label": "value-charge-v2",
+          "field": "valueIn",
+          "n": 50,
+          "agree": 36,
+          "agreeRate": 0.72,
+          "jaccard": 0.5625,
+          "classes": {
+            "0": {
+              "run1": 21,
+              "run2": 24
+            },
+            "-": {
+              "run1": 19,
+              "run2": 11
+            },
+            "+": {
+              "run1": 10,
+              "run2": 15
+            }
+          },
+          "verdict": "UNSTABLE"
+        },
+        "valueOut": {
+          "label": "value-charge-v2",
+          "field": "valueOut",
+          "n": 50,
+          "agree": 41,
+          "agreeRate": 0.82,
+          "jaccard": 0.6949152542372882,
+          "classes": {
+            "0": {
+              "run1": 2,
+              "run2": 2
+            },
+            "+": {
+              "run1": 32,
+              "run2": 29
+            },
+            "-": {
+              "run1": 16,
+              "run2": 19
+            }
+          },
+          "verdict": "UNSTABLE"
+        }
+      },
+      "tuple": {
+        "label": "value-charge-v2",
+        "fields": [
+          "polarity",
+          "lifeValue"
+        ],
+        "n": 50,
+        "agree": 32,
+        "agreeRate": 0.64,
+        "jaccard": 0.47058823529411764,
+        "verdict": "UNSTABLE"
+      }
+    },
+    {
+      "dim": "mckee-gap-v2",
+      "fields": {
+        "gap_size": {
+          "label": "mckee-gap-v2",
+          "field": "gap_size",
+          "n": 50,
+          "agree": 32,
+          "agreeRate": 0.64,
+          "jaccard": 0.47058823529411764,
+          "classes": {
+            "large": {
+              "run1": 11,
+              "run2": 12
+            },
+            "small": {
+              "run1": 7,
+              "run2": 8
+            },
+            "none": {
+              "run1": 8,
+              "run2": 11
+            },
+            "medium": {
+              "run1": 24,
+              "run2": 19
+            }
+          },
+          "verdict": "UNSTABLE"
+        },
+        "gap_type": {
+          "label": "mckee-gap-v2",
+          "field": "gap_type",
+          "n": 50,
+          "agree": 35,
+          "agreeRate": 0.7,
+          "jaccard": 0.5384615384615384,
+          "classes": {
+            "revelation": {
+              "run1": 8,
+              "run2": 11
+            },
+            "undermining": {
+              "run1": 6,
+              "run2": 4
+            },
+            "none": {
+              "run1": 10,
+              "run2": 11
+            },
+            "escalation": {
+              "run1": 10,
+              "run2": 9
+            },
+            "reversal": {
+              "run1": 16,
+              "run2": 15
+            }
+          },
+          "verdict": "UNSTABLE"
+        }
+      },
+      "tuple": {
+        "label": "mckee-gap-v2",
+        "fields": [
+          "gap_size",
+          "gap_type"
+        ],
+        "n": 50,
+        "agree": 26,
+        "agreeRate": 0.52,
+        "jaccard": 0.35135135135135137,
+        "verdict": "UNSTABLE"
+      }
+    }
+  ]
+}

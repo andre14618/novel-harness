@@ -1263,3 +1263,120 @@ The v2 consolidation closed the gap from 0.622 → 0.714 — meaningful lift but
 Cumulative on crystal_shard: still ~$4.15.
 
 ---
+
+## Session 2026-04-30 ~01:22 UTC — n=50 expansion REVERSES some prior verdicts
+
+### Headline
+
+**Schema PR follow-up #1 — DO NOT proceed as previously scoped.** The n=50 expansion (12 parallel Sonnet subagents) revealed that several "PASS" signals from the n=30 anchor were either (a) measured against cross-model F1 not anchor Jaccard, or (b) overfit to the calibration sample. Ground truth at n=50:
+
+| Dim | Field | n=30 (anchor) | n=50 (anchor) | n=50 verdict |
+|---|---|---:|---:|---|
+| value-charge | polarity | not directly measured (CALIBRATION USED 0.974 binary F1) | 0.639 | **UNSTABLE** |
+| value-charge | lifeValue (v2 5-class) | 0.622 (v2 retest) | 0.639 | UNSTABLE (no improvement) |
+| value-charge | valueIn | not measured | 0.563 | UNSTABLE |
+| value-charge | valueOut | not measured | 0.695 | UNSTABLE |
+| mckee-gap | gap_size | 0.471 (v1) | 0.471 | UNSTABLE (unchanged) |
+| mckee-gap | gap_type (v2) | 0.538 (v2 retest) | 0.538 | UNSTABLE (no improvement) |
+| mice-M | is_present | not measured | 0.786 | BORDERLINE |
+| mice-M | is_dominant | not measured | 0.786 | BORDERLINE |
+| mice-M | opens | not measured | 0.961 | **PASS** |
+| mice-M | closes | not measured | 0.961 | **PASS** |
+| mice-I (v2) | is_present | 0.875 (n=30 retest) | 0.961 | **PASS** |
+| mice-I (v2) | is_dominant | not measured | 1.000 | **PASS** |
+| mice-I (v2) | opens | not measured | 1.000 | **PASS** |
+| mice-I (v2) | closes | not measured | 0.961 | **PASS** |
+| mice-C | is_present | not measured | 0.961 | **PASS** |
+| mice-C | is_dominant | not measured | 0.754 | BORDERLINE |
+| mice-C | opens | not measured | 0.818 | BORDERLINE |
+| mice-C | closes | not measured | 0.923 | **PASS** |
+| mice-E | is_present | not measured | 0.923 | **PASS** |
+| mice-E | is_dominant | not measured | 0.695 | UNSTABLE |
+| mice-E | opens | not measured | 0.852 | **PASS** |
+| mice-E | closes | not measured | 1.000 | **PASS** |
+
+### Reconciliation: why prior `valueShift` schema PR is now suspect
+
+The earlier verdict that polarity is shippable was based on **Flash × Sonnet binary F1 = 0.974, 3-class major-class F1 ≥ 0.78** — these are *cross-model calibration* metrics measured against a fixed Sonnet gold set. They do not bound the *anchor stability ceiling* (Sonnet × Sonnet self-consistency Jaccard).
+
+n=50 reveals the anchor ceiling for polarity is 0.639 — roughly 35% of beats land on a different polarity tag when the same Sonnet judge re-labels them. Cross-model F1 against an unstable gold set can still hit 0.974 because both models are selecting the same modal label on easy cases; the disagreement is hidden in the borderline 35%.
+
+**The `valueShift` field on `sceneBeatSchema` (commit `42745ce`) is therefore at risk.** It was landed on a calibration argument, but the underlying signal has self-consistency instability that was never directly tested before this n=50 wave.
+
+### Split-sample analysis: region effects, not pure rubric drift
+
+Splitting the n=50 into the n=30 anchor (first-30) vs the new-20 fresh scenes shows distinct patterns per dim:
+
+```
+                        first-30   new-20    Δ
+mice-C opens            0.935    → 0.667    -0.269   ← REGION-EFFECT
+value-charge polarity   0.714    → 0.538    -0.176
+value-charge valueIn    0.622    → 0.481    -0.140
+value-charge valueOut   0.765    → 0.600    -0.165
+mckee-gap gap_type      0.429    → 0.739    +0.311   (but never crossed 0.85)
+mice-M is_dominant      0.714    → 0.905    +0.190
+mice-E is_present       0.875    → 1.000    +0.125
+```
+
+Three readings:
+1. **mice-C `opens`** — clearly a region-effect (0.935 → 0.667 with sample expansion). The new-20 scenes contain C-thread *opening events* that are ambiguous with C-thread *progression*, exposing a rubric latitude that the first-30 didn't probe.
+2. **value-charge polarity** — drift in BOTH regions (0.714 first-30, 0.538 new-20). The rubric is unstable across the full Crystal Shard, not just one region. Cross-model F1 was hiding this.
+3. **mckee-gap gap_type** — fresh scenes are *easier* (+0.311), but absolute J=0.739 still below 0.85. The first-30 was a hard region (lots of borderline revelation/undermining cases).
+
+### Revised disposition of follow-up #1
+
+**Land (clearly stable, J ≥ 0.85 at n=50):**
+
+Mice — ship as a single composite field on `sceneBeatSchema`:
+```ts
+miceThreads: {
+  M: { opens: bool, closes: bool },                                // present/dominant unstable, drop those
+  I: { present: bool, dominant: bool, opens: bool, closes: bool }, // all 4 stable
+  C: { present: bool, closes: bool },                              // dominant/opens borderline
+  E: { present: bool, opens: bool, closes: bool },                 // dominant unstable
+}
+```
+Stable-subfield-only shipping — the planner declares only what we can validate. The borderline subfields (is_dominant on M/C/E, opens on C, is_present on M) get a "TBD" comment explaining the J<0.85 ceiling and why they're absent.
+
+**DO NOT land (any unstable subfield):**
+- `lifeValue` 5-class enum (J=0.639 at n=50 — same as v1, the v2 macro-consolidation did not move the needle on anchor stability)
+- `gap_size` enum (J=0.471, no improvement from v1)
+- `gap_type` enum (J=0.538, v2 sharpening didn't help)
+
+**Re-evaluate (already shipped, may need revert):**
+- `valueShift: '+' | '-' | '0'` — the existing field on `sceneBeatSchema` (commit `42745ce`). Anchor Jaccard = 0.639. Two options:
+  1. **Keep with explicit doc** that it's a soft prior with ~35% per-beat reassignment risk; the planner is allowed to set it but downstream checkers should not block on it.
+  2. **Revert** the field; revisit after rubric re-architecture.
+
+  Codex-review-style cheapest-counterfactual question: **does a field that flips on 35% of beats provide a useful prior to the planner, or does it just inject noise into the writer prompt?** Hypothesis: if the field flips evenly, it averages out across a 14-beat chapter; if the flips are correlated with specific beat-type clusters, it actively misleads. Recommend keeping with explicit "soft, low-confidence" framing and a follow-up experiment to measure planner output divergence with vs without the field.
+
+- `gapPresent: bool` — the binary version of mckee-gap. Need to recompute its anchor stability at n=50 specifically as a binary "any-gap-present-y/n" tag (the current measurement is `gap_size` enum, where small/medium/large all mean "yes a gap exists"). At binary level the field may be more stable.
+
+### Action items (next session)
+
+1. **Schema PR follow-up #1 — REVISED scope:**
+   - Land `miceThreads` composite field with stable-subfield-only entries (10 of 16 subfields ship; 6 are TBD).
+   - Compute binary `gapPresent` Jaccard at n=50 (collapsing `gap_size != "none"`); ship only if J≥0.85. Otherwise DO NOT block on the existing field, but re-doc it as "soft binary prior."
+   - Land planner-prior text block referencing only the validated subfields.
+
+2. **Re-architecture queue:**
+   - mckee-gap → decompose into per-class binary subcalls (mirror mice).
+   - value-charge → revisit. Consider (a) binary present/static instead of 3-class polarity, (b) life-axis as a *separate* dim from polarity (currently coupled in lifeValue+polarity tuple, J=0.471 at n=50).
+
+3. **Open question for Codex review:** does keeping the `valueShift` field with explicit soft-prior framing clear the cheapest-untried-counterfactual bar, or should we revert?
+
+### Cost ledger delta (n=50 expansion)
+
+12 Sonnet subagents (4 mice × 2 + 1 vc × 2 + 1 mg × 2). $0 API (subagents).
+
+Cumulative on crystal_shard: still ~$4.15 (no Flash/Pro re-runs this wave).
+
+### Verdict-protocol note
+
+Re-stating the meta-finding: **CALIBRATION (cross-model F1 against gold) and ANCHOR STABILITY (judge self-consistency Jaccard) are different measurements, and a high cross-model F1 does NOT imply the gold set is stable.** Future schema-shipping decisions should require BOTH to clear bars:
+- Anchor Jaccard ≥ 0.85 (Sonnet × Sonnet on the full eval sample, not the calibration anchor)
+- Cross-model F1 ≥ 0.85 (Flash × Sonnet on the same sample)
+
+The current `valueShift` field met only the second bar. The first was inferred from a calibration anchor that turned out to be a smaller, easier sample than the production beat distribution.
+
+---
