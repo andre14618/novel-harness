@@ -360,5 +360,7 @@ Required tests:
 5. 40-chapter oracle panel.
 6. Production shadow run before expanding blocker policy.
 
+Concrete implementation spec: `docs/checker-framework-implementation-spec.md`.
+
 This sequence rebuilds the framework without assuming that any existing checker
 is accurate merely because it is already wired into runtime.

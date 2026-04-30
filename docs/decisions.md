@@ -293,6 +293,8 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 **Ongoing:** Immediate P0 follow-ups are source-scoped overrides, visible validation blockers under override, source-aware plan-assist payloads, deterministic fixture belt, and evidence-surface unification for writer context vs hallucination checks.
 
+**Implementation spec:** `docs/checker-framework-implementation-spec.md` records the concrete runtime policy: prose quality waits, deterministic checks come first, runtime LLM checks use bounded DeepSeek V4 Flash non-thinking tasks, and blocker-class checks require oracle calibration before shipping.
+
 ---
 
 ### Voice-pass LoRA: beats-compatible, character-conditioned, same pattern as tonal pass
