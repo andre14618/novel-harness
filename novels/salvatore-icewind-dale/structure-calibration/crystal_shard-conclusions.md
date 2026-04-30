@@ -2164,3 +2164,86 @@ Artifact: `crystal_shard.20260430T115702.conflict-type-taxonomy.json`
 Script: `scripts/corpus/extract-conflict-type.ts`
 
 ---
+
+
+### Pattern — Chapter opener rhetorical shape (cross-book) — 2026-04-30T11:59:17.749Z
+
+**Methodology.** For each (book, chapter) the FIRST beat (lowest beat_idx) is the opener. Regex pre-pass on `first_sentence` / opening-position markers resolves dialogue-first (sentence-initial quote) and time-cut-announcement (sentence-initial time markers — `The next morning`, `That night`, `Three weeks later`, etc.). Residual openers are labeled by DeepSeek V4 Flash (temperature 0, JSON-mode) into one of seven buckets, with text capped at 1,200 chars. n=92 across 3 IWD books.
+
+**Aggregate distribution (92 chapter openers, all 3 books):**
+
+| Bucket | Count | Pct |
+|---|---:|---:|
+| in-media-res-action | 16 | 17.4% |
+| scene-set-description | 42 | 45.7% |
+| dialogue-first | 11 | 12% |
+| interior-reflection | 14 | 15.2% |
+| time-cut-announcement | 6 | 6.5% |
+| callback-or-summary | 3 | 3.3% |
+| other | 0 | 0% |
+
+**Per-book distribution:**
+
+- crystal_shard (n=34): in-media-res-action 11.8% · scene-set-description 55.9% · dialogue-first 5.9% · interior-reflection 11.8% · time-cut-announcement 11.8% · callback-or-summary 2.9% · other 0%
+- streams_of_silver (n=29): in-media-res-action 17.2% · scene-set-description 37.9% · dialogue-first 13.8% · interior-reflection 20.7% · time-cut-announcement 3.4% · callback-or-summary 6.9% · other 0%
+- halflings_gem (n=29): in-media-res-action 24.1% · scene-set-description 41.4% · dialogue-first 17.2% · interior-reflection 13.8% · time-cut-announcement 3.4% · callback-or-summary 0% · other 0%
+
+**Directional verdict.** Modal class holds across all 3 books: scene-set-description. Top-3 buckets: cs=scene-set-description/in-media-res-action/interior-reflection, ss=scene-set-description/interior-reflection/in-media-res-action, hg=scene-set-description/in-media-res-action/dialogue-first. Intersection of all three top-3 sets has 2 buckets: scene-set-description, in-media-res-action.
+
+**Harness target.** Add an *opener rhetorical shape* prior to `src/agents/planning-beats/beat-expansion-system.md` alongside the existing line ("Open with action or description. Do NOT open with interiority unless the POV character is alone."). The corpus distribution should drive the planner toward the modal opener kinds and away from rare ones; specifics depend on the per-book rank stability captured above. The chapter-skeleton plotter (`chapter-outline-system.md`) does not currently emit per-chapter opener-shape commitments — extending the schema with an optional `openerKind` enum field is a follow-up if cross-book ranks are stable.
+
+Artifact: `crystal_shard.20260430T115917.chapter-opener-taxonomy.json`
+
+---
+
+## 2026-04-30 — Per-chapter dramatic-question shape across 3 IWD books
+
+### Methodology
+
+For each of the 92 chapters in the 3-book IWD corpus (crystal_shard 34 / streams_of_silver 29 / halflings_gem 29, including preludes/epilogues/parts), aggregate the chapter's beats sorted by `beat_idx` and pass the FIRST 3 + LAST 3 beats (text + summary + first/last sentence per beat) to DeepSeek V4 Flash (`deepseek-chat`, temperature 0.0, JSON-mode). The labeler returns:
+
+- `opening_question` — one-sentence implicit dramatic question raised by the first 3 beats
+- `resolution_shape` — one of `closed | partial | deferred | replaced | compound`
+- `confidence` — 0..1
+
+Bucket definitions in the prompt distinguish `deferred` (cliffhanger on the SAME opening question) from `replaced` (opening question turned out to be a feint). 8-way parallel; 92 chapters in 21.4s; 0 parse failures; **est cost $0.014** (in 91k / out 4.3k tokens). Confidence floor 0.80, median 0.90.
+
+This dimension is closely related to but distinct from `forward-hook-shape` (2026-04-30 113934) which classified chapter ENDINGS as a closing rhetorical gesture. Forward-hook = closing gesture. Dramatic-question shape = opening stake + how it lands.
+
+### Headline finding
+
+**Partial-resolution is the modal chapter shape across all 3 IWD books** — 54.3% aggregate, modal in every book individually (44.1% / 62.1% / 58.6%). Closed (full chapter resolution) is the strong second at 18.5%. True cliffhanger-on-same-question (`deferred`) is rare at 8.7% — substantially less common than the rhetorical `cliffhanger` ending bucket from forward-hook (18.1%), suggesting many "cliffhanger endings" actually leave a different question open than the one the chapter opened on (i.e., they're rhetorically `deferred` but structurally `partial` or `replaced`).
+
+| Book | n | closed | partial | deferred | replaced | compound |
+|---|---|---|---|---|---|---|
+| crystal_shard | 34 | 23.5% | 44.1% | 5.9% | 11.8% | 14.7% |
+| streams_of_silver | 29 | 17.2% | 62.1% | 6.9% | 10.3% | 3.4% |
+| halflings_gem | 29 | 13.8% | 58.6% | 13.8% | 10.3% | 3.4% |
+| **aggregate** | **92** | **18.5%** | **54.3%** | **8.7%** | **10.9%** | **7.6%** |
+
+### Cross-book ordering stability
+
+- **Modal shape**: `partial` in all 3 books — stable.
+- **Top-2 ordering**: `partial > closed` in crystal_shard and streams_of_silver; halflings_gem swaps to `partial > {closed, deferred}` (tied at 13.8%) — directionally stable, the second-tier shape varies modestly.
+- **Tail buckets**: replaced (~10.3–11.8%) is remarkably stable across books; compound varies more (3.4–14.7%, with crystal_shard the high-compound outlier — likely reflects book 1's heavier multi-faction setup).
+- **Confidence**: floor 0.80, median 0.90 — labeler is consistently confident.
+
+### Conclusion + Action
+
+**Ship as planner prior.** The corpus shape is unambiguous: a published Salvatore-style epic-fantasy chapter most often opens a focused dramatic question and **partial-resolves** it within the chapter (carrying a thread forward), with full resolution as a strong but minority second. The harness chapter-outline prompt currently says only:
+
+> End each non-final chapter's purpose with a forward hook — something unresolved.
+
+This under-specifies SHAPE. "Something unresolved" matches both `partial` (the corpus dominant) and `deferred` (rare). Recommended target prompt addition for the chapter `purpose` field guidance (in `src/agents/planning-plotter/chapter-outline-system.md`):
+
+> **Resolution-shape target distribution (Salvatore-trilogy prior):** ~55% of non-final chapters should be **partial-resolution** — the chapter answers part of the dramatic question raised in its opening and carries one thread forward as a hook. ~20% should be **closed** — the chapter's opening question is fully answered within the chapter (a complete unit, with the forward hook coming from a NEW question seeded near the end). The remaining ~25% spreads across **deferred** (true cliffhanger on the same question, ~10%), **replaced** (the opening question was a feint; a different question dominates by chapter-end, ~10%), and **compound** (multiple co-equal opening questions with mixed resolutions, ~5%). Note that `replaced` and `compound` are deliberate structural choices, not accidents — used for misdirection and multi-faction ensemble chapters respectively.
+
+This is a **directional** prior (modal class + ordering), so the ship gate is the directional one — modal `partial` reproduces in every book, the top-2 ordering is stable, all 5 buckets fire in the corpus.
+
+**Companion to `forward-hook-shape`.** Forward-hook tells the planner WHAT KIND of closing gesture to land; dramatic-question-shape tells the planner WHAT KIND of opening-question arc the chapter should describe. The two are orthogonal but synergistic — a chapter can be (forward-hook = `partial-resolution`, resolution-shape = `partial`) which is the corpus dominant, or (forward-hook = `cliffhanger`, resolution-shape = `replaced`) which is a misdirection-chapter shape that fires several times in book 1.
+
+### Artifact
+
+- `crystal_shard.20260430T075516.dramatic-question-shape.json` — per-chapter labels (book, chapter, opening_question, resolution_shape, confidence) + aggregate + per-book distribution + directional assessment
+
+---

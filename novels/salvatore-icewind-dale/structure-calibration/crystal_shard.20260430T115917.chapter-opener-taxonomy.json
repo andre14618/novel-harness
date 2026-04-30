@@ -1,0 +1,1474 @@
+{
+  "timestamp": "2026-04-30T11:59:17.749Z",
+  "n_chapters": 92,
+  "buckets": [
+    "in-media-res-action",
+    "scene-set-description",
+    "dialogue-first",
+    "interior-reflection",
+    "time-cut-announcement",
+    "callback-or-summary",
+    "other"
+  ],
+  "method": {
+    "regex_pre_pass": {
+      "dialogue_first": "first non-whitespace char is straight or smart double/single quote",
+      "time_cut_announcement": "sentence-initial match against the time-cut markers vocabulary (between_chapter set + that_* family)"
+    },
+    "llm_residual": {
+      "provider": "deepseek",
+      "model": "deepseek-v4-flash",
+      "temperature": 0,
+      "response_format": "json_object",
+      "max_tokens": 200
+    },
+    "excerpt_max_chars": 1200
+  },
+  "aggregate": {
+    "n": 92,
+    "distribution": {
+      "in-media-res-action": {
+        "count": 16,
+        "pct": 17.4
+      },
+      "scene-set-description": {
+        "count": 42,
+        "pct": 45.7
+      },
+      "dialogue-first": {
+        "count": 11,
+        "pct": 12
+      },
+      "interior-reflection": {
+        "count": 14,
+        "pct": 15.2
+      },
+      "time-cut-announcement": {
+        "count": 6,
+        "pct": 6.5
+      },
+      "callback-or-summary": {
+        "count": 3,
+        "pct": 3.3
+      },
+      "other": {
+        "count": 0,
+        "pct": 0
+      }
+    }
+  },
+  "perBook": {
+    "crystal_shard": {
+      "n": 34,
+      "distribution": {
+        "in-media-res-action": {
+          "count": 4,
+          "pct": 11.8
+        },
+        "scene-set-description": {
+          "count": 19,
+          "pct": 55.9
+        },
+        "dialogue-first": {
+          "count": 2,
+          "pct": 5.9
+        },
+        "interior-reflection": {
+          "count": 4,
+          "pct": 11.8
+        },
+        "time-cut-announcement": {
+          "count": 4,
+          "pct": 11.8
+        },
+        "callback-or-summary": {
+          "count": 1,
+          "pct": 2.9
+        },
+        "other": {
+          "count": 0,
+          "pct": 0
+        }
+      }
+    },
+    "streams_of_silver": {
+      "n": 29,
+      "distribution": {
+        "in-media-res-action": {
+          "count": 5,
+          "pct": 17.2
+        },
+        "scene-set-description": {
+          "count": 11,
+          "pct": 37.9
+        },
+        "dialogue-first": {
+          "count": 4,
+          "pct": 13.8
+        },
+        "interior-reflection": {
+          "count": 6,
+          "pct": 20.7
+        },
+        "time-cut-announcement": {
+          "count": 1,
+          "pct": 3.4
+        },
+        "callback-or-summary": {
+          "count": 2,
+          "pct": 6.9
+        },
+        "other": {
+          "count": 0,
+          "pct": 0
+        }
+      }
+    },
+    "halflings_gem": {
+      "n": 29,
+      "distribution": {
+        "in-media-res-action": {
+          "count": 7,
+          "pct": 24.1
+        },
+        "scene-set-description": {
+          "count": 12,
+          "pct": 41.4
+        },
+        "dialogue-first": {
+          "count": 5,
+          "pct": 17.2
+        },
+        "interior-reflection": {
+          "count": 4,
+          "pct": 13.8
+        },
+        "time-cut-announcement": {
+          "count": 1,
+          "pct": 3.4
+        },
+        "callback-or-summary": {
+          "count": 0,
+          "pct": 0
+        },
+        "other": {
+          "count": 0,
+          "pct": 0
+        }
+      }
+    }
+  },
+  "modal_per_book": {
+    "crystal_shard": "scene-set-description",
+    "streams_of_silver": "scene-set-description",
+    "halflings_gem": "scene-set-description"
+  },
+  "top3_per_book": {
+    "crystal_shard": [
+      "scene-set-description",
+      "in-media-res-action",
+      "interior-reflection"
+    ],
+    "streams_of_silver": [
+      "scene-set-description",
+      "interior-reflection",
+      "in-media-res-action"
+    ],
+    "halflings_gem": [
+      "scene-set-description",
+      "in-media-res-action",
+      "dialogue-first"
+    ]
+  },
+  "directional_assessment": "Modal class holds across all 3 books: scene-set-description. Top-3 buckets: cs=scene-set-description/in-media-res-action/interior-reflection, ss=scene-set-description/interior-reflection/in-media-res-action, hg=scene-set-description/in-media-res-action/dialogue-first. Intersection of all three top-3 sets has 2 buckets: scene-set-description, in-media-res-action.",
+  "chapters": [
+    {
+      "book": "crystal_shard",
+      "chapter": 1,
+      "opener_text_excerpt": "When the wizards' caravan from the Hosttower of the Arcane saw the snow-capped peak of Kelvin's \nCairn rising from the flat horizon, they were more than a little relieved. The hard journey from Luskan \nto the remote frontier settlement known as Ten-Towns had taken them more than three weeks. \nThe first week hadn't been too difficult.",
+      "first_sentence": "When the wizards' caravan from the Hosttower of the Arcane saw the snow-capped peak of Kelvin's Cairn rising from the flat horizon, they were more than a little relieved.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with description of setting and characters' relief upon seeing a landmark.",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 2,
+      "opener_text_excerpt": "Regis the halfling, the only one of his kind for hundreds of miles in any direction, locked his fingers behind his head and leaned back against the mossy blanket of the tree trunk. Regis was short, even by the standards of his diminutive race, with the fluff of his curly brown locks barely cresting the three-foot mark, but his belly was amply thickened by his love of a good meal, or several, as the opportunities presented themselves.",
+      "first_sentence": "Regis the halfling, the only one of his kind for hundreds of miles in any direction, locked his fingers behind his head and leaned back against the mossy blanket of the tree trunk.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with character description and setting before any action.",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 3,
+      "opener_text_excerpt": "Many miles north of Ten-Towns, across the trackless tundra to the northernmost edge of land in all the \nRealms, the frosts of winter had already hardened the ground in a white-tipped glaze. There were no \nmountains or trees to block the cold bite of the relentless eastern wind, carrying the frosty air from \nReghed Glacier. The great bergs of the Sea of Moving Ice drifted slowly past, the wind howling off of \ntheir high-riding tips in a grim reminder of the coming season. And yet, the nomadic tribes who \nsummered there with the reindeer had not journeyed with the herd's migration southwest along the coast \nto the more hospitable sea on the south side of the peninsula.",
+      "first_sentence": "Many miles north of Ten-Towns, across the trackless tundra to the northernmost edge of land in all the Realms, the frosts of winter had already hardened the ground in a white-tipped glaze.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with setting and atmosphere before any character or action",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 4,
+      "opener_text_excerpt": "There was only blackness. \nMercifully, he couldn't remember what had happened, where he was. Only blackness, comforting \nblackness. \nThen a chilling burn began to grow on his cheeks, robbing him of the tranquility of unconsciousness. \nGradually, he was compelled to open his eyes, but even when he squinted, the blinding glare was too \nintense. \nHe was face down in the snow. Mountains towered all about him, their jagged peaks and deep snow caps \nreminding him of his location. They had dropped him in the Spine of the World. They had left him to \ndie.",
+      "first_sentence": "There was only blackness.",
+      "classification": "interior-reflection",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with character's internal experience of blackness and memory loss",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 5,
+      "opener_text_excerpt": "Bruenor walked up the rocky slope with measured steps, his boots finding the sane footholds he always used when he ascended to the high point of the southern end of the dwarven valley. To the people of Ten-Towns, who often saw the dwarf standing meditatively on the perch, this high column of stones in the rocky ridge that lined the valley had come to be known as Bruenor's Climb. Just below the dwarf, to the west, were the lights of Termalaine, and beyond them the dark waters of Maer Dualdon, spotted occasionally by the running lights of a fishing boat whose resolute crew stubbornly refused to come ashore until they had landed a knucklehead. The dwarf was well above the tundra floor and the lowest of the countless stars that sparkled the night. The celestial dome seemed polished by the chill breeze that had blown since sunset, and Bruenor felt as though he had escaped the bonds of earth.",
+      "first_sentence": "Bruenor walked up the rocky slope with measured steps, his boots finding the sane footholds he always used when he ascended to the high point of the southern end of the dwarven valley.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with setting and atmosphere before character action",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 6,
+      "opener_text_excerpt": "Bryn Shander was unlike any of the other communities of Ten-Towns. Its proud pennant flew high from the top of a hill in the middle of the dry tundra between the three lakes, just south of the southern tip of the dwarven valley. No ships flew the flags of this city, and it had no docks on any of the lakes, yet there was little argument that it was not only the geographical hub of the region but the center of activity as well. This was where the major merchant caravans from Luskan put in, where the dwarves came to trade, and where the vast majority of craftsman, scrimshanders, and scrimshaw evaluators, were housed. Proximity to Bryn Shander was second only to the quantity of fish hooked in determining the success and size of the fishing towns. Thus, Termalaine and Targos on the southeastern banks of Maer Dualdon, and Caer-Konig and Caer-Dineval on the western shores of Lac Dinneshere, four towns less than a day's journey from the principle city, were the dominant towns on the lakes. High walls surrounded Bryn Shander, as much protection from the biting wind as from invading goblins or barbarians. Inside, the buildings were similar to those of the other towns: low, wooden structures, […]",
+      "first_sentence": "Bryn Shander was unlike any of the other communities of Ten-Towns.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with setting and atmosphere description before any action or dialogue.",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 7,
+      "opener_text_excerpt": "They started at dawn, charging across the tundra like an angry whirlwind. Animals and monsters alike, \neven the ferocious yetis, fled before them in terror. The frozen ground cracked beneath the stamp of their \nheavy boots, and the murmur of the endless tundra wind was buried under the strength of their song, the \nsong to the God of Battle. \nThey marched long into the night and were off again before the first rays of dawn, more than two \nthousand barbarian warriors hungry for blood and victory.",
+      "first_sentence": "They started at dawn, charging across the tundra like an angry whirlwind.",
+      "classification": "in-media-res-action",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with characters charging across tundra mid-action",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 8,
+      "opener_text_excerpt": "The horde entered the mouth of Bremen's Run just before midday. They longed to announce their glorious charge with a song of war, but they understood that a certain degree of stealth was vital to the ultimate success of deBernezan's battle plan. deBernezan was comforted by the familiar sight of sails dotting the waters of Maer Dualdon as he jogged beside King Haalfdane. The surprise would be complete, he believed, and then with ironic amusement he noted that some of the ships already flew the red flags of the catch. \"More wealth for the victors,\" he hissed under his breath. The barbarians had still not begun their song when the Tribe of the Bear split away from the main group and headed toward Termalaine, though the cloud of dust that followed their run would have told a wary observer that something out of the ordinary was happening. They rolled on toward Bryn Shander and cried out their first cheer when the pennant of the principle city came into sight.",
+      "first_sentence": "The horde entered the mouth of Bremen's Run just before midday.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with setting and movement description before any action or dialogue.",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 9,
+      "opener_text_excerpt": "Regis stretched out lazily against his favorite tree and enjoyed a drawn-out yawn, his cherubic dimples beaming in the bright ray of sunlight that somehow found its way to him through the thickly packed branches. His fishing pole stood poised beside him, though its hook had long since been cleaned of any bait. Regis rarely caught any fish, but he prided himself on never wasting more than one worm.",
+      "first_sentence": "Regis stretched out lazily against his favorite tree and enjoyed a drawn-out yawn, his cherubic dimples beaming in the bright ray of sunlight that somehow found its way to him through the thickly packed branches.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with character in a relaxed setting, describing his posture and surroundings before any action.",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 10,
+      "opener_text_excerpt": "Torga the orc faced Grock the goblin with open contempt. Their respective tribes had been warring for \nmany years, as long as any living member of either group could remember. They shared a valley in the \nSpine of the World and competed for ground and food with the brutality indicative of their warlike races. \nAnd now they stood on common ground with no weapons drawn, compelled to this spot by a force even \ngreater than their hatred for each other. In any other place, at any other time, the tribes could never have \nbeen this close without joining in fierce battle. But now, they had to be content with idle threats and \ndangerous glares, for they had been commanded to put aside their differences. \nTorga and Grock turned and walked, side by side, to the structure that held the man who would be their \nmaster. \nThey entered Cryshal-Tirith and stood before Akar Kessell.",
+      "first_sentence": "Torga the orc faced Grock the goblin with open contempt.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with description of the orc and goblin facing each other and their tribes' history",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 11,
+      "opener_text_excerpt": "Sweat beaded on Bruenor's hand as he put the key into the dusty lock of the heavy wooden door. This \nwas the beginning of the process that would put all of his skill and experience to the ultimate trial. Like \nall master dwarven smiths, he had been waiting for this moment with excitement and apprehension since \nthe beginning of his long training. \nHe had to push hard to swing the door in on the small chamber. Its wood creaked and groaned in protest, \nhaving warped and settled since it was last opened many years before. This was a comfort to Bruenor, \nthough, for he dreaded the thought of anyone looking in on his most prized possessions. He glanced \naround at the dark corridors of this little-used section of the dwarven complex, making sure once more \nthat he hadn't been followed, then he entered the room, putting his torch in before him to burn away the \nhanging fringes of many cobwebs.",
+      "first_sentence": "Sweat beaded on Bruenor's hand as he put the key into the dusty lock of the heavy wooden door.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with sensory description of action (sweat, key, lock) but not mid-action; sets scene before character enters.",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 12,
+      "opener_text_excerpt": "Wulfgar sat high up on the northern face of Bruenor's Climb, his eyes trained on the expanse of the rocky \n\n\nto circle the barbarian and take a seat on the ledge beside him. \nWulfgar marveled at her graceful movements. Like the polarity of her curious emotional blend, Catti-brie \nalso proved an enigma physically. She was tall and slender, delicate by all appearances, but growing into \nwomanhood in the caverns of the dwarves, she was accustomed to hard and heavy work.",
+      "first_sentence": "Wulfgar sat high up on the northern face of Bruenor's Climb, his eyes trained on the expanse of the rocky",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with character sitting and observing, setting the scene before any action.",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 13,
+      "opener_text_excerpt": "\"Gather together your people and go, Biggrin,\" the wizard told the enormous frost giant that stood before \nhim in Cryshal-Tirith's throne room. \"Remember that you represent the army of Akar Kessell. You are \nthe first group to go into the area, and secrecy is the key to our victory! Do not fail me! I shall be \nwatching over your every move.\" \n\"We'll not fail ye, master,\" the giant responded. \"The lair'll be set and readied for your coming!\" \n\"I have faith in you,\" Kessell assured the huge commander. \"Now be off.\" \nThe frost giant lifted the blanketed mirror that Kessell had given it, gave one final bow to its master, and \nwalked out of the room.",
+      "first_sentence": "\"Gather together your people and go, Biggrin,\" the wizard told the enormous frost giant that stood before \nhim in Cryshal-Tirith's throne room.",
+      "classification": "dialogue-first",
+      "source": "regex",
+      "confidence": "high",
+      "note": "First sentence opens with a quoted line of dialogue.",
+      "regex_flags": {
+        "dialogueFirst": true,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 14,
+      "opener_text_excerpt": "Bruenor had regained his dour visage by the time he called on Wulfgar the following morning. Still, it touched the dwarf deeply, though he was able to hide the fact, to see Aegis-fang casually slung over the young barbarian's shoulder as if it had always been there - and always belonged there. Wulfgar, too, was wearing a sullen mask. He passed it off as anger at being put into the service of another, but if he had examined his emotions more closely, he would have recognized that he was truly saddened about separating from the dwarf.",
+      "first_sentence": "Bruenor had regained his dour visage by the time he called on Wulfgar the following morning.",
+      "classification": "time-cut-announcement",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with 'the following morning' marking a temporal gap",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 15,
+      "opener_text_excerpt": "They came in under the cover of a violent squall line that swept down upon Ten-Towns from the open east. Ironically, they followed the same trail along the side of Kelvin's Cairn that Drizzt and Wulfgar had traveled just two weeks earlier. This band of verbeeg, though, headed south toward the settlements, rather than north to the open tundra. Though tall and thin - the smallest of the giants - they were still a formidable force. A frost giant led the advanced scout of Akar Kessell's vast army. Unheard beneath the howling blasts of wind, they moved with all speed to a secret lair that had been discovered by orc scouts in a rocky spur on the southern side of the mountain. There was barely a score of the monsters, but each carried a huge bundle of weapons and supplies.",
+      "first_sentence": "They came in under the cover of a violent squall line that swept down upon Ten-Towns from the open east.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with setting and weather description before characters appear",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 16,
+      "opener_text_excerpt": "When Wulfgar awakened just before midday, rested from his long night's work, he was surprised to see Drizzt already up and about, busily preparing a pack for a long hike. \"Today we start a different type of lesson,\" Drizzt explained to the barbarian. \"We'll set out right after you've had something to eat.\" \"To where?\" \"First, the dwarven mines,\" replied Drizzt. \"Bruenor will want to see you so he might measure your progress for himself.\" He smiled at the big man.",
+      "first_sentence": "When Wulfgar awakened just before midday, rested from his long night's work, he was surprised to see Drizzt already up and about, busily preparing a pack for a long hike.",
+      "classification": "time-cut-announcement",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with explicit time-jump phrase 'When Wulfgar awakened just before midday'",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 17,
+      "opener_text_excerpt": "Tirelessly, the heavily laden dwarves marched on. They had come prepared for war, some carrying heavy packs and others shouldering the great weight of large wooden beams. \nThe drow's guess about which direction the reinforcements would be coming from seemed the only possible way, and Bruenor knew exactly where to meet them. There was only one pass that afforded easy access down into the rocky valley: Daledrop, up on the level of the tundra yet below the southern slopes of the mountain.",
+      "first_sentence": "Tirelessly, the heavily laden dwarves marched on.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with description of dwarves marching and setting",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 18,
+      "opener_text_excerpt": "Drizzt and Wulfgar were pleasantly surprised when they found the back entrance to the verbeeg lair. It sat \nhigh up on the steep incline on the western side of the rocky outcropping. Piles of garbage and bones lay \nstrewn about the ground at the bottom of the rocks, and a thin but steady stream of smoke wafted out of \nthe open cave, scented with the flavors of roasting mutton. \nThe two companions crouched in the brush below the entrance for a short while, noting the degree of \nactivity. The moon had come up, bright and clear, and the night had lightened considerably. \"I wonder if \nwe'll be in time for dinner,\" remarked the drow, still smirking wryly. Wulfgar shook his head and \nlaughed at the dark elf's uncanny composure.",
+      "first_sentence": "Drizzt and Wulfgar were pleasantly surprised when they found the back entrance to the verbeeg lair.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with description of the lair entrance and surroundings before any action or dialogue.",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 19,
+      "opener_text_excerpt": "Drizzt padded through the tunnels and past the bodies of the dead giants, slowing only to grab another hunk of mutton from the large table. He crossed through the support beams and started down the dim hallway, tempering his eagerness with common sense. If the giants had hidden their treasure down here, the chamber holding it might be behind a concealed door, or there might even be some beast, though riot likely another giant, since it would have joined in the fighting: \nThe tunnel was quite long, running straight northward, and Drizzt figured that he was now moving underneath the mass of Kelvin's Cairn.",
+      "first_sentence": "Drizzt padded through the tunnels and past the bodies of the dead giants, slowing only to grab another hunk of mutton from the large table.",
+      "classification": "in-media-res-action",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with Drizzt moving through tunnels mid-action",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 20,
+      "opener_text_excerpt": "\"No arguin',\" Bruenor snarled, though none of his four friends standing beside him on the rocky slopes of the climb had any intention of speaking against the decision. In their foolish pettiness and pride, the majority of the spokesmen had doomed their communities to almost certain destruction and neither Drizzt, Wulfgar, Catti-brie, nor Regis expected the dwarves to join in such a hopeless cause. \n\"When will you block the mines?\" Drizzt asked. The drow hadn't yet decided if he would join the dwarves in the self-imposed prison of their caves, but he had planned to act as scout to Bryn Shander at least until Akar Kessell's army moved into the region. \n\"The preparin'll begin tonight,\" said Bruenor. \"But once they're in place, we've no rush. We'll let the stinkin' orcs come right down our throats afore we drop the tunnels, an' take 'em in the fall! Are ye to stay with us, then?\"",
+      "first_sentence": "\"No arguin',\" Bruenor snarled, though none of his four friends standing beside him on the rocky slopes of the climb had any intention of speaking against the decision.",
+      "classification": "dialogue-first",
+      "source": "regex",
+      "confidence": "high",
+      "note": "First sentence opens with a quoted line of dialogue.",
+      "regex_flags": {
+        "dialogueFirst": true,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 21,
+      "opener_text_excerpt": "At the base of the great glacier, hidden off in a small dell where one of the ice spurs wound through broken rifts and boulders, was a place the barbarians called Evermelt. A hot spring fed a small pool, the warmed waters waging a relentless battle against ice floes and freezing temperatures. Tribesmen stranded inland by early snows, who could not find their way to the sea with the reindeer herd, often sought refuge at Evermelt, for even in the coldest months of winter, unfrozen, sustaining water could be found here. And the warming vapors of the pool made the temperatures of the immediate area bearable, if not comfortable.",
+      "first_sentence": "At the base of the great glacier, hidden off in a small dell where one of the ice spurs wound through broken rifts and boulders, was a place the barbarians called Evermelt.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with setting description before any action or dialogue.",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 22,
+      "opener_text_excerpt": "The heat of a small fire brought Wulfgar back to consciousness. He came to his senses groggily and, at first, could not comprehend his surroundings as he wriggled out of a blanket that he did not remember bringing. Then he l recognized Icingdeath, lying dead just a few yards away, the huge icicle rooted firmly in the dragon's back. The globe of darkness had dissipated, and Wulfgar gawked at how accurate the drow's approximated bowshots had been. One arrow protruded from the dragon's left eye, and the black shafts of two others stuck out from the mouth. Wulfgar reached down to grasp the security of Aegisfang's familiar handle. But the hammer was nowhere near him. Fighting the pervading numbness in his legs, the barbarian managed to stand up, searching around frantically for his weapon. And where, he wondered, was the drow?",
+      "first_sentence": "The heat of a small fire brought Wulfgar back to consciousness.",
+      "classification": "interior-reflection",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with Wulfgar's sensory experience and internal disorientation",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 23,
+      "opener_text_excerpt": "Caer-Dineval's fleet trolled the southernmost waters of Lac Dinneshere, taking advantage of the areas left open when the people of Easthaven fled to Bryn Shander.\nCaer-Konig's ships were fishing their familiar grounds by the lake's northern banks. They were the first to see the coming doom.\nLike an angry swarm of bees, Kessell's foul army swept right around the northern bend of Lac Dinneshere and roared down Icewind Pass.\n\"Up anchor!\" cried Schermont and many other ship's captains as soon as they had recovered from the initial shock. But they knew even then that they could not get back in time.\nThe leading arm of the goblin army tore into Caer-Konig.",
+      "first_sentence": "Caer-Dineval's fleet trolled the southernmost waters of Lac Dinneshere, taking advantage of the areas left open when the people of Easthaven fled to Bryn Shander.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with description of fleet locations and setting before any action or dialogue.",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 24,
+      "opener_text_excerpt": "Drizzt soon came upon the battered ground where the army had crossed. The tracks came as no surprise to the drow, for the smoke pillars had already told him much of what had transpired. His only remaining question was whether or not any of the towns had held out, and he trotted on toward the mountain wondering if he had a home to return to.\nThen he sensed a presence, an otherworldly aura that strangely reminded him of the days of his youth. He bent to check the ground again. Some of the marks were fresh troll tracks, and a scarring on the ground that could not have been caused by any mortal being. Drizzt looked around nervously, but the only sound was the mourn of the wind and the only silhouettes on the horizons were the peaks of Kelvin's Cairn before him and the Spine of the World far to the south. Drizzt paused to consider the presence for a few moments, trying to bring the familiarity he felt into better focus.",
+      "first_sentence": "Drizzt soon came upon the battered ground where the army had crossed.",
+      "classification": "interior-reflection",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with Drizzt's thoughts and observations before any action",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 25,
+      "opener_text_excerpt": "Drizzt crawled out of his hidden chamber as the last lights of the setting sun began fading away. He scanned the southern horizon and was again dismayed. He had needed to rest, but he couldn't help feeling pangs of guilt when he saw the city of Targos burning, as though he had neglected his duty to bear witness to the suffering of Kessell's helpless victims.\nYet the drow had not been idle even during the hours of the meditative trance the elves called sleep. He had journeyed back into the underworld of his distant memories in search of a particular sensation, the aura of a powerful presence he had once known. Though he had not gotten close enough for a good look at the demon he had followed the previous night, something about the creature had struck a familiar chord in his oldest recollections. A pervading, unnatural emanation surrounded creatures from the lower planes when they walked on the material world, an aura that the dark elves, moreso than any other race, had come to understand and recognize.",
+      "first_sentence": "Drizzt crawled out of his hidden chamber as the last lights of the setting sun began fading away.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with character emerging and setting description before any action.",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 26,
+      "opener_text_excerpt": "Wulfgar leaned back in his chair at the head of the main table in the hastily constructed Mead Hall, his foot tapping nervously at the long delays necessitated by the demands of proper tradition. He felt that his people should already be on the move, but it was the restoration of the traditional ceremonies and celebrations that had immediately separated, and placed him above, the tyrant Heafstaag in the eyes of the skeptical and ever-suspicious barbarians.\nWulfgar, after all, had walked into their midst after a five year absence and challenged their long-standing king. One day later, he had won the crown, and the day after that, he had been coronated King Wulfgar of the Tribe of the Elk.",
+      "first_sentence": "Wulfgar leaned back in his chair at the head of the main table in the hastily constructed Mead Hall, his foot tapping nervously at the long delays necessitated by the demands of proper tradition.",
+      "classification": "interior-reflection",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with Wulfgar's internal feelings and thoughts",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 27,
+      "opener_text_excerpt": "Bremen was torched at dawn.\nThe people of the small, unwalled village had known better than to stand and fight when the wave of monsters rolled across the Shaengarne River. They put up token resistance at the ford, firing a few bursts of arrows at the lead goblins just to slow the ranks long enough for the heaviest and slowest ships to clear the harbor and reach the safety of Maer Dualdon. The archers then fled back to the docks and followed their fellow townsmen.\nWhen the goblins finally entered the city, they found it completely deserted. They watched angrily as the sailing ships moved back toward the east to join the flotilla of Targos and Termalaine. Bremen was too far out of the way to be of any use to Akar Kessell, so, unlike the city of Termalaine which had been converted into a camp, this city was burned to the ground.\nThe people on the lake, the newest in the long line of homeless victims of Kessell's wanton destruction, watched helplessly as their homes fell in smoldering splinters.",
+      "first_sentence": "Bremen was torched at dawn.",
+      "classification": "time-cut-announcement",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with explicit time-jump phrase 'at dawn'",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 28,
+      "opener_text_excerpt": "Regis rubbed the after-image of the blinding flash out of his eyes and found himself again facing the \nwizard. Kessell lounged on a crystal throne, leaning back against one of its arms with his legs casually \nthrown over the other. They were in a squared room of crystal, giving a slick visual impression, but \nfeeling as solid as stone. Regis knew immediately that he was inside the tower. The room was filled with \ndozens of ornate and strangely shaped mirrors. One of these in particular, the largest and most decorative, \ncaught the halfling's eye, for a fire was ablaze within its depths. At first Regis looked opposite the mirror, \nexpecting to see the source of the image, but then he realized that the flames were not a reflection but an \nactual event occurring within the dimensions of the mirror itself.",
+      "first_sentence": "Regis rubbed the after-image of the blinding flash out of his eyes and found himself again facing the \nwizard.",
+      "classification": "in-media-res-action",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with character mid-action rubbing eyes from a flash",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 29,
+      "opener_text_excerpt": "The dwarves of Mithril Hall completed the first of their secret exits shortly after sunset. Bruenor was the first to climb to the top of the ladder and peek out from under the cut sod at the settling monster army. So expert were the dwarven miners that they had been able to dig a shaft right up into the middle of a large group of goblins and ogres without even alerting the monsters in the least.\nBruenor was smiling when he came back down to rejoin his clansmen. \"Finish th' other nine,\" he instructed as he moved down the tunnel, Catti-brie beside him. \"Tonight's sleep'll be a sound one for some o' Kessell's boys!\" he declared, patting the head of his belted axe.",
+      "first_sentence": "The dwarves of Mithril Hall completed the first of their secret exits shortly after sunset.",
+      "classification": "time-cut-announcement",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with explicit time reference 'shortly after sunset' marking a temporal gap",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 30,
+      "opener_text_excerpt": "The people of Bryn Shander heard the fighting out on the field, but it wasn't until the lightening of full dawn that they could see what was happening. They cheered the dwarves wildly and were amazed when the barbarians crashed into Kessell's ranks, hacking down goblins with gleeful abandon.\nCassius and Glensather, in their customary positions upon the wall, pondered the unexpected turn of events, undecided as to whether or not they should release their forces into the fray.\n\"Barbarians?\" gawked Glensather. \"Are they our friends or foes?\"\n\"They kill orcs,\" Cassius answered. \"They are friends!\"",
+      "first_sentence": "The people of Bryn Shander heard the fighting out on the field, but it wasn't until the lightening of full dawn that they could see what was happening.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with setting and atmosphere before any action or dialogue.",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "epilogue",
+      "opener_text_excerpt": "All along the hill, the fishermen of Ten-Towns moved among their fallen enemies, looting the barbarians of what small wealth they possessed and putting the sword to the unfortunate ones who were not quite dead. Yet amid the carnage of the bloody scene, a finger of mercy was to be found. A man from Good Mead rolled the limp form of an unconscious young barbarian over onto its back, preparing to finish the job with his dagger. Bruenor came upon them then and, recognizing the youth as the standard bearer who had dented his helmet, stayed the fisherman's thrust.",
+      "first_sentence": "All along the hill, the fishermen of Ten-Towns moved among their fallen enemies, looting the barbarians of what small wealth they possessed and putting the sword to the unfortunate ones who were not quite dead.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with description of the scene and characters' actions before introducing Bruenor.",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "epilogue2",
+      "opener_text_excerpt": "He ran under the bright sun of day; he ran under the dim stars of the night, ever with the east wind in his face. His long legs and great strides carried him tirelessly, a mere speck of movement in the empty plain. For days Wulfgar pushed himself to the absolute limits of his endurance, even hunting and eating on the run, stopping only when exhaustion felled him in his tracks.\nFar to the south of him, rolling out of the Spine of the World like a toxic cloud of foul-smelling vapors, came the goblin and giant forces of Akar Kessell. With minds warped by the willpower of the crystal shard, they wanted only to kill, only to destroy. Only to please Akar Kessell.",
+      "first_sentence": "He ran under the bright sun of day; he ran under the dim stars of the night, ever with the east wind in his face.",
+      "classification": "in-media-res-action",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with character running mid-action",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "epilogue3",
+      "opener_text_excerpt": "The people of Ten-Towns and their barbarian allies found the winter following the battle a difficult one, but by pooling their talents and resources, they managed to survive. Many councils were held throughout those long months with Cassius, Jensin Brent, and Kemp representing the people of Ten-Towns, and Wulfgar and Revjak speaking for the barbarian tribes. The first order of business was to officially recognize and condone the alliance of the two peoples, though many on both sides were strongly opposed.\nThose cities left untouched by Akar Kessell's army were packed full of refugees during the brutal winter. Reconstruction began with the first signs of spring. When the region was well on its way to recovery, and after the barbarian expedition following Wulfgar's directions returned with the dragon treasure, councils were held to divide the towns among the surviving people. Relations between the two peoples almost broke down several times and were held together only by the commanding presence of Wulfgar and the continued calm of Cassius.",
+      "first_sentence": "The people of Ten-Towns and their barbarian allies found the winter following the battle a difficult one, but by pooling their talents and resources, they managed to survive.",
+      "classification": "callback-or-summary",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with a summary of events since the previous chapter",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "prelude",
+      "opener_text_excerpt": "The demon sat back on the seat it had carved in the stem of the giant mushroom. Sludge slurped and \nrolled around the rock island, the eternal oozing and shifting that marked this layer of the Abyss.\nErrtu drummed its clawed fingers, its horned, apelike head lolling about on its shoulders as it peered into \nthe gloom. \"Where are you, Telshazz?\" the demon hissed, expecting news of the relic. Crenshinibon, \npervaded all of the demon's thoughts. With the shard in its grasp, Errtu could rise over an entire layer, \nmaybe even several layers.",
+      "first_sentence": "The demon sat back on the seat it had carved in the stem of the giant mushroom.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with setting description before any action or dialogue.",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 1,
+      "opener_text_excerpt": "He kept his cloak pulled tightly about him, though little light seeped in through the curtained windows, for this was his existence, secretive and alone. The way of the assassin.\n\nWhile other people went about their lives basking in the pleasures of the sunlight and the welcomed visibility of their neighbors, Artemis Entreri kept to the shadows, the dilated orbs of his eyes focused on the narrow path he must take to accomplish his latest mission.\n\nHe truly was a professional, possibly the finest in the entire realms at his dark craft, and when he sniffed out the trail of his prey, the victim never escaped. So the assassin was unbothered by the empty house that he found in Bryn Shander, the principal city of the ten settlements in the wasteland of Icewind Dale. Entreri had suspected that the halfling had slipped out of Ten-Towns. But no matter; if this was indeed the same halfling that he had sought all the way from Calimport, a thousand miles and more to the south, he had made better progress than he ever could have hoped. His mark had no more than a two-tenday head start and the trail would be fresh indeed.",
+      "first_sentence": "He kept his cloak pulled tightly about him, though little light seeped in through the curtained windows, for this was his existence, secretive and alone.",
+      "classification": "interior-reflection",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with character's internal thoughts and feelings",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 2,
+      "opener_text_excerpt": "\"Well, there she is, lad, the City of Sails,\" Bruenor said to Wulfgar as the two looked down upon Luskan from a small knoll a few miles north of the city.\n\nWulfgar took in the view with a profound sigh of admiration. Luskan housed more than fifteen thousand small compared to the huge cities in the south and to its nearest neighbor, Waterdeep, a few hundred miles farther down the coast. But to the young barbarian, who had spent all of his eighteen years among nomadic tribes and the small villages of Ten-Towns, the fortified seaport seemed grand indeed. A wall encompassed Luskan, with guard towers strategically spaced at varying intervals. Even from this distance, Wulfgar could make out the dark forms of many soldiers pacing the parapets, their spear tips shining in the new light of the day.",
+      "first_sentence": "\"Well, there she is, lad, the City of Sails,\" Bruenor said to Wulfgar as the two looked down upon Luskan from a small knoll a few miles north of the city.",
+      "classification": "dialogue-first",
+      "source": "regex",
+      "confidence": "high",
+      "note": "First sentence opens with a quoted line of dialogue.",
+      "regex_flags": {
+        "dialogueFirst": true,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 3,
+      "opener_text_excerpt": "The Cutlass grew busier as the night wore on. Merchant sailors crowded in from their ships and the locals were quick into position to feed upon them. Regis and Wulfgar remained at the side table, the barbarian wide-eyed with curiosity at the sights around him, and the halfling intent on cautious observation.\n\nRegis recognized trouble in the form of a woman sauntering toward them. Not a young woman, and with the haggard appearance all too familiar on the dockside, but her gown, quite revealing in every place that a lady's gown should not be, hid all her physical flaws behind a barrage of suggestions. The look on Wulfgar's face, his chin nearly level with the table, Regis thought, confirmed the halfling's fears.",
+      "first_sentence": "The Cutlass grew busier as the night wore on.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with setting description before characters are introduced",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 4,
+      "opener_text_excerpt": "A landmark of wonder marked the very center of the City of Sails, a strange building that emanated a powerful aura of magic. Unlike any other structure in all Faerûn, the Hosttower of the Arcane seemed literally a tree of stone, boasting five tall spires, the largest being the central, and the other four, equally high, growing out of the main trunk with the graceful curving arc of an oak. Nowhere could any sign of the mason be seen; it was obvious to any knowledgeable viewer that magic, not physical labor, had produced this artwork.",
+      "first_sentence": "A landmark of wonder marked the very center of the City of Sails, a strange building that emanated a powerful aura of magic.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with setting description before any action or dialogue.",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 5,
+      "opener_text_excerpt": "Drizzt took the lead as the four companions jogged along the banks of the river Mirar, putting as much ground between themselves and Luskan as possible. Though they hadn't slept in many hours, their encounters in the City of Sails had sent a burst of adrenaline through their veins and none of them was weary.\n\nSomething magical hung in the air that night, a crispy tingling that would have made the most exhausted traveler lament closing his eyes to it.",
+      "first_sentence": "Drizzt took the lead as the four companions jogged along the banks of the river Mirar, putting as much ground between themselves and Luskan as possible.",
+      "classification": "in-media-res-action",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with characters mid-journey and ongoing action",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 6,
+      "opener_text_excerpt": "Black-haired barbarians, screaming in the frenzy of battle, burst into the copse. Drizzt realized at once that these burly warriors were the forms he had seen moving behind the orcan ranks on the field, but he wasn't yet certain of their allegiance.\n\nWhatever their ties, their arrival struck terror into the remaining orcs. The two fighting Drizzt lost all heart for the battle, a sudden shift in their posture revealing their desire to break off the confrontation and flee. Drizzt obliged, assured that they wouldn't get far anyway, and sensing that he, too, would be wise to slip from sight.\n\nThe orcs fled, but their pursuers soon caught them in another battle just beyond the trees. Less obvious in his flight, Drizzt slipped unnoticed back up the tree where he had left his bow.",
+      "first_sentence": "Black-haired barbarians, screaming in the frenzy of battle, burst into the copse.",
+      "classification": "in-media-res-action",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with characters mid-battle action",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 7,
+      "opener_text_excerpt": "Entreri stood on a hill a few miles outside the City of Sails, his campfire burning low behind him. Regis and friends had used this same spot for their last stop before they entered Luskan and in fact, the assassin's fire burned in the very same pit. This was no coincidence, though. Entreri had mimicked every move the halfling's party had made since he had picked up their trail just south of the Spine of the World. He would move as they moved, shadowing their marches in an effort to better understand their actions.\n\nNow, unlike the party before him, Entreri's eyes were not on the city wall, nor toward Luskan at all. Several campfires had sprung up in the night to the north, on the road back to Ten-Towns. It wasn't the first time those lights had appeared behind him, and the assassin sensed that he, too, was being followed. He had slowed his frantic pace, figuring that he could easily make up the ground while the companions went about their business in Luskan. He wanted to secure his own back from any danger before concentrating on snaring the halfling. Entreri had even left telltale signs of his passing, baiting his pursuers in closer.",
+      "first_sentence": "Entreri stood on a hill a few miles outside the City of Sails, his campfire burning low behind him.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with setting and character position before any action",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 8,
+      "opener_text_excerpt": "The companions broke out of the twists and dips of the crags later in the afternoon, to their absolute relief. It had taken them some time to round up their mounts after the encounter with the Pegasus, particularly the halfling's pony, which had bolted early in the fight when Regis had gone down. In truth, the pony would not be ridden again, anyway; it was too skittish and Regis was in no condition to ride. But Drizzt had insisted that both horses and both ponies be found, reminding his companions of their responsibility to the farmers, especially considering the way they had appropriated the beasts.",
+      "first_sentence": "The companions broke out of the twists and dips of the crags later in the afternoon, to their absolute relief.",
+      "classification": "callback-or-summary",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens by summarizing off-page events after the previous chapter's action",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 9,
+      "opener_text_excerpt": "\"Why do you approach the city before the light of dawn?\" the Nightkeeper of the North Gate asked the emissary for the merchant caravan that had pulled up outside Luskan's wall. Jierdan, in his post beside the Nightkeeper, watched with special interest, certain that this troupe had come from Ten-Towns.\n\n\"We would not impose upon the regulations of the city if our business were not urgent,\" answered the spokesman. \"We have not rested for two days.\" Another man emerged from the cluster of wagons, a body limp across his shoulders.",
+      "first_sentence": "\"Why do you approach the city before the light of dawn?\" the Nightkeeper of the North Gate asked the emissary for the merchant caravan that had pulled up outside Luskan's wall.",
+      "classification": "dialogue-first",
+      "source": "regex",
+      "confidence": "high",
+      "note": "First sentence opens with a quoted line of dialogue.",
+      "regex_flags": {
+        "dialogueFirst": true,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 10,
+      "opener_text_excerpt": "The sun beamed brightly on the morning of the first day out from Longsaddle. The companions, refreshed by their visit with the Harpells, rode at a strong pace, but still managed to enjoy the clear weather and the clear road. The land was flat and unmarked, not a tree or hill anywhere near.\n\n\"Three days to Nesmé, maybe four,\" Regis told them.\n\n\"More to three if the weather holds,\" said Wulfgar.\n\nDrizzt shifted under his cowl.",
+      "first_sentence": "The sun beamed brightly on the morning of the first day out from Longsaddle.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with weather and setting description before any action or dialogue.",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 11,
+      "opener_text_excerpt": "The ride from Luskan was swift indeed. Entreri and his cohorts appeared to any curious onlookers as no more than a shimmering blur in the night wind. The magical mounts left no trail of their passing, and no living creature could have overtaken them. The golem, as always, lumbered tirelessly behind with great stiff-legged strides.\n\nSo smooth and easy were the seats atop Dendybar's conjured steeds that the party was able to keep up its run past the dawn and throughout the entire next day with only short rests for food. Thus, when they set their camp after the sunset of the first full day on the road, they had already put the crags behind them.",
+      "first_sentence": "The ride from Luskan was swift indeed.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with description of the ride and setting before any action or dialogue.",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 12,
+      "opener_text_excerpt": "This was a land of blackened earth and misted bogs, where decay and an imposing sensation of peril overruled even the sunniest of skies. The landscape climbed and dropped continually, and the crest of each rise, mounted in hopes of an end to the place by any traveler here, brought only despair and more of the same unchanging scenes.\n\nThe brave Riders of Nesmé ventured into the moors each spring to set long lines of fires and drive the monsters of the hostile land far from the borders of their town.",
+      "first_sentence": "This was a land of blackened earth and misted bogs, where decay and an imposing sensation of peril overruled even the sunniest of skies.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with landscape description before any action",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 13,
+      "opener_text_excerpt": "The dissipating globe of darkness found Regis once again clinging to his log, which was now little more than a black cinder, and shaking his head. \"We are beyond ourselves,\" he sighed. \"We cannot make it through.\"\n\n\"Faith, Rumblebelly,\" Bruenor comforted, sloshing through the water to join the halfling. \"Tales we be making, for telling to our children's children, and for others to tell when we're no more!\"\n\n\"You mean today, then?\" Regis snipped. \"Or perhaps we'll live this day and be no more tomorrow.\"\n\nBruenor laughed and grabbed hold of the log. \"Not yet, me friend,\" he assured Regis with an adventurous smile. \"Not till me business is done!\"",
+      "first_sentence": "The dissipating globe of darkness found Regis once again clinging to his log, which was now little more than a black cinder, and shaking his head.",
+      "classification": "in-media-res-action",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with characters mid-action clinging to a log and shaking head",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 14,
+      "opener_text_excerpt": "Wulfgar set Regis and Bruenor down on a mossy bed in a small clearing deeper in the wood then toppled over in pain. Drizzt caught up to him a few minutes later.\n\n\"We must camp here,\" the drow was saying, \"though I wish we could put more distance …\" He stopped when he saw his young friend writhing on the ground and grasping at his injured leg, nearly overcome by the pain. Drizzt rushed over to examine the knee, his eyes widening in shock and disgust.\n\nA troll's hand, probably from one of those he had hacked apart when Wulfgar rescued Bruenor, had latched on to the barbarian as he ran, finding a niche in the back of his knee. One clawed finger had already buried itself deep into the leg, and two others were even now boring in.",
+      "first_sentence": "Wulfgar set Regis and Bruenor down on a mossy bed in a small clearing deeper in the wood then toppled over in pain.",
+      "classification": "in-media-res-action",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with characters mid-action and immediate physical conflict",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 15,
+      "opener_text_excerpt": "Drizzt had little trouble convincing Bruenor to reverse their course and head back to the west. While the dwarf was anxious to get to Sundabar and find out what Helm might know, the possibility of valuable information less than a day away set him off and running.\n\nAs to how he had come by the information, Drizzt offered little explanation, saying only that he had met up with a lone traveler on the road to Silverymoon during the night. Though the story sounded contrived to them, his friends, respecting his privacy and trusting him fully, did not question him about it. When they ate breakfast, though, Regis hoped that more information would be forthcoming, for the biscuits that this traveler had given to Drizzt were truly delicious and incredibly refreshing. After only a few bites, the halfling felt as if he had spent a tenday at rest. And the magic salve immediately healed Wulfgar's injured leg and back, and he walked without a cane for the first time since they had left the Evermoors.",
+      "first_sentence": "Drizzt had little trouble convincing Bruenor to reverse their course and head back to the west.",
+      "classification": "interior-reflection",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with Drizzt's internal reasoning and character perspective",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 16,
+      "opener_text_excerpt": "A squat stone tower stood in a small dell against the facing of a steep hill. Because it was ivy covered and overgrown, a casual passer-by would not even have noticed the structure.\n\nBut the Companions of the Hall were not casual in their search. This was the Herald's Holdfast, possibly the solution to their entire search.",
+      "first_sentence": "A squat stone tower stood in a small dell against the facing of a steep hill.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with description of a stone tower and setting before characters are mentioned.",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 17,
+      "opener_text_excerpt": "They left under stars and did not stop until stars filled the sky once again. Bruenor needed no support. Quite the opposite. It was the dwarf, recovered from his delirium and his eyes focused at last upon a tangible path to his long-sought goal, who drove them, setting the strongest pace since they had come out of Icewind Dale. Glassy-eyed and walking both in past and present, Bruenor's obsession consumed him. For nearly two hundred years he had dreamed of this return, and these last few days on the road seemed longer than the centuries that had come before.",
+      "first_sentence": "They left under stars and did not stop until stars filled the sky once again.",
+      "classification": "callback-or-summary",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with a summary of the journey since leaving Icewind Dale",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 18,
+      "opener_text_excerpt": "\"Keeper's Dale,\" Bruenor declared solemnly. The companions stood on a high ledge, looking down hundreds of feet to the broken floor of a deep and rocky gorge.\n\n\"How are we to get down there?\" Regis gasped, for every side appeared absolutely sheer, as though the canyon had been purposely cut from the stone.",
+      "first_sentence": "\"Keeper's Dale,\" Bruenor declared solemnly.",
+      "classification": "dialogue-first",
+      "source": "regex",
+      "confidence": "high",
+      "note": "First sentence opens with a quoted line of dialogue.",
+      "regex_flags": {
+        "dialogueFirst": true,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 19,
+      "opener_text_excerpt": "\"Garumn's Gorge,\" Bruenor said, drawing a line across the rough map he had scratched on the floor. Even though the effects of Alustriel's potion had worn off, simply stepping inside the home of his youth had rekindled a host of memories in the dwarf. The exact location of each of the halls was not clear to him, but he had a general idea of the overall design of the place. The others huddled close to him, straining to see the etchings in the flickers of the torch that Wulfgar had retrieved from the corridor.\n\n\"We can get out on the far side,\" Bruenor continued. \"There's a door, opening one way and for leaving only, beyond the bridge.\"",
+      "first_sentence": "\"Garumn's Gorge,\" Bruenor said, drawing a line across the rough map he had scratched on the floor.",
+      "classification": "dialogue-first",
+      "source": "regex",
+      "confidence": "high",
+      "note": "First sentence opens with a quoted line of dialogue.",
+      "regex_flags": {
+        "dialogueFirst": true,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 20,
+      "opener_text_excerpt": "When the last tremors of the cave-in had finally died away, the four remaining friends picked their way through the rubble and the veil of dust back to the oval chamber. Heedless of the piles of broken stone and the great cracks in the floor that threatened to swallow them up, Bruenor scrambled into the alcove, the others close on his heels.\n\nNo blood or any other sign of the two master swordsmen was anywhere to be found, just the mound of rubble covering the hole of the stonework trap. Bruenor could see the edgings of darkness beneath the pile, and he called out to Drizzt. His reason told him, against his heart and hopes, that the drow could not hear, that the trap had taken Drizzt from him.",
+      "first_sentence": "When the last tremors of the cave-in had finally died away, the four remaining friends picked their way through the rubble and the veil of dust back to the oval chamber.",
+      "classification": "in-media-res-action",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with characters moving through rubble after a cave-in, mid-action.",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 21,
+      "opener_text_excerpt": "Suddenly, he found a focus in the blur of gray haze, something tangible amid the swirl of nothingness. It hovered before him and turned over slowly.\n\nIts edges doubled and rolled apart, then rushed together again. He fought the dull ache in his head, the inner blackness that had consumed him and now fought to keep him in its hold. Gradually, he became aware of his arms and legs, who he was, and how he had come to be here.\n\nIn his startled awareness, the image sharpened to a crystalline focus. The tip of a jeweled dagger.\n\nEntreri loomed above him, a dark silhouette against the backdrop of a single torch set into the wall a few yards beyond, his blade poised to strike at the first sign of resistance. Drizzt could see that the assassin, too, had been hurt in the fall, though he had obviously been the quicker to recover.",
+      "first_sentence": "Suddenly, he found a focus in the blur of gray haze, something tangible amid the swirl of nothingness.",
+      "classification": "interior-reflection",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with Drizzt's internal perception and disorientation",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 22,
+      "opener_text_excerpt": "At the heart of the lower levels, in an immense cavern of uneven and twisting walls pocketed with deep shadows, and a ceiling too high for the light of the brightest fire to find, rested the present ruler of Mithral Hall, perched upon a solid pedestal of the purest mithral that rose from a high and wide mound of coins and jewelry, goblets and weapons, and countless other items pounded from the rough blocks of mithral by the skilled hands of dwarven craftsmen.\n\nDark shapes surrounded the beast, huge dogs from its own world, obedient, long-lived, and hungry for the meat of human or elf, or anything else that would give them the pleasure of their gory sport before the kill.",
+      "first_sentence": "At the heart of the lower levels, in an immense cavern of uneven and twisting walls pocketed with deep shadows, and a ceiling too high for the light of the brightest fire to find, rested the present ruler of Mithral Hall, perched upon a sol",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with detailed setting description before any action or character movement.",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 23,
+      "opener_text_excerpt": "Air rolled across its black wings like the continuous rumble of distant thunder as the dragon swept out of the passageway and into Garumn's Gorge, using the same exit that Drizzt and Entreri had passed just a few moments before. The two, a few dozen yards higher on the wall, held perfectly still, not even daring to breathe. They knew that the dark lord of Mithral Hall had come.",
+      "first_sentence": "Air rolled across its black wings like the continuous rumble of distant thunder as the dragon swept out of the passageway and into Garumn's Gorge, using the same exit that Drizzt and Entreri had passed just a few moments before.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with description of dragon's movement and setting before characters react.",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 24,
+      "opener_text_excerpt": "The burning dragon drifted lower and lower, the light of the flames slowly diminishing to a mere speck at the bottom of Garumn's Gorge.\n\nDrizzt scrambled up over the ledge and came up beside Catti-brie and Wulfgar, Catti-brie holding the gem-studded helm, and both of them staring helplessly across the chasm. The two of them nearly fell over in surprise when they turned to see their drow friend returned from the grave. Even the appearance of Artemis Entreri had not prepared Wulfgar and Catti-brie for the sight of Drizzt.",
+      "first_sentence": "The burning dragon drifted lower and lower, the light of the flames slowly diminishing to a mere speck at the bottom of Garumn's Gorge.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with description of the burning dragon before characters appear.",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "epilogue",
+      "opener_text_excerpt": "Drizzt, Wulfgar, and Catti-brie came into Longsaddle a few days later, road weary and still wrapped in a shroud of grief. Harkle and his kin greeted them warmly and invited them to stay at the Ivy Mansion for as long as they desired. But though all three of them would have welcomed the opportunity to relax and recover from their trials, other roads summoned them.",
+      "first_sentence": "Drizzt, Wulfgar, and Catti-brie came into Longsaddle a few days later, road weary and still wrapped in a shroud of grief.",
+      "classification": "time-cut-announcement",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with 'a few days later' marking a temporal gap",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "part1",
+      "opener_text_excerpt": "S EARCHES\n\nI pray that the world never runs out of dragons. I say that in all sincerity, though I have played a part in the death of one great wyrm. For the dragon is the quintessential enemy, the greatest foe, the unconquerable epitome of devastation. The dragon, above all other creatures, even the demons and the devils, evokes images of dark grandeur, of the greatest beast curled asleep on the greatest treasure hoard. They are the ultimate test of the hero and the ultimate fright of the child. They are older than the elves and more akin to the earth than the dwarves.",
+      "first_sentence": "I pray that the world never runs out of dragons.",
+      "classification": "interior-reflection",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with a character's personal prayer and philosophical reflection on dragons.",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "part2",
+      "opener_text_excerpt": "A LLIES\n\nHe wants to go home. He wants to find a world he once knew. I know not if it is the promise of riches or of simplicity that now drives Bruenor. He wants to go and find Mithral Hall, to clear it of whatever monsters might now inhabit the place, to reclaim it for Clan Battlehammer.\n\nOn the surface that desire seems a reasonable, even noble, thing. We all quest for adventure, and for those whose families have lived in noble tradition, the desire to avenge a wrong and restore family name and position cannot be underestimated.\n\nOur road to Mithral Hall will not likely be an easy one. Many dangerous, uncivilized lands lay between Icewind Dale and the region far to the east of Luskan, and certainly that road promises to become even darker if we do find the entrance to those lost dwarven mines. But I am surrounded by capable and powerful friends, and so I fear no monsters—none that we can fight with sword, at least. No, my one fear concerning this journey we undertake is a fear for Bruenor Battlehammer. He wants to go home, and there are many good reasons why he should. There remains one good reason why he should not, and if that reason, nostalgia, is the source of his desire, the […]",
+      "first_sentence": "A LLIES\n\nHe wants to go home.",
+      "classification": "interior-reflection",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with character's thoughts and reflections before any action or description.",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "part3",
+      "opener_text_excerpt": "In my travels on the surface, I once met a man who wore his religious beliefs like a badge of honor upon the sleeves of his tunic. \"I am a Gondsman!\" he proudly told me as we sat beside each other at a tavern bar, I sipping my wine, and he, I fear, partaking a bit too much of his more potent drink. He went on to explain the premise of his religion, his very reason for being, that all things were based in science, in mechanics, and in discovery. He even asked if he could take a piece of my flesh, that he might study it to determine why the skin of the drow elf is black. \"What element is missing,\" he wondered, \"that makes your race different from your surface kin?\"",
+      "first_sentence": "In my travels on the surface, I once met a man who wore his religious beliefs like a badge of honor upon the sleeves of his tunic.",
+      "classification": "interior-reflection",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with narrator's memory and philosophical reflection before any external action.",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "prelude",
+      "opener_text_excerpt": "P RELUDE\n\nOn a dark throne in a dark place perched the dragon of shadow. Not a very large wyrm, but foulest of the foul, its mere presence, blackness; its talons, swords worn from a thousand thousand kills; its maw ever warm with the blood of victims; its black breath, despair.\n\nA raven's coat was its tested scales, so rich in their blackness that they shimmered in colors, a scintillating facade of beauty for a soulless monster. Its minions named it Shimmergloom and paid it all honor.",
+      "first_sentence": "On a dark throne in a dark place perched the dragon of shadow.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with setting and description of the dragon before any action.",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 1,
+      "opener_text_excerpt": "\"A day and more we have lost,\" the barbarian grumbled, reining in his horse and looking\nback over his shoulder. The lower rim of the sun had just dipped below the horizon. \"The\nassassin moves away from us even now!\"\n\"We do well to trust in Harkle's advice,\" replied Drizzt Do'Urden, the dark elf. \"He would\nnot have led us astray.\" With the sunshine fading, Drizzt dropped the cowl of his black cloak\nback onto his shoulders and shook free the locks of his stark white hair.\nWulfgar pointed to some tall pines. \"That must be the grove Harkle Harpell spoke of,\" he\nsaid, \"yet I see no tower, nor signs that any structure was ever built in this forsaken area.\"\nHis lavender eyes more at home in the deepening gloom, Drizzt peered ahead intently,\ntrying to find some evidence to dispute his young friend. Surely this was the place that\nHarkle had indicated, for a short distance ahead of them lay the small pond, and beyond that\nthe thick boughs of Neverwinter Wood. \"Take heart,\" he reminded Wulfgar. \"The wizard\ncalled patience the greatest aid in finding the home of Malchor. We have been here but an\nhour.\"",
+      "first_sentence": "\"A day and more we have lost,\" the barbarian grumbled, reining in his horse and looking\nback over his shoulder.",
+      "classification": "dialogue-first",
+      "source": "regex",
+      "confidence": "high",
+      "note": "First sentence opens with a quoted line of dialogue.",
+      "regex_flags": {
+        "dialogueFirst": true,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 2,
+      "opener_text_excerpt": "The assassin, mesmerized, watched as the ruby turned slowly in the candlelight, catching the dance of the flame in a thousand thousand perfect miniatures - too many reflections; no gem could have facets so small and so flawless.\nAnd yet the procession was there to be seen, a swirl of tiny candles drawing him deeper into the redness of the stone. No jeweler had cut it; its precision went beyond a level attainable with an instrument. This was an artifact of magic, a deliberate creation designed, he reminded himself cautiously, to pull a viewer into that descending swirl, into the serenity of the reddened depths of the stone.\nA thousand thousand little candles.\nNo wonder he had so easily duped the captain into giving him passage to Calimport. Suggestions that came from within the marvelous secrets of this gem could not easily be dismissed. Suggestions of serenity and peace, words spoken only by friends ...\nA smile cracked the usually grim set of his face. He could wander deep into the calm.\nEntreri tore himself from the pull of the ruby and rubbed his eyes, amazed that even one as disciplined as he might be vulnerable to the gem's insistent tug.",
+      "first_sentence": "The assassin, mesmerized, watched as the ruby turned slowly in the candlelight, catching the dance of the flame in a thousand thousand perfect miniatures - too many reflections; no gem could have facets so small and so flawless.",
+      "classification": "interior-reflection",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with character's mesmerized observation and internal thoughts",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 3,
+      "opener_text_excerpt": "\"Those are the farms that Malchor spoke of,\" Wulfgar said as he and Drizzt came around a spur of trees on the great forest's border. In the distance to the south, a dozen or so houses sat in a cluster on the eastern edge of the forest, surrounded on the other three sides by wide, rolling fields.\nWulfgar started his horse forward, but Drizzt abruptly stopped him.\n\"These are a simple folk,\" the drow explained. \"Farmers living in the webs of countless superstitions. They would not welcome a dark elf. Let us enter at night.\"\n\"Perhaps we can find the path without their aid,\" Wulfgar offered, not wanting to waste the remainder of yet another day.\n\"More likely we would get lost in the wood,\" Drizzt replied, dismounting. \"Rest, my friend. This night promises adventure.\"",
+      "first_sentence": "\"Those are the farms that Malchor spoke of,\" Wulfgar said as he and Drizzt came around a spur of trees on the great forest's border.",
+      "classification": "dialogue-first",
+      "source": "regex",
+      "confidence": "high",
+      "note": "First sentence opens with a quoted line of dialogue.",
+      "regex_flags": {
+        "dialogueFirst": true,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 4,
+      "opener_text_excerpt": "They were back to the main road before dawn, thundering to the west, to the coast and the\ncity of Waterdeep. With the visit to Malchor and the business with Agatha out of the way,\nDrizzt and Wulfgar once again focused their thoughts on the road ahead, and they\nremembered the peril their halfling friend faced if they failed in the rescue. Their mounts,\naided by Malchor's enchanted horseshoes, sped along at a tremendous clip. All the landscape\nseemed only a blur as it rolled by.",
+      "first_sentence": "They were back to the main road before dawn, thundering to the west, to the coast and the city of Waterdeep.",
+      "classification": "time-cut-announcement",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with 'before dawn' marking a temporal gap",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 5,
+      "opener_text_excerpt": "The room was empty, the fire burning low. The figure knew that there were gray dwarves,\nduergar, in the side chamber, through the partly opened door, but he had to chance it. This\nsection of the complex was too full of the scum for him to continue along the tunnels without\nhis disguise.\nHe slipped in from the main corridor and tiptoed past the side door to get to the hearth. He\nknelt before it and laid his fine mithril axe at his side. The glow of the embers made him\nflinch instinctively, though he felt no pain as he dipped his finger into the ash.",
+      "first_sentence": "The room was empty, the fire burning low.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with room description before character action",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 6,
+      "opener_text_excerpt": "\"To de rail! To de rail!\" cried one voice.\n\"Toss 'em over!\" agreed another. The mob of sailors crowded closer, brandishing curved\nswords and clubs.\nEntreri stood calmly in the midst of the storm, Regis nervously beside him. The assassin\ndid not understand the crew's sudden fit of anger, but he guessed that the sneaky halfling was\nsomehow behind it. He hadn't drawn weapons; he knew he could have his saber and dagger\nreadied whenever he needed them, and none of the sailors, for all their bluster and threats,\nhad yet come within ten feet of him.",
+      "first_sentence": "\"To de rail! To de rail!\" cried one voice.",
+      "classification": "dialogue-first",
+      "source": "regex",
+      "confidence": "high",
+      "note": "First sentence opens with a quoted line of dialogue.",
+      "regex_flags": {
+        "dialogueFirst": true,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 7,
+      "opener_text_excerpt": "The first thing he noticed was the absence of the wind. He had lain long hour after hour on his perch at the top of the chimney, and through it all, even in his semiconscious state, there had been the unceasing presence of the wind. It had taken his mind back to Icewind Dale, his home for nearly two centuries. But Bruenor had felt no comfort in the gale's forlorn moan, a continual reminder of his predicament and the last sound he thought he would ever hear. But it was no more.",
+      "first_sentence": "The first thing he noticed was the absence of the wind.",
+      "classification": "interior-reflection",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with character's perception and internal thought",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 8,
+      "opener_text_excerpt": "The simple wooden structure at the end of Rogues Circle seemed understated even for the decrepit side of the sprawling southern city of Calimport. The building had few windows, all boarded or barred, and not a terrace or balcony to speak of. Similarly, no lettering identified the building, not even a number on the door to place it. But everyone in the city knew the house and marked it well, for beyond either of its iron-bound doors, the scene changed - dramatically. Where the outside showed only the weathered brown of old wood, the inside displayed a myriad of bright colors and tapestries, thickly woven carpets, and statues of solid gold. This was the thieves' guild, rivaling the palace of Calimshan's ruler himself in riches and decor.",
+      "first_sentence": "The simple wooden structure at the end of Rogues Circle seemed understated even for the decrepit side of the sprawling southern city of Calimport.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with setting description before any action or dialogue.",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 9,
+      "opener_text_excerpt": "Now running with the currents of the Chionthar, and with the breeze at enough of an angle from the north for the sails to catch a bit of a push, the Sea Sprite cruised away from Baldur's Gate at a tremendous rate, spitting a white spray despite the concurrent movement of the water.",
+      "first_sentence": "Now running with the currents of the Chionthar, and with the breeze at enough of an angle from the north for the sails to catch a bit of a push, the Sea Sprite cruised away from Baldur's Gate at a tremendous rate, spitting a white spray des",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with description of ship moving on water",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 10,
+      "opener_text_excerpt": "The halfling hung by his ankles, suspended upside down with chains above a cauldron of\nboiling liquid. Not water, though, but something darker. A red hue, perhaps.\nBlood, perhaps.\nThe crank creaked, and the halfling dropped an inch closer. His face was contorted, his\nmouth wide, as if in a scream.\nBut no screams could be heard. Just the groans of the crank and a sinister laugh from an\nunseen torturer.\nThe misty scene shifted, and the crank came into view, worked slowly by a single hand\nthat seemed unattached to anything else.\nThere was a pause in the descent.\nThen the evil voice laughed one final time. The hand jerked quickly, sending the crank\nspinning.\nA scream resounded, piercing and cutting, a cry of agony - a cry of death.",
+      "first_sentence": "The halfling hung by his ankles, suspended upside down with chains above a cauldron of boiling liquid.",
+      "classification": "in-media-res-action",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with halfling suspended over boiling cauldron, immediate physical action",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 11,
+      "opener_text_excerpt": "The Sea Sprite cruised easily under clear blue skies and the lazy warmth of the southern Realms. A strong trade wind kept its sails filled, and only six days after their departure from Baldur's Gate, the western tip of the Tethyr Peninsula was already in sight - a journey that normally took more than a week.\nBut a wizard's call traveled faster still.\nCaptain Deudermont took the Sea Sprite down the center of Asavir's Channel, trying to keep a safe distance from the peninsula's sheltered bays - bays that often held pirates poised for passing merchant vessels - and also cautious to keep a healthy gap of water between his ship and the islands on his west: the Nelanther, the infamous Pirate Isles. The captain felt safe enough in the crowded sea lane, with the banner of Calimport flying above his craft and the sails of several other merchant ships dotting the horizon every so often both in front of and behind the Sea Sprite.",
+      "first_sentence": "The Sea Sprite cruised easily under clear blue skies and the lazy warmth of the southern Realms.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with setting and atmosphere before any action or dialogue.",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 12,
+      "opener_text_excerpt": "Bruenor found Catti-brie treading water beyond the carnage of Pinochet's ship. Pinochet\npaid the young woman no attention, though. Far in the distance, the crew on his remaining\nship, the bulky artillery vessel, had brought the fires under control, but had turned tail and\nsailed away with all the speed it could muster.",
+      "first_sentence": "Bruenor found Catti-brie treading water beyond the carnage of Pinochet's ship.",
+      "classification": "in-media-res-action",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with character mid-action (treading water) and ongoing conflict.",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 13,
+      "opener_text_excerpt": "The docks rolled away beyond sight in either direction, the sails of a thousand ships\nspeckled the pale blue waters of the Shining Sea, and it would take them hours to walk the\nbreadth of the city before them, no matter which gate they sought.\nCalimport, the largest city in all the Realms, was a sprawling conglomeration of shanties\nand massive temples, of tall towers springing from plains of low wooden houses. This was\nthe hub of the southern coast, a vast marketplace several times the area of Waterdeep.",
+      "first_sentence": "The docks rolled away beyond sight in either direction, the sails of a thousand ships\nspeckled the pale blue waters of the Shining Sea, and it would take them hours to walk the\nbreadth of the city before them, no matter which gate they soug",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with extensive description of the docks and city before any character action.",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 14,
+      "opener_text_excerpt": "Luck was with the damaged Sea Sprite and the captured pirate vessel, for the sea held calm and the wind blew steadily but gently. Still, the journey around the Tethyr Peninsula proved tedious and all too slow for the four anxious friends, for every time the two ships seemed to be making headway, one or the other would develop a new problem.\nSouth of the peninsula, Deudermont took his ships through a wide stretch of water called the Race, so named for the common spectacle there of merchant vessels running from pirate pursuit. No other pirates bothered Deudermont or his crew, however. Even Pinochet's third ship never again showed its sails.",
+      "first_sentence": "Luck was with the damaged Sea Sprite and the captured pirate vessel, for the sea held calm and the wind blew steadily but gently.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with sea conditions and journey description before any action",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 15,
+      "opener_text_excerpt": "\"See the pleasure it promises,\" the guildmaster teased, scraping his hand over the barbed tip of a single spike sticking out of a block of wood on the center of the room's little table.\nRegis purposely curled his lips into a stupid smile, pretending to see the obvious logic of Pook's words.\n\"Just drop your palm onto it,\" Pook coaxed, \"then you will know the joy and will again be part of our family.\"",
+      "first_sentence": "\"See the pleasure it promises,\" the guildmaster teased, scraping his hand over the barbed tip of a single spike sticking out of a block of wood on the center of the room's little table.",
+      "classification": "dialogue-first",
+      "source": "regex",
+      "confidence": "high",
+      "note": "First sentence opens with a quoted line of dialogue.",
+      "regex_flags": {
+        "dialogueFirst": true,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 16,
+      "opener_text_excerpt": "Entreri slipped through the shadows of Calimport's bowels as quietly as an owl glided\nthrough a forest at twilight. This was his home, the place he knew best, and all the street\npeople of the city would mark the day when Artemis Entreri again walked beside them or\nbehind them.\nEntreri couldn't help but smile slightly whenever the hushed whispers commenced in his\nwake - the more experienced rogues telling the newcomers that the king had returned. Entreri\nnever let the legend of his reputation - no matter how well earned - interfere with the\nconstant state of readiness that had kept him alive through the years. In the streets, a\nreputation of power only marked a man as a target for ambitious second-rates seeking\nreputations of their own.",
+      "first_sentence": "Entreri slipped through the shadows of Calimport's bowels as quietly as an owl glided through a forest at twilight.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with atmospheric description of setting and character movement before any action or dialogue.",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 17,
+      "opener_text_excerpt": "LaValle held his hand within the pouch for a long moment, teasing Pook. They were alone\nwith the eunuchs, who didn't count, in the central chamber of the top level. LaValle had\npromised his master a gift beyond even the news of the ruby pendant's return, and Pook\nknew that the wizard would offer such a promise with great care. It was not wise to\ndisappoint the guildmaster.\nLaValle had great confidence in his gift and had no trepidations about his grand claims.\nHe slid it out and presented it to Pook, smiling broadly as he did so.\nPook lost his breath, and sweat thickened on his palms at the onyx statuette's touch.\n\"Magnificent,\" he muttered, overwhelmed. \"Never have I seen such craftsmanship, such\ndetail. One could almost pet the thing!\"\n\"One can,\" LaValle whispered under his breath.",
+      "first_sentence": "LaValle held his hand within the pouch for a long moment, teasing Pook.",
+      "classification": "in-media-res-action",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with character mid-action, holding hand in pouch and teasing another character.",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 18,
+      "opener_text_excerpt": "Perched in his favorite corner, across Rogues Circle from the Spitting Camel, Dondon\nwatched as the elf, the last of the four, moved into the inn to join his friends. The halfling\npulled out a little pocket mirror to check his disguise - all the dirt and scruff marks seemed in\nthe right places; his clothes were far too large, like those a waif would pull off an\nunconscious drunk in an ally; and his hair was appropriately tousled and snarled, as if it\nhadn't been combed in years.\nDondon looked longingly to the moon and inspected his chin with his fingers. Still\nhairless but tingling, he thought. The halfling took a deep breath, and then another, and\nfought back the lycanthropic urges. In the year he had joined Rassiter's ranks, he had learned\nto sublimate those fiendish urges fairly well, but he hoped that he could finish his business\nquickly this night. The moon was especially bright.\nPeople of the street, locals, gave an approving wink as they passed the halfling, knowing\nthe master con artist to be on the prowl once more.",
+      "first_sentence": "Perched in his favorite corner, across Rogues Circle from the Spitting Camel, Dondon\nwatched as the elf, the last of the four, moved into the inn to join his friends.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with setting and character description before any action",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 19,
+      "opener_text_excerpt": "Wulfgar found himself in a square, unadorned room of worked stone. Two torches burned low in wall sconces, revealing another door before him, across from the portcullis. He tossed aside the broken door and turned back to his friends. \"Guard my back,\" he told Catti-brie, but she had already figured her part out and had brought her bow up level with the door across the room.\nWulfgar rubbed his hands together in preparation for his attempt to lift the portcullis. It was a massive piece indeed, but the barbarian did not think it beyond his strength. He grasped the iron, then fell back, dismayed, even before he had attempted to lift.\nThe bars had been greased.",
+      "first_sentence": "Wulfgar found himself in a square, unadorned room of worked stone.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with description of room and setting before any action or dialogue.",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 20,
+      "opener_text_excerpt": "Wulfgar, nearly overcome by exhaustion and by the pain in his arm, leaned heavily against the smooth wall of an upward-sloping passage. He clutched the wound tightly, hoping to stem the flow of his lifeblood. How alone he felt. He knew that he had been right in sending his friends away. They could have done little to help him, and standing there, in the open of the main corridor right in front of the very spot Entreri had chosen for his trap, left them too vulnerable. Wulfgar now had to move along by himself, probably into the heart of the infamous thieves' guild.",
+      "first_sentence": "Wulfgar, nearly overcome by exhaustion and by the pain in his arm, leaned heavily against the smooth wall of an upward-sloping passage.",
+      "classification": "interior-reflection",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with physical action but quickly shifts to internal thought and emotion",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 21,
+      "opener_text_excerpt": "Wulfgar dodged and ducked, slipping into the midst of lines of statues or behind heavy tapestries as he went. There were simply too many of the wererats, closing in all about him, for him to even hope to escape.\nHe passed one corridor and saw a group of three ratmen rushing down toward him. Feigning terror, the barbarian sprinted beyond the opening, then pulled up short and put his back tight against the corner. When the ratmen rushed into the room, Wulfgar smashed them down with quick chops of Aegis-fang.\nHe then retraced their steps back down the passage, hoping that he might confuse the rest of his pursuers.",
+      "first_sentence": "Wulfgar dodged and ducked, slipping into the midst of lines of statues or behind heavy tapestries as he went.",
+      "classification": "in-media-res-action",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with character dodging and ducking in ongoing action",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 22,
+      "opener_text_excerpt": "Smoke, emanating from the very ground they stood upon, wafted by drearily and rolled\naround their feet. By the angle of its roll, the way it fell away below them only a foot or two\noff to either side, only to rise again in another cloud, the friends saw that they were on a\nnarrow ledge, a bridge across some endless chasm.\nSimilar bridges, none more than a few feet wide, criss-crossed above and below them, and\nfor what they could see, those were the only walkways in the entire plane. No solid land\nmass showed itself in any direction, only the twisting, spiraling bridges.\nThe friends' movements were slow, dreamlike, fighting against the weight of the air. The\nplace itself, a dim, oppressive world of foul smells and anguished cries, exuded evil. Vile,\nmisshapen monsters swooped over their heads and around the gloomy emptiness, crying out\nin glee at the unexpected appearance of such tasty morsels. The four friends, so indomitable\nagainst the perils of their own world, found themselves without courage.",
+      "first_sentence": "Smoke, emanating from the very ground they stood upon, wafted by drearily and rolled around their feet.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with atmospheric description of setting before any action or dialogue.",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 23,
+      "opener_text_excerpt": "Bruenor had come into Pook's chambers cursing and swinging, and by the time his initial momentum had worn away, he was far across the room from the Taros Hoop and from the two hill giant eunuchs that Pook had on guard. The guildmaster was closest to the raging dwarf, looking at him more in curiosity than terror.\nBruenor paid Pook no mind whatsoever.",
+      "first_sentence": "Bruenor had come into Pook's chambers cursing and swinging, and by the time his initial momentum had worn away, he was far across the room from the Taros Hoop and from the two hill giant eunuchs that Pook had on guard.",
+      "classification": "in-media-res-action",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with Bruenor already cursing and swinging mid-action",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 24,
+      "opener_text_excerpt": "\"Outa me way, ye overstuffed bag o' blubber!\" Bruenor roared.\nThe giant eunuch planted its legs wide apart and reached down at the dwarf with a huge hand - which Bruenor promptly bit.\n\"They never listen,\" he grumbled. He stooped low and dashed between the giant's legs, then straightened quickly, the single horn on his helmet putting the poor eunuch up on its toes. For the second time that day, its eyes crossed and it tumbled, this time its hands low to hold its newest wound.\nA killing rage evident in his gray eyes, Bruenor turned back to Pook. The guildmaster, though, seemed unconcerned, and in truth, the dwarf hardly noticed the man. He concentrated instead on the crossbow again, which was loaded and leveled at him.",
+      "first_sentence": "\"Outa me way, ye overstuffed bag o' blubber!\" Bruenor roared.",
+      "classification": "dialogue-first",
+      "source": "regex",
+      "confidence": "high",
+      "note": "First sentence opens with a quoted line of dialogue.",
+      "regex_flags": {
+        "dialogueFirst": true,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 25,
+      "opener_text_excerpt": "Bruenor knocked lightly on the door, not expecting a response. As usual, no reply came\nback.\nThis time, though, the stubborn dwarf did not walk away. He turned the latch and entered\nthe darkened room.\nStripped to the waist and running his slender fingers through his thick mane of white hair,\nDrizzt sat on his bed with his back to Bruenor. Even in the dimness, Bruenor could clearly\nsee the scab line sliced across the drow's back. The dwarf shuddered, never imagining in\nthose wild hours of battle that Drizzt had been so viciously wounded by Artemis Entreri.",
+      "first_sentence": "Bruenor knocked lightly on the door, not expecting a response.",
+      "classification": "in-media-res-action",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with Bruenor knocking and entering, mid-action without prior scene-setting.",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "epilogue",
+      "opener_text_excerpt": "Wulfgar heaved and strained on the ropes, trying to keep the mainsail full of the scant ocean wind as the crew of the Sea Sprite looked on in amazement. The currents of the Chionthar pushed against the ship, and a sensible captain would normally have dropped anchor to wait for a more favorable breeze to get them in. But Wulfgar, under the tutelage of an old sea dog named Mirky, was doing a masterful job. The individual docks of Baldur's Gate were in sight, and the Sea Sprite, to the cheers of several dozen sailors watching the monumental pull, would soon put in.",
+      "first_sentence": "Wulfgar heaved and strained on the ropes, trying to keep the mainsail full of the scant ocean wind as the crew of the Sea Sprite looked on in amazement.",
+      "classification": "in-media-res-action",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with Wulfgar mid-action heaving on ropes",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "epilogue2",
+      "opener_text_excerpt": "From the shadows of a doorway, Entreri watched Pasha Pook make his way up the staircase to the exit of the guildhouse. It had been less than an hour since Pook had regained his ruby pendant and already he was off to put it to use. Entreri had to give the guildmaster credit; he was never late for the dinner bell.\nThe assassin waited for Pook to clear the house altogether, then made his way stealthily back to the top level. The guards outside the final door made no move to stop him, though Entreri did not remember them from his earlier days in the guild. Pook must have prudently put out the word of Entreri's station in the guild, according him all the privileges he used to enjoy.\nNever late for the dinner bell.\nEntreri moved to the door to his old room, where LaValle now resided, and knocked softly.",
+      "first_sentence": "From the shadows of a doorway, Entreri watched Pasha Pook make his way up the staircase to the exit of the guildhouse.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with setting description before character action",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "epilogue3",
+      "opener_text_excerpt": "The Sea Sprite cut a difficult course northward up the Sword Coast, into the wintry winds, but Captain Deudermont and his grateful crew were determined to see the four friends safely and swiftly back to Waterdeep. Stunned expressions from every face on the docks greeted the resilient vessel as it put into Waterdeep Harbor, dodging the breakers and the ice floes as it went. Mustering all the skill he had gained through years of experience, Deudermont docked the Sea Sprite safely. The four friends had recovered much of their health, and their humor, during those two months at sea, despite the rough voyage. All had turned out well in the end - even Catti-brie's wounds appeared as if they would fully heal.",
+      "first_sentence": "The Sea Sprite cut a difficult course northward up the Sword Coast, into the wintry winds, but Captain Deudermont and his grateful crew were determined to see the four friends safely and swiftly back to Waterdeep.",
+      "classification": "scene-set-description",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with description of the ship's journey and setting before any action or dialogue.",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "prelude",
+      "opener_text_excerpt": "The wizard looked down upon the young woman with uncertainty. Her back was to him;\nhe could see the thick mane of her auburn locks flowing around her shoulders, rich and\nvibrant. But the wizard knew, too, the sadness that was in her eyes. So young she was, barely\nmore than a child, and so beautifully innocent.\nYet this beautiful child had put a sword through the heart of his beloved Sydney.",
+      "first_sentence": "The wizard looked down upon the young woman with uncertainty.",
+      "classification": "interior-reflection",
+      "source": "llm",
+      "confidence": "high",
+      "note": "Opens with the wizard's internal perspective and emotional reflection",
+      "regex_flags": {
+        "dialogueFirst": false,
+        "timeCutOpener": false
+      }
+    }
+  ]
+}
