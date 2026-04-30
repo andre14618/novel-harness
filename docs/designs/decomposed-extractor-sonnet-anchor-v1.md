@@ -1,5 +1,5 @@
 ---
-status: draft
+status: draft (RED on R1 — pivoting per cheaper-counterfactual recommendation)
 kind: corpus-pipeline-architecture
 name: decomposed-extractor-sonnet-anchor-v1
 owner: andre
@@ -7,6 +7,9 @@ date: 2026-04-29
 revision: 1
 supersedes-shape: monolithic per-dim Flash extractor + Pro judge calibration (R7 charter v1)
 parent-context: docs/charters/corpus-structural-decomposition-v1.md (R7), novels/salvatore-icewind-dale/structure-calibration/crystal_shard-conclusions.md
+adversary-verdict:
+  R1-design: RED (codex:codex-rescue gpt-5.5 effort=high, agent a9e006dd5bf8d407b, 2026-04-29) — 5 blockers, 3 warnings, named cheapest counterfactual: "Run the current monolithic mice and promise extractors against a Sonnet anchor on one frozen 50-scene sample, plus a close-criteria-only mice prompt sharpen." Recommended action: RUN CHEAPER COUNTERFACTUAL.
+  R1-findings: RED (codex:codex-rescue gpt-5.5 effort=high, agent a73cbe165ff62ef4a, 2026-04-29) — review of the conclusions doc this design responds to; 5 blockers, 5 warnings, named cheapest counterfactual: "Judge-stability micro-pilot: rerun the promise judge twice at T=0 with a tightened rubric on a 20-row sample, plus one Sonnet pass on the same rows and manual adjudication of 5 disagreements." Recommended action: RUN CHEAPER COUNTERFACTUAL.
 related:
   - docs/decisions.md (decisions log; companion entry on this pivot lands at the same time as this doc)
   - src/agents/structure-mice/mice-system-v2-draft.md (close-criteria ARE re-usable as sub-rubrics)
@@ -14,6 +17,7 @@ related:
   - src/agents/structure-promise/ (the dim that exposed the gold-stochasticity ceiling)
   - feedback_decompose_checker_calls.md (memory: 14B can't handle complex single-call checklists; split per dimension)
   - feedback_gold_stability_first.md (memory: measure judge self-consistency before extractor calibration)
+  - feedback_codex_counterfactual_signal.md (memory: treat named cheapest-untried-counterfactual as pivot recommendation, not alternative to refute)
 ---
 
 # Decomposed extractor + Sonnet anchor (corpus structural-decomposition v2)
@@ -241,6 +245,40 @@ This is acceptable per the existing memory `feedback_query_llm_calls_for_costs.m
 
 ## Status
 
-- Draft, 2026-04-29.
-- Not yet adversary-reviewed (Codex `codex-rescue gpt-5.5 effort=high`). Schedule once McKee-gap calibration on v1 architecture lands and the Phase C close-out commits to the conclusions doc — gives the adversary a complete v1 baseline to evaluate against.
-- Not yet implemented. Pending Gate 1 measurement before committing to sub-prompt drafts.
+- Draft, 2026-04-29 (revision 1).
+- **Adversary review R1: RED on both target documents** (this design doc + the Phase C conclusions doc). Two parallel Codex `codex-rescue gpt-5.5 effort=high` reviewers ran 2026-04-29. Both recommended the same cheapest-untried-counterfactual: run the current monolithic extractor against a Sonnet anchor on a frozen sample BEFORE committing to decomposition / sub-dim splitting. Per memory `feedback_codex_counterfactual_signal.md`, this is a pivot signal, not an alternative to refute.
+- **Specific blockers from R1-design (must resolve in R2 or supersede the doc):**
+  1. Cheapest counterfactual skipped — Sonnet anchor + monolithic extractor on frozen sample not yet measured. (§9.3)
+  2. Pass-gate confound — comparing new Sonnet F1 to old Pro F1 from different samples breaks same-eval comparability. (§2.1, §2.2, §2.3, §9.4)
+  3. Promise split has a verdict-space hole — exact-4-chapter close belongs to neither sub-dim. (§4.2)
+  4. Mice aggregator underspecified — what happens when 0 or 2+ sub-calls return is_dominant. (§4.2, §7.4)
+  5. 50-scene anchor used as a ship gate without uncertainty plan. (§3.3)
+- **Specific blockers from R1-findings (carry over into v2 measurement plan):**
+  1. Verdict protocol drift — value-charge NULL-GOLD vs mckee-gap waiver inconsistency on the same 40% retest disagreement. (§7, §1.1)
+  2. Character-arcs raw artifact missing (RESOLVED: regenerated at `crystal_shard.20260430T000116.json` 2026-04-30; verdict CELL PASS confirmed F1=1.000 / arcResolution=0.667; LTWN semantic agreement still unmeasured).
+  3. Sonnet-as-anchor claim outruns evidence — Sonnet ↔ Pro@T=0 cardinality correlation is the LOWEST pair (0.184), and Sonnet's promise list contains impossible negative spans (min=-979 chapters). Cleaning required before "Sonnet is the exhaustive recall ceiling" claim holds. (§5.1, §5.2, §6.6)
+  4. One-book smoke promoted to ship/generalization claims. (§7.1, §9.2)
+  5. Metric framing mismatched to downstream use — value-charge / mckee-gap headlined on binary F1 while planner-relevant subfield agreements are well below the gate. (§3.1)
+- Not yet implemented. The Gate 1 plan in this doc is REPLACED by the cheaper-counterfactual experiment for R2 (see "Pivot for R2" below).
+
+## Pivot for R2 (post-Codex R1 RED)
+
+Both reviewers converge on the same cheaper experiment. R2 of this design doc — and ANY further architecture commitment — is gated on running this first:
+
+**Cheapest-counterfactual experiment (~$1–3/dim/book):**
+
+1. Take a frozen 50-scene sample for mice and a frozen 20–30-row sample for promise.
+2. Run the EXISTING monolithic extractors (Flash, no decomposition) on those samples.
+3. Run a Sonnet anchor on the same samples (with self-consistency check: Jaccard ≥ 0.85 required to use as anchor).
+4. Compute Flash × Sonnet F1.
+5. Decision tree:
+   - If monolithic Flash × Sonnet F1 ≥ 0.78 on mice → decomposition is unnecessary; just swap Pro→Sonnet and re-calibrate.
+   - If monolithic Flash × Sonnet F1 < 0.78 AND a one-shot mice prompt sharpening (close-criteria only, no decomposition) lifts it ≥ 0.78 → prompt-only fix is the right path; don't decompose.
+   - If neither → THEN decomposition is justified, with the architecture-pivot evidence Codex requested.
+   - For promise: if Sonnet self-consistency is stable (≥ 0.85) AND Sonnet vs T=0 monolithic Flash extractor F1 ≥ 0.78 → swap judge, no sub-dim split needed. Otherwise the sub-dim split (with the dead-zone fix from R1-design BLOCKER 3) is the right move.
+
+This experiment costs ~$3–5 total per book. If it lands the answer, the v2 architecture in this doc collapses to "swap Pro→Sonnet across the existing pipeline" — much smaller blast radius than the doc currently proposes.
+
+Tracking: this experiment supersedes the original "Implementation order step 1" and is the single gate before any architecture decision. R2 of this doc will either:
+- Restate v2 with the experiment results justifying decomposition where it's needed (and dropping it where prompt-only fixes worked), OR
+- Supersede this doc with a much shorter "swap judge to Sonnet, sharpen close-criteria where needed" design.
