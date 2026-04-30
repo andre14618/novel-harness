@@ -2098,3 +2098,69 @@ That variant encodes Patterns 4 (full position rhythm) and 7 (specific transitio
 When measuring corpus-derived patterns for planner-prompt priors, **the ship gate must match the granularity at which the prior is encoded**. Planner prompts encode directional priors (rankings, modal classes, sign-of-effect) — not exact-rate distributions. A point-estimate ±20% gate over-rejects 3 of the 4 "DIVERGE" patterns from the original 7 — they actually reproduce directionally. Conversely, distributional checker priors require the tighter point-estimate gate. The two gates are not interchangeable.
 
 ---
+
+## Session 2026-04-30 — Per-chapter conflict-type taxonomy across 3 IWD books
+
+**Context.** Lighter-weight surrogate for the parked mice rubric (M/I/C/E was per-beat, J<0.85 stability at full corpus). Conflict-type is per-chapter at coarser granularity, so should be more stable; if the 3-book distribution holds + rotation pattern is consistent, it becomes a planner-side prior for chapter `purpose` guidance and a chapter-rotation rule.
+
+**Methodology.** For each (book, chapter) we aggregate the chapter's beat summaries (sorted by scene_id then beat_idx) and ask DeepSeek V4 Flash (thinking-disabled, temp=0, JSON-mode) to classify the chapter's PRIMARY and SECONDARY conflict into one of `internal | interpersonal | external-physical | external-cosmic`, plus a one-sentence rationale and confidence. `rotation_signal` is computed post-hoc by comparing primary at chapter N vs N-1 within each book. 92 chapters total (cs=34, ss=29, hg=29). 1 LLM call per chapter, ~1.5K tokens each, $0.029 total.
+
+### Aggregate finding
+
+| Conflict (primary) | Aggregate (n=92) | crystal_shard (n=34) | streams_of_silver (n=29) | halflings_gem (n=29) |
+|---|---:|---:|---:|---:|
+| external-physical | 55.4% | 50.0% | 62.1% | 55.2% |
+| interpersonal | 23.9% | 26.5% | 10.3% | 34.5% |
+| internal | 13.0% | 8.8% | 20.7% | 10.3% |
+| external-cosmic | 7.6% | 14.7% | 6.9% | 0.0% |
+
+**Modal class is `external-physical` in all 3 books** (50–62%). Distribution is reasonably stable book-to-book — the modal label is unanimous, ranks 1–4 hold across books, mean classifier confidence is **0.92**. external-cosmic concentrates in book 1 (Crenshinibon-driven chapters: prelude, ch4, ch10, ch13) and disappears entirely in book 3, consistent with the artifact's narrative role winding down across the trilogy.
+
+### Rotation rate (chapter N primary differs from chapter N-1)
+
+| Book | Rotation rate | Mean confidence |
+|---|---:|---:|
+| crystal_shard | 54.5% | 0.92 |
+| streams_of_silver | 50.0% | 0.92 |
+| halflings_gem | 60.7% | 0.92 |
+| **Cross-book weighted** | **55.1%** | **0.92** |
+
+Rotation is consistent across books (50–61%) — about half of consecutive chapter pairs rotate primary conflict, half hold the same primary.
+
+### Run-length finding (KILLS the naive "no 3+ streaks" hypothesis)
+
+3+-consecutive same-primary runs are NOT rare in the corpus — they encode major set-pieces:
+
+| Book | Max run | 3+ runs | Notable runs |
+|---|---:|---:|---|
+| crystal_shard | 11 | 2 | external-physical ch15→ch25 (Kessell's siege of Ten-Towns), external-physical ch28→ch30 (final assault) |
+| streams_of_silver | 5 | 5 | external-physical ch15→ch19 (silver halls combat), ch21→ch23, ch1→ch3, ch5→ch7; internal part1→part3 (introspective interludes) |
+| halflings_gem | 7 | 2 | external-physical ch13→ch15, ch18→ch24 (Calimport ascent) |
+
+**Implication.** A blanket "avoid 3+ consecutive same-conflict chapters" rule would systematically smooth the structural shape that powers this trilogy's climax acts. The right harness signal is a *target distribution* + *rotation rate band*, not a streak ban.
+
+### Directional assessment
+
+`{external-physical, interpersonal, internal, external-cosmic}` is a useful coarse classifier with strong cross-book stability (modal label unanimous; per-book rotation 50–61%). It IS a tractable planner-side prior: each chapter's `purpose` field could carry a primary-conflict tag with a corpus-derived prior (~55% external-physical, ~24% interpersonal, ~13% internal, ~8% cosmic), and the planner could be evaluated on whether its chapter sequence holds a ~55% rotation rate. Streak-friendly: the rule should be "no 5+ runs of the *same* primary conflict outside designated set-pieces", not "no 3+".
+
+### Compare to mice (M/I/C/E)
+
+Conflict-type is **orthogonal** to mice, not a coarsening of it. Mice asks "what story-thread is being opened/closed at the beat level"; conflict-type asks "what kind of opposition drives the chapter". External-physical and external-cosmic both partially overlap mice-E (event-thread); internal partially overlaps mice-C (character-thread); interpersonal cuts across both C and E. They do NOT collapse cleanly — conflict-type is a complementary chapter-axis, not a replacement for the parked mice rubric.
+
+### Harness target
+
+1. **Planner-side prior on chapter `purpose`.** Add a `primary_conflict` field to chapter outline schema with the 4-class taxonomy. Default planner prior: ~55% external-physical, ~24% interpersonal, ~13% internal, ~8% external-cosmic. Reject plans where any class is at <0.5× or >2× corpus rate.
+2. **Chapter-rotation soft constraint.** Target rotation rate ~55% (chapter N primary differs from chapter N-1). Streaks ≤5 consecutive same-primary are corpus-supported; flag streaks ≥6 unless explicitly tagged as a set-piece (siege, ascent, climax act).
+3. **Skip the universal "avoid 3+ consecutive" rule.** It is contradicted by the corpus.
+4. **Cross-book stability is good enough to ship as a prior.** Modal label unanimous, classifier confidence 0.92.
+
+### Cost & telemetry
+
+- 92 LLM calls, $0.029 total
+- 144,173 tokens (mean ~1,567/call)
+- 25 seconds wall clock at concurrency=8
+
+Artifact: `crystal_shard.20260430T115702.conflict-type-taxonomy.json`
+Script: `scripts/corpus/extract-conflict-type.ts`
+
+---

@@ -1,0 +1,911 @@
+{
+  "timestamp": "2026-04-30T11:57:02.198Z",
+  "n_chapters": 92,
+  "aggregate": {
+    "primary_distribution": {
+      "external-cosmic": 0.0761,
+      "external-physical": 0.5543,
+      "internal": 0.1304,
+      "interpersonal": 0.2391
+    },
+    "secondary_distribution": {
+      "external-cosmic": 0.0435,
+      "external-physical": 0.0978,
+      "internal": 0.3478,
+      "interpersonal": 0.5109
+    },
+    "rotation_rate": 0.5506,
+    "mean_confidence": 0.92
+  },
+  "perBook": {
+    "crystal_shard": {
+      "n": 34,
+      "primary_distribution": {
+        "external-cosmic": 0.1471,
+        "external-physical": 0.5,
+        "internal": 0.0882,
+        "interpersonal": 0.2647
+      },
+      "secondary_distribution": {
+        "external-cosmic": 0.0588,
+        "external-physical": 0.0882,
+        "internal": 0.4412,
+        "interpersonal": 0.4118
+      },
+      "rotation_rate": 0.5455,
+      "mean_confidence": 0.921
+    },
+    "streams_of_silver": {
+      "n": 29,
+      "primary_distribution": {
+        "external-cosmic": 0.069,
+        "external-physical": 0.6207,
+        "internal": 0.2069,
+        "interpersonal": 0.1034
+      },
+      "secondary_distribution": {
+        "external-cosmic": 0.0345,
+        "external-physical": 0.069,
+        "internal": 0.2414,
+        "interpersonal": 0.6552
+      },
+      "rotation_rate": 0.5,
+      "mean_confidence": 0.921
+    },
+    "halflings_gem": {
+      "n": 29,
+      "primary_distribution": {
+        "external-physical": 0.5517,
+        "internal": 0.1034,
+        "interpersonal": 0.3448
+      },
+      "secondary_distribution": {
+        "external-cosmic": 0.0345,
+        "external-physical": 0.1379,
+        "internal": 0.3448,
+        "interpersonal": 0.4828
+      },
+      "rotation_rate": 0.6071,
+      "mean_confidence": 0.917
+    }
+  },
+  "chapters": [
+    {
+      "book": "crystal_shard",
+      "chapter": "prelude",
+      "primary_conflict": "external-cosmic",
+      "secondary_conflict": "internal",
+      "rationale": "The chapter is driven by Errtu's pursuit of the metaphysical artifact Crenshinibon, which exerts cosmic influence across planes, while Errtu's internal frustration and impatience form a secondary struggle.",
+      "confidence": 0.9,
+      "rotation_signal": "first"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "1",
+      "primary_conflict": "interpersonal",
+      "secondary_conflict": "internal",
+      "rationale": "The chapter is driven by Kessell's betrayal of Morkai and his interactions with the conspirators, which is character vs character within a coherent group.",
+      "confidence": 0.9,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "2",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "internal",
+      "rationale": "The chapter is driven by Drizzt's physical struggle against tundra yetis and the looming threat of barbarian attack, while Regis's internal reflections on his past and motivations provide a secondary layer.",
+      "confidence": 0.9,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "3",
+      "primary_conflict": "interpersonal",
+      "secondary_conflict": "internal",
+      "rationale": "The chapter is driven by the tense negotiation and power struggle between Beorg and Heafstaag, two allied kings, with internal doubts and calculations as a secondary layer.",
+      "confidence": 0.9,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "4",
+      "primary_conflict": "external-cosmic",
+      "secondary_conflict": "internal",
+      "rationale": "The chapter is driven by Crenshinibon's sentient manipulation of Kessell, a metaphysical force that dictates events, while Kessell's internal struggle with his own weakness and guilt is secondary.",
+      "confidence": 0.95,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "5",
+      "primary_conflict": "interpersonal",
+      "secondary_conflict": "internal",
+      "rationale": "The chapter is driven by the dialogue and tension between Bruenor and Drizzt over whether to warn Ten-Towns, with Bruenor's internal conflict about Mithril Hall and his pride as a secondary thread.",
+      "confidence": 0.95,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "6",
+      "primary_conflict": "interpersonal",
+      "secondary_conflict": "internal",
+      "rationale": "The chapter is driven by Regis's political maneuvering and persuasion of the spokesmen, which is interpersonal conflict within the council group, while his internal doubts and ambitions form a secondary thread.",
+      "confidence": 0.9,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "7",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "internal",
+      "rationale": "The chapter is driven by Drizzt's reconnaissance of the barbarian horde and the impending battle, making the primary conflict external-physical; the secondary conflict is Drizzt's internal reflection on his past and his bond with Guenhwyvar.",
+      "confidence": 0.95,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "8",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by the large-scale battle between Ten-Towns and the barbarian horde, with most beats depicting combat and tactical maneuvers, while the secondary tension arises from the alliance fracturing over Drizzt's treatment.",
+      "confidence": 0.95,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "9",
+      "primary_conflict": "internal",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter focuses on Regis's lazy contentment and Wulfgar's internal transformation from anger to gratitude, with minor interpersonal tension from Ten-Towns rivalries.",
+      "confidence": 0.9,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "10",
+      "primary_conflict": "external-cosmic",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by Crenshinibon's manipulation of Kessell and the summoning of Errtu, both metaphysical forces controlling events, while Kessell and Errtu's negotiation forms a secondary interpersonal tension.",
+      "confidence": 0.9,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "11",
+      "primary_conflict": "internal",
+      "secondary_conflict": "external-cosmic",
+      "rationale": "The chapter is driven by Bruenor's internal struggle to craft a perfect weapon and honor his father's legacy, with the solstice magic and runes providing a cosmic backdrop.",
+      "confidence": 0.9,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "12",
+      "primary_conflict": "interpersonal",
+      "secondary_conflict": "internal",
+      "rationale": "The chapter is driven by multiple interpersonal tensions: Wulfgar vs Catti-brie, Bruenor vs Wulfgar, and Bruenor vs Drizzt, with the central conflict being Bruenor's struggle to connect with Wulfgar through the gift of Aegis-fang.",
+      "confidence": 0.95,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "13",
+      "primary_conflict": "external-cosmic",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by Crenshinibon's manipulation of Kessell and Errtu's schemes, with the shard's will shaping events and characters' actions.",
+      "confidence": 0.9,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "14",
+      "primary_conflict": "interpersonal",
+      "secondary_conflict": "internal",
+      "rationale": "The chapter is driven by the evolving relationship and tension between Drizzt and Wulfgar, moving from hostility to grudging respect, while Wulfgar's internal struggle with his pride and prejudice is a strong secondary thread.",
+      "confidence": 0.9,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "15",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by the physical threat of the verbeeg army preparing to attack Ten-Towns, culminating in the actual combat with the dwarves, while internal tension within the verbeeg troop and between Drizzt and Wulfgar provides secondary interpersonal conflict.",
+      "confidence": 0.9,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "16",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by the physical confrontation with the verbeeg giants and the threat of larger forces, while the tension between Drizzt's vengeful intensity and Wulfgar's more straightforward warrior ethos provides interpersonal friction.",
+      "confidence": 0.95,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "17",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by two simultaneous physical battles—the dwarves' ambush at Daledrop and Drizzt and Wulfgar's fight against the giant patrol—while the tension between Drizzt and Wulfgar over Guenhwyvar forms a significant interpersonal subplot.",
+      "confidence": 0.95,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "18",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by the physical combat against the verbeeg giants, with the party working together to defeat them, while the secondary tension arises from Drizzt and Wulfgar's differing approaches and banter.",
+      "confidence": 0.95,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "19",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by the physical threat of Akar Kessell's invasion and the immediate aftermath of the giant lair battle, while the council scenes feature interpersonal conflict among the spokesmen.",
+      "confidence": 0.9,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "20",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by the impending physical threat of Kessell's army marching on Ten-Towns, with the narrative energy focused on the preparations and the army's movement, while the secondary conflict involves the interpersonal tensions among the companions and the fractured alliances of the towns.",
+      "confidence": 0.9,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "21",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "internal",
+      "rationale": "The chapter is driven by Wulfgar's physical battle against the dragon Icingdeath, with his internal resolve and tribute to his father as a secondary theme.",
+      "confidence": 0.95,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "22",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by Wulfgar's physical combat challenge against Heafstaag, culminating in a fight to the death, while the secondary tension is the interpersonal conflict between Wulfgar and Heafstaag as rivals within the tribe.",
+      "confidence": 0.95,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "23",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "internal",
+      "rationale": "The chapter is driven by the military assault and siege of Ten-Towns, with most beats depicting combat, destruction, and tactical maneuvers against Kessell's army.",
+      "confidence": 0.95,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "24",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "internal",
+      "rationale": "The chapter is driven by the siege of Bryn Shander and the destruction of Targos, with physical threats from Kessell's army and the crystal shard's power dominating the narrative, while characters internally process despair and resolve.",
+      "confidence": 0.95,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "25",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "internal",
+      "rationale": "The chapter is driven by Drizzt's physical confrontation with the demon Errtu, culminating in combat and banishment, while his internal struggle with fear and identity is a strong secondary element.",
+      "confidence": 0.95,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "26",
+      "primary_conflict": "interpersonal",
+      "secondary_conflict": "external-physical",
+      "rationale": "The chapter is driven by Wulfgar's effort to win the loyalty of the tribesmen through ceremony, challenge, and speech, which is interpersonal conflict within his group; the looming threat of Kessell and the dragon provides external-physical stakes.",
+      "confidence": 0.9,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "27",
+      "primary_conflict": "interpersonal",
+      "secondary_conflict": "external-physical",
+      "rationale": "The chapter is driven by the council's plan to send Regis as an emissary to charm Kessell, creating tension within the allied group, while the external threat of Kessell's army and Cryshal-Tirith forms the physical backdrop.",
+      "confidence": 0.9,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "28",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by Drizzt's infiltration of Cryshal-Tirith and the physical threat of Kessell's forces, while Regis's deception and Kessell's paranoia create interpersonal tension.",
+      "confidence": 0.9,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "29",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "external-cosmic",
+      "rationale": "The chapter is driven by Drizzt's physical combat and escape through Cryshal-Tirith, culminating in a confrontation with Kessell and the tower's collapse, while the crystal shard Crenshinibon exerts a metaphysical influence over events.",
+      "confidence": 0.9,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "30",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by the massive battle against Kessell's army and the physical threats of combat, avalanche, and tower collapse, while secondary tension arises from negotiations and friction among the allied leaders (Cassius, Kemp, Wulfgar).",
+      "confidence": 0.95,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "epilogue",
+      "primary_conflict": "external-cosmic",
+      "secondary_conflict": "interpersonal",
+      "rationale": "Crenshinibon's metaphysical manipulation drives Kessell's ambitions and the chapter's direction, while Bruenor's interpersonal confrontation with the fisherman and Wulfgar provides a contrasting subplot.",
+      "confidence": 0.9,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "epilogue2",
+      "primary_conflict": "internal",
+      "secondary_conflict": "external-physical",
+      "rationale": "The chapter focuses on Wulfgar's internal struggle with exhaustion, doubt, and the need to maintain resolve for his desperate plan, while the external threat of the goblin army and the looming dragon lair provide a secondary physical challenge.",
+      "confidence": 0.9,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "epilogue3",
+      "primary_conflict": "interpersonal",
+      "secondary_conflict": "internal",
+      "rationale": "The chapter is driven by the party's farewells, Wulfgar's decision to join, and Regis's reluctant departure, all centering on relationship dynamics within the group.",
+      "confidence": 0.9,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "prelude",
+      "primary_conflict": "internal",
+      "secondary_conflict": "external-physical",
+      "rationale": "The chapter focuses on each companion's internal struggles—Bruenor's obsession, Drizzt's resignation, Regis's fear—rather than external action, with Shimmergloom as a looming but static threat.",
+      "confidence": 0.85,
+      "rotation_signal": "first"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "1",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by Entreri's physical assault on Catti-brie and the dwarves, with the threat of violence and combat dominating the narrative energy.",
+      "confidence": 0.95,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "2",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by the party's physical journey through the hostile city of Luskan, navigating guards, thieves, and dangerous alleys, with combat threats imminent.",
+      "confidence": 0.9,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "3",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by physical threats and combat (tavern brawl, crossbow ambush, escape through streets) while internal party tension (Regis vs Wulfgar over the pendant, Bruenor vs Drizzt over Guenhwyvar) is secondary.",
+      "confidence": 0.95,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "4",
+      "primary_conflict": "external-cosmic",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by Dendybar's summoning and interrogation of the specter Morkai, a metaphysical entity bound by magical compulsion, making the primary conflict external-cosmic; secondary conflict arises from the tense dialogue and power struggles between Dendybar, Sydney, and Jierdan.",
+      "confidence": 0.9,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "5",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by the physical threat of orc attacks, culminating in a battle, while secondary tension arises from Wulfgar's objection to visiting wizards and the group's internal dynamics.",
+      "confidence": 0.95,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "6",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by the physical threat of the barbarian tribe and the subsequent supernatural Pegasus attack, with significant interpersonal tension between Wulfgar and his companions versus the tribe's demands.",
+      "confidence": 0.9,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "7",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by Entreri's physical abduction of Catti-brie and his confrontations with Jierdan and Dendybar, with interpersonal tension between Entreri and Catti-brie as a secondary element.",
+      "confidence": 0.9,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "8",
+      "primary_conflict": "interpersonal",
+      "secondary_conflict": "internal",
+      "rationale": "The chapter is driven by the party's interactions with the eccentric Harpells and internal tensions among the companions, particularly Wulfgar's distrust and Drizzt's discomfort, rather than physical combat or cosmic forces.",
+      "confidence": 0.9,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "9",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by the physical pursuit and capture of Catti-brie, and the formation of a hunting party to track the companions, with significant tension between Entreri, Dendybar, and their allies.",
+      "confidence": 0.9,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "10",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by physical threats: the storm, the treelike monsters, and the hostile riders, while interpersonal tension arises from the companions' internal disagreements and the riders' prejudice against Drizzt.",
+      "confidence": 0.9,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "11",
+      "primary_conflict": "interpersonal",
+      "secondary_conflict": "external-cosmic",
+      "rationale": "The chapter is driven by the power struggles and manipulations among Entreri, Sydney, Jierdan, and Catti-brie, with the golem's disobedience revealing Dendybar's cosmic-level control as a secondary force.",
+      "confidence": 0.9,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "12",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "internal",
+      "rationale": "The chapter is driven by the companions' continuous physical struggle against trolls, bog blokes, and a giant worm in the Trollmoors, with Drizzt's internal resolve and tactical decisions as a secondary thread.",
+      "confidence": 0.95,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "13",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "internal",
+      "rationale": "The chapter is driven by the companions' desperate flight and combat against trolls, with Drizzt's internal struggle over abandoning his friends as a secondary theme.",
+      "confidence": 0.95,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "14",
+      "primary_conflict": "internal",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by Drizzt's internal struggle with rejection and hope, culminating in a transformative encounter with Alustriel.",
+      "confidence": 0.95,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "15",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by the relentless pursuit of Drizzt's party by Bok and the antagonists, with physical threats and chase sequences dominating the narrative energy.",
+      "confidence": 0.9,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "16",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "internal",
+      "rationale": "The chapter is driven by the physical journey to find Mithral Hall, with the memory potion and Bruenor's vision as the central obstacle to overcome.",
+      "confidence": 0.9,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "17",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by the physical chase and combat sequences (Bruenor's forced march, Entreri's pursuit, Catti-brie's escape and rockslide), while secondary tension arises from interpersonal conflicts within the party (Bruenor's temper, Entreri vs Jierdan, Catti-brie's manipulation).",
+      "confidence": 0.9,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "18",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by the physical journey into Mithral Hall, including the dangerous descent, searching for the hidden door, and the final entry, while interpersonal tensions arise from Bruenor's rage at Regis and the group's internal dynamics.",
+      "confidence": 0.9,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "19",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by the physical threats of the shadow-creatures, the golem, and the collapsing trap, with the party's survival at stake.",
+      "confidence": 0.95,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "20",
+      "primary_conflict": "internal",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by the companions' grief and guilt over Drizzt's death, with Bruenor's internal struggle dominating the narrative energy.",
+      "confidence": 0.9,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "21",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by the physical threat of the Duergar and the need to escape the undercity, with the tense alliance between Drizzt and Entreri forming the secondary interpersonal conflict.",
+      "confidence": 0.9,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "22",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by the companions' combat against Duergar, Bok, and Sydney, with the physical threat of Shimmergloom looming; secondary tension arises from Bruenor's outburst at Regis and Wulfgar's worry about Catti-brie.",
+      "confidence": 0.95,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "23",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "internal",
+      "rationale": "The chapter is driven by the physical battle against Shimmergloom, with Bruenor's sacrifice and the companions' survival at stake; internal struggles (Bruenor's guilt, Wulfgar's despair) are secondary.",
+      "confidence": 0.95,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "24",
+      "primary_conflict": "interpersonal",
+      "secondary_conflict": "external-physical",
+      "rationale": "The chapter is driven by Drizzt's confrontation with Entreri over Regis and Guenhwyvar, a tense standoff between two characters within a coherent group (the companions vs. a rival), while the external threat of the Duergar and the gorge crossing is secondary.",
+      "confidence": 0.9,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "epilogue",
+      "primary_conflict": "external-cosmic",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by Dendybar's obsession with the Crystal Shard and Morkai's supernatural vengeance, culminating in a metaphysical confrontation where a specter controls a golem to kill the wizard.",
+      "confidence": 0.9,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "part1",
+      "primary_conflict": "internal",
+      "secondary_conflict": "internal",
+      "rationale": "The entire chapter is Drizzt's internal philosophical meditation on dragons, fear, faith, and the nature of belief, with no external or interpersonal conflict.",
+      "confidence": 1,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "part2",
+      "primary_conflict": "internal",
+      "secondary_conflict": "internal",
+      "rationale": "The entire chapter is Drizzt's introspective journal entry, wrestling with his own thoughts on nostalgia, change, and Bruenor's motivations, with no external or interpersonal conflict present.",
+      "confidence": 1,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "part3",
+      "primary_conflict": "internal",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by Drizzt's internal philosophical struggle over the Gondsman's reductive worldview, with the dialogue serving as a secondary interpersonal clash.",
+      "confidence": 0.9,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "prelude",
+      "primary_conflict": "internal",
+      "secondary_conflict": "external-cosmic",
+      "rationale": "The chapter is driven by Harkle's internal guilt and grief over Sydney's death and his complicity, and Guenhwyvar's internal reflection on its bond with Drizzt, while the cosmic threat of Entreri possessing the figurine looms as a secondary force.",
+      "confidence": 0.9,
+      "rotation_signal": "first"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "1",
+      "primary_conflict": "interpersonal",
+      "secondary_conflict": "internal",
+      "rationale": "The chapter is driven by the tension and debate between Drizzt and Wulfgar over trust and direction, with internal doubts as a secondary layer.",
+      "confidence": 0.9,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "2",
+      "primary_conflict": "interpersonal",
+      "secondary_conflict": "internal",
+      "rationale": "The chapter is driven by the psychological duel between Entreri and Regis, with Entreri's manipulation and Regis's counter-deception forming the core narrative tension.",
+      "confidence": 0.9,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "3",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by the physical confrontation with the banshee Agatha, including combat, traps, and magical attacks, while the tension between Drizzt and Wulfgar over approach and the villagers' protectiveness provides secondary interpersonal conflict.",
+      "confidence": 0.95,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "4",
+      "primary_conflict": "interpersonal",
+      "secondary_conflict": "internal",
+      "rationale": "The chapter is driven by the tension within the party (Drizzt and Wulfgar) as they navigate Waterdeep and avoid a brawl, while Drizzt's internal struggle with the mask is a secondary concern.",
+      "confidence": 0.9,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "5",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "internal",
+      "rationale": "The chapter is driven by Bruenor's physical combat and escape through the duergar-infested undercity, with his internal struggle against despair and doubt as a secondary thread.",
+      "confidence": 0.95,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "6",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by Entreri's physical threats and violence (killing sailors, burning the ship) to secure passage and control Regis, with the interpersonal tension between Entreri and Regis as a secondary thread.",
+      "confidence": 0.9,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "7",
+      "primary_conflict": "internal",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by Bruenor's internal struggle with grief, guilt, and his sense of duty, while his interactions with Alustriel and Catti-brie provide interpersonal tension.",
+      "confidence": 0.9,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "8",
+      "primary_conflict": "interpersonal",
+      "secondary_conflict": "internal",
+      "rationale": "The chapter is driven by Pook's tense interactions with Rassiter and his anticipation of Entreri's return, which are interpersonal conflicts within the guild, while Pook's internal disgust and LaValle's private fears form a secondary internal layer.",
+      "confidence": 0.9,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "9",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by the physical pursuit and the threat of interception by Pook's ships, while interpersonal tension arises from the companions' suspicions and the debate over Entreri's motives.",
+      "confidence": 0.9,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "10",
+      "primary_conflict": "interpersonal",
+      "secondary_conflict": "external-physical",
+      "rationale": "The chapter is driven by Bruenor's decision to abandon his kingdom preparations to rescue Regis, creating tension with Catti-brie and Alustriel, while the chariot flight and near-collision with the ship provide physical stakes.",
+      "confidence": 0.9,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "11",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by a multi-ship naval battle against pirates, with combat, boarding actions, and physical threats dominating the narrative energy.",
+      "confidence": 0.95,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "12",
+      "primary_conflict": "interpersonal",
+      "secondary_conflict": "external-physical",
+      "rationale": "The chapter is driven by the reunion and interactions among the companions and with Deudermont, including tension with Pinochet, rather than combat or cosmic forces.",
+      "confidence": 0.9,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "13",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "internal",
+      "rationale": "The chapter is driven by the physical threat of the Cells of Nine and the immediate danger of the hunting cats, while Regis's internal struggle against despair and his will to survive is a strong secondary element.",
+      "confidence": 0.9,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "14",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by the ambush and combat against bandits, making external-physical primary; the secondary conflict is the interpersonal tension within the party over Deudermont's decisions and the group's direction.",
+      "confidence": 0.95,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "15",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by the physical pursuit and capture of Sali Dalib, with the desert journey as a physical obstacle, while the interpersonal tension between Regis and Pook and the companions' interactions provide secondary conflict.",
+      "confidence": 0.9,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "16",
+      "primary_conflict": "internal",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter's narrative energy centers on Drizzt's internal struggle with his own grimness and the question of whether he seeks to kill Entreri for Regis or for himself, while the secondary tension is the interpersonal dynamic between Drizzt and Catti-brie as she challenges him.",
+      "confidence": 0.9,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "17",
+      "primary_conflict": "interpersonal",
+      "secondary_conflict": "external-physical",
+      "rationale": "The chapter is driven by the power struggle and deception between Pook and LaValle, and later between Pook and Rassiter, all within the same guild.",
+      "confidence": 0.9,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "18",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by the companions' combat against wererats, a crossbowman, and a sundew monster in the sewers, with the interpersonal tension between Drizzt and Bruenor over tactics as a secondary element.",
+      "confidence": 0.95,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "19",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by two parallel physical fights (Wulfgar vs hydra, Drizzt vs Entreri) with the hydra battle consuming the most narrative beats, while the interpersonal tension between Drizzt and Entreri (taunts, philosophy) is the second-strongest conflict.",
+      "confidence": 0.95,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "20",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by multiple physical confrontations (Drizzt vs Entreri, Wulfgar vs guards, Bruenor vs mob) and the rescue of Regis, with secondary tension within the party (Drizzt's claim on the kill vs Catti-brie's shot, and Drizzt's torn priorities).",
+      "confidence": 0.9,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "21",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "internal",
+      "rationale": "The chapter is driven by the companions' combat against wererats and Pook's forces, with the banishment spell as a physical threat, while Regis's internal guilt and decision to act form a strong secondary thread.",
+      "confidence": 0.95,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "22",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "internal",
+      "rationale": "The chapter is driven by the group's physical struggle to survive and escape the demonic plane, with combat against demodands and environmental hazards dominating the narrative energy.",
+      "confidence": 0.95,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "23",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by combat against demodands, giants, and Pook's forces, with the party fighting to rescue Catti-brie and hold the portal.",
+      "confidence": 0.95,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "24",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by the companions' combat against Pook, his demodands, and the wererats, with the Taros Hoop as a physical obstacle, while secondary tension arises from Pook's taunts and the brief verbal sparring between Entreri and Rassiter.",
+      "confidence": 0.95,
+      "rotation_signal": "no"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "25",
+      "primary_conflict": "interpersonal",
+      "secondary_conflict": "internal",
+      "rationale": "The chapter is driven by the companions' interactions and tensions with each other and with LaValle, particularly around Regis's new position and Drizzt's identity, while Drizzt's internal struggle with his past and identity is a secondary thread.",
+      "confidence": 0.9,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "epilogue",
+      "primary_conflict": "external-physical",
+      "secondary_conflict": "interpersonal",
+      "rationale": "The chapter is driven by the physical journey and docking of the ship, culminating in the receipt of a threatening token from an antagonist, while secondary tension arises from the crew's admiration and Drizzt's reflections on Deudermont.",
+      "confidence": 0.9,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "epilogue2",
+      "primary_conflict": "interpersonal",
+      "secondary_conflict": "external-physical",
+      "rationale": "The chapter is driven by Entreri's negotiations and power plays with LaValle, an ally within the guild, while the external threat of the approaching companions provides secondary tension.",
+      "confidence": 0.9,
+      "rotation_signal": "yes"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "epilogue3",
+      "primary_conflict": "interpersonal",
+      "secondary_conflict": "internal",
+      "rationale": "The chapter focuses on the companions reuniting, celebrating, and navigating their relationships (Bruenor's teasing, Regis's return), with Drizzt's internal peace as a secondary thread.",
+      "confidence": 0.9,
+      "rotation_signal": "no"
+    }
+  ],
+  "directional_assessment": "Modal primary across all 92 chapters: external-physical (55%). Cross-book rotation rate: 55% (chapter N differs from chapter N-1). Per-book rotation: crystal_shard=55%, streams_of_silver=50%, halflings_gem=61%. Mean classifier confidence: 0.92.",
+  "compare_to_mice": "Conflict-type taxonomy is ORTHOGONAL to mice (M=Milieu, I=Idea, C=Character, E=Event). Mice asks \"what thread is being opened/closed\", conflict-type asks \"what kind of opposition drives the chapter\". Mapping: external-physical and external-cosmic both partially overlap mice-E (event-thread). Internal partially overlaps mice-C (character-thread). Interpersonal cuts across both C and E. They do NOT collapse cleanly — conflict-type is a complementary axis, not a coarsening of mice.",
+  "cost_telemetry": {
+    "total_tokens": 144173,
+    "estimated_cost_usd": 0.0288,
+    "mean_latency_ms": 2062,
+    "wall_clock_seconds": 25
+  },
+  "methodology": "Beat summaries (sorted by scene_id then beat_idx) per chapter, passed to DeepSeek V4 Flash with strict JSON schema. rotation_signal computed post-hoc by comparing primary_conflict at chapter N vs N-1 within each book."
+}
