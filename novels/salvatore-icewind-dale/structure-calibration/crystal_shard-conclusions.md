@@ -3152,6 +3152,61 @@ Zero LLM cost. Pure compute on existing JSONL (~2 seconds wall time).
 
 ---
 
+## Session 2026-04-30T12:43:11.477Z — Pattern 28 ADDENDUM: epilogue-artifact corrected distances
+
+### Issue with original run
+
+The original run mapped string-chapter ids ("epilogue", "epilogue2", "epilogue3") to numeric proxies 9999/10000/10001 for the chapter-distance computation. Any setup → epilogue payoff pair therefore got a phantom distance of ~9970–9997 chapters. Affected pairs: **24** of 1008 (2.4%). This inflated the mean and max distance numbers in the original conclusions table; **the median and bucket distribution were unaffected** because the bucket cutoffs (0 / 1–3 / 4–9 / 10+) collapse all huge distances into the "10+" bucket regardless of magnitude.
+
+### Corrected mapping
+
+For each book, "epilogue" → `max_numeric_chapter + 1`. Per-book:
+- crystal_shard: max numeric chapter = 30
+- halflings_gem: max numeric chapter = 25
+- streams_of_silver: max numeric chapter = 24
+
+### Corrected distance summary
+
+| Book | Matched | Match rate | Median | Mean | P25 | P75 | P90 | Max | 0 / 1–3 / 4–9 / 10+ |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---|
+| crystal_shard | 333/370 | 90.0% | 1 | 4.08 | 0 | 6 | 14 | 25 | 126/93/56/58 |
+| streams_of_silver | 276/320 | 86.3% | 2 | 3.52 | 0 | 5 | 10 | 24 | 107/85/52/32 |
+| halflings_gem | 258/318 | 81.1% | 2 | 3.6 | 0 | 5 | 12 | 23 | 88/92/42/36 |
+| **aggregate** | 867/1008 | 86.0% | 1 | 3.76 | 0 | 5 | 13 | 25 | 321/270/150/126 |
+
+### Conclusion + Action — directional findings
+
+**Median and bucket shape are corpus-real and stable.** All three books have median distance 1–2 chapters with a long thin tail. The "near (1–3 chapter)" + "same-chapter" combined share is **68.2% across all 3 books** — Salvatore's setups overwhelmingly pay off within ~3 chapters.
+
+**Cross-book stability of the distribution shape:**
+- crystal_shard: 37.8% same-chapter, 27.9% near (1–3), 16.8% mid (4–9), 17.4% far (10+)
+- streams_of_silver: 38.8% same-chapter, 30.8% near (1–3), 18.8% mid (4–9), 11.6% far (10+)
+- halflings_gem: 34.1% same-chapter, 35.7% near (1–3), 16.3% mid (4–9), 14.0% far (10+)
+
+**Stable across all 3 books:** same-chapter + near (1–3 chapter) bucket dominates (>60% of matched pairs in every book). This is a strong directional finding for the planner: when a beat plants something material, the payoff lands within 3 chapters most of the time.
+
+**Drift on the far tail is small:** cs 17.4%, sos 11.6%, hg 14.0%. Book 1 (Crystal Shard) actually carries the *highest* far-payoff share, not book 3 — because Crystal Shard sets up several long-thread arcs (Errtu's revenge, the seven-lich backstory, the Wulfgar/barbarian arc) that don't pay off until chapters 20–30. Book 2 (Streams of Silver) has the most front-loaded distribution, consistent with its quest-structure (the Mithral Hall journey is largely chapter-to-chapter try-fail beats). Within-3-chapter share spread is only 4.1pp (cs 65.7%, sos 69.6%, hg 69.8%) — the near-payoff regime is the corpus-stable property.
+
+**Match rate stability:** 90.0% / 86.3% / 81.1% (cs / sos / hg). Match rate **declines** across the trilogy. Two non-exclusive interpretations: (a) more setups carry forward as series-hooks (open at end of book) rather than within-book setups; (b) the labeler is genuinely worse on later books because the corpus-vocabulary it sees in candidate summaries is more correlated with the setup descriptions, increasing soft-match noise.
+
+### Harness target (revised — addendum)
+
+The corrected distribution makes a stronger planner-prior recommendation possible. **Recommended writer planner constraint** (for `src/agents/planning-beats/beat-expansion-system.md` or `src/agents/planning-plotter/chapter-outline-system.md`):
+
+> "When a beat plants something material (object, knowledge, capability, vow, threat), the payoff should land within 1–3 chapters of the setup. Aggregate corpus median is **1 chapter**; **68%** of corpus payoffs land within 3 chapters. Setups designed for far-payoff (10+ chapters) should be reserved for the few series-arc threads (~15% of all setups in the corpus)."
+
+The setup-density prior (40% of beats plant something) and the distance prior (median 1–2 chapter payoff) should ship together.
+
+### Caveats — see original session above for full methodological caveats
+
+The pair-identification step is fundamentally noisier than the binary setup tag. Match-rate of 86% means the labeler said "no payoff in candidate list" for 14% of setups. Some of those are genuine open threads (Errtu's revenge, Drizzt's drow heritage, etc. — series hooks that pay off in later books in the trilogy or beyond). Others may be labeler false-negatives. A Sonnet-anchor calibration of the payoff side is the right next experiment if this prior is to ship as a hard constraint.
+
+### Artifact
+
+`crystal_shard.20260430T124311.setup-payoff-distance.rescored.json` — re-scored payoffs, with `distance_chapters_corrected` and `epilogue_artifact` flag on each pair.
+
+---
+
 ## Pattern 32 — Chapter-seam transition shape (P14 × P17 join) — 2026-04-30
 
 **Setup.** Pure-compute join of two already-completed labelings. P14 (`crystal_shard.20260430T113934.forward-hook-shape.json`) classifies each chapter close into one of 7 buckets: `partial-resolution`, `cliffhanger`, `foreshadow`, `question`, `character-cost-pause`, `time-cut`, `other`. P17 (`crystal_shard.20260430T115917.chapter-opener-taxonomy.json`) classifies each chapter open into one of 7 buckets: `scene-set-description`, `in-media-res-action`, `dialogue-first`, `interior-reflection`, `time-cut-announcement`, `callback-or-summary`, `other`. The join takes each non-final chapter N and emits the pair `(close_N, open_{N+1})`, building a 7×7 transition matrix per book + aggregate.
