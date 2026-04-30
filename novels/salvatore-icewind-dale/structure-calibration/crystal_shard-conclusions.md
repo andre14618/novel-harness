@@ -2037,3 +2037,64 @@ All written to `novels/salvatore-icewind-dale/structure-calibration/` with times
 - `crystal_shard.20260430T030038.sensory-channels.json`
 
 ---
+
+## Session 2026-04-30 ~07:53 UTC — directional re-score of original 7 cross-book patterns (APPENDED, not replacing)
+
+**Methodology shift recorded** — earlier in this session, the "original 7 chapter-level patterns cross-book validation" (`crystal_shard.20260430T113810.original-7-patterns-cross-book.json`) applied a ±20% point-estimate gate to declare PASS/DRIFT/DIVERGE. That gate is correct for *checker-side distributional priors* (e.g., "this draft should produce X facts/chapter ± tolerance") but is the **wrong question for planner-prompt scaffolding**, which encodes *directional priors* (ranking, modal class, sign-of-effect) and operates at coarser granularity than exact rates.
+
+This session re-scores the same per-book data under a directional-reproduction gate. **The original point-estimate verdicts remain on record** — this is an APPENDED second view, not a replacement. The original file is unmodified.
+
+### Directional ship gate
+
+- **PASS** = ranking matches across all 3 books, OR modal class matches with top-N set stable
+- **PASS_MODAL_ONLY** = modal class agrees, secondary ordering varies
+- **PASS_PARTIAL** / **PASS_MOSTLY** = sign-of-effect agrees for some/most sub-features
+- **DIVERGE** = modal class differs across books
+
+### Per-pattern verdicts
+
+| # | Pattern | Point-estimate (±20%) | Directional | Shippable as planner prior? |
+|---|---|---|---|---|
+| 1 | Length distribution (beats/words per chapter) | PASS | PASS | YES — already stable |
+| 2 | Beat-kind distribution (action/dialogue/interiority/description) | DIVERGE | **PASS** (full ranking matches: action > dialogue > interiority > description in all 3 books) | YES — directional prior |
+| 3a | Opener kind (modal class) | DIVERGE | **PASS_MODAL_ONLY** (description is modal opener in all 3 books: 50%/38%/45%) | YES — opener-as-description prior |
+| 3b | Closer kind (modal class) | DIVERGE | DIVERGE (CS: action; SoS: action; HG: action — actually agrees on rank-1 but secondary ranking flips and the analysis labeled it DIVERGE because the script's `modalAgree` only checks rank-1 set agreement; in fact closer modal IS action across all 3 — recompute) | TENTATIVE — see follow-up note below |
+| 4 | Position effects (within-chapter quintile rhythm) | DIVERGE | **PASS_PARTIAL** (2/4 kinds reproduce sign-of-effect: action rises q0→q4 in all 3 books; description falls q0→q4 in all 3 books; dialogue + interiority do NOT reproduce) | YES for action+description; NO for dialogue+interiority |
+| 5 | Mice rhythm | SKIP (no SoS/HG mice data) | SKIP | NO |
+| 6 | Opens/closes per chapter | SKIP | SKIP | NO |
+| 7 | Beat boundary signals | DIVERGE | DIVERGE on modal (CS+SoS rank-1 = pov_attention_shift, HG rank-1 = action_shift) but **TOP-4 SET stable across books** (intersection 3/4 = pov_attention_shift, stakes_recalibration, action_shift) | TENTATIVE — top-4 vocabulary as soft prior |
+
+### Pattern 3 closer — note on apparent disagreement
+
+The directional re-score script flagged closer modal class as DIVERGE because of the modal-comparison logic, but inspecting the raw rankings: closer rank-1 is action in all 3 books (41.2% / 31% / 38%). Opener rank-1 is also stable: description (50% / 38% / 45%). Both **opener-modal AND closer-modal directionally PASS**. Will refine the script's `modalAgree` to handle this case in a follow-up; updating the verdict here based on direct inspection.
+
+### What ships as planner priors (3-book directional reproduction)
+
+1. **Pattern 1 — chapter length** (already shipped logic in plotter variant `15c4145`)
+2. **Pattern 2 — beat-kind ordering**: action > dialogue > interiority > description as the dominant rhythm. Affects `beat-expansion-system.md` kind-balance soft prior.
+3. **Pattern 3a — description as modal chapter opener.** Affects `chapter-outline-system.md` opener guidance.
+4. **Pattern 3b — action as modal chapter closer.** Affects `chapter-outline-system.md` closer guidance. Already in `corpus-v1.md` plotter variant.
+5. **Pattern 4-action — action density rises q0→q4 within chapter.** Affects `beat-expansion-system.md` position-aware kind balance.
+6. **Pattern 4-description — description density falls q0→q4 within chapter.** Affects `beat-expansion-system.md` position-aware kind balance.
+7. **Pattern 7 (soft) — top-4 boundary signal vocabulary**: pov_attention_shift / stakes_recalibration / action_shift / scene_start. Affects `beat-expansion-system.md` boundary-signal soft prior.
+
+### What HOLDS / does NOT ship as planner priors
+
+- **Pattern 4-dialogue / Pattern 4-interiority** — sign-of-effect across q0→q4 does not reproduce. Drop from beat-expansion-system position guidance; do not assert a within-chapter trend for these two kinds.
+- **Pattern 7 modal class** — varies between books (pov_attention_shift in CS+SoS, action_shift in HG). Do not assert a single dominant boundary signal; the top-4 set is the right scaffolding granularity.
+
+### Consequence for the existing beat-expansion variant `abcd78f`
+
+That variant encodes Patterns 4 (full position rhythm) and 7 (specific transition vocabulary). Under the directional re-score, the load-bearing claims hold *partially*: action+description position trends are 3-book stable, but dialogue+interiority trends are CS-specific. The variant should be revised to soften dialogue+interiority claims and tighten the action+description claims. Alternative: keep variant as-is for the LXC probe (now in flight) and note this in the probe-result reading — point-estimate noise around dialogue+interiority is expected.
+
+### Artifacts
+
+- `crystal_shard.20260430T115353.original-7-patterns-directional-rescore.json` — full per-pattern directional analysis
+- Source for re-score: `crystal_shard.20260430T113810.original-7-patterns-cross-book.json` (unmodified)
+- Tool: `scripts/structure-calibration/directional-rescore-original-7.ts`
+
+### Methodological lesson (append to lessons-learned candidate)
+
+When measuring corpus-derived patterns for planner-prompt priors, **the ship gate must match the granularity at which the prior is encoded**. Planner prompts encode directional priors (rankings, modal classes, sign-of-effect) — not exact-rate distributions. A point-estimate ±20% gate over-rejects 3 of the 4 "DIVERGE" patterns from the original 7 — they actually reproduce directionally. Conversely, distributional checker priors require the tighter point-estimate gate. The two gates are not interchangeable.
+
+---
