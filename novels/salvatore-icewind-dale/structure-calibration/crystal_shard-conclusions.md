@@ -3058,3 +3058,96 @@ Artifact: `crystal_shard.20260430T124221.conflict-resolution-latency.json`
 Script: `scripts/structure-calibration/conflict-resolution-latency.ts`
 
 ---
+
+## Session 2026-04-30 ~08:39 UTC — Pattern 37: beat-to-summary expansion ratio
+
+**Trigger.** The harness is built around a brief→prose contract: the planner emits a 1–2-sentence `description` per beat, and the writer turns each into ~100 words of prose. The production beat-floor formula `ceil(targetWords / 150)` and the planner-prompt copy "**each beat is ~100 words of prose**" both encode an implicit ~4–5× brief→prose expansion. This pattern grounds that expectation in real published prose: how much prose did Salvatore actually generate per beat-summary in the IWD trilogy, and is the ratio stable across books / kinds?
+
+**Method.** Pure compute on `novels/salvatore-icewind-dale/beats.jsonl` (n=2,470 beats across 3 books, produced by the canonical corpus pipeline scenes→beats→briefs). For every beat, expansion = `text_words / summary_words` using a uniform whitespace-token word definition for both numerator and denominator. The singleton `stakes_recalibration` kind is excluded from per-kind aggregates (n=1, not a category) but kept in per-book and overall aggregates. Distribution shape inspected via 14-bin global histogram + a 0.5-step fine histogram in [1.5, 10.0] with naive local-maxima detection.
+
+**Headline.** Across the trilogy, Salvatore's brief→prose expansion has **mean 5.65× / median 5.19×**, with p25 = 3.86× and p75 = 6.86×. That's about **15% above** the harness's implicit ~4.5× target — directionally consistent, but lower-bound: the production planner's "1-2 sentence" briefs tend to land at the upper end of summary-length variance (mean 22.5w / median 22w / p25 19w / p75 25w on this corpus), so any time the planner emits a tighter brief, the writer would need to expand more than 5× to reach the 100-word/beat assumption.
+
+**Per-book stats.** Two books cluster, one runs hot:
+
+| Book | n | mean | median | p25 | p75 | min | max | stdev | CV |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| crystal_shard | 858 | 5.41 | 4.95 | 3.81 | 6.46 | 1.20 | 18.26 | 2.31 | 0.43 |
+| halflings_gem | 826 | 5.29 | 5.00 | 3.69 | 6.35 | 1.46 | 20.35 | 2.22 | 0.42 |
+| streams_of_silver | 786 | **6.31** | **5.69** | 4.22 | **7.63** | 1.52 | **27.38** | **3.06** | **0.49** |
+
+`streams_of_silver` is the structural outlier in both center (16% higher mean than the other two) and tail (27.38 max vs ≤20.35 elsewhere; CV 0.49 vs ~0.42). The same book was previously flagged in this doc's Pattern 22/23 conclusions as having ~1.8× larger median scene size than the other two — the per-summary-token prose burst here is consistent with that "more goes per scene" texture, regardless of whether the inflation is real or an artifact of the summary stage compressing a longer scene into a still-22-word brief. Cross-book directional verdict: **two books in tight agreement, one book ~16% hotter.**
+
+**Per-kind overall.** Per-kind expansion is essentially flat across the four primary kinds:
+
+| Kind | n | mean | median | p25 | p75 |
+|---|---:|---:|---:|---:|---:|
+| dialogue | 777 | 5.79 | 5.17 | 3.78 | 7.07 |
+| action | 891 | 5.67 | 5.27 | 3.90 | 6.76 |
+| description | 303 | 5.64 | 5.32 | 4.07 | 6.84 |
+| interiority | 498 | 5.43 | 4.98 | 3.83 | 6.65 |
+
+Spread between highest- and lowest-mean kind is **0.36×** (dialogue 5.79 vs interiority 5.43) — about 7% of the median. The kinds are differentiated by what the prose looks like (dialogue beats have quoted speech, interiority beats have introspection), but the brief→prose expansion factor is **not** a kind-discriminative signal at the corpus level.
+
+**Per-book per-kind rank ordering — kind ordering does NOT reproduce across books:**
+
+| Book | Rank order (mean expansion, high → low) |
+|---|---|
+| crystal_shard | description > action > dialogue > interiority |
+| halflings_gem | description > dialogue > action > interiority |
+| streams_of_silver | dialogue > action > description > interiority |
+
+**Top-kind shifts** (description on cs/hg, dialogue on sos), but **bottom-kind is interiority in all three books** (the only stable rank position). That makes intuitive sense: an interiority brief like "Drizzt reflects on Wulfgar's growth" maps to introspection prose that sticks fairly close to the brief's intent — there's less to invent than in a dialogue exchange. Cross-book conclusion: per-kind expansion targets are **NOT a corpus constant**; only "interiority is the lowest-expanding kind" reproduces.
+
+**Distribution shape.** The global histogram is **right-skewed unimodal with a long tail**, NOT bimodal:
+
+| Bin | % |
+|---|---:|
+| ≤1.0 | 0.00% |
+| 1.0–1.5 | 0.16% |
+| 1.5–2.0 | 0.89% |
+| 2.0–2.5 | 3.00% |
+| 2.5–3.0 | 6.07% |
+| 3.0–4.0 | 18.06% |
+| 4.0–5.0 | 18.83% |
+| **5.0–7.5** | **34.82%** |
+| 7.5–10.0 | 12.23% |
+| 10.0–15.0 | 5.14% |
+| 15.0–20.0 | 0.57% |
+| 20.0–30.0 | 0.24% |
+
+The 5.0–7.5× bin holds the modal third of the corpus. The fine 0.5-step histogram does flag two local maxima — `3.5–4.0` (count 246) and `7.0–7.5` (count 129) — but these aren't true bimodality: the 3.5–4.0 bump is the leading shoulder of the main mode, and the 7.0–7.5 bump is a cardinality-of-summary-rounding artifact ("beat summary lands at 20–25w, prose lands at 140–180w" naturally clusters there). Visual bimodality test: the dip between the two local-maxima sits at 5.0–5.5 with count 215 — only 13% lower than the 7.0–7.5 peak — so this is unimodal-with-shoulders, not two distinct populations. **Long-tail sanity.** 0.81% of beats expand 15× or more (20 out of 2,470). The five highest are all from `streams_of_silver` chapters 5/13/14 (action and dialogue beats expanding 20.5×–27.4×) — these are likely cases where a tightly-compressed brief covers a physically complex action sequence (extended battle / chase / monologue) that needed full real-time pacing in the prose.
+
+**Brief-length is NOT the primary driver of prose-length.** Pearson r between `summary_words` and `text_words` across all 2,470 beats is **0.169** — a mild positive correlation. Briefs ranged 9–58 words; prose ranged 30–482 words. The writer's expansion is dominated by the dramatic content, not the brief length. Practical implication: **a longer brief does not reliably yield longer prose**; the planner should size briefs for clarity-of-intent, not as a proxy for prose target word count.
+
+**Within-chapter expansion is fairly stable.** Across 92 chapters with ≥3 beats, the within-chapter ratio coefficient of variation is **mean 0.346 / median 0.345 / p25 0.305 / p75 0.398** — a chapter's beats are within ~35% of their own chapter's mean ratio. So the across-corpus CV (~0.43) is mostly inter-chapter variance (different chapter shapes), not intra-chapter noise. The high-expansion 20×+ outliers are concentrated in specific chapters (sos ch5, ch13, ch14), not scattered uniformly.
+
+**Outliers (sanity checks).** Lowest expansion (1.20×–1.52×) lands at chapters where the summary already includes nearly all the content — short transitional bridges where the brief is already 24–25 words and the prose lands at 30–38 words. Highest (20×+) lands at extended action/dialogue sequences where a 16–22-word brief covers full multi-paragraph confrontations. Both extremes are intrinsic to scene shape, not data-quality issues.
+
+### Conclusion + Action
+
+**P37 ships as a planner soft prior** with four directional conclusions:
+
+1. **The harness's implicit 4.5× target is ~15% low against published Salvatore.** Salvatore's median brief→prose expansion is **5.19×**, with the tight middle 50% landing in [3.86×, 6.86×]. The current `ceil(targetWords / 150)` floor assumes ~100w/beat from a brief that the planner is told to keep at "1-2 sentences." **Action: leave the floor formula alone** — `targetWords/150` already gives some over-allocation slack that lines up with 4.5× being a lower-bound on production expansion. **But update the planner-prompt copy** in `src/agents/planning-beats/beat-expansion-system.md`: change "each beat is ~100 words of prose" to "each beat is ~110-130 words of prose" — closer to the empirical median and inside the corpus interquartile range.
+
+2. **Per-kind expansion target is NOT corpus-stable; do NOT differentiate beat targetWords by kind.** Spread across kinds is 7% of median (5.43–5.79); rank order rotates across books except for interiority always being lowest-expanding. There is no signal here for a per-kind word-count prior. **Action: explicitly do not encode per-kind expansion in the beat-expander schema.** Pattern 32 (beat-length-by-kind) similarly found ~3% spread across kinds in the published prose itself; this pattern confirms that observation at the brief→prose ratio level. The planner can stay kind-agnostic on per-beat sizing.
+
+3. **Drop the brief-length → prose-length proportionality assumption (Pearson r = 0.169).** The writer expands by dramatic content, not brief size. **Action: any future "longer brief = longer prose" lever is a dead-end** — confirms that the harness's beat-floor strategy (count beats, not brief words) is the right shape.
+
+4. **Streams of Silver as a structural outlier.** sos has 16% higher mean expansion than the other two books. This pattern joins Pattern 22/23 (1.8× larger scenes) and the corpus pipeline notes flagging sos's scene segmentation as inflated. **Action: when computing cross-book corpus targets, prefer `crystal_shard` and `halflings_gem` as the directional anchor**; sos's segmentation should not be the canonical target until the scene-segmentation discrepancy is resolved.
+
+### Methodology caveats
+
+- **Word definition.** Used a uniform `\S+` regex split for both numerator and denominator. The recorded `words` field on each beat uses a similar definition (sanity-checked at the corpus pipeline stage — see `verification.json`); using the recorded field instead of recomputing yields the same trends.
+- **Single corpus.** This is one author across one trilogy. The "5.65× mean expansion" is **not** a universal target — it's "what Salvatore did in IWD." Genre-by-genre, the expansion ratio likely differs (high-dialogue genres → higher ratios; thriller/action genres → potentially lower). Treat as a Salvatore-voice prior, not a fantasy-genre prior, until cross-corpus data exists.
+- **Brief size has its own variance.** The 22.5w mean / 22w median brief size on this corpus is the corpus-pipeline `summary` field, not a literal "1-2 sentence planner output." If the harness's actual production brief tends to land at 25–30w (longer planner output), the 5.19× median expansion would project to ~135–155w/beat at the writer — even further from the 100w assumption. **A worth-doing follow-up:** sample 200 production beat descriptions from `pipeline_events` and re-run this analysis at the production granularity to confirm whether real harness briefs are 22w or 30w.
+- **No comparison to harness production yet.** Per the `feedback_pilot_checkers_in_production` pattern in MEMORY, this conclusion's "the harness is ~15% low on its implicit expansion target" should be validated by a 3-chapter production run measuring actual `text_words / description_words` from `llm_calls` before the planner-prompt copy gets updated. Until then, treat this as a CALIBRATION conclusion, not a SHIP conclusion.
+
+### Cost ledger
+
+Zero LLM cost. Pure compute on existing JSONL (~2 seconds wall time).
+
+### Artifacts
+
+- `crystal_shard.20260430T083914.beat-summary-expansion.json` — Pattern 37 (per-book + per-kind + per-book-per-kind expansion stats with mean/median/p25/p75/p90/min/max/stdev; global 14-bin histogram with %; fine 0.5-step histogram in [1.5, 10.0]; local-maxima detection; cross-book kind-rank reproducibility flags; bottom-5 and top-20 outlier beats with full provenance; brief and prose word distributions for context).
+
+---
