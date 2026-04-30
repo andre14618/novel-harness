@@ -1982,6 +1982,17 @@ DeepSeek ~3× cleaner on instruction-constrained prose. Cerebras wins on raw spe
 
 **Ongoing:** Planner output remains the right boundary for scaffolding cleanup. Functional checks remain a safety net, not the primary sanitation path.
 
+### Chapter-level fallback discards abandoned beat-level findings
+*2026-04-30 · exp #281 (`novel-1777590946276`)*
+
+**Decision:** When beat-level drafting fails and the pipeline falls back to the chapter-level writer, partial beat prose and accepted beat-check blockers from the abandoned beat attempt are cleared before chapter-level checks and approval handling run.
+
+**Why:** Exp #281 proved that stale beat-check findings can otherwise block a fallback draft that did not contain the abandoned beat prose. Beat-scoped adherence and entity-grounding findings are only valid for the exact beat prose they inspected.
+
+**Alternatives rejected:** Keep stale beat blockers for visibility - visibility belongs in telemetry/logs, not approval blockers for a replacement artifact. Disable fallback - too expensive and brittle when one beat cannot settle. Re-run beat-level checks against chapter fallback - the checker shape is beat-scoped and not designed for chapter prose.
+
+**Ongoing:** Any future artifact-replacement fallback should follow the same rule: clear or remap checker findings whose evidence target was discarded.
+
 ### Together AI fine-tunes require explicit per-job authorization
 *2026-04-18 · user directive*
 

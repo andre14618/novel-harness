@@ -111,6 +111,7 @@ Exhaustion events are recorded in `chapter_exhaustions` table. Query via `GET /a
 - Tonal/voice LoRA generation is retired from runtime.
 - Historical tonal-pass chapter versions can still be displayed for comparison, but new tonal-pass generation returns `410 Gone`.
 - Retry pressure should route through drafting / targeted issue handling, not chapter-wide rewrite passes.
+- If beat-level drafting falls back to chapter-level drafting, abandoned partial beat prose and accepted beat-check blockers are discarded before chapter-level checks run; stale beat findings must not block a fallback draft.
 
 Primary code references:
 

@@ -72,6 +72,16 @@ export function effectivePipeline(seed: SeedInput): typeof pipeline {
   }
 }
 
+export interface BeatLevelFallbackState {
+  beatProses: string[]
+  acceptedBeatCheckIssues: AcceptedBeatCheckIssues[]
+}
+
+export function clearAbandonedBeatLevelState(state: BeatLevelFallbackState): void {
+  state.beatProses.length = 0
+  state.acceptedBeatCheckIssues.length = 0
+}
+
 /**
  * Route validation blockers to specific beat indices for targeted rewrites.
  * Drafting-mode blockers come in two flavors (see src/validation.ts:21-37):
@@ -414,6 +424,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
             // Fallback to chapter-level
             console.log("  Beat generation incomplete, falling back to chapter-level...")
             log(novelId, "info", `Beat fallback → chapter-level for chapter ${ch}`)
+            clearAbandonedBeatLevelState({ beatProses, acceptedBeatCheckIssues })
             const writerContext = await buildWriterContext(novelId, ch)
             const draftResult = await callAgent({
               novelId, agentName: "writer",
