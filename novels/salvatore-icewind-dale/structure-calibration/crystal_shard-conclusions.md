@@ -2247,3 +2247,61 @@ This is a **directional** prior (modal class + ordering), so the ship gate is th
 - `crystal_shard.20260430T075516.dramatic-question-shape.json` — per-chapter labels (book, chapter, opening_question, resolution_shape, confidence) + aggregate + per-book distribution + directional assessment
 
 ---
+
+## Session 2026-04-30 ~08:07 UTC — Stake-escalation curve + beat-length per kind (parallel pure-compute pass)
+
+Two pure-compute analyses on `beats.jsonl` while the LXC phase-eval probe ran in the background. Both append-only with timestamped artifacts.
+
+### Pattern 20 — Stake-escalation curve (3-book directionally stable, BOTH axes)
+
+Counts `boundary_signal == "stakes_recalibration"` events per chapter quintile (within-chapter) and per book-arc third (across-book).
+
+**Within-chapter trend (q0→q4 stakes events as % of chapter total):**
+
+| Book | q0 | q1 | q2 | q3 | q4 | trend |
+|---|---|---|---|---|---|---|
+| crystal_shard | 7.6% | 21.5% | 23.6% | 25.7% | 21.5% | rising |
+| streams_of_silver | 10.7% | 14.3% | 24.1% | 28.6% | 22.3% | rising |
+| halflings_gem | 4.8% | 22.4% | 28.0% | 21.6% | 23.2% | rising |
+
+**Across-book arc (mean stakes events per chapter, by book-arc third):**
+
+| Book | early | mid | late | direction |
+|---|---|---|---|---|
+| crystal_shard | 3.8 | 3.7 | 5.8 | rising |
+| streams_of_silver | 3.5 | 4.0 | 4.88 | rising |
+| halflings_gem | 4.63 | 4.11 | 5.75 | rising |
+
+Both axes directionally stable across all 3 books — stakes escalate within chapters AND across the book arc. Roughly 38–52% of chapters individually have q4 > q0 (rising-stakes within chapter), with the rest mostly mid-peak — consistent with a corpus where stakes escalate but with rhythm, not a strict monotonic ramp.
+
+**Conclusion + Action:** Strong NEW ship candidate (Pattern 20). Encode into `chapter-outline-system.md` `purpose` guidance — "stakes should escalate from chapter open to chapter close, with permitted mid-chapter peaks" + book-arc soft prior "later chapters carry denser stakes events."
+
+Artifact: `crystal_shard.20260430T120751.stake-escalation.json`
+
+### Pattern 21 — Beat-length is uniform across beat kinds (NEGATIVE finding, still load-bearing)
+
+Per-kind beat-length stats across all 3 IWD books (n=2,469 beats with kind classification):
+
+| Kind | n | mean | median | p25 | p75 |
+|---|---|---|---|---|---|
+| action | 891 | 104.9w | 105w | 95 | 115 |
+| dialogue | 777 | 106.6w | 106w | 95 | 117 |
+| interiority | 498 | 108.0w | 107w | 94 | 120 |
+| description | 303 | 107.5w | 107w | 96 | 118 |
+
+**Means are within 3 words across all kinds.** Per-kind ordering by mean is NOT directionally stable — but the variation is essentially noise. Per-book orderings:
+- crystal_shard: interiority > action > dialogue > description
+- streams_of_silver: description > interiority > dialogue > action
+- halflings_gem: description > interiority > dialogue > action
+
+**Interpretation:** in the Salvatore corpus, beat length is roughly uniform regardless of kind (~100–110 words). The harness's existing `targetWords / 100` beat-count rule is corpus-valid; we should NOT differentiate beat-length targets by kind.
+
+**Conclusion + Action:** NEGATIVE finding (Pattern 21) — ship NO change. Recorded so future sessions don't re-discover the same null result. Confirms current `targetWords / 100` policy is corpus-aligned. Rules OUT the tempting future planner-prompt edit "action beats should be shorter; interiority beats longer."
+
+Artifact: `crystal_shard.20260430T120740.beat-length-by-kind.json`
+
+### Session cost
+
+Zero LLM calls. Pure compute on existing labeled data.
+
+---
