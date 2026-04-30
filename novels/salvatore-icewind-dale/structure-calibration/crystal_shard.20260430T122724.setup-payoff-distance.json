@@ -1,0 +1,1265 @@
+{
+  "timestamp": "2026-04-30T12:27:24.296Z",
+  "stage": "calibrate-only",
+  "calibration": {
+    "perBook": [
+      {
+        "book": "crystal_shard",
+        "n": 50,
+        "jaccard": 0.8,
+        "pos_run1": 17,
+        "pos_run2": 19,
+        "agreement_count": 46,
+        "disagreement_count": 4,
+        "run1": [
+          {
+            "beat_id": "crystal_shard_ch30_s12_b0",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch18_s3_b0",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch6_s0_b3",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch7_s3_b1",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch20_s0_b6",
+            "is_setup": true
+          },
+          {
+            "beat_id": "crystal_shard_chepilogue_s0_b3",
+            "is_setup": true
+          },
+          {
+            "beat_id": "crystal_shard_ch20_s0_b4",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch24_s0_b5",
+            "is_setup": true
+          },
+          {
+            "beat_id": "crystal_shard_ch17_s4_b2",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch21_s2_b4",
+            "is_setup": true
+          },
+          {
+            "beat_id": "crystal_shard_ch30_s2_b1",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch17_s0_b3",
+            "is_setup": true
+          },
+          {
+            "beat_id": "crystal_shard_ch24_s0_b8",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch8_s0_b7",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch16_s0_b17",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch2_s3_b0",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch9_s0_b6",
+            "is_setup": true
+          },
+          {
+            "beat_id": "crystal_shard_ch20_s0_b7",
+            "is_setup": true
+          },
+          {
+            "beat_id": "crystal_shard_ch29_s0_b9",
+            "is_setup": true
+          },
+          {
+            "beat_id": "crystal_shard_ch3_s0_b0",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch15_s4_b0",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch1_s0_b0",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch18_s5_b5",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch2_s3_b1",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch28_s2_b2",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_chprelude_s1_b0",
+            "is_setup": true
+          },
+          {
+            "beat_id": "crystal_shard_ch22_s4_b7",
+            "is_setup": true
+          },
+          {
+            "beat_id": "crystal_shard_ch23_s3_b0",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch30_s0_b1",
+            "is_setup": true
+          },
+          {
+            "beat_id": "crystal_shard_ch18_s0_b12",
+            "is_setup": true
+          },
+          {
+            "beat_id": "crystal_shard_ch29_s1_b25",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch4_s3_b2",
+            "is_setup": true
+          },
+          {
+            "beat_id": "crystal_shard_ch18_s0_b17",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch8_s0_b6",
+            "is_setup": true
+          },
+          {
+            "beat_id": "crystal_shard_ch25_s2_b2",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch22_s1_b5",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch26_s0_b2",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch19_s3_b0",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch30_s13_b4",
+            "is_setup": true
+          },
+          {
+            "beat_id": "crystal_shard_ch13_s0_b6",
+            "is_setup": true
+          },
+          {
+            "beat_id": "crystal_shard_ch20_s2_b1",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_chepilogue3_s4_b1",
+            "is_setup": true
+          },
+          {
+            "beat_id": "crystal_shard_ch16_s0_b18",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch18_s0_b22",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch17_s3_b2",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch3_s2_b6",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch16_s0_b5",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch18_s0_b10",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch23_s1_b2",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_chepilogue3_s0_b1",
+            "is_setup": false
+          }
+        ],
+        "run2": [
+          {
+            "beat_id": "crystal_shard_ch30_s12_b0",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch18_s3_b0",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch7_s3_b1",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_chepilogue_s0_b3",
+            "is_setup": true
+          },
+          {
+            "beat_id": "crystal_shard_ch6_s0_b3",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch20_s0_b6",
+            "is_setup": true
+          },
+          {
+            "beat_id": "crystal_shard_ch24_s0_b5",
+            "is_setup": true
+          },
+          {
+            "beat_id": "crystal_shard_ch21_s2_b4",
+            "is_setup": true
+          },
+          {
+            "beat_id": "crystal_shard_ch20_s0_b4",
+            "is_setup": true
+          },
+          {
+            "beat_id": "crystal_shard_ch17_s4_b2",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch30_s2_b1",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch17_s0_b3",
+            "is_setup": true
+          },
+          {
+            "beat_id": "crystal_shard_ch24_s0_b8",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch9_s0_b6",
+            "is_setup": true
+          },
+          {
+            "beat_id": "crystal_shard_ch2_s3_b0",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch8_s0_b7",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch16_s0_b17",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch20_s0_b7",
+            "is_setup": true
+          },
+          {
+            "beat_id": "crystal_shard_ch1_s0_b0",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch29_s0_b9",
+            "is_setup": true
+          },
+          {
+            "beat_id": "crystal_shard_ch3_s0_b0",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch15_s4_b0",
+            "is_setup": true
+          },
+          {
+            "beat_id": "crystal_shard_ch28_s2_b2",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch18_s5_b5",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch2_s3_b1",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch23_s3_b0",
+            "is_setup": true
+          },
+          {
+            "beat_id": "crystal_shard_ch22_s4_b7",
+            "is_setup": true
+          },
+          {
+            "beat_id": "crystal_shard_chprelude_s1_b0",
+            "is_setup": true
+          },
+          {
+            "beat_id": "crystal_shard_ch29_s1_b25",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch18_s0_b12",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch30_s0_b1",
+            "is_setup": true
+          },
+          {
+            "beat_id": "crystal_shard_ch18_s0_b17",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch4_s3_b2",
+            "is_setup": true
+          },
+          {
+            "beat_id": "crystal_shard_ch8_s0_b6",
+            "is_setup": true
+          },
+          {
+            "beat_id": "crystal_shard_ch22_s1_b5",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch25_s2_b2",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch26_s0_b2",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch30_s13_b4",
+            "is_setup": true
+          },
+          {
+            "beat_id": "crystal_shard_ch19_s3_b0",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch13_s0_b6",
+            "is_setup": true
+          },
+          {
+            "beat_id": "crystal_shard_ch20_s2_b1",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_chepilogue3_s4_b1",
+            "is_setup": true
+          },
+          {
+            "beat_id": "crystal_shard_ch17_s3_b2",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch18_s0_b22",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch16_s0_b18",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch3_s2_b6",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch16_s0_b5",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch23_s1_b2",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_ch18_s0_b10",
+            "is_setup": false
+          },
+          {
+            "beat_id": "crystal_shard_chepilogue3_s0_b1",
+            "is_setup": false
+          }
+        ]
+      },
+      {
+        "book": "streams_of_silver",
+        "n": 50,
+        "jaccard": 0.8,
+        "pos_run1": 20,
+        "pos_run2": 25,
+        "agreement_count": 45,
+        "disagreement_count": 5,
+        "run1": [
+          {
+            "beat_id": "streams_of_silver_ch2_s0_b1",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch1_s0_b5",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch14_s0_b18",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch12_s3_b1",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch11_s0_b5",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch2_s0_b5",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch5_s0_b28",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch22_s5_b1",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch2_s0_b7",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch9_s3_b17",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch20_s0_b5",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch17_s2_b9",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch10_s1_b13",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch24_s0_b4",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_chpart3_s0_b0",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch2_s0_b2",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch19_s4_b0",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch8_s0_b21",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch3_s3_b7",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch21_s0_b3",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch11_s2_b2",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch22_s5_b7",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch12_s0_b5",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch22_s0_b1",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch15_s3_b1",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch21_s0_b17",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch3_s1_b3",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch19_s2_b7",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch19_s2_b2",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch7_s0_b7",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch10_s0_b3",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch22_s5_b9",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch18_s0_b14",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_chpart3_s0_b1",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch23_s5_b3",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch1_s0_b24",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch14_s0_b8",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch17_s0_b7",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch22_s5_b13",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch9_s3_b19",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch6_s3_b5",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch1_s0_b23",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch1_s0_b18",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch22_s1_b2",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch6_s2_b14",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch7_s0_b5",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_chpart2_s0_b1",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch10_s0_b1",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch21_s0_b13",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch14_s0_b13",
+            "is_setup": false
+          }
+        ],
+        "run2": [
+          {
+            "beat_id": "streams_of_silver_ch14_s0_b18",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch11_s0_b5",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch12_s3_b1",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch1_s0_b5",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch2_s0_b1",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch2_s0_b5",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch5_s0_b28",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch22_s5_b1",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch17_s2_b9",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch9_s3_b17",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch20_s0_b5",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch2_s0_b7",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch10_s1_b13",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch24_s0_b4",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch2_s0_b2",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch19_s4_b0",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_chpart3_s0_b0",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch8_s0_b21",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch22_s5_b7",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch11_s2_b2",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch3_s3_b7",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch12_s0_b5",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch21_s0_b3",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch22_s0_b1",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch15_s3_b1",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch21_s0_b17",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch3_s1_b3",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch7_s0_b7",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch19_s2_b7",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch19_s2_b2",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch10_s0_b3",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch18_s0_b14",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch22_s5_b9",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_chpart3_s0_b1",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch23_s5_b3",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch1_s0_b24",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch22_s5_b13",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch14_s0_b8",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch17_s0_b7",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch6_s3_b5",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch1_s0_b23",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch9_s3_b19",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch1_s0_b18",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch6_s2_b14",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch22_s1_b2",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch21_s0_b13",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_chpart2_s0_b1",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch10_s0_b1",
+            "is_setup": false
+          },
+          {
+            "beat_id": "streams_of_silver_ch7_s0_b5",
+            "is_setup": true
+          },
+          {
+            "beat_id": "streams_of_silver_ch14_s0_b13",
+            "is_setup": false
+          }
+        ]
+      },
+      {
+        "book": "halflings_gem",
+        "n": 50,
+        "jaccard": 0.885,
+        "pos_run1": 23,
+        "pos_run2": 26,
+        "agreement_count": 47,
+        "disagreement_count": 3,
+        "run1": [
+          {
+            "beat_id": "halflings_gem_ch13_s0_b4",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch1_s0_b11",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch20_s5_b4",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch11_s11_b1",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch4_s4_b4",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch6_s0_b5",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch16_s3_b8",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch5_s0_b21",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch1_s1_b4",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch20_s6_b3",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch2_s0_b2",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch17_s2_b3",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch25_s0_b7",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch15_s1_b0",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch10_s2_b5",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch7_s2_b9",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch19_s1_b1",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch14_s0_b4",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch2_s1_b1",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch21_s3_b0",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch21_s5_b3",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch23_s3_b0",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch20_s3_b4",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch10_s4_b3",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch24_s6_b0",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch11_s1_b9",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch25_s1_b1",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch18_s0_b5",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch10_s2_b8",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch9_s5_b2",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch11_s1_b7",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch11_s0_b0",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch4_s1_b7",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch19_s4_b3",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_chprelude_s0_b4",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch6_s2_b8",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch4_s0_b4",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch13_s2_b4",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch7_s1_b7",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch23_s4_b0",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_chepilogue3_s0_b1",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch17_s0_b5",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch11_s6_b3",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch19_s3_b4",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch23_s2_b3",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch11_s3_b4",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch7_s1_b6",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch14_s0_b3",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch11_s3_b1",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch20_s3_b3",
+            "is_setup": false
+          }
+        ],
+        "run2": [
+          {
+            "beat_id": "halflings_gem_ch1_s0_b11",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch20_s5_b4",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch4_s4_b4",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch13_s0_b4",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch11_s11_b1",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch6_s0_b5",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch16_s3_b8",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch5_s0_b21",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch1_s1_b4",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch20_s6_b3",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch17_s2_b3",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch2_s0_b2",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch15_s1_b0",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch25_s0_b7",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch7_s2_b9",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch14_s0_b4",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch19_s1_b1",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch10_s2_b5",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch21_s5_b3",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch2_s1_b1",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch21_s3_b0",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch23_s3_b0",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch10_s4_b3",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch20_s3_b4",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch24_s6_b0",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch25_s1_b1",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch11_s1_b9",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch9_s5_b2",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch18_s0_b5",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch10_s2_b8",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch11_s1_b7",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch19_s4_b3",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch4_s1_b7",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch11_s0_b0",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_chprelude_s0_b4",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch4_s0_b4",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch6_s2_b8",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch13_s2_b4",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch23_s4_b0",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch7_s1_b7",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch11_s6_b3",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch19_s3_b4",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch17_s0_b5",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_chepilogue3_s0_b1",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch23_s2_b3",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch11_s3_b4",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch7_s1_b6",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch11_s3_b1",
+            "is_setup": false
+          },
+          {
+            "beat_id": "halflings_gem_ch14_s0_b3",
+            "is_setup": true
+          },
+          {
+            "beat_id": "halflings_gem_ch20_s3_b3",
+            "is_setup": false
+          }
+        ]
+      }
+    ],
+    "aggregateJ": 0.831,
+    "pass": true,
+    "tokens": {
+      "input": 225886,
+      "output": 10110
+    }
+  },
+  "token_ledger": {
+    "calibration_in": 225886,
+    "calibration_out": 10110,
+    "full_setup_in": 0,
+    "full_setup_out": 0,
+    "payoff_in": 0,
+    "payoff_out": 0
+  },
+  "setup_labels": null,
+  "payoff_pairs": null,
+  "setup_density": null,
+  "payoff_distance": null
+}
