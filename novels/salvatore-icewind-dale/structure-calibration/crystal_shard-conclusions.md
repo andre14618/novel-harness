@@ -1461,3 +1461,74 @@ This pattern should be added to the future-experiment SOP. Standing rule:
 `crystal_shard.20260430T013524.value-charge-binary-collapse.json` — full per-variant Jaccard + per-class run-1/run-2 distributions.
 
 ---
+
+## Session 2026-04-30 ~01:37 UTC — mckee-gap binary-collapse + agency/aspiration disagreement clusters
+
+### mckee-gap binary-collapse — only `undermining` is shippable
+
+Same pattern as value-charge. Re-aggregated existing v2-50 outputs at every binary collapse:
+
+| Variant | Anchor Jaccard | Verdict |
+|---|---:|---|
+| gap_type-6class (original) | 0.538 | UNSTABLE |
+| **gap_type-binary-undermining** | **0.852** | **PASS** |
+| gap_type-binary-revelation | 0.818 | NEAR |
+| gap_type-binary-none | 0.818 | NEAR |
+| gap_type-binary-reversal | 0.754 | NEAR |
+| gap_type-binary-escalation | 0.695 | UNSTABLE |
+| **gap-present-binary** (any vs none) | **0.818** | **NEAR** |
+| gap_size-4class (original) | 0.471 | UNSTABLE |
+| gap_size-binary-large | 0.818 | NEAR |
+| gap_size-binary-none | 0.754 | NEAR |
+| gap_size-binary-medium | 0.587 | UNSTABLE |
+| gap_size-binary-small | 0.639 | UNSTABLE |
+| tuple gap_type-6 × gap_size-4 | 0.351 | UNSTABLE |
+
+Only one cleanly shippable binary tag (`undermining` 0.852). The most useful would-be-shippable signal — `gapPresent: boolean` — is at **0.818 NEAR**, not PASS. **The existing `gapPresent` field on `sceneBeatSchema` (commit `42745ce`) deserves the same anchor-instability caveat as `valueShift`.** Cross-model F1 was 0.892; anchor Jaccard is 0.818.
+
+Three NEAR-bar binary collapses (gap-present-binary, revelation, reversal) are sharpening candidates. The rubric latitude question for mckee-gap is whether "no gap" is being applied consistently — Sonnet disagrees on ~10 of 50 beats about whether a gap exists at all, even though both runs would tag the type the same way given the gap.
+
+### Agency vs aspiration disagreement clusters
+
+15 disagreement scenes identified across the two NEAR classes (8 agency-involving, 7 aspiration-involving). Six scenes appear in BOTH lists — the dominant failure mode is **agency ↔ aspiration confusion on group-action / charged-leadership scenes**.
+
+Examples:
+- `crystal_shard_ch26_s0` (Wulfgar's barbarian rally): run-1 agency(+), run-2 aspiration(+). Both readings valid — Wulfgar gains CONTROL over the tribes (agency) AND the tribes' HOPE rises (aspiration).
+- `crystal_shard_ch30_s9` ("they charged down the hill"): run-1 agency(+), run-2 aspiration(+). Action-execution vs belief-rising.
+- `crystal_shard_ch17_s0` ("they would strike the first blows"): run-1 agency(+), run-2 aspiration(+). Same.
+- `crystal_shard_ch3_s1` (Heafstaag's barbarian song): run-1 agency(0), run-2 aspiration(0). Neither + nor -, just static; rubric ambiguity.
+
+Other agency disagreements (vs `life-death`):
+- `crystal_shard_ch22_s4` (Wulfgar killing in coronation rite): run-1 agency(+) "should have heralded the new King"; run-2 life-death(-) "skull squashed beneath his hands". Different POV anchor → different lifeValue.
+- `crystal_shard_ch23_s2` (avalanche outcome): run-1 agency(+), run-2 life-death(-). Same scene, different framing.
+
+### Proposed v3 tie-breaker rule for agency vs aspiration
+
+Add to value-charge system prompt:
+
+> **Agency vs aspiration tie-breaker** (apply when both could plausibly fit):
+>
+> - The scene shows characters **DOING** something (executing a plan, taking action, charging, killing, leading) → **agency**. Test: would the scene's narrative weight survive if you stripped out all interior emotion? If yes, agency.
+> - The scene shows characters **FEELING / BELIEVING** something (hope rises, faith renewed, despair, doubt collapses) → **aspiration**. Test: would the scene work if you stripped out all overt action? If yes, aspiration.
+> - **Charged-leadership / mass-action scenes** (a leader rallies their force; a force charges; an alliance forms) — these show DOING with strong emotional resonance. Default to **agency** unless the prose explicitly anchors on the *belief shift* (specific lines about hope, faith, conviction). The action is primary; the emotional shift is consequence.
+> - **Group-action scenes** (charges, songs, rallies, retreats): default to **agency** when the group-level action drives the scene. Use **aspiration** only if the scene is about the group's morale/hope shifting (e.g., a rout-into-routed reversal where the FEELING is the substance).
+
+### Updated experiment ranking
+
+1. **Land schema follow-up #2 (cheapest right metric)** — `valueShift` → `valueShifted: boolean`, add `lifeValueAxes: ('life-death' | 'ethics' | 'relational')[]`. ~15 min, no LLM calls.
+2. **Add caveat to `gapPresent`** mirroring the `valueShift` caveat. Same commit as #1. Plus update planner prompt for the binary `valueShifted` field and the lifeValueAxes array.
+3. **Draft v3 value-charge rubric with the tie-breaker** + re-label agency + aspiration only on n=50 (4 subagents). Verify J ≥ 0.85 on those two binary classes. ~30 min.
+4. **Sharpen mckee-gap rubric** for the "no gap" boundary specifically (gap-present-binary at 0.818 should reach 0.85). Re-label on n=50 binary-only. ~15 min.
+5. **Cross-book validation** (Streams of Silver under v3 rubrics) — DEFERRED until #1-#4 land.
+
+### Cost ledger delta
+
+Zero new LLM calls. Pure re-analysis + rubric drafting.
+
+### Artifacts
+
+- `crystal_shard.20260430T013743.mckee-gap-binary-collapse.json` — full mckee-gap collapses
+- `/tmp/sonnet-tier2/value-charge/agency-disagreements.20260430T013744.json` — disagreement cluster details
+- `/tmp/sonnet-tier2/value-charge/aspiration-disagreements.20260430T013744.json` — same for aspiration
+
+---
