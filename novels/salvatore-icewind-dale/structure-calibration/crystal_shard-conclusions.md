@@ -2305,3 +2305,42 @@ Artifact: `crystal_shard.20260430T120740.beat-length-by-kind.json`
 Zero LLM calls. Pure compute on existing labeled data.
 
 ---
+
+## Session 2026-04-30 ~08:11 UTC — LXC phase-eval probe verdict (plotter corpus-v1 vs default)
+
+LXC re-run of the plotter A/B probe (`fantasy-system-heretic` seed, 3 chapters, 2 variants) succeeded after the schema-prompt sync fix (`0c8457d`) cleared the prior failure mode.
+
+### Per-chapter shape comparison
+
+| Metric | Default | Corpus-v1 | Pattern target | Verdict |
+|---|---|---|---|---|
+| `targetWords` per chapter | 1800/2000/2000 (med 2000) | 2500/3000/3000 (med 3000) | corpus median ~2500 (P1) | ✅ moved correctly toward target |
+| Beat counts per chapter | 15/17/17 (49 total) | 21/25/21 (67 total) | corpus median ~24–27 (P1b) | ✅ +36% beats, closer to corpus shape |
+| Opener kinds (`scenes[0].kind`) | description / action / description | description / description / action | description modal (P3a) | ✅ both pass; corpus-v1 slightly stronger |
+| Closer kinds (`scenes[-1].kind`) | action / action / interiority | description / dialogue / interiority | action modal (P3b) | ❌ corpus-v1 REGRESSED — 0/3 action vs default 2/3 |
+| POV rotation | Maret ×3 | Maret ×3 | 77% rotation rate (P10) | — n=3 too small to test; neither rotated |
+| `establishedFacts` median | 6 | 4 | corpus median 5; harness floor was 6 (P16) | ⚠️ corpus-v1 dropped BELOW corpus median |
+| `knowledgeChanges` per chapter | 3/4/4 | 3/7/7 | richer cross-chapter info | ✅ +75% in chapters 2–3 |
+| `charactersPresent` per chapter | 3/3/3 | 3/3/3 | front-load new chars (P9) | — can't separate new vs returning at probe granularity |
+
+### Conclusion + Action
+
+**Mixed verdict — variant is hitting some intended directional shifts and missing others.** The plotter `corpus-v1` variant succeeds on the LENGTH/BEAT-COUNT axis (Pattern 1) and on the knowledge-density axis but regresses on closer-kind modal class (Pattern 3b) and facts density (Pattern 16). Two follow-up actions queued:
+
+1. **Closer-kind regression** — review `corpus-v1.md` plotter variant for whether the per-chapter `purpose` guidance is steering the planner away from action-as-closer. The current variant text emphasizes "rising action" toward chapter end but may be under-specifying that the FINAL beat should be action-kind specifically. Revise variant to make "closer beat is action-kind" an explicit prior, then re-probe.
+2. **Facts density drop** — corpus-v1 produced 4 facts/chapter median vs default's 6. Hypotheses: (a) the variant's longer chapter targets (3000w) shifted attention from declarative state to drama; (b) the variant's per-pattern guidance crowded out establishedFacts emphasis. Sample size is tiny (n=3 chapters). Re-measure on 5+ chapters before drawing a firm conclusion.
+
+**Schema-prompt sync fix validated.** The earlier failure (`miceActive=['E','C']` against schema enum `['I']`) is fixed by `0c8457d`. Probes now run end-to-end without enum errors.
+
+### Artifacts
+
+- `output/phase-eval/plotter-corpus-v1-lxc-rerun-20260430_120359/` (LXC) — full probe output
+  - `summary.json` — variant manifest
+  - `default/outlines.json`, `corpus-v1/outlines.json` — per-variant chapter outlines
+  - `probe.log` — full run log
+
+### Methodological note
+
+The existing `print-screen-verdict.ts` is hard-coded for the original "default" + "loud" comparison from charter `phase-variant-comparison.md` and rejected the "default" + "corpus-v1" pair. Per-pattern verdict was computed by direct inspection of the outlines.json files. A generalized verdict reader is queued — should not block landing or interpreting probe results.
+
+---
