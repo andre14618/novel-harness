@@ -3,7 +3,7 @@ status: complete
 kind: retrospective
 topic: voice-LoRA-track-evidence
 date: 2026-04-21
-updated: 2026-04-21 (voice-shaping-ablation-v1 resolved; flipped draft→complete)
+updated: 2026-04-29 (synthesis landed — decisions.md entry written for voice-shaping-ablation-v1 conclusion; charter status flipped to complete)
 ---
 
 # 2026-04-21 Retrospective — Voice-LoRA Track Evidence

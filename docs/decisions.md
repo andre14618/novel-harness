@@ -2198,6 +2198,44 @@ The pivot is a **freeze**, not a retirement. The LoRA infrastructure (W&B Infere
 
 ---
 
+### voice-shaping-ablation-v1 concluded — FLAT vs D0; prompt-only shaping program closed; adopt bare DeepSeek as fantasy route
+*2026-04-21 run / 2026-04-29 synthesis · exp #263 · charter `docs/charters/voice-shaping-ablation-v1.md` · results `docs/charters/voice-shaping-ablation-v1-results.md`*
+
+**Decision:** The voice-shaping-ablation-v1 program is concluded with a FLAT-vs-D0 verdict. No prompt-level intervention (D1 style guide, D2 few-shot reference passages, D3 per-character voice directives) produced voice-shape prose measurably closer to the Salvatore reference distribution than bare DeepSeek V3.2 (D0) on the charter's conjunctive ≥3-of-5-features rule. Prompt-only voice shaping at DeepSeek scale is closed as a primary investment direction. Operational recommendation: adopt bare DeepSeek (now V4 Flash per 2026-04-29 swap) as the production writer for the fantasy route; redirect effort to character-distinctness.
+
+**Why the null is informative, not disappointing:** D0 (bare DeepSeek V3.2) is already very close to the Salvatore reference distribution on 3 of 5 features — mean sentence length 0.89σ, sentence-length std 0.39σ, clause complexity 0.37σ. There is little room for prompt shaping to improve on a baseline that's already ceiling-near. The null result means "the starting point is already close," not "prompt shaping is weak." The 25%-improvement bar (0.75× D0 distance) cannot be cleared when D0 is already under 1σ from reference.
+
+**Key findings from the decomposed audit (N=20 beats × 4 arms, $0.0221):**
+
+| Feature | Salvatore v4 | D0-bare | D1-style-guide | D2-few-shot | D3-char-directives |
+|---|---:|---:|---:|---:|---:|
+| meanSentenceLength | 3.74σ | **0.89σ** | 0.97σ | 0.97σ | 0.88σ |
+| sentenceLengthStd | 11.37σ | **0.39σ** | 0.49σ | 0.42σ | 0.49σ |
+| dialogueRatio | **0.01σ** | 0.79σ | 0.74σ | 0.54σ | 0.83σ |
+| clauseComplexity | 0.36σ | 0.37σ | 0.49σ | 0.41σ | **0.39σ** |
+| sensoryDensity | 0.67σ | 2.80σ | 2.72σ | 2.72σ | 3.30σ |
+
+D1: 0/5 features improved. D2: 1/5 (dialogueRatio, 0.79→0.54σ). D3: 0/5. Program-level kill.
+
+**Halluc-leak gate (D2):** D2 exposed DeepSeek to actual Salvatore corpus excerpts and produced **zero leak fires** (0/20 beats). Salvatore v4 LoRA itself leaks at 15% (Waterdeep, Maer Dualdon). This falsifies the "few-shot corpus exposure = structural leak risk" concern and inverts the risk framing: the weight-trained LoRA is riskier than prompt-exposed DeepSeek.
+
+**Salvatore v4 outlier finding:** Salvatore v4's sentenceLengthStd is 11.37σ vs reference — driven by a 2863w loop-outlier beat. DeepSeek arms are all 0.39–0.49σ. Distribution-level, the LoRA is FURTHER from reference than bare DeepSeek on this feature. The one axis where the LoRA genuinely wins is dialogueRatio (0.01σ vs D0's 0.79σ).
+
+**Why not retire voice-LoRA fine-tuning entirely:** this program tested prompt-level interventions on a 685B-MoE base. The hypothesis that 14B-LoRA failure is scale-specific is unrefuted. Larger-base weight-level fine-tuning (70B+) remains on the table if voice-shape ceiling becomes a production limit. The LoRA infrastructure is frozen, not deleted.
+
+**Alternatives not taken:**
+- **D2 as a partial win on dialogueRatio** — one feature at 0.75× threshold doesn't clear the conjunctive ≥3-of-5 rule. Even if relaxed to 1-of-5, D2's dialogue improvement is modest and didn't transfer to other features.
+- **Rescale N to 40+ beats** — program-level-kill threshold doesn't require tighter CIs; the directional signal across all three arms is consistent and unambiguous.
+- **Build v2 charter with D4/D5 (two-stage rewrite, metric-retry)** — these levers deferred per charter §1; the FLAT-vs-D0 result says baseline is already close to ceiling, making pipeline-level voice-shaping unlikely to show large gains. Not worth chartering as a primary track.
+
+**Operational implications:**
+- **`WRITER_GENRE_PACKS` fantasy route** — replace Salvatore v4 with bare DeepSeek V4 Flash (now the pipeline default per 2026-04-29 V4 swap). Pending full-novel validation run to confirm reader-perceivable quality holds.
+- **Character-distinctness** is now the primary voice-quality target. D3 (richer per-character directives) didn't move voice-shape metrics but hasn't been tested on within-beat character distinctness — that's the correct next experiment. Use the same Sonnet quote-required audit rubric from charter §3.
+- **`docs/charters/salvatore-v5-corpus-expansion.md`** — remains decapitalized. Do not start corpus expansion until character-distinctness experiments justify it.
+- **Product-identity implication (from the LoRA-track-frozen entry):** the harness's differentiator is now "planner/context/checker harness around an API writer" rather than "offline-capable voice imitation." This is resolved, not deferred.
+
+---
+
 ### tier-ordering-validation-v1 killed; 3-tier sequential ordering stays as working hypothesis
 *2026-04-21 · exp #264 · charter `docs/charters/tier-ordering-validation-v1.md` · results `docs/charters/tier-ordering-validation-v1-results.md` · retrospective `docs/sessions/2026-04-21-tier-ordering-probe.md`*
 
