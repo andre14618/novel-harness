@@ -36,14 +36,13 @@ Anchor stability gates for stochastic-schema dims (separate from pattern-shippin
 
 ## Currently in flight (2026-04-30)
 
-| Work | Status | Notes |
-|---|---|---|
-| Crystal Shard new-dim mining (Sonnet subagent) | running | Pure-aggregation pass on 6 unmined dims: POV management, character-introduction pacing, setting-change frequency, dialogue density variation, tension/pacing curve, sensory-channel distribution (best effort). Zero LLM cost. |
+(none — all subagents from this session landed)
 
 ## Recently landed (2026-04-30)
 
 | Work | Outcome | Commit |
 |---|---|---|
+| Crystal Shard new-dim mining (6 dims) | Subagent over-delivered: ran on **all 3 Icewind Dale books** (Crystal Shard / Streams of Silver / Halfling's Gem), so cross-book validation is **already done** for these new patterns. Highest-leverage findings: tension curve (action density 1.56× first→second half across all 3 books; penultimate act is action peak, final 20% dips back), character-introduction pacing (57% of named entities in first 30% of chapters; 3.5 new/chapter early, 0–1 late), POV rotation (77% rotation rate at chapter boundaries). Sensory dim flagged as low-signal (no planner implication at regex resolution). | `192026b` |
 | Voice-shaping ablation v1 synthesis | **KILL on all 3 prompt-shaping arms (D1/D2/D3 all FLAT vs D0 bare DeepSeek baseline).** D0 was already 0.39–0.89σ from Salvatore reference on 3/5 features — no room for prompt shaping to add value. Notable: D2 (few-shot with Salvatore excerpts in the prompt) had 0/20 halluc-leak fires vs the v4 Salvatore LoRA's ~15% — Salvatore in the prompt doesn't leak; Salvatore in the weights does. Corroborates the LoRA-track pivot framing. Next experiment named: character-distinctness audit on D3-style directive prompts. | `3c4f40b` |
 | `PLANNING_PLOTTER_PROMPT_OVERRIDE` env-var seam | Mirrors the planning-beats seam. Unblocks Patterns 1 + 3 for variant probing. | `e4343f7` |
 
@@ -58,15 +57,23 @@ Identified in the Crystal Shard chapter-level structural session (2026-04-30 ~02
 | 3 | Opener kind: 50% description, 26% action, 15% interiority, 9% dialogue. Closer kind: 41% action, 35% interiority, 21% dialogue, 3% description. | `chapter-outline-system.md` opener/closer guidance | UNBLOCKED — plotter seam shipped `e4343f7` | — | — | DRAFT |
 | 4 | Within-chapter rhythm: descriptive setup → dialogue mid-peak → action/interiority climax. Description front-loads (q0=25% → q4=9%); dialogue mid-peaks (q0=18% → q2=38% → q4=30%). | `beat-expansion-system.md` position-specific guidance | — | — | — | DRAFT |
 | 7 | Beat boundary signals: pov_attention_shift 22% / stakes_recalibration 17% / scene_start 16% / action_shift 15% / speaker_change 13% / narration_to_dialogue 11%. | `beat-expansion-system.md` transition vocabulary as soft prior | — | — | — | DRAFT |
-| (TBD) | New dims from in-flight subagent — placeholder rows added when mining lands | — | — | — | — | PENDING SUBAGENT |
+| 8 | **Tension curve / pacing rhythm** (highest-leverage): action density 1.56× first→second half across all 3 IWD books. Penultimate act is the action peak, NOT the final chapters — Crystal Shard final 20% dips back to 34% action vs second-half mean of 38%. Concrete pacing-curve shape. | `beat-expansion-system.md` + `chapter-outline-system.md` chapter-position pacing guidance | — | — | **DONE (3 books)** | DRAFT |
+| 9 | **Character introduction pacing**: 57% of 105 named entities in first 30% of chapters. Mean 3.5 new/chapter early, taper to 0–1 late. 12 characters first appear in last 20% of beats. | `chapter-outline-system.md` per-chapter new-character budget | UNBLOCKED — plotter seam shipped `e4343f7` | — | **DONE (3 books)** | DRAFT |
+| 10 | **POV rotation**: chapter-primary POV rotates at 77% of chapter boundaries (omniscient 30% + Drizzt 26% own 56% of beats together). HIGH-frequency rotation, not occasional. | `chapter-outline-system.md` POV-character guidance — current planner says "Protagonist should hold POV for most chapters; rotate only when a different perspective is load-bearing." Salvatore data argues for more permissive rotation. | UNBLOCKED — plotter seam shipped `e4343f7` | — | **DONE (3 books)** | DRAFT |
+| 11 | **Setting-change frequency**: 3.1 scene-level setting changes per chapter (CS); only 10% monolocation. Streams of Silver diverges (29% monolocation — its dungeon-crawl structure). Author-level pattern with intra-author variance. | `chapter-outline-system.md` permissive multi-location guidance | UNBLOCKED — plotter seam shipped `e4343f7` | — | **DONE (3 books, with variance)** | DRAFT (lower priority due to intra-author variance) |
+| 12 | **Dialogue density variance**: 29.5% mean per chapter (CS), high variance std=0.176; 2/3 chapters ≥25% dialogue. Likely overlaps Pattern 2 in implementation. | (subsumed by Pattern 2 — kind balance) | — | — | DONE | NOTE — fold into Pattern 2 |
+| 13 | Sensory channel distribution: visual + kinesthetic ~79% combined; olfactory near-zero (regex proxy). | (no planner implication at this resolution) | — | — | — | DROP — descriptive only |
 
-**Sequencing (revised 2026-04-30):**
+**Sequencing (revised 2026-04-30, post-subagents):**
 
-1. Wait for in-flight subagents to land (voice-shaping verdict + new-dim catalog).
-2. Add `PLANNING_PLOTTER_PROMPT_OVERRIDE` env-var seam to `src/agents/planning-plotter/index.ts` (mirrors the existing planning-beats seam from commit `a031980`). Small code addition; unblocks Patterns 1 + 3 probes.
-3. Draft variants for Patterns 3 + 4 + 7 first (existing `PLANNING_BEATS_PROMPT_OVERRIDE` supports them via beat-expansion edits — actually 3 needs the plotter seam since opener/closer guidance is plotter-side; Patterns 4 + 7 are beat-expansion).
-4. Cross-book wave on Streams of Silver covering existing 7 patterns + new dims + voice-shaping reference, in ONE batch (more efficient than per-pattern cross-book).
-5. Land winners as defaults per the 90%+ qualitative-reproduction gate; document the per-pattern verdict in `docs/decisions.md`.
+1. ✅ Subagents landed (voice-shaping verdict + new-dim catalog with cross-book on 3 IWD books).
+2. ✅ Plotter seam shipped (`e4343f7`).
+3. **Now: draft variants for the highest-leverage patterns.** Top 3 by lift × cross-book confidence:
+   - **Pattern 8 (tension curve)** — concrete pacing shape, validated on 3 books, both planner-side and beat-expansion-side levers
+   - **Pattern 9 (character intro pacing)** — concrete per-chapter budget, validated on 3 books
+   - **Pattern 1 (chapter length / beat-count expectation)** — touches the same plotter prompt as Pattern 9 so they can A/B together
+4. Phase-eval probe each variant. Cross-book is ALREADY satisfied for new dims (Patterns 8 / 9 / 10 / 11) — for the older Patterns 1–7, current 1-book evidence is fine for binary qualitative ship per the 90%+ rule.
+5. Land winners as defaults; document per-pattern verdict in `docs/decisions.md`.
 
 ## Schema-shipped soft priors (live, on `sceneBeatSchema`)
 
