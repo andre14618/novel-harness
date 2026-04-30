@@ -13,9 +13,15 @@
  *     when the agent layer drifts.
  *
  * Request hashing is deterministic on the load-bearing fields:
- * (model, provider, temperature, system_prompt, user_prompt, max_tokens).
- * Streaming/onChunk callbacks and request-internal IDs are excluded —
- * they don't affect the response shape.
+ * (model, provider, temperature, system_prompt, user_prompt, max_tokens,
+ *  extraBody). extraBody MUST participate in the hash because it carries
+ *  provider-side knobs that change response shape — most importantly the
+ *  DeepSeek `thinking: {type: "enabled"}` flag (set per-agent in
+ *  src/models/roles.ts). Without extraBody in the hash, a fixture recorded
+ *  with thinking-off would silently match a thinking-on request and replay
+ *  the wrong response, defeating the parity gate. Streaming/onChunk
+ *  callbacks and request-internal IDs are excluded — they don't affect the
+ *  response shape.
  */
 
 import { createHash } from "node:crypto"
@@ -36,9 +42,27 @@ export interface RecordedCall {
     maxTokens: number
     systemPrompt: string
     userPrompt: string
+    extraBody?: Record<string, any>
     callerId?: string
   }
   response: LLMResponse
+}
+
+/** Stable canonicalization for nested objects: sorts keys at every level so
+ *  semantically-equal payloads hash identically regardless of authoring order.
+ *  Treats `undefined` and `{}` as equivalent (the hash includes the field as
+ *  an empty object) so existing fixtures recorded before the extraBody
+ *  capture landed still match a request whose extraBody is empty. Anything
+ *  non-object (including arrays — order is meaningful for them) is returned
+ *  unchanged. */
+function canonicalize(value: unknown): unknown {
+  if (value === undefined || value === null) return {}
+  if (typeof value !== "object") return value
+  if (Array.isArray(value)) return value.map(canonicalize)
+  const obj = value as Record<string, unknown>
+  const sorted: Record<string, unknown> = {}
+  for (const k of Object.keys(obj).sort()) sorted[k] = canonicalize(obj[k])
+  return sorted
 }
 
 export function hashRequest(req: LLMRequest): string {
@@ -49,6 +73,7 @@ export function hashRequest(req: LLMRequest): string {
     mt: req.maxTokens,
     s: req.systemPrompt,
     u: req.userPrompt,
+    eb: canonicalize(req.extraBody),
   })
   return createHash("sha256").update(canonical).digest("hex").slice(0, 32)
 }
@@ -78,6 +103,7 @@ export class RecordTransport implements LLMTransport {
         maxTokens: request.maxTokens,
         systemPrompt: request.systemPrompt,
         userPrompt: request.userPrompt,
+        extraBody: request.extraBody,
         callerId: request.callerId,
       },
       response,

@@ -20,8 +20,49 @@
 import { getRelationshipBetween } from "../../src/db"
 import { resolveReferences, type ResolvedReferences } from "../../src/agents/writer/reference-resolver"
 import { resolveWriterPack } from "../../src/models/roles"
-import { pickExampleLineSubset } from "../../src/agents/writer/beat-context"
 import type { ChapterOutline, CharacterProfile, SceneBeat } from "../../src/types"
+
+// ── FROZEN COPY of pickExampleLineSubset ─────────────────────────────────
+// This is the snapshot baseline. It is intentionally a hand-copy of the
+// production helper (src/agents/writer/example-line-subset.ts at the time
+// of the D1 typed-slot refactor). It MUST NOT import the production
+// implementation — that would defeat the parity gate by letting the legacy
+// "before" mutate alongside the live "after". When the production helper
+// changes, the parity test will diverge; copy the new behavior here in a
+// SEPARATE deliberate commit only if the change is intended to be the new
+// baseline.
+const _LEGACY_LINE_PRESETS_5: Record<"preset-a" | "preset-b" | "preset-c", number[]> = {
+  "preset-a": [0, 1, 2],
+  "preset-b": [0, 3, 4],
+  "preset-c": [1, 3, 4],
+}
+const _LEGACY_LINE_PRESETS_4: Record<"preset-a" | "preset-b" | "preset-c", number[]> = {
+  "preset-a": [0, 1, 2],
+  "preset-b": [0, 1, 3],
+  "preset-c": [1, 2, 3],
+}
+const _LEGACY_PRESET_CYCLE: Array<"preset-a" | "preset-b" | "preset-c"> = ["preset-a", "preset-b", "preset-c"]
+
+function pickExampleLineSubset(
+  lines: string[],
+  chapterNumber: number,
+  beatIndex: number,
+  conditioning: "fixed" | "rotation" | undefined,
+): string[] {
+  if (conditioning === undefined) return lines.slice(0, 5)
+  if (lines.length < 4) return lines.slice(0, 5)
+  const presetFamily = lines.length >= 5 ? _LEGACY_LINE_PRESETS_5 : _LEGACY_LINE_PRESETS_4
+  if (conditioning === "fixed") {
+    return presetFamily["preset-a"]
+      .map(i => lines[i])
+      .filter((v): v is string => typeof v === "string")
+  }
+  const presetIdx = (chapterNumber * 100 + beatIndex) % 3
+  const preset = _LEGACY_PRESET_CYCLE[presetIdx]
+  return presetFamily[preset]
+    .map(i => lines[i])
+    .filter((v): v is string => typeof v === "string")
+}
 
 export interface BeatContextInputLegacy {
   novelId: string
