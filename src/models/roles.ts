@@ -59,8 +59,8 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // DeepSeek V4 Flash non-thinking. Prose generation doesn't benefit from
   // reasoning tokens (creative output, not multi-step inference); thinking
   // mode would slow per-beat latency without quality lift. Howard primer/
-  // methodology retired 2026-04-16. Fantasy uses the Salvatore-shaped
-  // genre pack below, now routed to base DeepSeek rather than a voice LoRA.
+  // methodology retired 2026-04-16 — fantasy voice currently lands through
+  // the Salvatore genre pack below.
   "writer":                    { ...deepseekV4Flash, temperature: 0.8, maxTokens: 8000 },
   "beat-writer":               { ...deepseekV4Flash, temperature: 0.8, maxTokens: 4000 },
   // rewriter removed 2026-04-17 — validation is diagnostic-only now
@@ -350,7 +350,7 @@ export function getModelForAgent(agentName: string): ModelAssignment | undefined
 //                       system prompt should set this false.
 //
 // Packs are matched in order; the first regex that matches the seed's
-// genre wins. A pack can carry corpus-derived prompts/priors without using
+// genre wins. A pack can carry corpus-derived prompts/priors with or without
 // a fine-tuned writer adapter.
 
 export interface StructuralPriors {
@@ -395,10 +395,15 @@ export const WRITER_GENRE_PACKS: WriterGenrePack[] = [
   {
     label: "salvatore-fantasy",
     match: /\b(action.?pulp|sword.?and.?sorcery|sword.?&.?sorcery|epic fantasy|heroic fantasy|dark fantasy|fantasy)\b/i,
-    // Track A (2026-04-30): retire the W&B Salvatore voice LoRA from the
-    // production fantasy route while retaining the Salvatore-shaped prompt,
-    // structural priors, compact context, and leak checker gating.
-    model: { ...deepseekV4Flash, temperature: 0.8, maxTokens: 4000 },
+    // Track A validation (exp #265, 2026-04-30) tested base DeepSeek V4 Flash
+    // here and returned NO-SHIP. Keep the production route on the Salvatore
+    // voice LoRA until a cleaner replacement clears full-novel read-through.
+    model: {
+      provider: "wandb",
+      model: "wandb-artifact:///andre14618-/novel-harness/salvatore-1988-v4",
+      temperature: 0.8,
+      maxTokens: 4000,
+    },
     systemPromptFile: "beat-writer-system-salvatore.md",
     usePrimer: false,
     structuralPriors: SALVATORE_PRIORS,

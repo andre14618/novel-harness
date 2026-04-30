@@ -231,6 +231,22 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ## Character Voice & Dialogue
 
+### Track A did not retire the Salvatore writer LoRA
+*2026-04-30 · exp #265 · novel `novel-1777573197451`*
+
+**Decision:** Do not retire the Salvatore writer LoRA from fantasy production routing on the first Track A validation. `WRITER_GENRE_PACKS` fantasy remains on `wandb-artifact:///andre14618-/novel-harness/salvatore-1988-v4` until a cleaner replacement clears full-novel read-through.
+
+**Why:** Commit `f3f5c9c` routed `salvatore-fantasy` to base DeepSeek V4 Flash while keeping the Salvatore system prompt, compact context, structural priors, and leak-check gating. The 3-chapter `dark-fantasy` run completed successfully and the route was verified in logs (`Writer pack: salvatore-fantasy (deepseek-v4-flash)`). Read-through found strong atmosphere and a coherent macro arc, but production-blocking defects remained: approved chapter 2/3 prose contained lint-fixer merge corruption (`blade.She`, `againShe`, `.ind her`); raw drafts already had continuity/content defects (chapter-1 duplicate seam, Elara role flip, chapter-3 "wife" error, Aldric knowledge violation flagged by continuity). This is insufficient evidence to replace the LoRA in production.
+
+**Alternatives rejected:**
+- Ship base DeepSeek anyway because metrics from voice-shaping-ablation-v1 were near-ceiling — rejected because full-novel read-through exposed defects that surface metrics did not cover.
+- Draft a v2 voice-shaping charter immediately — rejected because the first follow-up is to isolate writer signal from lint-fixer corruption and continuity/seam bugs, not to add more prompt variables.
+- Treat the approved linted prose as the writer verdict — rejected because the raw chapter-3 opening was clean and the approved version was corrupted by the lint-fixer pass.
+
+**Ongoing:** Salvatore v4 remains the production fantasy route despite the fine-tune-free strategic direction. Track A can reopen with a cleaner measurement shape: inspect raw pre-lint drafts, add a post-lint integrity guard, and isolate continuity/seam failures before deciding whether base DeepSeek is truly worse as a writer. The fine-tune-free direction still applies to future checker changes and new SFT spend.
+
+---
+
 ### Voice-pass LoRA: beats-compatible, character-conditioned, same pattern as tonal pass
 *2026-04-11 (architectural decision — no experiment yet)*
 

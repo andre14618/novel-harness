@@ -39,6 +39,9 @@ Even with a "change ONLY the flagged patterns" prompt at temperature 0.3, all mo
 
 ## Lint & Deterministic Fixing
 
+### Compare raw and linted drafts before judging a writer route (2026-04-30)
+When a validation run includes the LLM lint-fixer, the approved prose is not a pure writer-output artifact. Exp #265 (`dark-fantasy`, Track A base-DeepSeek fantasy route) showed the raw chapter-3 opening was clean, while the approved version contained merge corruption (`blade.She`, `againShe`, `.ind her`) introduced after lint fixing. Rule: writer-route verdicts must inspect raw pre-lint drafts or include a deterministic post-fix integrity guard; otherwise a lint-fixer bug can be misattributed to the writer model.
+
 ### Deterministic lint fixes have near-zero collateral damage
 Pure string replacement (regex match → replacement) changes exactly the flagged patterns and nothing else. Measured 0.1% word-level collateral (from word count change when removing filler words). Instant execution, zero cost. Handles ~56% of flagged lint issues. (Experiment #69)
 
@@ -1618,4 +1621,3 @@ This is the SECOND parallel-write failure mode the project has hit. The first (P
 - **Mandatory post-run verification**: after any parallel-batch run, the orchestrator must run `grep -c "^## Pattern N:" target.md` and assert the count equals the number of parallel subagents. If the count is below expected, recover from each subagent's stdout/stderr verdict report before the commit sweep lands. This is the cheap defense regardless of which fix above is adopted.
 
 The conclusions-stubs design was already named in the prior parallel-write lesson ("each measurement subagent writes a per-pattern conclusions stub at `novels/<key>/structure-calibration/conclusions-stubs/<pattern>.md`, and a periodic sweep gathers stubs into the canonical conclusions doc"). The 2026-04-30 P72-75 incident is the first concrete evidence that the flock-only path doesn't suffice and the stubs design is load-bearing — not optional. Until the stubs flow lands, post-run grep verification is mandatory for any N≥3 parallel pattern batch. (P72-75 silent loss + manual recovery, 2026-04-30, commit `788b7a2`; helper at `scripts/structure-calibration/lib/atomic_io.py`.)
-
