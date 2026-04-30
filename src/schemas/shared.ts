@@ -38,6 +38,19 @@ export type PayoffLink = z.infer<typeof payoffLinkSchema>
 export const VALUE_SHIFT = ["+", "-", "0"] as const
 export type ValueShift = typeof VALUE_SHIFT[number]
 
+// Mice-thread sub-enums. The 4 mice threads (Milieu / Inquiry / Character /
+// Event, per Card's Elements of Fiction) are tagged per-beat as a soft prior.
+// The shippable axes per thread were determined by Sonnet self-consistency
+// Jaccard ≥ 0.85 across n=50 Crystal Shard scenes (2026-04-30 wave) — only
+// validated subfields are exposed:
+//   - MICE_ACTIVE_THREADS:  threads "present" anchor-stable for I, C, E (M borderline 0.786)
+//   - MICE_OPENS_THREADS:   threads "opens" anchor-stable for M, I, E (C borderline 0.818)
+//   - MICE_CLOSES_THREADS:  threads "closes" anchor-stable for ALL FOUR
+// Verdicts in crystal_shard.20260430T012238.n50-stability.json.
+export const MICE_ACTIVE_THREADS = ["I", "C", "E"] as const
+export const MICE_OPENS_THREADS = ["M", "I", "E"] as const
+export const MICE_CLOSES_THREADS = ["M", "I", "C", "E"] as const
+
 export const sceneBeatSchema = z.object({
   description: z.string(),
   characters: z.array(z.string()).default([]),
@@ -52,13 +65,31 @@ export const sceneBeatSchema = z.object({
   // valueShift: McKee-style polarity — does the beat shift the dominant value
   //   positively (+), negatively (-), or leave it static (0). Validated end-
   //   to-end at Flash × Sonnet binary F1 0.974, 3-class major-class F1 ≥ 0.78.
+  //   CAVEAT (2026-04-30): n=50 anchor self-consistency Jaccard = 0.639 —
+  //   ~35% of beats reassign on Sonnet re-label. Cross-model F1 measures
+  //   agreement on a fixed gold set; it does NOT bound the anchor stability
+  //   ceiling. Treat as low-confidence soft prior; downstream checkers MUST
+  //   NOT block on this field. Architectural follow-up open: keep with
+  //   soft-prior framing OR revert pending Codex cheapest-counterfactual
+  //   review. See conclusions doc 2026-04-30 ~01:22 UTC entry.
   // gapPresent: McKee-gap binary — does the beat carry a gap between POV
   //   expectation and outcome. Validated at Flash × Pro F1 0.892 (Tier 0
   //   CELL PASS). 60%+ of Salvatore beats carry a gap.
-  // Both are SOFT PRIORS, not hard constraints. Omit when the planner is
+  // mice* (2026-04-30): per-beat presence/opens/closes for the 4 mice
+  //   threads. Anchor self-consistency Jaccard ≥ 0.85 at n=50 across the
+  //   exposed sub-enums. Each field is an array of thread tags — a beat
+  //   may activate / open / close zero or more threads simultaneously.
+  //   Empirical distribution from Crystal Shard n=50 (averaged across runs):
+  //     active:  E ~62%, C ~57%, I ~5%   (M ~42% borderline, not exposed)
+  //     opens:   M ~13%, I ~4%, E ~18%   (C ~19% borderline, not exposed)
+  //     closes:  M ~1%, I ~1%, C ~10%, E ~5%
+  // All SOFT PRIORS, not hard constraints. Omit when the planner is
   // uncertain. Round-trips unchanged with legacy plans.
   valueShift: z.enum(VALUE_SHIFT).optional(),
   gapPresent: z.boolean().optional(),
+  miceActive: z.array(z.enum(MICE_ACTIVE_THREADS)).default([]),
+  miceOpens: z.array(z.enum(MICE_OPENS_THREADS)).default([]),
+  miceCloses: z.array(z.enum(MICE_CLOSES_THREADS)).default([]),
   // emotionalShift removed 2026-04-17: the beat description already
   // carries the emotional signal; a separate "hopeful → devastated"
   // field was redundant and created checker penalties the writer was
