@@ -59,11 +59,7 @@ export async function checkBeatAdherence(
   // ── Deterministic checks (instant) ──────────────────────────────────
 
   // Character presence: every named character in beat should appear in prose
-  for (const charName of beat.characters) {
-    if (!characterMentionedInProse(charName, prose)) {
-      issues.push(`Character "${charName}" not found in prose`)
-    }
-  }
+  issues.push(...findMissingCharacterMentions(prose, beat, outline))
 
   // Word count check removed 2026-04-16: the metric was never load-bearing for
   // prose quality. Beat size is driven by the brief's dramatic function, not a
@@ -126,6 +122,17 @@ ${proseTrimmed}
   }
 }
 
+export function findMissingCharacterMentions(prose: string, beat: SceneBeat, outline: ChapterOutline): string[] {
+  const issues: string[] = []
+  for (const charName of beat.characters) {
+    if (isSameCharacterName(charName, outline.povCharacter)) continue
+    if (!characterMentionedInProse(charName, prose)) {
+      issues.push(`Character "${charName}" not found in prose`)
+    }
+  }
+  return issues
+}
+
 export function characterMentionedInProse(charName: string, prose: string): boolean {
   const normalizedName = normalizeForMention(charName)
   const normalizedProse = normalizeForMention(prose)
@@ -172,3 +179,8 @@ const TITLE_WORDS = new Set([
   "captain", "commander", "doctor", "dr", "father", "general", "king", "lady", "lord", "master", "mistress",
   "prince", "princess", "queen", "sergeant", "sir",
 ])
+
+function isSameCharacterName(a: string | undefined, b: string | undefined): boolean {
+  if (!a || !b) return false
+  return normalizeForMention(a) === normalizeForMention(b)
+}
