@@ -1,19 +1,23 @@
 /**
  * Phase-eval variant runner — child entry point.
  *
- * Spawned by `scripts/phase-eval/probe-planning-beats.ts` (parent) with the
- * variant's prompt-override env var pre-set. Runs the planning phase ONLY
- * against an already-cloned concept-done novel state, then writes the
- * resulting chapter outlines to disk for the parent to aggregate.
+ * Spawned by `scripts/phase-eval/probe-planning-beats.ts` (parent) with one
+ * of the planning-phase prompt-override env vars pre-set. Runs the planning
+ * phase ONLY against an already-cloned concept-done novel state, then writes
+ * the resulting chapter outlines to disk for the parent to aggregate.
  *
  * Why a separate child process: module-level state hazards make
  * in-process variant cycling unsafe. `src/logger.ts` and
  * `src/transport.ts` carry currentRunId / setTransport singletons; the
- * planning-beats agent reads its system prompt at module-load time. Spawning
+ * planner agents read their system prompts at module-load time. Spawning
  * a fresh Bun process per variant gives each one its own module graph and
  * prompt cache, with no leakage between variants.
  *
- * Usage (parent must set PLANNING_BEATS_PROMPT_OVERRIDE before exec):
+ * Supported override env vars (parent must set EXACTLY ONE before exec):
+ *   - PLANNING_BEATS_PROMPT_OVERRIDE   — swaps the beat-expansion prompt
+ *   - PLANNING_PLOTTER_PROMPT_OVERRIDE — swaps the chapter-skeleton prompt
+ *
+ * Usage:
  *
  *   PLANNING_BEATS_PROMPT_OVERRIDE=/abs/path/to/prompt.md \
  *     bun scripts/phase-eval/run-variant.ts \
@@ -21,8 +25,8 @@
  *       --output-dir=<absolute-output-dir>
  *
  * Output: <output-dir>/outlines.json — JSON object
- *   { novelId, promptOverride, outlines: ChapterOutline[] } where the
- *   `outlines` array is the planner's per-chapter output. The verdict
+ *   { novelId, promptOverride, promptEnvVar, outlines: ChapterOutline[] }
+ *   where `outlines` is the planner's per-chapter output. The verdict
  *   reader reads `.outlines` from this shape.
  */
 
@@ -48,18 +52,25 @@ function parseArgs(): { novelId: string; outputDir: string } {
 async function main() {
   const { novelId, outputDir } = parseArgs()
 
-  const promptOverride = process.env.PLANNING_BEATS_PROMPT_OVERRIDE?.trim()
-  if (!promptOverride || promptOverride.length === 0) {
-    console.error("PLANNING_BEATS_PROMPT_OVERRIDE must be set by the parent runner")
+  const SUPPORTED = ["PLANNING_BEATS_PROMPT_OVERRIDE", "PLANNING_PLOTTER_PROMPT_OVERRIDE"] as const
+  const setVars = SUPPORTED.filter(k => (process.env[k]?.trim()?.length ?? 0) > 0)
+  if (setVars.length === 0) {
+    console.error(`exactly one of ${SUPPORTED.join(" / ")} must be set by the parent runner`)
     process.exit(2)
   }
+  if (setVars.length > 1) {
+    console.error(`exactly one of ${SUPPORTED.join(" / ")} must be set; got: ${setVars.join(", ")}`)
+    process.exit(2)
+  }
+  const promptEnvVar = setVars[0]!
+  const promptOverride = process.env[promptEnvVar]!.trim()
   if (!isAbsolute(promptOverride)) {
-    console.error(`PLANNING_BEATS_PROMPT_OVERRIDE must be absolute: ${promptOverride}`)
+    console.error(`${promptEnvVar} must be absolute: ${promptOverride}`)
     process.exit(2)
   }
 
   console.error(`[run-variant] novelId=${novelId}`)
-  console.error(`[run-variant] prompt-override=${promptOverride}`)
+  console.error(`[run-variant] ${promptEnvVar}=${promptOverride}`)
   console.error(`[run-variant] output-dir=${outputDir}`)
 
   // Auto mode + auto resolver — variant runs are non-interactive by definition.
@@ -85,7 +96,7 @@ async function main() {
 
   mkdirSync(outputDir, { recursive: true })
   const outPath = join(outputDir, "outlines.json")
-  writeFileSync(outPath, JSON.stringify({ novelId, promptOverride, outlines }, null, 2))
+  writeFileSync(outPath, JSON.stringify({ novelId, promptOverride, promptEnvVar, outlines }, null, 2))
   console.error(`[run-variant] wrote ${outlines.length} outlines to ${outPath}`)
 }
 

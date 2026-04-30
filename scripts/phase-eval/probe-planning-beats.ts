@@ -56,9 +56,19 @@ interface Args {
   variants: string[]
   variantDir: string
   outputBase: string
+  /** Env var the child run-variant should use to override the system
+   *  prompt. Defaults to PLANNING_BEATS_PROMPT_OVERRIDE so existing
+   *  invocations keep working. Set PLANNING_PLOTTER_PROMPT_OVERRIDE to
+   *  probe chapter-skeleton variants instead of beat-expansion variants. */
+  promptEnv: string
   conceptSnapshotId?: string
   keepNovels: boolean
 }
+
+const SUPPORTED_PROMPT_ENVS = new Set([
+  "PLANNING_BEATS_PROMPT_OVERRIDE",
+  "PLANNING_PLOTTER_PROMPT_OVERRIDE",
+])
 
 function parseArgs(): Args {
   const map: Record<string, string | true> = {}
@@ -78,6 +88,7 @@ function parseArgs(): Args {
       "  --variants=<id1,id2,...> \\\n" +
       "  --variant-dir=<dir-with-{id}.md-files> \\\n" +
       "  --output-base=<absolute-output-dir> \\\n" +
+      "  [--prompt-env=PLANNING_BEATS_PROMPT_OVERRIDE|PLANNING_PLOTTER_PROMPT_OVERRIDE] \\\n" +
       "  [--concept-snapshot-id=<existing-snapshot-id>] \\\n" +
       "  [--keep-novels]   (default: cleanup created novels at end)"
     )
@@ -88,6 +99,11 @@ function parseArgs(): Args {
     console.error("--variants must list at least 2 ids (control + test)")
     process.exit(2)
   }
+  const promptEnv = (map["prompt-env"] as string | undefined)?.trim() || "PLANNING_BEATS_PROMPT_OVERRIDE"
+  if (!SUPPORTED_PROMPT_ENVS.has(promptEnv)) {
+    console.error(`--prompt-env must be one of: ${[...SUPPORTED_PROMPT_ENVS].join(", ")} (got '${promptEnv}')`)
+    process.exit(2)
+  }
   const outputBaseAbs = isAbsolute(outputBase) ? outputBase : resolve(process.cwd(), outputBase)
   const variantDirAbs = isAbsolute(variantDir) ? variantDir : resolve(process.cwd(), variantDir)
   return {
@@ -95,6 +111,7 @@ function parseArgs(): Args {
     variants,
     variantDir: variantDirAbs,
     outputBase: outputBaseAbs,
+    promptEnv,
     conceptSnapshotId: map["concept-snapshot-id"] as string | undefined,
     keepNovels: map["keep-novels"] === true,
   }
@@ -186,14 +203,14 @@ function cloneForVariant(source: string, target: string): void {
   }
 }
 
-function runVariantChild(novelId: string, promptFile: string, variantOutputDir: string): void {
-  console.error(`[probe] run-variant → ${novelId} prompt=${promptFile}`)
+function runVariantChild(novelId: string, promptFile: string, variantOutputDir: string, promptEnv: string): void {
+  console.error(`[probe] run-variant → ${novelId} ${promptEnv}=${promptFile}`)
   const result = spawnSync("bun", [
     "scripts/phase-eval/run-variant.ts",
     `--novel-id=${novelId}`,
     `--output-dir=${variantOutputDir}`,
   ], {
-    env: { ...process.env, PLANNING_BEATS_PROMPT_OVERRIDE: promptFile },
+    env: { ...process.env, [promptEnv]: promptFile },
     stdio: ["ignore", "inherit", "inherit"],
   })
   if (result.status !== 0) {
@@ -253,7 +270,7 @@ async function main() {
       // mid-planning crash still cleans the partial state.
       createdNovelIds.push(targetNovelId)
       const variantOutputDir = join(args.outputBase, variant)
-      runVariantChild(targetNovelId, promptFile, variantOutputDir)
+      runVariantChild(targetNovelId, promptFile, variantOutputDir, args.promptEnv)
       variantNovelIds[variant] = targetNovelId
     }
 
