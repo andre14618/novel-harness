@@ -263,6 +263,22 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### Clean base-DeepSeek route validation exposed checker/approval-policy blockers
+*2026-04-30 · exp #268 · novel `novel-1777580634348` · commit `4efab0188498`*
+
+**Decision:** Do not retire the Salvatore writer LoRA after the clean base-DeepSeek validation run. The run verifies that route decoupling works, but it fails the ship gate because checker signals and continuity blockers can still reach approval.
+
+**Why:** The route was finally clean: `beat-writer` calls used `deepseek|deepseek-v4-flash`, the fantasy pack reported `compact=false`, and the Salvatore leak checker was not called. Word-count overshoot was not treated as the decisive blocker because base DeepSeek's beat prose is expected to run longer than the LoRA route. The decisive blockers were approval-policy and checker-surface failures: unresolved beat-check issues were accepted after retry exhaustion, continuity emitted blocker issues that remained diagnostic-only, malformed dialogue and duplicate seams reached approved prose, and scene/location drift made Wren appear in incompatible locations.
+
+**Alternatives rejected:**
+- Treat the run as a writer-only failure — rejected because the strongest evidence is that checkers detected or could deterministically detect several defects but the approval policy still allowed them through.
+- Treat word count as the blocking criterion — rejected because longer beats are expected under the base route and can be managed as cost/pacing once story logic is reliable.
+- Add another writer prompt/voice charter now — rejected because the next bottleneck is checker/oracle policy, not narrator voice.
+
+**Ongoing:** Checker remediation should start with a fixture from `novel-1777580634348`: block unresolved beat-check blockers, make continuity blockers blocking, add deterministic duplicate-span and quote-integrity guards, then add a quote-required chapter-level oracle only for stitched-beat coherence failures. Report: `docs/base-deepseek-clean-validation-268.md`.
+
+---
+
 ### Voice-pass LoRA: beats-compatible, character-conditioned, same pattern as tonal pass
 *2026-04-11 (architectural decision — no experiment yet)*
 

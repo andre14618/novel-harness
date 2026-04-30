@@ -38,7 +38,8 @@ Those defects must be fixed before another writer-route verdict is meaningful.
 
 - Slice 1 code path is implemented: `WRITER_GENRE_PACKS` now carries explicit `compactContext` and `leakProfile` metadata. Runtime base-model overrides keep fantasy structural priors but clear LoRA-specific compact context and Salvatore leak checks unless explicitly overridden.
 - Slice 2 code path is implemented: lint-fixed prose is guarded by deterministic integrity checks before it can replace the raw draft. The exp #265 corruption shapes (`blade.She`, `againShe`, `.ind her`) are covered by tests.
-- Still pending: Slice 3 clean base-DeepSeek validation run and Slice 4 planner/continuity remediation for impossible knowledge / role-state drift.
+- Slice 3 clean validation ran as exp #268 (`novel-1777580634348`) and returned NO-SHIP for checker/approval-policy reasons, not for word count. Route decoupling was verified (`beat-writer|deepseek|deepseek-v4-flash`, `compact=false`, `leak=none`), but unresolved beat-check issues, continuity blockers, malformed dialogue, duplicate seams, and location drift still reached approval. See `docs/base-deepseek-clean-validation-268.md`.
+- Still pending: Slice 4 checker/oracle remediation for impossible knowledge, role/location-state drift, and caught-but-nonblocking checker failures.
 
 ## Remediation Slices
 
@@ -76,6 +77,8 @@ Exit gate:
 
 Goal: get a real verdict on base DeepSeek as the fantasy writer, not on the LoRA shell.
 
+Status: complete, NO-SHIP on exp #268. The route was clean, but the approval policy was not.
+
 Tasks:
 
 - Run a 3-chapter fantasy seed with base DeepSeek using rich/default beat context.
@@ -89,11 +92,12 @@ Exit gate:
 
 ### Slice 4 — Planner/Continuity Remediation
 
-Goal: impossible knowledge and role states must be caught before approval.
+Goal: impossible knowledge, role/location state drift, and caught-but-unresolved checker blockers must be stopped before approval.
 
 Tasks:
 
 - Use exp #265 as a fixture for Aldric’s impossible knowledge reveal and Elara’s role drift.
+- Use exp #268 as a fixture for accepted unresolved checker blockers, continuity blockers approved as diagnostics, malformed dialogue, duplicate seams, and Wren/Istra location drift.
 - Decide whether the fix belongs in planning-beats prompt constraints, chapter-plan-checker scope, continuity prompt scope, or deterministic state validation.
 - Add the smallest guard that catches the class without expanding into broad prose judging.
 

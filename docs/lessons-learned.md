@@ -14,6 +14,9 @@ JavaScript regex engines use leftmost-match semantics: in an alternation `(a|ab)
 
 ## LLM Evaluation
 
+### Pipeline pass state is not an oracle when checker findings are diagnostic
+Exp #268 (`novel-1777580634348`) completed validation while the drafting log had unresolved accepted beat-check issues and continuity emitted chapter-level `blocker` findings. The run was mechanically useful (base DeepSeek route with rich context worked), but the final `Validation phase complete` state was not evidence of story-quality pass. Rule: for writer-route decisions, inspect checker findings and approval policy separately from final pipeline phase; if any checker is diagnostic-only or accepts unresolved blockers after retry exhaustion, run an independent quote-required oracle or deterministic fixture before treating the novel as validation evidence. Word-count warnings can stay warnings; unresolved story-logic/checker blockers cannot.
+
 ### Pairwise judges have strong position bias — use reasoning models
 DeepSeek V3.2 (non-reasoning) produced inconsistent results on 5/6 matchups when comparing rewritten prose variants. DeepSeek V3.2 Reasoner was substantially better — it produced consistent (both-directions-agree) results and the reasoning was defensible on manual review. **Always use a reasoning model for pairwise comparison.** (Experiments #47-50 vs #51-53, #59-62)
 
