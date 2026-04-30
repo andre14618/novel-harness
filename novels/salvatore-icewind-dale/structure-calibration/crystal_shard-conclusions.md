@@ -1169,3 +1169,97 @@ Pure analysis script — no LLM calls. Cost: $0.
 Cumulative on crystal_shard: still ~$4.15.
 
 ---
+
+## Session 2026-04-30 00:58 UTC — v2 rubric retests (3 dims, mixed outcomes)
+
+Three targeted rubric fixes, each retested with Sonnet × 2 runs on the same samples:
+
+### Mice I-thread — ✓ PASS (Δ +0.208)
+
+| | v1 | v2 |
+|---|---|---|
+| Jaccard | 0.667 | **0.875** ✓ |
+| per-field agreement | 80% | 93.3% |
+| run-1 is_present | 4/30 (13%) | 5/30 (17%) |
+| run-2 is_present | 10/30 (33%) | 3/30 (10%) |
+
+The sharpened tactical-vs-epistemic gate at the top of the criteria worked. The recall-density spread collapsed from 13%/33% (v1) to 17%/10% (v2) — both runs are now conservative on what counts as I-thread. The 0.875 Jaccard clears the 0.85 ship gate.
+
+**Combined with Tier 1 results, mice now has:**
+- M sub-call: Jaccard 0.818 (BORDERLINE — n=30; expected to clear at n=50)
+- I sub-call: **Jaccard 0.875 (PASS, sharpened rubric)**
+- C sub-call: Jaccard 0.818 (BORDERLINE)
+- E sub-call: Jaccard 0.818 (BORDERLINE)
+
+Mice is now **3 borderline + 1 PASS**. Sample expansion to n=50 is the cheapest remaining lever to land all four sub-calls at PASS.
+
+### McKee-gap gap_type — ✗ WORSE (Δ −0.150)
+
+| | v1 | v2 |
+|---|---|---|
+| Jaccard | 0.579 | **0.429** ✗ |
+| per-field agreement | 73% | 60% |
+
+The v2 sharpening of the revelation/undermining boundary REDUCED stability. The boundary problem migrated:
+
+- v1: revelation/undermining flip dominated (revelation 6→2, undermining 3→6 across runs)
+- v2: revelation/undermining stabilized (revelation 4/3, undermining 4/1) BUT a NEW drift emerged on **escalation** (run-1: 2, run-2: 6)
+
+The v2 rubric's clearer language about "no new info → undermining" pushed run-2 to interpret more beats as escalation (when the outcome exceeds expectation in the SAME direction without new info). The structural problem is the **6-class enum is irreducibly latitude-permissive** — every targeted fix just shifts the disagreement boundary to a different class pair. **Decomposition is the right response for gap_type, not further rubric-tightening.**
+
+The decomposition shape would mirror mice: per-class binary sub-calls on `gap_size` (none / small / medium / large each Y/N) and `gap_type` (reversal / escalation / revelation / undermining each Y/N) with the constraint that exactly one is true. This puts 4-6 binary sub-calls per beat, each with tighter cognitive scope than the current 6-way classification.
+
+### Value-charge lifeValue — ~ NEAR (Δ +0.092)
+
+| | v1 (7-class) | v2 (5-class consolidated) |
+|---|---|---|
+| Jaccard | 0.622 | **0.714** (BORDERLINE) |
+| per-field agreement | 76.7% | 83.3% |
+
+Per-class distribution is well-conserved (agency 7/7, aspiration 11/10, life-death 8/8, relational 4/5; ethics 0/0 — unused on Crystal Shard's 30-scene sample). The remaining 5/30 disagreements (17%) are scattered across boundary pairs of the 5 macro classes — same shape as gap_size's BORDERLINE.
+
+**Critical finding: ethics class is unused on Crystal Shard sample.** Either (a) action-fantasy doesn't trigger an ethics axis often, or (b) the rubric's ethics definition needs sharper triggers. On a Sanderson Mistborn or Cook Black Company sample, ethics scenes (justice-injustice, truth-lie axes) would likely fire more.
+
+The v2 consolidation closed the gap from 0.622 → 0.714 — meaningful lift but 14pp below the 0.85 ship gate. Sample-expansion to n=50 is plausibly enough to reach 0.78–0.82 (boundary-scattered disagreement tends to average out at larger n). Either way, the v2 5-class enum is the right shape; it's just one iteration short.
+
+### Updated v2 dim status table (post-retest)
+
+| Dim | Latest verdict | Path to ship |
+|---|---|---|
+| character-arcs | LIVE (commit `4ec5d8b`) | already shipped |
+| **value-charge polarity** | **end-to-end PASS** (Flash × Sonnet binary F1 0.974, 3-class major-class F1 ≥ 0.78) | **schema PR draft now** |
+| value-charge lifeValue | BORDERLINE (Jaccard 0.714, 5-class consolidated) | n=50 expansion + boundary worked-examples |
+| mckee-gap binary "any gap" | LIVE (Tier 0 CELL PASS F1 0.892) | schema PR draft now |
+| mckee-gap gap_size | BORDERLINE (Jaccard 0.714) | n=50 expansion |
+| mckee-gap gap_type | UNSTABLE (Jaccard 0.429 with v2 — worse than v1) | re-architect: decompose into binary sub-calls per gap-type (reversal Y/N, escalation Y/N, etc.) |
+| mice M | BORDERLINE (Jaccard 0.818) | n=50 expansion |
+| **mice I** | **PASS (Jaccard 0.875, v2 sharpened)** | included in mice schema PR after n=50 confirms M/C/E |
+| mice C | BORDERLINE (Jaccard 0.818) | n=50 expansion |
+| mice E | BORDERLINE (Jaccard 0.818) | n=50 expansion |
+| promise (sub-dims) | designed (v2 doc revision 2) | implement granularity rule + ±2 tolerance + epilogue fix |
+
+### Conclusion: 2 NEW shippable signals validated end-to-end this session; 4 still borderline; 1 needs re-architecture
+
+**Schema PR can land NOW with:**
+- `valueShift: '+' | '-' | '0'` field on `sceneBeatSchema` (sourced from value-charge polarity)
+- `gapPresent: true | false` field on `sceneBeatSchema` (sourced from mckee-gap binary "any gap")
+- Per-beat planner-prior block in `planning-beats/beat-expansion-system.md`:
+  - "Crystal Shard target: ~67% beats positive value shift, ~32% negative, ~1% neutral."
+  - "Crystal Shard target: > 60% of beats carry a gap."
+
+**Schema PR follow-up #1 (~1 hour subagent work):**
+- Sample-expand mice + value-charge lifeValue + mckee-gap gap_size to n=50
+- Confirm M/C/E + lifeValue + gap_size cross 0.85
+- Land mice M/I/C/E Y/N fields + lifeValue 5-class enum + gap_size enum on `sceneBeatSchema`
+
+**Schema PR follow-up #2 (more architectural):**
+- Re-architect mckee-gap gap_type as binary sub-calls
+- Implement promise granularity rule + ±2 tolerance + epilogue-bug fix
+
+### Cost ledger delta (v2 retests)
+
+6 Sonnet subagents (2 per dim × 3 dims). $0 API.
+
+Cumulative on crystal_shard: still ~$4.15.
+
+---

@@ -1,0 +1,83 @@
+{
+  "computedAt": "2026-04-30T00:58:48.539Z",
+  "results": [
+    {
+      "label": "Mice I-thread (sharpened tactical-vs-epistemic)",
+      "field": "is_present",
+      "v1Jaccard": 0.667,
+      "v2Jaccard": 0.875,
+      "delta": 0.20799999999999996,
+      "verdict": "PASS — anchor stable (≥0.85)",
+      "classes": {
+        "false": {
+          "run1": 25,
+          "run2": 27
+        },
+        "true": {
+          "run1": 5,
+          "run2": 3
+        }
+      }
+    },
+    {
+      "label": "McKee-gap gap_type (sharpened revelation/undermining)",
+      "field": "gap_type",
+      "v1Jaccard": 0.579,
+      "v2Jaccard": 0.42857142857142855,
+      "delta": -0.1504285714285714,
+      "verdict": "STILL UNSTABLE (< 0.70) — Δ -0.150 from v1",
+      "classes": {
+        "revelation": {
+          "run1": 4,
+          "run2": 3
+        },
+        "none": {
+          "run1": 10,
+          "run2": 9
+        },
+        "escalation": {
+          "run1": 2,
+          "run2": 6
+        },
+        "reversal": {
+          "run1": 10,
+          "run2": 10
+        },
+        "undermining": {
+          "run1": 4,
+          "run2": 1
+        },
+        "other": {
+          "run1": 0,
+          "run2": 1
+        }
+      }
+    },
+    {
+      "label": "Value-charge lifeValue (consolidated 5-class)",
+      "field": "lifeValue",
+      "v1Jaccard": 0.622,
+      "v2Jaccard": 0.7142857142857143,
+      "delta": 0.0922857142857143,
+      "verdict": "BORDERLINE (0.70-0.85) — Δ +0.092 from v1",
+      "classes": {
+        "aspiration": {
+          "run1": 11,
+          "run2": 10
+        },
+        "relational": {
+          "run1": 4,
+          "run2": 5
+        },
+        "life-death": {
+          "run1": 8,
+          "run2": 8
+        },
+        "agency": {
+          "run1": 7,
+          "run2": 7
+        }
+      }
+    }
+  ]
+}
