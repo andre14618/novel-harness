@@ -1275,6 +1275,12 @@ R5 initially asserted `chapter_revisions.deviations` — a column that doesn't e
 
 **The rule:** before writing any test assertion that reads a DB column, query `information_schema.columns` for the table first (same rule as the general DB query discipline in CLAUDE.md). Column names on checker/telemetry tables don't follow an obvious pattern — `deviations` sounds right for a revisions table but it's `outline_before`/`outline_after`. (commit `91140c5`)
 
+### Ad-hoc production SQL must follow the same column discipline as tests
+
+During exp #282 monitoring, an ad-hoc status query guessed `novels.last_error` and failed with `column "last_error" does not exist`; the table only has `id`, `phase`, `seed_json`, `current_chapter`, `total_chapters`, `created_at`, and `updated_at`. This repeated the same class of mistake already documented for tests.
+
+**The rule:** every ad-hoc production SQL query gets an `information_schema.columns` check before selecting table columns, even when the query is read-only and "just for monitoring." The cost is one cheap query; the benefit is avoiding noisy failures during live-run diagnosis. (exp #282 monitoring, 2026-04-30)
+
 ### Fast-fail SSE watchers must distinguish expected errors from unexpected errors
 
 The first draft of `watchForExpectations` rejected the test on any `error` SSE event. Auto-mode `PipelineBailError` correctly emits an error event when forced-failure flags trigger the bail path — it's the expected outcome for R1 and similar auto-mode tests. The watcher's blanket rejection caused R1 to fail even though the pipeline was behaving correctly.
