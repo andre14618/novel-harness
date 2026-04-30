@@ -245,6 +245,7 @@ ssh novel-harness-lxc "sudo systemctl status novel-harness-orchestrator"
 - `docs/todo.md` — **living to-do** — pending action items only
 - `docs/decisions.md` — **architectural decisions with rationale** — append-only record of what was decided and why
 - `docs/lessons-learned.md` — **read before designing agents, rubrics, or experiments**
+- `docs/harness-tuning-roadmap.md` — **single-page evaluation matrix** — corpus pattern → harness target → variant → phase-eval probe → cross-book validation → ship/hold/pivot. Living doc; tracks what's queued, what's running, what shipped. Update each row as variants move through the pipeline.
 - `docs/invariants.md` — **canonical invariants registry** — structural-property checks that run as blocking preflight gates. 4 shapes (syntactic / runtime / cross-state / LLM-check). Shift-left layer between tests and Codex review.
 - `.claude/skills/implement-ticket.md` — **canonical workflow** — 13-phase Claude+Codex orchestration pattern. Source of truth for Phase -1 through Phase 12 + 9 exit triggers + 7 telemetry fields. See `/app/workflow` for the rendered dashboard.
 - `docs/workflow-portable.md` — genericized version of the skill doc for drop-in use in other projects
