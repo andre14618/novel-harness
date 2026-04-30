@@ -35,8 +35,15 @@ export const payoffLinkSchema = z.object({
 })
 export type PayoffLink = z.infer<typeof payoffLinkSchema>
 
-export const VALUE_SHIFT = ["+", "-", "0"] as const
-export type ValueShift = typeof VALUE_SHIFT[number]
+// Stable lifeValue binary classes — the 5-class enum was anchor-unstable
+// (Sonnet self-consistency Jaccard 0.639 at n=50). Binary collapse re-analysis
+// (2026-04-30 ~01:35 UTC) found that 3 of 5 classes pass the J ≥ 0.85 ship
+// gate when treated as binary tags: life-death (0.887), ethics (0.923),
+// relational (0.923). Two classes remain borderline pending v3 rubric
+// sharpening: agency (0.724), aspiration (0.754). Verdicts in
+// crystal_shard.20260430T013524.value-charge-binary-collapse.json.
+export const LIFE_VALUE_AXES = ["life-death", "ethics", "relational"] as const
+export type LifeValueAxis = typeof LIFE_VALUE_AXES[number]
 
 // Mice-thread sub-enums. The 4 mice threads (Milieu / Inquiry / Character /
 // Event, per Card's Elements of Fiction) are tagged per-beat as a soft prior.
@@ -62,19 +69,32 @@ export const sceneBeatSchema = z.object({
   // Corpus-derived soft priors (2026-04-30, optional — omit on uncertainty).
   // Sourced from Crystal Shard structural decomposition; verdicts in
   // novels/salvatore-icewind-dale/structure-calibration/crystal_shard-conclusions.md.
-  // valueShift: McKee-style polarity — does the beat shift the dominant value
-  //   positively (+), negatively (-), or leave it static (0). Validated end-
-  //   to-end at Flash × Sonnet binary F1 0.974, 3-class major-class F1 ≥ 0.78.
-  //   CAVEAT (2026-04-30): n=50 anchor self-consistency Jaccard = 0.639 —
-  //   ~35% of beats reassign on Sonnet re-label. Cross-model F1 measures
-  //   agreement on a fixed gold set; it does NOT bound the anchor stability
-  //   ceiling. Treat as low-confidence soft prior; downstream checkers MUST
-  //   NOT block on this field. Architectural follow-up open: keep with
-  //   soft-prior framing OR revert pending Codex cheapest-counterfactual
-  //   review. See conclusions doc 2026-04-30 ~01:22 UTC entry.
+  //
+  // valueShifted (2026-04-30): McKee-polarity binary — did the beat shift
+  //   the dominant value at all (vs leaving it static)? Replaces the prior
+  //   3-class `valueShift: + | - | 0` field, which had anchor Jaccard 0.639
+  //   (UNSTABLE). Binary collapse to "did anything move?" recovers anchor
+  //   stability at J=0.923. Sonnet judges agree well on movement-presence
+  //   but disagree on direction (+ vs - alone is J=0.660). Reference: ~88%
+  //   of Crystal Shard beats are shifted (mostly +), ~12% static.
+  //
   // gapPresent: McKee-gap binary — does the beat carry a gap between POV
-  //   expectation and outcome. Validated at Flash × Pro F1 0.892 (Tier 0
-  //   CELL PASS). 60%+ of Salvatore beats carry a gap.
+  //   expectation and outcome. Originally validated at Flash × Pro F1 0.892
+  //   (cross-model). 60%+ of Salvatore beats carry a gap.
+  //   CAVEAT (2026-04-30): n=50 Sonnet self-consistency Jaccard for
+  //   "any gap vs none" is 0.818 — NEAR the 0.85 ship bar but not at it.
+  //   Treat as low-confidence soft prior; downstream checkers MUST NOT
+  //   block on this field. Sharpening of the "no gap" boundary is a
+  //   queued rubric edit (see conclusions doc 2026-04-30 ~01:37 UTC).
+  //
+  // lifeValueAxes (2026-04-30): which McKee life-value AXES the beat
+  //   moves on. Multi-select array — a beat may move 0+ axes. The full
+  //   5-class enum was anchor-unstable (J=0.639); 3 of 5 classes (the
+  //   ones exposed here) pass J ≥ 0.85 as binary tags. The other two
+  //   (agency, aspiration) are deliberately excluded pending v3 rubric
+  //   sharpening; if the scene moves on those axes, the planner can
+  //   encode it in the beat description text.
+  //
   // mice* (2026-04-30): per-beat presence/opens/closes for the 4 mice
   //   threads. Anchor self-consistency Jaccard ≥ 0.85 at n=50 across the
   //   exposed sub-enums. Each field is an array of thread tags — a beat
@@ -83,10 +103,12 @@ export const sceneBeatSchema = z.object({
   //     active:  E ~62%, C ~57%, I ~5%   (M ~42% borderline, not exposed)
   //     opens:   M ~13%, I ~4%, E ~18%   (C ~19% borderline, not exposed)
   //     closes:  M ~1%, I ~1%, C ~10%, E ~5%
-  // All SOFT PRIORS, not hard constraints. Omit when the planner is
-  // uncertain. Round-trips unchanged with legacy plans.
-  valueShift: z.enum(VALUE_SHIFT).optional(),
+  //
+  // All SOFT PRIORS, not hard constraints. Omit (or leave arrays empty)
+  // when the planner is uncertain. Round-trips unchanged with legacy plans.
+  valueShifted: z.boolean().optional(),
   gapPresent: z.boolean().optional(),
+  lifeValueAxes: z.array(z.enum(LIFE_VALUE_AXES)).default([]),
   miceActive: z.array(z.enum(MICE_ACTIVE_THREADS)).default([]),
   miceOpens: z.array(z.enum(MICE_OPENS_THREADS)).default([]),
   miceCloses: z.array(z.enum(MICE_CLOSES_THREADS)).default([]),
