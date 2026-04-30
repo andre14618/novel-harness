@@ -1,0 +1,774 @@
+{
+  "pattern_number": 53,
+  "pattern_name": "Sensory mode distribution per beat-kind",
+  "timestamp": "20260430T091425",
+  "commit": "e225589",
+  "lexicons": {
+    "sight": [
+      "see",
+      "saw",
+      "seen",
+      "look",
+      "looked",
+      "looking",
+      "watch",
+      "watched",
+      "watching",
+      "gaze",
+      "gazed",
+      "glance",
+      "glanced",
+      "stare",
+      "stared",
+      "staring",
+      "peer",
+      "peered",
+      "eye",
+      "eyes",
+      "view",
+      "viewed",
+      "glimpse",
+      "glimpsed",
+      "dark",
+      "light",
+      "bright",
+      "gleam",
+      "gleamed",
+      "flash",
+      "flashed",
+      "color",
+      "glitter",
+      "glittered",
+      "shine",
+      "shone",
+      "shadow",
+      "shadows"
+    ],
+    "sound": [
+      "hear",
+      "heard",
+      "hearing",
+      "listen",
+      "listened",
+      "sound",
+      "sounded",
+      "voice",
+      "voices",
+      "echo",
+      "echoed",
+      "scream",
+      "screamed",
+      "shout",
+      "shouted",
+      "whisper",
+      "whispered",
+      "roar",
+      "roared",
+      "snarl",
+      "snarled",
+      "growl",
+      "growled",
+      "click",
+      "clicked",
+      "crash",
+      "crashed",
+      "silence",
+      "silent",
+      "music",
+      "song",
+      "hum",
+      "hummed",
+      "ring",
+      "rang",
+      "bang",
+      "banged"
+    ],
+    "touch": [
+      "feel",
+      "felt",
+      "feeling",
+      "touch",
+      "touched",
+      "touching",
+      "grip",
+      "gripped",
+      "grasp",
+      "grasped",
+      "hold",
+      "held",
+      "push",
+      "pushed",
+      "pull",
+      "pulled",
+      "cold",
+      "cool",
+      "warm",
+      "warmth",
+      "hot",
+      "heat",
+      "smooth",
+      "rough",
+      "soft",
+      "hard",
+      "wet",
+      "dry",
+      "sharp",
+      "blunt",
+      "weight",
+      "weighty"
+    ],
+    "smell": [
+      "smell",
+      "smelled",
+      "smelt",
+      "scent",
+      "scented",
+      "aroma",
+      "odor",
+      "stench",
+      "stink",
+      "stank",
+      "fragrant",
+      "sniff",
+      "sniffed",
+      "reek",
+      "reeked"
+    ],
+    "taste": [
+      "taste",
+      "tasted",
+      "tasting",
+      "flavor",
+      "flavored",
+      "sweet",
+      "bitter",
+      "salt",
+      "salty",
+      "sour",
+      "savory",
+      "savor",
+      "savored",
+      "lick",
+      "licked"
+    ]
+  },
+  "lexicon_additions": {},
+  "beats_path": "novels/salvatore-icewind-dale/beats.jsonl",
+  "books": [
+    "crystal_shard",
+    "halflings_gem",
+    "streams_of_silver"
+  ],
+  "active_kinds": [
+    "action",
+    "dialogue",
+    "interiority",
+    "description"
+  ],
+  "skipped_beats_or_outliers": 1,
+  "per_book_per_kind_count": {
+    "crystal_shard/description": 130,
+    "crystal_shard/interiority": 177,
+    "crystal_shard/action": 308,
+    "crystal_shard/dialogue": 242,
+    "halflings_gem/description": 79,
+    "halflings_gem/interiority": 159,
+    "halflings_gem/dialogue": 279,
+    "halflings_gem/action": 309,
+    "streams_of_silver/description": 94,
+    "streams_of_silver/interiority": 162,
+    "streams_of_silver/dialogue": 256,
+    "streams_of_silver/action": 274
+  },
+  "per_book_per_kind_words": {
+    "crystal_shard/description": 13443,
+    "crystal_shard/interiority": 18782,
+    "crystal_shard/action": 32318,
+    "crystal_shard/dialogue": 25358,
+    "halflings_gem/description": 8527,
+    "halflings_gem/interiority": 16964,
+    "halflings_gem/dialogue": 29626,
+    "halflings_gem/action": 31774,
+    "streams_of_silver/description": 10592,
+    "streams_of_silver/interiority": 18058,
+    "streams_of_silver/dialogue": 27835,
+    "streams_of_silver/action": 29385
+  },
+  "mean_density_per_100w": {
+    "crystal_shard": {
+      "description": {
+        "sight": 0.8586197893417059,
+        "sound": 0.2371895369058358,
+        "touch": 0.5423231228499358,
+        "smell": 0.008012820512820514,
+        "taste": 0.037784453279406376
+      },
+      "interiority": {
+        "sight": 0.9327987873874707,
+        "sound": 0.28621732095434743,
+        "touch": 0.45716150147781254,
+        "smell": 0.00487044613286577,
+        "taste": 0.019607129169639016
+      },
+      "action": {
+        "sight": 1.0870471409664721,
+        "sound": 0.5365165777024091,
+        "touch": 0.7202924218822302,
+        "smell": 0.014304357428624837,
+        "taste": 0.024770844920293477
+      },
+      "dialogue": {
+        "sight": 0.9882455094436444,
+        "sound": 0.5674179479364058,
+        "touch": 0.3879389363445521,
+        "smell": 0.0,
+        "taste": 0.01972618790810139
+      }
+    },
+    "halflings_gem": {
+      "description": {
+        "sight": 1.3370113885368324,
+        "sound": 0.3203196010041564,
+        "touch": 0.43975598297590823,
+        "smell": 0.03876767298853724,
+        "taste": 0.04699485091062046
+      },
+      "interiority": {
+        "sight": 1.233110399888208,
+        "sound": 0.3106147608610379,
+        "touch": 0.5095397598168295,
+        "smell": 0.05493062401287516,
+        "taste": 0.018915843908584976
+      },
+      "dialogue": {
+        "sight": 1.2337472767697357,
+        "sound": 0.4530848401274033,
+        "touch": 0.39222910236194697,
+        "smell": 0.014283307294059983,
+        "taste": 0.006330688388457733
+      },
+      "action": {
+        "sight": 1.1483358146204434,
+        "sound": 0.501915875228209,
+        "touch": 0.6699424946389566,
+        "smell": 0.005393743257820928,
+        "taste": 0.011767086039091813
+      }
+    },
+    "streams_of_silver": {
+      "description": {
+        "sight": 0.9653528556565246,
+        "sound": 0.266502879672784,
+        "touch": 0.4727705242444344,
+        "smell": 0.05532342791555812,
+        "taste": 0.02831085152737218
+      },
+      "interiority": {
+        "sight": 0.9176993589488635,
+        "sound": 0.25892635403625114,
+        "touch": 0.49105582794686364,
+        "smell": 0.010481100110359819,
+        "taste": 0.0
+      },
+      "dialogue": {
+        "sight": 1.0468751115461556,
+        "sound": 0.5406464022364397,
+        "touch": 0.3610289412513061,
+        "smell": 0.013989390675370422,
+        "taste": 0.0029818702290076338
+      },
+      "action": {
+        "sight": 1.1600511719259645,
+        "sound": 0.6702414663130944,
+        "touch": 0.6267659661786168,
+        "smell": 0.01588809290585336,
+        "taste": 0.0055251334665053
+      }
+    }
+  },
+  "pooled_density_per_100w": {
+    "crystal_shard": {
+      "description": {
+        "sight": 0.8554638101614223,
+        "sound": 0.23060328795655732,
+        "touch": 0.5430335490589898,
+        "smell": 0.007438815740534107,
+        "taste": 0.03719407870267054
+      },
+      "interiority": {
+        "sight": 0.953040144819508,
+        "sound": 0.27153657757427324,
+        "touch": 0.45256096262378875,
+        "smell": 0.0053242466191033965,
+        "taste": 0.01597273985731019
+      },
+      "action": {
+        "sight": 1.0829878086515254,
+        "sound": 0.5414939043257627,
+        "touch": 0.7209604554737298,
+        "smell": 0.015471254409307507,
+        "taste": 0.02475400705489201
+      },
+      "dialogue": {
+        "sight": 0.9937692247022636,
+        "sound": 0.5599810710623866,
+        "touch": 0.40618345295370295,
+        "smell": 0.0,
+        "taste": 0.019717643347267135
+      }
+    },
+    "halflings_gem": {
+      "description": {
+        "sight": 1.395567022399437,
+        "sound": 0.32836871115280875,
+        "touch": 0.43391579688049725,
+        "smell": 0.035182361909229506,
+        "taste": 0.04690981587897267
+      },
+      "interiority": {
+        "sight": 1.255600094317378,
+        "sound": 0.3065314784248998,
+        "touch": 0.4951662343786843,
+        "smell": 0.04715868898844612,
+        "taste": 0.017684508370667297
+      },
+      "dialogue": {
+        "sight": 1.2421521636400459,
+        "sound": 0.43880375345979883,
+        "touch": 0.39154796462566666,
+        "smell": 0.013501653952609195,
+        "taste": 0.006750826976304598
+      },
+      "action": {
+        "sight": 1.1613268710266256,
+        "sound": 0.5098508214263234,
+        "touch": 0.6798010952350979,
+        "smell": 0.006294454585510165,
+        "taste": 0.01258890917102033
+      }
+    },
+    "streams_of_silver": {
+      "description": {
+        "sight": 0.9818731117824774,
+        "sound": 0.26435045317220546,
+        "touch": 0.4814954682779456,
+        "smell": 0.04720543806646526,
+        "taste": 0.028323262839879154
+      },
+      "interiority": {
+        "sight": 0.9469487207885702,
+        "sound": 0.2547347436039428,
+        "touch": 0.5039317753904087,
+        "smell": 0.011075423634954036,
+        "taste": 0.0
+      },
+      "dialogue": {
+        "sight": 1.063409376684031,
+        "sound": 0.5281120890964612,
+        "touch": 0.34848212681875335,
+        "smell": 0.014370396982216633,
+        "taste": 0.0035925992455541583
+      },
+      "action": {
+        "sight": 1.174068402246044,
+        "sound": 0.6670069763484772,
+        "touch": 0.6465883954398502,
+        "smell": 0.017015484090522375,
+        "taste": 0.00680619363620895
+      }
+    }
+  },
+  "rankings": {
+    "crystal_shard": {
+      "description": [
+        {
+          "sense": "sight",
+          "mean_density_per_100w": 0.8586
+        },
+        {
+          "sense": "touch",
+          "mean_density_per_100w": 0.5423
+        },
+        {
+          "sense": "sound",
+          "mean_density_per_100w": 0.2372
+        },
+        {
+          "sense": "taste",
+          "mean_density_per_100w": 0.0378
+        },
+        {
+          "sense": "smell",
+          "mean_density_per_100w": 0.008
+        }
+      ],
+      "interiority": [
+        {
+          "sense": "sight",
+          "mean_density_per_100w": 0.9328
+        },
+        {
+          "sense": "touch",
+          "mean_density_per_100w": 0.4572
+        },
+        {
+          "sense": "sound",
+          "mean_density_per_100w": 0.2862
+        },
+        {
+          "sense": "taste",
+          "mean_density_per_100w": 0.0196
+        },
+        {
+          "sense": "smell",
+          "mean_density_per_100w": 0.0049
+        }
+      ],
+      "action": [
+        {
+          "sense": "sight",
+          "mean_density_per_100w": 1.087
+        },
+        {
+          "sense": "touch",
+          "mean_density_per_100w": 0.7203
+        },
+        {
+          "sense": "sound",
+          "mean_density_per_100w": 0.5365
+        },
+        {
+          "sense": "taste",
+          "mean_density_per_100w": 0.0248
+        },
+        {
+          "sense": "smell",
+          "mean_density_per_100w": 0.0143
+        }
+      ],
+      "dialogue": [
+        {
+          "sense": "sight",
+          "mean_density_per_100w": 0.9882
+        },
+        {
+          "sense": "sound",
+          "mean_density_per_100w": 0.5674
+        },
+        {
+          "sense": "touch",
+          "mean_density_per_100w": 0.3879
+        },
+        {
+          "sense": "taste",
+          "mean_density_per_100w": 0.0197
+        },
+        {
+          "sense": "smell",
+          "mean_density_per_100w": 0.0
+        }
+      ]
+    },
+    "halflings_gem": {
+      "description": [
+        {
+          "sense": "sight",
+          "mean_density_per_100w": 1.337
+        },
+        {
+          "sense": "touch",
+          "mean_density_per_100w": 0.4398
+        },
+        {
+          "sense": "sound",
+          "mean_density_per_100w": 0.3203
+        },
+        {
+          "sense": "taste",
+          "mean_density_per_100w": 0.047
+        },
+        {
+          "sense": "smell",
+          "mean_density_per_100w": 0.0388
+        }
+      ],
+      "interiority": [
+        {
+          "sense": "sight",
+          "mean_density_per_100w": 1.2331
+        },
+        {
+          "sense": "touch",
+          "mean_density_per_100w": 0.5095
+        },
+        {
+          "sense": "sound",
+          "mean_density_per_100w": 0.3106
+        },
+        {
+          "sense": "smell",
+          "mean_density_per_100w": 0.0549
+        },
+        {
+          "sense": "taste",
+          "mean_density_per_100w": 0.0189
+        }
+      ],
+      "dialogue": [
+        {
+          "sense": "sight",
+          "mean_density_per_100w": 1.2337
+        },
+        {
+          "sense": "sound",
+          "mean_density_per_100w": 0.4531
+        },
+        {
+          "sense": "touch",
+          "mean_density_per_100w": 0.3922
+        },
+        {
+          "sense": "smell",
+          "mean_density_per_100w": 0.0143
+        },
+        {
+          "sense": "taste",
+          "mean_density_per_100w": 0.0063
+        }
+      ],
+      "action": [
+        {
+          "sense": "sight",
+          "mean_density_per_100w": 1.1483
+        },
+        {
+          "sense": "touch",
+          "mean_density_per_100w": 0.6699
+        },
+        {
+          "sense": "sound",
+          "mean_density_per_100w": 0.5019
+        },
+        {
+          "sense": "taste",
+          "mean_density_per_100w": 0.0118
+        },
+        {
+          "sense": "smell",
+          "mean_density_per_100w": 0.0054
+        }
+      ]
+    },
+    "streams_of_silver": {
+      "description": [
+        {
+          "sense": "sight",
+          "mean_density_per_100w": 0.9654
+        },
+        {
+          "sense": "touch",
+          "mean_density_per_100w": 0.4728
+        },
+        {
+          "sense": "sound",
+          "mean_density_per_100w": 0.2665
+        },
+        {
+          "sense": "smell",
+          "mean_density_per_100w": 0.0553
+        },
+        {
+          "sense": "taste",
+          "mean_density_per_100w": 0.0283
+        }
+      ],
+      "interiority": [
+        {
+          "sense": "sight",
+          "mean_density_per_100w": 0.9177
+        },
+        {
+          "sense": "touch",
+          "mean_density_per_100w": 0.4911
+        },
+        {
+          "sense": "sound",
+          "mean_density_per_100w": 0.2589
+        },
+        {
+          "sense": "smell",
+          "mean_density_per_100w": 0.0105
+        },
+        {
+          "sense": "taste",
+          "mean_density_per_100w": 0.0
+        }
+      ],
+      "dialogue": [
+        {
+          "sense": "sight",
+          "mean_density_per_100w": 1.0469
+        },
+        {
+          "sense": "sound",
+          "mean_density_per_100w": 0.5406
+        },
+        {
+          "sense": "touch",
+          "mean_density_per_100w": 0.361
+        },
+        {
+          "sense": "smell",
+          "mean_density_per_100w": 0.014
+        },
+        {
+          "sense": "taste",
+          "mean_density_per_100w": 0.003
+        }
+      ],
+      "action": [
+        {
+          "sense": "sight",
+          "mean_density_per_100w": 1.1601
+        },
+        {
+          "sense": "sound",
+          "mean_density_per_100w": 0.6702
+        },
+        {
+          "sense": "touch",
+          "mean_density_per_100w": 0.6268
+        },
+        {
+          "sense": "smell",
+          "mean_density_per_100w": 0.0159
+        },
+        {
+          "sense": "taste",
+          "mean_density_per_100w": 0.0055
+        }
+      ]
+    }
+  },
+  "per_kind_verdict": {
+    "action": {
+      "per_book_top2": {
+        "crystal_shard": [
+          "sight",
+          "touch"
+        ],
+        "halflings_gem": [
+          "sight",
+          "touch"
+        ],
+        "streams_of_silver": [
+          "sight",
+          "sound"
+        ]
+      },
+      "books_with_matching_top2": 2,
+      "verdict": "PASS_PARTIAL",
+      "median_dominant_ratio_top1_over_top2": 1.714,
+      "dominant_2x_ratio_met": false
+    },
+    "dialogue": {
+      "per_book_top2": {
+        "crystal_shard": [
+          "sight",
+          "sound"
+        ],
+        "halflings_gem": [
+          "sight",
+          "sound"
+        ],
+        "streams_of_silver": [
+          "sight",
+          "sound"
+        ]
+      },
+      "books_with_matching_top2": 3,
+      "verdict": "PASS",
+      "median_dominant_ratio_top1_over_top2": 1.936,
+      "dominant_2x_ratio_met": false
+    },
+    "interiority": {
+      "per_book_top2": {
+        "crystal_shard": [
+          "sight",
+          "touch"
+        ],
+        "halflings_gem": [
+          "sight",
+          "touch"
+        ],
+        "streams_of_silver": [
+          "sight",
+          "touch"
+        ]
+      },
+      "books_with_matching_top2": 3,
+      "verdict": "PASS",
+      "median_dominant_ratio_top1_over_top2": 2.04,
+      "dominant_2x_ratio_met": true
+    },
+    "description": {
+      "per_book_top2": {
+        "crystal_shard": [
+          "sight",
+          "touch"
+        ],
+        "halflings_gem": [
+          "sight",
+          "touch"
+        ],
+        "streams_of_silver": [
+          "sight",
+          "touch"
+        ]
+      },
+      "books_with_matching_top2": 3,
+      "verdict": "PASS",
+      "median_dominant_ratio_top1_over_top2": 2.042,
+      "dominant_2x_ratio_met": true
+    }
+  },
+  "top1_stability": {
+    "action": {
+      "per_book_top1": {
+        "crystal_shard": "sight",
+        "halflings_gem": "sight",
+        "streams_of_silver": "sight"
+      },
+      "unique_top1_count": 1,
+      "stable_top1": true
+    },
+    "dialogue": {
+      "per_book_top1": {
+        "crystal_shard": "sight",
+        "halflings_gem": "sight",
+        "streams_of_silver": "sight"
+      },
+      "unique_top1_count": 1,
+      "stable_top1": true
+    },
+    "interiority": {
+      "per_book_top1": {
+        "crystal_shard": "sight",
+        "halflings_gem": "sight",
+        "streams_of_silver": "sight"
+      },
+      "unique_top1_count": 1,
+      "stable_top1": true
+    },
+    "description": {
+      "per_book_top1": {
+        "crystal_shard": "sight",
+        "halflings_gem": "sight",
+        "streams_of_silver": "sight"
+      },
+      "unique_top1_count": 1,
+      "stable_top1": true
+    }
+  },
+  "overall_verdict": "PASS_PARTIAL"
+}

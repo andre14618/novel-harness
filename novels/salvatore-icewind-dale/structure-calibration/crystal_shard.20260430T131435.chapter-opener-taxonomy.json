@@ -1,0 +1,1318 @@
+{
+  "pattern": 49,
+  "pattern_name": "Chapter-opener hook taxonomy",
+  "timestamp": "2026-04-30T13:14:35.437677+00:00",
+  "n_chapters": 92,
+  "buckets": [
+    "action_in_progress",
+    "dialogue_cold_open",
+    "setting_establish",
+    "interiority_pov",
+    "time_marker",
+    "flashback_or_recap",
+    "sensory_cold_open",
+    "character_introduction"
+  ],
+  "method": {
+    "classifier": {
+      "provider": "deepseek",
+      "model": "deepseek-v4-flash",
+      "temperature": 0,
+      "thinking": "disabled",
+      "response_format": "json_object",
+      "max_tokens": 400
+    },
+    "input": {
+      "field": "text",
+      "max_chars": 1500,
+      "first_beat_per_chapter": true
+    },
+    "verdict_gate": {
+      "PASS": "modal class agrees in 3/3 books AND top-3 overlap >= 2",
+      "PASS_PARTIAL": "modal class agrees in 2/3 books",
+      "DIVERGE": "modal class disagrees across all 3 books",
+      "KILL": "no clear pattern"
+    }
+  },
+  "aggregate": {
+    "n": 92,
+    "distribution": {
+      "action_in_progress": {
+        "count": 42,
+        "pct": 45.7
+      },
+      "dialogue_cold_open": {
+        "count": 8,
+        "pct": 8.7
+      },
+      "setting_establish": {
+        "count": 19,
+        "pct": 20.7
+      },
+      "interiority_pov": {
+        "count": 17,
+        "pct": 18.5
+      },
+      "time_marker": {
+        "count": 2,
+        "pct": 2.2
+      },
+      "flashback_or_recap": {
+        "count": 0,
+        "pct": 0.0
+      },
+      "sensory_cold_open": {
+        "count": 0,
+        "pct": 0.0
+      },
+      "character_introduction": {
+        "count": 4,
+        "pct": 4.3
+      }
+    },
+    "modal_class": "action_in_progress",
+    "top3": [
+      "action_in_progress",
+      "setting_establish",
+      "interiority_pov"
+    ]
+  },
+  "per_book": {
+    "crystal_shard": {
+      "n": 34,
+      "distribution": {
+        "action_in_progress": {
+          "count": 16,
+          "pct": 47.1
+        },
+        "dialogue_cold_open": {
+          "count": 1,
+          "pct": 2.9
+        },
+        "setting_establish": {
+          "count": 7,
+          "pct": 20.6
+        },
+        "interiority_pov": {
+          "count": 5,
+          "pct": 14.7
+        },
+        "time_marker": {
+          "count": 2,
+          "pct": 5.9
+        },
+        "flashback_or_recap": {
+          "count": 0,
+          "pct": 0.0
+        },
+        "sensory_cold_open": {
+          "count": 0,
+          "pct": 0.0
+        },
+        "character_introduction": {
+          "count": 3,
+          "pct": 8.8
+        }
+      },
+      "modal_class": "action_in_progress",
+      "top3": [
+        "action_in_progress",
+        "setting_establish",
+        "interiority_pov"
+      ],
+      "top3_with_pct": [
+        {
+          "class": "action_in_progress",
+          "pct": 47.1,
+          "count": 16
+        },
+        {
+          "class": "setting_establish",
+          "pct": 20.6,
+          "count": 7
+        },
+        {
+          "class": "interiority_pov",
+          "pct": 14.7,
+          "count": 5
+        }
+      ]
+    },
+    "streams_of_silver": {
+      "n": 29,
+      "distribution": {
+        "action_in_progress": {
+          "count": 12,
+          "pct": 41.4
+        },
+        "dialogue_cold_open": {
+          "count": 4,
+          "pct": 13.8
+        },
+        "setting_establish": {
+          "count": 6,
+          "pct": 20.7
+        },
+        "interiority_pov": {
+          "count": 6,
+          "pct": 20.7
+        },
+        "time_marker": {
+          "count": 0,
+          "pct": 0.0
+        },
+        "flashback_or_recap": {
+          "count": 0,
+          "pct": 0.0
+        },
+        "sensory_cold_open": {
+          "count": 0,
+          "pct": 0.0
+        },
+        "character_introduction": {
+          "count": 1,
+          "pct": 3.4
+        }
+      },
+      "modal_class": "action_in_progress",
+      "top3": [
+        "action_in_progress",
+        "setting_establish",
+        "interiority_pov"
+      ],
+      "top3_with_pct": [
+        {
+          "class": "action_in_progress",
+          "pct": 41.4,
+          "count": 12
+        },
+        {
+          "class": "setting_establish",
+          "pct": 20.7,
+          "count": 6
+        },
+        {
+          "class": "interiority_pov",
+          "pct": 20.7,
+          "count": 6
+        }
+      ]
+    },
+    "halflings_gem": {
+      "n": 29,
+      "distribution": {
+        "action_in_progress": {
+          "count": 14,
+          "pct": 48.3
+        },
+        "dialogue_cold_open": {
+          "count": 3,
+          "pct": 10.3
+        },
+        "setting_establish": {
+          "count": 6,
+          "pct": 20.7
+        },
+        "interiority_pov": {
+          "count": 6,
+          "pct": 20.7
+        },
+        "time_marker": {
+          "count": 0,
+          "pct": 0.0
+        },
+        "flashback_or_recap": {
+          "count": 0,
+          "pct": 0.0
+        },
+        "sensory_cold_open": {
+          "count": 0,
+          "pct": 0.0
+        },
+        "character_introduction": {
+          "count": 0,
+          "pct": 0.0
+        }
+      },
+      "modal_class": "action_in_progress",
+      "top3": [
+        "action_in_progress",
+        "setting_establish",
+        "interiority_pov"
+      ],
+      "top3_with_pct": [
+        {
+          "class": "action_in_progress",
+          "pct": 48.3,
+          "count": 14
+        },
+        {
+          "class": "setting_establish",
+          "pct": 20.7,
+          "count": 6
+        },
+        {
+          "class": "interiority_pov",
+          "pct": 20.7,
+          "count": 6
+        }
+      ]
+    }
+  },
+  "modal_per_book": {
+    "crystal_shard": "action_in_progress",
+    "streams_of_silver": "action_in_progress",
+    "halflings_gem": "action_in_progress"
+  },
+  "modal_class_agree": true,
+  "top3_per_book": {
+    "crystal_shard": [
+      "action_in_progress",
+      "setting_establish",
+      "interiority_pov"
+    ],
+    "streams_of_silver": [
+      "action_in_progress",
+      "setting_establish",
+      "interiority_pov"
+    ],
+    "halflings_gem": [
+      "action_in_progress",
+      "setting_establish",
+      "interiority_pov"
+    ]
+  },
+  "top3_intersect_all3": [
+    "action_in_progress",
+    "interiority_pov",
+    "setting_establish"
+  ],
+  "top3_overlap_count": 3,
+  "ranking_jaccard": {
+    "cs_vs_ss": 1.0,
+    "cs_vs_hg": 1.0,
+    "ss_vs_hg": 1.0,
+    "mean": 1.0
+  },
+  "cross_book_stability": {
+    "modal_class_agree": true,
+    "top3_overlap": 3,
+    "ranking_jaccard": 1.0
+  },
+  "directional_verdict": "PASS",
+  "verdict_rationale": "Modal class (action_in_progress) reproduces in 3/3 books AND top-3 set has 3-bucket overlap across all 3 books (action_in_progress, interiority_pov, setting_establish).",
+  "chapters": [
+    {
+      "book": "crystal_shard",
+      "chapter": 1,
+      "class": "setting_establish",
+      "confidence": "high",
+      "rationale_short": "Opens with landscape description (snow-capped peak) before characters react.",
+      "first_sentence": "When the wizards' caravan from the Hosttower of the Arcane saw the snow-capped peak of Kelvin's Cairn rising from the flat horizon, they were more than a little relieved.",
+      "kind": "description",
+      "words": 82,
+      "scene_id": "crystal_shard_ch1_s0"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 2,
+      "class": "character_introduction",
+      "confidence": "high",
+      "rationale_short": "Opens by naming and describing Regis, a new character, as the entry point.",
+      "first_sentence": "Regis the halfling, the only one of his kind for hundreds of miles in any direction, locked his fingers behind his head and leaned back against the mossy blanket of the tree trunk.",
+      "kind": "description",
+      "words": 77,
+      "scene_id": "crystal_shard_ch2_s0"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 3,
+      "class": "setting_establish",
+      "confidence": "high",
+      "rationale_short": "Opens with landscape description of tundra, frost, and wind before any character or action.",
+      "first_sentence": "Many miles north of Ten-Towns, across the trackless tundra to the northernmost edge of land in all the Realms, the frosts of winter had already hardened the ground in a white-tipped glaze.",
+      "kind": "description",
+      "words": 112,
+      "scene_id": "crystal_shard_ch3_s0"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 4,
+      "class": "interiority_pov",
+      "confidence": "high",
+      "rationale_short": "Opens with blackness and internal sensation, then character's thoughts and memory.",
+      "first_sentence": "There was only blackness.",
+      "kind": "interiority",
+      "words": 87,
+      "scene_id": "crystal_shard_ch4_s0"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 5,
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with Bruenor walking up a slope, physical activity underway.",
+      "first_sentence": "Bruenor walked up the rocky slope with measured steps, his boots finding the sane footholds he always used when he ascended to the high point of the southern end of the dwarven valley.",
+      "kind": "description",
+      "words": 130,
+      "scene_id": "crystal_shard_ch5_s0"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 6,
+      "class": "setting_establish",
+      "confidence": "high",
+      "rationale_short": "Opens with descriptive landscape and location details before any character action.",
+      "first_sentence": "Bryn Shander was unlike any of the other communities of Ten-Towns.",
+      "kind": "description",
+      "words": 130,
+      "scene_id": "crystal_shard_ch6_s0"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 7,
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with characters mid-march, charging across tundra; physical activity is underway.",
+      "first_sentence": "They started at dawn, charging across the tundra like an angry whirlwind.",
+      "kind": "description",
+      "words": 86,
+      "scene_id": "crystal_shard_ch7_s0"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 8,
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with the horde entering a location, mid-motion and ongoing physical activity.",
+      "first_sentence": "The horde entered the mouth of Bremen's Run just before midday.",
+      "kind": "action",
+      "words": 104,
+      "scene_id": "crystal_shard_ch8_s0"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 9,
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with Regis stretching and yawning, mid-activity.",
+      "first_sentence": "Regis stretched out lazily against his favorite tree and enjoyed a drawn-out yawn, his cherubic dimples beaming in the bright ray of sunlight that somehow found its way to him through the thickly packed branches.",
+      "kind": "description",
+      "words": 82,
+      "scene_id": "crystal_shard_ch9_s0"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 10,
+      "class": "character_introduction",
+      "confidence": "high",
+      "rationale_short": "Opens by naming and describing two new characters (Torga and Grock) as the entry point.",
+      "first_sentence": "Torga the orc faced Grock the goblin with open contempt.",
+      "kind": "description",
+      "words": 153,
+      "scene_id": "crystal_shard_ch10_s0"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 11,
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with Bruenor inserting key into lock, physical action underway.",
+      "first_sentence": "Sweat beaded on Bruenor's hand as he put the key into the dusty lock of the heavy wooden door.",
+      "kind": "action",
+      "words": 109,
+      "scene_id": "crystal_shard_ch11_s0"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 12,
+      "class": "character_introduction",
+      "confidence": "high",
+      "rationale_short": "Opens by naming Wulfgar and describing his posture, then introduces Catti-brie as a new character with physical description.",
+      "first_sentence": "Wulfgar sat high up on the northern face of Bruenor's Climb, his eyes trained on the expanse of the rocky",
+      "kind": "description",
+      "words": 89,
+      "scene_id": "crystal_shard_ch12_s0"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 13,
+      "class": "dialogue_cold_open",
+      "confidence": "high",
+      "rationale_short": "Opens with a line of spoken dialogue from the wizard.",
+      "first_sentence": "\"Gather together your people and go, Biggrin,\" the wizard told the enormous frost giant that stood before \nhim in Cryshal-Tirith's throne room.",
+      "kind": "dialogue",
+      "words": 97,
+      "scene_id": "crystal_shard_ch13_s0"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 14,
+      "class": "interiority_pov",
+      "confidence": "high",
+      "rationale_short": "Opens with Bruenor's emotional state and internal reflection, not action or dialogue.",
+      "first_sentence": "Bruenor had regained his dour visage by the time he called on Wulfgar the following morning.",
+      "kind": "interiority",
+      "words": 96,
+      "scene_id": "crystal_shard_ch14_s0"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 15,
+      "class": "setting_establish",
+      "confidence": "high",
+      "rationale_short": "Opens with descriptive landscape and weather before characters are introduced.",
+      "first_sentence": "They came in under the cover of a violent squall line that swept down upon Ten-Towns from the open east.",
+      "kind": "description",
+      "words": 96,
+      "scene_id": "crystal_shard_ch15_s0"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 16,
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with Wulfgar awakening and Drizzt preparing a pack, ongoing physical activity.",
+      "first_sentence": "When Wulfgar awakened just before midday, rested from his long night's work, he was surprised to see Drizzt already up and about, busily preparing a pack for a long hike.",
+      "kind": "dialogue",
+      "words": 84,
+      "scene_id": "crystal_shard_ch16_s0"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 17,
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with dwarves marching, physical activity already underway.",
+      "first_sentence": "Tirelessly, the heavily laden dwarves marched on.",
+      "kind": "action",
+      "words": 99,
+      "scene_id": "crystal_shard_ch17_s0"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 18,
+      "class": "setting_establish",
+      "confidence": "high",
+      "rationale_short": "Opens with descriptive landscape and location before characters act.",
+      "first_sentence": "Drizzt and Wulfgar were pleasantly surprised when they found the back entrance to the verbeeg lair.",
+      "kind": "description",
+      "words": 96,
+      "scene_id": "crystal_shard_ch18_s0"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 19,
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with Drizzt mid-motion, padding through tunnels and grabbing mutton.",
+      "first_sentence": "Drizzt padded through the tunnels and past the bodies of the dead giants, slowing only to grab another hunk of mutton from the large table.",
+      "kind": "action",
+      "words": 116,
+      "scene_id": "crystal_shard_ch19_s0"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 20,
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with Bruenor snarling mid-conversation, characters already in motion on rocky slopes.",
+      "first_sentence": "\"No arguin',\" Bruenor snarled, though none of his four friends standing beside him on the rocky slopes of the climb had any intention of speaking against the decision.",
+      "kind": "dialogue",
+      "words": 101,
+      "scene_id": "crystal_shard_ch20_s0"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 21,
+      "class": "setting_establish",
+      "confidence": "high",
+      "rationale_short": "Opens with descriptive landscape of a glacier and hot spring before any character action.",
+      "first_sentence": "At the base of the great glacier, hidden off in a small dell where one of the ice spurs wound through broken rifts and boulders, was a place the barbarians called Evermelt.",
+      "kind": "description",
+      "words": 107,
+      "scene_id": "crystal_shard_ch21_s0"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 22,
+      "class": "interiority_pov",
+      "confidence": "high",
+      "rationale_short": "Opens with Wulfgar's consciousness and sensory perception, then his thoughts and observations.",
+      "first_sentence": "The heat of a small fire brought Wulfgar back to consciousness.",
+      "kind": "action",
+      "words": 118,
+      "scene_id": "crystal_shard_ch22_s0"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 23,
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with fleets trolling and fishing, then army sweeping; ongoing physical action.",
+      "first_sentence": "Caer-Dineval's fleet trolled the southernmost waters of Lac Dinneshere, taking advantage of the areas left open when the people of Easthaven fled to Bryn Shander.",
+      "kind": "description",
+      "words": 84,
+      "scene_id": "crystal_shard_ch23_s0"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 24,
+      "class": "interiority_pov",
+      "confidence": "high",
+      "rationale_short": "Opens with Drizzt's thoughts and observations, not physical action or dialogue.",
+      "first_sentence": "Drizzt soon came upon the battered ground where the army had crossed.",
+      "kind": "interiority",
+      "words": 113,
+      "scene_id": "crystal_shard_ch24_s0"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 25,
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with Drizzt crawling out of his chamber, an ongoing physical action.",
+      "first_sentence": "Drizzt crawled out of his hidden chamber as the last lights of the setting sun began fading away.",
+      "kind": "interiority",
+      "words": 120,
+      "scene_id": "crystal_shard_ch25_s0"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 26,
+      "class": "interiority_pov",
+      "confidence": "high",
+      "rationale_short": "Opens with Wulfgar's internal state (nervous tapping, feeling) and reflection on tradition.",
+      "first_sentence": "Wulfgar leaned back in his chair at the head of the main table in the hastily constructed Mead Hall, his foot tapping nervously at the long delays necessitated by the demands of proper tradition.",
+      "kind": "interiority",
+      "words": 122,
+      "scene_id": "crystal_shard_ch26_s0"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 27,
+      "class": "time_marker",
+      "confidence": "high",
+      "rationale_short": "Opens with 'Bremen was torched at dawn' \u2014 explicit temporal anchor 'at dawn' as the rhetorical lead.",
+      "first_sentence": "Bremen was torched at dawn.",
+      "kind": "description",
+      "words": 113,
+      "scene_id": "crystal_shard_ch27_s0"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 28,
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with Regis rubbing his eyes after a flash, mid-action.",
+      "first_sentence": "Regis rubbed the after-image of the blinding flash out of his eyes and found himself again facing the \nwizard.",
+      "kind": "description",
+      "words": 117,
+      "scene_id": "crystal_shard_ch28_s0"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 29,
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with dwarves completing an exit and Bruenor climbing, mid-activity.",
+      "first_sentence": "The dwarves of Mithril Hall completed the first of their secret exits shortly after sunset.",
+      "kind": "action",
+      "words": 96,
+      "scene_id": "crystal_shard_ch29_s0"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 30,
+      "class": "setting_establish",
+      "confidence": "high",
+      "rationale_short": "Opens with dawn light and field description before characters act.",
+      "first_sentence": "The people of Bryn Shander heard the fighting out on the field, but it wasn't until the lightening of full dawn that they could see what was happening.",
+      "kind": "action",
+      "words": 96,
+      "scene_id": "crystal_shard_ch30_s0"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "epilogue",
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with ongoing physical activity: fishermen looting and killing among fallen enemies.",
+      "first_sentence": "All along the hill, the fishermen of Ten-Towns moved among their fallen enemies, looting the barbarians of what small wealth they possessed and putting the sword to the unfortunate ones who were not quite dead.",
+      "kind": "action",
+      "words": 96,
+      "scene_id": "crystal_shard_chepilogue_s0"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "epilogue2",
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with Wulfgar already running, mid-action, with physical activity underway.",
+      "first_sentence": "He ran under the bright sun of day; he ran under the dim stars of the night, ever with the east wind in his face.",
+      "kind": "action",
+      "words": 124,
+      "scene_id": "crystal_shard_chepilogue2_s0"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "epilogue3",
+      "class": "time_marker",
+      "confidence": "high",
+      "rationale_short": "Opens with 'the winter following the battle' as temporal anchor, then summarizes events.",
+      "first_sentence": "The people of Ten-Towns and their barbarian allies found the winter following the battle a difficult one, but by pooling their talents and resources, they managed to survive.",
+      "kind": "description",
+      "words": 120,
+      "scene_id": "crystal_shard_chepilogue3_s0"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "prelude",
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with demon mid-action: sitting, drumming fingers, peering, hissing.",
+      "first_sentence": "The demon sat back on the seat it had carved in the stem of the giant mushroom.",
+      "kind": "description",
+      "words": 89,
+      "scene_id": "crystal_shard_chprelude_s0"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 1,
+      "class": "interiority_pov",
+      "confidence": "high",
+      "rationale_short": "Opens with character's thoughts and reflections on his existence, not physical action.",
+      "first_sentence": "He kept his cloak pulled tightly about him, though little light seeped in through the curtained windows, for this was his existence, secretive and alone.",
+      "kind": "interiority",
+      "words": 131,
+      "scene_id": "streams_of_silver_ch1_s0"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 2,
+      "class": "dialogue_cold_open",
+      "confidence": "high",
+      "rationale_short": "Opens with Bruenor's spoken dialogue before any other content.",
+      "first_sentence": "\"Well, there she is, lad, the City of Sails,\" Bruenor said to Wulfgar as the two looked down upon Luskan from a small knoll a few miles north of the city.",
+      "kind": "description",
+      "words": 119,
+      "scene_id": "streams_of_silver_ch2_s0"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 3,
+      "class": "setting_establish",
+      "confidence": "high",
+      "rationale_short": "Opens with descriptive scene of the Cutlass tavern before characters are introduced.",
+      "first_sentence": "The Cutlass grew busier as the night wore on.",
+      "kind": "description",
+      "words": 91,
+      "scene_id": "streams_of_silver_ch3_s0"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 4,
+      "class": "setting_establish",
+      "confidence": "high",
+      "rationale_short": "Opens with descriptive landscape of the Hosttower before any character action.",
+      "first_sentence": "A landmark of wonder marked the very center of the City of Sails, a strange building that emanated a powerful aura of magic.",
+      "kind": "description",
+      "words": 112,
+      "scene_id": "streams_of_silver_ch4_s0"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 5,
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with characters mid-jog, physical activity already underway.",
+      "first_sentence": "Drizzt took the lead as the four companions jogged along the banks of the river Mirar, putting as much ground between themselves and Luskan as possible.",
+      "kind": "action",
+      "words": 102,
+      "scene_id": "streams_of_silver_ch5_s0"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 6,
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with barbarians bursting into copse, mid-battle action.",
+      "first_sentence": "Black-haired barbarians, screaming in the frenzy of battle, burst into the copse.",
+      "kind": "action",
+      "words": 95,
+      "scene_id": "streams_of_silver_ch6_s0"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 7,
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with Entreri standing on a hill, mid-activity; physical action is underway.",
+      "first_sentence": "Entreri stood on a hill a few miles outside the City of Sails, his campfire burning low behind him.",
+      "kind": "interiority",
+      "words": 120,
+      "scene_id": "streams_of_silver_ch7_s0"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 8,
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with characters mid-activity: breaking out of crags and rounding up mounts.",
+      "first_sentence": "The companions broke out of the twists and dips of the crags later in the afternoon, to their absolute relief.",
+      "kind": "action",
+      "words": 109,
+      "scene_id": "streams_of_silver_ch8_s0"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 9,
+      "class": "dialogue_cold_open",
+      "confidence": "high",
+      "rationale_short": "Opens with a line of spoken dialogue from the Nightkeeper.",
+      "first_sentence": "\"Why do you approach the city before the light of dawn?\" the Nightkeeper of the North Gate asked the emissary for the merchant caravan that had pulled up outside Luskan's wall.",
+      "kind": "dialogue",
+      "words": 97,
+      "scene_id": "streams_of_silver_ch9_s0"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 10,
+      "class": "setting_establish",
+      "confidence": "high",
+      "rationale_short": "Opens with descriptive landscape and weather before any character action or dialogue.",
+      "first_sentence": "The sun beamed brightly on the morning of the first day out from Longsaddle.",
+      "kind": "description",
+      "words": 88,
+      "scene_id": "streams_of_silver_ch10_s0"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 11,
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with characters mid-ride, physical activity already underway.",
+      "first_sentence": "The ride from Luskan was swift indeed.",
+      "kind": "description",
+      "words": 103,
+      "scene_id": "streams_of_silver_ch11_s0"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 12,
+      "class": "setting_establish",
+      "confidence": "high",
+      "rationale_short": "Opens with descriptive landscape before any character action.",
+      "first_sentence": "This was a land of blackened earth and misted bogs, where decay and an imposing sensation of peril overruled even the sunniest of skies.",
+      "kind": "description",
+      "words": 106,
+      "scene_id": "streams_of_silver_ch12_s0"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 13,
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with Regis clinging to a log mid-event, physical action underway.",
+      "first_sentence": "The dissipating globe of darkness found Regis once again clinging to his log, which was now little more than a black cinder, and shaking his head.",
+      "kind": "dialogue",
+      "words": 108,
+      "scene_id": "streams_of_silver_ch13_s0"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 14,
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with Wulfgar setting down companions and toppling in pain, ongoing physical action.",
+      "first_sentence": "Wulfgar set Regis and Bruenor down on a mossy bed in a small clearing deeper in the wood then toppled over in pain.",
+      "kind": "action",
+      "words": 124,
+      "scene_id": "streams_of_silver_ch14_s0"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 15,
+      "class": "interiority_pov",
+      "confidence": "high",
+      "rationale_short": "Opens with Drizzt's internal reasoning and thoughts about convincing Bruenor.",
+      "first_sentence": "Drizzt had little trouble convincing Bruenor to reverse their course and head back to the west.",
+      "kind": "description",
+      "words": 138,
+      "scene_id": "streams_of_silver_ch15_s0"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 16,
+      "class": "setting_establish",
+      "confidence": "high",
+      "rationale_short": "Opens with descriptive landscape of a stone tower before characters are mentioned.",
+      "first_sentence": "A squat stone tower stood in a small dell against the facing of a steep hill.",
+      "kind": "description",
+      "words": 88,
+      "scene_id": "streams_of_silver_ch16_s0"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 17,
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with characters mid-journey under stars, ongoing physical movement.",
+      "first_sentence": "They left under stars and did not stop until stars filled the sky once again.",
+      "kind": "action",
+      "words": 117,
+      "scene_id": "streams_of_silver_ch17_s0"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 18,
+      "class": "dialogue_cold_open",
+      "confidence": "high",
+      "rationale_short": "Opens with Bruenor's spoken line, then brief tag before continuing.",
+      "first_sentence": "\"Keeper's Dale,\" Bruenor declared solemnly.",
+      "kind": "dialogue",
+      "words": 96,
+      "scene_id": "streams_of_silver_ch18_s0"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 19,
+      "class": "dialogue_cold_open",
+      "confidence": "high",
+      "rationale_short": "Opens with Bruenor's spoken dialogue, 'Garumn's Gorge,' before any other content.",
+      "first_sentence": "\"Garumn's Gorge,\" Bruenor said, drawing a line across the rough map he had scratched on the floor.",
+      "kind": "dialogue",
+      "words": 106,
+      "scene_id": "streams_of_silver_ch19_s0"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 20,
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with characters mid-activity after cave-in, picking through rubble and scrambling.",
+      "first_sentence": "When the last tremors of the cave-in had finally died away, the four remaining friends picked their way through the rubble and the veil of dust back to the oval chamber.",
+      "kind": "action",
+      "words": 115,
+      "scene_id": "streams_of_silver_ch20_s0"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 21,
+      "class": "interiority_pov",
+      "confidence": "high",
+      "rationale_short": "Opens with Drizzt's internal perception and gradual awareness, not action or dialogue.",
+      "first_sentence": "Suddenly, he found a focus in the blur of gray haze, something tangible amid the swirl of nothingness.",
+      "kind": "interiority",
+      "words": 103,
+      "scene_id": "streams_of_silver_ch21_s0"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 22,
+      "class": "setting_establish",
+      "confidence": "high",
+      "rationale_short": "Opens with descriptive landscape of cavern and throne before any character action.",
+      "first_sentence": "At the heart of the lower levels, in an immense cavern of uneven and twisting walls pocketed with deep shadows, and a ceiling too high for the light of the brightest fire to find, rested the present ruler of Mithral Hall, perched upon a sol",
+      "kind": "description",
+      "words": 100,
+      "scene_id": "streams_of_silver_ch22_s0"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 23,
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with dragon mid-flight and characters reacting, ongoing physical action.",
+      "first_sentence": "Air rolled across its black wings like the continuous rumble of distant thunder as the dragon swept out of the passageway and into Garumn's Gorge, using the same exit that Drizzt and Entreri had passed just a few moments before.",
+      "kind": "action",
+      "words": 97,
+      "scene_id": "streams_of_silver_ch23_s0"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 24,
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with dragon drifting and Drizzt scrambling up, physical activity underway.",
+      "first_sentence": "The burning dragon drifted lower and lower, the light of the flames slowly diminishing to a mere speck at the bottom of Garumn's Gorge.",
+      "kind": "action",
+      "words": 101,
+      "scene_id": "streams_of_silver_ch24_s0"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "epilogue",
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with characters mid-arrival, physically entering Longsaddle.",
+      "first_sentence": "Drizzt, Wulfgar, and Catti-brie came into Longsaddle a few days later, road weary and still wrapped in a shroud of grief.",
+      "kind": "description",
+      "words": 84,
+      "scene_id": "streams_of_silver_chepilogue_s0"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "part1",
+      "class": "interiority_pov",
+      "confidence": "high",
+      "rationale_short": "Opens with first-person prayer and philosophical reflection on dragons, inside character's POV.",
+      "first_sentence": "I pray that the world never runs out of dragons.",
+      "kind": "interiority",
+      "words": 130,
+      "scene_id": "streams_of_silver_chpart1_s0"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "part2",
+      "class": "interiority_pov",
+      "confidence": "high",
+      "rationale_short": "Opens with first-person internal reflection and thought, not action or dialogue.",
+      "first_sentence": "A LLIES\n\nHe wants to go home.",
+      "kind": "interiority",
+      "words": 121,
+      "scene_id": "streams_of_silver_chpart2_s0"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "part3",
+      "class": "interiority_pov",
+      "confidence": "high",
+      "rationale_short": "Opens with narrator's memory and reflection, not action or dialogue.",
+      "first_sentence": "In my travels on the surface, I once met a man who wore his religious beliefs like a badge of honor upon the sleeves of his tunic.",
+      "kind": "dialogue",
+      "words": 126,
+      "scene_id": "streams_of_silver_chpart3_s0"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "prelude",
+      "class": "character_introduction",
+      "confidence": "high",
+      "rationale_short": "Opens by naming and describing the dragon Shimmergloom as a new character entry point.",
+      "first_sentence": "On a dark throne in a dark place perched the dragon of shadow.",
+      "kind": "description",
+      "words": 101,
+      "scene_id": "streams_of_silver_chprelude_s0"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 1,
+      "class": "dialogue_cold_open",
+      "confidence": "high",
+      "rationale_short": "Opens with a line of spoken dialogue from the barbarian.",
+      "first_sentence": "\"A day and more we have lost,\" the barbarian grumbled, reining in his horse and looking\nback over his shoulder.",
+      "kind": "dialogue",
+      "words": 112,
+      "scene_id": "halflings_gem_ch1_s0"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 2,
+      "class": "interiority_pov",
+      "confidence": "high",
+      "rationale_short": "Opens with the assassin's mesmerized observation and internal thoughts about the ruby.",
+      "first_sentence": "The assassin, mesmerized, watched as the ruby turned slowly in the candlelight, catching the dance of the flame in a thousand thousand perfect miniatures - too many reflections; no gem could have facets so small and so flawless.",
+      "kind": "description",
+      "words": 117,
+      "scene_id": "halflings_gem_ch2_s0"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 3,
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with characters mid-conversation and mid-motion, coming around a spur of trees.",
+      "first_sentence": "\"Those are the farms that Malchor spoke of,\" Wulfgar said as he and Drizzt came around a spur of trees on the great forest's border.",
+      "kind": "dialogue",
+      "words": 80,
+      "scene_id": "halflings_gem_ch3_s0"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 4,
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with characters riding at speed, mid-journey, physical activity underway.",
+      "first_sentence": "They were back to the main road before dawn, thundering to the west, to the coast and the city of Waterdeep.",
+      "kind": "action",
+      "words": 99,
+      "scene_id": "halflings_gem_ch4_s0"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 5,
+      "class": "setting_establish",
+      "confidence": "high",
+      "rationale_short": "Opens with descriptive room and fire before character action.",
+      "first_sentence": "The room was empty, the fire burning low.",
+      "kind": "action",
+      "words": 96,
+      "scene_id": "halflings_gem_ch5_s0"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 6,
+      "class": "dialogue_cold_open",
+      "confidence": "high",
+      "rationale_short": "Opens with a line of spoken dialogue before any other content.",
+      "first_sentence": "\"To de rail! To de rail!\" cried one voice.",
+      "kind": "action",
+      "words": 107,
+      "scene_id": "halflings_gem_ch6_s0"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 7,
+      "class": "interiority_pov",
+      "confidence": "high",
+      "rationale_short": "Opens with Bruenor's sensory perception and internal reflection before any action.",
+      "first_sentence": "The first thing he noticed was the absence of the wind.",
+      "kind": "interiority",
+      "words": 88,
+      "scene_id": "halflings_gem_ch7_s0"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 8,
+      "class": "setting_establish",
+      "confidence": "high",
+      "rationale_short": "Opens with description of a building and its surroundings before any character action.",
+      "first_sentence": "The simple wooden structure at the end of Rogues Circle seemed understated even for the decrepit side of the sprawling southern city of Calimport.",
+      "kind": "description",
+      "words": 118,
+      "scene_id": "halflings_gem_ch8_s0"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 9,
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with the ship already moving at speed, mid-action.",
+      "first_sentence": "Now running with the currents of the Chionthar, and with the breeze at enough of an angle from the north for the sails to catch a bit of a push, the Sea Sprite cruised away from Baldur's Gate at a tremendous rate, spitting a white spray des",
+      "kind": "description",
+      "words": 88,
+      "scene_id": "halflings_gem_ch9_s0"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 10,
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with halfling already suspended and being lowered; ongoing physical action.",
+      "first_sentence": "The halfling hung by his ankles, suspended upside down with chains above a cauldron of boiling liquid.",
+      "kind": "description",
+      "words": 131,
+      "scene_id": "halflings_gem_ch10_s0"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 11,
+      "class": "setting_establish",
+      "confidence": "high",
+      "rationale_short": "Opens with descriptive landscape and atmosphere before any character action.",
+      "first_sentence": "The Sea Sprite cruised easily under clear blue skies and the lazy warmth of the southern Realms.",
+      "kind": "description",
+      "words": 107,
+      "scene_id": "halflings_gem_ch11_s0"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 12,
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with Bruenor finding Catti-brie mid-action; physical activity is underway.",
+      "first_sentence": "Bruenor found Catti-brie treading water beyond the carnage of Pinochet's ship.",
+      "kind": "description",
+      "words": 80,
+      "scene_id": "halflings_gem_ch12_s0"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 13,
+      "class": "setting_establish",
+      "confidence": "high",
+      "rationale_short": "Opens with descriptive landscape of docks and city before any character action.",
+      "first_sentence": "The docks rolled away beyond sight in either direction, the sails of a thousand ships\nspeckled the pale blue waters of the Shining Sea, and it would take them hours to walk the\nbreadth of the city before them, no matter which gate they soug",
+      "kind": "description",
+      "words": 80,
+      "scene_id": "halflings_gem_ch13_s0"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 14,
+      "class": "setting_establish",
+      "confidence": "high",
+      "rationale_short": "Opens with descriptive landscape and atmosphere before any character action.",
+      "first_sentence": "Luck was with the damaged Sea Sprite and the captured pirate vessel, for the sea held calm and the wind blew steadily but gently.",
+      "kind": "description",
+      "words": 112,
+      "scene_id": "halflings_gem_ch14_s0"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 15,
+      "class": "dialogue_cold_open",
+      "confidence": "high",
+      "rationale_short": "Opens with a line of spoken dialogue from the guildmaster.",
+      "first_sentence": "\"See the pleasure it promises,\" the guildmaster teased, scraping his hand over the barbed tip of a single spike sticking out of a block of wood on the center of the room's little table.",
+      "kind": "dialogue",
+      "words": 99,
+      "scene_id": "halflings_gem_ch15_s0"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 16,
+      "class": "interiority_pov",
+      "confidence": "high",
+      "rationale_short": "Opens with Entreri's thoughts and feelings, not physical action or dialogue.",
+      "first_sentence": "Entreri slipped through the shadows of Calimport's bowels as quietly as an owl glided through a forest at twilight.",
+      "kind": "description",
+      "words": 112,
+      "scene_id": "halflings_gem_ch16_s0"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 17,
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with LaValle holding hand in pouch, teasing Pook\u2014mid-action.",
+      "first_sentence": "LaValle held his hand within the pouch for a long moment, teasing Pook.",
+      "kind": "action",
+      "words": 103,
+      "scene_id": "halflings_gem_ch17_s0"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 18,
+      "class": "interiority_pov",
+      "confidence": "high",
+      "rationale_short": "Opens with Dondon's thoughts and observations, not physical action or dialogue.",
+      "first_sentence": "Perched in his favorite corner, across Rogues Circle from the Spitting Camel, Dondon\nwatched as the elf, the last of the four, moved into the inn to join his friends.",
+      "kind": "description",
+      "words": 113,
+      "scene_id": "halflings_gem_ch18_s0"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 19,
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with Wulfgar already in a room, mid-action: tossing door, turning to friends, preparing to lift portcullis.",
+      "first_sentence": "Wulfgar found himself in a square, unadorned room of worked stone.",
+      "kind": "action",
+      "words": 86,
+      "scene_id": "halflings_gem_ch19_s0"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 20,
+      "class": "interiority_pov",
+      "confidence": "high",
+      "rationale_short": "Opens with Wulfgar's physical state and immediate shift to his thoughts and feelings.",
+      "first_sentence": "Wulfgar, nearly overcome by exhaustion and by the pain in his arm, leaned heavily against the smooth wall of an upward-sloping passage.",
+      "kind": "interiority",
+      "words": 80,
+      "scene_id": "halflings_gem_ch20_s0"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 21,
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with Wulfgar mid-motion, dodging and ducking through statues and tapestries.",
+      "first_sentence": "Wulfgar dodged and ducked, slipping into the midst of lines of statues or behind heavy tapestries as he went.",
+      "kind": "action",
+      "words": 104,
+      "scene_id": "halflings_gem_ch21_s0"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 22,
+      "class": "setting_establish",
+      "confidence": "high",
+      "rationale_short": "Opens with descriptive landscape (smoke, bridges, chasm) before characters act.",
+      "first_sentence": "Smoke, emanating from the very ground they stood upon, wafted by drearily and rolled around their feet.",
+      "kind": "description",
+      "words": 107,
+      "scene_id": "halflings_gem_ch22_s0"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 23,
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with Bruenor already mid-action, cursing and swinging.",
+      "first_sentence": "Bruenor had come into Pook's chambers cursing and swinging, and by the time his initial momentum had worn away, he was far across the room from the Taros Hoop and from the two hill giant eunuchs that Pook had on guard.",
+      "kind": "action",
+      "words": 72,
+      "scene_id": "halflings_gem_ch23_s0"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 24,
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with Bruenor mid-action, roaring and biting, physical activity underway.",
+      "first_sentence": "\"Outa me way, ye overstuffed bag o' blubber!\" Bruenor roared.",
+      "kind": "action",
+      "words": 127,
+      "scene_id": "halflings_gem_ch24_s0"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 25,
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with Bruenor knocking and entering, physical action already underway.",
+      "first_sentence": "Bruenor knocked lightly on the door, not expecting a response.",
+      "kind": "action",
+      "words": 89,
+      "scene_id": "halflings_gem_ch25_s0"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "epilogue",
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with Wulfgar actively heaving and straining on ropes, mid-physical action.",
+      "first_sentence": "Wulfgar heaved and strained on the ropes, trying to keep the mainsail full of the scant ocean wind as the crew of the Sea Sprite looked on in amazement.",
+      "kind": "action",
+      "words": 99,
+      "scene_id": "halflings_gem_chepilogue_s0"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "epilogue2",
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with Entreri watching Pook, a physical surveillance action already underway.",
+      "first_sentence": "From the shadows of a doorway, Entreri watched Pasha Pook make his way up the staircase to the exit of the guildhouse.",
+      "kind": "action",
+      "words": 109,
+      "scene_id": "halflings_gem_chepilogue2_s0"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "epilogue3",
+      "class": "action_in_progress",
+      "confidence": "high",
+      "rationale_short": "Opens with the ship cutting a course and docking, ongoing physical action.",
+      "first_sentence": "The Sea Sprite cut a difficult course northward up the Sword Coast, into the wintry winds, but Captain Deudermont and his grateful crew were determined to see the four friends safely and swiftly back to Waterdeep.",
+      "kind": "description",
+      "words": 116,
+      "scene_id": "halflings_gem_chepilogue3_s0"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "prelude",
+      "class": "interiority_pov",
+      "confidence": "high",
+      "rationale_short": "Opens with wizard's internal uncertainty and observation, not action or dialogue.",
+      "first_sentence": "The wizard looked down upon the young woman with uncertainty.",
+      "kind": "description",
+      "words": 84,
+      "scene_id": "halflings_gem_chprelude_s0"
+    }
+  ]
+}

@@ -4118,3 +4118,383 @@ Zero LLM cost. Pure compute (~2 seconds wall time on the analyzer). Reuses `beat
 - Code: `scripts/corpus/mine-punctuation-and-tags.py` (pure-compute, single Python file, append-only timestamped output).
 
 ---
+
+
+## Pattern 53: Sensory mode distribution per beat-kind
+
+_Pure-compute lexicon density across 3 books, 4 active beat-kinds, 5 sensory modes. Commit `e225589`. JSON: `novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T091425.sensory-mode-density.json`._
+
+### Methodology
+- Word-boundary regex per category (sight / sound / touch / smell / taste); lexicons listed verbatim in the JSON.
+- Per beat: count category matches; normalize by beat words → density per 100w.
+- Aggregate per `(book, kind, category)` as the mean of per-beat densities.
+- Cross-book verdict per kind: PASS if top-2 ordered ranking matches in 3/3 books, PASS_PARTIAL in 2/3, PASS_PARTIAL_TOP1 if only top-1 sense is stable, DIVERGE if even top-1 wobbles.
+- `stakes_recalibration` outlier (1 beat) excluded; 1 beat(s) skipped.
+
+### Per-book per-kind sensory ordering (mean density per 100w)
+
+- **ACTION**
+  - **crystal_shard / action** → sight 1.087, touch 0.720, sound 0.536, taste 0.025, smell 0.014
+  - **halflings_gem / action** → sight 1.148, touch 0.670, sound 0.502, taste 0.012, smell 0.005
+  - **streams_of_silver / action** → sight 1.160, sound 0.670, touch 0.627, smell 0.016, taste 0.005
+- **DIALOGUE**
+  - **crystal_shard / dialogue** → sight 0.988, sound 0.567, touch 0.388, taste 0.020, smell 0.000
+  - **halflings_gem / dialogue** → sight 1.234, sound 0.453, touch 0.392, smell 0.014, taste 0.006
+  - **streams_of_silver / dialogue** → sight 1.047, sound 0.541, touch 0.361, smell 0.014, taste 0.003
+- **INTERIORITY**
+  - **crystal_shard / interiority** → sight 0.933, touch 0.457, sound 0.286, taste 0.020, smell 0.005
+  - **halflings_gem / interiority** → sight 1.233, touch 0.509, sound 0.311, smell 0.055, taste 0.019
+  - **streams_of_silver / interiority** → sight 0.918, touch 0.491, sound 0.259, smell 0.011, taste 0.000
+- **DESCRIPTION**
+  - **crystal_shard / description** → sight 0.859, touch 0.542, sound 0.237, taste 0.038, smell 0.008
+  - **halflings_gem / description** → sight 1.337, touch 0.440, sound 0.320, taste 0.047, smell 0.039
+  - **streams_of_silver / description** → sight 0.965, touch 0.473, sound 0.267, smell 0.055, taste 0.028
+
+### Per-kind cross-book verdict (top-2 ordered top-2 ranking stability)
+
+| Kind | Book top-2 | Books agreeing | Median top1/top2 ratio | Verdict |
+|------|------------|----------------|------------------------|---------|
+| action | crystal_shard: sight > touch; halflings_gem: sight > touch; streams_of_silver: sight > sound | 2/3 | 1.71× | **PASS_PARTIAL** |
+| dialogue | crystal_shard: sight > sound; halflings_gem: sight > sound; streams_of_silver: sight > sound | 3/3 | 1.94× | **PASS** |
+| interiority | crystal_shard: sight > touch; halflings_gem: sight > touch; streams_of_silver: sight > touch | 3/3 | 2.04× | **PASS** |
+| description | crystal_shard: sight > touch; halflings_gem: sight > touch; streams_of_silver: sight > touch | 3/3 | 2.04× | **PASS** |
+
+**Overall verdict:** PASS_PARTIAL
+
+### Top-1 sense stability per kind
+
+- **action** → crystal_shard=sight, halflings_gem=sight, streams_of_silver=sight (stable_top1=True)
+- **dialogue** → crystal_shard=sight, halflings_gem=sight, streams_of_silver=sight (stable_top1=True)
+- **interiority** → crystal_shard=sight, halflings_gem=sight, streams_of_silver=sight (stable_top1=True)
+- **description** → crystal_shard=sight, halflings_gem=sight, streams_of_silver=sight (stable_top1=True)
+
+### Findings
+
+- **action** — `sight > touch > sound > taste > smell` (PASS_PARTIAL; median top-1 share ~1.71× runner-up; dominant_2x_ratio_met=False).
+- **dialogue** — `sight > sound > touch > taste > smell` (PASS; median top-1 share ~1.94× runner-up; dominant_2x_ratio_met=False).
+- **interiority** — `sight > touch > sound > taste > smell` (PASS; median top-1 share ~2.04× runner-up; dominant_2x_ratio_met=True).
+- **description** — `sight > touch > sound > taste > smell` (PASS; median top-1 share ~2.04× runner-up; dominant_2x_ratio_met=True).
+
+
+
+## Pattern 49: Chapter-opener hook taxonomy
+
+**Timestamp:** 2026-04-30T13:14:35.437677+00:00
+**Artifact:** `crystal_shard.20260430T131435.chapter-opener-taxonomy.json`
+**n chapters:** 92 (cs=34 / ss=29 / hg=29)
+
+### Methodology
+
+For each (book, chapter) pair across the 3 IWD books, the FIRST beat (lowest `beat_idx` within a chapter) was extracted as the chapter opener — the camera-establishing shot. Each opener's full `text` field (capped at 1,500 chars for cost control; ~95% of openers fit unmodified) was classified by **DeepSeek V4 Flash** (temperature 0, thinking disabled, JSON-mode response_format) into one of 8 buckets:
+
+1. `action_in_progress` — physical action / motion / event already happening when the chapter begins
+2. `dialogue_cold_open` — character speech is the first significant content
+3. `setting_establish` — descriptive landscape / atmosphere first; characters arrive later
+4. `interiority_pov` — POV thoughts / introspection / observation as the lead
+5. `time_marker` — explicit temporal anchor opens ("Three days passed…", "By dawn…")
+6. `flashback_or_recap` — opens in past time or summarizes prior events
+7. `sensory_cold_open` — non-visual sensory shock (sound, smell, touch, cold) leads
+8. `character_introduction` — new character is named/described first
+
+The system prompt encodes load-bearing tie-breakers: descriptive→character-arrival = setting_establish; brief time phrase→immediate action = action_in_progress; mixed interiority+action = the move taking the first 1-2 sentences.
+
+This is a fresh measurement at the spec's 8-bucket charter granularity, distinct from the existing `chapter-opener-taxonomy.ts` script which used a different 7-bucket taxonomy (no sensory/character-introduction buckets, `callback-or-summary` instead of `flashback_or_recap`). The two are complementary, not redundant.
+
+### Per-book distributions
+
+- **crystal_shard (n=34):** action_in_progress 47.1% (n=16) · setting_establish 20.6% (n=7) · interiority_pov 14.7% (n=5) · character_introduction 8.8% (n=3) · time_marker 5.9% (n=2) · dialogue_cold_open 2.9% (n=1)
+- **streams_of_silver (n=29):** action_in_progress 41.4% (n=12) · setting_establish 20.7% (n=6) · interiority_pov 20.7% (n=6) · dialogue_cold_open 13.8% (n=4) · character_introduction 3.4% (n=1)
+- **halflings_gem (n=29):** action_in_progress 48.3% (n=14) · setting_establish 20.7% (n=6) · interiority_pov 20.7% (n=6) · dialogue_cold_open 10.3% (n=3)
+
+### Per-book modal class
+
+- crystal_shard → **action_in_progress** (47.1%)
+- streams_of_silver → **action_in_progress** (41.4%)
+- halflings_gem → **action_in_progress** (48.3%)
+
+### Per-book top-3 set
+
+- crystal_shard: action_in_progress / setting_establish / interiority_pov
+- streams_of_silver: action_in_progress / setting_establish / interiority_pov
+- halflings_gem: action_in_progress / setting_establish / interiority_pov
+
+**Top-3 intersection across all 3 books:** 3 bucket(s) — action_in_progress, interiority_pov, setting_establish
+**Top-3 pairwise Jaccard:** cs↔ss=1.000 · cs↔hg=1.000 · ss↔hg=1.000 (mean 1.000)
+
+### Aggregate distribution (all 3 books, n=92)
+
+| Bucket | Count | Pct |
+|---|---:|---:|
+| action_in_progress | 42 | 45.7% |
+| dialogue_cold_open | 8 | 8.7% |
+| setting_establish | 19 | 20.7% |
+| interiority_pov | 17 | 18.5% |
+| time_marker | 2 | 2.2% |
+| flashback_or_recap | 0 | 0.0% |
+| sensory_cold_open | 0 | 0.0% |
+| character_introduction | 4 | 4.3% |
+
+### Conclusion + Action — Pattern 49: **PASS**
+
+**Directional verdict:** Modal class (action_in_progress) reproduces in 3/3 books AND top-3 set has 3-bucket overlap across all 3 books (action_in_progress, interiority_pov, setting_establish).
+
+**Proposed harness lever.** A stable cross-book opener distribution gives the planner a per-chapter prior on opener rhetorical shape. Two concrete moves:
+
+1. **Chapter-skeleton schema extension.** Add an OPTIONAL `openerKind` enum field to chapter outlines (8 buckets above). When the planner doesn't emit one, default the prior to the corpus modal. This lives alongside the existing `setting`/`charactersPresent` fields.
+2. **Beat-expansion prompt prior.** `src/agents/planning-beats/beat-expansion-system.md` already nudges with "Open with action or description. Do NOT open with interiority unless the POV character is alone." Replace this binary nudge with a quantitative distribution that matches the corpus: the planner should bias toward the modal class (~corpus modal) and treat low-frequency openers (sensory_cold_open, character_introduction, flashback_or_recap) as deliberate, sparingly-used choices, not the default.
+
+**Per-genre gating.** As with P42 / P48, this is a Salvatore-cluster fantasy prior. Apply only when the seed routes through `WRITER_GENRE_PACKS` fantasy. Other genres (literary, contemporary, romance) need their own corpus-derived opener priors before any cross-genre claim.
+
+### Cost ledger
+
+- 92 DeepSeek V4 Flash calls, ~1,500 in / ~150 out each. ≈$0.10 total at the V4 Flash rate.
+
+### Files
+
+- `crystal_shard.20260430T131435.chapter-opener-taxonomy.json` — full per-chapter classifications + aggregate stats
+- Code: `scripts/structure-calibration/chapter-opener-taxonomy.py`
+
+---
+
+
+## Pattern 50: Chapter-closer hook taxonomy
+
+**Methodology.** For each (book, chapter) the LAST beat (largest beat_idx) is the closer. Regex pre-pass on `last_sentence` (trailing '?') / closer-tail (canonical time-leap markers) resolves the visually unambiguous cases. Residual closers are labeled by DeepSeek V4 Flash (temperature 0, thinking-mode disabled, JSON-mode) into one of nine buckets, with the LAST 1,500 chars of the closer fed to the LLM (tail-truncation preserves the closing rhetorical move). n=92 across 3 IWD books.
+
+**Buckets.** physical_cliffhanger · info_reveal · arrival · departure · decision_point · unanswered_question · reflection_pause · time_leap_tease · tableau_close
+
+**Aggregate distribution (92 chapter closers, all 3 books):**
+
+| Bucket | Count | Pct |
+|---|---:|---:|
+| physical_cliffhanger | 17 | 18.5% |
+| departure | 17 | 18.5% |
+| reflection_pause | 17 | 18.5% |
+| info_reveal | 15 | 16.3% |
+| arrival | 7 | 7.6% |
+| decision_point | 7 | 7.6% |
+| unanswered_question | 5 | 5.4% |
+| tableau_close | 4 | 4.3% |
+| time_leap_tease | 3 | 3.3% |
+
+**Per-book top-5:**
+
+- crystal_shard (n=34): physical_cliffhanger 23.5% · info_reveal 17.6% · reflection_pause 17.6% · departure 14.7% · unanswered_question 8.8%
+- streams_of_silver (n=29): departure 17.2% · reflection_pause 17.2% · physical_cliffhanger 13.8% · info_reveal 13.8% · arrival 13.8%
+- halflings_gem (n=29): departure 24.1% · reflection_pause 20.7% · physical_cliffhanger 17.2% · info_reveal 17.2% · decision_point 10.3%
+
+**Cross-book stability:**
+
+- Modal class per book: {"crystal_shard":"physical_cliffhanger","streams_of_silver":"departure","halflings_gem":"departure"} — modal_class_agree=false
+- Top-3 per book: cs=physical_cliffhanger/info_reveal/reflection_pause, ss=departure/reflection_pause/physical_cliffhanger, hg=departure/reflection_pause/physical_cliffhanger
+- Top-3 intersection (buckets in ALL 3 top-3 sets): 2 buckets — physical_cliffhanger, reflection_pause
+- Always-present classes (count ≥ 1 in every book): 8 buckets — physical_cliffhanger, info_reveal, arrival, departure, decision_point, reflection_pause, time_leap_tease, tableau_close
+
+**Directional verdict.** **PASS_PARTIAL** — Modal class diverges across books ({"crystal_shard":"physical_cliffhanger","streams_of_silver":"departure","halflings_gem":"departure"}) but top-3 set has 2 cross-book reproducible buckets: physical_cliffhanger, reflection_pause.
+
+**Harness target.** Add a *closer rhetorical shape* prior to `src/agents/planning/chapter-outline-system.md` for the `purpose` field. Where Pattern 14 (forward-hook taxonomy at scene granularity) describes the rhetorical shape of how chapters end as scenes, Pattern 50 describes the concrete action-level taxonomy of the LAST BEAT — the unit the writer actually drafts. Distinct lever: planner can default the chapter-outline closer beat to the modal class with permitted alternates; chapter-plan-checker can check beat-8-present-class-coverage as a soft prior. The planner-prompt edit is independent of and additive to Pattern 17 (opener taxonomy) — opener+closer pairing is a candidate cross-pattern interaction (cf. Pattern 32 chapter-seam transitions).
+
+Artifact: `crystal_shard.20260430T131522.chapter-closer-taxonomy.json`
+
+
+## Pattern 51: Scene-break density + within-chapter scene cadence
+
+**Data source**: `novels/salvatore-icewind-dale/scenes.jsonl` (n=352 scene records, 89 real chapters across 3 books, excluding 3 SoS part-section markers).
+
+**JSON artifact**: `crystal_shard.20260430T131418.scene-break-cadence.json` (computed 2026-04-30T13:14:18Z).
+
+**Methodology**: Group scenes by `(book, chapter)`. A chapter is **single-scene** iff its group has exactly 1 record (these correspond 1:1 to the 17 `unbounded` boundary records — the chapter is one continuous unit with no internal white-space break). A chapter is **multi-scene** iff its group has >=2 records (encoding: 1 chapter-open + 0..N bounded + 1 chapter-close). Streams of Silver part-section markers (`part1`/`part2`/`part3`) excluded from headline numbers.
+
+### Per-book scenes-per-chapter
+
+| Book | n chapters | mean | median | mode | p25 | p75 | min | max | single-scene% |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Crystal Shard      | 34 | 4.088 | 4.0 | 4 (share 0.235) | 2 | 5 | 1 | 16 | 11.8% (4/34) |
+| Streams of Silver  | 26 | 2.808 | 3.0 | 1 (share 0.269) | 1 | 4 | 1 | 6 | 26.9% (7/26) |
+| Halfling's Gem     | 29 | 4.724 | 4 | 4 (share 0.207) | 3 | 6 | 1 | 15 | 10.3% (3/29) |
+| **Aggregate**      | **89** | **3.921** | **4** | **4** (share 0.225) | 2 | 5 | 1 | 16 | n/a |
+
+### Aggregate scene-count histogram (3 books, n=89)
+
+```
+1 scene : 14  ###############
+2 scenes: 12  ############
+3 scenes: 15  ###############
+4 scenes: 20  ####################   <- modal
+5 scenes: 11  ###########
+6 scenes:  7  #######
+7 scenes:  6  ######
+8 scenes:  2  ##
+9-14    :  0
+15      :  1
+16      :  1
+```
+
+p25-p75 inter-quartile range: 2-5 scenes per chapter.
+
+### Chapter and scene word totals
+
+| Book | chapter words mean | chapter words median | scene words mean | scene words median |
+| --- | --- | --- | --- | --- |
+| Crystal Shard      | 3089 | 2959.5 | 756 | 565 |
+| Streams of Silver  | 3895 | 3773.5 | **1387** | **966** |
+| Halfling's Gem     | 3322 | 3300 | 703 | 488 |
+
+Chapter word totals are remarkably stable across the trilogy (3,089 / 3,895 / 3,322 mean — ~25% spread). Scene-word distributions diverge sharply: SoS scenes are ~1.8x larger than CS/HG. This corroborates Pattern 22 / Pattern 23 ("SoS scenes 1.8x larger") and explains why SoS has the lowest scene-per-chapter mode (1, not 4) — SoS budgets the same chapter wordcount across fewer-but-larger scenes.
+
+### Bounded vs unbounded intermediates
+
+| Book | intermediate scenes | bounded | unbounded | bounded share |
+| --- | --- | --- | --- | --- |
+| Crystal Shard     | 75 | 75 | 0 | 1.0 |
+| Streams of Silver | 28 | 28 | 0 | 1.0 |
+| Halfling's Gem    | 82 | 82 | 0 | 1.0 |
+
+**Important structural finding**: in the Salvatore corpus, **all internal scene breaks are hard breaks** (bounded share = 100% in 3/3 books). The `unbounded` boundary value is exclusively associated with single-scene-chapter records (chapter group of size 1). There are zero "soft transition" intermediate scenes inside multi-scene chapters. The harness does not need a continuous-vs-soft-transition mode — only `chapterShape: continuous|fragmented` (sceneCount = 1 vs >=2).
+
+### Cross-book stability and directional verdict
+
+| Stability check | Result | Gate |
+| --- | --- | --- |
+| Modal scenes-per-chapter agreement | 2/3 books agree on mode=4 (CS=4, HG=4); SoS outlier mode=1 | 3/3 needed for full PASS |
+| Mean scenes-per-chapter spread | 1.916 scenes (CS 4.09 / SoS 2.81 / HG 4.72) | <=1.0 desired |
+| Single-scene-pct spread | **16.58pp** (CS 11.8% / SoS 26.9% / HG 10.3%) | <=15pp for PASS, exceeded by 1.6pp |
+| Bounded-share of intermediates spread | 0.0pp (all books = 100%) | <=15pp PASS |
+
+**Directional verdict: PASS_PARTIAL.** Modal scenes-per-chapter agrees in 2 of 3 books at scenes=4; SoS is a structural outlier (mode=1 / mean 2.8 / single-scene 26.9%) corroborating prior patterns about SoS's longer scenes. The single-scene-pct gate (<=15pp spread) is missed by 1.6pp. CS and HG cluster tightly (~10% single-scene, mean ~4 scenes); SoS runs at ~27% single-scene with fewer-but-larger scenes per chapter.
+
+### Proposed harness lever
+
+Add OPTIONAL `sceneCount` and `chapterShape` fields to `chapterOutlineSchema` (planner Phase 1 skeleton):
+
+- `chapterShape: 'fragmented' | 'continuous'` — `continuous` (=> sceneCount=1) for one-continuous-unit chapters, `fragmented` for chapters with white-space scene breaks.
+- `sceneCount?: number` — if `chapterShape='fragmented'`, target scene count. **Default range 2-5, mode 4** (CS+HG cluster).
+- Per-novel **continuous rate prior**: target ~10-15% of chapters as `continuous` (matches CS 11.8% / HG 10.3%; SoS 26.9% is a stylistic outlier; a planner that respects 14-beat-per-chapter floor + chapter-word target ~3,300w should land near CS/HG defaults).
+
+Lint coupling:
+- Mid-chapter white-space-break linter must respect `chapterShape='continuous'` and suppress break-density warnings.
+- Beat-expander already targets ~14 beats/chapter (P21/P37 floor). Under `chapterShape='continuous'`, beats span the entire chapter wordcount (~3,300w / 14 = ~235w/beat — within P37 corpus envelope).
+
+**Pairs with**: P22/P23 (scene-length distribution), P21/P37 (beat-per-chapter floor and brief-to-prose expansion), P14/P32 (chapter-seam transitions).
+
+### Recommendation
+
+**SHIP_PARTIAL** as planner schema additions (`chapterShape`, optional `sceneCount`) with CS+HG-cluster defaults. SoS-style continuous-chapter mode is an opt-in author lever, not a default. Defer per-corpus continuous-rate calibration until Howard / Cook / Tolkien comparison runs (cross-corpus value flagged).
+
+
+## Pattern 54: Time-skip / temporal-leap marker distribution
+
+**Method:** Pure-compute regex pass over `beats.jsonl` (n=2,470 beats, 3 books) using a 52-marker lexicon split into 3 categories — EXPLICIT_DURATION (e.g. "hours later", "an hour later", "a few minutes later"), ABSOLUTE_TIME (e.g. "the next morning", "by dawn", "that night"), ELAPSED_NARRATIVE (e.g. "for hours", "throughout the night", "long before"). Word-boundary case-insensitive match over (summary + text); each marker occurrence counts independently. No lexicon additions — initial spec retained.
+
+**Volume:** 221 total marker hits across the trilogy. Per-book densities per 1k words: **CS 0.778 / SoS 1.048 / HG 0.702**. Beats with any marker: **CS 7.23% / SoS 8.52% / HG 6.17%** — consistent ~6–9% range.
+
+**Top markers (aggregate top-10):** `many years` (28), `that night` (24), `at dawn` (19), `long before` (16), `the next day` (15), `in the morning` (10), `a few minutes later` (10), `the next morning` (9), `many hours` (8), `a few days` (8). Three-category mix is balanced — ABSOLUTE_TIME dominant in all 3 books (135 hits = 61%), EXPLICIT_DURATION second (90 = 41%), ELAPSED_NARRATIVE third (31 = 14%).
+
+**Per-book top-3 (excl. ties):**
+- CS: `many years` (12) / `at dawn` (9) / `long before` (8)
+- SoS: `that night` (12) / `the next day` (10) / `many years` (10)
+- HG: `that night` (8) / `at dawn` (6) / `many years` (6)
+
+**Three-way top-3 intersection:** `{many years}` only. Pairwise top-3 overlap: CS↔SoS=1, CS↔HG=2, SoS↔HG=2 — only **2/3 pairs** clear the ≥2-overlap bar. The lexicon RECOGNIZES across books (markers re-appear from book to book) but the ranking shuffles — CS leans on `at dawn` + `long before`, SoS pivots to `that night` + `the next day`, HG splits the difference.
+
+**Structural-position analysis (the load-bearing finding):** Markers cluster strongly at scene-and-chapter boundaries.
+
+| Position                | n_beats | hits | per_1k | per_beat | beats_with_any |
+|-------------------------|--------:|-----:|-------:|---------:|---------------:|
+| chapter-open            |      75 |   10 |  1.314 |   0.1333 |         10.67% |
+| scene-bounded           |     185 |   29 |  1.570 |   0.1568 |         10.81% |
+| scene-unbounded         |      17 |    5 |  2.535 |   0.2941 |         17.65% |
+| **chapter-close**       |      75 |   19 |  **2.496** | **0.2533** |     **22.67%** |
+| chapter-internal        |   2,118 |  158 |  0.696 |   0.0746 |          6.23% |
+
+**Boundary-vs-internal ratio (per-1k-words):** aggregate **2.54×**. Per-book: CS 1.83×, SoS 2.73×, HG 3.97× — **boundary > internal in 3/3 books**. The signal is strongest at **chapter-close beats** (22.67% carry a marker — over 3× the internal rate), suggesting Salvatore most often DEPLOYS the time-skip marker at the END of the prior chapter to flag the gap, not at the start of the next chapter. HG chapter-open beats had zero markers — counter-evidence to the naive "open with a time-skip" framing.
+
+**Per-kind distribution:** Description beats are the marker carrier — 1.566 per 1k words and 13.53% carry any marker, vs action 0.685 / dialogue 0.712 / interiority 0.874. Time-skip markers ride descriptive prose, which makes them a tonal cousin of P38 (setting cues land on scene-opens via descriptive beats).
+
+**Cross-book gates:**
+- Top-3 overlap ≥2 in all 3 pairs — **FAIL** (2/3 pairs only)
+- Density spread ≤30% — **FAIL** (49% spread, 0.702→1.048)
+- Boundary > internal in 3/3 — **PASS**
+- Lexicon-category mix stable (ABSOLUTE_TIME modal in all 3) — qualitative PASS
+
+**Verdict: PASS_PARTIAL.** The structural-position cue is rock-solid (boundary>internal 3/3, with chapter-close as the headline bucket) and ships unambiguously as a planner prior. The lexicon recognizes across books but density and ranking drift — top-3 is not a fixed shortlist, but **the three-way intersection `many years` + the two-way intersections `at dawn` and `that night`** form a stable Salvatore signature subset. The category mix (ABSOLUTE_TIME dominant) holds in all 3 books.
+
+**Proposed harness lever:**
+
+1. **Planner prior — `chapter-outline-system.md` `transition` / `seam` guidance:** chapter boundaries (especially chapter-CLOSE, secondarily scene-bounded transitions) are the natural site of time-skip markers. Encode: "when planning a multi-chapter time gap, place the explicit time-skip cue in the closing description of the prior chapter or the descriptive open of the next scene, not in mid-chapter dialogue/action." Pairs naturally with P32 (chapter-seam transition shape) and P38 (setting cues anchor at scene-starts).
+
+2. **Writer-prompt lexicon (`beat-writer-system.md`, fantasy-Salvatore route):** small fewshot listing the corpus signature subset — `many years`, `that night`, `at dawn`, `long before`, `the next day`, `the next morning`, `a few minutes later`, `for hours`. Mix EXPLICIT_DURATION + ABSOLUTE_TIME + ELAPSED_NARRATIVE so the writer doesn't gravitate to a single form (the corpus mix is roughly 41/61/14 split).
+
+3. **Lint constraint:** none recommended — marker density is too low (~0.8/1k baseline) for a deterministic floor/ceiling rule to be informative. The boundary-vs-internal asymmetry is a planner concern, not a lint one.
+
+4. **What does NOT ship:** density-as-fixed-rate (49% cross-book spread); a hardcoded top-3 shortlist (drifts book-to-book); chapter-OPEN as the marker site (HG had zero markers there). Specifically reject the naive "open with a time skip" framing — Salvatore prefers chapter-CLOSE seeding.
+
+**Artifact:** `/Users/andre/Desktop/personal_projects/novel-harness/novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T131500.time-skip-markers.json`
+
+
+## Pattern 52: POV distribution per book
+
+**Methodology.** For each of 92 chapters across the trilogy, classified the POV character via reasoning over the first 1-2 beats' full text (interiority cues, action-from-inside vs outside, camera anchor). Suspected multi-POV chapters scanned across all beats. Prelude/epilogue chapters classified by focal character; villain-focal scenes labeled by villain name when consciousness was clearly anchored, else `external_omniscient`. JSON output at `crystal_shard.20260430T120637.pov-distribution.json`.
+
+### Per-book POV mass (% of chapters)
+
+| Character | crystal_shard (n=34) | streams_of_silver (n=29) | halflings_gem (n=29) |
+|---|---:|---:|---:|
+| **drizzt** | **29.4%** (10) | **48.3%** (14) | **31.0%** (9) |
+| wulfgar | 20.6% (7) | 10.3% (3) | 10.3% (3) |
+| bruenor | 14.7% (5) | 13.8% (4) | 24.1% (7) |
+| regis | 8.8% (3) | 6.9% (2) | 6.9% (2) |
+| catti-brie | — | 3.4% (1) | — |
+| entreri | — | 10.3% (3) | 10.3% (3) |
+| external_omniscient | 11.8% (4) | 3.4% (1) | 10.3% (3) |
+| akar_kessell | 11.8% (4) | — | — |
+| errtu | 2.9% (1) | — | — |
+| shimmergloom | — | 3.4% (1) | — |
+| pasha_pook | — | — | 6.9% (2) |
+
+### Cross-book stability
+
+- **Modal POV: Drizzt 3/3 books** (29.4 / 48.3 / 31.0 %) — modal_set_size = 1
+- **Core fellowship 3/3:** Drizzt, Bruenor, Wulfgar, Regis (4/5 of expected fellowship)
+- **Cast 3/3:** {drizzt, bruenor, wulfgar, regis, external_omniscient}
+- **Cast 2/3:** {entreri} (the only cross-book antagonist POV)
+- **Cast 1/3:** {akar_kessell, catti-brie, errtu, pasha_pook, shimmergloom} (per-book villain POVs + Catti-brie)
+
+### Multi-POV chapter density (the load-bearing finding)
+
+- **CS:** 29/34 chapters (85.3%) flagged as multi-POV
+- **SoS:** 19/29 chapters (65.5%)
+- **HG:** 25/29 chapters (86.2%)
+- **Spread: 20.7pp** — fails the ≤10pp gate
+
+**Counter to the original hypothesis** that multi-POV chapters would be rare. Multi-POV is the norm in Salvatore — most chapters cycle camera anchor across 2-3 characters per chapter (typically a fellowship member + a parallel villain/secondary thread). SoS has the lowest rate because it leans hardest into Drizzt-anchored chapters (48.3%); CS+HG distribute camera more evenly.
+
+### Switch cadence
+
+- **Mean run length:** CS 1.13, SoS 1.61, HG 1.07 chapters before POV switch
+- **Max run length:** CS 3, SoS 6, HG 3
+- **Switches per book:** CS 29, SoS 17, HG 26
+
+SoS is the structural outlier with longer Drizzt-led runs (max 6 consecutive chapters); CS+HG churn POV every ~1 chapter. **The trilogy does NOT lock POV per chapter** — a planner prior assuming "one POV per chapter" would diverge from the corpus by 65-86pp.
+
+### Cross-book directional verdict: PASS_PARTIAL
+
+| Gate | Result |
+|---|---|
+| Modal POV agrees 3/3 | **PASS** (Drizzt always) |
+| Core fellowship 4-5 present in 3/3 | **PASS** (4/5 — Catti-brie 1/3) |
+| Multi-POV chapter % spread ≤10pp | **FAIL** (20.7pp) |
+
+### Proposed harness levers
+
+1. **Schema addition** — `chapterOutlineSchema.povCharacters: string[]` (NOT singular `pointOfView`). Default to a primary POV + 1-2 secondary POVs per chapter to match corpus norm.
+2. **Constrain POV cast** to the canonical fellowship per series + villain rotations. For Salvatore-cluster fantasy seeds: `{drizzt, bruenor, wulfgar, regis}` core + 1-2 villain POVs per book.
+3. **Switch-cadence prior** — chapter-outline planner targets `mean POV run length ~1.0-1.6` (i.e. POV rotates approximately every chapter, NOT held over multiple chapters except for sustained Drizzt arcs).
+4. **Multi-POV-within-chapter** is corpus-canonical, NOT a violation. Remove any planner prior or lint rule that would forbid mid-chapter POV shifts. (Caveat: needs to be rechecked at the BEAT-cluster level; a "multi-POV chapter" can mean either rapid alternation or 2-3 distinct scene-anchored sub-chapters — corpus has both.)
+5. **External_omniscient** is a stable ~10% chapter category — sometimes used for battle-establishing or geographic-overview chapters. Schema should permit `pov: 'external_omniscient'` as a valid value, not just named characters.
+
+### Notes
+
+- Prelude/epilogue chapters classified to focal character (Errtu in CS prelude, etc.); these contribute to per-book counts.
+- Multi-POV detection rate is itself a methodology artifact — rapid camera shifts in fellowship-group scenes are easy to over-flag. The 65-86% spread may partly reflect classification sensitivity rather than pure structural difference.
+- Pattern complements P40 (per-character dialogue mass) — Drizzt is also the dialogue floor anchor in P40, but Bruenor was the volatility lever there. POV mass + dialogue mass are independent dimensions that both confirm fellowship structure.

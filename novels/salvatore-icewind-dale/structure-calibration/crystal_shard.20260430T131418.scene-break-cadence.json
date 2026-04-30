@@ -1,0 +1,332 @@
+{
+  "computedAt": "2026-04-30T13:14:18Z",
+  "pattern_id": 51,
+  "pattern_name": "Scene-break density + within-chapter scene cadence",
+  "description": "Pure-compute analysis of scenes.jsonl. Groups scenes by (book, chapter), counts scenes per chapter, asks whether the per-chapter scene-count distribution is stable enough to drive a planner prior.",
+  "methodology": "Per (book, chapter) grouping. Single-scene = group of size 1 (always corresponds to the 17 'unbounded' boundary records). Multi-scene = 1 chapter-open + 0..N bounded + 1 chapter-close. SoS part1/part2/part3 structural markers excluded from headline chapters_only stats.",
+  "boundary_inventory": {
+    "chapter-open": 75,
+    "chapter-close": 75,
+    "bounded": 185,
+    "unbounded": 17
+  },
+  "boundary_inventory_expected": {
+    "bounded": 185,
+    "chapter-open": 75,
+    "chapter-close": 75,
+    "unbounded": 17
+  },
+  "per_book": {
+    "crystal_shard": {
+      "all_groups_count": 34,
+      "chapters_only_count": 34,
+      "scenes_per_chapter": {
+        "n": 34,
+        "mean": 4.088,
+        "median": 4.0,
+        "p25": 2,
+        "p75": 5,
+        "min": 1,
+        "max": 16,
+        "mode": 4,
+        "mode_freq": 8,
+        "mode_share": 0.235
+      },
+      "scenes_per_chapter_all_groups": {
+        "n": 34,
+        "mean": 4.088,
+        "median": 4.0,
+        "p25": 2,
+        "p75": 5,
+        "min": 1,
+        "max": 16,
+        "mode": 4,
+        "mode_freq": 8,
+        "mode_share": 0.235
+      },
+      "histogram_scenes_per_chapter": {
+        "1": 4,
+        "2": 5,
+        "3": 5,
+        "4": 8,
+        "5": 7,
+        "6": 2,
+        "7": 1,
+        "8": 1,
+        "9": 0,
+        "10": 0,
+        "11": 0,
+        "12": 0,
+        "13": 0,
+        "14": 0,
+        "15": 0,
+        "16": 1
+      },
+      "single_scene_chapters": 4,
+      "single_scene_pct": 0.1176,
+      "multi_scene_chapters": 30,
+      "multi_scene_pct": 0.8824,
+      "chapter_word_totals": {
+        "n": 34,
+        "mean": 3088.824,
+        "median": 2959.5,
+        "p25": 2189,
+        "p75": 3622,
+        "min": 371,
+        "max": 9687,
+        "mode": 371,
+        "mode_freq": 1,
+        "mode_share": 0.029
+      },
+      "scene_word_distribution": {
+        "n": 139,
+        "mean": 755.54,
+        "median": 565,
+        "p25": 331,
+        "p75": 985,
+        "min": 41,
+        "max": 3747,
+        "mode": 148,
+        "mode_freq": 2,
+        "mode_share": 0.014
+      },
+      "intermediate_scene_count": 75,
+      "intermediate_bounded": 75,
+      "intermediate_unbounded": 0,
+      "bounded_share_of_intermediates": 1.0
+    },
+    "streams_of_silver": {
+      "all_groups_count": 29,
+      "chapters_only_count": 26,
+      "scenes_per_chapter": {
+        "n": 26,
+        "mean": 2.808,
+        "median": 3.0,
+        "p25": 1,
+        "p75": 4,
+        "min": 1,
+        "max": 6,
+        "mode": 1,
+        "mode_freq": 7,
+        "mode_share": 0.269
+      },
+      "scenes_per_chapter_all_groups": {
+        "n": 29,
+        "mean": 2.621,
+        "median": 2,
+        "p25": 1,
+        "p75": 4,
+        "min": 1,
+        "max": 6,
+        "mode": 1,
+        "mode_freq": 10,
+        "mode_share": 0.345
+      },
+      "histogram_scenes_per_chapter": {
+        "1": 7,
+        "2": 5,
+        "3": 5,
+        "4": 6,
+        "5": 1,
+        "6": 2
+      },
+      "single_scene_chapters": 7,
+      "single_scene_pct": 0.2692,
+      "multi_scene_chapters": 19,
+      "multi_scene_pct": 0.7308,
+      "chapter_word_totals": {
+        "n": 26,
+        "mean": 3895.308,
+        "median": 3773.5,
+        "p25": 3129,
+        "p75": 4923,
+        "min": 1142,
+        "max": 6804,
+        "mode": 1142,
+        "mode_freq": 1,
+        "mode_share": 0.038
+      },
+      "scene_word_distribution": {
+        "n": 73,
+        "mean": 1387.37,
+        "median": 966,
+        "p25": 297,
+        "p75": 1997,
+        "min": 35,
+        "max": 6686,
+        "mode": 1681,
+        "mode_freq": 2,
+        "mode_share": 0.027
+      },
+      "intermediate_scene_count": 28,
+      "intermediate_bounded": 28,
+      "intermediate_unbounded": 0,
+      "bounded_share_of_intermediates": 1.0
+    },
+    "halflings_gem": {
+      "all_groups_count": 29,
+      "chapters_only_count": 29,
+      "scenes_per_chapter": {
+        "n": 29,
+        "mean": 4.724,
+        "median": 4,
+        "p25": 3,
+        "p75": 6,
+        "min": 1,
+        "max": 15,
+        "mode": 4,
+        "mode_freq": 6,
+        "mode_share": 0.207
+      },
+      "scenes_per_chapter_all_groups": {
+        "n": 29,
+        "mean": 4.724,
+        "median": 4,
+        "p25": 3,
+        "p75": 6,
+        "min": 1,
+        "max": 15,
+        "mode": 4,
+        "mode_freq": 6,
+        "mode_share": 0.207
+      },
+      "histogram_scenes_per_chapter": {
+        "1": 3,
+        "2": 2,
+        "3": 5,
+        "4": 6,
+        "5": 3,
+        "6": 3,
+        "7": 5,
+        "8": 1,
+        "9": 0,
+        "10": 0,
+        "11": 0,
+        "12": 0,
+        "13": 0,
+        "14": 0,
+        "15": 1
+      },
+      "single_scene_chapters": 3,
+      "single_scene_pct": 0.1034,
+      "multi_scene_chapters": 26,
+      "multi_scene_pct": 0.8966,
+      "chapter_word_totals": {
+        "n": 29,
+        "mean": 3321.586,
+        "median": 3300,
+        "p25": 2479,
+        "p75": 4207,
+        "min": 911,
+        "max": 5840,
+        "mode": 2997,
+        "mode_freq": 2,
+        "mode_share": 0.069
+      },
+      "scene_word_distribution": {
+        "n": 137,
+        "mean": 703.109,
+        "median": 488,
+        "p25": 245,
+        "p75": 878,
+        "min": 32,
+        "max": 4471,
+        "mode": 127,
+        "mode_freq": 2,
+        "mode_share": 0.015
+      },
+      "intermediate_scene_count": 82,
+      "intermediate_bounded": 82,
+      "intermediate_unbounded": 0,
+      "bounded_share_of_intermediates": 1.0
+    }
+  },
+  "aggregate": {
+    "n_chapters": 89,
+    "scenes_per_chapter": {
+      "n": 89,
+      "mean": 3.921,
+      "median": 4,
+      "p25": 2,
+      "p75": 5,
+      "min": 1,
+      "max": 16,
+      "mode": 4,
+      "mode_freq": 20,
+      "mode_share": 0.225
+    },
+    "scene_count_histogram": {
+      "1": 14,
+      "2": 12,
+      "3": 15,
+      "4": 20,
+      "5": 11,
+      "6": 7,
+      "7": 6,
+      "8": 2,
+      "9": 0,
+      "10": 0,
+      "11": 0,
+      "12": 0,
+      "13": 0,
+      "14": 0,
+      "15": 1,
+      "16": 1
+    },
+    "chapter_word_totals": {
+      "n": 89,
+      "mean": 3400.27,
+      "median": 3374,
+      "p25": 2525,
+      "p75": 4207,
+      "min": 371,
+      "max": 9687,
+      "mode": 2255,
+      "mode_freq": 2,
+      "mode_share": 0.022
+    },
+    "scene_word_distribution": {
+      "n": 349,
+      "mean": 867.117,
+      "median": 561,
+      "p25": 299,
+      "p75": 1035,
+      "min": 32,
+      "max": 6686,
+      "mode": 406,
+      "mode_freq": 4,
+      "mode_share": 0.011
+    }
+  },
+  "cross_book_stability": {
+    "modes_per_book": {
+      "crystal_shard": 4,
+      "streams_of_silver": 1,
+      "halflings_gem": 4
+    },
+    "modes_agree_3of3": false,
+    "modes_agree_2of3": true,
+    "mean_scenes_per_chapter_per_book": {
+      "crystal_shard": 4.088,
+      "streams_of_silver": 2.808,
+      "halflings_gem": 4.724
+    },
+    "mean_spread_pp_scenes": 1.916,
+    "single_scene_pct_per_book": {
+      "crystal_shard": 0.1176,
+      "streams_of_silver": 0.2692,
+      "halflings_gem": 0.1034
+    },
+    "single_scene_pct_spread_pp": 16.58,
+    "bounded_share_per_book": {
+      "crystal_shard": 1.0,
+      "streams_of_silver": 1.0,
+      "halflings_gem": 1.0
+    },
+    "bounded_share_spread_pp": 0.0
+  },
+  "directional_verdict": "PASS_PARTIAL",
+  "directional_summary": "Modal scenes-per-chapter agrees in 2/3 books (modes=[4, 1, 4]); single-scene-pct spread 16.6pp.",
+  "proposed_lever": "Add OPTIONAL `sceneCount` field to chapterOutlineSchema (planner Phase 1 skeleton). Per-book single-scene rate is bimodal: CS 11.8% and HG 10.3% cluster ~10%; SoS 26.9% is an outlier (corroborates P22/P23 'SoS scenes 1.8x larger'). Recommend planner default 'sceneCount in {2..5}, mode=4' with an OPTIONAL `chapterShape: continuous|fragmented` flag (continuous = sceneCount=1, target ~10-15% of chapters). All intermediate scenes in the corpus are hard breaks (bounded share = 100% across 3/3 books) so no soft-transition mode is needed. Beat-expander already targets ~14 beats/chapter (P21/P37 floor); under sceneCount=1 the white-space-break linter should suppress mid-chapter scene-break warnings.",
+  "ship_recommendation": "Modal scenes-per-chapter agrees in 2/3 books (modes=[4, 1, 4]); single-scene-pct spread 16.6pp."
+}
