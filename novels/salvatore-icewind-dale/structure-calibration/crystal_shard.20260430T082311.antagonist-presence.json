@@ -1,0 +1,1530 @@
+{
+  "generated_at": "2026-04-30T08:23:11.264770",
+  "pattern_id": "P25",
+  "pattern_name": "Antagonist on-page presence rate",
+  "data_source": "/Users/andre/Desktop/personal_projects/novel-harness/novels/salvatore-icewind-dale/beats.jsonl",
+  "methodology": {
+    "unit": "beat",
+    "detection": "regex on text field; case-insensitive flag NOT set (names are capitalized in source); compound aliases handled per-book",
+    "aliases": {
+      "crystal_shard": {
+        "Akar Kessell": "\\b(?:Akar\\s+)?Kessell\\b",
+        "Crenshinibon": "\\b(?:Crenshinibon|[Cc]rystal\\s+[Ss]hard)\\b"
+      },
+      "streams_of_silver": {
+        "Artemis Entreri": "\\b(?:Artemis\\s+)?Entreri\\b",
+        "Pasha Pook": "\\bPasha\\s+Po(?:o|o)k\\b|\\bPasha\\s+Po\\nok\\b|\\b(?:Pasha\\s+)?Pook\\b"
+      },
+      "halflings_gem": {
+        "Artemis Entreri": "\\b(?:Artemis\\s+)?Entreri\\b",
+        "Pasha Pook": "\\bPasha\\s+Po(?:o|o)k\\b|\\bPasha\\s+Po\\nok\\b|\\b(?:Pasha\\s+)?Pook\\b"
+      }
+    },
+    "numeric_only_filter": "Excludes prelude/part1-3/epilogue chapters from third-bucket and within-chapter analysis; included in all_beats raw counts.",
+    "thirds_definition": "Equal-thirds by 1-based chapter ordinal among numeric chapters; ties resolve to the earlier bucket via floor(idx*3/n_ch).",
+    "within_chapter_position": "<25% open, 25-75% mid, >=75% close based on beat ordinal within chapter (mid-cell rule)."
+  },
+  "per_book": {
+    "crystal_shard": {
+      "antagonists": [
+        "Akar Kessell",
+        "Crenshinibon"
+      ],
+      "patterns": {
+        "Akar Kessell": "\\b(?:Akar\\s+)?Kessell\\b",
+        "Crenshinibon": "\\b(?:Crenshinibon|[Cc]rystal\\s+[Ss]hard)\\b"
+      },
+      "total_beats_all": 858,
+      "total_beats_numeric_chapters": 813,
+      "numeric_chapter_count": 30,
+      "numeric_chapter_range": [
+        1,
+        30
+      ],
+      "all_beats": {
+        "per_antagonist_present": {
+          "Akar Kessell": 204,
+          "Crenshinibon": 54
+        },
+        "per_antagonist_fraction": {
+          "Akar Kessell": 0.23776223776223776,
+          "Crenshinibon": 0.06293706293706294
+        },
+        "any_antagonist_present": 211,
+        "any_antagonist_fraction": 0.24592074592074592
+      },
+      "numeric_only": {
+        "per_antagonist_present": {
+          "Akar Kessell": 195,
+          "Crenshinibon": 43
+        },
+        "per_antagonist_fraction": {
+          "Akar Kessell": 0.23985239852398524,
+          "Crenshinibon": 0.05289052890528905
+        },
+        "any_antagonist_present": 197,
+        "any_antagonist_fraction": 0.24231242312423124
+      },
+      "thirds": {
+        "early": {
+          "beat_count": 221,
+          "per_antagonist_present": {
+            "Akar Kessell": 46,
+            "Crenshinibon": 19
+          },
+          "per_antagonist_fraction": {
+            "Akar Kessell": 0.2081447963800905,
+            "Crenshinibon": 0.08597285067873303
+          },
+          "any_antagonist_present": 46,
+          "any_antagonist_fraction": 0.2081447963800905
+        },
+        "mid": {
+          "beat_count": 271,
+          "per_antagonist_present": {
+            "Akar Kessell": 30,
+            "Crenshinibon": 5
+          },
+          "per_antagonist_fraction": {
+            "Akar Kessell": 0.11070110701107011,
+            "Crenshinibon": 0.01845018450184502
+          },
+          "any_antagonist_present": 30,
+          "any_antagonist_fraction": 0.11070110701107011
+        },
+        "late": {
+          "beat_count": 321,
+          "per_antagonist_present": {
+            "Akar Kessell": 119,
+            "Crenshinibon": 19
+          },
+          "per_antagonist_fraction": {
+            "Akar Kessell": 0.3707165109034268,
+            "Crenshinibon": 0.059190031152647975
+          },
+          "any_antagonist_present": 121,
+          "any_antagonist_fraction": 0.37694704049844235
+        }
+      },
+      "per_chapter": {
+        "1": {
+          "beat_count": 19,
+          "per_antagonist_present": {
+            "Akar Kessell": 13,
+            "Crenshinibon": 0
+          },
+          "per_antagonist_fraction": {
+            "Akar Kessell": 0.6842105263157895,
+            "Crenshinibon": 0.0
+          },
+          "any_antagonist_present": 13,
+          "any_antagonist_fraction": 0.6842105263157895
+        },
+        "2": {
+          "beat_count": 29,
+          "per_antagonist_present": {
+            "Akar Kessell": 0,
+            "Crenshinibon": 0
+          },
+          "per_antagonist_fraction": {
+            "Akar Kessell": 0.0,
+            "Crenshinibon": 0.0
+          },
+          "any_antagonist_present": 0,
+          "any_antagonist_fraction": 0.0
+        },
+        "3": {
+          "beat_count": 25,
+          "per_antagonist_present": {
+            "Akar Kessell": 0,
+            "Crenshinibon": 0
+          },
+          "per_antagonist_fraction": {
+            "Akar Kessell": 0.0,
+            "Crenshinibon": 0.0
+          },
+          "any_antagonist_present": 0,
+          "any_antagonist_fraction": 0.0
+        },
+        "4": {
+          "beat_count": 21,
+          "per_antagonist_present": {
+            "Akar Kessell": 20,
+            "Crenshinibon": 9
+          },
+          "per_antagonist_fraction": {
+            "Akar Kessell": 0.9523809523809523,
+            "Crenshinibon": 0.42857142857142855
+          },
+          "any_antagonist_present": 20,
+          "any_antagonist_fraction": 0.9523809523809523
+        },
+        "5": {
+          "beat_count": 11,
+          "per_antagonist_present": {
+            "Akar Kessell": 0,
+            "Crenshinibon": 0
+          },
+          "per_antagonist_fraction": {
+            "Akar Kessell": 0.0,
+            "Crenshinibon": 0.0
+          },
+          "any_antagonist_present": 0,
+          "any_antagonist_fraction": 0.0
+        },
+        "6": {
+          "beat_count": 16,
+          "per_antagonist_present": {
+            "Akar Kessell": 0,
+            "Crenshinibon": 0
+          },
+          "per_antagonist_fraction": {
+            "Akar Kessell": 0.0,
+            "Crenshinibon": 0.0
+          },
+          "any_antagonist_present": 0,
+          "any_antagonist_fraction": 0.0
+        },
+        "7": {
+          "beat_count": 28,
+          "per_antagonist_present": {
+            "Akar Kessell": 0,
+            "Crenshinibon": 0
+          },
+          "per_antagonist_fraction": {
+            "Akar Kessell": 0.0,
+            "Crenshinibon": 0.0
+          },
+          "any_antagonist_present": 0,
+          "any_antagonist_fraction": 0.0
+        },
+        "8": {
+          "beat_count": 35,
+          "per_antagonist_present": {
+            "Akar Kessell": 0,
+            "Crenshinibon": 0
+          },
+          "per_antagonist_fraction": {
+            "Akar Kessell": 0.0,
+            "Crenshinibon": 0.0
+          },
+          "any_antagonist_present": 0,
+          "any_antagonist_fraction": 0.0
+        },
+        "9": {
+          "beat_count": 13,
+          "per_antagonist_present": {
+            "Akar Kessell": 0,
+            "Crenshinibon": 0
+          },
+          "per_antagonist_fraction": {
+            "Akar Kessell": 0.0,
+            "Crenshinibon": 0.0
+          },
+          "any_antagonist_present": 0,
+          "any_antagonist_fraction": 0.0
+        },
+        "10": {
+          "beat_count": 24,
+          "per_antagonist_present": {
+            "Akar Kessell": 13,
+            "Crenshinibon": 10
+          },
+          "per_antagonist_fraction": {
+            "Akar Kessell": 0.5416666666666666,
+            "Crenshinibon": 0.4166666666666667
+          },
+          "any_antagonist_present": 13,
+          "any_antagonist_fraction": 0.5416666666666666
+        },
+        "11": {
+          "beat_count": 20,
+          "per_antagonist_present": {
+            "Akar Kessell": 0,
+            "Crenshinibon": 0
+          },
+          "per_antagonist_fraction": {
+            "Akar Kessell": 0.0,
+            "Crenshinibon": 0.0
+          },
+          "any_antagonist_present": 0,
+          "any_antagonist_fraction": 0.0
+        },
+        "12": {
+          "beat_count": 23,
+          "per_antagonist_present": {
+            "Akar Kessell": 0,
+            "Crenshinibon": 0
+          },
+          "per_antagonist_fraction": {
+            "Akar Kessell": 0.0,
+            "Crenshinibon": 0.0
+          },
+          "any_antagonist_present": 0,
+          "any_antagonist_fraction": 0.0
+        },
+        "13": {
+          "beat_count": 11,
+          "per_antagonist_present": {
+            "Akar Kessell": 10,
+            "Crenshinibon": 5
+          },
+          "per_antagonist_fraction": {
+            "Akar Kessell": 0.9090909090909091,
+            "Crenshinibon": 0.45454545454545453
+          },
+          "any_antagonist_present": 10,
+          "any_antagonist_fraction": 0.9090909090909091
+        },
+        "14": {
+          "beat_count": 22,
+          "per_antagonist_present": {
+            "Akar Kessell": 0,
+            "Crenshinibon": 0
+          },
+          "per_antagonist_fraction": {
+            "Akar Kessell": 0.0,
+            "Crenshinibon": 0.0
+          },
+          "any_antagonist_present": 0,
+          "any_antagonist_fraction": 0.0
+        },
+        "15": {
+          "beat_count": 25,
+          "per_antagonist_present": {
+            "Akar Kessell": 6,
+            "Crenshinibon": 0
+          },
+          "per_antagonist_fraction": {
+            "Akar Kessell": 0.24,
+            "Crenshinibon": 0.0
+          },
+          "any_antagonist_present": 6,
+          "any_antagonist_fraction": 0.24
+        },
+        "16": {
+          "beat_count": 34,
+          "per_antagonist_present": {
+            "Akar Kessell": 0,
+            "Crenshinibon": 0
+          },
+          "per_antagonist_fraction": {
+            "Akar Kessell": 0.0,
+            "Crenshinibon": 0.0
+          },
+          "any_antagonist_present": 0,
+          "any_antagonist_fraction": 0.0
+        },
+        "17": {
+          "beat_count": 29,
+          "per_antagonist_present": {
+            "Akar Kessell": 0,
+            "Crenshinibon": 0
+          },
+          "per_antagonist_fraction": {
+            "Akar Kessell": 0.0,
+            "Crenshinibon": 0.0
+          },
+          "any_antagonist_present": 0,
+          "any_antagonist_fraction": 0.0
+        },
+        "18": {
+          "beat_count": 54,
+          "per_antagonist_present": {
+            "Akar Kessell": 3,
+            "Crenshinibon": 0
+          },
+          "per_antagonist_fraction": {
+            "Akar Kessell": 0.05555555555555555,
+            "Crenshinibon": 0.0
+          },
+          "any_antagonist_present": 3,
+          "any_antagonist_fraction": 0.05555555555555555
+        },
+        "19": {
+          "beat_count": 29,
+          "per_antagonist_present": {
+            "Akar Kessell": 2,
+            "Crenshinibon": 0
+          },
+          "per_antagonist_fraction": {
+            "Akar Kessell": 0.06896551724137931,
+            "Crenshinibon": 0.0
+          },
+          "any_antagonist_present": 2,
+          "any_antagonist_fraction": 0.06896551724137931
+        },
+        "20": {
+          "beat_count": 24,
+          "per_antagonist_present": {
+            "Akar Kessell": 9,
+            "Crenshinibon": 0
+          },
+          "per_antagonist_fraction": {
+            "Akar Kessell": 0.375,
+            "Crenshinibon": 0.0
+          },
+          "any_antagonist_present": 9,
+          "any_antagonist_fraction": 0.375
+        },
+        "21": {
+          "beat_count": 26,
+          "per_antagonist_present": {
+            "Akar Kessell": 0,
+            "Crenshinibon": 0
+          },
+          "per_antagonist_fraction": {
+            "Akar Kessell": 0.0,
+            "Crenshinibon": 0.0
+          },
+          "any_antagonist_present": 0,
+          "any_antagonist_fraction": 0.0
+        },
+        "22": {
+          "beat_count": 32,
+          "per_antagonist_present": {
+            "Akar Kessell": 0,
+            "Crenshinibon": 0
+          },
+          "per_antagonist_fraction": {
+            "Akar Kessell": 0.0,
+            "Crenshinibon": 0.0
+          },
+          "any_antagonist_present": 0,
+          "any_antagonist_fraction": 0.0
+        },
+        "23": {
+          "beat_count": 24,
+          "per_antagonist_present": {
+            "Akar Kessell": 7,
+            "Crenshinibon": 0
+          },
+          "per_antagonist_fraction": {
+            "Akar Kessell": 0.2916666666666667,
+            "Crenshinibon": 0.0
+          },
+          "any_antagonist_present": 7,
+          "any_antagonist_fraction": 0.2916666666666667
+        },
+        "24": {
+          "beat_count": 37,
+          "per_antagonist_present": {
+            "Akar Kessell": 25,
+            "Crenshinibon": 4
+          },
+          "per_antagonist_fraction": {
+            "Akar Kessell": 0.6756756756756757,
+            "Crenshinibon": 0.10810810810810811
+          },
+          "any_antagonist_present": 26,
+          "any_antagonist_fraction": 0.7027027027027027
+        },
+        "25": {
+          "beat_count": 24,
+          "per_antagonist_present": {
+            "Akar Kessell": 7,
+            "Crenshinibon": 5
+          },
+          "per_antagonist_fraction": {
+            "Akar Kessell": 0.2916666666666667,
+            "Crenshinibon": 0.20833333333333334
+          },
+          "any_antagonist_present": 7,
+          "any_antagonist_fraction": 0.2916666666666667
+        },
+        "26": {
+          "beat_count": 7,
+          "per_antagonist_present": {
+            "Akar Kessell": 2,
+            "Crenshinibon": 0
+          },
+          "per_antagonist_fraction": {
+            "Akar Kessell": 0.2857142857142857,
+            "Crenshinibon": 0.0
+          },
+          "any_antagonist_present": 2,
+          "any_antagonist_fraction": 0.2857142857142857
+        },
+        "27": {
+          "beat_count": 22,
+          "per_antagonist_present": {
+            "Akar Kessell": 14,
+            "Crenshinibon": 0
+          },
+          "per_antagonist_fraction": {
+            "Akar Kessell": 0.6363636363636364,
+            "Crenshinibon": 0.0
+          },
+          "any_antagonist_present": 14,
+          "any_antagonist_fraction": 0.6363636363636364
+        },
+        "28": {
+          "beat_count": 26,
+          "per_antagonist_present": {
+            "Akar Kessell": 17,
+            "Crenshinibon": 0
+          },
+          "per_antagonist_fraction": {
+            "Akar Kessell": 0.6538461538461539,
+            "Crenshinibon": 0.0
+          },
+          "any_antagonist_present": 17,
+          "any_antagonist_fraction": 0.6538461538461539
+        },
+        "29": {
+          "beat_count": 44,
+          "per_antagonist_present": {
+            "Akar Kessell": 27,
+            "Crenshinibon": 3
+          },
+          "per_antagonist_fraction": {
+            "Akar Kessell": 0.6136363636363636,
+            "Crenshinibon": 0.06818181818181818
+          },
+          "any_antagonist_present": 27,
+          "any_antagonist_fraction": 0.6136363636363636
+        },
+        "30": {
+          "beat_count": 79,
+          "per_antagonist_present": {
+            "Akar Kessell": 20,
+            "Crenshinibon": 7
+          },
+          "per_antagonist_fraction": {
+            "Akar Kessell": 0.25316455696202533,
+            "Crenshinibon": 0.08860759493670886
+          },
+          "any_antagonist_present": 21,
+          "any_antagonist_fraction": 0.26582278481012656
+        }
+      },
+      "within_chapter_position": {
+        "open": {
+          "beat_count": 200,
+          "per_antagonist_present": {
+            "Akar Kessell": 47,
+            "Crenshinibon": 6
+          },
+          "per_antagonist_fraction": {
+            "Akar Kessell": 0.235,
+            "Crenshinibon": 0.03
+          },
+          "any_antagonist_present": 48,
+          "any_antagonist_fraction": 0.24
+        },
+        "mid": {
+          "beat_count": 407,
+          "per_antagonist_present": {
+            "Akar Kessell": 96,
+            "Crenshinibon": 21
+          },
+          "per_antagonist_fraction": {
+            "Akar Kessell": 0.23587223587223588,
+            "Crenshinibon": 0.051597051597051594
+          },
+          "any_antagonist_present": 97,
+          "any_antagonist_fraction": 0.23832923832923833
+        },
+        "close": {
+          "beat_count": 206,
+          "per_antagonist_present": {
+            "Akar Kessell": 52,
+            "Crenshinibon": 16
+          },
+          "per_antagonist_fraction": {
+            "Akar Kessell": 0.2524271844660194,
+            "Crenshinibon": 0.07766990291262135
+          },
+          "any_antagonist_present": 52,
+          "any_antagonist_fraction": 0.2524271844660194
+        }
+      }
+    },
+    "halflings_gem": {
+      "antagonists": [
+        "Artemis Entreri",
+        "Pasha Pook"
+      ],
+      "patterns": {
+        "Artemis Entreri": "\\b(?:Artemis\\s+)?Entreri\\b",
+        "Pasha Pook": "\\bPasha\\s+Po(?:o|o)k\\b|\\bPasha\\s+Po\\nok\\b|\\b(?:Pasha\\s+)?Pook\\b"
+      },
+      "total_beats_all": 826,
+      "total_beats_numeric_chapters": 779,
+      "numeric_chapter_count": 25,
+      "numeric_chapter_range": [
+        1,
+        25
+      ],
+      "all_beats": {
+        "per_antagonist_present": {
+          "Artemis Entreri": 184,
+          "Pasha Pook": 148
+        },
+        "per_antagonist_fraction": {
+          "Artemis Entreri": 0.22276029055690072,
+          "Pasha Pook": 0.1791767554479419
+        },
+        "any_antagonist_present": 266,
+        "any_antagonist_fraction": 0.3220338983050847
+      },
+      "numeric_only": {
+        "per_antagonist_present": {
+          "Artemis Entreri": 171,
+          "Pasha Pook": 141
+        },
+        "per_antagonist_fraction": {
+          "Artemis Entreri": 0.21951219512195122,
+          "Pasha Pook": 0.1810012836970475
+        },
+        "any_antagonist_present": 253,
+        "any_antagonist_fraction": 0.3247753530166881
+      },
+      "thirds": {
+        "early": {
+          "beat_count": 264,
+          "per_antagonist_present": {
+            "Artemis Entreri": 64,
+            "Pasha Pook": 30
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.24242424242424243,
+            "Pasha Pook": 0.11363636363636363
+          },
+          "any_antagonist_present": 78,
+          "any_antagonist_fraction": 0.29545454545454547
+        },
+        "mid": {
+          "beat_count": 254,
+          "per_antagonist_present": {
+            "Artemis Entreri": 50,
+            "Pasha Pook": 45
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.1968503937007874,
+            "Pasha Pook": 0.17716535433070865
+          },
+          "any_antagonist_present": 64,
+          "any_antagonist_fraction": 0.25196850393700787
+        },
+        "late": {
+          "beat_count": 261,
+          "per_antagonist_present": {
+            "Artemis Entreri": 57,
+            "Pasha Pook": 66
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.21839080459770116,
+            "Pasha Pook": 0.25287356321839083
+          },
+          "any_antagonist_present": 111,
+          "any_antagonist_fraction": 0.42528735632183906
+        }
+      },
+      "per_chapter": {
+        "1": {
+          "beat_count": 35,
+          "per_antagonist_present": {
+            "Artemis Entreri": 6,
+            "Pasha Pook": 0
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.17142857142857143,
+            "Pasha Pook": 0.0
+          },
+          "any_antagonist_present": 6,
+          "any_antagonist_fraction": 0.17142857142857143
+        },
+        "2": {
+          "beat_count": 22,
+          "per_antagonist_present": {
+            "Artemis Entreri": 16,
+            "Pasha Pook": 4
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.7272727272727273,
+            "Pasha Pook": 0.18181818181818182
+          },
+          "any_antagonist_present": 16,
+          "any_antagonist_fraction": 0.7272727272727273
+        },
+        "3": {
+          "beat_count": 31,
+          "per_antagonist_present": {
+            "Artemis Entreri": 1,
+            "Pasha Pook": 0
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.03225806451612903,
+            "Pasha Pook": 0.0
+          },
+          "any_antagonist_present": 1,
+          "any_antagonist_fraction": 0.03225806451612903
+        },
+        "4": {
+          "beat_count": 47,
+          "per_antagonist_present": {
+            "Artemis Entreri": 0,
+            "Pasha Pook": 0
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.0,
+            "Pasha Pook": 0.0
+          },
+          "any_antagonist_present": 0,
+          "any_antagonist_fraction": 0.0
+        },
+        "5": {
+          "beat_count": 39,
+          "per_antagonist_present": {
+            "Artemis Entreri": 0,
+            "Pasha Pook": 0
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.0,
+            "Pasha Pook": 0.0
+          },
+          "any_antagonist_present": 0,
+          "any_antagonist_fraction": 0.0
+        },
+        "6": {
+          "beat_count": 40,
+          "per_antagonist_present": {
+            "Artemis Entreri": 34,
+            "Pasha Pook": 5
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.85,
+            "Pasha Pook": 0.125
+          },
+          "any_antagonist_present": 34,
+          "any_antagonist_fraction": 0.85
+        },
+        "7": {
+          "beat_count": 28,
+          "per_antagonist_present": {
+            "Artemis Entreri": 0,
+            "Pasha Pook": 0
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.0,
+            "Pasha Pook": 0.0
+          },
+          "any_antagonist_present": 0,
+          "any_antagonist_fraction": 0.0
+        },
+        "8": {
+          "beat_count": 22,
+          "per_antagonist_present": {
+            "Artemis Entreri": 7,
+            "Pasha Pook": 21
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.3181818181818182,
+            "Pasha Pook": 0.9545454545454546
+          },
+          "any_antagonist_present": 21,
+          "any_antagonist_fraction": 0.9545454545454546
+        },
+        "9": {
+          "beat_count": 20,
+          "per_antagonist_present": {
+            "Artemis Entreri": 8,
+            "Pasha Pook": 8
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.4,
+            "Pasha Pook": 0.4
+          },
+          "any_antagonist_present": 10,
+          "any_antagonist_fraction": 0.5
+        },
+        "10": {
+          "beat_count": 34,
+          "per_antagonist_present": {
+            "Artemis Entreri": 0,
+            "Pasha Pook": 0
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.0,
+            "Pasha Pook": 0.0
+          },
+          "any_antagonist_present": 0,
+          "any_antagonist_fraction": 0.0
+        },
+        "11": {
+          "beat_count": 53,
+          "per_antagonist_present": {
+            "Artemis Entreri": 0,
+            "Pasha Pook": 1
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.0,
+            "Pasha Pook": 0.018867924528301886
+          },
+          "any_antagonist_present": 1,
+          "any_antagonist_fraction": 0.018867924528301886
+        },
+        "12": {
+          "beat_count": 27,
+          "per_antagonist_present": {
+            "Artemis Entreri": 2,
+            "Pasha Pook": 1
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.07407407407407407,
+            "Pasha Pook": 0.037037037037037035
+          },
+          "any_antagonist_present": 2,
+          "any_antagonist_fraction": 0.07407407407407407
+        },
+        "13": {
+          "beat_count": 30,
+          "per_antagonist_present": {
+            "Artemis Entreri": 22,
+            "Pasha Pook": 23
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.7333333333333333,
+            "Pasha Pook": 0.7666666666666667
+          },
+          "any_antagonist_present": 25,
+          "any_antagonist_fraction": 0.8333333333333334
+        },
+        "14": {
+          "beat_count": 32,
+          "per_antagonist_present": {
+            "Artemis Entreri": 1,
+            "Pasha Pook": 0
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.03125,
+            "Pasha Pook": 0.0
+          },
+          "any_antagonist_present": 1,
+          "any_antagonist_fraction": 0.03125
+        },
+        "15": {
+          "beat_count": 24,
+          "per_antagonist_present": {
+            "Artemis Entreri": 1,
+            "Pasha Pook": 4
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.041666666666666664,
+            "Pasha Pook": 0.16666666666666666
+          },
+          "any_antagonist_present": 4,
+          "any_antagonist_fraction": 0.16666666666666666
+        },
+        "16": {
+          "beat_count": 34,
+          "per_antagonist_present": {
+            "Artemis Entreri": 16,
+            "Pasha Pook": 8
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.47058823529411764,
+            "Pasha Pook": 0.23529411764705882
+          },
+          "any_antagonist_present": 21,
+          "any_antagonist_fraction": 0.6176470588235294
+        },
+        "17": {
+          "beat_count": 19,
+          "per_antagonist_present": {
+            "Artemis Entreri": 5,
+            "Pasha Pook": 19
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.2631578947368421,
+            "Pasha Pook": 1.0
+          },
+          "any_antagonist_present": 19,
+          "any_antagonist_fraction": 1.0
+        },
+        "18": {
+          "beat_count": 42,
+          "per_antagonist_present": {
+            "Artemis Entreri": 7,
+            "Pasha Pook": 1
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.16666666666666666,
+            "Pasha Pook": 0.023809523809523808
+          },
+          "any_antagonist_present": 8,
+          "any_antagonist_fraction": 0.19047619047619047
+        },
+        "19": {
+          "beat_count": 35,
+          "per_antagonist_present": {
+            "Artemis Entreri": 21,
+            "Pasha Pook": 3
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.6,
+            "Pasha Pook": 0.08571428571428572
+          },
+          "any_antagonist_present": 22,
+          "any_antagonist_fraction": 0.6285714285714286
+        },
+        "20": {
+          "beat_count": 27,
+          "per_antagonist_present": {
+            "Artemis Entreri": 15,
+            "Pasha Pook": 6
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.5555555555555556,
+            "Pasha Pook": 0.2222222222222222
+          },
+          "any_antagonist_present": 21,
+          "any_antagonist_fraction": 0.7777777777777778
+        },
+        "21": {
+          "beat_count": 27,
+          "per_antagonist_present": {
+            "Artemis Entreri": 3,
+            "Pasha Pook": 12
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.1111111111111111,
+            "Pasha Pook": 0.4444444444444444
+          },
+          "any_antagonist_present": 12,
+          "any_antagonist_fraction": 0.4444444444444444
+        },
+        "22": {
+          "beat_count": 36,
+          "per_antagonist_present": {
+            "Artemis Entreri": 0,
+            "Pasha Pook": 4
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.0,
+            "Pasha Pook": 0.1111111111111111
+          },
+          "any_antagonist_present": 4,
+          "any_antagonist_fraction": 0.1111111111111111
+        },
+        "23": {
+          "beat_count": 24,
+          "per_antagonist_present": {
+            "Artemis Entreri": 0,
+            "Pasha Pook": 7
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.0,
+            "Pasha Pook": 0.2916666666666667
+          },
+          "any_antagonist_present": 7,
+          "any_antagonist_fraction": 0.2916666666666667
+        },
+        "24": {
+          "beat_count": 27,
+          "per_antagonist_present": {
+            "Artemis Entreri": 3,
+            "Pasha Pook": 10
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.1111111111111111,
+            "Pasha Pook": 0.37037037037037035
+          },
+          "any_antagonist_present": 12,
+          "any_antagonist_fraction": 0.4444444444444444
+        },
+        "25": {
+          "beat_count": 24,
+          "per_antagonist_present": {
+            "Artemis Entreri": 3,
+            "Pasha Pook": 4
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.125,
+            "Pasha Pook": 0.16666666666666666
+          },
+          "any_antagonist_present": 6,
+          "any_antagonist_fraction": 0.25
+        }
+      },
+      "within_chapter_position": {
+        "open": {
+          "beat_count": 194,
+          "per_antagonist_present": {
+            "Artemis Entreri": 38,
+            "Pasha Pook": 35
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.1958762886597938,
+            "Pasha Pook": 0.18041237113402062
+          },
+          "any_antagonist_present": 63,
+          "any_antagonist_fraction": 0.3247422680412371
+        },
+        "mid": {
+          "beat_count": 385,
+          "per_antagonist_present": {
+            "Artemis Entreri": 86,
+            "Pasha Pook": 69
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.22337662337662337,
+            "Pasha Pook": 0.17922077922077922
+          },
+          "any_antagonist_present": 124,
+          "any_antagonist_fraction": 0.3220779220779221
+        },
+        "close": {
+          "beat_count": 200,
+          "per_antagonist_present": {
+            "Artemis Entreri": 47,
+            "Pasha Pook": 37
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.235,
+            "Pasha Pook": 0.185
+          },
+          "any_antagonist_present": 66,
+          "any_antagonist_fraction": 0.33
+        }
+      }
+    },
+    "streams_of_silver": {
+      "antagonists": [
+        "Artemis Entreri",
+        "Pasha Pook"
+      ],
+      "patterns": {
+        "Artemis Entreri": "\\b(?:Artemis\\s+)?Entreri\\b",
+        "Pasha Pook": "\\bPasha\\s+Po(?:o|o)k\\b|\\bPasha\\s+Po\\nok\\b|\\b(?:Pasha\\s+)?Pook\\b"
+      },
+      "total_beats_all": 786,
+      "total_beats_numeric_chapters": 740,
+      "numeric_chapter_count": 24,
+      "numeric_chapter_range": [
+        1,
+        24
+      ],
+      "all_beats": {
+        "per_antagonist_present": {
+          "Artemis Entreri": 186,
+          "Pasha Pook": 4
+        },
+        "per_antagonist_fraction": {
+          "Artemis Entreri": 0.2366412213740458,
+          "Pasha Pook": 0.005089058524173028
+        },
+        "any_antagonist_present": 186,
+        "any_antagonist_fraction": 0.2366412213740458
+      },
+      "numeric_only": {
+        "per_antagonist_present": {
+          "Artemis Entreri": 182,
+          "Pasha Pook": 4
+        },
+        "per_antagonist_fraction": {
+          "Artemis Entreri": 0.24594594594594596,
+          "Pasha Pook": 0.005405405405405406
+        },
+        "any_antagonist_present": 182,
+        "any_antagonist_fraction": 0.24594594594594596
+      },
+      "thirds": {
+        "early": {
+          "beat_count": 248,
+          "per_antagonist_present": {
+            "Artemis Entreri": 40,
+            "Pasha Pook": 2
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.16129032258064516,
+            "Pasha Pook": 0.008064516129032258
+          },
+          "any_antagonist_present": 40,
+          "any_antagonist_fraction": 0.16129032258064516
+        },
+        "mid": {
+          "beat_count": 227,
+          "per_antagonist_present": {
+            "Artemis Entreri": 60,
+            "Pasha Pook": 0
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.2643171806167401,
+            "Pasha Pook": 0.0
+          },
+          "any_antagonist_present": 60,
+          "any_antagonist_fraction": 0.2643171806167401
+        },
+        "late": {
+          "beat_count": 265,
+          "per_antagonist_present": {
+            "Artemis Entreri": 82,
+            "Pasha Pook": 2
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.30943396226415093,
+            "Pasha Pook": 0.007547169811320755
+          },
+          "any_antagonist_present": 82,
+          "any_antagonist_fraction": 0.30943396226415093
+        }
+      },
+      "per_chapter": {
+        "1": {
+          "beat_count": 25,
+          "per_antagonist_present": {
+            "Artemis Entreri": 20,
+            "Pasha Pook": 2
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.8,
+            "Pasha Pook": 0.08
+          },
+          "any_antagonist_present": 20,
+          "any_antagonist_fraction": 0.8
+        },
+        "2": {
+          "beat_count": 28,
+          "per_antagonist_present": {
+            "Artemis Entreri": 0,
+            "Pasha Pook": 0
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.0,
+            "Pasha Pook": 0.0
+          },
+          "any_antagonist_present": 0,
+          "any_antagonist_fraction": 0.0
+        },
+        "3": {
+          "beat_count": 28,
+          "per_antagonist_present": {
+            "Artemis Entreri": 0,
+            "Pasha Pook": 0
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.0,
+            "Pasha Pook": 0.0
+          },
+          "any_antagonist_present": 0,
+          "any_antagonist_fraction": 0.0
+        },
+        "4": {
+          "beat_count": 34,
+          "per_antagonist_present": {
+            "Artemis Entreri": 2,
+            "Pasha Pook": 0
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.058823529411764705,
+            "Pasha Pook": 0.0
+          },
+          "any_antagonist_present": 2,
+          "any_antagonist_fraction": 0.058823529411764705
+        },
+        "5": {
+          "beat_count": 30,
+          "per_antagonist_present": {
+            "Artemis Entreri": 0,
+            "Pasha Pook": 0
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.0,
+            "Pasha Pook": 0.0
+          },
+          "any_antagonist_present": 0,
+          "any_antagonist_fraction": 0.0
+        },
+        "6": {
+          "beat_count": 40,
+          "per_antagonist_present": {
+            "Artemis Entreri": 0,
+            "Pasha Pook": 0
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.0,
+            "Pasha Pook": 0.0
+          },
+          "any_antagonist_present": 0,
+          "any_antagonist_fraction": 0.0
+        },
+        "7": {
+          "beat_count": 23,
+          "per_antagonist_present": {
+            "Artemis Entreri": 18,
+            "Pasha Pook": 0
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.782608695652174,
+            "Pasha Pook": 0.0
+          },
+          "any_antagonist_present": 18,
+          "any_antagonist_fraction": 0.782608695652174
+        },
+        "8": {
+          "beat_count": 40,
+          "per_antagonist_present": {
+            "Artemis Entreri": 0,
+            "Pasha Pook": 0
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.0,
+            "Pasha Pook": 0.0
+          },
+          "any_antagonist_present": 0,
+          "any_antagonist_fraction": 0.0
+        },
+        "9": {
+          "beat_count": 33,
+          "per_antagonist_present": {
+            "Artemis Entreri": 24,
+            "Pasha Pook": 0
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.7272727272727273,
+            "Pasha Pook": 0.0
+          },
+          "any_antagonist_present": 24,
+          "any_antagonist_fraction": 0.7272727272727273
+        },
+        "10": {
+          "beat_count": 36,
+          "per_antagonist_present": {
+            "Artemis Entreri": 1,
+            "Pasha Pook": 0
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.027777777777777776,
+            "Pasha Pook": 0.0
+          },
+          "any_antagonist_present": 1,
+          "any_antagonist_fraction": 0.027777777777777776
+        },
+        "11": {
+          "beat_count": 25,
+          "per_antagonist_present": {
+            "Artemis Entreri": 23,
+            "Pasha Pook": 0
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.92,
+            "Pasha Pook": 0.0
+          },
+          "any_antagonist_present": 23,
+          "any_antagonist_fraction": 0.92
+        },
+        "12": {
+          "beat_count": 39,
+          "per_antagonist_present": {
+            "Artemis Entreri": 0,
+            "Pasha Pook": 0
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.0,
+            "Pasha Pook": 0.0
+          },
+          "any_antagonist_present": 0,
+          "any_antagonist_fraction": 0.0
+        },
+        "13": {
+          "beat_count": 25,
+          "per_antagonist_present": {
+            "Artemis Entreri": 0,
+            "Pasha Pook": 0
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.0,
+            "Pasha Pook": 0.0
+          },
+          "any_antagonist_present": 0,
+          "any_antagonist_fraction": 0.0
+        },
+        "14": {
+          "beat_count": 22,
+          "per_antagonist_present": {
+            "Artemis Entreri": 1,
+            "Pasha Pook": 0
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.045454545454545456,
+            "Pasha Pook": 0.0
+          },
+          "any_antagonist_present": 1,
+          "any_antagonist_fraction": 0.045454545454545456
+        },
+        "15": {
+          "beat_count": 20,
+          "per_antagonist_present": {
+            "Artemis Entreri": 11,
+            "Pasha Pook": 0
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.55,
+            "Pasha Pook": 0.0
+          },
+          "any_antagonist_present": 11,
+          "any_antagonist_fraction": 0.55
+        },
+        "16": {
+          "beat_count": 27,
+          "per_antagonist_present": {
+            "Artemis Entreri": 0,
+            "Pasha Pook": 0
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.0,
+            "Pasha Pook": 0.0
+          },
+          "any_antagonist_present": 0,
+          "any_antagonist_fraction": 0.0
+        },
+        "17": {
+          "beat_count": 32,
+          "per_antagonist_present": {
+            "Artemis Entreri": 13,
+            "Pasha Pook": 0
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.40625,
+            "Pasha Pook": 0.0
+          },
+          "any_antagonist_present": 13,
+          "any_antagonist_fraction": 0.40625
+        },
+        "18": {
+          "beat_count": 29,
+          "per_antagonist_present": {
+            "Artemis Entreri": 6,
+            "Pasha Pook": 1
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.20689655172413793,
+            "Pasha Pook": 0.034482758620689655
+          },
+          "any_antagonist_present": 6,
+          "any_antagonist_fraction": 0.20689655172413793
+        },
+        "19": {
+          "beat_count": 43,
+          "per_antagonist_present": {
+            "Artemis Entreri": 14,
+            "Pasha Pook": 0
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.32558139534883723,
+            "Pasha Pook": 0.0
+          },
+          "any_antagonist_present": 14,
+          "any_antagonist_fraction": 0.32558139534883723
+        },
+        "20": {
+          "beat_count": 37,
+          "per_antagonist_present": {
+            "Artemis Entreri": 5,
+            "Pasha Pook": 1
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.13513513513513514,
+            "Pasha Pook": 0.02702702702702703
+          },
+          "any_antagonist_present": 5,
+          "any_antagonist_fraction": 0.13513513513513514
+        },
+        "21": {
+          "beat_count": 31,
+          "per_antagonist_present": {
+            "Artemis Entreri": 26,
+            "Pasha Pook": 0
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.8387096774193549,
+            "Pasha Pook": 0.0
+          },
+          "any_antagonist_present": 26,
+          "any_antagonist_fraction": 0.8387096774193549
+        },
+        "22": {
+          "beat_count": 41,
+          "per_antagonist_present": {
+            "Artemis Entreri": 1,
+            "Pasha Pook": 0
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.024390243902439025,
+            "Pasha Pook": 0.0
+          },
+          "any_antagonist_present": 1,
+          "any_antagonist_fraction": 0.024390243902439025
+        },
+        "23": {
+          "beat_count": 39,
+          "per_antagonist_present": {
+            "Artemis Entreri": 9,
+            "Pasha Pook": 0
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.23076923076923078,
+            "Pasha Pook": 0.0
+          },
+          "any_antagonist_present": 9,
+          "any_antagonist_fraction": 0.23076923076923078
+        },
+        "24": {
+          "beat_count": 13,
+          "per_antagonist_present": {
+            "Artemis Entreri": 8,
+            "Pasha Pook": 0
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.6153846153846154,
+            "Pasha Pook": 0.0
+          },
+          "any_antagonist_present": 8,
+          "any_antagonist_fraction": 0.6153846153846154
+        }
+      },
+      "within_chapter_position": {
+        "open": {
+          "beat_count": 183,
+          "per_antagonist_present": {
+            "Artemis Entreri": 47,
+            "Pasha Pook": 1
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.2568306010928962,
+            "Pasha Pook": 0.00546448087431694
+          },
+          "any_antagonist_present": 47,
+          "any_antagonist_fraction": 0.2568306010928962
+        },
+        "mid": {
+          "beat_count": 371,
+          "per_antagonist_present": {
+            "Artemis Entreri": 96,
+            "Pasha Pook": 2
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.2587601078167116,
+            "Pasha Pook": 0.005390835579514825
+          },
+          "any_antagonist_present": 96,
+          "any_antagonist_fraction": 0.2587601078167116
+        },
+        "close": {
+          "beat_count": 186,
+          "per_antagonist_present": {
+            "Artemis Entreri": 39,
+            "Pasha Pook": 1
+          },
+          "per_antagonist_fraction": {
+            "Artemis Entreri": 0.20967741935483872,
+            "Pasha Pook": 0.005376344086021506
+          },
+          "any_antagonist_present": 39,
+          "any_antagonist_fraction": 0.20967741935483872
+        }
+      }
+    }
+  },
+  "cross_book": {
+    "crystal_shard": {
+      "overall_any_fraction": 0.24231242312423124,
+      "thirds_any_fraction": {
+        "early": 0.2081447963800905,
+        "mid": 0.11070110701107011,
+        "late": 0.37694704049844235
+      },
+      "within_chapter_any_fraction": {
+        "open": 0.24,
+        "mid": 0.23832923832923833,
+        "close": 0.2524271844660194
+      }
+    },
+    "halflings_gem": {
+      "overall_any_fraction": 0.3247753530166881,
+      "thirds_any_fraction": {
+        "early": 0.29545454545454547,
+        "mid": 0.25196850393700787,
+        "late": 0.42528735632183906
+      },
+      "within_chapter_any_fraction": {
+        "open": 0.3247422680412371,
+        "mid": 0.3220779220779221,
+        "close": 0.33
+      }
+    },
+    "streams_of_silver": {
+      "overall_any_fraction": 0.24594594594594596,
+      "thirds_any_fraction": {
+        "early": 0.16129032258064516,
+        "mid": 0.2643171806167401,
+        "late": 0.30943396226415093
+      },
+      "within_chapter_any_fraction": {
+        "open": 0.2568306010928962,
+        "mid": 0.2587601078167116,
+        "close": 0.20967741935483872
+      }
+    }
+  },
+  "shape_summary": {
+    "crystal_shard": {
+      "thirds": {
+        "early": 0.2081447963800905,
+        "mid": 0.11070110701107011,
+        "late": 0.37694704049844235
+      },
+      "shape": "late-peak",
+      "late_minus_early": 0.16880224411835185
+    },
+    "halflings_gem": {
+      "thirds": {
+        "early": 0.29545454545454547,
+        "mid": 0.25196850393700787,
+        "late": 0.42528735632183906
+      },
+      "shape": "late-peak",
+      "late_minus_early": 0.1298328108672936
+    },
+    "streams_of_silver": {
+      "thirds": {
+        "early": 0.16129032258064516,
+        "mid": 0.2643171806167401,
+        "late": 0.30943396226415093
+      },
+      "shape": "late-peak",
+      "late_minus_early": 0.14814363968350577
+    }
+  },
+  "within_chapter_shape": {
+    "crystal_shard": {
+      "within": {
+        "open": 0.24,
+        "mid": 0.23832923832923833,
+        "close": 0.2524271844660194
+      },
+      "shape": "close-cluster",
+      "close_minus_open": 0.012427184466019425
+    },
+    "halflings_gem": {
+      "within": {
+        "open": 0.3247422680412371,
+        "mid": 0.3220779220779221,
+        "close": 0.33
+      },
+      "shape": "close-cluster",
+      "close_minus_open": 0.00525773195876289
+    },
+    "streams_of_silver": {
+      "within": {
+        "open": 0.2568306010928962,
+        "mid": 0.2587601078167116,
+        "close": 0.20967741935483872
+      },
+      "shape": "mid-cluster",
+      "close_minus_open": -0.047153181738057465
+    }
+  }
+}

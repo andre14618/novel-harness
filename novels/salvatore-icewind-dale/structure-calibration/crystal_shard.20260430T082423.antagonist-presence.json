@@ -1,0 +1,1782 @@
+{
+  "generated_at": "2026-04-30T08:24:23.986562",
+  "pattern_id": "P25",
+  "pattern_name": "Antagonist on-page presence rate",
+  "data_source": "/Users/andre/Desktop/personal_projects/novel-harness/novels/salvatore-icewind-dale/beats.jsonl",
+  "methodology": {
+    "unit": "beat",
+    "detection": "regex on text field; case-sensitive (names are capitalized in source); compound aliases handled per-book",
+    "aliases": {
+      "crystal_shard": {
+        "primary": {
+          "Akar Kessell": "\\b(?:Akar\\s+)?Kessell\\b",
+          "Crenshinibon": "\\b(?:Crenshinibon|[Cc]rystal\\s+[Ss]hard)\\b"
+        },
+        "secondary": {
+          "Errtu": "\\bErrtu\\b"
+        }
+      },
+      "streams_of_silver": {
+        "primary": {
+          "Artemis Entreri": "\\b(?:Artemis\\s+)?Entreri\\b",
+          "Pasha Pook": "\\bPasha\\s+Pook\\b|\\bPasha\\s+Po\\nok\\b|\\bPook\\b"
+        },
+        "secondary": {
+          "Dendybar": "\\bDendybar\\b",
+          "Sydney": "\\bSydney\\b",
+          "Bok": "\\bBok\\b"
+        }
+      },
+      "halflings_gem": {
+        "primary": {
+          "Artemis Entreri": "\\b(?:Artemis\\s+)?Entreri\\b",
+          "Pasha Pook": "\\bPasha\\s+Pook\\b|\\bPasha\\s+Po\\nok\\b|\\bPook\\b"
+        },
+        "secondary": {}
+      }
+    },
+    "numeric_only_filter": "Excludes prelude/part1-3/epilogue chapters from third-bucket and within-chapter analysis; included in all_beats_raw counts.",
+    "thirds_definition": "Equal-thirds by 1-based chapter ordinal among numeric chapters.",
+    "within_chapter_position": "<25% open, 25-75% mid, >=75% close (mid-cell rule).",
+    "tier_separation": "primary = task-listed antagonists per book. secondary = supporting antagonists who share the arc (Errtu in Crystal Shard, Dendybar/Sydney/Bok in Streams of Silver). any_inclusive = primary OR secondary."
+  },
+  "per_book": {
+    "crystal_shard": {
+      "antagonists_primary": [
+        "Akar Kessell",
+        "Crenshinibon"
+      ],
+      "antagonists_secondary": [
+        "Errtu"
+      ],
+      "patterns": {
+        "primary": {
+          "Akar Kessell": "\\b(?:Akar\\s+)?Kessell\\b",
+          "Crenshinibon": "\\b(?:Crenshinibon|[Cc]rystal\\s+[Ss]hard)\\b"
+        },
+        "secondary": {
+          "Errtu": "\\bErrtu\\b"
+        }
+      },
+      "total_beats_all": 858,
+      "total_beats_numeric_chapters": 813,
+      "numeric_chapter_count": 30,
+      "numeric_chapter_range": [
+        1,
+        30
+      ],
+      "all_beats_raw": {
+        "primary_present": {
+          "Akar Kessell": 204,
+          "Crenshinibon": 54
+        },
+        "secondary_present": {
+          "Errtu": 55
+        },
+        "any_primary_present": 211,
+        "any_inclusive_present": 237,
+        "any_primary_fraction": 0.24592074592074592,
+        "any_inclusive_fraction": 0.2762237762237762
+      },
+      "numeric_only": {
+        "primary_present": {
+          "Akar Kessell": 195,
+          "Crenshinibon": 43
+        },
+        "secondary_present": {
+          "Errtu": 51
+        },
+        "any_primary_present": 197,
+        "any_inclusive_present": 223,
+        "any_primary_fraction": 0.24231242312423124,
+        "any_inclusive_fraction": 0.2742927429274293,
+        "per_primary_fraction": {
+          "Akar Kessell": 0.23985239852398524,
+          "Crenshinibon": 0.05289052890528905
+        },
+        "per_secondary_fraction": {
+          "Errtu": 0.06273062730627306
+        }
+      },
+      "thirds": {
+        "early": {
+          "beat_count": 221,
+          "any_primary_present": 46,
+          "any_primary_fraction": 0.2081447963800905,
+          "any_inclusive_present": 53,
+          "any_inclusive_fraction": 0.2398190045248869,
+          "per_primary_present": {
+            "Akar Kessell": 46,
+            "Crenshinibon": 19
+          },
+          "per_primary_fraction": {
+            "Akar Kessell": 0.2081447963800905,
+            "Crenshinibon": 0.08597285067873303
+          },
+          "per_secondary_present": {
+            "Errtu": 13
+          },
+          "per_secondary_fraction": {
+            "Errtu": 0.058823529411764705
+          }
+        },
+        "mid": {
+          "beat_count": 271,
+          "any_primary_present": 30,
+          "any_primary_fraction": 0.11070110701107011,
+          "any_inclusive_present": 30,
+          "any_inclusive_fraction": 0.11070110701107011,
+          "per_primary_present": {
+            "Akar Kessell": 30,
+            "Crenshinibon": 5
+          },
+          "per_primary_fraction": {
+            "Akar Kessell": 0.11070110701107011,
+            "Crenshinibon": 0.01845018450184502
+          },
+          "per_secondary_present": {
+            "Errtu": 10
+          },
+          "per_secondary_fraction": {
+            "Errtu": 0.03690036900369004
+          }
+        },
+        "late": {
+          "beat_count": 321,
+          "any_primary_present": 121,
+          "any_primary_fraction": 0.37694704049844235,
+          "any_inclusive_present": 140,
+          "any_inclusive_fraction": 0.43613707165109034,
+          "per_primary_present": {
+            "Akar Kessell": 119,
+            "Crenshinibon": 19
+          },
+          "per_primary_fraction": {
+            "Akar Kessell": 0.3707165109034268,
+            "Crenshinibon": 0.059190031152647975
+          },
+          "per_secondary_present": {
+            "Errtu": 28
+          },
+          "per_secondary_fraction": {
+            "Errtu": 0.08722741433021806
+          }
+        }
+      },
+      "per_chapter": {
+        "1": {
+          "beat_count": 19,
+          "any_primary_present": 13,
+          "any_primary_fraction": 0.6842105263157895,
+          "any_inclusive_present": 13,
+          "any_inclusive_fraction": 0.6842105263157895,
+          "per_primary": {
+            "Akar Kessell": 13,
+            "Crenshinibon": 0
+          },
+          "per_secondary": {
+            "Errtu": 0
+          }
+        },
+        "2": {
+          "beat_count": 29,
+          "any_primary_present": 0,
+          "any_primary_fraction": 0.0,
+          "any_inclusive_present": 0,
+          "any_inclusive_fraction": 0.0,
+          "per_primary": {
+            "Akar Kessell": 0,
+            "Crenshinibon": 0
+          },
+          "per_secondary": {
+            "Errtu": 0
+          }
+        },
+        "3": {
+          "beat_count": 25,
+          "any_primary_present": 0,
+          "any_primary_fraction": 0.0,
+          "any_inclusive_present": 0,
+          "any_inclusive_fraction": 0.0,
+          "per_primary": {
+            "Akar Kessell": 0,
+            "Crenshinibon": 0
+          },
+          "per_secondary": {
+            "Errtu": 0
+          }
+        },
+        "4": {
+          "beat_count": 21,
+          "any_primary_present": 20,
+          "any_primary_fraction": 0.9523809523809523,
+          "any_inclusive_present": 20,
+          "any_inclusive_fraction": 0.9523809523809523,
+          "per_primary": {
+            "Akar Kessell": 20,
+            "Crenshinibon": 9
+          },
+          "per_secondary": {
+            "Errtu": 0
+          }
+        },
+        "5": {
+          "beat_count": 11,
+          "any_primary_present": 0,
+          "any_primary_fraction": 0.0,
+          "any_inclusive_present": 0,
+          "any_inclusive_fraction": 0.0,
+          "per_primary": {
+            "Akar Kessell": 0,
+            "Crenshinibon": 0
+          },
+          "per_secondary": {
+            "Errtu": 0
+          }
+        },
+        "6": {
+          "beat_count": 16,
+          "any_primary_present": 0,
+          "any_primary_fraction": 0.0,
+          "any_inclusive_present": 0,
+          "any_inclusive_fraction": 0.0,
+          "per_primary": {
+            "Akar Kessell": 0,
+            "Crenshinibon": 0
+          },
+          "per_secondary": {
+            "Errtu": 0
+          }
+        },
+        "7": {
+          "beat_count": 28,
+          "any_primary_present": 0,
+          "any_primary_fraction": 0.0,
+          "any_inclusive_present": 0,
+          "any_inclusive_fraction": 0.0,
+          "per_primary": {
+            "Akar Kessell": 0,
+            "Crenshinibon": 0
+          },
+          "per_secondary": {
+            "Errtu": 0
+          }
+        },
+        "8": {
+          "beat_count": 35,
+          "any_primary_present": 0,
+          "any_primary_fraction": 0.0,
+          "any_inclusive_present": 0,
+          "any_inclusive_fraction": 0.0,
+          "per_primary": {
+            "Akar Kessell": 0,
+            "Crenshinibon": 0
+          },
+          "per_secondary": {
+            "Errtu": 0
+          }
+        },
+        "9": {
+          "beat_count": 13,
+          "any_primary_present": 0,
+          "any_primary_fraction": 0.0,
+          "any_inclusive_present": 0,
+          "any_inclusive_fraction": 0.0,
+          "per_primary": {
+            "Akar Kessell": 0,
+            "Crenshinibon": 0
+          },
+          "per_secondary": {
+            "Errtu": 0
+          }
+        },
+        "10": {
+          "beat_count": 24,
+          "any_primary_present": 13,
+          "any_primary_fraction": 0.5416666666666666,
+          "any_inclusive_present": 20,
+          "any_inclusive_fraction": 0.8333333333333334,
+          "per_primary": {
+            "Akar Kessell": 13,
+            "Crenshinibon": 10
+          },
+          "per_secondary": {
+            "Errtu": 13
+          }
+        },
+        "11": {
+          "beat_count": 20,
+          "any_primary_present": 0,
+          "any_primary_fraction": 0.0,
+          "any_inclusive_present": 0,
+          "any_inclusive_fraction": 0.0,
+          "per_primary": {
+            "Akar Kessell": 0,
+            "Crenshinibon": 0
+          },
+          "per_secondary": {
+            "Errtu": 0
+          }
+        },
+        "12": {
+          "beat_count": 23,
+          "any_primary_present": 0,
+          "any_primary_fraction": 0.0,
+          "any_inclusive_present": 0,
+          "any_inclusive_fraction": 0.0,
+          "per_primary": {
+            "Akar Kessell": 0,
+            "Crenshinibon": 0
+          },
+          "per_secondary": {
+            "Errtu": 0
+          }
+        },
+        "13": {
+          "beat_count": 11,
+          "any_primary_present": 10,
+          "any_primary_fraction": 0.9090909090909091,
+          "any_inclusive_present": 10,
+          "any_inclusive_fraction": 0.9090909090909091,
+          "per_primary": {
+            "Akar Kessell": 10,
+            "Crenshinibon": 5
+          },
+          "per_secondary": {
+            "Errtu": 6
+          }
+        },
+        "14": {
+          "beat_count": 22,
+          "any_primary_present": 0,
+          "any_primary_fraction": 0.0,
+          "any_inclusive_present": 0,
+          "any_inclusive_fraction": 0.0,
+          "per_primary": {
+            "Akar Kessell": 0,
+            "Crenshinibon": 0
+          },
+          "per_secondary": {
+            "Errtu": 0
+          }
+        },
+        "15": {
+          "beat_count": 25,
+          "any_primary_present": 6,
+          "any_primary_fraction": 0.24,
+          "any_inclusive_present": 6,
+          "any_inclusive_fraction": 0.24,
+          "per_primary": {
+            "Akar Kessell": 6,
+            "Crenshinibon": 0
+          },
+          "per_secondary": {
+            "Errtu": 0
+          }
+        },
+        "16": {
+          "beat_count": 34,
+          "any_primary_present": 0,
+          "any_primary_fraction": 0.0,
+          "any_inclusive_present": 0,
+          "any_inclusive_fraction": 0.0,
+          "per_primary": {
+            "Akar Kessell": 0,
+            "Crenshinibon": 0
+          },
+          "per_secondary": {
+            "Errtu": 0
+          }
+        },
+        "17": {
+          "beat_count": 29,
+          "any_primary_present": 0,
+          "any_primary_fraction": 0.0,
+          "any_inclusive_present": 0,
+          "any_inclusive_fraction": 0.0,
+          "per_primary": {
+            "Akar Kessell": 0,
+            "Crenshinibon": 0
+          },
+          "per_secondary": {
+            "Errtu": 0
+          }
+        },
+        "18": {
+          "beat_count": 54,
+          "any_primary_present": 3,
+          "any_primary_fraction": 0.05555555555555555,
+          "any_inclusive_present": 3,
+          "any_inclusive_fraction": 0.05555555555555555,
+          "per_primary": {
+            "Akar Kessell": 3,
+            "Crenshinibon": 0
+          },
+          "per_secondary": {
+            "Errtu": 0
+          }
+        },
+        "19": {
+          "beat_count": 29,
+          "any_primary_present": 2,
+          "any_primary_fraction": 0.06896551724137931,
+          "any_inclusive_present": 2,
+          "any_inclusive_fraction": 0.06896551724137931,
+          "per_primary": {
+            "Akar Kessell": 2,
+            "Crenshinibon": 0
+          },
+          "per_secondary": {
+            "Errtu": 0
+          }
+        },
+        "20": {
+          "beat_count": 24,
+          "any_primary_present": 9,
+          "any_primary_fraction": 0.375,
+          "any_inclusive_present": 9,
+          "any_inclusive_fraction": 0.375,
+          "per_primary": {
+            "Akar Kessell": 9,
+            "Crenshinibon": 0
+          },
+          "per_secondary": {
+            "Errtu": 4
+          }
+        },
+        "21": {
+          "beat_count": 26,
+          "any_primary_present": 0,
+          "any_primary_fraction": 0.0,
+          "any_inclusive_present": 0,
+          "any_inclusive_fraction": 0.0,
+          "per_primary": {
+            "Akar Kessell": 0,
+            "Crenshinibon": 0
+          },
+          "per_secondary": {
+            "Errtu": 0
+          }
+        },
+        "22": {
+          "beat_count": 32,
+          "any_primary_present": 0,
+          "any_primary_fraction": 0.0,
+          "any_inclusive_present": 0,
+          "any_inclusive_fraction": 0.0,
+          "per_primary": {
+            "Akar Kessell": 0,
+            "Crenshinibon": 0
+          },
+          "per_secondary": {
+            "Errtu": 0
+          }
+        },
+        "23": {
+          "beat_count": 24,
+          "any_primary_present": 7,
+          "any_primary_fraction": 0.2916666666666667,
+          "any_inclusive_present": 7,
+          "any_inclusive_fraction": 0.2916666666666667,
+          "per_primary": {
+            "Akar Kessell": 7,
+            "Crenshinibon": 0
+          },
+          "per_secondary": {
+            "Errtu": 0
+          }
+        },
+        "24": {
+          "beat_count": 37,
+          "any_primary_present": 26,
+          "any_primary_fraction": 0.7027027027027027,
+          "any_inclusive_present": 26,
+          "any_inclusive_fraction": 0.7027027027027027,
+          "per_primary": {
+            "Akar Kessell": 25,
+            "Crenshinibon": 4
+          },
+          "per_secondary": {
+            "Errtu": 0
+          }
+        },
+        "25": {
+          "beat_count": 24,
+          "any_primary_present": 7,
+          "any_primary_fraction": 0.2916666666666667,
+          "any_inclusive_present": 23,
+          "any_inclusive_fraction": 0.9583333333333334,
+          "per_primary": {
+            "Akar Kessell": 7,
+            "Crenshinibon": 5
+          },
+          "per_secondary": {
+            "Errtu": 22
+          }
+        },
+        "26": {
+          "beat_count": 7,
+          "any_primary_present": 2,
+          "any_primary_fraction": 0.2857142857142857,
+          "any_inclusive_present": 2,
+          "any_inclusive_fraction": 0.2857142857142857,
+          "per_primary": {
+            "Akar Kessell": 2,
+            "Crenshinibon": 0
+          },
+          "per_secondary": {
+            "Errtu": 0
+          }
+        },
+        "27": {
+          "beat_count": 22,
+          "any_primary_present": 14,
+          "any_primary_fraction": 0.6363636363636364,
+          "any_inclusive_present": 17,
+          "any_inclusive_fraction": 0.7727272727272727,
+          "per_primary": {
+            "Akar Kessell": 14,
+            "Crenshinibon": 0
+          },
+          "per_secondary": {
+            "Errtu": 3
+          }
+        },
+        "28": {
+          "beat_count": 26,
+          "any_primary_present": 17,
+          "any_primary_fraction": 0.6538461538461539,
+          "any_inclusive_present": 17,
+          "any_inclusive_fraction": 0.6538461538461539,
+          "per_primary": {
+            "Akar Kessell": 17,
+            "Crenshinibon": 0
+          },
+          "per_secondary": {
+            "Errtu": 2
+          }
+        },
+        "29": {
+          "beat_count": 44,
+          "any_primary_present": 27,
+          "any_primary_fraction": 0.6136363636363636,
+          "any_inclusive_present": 27,
+          "any_inclusive_fraction": 0.6136363636363636,
+          "per_primary": {
+            "Akar Kessell": 27,
+            "Crenshinibon": 3
+          },
+          "per_secondary": {
+            "Errtu": 1
+          }
+        },
+        "30": {
+          "beat_count": 79,
+          "any_primary_present": 21,
+          "any_primary_fraction": 0.26582278481012656,
+          "any_inclusive_present": 21,
+          "any_inclusive_fraction": 0.26582278481012656,
+          "per_primary": {
+            "Akar Kessell": 20,
+            "Crenshinibon": 7
+          },
+          "per_secondary": {
+            "Errtu": 0
+          }
+        }
+      },
+      "within_chapter_position": {
+        "open": {
+          "beat_count": 200,
+          "any_primary_present": 48,
+          "any_primary_fraction": 0.24,
+          "any_inclusive_present": 54,
+          "any_inclusive_fraction": 0.27
+        },
+        "mid": {
+          "beat_count": 407,
+          "any_primary_present": 97,
+          "any_primary_fraction": 0.23832923832923833,
+          "any_inclusive_present": 107,
+          "any_inclusive_fraction": 0.2628992628992629
+        },
+        "close": {
+          "beat_count": 206,
+          "any_primary_present": 52,
+          "any_primary_fraction": 0.2524271844660194,
+          "any_inclusive_present": 62,
+          "any_inclusive_fraction": 0.30097087378640774
+        }
+      },
+      "first_last_beat": {
+        "first_beat": {
+          "chapters": 30,
+          "any_primary_present": 10,
+          "any_primary_fraction": 0.3333333333333333,
+          "any_inclusive_present": 10,
+          "any_inclusive_fraction": 0.3333333333333333
+        },
+        "last_beat": {
+          "chapters": 30,
+          "any_primary_present": 8,
+          "any_primary_fraction": 0.26666666666666666,
+          "any_inclusive_present": 9,
+          "any_inclusive_fraction": 0.3
+        }
+      }
+    },
+    "halflings_gem": {
+      "antagonists_primary": [
+        "Artemis Entreri",
+        "Pasha Pook"
+      ],
+      "antagonists_secondary": [],
+      "patterns": {
+        "primary": {
+          "Artemis Entreri": "\\b(?:Artemis\\s+)?Entreri\\b",
+          "Pasha Pook": "\\bPasha\\s+Pook\\b|\\bPasha\\s+Po\\nok\\b|\\bPook\\b"
+        },
+        "secondary": {}
+      },
+      "total_beats_all": 826,
+      "total_beats_numeric_chapters": 779,
+      "numeric_chapter_count": 25,
+      "numeric_chapter_range": [
+        1,
+        25
+      ],
+      "all_beats_raw": {
+        "primary_present": {
+          "Artemis Entreri": 184,
+          "Pasha Pook": 148
+        },
+        "secondary_present": {},
+        "any_primary_present": 266,
+        "any_inclusive_present": 266,
+        "any_primary_fraction": 0.3220338983050847,
+        "any_inclusive_fraction": 0.3220338983050847
+      },
+      "numeric_only": {
+        "primary_present": {
+          "Artemis Entreri": 171,
+          "Pasha Pook": 141
+        },
+        "secondary_present": {},
+        "any_primary_present": 253,
+        "any_inclusive_present": 253,
+        "any_primary_fraction": 0.3247753530166881,
+        "any_inclusive_fraction": 0.3247753530166881,
+        "per_primary_fraction": {
+          "Artemis Entreri": 0.21951219512195122,
+          "Pasha Pook": 0.1810012836970475
+        },
+        "per_secondary_fraction": {}
+      },
+      "thirds": {
+        "early": {
+          "beat_count": 264,
+          "any_primary_present": 78,
+          "any_primary_fraction": 0.29545454545454547,
+          "any_inclusive_present": 78,
+          "any_inclusive_fraction": 0.29545454545454547,
+          "per_primary_present": {
+            "Artemis Entreri": 64,
+            "Pasha Pook": 30
+          },
+          "per_primary_fraction": {
+            "Artemis Entreri": 0.24242424242424243,
+            "Pasha Pook": 0.11363636363636363
+          },
+          "per_secondary_present": {},
+          "per_secondary_fraction": {}
+        },
+        "mid": {
+          "beat_count": 254,
+          "any_primary_present": 64,
+          "any_primary_fraction": 0.25196850393700787,
+          "any_inclusive_present": 64,
+          "any_inclusive_fraction": 0.25196850393700787,
+          "per_primary_present": {
+            "Artemis Entreri": 50,
+            "Pasha Pook": 45
+          },
+          "per_primary_fraction": {
+            "Artemis Entreri": 0.1968503937007874,
+            "Pasha Pook": 0.17716535433070865
+          },
+          "per_secondary_present": {},
+          "per_secondary_fraction": {}
+        },
+        "late": {
+          "beat_count": 261,
+          "any_primary_present": 111,
+          "any_primary_fraction": 0.42528735632183906,
+          "any_inclusive_present": 111,
+          "any_inclusive_fraction": 0.42528735632183906,
+          "per_primary_present": {
+            "Artemis Entreri": 57,
+            "Pasha Pook": 66
+          },
+          "per_primary_fraction": {
+            "Artemis Entreri": 0.21839080459770116,
+            "Pasha Pook": 0.25287356321839083
+          },
+          "per_secondary_present": {},
+          "per_secondary_fraction": {}
+        }
+      },
+      "per_chapter": {
+        "1": {
+          "beat_count": 35,
+          "any_primary_present": 6,
+          "any_primary_fraction": 0.17142857142857143,
+          "any_inclusive_present": 6,
+          "any_inclusive_fraction": 0.17142857142857143,
+          "per_primary": {
+            "Artemis Entreri": 6,
+            "Pasha Pook": 0
+          },
+          "per_secondary": {}
+        },
+        "2": {
+          "beat_count": 22,
+          "any_primary_present": 16,
+          "any_primary_fraction": 0.7272727272727273,
+          "any_inclusive_present": 16,
+          "any_inclusive_fraction": 0.7272727272727273,
+          "per_primary": {
+            "Artemis Entreri": 16,
+            "Pasha Pook": 4
+          },
+          "per_secondary": {}
+        },
+        "3": {
+          "beat_count": 31,
+          "any_primary_present": 1,
+          "any_primary_fraction": 0.03225806451612903,
+          "any_inclusive_present": 1,
+          "any_inclusive_fraction": 0.03225806451612903,
+          "per_primary": {
+            "Artemis Entreri": 1,
+            "Pasha Pook": 0
+          },
+          "per_secondary": {}
+        },
+        "4": {
+          "beat_count": 47,
+          "any_primary_present": 0,
+          "any_primary_fraction": 0.0,
+          "any_inclusive_present": 0,
+          "any_inclusive_fraction": 0.0,
+          "per_primary": {
+            "Artemis Entreri": 0,
+            "Pasha Pook": 0
+          },
+          "per_secondary": {}
+        },
+        "5": {
+          "beat_count": 39,
+          "any_primary_present": 0,
+          "any_primary_fraction": 0.0,
+          "any_inclusive_present": 0,
+          "any_inclusive_fraction": 0.0,
+          "per_primary": {
+            "Artemis Entreri": 0,
+            "Pasha Pook": 0
+          },
+          "per_secondary": {}
+        },
+        "6": {
+          "beat_count": 40,
+          "any_primary_present": 34,
+          "any_primary_fraction": 0.85,
+          "any_inclusive_present": 34,
+          "any_inclusive_fraction": 0.85,
+          "per_primary": {
+            "Artemis Entreri": 34,
+            "Pasha Pook": 5
+          },
+          "per_secondary": {}
+        },
+        "7": {
+          "beat_count": 28,
+          "any_primary_present": 0,
+          "any_primary_fraction": 0.0,
+          "any_inclusive_present": 0,
+          "any_inclusive_fraction": 0.0,
+          "per_primary": {
+            "Artemis Entreri": 0,
+            "Pasha Pook": 0
+          },
+          "per_secondary": {}
+        },
+        "8": {
+          "beat_count": 22,
+          "any_primary_present": 21,
+          "any_primary_fraction": 0.9545454545454546,
+          "any_inclusive_present": 21,
+          "any_inclusive_fraction": 0.9545454545454546,
+          "per_primary": {
+            "Artemis Entreri": 7,
+            "Pasha Pook": 21
+          },
+          "per_secondary": {}
+        },
+        "9": {
+          "beat_count": 20,
+          "any_primary_present": 10,
+          "any_primary_fraction": 0.5,
+          "any_inclusive_present": 10,
+          "any_inclusive_fraction": 0.5,
+          "per_primary": {
+            "Artemis Entreri": 8,
+            "Pasha Pook": 8
+          },
+          "per_secondary": {}
+        },
+        "10": {
+          "beat_count": 34,
+          "any_primary_present": 0,
+          "any_primary_fraction": 0.0,
+          "any_inclusive_present": 0,
+          "any_inclusive_fraction": 0.0,
+          "per_primary": {
+            "Artemis Entreri": 0,
+            "Pasha Pook": 0
+          },
+          "per_secondary": {}
+        },
+        "11": {
+          "beat_count": 53,
+          "any_primary_present": 1,
+          "any_primary_fraction": 0.018867924528301886,
+          "any_inclusive_present": 1,
+          "any_inclusive_fraction": 0.018867924528301886,
+          "per_primary": {
+            "Artemis Entreri": 0,
+            "Pasha Pook": 1
+          },
+          "per_secondary": {}
+        },
+        "12": {
+          "beat_count": 27,
+          "any_primary_present": 2,
+          "any_primary_fraction": 0.07407407407407407,
+          "any_inclusive_present": 2,
+          "any_inclusive_fraction": 0.07407407407407407,
+          "per_primary": {
+            "Artemis Entreri": 2,
+            "Pasha Pook": 1
+          },
+          "per_secondary": {}
+        },
+        "13": {
+          "beat_count": 30,
+          "any_primary_present": 25,
+          "any_primary_fraction": 0.8333333333333334,
+          "any_inclusive_present": 25,
+          "any_inclusive_fraction": 0.8333333333333334,
+          "per_primary": {
+            "Artemis Entreri": 22,
+            "Pasha Pook": 23
+          },
+          "per_secondary": {}
+        },
+        "14": {
+          "beat_count": 32,
+          "any_primary_present": 1,
+          "any_primary_fraction": 0.03125,
+          "any_inclusive_present": 1,
+          "any_inclusive_fraction": 0.03125,
+          "per_primary": {
+            "Artemis Entreri": 1,
+            "Pasha Pook": 0
+          },
+          "per_secondary": {}
+        },
+        "15": {
+          "beat_count": 24,
+          "any_primary_present": 4,
+          "any_primary_fraction": 0.16666666666666666,
+          "any_inclusive_present": 4,
+          "any_inclusive_fraction": 0.16666666666666666,
+          "per_primary": {
+            "Artemis Entreri": 1,
+            "Pasha Pook": 4
+          },
+          "per_secondary": {}
+        },
+        "16": {
+          "beat_count": 34,
+          "any_primary_present": 21,
+          "any_primary_fraction": 0.6176470588235294,
+          "any_inclusive_present": 21,
+          "any_inclusive_fraction": 0.6176470588235294,
+          "per_primary": {
+            "Artemis Entreri": 16,
+            "Pasha Pook": 8
+          },
+          "per_secondary": {}
+        },
+        "17": {
+          "beat_count": 19,
+          "any_primary_present": 19,
+          "any_primary_fraction": 1.0,
+          "any_inclusive_present": 19,
+          "any_inclusive_fraction": 1.0,
+          "per_primary": {
+            "Artemis Entreri": 5,
+            "Pasha Pook": 19
+          },
+          "per_secondary": {}
+        },
+        "18": {
+          "beat_count": 42,
+          "any_primary_present": 8,
+          "any_primary_fraction": 0.19047619047619047,
+          "any_inclusive_present": 8,
+          "any_inclusive_fraction": 0.19047619047619047,
+          "per_primary": {
+            "Artemis Entreri": 7,
+            "Pasha Pook": 1
+          },
+          "per_secondary": {}
+        },
+        "19": {
+          "beat_count": 35,
+          "any_primary_present": 22,
+          "any_primary_fraction": 0.6285714285714286,
+          "any_inclusive_present": 22,
+          "any_inclusive_fraction": 0.6285714285714286,
+          "per_primary": {
+            "Artemis Entreri": 21,
+            "Pasha Pook": 3
+          },
+          "per_secondary": {}
+        },
+        "20": {
+          "beat_count": 27,
+          "any_primary_present": 21,
+          "any_primary_fraction": 0.7777777777777778,
+          "any_inclusive_present": 21,
+          "any_inclusive_fraction": 0.7777777777777778,
+          "per_primary": {
+            "Artemis Entreri": 15,
+            "Pasha Pook": 6
+          },
+          "per_secondary": {}
+        },
+        "21": {
+          "beat_count": 27,
+          "any_primary_present": 12,
+          "any_primary_fraction": 0.4444444444444444,
+          "any_inclusive_present": 12,
+          "any_inclusive_fraction": 0.4444444444444444,
+          "per_primary": {
+            "Artemis Entreri": 3,
+            "Pasha Pook": 12
+          },
+          "per_secondary": {}
+        },
+        "22": {
+          "beat_count": 36,
+          "any_primary_present": 4,
+          "any_primary_fraction": 0.1111111111111111,
+          "any_inclusive_present": 4,
+          "any_inclusive_fraction": 0.1111111111111111,
+          "per_primary": {
+            "Artemis Entreri": 0,
+            "Pasha Pook": 4
+          },
+          "per_secondary": {}
+        },
+        "23": {
+          "beat_count": 24,
+          "any_primary_present": 7,
+          "any_primary_fraction": 0.2916666666666667,
+          "any_inclusive_present": 7,
+          "any_inclusive_fraction": 0.2916666666666667,
+          "per_primary": {
+            "Artemis Entreri": 0,
+            "Pasha Pook": 7
+          },
+          "per_secondary": {}
+        },
+        "24": {
+          "beat_count": 27,
+          "any_primary_present": 12,
+          "any_primary_fraction": 0.4444444444444444,
+          "any_inclusive_present": 12,
+          "any_inclusive_fraction": 0.4444444444444444,
+          "per_primary": {
+            "Artemis Entreri": 3,
+            "Pasha Pook": 10
+          },
+          "per_secondary": {}
+        },
+        "25": {
+          "beat_count": 24,
+          "any_primary_present": 6,
+          "any_primary_fraction": 0.25,
+          "any_inclusive_present": 6,
+          "any_inclusive_fraction": 0.25,
+          "per_primary": {
+            "Artemis Entreri": 3,
+            "Pasha Pook": 4
+          },
+          "per_secondary": {}
+        }
+      },
+      "within_chapter_position": {
+        "open": {
+          "beat_count": 194,
+          "any_primary_present": 63,
+          "any_primary_fraction": 0.3247422680412371,
+          "any_inclusive_present": 63,
+          "any_inclusive_fraction": 0.3247422680412371
+        },
+        "mid": {
+          "beat_count": 385,
+          "any_primary_present": 124,
+          "any_primary_fraction": 0.3220779220779221,
+          "any_inclusive_present": 124,
+          "any_inclusive_fraction": 0.3220779220779221
+        },
+        "close": {
+          "beat_count": 200,
+          "any_primary_present": 66,
+          "any_primary_fraction": 0.33,
+          "any_inclusive_present": 66,
+          "any_inclusive_fraction": 0.33
+        }
+      },
+      "first_last_beat": {
+        "first_beat": {
+          "chapters": 25,
+          "any_primary_present": 9,
+          "any_primary_fraction": 0.36,
+          "any_inclusive_present": 9,
+          "any_inclusive_fraction": 0.36
+        },
+        "last_beat": {
+          "chapters": 25,
+          "any_primary_present": 11,
+          "any_primary_fraction": 0.44,
+          "any_inclusive_present": 11,
+          "any_inclusive_fraction": 0.44
+        }
+      }
+    },
+    "streams_of_silver": {
+      "antagonists_primary": [
+        "Artemis Entreri",
+        "Pasha Pook"
+      ],
+      "antagonists_secondary": [
+        "Dendybar",
+        "Sydney",
+        "Bok"
+      ],
+      "patterns": {
+        "primary": {
+          "Artemis Entreri": "\\b(?:Artemis\\s+)?Entreri\\b",
+          "Pasha Pook": "\\bPasha\\s+Pook\\b|\\bPasha\\s+Po\\nok\\b|\\bPook\\b"
+        },
+        "secondary": {
+          "Dendybar": "\\bDendybar\\b",
+          "Sydney": "\\bSydney\\b",
+          "Bok": "\\bBok\\b"
+        }
+      },
+      "total_beats_all": 786,
+      "total_beats_numeric_chapters": 740,
+      "numeric_chapter_count": 24,
+      "numeric_chapter_range": [
+        1,
+        24
+      ],
+      "all_beats_raw": {
+        "primary_present": {
+          "Artemis Entreri": 186,
+          "Pasha Pook": 4
+        },
+        "secondary_present": {
+          "Dendybar": 88,
+          "Sydney": 104,
+          "Bok": 65
+        },
+        "any_primary_present": 186,
+        "any_inclusive_present": 264,
+        "any_primary_fraction": 0.2366412213740458,
+        "any_inclusive_fraction": 0.33587786259541985
+      },
+      "numeric_only": {
+        "primary_present": {
+          "Artemis Entreri": 182,
+          "Pasha Pook": 4
+        },
+        "secondary_present": {
+          "Dendybar": 80,
+          "Sydney": 102,
+          "Bok": 62
+        },
+        "any_primary_present": 182,
+        "any_inclusive_present": 253,
+        "any_primary_fraction": 0.24594594594594596,
+        "any_inclusive_fraction": 0.3418918918918919,
+        "per_primary_fraction": {
+          "Artemis Entreri": 0.24594594594594596,
+          "Pasha Pook": 0.005405405405405406
+        },
+        "per_secondary_fraction": {
+          "Dendybar": 0.10810810810810811,
+          "Sydney": 0.13783783783783785,
+          "Bok": 0.08378378378378379
+        }
+      },
+      "thirds": {
+        "early": {
+          "beat_count": 248,
+          "any_primary_present": 40,
+          "any_primary_fraction": 0.16129032258064516,
+          "any_inclusive_present": 70,
+          "any_inclusive_fraction": 0.28225806451612906,
+          "per_primary_present": {
+            "Artemis Entreri": 40,
+            "Pasha Pook": 2
+          },
+          "per_primary_fraction": {
+            "Artemis Entreri": 0.16129032258064516,
+            "Pasha Pook": 0.008064516129032258
+          },
+          "per_secondary_present": {
+            "Dendybar": 34,
+            "Sydney": 11,
+            "Bok": 0
+          },
+          "per_secondary_fraction": {
+            "Dendybar": 0.13709677419354838,
+            "Sydney": 0.04435483870967742,
+            "Bok": 0.0
+          }
+        },
+        "mid": {
+          "beat_count": 227,
+          "any_primary_present": 60,
+          "any_primary_fraction": 0.2643171806167401,
+          "any_inclusive_present": 75,
+          "any_inclusive_fraction": 0.3303964757709251,
+          "per_primary_present": {
+            "Artemis Entreri": 60,
+            "Pasha Pook": 0
+          },
+          "per_primary_fraction": {
+            "Artemis Entreri": 0.2643171806167401,
+            "Pasha Pook": 0.0
+          },
+          "per_secondary_present": {
+            "Dendybar": 38,
+            "Sydney": 48,
+            "Bok": 24
+          },
+          "per_secondary_fraction": {
+            "Dendybar": 0.16740088105726872,
+            "Sydney": 0.21145374449339208,
+            "Bok": 0.10572687224669604
+          }
+        },
+        "late": {
+          "beat_count": 265,
+          "any_primary_present": 82,
+          "any_primary_fraction": 0.30943396226415093,
+          "any_inclusive_present": 108,
+          "any_inclusive_fraction": 0.4075471698113208,
+          "per_primary_present": {
+            "Artemis Entreri": 82,
+            "Pasha Pook": 2
+          },
+          "per_primary_fraction": {
+            "Artemis Entreri": 0.30943396226415093,
+            "Pasha Pook": 0.007547169811320755
+          },
+          "per_secondary_present": {
+            "Dendybar": 8,
+            "Sydney": 43,
+            "Bok": 38
+          },
+          "per_secondary_fraction": {
+            "Dendybar": 0.03018867924528302,
+            "Sydney": 0.16226415094339622,
+            "Bok": 0.14339622641509434
+          }
+        }
+      },
+      "per_chapter": {
+        "1": {
+          "beat_count": 25,
+          "any_primary_present": 20,
+          "any_primary_fraction": 0.8,
+          "any_inclusive_present": 20,
+          "any_inclusive_fraction": 0.8,
+          "per_primary": {
+            "Artemis Entreri": 20,
+            "Pasha Pook": 2
+          },
+          "per_secondary": {
+            "Dendybar": 0,
+            "Sydney": 0,
+            "Bok": 0
+          }
+        },
+        "2": {
+          "beat_count": 28,
+          "any_primary_present": 0,
+          "any_primary_fraction": 0.0,
+          "any_inclusive_present": 0,
+          "any_inclusive_fraction": 0.0,
+          "per_primary": {
+            "Artemis Entreri": 0,
+            "Pasha Pook": 0
+          },
+          "per_secondary": {
+            "Dendybar": 0,
+            "Sydney": 0,
+            "Bok": 0
+          }
+        },
+        "3": {
+          "beat_count": 28,
+          "any_primary_present": 0,
+          "any_primary_fraction": 0.0,
+          "any_inclusive_present": 0,
+          "any_inclusive_fraction": 0.0,
+          "per_primary": {
+            "Artemis Entreri": 0,
+            "Pasha Pook": 0
+          },
+          "per_secondary": {
+            "Dendybar": 0,
+            "Sydney": 0,
+            "Bok": 0
+          }
+        },
+        "4": {
+          "beat_count": 34,
+          "any_primary_present": 2,
+          "any_primary_fraction": 0.058823529411764705,
+          "any_inclusive_present": 29,
+          "any_inclusive_fraction": 0.8529411764705882,
+          "per_primary": {
+            "Artemis Entreri": 2,
+            "Pasha Pook": 0
+          },
+          "per_secondary": {
+            "Dendybar": 25,
+            "Sydney": 7,
+            "Bok": 0
+          }
+        },
+        "5": {
+          "beat_count": 30,
+          "any_primary_present": 0,
+          "any_primary_fraction": 0.0,
+          "any_inclusive_present": 0,
+          "any_inclusive_fraction": 0.0,
+          "per_primary": {
+            "Artemis Entreri": 0,
+            "Pasha Pook": 0
+          },
+          "per_secondary": {
+            "Dendybar": 0,
+            "Sydney": 0,
+            "Bok": 0
+          }
+        },
+        "6": {
+          "beat_count": 40,
+          "any_primary_present": 0,
+          "any_primary_fraction": 0.0,
+          "any_inclusive_present": 0,
+          "any_inclusive_fraction": 0.0,
+          "per_primary": {
+            "Artemis Entreri": 0,
+            "Pasha Pook": 0
+          },
+          "per_secondary": {
+            "Dendybar": 0,
+            "Sydney": 0,
+            "Bok": 0
+          }
+        },
+        "7": {
+          "beat_count": 23,
+          "any_primary_present": 18,
+          "any_primary_fraction": 0.782608695652174,
+          "any_inclusive_present": 21,
+          "any_inclusive_fraction": 0.9130434782608695,
+          "per_primary": {
+            "Artemis Entreri": 18,
+            "Pasha Pook": 0
+          },
+          "per_secondary": {
+            "Dendybar": 9,
+            "Sydney": 4,
+            "Bok": 0
+          }
+        },
+        "8": {
+          "beat_count": 40,
+          "any_primary_present": 0,
+          "any_primary_fraction": 0.0,
+          "any_inclusive_present": 0,
+          "any_inclusive_fraction": 0.0,
+          "per_primary": {
+            "Artemis Entreri": 0,
+            "Pasha Pook": 0
+          },
+          "per_secondary": {
+            "Dendybar": 0,
+            "Sydney": 0,
+            "Bok": 0
+          }
+        },
+        "9": {
+          "beat_count": 33,
+          "any_primary_present": 24,
+          "any_primary_fraction": 0.7272727272727273,
+          "any_inclusive_present": 31,
+          "any_inclusive_fraction": 0.9393939393939394,
+          "per_primary": {
+            "Artemis Entreri": 24,
+            "Pasha Pook": 0
+          },
+          "per_secondary": {
+            "Dendybar": 22,
+            "Sydney": 15,
+            "Bok": 8
+          }
+        },
+        "10": {
+          "beat_count": 36,
+          "any_primary_present": 1,
+          "any_primary_fraction": 0.027777777777777776,
+          "any_inclusive_present": 3,
+          "any_inclusive_fraction": 0.08333333333333333,
+          "per_primary": {
+            "Artemis Entreri": 1,
+            "Pasha Pook": 0
+          },
+          "per_secondary": {
+            "Dendybar": 2,
+            "Sydney": 1,
+            "Bok": 0
+          }
+        },
+        "11": {
+          "beat_count": 25,
+          "any_primary_present": 23,
+          "any_primary_fraction": 0.92,
+          "any_inclusive_present": 24,
+          "any_inclusive_fraction": 0.96,
+          "per_primary": {
+            "Artemis Entreri": 23,
+            "Pasha Pook": 0
+          },
+          "per_secondary": {
+            "Dendybar": 10,
+            "Sydney": 18,
+            "Bok": 7
+          }
+        },
+        "12": {
+          "beat_count": 39,
+          "any_primary_present": 0,
+          "any_primary_fraction": 0.0,
+          "any_inclusive_present": 0,
+          "any_inclusive_fraction": 0.0,
+          "per_primary": {
+            "Artemis Entreri": 0,
+            "Pasha Pook": 0
+          },
+          "per_secondary": {
+            "Dendybar": 0,
+            "Sydney": 0,
+            "Bok": 0
+          }
+        },
+        "13": {
+          "beat_count": 25,
+          "any_primary_present": 0,
+          "any_primary_fraction": 0.0,
+          "any_inclusive_present": 0,
+          "any_inclusive_fraction": 0.0,
+          "per_primary": {
+            "Artemis Entreri": 0,
+            "Pasha Pook": 0
+          },
+          "per_secondary": {
+            "Dendybar": 0,
+            "Sydney": 0,
+            "Bok": 0
+          }
+        },
+        "14": {
+          "beat_count": 22,
+          "any_primary_present": 1,
+          "any_primary_fraction": 0.045454545454545456,
+          "any_inclusive_present": 1,
+          "any_inclusive_fraction": 0.045454545454545456,
+          "per_primary": {
+            "Artemis Entreri": 1,
+            "Pasha Pook": 0
+          },
+          "per_secondary": {
+            "Dendybar": 0,
+            "Sydney": 0,
+            "Bok": 0
+          }
+        },
+        "15": {
+          "beat_count": 20,
+          "any_primary_present": 11,
+          "any_primary_fraction": 0.55,
+          "any_inclusive_present": 16,
+          "any_inclusive_fraction": 0.8,
+          "per_primary": {
+            "Artemis Entreri": 11,
+            "Pasha Pook": 0
+          },
+          "per_secondary": {
+            "Dendybar": 4,
+            "Sydney": 14,
+            "Bok": 9
+          }
+        },
+        "16": {
+          "beat_count": 27,
+          "any_primary_present": 0,
+          "any_primary_fraction": 0.0,
+          "any_inclusive_present": 0,
+          "any_inclusive_fraction": 0.0,
+          "per_primary": {
+            "Artemis Entreri": 0,
+            "Pasha Pook": 0
+          },
+          "per_secondary": {
+            "Dendybar": 0,
+            "Sydney": 0,
+            "Bok": 0
+          }
+        },
+        "17": {
+          "beat_count": 32,
+          "any_primary_present": 13,
+          "any_primary_fraction": 0.40625,
+          "any_inclusive_present": 17,
+          "any_inclusive_fraction": 0.53125,
+          "per_primary": {
+            "Artemis Entreri": 13,
+            "Pasha Pook": 0
+          },
+          "per_secondary": {
+            "Dendybar": 0,
+            "Sydney": 13,
+            "Bok": 10
+          }
+        },
+        "18": {
+          "beat_count": 29,
+          "any_primary_present": 6,
+          "any_primary_fraction": 0.20689655172413793,
+          "any_inclusive_present": 7,
+          "any_inclusive_fraction": 0.2413793103448276,
+          "per_primary": {
+            "Artemis Entreri": 6,
+            "Pasha Pook": 1
+          },
+          "per_secondary": {
+            "Dendybar": 0,
+            "Sydney": 6,
+            "Bok": 4
+          }
+        },
+        "19": {
+          "beat_count": 43,
+          "any_primary_present": 14,
+          "any_primary_fraction": 0.32558139534883723,
+          "any_inclusive_present": 19,
+          "any_inclusive_fraction": 0.4418604651162791,
+          "per_primary": {
+            "Artemis Entreri": 14,
+            "Pasha Pook": 0
+          },
+          "per_secondary": {
+            "Dendybar": 4,
+            "Sydney": 10,
+            "Bok": 12
+          }
+        },
+        "20": {
+          "beat_count": 37,
+          "any_primary_present": 5,
+          "any_primary_fraction": 0.13513513513513514,
+          "any_inclusive_present": 7,
+          "any_inclusive_fraction": 0.1891891891891892,
+          "per_primary": {
+            "Artemis Entreri": 5,
+            "Pasha Pook": 1
+          },
+          "per_secondary": {
+            "Dendybar": 3,
+            "Sydney": 5,
+            "Bok": 4
+          }
+        },
+        "21": {
+          "beat_count": 31,
+          "any_primary_present": 26,
+          "any_primary_fraction": 0.8387096774193549,
+          "any_inclusive_present": 26,
+          "any_inclusive_fraction": 0.8387096774193549,
+          "per_primary": {
+            "Artemis Entreri": 26,
+            "Pasha Pook": 0
+          },
+          "per_secondary": {
+            "Dendybar": 0,
+            "Sydney": 0,
+            "Bok": 0
+          }
+        },
+        "22": {
+          "beat_count": 41,
+          "any_primary_present": 1,
+          "any_primary_fraction": 0.024390243902439025,
+          "any_inclusive_present": 15,
+          "any_inclusive_fraction": 0.36585365853658536,
+          "per_primary": {
+            "Artemis Entreri": 1,
+            "Pasha Pook": 0
+          },
+          "per_secondary": {
+            "Dendybar": 1,
+            "Sydney": 9,
+            "Bok": 8
+          }
+        },
+        "23": {
+          "beat_count": 39,
+          "any_primary_present": 9,
+          "any_primary_fraction": 0.23076923076923078,
+          "any_inclusive_present": 9,
+          "any_inclusive_fraction": 0.23076923076923078,
+          "per_primary": {
+            "Artemis Entreri": 9,
+            "Pasha Pook": 0
+          },
+          "per_secondary": {
+            "Dendybar": 0,
+            "Sydney": 0,
+            "Bok": 0
+          }
+        },
+        "24": {
+          "beat_count": 13,
+          "any_primary_present": 8,
+          "any_primary_fraction": 0.6153846153846154,
+          "any_inclusive_present": 8,
+          "any_inclusive_fraction": 0.6153846153846154,
+          "per_primary": {
+            "Artemis Entreri": 8,
+            "Pasha Pook": 0
+          },
+          "per_secondary": {
+            "Dendybar": 0,
+            "Sydney": 0,
+            "Bok": 0
+          }
+        }
+      },
+      "within_chapter_position": {
+        "open": {
+          "beat_count": 183,
+          "any_primary_present": 47,
+          "any_primary_fraction": 0.2568306010928962,
+          "any_inclusive_present": 63,
+          "any_inclusive_fraction": 0.3442622950819672
+        },
+        "mid": {
+          "beat_count": 371,
+          "any_primary_present": 96,
+          "any_primary_fraction": 0.2587601078167116,
+          "any_inclusive_present": 129,
+          "any_inclusive_fraction": 0.3477088948787062
+        },
+        "close": {
+          "beat_count": 186,
+          "any_primary_present": 39,
+          "any_primary_fraction": 0.20967741935483872,
+          "any_inclusive_present": 61,
+          "any_inclusive_fraction": 0.3279569892473118
+        }
+      },
+      "first_last_beat": {
+        "first_beat": {
+          "chapters": 24,
+          "any_primary_present": 6,
+          "any_primary_fraction": 0.25,
+          "any_inclusive_present": 6,
+          "any_inclusive_fraction": 0.25
+        },
+        "last_beat": {
+          "chapters": 24,
+          "any_primary_present": 6,
+          "any_primary_fraction": 0.25,
+          "any_inclusive_present": 8,
+          "any_inclusive_fraction": 0.3333333333333333
+        }
+      }
+    }
+  },
+  "cross_book": {
+    "crystal_shard": {
+      "overall_any_primary_fraction": 0.24231242312423124,
+      "overall_any_inclusive_fraction": 0.2742927429274293,
+      "thirds_any_primary": {
+        "early": 0.2081447963800905,
+        "mid": 0.11070110701107011,
+        "late": 0.37694704049844235
+      },
+      "thirds_any_inclusive": {
+        "early": 0.2398190045248869,
+        "mid": 0.11070110701107011,
+        "late": 0.43613707165109034
+      },
+      "within_chapter_any_primary": {
+        "open": 0.24,
+        "mid": 0.23832923832923833,
+        "close": 0.2524271844660194
+      },
+      "first_beat_any_primary": 0.3333333333333333,
+      "last_beat_any_primary": 0.26666666666666666,
+      "first_beat_any_inclusive": 0.3333333333333333,
+      "last_beat_any_inclusive": 0.3
+    },
+    "halflings_gem": {
+      "overall_any_primary_fraction": 0.3247753530166881,
+      "overall_any_inclusive_fraction": 0.3247753530166881,
+      "thirds_any_primary": {
+        "early": 0.29545454545454547,
+        "mid": 0.25196850393700787,
+        "late": 0.42528735632183906
+      },
+      "thirds_any_inclusive": {
+        "early": 0.29545454545454547,
+        "mid": 0.25196850393700787,
+        "late": 0.42528735632183906
+      },
+      "within_chapter_any_primary": {
+        "open": 0.3247422680412371,
+        "mid": 0.3220779220779221,
+        "close": 0.33
+      },
+      "first_beat_any_primary": 0.36,
+      "last_beat_any_primary": 0.44,
+      "first_beat_any_inclusive": 0.36,
+      "last_beat_any_inclusive": 0.44
+    },
+    "streams_of_silver": {
+      "overall_any_primary_fraction": 0.24594594594594596,
+      "overall_any_inclusive_fraction": 0.3418918918918919,
+      "thirds_any_primary": {
+        "early": 0.16129032258064516,
+        "mid": 0.2643171806167401,
+        "late": 0.30943396226415093
+      },
+      "thirds_any_inclusive": {
+        "early": 0.28225806451612906,
+        "mid": 0.3303964757709251,
+        "late": 0.4075471698113208
+      },
+      "within_chapter_any_primary": {
+        "open": 0.2568306010928962,
+        "mid": 0.2587601078167116,
+        "close": 0.20967741935483872
+      },
+      "first_beat_any_primary": 0.25,
+      "last_beat_any_primary": 0.25,
+      "first_beat_any_inclusive": 0.25,
+      "last_beat_any_inclusive": 0.3333333333333333
+    }
+  },
+  "shape_summary": {
+    "crystal_shard": {
+      "thirds_any_primary": {
+        "early": 0.2081447963800905,
+        "mid": 0.11070110701107011,
+        "late": 0.37694704049844235
+      },
+      "shape": "late-peak",
+      "late_minus_early": 0.16880224411835185,
+      "late_over_early_ratio": 1.8109846945686034
+    },
+    "halflings_gem": {
+      "thirds_any_primary": {
+        "early": 0.29545454545454547,
+        "mid": 0.25196850393700787,
+        "late": 0.42528735632183906
+      },
+      "shape": "late-peak",
+      "late_minus_early": 0.1298328108672936,
+      "late_over_early_ratio": 1.4394341290893014
+    },
+    "streams_of_silver": {
+      "thirds_any_primary": {
+        "early": 0.16129032258064516,
+        "mid": 0.2643171806167401,
+        "late": 0.30943396226415093
+      },
+      "shape": "late-peak",
+      "late_minus_early": 0.14814363968350577,
+      "late_over_early_ratio": 1.9184905660377358
+    }
+  },
+  "within_chapter_shape": {
+    "crystal_shard": {
+      "within": {
+        "open": 0.24,
+        "mid": 0.23832923832923833,
+        "close": 0.2524271844660194
+      },
+      "shape": "close-cluster",
+      "close_minus_open": 0.012427184466019425,
+      "first_beat_any_primary": 0.3333333333333333,
+      "last_beat_any_primary": 0.26666666666666666,
+      "last_minus_first_first_beat": -0.06666666666666665
+    },
+    "halflings_gem": {
+      "within": {
+        "open": 0.3247422680412371,
+        "mid": 0.3220779220779221,
+        "close": 0.33
+      },
+      "shape": "close-cluster",
+      "close_minus_open": 0.00525773195876289,
+      "first_beat_any_primary": 0.36,
+      "last_beat_any_primary": 0.44,
+      "last_minus_first_first_beat": 0.08000000000000002
+    },
+    "streams_of_silver": {
+      "within": {
+        "open": 0.2568306010928962,
+        "mid": 0.2587601078167116,
+        "close": 0.20967741935483872
+      },
+      "shape": "mid-cluster",
+      "close_minus_open": -0.047153181738057465,
+      "first_beat_any_primary": 0.25,
+      "last_beat_any_primary": 0.25,
+      "last_minus_first_first_beat": 0.0
+    }
+  }
+}
