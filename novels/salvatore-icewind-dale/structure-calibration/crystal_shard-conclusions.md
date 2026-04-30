@@ -2630,3 +2630,56 @@ The `planning-plotter` should encode an explicit antagonist-presence prior param
 Artifact: `crystal_shard.20260430T082423.antagonist-presence.json` (v2 with primary/secondary tiers + first-last-beat). v1: `crystal_shard.20260430T082311.antagonist-presence.json` (primary-only, retained as append-only).
 
 ---
+
+
+## 2026-04-30 — Pattern 27 (Try/fail cycle structure across 3 IWD books)
+
+### Methodology
+
+For each of 92 chapters across the 3 IWD books, label a binary tag `is_try_at_primary_goal` (yes/no) using DeepSeek V4 Flash (temperature 0, JSON-mode, thinking disabled). Per-book primary goals: crystal_shard = defeat Kessell + protect Ten-Towns; streams_of_silver = find Mithril Hall; halflings_gem = rescue Regis from Pasha Pook.
+
+**Per the 2026-04-30 binary-collapse SOP**, this analysis was a-priori bound to a binary tag rather than the original try/fail/setback/escalation/success multi-class taxonomy.
+
+**Calibration gate.** Before the full pass: 30 chapters (10 per book, evenly spaced numeric chapters), labeled twice via DeepSeek (same prompt, two independent API calls). **Calibration Jaccard = 1.000** (agreement 30/30 = 100.0%) — **PASS** vs the J>=0.7 ship gate. Class balance run1/run2: true=20/20, false=10/10.
+
+**Cycle definition.** A *try-streak* is a maximal run of consecutive numeric chapters labeled `is_try=true` (i.e., consecutive try-chapters merged into a single attempt unit). Special chapters (prelude/epilogue/parts) are labeled but excluded from streak structure. Stake-density per try-streak uses `boundary_signal == 'stakes_recalibration'` beat counts as a proxy for in-chapter intensity.
+
+### Per-book results
+
+- crystal_shard (numeric n=30): tries 21 (70%) · streaks 5 · mean-streak-len 4.2 · mean-gap 1.5 · early/mid/late 60%/60%/90% · stakes-density seq [4.6, 5, 1, 4.8, 5.78] · final-attempt direction rising · final-streak-at-end true
+- streams_of_silver (numeric n=24): tries 14 (58.3%) · streaks 7 · mean-streak-len 2 · mean-gap 1.33 · early/mid/late 50%/50%/75% · stakes-density seq [2.5, 4, 3, 4, 3, 2, 5.17] · final-attempt direction rising · final-streak-at-end false
+- halflings_gem (numeric n=25): tries 11 (44%) · streaks 5 · mean-streak-len 2.2 · mean-gap 2.75 · early/mid/late 25%/37.5%/66.7% · stakes-density seq [4.5, 4, 3.5, 6.25, 6.5] · final-attempt direction rising · final-streak-at-end false
+
+### Cross-book directional verdict
+
+| Property | crystal_shard | streams_of_silver | halflings_gem | Stable across all 3? |
+|---|---|---|---|---|
+| Try-rate (% chapters tagged TRY) | 70% | 58.3% | 44% | No (range 26.0pt) |
+| Try-streaks per book | 5 | 7 | 5 | — |
+| Mean chapters per streak | 4.2 | 2 | 2.2 | — |
+| Mean gap (chapters) between streaks | 1.5 | 1.33 | 2.75 | — |
+| Try-rate trends rising late→early? | 60→60→90% | 50→50→75% | 25→37.5→66.7% | Late tier ≥ early tier in all 3 |
+| Final streak ends on last chapter? | true | false | false | No |
+| Stakes-density direction (first→last streak) | rising | rising | rising | All rising |
+
+### Conclusion + Action
+
+**Mixed directional signal.** Some axes are stable across books, others vary — see table above. The harness target depends on which axes shipped as stable:
+
+- **Try-rate prior:** target ~57% of chapters labeled as TRY (corpus mean across 3 books). Planner can encode this as a soft prior on chapter `purpose` — N% of chapters should describe primary-goal-advancing action.
+- **Final-attempt-at-end:** NOT shipped — varies by book.
+- **Streak structure (mean 2.8 chapters per try-streak, mean gap 1.9 chapters):** Salvatore alternates blocks of try-chapters with non-try-chapters (subplot/villain/setup); planner could encode an alternation prior at the chapter-skeleton level, but cross-book stability of streak length is mixed.
+- **Stakes-density per streak:** all 3 books show rising stakes density from first to final streak — escalation is corpus-real and could ship as a complement to Pattern 20 (within-chapter stakes-escalation curve).
+
+### Cost & telemetry
+
+- 122 LLM calls (60 calibration + 62 residual)
+- $0.0283 total cost
+- 191330 prompt tokens / 5467 completion tokens
+
+Artifact: `crystal_shard.20260430T122751.try-fail-cycles.json`
+Script: `scripts/structure-calibration/try-fail-cycles.ts`
+
+---
+
+

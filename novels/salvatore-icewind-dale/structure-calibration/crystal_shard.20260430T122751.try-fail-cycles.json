@@ -1,0 +1,1405 @@
+{
+  "pattern": "27",
+  "name": "Try/fail cycle structure across 3 IWD books",
+  "timestamp": "2026-04-30T12:27:51.497Z",
+  "stage": "calibration_passed_full_pass_complete",
+  "primary_goals": {
+    "crystal_shard": "DEFEAT AKAR KESSELL AND PROTECT TEN-TOWNS — defeat or thwart the wizard Akar Kessell who wields the Crystal Shard (Crenshinibon) and is mustering an army of goblins/orcs/giants/barbarians against Ten-Towns; protect the towns of Ten-Towns from the impending invasion. Note that this is the BOOK-LEVEL primary goal — earlier chapters with subgoals (defeating the barbarian invasion under Heafstaag, Drizzt securing alliances, gathering the dwarves, etc.) count as tries at the primary goal IF and ONLY IF the chapter's action functionally advances toward defeating Kessell or protecting Ten-Towns. Pure character-introduction chapters or backstory chapters do not.",
+    "streams_of_silver": "FIND MITHRIL HALL — Bruenor Battlehammer's ancestral dwarven home, lost long ago and Bruenor's lifelong quest. The Companions (Drizzt, Bruenor, Wulfgar, Regis, and later Catti-brie) journey from Ten-Towns south and east through Luskan, Longsaddle, Silverymoon, etc., seeking clues to its location and ultimately attempting to reach and reclaim it. Subordinate threats (assassins, pursuers, hostile cities) count as tries at the primary goal IF the chapter's action moves the search/journey forward; pure pursuer-side scenes (Entreri, Sydney, Dendybar) typically do NOT count unless they collide with the quest party.",
+    "halflings_gem": "RESCUE REGIS FROM PASHA POOK — Regis the halfling has been taken/pursued by the assassin Artemis Entreri at the behest of Pasha Pook of Calimport, who wants Regis killed for stealing the ruby pendant. The Companions (Drizzt, Bruenor, Wulfgar, Catti-brie) pursue Entreri across the Realms — through Mithril Hall, the seas, into Calimshan and ultimately Calimport — to free Regis. Chapters where the Companions actively pursue, prepare to rescue, or directly confront Pook/Entreri count as tries; pursuer-side or villain-internal scenes generally do NOT count unless they involve direct rescue-relevant action."
+  },
+  "calibration": {
+    "sampleSize": 30,
+    "sampleKeys": [
+      "crystal_shard|1",
+      "crystal_shard|4",
+      "crystal_shard|7",
+      "crystal_shard|10",
+      "crystal_shard|13",
+      "crystal_shard|16",
+      "crystal_shard|19",
+      "crystal_shard|22",
+      "crystal_shard|25",
+      "crystal_shard|28",
+      "streams_of_silver|1",
+      "streams_of_silver|3",
+      "streams_of_silver|5",
+      "streams_of_silver|8",
+      "streams_of_silver|10",
+      "streams_of_silver|13",
+      "streams_of_silver|15",
+      "streams_of_silver|17",
+      "streams_of_silver|20",
+      "streams_of_silver|22",
+      "halflings_gem|1",
+      "halflings_gem|3",
+      "halflings_gem|6",
+      "halflings_gem|8",
+      "halflings_gem|11",
+      "halflings_gem|13",
+      "halflings_gem|16",
+      "halflings_gem|18",
+      "halflings_gem|21",
+      "halflings_gem|23"
+    ],
+    "jaccard": 1,
+    "agreeRate": 1,
+    "classes": {
+      "true": {
+        "run1": 20,
+        "run2": 20
+      },
+      "false": {
+        "run1": 10,
+        "run2": 10
+      }
+    },
+    "threshold": 0.7,
+    "verdict": "PASS",
+    "run1": {
+      "crystal_shard|22": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "Wulfgar defeats Heafstaag to reclaim the barbarian tribe, directly weakening Kessell's army."
+      },
+      "crystal_shard|4": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "Kessell acquires the Crystal Shard and begins building his power base, directly advancing the threat to Ten-Towns."
+      },
+      "crystal_shard|7": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "Drizzt scouts the barbarian camp, learns their plan, and prepares to defend Ten-Towns against the invasion."
+      },
+      "crystal_shard|10": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "Kessell's army grows and he gains Errtu as general, directly advancing the invasion threat to Ten-Towns."
+      },
+      "crystal_shard|13": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "Kessell advances his invasion plan by deploying Biggrin, compelling Heafstaag, and ordering a second tower."
+      },
+      "crystal_shard|16": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "Drizzt and Wulfgar actively hunt and kill verbeeg giants, weakening Kessell's army and advancing toward protecting Ten-Towns."
+      },
+      "crystal_shard|1": {
+        "is_try": false,
+        "confidence": "high",
+        "reason": "Chapter focuses on Kessell's backstory and murder of Morkai, not on advancing toward defeating Kessell or protecting Ten-Towns."
+      },
+      "crystal_shard|19": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "Regis interrogates orc, reveals Kessell's invasion plan; Drizzt discovers mirror link to Kessell; council debates defense."
+      },
+      "crystal_shard|28": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "Drizzt infiltrates Cryshal-Tirith and Regis deceives Kessell, directly advancing the goal of defeating the wizard."
+      },
+      "streams_of_silver|8": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "The chapter advances the quest for Mithral Hall: Bruenor proclaims the goal, DelRoy provides map and route to Citadel Adbar."
+      },
+      "streams_of_silver|1": {
+        "is_try": false,
+        "confidence": "high",
+        "reason": "Chapter focuses on Entreri's pursuit of Regis, not on advancing the quest for Mithril Hall."
+      },
+      "streams_of_silver|10": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "The companions actively travel toward Mithral Hall, crossing the Dessarin and entering the Trollmoors, advancing the quest."
+      },
+      "streams_of_silver|3": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "The chapter's central action is acquiring the map to Mithril Hall, a direct step toward the primary goal."
+      },
+      "streams_of_silver|5": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "The chapter advances the journey toward Mithral Hall: route planning, acquiring horses, and fighting orcs along the way."
+      },
+      "crystal_shard|25": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "Drizzt confronts Errtu to learn Kessell's weakness, directly advancing the goal of defeating Kessell."
+      },
+      "streams_of_silver|13": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "The chapter advances the journey toward Mithril Hall by crossing the Evermoors and escaping trolls."
+      },
+      "streams_of_silver|17": {
+        "is_try": false,
+        "confidence": "high",
+        "reason": "Chapter focuses on pursuit and escape, not advancing the search for Mithril Hall."
+      },
+      "streams_of_silver|15": {
+        "is_try": false,
+        "confidence": "high",
+        "reason": "Chapter focuses on pursuers' internal conflicts and preparations, not on advancing the search for Mithril Hall."
+      },
+      "halflings_gem|1": {
+        "is_try": false,
+        "confidence": "high",
+        "reason": "Chapter focuses on meeting Malchor, receiving gifts, and travel preparation, not on rescuing Regis."
+      },
+      "streams_of_silver|20": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "The companions actively search Mithral Hall, confront its destruction, and reclaim a magical bow, advancing the quest."
+      },
+      "halflings_gem|6": {
+        "is_try": false,
+        "confidence": "high",
+        "reason": "Chapter follows Entreri and Regis, not the Companions' rescue attempt."
+      },
+      "halflings_gem|3": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "Drizzt and Wulfgar actively seek and obtain the mask needed to rescue Regis."
+      },
+      "streams_of_silver|22": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "The companions fight through Duergar and Bok, advance through Mithral Hall, and confront Shimmergloom, directly pursuing the goal."
+      },
+      "halflings_gem|8": {
+        "is_try": false,
+        "confidence": "high",
+        "reason": "Chapter is entirely villain-internal; no Companions action toward rescuing Regis."
+      },
+      "halflings_gem|16": {
+        "is_try": false,
+        "confidence": "high",
+        "reason": "Chapter focuses on arrival, setting, and character dynamics; no direct rescue action toward Regis."
+      },
+      "halflings_gem|11": {
+        "is_try": false,
+        "confidence": "high",
+        "reason": "Chapter focuses on sea battle and pirate encounter, not on rescuing Regis."
+      },
+      "halflings_gem|13": {
+        "is_try": false,
+        "confidence": "high",
+        "reason": "Chapter focuses on Regis's capture and Pook's guild, not on rescue action by the Companions."
+      },
+      "halflings_gem|21": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "The Companions actively fight through Pook's guildhouse to rescue Regis, directly advancing the primary goal."
+      },
+      "halflings_gem|18": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "Companions actively pursue rescue by entering sewer to reach guildhouse, directly advancing goal."
+      },
+      "halflings_gem|23": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "The Companions directly confront Pook and his forces in Calimport, actively rescuing Regis and fighting to secure the portal."
+      }
+    },
+    "run2": {
+      "crystal_shard|22": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "Wulfgar defeats Heafstaag to reclaim the barbarian tribe, directly weakening Kessell's army."
+      },
+      "crystal_shard|10": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "Kessell's army grows and he gains Errtu as general, directly advancing the invasion threat to Ten-Towns."
+      },
+      "crystal_shard|13": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "Kessell advances his invasion plan by deploying Biggrin, compelling Heafstaag, and ordering a second tower."
+      },
+      "crystal_shard|7": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "Drizzt scouts the barbarian camp, learns their plan, and prepares to defend Ten-Towns against the invasion."
+      },
+      "crystal_shard|19": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "Regis interrogates orc, reveals Kessell's invasion plan; Drizzt discovers mirror link to Kessell; council attempts to organize defense."
+      },
+      "crystal_shard|4": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "Kessell acquires the Crystal Shard and begins building his power base, directly advancing the threat to Ten-Towns."
+      },
+      "crystal_shard|1": {
+        "is_try": false,
+        "confidence": "high",
+        "reason": "Chapter focuses on Kessell's backstory and murder of Morkai, not on advancing toward defeating Kessell or protecting Ten-Towns."
+      },
+      "crystal_shard|16": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "Drizzt and Wulfgar actively hunt and kill verbeeg giants, weakening Kessell's army and advancing toward protecting Ten-Towns."
+      },
+      "crystal_shard|25": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "Drizzt confronts Errtu to learn Kessell's weakness, directly advancing the goal of defeating Kessell."
+      },
+      "crystal_shard|28": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "Drizzt infiltrates Cryshal-Tirith and Regis deceives Kessell, directly advancing the goal of defeating the wizard."
+      },
+      "streams_of_silver|1": {
+        "is_try": false,
+        "confidence": "high",
+        "reason": "Chapter focuses on Entreri's pursuit of Regis, not on advancing the quest for Mithril Hall."
+      },
+      "streams_of_silver|3": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "The chapter's central action is acquiring the map to Mithril Hall, a direct step toward the primary goal."
+      },
+      "streams_of_silver|10": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "The companions actively travel toward Mithral Hall, crossing the Dessarin and entering the Trollmoors, advancing the quest."
+      },
+      "streams_of_silver|13": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "The chapter advances the journey toward Mithril Hall by crossing the Evermoors and escaping trolls."
+      },
+      "streams_of_silver|5": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "The chapter advances the journey toward Mithral Hall: route planning, acquiring horses, and fighting orcs along the way."
+      },
+      "streams_of_silver|8": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "The chapter advances the quest for Mithral Hall: Bruenor proclaims the goal, DelRoy provides map and route to Citadel Adbar."
+      },
+      "streams_of_silver|15": {
+        "is_try": false,
+        "confidence": "high",
+        "reason": "Chapter focuses on pursuers' internal conflicts and preparations, not on advancing the search for Mithril Hall."
+      },
+      "streams_of_silver|17": {
+        "is_try": false,
+        "confidence": "high",
+        "reason": "Chapter focuses on pursuit and escape, not advancing the search for Mithril Hall."
+      },
+      "streams_of_silver|20": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "The companions actively search Mithral Hall, confront its destruction, and reclaim a magical bow, advancing the quest."
+      },
+      "halflings_gem|3": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "Drizzt and Wulfgar actively seek and obtain the mask needed to rescue Regis."
+      },
+      "halflings_gem|6": {
+        "is_try": false,
+        "confidence": "high",
+        "reason": "Chapter follows Entreri and Regis, not the Companions' rescue attempt."
+      },
+      "halflings_gem|1": {
+        "is_try": false,
+        "confidence": "high",
+        "reason": "Chapter focuses on meeting Malchor, receiving gifts, and travel preparation, not on rescuing Regis."
+      },
+      "streams_of_silver|22": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "The companions fight through Duergar and Bok, advance through Mithral Hall, and confront Shimmergloom, directly pursuing the goal."
+      },
+      "halflings_gem|8": {
+        "is_try": false,
+        "confidence": "high",
+        "reason": "Chapter is entirely villain-internal; no Companions action toward rescuing Regis."
+      },
+      "halflings_gem|11": {
+        "is_try": false,
+        "confidence": "high",
+        "reason": "Chapter focuses on sea battle and pirate encounter, not on rescuing Regis."
+      },
+      "halflings_gem|13": {
+        "is_try": false,
+        "confidence": "high",
+        "reason": "Chapter focuses on Regis's capture and Pook's guild, not on rescue action by the Companions."
+      },
+      "halflings_gem|16": {
+        "is_try": false,
+        "confidence": "high",
+        "reason": "Chapter focuses on arrival, setting, and character dynamics; no direct rescue action toward Regis."
+      },
+      "halflings_gem|18": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "Companions actively pursue rescue by entering sewer to reach guildhouse, directly advancing goal."
+      },
+      "halflings_gem|21": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "The Companions actively fight through Pook's guildhouse to rescue Regis, directly advancing the primary goal."
+      },
+      "halflings_gem|23": {
+        "is_try": true,
+        "confidence": "high",
+        "reason": "The Companions directly confront Pook and his forces in Calimport, actively rescuing Regis and fighting to secure the portal."
+      }
+    },
+    "tokens": {
+      "prompt": 99188,
+      "completion": 2728,
+      "calls": 60
+    },
+    "estCostUSD": 0.0147
+  },
+  "method": {
+    "provider": "deepseek",
+    "model": "deepseek-v4-flash",
+    "thinking": "disabled",
+    "temperature": 0,
+    "responseFormat": "json_object",
+    "binaryTag": "is_try_at_primary_goal",
+    "cycleDef": "A 'try-streak' is a maximal run of consecutive numeric chapters labeled is_try=true. Each streak counts as one try-cycle unit.",
+    "stakeProxy": "chapter beats with boundary_signal == 'stakes_recalibration'",
+    "notes": "Calibration n=30 (10/book) gated on Jaccard>=0.7 binary agreement; full pass labels all 92 chapters. Special chapters (prelude/epilogue/parts) are labeled but excluded from cycle structure (numeric chapters only)."
+  },
+  "perBook": [
+    {
+      "book": "crystal_shard",
+      "numericChaptersN": 30,
+      "totalChaptersN": 34,
+      "triesN": 21,
+      "triesPct": 70,
+      "tryStreaks": 5,
+      "meanChaptersPerStreak": 4.2,
+      "meanGapBetweenStreaks": 1.5,
+      "finalStreakIsLastChapter": true,
+      "earlyMidLateTryPct": {
+        "early": 60,
+        "mid": 60,
+        "late": 90
+      },
+      "meanStakeBeatsPerTryChapter": 5,
+      "streakStakesSequence": [
+        4.6,
+        5,
+        1,
+        4.8,
+        5.78
+      ],
+      "finalAttemptDirection": "rising"
+    },
+    {
+      "book": "streams_of_silver",
+      "numericChaptersN": 24,
+      "totalChaptersN": 29,
+      "triesN": 14,
+      "triesPct": 58.3,
+      "tryStreaks": 7,
+      "meanChaptersPerStreak": 2,
+      "meanGapBetweenStreaks": 1.33,
+      "finalStreakIsLastChapter": false,
+      "earlyMidLateTryPct": {
+        "early": 50,
+        "mid": 50,
+        "late": 75
+      },
+      "meanStakeBeatsPerTryChapter": 3.93,
+      "streakStakesSequence": [
+        2.5,
+        4,
+        3,
+        4,
+        3,
+        2,
+        5.17
+      ],
+      "finalAttemptDirection": "rising"
+    },
+    {
+      "book": "halflings_gem",
+      "numericChaptersN": 25,
+      "totalChaptersN": 29,
+      "triesN": 11,
+      "triesPct": 44,
+      "tryStreaks": 5,
+      "meanChaptersPerStreak": 2.2,
+      "meanGapBetweenStreaks": 2.75,
+      "finalStreakIsLastChapter": false,
+      "earlyMidLateTryPct": {
+        "early": 25,
+        "mid": 37.5,
+        "late": 66.7
+      },
+      "meanStakeBeatsPerTryChapter": 5.27,
+      "streakStakesSequence": [
+        4.5,
+        4,
+        3.5,
+        6.25,
+        6.5
+      ],
+      "finalAttemptDirection": "rising"
+    }
+  ],
+  "aggregate": {
+    "tries_total": 46,
+    "numeric_chapters_total": 79,
+    "tryStreaks_total": 17
+  },
+  "directional": {
+    "triesPctRange": 26,
+    "triesPctStable": false,
+    "allLateRising": true,
+    "allFinalAtEnd": false,
+    "stakesDirections": [
+      "rising",
+      "rising",
+      "rising"
+    ],
+    "stakesAllRising": true
+  },
+  "chapter_labels": {
+    "crystal_shard|22": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "Wulfgar defeats Heafstaag to reclaim the barbarian tribe, directly weakening Kessell's army.",
+      "position_in_book": 0.7241379310344828,
+      "stakes_recalibration_count": 6,
+      "total_beats": 32,
+      "total_words": 3363,
+      "is_special": false
+    },
+    "crystal_shard|4": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "Kessell acquires the Crystal Shard and begins building his power base, directly advancing the threat to Ten-Towns.",
+      "position_in_book": 0.10344827586206896,
+      "stakes_recalibration_count": 5,
+      "total_beats": 21,
+      "total_words": 2172,
+      "is_special": false
+    },
+    "crystal_shard|7": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "Drizzt scouts the barbarian camp, learns their plan, and prepares to defend Ten-Towns against the invasion.",
+      "position_in_book": 0.20689655172413793,
+      "stakes_recalibration_count": 3,
+      "total_beats": 28,
+      "total_words": 2919,
+      "is_special": false
+    },
+    "crystal_shard|10": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "Kessell's army grows and he gains Errtu as general, directly advancing the invasion threat to Ten-Towns.",
+      "position_in_book": 0.3103448275862069,
+      "stakes_recalibration_count": 5,
+      "total_beats": 24,
+      "total_words": 2540,
+      "is_special": false
+    },
+    "crystal_shard|13": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "Kessell advances his invasion plan by deploying Biggrin, compelling Heafstaag, and ordering a second tower.",
+      "position_in_book": 0.41379310344827586,
+      "stakes_recalibration_count": 1,
+      "total_beats": 11,
+      "total_words": 1283,
+      "is_special": false
+    },
+    "crystal_shard|16": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "Drizzt and Wulfgar actively hunt and kill verbeeg giants, weakening Kessell's army and advancing toward protecting Ten-Towns.",
+      "position_in_book": 0.5172413793103449,
+      "stakes_recalibration_count": 5,
+      "total_beats": 34,
+      "total_words": 3509,
+      "is_special": false
+    },
+    "crystal_shard|1": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter focuses on Kessell's backstory and murder of Morkai, not on advancing toward defeating Kessell or protecting Ten-Towns.",
+      "position_in_book": 0,
+      "stakes_recalibration_count": 2,
+      "total_beats": 19,
+      "total_words": 1837,
+      "is_special": false
+    },
+    "crystal_shard|19": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "Regis interrogates orc, reveals Kessell's invasion plan; Drizzt discovers mirror link to Kessell; council debates defense.",
+      "position_in_book": 0.6206896551724138,
+      "stakes_recalibration_count": 4,
+      "total_beats": 29,
+      "total_words": 2980,
+      "is_special": false
+    },
+    "crystal_shard|28": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "Drizzt infiltrates Cryshal-Tirith and Regis deceives Kessell, directly advancing the goal of defeating the wizard.",
+      "position_in_book": 0.9310344827586207,
+      "stakes_recalibration_count": 5,
+      "total_beats": 26,
+      "total_words": 2655,
+      "is_special": false
+    },
+    "streams_of_silver|8": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "The chapter advances the quest for Mithral Hall: Bruenor proclaims the goal, DelRoy provides map and route to Citadel Adbar.",
+      "position_in_book": 0.30434782608695654,
+      "stakes_recalibration_count": 3,
+      "total_beats": 40,
+      "total_words": 4383,
+      "is_special": false
+    },
+    "streams_of_silver|1": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter focuses on Entreri's pursuit of Regis, not on advancing the quest for Mithril Hall.",
+      "position_in_book": 0,
+      "stakes_recalibration_count": 5,
+      "total_beats": 25,
+      "total_words": 2739,
+      "is_special": false
+    },
+    "streams_of_silver|10": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "The companions actively travel toward Mithral Hall, crossing the Dessarin and entering the Trollmoors, advancing the quest.",
+      "position_in_book": 0.391304347826087,
+      "stakes_recalibration_count": 4,
+      "total_beats": 36,
+      "total_words": 3730,
+      "is_special": false
+    },
+    "streams_of_silver|3": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "The chapter's central action is acquiring the map to Mithril Hall, a direct step toward the primary goal.",
+      "position_in_book": 0.08695652173913043,
+      "stakes_recalibration_count": 3,
+      "total_beats": 28,
+      "total_words": 3070,
+      "is_special": false
+    },
+    "streams_of_silver|5": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "The chapter advances the journey toward Mithral Hall: route planning, acquiring horses, and fighting orcs along the way.",
+      "position_in_book": 0.17391304347826086,
+      "stakes_recalibration_count": 4,
+      "total_beats": 30,
+      "total_words": 3388,
+      "is_special": false
+    },
+    "crystal_shard|25": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "Drizzt confronts Errtu to learn Kessell's weakness, directly advancing the goal of defeating Kessell.",
+      "position_in_book": 0.8275862068965517,
+      "stakes_recalibration_count": 6,
+      "total_beats": 24,
+      "total_words": 2753,
+      "is_special": false
+    },
+    "streams_of_silver|13": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "The chapter advances the journey toward Mithril Hall by crossing the Evermoors and escaping trolls.",
+      "position_in_book": 0.5217391304347826,
+      "stakes_recalibration_count": 6,
+      "total_beats": 25,
+      "total_words": 2999,
+      "is_special": false
+    },
+    "streams_of_silver|17": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter focuses on pursuit and escape, not advancing the search for Mithril Hall.",
+      "position_in_book": 0.6956521739130435,
+      "stakes_recalibration_count": 6,
+      "total_beats": 32,
+      "total_words": 3461,
+      "is_special": false
+    },
+    "streams_of_silver|15": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter focuses on pursuers' internal conflicts and preparations, not on advancing the search for Mithril Hall.",
+      "position_in_book": 0.6086956521739131,
+      "stakes_recalibration_count": 2,
+      "total_beats": 20,
+      "total_words": 2182,
+      "is_special": false
+    },
+    "halflings_gem|1": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter focuses on meeting Malchor, receiving gifts, and travel preparation, not on rescuing Regis.",
+      "position_in_book": 0,
+      "stakes_recalibration_count": 6,
+      "total_beats": 35,
+      "total_words": 3897,
+      "is_special": false
+    },
+    "streams_of_silver|20": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "The companions actively search Mithral Hall, confront its destruction, and reclaim a magical bow, advancing the quest.",
+      "position_in_book": 0.8260869565217391,
+      "stakes_recalibration_count": 6,
+      "total_beats": 37,
+      "total_words": 4024,
+      "is_special": false
+    },
+    "halflings_gem|6": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter follows Entreri and Regis, not the Companions' rescue attempt.",
+      "position_in_book": 0.20833333333333334,
+      "stakes_recalibration_count": 4,
+      "total_beats": 40,
+      "total_words": 4104,
+      "is_special": false
+    },
+    "halflings_gem|3": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "Drizzt and Wulfgar actively seek and obtain the mask needed to rescue Regis.",
+      "position_in_book": 0.08333333333333333,
+      "stakes_recalibration_count": 4,
+      "total_beats": 31,
+      "total_words": 3336,
+      "is_special": false
+    },
+    "streams_of_silver|22": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "The companions fight through Duergar and Bok, advance through Mithral Hall, and confront Shimmergloom, directly pursuing the goal.",
+      "position_in_book": 0.9130434782608695,
+      "stakes_recalibration_count": 5,
+      "total_beats": 41,
+      "total_words": 4114,
+      "is_special": false
+    },
+    "halflings_gem|8": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter is entirely villain-internal; no Companions action toward rescuing Regis.",
+      "position_in_book": 0.2916666666666667,
+      "stakes_recalibration_count": 1,
+      "total_beats": 22,
+      "total_words": 2370,
+      "is_special": false
+    },
+    "halflings_gem|16": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter focuses on arrival, setting, and character dynamics; no direct rescue action toward Regis.",
+      "position_in_book": 0.625,
+      "stakes_recalibration_count": 6,
+      "total_beats": 34,
+      "total_words": 3760,
+      "is_special": false
+    },
+    "halflings_gem|11": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter focuses on sea battle and pirate encounter, not on rescuing Regis.",
+      "position_in_book": 0.4166666666666667,
+      "stakes_recalibration_count": 7,
+      "total_beats": 53,
+      "total_words": 5225,
+      "is_special": false
+    },
+    "halflings_gem|13": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter focuses on Regis's capture and Pook's guild, not on rescue action by the Companions.",
+      "position_in_book": 0.5,
+      "stakes_recalibration_count": 4,
+      "total_beats": 30,
+      "total_words": 3307,
+      "is_special": false
+    },
+    "halflings_gem|21": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "The Companions actively fight through Pook's guildhouse to rescue Regis, directly advancing the primary goal.",
+      "position_in_book": 0.8333333333333334,
+      "stakes_recalibration_count": 6,
+      "total_beats": 27,
+      "total_words": 2617,
+      "is_special": false
+    },
+    "halflings_gem|18": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "Companions actively pursue rescue by entering sewer to reach guildhouse, directly advancing goal.",
+      "position_in_book": 0.7083333333333334,
+      "stakes_recalibration_count": 8,
+      "total_beats": 42,
+      "total_words": 4290,
+      "is_special": false
+    },
+    "halflings_gem|23": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "The Companions directly confront Pook and his forces in Calimport, actively rescuing Regis and fighting to secure the portal.",
+      "position_in_book": 0.9166666666666666,
+      "stakes_recalibration_count": 7,
+      "total_beats": 24,
+      "total_words": 2168,
+      "is_special": false
+    },
+    "crystal_shard|11": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter focuses on Bruenor forging a magical warhammer, not on defeating Kessell or protecting Ten-Towns.",
+      "position_in_book": 0.3448275862068966,
+      "stakes_recalibration_count": 1,
+      "total_beats": 20,
+      "total_words": 2194,
+      "is_special": false
+    },
+    "crystal_shard|9": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter focuses on character reflection and setting, no action toward defeating Kessell or protecting Ten-Towns.",
+      "position_in_book": 0.27586206896551724,
+      "stakes_recalibration_count": 2,
+      "total_beats": 13,
+      "total_words": 1540,
+      "is_special": false
+    },
+    "crystal_shard|2": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter introduces characters and setting; no action advances toward defeating Kessell or protecting Ten-Towns.",
+      "position_in_book": 0.034482758620689655,
+      "stakes_recalibration_count": 2,
+      "total_beats": 29,
+      "total_words": 3142,
+      "is_special": false
+    },
+    "crystal_shard|8": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "Chapter depicts the decisive battle defending Ten-Towns against the barbarian invasion, directly advancing the goal of protecting Ten-Towns.",
+      "position_in_book": 0.2413793103448276,
+      "stakes_recalibration_count": 12,
+      "total_beats": 35,
+      "total_words": 3415,
+      "is_special": false
+    },
+    "crystal_shard|5": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "Drizzt plans to warn Ten-Towns of barbarian invasion, directly advancing protection of Ten-Towns.",
+      "position_in_book": 0.13793103448275862,
+      "stakes_recalibration_count": 2,
+      "total_beats": 11,
+      "total_words": 1335,
+      "is_special": false
+    },
+    "crystal_shard|3": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter focuses on barbarian alliance-building and character intro, no action toward defeating Kessell or protecting Ten-Towns.",
+      "position_in_book": 0.06896551724137931,
+      "stakes_recalibration_count": 4,
+      "total_beats": 25,
+      "total_words": 2677,
+      "is_special": false
+    },
+    "crystal_shard|prelude": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter is pure villain/antagonist backstory and setup; no action toward defeating Kessell or protecting Ten-Towns.",
+      "position_in_book": -1,
+      "stakes_recalibration_count": 2,
+      "total_beats": 5,
+      "total_words": 538,
+      "is_special": true
+    },
+    "crystal_shard|6": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "Regis uses the ruby pendant to secure an alliance against the barbarian invasion, directly advancing the goal of protecting Ten-Towns.",
+      "position_in_book": 0.1724137931034483,
+      "stakes_recalibration_count": 1,
+      "total_beats": 16,
+      "total_words": 1830,
+      "is_special": false
+    },
+    "crystal_shard|14": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter focuses on Drizzt training Wulfgar, not on advancing toward defeating Kessell or protecting Ten-Towns.",
+      "position_in_book": 0.4482758620689655,
+      "stakes_recalibration_count": 3,
+      "total_beats": 22,
+      "total_words": 2267,
+      "is_special": false
+    },
+    "crystal_shard|12": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter focuses on character relationships and forging Aegis-fang, not on advancing toward defeating Kessell.",
+      "position_in_book": 0.3793103448275862,
+      "stakes_recalibration_count": 2,
+      "total_beats": 23,
+      "total_words": 2513,
+      "is_special": false
+    },
+    "crystal_shard|15": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "The chapter advances Kessell's invasion force (verbeeg/giant) and shows dwarves being attacked, directly threatening Ten-Towns.",
+      "position_in_book": 0.4827586206896552,
+      "stakes_recalibration_count": 4,
+      "total_beats": 25,
+      "total_words": 2534,
+      "is_special": false
+    },
+    "crystal_shard|18": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "The chapter directly advances the goal by defeating Kessell's verbeeg allies, weakening his army.",
+      "position_in_book": 0.5862068965517241,
+      "stakes_recalibration_count": 7,
+      "total_beats": 54,
+      "total_words": 5634,
+      "is_special": false
+    },
+    "crystal_shard|20": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter focuses on character decisions and army preparations, not direct action toward defeating Kessell.",
+      "position_in_book": 0.6551724137931034,
+      "stakes_recalibration_count": 6,
+      "total_beats": 24,
+      "total_words": 2386,
+      "is_special": false
+    },
+    "crystal_shard|17": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "The chapter advances the goal by ambushing giant patrols and preparing to assault the giant lair, directly protecting Ten-Towns.",
+      "position_in_book": 0.5517241379310345,
+      "stakes_recalibration_count": 4,
+      "total_beats": 29,
+      "total_words": 3053,
+      "is_special": false
+    },
+    "crystal_shard|21": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter focuses on Wulfgar's dragon hunt, not on defeating Kessell or protecting Ten-Towns.",
+      "position_in_book": 0.6896551724137931,
+      "stakes_recalibration_count": 6,
+      "total_beats": 26,
+      "total_words": 2623,
+      "is_special": false
+    },
+    "crystal_shard|23": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "Chapter depicts Kessell's army attacking Ten-Towns and defenders fighting back, directly advancing the goal of protecting Ten-Towns.",
+      "position_in_book": 0.7586206896551724,
+      "stakes_recalibration_count": 5,
+      "total_beats": 24,
+      "total_words": 2390,
+      "is_special": false
+    },
+    "crystal_shard|24": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "Chapter advances the siege of Ten-Towns with Kessell's attack and Drizzt's reconnaissance.",
+      "position_in_book": 0.7931034482758621,
+      "stakes_recalibration_count": 5,
+      "total_beats": 37,
+      "total_words": 3958,
+      "is_special": false
+    },
+    "crystal_shard|26": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "Wulfgar rallies the tribes to fight against Kessell, directly advancing the goal of defeating him.",
+      "position_in_book": 0.8620689655172413,
+      "stakes_recalibration_count": 1,
+      "total_beats": 7,
+      "total_words": 1006,
+      "is_special": false
+    },
+    "crystal_shard|epilogue": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter focuses on aftermath and Kessell's internal planning, not advancing toward defeating him.",
+      "position_in_book": -1,
+      "stakes_recalibration_count": 3,
+      "total_beats": 11,
+      "total_words": 1155,
+      "is_special": true
+    },
+    "crystal_shard|29": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "Drizzt infiltrates Kessell's tower, confronts the wizard, and defeats him, directly advancing the goal.",
+      "position_in_book": 0.9655172413793104,
+      "stakes_recalibration_count": 8,
+      "total_beats": 44,
+      "total_words": 4441,
+      "is_special": false
+    },
+    "crystal_shard|27": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "The chapter advances the plan to defeat Kessell by sending Regis to charm him, directly confronting the primary goal.",
+      "position_in_book": 0.896551724137931,
+      "stakes_recalibration_count": 4,
+      "total_beats": 22,
+      "total_words": 2477,
+      "is_special": false
+    },
+    "crystal_shard|30": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "Chapter depicts the final battle against Kessell's army and the defeat of Kessell, directly advancing the primary goal.",
+      "position_in_book": 1,
+      "stakes_recalibration_count": 12,
+      "total_beats": 79,
+      "total_words": 8113,
+      "is_special": false
+    },
+    "crystal_shard|epilogue2": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "Wulfgar's journey to challenge Heafstaag and slay Icingdeath aims to unite barbarians against Kessell's army.",
+      "position_in_book": -1,
+      "stakes_recalibration_count": 2,
+      "total_beats": 4,
+      "total_words": 394,
+      "is_special": true
+    },
+    "crystal_shard|epilogue3": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter focuses on departure for Mithril Hall, not on defeating Kessell or protecting Ten-Towns.",
+      "position_in_book": -1,
+      "stakes_recalibration_count": 4,
+      "total_beats": 25,
+      "total_words": 2361,
+      "is_special": true
+    },
+    "streams_of_silver|2": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "The party actively attempts to enter Luskan, a necessary step toward finding Mithril Hall.",
+      "position_in_book": 0.043478260869565216,
+      "stakes_recalibration_count": 2,
+      "total_beats": 28,
+      "total_words": 3110,
+      "is_special": false
+    },
+    "streams_of_silver|6": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter focuses on barbarian encounter and ghost fight, not advancing search for Mithril Hall.",
+      "position_in_book": 0.21739130434782608,
+      "stakes_recalibration_count": 3,
+      "total_beats": 40,
+      "total_words": 4368,
+      "is_special": false
+    },
+    "streams_of_silver|4": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter focuses on Dendybar's summoning and interrogation of Morkai, not on the Companions' search for Mithral Hall.",
+      "position_in_book": 0.13043478260869565,
+      "stakes_recalibration_count": 6,
+      "total_beats": 34,
+      "total_words": 3786,
+      "is_special": false
+    },
+    "streams_of_silver|prelude": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter establishes characters and setting but no action toward finding Mithril Hall.",
+      "position_in_book": -1,
+      "stakes_recalibration_count": 1,
+      "total_beats": 11,
+      "total_words": 1240,
+      "is_special": true
+    },
+    "streams_of_silver|9": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter focuses on pursuers' planning and alliance; no progress toward finding Mithril Hall.",
+      "position_in_book": 0.34782608695652173,
+      "stakes_recalibration_count": 4,
+      "total_beats": 33,
+      "total_words": 3617,
+      "is_special": false
+    },
+    "streams_of_silver|7": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter focuses on Entreri capturing Catti-brie and meeting Dendybar; no progress toward finding Mithril Hall.",
+      "position_in_book": 0.2608695652173913,
+      "stakes_recalibration_count": 2,
+      "total_beats": 23,
+      "total_words": 2430,
+      "is_special": false
+    },
+    "streams_of_silver|12": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter focuses on survival in Trollmoors, not advancing search for Mithril Hall.",
+      "position_in_book": 0.4782608695652174,
+      "stakes_recalibration_count": 12,
+      "total_beats": 39,
+      "total_words": 4271,
+      "is_special": false
+    },
+    "streams_of_silver|11": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter focuses on Entreri's party pursuing the Companions, not on the Companions' own goal of finding Mithril Hall.",
+      "position_in_book": 0.43478260869565216,
+      "stakes_recalibration_count": 2,
+      "total_beats": 25,
+      "total_words": 2792,
+      "is_special": false
+    },
+    "streams_of_silver|14": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "Alustriel redirects the quest toward Mithral Hall via the Herald's Holdfast, advancing the primary goal.",
+      "position_in_book": 0.5652173913043478,
+      "stakes_recalibration_count": 0,
+      "total_beats": 22,
+      "total_words": 2682,
+      "is_special": false
+    },
+    "streams_of_silver|16": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "The chapter directly advances the search for Mithral Hall by obtaining a map and location clue (Fourthpeak/Keeper's Dale).",
+      "position_in_book": 0.6521739130434783,
+      "stakes_recalibration_count": 2,
+      "total_beats": 27,
+      "total_words": 2893,
+      "is_special": false
+    },
+    "streams_of_silver|23": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "The chapter culminates in Bruenor's direct confrontation with Shimmergloom to reclaim Mithral Hall.",
+      "position_in_book": 0.9565217391304348,
+      "stakes_recalibration_count": 8,
+      "total_beats": 39,
+      "total_words": 3941,
+      "is_special": false
+    },
+    "streams_of_silver|18": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "The companions find and enter Mithral Hall, directly advancing the primary goal.",
+      "position_in_book": 0.7391304347826086,
+      "stakes_recalibration_count": 5,
+      "total_beats": 29,
+      "total_words": 3204,
+      "is_special": false
+    },
+    "streams_of_silver|19": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "The companions enter Mithral Hall, explore its corridors, and confront traps and enemies, directly advancing the goal of finding and reclaiming it.",
+      "position_in_book": 0.782608695652174,
+      "stakes_recalibration_count": 5,
+      "total_beats": 43,
+      "total_words": 4561,
+      "is_special": false
+    },
+    "streams_of_silver|part1": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter is a philosophical journal entry with no action toward finding Mithril Hall.",
+      "position_in_book": -1,
+      "stakes_recalibration_count": 5,
+      "total_beats": 6,
+      "total_words": 678,
+      "is_special": true
+    },
+    "streams_of_silver|24": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter focuses on escape, confrontation with Entreri, and grief for Bruenor, not advancing the search for Mithril Hall.",
+      "position_in_book": 1,
+      "stakes_recalibration_count": 2,
+      "total_beats": 13,
+      "total_words": 1354,
+      "is_special": false
+    },
+    "streams_of_silver|21": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "Drizzt and Entreri discover mithral veins and explore the undercity of Mithral Hall, directly advancing the search.",
+      "position_in_book": 0.8695652173913043,
+      "stakes_recalibration_count": 2,
+      "total_beats": 31,
+      "total_words": 3711,
+      "is_special": false
+    },
+    "halflings_gem|prelude": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "No action toward rescuing Regis; focuses on Harkle's grief and Guenhwyvar's astral state.",
+      "position_in_book": -1,
+      "stakes_recalibration_count": 1,
+      "total_beats": 9,
+      "total_words": 1012,
+      "is_special": true
+    },
+    "streams_of_silver|part2": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter is a philosophical journal entry with no action advancing the search for Mithral Hall.",
+      "position_in_book": -1,
+      "stakes_recalibration_count": 2,
+      "total_beats": 7,
+      "total_words": 845,
+      "is_special": true
+    },
+    "streams_of_silver|epilogue": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter focuses on aftermath, coalition planning, and villain scenes; no direct action toward finding Mithril Hall.",
+      "position_in_book": -1,
+      "stakes_recalibration_count": 2,
+      "total_beats": 14,
+      "total_words": 1339,
+      "is_special": true
+    },
+    "halflings_gem|4": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "Drizzt and Wulfgar actively pursue rescue by securing passage to Calimport.",
+      "position_in_book": 0.125,
+      "stakes_recalibration_count": 5,
+      "total_beats": 47,
+      "total_words": 4884,
+      "is_special": false
+    },
+    "streams_of_silver|part3": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter is a philosophical reflection on a past encounter, no action toward finding Mithril Hall.",
+      "position_in_book": -1,
+      "stakes_recalibration_count": 3,
+      "total_beats": 8,
+      "total_words": 958,
+      "is_special": true
+    },
+    "halflings_gem|5": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Bruenor's escape from Mithril Hall does not advance the rescue of Regis from Pasha Pook.",
+      "position_in_book": 0.16666666666666666,
+      "stakes_recalibration_count": 9,
+      "total_beats": 39,
+      "total_words": 4230,
+      "is_special": false
+    },
+    "halflings_gem|2": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter focuses on Entreri's internal conflict and Regis's deception, not on rescue action.",
+      "position_in_book": 0.041666666666666664,
+      "stakes_recalibration_count": 3,
+      "total_beats": 22,
+      "total_words": 2398,
+      "is_special": false
+    },
+    "halflings_gem|7": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter focuses on Bruenor's recovery and reunion, not on rescuing Regis.",
+      "position_in_book": 0.25,
+      "stakes_recalibration_count": 5,
+      "total_beats": 28,
+      "total_words": 3011,
+      "is_special": false
+    },
+    "halflings_gem|10": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "Bruenor and Catti-brie actively pursue the rescue by flying a chariot toward the ship carrying Regis.",
+      "position_in_book": 0.375,
+      "stakes_recalibration_count": 4,
+      "total_beats": 34,
+      "total_words": 3771,
+      "is_special": false
+    },
+    "halflings_gem|9": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "No rescue action; chapter focuses on pursuit setup, villain plotting, and character reflection.",
+      "position_in_book": 0.3333333333333333,
+      "stakes_recalibration_count": 3,
+      "total_beats": 20,
+      "total_words": 1928,
+      "is_special": false
+    },
+    "halflings_gem|14": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "Companions actively travel toward Calimport to rescue Regis, despite ambush.",
+      "position_in_book": 0.5416666666666666,
+      "stakes_recalibration_count": 3,
+      "total_beats": 32,
+      "total_words": 3779,
+      "is_special": false
+    },
+    "halflings_gem|15": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "The companions actively pursue and capture Sali Dalib to gain passage to Calimport for Regis's rescue.",
+      "position_in_book": 0.5833333333333334,
+      "stakes_recalibration_count": 4,
+      "total_beats": 24,
+      "total_words": 2714,
+      "is_special": false
+    },
+    "halflings_gem|12": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter focuses on reunion, repairs, and planning; no direct action toward rescuing Regis.",
+      "position_in_book": 0.4583333333333333,
+      "stakes_recalibration_count": 3,
+      "total_beats": 27,
+      "total_words": 2792,
+      "is_special": false
+    },
+    "halflings_gem|17": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter focuses on Pook's internal scenes and Guenhwyvar's rescue of Regis, not the Companions' active pursuit.",
+      "position_in_book": 0.6666666666666666,
+      "stakes_recalibration_count": 3,
+      "total_beats": 19,
+      "total_words": 2078,
+      "is_special": false
+    },
+    "halflings_gem|19": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "The Companions actively pursue and fight Entreri to rescue Regis, directly advancing the primary goal.",
+      "position_in_book": 0.75,
+      "stakes_recalibration_count": 7,
+      "total_beats": 35,
+      "total_words": 3381,
+      "is_special": false
+    },
+    "halflings_gem|20": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "The Companions actively pursue and fight Entreri, directly advancing the rescue of Regis.",
+      "position_in_book": 0.7916666666666666,
+      "stakes_recalibration_count": 4,
+      "total_beats": 27,
+      "total_words": 2890,
+      "is_special": false
+    },
+    "halflings_gem|22": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "The Companions are trapped in Tarterus, not actively pursuing rescue of Regis.",
+      "position_in_book": 0.875,
+      "stakes_recalibration_count": 7,
+      "total_beats": 36,
+      "total_words": 3779,
+      "is_special": false
+    },
+    "halflings_gem|25": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter focuses on aftermath, character interactions, and departure planning, not on rescuing Regis.",
+      "position_in_book": 1,
+      "stakes_recalibration_count": 1,
+      "total_beats": 24,
+      "total_words": 2478,
+      "is_special": false
+    },
+    "halflings_gem|epilogue": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter is travel/interlude; no direct rescue action toward Regis or confrontation with Entreri/Pook.",
+      "position_in_book": -1,
+      "stakes_recalibration_count": 0,
+      "total_beats": 11,
+      "total_words": 1130,
+      "is_special": true
+    },
+    "halflings_gem|24": {
+      "is_try": true,
+      "confidence": "high",
+      "reason": "The companions directly confront Pook and Entreri, rescue Regis, and destroy the Taros Hoop.",
+      "position_in_book": 0.9583333333333334,
+      "stakes_recalibration_count": 6,
+      "total_beats": 27,
+      "total_words": 2672,
+      "is_special": false
+    },
+    "halflings_gem|epilogue3": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "No rescue action; Regis returns voluntarily, goal resolved off-screen.",
+      "position_in_book": -1,
+      "stakes_recalibration_count": 2,
+      "total_beats": 17,
+      "total_words": 1870,
+      "is_special": true
+    },
+    "halflings_gem|epilogue2": {
+      "is_try": false,
+      "confidence": "high",
+      "reason": "Chapter focuses on Entreri's internal planning and alliance with LaValle, not on rescue action.",
+      "position_in_book": -1,
+      "stakes_recalibration_count": 2,
+      "total_beats": 10,
+      "total_words": 1020,
+      "is_special": true
+    }
+  },
+  "tokens": {
+    "prompt": 191330,
+    "completion": 5467,
+    "calls": 122
+  },
+  "estCostUSD": 0.0283
+}
