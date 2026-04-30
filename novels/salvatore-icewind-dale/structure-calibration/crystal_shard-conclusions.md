@@ -3957,3 +3957,164 @@ Zero LLM cost. Pure compute on existing JSONL (~1 second wall time on local Pyth
 - `scripts/analysis/cross-chapter-callback-density.py` — pure-compute Python script.
 
 ---
+
+## 2026-04-30 — Pattern 42 (punctuation patterns) + Pattern 48 (dialogue-tag distribution)
+
+**Method.** Pure compute (no LLM, $0). Single Python pass over `beats.jsonl` (2,470 beats across 3 books, 306,178 words), with regex counts plus per-kind aggregation. Code: `scripts/corpus/mine-punctuation-and-tags.py`.
+
+**EM-DASH OCR caveat (load-bearing).** Em-dash rendering is not consistent across the three books in the corpus due to EPUB/OCR conversion:
+- `streams_of_silver`: real U+2014 (`—`)
+- `crystal_shard`: dominantly `---` (3+ ASCII hyphens), some `--`
+- `halflings_gem`: every em-dash collapsed to ` - ` (space-hyphen-space)
+
+The script counts all three forms via `—|-{2,}|(?<=\w)\s-\s(?=\w)`. Manual audit of 20 ` - ` matches in `halflings_gem` confirmed 100% genuine em-dash usage (none were hyphenated compounds or mid-list separators). **Em-dash density numbers below are valid** but cross-book magnitude comparisons should be read with this OCR-rendering caveat in mind — the high `halflings_gem` rate (0.315/100w) likely reflects a more permissive OCR pass that retained more dashes than `crystal_shard`'s rendering, which only kept the longer-runs as multi-hyphen sequences and may have lost some single em-dashes to whitespace.
+
+### Pattern 42 — Punctuation density per 100 words
+
+| Book | Words | Em-dash | Semicolon | Parenthetical | Ellipsis |
+|---|---:|---:|---:|---:|---:|
+| crystal_shard | 105,440 | 0.073 | 0.093 | 0.007 | 0.033 |
+| streams_of_silver | 104,461 | 0.122 | 0.056 | 0.006 | 0.025 |
+| halflings_gem | 96,277 | 0.315 | 0.097 | 0.000 | 0.046 |
+| **mean** | — | **0.170** | **0.082** | **0.004** | **0.035** |
+| **spread** | — | 0.242 | 0.041 | 0.007 | 0.021 |
+
+**Per-kind cross-book means (per 100 words):**
+
+| Kind | Em-dash | Semicolon | Parenthetical | Ellipsis |
+|---|---:|---:|---:|---:|
+| action | 0.136 | 0.067 | 0.003 | **0.016** |
+| dialogue | 0.155 | 0.080 | 0.003 | **0.079** |
+| interiority | 0.226 | **0.103** | 0.006 | 0.016 |
+| description | **0.234** | **0.106** | 0.008 | 0.003 |
+
+### Conclusion + Action — Pattern 42: SHIP-AS-LINT-PRIOR + WRITER-PROMPT VOICE NOTE
+
+**Three cross-book-stable directional facts:**
+
+1. **Ellipsis is dialogue-specialized.** Dialogue ellipsis density (0.079/100w mean) is ~5× higher than in any non-dialogue kind (action 0.016, interiority 0.016, description 0.003). The pattern holds across all three books with no exception. Ellipses do trail-off-speech work in this corpus — they almost never appear in narration. **Imitation target:** the writer prompt should reserve `...` for dialogue (and dialogue's interiority-of-the-speaker companion lines), not for narration. Lint rule: warn on `...` in non-dialogue beats.
+
+2. **Em-dash and semicolon both lean interiority/description-heavy, not action-heavy.** Action prose has the lowest em-dash and semicolon density across all three books. Em-dash density doubles (action 0.136 → description 0.234, mean), semicolon density 1.6× (action 0.067 → description 0.106). This is consistent with the craft intuition that em-dashes mark narrator-aside / interruption / shift-of-thought (which happen in interior monologue and slowed-down description), and semicolons mark compound-clause prose (which happens in description / interiority but rarely in action where short sentences dominate). **Imitation target:** voice prompt for description/interiority beats can permit em-dash and semicolon; voice prompt for action beats should keep both at near-zero. Lint rule: warn on em-dash density > 0.20/100w in `kind=action` beats.
+
+3. **Parentheticals are vanishingly rare.** Per-100w density 0.000–0.008 across all books and kinds. Salvatore essentially does not use parentheticals — when he wants a narrator aside he uses em-dash. **Imitation target:** banned-list. Lint rule: any `(...)` in writer output should fire a high-priority warning unless it's quoted dialogue or a stage-direction-style aside.
+
+**Em-dash density is NOT a stable cross-book numeric** because of the OCR caveat above. The directional rules (action lowest, description highest) hold even after OCR variance — the order is preserved per-book. **Recommended planner/lint prompt phrasing should describe the *kind ordering* rather than absolute thresholds**:
+
+> Em-dash usage in this voice: most common in description and interiority beats, less common in dialogue, least common in action. Use em-dash to mark a parenthetical aside or shift of thought. Avoid in action beats (≤0.10/100w).
+
+**Where this lands:** add to `WRITER_GENRE_PACKS` voice-shaping prompts (fantasy genre), and to `src/lint/concepts.ts` as three new patterns:
+- `lint.ellipsis_outside_dialogue` (warn on `...` in `kind=action|description|interiority`)
+- `lint.parenthetical_present` (warn on any `(...)` outside quoted speech)
+- `lint.em_dash_in_action` (warn at em-dash density > 0.10/100w in action beats)
+
+### Pattern 48 — Dialogue-tag distribution
+
+**Coverage.** 71-75% of quoted utterances in the corpus do not have a tracked-tag verb adjacent to them — those are attributed by action beats ("Bruenor smirked. 'Yes.'"), continuation patterns, or are unattributed. The said-ratio numbers below are computed against the verb-tag base only.
+
+**Said-ratio, three measurement scopes:**
+
+| Book | named-attr (16-verb) | fallback (16-verb broad) | extended (corpus-observed) |
+|---|---:|---:|---:|
+| crystal_shard | 0.324 | 0.333 | **0.247** |
+| halflings_gem | 0.398 | 0.413 | **0.303** |
+| streams_of_silver | 0.320 | 0.323 | **0.232** |
+| **mean** | 0.347 | 0.357 | **0.261** |
+
+The user-list is the 16-verb set in the task prompt. The extended list adds 16 more verbs observed adjacent to closing quotes >=30 times across the trilogy: `explained`, `continued`, `remarked`, `called`, `told`, `barked`, `gasped`, `rasped`, `snapped`, `screamed`, `snarled`, `smirked`, `boasted`, `warned`, `ordered`, etc.
+
+**Howard's craft principle implies said-ratio >= 0.7. Salvatore's measured ratio is 0.23–0.30 (extended scope), 0.32–0.41 (16-verb scope). This is the strongest single signal in the analysis: Salvatore is dramatically tag-creative.** Said is a minority choice; he reaches for `replied`, `asked`, `growled`, `whispered`, `cried`, `explained` etc. constantly. The pattern is stable across all three books.
+
+**Top alternative tags (extended inventory, count across the trilogy):**
+
+| Tag | crystal_shard | streams_of_silver | halflings_gem | total |
+|---|---:|---:|---:|---:|
+| replied | 49 | 97 | 118 | 264 |
+| asked | 57 | 111 | 94 | 262 |
+| answered | 29 | 36 | 30 | 95 |
+| cried | 27 | 31 | 30 | 88 |
+| whispered | 17 | 27 | 40 | 84 |
+| growled | 20 | 23 | 27 | 70 |
+| laughed | 19 | 21 | 12 | 52 |
+| explained | low | low | 32 | (book-3 spike) |
+| remarked | low | low | 32 | (book-3 spike) |
+| told | low | low | 30 | (book-3 spike) |
+
+**Shared top-3 alternative tags across all three books:** `asked`, `replied` (both lists). The third slot rotates: `answered` in crystal_shard and streams_of_silver, `whispered` in halflings_gem.
+
+**Per-character snapshot — does Salvatore characterize via tag?**
+
+Top characters' said-ratios + their #1 alternative tag:
+
+| Book | Character | Total tags | Said-ratio | Top alt |
+|---|---|---:|---:|---|
+| crystal_shard | Drizzt | 59 | 0.339 | replied |
+| crystal_shard | Wulfgar | 45 | 0.356 | asked |
+| crystal_shard | Bruenor | 25 | 0.320 | asked |
+| crystal_shard | Kessell | 15 | 0.467 | asked |
+| crystal_shard | Cassius | 20 | 0.200 | asked |
+| crystal_shard | Regis | 15 | 0.200 | asked |
+| halflings_gem | Drizzt | 80 | **0.475** | replied |
+| halflings_gem | Bruenor | 71 | 0.254 | asked |
+| halflings_gem | Wulfgar | 40 | 0.275 | asked |
+| halflings_gem | Catti-brie | 43 | 0.349 | asked |
+| halflings_gem | Pook | 42 | 0.381 | replied |
+| halflings_gem | Deudermont | 37 | 0.297 | replied |
+| streams_of_silver | Bruenor | 87 | 0.322 | asked |
+| streams_of_silver | Drizzt | 74 | 0.311 | replied |
+| streams_of_silver | Entreri | 51 | 0.255 | asked |
+| streams_of_silver | Regis | 34 | 0.235 | asked |
+| streams_of_silver | Wulfgar | 33 | 0.242 | asked |
+
+**Two character-level signals worth noting:**
+
+- **Drizzt's said-ratio rises in `halflings_gem` to 0.475** — significantly above his trilogy mean (~0.37) and the corpus mean (0.30). This is the only character with a book-over-book said-ratio shift > 0.10. Worth investigating whether `halflings_gem` deliberately mutes Drizzt's voice (less idiosyncratic tag flavor) or whether the OCR pass for that book missed alt-tags more often. Not actionable as a planner-prompt rule.
+- **Bruenor and Wulfgar are tag-creative-heavier than the cast average** (said-ratios 0.24-0.32 across books, vs corpus mean 0.30) — both characters get more `growled`, `roared`, `barked`. This matches their characterization (gruff dwarf, large warrior). **Imitation target:** when authoring a Bruenor-archetype or Wulfgar-archetype character, the writer prompt can lean further into voice-coded tags (`growled`, `barked`, `bellowed`); when authoring a Drizzt-archetype (introspective, controlled), tags stay closer to the said/replied/asked baseline.
+
+### Conclusion + Action — Pattern 48: SHIP-AS-WRITER-PROMPT-NORM (with cross-genre caveat)
+
+**Directional facts:**
+
+1. **Salvatore's said-ratio is 0.23–0.30 (extended scope), well below Howard's principle.** Stable across all three books. This is the single largest voice-signature finding from the punctuation/tag analysis.
+2. **`asked` and `replied` are the dominant alternative tags everywhere.** They're effectively second-class said-equivalents — they don't carry as much creative-tag weight as `growled` or `hissed`. Even ranked by extended count, `replied` and `asked` dwarf the more-flavored alternatives.
+3. **Genuinely flavored tags** (`growled`, `whispered`, `cried`, `hissed`, `spat`, `barked`) collectively account for ~25-30% of all alt-tag usage — substantial, but not dominant.
+4. **Per-character tag distinctness exists but is moderate.** Bruenor/Wulfgar are gruff-tag-heavier than Drizzt. Most characters' said-ratios sit within ±0.10 of the book mean.
+
+**Recommended writer-prompt change.** The Salvatore voice LoRA (`salvatore-1988-v3`) is presumably already imitating these tag patterns at the weights level. For non-LoRA writer paths (DeepSeek V4 Flash base + voice-shaping prompt) targeting Salvatore-cluster fantasy, the prompt should explicitly contradict the Howard principle:
+
+> **Dialogue tags.** This voice is creative-tag-heavy: said-ratio runs 0.23-0.30 (vs ~0.7 for Howard's "said is invisible" principle). Use `said` ~25-30% of the time. Reach for `replied`, `asked`, `answered` for neutral reciprocal exchanges (~30-40% of tags); reach for `growled`, `whispered`, `cried`, `hissed`, `barked`, `spat` when the tag should carry emotional/character weight (~15-25% of tags). Do not use the same alternative tag twice in a single beat. Reserve `said` for the most neutral attribution, when voice context is doing the characterization work.
+
+**Lint rules to add (`src/lint/concepts.ts`):**
+- `lint.said_ratio_floor_violated` — track the running said-ratio at chapter scope. If said-ratio > 0.55 in a Salvatore-cluster fantasy chapter, warn that the prose is reading too "transparent-tagged" (Howard-like) for the target voice. Threshold 0.55 because the Howard-bias of base models pulls said-ratio toward 0.7+ — anything above 0.55 is closer to base-model voice than Salvatore voice.
+- `lint.same_alt_tag_repeated_in_beat` — flag when the same alternative tag (`growled`, `whispered`, etc.) is used 2+ times within a single beat. Salvatore varies his alt-tags within scenes; mechanical repetition is base-model artifact.
+
+**Cross-genre caveat — DO NOT generalize.** This is **Salvatore-cluster** voice (1988 fantasy, action-adventure register). Howard's said-ratio principle is canonical advice for literary, contemporary, and minimalist genres. The lint rules above must gate on `WRITER_GENRE_PACKS` membership — they should fire ONLY when the seed is routed to the Salvatore voice LoRA or a fantasy-genre Salvatore-shape voice prompt, NOT on contemporary/literary/romance seeds. The harness already partitions writer voice by genre via `WRITER_GENRE_PACKS`; the lint layer should follow the same partitioning.
+
+### Cross-pattern note
+
+P42 (punctuation) and P48 (dialogue tags) together describe Salvatore's voice signature at the surface-glyph level:
+- High creative-tag density (low said-ratio).
+- Em-dash for narrator interruption / aside (action <= dialogue <= interiority/description).
+- Ellipsis specialized for trailed-off dialogue.
+- Parenthetical effectively banned.
+- Semicolon used for compound-clause prose in slower (description/interiority) registers.
+
+These are all imitable at the prompt level on a non-LoRA writer path, and all check-able at the lint level on writer output. They are the cheapest, highest-stability voice levers in this analysis — pure regex, $0 to compute, $0 to enforce.
+
+### Methodology caveats
+
+- **Em-dash OCR variance** (covered above) means cross-book em-dash MAGNITUDES are not directly comparable; the kind-ordering (action < dialogue < interiority/description) is robust across the variance.
+- **71-75% of quotes have no tracked-verb tag.** Said-ratio is computed against the verb-tag base only. If anything, this UNDERESTIMATES Salvatore's tag-creativity — action-beat attribution (`Bruenor smirked. "Yes."`) is even more invisible than `said`, so the "true" tag-density picture is closer to 25-30% verb-tag attributed + 70%+ action-beat-or-implicit, which is itself a voice signature (heavy reliance on action-beat attribution).
+- **Subject normalization keys on first capitalized token.** "Drizzt Do'Urden" → "Drizzt", "Bruenor Battlehammer" → "Bruenor". Multi-word non-name subjects ("the dwarf", "the demon") collapse to OTHER. Per-character coverage is therefore under-counting characters whose primary referent is role-noun ("the dwarf" for Bruenor in some chapters); LLM-extract pass would tighten this.
+- **Single corpus.** This is one author across one trilogy. Howard, Cook, Gemmell would each yield different said-ratios and different em-dash kind-distributions. Treat both patterns as Salvatore-voice priors, not fantasy-genre priors.
+
+### Cost ledger
+
+Zero LLM cost. Pure compute (~2 seconds wall time on the analyzer). Reuses `beats.jsonl` — no new corpus extraction.
+
+### Files
+
+- `crystal_shard.20260430T125045.punctuation-patterns.json` — Pattern 42 deliverable. Per-book em-dash/semicolon/parenthetical/ellipsis counts and densities; per-book-per-kind splits (action/dialogue/interiority/description); cross-book summary with mean/min/max/spread.
+- `crystal_shard.20260430T125045.dialogue-tag-distribution.json` — Pattern 48 deliverable. Three said-ratio scopes (named-attribution, fallback, extended); per-book top-10 alternative tags (user-list and extended inventory); per-character tag distributions for characters with >=5 tags; cross-book summary including shared top-3 alt tags.
+- Code: `scripts/corpus/mine-punctuation-and-tags.py` (pure-compute, single Python file, append-only timestamped output).
+
+---

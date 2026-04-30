@@ -1,0 +1,316 @@
+{
+  "pattern": "42",
+  "name": "Punctuation patterns (em-dash, semicolon, parenthetical, ellipsis)",
+  "computedAt": "2026-04-30T12:50:45Z",
+  "corpus": "salvatore-icewind-dale",
+  "books": [
+    "crystal_shard",
+    "halflings_gem",
+    "streams_of_silver"
+  ],
+  "rationale": "Punctuation choice is part of an author's voice signature \u2014 em-dash density tracks interruption / aside rhythm, semicolons track compound-clause prose, parentheticals mark narrator-aside style, and ellipsis tracks trailed-off speech and hesitation. Per-kind splits (action vs dialogue vs interiority vs description) test whether Salvatore deploys these glyphs context-dependently.",
+  "methodology": {
+    "em_dash_regex": "U+2014 OR two-or-more ASCII hyphens ('--', '---') OR space-hyphen-space between word characters (' - ' as in 'A - B'). Three forms because EPUB/OCR rendered the em-dash differently across the three books: Streams of Silver kept U+2014, Crystal Shard rendered most as '---', and Halfling's Gem collapsed all em-dashes to ' - '.",
+    "semicolon_regex": "';'",
+    "parenthetical_regex": "'(' (opening paren only \u2014 closing paren ignored to avoid double-count)",
+    "ellipsis_regex": "U+2026 OR three-or-more consecutive ASCII dots OR space-separated dot-runs ('. . .')",
+    "word_tokenizer": "\\\\b[\\\\w']+\\\\b",
+    "caveats": "Em-dash via '--' captures both genuine em-dashes and ASCII hyphen-runs from older typesetting; the corpus is post-OCR EPUB so true em-dashes (U+2014) dominate. Parenthetical density is opening-paren count, which matches paired-paren count except for stray glyphs."
+  },
+  "per_book": {
+    "crystal_shard": {
+      "total_words": 105440,
+      "counts": {
+        "em_dash": 77,
+        "semicolon": 98,
+        "parenthetical": 7,
+        "ellipsis": 35
+      },
+      "per_100_words": {
+        "em_dash": 0.073,
+        "semicolon": 0.093,
+        "parenthetical": 0.007,
+        "ellipsis": 0.033
+      }
+    },
+    "halflings_gem": {
+      "total_words": 96277,
+      "counts": {
+        "em_dash": 303,
+        "semicolon": 93,
+        "parenthetical": 0,
+        "ellipsis": 44
+      },
+      "per_100_words": {
+        "em_dash": 0.315,
+        "semicolon": 0.097,
+        "parenthetical": 0.0,
+        "ellipsis": 0.046
+      }
+    },
+    "streams_of_silver": {
+      "total_words": 104461,
+      "counts": {
+        "em_dash": 127,
+        "semicolon": 58,
+        "parenthetical": 6,
+        "ellipsis": 26
+      },
+      "per_100_words": {
+        "em_dash": 0.122,
+        "semicolon": 0.056,
+        "parenthetical": 0.006,
+        "ellipsis": 0.025
+      }
+    }
+  },
+  "per_book_per_kind": {
+    "crystal_shard": {
+      "description": {
+        "words": 15728,
+        "counts": {
+          "em_dash": 9,
+          "semicolon": 11,
+          "parenthetical": 1,
+          "ellipsis": 0
+        },
+        "per_100_words": {
+          "em_dash": 0.057,
+          "semicolon": 0.07,
+          "parenthetical": 0.006,
+          "ellipsis": 0.0
+        }
+      },
+      "interiority": {
+        "words": 22397,
+        "counts": {
+          "em_dash": 29,
+          "semicolon": 27,
+          "parenthetical": 2,
+          "ellipsis": 7
+        },
+        "per_100_words": {
+          "em_dash": 0.129,
+          "semicolon": 0.121,
+          "parenthetical": 0.009,
+          "ellipsis": 0.031
+        }
+      },
+      "action": {
+        "words": 38505,
+        "counts": {
+          "em_dash": 16,
+          "semicolon": 30,
+          "parenthetical": 3,
+          "ellipsis": 7
+        },
+        "per_100_words": {
+          "em_dash": 0.042,
+          "semicolon": 0.078,
+          "parenthetical": 0.008,
+          "ellipsis": 0.018
+        }
+      },
+      "dialogue": {
+        "words": 28728,
+        "counts": {
+          "em_dash": 23,
+          "semicolon": 30,
+          "parenthetical": 1,
+          "ellipsis": 21
+        },
+        "per_100_words": {
+          "em_dash": 0.08,
+          "semicolon": 0.104,
+          "parenthetical": 0.003,
+          "ellipsis": 0.073
+        }
+      },
+      "stakes_recalibration": {
+        "words": 82,
+        "counts": {
+          "em_dash": 0,
+          "semicolon": 0,
+          "parenthetical": 0,
+          "ellipsis": 0
+        },
+        "per_100_words": {
+          "em_dash": 0.0,
+          "semicolon": 0.0,
+          "parenthetical": 0.0,
+          "ellipsis": 0.0
+        }
+      }
+    },
+    "halflings_gem": {
+      "description": {
+        "words": 9539,
+        "counts": {
+          "em_dash": 50,
+          "semicolon": 18,
+          "parenthetical": 0,
+          "ellipsis": 1
+        },
+        "per_100_words": {
+          "em_dash": 0.524,
+          "semicolon": 0.189,
+          "parenthetical": 0.0,
+          "ellipsis": 0.01
+        }
+      },
+      "interiority": {
+        "words": 18388,
+        "counts": {
+          "em_dash": 67,
+          "semicolon": 23,
+          "parenthetical": 0,
+          "ellipsis": 3
+        },
+        "per_100_words": {
+          "em_dash": 0.364,
+          "semicolon": 0.125,
+          "parenthetical": 0.0,
+          "ellipsis": 0.016
+        }
+      },
+      "dialogue": {
+        "words": 32989,
+        "counts": {
+          "em_dash": 86,
+          "semicolon": 24,
+          "parenthetical": 0,
+          "ellipsis": 34
+        },
+        "per_100_words": {
+          "em_dash": 0.261,
+          "semicolon": 0.073,
+          "parenthetical": 0.0,
+          "ellipsis": 0.103
+        }
+      },
+      "action": {
+        "words": 35361,
+        "counts": {
+          "em_dash": 100,
+          "semicolon": 28,
+          "parenthetical": 0,
+          "ellipsis": 6
+        },
+        "per_100_words": {
+          "em_dash": 0.283,
+          "semicolon": 0.079,
+          "parenthetical": 0.0,
+          "ellipsis": 0.017
+        }
+      }
+    },
+    "streams_of_silver": {
+      "description": {
+        "words": 11669,
+        "counts": {
+          "em_dash": 14,
+          "semicolon": 7,
+          "parenthetical": 2,
+          "ellipsis": 0
+        },
+        "per_100_words": {
+          "em_dash": 0.12,
+          "semicolon": 0.06,
+          "parenthetical": 0.017,
+          "ellipsis": 0.0
+        }
+      },
+      "interiority": {
+        "words": 20707,
+        "counts": {
+          "em_dash": 38,
+          "semicolon": 13,
+          "parenthetical": 2,
+          "ellipsis": 0
+        },
+        "per_100_words": {
+          "em_dash": 0.184,
+          "semicolon": 0.063,
+          "parenthetical": 0.01,
+          "ellipsis": 0.0
+        }
+      },
+      "dialogue": {
+        "words": 35199,
+        "counts": {
+          "em_dash": 44,
+          "semicolon": 22,
+          "parenthetical": 2,
+          "ellipsis": 21
+        },
+        "per_100_words": {
+          "em_dash": 0.125,
+          "semicolon": 0.063,
+          "parenthetical": 0.006,
+          "ellipsis": 0.06
+        }
+      },
+      "action": {
+        "words": 36886,
+        "counts": {
+          "em_dash": 31,
+          "semicolon": 16,
+          "parenthetical": 0,
+          "ellipsis": 5
+        },
+        "per_100_words": {
+          "em_dash": 0.084,
+          "semicolon": 0.043,
+          "parenthetical": 0.0,
+          "ellipsis": 0.014
+        }
+      }
+    }
+  },
+  "cross_book_summary": {
+    "em_dash": {
+      "per_book": {
+        "crystal_shard": 0.073,
+        "halflings_gem": 0.315,
+        "streams_of_silver": 0.122
+      },
+      "mean": 0.17,
+      "min": 0.073,
+      "max": 0.315,
+      "spread": 0.242
+    },
+    "semicolon": {
+      "per_book": {
+        "crystal_shard": 0.093,
+        "halflings_gem": 0.097,
+        "streams_of_silver": 0.056
+      },
+      "mean": 0.082,
+      "min": 0.056,
+      "max": 0.097,
+      "spread": 0.041
+    },
+    "parenthetical": {
+      "per_book": {
+        "crystal_shard": 0.007,
+        "halflings_gem": 0.0,
+        "streams_of_silver": 0.006
+      },
+      "mean": 0.004,
+      "min": 0.0,
+      "max": 0.007,
+      "spread": 0.007
+    },
+    "ellipsis": {
+      "per_book": {
+        "crystal_shard": 0.033,
+        "halflings_gem": 0.046,
+        "streams_of_silver": 0.025
+      },
+      "mean": 0.035,
+      "min": 0.025,
+      "max": 0.046,
+      "spread": 0.021
+    }
+  }
+}
