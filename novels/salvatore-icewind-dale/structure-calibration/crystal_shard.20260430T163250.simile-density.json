@@ -1,0 +1,2042 @@
+{
+  "pattern_number": 62,
+  "pattern_name": "Simile density + lexicon",
+  "timestamp": "20260430T123249",
+  "commit": "a3da6d1",
+  "beats_path": "novels/salvatore-icewind-dale/beats.jsonl",
+  "pairs_path": "novels/salvatore-icewind-dale/pairs.jsonl",
+  "detector_methodology": {
+    "as_as_simile": "as <quality> as <a|an|the> <NP> (det-anchored); plus bareform allowlist (e.g. 'as cold as ice')",
+    "like_simile": "like <a|an|the> <NP> (det-anchored); plus bareform allowlist (e.g. 'like stone')",
+    "as_if_as_though": "catalogued separately (simile-adjacent)",
+    "semi_simile": "perception-verb + 'like' (looked/felt/sounded/seemed/tasted/smelled like) \u2014 catalogued separately",
+    "non_simile_qualities": [
+      "best",
+      "carefully",
+      "easily",
+      "far",
+      "fast",
+      "good",
+      "little",
+      "long",
+      "loudly",
+      "many",
+      "much",
+      "often",
+      "old",
+      "quickly",
+      "quietly",
+      "slowly",
+      "softly",
+      "soon",
+      "well",
+      "young"
+    ],
+    "bareform_comparators": [
+      "ash",
+      "blood",
+      "dawn",
+      "day",
+      "death",
+      "demons",
+      "dusk",
+      "dust",
+      "feather",
+      "feathers",
+      "fire",
+      "flame",
+      "flint",
+      "fog",
+      "frost",
+      "ghosts",
+      "glass",
+      "gold",
+      "granite",
+      "ice",
+      "iron",
+      "lead",
+      "lightning",
+      "lions",
+      "marble",
+      "midnight",
+      "mist",
+      "molasses",
+      "mud",
+      "night",
+      "oak",
+      "pitch",
+      "rain",
+      "rock",
+      "shadow",
+      "shadows",
+      "silence",
+      "silk",
+      "silver",
+      "smoke",
+      "snow",
+      "stars",
+      "steel",
+      "stone",
+      "syrup",
+      "tar",
+      "thieves",
+      "thunder",
+      "water",
+      "wind",
+      "wolves",
+      "wood"
+    ]
+  },
+  "books": [
+    "crystal_shard",
+    "streams_of_silver",
+    "halflings_gem"
+  ],
+  "active_kinds": [
+    "action",
+    "dialogue",
+    "interiority",
+    "description"
+  ],
+  "skipped_beats": 1,
+  "semi_simile_kept_for_telemetry": 11,
+  "per_book_per_kind": {
+    "crystal_shard": {
+      "action": {
+        "n_beats": 308,
+        "n_words": 32318,
+        "n_similes_primary": 19,
+        "density_corpus_per_100w": 0.0588,
+        "per_beat_density_stats": {
+          "n": 308,
+          "mean": 0.058,
+          "median": 0.0,
+          "p25": 0.0,
+          "p75": 0.0,
+          "stdev": 0.239,
+          "min": 0.0,
+          "max": 1.852
+        },
+        "as_as_count": 7,
+        "like_count": 12,
+        "as_if_count": 23,
+        "semi_simile_count": 0,
+        "top_rhs_heads": [
+          {
+            "head": "cat",
+            "n": 2
+          },
+          {
+            "head": "risen",
+            "n": 1
+          },
+          {
+            "head": "boulder",
+            "n": 1
+          },
+          {
+            "head": "verbeeg",
+            "n": 1
+          },
+          {
+            "head": "stone",
+            "n": 1
+          },
+          {
+            "head": "shepherd",
+            "n": 1
+          },
+          {
+            "head": "last",
+            "n": 1
+          },
+          {
+            "head": "witnesses",
+            "n": 1
+          },
+          {
+            "head": "crest",
+            "n": 1
+          },
+          {
+            "head": "heart",
+            "n": 1
+          }
+        ],
+        "top_qualities": [
+          {
+            "quality": "quiet",
+            "n": 1
+          },
+          {
+            "quality": "easy",
+            "n": 1
+          },
+          {
+            "quality": "tough",
+            "n": 1
+          },
+          {
+            "quality": "important",
+            "n": 1
+          },
+          {
+            "quality": "mighty",
+            "n": 1
+          },
+          {
+            "quality": "silent",
+            "n": 1
+          },
+          {
+            "quality": "nimble",
+            "n": 1
+          }
+        ],
+        "placement_counts": {
+          "middle": 8,
+          "opener": 2,
+          "closer": 9
+        },
+        "placement_pct": {
+          "middle": 42.11,
+          "opener": 10.53,
+          "closer": 47.37
+        }
+      },
+      "description": {
+        "n_beats": 130,
+        "n_words": 13443,
+        "n_similes_primary": 11,
+        "density_corpus_per_100w": 0.0818,
+        "per_beat_density_stats": {
+          "n": 130,
+          "mean": 0.085,
+          "median": 0.0,
+          "p25": 0.0,
+          "p75": 0.0,
+          "stdev": 0.282,
+          "min": 0.0,
+          "max": 1.19
+        },
+        "as_as_count": 2,
+        "like_count": 9,
+        "as_if_count": 10,
+        "semi_simile_count": 0,
+        "top_rhs_heads": [
+          {
+            "head": "burn",
+            "n": 1
+          },
+          {
+            "head": "statue",
+            "n": 1
+          },
+          {
+            "head": "polarity",
+            "n": 1
+          },
+          {
+            "head": "swarm",
+            "n": 1
+          },
+          {
+            "head": "flash",
+            "n": 1
+          },
+          {
+            "head": "stone",
+            "n": 1
+          },
+          {
+            "head": "icicle",
+            "n": 1
+          },
+          {
+            "head": "window",
+            "n": 1
+          },
+          {
+            "head": "ground",
+            "n": 1
+          },
+          {
+            "head": "whirlwind",
+            "n": 1
+          }
+        ],
+        "top_qualities": [
+          {
+            "quality": "still",
+            "n": 1
+          },
+          {
+            "quality": "solid",
+            "n": 1
+          }
+        ],
+        "placement_counts": {
+          "opener": 3,
+          "middle": 6,
+          "closer": 2
+        },
+        "placement_pct": {
+          "opener": 27.27,
+          "middle": 54.55,
+          "closer": 18.18
+        }
+      },
+      "dialogue": {
+        "n_beats": 242,
+        "n_words": 25358,
+        "n_similes_primary": 5,
+        "density_corpus_per_100w": 0.0197,
+        "per_beat_density_stats": {
+          "n": 242,
+          "mean": 0.018,
+          "median": 0.0,
+          "p25": 0.0,
+          "p75": 0.0,
+          "stdev": 0.135,
+          "min": 0.0,
+          "max": 1.22
+        },
+        "as_as_count": 3,
+        "like_count": 2,
+        "as_if_count": 8,
+        "semi_simile_count": 0,
+        "top_rhs_heads": [
+          {
+            "head": "tundra",
+            "n": 1
+          },
+          {
+            "head": "blood",
+            "n": 1
+          },
+          {
+            "head": "squall",
+            "n": 1
+          },
+          {
+            "head": "incident",
+            "n": 1
+          },
+          {
+            "head": "drow",
+            "n": 1
+          }
+        ],
+        "top_qualities": [
+          {
+            "quality": "wild",
+            "n": 1
+          },
+          {
+            "quality": "red",
+            "n": 1
+          },
+          {
+            "quality": "keen",
+            "n": 1
+          }
+        ],
+        "placement_counts": {
+          "middle": 1,
+          "opener": 1,
+          "closer": 3
+        },
+        "placement_pct": {
+          "middle": 20.0,
+          "opener": 20.0,
+          "closer": 60.0
+        }
+      },
+      "interiority": {
+        "n_beats": 177,
+        "n_words": 18782,
+        "n_similes_primary": 10,
+        "density_corpus_per_100w": 0.0532,
+        "per_beat_density_stats": {
+          "n": 177,
+          "mean": 0.05,
+          "median": 0.0,
+          "p25": 0.0,
+          "p75": 0.0,
+          "stdev": 0.226,
+          "min": 0.0,
+          "max": 1.667
+        },
+        "as_as_count": 5,
+        "like_count": 5,
+        "as_if_count": 13,
+        "semi_simile_count": 0,
+        "top_rhs_heads": [
+          {
+            "head": "errtu",
+            "n": 1
+          },
+          {
+            "head": "bruenor",
+            "n": 1
+          },
+          {
+            "head": "predator",
+            "n": 1
+          },
+          {
+            "head": "morning",
+            "n": 1
+          },
+          {
+            "head": "villages",
+            "n": 1
+          },
+          {
+            "head": "angler",
+            "n": 1
+          },
+          {
+            "head": "fish",
+            "n": 1
+          },
+          {
+            "head": "thrill",
+            "n": 1
+          },
+          {
+            "head": "metal",
+            "n": 1
+          },
+          {
+            "head": "ones",
+            "n": 1
+          }
+        ],
+        "top_qualities": [
+          {
+            "quality": "mighty",
+            "n": 1
+          },
+          {
+            "quality": "cynical",
+            "n": 1
+          },
+          {
+            "quality": "early",
+            "n": 1
+          },
+          {
+            "quality": "alluring",
+            "n": 1
+          },
+          {
+            "quality": "solid",
+            "n": 1
+          }
+        ],
+        "placement_counts": {
+          "middle": 6,
+          "closer": 2,
+          "opener": 2
+        },
+        "placement_pct": {
+          "middle": 60.0,
+          "closer": 20.0,
+          "opener": 20.0
+        }
+      }
+    },
+    "halflings_gem": {
+      "action": {
+        "n_beats": 309,
+        "n_words": 31774,
+        "n_similes_primary": 19,
+        "density_corpus_per_100w": 0.0598,
+        "per_beat_density_stats": {
+          "n": 309,
+          "mean": 0.061,
+          "median": 0.0,
+          "p25": 0.0,
+          "p75": 0.0,
+          "stdev": 0.251,
+          "min": 0.0,
+          "max": 1.786
+        },
+        "as_as_count": 8,
+        "like_count": 11,
+        "as_if_count": 14,
+        "semi_simile_count": 2,
+        "top_rhs_heads": [
+          {
+            "head": "death",
+            "n": 2
+          },
+          {
+            "head": "cat",
+            "n": 2
+          },
+          {
+            "head": "candle",
+            "n": 1
+          },
+          {
+            "head": "wizard",
+            "n": 1
+          },
+          {
+            "head": "sack",
+            "n": 1
+          },
+          {
+            "head": "tunnels",
+            "n": 1
+          },
+          {
+            "head": "bolt",
+            "n": 1
+          },
+          {
+            "head": "back",
+            "n": 1
+          },
+          {
+            "head": "first",
+            "n": 1
+          },
+          {
+            "head": "stake",
+            "n": 1
+          }
+        ],
+        "top_qualities": [
+          {
+            "quality": "silent",
+            "n": 3
+          },
+          {
+            "quality": "silently",
+            "n": 1
+          },
+          {
+            "quality": "agile",
+            "n": 1
+          },
+          {
+            "quality": "intense",
+            "n": 1
+          },
+          {
+            "quality": "unexpected",
+            "n": 1
+          },
+          {
+            "quality": "tangible",
+            "n": 1
+          }
+        ],
+        "placement_counts": {
+          "middle": 8,
+          "opener": 10,
+          "closer": 1
+        },
+        "placement_pct": {
+          "middle": 42.11,
+          "opener": 52.63,
+          "closer": 5.26
+        }
+      },
+      "description": {
+        "n_beats": 79,
+        "n_words": 8527,
+        "n_similes_primary": 7,
+        "density_corpus_per_100w": 0.0821,
+        "per_beat_density_stats": {
+          "n": 79,
+          "mean": 0.086,
+          "median": 0.0,
+          "p25": 0.0,
+          "p75": 0.0,
+          "stdev": 0.283,
+          "min": 0.0,
+          "max": 1.449
+        },
+        "as_as_count": 3,
+        "like_count": 4,
+        "as_if_count": 9,
+        "semi_simile_count": 0,
+        "top_rhs_heads": [
+          {
+            "head": "others",
+            "n": 1
+          },
+          {
+            "head": "memnon",
+            "n": 1
+          },
+          {
+            "head": "waves",
+            "n": 1
+          },
+          {
+            "head": "sights",
+            "n": 1
+          },
+          {
+            "head": "needles",
+            "n": 1
+          },
+          {
+            "head": "pook",
+            "n": 1
+          },
+          {
+            "head": "torch",
+            "n": 1
+          }
+        ],
+        "top_qualities": [
+          {
+            "quality": "vast",
+            "n": 1
+          },
+          {
+            "quality": "unnatural",
+            "n": 1
+          },
+          {
+            "quality": "powerful",
+            "n": 1
+          }
+        ],
+        "placement_counts": {
+          "closer": 4,
+          "middle": 2,
+          "opener": 1
+        },
+        "placement_pct": {
+          "closer": 57.14,
+          "middle": 28.57,
+          "opener": 14.29
+        }
+      },
+      "dialogue": {
+        "n_beats": 279,
+        "n_words": 29626,
+        "n_similes_primary": 9,
+        "density_corpus_per_100w": 0.0304,
+        "per_beat_density_stats": {
+          "n": 279,
+          "mean": 0.026,
+          "median": 0.0,
+          "p25": 0.0,
+          "p75": 0.0,
+          "stdev": 0.144,
+          "min": 0.0,
+          "max": 0.909
+        },
+        "as_as_count": 5,
+        "like_count": 4,
+        "as_if_count": 10,
+        "semi_simile_count": 1,
+        "top_rhs_heads": [
+          {
+            "head": "bringed",
+            "n": 1
+          },
+          {
+            "head": "catti",
+            "n": 1
+          },
+          {
+            "head": "pinochet",
+            "n": 1
+          },
+          {
+            "head": "pook",
+            "n": 1
+          },
+          {
+            "head": "pointy-nosed",
+            "n": 1
+          },
+          {
+            "head": "iron",
+            "n": 1
+          },
+          {
+            "head": "prow",
+            "n": 1
+          },
+          {
+            "head": "look",
+            "n": 1
+          },
+          {
+            "head": "itself",
+            "n": 1
+          }
+        ],
+        "top_qualities": [
+          {
+            "quality": "loud",
+            "n": 1
+          },
+          {
+            "quality": "powerful",
+            "n": 1
+          },
+          {
+            "quality": "vile",
+            "n": 1
+          },
+          {
+            "quality": "imposing",
+            "n": 1
+          },
+          {
+            "quality": "tangible",
+            "n": 1
+          }
+        ],
+        "placement_counts": {
+          "middle": 5,
+          "closer": 2,
+          "opener": 2
+        },
+        "placement_pct": {
+          "middle": 55.56,
+          "closer": 22.22,
+          "opener": 22.22
+        }
+      },
+      "interiority": {
+        "n_beats": 159,
+        "n_words": 16964,
+        "n_similes_primary": 9,
+        "density_corpus_per_100w": 0.0531,
+        "per_beat_density_stats": {
+          "n": 159,
+          "mean": 0.064,
+          "median": 0.0,
+          "p25": 0.0,
+          "p75": 0.0,
+          "stdev": 0.273,
+          "min": 0.0,
+          "max": 1.667
+        },
+        "as_as_count": 4,
+        "like_count": 5,
+        "as_if_count": 14,
+        "semi_simile_count": 3,
+        "top_rhs_heads": [
+          {
+            "head": "times",
+            "n": 1
+          },
+          {
+            "head": "slap",
+            "n": 1
+          },
+          {
+            "head": "statue",
+            "n": 1
+          },
+          {
+            "head": "sun",
+            "n": 1
+          },
+          {
+            "head": "first",
+            "n": 1
+          },
+          {
+            "head": "bolt",
+            "n": 1
+          },
+          {
+            "head": "entreri",
+            "n": 1
+          },
+          {
+            "head": "wulfgar",
+            "n": 1
+          },
+          {
+            "head": "looks",
+            "n": 1
+          }
+        ],
+        "top_qualities": [
+          {
+            "quality": "still",
+            "n": 1
+          },
+          {
+            "quality": "empty",
+            "n": 1
+          },
+          {
+            "quality": "certain",
+            "n": 1
+          },
+          {
+            "quality": "confident",
+            "n": 1
+          }
+        ],
+        "placement_counts": {
+          "opener": 4,
+          "closer": 4,
+          "middle": 1
+        },
+        "placement_pct": {
+          "opener": 44.44,
+          "closer": 44.44,
+          "middle": 11.11
+        }
+      }
+    },
+    "streams_of_silver": {
+      "action": {
+        "n_beats": 274,
+        "n_words": 29385,
+        "n_similes_primary": 18,
+        "density_corpus_per_100w": 0.0613,
+        "per_beat_density_stats": {
+          "n": 274,
+          "mean": 0.062,
+          "median": 0.0,
+          "p25": 0.0,
+          "p75": 0.0,
+          "stdev": 0.252,
+          "min": 0.0,
+          "max": 1.695
+        },
+        "as_as_count": 7,
+        "like_count": 11,
+        "as_if_count": 20,
+        "semi_simile_count": 1,
+        "top_rhs_heads": [
+          {
+            "head": "water",
+            "n": 1
+          },
+          {
+            "head": "party",
+            "n": 1
+          },
+          {
+            "head": "giant",
+            "n": 1
+          },
+          {
+            "head": "animal",
+            "n": 1
+          },
+          {
+            "head": "cat",
+            "n": 1
+          },
+          {
+            "head": "death",
+            "n": 1
+          },
+          {
+            "head": "drizzt",
+            "n": 1
+          },
+          {
+            "head": "ones",
+            "n": 1
+          },
+          {
+            "head": "cloud",
+            "n": 1
+          },
+          {
+            "head": "wind",
+            "n": 1
+          }
+        ],
+        "top_qualities": [
+          {
+            "quality": "agile",
+            "n": 1
+          },
+          {
+            "quality": "silent",
+            "n": 1
+          },
+          {
+            "quality": "thick",
+            "n": 1
+          },
+          {
+            "quality": "silently",
+            "n": 1
+          },
+          {
+            "quality": "amazed",
+            "n": 1
+          },
+          {
+            "quality": "large",
+            "n": 1
+          },
+          {
+            "quality": "tangible",
+            "n": 1
+          }
+        ],
+        "placement_counts": {
+          "middle": 3,
+          "closer": 10,
+          "opener": 5
+        },
+        "placement_pct": {
+          "middle": 16.67,
+          "closer": 55.56,
+          "opener": 27.78
+        }
+      },
+      "description": {
+        "n_beats": 94,
+        "n_words": 10592,
+        "n_similes_primary": 9,
+        "density_corpus_per_100w": 0.085,
+        "per_beat_density_stats": {
+          "n": 94,
+          "mean": 0.082,
+          "median": 0.0,
+          "p25": 0.0,
+          "p75": 0.0,
+          "stdev": 0.256,
+          "min": 0.0,
+          "max": 1.266
+        },
+        "as_as_count": 5,
+        "like_count": 4,
+        "as_if_count": 10,
+        "semi_simile_count": 0,
+        "top_rhs_heads": [
+          {
+            "head": "tree",
+            "n": 1
+          },
+          {
+            "head": "holdfast",
+            "n": 1
+          },
+          {
+            "head": "luskan",
+            "n": 1
+          },
+          {
+            "head": "outside",
+            "n": 1
+          },
+          {
+            "head": "drizzt",
+            "n": 1
+          },
+          {
+            "head": "pole",
+            "n": 1
+          },
+          {
+            "head": "hub",
+            "n": 1
+          },
+          {
+            "head": "horse",
+            "n": 1
+          },
+          {
+            "head": "lad",
+            "n": 1
+          }
+        ],
+        "top_qualities": [
+          {
+            "quality": "stubbornly",
+            "n": 1
+          },
+          {
+            "quality": "unwelcoming",
+            "n": 1
+          },
+          {
+            "quality": "clearly",
+            "n": 1
+          },
+          {
+            "quality": "slender",
+            "n": 1
+          },
+          {
+            "quality": "diligently",
+            "n": 1
+          }
+        ],
+        "placement_counts": {
+          "middle": 4,
+          "closer": 3,
+          "opener": 2
+        },
+        "placement_pct": {
+          "middle": 44.44,
+          "closer": 33.33,
+          "opener": 22.22
+        }
+      },
+      "dialogue": {
+        "n_beats": 256,
+        "n_words": 27835,
+        "n_similes_primary": 9,
+        "density_corpus_per_100w": 0.0323,
+        "per_beat_density_stats": {
+          "n": 256,
+          "mean": 0.029,
+          "median": 0.0,
+          "p25": 0.0,
+          "p75": 0.0,
+          "stdev": 0.155,
+          "min": 0.0,
+          "max": 0.943
+        },
+        "as_as_count": 4,
+        "like_count": 5,
+        "as_if_count": 9,
+        "semi_simile_count": 4,
+        "top_rhs_heads": [
+          {
+            "head": "bruenor",
+            "n": 3
+          },
+          {
+            "head": "implications",
+            "n": 1
+          },
+          {
+            "head": "sound",
+            "n": 1
+          },
+          {
+            "head": "knives",
+            "n": 1
+          },
+          {
+            "head": "refusing",
+            "n": 1
+          },
+          {
+            "head": "idea",
+            "n": 1
+          },
+          {
+            "head": "badge",
+            "n": 1
+          }
+        ],
+        "top_qualities": [
+          {
+            "quality": "splendid",
+            "n": 2
+          },
+          {
+            "quality": "tense",
+            "n": 1
+          },
+          {
+            "quality": "deadly",
+            "n": 1
+          }
+        ],
+        "placement_counts": {
+          "middle": 3,
+          "closer": 1,
+          "opener": 5
+        },
+        "placement_pct": {
+          "middle": 33.33,
+          "closer": 11.11,
+          "opener": 55.56
+        }
+      },
+      "interiority": {
+        "n_beats": 162,
+        "n_words": 18058,
+        "n_similes_primary": 7,
+        "density_corpus_per_100w": 0.0388,
+        "per_beat_density_stats": {
+          "n": 162,
+          "mean": 0.038,
+          "median": 0.0,
+          "p25": 0.0,
+          "p75": 0.0,
+          "stdev": 0.181,
+          "min": 0.0,
+          "max": 0.99
+        },
+        "as_as_count": 3,
+        "like_count": 4,
+        "as_if_count": 10,
+        "semi_simile_count": 0,
+        "top_rhs_heads": [
+          {
+            "head": "tundra",
+            "n": 1
+          },
+          {
+            "head": "crafting",
+            "n": 1
+          },
+          {
+            "head": "death",
+            "n": 1
+          },
+          {
+            "head": "friends",
+            "n": 1
+          },
+          {
+            "head": "luskan",
+            "n": 1
+          },
+          {
+            "head": "cutlass",
+            "n": 1
+          },
+          {
+            "head": "dockside",
+            "n": 1
+          }
+        ],
+        "top_qualities": [
+          {
+            "quality": "hard",
+            "n": 1
+          },
+          {
+            "quality": "silent",
+            "n": 1
+          },
+          {
+            "quality": "dangerous",
+            "n": 1
+          }
+        ],
+        "placement_counts": {
+          "closer": 4,
+          "middle": 2,
+          "opener": 1
+        },
+        "placement_pct": {
+          "closer": 57.14,
+          "middle": 28.57,
+          "opener": 14.29
+        }
+      }
+    }
+  },
+  "rankings_by_book": {
+    "crystal_shard": [
+      {
+        "kind": "description",
+        "value": 0.0818
+      },
+      {
+        "kind": "action",
+        "value": 0.0588
+      },
+      {
+        "kind": "interiority",
+        "value": 0.0532
+      },
+      {
+        "kind": "dialogue",
+        "value": 0.0197
+      }
+    ],
+    "streams_of_silver": [
+      {
+        "kind": "description",
+        "value": 0.085
+      },
+      {
+        "kind": "action",
+        "value": 0.0613
+      },
+      {
+        "kind": "interiority",
+        "value": 0.0388
+      },
+      {
+        "kind": "dialogue",
+        "value": 0.0323
+      }
+    ],
+    "halflings_gem": [
+      {
+        "kind": "description",
+        "value": 0.0821
+      },
+      {
+        "kind": "action",
+        "value": 0.0598
+      },
+      {
+        "kind": "interiority",
+        "value": 0.0531
+      },
+      {
+        "kind": "dialogue",
+        "value": 0.0304
+      }
+    ]
+  },
+  "ranking_verdict": {
+    "per_book_top2": {
+      "crystal_shard": [
+        "description",
+        "action"
+      ],
+      "streams_of_silver": [
+        "description",
+        "action"
+      ],
+      "halflings_gem": [
+        "description",
+        "action"
+      ]
+    },
+    "per_book_top1": {
+      "crystal_shard": "description",
+      "streams_of_silver": "description",
+      "halflings_gem": "description"
+    },
+    "books_with_matching_top2": 3,
+    "verdict": "PASS"
+  },
+  "mean_stability": {
+    "action": {
+      "values_by_book": {
+        "crystal_shard": 0.0588,
+        "streams_of_silver": 0.0613,
+        "halflings_gem": 0.0598
+      },
+      "spread_over_mean": 0.042,
+      "stable_le_30pct": true
+    },
+    "dialogue": {
+      "values_by_book": {
+        "crystal_shard": 0.0197,
+        "streams_of_silver": 0.0323,
+        "halflings_gem": 0.0304
+      },
+      "spread_over_mean": 0.459,
+      "stable_le_30pct": false
+    },
+    "interiority": {
+      "values_by_book": {
+        "crystal_shard": 0.0532,
+        "streams_of_silver": 0.0388,
+        "halflings_gem": 0.0531
+      },
+      "spread_over_mean": 0.298,
+      "stable_le_30pct": true
+    },
+    "description": {
+      "values_by_book": {
+        "crystal_shard": 0.0818,
+        "streams_of_silver": 0.085,
+        "halflings_gem": 0.0821
+      },
+      "spread_over_mean": 0.039,
+      "stable_le_30pct": true
+    }
+  },
+  "per_book_top_rhs_heads": {
+    "crystal_shard": [
+      {
+        "head": "stone",
+        "n": 2
+      },
+      {
+        "head": "cat",
+        "n": 2
+      },
+      {
+        "head": "burn",
+        "n": 1
+      },
+      {
+        "head": "errtu",
+        "n": 1
+      },
+      {
+        "head": "statue",
+        "n": 1
+      },
+      {
+        "head": "polarity",
+        "n": 1
+      },
+      {
+        "head": "tundra",
+        "n": 1
+      },
+      {
+        "head": "risen",
+        "n": 1
+      },
+      {
+        "head": "boulder",
+        "n": 1
+      },
+      {
+        "head": "verbeeg",
+        "n": 1
+      },
+      {
+        "head": "shepherd",
+        "n": 1
+      },
+      {
+        "head": "bruenor",
+        "n": 1
+      },
+      {
+        "head": "predator",
+        "n": 1
+      },
+      {
+        "head": "last",
+        "n": 1
+      },
+      {
+        "head": "witnesses",
+        "n": 1
+      },
+      {
+        "head": "swarm",
+        "n": 1
+      },
+      {
+        "head": "crest",
+        "n": 1
+      },
+      {
+        "head": "heart",
+        "n": 1
+      },
+      {
+        "head": "flash",
+        "n": 1
+      },
+      {
+        "head": "blood",
+        "n": 1
+      }
+    ],
+    "streams_of_silver": [
+      {
+        "head": "bruenor",
+        "n": 3
+      },
+      {
+        "head": "death",
+        "n": 2
+      },
+      {
+        "head": "drizzt",
+        "n": 2
+      },
+      {
+        "head": "luskan",
+        "n": 2
+      },
+      {
+        "head": "tundra",
+        "n": 1
+      },
+      {
+        "head": "water",
+        "n": 1
+      },
+      {
+        "head": "party",
+        "n": 1
+      },
+      {
+        "head": "giant",
+        "n": 1
+      },
+      {
+        "head": "tree",
+        "n": 1
+      },
+      {
+        "head": "animal",
+        "n": 1
+      },
+      {
+        "head": "cat",
+        "n": 1
+      },
+      {
+        "head": "holdfast",
+        "n": 1
+      },
+      {
+        "head": "crafting",
+        "n": 1
+      },
+      {
+        "head": "implications",
+        "n": 1
+      },
+      {
+        "head": "friends",
+        "n": 1
+      },
+      {
+        "head": "ones",
+        "n": 1
+      },
+      {
+        "head": "sound",
+        "n": 1
+      },
+      {
+        "head": "cloud",
+        "n": 1
+      },
+      {
+        "head": "wind",
+        "n": 1
+      },
+      {
+        "head": "rumble",
+        "n": 1
+      }
+    ],
+    "halflings_gem": [
+      {
+        "head": "pook",
+        "n": 2
+      },
+      {
+        "head": "bolt",
+        "n": 2
+      },
+      {
+        "head": "death",
+        "n": 2
+      },
+      {
+        "head": "first",
+        "n": 2
+      },
+      {
+        "head": "iron",
+        "n": 2
+      },
+      {
+        "head": "cat",
+        "n": 2
+      },
+      {
+        "head": "others",
+        "n": 1
+      },
+      {
+        "head": "bringed",
+        "n": 1
+      },
+      {
+        "head": "catti",
+        "n": 1
+      },
+      {
+        "head": "candle",
+        "n": 1
+      },
+      {
+        "head": "wizard",
+        "n": 1
+      },
+      {
+        "head": "times",
+        "n": 1
+      },
+      {
+        "head": "slap",
+        "n": 1
+      },
+      {
+        "head": "sack",
+        "n": 1
+      },
+      {
+        "head": "statue",
+        "n": 1
+      },
+      {
+        "head": "memnon",
+        "n": 1
+      },
+      {
+        "head": "pinochet",
+        "n": 1
+      },
+      {
+        "head": "waves",
+        "n": 1
+      },
+      {
+        "head": "sun",
+        "n": 1
+      },
+      {
+        "head": "sights",
+        "n": 1
+      }
+    ]
+  },
+  "per_book_top_rhs_phrases": {
+    "crystal_shard": [
+      {
+        "phrase": "the burn of a candle",
+        "n": 1
+      },
+      {
+        "phrase": "Errtu",
+        "n": 1
+      },
+      {
+        "phrase": "a statue",
+        "n": 1
+      },
+      {
+        "phrase": "the polarity of her curious",
+        "n": 1
+      },
+      {
+        "phrase": "the tundra",
+        "n": 1
+      },
+      {
+        "phrase": "an icy finger risen from",
+        "n": 1
+      },
+      {
+        "phrase": "a rolling boulder",
+        "n": 1
+      },
+      {
+        "phrase": "the verbeeg had expected",
+        "n": 1
+      },
+      {
+        "phrase": "the stone he had landed",
+        "n": 1
+      },
+      {
+        "phrase": "a shepherd",
+        "n": 1
+      },
+      {
+        "phrase": "Bruenor",
+        "n": 1
+      },
+      {
+        "phrase": "a predator",
+        "n": 1
+      },
+      {
+        "phrase": "the last",
+        "n": 1
+      },
+      {
+        "phrase": "the other witnesses around him",
+        "n": 1
+      },
+      {
+        "phrase": "an angry swarm of bees",
+        "n": 1
+      }
+    ],
+    "streams_of_silver": [
+      {
+        "phrase": "Bruenor",
+        "n": 3
+      },
+      {
+        "phrase": "death",
+        "n": 2
+      },
+      {
+        "phrase": "Drizzt",
+        "n": 2
+      },
+      {
+        "phrase": "Luskan",
+        "n": 2
+      },
+      {
+        "phrase": "the tundra in midwinter",
+        "n": 1
+      },
+      {
+        "phrase": "water",
+        "n": 1
+      },
+      {
+        "phrase": "the previous party",
+        "n": 1
+      },
+      {
+        "phrase": "a giant",
+        "n": 1
+      },
+      {
+        "phrase": "an ancient tree",
+        "n": 1
+      },
+      {
+        "phrase": "a trapped animal",
+        "n": 1
+      },
+      {
+        "phrase": "a cat",
+        "n": 1
+      },
+      {
+        "phrase": "the Holdfast",
+        "n": 1
+      },
+      {
+        "phrase": "the crafting of Aegis-fang",
+        "n": 1
+      },
+      {
+        "phrase": "the implications",
+        "n": 1
+      },
+      {
+        "phrase": "the friends before her",
+        "n": 1
+      }
+    ],
+    "halflings_gem": [
+      {
+        "phrase": "death",
+        "n": 2
+      },
+      {
+        "phrase": "the first",
+        "n": 2
+      },
+      {
+        "phrase": "iron",
+        "n": 2
+      },
+      {
+        "phrase": "a cat",
+        "n": 2
+      },
+      {
+        "phrase": "the others",
+        "n": 1
+      },
+      {
+        "phrase": "the Lady Alustriel bringed me",
+        "n": 1
+      },
+      {
+        "phrase": "Catti",
+        "n": 1
+      },
+      {
+        "phrase": "a single candle in the",
+        "n": 1
+      },
+      {
+        "phrase": "a wizard",
+        "n": 1
+      },
+      {
+        "phrase": "the old times it all",
+        "n": 1
+      },
+      {
+        "phrase": "a slap in the face",
+        "n": 1
+      },
+      {
+        "phrase": "a sack into the guildhouse",
+        "n": 1
+      },
+      {
+        "phrase": "a statue",
+        "n": 1
+      },
+      {
+        "phrase": "Memnon",
+        "n": 1
+      },
+      {
+        "phrase": "Pinochet",
+        "n": 1
+      }
+    ]
+  },
+  "per_book_top_qualities": {
+    "crystal_shard": [
+      {
+        "quality": "mighty",
+        "n": 2
+      },
+      {
+        "quality": "solid",
+        "n": 2
+      },
+      {
+        "quality": "still",
+        "n": 1
+      },
+      {
+        "quality": "wild",
+        "n": 1
+      },
+      {
+        "quality": "quiet",
+        "n": 1
+      },
+      {
+        "quality": "easy",
+        "n": 1
+      },
+      {
+        "quality": "tough",
+        "n": 1
+      },
+      {
+        "quality": "cynical",
+        "n": 1
+      },
+      {
+        "quality": "important",
+        "n": 1
+      },
+      {
+        "quality": "red",
+        "n": 1
+      },
+      {
+        "quality": "early",
+        "n": 1
+      },
+      {
+        "quality": "keen",
+        "n": 1
+      },
+      {
+        "quality": "silent",
+        "n": 1
+      },
+      {
+        "quality": "nimble",
+        "n": 1
+      },
+      {
+        "quality": "alluring",
+        "n": 1
+      }
+    ],
+    "streams_of_silver": [
+      {
+        "quality": "splendid",
+        "n": 2
+      },
+      {
+        "quality": "silent",
+        "n": 2
+      },
+      {
+        "quality": "hard",
+        "n": 1
+      },
+      {
+        "quality": "stubbornly",
+        "n": 1
+      },
+      {
+        "quality": "agile",
+        "n": 1
+      },
+      {
+        "quality": "thick",
+        "n": 1
+      },
+      {
+        "quality": "silently",
+        "n": 1
+      },
+      {
+        "quality": "amazed",
+        "n": 1
+      },
+      {
+        "quality": "unwelcoming",
+        "n": 1
+      },
+      {
+        "quality": "tense",
+        "n": 1
+      },
+      {
+        "quality": "deadly",
+        "n": 1
+      },
+      {
+        "quality": "clearly",
+        "n": 1
+      },
+      {
+        "quality": "dangerous",
+        "n": 1
+      },
+      {
+        "quality": "large",
+        "n": 1
+      },
+      {
+        "quality": "slender",
+        "n": 1
+      }
+    ],
+    "halflings_gem": [
+      {
+        "quality": "silent",
+        "n": 3
+      },
+      {
+        "quality": "powerful",
+        "n": 2
+      },
+      {
+        "quality": "tangible",
+        "n": 2
+      },
+      {
+        "quality": "loud",
+        "n": 1
+      },
+      {
+        "quality": "still",
+        "n": 1
+      },
+      {
+        "quality": "vast",
+        "n": 1
+      },
+      {
+        "quality": "vile",
+        "n": 1
+      },
+      {
+        "quality": "unnatural",
+        "n": 1
+      },
+      {
+        "quality": "imposing",
+        "n": 1
+      },
+      {
+        "quality": "silently",
+        "n": 1
+      },
+      {
+        "quality": "empty",
+        "n": 1
+      },
+      {
+        "quality": "agile",
+        "n": 1
+      },
+      {
+        "quality": "intense",
+        "n": 1
+      },
+      {
+        "quality": "certain",
+        "n": 1
+      },
+      {
+        "quality": "confident",
+        "n": 1
+      }
+    ]
+  },
+  "top10_overlap": {
+    "all_three_books": [],
+    "any_two_books": [
+      "cat",
+      "death",
+      "tundra"
+    ],
+    "all_three_count": 0,
+    "any_two_count": 3,
+    "overlap_ge_3_in_all_three": false
+  },
+  "per_book_corpus_density": {
+    "crystal_shard": 0.0501,
+    "streams_of_silver": 0.0501,
+    "halflings_gem": 0.0506
+  },
+  "aggregate_density_per_100w": 0.0503,
+  "no_signal_kill": false,
+  "placement_per_book_pct": {
+    "crystal_shard": {
+      "opener": 17.78,
+      "middle": 46.67,
+      "closer": 35.56
+    },
+    "halflings_gem": {
+      "opener": 38.64,
+      "middle": 36.36,
+      "closer": 25.0
+    },
+    "streams_of_silver": {
+      "opener": 30.23,
+      "middle": 27.91,
+      "closer": 41.86
+    }
+  },
+  "pov_table": [
+    {
+      "pov": "Rassiter",
+      "n_beats": 20,
+      "n_words": 1974,
+      "n_similes": 2,
+      "density_corpus_per_100w": 0.1013,
+      "mean_per_beat_density": 0.0844
+    },
+    {
+      "pov": "Regis",
+      "n_beats": 186,
+      "n_words": 19683,
+      "n_similes": 16,
+      "density_corpus_per_100w": 0.0813,
+      "mean_per_beat_density": 0.0783
+    },
+    {
+      "pov": "Entreri",
+      "n_beats": 63,
+      "n_words": 6884,
+      "n_similes": 5,
+      "density_corpus_per_100w": 0.0726,
+      "mean_per_beat_density": 0.0734
+    },
+    {
+      "pov": "Drizzt",
+      "n_beats": 539,
+      "n_words": 57742,
+      "n_similes": 37,
+      "density_corpus_per_100w": 0.0641,
+      "mean_per_beat_density": 0.0683
+    },
+    {
+      "pov": "Kessell",
+      "n_beats": 85,
+      "n_words": 8646,
+      "n_similes": 5,
+      "density_corpus_per_100w": 0.0578,
+      "mean_per_beat_density": 0.0532
+    },
+    {
+      "pov": "omniscient",
+      "n_beats": 675,
+      "n_words": 71970,
+      "n_similes": 39,
+      "density_corpus_per_100w": 0.0542,
+      "mean_per_beat_density": 0.0531
+    },
+    {
+      "pov": "Drizzt Do'Urden",
+      "n_beats": 64,
+      "n_words": 6940,
+      "n_similes": 3,
+      "density_corpus_per_100w": 0.0432,
+      "mean_per_beat_density": 0.0413
+    },
+    {
+      "pov": "Wulfgar",
+      "n_beats": 192,
+      "n_words": 20315,
+      "n_similes": 8,
+      "density_corpus_per_100w": 0.0394,
+      "mean_per_beat_density": 0.0421
+    },
+    {
+      "pov": "Catti-brie",
+      "n_beats": 106,
+      "n_words": 11302,
+      "n_similes": 4,
+      "density_corpus_per_100w": 0.0354,
+      "mean_per_beat_density": 0.0358
+    },
+    {
+      "pov": "Cassius",
+      "n_beats": 57,
+      "n_words": 5769,
+      "n_similes": 2,
+      "density_corpus_per_100w": 0.0347,
+      "mean_per_beat_density": 0.0372
+    },
+    {
+      "pov": "Guenhwyvar",
+      "n_beats": 29,
+      "n_words": 2970,
+      "n_similes": 1,
+      "density_corpus_per_100w": 0.0337,
+      "mean_per_beat_density": 0.029
+    },
+    {
+      "pov": "Bruenor",
+      "n_beats": 231,
+      "n_words": 24980,
+      "n_similes": 5,
+      "density_corpus_per_100w": 0.02,
+      "mean_per_beat_density": 0.0182
+    },
+    {
+      "pov": "LaValle",
+      "n_beats": 30,
+      "n_words": 3250,
+      "n_similes": 0,
+      "density_corpus_per_100w": 0.0,
+      "mean_per_beat_density": 0.0
+    },
+    {
+      "pov": "Pook",
+      "n_beats": 46,
+      "n_words": 4700,
+      "n_similes": 0,
+      "density_corpus_per_100w": 0.0,
+      "mean_per_beat_density": 0.0
+    },
+    {
+      "pov": "Dendybar",
+      "n_beats": 31,
+      "n_words": 3198,
+      "n_similes": 0,
+      "density_corpus_per_100w": 0.0,
+      "mean_per_beat_density": 0.0
+    }
+  ],
+  "overall_verdict": "PASS_PARTIAL"
+}

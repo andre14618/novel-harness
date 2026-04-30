@@ -1,0 +1,717 @@
+{
+  "pattern_id": 67,
+  "pattern_name": "Camera/POV closeness per beat-kind (close-third vs distant-third lexical signatures)",
+  "commit": "a3da6d1",
+  "beats_path": "novels/salvatore-icewind-dale/beats.jsonl",
+  "regex_patterns": {
+    "close_possessive": "\\b(?:his|her|their|its|my|our|your)\\s+[A-Za-z]+\\b",
+    "close_sensory": "\\b(?:he|she|they|i|we|you)\\s+(?:noticed|sensed|smelled|tasted|heard|felt|saw)\\b",
+    "close_cognitive": "\\b(?:he|she|they|i|we|you)\\s+(?:remembered|understood|considered|wondered|realized|believed|thought|knew|hoped|feared)\\b",
+    "distant_label": "\\bthe\\s+(?:halfling|barbarian|stranger|warrior|wizard|woman|ranger|priest|figure|dwarf|drow|king|man|elf)\\b",
+    "distant_existential": "\\bthere\\s+(?:seemed|were|stood|came|was|lay|sat)\\b",
+    "distant_aerial": "\\b(?:throughout|across|beyond|along|over)\\s+the\\s+[A-Za-z]+\\b"
+  },
+  "methodology": {
+    "ratio_floor": 0.1,
+    "ratio_formula": "close_density / (distant_density + 0.1)",
+    "active_kinds": [
+      "action",
+      "dialogue",
+      "interiority",
+      "description"
+    ],
+    "books": [
+      "crystal_shard",
+      "streams_of_silver",
+      "halflings_gem"
+    ],
+    "cross_book_gate": {
+      "PASS": "ordering 3/3 + total per-book closeness-ratio spread \u226430%",
+      "PASS_PARTIAL": "ordering 3/3 (with total-ratio spread fail) OR 2/3 ordering",
+      "DIVERGE": "ordering unstable"
+    },
+    "distant_absent_threshold_per_100w": 0.1
+  },
+  "books": [
+    "crystal_shard",
+    "streams_of_silver",
+    "halflings_gem"
+  ],
+  "active_kinds": [
+    "action",
+    "dialogue",
+    "interiority",
+    "description"
+  ],
+  "skipped_beats": 1,
+  "n_beats_used": 2469,
+  "cells": {
+    "crystal_shard": {
+      "description": {
+        "n_beats": 130,
+        "words": 13443,
+        "marker_hits_total": {
+          "close_possessive": 360,
+          "close_sensory": 6,
+          "close_cognitive": 13,
+          "distant_label": 59,
+          "distant_existential": 11,
+          "distant_aerial": 29
+        },
+        "mean_marker_density_per_100w": {
+          "close_possessive": 2.6715,
+          "close_sensory": 0.0447,
+          "close_cognitive": 0.1024,
+          "distant_label": 0.4359,
+          "distant_existential": 0.0774,
+          "distant_aerial": 0.2165
+        },
+        "pooled_marker_density_per_100w": {
+          "close_possessive": 2.678,
+          "close_sensory": 0.0446,
+          "close_cognitive": 0.0967,
+          "distant_label": 0.4389,
+          "distant_existential": 0.0818,
+          "distant_aerial": 0.2157
+        },
+        "mean_close_density_per_100w": 2.8186,
+        "mean_distant_density_per_100w": 0.7298,
+        "mean_closeness_ratio": 12.173,
+        "pooled_close_density_per_100w": 2.8193,
+        "pooled_distant_density_per_100w": 0.7364,
+        "pooled_closeness_ratio": 3.3706
+      },
+      "interiority": {
+        "n_beats": 177,
+        "words": 18782,
+        "marker_hits_total": {
+          "close_possessive": 654,
+          "close_sensory": 28,
+          "close_cognitive": 50,
+          "distant_label": 194,
+          "distant_existential": 15,
+          "distant_aerial": 36
+        },
+        "mean_marker_density_per_100w": {
+          "close_possessive": 3.4527,
+          "close_sensory": 0.1549,
+          "close_cognitive": 0.2646,
+          "distant_label": 1.0244,
+          "distant_existential": 0.0802,
+          "distant_aerial": 0.1983
+        },
+        "pooled_marker_density_per_100w": {
+          "close_possessive": 3.4821,
+          "close_sensory": 0.1491,
+          "close_cognitive": 0.2662,
+          "distant_label": 1.0329,
+          "distant_existential": 0.0799,
+          "distant_aerial": 0.1917
+        },
+        "mean_close_density_per_100w": 3.8721,
+        "mean_distant_density_per_100w": 1.3028,
+        "mean_closeness_ratio": 13.999,
+        "pooled_close_density_per_100w": 3.8973,
+        "pooled_distant_density_per_100w": 1.3044,
+        "pooled_closeness_ratio": 2.775
+      },
+      "action": {
+        "n_beats": 308,
+        "words": 32318,
+        "marker_hits_total": {
+          "close_possessive": 1230,
+          "close_sensory": 77,
+          "close_cognitive": 49,
+          "distant_label": 248,
+          "distant_existential": 13,
+          "distant_aerial": 79
+        },
+        "mean_marker_density_per_100w": {
+          "close_possessive": 3.764,
+          "close_sensory": 0.2437,
+          "close_cognitive": 0.1477,
+          "distant_label": 0.7542,
+          "distant_existential": 0.0438,
+          "distant_aerial": 0.2415
+        },
+        "pooled_marker_density_per_100w": {
+          "close_possessive": 3.8059,
+          "close_sensory": 0.2383,
+          "close_cognitive": 0.1516,
+          "distant_label": 0.7674,
+          "distant_existential": 0.0402,
+          "distant_aerial": 0.2444
+        },
+        "mean_close_density_per_100w": 4.1554,
+        "mean_distant_density_per_100w": 1.0395,
+        "mean_closeness_ratio": 16.1696,
+        "pooled_close_density_per_100w": 4.1958,
+        "pooled_distant_density_per_100w": 1.052,
+        "pooled_closeness_ratio": 3.642
+      },
+      "dialogue": {
+        "n_beats": 242,
+        "words": 25358,
+        "marker_hits_total": {
+          "close_possessive": 853,
+          "close_sensory": 17,
+          "close_cognitive": 28,
+          "distant_label": 236,
+          "distant_existential": 12,
+          "distant_aerial": 30
+        },
+        "mean_marker_density_per_100w": {
+          "close_possessive": 3.2898,
+          "close_sensory": 0.066,
+          "close_cognitive": 0.1056,
+          "distant_label": 0.9133,
+          "distant_existential": 0.047,
+          "distant_aerial": 0.1172
+        },
+        "pooled_marker_density_per_100w": {
+          "close_possessive": 3.3638,
+          "close_sensory": 0.067,
+          "close_cognitive": 0.1104,
+          "distant_label": 0.9307,
+          "distant_existential": 0.0473,
+          "distant_aerial": 0.1183
+        },
+        "mean_close_density_per_100w": 3.4613,
+        "mean_distant_density_per_100w": 1.0775,
+        "mean_closeness_ratio": 13.2109,
+        "pooled_close_density_per_100w": 3.5413,
+        "pooled_distant_density_per_100w": 1.0963,
+        "pooled_closeness_ratio": 2.9602
+      }
+    },
+    "halflings_gem": {
+      "description": {
+        "n_beats": 79,
+        "words": 8527,
+        "marker_hits_total": {
+          "close_possessive": 267,
+          "close_sensory": 3,
+          "close_cognitive": 10,
+          "distant_label": 50,
+          "distant_existential": 4,
+          "distant_aerial": 20
+        },
+        "mean_marker_density_per_100w": {
+          "close_possessive": 3.0874,
+          "close_sensory": 0.0361,
+          "close_cognitive": 0.126,
+          "distant_label": 0.5827,
+          "distant_existential": 0.0435,
+          "distant_aerial": 0.2396
+        },
+        "pooled_marker_density_per_100w": {
+          "close_possessive": 3.1312,
+          "close_sensory": 0.0352,
+          "close_cognitive": 0.1173,
+          "distant_label": 0.5864,
+          "distant_existential": 0.0469,
+          "distant_aerial": 0.2345
+        },
+        "mean_close_density_per_100w": 3.2495,
+        "mean_distant_density_per_100w": 0.8658,
+        "mean_closeness_ratio": 14.8905,
+        "pooled_close_density_per_100w": 3.2837,
+        "pooled_distant_density_per_100w": 0.8678,
+        "pooled_closeness_ratio": 3.3928
+      },
+      "interiority": {
+        "n_beats": 159,
+        "words": 16964,
+        "marker_hits_total": {
+          "close_possessive": 616,
+          "close_sensory": 14,
+          "close_cognitive": 41,
+          "distant_label": 132,
+          "distant_existential": 8,
+          "distant_aerial": 32
+        },
+        "mean_marker_density_per_100w": {
+          "close_possessive": 3.6143,
+          "close_sensory": 0.0853,
+          "close_cognitive": 0.2406,
+          "distant_label": 0.7888,
+          "distant_existential": 0.047,
+          "distant_aerial": 0.1803
+        },
+        "pooled_marker_density_per_100w": {
+          "close_possessive": 3.6312,
+          "close_sensory": 0.0825,
+          "close_cognitive": 0.2417,
+          "distant_label": 0.7781,
+          "distant_existential": 0.0472,
+          "distant_aerial": 0.1886
+        },
+        "mean_close_density_per_100w": 3.9402,
+        "mean_distant_density_per_100w": 1.016,
+        "mean_closeness_ratio": 15.0395,
+        "pooled_close_density_per_100w": 3.9554,
+        "pooled_distant_density_per_100w": 1.0139,
+        "pooled_closeness_ratio": 3.5509
+      },
+      "dialogue": {
+        "n_beats": 279,
+        "words": 29626,
+        "marker_hits_total": {
+          "close_possessive": 1068,
+          "close_sensory": 19,
+          "close_cognitive": 42,
+          "distant_label": 243,
+          "distant_existential": 6,
+          "distant_aerial": 33
+        },
+        "mean_marker_density_per_100w": {
+          "close_possessive": 3.5421,
+          "close_sensory": 0.0666,
+          "close_cognitive": 0.14,
+          "distant_label": 0.831,
+          "distant_existential": 0.0194,
+          "distant_aerial": 0.1194
+        },
+        "pooled_marker_density_per_100w": {
+          "close_possessive": 3.6049,
+          "close_sensory": 0.0641,
+          "close_cognitive": 0.1418,
+          "distant_label": 0.8202,
+          "distant_existential": 0.0203,
+          "distant_aerial": 0.1114
+        },
+        "mean_close_density_per_100w": 3.7486,
+        "mean_distant_density_per_100w": 0.9698,
+        "mean_closeness_ratio": 14.7399,
+        "pooled_close_density_per_100w": 3.8108,
+        "pooled_distant_density_per_100w": 0.9519,
+        "pooled_closeness_ratio": 3.6229
+      },
+      "action": {
+        "n_beats": 309,
+        "words": 31774,
+        "marker_hits_total": {
+          "close_possessive": 1277,
+          "close_sensory": 42,
+          "close_cognitive": 41,
+          "distant_label": 254,
+          "distant_existential": 9,
+          "distant_aerial": 103
+        },
+        "mean_marker_density_per_100w": {
+          "close_possessive": 3.9518,
+          "close_sensory": 0.13,
+          "close_cognitive": 0.126,
+          "distant_label": 0.7724,
+          "distant_existential": 0.0286,
+          "distant_aerial": 0.3362
+        },
+        "pooled_marker_density_per_100w": {
+          "close_possessive": 4.019,
+          "close_sensory": 0.1322,
+          "close_cognitive": 0.129,
+          "distant_label": 0.7994,
+          "distant_existential": 0.0283,
+          "distant_aerial": 0.3242
+        },
+        "mean_close_density_per_100w": 4.2078,
+        "mean_distant_density_per_100w": 1.1372,
+        "mean_closeness_ratio": 15.1836,
+        "pooled_close_density_per_100w": 4.2802,
+        "pooled_distant_density_per_100w": 1.1519,
+        "pooled_closeness_ratio": 3.419
+      }
+    },
+    "streams_of_silver": {
+      "description": {
+        "n_beats": 94,
+        "words": 10592,
+        "marker_hits_total": {
+          "close_possessive": 336,
+          "close_sensory": 5,
+          "close_cognitive": 8,
+          "distant_label": 43,
+          "distant_existential": 5,
+          "distant_aerial": 32
+        },
+        "mean_marker_density_per_100w": {
+          "close_possessive": 3.1226,
+          "close_sensory": 0.044,
+          "close_cognitive": 0.0762,
+          "distant_label": 0.3866,
+          "distant_existential": 0.043,
+          "distant_aerial": 0.3114
+        },
+        "pooled_marker_density_per_100w": {
+          "close_possessive": 3.1722,
+          "close_sensory": 0.0472,
+          "close_cognitive": 0.0755,
+          "distant_label": 0.406,
+          "distant_existential": 0.0472,
+          "distant_aerial": 0.3021
+        },
+        "mean_close_density_per_100w": 3.2427,
+        "mean_distant_density_per_100w": 0.7411,
+        "mean_closeness_ratio": 15.0116,
+        "pooled_close_density_per_100w": 3.2949,
+        "pooled_distant_density_per_100w": 0.7553,
+        "pooled_closeness_ratio": 3.8524
+      },
+      "interiority": {
+        "n_beats": 162,
+        "words": 18058,
+        "marker_hits_total": {
+          "close_possessive": 744,
+          "close_sensory": 21,
+          "close_cognitive": 57,
+          "distant_label": 116,
+          "distant_existential": 10,
+          "distant_aerial": 22
+        },
+        "mean_marker_density_per_100w": {
+          "close_possessive": 4.0334,
+          "close_sensory": 0.114,
+          "close_cognitive": 0.314,
+          "distant_label": 0.636,
+          "distant_existential": 0.0546,
+          "distant_aerial": 0.1198
+        },
+        "pooled_marker_density_per_100w": {
+          "close_possessive": 4.1201,
+          "close_sensory": 0.1163,
+          "close_cognitive": 0.3156,
+          "distant_label": 0.6424,
+          "distant_existential": 0.0554,
+          "distant_aerial": 0.1218
+        },
+        "mean_close_density_per_100w": 4.4614,
+        "mean_distant_density_per_100w": 0.8104,
+        "mean_closeness_ratio": 21.224,
+        "pooled_close_density_per_100w": 4.552,
+        "pooled_distant_density_per_100w": 0.8196,
+        "pooled_closeness_ratio": 4.9501
+      },
+      "dialogue": {
+        "n_beats": 256,
+        "words": 27835,
+        "marker_hits_total": {
+          "close_possessive": 1168,
+          "close_sensory": 16,
+          "close_cognitive": 29,
+          "distant_label": 250,
+          "distant_existential": 5,
+          "distant_aerial": 53
+        },
+        "mean_marker_density_per_100w": {
+          "close_possessive": 4.0938,
+          "close_sensory": 0.058,
+          "close_cognitive": 0.1,
+          "distant_label": 0.9052,
+          "distant_existential": 0.0195,
+          "distant_aerial": 0.19
+        },
+        "pooled_marker_density_per_100w": {
+          "close_possessive": 4.1962,
+          "close_sensory": 0.0575,
+          "close_cognitive": 0.1042,
+          "distant_label": 0.8981,
+          "distant_existential": 0.018,
+          "distant_aerial": 0.1904
+        },
+        "mean_close_density_per_100w": 4.2518,
+        "mean_distant_density_per_100w": 1.1146,
+        "mean_closeness_ratio": 13.9777,
+        "pooled_close_density_per_100w": 4.3578,
+        "pooled_distant_density_per_100w": 1.1065,
+        "pooled_closeness_ratio": 3.6119
+      },
+      "action": {
+        "n_beats": 274,
+        "words": 29385,
+        "marker_hits_total": {
+          "close_possessive": 1353,
+          "close_sensory": 51,
+          "close_cognitive": 34,
+          "distant_label": 253,
+          "distant_existential": 12,
+          "distant_aerial": 87
+        },
+        "mean_marker_density_per_100w": {
+          "close_possessive": 4.4911,
+          "close_sensory": 0.1782,
+          "close_cognitive": 0.1135,
+          "distant_label": 0.8293,
+          "distant_existential": 0.0394,
+          "distant_aerial": 0.2956
+        },
+        "pooled_marker_density_per_100w": {
+          "close_possessive": 4.6044,
+          "close_sensory": 0.1736,
+          "close_cognitive": 0.1157,
+          "distant_label": 0.861,
+          "distant_existential": 0.0408,
+          "distant_aerial": 0.2961
+        },
+        "mean_close_density_per_100w": 4.7828,
+        "mean_distant_density_per_100w": 1.1643,
+        "mean_closeness_ratio": 17.1579,
+        "pooled_close_density_per_100w": 4.8937,
+        "pooled_distant_density_per_100w": 1.1979,
+        "pooled_closeness_ratio": 3.7705
+      }
+    }
+  },
+  "kind_ranking_per_book": {
+    "crystal_shard": [
+      {
+        "kind": "action",
+        "mean_closeness_ratio": 16.1696
+      },
+      {
+        "kind": "interiority",
+        "mean_closeness_ratio": 13.999
+      },
+      {
+        "kind": "dialogue",
+        "mean_closeness_ratio": 13.2109
+      },
+      {
+        "kind": "description",
+        "mean_closeness_ratio": 12.173
+      }
+    ],
+    "streams_of_silver": [
+      {
+        "kind": "interiority",
+        "mean_closeness_ratio": 21.224
+      },
+      {
+        "kind": "action",
+        "mean_closeness_ratio": 17.1579
+      },
+      {
+        "kind": "description",
+        "mean_closeness_ratio": 15.0116
+      },
+      {
+        "kind": "dialogue",
+        "mean_closeness_ratio": 13.9777
+      }
+    ],
+    "halflings_gem": [
+      {
+        "kind": "action",
+        "mean_closeness_ratio": 15.1836
+      },
+      {
+        "kind": "interiority",
+        "mean_closeness_ratio": 15.0395
+      },
+      {
+        "kind": "description",
+        "mean_closeness_ratio": 14.8905
+      },
+      {
+        "kind": "dialogue",
+        "mean_closeness_ratio": 14.7399
+      }
+    ]
+  },
+  "kind_orderings_per_book": {
+    "crystal_shard": [
+      "action",
+      "interiority",
+      "dialogue",
+      "description"
+    ],
+    "streams_of_silver": [
+      "interiority",
+      "action",
+      "description",
+      "dialogue"
+    ],
+    "halflings_gem": [
+      "action",
+      "interiority",
+      "description",
+      "dialogue"
+    ]
+  },
+  "kind_orderings_match_count": 1,
+  "top1_per_book": {
+    "crystal_shard": "action",
+    "streams_of_silver": "interiority",
+    "halflings_gem": "action"
+  },
+  "top1_agreement": false,
+  "top2_per_book": {
+    "crystal_shard": [
+      "action",
+      "interiority"
+    ],
+    "streams_of_silver": [
+      "action",
+      "interiority"
+    ],
+    "halflings_gem": [
+      "action",
+      "interiority"
+    ]
+  },
+  "top2_3way_intersection": [
+    "action",
+    "interiority"
+  ],
+  "aggregate_kind_ranking": [
+    {
+      "kind": "interiority",
+      "aggregate_mean_ratio": 16.7542
+    },
+    {
+      "kind": "action",
+      "aggregate_mean_ratio": 16.1704
+    },
+    {
+      "kind": "description",
+      "aggregate_mean_ratio": 14.025
+    },
+    {
+      "kind": "dialogue",
+      "aggregate_mean_ratio": 13.9762
+    }
+  ],
+  "per_kind_stability": {
+    "action": {
+      "per_book_mean_ratio": {
+        "crystal_shard": 16.1696,
+        "streams_of_silver": 17.1579,
+        "halflings_gem": 15.1836
+      },
+      "per_book_mean_close_density": {
+        "crystal_shard": 4.1554,
+        "streams_of_silver": 4.7828,
+        "halflings_gem": 4.2078
+      },
+      "per_book_mean_distant_density": {
+        "crystal_shard": 1.0395,
+        "streams_of_silver": 1.1643,
+        "halflings_gem": 1.1372
+      },
+      "ratio_min": 15.1836,
+      "ratio_max": 17.1579,
+      "ratio_mean": 16.1704,
+      "ratio_spread_pct": 13.0,
+      "ratio_spread_le_30pct": true,
+      "close_spread_pct": 15.1,
+      "distant_spread_pct": 12.01
+    },
+    "dialogue": {
+      "per_book_mean_ratio": {
+        "crystal_shard": 13.2109,
+        "streams_of_silver": 13.9777,
+        "halflings_gem": 14.7399
+      },
+      "per_book_mean_close_density": {
+        "crystal_shard": 3.4613,
+        "streams_of_silver": 4.2518,
+        "halflings_gem": 3.7486
+      },
+      "per_book_mean_distant_density": {
+        "crystal_shard": 1.0775,
+        "streams_of_silver": 1.1146,
+        "halflings_gem": 0.9698
+      },
+      "ratio_min": 13.2109,
+      "ratio_max": 14.7399,
+      "ratio_mean": 13.9762,
+      "ratio_spread_pct": 11.57,
+      "ratio_spread_le_30pct": true,
+      "close_spread_pct": 22.84,
+      "distant_spread_pct": 14.93
+    },
+    "interiority": {
+      "per_book_mean_ratio": {
+        "crystal_shard": 13.999,
+        "streams_of_silver": 21.224,
+        "halflings_gem": 15.0395
+      },
+      "per_book_mean_close_density": {
+        "crystal_shard": 3.8721,
+        "streams_of_silver": 4.4614,
+        "halflings_gem": 3.9402
+      },
+      "per_book_mean_distant_density": {
+        "crystal_shard": 1.3028,
+        "streams_of_silver": 0.8104,
+        "halflings_gem": 1.016
+      },
+      "ratio_min": 13.999,
+      "ratio_max": 21.224,
+      "ratio_mean": 16.7542,
+      "ratio_spread_pct": 51.61,
+      "ratio_spread_le_30pct": false,
+      "close_spread_pct": 15.22,
+      "distant_spread_pct": 60.76
+    },
+    "description": {
+      "per_book_mean_ratio": {
+        "crystal_shard": 12.173,
+        "streams_of_silver": 15.0116,
+        "halflings_gem": 14.8905
+      },
+      "per_book_mean_close_density": {
+        "crystal_shard": 2.8186,
+        "streams_of_silver": 3.2427,
+        "halflings_gem": 3.2495
+      },
+      "per_book_mean_distant_density": {
+        "crystal_shard": 0.7298,
+        "streams_of_silver": 0.7411,
+        "halflings_gem": 0.8658
+      },
+      "ratio_min": 12.173,
+      "ratio_max": 15.0116,
+      "ratio_mean": 14.025,
+      "ratio_spread_pct": 23.32,
+      "ratio_spread_le_30pct": true,
+      "close_spread_pct": 15.29,
+      "distant_spread_pct": 18.64
+    }
+  },
+  "per_book_total_closeness_ratio": {
+    "crystal_shard": 3.199,
+    "streams_of_silver": 3.9245,
+    "halflings_gem": 3.507
+  },
+  "total_closeness_ratio_spread_pct": 22.68,
+  "total_closeness_ratio_spread_le_30pct": true,
+  "distant_absent_cells": [],
+  "corpus_close_mean_per_100w": 3.9794,
+  "corpus_distant_mean_per_100w": 1.0383,
+  "corpus_closeness_ratio_mean": 15.2849,
+  "corpus_close_sd_per_100w": 2.6005,
+  "corpus_distant_sd_per_100w": 1.0976,
+  "corpus_closeness_ratio_sd": 21.9753,
+  "distant_cluster_threshold_per_100w": 2.0766,
+  "distant_cluster_n_beats": 367,
+  "distant_cluster_share_pct": 14.86,
+  "distant_cluster_kind_dist": {
+    "action": 150,
+    "dialogue": 113,
+    "interiority": 78,
+    "description": 26
+  },
+  "distant_cluster_book_dist": {
+    "crystal_shard": 131,
+    "halflings_gem": 125,
+    "streams_of_silver": 111
+  },
+  "distant_cluster_kind_share_pct": {
+    "action": 40.87,
+    "dialogue": 30.79,
+    "interiority": 21.25,
+    "description": 7.08
+  },
+  "overall_verdict": "DIVERGE",
+  "verdict_summary": "Per-kind ordering is unstable across books \u2014 closeness ratio is not a reliable cross-book voice prior at the kind granularity."
+}

@@ -1,0 +1,588 @@
+{
+  "pattern_id": 64,
+  "pattern_name": "Showing-vs-telling proxy (concrete vs abstract verb ratio)",
+  "commit": "a3da6d1",
+  "beats_path": "novels/salvatore-icewind-dale/beats.jsonl",
+  "lexicons": {
+    "showing": [
+      "saw",
+      "see",
+      "seen",
+      "looked",
+      "watch",
+      "watched",
+      "glanced",
+      "peered",
+      "stared",
+      "gazed",
+      "heard",
+      "listened",
+      "sound",
+      "sounded",
+      "echoed",
+      "felt",
+      "gripped",
+      "grasped",
+      "clutched",
+      "held",
+      "pulled",
+      "pushed",
+      "shoved",
+      "struck",
+      "swung",
+      "slashed",
+      "thrust",
+      "parried",
+      "blocked",
+      "dodged",
+      "leapt",
+      "jumped",
+      "fell",
+      "dropped",
+      "rolled",
+      "crawled",
+      "ran",
+      "walked",
+      "strode",
+      "stalked",
+      "raced",
+      "turned",
+      "spun",
+      "twisted",
+      "bent",
+      "leaned",
+      "crouched",
+      "lunged"
+    ],
+    "telling": [
+      "knew",
+      "know",
+      "knows",
+      "knowing",
+      "realized",
+      "realizes",
+      "realizing",
+      "understood",
+      "understands",
+      "understanding",
+      "decided",
+      "decides",
+      "deciding",
+      "thought",
+      "thinks",
+      "thinking",
+      "considered",
+      "considers",
+      "considering",
+      "believed",
+      "believes",
+      "believing",
+      "seemed",
+      "seems",
+      "seeming",
+      "appeared",
+      "appears",
+      "appearing"
+    ],
+    "state_be": [
+      "was",
+      "were",
+      "is",
+      "are",
+      "am",
+      "be",
+      "been",
+      "being"
+    ],
+    "felt_clause_markers": [
+      "felt that",
+      "felt sure",
+      "felt certain"
+    ]
+  },
+  "methodology": {
+    "ratio_floor": 0.1,
+    "ratio_formula": "showing_density / (telling_density + 0.1)",
+    "felt_disambiguation": "bare 'felt' counts as showing; 'felt that|sure|certain' counts as telling (subtracted from showing, added to telling)",
+    "active_kinds": [
+      "action",
+      "dialogue",
+      "interiority",
+      "description"
+    ],
+    "books": [
+      "crystal_shard",
+      "streams_of_silver",
+      "halflings_gem"
+    ],
+    "cross_book_gate": {
+      "PASS": "ordering 3/3 + per-kind spread \u226430% on all kinds",
+      "PASS_PARTIAL": "ordering 3/3 OR 2/3 (or with one spread fail)",
+      "DIVERGE": "ordering unstable"
+    }
+  },
+  "books": [
+    "crystal_shard",
+    "streams_of_silver",
+    "halflings_gem"
+  ],
+  "active_kinds": [
+    "action",
+    "dialogue",
+    "interiority",
+    "description"
+  ],
+  "skipped_beats": 1,
+  "n_beats_used": 2469,
+  "cells": {
+    "crystal_shard": {
+      "description": {
+        "n_beats": 130,
+        "words": 13443,
+        "showing_hits_total": 124,
+        "telling_hits_total": 62,
+        "state_be_hits_total": 357,
+        "felt_clause_hits_total": 0,
+        "mean_showing_density_per_100w": 0.9144,
+        "mean_telling_density_per_100w": 0.4635,
+        "mean_state_be_density_per_100w": 2.5764,
+        "mean_ratio_show_tell": 5.2869,
+        "pooled_showing_density_per_100w": 0.9224,
+        "pooled_telling_density_per_100w": 0.4612,
+        "pooled_state_be_density_per_100w": 2.6557,
+        "pooled_ratio_show_tell": 1.6436
+      },
+      "interiority": {
+        "n_beats": 177,
+        "words": 18782,
+        "showing_hits_total": 195,
+        "telling_hits_total": 167,
+        "state_be_hits_total": 544,
+        "felt_clause_hits_total": 1,
+        "mean_showing_density_per_100w": 1.0483,
+        "mean_telling_density_per_100w": 0.9051,
+        "mean_state_be_density_per_100w": 2.9124,
+        "mean_ratio_show_tell": 4.369,
+        "pooled_showing_density_per_100w": 1.0382,
+        "pooled_telling_density_per_100w": 0.8891,
+        "pooled_state_be_density_per_100w": 2.8964,
+        "pooled_ratio_show_tell": 1.0496
+      },
+      "action": {
+        "n_beats": 308,
+        "words": 32318,
+        "showing_hits_total": 552,
+        "telling_hits_total": 190,
+        "state_be_hits_total": 687,
+        "felt_clause_hits_total": 0,
+        "mean_showing_density_per_100w": 1.6896,
+        "mean_telling_density_per_100w": 0.5672,
+        "mean_state_be_density_per_100w": 2.0945,
+        "mean_ratio_show_tell": 8.5766,
+        "pooled_showing_density_per_100w": 1.708,
+        "pooled_telling_density_per_100w": 0.5879,
+        "pooled_state_be_density_per_100w": 2.1258,
+        "pooled_ratio_show_tell": 2.4829
+      },
+      "dialogue": {
+        "n_beats": 242,
+        "words": 25358,
+        "showing_hits_total": 244,
+        "telling_hits_total": 166,
+        "state_be_hits_total": 646,
+        "felt_clause_hits_total": 2,
+        "mean_showing_density_per_100w": 0.9658,
+        "mean_telling_density_per_100w": 0.6487,
+        "mean_state_be_density_per_100w": 2.5207,
+        "mean_ratio_show_tell": 5.7633,
+        "pooled_showing_density_per_100w": 0.9622,
+        "pooled_telling_density_per_100w": 0.6546,
+        "pooled_state_be_density_per_100w": 2.5475,
+        "pooled_ratio_show_tell": 1.2751
+      }
+    },
+    "halflings_gem": {
+      "description": {
+        "n_beats": 79,
+        "words": 8527,
+        "showing_hits_total": 133,
+        "telling_hits_total": 50,
+        "state_be_hits_total": 150,
+        "felt_clause_hits_total": 1,
+        "mean_showing_density_per_100w": 1.5409,
+        "mean_telling_density_per_100w": 0.5629,
+        "mean_state_be_density_per_100w": 1.7755,
+        "mean_ratio_show_tell": 10.003,
+        "pooled_showing_density_per_100w": 1.5598,
+        "pooled_telling_density_per_100w": 0.5864,
+        "pooled_state_be_density_per_100w": 1.7591,
+        "pooled_ratio_show_tell": 2.2725
+      },
+      "interiority": {
+        "n_beats": 159,
+        "words": 16964,
+        "showing_hits_total": 207,
+        "telling_hits_total": 162,
+        "state_be_hits_total": 387,
+        "felt_clause_hits_total": 1,
+        "mean_showing_density_per_100w": 1.195,
+        "mean_telling_density_per_100w": 0.9733,
+        "mean_state_be_density_per_100w": 2.2249,
+        "mean_ratio_show_tell": 4.8006,
+        "pooled_showing_density_per_100w": 1.2202,
+        "pooled_telling_density_per_100w": 0.955,
+        "pooled_state_be_density_per_100w": 2.2813,
+        "pooled_ratio_show_tell": 1.1567
+      },
+      "dialogue": {
+        "n_beats": 279,
+        "words": 29626,
+        "showing_hits_total": 355,
+        "telling_hits_total": 227,
+        "state_be_hits_total": 714,
+        "felt_clause_hits_total": 0,
+        "mean_showing_density_per_100w": 1.2051,
+        "mean_telling_density_per_100w": 0.7482,
+        "mean_state_be_density_per_100w": 2.367,
+        "mean_ratio_show_tell": 6.5357,
+        "pooled_showing_density_per_100w": 1.1983,
+        "pooled_telling_density_per_100w": 0.7662,
+        "pooled_state_be_density_per_100w": 2.41,
+        "pooled_ratio_show_tell": 1.3833
+      },
+      "action": {
+        "n_beats": 309,
+        "words": 31774,
+        "showing_hits_total": 569,
+        "telling_hits_total": 189,
+        "state_be_hits_total": 473,
+        "felt_clause_hits_total": 0,
+        "mean_showing_density_per_100w": 1.7622,
+        "mean_telling_density_per_100w": 0.5889,
+        "mean_state_be_density_per_100w": 1.4784,
+        "mean_ratio_show_tell": 10.1844,
+        "pooled_showing_density_per_100w": 1.7908,
+        "pooled_telling_density_per_100w": 0.5948,
+        "pooled_state_be_density_per_100w": 1.4886,
+        "pooled_ratio_show_tell": 2.5773
+      }
+    },
+    "streams_of_silver": {
+      "description": {
+        "n_beats": 94,
+        "words": 10592,
+        "showing_hits_total": 97,
+        "telling_hits_total": 60,
+        "state_be_hits_total": 198,
+        "felt_clause_hits_total": 0,
+        "mean_showing_density_per_100w": 0.8717,
+        "mean_telling_density_per_100w": 0.5328,
+        "mean_state_be_density_per_100w": 1.8439,
+        "mean_ratio_show_tell": 4.6597,
+        "pooled_showing_density_per_100w": 0.9158,
+        "pooled_telling_density_per_100w": 0.5665,
+        "pooled_state_be_density_per_100w": 1.8693,
+        "pooled_ratio_show_tell": 1.3741
+      },
+      "interiority": {
+        "n_beats": 162,
+        "words": 18058,
+        "showing_hits_total": 145,
+        "telling_hits_total": 157,
+        "state_be_hits_total": 461,
+        "felt_clause_hits_total": 5,
+        "mean_showing_density_per_100w": 0.7855,
+        "mean_telling_density_per_100w": 0.8649,
+        "mean_state_be_density_per_100w": 2.4944,
+        "mean_ratio_show_tell": 3.097,
+        "pooled_showing_density_per_100w": 0.803,
+        "pooled_telling_density_per_100w": 0.8694,
+        "pooled_state_be_density_per_100w": 2.5529,
+        "pooled_ratio_show_tell": 0.8283
+      },
+      "dialogue": {
+        "n_beats": 256,
+        "words": 27835,
+        "showing_hits_total": 312,
+        "telling_hits_total": 224,
+        "state_be_hits_total": 851,
+        "felt_clause_hits_total": 2,
+        "mean_showing_density_per_100w": 1.1155,
+        "mean_telling_density_per_100w": 0.7809,
+        "mean_state_be_density_per_100w": 2.9788,
+        "mean_ratio_show_tell": 5.0423,
+        "pooled_showing_density_per_100w": 1.1209,
+        "pooled_telling_density_per_100w": 0.8047,
+        "pooled_state_be_density_per_100w": 3.0573,
+        "pooled_ratio_show_tell": 1.2389
+      },
+      "action": {
+        "n_beats": 274,
+        "words": 29385,
+        "showing_hits_total": 530,
+        "telling_hits_total": 195,
+        "state_be_hits_total": 579,
+        "felt_clause_hits_total": 2,
+        "mean_showing_density_per_100w": 1.797,
+        "mean_telling_density_per_100w": 0.6442,
+        "mean_state_be_density_per_100w": 1.9441,
+        "mean_ratio_show_tell": 9.4988,
+        "pooled_showing_density_per_100w": 1.8036,
+        "pooled_telling_density_per_100w": 0.6636,
+        "pooled_state_be_density_per_100w": 1.9704,
+        "pooled_ratio_show_tell": 2.362
+      }
+    }
+  },
+  "kind_ranking_per_book": {
+    "crystal_shard": [
+      {
+        "kind": "action",
+        "mean_ratio_show_tell": 8.5766
+      },
+      {
+        "kind": "dialogue",
+        "mean_ratio_show_tell": 5.7633
+      },
+      {
+        "kind": "description",
+        "mean_ratio_show_tell": 5.2869
+      },
+      {
+        "kind": "interiority",
+        "mean_ratio_show_tell": 4.369
+      }
+    ],
+    "streams_of_silver": [
+      {
+        "kind": "action",
+        "mean_ratio_show_tell": 9.4988
+      },
+      {
+        "kind": "dialogue",
+        "mean_ratio_show_tell": 5.0423
+      },
+      {
+        "kind": "description",
+        "mean_ratio_show_tell": 4.6597
+      },
+      {
+        "kind": "interiority",
+        "mean_ratio_show_tell": 3.097
+      }
+    ],
+    "halflings_gem": [
+      {
+        "kind": "action",
+        "mean_ratio_show_tell": 10.1844
+      },
+      {
+        "kind": "description",
+        "mean_ratio_show_tell": 10.003
+      },
+      {
+        "kind": "dialogue",
+        "mean_ratio_show_tell": 6.5357
+      },
+      {
+        "kind": "interiority",
+        "mean_ratio_show_tell": 4.8006
+      }
+    ]
+  },
+  "kind_orderings_per_book": {
+    "crystal_shard": [
+      "action",
+      "dialogue",
+      "description",
+      "interiority"
+    ],
+    "streams_of_silver": [
+      "action",
+      "dialogue",
+      "description",
+      "interiority"
+    ],
+    "halflings_gem": [
+      "action",
+      "description",
+      "dialogue",
+      "interiority"
+    ]
+  },
+  "kind_orderings_match_count": 2,
+  "aggregate_kind_ranking": [
+    {
+      "kind": "action",
+      "aggregate_mean_ratio": 9.4199
+    },
+    {
+      "kind": "description",
+      "aggregate_mean_ratio": 6.6499
+    },
+    {
+      "kind": "dialogue",
+      "aggregate_mean_ratio": 5.7804
+    },
+    {
+      "kind": "interiority",
+      "aggregate_mean_ratio": 4.0889
+    }
+  ],
+  "per_kind_stability": {
+    "action": {
+      "per_book_mean_ratio": {
+        "crystal_shard": 8.5766,
+        "streams_of_silver": 9.4988,
+        "halflings_gem": 10.1844
+      },
+      "per_book_mean_showing_density": {
+        "crystal_shard": 1.6896,
+        "streams_of_silver": 1.797,
+        "halflings_gem": 1.7622
+      },
+      "per_book_mean_telling_density": {
+        "crystal_shard": 0.5672,
+        "streams_of_silver": 0.6442,
+        "halflings_gem": 0.5889
+      },
+      "per_book_mean_state_be_density": {
+        "crystal_shard": 2.0945,
+        "streams_of_silver": 1.9441,
+        "halflings_gem": 1.4784
+      },
+      "ratio_min": 8.5766,
+      "ratio_max": 10.1844,
+      "ratio_mean": 9.4199,
+      "ratio_spread_pct": 18.75,
+      "ratio_spread_le_30pct": true,
+      "showing_spread_pct": 6.36,
+      "telling_spread_pct": 13.58,
+      "state_be_spread_pct": 41.67
+    },
+    "dialogue": {
+      "per_book_mean_ratio": {
+        "crystal_shard": 5.7633,
+        "streams_of_silver": 5.0423,
+        "halflings_gem": 6.5357
+      },
+      "per_book_mean_showing_density": {
+        "crystal_shard": 0.9658,
+        "streams_of_silver": 1.1155,
+        "halflings_gem": 1.2051
+      },
+      "per_book_mean_telling_density": {
+        "crystal_shard": 0.6487,
+        "streams_of_silver": 0.7809,
+        "halflings_gem": 0.7482
+      },
+      "per_book_mean_state_be_density": {
+        "crystal_shard": 2.5207,
+        "streams_of_silver": 2.9788,
+        "halflings_gem": 2.367
+      },
+      "ratio_min": 5.0423,
+      "ratio_max": 6.5357,
+      "ratio_mean": 5.7804,
+      "ratio_spread_pct": 29.62,
+      "ratio_spread_le_30pct": true,
+      "showing_spread_pct": 24.78,
+      "telling_spread_pct": 20.38,
+      "state_be_spread_pct": 25.85
+    },
+    "interiority": {
+      "per_book_mean_ratio": {
+        "crystal_shard": 4.369,
+        "streams_of_silver": 3.097,
+        "halflings_gem": 4.8006
+      },
+      "per_book_mean_showing_density": {
+        "crystal_shard": 1.0483,
+        "streams_of_silver": 0.7855,
+        "halflings_gem": 1.195
+      },
+      "per_book_mean_telling_density": {
+        "crystal_shard": 0.9051,
+        "streams_of_silver": 0.8649,
+        "halflings_gem": 0.9733
+      },
+      "per_book_mean_state_be_density": {
+        "crystal_shard": 2.9124,
+        "streams_of_silver": 2.4944,
+        "halflings_gem": 2.2249
+      },
+      "ratio_min": 3.097,
+      "ratio_max": 4.8006,
+      "ratio_mean": 4.0889,
+      "ratio_spread_pct": 55.01,
+      "ratio_spread_le_30pct": false,
+      "showing_spread_pct": 52.13,
+      "telling_spread_pct": 12.53,
+      "state_be_spread_pct": 30.9
+    },
+    "description": {
+      "per_book_mean_ratio": {
+        "crystal_shard": 5.2869,
+        "streams_of_silver": 4.6597,
+        "halflings_gem": 10.003
+      },
+      "per_book_mean_showing_density": {
+        "crystal_shard": 0.9144,
+        "streams_of_silver": 0.8717,
+        "halflings_gem": 1.5409
+      },
+      "per_book_mean_telling_density": {
+        "crystal_shard": 0.4635,
+        "streams_of_silver": 0.5328,
+        "halflings_gem": 0.5629
+      },
+      "per_book_mean_state_be_density": {
+        "crystal_shard": 2.5764,
+        "streams_of_silver": 1.8439,
+        "halflings_gem": 1.7755
+      },
+      "ratio_min": 4.6597,
+      "ratio_max": 10.003,
+      "ratio_mean": 6.6499,
+      "ratio_spread_pct": 114.67,
+      "ratio_spread_le_30pct": false,
+      "showing_spread_pct": 76.77,
+      "telling_spread_pct": 21.45,
+      "state_be_spread_pct": 45.11
+    }
+  },
+  "corpus_showing_mean_per_100w": 1.3115,
+  "corpus_telling_mean_per_100w": 0.6921,
+  "corpus_state_be_mean_per_100w": 2.2639,
+  "corpus_showing_sd_per_100w": 1.2947,
+  "corpus_telling_sd_per_100w": 0.8425,
+  "corpus_state_be_sd_per_100w": 1.7589,
+  "telling_cluster_threshold_per_100w": 1.3842,
+  "telling_cluster_n_beats": 445,
+  "telling_cluster_share_pct": 18.02,
+  "telling_cluster_kind_dist": {
+    "action": 126,
+    "interiority": 132,
+    "dialogue": 150,
+    "description": 37
+  },
+  "telling_cluster_book_dist": {
+    "crystal_shard": 132,
+    "halflings_gem": 156,
+    "streams_of_silver": 157
+  },
+  "telling_cluster_kind_share_pct": {
+    "action": 28.31,
+    "interiority": 29.66,
+    "dialogue": 33.71,
+    "description": 8.31
+  },
+  "was_density_per_book_per_100w": {
+    "crystal_shard": 2.485,
+    "streams_of_silver": 2.4327,
+    "halflings_gem": 1.9841
+  },
+  "was_density_spread_pct": 25.25,
+  "overall_verdict": "PASS_PARTIAL",
+  "verdict_summary": "Per-kind ordering reproduces 2/3 books \u2014 borderline-stable signal."
+}

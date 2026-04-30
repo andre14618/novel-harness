@@ -1,0 +1,800 @@
+{
+  "pattern_number": 63,
+  "pattern_name": "Compound-hyphenated modifier density",
+  "slug": "compound-modifiers",
+  "commit": "a3da6d1",
+  "timestamp_utc": "2026-04-30T16:26:50.931470+00:00",
+  "beats_path": "novels/salvatore-icewind-dale/beats.jsonl",
+  "skipped_beats": 1,
+  "active_kinds": [
+    "action",
+    "dialogue",
+    "interiority",
+    "description"
+  ],
+  "books": [
+    "crystal_shard",
+    "streams_of_silver",
+    "halflings_gem"
+  ],
+  "per_book_overall": {
+    "crystal_shard": {
+      "words": 89901,
+      "compound_hits": 286,
+      "pooled_density_per_100w": 0.3181,
+      "distinct_tokens": 213,
+      "proper_hits": 381,
+      "numeric_hits": 0
+    },
+    "streams_of_silver": {
+      "words": 85870,
+      "compound_hits": 217,
+      "pooled_density_per_100w": 0.2527,
+      "distinct_tokens": 173,
+      "proper_hits": 377,
+      "numeric_hits": 0
+    },
+    "halflings_gem": {
+      "words": 86891,
+      "compound_hits": 193,
+      "pooled_density_per_100w": 0.2221,
+      "distinct_tokens": 158,
+      "proper_hits": 371,
+      "numeric_hits": 0
+    }
+  },
+  "per_book_per_kind": {
+    "crystal_shard": {
+      "action": {
+        "n_beats": 308,
+        "words": 32318,
+        "compound_hits": 98,
+        "mean_density_per_100w": 0.2998,
+        "pooled_density_per_100w": 0.3032
+      },
+      "dialogue": {
+        "n_beats": 242,
+        "words": 25358,
+        "compound_hits": 68,
+        "mean_density_per_100w": 0.2646,
+        "pooled_density_per_100w": 0.2682
+      },
+      "interiority": {
+        "n_beats": 177,
+        "words": 18782,
+        "compound_hits": 54,
+        "mean_density_per_100w": 0.2744,
+        "pooled_density_per_100w": 0.2875
+      },
+      "description": {
+        "n_beats": 130,
+        "words": 13443,
+        "compound_hits": 66,
+        "mean_density_per_100w": 0.5002,
+        "pooled_density_per_100w": 0.491
+      }
+    },
+    "streams_of_silver": {
+      "action": {
+        "n_beats": 274,
+        "words": 29385,
+        "compound_hits": 79,
+        "mean_density_per_100w": 0.2552,
+        "pooled_density_per_100w": 0.2688
+      },
+      "dialogue": {
+        "n_beats": 256,
+        "words": 27835,
+        "compound_hits": 51,
+        "mean_density_per_100w": 0.1893,
+        "pooled_density_per_100w": 0.1832
+      },
+      "interiority": {
+        "n_beats": 162,
+        "words": 18058,
+        "compound_hits": 49,
+        "mean_density_per_100w": 0.2637,
+        "pooled_density_per_100w": 0.2713
+      },
+      "description": {
+        "n_beats": 94,
+        "words": 10592,
+        "compound_hits": 38,
+        "mean_density_per_100w": 0.3729,
+        "pooled_density_per_100w": 0.3588
+      }
+    },
+    "halflings_gem": {
+      "action": {
+        "n_beats": 309,
+        "words": 31774,
+        "compound_hits": 87,
+        "mean_density_per_100w": 0.2634,
+        "pooled_density_per_100w": 0.2738
+      },
+      "dialogue": {
+        "n_beats": 279,
+        "words": 29626,
+        "compound_hits": 49,
+        "mean_density_per_100w": 0.1614,
+        "pooled_density_per_100w": 0.1654
+      },
+      "interiority": {
+        "n_beats": 159,
+        "words": 16964,
+        "compound_hits": 28,
+        "mean_density_per_100w": 0.1653,
+        "pooled_density_per_100w": 0.1651
+      },
+      "description": {
+        "n_beats": 79,
+        "words": 8527,
+        "compound_hits": 29,
+        "mean_density_per_100w": 0.3369,
+        "pooled_density_per_100w": 0.3401
+      }
+    }
+  },
+  "per_book_kind_ranking": {
+    "crystal_shard": [
+      "description",
+      "action",
+      "interiority",
+      "dialogue"
+    ],
+    "streams_of_silver": [
+      "description",
+      "interiority",
+      "action",
+      "dialogue"
+    ],
+    "halflings_gem": [
+      "description",
+      "action",
+      "interiority",
+      "dialogue"
+    ]
+  },
+  "per_book_top30": {
+    "crystal_shard": [
+      {
+        "compound": "one-eyed",
+        "count": 12,
+        "class": "color"
+      },
+      {
+        "compound": "hard-pressed",
+        "count": 7,
+        "class": "sensory"
+      },
+      {
+        "compound": "dark-haired",
+        "count": 7,
+        "class": "color"
+      },
+      {
+        "compound": "new-found",
+        "count": 5,
+        "class": "evaluative"
+      },
+      {
+        "compound": "would-be",
+        "count": 4,
+        "class": "evaluative"
+      },
+      {
+        "compound": "one-half",
+        "count": 4,
+        "class": "unclassified"
+      },
+      {
+        "compound": "good-natured",
+        "count": 4,
+        "class": "evaluative"
+      },
+      {
+        "compound": "long-standing",
+        "count": 4,
+        "class": "evaluative"
+      },
+      {
+        "compound": "iron-bound",
+        "count": 3,
+        "class": "sensory"
+      },
+      {
+        "compound": "off-balance",
+        "count": 3,
+        "class": "unclassified"
+      },
+      {
+        "compound": "battle-seasoned",
+        "count": 3,
+        "class": "evaluative"
+      },
+      {
+        "compound": "foul-smelling",
+        "count": 3,
+        "class": "sensory"
+      },
+      {
+        "compound": "self-doubts",
+        "count": 3,
+        "class": "evaluative"
+      },
+      {
+        "compound": "self-assured",
+        "count": 2,
+        "class": "evaluative"
+      },
+      {
+        "compound": "blood-red",
+        "count": 2,
+        "class": "color"
+      },
+      {
+        "compound": "little-used",
+        "count": 2,
+        "class": "unclassified"
+      },
+      {
+        "compound": "awe-stricken",
+        "count": 2,
+        "class": "evaluative"
+      },
+      {
+        "compound": "battle-ready",
+        "count": 2,
+        "class": "sensory"
+      },
+      {
+        "compound": "ever-alert",
+        "count": 2,
+        "class": "sensory"
+      },
+      {
+        "compound": "matter-of-factly",
+        "count": 2,
+        "class": "evaluative"
+      },
+      {
+        "compound": "two-fold",
+        "count": 2,
+        "class": "unclassified"
+      },
+      {
+        "compound": "fair-sized",
+        "count": 2,
+        "class": "unclassified"
+      },
+      {
+        "compound": "snow-capped",
+        "count": 2,
+        "class": "color"
+      },
+      {
+        "compound": "well-earned",
+        "count": 2,
+        "class": "evaluative"
+      },
+      {
+        "compound": "self-important",
+        "count": 2,
+        "class": "evaluative"
+      },
+      {
+        "compound": "many-thonged",
+        "count": 2,
+        "class": "unclassified"
+      },
+      {
+        "compound": "half-guessing",
+        "count": 2,
+        "class": "unclassified"
+      },
+      {
+        "compound": "fair-skinned",
+        "count": 2,
+        "class": "color"
+      },
+      {
+        "compound": "life-giving",
+        "count": 2,
+        "class": "unclassified"
+      },
+      {
+        "compound": "blood-stained",
+        "count": 2,
+        "class": "color"
+      }
+    ],
+    "streams_of_silver": [
+      {
+        "compound": "dark-haired",
+        "count": 11,
+        "class": "color"
+      },
+      {
+        "compound": "would-be",
+        "count": 4,
+        "class": "evaluative"
+      },
+      {
+        "compound": "short-lived",
+        "count": 4,
+        "class": "evaluative"
+      },
+      {
+        "compound": "long-dead",
+        "count": 3,
+        "class": "evaluative"
+      },
+      {
+        "compound": "war-hammer",
+        "count": 3,
+        "class": "evaluative"
+      },
+      {
+        "compound": "oil-soaked",
+        "count": 3,
+        "class": "unclassified"
+      },
+      {
+        "compound": "ever-present",
+        "count": 3,
+        "class": "evaluative"
+      },
+      {
+        "compound": "wide-eyed",
+        "count": 3,
+        "class": "color"
+      },
+      {
+        "compound": "gem-studded",
+        "count": 3,
+        "class": "unclassified"
+      },
+      {
+        "compound": "well-placed",
+        "count": 2,
+        "class": "evaluative"
+      },
+      {
+        "compound": "semi-circle",
+        "count": 2,
+        "class": "unclassified"
+      },
+      {
+        "compound": "burned-out",
+        "count": 2,
+        "class": "unclassified"
+      },
+      {
+        "compound": "ever-alert",
+        "count": 2,
+        "class": "sensory"
+      },
+      {
+        "compound": "mid-air",
+        "count": 2,
+        "class": "unclassified"
+      },
+      {
+        "compound": "dwarf-friend",
+        "count": 2,
+        "class": "unclassified"
+      },
+      {
+        "compound": "battle-seasoned",
+        "count": 2,
+        "class": "evaluative"
+      },
+      {
+        "compound": "long-forgotten",
+        "count": 2,
+        "class": "unclassified"
+      },
+      {
+        "compound": "ever-burning",
+        "count": 2,
+        "class": "sensory"
+      },
+      {
+        "compound": "low-pulled",
+        "count": 2,
+        "class": "unclassified"
+      },
+      {
+        "compound": "half-a-man",
+        "count": 2,
+        "class": "unclassified"
+      },
+      {
+        "compound": "cross-legged",
+        "count": 2,
+        "class": "unclassified"
+      },
+      {
+        "compound": "black-cloaked",
+        "count": 2,
+        "class": "color"
+      },
+      {
+        "compound": "up-and-down",
+        "count": 2,
+        "class": "unclassified"
+      },
+      {
+        "compound": "many-notched",
+        "count": 2,
+        "class": "unclassified"
+      },
+      {
+        "compound": "black-haired",
+        "count": 2,
+        "class": "color"
+      },
+      {
+        "compound": "fair-sized",
+        "count": 1,
+        "class": "unclassified"
+      },
+      {
+        "compound": "split-legged",
+        "count": 1,
+        "class": "unclassified"
+      },
+      {
+        "compound": "quick-thinking",
+        "count": 1,
+        "class": "sensory"
+      },
+      {
+        "compound": "half-buried",
+        "count": 1,
+        "class": "unclassified"
+      },
+      {
+        "compound": "silver-streamed",
+        "count": 1,
+        "class": "color"
+      }
+    ],
+    "halflings_gem": [
+      {
+        "compound": "one-horned",
+        "count": 8,
+        "class": "unclassified"
+      },
+      {
+        "compound": "red-bearded",
+        "count": 8,
+        "class": "color"
+      },
+      {
+        "compound": "gold-and-ivory",
+        "count": 3,
+        "class": "color"
+      },
+      {
+        "compound": "half-sized",
+        "count": 3,
+        "class": "unclassified"
+      },
+      {
+        "compound": "half-opened",
+        "count": 3,
+        "class": "unclassified"
+      },
+      {
+        "compound": "pearl-tipped",
+        "count": 3,
+        "class": "unclassified"
+      },
+      {
+        "compound": "battle-hardened",
+        "count": 3,
+        "class": "evaluative"
+      },
+      {
+        "compound": "low-riding",
+        "count": 2,
+        "class": "unclassified"
+      },
+      {
+        "compound": "tan-robed",
+        "count": 2,
+        "class": "color"
+      },
+      {
+        "compound": "upside-down",
+        "count": 2,
+        "class": "unclassified"
+      },
+      {
+        "compound": "razor-sharp",
+        "count": 2,
+        "class": "sensory"
+      },
+      {
+        "compound": "shield-slammed",
+        "count": 2,
+        "class": "unclassified"
+      },
+      {
+        "compound": "ever-present",
+        "count": 2,
+        "class": "evaluative"
+      },
+      {
+        "compound": "three-fingered",
+        "count": 2,
+        "class": "unclassified"
+      },
+      {
+        "compound": "ash-covered",
+        "count": 2,
+        "class": "color"
+      },
+      {
+        "compound": "barrel-chested",
+        "count": 2,
+        "class": "unclassified"
+      },
+      {
+        "compound": "half-mile",
+        "count": 2,
+        "class": "unclassified"
+      },
+      {
+        "compound": "long-standing",
+        "count": 2,
+        "class": "evaluative"
+      },
+      {
+        "compound": "ball-tipped",
+        "count": 1,
+        "class": "unclassified"
+      },
+      {
+        "compound": "straight-legged",
+        "count": 1,
+        "class": "unclassified"
+      },
+      {
+        "compound": "good-byes",
+        "count": 1,
+        "class": "evaluative"
+      },
+      {
+        "compound": "battle-charged",
+        "count": 1,
+        "class": "evaluative"
+      },
+      {
+        "compound": "good-bye",
+        "count": 1,
+        "class": "evaluative"
+      },
+      {
+        "compound": "blue-gray",
+        "count": 1,
+        "class": "color"
+      },
+      {
+        "compound": "half-hour",
+        "count": 1,
+        "class": "unclassified"
+      },
+      {
+        "compound": "self-restraint",
+        "count": 1,
+        "class": "evaluative"
+      },
+      {
+        "compound": "night-attuned",
+        "count": 1,
+        "class": "unclassified"
+      },
+      {
+        "compound": "fast-flying",
+        "count": 1,
+        "class": "unclassified"
+      },
+      {
+        "compound": "wind-filled",
+        "count": 1,
+        "class": "unclassified"
+      },
+      {
+        "compound": "ice-forged",
+        "count": 1,
+        "class": "color"
+      }
+    ]
+  },
+  "per_book_top30_intersection_3way": [],
+  "top30_pairwise_jaccard": {
+    "crystal_shard__streams_of_silver": 0.0909,
+    "crystal_shard__halflings_gem": 0.0169,
+    "streams_of_silver__halflings_gem": 0.0169
+  },
+  "per_book_class_share": {
+    "crystal_shard": {
+      "color": 0.1643,
+      "sensory": 0.1049,
+      "evaluative": 0.2483,
+      "unclassified": 0.4825
+    },
+    "streams_of_silver": {
+      "color": 0.1521,
+      "sensory": 0.0645,
+      "evaluative": 0.212,
+      "unclassified": 0.5714
+    },
+    "halflings_gem": {
+      "color": 0.1658,
+      "sensory": 0.0207,
+      "evaluative": 0.1503,
+      "unclassified": 0.6632
+    }
+  },
+  "per_book_modal_class": {
+    "crystal_shard": "evaluative",
+    "streams_of_silver": "evaluative",
+    "halflings_gem": "color"
+  },
+  "per_book_top_kind": {
+    "crystal_shard": "description",
+    "streams_of_silver": "description",
+    "halflings_gem": "description"
+  },
+  "per_book_proper_top10": {
+    "crystal_shard": [
+      {
+        "term": "Ten-Towns",
+        "count": 121
+      },
+      {
+        "term": "Aegis-fang",
+        "count": 63
+      },
+      {
+        "term": "Cryshal-Tirith",
+        "count": 56
+      },
+      {
+        "term": "Catti-brie",
+        "count": 46
+      },
+      {
+        "term": "Caer-Konig",
+        "count": 36
+      },
+      {
+        "term": "Caer-Dineval",
+        "count": 36
+      },
+      {
+        "term": "Ten-Tbwns",
+        "count": 4
+      },
+      {
+        "term": "Tin-Towns",
+        "count": 2
+      },
+      {
+        "term": "Arrow-straight",
+        "count": 1
+      },
+      {
+        "term": "Spear-size",
+        "count": 1
+      }
+    ],
+    "streams_of_silver": [
+      {
+        "term": "Catti-brie",
+        "count": 267
+      },
+      {
+        "term": "Ten-Towns",
+        "count": 47
+      },
+      {
+        "term": "Aegis-fang",
+        "count": 41
+      },
+      {
+        "term": "Half-Moon",
+        "count": 3
+      },
+      {
+        "term": "Silvery-moon",
+        "count": 2
+      },
+      {
+        "term": "Dwarven-sized",
+        "count": 2
+      },
+      {
+        "term": "Long-haired",
+        "count": 1
+      },
+      {
+        "term": "Ever-moors",
+        "count": 1
+      },
+      {
+        "term": "Moss-covered",
+        "count": 1
+      },
+      {
+        "term": "Bas-relief",
+        "count": 1
+      }
+    ],
+    "halflings_gem": [
+      {
+        "term": "Catti-brie",
+        "count": 318
+      },
+      {
+        "term": "Aegis-fang",
+        "count": 42
+      },
+      {
+        "term": "Good-bye",
+        "count": 3
+      },
+      {
+        "term": "Twenty-two",
+        "count": 2
+      },
+      {
+        "term": "Wide-eyed",
+        "count": 1
+      },
+      {
+        "term": "Wh-Where",
+        "count": 1
+      },
+      {
+        "term": "Fine-tuned",
+        "count": 1
+      },
+      {
+        "term": "Venom-dripping",
+        "count": 1
+      },
+      {
+        "term": "Ten-Towns",
+        "count": 1
+      },
+      {
+        "term": "Twenty-five",
+        "count": 1
+      }
+    ]
+  },
+  "per_book_numeric_top10": {
+    "crystal_shard": [],
+    "streams_of_silver": [],
+    "halflings_gem": []
+  },
+  "gates": {
+    "G1_description_density_spread": "PASS_PARTIAL",
+    "G2_per_kind_ranking_top2_jaccard": {
+      "jaccard": 0.5556,
+      "verdict": "PASS_PARTIAL"
+    },
+    "G3_top30_lexicon_overlap": {
+      "intersection_size": 0,
+      "verdict": "DIVERGE"
+    },
+    "G4_modal_classification": "PASS_PARTIAL",
+    "G5_argmax_kind": "PASS",
+    "overall_density_spread_diagnostic": "PASS_PARTIAL"
+  },
+  "verdict": "DIVERGE"
+}

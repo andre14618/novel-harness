@@ -1,0 +1,1253 @@
+{
+  "pattern_id": 66,
+  "pattern_name": "Combat verb-chain sequences",
+  "commit": "a3da6d1",
+  "beats_path": "novels/salvatore-icewind-dale/beats.jsonl",
+  "lexicon": {
+    "POSITIONING": [
+      "turn",
+      "turned",
+      "turning",
+      "turns",
+      "move",
+      "moved",
+      "moving",
+      "moves",
+      "step",
+      "stepped",
+      "stepping",
+      "steps",
+      "lean",
+      "leaned",
+      "leaning",
+      "leans",
+      "crouch",
+      "crouched",
+      "crouching",
+      "crouches",
+      "bend",
+      "bent",
+      "bending",
+      "bends",
+      "twist",
+      "twisted",
+      "twisting",
+      "twists",
+      "spin",
+      "spun",
+      "spinning",
+      "spins",
+      "shift",
+      "shifted",
+      "shifting",
+      "shifts",
+      "rise",
+      "rose",
+      "risen",
+      "rising",
+      "rises",
+      "wheel",
+      "wheeled",
+      "wheeling",
+      "wheels"
+    ],
+    "APPROACH": [
+      "walk",
+      "walked",
+      "walking",
+      "walks",
+      "run",
+      "ran",
+      "running",
+      "runs",
+      "stride",
+      "strode",
+      "striding",
+      "strides",
+      "charge",
+      "charged",
+      "charging",
+      "charges",
+      "race",
+      "raced",
+      "racing",
+      "races",
+      "rush",
+      "rushed",
+      "rushing",
+      "rushes",
+      "leap",
+      "leaped",
+      "leapt",
+      "leaping",
+      "leaps",
+      "jump",
+      "jumped",
+      "jumping",
+      "jumps",
+      "dive",
+      "dived",
+      "dove",
+      "diving",
+      "dives",
+      "lunge",
+      "lunged",
+      "lunging",
+      "lunges",
+      "advance",
+      "advanced",
+      "advancing",
+      "advances",
+      "approach",
+      "approached",
+      "approaching",
+      "approaches",
+      "spring",
+      "sprang",
+      "sprung",
+      "springing",
+      "springs"
+    ],
+    "STRIKE": [
+      "swing",
+      "swung",
+      "swinging",
+      "swings",
+      "slash",
+      "slashed",
+      "slashing",
+      "slashes",
+      "thrust",
+      "thrusting",
+      "thrusts",
+      "stab",
+      "stabbed",
+      "stabbing",
+      "stabs",
+      "hit",
+      "hitting",
+      "hits",
+      "strike",
+      "struck",
+      "striking",
+      "strikes",
+      "punch",
+      "punched",
+      "punching",
+      "punches",
+      "kick",
+      "kicked",
+      "kicking",
+      "kicks",
+      "smash",
+      "smashed",
+      "smashing",
+      "smashes",
+      "slam",
+      "slammed",
+      "slamming",
+      "slams",
+      "crash",
+      "crashed",
+      "crashing",
+      "crashes",
+      "drove"
+    ],
+    "GRIP": [
+      "grab",
+      "grabbed",
+      "grabbing",
+      "grabs",
+      "grasp",
+      "grasped",
+      "grasping",
+      "grasps",
+      "clutch",
+      "clutched",
+      "clutching",
+      "clutches",
+      "hold",
+      "held",
+      "holding",
+      "holds",
+      "seize",
+      "seized",
+      "seizing",
+      "seizes",
+      "snatch",
+      "snatched",
+      "snatching",
+      "snatches",
+      "pull",
+      "pulled",
+      "pulling",
+      "pulls",
+      "push",
+      "pushed",
+      "pushing",
+      "pushes",
+      "drag",
+      "dragged",
+      "dragging",
+      "drags",
+      "lift",
+      "lifted",
+      "lifting",
+      "lifts",
+      "heft",
+      "hefted",
+      "hefting",
+      "hefts",
+      "raise",
+      "raised",
+      "raising",
+      "raises",
+      "lower",
+      "lowered",
+      "lowering",
+      "lowers"
+    ],
+    "FALL": [
+      "fall",
+      "fell",
+      "fallen",
+      "falling",
+      "falls",
+      "drop",
+      "dropped",
+      "dropping",
+      "drops",
+      "collapse",
+      "collapsed",
+      "collapsing",
+      "collapses",
+      "tumble",
+      "tumbled",
+      "tumbling",
+      "tumbles",
+      "sink",
+      "sank",
+      "sunk",
+      "sinking",
+      "sinks",
+      "topple",
+      "toppled",
+      "toppling",
+      "topples"
+    ],
+    "SENSE": [
+      "see",
+      "saw",
+      "seen",
+      "seeing",
+      "sees",
+      "hear",
+      "heard",
+      "hearing",
+      "hears",
+      "feel",
+      "felt",
+      "feeling",
+      "feels",
+      "watch",
+      "watched",
+      "watching",
+      "watches",
+      "look",
+      "looked",
+      "looking",
+      "looks",
+      "gaze",
+      "gazed",
+      "gazing",
+      "gazes",
+      "listen",
+      "listened",
+      "listening",
+      "listens",
+      "glance",
+      "glanced",
+      "glancing",
+      "glances",
+      "peer",
+      "peered",
+      "peering",
+      "peers",
+      "notice",
+      "noticed",
+      "noticing",
+      "notices",
+      "spot",
+      "spotted",
+      "spotting",
+      "spots"
+    ],
+    "REACT": [
+      "dodge",
+      "dodged",
+      "dodging",
+      "dodges",
+      "parry",
+      "parried",
+      "parrying",
+      "parries",
+      "block",
+      "blocked",
+      "blocking",
+      "blocks",
+      "deflect",
+      "deflected",
+      "deflecting",
+      "deflects",
+      "evade",
+      "evaded",
+      "evading",
+      "evades",
+      "duck",
+      "ducked",
+      "ducking",
+      "ducks",
+      "recoil",
+      "recoiled",
+      "recoiling",
+      "recoils",
+      "flinch",
+      "flinched",
+      "flinching",
+      "flinches"
+    ],
+    "COGNITIVE": [
+      "realize",
+      "realized",
+      "realizing",
+      "realizes",
+      "think",
+      "thought",
+      "thinking",
+      "thinks",
+      "know",
+      "knew",
+      "known",
+      "knowing",
+      "knows",
+      "decide",
+      "decided",
+      "deciding",
+      "decides",
+      "understand",
+      "understood",
+      "understanding",
+      "understands",
+      "remember",
+      "remembered",
+      "remembering",
+      "remembers"
+    ]
+  },
+  "lexicon_size_per_class": {
+    "POSITIONING": 45,
+    "APPROACH": 55,
+    "STRIKE": 43,
+    "GRIP": 52,
+    "FALL": 26,
+    "SENSE": 45,
+    "REACT": 32,
+    "COGNITIVE": 25
+  },
+  "lexicon_total_unique_tokens": 323,
+  "methodology": {
+    "active_kind": "action",
+    "min_verbs_per_beat": 3,
+    "books": [
+      "crystal_shard",
+      "streams_of_silver",
+      "halflings_gem"
+    ],
+    "classes": [
+      "POSITIONING",
+      "APPROACH",
+      "STRIKE",
+      "GRIP",
+      "FALL",
+      "SENSE",
+      "REACT",
+      "COGNITIVE"
+    ],
+    "tertile_buckets": {
+      "start": "[0, 0.33]",
+      "mid": "(0.33, 0.67]",
+      "end": "(0.67, 1.0]"
+    },
+    "cross_book_gate": {
+      "PASS": "top-3 bigrams 3/3 AND class-position modal-tertile 3/3 for >=6 of 8 classes",
+      "PASS_PARTIAL": "top-3 bigrams >=2/3 OR class-position modal 4-5 of 8",
+      "KILL": "top-3 bigrams 0/3 AND class-position modal <=3 of 8",
+      "DIVERGE": "neither floor met"
+    }
+  },
+  "n_action_beats_total": 891,
+  "n_action_beats_used": 706,
+  "n_action_beats_skipped_short": 185,
+  "skipped_short_per_book": {
+    "crystal_shard": 68,
+    "halflings_gem": 63,
+    "streams_of_silver": 54
+  },
+  "min_verbs_per_beat": 3,
+  "n_classes": 8,
+  "classes": [
+    "POSITIONING",
+    "APPROACH",
+    "STRIKE",
+    "GRIP",
+    "FALL",
+    "SENSE",
+    "REACT",
+    "COGNITIVE"
+  ],
+  "class_density_per_book": {
+    "crystal_shard": {
+      "POSITIONING": 0.1419,
+      "APPROACH": 0.1626,
+      "STRIKE": 0.0998,
+      "GRIP": 0.1323,
+      "FALL": 0.0857,
+      "SENSE": 0.2395,
+      "REACT": 0.0333,
+      "COGNITIVE": 0.105
+    },
+    "streams_of_silver": {
+      "POSITIONING": 0.1924,
+      "APPROACH": 0.141,
+      "STRIKE": 0.0999,
+      "GRIP": 0.1314,
+      "FALL": 0.0756,
+      "SENSE": 0.2151,
+      "REACT": 0.0257,
+      "COGNITIVE": 0.1189
+    },
+    "halflings_gem": {
+      "POSITIONING": 0.1885,
+      "APPROACH": 0.1226,
+      "STRIKE": 0.1063,
+      "GRIP": 0.1538,
+      "FALL": 0.0836,
+      "SENSE": 0.1942,
+      "REACT": 0.0326,
+      "COGNITIVE": 0.1184
+    }
+  },
+  "class_counts_per_book": {
+    "crystal_shard": {
+      "COGNITIVE": 142,
+      "SENSE": 324,
+      "FALL": 116,
+      "POSITIONING": 192,
+      "GRIP": 179,
+      "APPROACH": 220,
+      "STRIKE": 135,
+      "REACT": 45
+    },
+    "streams_of_silver": {
+      "GRIP": 179,
+      "POSITIONING": 262,
+      "SENSE": 293,
+      "STRIKE": 136,
+      "APPROACH": 192,
+      "FALL": 103,
+      "COGNITIVE": 162,
+      "REACT": 35
+    },
+    "halflings_gem": {
+      "APPROACH": 173,
+      "COGNITIVE": 167,
+      "SENSE": 274,
+      "POSITIONING": 266,
+      "FALL": 118,
+      "GRIP": 217,
+      "STRIKE": 150,
+      "REACT": 46
+    }
+  },
+  "top_trigrams_per_book": {
+    "crystal_shard": [
+      {
+        "trigram": "SENSE \u2192 SENSE \u2192 SENSE",
+        "count": 22
+      },
+      {
+        "trigram": "COGNITIVE \u2192 SENSE \u2192 SENSE",
+        "count": 13
+      },
+      {
+        "trigram": "POSITIONING \u2192 SENSE \u2192 SENSE",
+        "count": 12
+      },
+      {
+        "trigram": "SENSE \u2192 APPROACH \u2192 SENSE",
+        "count": 10
+      },
+      {
+        "trigram": "SENSE \u2192 SENSE \u2192 COGNITIVE",
+        "count": 10
+      },
+      {
+        "trigram": "SENSE \u2192 SENSE \u2192 GRIP",
+        "count": 8
+      },
+      {
+        "trigram": "SENSE \u2192 COGNITIVE \u2192 POSITIONING",
+        "count": 8
+      },
+      {
+        "trigram": "APPROACH \u2192 APPROACH \u2192 GRIP",
+        "count": 8
+      },
+      {
+        "trigram": "GRIP \u2192 COGNITIVE \u2192 SENSE",
+        "count": 8
+      },
+      {
+        "trigram": "SENSE \u2192 SENSE \u2192 STRIKE",
+        "count": 8
+      }
+    ],
+    "streams_of_silver": [
+      {
+        "trigram": "POSITIONING \u2192 POSITIONING \u2192 SENSE",
+        "count": 13
+      },
+      {
+        "trigram": "POSITIONING \u2192 SENSE \u2192 POSITIONING",
+        "count": 13
+      },
+      {
+        "trigram": "SENSE \u2192 SENSE \u2192 SENSE",
+        "count": 12
+      },
+      {
+        "trigram": "SENSE \u2192 SENSE \u2192 POSITIONING",
+        "count": 11
+      },
+      {
+        "trigram": "COGNITIVE \u2192 SENSE \u2192 SENSE",
+        "count": 10
+      },
+      {
+        "trigram": "SENSE \u2192 POSITIONING \u2192 POSITIONING",
+        "count": 10
+      },
+      {
+        "trigram": "COGNITIVE \u2192 POSITIONING \u2192 SENSE",
+        "count": 10
+      },
+      {
+        "trigram": "POSITIONING \u2192 SENSE \u2192 APPROACH",
+        "count": 9
+      },
+      {
+        "trigram": "GRIP \u2192 SENSE \u2192 SENSE",
+        "count": 9
+      },
+      {
+        "trigram": "POSITIONING \u2192 SENSE \u2192 SENSE",
+        "count": 9
+      }
+    ],
+    "halflings_gem": [
+      {
+        "trigram": "POSITIONING \u2192 SENSE \u2192 POSITIONING",
+        "count": 11
+      },
+      {
+        "trigram": "SENSE \u2192 POSITIONING \u2192 SENSE",
+        "count": 11
+      },
+      {
+        "trigram": "POSITIONING \u2192 SENSE \u2192 COGNITIVE",
+        "count": 10
+      },
+      {
+        "trigram": "POSITIONING \u2192 COGNITIVE \u2192 POSITIONING",
+        "count": 9
+      },
+      {
+        "trigram": "POSITIONING \u2192 POSITIONING \u2192 POSITIONING",
+        "count": 9
+      },
+      {
+        "trigram": "GRIP \u2192 GRIP \u2192 POSITIONING",
+        "count": 8
+      },
+      {
+        "trigram": "POSITIONING \u2192 SENSE \u2192 GRIP",
+        "count": 8
+      },
+      {
+        "trigram": "GRIP \u2192 POSITIONING \u2192 POSITIONING",
+        "count": 8
+      },
+      {
+        "trigram": "SENSE \u2192 COGNITIVE \u2192 SENSE",
+        "count": 8
+      },
+      {
+        "trigram": "POSITIONING \u2192 POSITIONING \u2192 SENSE",
+        "count": 8
+      }
+    ]
+  },
+  "trigram_top10_3way_intersection": [],
+  "trigram_top10_pairwise_intersection": {
+    "crystal_shard\u2229streams_of_silver": [
+      "POSITIONING \u2192 SENSE \u2192 SENSE",
+      "SENSE \u2192 SENSE \u2192 SENSE",
+      "COGNITIVE \u2192 SENSE \u2192 SENSE"
+    ],
+    "crystal_shard\u2229halflings_gem": [],
+    "streams_of_silver\u2229halflings_gem": [
+      "POSITIONING \u2192 POSITIONING \u2192 SENSE",
+      "POSITIONING \u2192 SENSE \u2192 POSITIONING"
+    ]
+  },
+  "trigram_top10_3way_count": 0,
+  "top_bigrams_per_book": {
+    "crystal_shard": [
+      {
+        "bigram": "SENSE \u2192 SENSE",
+        "count": 84
+      },
+      {
+        "bigram": "SENSE \u2192 APPROACH",
+        "count": 43
+      },
+      {
+        "bigram": "APPROACH \u2192 APPROACH",
+        "count": 43
+      }
+    ],
+    "streams_of_silver": [
+      {
+        "bigram": "POSITIONING \u2192 SENSE",
+        "count": 57
+      },
+      {
+        "bigram": "SENSE \u2192 SENSE",
+        "count": 57
+      },
+      {
+        "bigram": "SENSE \u2192 POSITIONING",
+        "count": 50
+      }
+    ],
+    "halflings_gem": [
+      {
+        "bigram": "POSITIONING \u2192 SENSE",
+        "count": 55
+      },
+      {
+        "bigram": "SENSE \u2192 POSITIONING",
+        "count": 44
+      },
+      {
+        "bigram": "SENSE \u2192 COGNITIVE",
+        "count": 42
+      }
+    ]
+  },
+  "bigram_top3_3way_intersection": [],
+  "bigram_top3_pairwise_intersection": {
+    "crystal_shard\u2229streams_of_silver": [
+      "SENSE \u2192 SENSE"
+    ],
+    "crystal_shard\u2229halflings_gem": [],
+    "streams_of_silver\u2229halflings_gem": [
+      "POSITIONING \u2192 SENSE",
+      "SENSE \u2192 POSITIONING"
+    ]
+  },
+  "bigram_top3_3way_count": 0,
+  "transition_probabilities_per_book": {
+    "crystal_shard": {
+      "POSITIONING": {
+        "POSITIONING": 0.15483870967741936,
+        "APPROACH": 0.14193548387096774,
+        "STRIKE": 0.11612903225806452,
+        "GRIP": 0.11612903225806452,
+        "FALL": 0.07741935483870968,
+        "SENSE": 0.25161290322580643,
+        "REACT": 0.025806451612903226,
+        "COGNITIVE": 0.11612903225806452
+      },
+      "APPROACH": {
+        "POSITIONING": 0.12834224598930483,
+        "APPROACH": 0.22994652406417113,
+        "STRIKE": 0.06951871657754011,
+        "GRIP": 0.15508021390374332,
+        "FALL": 0.0748663101604278,
+        "SENSE": 0.20320855614973263,
+        "REACT": 0.03208556149732621,
+        "COGNITIVE": 0.10695187165775401
+      },
+      "STRIKE": {
+        "POSITIONING": 0.19130434782608696,
+        "APPROACH": 0.14782608695652175,
+        "STRIKE": 0.12173913043478261,
+        "GRIP": 0.14782608695652175,
+        "FALL": 0.05217391304347826,
+        "SENSE": 0.19130434782608696,
+        "REACT": 0.06086956521739131,
+        "COGNITIVE": 0.08695652173913043
+      },
+      "GRIP": {
+        "POSITIONING": 0.14084507042253522,
+        "APPROACH": 0.09859154929577464,
+        "STRIKE": 0.09859154929577464,
+        "GRIP": 0.16901408450704225,
+        "FALL": 0.11267605633802817,
+        "SENSE": 0.20422535211267606,
+        "REACT": 0.04929577464788732,
+        "COGNITIVE": 0.1267605633802817
+      },
+      "FALL": {
+        "POSITIONING": 0.13414634146341464,
+        "APPROACH": 0.17073170731707318,
+        "STRIKE": 0.13414634146341464,
+        "GRIP": 0.08536585365853659,
+        "FALL": 0.14634146341463414,
+        "SENSE": 0.21951219512195122,
+        "REACT": 0.024390243902439025,
+        "COGNITIVE": 0.08536585365853659
+      },
+      "SENSE": {
+        "POSITIONING": 0.1111111111111111,
+        "APPROACH": 0.15925925925925927,
+        "STRIKE": 0.06296296296296296,
+        "GRIP": 0.1259259259259259,
+        "FALL": 0.0962962962962963,
+        "SENSE": 0.3111111111111111,
+        "REACT": 0.014814814814814815,
+        "COGNITIVE": 0.11851851851851852
+      },
+      "REACT": {
+        "POSITIONING": 0.11627906976744186,
+        "APPROACH": 0.13953488372093023,
+        "STRIKE": 0.27906976744186046,
+        "GRIP": 0.09302325581395349,
+        "FALL": 0.20930232558139536,
+        "SENSE": 0.046511627906976744,
+        "REACT": 0.09302325581395349,
+        "COGNITIVE": 0.023255813953488372
+      },
+      "COGNITIVE": {
+        "POSITIONING": 0.15966386554621848,
+        "APPROACH": 0.13445378151260504,
+        "STRIKE": 0.1092436974789916,
+        "GRIP": 0.14285714285714285,
+        "FALL": 0.01680672268907563,
+        "SENSE": 0.31092436974789917,
+        "REACT": 0.01680672268907563,
+        "COGNITIVE": 0.1092436974789916
+      }
+    },
+    "streams_of_silver": {
+      "POSITIONING": {
+        "POSITIONING": 0.20179372197309417,
+        "APPROACH": 0.15246636771300448,
+        "STRIKE": 0.08968609865470852,
+        "GRIP": 0.09417040358744394,
+        "FALL": 0.08071748878923767,
+        "SENSE": 0.2556053811659193,
+        "REACT": 0.004484304932735426,
+        "COGNITIVE": 0.1210762331838565
+      },
+      "APPROACH": {
+        "POSITIONING": 0.1870967741935484,
+        "APPROACH": 0.16129032258064516,
+        "STRIKE": 0.11612903225806452,
+        "GRIP": 0.13548387096774195,
+        "FALL": 0.07741935483870968,
+        "SENSE": 0.2,
+        "REACT": 0.01935483870967742,
+        "COGNITIVE": 0.1032258064516129
+      },
+      "STRIKE": {
+        "POSITIONING": 0.19491525423728814,
+        "APPROACH": 0.13559322033898305,
+        "STRIKE": 0.19491525423728814,
+        "GRIP": 0.13559322033898305,
+        "FALL": 0.05084745762711865,
+        "SENSE": 0.11016949152542373,
+        "REACT": 0.0847457627118644,
+        "COGNITIVE": 0.09322033898305085
+      },
+      "GRIP": {
+        "POSITIONING": 0.20833333333333334,
+        "APPROACH": 0.09027777777777778,
+        "STRIKE": 0.13194444444444445,
+        "GRIP": 0.1388888888888889,
+        "FALL": 0.09722222222222222,
+        "SENSE": 0.2013888888888889,
+        "REACT": 0.020833333333333332,
+        "COGNITIVE": 0.1111111111111111
+      },
+      "FALL": {
+        "POSITIONING": 0.14634146341463414,
+        "APPROACH": 0.15853658536585366,
+        "STRIKE": 0.10975609756097561,
+        "GRIP": 0.1951219512195122,
+        "FALL": 0.13414634146341464,
+        "SENSE": 0.12195121951219512,
+        "REACT": 0.036585365853658534,
+        "COGNITIVE": 0.0975609756097561
+      },
+      "SENSE": {
+        "POSITIONING": 0.2,
+        "APPROACH": 0.14,
+        "STRIKE": 0.076,
+        "GRIP": 0.124,
+        "FALL": 0.076,
+        "SENSE": 0.228,
+        "REACT": 0.02,
+        "COGNITIVE": 0.136
+      },
+      "REACT": {
+        "POSITIONING": 0.0967741935483871,
+        "APPROACH": 0.16129032258064516,
+        "STRIKE": 0.16129032258064516,
+        "GRIP": 0.03225806451612903,
+        "FALL": 0.03225806451612903,
+        "SENSE": 0.25806451612903225,
+        "REACT": 0.0967741935483871,
+        "COGNITIVE": 0.16129032258064516
+      },
+      "COGNITIVE": {
+        "POSITIONING": 0.19424460431654678,
+        "APPROACH": 0.1510791366906475,
+        "STRIKE": 0.04316546762589928,
+        "GRIP": 0.11510791366906475,
+        "FALL": 0.05755395683453238,
+        "SENSE": 0.2733812949640288,
+        "REACT": 0.03597122302158273,
+        "COGNITIVE": 0.12949640287769784
+      }
+    },
+    "halflings_gem": {
+      "POSITIONING": {
+        "POSITIONING": 0.16877637130801687,
+        "APPROACH": 0.10548523206751055,
+        "STRIKE": 0.08860759493670886,
+        "GRIP": 0.1518987341772152,
+        "FALL": 0.07172995780590717,
+        "SENSE": 0.2320675105485232,
+        "REACT": 0.046413502109704644,
+        "COGNITIVE": 0.1350210970464135
+      },
+      "APPROACH": {
+        "POSITIONING": 0.15827338129496402,
+        "APPROACH": 0.11510791366906475,
+        "STRIKE": 0.15827338129496402,
+        "GRIP": 0.15827338129496402,
+        "FALL": 0.07913669064748201,
+        "SENSE": 0.20863309352517986,
+        "REACT": 0.050359712230215826,
+        "COGNITIVE": 0.07194244604316546
+      },
+      "STRIKE": {
+        "POSITIONING": 0.16129032258064516,
+        "APPROACH": 0.1532258064516129,
+        "STRIKE": 0.1774193548387097,
+        "GRIP": 0.13709677419354838,
+        "FALL": 0.12096774193548387,
+        "SENSE": 0.1532258064516129,
+        "REACT": 0.03225806451612903,
+        "COGNITIVE": 0.06451612903225806
+      },
+      "GRIP": {
+        "POSITIONING": 0.2138728323699422,
+        "APPROACH": 0.08092485549132948,
+        "STRIKE": 0.10982658959537572,
+        "GRIP": 0.21965317919075145,
+        "FALL": 0.10404624277456648,
+        "SENSE": 0.1791907514450867,
+        "REACT": 0.011560693641618497,
+        "COGNITIVE": 0.08092485549132948
+      },
+      "FALL": {
+        "POSITIONING": 0.2073170731707317,
+        "APPROACH": 0.14634146341463414,
+        "STRIKE": 0.04878048780487805,
+        "GRIP": 0.1951219512195122,
+        "FALL": 0.15853658536585366,
+        "SENSE": 0.1951219512195122,
+        "REACT": 0.0,
+        "COGNITIVE": 0.04878048780487805
+      },
+      "SENSE": {
+        "POSITIONING": 0.19213973799126638,
+        "APPROACH": 0.11790393013100436,
+        "STRIKE": 0.10043668122270742,
+        "GRIP": 0.1615720524017467,
+        "FALL": 0.06550218340611354,
+        "SENSE": 0.1572052401746725,
+        "REACT": 0.021834061135371178,
+        "COGNITIVE": 0.18340611353711792
+      },
+      "REACT": {
+        "POSITIONING": 0.21951219512195122,
+        "APPROACH": 0.0975609756097561,
+        "STRIKE": 0.17073170731707318,
+        "GRIP": 0.07317073170731707,
+        "FALL": 0.0975609756097561,
+        "SENSE": 0.0975609756097561,
+        "REACT": 0.0975609756097561,
+        "COGNITIVE": 0.14634146341463414
+      },
+      "COGNITIVE": {
+        "POSITIONING": 0.18571428571428572,
+        "APPROACH": 0.15,
+        "STRIKE": 0.07142857142857142,
+        "GRIP": 0.17142857142857143,
+        "FALL": 0.07857142857142857,
+        "SENSE": 0.19285714285714287,
+        "REACT": 0.03571428571428571,
+        "COGNITIVE": 0.11428571428571428
+      }
+    }
+  },
+  "position_modal_per_book": {
+    "crystal_shard": {
+      "POSITIONING": {
+        "modal_tertile": "start",
+        "share": 0.3854,
+        "tertile_counts": {
+          "start": 74,
+          "mid": 56,
+          "end": 62
+        },
+        "n": 192
+      },
+      "APPROACH": {
+        "modal_tertile": "start",
+        "share": 0.4318,
+        "tertile_counts": {
+          "start": 95,
+          "mid": 61,
+          "end": 64
+        },
+        "n": 220
+      },
+      "STRIKE": {
+        "modal_tertile": "start",
+        "share": 0.3926,
+        "tertile_counts": {
+          "start": 53,
+          "mid": 40,
+          "end": 42
+        },
+        "n": 135
+      },
+      "GRIP": {
+        "modal_tertile": "end",
+        "share": 0.3743,
+        "tertile_counts": {
+          "start": 66,
+          "mid": 46,
+          "end": 67
+        },
+        "n": 179
+      },
+      "FALL": {
+        "modal_tertile": "end",
+        "share": 0.4483,
+        "tertile_counts": {
+          "start": 34,
+          "mid": 30,
+          "end": 52
+        },
+        "n": 116
+      },
+      "SENSE": {
+        "modal_tertile": "start",
+        "share": 0.3765,
+        "tertile_counts": {
+          "start": 122,
+          "mid": 102,
+          "end": 100
+        },
+        "n": 324
+      },
+      "REACT": {
+        "modal_tertile": "start",
+        "share": 0.5333,
+        "tertile_counts": {
+          "start": 24,
+          "mid": 9,
+          "end": 12
+        },
+        "n": 45
+      },
+      "COGNITIVE": {
+        "modal_tertile": "end",
+        "share": 0.3592,
+        "tertile_counts": {
+          "start": 49,
+          "mid": 42,
+          "end": 51
+        },
+        "n": 142
+      }
+    },
+    "streams_of_silver": {
+      "POSITIONING": {
+        "modal_tertile": "start",
+        "share": 0.3702,
+        "tertile_counts": {
+          "start": 97,
+          "mid": 76,
+          "end": 89
+        },
+        "n": 262
+      },
+      "APPROACH": {
+        "modal_tertile": "start",
+        "share": 0.3958,
+        "tertile_counts": {
+          "start": 76,
+          "mid": 51,
+          "end": 65
+        },
+        "n": 192
+      },
+      "STRIKE": {
+        "modal_tertile": "end",
+        "share": 0.3676,
+        "tertile_counts": {
+          "start": 49,
+          "mid": 37,
+          "end": 50
+        },
+        "n": 136
+      },
+      "GRIP": {
+        "modal_tertile": "start",
+        "share": 0.3911,
+        "tertile_counts": {
+          "start": 70,
+          "mid": 50,
+          "end": 59
+        },
+        "n": 179
+      },
+      "FALL": {
+        "modal_tertile": "end",
+        "share": 0.3786,
+        "tertile_counts": {
+          "start": 34,
+          "mid": 30,
+          "end": 39
+        },
+        "n": 103
+      },
+      "SENSE": {
+        "modal_tertile": "start",
+        "share": 0.413,
+        "tertile_counts": {
+          "start": 121,
+          "mid": 89,
+          "end": 83
+        },
+        "n": 293
+      },
+      "REACT": {
+        "modal_tertile": "mid",
+        "share": 0.4,
+        "tertile_counts": {
+          "start": 10,
+          "mid": 14,
+          "end": 11
+        },
+        "n": 35
+      },
+      "COGNITIVE": {
+        "modal_tertile": "start",
+        "share": 0.4444,
+        "tertile_counts": {
+          "start": 72,
+          "mid": 40,
+          "end": 50
+        },
+        "n": 162
+      }
+    },
+    "halflings_gem": {
+      "POSITIONING": {
+        "modal_tertile": "start",
+        "share": 0.3985,
+        "tertile_counts": {
+          "start": 106,
+          "mid": 95,
+          "end": 65
+        },
+        "n": 266
+      },
+      "APPROACH": {
+        "modal_tertile": "start",
+        "share": 0.3988,
+        "tertile_counts": {
+          "start": 69,
+          "mid": 40,
+          "end": 64
+        },
+        "n": 173
+      },
+      "STRIKE": {
+        "modal_tertile": "end",
+        "share": 0.3667,
+        "tertile_counts": {
+          "start": 51,
+          "mid": 44,
+          "end": 55
+        },
+        "n": 150
+      },
+      "GRIP": {
+        "modal_tertile": "start",
+        "share": 0.3548,
+        "tertile_counts": {
+          "start": 77,
+          "mid": 64,
+          "end": 76
+        },
+        "n": 217
+      },
+      "FALL": {
+        "modal_tertile": "end",
+        "share": 0.4915,
+        "tertile_counts": {
+          "start": 35,
+          "mid": 25,
+          "end": 58
+        },
+        "n": 118
+      },
+      "SENSE": {
+        "modal_tertile": "start",
+        "share": 0.4562,
+        "tertile_counts": {
+          "start": 125,
+          "mid": 64,
+          "end": 85
+        },
+        "n": 274
+      },
+      "REACT": {
+        "modal_tertile": "start",
+        "share": 0.3478,
+        "tertile_counts": {
+          "start": 16,
+          "mid": 16,
+          "end": 14
+        },
+        "n": 46
+      },
+      "COGNITIVE": {
+        "modal_tertile": "start",
+        "share": 0.4072,
+        "tertile_counts": {
+          "start": 68,
+          "mid": 52,
+          "end": 47
+        },
+        "n": 167
+      }
+    }
+  },
+  "position_modal_agreement": {
+    "POSITIONING": {
+      "per_book_modal": {
+        "crystal_shard": "start",
+        "streams_of_silver": "start",
+        "halflings_gem": "start"
+      },
+      "consensus_tertile": "start",
+      "consensus_count": 3,
+      "agreement": "3/3"
+    },
+    "APPROACH": {
+      "per_book_modal": {
+        "crystal_shard": "start",
+        "streams_of_silver": "start",
+        "halflings_gem": "start"
+      },
+      "consensus_tertile": "start",
+      "consensus_count": 3,
+      "agreement": "3/3"
+    },
+    "STRIKE": {
+      "per_book_modal": {
+        "crystal_shard": "start",
+        "streams_of_silver": "end",
+        "halflings_gem": "end"
+      },
+      "consensus_tertile": "end",
+      "consensus_count": 2,
+      "agreement": "2/3"
+    },
+    "GRIP": {
+      "per_book_modal": {
+        "crystal_shard": "end",
+        "streams_of_silver": "start",
+        "halflings_gem": "start"
+      },
+      "consensus_tertile": "start",
+      "consensus_count": 2,
+      "agreement": "2/3"
+    },
+    "FALL": {
+      "per_book_modal": {
+        "crystal_shard": "end",
+        "streams_of_silver": "end",
+        "halflings_gem": "end"
+      },
+      "consensus_tertile": "end",
+      "consensus_count": 3,
+      "agreement": "3/3"
+    },
+    "SENSE": {
+      "per_book_modal": {
+        "crystal_shard": "start",
+        "streams_of_silver": "start",
+        "halflings_gem": "start"
+      },
+      "consensus_tertile": "start",
+      "consensus_count": 3,
+      "agreement": "3/3"
+    },
+    "REACT": {
+      "per_book_modal": {
+        "crystal_shard": "start",
+        "streams_of_silver": "mid",
+        "halflings_gem": "start"
+      },
+      "consensus_tertile": "start",
+      "consensus_count": 2,
+      "agreement": "2/3"
+    },
+    "COGNITIVE": {
+      "per_book_modal": {
+        "crystal_shard": "end",
+        "streams_of_silver": "start",
+        "halflings_gem": "start"
+      },
+      "consensus_tertile": "start",
+      "consensus_count": 2,
+      "agreement": "2/3"
+    }
+  },
+  "n_classes_modal_3of3": 4,
+  "n_classes_modal_2of3": 4,
+  "n_classes_modal_1or0": 0,
+  "overall_verdict": "PASS_PARTIAL",
+  "verdict_summary": "Top-3 bigrams 3-way intersection=0/3; top-10 trigrams 3-way intersection=0; class-position modal-tertile 3/3 agreement=4/8 (2/3=4, 1/3-or-missing=0)."
+}

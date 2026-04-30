@@ -1,0 +1,1215 @@
+{
+  "pattern_number": 70,
+  "pattern_name": "Em-dash placement / function patterns",
+  "timestamp": "20260430T124051",
+  "commit": "a3da6d1",
+  "beats_path": "novels/salvatore-icewind-dale/beats.jsonl",
+  "extends": "P42 (em-dash density per kind)",
+  "em_dash_detector": "regex catches \u2014, \u2013, \u2010, \u2012, \u2015, ' -- ' (padded double-hyphen), and ' - ' (spaced single hyphen \u2014 the OCR'd em-dash form in crystal_shard and halflings_gem). Hyphenated compounds (Catti-brie, Ten-Towns) are excluded by requiring whitespace on both sides of the lone hyphen variant.",
+  "shape_classification_priority": [
+    "IN_DIALOGUE \u2014 inside a quoted string envelope",
+    "BRACKETED \u2014 paired em-dashes within \u226430 words on the same side of any sentence terminator",
+    "LIST_INTRO \u2014 followed by \u22652 comma-separated short items (\u22648 words each)",
+    "TERMINAL \u2014 within last 3 words before .!?",
+    "MID_SENTENCE \u2014 catch-all (single em-dash, mid-sentence pivot/interruption)"
+  ],
+  "stability_threshold_spread_over_mean": 0.25,
+  "min_em_dashes_per_book": 30,
+  "books": [
+    "crystal_shard",
+    "streams_of_silver",
+    "halflings_gem"
+  ],
+  "active_kinds": [
+    "action",
+    "dialogue",
+    "interiority",
+    "description"
+  ],
+  "shapes": [
+    "IN_DIALOGUE",
+    "BRACKETED",
+    "LIST_INTRO",
+    "TERMINAL",
+    "MID_SENTENCE"
+  ],
+  "skipped_beats_or_outliers": 1,
+  "per_book_em_dash_total": {
+    "crystal_shard": 84,
+    "halflings_gem": 339,
+    "streams_of_silver": 127
+  },
+  "per_book_aggregate": {
+    "crystal_shard": {
+      "n_em_dashes_total": 84,
+      "n_words": 89901,
+      "density_per_100w": 0.0934,
+      "shape_counts": {
+        "IN_DIALOGUE": 21,
+        "BRACKETED": 42,
+        "LIST_INTRO": 0,
+        "TERMINAL": 5,
+        "MID_SENTENCE": 16
+      },
+      "shape_share_pct": {
+        "IN_DIALOGUE": 25.0,
+        "BRACKETED": 50.0,
+        "LIST_INTRO": 0.0,
+        "TERMINAL": 5.95,
+        "MID_SENTENCE": 19.05
+      },
+      "shape_top2": [
+        "BRACKETED",
+        "IN_DIALOGUE"
+      ],
+      "dialogue_termination": {
+        "n_in_dialogue": 21,
+        "n_interrupted": 2,
+        "n_continued": 19,
+        "interrupt_rate_pct": 9.52
+      }
+    },
+    "streams_of_silver": {
+      "n_em_dashes_total": 127,
+      "n_words": 85870,
+      "density_per_100w": 0.1479,
+      "shape_counts": {
+        "IN_DIALOGUE": 41,
+        "BRACKETED": 46,
+        "LIST_INTRO": 5,
+        "TERMINAL": 7,
+        "MID_SENTENCE": 28
+      },
+      "shape_share_pct": {
+        "IN_DIALOGUE": 32.28,
+        "BRACKETED": 36.22,
+        "LIST_INTRO": 3.94,
+        "TERMINAL": 5.51,
+        "MID_SENTENCE": 22.05
+      },
+      "shape_top2": [
+        "BRACKETED",
+        "IN_DIALOGUE"
+      ],
+      "dialogue_termination": {
+        "n_in_dialogue": 41,
+        "n_interrupted": 14,
+        "n_continued": 27,
+        "interrupt_rate_pct": 34.15
+      }
+    },
+    "halflings_gem": {
+      "n_em_dashes_total": 339,
+      "n_words": 86891,
+      "density_per_100w": 0.3901,
+      "shape_counts": {
+        "IN_DIALOGUE": 75,
+        "BRACKETED": 187,
+        "LIST_INTRO": 10,
+        "TERMINAL": 6,
+        "MID_SENTENCE": 61
+      },
+      "shape_share_pct": {
+        "IN_DIALOGUE": 22.12,
+        "BRACKETED": 55.16,
+        "LIST_INTRO": 2.95,
+        "TERMINAL": 1.77,
+        "MID_SENTENCE": 17.99
+      },
+      "shape_top2": [
+        "BRACKETED",
+        "IN_DIALOGUE"
+      ],
+      "dialogue_termination": {
+        "n_in_dialogue": 75,
+        "n_interrupted": 34,
+        "n_continued": 41,
+        "interrupt_rate_pct": 45.33
+      }
+    }
+  },
+  "per_book_per_kind": {
+    "crystal_shard": {
+      "interiority": {
+        "n_em_dashes_total": 29,
+        "n_words": 18782,
+        "n_beats": 177,
+        "shape_counts": {
+          "IN_DIALOGUE": 0,
+          "BRACKETED": 22,
+          "LIST_INTRO": 0,
+          "TERMINAL": 2,
+          "MID_SENTENCE": 5
+        },
+        "shape_share_pct": {
+          "IN_DIALOGUE": 0.0,
+          "BRACKETED": 75.86,
+          "LIST_INTRO": 0.0,
+          "TERMINAL": 6.9,
+          "MID_SENTENCE": 17.24
+        },
+        "shape_density_per_100w": {
+          "IN_DIALOGUE": 0.0,
+          "BRACKETED": 0.1171,
+          "LIST_INTRO": 0.0,
+          "TERMINAL": 0.0106,
+          "MID_SENTENCE": 0.0266
+        },
+        "shape_top2": [
+          "BRACKETED",
+          "MID_SENTENCE"
+        ],
+        "position_histogram": {
+          "0.0-0.2": 2,
+          "0.2-0.4": 5,
+          "0.4-0.6": 13,
+          "0.6-0.8": 5,
+          "0.8-1.0": 4
+        },
+        "position_histogram_pct": {
+          "0.0-0.2": 6.9,
+          "0.2-0.4": 17.24,
+          "0.4-0.6": 44.83,
+          "0.6-0.8": 17.24,
+          "0.8-1.0": 13.79
+        },
+        "position_stats": {
+          "n": 29,
+          "mean": 0.54,
+          "median": 0.518,
+          "p25": 0.42,
+          "p75": 0.725
+        },
+        "dialogue_termination": {
+          "n_in_dialogue": 0,
+          "n_interrupted": 0,
+          "n_continued": 0,
+          "interrupt_rate_pct": null
+        }
+      },
+      "description": {
+        "n_em_dashes_total": 10,
+        "n_words": 13443,
+        "n_beats": 130,
+        "shape_counts": {
+          "IN_DIALOGUE": 0,
+          "BRACKETED": 6,
+          "LIST_INTRO": 0,
+          "TERMINAL": 1,
+          "MID_SENTENCE": 3
+        },
+        "shape_share_pct": {
+          "IN_DIALOGUE": 0.0,
+          "BRACKETED": 60.0,
+          "LIST_INTRO": 0.0,
+          "TERMINAL": 10.0,
+          "MID_SENTENCE": 30.0
+        },
+        "shape_density_per_100w": {
+          "IN_DIALOGUE": 0.0,
+          "BRACKETED": 0.0446,
+          "LIST_INTRO": 0.0,
+          "TERMINAL": 0.0074,
+          "MID_SENTENCE": 0.0223
+        },
+        "shape_top2": [
+          "BRACKETED",
+          "MID_SENTENCE"
+        ],
+        "position_histogram": {
+          "0.0-0.2": 0,
+          "0.2-0.4": 2,
+          "0.4-0.6": 3,
+          "0.6-0.8": 4,
+          "0.8-1.0": 1
+        },
+        "position_histogram_pct": {
+          "0.0-0.2": 0.0,
+          "0.2-0.4": 20.0,
+          "0.4-0.6": 30.0,
+          "0.6-0.8": 40.0,
+          "0.8-1.0": 10.0
+        },
+        "position_stats": {
+          "n": 10,
+          "mean": 0.585,
+          "median": 0.584,
+          "p25": 0.452,
+          "p75": 0.727
+        },
+        "dialogue_termination": {
+          "n_in_dialogue": 0,
+          "n_interrupted": 0,
+          "n_continued": 0,
+          "interrupt_rate_pct": null
+        }
+      },
+      "dialogue": {
+        "n_em_dashes_total": 27,
+        "n_words": 25358,
+        "n_beats": 242,
+        "shape_counts": {
+          "IN_DIALOGUE": 20,
+          "BRACKETED": 4,
+          "LIST_INTRO": 0,
+          "TERMINAL": 1,
+          "MID_SENTENCE": 2
+        },
+        "shape_share_pct": {
+          "IN_DIALOGUE": 74.07,
+          "BRACKETED": 14.81,
+          "LIST_INTRO": 0.0,
+          "TERMINAL": 3.7,
+          "MID_SENTENCE": 7.41
+        },
+        "shape_density_per_100w": {
+          "IN_DIALOGUE": 0.0789,
+          "BRACKETED": 0.0158,
+          "LIST_INTRO": 0.0,
+          "TERMINAL": 0.0039,
+          "MID_SENTENCE": 0.0079
+        },
+        "shape_top2": [
+          "IN_DIALOGUE",
+          "BRACKETED"
+        ],
+        "position_histogram": {
+          "0.0-0.2": 8,
+          "0.2-0.4": 8,
+          "0.4-0.6": 7,
+          "0.6-0.8": 2,
+          "0.8-1.0": 2
+        },
+        "position_histogram_pct": {
+          "0.0-0.2": 29.63,
+          "0.2-0.4": 29.63,
+          "0.4-0.6": 25.93,
+          "0.6-0.8": 7.41,
+          "0.8-1.0": 7.41
+        },
+        "position_stats": {
+          "n": 27,
+          "mean": 0.34,
+          "median": 0.299,
+          "p25": 0.156,
+          "p75": 0.478
+        },
+        "dialogue_termination": {
+          "n_in_dialogue": 20,
+          "n_interrupted": 2,
+          "n_continued": 18,
+          "interrupt_rate_pct": 10.0
+        }
+      },
+      "action": {
+        "n_em_dashes_total": 18,
+        "n_words": 32318,
+        "n_beats": 308,
+        "shape_counts": {
+          "IN_DIALOGUE": 1,
+          "BRACKETED": 10,
+          "LIST_INTRO": 0,
+          "TERMINAL": 1,
+          "MID_SENTENCE": 6
+        },
+        "shape_share_pct": {
+          "IN_DIALOGUE": 5.56,
+          "BRACKETED": 55.56,
+          "LIST_INTRO": 0.0,
+          "TERMINAL": 5.56,
+          "MID_SENTENCE": 33.33
+        },
+        "shape_density_per_100w": {
+          "IN_DIALOGUE": 0.0031,
+          "BRACKETED": 0.0309,
+          "LIST_INTRO": 0.0,
+          "TERMINAL": 0.0031,
+          "MID_SENTENCE": 0.0186
+        },
+        "shape_top2": [
+          "BRACKETED",
+          "MID_SENTENCE"
+        ],
+        "position_histogram": {
+          "0.0-0.2": 4,
+          "0.2-0.4": 3,
+          "0.4-0.6": 4,
+          "0.6-0.8": 5,
+          "0.8-1.0": 2
+        },
+        "position_histogram_pct": {
+          "0.0-0.2": 22.22,
+          "0.2-0.4": 16.67,
+          "0.4-0.6": 22.22,
+          "0.6-0.8": 27.78,
+          "0.8-1.0": 11.11
+        },
+        "position_stats": {
+          "n": 18,
+          "mean": 0.492,
+          "median": 0.502,
+          "p25": 0.278,
+          "p75": 0.685
+        },
+        "dialogue_termination": {
+          "n_in_dialogue": 1,
+          "n_interrupted": 0,
+          "n_continued": 1,
+          "interrupt_rate_pct": 0.0
+        }
+      }
+    },
+    "halflings_gem": {
+      "description": {
+        "n_em_dashes_total": 51,
+        "n_words": 8527,
+        "n_beats": 79,
+        "shape_counts": {
+          "IN_DIALOGUE": 1,
+          "BRACKETED": 32,
+          "LIST_INTRO": 3,
+          "TERMINAL": 2,
+          "MID_SENTENCE": 13
+        },
+        "shape_share_pct": {
+          "IN_DIALOGUE": 1.96,
+          "BRACKETED": 62.75,
+          "LIST_INTRO": 5.88,
+          "TERMINAL": 3.92,
+          "MID_SENTENCE": 25.49
+        },
+        "shape_density_per_100w": {
+          "IN_DIALOGUE": 0.0117,
+          "BRACKETED": 0.3753,
+          "LIST_INTRO": 0.0352,
+          "TERMINAL": 0.0235,
+          "MID_SENTENCE": 0.1525
+        },
+        "shape_top2": [
+          "BRACKETED",
+          "MID_SENTENCE"
+        ],
+        "position_histogram": {
+          "0.0-0.2": 2,
+          "0.2-0.4": 11,
+          "0.4-0.6": 16,
+          "0.6-0.8": 19,
+          "0.8-1.0": 3
+        },
+        "position_histogram_pct": {
+          "0.0-0.2": 3.92,
+          "0.2-0.4": 21.57,
+          "0.4-0.6": 31.37,
+          "0.6-0.8": 37.25,
+          "0.8-1.0": 5.88
+        },
+        "position_stats": {
+          "n": 51,
+          "mean": 0.534,
+          "median": 0.556,
+          "p25": 0.393,
+          "p75": 0.665
+        },
+        "dialogue_termination": {
+          "n_in_dialogue": 1,
+          "n_interrupted": 0,
+          "n_continued": 1,
+          "interrupt_rate_pct": 0.0
+        }
+      },
+      "dialogue": {
+        "n_em_dashes_total": 116,
+        "n_words": 29626,
+        "n_beats": 279,
+        "shape_counts": {
+          "IN_DIALOGUE": 66,
+          "BRACKETED": 35,
+          "LIST_INTRO": 0,
+          "TERMINAL": 2,
+          "MID_SENTENCE": 13
+        },
+        "shape_share_pct": {
+          "IN_DIALOGUE": 56.9,
+          "BRACKETED": 30.17,
+          "LIST_INTRO": 0.0,
+          "TERMINAL": 1.72,
+          "MID_SENTENCE": 11.21
+        },
+        "shape_density_per_100w": {
+          "IN_DIALOGUE": 0.2228,
+          "BRACKETED": 0.1181,
+          "LIST_INTRO": 0.0,
+          "TERMINAL": 0.0068,
+          "MID_SENTENCE": 0.0439
+        },
+        "shape_top2": [
+          "IN_DIALOGUE",
+          "BRACKETED"
+        ],
+        "position_histogram": {
+          "0.0-0.2": 14,
+          "0.2-0.4": 40,
+          "0.4-0.6": 30,
+          "0.6-0.8": 23,
+          "0.8-1.0": 9
+        },
+        "position_histogram_pct": {
+          "0.0-0.2": 12.07,
+          "0.2-0.4": 34.48,
+          "0.4-0.6": 25.86,
+          "0.6-0.8": 19.83,
+          "0.8-1.0": 7.76
+        },
+        "position_stats": {
+          "n": 116,
+          "mean": 0.451,
+          "median": 0.439,
+          "p25": 0.249,
+          "p75": 0.643
+        },
+        "dialogue_termination": {
+          "n_in_dialogue": 66,
+          "n_interrupted": 30,
+          "n_continued": 36,
+          "interrupt_rate_pct": 45.45
+        }
+      },
+      "action": {
+        "n_em_dashes_total": 105,
+        "n_words": 31774,
+        "n_beats": 309,
+        "shape_counts": {
+          "IN_DIALOGUE": 5,
+          "BRACKETED": 70,
+          "LIST_INTRO": 5,
+          "TERMINAL": 2,
+          "MID_SENTENCE": 23
+        },
+        "shape_share_pct": {
+          "IN_DIALOGUE": 4.76,
+          "BRACKETED": 66.67,
+          "LIST_INTRO": 4.76,
+          "TERMINAL": 1.9,
+          "MID_SENTENCE": 21.9
+        },
+        "shape_density_per_100w": {
+          "IN_DIALOGUE": 0.0157,
+          "BRACKETED": 0.2203,
+          "LIST_INTRO": 0.0157,
+          "TERMINAL": 0.0063,
+          "MID_SENTENCE": 0.0724
+        },
+        "shape_top2": [
+          "BRACKETED",
+          "MID_SENTENCE"
+        ],
+        "position_histogram": {
+          "0.0-0.2": 13,
+          "0.2-0.4": 20,
+          "0.4-0.6": 30,
+          "0.6-0.8": 35,
+          "0.8-1.0": 7
+        },
+        "position_histogram_pct": {
+          "0.0-0.2": 12.38,
+          "0.2-0.4": 19.05,
+          "0.4-0.6": 28.57,
+          "0.6-0.8": 33.33,
+          "0.8-1.0": 6.67
+        },
+        "position_stats": {
+          "n": 105,
+          "mean": 0.5,
+          "median": 0.522,
+          "p25": 0.278,
+          "p75": 0.688
+        },
+        "dialogue_termination": {
+          "n_in_dialogue": 5,
+          "n_interrupted": 4,
+          "n_continued": 1,
+          "interrupt_rate_pct": 80.0
+        }
+      },
+      "interiority": {
+        "n_em_dashes_total": 67,
+        "n_words": 16964,
+        "n_beats": 159,
+        "shape_counts": {
+          "IN_DIALOGUE": 3,
+          "BRACKETED": 50,
+          "LIST_INTRO": 2,
+          "TERMINAL": 0,
+          "MID_SENTENCE": 12
+        },
+        "shape_share_pct": {
+          "IN_DIALOGUE": 4.48,
+          "BRACKETED": 74.63,
+          "LIST_INTRO": 2.99,
+          "TERMINAL": 0.0,
+          "MID_SENTENCE": 17.91
+        },
+        "shape_density_per_100w": {
+          "IN_DIALOGUE": 0.0177,
+          "BRACKETED": 0.2947,
+          "LIST_INTRO": 0.0118,
+          "TERMINAL": 0.0,
+          "MID_SENTENCE": 0.0707
+        },
+        "shape_top2": [
+          "BRACKETED",
+          "MID_SENTENCE"
+        ],
+        "position_histogram": {
+          "0.0-0.2": 6,
+          "0.2-0.4": 14,
+          "0.4-0.6": 24,
+          "0.6-0.8": 17,
+          "0.8-1.0": 6
+        },
+        "position_histogram_pct": {
+          "0.0-0.2": 8.96,
+          "0.2-0.4": 20.9,
+          "0.4-0.6": 35.82,
+          "0.6-0.8": 25.37,
+          "0.8-1.0": 8.96
+        },
+        "position_stats": {
+          "n": 67,
+          "mean": 0.502,
+          "median": 0.507,
+          "p25": 0.352,
+          "p75": 0.676
+        },
+        "dialogue_termination": {
+          "n_in_dialogue": 3,
+          "n_interrupted": 0,
+          "n_continued": 3,
+          "interrupt_rate_pct": 0.0
+        }
+      }
+    },
+    "streams_of_silver": {
+      "action": {
+        "n_em_dashes_total": 31,
+        "n_words": 29385,
+        "n_beats": 274,
+        "shape_counts": {
+          "IN_DIALOGUE": 6,
+          "BRACKETED": 10,
+          "LIST_INTRO": 2,
+          "TERMINAL": 2,
+          "MID_SENTENCE": 11
+        },
+        "shape_share_pct": {
+          "IN_DIALOGUE": 19.35,
+          "BRACKETED": 32.26,
+          "LIST_INTRO": 6.45,
+          "TERMINAL": 6.45,
+          "MID_SENTENCE": 35.48
+        },
+        "shape_density_per_100w": {
+          "IN_DIALOGUE": 0.0204,
+          "BRACKETED": 0.034,
+          "LIST_INTRO": 0.0068,
+          "TERMINAL": 0.0068,
+          "MID_SENTENCE": 0.0374
+        },
+        "shape_top2": [
+          "MID_SENTENCE",
+          "BRACKETED"
+        ],
+        "position_histogram": {
+          "0.0-0.2": 5,
+          "0.2-0.4": 13,
+          "0.4-0.6": 3,
+          "0.6-0.8": 7,
+          "0.8-1.0": 3
+        },
+        "position_histogram_pct": {
+          "0.0-0.2": 16.13,
+          "0.2-0.4": 41.94,
+          "0.4-0.6": 9.68,
+          "0.6-0.8": 22.58,
+          "0.8-1.0": 9.68
+        },
+        "position_stats": {
+          "n": 31,
+          "mean": 0.427,
+          "median": 0.359,
+          "p25": 0.225,
+          "p75": 0.648
+        },
+        "dialogue_termination": {
+          "n_in_dialogue": 6,
+          "n_interrupted": 5,
+          "n_continued": 1,
+          "interrupt_rate_pct": 83.33
+        }
+      },
+      "description": {
+        "n_em_dashes_total": 14,
+        "n_words": 10592,
+        "n_beats": 94,
+        "shape_counts": {
+          "IN_DIALOGUE": 3,
+          "BRACKETED": 6,
+          "LIST_INTRO": 0,
+          "TERMINAL": 0,
+          "MID_SENTENCE": 5
+        },
+        "shape_share_pct": {
+          "IN_DIALOGUE": 21.43,
+          "BRACKETED": 42.86,
+          "LIST_INTRO": 0.0,
+          "TERMINAL": 0.0,
+          "MID_SENTENCE": 35.71
+        },
+        "shape_density_per_100w": {
+          "IN_DIALOGUE": 0.0283,
+          "BRACKETED": 0.0566,
+          "LIST_INTRO": 0.0,
+          "TERMINAL": 0.0,
+          "MID_SENTENCE": 0.0472
+        },
+        "shape_top2": [
+          "BRACKETED",
+          "MID_SENTENCE"
+        ],
+        "position_histogram": {
+          "0.0-0.2": 1,
+          "0.2-0.4": 2,
+          "0.4-0.6": 7,
+          "0.6-0.8": 3,
+          "0.8-1.0": 1
+        },
+        "position_histogram_pct": {
+          "0.0-0.2": 7.14,
+          "0.2-0.4": 14.29,
+          "0.4-0.6": 50.0,
+          "0.6-0.8": 21.43,
+          "0.8-1.0": 7.14
+        },
+        "position_stats": {
+          "n": 14,
+          "mean": 0.497,
+          "median": 0.459,
+          "p25": 0.42,
+          "p75": 0.63
+        },
+        "dialogue_termination": {
+          "n_in_dialogue": 3,
+          "n_interrupted": 0,
+          "n_continued": 3,
+          "interrupt_rate_pct": 0.0
+        }
+      },
+      "dialogue": {
+        "n_em_dashes_total": 44,
+        "n_words": 27835,
+        "n_beats": 256,
+        "shape_counts": {
+          "IN_DIALOGUE": 32,
+          "BRACKETED": 4,
+          "LIST_INTRO": 1,
+          "TERMINAL": 2,
+          "MID_SENTENCE": 5
+        },
+        "shape_share_pct": {
+          "IN_DIALOGUE": 72.73,
+          "BRACKETED": 9.09,
+          "LIST_INTRO": 2.27,
+          "TERMINAL": 4.55,
+          "MID_SENTENCE": 11.36
+        },
+        "shape_density_per_100w": {
+          "IN_DIALOGUE": 0.115,
+          "BRACKETED": 0.0144,
+          "LIST_INTRO": 0.0036,
+          "TERMINAL": 0.0072,
+          "MID_SENTENCE": 0.018
+        },
+        "shape_top2": [
+          "IN_DIALOGUE",
+          "MID_SENTENCE"
+        ],
+        "position_histogram": {
+          "0.0-0.2": 5,
+          "0.2-0.4": 17,
+          "0.4-0.6": 10,
+          "0.6-0.8": 5,
+          "0.8-1.0": 7
+        },
+        "position_histogram_pct": {
+          "0.0-0.2": 11.36,
+          "0.2-0.4": 38.64,
+          "0.4-0.6": 22.73,
+          "0.6-0.8": 11.36,
+          "0.8-1.0": 15.91
+        },
+        "position_stats": {
+          "n": 44,
+          "mean": 0.441,
+          "median": 0.391,
+          "p25": 0.231,
+          "p75": 0.655
+        },
+        "dialogue_termination": {
+          "n_in_dialogue": 32,
+          "n_interrupted": 9,
+          "n_continued": 23,
+          "interrupt_rate_pct": 28.12
+        }
+      },
+      "interiority": {
+        "n_em_dashes_total": 38,
+        "n_words": 18058,
+        "n_beats": 162,
+        "shape_counts": {
+          "IN_DIALOGUE": 0,
+          "BRACKETED": 26,
+          "LIST_INTRO": 2,
+          "TERMINAL": 3,
+          "MID_SENTENCE": 7
+        },
+        "shape_share_pct": {
+          "IN_DIALOGUE": 0.0,
+          "BRACKETED": 68.42,
+          "LIST_INTRO": 5.26,
+          "TERMINAL": 7.89,
+          "MID_SENTENCE": 18.42
+        },
+        "shape_density_per_100w": {
+          "IN_DIALOGUE": 0.0,
+          "BRACKETED": 0.144,
+          "LIST_INTRO": 0.0111,
+          "TERMINAL": 0.0166,
+          "MID_SENTENCE": 0.0388
+        },
+        "shape_top2": [
+          "BRACKETED",
+          "MID_SENTENCE"
+        ],
+        "position_histogram": {
+          "0.0-0.2": 4,
+          "0.2-0.4": 8,
+          "0.4-0.6": 11,
+          "0.6-0.8": 10,
+          "0.8-1.0": 5
+        },
+        "position_histogram_pct": {
+          "0.0-0.2": 10.53,
+          "0.2-0.4": 21.05,
+          "0.4-0.6": 28.95,
+          "0.6-0.8": 26.32,
+          "0.8-1.0": 13.16
+        },
+        "position_stats": {
+          "n": 38,
+          "mean": 0.516,
+          "median": 0.539,
+          "p25": 0.327,
+          "p75": 0.679
+        },
+        "dialogue_termination": {
+          "n_in_dialogue": 0,
+          "n_interrupted": 0,
+          "n_continued": 0,
+          "interrupt_rate_pct": null
+        }
+      }
+    }
+  },
+  "per_kind_top2_verdict": {
+    "action": {
+      "per_book_top2": {
+        "crystal_shard": [
+          "BRACKETED",
+          "MID_SENTENCE"
+        ],
+        "streams_of_silver": [
+          "MID_SENTENCE",
+          "BRACKETED"
+        ],
+        "halflings_gem": [
+          "BRACKETED",
+          "MID_SENTENCE"
+        ]
+      },
+      "per_book_top1": {
+        "crystal_shard": "BRACKETED",
+        "streams_of_silver": "MID_SENTENCE",
+        "halflings_gem": "BRACKETED"
+      },
+      "books_agreeing": 3,
+      "verdict": "PASS"
+    },
+    "dialogue": {
+      "per_book_top2": {
+        "crystal_shard": [
+          "IN_DIALOGUE",
+          "BRACKETED"
+        ],
+        "streams_of_silver": [
+          "IN_DIALOGUE",
+          "MID_SENTENCE"
+        ],
+        "halflings_gem": [
+          "IN_DIALOGUE",
+          "BRACKETED"
+        ]
+      },
+      "per_book_top1": {
+        "crystal_shard": "IN_DIALOGUE",
+        "streams_of_silver": "IN_DIALOGUE",
+        "halflings_gem": "IN_DIALOGUE"
+      },
+      "books_agreeing": 2,
+      "verdict": "PASS_PARTIAL"
+    },
+    "interiority": {
+      "per_book_top2": {
+        "crystal_shard": [
+          "BRACKETED",
+          "MID_SENTENCE"
+        ],
+        "streams_of_silver": [
+          "BRACKETED",
+          "MID_SENTENCE"
+        ],
+        "halflings_gem": [
+          "BRACKETED",
+          "MID_SENTENCE"
+        ]
+      },
+      "per_book_top1": {
+        "crystal_shard": "BRACKETED",
+        "streams_of_silver": "BRACKETED",
+        "halflings_gem": "BRACKETED"
+      },
+      "books_agreeing": 3,
+      "verdict": "PASS"
+    },
+    "description": {
+      "per_book_top2": {
+        "crystal_shard": [
+          "BRACKETED",
+          "MID_SENTENCE"
+        ],
+        "streams_of_silver": [
+          "BRACKETED",
+          "MID_SENTENCE"
+        ],
+        "halflings_gem": [
+          "BRACKETED",
+          "MID_SENTENCE"
+        ]
+      },
+      "per_book_top1": {
+        "crystal_shard": "BRACKETED",
+        "streams_of_silver": "BRACKETED",
+        "halflings_gem": "BRACKETED"
+      },
+      "books_agreeing": 3,
+      "verdict": "PASS"
+    }
+  },
+  "dialogue_interruption_stability": {
+    "dialogue_kind_per_book_rate_pct": {
+      "crystal_shard": 10.0,
+      "streams_of_silver": 28.12,
+      "halflings_gem": 45.45
+    },
+    "dialogue_kind_spread_over_mean": 1.273,
+    "dialogue_kind_stable_le_25pct": false,
+    "book_aggregate_per_book_rate_pct": {
+      "crystal_shard": 9.52,
+      "streams_of_silver": 34.15,
+      "halflings_gem": 45.33
+    },
+    "book_aggregate_spread_over_mean": 1.207,
+    "book_aggregate_stable_le_25pct": false
+  },
+  "insufficient_books": [],
+  "overall_verdict": "PASS_PARTIAL",
+  "overall_reason": "3/4 per-kind shape top-2 PASS (4/4 \u2265 PASS_PARTIAL); in-dialogue interrupt rate is not cross-book-stable (per-book stylistic variation, not a corpus-wide prior)",
+  "samples_per_cell": {
+    "crystal_shard|interiority|TERMINAL": [
+      " once-bumbling apprentice that he could not refuse - respect.",
+      "d, Drizzt  believed that could only mean one thing - treasure."
+    ],
+    "crystal_shard|interiority|BRACKETED": [
+      " spit bucket for the pretentious wizards in Luskan - and everyone else, it seemed - was easy prey for s",
+      "s wizards in Luskan - and everyone else, it seemed - was easy prey for such ambitions. He, who had been",
+      "ssibility that the sudden loss of so many warriors - some of the tribes had lost every one of their men",
+      " of the tribes had lost every one of their menfolk - would doom the remaining people to slow death. \"Yo",
+      " Kessell waited patiently. In the autumn, the last - and largest - of the trading caravans would roll b"
+    ],
+    "crystal_shard|description|BRACKETED": [
+      "to bring midges and manes through a magical portal - closely supervised - hoping to demonstrate the pot",
+      "anes through a magical portal - closely supervised - hoping to demonstrate the potential dangers of the",
+      "han north to the open tundra. Though tall and thin - the smallest of the giants - they were still a for",
+      " Though tall and thin - the smallest of the giants - they were still a formidable force. A frost giant ",
+      "these as Wulfgar  moved to peer into the adjoining - and occupied - room.  Also square, this second are"
+    ],
+    "crystal_shard|dialogue|IN_DIALOGUE": [
+      "arth, ye'll find a special day. A special blessin' - some would say a curse - has been  placed upon our",
+      "l day. A special blessin' - some would say a curse - has been  placed upon our people, for once, and on",
+      "\"He'll teach ye to fight - no more,\" Bruenor said. The dwarf had expected thi",
+      "rwal. I want you to meet some of the people of Ten-'Ibwns so that you might better judge them.\"",
+      "rimly, examining the two corpses. \"Younger dwarves - Bundo, son of Fellhammer, and Dourgas, son of Argo"
+    ],
+    "crystal_shard|dialogue|BRACKETED": [
+      "r years at Bruenor's side had taught him to expect - and disregard - the sudden outbursts of gruffness.",
+      "or's side had taught him to expect - and disregard - the sudden outbursts of gruffness.",
+      "Bruenor busied himself preparing a new recipie - giant-brain stew - boiling the wretched, foul-smel",
+      "himself preparing a new recipie - giant-brain stew - boiling the wretched, foul-smelling ingredients ri"
+    ],
+    "crystal_shard|interiority|MID_SENTENCE": [
+      "arbarian's shoulder as if it had always been there - and always belonged there. Wulfgar, too, was weari",
+      "The gain  of power was involved somewhere; he knew - that was always the case in such betrayals. What c",
+      "imshander in Lonelywood, Regis was the sole person - in the town with reason or desire to travel regula",
+      "he  could work in solitude and without supervision - though Bruenor often stuck his head in to grumble ",
+      " He shrugged it away and turned back to his palace - there was plenty of food left over from lunch. He "
+    ],
+    "crystal_shard|action|BRACKETED": [
+      "various dwarven recipes the verbeegs had concocted - \"Dwarf o' the Apple\" and \"Bearded, Basted, an' Bak",
+      "pple\" and \"Bearded, Basted, an' Baked\" to name two - rang out to overwhelming hoots of approval. Biggri",
+      "onder the fortunes of battle. The rest of the pack - five angry  giants - had already thrown aside thei",
+      " battle. The rest of the pack - five angry  giants - had already thrown aside their wounded companion i",
+      "  The barbarian nodded. He hoisted Drizzt up first - the drow's left arm still wasn't of much use to hi"
+    ],
+    "crystal_shard|dialogue|MID_SENTENCE": [
+      "re purpose in life was the pursuit of battle-glory - fighting in praise of Tempos. The young barbarian ",
+      "he field!\" he cried. \"He has demanded our emissary - the lights on the tower have started again!\""
+    ],
+    "crystal_shard|description|MID_SENTENCE": [
+      "tew, all the while cursing and taunting each other -  a typical dinner gathering of verbeeg. Wulfgar no",
+      "o cities had been called off, temporarily at least - though promises of continued friendship were heard",
+      " raid on the giant's lair, still hung on his  belt - a sentimental choice, a comforting reminder of the"
+    ],
+    "crystal_shard|action|MID_SENTENCE": [
+      "ard enough to keep it out of the fray for  a while - he would be in a tight spot indeed if it carne up ",
+      "!\" Bruenor called, banging his shield with his axe - as if his clan hadn't already made enough noise to",
+      "ed as he examined it for damage. But he found none - the magic within the object had resisted the weigh",
+      "oasted proudly. But Drizzt wasn't paying attention - to the wizard or the battle below. He was standing",
+      "hrough the snow. He didn't know why he was walking - he had nowhere to go. Kessell  had no escape. Eldu"
+    ],
+    "crystal_shard|action|IN_DIALOGUE": [
+      " spoken, brave friend. Let us fell this foul beast - there's food to be  eaten!\""
+    ],
+    "crystal_shard|action|TERMINAL": [
+      "sh the power of the runes to their absolute limits - and probably beyond."
+    ],
+    "crystal_shard|description|TERMINAL": [
+      "erily in midair, was the pulsating hunk of crystal - Cryshal-Tirith's heart. It was four-sided and tape"
+    ],
+    "crystal_shard|dialogue|TERMINAL": [
+      "ed under his cloak and pulled out a shining object - a crystal shard. The clouds seemed to recoil from "
+    ],
+    "halflings_gem|description|MID_SENTENCE": [
+      "am resounded, piercing and cutting, a cry of agony - a cry of death.",
+      "n tip of the Tethyr Peninsula was already in sight - a journey that normally took more than a week. But",
+      " him, Regis had to remind himself not to jump back - where another cat waited.",
+      "ne, selling weapons, foodstuffs, exotic pipe weeds - even slaves shamelessly displaying their goods in ",
+      "whenever the hushed whispers commenced in his wake - the more experienced rogues telling the newcomers "
+    ],
+    "halflings_gem|dialogue|MID_SENTENCE": [
+      "an to soften his belief in where he truly belonged - a belief that the young woman wholeheartedly share",
+      "ain of the Sea Sprite had indeed heard of Pinochet - every merchant along the Sword Coast had heard of ",
+      "t. Entreri rocked back a step, now fully at a loss - one of the very few times in his life. Regis stirr",
+      "\" But LaValle wasn't thinking of Rassiter's safety - he had often entertained thoughts of disposing of ",
+      "ially a buyer not familiar with the goods for sale - to make the first mention of price, they often rec"
+    ],
+    "halflings_gem|action|IN_DIALOGUE": [
+      "They can be coverin' many miles over the southland - even in the winter.\" Bruenor bounced off the bed a",
+      " rubbed his hands together eagerly. \"What you need-\" Bruenor threw his hand out to stop the excited m",
+      "or, swinging around to slam it behind him. \"Rassit-\" he started to yell as he turned back toward the ",
+      "econds, tentative relief in his tone. \"It does not-\" Drizzt stopped in midsentence when he noticed Wu",
+      "clad Harpell who stood naked to the waist. \"Excuse-\" the wizard began, but Bruenor grabbed his should"
+    ],
+    "halflings_gem|dialogue|IN_DIALOGUE": [
+      " of fire!\" \"Well,\" Harkle stammered. \"I have never-\" \"Can ye do it?\" Bruenor roared, having no patien",
+      "in the morning,\" Harkle assured him. \"I am certain-\" \"Alustriel's still here?\" Bruenor interrupted. \"",
+      ", yes,\" Harkle replied. \"She stayed on a few extra-\" \"Where is she?\" Bruenor demanded. \"Down the hall",
+      "\"Which room?\" \"I shall take you to her in the morn-\" Harkle began. Bruenor grabbed the front of the w",
+      "ou risk much.\" \"No more than they've risked for me - many the times.\""
+    ],
+    "halflings_gem|description|BRACKETED": [
+      "e-charged dwarf, though, wearing his wizard's robe - tucked into leather hip boots - and an oddly shape",
+      " his wizard's robe - tucked into leather hip boots - and an oddly shaped silver helmet with fluffy whit",
+      "ack lazily, riding the morning winds with its legs - all four - crossed over it and its sleepy eyes hal",
+      " riding the morning winds with its legs - all four - crossed over it and its sleepy eyes half closed. T",
+      " safe distance from the peninsula's sheltered bays - bays that often held pirates poised for passing me"
+    ],
+    "halflings_gem|action|BRACKETED": [
+      "rkle bent to look, the weight of his silver helmet - which actually belonged to a cousin much large tha",
+      "h actually belonged to a cousin much large than he - toppled him over and left him sprawled face down o",
+      "mplete vertical circle, though it happened so fast - luckily - that neither of the riders had time to f",
+      "tical circle, though it happened so fast - luckily - that neither of the riders had time to fall out! A",
+      "ist barely thirty yards ahead. Catti-brie screamed - Bruenor did, too - and the dwarf fell back with th"
+    ],
+    "halflings_gem|dialogue|BRACKETED": [
+      "udermont, inspired by Drizzt's grasp of principles - a grip that would not allow such acceptance of rog",
+      "rip that would not allow such acceptance of rogues - put a hand on the elf's shoulder. \"If the encounte",
+      "he three at the table jump, so engrossed were they - even Bruenor - in the dwarf's story. Drizzt opened",
+      " table jump, so engrossed were they - even Bruenor - in the dwarf's story. Drizzt opened the door, and ",
+      "s one final time. He could not hold that icy stare - could not match the sheer intensity of the assassi"
+    ],
+    "halflings_gem|interiority|BRACKETED": [
+      "ught the pirates meant to launch a distance strike - one of the pirate vessels had a catapult mounted t",
+      "te vessels had a catapult mounted to its afterdeck - to cripple their victim, though the act seemed unn",
+      "ying to urge the flaming horses on faster. Somehow - perhaps it was another property of the locket - Br",
+      "ow - perhaps it was another property of the locket - Bruenor felt that Drizzt was in trouble and that s",
+      "s friends and then back to the night sky, thinking - hoping - of a day when the five friends would be r"
+    ],
+    "halflings_gem|action|MID_SENTENCE": [
+      "the side of the little boat and hoisted himself up - only to be met with a blow to the top of the head ",
+      "enough, Regis knew that he had no chance of escape - not with Entreri holding him, two armed guards fol",
+      "ulled it off, revealing a thick patch of foot hair - the foot of a halfling. Dondon shrugged helplessly",
+      "best that Wulfgar could accomplish was a stalemate - a deadlock that would only last as long as the ene",
+      "dwarf the opportunity to cut down two more of them - he was happy to oblige. They fled back into the ma"
+    ],
+    "halflings_gem|interiority|MID_SENTENCE": [
+      " recapture the sheer excitement he had experienced - active thoughts that would help to keep him awake.",
+      ", and the Northerners would soon be on the streets - where Dondon would find them.",
+      "rue warrior always seemed to find the proper route - the one open path that casual observers might cons",
+      "o ignore the very conspicuous wound in Pook's neck - and lifted off the ruby pendant that had started t",
+      "ad escaped, though. The halfling was certain of it - as certain as Entreri. And they would come for him"
+    ],
+    "halflings_gem|description|LIST_INTRO": [
+      "offshore and wait for appropriate landings to open - a wait, the harbormaster soon informed Deudermont,",
+      "test of the dead crew and by the dying ship itself - a singular, agonized voice screamed for all of the",
+      "p tightly around his shoulders. And he was indoors - the flames burned in a hearth, not in the open pit"
+    ],
+    "halflings_gem|interiority|IN_DIALOGUE": [
+      "f only they could get inside the length of yer arm - if only ye'd learn to look.\" Drizzt considered the",
+      "ack. \"It belonged to one of the halfling's friends - perhaps one of those Oberon spoke of. Yes. And Ent",
+      "earshot. \"A simple painter?\" \"More likely a wizard - a powerful wizard,\" Drizzt replied. \"And our thank"
+    ],
+    "halflings_gem|description|TERMINAL": [
+      " LaValle. The cat tensed at the sound of the voice - its master's voice. \"Whatever pleases you,\" LaVall",
+      " either of its iron-bound doors, the scene changed - dramatically. Where the outside showed only the we"
+    ],
+    "halflings_gem|description|IN_DIALOGUE": [
+      "t will sit by you, hunt for you, walk at your heel - kill for you.\" Some ideas popped into the guildmas"
+    ],
+    "halflings_gem|action|LIST_INTRO": [
+      "Drizzt rose - and turned away, hiding his chuckle from the infor",
+      "Drizzt noted a glimmer down to the side - not the flickering yellow of a torch, but a consta",
+      "ng a measure of deity-inspired luck to aid his way - Drizzt did not know everything, after all! He laun",
+      "nd saw the light of the gate only a few feet ahead - and the silhouette of a single demodand, standing ",
+      "s later, the image of a docked ship came into view - not a pirate vessel, but a merchant ship. Immediat"
+    ],
+    "halflings_gem|action|TERMINAL": [
+      "f Baldur's Gate. Another gift from Artemis Entreri - another halfling's finger. \"Assassin!\" he roared, ",
+      "warf darted suddenly for the single unguarded path - the roaring furnaces. He dropped the mithril axe i"
+    ],
+    "halflings_gem|dialogue|TERMINAL": [
+      " walked past the stunned barbarian toward the door - and the boy. \"Did you speak to them?\" he demanded ",
+      "id calmly, and Rassiter did not miss the command's - the threat's tone. He bowed low and rushed out of "
+    ],
+    "halflings_gem|interiority|LIST_INTRO": [
+      "And through an army of gray dwarves - duergar even more alert, for the dragon Bruenor ha",
+      "g Sea Sprite a bit longer. He focused upon the elf - Drizzt Do'Urden, as Pellman, the harbormaster, had"
+    ],
+    "streams_of_silver|action|BRACKETED": [
+      "Wulfgar stumbled back toward them.  He was walking\u2014barely\u2014leaning against the wind's push, using it t",
+      " stumbled back toward them.  He was walking\u2014barely\u2014leaning against the wind's push, using it to hold ",
+      "ous surroundings. With the heat of the day, though\u2014the hottest one yet\u2014and the gentle rocking of the ",
+      "th the heat of the day, though\u2014the hottest one yet\u2014and the gentle rocking of the logs on the quiet wa",
+      "and, then pulled the hidden dagger out of his boot\u2014no time for secrets from Entreri now\u2014and found a s"
+    ],
+    "streams_of_silver|description|IN_DIALOGUE": [
+      " at the gray heavens. \"The storm keeps the insects\u2014and the orcs\u2014out of our faces! And how many months",
+      "heavens. \"The storm keeps the insects\u2014and the orcs\u2014out of our faces! And how many months shall it be ",
+      "hisper. An' the place to find Whisper is Rat Alley\u2014always Rat Alley.\"  \"Then on with it,\" said Drizzt"
+    ],
+    "streams_of_silver|dialogue|IN_DIALOGUE": [
+      "come in peace and friendship.\"  \"You'll not get in\u2014not with him!\" spat the rider. \"The ways of the fo",
+      "ructed Drizzt. \"Take no time to bind them together\u2014we can do that out on the water, if we must.\"  Flo",
+      "e taken an interest in the name of Drizzt Do'Urden\u2014 Storm as a growing legend in need of proper song,",
+      "d they passed through Silverymoon on their journey\u2014heading west. But they never found the place, and ",
+      "\"If that monster\u2014\" Gavin began angrily.  \"Oh, where is your sense o"
+    ],
+    "streams_of_silver|interiority|BRACKETED": [
+      "growing rivalry may prove to be her most promising\u2014 perhaps her only\u2014hope of escaping, Catti-brie tho",
+      "y prove to be her most promising\u2014 perhaps her only\u2014hope of escaping, Catti-brie thought.",
+      "at he had done little lasting damage to the beasts\u2014the stab wounds he drove in as he passed would qui",
+      "kly heal, and the limbs he severed would grow back\u2014but the daring maneuver gained him the time he nee",
+      " When the flames of their ambush finally died away\u2014long before the dawning of the new day\u2014he and his "
+    ],
+    "streams_of_silver|interiority|MID_SENTENCE": [
+      "r Jierdan was in the weakest position of the three\u2014subservient to Sydney and afraid of Entreri. An al",
+      " had conjured Morkai at least three times recently\u2014once when the drow's party had first entered Luska",
+      "hat Dendybar would not call upon the specter again\u2014for all their sakes.",
+      "He already knew of the halfling's famed companions\u2014everyone in Ten-Towns spoke of them often: of Driz",
+      "is reputed heroics against Kessell and the goblins\u2014mostly gifts from grateful citizens. Well aware of"
+    ],
+    "streams_of_silver|description|MID_SENTENCE": [
+      "eet smell disturbingly familiar to Drizzt Do'Urden\u2014 the stench of trolls.  This was their domain, and",
+      "ut no more than a day or two away, Regis saw trees\u2014not the small copses of birch or the moss-covered ",
+      "hem identified the various chambers as they passed\u2014one for each of the goodly races, and even a few f",
+      "mall ledge that ran along the side of a wide gorge\u2014the great undercity of Clan Battlehammer.  Luckily",
+      "k Drizzt, Bruenor, and Wulfgar to see the old mage\u2014Regis had begged out of the meeting in lieu of ano"
+    ],
+    "streams_of_silver|action|MID_SENTENCE": [
+      "n a sleep that would outlast any it had ever known\u2014the endless sleep of death.",
+      "ns' guard. They knew that danger was very near now\u2014they could smell the stench gathering in the mist ",
+      "wn. His torch rolled away, though he didn't notice\u2014he couldn't even figure how to get back up, or tha",
+      "last rise out of the Evermoors and into the forest\u2014a wood under the protective eye of Lady Alustriel ",
+      "h, though, the guard realized the impending danger\u2014that this was no ordinary traveler!  Courageously,"
+    ],
+    "streams_of_silver|action|IN_DIALOGUE": [
+      "rever?\" the knight snapped back. \"Just look around\u2014\"  \"Your pardon, good sirs,\" Sydney interrupted. \"",
+      "\"We should light a torch\u2014\" Regis began, but he stopped abruptly, frightened",
+      "pulled the curtain aside. \"Behold the Hall of Duma\u2014\" he began, but the words stuck in his throat as s",
+      " there,\" he explained. \"And there's something more\u2014a bow, I think.\"  Wulfgar moved the torch closer t",
+      " you need to know!\" came the gruff reply. \"And who\u2014\"  \"Regis, First Citizen of Bryn Shander. No doubt"
+    ],
+    "streams_of_silver|description|BRACKETED": [
+      "h similar haste. Bypassing the Holdfast altogether\u2014the tower's magical wards would not have let them ",
+      " wards would not have let them near it in any case\u2014the golem's party had made up considerable ground.",
+      "d struck.  The assassin had considered leaving her\u2014normally he would have without a second thought\u2014bu",
+      "er\u2014normally he would have without a second thought\u2014but Entreri needed to take some time anyway to reg",
+      "t of her twenty-five years working toward one goal\u2014the title of Wizard\u2014and her determination and pois"
+    ],
+    "streams_of_silver|action|LIST_INTRO": [
+      "e confrontation. Clutter greeted him in every room\u2014the halfling had left in a hurry, probably aware t",
+      "mily dog, who had once been Harkle's second cousin\u2014again, a bad potion mix."
+    ],
+    "streams_of_silver|action|TERMINAL": [
+      "e, but their mission now was not to catch and kill\u2014only to herd.  In the first fight for Mithral Hall",
+      "ound him was suddenly saturated with floating webs\u2014sticky spiders' webs. They clung to every part of "
+    ],
+    "streams_of_silver|dialogue|MID_SENTENCE": [
+      "able pain for the more important matter before him\u2014the safety of his friends.  \"Where's the boy, and ",
+      "nor from the fate he had chosen. Wulfgar was right\u2014she could aid the dwarf in gaining his desired end",
+      "rizzt's request confused Bruenor for just a moment\u2014until he looked more closely at the drow's sullen ",
+      "e he suspected the trouble most likely would begin\u2014to the other side of the table and Wulfgar.  He fo",
+      "terested in an alliance with the formidable killer\u2014but only on favorable terms.  \"The price of the in"
+    ],
+    "streams_of_silver|dialogue|TERMINAL": [
+      "r that would test the four friends to their limits\u2014and beyond.",
+      "ance from the camp, he spun her around to face him\u2014and the dagger. \"Follow me?\" he asked, laughing at"
+    ],
+    "streams_of_silver|dialogue|BRACKETED": [
+      "ent. A series of unusual and unidentified markings\u2014three in particular, running in an almost straight",
+      "t of Luskan to the river network south of Lurkwood\u2014caught Bruenor's eye.  \"Ancestral mounds,\" Regis e",
+      "ught the weapon up to her throat in a morbid tease\u2014\"scratching at your smooth skin. When I am done wi",
+      " Regweld, here\u2014\" he patted the fat mage's shoulder\u2014\"for he has had an incredible run of bad luck with"
+    ],
+    "streams_of_silver|interiority|TERMINAL": [
+      "cious being, would be the cruelest trick of all.  \u2014Drizzt Do'Urden",
+      "d evolution, then it is a limiting thing indeed.  \u2014Drizzt Do'Urden",
+      "e equal, but achievement must remain individual.  \u2014Drizzt Do'Urden"
+    ],
+    "streams_of_silver|interiority|LIST_INTRO": [
+      "le and powerful friends, and so I fear no monsters\u2014none that we can fight with sword, at least. No, m",
+      "no more than a way of conveying universal energies\u2014and that, too, might one day be replicated. My Gon"
+    ],
+    "streams_of_silver|dialogue|LIST_INTRO": [
+      "ome of my fears to the Gondsman, he seemed shocked\u2014 not at the devastating possibilities, but rather,"
+    ]
+  }
+}

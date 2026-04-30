@@ -1,0 +1,2145 @@
+{
+  "pattern": 61,
+  "name": "Verb tense distribution per beat-kind",
+  "corpus": "salvatore-icewind-dale (3 books)",
+  "method": {
+    "labeler": "Five tense detectors via regex + token scan: PAST_SIMPLE (regular -ed/-ied/-ked or curated irregular set ~210 forms, blocked by 'had/has/have/was/were/is/are/be/been/being' in 2-token preceding window), PAST_PROGRESSIVE (was/were [+adv] VERB-ing, excluding 'going to' immediate-future and passive 'being'), PAST_PERFECT (mirror of P55 detector \u2014 'had/hadn't/had not' + 0-3 token gap + irregular-or-suffixed participle), MODAL_PAST (would/could/should/might + opt 'have' + verb), PRESENT_SIMPLE (copular is/are/am + clitics, OR 3sg subject + VERB-s, with double-quoted dialogue spans stripped first to avoid counting reported speech). Detection is heuristic per spec \u2014 relative density per kind is the signal, not absolute precision.",
+    "scope": "prose `text` field only (summary excluded); per-beat findall, all hits sum",
+    "stability_gates": {
+      "per_kind_top1_dominant_tense": "top-1 tense by density per 100w identical across 3/3 books, in all 4 core kinds",
+      "past_progressive_desc_over_action": "past-progressive density description > action in 3/3 books"
+    },
+    "tense_categories": [
+      "past_simple",
+      "past_progressive",
+      "past_perfect",
+      "modal_past",
+      "present_simple"
+    ],
+    "core_kinds": [
+      "action",
+      "description",
+      "dialogue",
+      "interiority"
+    ],
+    "lexicon_sizes": {
+      "irregular_participles": 208,
+      "had_stopwords": 61,
+      "suffix_collision_blacklist": 54,
+      "ing_filler_adverbs": 29,
+      "noun_s_blacklist": 101
+    }
+  },
+  "n_beats_total": 2470,
+  "n_beats_per_book": {
+    "crystal_shard": 858,
+    "streams_of_silver": 786,
+    "halflings_gem": 826
+  },
+  "aggregate": {
+    "n_beats": 2470,
+    "total_words": 262748,
+    "totals": {
+      "past_simple": 27084,
+      "past_progressive": 379,
+      "past_perfect": 2860,
+      "modal_past": 2564,
+      "present_simple": 2335
+    },
+    "density_per_100w": {
+      "past_simple": 10.308,
+      "past_progressive": 0.1442,
+      "past_perfect": 1.0885,
+      "modal_past": 0.9758,
+      "present_simple": 0.8887
+    },
+    "share_pct": {
+      "past_simple": 76.9,
+      "past_progressive": 1.08,
+      "past_perfect": 8.12,
+      "modal_past": 7.28,
+      "present_simple": 6.63
+    }
+  },
+  "per_book": {
+    "crystal_shard": {
+      "n_beats": 858,
+      "total_words": 89987,
+      "totals": {
+        "past_simple": 9052,
+        "past_progressive": 195,
+        "past_perfect": 1169,
+        "modal_past": 881,
+        "present_simple": 1023
+      },
+      "density_per_100w": {
+        "past_simple": 10.0592,
+        "past_progressive": 0.2167,
+        "past_perfect": 1.2991,
+        "modal_past": 0.979,
+        "present_simple": 1.1368
+      },
+      "share_pct": {
+        "past_simple": 73.47,
+        "past_progressive": 1.58,
+        "past_perfect": 9.49,
+        "modal_past": 7.15,
+        "present_simple": 8.3
+      }
+    },
+    "streams_of_silver": {
+      "n_beats": 786,
+      "total_words": 85870,
+      "totals": {
+        "past_simple": 8982,
+        "past_progressive": 90,
+        "past_perfect": 904,
+        "modal_past": 921,
+        "present_simple": 763
+      },
+      "density_per_100w": {
+        "past_simple": 10.46,
+        "past_progressive": 0.1048,
+        "past_perfect": 1.0528,
+        "modal_past": 1.0726,
+        "present_simple": 0.8886
+      },
+      "share_pct": {
+        "past_simple": 77.03,
+        "past_progressive": 0.77,
+        "past_perfect": 7.75,
+        "modal_past": 7.9,
+        "present_simple": 6.54
+      }
+    },
+    "halflings_gem": {
+      "n_beats": 826,
+      "total_words": 86891,
+      "totals": {
+        "past_simple": 9050,
+        "past_progressive": 94,
+        "past_perfect": 787,
+        "modal_past": 762,
+        "present_simple": 549
+      },
+      "density_per_100w": {
+        "past_simple": 10.4153,
+        "past_progressive": 0.1082,
+        "past_perfect": 0.9057,
+        "modal_past": 0.877,
+        "present_simple": 0.6318
+      },
+      "share_pct": {
+        "past_simple": 80.5,
+        "past_progressive": 0.84,
+        "past_perfect": 7.0,
+        "modal_past": 6.78,
+        "present_simple": 4.88
+      }
+    }
+  },
+  "per_kind_aggregate": {
+    "action": {
+      "n_beats": 891,
+      "total_words": 93477,
+      "totals": {
+        "past_simple": 10826,
+        "past_progressive": 162,
+        "past_perfect": 903,
+        "modal_past": 698,
+        "present_simple": 1039
+      },
+      "density_per_100w": {
+        "past_simple": 11.5815,
+        "past_progressive": 0.1733,
+        "past_perfect": 0.966,
+        "modal_past": 0.7467,
+        "present_simple": 1.1115
+      },
+      "share_pct": {
+        "past_simple": 79.44,
+        "past_progressive": 1.19,
+        "past_perfect": 6.63,
+        "modal_past": 5.12,
+        "present_simple": 7.62
+      }
+    },
+    "description": {
+      "n_beats": 303,
+      "total_words": 32562,
+      "totals": {
+        "past_simple": 3041,
+        "past_progressive": 34,
+        "past_perfect": 425,
+        "modal_past": 229,
+        "present_simple": 422
+      },
+      "density_per_100w": {
+        "past_simple": 9.3391,
+        "past_progressive": 0.1044,
+        "past_perfect": 1.3052,
+        "modal_past": 0.7033,
+        "present_simple": 1.296
+      },
+      "share_pct": {
+        "past_simple": 73.26,
+        "past_progressive": 0.82,
+        "past_perfect": 10.24,
+        "modal_past": 5.52,
+        "present_simple": 10.17
+      }
+    },
+    "dialogue": {
+      "n_beats": 777,
+      "total_words": 82819,
+      "totals": {
+        "past_simple": 8282,
+        "past_progressive": 88,
+        "past_perfect": 534,
+        "modal_past": 804,
+        "present_simple": 348
+      },
+      "density_per_100w": {
+        "past_simple": 10.0001,
+        "past_progressive": 0.1063,
+        "past_perfect": 0.6448,
+        "modal_past": 0.9708,
+        "present_simple": 0.4202
+      },
+      "share_pct": {
+        "past_simple": 82.36,
+        "past_progressive": 0.88,
+        "past_perfect": 5.31,
+        "modal_past": 8.0,
+        "present_simple": 3.46
+      }
+    },
+    "interiority": {
+      "n_beats": 498,
+      "total_words": 53804,
+      "totals": {
+        "past_simple": 4928,
+        "past_progressive": 95,
+        "past_perfect": 998,
+        "modal_past": 832,
+        "present_simple": 525
+      },
+      "density_per_100w": {
+        "past_simple": 9.1592,
+        "past_progressive": 0.1766,
+        "past_perfect": 1.8549,
+        "modal_past": 1.5464,
+        "present_simple": 0.9758
+      },
+      "share_pct": {
+        "past_simple": 66.79,
+        "past_progressive": 1.29,
+        "past_perfect": 13.53,
+        "modal_past": 11.28,
+        "present_simple": 7.12
+      }
+    },
+    "stakes_recalibration": {
+      "n_beats": 1,
+      "total_words": 86,
+      "totals": {
+        "past_simple": 7,
+        "past_progressive": 0,
+        "past_perfect": 0,
+        "modal_past": 1,
+        "present_simple": 1
+      },
+      "density_per_100w": {
+        "past_simple": 8.1395,
+        "past_progressive": 0.0,
+        "past_perfect": 0.0,
+        "modal_past": 1.1628,
+        "present_simple": 1.1628
+      },
+      "share_pct": {
+        "past_simple": 77.78,
+        "past_progressive": 0.0,
+        "past_perfect": 0.0,
+        "modal_past": 11.11,
+        "present_simple": 11.11
+      }
+    }
+  },
+  "per_kind_per_book": {
+    "crystal_shard": {
+      "action": {
+        "n_beats": 308,
+        "total_words": 32318,
+        "totals": {
+          "past_simple": 3707,
+          "past_progressive": 83,
+          "past_perfect": 375,
+          "modal_past": 252,
+          "present_simple": 478
+        },
+        "density_per_100w": {
+          "past_simple": 11.4704,
+          "past_progressive": 0.2568,
+          "past_perfect": 1.1603,
+          "modal_past": 0.7798,
+          "present_simple": 1.4791
+        },
+        "share_pct": {
+          "past_simple": 75.73,
+          "past_progressive": 1.7,
+          "past_perfect": 7.66,
+          "modal_past": 5.15,
+          "present_simple": 9.77
+        }
+      },
+      "description": {
+        "n_beats": 130,
+        "total_words": 13443,
+        "totals": {
+          "past_simple": 1251,
+          "past_progressive": 25,
+          "past_perfect": 222,
+          "modal_past": 100,
+          "present_simple": 207
+        },
+        "density_per_100w": {
+          "past_simple": 9.306,
+          "past_progressive": 0.186,
+          "past_perfect": 1.6514,
+          "modal_past": 0.7439,
+          "present_simple": 1.5398
+        },
+        "share_pct": {
+          "past_simple": 69.31,
+          "past_progressive": 1.39,
+          "past_perfect": 12.3,
+          "modal_past": 5.54,
+          "present_simple": 11.47
+        }
+      },
+      "dialogue": {
+        "n_beats": 242,
+        "total_words": 25358,
+        "totals": {
+          "past_simple": 2297,
+          "past_progressive": 37,
+          "past_perfect": 177,
+          "modal_past": 238,
+          "present_simple": 130
+        },
+        "density_per_100w": {
+          "past_simple": 9.0583,
+          "past_progressive": 0.1459,
+          "past_perfect": 0.698,
+          "modal_past": 0.9386,
+          "present_simple": 0.5127
+        },
+        "share_pct": {
+          "past_simple": 79.78,
+          "past_progressive": 1.29,
+          "past_perfect": 6.15,
+          "modal_past": 8.27,
+          "present_simple": 4.52
+        }
+      },
+      "interiority": {
+        "n_beats": 177,
+        "total_words": 18782,
+        "totals": {
+          "past_simple": 1790,
+          "past_progressive": 50,
+          "past_perfect": 395,
+          "modal_past": 290,
+          "present_simple": 207
+        },
+        "density_per_100w": {
+          "past_simple": 9.5304,
+          "past_progressive": 0.2662,
+          "past_perfect": 2.1031,
+          "modal_past": 1.544,
+          "present_simple": 1.1021
+        },
+        "share_pct": {
+          "past_simple": 65.52,
+          "past_progressive": 1.83,
+          "past_perfect": 14.46,
+          "modal_past": 10.61,
+          "present_simple": 7.58
+        }
+      },
+      "stakes_recalibration": {
+        "n_beats": 1,
+        "total_words": 86,
+        "totals": {
+          "past_simple": 7,
+          "past_progressive": 0,
+          "past_perfect": 0,
+          "modal_past": 1,
+          "present_simple": 1
+        },
+        "density_per_100w": {
+          "past_simple": 8.1395,
+          "past_progressive": 0.0,
+          "past_perfect": 0.0,
+          "modal_past": 1.1628,
+          "present_simple": 1.1628
+        },
+        "share_pct": {
+          "past_simple": 77.78,
+          "past_progressive": 0.0,
+          "past_perfect": 0.0,
+          "modal_past": 11.11,
+          "present_simple": 11.11
+        }
+      }
+    },
+    "streams_of_silver": {
+      "action": {
+        "n_beats": 274,
+        "total_words": 29385,
+        "totals": {
+          "past_simple": 3535,
+          "past_progressive": 38,
+          "past_perfect": 312,
+          "modal_past": 247,
+          "present_simple": 315
+        },
+        "density_per_100w": {
+          "past_simple": 12.0299,
+          "past_progressive": 0.1293,
+          "past_perfect": 1.0618,
+          "modal_past": 0.8406,
+          "present_simple": 1.072
+        },
+        "share_pct": {
+          "past_simple": 79.49,
+          "past_progressive": 0.85,
+          "past_perfect": 7.02,
+          "modal_past": 5.55,
+          "present_simple": 7.08
+        }
+      },
+      "description": {
+        "n_beats": 94,
+        "total_words": 10592,
+        "totals": {
+          "past_simple": 947,
+          "past_progressive": 5,
+          "past_perfect": 117,
+          "modal_past": 83,
+          "present_simple": 125
+        },
+        "density_per_100w": {
+          "past_simple": 8.9407,
+          "past_progressive": 0.0472,
+          "past_perfect": 1.1046,
+          "modal_past": 0.7836,
+          "present_simple": 1.1801
+        },
+        "share_pct": {
+          "past_simple": 74.16,
+          "past_progressive": 0.39,
+          "past_perfect": 9.16,
+          "modal_past": 6.5,
+          "present_simple": 9.79
+        }
+      },
+      "dialogue": {
+        "n_beats": 256,
+        "total_words": 27835,
+        "totals": {
+          "past_simple": 2967,
+          "past_progressive": 22,
+          "past_perfect": 181,
+          "modal_past": 296,
+          "present_simple": 133
+        },
+        "density_per_100w": {
+          "past_simple": 10.6592,
+          "past_progressive": 0.079,
+          "past_perfect": 0.6503,
+          "modal_past": 1.0634,
+          "present_simple": 0.4778
+        },
+        "share_pct": {
+          "past_simple": 82.44,
+          "past_progressive": 0.61,
+          "past_perfect": 5.03,
+          "modal_past": 8.22,
+          "present_simple": 3.7
+        }
+      },
+      "interiority": {
+        "n_beats": 162,
+        "total_words": 18058,
+        "totals": {
+          "past_simple": 1533,
+          "past_progressive": 25,
+          "past_perfect": 294,
+          "modal_past": 295,
+          "present_simple": 190
+        },
+        "density_per_100w": {
+          "past_simple": 8.4893,
+          "past_progressive": 0.1384,
+          "past_perfect": 1.6281,
+          "modal_past": 1.6336,
+          "present_simple": 1.0522
+        },
+        "share_pct": {
+          "past_simple": 65.6,
+          "past_progressive": 1.07,
+          "past_perfect": 12.58,
+          "modal_past": 12.62,
+          "present_simple": 8.13
+        }
+      },
+      "stakes_recalibration": {
+        "n_beats": 0,
+        "total_words": 0,
+        "totals": {
+          "past_simple": 0,
+          "past_progressive": 0,
+          "past_perfect": 0,
+          "modal_past": 0,
+          "present_simple": 0
+        },
+        "density_per_100w": {
+          "past_simple": 0.0,
+          "past_progressive": 0.0,
+          "past_perfect": 0.0,
+          "modal_past": 0.0,
+          "present_simple": 0.0
+        },
+        "share_pct": {
+          "past_simple": 0.0,
+          "past_progressive": 0.0,
+          "past_perfect": 0.0,
+          "modal_past": 0.0,
+          "present_simple": 0.0
+        }
+      }
+    },
+    "halflings_gem": {
+      "action": {
+        "n_beats": 309,
+        "total_words": 31774,
+        "totals": {
+          "past_simple": 3584,
+          "past_progressive": 41,
+          "past_perfect": 216,
+          "modal_past": 199,
+          "present_simple": 246
+        },
+        "density_per_100w": {
+          "past_simple": 11.2797,
+          "past_progressive": 0.129,
+          "past_perfect": 0.6798,
+          "modal_past": 0.6263,
+          "present_simple": 0.7742
+        },
+        "share_pct": {
+          "past_simple": 83.62,
+          "past_progressive": 0.96,
+          "past_perfect": 5.04,
+          "modal_past": 4.64,
+          "present_simple": 5.74
+        }
+      },
+      "description": {
+        "n_beats": 79,
+        "total_words": 8527,
+        "totals": {
+          "past_simple": 843,
+          "past_progressive": 4,
+          "past_perfect": 86,
+          "modal_past": 46,
+          "present_simple": 90
+        },
+        "density_per_100w": {
+          "past_simple": 9.8862,
+          "past_progressive": 0.0469,
+          "past_perfect": 1.0086,
+          "modal_past": 0.5395,
+          "present_simple": 1.0555
+        },
+        "share_pct": {
+          "past_simple": 78.86,
+          "past_progressive": 0.37,
+          "past_perfect": 8.04,
+          "modal_past": 4.3,
+          "present_simple": 8.42
+        }
+      },
+      "dialogue": {
+        "n_beats": 279,
+        "total_words": 29626,
+        "totals": {
+          "past_simple": 3018,
+          "past_progressive": 29,
+          "past_perfect": 176,
+          "modal_past": 270,
+          "present_simple": 85
+        },
+        "density_per_100w": {
+          "past_simple": 10.187,
+          "past_progressive": 0.0979,
+          "past_perfect": 0.5941,
+          "modal_past": 0.9114,
+          "present_simple": 0.2869
+        },
+        "share_pct": {
+          "past_simple": 84.35,
+          "past_progressive": 0.81,
+          "past_perfect": 4.92,
+          "modal_past": 7.55,
+          "present_simple": 2.38
+        }
+      },
+      "interiority": {
+        "n_beats": 159,
+        "total_words": 16964,
+        "totals": {
+          "past_simple": 1605,
+          "past_progressive": 20,
+          "past_perfect": 309,
+          "modal_past": 247,
+          "present_simple": 128
+        },
+        "density_per_100w": {
+          "past_simple": 9.4612,
+          "past_progressive": 0.1179,
+          "past_perfect": 1.8215,
+          "modal_past": 1.456,
+          "present_simple": 0.7545
+        },
+        "share_pct": {
+          "past_simple": 69.51,
+          "past_progressive": 0.87,
+          "past_perfect": 13.38,
+          "modal_past": 10.7,
+          "present_simple": 5.54
+        }
+      },
+      "stakes_recalibration": {
+        "n_beats": 0,
+        "total_words": 0,
+        "totals": {
+          "past_simple": 0,
+          "past_progressive": 0,
+          "past_perfect": 0,
+          "modal_past": 0,
+          "present_simple": 0
+        },
+        "density_per_100w": {
+          "past_simple": 0.0,
+          "past_progressive": 0.0,
+          "past_perfect": 0.0,
+          "modal_past": 0.0,
+          "present_simple": 0.0
+        },
+        "share_pct": {
+          "past_simple": 0.0,
+          "past_progressive": 0.0,
+          "past_perfect": 0.0,
+          "modal_past": 0.0,
+          "present_simple": 0.0
+        }
+      }
+    }
+  },
+  "tense_ranking_per_kind_aggregate": {
+    "action": [
+      [
+        "past_simple",
+        11.5815
+      ],
+      [
+        "present_simple",
+        1.1115
+      ],
+      [
+        "past_perfect",
+        0.966
+      ],
+      [
+        "modal_past",
+        0.7467
+      ],
+      [
+        "past_progressive",
+        0.1733
+      ]
+    ],
+    "description": [
+      [
+        "past_simple",
+        9.3391
+      ],
+      [
+        "past_perfect",
+        1.3052
+      ],
+      [
+        "present_simple",
+        1.296
+      ],
+      [
+        "modal_past",
+        0.7033
+      ],
+      [
+        "past_progressive",
+        0.1044
+      ]
+    ],
+    "dialogue": [
+      [
+        "past_simple",
+        10.0001
+      ],
+      [
+        "modal_past",
+        0.9708
+      ],
+      [
+        "past_perfect",
+        0.6448
+      ],
+      [
+        "present_simple",
+        0.4202
+      ],
+      [
+        "past_progressive",
+        0.1063
+      ]
+    ],
+    "interiority": [
+      [
+        "past_simple",
+        9.1592
+      ],
+      [
+        "past_perfect",
+        1.8549
+      ],
+      [
+        "modal_past",
+        1.5464
+      ],
+      [
+        "present_simple",
+        0.9758
+      ],
+      [
+        "past_progressive",
+        0.1766
+      ]
+    ],
+    "stakes_recalibration": null
+  },
+  "tense_ranking_per_kind_per_book": {
+    "crystal_shard": {
+      "action": [
+        [
+          "past_simple",
+          11.4704
+        ],
+        [
+          "present_simple",
+          1.4791
+        ],
+        [
+          "past_perfect",
+          1.1603
+        ],
+        [
+          "modal_past",
+          0.7798
+        ],
+        [
+          "past_progressive",
+          0.2568
+        ]
+      ],
+      "description": [
+        [
+          "past_simple",
+          9.306
+        ],
+        [
+          "past_perfect",
+          1.6514
+        ],
+        [
+          "present_simple",
+          1.5398
+        ],
+        [
+          "modal_past",
+          0.7439
+        ],
+        [
+          "past_progressive",
+          0.186
+        ]
+      ],
+      "dialogue": [
+        [
+          "past_simple",
+          9.0583
+        ],
+        [
+          "modal_past",
+          0.9386
+        ],
+        [
+          "past_perfect",
+          0.698
+        ],
+        [
+          "present_simple",
+          0.5127
+        ],
+        [
+          "past_progressive",
+          0.1459
+        ]
+      ],
+      "interiority": [
+        [
+          "past_simple",
+          9.5304
+        ],
+        [
+          "past_perfect",
+          2.1031
+        ],
+        [
+          "modal_past",
+          1.544
+        ],
+        [
+          "present_simple",
+          1.1021
+        ],
+        [
+          "past_progressive",
+          0.2662
+        ]
+      ],
+      "stakes_recalibration": null
+    },
+    "streams_of_silver": {
+      "action": [
+        [
+          "past_simple",
+          12.0299
+        ],
+        [
+          "present_simple",
+          1.072
+        ],
+        [
+          "past_perfect",
+          1.0618
+        ],
+        [
+          "modal_past",
+          0.8406
+        ],
+        [
+          "past_progressive",
+          0.1293
+        ]
+      ],
+      "description": [
+        [
+          "past_simple",
+          8.9407
+        ],
+        [
+          "present_simple",
+          1.1801
+        ],
+        [
+          "past_perfect",
+          1.1046
+        ],
+        [
+          "modal_past",
+          0.7836
+        ],
+        [
+          "past_progressive",
+          0.0472
+        ]
+      ],
+      "dialogue": [
+        [
+          "past_simple",
+          10.6592
+        ],
+        [
+          "modal_past",
+          1.0634
+        ],
+        [
+          "past_perfect",
+          0.6503
+        ],
+        [
+          "present_simple",
+          0.4778
+        ],
+        [
+          "past_progressive",
+          0.079
+        ]
+      ],
+      "interiority": [
+        [
+          "past_simple",
+          8.4893
+        ],
+        [
+          "modal_past",
+          1.6336
+        ],
+        [
+          "past_perfect",
+          1.6281
+        ],
+        [
+          "present_simple",
+          1.0522
+        ],
+        [
+          "past_progressive",
+          0.1384
+        ]
+      ],
+      "stakes_recalibration": null
+    },
+    "halflings_gem": {
+      "action": [
+        [
+          "past_simple",
+          11.2797
+        ],
+        [
+          "present_simple",
+          0.7742
+        ],
+        [
+          "past_perfect",
+          0.6798
+        ],
+        [
+          "modal_past",
+          0.6263
+        ],
+        [
+          "past_progressive",
+          0.129
+        ]
+      ],
+      "description": [
+        [
+          "past_simple",
+          9.8862
+        ],
+        [
+          "present_simple",
+          1.0555
+        ],
+        [
+          "past_perfect",
+          1.0086
+        ],
+        [
+          "modal_past",
+          0.5395
+        ],
+        [
+          "past_progressive",
+          0.0469
+        ]
+      ],
+      "dialogue": [
+        [
+          "past_simple",
+          10.187
+        ],
+        [
+          "modal_past",
+          0.9114
+        ],
+        [
+          "past_perfect",
+          0.5941
+        ],
+        [
+          "present_simple",
+          0.2869
+        ],
+        [
+          "past_progressive",
+          0.0979
+        ]
+      ],
+      "interiority": [
+        [
+          "past_simple",
+          9.4612
+        ],
+        [
+          "past_perfect",
+          1.8215
+        ],
+        [
+          "modal_past",
+          1.456
+        ],
+        [
+          "present_simple",
+          0.7545
+        ],
+        [
+          "past_progressive",
+          0.1179
+        ]
+      ],
+      "stakes_recalibration": null
+    }
+  },
+  "top1_per_kind_per_book": {
+    "crystal_shard": {
+      "action": "past_simple",
+      "description": "past_simple",
+      "dialogue": "past_simple",
+      "interiority": "past_simple",
+      "stakes_recalibration": null
+    },
+    "streams_of_silver": {
+      "action": "past_simple",
+      "description": "past_simple",
+      "dialogue": "past_simple",
+      "interiority": "past_simple",
+      "stakes_recalibration": null
+    },
+    "halflings_gem": {
+      "action": "past_simple",
+      "description": "past_simple",
+      "dialogue": "past_simple",
+      "interiority": "past_simple",
+      "stakes_recalibration": null
+    }
+  },
+  "top1_kind_stability": {
+    "action": {
+      "per_book": {
+        "crystal_shard": "past_simple",
+        "streams_of_silver": "past_simple",
+        "halflings_gem": "past_simple"
+      },
+      "modal_top1": "past_simple",
+      "books_matching_modal": 3,
+      "stable_3of3": true,
+      "stable_2of3": true
+    },
+    "description": {
+      "per_book": {
+        "crystal_shard": "past_simple",
+        "streams_of_silver": "past_simple",
+        "halflings_gem": "past_simple"
+      },
+      "modal_top1": "past_simple",
+      "books_matching_modal": 3,
+      "stable_3of3": true,
+      "stable_2of3": true
+    },
+    "dialogue": {
+      "per_book": {
+        "crystal_shard": "past_simple",
+        "streams_of_silver": "past_simple",
+        "halflings_gem": "past_simple"
+      },
+      "modal_top1": "past_simple",
+      "books_matching_modal": 3,
+      "stable_3of3": true,
+      "stable_2of3": true
+    },
+    "interiority": {
+      "per_book": {
+        "crystal_shard": "past_simple",
+        "streams_of_silver": "past_simple",
+        "halflings_gem": "past_simple"
+      },
+      "modal_top1": "past_simple",
+      "books_matching_modal": 3,
+      "stable_3of3": true,
+      "stable_2of3": true
+    },
+    "stakes_recalibration": {
+      "per_book": {
+        "crystal_shard": null,
+        "streams_of_silver": null,
+        "halflings_gem": null
+      },
+      "modal_top1": null,
+      "books_matching_modal": 0,
+      "stable_3of3": false,
+      "stable_2of3": false
+    }
+  },
+  "hypothesis_checks": {
+    "past_progressive_desc_over_action": {
+      "per_book": {
+        "crystal_shard": {
+          "description_per_100": 0.186,
+          "action_per_100": 0.2568,
+          "ratio_desc_over_action": 0.724,
+          "desc_gt_action": false
+        },
+        "streams_of_silver": {
+          "description_per_100": 0.0472,
+          "action_per_100": 0.1293,
+          "ratio_desc_over_action": 0.365,
+          "desc_gt_action": false
+        },
+        "halflings_gem": {
+          "description_per_100": 0.0469,
+          "action_per_100": 0.129,
+          "ratio_desc_over_action": 0.364,
+          "desc_gt_action": false
+        }
+      },
+      "n_books_holding_desc_gt_action": 0,
+      "passes_3of3": false,
+      "passes_2of3": false
+    },
+    "modal_past_interiority_over_others": {
+      "per_book": {
+        "crystal_shard": {
+          "interiority_per_100": 1.544,
+          "action_per_100": 0.7798,
+          "description_per_100": 0.7439,
+          "ratio_inter_over_action": 1.98,
+          "ratio_inter_over_description": 2.076,
+          "inter_gt_action": true,
+          "inter_gt_description": true,
+          "inter_gt_both": true
+        },
+        "streams_of_silver": {
+          "interiority_per_100": 1.6336,
+          "action_per_100": 0.8406,
+          "description_per_100": 0.7836,
+          "ratio_inter_over_action": 1.943,
+          "ratio_inter_over_description": 2.085,
+          "inter_gt_action": true,
+          "inter_gt_description": true,
+          "inter_gt_both": true
+        },
+        "halflings_gem": {
+          "interiority_per_100": 1.456,
+          "action_per_100": 0.6263,
+          "description_per_100": 0.5395,
+          "ratio_inter_over_action": 2.325,
+          "ratio_inter_over_description": 2.699,
+          "inter_gt_action": true,
+          "inter_gt_description": true,
+          "inter_gt_both": true
+        }
+      },
+      "n_books_inter_gt_action": 3,
+      "n_books_inter_gt_description": 3,
+      "n_books_inter_gt_both": 3
+    },
+    "past_perfect_interiority_over_action_p55_overlap": {
+      "per_book": {
+        "crystal_shard": {
+          "interiority_per_100": 2.1031,
+          "action_per_100": 1.1603,
+          "ratio_inter_over_action": 1.813,
+          "inter_gt_action": true
+        },
+        "streams_of_silver": {
+          "interiority_per_100": 1.6281,
+          "action_per_100": 1.0618,
+          "ratio_inter_over_action": 1.533,
+          "inter_gt_action": true
+        },
+        "halflings_gem": {
+          "interiority_per_100": 1.8215,
+          "action_per_100": 0.6798,
+          "ratio_inter_over_action": 2.679,
+          "inter_gt_action": true
+        }
+      },
+      "n_books_inter_gt_action": 3
+    }
+  },
+  "cell_spreads_per_kind_per_tense": {
+    "action": {
+      "past_simple": {
+        "per_book_density": {
+          "crystal_shard": 11.4704,
+          "streams_of_silver": 12.0299,
+          "halflings_gem": 11.2797
+        },
+        "spread": 0.065
+      },
+      "past_progressive": {
+        "per_book_density": {
+          "crystal_shard": 0.2568,
+          "streams_of_silver": 0.1293,
+          "halflings_gem": 0.129
+        },
+        "spread": 0.744
+      },
+      "past_perfect": {
+        "per_book_density": {
+          "crystal_shard": 1.1603,
+          "streams_of_silver": 1.0618,
+          "halflings_gem": 0.6798
+        },
+        "spread": 0.497
+      },
+      "modal_past": {
+        "per_book_density": {
+          "crystal_shard": 0.7798,
+          "streams_of_silver": 0.8406,
+          "halflings_gem": 0.6263
+        },
+        "spread": 0.286
+      },
+      "present_simple": {
+        "per_book_density": {
+          "crystal_shard": 1.4791,
+          "streams_of_silver": 1.072,
+          "halflings_gem": 0.7742
+        },
+        "spread": 0.636
+      }
+    },
+    "description": {
+      "past_simple": {
+        "per_book_density": {
+          "crystal_shard": 9.306,
+          "streams_of_silver": 8.9407,
+          "halflings_gem": 9.8862
+        },
+        "spread": 0.101
+      },
+      "past_progressive": {
+        "per_book_density": {
+          "crystal_shard": 0.186,
+          "streams_of_silver": 0.0472,
+          "halflings_gem": 0.0469
+        },
+        "spread": 1.49
+      },
+      "past_perfect": {
+        "per_book_density": {
+          "crystal_shard": 1.6514,
+          "streams_of_silver": 1.1046,
+          "halflings_gem": 1.0086
+        },
+        "spread": 0.512
+      },
+      "modal_past": {
+        "per_book_density": {
+          "crystal_shard": 0.7439,
+          "streams_of_silver": 0.7836,
+          "halflings_gem": 0.5395
+        },
+        "spread": 0.354
+      },
+      "present_simple": {
+        "per_book_density": {
+          "crystal_shard": 1.5398,
+          "streams_of_silver": 1.1801,
+          "halflings_gem": 1.0555
+        },
+        "spread": 0.385
+      }
+    },
+    "dialogue": {
+      "past_simple": {
+        "per_book_density": {
+          "crystal_shard": 9.0583,
+          "streams_of_silver": 10.6592,
+          "halflings_gem": 10.187
+        },
+        "spread": 0.161
+      },
+      "past_progressive": {
+        "per_book_density": {
+          "crystal_shard": 0.1459,
+          "streams_of_silver": 0.079,
+          "halflings_gem": 0.0979
+        },
+        "spread": 0.622
+      },
+      "past_perfect": {
+        "per_book_density": {
+          "crystal_shard": 0.698,
+          "streams_of_silver": 0.6503,
+          "halflings_gem": 0.5941
+        },
+        "spread": 0.16
+      },
+      "modal_past": {
+        "per_book_density": {
+          "crystal_shard": 0.9386,
+          "streams_of_silver": 1.0634,
+          "halflings_gem": 0.9114
+        },
+        "spread": 0.157
+      },
+      "present_simple": {
+        "per_book_density": {
+          "crystal_shard": 0.5127,
+          "streams_of_silver": 0.4778,
+          "halflings_gem": 0.2869
+        },
+        "spread": 0.53
+      }
+    },
+    "interiority": {
+      "past_simple": {
+        "per_book_density": {
+          "crystal_shard": 9.5304,
+          "streams_of_silver": 8.4893,
+          "halflings_gem": 9.4612
+        },
+        "spread": 0.114
+      },
+      "past_progressive": {
+        "per_book_density": {
+          "crystal_shard": 0.2662,
+          "streams_of_silver": 0.1384,
+          "halflings_gem": 0.1179
+        },
+        "spread": 0.851
+      },
+      "past_perfect": {
+        "per_book_density": {
+          "crystal_shard": 2.1031,
+          "streams_of_silver": 1.6281,
+          "halflings_gem": 1.8215
+        },
+        "spread": 0.257
+      },
+      "modal_past": {
+        "per_book_density": {
+          "crystal_shard": 1.544,
+          "streams_of_silver": 1.6336,
+          "halflings_gem": 1.456
+        },
+        "spread": 0.115
+      },
+      "present_simple": {
+        "per_book_density": {
+          "crystal_shard": 1.1021,
+          "streams_of_silver": 1.0522,
+          "halflings_gem": 0.7545
+        },
+        "spread": 0.358
+      }
+    },
+    "stakes_recalibration": {
+      "past_simple": {
+        "per_book_density": {
+          "crystal_shard": 8.1395,
+          "streams_of_silver": 0.0,
+          "halflings_gem": 0.0
+        },
+        "spread": 3.0
+      },
+      "past_progressive": {
+        "per_book_density": {
+          "crystal_shard": 0.0,
+          "streams_of_silver": 0.0,
+          "halflings_gem": 0.0
+        },
+        "spread": 0.0
+      },
+      "past_perfect": {
+        "per_book_density": {
+          "crystal_shard": 0.0,
+          "streams_of_silver": 0.0,
+          "halflings_gem": 0.0
+        },
+        "spread": 0.0
+      },
+      "modal_past": {
+        "per_book_density": {
+          "crystal_shard": 1.1628,
+          "streams_of_silver": 0.0,
+          "halflings_gem": 0.0
+        },
+        "spread": 3.0
+      },
+      "present_simple": {
+        "per_book_density": {
+          "crystal_shard": 1.1628,
+          "streams_of_silver": 0.0,
+          "halflings_gem": 0.0
+        },
+        "spread": 3.0
+      }
+    }
+  },
+  "verdict": "DIVERGE",
+  "verdict_note": "Tense markers occur in volume but per-kind dominant-tense stability is 4/4 (3/3) and past-progressive desc>action holds only 0/3 \u2014 no clean shippable prior.",
+  "examples": {
+    "action": {
+      "past_simple": [
+        {
+          "scene_id": "crystal_shard_ch10_s2",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "action",
+          "words": 96,
+          "n_hits": 5,
+          "samples": [
+            "The apprentice disagreed He had",
+            "disagreed He had completed inscribing"
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch10_s2",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "action",
+          "words": 101,
+          "n_hits": 9,
+          "samples": [
+            "He knew that the",
+            "the magic had taken over"
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch10_s2",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "action",
+          "words": 95,
+          "n_hits": 14,
+          "samples": [
+            "and the oversized incisors of",
+            "acidic drool sizzled as it"
+          ]
+        }
+      ],
+      "past_progressive": [
+        {
+          "scene_id": "crystal_shard_ch10_s2",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "action",
+          "words": 101,
+          "n_hits": 2,
+          "samples": [
+            "w that the power of the spell was growing beyond his bounds, that the m",
+            "the magic had taken over and was living a life of its own. That he wa"
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch10_s4",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "action",
+          "words": 143,
+          "n_hits": 1,
+          "samples": [
+            "ked by his trolls, the wizard was waiting for Errtu in Cryshal-Tirith's"
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch14_s0",
+          "book": "crystal_shard",
+          "chapter": 14,
+          "kind": "action",
+          "words": 117,
+          "n_hits": 1,
+          "samples": [
+            "had retrieved Aegis-fang and was resting on one knee, eyeing the elf w"
+          ]
+        }
+      ],
+      "past_perfect": [
+        {
+          "scene_id": "crystal_shard_ch10_s2",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "action",
+          "words": 96,
+          "n_hits": 1,
+          "samples": [
+            "disagreed He had completed inscribing the"
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch10_s2",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "action",
+          "words": 101,
+          "n_hits": 1,
+          "samples": [
+            "the magic had taken over and"
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch10_s2",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "action",
+          "words": 95,
+          "n_hits": 2,
+          "samples": [
+            "human that had foolishly called its name",
+            "himself He had summoned a major"
+          ]
+        }
+      ],
+      "modal_past": [
+        {
+          "scene_id": "crystal_shard_ch10_s2",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "action",
+          "words": 96,
+          "n_hits": 2,
+          "samples": [
+            "nd an extra day (some wizards would spend a week) checking the runes an",
+            "the fire of the brazier that would serve as the gate to the Abyss. Wit"
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch10_s2",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "action",
+          "words": 80,
+          "n_hits": 1,
+          "samples": [
+            "ection in a magic circle that could not afford to be almost perfect. \nThe ap"
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch10_s4",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "action",
+          "words": 143,
+          "n_hits": 2,
+          "samples": [
+            "rd understood that the trolls would be of little use against a fire-",
+            ", had come to him. \nThe demon could be very useful."
+          ]
+        }
+      ],
+      "present_simple": [
+        {
+          "scene_id": "crystal_shard_ch10_s2",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "action",
+          "words": 101,
+          "n_hits": 3,
+          "samples": [
+            "over and was living a life of its own. That he was powerless to",
+            "iant even by the standards of its kind. \n         the young man"
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch10_s2",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "action",
+          "words": 95,
+          "n_hits": 2,
+          "samples": [
+            "man that had foolishly called its name. It began a slow stalk a",
+            "Errtu, undisturbed, continued its stalk."
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch10_s3",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "action",
+          "words": 93,
+          "n_hits": 3,
+          "samples": [
+            "the emanations. It soared on its great wings over the cities o",
+            "was noticed, but not delaying its journey to savor the erupting"
+          ]
+        }
+      ]
+    },
+    "description": {
+      "past_simple": [
+        {
+          "scene_id": "crystal_shard_ch10_s0",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "description",
+          "words": 153,
+          "n_hits": 17,
+          "samples": [
+            "the orc faced Grock the",
+            "respective tribes had been warring"
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch10_s1",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "description",
+          "words": 103,
+          "n_hits": 6,
+          "samples": [
+            "more tribes had joined his",
+            "plateau that harbored his tower"
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch10_s2",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "description",
+          "words": 109,
+          "n_hits": 10,
+          "samples": [
+            "of the frozen steppes in",
+            "in the civilized lands where"
+          ]
+        }
+      ],
+      "past_progressive": [
+        {
+          "scene_id": "crystal_shard_ch10_s2",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "description",
+          "words": 107,
+          "n_hits": 1,
+          "samples": [
+            "ck and forth. \nThe apprentice was sweating."
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch15_s1",
+          "book": "crystal_shard",
+          "chapter": 15,
+          "kind": "description",
+          "words": 87,
+          "n_hits": 1,
+          "samples": [
+            "the valley, but knew that it was taking a huge gamble. A sigh of reli"
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch19_s0",
+          "book": "crystal_shard",
+          "chapter": 19,
+          "kind": "description",
+          "words": 98,
+          "n_hits": 1,
+          "samples": [
+            "Drizzt to believe that there was something more here than an ordinary mi"
+          ]
+        }
+      ],
+      "past_perfect": [
+        {
+          "scene_id": "crystal_shard_ch10_s0",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "description",
+          "words": 153,
+          "n_hits": 2,
+          "samples": [
+            "respective tribes had been warring for",
+            "for they had been commanded to"
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch10_s1",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "description",
+          "words": 103,
+          "n_hits": 3,
+          "samples": [
+            "more tribes had joined his swelling",
+            "master Kessell had even pulled in a"
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch10_s2",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "description",
+          "words": 109,
+          "n_hits": 2,
+          "samples": [
+            "who somehow had come into a",
+            "whether they had found a scroll"
+          ]
+        }
+      ],
+      "modal_past": [
+        {
+          "scene_id": "crystal_shard_ch10_s0",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "description",
+          "words": 153,
+          "n_hits": 3,
+          "samples": [
+            "living member of either group could remember. They shared a valley in the",
+            "at any other time, the tribes could never have \nbeen this close without"
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch10_s2",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "description",
+          "words": 100,
+          "n_hits": 3,
+          "samples": [
+            "ne. Normally, the great beast would have ignored such a weak call; certainly t",
+            "terial plane that it believed would culminate a quest it had undertaken a m"
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch11_s1",
+          "book": "crystal_shard",
+          "chapter": 11,
+          "kind": "description",
+          "words": 86,
+          "n_hits": 1,
+          "samples": [
+            "he \nstrength of the earth and would serve his small temple well. \nAs al"
+          ]
+        }
+      ],
+      "present_simple": [
+        {
+          "scene_id": "crystal_shard_ch10_s1",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "description",
+          "words": 103,
+          "n_hits": 1,
+          "samples": [
+            "ateau that harbored his tower were the standards of various band"
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch10_s2",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "description",
+          "words": 109,
+          "n_hits": 2,
+          "samples": [
+            "wizards and would-be wizards were less rare. The true mages, li",
+            "er's spellbook or some relic, were often the perpetrators of col"
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch10_s2",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "description",
+          "words": 100,
+          "n_hits": 1,
+          "samples": [
+            "ic proportions, faintly heard its named being uttered on the fa"
+          ]
+        }
+      ]
+    },
+    "dialogue": {
+      "past_simple": [
+        {
+          "scene_id": "crystal_shard_ch10_s4",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "dialogue",
+          "words": 119,
+          "n_hits": 12,
+          "samples": [
+            "Kessell smirked The relic",
+            "The relic had supported him"
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch10_s4",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "dialogue",
+          "words": 101,
+          "n_hits": 10,
+          "samples": [
+            "Enough warned a sensation",
+            "voice he had come to"
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch10_s4",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "dialogue",
+          "words": 216,
+          "n_hits": 11,
+          "samples": [
+            "you Kessell said temptingly avoiding",
+            "you Errtu laughed You have"
+          ]
+        }
+      ],
+      "past_progressive": [
+        {
+          "scene_id": "crystal_shard_ch10_s4",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "dialogue",
+          "words": 101,
+          "n_hits": 1,
+          "samples": [
+            "om, wondering who the \nwizard was addressing. Certainly the trolls had pai"
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch10_s4",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "dialogue",
+          "words": 216,
+          "n_hits": 1,
+          "samples": [
+            "romising glare that the demon was throwing him. \"Stay by my side and ser"
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch14_s0",
+          "book": "crystal_shard",
+          "chapter": 14,
+          "kind": "dialogue",
+          "words": 108,
+          "n_hits": 1,
+          "samples": [
+            "Catti-brie was waiting for them at the junction of t"
+          ]
+        }
+      ],
+      "past_perfect": [
+        {
+          "scene_id": "crystal_shard_ch10_s4",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "dialogue",
+          "words": 119,
+          "n_hits": 3,
+          "samples": [
+            "The relic had supported him Brimming",
+            "object it had pursued for so"
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch10_s4",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "dialogue",
+          "words": 101,
+          "n_hits": 2,
+          "samples": [
+            "voice he had come to suspect",
+            "the trolls had paid him no"
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch10_s4",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "dialogue",
+          "words": 216,
+          "n_hits": 1,
+          "samples": [
+            "subconscious intrusions had coached Kessell well"
+          ]
+        }
+      ],
+      "modal_past": [
+        {
+          "scene_id": "crystal_shard_ch10_s4",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "dialogue",
+          "words": 119,
+          "n_hits": 1,
+          "samples": [
+            "have no claim over it that it would honor!\" Kessell's foolish pride, th"
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch10_s4",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "dialogue",
+          "words": 101,
+          "n_hits": 1,
+          "samples": [
+            "in alienating a creature that would prove a valuable ally!\" \nAs was usu"
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch10_s4",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "dialogue",
+          "words": 216,
+          "n_hits": 3,
+          "samples": [
+            "osal to offer, a bargain that might interest you,\" Kessell said temptingly",
+            "ost respect, mighty \ndemon. I would not presume to call myself your master.\""
+          ]
+        }
+      ],
+      "present_simple": [
+        {
+          "scene_id": "crystal_shard_ch10_s4",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "dialogue",
+          "words": 119,
+          "n_hits": 1,
+          "samples": [
+            "his \ntaunting of the demon in its helpless situation."
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch10_s4",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "dialogue",
+          "words": 216,
+          "n_hits": 3,
+          "samples": [
+            "Crenshinibon, with its subconscious intrusions, had",
+            "the \ndemon rasped in its horrible, unearthly voice."
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch12_s0",
+          "book": "crystal_shard",
+          "chapter": 12,
+          "kind": "dialogue",
+          "words": 150,
+          "n_hits": 2,
+          "samples": [
+            "e didn't stop to think of why he was so mad at Catti-brie. \nHe kne",
+            "he would find, as usual, that he was angry because her observation"
+          ]
+        }
+      ]
+    },
+    "interiority": {
+      "past_simple": [
+        {
+          "scene_id": "crystal_shard_ch10_s1",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "interiority",
+          "words": 80,
+          "n_hits": 6,
+          "samples": [
+            "Kessell had been quite",
+            "whims obediantly served by the"
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch10_s1",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "interiority",
+          "words": 120,
+          "n_hits": 5,
+          "samples": [
+            "Kessell ultimately held the power",
+            "crystal shard bridled a reserve"
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch10_s1",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "interiority",
+          "words": 99,
+          "n_hits": 5,
+          "samples": [
+            "else it seemed was easy",
+            "He who had been down"
+          ]
+        }
+      ],
+      "past_progressive": [
+        {
+          "scene_id": "crystal_shard_ch10_s1",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "interiority",
+          "words": 82,
+          "n_hits": 1,
+          "samples": [
+            "summon another group. \nBut it was working, and now he had brought in tw"
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch10_s1",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "interiority",
+          "words": 97,
+          "n_hits": 2,
+          "samples": [
+            "discussion with Kessell, they were chatting like old friends about the gl",
+            "ed his good fortune. His army was indeed taking shape. He had frost giants fo"
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch11_s3",
+          "book": "crystal_shard",
+          "chapter": 11,
+          "kind": "interiority",
+          "words": 94,
+          "n_hits": 1,
+          "samples": [
+            "Then, mercifully, he was falling, though the void of unconscio"
+          ]
+        }
+      ],
+      "past_perfect": [
+        {
+          "scene_id": "crystal_shard_ch10_s1",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "interiority",
+          "words": 80,
+          "n_hits": 4,
+          "samples": [
+            "Kessell had been quite content",
+            "that he had encountered The goblins"
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch10_s1",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "interiority",
+          "words": 99,
+          "n_hits": 1,
+          "samples": [
+            "He who had been down in"
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch10_s1",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "interiority",
+          "words": 82,
+          "n_hits": 3,
+          "samples": [
+            "patient He had spent several years",
+            "that he had enslaved them to"
+          ]
+        }
+      ],
+      "modal_past": [
+        {
+          "scene_id": "crystal_shard_ch10_s1",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "interiority",
+          "words": 120,
+          "n_hits": 3,
+          "samples": [
+            "for power was insatiable. It would settle for small gains for a short t",
+            "e on to greater conquests. It wouldn't openly oppose Kessell, for in their"
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch10_s1",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "interiority",
+          "words": 82,
+          "n_hits": 2,
+          "samples": [
+            "relic close to his heart, he could become the conqueror; he could make",
+            "ould become the conqueror; he could make people, even the wizards in t"
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch10_s4",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "interiority",
+          "words": 107,
+          "n_hits": 3,
+          "samples": [
+            "ngth he was confident that he could handle even a \nnemesis as mighty as",
+            "n of the world, \nCrenshinibon could not be wrested from its possessor by"
+          ]
+        }
+      ],
+      "present_simple": [
+        {
+          "scene_id": "crystal_shard_ch10_s1",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "interiority",
+          "words": 120,
+          "n_hits": 3,
+          "samples": [
+            "rt tine, and then demand that its wielder move on to greater co",
+            "it. Thus Crenshinibon exerted its will through manipulation, in"
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch10_s1",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "interiority",
+          "words": 82,
+          "n_hits": 1,
+          "samples": [
+            "ed summon another group. \nBut it was working, and now he had broug"
+          ]
+        },
+        {
+          "scene_id": "crystal_shard_ch10_s1",
+          "book": "crystal_shard",
+          "chapter": 10,
+          "kind": "interiority",
+          "words": 97,
+          "n_hits": 1,
+          "samples": [
+            "discussion with Kessell, they were chatting like old friends abo"
+          ]
+        }
+      ]
+    }
+  }
+}

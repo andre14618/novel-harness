@@ -1,0 +1,1758 @@
+{
+  "pattern": 55,
+  "name": "Past-perfect ('had X-ed') density distribution",
+  "corpus": "salvatore-icewind-dale (3 books)",
+  "method": {
+    "labeler": "Token-level scan: detect 'had' / 'hadn't' / 'had not' followed within 0-3 tokens by an explicit irregular past participle (curated set ~180 forms) OR a token matching PARTICIPLE_SUFFIX_RX (-ed, -ied, -en, -ne, -ought, -aught), with a small SUFFIX_COLLISION_BLACKLIST. Stopword filter rejects 'had' followed by a determiner / quantifier / common NP opener (a, an, the, no, some, to, ...). Permits 0-3 filler tokens (typical adverbs / negators) between 'had' and the participle, with early-stop on conjunctions to avoid clause crossing.",
+    "scope": "prose `text` field only (summary excluded); per-beat findall, all hits sum",
+    "had_stopwords_count": 61,
+    "irregular_participles_count": 179,
+    "suffix_collision_blacklist_count": 21,
+    "max_gap_tokens": 3,
+    "p54_lexicon_terms": 52,
+    "stability_gates": {
+      "top2_kind_ordering": "top-2 kinds by density per 100w identical across 3/3 books",
+      "chapter_open_spike": "chapter-open density >= 1.3x chapter-internal density, in 3/3 books"
+    }
+  },
+  "n_beats_total": 2470,
+  "n_beats_per_book": {
+    "crystal_shard": 858,
+    "streams_of_silver": 786,
+    "halflings_gem": 826
+  },
+  "aggregate": {
+    "n_beats": 2470,
+    "total_words": 262748,
+    "total_pp_hits": 2885,
+    "beats_with_any_pp": 1386,
+    "beats_with_any_pct": 56.11,
+    "pp_per_100_words": 1.098,
+    "pp_per_beat": 1.168
+  },
+  "per_book": {
+    "crystal_shard": {
+      "n_beats": 858,
+      "total_words": 89987,
+      "total_pp_hits": 1177,
+      "beats_with_any_pp": 531,
+      "beats_with_any_pct": 61.89,
+      "pp_per_100_words": 1.308,
+      "pp_per_beat": 1.3718,
+      "top_participles": [
+        [
+          "been",
+          192
+        ],
+        [
+          "come",
+          53
+        ],
+        [
+          "seen",
+          28
+        ],
+        [
+          "made",
+          20
+        ],
+        [
+          "heard",
+          19
+        ],
+        [
+          "taken",
+          18
+        ],
+        [
+          "found",
+          16
+        ],
+        [
+          "begun",
+          16
+        ],
+        [
+          "gone",
+          15
+        ],
+        [
+          "spent",
+          12
+        ],
+        [
+          "left",
+          12
+        ],
+        [
+          "known",
+          11
+        ],
+        [
+          "given",
+          10
+        ],
+        [
+          "grown",
+          10
+        ],
+        [
+          "returned",
+          10
+        ]
+      ],
+      "had_form_distribution": {
+        "had": 1161,
+        "had not": 16
+      },
+      "gap_distribution": {
+        "0": 993,
+        "1": 165,
+        "2": 18,
+        "3": 1
+      }
+    },
+    "streams_of_silver": {
+      "n_beats": 786,
+      "total_words": 85870,
+      "total_pp_hits": 914,
+      "beats_with_any_pp": 442,
+      "beats_with_any_pct": 56.23,
+      "pp_per_100_words": 1.0644,
+      "pp_per_beat": 1.1628,
+      "top_participles": [
+        [
+          "been",
+          101
+        ],
+        [
+          "come",
+          41
+        ],
+        [
+          "seen",
+          28
+        ],
+        [
+          "left",
+          23
+        ],
+        [
+          "taken",
+          19
+        ],
+        [
+          "found",
+          17
+        ],
+        [
+          "heard",
+          15
+        ],
+        [
+          "entered",
+          13
+        ],
+        [
+          "gone",
+          11
+        ],
+        [
+          "passed",
+          10
+        ],
+        [
+          "learned",
+          10
+        ],
+        [
+          "spent",
+          9
+        ],
+        [
+          "made",
+          9
+        ],
+        [
+          "begun",
+          9
+        ],
+        [
+          "given",
+          9
+        ]
+      ],
+      "had_form_distribution": {
+        "had": 892,
+        "had not": 22
+      },
+      "gap_distribution": {
+        "0": 768,
+        "2": 8,
+        "1": 136,
+        "3": 2
+      }
+    },
+    "halflings_gem": {
+      "n_beats": 826,
+      "total_words": 86891,
+      "total_pp_hits": 794,
+      "beats_with_any_pp": 413,
+      "beats_with_any_pct": 50.0,
+      "pp_per_100_words": 0.9138,
+      "pp_per_beat": 0.9613,
+      "top_participles": [
+        [
+          "been",
+          110
+        ],
+        [
+          "come",
+          30
+        ],
+        [
+          "seen",
+          20
+        ],
+        [
+          "found",
+          18
+        ],
+        [
+          "heard",
+          12
+        ],
+        [
+          "made",
+          11
+        ],
+        [
+          "brought",
+          11
+        ],
+        [
+          "gone",
+          11
+        ],
+        [
+          "hoped",
+          10
+        ],
+        [
+          "taken",
+          10
+        ],
+        [
+          "entered",
+          10
+        ],
+        [
+          "begun",
+          10
+        ],
+        [
+          "become",
+          9
+        ],
+        [
+          "given",
+          9
+        ],
+        [
+          "expected",
+          9
+        ]
+      ],
+      "had_form_distribution": {
+        "had": 773,
+        "had not": 21
+      },
+      "gap_distribution": {
+        "1": 122,
+        "0": 661,
+        "2": 7,
+        "3": 4
+      }
+    }
+  },
+  "per_kind_aggregate": {
+    "action": {
+      "n_beats": 891,
+      "total_words": 93477,
+      "total_pp_hits": 913,
+      "beats_with_any_pp": 518,
+      "beats_with_any_pct": 58.14,
+      "pp_per_100_words": 0.9767,
+      "pp_per_beat": 1.0247
+    },
+    "description": {
+      "n_beats": 303,
+      "total_words": 32562,
+      "total_pp_hits": 429,
+      "beats_with_any_pp": 195,
+      "beats_with_any_pct": 64.36,
+      "pp_per_100_words": 1.3175,
+      "pp_per_beat": 1.4158
+    },
+    "dialogue": {
+      "n_beats": 777,
+      "total_words": 82819,
+      "total_pp_hits": 537,
+      "beats_with_any_pp": 309,
+      "beats_with_any_pct": 39.77,
+      "pp_per_100_words": 0.6484,
+      "pp_per_beat": 0.6911
+    },
+    "interiority": {
+      "n_beats": 498,
+      "total_words": 53804,
+      "total_pp_hits": 1006,
+      "beats_with_any_pp": 364,
+      "beats_with_any_pct": 73.09,
+      "pp_per_100_words": 1.8697,
+      "pp_per_beat": 2.0201
+    },
+    "stakes_recalibration": {
+      "n_beats": 1,
+      "total_words": 86,
+      "total_pp_hits": 0,
+      "beats_with_any_pp": 0,
+      "beats_with_any_pct": 0.0,
+      "pp_per_100_words": 0.0,
+      "pp_per_beat": 0.0
+    }
+  },
+  "per_kind_per_book": {
+    "crystal_shard": {
+      "action": {
+        "n_beats": 308,
+        "total_words": 32318,
+        "total_pp_hits": 381,
+        "beats_with_any_pp": 199,
+        "beats_with_any_pct": 64.61,
+        "pp_per_100_words": 1.1789,
+        "pp_per_beat": 1.237
+      },
+      "description": {
+        "n_beats": 130,
+        "total_words": 13443,
+        "total_pp_hits": 222,
+        "beats_with_any_pp": 92,
+        "beats_with_any_pct": 70.77,
+        "pp_per_100_words": 1.6514,
+        "pp_per_beat": 1.7077
+      },
+      "dialogue": {
+        "n_beats": 242,
+        "total_words": 25358,
+        "total_pp_hits": 177,
+        "beats_with_any_pp": 96,
+        "beats_with_any_pct": 39.67,
+        "pp_per_100_words": 0.698,
+        "pp_per_beat": 0.7314
+      },
+      "interiority": {
+        "n_beats": 177,
+        "total_words": 18782,
+        "total_pp_hits": 397,
+        "beats_with_any_pp": 144,
+        "beats_with_any_pct": 81.36,
+        "pp_per_100_words": 2.1137,
+        "pp_per_beat": 2.2429
+      },
+      "stakes_recalibration": {
+        "n_beats": 1,
+        "total_words": 86,
+        "total_pp_hits": 0,
+        "beats_with_any_pp": 0,
+        "beats_with_any_pct": 0.0,
+        "pp_per_100_words": 0.0,
+        "pp_per_beat": 0.0
+      }
+    },
+    "streams_of_silver": {
+      "action": {
+        "n_beats": 274,
+        "total_words": 29385,
+        "total_pp_hits": 316,
+        "beats_with_any_pp": 176,
+        "beats_with_any_pct": 64.23,
+        "pp_per_100_words": 1.0754,
+        "pp_per_beat": 1.1533
+      },
+      "description": {
+        "n_beats": 94,
+        "total_words": 10592,
+        "total_pp_hits": 119,
+        "beats_with_any_pp": 58,
+        "beats_with_any_pct": 61.7,
+        "pp_per_100_words": 1.1235,
+        "pp_per_beat": 1.266
+      },
+      "dialogue": {
+        "n_beats": 256,
+        "total_words": 27835,
+        "total_pp_hits": 183,
+        "beats_with_any_pp": 105,
+        "beats_with_any_pct": 41.02,
+        "pp_per_100_words": 0.6574,
+        "pp_per_beat": 0.7148
+      },
+      "interiority": {
+        "n_beats": 162,
+        "total_words": 18058,
+        "total_pp_hits": 296,
+        "beats_with_any_pp": 103,
+        "beats_with_any_pct": 63.58,
+        "pp_per_100_words": 1.6392,
+        "pp_per_beat": 1.8272
+      },
+      "stakes_recalibration": {
+        "n_beats": 0,
+        "total_words": 0,
+        "total_pp_hits": 0,
+        "beats_with_any_pp": 0,
+        "beats_with_any_pct": 0.0,
+        "pp_per_100_words": 0.0,
+        "pp_per_beat": 0.0
+      }
+    },
+    "halflings_gem": {
+      "action": {
+        "n_beats": 309,
+        "total_words": 31774,
+        "total_pp_hits": 216,
+        "beats_with_any_pp": 143,
+        "beats_with_any_pct": 46.28,
+        "pp_per_100_words": 0.6798,
+        "pp_per_beat": 0.699
+      },
+      "description": {
+        "n_beats": 79,
+        "total_words": 8527,
+        "total_pp_hits": 88,
+        "beats_with_any_pp": 45,
+        "beats_with_any_pct": 56.96,
+        "pp_per_100_words": 1.032,
+        "pp_per_beat": 1.1139
+      },
+      "dialogue": {
+        "n_beats": 279,
+        "total_words": 29626,
+        "total_pp_hits": 177,
+        "beats_with_any_pp": 108,
+        "beats_with_any_pct": 38.71,
+        "pp_per_100_words": 0.5974,
+        "pp_per_beat": 0.6344
+      },
+      "interiority": {
+        "n_beats": 159,
+        "total_words": 16964,
+        "total_pp_hits": 313,
+        "beats_with_any_pp": 117,
+        "beats_with_any_pct": 73.58,
+        "pp_per_100_words": 1.8451,
+        "pp_per_beat": 1.9686
+      },
+      "stakes_recalibration": {
+        "n_beats": 0,
+        "total_words": 0,
+        "total_pp_hits": 0,
+        "beats_with_any_pp": 0,
+        "beats_with_any_pct": 0.0,
+        "pp_per_100_words": 0.0,
+        "pp_per_beat": 0.0
+      }
+    }
+  },
+  "position_aggregate": {
+    "chapter-open": {
+      "n_beats": 75,
+      "total_words": 7612,
+      "total_pp_hits": 102,
+      "beats_with_any_pp": 49,
+      "beats_with_any_pct": 65.33,
+      "pp_per_100_words": 1.34,
+      "pp_per_beat": 1.36
+    },
+    "scene-bounded": {
+      "n_beats": 185,
+      "total_words": 18471,
+      "total_pp_hits": 244,
+      "beats_with_any_pp": 124,
+      "beats_with_any_pct": 67.03,
+      "pp_per_100_words": 1.321,
+      "pp_per_beat": 1.3189
+    },
+    "scene-unbounded": {
+      "n_beats": 17,
+      "total_words": 1972,
+      "total_pp_hits": 28,
+      "beats_with_any_pp": 7,
+      "beats_with_any_pct": 41.18,
+      "pp_per_100_words": 1.4199,
+      "pp_per_beat": 1.6471
+    },
+    "chapter-close": {
+      "n_beats": 75,
+      "total_words": 7613,
+      "total_pp_hits": 124,
+      "beats_with_any_pp": 52,
+      "beats_with_any_pct": 69.33,
+      "pp_per_100_words": 1.6288,
+      "pp_per_beat": 1.6533
+    },
+    "chapter-internal": {
+      "n_beats": 2118,
+      "total_words": 227080,
+      "total_pp_hits": 2387,
+      "beats_with_any_pp": 1154,
+      "beats_with_any_pct": 54.49,
+      "pp_per_100_words": 1.0512,
+      "pp_per_beat": 1.127
+    },
+    "__boundary_vs_internal__": {
+      "boundary": {
+        "n_beats": 352,
+        "total_words": 35668,
+        "total_pp_hits": 498,
+        "pp_per_100_words": 1.3962
+      },
+      "internal": {
+        "n_beats": 2118,
+        "total_words": 227080,
+        "total_pp_hits": 2387,
+        "pp_per_100_words": 1.0512
+      },
+      "ratio_boundary_over_internal": 1.328
+    }
+  },
+  "position_per_book": {
+    "crystal_shard": {
+      "chapter-open": {
+        "n_beats": 30,
+        "total_words": 3035,
+        "total_pp_hits": 43,
+        "beats_with_any_pp": 22,
+        "beats_with_any_pct": 73.33,
+        "pp_per_100_words": 1.4168,
+        "pp_per_beat": 1.4333
+      },
+      "scene-bounded": {
+        "n_beats": 75,
+        "total_words": 7751,
+        "total_pp_hits": 122,
+        "beats_with_any_pp": 56,
+        "beats_with_any_pct": 74.67,
+        "pp_per_100_words": 1.574,
+        "pp_per_beat": 1.6267
+      },
+      "scene-unbounded": {
+        "n_beats": 4,
+        "total_words": 506,
+        "total_pp_hits": 8,
+        "beats_with_any_pp": 2,
+        "beats_with_any_pct": 50.0,
+        "pp_per_100_words": 1.581,
+        "pp_per_beat": 2.0
+      },
+      "chapter-close": {
+        "n_beats": 30,
+        "total_words": 3032,
+        "total_pp_hits": 54,
+        "beats_with_any_pp": 22,
+        "beats_with_any_pct": 73.33,
+        "pp_per_100_words": 1.781,
+        "pp_per_beat": 1.8
+      },
+      "chapter-internal": {
+        "n_beats": 719,
+        "total_words": 75663,
+        "total_pp_hits": 950,
+        "beats_with_any_pp": 429,
+        "beats_with_any_pct": 59.67,
+        "pp_per_100_words": 1.2556,
+        "pp_per_beat": 1.3213
+      },
+      "__boundary_vs_internal__": {
+        "boundary": {
+          "n_beats": 139,
+          "total_words": 14324,
+          "total_pp_hits": 227,
+          "pp_per_100_words": 1.5848
+        },
+        "internal": {
+          "n_beats": 719,
+          "total_words": 75663,
+          "total_pp_hits": 950,
+          "pp_per_100_words": 1.2556
+        },
+        "ratio_boundary_over_internal": 1.262
+      }
+    },
+    "streams_of_silver": {
+      "chapter-open": {
+        "n_beats": 19,
+        "total_words": 1975,
+        "total_pp_hits": 30,
+        "beats_with_any_pp": 13,
+        "beats_with_any_pct": 68.42,
+        "pp_per_100_words": 1.519,
+        "pp_per_beat": 1.5789
+      },
+      "scene-bounded": {
+        "n_beats": 28,
+        "total_words": 2587,
+        "total_pp_hits": 27,
+        "beats_with_any_pp": 18,
+        "beats_with_any_pct": 64.29,
+        "pp_per_100_words": 1.0437,
+        "pp_per_beat": 0.9643
+      },
+      "scene-unbounded": {
+        "n_beats": 10,
+        "total_words": 1153,
+        "total_pp_hits": 20,
+        "beats_with_any_pp": 5,
+        "beats_with_any_pct": 50.0,
+        "pp_per_100_words": 1.7346,
+        "pp_per_beat": 2.0
+      },
+      "chapter-close": {
+        "n_beats": 19,
+        "total_words": 1941,
+        "total_pp_hits": 28,
+        "beats_with_any_pp": 14,
+        "beats_with_any_pct": 73.68,
+        "pp_per_100_words": 1.4426,
+        "pp_per_beat": 1.4737
+      },
+      "chapter-internal": {
+        "n_beats": 710,
+        "total_words": 78214,
+        "total_pp_hits": 809,
+        "beats_with_any_pp": 392,
+        "beats_with_any_pct": 55.21,
+        "pp_per_100_words": 1.0343,
+        "pp_per_beat": 1.1394
+      },
+      "__boundary_vs_internal__": {
+        "boundary": {
+          "n_beats": 76,
+          "total_words": 7656,
+          "total_pp_hits": 105,
+          "pp_per_100_words": 1.3715
+        },
+        "internal": {
+          "n_beats": 710,
+          "total_words": 78214,
+          "total_pp_hits": 809,
+          "pp_per_100_words": 1.0343
+        },
+        "ratio_boundary_over_internal": 1.326
+      }
+    },
+    "halflings_gem": {
+      "chapter-open": {
+        "n_beats": 26,
+        "total_words": 2602,
+        "total_pp_hits": 29,
+        "beats_with_any_pp": 14,
+        "beats_with_any_pct": 53.85,
+        "pp_per_100_words": 1.1145,
+        "pp_per_beat": 1.1154
+      },
+      "scene-bounded": {
+        "n_beats": 82,
+        "total_words": 8133,
+        "total_pp_hits": 95,
+        "beats_with_any_pp": 50,
+        "beats_with_any_pct": 60.98,
+        "pp_per_100_words": 1.1681,
+        "pp_per_beat": 1.1585
+      },
+      "scene-unbounded": {
+        "n_beats": 3,
+        "total_words": 313,
+        "total_pp_hits": 0,
+        "beats_with_any_pp": 0,
+        "beats_with_any_pct": 0.0,
+        "pp_per_100_words": 0.0,
+        "pp_per_beat": 0.0
+      },
+      "chapter-close": {
+        "n_beats": 26,
+        "total_words": 2640,
+        "total_pp_hits": 42,
+        "beats_with_any_pp": 16,
+        "beats_with_any_pct": 61.54,
+        "pp_per_100_words": 1.5909,
+        "pp_per_beat": 1.6154
+      },
+      "chapter-internal": {
+        "n_beats": 689,
+        "total_words": 73203,
+        "total_pp_hits": 628,
+        "beats_with_any_pp": 333,
+        "beats_with_any_pct": 48.33,
+        "pp_per_100_words": 0.8579,
+        "pp_per_beat": 0.9115
+      },
+      "__boundary_vs_internal__": {
+        "boundary": {
+          "n_beats": 137,
+          "total_words": 13688,
+          "total_pp_hits": 166,
+          "pp_per_100_words": 1.2127
+        },
+        "internal": {
+          "n_beats": 689,
+          "total_words": 73203,
+          "total_pp_hits": 628,
+          "pp_per_100_words": 0.8579
+        },
+        "ratio_boundary_over_internal": 1.414
+      }
+    }
+  },
+  "chapter_open_vs_internal_aggregate": {
+    "chapter_open_per_100": 1.34,
+    "chapter_internal_per_100": 1.0512,
+    "ratio": 1.275,
+    "spike_ge_1_3": false
+  },
+  "chapter_open_vs_internal_per_book": {
+    "crystal_shard": {
+      "chapter_open_per_100": 1.4168,
+      "chapter_internal_per_100": 1.2556,
+      "ratio": 1.128,
+      "spike_ge_1_3": false
+    },
+    "streams_of_silver": {
+      "chapter_open_per_100": 1.519,
+      "chapter_internal_per_100": 1.0343,
+      "ratio": 1.469,
+      "spike_ge_1_3": true
+    },
+    "halflings_gem": {
+      "chapter_open_per_100": 1.1145,
+      "chapter_internal_per_100": 0.8579,
+      "ratio": 1.299,
+      "spike_ge_1_3": false
+    }
+  },
+  "chapter_close_vs_internal_aggregate": {
+    "chapter_close_per_100": 1.6288,
+    "chapter_internal_per_100": 1.0512,
+    "ratio": 1.549,
+    "spike_ge_1_3": true
+  },
+  "chapter_close_vs_internal_per_book": {
+    "crystal_shard": {
+      "chapter_close_per_100": 1.781,
+      "chapter_internal_per_100": 1.2556,
+      "ratio": 1.418,
+      "spike_ge_1_3": true
+    },
+    "streams_of_silver": {
+      "chapter_close_per_100": 1.4426,
+      "chapter_internal_per_100": 1.0343,
+      "ratio": 1.395,
+      "spike_ge_1_3": true
+    },
+    "halflings_gem": {
+      "chapter_close_per_100": 1.5909,
+      "chapter_internal_per_100": 0.8579,
+      "ratio": 1.854,
+      "spike_ge_1_3": true
+    }
+  },
+  "boundary_vs_internal_gate_aggregate": {
+    "boundary_per_100": 1.3962,
+    "internal_per_100": 1.0512,
+    "ratio": 1.328,
+    "spike_ge_1_3": true
+  },
+  "boundary_vs_internal_gate_per_book": {
+    "crystal_shard": {
+      "boundary_per_100": 1.5848,
+      "internal_per_100": 1.2556,
+      "ratio": 1.262,
+      "spike_ge_1_3": false
+    },
+    "streams_of_silver": {
+      "boundary_per_100": 1.3715,
+      "internal_per_100": 1.0343,
+      "ratio": 1.326,
+      "spike_ge_1_3": true
+    },
+    "halflings_gem": {
+      "boundary_per_100": 1.2127,
+      "internal_per_100": 0.8579,
+      "ratio": 1.414,
+      "spike_ge_1_3": true
+    }
+  },
+  "structural_spike_summary": {
+    "chapter_open_spike_holds_per_book": {
+      "crystal_shard": false,
+      "streams_of_silver": true,
+      "halflings_gem": false
+    },
+    "chapter_open_spike_holds_count": 1,
+    "chapter_close_spike_holds_per_book": {
+      "crystal_shard": true,
+      "streams_of_silver": true,
+      "halflings_gem": true
+    },
+    "chapter_close_spike_holds_count": 3,
+    "boundary_spike_holds_per_book": {
+      "crystal_shard": false,
+      "streams_of_silver": true,
+      "halflings_gem": true
+    },
+    "boundary_spike_holds_count": 2
+  },
+  "p54_pairing_aggregate": {
+    "with_p54_marker": {
+      "n_beats": 157,
+      "total_words": 17091,
+      "total_pp_hits": 251,
+      "beats_with_any_pp": 108,
+      "beats_with_any_pct": 68.79,
+      "pp_per_100_words": 1.4686,
+      "pp_per_beat": 1.5987
+    },
+    "without_p54_marker": {
+      "n_beats": 2313,
+      "total_words": 245657,
+      "total_pp_hits": 2634,
+      "beats_with_any_pp": 1278,
+      "beats_with_any_pct": 55.25,
+      "pp_per_100_words": 1.0722,
+      "pp_per_beat": 1.1388
+    },
+    "ratio_density_with_over_without": 1.37
+  },
+  "p54_pairing_per_book": {
+    "crystal_shard": {
+      "with_p54_marker": {
+        "n_beats": 49,
+        "total_words": 5360,
+        "total_pp_hits": 95,
+        "beats_with_any_pp": 35,
+        "beats_with_any_pct": 71.43,
+        "pp_per_100_words": 1.7724,
+        "pp_per_beat": 1.9388
+      },
+      "without_p54_marker": {
+        "n_beats": 809,
+        "total_words": 84627,
+        "total_pp_hits": 1082,
+        "beats_with_any_pp": 496,
+        "beats_with_any_pct": 61.31,
+        "pp_per_100_words": 1.2786,
+        "pp_per_beat": 1.3375
+      },
+      "ratio_density_with_over_without": 1.386
+    },
+    "streams_of_silver": {
+      "with_p54_marker": {
+        "n_beats": 63,
+        "total_words": 6933,
+        "total_pp_hits": 99,
+        "beats_with_any_pp": 44,
+        "beats_with_any_pct": 69.84,
+        "pp_per_100_words": 1.428,
+        "pp_per_beat": 1.5714
+      },
+      "without_p54_marker": {
+        "n_beats": 723,
+        "total_words": 78937,
+        "total_pp_hits": 815,
+        "beats_with_any_pp": 398,
+        "beats_with_any_pct": 55.05,
+        "pp_per_100_words": 1.0325,
+        "pp_per_beat": 1.1272
+      },
+      "ratio_density_with_over_without": 1.383
+    },
+    "halflings_gem": {
+      "with_p54_marker": {
+        "n_beats": 45,
+        "total_words": 4798,
+        "total_pp_hits": 57,
+        "beats_with_any_pp": 29,
+        "beats_with_any_pct": 64.44,
+        "pp_per_100_words": 1.188,
+        "pp_per_beat": 1.2667
+      },
+      "without_p54_marker": {
+        "n_beats": 781,
+        "total_words": 82093,
+        "total_pp_hits": 737,
+        "beats_with_any_pp": 384,
+        "beats_with_any_pct": 49.17,
+        "pp_per_100_words": 0.8978,
+        "pp_per_beat": 0.9437
+      },
+      "ratio_density_with_over_without": 1.323
+    }
+  },
+  "cross_book_stability": {
+    "kind_ranking_per_book": {
+      "crystal_shard": [
+        [
+          "interiority",
+          2.1137
+        ],
+        [
+          "description",
+          1.6514
+        ],
+        [
+          "action",
+          1.1789
+        ],
+        [
+          "dialogue",
+          0.698
+        ]
+      ],
+      "streams_of_silver": [
+        [
+          "interiority",
+          1.6392
+        ],
+        [
+          "description",
+          1.1235
+        ],
+        [
+          "action",
+          1.0754
+        ],
+        [
+          "dialogue",
+          0.6574
+        ]
+      ],
+      "halflings_gem": [
+        [
+          "interiority",
+          1.8451
+        ],
+        [
+          "description",
+          1.032
+        ],
+        [
+          "action",
+          0.6798
+        ],
+        [
+          "dialogue",
+          0.5974
+        ]
+      ]
+    },
+    "top1_per_book": {
+      "crystal_shard": "interiority",
+      "streams_of_silver": "interiority",
+      "halflings_gem": "interiority"
+    },
+    "top1_identical_3of3": true,
+    "top2_per_book": {
+      "crystal_shard": [
+        "interiority",
+        "description"
+      ],
+      "streams_of_silver": [
+        "interiority",
+        "description"
+      ],
+      "halflings_gem": [
+        "interiority",
+        "description"
+      ]
+    },
+    "top2_set_per_book": {
+      "crystal_shard": [
+        "description",
+        "interiority"
+      ],
+      "streams_of_silver": [
+        "description",
+        "interiority"
+      ],
+      "halflings_gem": [
+        "description",
+        "interiority"
+      ]
+    },
+    "top2_intersection_3way": [
+      "description",
+      "interiority"
+    ],
+    "top2_identical_3of3": true,
+    "modal_top2_set": [
+      "description",
+      "interiority"
+    ],
+    "top2_books_matching_modal": 3,
+    "spike_ge_1_3_per_book": {
+      "crystal_shard": false,
+      "streams_of_silver": true,
+      "halflings_gem": false
+    },
+    "spike_holds_count": 1,
+    "densities_per_100": {
+      "crystal_shard": 1.308,
+      "streams_of_silver": 1.0644,
+      "halflings_gem": 0.9138
+    },
+    "density_min_per_100": 0.9138,
+    "density_max_per_100": 1.308,
+    "density_spread_fraction_max_over_min": 0.431
+  },
+  "verdict": "PASS_PARTIAL",
+  "verdict_note": "Mixed: top-2 ordering 3/3, spike 1/3. One axis weakly stable, the other diverges.",
+  "examples": {
+    "chapter_open_examples": [
+      {
+        "scene_id": "crystal_shard_ch10_s0",
+        "book": "crystal_shard",
+        "chapter": 10,
+        "kind": "description",
+        "words": 153,
+        "n_pp_hits": 2,
+        "examples": [
+          {
+            "had_form": "had",
+            "participle": "been",
+            "gap": 0,
+            "context": "respective tribes had been warring for"
+          },
+          {
+            "had_form": "had",
+            "participle": "been",
+            "gap": 0,
+            "context": "for they had been commanded to"
+          }
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_ch11_s0",
+        "book": "crystal_shard",
+        "chapter": 11,
+        "kind": "action",
+        "words": 109,
+        "n_pp_hits": 1,
+        "examples": [
+          {
+            "had_form": "had",
+            "participle": "been",
+            "gap": 0,
+            "context": "smiths he had been waiting for"
+          }
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_ch13_s0",
+        "book": "crystal_shard",
+        "chapter": 13,
+        "kind": "dialogue",
+        "words": 97,
+        "n_pp_hits": 1,
+        "examples": [
+          {
+            "had_form": "had",
+            "participle": "given",
+            "gap": 0,
+            "context": "that Kessell had given it gave"
+          }
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_ch14_s0",
+        "book": "crystal_shard",
+        "chapter": 14,
+        "kind": "interiority",
+        "words": 96,
+        "n_pp_hits": 3,
+        "examples": [
+          {
+            "had_form": "had",
+            "participle": "regained",
+            "gap": 0,
+            "context": "Bruenor had regained his dour"
+          },
+          {
+            "had_form": "had",
+            "participle": "been",
+            "gap": 1,
+            "context": "if it had always been there and"
+          },
+          {
+            "had_form": "had",
+            "participle": "examined",
+            "gap": 0,
+            "context": "if he had examined his emotions"
+          }
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_ch15_s0",
+        "book": "crystal_shard",
+        "chapter": 15,
+        "kind": "description",
+        "words": 96,
+        "n_pp_hits": 2,
+        "examples": [
+          {
+            "had_form": "had",
+            "participle": "traveled",
+            "gap": 0,
+            "context": "and Wulfgar had traveled just two"
+          },
+          {
+            "had_form": "had",
+            "participle": "been",
+            "gap": 0,
+            "context": "lair that had been discovered by"
+          }
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_ch17_s0",
+        "book": "crystal_shard",
+        "chapter": 17,
+        "kind": "action",
+        "words": 99,
+        "n_pp_hits": 1,
+        "examples": [
+          {
+            "had_form": "had",
+            "participle": "come",
+            "gap": 0,
+            "context": "on They had come prepared for"
+          }
+        ]
+      }
+    ],
+    "scene_bounded_examples": [
+      {
+        "scene_id": "crystal_shard_ch10_s1",
+        "book": "crystal_shard",
+        "chapter": 10,
+        "kind": "description",
+        "words": 103,
+        "n_pp_hits": 3,
+        "examples": [
+          {
+            "had_form": "had",
+            "participle": "joined",
+            "gap": 0,
+            "context": "more tribes had joined his swelling"
+          },
+          {
+            "had_form": "had",
+            "participle": "pulled",
+            "gap": 1,
+            "context": "master Kessell had even pulled in a"
+          },
+          {
+            "had_form": "had",
+            "participle": "wandered",
+            "gap": 1,
+            "context": "giants that had simply wandered in desiring"
+          }
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_ch10_s2",
+        "book": "crystal_shard",
+        "chapter": 10,
+        "kind": "description",
+        "words": 109,
+        "n_pp_hits": 2,
+        "examples": [
+          {
+            "had_form": "had",
+            "participle": "come",
+            "gap": 0,
+            "context": "who somehow had come into a"
+          },
+          {
+            "had_form": "had",
+            "participle": "found",
+            "gap": 0,
+            "context": "whether they had found a scroll"
+          }
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_ch10_s3",
+        "book": "crystal_shard",
+        "chapter": 10,
+        "kind": "action",
+        "words": 93,
+        "n_pp_hits": 1,
+        "examples": [
+          {
+            "had_form": "had",
+            "participle": "spent",
+            "gap": 0,
+            "context": "that it had spent centuries searching"
+          }
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_ch11_s1",
+        "book": "crystal_shard",
+        "chapter": 11,
+        "kind": "description",
+        "words": 86,
+        "n_pp_hits": 2,
+        "examples": [
+          {
+            "had_form": "had",
+            "participle": "constructed",
+            "gap": 0,
+            "context": "Bruenor had constructed his outdoor"
+          },
+          {
+            "had_form": "had",
+            "participle": "given",
+            "gap": 0,
+            "context": "his father had given him on"
+          }
+        ]
+      }
+    ],
+    "chapter_internal_examples": [
+      {
+        "scene_id": "crystal_shard_ch10_s1",
+        "book": "crystal_shard",
+        "chapter": 10,
+        "kind": "interiority",
+        "words": 80,
+        "n_pp_hits": 4,
+        "examples": [
+          {
+            "had_form": "had",
+            "participle": "been",
+            "gap": 0,
+            "context": "Kessell had been quite content"
+          },
+          {
+            "had_form": "had",
+            "participle": "encountered",
+            "gap": 0,
+            "context": "that he had encountered The goblins"
+          },
+          {
+            "had_form": "had",
+            "participle": "been",
+            "gap": 1,
+            "context": "The goblins had even been able to"
+          }
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_ch10_s1",
+        "book": "crystal_shard",
+        "chapter": 10,
+        "kind": "interiority",
+        "words": 99,
+        "n_pp_hits": 1,
+        "examples": [
+          {
+            "had_form": "had",
+            "participle": "been",
+            "gap": 0,
+            "context": "He who had been down in"
+          }
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_ch10_s1",
+        "book": "crystal_shard",
+        "chapter": 10,
+        "kind": "interiority",
+        "words": 82,
+        "n_pp_hits": 3,
+        "examples": [
+          {
+            "had_form": "had",
+            "participle": "spent",
+            "gap": 0,
+            "context": "patient He had spent several years"
+          },
+          {
+            "had_form": "had",
+            "participle": "enslaved",
+            "gap": 0,
+            "context": "that he had enslaved them to"
+          },
+          {
+            "had_form": "had",
+            "participle": "brought",
+            "gap": 0,
+            "context": "now he had brought in two"
+          }
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_ch10_s1",
+        "book": "crystal_shard",
+        "chapter": 10,
+        "kind": "interiority",
+        "words": 97,
+        "n_pp_hits": 2,
+        "examples": [
+          {
+            "had_form": "had",
+            "participle": "entered",
+            "gap": 0,
+            "context": "and Grock had entered Cryshal Tirith"
+          },
+          {
+            "had_form": "had",
+            "participle": "been",
+            "gap": 2,
+            "context": "girl's mind had long ago been destroyed by"
+          }
+        ]
+      }
+    ],
+    "interiority_examples": [
+      {
+        "scene_id": "crystal_shard_ch10_s1",
+        "book": "crystal_shard",
+        "chapter": 10,
+        "words": 80,
+        "n_pp_hits": 4,
+        "examples": [
+          {
+            "had_form": "had",
+            "participle": "been",
+            "gap": 0,
+            "context": "Kessell had been quite content"
+          },
+          {
+            "had_form": "had",
+            "participle": "encountered",
+            "gap": 0,
+            "context": "that he had encountered The goblins"
+          },
+          {
+            "had_form": "had",
+            "participle": "been",
+            "gap": 1,
+            "context": "The goblins had even been able to"
+          }
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_ch10_s1",
+        "book": "crystal_shard",
+        "chapter": 10,
+        "words": 99,
+        "n_pp_hits": 1,
+        "examples": [
+          {
+            "had_form": "had",
+            "participle": "been",
+            "gap": 0,
+            "context": "He who had been down in"
+          }
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_ch10_s1",
+        "book": "crystal_shard",
+        "chapter": 10,
+        "words": 82,
+        "n_pp_hits": 3,
+        "examples": [
+          {
+            "had_form": "had",
+            "participle": "spent",
+            "gap": 0,
+            "context": "patient He had spent several years"
+          },
+          {
+            "had_form": "had",
+            "participle": "enslaved",
+            "gap": 0,
+            "context": "that he had enslaved them to"
+          },
+          {
+            "had_form": "had",
+            "participle": "brought",
+            "gap": 0,
+            "context": "now he had brought in two"
+          }
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_ch10_s1",
+        "book": "crystal_shard",
+        "chapter": 10,
+        "words": 97,
+        "n_pp_hits": 2,
+        "examples": [
+          {
+            "had_form": "had",
+            "participle": "entered",
+            "gap": 0,
+            "context": "and Grock had entered Cryshal Tirith"
+          },
+          {
+            "had_form": "had",
+            "participle": "been",
+            "gap": 2,
+            "context": "girl's mind had long ago been destroyed by"
+          }
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_ch10_s4",
+        "book": "crystal_shard",
+        "chapter": 10,
+        "words": 107,
+        "n_pp_hits": 2,
+        "examples": [
+          {
+            "had_form": "had",
+            "participle": "imparted",
+            "gap": 0,
+            "context": "darkness Crenshinibon had imparted the information"
+          },
+          {
+            "had_form": "had",
+            "participle": "been",
+            "gap": 0,
+            "context": "planes that had been persuing it"
+          }
+        ]
+      }
+    ],
+    "dialogue_examples": [
+      {
+        "scene_id": "crystal_shard_ch10_s4",
+        "book": "crystal_shard",
+        "chapter": 10,
+        "words": 119,
+        "n_pp_hits": 3,
+        "examples": [
+          {
+            "had_form": "had",
+            "participle": "supported",
+            "gap": 0,
+            "context": "The relic had supported him Brimming"
+          },
+          {
+            "had_form": "had",
+            "participle": "pursued",
+            "gap": 0,
+            "context": "object it had pursued for so"
+          },
+          {
+            "had_form": "had",
+            "participle": "pushed",
+            "gap": 1,
+            "context": "personality that had always pushed him down"
+          }
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_ch10_s4",
+        "book": "crystal_shard",
+        "chapter": 10,
+        "words": 101,
+        "n_pp_hits": 2,
+        "examples": [
+          {
+            "had_form": "had",
+            "participle": "come",
+            "gap": 0,
+            "context": "voice he had come to suspect"
+          },
+          {
+            "had_form": "had",
+            "participle": "paid",
+            "gap": 0,
+            "context": "the trolls had paid him no"
+          }
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_ch10_s4",
+        "book": "crystal_shard",
+        "chapter": 10,
+        "words": 216,
+        "n_pp_hits": 1,
+        "examples": [
+          {
+            "had_form": "had",
+            "participle": "coached",
+            "gap": 0,
+            "context": "subconscious intrusions had coached Kessell well"
+          }
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_ch11_s1",
+        "book": "crystal_shard",
+        "chapter": 11,
+        "words": 139,
+        "n_pp_hits": 1,
+        "examples": [
+          {
+            "had_form": "had",
+            "participle": "said",
+            "gap": 0,
+            "context": "his father had said and ye're"
+          }
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_ch12_s1",
+        "book": "crystal_shard",
+        "chapter": 12,
+        "words": 115,
+        "n_pp_hits": 4,
+        "examples": [
+          {
+            "had_form": "had",
+            "participle": "come",
+            "gap": 0,
+            "context": "pressing need had come over him"
+          },
+          {
+            "had_form": "had",
+            "participle": "eaten",
+            "gap": 1,
+            "context": "knowingly He had already eaten and had"
+          },
+          {
+            "had_form": "had",
+            "participle": "caught",
+            "gap": 0,
+            "context": "eaten and had caught and cooked"
+          }
+        ]
+      }
+    ],
+    "action_examples": [
+      {
+        "scene_id": "crystal_shard_ch10_s2",
+        "book": "crystal_shard",
+        "chapter": 10,
+        "words": 96,
+        "n_pp_hits": 1,
+        "examples": [
+          {
+            "had_form": "had",
+            "participle": "completed",
+            "gap": 0,
+            "context": "disagreed He had completed inscribing the"
+          }
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_ch10_s2",
+        "book": "crystal_shard",
+        "chapter": 10,
+        "words": 101,
+        "n_pp_hits": 1,
+        "examples": [
+          {
+            "had_form": "had",
+            "participle": "taken",
+            "gap": 0,
+            "context": "the magic had taken over and"
+          }
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_ch10_s2",
+        "book": "crystal_shard",
+        "chapter": 10,
+        "words": 95,
+        "n_pp_hits": 2,
+        "examples": [
+          {
+            "had_form": "had",
+            "participle": "called",
+            "gap": 1,
+            "context": "human that had foolishly called its name"
+          },
+          {
+            "had_form": "had",
+            "participle": "summoned",
+            "gap": 0,
+            "context": "himself He had summoned a major"
+          }
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_ch10_s2",
+        "book": "crystal_shard",
+        "chapter": 10,
+        "words": 80,
+        "n_pp_hits": 1,
+        "examples": [
+          {
+            "had_form": "had",
+            "participle": "found",
+            "gap": 0,
+            "context": "But Errtu had found an error"
+          }
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_ch10_s3",
+        "book": "crystal_shard",
+        "chapter": 10,
+        "words": 93,
+        "n_pp_hits": 1,
+        "examples": [
+          {
+            "had_form": "had",
+            "participle": "spent",
+            "gap": 0,
+            "context": "that it had spent centuries searching"
+          }
+        ]
+      }
+    ],
+    "description_examples": [
+      {
+        "scene_id": "crystal_shard_ch10_s0",
+        "book": "crystal_shard",
+        "chapter": 10,
+        "words": 153,
+        "n_pp_hits": 2,
+        "examples": [
+          {
+            "had_form": "had",
+            "participle": "been",
+            "gap": 0,
+            "context": "respective tribes had been warring for"
+          },
+          {
+            "had_form": "had",
+            "participle": "been",
+            "gap": 0,
+            "context": "for they had been commanded to"
+          }
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_ch10_s1",
+        "book": "crystal_shard",
+        "chapter": 10,
+        "words": 103,
+        "n_pp_hits": 3,
+        "examples": [
+          {
+            "had_form": "had",
+            "participle": "joined",
+            "gap": 0,
+            "context": "more tribes had joined his swelling"
+          },
+          {
+            "had_form": "had",
+            "participle": "pulled",
+            "gap": 1,
+            "context": "master Kessell had even pulled in a"
+          },
+          {
+            "had_form": "had",
+            "participle": "wandered",
+            "gap": 1,
+            "context": "giants that had simply wandered in desiring"
+          }
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_ch10_s2",
+        "book": "crystal_shard",
+        "chapter": 10,
+        "words": 109,
+        "n_pp_hits": 2,
+        "examples": [
+          {
+            "had_form": "had",
+            "participle": "come",
+            "gap": 0,
+            "context": "who somehow had come into a"
+          },
+          {
+            "had_form": "had",
+            "participle": "found",
+            "gap": 0,
+            "context": "whether they had found a scroll"
+          }
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_ch10_s2",
+        "book": "crystal_shard",
+        "chapter": 10,
+        "words": 107,
+        "n_pp_hits": 4,
+        "examples": [
+          {
+            "had_form": "had",
+            "participle": "shown",
+            "gap": 0,
+            "context": "man who had shown great promise"
+          },
+          {
+            "had_form": "had",
+            "participle": "allowed",
+            "gap": 0,
+            "context": "His master had allowed him to"
+          },
+          {
+            "had_form": "had",
+            "participle": "served",
+            "gap": 1,
+            "context": "the demonstrations had only served to heighten"
+          }
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_ch10_s2",
+        "book": "crystal_shard",
+        "chapter": 10,
+        "words": 100,
+        "n_pp_hits": 3,
+        "examples": [
+          {
+            "had_form": "had",
+            "participle": "felt",
+            "gap": 0,
+            "context": "the demon had felt a surge"
+          },
+          {
+            "had_form": "had",
+            "participle": "undertaken",
+            "gap": 0,
+            "context": "quest it had undertaken a millenium"
+          },
+          {
+            "had_form": "had",
+            "participle": "suffered",
+            "gap": 0,
+            "context": "The demon had suffered through the"
+          }
+        ]
+      }
+    ]
+  }
+}

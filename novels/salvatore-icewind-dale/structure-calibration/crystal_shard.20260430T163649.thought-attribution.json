@@ -1,0 +1,1144 @@
+{
+  "pattern_number": 69,
+  "pattern_name": "Character thought-attribution patterns",
+  "slug": "thought-attribution",
+  "commit": "a3da6d1",
+  "timestamp_utc": "2026-04-30T16:36:49.893940+00:00",
+  "fellowship": [
+    "Drizzt",
+    "Bruenor",
+    "Wulfgar",
+    "Catti-brie",
+    "Regis"
+  ],
+  "books": [
+    "crystal_shard",
+    "streams_of_silver",
+    "halflings_gem"
+  ],
+  "kinds": [
+    "action",
+    "description",
+    "dialogue",
+    "interiority"
+  ],
+  "verdict": "DIVERGE",
+  "gates_used": [
+    "modal_class (gate_a_knew_dominance, gate_b_per_kind, gate_c_per_char)"
+  ],
+  "verdict_a_knew_dominance": "PASS",
+  "verdict_b_per_kind_overall": "PASS",
+  "verdict_b_per_kind": {
+    "action": "PASS",
+    "description": "PASS",
+    "dialogue": "PASS",
+    "interiority": "PASS"
+  },
+  "verdict_c_per_char_overall": "DIVERGE",
+  "verdict_c_per_char": {
+    "Drizzt": "PASS",
+    "Bruenor": "DIVERGE",
+    "Wulfgar": "PASS_PARTIAL",
+    "Catti-brie": "PASS_PARTIAL",
+    "Regis": "PASS"
+  },
+  "per_book_rank": {
+    "crystal_shard": [
+      "KNOW",
+      "UNDERSTAND",
+      "THINK",
+      "CONSIDER",
+      "REALIZE",
+      "BELIEVE",
+      "WONDER",
+      "DECIDE",
+      "RECALL",
+      "FEEL_THAT"
+    ],
+    "streams_of_silver": [
+      "KNOW",
+      "UNDERSTAND",
+      "THINK",
+      "CONSIDER",
+      "BELIEVE",
+      "WONDER",
+      "RECALL",
+      "REALIZE",
+      "DECIDE",
+      "FEEL_THAT"
+    ],
+    "halflings_gem": [
+      "KNOW",
+      "THINK",
+      "UNDERSTAND",
+      "REALIZE",
+      "CONSIDER",
+      "RECALL",
+      "WONDER",
+      "BELIEVE",
+      "DECIDE",
+      "FEEL_THAT"
+    ]
+  },
+  "per_book_density_per_100w": {
+    "crystal_shard": {
+      "KNOW": 0.2578,
+      "THINK": 0.0945,
+      "REALIZE": 0.0545,
+      "WONDER": 0.0389,
+      "UNDERSTAND": 0.1022,
+      "CONSIDER": 0.0633,
+      "BELIEVE": 0.0533,
+      "FEEL_THAT": 0.0044,
+      "DECIDE": 0.0233,
+      "RECALL": 0.0222
+    },
+    "streams_of_silver": {
+      "KNOW": 0.3191,
+      "THINK": 0.1036,
+      "REALIZE": 0.0256,
+      "WONDER": 0.0408,
+      "UNDERSTAND": 0.1269,
+      "CONSIDER": 0.0477,
+      "BELIEVE": 0.0419,
+      "FEEL_THAT": 0.0082,
+      "DECIDE": 0.0233,
+      "RECALL": 0.0279
+    },
+    "halflings_gem": {
+      "KNOW": 0.2923,
+      "THINK": 0.1692,
+      "REALIZE": 0.0691,
+      "WONDER": 0.0403,
+      "UNDERSTAND": 0.1047,
+      "CONSIDER": 0.0598,
+      "BELIEVE": 0.0368,
+      "FEEL_THAT": 0.0046,
+      "DECIDE": 0.0138,
+      "RECALL": 0.0414
+    }
+  },
+  "per_book_total_hits": {
+    "crystal_shard": 643,
+    "streams_of_silver": 657,
+    "halflings_gem": 723
+  },
+  "per_book_kind_density_per_100w": {
+    "crystal_shard": {
+      "description": {
+        "KNOW": 0.1116,
+        "THINK": 0.0372,
+        "REALIZE": 0.0669,
+        "WONDER": 0.0298,
+        "UNDERSTAND": 0.0595,
+        "CONSIDER": 0.0818,
+        "BELIEVE": 0.0372,
+        "FEEL_THAT": 0.0,
+        "DECIDE": 0.0,
+        "RECALL": 0.0
+      },
+      "interiority": {
+        "KNOW": 0.3461,
+        "THINK": 0.1012,
+        "REALIZE": 0.0479,
+        "WONDER": 0.0586,
+        "UNDERSTAND": 0.1704,
+        "CONSIDER": 0.1171,
+        "BELIEVE": 0.0532,
+        "FEEL_THAT": 0.0053,
+        "DECIDE": 0.0213,
+        "RECALL": 0.0479
+      },
+      "action": {
+        "KNOW": 0.2135,
+        "THINK": 0.0774,
+        "REALIZE": 0.065,
+        "WONDER": 0.0217,
+        "UNDERSTAND": 0.0866,
+        "CONSIDER": 0.0278,
+        "BELIEVE": 0.0278,
+        "FEEL_THAT": 0.0,
+        "DECIDE": 0.0186,
+        "RECALL": 0.0093
+      },
+      "dialogue": {
+        "KNOW": 0.3273,
+        "THINK": 0.142,
+        "REALIZE": 0.0394,
+        "WONDER": 0.0513,
+        "UNDERSTAND": 0.0946,
+        "CONSIDER": 0.0592,
+        "BELIEVE": 0.0946,
+        "FEEL_THAT": 0.0118,
+        "DECIDE": 0.0434,
+        "RECALL": 0.0315
+      },
+      "stakes_recalibration": {
+        "KNOW": 0.0,
+        "THINK": 0.0,
+        "REALIZE": 0.0,
+        "WONDER": 0.0,
+        "UNDERSTAND": 0.0,
+        "CONSIDER": 0.0,
+        "BELIEVE": 0.0,
+        "FEEL_THAT": 0.0,
+        "DECIDE": 0.0,
+        "RECALL": 0.0
+      }
+    },
+    "halflings_gem": {
+      "description": {
+        "KNOW": 0.1759,
+        "THINK": 0.0704,
+        "REALIZE": 0.0235,
+        "WONDER": 0.0352,
+        "UNDERSTAND": 0.0117,
+        "CONSIDER": 0.0235,
+        "BELIEVE": 0.0235,
+        "FEEL_THAT": 0.0117,
+        "DECIDE": 0.0235,
+        "RECALL": 0.0352
+      },
+      "interiority": {
+        "KNOW": 0.2888,
+        "THINK": 0.2063,
+        "REALIZE": 0.1061,
+        "WONDER": 0.112,
+        "UNDERSTAND": 0.1238,
+        "CONSIDER": 0.1297,
+        "BELIEVE": 0.0589,
+        "FEEL_THAT": 0.0118,
+        "DECIDE": 0.0,
+        "RECALL": 0.0943
+      },
+      "dialogue": {
+        "KNOW": 0.3747,
+        "THINK": 0.2295,
+        "REALIZE": 0.0506,
+        "WONDER": 0.027,
+        "UNDERSTAND": 0.1384,
+        "CONSIDER": 0.0641,
+        "BELIEVE": 0.0439,
+        "FEEL_THAT": 0.0034,
+        "DECIDE": 0.0203,
+        "RECALL": 0.0371
+      },
+      "action": {
+        "KNOW": 0.2486,
+        "THINK": 0.1196,
+        "REALIZE": 0.0787,
+        "WONDER": 0.0157,
+        "UNDERSTAND": 0.0881,
+        "CONSIDER": 0.0283,
+        "BELIEVE": 0.022,
+        "FEEL_THAT": 0.0,
+        "DECIDE": 0.0126,
+        "RECALL": 0.0189
+      }
+    },
+    "streams_of_silver": {
+      "description": {
+        "KNOW": 0.1888,
+        "THINK": 0.0472,
+        "REALIZE": 0.0189,
+        "WONDER": 0.0566,
+        "UNDERSTAND": 0.085,
+        "CONSIDER": 0.0378,
+        "BELIEVE": 0.0,
+        "FEEL_THAT": 0.0,
+        "DECIDE": 0.0094,
+        "RECALL": 0.0
+      },
+      "interiority": {
+        "KNOW": 0.3489,
+        "THINK": 0.1551,
+        "REALIZE": 0.0222,
+        "WONDER": 0.0775,
+        "UNDERSTAND": 0.144,
+        "CONSIDER": 0.0609,
+        "BELIEVE": 0.1052,
+        "FEEL_THAT": 0.0222,
+        "DECIDE": 0.0166,
+        "RECALL": 0.0609
+      },
+      "dialogue": {
+        "KNOW": 0.3988,
+        "THINK": 0.1293,
+        "REALIZE": 0.018,
+        "WONDER": 0.0467,
+        "UNDERSTAND": 0.1078,
+        "CONSIDER": 0.0395,
+        "BELIEVE": 0.0431,
+        "FEEL_THAT": 0.0072,
+        "DECIDE": 0.0359,
+        "RECALL": 0.018
+      },
+      "action": {
+        "KNOW": 0.2722,
+        "THINK": 0.0681,
+        "REALIZE": 0.0374,
+        "WONDER": 0.0068,
+        "UNDERSTAND": 0.1497,
+        "CONSIDER": 0.051,
+        "BELIEVE": 0.017,
+        "FEEL_THAT": 0.0034,
+        "DECIDE": 0.0204,
+        "RECALL": 0.0272
+      }
+    }
+  },
+  "per_book_kind_rank": {
+    "crystal_shard": {
+      "description": [
+        "KNOW",
+        "CONSIDER",
+        "REALIZE",
+        "UNDERSTAND",
+        "BELIEVE",
+        "THINK",
+        "WONDER",
+        "DECIDE",
+        "FEEL_THAT",
+        "RECALL"
+      ],
+      "interiority": [
+        "KNOW",
+        "UNDERSTAND",
+        "CONSIDER",
+        "THINK",
+        "WONDER",
+        "BELIEVE",
+        "REALIZE",
+        "RECALL",
+        "DECIDE",
+        "FEEL_THAT"
+      ],
+      "action": [
+        "KNOW",
+        "UNDERSTAND",
+        "THINK",
+        "REALIZE",
+        "BELIEVE",
+        "CONSIDER",
+        "WONDER",
+        "DECIDE",
+        "RECALL",
+        "FEEL_THAT"
+      ],
+      "dialogue": [
+        "KNOW",
+        "THINK",
+        "BELIEVE",
+        "UNDERSTAND",
+        "CONSIDER",
+        "WONDER",
+        "DECIDE",
+        "REALIZE",
+        "RECALL",
+        "FEEL_THAT"
+      ],
+      "stakes_recalibration": [
+        "BELIEVE",
+        "CONSIDER",
+        "DECIDE",
+        "FEEL_THAT",
+        "KNOW",
+        "REALIZE",
+        "RECALL",
+        "THINK",
+        "UNDERSTAND",
+        "WONDER"
+      ]
+    },
+    "halflings_gem": {
+      "description": [
+        "KNOW",
+        "THINK",
+        "RECALL",
+        "WONDER",
+        "BELIEVE",
+        "CONSIDER",
+        "DECIDE",
+        "REALIZE",
+        "FEEL_THAT",
+        "UNDERSTAND"
+      ],
+      "interiority": [
+        "KNOW",
+        "THINK",
+        "CONSIDER",
+        "UNDERSTAND",
+        "WONDER",
+        "REALIZE",
+        "RECALL",
+        "BELIEVE",
+        "FEEL_THAT",
+        "DECIDE"
+      ],
+      "dialogue": [
+        "KNOW",
+        "THINK",
+        "UNDERSTAND",
+        "CONSIDER",
+        "REALIZE",
+        "BELIEVE",
+        "RECALL",
+        "WONDER",
+        "DECIDE",
+        "FEEL_THAT"
+      ],
+      "action": [
+        "KNOW",
+        "THINK",
+        "UNDERSTAND",
+        "REALIZE",
+        "CONSIDER",
+        "BELIEVE",
+        "RECALL",
+        "WONDER",
+        "DECIDE",
+        "FEEL_THAT"
+      ]
+    },
+    "streams_of_silver": {
+      "description": [
+        "KNOW",
+        "UNDERSTAND",
+        "WONDER",
+        "THINK",
+        "CONSIDER",
+        "REALIZE",
+        "DECIDE",
+        "BELIEVE",
+        "FEEL_THAT",
+        "RECALL"
+      ],
+      "interiority": [
+        "KNOW",
+        "THINK",
+        "UNDERSTAND",
+        "BELIEVE",
+        "WONDER",
+        "CONSIDER",
+        "RECALL",
+        "FEEL_THAT",
+        "REALIZE",
+        "DECIDE"
+      ],
+      "dialogue": [
+        "KNOW",
+        "THINK",
+        "UNDERSTAND",
+        "WONDER",
+        "BELIEVE",
+        "CONSIDER",
+        "DECIDE",
+        "REALIZE",
+        "RECALL",
+        "FEEL_THAT"
+      ],
+      "action": [
+        "KNOW",
+        "UNDERSTAND",
+        "THINK",
+        "CONSIDER",
+        "REALIZE",
+        "RECALL",
+        "DECIDE",
+        "BELIEVE",
+        "WONDER",
+        "FEEL_THAT"
+      ]
+    }
+  },
+  "per_book_kind_dominant": {
+    "crystal_shard": {
+      "description": "KNOW",
+      "interiority": "KNOW",
+      "action": "KNOW",
+      "dialogue": "KNOW",
+      "stakes_recalibration": "BELIEVE"
+    },
+    "halflings_gem": {
+      "description": "KNOW",
+      "interiority": "KNOW",
+      "dialogue": "KNOW",
+      "action": "KNOW"
+    },
+    "streams_of_silver": {
+      "description": "KNOW",
+      "interiority": "KNOW",
+      "dialogue": "KNOW",
+      "action": "KNOW"
+    }
+  },
+  "per_book_kind_total_hits": {
+    "crystal_shard": {
+      "description": 57,
+      "interiority": 182,
+      "action": 177,
+      "dialogue": 227,
+      "stakes_recalibration": 0
+    },
+    "halflings_gem": {
+      "description": 37,
+      "interiority": 192,
+      "dialogue": 293,
+      "action": 201
+    },
+    "streams_of_silver": {
+      "description": 47,
+      "interiority": 183,
+      "dialogue": 235,
+      "action": 192
+    }
+  },
+  "per_book_kind_n_beats": {
+    "crystal_shard|action": 308,
+    "crystal_shard|description": 130,
+    "crystal_shard|dialogue": 242,
+    "crystal_shard|interiority": 177,
+    "streams_of_silver|action": 274,
+    "streams_of_silver|description": 94,
+    "streams_of_silver|dialogue": 256,
+    "streams_of_silver|interiority": 162,
+    "halflings_gem|action": 309,
+    "halflings_gem|description": 79,
+    "halflings_gem|dialogue": 279,
+    "halflings_gem|interiority": 159
+  },
+  "per_book_kind_words": {
+    "crystal_shard|action": 32318,
+    "crystal_shard|description": 13443,
+    "crystal_shard|dialogue": 25358,
+    "crystal_shard|interiority": 18782,
+    "streams_of_silver|action": 29385,
+    "streams_of_silver|description": 10592,
+    "streams_of_silver|dialogue": 27835,
+    "streams_of_silver|interiority": 18058,
+    "halflings_gem|action": 31774,
+    "halflings_gem|description": 8527,
+    "halflings_gem|dialogue": 29626,
+    "halflings_gem|interiority": 16964
+  },
+  "per_book_words": {
+    "crystal_shard": 89987,
+    "halflings_gem": 86891,
+    "streams_of_silver": 85870
+  },
+  "per_kind_top1_per_book": {
+    "action": {
+      "crystal_shard": "KNOW",
+      "streams_of_silver": "KNOW",
+      "halflings_gem": "KNOW"
+    },
+    "description": {
+      "crystal_shard": "KNOW",
+      "streams_of_silver": "KNOW",
+      "halflings_gem": "KNOW"
+    },
+    "dialogue": {
+      "crystal_shard": "KNOW",
+      "streams_of_silver": "KNOW",
+      "halflings_gem": "KNOW"
+    },
+    "interiority": {
+      "crystal_shard": "KNOW",
+      "streams_of_silver": "KNOW",
+      "halflings_gem": "KNOW"
+    }
+  },
+  "per_kind_top3_per_book": {
+    "action": {
+      "crystal_shard": [
+        {
+          "category": "KNOW",
+          "density_per_100w": 0.2135
+        },
+        {
+          "category": "UNDERSTAND",
+          "density_per_100w": 0.0866
+        },
+        {
+          "category": "THINK",
+          "density_per_100w": 0.0774
+        }
+      ],
+      "streams_of_silver": [
+        {
+          "category": "KNOW",
+          "density_per_100w": 0.2722
+        },
+        {
+          "category": "UNDERSTAND",
+          "density_per_100w": 0.1497
+        },
+        {
+          "category": "THINK",
+          "density_per_100w": 0.0681
+        }
+      ],
+      "halflings_gem": [
+        {
+          "category": "KNOW",
+          "density_per_100w": 0.2486
+        },
+        {
+          "category": "THINK",
+          "density_per_100w": 0.1196
+        },
+        {
+          "category": "UNDERSTAND",
+          "density_per_100w": 0.0881
+        }
+      ]
+    },
+    "description": {
+      "crystal_shard": [
+        {
+          "category": "KNOW",
+          "density_per_100w": 0.1116
+        },
+        {
+          "category": "CONSIDER",
+          "density_per_100w": 0.0818
+        },
+        {
+          "category": "REALIZE",
+          "density_per_100w": 0.0669
+        }
+      ],
+      "streams_of_silver": [
+        {
+          "category": "KNOW",
+          "density_per_100w": 0.1888
+        },
+        {
+          "category": "UNDERSTAND",
+          "density_per_100w": 0.085
+        },
+        {
+          "category": "WONDER",
+          "density_per_100w": 0.0566
+        }
+      ],
+      "halflings_gem": [
+        {
+          "category": "KNOW",
+          "density_per_100w": 0.1759
+        },
+        {
+          "category": "THINK",
+          "density_per_100w": 0.0704
+        },
+        {
+          "category": "RECALL",
+          "density_per_100w": 0.0352
+        }
+      ]
+    },
+    "dialogue": {
+      "crystal_shard": [
+        {
+          "category": "KNOW",
+          "density_per_100w": 0.3273
+        },
+        {
+          "category": "THINK",
+          "density_per_100w": 0.142
+        },
+        {
+          "category": "BELIEVE",
+          "density_per_100w": 0.0946
+        }
+      ],
+      "streams_of_silver": [
+        {
+          "category": "KNOW",
+          "density_per_100w": 0.3988
+        },
+        {
+          "category": "THINK",
+          "density_per_100w": 0.1293
+        },
+        {
+          "category": "UNDERSTAND",
+          "density_per_100w": 0.1078
+        }
+      ],
+      "halflings_gem": [
+        {
+          "category": "KNOW",
+          "density_per_100w": 0.3747
+        },
+        {
+          "category": "THINK",
+          "density_per_100w": 0.2295
+        },
+        {
+          "category": "UNDERSTAND",
+          "density_per_100w": 0.1384
+        }
+      ]
+    },
+    "interiority": {
+      "crystal_shard": [
+        {
+          "category": "KNOW",
+          "density_per_100w": 0.3461
+        },
+        {
+          "category": "UNDERSTAND",
+          "density_per_100w": 0.1704
+        },
+        {
+          "category": "CONSIDER",
+          "density_per_100w": 0.1171
+        }
+      ],
+      "streams_of_silver": [
+        {
+          "category": "KNOW",
+          "density_per_100w": 0.3489
+        },
+        {
+          "category": "THINK",
+          "density_per_100w": 0.1551
+        },
+        {
+          "category": "UNDERSTAND",
+          "density_per_100w": 0.144
+        }
+      ],
+      "halflings_gem": [
+        {
+          "category": "KNOW",
+          "density_per_100w": 0.2888
+        },
+        {
+          "category": "THINK",
+          "density_per_100w": 0.2063
+        },
+        {
+          "category": "CONSIDER",
+          "density_per_100w": 0.1297
+        }
+      ]
+    }
+  },
+  "knew_dominance_details": {
+    "crystal_shard": {
+      "knew_hits": 232,
+      "runner_up_category": "UNDERSTAND",
+      "runner_up_hits": 92,
+      "knew_to_runner_up_ratio": 2.522
+    },
+    "streams_of_silver": {
+      "knew_hits": 274,
+      "runner_up_category": "UNDERSTAND",
+      "runner_up_hits": 109,
+      "knew_to_runner_up_ratio": 2.514
+    },
+    "halflings_gem": {
+      "knew_hits": 254,
+      "runner_up_category": "THINK",
+      "runner_up_hits": 147,
+      "knew_to_runner_up_ratio": 1.728
+    }
+  },
+  "per_char_per_book_top1": {
+    "Drizzt": {
+      "crystal_shard": "KNOW",
+      "streams_of_silver": "KNOW",
+      "halflings_gem": "KNOW"
+    },
+    "Bruenor": {
+      "crystal_shard": "KNOW",
+      "streams_of_silver": "UNDERSTAND",
+      "halflings_gem": "THINK"
+    },
+    "Wulfgar": {
+      "crystal_shard": "KNOW",
+      "streams_of_silver": "UNDERSTAND",
+      "halflings_gem": "KNOW"
+    },
+    "Catti-brie": {
+      "crystal_shard": "KNOW",
+      "streams_of_silver": "KNOW",
+      "halflings_gem": "UNDERSTAND"
+    },
+    "Regis": {
+      "crystal_shard": "KNOW",
+      "streams_of_silver": "KNOW",
+      "halflings_gem": "KNOW"
+    }
+  },
+  "per_char_per_book_total_hits": {
+    "Drizzt": {
+      "crystal_shard": 43,
+      "streams_of_silver": 40,
+      "halflings_gem": 46
+    },
+    "Bruenor": {
+      "crystal_shard": 9,
+      "streams_of_silver": 20,
+      "halflings_gem": 21
+    },
+    "Wulfgar": {
+      "crystal_shard": 20,
+      "streams_of_silver": 14,
+      "halflings_gem": 20
+    },
+    "Catti-brie": {
+      "crystal_shard": 3,
+      "streams_of_silver": 13,
+      "halflings_gem": 9
+    },
+    "Regis": {
+      "crystal_shard": 16,
+      "streams_of_silver": 15,
+      "halflings_gem": 22
+    }
+  },
+  "per_char_per_book_share_pct": {
+    "crystal_shard": {
+      "Drizzt": {
+        "KNOW": 37.21,
+        "THINK": 6.98,
+        "REALIZE": 9.3,
+        "WONDER": 4.65,
+        "UNDERSTAND": 16.28,
+        "CONSIDER": 6.98,
+        "BELIEVE": 6.98,
+        "FEEL_THAT": 0.0,
+        "DECIDE": 4.65,
+        "RECALL": 6.98
+      },
+      "Bruenor": {
+        "KNOW": 33.33,
+        "THINK": 22.22,
+        "REALIZE": 11.11,
+        "WONDER": 0.0,
+        "UNDERSTAND": 11.11,
+        "CONSIDER": 11.11,
+        "BELIEVE": 11.11,
+        "FEEL_THAT": 0.0,
+        "DECIDE": 0.0,
+        "RECALL": 0.0
+      },
+      "Wulfgar": {
+        "KNOW": 45.0,
+        "THINK": 5.0,
+        "REALIZE": 5.0,
+        "WONDER": 10.0,
+        "UNDERSTAND": 15.0,
+        "CONSIDER": 10.0,
+        "BELIEVE": 5.0,
+        "FEEL_THAT": 0.0,
+        "DECIDE": 0.0,
+        "RECALL": 5.0
+      },
+      "Catti-brie": {
+        "KNOW": 66.67,
+        "THINK": 0.0,
+        "REALIZE": 0.0,
+        "WONDER": 0.0,
+        "UNDERSTAND": 0.0,
+        "CONSIDER": 33.33,
+        "BELIEVE": 0.0,
+        "FEEL_THAT": 0.0,
+        "DECIDE": 0.0,
+        "RECALL": 0.0
+      },
+      "Regis": {
+        "KNOW": 43.75,
+        "THINK": 18.75,
+        "REALIZE": 6.25,
+        "WONDER": 12.5,
+        "UNDERSTAND": 6.25,
+        "CONSIDER": 12.5,
+        "BELIEVE": 0.0,
+        "FEEL_THAT": 0.0,
+        "DECIDE": 0.0,
+        "RECALL": 0.0
+      }
+    },
+    "streams_of_silver": {
+      "Drizzt": {
+        "KNOW": 40.0,
+        "THINK": 10.0,
+        "REALIZE": 2.5,
+        "WONDER": 12.5,
+        "UNDERSTAND": 30.0,
+        "CONSIDER": 0.0,
+        "BELIEVE": 2.5,
+        "FEEL_THAT": 0.0,
+        "DECIDE": 0.0,
+        "RECALL": 2.5
+      },
+      "Bruenor": {
+        "KNOW": 20.0,
+        "THINK": 5.0,
+        "REALIZE": 10.0,
+        "WONDER": 0.0,
+        "UNDERSTAND": 35.0,
+        "CONSIDER": 0.0,
+        "BELIEVE": 0.0,
+        "FEEL_THAT": 0.0,
+        "DECIDE": 5.0,
+        "RECALL": 25.0
+      },
+      "Wulfgar": {
+        "KNOW": 7.14,
+        "THINK": 21.43,
+        "REALIZE": 7.14,
+        "WONDER": 0.0,
+        "UNDERSTAND": 35.71,
+        "CONSIDER": 21.43,
+        "BELIEVE": 0.0,
+        "FEEL_THAT": 0.0,
+        "DECIDE": 0.0,
+        "RECALL": 7.14
+      },
+      "Catti-brie": {
+        "KNOW": 30.77,
+        "THINK": 15.38,
+        "REALIZE": 7.69,
+        "WONDER": 7.69,
+        "UNDERSTAND": 30.77,
+        "CONSIDER": 7.69,
+        "BELIEVE": 0.0,
+        "FEEL_THAT": 0.0,
+        "DECIDE": 0.0,
+        "RECALL": 0.0
+      },
+      "Regis": {
+        "KNOW": 60.0,
+        "THINK": 6.67,
+        "REALIZE": 6.67,
+        "WONDER": 0.0,
+        "UNDERSTAND": 13.33,
+        "CONSIDER": 6.67,
+        "BELIEVE": 0.0,
+        "FEEL_THAT": 0.0,
+        "DECIDE": 0.0,
+        "RECALL": 6.67
+      }
+    },
+    "halflings_gem": {
+      "Drizzt": {
+        "KNOW": 50.0,
+        "THINK": 8.7,
+        "REALIZE": 8.7,
+        "WONDER": 2.17,
+        "UNDERSTAND": 13.04,
+        "CONSIDER": 8.7,
+        "BELIEVE": 2.17,
+        "FEEL_THAT": 0.0,
+        "DECIDE": 2.17,
+        "RECALL": 4.35
+      },
+      "Bruenor": {
+        "KNOW": 19.05,
+        "THINK": 42.86,
+        "REALIZE": 9.52,
+        "WONDER": 0.0,
+        "UNDERSTAND": 19.05,
+        "CONSIDER": 4.76,
+        "BELIEVE": 0.0,
+        "FEEL_THAT": 4.76,
+        "DECIDE": 0.0,
+        "RECALL": 0.0
+      },
+      "Wulfgar": {
+        "KNOW": 45.0,
+        "THINK": 5.0,
+        "REALIZE": 5.0,
+        "WONDER": 10.0,
+        "UNDERSTAND": 20.0,
+        "CONSIDER": 0.0,
+        "BELIEVE": 5.0,
+        "FEEL_THAT": 0.0,
+        "DECIDE": 0.0,
+        "RECALL": 10.0
+      },
+      "Catti-brie": {
+        "KNOW": 33.33,
+        "THINK": 0.0,
+        "REALIZE": 11.11,
+        "WONDER": 0.0,
+        "UNDERSTAND": 44.44,
+        "CONSIDER": 11.11,
+        "BELIEVE": 0.0,
+        "FEEL_THAT": 0.0,
+        "DECIDE": 0.0,
+        "RECALL": 0.0
+      },
+      "Regis": {
+        "KNOW": 36.36,
+        "THINK": 13.64,
+        "REALIZE": 22.73,
+        "WONDER": 4.55,
+        "UNDERSTAND": 4.55,
+        "CONSIDER": 0.0,
+        "BELIEVE": 13.64,
+        "FEEL_THAT": 0.0,
+        "DECIDE": 0.0,
+        "RECALL": 4.55
+      }
+    }
+  },
+  "per_char_pooled_top1": {
+    "Drizzt": "KNOW",
+    "Bruenor": "THINK",
+    "Wulfgar": "KNOW",
+    "Catti-brie": "KNOW",
+    "Regis": "KNOW"
+  },
+  "per_char_pooled_share_pct": {
+    "Drizzt": {
+      "KNOW": 42.64,
+      "THINK": 8.53,
+      "REALIZE": 6.98,
+      "WONDER": 6.2,
+      "UNDERSTAND": 19.38,
+      "CONSIDER": 5.43,
+      "BELIEVE": 3.88,
+      "FEEL_THAT": 0.0,
+      "DECIDE": 2.33,
+      "RECALL": 4.65
+    },
+    "Bruenor": {
+      "KNOW": 22.0,
+      "THINK": 24.0,
+      "REALIZE": 10.0,
+      "WONDER": 0.0,
+      "UNDERSTAND": 24.0,
+      "CONSIDER": 4.0,
+      "BELIEVE": 2.0,
+      "FEEL_THAT": 2.0,
+      "DECIDE": 2.0,
+      "RECALL": 10.0
+    },
+    "Wulfgar": {
+      "KNOW": 35.19,
+      "THINK": 9.26,
+      "REALIZE": 5.56,
+      "WONDER": 7.41,
+      "UNDERSTAND": 22.22,
+      "CONSIDER": 9.26,
+      "BELIEVE": 3.7,
+      "FEEL_THAT": 0.0,
+      "DECIDE": 0.0,
+      "RECALL": 7.41
+    },
+    "Catti-brie": {
+      "KNOW": 36.0,
+      "THINK": 8.0,
+      "REALIZE": 8.0,
+      "WONDER": 4.0,
+      "UNDERSTAND": 32.0,
+      "CONSIDER": 12.0,
+      "BELIEVE": 0.0,
+      "FEEL_THAT": 0.0,
+      "DECIDE": 0.0,
+      "RECALL": 0.0
+    },
+    "Regis": {
+      "KNOW": 45.28,
+      "THINK": 13.21,
+      "REALIZE": 13.21,
+      "WONDER": 5.66,
+      "UNDERSTAND": 7.55,
+      "CONSIDER": 5.66,
+      "BELIEVE": 5.66,
+      "FEEL_THAT": 0.0,
+      "DECIDE": 0.0,
+      "RECALL": 3.77
+    }
+  },
+  "findings_short": "knew-dominance PASS (3-book rank-1: KNOW/KNOW/KNOW); per-kind dominant PASS ({action=PASS, description=PASS, dialogue=PASS, interiority=PASS}); per-char top-1 DIVERGE (KNOW/THINK/KNOW/KNOW/KNOW)",
+  "char_tokens": {
+    "Drizzt": [
+      "drizzt"
+    ],
+    "Bruenor": [
+      "bruenor"
+    ],
+    "Wulfgar": [
+      "wulfgar"
+    ],
+    "Catti-brie": [
+      "catti-brie",
+      "catti"
+    ],
+    "Regis": [
+      "regis",
+      "rumblebelly"
+    ]
+  },
+  "attribution_buffer": 3,
+  "thought_categories": {
+    "KNOW": [
+      "knew",
+      "knows",
+      "knowing",
+      "know"
+    ],
+    "THINK": [
+      "thought",
+      "thinks",
+      "thinking",
+      "think"
+    ],
+    "REALIZE": [
+      "realized",
+      "realizes",
+      "realizing",
+      "realize"
+    ],
+    "WONDER": [
+      "wondered",
+      "wonders",
+      "wondering",
+      "wonder"
+    ],
+    "UNDERSTAND": [
+      "understood",
+      "understands",
+      "understanding",
+      "understand"
+    ],
+    "CONSIDER": [
+      "considered",
+      "considers",
+      "considering",
+      "consider"
+    ],
+    "BELIEVE": [
+      "believed",
+      "believes",
+      "believing",
+      "believe"
+    ],
+    "FEEL_THAT": [
+      "felt that",
+      "feel that",
+      "feels that"
+    ],
+    "DECIDE": [
+      "decided",
+      "decides",
+      "decide",
+      "deciding"
+    ],
+    "RECALL": [
+      "remembered",
+      "remembers",
+      "remembering",
+      "recall",
+      "recalled",
+      "recalls"
+    ]
+  }
+}

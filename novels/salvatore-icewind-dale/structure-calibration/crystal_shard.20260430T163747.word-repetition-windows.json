@@ -1,0 +1,2596 @@
+{
+  "pattern": 71,
+  "name": "Word repetition windowing (lint research target)",
+  "corpus": "salvatore-icewind-dale (3 books)",
+  "method": {
+    "tokenizer": "TOKEN_RX = [A-Za-z]+(?:['\u2019][A-Za-z]+)? (preserves possessives + contractions); lowercase; len>=2",
+    "stopword_count": 90,
+    "distance_unit": "content words (post-stopword filter)",
+    "gap_buckets": [
+      "1-5",
+      "6-15",
+      "16-30",
+      "31-50",
+      "51-100",
+      ">100"
+    ],
+    "tight_window_words": 15,
+    "gap_definition": "consecutive-occurrence gap (n-1 gaps for n occurrences); matches the lint use case (each repetition flags vs the previous, not all-pairs)",
+    "kinds_active": [
+      "action",
+      "dialogue",
+      "interiority",
+      "description"
+    ],
+    "verdict_gate": "PASS = \u226415w repeat density spread \u226430% across 3 books AND \u22651 kind has top-10 3-way intersection \u22655 tokens; PASS_PARTIAL = one axis; DIVERGE = neither; KILL = aggregate <0.3 repeats per 100 content words"
+  },
+  "n_beats_total": 2470,
+  "n_beats_per_book": {
+    "crystal_shard": 858,
+    "streams_of_silver": 786,
+    "halflings_gem": 826
+  },
+  "aggregate": {
+    "n_beats": 2470,
+    "total_raw_words": 306191,
+    "total_content_words": 169422,
+    "total_repeats": 17283,
+    "bucket_counts": {
+      "6-15": 4112,
+      "1-5": 1586,
+      "31-50": 3692,
+      "51-100": 1979,
+      "16-30": 5694,
+      ">100": 220
+    },
+    "bucket_per_100_content": {
+      "1-5": 0.9361,
+      "6-15": 2.4271,
+      "16-30": 3.3608,
+      "31-50": 2.1792,
+      "51-100": 1.1681,
+      ">100": 0.1299
+    },
+    "tight_repeats_le15": 5698,
+    "tight_repeats_le15_per_100_content": 3.3632,
+    "tight_repeats_le5_per_100_content": 0.9361,
+    "tight_repeats_6_15_per_100_content": 2.4271
+  },
+  "per_book": {
+    "crystal_shard": {
+      "n_beats": 858,
+      "total_raw_words": 105443,
+      "total_content_words": 58468,
+      "total_repeats": 5480,
+      "bucket_counts": {
+        "6-15": 1285,
+        "1-5": 445,
+        "31-50": 1176,
+        "51-100": 671,
+        "16-30": 1821,
+        ">100": 82
+      },
+      "bucket_per_100_content": {
+        "1-5": 0.7611,
+        "6-15": 2.1978,
+        "16-30": 3.1145,
+        "31-50": 2.0114,
+        "51-100": 1.1476,
+        ">100": 0.1402
+      },
+      "tight_repeats_le15": 1730,
+      "tight_repeats_le15_per_100_content": 2.9589,
+      "tight_repeats_le5_per_100_content": 0.7611,
+      "tight_repeats_6_15_per_100_content": 2.1978
+    },
+    "streams_of_silver": {
+      "n_beats": 786,
+      "total_raw_words": 104468,
+      "total_content_words": 57028,
+      "total_repeats": 5835,
+      "bucket_counts": {
+        "1-5": 497,
+        "6-15": 1320,
+        "16-30": 1817,
+        "31-50": 1295,
+        "51-100": 806,
+        ">100": 100
+      },
+      "bucket_per_100_content": {
+        "1-5": 0.8715,
+        "6-15": 2.3147,
+        "16-30": 3.1862,
+        "31-50": 2.2708,
+        "51-100": 1.4133,
+        ">100": 0.1754
+      },
+      "tight_repeats_le15": 1817,
+      "tight_repeats_le15_per_100_content": 3.1862,
+      "tight_repeats_le5_per_100_content": 0.8715,
+      "tight_repeats_6_15_per_100_content": 2.3147
+    },
+    "halflings_gem": {
+      "n_beats": 826,
+      "total_raw_words": 96280,
+      "total_content_words": 53926,
+      "total_repeats": 5968,
+      "bucket_counts": {
+        "1-5": 644,
+        "16-30": 2056,
+        "6-15": 1507,
+        "31-50": 1221,
+        "51-100": 502,
+        ">100": 38
+      },
+      "bucket_per_100_content": {
+        "1-5": 1.1942,
+        "6-15": 2.7946,
+        "16-30": 3.8126,
+        "31-50": 2.2642,
+        "51-100": 0.9309,
+        ">100": 0.0705
+      },
+      "tight_repeats_le15": 2151,
+      "tight_repeats_le15_per_100_content": 3.9888,
+      "tight_repeats_le5_per_100_content": 1.1942,
+      "tight_repeats_6_15_per_100_content": 2.7946
+    }
+  },
+  "per_kind_aggregate": {
+    "action": {
+      "n_beats": 891,
+      "total_raw_words": 110755,
+      "total_content_words": 62976,
+      "total_repeats": 6371,
+      "bucket_counts": {
+        "6-15": 1357,
+        "1-5": 464,
+        "16-30": 2158,
+        "31-50": 1447,
+        "51-100": 855,
+        ">100": 90
+      },
+      "bucket_per_100_content": {
+        "1-5": 0.7368,
+        "6-15": 2.1548,
+        "16-30": 3.4267,
+        "31-50": 2.2977,
+        "51-100": 1.3577,
+        ">100": 0.1429
+      },
+      "tight_repeats_le15": 1821,
+      "tight_repeats_le15_per_100_content": 2.8916,
+      "tight_repeats_le5_per_100_content": 0.7368,
+      "tight_repeats_6_15_per_100_content": 2.1548
+    },
+    "dialogue": {
+      "n_beats": 777,
+      "total_raw_words": 96922,
+      "total_content_words": 52841,
+      "total_repeats": 6235,
+      "bucket_counts": {
+        "16-30": 1977,
+        "6-15": 1679,
+        "31-50": 1239,
+        "51-100": 583,
+        "1-5": 671,
+        ">100": 86
+      },
+      "bucket_per_100_content": {
+        "1-5": 1.2698,
+        "6-15": 3.1775,
+        "16-30": 3.7414,
+        "31-50": 2.3448,
+        "51-100": 1.1033,
+        ">100": 0.1628
+      },
+      "tight_repeats_le15": 2350,
+      "tight_repeats_le15_per_100_content": 4.4473,
+      "tight_repeats_le5_per_100_content": 1.2698,
+      "tight_repeats_6_15_per_100_content": 3.1775
+    },
+    "interiority": {
+      "n_beats": 498,
+      "total_raw_words": 61495,
+      "total_content_words": 32755,
+      "total_repeats": 3041,
+      "bucket_counts": {
+        "1-5": 302,
+        "16-30": 981,
+        "6-15": 727,
+        "31-50": 662,
+        "51-100": 332,
+        ">100": 37
+      },
+      "bucket_per_100_content": {
+        "1-5": 0.922,
+        "6-15": 2.2195,
+        "16-30": 2.995,
+        "31-50": 2.0211,
+        "51-100": 1.0136,
+        ">100": 0.113
+      },
+      "tight_repeats_le15": 1029,
+      "tight_repeats_le15_per_100_content": 3.1415,
+      "tight_repeats_le5_per_100_content": 0.922,
+      "tight_repeats_6_15_per_100_content": 2.2195
+    },
+    "description": {
+      "n_beats": 303,
+      "total_raw_words": 36937,
+      "total_content_words": 20811,
+      "total_repeats": 1633,
+      "bucket_counts": {
+        "6-15": 349,
+        "1-5": 149,
+        "31-50": 343,
+        "51-100": 209,
+        "16-30": 576,
+        ">100": 7
+      },
+      "bucket_per_100_content": {
+        "1-5": 0.716,
+        "6-15": 1.677,
+        "16-30": 2.7678,
+        "31-50": 1.6482,
+        "51-100": 1.0043,
+        ">100": 0.0336
+      },
+      "tight_repeats_le15": 498,
+      "tight_repeats_le15_per_100_content": 2.393,
+      "tight_repeats_le5_per_100_content": 0.716,
+      "tight_repeats_6_15_per_100_content": 1.677
+    }
+  },
+  "per_kind_per_book": {
+    "crystal_shard": {
+      "action": {
+        "n_beats": 308,
+        "total_raw_words": 38506,
+        "total_content_words": 21776,
+        "total_repeats": 2036,
+        "bucket_counts": {
+          "6-15": 438,
+          "1-5": 131,
+          "16-30": 698,
+          "31-50": 467,
+          "51-100": 281,
+          ">100": 21
+        },
+        "bucket_per_100_content": {
+          "1-5": 0.6016,
+          "6-15": 2.0114,
+          "16-30": 3.2054,
+          "31-50": 2.1446,
+          "51-100": 1.2904,
+          ">100": 0.0964
+        },
+        "tight_repeats_le15": 569,
+        "tight_repeats_le15_per_100_content": 2.613,
+        "tight_repeats_le5_per_100_content": 0.6016,
+        "tight_repeats_6_15_per_100_content": 2.0114
+      },
+      "dialogue": {
+        "n_beats": 242,
+        "total_raw_words": 28730,
+        "total_content_words": 15827,
+        "total_repeats": 1713,
+        "bucket_counts": {
+          "16-30": 540,
+          "6-15": 464,
+          "31-50": 336,
+          "51-100": 152,
+          "1-5": 183,
+          ">100": 38
+        },
+        "bucket_per_100_content": {
+          "1-5": 1.1563,
+          "6-15": 2.9317,
+          "16-30": 3.4119,
+          "31-50": 2.123,
+          "51-100": 0.9604,
+          ">100": 0.2401
+        },
+        "tight_repeats_le15": 647,
+        "tight_repeats_le15_per_100_content": 4.088,
+        "tight_repeats_le5_per_100_content": 1.1563,
+        "tight_repeats_6_15_per_100_content": 2.9317
+      },
+      "interiority": {
+        "n_beats": 177,
+        "total_raw_words": 22397,
+        "total_content_words": 12024,
+        "total_repeats": 1015,
+        "bucket_counts": {
+          "1-5": 73,
+          "16-30": 330,
+          "6-15": 225,
+          "31-50": 223,
+          "51-100": 145,
+          ">100": 19
+        },
+        "bucket_per_100_content": {
+          "1-5": 0.6071,
+          "6-15": 1.8713,
+          "16-30": 2.7445,
+          "31-50": 1.8546,
+          "51-100": 1.2059,
+          ">100": 0.158
+        },
+        "tight_repeats_le15": 298,
+        "tight_repeats_le15_per_100_content": 2.4784,
+        "tight_repeats_le5_per_100_content": 0.6071,
+        "tight_repeats_6_15_per_100_content": 1.8713
+      },
+      "description": {
+        "n_beats": 130,
+        "total_raw_words": 15728,
+        "total_content_words": 8802,
+        "total_repeats": 713,
+        "bucket_counts": {
+          "6-15": 158,
+          "1-5": 58,
+          "31-50": 149,
+          "51-100": 93,
+          "16-30": 251,
+          ">100": 4
+        },
+        "bucket_per_100_content": {
+          "1-5": 0.6589,
+          "6-15": 1.795,
+          "16-30": 2.8516,
+          "31-50": 1.6928,
+          "51-100": 1.0566,
+          ">100": 0.0454
+        },
+        "tight_repeats_le15": 216,
+        "tight_repeats_le15_per_100_content": 2.454,
+        "tight_repeats_le5_per_100_content": 0.6589,
+        "tight_repeats_6_15_per_100_content": 1.795
+      }
+    },
+    "streams_of_silver": {
+      "action": {
+        "n_beats": 274,
+        "total_raw_words": 36888,
+        "total_content_words": 20809,
+        "total_repeats": 2166,
+        "bucket_counts": {
+          "6-15": 432,
+          "1-5": 156,
+          "16-30": 662,
+          "31-50": 487,
+          "51-100": 372,
+          ">100": 57
+        },
+        "bucket_per_100_content": {
+          "1-5": 0.7497,
+          "6-15": 2.076,
+          "16-30": 3.1813,
+          "31-50": 2.3403,
+          "51-100": 1.7877,
+          ">100": 0.2739
+        },
+        "tight_repeats_le15": 588,
+        "tight_repeats_le15_per_100_content": 2.8257,
+        "tight_repeats_le5_per_100_content": 0.7497,
+        "tight_repeats_6_15_per_100_content": 2.076
+      },
+      "dialogue": {
+        "n_beats": 256,
+        "total_raw_words": 35201,
+        "total_content_words": 18899,
+        "total_repeats": 2181,
+        "bucket_counts": {
+          "6-15": 547,
+          "16-30": 668,
+          "31-50": 488,
+          "1-5": 183,
+          "51-100": 262,
+          ">100": 33
+        },
+        "bucket_per_100_content": {
+          "1-5": 0.9683,
+          "6-15": 2.8943,
+          "16-30": 3.5346,
+          "31-50": 2.5821,
+          "51-100": 1.3863,
+          ">100": 0.1746
+        },
+        "tight_repeats_le15": 730,
+        "tight_repeats_le15_per_100_content": 3.8626,
+        "tight_repeats_le5_per_100_content": 0.9683,
+        "tight_repeats_6_15_per_100_content": 2.8943
+      },
+      "interiority": {
+        "n_beats": 162,
+        "total_raw_words": 20709,
+        "total_content_words": 10790,
+        "total_repeats": 1025,
+        "bucket_counts": {
+          "1-5": 122,
+          "6-15": 246,
+          "31-50": 223,
+          "16-30": 312,
+          "51-100": 113,
+          ">100": 9
+        },
+        "bucket_per_100_content": {
+          "1-5": 1.1307,
+          "6-15": 2.2799,
+          "16-30": 2.8916,
+          "31-50": 2.0667,
+          "51-100": 1.0473,
+          ">100": 0.0834
+        },
+        "tight_repeats_le15": 368,
+        "tight_repeats_le15_per_100_content": 3.4106,
+        "tight_repeats_le5_per_100_content": 1.1307,
+        "tight_repeats_6_15_per_100_content": 2.2799
+      },
+      "description": {
+        "n_beats": 94,
+        "total_raw_words": 11670,
+        "total_content_words": 6530,
+        "total_repeats": 463,
+        "bucket_counts": {
+          "1-5": 36,
+          "6-15": 95,
+          "16-30": 175,
+          "31-50": 97,
+          "51-100": 59,
+          ">100": 1
+        },
+        "bucket_per_100_content": {
+          "1-5": 0.5513,
+          "6-15": 1.4548,
+          "16-30": 2.6799,
+          "31-50": 1.4855,
+          "51-100": 0.9035,
+          ">100": 0.0153
+        },
+        "tight_repeats_le15": 131,
+        "tight_repeats_le15_per_100_content": 2.0061,
+        "tight_repeats_le5_per_100_content": 0.5513,
+        "tight_repeats_6_15_per_100_content": 1.4548
+      }
+    },
+    "halflings_gem": {
+      "action": {
+        "n_beats": 309,
+        "total_raw_words": 35361,
+        "total_content_words": 20391,
+        "total_repeats": 2169,
+        "bucket_counts": {
+          "6-15": 487,
+          "16-30": 798,
+          "31-50": 493,
+          "1-5": 177,
+          "51-100": 202,
+          ">100": 12
+        },
+        "bucket_per_100_content": {
+          "1-5": 0.868,
+          "6-15": 2.3883,
+          "16-30": 3.9135,
+          "31-50": 2.4177,
+          "51-100": 0.9906,
+          ">100": 0.0588
+        },
+        "tight_repeats_le15": 664,
+        "tight_repeats_le15_per_100_content": 3.2563,
+        "tight_repeats_le5_per_100_content": 0.868,
+        "tight_repeats_6_15_per_100_content": 2.3883
+      },
+      "dialogue": {
+        "n_beats": 279,
+        "total_raw_words": 32991,
+        "total_content_words": 18115,
+        "total_repeats": 2341,
+        "bucket_counts": {
+          "6-15": 668,
+          "1-5": 305,
+          "31-50": 415,
+          "16-30": 769,
+          "51-100": 169,
+          ">100": 15
+        },
+        "bucket_per_100_content": {
+          "1-5": 1.6837,
+          "6-15": 3.6876,
+          "16-30": 4.2451,
+          "31-50": 2.2909,
+          "51-100": 0.9329,
+          ">100": 0.0828
+        },
+        "tight_repeats_le15": 973,
+        "tight_repeats_le15_per_100_content": 5.3712,
+        "tight_repeats_le5_per_100_content": 1.6837,
+        "tight_repeats_6_15_per_100_content": 3.6876
+      },
+      "interiority": {
+        "n_beats": 159,
+        "total_raw_words": 18389,
+        "total_content_words": 9941,
+        "total_repeats": 1001,
+        "bucket_counts": {
+          "6-15": 256,
+          "16-30": 339,
+          "31-50": 216,
+          "1-5": 107,
+          "51-100": 74,
+          ">100": 9
+        },
+        "bucket_per_100_content": {
+          "1-5": 1.0764,
+          "6-15": 2.5752,
+          "16-30": 3.4101,
+          "31-50": 2.1728,
+          "51-100": 0.7444,
+          ">100": 0.0905
+        },
+        "tight_repeats_le15": 363,
+        "tight_repeats_le15_per_100_content": 3.6515,
+        "tight_repeats_le5_per_100_content": 1.0764,
+        "tight_repeats_6_15_per_100_content": 2.5752
+      },
+      "description": {
+        "n_beats": 79,
+        "total_raw_words": 9539,
+        "total_content_words": 5479,
+        "total_repeats": 457,
+        "bucket_counts": {
+          "1-5": 55,
+          "16-30": 150,
+          "6-15": 96,
+          "31-50": 97,
+          "51-100": 57,
+          ">100": 2
+        },
+        "bucket_per_100_content": {
+          "1-5": 1.0038,
+          "6-15": 1.7521,
+          "16-30": 2.7377,
+          "31-50": 1.7704,
+          "51-100": 1.0403,
+          ">100": 0.0365
+        },
+        "tight_repeats_le15": 151,
+        "tight_repeats_le15_per_100_content": 2.756,
+        "tight_repeats_le5_per_100_content": 1.0038,
+        "tight_repeats_6_15_per_100_content": 1.7521
+      }
+    }
+  },
+  "beat_distribution_aggregate": {
+    "n_beats": 2462,
+    "min": 0.0,
+    "max": 22.7273,
+    "mean_per_100_content": 3.2879,
+    "stdev_per_100_content": 2.8559,
+    "median_per_100_content": 2.8037,
+    "p75_per_100_content": 4.6512,
+    "p90_per_100_content": 6.9767,
+    "p95_per_100_content": 8.6538,
+    "p99_per_100_content": 12.766,
+    "lint_threshold_band": {
+      "soft_warning_per_100_content": 6.1438,
+      "hard_warning_per_100_content": 8.6538,
+      "rationale": "soft_warning \u2248 corpus mean+1\u03c3 tight-repeat density per 100 content words; hard_warning \u2248 p95 (only the noisiest 5% of Salvatore beats sit above this \u2014 safe lint floor)."
+    }
+  },
+  "per_kind_beat_distribution": {
+    "action": {
+      "n_beats": 890,
+      "mean_per_100_content": 2.8106,
+      "stdev_per_100_content": 2.2755,
+      "median_per_100_content": 2.5,
+      "p75_per_100_content": 4.1667,
+      "p90_per_100_content": 5.7971,
+      "p95_per_100_content": 7.1429,
+      "soft_warning_per_100_content": 5.0861
+    },
+    "dialogue": {
+      "n_beats": 776,
+      "mean_per_100_content": 4.35,
+      "stdev_per_100_content": 3.3299,
+      "median_per_100_content": 3.7037,
+      "p75_per_100_content": 6.0606,
+      "p90_per_100_content": 9.0909,
+      "p95_per_100_content": 10.8911,
+      "soft_warning_per_100_content": 7.68
+    },
+    "interiority": {
+      "n_beats": 493,
+      "mean_per_100_content": 3.0822,
+      "stdev_per_100_content": 2.8633,
+      "median_per_100_content": 2.5641,
+      "p75_per_100_content": 4.5455,
+      "p90_per_100_content": 7.0588,
+      "p95_per_100_content": 8.3333,
+      "soft_warning_per_100_content": 5.9455
+    },
+    "description": {
+      "n_beats": 302,
+      "mean_per_100_content": 2.3116,
+      "stdev_per_100_content": 2.1746,
+      "median_per_100_content": 2.0619,
+      "p75_per_100_content": 3.3898,
+      "p90_per_100_content": 4.918,
+      "p95_per_100_content": 5.9701,
+      "soft_warning_per_100_content": 4.4863
+    }
+  },
+  "top_repeats_per_book_per_kind": {
+    "crystal_shard": {
+      "action": [
+        [
+          "drizzt",
+          33
+        ],
+        [
+          "into",
+          22
+        ],
+        [
+          "out",
+          14
+        ],
+        [
+          "giant",
+          13
+        ],
+        [
+          "wulfgar",
+          13
+        ],
+        [
+          "one",
+          10
+        ],
+        [
+          "down",
+          10
+        ],
+        [
+          "regis",
+          10
+        ],
+        [
+          "kessell",
+          10
+        ],
+        [
+          "back",
+          9
+        ],
+        [
+          "ye",
+          8
+        ],
+        [
+          "away",
+          8
+        ],
+        [
+          "bruenor",
+          6
+        ],
+        [
+          "up",
+          6
+        ],
+        [
+          "caer",
+          6
+        ]
+      ],
+      "dialogue": [
+        [
+          "drizzt",
+          34
+        ],
+        [
+          "wulfgar",
+          29
+        ],
+        [
+          "ye",
+          26
+        ],
+        [
+          "kessell",
+          24
+        ],
+        [
+          "bruenor",
+          19
+        ],
+        [
+          "cassius",
+          15
+        ],
+        [
+          "yer",
+          14
+        ],
+        [
+          "one",
+          14
+        ],
+        [
+          "regis",
+          12
+        ],
+        [
+          "people",
+          10
+        ],
+        [
+          "caer",
+          10
+        ],
+        [
+          "giant",
+          9
+        ],
+        [
+          "shall",
+          8
+        ],
+        [
+          "kemp",
+          7
+        ],
+        [
+          "out",
+          7
+        ]
+      ],
+      "interiority": [
+        [
+          "wulfgar",
+          12
+        ],
+        [
+          "kessell",
+          11
+        ],
+        [
+          "drow",
+          9
+        ],
+        [
+          "drizzt",
+          7
+        ],
+        [
+          "regis",
+          7
+        ],
+        [
+          "power",
+          4
+        ],
+        [
+          "into",
+          4
+        ],
+        [
+          "night",
+          4
+        ],
+        [
+          "people",
+          4
+        ],
+        [
+          "back",
+          4
+        ],
+        [
+          "against",
+          4
+        ],
+        [
+          "kemp",
+          4
+        ],
+        [
+          "bruenor",
+          3
+        ],
+        [
+          "one",
+          3
+        ],
+        [
+          "new",
+          3
+        ]
+      ],
+      "description": [
+        [
+          "caer",
+          13
+        ],
+        [
+          "other",
+          7
+        ],
+        [
+          "back",
+          6
+        ],
+        [
+          "into",
+          5
+        ],
+        [
+          "city",
+          5
+        ],
+        [
+          "forth",
+          4
+        ],
+        [
+          "room",
+          4
+        ],
+        [
+          "two",
+          4
+        ],
+        [
+          "one",
+          4
+        ],
+        [
+          "goblins",
+          3
+        ],
+        [
+          "giants",
+          3
+        ],
+        [
+          "stood",
+          3
+        ],
+        [
+          "bryn",
+          3
+        ],
+        [
+          "ice",
+          3
+        ],
+        [
+          "tower",
+          3
+        ]
+      ]
+    },
+    "streams_of_silver": {
+      "action": [
+        [
+          "into",
+          31
+        ],
+        [
+          "drizzt",
+          28
+        ],
+        [
+          "wulfgar",
+          22
+        ],
+        [
+          "back",
+          21
+        ],
+        [
+          "bruenor",
+          18
+        ],
+        [
+          "one",
+          16
+        ],
+        [
+          "regis",
+          11
+        ],
+        [
+          "up",
+          9
+        ],
+        [
+          "entreri",
+          9
+        ],
+        [
+          "behind",
+          8
+        ],
+        [
+          "about",
+          7
+        ],
+        [
+          "again",
+          7
+        ],
+        [
+          "father's",
+          7
+        ],
+        [
+          "dendybar",
+          7
+        ],
+        [
+          "before",
+          6
+        ]
+      ],
+      "dialogue": [
+        [
+          "drizzt",
+          44
+        ],
+        [
+          "bruenor",
+          39
+        ],
+        [
+          "ye",
+          33
+        ],
+        [
+          "wulfgar",
+          27
+        ],
+        [
+          "entreri",
+          23
+        ],
+        [
+          "regis",
+          18
+        ],
+        [
+          "sydney",
+          15
+        ],
+        [
+          "yer",
+          12
+        ],
+        [
+          "out",
+          11
+        ],
+        [
+          "jierdan",
+          11
+        ],
+        [
+          "dendybar",
+          10
+        ],
+        [
+          "one",
+          9
+        ],
+        [
+          "catti",
+          9
+        ],
+        [
+          "shall",
+          8
+        ],
+        [
+          "brie",
+          8
+        ]
+      ],
+      "interiority": [
+        [
+          "catti",
+          10
+        ],
+        [
+          "one",
+          10
+        ],
+        [
+          "world",
+          9
+        ],
+        [
+          "bruenor",
+          8
+        ],
+        [
+          "entreri",
+          8
+        ],
+        [
+          "before",
+          8
+        ],
+        [
+          "brie",
+          7
+        ],
+        [
+          "regis",
+          6
+        ],
+        [
+          "about",
+          6
+        ],
+        [
+          "ye",
+          6
+        ],
+        [
+          "drizzt",
+          6
+        ],
+        [
+          "than",
+          6
+        ],
+        [
+          "dendybar",
+          5
+        ],
+        [
+          "time",
+          4
+        ],
+        [
+          "enough",
+          4
+        ]
+      ],
+      "description": [
+        [
+          "three",
+          4
+        ],
+        [
+          "out",
+          4
+        ],
+        [
+          "down",
+          3
+        ],
+        [
+          "each",
+          3
+        ],
+        [
+          "severed",
+          2
+        ],
+        [
+          "troll",
+          2
+        ],
+        [
+          "before",
+          2
+        ],
+        [
+          "drizzt",
+          2
+        ],
+        [
+          "though",
+          2
+        ],
+        [
+          "beyond",
+          2
+        ],
+        [
+          "door",
+          2
+        ],
+        [
+          "again",
+          2
+        ],
+        [
+          "most",
+          2
+        ],
+        [
+          "into",
+          2
+        ],
+        [
+          "wulfgar",
+          2
+        ]
+      ]
+    },
+    "halflings_gem": {
+      "action": [
+        [
+          "drizzt",
+          48
+        ],
+        [
+          "into",
+          39
+        ],
+        [
+          "wulfgar",
+          29
+        ],
+        [
+          "bruenor",
+          28
+        ],
+        [
+          "back",
+          25
+        ],
+        [
+          "up",
+          16
+        ],
+        [
+          "regis",
+          14
+        ],
+        [
+          "door",
+          14
+        ],
+        [
+          "pook",
+          14
+        ],
+        [
+          "one",
+          9
+        ],
+        [
+          "entreri",
+          9
+        ],
+        [
+          "through",
+          8
+        ],
+        [
+          "out",
+          8
+        ],
+        [
+          "over",
+          7
+        ],
+        [
+          "side",
+          6
+        ]
+      ],
+      "dialogue": [
+        [
+          "drizzt",
+          64
+        ],
+        [
+          "bruenor",
+          43
+        ],
+        [
+          "pook",
+          41
+        ],
+        [
+          "entreri",
+          38
+        ],
+        [
+          "ye",
+          31
+        ],
+        [
+          "wulfgar",
+          31
+        ],
+        [
+          "regis",
+          31
+        ],
+        [
+          "ha",
+          28
+        ],
+        [
+          "catti",
+          19
+        ],
+        [
+          "lavalle",
+          19
+        ],
+        [
+          "one",
+          18
+        ],
+        [
+          "rassiter",
+          18
+        ],
+        [
+          "back",
+          17
+        ],
+        [
+          "brie",
+          17
+        ],
+        [
+          "deudermont",
+          16
+        ]
+      ],
+      "interiority": [
+        [
+          "drizzt",
+          30
+        ],
+        [
+          "wulfgar",
+          21
+        ],
+        [
+          "entreri",
+          19
+        ],
+        [
+          "regis",
+          12
+        ],
+        [
+          "pook",
+          11
+        ],
+        [
+          "one",
+          10
+        ],
+        [
+          "bruenor",
+          7
+        ],
+        [
+          "back",
+          7
+        ],
+        [
+          "rassiter",
+          7
+        ],
+        [
+          "catti",
+          5
+        ],
+        [
+          "out",
+          5
+        ],
+        [
+          "before",
+          4
+        ],
+        [
+          "ship",
+          4
+        ],
+        [
+          "friends",
+          4
+        ],
+        [
+          "through",
+          4
+        ]
+      ],
+      "description": [
+        [
+          "city",
+          7
+        ],
+        [
+          "through",
+          5
+        ],
+        [
+          "into",
+          4
+        ],
+        [
+          "over",
+          3
+        ],
+        [
+          "ship",
+          3
+        ],
+        [
+          "hoop",
+          3
+        ],
+        [
+          "drizzt",
+          3
+        ],
+        [
+          "crank",
+          2
+        ],
+        [
+          "beside",
+          2
+        ],
+        [
+          "watched",
+          2
+        ],
+        [
+          "pook",
+          2
+        ],
+        [
+          "entreri",
+          2
+        ],
+        [
+          "regis",
+          2
+        ],
+        [
+          "sea",
+          2
+        ],
+        [
+          "than",
+          2
+        ]
+      ]
+    }
+  },
+  "top_repeats_per_kind_aggregate": {
+    "action": [
+      [
+        "drizzt",
+        109
+      ],
+      [
+        "into",
+        92
+      ],
+      [
+        "wulfgar",
+        64
+      ],
+      [
+        "back",
+        55
+      ],
+      [
+        "bruenor",
+        52
+      ],
+      [
+        "one",
+        35
+      ],
+      [
+        "regis",
+        35
+      ],
+      [
+        "up",
+        31
+      ],
+      [
+        "out",
+        25
+      ],
+      [
+        "down",
+        20
+      ],
+      [
+        "through",
+        19
+      ],
+      [
+        "door",
+        19
+      ],
+      [
+        "entreri",
+        18
+      ],
+      [
+        "again",
+        16
+      ],
+      [
+        "away",
+        16
+      ],
+      [
+        "ye",
+        15
+      ],
+      [
+        "over",
+        15
+      ],
+      [
+        "giant",
+        14
+      ],
+      [
+        "before",
+        14
+      ],
+      [
+        "pook",
+        14
+      ]
+    ],
+    "dialogue": [
+      [
+        "drizzt",
+        142
+      ],
+      [
+        "bruenor",
+        101
+      ],
+      [
+        "ye",
+        90
+      ],
+      [
+        "wulfgar",
+        87
+      ],
+      [
+        "regis",
+        61
+      ],
+      [
+        "entreri",
+        61
+      ],
+      [
+        "one",
+        41
+      ],
+      [
+        "pook",
+        41
+      ],
+      [
+        "yer",
+        29
+      ],
+      [
+        "catti",
+        29
+      ],
+      [
+        "ha",
+        28
+      ],
+      [
+        "out",
+        27
+      ],
+      [
+        "back",
+        26
+      ],
+      [
+        "brie",
+        26
+      ],
+      [
+        "kessell",
+        24
+      ],
+      [
+        "lavalle",
+        19
+      ],
+      [
+        "shall",
+        18
+      ],
+      [
+        "rassiter",
+        18
+      ],
+      [
+        "deudermont",
+        16
+      ],
+      [
+        "know",
+        15
+      ]
+    ],
+    "interiority": [
+      [
+        "drizzt",
+        43
+      ],
+      [
+        "wulfgar",
+        36
+      ],
+      [
+        "entreri",
+        27
+      ],
+      [
+        "regis",
+        25
+      ],
+      [
+        "one",
+        23
+      ],
+      [
+        "bruenor",
+        18
+      ],
+      [
+        "catti",
+        17
+      ],
+      [
+        "back",
+        14
+      ],
+      [
+        "kessell",
+        13
+      ],
+      [
+        "drow",
+        13
+      ],
+      [
+        "before",
+        13
+      ],
+      [
+        "world",
+        12
+      ],
+      [
+        "brie",
+        11
+      ],
+      [
+        "pook",
+        11
+      ],
+      [
+        "ye",
+        10
+      ],
+      [
+        "than",
+        10
+      ],
+      [
+        "out",
+        9
+      ],
+      [
+        "about",
+        9
+      ],
+      [
+        "people",
+        8
+      ],
+      [
+        "into",
+        7
+      ]
+    ],
+    "description": [
+      [
+        "caer",
+        13
+      ],
+      [
+        "city",
+        13
+      ],
+      [
+        "into",
+        11
+      ],
+      [
+        "other",
+        9
+      ],
+      [
+        "out",
+        7
+      ],
+      [
+        "through",
+        7
+      ],
+      [
+        "drizzt",
+        7
+      ],
+      [
+        "back",
+        6
+      ],
+      [
+        "again",
+        5
+      ],
+      [
+        "wulfgar",
+        5
+      ],
+      [
+        "two",
+        5
+      ],
+      [
+        "one",
+        5
+      ],
+      [
+        "each",
+        5
+      ],
+      [
+        "three",
+        5
+      ],
+      [
+        "side",
+        4
+      ],
+      [
+        "forth",
+        4
+      ],
+      [
+        "though",
+        4
+      ],
+      [
+        "room",
+        4
+      ],
+      [
+        "far",
+        4
+      ],
+      [
+        "regis",
+        4
+      ]
+    ]
+  },
+  "top_repeats_per_bucket": {
+    "1-5": [
+      [
+        "ye",
+        60
+      ],
+      [
+        "drizzt",
+        43
+      ],
+      [
+        "one",
+        42
+      ],
+      [
+        "back",
+        34
+      ],
+      [
+        "wulfgar",
+        31
+      ],
+      [
+        "regis",
+        28
+      ],
+      [
+        "ha",
+        28
+      ],
+      [
+        "bruenor",
+        25
+      ],
+      [
+        "into",
+        24
+      ],
+      [
+        "again",
+        21
+      ],
+      [
+        "caer",
+        21
+      ],
+      [
+        "entreri",
+        19
+      ],
+      [
+        "yer",
+        16
+      ],
+      [
+        "pook",
+        16
+      ],
+      [
+        "kessell",
+        12
+      ]
+    ],
+    "6-15": [
+      [
+        "drizzt",
+        258
+      ],
+      [
+        "wulfgar",
+        161
+      ],
+      [
+        "bruenor",
+        149
+      ],
+      [
+        "into",
+        99
+      ],
+      [
+        "regis",
+        97
+      ],
+      [
+        "entreri",
+        90
+      ],
+      [
+        "back",
+        67
+      ],
+      [
+        "one",
+        62
+      ],
+      [
+        "out",
+        57
+      ],
+      [
+        "ye",
+        56
+      ],
+      [
+        "pook",
+        52
+      ],
+      [
+        "catti",
+        51
+      ],
+      [
+        "brie",
+        43
+      ],
+      [
+        "kessell",
+        36
+      ],
+      [
+        "through",
+        36
+      ]
+    ],
+    "16-30": [
+      [
+        "drizzt",
+        403
+      ],
+      [
+        "bruenor",
+        267
+      ],
+      [
+        "wulfgar",
+        246
+      ],
+      [
+        "regis",
+        195
+      ],
+      [
+        "entreri",
+        148
+      ],
+      [
+        "catti",
+        109
+      ],
+      [
+        "into",
+        102
+      ],
+      [
+        "brie",
+        93
+      ],
+      [
+        "back",
+        78
+      ],
+      [
+        "out",
+        66
+      ],
+      [
+        "one",
+        57
+      ],
+      [
+        "pook",
+        54
+      ],
+      [
+        "kessell",
+        48
+      ],
+      [
+        "drow",
+        42
+      ],
+      [
+        "up",
+        40
+      ]
+    ],
+    "31-50": [
+      [
+        "drizzt",
+        229
+      ],
+      [
+        "bruenor",
+        156
+      ],
+      [
+        "wulfgar",
+        131
+      ],
+      [
+        "regis",
+        94
+      ],
+      [
+        "catti",
+        71
+      ],
+      [
+        "brie",
+        66
+      ],
+      [
+        "entreri",
+        65
+      ],
+      [
+        "into",
+        63
+      ],
+      [
+        "back",
+        52
+      ],
+      [
+        "one",
+        45
+      ],
+      [
+        "out",
+        41
+      ],
+      [
+        "dwarf",
+        35
+      ],
+      [
+        "man",
+        31
+      ],
+      [
+        "though",
+        27
+      ],
+      [
+        "drow",
+        25
+      ]
+    ],
+    "51-100": [
+      [
+        "drizzt",
+        76
+      ],
+      [
+        "wulfgar",
+        60
+      ],
+      [
+        "bruenor",
+        52
+      ],
+      [
+        "back",
+        41
+      ],
+      [
+        "regis",
+        37
+      ],
+      [
+        "into",
+        36
+      ],
+      [
+        "out",
+        33
+      ],
+      [
+        "entreri",
+        25
+      ],
+      [
+        "down",
+        24
+      ],
+      [
+        "one",
+        23
+      ],
+      [
+        "though",
+        21
+      ],
+      [
+        "up",
+        19
+      ],
+      [
+        "before",
+        18
+      ],
+      [
+        "brie",
+        17
+      ],
+      [
+        "catti",
+        16
+      ]
+    ],
+    ">100": [
+      [
+        "wulfgar",
+        6
+      ],
+      [
+        "drizzt",
+        5
+      ],
+      [
+        "bruenor",
+        5
+      ],
+      [
+        "out",
+        4
+      ],
+      [
+        "than",
+        3
+      ],
+      [
+        "drow",
+        3
+      ],
+      [
+        "regis",
+        3
+      ],
+      [
+        "one",
+        3
+      ],
+      [
+        "friend",
+        2
+      ],
+      [
+        "up",
+        2
+      ],
+      [
+        "halfling",
+        2
+      ],
+      [
+        "wizard",
+        2
+      ],
+      [
+        "against",
+        2
+      ],
+      [
+        "must",
+        2
+      ],
+      [
+        "cassius",
+        2
+      ]
+    ]
+  },
+  "cross_book_stability": {
+    "le15_density_per_book": {
+      "crystal_shard": 2.9589,
+      "streams_of_silver": 3.1862,
+      "halflings_gem": 3.9888
+    },
+    "le15_density_min": 2.9589,
+    "le15_density_max": 3.9888,
+    "le15_density_mean": 3.378,
+    "le15_density_spread_pct": 30.49,
+    "le15_density_within_30pct": false,
+    "per_kind_density_spread": {
+      "action": {
+        "per_book_density": {
+          "crystal_shard": 2.613,
+          "streams_of_silver": 2.8257,
+          "halflings_gem": 3.2563
+        },
+        "spread_pct": 22.2,
+        "within_30pct": true,
+        "mean": 2.8983
+      },
+      "dialogue": {
+        "per_book_density": {
+          "crystal_shard": 4.088,
+          "streams_of_silver": 3.8626,
+          "halflings_gem": 5.3712
+        },
+        "spread_pct": 33.97,
+        "within_30pct": false,
+        "mean": 4.4406
+      },
+      "interiority": {
+        "per_book_density": {
+          "crystal_shard": 2.4784,
+          "streams_of_silver": 3.4106,
+          "halflings_gem": 3.6515
+        },
+        "spread_pct": 36.89,
+        "within_30pct": false,
+        "mean": 3.1802
+      },
+      "description": {
+        "per_book_density": {
+          "crystal_shard": 2.454,
+          "streams_of_silver": 2.0061,
+          "halflings_gem": 2.756
+        },
+        "spread_pct": 31.18,
+        "within_30pct": false,
+        "mean": 2.4054
+      }
+    },
+    "n_stable_kinds_30pct": 1,
+    "top10_intersection_per_kind": {
+      "action": {
+        "per_book_top10": {
+          "crystal_shard": [
+            "back",
+            "down",
+            "drizzt",
+            "giant",
+            "into",
+            "kessell",
+            "one",
+            "out",
+            "regis",
+            "wulfgar"
+          ],
+          "streams_of_silver": [
+            "back",
+            "behind",
+            "bruenor",
+            "drizzt",
+            "entreri",
+            "into",
+            "one",
+            "regis",
+            "up",
+            "wulfgar"
+          ],
+          "halflings_gem": [
+            "back",
+            "bruenor",
+            "door",
+            "drizzt",
+            "into",
+            "one",
+            "pook",
+            "regis",
+            "up",
+            "wulfgar"
+          ]
+        },
+        "all_three_intersection": [
+          "back",
+          "drizzt",
+          "into",
+          "one",
+          "regis",
+          "wulfgar"
+        ],
+        "all_three_count": 6,
+        "any_two_only": [
+          "bruenor",
+          "up"
+        ],
+        "any_two_count": 2
+      },
+      "dialogue": {
+        "per_book_top10": {
+          "crystal_shard": [
+            "bruenor",
+            "cassius",
+            "drizzt",
+            "kessell",
+            "one",
+            "people",
+            "regis",
+            "wulfgar",
+            "ye",
+            "yer"
+          ],
+          "streams_of_silver": [
+            "bruenor",
+            "drizzt",
+            "entreri",
+            "jierdan",
+            "out",
+            "regis",
+            "sydney",
+            "wulfgar",
+            "ye",
+            "yer"
+          ],
+          "halflings_gem": [
+            "bruenor",
+            "catti",
+            "drizzt",
+            "entreri",
+            "ha",
+            "lavalle",
+            "pook",
+            "regis",
+            "wulfgar",
+            "ye"
+          ]
+        },
+        "all_three_intersection": [
+          "bruenor",
+          "drizzt",
+          "regis",
+          "wulfgar",
+          "ye"
+        ],
+        "all_three_count": 5,
+        "any_two_only": [
+          "entreri",
+          "yer"
+        ],
+        "any_two_count": 2
+      },
+      "interiority": {
+        "per_book_top10": {
+          "crystal_shard": [
+            "back",
+            "drizzt",
+            "drow",
+            "into",
+            "kessell",
+            "night",
+            "people",
+            "power",
+            "regis",
+            "wulfgar"
+          ],
+          "streams_of_silver": [
+            "about",
+            "before",
+            "brie",
+            "bruenor",
+            "catti",
+            "entreri",
+            "one",
+            "regis",
+            "world",
+            "ye"
+          ],
+          "halflings_gem": [
+            "back",
+            "bruenor",
+            "catti",
+            "drizzt",
+            "entreri",
+            "one",
+            "pook",
+            "rassiter",
+            "regis",
+            "wulfgar"
+          ]
+        },
+        "all_three_intersection": [
+          "regis"
+        ],
+        "all_three_count": 1,
+        "any_two_only": [
+          "back",
+          "bruenor",
+          "catti",
+          "drizzt",
+          "entreri",
+          "one",
+          "wulfgar"
+        ],
+        "any_two_count": 7
+      },
+      "description": {
+        "per_book_top10": {
+          "crystal_shard": [
+            "back",
+            "caer",
+            "city",
+            "forth",
+            "goblins",
+            "into",
+            "one",
+            "other",
+            "room",
+            "two"
+          ],
+          "streams_of_silver": [
+            "before",
+            "beyond",
+            "down",
+            "drizzt",
+            "each",
+            "out",
+            "severed",
+            "though",
+            "three",
+            "troll"
+          ],
+          "halflings_gem": [
+            "beside",
+            "city",
+            "crank",
+            "drizzt",
+            "hoop",
+            "into",
+            "over",
+            "ship",
+            "through",
+            "watched"
+          ]
+        },
+        "all_three_intersection": [],
+        "all_three_count": 0,
+        "any_two_only": [
+          "city",
+          "drizzt",
+          "into"
+        ],
+        "any_two_count": 3
+      }
+    },
+    "n_kinds_top10_intersection_5plus": 2,
+    "n_kinds_top10_intersection_3plus": 2
+  },
+  "lint_recommendation": {
+    "window_words": 15,
+    "unit": "content words (post-stopword)",
+    "corpus_floor_per_100_content": 3.3632,
+    "soft_warning_per_100_content": 6.1438,
+    "hard_warning_per_100_content": 8.6538,
+    "per_kind_soft_warning": {
+      "action": 5.0861,
+      "dialogue": 7.68,
+      "interiority": 5.9455,
+      "description": 4.4863
+    },
+    "implementation_note": "Lint rule: per beat, count same-content-word repetitions where two occurrences are \u226415 content tokens apart (after stopword filter). Normalize by content-word count \u00d7 100. If density >= soft_warning, emit `lint.tight_word_repetition` warning. POV-character names and known-entity proper nouns are EXEMPT (they are legitimate referent reuses; the lint targets craft-level content-word echoes like 'blade...blade' or 'eyes...eyes')."
+  },
+  "verdict": "PASS_PARTIAL",
+  "verdict_note": "Top-10 cross-book intersection holds in 2/4 kinds (\u22655 tokens) but density spread 30.49% misses the 30% gate.",
+  "worst_offender_examples": [
+    {
+      "book": "crystal_shard",
+      "chapter": 19,
+      "scene_id": "crystal_shard_ch19_s2",
+      "kind": "dialogue",
+      "n_content_words": 44,
+      "n_tight_repeats": 10,
+      "tight_density_per_100": 22.7273,
+      "sample": [
+        {
+          "token": "half",
+          "gap": 6
+        },
+        {
+          "token": "half",
+          "gap": 3
+        },
+        {
+          "token": "one",
+          "gap": 8
+        }
+      ]
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "part3",
+      "scene_id": "streams_of_silver_chpart3_s0",
+      "kind": "interiority",
+      "n_content_words": 63,
+      "n_tight_repeats": 11,
+      "tight_density_per_100": 17.4603,
+      "sample": [
+        {
+          "token": "weapon",
+          "gap": 11
+        },
+        {
+          "token": "fears",
+          "gap": 3
+        },
+        {
+          "token": "because",
+          "gap": 11
+        }
+      ]
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "part1",
+      "scene_id": "streams_of_silver_chpart1_s0",
+      "kind": "interiority",
+      "n_content_words": 73,
+      "n_tight_repeats": 12,
+      "tight_density_per_100": 16.4384,
+      "sample": [
+        {
+          "token": "magic",
+          "gap": 13
+        },
+        {
+          "token": "magic",
+          "gap": 6
+        },
+        {
+          "token": "magic",
+          "gap": 2
+        }
+      ]
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 23,
+      "scene_id": "halflings_gem_ch23_s1",
+      "kind": "action",
+      "n_content_words": 44,
+      "n_tight_repeats": 7,
+      "tight_density_per_100": 15.9091,
+      "sample": [
+        {
+          "token": "across",
+          "gap": 6
+        },
+        {
+          "token": "room",
+          "gap": 6
+        },
+        {
+          "token": "pook",
+          "gap": 3
+        }
+      ]
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 22,
+      "scene_id": "halflings_gem_ch22_s4",
+      "kind": "dialogue",
+      "n_content_words": 38,
+      "n_tight_repeats": 6,
+      "tight_density_per_100": 15.7895,
+      "sample": [
+        {
+          "token": "yelled",
+          "gap": 7
+        },
+        {
+          "token": "strength",
+          "gap": 14
+        },
+        {
+          "token": "wulfgar",
+          "gap": 6
+        }
+      ]
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 23,
+      "scene_id": "streams_of_silver_ch23_s3",
+      "kind": "dialogue",
+      "n_content_words": 45,
+      "n_tight_repeats": 7,
+      "tight_density_per_100": 15.5556,
+      "sample": [
+        {
+          "token": "regis",
+          "gap": 7
+        },
+        {
+          "token": "crown",
+          "gap": 8
+        },
+        {
+          "token": "bruenor",
+          "gap": 15
+        }
+      ]
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 12,
+      "scene_id": "halflings_gem_ch12_s1",
+      "kind": "dialogue",
+      "n_content_words": 53,
+      "n_tight_repeats": 8,
+      "tight_density_per_100": 15.0943,
+      "sample": [
+        {
+          "token": "pirate",
+          "gap": 9
+        },
+        {
+          "token": "pinochet",
+          "gap": 11
+        },
+        {
+          "token": "deudermont",
+          "gap": 15
+        }
+      ]
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 18,
+      "scene_id": "halflings_gem_ch18_s0",
+      "kind": "dialogue",
+      "n_content_words": 106,
+      "n_tight_repeats": 16,
+      "tight_density_per_100": 15.0943,
+      "sample": [
+        {
+          "token": "side",
+          "gap": 10
+        },
+        {
+          "token": "either",
+          "gap": 8
+        },
+        {
+          "token": "side",
+          "gap": 8
+        }
+      ]
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 10,
+      "scene_id": "crystal_shard_ch10_s2",
+      "kind": "description",
+      "n_content_words": 68,
+      "n_tight_repeats": 10,
+      "tight_density_per_100": 14.7059,
+      "sample": [
+        {
+          "token": "into",
+          "gap": 7
+        },
+        {
+          "token": "back",
+          "gap": 2
+        },
+        {
+          "token": "forth",
+          "gap": 2
+        }
+      ]
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 19,
+      "scene_id": "halflings_gem_ch19_s6",
+      "kind": "dialogue",
+      "n_content_words": 34,
+      "n_tight_repeats": 5,
+      "tight_density_per_100": 14.7059,
+      "sample": [
+        {
+          "token": "find",
+          "gap": 5
+        },
+        {
+          "token": "leave",
+          "gap": 6
+        },
+        {
+          "token": "back",
+          "gap": 15
+        }
+      ]
+    }
+  ]
+}
