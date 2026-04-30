@@ -34,6 +34,12 @@ Those defects must be fixed before another writer-route verdict is meaningful.
 - No Salvatore-vs-DeepSeek bake-off whose purpose is to defend keeping the LoRA.
 - No migration decision based only on surface voice metrics or linted approved prose.
 
+## Implementation Status
+
+- Slice 1 code path is implemented: `WRITER_GENRE_PACKS` now carries explicit `compactContext` and `leakProfile` metadata. Runtime base-model overrides keep fantasy structural priors but clear LoRA-specific compact context and Salvatore leak checks unless explicitly overridden.
+- Slice 2 code path is implemented: lint-fixed prose is guarded by deterministic integrity checks before it can replace the raw draft. The exp #265 corruption shapes (`blade.She`, `againShe`, `.ind her`) are covered by tests.
+- Still pending: Slice 3 clean base-DeepSeek validation run and Slice 4 planner/continuity remediation for impossible knowledge / role-state drift.
+
 ## Remediation Slices
 
 ### Slice 1 — Decouple Genre Packs From Writer Route

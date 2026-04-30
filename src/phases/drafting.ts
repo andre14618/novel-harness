@@ -49,7 +49,8 @@ import {
 import { runSettleLoop } from "./settle-loop"
 import { lintProse } from "../lint"
 import { fixLintIssues } from "../lint/fix"
-import { getModelForAgent, resolveWriterPack, type WriterGenrePack } from "../models/roles"
+import { validateLintFixIntegrity } from "../lint/integrity"
+import { getModelForAgent, resolveWriterPack, type WriterGenrePack, type WriterLeakProfile } from "../models/roles"
 import { loadGenrePackPrompt } from "../agents/writer"
 import type { ChapterOutline } from "../types"
 
@@ -245,6 +246,8 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
       let beatProses: string[] = []
       let writerPack: WriterGenrePack | null = null
       let packPrompt: string | null = null
+      let writerCompactContext = false
+      let writerLeakProfile: WriterLeakProfile | null = null
 
       if (pipeline.beatLevelWriting && outline.scenes.length > 0) {
         // ── Beat-level generation ───────────────────────────────────────
@@ -259,9 +262,11 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
           packPrompt = writerPack
             ? await loadGenrePackPrompt(writerPack.systemPromptFile, writerPack.usePrimer)
             : null
+          writerCompactContext = writerPack?.compactContext ?? false
+          writerLeakProfile = writerPack?.leakProfile ?? null
           if (writerPack) {
-            console.log(`  Writer pack: ${writerPack.label} (${writerPack.model.model})`)
-            log(novelId, "info", `Beat-writer routed to genre pack "${writerPack.label}" for genre "${novel.seed?.genre}"`)
+            console.log(`  Writer pack: ${writerPack.label} (${writerPack.model.model}, compact=${writerCompactContext}, leak=${writerLeakProfile ?? "none"})`)
+            log(novelId, "info", `Beat-writer routed to genre pack "${writerPack.label}" for genre "${novel.seed?.genre}" (compactContext=${writerCompactContext}, leakProfile=${writerLeakProfile ?? "none"})`)
           }
 
           const characters = await getCharacters(novelId)
@@ -301,7 +306,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
               // Voice-LoRA routes use compact prompts (no runtime state
               // fields, one-line character snapshots, no resolved-refs
               // block). See docs/beat-writer-architecture.md.
-              compactMode: !!writerPack,
+              compactMode: writerCompactContext,
               genre: novel.seed?.genre,
             })
 
@@ -360,7 +365,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                   outline,
                   characters,
                   worldBible,
-                  writerPackLabel: writerPack?.label ?? null,
+                  writerLeakProfile,
                   // Prior beat in the same chapter — consumed by the
                   // halluc-ungrounded checker under the beat-entity-list
                   // charter (v1/v3) to ground legitimate continuity
@@ -631,7 +636,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
                 previousBeatProse: beatProses[bi - 1],
                 outline, characters, characterStates: charStates, worldBible,
                 preResolvedRefs: preResolved,
-                compactMode: !!writerPack,
+                compactMode: writerCompactContext,
                 genre: novel.seed?.genre,
               })
               const priorProse = beatProses[bi]
@@ -894,7 +899,7 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
               previousBeatProse: beatProses[bi - 1],
               outline, characters, characterStates: charStates, worldBible,
               preResolvedRefs: preResolved,
-              compactMode: !!writerPack,
+              compactMode: writerCompactContext,
               genre: novel.seed?.genre,
             })
             const priorProse = beatProses[bi]
@@ -1181,15 +1186,32 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
 
           const totalFixed = fixResult.deterministicFixes + fixResult.llmFixes
           if (totalFixed > 0) {
-            prose = fixResult.prose
-            wordCount = prose.split(/\s+/).filter(Boolean).length
-            await saveChapterDraft(novelId, ch, prose, wordCount)
-            console.log(`  Fixed: ${fixResult.deterministicFixes} deterministic, ${fixResult.llmFixes} LLM (${fixResult.unfixed} unfixed, $${fixResult.costUsd.toFixed(4)})`)
-            log(novelId, "info", `Lint fixed ${totalFixed}/${lintResult.totalIssues} issues ($${fixResult.costUsd.toFixed(4)})`)
+            const integrity = validateLintFixIntegrity(prose, fixResult.prose)
+            if (!integrity.pass) {
+              await trace(novelId, {
+                eventType: "lint-fix-rejected", chapter: ch,
+                durationMs: Date.now() - fixStart,
+                payload: { issues: integrity.issues },
+              })
+              const summary = integrity.issues.map(i => `${i.kind}: ${i.excerpt}`).join("; ")
+              console.log(`  Lint fix rejected by integrity guard (${integrity.issues.length} issues); keeping raw draft`)
+              log(novelId, "warn", `Lint fix rejected for chapter ${ch}: ${summary}`)
+              lintSummary = `\n\n--- LINT (${lintResult.totalIssues} found, fix rejected by integrity guard) ---\n` +
+                Object.entries(lintResult.counts).map(([cat, count]) => `  ${cat}: ${count}`).join("\n") +
+                `\n  Guard: ${summary}`
+            } else {
+              prose = fixResult.prose
+              wordCount = prose.split(/\s+/).filter(Boolean).length
+              await saveChapterDraft(novelId, ch, prose, wordCount)
+              console.log(`  Fixed: ${fixResult.deterministicFixes} deterministic, ${fixResult.llmFixes} LLM (${fixResult.unfixed} unfixed, $${fixResult.costUsd.toFixed(4)})`)
+              log(novelId, "info", `Lint fixed ${totalFixed}/${lintResult.totalIssues} issues ($${fixResult.costUsd.toFixed(4)})`)
+            }
           }
 
-          lintSummary = `\n\n--- LINT (${lintResult.totalIssues} found, ${totalFixed} fixed, ${fixResult.unfixed} remaining) ---\n` +
-            Object.entries(lintResult.counts).map(([cat, count]) => `  ${cat}: ${count}`).join("\n")
+          if (!lintSummary) {
+            lintSummary = `\n\n--- LINT (${lintResult.totalIssues} found, ${totalFixed} fixed, ${fixResult.unfixed} remaining) ---\n` +
+              Object.entries(lintResult.counts).map(([cat, count]) => `  ${cat}: ${count}`).join("\n")
+          }
         } else {
           console.log("  Lint: clean")
         }

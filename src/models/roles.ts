@@ -23,6 +23,8 @@ export interface ModelAssignment {
   thinking?: boolean     // default: false
 }
 
+export type WriterLeakProfile = "salvatore"
+
 const DEFAULTS = { temperature: 0.7, maxTokens: 4096, thinking: false } as const
 
 const groqQwen32B: ModelAssignment = { provider: "groq", model: "qwen/qwen3-32b" }
@@ -348,6 +350,10 @@ export function getModelForAgent(agentName: string): ModelAssignment | undefined
 //   - usePrimer      : whether to prepend the Howard style primer.
 //                       Voice LoRAs that were trained on their own
 //                       system prompt should set this false.
+//   - compactContext : whether the route uses the compact LoRA-trained beat
+//                      context instead of the richer default runtime surface
+//   - leakProfile    : optional corpus-leak checker profile for writer routes
+//                      trained on a known corpus
 //
 // Packs are matched in order; the first regex that matches the seed's
 // genre wins. A pack can carry corpus-derived prompts/priors with or without
@@ -369,6 +375,11 @@ export interface WriterGenrePack {
   model: ModelAssignment
   systemPromptFile: string
   usePrimer: boolean
+  /** Whether this route should use the compact beat context trained for
+   * writer LoRAs. Base-model routes should leave this false so they receive
+   * the richer default runtime state surface. */
+  compactContext: boolean
+  leakProfile?: WriterLeakProfile
   structuralPriors: StructuralPriors
   /** Controls how exampleLines are sampled in beat-context.ts.
    *  "fixed"    — always use preset-a (indexes [0,1,2])
@@ -406,6 +417,8 @@ export const WRITER_GENRE_PACKS: WriterGenrePack[] = [
     },
     systemPromptFile: "beat-writer-system-salvatore.md",
     usePrimer: false,
+    compactContext: true,
+    leakProfile: "salvatore",
     structuralPriors: SALVATORE_PRIORS,
     // conditioning intentionally unset at pack level. Undefined = production
     // behavior (raw lines.slice(0, 5) — what live novels have always used).
@@ -425,9 +438,25 @@ export function resolveWriterPack(genre: string | undefined): WriterGenrePack | 
   let result = pack
 
   if (process.env.WRITER_MODEL_OVERRIDE) {
-    // Runtime override for A/B comparisons — overrides the pack's model only.
-    // Profile + structural priors stay the same so the only variable is the model.
-    result = { ...result, model: { ...result.model, model: process.env.WRITER_MODEL_OVERRIDE, provider: (process.env.WRITER_PROVIDER_OVERRIDE as any) ?? result.model.provider } }
+    // Runtime override for A/B comparisons. Structural priors and prompt stay
+    // pack-scoped, but LoRA-specific compact context + leak checks do not
+    // follow a base-model override. This keeps base DeepSeek fantasy runs from
+    // accidentally executing inside the Salvatore adapter shell.
+    const provider = (process.env.WRITER_PROVIDER_OVERRIDE as ProviderName | undefined) ?? result.model.provider
+    const model = process.env.WRITER_MODEL_OVERRIDE
+    const overrideAssignment = { ...result.model, model, provider }
+    const overrideLooksLikeSalvatoreAdapter = isSalvatoreAdapter(overrideAssignment)
+    result = {
+      ...result,
+      model: overrideAssignment,
+      compactContext: overrideLooksLikeSalvatoreAdapter ? result.compactContext : false,
+      leakProfile: overrideLooksLikeSalvatoreAdapter ? result.leakProfile : undefined,
+    }
+  }
+
+  const compactContextEnv = process.env.WRITER_COMPACT_CONTEXT_OVERRIDE
+  if (compactContextEnv === "true" || compactContextEnv === "false") {
+    result = { ...result, compactContext: compactContextEnv === "true" }
   }
 
   const conditioningEnv = process.env.WRITER_CONDITIONING
@@ -440,6 +469,10 @@ export function resolveWriterPack(genre: string | undefined): WriterGenrePack | 
   // Invalid WRITER_CONDITIONING values fall through to the pack default.
 
   return result
+}
+
+function isSalvatoreAdapter(model: ModelAssignment): boolean {
+  return model.provider === "wandb" && /salvatore/i.test(model.model)
 }
 
 export function resolveStructuralPriors(genre: string | undefined): StructuralPriors | null {

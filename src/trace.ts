@@ -27,6 +27,7 @@ export type TraceEventType =
   | "lint-detect"
   | "lint-fix-deterministic"
   | "lint-fix-llm"
+  | "lint-fix-rejected"
   | "validation-check"
   | "adherence-deterministic"
   | "reference-resolution"

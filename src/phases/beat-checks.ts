@@ -10,19 +10,16 @@
  * Current checkers:
  *   - adherence-events  (always)
  *   - halluc-ungrounded (always)
- *   - halluc-leak-salvatore (only on the Salvatore writer-pack route)
+ *   - halluc-leak-salvatore (only on routes with the Salvatore leak profile)
  *
- * Gating decision — 2026-04-18:
- * Leak is gated by `writerPack.label === "salvatore-fantasy"`, not by
- * the inference model URI. Rationale: the leak check is about the
- * *corpus* a writer was trained on, which the WRITER_GENRE_PACKS label
- * uniquely identifies. Per-URI gating would break if we ever serve the
- * same LoRA under a different artifact name or introduce a sibling
- * pack trained on Salvatore data. Per Codex implementation plan §9
- * (docs/hallucination-v3-wire-in-plan.md).
+ * Gating decision — 2026-04-30:
+ * Leak is gated by an explicit `WriterLeakProfile`, not by pack membership.
+ * Fantasy structural priors can now apply to base-model routes without
+ * inheriting a corpus-leak checker intended for a trained writer adapter.
  */
 
 import type { ChapterOutline, CharacterProfile, SceneBeat } from "../types"
+import type { WriterLeakProfile } from "../models/roles"
 import { checkBeatAdherence } from "../agents/writer/adherence-checker"
 import { checkHallucUngrounded } from "../agents/halluc-ungrounded"
 import { checkHallucLeakSalvatore } from "../agents/halluc-leak-salvatore"
@@ -52,10 +49,9 @@ export interface RunBeatChecksInput {
   outline: ChapterOutline
   characters: CharacterProfile[]
   worldBible: any
-  /** The resolved writer pack label for this novel, or null if the
-   *  default writer route is active. Only "salvatore-fantasy" enables
-   *  the Salvatore leak checker. */
-  writerPackLabel: string | null
+  /** The resolved writer leak profile for this route, or null if no
+   *  corpus-specific leak checker applies. */
+  writerLeakProfile: WriterLeakProfile | null
   /** Immediately-preceding scene beat in the same chapter, if any.
    *  Consumed by the halluc-ungrounded checker under the beat-entity-list
    *  charter (v1/v3) to surface prior-beat entities as grounded. */
@@ -70,9 +66,9 @@ export interface RunBeatChecksInput {
  * so `Promise.all` is safe — no rejection path to handle.
  */
 export async function runBeatChecks(input: RunBeatChecksInput): Promise<BeatCheckResult> {
-  const { prose, beat, outline, characters, worldBible, writerPackLabel, prevBeat, tags } = input
+  const { prose, beat, outline, characters, worldBible, writerLeakProfile, prevBeat, tags } = input
 
-  const runLeak = writerPackLabel === "salvatore-fantasy"
+  const runLeak = shouldRunLeakChecker(writerLeakProfile)
 
   // Parallelize the fan-out. All three helpers normalize failures into
   // issues and never throw, so Promise.all is safe here. If a future
@@ -86,6 +82,10 @@ export async function runBeatChecks(input: RunBeatChecksInput): Promise<BeatChec
   ])
 
   return aggregateIssues({ adherence: adh.issues, ungrounded: ung.issues, leak: leak.issues })
+}
+
+export function shouldRunLeakChecker(writerLeakProfile: WriterLeakProfile | null): boolean {
+  return writerLeakProfile === "salvatore"
 }
 
 export interface RawCheckerOutputs {

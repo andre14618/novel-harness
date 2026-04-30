@@ -22,6 +22,7 @@
  */
 
 import type { BeatIssue, RawCheckerOutputs } from "./beat-checks"
+import type { WriterLeakProfile } from "../models/roles"
 
 // Keep this function in sync with `formatRetryLine` in beat-checks.ts. The
 // pinned test in beat-checks.test.ts catches drift on the real impl; this
@@ -41,6 +42,7 @@ function mirroredFormatRetryLine(issue: BeatIssue): string {
 export function buildBeatChecksMock() {
   return {
     runBeatChecks: async () => ({ pass: true, issues: [] as BeatIssue[], retryLines: [] as string[] }),
+    shouldRunLeakChecker: (profile: WriterLeakProfile | null) => profile === "salvatore",
     formatRetryLine: mirroredFormatRetryLine,
     aggregateIssues: (outputs: RawCheckerOutputs) => {
       const issues: BeatIssue[] = []

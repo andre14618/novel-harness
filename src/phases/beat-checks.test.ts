@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test"
-import { aggregateIssues, summarizeIssues, formatRetryLine, type BeatIssue } from "./beat-checks"
+import { aggregateIssues, summarizeIssues, formatRetryLine, shouldRunLeakChecker, type BeatIssue } from "./beat-checks"
 
 test("aggregate: zero issues => pass=true, empty arrays", () => {
   const r = aggregateIssues({ adherence: [], ungrounded: [], leak: [] })
@@ -86,4 +86,9 @@ test("formatRetryLine: adherence passes through; ungrounded+leak append pinned r
   ).toBe(
     `D — Fix: remove the token or replace with a generic descriptor (e.g. "the drow warrior" instead of a Salvatore-corpus proper name).`,
   )
+})
+
+test("shouldRunLeakChecker gates only on explicit Salvatore leak profile", () => {
+  expect(shouldRunLeakChecker("salvatore")).toBe(true)
+  expect(shouldRunLeakChecker(null)).toBe(false)
 })
