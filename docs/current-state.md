@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-29
+updated: 2026-04-30
 role: canonical-current-truth
 ---
 
@@ -295,6 +295,26 @@ If yes, update this file.
   - **Charter:** `docs/designs/phase-variant-comparison.md` (R5, committed `42ae810`). 5-chapter planner-only A/B with directional G1-G4 gates.
   - **Status:** Slice 1 implementation landed; Codex review pass queued; first end-to-end probe run pending parity-fixture P0b completion.
 - **Character-arcs LTWN harness integration shipped.** First corpus-derived structural prior to land in the runtime pipeline. `src/agents/character-agent/schema.ts` adds 5 optional fields — `lie`, `truth`, `want`, `need`, `arc_resolution` (`z.enum(["fulfilled", "partial", "tragic_inversion", "static"])`) — to `characterProfileSchema`. Optional so legacy novels round-trip. `character-profile-system.md` documents the LTWN structure with examples + the corpus-derived distribution target (≥1 tragic_inversion, ≤50% fulfilled for a 5–8 character cast). `planning-plotter/context.ts` renders the LTWN block when populated; static or partially-populated characters render only the fields they have. Calibration evidence: Crystal Shard CELL PASS F1=1.00 on character identification + LTWN structure (2026-04-29, Phase A 2×2). Mapped via [`docs/structural-dims-to-harness-mapping.md`](structural-dims-to-harness-mapping.md). Tests pass (writer enriched-context unchanged), no typecheck regressions in changed files.
+
+## Current Session (2026-04-30)
+
+Corpus pattern mining session on the Salvatore Icewind Dale 3-book bundle. Branch: `phase-variant-screen`. Theme: closing the gap between the chat narration of subagent findings and the `docs/harness-tuning-roadmap.md` cross-pattern view, plus codifying the rules that prevent the gap from re-opening.
+
+- **Corpus mining maturity step-up.** `docs/harness-tuning-roadmap.md` now carries roadmap rows for ~30 measured patterns under the directional-gate methodology (PASS / DIVERGE / NEG / WATCH per row), each with cross-references to the JSON artifact under `novels/salvatore-icewind-dale/structure-calibration/` and the commit hash that landed it. Catch-up wave landed P22–P41 in commit `4ede0f4`; punctuation (P42) and dialogue tags (P48) added in `e225589`. Per-pattern data commits across the session: `351ec9d`, `d7df7cf`, `47ba480`, `670a1f1`, `c0ff3c7`, `86d4998`, `7e5de0f`. Six measurement subagents are in flight at session-pickup time (P49 chapter-opener / P50 chapter-closer / P51 scene-break cadence / P52 POV distribution / P53 sensory-mode density / P54 time-skip markers); their landings will append additional roadmap rows + conclusions sections once the orchestrator does the commit sweep.
+- **CLAUDE.md Rule 14 (capture lessons at moment of surprise)** committed in `d492d61`. Codifies same-commit `docs/lessons-learned.md` entry whenever a session produces a methodology surprise, calibration finding, or process correction. Trigger surface enumerated in CLAUDE.md (low-prevalence multi-axis verdict, calibration pass/fail, methodology hop, > 10-min tool gotcha, "we already had this lesson somewhere" moment).
+- **CLAUDE.md Rule 15 (findings must land in tracked docs, not just chat)** committed in `11a8178`. Per-finding cadence — when 5+ subagents land in parallel, each landing produces a roadmap row in the same or immediate-follow-up commit, not an end-of-session batch. Distinct from Rule 14: Rule 14 captures *generalized rules*, Rule 15 captures *specific findings*. Both are structural, not aspirational — chat is the most ephemeral persistence layer in the system.
+- **Schema-prompt sync fix landed (commit `0c8457d`).** `src/agents/planning-beats/beat-expansion-system.md` now matches the production `sceneBeatSchema` enums after an LXC probe surfaced the planner emitting invalid `miceActive=['E','C']` against the new `MICE_ACTIVE_THREADS=["I"]` / `MICE_OPENS_THREADS=["M","I"]` constraints. Class-of-bug pattern: when a schema field constraint is tightened in a `feat`-class commit, the corresponding agent prompt must be synced in the same commit (or a same-day follow-up) — otherwise the next pipeline run validates against the new schema with the old prompt and emits structurally invalid output.
+- **Lessons-learned wave** appended this session (already committed):
+  - **Cross-model F1 ≠ anchor stability** (`97190b2`) — they measure different things; both gates must pass before a dim ships.
+  - **Granularity rotation** (`cd4347a`) — fields validated at scene-level can degrade at beat-level (or vice versa); confirm at the production-emit granularity.
+  - **Binary-collapse-before-relabel** (`b061779`, `c48a232`) — cheapest counterfactual on a FAILED gold-stability check is data-only re-aggregation; relabel only if collapse fails.
+  - **Aggregate-only patterns can survive while per-book patterns fail** (`ad33e98`) — for cross-book/cross-corpus claims, gate per-book, not on aggregate.
+  - **Parallel subagents on append-only docs need atomic write-then-rename** (`474585b`, `7e5de0f`, `11cafad`, `37f297f`) — the naive read→edit→add→commit pattern doesn't survive concurrency on shared narrative docs; the operational fix is per-pattern conclusions stubs gathered later.
+  - **Findings narrated in chat die without crossing into tracked documentation** (`c0ff3c7`) — Rule 15's structural justification.
+  - **Small-sample anchor Jaccard is a screening tool, not a ship gate** (`d492d61`) — n=50 gives false confidence on rare-event subfields; full-population validation is the load-bearing check.
+  - **Hand-spot LLM probe verdicts on low-prevalence multi-axis dimensions** (`d492d61`) — Pattern 26 false-negative finding (DeepSeek 2.5% vs Sonnet 10.1% on compositional title axis) is the cite.
+- **Three-layer architecture status (no shift this session).** Planning layer: corpus-mining is producing the structural priors that will eventually condition planner prompts; nothing has been promoted into a planner prior this session pending cross-book validation. Writing layer: still routing fantasy seeds to Salvatore v4 LoRA via `WRITER_GENRE_PACKS`, non-fantasy to DeepSeek V4 Flash; LoRA-track frozen per the 2026-04-21 pivot. Checker layer: no checker changes this session.
+- **Planner status — phase-eval probe instrument matured.** `phase-variant-screen` branch carries the SCREEN-PASS verdict on the `loud` planning-beats variant against `fantasy-system-heretic` (Slice 1 end-to-end, retrospective at `docs/sessions/2026-04-29-phase-eval-probe.md`, Codex review integrated in `28c2e57`). LXC probe of the corpus-v1 plotter variant came in mixed (Pattern 1 PASS — targetWords + beat-floor lift; Pattern 3a opener stable; Pattern 3b closer REGRESSED — 0/3 vs 2/3 action; Pattern 16 facts density dropped on n=3, unstable). Two follow-ups queued: revise the plotter's closer-kind guidance to fix the P3b regression before re-probing; re-measure P16 facts density on a 5-chapter sample.
 
 ## Current Known Gaps
 

@@ -7,6 +7,36 @@ updated: 2026-04-30
 
 Pending action items only. Ordered by impact. Completed items and decision rationale live in `docs/decisions.md`.
 
+## Current Priorities (2026-04-30)
+
+### Corpus pattern mining — in flight at session pickup
+
+Six measurement subagents are running at session pickup time, each writing to `docs/harness-tuning-roadmap.md`, `novels/salvatore-icewind-dale/structure-calibration/crystal_shard-conclusions.md`, and `scripts/structure-calibration/*.{ts,py}`. Orchestrator handles the commit sweep when each subagent completes. Do NOT touch those three files manually until the sweep finishes.
+
+- [ ] **P49 — chapter-opener hook taxonomy** (in flight). Categorizes Salvatore chapter-1-paragraph hook strategies; output goes to roadmap + conclusions.
+- [ ] **P50 — chapter-closer hook taxonomy** (in flight). Same shape for chapter-final-paragraph close strategies.
+- [ ] **P51 — scene-break density + within-chapter cadence** (in flight). Quantifies `* * *`-equivalent scene-break frequency per book + intra-chapter spacing.
+- [ ] **P52 — POV distribution per book** (in flight). POV-character occupancy distribution; cross-book comparison gates whether POV rotation is corpus-uniform or book-specific.
+- [ ] **P53 — sensory mode distribution per kind** (in flight). Sensory-channel proportions (visual / auditory / kinesthetic / olfactory / gustatory) cross-tabulated against beat kind.
+- [ ] **P54 — time-skip / temporal-leap markers** (in flight). Frequency + linguistic markers of intra-chapter temporal jumps.
+
+### Next-decision items (post-P49-54 commit sweep)
+
+- [ ] **Decide bundle-PASS-stack-into-v2 vs single-lever variant.** After P49-54 returns and the roadmap shows the full ~36-pattern view, decide whether the next probe variant bundles all PASS-class patterns into a single v2 plotter prompt edit (broader-coverage but more variables) vs ships the strongest single lever as its own variant arm (narrower causal signal). Trade-off depends on the count of PASS-class non-`watched` patterns and the per-book stability of the strongest candidates.
+- [ ] **Fix P3b plotter regression before re-probe.** LXC probe of the corpus-v1 plotter variant showed Pattern 3b (chapter closer kind) REGRESSED to 0/3 action vs 2/3 action in the default — the variant prompt's closer-kind guidance is producing the opposite of the corpus distribution. Revise the closer-kind guidance in the plotter variant prompt and re-probe before bundling any PASS-class patterns into v2.
+- [ ] **Generalize `print-screen-verdict.ts` for arbitrary variant pairs.** Currently hard-codes the planning-beats default-vs-loud variant pair. Generalize to take `--control` + `--test` flags so the same verdict computer drives any phase-eval probe variant pair, not just planning-beats. Pure scripting work; no schema or transport touches.
+- [ ] **Soften beats variant from rank-ordered to set-based.** Per the directional re-score conclusion: the rank-ordered version of the beats variant prompt over-constrains the planner; convert the prompt to a set-based formulation (the planner picks N beats from a set, ordering decided downstream). Bounded prompt edit; re-runs through the existing phase-eval probe instrument.
+- [ ] **Re-measure P16 facts density on 5+ chapters.** LXC probe at n=3 chapters showed facts density dropped (median 4 vs 6 default) on the corpus-v1 plotter variant, but n=3 is below the noise floor — the median can flip on a single chapter. Re-run on ≥5 chapters before treating P16 as a regression vs noise.
+
+### Rules added this session
+
+- [x] **CLAUDE.md Rule 14 — capture lessons learned at the moment of methodology surprise** — committed `d492d61`. Trigger surface enumerated in CLAUDE.md.
+- [x] **CLAUDE.md Rule 15 — findings must land in tracked documentation, not just chat** — committed `11a8178`. Per-finding cadence, not session-end batch.
+
+### Schema-prompt sync fix
+
+- [x] **`beat-expansion-system.md` synced to schema** — committed `0c8457d`. Production `MICE_ACTIVE_THREADS=["I"]` + `MICE_OPENS_THREADS=["M","I"]` enums now match the planner prompt; LXC probe had emitted invalid `miceActive=['E','C']` before the fix.
+
 ## Current Priorities (2026-04-29)
 
 ### Phase-eval probe scaffold + parity fixture P0b — COMPLETED
