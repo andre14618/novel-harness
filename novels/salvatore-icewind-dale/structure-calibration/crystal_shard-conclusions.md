@@ -1696,3 +1696,145 @@ Updated schema decisions (schema follow-up #3):
 - `/tmp/sonnet-tier2/value-charge/beat-v2-run{1,2}.jsonl` — value-charge v2 beat-level outputs
 
 ---
+
+## Session 2026-04-30 ~02:05 UTC — chapter-level repeatable patterns (no new LLM calls)
+
+### Headline
+
+The corpus splitting (5-stage pipeline, doc'd at `docs/corpus-pipeline.md`) produced a hierarchy that's already queryable: **chapter (37) → scene (139) → beat (858) → pair (858)** for Crystal Shard alone, with `chapter` / `scene_id` / `beat_idx` fields on every record. We've been operating at scene+beat granularity; chapter-level patterns are extractable from the same data with no new LLM calls. **Result: 7 distinct chapter-level repeatable patterns identified, each suitable as a planner-skeleton soft prior.**
+
+### Method
+
+- Pure aggregation from `beats.jsonl` (858 beats with `kind` / `boundary_signal` / `chapter` fields) and from existing Flash mice extractor outputs (`structure/crystal_shard/mice.jsonl`, 139 scenes — monolithic rubric so individual scene tags are approximate, but aggregate chapter rhythms are still informative).
+- No new LLM calls. Pure data analysis.
+
+### Pattern 1 — chapter length distribution
+
+| Stat | Words | Beats |
+|---|---:|---:|
+| min | 394 | 4 |
+| p20 | 1,540 | — |
+| **median** | **2,534** | **24** |
+| mean | 2,647 | 25.2 |
+| p80 | 3,363 | — |
+| max | 8,113 | 79 |
+
+**Implication for planner:** the current plotter target is `targetWords: 800-1500 for short stories, 1500-3000 for longer novels` — Salvatore's median (2534) sits at the top end of "longer novels." For action-fantasy seeds, the chapter target should default to ~2500w. The beat-count floor `ceil(targetWords / 150)` gives 17 for 2500w; Salvatore averages 24-25 (≈40% above floor). The floor is correct as a *minimum*, but the planner should expect and emit closer to `targetWords / 100`.
+
+### Pattern 2 — beat kind distribution (overall)
+
+action 35.9%, dialogue 28.2%, interiority 20.6%, description 15.2%, other 0.1%
+
+Action-heavy as expected for the genre. Description is the smallest kind by ~50%.
+
+### Pattern 3 — chapter opener / closer kinds
+
+| Position | description | action | dialogue | interiority |
+|---|---:|---:|---:|---:|
+| **First beat** (opener) | **50%** | 26% | 9% | 15% |
+| **Last beat** (closer) | **3%** | 41% | 21% | 35% |
+
+**Half of Salvatore's chapters open with description.** Almost no chapters close on description (1/34 = 3%). The planner's existing "Open with action or description; close with action or interiority; NEVER close with pure description" rule is empirically validated by the corpus.
+
+Most common open→close kind pairs (top 4):
+1. description→action: 7 chapters
+2. description→interiority: 6 chapters
+3. action→action: 4 chapters
+4. action→interiority: 4 chapters
+
+### Pattern 4 — within-chapter position effects (kind clusters)
+
+Beat positions normalized to [0,1] and binned into 5 quintiles:
+
+| Position | action | dialogue | interiority | description |
+|---|---:|---:|---:|---:|
+| q0 (open) | 35% | 18% | 23% | **25%** |
+| q1 | 38% | 27% | 22% | 13% |
+| q2 (mid) | 28% | **38%** | 16% | 18% |
+| q3 | 38% | 30% | 20% | 12% |
+| q4 (close) | 40% | 30% | 22% | **9%** |
+
+- **Description front-loads:** 25% at q0 → 9% at q4 (3× drop).
+- **Dialogue mid-peaks:** 18% at q0 → 38% at q2 → 30% later. Dialogue does its work in the middle, not the open.
+- **Action stays steady** (~35-40%) across all positions.
+- **Interiority stays flat** (~20-22%).
+
+This rhythm suggests a chapter shape: **descriptive setup → dialogue-driven development → action/interiority climax**.
+
+### Pattern 5 — chapter-level mice thread (Flash extractor, 139 scenes)
+
+| Position | M | I | C | E |
+|---|---:|---:|---:|---:|
+| Chapter opener (first scene) | 21% | **12%** | 32% | **35%** |
+| Chapter closer (last scene) | 15% | **0%** | **47%** | 38% |
+| Chapter dominant thread | 12% | 6% | **44%** | **38%** |
+
+Top open→close thread transitions:
+- C→C: 7 chapters (character-arc-only)
+- E→E: 7 chapters (event-arc-only)
+- M→C: 4 (arrive at place → character moves)
+- C→E: 4 (character setup → event resolution)
+- E→C: 3 (event causes character work)
+
+**41% of chapters are single-thread (same open and close).** I-thread (inquiry / mystery) is rare — 6% dominant, 12% openers, never closer. Salvatore's chapters end on character or event resolution, not mystery. (For Dresden / mystery genre this would invert.)
+
+### Pattern 6 — opens/closes per chapter
+
+- **Mean opens per chapter:** 2.44
+- **Mean closes per chapter:** 1.00
+- **Chapters with both opens and closes:** 19/34 = 56%
+- **Chapters with only opens (setup):** 12/34 = 35%
+- **Chapters with only closes (resolution):** 2/34 = 6%
+- **Chapters with neither (pure progression):** 1/34 = 3%
+
+**Threads accumulate across chapters; closes happen at book end.** Each chapter typically introduces 2-3 new structural commitments and resolves only one. The narrative builds tension through accumulated open threads.
+
+### Pattern 7 — beat boundary signals (segmenter vocabulary)
+
+The segmenter that produced beats.jsonl uses these signals to mark beat boundaries (most common first):
+
+| Signal | % of beats |
+|---:|---:|
+| `pov_attention_shift` | 22.0% |
+| `stakes_recalibration` | 16.8% |
+| `scene_start` | 16.2% |
+| `action_shift` | 14.5% |
+| `speaker_change` | 12.6% |
+| `narration_to_dialogue` | 11.1% |
+| `dialogue_to_narration` | 4.9% |
+| `sensory_channel_change` | 1.9% |
+| `interiority` | 0.1% |
+
+**POV attention shifts and stakes recalibrations are the dominant beat boundaries** (39% combined), followed by scene boundaries and action/speaker pivots (43% combined). This is corpus-derived vocabulary for the beat segmenter — useful as a soft prior for what kinds of transitions justify a new beat.
+
+### Where these priors GO in the planner
+
+- **Plotter (`chapter-outline-system.md` for the chapter-skeleton phase):** add genre-aware `targetWords` defaults (action-fantasy ≈ 2500w median), document chapter mice rhythm priors (opener thread distribution, single-thread vs multi-thread chapters).
+- **Beat-expansion (`beat-expansion-system.md` already has structural guidance):** add within-chapter position effects, opener/closer kind distributions, beat-count guidance per genre.
+- **Schema (`sceneBeatSchema`):** no changes from this analysis — chapter-level patterns are aggregate priors for the planner's reasoning, not per-beat tags. Validating them as schema fields would require n≥50 chapters; we have 34.
+
+### Anchor-stability caveat
+
+Chapter-level mice patterns come from the Flash monolithic-rubric extractor (anchor Jaccard ≈0.667 at scene level). Individual chapter labels are approximate. **Aggregate distributions over 34 chapters are still informative** because Sonnet's instability is on borderline scenes and washes out at the chapter-rollup granularity (the dominant thread of a 5-scene chapter is robust to one mis-tagged scene). We're using the labels as a population statistic, not per-chapter ground truth.
+
+### What the harness can do with these patterns *repeatedly*
+
+The point of finding patterns is using them on new books. Same-pipeline drop-in works for any novel that's been through the 5-stage corpus pipeline. So:
+
+1. **Run the same chapter-level analysis on Streams of Silver** (76 scenes, ~24 chapters) — does the same chapter rhythm appear? If so, it's an action-fantasy pattern, not a Crystal-Shard quirk.
+2. **Run on Halfling's Gem** (137 scenes) — same test.
+3. **Run on Dresden Files (Storm Front)** — does the rhythm differ for urban-fantasy / mystery? Probably yes — I-thread should dominate, opener/closer threads should rotate.
+4. **Build a `genre-priors.json` per genre** that the planner reads at chapter-skeleton time. Each genre gets its own corpus-derived rhythm.
+
+This is the path to repeatable, multi-corpus-derived planning.
+
+### Cost ledger delta
+
+Zero new LLM calls. Pure aggregate analysis on existing data.
+
+### Artifacts
+
+- `crystal_shard.20260430T020359.chapter-level-structural.json` — beat-kind, length, position effects
+- `crystal_shard.20260430T020545.chapter-mice-rollup.json` — chapter mice rhythm
+
+---
