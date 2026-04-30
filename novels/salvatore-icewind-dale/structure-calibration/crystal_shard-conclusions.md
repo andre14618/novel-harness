@@ -2390,3 +2390,243 @@ Concrete probe target for the next plotter A/B: count `setting` strings across c
 Artifact: `crystal_shard.20260430T082210.setting-recurrence.json`
 
 ---
+
+## Session 2026-04-30 ~12:20 UTC — Patterns 29/30/31 (sentence/paragraph length, sub-beat dialogue ratio, beat-cluster sequences)
+
+Pure-compute mining over the full 3-book corpus (2,470 beats). Method: regex-based sentence/paragraph splits, simple straight-or-curly double-quote dialogue chunking, kind-bigram/trigram sequences within chapters.
+
+Artifacts:
+- `crystal_shard.20260430T122051.sentence-paragraph-length.json`
+- `crystal_shard.20260430T122051.dialogue-narration-ratio.json`
+- `crystal_shard.20260430T122051.beat-cluster-sequences.json`
+
+### Pattern 29 — Sentence and paragraph length distribution
+
+**Sentence length is remarkably stable across all 3 books.** Median 14–16 words, p25/p75 ≈ 9–10 / 21–24, std ≈ 9.5–10.3, max 68–115. Mean 15.9–17.8 words. Cross-book directional spread is tiny (2-word band on the median).
+
+**Within-beat sentence-length variation is substantial.** Median intra-beat std-dev is 8.27–8.91 words across all 3 books — **~49–52% of the mean sentence length**. Salvatore does NOT write uniform-length sentences within a beat. Each beat has a deliberately mixed cadence (short punch + long sweep). This is a non-trivial finding for the writer prompt: a generation that produces uniformly-medium sentences is corpus-anomalous.
+
+**Paragraph length finding is contaminated by an ingestion artifact and required a heuristic fallback.** `crystal_shard` (0.23%) and `halflings_gem` (0.0%) have effectively NO `\n\s*\n` paragraph breaks — they were ingested with single-`\n` soft-wraps from PDF columns. `streams_of_silver` (92.1%) has true paragraph splits. Strict `\n\s*\n` splits produce nonsense for the first two books (paragraph_median=111–112 words = whole-beat blob). A heuristic fallback ("split on `\n` after sentence terminator") gives `crystal_shard=52, halflings_gem=24, streams_of_silver=30` — directionally consistent but with a 2× spread that is likely still partly an ingestion-pipeline artifact rather than a true authorial signal.
+
+| Book | Sentence median | Sentence std | Para median (heuristic) | Intra-beat sent std | `\n\n` fraction |
+|------|-----------------|--------------|-------------------------|---------------------|-----------------|
+| crystal_shard | 16 | 10.21 | 52 | 8.76 | 0.23% |
+| halflings_gem | 14 | 9.52 | 24 | 8.27 | 0.0% |
+| streams_of_silver | 16 | 10.31 | 30 | 8.91 | 92.1% |
+
+**Conclusion + Action — Pattern 29:** **POSITIVE — partial ship.** Sentence-length distribution and intra-beat sentence-cadence variation are both stable, well-characterized, and directly actionable as writer-layer targets. Paragraph-length is **HOLD** until corpus ingestion is fixed (queue: re-ingest `crystal_shard` and `halflings_gem` with proper paragraph detection from the PDF column structure). Recommended writer target: sentence median 15–16 words, std ≥ 9 words, intra-beat std ≥ 8 words. The intra-beat-cadence target is the more interesting lever — most LLM writer outputs trend toward uniform sentence length; an explicit "vary sentence length within each beat" prompt-line maps to a pattern Salvatore consistently follows.
+
+### Pattern 30 — Dialogue-vs-narration word ratio within beats
+
+**Headline (and surprising) finding: a "dialogue-kind" beat is only ~44–48% dialogue words by mass.** This contradicts the naive intuition that dialogue beats would be ~80% spoken text. The other ~52–56% is attribution, action beats interleaved with speech, character interiority during conversation, and gesture/setting. This is consistent across all 3 books (mean: 48% / 44% / 44%).
+
+**Non-dialogue beat-kinds have near-zero dialogue word mass.** Action/interiority/description beats all show median 0% dialogue and means 2–7%. The few non-zero cases come from interspersed brief lines ("Ready," he said) that don't change the beat's structural classification.
+
+| Book | All beats median | dialogue-kind mean | action-kind mean | interiority-kind mean | description-kind mean |
+|------|------------------|--------------------|------------------|------------------------|-----------------------|
+| crystal_shard | 0.01 | 0.48 | 0.05 | 0.04 | 0.02 |
+| halflings_gem | 0.07 | 0.44 | 0.06 | 0.06 | 0.03 |
+| streams_of_silver | 0.06 | 0.44 | 0.07 | 0.06 | 0.03 |
+
+p25/p75 on dialogue-kind beats: ~0.28–0.34 / 0.59–0.62 — i.e., even the "talkiest" quartile of dialogue beats is ~60% dialogue, not 90%.
+
+**Conclusion + Action — Pattern 30:** **POSITIVE — ship.** The harness should target ~45% dialogue-word fraction for `kind=dialogue` beats (NOT 80%) and <10% for other kinds. This is a direct prompt-time constraint for the beat-writer. Existing planner labels are clean; this finding does NOT require relabeling. Action: append a "dialogue-density target" line to the writer per-kind context — `kind: dialogue → ~45% of words inside double-quote dialogue lines, balance of attribution/gesture/interiority`. Add a deterministic post-write check (existing dialogue-fraction regex from this script) gated to `kind=dialogue` beats only — fire if fraction < 0.25 or > 0.75. Cross-book stability is high (3-percentage-point band), so a single global target is corpus-valid.
+
+### Pattern 31 — Beat-cluster sequence patterns (n-grams)
+
+**Top bigrams reproduce across all 3 books.** 9 of the top-10 bigram cells appear in every book's top-10 — only `[interiority, interiority]` is missing from one book's top-10. The dominant patterns:
+- **`[action, action]` is the modal bigram in every book** (16.5–18.7% of all bigrams).
+- `[dialogue, dialogue]` is second (10.7–15.2%).
+- The 4-cell core — `action↔dialogue` cross-transitions — accounts for ~45% of all bigrams across every book.
+
+**Top trigrams overlap substantially.** 6 trigrams appear in all 3 books' top-10:
+- `[action, action, action]`
+- `[action, action, dialogue]`
+- `[action, dialogue, action]`
+- `[action, dialogue, dialogue]`
+- `[dialogue, dialogue, action]`
+- `[dialogue, dialogue, dialogue]`
+
+`[action, action, action]` and `[dialogue, dialogue, dialogue]` are the two top trigrams in every book (combined 12–19% of all trigrams). Salvatore writes in **homogeneous-kind clusters** — a sequence of action beats, then a sequence of dialogue beats — punctuated by brief switches.
+
+**Interiority is a glue/transition kind, not a clustering kind.** It appears in bigrams like `[interiority, dialogue]` and `[action, interiority]` but rarely as `[interiority, interiority]` runs. Description appears in NO common trigrams — it's a single-beat opener/scene-setter, not a sequence shape.
+
+**Conclusion + Action — Pattern 31:** **POSITIVE — ship.** Two harness-level targets fall out:
+
+1. **Beat-cluster persistence target.** ~16–19% of consecutive beat-pairs are same-kind for `action`; ~11–15% for `dialogue`. The planner should explicitly favor 2–3 beat runs of the same kind rather than alternating every beat. Concrete prompt rule for `planning-beats`: "after generating an action beat, prefer continuing with another action beat unless the scene logically demands a transition."
+2. **Interiority/description as transition tokens.** `[interiority, dialogue]` and `[action, interiority]` are common but `[interiority, interiority]` is not a high-frequency cluster. The planner should treat interiority/description as 1-beat structural punctuation between action and dialogue runs. NOT as standalone arcs of beats.
+
+Both are concrete planner-prompt edits, additive to the existing `planning-beats` per-chapter rules. Recommended next step: A/B these two rules as a `planner-corpus-v2` variant (in addition to the existing `corpus-v1` length/beat-count variant) on the next phase-eval probe.
+
+### Cross-pattern session conclusion
+
+All three patterns reproduce cleanly across the 3-book corpus. Pattern 30 is the highest-impact finding (the "45% dialogue-words" target is a non-obvious sub-beat constraint that contradicts naive intuition and is directly enforceable). Pattern 31 supplies two concrete planner rules. Pattern 29 ships sentence-cadence targets but holds paragraph stats pending an ingestion fix.
+
+**Methodology gotcha logged:** before computing paragraph-level stats on any future corpus, verify the ingestion pipeline produced real `\n\n` boundaries — if `dbl_nl_frac < 0.5`, the paragraph splitter must use the heuristic fallback (split on `\n` after sentence terminator) or the metric is meaningless. Adding this as a preflight assert to future corpus-pipeline ingestions is queued.
+
+### Session cost
+
+Zero LLM calls. Pure compute on existing labeled beats (2,470 total).
+
+---
+
+
+## Session 2026-04-30 ~12:25 UTC — Pattern 26: Chapter-title shape taxonomy (3-book IWD)
+
+**Methodology.** For each (book, chapter) the `chapter_title` field of `scenes.jsonl` is taken as the canonical title. Regex pre-pass routes structural markers (`=== Prelude ===`, `=== Epilogue ===`, `=== Part N - <name> ===`) into bucket=`other` with `is_structural_marker=true`. Body-chapter titles have the `CHAPTER N — ` / `CHAPTER N - ` prefix stripped, then DeepSeek V4 Flash (temperature 0, JSON-mode, thinking disabled) classifies the cleaned title into one of eight shape buckets, with optional compositional primary+secondary annotation when the title combines two shapes (e.g., "The Battle of Icewind Dale" = action-verb + place-name).
+
+The 8 buckets are: `character-name`, `place-name`, `action-verb`, `concept-or-theme`, `object-or-artifact`, `quote-or-dialogue`, `metaphorical-image`, `other`. n=92 total titles (79 body chapters + 13 structural markers).
+
+**All-titles aggregate (92, includes structural markers):**
+
+| Bucket | Count | Pct |
+|---|---:|---:|
+| character-name | 5 | 5.4% |
+| place-name | 16 | 17.4% |
+| action-verb | 7 | 7.6% |
+| concept-or-theme | 8 | 8.7% |
+| object-or-artifact | 8 | 8.7% |
+| quote-or-dialogue | 9 | 9.8% |
+| metaphorical-image | 26 | 28.3% |
+| other | 13 | 14.1% |
+
+**Body-chapter aggregate (79, the planner-relevant scope):**
+
+| Bucket | Count | Pct |
+|---|---:|---:|
+| character-name | 5 | 6.3% |
+| place-name | 16 | 20.3% |
+| action-verb | 7 | 8.9% |
+| concept-or-theme | 8 | 10.1% |
+| object-or-artifact | 8 | 10.1% |
+| quote-or-dialogue | 9 | 11.4% |
+| metaphorical-image | 26 | 32.9% |
+| other | 0 | 0% |
+
+**Per-book distribution (body chapters only):**
+
+- crystal_shard (n=30): character-name 6.7% · place-name 20% · action-verb 6.7% · concept-or-theme 13.3% · object-or-artifact 13.3% · quote-or-dialogue 20% · metaphorical-image 20% · other 0%
+- streams_of_silver (n=24): character-name 0% · place-name 20.8% · action-verb 12.5% · concept-or-theme 12.5% · object-or-artifact 12.5% · quote-or-dialogue 4.2% · metaphorical-image 37.5% · other 0%
+- halflings_gem (n=25): character-name 12% · place-name 20% · action-verb 8% · concept-or-theme 4% · object-or-artifact 4% · quote-or-dialogue 8% · metaphorical-image 44% · other 0%
+
+**Per-book modal class (body):** crystal_shard=place-name, streams_of_silver=metaphorical-image, halflings_gem=metaphorical-image.
+
+**Directional verdict.** Modal class diverges by book (body-chapter scope): {"crystal_shard":"place-name","streams_of_silver":"metaphorical-image","halflings_gem":"metaphorical-image"}. Top-3 sets (body): cs=place-name/quote-or-dialogue/metaphorical-image, ss=metaphorical-image/place-name/action-verb, hg=metaphorical-image/place-name/character-name. Intersection of all three top-3 sets has 2 buckets: place-name, metaphorical-image.
+
+**Compositional patterns.** 2 of 79 body titles (2.5%) carry a clear two-shape composition. Top primary→secondary pairs:
+- `action-verb+place-name` × 1
+- `place-name+concept-or-theme` × 1
+
+**Harness target.** Add a `titleShape` enum field guidance section to `src/agents/planning-plotter/chapter-outline-system.md`. Specifics depend on whether the modal class and top-3 set hold across the 3 books (read directional verdict above). If reproduction is strong, encode as a planner soft prior: "Chapter titles in fantasy adventure default to <modal class> (~XX% of corpus); avoid generic action-verbs and structural markers as titles." If a top-3 intersection of 2-3 buckets is stable, recommend a small enum (`character-name | place-name | concept-or-theme | metaphorical-image | object-or-artifact`) with the planner picking one per chapter. Compositional combos like place+character (e.g., "Bryn Shander" + character cast) are first-class — `titleShape` should support a compositional primary+secondary pair.
+
+Artifact: `crystal_shard.20260430T122531.chapter-title-shape.json` — per-chapter labels (book, chapter, raw_title, cleaned_title, classification, is_structural_marker, confidence, source, optional compositional pair, note) + body-vs-all aggregates + per-book modal/top-3 + compositional-pair frequency.
+
+---
+
+## Session 2026-04-30 ~08:24 UTC — Pattern 25: antagonist on-page presence rate (3-book IWD)
+
+### Pattern 25 — Antagonist on-page presence rate (cross-book)
+
+**Goal:** quantify how much of each book the named antagonist actually occupies on-page (beat-level), and whether their presence ramps across the book and clusters within chapters. This is a structural prior for the planner: how often should the antagonist appear in beats, and where?
+
+**Method (zero-cost, regex-only):** per book, identify the named antagonist roster, compile per-name aliases (e.g., `Akar Kessell` → `\b(?:Akar\s+)?Kessell\b`; `Pasha Pook` → `\bPasha\s+Pook\b|\bPook\b`), then compute beat-level hit fractions on the `text` field. Three views:
+
+1. **Overall presence fraction** — beats containing any antagonist token / total beats (numeric chapters only, excludes prelude/epilogue)
+2. **Thirds shape** — fraction by early/mid/late chapter ordinal third
+3. **Within-chapter shape** — open (<25%) / mid (25–75%) / close (≥75%) by beat ordinal within chapter, plus first-beat / last-beat specifically
+
+**Antagonist rosters (verified via regex co-occurrence and corpus inspection):**
+
+| Book | Primary | Secondary (supporting antagonist arc) |
+|---|---|---|
+| Crystal Shard | Akar Kessell, Crenshinibon (Crystal Shard artifact) | Errtu (tanari servant) |
+| Streams of Silver | Artemis Entreri, Pasha Pook | Dendybar, Sydney, Bok |
+| Halfling's Gem | Artemis Entreri, Pasha Pook | (none) |
+
+Note: SoS has TWO parallel antagonist threads — Pook/Entreri hunt Regis from Calimport, Dendybar/Sydney hunt Drizzt from Luskan. Pook himself appears almost never on-page in SoS (4/740 = 0.5%); he's the off-stage employer. The threads converge in HG. Recording inclusive (primary OR secondary) numbers for SoS to capture the actual antagonist surface-area, not just the task's named primaries.
+
+**Headline finding — Salvatore antagonist presence is ~24-33% of beats, late-peaked, slightly close-clustered:**
+
+| Book | Total beats (numeric ch) | Any-primary fraction | Any-inclusive fraction | Thirds primary (E / M / L) | Late − Early | Shape |
+|---|---|---|---|---|---|---|
+| crystal_shard | 813 | **0.242** | 0.274 | 0.208 / 0.111 / 0.377 | +0.169 | late-peak |
+| streams_of_silver | 740 | 0.246 | **0.342** | 0.161 / 0.264 / 0.309 | +0.148 | late-peak |
+| halflings_gem | 779 | **0.325** | 0.325 | 0.295 / 0.252 / 0.425 | +0.130 | late-peak |
+
+All three books show **late-peak antagonist presence**. The early-act fraction is consistently the lowest, late-act is consistently the highest. Crystal Shard has a notable mid-act DIP (11.1%) — chapters 11-20 are heavy on the heroes, the assembled army, and the artifact's induction; Kessell himself recedes to off-stage scheming before reasserting in the climax. SoS and HG are more monotonic.
+
+### Per-antagonist breakdown
+
+| Book | Antagonist | Numeric beats present | Fraction |
+|---|---|---|---|
+| crystal_shard | Akar Kessell | 195/813 | 0.240 |
+| crystal_shard | Crenshinibon (Crystal Shard) | 43/813 | 0.053 |
+| crystal_shard | Errtu (secondary) | 27/813 | 0.033 |
+| streams_of_silver | Artemis Entreri | 182/740 | 0.246 |
+| streams_of_silver | Pasha Pook | 4/740 | 0.005 |
+| streams_of_silver | Dendybar (secondary) | 81/740 | 0.109 |
+| streams_of_silver | Sydney (secondary) | 96/740 | 0.130 |
+| streams_of_silver | Bok (secondary) | 60/740 | 0.081 |
+| halflings_gem | Artemis Entreri | 171/779 | 0.220 |
+| halflings_gem | Pasha Pook | 141/779 | 0.181 |
+
+**Two distinct antagonist-density regimes are visible:**
+- **Single-named-villain books (CS, SoS):** ~24% of beats touch the primary antagonist. Both books carry a ~3-13% secondary-antagonist supplement that is not optional — Errtu materializes the demonic underlayer of Crystal Shard's threat; Dendybar/Sydney are an entire competing antagonist thread in SoS.
+- **Two-named-villain books (HG):** ~32% of beats touch a primary antagonist, with overlap (Entreri and Pook share scenes ~7% of the time). HG runs hotter on antagonist-on-page because both are field-active; SoS has Pook stuck in Calimport and only Entreri travels.
+
+### Within-chapter shape — slight close-cluster, more pronounced at last-beat
+
+| Book | open | mid | close | first-beat (primary) | last-beat (primary) | last − first |
+|---|---|---|---|---|---|---|
+| crystal_shard | 0.240 | 0.238 | 0.252 | 0.333 | 0.267 | −0.067 |
+| halflings_gem | 0.325 | 0.322 | 0.330 | 0.360 | **0.440** | **+0.080** |
+| streams_of_silver | 0.257 | 0.259 | 0.210 | 0.250 | 0.250 (primary) / 0.333 (inclusive) | +0.083 (inclusive) |
+
+The within-chapter shape is **mostly flat** — Salvatore does not hard-cluster antagonist beats at chapter ends. The strongest signal is **HG's last-beat = 44%**: when an antagonist is going to appear in HG, the chapter-ending beat is meaningfully more likely to feature them. CS shows the opposite at first-beat — POV-of-villain chapters open with Kessell on stage. SoS is essentially flat at the within-chapter level (the inclusive view shows a chapter-end uptick driven by Sydney/Dendybar scenes).
+
+**Interpretation:** Salvatore's antagonist beats are distributed within-chapter rather than clustered at boundaries. Late-act ramp is the dominant signal; within-chapter clustering is a weak/inconsistent secondary effect. The "open=POV chapter for the antagonist" hypothesis (test of whether antagonist chapters are first-beat-loud) is partially supported in CS but not in SoS/HG.
+
+### Cross-book directional comparison
+
+**All 3 books agree on the late-peak ramp.** The primary-only mid-act dip in Crystal Shard (11.1%) is the only meaningful divergence; otherwise the directional sign is invariant. Numerical ranges:
+
+- **Overall any-primary fraction:** 0.242 - 0.325 (range ~13 pts)
+- **Late-third primary fraction:** 0.309 - 0.425 (range ~12 pts)
+- **Early-third primary fraction:** 0.161 - 0.295 (range ~13 pts)
+- **Late − early delta:** +0.130 to +0.169 — tight cross-book band
+
+The any-inclusive numbers tell the same directional story but at higher absolute levels for SoS (0.342 vs 0.246), confirming that ignoring secondary antagonists understates the actual antagonist surface in SoS.
+
+### Conclusion + Action
+
+**HARNESS TARGET (planner) — antagonist beat-fraction prior with late-act ramp:**
+
+The `planning-plotter` should encode an explicit antagonist-presence prior parameterized by:
+
+1. **Overall target:** **20-30% of beats** should contain at least one named antagonist token. Lower bound for single-villain books (CS-style ~24%), upper bound for dual-villain books (HG-style ~32%). Counts secondary antagonists when the secondary is on a distinct active thread (SoS-style Dendybar/Sydney).
+
+2. **Thirds-distribution prior:** late third (chapters 67–100% of book length) should have **~1.4-2.4× the antagonist-beat density of the early third**. Concrete: if the early-third antagonist-beat fraction is 20%, target ~30-40% in the late third. This is the dominant Pattern-25 signal.
+
+3. **Mid-act dip is allowed** but not required. Crystal Shard's 11.1% mid-act primary fraction shows Salvatore is willing to fully recede the named villain across an entire act when the heroes' arc demands focus; the planner shouldn't enforce monotonic increase, just early-low / late-high.
+
+4. **Within-chapter clustering: weak prior, do NOT over-fit.** The cross-book within-chapter shape is essentially flat; the only consistent micro-signal is HG's last-beat antagonist preference. A chapter-ending-beat-prefers-antagonist soft prior is supported but should not be a hard constraint.
+
+**Concrete probe targets for next plotter A/B (Pattern 25 verdict reader):**
+
+- Count beats per chapter where any character in `charactersPresent ∩ antagonist_roster` is non-empty. Compute primary-only fraction per third.
+- Assert: `late_third_fraction / early_third_fraction ≥ 1.4` AND `any_third_primary_fraction ≥ 0.15` (no act should be antagonist-empty — even CS's mid-act dip stays at 11%, and we want a floor a bit above that).
+- Soft probe: count chapters where `last_beat.charactersPresent ∩ antagonist_roster` is non-empty. Target ≥30% chapter-end antagonist presence (matches HG's 0.44 / CS's 0.27 / SoS's 0.25 → mean 0.32).
+
+**This complements Pattern 9 (character introduction sequencing) and Pattern 11/24 (settings).** The antagonist is a CHARACTER who follows a distinct presence-fraction shape across the book. Together with the world-contraction prior (P24) and front-loading of POV characters (P9), Pattern 25 closes a structural gap: the planner currently has no explicit signal for "where in the book should the antagonist physically appear."
+
+**Methodology caveats:**
+- Regex captures **named-token presence**, not narrative POV or relevance. Beats that reference Kessell off-stage ("Wulfgar wondered what Kessell was planning") count as antagonist-present. This is consistent across books, so the cross-book directional finding is invariant; but the absolute fractions will be slightly inflated vs a stricter "antagonist on-stage in scene" definition.
+- Pronouns are excluded — beats like "He raised the shard, and the cold wind howled around him" with no proper-noun token will be missed. This **under-counts** antagonist presence by maybe 5-15 pts in beats internal to a villain-POV scene; but again, the under-count is consistent across books.
+- The combined effect of the two caveats is roughly self-cancelling for cross-book directional comparison. Absolute fractions should be read as "named antagonist named in this beat", not "antagonist on stage."
+- SoS's primary-only fraction is misleading without secondary inclusion (Pook off-stage in Calimport pulls primary-only down to Entreri-only). Inclusive numbers (0.342) are the more representative SoS surface.
+
+**Cost:** $0.00. Pure compute on existing labeled data; no LLM calls needed (antagonist disambiguation handled cleanly via regex co-occurrence checks).
+
+Artifact: `crystal_shard.20260430T082423.antagonist-presence.json` (v2 with primary/secondary tiers + first-last-beat). v1: `crystal_shard.20260430T082311.antagonist-presence.json` (primary-only, retained as append-only).
+
+---

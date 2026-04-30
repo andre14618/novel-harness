@@ -1,0 +1,635 @@
+{
+  "pattern": "31",
+  "name": "Beat-cluster sequence patterns (n-grams over beat-kind)",
+  "corpus": "salvatore-icewind-dale",
+  "books": [
+    "crystal_shard",
+    "streams_of_silver",
+    "halflings_gem"
+  ],
+  "method": {
+    "ordering": "beats sorted by (chapter, beat_idx) within each book; n-grams computed within each chapter only (not across chapter boundaries)",
+    "n_values": [
+      2,
+      3
+    ]
+  },
+  "per_book": {
+    "crystal_shard": {
+      "total_bigrams": 824,
+      "total_trigrams": 790,
+      "top_10_bigrams": [
+        {
+          "ngram": [
+            "action",
+            "action"
+          ],
+          "count": 137,
+          "fraction": 0.1663
+        },
+        {
+          "ngram": [
+            "dialogue",
+            "dialogue"
+          ],
+          "count": 88,
+          "fraction": 0.1068
+        },
+        {
+          "ngram": [
+            "action",
+            "dialogue"
+          ],
+          "count": 78,
+          "fraction": 0.0947
+        },
+        {
+          "ngram": [
+            "dialogue",
+            "action"
+          ],
+          "count": 77,
+          "fraction": 0.0934
+        },
+        {
+          "ngram": [
+            "interiority",
+            "dialogue"
+          ],
+          "count": 49,
+          "fraction": 0.0595
+        },
+        {
+          "ngram": [
+            "action",
+            "interiority"
+          ],
+          "count": 47,
+          "fraction": 0.057
+        },
+        {
+          "ngram": [
+            "interiority",
+            "interiority"
+          ],
+          "count": 46,
+          "fraction": 0.0558
+        },
+        {
+          "ngram": [
+            "interiority",
+            "action"
+          ],
+          "count": 46,
+          "fraction": 0.0558
+        },
+        {
+          "ngram": [
+            "dialogue",
+            "interiority"
+          ],
+          "count": 44,
+          "fraction": 0.0534
+        },
+        {
+          "ngram": [
+            "description",
+            "action"
+          ],
+          "count": 38,
+          "fraction": 0.0461
+        }
+      ],
+      "top_10_trigrams": [
+        {
+          "ngram": [
+            "action",
+            "action",
+            "action"
+          ],
+          "count": 62,
+          "fraction": 0.0785
+        },
+        {
+          "ngram": [
+            "dialogue",
+            "dialogue",
+            "dialogue"
+          ],
+          "count": 41,
+          "fraction": 0.0519
+        },
+        {
+          "ngram": [
+            "action",
+            "action",
+            "dialogue"
+          ],
+          "count": 39,
+          "fraction": 0.0494
+        },
+        {
+          "ngram": [
+            "dialogue",
+            "action",
+            "action"
+          ],
+          "count": 35,
+          "fraction": 0.0443
+        },
+        {
+          "ngram": [
+            "action",
+            "dialogue",
+            "action"
+          ],
+          "count": 34,
+          "fraction": 0.043
+        },
+        {
+          "ngram": [
+            "action",
+            "dialogue",
+            "dialogue"
+          ],
+          "count": 24,
+          "fraction": 0.0304
+        },
+        {
+          "ngram": [
+            "dialogue",
+            "dialogue",
+            "action"
+          ],
+          "count": 23,
+          "fraction": 0.0291
+        },
+        {
+          "ngram": [
+            "dialogue",
+            "action",
+            "dialogue"
+          ],
+          "count": 23,
+          "fraction": 0.0291
+        },
+        {
+          "ngram": [
+            "action",
+            "interiority",
+            "action"
+          ],
+          "count": 19,
+          "fraction": 0.0241
+        },
+        {
+          "ngram": [
+            "interiority",
+            "dialogue",
+            "dialogue"
+          ],
+          "count": 18,
+          "fraction": 0.0228
+        }
+      ]
+    },
+    "halflings_gem": {
+      "total_bigrams": 797,
+      "total_trigrams": 768,
+      "top_10_bigrams": [
+        {
+          "ngram": [
+            "action",
+            "action"
+          ],
+          "count": 149,
+          "fraction": 0.187
+        },
+        {
+          "ngram": [
+            "dialogue",
+            "dialogue"
+          ],
+          "count": 119,
+          "fraction": 0.1493
+        },
+        {
+          "ngram": [
+            "action",
+            "dialogue"
+          ],
+          "count": 86,
+          "fraction": 0.1079
+        },
+        {
+          "ngram": [
+            "dialogue",
+            "action"
+          ],
+          "count": 76,
+          "fraction": 0.0954
+        },
+        {
+          "ngram": [
+            "dialogue",
+            "interiority"
+          ],
+          "count": 59,
+          "fraction": 0.074
+        },
+        {
+          "ngram": [
+            "interiority",
+            "dialogue"
+          ],
+          "count": 52,
+          "fraction": 0.0652
+        },
+        {
+          "ngram": [
+            "action",
+            "interiority"
+          ],
+          "count": 51,
+          "fraction": 0.064
+        },
+        {
+          "ngram": [
+            "interiority",
+            "action"
+          ],
+          "count": 47,
+          "fraction": 0.059
+        },
+        {
+          "ngram": [
+            "interiority",
+            "interiority"
+          ],
+          "count": 33,
+          "fraction": 0.0414
+        },
+        {
+          "ngram": [
+            "description",
+            "action"
+          ],
+          "count": 26,
+          "fraction": 0.0326
+        }
+      ],
+      "top_10_trigrams": [
+        {
+          "ngram": [
+            "action",
+            "action",
+            "action"
+          ],
+          "count": 91,
+          "fraction": 0.1185
+        },
+        {
+          "ngram": [
+            "dialogue",
+            "dialogue",
+            "dialogue"
+          ],
+          "count": 59,
+          "fraction": 0.0768
+        },
+        {
+          "ngram": [
+            "dialogue",
+            "action",
+            "dialogue"
+          ],
+          "count": 39,
+          "fraction": 0.0508
+        },
+        {
+          "ngram": [
+            "action",
+            "dialogue",
+            "dialogue"
+          ],
+          "count": 32,
+          "fraction": 0.0417
+        },
+        {
+          "ngram": [
+            "action",
+            "dialogue",
+            "action"
+          ],
+          "count": 31,
+          "fraction": 0.0404
+        },
+        {
+          "ngram": [
+            "action",
+            "action",
+            "dialogue"
+          ],
+          "count": 28,
+          "fraction": 0.0365
+        },
+        {
+          "ngram": [
+            "dialogue",
+            "dialogue",
+            "action"
+          ],
+          "count": 25,
+          "fraction": 0.0326
+        },
+        {
+          "ngram": [
+            "dialogue",
+            "dialogue",
+            "interiority"
+          ],
+          "count": 24,
+          "fraction": 0.0312
+        },
+        {
+          "ngram": [
+            "dialogue",
+            "interiority",
+            "dialogue"
+          ],
+          "count": 23,
+          "fraction": 0.0299
+        },
+        {
+          "ngram": [
+            "interiority",
+            "action",
+            "action"
+          ],
+          "count": 22,
+          "fraction": 0.0286
+        }
+      ]
+    },
+    "streams_of_silver": {
+      "total_bigrams": 757,
+      "total_trigrams": 728,
+      "top_10_bigrams": [
+        {
+          "ngram": [
+            "action",
+            "action"
+          ],
+          "count": 125,
+          "fraction": 0.1651
+        },
+        {
+          "ngram": [
+            "dialogue",
+            "dialogue"
+          ],
+          "count": 115,
+          "fraction": 0.1519
+        },
+        {
+          "ngram": [
+            "action",
+            "dialogue"
+          ],
+          "count": 71,
+          "fraction": 0.0938
+        },
+        {
+          "ngram": [
+            "dialogue",
+            "action"
+          ],
+          "count": 69,
+          "fraction": 0.0911
+        },
+        {
+          "ngram": [
+            "action",
+            "interiority"
+          ],
+          "count": 49,
+          "fraction": 0.0647
+        },
+        {
+          "ngram": [
+            "interiority",
+            "action"
+          ],
+          "count": 47,
+          "fraction": 0.0621
+        },
+        {
+          "ngram": [
+            "interiority",
+            "interiority"
+          ],
+          "count": 45,
+          "fraction": 0.0594
+        },
+        {
+          "ngram": [
+            "dialogue",
+            "interiority"
+          ],
+          "count": 42,
+          "fraction": 0.0555
+        },
+        {
+          "ngram": [
+            "interiority",
+            "dialogue"
+          ],
+          "count": 37,
+          "fraction": 0.0489
+        },
+        {
+          "ngram": [
+            "description",
+            "dialogue"
+          ],
+          "count": 28,
+          "fraction": 0.037
+        }
+      ],
+      "top_10_trigrams": [
+        {
+          "ngram": [
+            "dialogue",
+            "dialogue",
+            "dialogue"
+          ],
+          "count": 56,
+          "fraction": 0.0769
+        },
+        {
+          "ngram": [
+            "action",
+            "action",
+            "action"
+          ],
+          "count": 55,
+          "fraction": 0.0755
+        },
+        {
+          "ngram": [
+            "action",
+            "action",
+            "dialogue"
+          ],
+          "count": 33,
+          "fraction": 0.0453
+        },
+        {
+          "ngram": [
+            "dialogue",
+            "action",
+            "action"
+          ],
+          "count": 31,
+          "fraction": 0.0426
+        },
+        {
+          "ngram": [
+            "action",
+            "dialogue",
+            "action"
+          ],
+          "count": 30,
+          "fraction": 0.0412
+        },
+        {
+          "ngram": [
+            "action",
+            "dialogue",
+            "dialogue"
+          ],
+          "count": 27,
+          "fraction": 0.0371
+        },
+        {
+          "ngram": [
+            "action",
+            "action",
+            "interiority"
+          ],
+          "count": 24,
+          "fraction": 0.033
+        },
+        {
+          "ngram": [
+            "interiority",
+            "action",
+            "action"
+          ],
+          "count": 24,
+          "fraction": 0.033
+        },
+        {
+          "ngram": [
+            "action",
+            "interiority",
+            "action"
+          ],
+          "count": 23,
+          "fraction": 0.0316
+        },
+        {
+          "ngram": [
+            "dialogue",
+            "dialogue",
+            "action"
+          ],
+          "count": 23,
+          "fraction": 0.0316
+        }
+      ]
+    }
+  },
+  "cross_book_directional": {
+    "top10_bigrams_in_all_3_books": [
+      [
+        "action",
+        "action"
+      ],
+      [
+        "action",
+        "dialogue"
+      ],
+      [
+        "action",
+        "interiority"
+      ],
+      [
+        "dialogue",
+        "action"
+      ],
+      [
+        "dialogue",
+        "dialogue"
+      ],
+      [
+        "dialogue",
+        "interiority"
+      ],
+      [
+        "interiority",
+        "action"
+      ],
+      [
+        "interiority",
+        "dialogue"
+      ],
+      [
+        "interiority",
+        "interiority"
+      ]
+    ],
+    "top10_trigrams_in_all_3_books": [
+      [
+        "action",
+        "action",
+        "action"
+      ],
+      [
+        "action",
+        "action",
+        "dialogue"
+      ],
+      [
+        "action",
+        "dialogue",
+        "action"
+      ],
+      [
+        "action",
+        "dialogue",
+        "dialogue"
+      ],
+      [
+        "dialogue",
+        "dialogue",
+        "action"
+      ],
+      [
+        "dialogue",
+        "dialogue",
+        "dialogue"
+      ]
+    ],
+    "top10_bigrams_unique_per_book": {
+      "crystal_shard": [],
+      "halflings_gem": [],
+      "streams_of_silver": [
+        [
+          "description",
+          "dialogue"
+        ]
+      ]
+    }
+  }
+}
