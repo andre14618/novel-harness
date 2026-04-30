@@ -1,0 +1,83 @@
+{
+  "novel": "salvatore-icewind-dale",
+  "book": "crystal_shard",
+  "run_id": "20260430T000116",
+  "keySuffix": null,
+  "goldSuffix": null,
+  "matcher": "llm",
+  "computedAt": "2026-04-30T00:01:16.679Z",
+  "cells": {
+    "character-arcs": {
+      "metrics": {
+        "charactersInPred": 6,
+        "charactersInGold": 6,
+        "charactersMatched": 6,
+        "precision": 1,
+        "recall": 1,
+        "f1": 1,
+        "arcResolutionAgreementRate": 0.6666666666666666,
+        "ltwnPresenceAgreementRate": 1,
+        "matched": [
+          {
+            "pred_name": "Drizzt Do'Urden",
+            "gold_name": "Drizzt Do'Urden",
+            "confidence": 1,
+            "reason": "Exact name match."
+          },
+          {
+            "pred_name": "Bruenor Battlehammer",
+            "gold_name": "Bruenor Battlehammer",
+            "confidence": 1,
+            "reason": "Exact name match."
+          },
+          {
+            "pred_name": "Wulfgar",
+            "gold_name": "Wulfgar",
+            "confidence": 1,
+            "reason": "Exact name match."
+          },
+          {
+            "pred_name": "Regis",
+            "gold_name": "Regis",
+            "confidence": 1,
+            "reason": "Exact name match."
+          },
+          {
+            "pred_name": "Akar Kessell",
+            "gold_name": "Akar Kessell",
+            "confidence": 1,
+            "reason": "Exact name match."
+          },
+          {
+            "pred_name": "Catti-brie",
+            "gold_name": "Catti-brie",
+            "confidence": 1,
+            "reason": "Exact name match."
+          }
+        ]
+      },
+      "verdict": {
+        "verdict": "CELL PASS",
+        "reason": "F1=1.000 arcResolution=0.667 ≥ thresholds"
+      }
+    }
+  },
+  "sources": {
+    "character-arcs": {
+      "goldPath": "/Users/andre/Desktop/personal_projects/novel-harness/novels/salvatore-icewind-dale/structure-gold/crystal_shard/character-arcs-gold.20260429T205640.jsonl",
+      "goldRunId": "20260429T205640",
+      "keyPath": "/Users/andre/Desktop/personal_projects/novel-harness/novels/salvatore-icewind-dale/structure-gold/crystal_shard/character-arcs-key.20260429T204747.jsonl",
+      "keyRunId": "20260429T204747"
+    }
+  },
+  "aggregatedVerdict": "SCOPED PASS",
+  "cellVerdicts": [
+    {
+      "dim": "character-arcs",
+      "verdict": {
+        "verdict": "CELL PASS",
+        "reason": "F1=1.000 arcResolution=0.667 ≥ thresholds"
+      }
+    }
+  ]
+}
