@@ -844,21 +844,23 @@ Cumulative on crystal_shard at promo pricing: ~$4.15 + 0 (this round subagent-on
 | Pro judge gold v1 (C.2 baseline) | 30 |
 | Pro judge gold v2 (C.2 baseline) | 27 |
 
-**Pair-matcher counts (recomputed from the matched array; the subagent's narrative numbers had off-by-internal-accounting errors that don't affect the matched pairs themselves):**
+**Pair-matcher counts (final, after file-version reconciliation — see methodology note below):**
 
 | Metric | Value |
 |---|---|
-| Sonnet R1×R2 shared | **37 of 38** (= 97.4% of R1) |
-| R1-only (R1 found, R2 missed) | 1 |
-| R2-only (R2 found, R1 missed) | 29 |
-| Jaccard | **0.552** |
-| shared / max(38, 66) | **0.561** |
-| shared / min(38, 66) | **0.974** |
+| Sonnet R1×R2 shared (1:1 matched within ±1 chapter-window tolerance) | **32 of 38** = 84% of R1 |
+| R1-only (R1 found, R2 missed within tolerance) | 6 |
+| R2-only (R2 found, R1 missed) | 34 |
+| Jaccard (strict ±1) | **0.444** |
+| shared / min(38, 66) | **0.842** |
+| shared / max(38, 66) | **0.485** |
+| Jaccard (loose ±2 tolerance, agent estimate) | ~0.493 |
+| shared / min (loose ±2 tolerance) | ~0.95 |
 
 **Conclusion — failure-mode split between mice and promise.** The Sonnet anchor instability has a different shape per dim:
 
 - **Mice (this session):** symmetric disagreement on the same scene set. 6 of 30 scenes flip primary_thread between runs; the C↔E boundary owns 4 of those 6. **Rubric-latitude problem at the boundary** — both reads of "Character vs Event" are defensible per the rubric.
-- **Promise (this session):** asymmetric containment. Run-1 (38) is a 97%-subset of Run-2 (66). The instability is **recall-density drift, not classification flip** — Sonnet at run-2 found nearly all of run-1's promises plus 29 more. R1-only is 1 promise; the disagreement is overwhelmingly "run-2 went deeper."
+- **Promise (this session):** asymmetric containment + granularity drift. Run-1 (38) is an 84%-subset of Run-2 (66) within strict ±1 chapter-window tolerance; estimated 95% within ±2. The agent flagged that **5 of the 6 R1-only items are strict-tolerance failures** — topic-equivalent promises exist in R2 but the chapter-window deltas exceed ±1 (e.g. one R1 promise has open chapters that differ by 981 from R2 because of an epilogue-label index artifact, same root cause as the cardinality negative-span anomaly). The dominant diversity driver is **granularity** — run-2 splits run-1's "council 3→8" into two narrower promises ("council 3→3" + "ambush 5→8"). The instability is **recall-density + granularity drift, not classification flip** — Sonnet finds the same authorial commitments but decomposes them into different unit counts.
 
 These two failure modes need different v2 fixes:
 
@@ -873,6 +875,8 @@ These two failure modes need different v2 fixes:
 
 **Action:** Update the v2 design doc to distinguish boundary-latitude vs recall-density failure modes, and to specify ensemble + sub-dim depth-bound as the response to recall-density (not just "decompose"). The current v2 doc treats "Sonnet self-consistency < 0.70" as a single bucket; this finding shows the response is dim-specific.
 
-**Methodology note:** The Sonnet pair-matcher subagent appended a trailing `</content></invoke>` XML block to the JSON output, requiring a strip-and-re-parse to consume. The narrative summary fields in the subagent output (`shared: 32, run1Only: 5, run2Only: 34, jaccard: 0.444`) were internally inconsistent with the `matched` array (37 unique 1:1 pairs). The numbers above are recomputed from the matched array using deterministic dedup (`{shared = |unique r1 ids in matched|, run1Only = |R1| − shared, run2Only = |R2| − shared, jaccard = shared / (R1 ∪ R2)}`). The subagent's pair-by-pair matching judgement is the load-bearing output; the tallies were not.
+**Methodology note (file-version reconciliation):** The Sonnet pair-matcher subagent saved an intermediate version of the JSON output before later overwriting it with its final, internally-consistent version. An early read of the file showed 37 matched pairs with R1-only=1 — those numbers came from the intermediate state and were committed in error in `a84c311` / `a43c44b`. The final, correct file (verified after the agent's completion notification arrived) has 32 matched, 6 R1-only, 34 R2-only, Jaccard 0.444, all internally consistent. Numbers in this section are the FINAL ones. The subagent also appended a trailing `</content></invoke>` XML block to the JSON output, requiring a strip-and-re-parse to consume.
+
+The granularity / strict-tolerance / epilogue-index-artifact context above is from the subagent's narrative report (delivered with the completion notification), not derivable from the matched-array alone. The agent identified that p027 has open_chapter_index difference of 981 between runs — same epilogue-label index handling bug that the cardinality script exhibits as negative spans (todo.md item #cardinality-bug). Worth fixing across both pipelines.
 
 ---

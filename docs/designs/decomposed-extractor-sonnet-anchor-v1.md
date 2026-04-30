@@ -304,31 +304,41 @@ The cheapest-counterfactual experiment ran on the night of 2026-04-29/30 via Son
 
 **Implication for v2:** decomposition into 4 binary sub-calls (M / I / C / E each Y/N) is the correct response. Each sub-call has a tighter cognitive scope than "pick the dominant of four" — the C↔E latitude problem is a 2-class boundary that decomposes into "is this scene-C-bearing? Y/N" and "is this scene-E-bearing? Y/N," which are answered by different evidence. The sub-call hypothesis: each binary clears 0.85 self-consistency where the monolithic 4-way doesn't. **Test that hypothesis before any extractor calibration; treat it as the load-bearing v2 gate for mice.**
 
-### Promise — recall-density failure (DIFFERENT FAILURE MODE)
+### Promise — recall-density + granularity failure (DIFFERENT FAILURE MODE)
 
-**Sonnet promise R1 × R2 pair-matcher (subagent, recomputed from matched array):**
+**Sonnet promise R1 × R2 pair-matcher (subagent, final reconciled file):**
 - Run-1 size: 38 promises (this is the C.1 baseline)
 - Run-2 size: 66 promises (run on identical prompts, in this counterfactual round)
-- Shared (1:1 paired): **37 of 38** = 97.4% of run-1
-- R1-only: 1
-- R2-only: 29
-- **Jaccard: 0.552**
+- Shared (1:1 paired within ±1 chapter-window tolerance): **32 of 38** = 84.2% of run-1
+- R1-only: 6 (5 of which are strict-tolerance failures, NOT topic disagreements)
+- R2-only: 34
+- **Jaccard (strict ±1): 0.444**
+- **Jaccard (loose ±2, agent estimate): ~0.493**
+- shared / min (loose ±2): ~0.95
 
-**Sonnet R1 is a 97%-subset of Sonnet R2.** The instability is asymmetric: run-2 is going DEEPER on the same authorial commitments run-1 found, plus 29 additional ones. R1-only is a single promise. The disagreement is overwhelmingly "how exhaustive is my search for promises" — recall-density drift, not classification flip.
+**Three drivers of the disagreement (per the agent's narrative analysis):**
+1. **Strict ±1 chapter-window tolerance.** 5 of 6 R1-only items have a topic-match in R2 but window deltas > 1 chapter. Loosen to ±2 → 36/38 R1 found in R2.
+2. **Granularity drift.** R2 splits R1's coarse "council scene 3 → ambush completion 8" into two narrower promises ("council 3→3" + "ambush 5→8"). Same authorial commitments, different decomposition unit count.
+3. **Epilogue-label index artifact.** R1 has one promise (`p027`) with `open_chapter_index` differing by 981 from R2's analog — likely the same epilogue-label index-handling bug that `scripts/corpus/cardinality.ts` exhibits as negative payoff spans. Fixing this across both pipelines is a separate todo.
+
+**Conclusion:** Sonnet promise R1 is a near-subset of R2 within reasonable tolerance (~95% with ±2), but the discrete-set Jaccard at strict ±1 is dominated by tolerance + granularity. The instability is **recall-density + granularity drift, not classification flip** — Sonnet finds the same authorial commitments but at different decomposition granularities and with epilogue-bug-induced index slippage.
 
 **Implication for v2:** sub-dim splitting alone is insufficient for promise. The recall-density problem is orthogonal to the latitude problem mice has. A sub-dim like `arc-promise` (close ≥5 chapters out, explicit obligation only) bounds the recall density by definition — promises that don't meet the close-distance criterion are excluded by rubric. But within `arc-promise`'s eligible set, run-1 vs run-2 will still likely show the same near-subset shape unless we also ENSEMBLE.
 
 **v2 response for promise (revised):**
 1. Split into `arc-promise` (close ≥5 chapters out, explicit obligation) and `setup-payoff-bridge` (close ≤3 chapters out, Chekhov-bridge shape) as previously specified — depth bounds reduce the recall-density variance per sub-dim.
-2. **Add ensemble-of-3 anchor for each sub-dim**: 3 Sonnet runs at independent inference, union via the same V4 Pro / Sonnet pair-matcher logic. Each run is a sub-set of the union; the union approaches the "true" set as N grows. The N=3 floor is from C.2 logic (judge needs to converge before extractor calibrates against it).
-3. Self-consistency Jaccard ≥ 0.85 measured **after** the ensemble union (i.e., does ensemble-3-run-A vs ensemble-3-run-B converge?), not on single runs. Single-run gate fails by design for recall-density-drifting dims; the ensemble-union shape is the right gate target.
+2. **Granularity rule.** Add an explicit rubric instruction: "When a promise sets up a multi-stage payoff (e.g., council scene → preparation → execution), emit ONE promise covering the full arc (`open_chapter` = first commit, `close_chapter` = final payoff) rather than splitting per stage." This collapses R2's granularity drift back to R1's coarser shape. Implement before the ensemble-of-3 step — granularity normalization first, then ensemble.
+3. **Loosen pair-matcher tolerance from ±1 to ±2 chapters** for promise calibrations. The strict-±1 finding showed 5 of 6 R1-only items are tolerance failures, not topic disagreements. Loose ±2 lifts shared/min from 0.84 to 0.95.
+4. **Fix the epilogue-label index artifact.** Same root cause as the cardinality negative-span bug. Single fix in `normalize-for-structure` index assignment fixes both pipelines. Tracked in todo.md.
+5. **Add ensemble-of-3 anchor for each sub-dim** AFTER 1-4 land: 3 Sonnet runs at independent inference, union via pair-matcher. The N=3 floor is from C.2 logic (judge needs to converge before extractor calibrates against it). Re-evaluate after granularity rule + tolerance loosening — they may close enough of the gap that ensemble-3 isn't needed.
+6. Self-consistency Jaccard ≥ 0.85 measured **after** the granularity-rule + tolerance + epilogue fixes are in place (i.e., does run-1 vs run-2 with normalized rubric converge?). If yes, ensemble layer is unnecessary. If no, then ensemble.
 
 ### Failure-mode-aware v2 architecture (revised)
 
 | Dim | Failure mode (from counterfactual) | v2 response |
 |---|---|---|
 | mice | Boundary latitude (C↔E flip, 6/30) | 4 parallel binary sub-calls (M/I/C/E each Y/N); preflight gate per sub-call |
-| promise | Recall-density drift (97% near-subset) | Sub-dim depth-bound (arc / bridge) + ensemble-of-3 anchor; preflight on ensemble convergence |
+| promise | Recall-density + granularity drift (84% near-subset at strict ±1; 95% at loose ±2) | Sub-dim depth-bound + explicit granularity rule + loose ±2 tolerance + epilogue-bug fix; ensemble-of-3 only if those don't converge |
 | value-charge | TBD — counterfactual not yet run | Likely boundary-latitude on polarity (`+` / `0` / `−`); plan: same shape as mice (3 binary sub-calls) |
 | mckee-gap | TBD — counterfactual not yet run | Per-field enums (`gap_size` 4-class, `gap_type` 6-class) below gate already; likely boundary-latitude per category |
 | character-arcs | N/A — CELL PASS F1=1.00 shipped | Unchanged |
