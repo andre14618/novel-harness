@@ -59,8 +59,8 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // DeepSeek V4 Flash non-thinking. Prose generation doesn't benefit from
   // reasoning tokens (creative output, not multi-step inference); thinking
   // mode would slow per-beat latency without quality lift. Howard primer/
-  // methodology retired 2026-04-16 — voice now lands through per-genre
-  // voice LoRAs (see WRITER_GENRE_PACKS below).
+  // methodology retired 2026-04-16. Fantasy uses the Salvatore-shaped
+  // genre pack below, now routed to base DeepSeek rather than a voice LoRA.
   "writer":                    { ...deepseekV4Flash, temperature: 0.8, maxTokens: 8000 },
   "beat-writer":               { ...deepseekV4Flash, temperature: 0.8, maxTokens: 4000 },
   // rewriter removed 2026-04-17 — validation is diagnostic-only now
@@ -144,10 +144,9 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "chapter-plan-reviser":      { ...deepseekV4Flash, thinking: true, temperature: 0.3, maxTokens: 6144 },
 
   // ── Tonal pass (per-paragraph voice rewrite, LoRA fine-tuned) ────────
-  // Howard methodology RETIRED 2026-04-16 — voice now handled by per-genre
-  // voice LoRAs at generation time (see WRITER_GENRE_PACKS). Adapter slot
-  // retained for the on-demand POST /api/novel/:id/tonal-pass endpoint so
-  // existing novels can still be re-voiced. Not invoked automatically.
+  // Howard methodology RETIRED 2026-04-16. Adapter slot retained for the
+  // on-demand POST /api/novel/:id/tonal-pass endpoint so existing novels can
+  // still be re-voiced. Not invoked automatically.
   "tonal-pass":                { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/howard-tonal-v4-sft-resume:v8", temperature: 0.6, maxTokens: 2048 },
 
   // ── Lint research (offline scripts only — NOT in the pipeline) ─────
@@ -342,7 +341,7 @@ export function getModelForAgent(agentName: string): ModelAssignment | undefined
 // instead of the default `beat-writer` assignment.
 //
 // Each pack bundles:
-//   - model          : ModelAssignment (the adapter URI for voice LoRAs)
+//   - model          : ModelAssignment (base model or adapter URI)
 //   - systemPromptFile: relative to src/agents/writer/ — the training-
 //                       verbatim system prompt plus any runtime riders
 //                       (e.g. proper-noun blocklist)
@@ -351,7 +350,8 @@ export function getModelForAgent(agentName: string): ModelAssignment | undefined
 //                       system prompt should set this false.
 //
 // Packs are matched in order; the first regex that matches the seed's
-// genre wins. Add new packs here as voice LoRAs ship.
+// genre wins. A pack can carry corpus-derived prompts/priors without using
+// a fine-tuned writer adapter.
 
 export interface StructuralPriors {
   beatDistribution: Record<string, number>
@@ -395,12 +395,10 @@ export const WRITER_GENRE_PACKS: WriterGenrePack[] = [
   {
     label: "salvatore-fantasy",
     match: /\b(action.?pulp|sword.?and.?sorcery|sword.?&.?sorcery|epic fantasy|heroic fantasy|dark fantasy|fantasy)\b/i,
-    model: {
-      provider: "wandb",
-      model: "wandb-artifact:///andre14618-/novel-harness/salvatore-1988-v4",
-      temperature: 0.8,
-      maxTokens: 4000,
-    },
+    // Track A (2026-04-30): retire the W&B Salvatore voice LoRA from the
+    // production fantasy route while retaining the Salvatore-shaped prompt,
+    // structural priors, compact context, and leak checker gating.
+    model: { ...deepseekV4Flash, temperature: 0.8, maxTokens: 4000 },
     systemPromptFile: "beat-writer-system-salvatore.md",
     usePrimer: false,
     structuralPriors: SALVATORE_PRIORS,

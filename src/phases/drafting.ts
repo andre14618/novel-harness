@@ -253,8 +253,8 @@ export async function runDraftingPhase(novelId: string): Promise<PhaseResult<Dra
           emit(novelId, { type: "progress", data: { step: "beat-writer", chapter: ch, attempt: attempts, status: "running" } })
 
           // Genre-scoped writer pack — routes this novel's beat-writer to a
-          // voice LoRA when its genre matches. Falls back to the default
-          // BEAT_WRITER_PROMPT + configured `beat-writer` model otherwise.
+          // genre-specific prompt/model when its genre matches. Falls back to
+          // the default BEAT_WRITER_PROMPT + `beat-writer` model otherwise.
           writerPack = resolveWriterPack(novel.seed?.genre)
           packPrompt = writerPack
             ? await loadGenrePackPrompt(writerPack.systemPromptFile, writerPack.usePrimer)

@@ -9,14 +9,14 @@ export const pipeline = {
   // Validation
   maxValidationPasses: 3,
   maxChapterRewrites: 3,
-  tonalPass: false,           // Auto-run disabled. Howard primer/tonal-pass methodology retired 2026-04-16; voice now lands at generation time via per-genre voice LoRAs (see WRITER_GENRE_PACKS). On-demand /api/novel/:id/tonal-pass route still works for existing novels.
+  tonalPass: false,           // Auto-run disabled. Howard primer/tonal-pass methodology retired 2026-04-16; fantasy voice now routes through the base-model genre pack (see WRITER_GENRE_PACKS). On-demand /api/novel/:id/tonal-pass route still works for existing novels.
 
   // Quality redraft — when existing checkers pass but local quality detectors
   // fire (repetition loops, underlength), force a no-critique redraft with
   // the same BeatContext. No V1 prose, no critique — pure re-sampling.
-  // Motivated by the 2026-04-21 rewrite-capability-probe result: the writer
-  // LoRA doesn't meaningfully rewrite V1+critique, but it CAN redraft from
-  // scratch. Default off; enable per-novel via `seed.pipelineOverrides`
+  // Motivated by the 2026-04-21 rewrite-capability-probe result: critique-
+  // based rewrites were weak, while clean redrafts could recover. Default
+  // off; enable per-novel via `seed.pipelineOverrides`
   // (written by the `--quality-redraft` CLI flag or the orchestrator's
   // novel-creation endpoint). Env-var wiring removed 2026-04-21 — a
   // module-load-time process.env read couldn't be scoped per-novel under
