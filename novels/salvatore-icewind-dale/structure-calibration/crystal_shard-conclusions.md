@@ -1532,3 +1532,69 @@ Zero new LLM calls. Pure re-analysis + rubric drafting.
 - `/tmp/sonnet-tier2/value-charge/aspiration-disagreements.20260430T013744.json` — same for aspiration
 
 ---
+
+## Session 2026-04-30 ~01:47 UTC — beat-level binary-only validation: schema commit holds
+
+### Headline
+
+**Beat-level Sonnet self-consistency on the stripped binary-only `shifted` rubric: J=0.852 PASS.** Codex's primary counterfactual is answered — the scene-level binary stability does transfer to beat granularity. The schema commit `c48a232` (replacing `valueShift: '+'|'-'|'0'` with `valueShifted: boolean`) holds. No revert.
+
+### Test results
+
+4 Sonnet subagents (2 beat-level + 2 scene-level), n=50 each, **stripped binary-only prompt** with all of `valueIn` / `valueOut` / `lifeValue` / polarity-consistency-rule REMOVED:
+
+| Test | n | Jaccard | Verdict | Notes |
+|---|---:|---:|---|---|
+| **beat-level binary-only `shifted` r1×r2** | 50 | **0.852** | **PASS** | Codex's load-bearing test |
+| scene-level binary-only `shifted` r1×r2 | 50 | 0.887 | PASS | Slightly lower than coupled-collapsed (0.923) — the rubric strip didn't help on scene level |
+| scene r1 stripped vs r1 coupled-collapsed | 50 | 0.852 | PASS | Cross-rubric agreement on the same data — same underlying decision |
+| scene r2 stripped vs r2 coupled-collapsed | 50 | 0.818 | NEAR | Drift from rubric form, but close |
+
+Distribution at beat level (Sonnet × 2 runs averaged):
+- shifted: ~76% (38/50 averaged)
+- static: ~24% (12/50 averaged)
+
+vs scene level (Sonnet × 2 runs averaged):
+- shifted: ~89% (44.5/50 averaged)
+- static: ~11% (5.5/50 averaged)
+
+**Beats genuinely contain more bridge/static units than scenes** — this is structurally informative for the planner: ~24% of Crystal Shard beats are "no movement" bridges, vs ~11% of scenes. The planner prior should reflect that beat-level static-rate is higher.
+
+### Three confirmed conclusions
+
+1. **The binary metric IS the right metric.** Both rubric forms (stripped, coupled-then-collapsed) produce the same underlying decision at ~0.85 cross-rubric agreement. The instability of the prior 3-class polarity wasn't a rubric artifact — it was Sonnet legitimately disagreeing on direction (+/-) while agreeing on movement-presence.
+2. **Beat-level granularity has a small penalty (~0.04 Jaccard).** This is expected: beats are smaller; bridge/observation beats are more frequent and harder to distinguish from low-magnitude shifts. The penalty doesn't disqualify the metric — beats clear 0.85.
+3. **Stripping the rubric doesn't help on stable signals.** The scene-level stripped run came in at 0.887 vs the post-hoc collapse at 0.923 — *slightly worse*, not better. The coupled rubric isn't actively harming binary stability; it's just over-fine when the planner only needs the binary.
+
+### What's now confidently shippable on `sceneBeatSchema`
+
+- `valueShifted: boolean` — beat-level J=0.852, scene-level J=0.887. **Confirmed at the right granularity.**
+- `lifeValueAxes` (life-death / ethics / relational) — scene-level binary J=0.887/0.923/0.923. **Beat-level NOT YET TESTED**; expected ~0.04 lower per the granularity-penalty pattern, putting life-death right at the 0.85 edge. Should be flagged in schema as "scene-level validated, beat-level pending."
+- `gapPresent` — scene-level binary "any gap vs none" J=0.818 NEAR. Caveat already documented.
+- `miceActive` / `miceOpens` / `miceCloses` — scene-level validated; beat-level pending (same caveat as lifeValueAxes).
+
+### Updated experiment ranking
+
+1. **Beat-level test for the remaining scene-validated fields** — 4 subagents on n=50 beats: lifeValueAxes (binary per class) + miceActive/Opens/Closes per thread. ~30 min wait. Confirms granularity transfer for the entire schema, not just `valueShifted`. **Cheapest next test, no new metric design.**
+2. **Cross-book validation (Streams of Silver) under the locked binary metric** — 2 subagents on n=50 beats, run-1 and run-2 only on `valueShifted`. Confirms the metric isn't Crystal-Shard-specific. ~15 min.
+3. **Sharpen agency / aspiration rubrics** with the v3 tie-breaker rule (DOING vs FEELING). Re-label the borderline classes only on n=50 scenes (4 subagents). Validates whether sharpening can promote them to PASS. **Lowest priority** — they're not exposed on the schema; the planner can encode those axes in beat description text.
+4. **Cross-author validation (Storm Front / Dresden Files)** — DEFERRED until the per-corpus methodology is fully locked.
+
+### Methodological wins this session
+
+- **Binary-collapse-before-relabel** is now a documented SOP. Saved at least one labeling wave per dim.
+- **Granularity-aware ship gates:** schema fields claim to validate at the granularity they live at (beat-level fields require beat-level Jaccard).
+- **Codex's adversarial-review identifies blind spots:** the granularity gap was non-obvious from inside the calibration loop. The cross-model perspective caught it.
+- **Codex's "cheapest-untried-counterfactual" recipe applied successfully:** the stripped-rubric test cost 4 subagent calls and ruled out a major architectural concern (rubric coupling causing instability).
+
+### Cost ledger delta
+
+4 Sonnet subagents (~10K tokens each, $0 API per the subagent harness model). Cumulative on crystal_shard: still ~$4.15.
+
+### Artifacts
+
+- `crystal_shard.20260430T014707.binary-only-validation.json` — full Jaccard tables + class distributions
+- `/tmp/sonnet-tier2/value-charge/binary-only-{beat,scene}-system.md` — stripped rubric
+- `/tmp/sonnet-tier2/value-charge/binary-only-{beat,scene}-run{1,2}.jsonl` — labeled outputs
+
+---

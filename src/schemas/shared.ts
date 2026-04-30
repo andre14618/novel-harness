@@ -74,9 +74,12 @@ export const sceneBeatSchema = z.object({
   //   the dominant value at all (vs leaving it static)? Replaces the prior
   //   3-class `valueShift: + | - | 0` field, which had anchor Jaccard 0.639
   //   (UNSTABLE). Binary collapse to "did anything move?" recovers anchor
-  //   stability at J=0.923. Sonnet judges agree well on movement-presence
-  //   but disagree on direction (+ vs - alone is J=0.660). Reference: ~88%
-  //   of Crystal Shard beats are shifted (mostly +), ~12% static.
+  //   stability at J=0.923 scene-level / J=0.852 beat-level (validated
+  //   2026-04-30 ~01:47 UTC via stripped binary-only prompt at both
+  //   granularities). Sonnet judges agree well on movement-presence but
+  //   disagree on direction (+ vs - alone is J=0.660). Beat-level reference:
+  //   ~76% of Crystal Shard beats are shifted, ~24% static (bridges,
+  //   observation, exposition). Scene-level: ~89% shifted, ~11% static.
   //
   // gapPresent: McKee-gap binary — does the beat carry a gap between POV
   //   expectation and outcome. Originally validated at Flash × Pro F1 0.892
@@ -90,10 +93,17 @@ export const sceneBeatSchema = z.object({
   // lifeValueAxes (2026-04-30): which McKee life-value AXES the beat
   //   moves on. Multi-select array — a beat may move 0+ axes. The full
   //   5-class enum was anchor-unstable (J=0.639); 3 of 5 classes (the
-  //   ones exposed here) pass J ≥ 0.85 as binary tags. The other two
+  //   ones exposed here) pass J ≥ 0.85 as binary tags AT SCENE LEVEL
+  //   (life-death 0.887, ethics 0.923, relational 0.923). The other two
   //   (agency, aspiration) are deliberately excluded pending v3 rubric
   //   sharpening; if the scene moves on those axes, the planner can
   //   encode it in the beat description text.
+  //   CAVEAT (2026-04-30): beat-level Jaccard for these 3 classes is
+  //   NOT YET DIRECTLY MEASURED. Per the granularity-penalty pattern
+  //   observed on `valueShifted` (~0.04 lower at beat than scene),
+  //   life-death is expected at ~0.847 — right at the 0.85 ship bar.
+  //   Beat-level validation queued; downstream checkers MUST NOT block
+  //   on these tags until the validation lands.
   //
   // mice* (2026-04-30): per-beat presence/opens/closes for the 4 mice
   //   threads. Anchor self-consistency Jaccard ≥ 0.85 at n=50 across the
