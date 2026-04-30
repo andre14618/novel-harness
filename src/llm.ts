@@ -441,11 +441,11 @@ async function makeRequest(
   thinking: boolean,
   debugContext?: import("./debug/injection-types").DebugContext,
 ): Promise<MakeRequestResult> {
-  // DeepSeek V4 Flash exposes thinking mode via a request-body parameter
-  // (`thinking: {type: "enabled"}` per https://api-docs.deepseek.com/).
-  // Off by default — enabled per-agent via roles.ts thinking flag.
-  const thinkingExtra: Record<string, any> = (providerName === "deepseek" && thinking)
-    ? { thinking: { type: "enabled" } }
+  // DeepSeek V4 Flash exposes thinking mode via a request-body parameter.
+  // Send both sides explicitly: omitting the field can let checker calls burn
+  // the whole completion budget in hidden reasoning and return empty content.
+  const thinkingExtra: Record<string, any> = providerName === "deepseek"
+    ? { thinking: { type: thinking ? "enabled" : "disabled" } }
     : {}
 
   const response: LLMResponse = await getTransport().execute({

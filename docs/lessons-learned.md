@@ -67,6 +67,9 @@ Ran all 73 regex lint patterns against 221k words of published fiction (Christie
 
 ## Model Selection
 
+### DeepSeek non-thinking must be explicit in the request body (2026-04-30)
+Exp #273 (`novel-1777586347509`) moved checker calls to DeepSeek V4 Flash non-thinking, but `callAgent` only sent a DeepSeek `thinking` body when thinking was enabled. Several bounded JSON checkers (`halluc-ungrounded`, `functional-state-checker`, one `adherence-events`) returned empty `response_content` while consuming exactly their completion cap, consistent with hidden reasoning burning the budget. Rule: for DeepSeek checker calls, send `thinking: { type: "disabled" }` explicitly when the role is non-thinking; do not rely on provider defaults for bounded JSON surfaces.
+
 ### MiMo V2 Flash is viable for extraction but not for writing or judging (2026-04-06)
 Tested Xiaomi MiMo V2 Flash ($0.10/$0.30, 90% cache discount) across the pipeline. **Writer**: more AI tells than DeepSeek (telling 8.0 vs 6.0, dialogue 7.0 vs 3.5), vivid but editorializes — characters deliver exposition paragraphs. 18 lint issues vs DeepSeek's 10. Not viable. **Judge**: wildly inconsistent (telling 3 vs 16 across runs on Flash, 0 dialogue issues across all runs). Both Flash and Pro blind to same-voice dialogue problems. Not viable. **Extractors**: equal on completeness (8.0/8.0) and within noise on accuracy (7.5 vs 7.8) for summary/fact/character-state. Schema compliance 100%. 5x cheaper than Cerebras Qwen 235B. **Continuity**: 9.0/10 detection vs Qwen's 8.8, zero variance. **Relationship-timeline**: missed 2/5 knowledge gains and 1/2 awareness changes — not viable for knowledge graph feeder. **Graph-linker**: equal on structure and counts. (Experiments #86, #87, #88, #89)
 
