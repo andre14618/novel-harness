@@ -7089,3 +7089,380 @@ _Among em-dashes inside quoted strings: what fraction terminate the utterance (i
 
 _See JSON for full per-cell shape counts, position percentile stats, and the up-to-5 prose snippets per (book, kind, shape) cell._
 
+
+
+## Pattern 72: Per-PAIR dialogue voice signature
+
+_Pure-compute pair-context analysis on the LLM-attributed `analysis/dialogue-extract.jsonl` (2,447 quotes) joined with `beats.jsonl` for fellowship-presence tagging. 7 fellowship pairs × 3 books × 5 voice metrics + mean turns-per-exchange + per-pair distinctive vocabulary. Gate: ≥2 metrics show stable directional divergence (≥20% delta from at least one member's pooled baseline, sign reproduces 3/3 books) → pair PASSES; ≥4/7 pairs PASS → corpus PASS. Commit `cd28810`. JSON: `novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T170813.per-pair-dialogue-voice.json`._
+
+### Per-pair beat counts (inclusive vs pair-only)
+
+`inclusive`: both pair members present (third parties allowed). `pair-only`: both members present + no third FELLOWSHIP member.
+
+| Pair | CS incl | CS only | SoS incl | SoS only | HG incl | HG only |
+|---|---:|---:|---:|---:|---:|---:|
+| Drizzt+Bruenor | 90 | 29 | 211 | 60 | 143 | 27 |
+| Drizzt+Wulfgar | 142 | 94 | 162 | 18 | 210 | 113 |
+| Drizzt+Catti-brie | 11 | 0 | 33 | 3 | 116 | 16 |
+| Bruenor+Wulfgar | 75 | 24 | 200 | 24 | 103 | 8 |
+| Bruenor+Catti-brie | 20 | 5 | 71 | 13 | 147 | 36 |
+| Bruenor+Regis | 37 | 10 | 166 | 20 | 47 | 2 |
+| Wulfgar+Catti-brie | 23 | 8 | 62 | 3 | 91 | 6 |
+
+### Per-pair pooled inclusive signature (3 books pooled)
+
+Numbers are pooled across all 3 IWD books on the inclusive beat set (both members present, third parties allowed). Per-member baselines (P65 pooled corpus values) appear in italics under each pair for delta context.
+
+| Pair | n_quotes | total_words | mean_utt_w | contr/100w | brogue/100w | q/100w | excl/100w | turns/exchange |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| **Drizzt+Bruenor** | 837 | 9203 | 11.00 | 2.032 | 3.010 | 1.815 | 3.281 | 2.85 |
+| _baseline (Drizzt)_ | _749_ | _8148_ | _10.88_ | _0.381_ | _0.000_ | _1.534_ | _1.301_ | _n/a_ |
+| _baseline (Bruenor)_ | _761_ | _8159_ | _10.72_ | _3.027_ | _6.226_ | _1.986_ | _4.988_ | _n/a_ |
+| **Drizzt+Wulfgar** | 705 | 6802 | 9.65 | 0.412 | 0.000 | 1.897 | 1.897 | 2.39 |
+| _baseline (Drizzt)_ | _749_ | _8148_ | _10.88_ | _0.381_ | _0.000_ | _1.534_ | _1.301_ | _n/a_ |
+| _baseline (Wulfgar)_ | _432_ | _4293_ | _9.94_ | _0.233_ | _0.000_ | _2.283_ | _2.982_ | _n/a_ |
+| **Drizzt+Catti-brie** | 235 | 2328 | 9.91 | 1.632 | 3.823 | 1.503 | 2.105 | 2.53 |
+| _baseline (Drizzt)_ | _749_ | _8148_ | _10.88_ | _0.381_ | _0.000_ | _1.534_ | _1.301_ | _n/a_ |
+| _baseline (Catti-brie)_ | _237_ | _2794_ | _11.79_ | _2.613_ | _6.335_ | _1.217_ | _3.042_ | _n/a_ |
+| **Bruenor+Wulfgar** | 522 | 5682 | 10.89 | 2.270 | 4.945 | 1.971 | 4.769 | 2.34 |
+| _baseline (Bruenor)_ | _761_ | _8159_ | _10.72_ | _3.027_ | _6.226_ | _1.986_ | _4.988_ | _n/a_ |
+| _baseline (Wulfgar)_ | _432_ | _4293_ | _9.94_ | _0.233_ | _0.000_ | _2.283_ | _2.982_ | _n/a_ |
+| **Bruenor+Catti-brie** | 388 | 4018 | 10.36 | 2.613 | 6.745 | 1.916 | 4.729 | 2.66 |
+| _baseline (Bruenor)_ | _761_ | _8159_ | _10.72_ | _3.027_ | _6.226_ | _1.986_ | _4.988_ | _n/a_ |
+| _baseline (Catti-brie)_ | _237_ | _2794_ | _11.79_ | _2.613_ | _6.335_ | _1.217_ | _3.042_ | _n/a_ |
+| **Bruenor+Regis** | 395 | 4683 | 11.86 | 2.562 | 3.481 | 1.901 | 3.886 | 2.50 |
+| _baseline (Bruenor)_ | _761_ | _8159_ | _10.72_ | _3.027_ | _6.226_ | _1.986_ | _4.988_ | _n/a_ |
+| _baseline (Regis)_ | _268_ | _3208_ | _11.97_ | _0.935_ | _0.000_ | _1.559_ | _2.244_ | _n/a_ |
+| **Wulfgar+Catti-brie** | 208 | 2240 | 10.77 | 1.920 | 2.902 | 1.920 | 3.304 | 2.34 |
+| _baseline (Wulfgar)_ | _432_ | _4293_ | _9.94_ | _0.233_ | _0.000_ | _2.283_ | _2.982_ | _n/a_ |
+| _baseline (Catti-brie)_ | _237_ | _2794_ | _11.79_ | _2.613_ | _6.335_ | _1.217_ | _3.042_ | _n/a_ |
+
+### Per-pair pair-only pooled signature (no third-fellowship in beat)
+
+Sub-sample with only the two pair members present (no other fellowship member). Smaller n but cleaner two-handed dynamic. Used as a robustness check on the inclusive signature above.
+
+| Pair | n_pair_only_beats | n_quotes | mean_utt_w | contr/100w | brogue/100w | q/100w | excl/100w | turns/exchange |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Drizzt+Bruenor | 116 | 231 | 9.78 | 2.080 | 2.478 | 2.345 | 2.832 | 3.12 |
+| Drizzt+Wulfgar | 225 | 314 | 9.62 | 0.496 | 0.000 | 1.953 | 1.887 | 2.38 |
+| Drizzt+Catti-brie | 19 | 17 | 8.47 | 2.778 | 9.028 | 1.389 | 2.083 | 2.12 |
+| Bruenor+Wulfgar | 56 | 72 | 9.99 | 2.086 | 7.928 | 1.530 | 5.007 | 2.12 |
+| Bruenor+Catti-brie | 54 | 64 | 8.69 | 2.338 | 6.115 | 2.158 | 5.755 | 2.37 |
+| Bruenor+Regis | 32 | 52 | 10.60 | 2.722 | 1.452 | 1.633 | 3.085 | 2.60 |
+| Wulfgar+Catti-brie | 17 | 31 | 12.06 | 1.872 | 0.267 | 1.069 | 2.941 | 2.82 |
+
+### Per-pair × per-book × per-metric directional divergence (inclusive)
+
+For each pair × metric, the table shows per-book pair value, the anchor member's baseline, and the relative delta (pair / baseline) - 1. Bold green-style ✓ marks metrics where the same member has ≥20% delta with same sign in 3/3 books (stable directional divergence).
+
+#### Drizzt+Bruenor
+
+| Metric | CS pair | CS Δ vs Drizzt | CS Δ vs Bruenor | SoS pair | SoS Δ vs Drizzt | SoS Δ vs Bruenor | HG pair | HG Δ vs Drizzt | HG Δ vs Bruenor | stable? |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| mean utt w | 11.793 | +8.4% | +10.0% | 11.701 | +7.6% | +9.1% | 9.242 | -15.0% | -13.8% | vs Drizzt: — (+0.3%)<br>vs Bruenor: — (+1.8%) |
+| contr/100w | 3.058 | +703.5% | +1.0% | 1.615 | +324.5% | -46.7% | 1.745 | +358.7% | -42.4% | vs Drizzt: ✓ (+462.2%)<br>vs Bruenor: — (-29.3%) |
+| brogue/100w | 3.180 | n/a | -48.9% | 2.355 | n/a | -62.2% | 4.101 | n/a | -34.1% | vs Drizzt: — (n/a)<br>vs Bruenor: ✓ (-48.4%) |
+| q/100w | 2.161 | +40.8% | +8.8% | 1.548 | +0.9% | -22.0% | 1.963 | +28.0% | -1.1% | vs Drizzt: — (+23.2%)<br>vs Bruenor: — (-4.8%) |
+| excl/100w | 2.854 | +119.4% | -42.8% | 3.051 | +134.5% | -38.8% | 4.189 | +222.0% | -16.0% | vs Drizzt: ✓ (+158.6%)<br>vs Bruenor: — (-32.6%) |
+
+#### Drizzt+Wulfgar
+
+| Metric | CS pair | CS Δ vs Drizzt | CS Δ vs Wulfgar | SoS pair | SoS Δ vs Drizzt | SoS Δ vs Wulfgar | HG pair | HG Δ vs Drizzt | HG Δ vs Wulfgar | stable? |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| mean utt w | 10.434 | -4.1% | +5.0% | 10.529 | -3.2% | +6.0% | 8.476 | -22.1% | -14.7% | vs Drizzt: — (-9.8%)<br>vs Wulfgar: — (-1.2%) |
+| contr/100w | 0.933 | +145.2% | +300.6% | 0.203 | -46.6% | -12.8% | 0.081 | -78.8% | -65.3% | vs Drizzt: — (+6.6%)<br>vs Wulfgar: — (+74.2%) |
+| brogue/100w | 0.000 | +0.0% | +0.0% | 0.000 | +0.0% | +0.0% | 0.000 | +0.0% | +0.0% | vs Drizzt: — (+0.0%)<br>vs Wulfgar: — (+0.0%) |
+| q/100w | 1.527 | -0.5% | -33.1% | 1.676 | +9.2% | -26.6% | 2.424 | +58.0% | +6.2% | vs Drizzt: — (+22.3%)<br>vs Wulfgar: — (-17.8%) |
+| excl/100w | 1.824 | +40.2% | -38.8% | 2.336 | +79.6% | -21.6% | 1.616 | +24.2% | -45.8% | vs Drizzt: ✓ (+48.0%)<br>vs Wulfgar: ✓ (-35.4%) |
+
+#### Drizzt+Catti-brie
+
+| Metric | CS pair | CS Δ vs Drizzt | CS Δ vs Catti-brie | SoS pair | SoS Δ vs Drizzt | SoS Δ vs Catti-brie | HG pair | HG Δ vs Drizzt | HG Δ vs Catti-brie | stable? |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| mean utt w | 12.480 | +14.7% | +5.9% | 11.622 | +6.8% | -1.4% | 9.168 | -15.7% | -22.2% | vs Drizzt: — (+1.9%)<br>vs Catti-brie: — (-5.9%) |
+| contr/100w | 0.321 | -15.8% | -87.7% | 2.093 | +450.1% | -19.9% | 1.765 | +364.0% | -32.4% | vs Drizzt: — (+266.1%)<br>vs Catti-brie: — (-46.7%) |
+| brogue/100w | 0.000 | +0.0% | -100.0% | 1.861 | n/a | -70.6% | 5.107 | n/a | -19.4% | vs Drizzt: — (+0.0%)<br>vs Catti-brie: — (-63.3%) |
+| q/100w | 2.564 | +67.1% | +110.7% | 0.465 | -69.7% | -61.8% | 1.576 | +2.8% | +29.5% | vs Drizzt: — (+0.1%)<br>vs Catti-brie: — (+26.2%) |
+| excl/100w | 0.962 | -26.1% | -68.4% | 2.326 | +78.8% | -23.6% | 2.270 | +74.5% | -25.4% | vs Drizzt: — (+42.4%)<br>vs Catti-brie: ✓ (-39.1%) |
+
+#### Bruenor+Wulfgar
+
+| Metric | CS pair | CS Δ vs Bruenor | CS Δ vs Wulfgar | SoS pair | SoS Δ vs Bruenor | SoS Δ vs Wulfgar | HG pair | HG Δ vs Bruenor | HG Δ vs Wulfgar | stable? |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| mean utt w | 10.514 | -1.9% | +5.8% | 12.124 | +13.1% | +22.0% | 8.684 | -19.0% | -12.6% | vs Bruenor: — (-2.6%)<br>vs Wulfgar: — (+5.1%) |
+| contr/100w | 2.399 | -20.7% | +930.2% | 2.280 | -24.7% | +878.8% | 2.117 | -30.1% | +808.9% | vs Bruenor: ✓ (-25.2%)<br>vs Wulfgar: ✓ (+872.6%) |
+| brogue/100w | 6.512 | +4.6% | n/a | 3.989 | -35.9% | n/a | 6.096 | -2.1% | n/a | vs Bruenor: — (-11.1%)<br>vs Wulfgar: — (n/a) |
+| q/100w | 1.628 | -18.0% | -28.7% | 1.860 | -6.3% | -18.5% | 2.625 | +32.2% | +15.0% | vs Bruenor: — (+2.6%)<br>vs Wulfgar: — (-10.7%) |
+| excl/100w | 4.884 | -2.1% | +63.8% | 4.469 | -10.4% | +49.9% | 5.504 | +10.3% | +84.6% | vs Bruenor: — (-0.7%)<br>vs Wulfgar: ✓ (+66.1%) |
+
+#### Bruenor+Catti-brie
+
+| Metric | CS pair | CS Δ vs Bruenor | CS Δ vs Catti-brie | SoS pair | SoS Δ vs Bruenor | SoS Δ vs Catti-brie | HG pair | HG Δ vs Bruenor | HG Δ vs Catti-brie | stable? |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| mean utt w | 15.086 | +40.7% | +28.0% | 13.761 | +28.3% | +16.7% | 8.521 | -20.5% | -27.7% | vs Bruenor: — (+16.2%)<br>vs Catti-brie: — (+5.7%) |
+| contr/100w | 3.220 | +6.4% | +23.2% | 2.370 | -21.7% | -9.3% | 2.608 | -13.9% | -0.2% | vs Bruenor: — (-9.7%)<br>vs Catti-brie: — (+4.6%) |
+| brogue/100w | 4.167 | -33.1% | -34.2% | 5.529 | -11.2% | -12.7% | 8.049 | +29.3% | +27.1% | vs Bruenor: — (-5.0%)<br>vs Catti-brie: — (-6.6%) |
+| q/100w | 1.136 | -42.8% | -6.6% | 1.343 | -32.4% | +10.3% | 2.428 | +22.3% | +99.5% | vs Bruenor: — (-17.6%)<br>vs Catti-brie: — (+34.4%) |
+| excl/100w | 3.788 | -24.1% | +24.5% | 4.265 | -14.5% | +40.2% | 5.216 | +4.6% | +71.5% | vs Bruenor: — (-11.3%)<br>vs Catti-brie: ✓ (+45.4%) |
+
+#### Bruenor+Regis
+
+| Metric | CS pair | CS Δ vs Bruenor | CS Δ vs Regis | SoS pair | SoS Δ vs Bruenor | SoS Δ vs Regis | HG pair | HG Δ vs Bruenor | HG Δ vs Regis | stable? |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| mean utt w | 13.048 | +21.7% | +9.0% | 11.668 | +8.8% | -2.5% | 11.506 | +7.3% | -3.9% | vs Bruenor: — (+12.6%)<br>vs Regis: — (+0.9%) |
+| contr/100w | 4.258 | +40.6% | +355.3% | 2.304 | -23.9% | +146.3% | 1.870 | -38.2% | +100.0% | vs Bruenor: — (-7.2%)<br>vs Regis: ✓ (+200.5%) |
+| brogue/100w | 4.501 | -27.7% | n/a | 3.489 | -44.0% | n/a | 2.530 | -59.4% | n/a | vs Bruenor: ✓ (-43.7%)<br>vs Regis: — (n/a) |
+| q/100w | 1.825 | -8.1% | +17.1% | 1.897 | -4.5% | +21.7% | 1.980 | -0.3% | +27.1% | vs Bruenor: — (-4.3%)<br>vs Regis: — (+21.9%) |
+| excl/100w | 3.893 | -22.0% | +73.5% | 4.065 | -18.5% | +81.1% | 3.300 | -33.8% | +47.0% | vs Bruenor: — (-24.8%)<br>vs Regis: ✓ (+67.2%) |
+
+#### Wulfgar+Catti-brie
+
+| Metric | CS pair | CS Δ vs Wulfgar | CS Δ vs Catti-brie | SoS pair | SoS Δ vs Wulfgar | SoS Δ vs Catti-brie | HG pair | HG Δ vs Wulfgar | HG Δ vs Catti-brie | stable? |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| mean utt w | 14.078 | +41.7% | +19.4% | 12.843 | +29.2% | +8.9% | 8.179 | -17.7% | -30.6% | vs Wulfgar: — (+17.7%)<br>vs Catti-brie: — (-0.8%) |
+| contr/100w | 1.532 | +557.8% | -41.4% | 1.832 | +686.6% | -29.9% | 2.307 | +890.5% | -11.7% | vs Wulfgar: ✓ (+711.6%)<br>vs Catti-brie: — (-27.7%) |
+| brogue/100w | 0.000 | +0.0% | -100.0% | 2.595 | n/a | -59.0% | 5.536 | n/a | -12.6% | vs Wulfgar: — (+0.0%)<br>vs Catti-brie: — (-57.2%) |
+| q/100w | 1.393 | -39.0% | +14.4% | 1.374 | -39.8% | +12.9% | 2.768 | +21.3% | +127.5% | vs Wulfgar: — (-19.2%)<br>vs Catti-brie: — (+51.6%) |
+| excl/100w | 2.368 | -20.6% | -22.2% | 4.428 | +48.5% | +45.5% | 3.229 | +8.3% | +6.2% | vs Wulfgar: — (+12.1%)<br>vs Catti-brie: — (+9.8%) |
+
+### Per-pair distinctive vocabulary (pooled inclusive vs each member's baseline)
+
+Top-20 tokens with highest Laplace-smoothed log-odds in the pair-context vs each member's pooled-corpus baseline. Words that fire MORE OFTEN when this pair shares a beat than when the member speaks in any other context. (Min ≥3 hits in pair-context to filter noise.)
+
+- **Drizzt+Bruenor**
+  - vs `Drizzt` baseline — top: `bah`(25, lo=3.83), `can't`(10, lo=2.94), `i'm`(9, lo=2.84), `stinkin`(8, lo=2.73), `that's`(7, lo=2.60), `shut`(6, lo=2.46), `mouth`(6, lo=2.46), `they'll`(6, lo=2.46), `we're`(16, lo=2.29), `where's`(5, lo=2.29), `forget`(5, lo=2.29), `let's`(5, lo=2.29), `rumblebelly's`(5, lo=2.29), `don't`(14, lo=2.16), `what's`(4, lo=2.09)
+  - vs `Bruenor` baseline — top: `perhaps`(18, lo=3.53), `learn`(6, lo=2.48), `hope`(5, lo=2.31), `remember`(4, lo=2.11), `delay`(4, lo=2.11), `task`(4, lo=2.11), `journey`(4, lo=2.11), `join`(3, lo=1.86), `barbarian`(3, lo=1.86), `important`(3, lo=1.86), `you've`(3, lo=1.86), `passing`(3, lo=1.86), `east`(3, lo=1.86), `group`(3, lo=1.86), `bryn`(3, lo=1.86)
+- **Drizzt+Wulfgar**
+  - vs `Drizzt` baseline — top: `pray`(3, lo=2.10), `willingly`(3, lo=2.10), `like`(7, lo=1.76), `agatha`(5, lo=1.45), `hands`(4, lo=1.25), `beornegar`(4, lo=1.25), `wrong`(4, lo=1.25), `cat`(9, lo=1.15), `warrior`(6, lo=1.11), `water`(6, lo=1.11), `son`(8, lo=1.04), `followed`(3, lo=1.00), `beast`(3, lo=1.00), `confident`(3, lo=1.00), `fire`(3, lo=1.00)
+  - vs `Wulfgar` baseline — top: `dwarf`(6, lo=2.21), `most`(6, lo=2.21), `feel`(5, lo=2.05), `thanks`(5, lo=2.05), `begin`(4, lo=1.85), `experience`(4, lo=1.85), `something`(4, lo=1.85), `wood`(4, lo=1.85), `barbarian`(3, lo=1.60), `few`(3, lo=1.60), `held`(3, lo=1.60), `rules`(3, lo=1.60), `measure`(3, lo=1.60), `missing`(3, lo=1.60), `group`(3, lo=1.60)
+- **Drizzt+Catti-brie**
+  - vs `Drizzt` baseline — top: `chased`(3, lo=2.85), `we've`(5, lo=2.21), `meaning`(4, lo=2.01), `i've`(6, lo=1.86), `soldier`(3, lo=1.75), `don't`(3, lo=1.75), `drow's`(3, lo=1.75), `mean`(3, lo=1.24), `quest`(3, lo=1.24), `sure`(3, lo=1.24), `pieces`(3, lo=1.24), `guess`(7, lo=1.22), `gone`(4, lo=1.16), `join`(4, lo=1.16), `spring`(3, lo=0.91)
+  - vs `Catti-brie` baseline — top: `gate`(5, lo=2.54), `care`(4, lo=1.24), `nothing`(4, lo=1.24), `gold`(4, lo=1.24), `spring`(3, lo=0.99), `dwarf`(3, lo=0.99), `sent`(3, lo=0.99), `seems`(3, lo=0.99), `pass`(3, lo=0.99), `wizard`(3, lo=0.99), `quest`(3, lo=0.99), `pieces`(3, lo=0.99), `many`(6, lo=0.76), `battlehammer`(4, lo=0.73), `join`(4, lo=0.73)
+- **Bruenor+Wulfgar**
+  - vs `Bruenor` baseline — top: `surely`(5, lo=2.70), `beornegar`(3, lo=2.25), `desire`(3, lo=2.25), `learn`(3, lo=2.25), `defeat`(3, lo=2.25), `met`(4, lo=1.40), `blood`(4, lo=1.40), `cannot`(6, lo=1.26), `meet`(3, lo=1.15), `among`(3, lo=1.15), `enter`(3, lo=1.15), `wrong`(3, lo=1.15), `land`(3, lo=1.15), `offer`(5, lo=1.09), `against`(6, lo=0.92)
+  - vs `Wulfgar` baseline — top: `don't`(16, lo=3.26), `bah`(14, lo=3.13), `we're`(14, lo=3.13), `i'm`(11, lo=2.90), `girl`(9, lo=2.71), `we've`(8, lo=2.60), `stinkin`(6, lo=2.33), `he'll`(6, lo=2.33), `damn`(5, lo=2.17), `there's`(5, lo=2.17), `girl's`(5, lo=2.17), `that's`(4, lo=1.96), `wild`(4, lo=1.96), `use`(4, lo=1.96), `orc`(4, lo=1.96)
+- **Bruenor+Catti-brie**
+  - vs `Bruenor` baseline — top: `chased`(4, lo=2.80), `fender`(3, lo=2.55), `mallot`(3, lo=2.55), `wulfgar's`(4, lo=1.70), `assassin`(6, lo=1.56), `neck`(3, lo=1.45), `soldier`(3, lo=1.45), `ledge`(3, lo=1.45), `drow's`(3, lo=1.45), `boat`(3, lo=1.45), `drop`(5, lo=1.39), `calimport`(6, lo=1.22), `feel`(4, lo=1.19), `missing`(4, lo=1.19), `tunnels`(5, lo=1.05)
+  - vs `Catti-brie` baseline — top: `girl`(17, lo=3.27), `bah`(11, lo=2.85), `girl's`(5, lo=2.11), `boy`(15, lo=2.05), `first`(4, lo=1.91), `mithril`(4, lo=1.91), `he'd`(4, lo=1.91), `ones`(4, lo=1.91), `thinkin`(3, lo=1.66), `shut`(3, lo=1.66), `mouth`(3, lo=1.66), `telling`(3, lo=1.66), `father`(3, lo=1.66), `dragon`(3, lo=1.66), `worm`(3, lo=1.66)
+- **Bruenor+Regis**
+  - vs `Bruenor` baseline — top: `harpells`(6, lo=2.99), `surely`(5, lo=2.83), `someone`(4, lo=2.63), `enjoy`(4, lo=2.63), `northland`(3, lo=2.37), `family`(3, lo=2.37), `crags`(3, lo=2.37), `wizards`(4, lo=1.53), `thousand`(3, lo=1.28), `area`(3, lo=1.28), `less`(5, lo=1.22), `barbarians`(4, lo=1.02), `anyway`(4, lo=1.02), `longsaddle`(7, lo=0.94), `old`(5, lo=0.88)
+  - vs `Regis` baseline — top: `boy`(14, lo=3.08), `bah`(12, lo=2.94), `hall`(8, lo=2.55), `stinkin`(5, lo=2.12), `that's`(5, lo=2.12), `let's`(5, lo=2.12), `rumblebelly's`(5, lo=2.12), `mithral`(5, lo=2.12), `we're`(14, lo=1.99), `use`(4, lo=1.91), `girl`(4, lo=1.91), `he'll`(4, lo=1.91), `agreed`(4, lo=1.91), `hole`(3, lo=1.66), `where's`(3, lo=1.66)
+- **Wulfgar+Catti-brie**
+  - vs `Wulfgar` baseline — top: `you're`(6, lo=3.05), `he'll`(5, lo=2.88), `sure`(4, lo=2.68), `wulfgar's`(4, lo=2.68), `chased`(4, lo=2.68), `i've`(4, lo=2.68), `guess`(4, lo=2.68), `soldier`(3, lo=2.43), `i'm`(3, lo=2.43), `feel`(3, lo=2.43), `vow`(4, lo=1.58), `set`(4, lo=1.58), `calimport`(4, lo=1.58), `soon`(3, lo=1.33), `mind`(3, lo=1.33)
+  - vs `Catti-brie` baseline — top: `lead`(3, lo=1.01), `sent`(3, lo=1.01), `mithral`(3, lo=1.01), `perhaps`(5, lo=0.95), `true`(4, lo=0.75), `hunt`(4, lo=0.75), `friend`(7, lo=0.67), `like`(3, lo=0.50), `both`(3, lo=0.50), `dale`(3, lo=0.50), `mind`(3, lo=0.50), `learn`(3, lo=0.50), `beornegar`(3, lo=0.50), `debt`(3, lo=0.50), `pay`(3, lo=0.50)
+
+### Per-pair cross-book distinctive-vocabulary stability
+
+Per-book top-10 distinctive tokens (using the alphabetically-first member as the anchor baseline character — chosen for consistency, not theoretical preference). Cross-book intersection ≥3 = the pair-context distinctively elicits the same vocabulary in all 3 books → stable lexical fingerprint.
+
+| Pair | anchor | CS top-10 | SoS top-10 | HG top-10 | intersection (size) | stable ≥3? |
+|---|---|---|---|---|---:|---|
+| Drizzt+Bruenor | Drizzt | they'll, bah, cut, stinkin, what's, sure, they've, elf, don't, he's | we'll, we're, boy, i'm, bah, let's, elf, can't, i've, hour | bah, girl, don't, stinkin, dog, head, i'll, we've, we're, can't | `bah` (1) | no |
+| Drizzt+Wulfgar | Drizzt | four, fine, beast, old, elf, king, mines, cat, biggrin, tundra | blood, son, foul, against, fight, desire, met, battle, choose, move | like, agatha, eyes, road, do'urden, seek, sail, wrong, boy, spoke | `(none)` (0) | no |
+| Drizzt+Catti-brie | Drizzt | home | guess, soldier, assassin, other | we've, we'll, meaning, i've, do'urden, little, battlehammer, drow's, eyes, world | `(none)` (0) | no |
+| Bruenor+Wulfgar | Bruenor | friend, free, four, slave, return, ten, dwarves, man, one, wild | blood, met, cannot, hammer, enter, against, friend, son, foul, nose | sent, fight, assassin, calimport, enough, boy, face, heart, drow, stinkin | `(none)` (0) | no |
+| Bruenor+Catti-brie | Bruenor | hold, tunnels, orcs, we've, i'll, hear | fender, mallot, assassin, soldier, another, trouble, guess, fight, worm, ten | adbar, i've, call, feel, we'll, return, much, i'm, bow, drow's | `(none)` (0) | no |
+| Bruenor+Regis | Bruenor | trouble, orc, barbarians, old, together, one, they'll, right, what's, good | harpells, someone, enjoy, northland, surely, family, crags, less, wizards, longsaddle | cats, better, feast, place, friends, time, little, long, bah, more | `(none)` (0) | no |
+| Wulfgar+Catti-brie | Wulfgar | you're, soon, vow, adventure, icewind, dale, day, debt, perhaps, more | soldier, assassin, dead, they'll, fear, mithral, hall, friend | little, he'll, set, feel, right, calimport, we'll, leave, hunt, time | `(none)` (0) | no |
+
+### Per-pair gate verdict summary
+
+Counts metrics where ≥1 pair member shows STABLE DIRECTIONAL DIVERGENCE (≥20% delta vs that member's pooled baseline, same sign in all 3 books). PASS = ≥3 metrics; PASS_PARTIAL = exactly 2; DIVERGE = exactly 1; KILL = 0.
+
+| Pair | n_metrics_with_stable_divergence (of 5) | passes (≥2)? | per-pair verdict |
+|---|---:|---|---|
+| Drizzt+Bruenor | 3/5 | yes | **PASS** |
+| Drizzt+Wulfgar | 1/5 | no | **DIVERGE** |
+| Drizzt+Catti-brie | 1/5 | no | **DIVERGE** |
+| Bruenor+Wulfgar | 2/5 | yes | **PASS_PARTIAL** |
+| Bruenor+Catti-brie | 1/5 | no | **DIVERGE** |
+| Bruenor+Regis | 3/5 | yes | **PASS** |
+| Wulfgar+Catti-brie | 1/5 | no | **DIVERGE** |
+
+### Verdict
+
+**Overall corpus verdict: `PASS_PARTIAL`** (pairs passing ≥2-metric bar: 3/7 — `Drizzt+Bruenor, Bruenor+Wulfgar, Bruenor+Regis`; per-pair verdicts combined least-favorable: `DIVERGE`).
+
+### Proposed harness levers
+
+1. **Per-pair `interactionMode` planner prior** in chapter-outline schema. When `charactersPresent` for a beat contains a stable-signature pair (e.g., Drizzt+Bruenor, Bruenor+Wulfgar), the planner injects an `interactionMode` hint into the beat description that the writer sees alongside `charactersPresent`. Examples: Drizzt+Bruenor → `mentor-pair: philosophical exchange, Drizzt formal-literate utterances + Bruenor short kinetic interjections`; Bruenor+Catti-brie → `father-daughter: brogue-rich exchange, both characters carry ye/yer markers`. The interactionMode is a soft prior, not a hard constraint.
+2. **Per-pair writer-prompt fewshot block** under `WRITER_GENRE_PACKS` fantasy-Salvatore. Compose with P65's per-character fewshots: when a beat's `charactersPresent` matches a known fellowship pair, prepend a 4–6 quote pair-context exemplar showing the canonical interaction texture (turn shape, contraction-rate target, brogue/archaic balance). This composes ABOVE the per-character fewshot to bias the writer toward the pair-specific distribution rather than the pooled-character average.
+3. **Pair-context-aware lint rules** (extension of P65's character-voice consistency lints):
+   - `lint.bruenor_brogue_floor_with_catti` — fire when a Bruenor quote in a Bruenor+Catti-brie beat carries zero brogue markers AND is ≥6 words long. The pair-context corpus rate is highest for this combination.
+   - `lint.drizzt_question_burst_with_bruenor` — when Drizzt is in a Drizzt+Bruenor beat with zero `?`-terminated sentences and ≥3 quotes, warn (the pair-context typically exhibits Drizzt-questioning, Bruenor-answering rhythm).
+   - `lint.wulfgar_archaic_floor_in_pair_with_drizzt` — when Wulfgar speaks in a Drizzt+Wulfgar beat with zero archaic markers, warn (mentor-pair register elicits the formal-archaic Wulfgar voice most strongly).
+4. **Mean turns-per-exchange budget** (planner-prompt soft target per pair). Pairs with high turns/exchange (rapid banter) should plan beats with shorter target word counts; pairs with low turns/exchange (formal discourse) should plan longer beats. The per-pair `mean_turns_per_exchange` value above is the load-bearing prior.
+5. **Pair-distinctive-vocabulary fewshots.** Top-15 distinctive tokens per pair-vs-member feed an archetype-pass writer prior: words that fire MORE OFTEN in the pair context than in either member's solo dialogue are the lexical fingerprint of the pair-specific dynamic.
+6. **Caveat: thin-sample pairs.** Drizzt+Catti-brie crystal_shard (11–35 quote range) and Wulfgar+Catti-brie streams_of_silver (51 quotes) carry less statistical weight than the n>200 cells. Treat their directional gates as low-confidence; ship pair-context priors only for pairs that PASS at the inclusive-sample bar AND have ≥30 quotes in EVERY book.
+7. **Composes with Pattern 65.** Per-character voice (P65) is the default; per-pair voice (P72) is the pair-context refinement layered on top. The two priors should NEVER conflict by construction — if a pair-context lint fires AND a per-character lint fires, the pair-context lint wins because it's the more-specific signal. Implementation: pair-context lints run first; per-character lints skip beats already flagged by a pair lint.
+
+
+
+
+## Pattern 73: Body-language-vs-verbal-attribution ratio in dialogue
+
+_Pure-compute regex over `"..."` quote spans in `beats.jsonl` (5,926 quoted lines across 2,470 beats), ±5w window for tag verbs (~85 lemmas), ±10w window for gesture verbs (~155 lemmas covering P56 / P34b body-action families). Each quote classified VERBAL_TAG / GESTURE_BEAT / MIXED / BARE; `gesture_ratio = (GESTURE_BEAT + 0.5 × MIXED) / (VERBAL_TAG + GESTURE_BEAT + MIXED)`. Per-character speaker attribution joined from `analysis/dialogue-extract.jsonl` (78.5% coverage). Recovery-appended after the original P73 atomic append was lost in the parallel subagent run; data sourced from the subagent's verdict report and the timestamped JSON. JSON: `novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T170414.gesture-vs-tag-ratio.json`. Precursor commit: `cd28810`._
+
+### Headline numbers
+
+- Quote-lines per book: crystal_shard=1,479 / streams_of_silver=2,194 / halflings_gem=2,124
+- Aggregate gesture_ratio per book: **crystal_shard=0.388 / streams_of_silver=0.404 / halflings_gem=0.426** (rising trajectory across trilogy, 9.8% relative spread)
+- BARE-attribution rate per book: **crystal_shard=0.235 (outlier) / streams_of_silver=0.160 / halflings_gem=0.154** — book 1 has 47% more rapid back-and-forth handoff than books 2-3
+
+### Per-kind gesture_ratio matrix
+
+| Book | action | dialogue | interiority | description | top kind |
+|------|--------|----------|-------------|-------------|----------|
+| crystal_shard | 0.411 | 0.379 | **0.454** | 0.352 | interiority |
+| streams_of_silver | 0.469 | 0.382 | 0.383 | **0.474** | description |
+| halflings_gem | **0.484** | 0.417 | 0.379 | 0.394 | action |
+
+The hypothesis ("action beats carry more gesture-attributed dialogue") only reproduces in halflings_gem. CS's modal is interiority and SoS's is description. **Action is uniformly top-2 across all 3 books** (rank-2 in CS, rank-2 in SoS, rank-1 in HG) — surviving axis.
+
+### Per-character pooled gesture_ratio (3 books pooled)
+
+| Character | n | gesture_ratio | BARE rate |
+|-----------|---|----------------|-----------|
+| Regis | 254 | 0.454 | 0.181 |
+| Catti-brie | 203 | 0.438 | 0.128 |
+| Bruenor | 756 | 0.438 | 0.184 |
+| Wulfgar | 375 | 0.420 | 0.112 |
+| Drizzt | 611 | 0.402 | 0.175 |
+
+The pooled corpus-wide ranking matches the original directional prediction (Drizzt most tag-heavy at 0.402, Bruenor gesture-heavy at 0.438) — but pooled-only.
+
+### Per-book per-character top-2 (n≥20 floor)
+
+| Book | top-2 by gesture_ratio |
+|------|--------------------------|
+| crystal_shard | Catti-brie, Wulfgar |
+| streams_of_silver | Regis, Wulfgar |
+| halflings_gem | Bruenor, Regis |
+
+**Cross-book top-2 intersection size: 0** — no character appears in the top-2 in all 3 books. Per-character voice-rhythm shifts book-to-book, likely tracking Wulfgar's archaic-register evolution and Catti-brie's growing word-count from CS=29 lines to HG=111 lines.
+
+### Gate verdicts
+
+- **Gate A** (per-kind top by gesture_ratio, modal-class agreement): **DIVERGE** — top-kind shuffles all 3 books
+- **Gate B** (BARE rate cross-book spread ≤25%): **PASS_PARTIAL** — relative spread 41.6%, books 2-3 cluster tight (0.160 / 0.154); CS is 47% higher
+- **Gate C** (per-character top-2 by gesture_ratio overlap): **DIVERGE** (intersection size 0)
+- **Combined: `DIVERGE`** (Gate A binds)
+
+### Conclusion + Action
+
+**HOLD as a corpus-wide writer prior.** Gesture-vs-tag rhythm does not reproduce per-book either as a per-kind ordering or as a per-character ranking. Surviving axes: (1) action consistently top-2 (never lowest) — could become a soft per-kind floor; (2) BARE-rate clustering for books 2-3 (0.160 / 0.154) — useful as a per-book stylistic dial when a seed targets the SoS/HG rhythm vs CS's faster handoff. Negative result narrows the design space — composes with P48 (said-ratio archetypes) and P56 (body-part lexicon), both of which had per-book stability; this one does not. Do NOT codify a generic "ratio" planner-prompt rule under `WRITER_GENRE_PACKS` fantasy-Salvatore.
+
+
+
+## Pattern 74: Character-pair scene affinity (fellowship-restricted)
+
+_5 canonical Companions of the Hall (Drizzt, Bruenor, Wulfgar, Catti-brie, Regis) → 10 unordered pairs. Aliases collapsed (Do'Urden→Drizzt, Battlehammer→Bruenor, Catti/Catti-brie→Catti-brie with negative-lookahead disambiguation, Rumblebelly→Regis), word-boundary regex per character. Presence threshold: ≥2 alias hits in scene prose OR any speaker-attributed quote in any beat. Affinity metric: Jaccard over per-character scene sets. Lift = actual_joint_rate / (P(X)·P(Y)); ≥1.5=stuck_together, ≤0.67=narratively_separated. Trajectory tagged monotonic_up / monotonic_down / mixed / flat (±0.02 band). Recovery-appended after the original P74 atomic append was lost. JSON: `novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T170422.character-pair-affinity.json`. Precursor commit: `cd28810`._
+
+### Per-book top-3 pairs
+
+| Rank | crystal_shard | streams_of_silver | halflings_gem |
+|------|---------------|-------------------|---------------|
+| 1 | Drizzt+Wulfgar (J=0.443) | Regis+Wulfgar (J=0.786) | Bruenor+Catti-brie (J=0.639) |
+| 2 | Bruenor+Wulfgar (J=0.308) | Bruenor+Drizzt (J=0.679) | Drizzt+Wulfgar (J=0.543) |
+| 3 | Bruenor+Drizzt (J=0.266) | Bruenor+Regis (J=0.641) | Catti-brie+Wulfgar (J=0.368) |
+
+**Cross-book top-3 intersection size: 0.** Pairwise Jaccard = 0.133. The within-book signal is huge (top-pair Jaccards 0.443–0.786) but **which pair is rank-1 is per-book narrative arc**, not corpus constant.
+
+### Per-book narrative reading
+
+- book 1 (`Drizzt+Wulfgar`): mentor-trains-barbarian arc dominates the orc-invasion plot
+- book 2 (`Regis+Wulfgar`): journey scenes consistently pair the smallest+largest fellow on the move
+- book 3 (`Bruenor+Catti-brie`): Calimport rescue + dwarven home reunion drives the father-daughter dyad to centerpiece
+
+### Cross-book stable signals (inside the DIVERGE)
+
+1. **Universal book1→book2 affinity rise (10/10 pairs).** Every fellowship pair's Jaccard rises from book 1 → book 2. Book 1 fellowship is forming (Catti-brie marginal rate 5.76% — barely on stage); book 2 marginals jump to 39–63% as the Mithril Hall journey puts everyone together.
+2. **Catti-brie monotonic-up across trilogy (3/4 of her pairs)**: Bruenor+Catti-brie (0.163 → 0.418 → 0.639), Catti+Wulfgar (0.159 → 0.347 → 0.368), Catti+Drizzt (0.065 → 0.268 → 0.340). Corroborates P40 dialogue-mass monotonic-up.
+3. **Stuck-together-in-2-books at lift ≥ 1.5**: `Drizzt+Wulfgar` and `Bruenor+Catti-brie`. The two canonically bound dyads — when a seed locks ≥2 fellowship members, these dyads over-represent vs marginal independence.
+
+### Gate verdicts
+
+- **G1** (top-3 reproduces 3/3 books, ranking_jaccard): **DIVERGE** (set-overlap 0/3, J=0.133)
+- **G2** (top-pair stable cross-book): **DIVERGE** (3 different rank-1 pairs)
+- **G3** (jaccard spread ≤30%): **PASS** (per-book max-min 0.413 / 0.518 / 0.477; relative spread 22%)
+- **Combined: `DIVERGE`**
+
+### Conclusion + Action
+
+**HOLD as planner-staging prior** — affinity does not reproduce as a corpus-wide constant, and using aggregate top-3 would mis-stage early-arc novels as book-3 voice or stage book-3 reunion arcs as book-1 mentor pairings. Two cross-book signals worth shipping today:
+
+- `Drizzt+Wulfgar` and `Bruenor+Catti-brie` as **stuck-together-in-2+** soft over-representation prior on `charactersPresent` — when a fantasy seed locks ≥2 fellowship members, these two dyads should appear above marginal-independent expectation.
+- The book1→book2 universal rise (10/10) is a **series-level structural prior** on chapter-pair density rising across early novels in a fellowship series (related to `project_series_engineering_vision`).
+
+If the harness ever conditions chapter-staging on a narrative-arc tag (formation / journey / climax), the per-book matrix becomes a *conditioned* prior — but unconditioned use is HOLD.
+
+
+
+## Pattern 75: Magic / supernatural invocation patterns
+
+_6 lexicon categories (MAGIC_GENERAL / DEMONIC / DRAGON_MONSTER / ARTIFACT / ELEMENTAL / ESOTERIC_MENTAL), each compiled to a word-boundary OR-regex, multi-word phrases (`crystal shard`, `gem-stone`, `mind-link`) folded in. Per beat: per-category densities per 100 words; master regex harvests every magic token. Per (book, chapter): magic-token totals over chapter words, length-weighted; integer chapters only — preludes / epilogues / part-X chapters excluded. Per (book, kind): density per beat-kind; per (book, character) for magic-relevant characters (Akar Kessell, Errtu, Crenshinibon, Pasha Pook, Taros, Malchor, Cryshal-Tirith, Telshazz, Al Dimeneira, Harpell) + POV contrast (Drizzt, Bruenor, Wulfgar, Regis, Catti-brie, Entreri). Recovery-appended after the original P75 atomic append was lost. JSON: `novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T170651.magic-invocation.json`. Precursor commit: `cd28810`._
+
+### Headline numbers
+
+- Per-book overall magic density per 100w: **crystal_shard 0.970 / halflings_gem 0.746 / streams_of_silver 0.701** (spread 32% — CS the magic-dense book per the Crenshinibon arc)
+
+### Per-book chapter-position peak quartile (G1)
+
+| Book | peak quartile | top chapter | density (/100w) |
+|------|---------------|-------------|------------------|
+| crystal_shard | **q3** (final) | ch 25 (Akar Kessell tower-collapse climax) | 4.286 |
+| streams_of_silver | **q0** (opening) | ch 4 (Dendybar/wizard introduction) | 2.087 |
+| halflings_gem | **q0** (opening) | ch 1 (Pasha Pook + Taros + Crenshinibon-cascade) | 2.694 |
+
+The climax-spike trajectory only reproduces in CS. **Books 2-3 front-load magic-rendering**, then dilute the final quartile with travel + politics + chase. Per-book magic-density curve is a function of arc shape, not a corpus-wide writer prior.
+
+### Per-kind ordering top-2 (G3)
+
+| Book | top-2 |
+|------|-------|
+| crystal_shard | description (1.220) > interiority (1.139) — matches hypothesis |
+| halflings_gem | description (0.891) > interiority (0.867) — matches hypothesis |
+| streams_of_silver | interiority (0.792) > action (0.769) — substitutes action for description |
+
+CS+HG agree on `description > interiority`; SoS swaps to `interiority > action` because SoS has fewer set-piece magic tableaux and more action-driven magic (Drizzt's onyx panther summons mid-combat, the on-the-run wizard chase).
+
+### Top-15 lexicon cross-book intersection (G4)
+
+8 shared tokens across all 3 books: **`dragon, fire, flames, magic, magical, spell, wind, wizard`**. Threshold for PASS was 10 → PASS_PARTIAL. The 8-token Forgotten-Realms-magic-base is real and stable; the gap to 10 is occupied by per-book proper nouns (Crenshinibon, Errtu, Malchor, Taros, Pook) that hold top-15 slots and crowd out shared corpus vocabulary. Top-15 lexicon Jaccard = 0.431.
+
+### Per-character magic-density elevation (G5)
+
+| Character | book | density (/100w) | n beats | % beats with magic |
+|-----------|------|------------------|---------|---------------------|
+| Errtu | CS | 4.056 | 55 | 96.4% |
+| Crenshinibon | CS / SoS | 3.915 / 2.629 | 54 / 8 | 100% / 100% |
+| Telshazz | CS | 4.787 | (CS-only) | high |
+| Al Dimeneira | CS | 4.530 | (CS-only) | high |
+| Akar Kessell | CS / SoS | 1.900 / 1.317 | 204 / 8 | high / high |
+| Taros | HG | 2.326 | 24 | 100% |
+| Malchor | HG | 2.973 | 35 | 100% |
+| Cryshal-Tirith | CS | 2.252 | 52 | 76.9% |
+| Harpell | SoS / HG | 0.736 / 1.512 | (no CS) | mod |
+| Pasha Pook | CS / SoS / HG | 0.325 / 1.099 / 0.975 | 3-book | varies |
+| Entreri | SoS / HG | 0.628 / 0.527 | (no CS) | mod |
+
+**Strict gate (appears in all 3 books) is KILL** — only Pook + Entreri appear in all 3 books, and neither hits the 2× elevation bar consistently. The "magic antagonist carries 2×+ baseline magic density" hypothesis is correct WITHIN each book — Errtu / Crenshinibon / Telshazz / Al Dimeneira / Taros / Malchor all carry 2-5× elevation in their book of presence — but the antagonist IDENTITY is per-book, so the cross-book stability gate is the wrong shape.
+
+### Gate verdicts
+
+- **G1** (chapter-position peak quartile reproduces 3/3): **DIVERGE** (CS=q3, SoS=q0, HG=q0)
+- **G2** (top-15 lexicon Jaccard ≥0.50): **DIVERGE** (J=0.431)
+- **G3** (per-kind top-2 ordering): **PASS_PARTIAL** (CS+HG agree; SoS dissents)
+- **G4** (top-15 cross-book intersection ≥10): **PASS_PARTIAL** (size 8)
+- **G5** (per-character 2× elevation in 3/3 books): **KILL** (only Pook+Entreri qualify; neither hits 2×)
+- **Combined: `KILL`** (least-favorable)
+
+### Conclusion + Action
+
+**KILL as corpus-wide writer-prompt prior.** The underlying patterns are not nothing, but they don't reproduce in the cross-book per-book independent reproduction sense the directional gates require. Three downstream uses survive as differently-shaped priors:
+
+- **8-token shared lexicon** (`dragon, fire, flames, magic, magical, spell, wind, wizard`) as a soft genre-pack vocabulary prior — already implicit in `WRITER_GENRE_PACKS` fantasy.
+- **Magic-antagonist 2×-elevation as a per-seed prior, not corpus-wide.** When a seed declares a magic-antagonist (Kessell-class / Errtu-class / Pook-class), the planner can prior-bias that character's beats toward 2-5× elevated magic density. Composes with P74's per-seed staging matrix.
+- **CS climax-spike trajectory (q3 peak)** as a per-arc prior, only when the seed locks a Crystal-Shard-style structure (final-act magical confrontation). NOT default — books 2-3 front-load.
+
+ELEMENTAL category is flagged as a noisy axis (overlaps weather/P38 vocabulary).

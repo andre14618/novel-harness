@@ -1,0 +1,838 @@
+{
+  "pattern_number": 74,
+  "pattern_name": "Character-pair scene affinity",
+  "slug": "character-pair-affinity",
+  "commit": "cd28810",
+  "timestamp_utc": "2026-04-30T17:04:22.945706+00:00",
+  "fellowship": [
+    "Drizzt",
+    "Bruenor",
+    "Wulfgar",
+    "Catti-brie",
+    "Regis"
+  ],
+  "presence_threshold_alias_hits": 2,
+  "per_book": {
+    "crystal_shard": {
+      "n_scenes_total": 139,
+      "per_char_scene_count": {
+        "Drizzt": 58,
+        "Bruenor": 42,
+        "Wulfgar": 43,
+        "Catti-brie": 8,
+        "Regis": 26
+      },
+      "per_char_marginal_rate": {
+        "Drizzt": 0.4173,
+        "Bruenor": 0.3022,
+        "Wulfgar": 0.3094,
+        "Catti-brie": 0.0576,
+        "Regis": 0.1871
+      },
+      "per_pair": {
+        "Bruenor+Drizzt": {
+          "pair": [
+            "Drizzt",
+            "Bruenor"
+          ],
+          "n_intersection": 21,
+          "n_union": 79,
+          "jaccard": 0.2658,
+          "actual_joint_rate": 0.1511,
+          "expected_joint_rate": 0.1261,
+          "lift_over_independent": 1.198,
+          "relation": "neutral"
+        },
+        "Drizzt+Wulfgar": {
+          "pair": [
+            "Drizzt",
+            "Wulfgar"
+          ],
+          "n_intersection": 31,
+          "n_union": 70,
+          "jaccard": 0.4429,
+          "actual_joint_rate": 0.223,
+          "expected_joint_rate": 0.1291,
+          "lift_over_independent": 1.728,
+          "relation": "stuck_together"
+        },
+        "Catti-brie+Drizzt": {
+          "pair": [
+            "Drizzt",
+            "Catti-brie"
+          ],
+          "n_intersection": 4,
+          "n_union": 62,
+          "jaccard": 0.0645,
+          "actual_joint_rate": 0.0288,
+          "expected_joint_rate": 0.024,
+          "lift_over_independent": 1.198,
+          "relation": "neutral"
+        },
+        "Drizzt+Regis": {
+          "pair": [
+            "Drizzt",
+            "Regis"
+          ],
+          "n_intersection": 12,
+          "n_union": 72,
+          "jaccard": 0.1667,
+          "actual_joint_rate": 0.0863,
+          "expected_joint_rate": 0.078,
+          "lift_over_independent": 1.106,
+          "relation": "neutral"
+        },
+        "Bruenor+Wulfgar": {
+          "pair": [
+            "Bruenor",
+            "Wulfgar"
+          ],
+          "n_intersection": 20,
+          "n_union": 65,
+          "jaccard": 0.3077,
+          "actual_joint_rate": 0.1439,
+          "expected_joint_rate": 0.0935,
+          "lift_over_independent": 1.539,
+          "relation": "stuck_together"
+        },
+        "Bruenor+Catti-brie": {
+          "pair": [
+            "Bruenor",
+            "Catti-brie"
+          ],
+          "n_intersection": 7,
+          "n_union": 43,
+          "jaccard": 0.1628,
+          "actual_joint_rate": 0.0504,
+          "expected_joint_rate": 0.0174,
+          "lift_over_independent": 2.896,
+          "relation": "stuck_together"
+        },
+        "Bruenor+Regis": {
+          "pair": [
+            "Bruenor",
+            "Regis"
+          ],
+          "n_intersection": 10,
+          "n_union": 58,
+          "jaccard": 0.1724,
+          "actual_joint_rate": 0.0719,
+          "expected_joint_rate": 0.0565,
+          "lift_over_independent": 1.273,
+          "relation": "neutral"
+        },
+        "Catti-brie+Wulfgar": {
+          "pair": [
+            "Wulfgar",
+            "Catti-brie"
+          ],
+          "n_intersection": 7,
+          "n_union": 44,
+          "jaccard": 0.1591,
+          "actual_joint_rate": 0.0504,
+          "expected_joint_rate": 0.0178,
+          "lift_over_independent": 2.828,
+          "relation": "stuck_together"
+        },
+        "Regis+Wulfgar": {
+          "pair": [
+            "Wulfgar",
+            "Regis"
+          ],
+          "n_intersection": 5,
+          "n_union": 64,
+          "jaccard": 0.0781,
+          "actual_joint_rate": 0.036,
+          "expected_joint_rate": 0.0579,
+          "lift_over_independent": 0.622,
+          "relation": "narratively_separated"
+        },
+        "Catti-brie+Regis": {
+          "pair": [
+            "Catti-brie",
+            "Regis"
+          ],
+          "n_intersection": 1,
+          "n_union": 33,
+          "jaccard": 0.0303,
+          "actual_joint_rate": 0.0072,
+          "expected_joint_rate": 0.0108,
+          "lift_over_independent": 0.668,
+          "relation": "narratively_separated"
+        }
+      },
+      "pair_keys_ranked_by_jaccard": [
+        "Drizzt+Wulfgar",
+        "Bruenor+Wulfgar",
+        "Bruenor+Drizzt",
+        "Bruenor+Regis",
+        "Drizzt+Regis",
+        "Bruenor+Catti-brie",
+        "Catti-brie+Wulfgar",
+        "Regis+Wulfgar",
+        "Catti-brie+Drizzt",
+        "Catti-brie+Regis"
+      ],
+      "top3_pairs_by_jaccard": [
+        "Drizzt+Wulfgar",
+        "Bruenor+Wulfgar",
+        "Bruenor+Drizzt"
+      ],
+      "top_pair": "Drizzt+Wulfgar",
+      "bottom_pair": "Catti-brie+Regis",
+      "jaccard_spread": 0.4126
+    },
+    "streams_of_silver": {
+      "n_scenes_total": 76,
+      "per_char_scene_count": {
+        "Drizzt": 41,
+        "Bruenor": 48,
+        "Wulfgar": 36,
+        "Catti-brie": 30,
+        "Regis": 39
+      },
+      "per_char_marginal_rate": {
+        "Drizzt": 0.5395,
+        "Bruenor": 0.6316,
+        "Wulfgar": 0.4737,
+        "Catti-brie": 0.3947,
+        "Regis": 0.5132
+      },
+      "per_pair": {
+        "Bruenor+Drizzt": {
+          "pair": [
+            "Drizzt",
+            "Bruenor"
+          ],
+          "n_intersection": 36,
+          "n_union": 53,
+          "jaccard": 0.6792,
+          "actual_joint_rate": 0.4737,
+          "expected_joint_rate": 0.3407,
+          "lift_over_independent": 1.39,
+          "relation": "neutral"
+        },
+        "Drizzt+Wulfgar": {
+          "pair": [
+            "Drizzt",
+            "Wulfgar"
+          ],
+          "n_intersection": 30,
+          "n_union": 47,
+          "jaccard": 0.6383,
+          "actual_joint_rate": 0.3947,
+          "expected_joint_rate": 0.2555,
+          "lift_over_independent": 1.545,
+          "relation": "stuck_together"
+        },
+        "Catti-brie+Drizzt": {
+          "pair": [
+            "Drizzt",
+            "Catti-brie"
+          ],
+          "n_intersection": 15,
+          "n_union": 56,
+          "jaccard": 0.2679,
+          "actual_joint_rate": 0.1974,
+          "expected_joint_rate": 0.213,
+          "lift_over_independent": 0.927,
+          "relation": "neutral"
+        },
+        "Drizzt+Regis": {
+          "pair": [
+            "Drizzt",
+            "Regis"
+          ],
+          "n_intersection": 31,
+          "n_union": 49,
+          "jaccard": 0.6327,
+          "actual_joint_rate": 0.4079,
+          "expected_joint_rate": 0.2768,
+          "lift_over_independent": 1.473,
+          "relation": "neutral"
+        },
+        "Bruenor+Wulfgar": {
+          "pair": [
+            "Bruenor",
+            "Wulfgar"
+          ],
+          "n_intersection": 32,
+          "n_union": 52,
+          "jaccard": 0.6154,
+          "actual_joint_rate": 0.4211,
+          "expected_joint_rate": 0.2992,
+          "lift_over_independent": 1.407,
+          "relation": "neutral"
+        },
+        "Bruenor+Catti-brie": {
+          "pair": [
+            "Bruenor",
+            "Catti-brie"
+          ],
+          "n_intersection": 23,
+          "n_union": 55,
+          "jaccard": 0.4182,
+          "actual_joint_rate": 0.3026,
+          "expected_joint_rate": 0.2493,
+          "lift_over_independent": 1.214,
+          "relation": "neutral"
+        },
+        "Bruenor+Regis": {
+          "pair": [
+            "Bruenor",
+            "Regis"
+          ],
+          "n_intersection": 34,
+          "n_union": 53,
+          "jaccard": 0.6415,
+          "actual_joint_rate": 0.4474,
+          "expected_joint_rate": 0.3241,
+          "lift_over_independent": 1.38,
+          "relation": "neutral"
+        },
+        "Catti-brie+Wulfgar": {
+          "pair": [
+            "Wulfgar",
+            "Catti-brie"
+          ],
+          "n_intersection": 17,
+          "n_union": 49,
+          "jaccard": 0.3469,
+          "actual_joint_rate": 0.2237,
+          "expected_joint_rate": 0.187,
+          "lift_over_independent": 1.196,
+          "relation": "neutral"
+        },
+        "Regis+Wulfgar": {
+          "pair": [
+            "Wulfgar",
+            "Regis"
+          ],
+          "n_intersection": 33,
+          "n_union": 42,
+          "jaccard": 0.7857,
+          "actual_joint_rate": 0.4342,
+          "expected_joint_rate": 0.2431,
+          "lift_over_independent": 1.786,
+          "relation": "stuck_together"
+        },
+        "Catti-brie+Regis": {
+          "pair": [
+            "Catti-brie",
+            "Regis"
+          ],
+          "n_intersection": 19,
+          "n_union": 50,
+          "jaccard": 0.38,
+          "actual_joint_rate": 0.25,
+          "expected_joint_rate": 0.2026,
+          "lift_over_independent": 1.234,
+          "relation": "neutral"
+        }
+      },
+      "pair_keys_ranked_by_jaccard": [
+        "Regis+Wulfgar",
+        "Bruenor+Drizzt",
+        "Bruenor+Regis",
+        "Drizzt+Wulfgar",
+        "Drizzt+Regis",
+        "Bruenor+Wulfgar",
+        "Bruenor+Catti-brie",
+        "Catti-brie+Regis",
+        "Catti-brie+Wulfgar",
+        "Catti-brie+Drizzt"
+      ],
+      "top3_pairs_by_jaccard": [
+        "Regis+Wulfgar",
+        "Bruenor+Drizzt",
+        "Bruenor+Regis"
+      ],
+      "top_pair": "Regis+Wulfgar",
+      "bottom_pair": "Catti-brie+Drizzt",
+      "jaccard_spread": 0.5178
+    },
+    "halflings_gem": {
+      "n_scenes_total": 137,
+      "per_char_scene_count": {
+        "Drizzt": 82,
+        "Bruenor": 56,
+        "Wulfgar": 60,
+        "Catti-brie": 44,
+        "Regis": 42
+      },
+      "per_char_marginal_rate": {
+        "Drizzt": 0.5985,
+        "Bruenor": 0.4088,
+        "Wulfgar": 0.438,
+        "Catti-brie": 0.3212,
+        "Regis": 0.3066
+      },
+      "per_pair": {
+        "Bruenor+Drizzt": {
+          "pair": [
+            "Drizzt",
+            "Bruenor"
+          ],
+          "n_intersection": 36,
+          "n_union": 102,
+          "jaccard": 0.3529,
+          "actual_joint_rate": 0.2628,
+          "expected_joint_rate": 0.2447,
+          "lift_over_independent": 1.074,
+          "relation": "neutral"
+        },
+        "Drizzt+Wulfgar": {
+          "pair": [
+            "Drizzt",
+            "Wulfgar"
+          ],
+          "n_intersection": 50,
+          "n_union": 92,
+          "jaccard": 0.5435,
+          "actual_joint_rate": 0.365,
+          "expected_joint_rate": 0.2621,
+          "lift_over_independent": 1.392,
+          "relation": "neutral"
+        },
+        "Catti-brie+Drizzt": {
+          "pair": [
+            "Drizzt",
+            "Catti-brie"
+          ],
+          "n_intersection": 32,
+          "n_union": 94,
+          "jaccard": 0.3404,
+          "actual_joint_rate": 0.2336,
+          "expected_joint_rate": 0.1922,
+          "lift_over_independent": 1.215,
+          "relation": "neutral"
+        },
+        "Drizzt+Regis": {
+          "pair": [
+            "Drizzt",
+            "Regis"
+          ],
+          "n_intersection": 27,
+          "n_union": 97,
+          "jaccard": 0.2784,
+          "actual_joint_rate": 0.1971,
+          "expected_joint_rate": 0.1835,
+          "lift_over_independent": 1.074,
+          "relation": "neutral"
+        },
+        "Bruenor+Wulfgar": {
+          "pair": [
+            "Bruenor",
+            "Wulfgar"
+          ],
+          "n_intersection": 31,
+          "n_union": 85,
+          "jaccard": 0.3647,
+          "actual_joint_rate": 0.2263,
+          "expected_joint_rate": 0.179,
+          "lift_over_independent": 1.264,
+          "relation": "neutral"
+        },
+        "Bruenor+Catti-brie": {
+          "pair": [
+            "Bruenor",
+            "Catti-brie"
+          ],
+          "n_intersection": 39,
+          "n_union": 61,
+          "jaccard": 0.6393,
+          "actual_joint_rate": 0.2847,
+          "expected_joint_rate": 0.1313,
+          "lift_over_independent": 2.168,
+          "relation": "stuck_together"
+        },
+        "Bruenor+Regis": {
+          "pair": [
+            "Bruenor",
+            "Regis"
+          ],
+          "n_intersection": 17,
+          "n_union": 81,
+          "jaccard": 0.2099,
+          "actual_joint_rate": 0.1241,
+          "expected_joint_rate": 0.1253,
+          "lift_over_independent": 0.99,
+          "relation": "neutral"
+        },
+        "Catti-brie+Wulfgar": {
+          "pair": [
+            "Wulfgar",
+            "Catti-brie"
+          ],
+          "n_intersection": 28,
+          "n_union": 76,
+          "jaccard": 0.3684,
+          "actual_joint_rate": 0.2044,
+          "expected_joint_rate": 0.1407,
+          "lift_over_independent": 1.453,
+          "relation": "neutral"
+        },
+        "Regis+Wulfgar": {
+          "pair": [
+            "Wulfgar",
+            "Regis"
+          ],
+          "n_intersection": 18,
+          "n_union": 84,
+          "jaccard": 0.2143,
+          "actual_joint_rate": 0.1314,
+          "expected_joint_rate": 0.1343,
+          "lift_over_independent": 0.979,
+          "relation": "neutral"
+        },
+        "Catti-brie+Regis": {
+          "pair": [
+            "Catti-brie",
+            "Regis"
+          ],
+          "n_intersection": 12,
+          "n_union": 74,
+          "jaccard": 0.1622,
+          "actual_joint_rate": 0.0876,
+          "expected_joint_rate": 0.0985,
+          "lift_over_independent": 0.89,
+          "relation": "neutral"
+        }
+      },
+      "pair_keys_ranked_by_jaccard": [
+        "Bruenor+Catti-brie",
+        "Drizzt+Wulfgar",
+        "Catti-brie+Wulfgar",
+        "Bruenor+Wulfgar",
+        "Bruenor+Drizzt",
+        "Catti-brie+Drizzt",
+        "Drizzt+Regis",
+        "Regis+Wulfgar",
+        "Bruenor+Regis",
+        "Catti-brie+Regis"
+      ],
+      "top3_pairs_by_jaccard": [
+        "Bruenor+Catti-brie",
+        "Drizzt+Wulfgar",
+        "Catti-brie+Wulfgar"
+      ],
+      "top_pair": "Bruenor+Catti-brie",
+      "bottom_pair": "Catti-brie+Regis",
+      "jaccard_spread": 0.4771
+    }
+  },
+  "trajectories": {
+    "Bruenor+Drizzt": {
+      "pair": [
+        "Drizzt",
+        "Bruenor"
+      ],
+      "jaccards": [
+        0.2658,
+        0.6792,
+        0.3529
+      ],
+      "delta_b1_to_b2": 0.4134,
+      "delta_b2_to_b3": -0.3263,
+      "sign": "rising_with_dip"
+    },
+    "Drizzt+Wulfgar": {
+      "pair": [
+        "Drizzt",
+        "Wulfgar"
+      ],
+      "jaccards": [
+        0.4429,
+        0.6383,
+        0.5435
+      ],
+      "delta_b1_to_b2": 0.1954,
+      "delta_b2_to_b3": -0.0948,
+      "sign": "rising_with_dip"
+    },
+    "Catti-brie+Drizzt": {
+      "pair": [
+        "Drizzt",
+        "Catti-brie"
+      ],
+      "jaccards": [
+        0.0645,
+        0.2679,
+        0.3404
+      ],
+      "delta_b1_to_b2": 0.2034,
+      "delta_b2_to_b3": 0.0725,
+      "sign": "monotonic_up"
+    },
+    "Drizzt+Regis": {
+      "pair": [
+        "Drizzt",
+        "Regis"
+      ],
+      "jaccards": [
+        0.1667,
+        0.6327,
+        0.2784
+      ],
+      "delta_b1_to_b2": 0.466,
+      "delta_b2_to_b3": -0.3543,
+      "sign": "rising_with_dip"
+    },
+    "Bruenor+Wulfgar": {
+      "pair": [
+        "Bruenor",
+        "Wulfgar"
+      ],
+      "jaccards": [
+        0.3077,
+        0.6154,
+        0.3647
+      ],
+      "delta_b1_to_b2": 0.3077,
+      "delta_b2_to_b3": -0.2507,
+      "sign": "rising_with_dip"
+    },
+    "Bruenor+Catti-brie": {
+      "pair": [
+        "Bruenor",
+        "Catti-brie"
+      ],
+      "jaccards": [
+        0.1628,
+        0.4182,
+        0.6393
+      ],
+      "delta_b1_to_b2": 0.2554,
+      "delta_b2_to_b3": 0.2211,
+      "sign": "monotonic_up"
+    },
+    "Bruenor+Regis": {
+      "pair": [
+        "Bruenor",
+        "Regis"
+      ],
+      "jaccards": [
+        0.1724,
+        0.6415,
+        0.2099
+      ],
+      "delta_b1_to_b2": 0.4691,
+      "delta_b2_to_b3": -0.4316,
+      "sign": "rising_with_dip"
+    },
+    "Catti-brie+Wulfgar": {
+      "pair": [
+        "Wulfgar",
+        "Catti-brie"
+      ],
+      "jaccards": [
+        0.1591,
+        0.3469,
+        0.3684
+      ],
+      "delta_b1_to_b2": 0.1878,
+      "delta_b2_to_b3": 0.0215,
+      "sign": "monotonic_up"
+    },
+    "Regis+Wulfgar": {
+      "pair": [
+        "Wulfgar",
+        "Regis"
+      ],
+      "jaccards": [
+        0.0781,
+        0.7857,
+        0.2143
+      ],
+      "delta_b1_to_b2": 0.7076,
+      "delta_b2_to_b3": -0.5714,
+      "sign": "rising_with_dip"
+    },
+    "Catti-brie+Regis": {
+      "pair": [
+        "Catti-brie",
+        "Regis"
+      ],
+      "jaccards": [
+        0.0303,
+        0.38,
+        0.1622
+      ],
+      "delta_b1_to_b2": 0.3497,
+      "delta_b2_to_b3": -0.2178,
+      "sign": "rising_with_dip"
+    }
+  },
+  "gates": {
+    "gate1_top3_ranking_jaccard": {
+      "per_book_top3": {
+        "crystal_shard": [
+          "Drizzt+Wulfgar",
+          "Bruenor+Wulfgar",
+          "Bruenor+Drizzt"
+        ],
+        "streams_of_silver": [
+          "Regis+Wulfgar",
+          "Bruenor+Drizzt",
+          "Bruenor+Regis"
+        ],
+        "halflings_gem": [
+          "Bruenor+Catti-brie",
+          "Drizzt+Wulfgar",
+          "Catti-brie+Wulfgar"
+        ]
+      },
+      "mean_pairwise_jaccard": 0.1333,
+      "verdict": "DIVERGE"
+    },
+    "gate1_bonus_top3_set_overlap": {
+      "intersection_size": 0,
+      "verdict": "DIVERGE"
+    },
+    "gate2_top_pair_stability": {
+      "per_book_top1": {
+        "crystal_shard": [
+          "Drizzt+Wulfgar"
+        ],
+        "streams_of_silver": [
+          "Regis+Wulfgar"
+        ],
+        "halflings_gem": [
+          "Bruenor+Catti-brie"
+        ]
+      },
+      "mean_pairwise_jaccard": 0.0,
+      "verdict": "DIVERGE"
+    },
+    "gate3_jaccard_spread": {
+      "spread_per_book": {
+        "crystal_shard": 0.4126,
+        "streams_of_silver": 0.5178,
+        "halflings_gem": 0.4771
+      },
+      "verdict": "PASS"
+    },
+    "overall": "DIVERGE"
+  },
+  "relations": {
+    "pair_relations_per_book": {
+      "Bruenor+Drizzt": [
+        "neutral",
+        "neutral",
+        "neutral"
+      ],
+      "Drizzt+Wulfgar": [
+        "stuck_together",
+        "stuck_together",
+        "neutral"
+      ],
+      "Catti-brie+Drizzt": [
+        "neutral",
+        "neutral",
+        "neutral"
+      ],
+      "Drizzt+Regis": [
+        "neutral",
+        "neutral",
+        "neutral"
+      ],
+      "Bruenor+Wulfgar": [
+        "stuck_together",
+        "neutral",
+        "neutral"
+      ],
+      "Bruenor+Catti-brie": [
+        "stuck_together",
+        "neutral",
+        "stuck_together"
+      ],
+      "Bruenor+Regis": [
+        "neutral",
+        "neutral",
+        "neutral"
+      ],
+      "Catti-brie+Wulfgar": [
+        "stuck_together",
+        "neutral",
+        "neutral"
+      ],
+      "Regis+Wulfgar": [
+        "narratively_separated",
+        "stuck_together",
+        "neutral"
+      ],
+      "Catti-brie+Regis": [
+        "narratively_separated",
+        "neutral",
+        "neutral"
+      ]
+    },
+    "pair_lifts_per_book": {
+      "Bruenor+Drizzt": [
+        1.198,
+        1.39,
+        1.074
+      ],
+      "Drizzt+Wulfgar": [
+        1.728,
+        1.545,
+        1.392
+      ],
+      "Catti-brie+Drizzt": [
+        1.198,
+        0.927,
+        1.215
+      ],
+      "Drizzt+Regis": [
+        1.106,
+        1.473,
+        1.074
+      ],
+      "Bruenor+Wulfgar": [
+        1.539,
+        1.407,
+        1.264
+      ],
+      "Bruenor+Catti-brie": [
+        2.896,
+        1.214,
+        2.168
+      ],
+      "Bruenor+Regis": [
+        1.273,
+        1.38,
+        0.99
+      ],
+      "Catti-brie+Wulfgar": [
+        2.828,
+        1.196,
+        1.453
+      ],
+      "Regis+Wulfgar": [
+        0.622,
+        1.786,
+        0.979
+      ],
+      "Catti-brie+Regis": [
+        0.668,
+        1.234,
+        0.89
+      ]
+    },
+    "stuck_together_in_all_3_books": [],
+    "stuck_together_in_2_or_more_books": [
+      "Bruenor+Catti-brie",
+      "Drizzt+Wulfgar"
+    ],
+    "narratively_separated_in_all_3_books": [],
+    "narratively_separated_in_2_or_more_books": []
+  },
+  "verdict": "DIVERGE",
+  "gates_used": [
+    "ranking_jaccard(top3)",
+    "ranking_jaccard(top1)",
+    "density_spread(jaccard_spread)",
+    "top_k_overlap(top3_set)"
+  ],
+  "findings_short": "top-3 cross-book Jaccard=0.1333 (DIVERGE); top-3 set intersection=0/3; top-pair stability=DIVERGE (per-book top-pair: crystal_shard=Drizzt+Wulfgar, streams_of_silver=Regis+Wulfgar, halflings_gem=Bruenor+Catti-brie); jaccard spread PASS; stuck-together-in-3-books=0, separated-in-3-books=0"
+}
