@@ -1,0 +1,1023 @@
+{
+  "pattern": "P35 \u2014 Quotation density + dialogue exchange shape",
+  "scope": "3-book Icewind Dale corpus (Salvatore reference)",
+  "method": "Regex over `\"...\"` pairs on every beat's `text`. Word-count the inside of each pair. Bucket short(<8), medium(8-25), long(>25). Aggregate per-book and per-(book,kind). Classify dialogue-kind beats as rapid / monologue / mixed / no_quotes.",
+  "regex": "/\"([^\"]+)\"|[\\u201c]([^\\u201d]+)[\\u201d]/g",
+  "buckets": {
+    "short": "<8 words",
+    "medium": "8-25 words",
+    "long": ">25 words"
+  },
+  "input_path": "/Users/andre/Desktop/personal_projects/novel-harness/novels/salvatore-icewind-dale/beats.jsonl",
+  "generated_at_utc": "2026-04-30T12:39:15Z",
+  "books": {
+    "crystal_shard": {
+      "total_beats": 858,
+      "beats_with_any_quotes": 445,
+      "fraction_beats_with_quotes": 0.519,
+      "total_chunks": 1606,
+      "chunks_per_beat_corpus_avg": 1.872,
+      "chunks_per_beat_when_quoted": {
+        "n": 445,
+        "mean": 3.609,
+        "median": 3,
+        "p25": 2.0,
+        "p75": 5.0,
+        "p10": 1.0,
+        "p90": 7.0,
+        "min": 1,
+        "max": 13,
+        "stdev": 2.405
+      },
+      "chunk_word_summary_all_chunks": {
+        "n": 1606,
+        "mean": 10.559,
+        "median": 7.0,
+        "p25": 4.0,
+        "p75": 13.0,
+        "p10": 2.0,
+        "p90": 24.0,
+        "min": 0,
+        "max": 138,
+        "stdev": 11.901
+      },
+      "chunk_bucket_counts": {
+        "short": 888,
+        "medium": 577,
+        "long": 141
+      },
+      "chunk_bucket_share": {
+        "short": 0.553,
+        "medium": 0.359,
+        "long": 0.088
+      },
+      "total_quoted_words": 16957
+    },
+    "streams_of_silver": {
+      "total_beats": 786,
+      "beats_with_any_quotes": 484,
+      "fraction_beats_with_quotes": 0.616,
+      "total_chunks": 2196,
+      "chunks_per_beat_corpus_avg": 2.794,
+      "chunks_per_beat_when_quoted": {
+        "n": 484,
+        "mean": 4.537,
+        "median": 4.0,
+        "p25": 2.0,
+        "p75": 6.0,
+        "p10": 1.0,
+        "p90": 9.0,
+        "min": 1,
+        "max": 24,
+        "stdev": 3.577
+      },
+      "chunk_word_summary_all_chunks": {
+        "n": 2196,
+        "mean": 9.194,
+        "median": 6.0,
+        "p25": 3.0,
+        "p75": 11.0,
+        "p10": 2.0,
+        "p90": 20.0,
+        "min": 0,
+        "max": 124,
+        "stdev": 10.618
+      },
+      "chunk_bucket_counts": {
+        "short": 1347,
+        "medium": 706,
+        "long": 143
+      },
+      "chunk_bucket_share": {
+        "short": 0.613,
+        "medium": 0.321,
+        "long": 0.065
+      },
+      "total_quoted_words": 20190
+    },
+    "halflings_gem": {
+      "total_beats": 826,
+      "beats_with_any_quotes": 528,
+      "fraction_beats_with_quotes": 0.639,
+      "total_chunks": 2419,
+      "chunks_per_beat_corpus_avg": 2.929,
+      "chunks_per_beat_when_quoted": {
+        "n": 528,
+        "mean": 4.581,
+        "median": 4.0,
+        "p25": 2.0,
+        "p75": 6.0,
+        "p10": 1.0,
+        "p90": 9.0,
+        "min": 1,
+        "max": 31,
+        "stdev": 3.515
+      },
+      "chunk_word_summary_all_chunks": {
+        "n": 2419,
+        "mean": 7.562,
+        "median": 5,
+        "p25": 3.0,
+        "p75": 9.0,
+        "p10": 2.0,
+        "p90": 16.0,
+        "min": 0,
+        "max": 84,
+        "stdev": 7.863
+      },
+      "chunk_bucket_counts": {
+        "short": 1639,
+        "medium": 692,
+        "long": 88
+      },
+      "chunk_bucket_share": {
+        "short": 0.678,
+        "medium": 0.286,
+        "long": 0.036
+      },
+      "total_quoted_words": 18292
+    }
+  },
+  "per_book_per_kind": {
+    "crystal_shard": {
+      "dialogue": {
+        "beats_in_kind": 242,
+        "beats_with_quotes": 242,
+        "fraction_with_quotes": 1.0,
+        "total_chunks": 1181,
+        "chunk_word_summary": {
+          "n": 1181,
+          "mean": 11.461,
+          "median": 7,
+          "p25": 4.0,
+          "p75": 14.0,
+          "p10": 2.0,
+          "p90": 25.0,
+          "min": 0,
+          "max": 138,
+          "stdev": 12.792
+        },
+        "chunk_bucket_counts": {
+          "short": 608,
+          "medium": 455,
+          "long": 118
+        },
+        "chunk_bucket_share": {
+          "short": 0.515,
+          "medium": 0.385,
+          "long": 0.1
+        },
+        "chunks_per_beat_with_quotes": {
+          "n": 242,
+          "mean": 4.88,
+          "median": 4.0,
+          "p25": 3.0,
+          "p75": 6.0,
+          "p10": 2.0,
+          "p90": 8.0,
+          "min": 1,
+          "max": 13,
+          "stdev": 2.312
+        },
+        "chunks_per_dialogue_beat": {
+          "all_dialogue_beats": {
+            "n": 242,
+            "mean": 4.88,
+            "median": 4.0,
+            "p25": 3.0,
+            "p75": 6.0,
+            "p10": 2.0,
+            "p90": 8.0,
+            "min": 1,
+            "max": 13,
+            "stdev": 2.312
+          },
+          "non_zero_only": {
+            "n": 242,
+            "mean": 4.88,
+            "median": 4.0,
+            "p25": 3.0,
+            "p75": 6.0,
+            "p10": 2.0,
+            "p90": 8.0,
+            "min": 1,
+            "max": 13,
+            "stdev": 2.312
+          }
+        }
+      },
+      "action": {
+        "beats_in_kind": 308,
+        "beats_with_quotes": 119,
+        "fraction_with_quotes": 0.386,
+        "total_chunks": 271,
+        "chunk_word_summary": {
+          "n": 271,
+          "mean": 7.576,
+          "median": 5,
+          "p25": 3.0,
+          "p75": 10.0,
+          "p10": 2.0,
+          "p90": 15.0,
+          "min": 1,
+          "max": 44,
+          "stdev": 7.177
+        },
+        "chunk_bucket_counts": {
+          "short": 176,
+          "long": 9,
+          "medium": 86
+        },
+        "chunk_bucket_share": {
+          "short": 0.649,
+          "medium": 0.317,
+          "long": 0.033
+        },
+        "chunks_per_beat_with_quotes": {
+          "n": 119,
+          "mean": 2.277,
+          "median": 2,
+          "p25": 1.0,
+          "p75": 3.0,
+          "p10": 1.0,
+          "p90": 4.2,
+          "min": 1,
+          "max": 9,
+          "stdev": 1.571
+        },
+        "chunks_per_dialogue_beat": null
+      },
+      "interiority": {
+        "beats_in_kind": 177,
+        "beats_with_quotes": 61,
+        "fraction_with_quotes": 0.345,
+        "total_chunks": 113,
+        "chunk_word_summary": {
+          "n": 113,
+          "mean": 8.982,
+          "median": 6,
+          "p25": 3.0,
+          "p75": 10.0,
+          "p10": 1.2,
+          "p90": 20.6,
+          "min": 1,
+          "max": 53,
+          "stdev": 10.38
+        },
+        "chunk_bucket_counts": {
+          "short": 75,
+          "medium": 28,
+          "long": 10
+        },
+        "chunk_bucket_share": {
+          "short": 0.664,
+          "medium": 0.248,
+          "long": 0.088
+        },
+        "chunks_per_beat_with_quotes": {
+          "n": 61,
+          "mean": 1.852,
+          "median": 1,
+          "p25": 1.0,
+          "p75": 2.0,
+          "p10": 1.0,
+          "p90": 4.0,
+          "min": 1,
+          "max": 6,
+          "stdev": 1.212
+        },
+        "chunks_per_dialogue_beat": null
+      },
+      "description": {
+        "beats_in_kind": 130,
+        "beats_with_quotes": 22,
+        "fraction_with_quotes": 0.169,
+        "total_chunks": 37,
+        "chunk_word_summary": {
+          "n": 37,
+          "mean": 8.378,
+          "median": 4,
+          "p25": 3.0,
+          "p75": 9.0,
+          "p10": 2.0,
+          "p90": 18.4,
+          "min": 1,
+          "max": 41,
+          "stdev": 9.939
+        },
+        "chunk_bucket_counts": {
+          "short": 26,
+          "medium": 8,
+          "long": 3
+        },
+        "chunk_bucket_share": {
+          "short": 0.703,
+          "medium": 0.216,
+          "long": 0.081
+        },
+        "chunks_per_beat_with_quotes": {
+          "n": 22,
+          "mean": 1.682,
+          "median": 1.0,
+          "p25": 1.0,
+          "p75": 2.0,
+          "p10": 1.0,
+          "p90": 2.9,
+          "min": 1,
+          "max": 5,
+          "stdev": 1.061
+        },
+        "chunks_per_dialogue_beat": null
+      }
+    },
+    "streams_of_silver": {
+      "dialogue": {
+        "beats_in_kind": 256,
+        "beats_with_quotes": 256,
+        "fraction_with_quotes": 1.0,
+        "total_chunks": 1604,
+        "chunk_word_summary": {
+          "n": 1604,
+          "mean": 9.893,
+          "median": 6.0,
+          "p25": 4.0,
+          "p75": 12.0,
+          "p10": 2.0,
+          "p90": 22.0,
+          "min": 0,
+          "max": 124,
+          "stdev": 11.432
+        },
+        "chunk_bucket_counts": {
+          "short": 945,
+          "medium": 539,
+          "long": 120
+        },
+        "chunk_bucket_share": {
+          "short": 0.589,
+          "medium": 0.336,
+          "long": 0.075
+        },
+        "chunks_per_beat_with_quotes": {
+          "n": 256,
+          "mean": 6.266,
+          "median": 6.0,
+          "p25": 4.0,
+          "p75": 8.0,
+          "p10": 2.0,
+          "p90": 10.0,
+          "min": 1,
+          "max": 24,
+          "stdev": 3.726
+        },
+        "chunks_per_dialogue_beat": {
+          "all_dialogue_beats": {
+            "n": 256,
+            "mean": 6.266,
+            "median": 6.0,
+            "p25": 4.0,
+            "p75": 8.0,
+            "p10": 2.0,
+            "p90": 10.0,
+            "min": 1,
+            "max": 24,
+            "stdev": 3.726
+          },
+          "non_zero_only": {
+            "n": 256,
+            "mean": 6.266,
+            "median": 6.0,
+            "p25": 4.0,
+            "p75": 8.0,
+            "p10": 2.0,
+            "p90": 10.0,
+            "min": 1,
+            "max": 24,
+            "stdev": 3.726
+          }
+        }
+      },
+      "action": {
+        "beats_in_kind": 274,
+        "beats_with_quotes": 151,
+        "fraction_with_quotes": 0.551,
+        "total_chunks": 410,
+        "chunk_word_summary": {
+          "n": 410,
+          "mean": 6.534,
+          "median": 5.0,
+          "p25": 2.0,
+          "p75": 8.0,
+          "p10": 1.0,
+          "p90": 14.0,
+          "min": 1,
+          "max": 76,
+          "stdev": 6.871
+        },
+        "chunk_bucket_counts": {
+          "short": 289,
+          "medium": 112,
+          "long": 9
+        },
+        "chunk_bucket_share": {
+          "short": 0.705,
+          "medium": 0.273,
+          "long": 0.022
+        },
+        "chunks_per_beat_with_quotes": {
+          "n": 151,
+          "mean": 2.715,
+          "median": 2,
+          "p25": 1.0,
+          "p75": 3.0,
+          "p10": 1.0,
+          "p90": 6.0,
+          "min": 1,
+          "max": 12,
+          "stdev": 2.092
+        },
+        "chunks_per_dialogue_beat": null
+      },
+      "interiority": {
+        "beats_in_kind": 162,
+        "beats_with_quotes": 51,
+        "fraction_with_quotes": 0.315,
+        "total_chunks": 133,
+        "chunk_word_summary": {
+          "n": 133,
+          "mean": 9.218,
+          "median": 6,
+          "p25": 4.0,
+          "p75": 11.0,
+          "p10": 2.0,
+          "p90": 22.8,
+          "min": 1,
+          "max": 49,
+          "stdev": 9.039
+        },
+        "chunk_bucket_counts": {
+          "medium": 40,
+          "short": 83,
+          "long": 10
+        },
+        "chunk_bucket_share": {
+          "short": 0.624,
+          "medium": 0.301,
+          "long": 0.075
+        },
+        "chunks_per_beat_with_quotes": {
+          "n": 51,
+          "mean": 2.608,
+          "median": 2,
+          "p25": 1.0,
+          "p75": 3.0,
+          "p10": 1.0,
+          "p90": 6.0,
+          "min": 1,
+          "max": 12,
+          "stdev": 2.482
+        },
+        "chunks_per_dialogue_beat": null
+      },
+      "description": {
+        "beats_in_kind": 94,
+        "beats_with_quotes": 26,
+        "fraction_with_quotes": 0.277,
+        "total_chunks": 49,
+        "chunk_word_summary": {
+          "n": 49,
+          "mean": 8.49,
+          "median": 6,
+          "p25": 3.0,
+          "p75": 9.0,
+          "p10": 1.0,
+          "p90": 23.2,
+          "min": 1,
+          "max": 40,
+          "stdev": 9.071
+        },
+        "chunk_bucket_counts": {
+          "short": 30,
+          "medium": 15,
+          "long": 4
+        },
+        "chunk_bucket_share": {
+          "short": 0.612,
+          "medium": 0.306,
+          "long": 0.082
+        },
+        "chunks_per_beat_with_quotes": {
+          "n": 26,
+          "mean": 1.885,
+          "median": 2.0,
+          "p25": 1.0,
+          "p75": 2.0,
+          "p10": 1.0,
+          "p90": 3.0,
+          "min": 1,
+          "max": 5,
+          "stdev": 1.012
+        },
+        "chunks_per_dialogue_beat": null
+      }
+    },
+    "halflings_gem": {
+      "dialogue": {
+        "beats_in_kind": 279,
+        "beats_with_quotes": 279,
+        "fraction_with_quotes": 1.0,
+        "total_chunks": 1768,
+        "chunk_word_summary": {
+          "n": 1768,
+          "mean": 8.247,
+          "median": 6.0,
+          "p25": 3.0,
+          "p75": 10.0,
+          "p10": 2.0,
+          "p90": 17.0,
+          "min": 0,
+          "max": 84,
+          "stdev": 8.445
+        },
+        "chunk_bucket_counts": {
+          "short": 1129,
+          "medium": 559,
+          "long": 80
+        },
+        "chunk_bucket_share": {
+          "short": 0.639,
+          "medium": 0.316,
+          "long": 0.045
+        },
+        "chunks_per_beat_with_quotes": {
+          "n": 279,
+          "mean": 6.337,
+          "median": 5,
+          "p25": 4.0,
+          "p75": 8.0,
+          "p10": 3.0,
+          "p90": 11.0,
+          "min": 1,
+          "max": 31,
+          "stdev": 3.579
+        },
+        "chunks_per_dialogue_beat": {
+          "all_dialogue_beats": {
+            "n": 279,
+            "mean": 6.337,
+            "median": 5,
+            "p25": 4.0,
+            "p75": 8.0,
+            "p10": 3.0,
+            "p90": 11.0,
+            "min": 1,
+            "max": 31,
+            "stdev": 3.579
+          },
+          "non_zero_only": {
+            "n": 279,
+            "mean": 6.337,
+            "median": 5,
+            "p25": 4.0,
+            "p75": 8.0,
+            "p10": 3.0,
+            "p90": 11.0,
+            "min": 1,
+            "max": 31,
+            "stdev": 3.579
+          }
+        }
+      },
+      "action": {
+        "beats_in_kind": 309,
+        "beats_with_quotes": 160,
+        "fraction_with_quotes": 0.518,
+        "total_chunks": 433,
+        "chunk_word_summary": {
+          "n": 433,
+          "mean": 5.273,
+          "median": 4,
+          "p25": 2.0,
+          "p75": 6.0,
+          "p10": 1.0,
+          "p90": 11.0,
+          "min": 1,
+          "max": 44,
+          "stdev": 4.784
+        },
+        "chunk_bucket_counts": {
+          "short": 346,
+          "medium": 86,
+          "long": 1
+        },
+        "chunk_bucket_share": {
+          "short": 0.799,
+          "medium": 0.199,
+          "long": 0.002
+        },
+        "chunks_per_beat_with_quotes": {
+          "n": 160,
+          "mean": 2.706,
+          "median": 2.0,
+          "p25": 1.0,
+          "p75": 3.0,
+          "p10": 1.0,
+          "p90": 6.0,
+          "min": 1,
+          "max": 15,
+          "stdev": 2.344
+        },
+        "chunks_per_dialogue_beat": null
+      },
+      "interiority": {
+        "beats_in_kind": 159,
+        "beats_with_quotes": 69,
+        "fraction_with_quotes": 0.434,
+        "total_chunks": 172,
+        "chunk_word_summary": {
+          "n": 172,
+          "mean": 6.645,
+          "median": 5.0,
+          "p25": 2.0,
+          "p75": 7.0,
+          "p10": 1.0,
+          "p90": 13.9,
+          "min": 1,
+          "max": 51,
+          "stdev": 7.276
+        },
+        "chunk_bucket_counts": {
+          "short": 130,
+          "medium": 35,
+          "long": 7
+        },
+        "chunk_bucket_share": {
+          "short": 0.756,
+          "medium": 0.203,
+          "long": 0.041
+        },
+        "chunks_per_beat_with_quotes": {
+          "n": 69,
+          "mean": 2.493,
+          "median": 2,
+          "p25": 1.0,
+          "p75": 3.0,
+          "p10": 1.0,
+          "p90": 5.0,
+          "min": 1,
+          "max": 8,
+          "stdev": 1.741
+        },
+        "chunks_per_dialogue_beat": null
+      },
+      "description": {
+        "beats_in_kind": 79,
+        "beats_with_quotes": 20,
+        "fraction_with_quotes": 0.253,
+        "total_chunks": 46,
+        "chunk_word_summary": {
+          "n": 46,
+          "mean": 6.217,
+          "median": 5.0,
+          "p25": 3.0,
+          "p75": 7.75,
+          "p10": 2.0,
+          "p90": 13.5,
+          "min": 1,
+          "max": 23,
+          "stdev": 4.947
+        },
+        "chunk_bucket_counts": {
+          "short": 34,
+          "medium": 12
+        },
+        "chunk_bucket_share": {
+          "short": 0.739,
+          "medium": 0.261,
+          "long": 0.0
+        },
+        "chunks_per_beat_with_quotes": {
+          "n": 20,
+          "mean": 2.3,
+          "median": 2.0,
+          "p25": 1.0,
+          "p75": 3.0,
+          "p10": 1.0,
+          "p90": 4.0,
+          "min": 1,
+          "max": 6,
+          "stdev": 1.308
+        },
+        "chunks_per_dialogue_beat": null
+      }
+    }
+  },
+  "dialogue_beat_shape_distribution": {
+    "crystal_shard": {
+      "total_dialogue_beats": 242,
+      "counts": {
+        "rapid": 110,
+        "mixed": 124,
+        "monologue": 8
+      },
+      "share": {
+        "rapid": 0.455,
+        "mixed": 0.512,
+        "monologue": 0.033
+      },
+      "shape_definitions": {
+        "rapid": ">=3 chunks AND median chunk_words < 8",
+        "monologue": "any chunk > 25 words AND chunk_count <= 2",
+        "mixed": "any other beat with >=1 chunk",
+        "no_quotes": "0 quote-pair chunks"
+      }
+    },
+    "streams_of_silver": {
+      "total_dialogue_beats": 256,
+      "counts": {
+        "mixed": 87,
+        "rapid": 160,
+        "monologue": 9
+      },
+      "share": {
+        "mixed": 0.34,
+        "rapid": 0.625,
+        "monologue": 0.035
+      },
+      "shape_definitions": {
+        "rapid": ">=3 chunks AND median chunk_words < 8",
+        "monologue": "any chunk > 25 words AND chunk_count <= 2",
+        "mixed": "any other beat with >=1 chunk",
+        "no_quotes": "0 quote-pair chunks"
+      }
+    },
+    "halflings_gem": {
+      "total_dialogue_beats": 279,
+      "counts": {
+        "rapid": 190,
+        "mixed": 85,
+        "monologue": 4
+      },
+      "share": {
+        "rapid": 0.681,
+        "mixed": 0.305,
+        "monologue": 0.014
+      },
+      "shape_definitions": {
+        "rapid": ">=3 chunks AND median chunk_words < 8",
+        "monologue": "any chunk > 25 words AND chunk_count <= 2",
+        "mixed": "any other beat with >=1 chunk",
+        "no_quotes": "0 quote-pair chunks"
+      }
+    }
+  },
+  "cross_book_directional": {
+    "chunks_per_beat_corpus_avg": {
+      "values": {
+        "crystal_shard": 1.872,
+        "streams_of_silver": 2.794,
+        "halflings_gem": 2.929
+      },
+      "spread": 1.057,
+      "min_book": "crystal_shard",
+      "max_book": "halflings_gem"
+    },
+    "fraction_beats_with_quotes": {
+      "values": {
+        "crystal_shard": 0.519,
+        "streams_of_silver": 0.616,
+        "halflings_gem": 0.639
+      },
+      "spread": 0.12,
+      "min_book": "crystal_shard",
+      "max_book": "halflings_gem"
+    },
+    "chunk_bucket_share_short": {
+      "values": {
+        "crystal_shard": 0.553,
+        "streams_of_silver": 0.613,
+        "halflings_gem": 0.678
+      },
+      "spread": 0.125,
+      "min_book": "crystal_shard",
+      "max_book": "halflings_gem"
+    },
+    "chunk_bucket_share_medium": {
+      "values": {
+        "crystal_shard": 0.359,
+        "streams_of_silver": 0.321,
+        "halflings_gem": 0.286
+      },
+      "spread": 0.073,
+      "min_book": "halflings_gem",
+      "max_book": "crystal_shard"
+    },
+    "chunk_bucket_share_long": {
+      "values": {
+        "crystal_shard": 0.088,
+        "streams_of_silver": 0.065,
+        "halflings_gem": 0.036
+      },
+      "spread": 0.052,
+      "min_book": "halflings_gem",
+      "max_book": "crystal_shard"
+    },
+    "dialogue_kind_shape_share_rapid": {
+      "values": {
+        "crystal_shard": 0.455,
+        "streams_of_silver": 0.625,
+        "halflings_gem": 0.681
+      },
+      "spread": 0.226,
+      "min_book": "crystal_shard",
+      "max_book": "halflings_gem"
+    },
+    "dialogue_kind_shape_share_monologue": {
+      "values": {
+        "crystal_shard": 0.033,
+        "streams_of_silver": 0.035,
+        "halflings_gem": 0.014
+      },
+      "spread": 0.021,
+      "min_book": "halflings_gem",
+      "max_book": "streams_of_silver"
+    },
+    "dialogue_kind_shape_share_mixed": {
+      "values": {
+        "crystal_shard": 0.512,
+        "streams_of_silver": 0.34,
+        "halflings_gem": 0.305
+      },
+      "spread": 0.207,
+      "min_book": "halflings_gem",
+      "max_book": "crystal_shard"
+    },
+    "dialogue_kind_shape_share_no_quotes": {
+      "values": {
+        "crystal_shard": 0.0,
+        "streams_of_silver": 0.0,
+        "halflings_gem": 0.0
+      },
+      "spread": 0.0,
+      "min_book": "crystal_shard",
+      "max_book": "crystal_shard"
+    },
+    "avg_chunks_per_dialogue_beat_zero_padded": {
+      "values": {
+        "crystal_shard": 4.88,
+        "streams_of_silver": 6.266,
+        "halflings_gem": 6.337
+      },
+      "spread": 1.457,
+      "min_book": "crystal_shard",
+      "max_book": "halflings_gem"
+    }
+  },
+  "notable_monologue_examples": {
+    "crystal_shard": [
+      {
+        "chapter": 11,
+        "beat_idx": 1,
+        "words": 138,
+        "text_head": "and ye're lucky enough to live long and feel the  strength of the earth, ye'll find a special day. A special blessin' - some would say a cur..."
+      },
+      {
+        "chapter": 5,
+        "beat_idx": 9,
+        "words": 112,
+        "text_head": "But it is there - I see it clearly and know the legend of such a stone. Regis may be able to influence the council more than you would belie..."
+      },
+      {
+        "chapter": 22,
+        "beat_idx": 3,
+        "words": 98,
+        "text_head": "I am Wulfgar, son of Beornegar, warrior of the Tribe of the Elk. I was lost to you five years ago, when we marched upon Ten-Towns he explain..."
+      },
+      {
+        "chapter": 28,
+        "beat_idx": 12,
+        "words": 88,
+        "text_head": "My job was merely to prevent you. from taking any action against Bryn Shander before the fall of night,  for the orcs shall return before da..."
+      },
+      {
+        "chapter": 5,
+        "beat_idx": 3,
+        "words": 87,
+        "text_head": " Drizzt humored. In the few years that he and Bruenor had been friends, the dwarf had constantly badgered Drizzt about accompanying him on h..."
+      }
+    ],
+    "streams_of_silver": [
+      {
+        "chapter": 8,
+        "beat_idx": 32,
+        "words": 124,
+        "text_head": "And this is the true advice that I shall give to you: Do not be blinded to the possibilities along the road by the hopeful vision at the roa..."
+      },
+      {
+        "chapter": 14,
+        "beat_idx": 19,
+        "words": 97,
+        "text_head": "But I did not want my actions to interfere with your most noble quest. I have perused the vault myself. You cannot imagine its size! You wou..."
+      },
+      {
+        "chapter": 16,
+        "beat_idx": 25,
+        "words": 96,
+        "text_head": "Garumn of Mithral Hall was determined to keep the location of his trove hidden from the greed of the outside world. He and Elmor of Settlest..."
+      },
+      {
+        "chapter": 14,
+        "beat_idx": 20,
+        "words": 90,
+        "text_head": "Mithral Hall came and went in the knowledge of this world in the flash of an eye. Barely three generations of dwarves ever mined the place, ..."
+      },
+      {
+        "chapter": 14,
+        "beat_idx": 19,
+        "words": 83,
+        "text_head": "But you will learn little from King Harbromm and the dwarves of Adbar. They themselves undertook the quest to find the ancient homeland of B..."
+      }
+    ],
+    "halflings_gem": [
+      {
+        "chapter": 7,
+        "beat_idx": 6,
+        "words": 84,
+        "text_head": "Your friends think you dead, to their ultimate grief. But I am a wizard of some talent, and can speak to worlds that oft bring surprising re..."
+      },
+      {
+        "chapter": 25,
+        "beat_idx": 1,
+        "words": 80,
+        "text_head": "And by yerself. Rumblebelly said it himself: There's wealth to be taken here. Pook's gone, and it's to be grab-as-grab-can. And that Entreri..."
+      },
+      {
+        "chapter": 9,
+        "beat_idx": 3,
+        "words": 64,
+        "text_head": "Pirates running the waters north of Baldur's Gate respect the banner of Waterdeep above all others, and those south of here take care not to..."
+      },
+      {
+        "chapter": 1,
+        "beat_idx": 1,
+        "words": 62,
+        "text_head": "A horse cannot match the speed of a sailing ship, and the sea route is straighter than the road. So take to the sea, is my advice. Perhaps I..."
+      },
+      {
+        "chapter": 1,
+        "beat_idx": 14,
+        "words": 61,
+        "text_head": "For whatever we do in our lives, discipline and control over our own actions ultimately measure the level of our success. The boy has high a..."
+      }
+    ]
+  },
+  "stability_table": [
+    {
+      "metric": "chunks_per_beat_corpus_avg",
+      "spread": 1.057
+    },
+    {
+      "metric": "fraction_beats_with_quotes",
+      "spread": 0.12
+    },
+    {
+      "metric": "chunk_bucket_share_short",
+      "spread": 0.125,
+      "verdict": "drift"
+    },
+    {
+      "metric": "chunk_bucket_share_medium",
+      "spread": 0.073,
+      "verdict": "moderate"
+    },
+    {
+      "metric": "chunk_bucket_share_long",
+      "spread": 0.052,
+      "verdict": "moderate"
+    },
+    {
+      "metric": "dialogue_kind_shape_share_rapid",
+      "spread": 0.226,
+      "verdict": "drift"
+    },
+    {
+      "metric": "dialogue_kind_shape_share_monologue",
+      "spread": 0.021,
+      "verdict": "stable"
+    },
+    {
+      "metric": "dialogue_kind_shape_share_mixed",
+      "spread": 0.207,
+      "verdict": "drift"
+    },
+    {
+      "metric": "dialogue_kind_shape_share_no_quotes",
+      "spread": 0.0,
+      "verdict": "stable"
+    },
+    {
+      "metric": "avg_chunks_per_dialogue_beat_zero_padded",
+      "spread": 1.457
+    }
+  ]
+}
