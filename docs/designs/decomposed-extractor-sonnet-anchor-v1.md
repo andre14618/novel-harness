@@ -1,15 +1,16 @@
 ---
-status: draft (RED on R1 — pivoting per cheaper-counterfactual recommendation)
+status: draft revision 2 (cheapest-counterfactual ran 2026-04-30; results extend the architecture rather than collapse it)
 kind: corpus-pipeline-architecture
 name: decomposed-extractor-sonnet-anchor-v1
 owner: andre
 date: 2026-04-29
-revision: 1
+revision: 2
 supersedes-shape: monolithic per-dim Flash extractor + Pro judge calibration (R7 charter v1)
 parent-context: docs/charters/corpus-structural-decomposition-v1.md (R7), novels/salvatore-icewind-dale/structure-calibration/crystal_shard-conclusions.md
 adversary-verdict:
   R1-design: RED (codex:codex-rescue gpt-5.5 effort=high, agent a9e006dd5bf8d407b, 2026-04-29) — 5 blockers, 3 warnings, named cheapest counterfactual: "Run the current monolithic mice and promise extractors against a Sonnet anchor on one frozen 50-scene sample, plus a close-criteria-only mice prompt sharpen." Recommended action: RUN CHEAPER COUNTERFACTUAL.
   R1-findings: RED (codex:codex-rescue gpt-5.5 effort=high, agent a73cbe165ff62ef4a, 2026-04-29) — review of the conclusions doc this design responds to; 5 blockers, 5 warnings, named cheapest counterfactual: "Judge-stability micro-pilot: rerun the promise judge twice at T=0 with a tightened rubric on a 20-row sample, plus one Sonnet pass on the same rows and manual adjudication of 5 disagreements." Recommended action: RUN CHEAPER COUNTERFACTUAL.
+  R2-counterfactual: COMPLETED 2026-04-30 (subagent path, no API spend per user direction). See "Counterfactual results + failure-mode distinction" section below. Both Codex hypotheses (cross-family Sonnet anchor lifts F1 past gate; a stable monolithic shape was achievable) were disconfirmed. The pivot recommendation justified the v2 decomposition for mice. Promise revealed a SECOND failure mode (recall-density drift) that requires a different v2 response than mice (boundary-latitude flip).
 related:
   - docs/decisions.md (decisions log; companion entry on this pivot lands at the same time as this doc)
   - src/agents/structure-mice/mice-system-v2-draft.md (close-criteria ARE re-usable as sub-rubrics)
@@ -282,3 +283,71 @@ This experiment costs ~$3–5 total per book. If it lands the answer, the v2 arc
 Tracking: this experiment supersedes the original "Implementation order step 1" and is the single gate before any architecture decision. R2 of this doc will either:
 - Restate v2 with the experiment results justifying decomposition where it's needed (and dropping it where prompt-only fixes worked), OR
 - Supersede this doc with a much shorter "swap judge to Sonnet, sharpen close-criteria where needed" design.
+
+---
+
+## Counterfactual results + failure-mode distinction (added 2026-04-30 R2)
+
+The cheapest-counterfactual experiment ran on the night of 2026-04-29/30 via Sonnet subagents (no API spend per user direction). Mice ran end-to-end: 8 subagents (4 batches × 2 runs), 30 unique scenes after dedup-of-retest-pool. Promise ran the second-Sonnet-pass + Sonnet pair-matcher legs.
+
+### Mice — boundary-latitude failure
+
+**Sonnet self-consistency (run-1 × run-2, n=30):**
+- `primary_thread` per-field agreement: **0.800** (24/30)
+- `primary_thread` discrete-tuple **Jaccard: 0.667** — BELOW the 0.70 anchor-usable floor
+- Confusion matrix concentrates on the C↔E boundary: 4 of 6 cross-run disagreements are scenes where one Sonnet run says Character-thread-dominates and the other says Event-thread-dominates. M is unambiguous (5/5 = 100%).
+
+**Flash × Sonnet binary "thread fired" F1:**
+- vs Sonnet run-1: 0.800
+- vs Sonnet run-2: 0.714
+- Mean: 0.757; range: 0.714–0.800; **the 0.78 PASS gate falls inside the range.**
+
+**Implication for v2:** decomposition into 4 binary sub-calls (M / I / C / E each Y/N) is the correct response. Each sub-call has a tighter cognitive scope than "pick the dominant of four" — the C↔E latitude problem is a 2-class boundary that decomposes into "is this scene-C-bearing? Y/N" and "is this scene-E-bearing? Y/N," which are answered by different evidence. The sub-call hypothesis: each binary clears 0.85 self-consistency where the monolithic 4-way doesn't. **Test that hypothesis before any extractor calibration; treat it as the load-bearing v2 gate for mice.**
+
+### Promise — recall-density failure (DIFFERENT FAILURE MODE)
+
+**Sonnet promise R1 × R2 pair-matcher (subagent, recomputed from matched array):**
+- Run-1 size: 38 promises (this is the C.1 baseline)
+- Run-2 size: 66 promises (run on identical prompts, in this counterfactual round)
+- Shared (1:1 paired): **37 of 38** = 97.4% of run-1
+- R1-only: 1
+- R2-only: 29
+- **Jaccard: 0.552**
+
+**Sonnet R1 is a 97%-subset of Sonnet R2.** The instability is asymmetric: run-2 is going DEEPER on the same authorial commitments run-1 found, plus 29 additional ones. R1-only is a single promise. The disagreement is overwhelmingly "how exhaustive is my search for promises" — recall-density drift, not classification flip.
+
+**Implication for v2:** sub-dim splitting alone is insufficient for promise. The recall-density problem is orthogonal to the latitude problem mice has. A sub-dim like `arc-promise` (close ≥5 chapters out, explicit obligation only) bounds the recall density by definition — promises that don't meet the close-distance criterion are excluded by rubric. But within `arc-promise`'s eligible set, run-1 vs run-2 will still likely show the same near-subset shape unless we also ENSEMBLE.
+
+**v2 response for promise (revised):**
+1. Split into `arc-promise` (close ≥5 chapters out, explicit obligation) and `setup-payoff-bridge` (close ≤3 chapters out, Chekhov-bridge shape) as previously specified — depth bounds reduce the recall-density variance per sub-dim.
+2. **Add ensemble-of-3 anchor for each sub-dim**: 3 Sonnet runs at independent inference, union via the same V4 Pro / Sonnet pair-matcher logic. Each run is a sub-set of the union; the union approaches the "true" set as N grows. The N=3 floor is from C.2 logic (judge needs to converge before extractor calibrates against it).
+3. Self-consistency Jaccard ≥ 0.85 measured **after** the ensemble union (i.e., does ensemble-3-run-A vs ensemble-3-run-B converge?), not on single runs. Single-run gate fails by design for recall-density-drifting dims; the ensemble-union shape is the right gate target.
+
+### Failure-mode-aware v2 architecture (revised)
+
+| Dim | Failure mode (from counterfactual) | v2 response |
+|---|---|---|
+| mice | Boundary latitude (C↔E flip, 6/30) | 4 parallel binary sub-calls (M/I/C/E each Y/N); preflight gate per sub-call |
+| promise | Recall-density drift (97% near-subset) | Sub-dim depth-bound (arc / bridge) + ensemble-of-3 anchor; preflight on ensemble convergence |
+| value-charge | TBD — counterfactual not yet run | Likely boundary-latitude on polarity (`+` / `0` / `−`); plan: same shape as mice (3 binary sub-calls) |
+| mckee-gap | TBD — counterfactual not yet run | Per-field enums (`gap_size` 4-class, `gap_type` 6-class) below gate already; likely boundary-latitude per category |
+| character-arcs | N/A — CELL PASS F1=1.00 shipped | Unchanged |
+
+### What this preserves from the original v2 design
+
+- The Sonnet anchor remains the right family (independent of DeepSeek; recall-permissive; validated as a higher ceiling than Pro).
+- The Sonnet self-consistency Jaccard ≥ 0.85 preflight is **validated as load-bearing** by this experiment — it caught the monolithic-mice instability before any extractor calibration ran. Adopt as hard preflight per dim (or per-sub-dim post-decomposition).
+- The decomposition strategy for mice is corroborated.
+
+### What this changes from the original v2 design
+
+- The original doc treated the preflight as a single gate ("Sonnet self-consistency ≥ 0.85 OR re-scope"). The counterfactual shows two distinct failure modes that need different responses. Update §"Decisions" and §"Measurement plan" in the next revision.
+- Promise needs an ensemble-of-3 path layered on top of sub-dim splitting. Cost projection rises ~3× for promise specifically (still bounded by the ~$10–15 incremental crystal_shard rerun budget).
+- Value-charge and mckee-gap counterfactuals not yet run — but the failure-mode distinction means we should run their counterfactuals before committing to either decomposition or ensemble for them.
+
+### Status
+
+- **Mice:** v2 architecture (4 binary sub-calls + per-sub-call self-consistency check) is the next concrete experiment. Prepare the binary sub-prompts; dispatch via Sonnet subagents.
+- **Promise:** sub-dim depth-bound + ensemble-of-3 path needs to be drafted. The original `arc-promise` / `setup-payoff-bridge` split holds; ensemble layer is new.
+- **Value-charge / mckee-gap:** run the counterfactual first (Sonnet × 2 runs on a frozen sample) before committing to either response. Cost ~$0 (subagent path).
+- **Doc revision:** the Decisions / Measurement plan / Implementation order sections of this doc reflect the original single-failure-mode framing and need a coherent rewrite under the dual-failure-mode lens. Land that as revision 3 once the binary-sub-call mice test runs.
