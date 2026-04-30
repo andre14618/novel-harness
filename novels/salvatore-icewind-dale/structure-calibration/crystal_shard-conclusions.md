@@ -2916,3 +2916,145 @@ This is **complementary to Pattern 30**, not redundant. P30 says "dialogue-kind 
 
 ---
 
+
+
+## Session 2026-04-30T12:29:06.658Z — Pattern 28: Setup-to-payoff distance distribution (3-book)
+
+### Methodology
+
+Pattern 28 from the corpus pattern catalog. Defensive 3-stage design per task brief:
+
+1. **Calibration** — n=50 random beats per book (deterministic hash-sampled, salt `calibration_v1`) × 2 runs of the binary "is this a setup that pays off in a later chapter" tag at T=0. Measure per-book and aggregate Jaccard on the positive set. **PASS gate: per-book min J ≥ 0.70.** If FAIL, stop and report setup-density only.
+2. **Full setup labels** — every beat (n=2470) tagged via the same prompt. Always run regardless of calibration verdict (still useful as setup-density planner prior).
+3. **Payoff matching** — only if calibration PASS and `--skip-pairs` not set. For each high/medium-confidence setup, send the setup beat plus up to 60 chronologically-sampled later candidates from the SAME book to the LLM; ask it to pick the closest matching payoff beat_id or null.
+
+Provider: DeepSeek V4 Flash, `thinking: disabled`, T=0, `response_format: json_object`. Cost cap $5; actual ≈ $1.26 on this run.
+
+### Calibration result
+
+| Book | n | Jaccard (run1↔run2) | run1 positives | run2 positives | Agreement |
+|---|---:|---:|---:|---:|---:|
+| crystal_shard | 50 | 0.895 | 17 | 19 | 48/50 |
+| streams_of_silver | 50 | 0.800 | 20 | 25 | 45/50 |
+| halflings_gem | 50 | 0.885 | 23 | 26 | 47/50 |
+
+Aggregate J across 3 books: **0.857**.
+
+
+**Setup density (full pass, every beat tagged):**
+
+| Book | Total beats | Setup beats | Setup rate |
+|---|---:|---:|---:|
+| crystal_shard | 858 | 370 | 43.1% |
+| streams_of_silver | 786 | 320 | 40.7% |
+| halflings_gem | 826 | 318 | 38.5% |
+
+
+**Payoff distance (chapters between setup and matched payoff):**
+
+| Book | Matched | Match rate | Median | Mean | Max | 0 / 1–3 / 4–9 / 10+ |
+|---|---|---:|---:|---:|---:|---|
+| crystal_shard | 333/370 | 90.0% | 1 | 123.84 | 9982 | 126/90/56/61 |
+| streams_of_silver | 276/320 | 86.3% | 2 | 328.76 | 9995 | 107/83/48/38 |
+| halflings_gem | 258/318 | 81.1% | 2 | 428.84 | 9997 | 88/90/42/38 |
+| **aggregate** | 867/1008 | 86.0% | 2 | 279.84 | 9997 | 321/263/146/137 |
+
+
+### Conclusion + Action
+
+**Calibration PASS** (per-book min J = 0.800 ≥ 0.70 threshold). The binary "is this a setup" tag is sufficiently stable to ship.
+
+**Payoff distance signal.** Aggregate match rate 86.0% (matched 867/1008 setups). Aggregate median distance 2 chapters; mean 279.84; max 9997. Distribution shape: 321 same-chapter / 263 near (1–3 ch) / 146 mid (4–9 ch) / 137 far (10+ ch). Per-book directional verdict requires reading the table above — match-rate stability across the 3 books is the stronger signal than absolute distance values, since the labeler has known noise on payoff identification.
+
+**Methodological caveats** (per the task brief):
+- **Pair-identification noise is the dominant risk.** Even at calibration PASS on the binary, the payoff-matching step is fundamentally harder because each LLM call must hold the planted clause in mind and scan up to 60 candidate summaries for a soft semantic match. Match-rate < 100% means the labeler said "no payoff in candidate list" for some setups — could be genuine open threads (series hooks) or labeler failure.
+- **Anchor stability degrades with class count.** This run keeps the binary at the calibration-anchor level and reports raw chapter distance as a number rather than bucketing into 3+ classes. The 0 / 1–3 / 4–9 / 10+ buckets in the table are aggregation-only and do not have anchor-stability measurement.
+- **Setup density is a defensible planner prior even if pair-matching is unstable.** Use the setup-rate per book as the cross-book directional check.
+
+**Harness target.** If signal is stable across books, this becomes a per-chapter setup-density prior in `src/agents/planning-beats/beat-expansion-system.md` ("typically 30–50% of beats per chapter plant something that pays off later in the book"). The distance distribution informs how the chapter-skeleton plotter should think about how far ahead to plant — but only ships as a planner constraint after the pair-identification step is validated against a Sonnet anchor (next experiment, deferred).
+
+### Cost ledger
+
+- Calibration: 225,886 input / 10,116 output
+- Full setup: 1,849,206 input / 81,224 output
+- Payoff: 6,606,674 input / 58,896 output
+- **Approx total: $1.26** ($0.14/M input, $0.28/M output)
+- Wallclock: 12.4 min
+
+### Artifacts
+
+`crystal_shard.20260430T122906.setup-payoff-distance.json` — full payload (calibration runs, setup labels, payoff pairs, density + distance summaries).
+
+---
+
+
+## 2026-04-30 — Pattern 33 (Conflict resolution latency, P18 follow-up)
+
+### Methodology
+
+For each adjacent chapter pair (N, N+1) within each Icewind Dale book where `primary_conflict_N != primary_conflict_{N+1}` (rotation pair, per the P18 conflict-type taxonomy at `crystal_shard.20260430T115702.conflict-type-taxonomy.json`), characterize how the chapter-N primary conflict landed at the chapter break.
+
+**Label taxonomy.** Three-way: `resolved` (chapter closed it), `transitioned` (same antagonism took a new shape, e.g. combat → diplomacy), `paused` (off-stage cut, prior conflict simply absent from chapter N+1's foreground).
+
+**Input.** For each pair, the model was given chapter N's last 3 beats (summary + last_sentence) and chapter N+1's first 2 beats (summary + first_sentence). Provider: DeepSeek V4 Flash, temperature 0, JSON mode, thinking disabled.
+
+**Calibration.** Sample n=10 evenly-distributed rotation pairs across the 3 books, run DeepSeek twice (two independent API calls). Ship gate: macro-Jaccard >= 0.7 on the 3-way label, falling back to binary on failure.
+
+| Metric | Value |
+|---|---|
+| 3-way macro-Jaccard | 1.000 |
+| 3-way exact-agreement | 10/10 (100.0%) |
+| Per-label Jaccard | resolved 1.000, transitioned 1.000, paused 1.000 |
+| 3-way verdict | **PASS** |
+
+
+**Mode used for full pass:** `3-way` (J=1.000).
+
+### Pair counts
+
+- Total chapter pairs (within-book, adjacent): 89 (92 chapters − 3 first-of-book entries)
+- Same-conflict pairs (skipped — no boundary): 40
+- Rotation pairs (labeled): 49 (cs=18 / ss=14 / hg=17)
+
+### Aggregate distribution
+
+- All books: resolved 40.8% / transitioned 4.1% / paused 55.1% (n=49)
+- crystal_shard: resolved 55.6% / transitioned 5.6% / paused 38.9% (n=18)
+- streams_of_silver: resolved 35.7% / transitioned 0.0% / paused 64.3% (n=14)
+- halflings_gem: resolved 29.4% / transitioned 5.9% / paused 64.7% (n=17)
+
+### Distribution by chapter-N primary conflict type
+
+| chN primary conflict | n | resolved % / transitioned % / paused % |
+|---|---:|---|
+| external-physical | 17 | 52.9% / 0.0% / 47.1% |
+| external-cosmic | 6 | 33.3% / 16.7% / 50.0% |
+| interpersonal | 16 | 31.3% / 6.3% / 62.5% |
+| internal | 10 | 40.0% / 0.0% / 60.0% |
+
+### Cross-book directional verdict
+
+Resolved-rate per book: crystal_shard 55.56%, streams_of_silver 35.71%, halflings_gem 29.41% — range 26.2pt — **DIVERGES** vs the 15pt threshold.
+
+3-way modal across all 3 books: paused (55.1%). Per-book resolved-rate cs=55.56%, ss=35.71%, hg=29.41% (range 26.2pt; diverges). Per-book transitioned-rate cs=5.6%, ss=0.0%, hg=5.9%. Per-book paused-rate cs=38.9%, ss=64.3%, hg=64.7%.
+
+### Conclusion + Action
+
+**Cross-book directional split.** Resolved-rate varies by 26.2pt across the 3 books, which exceeds the 15pt stability threshold; the signal does NOT collapse to a uniform planner prior.
+
+**Harness target:**
+
+- Per-book resolved-rate range exceeds 15pt; the latency signal does **not** ship as a uniform planner prior. The directional split is real corpus information for a future analysis (e.g., book-position-aware variants), but does not yield a single number to encode.
+
+This pattern is **complementary to P18** (which characterizes the conflict TYPE per chapter) — P33 characterizes how each rotation BOUNDARY behaves. Together: P18 says "what kind of conflict drives chapter N", P33 says "how the chapter-N conflict lands when the next chapter opens with a different conflict".
+
+### Cost & telemetry
+
+- 59 LLM calls (20 calibration / 39 residual)
+- $0.0090 total cost (cap $1.00)
+- 58052 prompt tokens / 2940 completion tokens
+
+Artifact: `crystal_shard.20260430T124221.conflict-resolution-latency.json`
+Script: `scripts/structure-calibration/conflict-resolution-latency.ts`
+
+---
