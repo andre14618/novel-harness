@@ -1,0 +1,899 @@
+{
+  "computed_at": "20260430T030038",
+  "source": "pairs.jsonl \u2014 brief.kind field. action={action,stakes_recalibration}, reflective={interiority,description}.",
+  "dim": "tension_curve_pacing",
+  "by_book": {
+    "crystal_shard": {
+      "book": "crystal_shard",
+      "total_narrative_chapters": 30,
+      "overall_mean_action_density": 0.3147,
+      "first_half_mean_action_density": 0.2456,
+      "second_half_mean_action_density": 0.3838,
+      "final_20pct_mean_action_density": 0.3402,
+      "top_action_chapters": [
+        {
+          "chapter": "8",
+          "action_density": 0.7143
+        },
+        {
+          "chapter": "17",
+          "action_density": 0.6552
+        },
+        {
+          "chapter": "18",
+          "action_density": 0.6481
+        },
+        {
+          "chapter": "11",
+          "action_density": 0.6
+        },
+        {
+          "chapter": "22",
+          "action_density": 0.5312
+        }
+      ],
+      "smoothed_action_curve_w5": [
+        0.1592,
+        0.2266,
+        0.1813,
+        0.1977,
+        0.2061,
+        0.3089,
+        0.2232,
+        0.2816,
+        0.3641,
+        0.3647,
+        0.24,
+        0.2764,
+        0.274,
+        0.2305,
+        0.3181,
+        0.4295,
+        0.4552,
+        0.4075,
+        0.4311,
+        0.4063,
+        0.3683,
+        0.3441,
+        0.4191,
+        0.3762,
+        0.3063,
+        0.2378,
+        0.3045,
+        0.3249,
+        0.3347,
+        0.3857
+      ],
+      "per_chapter": [
+        {
+          "chapter": "1",
+          "beat_count": 19,
+          "action_beats": 2,
+          "reflective_beats": 10,
+          "dialogue_beats": 7,
+          "action_density": 0.1053,
+          "reflective_density": 0.5263
+        },
+        {
+          "chapter": "2",
+          "beat_count": 29,
+          "action_beats": 5,
+          "reflective_beats": 21,
+          "dialogue_beats": 3,
+          "action_density": 0.1724,
+          "reflective_density": 0.7241
+        },
+        {
+          "chapter": "3",
+          "beat_count": 25,
+          "action_beats": 5,
+          "reflective_beats": 12,
+          "dialogue_beats": 8,
+          "action_density": 0.2,
+          "reflective_density": 0.48
+        },
+        {
+          "chapter": "4",
+          "beat_count": 21,
+          "action_beats": 9,
+          "reflective_beats": 12,
+          "dialogue_beats": 0,
+          "action_density": 0.4286,
+          "reflective_density": 0.5714
+        },
+        {
+          "chapter": "5",
+          "beat_count": 11,
+          "action_beats": 0,
+          "reflective_beats": 3,
+          "dialogue_beats": 8,
+          "action_density": 0.0,
+          "reflective_density": 0.2727
+        },
+        {
+          "chapter": "6",
+          "beat_count": 16,
+          "action_beats": 3,
+          "reflective_beats": 8,
+          "dialogue_beats": 5,
+          "action_density": 0.1875,
+          "reflective_density": 0.5
+        },
+        {
+          "chapter": "7",
+          "beat_count": 28,
+          "action_beats": 6,
+          "reflective_beats": 15,
+          "dialogue_beats": 7,
+          "action_density": 0.2143,
+          "reflective_density": 0.5357
+        },
+        {
+          "chapter": "8",
+          "beat_count": 35,
+          "action_beats": 25,
+          "reflective_beats": 6,
+          "dialogue_beats": 4,
+          "action_density": 0.7143,
+          "reflective_density": 0.1714
+        },
+        {
+          "chapter": "9",
+          "beat_count": 13,
+          "action_beats": 0,
+          "reflective_beats": 13,
+          "dialogue_beats": 0,
+          "action_density": 0.0,
+          "reflective_density": 1.0
+        },
+        {
+          "chapter": "10",
+          "beat_count": 24,
+          "action_beats": 7,
+          "reflective_beats": 14,
+          "dialogue_beats": 3,
+          "action_density": 0.2917,
+          "reflective_density": 0.5833
+        },
+        {
+          "chapter": "11",
+          "beat_count": 20,
+          "action_beats": 12,
+          "reflective_beats": 7,
+          "dialogue_beats": 1,
+          "action_density": 0.6,
+          "reflective_density": 0.35
+        },
+        {
+          "chapter": "12",
+          "beat_count": 23,
+          "action_beats": 5,
+          "reflective_beats": 3,
+          "dialogue_beats": 15,
+          "action_density": 0.2174,
+          "reflective_density": 0.1304
+        },
+        {
+          "chapter": "13",
+          "beat_count": 11,
+          "action_beats": 1,
+          "reflective_beats": 4,
+          "dialogue_beats": 6,
+          "action_density": 0.0909,
+          "reflective_density": 0.3636
+        },
+        {
+          "chapter": "14",
+          "beat_count": 22,
+          "action_beats": 4,
+          "reflective_beats": 11,
+          "dialogue_beats": 7,
+          "action_density": 0.1818,
+          "reflective_density": 0.5
+        },
+        {
+          "chapter": "15",
+          "beat_count": 25,
+          "action_beats": 7,
+          "reflective_beats": 11,
+          "dialogue_beats": 7,
+          "action_density": 0.28,
+          "reflective_density": 0.44
+        },
+        {
+          "chapter": "16",
+          "beat_count": 34,
+          "action_beats": 13,
+          "reflective_beats": 5,
+          "dialogue_beats": 16,
+          "action_density": 0.3824,
+          "reflective_density": 0.1471
+        },
+        {
+          "chapter": "17",
+          "beat_count": 29,
+          "action_beats": 19,
+          "reflective_beats": 3,
+          "dialogue_beats": 7,
+          "action_density": 0.6552,
+          "reflective_density": 0.1034
+        },
+        {
+          "chapter": "18",
+          "beat_count": 54,
+          "action_beats": 35,
+          "reflective_beats": 5,
+          "dialogue_beats": 14,
+          "action_density": 0.6481,
+          "reflective_density": 0.0926
+        },
+        {
+          "chapter": "19",
+          "beat_count": 29,
+          "action_beats": 9,
+          "reflective_beats": 7,
+          "dialogue_beats": 13,
+          "action_density": 0.3103,
+          "reflective_density": 0.2414
+        },
+        {
+          "chapter": "20",
+          "beat_count": 24,
+          "action_beats": 1,
+          "reflective_beats": 13,
+          "dialogue_beats": 10,
+          "action_density": 0.0417,
+          "reflective_density": 0.5417
+        },
+        {
+          "chapter": "21",
+          "beat_count": 26,
+          "action_beats": 13,
+          "reflective_beats": 12,
+          "dialogue_beats": 1,
+          "action_density": 0.5,
+          "reflective_density": 0.4615
+        },
+        {
+          "chapter": "22",
+          "beat_count": 32,
+          "action_beats": 17,
+          "reflective_beats": 4,
+          "dialogue_beats": 11,
+          "action_density": 0.5312,
+          "reflective_density": 0.125
+        },
+        {
+          "chapter": "23",
+          "beat_count": 24,
+          "action_beats": 11,
+          "reflective_beats": 9,
+          "dialogue_beats": 4,
+          "action_density": 0.4583,
+          "reflective_density": 0.375
+        },
+        {
+          "chapter": "24",
+          "beat_count": 37,
+          "action_beats": 7,
+          "reflective_beats": 17,
+          "dialogue_beats": 13,
+          "action_density": 0.1892,
+          "reflective_density": 0.4595
+        },
+        {
+          "chapter": "25",
+          "beat_count": 24,
+          "action_beats": 10,
+          "reflective_beats": 7,
+          "dialogue_beats": 7,
+          "action_density": 0.4167,
+          "reflective_density": 0.2917
+        },
+        {
+          "chapter": "26",
+          "beat_count": 7,
+          "action_beats": 2,
+          "reflective_beats": 2,
+          "dialogue_beats": 3,
+          "action_density": 0.2857,
+          "reflective_density": 0.2857
+        },
+        {
+          "chapter": "27",
+          "beat_count": 22,
+          "action_beats": 4,
+          "reflective_beats": 10,
+          "dialogue_beats": 8,
+          "action_density": 0.1818,
+          "reflective_density": 0.4545
+        },
+        {
+          "chapter": "28",
+          "beat_count": 26,
+          "action_beats": 3,
+          "reflective_beats": 12,
+          "dialogue_beats": 11,
+          "action_density": 0.1154,
+          "reflective_density": 0.4615
+        },
+        {
+          "chapter": "29",
+          "beat_count": 44,
+          "action_beats": 23,
+          "reflective_beats": 13,
+          "dialogue_beats": 8,
+          "action_density": 0.5227,
+          "reflective_density": 0.2955
+        },
+        {
+          "chapter": "30",
+          "beat_count": 79,
+          "action_beats": 41,
+          "reflective_beats": 18,
+          "dialogue_beats": 20,
+          "action_density": 0.519,
+          "reflective_density": 0.2278
+        }
+      ]
+    },
+    "streams_of_silver": {
+      "book": "streams_of_silver",
+      "total_narrative_chapters": 24,
+      "overall_mean_action_density": 0.3501,
+      "first_half_mean_action_density": 0.3197,
+      "second_half_mean_action_density": 0.3805,
+      "final_20pct_mean_action_density": 0.4654,
+      "top_action_chapters": [
+        {
+          "chapter": "22",
+          "action_density": 0.6341
+        },
+        {
+          "chapter": "12",
+          "action_density": 0.5897
+        },
+        {
+          "chapter": "23",
+          "action_density": 0.5897
+        },
+        {
+          "chapter": "13",
+          "action_density": 0.48
+        },
+        {
+          "chapter": "6",
+          "action_density": 0.475
+        }
+      ],
+      "smoothed_action_curve_w5": [
+        0.2986,
+        0.2681,
+        0.2878,
+        0.3108,
+        0.3549,
+        0.3506,
+        0.3577,
+        0.3455,
+        0.2665,
+        0.2975,
+        0.3335,
+        0.3092,
+        0.3181,
+        0.354,
+        0.311,
+        0.2633,
+        0.3335,
+        0.3338,
+        0.34,
+        0.3918,
+        0.4615,
+        0.4654,
+        0.4939,
+        0.5618
+      ],
+      "per_chapter": [
+        {
+          "chapter": "1",
+          "beat_count": 25,
+          "action_beats": 9,
+          "reflective_beats": 10,
+          "dialogue_beats": 6,
+          "action_density": 0.36,
+          "reflective_density": 0.4
+        },
+        {
+          "chapter": "2",
+          "beat_count": 28,
+          "action_beats": 6,
+          "reflective_beats": 11,
+          "dialogue_beats": 11,
+          "action_density": 0.2143,
+          "reflective_density": 0.3929
+        },
+        {
+          "chapter": "3",
+          "beat_count": 28,
+          "action_beats": 9,
+          "reflective_beats": 7,
+          "dialogue_beats": 12,
+          "action_density": 0.3214,
+          "reflective_density": 0.25
+        },
+        {
+          "chapter": "4",
+          "beat_count": 34,
+          "action_beats": 6,
+          "reflective_beats": 14,
+          "dialogue_beats": 14,
+          "action_density": 0.1765,
+          "reflective_density": 0.4118
+        },
+        {
+          "chapter": "5",
+          "beat_count": 30,
+          "action_beats": 11,
+          "reflective_beats": 7,
+          "dialogue_beats": 12,
+          "action_density": 0.3667,
+          "reflective_density": 0.2333
+        },
+        {
+          "chapter": "6",
+          "beat_count": 40,
+          "action_beats": 19,
+          "reflective_beats": 11,
+          "dialogue_beats": 10,
+          "action_density": 0.475,
+          "reflective_density": 0.275
+        },
+        {
+          "chapter": "7",
+          "beat_count": 23,
+          "action_beats": 10,
+          "reflective_beats": 4,
+          "dialogue_beats": 9,
+          "action_density": 0.4348,
+          "reflective_density": 0.1739
+        },
+        {
+          "chapter": "8",
+          "beat_count": 40,
+          "action_beats": 12,
+          "reflective_beats": 9,
+          "dialogue_beats": 19,
+          "action_density": 0.3,
+          "reflective_density": 0.225
+        },
+        {
+          "chapter": "9",
+          "beat_count": 33,
+          "action_beats": 7,
+          "reflective_beats": 10,
+          "dialogue_beats": 16,
+          "action_density": 0.2121,
+          "reflective_density": 0.303
+        },
+        {
+          "chapter": "10",
+          "beat_count": 36,
+          "action_beats": 11,
+          "reflective_beats": 17,
+          "dialogue_beats": 8,
+          "action_density": 0.3056,
+          "reflective_density": 0.4722
+        },
+        {
+          "chapter": "11",
+          "beat_count": 25,
+          "action_beats": 2,
+          "reflective_beats": 12,
+          "dialogue_beats": 11,
+          "action_density": 0.08,
+          "reflective_density": 0.48
+        },
+        {
+          "chapter": "12",
+          "beat_count": 39,
+          "action_beats": 23,
+          "reflective_beats": 12,
+          "dialogue_beats": 4,
+          "action_density": 0.5897,
+          "reflective_density": 0.3077
+        },
+        {
+          "chapter": "13",
+          "beat_count": 25,
+          "action_beats": 12,
+          "reflective_beats": 8,
+          "dialogue_beats": 5,
+          "action_density": 0.48,
+          "reflective_density": 0.32
+        },
+        {
+          "chapter": "14",
+          "beat_count": 22,
+          "action_beats": 2,
+          "reflective_beats": 7,
+          "dialogue_beats": 13,
+          "action_density": 0.0909,
+          "reflective_density": 0.3182
+        },
+        {
+          "chapter": "15",
+          "beat_count": 20,
+          "action_beats": 7,
+          "reflective_beats": 7,
+          "dialogue_beats": 6,
+          "action_density": 0.35,
+          "reflective_density": 0.35
+        },
+        {
+          "chapter": "16",
+          "beat_count": 27,
+          "action_beats": 7,
+          "reflective_beats": 6,
+          "dialogue_beats": 14,
+          "action_density": 0.2593,
+          "reflective_density": 0.2222
+        },
+        {
+          "chapter": "17",
+          "beat_count": 32,
+          "action_beats": 12,
+          "reflective_beats": 10,
+          "dialogue_beats": 10,
+          "action_density": 0.375,
+          "reflective_density": 0.3125
+        },
+        {
+          "chapter": "18",
+          "beat_count": 29,
+          "action_beats": 7,
+          "reflective_beats": 8,
+          "dialogue_beats": 14,
+          "action_density": 0.2414,
+          "reflective_density": 0.2759
+        },
+        {
+          "chapter": "19",
+          "beat_count": 43,
+          "action_beats": 19,
+          "reflective_beats": 14,
+          "dialogue_beats": 10,
+          "action_density": 0.4419,
+          "reflective_density": 0.3256
+        },
+        {
+          "chapter": "20",
+          "beat_count": 37,
+          "action_beats": 13,
+          "reflective_beats": 8,
+          "dialogue_beats": 16,
+          "action_density": 0.3514,
+          "reflective_density": 0.2162
+        },
+        {
+          "chapter": "21",
+          "beat_count": 31,
+          "action_beats": 9,
+          "reflective_beats": 11,
+          "dialogue_beats": 11,
+          "action_density": 0.2903,
+          "reflective_density": 0.3548
+        },
+        {
+          "chapter": "22",
+          "beat_count": 41,
+          "action_beats": 26,
+          "reflective_beats": 9,
+          "dialogue_beats": 6,
+          "action_density": 0.6341,
+          "reflective_density": 0.2195
+        },
+        {
+          "chapter": "23",
+          "beat_count": 39,
+          "action_beats": 23,
+          "reflective_beats": 7,
+          "dialogue_beats": 9,
+          "action_density": 0.5897,
+          "reflective_density": 0.1795
+        },
+        {
+          "chapter": "24",
+          "beat_count": 13,
+          "action_beats": 6,
+          "reflective_beats": 3,
+          "dialogue_beats": 4,
+          "action_density": 0.4615,
+          "reflective_density": 0.2308
+        }
+      ]
+    },
+    "halflings_gem": {
+      "book": "halflings_gem",
+      "total_narrative_chapters": 25,
+      "overall_mean_action_density": 0.3627,
+      "first_half_mean_action_density": 0.2896,
+      "second_half_mean_action_density": 0.4302,
+      "final_20pct_mean_action_density": 0.4593,
+      "top_action_chapters": [
+        {
+          "chapter": "5",
+          "action_density": 0.7692
+        },
+        {
+          "chapter": "23",
+          "action_density": 0.625
+        },
+        {
+          "chapter": "18",
+          "action_density": 0.619
+        },
+        {
+          "chapter": "20",
+          "action_density": 0.5926
+        },
+        {
+          "chapter": "24",
+          "action_density": 0.5556
+        }
+      ],
+      "smoothed_action_curve_w5": [
+        0.3005,
+        0.2573,
+        0.3597,
+        0.4154,
+        0.4076,
+        0.298,
+        0.2824,
+        0.1815,
+        0.1934,
+        0.2167,
+        0.27,
+        0.335,
+        0.3737,
+        0.3189,
+        0.3197,
+        0.3902,
+        0.4123,
+        0.4392,
+        0.4958,
+        0.5376,
+        0.5388,
+        0.5528,
+        0.4593,
+        0.4445,
+        0.4352
+      ],
+      "per_chapter": [
+        {
+          "chapter": "1",
+          "beat_count": 35,
+          "action_beats": 6,
+          "reflective_beats": 11,
+          "dialogue_beats": 18,
+          "action_density": 0.1714,
+          "reflective_density": 0.3143
+        },
+        {
+          "chapter": "2",
+          "beat_count": 22,
+          "action_beats": 4,
+          "reflective_beats": 8,
+          "dialogue_beats": 10,
+          "action_density": 0.1818,
+          "reflective_density": 0.3636
+        },
+        {
+          "chapter": "3",
+          "beat_count": 31,
+          "action_beats": 17,
+          "reflective_beats": 6,
+          "dialogue_beats": 8,
+          "action_density": 0.5484,
+          "reflective_density": 0.1935
+        },
+        {
+          "chapter": "4",
+          "beat_count": 47,
+          "action_beats": 6,
+          "reflective_beats": 20,
+          "dialogue_beats": 21,
+          "action_density": 0.1277,
+          "reflective_density": 0.4255
+        },
+        {
+          "chapter": "5",
+          "beat_count": 39,
+          "action_beats": 30,
+          "reflective_beats": 9,
+          "dialogue_beats": 0,
+          "action_density": 0.7692,
+          "reflective_density": 0.2308
+        },
+        {
+          "chapter": "6",
+          "beat_count": 40,
+          "action_beats": 18,
+          "reflective_beats": 12,
+          "dialogue_beats": 10,
+          "action_density": 0.45,
+          "reflective_density": 0.3
+        },
+        {
+          "chapter": "7",
+          "beat_count": 28,
+          "action_beats": 4,
+          "reflective_beats": 9,
+          "dialogue_beats": 15,
+          "action_density": 0.1429,
+          "reflective_density": 0.3214
+        },
+        {
+          "chapter": "8",
+          "beat_count": 22,
+          "action_beats": 0,
+          "reflective_beats": 9,
+          "dialogue_beats": 13,
+          "action_density": 0.0,
+          "reflective_density": 0.4091
+        },
+        {
+          "chapter": "9",
+          "beat_count": 20,
+          "action_beats": 1,
+          "reflective_beats": 8,
+          "dialogue_beats": 11,
+          "action_density": 0.05,
+          "reflective_density": 0.4
+        },
+        {
+          "chapter": "10",
+          "beat_count": 34,
+          "action_beats": 9,
+          "reflective_beats": 9,
+          "dialogue_beats": 16,
+          "action_density": 0.2647,
+          "reflective_density": 0.2647
+        },
+        {
+          "chapter": "11",
+          "beat_count": 53,
+          "action_beats": 27,
+          "reflective_beats": 12,
+          "dialogue_beats": 14,
+          "action_density": 0.5094,
+          "reflective_density": 0.2264
+        },
+        {
+          "chapter": "12",
+          "beat_count": 27,
+          "action_beats": 7,
+          "reflective_beats": 5,
+          "dialogue_beats": 15,
+          "action_density": 0.2593,
+          "reflective_density": 0.1852
+        },
+        {
+          "chapter": "13",
+          "beat_count": 30,
+          "action_beats": 8,
+          "reflective_beats": 14,
+          "dialogue_beats": 8,
+          "action_density": 0.2667,
+          "reflective_density": 0.4667
+        },
+        {
+          "chapter": "14",
+          "beat_count": 32,
+          "action_beats": 12,
+          "reflective_beats": 8,
+          "dialogue_beats": 12,
+          "action_density": 0.375,
+          "reflective_density": 0.25
+        },
+        {
+          "chapter": "15",
+          "beat_count": 24,
+          "action_beats": 11,
+          "reflective_beats": 6,
+          "dialogue_beats": 7,
+          "action_density": 0.4583,
+          "reflective_density": 0.25
+        },
+        {
+          "chapter": "16",
+          "beat_count": 34,
+          "action_beats": 8,
+          "reflective_beats": 14,
+          "dialogue_beats": 12,
+          "action_density": 0.2353,
+          "reflective_density": 0.4118
+        },
+        {
+          "chapter": "17",
+          "beat_count": 19,
+          "action_beats": 5,
+          "reflective_beats": 5,
+          "dialogue_beats": 9,
+          "action_density": 0.2632,
+          "reflective_density": 0.2632
+        },
+        {
+          "chapter": "18",
+          "beat_count": 42,
+          "action_beats": 26,
+          "reflective_beats": 9,
+          "dialogue_beats": 7,
+          "action_density": 0.619,
+          "reflective_density": 0.2143
+        },
+        {
+          "chapter": "19",
+          "beat_count": 35,
+          "action_beats": 17,
+          "reflective_beats": 7,
+          "dialogue_beats": 11,
+          "action_density": 0.4857,
+          "reflective_density": 0.2
+        },
+        {
+          "chapter": "20",
+          "beat_count": 27,
+          "action_beats": 16,
+          "reflective_beats": 5,
+          "dialogue_beats": 6,
+          "action_density": 0.5926,
+          "reflective_density": 0.1852
+        },
+        {
+          "chapter": "21",
+          "beat_count": 27,
+          "action_beats": 14,
+          "reflective_beats": 8,
+          "dialogue_beats": 5,
+          "action_density": 0.5185,
+          "reflective_density": 0.2963
+        },
+        {
+          "chapter": "22",
+          "beat_count": 36,
+          "action_beats": 17,
+          "reflective_beats": 6,
+          "dialogue_beats": 13,
+          "action_density": 0.4722,
+          "reflective_density": 0.1667
+        },
+        {
+          "chapter": "23",
+          "beat_count": 24,
+          "action_beats": 15,
+          "reflective_beats": 7,
+          "dialogue_beats": 2,
+          "action_density": 0.625,
+          "reflective_density": 0.2917
+        },
+        {
+          "chapter": "24",
+          "beat_count": 27,
+          "action_beats": 15,
+          "reflective_beats": 8,
+          "dialogue_beats": 4,
+          "action_density": 0.5556,
+          "reflective_density": 0.2963
+        },
+        {
+          "chapter": "25",
+          "beat_count": 24,
+          "action_beats": 3,
+          "reflective_beats": 6,
+          "dialogue_beats": 15,
+          "action_density": 0.125,
+          "reflective_density": 0.25
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,944 @@
+{
+  "computed_at": "20260430T030038",
+  "source": "pairs.jsonl \u2014 brief.pov field",
+  "dim": "pov_management",
+  "note": "Beat count used as proxy for POV screen-time. Chapter filter: narrative chapters only (excludes prelude/part/epilogue).",
+  "by_book": {
+    "crystal_shard": {
+      "book": "crystal_shard",
+      "total_narrative_beats": 813,
+      "total_narrative_chapters": 30,
+      "pov_share_by_beat": {
+        "omniscient": 0.3001,
+        "Drizzt": 0.262,
+        "Wulfgar": 0.1353,
+        "Regis": 0.0886,
+        "Bruenor": 0.0664,
+        "Kessell": 0.0566,
+        "Cassius": 0.0283,
+        "Beorg": 0.0111,
+        "Errtu": 0.0086,
+        "Heafstaag": 0.0074,
+        "Biggrin": 0.0062,
+        "Guenhwyvar": 0.0062,
+        "Kemp": 0.0062,
+        "deBernezan": 0.0049,
+        "Jensin Brent": 0.0037,
+        "apprentice": 0.0025,
+        "Eldeluc": 0.0025,
+        "Morkai": 0.0012,
+        "Agorwal": 0.0012,
+        "Catti-brie": 0.0012
+      },
+      "chapter_primary_pov_switches": 23,
+      "chapter_switch_rate": 0.7931,
+      "beat_level_pov_switches": 331,
+      "beat_level_switch_rate": 0.4227,
+      "per_chapter": {
+        "1": {
+          "primary_pov": "omniscient",
+          "distinct_povs": 4,
+          "pov_counts": {
+            "omniscient": 8,
+            "Kessell": 8,
+            "Eldeluc": 2,
+            "Morkai": 1
+          }
+        },
+        "2": {
+          "primary_pov": "Regis",
+          "distinct_povs": 3,
+          "pov_counts": {
+            "Regis": 15,
+            "Drizzt": 9,
+            "omniscient": 5
+          }
+        },
+        "3": {
+          "primary_pov": "omniscient",
+          "distinct_povs": 4,
+          "pov_counts": {
+            "omniscient": 14,
+            "Beorg": 8,
+            "deBernezan": 2,
+            "Heafstaag": 1
+          }
+        },
+        "4": {
+          "primary_pov": "Kessell",
+          "distinct_povs": 2,
+          "pov_counts": {
+            "Kessell": 18,
+            "omniscient": 3
+          }
+        },
+        "5": {
+          "primary_pov": "Drizzt",
+          "distinct_povs": 3,
+          "pov_counts": {
+            "Drizzt": 6,
+            "Bruenor": 4,
+            "omniscient": 1
+          }
+        },
+        "6": {
+          "primary_pov": "Regis",
+          "distinct_povs": 2,
+          "pov_counts": {
+            "Regis": 12,
+            "omniscient": 4
+          }
+        },
+        "7": {
+          "primary_pov": "Drizzt",
+          "distinct_povs": 3,
+          "pov_counts": {
+            "Drizzt": 24,
+            "omniscient": 3,
+            "Regis": 1
+          }
+        },
+        "8": {
+          "primary_pov": "omniscient",
+          "distinct_povs": 7,
+          "pov_counts": {
+            "omniscient": 15,
+            "Bruenor": 6,
+            "Regis": 5,
+            "Drizzt": 4,
+            "deBernezan": 2,
+            "Heafstaag": 2,
+            "Beorg": 1
+          }
+        },
+        "9": {
+          "primary_pov": "Regis",
+          "distinct_povs": 3,
+          "pov_counts": {
+            "Regis": 5,
+            "Wulfgar": 5,
+            "omniscient": 3
+          }
+        },
+        "10": {
+          "primary_pov": "omniscient",
+          "distinct_povs": 4,
+          "pov_counts": {
+            "omniscient": 11,
+            "Kessell": 9,
+            "apprentice": 2,
+            "Errtu": 2
+          }
+        },
+        "11": {
+          "primary_pov": "Bruenor",
+          "distinct_povs": 3,
+          "pov_counts": {
+            "Bruenor": 18,
+            "omniscient": 1,
+            "Drizzt": 1
+          }
+        },
+        "12": {
+          "primary_pov": "Wulfgar",
+          "distinct_povs": 4,
+          "pov_counts": {
+            "Wulfgar": 8,
+            "omniscient": 6,
+            "Drizzt": 5,
+            "Bruenor": 4
+          }
+        },
+        "13": {
+          "primary_pov": "omniscient",
+          "distinct_povs": 4,
+          "pov_counts": {
+            "omniscient": 6,
+            "Errtu": 2,
+            "Heafstaag": 2,
+            "Kessell": 1
+          }
+        },
+        "14": {
+          "primary_pov": "Wulfgar",
+          "distinct_povs": 4,
+          "pov_counts": {
+            "Wulfgar": 10,
+            "omniscient": 5,
+            "Drizzt": 5,
+            "Bruenor": 2
+          }
+        },
+        "15": {
+          "primary_pov": "omniscient",
+          "distinct_povs": 5,
+          "pov_counts": {
+            "omniscient": 13,
+            "Biggrin": 4,
+            "Drizzt": 4,
+            "Wulfgar": 3,
+            "Kessell": 1
+          }
+        },
+        "16": {
+          "primary_pov": "omniscient",
+          "distinct_povs": 4,
+          "pov_counts": {
+            "omniscient": 13,
+            "Wulfgar": 11,
+            "Drizzt": 8,
+            "Bruenor": 2
+          }
+        },
+        "17": {
+          "primary_pov": "omniscient",
+          "distinct_povs": 4,
+          "pov_counts": {
+            "omniscient": 12,
+            "Wulfgar": 9,
+            "Drizzt": 6,
+            "Bruenor": 2
+          }
+        },
+        "18": {
+          "primary_pov": "Drizzt",
+          "distinct_povs": 5,
+          "pov_counts": {
+            "Drizzt": 22,
+            "omniscient": 14,
+            "Wulfgar": 13,
+            "Guenhwyvar": 4,
+            "Biggrin": 1
+          }
+        },
+        "19": {
+          "primary_pov": "omniscient",
+          "distinct_povs": 4,
+          "pov_counts": {
+            "omniscient": 15,
+            "Drizzt": 10,
+            "Bruenor": 3,
+            "Regis": 1
+          }
+        },
+        "20": {
+          "primary_pov": "omniscient",
+          "distinct_povs": 6,
+          "pov_counts": {
+            "omniscient": 10,
+            "Kessell": 5,
+            "Drizzt": 4,
+            "Regis": 3,
+            "Bruenor": 1,
+            "Cassius": 1
+          }
+        },
+        "21": {
+          "primary_pov": "Wulfgar",
+          "distinct_povs": 3,
+          "pov_counts": {
+            "Wulfgar": 17,
+            "omniscient": 8,
+            "Drizzt": 1
+          }
+        },
+        "22": {
+          "primary_pov": "Wulfgar",
+          "distinct_povs": 4,
+          "pov_counts": {
+            "Wulfgar": 25,
+            "Drizzt": 3,
+            "omniscient": 3,
+            "Heafstaag": 1
+          }
+        },
+        "23": {
+          "primary_pov": "omniscient",
+          "distinct_povs": 5,
+          "pov_counts": {
+            "omniscient": 14,
+            "Bruenor": 4,
+            "Regis": 4,
+            "Cassius": 1,
+            "Agorwal": 1
+          }
+        },
+        "24": {
+          "primary_pov": "omniscient",
+          "distinct_povs": 6,
+          "pov_counts": {
+            "omniscient": 17,
+            "Cassius": 10,
+            "Drizzt": 7,
+            "Jensin Brent": 1,
+            "Kessell": 1,
+            "Kemp": 1
+          }
+        },
+        "25": {
+          "primary_pov": "Drizzt",
+          "distinct_povs": 2,
+          "pov_counts": {
+            "Drizzt": 21,
+            "Errtu": 3
+          }
+        },
+        "26": {
+          "primary_pov": "Wulfgar",
+          "distinct_povs": 2,
+          "pov_counts": {
+            "Wulfgar": 5,
+            "omniscient": 2
+          }
+        },
+        "27": {
+          "primary_pov": "Regis",
+          "distinct_povs": 6,
+          "pov_counts": {
+            "Regis": 10,
+            "Cassius": 5,
+            "Drizzt": 3,
+            "omniscient": 2,
+            "Bruenor": 1,
+            "Kessell": 1
+          }
+        },
+        "28": {
+          "primary_pov": "Regis",
+          "distinct_povs": 6,
+          "pov_counts": {
+            "Regis": 13,
+            "Drizzt": 9,
+            "Kessell": 1,
+            "Kemp": 1,
+            "omniscient": 1,
+            "Cassius": 1
+          }
+        },
+        "29": {
+          "primary_pov": "Drizzt",
+          "distinct_povs": 5,
+          "pov_counts": {
+            "Drizzt": 32,
+            "Bruenor": 7,
+            "omniscient": 3,
+            "Catti-brie": 1,
+            "Kessell": 1
+          }
+        },
+        "30": {
+          "primary_pov": "omniscient",
+          "distinct_povs": 8,
+          "pov_counts": {
+            "omniscient": 32,
+            "Drizzt": 29,
+            "Cassius": 5,
+            "Wulfgar": 4,
+            "Regis": 3,
+            "Kemp": 3,
+            "Jensin Brent": 2,
+            "Guenhwyvar": 1
+          }
+        }
+      }
+    },
+    "streams_of_silver": {
+      "book": "streams_of_silver",
+      "total_narrative_beats": 740,
+      "total_narrative_chapters": 24,
+      "pov_share_by_beat": {
+        "omniscient": 0.3716,
+        "Drizzt": 0.2149,
+        "Catti-brie": 0.0878,
+        "Bruenor": 0.0784,
+        "Wulfgar": 0.0581,
+        "Regis": 0.0514,
+        "Entreri": 0.0514,
+        "Sydney": 0.0324,
+        "Dendybar": 0.0216,
+        "Jierdan": 0.0108,
+        "Whisper": 0.0095,
+        "Morkai": 0.0081,
+        "Shimmergloom": 0.0027,
+        "Alustriel": 0.0014
+      },
+      "chapter_primary_pov_switches": 14,
+      "chapter_switch_rate": 0.6087,
+      "beat_level_pov_switches": 402,
+      "beat_level_switch_rate": 0.5615,
+      "per_chapter": {
+        "1": {
+          "primary_pov": "Catti-brie",
+          "distinct_povs": 3,
+          "pov_counts": {
+            "Catti-brie": 13,
+            "Entreri": 6,
+            "omniscient": 6
+          }
+        },
+        "2": {
+          "primary_pov": "omniscient",
+          "distinct_povs": 5,
+          "pov_counts": {
+            "omniscient": 12,
+            "Drizzt": 10,
+            "Regis": 4,
+            "Wulfgar": 1,
+            "Bruenor": 1
+          }
+        },
+        "3": {
+          "primary_pov": "Regis",
+          "distinct_povs": 5,
+          "pov_counts": {
+            "Regis": 10,
+            "omniscient": 8,
+            "Bruenor": 7,
+            "Drizzt": 2,
+            "Wulfgar": 1
+          }
+        },
+        "4": {
+          "primary_pov": "omniscient",
+          "distinct_povs": 6,
+          "pov_counts": {
+            "omniscient": 13,
+            "Dendybar": 12,
+            "Catti-brie": 4,
+            "Morkai": 3,
+            "Jierdan": 1,
+            "Sydney": 1
+          }
+        },
+        "5": {
+          "primary_pov": "omniscient",
+          "distinct_povs": 5,
+          "pov_counts": {
+            "omniscient": 13,
+            "Drizzt": 9,
+            "Regis": 5,
+            "Bruenor": 2,
+            "Wulfgar": 1
+          }
+        },
+        "6": {
+          "primary_pov": "Wulfgar",
+          "distinct_povs": 4,
+          "pov_counts": {
+            "Wulfgar": 15,
+            "Drizzt": 14,
+            "omniscient": 10,
+            "Bruenor": 1
+          }
+        },
+        "7": {
+          "primary_pov": "Catti-brie",
+          "distinct_povs": 4,
+          "pov_counts": {
+            "Catti-brie": 9,
+            "Entreri": 8,
+            "Jierdan": 3,
+            "omniscient": 3
+          }
+        },
+        "8": {
+          "primary_pov": "omniscient",
+          "distinct_povs": 5,
+          "pov_counts": {
+            "omniscient": 25,
+            "Drizzt": 10,
+            "Bruenor": 2,
+            "Wulfgar": 2,
+            "Regis": 1
+          }
+        },
+        "9": {
+          "primary_pov": "Sydney",
+          "distinct_povs": 7,
+          "pov_counts": {
+            "Sydney": 8,
+            "Entreri": 8,
+            "Whisper": 7,
+            "Jierdan": 3,
+            "Dendybar": 3,
+            "Catti-brie": 2,
+            "omniscient": 2
+          }
+        },
+        "10": {
+          "primary_pov": "omniscient",
+          "distinct_povs": 7,
+          "pov_counts": {
+            "omniscient": 20,
+            "Drizzt": 8,
+            "Bruenor": 3,
+            "Wulfgar": 2,
+            "Regis": 1,
+            "Morkai": 1,
+            "Dendybar": 1
+          }
+        },
+        "11": {
+          "primary_pov": "omniscient",
+          "distinct_povs": 4,
+          "pov_counts": {
+            "omniscient": 10,
+            "Catti-brie": 8,
+            "Entreri": 5,
+            "Sydney": 2
+          }
+        },
+        "12": {
+          "primary_pov": "omniscient",
+          "distinct_povs": 5,
+          "pov_counts": {
+            "omniscient": 24,
+            "Drizzt": 9,
+            "Regis": 4,
+            "Bruenor": 1,
+            "Wulfgar": 1
+          }
+        },
+        "13": {
+          "primary_pov": "Drizzt",
+          "distinct_povs": 3,
+          "pov_counts": {
+            "Drizzt": 14,
+            "omniscient": 10,
+            "Wulfgar": 1
+          }
+        },
+        "14": {
+          "primary_pov": "Drizzt",
+          "distinct_povs": 3,
+          "pov_counts": {
+            "Drizzt": 14,
+            "omniscient": 5,
+            "Wulfgar": 3
+          }
+        },
+        "15": {
+          "primary_pov": "omniscient",
+          "distinct_povs": 5,
+          "pov_counts": {
+            "omniscient": 7,
+            "Catti-brie": 6,
+            "Sydney": 5,
+            "Wulfgar": 1,
+            "Alustriel": 1
+          }
+        },
+        "16": {
+          "primary_pov": "omniscient",
+          "distinct_povs": 3,
+          "pov_counts": {
+            "omniscient": 17,
+            "Drizzt": 8,
+            "Bruenor": 2
+          }
+        },
+        "17": {
+          "primary_pov": "omniscient",
+          "distinct_povs": 6,
+          "pov_counts": {
+            "omniscient": 10,
+            "Catti-brie": 10,
+            "Drizzt": 6,
+            "Entreri": 4,
+            "Sydney": 1,
+            "Jierdan": 1
+          }
+        },
+        "18": {
+          "primary_pov": "omniscient",
+          "distinct_povs": 5,
+          "pov_counts": {
+            "omniscient": 18,
+            "Bruenor": 4,
+            "Drizzt": 3,
+            "Entreri": 3,
+            "Wulfgar": 1
+          }
+        },
+        "19": {
+          "primary_pov": "omniscient",
+          "distinct_povs": 7,
+          "pov_counts": {
+            "omniscient": 22,
+            "Drizzt": 7,
+            "Bruenor": 7,
+            "Morkai": 2,
+            "Entreri": 2,
+            "Wulfgar": 2,
+            "Sydney": 1
+          }
+        },
+        "20": {
+          "primary_pov": "omniscient",
+          "distinct_povs": 6,
+          "pov_counts": {
+            "omniscient": 17,
+            "Bruenor": 10,
+            "Sydney": 5,
+            "Wulfgar": 2,
+            "Catti-brie": 2,
+            "Regis": 1
+          }
+        },
+        "21": {
+          "primary_pov": "Drizzt",
+          "distinct_povs": 3,
+          "pov_counts": {
+            "Drizzt": 26,
+            "omniscient": 3,
+            "Entreri": 2
+          }
+        },
+        "22": {
+          "primary_pov": "omniscient",
+          "distinct_povs": 7,
+          "pov_counts": {
+            "omniscient": 12,
+            "Bruenor": 8,
+            "Catti-brie": 8,
+            "Wulfgar": 7,
+            "Regis": 3,
+            "Shimmergloom": 2,
+            "Sydney": 1
+          }
+        },
+        "23": {
+          "primary_pov": "Bruenor",
+          "distinct_povs": 6,
+          "pov_counts": {
+            "Bruenor": 10,
+            "Regis": 9,
+            "Drizzt": 8,
+            "omniscient": 7,
+            "Wulfgar": 3,
+            "Catti-brie": 2
+          }
+        },
+        "24": {
+          "primary_pov": "Drizzt",
+          "distinct_povs": 3,
+          "pov_counts": {
+            "Drizzt": 11,
+            "omniscient": 1,
+            "Catti-brie": 1
+          }
+        }
+      }
+    },
+    "halflings_gem": {
+      "book": "halflings_gem",
+      "total_narrative_beats": 779,
+      "total_narrative_chapters": 25,
+      "pov_share_by_beat": {
+        "Drizzt": 0.2503,
+        "omniscient": 0.2234,
+        "Bruenor": 0.1553,
+        "Wulfgar": 0.0988,
+        "Regis": 0.0963,
+        "Pook": 0.0385,
+        "Entreri": 0.0308,
+        "Catti-brie": 0.0295,
+        "Deudermont": 0.0218,
+        "LaValle": 0.0193,
+        "Rassiter": 0.0103,
+        "Dondon": 0.0077,
+        "Pinochet": 0.0039,
+        "Oberon": 0.0039,
+        "Bungo": 0.0026,
+        "Alustriel": 0.0013,
+        "Sali Dalib": 0.0013,
+        "wererat crossbowman": 0.0013,
+        "Malchor": 0.0013,
+        "Khelben": 0.0013,
+        "captain": 0.0013
+      },
+      "chapter_primary_pov_switches": 15,
+      "chapter_switch_rate": 0.625,
+      "beat_level_pov_switches": 375,
+      "beat_level_switch_rate": 0.4973,
+      "per_chapter": {
+        "1": {
+          "primary_pov": "Drizzt",
+          "distinct_povs": 4,
+          "pov_counts": {
+            "Drizzt": 22,
+            "Wulfgar": 8,
+            "omniscient": 4,
+            "Malchor": 1
+          }
+        },
+        "2": {
+          "primary_pov": "Regis",
+          "distinct_povs": 3,
+          "pov_counts": {
+            "Regis": 17,
+            "Entreri": 4,
+            "omniscient": 1
+          }
+        },
+        "3": {
+          "primary_pov": "Drizzt",
+          "distinct_povs": 3,
+          "pov_counts": {
+            "Drizzt": 17,
+            "omniscient": 10,
+            "Wulfgar": 4
+          }
+        },
+        "4": {
+          "primary_pov": "Drizzt",
+          "distinct_povs": 5,
+          "pov_counts": {
+            "Drizzt": 28,
+            "Wulfgar": 11,
+            "omniscient": 5,
+            "Bungo": 2,
+            "Khelben": 1
+          }
+        },
+        "5": {
+          "primary_pov": "Bruenor",
+          "distinct_povs": 2,
+          "pov_counts": {
+            "Bruenor": 37,
+            "omniscient": 2
+          }
+        },
+        "6": {
+          "primary_pov": "Regis",
+          "distinct_povs": 4,
+          "pov_counts": {
+            "Regis": 18,
+            "omniscient": 16,
+            "Entreri": 5,
+            "captain": 1
+          }
+        },
+        "7": {
+          "primary_pov": "Bruenor",
+          "distinct_povs": 2,
+          "pov_counts": {
+            "Bruenor": 27,
+            "Catti-brie": 1
+          }
+        },
+        "8": {
+          "primary_pov": "Pook",
+          "distinct_povs": 3,
+          "pov_counts": {
+            "Pook": 15,
+            "LaValle": 4,
+            "omniscient": 3
+          }
+        },
+        "9": {
+          "primary_pov": "Pook",
+          "distinct_povs": 7,
+          "pov_counts": {
+            "Pook": 5,
+            "omniscient": 3,
+            "Drizzt": 3,
+            "Wulfgar": 3,
+            "Oberon": 3,
+            "Regis": 2,
+            "Entreri": 1
+          }
+        },
+        "10": {
+          "primary_pov": "Bruenor",
+          "distinct_povs": 4,
+          "pov_counts": {
+            "Bruenor": 21,
+            "omniscient": 8,
+            "Catti-brie": 4,
+            "Alustriel": 1
+          }
+        },
+        "11": {
+          "primary_pov": "omniscient",
+          "distinct_povs": 7,
+          "pov_counts": {
+            "omniscient": 14,
+            "Deudermont": 14,
+            "Drizzt": 12,
+            "Bruenor": 6,
+            "Pinochet": 3,
+            "Catti-brie": 3,
+            "Wulfgar": 1
+          }
+        },
+        "12": {
+          "primary_pov": "omniscient",
+          "distinct_povs": 6,
+          "pov_counts": {
+            "omniscient": 10,
+            "Drizzt": 9,
+            "Deudermont": 3,
+            "Catti-brie": 2,
+            "Wulfgar": 2,
+            "Bruenor": 1
+          }
+        },
+        "13": {
+          "primary_pov": "omniscient",
+          "distinct_povs": 4,
+          "pov_counts": {
+            "omniscient": 12,
+            "Regis": 12,
+            "Entreri": 5,
+            "LaValle": 1
+          }
+        },
+        "14": {
+          "primary_pov": "Drizzt",
+          "distinct_povs": 5,
+          "pov_counts": {
+            "Drizzt": 10,
+            "omniscient": 8,
+            "Bruenor": 7,
+            "Wulfgar": 4,
+            "Catti-brie": 3
+          }
+        },
+        "15": {
+          "primary_pov": "omniscient",
+          "distinct_povs": 6,
+          "pov_counts": {
+            "omniscient": 14,
+            "Regis": 4,
+            "Drizzt": 3,
+            "Pook": 1,
+            "Sali Dalib": 1,
+            "Catti-brie": 1
+          }
+        },
+        "16": {
+          "primary_pov": "omniscient",
+          "distinct_povs": 5,
+          "pov_counts": {
+            "omniscient": 12,
+            "Drizzt": 11,
+            "Dondon": 5,
+            "Entreri": 4,
+            "Wulfgar": 2
+          }
+        },
+        "17": {
+          "primary_pov": "Pook",
+          "distinct_povs": 5,
+          "pov_counts": {
+            "Pook": 7,
+            "omniscient": 4,
+            "Regis": 4,
+            "LaValle": 3,
+            "Rassiter": 1
+          }
+        },
+        "18": {
+          "primary_pov": "Drizzt",
+          "distinct_povs": 8,
+          "pov_counts": {
+            "Drizzt": 18,
+            "omniscient": 9,
+            "Wulfgar": 6,
+            "Catti-brie": 3,
+            "Bruenor": 3,
+            "Dondon": 1,
+            "wererat crossbowman": 1,
+            "Entreri": 1
+          }
+        },
+        "19": {
+          "primary_pov": "Drizzt",
+          "distinct_povs": 7,
+          "pov_counts": {
+            "Drizzt": 12,
+            "Wulfgar": 8,
+            "Rassiter": 4,
+            "Catti-brie": 4,
+            "Entreri": 3,
+            "omniscient": 3,
+            "Bruenor": 1
+          }
+        },
+        "20": {
+          "primary_pov": "Drizzt",
+          "distinct_povs": 6,
+          "pov_counts": {
+            "Drizzt": 14,
+            "Wulfgar": 6,
+            "LaValle": 4,
+            "Bruenor": 1,
+            "omniscient": 1,
+            "Regis": 1
+          }
+        },
+        "21": {
+          "primary_pov": "Wulfgar",
+          "distinct_povs": 6,
+          "pov_counts": {
+            "Wulfgar": 10,
+            "Regis": 8,
+            "Bruenor": 4,
+            "omniscient": 3,
+            "Pook": 1,
+            "Drizzt": 1
+          }
+        },
+        "22": {
+          "primary_pov": "Drizzt",
+          "distinct_povs": 8,
+          "pov_counts": {
+            "Drizzt": 14,
+            "omniscient": 9,
+            "Regis": 5,
+            "Bruenor": 2,
+            "Catti-brie": 2,
+            "LaValle": 2,
+            "Pook": 1,
+            "Wulfgar": 1
+          }
+        },
+        "23": {
+          "primary_pov": "Drizzt",
+          "distinct_povs": 5,
+          "pov_counts": {
+            "Drizzt": 8,
+            "Wulfgar": 7,
+            "Bruenor": 4,
+            "omniscient": 3,
+            "Regis": 2
+          }
+        },
+        "24": {
+          "primary_pov": "omniscient",
+          "distinct_povs": 6,
+          "pov_counts": {
+            "omniscient": 10,
+            "Drizzt": 6,
+            "Wulfgar": 4,
+            "Bruenor": 3,
+            "Rassiter": 3,
+            "Entreri": 1
+          }
+        },
+        "25": {
+          "primary_pov": "omniscient",
+          "distinct_povs": 5,
+          "pov_counts": {
+            "omniscient": 10,
+            "Drizzt": 7,
+            "Bruenor": 4,
+            "Regis": 2,
+            "LaValle": 1
+          }
+        }
+      }
+    }
+  }
+}

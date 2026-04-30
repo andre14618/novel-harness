@@ -1,0 +1,1291 @@
+{
+  "computed_at": "20260430T030038",
+  "source": "pairs.jsonl \u2014 brief.kind + brief.characters fields",
+  "dim": "dialogue_density_variation",
+  "by_book": {
+    "crystal_shard": {
+      "book": "crystal_shard",
+      "total_narrative_chapters": 30,
+      "mean_dialogue_pct_per_chapter": 0.2949,
+      "min_dialogue_pct": 0.0,
+      "max_dialogue_pct": 0.7273,
+      "std_dev_dialogue_pct": 0.1764,
+      "chapters_low_dialogue_lt10pct": 4,
+      "chapters_mid_dialogue_10to25pct": 6,
+      "chapters_high_dialogue_ge25pct": 20,
+      "dialogue_run_length_distribution": {
+        "1": 100,
+        "2": 24,
+        "3": 12,
+        "4": 5,
+        "5": 1,
+        "8": 1,
+        "10": 1
+      },
+      "per_chapter": [
+        {
+          "chapter": "1",
+          "beat_count": 19,
+          "dialogue_beats": 7,
+          "dialogue_pct": 0.3684,
+          "distinct_dialogue_speakers": 3,
+          "max_consecutive_dialogue_run": 4,
+          "dialogue_run_lengths": [
+            1,
+            1,
+            1,
+            4
+          ]
+        },
+        {
+          "chapter": "2",
+          "beat_count": 29,
+          "dialogue_beats": 3,
+          "dialogue_pct": 0.1034,
+          "distinct_dialogue_speakers": 4,
+          "max_consecutive_dialogue_run": 1,
+          "dialogue_run_lengths": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "chapter": "3",
+          "beat_count": 25,
+          "dialogue_beats": 8,
+          "dialogue_pct": 0.32,
+          "distinct_dialogue_speakers": 4,
+          "max_consecutive_dialogue_run": 4,
+          "dialogue_run_lengths": [
+            1,
+            2,
+            4,
+            1
+          ]
+        },
+        {
+          "chapter": "4",
+          "beat_count": 21,
+          "dialogue_beats": 0,
+          "dialogue_pct": 0.0,
+          "distinct_dialogue_speakers": 0,
+          "max_consecutive_dialogue_run": 0,
+          "dialogue_run_lengths": []
+        },
+        {
+          "chapter": "5",
+          "beat_count": 11,
+          "dialogue_beats": 8,
+          "dialogue_pct": 0.7273,
+          "distinct_dialogue_speakers": 9,
+          "max_consecutive_dialogue_run": 8,
+          "dialogue_run_lengths": [
+            8
+          ]
+        },
+        {
+          "chapter": "6",
+          "beat_count": 16,
+          "dialogue_beats": 5,
+          "dialogue_pct": 0.3125,
+          "distinct_dialogue_speakers": 6,
+          "max_consecutive_dialogue_run": 3,
+          "dialogue_run_lengths": [
+            3,
+            1,
+            1
+          ]
+        },
+        {
+          "chapter": "7",
+          "beat_count": 28,
+          "dialogue_beats": 7,
+          "dialogue_pct": 0.25,
+          "distinct_dialogue_speakers": 10,
+          "max_consecutive_dialogue_run": 2,
+          "dialogue_run_lengths": [
+            1,
+            1,
+            1,
+            2,
+            1,
+            1
+          ]
+        },
+        {
+          "chapter": "8",
+          "beat_count": 35,
+          "dialogue_beats": 4,
+          "dialogue_pct": 0.1143,
+          "distinct_dialogue_speakers": 5,
+          "max_consecutive_dialogue_run": 1,
+          "dialogue_run_lengths": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "chapter": "9",
+          "beat_count": 13,
+          "dialogue_beats": 0,
+          "dialogue_pct": 0.0,
+          "distinct_dialogue_speakers": 0,
+          "max_consecutive_dialogue_run": 0,
+          "dialogue_run_lengths": []
+        },
+        {
+          "chapter": "10",
+          "beat_count": 24,
+          "dialogue_beats": 3,
+          "dialogue_pct": 0.125,
+          "distinct_dialogue_speakers": 3,
+          "max_consecutive_dialogue_run": 1,
+          "dialogue_run_lengths": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "chapter": "11",
+          "beat_count": 20,
+          "dialogue_beats": 1,
+          "dialogue_pct": 0.05,
+          "distinct_dialogue_speakers": 2,
+          "max_consecutive_dialogue_run": 1,
+          "dialogue_run_lengths": [
+            1
+          ]
+        },
+        {
+          "chapter": "12",
+          "beat_count": 23,
+          "dialogue_beats": 15,
+          "dialogue_pct": 0.6522,
+          "distinct_dialogue_speakers": 4,
+          "max_consecutive_dialogue_run": 10,
+          "dialogue_run_lengths": [
+            1,
+            2,
+            10,
+            1,
+            1
+          ]
+        },
+        {
+          "chapter": "13",
+          "beat_count": 11,
+          "dialogue_beats": 6,
+          "dialogue_pct": 0.5455,
+          "distinct_dialogue_speakers": 4,
+          "max_consecutive_dialogue_run": 2,
+          "dialogue_run_lengths": [
+            1,
+            1,
+            2,
+            1,
+            1
+          ]
+        },
+        {
+          "chapter": "14",
+          "beat_count": 22,
+          "dialogue_beats": 7,
+          "dialogue_pct": 0.3182,
+          "distinct_dialogue_speakers": 4,
+          "max_consecutive_dialogue_run": 2,
+          "dialogue_run_lengths": [
+            1,
+            1,
+            1,
+            2,
+            1,
+            1
+          ]
+        },
+        {
+          "chapter": "15",
+          "beat_count": 25,
+          "dialogue_beats": 7,
+          "dialogue_pct": 0.28,
+          "distinct_dialogue_speakers": 5,
+          "max_consecutive_dialogue_run": 2,
+          "dialogue_run_lengths": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            2
+          ]
+        },
+        {
+          "chapter": "16",
+          "beat_count": 34,
+          "dialogue_beats": 16,
+          "dialogue_pct": 0.4706,
+          "distinct_dialogue_speakers": 8,
+          "max_consecutive_dialogue_run": 3,
+          "dialogue_run_lengths": [
+            2,
+            2,
+            2,
+            1,
+            1,
+            1,
+            1,
+            3,
+            3
+          ]
+        },
+        {
+          "chapter": "17",
+          "beat_count": 29,
+          "dialogue_beats": 7,
+          "dialogue_pct": 0.2414,
+          "distinct_dialogue_speakers": 4,
+          "max_consecutive_dialogue_run": 2,
+          "dialogue_run_lengths": [
+            1,
+            2,
+            2,
+            1,
+            1
+          ]
+        },
+        {
+          "chapter": "18",
+          "beat_count": 54,
+          "dialogue_beats": 14,
+          "dialogue_pct": 0.2593,
+          "distinct_dialogue_speakers": 7,
+          "max_consecutive_dialogue_run": 3,
+          "dialogue_run_lengths": [
+            1,
+            1,
+            3,
+            3,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "chapter": "19",
+          "beat_count": 29,
+          "dialogue_beats": 13,
+          "dialogue_pct": 0.4483,
+          "distinct_dialogue_speakers": 11,
+          "max_consecutive_dialogue_run": 3,
+          "dialogue_run_lengths": [
+            1,
+            3,
+            3,
+            1,
+            3,
+            2
+          ]
+        },
+        {
+          "chapter": "20",
+          "beat_count": 24,
+          "dialogue_beats": 10,
+          "dialogue_pct": 0.4167,
+          "distinct_dialogue_speakers": 7,
+          "max_consecutive_dialogue_run": 3,
+          "dialogue_run_lengths": [
+            1,
+            1,
+            2,
+            2,
+            1,
+            3
+          ]
+        },
+        {
+          "chapter": "21",
+          "beat_count": 26,
+          "dialogue_beats": 1,
+          "dialogue_pct": 0.0385,
+          "distinct_dialogue_speakers": 2,
+          "max_consecutive_dialogue_run": 1,
+          "dialogue_run_lengths": [
+            1
+          ]
+        },
+        {
+          "chapter": "22",
+          "beat_count": 32,
+          "dialogue_beats": 11,
+          "dialogue_pct": 0.3438,
+          "distinct_dialogue_speakers": 6,
+          "max_consecutive_dialogue_run": 4,
+          "dialogue_run_lengths": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            2,
+            4
+          ]
+        },
+        {
+          "chapter": "23",
+          "beat_count": 24,
+          "dialogue_beats": 4,
+          "dialogue_pct": 0.1667,
+          "distinct_dialogue_speakers": 8,
+          "max_consecutive_dialogue_run": 2,
+          "dialogue_run_lengths": [
+            1,
+            2,
+            1
+          ]
+        },
+        {
+          "chapter": "24",
+          "beat_count": 37,
+          "dialogue_beats": 13,
+          "dialogue_pct": 0.3514,
+          "distinct_dialogue_speakers": 11,
+          "max_consecutive_dialogue_run": 4,
+          "dialogue_run_lengths": [
+            1,
+            3,
+            1,
+            3,
+            1,
+            4
+          ]
+        },
+        {
+          "chapter": "25",
+          "beat_count": 24,
+          "dialogue_beats": 7,
+          "dialogue_pct": 0.2917,
+          "distinct_dialogue_speakers": 2,
+          "max_consecutive_dialogue_run": 5,
+          "dialogue_run_lengths": [
+            1,
+            5,
+            1
+          ]
+        },
+        {
+          "chapter": "26",
+          "beat_count": 7,
+          "dialogue_beats": 3,
+          "dialogue_pct": 0.4286,
+          "distinct_dialogue_speakers": 4,
+          "max_consecutive_dialogue_run": 2,
+          "dialogue_run_lengths": [
+            1,
+            2
+          ]
+        },
+        {
+          "chapter": "27",
+          "beat_count": 22,
+          "dialogue_beats": 8,
+          "dialogue_pct": 0.3636,
+          "distinct_dialogue_speakers": 7,
+          "max_consecutive_dialogue_run": 3,
+          "dialogue_run_lengths": [
+            1,
+            1,
+            1,
+            1,
+            3,
+            1
+          ]
+        },
+        {
+          "chapter": "28",
+          "beat_count": 26,
+          "dialogue_beats": 11,
+          "dialogue_pct": 0.4231,
+          "distinct_dialogue_speakers": 7,
+          "max_consecutive_dialogue_run": 4,
+          "dialogue_run_lengths": [
+            2,
+            1,
+            1,
+            1,
+            4,
+            2
+          ]
+        },
+        {
+          "chapter": "29",
+          "beat_count": 44,
+          "dialogue_beats": 8,
+          "dialogue_pct": 0.1818,
+          "distinct_dialogue_speakers": 7,
+          "max_consecutive_dialogue_run": 2,
+          "dialogue_run_lengths": [
+            1,
+            1,
+            1,
+            2,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "chapter": "30",
+          "beat_count": 79,
+          "dialogue_beats": 20,
+          "dialogue_pct": 0.2532,
+          "distinct_dialogue_speakers": 11,
+          "max_consecutive_dialogue_run": 2,
+          "dialogue_run_lengths": [
+            1,
+            2,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            2,
+            2,
+            1,
+            1,
+            2,
+            1
+          ]
+        }
+      ]
+    },
+    "streams_of_silver": {
+      "book": "streams_of_silver",
+      "total_narrative_chapters": 24,
+      "mean_dialogue_pct_per_chapter": 0.3479,
+      "min_dialogue_pct": 0.1026,
+      "max_dialogue_pct": 0.5909,
+      "std_dev_dialogue_pct": 0.1235,
+      "chapters_low_dialogue_lt10pct": 0,
+      "chapters_mid_dialogue_10to25pct": 7,
+      "chapters_high_dialogue_ge25pct": 17,
+      "dialogue_run_length_distribution": {
+        "1": 79,
+        "2": 26,
+        "3": 20,
+        "4": 7,
+        "5": 2,
+        "6": 1,
+        "7": 1,
+        "8": 1
+      },
+      "per_chapter": [
+        {
+          "chapter": "1",
+          "beat_count": 25,
+          "dialogue_beats": 6,
+          "dialogue_pct": 0.24,
+          "distinct_dialogue_speakers": 8,
+          "max_consecutive_dialogue_run": 3,
+          "dialogue_run_lengths": [
+            3,
+            2,
+            1
+          ]
+        },
+        {
+          "chapter": "2",
+          "beat_count": 28,
+          "dialogue_beats": 11,
+          "dialogue_pct": 0.3929,
+          "distinct_dialogue_speakers": 6,
+          "max_consecutive_dialogue_run": 3,
+          "dialogue_run_lengths": [
+            1,
+            2,
+            2,
+            1,
+            3,
+            1,
+            1
+          ]
+        },
+        {
+          "chapter": "3",
+          "beat_count": 28,
+          "dialogue_beats": 12,
+          "dialogue_pct": 0.4286,
+          "distinct_dialogue_speakers": 11,
+          "max_consecutive_dialogue_run": 4,
+          "dialogue_run_lengths": [
+            4,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            2
+          ]
+        },
+        {
+          "chapter": "4",
+          "beat_count": 34,
+          "dialogue_beats": 14,
+          "dialogue_pct": 0.4118,
+          "distinct_dialogue_speakers": 10,
+          "max_consecutive_dialogue_run": 5,
+          "dialogue_run_lengths": [
+            5,
+            1,
+            4,
+            4
+          ]
+        },
+        {
+          "chapter": "5",
+          "beat_count": 30,
+          "dialogue_beats": 12,
+          "dialogue_pct": 0.4,
+          "distinct_dialogue_speakers": 4,
+          "max_consecutive_dialogue_run": 8,
+          "dialogue_run_lengths": [
+            1,
+            8,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "chapter": "6",
+          "beat_count": 40,
+          "dialogue_beats": 10,
+          "dialogue_pct": 0.25,
+          "distinct_dialogue_speakers": 8,
+          "max_consecutive_dialogue_run": 3,
+          "dialogue_run_lengths": [
+            2,
+            3,
+            3,
+            1,
+            1
+          ]
+        },
+        {
+          "chapter": "7",
+          "beat_count": 23,
+          "dialogue_beats": 9,
+          "dialogue_pct": 0.3913,
+          "distinct_dialogue_speakers": 6,
+          "max_consecutive_dialogue_run": 3,
+          "dialogue_run_lengths": [
+            1,
+            1,
+            3,
+            1,
+            3
+          ]
+        },
+        {
+          "chapter": "8",
+          "beat_count": 40,
+          "dialogue_beats": 19,
+          "dialogue_pct": 0.475,
+          "distinct_dialogue_speakers": 9,
+          "max_consecutive_dialogue_run": 4,
+          "dialogue_run_lengths": [
+            3,
+            2,
+            3,
+            1,
+            1,
+            1,
+            1,
+            1,
+            4,
+            2
+          ]
+        },
+        {
+          "chapter": "9",
+          "beat_count": 33,
+          "dialogue_beats": 16,
+          "dialogue_pct": 0.4848,
+          "distinct_dialogue_speakers": 11,
+          "max_consecutive_dialogue_run": 5,
+          "dialogue_run_lengths": [
+            2,
+            2,
+            5,
+            1,
+            2,
+            2,
+            1,
+            1
+          ]
+        },
+        {
+          "chapter": "10",
+          "beat_count": 36,
+          "dialogue_beats": 8,
+          "dialogue_pct": 0.2222,
+          "distinct_dialogue_speakers": 6,
+          "max_consecutive_dialogue_run": 3,
+          "dialogue_run_lengths": [
+            1,
+            1,
+            3,
+            3
+          ]
+        },
+        {
+          "chapter": "11",
+          "beat_count": 25,
+          "dialogue_beats": 11,
+          "dialogue_pct": 0.44,
+          "distinct_dialogue_speakers": 5,
+          "max_consecutive_dialogue_run": 4,
+          "dialogue_run_lengths": [
+            1,
+            1,
+            1,
+            4,
+            1,
+            3
+          ]
+        },
+        {
+          "chapter": "12",
+          "beat_count": 39,
+          "dialogue_beats": 4,
+          "dialogue_pct": 0.1026,
+          "distinct_dialogue_speakers": 4,
+          "max_consecutive_dialogue_run": 1,
+          "dialogue_run_lengths": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "chapter": "13",
+          "beat_count": 25,
+          "dialogue_beats": 5,
+          "dialogue_pct": 0.2,
+          "distinct_dialogue_speakers": 4,
+          "max_consecutive_dialogue_run": 2,
+          "dialogue_run_lengths": [
+            1,
+            1,
+            2,
+            1
+          ]
+        },
+        {
+          "chapter": "14",
+          "beat_count": 22,
+          "dialogue_beats": 13,
+          "dialogue_pct": 0.5909,
+          "distinct_dialogue_speakers": 7,
+          "max_consecutive_dialogue_run": 7,
+          "dialogue_run_lengths": [
+            1,
+            1,
+            3,
+            1,
+            7
+          ]
+        },
+        {
+          "chapter": "15",
+          "beat_count": 20,
+          "dialogue_beats": 6,
+          "dialogue_pct": 0.3,
+          "distinct_dialogue_speakers": 9,
+          "max_consecutive_dialogue_run": 2,
+          "dialogue_run_lengths": [
+            1,
+            1,
+            1,
+            1,
+            2
+          ]
+        },
+        {
+          "chapter": "16",
+          "beat_count": 27,
+          "dialogue_beats": 14,
+          "dialogue_pct": 0.5185,
+          "distinct_dialogue_speakers": 6,
+          "max_consecutive_dialogue_run": 4,
+          "dialogue_run_lengths": [
+            2,
+            2,
+            1,
+            3,
+            1,
+            1,
+            4
+          ]
+        },
+        {
+          "chapter": "17",
+          "beat_count": 32,
+          "dialogue_beats": 10,
+          "dialogue_pct": 0.3125,
+          "distinct_dialogue_speakers": 9,
+          "max_consecutive_dialogue_run": 3,
+          "dialogue_run_lengths": [
+            3,
+            1,
+            2,
+            3,
+            1
+          ]
+        },
+        {
+          "chapter": "18",
+          "beat_count": 29,
+          "dialogue_beats": 14,
+          "dialogue_pct": 0.4828,
+          "distinct_dialogue_speakers": 9,
+          "max_consecutive_dialogue_run": 6,
+          "dialogue_run_lengths": [
+            1,
+            2,
+            1,
+            1,
+            2,
+            1,
+            6
+          ]
+        },
+        {
+          "chapter": "19",
+          "beat_count": 43,
+          "dialogue_beats": 10,
+          "dialogue_pct": 0.2326,
+          "distinct_dialogue_speakers": 10,
+          "max_consecutive_dialogue_run": 3,
+          "dialogue_run_lengths": [
+            3,
+            1,
+            1,
+            1,
+            2,
+            1,
+            1
+          ]
+        },
+        {
+          "chapter": "20",
+          "beat_count": 37,
+          "dialogue_beats": 16,
+          "dialogue_pct": 0.4324,
+          "distinct_dialogue_speakers": 8,
+          "max_consecutive_dialogue_run": 4,
+          "dialogue_run_lengths": [
+            1,
+            2,
+            1,
+            2,
+            2,
+            1,
+            4,
+            1,
+            2
+          ]
+        },
+        {
+          "chapter": "21",
+          "beat_count": 31,
+          "dialogue_beats": 11,
+          "dialogue_pct": 0.3548,
+          "distinct_dialogue_speakers": 3,
+          "max_consecutive_dialogue_run": 3,
+          "dialogue_run_lengths": [
+            2,
+            1,
+            3,
+            3,
+            2
+          ]
+        },
+        {
+          "chapter": "22",
+          "beat_count": 41,
+          "dialogue_beats": 6,
+          "dialogue_pct": 0.1463,
+          "distinct_dialogue_speakers": 5,
+          "max_consecutive_dialogue_run": 1,
+          "dialogue_run_lengths": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "chapter": "23",
+          "beat_count": 39,
+          "dialogue_beats": 9,
+          "dialogue_pct": 0.2308,
+          "distinct_dialogue_speakers": 7,
+          "max_consecutive_dialogue_run": 3,
+          "dialogue_run_lengths": [
+            3,
+            3,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "chapter": "24",
+          "beat_count": 13,
+          "dialogue_beats": 4,
+          "dialogue_pct": 0.3077,
+          "distinct_dialogue_speakers": 6,
+          "max_consecutive_dialogue_run": 2,
+          "dialogue_run_lengths": [
+            2,
+            1,
+            1
+          ]
+        }
+      ]
+    },
+    "halflings_gem": {
+      "book": "halflings_gem",
+      "total_narrative_chapters": 25,
+      "mean_dialogue_pct_per_chapter": 0.3503,
+      "min_dialogue_pct": 0.0,
+      "max_dialogue_pct": 0.625,
+      "std_dev_dialogue_pct": 0.1646,
+      "chapters_low_dialogue_lt10pct": 2,
+      "chapters_mid_dialogue_10to25pct": 4,
+      "chapters_high_dialogue_ge25pct": 19,
+      "dialogue_run_length_distribution": {
+        "1": 93,
+        "2": 26,
+        "3": 17,
+        "4": 7,
+        "5": 4,
+        "6": 3
+      },
+      "per_chapter": [
+        {
+          "chapter": "1",
+          "beat_count": 35,
+          "dialogue_beats": 18,
+          "dialogue_pct": 0.5143,
+          "distinct_dialogue_speakers": 4,
+          "max_consecutive_dialogue_run": 3,
+          "dialogue_run_lengths": [
+            2,
+            2,
+            1,
+            3,
+            1,
+            1,
+            1,
+            2,
+            1,
+            1,
+            3
+          ]
+        },
+        {
+          "chapter": "2",
+          "beat_count": 22,
+          "dialogue_beats": 10,
+          "dialogue_pct": 0.4545,
+          "distinct_dialogue_speakers": 3,
+          "max_consecutive_dialogue_run": 3,
+          "dialogue_run_lengths": [
+            1,
+            2,
+            2,
+            1,
+            3,
+            1
+          ]
+        },
+        {
+          "chapter": "3",
+          "beat_count": 31,
+          "dialogue_beats": 8,
+          "dialogue_pct": 0.2581,
+          "distinct_dialogue_speakers": 5,
+          "max_consecutive_dialogue_run": 3,
+          "dialogue_run_lengths": [
+            1,
+            1,
+            1,
+            3,
+            1,
+            1
+          ]
+        },
+        {
+          "chapter": "4",
+          "beat_count": 47,
+          "dialogue_beats": 21,
+          "dialogue_pct": 0.4468,
+          "distinct_dialogue_speakers": 8,
+          "max_consecutive_dialogue_run": 5,
+          "dialogue_run_lengths": [
+            4,
+            1,
+            3,
+            1,
+            1,
+            2,
+            1,
+            1,
+            1,
+            1,
+            5
+          ]
+        },
+        {
+          "chapter": "5",
+          "beat_count": 39,
+          "dialogue_beats": 0,
+          "dialogue_pct": 0.0,
+          "distinct_dialogue_speakers": 0,
+          "max_consecutive_dialogue_run": 0,
+          "dialogue_run_lengths": []
+        },
+        {
+          "chapter": "6",
+          "beat_count": 40,
+          "dialogue_beats": 10,
+          "dialogue_pct": 0.25,
+          "distinct_dialogue_speakers": 5,
+          "max_consecutive_dialogue_run": 3,
+          "dialogue_run_lengths": [
+            2,
+            1,
+            1,
+            3,
+            1,
+            2
+          ]
+        },
+        {
+          "chapter": "7",
+          "beat_count": 28,
+          "dialogue_beats": 15,
+          "dialogue_pct": 0.5357,
+          "distinct_dialogue_speakers": 9,
+          "max_consecutive_dialogue_run": 6,
+          "dialogue_run_lengths": [
+            1,
+            1,
+            3,
+            1,
+            6,
+            3
+          ]
+        },
+        {
+          "chapter": "8",
+          "beat_count": 22,
+          "dialogue_beats": 13,
+          "dialogue_pct": 0.5909,
+          "distinct_dialogue_speakers": 5,
+          "max_consecutive_dialogue_run": 5,
+          "dialogue_run_lengths": [
+            5,
+            1,
+            3,
+            1,
+            2,
+            1
+          ]
+        },
+        {
+          "chapter": "9",
+          "beat_count": 20,
+          "dialogue_beats": 11,
+          "dialogue_pct": 0.55,
+          "distinct_dialogue_speakers": 9,
+          "max_consecutive_dialogue_run": 4,
+          "dialogue_run_lengths": [
+            1,
+            2,
+            3,
+            1,
+            4
+          ]
+        },
+        {
+          "chapter": "10",
+          "beat_count": 34,
+          "dialogue_beats": 16,
+          "dialogue_pct": 0.4706,
+          "distinct_dialogue_speakers": 7,
+          "max_consecutive_dialogue_run": 6,
+          "dialogue_run_lengths": [
+            1,
+            1,
+            1,
+            6,
+            1,
+            2,
+            4
+          ]
+        },
+        {
+          "chapter": "11",
+          "beat_count": 53,
+          "dialogue_beats": 14,
+          "dialogue_pct": 0.2642,
+          "distinct_dialogue_speakers": 6,
+          "max_consecutive_dialogue_run": 3,
+          "dialogue_run_lengths": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            3,
+            2,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "chapter": "12",
+          "beat_count": 27,
+          "dialogue_beats": 15,
+          "dialogue_pct": 0.5556,
+          "distinct_dialogue_speakers": 13,
+          "max_consecutive_dialogue_run": 5,
+          "dialogue_run_lengths": [
+            1,
+            2,
+            2,
+            5,
+            1,
+            1,
+            2,
+            1
+          ]
+        },
+        {
+          "chapter": "13",
+          "beat_count": 30,
+          "dialogue_beats": 8,
+          "dialogue_pct": 0.2667,
+          "distinct_dialogue_speakers": 5,
+          "max_consecutive_dialogue_run": 2,
+          "dialogue_run_lengths": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            2,
+            1
+          ]
+        },
+        {
+          "chapter": "14",
+          "beat_count": 32,
+          "dialogue_beats": 12,
+          "dialogue_pct": 0.375,
+          "distinct_dialogue_speakers": 8,
+          "max_consecutive_dialogue_run": 5,
+          "dialogue_run_lengths": [
+            1,
+            2,
+            4,
+            5
+          ]
+        },
+        {
+          "chapter": "15",
+          "beat_count": 24,
+          "dialogue_beats": 7,
+          "dialogue_pct": 0.2917,
+          "distinct_dialogue_speakers": 7,
+          "max_consecutive_dialogue_run": 3,
+          "dialogue_run_lengths": [
+            1,
+            1,
+            1,
+            1,
+            3
+          ]
+        },
+        {
+          "chapter": "16",
+          "beat_count": 34,
+          "dialogue_beats": 12,
+          "dialogue_pct": 0.3529,
+          "distinct_dialogue_speakers": 8,
+          "max_consecutive_dialogue_run": 4,
+          "dialogue_run_lengths": [
+            2,
+            2,
+            4,
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "chapter": "17",
+          "beat_count": 19,
+          "dialogue_beats": 9,
+          "dialogue_pct": 0.4737,
+          "distinct_dialogue_speakers": 5,
+          "max_consecutive_dialogue_run": 3,
+          "dialogue_run_lengths": [
+            3,
+            1,
+            1,
+            1,
+            2,
+            1
+          ]
+        },
+        {
+          "chapter": "18",
+          "beat_count": 42,
+          "dialogue_beats": 7,
+          "dialogue_pct": 0.1667,
+          "distinct_dialogue_speakers": 5,
+          "max_consecutive_dialogue_run": 2,
+          "dialogue_run_lengths": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            2
+          ]
+        },
+        {
+          "chapter": "19",
+          "beat_count": 35,
+          "dialogue_beats": 11,
+          "dialogue_pct": 0.3143,
+          "distinct_dialogue_speakers": 9,
+          "max_consecutive_dialogue_run": 2,
+          "dialogue_run_lengths": [
+            1,
+            1,
+            1,
+            2,
+            1,
+            2,
+            1,
+            2
+          ]
+        },
+        {
+          "chapter": "20",
+          "beat_count": 27,
+          "dialogue_beats": 6,
+          "dialogue_pct": 0.2222,
+          "distinct_dialogue_speakers": 10,
+          "max_consecutive_dialogue_run": 3,
+          "dialogue_run_lengths": [
+            3,
+            3
+          ]
+        },
+        {
+          "chapter": "21",
+          "beat_count": 27,
+          "dialogue_beats": 5,
+          "dialogue_pct": 0.1852,
+          "distinct_dialogue_speakers": 9,
+          "max_consecutive_dialogue_run": 2,
+          "dialogue_run_lengths": [
+            1,
+            1,
+            1,
+            2
+          ]
+        },
+        {
+          "chapter": "22",
+          "beat_count": 36,
+          "dialogue_beats": 13,
+          "dialogue_pct": 0.3611,
+          "distinct_dialogue_speakers": 9,
+          "max_consecutive_dialogue_run": 3,
+          "dialogue_run_lengths": [
+            3,
+            3,
+            1,
+            1,
+            2,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "chapter": "23",
+          "beat_count": 24,
+          "dialogue_beats": 2,
+          "dialogue_pct": 0.0833,
+          "distinct_dialogue_speakers": 4,
+          "max_consecutive_dialogue_run": 1,
+          "dialogue_run_lengths": [
+            1,
+            1
+          ]
+        },
+        {
+          "chapter": "24",
+          "beat_count": 27,
+          "dialogue_beats": 4,
+          "dialogue_pct": 0.1481,
+          "distinct_dialogue_speakers": 8,
+          "max_consecutive_dialogue_run": 1,
+          "dialogue_run_lengths": [
+            1,
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "chapter": "25",
+          "beat_count": 24,
+          "dialogue_beats": 15,
+          "dialogue_pct": 0.625,
+          "distinct_dialogue_speakers": 8,
+          "max_consecutive_dialogue_run": 6,
+          "dialogue_run_lengths": [
+            4,
+            6,
+            4,
+            1
+          ]
+        }
+      ]
+    }
+  }
+}

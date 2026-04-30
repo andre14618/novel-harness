@@ -1,0 +1,1103 @@
+{
+  "computed_at": "20260430T030038",
+  "source": "pairs.jsonl \u2014 brief.setting field, scene-level aggregation (mode per scene, then scene transitions)",
+  "dim": "setting_change_frequency",
+  "by_book": {
+    "crystal_shard": {
+      "book": "crystal_shard",
+      "total_narrative_chapters": 30,
+      "mean_scene_setting_changes_per_chapter": 3.1,
+      "monolocation_chapters": 3,
+      "multilocation_chapters": 27,
+      "monolocation_fraction": 0.1,
+      "setting_change_distribution": {
+        "0": 3,
+        "1": 4,
+        "2": 6,
+        "3": 6,
+        "4": 8,
+        "5": 1,
+        "7": 1,
+        "15": 1
+      },
+      "note_proxy": "Setting coarsened from brief.setting first comma-segment. Changes counted at SCENE level (mode per scene, then scene-to-scene transitions). Scene-internal micro-variations removed.",
+      "per_chapter": [
+        {
+          "chapter": "1",
+          "scene_count": 4,
+          "scene_setting_changes": 3,
+          "distinct_settings": 4,
+          "is_monolocation": false,
+          "scene_settings": [
+            "icewind dale tundra",
+            "wizard's cabin",
+            "alley",
+            "village street"
+          ]
+        },
+        {
+          "chapter": "2",
+          "scene_count": 4,
+          "scene_setting_changes": 3,
+          "distinct_settings": 4,
+          "is_monolocation": false,
+          "scene_settings": [
+            "lakeside",
+            "open tundra",
+            "lonelywood fishing hole",
+            "open tundra near kelvin's cairn"
+          ]
+        },
+        {
+          "chapter": "3",
+          "scene_count": 3,
+          "scene_setting_changes": 2,
+          "distinct_settings": 2,
+          "is_monolocation": false,
+          "scene_settings": [
+            "hengorot",
+            "tundra",
+            "hengorot"
+          ]
+        },
+        {
+          "chapter": "4",
+          "scene_count": 5,
+          "scene_setting_changes": 4,
+          "distinct_settings": 5,
+          "is_monolocation": false,
+          "scene_settings": [
+            "spine of the world mountains",
+            "bowl-shaped snow depression",
+            "rocky bowl",
+            "cryshal-tirith",
+            "cryshal-tirith exterior and entrance"
+          ]
+        },
+        {
+          "chapter": "5",
+          "scene_count": 1,
+          "scene_setting_changes": 0,
+          "distinct_settings": 1,
+          "is_monolocation": true,
+          "scene_settings": [
+            "bruenor's climb"
+          ]
+        },
+        {
+          "chapter": "6",
+          "scene_count": 1,
+          "scene_setting_changes": 0,
+          "distinct_settings": 1,
+          "is_monolocation": true,
+          "scene_settings": [
+            "council hall"
+          ]
+        },
+        {
+          "chapter": "7",
+          "scene_count": 5,
+          "scene_setting_changes": 4,
+          "distinct_settings": 5,
+          "is_monolocation": false,
+          "scene_settings": [
+            "open tundra",
+            "rocky hillside lookout",
+            "inside command tent",
+            "astral plane",
+            "bremen's run at dawn"
+          ]
+        },
+        {
+          "chapter": "8",
+          "scene_count": 7,
+          "scene_setting_changes": 4,
+          "distinct_settings": 5,
+          "is_monolocation": false,
+          "scene_settings": [
+            "alley",
+            "eastern slope of bryn shander hill",
+            "battlefield outside bryn shander",
+            "battlefield outside bryn shander",
+            "slopes below bryn shander",
+            "slopes of bryn shander",
+            "slopes of bryn shander"
+          ]
+        },
+        {
+          "chapter": "9",
+          "scene_count": 2,
+          "scene_setting_changes": 1,
+          "distinct_settings": 2,
+          "is_monolocation": false,
+          "scene_settings": [
+            "lakeside tree",
+            "dwarven forge chamber"
+          ]
+        },
+        {
+          "chapter": "10",
+          "scene_count": 5,
+          "scene_setting_changes": 4,
+          "distinct_settings": 5,
+          "is_monolocation": false,
+          "scene_settings": [
+            "cryshal-tirith entrance",
+            "cryshal-tirith interior",
+            "wizard's study",
+            "material plane",
+            "cryshal-tirith"
+          ]
+        },
+        {
+          "chapter": "11",
+          "scene_count": 4,
+          "scene_setting_changes": 2,
+          "distinct_settings": 3,
+          "is_monolocation": false,
+          "scene_settings": [
+            "secret chamber",
+            "outdoor forge",
+            "outdoor forge",
+            "secret mountain forge"
+          ]
+        },
+        {
+          "chapter": "12",
+          "scene_count": 3,
+          "scene_setting_changes": 2,
+          "distinct_settings": 3,
+          "is_monolocation": false,
+          "scene_settings": [
+            "bruenor's climb",
+            "drizzt's camp on mountain path",
+            "dwarven smithy/cave"
+          ]
+        },
+        {
+          "chapter": "13",
+          "scene_count": 2,
+          "scene_setting_changes": 1,
+          "distinct_settings": 2,
+          "is_monolocation": false,
+          "scene_settings": [
+            "cryshal-tirith throne room",
+            "cryshal-tirith second-level audience hall"
+          ]
+        },
+        {
+          "chapter": "14",
+          "scene_count": 4,
+          "scene_setting_changes": 3,
+          "distinct_settings": 3,
+          "is_monolocation": false,
+          "scene_settings": [
+            "open ground near kelvin's cairn",
+            "cave entrance",
+            "training ground near kelvin's cairn",
+            "cave entrance"
+          ]
+        },
+        {
+          "chapter": "15",
+          "scene_count": 5,
+          "scene_setting_changes": 4,
+          "distinct_settings": 5,
+          "is_monolocation": false,
+          "scene_settings": [
+            "lair common room",
+            "lair entrance",
+            "rocky overlook",
+            "tundra camp near boulders",
+            "kessell's tower"
+          ]
+        },
+        {
+          "chapter": "16",
+          "scene_count": 3,
+          "scene_setting_changes": 1,
+          "distinct_settings": 2,
+          "is_monolocation": false,
+          "scene_settings": [
+            "tundra near kelvin's cairn",
+            "tundra near kelvin's cairn",
+            "tundra"
+          ]
+        },
+        {
+          "chapter": "17",
+          "scene_count": 5,
+          "scene_setting_changes": 4,
+          "distinct_settings": 5,
+          "is_monolocation": false,
+          "scene_settings": [
+            "daledrop ambush site",
+            "boulder field above giant lair",
+            "broken stone trail near chasm",
+            "daledrop ambush kill zone",
+            "mountain trail ambush point"
+          ]
+        },
+        {
+          "chapter": "18",
+          "scene_count": 8,
+          "scene_setting_changes": 7,
+          "distinct_settings": 8,
+          "is_monolocation": false,
+          "scene_settings": [
+            "verbeeg lair dining room",
+            "giant lair room",
+            "tunnel inside giant lair",
+            "main corridor and side chamber of the lair",
+            "biggrin's room inside the lair",
+            "lavish chamber inside the lair",
+            "secret door area outside the lair",
+            "rocky face of kelvin's cairn"
+          ]
+        },
+        {
+          "chapter": "19",
+          "scene_count": 4,
+          "scene_setting_changes": 3,
+          "distinct_settings": 4,
+          "is_monolocation": false,
+          "scene_settings": [
+            "mirror chamber",
+            "lair tunnel",
+            "chamber in giant lair",
+            "council hall"
+          ]
+        },
+        {
+          "chapter": "20",
+          "scene_count": 4,
+          "scene_setting_changes": 2,
+          "distinct_settings": 3,
+          "is_monolocation": false,
+          "scene_settings": [
+            "rocky slopes outside dwarven mines",
+            "bryn shander",
+            "bryn shander",
+            "hall of scrying"
+          ]
+        },
+        {
+          "chapter": "21",
+          "scene_count": 3,
+          "scene_setting_changes": 2,
+          "distinct_settings": 3,
+          "is_monolocation": false,
+          "scene_settings": [
+            "evermelt",
+            "evermelt pool",
+            "dragon's treasure chamber"
+          ]
+        },
+        {
+          "chapter": "22",
+          "scene_count": 6,
+          "scene_setting_changes": 5,
+          "distinct_settings": 6,
+          "is_monolocation": false,
+          "scene_settings": [
+            "treasure chamber of dragon's lair",
+            "dragon's lair cavern",
+            "perimeter of barbarian encampment",
+            "open ground before the king's tent",
+            "tribal combat circle",
+            "tundra"
+          ]
+        },
+        {
+          "chapter": "23",
+          "scene_count": 5,
+          "scene_setting_changes": 4,
+          "distinct_settings": 5,
+          "is_monolocation": false,
+          "scene_settings": [
+            "lac dinneshere",
+            "small ridge north of bryn shander",
+            "mithril hall valley",
+            "maer dualdon and redwaters ports",
+            "bryn shander walls"
+          ]
+        },
+        {
+          "chapter": "24",
+          "scene_count": 5,
+          "scene_setting_changes": 4,
+          "distinct_settings": 5,
+          "is_monolocation": false,
+          "scene_settings": [
+            "kelvin's cairn face",
+            "bryn shander wall",
+            "mist seeker deck",
+            "outside bryn shander",
+            "maer dualdon"
+          ]
+        },
+        {
+          "chapter": "25",
+          "scene_count": 3,
+          "scene_setting_changes": 2,
+          "distinct_settings": 3,
+          "is_monolocation": false,
+          "scene_settings": [
+            "hidden chamber",
+            "sheltered dell",
+            "dell"
+          ]
+        },
+        {
+          "chapter": "26",
+          "scene_count": 1,
+          "scene_setting_changes": 0,
+          "distinct_settings": 1,
+          "is_monolocation": true,
+          "scene_settings": [
+            "mead hall"
+          ]
+        },
+        {
+          "chapter": "27",
+          "scene_count": 4,
+          "scene_setting_changes": 3,
+          "distinct_settings": 4,
+          "is_monolocation": false,
+          "scene_settings": [
+            "bryn shander walls",
+            "dwarven tunnels beneath bryn shander",
+            "council chamber",
+            "tundra"
+          ]
+        },
+        {
+          "chapter": "28",
+          "scene_count": 4,
+          "scene_setting_changes": 3,
+          "distinct_settings": 4,
+          "is_monolocation": false,
+          "scene_settings": [
+            "crystal room inside cryshal-tirith",
+            "maer dualdon",
+            "kelvin's cairn",
+            "ground floor audience chamber"
+          ]
+        },
+        {
+          "chapter": "29",
+          "scene_count": 2,
+          "scene_setting_changes": 1,
+          "distinct_settings": 2,
+          "is_monolocation": false,
+          "scene_settings": [
+            "tunnel beneath the monster camp",
+            "scrying chamber"
+          ]
+        },
+        {
+          "chapter": "30",
+          "scene_count": 16,
+          "scene_setting_changes": 15,
+          "distinct_settings": 15,
+          "is_monolocation": false,
+          "scene_settings": [
+            "bryn shander walls",
+            "inside cryshal-tirith",
+            "upper kelvin's cairn",
+            "battlefield outside bryn shander",
+            "snowcap of kelvin's cairn",
+            "battlefield outside ten-towns",
+            "top of cryshal-tirith rubble",
+            "tent",
+            "void",
+            "battlefield outside bryn shander",
+            "southern precipice of kelvin's cairn",
+            "open battlefield",
+            "shoreline shallows near bryn shander",
+            "maer dualdon lakeshore",
+            "battlefield around bryn shander",
+            "council gathering"
+          ]
+        }
+      ]
+    },
+    "streams_of_silver": {
+      "book": "streams_of_silver",
+      "total_narrative_chapters": 24,
+      "mean_scene_setting_changes_per_chapter": 1.71,
+      "monolocation_chapters": 7,
+      "multilocation_chapters": 17,
+      "monolocation_fraction": 0.292,
+      "setting_change_distribution": {
+        "0": 7,
+        "1": 4,
+        "2": 6,
+        "3": 4,
+        "4": 2,
+        "5": 1
+      },
+      "note_proxy": "Setting coarsened from brief.setting first comma-segment. Changes counted at SCENE level (mode per scene, then scene-to-scene transitions). Scene-internal micro-variations removed.",
+      "per_chapter": [
+        {
+          "chapter": "1",
+          "scene_count": 1,
+          "scene_setting_changes": 0,
+          "distinct_settings": 1,
+          "is_monolocation": true,
+          "scene_settings": [
+            "catti-brie's house"
+          ]
+        },
+        {
+          "chapter": "2",
+          "scene_count": 2,
+          "scene_setting_changes": 1,
+          "distinct_settings": 2,
+          "is_monolocation": false,
+          "scene_settings": [
+            "luskan north gate",
+            "the cutlass tavern"
+          ]
+        },
+        {
+          "chapter": "3",
+          "scene_count": 4,
+          "scene_setting_changes": 3,
+          "distinct_settings": 2,
+          "is_monolocation": false,
+          "scene_settings": [
+            "cutlass tavern",
+            "dark alley",
+            "cutlass tavern",
+            "dark alley"
+          ]
+        },
+        {
+          "chapter": "4",
+          "scene_count": 2,
+          "scene_setting_changes": 1,
+          "distinct_settings": 2,
+          "is_monolocation": false,
+          "scene_settings": [
+            "hosttower summoning chamber",
+            "merchant caravan road"
+          ]
+        },
+        {
+          "chapter": "5",
+          "scene_count": 1,
+          "scene_setting_changes": 0,
+          "distinct_settings": 1,
+          "is_monolocation": true,
+          "scene_settings": [
+            "camp near the river mirar"
+          ]
+        },
+        {
+          "chapter": "6",
+          "scene_count": 4,
+          "scene_setting_changes": 3,
+          "distinct_settings": 4,
+          "is_monolocation": false,
+          "scene_settings": [
+            "copse of fir trees",
+            "tundra",
+            "barbarian camp fighting ring",
+            "open field"
+          ]
+        },
+        {
+          "chapter": "7",
+          "scene_count": 1,
+          "scene_setting_changes": 0,
+          "distinct_settings": 1,
+          "is_monolocation": true,
+          "scene_settings": [
+            "merchant caravan"
+          ]
+        },
+        {
+          "chapter": "8",
+          "scene_count": 2,
+          "scene_setting_changes": 1,
+          "distinct_settings": 2,
+          "is_monolocation": false,
+          "scene_settings": [
+            "the fuzzy quarterstaff tavern",
+            "open road beyond longsaddle"
+          ]
+        },
+        {
+          "chapter": "9",
+          "scene_count": 4,
+          "scene_setting_changes": 3,
+          "distinct_settings": 3,
+          "is_monolocation": false,
+          "scene_settings": [
+            "north gate",
+            "hosttower of the arcane",
+            "sydney's room",
+            "hosttower of the arcane"
+          ]
+        },
+        {
+          "chapter": "10",
+          "scene_count": 3,
+          "scene_setting_changes": 2,
+          "distinct_settings": 3,
+          "is_monolocation": false,
+          "scene_settings": [
+            "open road north of longsaddle",
+            "surbrin riverbank",
+            "dendybar's chamber"
+          ]
+        },
+        {
+          "chapter": "11",
+          "scene_count": 3,
+          "scene_setting_changes": 2,
+          "distinct_settings": 3,
+          "is_monolocation": false,
+          "scene_settings": [
+            "road north from luskan",
+            "tundra",
+            "road to silverymoon"
+          ]
+        },
+        {
+          "chapter": "12",
+          "scene_count": 4,
+          "scene_setting_changes": 3,
+          "distinct_settings": 4,
+          "is_monolocation": false,
+          "scene_settings": [
+            "trollmoors",
+            "beneath the bog",
+            "hidden lagoon off the bog",
+            "bog/swamp"
+          ]
+        },
+        {
+          "chapter": "13",
+          "scene_count": 1,
+          "scene_setting_changes": 0,
+          "distinct_settings": 1,
+          "is_monolocation": true,
+          "scene_settings": [
+            "bog/swamp"
+          ]
+        },
+        {
+          "chapter": "14",
+          "scene_count": 1,
+          "scene_setting_changes": 0,
+          "distinct_settings": 1,
+          "is_monolocation": true,
+          "scene_settings": [
+            "riverbank"
+          ]
+        },
+        {
+          "chapter": "15",
+          "scene_count": 4,
+          "scene_setting_changes": 2,
+          "distinct_settings": 3,
+          "is_monolocation": false,
+          "scene_settings": [
+            "road west along the rauvin",
+            "inn room",
+            "inn room",
+            "road departing silverymoon"
+          ]
+        },
+        {
+          "chapter": "16",
+          "scene_count": 1,
+          "scene_setting_changes": 0,
+          "distinct_settings": 1,
+          "is_monolocation": true,
+          "scene_settings": [
+            "great library"
+          ]
+        },
+        {
+          "chapter": "17",
+          "scene_count": 3,
+          "scene_setting_changes": 2,
+          "distinct_settings": 3,
+          "is_monolocation": false,
+          "scene_settings": [
+            "evening camp",
+            "dwarvendarrow",
+            "rocky outcrop"
+          ]
+        },
+        {
+          "chapter": "18",
+          "scene_count": 3,
+          "scene_setting_changes": 2,
+          "distinct_settings": 3,
+          "is_monolocation": false,
+          "scene_settings": [
+            "outside mithral hall entrance",
+            "camp in eastern mountain trail",
+            "mithral hall entry chamber"
+          ]
+        },
+        {
+          "chapter": "19",
+          "scene_count": 5,
+          "scene_setting_changes": 4,
+          "distinct_settings": 5,
+          "is_monolocation": false,
+          "scene_settings": [
+            "mithral hall entry chamber",
+            "dendybar's chamber",
+            "keeper's dale gorge floor",
+            "passage outside the oval room",
+            "oval central room"
+          ]
+        },
+        {
+          "chapter": "20",
+          "scene_count": 4,
+          "scene_setting_changes": 2,
+          "distinct_settings": 3,
+          "is_monolocation": false,
+          "scene_settings": [
+            "oval chamber",
+            "oval chamber",
+            "hall of dumathoin",
+            "mithral hall ruins"
+          ]
+        },
+        {
+          "chapter": "21",
+          "scene_count": 1,
+          "scene_setting_changes": 0,
+          "distinct_settings": 1,
+          "is_monolocation": true,
+          "scene_settings": [
+            "mithral hall mines"
+          ]
+        },
+        {
+          "chapter": "22",
+          "scene_count": 6,
+          "scene_setting_changes": 4,
+          "distinct_settings": 5,
+          "is_monolocation": false,
+          "scene_settings": [
+            "immense cavern treasury",
+            "portcullis at garumn's gorge",
+            "anteroom below grand corridor",
+            "cavern of garumn's gorge",
+            "anteroom",
+            "anteroom"
+          ]
+        },
+        {
+          "chapter": "23",
+          "scene_count": 6,
+          "scene_setting_changes": 5,
+          "distinct_settings": 6,
+          "is_monolocation": false,
+          "scene_settings": [
+            "mithral hall cavern",
+            "mithral hall anteroom",
+            "mithral hall gorge wall",
+            "chamber behind curtain",
+            "gorge wall",
+            "gorge wall ledge"
+          ]
+        },
+        {
+          "chapter": "24",
+          "scene_count": 2,
+          "scene_setting_changes": 1,
+          "distinct_settings": 2,
+          "is_monolocation": false,
+          "scene_settings": [
+            "gorge ledge",
+            "wide cavern end and tunnel mouth"
+          ]
+        }
+      ]
+    },
+    "halflings_gem": {
+      "book": "halflings_gem",
+      "total_narrative_chapters": 25,
+      "mean_scene_setting_changes_per_chapter": 3.96,
+      "monolocation_chapters": 2,
+      "multilocation_chapters": 23,
+      "monolocation_fraction": 0.08,
+      "setting_change_distribution": {
+        "0": 2,
+        "1": 2,
+        "2": 3,
+        "3": 5,
+        "4": 3,
+        "5": 5,
+        "6": 3,
+        "7": 1,
+        "14": 1
+      },
+      "note_proxy": "Setting coarsened from brief.setting first comma-segment. Changes counted at SCENE level (mode per scene, then scene-to-scene transitions). Scene-internal micro-variations removed.",
+      "per_chapter": [
+        {
+          "chapter": "1",
+          "scene_count": 6,
+          "scene_setting_changes": 5,
+          "distinct_settings": 6,
+          "is_monolocation": false,
+          "scene_settings": [
+            "tower of twilight island",
+            "museum chamber",
+            "guest room",
+            "dining room",
+            "outside tower of twilight",
+            "hidden extradimensional home"
+          ]
+        },
+        {
+          "chapter": "2",
+          "scene_count": 4,
+          "scene_setting_changes": 3,
+          "distinct_settings": 4,
+          "is_monolocation": false,
+          "scene_settings": [
+            "small cabin",
+            "empty deck",
+            "ship cabin",
+            "ship deck"
+          ]
+        },
+        {
+          "chapter": "3",
+          "scene_count": 4,
+          "scene_setting_changes": 3,
+          "distinct_settings": 4,
+          "is_monolocation": false,
+          "scene_settings": [
+            "forest border",
+            "farmhouse exterior",
+            "interior of banshee's dome lair",
+            "conyberry village"
+          ]
+        },
+        {
+          "chapter": "4",
+          "scene_count": 5,
+          "scene_setting_changes": 4,
+          "distinct_settings": 5,
+          "is_monolocation": false,
+          "scene_settings": [
+            "eastern cliff overlooking waterdeep",
+            "dock street",
+            "bar rail and table area",
+            "table in the mermaid's arms",
+            "ship deck"
+          ]
+        },
+        {
+          "chapter": "5",
+          "scene_count": 1,
+          "scene_setting_changes": 0,
+          "distinct_settings": 1,
+          "is_monolocation": true,
+          "scene_settings": [
+            "room with hearth"
+          ]
+        },
+        {
+          "chapter": "6",
+          "scene_count": 7,
+          "scene_setting_changes": 6,
+          "distinct_settings": 6,
+          "is_monolocation": false,
+          "scene_settings": [
+            "ship deck",
+            "inn room",
+            "ship barracks and galley",
+            "harbormaster's office",
+            "lodging room",
+            "baldur's gate",
+            "lodging room"
+          ]
+        },
+        {
+          "chapter": "7",
+          "scene_count": 4,
+          "scene_setting_changes": 3,
+          "distinct_settings": 4,
+          "is_monolocation": false,
+          "scene_settings": [
+            "small shelter with hearth",
+            "small one-room shelter",
+            "private room",
+            "southern slope of harpell hill"
+          ]
+        },
+        {
+          "chapter": "8",
+          "scene_count": 1,
+          "scene_setting_changes": 0,
+          "distinct_settings": 1,
+          "is_monolocation": true,
+          "scene_settings": [
+            "lavalle's quarters"
+          ]
+        },
+        {
+          "chapter": "9",
+          "scene_count": 6,
+          "scene_setting_changes": 5,
+          "distinct_settings": 5,
+          "is_monolocation": false,
+          "scene_settings": [
+            "deck of the sea sprite",
+            "tower chamber",
+            "night sky above baldur's gate",
+            "deck of the devil dancer",
+            "deck of the sea sprite",
+            "guildhouse chamber"
+          ]
+        },
+        {
+          "chapter": "10",
+          "scene_count": 5,
+          "scene_setting_changes": 4,
+          "distinct_settings": 5,
+          "is_monolocation": false,
+          "scene_settings": [
+            "nightmare vision",
+            "ivy mansion",
+            "alustriel's grounds",
+            "sky above the clouds",
+            "sea mist"
+          ]
+        },
+        {
+          "chapter": "11",
+          "scene_count": 15,
+          "scene_setting_changes": 14,
+          "distinct_settings": 12,
+          "is_monolocation": false,
+          "scene_settings": [
+            "sea sprite",
+            "deck of sea sprite",
+            "deck of pinochet's flagship",
+            "burning deck of pinochet's flagship",
+            "deck of second pirate ship",
+            "rowboat on open water",
+            "sea sprite deck",
+            "sword coast sky",
+            "sea sprite deck",
+            "pirate flagship deck",
+            "sky above the sword coast",
+            "sea sprite deck",
+            "sky above catapult ship",
+            "sea sprite deck",
+            "airborne chariot above remaining pirate ship"
+          ]
+        },
+        {
+          "chapter": "12",
+          "scene_count": 3,
+          "scene_setting_changes": 1,
+          "distinct_settings": 2,
+          "is_monolocation": false,
+          "scene_settings": [
+            "rowboat on open water",
+            "sea sprite",
+            "sea sprite"
+          ]
+        },
+        {
+          "chapter": "13",
+          "scene_count": 3,
+          "scene_setting_changes": 2,
+          "distinct_settings": 3,
+          "is_monolocation": false,
+          "scene_settings": [
+            "rogues circle",
+            "pook's throne room",
+            "cells of nine"
+          ]
+        },
+        {
+          "chapter": "14",
+          "scene_count": 2,
+          "scene_setting_changes": 1,
+          "distinct_settings": 2,
+          "is_monolocation": false,
+          "scene_settings": [
+            "sea sprite deck",
+            "desert bowl between dunes"
+          ]
+        },
+        {
+          "chapter": "15",
+          "scene_count": 3,
+          "scene_setting_changes": 2,
+          "distinct_settings": 3,
+          "is_monolocation": false,
+          "scene_settings": [
+            "pook's chamber",
+            "merchant's tent",
+            "calim desert"
+          ]
+        },
+        {
+          "chapter": "16",
+          "scene_count": 4,
+          "scene_setting_changes": 3,
+          "distinct_settings": 4,
+          "is_monolocation": false,
+          "scene_settings": [
+            "dondon's room",
+            "calimport streets",
+            "rogues circle",
+            "catti-brie's room"
+          ]
+        },
+        {
+          "chapter": "17",
+          "scene_count": 3,
+          "scene_setting_changes": 2,
+          "distinct_settings": 3,
+          "is_monolocation": false,
+          "scene_settings": [
+            "central chamber",
+            "pook's throne room",
+            "calimport guildhouse"
+          ]
+        },
+        {
+          "chapter": "18",
+          "scene_count": 7,
+          "scene_setting_changes": 6,
+          "distinct_settings": 4,
+          "is_monolocation": false,
+          "scene_settings": [
+            "inn room",
+            "sewer tunnel",
+            "dark sewer passages",
+            "sewer tunnel",
+            "sewer side passage",
+            "sewer tunnel",
+            "sewer side passage"
+          ]
+        },
+        {
+          "chapter": "19",
+          "scene_count": 8,
+          "scene_setting_changes": 7,
+          "distinct_settings": 6,
+          "is_monolocation": false,
+          "scene_settings": [
+            "stone room",
+            "tunnel passage",
+            "trap room",
+            "tunnel passage",
+            "trap room doorway / trap room interior",
+            "thieves' guild corridors",
+            "thieves' guild tunnels",
+            "thieves' guild corridors"
+          ]
+        },
+        {
+          "chapter": "20",
+          "scene_count": 7,
+          "scene_setting_changes": 6,
+          "distinct_settings": 6,
+          "is_monolocation": false,
+          "scene_settings": [
+            "upward-sloping passage",
+            "sewer tunnel",
+            "sewer tunnel junction",
+            "sewer tunnel",
+            "thieves' guild tunnel passage",
+            "open street",
+            "central chamber"
+          ]
+        },
+        {
+          "chapter": "21",
+          "scene_count": 6,
+          "scene_setting_changes": 5,
+          "distinct_settings": 5,
+          "is_monolocation": false,
+          "scene_settings": [
+            "performance hall",
+            "guildhouse entrance stairs",
+            "guild chamber",
+            "pook's throne room",
+            "guild corridor",
+            "pook's throne room"
+          ]
+        },
+        {
+          "chapter": "22",
+          "scene_count": 5,
+          "scene_setting_changes": 4,
+          "distinct_settings": 4,
+          "is_monolocation": false,
+          "scene_settings": [
+            "tarterus",
+            "pook's living quarters",
+            "tarterus",
+            "planar tunnel",
+            "bridge at the gate"
+          ]
+        },
+        {
+          "chapter": "23",
+          "scene_count": 7,
+          "scene_setting_changes": 5,
+          "distinct_settings": 6,
+          "is_monolocation": false,
+          "scene_settings": [
+            "pasha pook's chambers",
+            "pasha pook's chambers",
+            "planar void",
+            "lavalle's chamber",
+            "pook's throne room",
+            "smoky bridge near planar gate",
+            "open starlit area"
+          ]
+        },
+        {
+          "chapter": "24",
+          "scene_count": 7,
+          "scene_setting_changes": 5,
+          "distinct_settings": 4,
+          "is_monolocation": false,
+          "scene_settings": [
+            "pook's throne room",
+            "tarterus",
+            "pook's throne room",
+            "pook's throne room",
+            "pook's throne room floor",
+            "pook's throne room",
+            "alley on rogues circle"
+          ]
+        },
+        {
+          "chapter": "25",
+          "scene_count": 4,
+          "scene_setting_changes": 3,
+          "distinct_settings": 4,
+          "is_monolocation": false,
+          "scene_settings": [
+            "feast hall",
+            "drizzt's room",
+            "lavalle's quarters",
+            "main entrance"
+          ]
+        }
+      ]
+    }
+  }
+}

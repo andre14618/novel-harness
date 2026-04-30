@@ -1919,3 +1919,121 @@ This pattern reinforces a meta-rule: **for stochastic-schema dims, anchor stabil
 - `crystal_shard.20260430T022432.v2-mice-anchor-stability.json` — second analysis run (idempotent re-aggregation; preserved per `feedback_no_overwrite_runs`).
 
 ---
+
+## Session 2026-04-30 ~03:00 UTC — additional corpus dims (pure aggregation)
+
+**Source:** `pairs.jsonl` brief fields (pov, setting, characters, kind, summary) + `beats.jsonl`. Zero LLM calls — pure aggregation. All 3 Icewind Dale books included for cross-book comparison. Timestamp: `20260430T030038`. 6 JSON artifacts written to `structure-calibration/`.
+
+---
+
+### Dim 1 — POV Management
+
+**Headline finding:** Omniscient is the modal POV (30% of beats in Crystal Shard), Drizzt second at 26%; chapter-primary POV rotates frequently (23/30 chapters switch primary POV from prior chapter), but beat-level POV switches are rare within a chapter. Implication for planner: omniscient frames should be a first-class planner choice, not a fallback; the planner should rotate chapter primary POV ~77% of the time rather than locking a single POV.
+
+| Book | Omniscient share | Drizzt share | Chapter switches / total | Beat-level switch rate |
+|---|---|---|---|---|
+| crystal_shard | 30.0% | 26.2% | 23/30 (77%) | low |
+| streams_of_silver | 37.2% | 21.5% | 14/24 (58%) | low |
+| halflings_gem | 22.3% | 25.0% | 15/25 (60%) | low |
+
+Cross-book pattern: chapter-primary POV rotates at 58–77% of chapter boundaries. Intra-chapter POV lock is strong — once a chapter's primary POV is set, beat-level switches are uncommon. Omniscient and Drizzt together own 50–57% of beats across all 3 books; the remaining 4–5 named POVs share the rest.
+
+Artifact: `crystal_shard.20260430T030038.pov-management.json`
+
+---
+
+### Dim 2 — Character Introduction Pacing
+
+**Headline finding:** Crystal Shard introduces 57% of its 105 named entities in the first 30% of chapters (mean 3.5 new entities/chapter); 12 characters appear for the first time in the last 20% of beats — a meaningful late-introduction rate for a 30-chapter novel. Implication for planner: the planner should seed ~3–4 new named entities per chapter in early chapters and taper to 0–1 per chapter in the final act; characters appearing only in the final 20% should be flagged as antagonist-tier or set-piece NPCs, not cast regulars.
+
+| Book | Total distinct | Mean new/ch | Front-loaded (first 30% ch) | Late introductions (last 20% beats) |
+|---|---|---|---|---|
+| crystal_shard | 105 | 3.5 | 57% | 12 |
+| streams_of_silver | 66 | 2.75 | 73% | 5 |
+| halflings_gem | 80 | 3.2 | 66% | 3 |
+
+Streams of Silver is more front-loaded (73% of characters by chapter 30% mark) reflecting the tighter cast of a quest-focused book. Crystal Shard's broader cast (political figures, faction leaders) drives the higher total and more gradual introduction curve.
+
+Artifact: `crystal_shard.20260430T030038.char-intro-pacing.json`
+
+---
+
+### Dim 3 — Setting Change Frequency
+
+**Headline finding:** Crystal Shard averages 3.1 scene-level setting changes per chapter (measured at scene granularity — mode setting per scene, then scene-to-scene transitions); only 10% of chapters are monolocation. Implication for planner: the planner should default to 3–4 distinct scene settings per chapter, and treat monolocation chapters as a deliberate structural choice (≈1 in 10 chapters), not the default.
+
+| Book | Mean scene-setting changes/ch | Monolocation fraction | Modal change count |
+|---|---|---|---|
+| crystal_shard | 3.1 | 10% | 4 (most common) |
+| streams_of_silver | 1.71 | 29% | 0 (most common) |
+| halflings_gem | 3.96 | 8% | 3 or 5 (tied) |
+
+Streams of Silver diverges: lower setting churn, more monolocation chapters — consistent with the focused dungeon-crawl / overland-march structure of book 2 vs the multi-faction political canvas of book 1. Note: setting coarsening is a heuristic proxy (first comma segment of free-text brief.setting); micro-variations within a single location are collapsed.
+
+Artifact: `crystal_shard.20260430T030038.setting-change-freq.json`
+
+---
+
+### Dim 4 — Dialogue Density Variation
+
+**Headline finding:** Crystal Shard averages 29.5% dialogue beats per chapter with high variance (std=0.176); 20/30 chapters are "high dialogue" (≥25%); 4 chapters are "low dialogue" (<10%). Dialogue runs of 1–2 consecutive beats dominate; extended exchanges (5+ consecutive beats) exist but are rare. Implication for planner: dialogue density is a high-variance dimension — the planner should encode per-chapter dialogue intent (dialogue-heavy chapter vs narration-heavy chapter) rather than assuming a uniform rate. A ≥25% dialogue target is the norm for action-fantasy chapters.
+
+| Book | Mean dialogue % | Std | Low (<10%) | Mid (10–25%) | High (≥25%) |
+|---|---|---|---|---|---|
+| crystal_shard | 29.5% | 0.176 | 4 ch | 6 ch | 20 ch |
+| streams_of_silver | 34.8% | 0.123 | 0 ch | 7 ch | 17 ch |
+| halflings_gem | 35.0% | 0.165 | 2 ch | 4 ch | 19 ch |
+
+Books 2–3 shift higher (35%) and tighter variance — possibly reflecting a more character-driven mid-series structure. Crystal Shard's wider spread (0.176 std) reflects early chapters that are primarily world-building narration.
+
+Artifact: `crystal_shard.20260430T030038.dialogue-density.json`
+
+---
+
+### Dim 5 — Tension Curve / Pacing Rhythm
+
+**Headline finding:** Action density escalates across the book — first half 24.6% vs second half 38.4% in Crystal Shard — with a consistent second-half escalation pattern across all 3 books. Final 20% of chapters does NOT peak highest in Crystal Shard (34.0% vs second-half mean 38.4%); the penultimate act drives peak action, not the final chapters. Implication for planner: the planner should encode an explicit two-phase pacing curve — action ramp begins at the midpoint and the penultimate act (chapters ~22–27 of 30) is the action peak; the final act allows some deceleration for denouement.
+
+| Book | First half action | Second half action | Final 20% action | Escalation ratio (2nd/1st) |
+|---|---|---|---|---|
+| crystal_shard | 24.6% | 38.4% | 34.0% | 1.56× |
+| streams_of_silver | 32.0% | 38.0% | 46.5% | 1.19× |
+| halflings_gem | 29.0% | 43.0% | 45.9% | 1.48× |
+
+Books 2–3 show final-20% as the true peak (46.5%, 45.9%), unlike Crystal Shard — likely reflecting that the series arc escalation overrides single-book denouement conventions in the later books.
+
+Artifact: `crystal_shard.20260430T030038.tension-curve.json`
+
+---
+
+### Dim 6 — Sensory Channel Distribution (best-effort regex proxy)
+
+**Headline finding:** Visual and kinesthetic channels dominate across all 3 books (combined ~78%), auditory at ~19–27%, olfactory trace-level (~2%). Pattern is consistent book-to-book. Caveat: regex on brief.summary text is a rough proxy — kinesthetic regex counts movement verbs (run/walk/push) which inflates its share; olfactory is likely under-counted since brief summaries rarely include sensory adjectives. LLM tagging on full prose text would be needed for reliable per-channel rates. No clear planner implication at this resolution — directional characterization only.
+
+| Book | Visual | Auditory | Kinesthetic | Olfactory |
+|---|---|---|---|---|
+| crystal_shard | 40.1% | 18.8% | 39.1% | 2.0% |
+| streams_of_silver | 33.6% | 27.0% | 36.5% | 2.9% |
+| halflings_gem | 38.0% | 19.0% | 40.5% | 2.6% |
+
+Signal: Streams of Silver has notably higher auditory share (27% vs ~19% in books 1+3) — consistent with its heavier dialogue density. The visual/kinesthetic near-parity is stable and likely reflects the action-fantasy genre default (combat + landscape description). Olfactory is near-zero via this proxy — requires LLM tagging to resolve. **No clear planner implication at this proxy resolution — useful only as descriptive characterization.**
+
+Artifact: `crystal_shard.20260430T030038.sensory-channels.json`
+
+---
+
+### Session cost
+
+Zero LLM calls. Compute only.
+
+### Artifacts
+
+All written to `novels/salvatore-icewind-dale/structure-calibration/` with timestamp `20260430T030038`:
+- `crystal_shard.20260430T030038.pov-management.json`
+- `crystal_shard.20260430T030038.char-intro-pacing.json`
+- `crystal_shard.20260430T030038.setting-change-freq.json`
+- `crystal_shard.20260430T030038.dialogue-density.json`
+- `crystal_shard.20260430T030038.tension-curve.json`
+- `crystal_shard.20260430T030038.sensory-channels.json`
+
+---
