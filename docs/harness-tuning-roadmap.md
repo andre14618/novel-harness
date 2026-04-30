@@ -38,10 +38,14 @@ Anchor stability gates for stochastic-schema dims (separate from pattern-shippin
 
 | Work | Status | Notes |
 |---|---|---|
-| Voice-shaping ablation v1 synthesis (Sonnet subagent) | running | Run completed 2026-04-21 (20 beats × 4 arms, $0.0221); decomposed audit + results doc was never produced. Subagent is locating outputs, running the audit per `docs/charters/voice-shaping-ablation-v1.md`, writing `docs/charters/voice-shaping-ablation-v1-results.md`, deciding SHIP/HOLD/KILL per arm. |
-| Crystal Shard new-dim mining (Sonnet subagent) | running | Pure-aggregation pass on 6 unmined dims: POV management, character-introduction pacing, setting-change frequency, dialogue density variation, tension/pacing curve, sensory-channel distribution (best effort). Zero LLM cost. Output: timestamped JSONs + conclusions doc session entry + commit. |
+| Crystal Shard new-dim mining (Sonnet subagent) | running | Pure-aggregation pass on 6 unmined dims: POV management, character-introduction pacing, setting-change frequency, dialogue density variation, tension/pacing curve, sensory-channel distribution (best effort). Zero LLM cost. |
 
-When both land: the corpus dim catalog grows from 7 to ~12-13 patterns; voice-shaping verdict shapes the writer-layer roadmap.
+## Recently landed (2026-04-30)
+
+| Work | Outcome | Commit |
+|---|---|---|
+| Voice-shaping ablation v1 synthesis | **KILL on all 3 prompt-shaping arms (D1/D2/D3 all FLAT vs D0 bare DeepSeek baseline).** D0 was already 0.39–0.89σ from Salvatore reference on 3/5 features — no room for prompt shaping to add value. Notable: D2 (few-shot with Salvatore excerpts in the prompt) had 0/20 halluc-leak fires vs the v4 Salvatore LoRA's ~15% — Salvatore in the prompt doesn't leak; Salvatore in the weights does. Corroborates the LoRA-track pivot framing. Next experiment named: character-distinctness audit on D3-style directive prompts. | `3c4f40b` |
+| `PLANNING_PLOTTER_PROMPT_OVERRIDE` env-var seam | Mirrors the planning-beats seam. Unblocks Patterns 1 + 3 for variant probing. | `e4343f7` |
 
 ## Active queue — non-mice corpus patterns (planner-prompt variants)
 
@@ -49,9 +53,9 @@ Identified in the Crystal Shard chapter-level structural session (2026-04-30 ~02
 
 | # | Pattern | Harness target | Variant drafted? | Probe run? | Cross-book? | Verdict |
 |---|---|---|---|---|---|---|
-| 1 | Length: median 2,534w / 24 beats; default action-fantasy `targetWords ≈ 2500`. Beat-count expectation `targetWords / 100` (current floor `/ 150` is too low). | `chapter-outline-system.md` `targetWords` band guidance | needs `PLANNING_PLOTTER_PROMPT_OVERRIDE` seam first | — | — | DRAFT |
+| 1 | Length: median 2,534w / 24 beats; default action-fantasy `targetWords ≈ 2500`. Beat-count expectation `targetWords / 100` (current floor `/ 150` is too low). | `chapter-outline-system.md` `targetWords` band guidance | UNBLOCKED — plotter seam shipped `e4343f7` | — | — | DRAFT |
 | 2 | Beat kind distribution: action 36% / dialogue 28% / interiority 21% / description 15%. | `beat-expansion-system.md` kind-balance soft prior | — | — | — | DRAFT (lower priority) |
-| 3 | Opener kind: 50% description, 26% action, 15% interiority, 9% dialogue. Closer kind: 41% action, 35% interiority, 21% dialogue, 3% description. | `chapter-outline-system.md` opener/closer guidance | needs plotter seam | — | — | DRAFT |
+| 3 | Opener kind: 50% description, 26% action, 15% interiority, 9% dialogue. Closer kind: 41% action, 35% interiority, 21% dialogue, 3% description. | `chapter-outline-system.md` opener/closer guidance | UNBLOCKED — plotter seam shipped `e4343f7` | — | — | DRAFT |
 | 4 | Within-chapter rhythm: descriptive setup → dialogue mid-peak → action/interiority climax. Description front-loads (q0=25% → q4=9%); dialogue mid-peaks (q0=18% → q2=38% → q4=30%). | `beat-expansion-system.md` position-specific guidance | — | — | — | DRAFT |
 | 7 | Beat boundary signals: pov_attention_shift 22% / stakes_recalibration 17% / scene_start 16% / action_shift 15% / speaker_change 13% / narration_to_dialogue 11%. | `beat-expansion-system.md` transition vocabulary as soft prior | — | — | — | DRAFT |
 | (TBD) | New dims from in-flight subagent — placeholder rows added when mining lands | — | — | — | — | PENDING SUBAGENT |
@@ -85,7 +89,8 @@ These are the items the user pointed out as the actual production-quality bottle
 
 | Work | Status | Why this matters | Estimate |
 |---|---|---|---|
-| Voice-shaping ablation v1 synthesis | in flight | Writer-layer signal — does prompt-level voice shaping ship a candidate, or confirm the LoRA-track-pivot was correct? | (subagent in flight) |
+| Voice-shaping ablation v1 synthesis | **DONE 2026-04-30** | KILL on all 3 prompt-shaping arms. Decisions entry committed `3c4f40b`. Next experiment named: character-distinctness audit on D3-style directive prompts (Sonnet quote-required pairwise). | — |
+| Character-distinctness audit (named follow-on from voice-shaping KILL) | NEW — pending | Whether D3-style per-character directives produce measurably distinct dialogue voices on a Sonnet quote-required pairwise audit. Tests whether directive-heavy prompts add value at the *character* level even when they don't move the *narrator-voice* metric. | ~$5–10 |
 | Halluc-checker v3 production fire-rate report follow-up | pending | Production fires: ungrounded 46.7%, leak 15.7%, retry clearance 9–28%. Retry-wording fix shipped 2026-04-20; needs re-measurement. | Half-day re-eval |
 | Tier 1B writer-visible threading | pending | Most "planner-side state" doesn't reach the writer (terrain survey, exp #264). Bulk facts injection + worldExpansionBudget + priorBeatEstablishedFacts via getFactsUpToChapter. | Multi-day code change |
 | Salvatore v5 corpus expansion charter | DRAFT, gated | Distinctness improvements via Legacy of the Drow corpus. Pre-gate: PDFs on disk. | (gated) |
