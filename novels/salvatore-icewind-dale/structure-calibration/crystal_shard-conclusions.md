@@ -3747,3 +3747,93 @@ This encodes (a) the modal time-of-day anchor (`night`), (b) the modal weather a
 - `scripts/structure-calibration/time-weather-distribution.py` — pure-compute regex script (no LLM calls; $0).
 
 ---
+
+## Pattern 41 — Cross-chapter callback density — 2026-04-30
+
+**Trigger.** Series-engineering vision (`project_series_engineering_vision`) targets multi-book novels where later chapters must remember earlier ones. The harness has callback-relevant levers (planning-plotter `establishedFacts`, beat-context character snapshots, plan-only extraction) but no quantitative target for *how often* a chapter should reach back. P41 measures the corpus's actual cross-chapter callback rhythm and asks whether it grows toward late chapters consistently across the trilogy.
+
+**Method.** Pure compute on `novels/salvatore-icewind-dale/beats.jsonl` (n=2,470 beats across 3 books). Two callback channels:
+
+- **Named-entity reuse.** Per-book proper-noun pool built by the standard mixed-case-prose heuristic: a capitalized token (`[A-Za-z][A-Za-z'-]*`) is a proper noun iff it appears at least once in non-sentence-initial position. A defensive ~140-word `COMMON_LEADERS` stopword list filters sentence-leader stopwords (And, But, The, Suddenly, ...). Hyphenated tokens kept whole (Catti-brie, Cryshal-Tirith). Trailing possessive `'s` stripped. Per-book first-appearance index assigns each surviving proper noun the chapter where it first appears in document order. For every later chapter, count distinct proper-noun tokens whose first-appearance chapter is strictly earlier (`distinct_prior_referents`) plus total occurrences of those tokens (`prior_referent_occurrences`).
+- **Time-progression markers.** Anchor-class regex hits over chapter `text`: `yesterday`, `earlier`, `previously`, `last we saw`, `when last`, quantified intervals (`days/weeks/months/years ago/earlier/before`), narrative back-anchors (`after their departure/arrival/encounter from X`, `since they had Y`, `prior to their Z`), recall verbs (`remembered the/recalled the/thought back to`), and forward-reach back-anchors (`as they had done/sworn/agreed`). Generic preposition `after/before` not next to one of these anchors is NOT counted.
+
+**Composite metric.** `callback_density_per_1k = (distinct_prior_referents + time_marker_count) / chapter_words * 1000`. Distinct-referent count (not occurrences) avoids double-counting multi-mention beats. Chapter ordering: `prelude → numerics → parts → epilogues` via a stable `chapter_sort_key`. The first chapter (position 0) is excluded from quartile / Spearman aggregates because it cannot, by definition, callback to anything.
+
+**Per-book results.**
+
+| Book | n_chapters | n_eligible | proper-noun pool | ρ (density × position) | ρ (distinct × position) | ρ (time-marker × position) | first-half mean / 1k | last-half mean / 1k |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| crystal_shard | 34 | 33 | 244 | **+0.862** | +0.839 | -0.019 | 3.10 | 11.96 |
+| halflings_gem | 29 | 28 | 193 | **+0.870** | +0.714 | -0.165 | 2.56 | 10.81 |
+| streams_of_silver | 29 | 28 | 215 | **+0.774** | +0.638 | -0.406 | 2.69 | 10.05 |
+
+Spearman ρ on density-vs-position is positive in all three books; the median ρ is **+0.86**, which is a very strong corpus-stable signal by Spearman conventions. Mean callback density approximately **quadruples** from first half to last half in every book (cs 3.86×, hg 4.22×, sos 3.74×).
+
+**Per-quartile aggregates (mean callback_density_per_1k):**
+
+| Quartile | crystal_shard | halflings_gem | streams_of_silver |
+|---|---:|---:|---:|
+| q1 (0.0–0.25) | 1.50 | 1.25 | 1.40 |
+| q2 (0.25–0.5) | 4.69 | 3.22 | 3.00 |
+| q3 (0.5–0.75) | 8.18 | 7.78 | 9.46 |
+| q4 (0.75–1.0) | **15.32** | **12.84** | **10.34** |
+
+Quartile growth is monotonic in all three books across all four bins. q4 / q1 ratio: **10.2× / 10.3× / 7.4×** — Salvatore's late chapters operate at roughly an order of magnitude higher cross-chapter callback rate than the openers.
+
+**Aggregate distribution shape (n=89 eligible chapters).**
+
+| Statistic | callback_density_per_1k |
+|---|---:|
+| mean | 6.95 |
+| p10 | 1.08 |
+| p25 | 1.84 |
+| **median** | **5.98** |
+| p75 | 9.66 |
+| p90 | 14.06 |
+| min | 0.37 |
+| max | 40.43 (`crystal_shard` `epilogue2`) |
+
+The IQR [1.84, 9.66] spans ~5× — but the variance is dominated by chapter-position, not random noise: the per-quartile means (1.4, 3.6, 8.5, 12.8 averaged across books) explain almost all of the spread.
+
+**Time markers do NOT scale with position.** The most surprising finding: Spearman ρ for time-marker-count vs position is **negative in all three books** (-0.02 / -0.17 / -0.41). Time markers are roughly evenly spread across chapter position — sometimes slightly front-loaded — because chapter *openers* often need scene-setting recall ("since they had departed Icewind Dale...", "after the encounter at Mithral Hall...") while chapter climaxes build cross-references almost entirely through entity-recurrence and dialogue. **The rising callback density is driven entirely by named-entity reuse, not by explicit "yesterday/earlier" cues.**
+
+**Top callbacks at the climactic chapters confirm the cast-recurrence shape.** Crystal Shard chapter 30 (the climactic Cryshal-Tirith battle, 9.7K words): top 5 prior-referent entities are `Wulfgar` (51 occurrences), `Drizzt` (42), `Kessell` (38), `Cassius` (38), `Bruenor` (33) — exactly the converged-cast climax-shape you'd expect. Halflings_gem and streams_of_silver climactic chapters show the same pattern: 5–7 cast-name proper nouns soak up most of the callback occurrences.
+
+**Sanity check on early chapters.** Crystal Shard prelude / ch1 have 0 distinct prior referents (correct — no priors exist yet), ch2 has 1, ch3 has 3. Crystal Shard ch10 introduces the Kessell/Errtu thread with all-new proper nouns and posts 0 prior-referents — consistent with Salvatore's known multi-arc structure where ch10 spins up a fresh antagonist thread. By ch15 the threads converge and prior-referent counts climb steeply (19, then 35 by ch20).
+
+**Streams of Silver q3 > q4 distinct count is a chapter-size artifact, not a regression.** sos q4 includes `part1`/`part2`/`part3`/`epilogue` — very short interlude/coda chapters (678–1340 words) that compress the action. The *distinct count* in those chapters is naturally lower than in 4–5K-word main chapters; the *density* per 1k still rises q3 → q4 (9.46 → 10.34). Same with halflings_gem q3 ≈ q4 distinct (24.6 ≈ 24.9): density still rises (7.78 → 12.84). Density is the load-bearing metric; distinct count is a co-signal.
+
+### Conclusion + Action
+
+**P41 ships as a planner soft prior** with four directional conclusions:
+
+1. **Cross-book directional verdict: ALL_POSITIVE.** Spearman ρ on callback density vs chapter position is **+0.77 to +0.87** in all three books — well above the 15pt-stability threshold this corpus uses. Mean callback density is **~10× higher in q4 than q1** in every book. **This is one of the cleanest cross-book directional signals seen in the IWD calibration so far** (compare P17 forward-hook ρ ~0.4–0.6 with mixed signs, P22/P23 scene-size which has the sos-outlier problem, P33 conflict-resolution-latency which DIVERGED). Callback density is a planner-prior candidate.
+
+2. **Recommended planner constraint** for `src/agents/planning-plotter/chapter-outline-system.md` and `src/agents/planning-beats/beat-expansion-system.md`:
+
+   > "Callback density should rise across the novel. Aggregate Salvatore corpus targets per chapter: q1 (first 25% of chapters) ≈ 1–2 distinct prior-chapter entity references per 1,000 words; q2 ≈ 3–5 / 1k; q3 ≈ 7–10 / 1k; q4 (last 25% of chapters) ≈ 10–15 / 1k. The climactic chapters in the corpus median ~13 / 1k with a long tail to 40 / 1k for epilogue-style cast-roundup chapters. The lever is **named-entity reuse** (recurring characters, places, objects from earlier chapters), NOT explicit time-progression markers — those are flat-or-front-loaded across the trilogy."
+
+   This pairs naturally with P28 (setup → payoff distance, median 1–2 chapters, 68% within 3) and P14 (forward-hook shape) which already shipped: P28 says "plant something, pay off close"; P41 says "after a setup pays off, the entity should keep being referenced — that's how the cast accumulates weight toward the climax."
+
+3. **Drop the "time-progression marker" lever entirely from the planner-prompt copy.** Salvatore's time markers do NOT scale with chapter position (ρ -0.02 / -0.17 / -0.41 across the trilogy). If anything they are slightly front-loaded — chapter openers do scene-setting recall, but climaxes rely on entity-recurrence and dialogue. **Action: planner-prompt should NOT instruct the writer to add "yesterday / earlier / weeks ago" cues to climactic chapters.** Those cues are a stylistic flourish for chapter openers when there is a real time-cut, not a callback-density tool. (This finding sits cleanly next to P38's setting-cue distribution: time-of-day and weather cues are scene-anchoring openers, not climax-density tools — same shape on a different axis.)
+
+4. **Pair with the harness's existing entity-recall machinery.** The data layer already has `establishedFacts` per chapter (planning output, persisted to `chapter_outlines`) and beat-context character-snapshots. P41 says these should be *more aggressively* surfaced into late-chapter beat context: by q4, the planner / beat-context-builder should be expected to weave in 10–15 distinct prior-chapter entity references per 1,000 words. **Action (low-priority TODO):** instrument the beat-context builder to track an `entity_callback_density_target` per chapter (mapped from chapter position via the q1–q4 brackets above) and surface it as a soft instruction in the beat-expansion prompt. This is a knob for the autonomous-loop's planner sub-loop, not a v1 hard constraint.
+
+### Methodology caveats
+
+- **Capitalized-token heuristic over-reports for hyphenated common nouns when they appear with sentence-medial capitalisation.** The `COMMON_LEADERS` stopword list mitigates the worst offenders, but compound proper nouns split across `Mithral Hall` are tracked as two tokens (`Mithral` and `Hall`); in the per-book pool `Hall` survives because it appears mid-sentence in `Mithral Hall` constructions. This may inflate distinct-referent counts when sub-tokens of the same compound recur. Net effect: the signal is **robust on direction** (all 3 books positive) but the *absolute density numbers* should be interpreted as a corpus-relative ratio, not a literal "N proper nouns per 1k words" target.
+- **No coreference resolution.** Pronoun-only references back to a prior-chapter character ("he", "she", "the drow") do NOT add to `distinct_prior_referents`. This is intentionally conservative — the planner consumer wants explicit textual hooks, and pronoun-coref would shift the density numbers up by an unknown factor without changing the directional signal.
+- **Time-marker regex is anchor-class only by design.** It under-counts genuine callbacks that use indirect phrasing ("not since the day they had..." captured; "from the day they had met" not captured). The flat / front-loaded directional finding is robust to this — adding more permissive patterns would *increase* counts without flipping the sign.
+- **Single corpus, single author.** Three Salvatore books over a multi-year writing window. The "10× growth from q1 to q4" is **what Salvatore did in IWD**, not a universal target. Genre-by-genre, the callback-density curve likely differs (mystery / detective fiction front-loads cast, then reaches back hard at reveal; thriller may ramp faster across q2). Treat as a Salvatore-voice + multi-arc-fantasy prior until cross-corpus data exists. Validation against the Cook / Erikson / Gemmell corpora (when ingested) would calibrate whether the q1 → q4 10× ratio is a fantasy-genre constant or a Salvatore-specific signature.
+- **Series-engineering implication (forward-looking).** This pattern measures **within-book** callback growth. The series-engineering use case is **across-book** callback (book 2 referencing book 1's events). The same methodology, applied with first-appearance indices spanning the whole trilogy, would quantify the across-book recall rate — that's a worth-doing follow-up once the planner has multi-book outline support.
+
+### Cost ledger
+
+Zero LLM cost. Pure compute on existing JSONL (~1 second wall time on local Python).
+
+### Artifacts
+
+- `crystal_shard.20260430T124845.cross-chapter-callback-density.json` — Pattern 41 (per-book per-chapter rows with `distinct_prior_referents`, `prior_referent_occurrences`, `time_marker_count`, `time_marker_samples` (up to 6), `callback_density_per_1k`, `top_callbacks` (up to 5); per-book proper-noun pool sizes, first-appearance index sizes, eligibility counts; quartile means; first/last halves; Spearman ρ for density / distinct-referents / time-markers vs position; top-10 densest chapters per book; cross-book directional verdict; aggregate density distribution with mean / p10 / p25 / median / p75 / p90 / min / max).
+- `scripts/analysis/cross-chapter-callback-density.py` — pure-compute Python script.
+
+---
