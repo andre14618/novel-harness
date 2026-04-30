@@ -1,0 +1,4950 @@
+{
+  "pattern": "P24_setting_recurrence",
+  "computed_at": "20260430T082210",
+  "methodology": {
+    "source": "novels/salvatore-icewind-dale/pairs.jsonl \u2014 brief.setting (per-scene)",
+    "method_A_anchor": "Curated proper-noun anchor list (Cryshal-Tirith, Bryn Shander, Mithral Hall, Calimport, etc.); setting collapses to the longest matching anchor; fallback to first-comma-segment if no anchor matches. Captures cross-chapter PLACE reuse.",
+    "method_B_first_comma": "Lowercase first-comma-segment (matches Pattern 11). Granular \u2014 keeps \"battlefield outside Bryn Shander\" distinct from \"council hall in Bryn Shander\". Under-counts place reuse but is rubric-neutral.",
+    "primary_method": "anchor",
+    "cross_check_method": "first_comma",
+    "units": "one row per (book, chapter, normalized-setting)",
+    "cost_usd": 0.0,
+    "llm_calls": 0
+  },
+  "by_book": {
+    "crystal_shard": {
+      "anchor_method": {
+        "book": "crystal_shard",
+        "method": "anchor",
+        "n_chapters": 34,
+        "distinct_settings": 151,
+        "one_chapter_only": 132,
+        "one_chapter_only_fraction": 0.8741721854304636,
+        "recurring_settings_count": 19,
+        "recurring_fraction": 0.12582781456953643,
+        "coverage_histogram": {
+          "1": 132,
+          "2": 8,
+          "3": 4,
+          "6": 1,
+          "7": 1,
+          "10": 3,
+          "11": 1,
+          "14": 1
+        },
+        "top_recurring_settings": [
+          {
+            "setting": "kelvin's cairn",
+            "chapters": [
+              "1",
+              "11",
+              "14",
+              "15",
+              "16",
+              "17",
+              "18",
+              "19",
+              "2",
+              "24",
+              "25",
+              "28",
+              "30",
+              "7"
+            ],
+            "n_chapters": 14
+          },
+          {
+            "setting": "icewind dale",
+            "chapters": [
+              "1",
+              "11",
+              "14",
+              "2",
+              "20",
+              "22",
+              "3",
+              "4",
+              "5",
+              "7",
+              "epilogue3"
+            ],
+            "n_chapters": 11
+          },
+          {
+            "setting": "cryshal-tirith",
+            "chapters": [
+              "10",
+              "13",
+              "20",
+              "24",
+              "25",
+              "27",
+              "28",
+              "29",
+              "30",
+              "4"
+            ],
+            "n_chapters": 10
+          },
+          {
+            "setting": "ten-towns",
+            "chapters": [
+              "15",
+              "17",
+              "2",
+              "22",
+              "30",
+              "7",
+              "8",
+              "9",
+              "epilogue",
+              "epilogue3"
+            ],
+            "n_chapters": 10
+          },
+          {
+            "setting": "bryn shander",
+            "chapters": [
+              "19",
+              "20",
+              "23",
+              "24",
+              "27",
+              "28",
+              "30",
+              "6",
+              "8",
+              "epilogue3"
+            ],
+            "n_chapters": 10
+          },
+          {
+            "setting": "maer dualdon",
+            "chapters": [
+              "2",
+              "23",
+              "24",
+              "27",
+              "28",
+              "30",
+              "9"
+            ],
+            "n_chapters": 7
+          },
+          {
+            "setting": "spine of the world",
+            "chapters": [
+              "1",
+              "10",
+              "24",
+              "4",
+              "epilogue",
+              "epilogue2"
+            ],
+            "n_chapters": 6
+          },
+          {
+            "setting": "tundra",
+            "chapters": [
+              "16",
+              "17",
+              "3"
+            ],
+            "n_chapters": 3
+          },
+          {
+            "setting": "lonelywood",
+            "chapters": [
+              "2",
+              "20",
+              "9"
+            ],
+            "n_chapters": 3
+          },
+          {
+            "setting": "barbarian encampment",
+            "chapters": [
+              "22",
+              "3",
+              "7"
+            ],
+            "n_chapters": 3
+          },
+          {
+            "setting": "termalaine",
+            "chapters": [
+              "28",
+              "30",
+              "8"
+            ],
+            "n_chapters": 3
+          },
+          {
+            "setting": "the abyss",
+            "chapters": [
+              "10",
+              "prelude"
+            ],
+            "n_chapters": 2
+          },
+          {
+            "setting": "secret mountain forge",
+            "chapters": [
+              "11",
+              "12"
+            ],
+            "n_chapters": 2
+          },
+          {
+            "setting": "mithral hall",
+            "chapters": [
+              "12",
+              "14"
+            ],
+            "n_chapters": 2
+          },
+          {
+            "setting": "bruenor's climb",
+            "chapters": [
+              "12",
+              "5"
+            ],
+            "n_chapters": 2
+          }
+        ],
+        "per_chapter": [
+          {
+            "chapter": "10",
+            "position_idx": 0,
+            "distinct_settings_in_chapter": 6,
+            "new_count": 6,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "civilized southern lands",
+              "cryshal-tirith",
+              "material plane",
+              "spine of the world",
+              "the abyss",
+              "wizard's study"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "11",
+            "position_idx": 1,
+            "distinct_settings_in_chapter": 3,
+            "new_count": 3,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "icewind dale",
+              "kelvin's cairn",
+              "secret mountain forge"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "12",
+            "position_idx": 2,
+            "distinct_settings_in_chapter": 7,
+            "new_count": 6,
+            "returning_count": 1,
+            "new_fraction": 0.8571428571428571,
+            "new_settings": [
+              "bruenor's climb",
+              "drizzt's camp",
+              "dwarven halls",
+              "mithral hall",
+              "mountain path near secret forge",
+              "mountain path to dwarven halls"
+            ],
+            "returning_settings": [
+              "secret mountain forge"
+            ]
+          },
+          {
+            "chapter": "13",
+            "position_idx": 3,
+            "distinct_settings_in_chapter": 1,
+            "new_count": 0,
+            "returning_count": 1,
+            "new_fraction": 0.0,
+            "new_settings": [],
+            "returning_settings": [
+              "cryshal-tirith"
+            ]
+          },
+          {
+            "chapter": "14",
+            "position_idx": 4,
+            "distinct_settings_in_chapter": 3,
+            "new_count": 0,
+            "returning_count": 3,
+            "new_fraction": 0.0,
+            "new_settings": [],
+            "returning_settings": [
+              "icewind dale",
+              "kelvin's cairn",
+              "mithral hall"
+            ]
+          },
+          {
+            "chapter": "15",
+            "position_idx": 5,
+            "distinct_settings_in_chapter": 3,
+            "new_count": 2,
+            "returning_count": 1,
+            "new_fraction": 0.6666666666666666,
+            "new_settings": [
+              "ten-towns",
+              "tundra camp near boulders"
+            ],
+            "returning_settings": [
+              "kelvin's cairn"
+            ]
+          },
+          {
+            "chapter": "16",
+            "position_idx": 6,
+            "distinct_settings_in_chapter": 7,
+            "new_count": 6,
+            "returning_count": 1,
+            "new_fraction": 0.8571428571428571,
+            "new_settings": [
+              "behind rocky bluff",
+              "flat rock campsite",
+              "flat rock campsite beside stream",
+              "rocky bluff south of flat stone campsite",
+              "tundra",
+              "verbeeg lair entrance"
+            ],
+            "returning_settings": [
+              "kelvin's cairn"
+            ]
+          },
+          {
+            "chapter": "17",
+            "position_idx": 7,
+            "distinct_settings_in_chapter": 14,
+            "new_count": 11,
+            "returning_count": 3,
+            "new_fraction": 0.7857142857142857,
+            "new_settings": [
+              "boulder field above giant lair",
+              "boulder-flanked mountain trail",
+              "broken stone trail near chasm",
+              "chasm rim trail",
+              "daledrop ambush kill zone",
+              "daledrop ambush site",
+              "daledrop battlefield",
+              "mountain trail",
+              "mountain trail ambush point",
+              "stone ledge above giant patrol path",
+              "tundra trail near jagged stones"
+            ],
+            "returning_settings": [
+              "kelvin's cairn",
+              "ten-towns",
+              "tundra"
+            ]
+          },
+          {
+            "chapter": "18",
+            "position_idx": 8,
+            "distinct_settings_in_chapter": 26,
+            "new_count": 25,
+            "returning_count": 1,
+            "new_fraction": 0.9615384615384616,
+            "new_settings": [
+              "biggrin's room inside the lair",
+              "brush below verbeeg lair back entrance",
+              "cave entrance",
+              "cave entrance ledge",
+              "cave tunnel entrance",
+              "chimney shaft and hearth intersection inside the lair",
+              "giant lair room",
+              "giant lair room and tunnel",
+              "giant lair room floor",
+              "giant lair room with tunnel entrance",
+              "giant lair room with tunnel supports",
+              "lavish chamber and main corridor of the lair",
+              "lavish chamber inside the lair",
+              "main corridor and side chamber of the lair",
+              "main passage inside the lair",
+              "pool shore",
+              "pool/lake",
+              "rocky slope and cave entrance",
+              "room above the hearth",
+              "secret door area outside the lair",
+              "tunnel bend inside giant lair",
+              "tunnel inside giant lair",
+              "verbeeg lair dining room",
+              "verbeeg lair kitchen and dining room",
+              "verbeeg lair kitchen doorway"
+            ],
+            "returning_settings": [
+              "kelvin's cairn"
+            ]
+          },
+          {
+            "chapter": "19",
+            "position_idx": 9,
+            "distinct_settings_in_chapter": 12,
+            "new_count": 11,
+            "returning_count": 1,
+            "new_fraction": 0.9166666666666666,
+            "new_settings": [
+              "bryn shander",
+              "chamber in giant lair",
+              "dark tunnel",
+              "iron-bound door",
+              "lair entrance",
+              "lair tunnel",
+              "main passage",
+              "mirror chamber",
+              "small chamber in giant lair",
+              "small chamber with mirror",
+              "tunnel before iron door"
+            ],
+            "returning_settings": [
+              "kelvin's cairn"
+            ]
+          },
+          {
+            "chapter": "1",
+            "position_idx": 10,
+            "distinct_settings_in_chapter": 4,
+            "new_count": 1,
+            "returning_count": 3,
+            "new_fraction": 0.25,
+            "new_settings": [
+              "easthaven"
+            ],
+            "returning_settings": [
+              "icewind dale",
+              "kelvin's cairn",
+              "spine of the world"
+            ]
+          },
+          {
+            "chapter": "20",
+            "position_idx": 11,
+            "distinct_settings_in_chapter": 6,
+            "new_count": 3,
+            "returning_count": 3,
+            "new_fraction": 0.5,
+            "new_settings": [
+              "caer-dineval",
+              "dougan's hole",
+              "lonelywood"
+            ],
+            "returning_settings": [
+              "bryn shander",
+              "cryshal-tirith",
+              "icewind dale"
+            ]
+          },
+          {
+            "chapter": "21",
+            "position_idx": 12,
+            "distinct_settings_in_chapter": 12,
+            "new_count": 12,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "base of ice cavern waterfall",
+              "dragon's lair",
+              "dragon's treasure chamber",
+              "evermelt",
+              "evermelt pool",
+              "evermelt pool edge",
+              "ice cavern below glacier surface",
+              "ice cavern floor below waterfall",
+              "ice tunnel rushing toward waterfall",
+              "main ice cavern chamber",
+              "underwater passage beneath reghed glacier pool",
+              "waterfall lip"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "22",
+            "position_idx": 13,
+            "distinct_settings_in_chapter": 17,
+            "new_count": 14,
+            "returning_count": 3,
+            "new_fraction": 0.8235294117647058,
+            "new_settings": [
+              "barbarian encampment",
+              "barbarian encampment perimeter",
+              "barbarian trails",
+              "barbarian tribal gathering",
+              "central tent area",
+              "central tent of barbarian encampment",
+              "dragon's lair cavern",
+              "evermelt hot springs",
+              "heafstaag's tent",
+              "open ground before the king's tent",
+              "perimeter of barbarian encampment",
+              "side chamber of dragon's lair",
+              "treasure chamber of dragon's lair",
+              "tribal combat circle"
+            ],
+            "returning_settings": [
+              "dragon's lair",
+              "icewind dale",
+              "ten-towns"
+            ]
+          },
+          {
+            "chapter": "23",
+            "position_idx": 14,
+            "distinct_settings_in_chapter": 14,
+            "new_count": 13,
+            "returning_count": 1,
+            "new_fraction": 0.9285714285714286,
+            "new_settings": [
+              "caer-konig",
+              "cliff ledges and mineshaft entrance",
+              "dwarven tunnel network",
+              "dwarven valley ledges and cave entrances",
+              "hidden position on valley trail",
+              "lac dinneshere",
+              "lower ledge and upper ledge tunnels",
+              "maer dualdon",
+              "mithril hall",
+              "narrow trail at cliff edge",
+              "rocky ledge edge",
+              "southern tip of dwarven valley",
+              "targos"
+            ],
+            "returning_settings": [
+              "bryn shander"
+            ]
+          },
+          {
+            "chapter": "24",
+            "position_idx": 15,
+            "distinct_settings_in_chapter": 6,
+            "new_count": 0,
+            "returning_count": 6,
+            "new_fraction": 0.0,
+            "new_settings": [],
+            "returning_settings": [
+              "bryn shander",
+              "cryshal-tirith",
+              "kelvin's cairn",
+              "lac dinneshere",
+              "maer dualdon",
+              "spine of the world"
+            ]
+          },
+          {
+            "chapter": "25",
+            "position_idx": 16,
+            "distinct_settings_in_chapter": 4,
+            "new_count": 2,
+            "returning_count": 2,
+            "new_fraction": 0.5,
+            "new_settings": [
+              "hidden chamber",
+              "sheltered dell"
+            ],
+            "returning_settings": [
+              "cryshal-tirith",
+              "kelvin's cairn"
+            ]
+          },
+          {
+            "chapter": "26",
+            "position_idx": 17,
+            "distinct_settings_in_chapter": 3,
+            "new_count": 3,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "barbarian mead hall",
+              "barbarian mead hall and open tundra",
+              "mead hall"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "27",
+            "position_idx": 18,
+            "distinct_settings_in_chapter": 4,
+            "new_count": 1,
+            "returning_count": 3,
+            "new_fraction": 0.25,
+            "new_settings": [
+              "dwarven tunnels beneath kessell's encampment"
+            ],
+            "returning_settings": [
+              "bryn shander",
+              "cryshal-tirith",
+              "maer dualdon"
+            ]
+          },
+          {
+            "chapter": "28",
+            "position_idx": 19,
+            "distinct_settings_in_chapter": 8,
+            "new_count": 4,
+            "returning_count": 4,
+            "new_fraction": 0.5,
+            "new_settings": [
+              "bremen's run",
+              "interior of kessell's sleeping encampment",
+              "outer perimeter of kessell's encampment",
+              "termalaine"
+            ],
+            "returning_settings": [
+              "bryn shander",
+              "cryshal-tirith",
+              "kelvin's cairn",
+              "maer dualdon"
+            ]
+          },
+          {
+            "chapter": "29",
+            "position_idx": 20,
+            "distinct_settings_in_chapter": 8,
+            "new_count": 7,
+            "returning_count": 1,
+            "new_fraction": 0.875,
+            "new_settings": [
+              "battlefield outside the dwarven tunnels",
+              "monster camp above the tunnel shafts",
+              "secret tunnel exit beneath the monster camp",
+              "tunnel beneath the monster camp",
+              "tunnel shaft opening",
+              "tunnel shafts beneath the sleeping monster camp",
+              "tunnels beneath the monster camp"
+            ],
+            "returning_settings": [
+              "cryshal-tirith"
+            ]
+          },
+          {
+            "chapter": "2",
+            "position_idx": 21,
+            "distinct_settings_in_chapter": 7,
+            "new_count": 2,
+            "returning_count": 5,
+            "new_fraction": 0.2857142857142857,
+            "new_settings": [
+              "open tundra",
+              "tundra (drow history"
+            ],
+            "returning_settings": [
+              "icewind dale",
+              "kelvin's cairn",
+              "lonelywood",
+              "maer dualdon",
+              "ten-towns"
+            ]
+          },
+          {
+            "chapter": "30",
+            "position_idx": 22,
+            "distinct_settings_in_chapter": 12,
+            "new_count": 6,
+            "returning_count": 6,
+            "new_fraction": 0.5,
+            "new_settings": [
+              "battlefield",
+              "battlefield near dwarven formation",
+              "open battlefield",
+              "small tent near dwarf tunnel exits",
+              "tent",
+              "void"
+            ],
+            "returning_settings": [
+              "bryn shander",
+              "cryshal-tirith",
+              "kelvin's cairn",
+              "maer dualdon",
+              "ten-towns",
+              "termalaine"
+            ]
+          },
+          {
+            "chapter": "3",
+            "position_idx": 23,
+            "distinct_settings_in_chapter": 4,
+            "new_count": 1,
+            "returning_count": 3,
+            "new_fraction": 0.25,
+            "new_settings": [
+              "hengorot"
+            ],
+            "returning_settings": [
+              "barbarian encampment",
+              "icewind dale",
+              "tundra"
+            ]
+          },
+          {
+            "chapter": "4",
+            "position_idx": 24,
+            "distinct_settings_in_chapter": 3,
+            "new_count": 0,
+            "returning_count": 3,
+            "new_fraction": 0.0,
+            "new_settings": [],
+            "returning_settings": [
+              "cryshal-tirith",
+              "icewind dale",
+              "spine of the world"
+            ]
+          },
+          {
+            "chapter": "5",
+            "position_idx": 25,
+            "distinct_settings_in_chapter": 2,
+            "new_count": 0,
+            "returning_count": 2,
+            "new_fraction": 0.0,
+            "new_settings": [],
+            "returning_settings": [
+              "bruenor's climb",
+              "icewind dale"
+            ]
+          },
+          {
+            "chapter": "6",
+            "position_idx": 26,
+            "distinct_settings_in_chapter": 1,
+            "new_count": 0,
+            "returning_count": 1,
+            "new_fraction": 0.0,
+            "new_settings": [],
+            "returning_settings": [
+              "bryn shander"
+            ]
+          },
+          {
+            "chapter": "7",
+            "position_idx": 27,
+            "distinct_settings_in_chapter": 13,
+            "new_count": 9,
+            "returning_count": 4,
+            "new_fraction": 0.6923076923076923,
+            "new_settings": [
+              "astral plane",
+              "back of command tent",
+              "bremen's run at dawn",
+              "inside command tent",
+              "interior of barbarian encampment",
+              "menzoberranzan",
+              "outer perimeter of barbarian encampment",
+              "underdark",
+              "void between planes / barbarian encampment"
+            ],
+            "returning_settings": [
+              "barbarian encampment",
+              "icewind dale",
+              "kelvin's cairn",
+              "ten-towns"
+            ]
+          },
+          {
+            "chapter": "8",
+            "position_idx": 28,
+            "distinct_settings_in_chapter": 3,
+            "new_count": 0,
+            "returning_count": 3,
+            "new_fraction": 0.0,
+            "new_settings": [],
+            "returning_settings": [
+              "bryn shander",
+              "ten-towns",
+              "termalaine"
+            ]
+          },
+          {
+            "chapter": "9",
+            "position_idx": 29,
+            "distinct_settings_in_chapter": 4,
+            "new_count": 1,
+            "returning_count": 3,
+            "new_fraction": 0.25,
+            "new_settings": [
+              "dwarven forge chamber"
+            ],
+            "returning_settings": [
+              "lonelywood",
+              "maer dualdon",
+              "ten-towns"
+            ]
+          },
+          {
+            "chapter": "epilogue2",
+            "position_idx": 30,
+            "distinct_settings_in_chapter": 2,
+            "new_count": 0,
+            "returning_count": 2,
+            "new_fraction": 0.0,
+            "new_settings": [],
+            "returning_settings": [
+              "open tundra",
+              "spine of the world"
+            ]
+          },
+          {
+            "chapter": "epilogue3",
+            "position_idx": 31,
+            "distinct_settings_in_chapter": 5,
+            "new_count": 1,
+            "returning_count": 4,
+            "new_fraction": 0.2,
+            "new_settings": [
+              "tundra outside bremen"
+            ],
+            "returning_settings": [
+              "bryn shander",
+              "icewind dale",
+              "mithril hall",
+              "ten-towns"
+            ]
+          },
+          {
+            "chapter": "epilogue",
+            "position_idx": 32,
+            "distinct_settings_in_chapter": 2,
+            "new_count": 0,
+            "returning_count": 2,
+            "new_fraction": 0.0,
+            "new_settings": [],
+            "returning_settings": [
+              "spine of the world",
+              "ten-towns"
+            ]
+          },
+          {
+            "chapter": "prelude",
+            "position_idx": 33,
+            "distinct_settings_in_chapter": 2,
+            "new_count": 1,
+            "returning_count": 1,
+            "new_fraction": 0.5,
+            "new_settings": [
+              "northern mountains"
+            ],
+            "returning_settings": [
+              "the abyss"
+            ]
+          }
+        ],
+        "arc_bins": {
+          "early": {
+            "n_chapters": 11,
+            "mean_new_fraction": 0.6631701631701632,
+            "total_new": 71,
+            "total_returning": 15,
+            "aggregate_new_fraction": 0.8255813953488372,
+            "mean_distinct_per_chapter": 7.818181818181818
+          },
+          "mid": {
+            "n_chapters": 11,
+            "mean_new_fraction": 0.6057104660045837,
+            "total_new": 61,
+            "total_returning": 28,
+            "aggregate_new_fraction": 0.6853932584269663,
+            "mean_distinct_per_chapter": 8.090909090909092
+          },
+          "late": {
+            "n_chapters": 12,
+            "mean_new_fraction": 0.19935897435897434,
+            "total_new": 19,
+            "total_returning": 34,
+            "aggregate_new_fraction": 0.3584905660377358,
+            "mean_distinct_per_chapter": 4.416666666666667
+          }
+        }
+      },
+      "first_comma_method": {
+        "book": "crystal_shard",
+        "method": "fc",
+        "n_chapters": 34,
+        "distinct_settings": 330,
+        "one_chapter_only": 301,
+        "one_chapter_only_fraction": 0.9121212121212121,
+        "recurring_settings_count": 29,
+        "recurring_fraction": 0.08787878787878788,
+        "coverage_histogram": {
+          "1": 301,
+          "2": 21,
+          "3": 4,
+          "4": 2,
+          "5": 1,
+          "7": 1
+        },
+        "top_recurring_settings": [
+          {
+            "setting": "tundra",
+            "chapters": [
+              "11",
+              "16",
+              "17",
+              "22",
+              "27",
+              "3",
+              "epilogue3"
+            ],
+            "n_chapters": 7
+          },
+          {
+            "setting": "cryshal-tirith",
+            "chapters": [
+              "10",
+              "13",
+              "25",
+              "4",
+              "epilogue"
+            ],
+            "n_chapters": 5
+          },
+          {
+            "setting": "bryn shander",
+            "chapters": [
+              "20",
+              "23",
+              "6",
+              "epilogue3"
+            ],
+            "n_chapters": 4
+          },
+          {
+            "setting": "kelvin's cairn",
+            "chapters": [
+              "24",
+              "28",
+              "30",
+              "7"
+            ],
+            "n_chapters": 4
+          },
+          {
+            "setting": "barbarian encampment",
+            "chapters": [
+              "22",
+              "3",
+              "7"
+            ],
+            "n_chapters": 3
+          },
+          {
+            "setting": "bryn shander walls",
+            "chapters": [
+              "23",
+              "27",
+              "30"
+            ],
+            "n_chapters": 3
+          },
+          {
+            "setting": "open tundra",
+            "chapters": [
+              "2",
+              "7",
+              "epilogue2"
+            ],
+            "n_chapters": 3
+          },
+          {
+            "setting": "ten-towns region",
+            "chapters": [
+              "2",
+              "9",
+              "epilogue3"
+            ],
+            "n_chapters": 3
+          },
+          {
+            "setting": "cryshal-tirith entrance",
+            "chapters": [
+              "10",
+              "13"
+            ],
+            "n_chapters": 2
+          },
+          {
+            "setting": "the abyss",
+            "chapters": [
+              "10",
+              "prelude"
+            ],
+            "n_chapters": 2
+          },
+          {
+            "setting": "secret mountain forge",
+            "chapters": [
+              "11",
+              "12"
+            ],
+            "n_chapters": 2
+          },
+          {
+            "setting": "bruenor's climb",
+            "chapters": [
+              "12",
+              "5"
+            ],
+            "n_chapters": 2
+          },
+          {
+            "setting": "cave entrance",
+            "chapters": [
+              "14",
+              "18"
+            ],
+            "n_chapters": 2
+          },
+          {
+            "setting": "lair entrance",
+            "chapters": [
+              "15",
+              "19"
+            ],
+            "n_chapters": 2
+          },
+          {
+            "setting": "tundra near kelvin's cairn",
+            "chapters": [
+              "16",
+              "24"
+            ],
+            "n_chapters": 2
+          }
+        ],
+        "per_chapter": [
+          {
+            "chapter": "10",
+            "position_idx": 0,
+            "distinct_settings_in_chapter": 11,
+            "new_count": 11,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "civilized southern lands",
+              "cryshal-tirith",
+              "cryshal-tirith entrance",
+              "cryshal-tirith interior",
+              "cryshal-tirith main chamber",
+              "cryshal-tirith main chamber entryway",
+              "cryshal-tirith plateau",
+              "cryshal-tirith throne chamber",
+              "material plane",
+              "the abyss",
+              "wizard's study"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "11",
+            "position_idx": 1,
+            "distinct_settings_in_chapter": 4,
+            "new_count": 4,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "outdoor forge",
+              "secret chamber",
+              "secret mountain forge",
+              "tundra"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "12",
+            "position_idx": 2,
+            "distinct_settings_in_chapter": 7,
+            "new_count": 6,
+            "returning_count": 1,
+            "new_fraction": 0.8571428571428571,
+            "new_settings": [
+              "bruenor's climb",
+              "drizzt's camp on mountain path",
+              "dwarven halls",
+              "dwarven smithy/cave",
+              "mountain path near secret forge",
+              "mountain path to dwarven halls"
+            ],
+            "returning_settings": [
+              "secret mountain forge"
+            ]
+          },
+          {
+            "chapter": "13",
+            "position_idx": 3,
+            "distinct_settings_in_chapter": 4,
+            "new_count": 2,
+            "returning_count": 2,
+            "new_fraction": 0.5,
+            "new_settings": [
+              "cryshal-tirith second-level audience hall",
+              "cryshal-tirith throne room"
+            ],
+            "returning_settings": [
+              "cryshal-tirith",
+              "cryshal-tirith entrance"
+            ]
+          },
+          {
+            "chapter": "14",
+            "position_idx": 4,
+            "distinct_settings_in_chapter": 9,
+            "new_count": 9,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "boulder-shaded meeting spot",
+              "cave entrance",
+              "dwarven mine",
+              "dwarven mines",
+              "mine exit passage",
+              "open ground near kelvin's cairn",
+              "rocky valley below kelvin's cairn",
+              "shallow cave",
+              "training ground near kelvin's cairn"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "15",
+            "position_idx": 5,
+            "distinct_settings_in_chapter": 12,
+            "new_count": 12,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "cave and rocky overlook",
+              "kelvin's cairn slopes",
+              "kelvin's cairn southern slopes",
+              "kessell's tower",
+              "lair common room",
+              "lair entrance",
+              "rocky overlook",
+              "rocky path descending toward dwarf camp",
+              "rocky path near dwarf campfire",
+              "secret lair",
+              "slope above dwarf camp",
+              "tundra camp near boulders"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "16",
+            "position_idx": 6,
+            "distinct_settings_in_chapter": 11,
+            "new_count": 10,
+            "returning_count": 1,
+            "new_fraction": 0.9090909090909091,
+            "new_settings": [
+              "behind rocky bluff",
+              "drizzt's cave/shelter near kelvin's cairn",
+              "eastern trails of kelvin's cairn",
+              "flat rock campsite",
+              "flat rock campsite beside stream",
+              "icy brook campsite near kelvin's cairn",
+              "rocky bluff south of flat stone campsite",
+              "southern spur of kelvin's cairn",
+              "tundra near kelvin's cairn",
+              "verbeeg lair entrance"
+            ],
+            "returning_settings": [
+              "tundra"
+            ]
+          },
+          {
+            "chapter": "17",
+            "position_idx": 7,
+            "distinct_settings_in_chapter": 13,
+            "new_count": 12,
+            "returning_count": 1,
+            "new_fraction": 0.9230769230769231,
+            "new_settings": [
+              "boulder field above giant lair",
+              "boulder-flanked mountain trail",
+              "broken stone trail near chasm",
+              "chasm rim trail",
+              "daledrop ambush kill zone",
+              "daledrop ambush site",
+              "daledrop battlefield",
+              "mountain trail",
+              "mountain trail ambush point",
+              "rocky mountain path",
+              "stone ledge above giant patrol path",
+              "tundra trail near jagged stones"
+            ],
+            "returning_settings": [
+              "tundra"
+            ]
+          },
+          {
+            "chapter": "18",
+            "position_idx": 8,
+            "distinct_settings_in_chapter": 31,
+            "new_count": 30,
+            "returning_count": 1,
+            "new_fraction": 0.967741935483871,
+            "new_settings": [
+              "biggrin's room inside the lair",
+              "brush below verbeeg lair back entrance",
+              "cave entrance and tunnel",
+              "cave entrance ledge",
+              "cave tunnel entrance",
+              "chimney shaft and hearth intersection inside the lair",
+              "giant lair room",
+              "giant lair room and tunnel",
+              "giant lair room floor",
+              "giant lair room with tunnel entrance",
+              "giant lair room with tunnel supports",
+              "lavish chamber and main corridor of the lair",
+              "lavish chamber inside the lair",
+              "main corridor and side chamber of the lair",
+              "main passage inside the lair",
+              "mountain pool",
+              "mountain pool and log crossing",
+              "pool shore",
+              "pool/lake",
+              "rocky face of kelvin's cairn",
+              "rocky slope and cave entrance",
+              "room above the hearth",
+              "secret door area outside the lair",
+              "tunnel bend inside giant lair",
+              "tunnel inside giant lair",
+              "unlit back corridor and front chamber of goblin lair",
+              "verbeeg lair dining room",
+              "verbeeg lair kitchen and dining room",
+              "verbeeg lair kitchen doorway",
+              "wide front chamber of goblin lair"
+            ],
+            "returning_settings": [
+              "cave entrance"
+            ]
+          },
+          {
+            "chapter": "19",
+            "position_idx": 9,
+            "distinct_settings_in_chapter": 12,
+            "new_count": 11,
+            "returning_count": 1,
+            "new_fraction": 0.9166666666666666,
+            "new_settings": [
+              "chamber in giant lair",
+              "council hall",
+              "dark tunnel",
+              "iron-bound door",
+              "lair tunnel",
+              "main passage",
+              "mirror chamber",
+              "small chamber in giant lair",
+              "small chamber with mirror",
+              "tunnel before iron door",
+              "tunnel beneath kelvin's cairn"
+            ],
+            "returning_settings": [
+              "lair entrance"
+            ]
+          },
+          {
+            "chapter": "1",
+            "position_idx": 10,
+            "distinct_settings_in_chapter": 8,
+            "new_count": 8,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "alley",
+              "alley into street",
+              "dark alley",
+              "icewind dale",
+              "icewind dale tundra",
+              "street",
+              "village street",
+              "wizard's cabin"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "20",
+            "position_idx": 11,
+            "distinct_settings_in_chapter": 9,
+            "new_count": 9,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "bremen",
+              "bryn shander",
+              "bryn shander gates",
+              "caer-konig and caer-dineval towns",
+              "cryshal-tirith and goblin encampment; verbeeg lair",
+              "hall of scrying",
+              "lonelywood",
+              "rocky slopes outside dwarven mines",
+              "rocky trail outside dwarven mines"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "21",
+            "position_idx": 12,
+            "distinct_settings_in_chapter": 12,
+            "new_count": 12,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "base of ice cavern waterfall",
+              "dragon's lair",
+              "dragon's treasure chamber",
+              "evermelt",
+              "evermelt pool",
+              "evermelt pool edge",
+              "ice cavern below glacier surface",
+              "ice cavern floor below waterfall",
+              "ice tunnel rushing toward waterfall",
+              "main ice cavern chamber",
+              "underwater passage beneath reghed glacier pool",
+              "waterfall lip"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "22",
+            "position_idx": 13,
+            "distinct_settings_in_chapter": 16,
+            "new_count": 14,
+            "returning_count": 2,
+            "new_fraction": 0.875,
+            "new_settings": [
+              "barbarian encampment",
+              "barbarian encampment perimeter",
+              "barbarian trails",
+              "barbarian tribal gathering",
+              "central tent area",
+              "central tent of barbarian encampment",
+              "dragon's lair cavern",
+              "evermelt hot springs",
+              "heafstaag's tent",
+              "open ground before the king's tent",
+              "perimeter of barbarian encampment",
+              "side chamber of dragon's lair",
+              "treasure chamber of dragon's lair",
+              "tribal combat circle"
+            ],
+            "returning_settings": [
+              "dragon's lair",
+              "tundra"
+            ]
+          },
+          {
+            "chapter": "23",
+            "position_idx": 14,
+            "distinct_settings_in_chapter": 19,
+            "new_count": 18,
+            "returning_count": 1,
+            "new_fraction": 0.9473684210526315,
+            "new_settings": [
+              "bryn shander north wall",
+              "bryn shander walls",
+              "bryn shander walls and northern field",
+              "caer-konig docks and lake",
+              "cliff ledges and mineshaft entrance",
+              "dwarven tunnel network",
+              "dwarven valley ledges and cave entrances",
+              "hidden position on valley trail",
+              "lac dinneshere",
+              "lower ledge and upper ledge tunnels",
+              "maer dualdon and redwaters ports",
+              "mithril hall valley",
+              "narrow trail at cliff edge",
+              "open ground between bryn shander and targos",
+              "rocky ledge edge",
+              "small ridge north of bryn shander",
+              "southern tip of dwarven valley",
+              "targos docks"
+            ],
+            "returning_settings": [
+              "bryn shander"
+            ]
+          },
+          {
+            "chapter": "24",
+            "position_idx": 15,
+            "distinct_settings_in_chapter": 22,
+            "new_count": 20,
+            "returning_count": 2,
+            "new_fraction": 0.9090909090909091,
+            "new_settings": [
+              "bryn shander docks",
+              "bryn shander wall",
+              "easthaven docks",
+              "kelvin's cairn",
+              "kelvin's cairn face",
+              "lower slopes of kelvin's cairn",
+              "maer dualdon",
+              "maer dualdon / bryn shander wall",
+              "mist seeker deck",
+              "mist seeker deck and fleet",
+              "outside bryn shander",
+              "outside bryn shander / targos",
+              "outside bryn shander / wall above",
+              "outside bryn shander gates",
+              "outside bryn shander gates / kelvin's cairn vantage",
+              "outside bryn shander hill base",
+              "southern face of kelvin's cairn",
+              "targos",
+              "targos ruins",
+              "tundra approaches to kelvin's cairn"
+            ],
+            "returning_settings": [
+              "targos docks",
+              "tundra near kelvin's cairn"
+            ]
+          },
+          {
+            "chapter": "25",
+            "position_idx": 16,
+            "distinct_settings_in_chapter": 8,
+            "new_count": 7,
+            "returning_count": 1,
+            "new_fraction": 0.875,
+            "new_settings": [
+              "cryshal-tirith exterior",
+              "dell",
+              "dell and ledge",
+              "hidden chamber",
+              "ledge",
+              "rocky ledge and dell",
+              "sheltered dell"
+            ],
+            "returning_settings": [
+              "cryshal-tirith"
+            ]
+          },
+          {
+            "chapter": "26",
+            "position_idx": 17,
+            "distinct_settings_in_chapter": 3,
+            "new_count": 3,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "barbarian mead hall",
+              "barbarian mead hall and open tundra",
+              "mead hall"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "27",
+            "position_idx": 18,
+            "distinct_settings_in_chapter": 10,
+            "new_count": 6,
+            "returning_count": 4,
+            "new_fraction": 0.6,
+            "new_settings": [
+              "bremen and maer dualdon lake",
+              "bryn shander gate and hillside approach",
+              "council chamber",
+              "dwarven tunnels beneath bryn shander",
+              "dwarven tunnels beneath kessell's encampment",
+              "field before bryn shander"
+            ],
+            "returning_settings": [
+              "bryn shander wall",
+              "bryn shander walls",
+              "outside bryn shander",
+              "tundra"
+            ]
+          },
+          {
+            "chapter": "28",
+            "position_idx": 19,
+            "distinct_settings_in_chapter": 12,
+            "new_count": 10,
+            "returning_count": 2,
+            "new_fraction": 0.8333333333333334,
+            "new_settings": [
+              "audience chamber",
+              "base of cryshal-tirith",
+              "bremen's run",
+              "crystal room inside cryshal-tirith",
+              "eastern outskirts of termalaine",
+              "entrance to cryshal-tirith",
+              "ground floor audience chamber",
+              "interior of kessell's sleeping encampment",
+              "outer perimeter of kessell's encampment",
+              "wall of bryn shander"
+            ],
+            "returning_settings": [
+              "kelvin's cairn",
+              "maer dualdon"
+            ]
+          },
+          {
+            "chapter": "29",
+            "position_idx": 20,
+            "distinct_settings_in_chapter": 19,
+            "new_count": 19,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "battlefield outside the dwarven tunnels",
+              "hidden stairway beyond mirror door",
+              "kessell's harem room",
+              "kessell's throne room",
+              "landing before third-level door",
+              "landing platform at top of stairs",
+              "monster camp above the tunnel shafts",
+              "scrying chamber",
+              "secret tunnel exit beneath the monster camp",
+              "spiral stairway inside cryshal-tirith",
+              "square chamber",
+              "square chamber inside cryshal-tirith",
+              "tapestry border poem",
+              "topmost chamber",
+              "topmost chamber / ladder",
+              "tunnel beneath the monster camp",
+              "tunnel shaft opening",
+              "tunnel shafts beneath the sleeping monster camp",
+              "tunnels beneath the monster camp"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "2",
+            "position_idx": 21,
+            "distinct_settings_in_chapter": 11,
+            "new_count": 9,
+            "returning_count": 2,
+            "new_fraction": 0.8181818181818182,
+            "new_settings": [
+              "boat on ten-towns lake",
+              "lakeside",
+              "lonelywood fishing hole",
+              "lonelywood fishing hole (memory: calimport)",
+              "lonelywood lakeside",
+              "open tundra",
+              "open tundra near kelvin's cairn",
+              "ten-towns region",
+              "tundra (drow history"
+            ],
+            "returning_settings": [
+              "icewind dale",
+              "lonelywood"
+            ]
+          },
+          {
+            "chapter": "30",
+            "position_idx": 22,
+            "distinct_settings_in_chapter": 39,
+            "new_count": 35,
+            "returning_count": 4,
+            "new_fraction": 0.8974358974358975,
+            "new_settings": [
+              "battlefield",
+              "battlefield around bryn shander",
+              "battlefield converging on bryn shander hill",
+              "battlefield near cryshal-tirith ruins",
+              "battlefield near dwarven formation",
+              "battlefield outside bryn shander",
+              "battlefield outside ten-towns",
+              "bryn shander hill",
+              "council gathering",
+              "cryshal-tirith rubble",
+              "eastway road",
+              "fields east of bryn shander",
+              "high face of kelvin's cairn",
+              "inside collapsing cryshal-tirith",
+              "inside cryshal-tirith",
+              "kelvin's cairn descent",
+              "maer dualdon / bryn shander walls",
+              "maer dualdon lakeshore",
+              "maer dualdon shoreline near targos ruins",
+              "north fields of bryn shander",
+              "north gate battlefield",
+              "north gate of bryn shander",
+              "open battlefield",
+              "open field north of bryn shander",
+              "rubble of cryshal-tirith",
+              "shoreline shallows near bryn shander",
+              "small tent near dwarf tunnel exits",
+              "snowcap of kelvin's cairn",
+              "southern precipice of kelvin's cairn",
+              "summit of kelvin's cairn",
+              "tent",
+              "termalaine",
+              "top of cryshal-tirith rubble",
+              "upper kelvin's cairn",
+              "void"
+            ],
+            "returning_settings": [
+              "bryn shander gates",
+              "bryn shander walls",
+              "kelvin's cairn",
+              "southern face of kelvin's cairn"
+            ]
+          },
+          {
+            "chapter": "3",
+            "position_idx": 23,
+            "distinct_settings_in_chapter": 5,
+            "new_count": 3,
+            "returning_count": 2,
+            "new_fraction": 0.6,
+            "new_settings": [
+              "hengorot",
+              "hengorot entrance and interior",
+              "northern tundra"
+            ],
+            "returning_settings": [
+              "barbarian encampment",
+              "tundra"
+            ]
+          },
+          {
+            "chapter": "4",
+            "position_idx": 24,
+            "distinct_settings_in_chapter": 9,
+            "new_count": 8,
+            "returning_count": 1,
+            "new_fraction": 0.8888888888888888,
+            "new_settings": [
+              "bowl depression",
+              "bowl-shaped snow depression",
+              "cryshal-tirith exterior and entrance",
+              "cryshal-tirith scrying room",
+              "rocky bowl",
+              "rocky overhang shelter",
+              "spine of the world mountains",
+              "spine of the world mountains; wizards' trail below"
+            ],
+            "returning_settings": [
+              "cryshal-tirith"
+            ]
+          },
+          {
+            "chapter": "5",
+            "position_idx": 25,
+            "distinct_settings_in_chapter": 2,
+            "new_count": 1,
+            "returning_count": 1,
+            "new_fraction": 0.5,
+            "new_settings": [
+              "unspecified"
+            ],
+            "returning_settings": [
+              "bruenor's climb"
+            ]
+          },
+          {
+            "chapter": "6",
+            "position_idx": 26,
+            "distinct_settings_in_chapter": 4,
+            "new_count": 2,
+            "returning_count": 2,
+            "new_fraction": 0.5,
+            "new_settings": [
+              "bryn shander gates and streets",
+              "bryn shander streets and gate"
+            ],
+            "returning_settings": [
+              "bryn shander",
+              "council hall"
+            ]
+          },
+          {
+            "chapter": "7",
+            "position_idx": 27,
+            "distinct_settings_in_chapter": 18,
+            "new_count": 15,
+            "returning_count": 3,
+            "new_fraction": 0.8333333333333334,
+            "new_settings": [
+              "astral plane",
+              "back of command tent",
+              "bremen's run at dawn",
+              "bremen's run at dawn (memory: menzoberranzan)",
+              "inside command tent",
+              "interior of barbarian encampment",
+              "menzoberranzan",
+              "menzoberranzan to bremen's run",
+              "open tundra south toward kelvin's cairn",
+              "outer perimeter of barbarian encampment",
+              "rocky hillside lookout",
+              "svirfnebli mazework mines",
+              "svirfnebli mines",
+              "underground tunnel",
+              "void between planes / barbarian encampment"
+            ],
+            "returning_settings": [
+              "barbarian encampment",
+              "kelvin's cairn",
+              "open tundra"
+            ]
+          },
+          {
+            "chapter": "8",
+            "position_idx": 28,
+            "distinct_settings_in_chapter": 9,
+            "new_count": 5,
+            "returning_count": 4,
+            "new_fraction": 0.5555555555555556,
+            "new_settings": [
+              "eastern slope of bryn shander hill",
+              "hill approach to bryn shander",
+              "slopes below bryn shander",
+              "slopes of bryn shander",
+              "termalaine streets"
+            ],
+            "returning_settings": [
+              "alley",
+              "battlefield outside bryn shander",
+              "bremen's run",
+              "termalaine"
+            ]
+          },
+          {
+            "chapter": "9",
+            "position_idx": 29,
+            "distinct_settings_in_chapter": 4,
+            "new_count": 3,
+            "returning_count": 1,
+            "new_fraction": 0.75,
+            "new_settings": [
+              "dwarven forge chamber",
+              "lakeside tree",
+              "lonelywood / ten-towns region"
+            ],
+            "returning_settings": [
+              "ten-towns region"
+            ]
+          },
+          {
+            "chapter": "epilogue2",
+            "position_idx": 30,
+            "distinct_settings_in_chapter": 2,
+            "new_count": 1,
+            "returning_count": 1,
+            "new_fraction": 0.5,
+            "new_settings": [
+              "open tundra / spine of the world"
+            ],
+            "returning_settings": [
+              "open tundra"
+            ]
+          },
+          {
+            "chapter": "epilogue3",
+            "position_idx": 31,
+            "distinct_settings_in_chapter": 16,
+            "new_count": 13,
+            "returning_count": 3,
+            "new_fraction": 0.8125,
+            "new_settings": [
+              "bruenor's dwelling",
+              "bryn shander rendezvous point",
+              "bryn shander street",
+              "open road",
+              "outdoors",
+              "outside regis's palace",
+              "regis's house steps",
+              "regis's palace",
+              "regis's palace doorway",
+              "regis's palace entrance",
+              "ten-towns",
+              "ten-towns to bryn shander",
+              "tundra outside bremen"
+            ],
+            "returning_settings": [
+              "bryn shander",
+              "ten-towns region",
+              "tundra"
+            ]
+          },
+          {
+            "chapter": "epilogue",
+            "position_idx": 32,
+            "distinct_settings_in_chapter": 2,
+            "new_count": 1,
+            "returning_count": 1,
+            "new_fraction": 0.5,
+            "new_settings": [
+              "battlefield hill"
+            ],
+            "returning_settings": [
+              "cryshal-tirith"
+            ]
+          },
+          {
+            "chapter": "prelude",
+            "position_idx": 33,
+            "distinct_settings_in_chapter": 2,
+            "new_count": 1,
+            "returning_count": 1,
+            "new_fraction": 0.5,
+            "new_settings": [
+              "northern mountains"
+            ],
+            "returning_settings": [
+              "the abyss"
+            ]
+          }
+        ],
+        "arc_bins": {
+          "early": {
+            "n_chapters": 11,
+            "mean_new_fraction": 0.9157926628601115,
+            "total_new": 115,
+            "total_returning": 7,
+            "aggregate_new_fraction": 0.9426229508196722,
+            "mean_distinct_per_chapter": 11.090909090909092
+          },
+          "mid": {
+            "n_chapters": 11,
+            "mean_new_fraction": 0.8961794983326083,
+            "total_new": 127,
+            "total_returning": 14,
+            "aggregate_new_fraction": 0.900709219858156,
+            "mean_distinct_per_chapter": 12.818181818181818
+          },
+          "late": {
+            "n_chapters": 12,
+            "mean_new_fraction": 0.6531428062678063,
+            "total_new": 88,
+            "total_returning": 24,
+            "aggregate_new_fraction": 0.7857142857142857,
+            "mean_distinct_per_chapter": 9.333333333333334
+          }
+        }
+      }
+    },
+    "streams_of_silver": {
+      "anchor_method": {
+        "book": "streams_of_silver",
+        "method": "anchor",
+        "n_chapters": 29,
+        "distinct_settings": 118,
+        "one_chapter_only": 103,
+        "one_chapter_only_fraction": 0.8728813559322034,
+        "recurring_settings_count": 15,
+        "recurring_fraction": 0.1271186440677966,
+        "coverage_histogram": {
+          "1": 103,
+          "2": 5,
+          "3": 6,
+          "4": 2,
+          "7": 1,
+          "8": 1
+        },
+        "top_recurring_settings": [
+          {
+            "setting": "mithral hall",
+            "chapters": [
+              "17",
+              "18",
+              "19",
+              "20",
+              "21",
+              "22",
+              "23",
+              "24"
+            ],
+            "n_chapters": 8
+          },
+          {
+            "setting": "luskan",
+            "chapters": [
+              "11",
+              "2",
+              "3",
+              "4",
+              "5",
+              "7",
+              "9"
+            ],
+            "n_chapters": 7
+          },
+          {
+            "setting": "dendybar's chamber",
+            "chapters": [
+              "10",
+              "19",
+              "9",
+              "epilogue"
+            ],
+            "n_chapters": 4
+          },
+          {
+            "setting": "garumn's gorge",
+            "chapters": [
+              "21",
+              "22",
+              "23",
+              "epilogue"
+            ],
+            "n_chapters": 4
+          },
+          {
+            "setting": "longsaddle",
+            "chapters": [
+              "10",
+              "8",
+              "epilogue"
+            ],
+            "n_chapters": 3
+          },
+          {
+            "setting": "silverymoon",
+            "chapters": [
+              "11",
+              "14",
+              "15"
+            ],
+            "n_chapters": 3
+          },
+          {
+            "setting": "evermoors",
+            "chapters": [
+              "12",
+              "13",
+              "14"
+            ],
+            "n_chapters": 3
+          },
+          {
+            "setting": "ten-towns",
+            "chapters": [
+              "1",
+              "4",
+              "part1"
+            ],
+            "n_chapters": 3
+          },
+          {
+            "setting": "crags",
+            "chapters": [
+              "5",
+              "6",
+              "8"
+            ],
+            "n_chapters": 3
+          },
+          {
+            "setting": "journal / introspective frame",
+            "chapters": [
+              "part1",
+              "part2",
+              "part3"
+            ],
+            "n_chapters": 3
+          },
+          {
+            "setting": "tundra",
+            "chapters": [
+              "11",
+              "6"
+            ],
+            "n_chapters": 2
+          },
+          {
+            "setting": "wilderness road",
+            "chapters": [
+              "17",
+              "8"
+            ],
+            "n_chapters": 2
+          },
+          {
+            "setting": "keeper's dale rim",
+            "chapters": [
+              "18",
+              "19"
+            ],
+            "n_chapters": 2
+          },
+          {
+            "setting": "the cutlass tavern",
+            "chapters": [
+              "2",
+              "3"
+            ],
+            "n_chapters": 2
+          },
+          {
+            "setting": "icewind dale",
+            "chapters": [
+              "7",
+              "prelude"
+            ],
+            "n_chapters": 2
+          }
+        ],
+        "per_chapter": [
+          {
+            "chapter": "10",
+            "position_idx": 0,
+            "distinct_settings_in_chapter": 18,
+            "new_count": 18,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "dendybar's chamber",
+              "dessarin river crossing",
+              "dessarin valley",
+              "longsaddle",
+              "muddy road",
+              "open plains",
+              "open plains in storm",
+              "open plains in violent storm",
+              "rain-soaked plains",
+              "road south toward dessarin valley",
+              "small ridge",
+              "storm-ravaged road",
+              "surbrin bridge",
+              "surbrin bridge approach",
+              "surbrin riverbank",
+              "surbrin riverbank camp",
+              "wolf den",
+              "wolf den shelter"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "11",
+            "position_idx": 1,
+            "distinct_settings_in_chapter": 6,
+            "new_count": 6,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "luskan",
+              "nesm\u00e9",
+              "road north",
+              "silverymoon",
+              "tundra",
+              "uthgardt ritual encampment"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "12",
+            "position_idx": 2,
+            "distinct_settings_in_chapter": 2,
+            "new_count": 2,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "evermoors",
+              "trollmoors"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "13",
+            "position_idx": 3,
+            "distinct_settings_in_chapter": 1,
+            "new_count": 0,
+            "returning_count": 1,
+            "new_fraction": 0.0,
+            "new_settings": [],
+            "returning_settings": [
+              "evermoors"
+            ]
+          },
+          {
+            "chapter": "14",
+            "position_idx": 4,
+            "distinct_settings_in_chapter": 5,
+            "new_count": 3,
+            "returning_count": 2,
+            "new_fraction": 0.6,
+            "new_settings": [
+              "rauvin approach",
+              "riverbank",
+              "riverbank near camp"
+            ],
+            "returning_settings": [
+              "evermoors",
+              "silverymoon"
+            ]
+          },
+          {
+            "chapter": "15",
+            "position_idx": 5,
+            "distinct_settings_in_chapter": 3,
+            "new_count": 2,
+            "returning_count": 1,
+            "new_fraction": 0.6666666666666666,
+            "new_settings": [
+              "foothills north of the rauvin",
+              "road west along the rauvin"
+            ],
+            "returning_settings": [
+              "silverymoon"
+            ]
+          },
+          {
+            "chapter": "16",
+            "position_idx": 6,
+            "distinct_settings_in_chapter": 11,
+            "new_count": 11,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "bluff overlooking herald's holdfast",
+              "chamber of man",
+              "chamber of the dwarves",
+              "dining chamber",
+              "entrance hall",
+              "entrance threshold",
+              "entrance to herald's holdfast",
+              "great library",
+              "hallway and dining chamber",
+              "herald's holdfast",
+              "overgrown path to herald's holdfast"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "17",
+            "position_idx": 7,
+            "distinct_settings_in_chapter": 14,
+            "new_count": 14,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "camp near dwarvendarrow",
+              "dwarvendarrow",
+              "entreri's camp",
+              "evening camp",
+              "mithral hall",
+              "mountain foothills near dwarvendarrow",
+              "mountain slope",
+              "rocky outcrop",
+              "rocky outcrop into treeline",
+              "rocky slope",
+              "ruins",
+              "ruins of companions' campsite at dwarvendarrow",
+              "treeline",
+              "wilderness road"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "18",
+            "position_idx": 8,
+            "distinct_settings_in_chapter": 10,
+            "new_count": 9,
+            "returning_count": 1,
+            "new_fraction": 0.9,
+            "new_settings": [
+              "camp in eastern mountain trail",
+              "canyon floor",
+              "canyon floor among monoliths",
+              "canyon floor wall",
+              "cliff face stairway",
+              "eastern rim",
+              "keeper's dale rim",
+              "mountain trail walking toward rockslide",
+              "rockslide site in mountain vale"
+            ],
+            "returning_settings": [
+              "mithral hall"
+            ]
+          },
+          {
+            "chapter": "19",
+            "position_idx": 9,
+            "distinct_settings_in_chapter": 5,
+            "new_count": 2,
+            "returning_count": 3,
+            "new_fraction": 0.4,
+            "new_settings": [
+              "keeper's dale gorge floor",
+              "keeper's dale secret stair"
+            ],
+            "returning_settings": [
+              "dendybar's chamber",
+              "keeper's dale rim",
+              "mithral hall"
+            ]
+          },
+          {
+            "chapter": "1",
+            "position_idx": 10,
+            "distinct_settings_in_chapter": 2,
+            "new_count": 2,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "bryn shander",
+              "ten-towns"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "20",
+            "position_idx": 11,
+            "distinct_settings_in_chapter": 2,
+            "new_count": 1,
+            "returning_count": 1,
+            "new_fraction": 0.5,
+            "new_settings": [
+              "hall of dumathoin"
+            ],
+            "returning_settings": [
+              "mithral hall"
+            ]
+          },
+          {
+            "chapter": "21",
+            "position_idx": 12,
+            "distinct_settings_in_chapter": 2,
+            "new_count": 1,
+            "returning_count": 1,
+            "new_fraction": 0.5,
+            "new_settings": [
+              "garumn's gorge"
+            ],
+            "returning_settings": [
+              "mithral hall"
+            ]
+          },
+          {
+            "chapter": "22",
+            "position_idx": 13,
+            "distinct_settings_in_chapter": 2,
+            "new_count": 0,
+            "returning_count": 2,
+            "new_fraction": 0.0,
+            "new_settings": [],
+            "returning_settings": [
+              "garumn's gorge",
+              "mithral hall"
+            ]
+          },
+          {
+            "chapter": "23",
+            "position_idx": 14,
+            "distinct_settings_in_chapter": 2,
+            "new_count": 0,
+            "returning_count": 2,
+            "new_fraction": 0.0,
+            "new_settings": [],
+            "returning_settings": [
+              "garumn's gorge",
+              "mithral hall"
+            ]
+          },
+          {
+            "chapter": "24",
+            "position_idx": 15,
+            "distinct_settings_in_chapter": 1,
+            "new_count": 0,
+            "returning_count": 1,
+            "new_fraction": 0.0,
+            "new_settings": [],
+            "returning_settings": [
+              "mithral hall"
+            ]
+          },
+          {
+            "chapter": "2",
+            "position_idx": 16,
+            "distinct_settings_in_chapter": 5,
+            "new_count": 4,
+            "returning_count": 1,
+            "new_fraction": 0.8,
+            "new_settings": [
+              "half-moon street before the cutlass tavern",
+              "half-moon street outside the cutlass",
+              "the cutlass tavern",
+              "the cutlass tavern and alleyway outside"
+            ],
+            "returning_settings": [
+              "luskan"
+            ]
+          },
+          {
+            "chapter": "3",
+            "position_idx": 17,
+            "distinct_settings_in_chapter": 4,
+            "new_count": 2,
+            "returning_count": 2,
+            "new_fraction": 0.5,
+            "new_settings": [
+              "half-moon street",
+              "interior of the cutlass tavern"
+            ],
+            "returning_settings": [
+              "luskan",
+              "the cutlass tavern"
+            ]
+          },
+          {
+            "chapter": "4",
+            "position_idx": 18,
+            "distinct_settings_in_chapter": 9,
+            "new_count": 7,
+            "returning_count": 2,
+            "new_fraction": 0.7777777777777778,
+            "new_settings": [
+              "conjuring chamber",
+              "lead wagon",
+              "merchant caravan road",
+              "north spire",
+              "north spire corridor",
+              "spirit plane",
+              "spirit plane / merchant caravan road near bremen"
+            ],
+            "returning_settings": [
+              "luskan",
+              "ten-towns"
+            ]
+          },
+          {
+            "chapter": "5",
+            "position_idx": 19,
+            "distinct_settings_in_chapter": 10,
+            "new_count": 9,
+            "returning_count": 1,
+            "new_fraction": 0.9,
+            "new_settings": [
+              "banks of the river mirar",
+              "camp near the river mirar",
+              "camp near the river mirar at dawn",
+              "crags",
+              "farm settlement gate",
+              "open country",
+              "path from farm settlement",
+              "ridge overlooking farm settlement",
+              "trail near the mirar"
+            ],
+            "returning_settings": [
+              "luskan"
+            ]
+          },
+          {
+            "chapter": "6",
+            "position_idx": 20,
+            "distinct_settings_in_chapter": 11,
+            "new_count": 9,
+            "returning_count": 2,
+            "new_fraction": 0.8181818181818182,
+            "new_settings": [
+              "barbarian camp",
+              "barbarian camp fighting ring",
+              "barbarian camp horse lines",
+              "barbarian camp outskirts",
+              "edge of barbarian camp",
+              "gray astral plane / ghost's dimension",
+              "gray astral plane and material plane (simultaneous)",
+              "sky ponies barbarian camp",
+              "sky ponies camp"
+            ],
+            "returning_settings": [
+              "crags",
+              "tundra"
+            ]
+          },
+          {
+            "chapter": "7",
+            "position_idx": 21,
+            "distinct_settings_in_chapter": 7,
+            "new_count": 6,
+            "returning_count": 1,
+            "new_fraction": 0.8571428571428571,
+            "new_settings": [
+              "audience hall",
+              "audience hall and exit",
+              "icewind dale",
+              "merchant caravan",
+              "open darkness beyond the merchant camp",
+              "roadside camp"
+            ],
+            "returning_settings": [
+              "luskan"
+            ]
+          },
+          {
+            "chapter": "8",
+            "position_idx": 22,
+            "distinct_settings_in_chapter": 5,
+            "new_count": 2,
+            "returning_count": 3,
+            "new_fraction": 0.4,
+            "new_settings": [
+              "stable and gate exit",
+              "torchlit chamber"
+            ],
+            "returning_settings": [
+              "crags",
+              "longsaddle",
+              "wilderness road"
+            ]
+          },
+          {
+            "chapter": "9",
+            "position_idx": 23,
+            "distinct_settings_in_chapter": 5,
+            "new_count": 3,
+            "returning_count": 2,
+            "new_fraction": 0.6,
+            "new_settings": [
+              "green outside the hosttower of the arcane",
+              "hosttower of the arcane",
+              "sydney's room"
+            ],
+            "returning_settings": [
+              "dendybar's chamber",
+              "luskan"
+            ]
+          },
+          {
+            "chapter": "epilogue",
+            "position_idx": 24,
+            "distinct_settings_in_chapter": 3,
+            "new_count": 0,
+            "returning_count": 3,
+            "new_fraction": 0.0,
+            "new_settings": [],
+            "returning_settings": [
+              "dendybar's chamber",
+              "garumn's gorge",
+              "longsaddle"
+            ]
+          },
+          {
+            "chapter": "part1",
+            "position_idx": 25,
+            "distinct_settings_in_chapter": 2,
+            "new_count": 1,
+            "returning_count": 1,
+            "new_fraction": 0.5,
+            "new_settings": [
+              "journal / introspective frame"
+            ],
+            "returning_settings": [
+              "ten-towns"
+            ]
+          },
+          {
+            "chapter": "part2",
+            "position_idx": 26,
+            "distinct_settings_in_chapter": 1,
+            "new_count": 0,
+            "returning_count": 1,
+            "new_fraction": 0.0,
+            "new_settings": [],
+            "returning_settings": [
+              "journal / introspective frame"
+            ]
+          },
+          {
+            "chapter": "part3",
+            "position_idx": 27,
+            "distinct_settings_in_chapter": 3,
+            "new_count": 2,
+            "returning_count": 1,
+            "new_fraction": 0.6666666666666666,
+            "new_settings": [
+              "journal/philosophical aside",
+              "tavern (recalled)"
+            ],
+            "returning_settings": [
+              "journal / introspective frame"
+            ]
+          },
+          {
+            "chapter": "prelude",
+            "position_idx": 28,
+            "distinct_settings_in_chapter": 3,
+            "new_count": 2,
+            "returning_count": 1,
+            "new_fraction": 0.6666666666666666,
+            "new_settings": [
+              "dark throne room",
+              "spine of the world"
+            ],
+            "returning_settings": [
+              "icewind dale"
+            ]
+          }
+        ],
+        "arc_bins": {
+          "early": {
+            "n_chapters": 9,
+            "mean_new_fraction": 0.7962962962962963,
+            "total_new": 65,
+            "total_returning": 5,
+            "aggregate_new_fraction": 0.9285714285714286,
+            "mean_distinct_per_chapter": 7.777777777777778
+          },
+          "mid": {
+            "n_chapters": 10,
+            "mean_new_fraction": 0.4477777777777778,
+            "total_new": 19,
+            "total_returning": 15,
+            "aggregate_new_fraction": 0.5588235294117647,
+            "mean_distinct_per_chapter": 3.4
+          },
+          "late": {
+            "n_chapters": 10,
+            "mean_new_fraction": 0.5408658008658008,
+            "total_new": 34,
+            "total_returning": 16,
+            "aggregate_new_fraction": 0.68,
+            "mean_distinct_per_chapter": 5.0
+          }
+        }
+      },
+      "first_comma_method": {
+        "book": "streams_of_silver",
+        "method": "fc",
+        "n_chapters": 29,
+        "distinct_settings": 317,
+        "one_chapter_only": 300,
+        "one_chapter_only_fraction": 0.9463722397476341,
+        "recurring_settings_count": 17,
+        "recurring_fraction": 0.05362776025236593,
+        "coverage_histogram": {
+          "1": 300,
+          "2": 13,
+          "3": 3,
+          "4": 1
+        },
+        "top_recurring_settings": [
+          {
+            "setting": "dendybar's chamber",
+            "chapters": [
+              "10",
+              "19",
+              "9",
+              "epilogue"
+            ],
+            "n_chapters": 4
+          },
+          {
+            "setting": "tundra",
+            "chapters": [
+              "11",
+              "6",
+              "prelude"
+            ],
+            "n_chapters": 3
+          },
+          {
+            "setting": "hosttower of the arcane",
+            "chapters": [
+              "4",
+              "7",
+              "9"
+            ],
+            "n_chapters": 3
+          },
+          {
+            "setting": "journal / introspective frame",
+            "chapters": [
+              "part1",
+              "part2",
+              "part3"
+            ],
+            "n_chapters": 3
+          },
+          {
+            "setting": "evermoors",
+            "chapters": [
+              "12",
+              "13"
+            ],
+            "n_chapters": 2
+          },
+          {
+            "setting": "bog/swamp",
+            "chapters": [
+              "12",
+              "13"
+            ],
+            "n_chapters": 2
+          },
+          {
+            "setting": "entrance hall",
+            "chapters": [
+              "1",
+              "16"
+            ],
+            "n_chapters": 2
+          },
+          {
+            "setting": "wilderness road",
+            "chapters": [
+              "17",
+              "8"
+            ],
+            "n_chapters": 2
+          },
+          {
+            "setting": "mithral hall entry chamber",
+            "chapters": [
+              "18",
+              "19"
+            ],
+            "n_chapters": 2
+          },
+          {
+            "setting": "keeper's dale rim",
+            "chapters": [
+              "18",
+              "19"
+            ],
+            "n_chapters": 2
+          },
+          {
+            "setting": "mithral hall corridors",
+            "chapters": [
+              "19",
+              "23"
+            ],
+            "n_chapters": 2
+          },
+          {
+            "setting": "garumn's gorge",
+            "chapters": [
+              "23",
+              "epilogue"
+            ],
+            "n_chapters": 2
+          },
+          {
+            "setting": "gorge",
+            "chapters": [
+              "23",
+              "24"
+            ],
+            "n_chapters": 2
+          },
+          {
+            "setting": "gorge edge",
+            "chapters": [
+              "23",
+              "24"
+            ],
+            "n_chapters": 2
+          },
+          {
+            "setting": "half-moon street",
+            "chapters": [
+              "2",
+              "3"
+            ],
+            "n_chapters": 2
+          }
+        ],
+        "per_chapter": [
+          {
+            "chapter": "10",
+            "position_idx": 0,
+            "distinct_settings_in_chapter": 18,
+            "new_count": 18,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "dendybar's chamber",
+              "dessarin river crossing",
+              "dessarin valley",
+              "muddy road",
+              "open plains",
+              "open plains in storm",
+              "open plains in violent storm",
+              "open road north of longsaddle",
+              "rain-soaked plains",
+              "road south toward dessarin valley",
+              "small ridge",
+              "storm-ravaged road",
+              "surbrin bridge",
+              "surbrin bridge approach",
+              "surbrin riverbank",
+              "surbrin riverbank camp",
+              "wolf den",
+              "wolf den shelter"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "11",
+            "position_idx": 1,
+            "distinct_settings_in_chapter": 11,
+            "new_count": 11,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "camp northeast of nesm\u00e9",
+              "foothills west of silverymoon",
+              "moonbridge entrance and streets of silverymoon",
+              "path approaching silverymoon",
+              "road north",
+              "road north from luskan",
+              "road to silverymoon",
+              "small hills northeast of nesm\u00e9",
+              "streets of silverymoon",
+              "tundra",
+              "uthgardt ritual encampment"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "12",
+            "position_idx": 2,
+            "distinct_settings_in_chapter": 16,
+            "new_count": 16,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "beneath the bog",
+              "bog",
+              "bog crossing",
+              "bog tree line approaching lagoon",
+              "bog/swamp",
+              "edge of vast bog",
+              "evermoors",
+              "evermoors moors",
+              "hidden lagoon off the bog",
+              "lagoon",
+              "troll mound",
+              "troll mound and surrounding horde",
+              "troll mound top",
+              "trollmoors",
+              "trollmoors (evermoors)",
+              "vast bog crossing"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "13",
+            "position_idx": 3,
+            "distinct_settings_in_chapter": 9,
+            "new_count": 7,
+            "returning_count": 2,
+            "new_fraction": 0.7777777777777778,
+            "new_settings": [
+              "edge of evermoors",
+              "evermoors border",
+              "evermoors ridge",
+              "evermoors ridge and moors",
+              "overgrown ridge",
+              "ridge camp",
+              "solid ground"
+            ],
+            "returning_settings": [
+              "bog/swamp",
+              "evermoors"
+            ]
+          },
+          {
+            "chapter": "14",
+            "position_idx": 4,
+            "distinct_settings_in_chapter": 10,
+            "new_count": 10,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "camp on the rauvin",
+              "forest camp beyond evermoors",
+              "forest clearing beyond evermoors",
+              "forest road to silverymoon",
+              "overlook above silverymoon and river rauvin",
+              "rauvin approach",
+              "riverbank",
+              "riverbank near camp",
+              "silverymoon gate road",
+              "silverymoon guard post"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "15",
+            "position_idx": 5,
+            "distinct_settings_in_chapter": 9,
+            "new_count": 9,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "city wall district",
+              "elevated vantage overlooking silverymoon road",
+              "foothills north of the rauvin",
+              "inn of the wayward sages",
+              "inn room",
+              "inn room and hallway",
+              "rauvin river crossing and silverymoon wall",
+              "road departing silverymoon",
+              "road west along the rauvin"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "16",
+            "position_idx": 6,
+            "distinct_settings_in_chapter": 11,
+            "new_count": 11,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "bluff overlooking herald's holdfast",
+              "chamber of man",
+              "chamber of the dwarves",
+              "dining chamber",
+              "entrance hall",
+              "entrance threshold",
+              "entrance to herald's holdfast",
+              "great library",
+              "hallway and dining chamber",
+              "herald's holdfast",
+              "overgrown path to herald's holdfast"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "17",
+            "position_idx": 7,
+            "distinct_settings_in_chapter": 15,
+            "new_count": 15,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "camp near dwarvendarrow",
+              "dwarvendarrow",
+              "entreri's camp",
+              "evening camp",
+              "mountain foothills near dwarvendarrow",
+              "mountain slope",
+              "rocky outcrop",
+              "rocky outcrop into treeline",
+              "rocky slope",
+              "ruins",
+              "ruins of companions' campsite at dwarvendarrow",
+              "treeline",
+              "wilderness road",
+              "wilderness road northwest toward mithral hall",
+              "wilderness road toward mithral hall"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "18",
+            "position_idx": 8,
+            "distinct_settings_in_chapter": 13,
+            "new_count": 13,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "camp in eastern mountain trail",
+              "canyon floor",
+              "canyon floor among monoliths",
+              "canyon floor wall",
+              "cliff face stairway",
+              "eastern rim",
+              "keeper's dale rim",
+              "mithral hall entry chamber",
+              "mithral hall entry chamber and side chamber",
+              "mithral hall entry threshold",
+              "mountain trail walking toward rockslide",
+              "outside mithral hall entrance",
+              "rockslide site in mountain vale"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "19",
+            "position_idx": 9,
+            "distinct_settings_in_chapter": 23,
+            "new_count": 20,
+            "returning_count": 3,
+            "new_fraction": 0.8695652173913043,
+            "new_settings": [
+              "collapsing stone chamber",
+              "dark passage",
+              "entry chamber",
+              "jagged passage",
+              "keeper's dale gorge floor",
+              "keeper's dale secret stair",
+              "mithral hall corridors",
+              "mithral hall deep alcove corridor",
+              "mithral hall deep corridors",
+              "mithral hall upper corridors",
+              "mithral hall upper corridors and guest chambers",
+              "oval central room",
+              "passage",
+              "passage outside the oval room",
+              "passages",
+              "sloped passage leading to stone door",
+              "stone chamber",
+              "stone chamber and alcove",
+              "stone chamber floor",
+              "ten-door defensive corridor"
+            ],
+            "returning_settings": [
+              "dendybar's chamber",
+              "keeper's dale rim",
+              "mithral hall entry chamber"
+            ]
+          },
+          {
+            "chapter": "1",
+            "position_idx": 10,
+            "distinct_settings_in_chapter": 13,
+            "new_count": 12,
+            "returning_count": 1,
+            "new_fraction": 0.9230769230769231,
+            "new_settings": [
+              "catti-brie's house",
+              "doorway",
+              "entrance hall and staircase",
+              "grand staircase",
+              "interior",
+              "interior room",
+              "interior rooms",
+              "master bedroom",
+              "multiple rooms",
+              "regis's empty house",
+              "rooms of regis's house",
+              "staircase landing"
+            ],
+            "returning_settings": [
+              "entrance hall"
+            ]
+          },
+          {
+            "chapter": "20",
+            "position_idx": 11,
+            "distinct_settings_in_chapter": 15,
+            "new_count": 15,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "alcove rubble",
+              "corridor",
+              "dark recess",
+              "entrance to hall of dumathoin",
+              "hall of dumathoin",
+              "hall of dumathoin corridor and curtain",
+              "halls of gathering",
+              "immense cavern",
+              "mithral hall ruins",
+              "natural caverns",
+              "oval chamber",
+              "oval chamber into corridor",
+              "ruined alcove",
+              "upper level corridor",
+              "upper level passages"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "21",
+            "position_idx": 12,
+            "distinct_settings_in_chapter": 8,
+            "new_count": 8,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "lower tunnel beyond the undercity",
+              "mithral hall mines",
+              "narrow ledge above garumn's gorge",
+              "narrow ledge and chasm bridge",
+              "tunnel corridor",
+              "tunnel corridor beyond mucknuggle",
+              "upper ledge",
+              "upper ledge overlooking central forges"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "22",
+            "position_idx": 13,
+            "distinct_settings_in_chapter": 25,
+            "new_count": 25,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "anteroom",
+              "anteroom below grand corridor",
+              "anteroom door",
+              "cavern anteroom",
+              "cavern anteroom threshold",
+              "cavern gorge edge",
+              "cavern near gorge",
+              "cavern of garumn's gorge",
+              "chasm bridge",
+              "corridor with dwarven reliefs",
+              "dwarven tunnels near garumn's gorge",
+              "immense cavern treasury",
+              "lower caverns and upper tunnel network",
+              "main passage",
+              "mithral hall throne room and secret tunnel",
+              "passageway",
+              "portcullis at garumn's gorge",
+              "portcullis overlooking garumn's gorge",
+              "secret tunnel balcony above garumn's gorge cavern",
+              "secret tunnel behind the carved door",
+              "secret tunnel overlooking garumn's gorge bridge",
+              "secret tunnel with dwarven carvings",
+              "stairway and anteroom entrance",
+              "stone balcony above grand corridor",
+              "stone balcony overlooking grand torchlit corridor"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "23",
+            "position_idx": 14,
+            "distinct_settings_in_chapter": 19,
+            "new_count": 18,
+            "returning_count": 1,
+            "new_fraction": 0.9473684210526315,
+            "new_settings": [
+              "chamber",
+              "chamber behind curtain",
+              "dragon's back",
+              "garumn's gorge",
+              "garumn's gorge wall",
+              "gorge",
+              "gorge airspace",
+              "gorge edge",
+              "gorge rim",
+              "gorge wall",
+              "gorge wall and rim",
+              "gorge wall ledge",
+              "mithral hall anteroom",
+              "mithral hall cavern",
+              "mithral hall cavern entrance",
+              "mithral hall gorge wall",
+              "mithral hall room",
+              "mithral hall storage room"
+            ],
+            "returning_settings": [
+              "mithral hall corridors"
+            ]
+          },
+          {
+            "chapter": "24",
+            "position_idx": 15,
+            "distinct_settings_in_chapter": 9,
+            "new_count": 7,
+            "returning_count": 2,
+            "new_fraction": 0.7777777777777778,
+            "new_settings": [
+              "gorge cavern",
+              "gorge crossing",
+              "gorge edge across from bridge lever",
+              "gorge ledge",
+              "narrow ledge crossing the gorge",
+              "tunnel entrance",
+              "wide cavern end and tunnel mouth"
+            ],
+            "returning_settings": [
+              "gorge",
+              "gorge edge"
+            ]
+          },
+          {
+            "chapter": "2",
+            "position_idx": 16,
+            "distinct_settings_in_chapter": 15,
+            "new_count": 15,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "camp north of luskan",
+              "dark alleyway behind the cutlass",
+              "dockside lanes",
+              "entrance to rat alley",
+              "half-moon street",
+              "half-moon street before the cutlass tavern",
+              "half-moon street outside the cutlass",
+              "knoll north of luskan",
+              "luskan city gate",
+              "luskan north gate",
+              "luskan street inside the gate",
+              "luskan streets toward the docks",
+              "rat alley",
+              "the cutlass tavern",
+              "the cutlass tavern and alleyway outside"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "3",
+            "position_idx": 17,
+            "distinct_settings_in_chapter": 10,
+            "new_count": 8,
+            "returning_count": 2,
+            "new_fraction": 0.8,
+            "new_settings": [
+              "cutlass tavern",
+              "dark alley",
+              "dark alley exit",
+              "interior of the cutlass tavern",
+              "luskan streets",
+              "luskan streets and alleys",
+              "open grassland beyond luskan's wall",
+              "street outside the cutlass"
+            ],
+            "returning_settings": [
+              "half-moon street",
+              "the cutlass tavern"
+            ]
+          },
+          {
+            "chapter": "4",
+            "position_idx": 18,
+            "distinct_settings_in_chapter": 10,
+            "new_count": 10,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "conjuring chamber",
+              "hosttower of the arcane",
+              "hosttower summoning chamber",
+              "lead wagon",
+              "merchant caravan road",
+              "north spire",
+              "north spire corridor",
+              "spirit plane",
+              "spirit plane / hosttower summoning chamber",
+              "spirit plane / merchant caravan road near bremen"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "5",
+            "position_idx": 19,
+            "distinct_settings_in_chapter": 13,
+            "new_count": 13,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "banks of the river mirar",
+              "camp near the river mirar",
+              "camp near the river mirar at dawn",
+              "copse of fir trees",
+              "copse of fir trees on a rise",
+              "farm settlement gate",
+              "open country",
+              "open country east of luskan",
+              "path from farm settlement",
+              "ridge overlooking farm settlement",
+              "the crags \u2014 broken mounds and rolling hills",
+              "trail near the mirar",
+              "tundra crags"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "6",
+            "position_idx": 20,
+            "distinct_settings_in_chapter": 12,
+            "new_count": 10,
+            "returning_count": 2,
+            "new_fraction": 0.8333333333333334,
+            "new_settings": [
+              "barbarian camp",
+              "barbarian camp fighting ring",
+              "barbarian camp horse lines",
+              "barbarian camp outskirts",
+              "edge of barbarian camp",
+              "gray astral plane / ghost's dimension",
+              "gray astral plane and material plane (simultaneous)",
+              "open field",
+              "sky ponies barbarian camp",
+              "sky ponies camp"
+            ],
+            "returning_settings": [
+              "copse of fir trees",
+              "tundra"
+            ]
+          },
+          {
+            "chapter": "7",
+            "position_idx": 21,
+            "distinct_settings_in_chapter": 12,
+            "new_count": 11,
+            "returning_count": 1,
+            "new_fraction": 0.9166666666666666,
+            "new_settings": [
+              "audience hall",
+              "audience hall and exit",
+              "entreri's deserted campsite outside luskan",
+              "hilltop campsite outside luskan",
+              "luskan north gate and city streets",
+              "merchant caravan",
+              "open darkness beyond the merchant camp",
+              "road outside luskan",
+              "roadside camp",
+              "roadside camp transitioning to road toward luskan",
+              "streets outside hosttower"
+            ],
+            "returning_settings": [
+              "hosttower of the arcane"
+            ]
+          },
+          {
+            "chapter": "8",
+            "position_idx": 22,
+            "distinct_settings_in_chapter": 23,
+            "new_count": 22,
+            "returning_count": 1,
+            "new_fraction": 0.9565217391304348,
+            "new_settings": [
+              "enchanted bridge and stream",
+              "exit of the crags",
+              "ivy mansion",
+              "ivy mansion fence entrance",
+              "ivy mansion fence/invisible wall",
+              "ivy mansion gate",
+              "ivy mansion grounds and enchanted bridge",
+              "ivy mansion grounds and miniature farm",
+              "ivy mansion hillock",
+              "ivy mansion interior rooms",
+              "main trading road toward longsaddle",
+              "miniature stable",
+              "open road beyond longsaddle",
+              "road approaching longsaddle",
+              "road into longsaddle",
+              "road outside longsaddle",
+              "stable and gate exit",
+              "the fuzzy quarterstaff",
+              "the fuzzy quarterstaff tavern",
+              "torchlit chamber",
+              "under-bridge",
+              "wilderness road south of the crags"
+            ],
+            "returning_settings": [
+              "wilderness road"
+            ]
+          },
+          {
+            "chapter": "9",
+            "position_idx": 23,
+            "distinct_settings_in_chapter": 7,
+            "new_count": 5,
+            "returning_count": 2,
+            "new_fraction": 0.7142857142857143,
+            "new_settings": [
+              "dockside alleys and hosttower",
+              "green outside the hosttower of the arcane",
+              "north gate",
+              "sydney's room",
+              "whisper's secret chambers"
+            ],
+            "returning_settings": [
+              "dendybar's chamber",
+              "hosttower of the arcane"
+            ]
+          },
+          {
+            "chapter": "epilogue",
+            "position_idx": 24,
+            "distinct_settings_in_chapter": 4,
+            "new_count": 2,
+            "returning_count": 2,
+            "new_fraction": 0.5,
+            "new_settings": [
+              "exit of longsaddle",
+              "longsaddle"
+            ],
+            "returning_settings": [
+              "dendybar's chamber",
+              "garumn's gorge"
+            ]
+          },
+          {
+            "chapter": "part1",
+            "position_idx": 25,
+            "distinct_settings_in_chapter": 2,
+            "new_count": 2,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "journal / introspective frame",
+              "ten-towns (recalled)"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "part2",
+            "position_idx": 26,
+            "distinct_settings_in_chapter": 1,
+            "new_count": 0,
+            "returning_count": 1,
+            "new_fraction": 0.0,
+            "new_settings": [],
+            "returning_settings": [
+              "journal / introspective frame"
+            ]
+          },
+          {
+            "chapter": "part3",
+            "position_idx": 27,
+            "distinct_settings_in_chapter": 3,
+            "new_count": 2,
+            "returning_count": 1,
+            "new_fraction": 0.6666666666666666,
+            "new_settings": [
+              "journal/philosophical aside",
+              "tavern (recalled)"
+            ],
+            "returning_settings": [
+              "journal / introspective frame"
+            ]
+          },
+          {
+            "chapter": "prelude",
+            "position_idx": 28,
+            "distinct_settings_in_chapter": 3,
+            "new_count": 2,
+            "returning_count": 1,
+            "new_fraction": 0.6666666666666666,
+            "new_settings": [
+              "dark throne room",
+              "tundra west of icewind dale"
+            ],
+            "returning_settings": [
+              "tundra"
+            ]
+          }
+        ],
+        "arc_bins": {
+          "early": {
+            "n_chapters": 9,
+            "mean_new_fraction": 0.9753086419753088,
+            "total_new": 110,
+            "total_returning": 2,
+            "aggregate_new_fraction": 0.9821428571428571,
+            "mean_distinct_per_chapter": 12.444444444444445
+          },
+          "mid": {
+            "n_chapters": 10,
+            "mean_new_fraction": 0.9317788339298637,
+            "total_new": 138,
+            "total_returning": 9,
+            "aggregate_new_fraction": 0.9387755102040817,
+            "mean_distinct_per_chapter": 14.7
+          },
+          "late": {
+            "n_chapters": 10,
+            "mean_new_fraction": 0.7254140786749482,
+            "total_new": 69,
+            "total_returning": 11,
+            "aggregate_new_fraction": 0.8625,
+            "mean_distinct_per_chapter": 8.0
+          }
+        }
+      }
+    },
+    "halflings_gem": {
+      "anchor_method": {
+        "book": "halflings_gem",
+        "method": "anchor",
+        "n_chapters": 29,
+        "distinct_settings": 159,
+        "one_chapter_only": 141,
+        "one_chapter_only_fraction": 0.8867924528301887,
+        "recurring_settings_count": 18,
+        "recurring_fraction": 0.11320754716981132,
+        "coverage_histogram": {
+          "1": 141,
+          "2": 10,
+          "3": 5,
+          "4": 1,
+          "8": 1,
+          "14": 1
+        },
+        "top_recurring_settings": [
+          {
+            "setting": "calimport",
+            "chapters": [
+              "13",
+              "15",
+              "16",
+              "17",
+              "18",
+              "19",
+              "20",
+              "21",
+              "23",
+              "24",
+              "25",
+              "8",
+              "9",
+              "epilogue2"
+            ],
+            "n_chapters": 14
+          },
+          {
+            "setting": "pook",
+            "chapters": [
+              "13",
+              "17",
+              "19",
+              "20",
+              "22",
+              "23",
+              "24",
+              "8"
+            ],
+            "n_chapters": 8
+          },
+          {
+            "setting": "baldur's gate",
+            "chapters": [
+              "11",
+              "6",
+              "9",
+              "epilogue"
+            ],
+            "n_chapters": 4
+          },
+          {
+            "setting": "sea sprite deck",
+            "chapters": [
+              "11",
+              "12",
+              "14"
+            ],
+            "n_chapters": 3
+          },
+          {
+            "setting": "sea sprite",
+            "chapters": [
+              "11",
+              "12",
+              "14"
+            ],
+            "n_chapters": 3
+          },
+          {
+            "setting": "ship deck",
+            "chapters": [
+              "2",
+              "4",
+              "6"
+            ],
+            "n_chapters": 3
+          },
+          {
+            "setting": "mithril hall",
+            "chapters": [
+              "5",
+              "7",
+              "epilogue3"
+            ],
+            "n_chapters": 3
+          },
+          {
+            "setting": "longsaddle",
+            "chapters": [
+              "7",
+              "epilogue3",
+              "prelude"
+            ],
+            "n_chapters": 3
+          },
+          {
+            "setting": "rowboat on open water",
+            "chapters": [
+              "11",
+              "12"
+            ],
+            "n_chapters": 2
+          },
+          {
+            "setting": "memnon",
+            "chapters": [
+              "14",
+              "15"
+            ],
+            "n_chapters": 2
+          },
+          {
+            "setting": "sewer tunnel",
+            "chapters": [
+              "18",
+              "19"
+            ],
+            "n_chapters": 2
+          },
+          {
+            "setting": "pasha pook",
+            "chapters": [
+              "22",
+              "23"
+            ],
+            "n_chapters": 2
+          },
+          {
+            "setting": "tarterus",
+            "chapters": [
+              "22",
+              "24"
+            ],
+            "n_chapters": 2
+          },
+          {
+            "setting": "smoky bridge",
+            "chapters": [
+              "22",
+              "23"
+            ],
+            "n_chapters": 2
+          },
+          {
+            "setting": "ship cabin",
+            "chapters": [
+              "2",
+              "6"
+            ],
+            "n_chapters": 2
+          }
+        ],
+        "per_chapter": [
+          {
+            "chapter": "10",
+            "position_idx": 0,
+            "distinct_settings_in_chapter": 9,
+            "new_count": 9,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "alustriel's grounds",
+              "harpell hill",
+              "ivy mansion",
+              "low over the ocean surface",
+              "nightmare vision",
+              "sea mist",
+              "sky above the clouds",
+              "sky above the realms",
+              "sky over sea"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "11",
+            "position_idx": 1,
+            "distinct_settings_in_chapter": 30,
+            "new_count": 30,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "airborne chariot above naval battle",
+              "airborne chariot above remaining pirate ship",
+              "asavir's channel",
+              "baldur's gate",
+              "boarding plank and deck of pirate ship",
+              "boarding plank and sea sprite deck",
+              "boarding plank between ships",
+              "bow of burning ship",
+              "bridge of the sea sprite",
+              "burning deck of pinochet's flagship",
+              "chariot descending onto pirate ship deck",
+              "crow's nest of sea sprite",
+              "deck and crow's nest of sea sprite",
+              "deck of pinochet's flagship",
+              "deck of pirate ship",
+              "deck of sea sprite",
+              "deck of second pirate ship",
+              "pirate flagship deck",
+              "pirate isles",
+              "rowboat beside burning ship",
+              "rowboat on open water",
+              "sea sprite",
+              "sea sprite deck",
+              "sea sprite deck and boarding plank",
+              "sea sprite deck and crow's nest",
+              "sea sprite deck and pirate ship deck",
+              "sea sprite foredeck",
+              "sky above catapult ship",
+              "sky above the channel battle",
+              "sky above the sword coast"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "12",
+            "position_idx": 2,
+            "distinct_settings_in_chapter": 5,
+            "new_count": 2,
+            "returning_count": 3,
+            "new_fraction": 0.4,
+            "new_settings": [
+              "deudermont's cabin",
+              "open water amid battle wreckage"
+            ],
+            "returning_settings": [
+              "rowboat on open water",
+              "sea sprite",
+              "sea sprite deck"
+            ]
+          },
+          {
+            "chapter": "13",
+            "position_idx": 3,
+            "distinct_settings_in_chapter": 2,
+            "new_count": 2,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "calimport",
+              "pook"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "14",
+            "position_idx": 4,
+            "distinct_settings_in_chapter": 5,
+            "new_count": 3,
+            "returning_count": 2,
+            "new_fraction": 0.6,
+            "new_settings": [
+              "desert bowl between dunes",
+              "dune crest above the battle bowl",
+              "memnon"
+            ],
+            "returning_settings": [
+              "sea sprite",
+              "sea sprite deck"
+            ]
+          },
+          {
+            "chapter": "15",
+            "position_idx": 5,
+            "distinct_settings_in_chapter": 4,
+            "new_count": 2,
+            "returning_count": 2,
+            "new_fraction": 0.5,
+            "new_settings": [
+              "calim desert",
+              "desert camp"
+            ],
+            "returning_settings": [
+              "calimport",
+              "memnon"
+            ]
+          },
+          {
+            "chapter": "16",
+            "position_idx": 6,
+            "distinct_settings_in_chapter": 2,
+            "new_count": 1,
+            "returning_count": 1,
+            "new_fraction": 0.5,
+            "new_settings": [
+              "catti-brie's room"
+            ],
+            "returning_settings": [
+              "calimport"
+            ]
+          },
+          {
+            "chapter": "17",
+            "position_idx": 7,
+            "distinct_settings_in_chapter": 2,
+            "new_count": 0,
+            "returning_count": 2,
+            "new_fraction": 0.0,
+            "new_settings": [],
+            "returning_settings": [
+              "calimport",
+              "pook"
+            ]
+          },
+          {
+            "chapter": "18",
+            "position_idx": 8,
+            "distinct_settings_in_chapter": 8,
+            "new_count": 7,
+            "returning_count": 1,
+            "new_fraction": 0.875,
+            "new_settings": [
+              "rogues circle",
+              "secret cubby above sewer door",
+              "sewer door",
+              "sewer side passage",
+              "sewer tunnel",
+              "sewer tunnel entrance",
+              "sewer tunnels"
+            ],
+            "returning_settings": [
+              "calimport"
+            ]
+          },
+          {
+            "chapter": "19",
+            "position_idx": 9,
+            "distinct_settings_in_chapter": 10,
+            "new_count": 7,
+            "returning_count": 3,
+            "new_fraction": 0.7,
+            "new_settings": [
+              "sewer tunnel outside the door",
+              "stone room",
+              "trap room",
+              "trap room doorway / trap room interior",
+              "trap room interior",
+              "trap room interior / behind the screen",
+              "tunnel passage"
+            ],
+            "returning_settings": [
+              "calimport",
+              "pook",
+              "sewer tunnel"
+            ]
+          },
+          {
+            "chapter": "1",
+            "position_idx": 10,
+            "distinct_settings_in_chapter": 13,
+            "new_count": 13,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "dining room",
+              "guest room",
+              "hidden extradimensional home",
+              "museum chamber",
+              "outside tower of twilight",
+              "road away from tower of twilight",
+              "road near neverwinter wood",
+              "small pond",
+              "spiral corridor",
+              "top-floor room",
+              "top-floor study",
+              "tower of twilight",
+              "tower of twilight island"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "20",
+            "position_idx": 11,
+            "distinct_settings_in_chapter": 6,
+            "new_count": 4,
+            "returning_count": 2,
+            "new_fraction": 0.6666666666666666,
+            "new_settings": [
+              "thieves' guild guard room",
+              "thieves' guild octagonal guard room",
+              "thieves' guild tunnel passage",
+              "upward-sloping passage"
+            ],
+            "returning_settings": [
+              "calimport",
+              "pook"
+            ]
+          },
+          {
+            "chapter": "21",
+            "position_idx": 12,
+            "distinct_settings_in_chapter": 3,
+            "new_count": 2,
+            "returning_count": 1,
+            "new_fraction": 0.6666666666666666,
+            "new_settings": [
+              "performance hall",
+              "performance hall balcony"
+            ],
+            "returning_settings": [
+              "calimport"
+            ]
+          },
+          {
+            "chapter": "22",
+            "position_idx": 13,
+            "distinct_settings_in_chapter": 13,
+            "new_count": 12,
+            "returning_count": 1,
+            "new_fraction": 0.9230769230769231,
+            "new_settings": [
+              "astral plane beside a tree",
+              "bridge",
+              "bridge at the gate",
+              "curving bridge",
+              "dark plane",
+              "open void of tarterus above the bridge",
+              "pasha pook",
+              "planar tunnel",
+              "planar tunnel between tarterus and guenhwyvar's home plane",
+              "planar tunnel collapsing",
+              "smoky bridge",
+              "tarterus"
+            ],
+            "returning_settings": [
+              "pook"
+            ]
+          },
+          {
+            "chapter": "23",
+            "position_idx": 14,
+            "distinct_settings_in_chapter": 8,
+            "new_count": 4,
+            "returning_count": 4,
+            "new_fraction": 0.5,
+            "new_settings": [
+              "open starlit area",
+              "planar void",
+              "planar void and smoky bridge",
+              "smoky bridge near planar gate"
+            ],
+            "returning_settings": [
+              "calimport",
+              "pasha pook",
+              "pook",
+              "smoky bridge"
+            ]
+          },
+          {
+            "chapter": "24",
+            "position_idx": 15,
+            "distinct_settings_in_chapter": 6,
+            "new_count": 3,
+            "returning_count": 3,
+            "new_fraction": 0.5,
+            "new_settings": [
+              "guildhouse stairway",
+              "hallway",
+              "hallway outside throne room"
+            ],
+            "returning_settings": [
+              "calimport",
+              "pook",
+              "tarterus"
+            ]
+          },
+          {
+            "chapter": "25",
+            "position_idx": 16,
+            "distinct_settings_in_chapter": 1,
+            "new_count": 0,
+            "returning_count": 1,
+            "new_fraction": 0.0,
+            "new_settings": [],
+            "returning_settings": [
+              "calimport"
+            ]
+          },
+          {
+            "chapter": "2",
+            "position_idx": 17,
+            "distinct_settings_in_chapter": 6,
+            "new_count": 6,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "cabin porthole",
+              "empty deck",
+              "ship cabin",
+              "ship cabin portal/porthole",
+              "ship deck",
+              "small cabin"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "3",
+            "position_idx": 18,
+            "distinct_settings_in_chapter": 18,
+            "new_count": 18,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "agatha's lair",
+              "agatha's treasure room",
+              "banshee's dome lair and dark forest outside",
+              "banshee's dome lair and surrounding forest",
+              "banshee's dome lair and treasure room",
+              "banshee's dome of branches",
+              "conyberry village",
+              "conyberry village road",
+              "conyberry village street",
+              "edge of neverwinter wood",
+              "farmhouse exterior",
+              "forest border",
+              "forest path outside agatha's lair",
+              "interior of banshee's dome lair",
+              "neverwinter wood",
+              "neverwinter wood edge",
+              "road outside conyberry",
+              "road to neverwinter wood"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "4",
+            "position_idx": 19,
+            "distinct_settings_in_chapter": 12,
+            "new_count": 11,
+            "returning_count": 1,
+            "new_fraction": 0.9166666666666666,
+            "new_settings": [
+              "bar area",
+              "bar rail",
+              "bar rail and table area",
+              "common room",
+              "dock street",
+              "entrance and common room",
+              "interior of the mermaid's arms",
+              "main road west",
+              "road west",
+              "table in the mermaid's arms",
+              "waterdeep"
+            ],
+            "returning_settings": [
+              "ship deck"
+            ]
+          },
+          {
+            "chapter": "5",
+            "position_idx": 20,
+            "distinct_settings_in_chapter": 5,
+            "new_count": 5,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "anteroom",
+              "main room with hearth",
+              "mithril hall",
+              "room with hearth",
+              "undercity"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "6",
+            "position_idx": 21,
+            "distinct_settings_in_chapter": 11,
+            "new_count": 8,
+            "returning_count": 3,
+            "new_fraction": 0.7272727272727273,
+            "new_settings": [
+              "inn room",
+              "locked ship cabin",
+              "rowboat on the chionthar",
+              "ship barracks and galley",
+              "ship barracks and mainmast",
+              "ship deck and cabins",
+              "ship deck and captain's cabin",
+              "ship hold and deck"
+            ],
+            "returning_settings": [
+              "baldur's gate",
+              "ship cabin",
+              "ship deck"
+            ]
+          },
+          {
+            "chapter": "7",
+            "position_idx": 22,
+            "distinct_settings_in_chapter": 6,
+            "new_count": 5,
+            "returning_count": 1,
+            "new_fraction": 0.8333333333333334,
+            "new_settings": [
+              "hilltop at dawn",
+              "longsaddle",
+              "silverymoon",
+              "small one-room shelter",
+              "small shelter with hearth"
+            ],
+            "returning_settings": [
+              "mithril hall"
+            ]
+          },
+          {
+            "chapter": "8",
+            "position_idx": 23,
+            "distinct_settings_in_chapter": 2,
+            "new_count": 0,
+            "returning_count": 2,
+            "new_fraction": 0.0,
+            "new_settings": [],
+            "returning_settings": [
+              "calimport",
+              "pook"
+            ]
+          },
+          {
+            "chapter": "9",
+            "position_idx": 24,
+            "distinct_settings_in_chapter": 5,
+            "new_count": 3,
+            "returning_count": 2,
+            "new_fraction": 0.6,
+            "new_settings": [
+              "deck of the devil dancer",
+              "deck of the sea sprite",
+              "deck then cabin of the devil dancer"
+            ],
+            "returning_settings": [
+              "baldur's gate",
+              "calimport"
+            ]
+          },
+          {
+            "chapter": "epilogue2",
+            "position_idx": 25,
+            "distinct_settings_in_chapter": 2,
+            "new_count": 1,
+            "returning_count": 1,
+            "new_fraction": 0.5,
+            "new_settings": [
+              "astral plane"
+            ],
+            "returning_settings": [
+              "calimport"
+            ]
+          },
+          {
+            "chapter": "epilogue3",
+            "position_idx": 26,
+            "distinct_settings_in_chapter": 4,
+            "new_count": 0,
+            "returning_count": 4,
+            "new_fraction": 0.0,
+            "new_settings": [],
+            "returning_settings": [
+              "longsaddle",
+              "mithril hall",
+              "silverymoon",
+              "waterdeep"
+            ]
+          },
+          {
+            "chapter": "epilogue",
+            "position_idx": 27,
+            "distinct_settings_in_chapter": 1,
+            "new_count": 0,
+            "returning_count": 1,
+            "new_fraction": 0.0,
+            "new_settings": [],
+            "returning_settings": [
+              "baldur's gate"
+            ]
+          },
+          {
+            "chapter": "prelude",
+            "position_idx": 28,
+            "distinct_settings_in_chapter": 3,
+            "new_count": 1,
+            "returning_count": 2,
+            "new_fraction": 0.3333333333333333,
+            "new_settings": [
+              "hillside"
+            ],
+            "returning_settings": [
+              "astral plane",
+              "longsaddle"
+            ]
+          }
+        ],
+        "arc_bins": {
+          "early": {
+            "n_chapters": 9,
+            "mean_new_fraction": 0.6527777777777778,
+            "total_new": 56,
+            "total_returning": 11,
+            "aggregate_new_fraction": 0.835820895522388,
+            "mean_distinct_per_chapter": 7.444444444444445
+          },
+          "mid": {
+            "n_chapters": 10,
+            "mean_new_fraction": 0.6956410256410257,
+            "total_new": 69,
+            "total_returning": 15,
+            "aggregate_new_fraction": 0.8214285714285714,
+            "mean_distinct_per_chapter": 8.4
+          },
+          "late": {
+            "n_chapters": 10,
+            "mean_new_fraction": 0.49106060606060603,
+            "total_new": 34,
+            "total_returning": 17,
+            "aggregate_new_fraction": 0.6666666666666666,
+            "mean_distinct_per_chapter": 5.1
+          }
+        }
+      },
+      "first_comma_method": {
+        "book": "halflings_gem",
+        "method": "fc",
+        "n_chapters": 29,
+        "distinct_settings": 281,
+        "one_chapter_only": 261,
+        "one_chapter_only_fraction": 0.9288256227758007,
+        "recurring_settings_count": 20,
+        "recurring_fraction": 0.0711743772241993,
+        "coverage_histogram": {
+          "1": 261,
+          "2": 14,
+          "3": 3,
+          "4": 1,
+          "5": 1,
+          "6": 1
+        },
+        "top_recurring_settings": [
+          {
+            "setting": "sea sprite",
+            "chapters": [
+              "11",
+              "12",
+              "14",
+              "9",
+              "epilogue",
+              "epilogue3"
+            ],
+            "n_chapters": 6
+          },
+          {
+            "setting": "pook's throne room",
+            "chapters": [
+              "13",
+              "17",
+              "21",
+              "23",
+              "24"
+            ],
+            "n_chapters": 5
+          },
+          {
+            "setting": "sea sprite deck",
+            "chapters": [
+              "11",
+              "12",
+              "14",
+              "epilogue"
+            ],
+            "n_chapters": 4
+          },
+          {
+            "setting": "rogues circle",
+            "chapters": [
+              "13",
+              "16",
+              "18"
+            ],
+            "n_chapters": 3
+          },
+          {
+            "setting": "sewer tunnel",
+            "chapters": [
+              "18",
+              "19",
+              "20"
+            ],
+            "n_chapters": 3
+          },
+          {
+            "setting": "ship deck",
+            "chapters": [
+              "2",
+              "4",
+              "6"
+            ],
+            "n_chapters": 3
+          },
+          {
+            "setting": "harpell hill",
+            "chapters": [
+              "10",
+              "7"
+            ],
+            "n_chapters": 2
+          },
+          {
+            "setting": "rowboat on open water",
+            "chapters": [
+              "11",
+              "12"
+            ],
+            "n_chapters": 2
+          },
+          {
+            "setting": "calimport streets",
+            "chapters": [
+              "13",
+              "16"
+            ],
+            "n_chapters": 2
+          },
+          {
+            "setting": "central chamber",
+            "chapters": [
+              "17",
+              "20"
+            ],
+            "n_chapters": 2
+          },
+          {
+            "setting": "inn room",
+            "chapters": [
+              "18",
+              "6"
+            ],
+            "n_chapters": 2
+          },
+          {
+            "setting": "sewer tunnels",
+            "chapters": [
+              "18",
+              "20"
+            ],
+            "n_chapters": 2
+          },
+          {
+            "setting": "lavalle's chamber",
+            "chapters": [
+              "20",
+              "23"
+            ],
+            "n_chapters": 2
+          },
+          {
+            "setting": "tarterus",
+            "chapters": [
+              "22",
+              "24"
+            ],
+            "n_chapters": 2
+          },
+          {
+            "setting": "smoky bridge",
+            "chapters": [
+              "22",
+              "23"
+            ],
+            "n_chapters": 2
+          }
+        ],
+        "per_chapter": [
+          {
+            "chapter": "10",
+            "position_idx": 0,
+            "distinct_settings_in_chapter": 9,
+            "new_count": 9,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "alustriel's grounds",
+              "harpell hill",
+              "ivy mansion",
+              "low over the ocean surface",
+              "nightmare vision",
+              "sea mist",
+              "sky above the clouds",
+              "sky above the realms",
+              "sky over sea"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "11",
+            "position_idx": 1,
+            "distinct_settings_in_chapter": 29,
+            "new_count": 29,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "airborne chariot above naval battle",
+              "airborne chariot above remaining pirate ship",
+              "boarding plank and deck of pirate ship",
+              "boarding plank and sea sprite deck",
+              "boarding plank between ships",
+              "bow of burning ship",
+              "bridge of the sea sprite",
+              "burning deck of pinochet's flagship",
+              "chariot descending onto pirate ship deck",
+              "crow's nest of sea sprite",
+              "deck and crow's nest of sea sprite",
+              "deck of pinochet's flagship",
+              "deck of pirate ship",
+              "deck of sea sprite",
+              "deck of second pirate ship",
+              "pirate flagship deck",
+              "rowboat beside burning ship",
+              "rowboat on open water",
+              "sea sprite",
+              "sea sprite approaching island channel",
+              "sea sprite deck",
+              "sea sprite deck and boarding plank",
+              "sea sprite deck and crow's nest",
+              "sea sprite deck and pirate ship deck",
+              "sea sprite foredeck",
+              "sky above catapult ship",
+              "sky above the channel battle",
+              "sky above the sword coast",
+              "sword coast sky"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "12",
+            "position_idx": 2,
+            "distinct_settings_in_chapter": 5,
+            "new_count": 2,
+            "returning_count": 3,
+            "new_fraction": 0.4,
+            "new_settings": [
+              "deudermont's cabin",
+              "open water amid battle wreckage"
+            ],
+            "returning_settings": [
+              "rowboat on open water",
+              "sea sprite",
+              "sea sprite deck"
+            ]
+          },
+          {
+            "chapter": "13",
+            "position_idx": 3,
+            "distinct_settings_in_chapter": 8,
+            "new_count": 8,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "calimport docks",
+              "calimport docks and city streets",
+              "calimport streets",
+              "cells of nine",
+              "guild corridor approaching pook's throne room",
+              "pook's throne room",
+              "rogues circle",
+              "thieves' guild interior"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "14",
+            "position_idx": 4,
+            "distinct_settings_in_chapter": 12,
+            "new_count": 10,
+            "returning_count": 2,
+            "new_fraction": 0.8333333333333334,
+            "new_settings": [
+              "desert bowl between dunes",
+              "desert road west of memnon",
+              "dune crest above the battle bowl",
+              "memnon market lanes",
+              "memnon market street",
+              "memnon merchant stall / street",
+              "memnon streets",
+              "memnon streets and marketplaces",
+              "memnon western tent district",
+              "open desert"
+            ],
+            "returning_settings": [
+              "sea sprite",
+              "sea sprite deck"
+            ]
+          },
+          {
+            "chapter": "15",
+            "position_idx": 5,
+            "distinct_settings_in_chapter": 11,
+            "new_count": 11,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "alley end",
+              "back alleys of memnon",
+              "calim desert",
+              "desert camp",
+              "merchant's tent",
+              "pook's chamber",
+              "public bathhouse",
+              "public bathhouse bath",
+              "streets and market",
+              "streets of memnon",
+              "tent and streets of memnon"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "16",
+            "position_idx": 6,
+            "distinct_settings_in_chapter": 8,
+            "new_count": 6,
+            "returning_count": 2,
+            "new_fraction": 0.75,
+            "new_settings": [
+              "calim desert road and spitting camel inn",
+              "calimport underworld streets",
+              "catti-brie's room",
+              "dondon's room",
+              "hilltop overlooking calimport",
+              "spitting camel inn corridor"
+            ],
+            "returning_settings": [
+              "calimport streets",
+              "rogues circle"
+            ]
+          },
+          {
+            "chapter": "17",
+            "position_idx": 7,
+            "distinct_settings_in_chapter": 3,
+            "new_count": 2,
+            "returning_count": 1,
+            "new_fraction": 0.6666666666666666,
+            "new_settings": [
+              "calimport guildhouse",
+              "central chamber"
+            ],
+            "returning_settings": [
+              "pook's throne room"
+            ]
+          },
+          {
+            "chapter": "18",
+            "position_idx": 8,
+            "distinct_settings_in_chapter": 16,
+            "new_count": 15,
+            "returning_count": 1,
+            "new_fraction": 0.9375,
+            "new_settings": [
+              "dark sewer passages",
+              "dark sewer tunnel",
+              "inn room",
+              "rogues circle / spitting camel shadows",
+              "rogues circle alley",
+              "rogues circle alley / sewer entrance",
+              "secret cubby above sewer door",
+              "sewer door",
+              "sewer side passage",
+              "sewer tunnel",
+              "sewer tunnel entrance",
+              "sewer tunnel intersection",
+              "sewer tunnels",
+              "spitting camel alley / rogues circle",
+              "spitting camel inn room"
+            ],
+            "returning_settings": [
+              "rogues circle"
+            ]
+          },
+          {
+            "chapter": "19",
+            "position_idx": 9,
+            "distinct_settings_in_chapter": 11,
+            "new_count": 10,
+            "returning_count": 1,
+            "new_fraction": 0.9090909090909091,
+            "new_settings": [
+              "sewer tunnel outside the door",
+              "stone room",
+              "thieves' guild corridors",
+              "thieves' guild tunnels",
+              "trap room",
+              "trap room doorway / trap room interior",
+              "trap room interior",
+              "trap room interior / behind the screen",
+              "tunnel passage",
+              "underground tunnel"
+            ],
+            "returning_settings": [
+              "sewer tunnel"
+            ]
+          },
+          {
+            "chapter": "1",
+            "position_idx": 10,
+            "distinct_settings_in_chapter": 13,
+            "new_count": 13,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "dining room",
+              "guest room",
+              "hidden extradimensional home",
+              "museum chamber",
+              "outside tower of twilight",
+              "road away from tower of twilight",
+              "road near neverwinter wood",
+              "small pond",
+              "spiral corridor",
+              "top-floor room",
+              "top-floor study",
+              "tower of twilight",
+              "tower of twilight island"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "20",
+            "position_idx": 11,
+            "distinct_settings_in_chapter": 14,
+            "new_count": 11,
+            "returning_count": 3,
+            "new_fraction": 0.7857142857142857,
+            "new_settings": [
+              "lavalle's chamber",
+              "open street",
+              "sewer tunnel at iron ladder",
+              "sewer tunnel junction",
+              "sewer tunnel with grate",
+              "street outside thieves' guild",
+              "thieves' guild guard room",
+              "thieves' guild meeting hall and upper corridors",
+              "thieves' guild octagonal guard room",
+              "thieves' guild tunnel passage",
+              "upward-sloping passage"
+            ],
+            "returning_settings": [
+              "central chamber",
+              "sewer tunnel",
+              "sewer tunnels"
+            ]
+          },
+          {
+            "chapter": "21",
+            "position_idx": 12,
+            "distinct_settings_in_chapter": 14,
+            "new_count": 13,
+            "returning_count": 1,
+            "new_fraction": 0.9285714285714286,
+            "new_settings": [
+              "corridors and halls of thieves' guild",
+              "guild chamber",
+              "guild chambers",
+              "guild corridor",
+              "guild corridor near staircase",
+              "guild corridors",
+              "guild corridors to grand staircase",
+              "guildhouse entrance",
+              "guildhouse entrance stairs",
+              "guildhouse interior",
+              "performance hall",
+              "performance hall balcony",
+              "pook's throne room at taros hoop"
+            ],
+            "returning_settings": [
+              "pook's throne room"
+            ]
+          },
+          {
+            "chapter": "22",
+            "position_idx": 13,
+            "distinct_settings_in_chapter": 13,
+            "new_count": 13,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "astral plane beside a tree",
+              "bridge",
+              "bridge at the gate",
+              "curving bridge",
+              "dark plane",
+              "open void of tarterus above the bridge",
+              "pasha pook's chamber / gate threshold between planes",
+              "planar tunnel",
+              "planar tunnel between tarterus and guenhwyvar's home plane",
+              "planar tunnel collapsing",
+              "pook's living quarters",
+              "smoky bridge",
+              "tarterus"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "23",
+            "position_idx": 14,
+            "distinct_settings_in_chapter": 11,
+            "new_count": 8,
+            "returning_count": 3,
+            "new_fraction": 0.7272727272727273,
+            "new_settings": [
+              "lavalle's warded room",
+              "open starlit area",
+              "pasha pook's chambers",
+              "pasha pook's chambers into lavalle's warded room",
+              "planar void",
+              "planar void and smoky bridge",
+              "pook's guildmaster throne room",
+              "smoky bridge near planar gate"
+            ],
+            "returning_settings": [
+              "lavalle's chamber",
+              "pook's throne room",
+              "smoky bridge"
+            ]
+          },
+          {
+            "chapter": "24",
+            "position_idx": 15,
+            "distinct_settings_in_chapter": 8,
+            "new_count": 6,
+            "returning_count": 2,
+            "new_fraction": 0.75,
+            "new_settings": [
+              "alley on rogues circle",
+              "guildhouse stairway",
+              "hallway",
+              "hallway outside throne room",
+              "pook's guildhouse",
+              "pook's throne room floor"
+            ],
+            "returning_settings": [
+              "pook's throne room",
+              "tarterus"
+            ]
+          },
+          {
+            "chapter": "25",
+            "position_idx": 16,
+            "distinct_settings_in_chapter": 6,
+            "new_count": 6,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "drizzt's room",
+              "feast hall",
+              "guildhouse entrance doorway",
+              "lavalle's quarters",
+              "lavalle's quarters doorway",
+              "main entrance"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "2",
+            "position_idx": 17,
+            "distinct_settings_in_chapter": 6,
+            "new_count": 6,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "cabin porthole",
+              "empty deck",
+              "ship cabin",
+              "ship cabin portal/porthole",
+              "ship deck",
+              "small cabin"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "3",
+            "position_idx": 18,
+            "distinct_settings_in_chapter": 18,
+            "new_count": 18,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "agatha's lair",
+              "agatha's treasure room",
+              "banshee's dome lair and dark forest outside",
+              "banshee's dome lair and surrounding forest",
+              "banshee's dome lair and treasure room",
+              "banshee's dome of branches",
+              "conyberry village",
+              "conyberry village road",
+              "conyberry village street",
+              "edge of neverwinter wood",
+              "farmhouse exterior",
+              "forest border",
+              "forest path outside agatha's lair",
+              "interior of banshee's dome lair",
+              "neverwinter wood",
+              "neverwinter wood edge",
+              "road outside conyberry",
+              "road to neverwinter wood"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "4",
+            "position_idx": 19,
+            "distinct_settings_in_chapter": 19,
+            "new_count": 18,
+            "returning_count": 1,
+            "new_fraction": 0.9473684210526315,
+            "new_settings": [
+              "bar area",
+              "bar rail",
+              "bar rail and table area",
+              "common room",
+              "dock street",
+              "docks or ship deck",
+              "eastern cliff",
+              "eastern cliff overlooking waterdeep",
+              "entrance and common room",
+              "entrance of the mermaid's arms",
+              "grassy knoll south of waterdeep south gate",
+              "interior of the mermaid's arms",
+              "knoll outside waterdeep",
+              "main road west",
+              "path descending from knoll toward waterdeep",
+              "road west",
+              "table in the mermaid's arms",
+              "tavern"
+            ],
+            "returning_settings": [
+              "ship deck"
+            ]
+          },
+          {
+            "chapter": "5",
+            "position_idx": 20,
+            "distinct_settings_in_chapter": 21,
+            "new_count": 21,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "anteroom",
+              "chimney exit",
+              "chimney exit grate",
+              "chimney shaft",
+              "chimney shaft base",
+              "chimney shaft near surface",
+              "chimney side-tunnel",
+              "duergar complex",
+              "furnace chimney",
+              "lower mines",
+              "main room with hearth",
+              "mine corridor",
+              "room with hearth",
+              "undercity floor",
+              "undercity furnace",
+              "undercity furnace chamber",
+              "undercity of mithril hall",
+              "undercity second tier",
+              "undercity stairway",
+              "undercity stairways and tiers",
+              "undercity tiered walkways"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "6",
+            "position_idx": 21,
+            "distinct_settings_in_chapter": 17,
+            "new_count": 14,
+            "returning_count": 3,
+            "new_fraction": 0.8235294117647058,
+            "new_settings": [
+              "baldur's gate",
+              "baldur's gate docks",
+              "harbormaster's office",
+              "locked ship cabin",
+              "lodging room",
+              "oberon's tower then harbormaster's shack",
+              "rowboat on the chionthar",
+              "ship barracks and galley",
+              "ship barracks and mainmast",
+              "ship deck and cabins",
+              "ship deck and captain's cabin",
+              "ship hold and deck",
+              "ship on river chionthar",
+              "streets toward inner city"
+            ],
+            "returning_settings": [
+              "inn room",
+              "ship cabin",
+              "ship deck"
+            ]
+          },
+          {
+            "chapter": "7",
+            "position_idx": 22,
+            "distinct_settings_in_chapter": 12,
+            "new_count": 10,
+            "returning_count": 2,
+            "new_fraction": 0.8333333333333334,
+            "new_settings": [
+              "aerial",
+              "hallway and private room",
+              "hilltop at dawn",
+              "magical shelter",
+              "open hillside at dawn",
+              "private room",
+              "small one-room shelter",
+              "small shelter with hearth",
+              "southern slope of harpell hill",
+              "unknown shelter"
+            ],
+            "returning_settings": [
+              "hallway",
+              "harpell hill"
+            ]
+          },
+          {
+            "chapter": "8",
+            "position_idx": 23,
+            "distinct_settings_in_chapter": 6,
+            "new_count": 5,
+            "returning_count": 1,
+            "new_fraction": 0.8333333333333334,
+            "new_settings": [
+              "audience chamber",
+              "lavalle's dimly lit quarters",
+              "pook's throne chamber",
+              "thieves' guild",
+              "top-floor audience chamber"
+            ],
+            "returning_settings": [
+              "lavalle's quarters"
+            ]
+          },
+          {
+            "chapter": "9",
+            "position_idx": 24,
+            "distinct_settings_in_chapter": 8,
+            "new_count": 7,
+            "returning_count": 1,
+            "new_fraction": 0.875,
+            "new_settings": [
+              "darkened tower chamber",
+              "deck of the devil dancer",
+              "deck of the sea sprite",
+              "deck then cabin of the devil dancer",
+              "guildhouse chamber",
+              "night sky above baldur's gate",
+              "tower chamber"
+            ],
+            "returning_settings": [
+              "sea sprite"
+            ]
+          },
+          {
+            "chapter": "epilogue2",
+            "position_idx": 25,
+            "distinct_settings_in_chapter": 3,
+            "new_count": 3,
+            "returning_count": 0,
+            "new_fraction": 1.0,
+            "new_settings": [
+              "astral plane",
+              "guildhouse",
+              "lavalle's chambers"
+            ],
+            "returning_settings": []
+          },
+          {
+            "chapter": "epilogue3",
+            "position_idx": 26,
+            "distinct_settings_in_chapter": 5,
+            "new_count": 4,
+            "returning_count": 1,
+            "new_fraction": 0.8,
+            "new_settings": [
+              "longsaddle",
+              "mithril hall",
+              "mountain overlook near silverymoon",
+              "waterdeep gates"
+            ],
+            "returning_settings": [
+              "sea sprite"
+            ]
+          },
+          {
+            "chapter": "epilogue",
+            "position_idx": 27,
+            "distinct_settings_in_chapter": 4,
+            "new_count": 2,
+            "returning_count": 2,
+            "new_fraction": 0.5,
+            "new_settings": [
+              "baldur's gate pier",
+              "sea sprite rail"
+            ],
+            "returning_settings": [
+              "sea sprite",
+              "sea sprite deck"
+            ]
+          },
+          {
+            "chapter": "prelude",
+            "position_idx": 28,
+            "distinct_settings_in_chapter": 3,
+            "new_count": 1,
+            "returning_count": 2,
+            "new_fraction": 0.3333333333333333,
+            "new_settings": [
+              "hillside"
+            ],
+            "returning_settings": [
+              "astral plane",
+              "longsaddle"
+            ]
+          }
+        ],
+        "arc_bins": {
+          "early": {
+            "n_chapters": 9,
+            "mean_new_fraction": 0.8430555555555556,
+            "total_new": 92,
+            "total_returning": 9,
+            "aggregate_new_fraction": 0.9108910891089109,
+            "mean_distinct_per_chapter": 11.222222222222221
+          },
+          "mid": {
+            "n_chapters": 10,
+            "mean_new_fraction": 0.910064935064935,
+            "total_new": 104,
+            "total_returning": 10,
+            "aggregate_new_fraction": 0.9122807017543859,
+            "mean_distinct_per_chapter": 11.4
+          },
+          "late": {
+            "n_chapters": 10,
+            "mean_new_fraction": 0.7945897832817337,
+            "total_new": 85,
+            "total_returning": 13,
+            "aggregate_new_fraction": 0.8673469387755102,
+            "mean_distinct_per_chapter": 9.8
+          }
+        }
+      }
+    }
+  },
+  "cross_book_comparison": {
+    "method": "anchor",
+    "directional_check": {
+      "recurring_fraction": {
+        "crystal_shard": 0.12582781456953643,
+        "streams_of_silver": 0.1271186440677966,
+        "halflings_gem": 0.11320754716981132
+      },
+      "one_chapter_only_fraction": {
+        "crystal_shard": 0.8741721854304636,
+        "streams_of_silver": 0.8728813559322034,
+        "halflings_gem": 0.8867924528301887
+      }
+    },
+    "arc_trajectory_new_fraction": {
+      "crystal_shard": {
+        "early": 0.8255813953488372,
+        "mid": 0.6853932584269663,
+        "late": 0.3584905660377358
+      },
+      "streams_of_silver": {
+        "early": 0.9285714285714286,
+        "mid": 0.5588235294117647,
+        "late": 0.68
+      },
+      "halflings_gem": {
+        "early": 0.835820895522388,
+        "mid": 0.8214285714285714,
+        "late": 0.6666666666666666
+      }
+    },
+    "arc_direction": {
+      "crystal_shard": "monotonic_decrease (world contracts)",
+      "streams_of_silver": "net_decrease (world contracts overall)",
+      "halflings_gem": "monotonic_decrease (world contracts)"
+    }
+  }
+}

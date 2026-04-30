@@ -2344,3 +2344,49 @@ LXC re-run of the plotter A/B probe (`fantasy-system-heretic` seed, 3 chapters, 
 The existing `print-screen-verdict.ts` is hard-coded for the original "default" + "loud" comparison from charter `phase-variant-comparison.md` and rejected the "default" + "corpus-v1" pair. Per-pattern verdict was computed by direct inspection of the outlines.json files. A generalized verdict reader is queued — should not block landing or interpreting probe results.
 
 ---
+
+## Session 2026-04-30 ~08:22 UTC — Pattern 24: setting-recurrence cross-book
+
+### Pattern 24 — Setting-recurrence pattern (cross-chapter PLACE reuse)
+
+**Refines Pattern 11.** P11 measured *within-chapter* setting changes (3.1 / 1.71 / 3.96 per chapter for CS / SoS / HG). P24 measures *cross-chapter* setting reuse: how often does the world contract back to a previously-established place vs introduce a new one?
+
+**Method (zero-cost, regex-only):** each scene's `brief.setting` field (already inferred during the corpus pipeline) is normalized two ways:
+- **Method A — anchor (primary):** curated proper-noun anchor list (Bryn Shander, Cryshal-Tirith, Mithral Hall, Calimport, Pook's Palace, etc.); setting collapses to the longest matching anchor; fallback to first-comma-segment otherwise. Captures place-level cross-chapter reuse.
+- **Method B — first-comma (cross-check):** matches Pattern 11. Granular: keeps "battlefield outside Bryn Shander" distinct from "council hall in Bryn Shander". Under-counts place reuse but rubric-neutral.
+
+**Headline finding (anchor method, all 3 books):**
+
+| Book | Chapters | Distinct places | Recur in ≥2 ch | Recur fraction |
+|---|---|---|---|---|
+| crystal_shard | 34 | 151 | 19 | **12.6%** |
+| streams_of_silver | 29 | 118 | 15 | **12.7%** |
+| halflings_gem | 29 | 159 | 18 | **11.3%** |
+
+Roughly **12% of distinct places recur across chapters** — the long tail (87–89%) are scene-specific one-shot locations. The recurring ~12% carry the dramatic weight: Crystal Shard's top recurring places are Kelvin's Cairn (14 ch), Icewind Dale (11), Cryshal-Tirith (10), Ten-Towns (10), Bryn Shander (10); SoS climaxes in Mithral Hall (8 ch) + Garumn's Gorge; HG climaxes in Calimport (14 ch) + Pook's Palace.
+
+### Arc-shape: world contracts in late acts
+
+| Book | Early new-fraction | Mid | Late | Direction |
+|---|---|---|---|---|
+| crystal_shard | 82.6% | 68.5% | **35.8%** | monotonic decrease |
+| streams_of_silver | 92.9% | 55.9% | 68.0% | net decrease (mid-dip = Mithral Hall stretch) |
+| halflings_gem | 83.6% | 82.1% | **66.7%** | monotonic decrease |
+
+**Cross-book directional pattern is stable:** all 3 books show world expansion early-to-mid and contraction in the final act. Late chapters return to anchor places (the climax site is an established location, not a new one). Crystal Shard has the cleanest monotonic decrease (83% → 69% → 36%); the anchor system "gathers" its named locations and concentrates the climax in 3-4 of them. SoS dips at midpoint because Mithral Hall is itself ONE new megaplace introduced mid-book that dominates ~8 chapters — once the gang reaches it, almost no chapter introduces a fresh outside-place. HG holds new-fraction high through midpoint (sea voyage adds a stream of new ports/ships) before contracting on Calimport.
+
+**Methodology caveat:** the anchor list is hand-curated. Two minor double-count cases observed: "pook" and "calimport" anchors split a single conceptual place (Pasha Pook's guild hall in Calimport) — true union of those two anchors is 15 chapters in HG, vs 14 + 8 = 22 listed separately. Doesn't change the directional finding (both anchors live in the late act). First-comma cross-check method shows the same direction (recurring fraction 8.8% / 5.4% / 7.1%; new-fraction trajectory not recomputed at first-comma granularity but the directional sign is invariant since first-comma is strictly more granular than anchor).
+
+### Conclusion + Action
+
+**HARNESS TARGET (planner) — late-act setting reuse prior:** the `planning-plotter` should encode an explicit "late-act anchor reuse" signal — chapters in the final third should preferentially reuse established settings, with a **target new-setting fraction ~35-65% in the late third vs 80-95% in the early third**. This rules out the failure mode where the planner introduces fresh locales for the climax (which Salvatore never does — climaxes happen at named anchors established 5-15 chapters earlier).
+
+Concrete probe target for the next plotter A/B: count `setting` strings across chapters in the last 33% of the chapter list; assert that ≥40% of late-act settings have appeared in earlier chapters (cross-checks against this 12% anchor-recurring fraction × ~5 settings per chapter average). Wire into `print-screen-verdict.ts` once the existing setting-change-freq verdict is generalized.
+
+**This complements Pattern 11**, not replaces it. P11 says "the planner should default to 3-4 distinct settings WITHIN a chapter"; P24 says "those distinct settings should *concentrate on previously-established anchors* in late chapters." Both priors should fire together in `corpus-v1.md`-style plotter variants.
+
+**Cost:** $0.00. Pure compute on existing labeled data.
+
+Artifact: `crystal_shard.20260430T082210.setting-recurrence.json`
+
+---
