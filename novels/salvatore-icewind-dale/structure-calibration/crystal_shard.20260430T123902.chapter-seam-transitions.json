@@ -1,0 +1,1832 @@
+{
+  "meta": {
+    "dimension": "chapter-seam-transition-shape",
+    "pattern_id": "P32",
+    "join_of": [
+      {
+        "id": "P14",
+        "file": "crystal_shard.20260430T113934.forward-hook-shape.json",
+        "dimension": "forward-hook-shape"
+      },
+      {
+        "id": "P17",
+        "file": "crystal_shard.20260430T115917.chapter-opener-taxonomy.json",
+        "dimension": "chapter-opener-taxonomy"
+      }
+    ],
+    "books": [
+      "crystal_shard",
+      "streams_of_silver",
+      "halflings_gem"
+    ],
+    "close_buckets": [
+      "partial-resolution",
+      "cliffhanger",
+      "foreshadow",
+      "question",
+      "character-cost-pause",
+      "time-cut",
+      "other"
+    ],
+    "open_buckets": [
+      "scene-set-description",
+      "in-media-res-action",
+      "interior-reflection",
+      "dialogue-first",
+      "time-cut-announcement",
+      "callback-or-summary",
+      "other"
+    ],
+    "join_rule": "For each book: numeric chapter N close paired with numeric chapter N+1 open. Plus epilogue2 close \u2192 epilogue3 open where both labelings have those entries (crystal_shard, halflings_gem). Excluded: prelude opens (no preceding close), book-part opens (streams_of_silver part1/part2/part3 \u2014 no preceding close in P14), epilogue opens for all books (no matching epilogue close in P14).",
+    "n_pairs": 78,
+    "n_skipped": 0,
+    "generatedAt": "2026-04-30T12:39:02.362356Z",
+    "compute_only": true
+  },
+  "aggregate": {
+    "n_pairs": 78,
+    "matrix": {
+      "partial-resolution": {
+        "scene-set-description": 17,
+        "in-media-res-action": 5,
+        "interior-reflection": 3,
+        "dialogue-first": 3,
+        "time-cut-announcement": 0,
+        "callback-or-summary": 1,
+        "other": 0
+      },
+      "cliffhanger": {
+        "scene-set-description": 5,
+        "in-media-res-action": 4,
+        "interior-reflection": 2,
+        "dialogue-first": 3,
+        "time-cut-announcement": 1,
+        "callback-or-summary": 0,
+        "other": 0
+      },
+      "foreshadow": {
+        "scene-set-description": 7,
+        "in-media-res-action": 0,
+        "interior-reflection": 1,
+        "dialogue-first": 0,
+        "time-cut-announcement": 3,
+        "callback-or-summary": 2,
+        "other": 0
+      },
+      "question": {
+        "scene-set-description": 5,
+        "in-media-res-action": 2,
+        "interior-reflection": 1,
+        "dialogue-first": 1,
+        "time-cut-announcement": 0,
+        "callback-or-summary": 0,
+        "other": 0
+      },
+      "character-cost-pause": {
+        "scene-set-description": 3,
+        "in-media-res-action": 3,
+        "interior-reflection": 1,
+        "dialogue-first": 3,
+        "time-cut-announcement": 0,
+        "callback-or-summary": 0,
+        "other": 0
+      },
+      "time-cut": {
+        "scene-set-description": 0,
+        "in-media-res-action": 0,
+        "interior-reflection": 0,
+        "dialogue-first": 0,
+        "time-cut-announcement": 0,
+        "callback-or-summary": 0,
+        "other": 0
+      },
+      "other": {
+        "scene-set-description": 0,
+        "in-media-res-action": 0,
+        "interior-reflection": 1,
+        "dialogue-first": 0,
+        "time-cut-announcement": 1,
+        "callback-or-summary": 0,
+        "other": 0
+      }
+    },
+    "row_totals": {
+      "partial-resolution": 29,
+      "cliffhanger": 15,
+      "foreshadow": 13,
+      "question": 9,
+      "character-cost-pause": 10,
+      "time-cut": 0,
+      "other": 2
+    },
+    "col_totals": {
+      "scene-set-description": 37,
+      "in-media-res-action": 14,
+      "interior-reflection": 9,
+      "dialogue-first": 10,
+      "time-cut-announcement": 5,
+      "callback-or-summary": 3,
+      "other": 0
+    },
+    "top10_transitions": [
+      {
+        "close": "partial-resolution",
+        "open": "scene-set-description",
+        "count": 17,
+        "pct_of_all_pairs": 21.79
+      },
+      {
+        "close": "foreshadow",
+        "open": "scene-set-description",
+        "count": 7,
+        "pct_of_all_pairs": 8.97
+      },
+      {
+        "close": "cliffhanger",
+        "open": "scene-set-description",
+        "count": 5,
+        "pct_of_all_pairs": 6.41
+      },
+      {
+        "close": "partial-resolution",
+        "open": "in-media-res-action",
+        "count": 5,
+        "pct_of_all_pairs": 6.41
+      },
+      {
+        "close": "question",
+        "open": "scene-set-description",
+        "count": 5,
+        "pct_of_all_pairs": 6.41
+      },
+      {
+        "close": "cliffhanger",
+        "open": "in-media-res-action",
+        "count": 4,
+        "pct_of_all_pairs": 5.13
+      },
+      {
+        "close": "character-cost-pause",
+        "open": "dialogue-first",
+        "count": 3,
+        "pct_of_all_pairs": 3.85
+      },
+      {
+        "close": "character-cost-pause",
+        "open": "in-media-res-action",
+        "count": 3,
+        "pct_of_all_pairs": 3.85
+      },
+      {
+        "close": "character-cost-pause",
+        "open": "scene-set-description",
+        "count": 3,
+        "pct_of_all_pairs": 3.85
+      },
+      {
+        "close": "cliffhanger",
+        "open": "dialogue-first",
+        "count": 3,
+        "pct_of_all_pairs": 3.85
+      }
+    ],
+    "p_open_given_close": {
+      "partial-resolution": {
+        "scene-set-description": 0.5862,
+        "in-media-res-action": 0.1724,
+        "interior-reflection": 0.1034,
+        "dialogue-first": 0.1034,
+        "time-cut-announcement": 0.0,
+        "callback-or-summary": 0.0345,
+        "other": 0.0
+      },
+      "cliffhanger": {
+        "scene-set-description": 0.3333,
+        "in-media-res-action": 0.2667,
+        "interior-reflection": 0.1333,
+        "dialogue-first": 0.2,
+        "time-cut-announcement": 0.0667,
+        "callback-or-summary": 0.0,
+        "other": 0.0
+      },
+      "foreshadow": {
+        "scene-set-description": 0.5385,
+        "in-media-res-action": 0.0,
+        "interior-reflection": 0.0769,
+        "dialogue-first": 0.0,
+        "time-cut-announcement": 0.2308,
+        "callback-or-summary": 0.1538,
+        "other": 0.0
+      },
+      "question": {
+        "scene-set-description": 0.5556,
+        "in-media-res-action": 0.2222,
+        "interior-reflection": 0.1111,
+        "dialogue-first": 0.1111,
+        "time-cut-announcement": 0.0,
+        "callback-or-summary": 0.0,
+        "other": 0.0
+      },
+      "character-cost-pause": {
+        "scene-set-description": 0.3,
+        "in-media-res-action": 0.3,
+        "interior-reflection": 0.1,
+        "dialogue-first": 0.3,
+        "time-cut-announcement": 0.0,
+        "callback-or-summary": 0.0,
+        "other": 0.0
+      },
+      "time-cut": {
+        "scene-set-description": 0.0,
+        "in-media-res-action": 0.0,
+        "interior-reflection": 0.0,
+        "dialogue-first": 0.0,
+        "time-cut-announcement": 0.0,
+        "callback-or-summary": 0.0,
+        "other": 0.0
+      },
+      "other": {
+        "scene-set-description": 0.0,
+        "in-media-res-action": 0.0,
+        "interior-reflection": 0.5,
+        "dialogue-first": 0.0,
+        "time-cut-announcement": 0.5,
+        "callback-or-summary": 0.0,
+        "other": 0.0
+      }
+    },
+    "p_close_given_open": {
+      "scene-set-description": {
+        "partial-resolution": 0.4595,
+        "cliffhanger": 0.1351,
+        "foreshadow": 0.1892,
+        "question": 0.1351,
+        "character-cost-pause": 0.0811,
+        "time-cut": 0.0,
+        "other": 0.0
+      },
+      "in-media-res-action": {
+        "partial-resolution": 0.3571,
+        "cliffhanger": 0.2857,
+        "foreshadow": 0.0,
+        "question": 0.1429,
+        "character-cost-pause": 0.2143,
+        "time-cut": 0.0,
+        "other": 0.0
+      },
+      "interior-reflection": {
+        "partial-resolution": 0.3333,
+        "cliffhanger": 0.2222,
+        "foreshadow": 0.1111,
+        "question": 0.1111,
+        "character-cost-pause": 0.1111,
+        "time-cut": 0.0,
+        "other": 0.1111
+      },
+      "dialogue-first": {
+        "partial-resolution": 0.3,
+        "cliffhanger": 0.3,
+        "foreshadow": 0.0,
+        "question": 0.1,
+        "character-cost-pause": 0.3,
+        "time-cut": 0.0,
+        "other": 0.0
+      },
+      "time-cut-announcement": {
+        "partial-resolution": 0.0,
+        "cliffhanger": 0.2,
+        "foreshadow": 0.6,
+        "question": 0.0,
+        "character-cost-pause": 0.0,
+        "time-cut": 0.0,
+        "other": 0.2
+      },
+      "callback-or-summary": {
+        "partial-resolution": 0.3333,
+        "cliffhanger": 0.0,
+        "foreshadow": 0.6667,
+        "question": 0.0,
+        "character-cost-pause": 0.0,
+        "time-cut": 0.0,
+        "other": 0.0
+      },
+      "other": {
+        "partial-resolution": 0.0,
+        "cliffhanger": 0.0,
+        "foreshadow": 0.0,
+        "question": 0.0,
+        "character-cost-pause": 0.0,
+        "time-cut": 0.0,
+        "other": 0.0
+      }
+    },
+    "independence_audit": [
+      {
+        "close": "partial-resolution",
+        "open": "scene-set-description",
+        "observed": 17,
+        "expected": 13.76,
+        "delta": 3.24,
+        "ratio": 1.24
+      },
+      {
+        "close": "foreshadow",
+        "open": "time-cut-announcement",
+        "observed": 3,
+        "expected": 0.83,
+        "delta": 2.17,
+        "ratio": 3.6
+      },
+      {
+        "close": "character-cost-pause",
+        "open": "dialogue-first",
+        "observed": 3,
+        "expected": 1.28,
+        "delta": 1.72,
+        "ratio": 2.34
+      },
+      {
+        "close": "foreshadow",
+        "open": "callback-or-summary",
+        "observed": 2,
+        "expected": 0.5,
+        "delta": 1.5,
+        "ratio": 4.0
+      },
+      {
+        "close": "cliffhanger",
+        "open": "in-media-res-action",
+        "observed": 4,
+        "expected": 2.69,
+        "delta": 1.31,
+        "ratio": 1.49
+      },
+      {
+        "close": "character-cost-pause",
+        "open": "in-media-res-action",
+        "observed": 3,
+        "expected": 1.79,
+        "delta": 1.21,
+        "ratio": 1.67
+      },
+      {
+        "close": "cliffhanger",
+        "open": "dialogue-first",
+        "observed": 3,
+        "expected": 1.92,
+        "delta": 1.08,
+        "ratio": 1.56
+      },
+      {
+        "close": "other",
+        "open": "time-cut-announcement",
+        "observed": 1,
+        "expected": 0.13,
+        "delta": 0.87,
+        "ratio": 7.8
+      },
+      {
+        "close": "foreshadow",
+        "open": "scene-set-description",
+        "observed": 7,
+        "expected": 6.17,
+        "delta": 0.83,
+        "ratio": 1.14
+      },
+      {
+        "close": "other",
+        "open": "interior-reflection",
+        "observed": 1,
+        "expected": 0.23,
+        "delta": 0.77,
+        "ratio": 4.33
+      },
+      {
+        "close": "question",
+        "open": "scene-set-description",
+        "observed": 5,
+        "expected": 4.27,
+        "delta": 0.73,
+        "ratio": 1.17
+      },
+      {
+        "close": "question",
+        "open": "in-media-res-action",
+        "observed": 2,
+        "expected": 1.62,
+        "delta": 0.38,
+        "ratio": 1.24
+      },
+      {
+        "close": "cliffhanger",
+        "open": "interior-reflection",
+        "observed": 2,
+        "expected": 1.73,
+        "delta": 0.27,
+        "ratio": 1.16
+      },
+      {
+        "close": "cliffhanger",
+        "open": "time-cut-announcement",
+        "observed": 1,
+        "expected": 0.96,
+        "delta": 0.04,
+        "ratio": 1.04
+      },
+      {
+        "close": "question",
+        "open": "interior-reflection",
+        "observed": 1,
+        "expected": 1.04,
+        "delta": -0.04,
+        "ratio": 0.96
+      },
+      {
+        "close": "partial-resolution",
+        "open": "callback-or-summary",
+        "observed": 1,
+        "expected": 1.12,
+        "delta": -0.12,
+        "ratio": 0.9
+      },
+      {
+        "close": "question",
+        "open": "dialogue-first",
+        "observed": 1,
+        "expected": 1.15,
+        "delta": -0.15,
+        "ratio": 0.87
+      },
+      {
+        "close": "character-cost-pause",
+        "open": "interior-reflection",
+        "observed": 1,
+        "expected": 1.15,
+        "delta": -0.15,
+        "ratio": 0.87
+      },
+      {
+        "close": "partial-resolution",
+        "open": "in-media-res-action",
+        "observed": 5,
+        "expected": 5.21,
+        "delta": -0.21,
+        "ratio": 0.96
+      },
+      {
+        "close": "partial-resolution",
+        "open": "interior-reflection",
+        "observed": 3,
+        "expected": 3.35,
+        "delta": -0.35,
+        "ratio": 0.9
+      },
+      {
+        "close": "foreshadow",
+        "open": "interior-reflection",
+        "observed": 1,
+        "expected": 1.5,
+        "delta": -0.5,
+        "ratio": 0.67
+      },
+      {
+        "close": "partial-resolution",
+        "open": "dialogue-first",
+        "observed": 3,
+        "expected": 3.72,
+        "delta": -0.72,
+        "ratio": 0.81
+      },
+      {
+        "close": "foreshadow",
+        "open": "dialogue-first",
+        "observed": 0,
+        "expected": 1.67,
+        "delta": -1.67,
+        "ratio": 0.0
+      },
+      {
+        "close": "character-cost-pause",
+        "open": "scene-set-description",
+        "observed": 3,
+        "expected": 4.74,
+        "delta": -1.74,
+        "ratio": 0.63
+      },
+      {
+        "close": "partial-resolution",
+        "open": "time-cut-announcement",
+        "observed": 0,
+        "expected": 1.86,
+        "delta": -1.86,
+        "ratio": 0.0
+      },
+      {
+        "close": "cliffhanger",
+        "open": "scene-set-description",
+        "observed": 5,
+        "expected": 7.12,
+        "delta": -2.12,
+        "ratio": 0.7
+      },
+      {
+        "close": "foreshadow",
+        "open": "in-media-res-action",
+        "observed": 0,
+        "expected": 2.33,
+        "delta": -2.33,
+        "ratio": 0.0
+      }
+    ]
+  },
+  "perBook": {
+    "crystal_shard": {
+      "n_pairs": 30,
+      "matrix": {
+        "partial-resolution": {
+          "scene-set-description": 11,
+          "in-media-res-action": 2,
+          "interior-reflection": 0,
+          "dialogue-first": 0,
+          "time-cut-announcement": 0,
+          "callback-or-summary": 0,
+          "other": 0
+        },
+        "cliffhanger": {
+          "scene-set-description": 2,
+          "in-media-res-action": 1,
+          "interior-reflection": 2,
+          "dialogue-first": 0,
+          "time-cut-announcement": 1,
+          "callback-or-summary": 0,
+          "other": 0
+        },
+        "foreshadow": {
+          "scene-set-description": 0,
+          "in-media-res-action": 0,
+          "interior-reflection": 0,
+          "dialogue-first": 0,
+          "time-cut-announcement": 3,
+          "callback-or-summary": 1,
+          "other": 0
+        },
+        "question": {
+          "scene-set-description": 2,
+          "in-media-res-action": 0,
+          "interior-reflection": 0,
+          "dialogue-first": 1,
+          "time-cut-announcement": 0,
+          "callback-or-summary": 0,
+          "other": 0
+        },
+        "character-cost-pause": {
+          "scene-set-description": 1,
+          "in-media-res-action": 0,
+          "interior-reflection": 1,
+          "dialogue-first": 1,
+          "time-cut-announcement": 0,
+          "callback-or-summary": 0,
+          "other": 0
+        },
+        "time-cut": {
+          "scene-set-description": 0,
+          "in-media-res-action": 0,
+          "interior-reflection": 0,
+          "dialogue-first": 0,
+          "time-cut-announcement": 0,
+          "callback-or-summary": 0,
+          "other": 0
+        },
+        "other": {
+          "scene-set-description": 0,
+          "in-media-res-action": 0,
+          "interior-reflection": 1,
+          "dialogue-first": 0,
+          "time-cut-announcement": 0,
+          "callback-or-summary": 0,
+          "other": 0
+        }
+      },
+      "row_totals": {
+        "partial-resolution": 13,
+        "cliffhanger": 6,
+        "foreshadow": 4,
+        "question": 3,
+        "character-cost-pause": 3,
+        "time-cut": 0,
+        "other": 1
+      },
+      "col_totals": {
+        "scene-set-description": 16,
+        "in-media-res-action": 3,
+        "interior-reflection": 4,
+        "dialogue-first": 2,
+        "time-cut-announcement": 4,
+        "callback-or-summary": 1,
+        "other": 0
+      },
+      "top5_transitions": [
+        {
+          "close": "partial-resolution",
+          "open": "scene-set-description",
+          "count": 11,
+          "pct_of_all_pairs": 36.67
+        },
+        {
+          "close": "foreshadow",
+          "open": "time-cut-announcement",
+          "count": 3,
+          "pct_of_all_pairs": 10.0
+        },
+        {
+          "close": "cliffhanger",
+          "open": "interior-reflection",
+          "count": 2,
+          "pct_of_all_pairs": 6.67
+        },
+        {
+          "close": "cliffhanger",
+          "open": "scene-set-description",
+          "count": 2,
+          "pct_of_all_pairs": 6.67
+        },
+        {
+          "close": "partial-resolution",
+          "open": "in-media-res-action",
+          "count": 2,
+          "pct_of_all_pairs": 6.67
+        }
+      ]
+    },
+    "streams_of_silver": {
+      "n_pairs": 23,
+      "matrix": {
+        "partial-resolution": {
+          "scene-set-description": 4,
+          "in-media-res-action": 1,
+          "interior-reflection": 1,
+          "dialogue-first": 1,
+          "time-cut-announcement": 0,
+          "callback-or-summary": 1,
+          "other": 0
+        },
+        "cliffhanger": {
+          "scene-set-description": 1,
+          "in-media-res-action": 1,
+          "interior-reflection": 0,
+          "dialogue-first": 2,
+          "time-cut-announcement": 0,
+          "callback-or-summary": 0,
+          "other": 0
+        },
+        "foreshadow": {
+          "scene-set-description": 2,
+          "in-media-res-action": 0,
+          "interior-reflection": 1,
+          "dialogue-first": 0,
+          "time-cut-announcement": 0,
+          "callback-or-summary": 1,
+          "other": 0
+        },
+        "question": {
+          "scene-set-description": 1,
+          "in-media-res-action": 1,
+          "interior-reflection": 0,
+          "dialogue-first": 0,
+          "time-cut-announcement": 0,
+          "callback-or-summary": 0,
+          "other": 0
+        },
+        "character-cost-pause": {
+          "scene-set-description": 2,
+          "in-media-res-action": 2,
+          "interior-reflection": 0,
+          "dialogue-first": 1,
+          "time-cut-announcement": 0,
+          "callback-or-summary": 0,
+          "other": 0
+        },
+        "time-cut": {
+          "scene-set-description": 0,
+          "in-media-res-action": 0,
+          "interior-reflection": 0,
+          "dialogue-first": 0,
+          "time-cut-announcement": 0,
+          "callback-or-summary": 0,
+          "other": 0
+        },
+        "other": {
+          "scene-set-description": 0,
+          "in-media-res-action": 0,
+          "interior-reflection": 0,
+          "dialogue-first": 0,
+          "time-cut-announcement": 0,
+          "callback-or-summary": 0,
+          "other": 0
+        }
+      },
+      "row_totals": {
+        "partial-resolution": 8,
+        "cliffhanger": 4,
+        "foreshadow": 4,
+        "question": 2,
+        "character-cost-pause": 5,
+        "time-cut": 0,
+        "other": 0
+      },
+      "col_totals": {
+        "scene-set-description": 10,
+        "in-media-res-action": 5,
+        "interior-reflection": 2,
+        "dialogue-first": 4,
+        "time-cut-announcement": 0,
+        "callback-or-summary": 2,
+        "other": 0
+      },
+      "top5_transitions": [
+        {
+          "close": "partial-resolution",
+          "open": "scene-set-description",
+          "count": 4,
+          "pct_of_all_pairs": 17.39
+        },
+        {
+          "close": "character-cost-pause",
+          "open": "in-media-res-action",
+          "count": 2,
+          "pct_of_all_pairs": 8.7
+        },
+        {
+          "close": "character-cost-pause",
+          "open": "scene-set-description",
+          "count": 2,
+          "pct_of_all_pairs": 8.7
+        },
+        {
+          "close": "cliffhanger",
+          "open": "dialogue-first",
+          "count": 2,
+          "pct_of_all_pairs": 8.7
+        },
+        {
+          "close": "foreshadow",
+          "open": "scene-set-description",
+          "count": 2,
+          "pct_of_all_pairs": 8.7
+        }
+      ]
+    },
+    "halflings_gem": {
+      "n_pairs": 25,
+      "matrix": {
+        "partial-resolution": {
+          "scene-set-description": 2,
+          "in-media-res-action": 2,
+          "interior-reflection": 2,
+          "dialogue-first": 2,
+          "time-cut-announcement": 0,
+          "callback-or-summary": 0,
+          "other": 0
+        },
+        "cliffhanger": {
+          "scene-set-description": 2,
+          "in-media-res-action": 2,
+          "interior-reflection": 0,
+          "dialogue-first": 1,
+          "time-cut-announcement": 0,
+          "callback-or-summary": 0,
+          "other": 0
+        },
+        "foreshadow": {
+          "scene-set-description": 5,
+          "in-media-res-action": 0,
+          "interior-reflection": 0,
+          "dialogue-first": 0,
+          "time-cut-announcement": 0,
+          "callback-or-summary": 0,
+          "other": 0
+        },
+        "question": {
+          "scene-set-description": 2,
+          "in-media-res-action": 1,
+          "interior-reflection": 1,
+          "dialogue-first": 0,
+          "time-cut-announcement": 0,
+          "callback-or-summary": 0,
+          "other": 0
+        },
+        "character-cost-pause": {
+          "scene-set-description": 0,
+          "in-media-res-action": 1,
+          "interior-reflection": 0,
+          "dialogue-first": 1,
+          "time-cut-announcement": 0,
+          "callback-or-summary": 0,
+          "other": 0
+        },
+        "time-cut": {
+          "scene-set-description": 0,
+          "in-media-res-action": 0,
+          "interior-reflection": 0,
+          "dialogue-first": 0,
+          "time-cut-announcement": 0,
+          "callback-or-summary": 0,
+          "other": 0
+        },
+        "other": {
+          "scene-set-description": 0,
+          "in-media-res-action": 0,
+          "interior-reflection": 0,
+          "dialogue-first": 0,
+          "time-cut-announcement": 1,
+          "callback-or-summary": 0,
+          "other": 0
+        }
+      },
+      "row_totals": {
+        "partial-resolution": 8,
+        "cliffhanger": 5,
+        "foreshadow": 5,
+        "question": 4,
+        "character-cost-pause": 2,
+        "time-cut": 0,
+        "other": 1
+      },
+      "col_totals": {
+        "scene-set-description": 11,
+        "in-media-res-action": 6,
+        "interior-reflection": 3,
+        "dialogue-first": 4,
+        "time-cut-announcement": 1,
+        "callback-or-summary": 0,
+        "other": 0
+      },
+      "top5_transitions": [
+        {
+          "close": "foreshadow",
+          "open": "scene-set-description",
+          "count": 5,
+          "pct_of_all_pairs": 20.0
+        },
+        {
+          "close": "cliffhanger",
+          "open": "in-media-res-action",
+          "count": 2,
+          "pct_of_all_pairs": 8.0
+        },
+        {
+          "close": "cliffhanger",
+          "open": "scene-set-description",
+          "count": 2,
+          "pct_of_all_pairs": 8.0
+        },
+        {
+          "close": "partial-resolution",
+          "open": "dialogue-first",
+          "count": 2,
+          "pct_of_all_pairs": 8.0
+        },
+        {
+          "close": "partial-resolution",
+          "open": "in-media-res-action",
+          "count": 2,
+          "pct_of_all_pairs": 8.0
+        }
+      ]
+    }
+  },
+  "directional_stability": {
+    "top3_per_book": {
+      "crystal_shard": [
+        {
+          "close": "partial-resolution",
+          "open": "scene-set-description",
+          "count": 11
+        },
+        {
+          "close": "foreshadow",
+          "open": "time-cut-announcement",
+          "count": 3
+        },
+        {
+          "close": "cliffhanger",
+          "open": "interior-reflection",
+          "count": 2
+        }
+      ],
+      "streams_of_silver": [
+        {
+          "close": "partial-resolution",
+          "open": "scene-set-description",
+          "count": 4
+        },
+        {
+          "close": "character-cost-pause",
+          "open": "in-media-res-action",
+          "count": 2
+        },
+        {
+          "close": "character-cost-pause",
+          "open": "scene-set-description",
+          "count": 2
+        }
+      ],
+      "halflings_gem": [
+        {
+          "close": "foreshadow",
+          "open": "scene-set-description",
+          "count": 5
+        },
+        {
+          "close": "cliffhanger",
+          "open": "in-media-res-action",
+          "count": 2
+        },
+        {
+          "close": "cliffhanger",
+          "open": "scene-set-description",
+          "count": 2
+        }
+      ]
+    },
+    "shared_top3_all_3_books": [],
+    "shared_top3_at_least_2_books": [
+      {
+        "close": "partial-resolution",
+        "open": "scene-set-description"
+      }
+    ],
+    "cell_book_presence": [
+      {
+        "close": "character-cost-pause",
+        "open": "dialogue-first",
+        "n_books": 3
+      },
+      {
+        "close": "cliffhanger",
+        "open": "in-media-res-action",
+        "n_books": 3
+      },
+      {
+        "close": "cliffhanger",
+        "open": "scene-set-description",
+        "n_books": 3
+      },
+      {
+        "close": "partial-resolution",
+        "open": "in-media-res-action",
+        "n_books": 3
+      },
+      {
+        "close": "partial-resolution",
+        "open": "scene-set-description",
+        "n_books": 3
+      },
+      {
+        "close": "question",
+        "open": "scene-set-description",
+        "n_books": 3
+      },
+      {
+        "close": "character-cost-pause",
+        "open": "in-media-res-action",
+        "n_books": 2
+      },
+      {
+        "close": "character-cost-pause",
+        "open": "scene-set-description",
+        "n_books": 2
+      },
+      {
+        "close": "cliffhanger",
+        "open": "dialogue-first",
+        "n_books": 2
+      },
+      {
+        "close": "foreshadow",
+        "open": "callback-or-summary",
+        "n_books": 2
+      },
+      {
+        "close": "foreshadow",
+        "open": "scene-set-description",
+        "n_books": 2
+      },
+      {
+        "close": "partial-resolution",
+        "open": "dialogue-first",
+        "n_books": 2
+      },
+      {
+        "close": "partial-resolution",
+        "open": "interior-reflection",
+        "n_books": 2
+      },
+      {
+        "close": "question",
+        "open": "in-media-res-action",
+        "n_books": 2
+      },
+      {
+        "close": "character-cost-pause",
+        "open": "interior-reflection",
+        "n_books": 1
+      },
+      {
+        "close": "cliffhanger",
+        "open": "interior-reflection",
+        "n_books": 1
+      },
+      {
+        "close": "cliffhanger",
+        "open": "time-cut-announcement",
+        "n_books": 1
+      },
+      {
+        "close": "foreshadow",
+        "open": "interior-reflection",
+        "n_books": 1
+      },
+      {
+        "close": "foreshadow",
+        "open": "time-cut-announcement",
+        "n_books": 1
+      },
+      {
+        "close": "other",
+        "open": "interior-reflection",
+        "n_books": 1
+      },
+      {
+        "close": "other",
+        "open": "time-cut-announcement",
+        "n_books": 1
+      },
+      {
+        "close": "partial-resolution",
+        "open": "callback-or-summary",
+        "n_books": 1
+      },
+      {
+        "close": "question",
+        "open": "dialogue-first",
+        "n_books": 1
+      },
+      {
+        "close": "question",
+        "open": "interior-reflection",
+        "n_books": 1
+      }
+    ]
+  },
+  "modal_open_per_close": {
+    "partial-resolution": {
+      "modal_open": "scene-set-description",
+      "count": 17,
+      "n_close": 29,
+      "pct": 58.6
+    },
+    "cliffhanger": {
+      "modal_open": "scene-set-description",
+      "count": 5,
+      "n_close": 15,
+      "pct": 33.3
+    },
+    "foreshadow": {
+      "modal_open": "scene-set-description",
+      "count": 7,
+      "n_close": 13,
+      "pct": 53.8
+    },
+    "question": {
+      "modal_open": "scene-set-description",
+      "count": 5,
+      "n_close": 9,
+      "pct": 55.6
+    },
+    "character-cost-pause": {
+      "modal_open": "scene-set-description",
+      "count": 3,
+      "n_close": 10,
+      "pct": 30.0
+    },
+    "time-cut": {
+      "modal_open": null,
+      "count": 0,
+      "n_close": 0
+    },
+    "other": {
+      "modal_open": "interior-reflection",
+      "count": 1,
+      "n_close": 2,
+      "pct": 50.0
+    }
+  },
+  "pairs": [
+    {
+      "book": "crystal_shard",
+      "close_chapter": 1,
+      "open_chapter": 2,
+      "close_bucket": "partial-resolution",
+      "open_bucket": "scene-set-description",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "crystal_shard",
+      "close_chapter": 2,
+      "open_chapter": 3,
+      "close_bucket": "partial-resolution",
+      "open_bucket": "scene-set-description",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "crystal_shard",
+      "close_chapter": 3,
+      "open_chapter": 4,
+      "close_bucket": "other",
+      "open_bucket": "interior-reflection",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "crystal_shard",
+      "close_chapter": 4,
+      "open_chapter": 5,
+      "close_bucket": "partial-resolution",
+      "open_bucket": "scene-set-description",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "crystal_shard",
+      "close_chapter": 5,
+      "open_chapter": 6,
+      "close_bucket": "question",
+      "open_bucket": "scene-set-description",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "crystal_shard",
+      "close_chapter": 6,
+      "open_chapter": 7,
+      "close_bucket": "partial-resolution",
+      "open_bucket": "in-media-res-action",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "crystal_shard",
+      "close_chapter": 7,
+      "open_chapter": 8,
+      "close_bucket": "partial-resolution",
+      "open_bucket": "scene-set-description",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "crystal_shard",
+      "close_chapter": 8,
+      "open_chapter": 9,
+      "close_bucket": "partial-resolution",
+      "open_bucket": "scene-set-description",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "crystal_shard",
+      "close_chapter": 9,
+      "open_chapter": 10,
+      "close_bucket": "partial-resolution",
+      "open_bucket": "scene-set-description",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "crystal_shard",
+      "close_chapter": 10,
+      "open_chapter": 11,
+      "close_bucket": "partial-resolution",
+      "open_bucket": "scene-set-description",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "crystal_shard",
+      "close_chapter": 11,
+      "open_chapter": 12,
+      "close_bucket": "partial-resolution",
+      "open_bucket": "scene-set-description",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "crystal_shard",
+      "close_chapter": 12,
+      "open_chapter": 13,
+      "close_bucket": "character-cost-pause",
+      "open_bucket": "dialogue-first",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "crystal_shard",
+      "close_chapter": 13,
+      "open_chapter": 14,
+      "close_bucket": "foreshadow",
+      "open_bucket": "time-cut-announcement",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "crystal_shard",
+      "close_chapter": 14,
+      "open_chapter": 15,
+      "close_bucket": "question",
+      "open_bucket": "scene-set-description",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "crystal_shard",
+      "close_chapter": 15,
+      "open_chapter": 16,
+      "close_bucket": "foreshadow",
+      "open_bucket": "time-cut-announcement",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "crystal_shard",
+      "close_chapter": 16,
+      "open_chapter": 17,
+      "close_bucket": "partial-resolution",
+      "open_bucket": "scene-set-description",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "crystal_shard",
+      "close_chapter": 17,
+      "open_chapter": 18,
+      "close_bucket": "character-cost-pause",
+      "open_bucket": "scene-set-description",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "crystal_shard",
+      "close_chapter": 18,
+      "open_chapter": 19,
+      "close_bucket": "partial-resolution",
+      "open_bucket": "in-media-res-action",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "crystal_shard",
+      "close_chapter": 19,
+      "open_chapter": 20,
+      "close_bucket": "question",
+      "open_bucket": "dialogue-first",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "crystal_shard",
+      "close_chapter": 20,
+      "open_chapter": 21,
+      "close_bucket": "partial-resolution",
+      "open_bucket": "scene-set-description",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "crystal_shard",
+      "close_chapter": 21,
+      "open_chapter": 22,
+      "close_bucket": "cliffhanger",
+      "open_bucket": "interior-reflection",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "crystal_shard",
+      "close_chapter": 22,
+      "open_chapter": 23,
+      "close_bucket": "cliffhanger",
+      "open_bucket": "scene-set-description",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "crystal_shard",
+      "close_chapter": 23,
+      "open_chapter": 24,
+      "close_bucket": "character-cost-pause",
+      "open_bucket": "interior-reflection",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "crystal_shard",
+      "close_chapter": 24,
+      "open_chapter": 25,
+      "close_bucket": "partial-resolution",
+      "open_bucket": "scene-set-description",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "crystal_shard",
+      "close_chapter": 25,
+      "open_chapter": 26,
+      "close_bucket": "cliffhanger",
+      "open_bucket": "interior-reflection",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "crystal_shard",
+      "close_chapter": 26,
+      "open_chapter": 27,
+      "close_bucket": "cliffhanger",
+      "open_bucket": "time-cut-announcement",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "crystal_shard",
+      "close_chapter": 27,
+      "open_chapter": 28,
+      "close_bucket": "cliffhanger",
+      "open_bucket": "in-media-res-action",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "crystal_shard",
+      "close_chapter": 28,
+      "open_chapter": 29,
+      "close_bucket": "foreshadow",
+      "open_bucket": "time-cut-announcement",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "crystal_shard",
+      "close_chapter": 29,
+      "open_chapter": 30,
+      "close_bucket": "cliffhanger",
+      "open_bucket": "scene-set-description",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "crystal_shard",
+      "close_chapter": "epilogue2",
+      "open_chapter": "epilogue3",
+      "close_bucket": "foreshadow",
+      "open_bucket": "callback-or-summary",
+      "close_confidence": "high",
+      "open_confidence": "high",
+      "note": "epilogue-chain join"
+    },
+    {
+      "book": "streams_of_silver",
+      "close_chapter": 1,
+      "open_chapter": 2,
+      "close_bucket": "cliffhanger",
+      "open_bucket": "dialogue-first",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "streams_of_silver",
+      "close_chapter": 2,
+      "open_chapter": 3,
+      "close_bucket": "question",
+      "open_bucket": "scene-set-description",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "streams_of_silver",
+      "close_chapter": 3,
+      "open_chapter": 4,
+      "close_bucket": "foreshadow",
+      "open_bucket": "scene-set-description",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "streams_of_silver",
+      "close_chapter": 4,
+      "open_chapter": 5,
+      "close_bucket": "question",
+      "open_bucket": "in-media-res-action",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "streams_of_silver",
+      "close_chapter": 5,
+      "open_chapter": 6,
+      "close_bucket": "cliffhanger",
+      "open_bucket": "in-media-res-action",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "streams_of_silver",
+      "close_chapter": 6,
+      "open_chapter": 7,
+      "close_bucket": "partial-resolution",
+      "open_bucket": "scene-set-description",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "streams_of_silver",
+      "close_chapter": 7,
+      "open_chapter": 8,
+      "close_bucket": "foreshadow",
+      "open_bucket": "callback-or-summary",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "streams_of_silver",
+      "close_chapter": 8,
+      "open_chapter": 9,
+      "close_bucket": "character-cost-pause",
+      "open_bucket": "dialogue-first",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "streams_of_silver",
+      "close_chapter": 9,
+      "open_chapter": 10,
+      "close_bucket": "partial-resolution",
+      "open_bucket": "scene-set-description",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "streams_of_silver",
+      "close_chapter": 10,
+      "open_chapter": 11,
+      "close_bucket": "partial-resolution",
+      "open_bucket": "scene-set-description",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "streams_of_silver",
+      "close_chapter": 11,
+      "open_chapter": 12,
+      "close_bucket": "foreshadow",
+      "open_bucket": "scene-set-description",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "streams_of_silver",
+      "close_chapter": 12,
+      "open_chapter": 13,
+      "close_bucket": "partial-resolution",
+      "open_bucket": "in-media-res-action",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "streams_of_silver",
+      "close_chapter": 13,
+      "open_chapter": 14,
+      "close_bucket": "character-cost-pause",
+      "open_bucket": "in-media-res-action",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "streams_of_silver",
+      "close_chapter": 14,
+      "open_chapter": 15,
+      "close_bucket": "partial-resolution",
+      "open_bucket": "interior-reflection",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "streams_of_silver",
+      "close_chapter": 15,
+      "open_chapter": 16,
+      "close_bucket": "partial-resolution",
+      "open_bucket": "scene-set-description",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "streams_of_silver",
+      "close_chapter": 16,
+      "open_chapter": 17,
+      "close_bucket": "partial-resolution",
+      "open_bucket": "callback-or-summary",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "streams_of_silver",
+      "close_chapter": 17,
+      "open_chapter": 18,
+      "close_bucket": "cliffhanger",
+      "open_bucket": "dialogue-first",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "streams_of_silver",
+      "close_chapter": 18,
+      "open_chapter": 19,
+      "close_bucket": "partial-resolution",
+      "open_bucket": "dialogue-first",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "streams_of_silver",
+      "close_chapter": 19,
+      "open_chapter": 20,
+      "close_bucket": "character-cost-pause",
+      "open_bucket": "in-media-res-action",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "streams_of_silver",
+      "close_chapter": 20,
+      "open_chapter": 21,
+      "close_bucket": "foreshadow",
+      "open_bucket": "interior-reflection",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "streams_of_silver",
+      "close_chapter": 21,
+      "open_chapter": 22,
+      "close_bucket": "cliffhanger",
+      "open_bucket": "scene-set-description",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "streams_of_silver",
+      "close_chapter": 22,
+      "open_chapter": 23,
+      "close_bucket": "character-cost-pause",
+      "open_bucket": "scene-set-description",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "streams_of_silver",
+      "close_chapter": 23,
+      "open_chapter": 24,
+      "close_bucket": "character-cost-pause",
+      "open_bucket": "scene-set-description",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "halflings_gem",
+      "close_chapter": 1,
+      "open_chapter": 2,
+      "close_bucket": "partial-resolution",
+      "open_bucket": "interior-reflection",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "halflings_gem",
+      "close_chapter": 2,
+      "open_chapter": 3,
+      "close_bucket": "partial-resolution",
+      "open_bucket": "dialogue-first",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "halflings_gem",
+      "close_chapter": 3,
+      "open_chapter": 4,
+      "close_bucket": "other",
+      "open_bucket": "time-cut-announcement",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "halflings_gem",
+      "close_chapter": 4,
+      "open_chapter": 5,
+      "close_bucket": "question",
+      "open_bucket": "scene-set-description",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "halflings_gem",
+      "close_chapter": 5,
+      "open_chapter": 6,
+      "close_bucket": "cliffhanger",
+      "open_bucket": "dialogue-first",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "halflings_gem",
+      "close_chapter": 6,
+      "open_chapter": 7,
+      "close_bucket": "partial-resolution",
+      "open_bucket": "interior-reflection",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "halflings_gem",
+      "close_chapter": 7,
+      "open_chapter": 8,
+      "close_bucket": "foreshadow",
+      "open_bucket": "scene-set-description",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "halflings_gem",
+      "close_chapter": 8,
+      "open_chapter": 9,
+      "close_bucket": "partial-resolution",
+      "open_bucket": "scene-set-description",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "halflings_gem",
+      "close_chapter": 9,
+      "open_chapter": 10,
+      "close_bucket": "partial-resolution",
+      "open_bucket": "in-media-res-action",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "halflings_gem",
+      "close_chapter": 10,
+      "open_chapter": 11,
+      "close_bucket": "partial-resolution",
+      "open_bucket": "scene-set-description",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "halflings_gem",
+      "close_chapter": 11,
+      "open_chapter": 12,
+      "close_bucket": "partial-resolution",
+      "open_bucket": "in-media-res-action",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "halflings_gem",
+      "close_chapter": 12,
+      "open_chapter": 13,
+      "close_bucket": "foreshadow",
+      "open_bucket": "scene-set-description",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "halflings_gem",
+      "close_chapter": 13,
+      "open_chapter": 14,
+      "close_bucket": "foreshadow",
+      "open_bucket": "scene-set-description",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "halflings_gem",
+      "close_chapter": 14,
+      "open_chapter": 15,
+      "close_bucket": "character-cost-pause",
+      "open_bucket": "dialogue-first",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "halflings_gem",
+      "close_chapter": 15,
+      "open_chapter": 16,
+      "close_bucket": "question",
+      "open_bucket": "scene-set-description",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "halflings_gem",
+      "close_chapter": 16,
+      "open_chapter": 17,
+      "close_bucket": "question",
+      "open_bucket": "in-media-res-action",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "halflings_gem",
+      "close_chapter": 17,
+      "open_chapter": 18,
+      "close_bucket": "foreshadow",
+      "open_bucket": "scene-set-description",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "halflings_gem",
+      "close_chapter": 18,
+      "open_chapter": 19,
+      "close_bucket": "cliffhanger",
+      "open_bucket": "scene-set-description",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "halflings_gem",
+      "close_chapter": 19,
+      "open_chapter": 20,
+      "close_bucket": "question",
+      "open_bucket": "interior-reflection",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "halflings_gem",
+      "close_chapter": 20,
+      "open_chapter": 21,
+      "close_bucket": "cliffhanger",
+      "open_bucket": "in-media-res-action",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "halflings_gem",
+      "close_chapter": 21,
+      "open_chapter": 22,
+      "close_bucket": "cliffhanger",
+      "open_bucket": "scene-set-description",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "halflings_gem",
+      "close_chapter": 22,
+      "open_chapter": 23,
+      "close_bucket": "cliffhanger",
+      "open_bucket": "in-media-res-action",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "halflings_gem",
+      "close_chapter": 23,
+      "open_chapter": 24,
+      "close_bucket": "partial-resolution",
+      "open_bucket": "dialogue-first",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "halflings_gem",
+      "close_chapter": 24,
+      "open_chapter": 25,
+      "close_bucket": "character-cost-pause",
+      "open_bucket": "in-media-res-action",
+      "close_confidence": "high",
+      "open_confidence": "high"
+    },
+    {
+      "book": "halflings_gem",
+      "close_chapter": "epilogue2",
+      "open_chapter": "epilogue3",
+      "close_bucket": "foreshadow",
+      "open_bucket": "scene-set-description",
+      "close_confidence": "high",
+      "open_confidence": "high",
+      "note": "epilogue-chain join"
+    }
+  ],
+  "skipped": []
+}

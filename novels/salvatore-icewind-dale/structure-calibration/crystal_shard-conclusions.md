@@ -3152,58 +3152,125 @@ Zero LLM cost. Pure compute on existing JSONL (~2 seconds wall time).
 
 ---
 
-## Session 2026-04-30T12:43:11.477Z — Pattern 28 ADDENDUM: epilogue-artifact corrected distances
+## Pattern 32 — Chapter-seam transition shape (P14 × P17 join) — 2026-04-30
 
-### Issue with original run
+**Setup.** Pure-compute join of two already-completed labelings. P14 (`crystal_shard.20260430T113934.forward-hook-shape.json`) classifies each chapter close into one of 7 buckets: `partial-resolution`, `cliffhanger`, `foreshadow`, `question`, `character-cost-pause`, `time-cut`, `other`. P17 (`crystal_shard.20260430T115917.chapter-opener-taxonomy.json`) classifies each chapter open into one of 7 buckets: `scene-set-description`, `in-media-res-action`, `dialogue-first`, `interior-reflection`, `time-cut-announcement`, `callback-or-summary`, `other`. The join takes each non-final chapter N and emits the pair `(close_N, open_{N+1})`, building a 7×7 transition matrix per book + aggregate.
 
-The original run mapped string-chapter ids ("epilogue", "epilogue2", "epilogue3") to numeric proxies 9999/10000/10001 for the chapter-distance computation. Any setup → epilogue payoff pair therefore got a phantom distance of ~9970–9997 chapters. Affected pairs: **24** of 1008 (2.4%). This inflated the mean and max distance numbers in the original conclusions table; **the median and bucket distribution were unaffected** because the bucket cutoffs (0 / 1–3 / 4–9 / 10+) collapse all huge distances into the "10+" bucket regardless of magnitude.
+**Join rule.** For each book: numeric chapter N close paired with numeric chapter N+1 open; plus epilogue2-close → epilogue3-open where both labelings have those entries (`crystal_shard`, `halflings_gem`). Excluded: prelude opens (no preceding close), book-part opens (`streams_of_silver` part1/2/3, no preceding close in P14), and `epilogue` opens for all 3 books (P14 lacks the matching epilogue close — only `epilogue2`/`epilogue3` are in P14). **n_pairs = 78** (cs=30, sos=23, hg=25), n_skipped = 0.
 
-### Corrected mapping
+### Marginals (within the 78-pair joined population)
 
-For each book, "epilogue" → `max_numeric_chapter + 1`. Per-book:
-- crystal_shard: max numeric chapter = 30
-- halflings_gem: max numeric chapter = 25
-- streams_of_silver: max numeric chapter = 24
+**Close marginal:** `partial-resolution` 37.2% (29) · `cliffhanger` 19.2% (15) · `foreshadow` 16.7% (13) · `character-cost-pause` 12.8% (10) · `question` 11.5% (9) · `other` 2.6% (2) · `time-cut` 0%.
 
-### Corrected distance summary
+**Open marginal:** `scene-set-description` **47.4%** (37) · `in-media-res-action` 17.9% (14) · `dialogue-first` 12.8% (10) · `interior-reflection` 11.5% (9) · `time-cut-announcement` 6.4% (5) · `callback-or-summary` 3.8% (3) · `other` 0%.
 
-| Book | Matched | Match rate | Median | Mean | P25 | P75 | P90 | Max | 0 / 1–3 / 4–9 / 10+ |
-|---|---|---:|---:|---:|---:|---:|---:|---:|---|
-| crystal_shard | 333/370 | 90.0% | 1 | 4.08 | 0 | 6 | 14 | 25 | 126/93/56/58 |
-| streams_of_silver | 276/320 | 86.3% | 2 | 3.52 | 0 | 5 | 10 | 24 | 107/85/52/32 |
-| halflings_gem | 258/318 | 81.1% | 2 | 3.6 | 0 | 5 | 12 | 23 | 88/92/42/36 |
-| **aggregate** | 867/1008 | 86.0% | 1 | 3.76 | 0 | 5 | 13 | 25 | 321/270/150/126 |
+The opener marginal is heavily skewed: nearly half of all chapter-N+1 openers are `scene-set-description`. **This dominates the raw transition counts and confounds naive top-N reading** — any close-bucket that occurs at an average rate will appear most-frequently paired with `scene-set-description` simply because that's where openers concentrate. The directional verdict below uses conditional-vs-marginal lift to correct for this, not raw counts.
 
-### Conclusion + Action — directional findings
+### Top-10 transitions (aggregate, raw counts)
 
-**Median and bucket shape are corpus-real and stable.** All three books have median distance 1–2 chapters with a long thin tail. The "near (1–3 chapter)" + "same-chapter" combined share is **68.2% across all 3 books** — Salvatore's setups overwhelmingly pay off within ~3 chapters.
+| Rank | Close | Open | n | % of pairs |
+|---|---|---|---|---|
+| 1 | partial-resolution | scene-set-description | 17 | 21.8% |
+| 2 | foreshadow | scene-set-description | 7 | 9.0% |
+| 3 | cliffhanger | scene-set-description | 5 | 6.4% |
+| 3 | partial-resolution | in-media-res-action | 5 | 6.4% |
+| 3 | question | scene-set-description | 5 | 6.4% |
+| 6 | cliffhanger | in-media-res-action | 4 | 5.1% |
+| 7 | character-cost-pause | dialogue-first | 3 | 3.9% |
+| 7 | character-cost-pause | in-media-res-action | 3 | 3.9% |
+| 7 | character-cost-pause | scene-set-description | 3 | 3.9% |
+| 7 | cliffhanger | dialogue-first | 3 | 3.9% |
 
-**Cross-book stability of the distribution shape:**
-- crystal_shard: 37.8% same-chapter, 27.9% near (1–3), 16.8% mid (4–9), 17.4% far (10+)
-- streams_of_silver: 38.8% same-chapter, 30.8% near (1–3), 18.8% mid (4–9), 11.6% far (10+)
-- halflings_gem: 34.1% same-chapter, 35.7% near (1–3), 16.3% mid (4–9), 14.0% far (10+)
+### Modal open per close (aggregate)
 
-**Stable across all 3 books:** same-chapter + near (1–3 chapter) bucket dominates (>60% of matched pairs in every book). This is a strong directional finding for the planner: when a beat plants something material, the payoff lands within 3 chapters most of the time.
+| Close | Modal open | n / total | % |
+|---|---|---|---|
+| partial-resolution | scene-set-description | 17/29 | **58.6%** |
+| foreshadow | scene-set-description | 7/13 | 53.8% |
+| question | scene-set-description | 5/9 | 55.6% |
+| cliffhanger | scene-set-description | 5/15 | 33.3% |
+| character-cost-pause | (3-way tie) scene-set / in-media-res / dialogue-first | 3/10 each | 30.0% |
+| time-cut | (n=0, no occurrences in joined population) | — | — |
+| other | (2-way tie) interior-reflection / time-cut-announcement | 1/2 each | 50.0% |
 
-**Drift on the far tail is small:** cs 17.4%, sos 11.6%, hg 14.0%. Book 1 (Crystal Shard) actually carries the *highest* far-payoff share, not book 3 — because Crystal Shard sets up several long-thread arcs (Errtu's revenge, the seven-lich backstory, the Wulfgar/barbarian arc) that don't pay off until chapters 20–30. Book 2 (Streams of Silver) has the most front-loaded distribution, consistent with its quest-structure (the Mithral Hall journey is largely chapter-to-chapter try-fail beats). Within-3-chapter share spread is only 4.1pp (cs 65.7%, sos 69.6%, hg 69.8%) — the near-payoff regime is the corpus-stable property.
+`scene-set-description` is the modal open under 4 of 5 non-trivial close-buckets. Only `cliffhanger` and `character-cost-pause` show meaningfully diluted modal pull; only `other` (n=2) flips out of `scene-set-description` entirely.
 
-**Match rate stability:** 90.0% / 86.3% / 81.1% (cs / sos / hg). Match rate **declines** across the trilogy. Two non-exclusive interpretations: (a) more setups carry forward as series-hooks (open at end of book) rather than within-book setups; (b) the labeler is genuinely worse on later books because the corpus-vocabulary it sees in candidate summaries is more correlated with the setup descriptions, increasing soft-match noise.
+### Cross-book stability
 
-### Harness target (revised — addendum)
+**Top-3 transitions per book (raw counts):**
+- `crystal_shard`: partial-resolution → scene-set-description (11) · foreshadow → time-cut-announcement (3) · cliffhanger → interior-reflection (2)/cliffhanger → scene-set-description (2)/partial-resolution → in-media-res-action (2).
+- `streams_of_silver`: partial-resolution → scene-set-description (4) · character-cost-pause → in-media-res-action (2)/character-cost-pause → scene-set-description (2)/cliffhanger → dialogue-first (2)/foreshadow → scene-set-description (2).
+- `halflings_gem`: foreshadow → scene-set-description (5) · cliffhanger → in-media-res-action (2)/cliffhanger → scene-set-description (2)/partial-resolution → dialogue-first (2)/partial-resolution → in-media-res-action (2).
 
-The corrected distribution makes a stronger planner-prior recommendation possible. **Recommended writer planner constraint** (for `src/agents/planning-beats/beat-expansion-system.md` or `src/agents/planning-plotter/chapter-outline-system.md`):
+**Shared top-3 across all 3 books:** none.
+**Shared top-3 across ≥2 books:** only `partial-resolution → scene-set-description` (top-1 in cs, top-1 in sos, falls outside hg's top-3).
 
-> "When a beat plants something material (object, knowledge, capability, vow, threat), the payoff should land within 1–3 chapters of the setup. Aggregate corpus median is **1 chapter**; **68%** of corpus payoffs land within 3 chapters. Setups designed for far-payoff (10+ chapters) should be reserved for the few series-arc threads (~15% of all setups in the corpus)."
+**Stable positive rules** (cells with non-zero count in all 3 books, sorted by aggregate):
 
-The setup-density prior (40% of beats plant something) and the distance prior (median 1–2 chapter payoff) should ship together.
+| Close | Open | cs | sos | hg | total | conditional vs open marginal |
+|---|---|---|---|---|---|---|
+| partial-resolution | scene-set-description | 11 | 4 | 2 | 17 | 58.6% vs 47.4% (+11.2pp) |
+| partial-resolution | in-media-res-action | 2 | 1 | 2 | 5 | 17.2% vs 17.9% (~marginal) |
+| cliffhanger | scene-set-description | 2 | 1 | 2 | 5 | 33.3% vs 47.4% (-14pp, depressed) |
+| question | scene-set-description | 2 | 1 | 2 | 5 | 55.6% vs 47.4% (+8.2pp) |
+| cliffhanger | in-media-res-action | 1 | 1 | 2 | 4 | 26.7% vs 17.9% (+8.8pp) |
+| character-cost-pause | dialogue-first | 1 | 1 | 1 | 3 | 30.0% vs 12.8% (**+17.2pp**, ratio 2.34) |
 
-### Caveats — see original session above for full methodological caveats
+**Stable negative rules** (zero across all 3 books, expected ≥ 1.0 under independence):
 
-The pair-identification step is fundamentally noisier than the binary setup tag. Match-rate of 86% means the labeler said "no payoff in candidate list" for 14% of setups. Some of those are genuine open threads (Errtu's revenge, Drizzt's drow heritage, etc. — series hooks that pay off in later books in the trilogy or beyond). Others may be labeler false-negatives. A Sonnet-anchor calibration of the payoff side is the right next experiment if this prior is to ship as a hard constraint.
+| Close | Open | observed | expected | interpretation |
+|---|---|---|---|---|
+| foreshadow | in-media-res-action | 0 | 2.33 | If the chapter ends planting a future-pointer, Salvatore never opens the next chapter mid-action. Pure rule. |
+| partial-resolution | time-cut-announcement | 0 | 1.86 | Resolved chapter never followed by an explicit time-cut announcement. (Time elapses, but isn't announced.) |
+| foreshadow | dialogue-first | 0 | 1.67 | Foreshadow-close is never picked up by a chapter that opens on dialogue. |
 
-### Artifact
+### Independence outliers (over-represented vs row × col / total)
 
-`crystal_shard.20260430T124311.setup-payoff-distance.rescored.json` — re-scored payoffs, with `distance_chapters_corrected` and `epilogue_artifact` flag on each pair.
+| Close | Open | obs | exp | delta | ratio | scope |
+|---|---|---|---|---|---|---|
+| partial-resolution | scene-set-description | 17 | 13.76 | +3.24 | 1.24 | All 3 books, mild lift |
+| **foreshadow** | **time-cut-announcement** | **3** | **0.83** | **+2.17** | **3.6** | **crystal_shard ONLY (3/0/0) — does NOT generalize** |
+| character-cost-pause | dialogue-first | 3 | 1.28 | +1.72 | 2.34 | All 3 books (1/1/1) — small but stable |
+| foreshadow | callback-or-summary | 2 | 0.50 | +1.50 | 4.0 | 2 books (cs=1, sos=1, hg=0) — partial |
+| cliffhanger | in-media-res-action | 4 | 2.69 | +1.31 | 1.49 | All 3 books (1/1/2) — stable mild lift |
+| character-cost-pause | in-media-res-action | 3 | 1.79 | +1.21 | 1.67 | 2 books (cs=1, sos=2, hg=0) |
+| cliffhanger | dialogue-first | 3 | 1.92 | +1.08 | 1.56 | 2 books (cs=0, sos=2, hg=1) |
+
+The single largest independence-outlier (`foreshadow → time-cut-announcement`, ratio 3.6, +2.17 absolute) is a **crystal_shard-only artifact** (3 instances in cs, 0 in sos, 0 in hg). Reading the unrescaled aggregate would tempt a planner-prompt rule "when the chapter foreshadows, open the next with a time-jump" — that rule is generated entirely by book 1 and would fail on books 2 and 3.
+
+### Conclusion + Action — Pattern 32: MIXED — ship the negative rules and one positive rule
+
+**Directional verdict.** Salvatore does **not** chain chapter closes to specific opener types in a strongly book-stable way. The dominant story in the data is that `scene-set-description` is the default chapter-opener (47% marginal) regardless of how the previous chapter closed, and most "top transitions" are just compounding marginals. The genuinely directional, cross-book-stable signals are smaller and more specific:
+
+**Positive rules worth shipping (cross-book stable, lift over marginal):**
+1. **`character-cost-pause → dialogue-first`** — 30% conditional vs 12.8% marginal (+17.2pp, ratio 2.34). Stable: 1/1/1 across cs/sos/hg. When a chapter ends on a character paying an emotional or physical cost, Salvatore is 2.3× more likely than baseline to open the next chapter on dialogue. This is the highest-lift stable rule.
+2. **`cliffhanger → in-media-res-action`** — 26.7% conditional vs 17.9% marginal (+8.8pp, ratio 1.49). Stable: 1/1/2. A chapter ending on physical danger / interrupted threat tends toward an action open on the next chapter — consistent with the genre intuition but only modestly so (still ≤ scene-set-description for cliffhangers in absolute terms).
+3. **`partial-resolution → scene-set-description`** — 58.6% conditional vs 47.4% marginal (+11.2pp). Numerically dominant but lift is modest. This is the "standard" chapter-seam: resolve the current beat, ground the next chapter in setting before resuming. Worth flagging only as the default flow, not a strong rule.
+
+**Negative rules worth shipping (zero across all 3 books, expected ≥ 1.0 under independence):**
+1. **`foreshadow → in-media-res-action`** — 0/0/0, expected 2.33. **A chapter that closes by planting a future-pointer is never followed by a chapter that opens mid-action.** Salvatore wants the reader to sit with the foreshadow before the next collision — opens after foreshadow close are dominated by `scene-set-description` (53.8%) and `time-cut-announcement` (23.1%, in cs).
+2. **`partial-resolution → time-cut-announcement`** — 0/0/0, expected 1.86. Resolved chapters are never followed by explicit time-jump announcements. Time can elapse implicitly via setting changes, but the seam is never explicitly clocked.
+3. **`foreshadow → dialogue-first`** — 0/0/0, expected 1.67. Foreshadow is never followed by a chapter that drops into dialogue cold-open.
+
+**Recommended planner-prompt target — `chapter-outline-system.md`.** Add a "chapter-seam coherence" section to the planner prompt with two parts:
+
+> **Chapter-to-chapter transitions.** When you finalize a chapter outline, also commit to how the next chapter will open relative to how this one closes. Salvatore's pattern (Icewind Dale trilogy, n=78 transitions across 3 books):
+>
+> - **Default flow (no strong signal):** ~47% of chapters open with scene-set-description (grounding setting + character before action resumes). When in doubt, default to this opener type.
+> - **If this chapter closes on a character paying a cost** (sacrifice, hard choice, blow taken — `character-cost-pause`): the next chapter is ~2.3× more likely to open on dialogue than the default. The conversation often picks up the emotional aftermath without re-grounding the setting first.
+> - **If this chapter closes on a cliffhanger** (interrupted action, immediate physical danger): the next chapter is ~1.5× more likely to open mid-action (`in-media-res-action`). But scene-set-description is still common (33%) — Salvatore frequently lets the reader breathe with description before the cliffhanger payoff.
+> - **If this chapter closes on a foreshadow** (planted future-pointer the reader will see paid off): do NOT open the next chapter mid-action and do NOT open with dialogue-first. Salvatore's pattern is description (54%), time-cut announcement (23%, e.g., "Three days later…"), or callback/summary (15%) — the reader needs space to sit with the foreshadow before the next collision.
+> - **If this chapter closes on a partial-resolution** (the most common close type, 37% of chapters — main beat resolved, larger arc still open): do NOT chain it to an explicit time-cut announcement. Time may elapse, but the seam is implicit (achieved via setting change in a `scene-set-description` opener) rather than announced.
+>
+> When the close-type is `question`, `time-cut`, or `other`, no strong directional rule applies — default to `scene-set-description`.
+
+This is a **soft prior**, not a hard constraint. The negative rules ("never X → Y") are worth ranking-down at planner-time. The positive rules are worth surfacing as preferences when the planner is choosing the next chapter's opener. The "default flow" framing is the most honest reading of the data: Salvatore's chapter seams are dominated by the opener marginal, with two or three real directional rules layered on top.
+
+**Do not ship as a hard rule:** the `foreshadow → time-cut-announcement` lift (ratio 3.6, the strongest independence outlier in the aggregate) is a `crystal_shard`-only artifact (3 in cs, 0 in sos+hg). If a future planner-prompt rule references it, it must be flagged as book-1-only and dropped from any cross-book training corpus.
+
+### Files
+
+- `crystal_shard.20260430T123902.chapter-seam-transitions.json` — initial join checkpoint (matrix + per-book + top-10).
+- `crystal_shard.20260430T124052.chapter-seam-transitions.json` — final P32 deliverable (adds `directional_verdict` summary + `stable_positive_rules` + `stable_negative_rules` + `independence_audit`). Both files preserved per append-only rule; the `T124052` file is canonical.
 
 ---
-
