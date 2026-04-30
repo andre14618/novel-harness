@@ -231,6 +231,22 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ## Character Voice & Dialogue
 
+### Writer fine-tunes are fallback, not the strategic writer route
+*2026-04-30 · follows exp #265*
+
+**Decision:** Move away from writer-layer fine-tunes as the strategic path, even though Salvatore v4 remains the temporary production fallback. Future work should remediate the base-model route rather than run more Salvatore-vs-DeepSeek bake-offs designed to defend the LoRA.
+
+**Why:** The reason to leave writer fine-tunes is architectural, not just empirical: the writing layer increasingly needs complex prompt following, rich beat context, planner payoffs, character state constraints, and future context-engineering levers. A small writer LoRA trained on a narrow prompt shape is brittle when the harness evolves. Exp #265 did not prove base DeepSeek cannot replace the LoRA; it proved the migration path is blocked by route coupling and downstream corruption. Base DeepSeek was tested inside the LoRA-shaped compact route, while the approved prose was also contaminated by lint-fixer merge artifacts and planner/continuity failures.
+
+**Alternatives rejected:**
+- Keep iterating writer LoRAs until one follows the evolving harness prompt — rejected because each harness-context change reopens prompt-shape mismatch and retraining cost.
+- Treat exp #265 as proof that the LoRA must remain strategic — rejected because the run was not a clean base-route test.
+- Draft another voice-shaping charter now — rejected until route decoupling, lint integrity, and planner/continuity blockers are fixed.
+
+**Ongoing:** Salvatore v4 stays available only as an operational fallback. The remediation plan is `docs/writer-finetune-retirement-remediation-plan.md`: decouple genre packs from compact LoRA context, add a lint-fixer integrity guard, rerun base DeepSeek with rich/default context, then fix planner/continuity failure classes surfaced by exp #265.
+
+---
+
 ### Track A did not retire the Salvatore writer LoRA
 *2026-04-30 · exp #265 · novel `novel-1777573197451`*
 
