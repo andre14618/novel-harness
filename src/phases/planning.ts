@@ -2,7 +2,9 @@ import { type ChapterOutline } from "../types"
 import {
   getNovel, getWorldBible, getCharacters, getStorySpine,
   saveChapterOutline, updateTotalChapters, updatePhase,
+  getChapterOutlines,
 } from "../db"
+import type { Phase, PhaseResult, PlanningOutput, ConceptOutput } from "./contract"
 import { callAgent } from "../llm"
 import { PLANNING_PLOTTER_PROMPT } from "../prompts"
 import { buildContext as buildPlanningContext } from "../agents/planning-plotter/context"
@@ -14,7 +16,12 @@ import { emit } from "../events"
 import { log } from "../logger"
 import * as harness from "../harness"
 
-export async function runPlanningPhase(novelId: string): Promise<void> {
+/** Planning phase implementation. Kept exported for scripts that compose
+ *  phases outside the runNovel driver (3 callers:
+ *  scripts/fork-writer-test.ts, fork-writer-v4-llama.ts,
+ *  test-planner-isolated.ts). Driver consumers should use `planningPhase`
+ *  (the Phase<I,O> wrapper) instead. */
+export async function runPlanningPhase(novelId: string): Promise<PhaseResult<PlanningOutput>> {
   displayPhaseHeader("Planning — Creating chapter-by-chapter outline")
   log(novelId, "info", "Planning phase started")
   emit(novelId, { type: "phase:changed", data: { phase: "planning" } })
@@ -166,10 +173,43 @@ export async function runPlanningPhase(novelId: string): Promise<void> {
   await updateTotalChapters(novelId, chapters.length)
   log(novelId, "checkpoint", `${chapters.length} chapter outlines saved`)
 
-  await updatePhase(novelId, "drafting")
-  emit(novelId, { type: "phase:changed", data: { phase: "drafting" } })
+  // P6b1: phase transition is driver-owned.
   log(novelId, "checkpoint", "Planning phase complete → drafting")
   console.log("\n  Planning phase complete. Advancing to Drafting.\n")
+
+  const output = await loadPlanningOutput(novelId)
+  return { kind: "complete", output }
+}
+
+/** Reconstruct PlanningOutput from chapter_outlines. Called on resume by
+ *  the typed driver (P6b1+). Only invoked when novel.phase has advanced
+ *  past planning — at that point chapter_outlines must contain the full
+ *  set per `updateTotalChapters`. */
+export async function loadPlanningOutput(novelId: string): Promise<PlanningOutput> {
+  const outlines = await getChapterOutlines(novelId)
+  return {
+    totalChapters: outlines.length,
+    chapters: outlines.map(o => ({
+      number: o.chapterNumber,
+      title: o.title,
+      targetWords: o.targetWords ?? 0,
+      beatCount: o.scenes?.length ?? 0,
+    })),
+  }
+}
+
+/** P3 — Phase<ConceptOutput, PlanningOutput> wrapper. Not yet consumed by
+ *  the state-machine; P6b1 flips the driver to use it. */
+export const planningPhase: Phase<ConceptOutput, PlanningOutput> = {
+  name: "planning",
+  async run(_input, ctx) {
+    // Planning re-queries DB for predecessor artifacts (worldBible, characters,
+    // spine) — the typed input is just a completion signal from Concept.
+    return runPlanningPhase(ctx.novelId)
+  },
+  async loadOutput(novelId) {
+    return loadPlanningOutput(novelId)
+  },
 }
 
 async function expandChapter(

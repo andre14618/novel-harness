@@ -1,57 +1,84 @@
-import { getNovel } from "./db"
-import { runConceptPhase } from "./phases/concept"
-import { runPlanningPhase } from "./phases/planning"
-import { runDraftingPhase } from "./phases/drafting"
-import { runValidationPhase } from "./phases/validation"
+import { getNovel, updatePhase } from "./db"
+import { conceptPhase, loadConceptOutput } from "./phases/concept"
+import { planningPhase, loadPlanningOutput } from "./phases/planning"
+import { draftingPhase, loadDraftingOutput, effectivePipeline } from "./phases/drafting"
+import { validationPhase, loadValidationOutput } from "./phases/validation"
 import { getTokenUsage } from "./llm"
 import { emit } from "./events"
-import { pipeline } from "./config/pipeline"
+import { log } from "./logger"
 import { trace } from "./trace"
 import db from "./db/connection"
+import type { Phase, PhaseCtx, PhaseName, PhaseResult } from "./phases/contract"
 
-export async function runNovel(novelId: string): Promise<void> {
+// runNovel return shape. P6b2 promotes paused from "loop forever waiting for
+// progress" to "exit cleanly and let the caller decide whether to resume."
+export type RunOutcome =
+  | { outcome: "complete" }
+  | { outcome: "paused"; phase: PhaseName; reason: string }
+
+// ── Typed driver wiring ────────────────────────────────────────────────────
+
+type AnyPhase = Phase<unknown, unknown>
+
+const PHASES: ReadonlyArray<AnyPhase> = [
+  conceptPhase as AnyPhase,
+  planningPhase as AnyPhase,
+  draftingPhase as AnyPhase,
+  validationPhase as AnyPhase,
+]
+
+const PHASE_INDEX: Record<string, number> = {
+  concept: 0, planning: 1, drafting: 2, validation: 3, done: 4,
+}
+
+const NEXT_PHASE: Record<PhaseName, "planning" | "drafting" | "validation" | "done"> = {
+  concept: "planning",
+  planning: "drafting",
+  drafting: "validation",
+  validation: "done",
+}
+
+const LOADERS: Record<PhaseName, (novelId: string) => Promise<unknown>> = {
+  concept: loadConceptOutput,
+  planning: loadPlanningOutput,
+  drafting: loadDraftingOutput,
+  validation: loadValidationOutput,
+}
+
+// ── runNovel ───────────────────────────────────────────────────────────────
+
+export async function runNovel(novelId: string): Promise<RunOutcome> {
   const startedAt = Date.now()
   let novel = await getNovel(novelId)
-  let prevSignature = ""
-  let stuckCount = 0
+
+  // P6b1: build PhaseCtx once per runNovel; immutable for the duration of
+  // this invocation.
+  const ctx: PhaseCtx = {
+    novelId,
+    seed: novel.seed,
+    pipeline: effectivePipeline(novel.seed),
+  }
+
+  // Resume rehydration: for each Phase already complete, reconstruct its
+  // output from DB to feed the typed pipe forward. Idempotent and read-only;
+  // any throw here is fatal (the contract says loadOutput is only called when
+  // the phase has actually completed, so a thrown loader = schema-of-record
+  // violation, not a recoverable condition).
+  let pipe: unknown = novel.seed
+  const startIdx = PHASE_INDEX[novel.phase] ?? 0
+  for (let i = 0; i < startIdx; i++) {
+    pipe = await PHASES[i].loadOutput(novelId)
+  }
 
   while (novel.phase !== "done") {
-    // Detect a phase that re-dispatches without making progress (same phase + same chapter
-    // as the previous iteration). The inner retry loops have their own caps; this is the
-    // outer ceiling that prevents infinite spin if a phase keeps returning early.
-    const signature = `${novel.phase}:${novel.currentChapter}`
-    if (signature === prevSignature) {
-      stuckCount++
-      if (stuckCount > pipeline.maxPhaseRestarts) {
-        throw new Error(
-          `Phase "${novel.phase}" stuck at chapter ${novel.currentChapter} after ${stuckCount} restarts without progress. ` +
-          `Increase pipeline.maxPhaseRestarts or investigate why the phase is failing.`,
-        )
-      }
-      console.log(`  [state-machine] Phase "${novel.phase}" did not advance — restart ${stuckCount}/${pipeline.maxPhaseRestarts}`)
-    } else {
-      stuckCount = 0
-    }
-    prevSignature = signature
-
     const phaseStart = Date.now()
-    const currentPhase = novel.phase
+    const currentPhase = novel.phase as PhaseName
+    const idx = PHASE_INDEX[currentPhase]
+    const phase = PHASES[idx]
 
+    let result: PhaseResult<unknown>
     try {
-      switch (novel.phase) {
-        case "concept":
-          await runConceptPhase(novelId, novel.seed)
-          break
-        case "planning":
-          await runPlanningPhase(novelId)
-          break
-        case "drafting":
-          await runDraftingPhase(novelId)
-          break
-        case "validation":
-          await runValidationPhase(novelId)
-          break
-      }
+      result = await phase.run(pipe, ctx)
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       // Surface phase-level failure as both a trace event (so the Activity
@@ -72,7 +99,36 @@ export async function runNovel(novelId: string): Promise<void> {
       payload: { phase: currentPhase },
     })
 
+    if (result.kind === "paused") {
+      // P6b2: paused returns travel back to the caller. The novel's DB phase
+      // is unchanged — resume picks up where this phase left off. The outer
+      // busy-retry guard from P6b1 is removed; loop-spin protection now
+      // belongs to whoever decides to resume (orchestrator / operator).
+      log(novelId, "info", `[driver] phase ${currentPhase} paused: ${result.reason}`)
+      return { outcome: "paused", phase: currentPhase, reason: result.reason }
+    }
+
+    // Driver-owned phase transition. Pipe the typed output forward and
+    // advance novels.phase. The matching `phase:changed` emit happens on
+    // the next phase's own entry (preserving the current event surface).
+    pipe = result.output
+    const next = NEXT_PHASE[currentPhase]
+    await updatePhase(novelId, next)
+    emit(novelId, { type: "phase:changed", data: { phase: next } })
+
     novel = await getNovel(novelId)
+
+    // P6a (preserved through P6b1): exercise loadXOutput for the phase that
+    // just advanced. Read-only; loader output is discarded. Surfaces any
+    // loader bug or schema-of-record drift as a warn log.
+    if (novel.phase !== currentPhase) {
+      try {
+        await LOADERS[currentPhase](novelId)
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        log(novelId, "warn", `[P6a] ${currentPhase} loadOutput threw: ${msg}`)
+      }
+    }
   }
 
   const wallMs = Date.now() - startedAt
@@ -87,6 +143,8 @@ export async function runNovel(novelId: string): Promise<void> {
   await printRunSummary(novelId, wallMs, usage)
 
   emit(novelId, { type: "done", data: { novelId, tokens: usage } })
+
+  return { outcome: "complete" }
 }
 
 function formatDuration(ms: number): string {

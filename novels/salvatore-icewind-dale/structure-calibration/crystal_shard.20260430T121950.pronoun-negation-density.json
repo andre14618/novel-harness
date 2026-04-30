@@ -1,0 +1,648 @@
+{
+  "pattern_number": 57,
+  "pattern_name": "Pronoun density + negation density",
+  "timestamp": "20260430T121950",
+  "commit": "a3da6d1",
+  "lexicons": {
+    "pronoun": {
+      "subject": [
+        "he",
+        "she",
+        "it",
+        "they",
+        "we",
+        "you"
+      ],
+      "object": [
+        "him",
+        "her",
+        "them",
+        "me",
+        "us"
+      ],
+      "possessive": [
+        "his",
+        "hers",
+        "its",
+        "their",
+        "theirs",
+        "my",
+        "mine",
+        "our",
+        "ours",
+        "your",
+        "yours"
+      ],
+      "reflexive": [
+        "himself",
+        "herself",
+        "itself",
+        "themselves",
+        "myself",
+        "ourselves",
+        "yourself",
+        "yourselves"
+      ]
+    },
+    "first_person_subject_case_sensitive": [
+      "I"
+    ],
+    "negation_tokens": [
+      "no",
+      "not",
+      "never",
+      "none",
+      "neither",
+      "nothing",
+      "nobody",
+      "nowhere",
+      "nor"
+    ],
+    "negation_contraction_suffix": [
+      "n't (matches \"<stem>n't\")"
+    ]
+  },
+  "beats_path": "novels/salvatore-icewind-dale/beats.jsonl",
+  "books": [
+    "crystal_shard",
+    "halflings_gem",
+    "streams_of_silver"
+  ],
+  "active_kinds": [
+    "action",
+    "dialogue",
+    "interiority",
+    "description"
+  ],
+  "skipped_beats": 1,
+  "per_book_per_kind_count": {
+    "crystal_shard/description": 130,
+    "crystal_shard/interiority": 177,
+    "crystal_shard/action": 308,
+    "crystal_shard/dialogue": 242,
+    "halflings_gem/description": 79,
+    "halflings_gem/interiority": 159,
+    "halflings_gem/dialogue": 279,
+    "halflings_gem/action": 309,
+    "streams_of_silver/description": 94,
+    "streams_of_silver/interiority": 162,
+    "streams_of_silver/dialogue": 256,
+    "streams_of_silver/action": 274
+  },
+  "per_book_per_kind_words": {
+    "crystal_shard/description": 13443,
+    "crystal_shard/interiority": 18782,
+    "crystal_shard/action": 32318,
+    "crystal_shard/dialogue": 25358,
+    "halflings_gem/description": 8527,
+    "halflings_gem/interiority": 16964,
+    "halflings_gem/dialogue": 29626,
+    "halflings_gem/action": 31774,
+    "streams_of_silver/description": 10592,
+    "streams_of_silver/interiority": 18058,
+    "streams_of_silver/dialogue": 27835,
+    "streams_of_silver/action": 29385
+  },
+  "per_book_word_total": {
+    "crystal_shard": 89901,
+    "halflings_gem": 86891,
+    "streams_of_silver": 85870
+  },
+  "mean_density_per_100w": {
+    "pronoun_per_category": {
+      "crystal_shard": {
+        "description": {
+          "subject": 2.61702918992179,
+          "object": 0.5918133679420567,
+          "possessive": 2.6317405008456767,
+          "reflexive": 0.15924726034557546
+        },
+        "interiority": {
+          "subject": 4.698135467357241,
+          "object": 1.171692900820163,
+          "possessive": 3.449759323741412,
+          "reflexive": 0.22288643506510886
+        },
+        "action": {
+          "subject": 4.435668055790603,
+          "object": 1.086674074579286,
+          "possessive": 3.773279258024493,
+          "reflexive": 0.16911685772651425
+        },
+        "dialogue": {
+          "subject": 6.575575939109854,
+          "object": 1.5261926858288588,
+          "possessive": 3.255685128143366,
+          "reflexive": 0.13850663356583137
+        }
+      },
+      "halflings_gem": {
+        "description": {
+          "subject": 2.720852874732055,
+          "object": 1.082505136693562,
+          "possessive": 2.9019557775817155,
+          "reflexive": 0.2021974680217629
+        },
+        "interiority": {
+          "subject": 4.298375387540686,
+          "object": 1.6739776173820107,
+          "possessive": 3.2652264663950366,
+          "reflexive": 0.24630223711014823
+        },
+        "dialogue": {
+          "subject": 6.626778757623009,
+          "object": 2.175426341861647,
+          "possessive": 3.3479367744091943,
+          "reflexive": 0.10856550446228683
+        },
+        "action": {
+          "subject": 4.2504799506954045,
+          "object": 1.7491361585476282,
+          "possessive": 3.688276368735618,
+          "reflexive": 0.21210419656917845
+        }
+      },
+      "streams_of_silver": {
+        "description": {
+          "subject": 2.9235192339757896,
+          "object": 1.4214077357178407,
+          "possessive": 2.8415484419241586,
+          "reflexive": 0.11604413237842183
+        },
+        "interiority": {
+          "subject": 4.934885485938036,
+          "object": 2.168682106638613,
+          "possessive": 3.3379262453761114,
+          "reflexive": 0.2537339467749195
+        },
+        "dialogue": {
+          "subject": 7.234560668817559,
+          "object": 2.5126647134763296,
+          "possessive": 3.5932280658173354,
+          "reflexive": 0.1955995552788278
+        },
+        "action": {
+          "subject": 4.808048915195237,
+          "object": 2.3515641205182027,
+          "possessive": 3.943785912353035,
+          "reflexive": 0.17292447239236355
+        }
+      }
+    },
+    "pronoun_total": {
+      "crystal_shard": {
+        "description": 5.999830319055099,
+        "interiority": 9.542474126983924,
+        "action": 9.464738246120897,
+        "dialogue": 11.49596038664791
+      },
+      "halflings_gem": {
+        "description": 6.907511257029095,
+        "interiority": 9.483881708427882,
+        "dialogue": 12.258707378356137,
+        "action": 9.899996674547829
+      },
+      "streams_of_silver": {
+        "description": 7.302519543996211,
+        "interiority": 10.695227784727681,
+        "dialogue": 13.536053003390052,
+        "action": 11.276323420458839
+      }
+    },
+    "negation_total": {
+      "crystal_shard": {
+        "description": 0.7013780342403139,
+        "interiority": 1.3947770529314567,
+        "action": 1.0467459548871345,
+        "dialogue": 1.5442384646720038
+      },
+      "halflings_gem": {
+        "description": 0.9531384723194406,
+        "interiority": 1.4561912059088982,
+        "dialogue": 1.683022329258163,
+        "action": 1.0079526235626748
+      },
+      "streams_of_silver": {
+        "description": 1.0467598911683944,
+        "interiority": 1.8035605696237176,
+        "dialogue": 1.9906446129081186,
+        "action": 1.2226336107103382
+      }
+    }
+  },
+  "pooled_density_per_100w": {
+    "pronoun_per_category": {
+      "crystal_shard": {
+        "description": {
+          "subject": 2.655657219370676,
+          "object": 0.5802276277616604,
+          "possessive": 2.640779587889608,
+          "reflexive": 0.15621513055121625
+        },
+        "interiority": {
+          "subject": 4.653391545096369,
+          "object": 1.1553615163454372,
+          "possessive": 3.476733042274518,
+          "reflexive": 0.21829411138323926
+        },
+        "action": {
+          "subject": 4.502135033108485,
+          "object": 1.098459063060833,
+          "possessive": 3.815211337335231,
+          "reflexive": 0.17018379850238258
+        },
+        "dialogue": {
+          "subject": 6.692168152062465,
+          "object": 1.5734679391119173,
+          "possessive": 3.3204511396797853,
+          "reflexive": 0.14196703210032338
+        }
+      },
+      "halflings_gem": {
+        "description": {
+          "subject": 2.755951682889645,
+          "object": 1.0906532191861147,
+          "possessive": 2.943590946405535,
+          "reflexive": 0.19936671748563387
+        },
+        "interiority": {
+          "subject": 4.368073567554822,
+          "object": 1.6918179674605045,
+          "possessive": 3.2539495402027825,
+          "reflexive": 0.2534779533128979
+        },
+        "dialogue": {
+          "subject": 6.723823668399379,
+          "object": 2.1805171133463848,
+          "possessive": 3.4125430365219738,
+          "reflexive": 0.11476405859717816
+        },
+        "action": {
+          "subject": 4.314848618367218,
+          "object": 1.7750361931138667,
+          "possessive": 3.7546421602568136,
+          "reflexive": 0.21086422861459053
+        }
+      },
+      "streams_of_silver": {
+        "description": {
+          "subject": 2.936178247734139,
+          "object": 1.4161631419939578,
+          "possessive": 2.8700906344410875,
+          "reflexive": 0.12273413897280967
+        },
+        "interiority": {
+          "subject": 5.0116291948167015,
+          "object": 2.165245320633514,
+          "possessive": 3.4444567504707053,
+          "reflexive": 0.2547347436039428
+        },
+        "dialogue": {
+          "subject": 7.44745823603377,
+          "object": 2.514819471887911,
+          "possessive": 3.696784623675229,
+          "reflexive": 0.20118555775103286
+        },
+        "action": {
+          "subject": 4.869831546707504,
+          "object": 2.358346094946401,
+          "possessive": 4.059894503998639,
+          "reflexive": 0.1803641313595372
+        }
+      }
+    },
+    "pronoun_total": {
+      "crystal_shard": {
+        "description": 6.032879565573161,
+        "interiority": 9.503780215099564,
+        "action": 9.58598923200693,
+        "dialogue": 11.728054262954492
+      },
+      "halflings_gem": {
+        "description": 6.989562565966929,
+        "interiority": 9.567319028531006,
+        "dialogue": 12.431647876864917,
+        "action": 10.05539120035249
+      },
+      "streams_of_silver": {
+        "description": 7.345166163141994,
+        "interiority": 10.876066009524864,
+        "dialogue": 13.860247889347944,
+        "action": 11.468436277012081
+      }
+    },
+    "negation_total": {
+      "crystal_shard": {
+        "description": 0.7141263110912742,
+        "interiority": 1.4002768608241933,
+        "action": 1.061328052478495,
+        "dialogue": 1.5734679391119173
+      },
+      "halflings_gem": {
+        "description": 0.9381963175794535,
+        "interiority": 1.4619193586418298,
+        "dialogue": 1.7045838115169107,
+        "action": 1.025996097438157
+      },
+      "streams_of_silver": {
+        "description": 1.0574018126888218,
+        "interiority": 1.8551334588548012,
+        "dialogue": 2.019040776001437,
+        "action": 1.252339629062447
+      }
+    },
+    "negation_token_only": {
+      "crystal_shard": {
+        "description": 0.5504723647995239,
+        "interiority": 1.0542008305824726,
+        "action": 0.7302432081193143,
+        "dialogue": 1.2422115308778294
+      },
+      "halflings_gem": {
+        "description": 0.832649231851765,
+        "interiority": 1.1848620608347087,
+        "dialogue": 1.5121852426922298,
+        "action": 0.837162459872852
+      },
+      "streams_of_silver": {
+        "description": 0.9724320241691843,
+        "interiority": 1.484106767083841,
+        "dialogue": 1.7783366265493084,
+        "action": 0.9868980772502978
+      }
+    },
+    "negation_nt_only": {
+      "crystal_shard": {
+        "description": 0.16365394629175034,
+        "interiority": 0.3460760302417208,
+        "action": 0.3310848443591806,
+        "dialogue": 0.33125640823408786
+      },
+      "halflings_gem": {
+        "description": 0.10554708572768852,
+        "interiority": 0.27705729780712096,
+        "dialogue": 0.192398568824681,
+        "action": 0.18883363756530497
+      },
+      "streams_of_silver": {
+        "description": 0.08496978851963746,
+        "interiority": 0.37102669177096026,
+        "dialogue": 0.24070414945212862,
+        "action": 0.26544155181214907
+      }
+    }
+  },
+  "pronoun_kind_ranking": {
+    "crystal_shard": [
+      {
+        "kind": "dialogue",
+        "mean_density_per_100w": 11.496
+      },
+      {
+        "kind": "interiority",
+        "mean_density_per_100w": 9.5425
+      },
+      {
+        "kind": "action",
+        "mean_density_per_100w": 9.4647
+      },
+      {
+        "kind": "description",
+        "mean_density_per_100w": 5.9998
+      }
+    ],
+    "halflings_gem": [
+      {
+        "kind": "dialogue",
+        "mean_density_per_100w": 12.2587
+      },
+      {
+        "kind": "action",
+        "mean_density_per_100w": 9.9
+      },
+      {
+        "kind": "interiority",
+        "mean_density_per_100w": 9.4839
+      },
+      {
+        "kind": "description",
+        "mean_density_per_100w": 6.9075
+      }
+    ],
+    "streams_of_silver": [
+      {
+        "kind": "dialogue",
+        "mean_density_per_100w": 13.5361
+      },
+      {
+        "kind": "action",
+        "mean_density_per_100w": 11.2763
+      },
+      {
+        "kind": "interiority",
+        "mean_density_per_100w": 10.6952
+      },
+      {
+        "kind": "description",
+        "mean_density_per_100w": 7.3025
+      }
+    ]
+  },
+  "negation_kind_ranking": {
+    "crystal_shard": [
+      {
+        "kind": "dialogue",
+        "mean_density_per_100w": 1.5442
+      },
+      {
+        "kind": "interiority",
+        "mean_density_per_100w": 1.3948
+      },
+      {
+        "kind": "action",
+        "mean_density_per_100w": 1.0467
+      },
+      {
+        "kind": "description",
+        "mean_density_per_100w": 0.7014
+      }
+    ],
+    "halflings_gem": [
+      {
+        "kind": "dialogue",
+        "mean_density_per_100w": 1.683
+      },
+      {
+        "kind": "interiority",
+        "mean_density_per_100w": 1.4562
+      },
+      {
+        "kind": "action",
+        "mean_density_per_100w": 1.008
+      },
+      {
+        "kind": "description",
+        "mean_density_per_100w": 0.9531
+      }
+    ],
+    "streams_of_silver": [
+      {
+        "kind": "dialogue",
+        "mean_density_per_100w": 1.9906
+      },
+      {
+        "kind": "interiority",
+        "mean_density_per_100w": 1.8036
+      },
+      {
+        "kind": "action",
+        "mean_density_per_100w": 1.2226
+      },
+      {
+        "kind": "description",
+        "mean_density_per_100w": 1.0468
+      }
+    ]
+  },
+  "pronoun_kind_ordering_verdict": {
+    "verdict": "PASS_PARTIAL_TOP1",
+    "per_book_top2": {
+      "crystal_shard": [
+        "dialogue",
+        "interiority"
+      ],
+      "halflings_gem": [
+        "dialogue",
+        "action"
+      ],
+      "streams_of_silver": [
+        "dialogue",
+        "action"
+      ]
+    },
+    "per_book_top1": {
+      "crystal_shard": "dialogue",
+      "halflings_gem": "dialogue",
+      "streams_of_silver": "dialogue"
+    },
+    "agree_top2": 1,
+    "agree_top1": 3
+  },
+  "negation_kind_ordering_verdict": {
+    "verdict": "PASS",
+    "per_book_top2": {
+      "crystal_shard": [
+        "dialogue",
+        "interiority"
+      ],
+      "halflings_gem": [
+        "dialogue",
+        "interiority"
+      ],
+      "streams_of_silver": [
+        "dialogue",
+        "interiority"
+      ]
+    },
+    "per_book_top1": {
+      "crystal_shard": "dialogue",
+      "halflings_gem": "dialogue",
+      "streams_of_silver": "dialogue"
+    },
+    "agree_top2": 3,
+    "agree_top1": 3
+  },
+  "pronoun_per_kind_density_stability": {
+    "action": {
+      "values": {
+        "crystal_shard": 9.4647,
+        "halflings_gem": 9.9,
+        "streams_of_silver": 11.2763
+      },
+      "spread_pct": 0.1607,
+      "stable_le_25pct": true
+    },
+    "dialogue": {
+      "values": {
+        "crystal_shard": 11.496,
+        "halflings_gem": 12.2587,
+        "streams_of_silver": 13.5361
+      },
+      "spread_pct": 0.1507,
+      "stable_le_25pct": true
+    },
+    "interiority": {
+      "values": {
+        "crystal_shard": 9.5425,
+        "halflings_gem": 9.4839,
+        "streams_of_silver": 10.6952
+      },
+      "spread_pct": 0.1133,
+      "stable_le_25pct": true
+    },
+    "description": {
+      "values": {
+        "crystal_shard": 5.9998,
+        "halflings_gem": 6.9075,
+        "streams_of_silver": 7.3025
+      },
+      "spread_pct": 0.1784,
+      "stable_le_25pct": true
+    }
+  },
+  "negation_per_kind_density_stability": {
+    "action": {
+      "values": {
+        "crystal_shard": 1.0467,
+        "halflings_gem": 1.008,
+        "streams_of_silver": 1.2226
+      },
+      "spread_pct": 0.1756,
+      "stable_le_25pct": true
+    },
+    "dialogue": {
+      "values": {
+        "crystal_shard": 1.5442,
+        "halflings_gem": 1.683,
+        "streams_of_silver": 1.9906
+      },
+      "spread_pct": 0.2243,
+      "stable_le_25pct": true
+    },
+    "interiority": {
+      "values": {
+        "crystal_shard": 1.3948,
+        "halflings_gem": 1.4562,
+        "streams_of_silver": 1.8036
+      },
+      "spread_pct": 0.2267,
+      "stable_le_25pct": true
+    },
+    "description": {
+      "values": {
+        "crystal_shard": 0.7014,
+        "halflings_gem": 0.9531,
+        "streams_of_silver": 1.0468
+      },
+      "spread_pct": 0.33,
+      "stable_le_25pct": false
+    }
+  },
+  "book_level_pronoun_total_density_per_100w": {
+    "crystal_shard": 9.6417,
+    "halflings_gem": 10.4694,
+    "streams_of_silver": 11.6106
+  },
+  "book_level_negation_total_density_per_100w": {
+    "crystal_shard": 1.2247,
+    "halflings_gem": 1.3339,
+    "streams_of_silver": 1.6036
+  },
+  "book_level_pearson_pronoun_vs_negation": 0.989,
+  "beat_level_pearson_pronoun_vs_negation": {
+    "crystal_shard": 0.3556,
+    "halflings_gem": 0.3675,
+    "streams_of_silver": 0.5234
+  },
+  "composite_verdict": "PASS_PARTIAL"
+}

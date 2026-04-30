@@ -1,0 +1,382 @@
+{
+  "computedAt": "2026-04-30T11:53:53.404Z",
+  "description": "Directional reproduction analysis of original 7 cross-book patterns. APPENDS to (does not replace) the point-estimate analysis at crystal_shard.20260430T113810.original-7-patterns-cross-book.json.",
+  "rationale": "Point-estimate ±20% gate is the right question for checker-side distributional priors but wrong for planner-prompt scaffolding. Planner prompts encode directional priors (ordering, modal class, sign-of-effect). This analysis re-scores the same per-book data under the directional gate.",
+  "source_file": "/Users/andre/Desktop/personal_projects/novel-harness/novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T113810.original-7-patterns-cross-book.json",
+  "source_ship_gate": "PASS = within ±20% across all 3 books; DRIFT = within ±30%; DIVERGE = outside ±30%",
+  "directional_ship_gate": "PASS = ranking matches across all 3 books OR modal class matches across all 3 books with ranking stable in top positions; PASS_MODAL_ONLY = modal class agrees, secondary ordering varies; DIVERGE = modal class differs",
+  "per_pattern_verdicts": {
+    "pattern_1_length_distribution": {
+      "point_estimate_verdict": "PASS",
+      "directional_verdict": "PASS",
+      "notes": "Already passes both gates. Beats/ch median: 24 / 28 / 27; words/ch median: 2534 / 3110 / 2890."
+    },
+    "pattern_2_beat_kind_distribution": {
+      "point_estimate_verdict": "DIVERGE",
+      "directional_verdict": "PASS",
+      "ranking_stability": {
+        "agree": true,
+        "details": "top-4 matches across books: action > dialogue > interiority > description"
+      },
+      "modal_class_agreement": {
+        "agree": true,
+        "details": "modal classes per book: action / action / action"
+      },
+      "per_book_rankings": [
+        {
+          "book": "crystal_shard",
+          "ranking": [
+            "action",
+            "dialogue",
+            "interiority",
+            "description"
+          ]
+        },
+        {
+          "book": "streams_of_silver",
+          "ranking": [
+            "action",
+            "dialogue",
+            "interiority",
+            "description"
+          ]
+        },
+        {
+          "book": "halflings_gem",
+          "ranking": [
+            "action",
+            "dialogue",
+            "interiority",
+            "description"
+          ]
+        }
+      ],
+      "notes": "Planner-prompt-relevant question: is action the dominant beat kind in the genre? If yes (modal class agrees) the directional prior holds even if exact rates jiggle."
+    },
+    "pattern_3_opener_closer_kinds": {
+      "point_estimate_verdict": "DIVERGE",
+      "directional_verdict_opener": "PASS_MODAL_ONLY",
+      "directional_verdict_closer": "DIVERGE",
+      "opener_modal_agreement": {
+        "agree": true,
+        "details": "modal classes per book: description / description / description"
+      },
+      "opener_ranking_stability": {
+        "agree": false,
+        "details": "position 3 differs: interiority / interiority / dialogue"
+      },
+      "closer_modal_agreement": {
+        "agree": false,
+        "details": "modal classes per book: action / dialogue / action"
+      },
+      "closer_ranking_stability": {
+        "agree": false,
+        "details": "position 1 differs: action / dialogue / action"
+      },
+      "per_book_opener_rankings": [
+        {
+          "book": "crystal_shard",
+          "ranking": [
+            "description",
+            "action",
+            "interiority",
+            "dialogue"
+          ]
+        },
+        {
+          "book": "streams_of_silver",
+          "ranking": [
+            "description",
+            "action",
+            "interiority",
+            "dialogue"
+          ]
+        },
+        {
+          "book": "halflings_gem",
+          "ranking": [
+            "description",
+            "action",
+            "dialogue",
+            "interiority"
+          ]
+        }
+      ],
+      "per_book_closer_rankings": [
+        {
+          "book": "crystal_shard",
+          "ranking": [
+            "action",
+            "interiority",
+            "dialogue",
+            "description"
+          ]
+        },
+        {
+          "book": "streams_of_silver",
+          "ranking": [
+            "dialogue",
+            "action",
+            "interiority",
+            "description"
+          ]
+        },
+        {
+          "book": "halflings_gem",
+          "ranking": [
+            "action",
+            "interiority",
+            "dialogue",
+            "description"
+          ]
+        }
+      ]
+    },
+    "pattern_4_position_effects": {
+      "point_estimate_verdict": "DIVERGE",
+      "directional_verdict": "PASS_PARTIAL",
+      "trends_by_kind": {
+        "action": {
+          "per_book_q0_to_q4": [
+            {
+              "book": "crystal_shard",
+              "sequence": [
+                35,
+                37.9,
+                28.3,
+                37.9,
+                39.7
+              ]
+            },
+            {
+              "book": "streams_of_silver",
+              "sequence": [
+                27,
+                27.2,
+                35.3,
+                39.7,
+                44.6
+              ]
+            },
+            {
+              "book": "halflings_gem",
+              "sequence": [
+                32.4,
+                36,
+                38.7,
+                43.5,
+                36.9
+              ]
+            }
+          ],
+          "sign_of_effect": {
+            "agree": true,
+            "details": "trends per book: rising / rising / rising"
+          }
+        },
+        "dialogue": {
+          "per_book_q0_to_q4": [
+            {
+              "book": "crystal_shard",
+              "sequence": [
+                17.5,
+                27.2,
+                37.7,
+                29.6,
+                29.9
+              ]
+            },
+            {
+              "book": "streams_of_silver",
+              "sequence": [
+                30.1,
+                41.1,
+                30.7,
+                33.8,
+                28
+              ]
+            },
+            {
+              "book": "halflings_gem",
+              "sequence": [
+                33.5,
+                37.3,
+                31.6,
+                34.8,
+                31.8
+              ]
+            }
+          ],
+          "sign_of_effect": {
+            "agree": false,
+            "details": "trends per book: rising / flat / flat"
+          }
+        },
+        "interiority": {
+          "per_book_q0_to_q4": [
+            {
+              "book": "crystal_shard",
+              "sequence": [
+                22.6,
+                21.9,
+                16.4,
+                20.1,
+                21.7
+              ]
+            },
+            {
+              "book": "streams_of_silver",
+              "sequence": [
+                21.5,
+                18.5,
+                24.2,
+                18.5,
+                20.2
+              ]
+            },
+            {
+              "book": "halflings_gem",
+              "sequence": [
+                19.1,
+                16.1,
+                20,
+                15.5,
+                25
+              ]
+            }
+          ],
+          "sign_of_effect": {
+            "agree": false,
+            "details": "trends per book: flat / flat / rising"
+          }
+        },
+        "description": {
+          "per_book_q0_to_q4": [
+            {
+              "book": "crystal_shard",
+              "sequence": [
+                24.9,
+                13,
+                17.6,
+                11.8,
+                8.7
+              ]
+            },
+            {
+              "book": "streams_of_silver",
+              "sequence": [
+                21.5,
+                13.2,
+                9.8,
+                7.9,
+                7.1
+              ]
+            },
+            {
+              "book": "halflings_gem",
+              "sequence": [
+                15,
+                10.6,
+                9.7,
+                6.2,
+                6.3
+              ]
+            }
+          ],
+          "sign_of_effect": {
+            "agree": true,
+            "details": "trends per book: falling / falling / falling"
+          }
+        }
+      },
+      "summary": "Sign-of-effect agreement: 2/4 kinds reproduce trend direction across all 3 books."
+    },
+    "pattern_7_boundary_signals": {
+      "point_estimate_verdict": "DIVERGE",
+      "directional_verdict": "DIVERGE",
+      "modal_class_agreement": {
+        "agree": false,
+        "details": "modal classes per book: pov_attention_shift / pov_attention_shift / action_shift"
+      },
+      "top_3_agreement": {
+        "agree": false,
+        "details": "top-3 sets per book — intersection size 1/3: pov_attention_shift"
+      },
+      "top_4_agreement": {
+        "agree": false,
+        "details": "top-4 sets per book — intersection size 3/4: pov_attention_shift, stakes_recalibration, action_shift"
+      },
+      "per_book_rankings": [
+        {
+          "book": "crystal_shard",
+          "ranking": [
+            "pov_attention_shift",
+            "stakes_recalibration",
+            "scene_start",
+            "action_shift",
+            "speaker_change"
+          ]
+        },
+        {
+          "book": "streams_of_silver",
+          "ranking": [
+            "pov_attention_shift",
+            "action_shift",
+            "stakes_recalibration",
+            "speaker_change",
+            "narration_to_dialogue"
+          ]
+        },
+        {
+          "book": "halflings_gem",
+          "ranking": [
+            "action_shift",
+            "pov_attention_shift",
+            "scene_start",
+            "stakes_recalibration",
+            "speaker_change"
+          ]
+        }
+      ]
+    },
+    "pattern_5_mice_rhythm": {
+      "point_estimate_verdict": "PARKED_SKIP_NO_DATA",
+      "directional_verdict": "PARKED_SKIP_NO_DATA",
+      "notes": "SoS/HG mice.jsonl absent; cross-book mice reproduction cannot be computed at any granularity."
+    },
+    "pattern_6_opens_closes": {
+      "point_estimate_verdict": "PARKED_SKIP_NO_DATA",
+      "directional_verdict": "PARKED_SKIP_NO_DATA",
+      "notes": "Same — depends on mice.jsonl."
+    }
+  },
+  "per_book_summary": [
+    {
+      "book": "crystal_shard",
+      "n_chapters": 34,
+      "n_beats": 858,
+      "kind_modal": "action",
+      "opener_modal": "description",
+      "closer_modal": "action",
+      "boundary_modal": "pov_attention_shift"
+    },
+    {
+      "book": "streams_of_silver",
+      "n_chapters": 29,
+      "n_beats": 786,
+      "kind_modal": "action",
+      "opener_modal": "description",
+      "closer_modal": "dialogue",
+      "boundary_modal": "pov_attention_shift"
+    },
+    {
+      "book": "halflings_gem",
+      "n_chapters": 29,
+      "n_beats": 826,
+      "kind_modal": "action",
+      "opener_modal": "description",
+      "closer_modal": "action",
+      "boundary_modal": "action_shift"
+    }
+  ]
+}

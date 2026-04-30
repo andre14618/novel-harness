@@ -19,7 +19,12 @@ Respond with ONLY valid JSON in this exact structure:
       "relationships": [{"characterName": "Other Character", "nature": "how they relate + the specific source of tension between them"}],
       "culturalBackground": [{"cultureName": "Name from world bible cultures", "relationship": "native|adopted|outsider|rebel|exile"}],
       "systemAwareness": [{"systemName": "Name from world bible systems", "level": "ignorant|rumors|aware|practitioner|expert", "perspective": "How they personally view/relate to this system"}],
-      "exampleLines": ["representative voiced line 1", "representative voiced line 2", "representative voiced line 3", "representative voiced line 4"]
+      "exampleLines": ["representative voiced line 1", "representative voiced line 2", "representative voiced line 3", "representative voiced line 4"],
+      "lie": "the false belief the character holds at the story's start",
+      "truth": "what they must learn or embody by the end",
+      "want": "their conscious external goal",
+      "need": "their internal deficiency the story forces them to confront",
+      "arc_resolution": "fulfilled|partial|tragic_inversion|static"
     }
   ]
 }
@@ -65,6 +70,24 @@ System awareness — how much each character knows about world systems (magic, r
 - "expert" — deep understanding, knows edge cases and exploits
 - Include a perspective for each: how they personally feel about the system. A practitioner might love or resent their abilities. An aware character might fear or envy practitioners.
 - EVERY character should have awareness entries for EVERY system in the world bible — even "ignorant" is meaningful information for the writer
+
+Character arc structure (LTWN — required for every named character):
+- `lie`: the false belief the character holds at the story's start (1 sentence, e.g. "Strength is the only protection worth having.")
+- `truth`: what the story will force them to embody by the end (1 sentence, e.g. "True strength is the courage to be vulnerable with the people who depend on you.")
+- `want`: the external goal they consciously pursue (1 phrase, e.g. "claim the Mithril Hall throne")
+- `need`: the internal deficiency the story forces them to confront (1 phrase, e.g. "accept that loyalty is not a debt to be repaid")
+- `arc_resolution`: one of —
+  - `fulfilled` — both want and need resolved by the ending
+  - `partial` — one resolved, the other deferred or unfulfilled
+  - `tragic_inversion` — the lie wins; want or need ends in failure or compromise
+  - `static` — character intentionally unchanged (antagonist with no internal arc, minor role)
+
+The lie/truth pair is the philosophical engine of the arc. The want/need pair is the dramatic engine. They should be distinct — `want` is what the character says they're after; `need` is what the story actually requires them to become.
+
+Distribution target (derived from corpus analysis, applies to a 5-8 named-character cast):
+- At least 1 character with `tragic_inversion` for dramatic contrast.
+- No more than 50% of named characters resolve as `fulfilled` — universal success deflates stakes.
+- A `static` arc is appropriate for antagonists or minor roles, not for the protagonist.
 
 Example lines — provide 4 representative dialogue lines this character would plausibly speak, each 8–25 words:
 - These are voice anchors the writer uses to match dialogue cadence, diction, dialect, and signature phrases.

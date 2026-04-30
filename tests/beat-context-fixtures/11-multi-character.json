@@ -1,0 +1,91 @@
+{
+  "description": "beat with three characters present, full mode (each gets its own snapshot block joined with blank lines)",
+  "input": {
+    "novelId": "test-novel-11",
+    "chapterNumber": 6,
+    "beatIndex": 0,
+    "outline": {
+      "chapterNumber": 6,
+      "title": "The Counsel",
+      "povCharacter": "Drizzt",
+      "setting": "Mithril Hall",
+      "purpose": "three-way conversation",
+      "scenes": [
+        {
+          "description": "Drizzt, Bruenor, and Catti-brie meet around the long table to plan.",
+          "characters": ["Drizzt", "Bruenor", "Catti-brie"],
+          "kind": "dialogue",
+          "requiredPayoffs": []
+        }
+      ],
+      "targetWords": 900,
+      "charactersPresent": ["Drizzt", "Bruenor", "Catti-brie"],
+      "establishedFacts": [],
+      "characterStateChanges": [],
+      "knowledgeChanges": []
+    },
+    "characters": [
+      {
+        "id": "drizzt-001",
+        "name": "Drizzt",
+        "role": "drow ranger",
+        "backstory": "",
+        "traits": [],
+        "speechPattern": "formal and measured",
+        "internalConflict": "torn between heritage and path",
+        "goals": "find belonging",
+        "fears": "",
+        "relationships": [],
+        "culturalBackground": [],
+        "systemAwareness": [],
+        "exampleLines": ["By the stars."]
+      },
+      {
+        "id": "bruenor-001",
+        "name": "Bruenor",
+        "role": "dwarf king",
+        "backstory": "",
+        "traits": [],
+        "speechPattern": "blunt, gruff",
+        "internalConflict": "duty versus desire",
+        "goals": "protect his clan",
+        "fears": "",
+        "relationships": [],
+        "culturalBackground": [],
+        "systemAwareness": [],
+        "exampleLines": ["By Moradin's beard, lad."]
+      },
+      {
+        "id": "catti-001",
+        "name": "Catti-brie",
+        "role": "warrior",
+        "backstory": "",
+        "traits": [],
+        "speechPattern": "warm with a Northland lilt",
+        "internalConflict": "loyal but restless",
+        "goals": "find her own road",
+        "fears": "",
+        "relationships": [],
+        "culturalBackground": [],
+        "systemAwareness": [],
+        "exampleLines": ["Aye, ye look like ye need a drink."]
+      }
+    ],
+    "characterStates": [],
+    "worldBible": {
+      "locations": [
+        {
+          "name": "Mithril Hall",
+          "description": "Ancestral dwarven stronghold.",
+          "sensoryDetails": "forge-warm air"
+        }
+      ]
+    },
+    "preResolvedRefs": {
+      "context": "",
+      "lookupCount": 0,
+      "llmUsed": false
+    },
+    "compactMode": false
+  }
+}

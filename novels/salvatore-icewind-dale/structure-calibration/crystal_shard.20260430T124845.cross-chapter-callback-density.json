@@ -1,0 +1,3579 @@
+{
+  "pattern": "41",
+  "name": "Cross-chapter callback density",
+  "computedAt": "2026-04-30T12:48:45.791537+00:00",
+  "corpus": "salvatore-icewind-dale",
+  "books": [
+    "crystal_shard",
+    "halflings_gem",
+    "streams_of_silver"
+  ],
+  "rationale": "Series-engineering vision (project_series_engineering_vision) targets multi-book novels where later chapters must remember earlier ones. P41 measures the corpus's actual cross-chapter callback rhythm: how often does a later chapter explicitly reference earlier-chapter content (named entities + time-progression markers)? Output drives a planner-prior on minimum 'callback density' per chapter, particularly toward act 3.",
+  "methodology": {
+    "named_entity_detection": "Capitalized-word tokens (regex [A-Za-z][A-Za-z'-]*) that appear at least once in non-sentence-initial position within the book. This is the standard mixed-case-prose heuristic for distinguishing proper nouns from sentence-leader common nouns. Hyphenated tokens are kept whole (Catti-brie, Cryshal-Tirith). Trailing possessive 's stripped. A defensive COMMON_LEADERS stopword list of ~140 sentence-initial words filters true stopwords (And/But/The/...) so they cannot enter the proper-noun pool.",
+    "first_appearance_index": "Per-book pass over all beats in document order; the chapter where each surviving proper-noun token first appears is its index entry. Subsequent appearances in any later chapter (chapter-sort-key strictly greater) are counted as callbacks.",
+    "callback_count_per_chapter": "distinct_prior_referents = count of distinct proper-noun tokens whose first-appearance chapter is strictly earlier than this chapter. prior_referent_occurrences = total occurrences (sums multiple mentions of the same earlier-chapter entity inside this chapter).",
+    "time_marker_detection": "Anchor-class regex over chapter `text`. Patterns require explicit prior-content scoping: yesterday, earlier, previously, last we saw, when last, weeks/days/months/years ago, since they had X, after their departure/arrival/encounter from Y, prior to their, as they had done, etc. Generic 'after'/'before' as preposition (after the door, before the wall) is NOT counted; only patterns where the token sits next to a narrative-time anchor.",
+    "callback_density_per_1k": "(distinct_prior_referents + time_marker_count) / chapter_words * 1000. Distinct entity referents (not occurrences) avoid double-counting multi-mention beats; time markers add the explicit-recall channel.",
+    "chapter_position_normalisation": "Per book: 'position_index' is the 0-based rank in the chapter_sort_key order (prelude \u2192 numerics \u2192 parts \u2192 epilogues). 'position_pct' = position_index / (n_chapters - 1) for n_chapters >= 2, else 0.0. Quartile bins are computed on position_pct: q1=[0,0.25), q2=[0.25,0.5), q3=[0.5,0.75), q4=[0.75,1.0].",
+    "tradeoffs": "Capitalized-token heuristic over-reports for hyphenated common nouns when they appear with sentence-medial capitalisation (rare in narrative prose but possible \u2014 e.g. 'Goblin-of-the-Tribe' as a chapter-label). Sub-tokens of compound proper nouns (e.g. 'Mithral' inside 'Mithral Hall') are tracked separately, which may inflate distinct-referent counts when they recur. We do NOT NER-coreference Drizzt with 'the drow', so pronoun-only references back to a prior-chapter character do NOT add to distinct_prior_referents \u2014 that is intentionally conservative (the planner consumer is interested in explicit textual hooks, not implicit ones)."
+  },
+  "per_book": {
+    "crystal_shard": {
+      "n_chapters": 34,
+      "n_chapters_eligible_for_callback": 33,
+      "n_proper_nouns_in_pool": 244,
+      "n_proper_nouns_with_first_chapter": 244,
+      "per_chapter": [
+        {
+          "chapter": "prelude",
+          "position_index": 0,
+          "position_pct": 0.0,
+          "quartile": "q1",
+          "words": 557,
+          "n_beats": 5,
+          "distinct_prior_referents": 0,
+          "prior_referent_occurrences": 0,
+          "time_marker_count": 1,
+          "time_marker_samples": [
+            "earlier"
+          ],
+          "callback_density_per_1k": 1.7953,
+          "top_callbacks": []
+        },
+        {
+          "chapter": 1,
+          "position_index": 1,
+          "position_pct": 0.0303,
+          "quartile": "q1",
+          "words": 1831,
+          "n_beats": 19,
+          "distinct_prior_referents": 0,
+          "prior_referent_occurrences": 0,
+          "time_marker_count": 1,
+          "time_marker_samples": [
+            "previously"
+          ],
+          "callback_density_per_1k": 0.5461,
+          "top_callbacks": []
+        },
+        {
+          "chapter": 2,
+          "position_index": 2,
+          "position_pct": 0.0606,
+          "quartile": "q1",
+          "words": 3338,
+          "n_beats": 29,
+          "distinct_prior_referents": 1,
+          "prior_referent_occurrences": 1,
+          "time_marker_count": 2,
+          "time_marker_samples": [
+            "since he had",
+            "once more"
+          ],
+          "callback_density_per_1k": 0.8987,
+          "top_callbacks": [
+            {
+              "entity": "Sea",
+              "occurrences": 1
+            }
+          ]
+        },
+        {
+          "chapter": 3,
+          "position_index": 3,
+          "position_pct": 0.0909,
+          "quartile": "q1",
+          "words": 3047,
+          "n_beats": 25,
+          "distinct_prior_referents": 3,
+          "prior_referent_occurrences": 3,
+          "time_marker_count": 2,
+          "time_marker_samples": [
+            "before he had",
+            "once more"
+          ],
+          "callback_density_per_1k": 1.641,
+          "top_callbacks": [
+            {
+              "entity": "Reghed",
+              "occurrences": 1
+            },
+            {
+              "entity": "Glacier",
+              "occurrences": 1
+            },
+            {
+              "entity": "Sea",
+              "occurrences": 1
+            }
+          ]
+        },
+        {
+          "chapter": 4,
+          "position_index": 4,
+          "position_pct": 0.1212,
+          "quartile": "q1",
+          "words": 2452,
+          "n_beats": 21,
+          "distinct_prior_referents": 4,
+          "prior_referent_occurrences": 13,
+          "time_marker_count": 2,
+          "time_marker_samples": [
+            "remembered the",
+            "once again"
+          ],
+          "callback_density_per_1k": 2.447,
+          "top_callbacks": [
+            {
+              "entity": "Morkai",
+              "occurrences": 5
+            },
+            {
+              "entity": "Dendybar",
+              "occurrences": 3
+            },
+            {
+              "entity": "Mottled",
+              "occurrences": 3
+            },
+            {
+              "entity": "Red",
+              "occurrences": 2
+            }
+          ]
+        },
+        {
+          "chapter": 5,
+          "position_index": 5,
+          "position_pct": 0.1515,
+          "quartile": "q1",
+          "words": 2231,
+          "n_beats": 11,
+          "distinct_prior_referents": 2,
+          "prior_referent_occurrences": 2,
+          "time_marker_count": 4,
+          "time_marker_samples": [
+            "long before",
+            "Earlier",
+            "long before",
+            "years ago"
+          ],
+          "callback_density_per_1k": 2.6894,
+          "top_callbacks": [
+            {
+              "entity": "Someday",
+              "occurrences": 1
+            },
+            {
+              "entity": "Battlehammer",
+              "occurrences": 1
+            }
+          ]
+        },
+        {
+          "chapter": 6,
+          "position_index": 6,
+          "position_pct": 0.1818,
+          "quartile": "q1",
+          "words": 3736,
+          "n_beats": 16,
+          "distinct_prior_referents": 3,
+          "prior_referent_occurrences": 5,
+          "time_marker_count": 3,
+          "time_marker_samples": [
+            "before he had",
+            "once again",
+            "once again"
+          ],
+          "callback_density_per_1k": 1.606,
+          "top_callbacks": [
+            {
+              "entity": "Calimport",
+              "occurrences": 3
+            },
+            {
+              "entity": "Pasha",
+              "occurrences": 1
+            },
+            {
+              "entity": "Pook",
+              "occurrences": 1
+            }
+          ]
+        },
+        {
+          "chapter": 7,
+          "position_index": 7,
+          "position_pct": 0.2121,
+          "quartile": "q1",
+          "words": 3619,
+          "n_beats": 28,
+          "distinct_prior_referents": 2,
+          "prior_referent_occurrences": 3,
+          "time_marker_count": 2,
+          "time_marker_samples": [
+            "hour earlier",
+            "once again"
+          ],
+          "callback_density_per_1k": 1.1053,
+          "top_callbacks": [
+            {
+              "entity": "Haalfdane",
+              "occurrences": 2
+            },
+            {
+              "entity": "Rumblebelly",
+              "occurrences": 1
+            }
+          ]
+        },
+        {
+          "chapter": 8,
+          "position_index": 8,
+          "position_pct": 0.2424,
+          "quartile": "q1",
+          "words": 3617,
+          "n_beats": 35,
+          "distinct_prior_referents": 3,
+          "prior_referent_occurrences": 7,
+          "time_marker_count": 1,
+          "time_marker_samples": [
+            "Before he had"
+          ],
+          "callback_density_per_1k": 1.1059,
+          "top_callbacks": [
+            {
+              "entity": "Haalfdane",
+              "occurrences": 5
+            },
+            {
+              "entity": "Wolf",
+              "occurrences": 1
+            },
+            {
+              "entity": "Rumblebelly",
+              "occurrences": 1
+            }
+          ]
+        },
+        {
+          "chapter": 9,
+          "position_index": 9,
+          "position_pct": 0.2727,
+          "quartile": "q2",
+          "words": 1905,
+          "n_beats": 13,
+          "distinct_prior_referents": 3,
+          "prior_referent_occurrences": 3,
+          "time_marker_count": 4,
+          "time_marker_samples": [
+            "since the Battle",
+            "after the battle",
+            "after the battle",
+            "after the Battle"
+          ],
+          "callback_density_per_1k": 3.6745,
+          "top_callbacks": [
+            {
+              "entity": "Calimport",
+              "occurrences": 1
+            },
+            {
+              "entity": "Tin-Towns",
+              "occurrences": 1
+            },
+            {
+              "entity": "Battlehammer",
+              "occurrences": 1
+            }
+          ]
+        },
+        {
+          "chapter": 10,
+          "position_index": 10,
+          "position_pct": 0.303,
+          "quartile": "q2",
+          "words": 2768,
+          "n_beats": 24,
+          "distinct_prior_referents": 0,
+          "prior_referent_occurrences": 0,
+          "time_marker_count": 3,
+          "time_marker_samples": [
+            "long ago",
+            "A few years before",
+            "long before"
+          ],
+          "callback_density_per_1k": 1.0838,
+          "top_callbacks": []
+        },
+        {
+          "chapter": 11,
+          "position_index": 11,
+          "position_pct": 0.3333,
+          "quartile": "q2",
+          "words": 2625,
+          "n_beats": 20,
+          "distinct_prior_referents": 1,
+          "prior_referent_occurrences": 1,
+          "time_marker_count": 6,
+          "time_marker_samples": [
+            "many years before",
+            "once more",
+            "long ago",
+            "long \nafter",
+            "earlier",
+            "long before"
+          ],
+          "callback_density_per_1k": 2.6667,
+          "top_callbacks": [
+            {
+              "entity": "Icewind",
+              "occurrences": 1
+            }
+          ]
+        },
+        {
+          "chapter": 12,
+          "position_index": 12,
+          "position_pct": 0.3636,
+          "quartile": "q2",
+          "words": 2368,
+          "n_beats": 23,
+          "distinct_prior_referents": 10,
+          "prior_referent_occurrences": 67,
+          "time_marker_count": 5,
+          "time_marker_samples": [
+            "once again",
+            "Before he had",
+            "before he spoke",
+            "five years before",
+            "last time"
+          ],
+          "callback_density_per_1k": 6.3345,
+          "top_callbacks": [
+            {
+              "entity": "Bruenor",
+              "occurrences": 41
+            },
+            {
+              "entity": "Drizzt",
+              "occurrences": 16
+            },
+            {
+              "entity": "Do'Urden",
+              "occurrences": 2
+            },
+            {
+              "entity": "Ye",
+              "occurrences": 2
+            },
+            {
+              "entity": "Kelvin",
+              "occurrences": 1
+            }
+          ]
+        },
+        {
+          "chapter": 13,
+          "position_index": 13,
+          "position_pct": 0.3939,
+          "quartile": "q2",
+          "words": 1196,
+          "n_beats": 11,
+          "distinct_prior_referents": 7,
+          "prior_referent_occurrences": 48,
+          "time_marker_count": 0,
+          "time_marker_samples": [],
+          "callback_density_per_1k": 5.8528,
+          "top_callbacks": [
+            {
+              "entity": "Kessell",
+              "occurrences": 21
+            },
+            {
+              "entity": "Errtu",
+              "occurrences": 9
+            },
+            {
+              "entity": "Crenshinibon",
+              "occurrences": 7
+            },
+            {
+              "entity": "Akar",
+              "occurrences": 6
+            },
+            {
+              "entity": "Cryshal-Tirith",
+              "occurrences": 3
+            }
+          ]
+        },
+        {
+          "chapter": 14,
+          "position_index": 14,
+          "position_pct": 0.4242,
+          "quartile": "q2",
+          "words": 3008,
+          "n_beats": 22,
+          "distinct_prior_referents": 14,
+          "prior_referent_occurrences": 152,
+          "time_marker_count": 4,
+          "time_marker_samples": [
+            "last time",
+            "earlier",
+            "long before",
+            "remembered the"
+          ],
+          "callback_density_per_1k": 5.984,
+          "top_callbacks": [
+            {
+              "entity": "Wulfgar",
+              "occurrences": 66
+            },
+            {
+              "entity": "Drizzt",
+              "occurrences": 46
+            },
+            {
+              "entity": "Bruenor",
+              "occurrences": 14
+            },
+            {
+              "entity": "Catti-brie",
+              "occurrences": 7
+            },
+            {
+              "entity": "Aegis-fang",
+              "occurrences": 3
+            }
+          ]
+        },
+        {
+          "chapter": 15,
+          "position_index": 15,
+          "position_pct": 0.4545,
+          "quartile": "q2",
+          "words": 2684,
+          "n_beats": 25,
+          "distinct_prior_referents": 19,
+          "prior_referent_occurrences": 77,
+          "time_marker_count": 3,
+          "time_marker_samples": [
+            "two weeks earlier",
+            "since he had",
+            "before it had"
+          ],
+          "callback_density_per_1k": 8.1967,
+          "top_callbacks": [
+            {
+              "entity": "Biggrin",
+              "occurrences": 18
+            },
+            {
+              "entity": "Drizzt",
+              "occurrences": 13
+            },
+            {
+              "entity": "Wulfgar",
+              "occurrences": 12
+            },
+            {
+              "entity": "Kessell",
+              "occurrences": 7
+            },
+            {
+              "entity": "Akar",
+              "occurrences": 6
+            }
+          ]
+        },
+        {
+          "chapter": 16,
+          "position_index": 16,
+          "position_pct": 0.4848,
+          "quartile": "q2",
+          "words": 2952,
+          "n_beats": 34,
+          "distinct_prior_referents": 10,
+          "prior_referent_occurrences": 118,
+          "time_marker_count": 1,
+          "time_marker_samples": [
+            "last night"
+          ],
+          "callback_density_per_1k": 3.7263,
+          "top_callbacks": [
+            {
+              "entity": "Drizzt",
+              "occurrences": 47
+            },
+            {
+              "entity": "Wulfgar",
+              "occurrences": 36
+            },
+            {
+              "entity": "Bruenor",
+              "occurrences": 18
+            },
+            {
+              "entity": "Aegis-fang",
+              "occurrences": 6
+            },
+            {
+              "entity": "Kelvin",
+              "occurrences": 3
+            }
+          ]
+        },
+        {
+          "chapter": 17,
+          "position_index": 17,
+          "position_pct": 0.5152,
+          "quartile": "q3",
+          "words": 3021,
+          "n_beats": 29,
+          "distinct_prior_referents": 12,
+          "prior_referent_occurrences": 97,
+          "time_marker_count": 2,
+          "time_marker_samples": [
+            "a few moments before",
+            "long before"
+          ],
+          "callback_density_per_1k": 4.6342,
+          "top_callbacks": [
+            {
+              "entity": "Wulfgar",
+              "occurrences": 33
+            },
+            {
+              "entity": "Drizzt",
+              "occurrences": 31
+            },
+            {
+              "entity": "Bruenor",
+              "occurrences": 16
+            },
+            {
+              "entity": "Daledrop",
+              "occurrences": 5
+            },
+            {
+              "entity": "Aegis-fang",
+              "occurrences": 5
+            }
+          ]
+        },
+        {
+          "chapter": 18,
+          "position_index": 18,
+          "position_pct": 0.5455,
+          "quartile": "q3",
+          "words": 6662,
+          "n_beats": 54,
+          "distinct_prior_referents": 17,
+          "prior_referent_occurrences": 275,
+          "time_marker_count": 5,
+          "time_marker_samples": [
+            "once again",
+            "once again",
+            "previously",
+            "earlier",
+            "earlier"
+          ],
+          "callback_density_per_1k": 3.3023,
+          "top_callbacks": [
+            {
+              "entity": "Drizzt",
+              "occurrences": 89
+            },
+            {
+              "entity": "Wulfgar",
+              "occurrences": 79
+            },
+            {
+              "entity": "Guenhwyvar",
+              "occurrences": 34
+            },
+            {
+              "entity": "Biggrin",
+              "occurrences": 31
+            },
+            {
+              "entity": "Aegis-fang",
+              "occurrences": 19
+            }
+          ]
+        },
+        {
+          "chapter": 19,
+          "position_index": 19,
+          "position_pct": 0.5758,
+          "quartile": "q3",
+          "words": 3519,
+          "n_beats": 29,
+          "distinct_prior_referents": 29,
+          "prior_referent_occurrences": 141,
+          "time_marker_count": 5,
+          "time_marker_samples": [
+            "last time",
+            "recalled the",
+            "after the Battle",
+            "once again",
+            "as he had done"
+          ],
+          "callback_density_per_1k": 9.6618,
+          "top_callbacks": [
+            {
+              "entity": "Drizzt",
+              "occurrences": 29
+            },
+            {
+              "entity": "Bruenor",
+              "occurrences": 25
+            },
+            {
+              "entity": "Wulfgar",
+              "occurrences": 17
+            },
+            {
+              "entity": "Ten-Towns",
+              "occurrences": 9
+            },
+            {
+              "entity": "Agorwal",
+              "occurrences": 8
+            }
+          ]
+        },
+        {
+          "chapter": 20,
+          "position_index": 20,
+          "position_pct": 0.6061,
+          "quartile": "q3",
+          "words": 2520,
+          "n_beats": 24,
+          "distinct_prior_referents": 35,
+          "prior_referent_occurrences": 148,
+          "time_marker_count": 2,
+          "time_marker_samples": [
+            "long before",
+            "much earlier"
+          ],
+          "callback_density_per_1k": 14.6825,
+          "top_callbacks": [
+            {
+              "entity": "Wulfgar",
+              "occurrences": 18
+            },
+            {
+              "entity": "Drizzt",
+              "occurrences": 16
+            },
+            {
+              "entity": "Kessell",
+              "occurrences": 14
+            },
+            {
+              "entity": "Bruenor",
+              "occurrences": 12
+            },
+            {
+              "entity": "Regis",
+              "occurrences": 9
+            }
+          ]
+        },
+        {
+          "chapter": 21,
+          "position_index": 21,
+          "position_pct": 0.6364,
+          "quartile": "q3",
+          "words": 3021,
+          "n_beats": 26,
+          "distinct_prior_referents": 5,
+          "prior_referent_occurrences": 47,
+          "time_marker_count": 0,
+          "time_marker_samples": [],
+          "callback_density_per_1k": 1.6551,
+          "top_callbacks": [
+            {
+              "entity": "Wulfgar",
+              "occurrences": 28
+            },
+            {
+              "entity": "Aegis-fang",
+              "occurrences": 10
+            },
+            {
+              "entity": "Drizzt",
+              "occurrences": 6
+            },
+            {
+              "entity": "Beornegar",
+              "occurrences": 2
+            },
+            {
+              "entity": "Do'Urden",
+              "occurrences": 1
+            }
+          ]
+        },
+        {
+          "chapter": 22,
+          "position_index": 22,
+          "position_pct": 0.6667,
+          "quartile": "q3",
+          "words": 3745,
+          "n_beats": 32,
+          "distinct_prior_referents": 27,
+          "prior_referent_occurrences": 199,
+          "time_marker_count": 7,
+          "time_marker_samples": [
+            "before he had",
+            "Five years before",
+            "long ago",
+            "previously",
+            "five years ago",
+            "remembered the"
+          ],
+          "callback_density_per_1k": 9.0788,
+          "top_callbacks": [
+            {
+              "entity": "Wulfgar",
+              "occurrences": 74
+            },
+            {
+              "entity": "Heafstaag",
+              "occurrences": 41
+            },
+            {
+              "entity": "Drizzt",
+              "occurrences": 20
+            },
+            {
+              "entity": "Aegis-fang",
+              "occurrences": 9
+            },
+            {
+              "entity": "Tribe",
+              "occurrences": 7
+            }
+          ]
+        },
+        {
+          "chapter": 23,
+          "position_index": 23,
+          "position_pct": 0.697,
+          "quartile": "q3",
+          "words": 2964,
+          "n_beats": 24,
+          "distinct_prior_referents": 34,
+          "prior_referent_occurrences": 149,
+          "time_marker_count": 1,
+          "time_marker_samples": [
+            "once again"
+          ],
+          "callback_density_per_1k": 11.8084,
+          "top_callbacks": [
+            {
+              "entity": "Bryn",
+              "occurrences": 17
+            },
+            {
+              "entity": "Shander",
+              "occurrences": 17
+            },
+            {
+              "entity": "Bruenor",
+              "occurrences": 16
+            },
+            {
+              "entity": "Agorwal",
+              "occurrences": 15
+            },
+            {
+              "entity": "Cassius",
+              "occurrences": 12
+            }
+          ]
+        },
+        {
+          "chapter": 24,
+          "position_index": 24,
+          "position_pct": 0.7273,
+          "quartile": "q3",
+          "words": 4696,
+          "n_beats": 37,
+          "distinct_prior_referents": 47,
+          "prior_referent_occurrences": 276,
+          "time_marker_count": 3,
+          "time_marker_samples": [
+            "once again",
+            "earlier",
+            "before he had"
+          ],
+          "callback_density_per_1k": 10.6474,
+          "top_callbacks": [
+            {
+              "entity": "Kessell",
+              "occurrences": 42
+            },
+            {
+              "entity": "Cassius",
+              "occurrences": 31
+            },
+            {
+              "entity": "Drizzt",
+              "occurrences": 17
+            },
+            {
+              "entity": "Shander",
+              "occurrences": 15
+            },
+            {
+              "entity": "Bryn",
+              "occurrences": 14
+            }
+          ]
+        },
+        {
+          "chapter": 25,
+          "position_index": 25,
+          "position_pct": 0.7576,
+          "quartile": "q4",
+          "words": 4397,
+          "n_beats": 24,
+          "distinct_prior_referents": 26,
+          "prior_referent_occurrences": 196,
+          "time_marker_count": 2,
+          "time_marker_samples": [
+            "remembered the",
+            "once again"
+          ],
+          "callback_density_per_1k": 6.368,
+          "top_callbacks": [
+            {
+              "entity": "Drizzt",
+              "occurrences": 65
+            },
+            {
+              "entity": "Errtu",
+              "occurrences": 59
+            },
+            {
+              "entity": "Kessell",
+              "occurrences": 16
+            },
+            {
+              "entity": "Crenshinibon",
+              "occurrences": 11
+            },
+            {
+              "entity": "Guenhwyvar",
+              "occurrences": 8
+            }
+          ]
+        },
+        {
+          "chapter": 26,
+          "position_index": 26,
+          "position_pct": 0.7879,
+          "quartile": "q4",
+          "words": 1306,
+          "n_beats": 7,
+          "distinct_prior_referents": 21,
+          "prior_referent_occurrences": 63,
+          "time_marker_count": 1,
+          "time_marker_samples": [
+            "five years before"
+          ],
+          "callback_density_per_1k": 16.8453,
+          "top_callbacks": [
+            {
+              "entity": "Wulfgar",
+              "occurrences": 21
+            },
+            {
+              "entity": "Heafstaag",
+              "occurrences": 7
+            },
+            {
+              "entity": "Kessell",
+              "occurrences": 4
+            },
+            {
+              "entity": "Aegis-fang",
+              "occurrences": 4
+            },
+            {
+              "entity": "Mead",
+              "occurrences": 3
+            }
+          ]
+        },
+        {
+          "chapter": 27,
+          "position_index": 27,
+          "position_pct": 0.8182,
+          "quartile": "q4",
+          "words": 4055,
+          "n_beats": 22,
+          "distinct_prior_referents": 39,
+          "prior_referent_occurrences": 220,
+          "time_marker_count": 4,
+          "time_marker_samples": [
+            "a few weeks earlier",
+            "five years ago",
+            "earlier",
+            "once again"
+          ],
+          "callback_density_per_1k": 10.6042,
+          "top_callbacks": [
+            {
+              "entity": "Regis",
+              "occurrences": 43
+            },
+            {
+              "entity": "Cassius",
+              "occurrences": 42
+            },
+            {
+              "entity": "Kessell",
+              "occurrences": 33
+            },
+            {
+              "entity": "Bryn",
+              "occurrences": 10
+            },
+            {
+              "entity": "Shander",
+              "occurrences": 10
+            }
+          ]
+        },
+        {
+          "chapter": 28,
+          "position_index": 28,
+          "position_pct": 0.8485,
+          "quartile": "q4",
+          "words": 2700,
+          "n_beats": 26,
+          "distinct_prior_referents": 33,
+          "prior_referent_occurrences": 149,
+          "time_marker_count": 0,
+          "time_marker_samples": [],
+          "callback_density_per_1k": 12.2222,
+          "top_callbacks": [
+            {
+              "entity": "Kessell",
+              "occurrences": 31
+            },
+            {
+              "entity": "Regis",
+              "occurrences": 21
+            },
+            {
+              "entity": "Cassius",
+              "occurrences": 12
+            },
+            {
+              "entity": "Drizzt",
+              "occurrences": 10
+            },
+            {
+              "entity": "Guenhwyvar",
+              "occurrences": 8
+            }
+          ]
+        },
+        {
+          "chapter": 29,
+          "position_index": 29,
+          "position_pct": 0.8788,
+          "quartile": "q4",
+          "words": 4765,
+          "n_beats": 44,
+          "distinct_prior_referents": 28,
+          "prior_referent_occurrences": 168,
+          "time_marker_count": 5,
+          "time_marker_samples": [
+            "Before he had",
+            "a few years before",
+            "earlier",
+            "long ago",
+            "once again"
+          ],
+          "callback_density_per_1k": 6.9255,
+          "top_callbacks": [
+            {
+              "entity": "Drizzt",
+              "occurrences": 57
+            },
+            {
+              "entity": "Kessell",
+              "occurrences": 40
+            },
+            {
+              "entity": "Bruenor",
+              "occurrences": 13
+            },
+            {
+              "entity": "Regis",
+              "occurrences": 7
+            },
+            {
+              "entity": "Catti-brie",
+              "occurrences": 6
+            }
+          ]
+        },
+        {
+          "chapter": 30,
+          "position_index": 30,
+          "position_pct": 0.9091,
+          "quartile": "q4",
+          "words": 9662,
+          "n_beats": 79,
+          "distinct_prior_referents": 61,
+          "prior_referent_occurrences": 502,
+          "time_marker_count": 10,
+          "time_marker_samples": [
+            "once before",
+            "once again",
+            "Once again",
+            "earlier",
+            "Before he had",
+            "a few moments before"
+          ],
+          "callback_density_per_1k": 7.3484,
+          "top_callbacks": [
+            {
+              "entity": "Wulfgar",
+              "occurrences": 51
+            },
+            {
+              "entity": "Drizzt",
+              "occurrences": 42
+            },
+            {
+              "entity": "Kessell",
+              "occurrences": 38
+            },
+            {
+              "entity": "Cassius",
+              "occurrences": 38
+            },
+            {
+              "entity": "Bruenor",
+              "occurrences": 33
+            }
+          ]
+        },
+        {
+          "chapter": "epilogue",
+          "position_index": 31,
+          "position_pct": 0.9394,
+          "quartile": "q4",
+          "words": 1240,
+          "n_beats": 11,
+          "distinct_prior_referents": 24,
+          "prior_referent_occurrences": 52,
+          "time_marker_count": 1,
+          "time_marker_samples": [
+            "before he had"
+          ],
+          "callback_density_per_1k": 20.1613,
+          "top_callbacks": [
+            {
+              "entity": "Kessell",
+              "occurrences": 11
+            },
+            {
+              "entity": "Ten-Towns",
+              "occurrences": 7
+            },
+            {
+              "entity": "Bruenor",
+              "occurrences": 6
+            },
+            {
+              "entity": "Crenshinibon",
+              "occurrences": 4
+            },
+            {
+              "entity": "Akar",
+              "occurrences": 2
+            }
+          ]
+        },
+        {
+          "chapter": "epilogue2",
+          "position_index": 32,
+          "position_pct": 0.9697,
+          "quartile": "q4",
+          "words": 371,
+          "n_beats": 4,
+          "distinct_prior_referents": 15,
+          "prior_referent_occurrences": 18,
+          "time_marker_count": 0,
+          "time_marker_samples": [],
+          "callback_density_per_1k": 40.4313,
+          "top_callbacks": [
+            {
+              "entity": "Wulfgar",
+              "occurrences": 2
+            },
+            {
+              "entity": "Akar",
+              "occurrences": 2
+            },
+            {
+              "entity": "Kessell",
+              "occurrences": 2
+            },
+            {
+              "entity": "Spine",
+              "occurrences": 1
+            },
+            {
+              "entity": "World",
+              "occurrences": 1
+            }
+          ]
+        },
+        {
+          "chapter": "epilogue3",
+          "position_index": 33,
+          "position_pct": 1.0,
+          "quartile": "q4",
+          "words": 2183,
+          "n_beats": 25,
+          "distinct_prior_referents": 34,
+          "prior_referent_occurrences": 165,
+          "time_marker_count": 3,
+          "time_marker_samples": [
+            "after the battle",
+            "Once again",
+            "long before"
+          ],
+          "callback_density_per_1k": 16.9492,
+          "top_callbacks": [
+            {
+              "entity": "Wulfgar",
+              "occurrences": 28
+            },
+            {
+              "entity": "Regis",
+              "occurrences": 24
+            },
+            {
+              "entity": "Bruenor",
+              "occurrences": 20
+            },
+            {
+              "entity": "Drizzt",
+              "occurrences": 18
+            },
+            {
+              "entity": "Catti-brie",
+              "occurrences": 8
+            }
+          ]
+        }
+      ],
+      "by_quartile": {
+        "q1": {
+          "n_chapters": 8,
+          "mean_distinct_prior_referents": 2.25,
+          "mean_prior_referent_occurrences": 4.25,
+          "mean_time_marker_count": 2.12,
+          "mean_callback_density_per_1k": 1.505,
+          "mean_words": 2983.9
+        },
+        "q2": {
+          "n_chapters": 8,
+          "mean_distinct_prior_referents": 8.0,
+          "mean_prior_referent_occurrences": 58.25,
+          "mean_time_marker_count": 3.25,
+          "mean_callback_density_per_1k": 4.69,
+          "mean_words": 2438.2
+        },
+        "q3": {
+          "n_chapters": 8,
+          "mean_distinct_prior_referents": 25.75,
+          "mean_prior_referent_occurrences": 166.5,
+          "mean_time_marker_count": 3.12,
+          "mean_callback_density_per_1k": 8.184,
+          "mean_words": 3768.5
+        },
+        "q4": {
+          "n_chapters": 9,
+          "mean_distinct_prior_referents": 31.22,
+          "mean_prior_referent_occurrences": 170.33,
+          "mean_time_marker_count": 2.89,
+          "mean_callback_density_per_1k": 15.317,
+          "mean_words": 3408.8
+        }
+      },
+      "halves": {
+        "first_half": {
+          "n_chapters": 16,
+          "mean_distinct_prior_referents": 5.12,
+          "mean_time_marker_count": 2.69,
+          "mean_callback_density_per_1k": 3.097
+        },
+        "last_half": {
+          "n_chapters": 17,
+          "mean_distinct_prior_referents": 28.65,
+          "mean_time_marker_count": 3.0,
+          "mean_callback_density_per_1k": 11.96
+        }
+      },
+      "spearman_rho_density_vs_position": 0.8616,
+      "spearman_rho_distinct_referents_vs_position": 0.8393,
+      "spearman_rho_time_markers_vs_position": -0.0193,
+      "top10_densest_chapters": [
+        {
+          "chapter": "epilogue2",
+          "position_pct": 0.9697,
+          "callback_density_per_1k": 40.4313,
+          "distinct_prior_referents": 15,
+          "time_marker_count": 0
+        },
+        {
+          "chapter": "epilogue",
+          "position_pct": 0.9394,
+          "callback_density_per_1k": 20.1613,
+          "distinct_prior_referents": 24,
+          "time_marker_count": 1
+        },
+        {
+          "chapter": "epilogue3",
+          "position_pct": 1.0,
+          "callback_density_per_1k": 16.9492,
+          "distinct_prior_referents": 34,
+          "time_marker_count": 3
+        },
+        {
+          "chapter": 26,
+          "position_pct": 0.7879,
+          "callback_density_per_1k": 16.8453,
+          "distinct_prior_referents": 21,
+          "time_marker_count": 1
+        },
+        {
+          "chapter": 20,
+          "position_pct": 0.6061,
+          "callback_density_per_1k": 14.6825,
+          "distinct_prior_referents": 35,
+          "time_marker_count": 2
+        },
+        {
+          "chapter": 28,
+          "position_pct": 0.8485,
+          "callback_density_per_1k": 12.2222,
+          "distinct_prior_referents": 33,
+          "time_marker_count": 0
+        },
+        {
+          "chapter": 23,
+          "position_pct": 0.697,
+          "callback_density_per_1k": 11.8084,
+          "distinct_prior_referents": 34,
+          "time_marker_count": 1
+        },
+        {
+          "chapter": 24,
+          "position_pct": 0.7273,
+          "callback_density_per_1k": 10.6474,
+          "distinct_prior_referents": 47,
+          "time_marker_count": 3
+        },
+        {
+          "chapter": 27,
+          "position_pct": 0.8182,
+          "callback_density_per_1k": 10.6042,
+          "distinct_prior_referents": 39,
+          "time_marker_count": 4
+        },
+        {
+          "chapter": 19,
+          "position_pct": 0.5758,
+          "callback_density_per_1k": 9.6618,
+          "distinct_prior_referents": 29,
+          "time_marker_count": 5
+        }
+      ]
+    },
+    "halflings_gem": {
+      "n_chapters": 29,
+      "n_chapters_eligible_for_callback": 28,
+      "n_proper_nouns_in_pool": 193,
+      "n_proper_nouns_with_first_chapter": 193,
+      "per_chapter": [
+        {
+          "chapter": "prelude",
+          "position_index": 0,
+          "position_pct": 0.0,
+          "quartile": "q1",
+          "words": 910,
+          "n_beats": 9,
+          "distinct_prior_referents": 0,
+          "prior_referent_occurrences": 0,
+          "time_marker_count": 3,
+          "time_marker_samples": [
+            "a few weeks earlier",
+            "three days before",
+            "remembered the"
+          ],
+          "callback_density_per_1k": 3.2967,
+          "top_callbacks": []
+        },
+        {
+          "chapter": 1,
+          "position_index": 1,
+          "position_pct": 0.0357,
+          "quartile": "q1",
+          "words": 4946,
+          "n_beats": 35,
+          "distinct_prior_referents": 0,
+          "prior_referent_occurrences": 0,
+          "time_marker_count": 2,
+          "time_marker_samples": [
+            "long ago",
+            "last time"
+          ],
+          "callback_density_per_1k": 0.4044,
+          "top_callbacks": []
+        },
+        {
+          "chapter": 2,
+          "position_index": 2,
+          "position_pct": 0.0714,
+          "quartile": "q1",
+          "words": 2973,
+          "n_beats": 22,
+          "distinct_prior_referents": 0,
+          "prior_referent_occurrences": 0,
+          "time_marker_count": 5,
+          "time_marker_samples": [
+            "since they had",
+            "once more",
+            "before he had",
+            "long ago",
+            "once again"
+          ],
+          "callback_density_per_1k": 1.6818,
+          "top_callbacks": []
+        },
+        {
+          "chapter": 3,
+          "position_index": 3,
+          "position_pct": 0.1071,
+          "quartile": "q1",
+          "words": 3637,
+          "n_beats": 31,
+          "distinct_prior_referents": 5,
+          "prior_referent_occurrences": 36,
+          "time_marker_count": 2,
+          "time_marker_samples": [
+            "earlier",
+            "once again"
+          ],
+          "callback_density_per_1k": 1.9247,
+          "top_callbacks": [
+            {
+              "entity": "Agatha",
+              "occurrences": 24
+            },
+            {
+              "entity": "Malchor",
+              "occurrences": 4
+            },
+            {
+              "entity": "Neverwinter",
+              "occurrences": 4
+            },
+            {
+              "entity": "Wood",
+              "occurrences": 3
+            },
+            {
+              "entity": "Beornegar",
+              "occurrences": 1
+            }
+          ]
+        },
+        {
+          "chapter": 4,
+          "position_index": 4,
+          "position_pct": 0.1429,
+          "quartile": "q1",
+          "words": 4828,
+          "n_beats": 47,
+          "distinct_prior_referents": 2,
+          "prior_referent_occurrences": 8,
+          "time_marker_count": 8,
+          "time_marker_samples": [
+            "once again",
+            "remembered the",
+            "earlier",
+            "long ago",
+            "before they had",
+            "long ago"
+          ],
+          "callback_density_per_1k": 2.0713,
+          "top_callbacks": [
+            {
+              "entity": "Malchor",
+              "occurrences": 7
+            },
+            {
+              "entity": "Agatha",
+              "occurrences": 1
+            }
+          ]
+        },
+        {
+          "chapter": 5,
+          "position_index": 5,
+          "position_pct": 0.1786,
+          "quartile": "q1",
+          "words": 4452,
+          "n_beats": 39,
+          "distinct_prior_referents": 0,
+          "prior_referent_occurrences": 0,
+          "time_marker_count": 3,
+          "time_marker_samples": [
+            "once again",
+            "once again",
+            "remembered that"
+          ],
+          "callback_density_per_1k": 0.6739,
+          "top_callbacks": []
+        },
+        {
+          "chapter": 6,
+          "position_index": 6,
+          "position_pct": 0.2143,
+          "quartile": "q1",
+          "words": 3883,
+          "n_beats": 40,
+          "distinct_prior_referents": 0,
+          "prior_referent_occurrences": 0,
+          "time_marker_count": 3,
+          "time_marker_samples": [
+            "remembered the",
+            "much later",
+            "once more"
+          ],
+          "callback_density_per_1k": 0.7726,
+          "top_callbacks": []
+        },
+        {
+          "chapter": 7,
+          "position_index": 7,
+          "position_pct": 0.25,
+          "quartile": "q2",
+          "words": 2901,
+          "n_beats": 28,
+          "distinct_prior_referents": 0,
+          "prior_referent_occurrences": 0,
+          "time_marker_count": 4,
+          "time_marker_samples": [
+            "earlier",
+            "a few years ago",
+            "remembering the",
+            "once more"
+          ],
+          "callback_density_per_1k": 1.3788,
+          "top_callbacks": []
+        },
+        {
+          "chapter": 8,
+          "position_index": 8,
+          "position_pct": 0.2857,
+          "quartile": "q2",
+          "words": 2723,
+          "n_beats": 22,
+          "distinct_prior_referents": 0,
+          "prior_referent_occurrences": 0,
+          "time_marker_count": 1,
+          "time_marker_samples": [
+            "once again"
+          ],
+          "callback_density_per_1k": 0.3672,
+          "top_callbacks": []
+        },
+        {
+          "chapter": 9,
+          "position_index": 9,
+          "position_pct": 0.3214,
+          "quartile": "q2",
+          "words": 1994,
+          "n_beats": 20,
+          "distinct_prior_referents": 2,
+          "prior_referent_occurrences": 4,
+          "time_marker_count": 2,
+          "time_marker_samples": [
+            "a few years before",
+            "several years ago"
+          ],
+          "callback_density_per_1k": 2.006,
+          "top_callbacks": [
+            {
+              "entity": "Dancer",
+              "occurrences": 3
+            },
+            {
+              "entity": "Luskan",
+              "occurrences": 1
+            }
+          ]
+        },
+        {
+          "chapter": 10,
+          "position_index": 10,
+          "position_pct": 0.3571,
+          "quartile": "q2",
+          "words": 3882,
+          "n_beats": 34,
+          "distinct_prior_referents": 0,
+          "prior_referent_occurrences": 0,
+          "time_marker_count": 3,
+          "time_marker_samples": [
+            "before he had",
+            "since he\nhad",
+            "many weeks ago"
+          ],
+          "callback_density_per_1k": 0.7728,
+          "top_callbacks": []
+        },
+        {
+          "chapter": 11,
+          "position_index": 11,
+          "position_pct": 0.3929,
+          "quartile": "q2",
+          "words": 5114,
+          "n_beats": 53,
+          "distinct_prior_referents": 11,
+          "prior_referent_occurrences": 149,
+          "time_marker_count": 2,
+          "time_marker_samples": [
+            "after their departure",
+            "a few weeks\nearlier"
+          ],
+          "callback_density_per_1k": 2.542,
+          "top_callbacks": [
+            {
+              "entity": "Drizzt",
+              "occurrences": 49
+            },
+            {
+              "entity": "Wulfgar",
+              "occurrences": 35
+            },
+            {
+              "entity": "Bruenor",
+              "occurrences": 34
+            },
+            {
+              "entity": "Catti-brie",
+              "occurrences": 13
+            },
+            {
+              "entity": "Calimport",
+              "occurrences": 8
+            }
+          ]
+        },
+        {
+          "chapter": 12,
+          "position_index": 12,
+          "position_pct": 0.4286,
+          "quartile": "q2",
+          "words": 3438,
+          "n_beats": 27,
+          "distinct_prior_referents": 29,
+          "prior_referent_occurrences": 232,
+          "time_marker_count": 6,
+          "time_marker_samples": [
+            "remembering the",
+            "once again",
+            "once again",
+            "once again",
+            "once again",
+            "remembering the"
+          ],
+          "callback_density_per_1k": 10.1803,
+          "top_callbacks": [
+            {
+              "entity": "Drizzt",
+              "occurrences": 44
+            },
+            {
+              "entity": "Deudermont",
+              "occurrences": 40
+            },
+            {
+              "entity": "Bruenor",
+              "occurrences": 30
+            },
+            {
+              "entity": "Pinochet",
+              "occurrences": 27
+            },
+            {
+              "entity": "Wulfgar",
+              "occurrences": 22
+            }
+          ]
+        },
+        {
+          "chapter": 13,
+          "position_index": 13,
+          "position_pct": 0.4643,
+          "quartile": "q2",
+          "words": 3792,
+          "n_beats": 30,
+          "distinct_prior_referents": 19,
+          "prior_referent_occurrences": 191,
+          "time_marker_count": 1,
+          "time_marker_samples": [
+            "once again"
+          ],
+          "callback_density_per_1k": 5.2743,
+          "top_callbacks": [
+            {
+              "entity": "Entreri",
+              "occurrences": 60
+            },
+            {
+              "entity": "Pook",
+              "occurrences": 55
+            },
+            {
+              "entity": "Regis",
+              "occurrences": 45
+            },
+            {
+              "entity": "Pasha",
+              "occurrences": 8
+            },
+            {
+              "entity": "Calimport",
+              "occurrences": 5
+            }
+          ]
+        },
+        {
+          "chapter": 14,
+          "position_index": 14,
+          "position_pct": 0.5,
+          "quartile": "q3",
+          "words": 4976,
+          "n_beats": 32,
+          "distinct_prior_referents": 26,
+          "prior_referent_occurrences": 213,
+          "time_marker_count": 3,
+          "time_marker_samples": [
+            "since the day",
+            "Once again",
+            "once again"
+          ],
+          "callback_density_per_1k": 5.828,
+          "top_callbacks": [
+            {
+              "entity": "Drizzt",
+              "occurrences": 47
+            },
+            {
+              "entity": "Bruenor",
+              "occurrences": 42
+            },
+            {
+              "entity": "Wulfgar",
+              "occurrences": 23
+            },
+            {
+              "entity": "Catti-brie",
+              "occurrences": 19
+            },
+            {
+              "entity": "Deudermont",
+              "occurrences": 15
+            }
+          ]
+        },
+        {
+          "chapter": 15,
+          "position_index": 15,
+          "position_pct": 0.5357,
+          "quartile": "q3",
+          "words": 2970,
+          "n_beats": 24,
+          "distinct_prior_referents": 25,
+          "prior_referent_occurrences": 184,
+          "time_marker_count": 6,
+          "time_marker_samples": [
+            "Once before",
+            "once again",
+            "once before",
+            "As he had done",
+            "once again",
+            "once again"
+          ],
+          "callback_density_per_1k": 10.4377,
+          "top_callbacks": [
+            {
+              "entity": "Drizzt",
+              "occurrences": 30
+            },
+            {
+              "entity": "Dalib",
+              "occurrences": 24
+            },
+            {
+              "entity": "Sali",
+              "occurrences": 23
+            },
+            {
+              "entity": "Bruenor",
+              "occurrences": 22
+            },
+            {
+              "entity": "Regis",
+              "occurrences": 15
+            }
+          ]
+        },
+        {
+          "chapter": 16,
+          "position_index": 16,
+          "position_pct": 0.5714,
+          "quartile": "q3",
+          "words": 4176,
+          "n_beats": 34,
+          "distinct_prior_referents": 33,
+          "prior_referent_occurrences": 286,
+          "time_marker_count": 7,
+          "time_marker_samples": [
+            "before he spoke",
+            "once again",
+            "once again",
+            "Once again",
+            "before he had",
+            "recalled the"
+          ],
+          "callback_density_per_1k": 9.5785,
+          "top_callbacks": [
+            {
+              "entity": "Drizzt",
+              "occurrences": 48
+            },
+            {
+              "entity": "Catti-brie",
+              "occurrences": 37
+            },
+            {
+              "entity": "Entreri",
+              "occurrences": 32
+            },
+            {
+              "entity": "Rassiter",
+              "occurrences": 21
+            },
+            {
+              "entity": "Sali",
+              "occurrences": 19
+            }
+          ]
+        },
+        {
+          "chapter": 17,
+          "position_index": 17,
+          "position_pct": 0.6071,
+          "quartile": "q3",
+          "words": 2246,
+          "n_beats": 19,
+          "distinct_prior_referents": 18,
+          "prior_referent_occurrences": 163,
+          "time_marker_count": 1,
+          "time_marker_samples": [
+            "once again"
+          ],
+          "callback_density_per_1k": 8.4595,
+          "top_callbacks": [
+            {
+              "entity": "Pook",
+              "occurrences": 65
+            },
+            {
+              "entity": "LaValle",
+              "occurrences": 37
+            },
+            {
+              "entity": "Regis",
+              "occurrences": 26
+            },
+            {
+              "entity": "Entreri",
+              "occurrences": 10
+            },
+            {
+              "entity": "Rassiter",
+              "occurrences": 9
+            }
+          ]
+        },
+        {
+          "chapter": 18,
+          "position_index": 18,
+          "position_pct": 0.6429,
+          "quartile": "q3",
+          "words": 5824,
+          "n_beats": 42,
+          "distinct_prior_referents": 28,
+          "prior_referent_occurrences": 324,
+          "time_marker_count": 2,
+          "time_marker_samples": [
+            "once more",
+            "earlier"
+          ],
+          "callback_density_per_1k": 5.1511,
+          "top_callbacks": [
+            {
+              "entity": "Drizzt",
+              "occurrences": 67
+            },
+            {
+              "entity": "Bruenor",
+              "occurrences": 60
+            },
+            {
+              "entity": "Wulfgar",
+              "occurrences": 52
+            },
+            {
+              "entity": "Dondon",
+              "occurrences": 38
+            },
+            {
+              "entity": "Catti-brie",
+              "occurrences": 33
+            }
+          ]
+        },
+        {
+          "chapter": 19,
+          "position_index": 19,
+          "position_pct": 0.6786,
+          "quartile": "q3",
+          "words": 3289,
+          "n_beats": 35,
+          "distinct_prior_referents": 18,
+          "prior_referent_occurrences": 183,
+          "time_marker_count": 4,
+          "time_marker_samples": [
+            "before he had",
+            "a few days before",
+            "remembering the",
+            "many years ago"
+          ],
+          "callback_density_per_1k": 6.689,
+          "top_callbacks": [
+            {
+              "entity": "Entreri",
+              "occurrences": 48
+            },
+            {
+              "entity": "Drizzt",
+              "occurrences": 39
+            },
+            {
+              "entity": "Wulfgar",
+              "occurrences": 32
+            },
+            {
+              "entity": "Catti-brie",
+              "occurrences": 18
+            },
+            {
+              "entity": "Bruenor",
+              "occurrences": 15
+            }
+          ]
+        },
+        {
+          "chapter": 20,
+          "position_index": 20,
+          "position_pct": 0.7143,
+          "quartile": "q3",
+          "words": 3355,
+          "n_beats": 27,
+          "distinct_prior_referents": 24,
+          "prior_referent_occurrences": 187,
+          "time_marker_count": 4,
+          "time_marker_samples": [
+            "once more",
+            "once again",
+            "once again",
+            "once again"
+          ],
+          "callback_density_per_1k": 8.3458,
+          "top_callbacks": [
+            {
+              "entity": "Drizzt",
+              "occurrences": 48
+            },
+            {
+              "entity": "Entreri",
+              "occurrences": 41
+            },
+            {
+              "entity": "Pook",
+              "occurrences": 16
+            },
+            {
+              "entity": "Wulfgar",
+              "occurrences": 14
+            },
+            {
+              "entity": "Catti-brie",
+              "occurrences": 12
+            }
+          ]
+        },
+        {
+          "chapter": 21,
+          "position_index": 21,
+          "position_pct": 0.75,
+          "quartile": "q4",
+          "words": 3049,
+          "n_beats": 27,
+          "distinct_prior_referents": 25,
+          "prior_referent_occurrences": 151,
+          "time_marker_count": 2,
+          "time_marker_samples": [
+            "earlier",
+            "Once more"
+          ],
+          "callback_density_per_1k": 8.8554,
+          "top_callbacks": [
+            {
+              "entity": "Wulfgar",
+              "occurrences": 29
+            },
+            {
+              "entity": "Pook",
+              "occurrences": 19
+            },
+            {
+              "entity": "Regis",
+              "occurrences": 19
+            },
+            {
+              "entity": "Drizzt",
+              "occurrences": 13
+            },
+            {
+              "entity": "Bruenor",
+              "occurrences": 11
+            }
+          ]
+        },
+        {
+          "chapter": 22,
+          "position_index": 22,
+          "position_pct": 0.7857,
+          "quartile": "q4",
+          "words": 4190,
+          "n_beats": 36,
+          "distinct_prior_referents": 27,
+          "prior_referent_occurrences": 231,
+          "time_marker_count": 2,
+          "time_marker_samples": [
+            "before he met",
+            "remembering the"
+          ],
+          "callback_density_per_1k": 6.9212,
+          "top_callbacks": [
+            {
+              "entity": "Drizzt",
+              "occurrences": 59
+            },
+            {
+              "entity": "Bruenor",
+              "occurrences": 36
+            },
+            {
+              "entity": "Catti-brie",
+              "occurrences": 28
+            },
+            {
+              "entity": "Wulfgar",
+              "occurrences": 27
+            },
+            {
+              "entity": "Regis",
+              "occurrences": 23
+            }
+          ]
+        },
+        {
+          "chapter": 23,
+          "position_index": 23,
+          "position_pct": 0.8214,
+          "quartile": "q4",
+          "words": 2472,
+          "n_beats": 24,
+          "distinct_prior_referents": 20,
+          "prior_referent_occurrences": 135,
+          "time_marker_count": 1,
+          "time_marker_samples": [
+            "long before"
+          ],
+          "callback_density_per_1k": 8.4951,
+          "top_callbacks": [
+            {
+              "entity": "Wulfgar",
+              "occurrences": 25
+            },
+            {
+              "entity": "Catti-brie",
+              "occurrences": 19
+            },
+            {
+              "entity": "Drizzt",
+              "occurrences": 18
+            },
+            {
+              "entity": "Bruenor",
+              "occurrences": 14
+            },
+            {
+              "entity": "Pook",
+              "occurrences": 13
+            }
+          ]
+        },
+        {
+          "chapter": 24,
+          "position_index": 24,
+          "position_pct": 0.8571,
+          "quartile": "q4",
+          "words": 2985,
+          "n_beats": 27,
+          "distinct_prior_referents": 30,
+          "prior_referent_occurrences": 180,
+          "time_marker_count": 2,
+          "time_marker_samples": [
+            "once again",
+            "once again"
+          ],
+          "callback_density_per_1k": 10.7203,
+          "top_callbacks": [
+            {
+              "entity": "Drizzt",
+              "occurrences": 31
+            },
+            {
+              "entity": "Wulfgar",
+              "occurrences": 20
+            },
+            {
+              "entity": "Bruenor",
+              "occurrences": 18
+            },
+            {
+              "entity": "Pook",
+              "occurrences": 16
+            },
+            {
+              "entity": "Regis",
+              "occurrences": 14
+            }
+          ]
+        },
+        {
+          "chapter": 25,
+          "position_index": 25,
+          "position_pct": 0.8929,
+          "quartile": "q4",
+          "words": 2691,
+          "n_beats": 24,
+          "distinct_prior_referents": 26,
+          "prior_referent_occurrences": 200,
+          "time_marker_count": 4,
+          "time_marker_samples": [
+            "recalling the",
+            "earlier",
+            "once again",
+            "once again"
+          ],
+          "callback_density_per_1k": 11.1483,
+          "top_callbacks": [
+            {
+              "entity": "Drizzt",
+              "occurrences": 44
+            },
+            {
+              "entity": "Bruenor",
+              "occurrences": 40
+            },
+            {
+              "entity": "Regis",
+              "occurrences": 29
+            },
+            {
+              "entity": "Catti-brie",
+              "occurrences": 15
+            },
+            {
+              "entity": "Wulfgar",
+              "occurrences": 14
+            }
+          ]
+        },
+        {
+          "chapter": "epilogue",
+          "position_index": 26,
+          "position_pct": 0.9286,
+          "quartile": "q4",
+          "words": 1070,
+          "n_beats": 11,
+          "distinct_prior_referents": 16,
+          "prior_referent_occurrences": 82,
+          "time_marker_count": 1,
+          "time_marker_samples": [
+            "last night"
+          ],
+          "callback_density_per_1k": 15.8879,
+          "top_callbacks": [
+            {
+              "entity": "Drizzt",
+              "occurrences": 20
+            },
+            {
+              "entity": "Wulfgar",
+              "occurrences": 17
+            },
+            {
+              "entity": "Deudermont",
+              "occurrences": 16
+            },
+            {
+              "entity": "Pellman",
+              "occurrences": 10
+            },
+            {
+              "entity": "Sea",
+              "occurrences": 3
+            }
+          ]
+        },
+        {
+          "chapter": "epilogue2",
+          "position_index": 27,
+          "position_pct": 0.9643,
+          "quartile": "q4",
+          "words": 1154,
+          "n_beats": 10,
+          "distinct_prior_referents": 17,
+          "prior_referent_occurrences": 93,
+          "time_marker_count": 2,
+          "time_marker_samples": [
+            "earlier",
+            "remembered the"
+          ],
+          "callback_density_per_1k": 16.4645,
+          "top_callbacks": [
+            {
+              "entity": "Entreri",
+              "occurrences": 26
+            },
+            {
+              "entity": "LaValle",
+              "occurrences": 25
+            },
+            {
+              "entity": "Pook",
+              "occurrences": 14
+            },
+            {
+              "entity": "Pinochet",
+              "occurrences": 9
+            },
+            {
+              "entity": "Pasha",
+              "occurrences": 4
+            }
+          ]
+        },
+        {
+          "chapter": "epilogue3",
+          "position_index": 28,
+          "position_pct": 1.0,
+          "quartile": "q4",
+          "words": 1778,
+          "n_beats": 17,
+          "distinct_prior_referents": 38,
+          "prior_referent_occurrences": 150,
+          "time_marker_count": 5,
+          "time_marker_samples": [
+            "a few days before",
+            "remembering the",
+            "once again",
+            "once before",
+            "before they had"
+          ],
+          "callback_density_per_1k": 24.1845,
+          "top_callbacks": [
+            {
+              "entity": "Bruenor",
+              "occurrences": 24
+            },
+            {
+              "entity": "Drizzt",
+              "occurrences": 19
+            },
+            {
+              "entity": "Catti-brie",
+              "occurrences": 12
+            },
+            {
+              "entity": "Regis",
+              "occurrences": 10
+            },
+            {
+              "entity": "Wulfgar",
+              "occurrences": 9
+            }
+          ]
+        }
+      ],
+      "by_quartile": {
+        "q1": {
+          "n_chapters": 6,
+          "mean_distinct_prior_referents": 1.17,
+          "mean_prior_referent_occurrences": 7.33,
+          "mean_time_marker_count": 3.83,
+          "mean_callback_density_per_1k": 1.255,
+          "mean_words": 4119.8
+        },
+        "q2": {
+          "n_chapters": 7,
+          "mean_distinct_prior_referents": 8.71,
+          "mean_prior_referent_occurrences": 82.29,
+          "mean_time_marker_count": 2.71,
+          "mean_callback_density_per_1k": 3.217,
+          "mean_words": 3406.3
+        },
+        "q3": {
+          "n_chapters": 7,
+          "mean_distinct_prior_referents": 24.57,
+          "mean_prior_referent_occurrences": 220.0,
+          "mean_time_marker_count": 3.86,
+          "mean_callback_density_per_1k": 7.784,
+          "mean_words": 3833.7
+        },
+        "q4": {
+          "n_chapters": 8,
+          "mean_distinct_prior_referents": 24.88,
+          "mean_prior_referent_occurrences": 152.75,
+          "mean_time_marker_count": 2.38,
+          "mean_callback_density_per_1k": 12.835,
+          "mean_words": 2423.6
+        }
+      },
+      "halves": {
+        "first_half": {
+          "n_chapters": 14,
+          "mean_distinct_prior_referents": 6.71,
+          "mean_time_marker_count": 3.21,
+          "mean_callback_density_per_1k": 2.563
+        },
+        "last_half": {
+          "n_chapters": 14,
+          "mean_distinct_prior_referents": 24.64,
+          "mean_time_marker_count": 3.07,
+          "mean_callback_density_per_1k": 10.81
+        }
+      },
+      "spearman_rho_density_vs_position": 0.8703,
+      "spearman_rho_distinct_referents_vs_position": 0.7136,
+      "spearman_rho_time_markers_vs_position": -0.1654,
+      "top10_densest_chapters": [
+        {
+          "chapter": "epilogue3",
+          "position_pct": 1.0,
+          "callback_density_per_1k": 24.1845,
+          "distinct_prior_referents": 38,
+          "time_marker_count": 5
+        },
+        {
+          "chapter": "epilogue2",
+          "position_pct": 0.9643,
+          "callback_density_per_1k": 16.4645,
+          "distinct_prior_referents": 17,
+          "time_marker_count": 2
+        },
+        {
+          "chapter": "epilogue",
+          "position_pct": 0.9286,
+          "callback_density_per_1k": 15.8879,
+          "distinct_prior_referents": 16,
+          "time_marker_count": 1
+        },
+        {
+          "chapter": 25,
+          "position_pct": 0.8929,
+          "callback_density_per_1k": 11.1483,
+          "distinct_prior_referents": 26,
+          "time_marker_count": 4
+        },
+        {
+          "chapter": 24,
+          "position_pct": 0.8571,
+          "callback_density_per_1k": 10.7203,
+          "distinct_prior_referents": 30,
+          "time_marker_count": 2
+        },
+        {
+          "chapter": 15,
+          "position_pct": 0.5357,
+          "callback_density_per_1k": 10.4377,
+          "distinct_prior_referents": 25,
+          "time_marker_count": 6
+        },
+        {
+          "chapter": 12,
+          "position_pct": 0.4286,
+          "callback_density_per_1k": 10.1803,
+          "distinct_prior_referents": 29,
+          "time_marker_count": 6
+        },
+        {
+          "chapter": 16,
+          "position_pct": 0.5714,
+          "callback_density_per_1k": 9.5785,
+          "distinct_prior_referents": 33,
+          "time_marker_count": 7
+        },
+        {
+          "chapter": 21,
+          "position_pct": 0.75,
+          "callback_density_per_1k": 8.8554,
+          "distinct_prior_referents": 25,
+          "time_marker_count": 2
+        },
+        {
+          "chapter": 23,
+          "position_pct": 0.8214,
+          "callback_density_per_1k": 8.4951,
+          "distinct_prior_referents": 20,
+          "time_marker_count": 1
+        }
+      ]
+    },
+    "streams_of_silver": {
+      "n_chapters": 29,
+      "n_chapters_eligible_for_callback": 28,
+      "n_proper_nouns_in_pool": 215,
+      "n_proper_nouns_with_first_chapter": 215,
+      "per_chapter": [
+        {
+          "chapter": "prelude",
+          "position_index": 0,
+          "position_pct": 0.0,
+          "quartile": "q1",
+          "words": 1326,
+          "n_beats": 11,
+          "distinct_prior_referents": 0,
+          "prior_referent_occurrences": 0,
+          "time_marker_count": 0,
+          "time_marker_samples": [],
+          "callback_density_per_1k": 0.0,
+          "top_callbacks": []
+        },
+        {
+          "chapter": 1,
+          "position_index": 1,
+          "position_pct": 0.0357,
+          "quartile": "q1",
+          "words": 3648,
+          "n_beats": 25,
+          "distinct_prior_referents": 0,
+          "prior_referent_occurrences": 0,
+          "time_marker_count": 4,
+          "time_marker_samples": [
+            "years ago",
+            "several months earlier",
+            "a few days ago",
+            "long before"
+          ],
+          "callback_density_per_1k": 1.0965,
+          "top_callbacks": []
+        },
+        {
+          "chapter": 2,
+          "position_index": 2,
+          "position_pct": 0.0714,
+          "quartile": "q1",
+          "words": 4155,
+          "n_beats": 28,
+          "distinct_prior_referents": 2,
+          "prior_referent_occurrences": 4,
+          "time_marker_count": 2,
+          "time_marker_samples": [
+            "since the companions had",
+            "Once again"
+          ],
+          "callback_density_per_1k": 0.9627,
+          "top_callbacks": [
+            {
+              "entity": "Bryn",
+              "occurrences": 2
+            },
+            {
+              "entity": "Shander",
+              "occurrences": 2
+            }
+          ]
+        },
+        {
+          "chapter": 3,
+          "position_index": 3,
+          "position_pct": 0.1071,
+          "quartile": "q1",
+          "words": 4352,
+          "n_beats": 28,
+          "distinct_prior_referents": 4,
+          "prior_referent_occurrences": 21,
+          "time_marker_count": 4,
+          "time_marker_samples": [
+            "once again",
+            "hours earlier",
+            "once again",
+            "long before"
+          ],
+          "callback_density_per_1k": 1.8382,
+          "top_callbacks": [
+            {
+              "entity": "Whisper",
+              "occurrences": 14
+            },
+            {
+              "entity": "Cutlass",
+              "occurrences": 5
+            },
+            {
+              "entity": "Half-Moon",
+              "occurrences": 1
+            },
+            {
+              "entity": "Street",
+              "occurrences": 1
+            }
+          ]
+        },
+        {
+          "chapter": 4,
+          "position_index": 4,
+          "position_pct": 0.1429,
+          "quartile": "q1",
+          "words": 3778,
+          "n_beats": 34,
+          "distinct_prior_referents": 4,
+          "prior_referent_occurrences": 4,
+          "time_marker_count": 2,
+          "time_marker_samples": [
+            "before he spoke",
+            "once again"
+          ],
+          "callback_density_per_1k": 1.5881,
+          "top_callbacks": [
+            {
+              "entity": "City",
+              "occurrences": 1
+            },
+            {
+              "entity": "Sails",
+              "occurrences": 1
+            },
+            {
+              "entity": "Cutlass",
+              "occurrences": 1
+            },
+            {
+              "entity": "Cassius",
+              "occurrences": 1
+            }
+          ]
+        },
+        {
+          "chapter": 5,
+          "position_index": 5,
+          "position_pct": 0.1786,
+          "quartile": "q1",
+          "words": 5093,
+          "n_beats": 30,
+          "distinct_prior_referents": 3,
+          "prior_referent_occurrences": 6,
+          "time_marker_count": 6,
+          "time_marker_samples": [
+            "recalling to",
+            "remembered the",
+            "once more",
+            "since he had",
+            "since he had",
+            "since they had"
+          ],
+          "callback_density_per_1k": 1.7671,
+          "top_callbacks": [
+            {
+              "entity": "City",
+              "occurrences": 3
+            },
+            {
+              "entity": "Sails",
+              "occurrences": 2
+            },
+            {
+              "entity": "Cutlass",
+              "occurrences": 1
+            }
+          ]
+        },
+        {
+          "chapter": 6,
+          "position_index": 6,
+          "position_pct": 0.2143,
+          "quartile": "q1",
+          "words": 5165,
+          "n_beats": 40,
+          "distinct_prior_referents": 3,
+          "prior_referent_occurrences": 3,
+          "time_marker_count": 3,
+          "time_marker_samples": [
+            "after the escape",
+            "before it had",
+            "several months earlier"
+          ],
+          "callback_density_per_1k": 1.1617,
+          "top_callbacks": [
+            {
+              "entity": "Whisper",
+              "occurrences": 1
+            },
+            {
+              "entity": "Rat",
+              "occurrences": 1
+            },
+            {
+              "entity": "Alley",
+              "occurrences": 1
+            }
+          ]
+        },
+        {
+          "chapter": 7,
+          "position_index": 7,
+          "position_pct": 0.25,
+          "quartile": "q2",
+          "words": 3443,
+          "n_beats": 23,
+          "distinct_prior_referents": 6,
+          "prior_referent_occurrences": 8,
+          "time_marker_count": 4,
+          "time_marker_samples": [
+            "since he had",
+            "before he had",
+            "five days ago",
+            "last winter"
+          ],
+          "callback_density_per_1k": 2.9044,
+          "top_callbacks": [
+            {
+              "entity": "City",
+              "occurrences": 2
+            },
+            {
+              "entity": "Sails",
+              "occurrences": 2
+            },
+            {
+              "entity": "Gate",
+              "occurrences": 1
+            },
+            {
+              "entity": "Master",
+              "occurrences": 1
+            },
+            {
+              "entity": "Spire",
+              "occurrences": 1
+            }
+          ]
+        },
+        {
+          "chapter": 8,
+          "position_index": 8,
+          "position_pct": 0.2857,
+          "quartile": "q2",
+          "words": 6800,
+          "n_beats": 40,
+          "distinct_prior_referents": 4,
+          "prior_referent_occurrences": 4,
+          "time_marker_count": 7,
+          "time_marker_samples": [
+            "after the encounter",
+            "many months before",
+            "since the party had",
+            "once more",
+            "remembering the",
+            "Some time later"
+          ],
+          "callback_density_per_1k": 1.6176,
+          "top_callbacks": [
+            {
+              "entity": "Pegasus",
+              "occurrences": 1
+            },
+            {
+              "entity": "Cutlass",
+              "occurrences": 1
+            },
+            {
+              "entity": "Sky",
+              "occurrences": 1
+            },
+            {
+              "entity": "Ponies",
+              "occurrences": 1
+            }
+          ]
+        },
+        {
+          "chapter": 9,
+          "position_index": 9,
+          "position_pct": 0.3214,
+          "quartile": "q2",
+          "words": 3624,
+          "n_beats": 33,
+          "distinct_prior_referents": 7,
+          "prior_referent_occurrences": 24,
+          "time_marker_count": 3,
+          "time_marker_samples": [
+            "two days ago",
+            "earlier",
+            "last time"
+          ],
+          "callback_density_per_1k": 2.7594,
+          "top_callbacks": [
+            {
+              "entity": "Whisper",
+              "occurrences": 14
+            },
+            {
+              "entity": "Nightkeeper",
+              "occurrences": 3
+            },
+            {
+              "entity": "Master",
+              "occurrences": 2
+            },
+            {
+              "entity": "Spire",
+              "occurrences": 2
+            },
+            {
+              "entity": "Gate",
+              "occurrences": 1
+            }
+          ]
+        },
+        {
+          "chapter": 10,
+          "position_index": 10,
+          "position_pct": 0.3571,
+          "quartile": "q2",
+          "words": 4927,
+          "n_beats": 36,
+          "distinct_prior_referents": 0,
+          "prior_referent_occurrences": 0,
+          "time_marker_count": 4,
+          "time_marker_samples": [
+            "once again",
+            "before he had",
+            "last time",
+            "long before"
+          ],
+          "callback_density_per_1k": 0.8119,
+          "top_callbacks": []
+        },
+        {
+          "chapter": 11,
+          "position_index": 11,
+          "position_pct": 0.3929,
+          "quartile": "q2",
+          "words": 3110,
+          "n_beats": 25,
+          "distinct_prior_referents": 10,
+          "prior_referent_occurrences": 137,
+          "time_marker_count": 2,
+          "time_marker_samples": [
+            "before they had",
+            "earlier"
+          ],
+          "callback_density_per_1k": 3.8585,
+          "top_callbacks": [
+            {
+              "entity": "Entreri",
+              "occurrences": 43
+            },
+            {
+              "entity": "Sydney",
+              "occurrences": 40
+            },
+            {
+              "entity": "Catti-brie",
+              "occurrences": 23
+            },
+            {
+              "entity": "Dendybar",
+              "occurrences": 13
+            },
+            {
+              "entity": "Silverymoon",
+              "occurrences": 7
+            }
+          ]
+        },
+        {
+          "chapter": 12,
+          "position_index": 12,
+          "position_pct": 0.4286,
+          "quartile": "q2",
+          "words": 5112,
+          "n_beats": 39,
+          "distinct_prior_referents": 13,
+          "prior_referent_occurrences": 165,
+          "time_marker_count": 2,
+          "time_marker_samples": [
+            "once again",
+            "long before"
+          ],
+          "callback_density_per_1k": 2.9343,
+          "top_callbacks": [
+            {
+              "entity": "Wulfgar",
+              "occurrences": 41
+            },
+            {
+              "entity": "Bruenor",
+              "occurrences": 39
+            },
+            {
+              "entity": "Regis",
+              "occurrences": 34
+            },
+            {
+              "entity": "Drizzt",
+              "occurrences": 33
+            },
+            {
+              "entity": "Aegis-fang",
+              "occurrences": 8
+            }
+          ]
+        },
+        {
+          "chapter": 13,
+          "position_index": 13,
+          "position_pct": 0.4643,
+          "quartile": "q2",
+          "words": 3618,
+          "n_beats": 25,
+          "distinct_prior_referents": 16,
+          "prior_referent_occurrences": 133,
+          "time_marker_count": 6,
+          "time_marker_samples": [
+            "once again",
+            "before they saw",
+            "since the journey had",
+            "remembered the",
+            "before they had",
+            "long before"
+          ],
+          "callback_density_per_1k": 6.0807,
+          "top_callbacks": [
+            {
+              "entity": "Drizzt",
+              "occurrences": 39
+            },
+            {
+              "entity": "Bruenor",
+              "occurrences": 25
+            },
+            {
+              "entity": "Wulfgar",
+              "occurrences": 25
+            },
+            {
+              "entity": "Regis",
+              "occurrences": 21
+            },
+            {
+              "entity": "Evermoors",
+              "occurrences": 7
+            }
+          ]
+        },
+        {
+          "chapter": 14,
+          "position_index": 14,
+          "position_pct": 0.5,
+          "quartile": "q3",
+          "words": 4466,
+          "n_beats": 22,
+          "distinct_prior_referents": 28,
+          "prior_referent_occurrences": 224,
+          "time_marker_count": 9,
+          "time_marker_samples": [
+            "since they had",
+            "after his arrival",
+            "once before",
+            "four days before",
+            "years ago",
+            "before he had"
+          ],
+          "callback_density_per_1k": 8.2848,
+          "top_callbacks": [
+            {
+              "entity": "Drizzt",
+              "occurrences": 65
+            },
+            {
+              "entity": "Bruenor",
+              "occurrences": 22
+            },
+            {
+              "entity": "Alustriel",
+              "occurrences": 22
+            },
+            {
+              "entity": "Wulfgar",
+              "occurrences": 21
+            },
+            {
+              "entity": "Silverymoon",
+              "occurrences": 20
+            }
+          ]
+        },
+        {
+          "chapter": 15,
+          "position_index": 15,
+          "position_pct": 0.5357,
+          "quartile": "q3",
+          "words": 3130,
+          "n_beats": 20,
+          "distinct_prior_referents": 30,
+          "prior_referent_occurrences": 179,
+          "time_marker_count": 3,
+          "time_marker_samples": [
+            "since they had",
+            "long before",
+            "many years before"
+          ],
+          "callback_density_per_1k": 10.5431,
+          "top_callbacks": [
+            {
+              "entity": "Sydney",
+              "occurrences": 36
+            },
+            {
+              "entity": "Entreri",
+              "occurrences": 24
+            },
+            {
+              "entity": "Bok",
+              "occurrences": 21
+            },
+            {
+              "entity": "Jierdan",
+              "occurrences": 18
+            },
+            {
+              "entity": "Catti-brie",
+              "occurrences": 14
+            }
+          ]
+        },
+        {
+          "chapter": 16,
+          "position_index": 16,
+          "position_pct": 0.5714,
+          "quartile": "q3",
+          "words": 2907,
+          "n_beats": 27,
+          "distinct_prior_referents": 28,
+          "prior_referent_occurrences": 162,
+          "time_marker_count": 1,
+          "time_marker_samples": [
+            "years ago"
+          ],
+          "callback_density_per_1k": 9.9759,
+          "top_callbacks": [
+            {
+              "entity": "Bruenor",
+              "occurrences": 28
+            },
+            {
+              "entity": "Old",
+              "occurrences": 21
+            },
+            {
+              "entity": "Night",
+              "occurrences": 21
+            },
+            {
+              "entity": "Drizzt",
+              "occurrences": 17
+            },
+            {
+              "entity": "Hall",
+              "occurrences": 14
+            }
+          ]
+        },
+        {
+          "chapter": 17,
+          "position_index": 17,
+          "position_pct": 0.6071,
+          "quartile": "q3",
+          "words": 3394,
+          "n_beats": 32,
+          "distinct_prior_referents": 28,
+          "prior_referent_occurrences": 199,
+          "time_marker_count": 7,
+          "time_marker_samples": [
+            "once again",
+            "since they had",
+            "remembered when",
+            "since he had",
+            "two years before",
+            "last time"
+          ],
+          "callback_density_per_1k": 10.3123,
+          "top_callbacks": [
+            {
+              "entity": "Bruenor",
+              "occurrences": 29
+            },
+            {
+              "entity": "Entreri",
+              "occurrences": 26
+            },
+            {
+              "entity": "Jierdan",
+              "occurrences": 24
+            },
+            {
+              "entity": "Catti-brie",
+              "occurrences": 20
+            },
+            {
+              "entity": "Drizzt",
+              "occurrences": 19
+            }
+          ]
+        },
+        {
+          "chapter": 18,
+          "position_index": 18,
+          "position_pct": 0.6429,
+          "quartile": "q3",
+          "words": 3646,
+          "n_beats": 29,
+          "distinct_prior_referents": 36,
+          "prior_referent_occurrences": 211,
+          "time_marker_count": 1,
+          "time_marker_samples": [
+            "before he saw"
+          ],
+          "callback_density_per_1k": 10.1481,
+          "top_callbacks": [
+            {
+              "entity": "Bruenor",
+              "occurrences": 42
+            },
+            {
+              "entity": "Drizzt",
+              "occurrences": 26
+            },
+            {
+              "entity": "Wulfgar",
+              "occurrences": 21
+            },
+            {
+              "entity": "Catti-brie",
+              "occurrences": 20
+            },
+            {
+              "entity": "Regis",
+              "occurrences": 17
+            }
+          ]
+        },
+        {
+          "chapter": 19,
+          "position_index": 19,
+          "position_pct": 0.6786,
+          "quartile": "q3",
+          "words": 4618,
+          "n_beats": 43,
+          "distinct_prior_referents": 31,
+          "prior_referent_occurrences": 216,
+          "time_marker_count": 7,
+          "time_marker_samples": [
+            "once again",
+            "since she had",
+            "since he had",
+            "earlier",
+            "before they had",
+            "remembering the"
+          ],
+          "callback_density_per_1k": 8.2287,
+          "top_callbacks": [
+            {
+              "entity": "Bruenor",
+              "occurrences": 41
+            },
+            {
+              "entity": "Wulfgar",
+              "occurrences": 25
+            },
+            {
+              "entity": "Drizzt",
+              "occurrences": 25
+            },
+            {
+              "entity": "Entreri",
+              "occurrences": 18
+            },
+            {
+              "entity": "Sydney",
+              "occurrences": 15
+            }
+          ]
+        },
+        {
+          "chapter": 20,
+          "position_index": 20,
+          "position_pct": 0.7143,
+          "quartile": "q3",
+          "words": 4135,
+          "n_beats": 37,
+          "distinct_prior_referents": 33,
+          "prior_referent_occurrences": 216,
+          "time_marker_count": 3,
+          "time_marker_samples": [
+            "long after",
+            "once again",
+            "years ago"
+          ],
+          "callback_density_per_1k": 8.7062,
+          "top_callbacks": [
+            {
+              "entity": "Bruenor",
+              "occurrences": 54
+            },
+            {
+              "entity": "Wulfgar",
+              "occurrences": 34
+            },
+            {
+              "entity": "Catti-brie",
+              "occurrences": 20
+            },
+            {
+              "entity": "Regis",
+              "occurrences": 20
+            },
+            {
+              "entity": "Drizzt",
+              "occurrences": 14
+            }
+          ]
+        },
+        {
+          "chapter": 21,
+          "position_index": 21,
+          "position_pct": 0.75,
+          "quartile": "q4",
+          "words": 5542,
+          "n_beats": 31,
+          "distinct_prior_referents": 22,
+          "prior_referent_occurrences": 232,
+          "time_marker_count": 6,
+          "time_marker_samples": [
+            "many moments before",
+            "long before",
+            "before he had",
+            "once again",
+            "since they had",
+            "years ago"
+          ],
+          "callback_density_per_1k": 5.0523,
+          "top_callbacks": [
+            {
+              "entity": "Drizzt",
+              "occurrences": 97
+            },
+            {
+              "entity": "Entreri",
+              "occurrences": 73
+            },
+            {
+              "entity": "Duergar",
+              "occurrences": 22
+            },
+            {
+              "entity": "Clan",
+              "occurrences": 7
+            },
+            {
+              "entity": "Bruenor",
+              "occurrences": 4
+            }
+          ]
+        },
+        {
+          "chapter": 22,
+          "position_index": 22,
+          "position_pct": 0.7857,
+          "quartile": "q4",
+          "words": 4958,
+          "n_beats": 41,
+          "distinct_prior_referents": 30,
+          "prior_referent_occurrences": 226,
+          "time_marker_count": 2,
+          "time_marker_samples": [
+            "remembered the",
+            "last time"
+          ],
+          "callback_density_per_1k": 6.4542,
+          "top_callbacks": [
+            {
+              "entity": "Bruenor",
+              "occurrences": 51
+            },
+            {
+              "entity": "Wulfgar",
+              "occurrences": 32
+            },
+            {
+              "entity": "Catti-brie",
+              "occurrences": 30
+            },
+            {
+              "entity": "Sydney",
+              "occurrences": 17
+            },
+            {
+              "entity": "Bok",
+              "occurrences": 15
+            }
+          ]
+        },
+        {
+          "chapter": 23,
+          "position_index": 23,
+          "position_pct": 0.8214,
+          "quartile": "q4",
+          "words": 3704,
+          "n_beats": 39,
+          "distinct_prior_referents": 25,
+          "prior_referent_occurrences": 223,
+          "time_marker_count": 5,
+          "time_marker_samples": [
+            "a few moments before",
+            "earlier",
+            "years ago",
+            "once more",
+            "last time"
+          ],
+          "callback_density_per_1k": 8.0994,
+          "top_callbacks": [
+            {
+              "entity": "Bruenor",
+              "occurrences": 53
+            },
+            {
+              "entity": "Regis",
+              "occurrences": 29
+            },
+            {
+              "entity": "Catti-brie",
+              "occurrences": 23
+            },
+            {
+              "entity": "Drizzt",
+              "occurrences": 19
+            },
+            {
+              "entity": "Shimmergloom",
+              "occurrences": 19
+            }
+          ]
+        },
+        {
+          "chapter": 24,
+          "position_index": 24,
+          "position_pct": 0.8571,
+          "quartile": "q4",
+          "words": 1209,
+          "n_beats": 13,
+          "distinct_prior_referents": 16,
+          "prior_referent_occurrences": 86,
+          "time_marker_count": 1,
+          "time_marker_samples": [
+            "a few hours earlier"
+          ],
+          "callback_density_per_1k": 14.0612,
+          "top_callbacks": [
+            {
+              "entity": "Drizzt",
+              "occurrences": 23
+            },
+            {
+              "entity": "Entreri",
+              "occurrences": 13
+            },
+            {
+              "entity": "Catti-brie",
+              "occurrences": 12
+            },
+            {
+              "entity": "Bruenor",
+              "occurrences": 9
+            },
+            {
+              "entity": "Wulfgar",
+              "occurrences": 8
+            }
+          ]
+        },
+        {
+          "chapter": "part1",
+          "position_index": 25,
+          "position_pct": 0.8929,
+          "quartile": "q4",
+          "words": 678,
+          "n_beats": 6,
+          "distinct_prior_referents": 4,
+          "prior_referent_occurrences": 4,
+          "time_marker_count": 0,
+          "time_marker_samples": [],
+          "callback_density_per_1k": 5.8997,
+          "top_callbacks": [
+            {
+              "entity": "Ten-Towns",
+              "occurrences": 1
+            },
+            {
+              "entity": "Fear",
+              "occurrences": 1
+            },
+            {
+              "entity": "Drizzt",
+              "occurrences": 1
+            },
+            {
+              "entity": "Do'Urden",
+              "occurrences": 1
+            }
+          ]
+        },
+        {
+          "chapter": "part2",
+          "position_index": 26,
+          "position_pct": 0.9286,
+          "quartile": "q4",
+          "words": 1243,
+          "n_beats": 7,
+          "distinct_prior_referents": 12,
+          "prior_referent_occurrences": 25,
+          "time_marker_count": 0,
+          "time_marker_samples": [],
+          "callback_density_per_1k": 9.6541,
+          "top_callbacks": [
+            {
+              "entity": "Icewind",
+              "occurrences": 4
+            },
+            {
+              "entity": "Dale",
+              "occurrences": 4
+            },
+            {
+              "entity": "Bruenor",
+              "occurrences": 3
+            },
+            {
+              "entity": "Mithral",
+              "occurrences": 3
+            },
+            {
+              "entity": "Hall",
+              "occurrences": 3
+            }
+          ]
+        },
+        {
+          "chapter": "part3",
+          "position_index": 27,
+          "position_pct": 0.9643,
+          "quartile": "q4",
+          "words": 937,
+          "n_beats": 8,
+          "distinct_prior_referents": 6,
+          "prior_referent_occurrences": 6,
+          "time_marker_count": 0,
+          "time_marker_samples": [],
+          "callback_density_per_1k": 6.4034,
+          "top_callbacks": [
+            {
+              "entity": "Artemis",
+              "occurrences": 1
+            },
+            {
+              "entity": "Entreri",
+              "occurrences": 1
+            },
+            {
+              "entity": "All",
+              "occurrences": 1
+            },
+            {
+              "entity": "Realms",
+              "occurrences": 1
+            },
+            {
+              "entity": "Drizzt",
+              "occurrences": 1
+            }
+          ]
+        },
+        {
+          "chapter": "epilogue",
+          "position_index": 28,
+          "position_pct": 1.0,
+          "quartile": "q4",
+          "words": 1143,
+          "n_beats": 14,
+          "distinct_prior_referents": 31,
+          "prior_referent_occurrences": 94,
+          "time_marker_count": 0,
+          "time_marker_samples": [],
+          "callback_density_per_1k": 27.1216,
+          "top_callbacks": [
+            {
+              "entity": "Dendybar",
+              "occurrences": 14
+            },
+            {
+              "entity": "Drizzt",
+              "occurrences": 9
+            },
+            {
+              "entity": "Catti-brie",
+              "occurrences": 9
+            },
+            {
+              "entity": "Wulfgar",
+              "occurrences": 8
+            },
+            {
+              "entity": "Morkai",
+              "occurrences": 6
+            }
+          ]
+        }
+      ],
+      "by_quartile": {
+        "q1": {
+          "n_chapters": 6,
+          "mean_distinct_prior_referents": 2.67,
+          "mean_prior_referent_occurrences": 6.33,
+          "mean_time_marker_count": 3.5,
+          "mean_callback_density_per_1k": 1.402,
+          "mean_words": 4365.2
+        },
+        "q2": {
+          "n_chapters": 7,
+          "mean_distinct_prior_referents": 8.0,
+          "mean_prior_referent_occurrences": 67.29,
+          "mean_time_marker_count": 4.0,
+          "mean_callback_density_per_1k": 2.995,
+          "mean_words": 4376.3
+        },
+        "q3": {
+          "n_chapters": 7,
+          "mean_distinct_prior_referents": 30.57,
+          "mean_prior_referent_occurrences": 201.0,
+          "mean_time_marker_count": 4.43,
+          "mean_callback_density_per_1k": 9.457,
+          "mean_words": 3756.6
+        },
+        "q4": {
+          "n_chapters": 8,
+          "mean_distinct_prior_referents": 18.25,
+          "mean_prior_referent_occurrences": 112.0,
+          "mean_time_marker_count": 1.75,
+          "mean_callback_density_per_1k": 10.343,
+          "mean_words": 2426.8
+        }
+      },
+      "halves": {
+        "first_half": {
+          "n_chapters": 14,
+          "mean_distinct_prior_referents": 7.14,
+          "mean_time_marker_count": 4.14,
+          "mean_callback_density_per_1k": 2.69
+        },
+        "last_half": {
+          "n_chapters": 14,
+          "mean_distinct_prior_referents": 23.71,
+          "mean_time_marker_count": 2.57,
+          "mean_callback_density_per_1k": 10.047
+        }
+      },
+      "spearman_rho_density_vs_position": 0.7739,
+      "spearman_rho_distinct_referents_vs_position": 0.6375,
+      "spearman_rho_time_markers_vs_position": -0.4055,
+      "top10_densest_chapters": [
+        {
+          "chapter": "epilogue",
+          "position_pct": 1.0,
+          "callback_density_per_1k": 27.1216,
+          "distinct_prior_referents": 31,
+          "time_marker_count": 0
+        },
+        {
+          "chapter": 24,
+          "position_pct": 0.8571,
+          "callback_density_per_1k": 14.0612,
+          "distinct_prior_referents": 16,
+          "time_marker_count": 1
+        },
+        {
+          "chapter": 15,
+          "position_pct": 0.5357,
+          "callback_density_per_1k": 10.5431,
+          "distinct_prior_referents": 30,
+          "time_marker_count": 3
+        },
+        {
+          "chapter": 17,
+          "position_pct": 0.6071,
+          "callback_density_per_1k": 10.3123,
+          "distinct_prior_referents": 28,
+          "time_marker_count": 7
+        },
+        {
+          "chapter": 18,
+          "position_pct": 0.6429,
+          "callback_density_per_1k": 10.1481,
+          "distinct_prior_referents": 36,
+          "time_marker_count": 1
+        },
+        {
+          "chapter": 16,
+          "position_pct": 0.5714,
+          "callback_density_per_1k": 9.9759,
+          "distinct_prior_referents": 28,
+          "time_marker_count": 1
+        },
+        {
+          "chapter": "part2",
+          "position_pct": 0.9286,
+          "callback_density_per_1k": 9.6541,
+          "distinct_prior_referents": 12,
+          "time_marker_count": 0
+        },
+        {
+          "chapter": 20,
+          "position_pct": 0.7143,
+          "callback_density_per_1k": 8.7062,
+          "distinct_prior_referents": 33,
+          "time_marker_count": 3
+        },
+        {
+          "chapter": 14,
+          "position_pct": 0.5,
+          "callback_density_per_1k": 8.2848,
+          "distinct_prior_referents": 28,
+          "time_marker_count": 9
+        },
+        {
+          "chapter": 19,
+          "position_pct": 0.6786,
+          "callback_density_per_1k": 8.2287,
+          "distinct_prior_referents": 31,
+          "time_marker_count": 7
+        }
+      ]
+    }
+  },
+  "cross_book_directional": {
+    "spearman_density_per_book": {
+      "crystal_shard": 0.8616,
+      "halflings_gem": 0.8703,
+      "streams_of_silver": 0.7739
+    },
+    "spearman_density_signs": {
+      "crystal_shard": "positive",
+      "halflings_gem": "positive",
+      "streams_of_silver": "positive"
+    },
+    "all_three_books_positive_density": true,
+    "all_three_books_negative_density": false,
+    "spearman_distinct_referents_per_book": {
+      "crystal_shard": 0.8393,
+      "halflings_gem": 0.7136,
+      "streams_of_silver": 0.6375
+    },
+    "spearman_distinct_referents_signs": {
+      "crystal_shard": "positive",
+      "halflings_gem": "positive",
+      "streams_of_silver": "positive"
+    },
+    "all_three_books_positive_distinct": true,
+    "spearman_time_markers_per_book": {
+      "crystal_shard": -0.0193,
+      "halflings_gem": -0.1654,
+      "streams_of_silver": -0.4055
+    },
+    "spearman_time_markers_signs": {
+      "crystal_shard": "negative",
+      "halflings_gem": "negative",
+      "streams_of_silver": "negative"
+    },
+    "all_three_books_positive_time": false,
+    "verdict_density": "ALL_POSITIVE"
+  },
+  "aggregate": {
+    "n_chapters": 89,
+    "mean_density_per_1k": 6.949,
+    "median_density_per_1k": 5.984,
+    "p25": 1.8382,
+    "p75": 9.6618,
+    "p10": 1.0838,
+    "p90": 14.0612,
+    "min": 0.3672,
+    "max": 40.4313
+  }
+}

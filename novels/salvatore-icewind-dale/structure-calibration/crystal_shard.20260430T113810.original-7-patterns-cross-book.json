@@ -1,0 +1,647 @@
+{
+  "computedAt": "2026-04-30T11:38:10.896Z",
+  "description": "Cross-book validation of original 7 chapter-level structural patterns (Crystal Shard / Streams of Silver / Halfling's Gem). Patterns 5+6 (mice rhythm) are PARKED — no SoS/HG mice.jsonl data available.",
+  "ship_gate": "PASS = within ±20% across all 3 books; DRIFT = within ±30%; DIVERGE = outside ±30%",
+  "reproduction_verdicts": {
+    "pattern_1_length_distribution": {
+      "verdict": "PASS",
+      "maxDiff": 18.5,
+      "notes": "beats/ch: 25.2,27.1,28.5; words/ch: 2647,2961,2996"
+    },
+    "pattern_2_beat_kind_distribution": {
+      "verdict": "DIVERGE",
+      "maxDiff": 36.8,
+      "notes": "action: 35.9%/34.9%/37.4%; dialogue: 28.2%/32.6%/33.8%; interiority: 20.6%/20.6%/19.2%; description: 15.2%/12.0%/9.6%"
+    },
+    "pattern_3_opener_closer_kinds": {
+      "verdict": "DIVERGE",
+      "maxDiff": 59.9,
+      "notes": "opener_description: 50%/38%/45% | closer_action: 41%/31%/38%"
+    },
+    "pattern_4_position_effects": {
+      "verdict": "DIVERGE",
+      "maxDiff": 47.8,
+      "notes": "q0.action: 35%/27%/32% (d=23%); q0.dialogue: 18%/30%/34% (d=48%); q0.interiority: 23%/22%/19% (d=15%); q0.description: 25%/22%/15% (d=40%); q1.action: 38%/27%/36% (d=28%); q1.dialogue: 27%/41%/37% (d=34%); q1.interiority: 22%/19%/16% (d=26%); q1.description: 13%/13%/11% (d=20%); q2.action: 28%/35%/39% (d=27%); q2.dialogue: 38%/31%/32% (d=19%); q2.interiority: 16%/24%/20% (d=32%); q2.description: 18%/10%/10% (d=45%); q3.action: 38%/40%/44% (d=13%); q3.dialogue: 30%/34%/35% (d=15%); q3.interiority: 20%/19%/16% (d=23%); q3.description: 12%/8%/6% (d=47%); q4.action: 40%/45%/37% (d=17%); q4.dialogue: 30%/28%/32% (d=12%); q4.interiority: 22%/20%/25% (d=19%); q4.description: 9%/7%/6% (d=28%)"
+    },
+    "pattern_5_mice_rhythm": {
+      "verdict": "PARKED_SKIP_NO_DATA",
+      "maxDiff": -1,
+      "notes": "SoS/HG mice.jsonl absent — cross-book mice reproduction cannot be computed. CS-only data retained as reference. Not eligible for shipping."
+    },
+    "pattern_6_opens_closes": {
+      "verdict": "PARKED_SKIP_NO_DATA",
+      "maxDiff": -1,
+      "notes": "Depends on mice.jsonl; SoS/HG data absent. Not eligible for shipping."
+    },
+    "pattern_7_boundary_signals": {
+      "verdict": "DIVERGE",
+      "maxDiff": 41.6,
+      "notes": "scene_start: 16.2%/9.7%/16.6%; pov_attention_shift: 22.0%/23.7%/16.9%; stakes_recalibration: 16.8%/14.2%/15.1%; action_shift: 14.5%/18.6%/17.8%; narration_to_dialogue: 11.1%/11.7%/12.1%; speaker_change: 12.6%/13.2%/13.8%; dialogue_to_narration: 4.9%/6.9%/5.6%"
+    }
+  },
+  "per_book": [
+    {
+      "book": "crystal_shard",
+      "n_chapters": 34,
+      "n_beats": 858,
+      "n_scenes": 139,
+      "beats_per_chapter": {
+        "mean": 25.235294117647058,
+        "median": 24,
+        "min": 4,
+        "max": 79
+      },
+      "words_per_chapter": {
+        "mean": 2646.676470588235,
+        "min": 394,
+        "p20": 1540,
+        "median": 2534,
+        "p80": 3363,
+        "max": 8113
+      },
+      "kind_distribution_overall": {
+        "action": 308,
+        "dialogue": 242,
+        "interiority": 177,
+        "description": 130,
+        "other": 1
+      },
+      "kind_distribution_pct": {
+        "action": 35.9,
+        "dialogue": 28.2,
+        "interiority": 20.6,
+        "description": 15.2,
+        "other": 0.1
+      },
+      "opener_kind": {
+        "description": 17,
+        "interiority": 5,
+        "action": 9,
+        "dialogue": 3
+      },
+      "opener_kind_pct": {
+        "description": 50,
+        "interiority": 14.7,
+        "action": 26.5,
+        "dialogue": 8.8
+      },
+      "closer_kind": {
+        "action": 14,
+        "dialogue": 7,
+        "interiority": 12,
+        "description": 1
+      },
+      "closer_kind_pct": {
+        "action": 41.2,
+        "dialogue": 20.6,
+        "interiority": 35.3,
+        "description": 2.9
+      },
+      "open_close_pairs": {
+        "description→action": 7,
+        "description→dialogue": 3,
+        "interiority→action": 2,
+        "description→interiority": 6,
+        "action→action": 4,
+        "action→interiority": 4,
+        "dialogue→dialogue": 2,
+        "interiority→interiority": 2,
+        "action→dialogue": 1,
+        "dialogue→action": 1,
+        "interiority→dialogue": 1,
+        "description→description": 1
+      },
+      "opener_first2": {
+        "description→description": 8,
+        "interiority→description": 1,
+        "description→interiority": 4,
+        "action→description": 3,
+        "description→dialogue": 4,
+        "dialogue→dialogue": 2,
+        "interiority→dialogue": 1,
+        "action→action": 3,
+        "action→interiority": 1,
+        "dialogue→interiority": 1,
+        "description→action": 1,
+        "interiority→action": 1,
+        "interiority→interiority": 2,
+        "action→dialogue": 2
+      },
+      "closer_last2": {
+        "interiority→action": 5,
+        "dialogue→dialogue": 4,
+        "action→action": 5,
+        "action→interiority": 3,
+        "dialogue→action": 4,
+        "interiority→interiority": 3,
+        "interiority→dialogue": 2,
+        "dialogue→interiority": 4,
+        "action→dialogue": 1,
+        "description→interiority": 2,
+        "dialogue→description": 1
+      },
+      "position_buckets": {
+        "q0": {
+          "action": 62,
+          "dialogue": 31,
+          "interiority": 40,
+          "description": 44,
+          "other": 0
+        },
+        "q1": {
+          "action": 64,
+          "dialogue": 46,
+          "interiority": 37,
+          "description": 22,
+          "other": 0
+        },
+        "q2": {
+          "action": 45,
+          "dialogue": 60,
+          "interiority": 26,
+          "description": 28,
+          "other": 0
+        },
+        "q3": {
+          "action": 64,
+          "dialogue": 50,
+          "interiority": 34,
+          "description": 20,
+          "other": 1
+        },
+        "q4": {
+          "action": 73,
+          "dialogue": 55,
+          "interiority": 40,
+          "description": 16,
+          "other": 0
+        }
+      },
+      "position_buckets_pct": {
+        "q0": {
+          "action": 35,
+          "dialogue": 17.5,
+          "interiority": 22.6,
+          "description": 24.9,
+          "other": 0
+        },
+        "q1": {
+          "action": 37.9,
+          "dialogue": 27.2,
+          "interiority": 21.9,
+          "description": 13,
+          "other": 0
+        },
+        "q2": {
+          "action": 28.3,
+          "dialogue": 37.7,
+          "interiority": 16.4,
+          "description": 17.6,
+          "other": 0
+        },
+        "q3": {
+          "action": 37.9,
+          "dialogue": 29.6,
+          "interiority": 20.1,
+          "description": 11.8,
+          "other": 0.6
+        },
+        "q4": {
+          "action": 39.7,
+          "dialogue": 29.9,
+          "interiority": 21.7,
+          "description": 8.7,
+          "other": 0
+        }
+      },
+      "boundary_signal_distribution": {
+        "scene_start": 139,
+        "pov_attention_shift": 189,
+        "sensory_channel_change": 16,
+        "dialogue_to_narration": 42,
+        "speaker_change": 108,
+        "stakes_recalibration": 144,
+        "action_shift": 124,
+        "narration_to_dialogue": 95,
+        "interiority": 1
+      },
+      "boundary_signal_pct": {
+        "scene_start": 16.2,
+        "pov_attention_shift": 22,
+        "sensory_channel_change": 1.9,
+        "dialogue_to_narration": 4.9,
+        "speaker_change": 12.6,
+        "stakes_recalibration": 16.8,
+        "action_shift": 14.5,
+        "narration_to_dialogue": 11.1,
+        "interiority": 0.1
+      },
+      "mice_rhythm": {
+        "chapter_opener_thread": {
+          "M": 7,
+          "C": 11,
+          "E": 12,
+          "I": 4
+        },
+        "chapter_closer_thread": {
+          "C": 15,
+          "E": 14,
+          "M": 4
+        },
+        "chapter_dominant_thread": {
+          "C": 15,
+          "E": 13,
+          "M": 4,
+          "I": 2
+        },
+        "chaptersWithBoth": 19,
+        "chaptersOnlyO": 12,
+        "chaptersOnlyC": 2,
+        "chaptersNeither": 1
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "n_chapters": 29,
+      "n_beats": 786,
+      "n_scenes": 76,
+      "beats_per_chapter": {
+        "mean": 27.103448275862068,
+        "median": 28,
+        "min": 6,
+        "max": 43
+      },
+      "words_per_chapter": {
+        "mean": 2961.0344827586205,
+        "min": 678,
+        "p20": 1354,
+        "median": 3110,
+        "p80": 4024,
+        "max": 4561
+      },
+      "kind_distribution_overall": {
+        "action": 274,
+        "dialogue": 256,
+        "interiority": 162,
+        "description": 94,
+        "other": 0
+      },
+      "kind_distribution_pct": {
+        "action": 34.9,
+        "dialogue": 32.6,
+        "interiority": 20.6,
+        "description": 12,
+        "other": 0
+      },
+      "opener_kind": {
+        "interiority": 5,
+        "description": 11,
+        "action": 8,
+        "dialogue": 5
+      },
+      "opener_kind_pct": {
+        "interiority": 17.2,
+        "description": 37.9,
+        "action": 27.6,
+        "dialogue": 17.2
+      },
+      "closer_kind": {
+        "dialogue": 11,
+        "action": 9,
+        "interiority": 8,
+        "description": 1
+      },
+      "closer_kind_pct": {
+        "dialogue": 37.9,
+        "action": 31,
+        "interiority": 27.6,
+        "description": 3.4
+      },
+      "open_close_pairs": {
+        "interiority→dialogue": 1,
+        "description→action": 3,
+        "description→dialogue": 5,
+        "action→action": 3,
+        "action→dialogue": 5,
+        "interiority→interiority": 4,
+        "dialogue→interiority": 2,
+        "description→interiority": 2,
+        "dialogue→action": 3,
+        "description→description": 1
+      },
+      "opener_first2": {
+        "interiority→action": 2,
+        "description→dialogue": 4,
+        "description→description": 3,
+        "action→description": 2,
+        "action→action": 3,
+        "action→dialogue": 2,
+        "dialogue→dialogue": 2,
+        "description→interiority": 4,
+        "dialogue→interiority": 2,
+        "dialogue→description": 1,
+        "action→interiority": 1,
+        "interiority→dialogue": 1,
+        "interiority→interiority": 2
+      },
+      "closer_last2": {
+        "action→dialogue": 2,
+        "action→action": 6,
+        "dialogue→dialogue": 7,
+        "dialogue→interiority": 2,
+        "interiority→interiority": 4,
+        "description→dialogue": 1,
+        "action→interiority": 2,
+        "interiority→action": 2,
+        "description→action": 1,
+        "interiority→dialogue": 1,
+        "interiority→description": 1
+      },
+      "position_buckets": {
+        "q0": {
+          "action": 44,
+          "dialogue": 49,
+          "interiority": 35,
+          "description": 35,
+          "other": 0
+        },
+        "q1": {
+          "action": 41,
+          "dialogue": 62,
+          "interiority": 28,
+          "description": 20,
+          "other": 0
+        },
+        "q2": {
+          "action": 54,
+          "dialogue": 47,
+          "interiority": 37,
+          "description": 15,
+          "other": 0
+        },
+        "q3": {
+          "action": 60,
+          "dialogue": 51,
+          "interiority": 28,
+          "description": 12,
+          "other": 0
+        },
+        "q4": {
+          "action": 75,
+          "dialogue": 47,
+          "interiority": 34,
+          "description": 12,
+          "other": 0
+        }
+      },
+      "position_buckets_pct": {
+        "q0": {
+          "action": 27,
+          "dialogue": 30.1,
+          "interiority": 21.5,
+          "description": 21.5,
+          "other": 0
+        },
+        "q1": {
+          "action": 27.2,
+          "dialogue": 41.1,
+          "interiority": 18.5,
+          "description": 13.2,
+          "other": 0
+        },
+        "q2": {
+          "action": 35.3,
+          "dialogue": 30.7,
+          "interiority": 24.2,
+          "description": 9.8,
+          "other": 0
+        },
+        "q3": {
+          "action": 39.7,
+          "dialogue": 33.8,
+          "interiority": 18.5,
+          "description": 7.9,
+          "other": 0
+        },
+        "q4": {
+          "action": 44.6,
+          "dialogue": 28,
+          "interiority": 20.2,
+          "description": 7.1,
+          "other": 0
+        }
+      },
+      "boundary_signal_distribution": {
+        "scene_start": 76,
+        "action_shift": 146,
+        "stakes_recalibration": 112,
+        "pov_attention_shift": 186,
+        "narration_to_dialogue": 92,
+        "speaker_change": 104,
+        "dialogue_to_narration": 54,
+        "sensory_channel_change": 16
+      },
+      "boundary_signal_pct": {
+        "scene_start": 9.7,
+        "action_shift": 18.6,
+        "stakes_recalibration": 14.2,
+        "pov_attention_shift": 23.7,
+        "narration_to_dialogue": 11.7,
+        "speaker_change": 13.2,
+        "dialogue_to_narration": 6.9,
+        "sensory_channel_change": 2
+      },
+      "mice_rhythm": null
+    },
+    {
+      "book": "halflings_gem",
+      "n_chapters": 29,
+      "n_beats": 826,
+      "n_scenes": 137,
+      "beats_per_chapter": {
+        "mean": 28.482758620689655,
+        "median": 27,
+        "min": 9,
+        "max": 53
+      },
+      "words_per_chapter": {
+        "mean": 2996.2413793103447,
+        "min": 1012,
+        "p20": 2078,
+        "median": 2890,
+        "p80": 3897,
+        "max": 5225
+      },
+      "kind_distribution_overall": {
+        "action": 309,
+        "dialogue": 279,
+        "interiority": 159,
+        "description": 79,
+        "other": 0
+      },
+      "kind_distribution_pct": {
+        "action": 37.4,
+        "dialogue": 33.8,
+        "interiority": 19.2,
+        "description": 9.6,
+        "other": 0
+      },
+      "opener_kind": {
+        "dialogue": 3,
+        "description": 13,
+        "action": 11,
+        "interiority": 2
+      },
+      "opener_kind_pct": {
+        "dialogue": 10.3,
+        "description": 44.8,
+        "action": 37.9,
+        "interiority": 6.9
+      },
+      "closer_kind": {
+        "interiority": 10,
+        "dialogue": 7,
+        "description": 1,
+        "action": 11
+      },
+      "closer_kind_pct": {
+        "interiority": 34.5,
+        "dialogue": 24.1,
+        "description": 3.4,
+        "action": 37.9
+      },
+      "open_close_pairs": {
+        "dialogue→interiority": 2,
+        "description→dialogue": 4,
+        "dialogue→description": 1,
+        "action→dialogue": 3,
+        "action→action": 7,
+        "interiority→interiority": 1,
+        "description→interiority": 6,
+        "description→action": 3,
+        "action→interiority": 1,
+        "interiority→action": 1
+      },
+      "opener_first2": {
+        "dialogue→interiority": 3,
+        "description→dialogue": 6,
+        "action→dialogue": 5,
+        "action→action": 3,
+        "interiority→description": 1,
+        "description→description": 3,
+        "description→action": 2,
+        "description→interiority": 2,
+        "interiority→action": 1,
+        "action→description": 1,
+        "action→interiority": 2
+      },
+      "closer_last2": {
+        "interiority→interiority": 6,
+        "action→dialogue": 1,
+        "action→description": 1,
+        "dialogue→dialogue": 3,
+        "action→action": 6,
+        "dialogue→interiority": 3,
+        "dialogue→action": 5,
+        "action→interiority": 1,
+        "description→dialogue": 1,
+        "interiority→dialogue": 2
+      },
+      "position_buckets": {
+        "q0": {
+          "action": 56,
+          "dialogue": 58,
+          "interiority": 33,
+          "description": 26,
+          "other": 0
+        },
+        "q1": {
+          "action": 58,
+          "dialogue": 60,
+          "interiority": 26,
+          "description": 17,
+          "other": 0
+        },
+        "q2": {
+          "action": 60,
+          "dialogue": 49,
+          "interiority": 31,
+          "description": 15,
+          "other": 0
+        },
+        "q3": {
+          "action": 70,
+          "dialogue": 56,
+          "interiority": 25,
+          "description": 10,
+          "other": 0
+        },
+        "q4": {
+          "action": 65,
+          "dialogue": 56,
+          "interiority": 44,
+          "description": 11,
+          "other": 0
+        }
+      },
+      "position_buckets_pct": {
+        "q0": {
+          "action": 32.4,
+          "dialogue": 33.5,
+          "interiority": 19.1,
+          "description": 15,
+          "other": 0
+        },
+        "q1": {
+          "action": 36,
+          "dialogue": 37.3,
+          "interiority": 16.1,
+          "description": 10.6,
+          "other": 0
+        },
+        "q2": {
+          "action": 38.7,
+          "dialogue": 31.6,
+          "interiority": 20,
+          "description": 9.7,
+          "other": 0
+        },
+        "q3": {
+          "action": 43.5,
+          "dialogue": 34.8,
+          "interiority": 15.5,
+          "description": 6.2,
+          "other": 0
+        },
+        "q4": {
+          "action": 36.9,
+          "dialogue": 31.8,
+          "interiority": 25,
+          "description": 6.3,
+          "other": 0
+        }
+      },
+      "boundary_signal_distribution": {
+        "scene_start": 137,
+        "dialogue_to_narration": 46,
+        "narration_to_dialogue": 100,
+        "stakes_recalibration": 125,
+        "pov_attention_shift": 140,
+        "speaker_change": 114,
+        "action_shift": 147,
+        "sensory_channel_change": 17
+      },
+      "boundary_signal_pct": {
+        "scene_start": 16.6,
+        "dialogue_to_narration": 5.6,
+        "narration_to_dialogue": 12.1,
+        "stakes_recalibration": 15.1,
+        "pov_attention_shift": 16.9,
+        "speaker_change": 13.8,
+        "action_shift": 17.8,
+        "sensory_channel_change": 2.1
+      },
+      "mice_rhythm": null
+    }
+  ]
+}

@@ -1,0 +1,812 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-04-30T16:23:59.495624+00:00",
+  "corpus": "salvatore-icewind-dale",
+  "source_doc": "docs/harness-tuning-roadmap.md",
+  "note": "Machine-readable mirror of the harness-tuning-roadmap pattern table. Excludes rows 12, 13, 21, 36, 43-47 which are NEG/NOTE/unallocated. When a pattern row has been re-run with a sensitivity variant (e.g. P56 v1 vs v2), the variant carries an _v2 suffix on the id field. Verdicts here are the directional verdict (planner-prompt-relevant); the point-estimate verdict is preserved in the markdown roadmap only. When a row is ambiguous, verdict_kind is \"unknown\".",
+  "verdict_enum": [
+    "PASS",
+    "PASS_PARTIAL",
+    "PASS_MODAL_ONLY",
+    "PASS_PARTIAL_TOP1",
+    "PASS_WITH_CONTENT_CONDITIONALS",
+    "PASS_CONTENT_CONDITIONAL",
+    "DIVERGE",
+    "KILL",
+    "HOLD",
+    "DECISION_PENDING",
+    "NEG",
+    "UNKNOWN"
+  ],
+  "verdict_kind_enum": [
+    "directional",
+    "negative",
+    "unknown"
+  ],
+  "ship_recommendation_enum": [
+    "ship",
+    "ship_partial",
+    "hold",
+    "kill",
+    "noted_negative",
+    "note",
+    "unknown"
+  ],
+  "gate_type_enum": [
+    "modal_class",
+    "ranking_jaccard",
+    "sign_of_effect",
+    "density_spread",
+    "top_k_overlap"
+  ],
+  "patterns": [
+    {
+      "id": 1,
+      "name": "Length",
+      "verdict": "PASS",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "density_spread"
+      ],
+      "harness_target": "`chapter-outline-system.md` `targetWords` band guidance",
+      "ship_recommendation": "ship",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T115353.original-7-patterns-directional-rescore.json",
+      "commit_anchor": "c00097b",
+      "notes": "PASS \u2014 variant validated on probe"
+    },
+    {
+      "id": 2,
+      "name": "Beat kind distribution",
+      "verdict": "PASS",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "ranking_jaccard",
+        "modal_class"
+      ],
+      "harness_target": "`beat-expansion-system.md` kind-balance soft prior",
+      "ship_recommendation": "ship",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T115353.original-7-patterns-directional-rescore.json",
+      "commit_anchor": null,
+      "notes": "PASS \u2014 full ranking matches all 3 books (action > dialogue > interiority > description). Ship as directional ranking prior."
+    },
+    {
+      "id": "3a",
+      "name": "Opener kind modal",
+      "verdict": "PASS_MODAL_ONLY",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "modal_class"
+      ],
+      "harness_target": "`chapter-outline-system.md` opener guidance",
+      "ship_recommendation": "ship_partial",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T115353.original-7-patterns-directional-rescore.json",
+      "commit_anchor": "15c4145",
+      "notes": "PASS_MODAL_ONLY \u2014 description-as-modal-opener stable; secondary ordering varies. Ship as modal-class prior."
+    },
+    {
+      "id": "3b",
+      "name": "Closer kind modal",
+      "verdict": "PASS_MODAL_ONLY",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "modal_class"
+      ],
+      "harness_target": "`chapter-outline-system.md` closer guidance",
+      "ship_recommendation": "ship_partial",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T115353.original-7-patterns-directional-rescore.json",
+      "commit_anchor": "c00097b",
+      "notes": "PASS_MODAL_ONLY corpus; VARIANT REGRESSION \u2014 revise plotter prompt to make \"closer beat is action-kind\" an explicit prior, then re-probe."
+    },
+    {
+      "id": 7,
+      "name": "Beat boundary signals",
+      "verdict": "PASS_PARTIAL",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "top_k_overlap",
+        "modal_class"
+      ],
+      "harness_target": "`beat-expansion-system.md` transition vocabulary as soft prior \u2014 encode the top-4 set, not a single dominant signal",
+      "ship_recommendation": "ship_partial",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T115353.original-7-patterns-directional-rescore.json",
+      "commit_anchor": "abcd78f",
+      "notes": "PASS_PARTIAL \u2014 top-4 vocabulary stable; specific rank order is not. Soften variant from rank-ordered to set-based."
+    },
+    {
+      "id": 8,
+      "name": "Tension curve / pacing rhythm",
+      "verdict": "PASS",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "sign_of_effect"
+      ],
+      "harness_target": "`beat-expansion-system.md` + `chapter-outline-system.md` chapter-position pacing guidance",
+      "ship_recommendation": "ship",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T030038.tension-curve.json",
+      "commit_anchor": null,
+      "notes": "PASS \u2014 book-level position-aware action density. Ship."
+    },
+    {
+      "id": 9,
+      "name": "Character introduction pacing",
+      "verdict": "PASS",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "sign_of_effect",
+        "density_spread"
+      ],
+      "harness_target": "`chapter-outline-system.md` per-chapter new-character budget",
+      "ship_recommendation": "ship",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T030038.char-intro-pacing.json",
+      "commit_anchor": "15c4145",
+      "notes": "PASS \u2014 directional curve matches all 3 books."
+    },
+    {
+      "id": 10,
+      "name": "POV rotation",
+      "verdict": "PASS",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "density_spread"
+      ],
+      "harness_target": "`chapter-outline-system.md` POV-character guidance \u2014 current planner says \"Protagonist should hold POV for most chapters; rotate only when a different perspective is load-bearing.\" Salvatore data argues for more permissive rotation.",
+      "ship_recommendation": "ship",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T030038.pov-management.json",
+      "commit_anchor": "15c4145",
+      "notes": "PASS \u2014 high-frequency rotation reproduces."
+    },
+    {
+      "id": 11,
+      "name": "Setting-change frequency",
+      "verdict": "PASS_WITH_CONTENT_CONDITIONALS",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "density_spread"
+      ],
+      "harness_target": "`chapter-outline-system.md` permissive multi-location guidance",
+      "ship_recommendation": "ship_partial",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T030038.setting-change-freq.json",
+      "commit_anchor": "15c4145",
+      "notes": "PASS_WITH_CONTENT_CONDITIONALS \u2014 ship the permissive prior; note the dungeon-crawl exception class."
+    },
+    {
+      "id": 14,
+      "name": "Forward-hook taxonomy",
+      "verdict": "PASS",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "modal_class",
+        "top_k_overlap"
+      ],
+      "harness_target": "`chapter-outline-system.md` `purpose` guidance \u2014 describe the hook *kind* per chapter, default to partial-resolution",
+      "ship_recommendation": "ship",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T113934.forward-hook-shape.json",
+      "commit_anchor": null,
+      "notes": "PASS \u2014 strong NEW ship candidate"
+    },
+    {
+      "id": 15,
+      "name": "Time-cut markers",
+      "verdict": "PASS_CONTENT_CONDITIONAL",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "density_spread"
+      ],
+      "harness_target": "`chapter-outline-system.md` purpose guidance \u2014 content-type-conditional time-cut budget; or beat-expansion guidance to use within-chapter time-cuts as a structural device",
+      "ship_recommendation": "ship_partial",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T073305.time-cut-markers.json",
+      "commit_anchor": null,
+      "notes": "PASS_CONTENT_CONDITIONAL \u2014 within-chapter cuts are the consistent shape; cross-chapter rate is content-type dependent"
+    },
+    {
+      "id": 16,
+      "name": "Established-facts density",
+      "verdict": "DECISION_PENDING",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "density_spread"
+      ],
+      "harness_target": "Either RELAX existing planner floor `establishedFacts.length \u2265 6` to \u22654-5, or KEEP as aspirational",
+      "ship_recommendation": "hold",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T073336.facts-density.json",
+      "commit_anchor": "c00097b",
+      "notes": "DECISION_PENDING \u2014 corpus-v1 variant may be over-trimming facts; investigate prompt vs. policy interaction"
+    },
+    {
+      "id": 17,
+      "name": "Chapter-opener rhetorical shape",
+      "verdict": "PASS",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "modal_class",
+        "top_k_overlap"
+      ],
+      "harness_target": "`chapter-outline-system.md` opener guidance \u2014 add per-chapter `openerKind` enum; default to scene-set-description with permitted alternates",
+      "ship_recommendation": "ship",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T131435.chapter-opener-taxonomy.json",
+      "commit_anchor": null,
+      "notes": "PASS \u2014 strong NEW ship candidate"
+    },
+    {
+      "id": 18,
+      "name": "Per-chapter primary conflict type",
+      "verdict": "PASS",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "modal_class",
+        "sign_of_effect"
+      ],
+      "harness_target": "`chapter-outline-system.md` `purpose` guidance \u2014 soft-target rotation ~55% over a moving window; flag streaks \u22656 outside designated set-pieces; do NOT ban 3+ streaks. Orthogonal to mice (complementary chapter-axis).",
+      "ship_recommendation": "ship",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T115702.conflict-type-taxonomy.json",
+      "commit_anchor": null,
+      "notes": "PASS \u2014 strong NEW ship candidate, with corpus-validated counter-finding"
+    },
+    {
+      "id": 19,
+      "name": "Per-chapter dramatic question resolution shape",
+      "verdict": "PASS",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "modal_class"
+      ],
+      "harness_target": "`chapter-outline-system.md` `purpose` field \u2014 note resolution-shape prior 55/20/10/10/5; explicitly call out `replaced` (deliberate misdirection) and `compound` (multi-faction) as structural choices, not bugs",
+      "ship_recommendation": "ship",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T075516.dramatic-question-shape.json",
+      "commit_anchor": null,
+      "notes": "PASS \u2014 strong NEW ship candidate, complements Pattern 14 not duplicates it"
+    },
+    {
+      "id": 20,
+      "name": "Stake-escalation curve",
+      "verdict": "PASS",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "sign_of_effect"
+      ],
+      "harness_target": "`chapter-outline-system.md` `purpose` guidance \u2014 within-chapter \"stakes escalate from open to close\" + arc-level \"later chapters carry denser stakes events\"",
+      "ship_recommendation": "ship",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T120751.stake-escalation.json",
+      "commit_anchor": null,
+      "notes": "PASS \u2014 strong NEW ship candidate, BOTH axes directionally stable"
+    },
+    {
+      "id": 22,
+      "name": "Char-pair scene density",
+      "verdict": "PASS",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "modal_class",
+        "density_spread"
+      ],
+      "harness_target": "`beat-expansion-system.md` ensemble-size soft prior \u2014 bias to solo+duo beats",
+      "ship_recommendation": "ship",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T122834.char-pair-density.json",
+      "commit_anchor": "0d56f9e",
+      "notes": "PASS \u2014 ship as planner prior"
+    },
+    {
+      "id": 23,
+      "name": "POV duration",
+      "verdict": "PASS",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "density_spread",
+        "modal_class"
+      ],
+      "harness_target": "`chapter-outline-system.md` POV guidance \u2014 allow 2\u20133 POV slots per chapter; lead character ~25\u201330%",
+      "ship_recommendation": "ship",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T122834.pov-duration.json",
+      "commit_anchor": "0d56f9e",
+      "notes": "PASS \u2014 refines P10; ship"
+    },
+    {
+      "id": 24,
+      "name": "Setting-recurrence pattern",
+      "verdict": "PASS",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "sign_of_effect",
+        "density_spread"
+      ],
+      "harness_target": "`chapter-outline-system.md` `setting` guidance \u2014 late-third new-setting fraction 35\u201365% (vs 80\u201395% early); climax should preferentially happen at anchors established 5\u201315 chapters earlier, never fresh locales",
+      "ship_recommendation": "ship",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T082210.setting-recurrence.json",
+      "commit_anchor": "12d06e2",
+      "notes": "PASS \u2014 strong NEW ship candidate, refines P11"
+    },
+    {
+      "id": 25,
+      "name": "Antagonist on-page rate",
+      "verdict": "PASS",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "sign_of_effect"
+      ],
+      "harness_target": "`chapter-outline-system.md` `purpose` guidance \u2014 antagonist beat-fraction prior 20\u201330%, late/early ratio \u2265 1.4, soft prior chapter-end ~30% antagonist presence",
+      "ship_recommendation": "ship",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T082423.antagonist-presence.json",
+      "commit_anchor": "626ed1e",
+      "notes": "PASS \u2014 strong NEW ship candidate"
+    },
+    {
+      "id": 26,
+      "name": "Chapter-title shape taxonomy",
+      "verdict": "PASS_PARTIAL",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "modal_class",
+        "top_k_overlap"
+      ],
+      "harness_target": "`chapter-outline-system.md` `titleShape` enum \u2014 primary single-shape default to {metaphorical-image, place-name}; OPTIONAL `secondary_shape` field; lead compositional fewshots with place+concept",
+      "ship_recommendation": "ship_partial",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T123112.chapter-title-shape-sonnet-anchor.json",
+      "commit_anchor": "fa46d37",
+      "notes": "PASS_PARTIAL \u2014 top-2 stable; NEW"
+    },
+    {
+      "id": 27,
+      "name": "Try/fail cycle structure",
+      "verdict": "PASS_PARTIAL",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "sign_of_effect"
+      ],
+      "harness_target": "`chapter-outline-system.md` \u2014 ship rising-stakes-density across try-streaks + late-third try-rate elevation. Do NOT ship fixed try-rate-percentage prior or final-streak-at-end prior.",
+      "ship_recommendation": "ship_partial",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T122751.try-fail-cycles.json",
+      "commit_anchor": "28e2793",
+      "notes": "PASS_PARTIAL \u2014 directional patterns ship; rate-prior does NOT"
+    },
+    {
+      "id": 28,
+      "name": "Setup-to-payoff distance",
+      "verdict": "PASS",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "density_spread",
+        "sign_of_effect"
+      ],
+      "harness_target": "`beat-expansion-system.md` foreshadow guidance \u2014 \"when planting something material, payoff should land within 1\u20133 chapters; corpus median 1 chapter; reserve 10+ chapter setups for series-arc threads (~15%)\"",
+      "ship_recommendation": "ship",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T124311.setup-payoff-distance.rescored.json",
+      "commit_anchor": "474585b",
+      "notes": "PASS \u2014 strong NEW ship candidate"
+    },
+    {
+      "id": 29,
+      "name": "Sentence + paragraph length",
+      "verdict": "PASS",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "density_spread"
+      ],
+      "harness_target": "Writer-prompt sentence-rhythm prior + paragraph HOLD",
+      "ship_recommendation": "ship",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T122051.sentence-paragraph-length.json",
+      "commit_anchor": "6d37a98",
+      "notes": "PASS sentence; HOLD paragraph"
+    },
+    {
+      "id": 30,
+      "name": "Dialogue ratio within beats",
+      "verdict": "PASS",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "density_spread"
+      ],
+      "harness_target": "Writer-prompt density target + post-write fraction check (fire if dialogue-kind beat <0.25 or >0.75 dialogue-mass)",
+      "ship_recommendation": "ship",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T122051.dialogue-narration-ratio.json",
+      "commit_anchor": "6d37a98",
+      "notes": "PASS \u2014 ship writer + checker prior"
+    },
+    {
+      "id": 31,
+      "name": "Beat-cluster sequence patterns",
+      "verdict": "PASS",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "modal_class",
+        "top_k_overlap"
+      ],
+      "harness_target": "`beat-expansion-system.md` sequence guidance \u2014 encourage same-kind clusters; treat interiority/description as transition beats",
+      "ship_recommendation": "ship",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T122051.beat-cluster-sequences.json",
+      "commit_anchor": "6d37a98",
+      "notes": "PASS \u2014 strong NEW ship candidate"
+    },
+    {
+      "id": 32,
+      "name": "Chapter-seam transition shape",
+      "verdict": "PASS",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "sign_of_effect"
+      ],
+      "harness_target": "`chapter-outline-system.md` chapter-seam coherence soft prior \u2014 encode positive rules as preference shifts, negative rules as ranking-down constraints",
+      "ship_recommendation": "ship",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T124052.chapter-seam-transitions.json",
+      "commit_anchor": "ad33e98",
+      "notes": "PASS for the 3 stable +/- rules; aggregate outlier rejected as CS-only"
+    },
+    {
+      "id": 33,
+      "name": "Conflict resolution latency",
+      "verdict": "PASS_PARTIAL",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "modal_class",
+        "density_spread"
+      ],
+      "harness_target": "`chapter-outline-system.md` `purpose` guidance \u2014 `transitioned` rare (~4%, do not default); modal is `paused`; combat-thread chapters more likely to close at boundary, relationship-thread chapters stay open",
+      "ship_recommendation": "ship_partial",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T124221.conflict-resolution-latency.json",
+      "commit_anchor": "11cafad",
+      "notes": "PASS_PARTIAL \u2014 structural patterns ship; resolved-rate prior does NOT"
+    },
+    {
+      "id": "34a",
+      "name": "Sentence length by beat-kind",
+      "verdict": "PASS",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "ranking_jaccard",
+        "sign_of_effect"
+      ],
+      "harness_target": "Writer-prompt per-kind sentence-length budgets in `beat-writer-system.md`",
+      "ship_recommendation": "ship",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T124347.sentence-length-by-kind.json",
+      "commit_anchor": "86d4998",
+      "notes": "PASS writer-prompt prior"
+    },
+    {
+      "id": "34b",
+      "name": "Action verb lexicon",
+      "verdict": "PASS",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "top_k_overlap"
+      ],
+      "harness_target": "Writer-prompt vocabulary prior \u2014 top-15 verbs as preferred action lexicon (fewshot block under both Salvatore-LoRA and DeepSeek routes)",
+      "ship_recommendation": "ship",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T124347.action-verb-lexicon.json",
+      "commit_anchor": "86d4998",
+      "notes": "PASS \u2014 ship writer fewshot"
+    },
+    {
+      "id": "34c",
+      "name": "Adverb density",
+      "verdict": "PASS",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "density_spread"
+      ],
+      "harness_target": "Lint-layer flag at >4.0/100w; do NOT prescribe per-kind writer prior",
+      "ship_recommendation": "ship",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T124347.adverb-density.json",
+      "commit_anchor": "86d4998",
+      "notes": "PASS lint constraint only"
+    },
+    {
+      "id": "34d",
+      "name": "Interiority marker density",
+      "verdict": "PASS",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "density_spread",
+        "modal_class"
+      ],
+      "harness_target": "Planner: ~20% beats interiority kind. Writer: ~1.4 markers/100w on interiority beats, ~0.8/100w baseline. Encourage state-of-knowledge (\"X knew Y\")",
+      "ship_recommendation": "ship",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T124347.interiority-marker-density.json",
+      "commit_anchor": "86d4998",
+      "notes": "PASS \u2014 ship planner + writer prior"
+    },
+    {
+      "id": 35,
+      "name": "Quotation density + exchange shape",
+      "verdict": "PASS",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "density_spread"
+      ],
+      "harness_target": "Writer-prompt: dialogue-kind beats target 4\u20137 chunks/beat, median chunk ~5\u20136w, p90 \u226425w. Deterministic post-write lint: fire if <2 chunks OR any chunk >60w OR mean chunk >18w. Complementary to P30.",
+      "ship_recommendation": "ship",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T083915.quotation-density-shape.json",
+      "commit_anchor": "8003209",
+      "notes": "PASS \u2014 ship writer + lint prior"
+    },
+    {
+      "id": 37,
+      "name": "Beat-to-summary expansion ratio",
+      "verdict": "PASS",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "density_spread"
+      ],
+      "harness_target": "`beat-expansion-system.md` prompt copy update from \"~100w/beat\" to \"~110\u2013130w\" (current implicit 4.5\u00d7 target is ~15% low vs corpus 5.19\u00d7). Do NOT differentiate targetWords by kind.",
+      "ship_recommendation": "ship",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T083914.beat-summary-expansion.json",
+      "commit_anchor": "37f297f",
+      "notes": "PASS \u2014 ship planner-prompt copy update"
+    },
+    {
+      "id": 38,
+      "name": "Time-of-day + weather distribution",
+      "verdict": "PASS",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "modal_class"
+      ],
+      "harness_target": "`chapter-outline-system.md` `setting` defaults \u2014 `time-of-day = night, weather = wind`; setting cues on scene-opening beats only, not every beat",
+      "ship_recommendation": "ship",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T124823.time-weather-distribution.json",
+      "commit_anchor": "670a1f1",
+      "notes": "PASS \u2014 strong NEW ship candidate"
+    },
+    {
+      "id": 39,
+      "name": "Sentence-opener distribution",
+      "verdict": "PASS",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "ranking_jaccard",
+        "sign_of_effect"
+      ],
+      "harness_target": "Writer-prompt per-kind opener-mix priors + 4 deterministic lint targets (participial-first >5%, subject-first floor <35%, interiority conjunction-opener floor <5%, dialogue-first dominance <40% on dialogue-kind beats)",
+      "ship_recommendation": "ship",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T124730.sentence-opener-distribution.json",
+      "commit_anchor": "351ec9d",
+      "notes": "PASS \u2014 ship writer + lint priors; cross-corpus value flagged for future Howard/Cook/Tolkien comparisons"
+    },
+    {
+      "id": 40,
+      "name": "Per-character dialogue mass",
+      "verdict": "PASS",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "ranking_jaccard",
+        "sign_of_effect"
+      ],
+      "harness_target": "New schema concept: leading dialogue speaker rotates with **plot ownership, not POV**. Add OPTIONAL `chapterPlotOwner` field on chapter outlines (default = `charactersPresent[0]`); writer targets ~30\u201335% dialogue share for plot-owner",
+      "ship_recommendation": "ship",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T124915.per-character-dialogue-mass.json",
+      "commit_anchor": "47ba480",
+      "notes": "PASS \u2014 strong NEW ship candidate, introduces new harness concept"
+    },
+    {
+      "id": 41,
+      "name": "Cross-chapter callback density",
+      "verdict": "PASS",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "sign_of_effect"
+      ],
+      "harness_target": "`chapter-outline-system.md` per-quartile callback density target: q1 1\u20132 / q2 3\u20135 / q3 7\u201310 / q4 10\u201315 distinct prior-chapter entity references per 1k words. Lever is named-entity reuse, NOT explicit time-progression markers. Pairs with P28 (plant + payoff close) + P14 (forward-h",
+      "ship_recommendation": "ship",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T124845.cross-chapter-callback-density.json",
+      "commit_anchor": "d7df7cf",
+      "notes": "PASS \u2014 strong NEW ship candidate"
+    },
+    {
+      "id": 42,
+      "name": "Punctuation patterns",
+      "verdict": "PASS",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "density_spread"
+      ],
+      "harness_target": "Lint rules gated to `WRITER_GENRE_PACKS` fantasy-Salvatore: `lint.ellipsis_outside_dialogue`, `lint.parenthetical_present`, `lint.em_dash_in_action`. Writer prompt: ellipsis-only-in-dialogue, parenthetical-ban, em-dash density target by kind.",
+      "ship_recommendation": "ship",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T125045.punctuation-patterns.json",
+      "commit_anchor": "9d65358",
+      "notes": "PASS \u2014 ship lint + writer prior"
+    },
+    {
+      "id": 48,
+      "name": "Dialogue-tag distribution",
+      "verdict": "PASS",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "density_spread",
+        "top_k_overlap"
+      ],
+      "harness_target": "Writer prompt (Salvatore-cluster fantasy): said-ratio ~25\u201330% said + ~30\u201340% asked/replied/answered + ~15\u201325% flavored. Lint rule `lint.said_ratio_floor_violated` (>0.55 = too Howard-like) + `lint.same_alt_tag_repeated_in_beat`. Per-character archetype priors (gruff = more flavor",
+      "ship_recommendation": "ship",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T125045.dialogue-tag-distribution.json",
+      "commit_anchor": "9d65358",
+      "notes": "PASS \u2014 ship writer + lint prior; archetype layer NEW concept"
+    },
+    {
+      "id": 49,
+      "name": "Chapter-opener hook taxonomy",
+      "verdict": "PASS",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "modal_class",
+        "top_k_overlap"
+      ],
+      "harness_target": "Chapter-skeleton schema: optional `openerKind` enum (8 buckets). `beat-expansion-system.md` quantitative prior matching corpus modal. Genre-gate via `WRITER_GENRE_PACKS` (Salvatore-cluster fantasy only).",
+      "ship_recommendation": "ship",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T131435.chapter-opener-taxonomy.json",
+      "commit_anchor": null,
+      "notes": "PASS \u2014 ship planner-prior + schema field"
+    },
+    {
+      "id": 50,
+      "name": "Chapter-closer hook taxonomy",
+      "verdict": "PASS_PARTIAL",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "top_k_overlap"
+      ],
+      "harness_target": "`chapter-outline-system.md` `purpose` field \u2014 closer-beat rhetorical-shape prior; default to modal class with permitted alternates from the always-present set; orthogonal to Pattern 17 (opener) and complementary to Pattern 14 (forward-hook scene-level)",
+      "ship_recommendation": "ship_partial",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T131522.chapter-closer-taxonomy.json",
+      "commit_anchor": null,
+      "notes": "PASS_PARTIAL \u2014 modal-class or top-3-set ships; specific ranking does not"
+    },
+    {
+      "id": 51,
+      "name": "Scene-break density + within-chapter scene cadence",
+      "verdict": "PASS_PARTIAL",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "modal_class",
+        "density_spread"
+      ],
+      "harness_target": "Add OPTIONAL `chapterShape: continuous|fragmented` + `sceneCount?` fields on chapterOutlineSchema (planner Phase 1 skeleton). Default `fragmented` mode=4, range 2-5. Continuous-rate prior ~10-15% of chapters (CS+HG cluster); SoS-style is opt-in. Lint: mid-chapter white-space-brea",
+      "ship_recommendation": "ship_partial",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T131418.scene-break-cadence.json",
+      "commit_anchor": "e225589",
+      "notes": "PASS_PARTIAL \u2014 ship planner schema additions with CS+HG defaults; SoS continuous-chapter mode as opt-in lever"
+    },
+    {
+      "id": 52,
+      "name": "POV distribution per book",
+      "verdict": "PASS_PARTIAL",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "modal_class",
+        "density_spread"
+      ],
+      "harness_target": "Schema: `chapterOutlineSchema.povCharacters: string[]` (not singular). Constrain to fellowship + villain rotation. POV-run-length prior 1.0-1.6 chapters. **Permit `pov: 'external_omniscient'`**. **Remove any rule banning mid-chapter POV shifts** \u2014 corpus-canonical.",
+      "ship_recommendation": "ship_partial",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T120637.pov-distribution.json",
+      "commit_anchor": null,
+      "notes": "PASS_PARTIAL \u2014 ship modal-POV + cast constraint + run-length prior; multi-POV gate fails but the failure is the lever (multi-POV is norm, not exception)"
+    },
+    {
+      "id": 53,
+      "name": "Sensory mode distribution per beat-kind",
+      "verdict": "PASS_PARTIAL",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "ranking_jaccard"
+      ],
+      "harness_target": "writer-prompt per-kind sensory-target priors (e.g. description\u2192sight-dominant; dialogue\u2192sound-dominant; action\u2192touch-blend); optional lint rule: warn when top-1 sense for kind is absent in beat",
+      "ship_recommendation": "ship_partial",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T091425.sensory-mode-density.json",
+      "commit_anchor": "e225589",
+      "notes": "PASS_PARTIAL \u2014 ship top-1 sense per kind as soft writer-prompt prior; defer rank-2 ordering"
+    },
+    {
+      "id": 54,
+      "name": "Time-skip / temporal-leap marker distribution",
+      "verdict": "PASS_PARTIAL",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "sign_of_effect",
+        "density_spread"
+      ],
+      "harness_target": "Planner prior: chapter-outline-system.md transition/seam \u2014 time-skip cues belong at chapter-CLOSE descriptions (or scene-bounded opens), not chapter-opens. Writer fewshot (Salvatore route): signature subset `many years` + `that night` + `at dawn` + `long before` + `the next day` ",
+      "ship_recommendation": "ship_partial",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T131500.time-skip-markers.json",
+      "commit_anchor": null,
+      "notes": "PASS_PARTIAL \u2014 structural position ships (boundary>internal 3/3); density+top3 drift, ship lexicon as fewshot subset not fixed shortlist; explicitly reject `chapter-open as time-skip site` framing"
+    },
+    {
+      "id": 55,
+      "name": "Past-perfect (\"had X-ed\") density distribution",
+      "verdict": "PASS_PARTIAL",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "ranking_jaccard",
+        "sign_of_effect",
+        "density_spread"
+      ],
+      "harness_target": "Writer-prompt per-kind density priors via `WRITER_GENRE_PACKS` (interiority 1.7\u20132.1, dialogue 0.6\u20130.7 / 100w; interiority:dialogue ratio ~3\u00d7). Chapter-CLOSE narrator-recap planner prior (close-beat purpose field \u2014 pair with P54 time-skip cluster + P50 reflection-pause). REJECT ch",
+      "ship_recommendation": "ship_partial",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T162050.past-perfect-density.json",
+      "commit_anchor": null,
+      "notes": "PASS_PARTIAL \u2014 kind-ordering ships 3/3 (interiority leads); chapter-CLOSE recap site ships 3/3 (NOT chapter-open as hypothesized); P54 co-pair ships 3/3; density spread fails 30% gate (43%, ship as soft prior not hard floor)"
+    },
+    {
+      "id": 56,
+      "name": "Body-part vocabulary distribution (implicit camera anchor)",
+      "verdict": "HOLD",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "ranking_jaccard",
+        "density_spread"
+      ],
+      "harness_target": "writer-prompt per-kind body-part priors (camera-anchor: action->hands_arms / feet; dialogue->head_face/eyes/lips; interiority->internal_visceral+head_face; description->lower density), plus optional per-beat density floor for intimate close-third scenes (~corpus median p50)",
+      "ship_recommendation": "hold",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T121833.body-part-vocabulary.json",
+      "commit_anchor": "a3da6d1",
+      "notes": "HOLD \u2014 do not codify per-kind region ordering as a writer prior; revisit with finer beat-segmentation or per-character splits"
+    },
+    {
+      "id": "56_v2",
+      "name": "Body-part vocabulary (v2 sensitivity \u2014 back/side removed from torso)",
+      "verdict": "PASS_PARTIAL",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "ranking_jaccard",
+        "density_spread"
+      ],
+      "harness_target": "writer-prompt per-kind body-part priors (camera-anchor: action->hands_arms / feet; dialogue->head_face/eyes/lips; interiority->internal_visceral+head_face; description->lower density), plus optional per-beat density floor for intimate close-third scenes (~corpus median p50)",
+      "ship_recommendation": "ship_partial",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T122145.body-part-vocabulary.v2.json",
+      "commit_anchor": "a3da6d1",
+      "notes": "PASS_PARTIAL \u2014 ship top-1 region per kind as soft writer-prompt camera prior; defer rank-2/3 ordering and per-term shortlists"
+    },
+    {
+      "id": 57,
+      "name": "Pronoun + negation density per beat-kind",
+      "verdict": "PASS_PARTIAL",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "modal_class",
+        "density_spread"
+      ],
+      "harness_target": "Ship the stable signal as a writer-prompt prior (top-1 kind only); defer the unstable signal pending finer-grained analysis",
+      "ship_recommendation": "ship_partial",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T121959.pronoun-negation-density.json",
+      "commit_anchor": "a3da6d1",
+      "notes": "PASS_PARTIAL \u2014 ship stable signal as soft writer-prompt prior; defer unstable side"
+    },
+    {
+      "id": 58,
+      "name": "Italics / emphasis pattern usage",
+      "verdict": "KILL",
+      "verdict_kind": "directional",
+      "gate_types_used": [],
+      "harness_target": "**Re-ingest source PDFs/EPUBs preserving italic markers** (pdfminer.six or ebook-convert \u2192 HTML/styled-markdown \u2192 `*word*` canonical markers) \u2192 rerun Pattern 58. Then: writer-prompt per-kind italic-density prior (likely interiority > dialogue > action > description); internal-tho",
+      "ship_recommendation": "kill",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T162233.italics-emphasis.json",
+      "commit_anchor": null,
+      "notes": "KILL \u2014 italics stripped during ingestion; signal unrecoverable until re-ingestion with italic preservation; ALL-CAPS fallback also unusable"
+    },
+    {
+      "id": 59,
+      "name": "Question-mark density per kind",
+      "verdict": "PASS_PARTIAL",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "density_spread",
+        "top_k_overlap"
+      ],
+      "harness_target": "writer-prompt per-kind question-density target + question-type mix prior (e.g. dialogue questions skew wh+yesno; interiority skews wh-rhetorical); optional lint: warn when interiority beat has zero `?` for a tense scene; optional lint: dialogue-kind beat with consecutive 3+ `?`-s",
+      "ship_recommendation": "ship_partial",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T122011.question-density.json",
+      "commit_anchor": "a3da6d1",
+      "notes": "PASS_PARTIAL \u2014 ship the stable component(s); defer the components that miss the gate"
+    },
+    {
+      "id": 60,
+      "name": "Comma + clause-count per sentence",
+      "verdict": "PASS_PARTIAL",
+      "verdict_kind": "directional",
+      "gate_types_used": [
+        "ranking_jaccard"
+      ],
+      "harness_target": "writer-prompt per-kind comma-density + clauses-per-sentence rhythm priors (action=fewer commas/clauses, description=denser, interiority=mid-sentence conjunction-leaning); optional lint: warn when action-kind beats average comma density >= description-kind mean (rhythm collapse)",
+      "ship_recommendation": "ship_partial",
+      "data_artifact": "novels/salvatore-icewind-dale/structure-calibration/crystal_shard.20260430T122056.comma-clause-density.json",
+      "commit_anchor": "a3da6d1",
+      "notes": "PASS_PARTIAL \u2014 ship the stable axis (comma density or clauses-per-sentence ordering) as soft writer-prompt prior; defer the unstable axis"
+    }
+  ]
+}

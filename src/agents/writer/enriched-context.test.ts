@@ -32,6 +32,10 @@ const baseBeat: SceneBeat = {
   characters: ["Dagnar", "Aisha"],
   kind: "dialogue",
   requiredPayoffs: [],
+  lifeValueAxes: [],
+  miceActive: [],
+  miceOpens: [],
+  miceCloses: [],
 }
 
 const baseOutline = {
@@ -246,6 +250,10 @@ describe("FOCUSED WORLD SLICE sub-block", () => {
       characters: ["Dagnar"],
       kind: "action",
       requiredPayoffs: [],
+      lifeValueAxes: [],
+      miceActive: [],
+      miceOpens: [],
+      miceCloses: [],
     }
     const result = buildEnrichedContext({
       beat,
@@ -281,6 +289,10 @@ describe("FOCUSED WORLD SLICE sub-block", () => {
       characters: ["Dagnar"],
       kind: "action",
       requiredPayoffs: [],
+      lifeValueAxes: [],
+      miceActive: [],
+      miceOpens: [],
+      miceCloses: [],
     }
     const result = buildEnrichedContext({
       beat,
@@ -304,6 +316,10 @@ describe("FOCUSED WORLD SLICE sub-block", () => {
       characters: ["Dagnar"],
       kind: "action",
       requiredPayoffs: [],
+      lifeValueAxes: [],
+      miceActive: [],
+      miceOpens: [],
+      miceCloses: [],
     }
     const result = buildEnrichedContext({
       beat,

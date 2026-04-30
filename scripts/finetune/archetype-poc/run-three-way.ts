@@ -51,7 +51,7 @@ async function runOneRow(row: SftRow, idx: number) {
 
   const [A, B, C] = await Promise.all([
     callOpenAICompat("https://api.inference.wandb.ai/v1/chat/completions", WANDB_KEY, LORA_MODEL, system, user).catch(e => `ERROR: ${e.message}`),
-    callOpenAICompat("https://api.deepseek.com/v1/chat/completions", DEEPSEEK_KEY, "deepseek-chat", system, user).catch(e => `ERROR: ${e.message}`),
+    callOpenAICompat("https://api.deepseek.com/v1/chat/completions", DEEPSEEK_KEY, "deepseek-v4-flash", system, user).catch(e => `ERROR: ${e.message}`),
     callOpenAICompat("https://openrouter.ai/api/v1/chat/completions", OPENROUTER_KEY, "anthropic/claude-sonnet-4.6", system, user).catch(e => `ERROR: ${e.message}`),
   ])
 

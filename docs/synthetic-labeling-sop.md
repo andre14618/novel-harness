@@ -7,6 +7,12 @@ updated: 2026-04-11
 
 Operational guide for collecting SFT training data using parallel Claude Code subagents. Covers two tasks: **continuity-checker** (Sonnet as bulk teacher) and **chapter-plan-checker** (gpt-oss-120b bulk + Sonnet escalation for FAIL_MISSING_BEAT).
 
+## Writer model selection (updated 2026-04-18)
+
+For synthetic prose generation in training-data pipelines, **DeepSeek V4 Flash (`deepseek-v4-flash`) is the default writer** (V3.2 → V4 Flash swap landed 2026-04-29; V3.2's measured advantage carries forward as same-family successor), not Cerebras Qwen 235B. Measured 2026-04-18 on V3.2 (hallucination-checker-v2 A/B): DS hit 99.4% Sonnet agreement + 2% injection-fail rate vs Cerebras's 96.4% + 4.6%. DS is ~3× cleaner on instruction-constrained prose.
+
+Keep Cerebras only when raw throughput trumps adherence (e.g., bulk fire-and-forget exploration). For any scripted tool that generates training data, scenarios, or adherence-sensitive probes, use DeepSeek.
+
 ## Methodology
 
 Established in exp #147 (1,559 adherence pairs, 78 parallel subagents, ~30 min wall time, $0 marginal cost under Claude Code subscription):

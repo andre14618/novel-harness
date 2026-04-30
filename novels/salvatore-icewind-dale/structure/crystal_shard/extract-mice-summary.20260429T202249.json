@@ -1,0 +1,17 @@
+{
+  "novel": "salvatore-icewind-dale",
+  "book": "crystal_shard",
+  "extractedAt": "2026-04-29T20:22:49.867Z",
+  "scenesProcessed": 139,
+  "miceOk": 137,
+  "miceFail": 2,
+  "primaryThreadCounts": {
+    "M": 25,
+    "I": 10,
+    "C": 51,
+    "E": 51
+  },
+  "opensCount": 83,
+  "closesCount": 34,
+  "secondaryThreadCount": 54
+}

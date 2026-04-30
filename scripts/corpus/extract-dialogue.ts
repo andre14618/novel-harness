@@ -116,7 +116,7 @@ async function callDeepSeek(
           "Authorization": `Bearer ${API_KEY}`,
         },
         body: JSON.stringify({
-          model: "deepseek-chat",
+          model: "deepseek-v4-flash",
           messages: [
             { role: "system", content: system },
             { role: "user", content: user },
@@ -262,7 +262,7 @@ async function main() {
   const report = {
     novel: novelKey,
     generated_at: new Date().toISOString(),
-    model: "deepseek-chat",
+    model: "deepseek-v4-flash",
     beats_processed: beats.length,
     beats_failed: stats.failed,
     lines_extracted: allLines.length,

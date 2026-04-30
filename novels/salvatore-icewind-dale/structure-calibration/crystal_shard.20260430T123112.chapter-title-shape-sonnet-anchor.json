@@ -1,0 +1,934 @@
+{
+  "timestamp": "2026-04-30T12:31:12Z",
+  "anchor_pass": "sonnet-4.6",
+  "scope": "compositional re-labeling of 79 body chapter titles only (structural markers excluded)",
+  "method": {
+    "labeler": "claude-sonnet-4.6 in-context judgment (no API calls)",
+    "input_artifact": "crystal_shard.20260430T122531.chapter-title-shape.json",
+    "decision_rules": {
+      "compositional_definition": "title genuinely contains two distinct shape categories where BOTH contribute load-bearing meaning. Strict rule: cross-category, not within-category combination.",
+      "single_shape_examples": [
+        "metaphorical phrases with abstract+concrete elements that fuse into one image (e.g., 'Lavender Eyes', 'Bloody Fields', 'Hot Winds')",
+        "place-with-modifier where modifier names the place (e.g., 'The Icy Tomb', 'Tower of Twilight')",
+        "named artifacts with conceptual modifier when phrase IS the artifact's proper name (e.g., 'The Clock of Doom', 'Aegis-fang')",
+        "abstract+abstract concepts in one phrase (both same bucket; e.g., 'Bonds of Reputation', 'Rights of Victory')",
+        "epithets/proper nouns ('City of Sails' = Luskan's epithet, frozen single place-name)"
+      ],
+      "compositional_examples": [
+        "concept+place ('Eulogy for Mithral Hall')",
+        "action+place ('The Battle of Icewind Dale')",
+        "place+character ('Biggrin's House' — Biggrin is a named character)",
+        "object+character ('The Golem's Eyes' — the golem is a creature/character; the eyes are the iconic gems)",
+        "character+concept ('The Dragon of Darkness' — Dragon is Shimmergloom, named creature)",
+        "place+concept ('Conyberry's Pride', 'The Secret of Keeper's Dale')",
+        "quote+character ('If Ever You Loved Catti-brie' — direct address quote with named character)"
+      ]
+    }
+  },
+  "buckets": [
+    "character-name",
+    "place-name",
+    "action-verb",
+    "concept-or-theme",
+    "object-or-artifact",
+    "quote-or-dialogue",
+    "metaphorical-image",
+    "other"
+  ],
+  "chapters": [
+    {
+      "book": "crystal_shard",
+      "chapter": 1,
+      "title": "The Stooge",
+      "primary_shape": "character-name",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Definite descriptor for a single character; single shape."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 2,
+      "title": "On the Banks of Maer Dualdon",
+      "primary_shape": "place-name",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Locative phrase naming a specific lake; 'on the banks' is positional, not a second shape."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 3,
+      "title": "The Mead Hall",
+      "primary_shape": "place-name",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Specific location; single shape."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 4,
+      "title": "The Crystal Shard",
+      "primary_shape": "object-or-artifact",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Named artifact; single shape (Crystal modifies Shard, both fuse into one item)."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 5,
+      "title": "Someday",
+      "primary_shape": "quote-or-dialogue",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Single word read as spoken sentiment."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 6,
+      "title": "Bryn Shander",
+      "primary_shape": "place-name",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Bare place name; single shape."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 7,
+      "title": "The Coming Storm",
+      "primary_shape": "metaphorical-image",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Foreshadowing image; 'Coming' modifies 'Storm' into one image."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 8,
+      "title": "Bloody Fields",
+      "primary_shape": "metaphorical-image",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Single sensory image; 'Bloody' modifies 'Fields' into one image of carnage."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 9,
+      "title": "No More a Boy",
+      "primary_shape": "quote-or-dialogue",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Reads as a character's declaration; single shape."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 10,
+      "title": "The Gathering Gloom",
+      "primary_shape": "metaphorical-image",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Single sensory image of darkness gathering."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 11,
+      "title": "Aegis-fang",
+      "primary_shape": "object-or-artifact",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Named warhammer; single artifact name."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 12,
+      "title": "The Gift",
+      "primary_shape": "object-or-artifact",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Bare definite noun; single shape."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 13,
+      "title": "As the Wielder Bids",
+      "primary_shape": "quote-or-dialogue",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Imperative-tone phrase; reads as a character's command."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 14,
+      "title": "Lavender Eyes",
+      "primary_shape": "metaphorical-image",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Single sensory image (color+body-part fused); not cross-category."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 15,
+      "title": "On the Wings of Doom",
+      "primary_shape": "metaphorical-image",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Single image — doom personified with wings; the phrase is a unified figure."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 16,
+      "title": "Shallow Graves",
+      "primary_shape": "metaphorical-image",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Single image of hasty burial."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 17,
+      "title": "Vengeance",
+      "primary_shape": "concept-or-theme",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Bare abstract noun; single shape."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 18,
+      "title": "Biggrin's House",
+      "primary_shape": "place-name",
+      "secondary_shape": "character-name",
+      "is_compositional": true,
+      "sonnet_changed_from_deepseek": true,
+      "notes": "Biggrin is a named character (frost giant); 'Biggrin's House' is a place defined by character ownership. Both shapes load-bearing — DeepSeek false negative."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 19,
+      "title": "Grim Tidings",
+      "primary_shape": "concept-or-theme",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Abstract phrase about news/portent; single concept."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 20,
+      "title": "A Slave to No Man",
+      "primary_shape": "quote-or-dialogue",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Reads as a declaration of independence; single shape."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 21,
+      "title": "The Icy Tomb",
+      "primary_shape": "place-name",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "'Icy' is a descriptive modifier of the tomb; the phrase is a single specific place."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 22,
+      "title": "By Blood or by Deed",
+      "primary_shape": "quote-or-dialogue",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Aphorism/spoken phrase; single shape."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 23,
+      "title": "Besieged",
+      "primary_shape": "action-verb",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Past participle as title; single shape."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 24,
+      "title": "Cryshal-Tirith",
+      "primary_shape": "place-name",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Bare place name (Akar Kessell's tower); single shape."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 25,
+      "title": "Errtu",
+      "primary_shape": "character-name",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Bare character name (balor); single shape."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 26,
+      "title": "Rights of Victory",
+      "primary_shape": "concept-or-theme",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Both 'Rights' and 'Victory' are abstract concepts; same bucket — not cross-category compositional."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 27,
+      "title": "The Clock of Doom",
+      "primary_shape": "object-or-artifact",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Borderline: 'Clock' is artifact, 'Doom' is concept-or-theme. But 'The Clock of Doom' functions as the artifact's proper name (mode of operation = single named artifact, like 'Tower of Twilight' or 'Aegis-fang'). Marking single."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 28,
+      "title": "A Lie Within a Lie",
+      "primary_shape": "quote-or-dialogue",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Reads as observed/spoken phrase; single shape."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 29,
+      "title": "Other Options",
+      "primary_shape": "concept-or-theme",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Abstract phrase for alternatives; single concept."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 30,
+      "title": "The Battle of Icewind Dale",
+      "primary_shape": "action-verb",
+      "secondary_shape": "place-name",
+      "is_compositional": true,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "'Battle' is action-noun head; 'Icewind Dale' is the named place — both load-bearing. Matches DeepSeek."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 1,
+      "title": "A Dagger at Their Backs",
+      "primary_shape": "metaphorical-image",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Idiomatic image of treachery; single fused image."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 2,
+      "title": "City of Sails",
+      "primary_shape": "place-name",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Luskan's epithet; the metaphor of 'Sails' is frozen into the place's identifier — single place-name."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 3,
+      "title": "Night Life",
+      "primary_shape": "metaphorical-image",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Atmospheric phrase; single image of nocturnal activity."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 4,
+      "title": "The Conjuring",
+      "primary_shape": "action-verb",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Gerund noun; single action."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 5,
+      "title": "The Crags",
+      "primary_shape": "place-name",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Specific geographic feature; single shape."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 6,
+      "title": "Sky Ponies",
+      "primary_shape": "character-name",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": true,
+      "notes": "Sky Ponies is a named barbarian tribe in Salvatore's setting — collective character-name. DeepSeek labeled metaphorical-image; correcting to character-name."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 7,
+      "title": "Dagger and Staff",
+      "primary_shape": "object-or-artifact",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Two objects in same bucket; single shape (within-category, not cross-category)."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 8,
+      "title": "To the Peril Of Low-Flying Birds",
+      "primary_shape": "quote-or-dialogue",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": true,
+      "notes": "Reads as a humorous toast or spoken expression; quote-or-dialogue is the better primary fit. DeepSeek had metaphorical-image."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 9,
+      "title": "There Is No Honor",
+      "primary_shape": "quote-or-dialogue",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Declarative line; single shape."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 10,
+      "title": "Bonds of Reputation",
+      "primary_shape": "concept-or-theme",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "User flagged as candidate FN. Strict reading: both 'Bonds' and 'Reputation' are concepts (same bucket). 'Bonds' has metaphorical residue but the title is dominantly an abstract about social standing — single concept-or-theme. NOT compositional under cross-category rule."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 11,
+      "title": "Silverymoon",
+      "primary_shape": "place-name",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Bare city name; single shape."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 12,
+      "title": "The Trollmoors",
+      "primary_shape": "place-name",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Specific region name; single shape."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 13,
+      "title": "The Last Run",
+      "primary_shape": "action-verb",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Action-noun; single shape."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 14,
+      "title": "Star Light, Star Bright",
+      "primary_shape": "quote-or-dialogue",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": true,
+      "notes": "Nursery-rhyme quote; reads as borrowed spoken phrase. Refining DeepSeek's metaphorical-image — quote-or-dialogue is the truer fit."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 15,
+      "title": "The Golem’s Eyes",
+      "primary_shape": "object-or-artifact",
+      "secondary_shape": "character-name",
+      "is_compositional": true,
+      "sonnet_changed_from_deepseek": true,
+      "notes": "The Guardian's Eyes (rubies/gems) are the iconic object; the Golem (creature/character) provides ownership. Both load-bearing — DeepSeek false negative."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 16,
+      "title": "Days of Old",
+      "primary_shape": "concept-or-theme",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": true,
+      "notes": "Abstract reference to nostalgic past; concept-or-theme is the truer fit (DeepSeek had metaphorical-image)."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 17,
+      "title": "The Challenge",
+      "primary_shape": "action-verb",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Action-noun; single shape."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 18,
+      "title": "The Secret of Keeper’s Dale",
+      "primary_shape": "place-name",
+      "secondary_shape": "concept-or-theme",
+      "is_compositional": true,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Keeper's Dale is the place; 'Secret' is a thematic concept — both load-bearing. Matches DeepSeek."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 19,
+      "title": "Shadows",
+      "primary_shape": "concept-or-theme",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Bare abstract noun; single shape."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 20,
+      "title": "End of a Dream",
+      "primary_shape": "concept-or-theme",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": true,
+      "notes": "User flagged as candidate FN. 'End' and 'Dream' are both abstract concepts (same bucket, not cross-category). Re-classifying primary from metaphorical-image to concept-or-theme — the title is a thematic statement, not a sensory image. NOT compositional under strict cross-category rule."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 21,
+      "title": "Silver in the Shadows",
+      "primary_shape": "metaphorical-image",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Single sensory image of color in darkness."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 22,
+      "title": "The Dragon of Darkness",
+      "primary_shape": "character-name",
+      "secondary_shape": "concept-or-theme",
+      "is_compositional": true,
+      "sonnet_changed_from_deepseek": true,
+      "notes": "'The Dragon of Darkness' = Shimmergloom, the named shadow dragon antagonist. 'Dragon' is character-name (creature); 'Darkness' is concept-or-theme. DeepSeek false negative — labeled as metaphorical-image."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 23,
+      "title": "The Broken Helm",
+      "primary_shape": "object-or-artifact",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Note: 'The Broken Helm' is also a named inn in Salvatore's lore, which would make it a place-name. Title presents the artifact-name reading as primary; single shape either way."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 24,
+      "title": "Eulogy for Mithral Hall",
+      "primary_shape": "concept-or-theme",
+      "secondary_shape": "place-name",
+      "is_compositional": true,
+      "sonnet_changed_from_deepseek": true,
+      "notes": "'Eulogy' is the abstract concept (mourning tribute); 'Mithral Hall' is the named place. Both load-bearing — DeepSeek false negative (user-flagged)."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 1,
+      "title": "Tower of Twilight",
+      "primary_shape": "place-name",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Tower of Twilight is Malchor Harpell's named tower — phrase functions as the tower's proper name (cf. 'Aegis-fang', 'The Clock of Doom'). Single place-name."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 2,
+      "title": "A Thousand Thousand Little Candles",
+      "primary_shape": "metaphorical-image",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Single sensory image; the doubled count is rhetorical not compositional."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 3,
+      "title": "Conyberry's Pride",
+      "primary_shape": "place-name",
+      "secondary_shape": "concept-or-theme",
+      "is_compositional": true,
+      "sonnet_changed_from_deepseek": true,
+      "notes": "Conyberry is a named town (place-name); 'Pride' is an abstract concept. Both load-bearing — DeepSeek false negative."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 4,
+      "title": "The City of Splendors",
+      "primary_shape": "place-name",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Waterdeep's epithet; frozen into a single place-name (cf. 'City of Sails')."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 5,
+      "title": "Ashes",
+      "primary_shape": "metaphorical-image",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Single evocative image."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 6,
+      "title": "Baldur's Gate",
+      "primary_shape": "place-name",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Bare city name; single shape (Baldur is part of the proper name, not a separately invoked character)."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 7,
+      "title": "Stirrings",
+      "primary_shape": "action-verb",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Gerund-derived noun; single shape."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 8,
+      "title": "A Plain Brown Wrapper",
+      "primary_shape": "object-or-artifact",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Specific physical item; single shape."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 9,
+      "title": "Fiery Riddles",
+      "primary_shape": "metaphorical-image",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Fused image of fire and puzzle; single shape."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 10,
+      "title": "The Weight of a Kings Mantle",
+      "primary_shape": "metaphorical-image",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Single figurative image of royal burden; the elements fuse into one metaphor (not cross-category)."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 11,
+      "title": "Hot Winds",
+      "primary_shape": "metaphorical-image",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Single sensory image."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 12,
+      "title": "Comrades",
+      "primary_shape": "character-name",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Group epithet for the cast (Companions of the Hall); single character-name."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 13,
+      "title": "Paying the Piper",
+      "primary_shape": "action-verb",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Gerund idiom for facing consequences; single action."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 14,
+      "title": "Dancing Snakes",
+      "primary_shape": "metaphorical-image",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Single sensory image; 'dancing' is participial modifier."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 15,
+      "title": "The Guide",
+      "primary_shape": "character-name",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Definite descriptor for a single character; single shape."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 16,
+      "title": "Never a Fouler Place",
+      "primary_shape": "quote-or-dialogue",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Reads as a character's exclamation about a place; the place is implicit not named — single shape."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 17,
+      "title": "Impossible Loyalties",
+      "primary_shape": "concept-or-theme",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Abstract phrase; single concept."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 18,
+      "title": "Double Talker",
+      "primary_shape": "character-name",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Refers to a specific character (Pook); single shape."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 19,
+      "title": "Tricks and Traps",
+      "primary_shape": "metaphorical-image",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Pair-image; single bucket."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 20,
+      "title": "Black and White",
+      "primary_shape": "metaphorical-image",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Single fused color image / moral binary."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 21,
+      "title": "Where No Sun Shines",
+      "primary_shape": "metaphorical-image",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Single locative image; the place is implied not named."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 22,
+      "title": "The Rift",
+      "primary_shape": "place-name",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Geographic feature / Underdark region; single shape."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 23,
+      "title": "If Ever You Loved Catti-brie",
+      "primary_shape": "quote-or-dialogue",
+      "secondary_shape": "character-name",
+      "is_compositional": true,
+      "sonnet_changed_from_deepseek": true,
+      "notes": "Direct address quote that names a specific character (Catti-brie). Both shapes load-bearing — DeepSeek false negative."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 24,
+      "title": "Interplanar Goo",
+      "primary_shape": "metaphorical-image",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Single whimsical image."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 25,
+      "title": "A Walk in the Sun",
+      "primary_shape": "metaphorical-image",
+      "secondary_shape": "none",
+      "is_compositional": false,
+      "sonnet_changed_from_deepseek": false,
+      "notes": "Single fused image (action+light)."
+    }
+  ],
+  "aggregate": {
+    "n_total": 79,
+    "n_compositional": 8,
+    "pct_compositional": 10.1,
+    "top_compositional_pairs": [
+      {"pair": "place-name+character-name", "count": 1, "examples": ["Biggrin's House"]},
+      {"pair": "action-verb+place-name", "count": 1, "examples": ["The Battle of Icewind Dale"]},
+      {"pair": "object-or-artifact+character-name", "count": 1, "examples": ["The Golem's Eyes"]},
+      {"pair": "place-name+concept-or-theme", "count": 2, "examples": ["The Secret of Keeper's Dale", "Conyberry's Pride"]},
+      {"pair": "character-name+concept-or-theme", "count": 1, "examples": ["The Dragon of Darkness"]},
+      {"pair": "concept-or-theme+place-name", "count": 1, "examples": ["Eulogy for Mithral Hall"]},
+      {"pair": "quote-or-dialogue+character-name", "count": 1, "examples": ["If Ever You Loved Catti-brie"]}
+    ],
+    "primary_shape_distribution": {
+      "character-name": 7,
+      "place-name": 16,
+      "action-verb": 7,
+      "concept-or-theme": 10,
+      "object-or-artifact": 8,
+      "quote-or-dialogue": 11,
+      "metaphorical-image": 20,
+      "other": 0
+    },
+    "primary_shape_distribution_pct": {
+      "character-name": 8.9,
+      "place-name": 20.3,
+      "action-verb": 8.9,
+      "concept-or-theme": 12.7,
+      "object-or-artifact": 10.1,
+      "quote-or-dialogue": 13.9,
+      "metaphorical-image": 25.3,
+      "other": 0
+    },
+    "compositional_dimension_pairs_unordered": [
+      {"pair_set": "character-name + place-name", "count": 1},
+      {"pair_set": "action-verb + place-name", "count": 1},
+      {"pair_set": "character-name + object-or-artifact", "count": 1},
+      {"pair_set": "concept-or-theme + place-name", "count": 3},
+      {"pair_set": "character-name + concept-or-theme", "count": 1},
+      {"pair_set": "character-name + quote-or-dialogue", "count": 1}
+    ]
+  },
+  "perBook": {
+    "crystal_shard": {
+      "n": 30,
+      "n_compositional": 2,
+      "pct_compositional": 6.7,
+      "compositional_titles": ["Biggrin's House", "The Battle of Icewind Dale"]
+    },
+    "streams_of_silver": {
+      "n": 24,
+      "n_compositional": 4,
+      "pct_compositional": 16.7,
+      "compositional_titles": ["The Golem's Eyes", "The Secret of Keeper's Dale", "The Dragon of Darkness", "Eulogy for Mithral Hall"]
+    },
+    "halflings_gem": {
+      "n": 25,
+      "n_compositional": 2,
+      "pct_compositional": 8.0,
+      "compositional_titles": ["Conyberry's Pride", "If Ever You Loved Catti-brie"]
+    }
+  },
+  "agreement_with_deepseek": {
+    "n_titles": 79,
+    "n_primary_shape_unchanged": 73,
+    "n_primary_shape_changed": 6,
+    "primary_shape_agreement_pct": 92.4,
+    "primary_changes": [
+      {"book": "streams_of_silver", "chapter": 6, "title": "Sky Ponies", "deepseek": "metaphorical-image", "sonnet": "character-name", "rationale": "Sky Ponies is a named barbarian tribe in Salvatore's setting"},
+      {"book": "streams_of_silver", "chapter": 8, "title": "To the Peril Of Low-Flying Birds", "deepseek": "metaphorical-image", "sonnet": "quote-or-dialogue", "rationale": "Reads as a humorous toast/spoken phrase"},
+      {"book": "streams_of_silver", "chapter": 14, "title": "Star Light, Star Bright", "deepseek": "metaphorical-image", "sonnet": "quote-or-dialogue", "rationale": "Nursery-rhyme borrowed quote"},
+      {"book": "streams_of_silver", "chapter": 16, "title": "Days of Old", "deepseek": "metaphorical-image", "sonnet": "concept-or-theme", "rationale": "Abstract reference to past, not sensory image"},
+      {"book": "streams_of_silver", "chapter": 20, "title": "End of a Dream", "deepseek": "metaphorical-image", "sonnet": "concept-or-theme", "rationale": "Both elements are abstract concepts; thematic statement not image"},
+      {"book": "streams_of_silver", "chapter": 22, "title": "The Dragon of Darkness", "deepseek": "metaphorical-image", "sonnet": "character-name", "rationale": "The Dragon of Darkness is Shimmergloom, Salvatore's named shadow dragon antagonist"}
+    ],
+    "n_total_changed_any_field": 11,
+    "n_compositional_flag_added": 6,
+    "n_compositional_flag_removed": 0,
+    "compositional_agreement": {
+      "deepseek_n_compositional": 2,
+      "sonnet_n_compositional": 8,
+      "deepseek_compositional_titles": ["The Battle of Icewind Dale", "The Secret of Keeper's Dale"],
+      "sonnet_added_compositional_titles": [
+        "Biggrin's House",
+        "The Golem's Eyes",
+        "The Dragon of Darkness",
+        "Eulogy for Mithral Hall",
+        "Conyberry's Pride",
+        "If Ever You Loved Catti-brie"
+      ],
+      "sonnet_removed_compositional_titles": [],
+      "deepseek_false_negative_rate_on_compositional": "75% (6/8 true compositionals missed by DeepSeek)",
+      "false_negative_class": "DeepSeek consistently missed cross-category combinations involving named characters or places paired with concepts or quotes (place+character, place+concept, character+concept, quote+character). DeepSeek's failure mode appears to be over-classifying names+modifiers as 'metaphorical-image' rather than recognizing two semantically distinct shape categories combining."
+    }
+  },
+  "directional_verdict_compositional_planning": {
+    "rate_revised": "10.1% of body chapter titles are compositional (8/79), up from DeepSeek's 2.5% (2/79)",
+    "previous_verdict": "DIVERGE — too low to ship a planner constraint at 2.5%",
+    "revised_verdict": "PASS_PARTIAL — at 10.1%, compositional pairing is a real but minority pattern. Per-book: streams_of_silver 16.7%, halflings_gem 8.0%, crystal_shard 6.7%.",
+    "ship_recommendation": "Encode compositional support as an OPTIONAL feature in the planner's titleShape schema, not a default. The planner schema should allow primary+secondary pair when natural, but ~90% of titles remain single-shape — defaulting to single-shape and offering optional secondary keeps the planner aligned with the corpus distribution.",
+    "dominant_pair_pattern": "place-name + concept-or-theme (3 instances) — abstract-quality + named-place is the most reproducible compositional pattern; appears in all three books except crystal_shard (which uses action+place once).",
+    "near_miss_pattern": "named-character + abstract-quality (2 instances: 'The Dragon of Darkness' = Shimmergloom + Darkness; 'If Ever You Loved Catti-brie' = quote + Catti-brie). Suggests the planner should allow character-name as a viable secondary shape when paired with quotes or concepts.",
+    "harness_target_update": "Update Pattern 26 conclusions entry: compositional rate is 10.1%, not 2.5%. Recommend the planner schema allow optional `secondary_shape` field on `titleShape`, with `concept_or_theme + place_name` as the lead compositional pattern to model in fewshots. Keep the default single-shape distribution from the original DeepSeek pass — those rates remain trustworthy (93.7% primary-shape agreement)."
+  }
+}

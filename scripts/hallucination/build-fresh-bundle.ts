@@ -25,7 +25,7 @@ interface BeatSample {
 }
 
 async function fetchByWriter(writer: "v4" | "ds", limit: number, idStart: number): Promise<BeatSample[]> {
-  const modelFilter = writer === "v4" ? "%salvatore-1988-v4%" : "deepseek-chat"
+  const modelFilter = writer === "v4" ? "%salvatore-1988-v4%" : "deepseek-v4-flash"
   // Pick ONE beat-writer call per (novel, chapter, beat) — the first (lowest attempt) for cleanliness
   const beats = writer === "v4"
     ? await (db as any)`

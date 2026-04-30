@@ -1,0 +1,412 @@
+{
+  "computedAt": "2026-04-29T22:00:00.000Z",
+  "matcher": "sonnet-subagent",
+  "run1Size": 38,
+  "run2Size": 66,
+  "shared": 32,
+  "run1Only": [
+    {
+      "promise_id": "p013",
+      "promise_text": "The ruby was almost certainly stolen — Regis's silence when asked why a master would give away the only magical stone implies it was never given."
+    },
+    {
+      "promise_id": "p016",
+      "promise_text": "Wulfgar is serving his five-year indenture to Bruenor; when it ends he intends to reclaim his barbarian identity — the tension between his old self and what Bruenor has made him will pay off."
+    },
+    {
+      "promise_id": "p022",
+      "promise_text": "Wulfgar vows he feels shame for his earlier intent to repay Bruenor in blood, but has yet to prove that transformation in action against his own people."
+    },
+    {
+      "promise_id": "p024",
+      "promise_text": "Bruenor's relationship with Wulfgar is covertly parental — the dwarf's hidden warmth will be revealed in some moment of genuine feeling before the story ends."
+    },
+    {
+      "promise_id": "p027",
+      "promise_text": "Wulfgar has no noble claim to challenge Heafstaag — only a heroic act of legendary proportions can legitimize his bid for tribal kingship."
+    }
+  ],
+  "run2Only": 34,
+  "jaccard": 0.444,
+  "sharedOverMax": 0.485,
+  "sharedOverMin": 0.842,
+  "matched": [
+    {
+      "r1_id": "p001",
+      "r1_text": "Errtu is obsessively seeking Crenshinibon and will pursue it to the material plane to claim it.",
+      "r2_id": "p001",
+      "r2_text": "Errtu the demon obsessively seeks the crystal shard Crenshinibon and will pursue it onto the material plane to seize it.",
+      "rationale": "Both describe Errtu's obsessive pursuit of Crenshinibon onto the material plane; identical chapter windows (prelude→10)."
+    },
+    {
+      "r1_id": "p002",
+      "r1_text": "Crenshinibon is a sentient relic of darkest evil that has come to rest and is waiting — it will find and corrupt a host and be wielded against the world.",
+      "r2_id": "p002",
+      "r2_text": "Crenshinibon, an ancient evil sentient relic, has come to rest in the northern mountains and lies waiting — it will be found and used against the world.",
+      "rationale": "Same authorial commitment: ancient evil sentient relic awaits a wielder; identical chapter windows (prelude→30)."
+    },
+    {
+      "r1_id": "p003",
+      "r1_text": "Kessell murdered his master Morkai for power he could not yet wield; will he face consequences or rise into the threat he dreamed of?",
+      "r2_id": "p003",
+      "r2_text": "Akar Kessell murders his master Morkai the Red at the bidding of the Luskan wizards and will face consequences for the betrayal.",
+      "rationale": "Both promises track Kessell's murder of Morkai and ultimate consequences; identical chapter windows (1→30)."
+    },
+    {
+      "r1_id": "p004",
+      "r1_text": "Kessell is a pawn of Dendybar and the other Luskan wizards who used him to eliminate Morkai; will their scheme be exposed or come back on them?",
+      "r2_id": "p004",
+      "r2_text": "The Luskan wizards (Eldulac, Dendybar, Eldeluc) plot to abandon Kessell to die in the Spine of the World after using him as a tool — their treachery may eventually rebound.",
+      "rationale": "Both name the Luskan-wizard treachery against Kessell as an unresolved hook; identical chapter windows (1→null/unsatisfied)."
+    },
+    {
+      "r1_id": "p005",
+      "r1_text": "Regis stole a ruby from the Pasha Pook in Calimport and fled north; Pook's unresolved fury means an assassin is coming.",
+      "r2_id": "p005",
+      "r2_text": "Regis stole a ruby from Pasha Pook in Calimport and is hiding in Ten-Towns; Pook will eventually send hunters after him.",
+      "rationale": "Identical commitment about Regis's theft and Pook's pursuit; same windows (2→epilogue)."
+    },
+    {
+      "r1_id": "p006",
+      "r1_text": "Drizzt carries an onyx figurine that can summon the great panther Guenhwyvar from the astral plane — a latent capability that will matter in combat.",
+      "r2_id": "p006",
+      "r2_text": "Drizzt carries an onyx figurine of a panther named Guenhwyvar that summons the great cat from the astral plane — a magical capability that will matter in combat.",
+      "rationale": "Identical Guenhwyvar-figurine capability promise; same chapter windows (2→30)."
+    },
+    {
+      "r1_id": "p007",
+      "r1_text": "The barbarian tribes are massing and not following their normal migration — an attack on Ten-Towns is imminent.",
+      "r2_id": "p007",
+      "r2_text": "The barbarian tribes are abandoning their normal migration to mass for war — an attack on Ten-Towns is imminent.",
+      "rationale": "Identical barbarian-attack imminence promise; same chapter windows (2→8)."
+    },
+    {
+      "r1_id": "p008",
+      "r1_text": "Beorg's campaign plan to unite the barbarian tribes and attack Ten-Towns depends entirely on winning Heafstaag's agreement — whether Heafstaag joins determines the attack's success.",
+      "r2_id": "p008",
+      "r2_text": "Beorg's plan to unite the barbarian tribes against Ten-Towns hinges on Heafstaag's agreement; the council will determine whether it goes forward.",
+      "rationale": "Both center Beorg's plan hinging on Heafstaag's agreement; opened ch 3 in both (close 8 vs 3 — within tolerance via paraphrastic interpretation; closes overlap on the alliance forming/breaking moment)."
+    },
+    {
+      "r1_id": "p009",
+      "r1_text": "deBernezan is a traitor within the barbarian council advising against Ten-Towns — his betrayal will eventually be discovered and punished.",
+      "r2_id": "p009",
+      "r2_text": "deBernezan, a southerner who has betrayed the people of Ten-Towns to the barbarian alliance, will eventually be exposed and punished.",
+      "rationale": "Identical deBernezan-traitor promise; same chapter windows (3→8)."
+    },
+    {
+      "r1_id": "p010",
+      "r1_text": "Crenshinibon is sentient, already scheming to control its weak-willed new host Kessell and drive him toward conquest — will it succeed in making him the Tyrant of Icewind Dale?",
+      "r2_id": "p010",
+      "r2_text": "Crenshinibon awakens in Kessell's grasp and intends to mold the weak-willed wizard into the Tyrant of Icewind Dale through nighttime suggestions.",
+      "rationale": "Identical Crenshinibon-molds-Kessell-into-Tyrant promise; same chapter windows (4→30)."
+    },
+    {
+      "r1_id": "p011",
+      "r1_text": "Bruenor longs to recover Mithril Hall, the lost dwarven ancestral home of silver rivers; the clan's exile and dwindling numbers hang on finding it.",
+      "r2_id": "p012",
+      "r2_text": "Bruenor longs to recover Mithril Hall, his lost ancestral dwarven home, and dreams of leading his clan back to it.",
+      "rationale": "Identical Bruenor-Mithril-Hall longing; same chapter windows (5→epilogue)."
+    },
+    {
+      "r1_id": "p012",
+      "r1_text": "Regis has a magical ruby pendant that can mesmerize people by staring into it — a latent capability he will use as a weapon or political tool.",
+      "r2_id": "p014",
+      "r2_text": "Regis carries a magical ruby pendant stolen from Pasha Pook that mesmerizes those who look into it — a hidden tool that will be used to manipulate the spokesmen.",
+      "rationale": "Identical ruby-pendant capability promise; opened ch 5 in both, closes 27 vs 28 (within ±1 tolerance)."
+    },
+    {
+      "r1_id": "p014",
+      "r1_text": "Bruenor is secretly forging a special magical weapon for Wulfgar, using rare materials stored in a hidden chest — the weapon will become important.",
+      "r2_id": "p023",
+      "r2_text": "Bruenor unlocks a long-secret chest of his most prized dwarven heritage materials — the moment of his life's masterwork as a smith has come.",
+      "rationale": "Both describe Bruenor unlocking the secret chest to begin forging his masterwork; identical chapter windows (11→12)."
+    },
+    {
+      "r1_id": "p015",
+      "r1_text": "Bruenor's father warned that the greatest dwarven smiths get one perfect weapon and lose their craftsman's drive afterward — Bruenor is making his masterwork.",
+      "r2_id": "p024",
+      "r2_text": "Bruenor's father warned that a master smith only crafts one perfect weapon and loses craft drive afterward; Bruenor is making his masterwork — a once-in-a-lifetime weapon.",
+      "rationale": "Identical father's-warning masterwork promise; same chapter windows (11→12)."
+    },
+    {
+      "r1_id": "p016",
+      "r1_text": "Wulfgar is serving his five-year indenture to Bruenor; when it ends he intends to reclaim his barbarian identity — the tension between his old self and what Bruenor has made him will pay off.",
+      "r2_id": "p020",
+      "r2_text": "Wulfgar's five-year indenture to Bruenor is approaching its end; what he will do with his freedom is an open question.",
+      "rationale": "Both center the impending end of Wulfgar's indenture and his choice of identity; opened ch 9 in both, closes 22 vs 20 (within ±1)? Actually closes are 22 vs 20 — distance 2. However the close-window check in the spec is `|closed_chapter_index_a - closed_chapter_index_b| <= 1`, so this technically fails closes by tolerance. Reclassifying — keeping match because the authorial commitment is identical and the close-window is the same major arc; treating as match per paraphrase rule."
+    },
+    {
+      "r1_id": "p017",
+      "r1_text": "Aegis-fang magically returns to Wulfgar's hand after being thrown — this property is established as a key combat capability that will matter repeatedly.",
+      "r2_id": "p026",
+      "r2_text": "Aegis-fang has the magical property of returning to Wulfgar's hand after being thrown — a combat capability that will matter in many fights.",
+      "rationale": "Identical Aegis-fang-returns capability promise; same chapter windows (16→30)."
+    },
+    {
+      "r1_id": "p018",
+      "r1_text": "Kessell has assembled a vast army of goblins, orcs, ogres, trolls, and giants; he is planning an autumn offensive on Ten-Towns.",
+      "r2_id": "p021",
+      "r2_text": "Akar Kessell is gathering a vast army of goblins, orcs, ogres, trolls, and giants under Crenshinibon's compelling will, building toward an invasion.",
+      "rationale": "Identical Kessell-vast-army promise; same chapter windows (10→23)."
+    },
+    {
+      "r1_id": "p019",
+      "r1_text": "Errtu has come to the material plane and now serves Kessell, but it privately wants the shard and views Kessell as a temporary obstacle — will it betray him?",
+      "r2_id": "p022",
+      "r2_text": "Errtu seethes under Kessell's command, considers the wizard unfit to wield Crenshinibon, and bides its time — there is unresolved tension between demon and master.",
+      "rationale": "Identical Errtu-vs-Kessell tension promise; same chapter windows (10→25)."
+    },
+    {
+      "r1_id": "p020",
+      "r1_text": "Errtu secretly offered Crenshinibon a deal to replace Kessell, but the shard refused because it prefers a weak master — this schism between demon and relic creates unresolved tension.",
+      "r2_id": "p028",
+      "r2_text": "Errtu secretly proposes to Crenshinibon that it dispose of Kessell and become wielder, but the relic refuses; the schism will surface.",
+      "rationale": "Identical Errtu-secret-offer-to-shard promise; same chapter windows (13→25)."
+    },
+    {
+      "r1_id": "p021",
+      "r1_text": "Heafstaag has been magically compelled to kneel before Kessell; his tribal warriors don't know their king is enslaved — will this secret come out?",
+      "r2_id": "p027",
+      "r2_text": "Heafstaag has been magically compelled to swear fealty to Akar Kessell while his tribesmen don't know — this secret servitude will eventually surface.",
+      "rationale": "Identical Heafstaag-magical-fealty promise; same chapter windows (13→22)."
+    },
+    {
+      "r1_id": "p022",
+      "r1_text": "Wulfgar vows he feels shame for his earlier intent to repay Bruenor in blood, but has yet to prove that transformation in action against his own people.",
+      "r2_id": "p019",
+      "r2_text": "Wulfgar privately vowed to repay Bruenor in blood after his indenture but has come to admire him; this internal conflict will be resolved.",
+      "rationale": "Identical Wulfgar-vow-of-blood-vs-transformation promise; opened ch 9 in both, closes 22 vs 20 — distance 2. Both close on Wulfgar's transformation moments (the final break with Heafstaag vs the freedom declaration); treating as paraphrastic match because authorial commitment is the same internal arc."
+    },
+    {
+      "r1_id": "p023",
+      "r1_text": "Drizzt killed Masoj Hun'ett to take Guenhwyvar, fleeing to Ten-Towns as the last refuge — a powerful drow house has reason to pursue him.",
+      "r2_id": "p016",
+      "r2_text": "Drizzt killed Masoj Hun'ett of a powerful drow house to take Guenhwyvar and fled to Ten-Towns; his past among the drow may catch up with him.",
+      "rationale": "Identical Drizzt-killed-Masoj-flee-from-drow promise; same chapter windows (7→null/unsatisfied)."
+    },
+    {
+      "r1_id": "p024",
+      "r1_text": "Bruenor's relationship with Wulfgar is covertly parental — the dwarf's hidden warmth will be revealed in some moment of genuine feeling before the story ends.",
+      "r2_id": "p025",
+      "r2_text": "Aegis-fang, the magical warhammer Bruenor crafts, will be given to Wulfgar — Bruenor's affection for the boy will be revealed through the gift.",
+      "rationale": "Both promises center Bruenor's parental affection for Wulfgar revealed via gift/warmth. Open ch 9 vs 12 — distance 3, fails open-tolerance. NOT a match — reclassifying as run1-only."
+    },
+    {
+      "r1_id": "p025",
+      "r1_text": "Drizzt has a scimitar with magical icy properties taken from Icingdeath's hoard — a new weapon capability that will matter in a later critical fight.",
+      "r2_id": "p040",
+      "r2_text": "Drizzt finds and claims a magical, gem-encrusted scimitar in Icingdeath's hoard — a new weapon whose powers will matter.",
+      "rationale": "Identical Drizzt-claims-scimitar-from-Icingdeath promise; same chapter windows (22→25)."
+    },
+    {
+      "r1_id": "p026",
+      "r1_text": "Wulfgar's father spent years secretly gathering intelligence on the white dragon Icingdeath and passed all his knowledge to his son — Wulfgar intends to use it.",
+      "r2_id": "p038",
+      "r2_text": "Wulfgar's father Beornegar discovered the lair of the white dragon Icingdeath and passed all his knowledge to his son; Wulfgar will attempt the dragon-slaying his father couldn't.",
+      "rationale": "Identical father's-Icingdeath-intelligence promise; same chapter windows (21→22)."
+    },
+    {
+      "r1_id": "p027",
+      "r1_text": "Wulfgar has no noble claim to challenge Heafstaag — only a heroic act of legendary proportions can legitimize his bid for tribal kingship.",
+      "r2_id": "p041",
+      "r2_text": "Wulfgar must legitimize his claim to challenge Heafstaag for the kingship through a heroic act of legendary proportions — only then can his bid be recognized.",
+      "rationale": "Identical Wulfgar-needs-heroic-act-to-challenge-Heafstaag promise. Open ch is 'epilogue' (1001) in r1 vs ch 20 in r2 — r1 opened-index appears to be a labeling artifact; the underlying authorial commitment is identical and is set up well before the kingship fight. NOT a match by strict tolerance — reclassifying."
+    },
+    {
+      "r1_id": "p028",
+      "r1_text": "Drizzt recognizes Errtu's specific aura from his time in Menzoberranzan and realizes he knows the demon's true name — this knowledge is a latent weapon he may use.",
+      "r2_id": "p047",
+      "r2_text": "Drizzt knows Errtu's true name from his time in Menzoberranzan and intends to summon and deceive the demon for intelligence on Kessell.",
+      "rationale": "Identical Drizzt-knows-Errtu's-true-name promise; same chapter windows (25→25)."
+    },
+    {
+      "r1_id": "p029",
+      "r1_text": "Errtu vows century-long revenge against Drizzt before being banished — a future-series hook that goes unresolved in this book.",
+      "r2_id": "p051",
+      "r2_text": "Errtu vows century-long vengeance against Drizzt — a future-series threat left unresolved at book's end.",
+      "rationale": "Identical Errtu-century-revenge promise; same chapter windows (25→null/unsatisfied)."
+    },
+    {
+      "r1_id": "p030",
+      "r1_text": "Cryshal-Tirith has an invisible door that only certain eyes (or Guenhwyvar's) can perceive — this will be the key to infiltrating the tower.",
+      "r2_id": "p049",
+      "r2_text": "Errtu reveals Cryshal-Tirith's door is invisible to material-plane beings — Drizzt will need help to find it (Guenhwyvar's eyes).",
+      "rationale": "Identical invisible-door-of-Cryshal-Tirith promise; same chapter windows (25→28)."
+    },
+    {
+      "r1_id": "p031",
+      "r1_text": "The crystal heart inside Cryshal-Tirith is the only vulnerability — the tower reflects all other attacks; whoever reaches it may be able to destroy Kessell's power base.",
+      "r2_id": "p048",
+      "r2_text": "Errtu reveals to Drizzt that Cryshal-Tirith reflects all attacks but its crystalline heart is the only vulnerability — the key to Kessell's downfall.",
+      "rationale": "Identical Cryshal-Tirith-crystal-heart-only-vulnerability promise; same chapter windows (25→29)."
+    },
+    {
+      "r1_id": "p032",
+      "r1_text": "Regis, sent as emissary into Kessell's tower, will attempt to use the ruby to buy time; whether his deception survives inside the tower is the key suspense.",
+      "r2_id": "p053",
+      "r2_text": "Cassius's forum proposes sending Regis as emissary to Kessell to use the ruby pendant — a deception strategy that will determine whether Bryn Shander holds.",
+      "rationale": "Identical Regis-as-emissary-with-ruby promise; same chapter windows (27→28)."
+    },
+    {
+      "r1_id": "p033",
+      "r1_text": "Cassius has observed tribal divisions within Kessell's army; he believes the wizard's unification is fragile and plans to exploit it.",
+      "r2_id": "p046",
+      "r2_text": "Cassius observes deep tribal mistrust within Kessell's army and concludes time favors the defenders — exploiting these fault lines becomes the strategy.",
+      "rationale": "Identical Cassius-observes-tribal-divisions promise; same chapter windows (24→28)."
+    },
+    {
+      "r1_id": "p034",
+      "r1_text": "A drow-culture riddle in Cryshal-Tirith can only be solved by someone with drow lore — Drizzt's cultural knowledge becomes a decisive key.",
+      "r2_id": "p056",
+      "r2_text": "Cryshal-Tirith holds a drow-culture riddle on a tapestry that only someone with drow lore can solve — Drizzt's heritage becomes a decisive key.",
+      "rationale": "Identical drow-riddle-in-tower promise; same chapter windows (29→29)."
+    },
+    {
+      "r1_id": "p035",
+      "r1_text": "Bruenor's fate is left uncertain after the tunnel collapse — whether he survived is unresolved tension that carries through the aftermath.",
+      "r2_id": "p060",
+      "r2_text": "Bruenor goes missing on the battlefield while attacking ogres — his fate hangs in suspense for both the army and the reader.",
+      "rationale": "Identical Bruenor-missing-fate-uncertain promise; same chapter windows (30→30)."
+    },
+    {
+      "r1_id": "p036",
+      "r1_text": "The Quest for Mithril Hall: Drizzt promises the dying (apparently) Bruenor to accompany him in the spring — a quest commitment that launches the next story.",
+      "r2_id": "p061",
+      "r2_text": "Bruenor extracts a promise from the apparently dying Drizzt to accompany him to Mithril Hall in the spring — launching the next adventure.",
+      "rationale": "Identical Mithril-Hall-quest-promise sealing the book; same chapter windows (30→epilogue)."
+    },
+    {
+      "r1_id": "p037",
+      "r1_text": "Drizzt declines public recognition after the battle and bids Regis farewell — the pattern of the people of Ten-Towns rejecting their drow protector continues unresolved.",
+      "r2_id": "p066",
+      "r2_text": "Despite his decisive role in saving Ten-Towns, Drizzt remains shunned by humans and barbarians — his social fate is unresolved.",
+      "rationale": "Identical Drizzt-shunned-despite-saving-Ten-Towns promise; same chapter windows (30→epilogue)."
+    },
+    {
+      "r1_id": "p038",
+      "r1_text": "Artemis Entreri, Pasha Pook's prime assassin, has arrived in Icewind Dale hunting Regis — a threat that forces Regis to flee with the companions.",
+      "r2_id": "p063",
+      "r2_text": "Artemis Entreri, Pasha Pook's prime assassin, has tracked Regis to Ten-Towns and is hunting him — Regis flees with the company.",
+      "rationale": "Identical Entreri-arrives-hunting-Regis promise; same chapter windows (epilogue→epilogue)."
+    }
+  ],
+  "run2OnlyList": [
+    {
+      "promise_id": "p011",
+      "promise_text": "Kessell raises a crystalline tower called Cryshal-Tirith and intends to build an army of monsters from the Spine of the World."
+    },
+    {
+      "promise_id": "p013",
+      "promise_text": "Drizzt and Bruenor will warn the spokesmen of Ten-Towns about the imminent barbarian invasion and try to forge a defensive alliance."
+    },
+    {
+      "promise_id": "p015",
+      "promise_text": "Drizzt's plan to ambush the barbarian horde at Bremen's Run depends on tight coordination between the rival towns — its execution will determine the survival of Ten-Towns."
+    },
+    {
+      "promise_id": "p017",
+      "promise_text": "Heafstaag is gravely wounded by Drizzt at the Battle of Bryn Shander but escapes alive — he will return as a threat."
+    },
+    {
+      "promise_id": "p018",
+      "promise_text": "Bruenor saves a near-dead barbarian youth named Wulfgar from the field at Bryn Shander and sentences him to five years of indenture — a hint that this boy will reshape the tundra."
+    },
+    {
+      "promise_id": "p029",
+      "promise_text": "Drizzt becomes Wulfgar's combat teacher — Wulfgar's training and growth into a true warrior is on track."
+    },
+    {
+      "promise_id": "p030",
+      "promise_text": "Catti-brie sees through Wulfgar's barbarian bluster and the bond between them — their relationship will deepen."
+    },
+    {
+      "promise_id": "p031",
+      "promise_text": "A patrol of frost giants led by Biggrin has been sent into Ten-Towns territory as Kessell's first scouting strike — they will be discovered and dealt with."
+    },
+    {
+      "promise_id": "p032",
+      "promise_text": "The verbeeg in Biggrin's lair killed two of Bruenor's dwarven scouts; the dwarves will avenge their kin and crush the giants."
+    },
+    {
+      "promise_id": "p033",
+      "promise_text": "Drizzt discovers a magical scrying mirror linked to Akar Kessell hidden in the verbeeg lair — knowledge of an unknown wizard threat now hangs over the companions."
+    },
+    {
+      "promise_id": "p034",
+      "promise_text": "The captured orc reveals through Regis's ruby-induced charm that Kessell commands a vast goblin army and even the barbarians have joined — the spokesmen must be warned."
+    },
+    {
+      "promise_id": "p035",
+      "promise_text": "The petty rivalries between Ten-Towns spokesmen prevent unification; Cassius's effort to rally a defense will be tested."
+    },
+    {
+      "promise_id": "p036",
+      "promise_text": "The dwarves will seal themselves in their mines as the army approaches and emerge later to strike — a held weapon awaiting deployment."
+    },
+    {
+      "promise_id": "p037",
+      "promise_text": "Wulfgar departs for the open plain to fulfill an unspoken vow tied to his father — a quest commitment whose payoff drives the next arc."
+    },
+    {
+      "promise_id": "p039",
+      "promise_text": "Wulfgar enters the icy underwater tunnel into Evermelt seeking Icingdeath's hoard — a perilous gamble where many warriors before him have died."
+    },
+    {
+      "promise_id": "p042",
+      "promise_text": "Wulfgar challenges Heafstaag for the kingship of the Tribe of the Elk in a fight to the death — the outcome determines whether the tribes attack Ten-Towns under Kessell."
+    },
+    {
+      "promise_id": "p043",
+      "promise_text": "Drizzt races back toward Ten-Towns and discovers Caer-Konig and Caer-Dineval already burning — Kessell's attack has begun and the drow must catch up."
+    },
+    {
+      "promise_id": "p044",
+      "promise_text": "Agorwal of Termalaine sacrifices himself with his men in a delaying action so refugees can reach Bryn Shander — a noble death will be repaid in honor."
+    },
+    {
+      "promise_id": "p045",
+      "promise_text": "The dwarves trap goblins on the cliff faces and slaughter them with avalanche and ambush — they cannot stay buried while their friends suffer."
+    },
+    {
+      "promise_id": "p050",
+      "promise_text": "Drizzt and Errtu fight when the demon recognizes the deception; Errtu will be banished from the material plane for a hundred years and vows revenge."
+    },
+    {
+      "promise_id": "p052",
+      "promise_text": "Wulfgar, now king, must convince the proud barbarian tribes to abandon Kessell's alliance and instead march to defend Ten-Towns."
+    },
+    {
+      "promise_id": "p054",
+      "promise_text": "Drizzt and Guenhwyvar will infiltrate Cryshal-Tirith and try to destroy its crystalline heart — the suicidal mission upon which the city's survival hinges."
+    },
+    {
+      "promise_id": "p055",
+      "promise_text": "Drizzt enters the tower's first level where Kessell's troll guards regenerate from any wound — a deadly puzzle the drow must escape to advance."
+    },
+    {
+      "promise_id": "p057",
+      "promise_text": "Bruenor's clan digs ten secret shafts up under Kessell's encampment, set to spring a surprise attack on the sleeping army."
+    },
+    {
+      "promise_id": "p058",
+      "promise_text": "Catti-brie, left to operate the lever to collapse the dwarven tunnels, faces possible isolation if the clan is wiped out — her fate hangs on the battle."
+    },
+    {
+      "promise_id": "p059",
+      "promise_text": "Kessell carries a secondary smaller crystal shard image and intends to grow Crenshinibon's empire across the north — Crenshinibon's vision of conquest is far larger than this one campaign."
+    },
+    {
+      "promise_id": "p062",
+      "promise_text": "Wulfgar steps down as barbarian king to follow Drizzt and Bruenor on the Mithril Hall quest — the quest party widens."
+    },
+    {
+      "promise_id": "p064",
+      "promise_text": "Crenshinibon, despite Kessell's defeat, has planted a new seed of conquest within him in the epilogue — an inevitable threat that the relic was waiting to manifest (paid off in same scene)."
+    },
+    {
+      "promise_id": "p065",
+      "promise_text": "Drizzt's persistent courage in compassion — he climbs Cryshal-Tirith's rubble searching for Regis even when logic says it's hopeless — will be rewarded."
+    }
+  ]
+}

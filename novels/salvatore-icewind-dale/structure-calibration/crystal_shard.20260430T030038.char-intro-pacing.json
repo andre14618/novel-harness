@@ -1,0 +1,700 @@
+{
+  "computed_at": "20260430T030038",
+  "source": "pairs.jsonl \u2014 brief.characters field",
+  "dim": "character_introduction_pacing",
+  "note": "Characters are named entities from brief.characters list. 'Late' = first appearance in last 20% of narrative beats.",
+  "by_book": {
+    "crystal_shard": {
+      "book": "crystal_shard",
+      "total_narrative_chapters": 30,
+      "total_narrative_beats": 813,
+      "total_distinct_named_entities": 105,
+      "mean_new_per_chapter": 3.5,
+      "front_load_ratio_30pct_chapters": 0.571,
+      "late_introduction_count": 12,
+      "late_introductions": [
+        {
+          "character": "men of Caer-Konig",
+          "chapter": "30",
+          "beat_idx": 0
+        },
+        {
+          "character": "men of Caer-Dineval",
+          "chapter": "30",
+          "beat_idx": 0
+        },
+        {
+          "character": "men of Ten-Towns",
+          "chapter": "30",
+          "beat_idx": 0
+        },
+        {
+          "character": "men of Good Mead",
+          "chapter": "30",
+          "beat_idx": 1
+        },
+        {
+          "character": "men of Dougan's Hole",
+          "chapter": "30",
+          "beat_idx": 1
+        },
+        {
+          "character": "giants",
+          "chapter": "30",
+          "beat_idx": 2
+        },
+        {
+          "character": "men of Maer Dualdon cities",
+          "chapter": "30",
+          "beat_idx": 2
+        },
+        {
+          "character": "eastern armies",
+          "chapter": "30",
+          "beat_idx": 3
+        },
+        {
+          "character": "Maer Dualdon armies",
+          "chapter": "30",
+          "beat_idx": 4
+        },
+        {
+          "character": "spokesmen",
+          "chapter": "30",
+          "beat_idx": 7
+        },
+        {
+          "character": "defenders",
+          "chapter": "30",
+          "beat_idx": 7
+        },
+        {
+          "character": "Fender Mallot",
+          "chapter": "30",
+          "beat_idx": 8
+        }
+      ],
+      "by_chapter": [
+        {
+          "chapter": "1",
+          "chapter_position": 0.033,
+          "cumulative_chars": 4,
+          "new_chars": 4,
+          "cumulative_fraction": 0.038
+        },
+        {
+          "chapter": "2",
+          "chapter_position": 0.067,
+          "cumulative_chars": 11,
+          "new_chars": 7,
+          "cumulative_fraction": 0.105
+        },
+        {
+          "chapter": "3",
+          "chapter_position": 0.1,
+          "cumulative_chars": 16,
+          "new_chars": 5,
+          "cumulative_fraction": 0.152
+        },
+        {
+          "chapter": "4",
+          "chapter_position": 0.133,
+          "cumulative_chars": 21,
+          "new_chars": 5,
+          "cumulative_fraction": 0.2
+        },
+        {
+          "chapter": "5",
+          "chapter_position": 0.167,
+          "cumulative_chars": 26,
+          "new_chars": 5,
+          "cumulative_fraction": 0.248
+        },
+        {
+          "chapter": "6",
+          "chapter_position": 0.2,
+          "cumulative_chars": 30,
+          "new_chars": 4,
+          "cumulative_fraction": 0.286
+        },
+        {
+          "chapter": "7",
+          "chapter_position": 0.233,
+          "cumulative_chars": 39,
+          "new_chars": 9,
+          "cumulative_fraction": 0.371
+        },
+        {
+          "chapter": "8",
+          "chapter_position": 0.267,
+          "cumulative_chars": 53,
+          "new_chars": 14,
+          "cumulative_fraction": 0.505
+        },
+        {
+          "chapter": "9",
+          "chapter_position": 0.3,
+          "cumulative_chars": 54,
+          "new_chars": 1,
+          "cumulative_fraction": 0.514
+        },
+        {
+          "chapter": "10",
+          "chapter_position": 0.333,
+          "cumulative_chars": 60,
+          "new_chars": 6,
+          "cumulative_fraction": 0.571
+        },
+        {
+          "chapter": "11",
+          "chapter_position": 0.367,
+          "cumulative_chars": 61,
+          "new_chars": 1,
+          "cumulative_fraction": 0.581
+        },
+        {
+          "chapter": "12",
+          "chapter_position": 0.4,
+          "cumulative_chars": 61,
+          "new_chars": 0,
+          "cumulative_fraction": 0.581
+        },
+        {
+          "chapter": "13",
+          "chapter_position": 0.433,
+          "cumulative_chars": 62,
+          "new_chars": 1,
+          "cumulative_fraction": 0.59
+        },
+        {
+          "chapter": "14",
+          "chapter_position": 0.467,
+          "cumulative_chars": 62,
+          "new_chars": 0,
+          "cumulative_fraction": 0.59
+        },
+        {
+          "chapter": "15",
+          "chapter_position": 0.5,
+          "cumulative_chars": 65,
+          "new_chars": 3,
+          "cumulative_fraction": 0.619
+        },
+        {
+          "chapter": "16",
+          "chapter_position": 0.533,
+          "cumulative_chars": 70,
+          "new_chars": 5,
+          "cumulative_fraction": 0.667
+        },
+        {
+          "chapter": "17",
+          "chapter_position": 0.567,
+          "cumulative_chars": 70,
+          "new_chars": 0,
+          "cumulative_fraction": 0.667
+        },
+        {
+          "chapter": "18",
+          "chapter_position": 0.6,
+          "cumulative_chars": 72,
+          "new_chars": 2,
+          "cumulative_fraction": 0.686
+        },
+        {
+          "chapter": "19",
+          "chapter_position": 0.633,
+          "cumulative_chars": 76,
+          "new_chars": 4,
+          "cumulative_fraction": 0.724
+        },
+        {
+          "chapter": "20",
+          "chapter_position": 0.667,
+          "cumulative_chars": 78,
+          "new_chars": 2,
+          "cumulative_fraction": 0.743
+        },
+        {
+          "chapter": "21",
+          "chapter_position": 0.7,
+          "cumulative_chars": 81,
+          "new_chars": 3,
+          "cumulative_fraction": 0.771
+        },
+        {
+          "chapter": "22",
+          "chapter_position": 0.733,
+          "cumulative_chars": 82,
+          "new_chars": 1,
+          "cumulative_fraction": 0.781
+        },
+        {
+          "chapter": "23",
+          "chapter_position": 0.767,
+          "cumulative_chars": 89,
+          "new_chars": 7,
+          "cumulative_fraction": 0.848
+        },
+        {
+          "chapter": "24",
+          "chapter_position": 0.8,
+          "cumulative_chars": 93,
+          "new_chars": 4,
+          "cumulative_fraction": 0.886
+        },
+        {
+          "chapter": "25",
+          "chapter_position": 0.833,
+          "cumulative_chars": 93,
+          "new_chars": 0,
+          "cumulative_fraction": 0.886
+        },
+        {
+          "chapter": "26",
+          "chapter_position": 0.867,
+          "cumulative_chars": 93,
+          "new_chars": 0,
+          "cumulative_fraction": 0.886
+        },
+        {
+          "chapter": "27",
+          "chapter_position": 0.9,
+          "cumulative_chars": 93,
+          "new_chars": 0,
+          "cumulative_fraction": 0.886
+        },
+        {
+          "chapter": "28",
+          "chapter_position": 0.933,
+          "cumulative_chars": 93,
+          "new_chars": 0,
+          "cumulative_fraction": 0.886
+        },
+        {
+          "chapter": "29",
+          "chapter_position": 0.967,
+          "cumulative_chars": 93,
+          "new_chars": 0,
+          "cumulative_fraction": 0.886
+        },
+        {
+          "chapter": "30",
+          "chapter_position": 1.0,
+          "cumulative_chars": 105,
+          "new_chars": 12,
+          "cumulative_fraction": 1.0
+        }
+      ]
+    },
+    "streams_of_silver": {
+      "book": "streams_of_silver",
+      "total_narrative_chapters": 24,
+      "total_narrative_beats": 740,
+      "total_distinct_named_entities": 66,
+      "mean_new_per_chapter": 2.75,
+      "front_load_ratio_30pct_chapters": 0.727,
+      "late_introduction_count": 5,
+      "late_introductions": [
+        {
+          "character": "Pasha Pook",
+          "chapter": "20",
+          "beat_idx": 4
+        },
+        {
+          "character": "Mucknuggle",
+          "chapter": "21",
+          "beat_idx": 19
+        },
+        {
+          "character": "Duergar",
+          "chapter": "21",
+          "beat_idx": 26
+        },
+        {
+          "character": "Shimmergloom",
+          "chapter": "22",
+          "beat_idx": 0
+        },
+        {
+          "character": "Duergar sentries",
+          "chapter": "22",
+          "beat_idx": 2
+        }
+      ],
+      "by_chapter": [
+        {
+          "chapter": "1",
+          "chapter_position": 0.042,
+          "cumulative_chars": 10,
+          "new_chars": 10,
+          "cumulative_fraction": 0.152
+        },
+        {
+          "chapter": "2",
+          "chapter_position": 0.083,
+          "cumulative_chars": 14,
+          "new_chars": 4,
+          "cumulative_fraction": 0.212
+        },
+        {
+          "chapter": "3",
+          "chapter_position": 0.125,
+          "cumulative_chars": 21,
+          "new_chars": 7,
+          "cumulative_fraction": 0.318
+        },
+        {
+          "chapter": "4",
+          "chapter_position": 0.167,
+          "cumulative_chars": 27,
+          "new_chars": 6,
+          "cumulative_fraction": 0.409
+        },
+        {
+          "chapter": "5",
+          "chapter_position": 0.208,
+          "cumulative_chars": 29,
+          "new_chars": 2,
+          "cumulative_fraction": 0.439
+        },
+        {
+          "chapter": "6",
+          "chapter_position": 0.25,
+          "cumulative_chars": 36,
+          "new_chars": 7,
+          "cumulative_fraction": 0.545
+        },
+        {
+          "chapter": "7",
+          "chapter_position": 0.292,
+          "cumulative_chars": 38,
+          "new_chars": 2,
+          "cumulative_fraction": 0.576
+        },
+        {
+          "chapter": "8",
+          "chapter_position": 0.333,
+          "cumulative_chars": 48,
+          "new_chars": 10,
+          "cumulative_fraction": 0.727
+        },
+        {
+          "chapter": "9",
+          "chapter_position": 0.375,
+          "cumulative_chars": 50,
+          "new_chars": 2,
+          "cumulative_fraction": 0.758
+        },
+        {
+          "chapter": "10",
+          "chapter_position": 0.417,
+          "cumulative_chars": 51,
+          "new_chars": 1,
+          "cumulative_fraction": 0.773
+        },
+        {
+          "chapter": "11",
+          "chapter_position": 0.458,
+          "cumulative_chars": 51,
+          "new_chars": 0,
+          "cumulative_fraction": 0.773
+        },
+        {
+          "chapter": "12",
+          "chapter_position": 0.5,
+          "cumulative_chars": 51,
+          "new_chars": 0,
+          "cumulative_fraction": 0.773
+        },
+        {
+          "chapter": "13",
+          "chapter_position": 0.542,
+          "cumulative_chars": 51,
+          "new_chars": 0,
+          "cumulative_fraction": 0.773
+        },
+        {
+          "chapter": "14",
+          "chapter_position": 0.583,
+          "cumulative_chars": 54,
+          "new_chars": 3,
+          "cumulative_fraction": 0.818
+        },
+        {
+          "chapter": "15",
+          "chapter_position": 0.625,
+          "cumulative_chars": 58,
+          "new_chars": 4,
+          "cumulative_fraction": 0.879
+        },
+        {
+          "chapter": "16",
+          "chapter_position": 0.667,
+          "cumulative_chars": 59,
+          "new_chars": 1,
+          "cumulative_fraction": 0.894
+        },
+        {
+          "chapter": "17",
+          "chapter_position": 0.708,
+          "cumulative_chars": 59,
+          "new_chars": 0,
+          "cumulative_fraction": 0.894
+        },
+        {
+          "chapter": "18",
+          "chapter_position": 0.75,
+          "cumulative_chars": 59,
+          "new_chars": 0,
+          "cumulative_fraction": 0.894
+        },
+        {
+          "chapter": "19",
+          "chapter_position": 0.792,
+          "cumulative_chars": 59,
+          "new_chars": 0,
+          "cumulative_fraction": 0.894
+        },
+        {
+          "chapter": "20",
+          "chapter_position": 0.833,
+          "cumulative_chars": 62,
+          "new_chars": 3,
+          "cumulative_fraction": 0.939
+        },
+        {
+          "chapter": "21",
+          "chapter_position": 0.875,
+          "cumulative_chars": 64,
+          "new_chars": 2,
+          "cumulative_fraction": 0.97
+        },
+        {
+          "chapter": "22",
+          "chapter_position": 0.917,
+          "cumulative_chars": 66,
+          "new_chars": 2,
+          "cumulative_fraction": 1.0
+        },
+        {
+          "chapter": "23",
+          "chapter_position": 0.958,
+          "cumulative_chars": 66,
+          "new_chars": 0,
+          "cumulative_fraction": 1.0
+        },
+        {
+          "chapter": "24",
+          "chapter_position": 1.0,
+          "cumulative_chars": 66,
+          "new_chars": 0,
+          "cumulative_fraction": 1.0
+        }
+      ]
+    },
+    "halflings_gem": {
+      "book": "halflings_gem",
+      "total_narrative_chapters": 25,
+      "total_narrative_beats": 779,
+      "total_distinct_named_entities": 80,
+      "mean_new_per_chapter": 3.2,
+      "front_load_ratio_30pct_chapters": 0.662,
+      "late_introduction_count": 3,
+      "late_introductions": [
+        {
+          "character": "rogue guard",
+          "chapter": "20",
+          "beat_idx": 2
+        },
+        {
+          "character": "demodand",
+          "chapter": "22",
+          "beat_idx": 0
+        },
+        {
+          "character": "hill giants",
+          "chapter": "23",
+          "beat_idx": 1
+        }
+      ],
+      "by_chapter": [
+        {
+          "chapter": "1",
+          "chapter_position": 0.04,
+          "cumulative_chars": 5,
+          "new_chars": 5,
+          "cumulative_fraction": 0.062
+        },
+        {
+          "chapter": "2",
+          "chapter_position": 0.08,
+          "cumulative_chars": 10,
+          "new_chars": 5,
+          "cumulative_fraction": 0.125
+        },
+        {
+          "chapter": "3",
+          "chapter_position": 0.12,
+          "cumulative_chars": 16,
+          "new_chars": 6,
+          "cumulative_fraction": 0.2
+        },
+        {
+          "chapter": "4",
+          "chapter_position": 0.16,
+          "cumulative_chars": 22,
+          "new_chars": 6,
+          "cumulative_fraction": 0.275
+        },
+        {
+          "chapter": "5",
+          "chapter_position": 0.2,
+          "cumulative_chars": 33,
+          "new_chars": 11,
+          "cumulative_fraction": 0.412
+        },
+        {
+          "chapter": "6",
+          "chapter_position": 0.24,
+          "cumulative_chars": 43,
+          "new_chars": 10,
+          "cumulative_fraction": 0.537
+        },
+        {
+          "chapter": "7",
+          "chapter_position": 0.28,
+          "cumulative_chars": 48,
+          "new_chars": 5,
+          "cumulative_fraction": 0.6
+        },
+        {
+          "chapter": "8",
+          "chapter_position": 0.32,
+          "cumulative_chars": 53,
+          "new_chars": 5,
+          "cumulative_fraction": 0.662
+        },
+        {
+          "chapter": "9",
+          "chapter_position": 0.36,
+          "cumulative_chars": 54,
+          "new_chars": 1,
+          "cumulative_fraction": 0.675
+        },
+        {
+          "chapter": "10",
+          "chapter_position": 0.4,
+          "cumulative_chars": 58,
+          "new_chars": 4,
+          "cumulative_fraction": 0.725
+        },
+        {
+          "chapter": "11",
+          "chapter_position": 0.44,
+          "cumulative_chars": 63,
+          "new_chars": 5,
+          "cumulative_fraction": 0.787
+        },
+        {
+          "chapter": "12",
+          "chapter_position": 0.48,
+          "cumulative_chars": 67,
+          "new_chars": 4,
+          "cumulative_fraction": 0.838
+        },
+        {
+          "chapter": "13",
+          "chapter_position": 0.52,
+          "cumulative_chars": 68,
+          "new_chars": 1,
+          "cumulative_fraction": 0.85
+        },
+        {
+          "chapter": "14",
+          "chapter_position": 0.56,
+          "cumulative_chars": 70,
+          "new_chars": 2,
+          "cumulative_fraction": 0.875
+        },
+        {
+          "chapter": "15",
+          "chapter_position": 0.6,
+          "cumulative_chars": 71,
+          "new_chars": 1,
+          "cumulative_fraction": 0.887
+        },
+        {
+          "chapter": "16",
+          "chapter_position": 0.64,
+          "cumulative_chars": 73,
+          "new_chars": 2,
+          "cumulative_fraction": 0.912
+        },
+        {
+          "chapter": "17",
+          "chapter_position": 0.68,
+          "cumulative_chars": 74,
+          "new_chars": 1,
+          "cumulative_fraction": 0.925
+        },
+        {
+          "chapter": "18",
+          "chapter_position": 0.72,
+          "cumulative_chars": 76,
+          "new_chars": 2,
+          "cumulative_fraction": 0.95
+        },
+        {
+          "chapter": "19",
+          "chapter_position": 0.76,
+          "cumulative_chars": 77,
+          "new_chars": 1,
+          "cumulative_fraction": 0.963
+        },
+        {
+          "chapter": "20",
+          "chapter_position": 0.8,
+          "cumulative_chars": 78,
+          "new_chars": 1,
+          "cumulative_fraction": 0.975
+        },
+        {
+          "chapter": "21",
+          "chapter_position": 0.84,
+          "cumulative_chars": 78,
+          "new_chars": 0,
+          "cumulative_fraction": 0.975
+        },
+        {
+          "chapter": "22",
+          "chapter_position": 0.88,
+          "cumulative_chars": 79,
+          "new_chars": 1,
+          "cumulative_fraction": 0.988
+        },
+        {
+          "chapter": "23",
+          "chapter_position": 0.92,
+          "cumulative_chars": 80,
+          "new_chars": 1,
+          "cumulative_fraction": 1.0
+        },
+        {
+          "chapter": "24",
+          "chapter_position": 0.96,
+          "cumulative_chars": 80,
+          "new_chars": 0,
+          "cumulative_fraction": 1.0
+        },
+        {
+          "chapter": "25",
+          "chapter_position": 1.0,
+          "cumulative_chars": 80,
+          "new_chars": 0,
+          "cumulative_fraction": 1.0
+        }
+      ]
+    }
+  }
+}

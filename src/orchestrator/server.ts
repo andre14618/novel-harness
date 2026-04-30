@@ -3,7 +3,6 @@
  *
  * Runs on LXC 307 (port 3006). Combines:
  * - Batch API polling (every 30 min)
- * - Improvement daemon (manual trigger only)
  * - Dashboard (HTML status page)
  * - REST API for status queries
  *
@@ -19,6 +18,29 @@ import { handlePrefEvalRoute } from "./pref-eval-routes"
 import { overviewPageHtml } from "./overview-page"
 
 await migrate()
+
+// ── V1 → V2 debug-injection bridge ───────────────────────────────────────────
+// Translates legacy DEBUG_FORCE_PLAN_CHECK / DEBUG_FORCE_REVISER env vars into
+// equivalent V2 transport-interceptor rules. See `src/debug/v1-bridge.ts`
+// for scope (forceValidation deliberately stays at V1 until D4b) and
+// `docs/plans/2026-04-28-drafting-deepenings.md` D4a for the architecture
+// rationale (one interception site, not two). Best-effort: a failure here
+// must never block boot.
+;(() => {
+  try {
+    const { applyV1EnvVarsAsV2Rules } = require("../debug/v1-bridge") as typeof import("../debug/v1-bridge")
+    const report = applyV1EnvVarsAsV2Rules()
+    if (report.translated > 0) {
+      console.log(
+        `[startup][v1-bridge] translated ${report.translated} env-var rule(s)` +
+        (report.enabledMasterGate ? " (auto-enabled DEBUG_ENABLE_INJECTION)" : ""),
+      )
+      for (const r of report.reasons) console.log(`[startup][v1-bridge]   • ${r}`)
+    }
+  } catch (err) {
+    console.warn(`[startup][v1-bridge] bridge failed: ${err instanceof Error ? err.message : err}`)
+  }
+})()
 
 // ── Startup orphan sweep ─────────────────────────────────────────────────────
 // Surface any plan-assist gate rows that are still pending (decided_at IS NULL)

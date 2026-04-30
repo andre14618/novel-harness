@@ -1,0 +1,2460 @@
+{
+  "dim": "established-facts-density",
+  "approach": "Option A — regex/keyword declarative claim detection",
+  "timestamp": "20260430T073336",
+  "patternsUsed": 11,
+  "patternCategories": [
+    "world_rule_modal",
+    "world_rule_defn",
+    "spatial_location",
+    "spatial_distance",
+    "object_named",
+    "object_rule",
+    "commitment",
+    "identity_heritage",
+    "proper_noun_intro",
+    "quantitative",
+    "possessive_world"
+  ],
+  "regexSignalCheck": {
+    "wordsVsClaimsCorrelation": 0.348,
+    "assessment": "Positive correlation with chapter length — signal is plausible"
+  },
+  "note": "Counts are approximate — regex catches formal present-tense definitional claims, spatial, obligation, commitment, and possessive patterns. May miss implied facts; not a precision count.",
+  "harnessClaim": "planning-beats floor: >=6 facts/chapter in establishedFacts array",
+  "harnessFloor": 6,
+  "harness_floor_assessment": "at",
+  "assessmentRationale": "Cross-book mean=5.58, median=5; harness floor=6. Floor is 'at' the corpus distribution.",
+  "perChapter": [
+    {
+      "book": "crystal_shard",
+      "chapter": "1",
+      "beats": 19,
+      "words": 1832,
+      "claimCount": 7,
+      "claimsPerBeat": 0.368,
+      "byCat": {
+        "world_rule_modal": 5,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 2,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "ife on Icewind Dale that travelers here never forgot",
+        "involved somewhere; he knew - that was always the case in such betrayals",
+        "It was one of the few questions he had never found the answer to"
+      ]
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "2",
+      "beats": 29,
+      "words": 3353,
+      "claimCount": 11,
+      "claimsPerBeat": 0.379,
+      "byCat": {
+        "world_rule_modal": 6,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 2,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 3,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "Other halflings never came this far north, even",
+        "y,\" he had rationalized, an excuse that never seemed to grow stale for him",
+        "that always seemed to blow in, bringing with them the chilled air of Reghed Glacier"
+      ]
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "3",
+      "beats": 25,
+      "words": 3050,
+      "claimCount": 4,
+      "claimsPerBeat": 0.16,
+      "byCat": {
+        "world_rule_modal": 2,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 2,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "e and find a measure of luxury they had never known",
+        "the room toward the host king, his eyes never blinking or turning",
+        "Heafstaag, a brutal king"
+      ]
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "4",
+      "beats": 21,
+      "words": 2459,
+      "claimCount": 5,
+      "claimsPerBeat": 0.238,
+      "byCat": {
+        "world_rule_modal": 4,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 1,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "They'd never had any intentions of granting him the title of wizard",
+        "understand that he would never again play the role of stooge to pretentious dogs like Eldulac, Dendybar",
+        "\"You cannot resist"
+      ]
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "5",
+      "beats": 11,
+      "words": 2255,
+      "claimCount": 7,
+      "claimsPerBeat": 0.636,
+      "byCat": {
+        "world_rule_modal": 4,
+        "world_rule_defn": 2,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 1,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "to his friend's deepest desire, and he always answered Bruenor's pleas with the",
+        "an' always over the damned fish",
+        "\"Remember always that he carries the stone"
+      ]
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "6",
+      "beats": 16,
+      "words": 3747,
+      "claimCount": 12,
+      "claimsPerBeat": 0.75,
+      "byCat": {
+        "world_rule_modal": 12,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "Regis always enjoyed the sounds and smells that greeted him when he walked through the iron-",
+        "Regis had never been intimidated by the spokesmen before because normally he had nothing to say",
+        "Regis never offered an opinion unless pressed and had been careful always"
+      ]
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "7",
+      "beats": 28,
+      "words": 3622,
+      "claimCount": 5,
+      "claimsPerBeat": 0.179,
+      "byCat": {
+        "world_rule_modal": 3,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 1,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 1,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "clan had been dispatched, obviously never to bother the drow again",
+        "always known that he was unlike his kin in many ways, though he had many tunes feared",
+        "it, for he had never come across a word in the drow language that spoke of such a trait, but to the"
+      ]
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "8",
+      "beats": 35,
+      "words": 3621,
+      "claimCount": 3,
+      "claimsPerBeat": 0.086,
+      "byCat": {
+        "world_rule_modal": 2,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 1
+      },
+      "claimExamples": [
+        "Heafstaag himself, who had never before retreated in battle, led the desperate break",
+        "\"Ain't ye never been told not",
+        "Bruenor's people"
+      ]
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "9",
+      "beats": 13,
+      "words": 1939,
+      "claimCount": 4,
+      "claimsPerBeat": 0.308,
+      "byCat": {
+        "world_rule_modal": 4,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "ught any fish, but he prided himself on never wasting more than one worm",
+        "had never even considered the affair their business",
+        "Wulfgar always remembered his rank in the mines, however, for"
+      ]
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "10",
+      "beats": 24,
+      "words": 2773,
+      "claimCount": 4,
+      "claimsPerBeat": 0.167,
+      "byCat": {
+        "world_rule_modal": 2,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 1,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 1,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "er place, at any other time, the tribes could never have",
+        "personality that had always pushed him down a road of certain tragedy, wanted him to continue his",
+        "the relic close to his heart, he could become the conqueror; he could"
+      ]
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "11",
+      "beats": 20,
+      "words": 2627,
+      "claimCount": 6,
+      "claimsPerBeat": 0.3,
+      "byCat": {
+        "world_rule_modal": 4,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 1,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 1
+      },
+      "claimExamples": [
+        "As always, Bruenor approached this sacred place with measured, reverent steps",
+        "Ye'll never match its perfection in yer life again and, knowing this, ye'll lose a",
+        "outine kill, with the unfortunate beast never even aware of the coming"
+      ]
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "12",
+      "beats": 23,
+      "words": 2376,
+      "claimCount": 9,
+      "claimsPerBeat": 0.391,
+      "byCat": {
+        "world_rule_modal": 8,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 1
+      },
+      "claimExamples": [
+        "\"What drives you, I cannot tell",
+        "He knew that he would never duplicate this level of his craft, and he wondered if, knowing",
+        "runes would never reappear"
+      ]
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "13",
+      "beats": 11,
+      "words": 1196,
+      "claimCount": 3,
+      "claimsPerBeat": 0.273,
+      "byCat": {
+        "world_rule_modal": 1,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 2
+      },
+      "claimExamples": [
+        "I am the wielder of the shard, and I shall not tolerate",
+        "Errtu's blood",
+        "Biggrin's people"
+      ]
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "14",
+      "beats": 22,
+      "words": 3012,
+      "claimCount": 8,
+      "claimsPerBeat": 0.364,
+      "byCat": {
+        "world_rule_modal": 5,
+        "world_rule_defn": 1,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 1,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 1
+      },
+      "claimExamples": [
+        "young barbarian's shoulder as if it had always been there - and always belonged there",
+        "Wulfgar had never spoken with him about what lay ahead after the",
+        "ong the surface dwellers his body would never fully adapt to the"
+      ]
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "15",
+      "beats": 25,
+      "words": 2703,
+      "claimCount": 4,
+      "claimsPerBeat": 0.16,
+      "byCat": {
+        "world_rule_modal": 3,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 1
+      },
+      "claimExamples": [
+        "Biggrin was never far away, and",
+        "\"But you will never come to be accepted in this world,\" said Wulfgar",
+        "world where he would never be accepted or appreciated"
+      ]
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "16",
+      "beats": 34,
+      "words": 2953,
+      "claimCount": 5,
+      "claimsPerBeat": 0.147,
+      "byCat": {
+        "world_rule_modal": 2,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 1,
+        "object_rule": 1,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 1
+      },
+      "claimExamples": [
+        "with a luster that Wulfgar had never witnessed before",
+        "But verbeeg were almost always unruly and undependable, and",
+        "named Agorwal"
+      ]
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "17",
+      "beats": 29,
+      "words": 3025,
+      "claimCount": 4,
+      "claimsPerBeat": 0.138,
+      "byCat": {
+        "world_rule_modal": 4,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "will be none the wiser if these giants never return,\" Drizzt said matter-of-factly, as though the",
+        "\"I shall not fight beside a demon conjured with sorcery",
+        "The monsters never had the chance to regroup, and by the time they were even able to raise their w"
+      ]
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "18",
+      "beats": 54,
+      "words": 6667,
+      "claimCount": 8,
+      "claimsPerBeat": 0.148,
+      "byCat": {
+        "world_rule_modal": 5,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 3,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "The drow never slowed as he passed, gouging his scimitar into the throat",
+        "verbeeg charged into the tunnel, never noticing the concealed drow",
+        "knew that it was falling, but the floor never came up to meet it"
+      ]
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "19",
+      "beats": 29,
+      "words": 3531,
+      "claimCount": 2,
+      "claimsPerBeat": 0.069,
+      "byCat": {
+        "world_rule_modal": 2,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "He had never been",
+        "his mind was keen and always-alert to danger"
+      ]
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "20",
+      "beats": 24,
+      "words": 2525,
+      "claimCount": 4,
+      "claimsPerBeat": 0.167,
+      "byCat": {
+        "world_rule_modal": 3,
+        "world_rule_defn": 1,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "never forget that ever ye'll be me boy",
+        "venture that he has often hinted at but never fully",
+        "Cassius had fully expected this, or he never would"
+      ]
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "21",
+      "beats": 26,
+      "words": 3021,
+      "claimCount": 6,
+      "claimsPerBeat": 0.231,
+      "byCat": {
+        "world_rule_modal": 3,
+        "world_rule_defn": 1,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 2,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "efore, but when he came upon it now, as always, its strange beauty stole his",
+        "warrior of honor and shall not kill you under these unfair circumstances",
+        "dragon had never felt such strength from a human and didn't care to test its hide against a seco"
+      ]
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "22",
+      "beats": 32,
+      "words": 3753,
+      "claimCount": 8,
+      "claimsPerBeat": 0.25,
+      "byCat": {
+        "world_rule_modal": 7,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 1
+      },
+      "claimExamples": [
+        "\"I cannot hope to throw the hook so high, but your",
+        "\"I shall never forget what you",
+        "he young warrior, then the people would never allow such a fight"
+      ]
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "23",
+      "beats": 24,
+      "words": 2966,
+      "claimCount": 2,
+      "claimsPerBeat": 0.083,
+      "byCat": {
+        "world_rule_modal": 1,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 1
+      },
+      "claimExamples": [
+        "n their easy victims, the lead monsters never even noticed",
+        "Kemp's people"
+      ]
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "24",
+      "beats": 37,
+      "words": 4704,
+      "claimCount": 4,
+      "claimsPerBeat": 0.108,
+      "byCat": {
+        "world_rule_modal": 3,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 1
+      },
+      "claimExamples": [
+        "of the army and their campfires, but he could never have imagined the vast",
+        "People caught in the direct path never even had a chance to cry out",
+        "fires shall not have died when the morrow dawns"
+      ]
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "25",
+      "beats": 24,
+      "words": 4413,
+      "claimCount": 9,
+      "claimsPerBeat": 0.375,
+      "byCat": {
+        "world_rule_modal": 5,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 2,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 1,
+        "quantitative": 0,
+        "possessive_world": 1
+      },
+      "claimExamples": [
+        "and it certainly never expected to find one on the surface, in the frozen wastelands of the farthest n",
+        "Yet Errtu had never considered the drow as enemies, and the demon had come to despise the bumbling",
+        "n many drow over the centuries, but had never even heard of one"
+      ]
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "26",
+      "beats": 7,
+      "words": 1306,
+      "claimCount": 0,
+      "claimsPerBeat": 0,
+      "byCat": {
+        "world_rule_modal": 0,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": []
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "27",
+      "beats": 22,
+      "words": 4060,
+      "claimCount": 6,
+      "claimsPerBeat": 0.273,
+      "byCat": {
+        "world_rule_modal": 4,
+        "world_rule_defn": 0,
+        "spatial_location": 1,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 1,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "\"Let us hope that you shall not have to deal with that one,\" Cassius agreed with a visible shudder",
+        "If we cannot somehow hold the",
+        "he promise of truth in the tales he had always presumed to be exaggerated"
+      ]
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "28",
+      "beats": 26,
+      "words": 2705,
+      "claimCount": 5,
+      "claimsPerBeat": 0.192,
+      "byCat": {
+        "world_rule_modal": 4,
+        "world_rule_defn": 1,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "\"You cannot resist me",
+        "\"You are never about when I most need",
+        "The tired orc never even heard the whistle of the approaching dagger"
+      ]
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "29",
+      "beats": 44,
+      "words": 4768,
+      "claimCount": 8,
+      "claimsPerBeat": 0.182,
+      "byCat": {
+        "world_rule_modal": 7,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 1,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "Though he had never heard that name",
+        "And a handle that flesh cannot catch",
+        "The surface elves had always denied the existence of Urgutha Forka, blaming the plague on"
+      ]
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "30",
+      "beats": 79,
+      "words": 9687,
+      "claimCount": 8,
+      "claimsPerBeat": 0.101,
+      "byCat": {
+        "world_rule_modal": 3,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 2,
+        "object_rule": 1,
+        "commitment": 1,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 1
+      },
+      "claimExamples": [
+        "They shall always have a",
+        "\"And, worse yet, they shall not leave with fear in their eyes",
+        "ink to a world of luxuries that we have never known"
+      ]
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "prelude",
+      "beats": 5,
+      "words": 569,
+      "claimCount": 1,
+      "claimsPerBeat": 0.2,
+      "byCat": {
+        "world_rule_modal": 0,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 1,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "the shard in its grasp, Errtu could"
+      ]
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "epilogue",
+      "beats": 11,
+      "words": 1242,
+      "claimCount": 1,
+      "claimsPerBeat": 0.091,
+      "byCat": {
+        "world_rule_modal": 0,
+        "world_rule_defn": 1,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "Crenshinibon was a relic"
+      ]
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "epilogue2",
+      "beats": 4,
+      "words": 371,
+      "claimCount": 2,
+      "claimsPerBeat": 0.5,
+      "byCat": {
+        "world_rule_modal": 0,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 1,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 1,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "called Evermelt",
+        "Ingeloakastimizilian, the white dragon"
+      ]
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "epilogue3",
+      "beats": 25,
+      "words": 2189,
+      "claimCount": 8,
+      "claimsPerBeat": 0.32,
+      "byCat": {
+        "world_rule_modal": 6,
+        "world_rule_defn": 2,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "ampered lifestyle that the halfling had always desired",
+        "that Bruenor would never truly be contented until he had at least tried to find his ancestral home",
+        "\"I cannot begin to understand why you all insist on going on this quest, anyway,\" he said"
+      ]
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "1",
+      "beats": 35,
+      "words": 5002,
+      "claimCount": 7,
+      "claimsPerBeat": 0.2,
+      "byCat": {
+        "world_rule_modal": 4,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 2,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 1,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "high aspirations and hints of power he cannot yet begin to understand",
+        "But if he cannot keep",
+        "was up to the task, and he never missed a catch or a throw as he included the shoe in his"
+      ]
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "2",
+      "beats": 22,
+      "words": 3005,
+      "claimCount": 4,
+      "claimsPerBeat": 0.182,
+      "byCat": {
+        "world_rule_modal": 1,
+        "world_rule_defn": 2,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 1
+      },
+      "claimExamples": [
+        "He never locked the door",
+        "This was an artifact of magic",
+        "Bruenor Battlehammer had been the halfling"
+      ]
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "3",
+      "beats": 31,
+      "words": 3705,
+      "claimCount": 0,
+      "claimsPerBeat": 0,
+      "byCat": {
+        "world_rule_modal": 0,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": []
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "4",
+      "beats": 47,
+      "words": 4847,
+      "claimCount": 7,
+      "claimsPerBeat": 0.149,
+      "byCat": {
+        "world_rule_modal": 4,
+        "world_rule_defn": 1,
+        "spatial_location": 1,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 1
+      },
+      "claimExamples": [
+        "My friends cannot wait",
+        "h, Waterdeep's famed city guard, seemed always in sight",
+        "noting how Wulfgar's size always seemed to single the barbarian out for such trouble"
+      ]
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "5",
+      "beats": 39,
+      "words": 4471,
+      "claimCount": 8,
+      "claimsPerBeat": 0.205,
+      "byCat": {
+        "world_rule_modal": 6,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 1,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 1,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "The mere mention of a drow elf always sent gray dwarves",
+        "Bruenor strode in confidently, never fearing even odds",
+        "his head as he slumped, this time never to awaken"
+      ]
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "6",
+      "beats": 40,
+      "words": 3899,
+      "claimCount": 9,
+      "claimsPerBeat": 0.225,
+      "byCat": {
+        "world_rule_modal": 7,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 1,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 1
+      },
+      "claimExamples": [
+        "pipe and tamped down the weed, his eyes never releasing",
+        "Entreri never blinked and never looked away from the captain",
+        "But I cannot belay punishment"
+      ]
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "7",
+      "beats": 28,
+      "words": 2942,
+      "claimCount": 7,
+      "claimsPerBeat": 0.25,
+      "byCat": {
+        "world_rule_modal": 7,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "\" asked Bruenor, never one to mix up his priorities",
+        "\"I know ye, lady, though I cannot find yer name in me",
+        "He had never come to appreciate magic, only"
+      ]
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "8",
+      "beats": 22,
+      "words": 2735,
+      "claimCount": 7,
+      "claimsPerBeat": 0.318,
+      "byCat": {
+        "world_rule_modal": 6,
+        "world_rule_defn": 1,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "\"But you cannot dismiss the power that Rassiter has",
+        "I cannot wait to",
+        "But the wizard never had any problems with the assassin"
+      ]
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "9",
+      "beats": 20,
+      "words": 2002,
+      "claimCount": 11,
+      "claimsPerBeat": 0.55,
+      "byCat": {
+        "world_rule_modal": 6,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 1,
+        "object_rule": 1,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 2,
+        "quantitative": 0,
+        "possessive_world": 1
+      },
+      "claimExamples": [
+        "from it but do not always allow ships flying the other's flag to dock in their harbors",
+        "\"And you are never bothered",
+        "\"Not 'never,' but rarely"
+      ]
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "10",
+      "beats": 34,
+      "words": 3920,
+      "claimCount": 5,
+      "claimsPerBeat": 0.147,
+      "byCat": {
+        "world_rule_modal": 5,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "never the same but always with the same terrible conclusion, did not fade with the light of",
+        "Bruenor never slowed",
+        "\"But I cannot accompany you,\" Alustriel said"
+      ]
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "11",
+      "beats": 53,
+      "words": 5144,
+      "claimCount": 1,
+      "claimsPerBeat": 0.019,
+      "byCat": {
+        "world_rule_modal": 1,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "And the stunned pirates, never suspecting that a ship under full sail could possibly cut so"
+      ]
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "12",
+      "beats": 27,
+      "words": 3460,
+      "claimCount": 6,
+      "claimsPerBeat": 0.222,
+      "byCat": {
+        "world_rule_modal": 5,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 1,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "He had always been",
+        "The barbarian, his stare never leaving Catti-brie, eased Bruenor back to",
+        "\"You cannot control your crew"
+      ]
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "13",
+      "beats": 30,
+      "words": 3821,
+      "claimCount": 9,
+      "claimsPerBeat": 0.3,
+      "byCat": {
+        "world_rule_modal": 9,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "ndeniable charm and a lucky streak that always seemed to land him on his feet",
+        "Pook would never forgive him for his",
+        "im by the collar and dragged him along, never slowing the pace"
+      ]
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "14",
+      "beats": 32,
+      "words": 4994,
+      "claimCount": 7,
+      "claimsPerBeat": 0.219,
+      "byCat": {
+        "world_rule_modal": 6,
+        "world_rule_defn": 0,
+        "spatial_location": 1,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "ship never again showed its sails",
+        "\"Pinochet cannot get his ship in for a week, and,\" the captain added with a sly wink, \"I",
+        "s had no response to that, and Bruenor, never surprised but always amazed by"
+      ]
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "15",
+      "beats": 24,
+      "words": 2997,
+      "claimCount": 3,
+      "claimsPerBeat": 0.125,
+      "byCat": {
+        "world_rule_modal": 2,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 1,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "before and had always weaseled his way out",
+        "\"Sali Dalib never-\" the merchant stammered",
+        "the gem would"
+      ]
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "16",
+      "beats": 34,
+      "words": 4210,
+      "claimCount": 8,
+      "claimsPerBeat": 0.235,
+      "byCat": {
+        "world_rule_modal": 7,
+        "world_rule_defn": 1,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "never let the legend of his reputation - no matter how well earned - interfere with t",
+        "He always had suspected that the",
+        "ondon backed away and averted his eyes, never comfortable with"
+      ]
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "17",
+      "beats": 19,
+      "words": 2255,
+      "claimCount": 4,
+      "claimsPerBeat": 0.211,
+      "byCat": {
+        "world_rule_modal": 4,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "of his own will, thrilled him as he had never been thrilled before",
+        "\"It cannot be killed; to do so would only return it to its plane, though the statue could",
+        "he would never have to take this route again, but with LaValle so obviously tied into the"
+      ]
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "18",
+      "beats": 42,
+      "words": 5840,
+      "claimCount": 7,
+      "claimsPerBeat": 0.167,
+      "byCat": {
+        "world_rule_modal": 7,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "Dondon always managed to",
+        "lipped around and backed into the hall, never taking his eyes off the dangerous",
+        "streets, they would never be able to slip unnoticed into one of the sewer grates"
+      ]
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "19",
+      "beats": 35,
+      "words": 3300,
+      "claimCount": 5,
+      "claimsPerBeat": 0.143,
+      "byCat": {
+        "world_rule_modal": 4,
+        "world_rule_defn": 1,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "\"Pook would never forgive you,\" Rassiter warned",
+        "\"Pook would never know,\" Entreri hissed back",
+        "unfeeling weapon, that will never know life"
+      ]
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "20",
+      "beats": 27,
+      "words": 3374,
+      "claimCount": 0,
+      "claimsPerBeat": 0,
+      "byCat": {
+        "world_rule_modal": 0,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": []
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "21",
+      "beats": 27,
+      "words": 3067,
+      "claimCount": 2,
+      "claimsPerBeat": 0.074,
+      "byCat": {
+        "world_rule_modal": 2,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "That a true warrior always seemed to",
+        "\"Is it that you cannot hold to your part of our arrangement"
+      ]
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "22",
+      "beats": 36,
+      "words": 4207,
+      "claimCount": 5,
+      "claimsPerBeat": 0.139,
+      "byCat": {
+        "world_rule_modal": 3,
+        "world_rule_defn": 1,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 1
+      },
+      "claimExamples": [
+        "t Catti-brie, looking on curiously, had never seen the drow so",
+        "He had believed, though he never dared to admit it, that his",
+        "sessed the statuette and Guenhwyvar had always known Regis as a friend"
+      ]
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "23",
+      "beats": 24,
+      "words": 2479,
+      "claimCount": 2,
+      "claimsPerBeat": 0.083,
+      "byCat": {
+        "world_rule_modal": 1,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 1,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "But Drizzt Do'Urden never played the odds",
+        "Bruenor, the\ndwarf"
+      ]
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "24",
+      "beats": 27,
+      "words": 2997,
+      "claimCount": 4,
+      "claimsPerBeat": 0.148,
+      "byCat": {
+        "world_rule_modal": 4,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "\"They never listen,\" he grumbled",
+        "But he never got it off",
+        "in dismay, looking to Drizzt - as he always looked to Drizzt - for an answer"
+      ]
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "25",
+      "beats": 24,
+      "words": 2717,
+      "claimCount": 6,
+      "claimsPerBeat": 0.25,
+      "byCat": {
+        "world_rule_modal": 4,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 1,
+        "identity_heritage": 0,
+        "proper_noun_intro": 1,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "The dwarf shuddered, never imagining in",
+        "The others eyed him curiously, never amazed at the surprises the little one could pull",
+        "\"We cannot leave until the tide is right, and"
+      ]
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "prelude",
+      "beats": 9,
+      "words": 911,
+      "claimCount": 5,
+      "claimsPerBeat": 0.556,
+      "byCat": {
+        "world_rule_modal": 1,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 2,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 2,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "\" Catti-brie asked him, her gaze never leaving the",
+        "called Icewind",
+        "named Drizzt"
+      ]
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "epilogue",
+      "beats": 11,
+      "words": 1073,
+      "claimCount": 2,
+      "claimsPerBeat": 0.182,
+      "byCat": {
+        "world_rule_modal": 2,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "I would never have put him as a sailor",
+        "You cannot yet appreciate the vastness, and the power, of the"
+      ]
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "epilogue2",
+      "beats": 10,
+      "words": 1158,
+      "claimCount": 2,
+      "claimsPerBeat": 0.2,
+      "byCat": {
+        "world_rule_modal": 2,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "credit; he was never late for the dinner bell",
+        "\"The pirate has never faced such foes,\" Entreri answered"
+      ]
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "epilogue3",
+      "beats": 17,
+      "words": 1794,
+      "claimCount": 3,
+      "claimsPerBeat": 0.176,
+      "byCat": {
+        "world_rule_modal": 2,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 1
+      },
+      "claimExamples": [
+        "had never experienced the closeness of family",
+        "hts in the wide world, dear dwarf, that cannot be seen from the shadows",
+        "Wulfgar's people"
+      ]
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "1",
+      "beats": 25,
+      "words": 3682,
+      "claimCount": 8,
+      "claimsPerBeat": 0.32,
+      "byCat": {
+        "world_rule_modal": 5,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 1,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 2,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "d out the trail of his prey, the victim never escaped",
+        "They never suspected his presence, never would have guessed that the gentle ripple in the drapes was anything more than",
+        "who had seen a thousand fights and had never been bested"
+      ]
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "2",
+      "beats": 28,
+      "words": 4186,
+      "claimCount": 8,
+      "claimsPerBeat": 0.286,
+      "byCat": {
+        "world_rule_modal": 4,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 2,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 2,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "irst to bed and the last to awaken (and never without help) every day since the companions had set out from Ten-Towns",
+        "hwyvar’s eyes are upon us, even if ours cannot return their protective gaze",
+        "known Drizzt for several years, but had never gotten comfortable around the magical cat"
+      ]
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "3",
+      "beats": 28,
+      "words": 4351,
+      "claimCount": 7,
+      "claimsPerBeat": 0.25,
+      "byCat": {
+        "world_rule_modal": 6,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 1,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "in the chair closest to Regis, her eyes never leaving the depths of the wondrous, spinning ruby",
+        "hould pay for yer trouble,” he growled, never pleased to be relieved of coin",
+        "Wulfgar didn’t relax a bit, his glare never releasing his adversary"
+      ]
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "4",
+      "beats": 34,
+      "words": 3814,
+      "claimCount": 9,
+      "claimsPerBeat": 0.265,
+      "byCat": {
+        "world_rule_modal": 5,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 1,
+        "object_rule": 2,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 1,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "They cannot leave Luskan without my knowledge",
+        "“We cannot allow them to roam freely,” argued Sydney when the door had closed behind the d",
+        "But Dendybar never let her stay, explaining that her inevitable inquiries would prove too much of"
+      ]
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "5",
+      "beats": 30,
+      "words": 5101,
+      "claimCount": 9,
+      "claimsPerBeat": 0.3,
+      "byCat": {
+        "world_rule_modal": 8,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 1,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "Wulfgar had never left the dale, and Drizzt’s only trek across the world’s surface had been a nig",
+        "Regis looked about, perplexed, always quick to recognize an increase in his workload",
+        "addle will show you a side of magic you never expected"
+      ]
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "6",
+      "beats": 40,
+      "words": 5170,
+      "claimCount": 5,
+      "claimsPerBeat": 0.125,
+      "byCat": {
+        "world_rule_modal": 5,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "Wulfgar had never seen this particular challenge before, but it was not so different from the tes",
+        "“You cannot hit it",
+        "“But my hammer cannot destroy clouds"
+      ]
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "7",
+      "beats": 23,
+      "words": 3459,
+      "claimCount": 4,
+      "claimsPerBeat": 0.174,
+      "byCat": {
+        "world_rule_modal": 2,
+        "world_rule_defn": 1,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 1,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "Merchants always lined many sentries around the perimeter of their camps, and even the pull-hors",
+        "“They would never find the remains of your body,” he promised, the cold certainty of his tone dra",
+        "They are a mighty force"
+      ]
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "8",
+      "beats": 40,
+      "words": 6804,
+      "claimCount": 13,
+      "claimsPerBeat": 0.325,
+      "byCat": {
+        "world_rule_modal": 9,
+        "world_rule_defn": 2,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 1,
+        "object_rule": 0,
+        "commitment": 1,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "in the wild, Drizzt knew that he would never find a more valuable companion",
+        "horse and a frog are not without merit; never mind the explosion",
+        "Or it is, but you cannot get through"
+      ]
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "9",
+      "beats": 33,
+      "words": 3621,
+      "claimCount": 3,
+      "claimsPerBeat": 0.091,
+      "byCat": {
+        "world_rule_modal": 2,
+        "world_rule_defn": 1,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "“I cannot—” Sydney stopped short, digesting Harkle’s last words",
+        "“He walks in shadows that we cannot see, and strikes from the darkness",
+        "Fearless is the dwarf"
+      ]
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "10",
+      "beats": 36,
+      "words": 4923,
+      "claimCount": 9,
+      "claimsPerBeat": 0.25,
+      "byCat": {
+        "world_rule_modal": 6,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 1,
+        "object_rule": 1,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 1,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "I have never been there, but tales of the brave people living on the edge of the Evermoors r",
+        "lands, may be exaggerated, but they are always foreboding",
+        "And always, Wulfgar was indomitable"
+      ]
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "11",
+      "beats": 25,
+      "words": 3109,
+      "claimCount": 1,
+      "claimsPerBeat": 0.04,
+      "byCat": {
+        "world_rule_modal": 1,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "The golem, as always, lumbered tirelessly behind with great stiff-legged strides"
+      ]
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "12",
+      "beats": 39,
+      "words": 5109,
+      "claimCount": 2,
+      "claimsPerBeat": 0.051,
+      "byCat": {
+        "world_rule_modal": 1,
+        "world_rule_defn": 1,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "We cannot let them find us sitting",
+        "This was a land"
+      ]
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "13",
+      "beats": 25,
+      "words": 3733,
+      "claimCount": 5,
+      "claimsPerBeat": 0.2,
+      "byCat": {
+        "world_rule_modal": 4,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 1,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "“We cannot make it through",
+        "“Regis cannot push,” Drizzt reasoned",
+        "We cannot run away from them"
+      ]
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "14",
+      "beats": 22,
+      "words": 4465,
+      "claimCount": 16,
+      "claimsPerBeat": 0.727,
+      "byCat": {
+        "world_rule_modal": 13,
+        "world_rule_defn": 0,
+        "spatial_location": 1,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 2,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "self squarely facing the fantasy he had never dared to dream",
+        "e invisible structure as a boy, but had never seen it firsthand",
+        "They seemed curious, for they had never actually seen a black elf, but they didn’t appear too surprised by Drizzt’s arr"
+      ]
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "15",
+      "beats": 20,
+      "words": 3129,
+      "claimCount": 3,
+      "claimsPerBeat": 0.15,
+      "byCat": {
+        "world_rule_modal": 3,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "“I have my duty, and I shall not fail my master,” she replied sharply",
+        "And Catti-brie would never accept that Wulfgar was dead until the proof was irrefutable",
+        "We cannot afford this"
+      ]
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "16",
+      "beats": 27,
+      "words": 2946,
+      "claimCount": 1,
+      "claimsPerBeat": 0.037,
+      "byCat": {
+        "world_rule_modal": 0,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 1,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "known as Dwarvendarrows"
+      ]
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "17",
+      "beats": 32,
+      "words": 3388,
+      "claimCount": 4,
+      "claimsPerBeat": 0.125,
+      "byCat": {
+        "world_rule_modal": 4,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "“The halfling cannot keep the pace",
+        "The halfling always found a way to come through better off than he should",
+        "The dwarf had never put hammer to anvil again"
+      ]
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "18",
+      "beats": 29,
+      "words": 3645,
+      "claimCount": 3,
+      "claimsPerBeat": 0.103,
+      "byCat": {
+        "world_rule_modal": 3,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "He had never seen Bruenor so consumed by emotion",
+        "bborn determination of a dwarf does not always pay off, and the night fell and found the friends sitting outside the ent",
+        "ee what truth the rumors held, but they never returned to us"
+      ]
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "19",
+      "beats": 43,
+      "words": 4611,
+      "claimCount": 4,
+      "claimsPerBeat": 0.093,
+      "byCat": {
+        "world_rule_modal": 3,
+        "world_rule_defn": 1,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "s were truly as splendid as Bruenor had always said",
+        "them, sometimes behind, rarely seen and never heard, though the comforting knowledge of his presence made them all step ",
+        "e had nearly convinced himself, and had always hoped, that the mines would be empty of any organized group and easy for "
+      ]
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "20",
+      "beats": 37,
+      "words": 4131,
+      "claimCount": 5,
+      "claimsPerBeat": 0.135,
+      "byCat": {
+        "world_rule_modal": 4,
+        "world_rule_defn": 1,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "he thought of losing this challenge had never entered his head",
+        "hat he played hard and to the edge, and never before had he been expected to pay for his risks",
+        "e sacrificed his life for a vision that will never be fulfilled"
+      ]
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "21",
+      "beats": 31,
+      "words": 5542,
+      "claimCount": 4,
+      "claimsPerBeat": 0.129,
+      "byCat": {
+        "world_rule_modal": 4,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "Entreri, always no more than a step behind the drow, was too intent upon watching his prisoner",
+        "ctical, Drizzt Do’Urden, else you would never have awakened from your fall",
+        "undercuts and lightning-fast counters, always aimed at the weapon hand"
+      ]
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "22",
+      "beats": 41,
+      "words": 4981,
+      "claimCount": 8,
+      "claimsPerBeat": 0.195,
+      "byCat": {
+        "world_rule_modal": 7,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 1,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "they be filled with gray ones or no, we cannot know",
+        "The barbarian never slowed his long strides, or turned from the straightest path to the door, yet t",
+        "The gray dwarves never had a chance"
+      ]
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "23",
+      "beats": 39,
+      "words": 3701,
+      "claimCount": 4,
+      "claimsPerBeat": 0.103,
+      "byCat": {
+        "world_rule_modal": 3,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 1,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "Not the halfling, who always before could find an escape from every trap",
+        "The dragon cried out from a pain it never believed it could know",
+        "Drizzt never had trusted in the assassin’s honor, but he had believed in Entreri’s pragmatis"
+      ]
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "24",
+      "beats": 13,
+      "words": 1209,
+      "claimCount": 1,
+      "claimsPerBeat": 0.077,
+      "byCat": {
+        "world_rule_modal": 1,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "But it would never fill the void that Wulfgar felt at that moment"
+      ]
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "prelude",
+      "beats": 11,
+      "words": 1326,
+      "claimCount": 5,
+      "claimsPerBeat": 0.455,
+      "byCat": {
+        "world_rule_modal": 4,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 1,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "oss the barren tundra, and the wind, as always, came from the east, behind them, quickening their already strong pace",
+        ", adorned in a many-dented horned helm, never turning to either side",
+        "He knew that he would never be truly accepted anywhere on the surface; perceptions of his people were too v"
+      ]
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "part1",
+      "beats": 6,
+      "words": 678,
+      "claimCount": 4,
+      "claimsPerBeat": 0.667,
+      "byCat": {
+        "world_rule_modal": 4,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "I pray that the world never runs out of dragons",
+        "The wizards cannot tell you of their origin, though they believe that a great wizard, a god of wiz",
+        "mpassion, I hope that those questioners never find that which they seek"
+      ]
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "part2",
+      "beats": 7,
+      "words": 1244,
+      "claimCount": 3,
+      "claimsPerBeat": 0.429,
+      "byCat": {
+        "world_rule_modal": 3,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "ng and restore family name and position cannot be underestimated",
+        "I cannot believe that",
+        "elevation of status, then the tribesmen will never, ever, force them back into their current roles that can only be desc"
+      ]
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "part3",
+      "beats": 8,
+      "words": 938,
+      "claimCount": 2,
+      "claimsPerBeat": 0.25,
+      "byCat": {
+        "world_rule_modal": 2,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "be said, for I knew that the man would never hear my words",
+        "much as in my own, but I would demand, always I would demand, a sense of humility, dedication and an understanding of th"
+      ]
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "epilogue",
+      "beats": 14,
+      "words": 1142,
+      "claimCount": 1,
+      "claimsPerBeat": 0.071,
+      "byCat": {
+        "world_rule_modal": 1,
+        "world_rule_defn": 0,
+        "spatial_location": 0,
+        "spatial_distance": 0,
+        "object_named": 0,
+        "object_rule": 0,
+        "commitment": 0,
+        "identity_heritage": 0,
+        "proper_noun_intro": 0,
+        "quantitative": 0,
+        "possessive_world": 0
+      },
+      "claimExamples": [
+        "He had never truly dismissed Morkai from this last encounter, and suspected rightly that he"
+      ]
+    }
+  ],
+  "bookSummaries": {
+    "crystal_shard": {
+      "claimsPerChapter": {
+        "n": 30,
+        "mean": 5.7,
+        "median": 5,
+        "p25": 4,
+        "p75": 8,
+        "min": 0,
+        "max": 12
+      },
+      "beatsPerChapter": {
+        "n": 30,
+        "mean": 27.1,
+        "median": 25,
+        "p25": 21,
+        "p75": 29,
+        "min": 7,
+        "max": 79
+      }
+    },
+    "halflings_gem": {
+      "claimsPerChapter": {
+        "n": 25,
+        "mean": 5.36,
+        "median": 6,
+        "p25": 4,
+        "p75": 7,
+        "min": 0,
+        "max": 11
+      },
+      "beatsPerChapter": {
+        "n": 25,
+        "mean": 31.16,
+        "median": 30,
+        "p25": 24,
+        "p75": 35,
+        "min": 19,
+        "max": 53
+      }
+    },
+    "streams_of_silver": {
+      "claimsPerChapter": {
+        "n": 24,
+        "mean": 5.67,
+        "median": 5,
+        "p25": 3,
+        "p75": 8,
+        "min": 1,
+        "max": 16
+      },
+      "beatsPerChapter": {
+        "n": 24,
+        "mean": 30.83,
+        "median": 31,
+        "p25": 25,
+        "p75": 39,
+        "min": 13,
+        "max": 43
+      }
+    },
+    "ALL_BOOKS": {
+      "claimsPerChapter": {
+        "n": 79,
+        "mean": 5.58,
+        "median": 5,
+        "p25": 4,
+        "p75": 8,
+        "min": 0,
+        "max": 16
+      }
+    }
+  }
+}

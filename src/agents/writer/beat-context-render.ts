@@ -1,0 +1,177 @@
+/**
+ * Pure renderer for the typed `BeatContext`.
+ *
+ * No async, no DB, no I/O. Takes a fully-prepared `BeatContext` (built by
+ * `buildBeatContextSlots`) plus a compact flag and emits the byte-exact
+ * user-prompt string the writer model receives.
+ *
+ * Section order + spacing are load-bearing: the parity gate at
+ * `tests/beat-context-parity.test.ts` asserts byte-equivalence against the
+ * pre-D1 implementation for every fixture in
+ * `tests/beat-context-fixtures/*.json`. Any change to formatting here MUST
+ * be matched in `tests/beat-context-fixtures/legacy-snapshot.ts` in a
+ * separate, deliberate commit (or the parity test will fail).
+ *
+ * The compact flag drives:
+ *   - Per-character snapshot formatting (collapsed entries vs full per-
+ *     character snapshot blocks separated by blank lines).
+ *   - The setting block: compact strips name+description and keeps only the
+ *     "Sensory: …" line; full emits the SETTING title + description +
+ *     sensory line.
+ *
+ * Everything else (beat-spec lines, transition bridge, landing target,
+ * resolved-references text) is identical across compact and full modes.
+ */
+
+import type { BeatContext, BeatSpec, CharacterSnapshot, SettingBlock } from "./beat-context"
+
+export function renderBeatContext(ctx: BeatContext, opts: { compact: boolean }): string {
+  const sections: string[] = []
+
+  // ── 1. Beat spec ──────────────────────────────────────────────────────
+  sections.push(renderBeatSpec(ctx.beatSpec))
+
+  // ── 2. Transition bridge ──────────────────────────────────────────────
+  if (ctx.transitionBridge) {
+    sections.push(`TRANSITION BRIDGE (continue from here):\n${ctx.transitionBridge}`)
+  }
+
+  // ── 3. Landing target ─────────────────────────────────────────────────
+  if (ctx.landingTarget) {
+    sections.push(`LANDING TARGET (end connecting toward this):\nNext beat: ${ctx.landingTarget}`)
+  }
+
+  // ── 4. Character snapshots ────────────────────────────────────────────
+  if (ctx.characterSnapshots.length > 0) {
+    if (opts.compact) {
+      sections.push(`CHARACTERS:\n${renderCharactersCompact(ctx.characterSnapshots)}`)
+    } else {
+      sections.push(`CHARACTERS:\n${renderCharactersFull(ctx.characterSnapshots)}`)
+    }
+  }
+
+  // ── 5. Resolved references ────────────────────────────────────────────
+  if (ctx.resolvedReferencesText) sections.push(ctx.resolvedReferencesText)
+
+  // ── 6. Setting ────────────────────────────────────────────────────────
+  if (ctx.setting) {
+    const settingText = renderSetting(ctx.setting, opts.compact)
+    if (settingText) sections.push(settingText)
+  }
+
+  return sections.filter(Boolean).join("\n\n")
+}
+
+// ── Beat spec ────────────────────────────────────────────────────────────
+
+function renderBeatSpec(spec: BeatSpec): string {
+  const lines = [
+    `BEAT ${spec.beatNumber} of ${spec.totalBeats}`,
+    `POV: ${spec.pov}`,
+    `Setting: ${spec.setting}`,
+    `Kind: ${spec.kind}`,
+    ``,
+    spec.description,
+  ]
+  if (spec.charactersPresent.length > 0) {
+    lines.push(`Characters present: ${spec.charactersPresent.join(", ")}`)
+  }
+
+  if (spec.seeds.length > 0) {
+    const setupLines = spec.seeds
+      .map(p => `  - "${p.fact}" (lands at beat ${p.landsAtBeat + 1})`)
+      .join("\n")
+    lines.push("", "SEEDS (this beat must set up):", setupLines)
+  }
+
+  if (spec.payoffsDue.length > 0) {
+    const payoffLines = spec.payoffsDue
+      .map(d => `  - "${d.fact}" (seeded in beat ${d.seededAtBeat + 1})`)
+      .join("\n")
+    lines.push("", "PAYOFFS DUE (this beat must realize):", payoffLines)
+  }
+
+  return lines.join("\n")
+}
+
+// ── Character snapshots ──────────────────────────────────────────────────
+
+function renderCharactersCompact(snapshots: CharacterSnapshot[]): string {
+  // Compact path: per-character entries flattened with a trailing blank
+  // line between characters, joined on \n. Matches the legacy
+  // `flatMap(c => [...entry, ""])` + trailing-blank-trim pattern exactly.
+  const lines: string[] = []
+  for (const c of snapshots) {
+    lines.push(`${c.name}:`)
+    if (c.voice) lines.push(`  Voice: ${c.voice}`)
+    if (c.drives) lines.push(`  Drives: ${c.drives}`)
+    if (c.avoids) lines.push(`  Avoids: ${c.avoids}`)
+    if (c.conflict) lines.push(`  Conflict: ${c.conflict}`)
+    if (c.exampleLines.length > 0) {
+      lines.push(`  Example voiced lines:`)
+      c.exampleLines.forEach((line, i) => {
+        lines.push(`    ${i + 1}. "${line.replace(/^"|"$/g, "")}"`)
+      })
+    }
+    lines.push("")
+  }
+  // Trim trailing blank
+  while (lines.length && lines[lines.length - 1] === "") lines.pop()
+  return lines.join("\n")
+}
+
+function renderCharactersFull(snapshots: CharacterSnapshot[]): string {
+  return snapshots.map(renderSnapshotFull).join("\n\n")
+}
+
+function renderSnapshotFull(snap: CharacterSnapshot): string {
+  const lines: string[] = [`${snap.name}:`]
+
+  if (snap.voice) lines.push(`  Voice: ${snap.voice}`)
+  if (snap.drives) lines.push(`  Drives: ${snap.drives}`)
+  if (snap.avoids) lines.push(`  Avoids: ${snap.avoids}`)
+  if (snap.conflict) lines.push(`  Conflict: ${snap.conflict}`)
+
+  if (snap.state) lines.push(`  State: ${snap.state}`)
+
+  if (snap.withPov) {
+    // The slot builder stashes the POV character's display name on the
+    // snapshot via the optional `povDisplayName` field — this is the same
+    // name the legacy emits in the "With X: …" line (povChar.name from
+    // CharacterProfile, NOT outline.povCharacter, so casing follows the
+    // canonical character profile). The field is documented in
+    // beat-context.ts.
+    const povName = snap.povDisplayName ?? ""
+    lines.push(`  With ${povName}: [${snap.withPov.trustLevel}] ${snap.withPov.dynamic}`)
+    if (snap.withPov.tension) lines.push(`    Tension: ${snap.withPov.tension}`)
+  }
+
+  if (snap.doesNotKnow && snap.doesNotKnow.length > 0) {
+    lines.push(`  Doesn't know: ${snap.doesNotKnow.join("; ")}`)
+  }
+
+  if (snap.exampleLines.length > 0) {
+    lines.push(`  Example voiced lines:`)
+    snap.exampleLines.forEach((line, i) => {
+      lines.push(`    ${i + 1}. "${line.replace(/^"|"$/g, "")}"`)
+    })
+  }
+
+  return lines.join("\n")
+}
+
+// ── Setting ─────────────────────────────────────────────────────────────
+
+function renderSetting(setting: SettingBlock, compact: boolean): string | null {
+  if (compact) {
+    // Compact: only emit the Sensory: line if present; otherwise the
+    // section is suppressed entirely (matches legacy: `find(l => l.startsWith("Sensory:"))`
+    // returning undefined → no push to sections).
+    if (setting.sensoryDetails) return `Sensory: ${setting.sensoryDetails}`
+    return null
+  }
+  let section = `SETTING: ${setting.name}`
+  if (setting.description) section += `\n${setting.description}`
+  if (setting.sensoryDetails) section += `\nSensory: ${setting.sensoryDetails}`
+  return section
+}

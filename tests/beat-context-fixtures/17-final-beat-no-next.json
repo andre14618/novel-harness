@@ -1,0 +1,67 @@
+{
+  "description": "beat at the last index of the chapter — no next beat means no LANDING TARGET section emitted; compact mode",
+  "input": {
+    "novelId": "test-novel-17",
+    "chapterNumber": 1,
+    "beatIndex": 1,
+    "previousBeatProse": "He paused at the threshold. The fire snapped behind him. The night drew in.",
+    "outline": {
+      "chapterNumber": 1,
+      "title": "Closing Beat",
+      "povCharacter": "Drizzt",
+      "setting": "Mithril Hall",
+      "purpose": "exit",
+      "scenes": [
+        {
+          "description": "Drizzt opens the door and steps onto the bridge.",
+          "characters": ["Drizzt"],
+          "kind": "action",
+          "requiredPayoffs": []
+        },
+        {
+          "description": "He looks once at the lit windows behind him and walks on.",
+          "characters": ["Drizzt"],
+          "kind": "interiority",
+          "requiredPayoffs": []
+        }
+      ],
+      "targetWords": 700,
+      "charactersPresent": ["Drizzt"],
+      "establishedFacts": [],
+      "characterStateChanges": [],
+      "knowledgeChanges": []
+    },
+    "characters": [
+      {
+        "id": "drizzt-001",
+        "name": "Drizzt",
+        "role": "drow ranger",
+        "backstory": "",
+        "traits": [],
+        "speechPattern": "formal and measured",
+        "internalConflict": "torn between heritage and path",
+        "goals": "find belonging",
+        "fears": "",
+        "relationships": [],
+        "culturalBackground": [],
+        "systemAwareness": [],
+        "exampleLines": [
+          "By the stars.",
+          "I have walked alone.",
+          "Trust is earned.",
+          "Honor still has weight."
+        ]
+      }
+    ],
+    "characterStates": [],
+    "worldBible": {
+      "locations": []
+    },
+    "preResolvedRefs": {
+      "context": "",
+      "lookupCount": 0,
+      "llmUsed": false
+    },
+    "compactMode": true
+  }
+}

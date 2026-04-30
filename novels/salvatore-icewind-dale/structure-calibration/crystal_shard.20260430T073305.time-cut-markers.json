@@ -1,0 +1,1581 @@
+{
+  "computed_at": "2026-04-30T11:33:05.311Z",
+  "source": {
+    "beats": "novels/salvatore-icewind-dale/beats.jsonl",
+    "scenes": "novels/salvatore-icewind-dale/scenes.jsonl",
+    "books_covered": [
+      "crystal_shard",
+      "streams_of_silver",
+      "halflings_gem"
+    ],
+    "total_beats": 2470,
+    "total_scenes": 352
+  },
+  "regex_patterns": {
+    "within_chapter": [
+      {
+        "label": "an_hour_later",
+        "pattern": "/\\ban? hours? later\\b/i"
+      },
+      {
+        "label": "an_hour_passed",
+        "pattern": "/\\ban? hours? (?:had )?passed\\b/i"
+      },
+      {
+        "label": "hours_later",
+        "pattern": "/\\bhours? later\\b/i"
+      },
+      {
+        "label": "a_moment_later",
+        "pattern": "/\\ba moment later\\b/i"
+      },
+      {
+        "label": "moments_later",
+        "pattern": "/\\bmoments? later\\b/i"
+      },
+      {
+        "label": "shortly_after",
+        "pattern": "/\\bshortly after(?:ward)?\\b/i"
+      },
+      {
+        "label": "soon_after",
+        "pattern": "/\\bsoon after(?:ward)?\\b/i"
+      },
+      {
+        "label": "presently",
+        "pattern": "/\\bpresently\\b/i"
+      },
+      {
+        "label": "after_a_while",
+        "pattern": "/\\bafter a (?:short |long |little )?while\\b/i"
+      },
+      {
+        "label": "later_that_night",
+        "pattern": "/\\blater that night\\b/i"
+      },
+      {
+        "label": "later_that_day",
+        "pattern": "/\\blater that (?:same )?day\\b/i"
+      },
+      {
+        "label": "by_the_time",
+        "pattern": "/\\bby the time (?:he|she|they|it|the\\b(?! (?:battle|war|siege|fall|age|end|day of|time of|era))|[A-Z][a-z])/"
+      },
+      {
+        "label": "by_morning",
+        "pattern": "/\\bby (?:the )?morning\\b/i"
+      },
+      {
+        "label": "by_sunset",
+        "pattern": "/\\bby (?:the )?sunset\\b/i"
+      },
+      {
+        "label": "by_nightfall",
+        "pattern": "/\\bby (?:the )?nightfall\\b/i"
+      },
+      {
+        "label": "by_dawn",
+        "pattern": "/\\bby (?:the )?dawn\\b/i"
+      },
+      {
+        "label": "as_the_sun_rose",
+        "pattern": "/\\bas the sun rose\\b/i"
+      },
+      {
+        "label": "as_night_fell",
+        "pattern": "/\\bas (?:the )?night fell\\b/i"
+      },
+      {
+        "label": "as_dawn_broke",
+        "pattern": "/\\bas (?:the )?dawn broke\\b/i"
+      },
+      {
+        "label": "when_dawn",
+        "pattern": "/\\bwhen (?:the )?dawn\\b/i"
+      },
+      {
+        "label": "that_evening",
+        "pattern": "/\\bthat evening\\b/i"
+      },
+      {
+        "label": "that_night",
+        "pattern": "/\\bthat night\\b/i"
+      },
+      {
+        "label": "that_afternoon",
+        "pattern": "/\\bthat afternoon\\b/i"
+      },
+      {
+        "label": "later_in_the_day",
+        "pattern": "/\\blater in the (?:same )?day\\b/i"
+      }
+    ],
+    "between_chapter": [
+      {
+        "label": "the_next_morning",
+        "pattern": "/\\bthe next morning\\b/i"
+      },
+      {
+        "label": "the_next_day",
+        "pattern": "/\\bthe next day\\b/i"
+      },
+      {
+        "label": "the_following_day",
+        "pattern": "/\\bthe following day\\b/i"
+      },
+      {
+        "label": "the_following_morning",
+        "pattern": "/\\bthe following morning\\b/i"
+      },
+      {
+        "label": "days_passed",
+        "pattern": "/\\bdays? (?:had )?passed\\b/i"
+      },
+      {
+        "label": "days_later",
+        "pattern": "/\\bdays? later\\b/i"
+      },
+      {
+        "label": "weeks_later",
+        "pattern": "/\\bweeks? later\\b/i"
+      },
+      {
+        "label": "weeks_passed",
+        "pattern": "/\\bweeks? (?:had )?passed\\b/i"
+      },
+      {
+        "label": "a_month_later",
+        "pattern": "/\\ba? ?months? later\\b/i"
+      },
+      {
+        "label": "months_passed",
+        "pattern": "/\\bmonths? (?:had )?passed\\b/i"
+      },
+      {
+        "label": "a_fortnight",
+        "pattern": "/\\ba fortnight\\b/i"
+      },
+      {
+        "label": "long_after",
+        "pattern": "/\\blong after\\b/i"
+      },
+      {
+        "label": "many_days",
+        "pattern": "/\\bmany days\\b/i"
+      },
+      {
+        "label": "several_days",
+        "pattern": "/\\bseveral days\\b/i"
+      },
+      {
+        "label": "several_hours",
+        "pattern": "/\\bseveral hours\\b/i"
+      }
+    ]
+  },
+  "per_book": {
+    "crystal_shard": {
+      "chapter_count": 30,
+      "total_cuts": 34,
+      "total_within_chapter": 25,
+      "total_between_chapter": 9,
+      "mean_cuts_per_chapter": 1.13,
+      "median_cuts_per_chapter": 1,
+      "max_cuts_per_chapter": 5,
+      "quintile_means_q0_to_q4": [
+        0.5,
+        1,
+        2.17,
+        0.33,
+        1.67
+      ],
+      "per_chapter_detail": [
+        {
+          "chapter": 1,
+          "within_chapter_count": 0,
+          "between_chapter_count": 0,
+          "total_count": 0,
+          "within_matches": [],
+          "between_matches": []
+        },
+        {
+          "chapter": 2,
+          "within_chapter_count": 0,
+          "between_chapter_count": 0,
+          "total_count": 0,
+          "within_matches": [],
+          "between_matches": []
+        },
+        {
+          "chapter": 3,
+          "within_chapter_count": 0,
+          "between_chapter_count": 1,
+          "total_count": 1,
+          "within_matches": [],
+          "between_matches": [
+            {
+              "label": "the_next_morning",
+              "match": "the next morning",
+              "context": "…e  two. War might be joined as early as the next morning. This would prove devastating to all th…"
+            }
+          ]
+        },
+        {
+          "chapter": 4,
+          "within_chapter_count": 0,
+          "between_chapter_count": 1,
+          "total_count": 1,
+          "within_matches": [],
+          "between_matches": [
+            {
+              "label": "the_next_morning",
+              "match": "the next morning",
+              "context": "…ing to his every need. When he awakened the next morning, he remembered the dream and found that…"
+            }
+          ]
+        },
+        {
+          "chapter": 5,
+          "within_chapter_count": 0,
+          "between_chapter_count": 0,
+          "total_count": 0,
+          "within_matches": [],
+          "between_matches": []
+        },
+        {
+          "chapter": 6,
+          "within_chapter_count": 1,
+          "between_chapter_count": 0,
+          "total_count": 1,
+          "within_matches": [
+            {
+              "label": "later_that_day",
+              "match": "later that day",
+              "context": "… proud of when he left the council hall later that day, and his hopes for the survival of Ten-…"
+            }
+          ],
+          "between_matches": []
+        },
+        {
+          "chapter": 7,
+          "within_chapter_count": 1,
+          "between_chapter_count": 1,
+          "total_count": 2,
+          "within_matches": [
+            {
+              "label": "soon_after",
+              "match": "Soon after",
+              "context": "…asual relationship as distant comrades. Soon after, though, came an incident that Drizzt c…"
+            }
+          ],
+          "between_matches": [
+            {
+              "label": "the_next_day",
+              "match": "the next day",
+              "context": "…terrain and forces they would encounter the next day.  \"We should destroy the town in the wo…"
+            }
+          ]
+        },
+        {
+          "chapter": 8,
+          "within_chapter_count": 0,
+          "between_chapter_count": 0,
+          "total_count": 0,
+          "within_matches": [],
+          "between_matches": []
+        },
+        {
+          "chapter": 9,
+          "within_chapter_count": 1,
+          "between_chapter_count": 0,
+          "total_count": 1,
+          "within_matches": [
+            {
+              "label": "shortly_after",
+              "match": "shortly after",
+              "context": "… had given up his position as spokesman shortly after the battle, a choice mutually arrived a…"
+            }
+          ],
+          "between_matches": []
+        },
+        {
+          "chapter": 10,
+          "within_chapter_count": 1,
+          "between_chapter_count": 0,
+          "total_count": 1,
+          "within_matches": [
+            {
+              "label": "that_night",
+              "match": "that night",
+              "context": "… colossal calamities. Such was the case that night in a land a thousand miles from Akar Ke…"
+            }
+          ],
+          "between_matches": []
+        },
+        {
+          "chapter": 11,
+          "within_chapter_count": 0,
+          "between_chapter_count": 0,
+          "total_count": 0,
+          "within_matches": [],
+          "between_matches": []
+        },
+        {
+          "chapter": 12,
+          "within_chapter_count": 1,
+          "between_chapter_count": 1,
+          "total_count": 2,
+          "within_matches": [
+            {
+              "label": "by_the_time",
+              "match": "by the time he",
+              "context": "… himself so that he could say more, but by the time he was able to pull his gaze from  the mag…"
+            }
+          ],
+          "between_matches": [
+            {
+              "label": "several_days",
+              "match": "several days",
+              "context": "…ar. He realized that he hadn't eaten in several days, and his strength hadn't fully  recover…"
+            }
+          ]
+        },
+        {
+          "chapter": 13,
+          "within_chapter_count": 0,
+          "between_chapter_count": 0,
+          "total_count": 0,
+          "within_matches": [],
+          "between_matches": []
+        },
+        {
+          "chapter": 14,
+          "within_chapter_count": 3,
+          "between_chapter_count": 2,
+          "total_count": 5,
+          "within_matches": [
+            {
+              "label": "by_the_time",
+              "match": "by the time he",
+              "context": "…Bruenor had regained his dour visage by the time he called on Wulfgar the following morning…"
+            },
+            {
+              "label": "shortly_after",
+              "match": "shortly after",
+              "context": "… The two left the darkness of the mines shortly after dawn, traveling down through the rocky …"
+            },
+            {
+              "label": "by_morning",
+              "match": "by the morning",
+              "context": "…m summer day, the blue of the sky paled by the morning haze. Wulfgar stretched high into the a…"
+            }
+          ],
+          "between_matches": [
+            {
+              "label": "the_following_morning",
+              "match": "the following morning",
+              "context": "…visage by the time he called on Wulfgar the following morning. Still, it touched the dwarf deeply, th…"
+            },
+            {
+              "label": "many_days",
+              "match": "many days",
+              "context": "…eople,\" Wulfgar remarked. \"I have spent many days watching them,\" Drizzt explained, wonde…"
+            }
+          ]
+        },
+        {
+          "chapter": 15,
+          "within_chapter_count": 1,
+          "between_chapter_count": 0,
+          "total_count": 1,
+          "within_matches": [
+            {
+              "label": "that_night",
+              "match": "that night",
+              "context": "…rst patrol of verbeeg to leave the lair that night soon spotted the flames of a campfire a…"
+            }
+          ],
+          "between_matches": []
+        },
+        {
+          "chapter": 16,
+          "within_chapter_count": 3,
+          "between_chapter_count": 0,
+          "total_count": 3,
+          "within_matches": [
+            {
+              "label": "hours_later",
+              "match": "hours later",
+              "context": "…erted. When the drow slipped away a few hours later to set his next plans, he was confident…"
+            },
+            {
+              "label": "shortly_after",
+              "match": "shortly after",
+              "context": "…e him.  Drizzt had returned to the rock shortly after Wulfgar but had remained hidden, watchi…"
+            },
+            {
+              "label": "by_the_time",
+              "match": "by the time he",
+              "context": "…ed what would be left of the giant lair by the time he and his fellow dwarves returned.…"
+            }
+          ],
+          "between_matches": []
+        },
+        {
+          "chapter": 17,
+          "within_chapter_count": 2,
+          "between_chapter_count": 1,
+          "total_count": 3,
+          "within_matches": [
+            {
+              "label": "soon_after",
+              "match": "Soon after",
+              "context": "…dust cloud growing in the distant east. Soon after; a scout came in from the plain to repo…"
+            },
+            {
+              "label": "by_the_time",
+              "match": "by the time they",
+              "context": "…rs never had the chance to regroup, and by the time they were even able to raise their weapons  …"
+            }
+          ],
+          "between_matches": [
+            {
+              "label": "several_hours",
+              "match": "several hours",
+              "context": "…ttack. The giants had been marching for several hours. Drizzt watched patiently as their form…"
+            }
+          ]
+        },
+        {
+          "chapter": 18,
+          "within_chapter_count": 1,
+          "between_chapter_count": 0,
+          "total_count": 1,
+          "within_matches": [
+            {
+              "label": "by_the_time",
+              "match": "by the time it",
+              "context": "…. The wounded giant howled in pain, but by the time it or its companions had turned back aroun…"
+            }
+          ],
+          "between_matches": []
+        },
+        {
+          "chapter": 19,
+          "within_chapter_count": 0,
+          "between_chapter_count": 1,
+          "total_count": 1,
+          "within_matches": [],
+          "between_matches": [
+            {
+              "label": "several_days",
+              "match": "several days",
+              "context": "…y and importance of their news, it took several days to round up the other spokesmen for cou…"
+            }
+          ]
+        },
+        {
+          "chapter": 20,
+          "within_chapter_count": 0,
+          "between_chapter_count": 0,
+          "total_count": 0,
+          "within_matches": [],
+          "between_matches": []
+        },
+        {
+          "chapter": 21,
+          "within_chapter_count": 0,
+          "between_chapter_count": 0,
+          "total_count": 0,
+          "within_matches": [],
+          "between_matches": []
+        },
+        {
+          "chapter": 22,
+          "within_chapter_count": 0,
+          "between_chapter_count": 0,
+          "total_count": 0,
+          "within_matches": [],
+          "between_matches": []
+        },
+        {
+          "chapter": 23,
+          "within_chapter_count": 0,
+          "between_chapter_count": 0,
+          "total_count": 0,
+          "within_matches": [],
+          "between_matches": []
+        },
+        {
+          "chapter": 24,
+          "within_chapter_count": 1,
+          "between_chapter_count": 0,
+          "total_count": 1,
+          "within_matches": [
+            {
+              "label": "later_that_day",
+              "match": "later that day",
+              "context": "…to himself. Other volunteers headed out later that day into the more treacherous west to scout…"
+            }
+          ],
+          "between_matches": []
+        },
+        {
+          "chapter": 25,
+          "within_chapter_count": 2,
+          "between_chapter_count": 0,
+          "total_count": 2,
+          "within_matches": [
+            {
+              "label": "shortly_after",
+              "match": "shortly after",
+              "context": "…ected from the sun, they became useless shortly after he moved to the surface. He doubted tha…"
+            },
+            {
+              "label": "that_afternoon",
+              "match": "that afternoon",
+              "context": "…uined everything with his show of power that afternoon and his refusal to tear down the vacate…"
+            }
+          ],
+          "between_matches": []
+        },
+        {
+          "chapter": 26,
+          "within_chapter_count": 0,
+          "between_chapter_count": 1,
+          "total_count": 1,
+          "within_matches": [],
+          "between_matches": [
+            {
+              "label": "days_later",
+              "match": "day later",
+              "context": "…hallenged their long-standing king. One day later, he had won the crown, and the day afte…"
+            }
+          ]
+        },
+        {
+          "chapter": 27,
+          "within_chapter_count": 3,
+          "between_chapter_count": 0,
+          "total_count": 3,
+          "within_matches": [
+            {
+              "label": "soon_after",
+              "match": "Soon after",
+              "context": "…heir tunnels. But not to let anyone in. Soon after their smashing success against the ogre…"
+            },
+            {
+              "label": "shortly_after",
+              "match": "Shortly after",
+              "context": "…oss of his closest non-dwarven friends. Shortly after the goblins that had escaped the tunnel…"
+            },
+            {
+              "label": "that_night",
+              "match": "That night",
+              "context": "…t where the dogs'll do their sleepin'.\" That night, the sounds of the marching monsters be…"
+            }
+          ],
+          "between_matches": []
+        },
+        {
+          "chapter": 28,
+          "within_chapter_count": 1,
+          "between_chapter_count": 0,
+          "total_count": 1,
+          "within_matches": [
+            {
+              "label": "that_evening",
+              "match": "that evening",
+              "context": "…Out on the waters of Maer Dualdon later that evening, the assembled fleet of the four towns …"
+            }
+          ],
+          "between_matches": []
+        },
+        {
+          "chapter": 29,
+          "within_chapter_count": 2,
+          "between_chapter_count": 0,
+          "total_count": 2,
+          "within_matches": [
+            {
+              "label": "shortly_after",
+              "match": "shortly after",
+              "context": "…mpleted the first of their secret exits shortly after sunset. Bruenor was the first to climb …"
+            },
+            {
+              "label": "hours_later",
+              "match": "hours later",
+              "context": "… work on the tunnels was finished a few hours later. The shafts had been dug and the entire…"
+            }
+          ],
+          "between_matches": []
+        },
+        {
+          "chapter": 30,
+          "within_chapter_count": 1,
+          "between_chapter_count": 0,
+          "total_count": 1,
+          "within_matches": [
+            {
+              "label": "shortly_after",
+              "match": "Shortly after",
+              "context": "…itories back in the Spine of the World. Shortly after the second outburst of  fighting had be…"
+            }
+          ],
+          "between_matches": []
+        }
+      ]
+    },
+    "streams_of_silver": {
+      "chapter_count": 24,
+      "total_cuts": 61,
+      "total_within_chapter": 40,
+      "total_between_chapter": 21,
+      "mean_cuts_per_chapter": 2.54,
+      "median_cuts_per_chapter": 2,
+      "max_cuts_per_chapter": 7,
+      "quintile_means_q0_to_q4": [
+        2.2,
+        3.8,
+        3.6,
+        2,
+        0.75
+      ],
+      "per_chapter_detail": [
+        {
+          "chapter": 1,
+          "within_chapter_count": 0,
+          "between_chapter_count": 0,
+          "total_count": 0,
+          "within_matches": [],
+          "between_matches": []
+        },
+        {
+          "chapter": 2,
+          "within_chapter_count": 1,
+          "between_chapter_count": 1,
+          "total_count": 2,
+          "within_matches": [
+            {
+              "label": "presently",
+              "match": "Presently",
+              "context": "…me the whispers, then a longer silence. Presently the four heard a grating sound behind t…"
+            }
+          ],
+          "between_matches": [
+            {
+              "label": "months_passed",
+              "match": "months had passed",
+              "context": "… great cat stirred from her sleep. Many months had passed since her master had called, and the ca…"
+            }
+          ]
+        },
+        {
+          "chapter": 3,
+          "within_chapter_count": 2,
+          "between_chapter_count": 0,
+          "total_count": 2,
+          "within_matches": [
+            {
+              "label": "presently",
+              "match": "Presently",
+              "context": "…d Bruenor simply crashing through them. Presently, they grew confident that there was no …"
+            },
+            {
+              "label": "an_hour_later",
+              "match": "An hour later",
+              "context": "…ll, and let none know of our passing.\"  An hour later, they were trotting easily across the o…"
+            }
+          ],
+          "between_matches": []
+        },
+        {
+          "chapter": 4,
+          "within_chapter_count": 0,
+          "between_chapter_count": 0,
+          "total_count": 0,
+          "within_matches": [],
+          "between_matches": []
+        },
+        {
+          "chapter": 5,
+          "within_chapter_count": 4,
+          "between_chapter_count": 3,
+          "total_count": 7,
+          "within_matches": [
+            {
+              "label": "that_night",
+              "match": "that night",
+              "context": "…ary.  Something magical hung in the air that night, a crispy tingling that would have made…"
+            },
+            {
+              "label": "soon_after",
+              "match": "soon after",
+              "context": "… Wulfgar.  They were on the trail again soon after, and a short time after that, they saw …"
+            },
+            {
+              "label": "a_moment_later",
+              "match": "A moment later",
+              "context": "…rip upon the weapon almost immediately. A moment later, the gate swung open and Regis walked i…"
+            },
+            {
+              "label": "an_hour_later",
+              "match": "an hour later",
+              "context": "…it came as almost a relief when, barely an hour later, their anxiety became reality. Drizzt w…"
+            }
+          ],
+          "between_matches": [
+            {
+              "label": "many_days",
+              "match": "many days",
+              "context": "…night, but his endeavor would save them many days on a dangerous road. After an hour or t…"
+            },
+            {
+              "label": "several_days",
+              "match": "several days",
+              "context": "… add a few miles, but perhaps save them several days of backtracking. Their ride was clear a…"
+            },
+            {
+              "label": "the_next_day",
+              "match": "the next day",
+              "context": "…king. Their ride was clear and easy for the next day and night, and after that, Bruenor deci…"
+            }
+          ]
+        },
+        {
+          "chapter": 6,
+          "within_chapter_count": 1,
+          "between_chapter_count": 0,
+          "total_count": 1,
+          "within_matches": [
+            {
+              "label": "a_moment_later",
+              "match": "A moment later",
+              "context": "…\" the weary drow instructed Guenhwyvar. A moment later, he was back on the field beside Brueno…"
+            }
+          ],
+          "between_matches": []
+        },
+        {
+          "chapter": 7,
+          "within_chapter_count": 2,
+          "between_chapter_count": 0,
+          "total_count": 2,
+          "within_matches": [
+            {
+              "label": "that_night",
+              "match": "that night",
+              "context": "…he would owe even more when he returned that night, for the original deal with the Daykeep…"
+            },
+            {
+              "label": "an_hour_later",
+              "match": "an hour later",
+              "context": "…e city.  The assassin was not surprised an hour later when they came upon a long grove of thi…"
+            }
+          ],
+          "between_matches": []
+        },
+        {
+          "chapter": 8,
+          "within_chapter_count": 2,
+          "between_chapter_count": 2,
+          "total_count": 4,
+          "within_matches": [
+            {
+              "label": "shortly_after",
+              "match": "Shortly after",
+              "context": "…heir hoes and rakes to study the party. Shortly after the first of these encounters, they wer…"
+            },
+            {
+              "label": "later_that_day",
+              "match": "later that day",
+              "context": "…which do ye prefer, elf,\" Bruenor asked later that day, \"the jabs of a mad soldier's spear, or…"
+            }
+          ],
+          "between_matches": [
+            {
+              "label": "the_next_morning",
+              "match": "the next morning",
+              "context": "…further problems that day or night, and the next morning came upon the main road, the trading ro…"
+            },
+            {
+              "label": "the_next_day",
+              "match": "the next day",
+              "context": "…eak to DelRoy.\"  The four friends spent the next day recuperating and enjoying the endless m…"
+            }
+          ]
+        },
+        {
+          "chapter": 9,
+          "within_chapter_count": 2,
+          "between_chapter_count": 3,
+          "total_count": 5,
+          "within_matches": [
+            {
+              "label": "that_night",
+              "match": "that night",
+              "context": "…beyond her skills altogether. She spent that night, until the early hours of the following…"
+            },
+            {
+              "label": "later_that_night",
+              "match": "later that night",
+              "context": "…bled when they arrived at the Hosttower later that night.  Jierdan stood alone, off to the side,…"
+            }
+          ],
+          "between_matches": [
+            {
+              "label": "the_following_morning",
+              "match": "the following morning",
+              "context": "…nt that night, until the early hours of the following morning, searching the alleyways and meeting pl…"
+            },
+            {
+              "label": "the_next_day",
+              "match": "the next day",
+              "context": "…ustrated, she returned to the Hosttower the next day, passing the corridor to Dendybar's roo…"
+            },
+            {
+              "label": "the_next_morning",
+              "match": "The next morning",
+              "context": "… care,\" Entreri whispered into her ear. The next morning found Entreri outside a place he did no…"
+            }
+          ]
+        },
+        {
+          "chapter": 10,
+          "within_chapter_count": 5,
+          "between_chapter_count": 2,
+          "total_count": 7,
+          "within_matches": [
+            {
+              "label": "that_afternoon",
+              "match": "That afternoon",
+              "context": "…ild, even the weather proved an enemy.  That afternoon the squall line rolled over them, carry…"
+            },
+            {
+              "label": "by_morning",
+              "match": "by morning",
+              "context": "…s hung low in the sky. Wulfgar was fine by morning, but he still did not understand what h…"
+            },
+            {
+              "label": "that_night",
+              "match": "that night",
+              "context": "…ad already spent its killing might, but that night they found no shelter beyond their wet …"
+            },
+            {
+              "label": "shortly_after",
+              "match": "Shortly after",
+              "context": "…s. The next day brought more good news. Shortly after they broke camp, the friends discovered…"
+            },
+            {
+              "label": "soon_after",
+              "match": "Soon after",
+              "context": "… branch of a tree on the opposite bank. Soon after, they were all easily plodding along th…"
+            }
+          ],
+          "between_matches": [
+            {
+              "label": "the_next_day",
+              "match": "The next day",
+              "context": "… but the dwarf was no longer listening. The next day began without rain, though thick gray c…"
+            },
+            {
+              "label": "the_next_day",
+              "match": "The next day",
+              "context": "…ng his own arm, Bruenor had no regrets. The next day brought more good news. Shortly after t…"
+            }
+          ]
+        },
+        {
+          "chapter": 11,
+          "within_chapter_count": 2,
+          "between_chapter_count": 4,
+          "total_count": 6,
+          "within_matches": [
+            {
+              "label": "shortly_after",
+              "match": "shortly after",
+              "context": "…o a grand start.  They made Silverymoon shortly after noon on the following day. If Entreri h…"
+            },
+            {
+              "label": "soon_after",
+              "match": "Soon after",
+              "context": "…o Silverymoon in search of information. Soon after they arrive, Bruenor and his friends wi…"
+            }
+          ],
+          "between_matches": [
+            {
+              "label": "the_next_day",
+              "match": "The next day",
+              "context": "…upon her, the questions about Dendybar. The next day was the quietest, and the most producti…"
+            },
+            {
+              "label": "the_following_day",
+              "match": "the following day",
+              "context": "… made Silverymoon shortly after noon on the following day. If Entreri had any doubts left about h…"
+            },
+            {
+              "label": "several_days",
+              "match": "several days",
+              "context": "…e golem. \"We shall stay in the city for several days.\" She slipped down from her seat and st…"
+            },
+            {
+              "label": "several_days",
+              "match": "several days",
+              "context": "…ey moved through the city. \"We may have several days of wait.\"  \"Where do we go?\" Entreri as…"
+            }
+          ]
+        },
+        {
+          "chapter": 12,
+          "within_chapter_count": 3,
+          "between_chapter_count": 0,
+          "total_count": 3,
+          "within_matches": [
+            {
+              "label": "that_night",
+              "match": "that night",
+              "context": "… kind of fiend, and they set their camp that night under a guise of quiet optimism. \"Ye'll…"
+            },
+            {
+              "label": "that_night",
+              "match": "that night",
+              "context": "…w that none of them would get any sleep that night, whether on guard, or not. Darkness cam…"
+            },
+            {
+              "label": "that_night",
+              "match": "that night",
+              "context": "…one of the companions managed any sleep that night. With the breaking of dawn, and no sign…"
+            }
+          ],
+          "between_matches": []
+        },
+        {
+          "chapter": 13,
+          "within_chapter_count": 4,
+          "between_chapter_count": 0,
+          "total_count": 4,
+          "within_matches": [
+            {
+              "label": "soon_after",
+              "match": "Soon after",
+              "context": "…d the rest of the logs and provisions.  Soon after, the friends drifted through the bog wi…"
+            },
+            {
+              "label": "after_a_while",
+              "match": "after a while",
+              "context": "…ith. The bog became a great blur to him after a while, his tired eyes recording little detail…"
+            },
+            {
+              "label": "when_dawn",
+              "match": "when dawn",
+              "context": "…t. He vowed to rest in the morning, but when dawn at last broke, he found the trees and r…"
+            },
+            {
+              "label": "an_hour_passed",
+              "match": "An hour passed",
+              "context": "…ridge and crouched low in anxious wait. An hour passed, seeming like ten to the friends, and t…"
+            }
+          ],
+          "between_matches": []
+        },
+        {
+          "chapter": 14,
+          "within_chapter_count": 1,
+          "between_chapter_count": 2,
+          "total_count": 3,
+          "within_matches": [
+            {
+              "label": "presently",
+              "match": "Presently",
+              "context": "…tly staring at the city up the Rauvin.  Presently, Bruenor and Regis settled themselves o…"
+            }
+          ],
+          "between_matches": [
+            {
+              "label": "the_next_morning",
+              "match": "the next morning",
+              "context": "…and joined his friends in slumber. Late the next morning Bruenor's grumbling roused them. \"Ye fo…"
+            },
+            {
+              "label": "the_next_day",
+              "match": "the next day",
+              "context": "…They broke out of the forest by noon of the next day and covered the last few miles to Silve…"
+            }
+          ]
+        },
+        {
+          "chapter": 15,
+          "within_chapter_count": 1,
+          "between_chapter_count": 1,
+          "total_count": 2,
+          "within_matches": [
+            {
+              "label": "hours_later",
+              "match": "hours later",
+              "context": "…ey arrived back at the room a couple of hours later. From the guards at the gate they had l…"
+            }
+          ],
+          "between_matches": [
+            {
+              "label": "the_next_morning",
+              "match": "the next morning",
+              "context": "…hen she retrieved the golem from Mizzen the next morning, Sydney's suspicions that Bok had seen …"
+            }
+          ]
+        },
+        {
+          "chapter": 16,
+          "within_chapter_count": 0,
+          "between_chapter_count": 0,
+          "total_count": 0,
+          "within_matches": [],
+          "between_matches": []
+        },
+        {
+          "chapter": 17,
+          "within_chapter_count": 4,
+          "between_chapter_count": 2,
+          "total_count": 6,
+          "within_matches": [
+            {
+              "label": "that_night",
+              "match": "that night",
+              "context": "…Bruenor found no relaxation at the camp that night, even though they had obviously covered…"
+            },
+            {
+              "label": "that_evening",
+              "match": "that evening",
+              "context": "…the potion?\" Wulfgar asked Drizzt later that evening as they stood to the side of the camp a…"
+            },
+            {
+              "label": "an_hour_later",
+              "match": "An hour later",
+              "context": "…iends shrugged helplessly and followed. An hour later, the structures came into view. Like gi…"
+            },
+            {
+              "label": "that_night",
+              "match": "that night",
+              "context": "… Any trouble that she had finding sleep that night was more due to her eagerness to face t…"
+            }
+          ],
+          "between_matches": [
+            {
+              "label": "the_next_day",
+              "match": "the next day",
+              "context": "…pace was no less frantic the morning of the next day. Mountains soon towered above them as t…"
+            },
+            {
+              "label": "the_next_day",
+              "match": "the next day",
+              "context": "…. Catti-brie saw it, too, and knew that the next day would bring her greatest challenge. She…"
+            }
+          ]
+        },
+        {
+          "chapter": 18,
+          "within_chapter_count": 2,
+          "between_chapter_count": 0,
+          "total_count": 2,
+          "within_matches": [
+            {
+              "label": "after_a_while",
+              "match": "after a while",
+              "context": "…ut the magic that holds to it leaves it after a while, and a new word must be named. None wer…"
+            },
+            {
+              "label": "when_dawn",
+              "match": "when dawn",
+              "context": "….\" The friends still had found no clues when dawn came. Bruenor stood before the wall, sh…"
+            }
+          ],
+          "between_matches": []
+        },
+        {
+          "chapter": 19,
+          "within_chapter_count": 0,
+          "between_chapter_count": 0,
+          "total_count": 0,
+          "within_matches": [],
+          "between_matches": []
+        },
+        {
+          "chapter": 20,
+          "within_chapter_count": 1,
+          "between_chapter_count": 1,
+          "total_count": 2,
+          "within_matches": [
+            {
+              "label": "a_moment_later",
+              "match": "A moment later",
+              "context": "…tance other than the dripping of water. A moment later, the others caught it, too, and soon th…"
+            }
+          ],
+          "between_matches": [
+            {
+              "label": "long_after",
+              "match": "long after",
+              "context": "…at the bards would write and sing about long after the enemies who had slain the two frien…"
+            }
+          ]
+        },
+        {
+          "chapter": 21,
+          "within_chapter_count": 0,
+          "between_chapter_count": 0,
+          "total_count": 0,
+          "within_matches": [],
+          "between_matches": []
+        },
+        {
+          "chapter": 22,
+          "within_chapter_count": 3,
+          "between_chapter_count": 0,
+          "total_count": 3,
+          "within_matches": [
+            {
+              "label": "by_the_time",
+              "match": "by the time they",
+              "context": "…ried just how low he would be crouching by the time they reached Garumn's Gorge, for the tunnels…"
+            },
+            {
+              "label": "by_the_time",
+              "match": "by the time he",
+              "context": "…realized Bruenor was rushing by him but by the time he got into the room, three Duergar lay de…"
+            },
+            {
+              "label": "by_the_time",
+              "match": "by the time Wu",
+              "context": "…o repeat the request over and over, and by the time Wulfgar began to hear it, Bok had backed t…"
+            }
+          ],
+          "between_matches": []
+        },
+        {
+          "chapter": 23,
+          "within_chapter_count": 0,
+          "between_chapter_count": 0,
+          "total_count": 0,
+          "within_matches": [],
+          "between_matches": []
+        },
+        {
+          "chapter": 24,
+          "within_chapter_count": 0,
+          "between_chapter_count": 0,
+          "total_count": 0,
+          "within_matches": [],
+          "between_matches": []
+        }
+      ]
+    },
+    "halflings_gem": {
+      "chapter_count": 25,
+      "total_cuts": 32,
+      "total_within_chapter": 26,
+      "total_between_chapter": 6,
+      "mean_cuts_per_chapter": 1.28,
+      "median_cuts_per_chapter": 1,
+      "max_cuts_per_chapter": 7,
+      "quintile_means_q0_to_q4": [
+        2,
+        2.4,
+        1.2,
+        0.2,
+        0.6
+      ],
+      "per_chapter_detail": [
+        {
+          "chapter": 1,
+          "within_chapter_count": 4,
+          "between_chapter_count": 1,
+          "total_count": 5,
+          "within_matches": [
+            {
+              "label": "moments_later",
+              "match": "moment later",
+              "context": "…though searching for a place to step. A moment later, the last of the sun dipped under the w…"
+            },
+            {
+              "label": "a_moment_later",
+              "match": "A moment later",
+              "context": "…, and then the creak of a door opening. A moment later, a boy barely into his teens walked rig…"
+            },
+            {
+              "label": "by_the_time",
+              "match": "by the time Wu",
+              "context": "…moved to a cabinet across the room, and by the time Wulfgar and Drizzt looked back to him, he …"
+            },
+            {
+              "label": "hours_later",
+              "match": "hours later",
+              "context": "…tudent awakened them - silently - a few hours later and led them to the dining room, where …"
+            }
+          ],
+          "between_matches": [
+            {
+              "label": "many_days",
+              "match": "many days",
+              "context": "…most probably, their last fine meal for many days. \"You shall spend the night,\" Malchor s…"
+            }
+          ]
+        },
+        {
+          "chapter": 2,
+          "within_chapter_count": 1,
+          "between_chapter_count": 1,
+          "total_count": 2,
+          "within_matches": [
+            {
+              "label": "by_the_time",
+              "match": "by the time the",
+              "context": "…ast's name, halfling. And I assure you, by the time the cat arrived, you would be dead.\" \"You f…"
+            }
+          ],
+          "between_matches": [
+            {
+              "label": "the_next_morning",
+              "match": "the next morning",
+              "context": "…one of his rare appearances on the deck the next morning. Dawn had come bright and clear, and th…"
+            }
+          ]
+        },
+        {
+          "chapter": 3,
+          "within_chapter_count": 1,
+          "between_chapter_count": 0,
+          "total_count": 1,
+          "within_matches": [
+            {
+              "label": "soon_after",
+              "match": "Soon after",
+              "context": "…o himself and let Wulfgar have his fun. Soon after the lights of Conyberry had faded to do…"
+            }
+          ],
+          "between_matches": []
+        },
+        {
+          "chapter": 4,
+          "within_chapter_count": 1,
+          "between_chapter_count": 0,
+          "total_count": 1,
+          "within_matches": [
+            {
+              "label": "when_dawn",
+              "match": "when dawn",
+              "context": "…lur as it rolled by. They did not break when dawn came behind them, nor did they stop for…"
+            }
+          ],
+          "between_matches": []
+        },
+        {
+          "chapter": 5,
+          "within_chapter_count": 0,
+          "between_chapter_count": 1,
+          "total_count": 1,
+          "within_matches": [],
+          "between_matches": [
+            {
+              "label": "weeks_later",
+              "match": "weeks later",
+              "context": "…mly etched in Bruenor's mind. Even now, weeks later as far as he could figure, he used that…"
+            }
+          ]
+        },
+        {
+          "chapter": 6,
+          "within_chapter_count": 7,
+          "between_chapter_count": 0,
+          "total_count": 7,
+          "within_matches": [
+            {
+              "label": "by_nightfall",
+              "match": "By nightfall",
+              "context": "… strong sea breeze filling their sails. By nightfall, the upper tiers of the city of Baldur'…"
+            },
+            {
+              "label": "later_that_night",
+              "match": "later that night",
+              "context": "…eep impossible, heard Entreri stir much later that night. The halfling shut his eyes tightly and…"
+            },
+            {
+              "label": "that_night",
+              "match": "that night",
+              "context": "…the deck. The moon hung full in the sky that night, but even a sliver of a shadow was suff…"
+            },
+            {
+              "label": "that_night",
+              "match": "that night",
+              "context": "…and the doom that had befallen his ship that night. Entreri moved to the door, which opene…"
+            },
+            {
+              "label": "that_night",
+              "match": "that night",
+              "context": "…lp but feel responsible for the carnage that night. He moved quietly, helplessly, beside E…"
+            },
+            {
+              "label": "soon_after",
+              "match": "soon after",
+              "context": "…and Regis entered Baldur's Gate on foot soon after daybreak. They had put the little rowbo…"
+            },
+            {
+              "label": "later_that_night",
+              "match": "later that night",
+              "context": "…ong a delay. Regis was hardly surprised later that night when Entreri returned to the room and a…"
+            }
+          ],
+          "between_matches": []
+        },
+        {
+          "chapter": 7,
+          "within_chapter_count": 2,
+          "between_chapter_count": 0,
+          "total_count": 2,
+          "within_matches": [
+            {
+              "label": "hours_later",
+              "match": "hours later",
+              "context": "…he blackness. Bruenor awoke again a few hours later, stronger and more alert. Trying not to…"
+            },
+            {
+              "label": "that_evening",
+              "match": "that evening",
+              "context": "…y on the southern slope of Harpell Hill that evening, watching the last colors fade out of t…"
+            }
+          ],
+          "between_matches": []
+        },
+        {
+          "chapter": 8,
+          "within_chapter_count": 0,
+          "between_chapter_count": 0,
+          "total_count": 0,
+          "within_matches": [],
+          "between_matches": []
+        },
+        {
+          "chapter": 9,
+          "within_chapter_count": 1,
+          "between_chapter_count": 0,
+          "total_count": 1,
+          "within_matches": [
+            {
+              "label": "that_night",
+              "match": "that night",
+              "context": "…atched the fireworks over Baldur's Gate that night. Back in the open sea, but still more t…"
+            }
+          ],
+          "between_matches": []
+        },
+        {
+          "chapter": 10,
+          "within_chapter_count": 2,
+          "between_chapter_count": 0,
+          "total_count": 2,
+          "within_matches": [
+            {
+              "label": "that_night",
+              "match": "that night",
+              "context": "…es. Alustriel had not slept the rest of that night. She had been busy staring into the cry…"
+            },
+            {
+              "label": "hours_later",
+              "match": "hour later",
+              "context": "…anketed by a heavy morning mist. A half-hour later, they saw the high towers of Waterdeep …"
+            }
+          ],
+          "between_matches": []
+        },
+        {
+          "chapter": 11,
+          "within_chapter_count": 1,
+          "between_chapter_count": 0,
+          "total_count": 1,
+          "within_matches": [
+            {
+              "label": "soon_after",
+              "match": "Soon after",
+              "context": "… sailor who turned his eyes heavenward. Soon after, they crossed the entrance to the River…"
+            }
+          ],
+          "between_matches": []
+        },
+        {
+          "chapter": 12,
+          "within_chapter_count": 1,
+          "between_chapter_count": 1,
+          "total_count": 2,
+          "within_matches": [
+            {
+              "label": "later_that_day",
+              "match": "Later that day",
+              "context": "…left quietly with Deudermont's crewmen. Later that day, while the crew of the Sea Sprite conti…"
+            }
+          ],
+          "between_matches": [
+            {
+              "label": "many_days",
+              "match": "many days",
+              "context": "…d disheartened and worried glances. How many days did Regis have left to live? Could the …"
+            }
+          ]
+        },
+        {
+          "chapter": 13,
+          "within_chapter_count": 0,
+          "between_chapter_count": 1,
+          "total_count": 1,
+          "within_matches": [],
+          "between_matches": [
+            {
+              "label": "many_days",
+              "match": "many days",
+              "context": "…ur, and Regis shuddered to think of how many days Pook would keep him there. Maybe it wou…"
+            }
+          ]
+        },
+        {
+          "chapter": 14,
+          "within_chapter_count": 0,
+          "between_chapter_count": 0,
+          "total_count": 0,
+          "within_matches": [],
+          "between_matches": []
+        },
+        {
+          "chapter": 15,
+          "within_chapter_count": 1,
+          "between_chapter_count": 1,
+          "total_count": 2,
+          "within_matches": [
+            {
+              "label": "an_hour_later",
+              "match": "an hour later",
+              "context": "…ck and I'll cut 'em in half!\" Less than an hour later, five camels moved out of southern Memn…"
+            }
+          ],
+          "between_matches": [
+            {
+              "label": "the_next_day",
+              "match": "the next day",
+              "context": "… dearest of friends. The heat was worse the next day, and even worse the following, but the …"
+            }
+          ]
+        },
+        {
+          "chapter": 16,
+          "within_chapter_count": 0,
+          "between_chapter_count": 0,
+          "total_count": 0,
+          "within_matches": [],
+          "between_matches": []
+        },
+        {
+          "chapter": 17,
+          "within_chapter_count": 0,
+          "between_chapter_count": 0,
+          "total_count": 0,
+          "within_matches": [],
+          "between_matches": []
+        },
+        {
+          "chapter": 18,
+          "within_chapter_count": 1,
+          "between_chapter_count": 0,
+          "total_count": 1,
+          "within_matches": [
+            {
+              "label": "that_night",
+              "match": "that night",
+              "context": "…d begun to gather in the sewers earlier that night. Entreri had hoped they would move out …"
+            }
+          ],
+          "between_matches": []
+        },
+        {
+          "chapter": 19,
+          "within_chapter_count": 0,
+          "between_chapter_count": 0,
+          "total_count": 0,
+          "within_matches": [],
+          "between_matches": []
+        },
+        {
+          "chapter": 20,
+          "within_chapter_count": 0,
+          "between_chapter_count": 0,
+          "total_count": 0,
+          "within_matches": [],
+          "between_matches": []
+        },
+        {
+          "chapter": 21,
+          "within_chapter_count": 1,
+          "between_chapter_count": 0,
+          "total_count": 1,
+          "within_matches": [
+            {
+              "label": "a_moment_later",
+              "match": "a moment later",
+              "context": "…le was sinking, it flew away altogether a moment later, when the roaring dwarf pounded into th…"
+            }
+          ],
+          "between_matches": []
+        },
+        {
+          "chapter": 22,
+          "within_chapter_count": 0,
+          "between_chapter_count": 0,
+          "total_count": 0,
+          "within_matches": [],
+          "between_matches": []
+        },
+        {
+          "chapter": 23,
+          "within_chapter_count": 1,
+          "between_chapter_count": 0,
+          "total_count": 1,
+          "within_matches": [
+            {
+              "label": "a_moment_later",
+              "match": "a moment later",
+              "context": "… room. When LaValle recovered his sight a moment later, he found himself facing Bruenor, the d…"
+            }
+          ],
+          "between_matches": []
+        },
+        {
+          "chapter": 24,
+          "within_chapter_count": 0,
+          "between_chapter_count": 0,
+          "total_count": 0,
+          "within_matches": [],
+          "between_matches": []
+        },
+        {
+          "chapter": 25,
+          "within_chapter_count": 1,
+          "between_chapter_count": 0,
+          "total_count": 1,
+          "within_matches": [
+            {
+              "label": "an_hour_later",
+              "match": "an hour later",
+              "context": "…d inside the guildhouse's main entrance an hour later, Drizzt, Bruenor, Wulfgar, and Catti-br…"
+            }
+          ],
+          "between_matches": []
+        }
+      ]
+    }
+  },
+  "cross_book": {
+    "means_per_book": {
+      "crystal_shard": 1.13,
+      "streams_of_silver": 2.54,
+      "halflings_gem": 1.28
+    },
+    "overall_mean": 1.65,
+    "within_twenty_pct": false,
+    "max_deviation_pct": 53.9
+  }
+}

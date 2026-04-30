@@ -1,0 +1,1684 @@
+{
+  "pattern_number": 59,
+  "pattern_name": "Question-mark density per beat-kind",
+  "timestamp": "20260430T122011",
+  "commit": "a3da6d1",
+  "beats_path": "novels/salvatore-icewind-dale/beats.jsonl",
+  "scenes_path": "novels/salvatore-icewind-dale/scenes.jsonl",
+  "wh_words": [
+    "how",
+    "what",
+    "when",
+    "where",
+    "which",
+    "who",
+    "whom",
+    "whose",
+    "why"
+  ],
+  "yesno_words": [
+    "ain",
+    "am",
+    "are",
+    "aren",
+    "be",
+    "been",
+    "being",
+    "can",
+    "cannot",
+    "could",
+    "couldn",
+    "did",
+    "didn",
+    "do",
+    "does",
+    "doesn",
+    "don",
+    "had",
+    "hadn",
+    "has",
+    "hasn",
+    "have",
+    "haven",
+    "is",
+    "isn",
+    "may",
+    "might",
+    "shall",
+    "should",
+    "shouldn",
+    "was",
+    "wasn",
+    "were",
+    "weren",
+    "will",
+    "won",
+    "would",
+    "wouldn"
+  ],
+  "tag_question_rule": "trailing-comma-clause of <=3 words ending with '?'; checked before first-word classifier.",
+  "books": [
+    "crystal_shard",
+    "halflings_gem",
+    "streams_of_silver"
+  ],
+  "active_kinds": [
+    "dialogue",
+    "interiority",
+    "action",
+    "description"
+  ],
+  "expected_order": [
+    "dialogue",
+    "interiority",
+    "action",
+    "description"
+  ],
+  "skipped_beats": 1,
+  "cell_meta": {
+    "crystal_shard": {
+      "description": {
+        "n_beats": 130,
+        "n_words": 13443,
+        "n_qmarks": 12,
+        "mean_density_per_100w": 0.0936,
+        "pooled_density_per_100w": 0.0893
+      },
+      "interiority": {
+        "n_beats": 177,
+        "n_words": 18782,
+        "n_qmarks": 35,
+        "mean_density_per_100w": 0.1934,
+        "pooled_density_per_100w": 0.1863
+      },
+      "action": {
+        "n_beats": 308,
+        "n_words": 32318,
+        "n_qmarks": 36,
+        "mean_density_per_100w": 0.1049,
+        "pooled_density_per_100w": 0.1114
+      },
+      "dialogue": {
+        "n_beats": 242,
+        "n_words": 25358,
+        "n_qmarks": 202,
+        "mean_density_per_100w": 0.7811,
+        "pooled_density_per_100w": 0.7966
+      }
+    },
+    "halflings_gem": {
+      "description": {
+        "n_beats": 79,
+        "n_words": 8527,
+        "n_qmarks": 11,
+        "mean_density_per_100w": 0.1208,
+        "pooled_density_per_100w": 0.129
+      },
+      "interiority": {
+        "n_beats": 159,
+        "n_words": 16964,
+        "n_qmarks": 74,
+        "mean_density_per_100w": 0.419,
+        "pooled_density_per_100w": 0.4362
+      },
+      "dialogue": {
+        "n_beats": 279,
+        "n_words": 29626,
+        "n_qmarks": 290,
+        "mean_density_per_100w": 0.9667,
+        "pooled_density_per_100w": 0.9789
+      },
+      "action": {
+        "n_beats": 309,
+        "n_words": 31774,
+        "n_qmarks": 51,
+        "mean_density_per_100w": 0.1521,
+        "pooled_density_per_100w": 0.1605
+      }
+    },
+    "streams_of_silver": {
+      "description": {
+        "n_beats": 94,
+        "n_words": 10592,
+        "n_qmarks": 6,
+        "mean_density_per_100w": 0.0616,
+        "pooled_density_per_100w": 0.0566
+      },
+      "interiority": {
+        "n_beats": 162,
+        "n_words": 18058,
+        "n_qmarks": 60,
+        "mean_density_per_100w": 0.3325,
+        "pooled_density_per_100w": 0.3323
+      },
+      "dialogue": {
+        "n_beats": 256,
+        "n_words": 27835,
+        "n_qmarks": 264,
+        "mean_density_per_100w": 0.9301,
+        "pooled_density_per_100w": 0.9484
+      },
+      "action": {
+        "n_beats": 274,
+        "n_words": 29385,
+        "n_qmarks": 50,
+        "mean_density_per_100w": 0.1735,
+        "pooled_density_per_100w": 0.1702
+      }
+    }
+  },
+  "mean_density_per_100w": {
+    "crystal_shard": {
+      "description": 0.09364381255787808,
+      "interiority": 0.19335267760657612,
+      "action": 0.10493551684486446,
+      "dialogue": 0.7810818668381211
+    },
+    "halflings_gem": {
+      "description": 0.12075541919041359,
+      "interiority": 0.41900546737486816,
+      "dialogue": 0.9666800393317655,
+      "action": 0.1521043367928383
+    },
+    "streams_of_silver": {
+      "description": 0.06157597304688355,
+      "interiority": 0.332515265987611,
+      "dialogue": 0.9301327169973067,
+      "action": 0.17349033983971981
+    }
+  },
+  "pooled_density_per_100w": {
+    "crystal_shard": {
+      "description": 0.08926578888640928,
+      "interiority": 0.1863486316686189,
+      "action": 0.11139303174701405,
+      "dialogue": 0.7965927912295923
+    },
+    "halflings_gem": {
+      "description": 0.12900199366717485,
+      "interiority": 0.4362178731431266,
+      "dialogue": 0.9788699115641666,
+      "action": 0.16050859193050923
+    },
+    "streams_of_silver": {
+      "description": 0.05664652567975831,
+      "interiority": 0.3322627090486211,
+      "dialogue": 0.9484462008262978,
+      "action": 0.17015484090522376
+    }
+  },
+  "rankings": {
+    "crystal_shard": [
+      {
+        "kind": "dialogue",
+        "pooled_density_per_100w": 0.7966
+      },
+      {
+        "kind": "interiority",
+        "pooled_density_per_100w": 0.1863
+      },
+      {
+        "kind": "action",
+        "pooled_density_per_100w": 0.1114
+      },
+      {
+        "kind": "description",
+        "pooled_density_per_100w": 0.0893
+      }
+    ],
+    "halflings_gem": [
+      {
+        "kind": "dialogue",
+        "pooled_density_per_100w": 0.9789
+      },
+      {
+        "kind": "interiority",
+        "pooled_density_per_100w": 0.4362
+      },
+      {
+        "kind": "action",
+        "pooled_density_per_100w": 0.1605
+      },
+      {
+        "kind": "description",
+        "pooled_density_per_100w": 0.129
+      }
+    ],
+    "streams_of_silver": [
+      {
+        "kind": "dialogue",
+        "pooled_density_per_100w": 0.9484
+      },
+      {
+        "kind": "interiority",
+        "pooled_density_per_100w": 0.3323
+      },
+      {
+        "kind": "action",
+        "pooled_density_per_100w": 0.1702
+      },
+      {
+        "kind": "description",
+        "pooled_density_per_100w": 0.0566
+      }
+    ]
+  },
+  "per_book_kind_order": {
+    "crystal_shard": [
+      "dialogue",
+      "interiority",
+      "action",
+      "description"
+    ],
+    "halflings_gem": [
+      "dialogue",
+      "interiority",
+      "action",
+      "description"
+    ],
+    "streams_of_silver": [
+      "dialogue",
+      "interiority",
+      "action",
+      "description"
+    ]
+  },
+  "books_matching_expected_order": 3,
+  "expected_order_pass": true,
+  "pairwise_relation_matches": {
+    "dialogue>interiority": 3,
+    "interiority>action": 3,
+    "action>description": 3
+  },
+  "per_kind_density_spread": {
+    "dialogue": {
+      "values_per_book": {
+        "crystal_shard": 0.7966,
+        "halflings_gem": 0.9789,
+        "streams_of_silver": 0.9484
+      },
+      "min": 0.7966,
+      "max": 0.9789,
+      "spread_pct_of_mean": 20.08
+    },
+    "interiority": {
+      "values_per_book": {
+        "crystal_shard": 0.1863,
+        "halflings_gem": 0.4362,
+        "streams_of_silver": 0.3323
+      },
+      "min": 0.1863,
+      "max": 0.4362,
+      "spread_pct_of_mean": 78.51
+    },
+    "action": {
+      "values_per_book": {
+        "crystal_shard": 0.1114,
+        "halflings_gem": 0.1605,
+        "streams_of_silver": 0.1702
+      },
+      "min": 0.1114,
+      "max": 0.1702,
+      "spread_pct_of_mean": 39.88
+    },
+    "description": {
+      "values_per_book": {
+        "crystal_shard": 0.0893,
+        "halflings_gem": 0.129,
+        "streams_of_silver": 0.0566
+      },
+      "min": 0.0566,
+      "max": 0.129,
+      "spread_pct_of_mean": 78.96
+    }
+  },
+  "spread_pass_all_kinds_le30": false,
+  "typed_share_per_book_per_kind": {
+    "crystal_shard": {
+      "action": {
+        "wh": 38.89,
+        "tag": 16.67,
+        "other": 27.78,
+        "yesno": 16.67
+      },
+      "dialogue": {
+        "other": 45.05,
+        "wh": 27.72,
+        "yesno": 12.38,
+        "tag": 14.85
+      },
+      "interiority": {
+        "other": 34.29,
+        "wh": 37.14,
+        "tag": 11.43,
+        "yesno": 17.14
+      },
+      "description": {
+        "other": 58.33,
+        "tag": 16.67,
+        "wh": 16.67,
+        "yesno": 8.33
+      }
+    },
+    "halflings_gem": {
+      "interiority": {
+        "other": 43.24,
+        "wh": 35.14,
+        "yesno": 10.81,
+        "tag": 10.81
+      },
+      "dialogue": {
+        "other": 50.34,
+        "wh": 25.86,
+        "yesno": 16.21,
+        "tag": 7.59
+      },
+      "action": {
+        "other": 39.22,
+        "wh": 25.49,
+        "yesno": 21.57,
+        "tag": 13.73
+      },
+      "description": {
+        "tag": 27.27,
+        "other": 9.09,
+        "wh": 45.45,
+        "yesno": 18.18
+      }
+    },
+    "streams_of_silver": {
+      "interiority": {
+        "tag": 8.33,
+        "other": 28.33,
+        "yesno": 23.33,
+        "wh": 40.0
+      },
+      "dialogue": {
+        "yesno": 15.53,
+        "wh": 34.85,
+        "other": 39.39,
+        "tag": 10.23
+      },
+      "action": {
+        "wh": 46.0,
+        "yesno": 20.0,
+        "other": 26.0,
+        "tag": 8.0
+      },
+      "description": {
+        "other": 50.0,
+        "yesno": 33.33,
+        "wh": 16.67
+      }
+    }
+  },
+  "typed_top2_per_book_per_kind": {
+    "crystal_shard": {
+      "action": [
+        "wh",
+        "other"
+      ],
+      "dialogue": [
+        "other",
+        "wh"
+      ],
+      "interiority": [
+        "wh",
+        "other"
+      ],
+      "description": [
+        "other",
+        "tag"
+      ]
+    },
+    "halflings_gem": {
+      "interiority": [
+        "other",
+        "wh"
+      ],
+      "dialogue": [
+        "other",
+        "wh"
+      ],
+      "action": [
+        "other",
+        "wh"
+      ],
+      "description": [
+        "wh",
+        "tag"
+      ]
+    },
+    "streams_of_silver": {
+      "interiority": [
+        "wh",
+        "other"
+      ],
+      "dialogue": [
+        "other",
+        "wh"
+      ],
+      "action": [
+        "wh",
+        "other"
+      ],
+      "description": [
+        "other",
+        "yesno"
+      ]
+    }
+  },
+  "typed_top2_stability": {
+    "dialogue": {
+      "per_book_top2": {
+        "crystal_shard": [
+          "other",
+          "wh"
+        ],
+        "halflings_gem": [
+          "other",
+          "wh"
+        ],
+        "streams_of_silver": [
+          "other",
+          "wh"
+        ]
+      },
+      "unique_top2_sets": 1,
+      "stable_top2": true,
+      "stable_top1": true,
+      "top1_books_agreeing": 3
+    },
+    "interiority": {
+      "per_book_top2": {
+        "crystal_shard": [
+          "wh",
+          "other"
+        ],
+        "halflings_gem": [
+          "other",
+          "wh"
+        ],
+        "streams_of_silver": [
+          "wh",
+          "other"
+        ]
+      },
+      "unique_top2_sets": 1,
+      "stable_top2": true,
+      "stable_top1": false,
+      "top1_books_agreeing": 2
+    },
+    "action": {
+      "per_book_top2": {
+        "crystal_shard": [
+          "wh",
+          "other"
+        ],
+        "halflings_gem": [
+          "other",
+          "wh"
+        ],
+        "streams_of_silver": [
+          "wh",
+          "other"
+        ]
+      },
+      "unique_top2_sets": 1,
+      "stable_top2": true,
+      "stable_top1": false,
+      "top1_books_agreeing": 2
+    },
+    "description": {
+      "per_book_top2": {
+        "crystal_shard": [
+          "other",
+          "tag"
+        ],
+        "halflings_gem": [
+          "wh",
+          "tag"
+        ],
+        "streams_of_silver": [
+          "other",
+          "yesno"
+        ]
+      },
+      "unique_top2_sets": 3,
+      "stable_top2": false,
+      "stable_top1": false,
+      "top1_books_agreeing": 2
+    }
+  },
+  "type_top2_stable_all_kinds": false,
+  "type_top1_stable_all_kinds": false,
+  "aggregate_typed_share": {
+    "dialogue": {
+      "other": 45.11,
+      "wh": 29.5,
+      "yesno": 14.95,
+      "tag": 10.45
+    },
+    "interiority": {
+      "other": 36.09,
+      "wh": 37.28,
+      "tag": 10.06,
+      "yesno": 16.57
+    },
+    "action": {
+      "wh": 36.5,
+      "tag": 12.41,
+      "other": 31.39,
+      "yesno": 19.71
+    },
+    "description": {
+      "other": 37.93,
+      "tag": 17.24,
+      "wh": 27.59,
+      "yesno": 17.24
+    }
+  },
+  "cluster_summary_per_book_per_kind": {
+    "crystal_shard": {
+      "description": {
+        "n_clusters_ge2": 2,
+        "max_run_length": 2,
+        "mean_run_length": 2.0,
+        "run_length_distribution": {
+          "2": 2
+        }
+      },
+      "interiority": {
+        "n_clusters_ge2": 8,
+        "max_run_length": 3,
+        "mean_run_length": 2.25,
+        "run_length_distribution": {
+          "2": 6,
+          "3": 2
+        }
+      },
+      "action": {
+        "n_clusters_ge2": 0,
+        "max_run_length": 0,
+        "beats_with_clusters": 0
+      },
+      "dialogue": {
+        "n_clusters_ge2": 8,
+        "max_run_length": 2,
+        "mean_run_length": 2.0,
+        "run_length_distribution": {
+          "2": 8
+        }
+      }
+    },
+    "halflings_gem": {
+      "description": {
+        "n_clusters_ge2": 1,
+        "max_run_length": 2,
+        "mean_run_length": 2.0,
+        "run_length_distribution": {
+          "2": 1
+        }
+      },
+      "interiority": {
+        "n_clusters_ge2": 8,
+        "max_run_length": 3,
+        "mean_run_length": 2.12,
+        "run_length_distribution": {
+          "2": 7,
+          "3": 1
+        }
+      },
+      "dialogue": {
+        "n_clusters_ge2": 12,
+        "max_run_length": 3,
+        "mean_run_length": 2.08,
+        "run_length_distribution": {
+          "2": 11,
+          "3": 1
+        }
+      },
+      "action": {
+        "n_clusters_ge2": 0,
+        "max_run_length": 0,
+        "beats_with_clusters": 0
+      }
+    },
+    "streams_of_silver": {
+      "description": {
+        "n_clusters_ge2": 0,
+        "max_run_length": 0,
+        "beats_with_clusters": 0
+      },
+      "interiority": {
+        "n_clusters_ge2": 12,
+        "max_run_length": 5,
+        "mean_run_length": 2.33,
+        "run_length_distribution": {
+          "2": 10,
+          "5": 1,
+          "3": 1
+        }
+      },
+      "dialogue": {
+        "n_clusters_ge2": 13,
+        "max_run_length": 2,
+        "mean_run_length": 2.0,
+        "run_length_distribution": {
+          "2": 13
+        }
+      },
+      "action": {
+        "n_clusters_ge2": 0,
+        "max_run_length": 0,
+        "beats_with_clusters": 0
+      }
+    }
+  },
+  "scene_position_density": {
+    "description": {
+      "chapter-open": {
+        "n_beats": 100,
+        "n_words": 10525,
+        "n_qmarks": 8,
+        "density_per_100w": 0.076
+      },
+      "bounded": {
+        "n_beats": 121,
+        "n_words": 13053,
+        "n_qmarks": 14,
+        "density_per_100w": 0.1073
+      },
+      "chapter-close": {
+        "n_beats": 56,
+        "n_words": 5899,
+        "n_qmarks": 4,
+        "density_per_100w": 0.0678
+      },
+      "unbounded": {
+        "n_beats": 26,
+        "n_words": 3085,
+        "n_qmarks": 3,
+        "density_per_100w": 0.0972
+      }
+    },
+    "interiority": {
+      "bounded": {
+        "n_beats": 196,
+        "n_words": 20535,
+        "n_qmarks": 56,
+        "density_per_100w": 0.2727
+      },
+      "chapter-close": {
+        "n_beats": 100,
+        "n_words": 10705,
+        "n_qmarks": 34,
+        "density_per_100w": 0.3176
+      },
+      "chapter-open": {
+        "n_beats": 122,
+        "n_words": 13301,
+        "n_qmarks": 41,
+        "density_per_100w": 0.3082
+      },
+      "unbounded": {
+        "n_beats": 80,
+        "n_words": 9263,
+        "n_qmarks": 38,
+        "density_per_100w": 0.4102
+      }
+    },
+    "action": {
+      "bounded": {
+        "n_beats": 407,
+        "n_words": 41670,
+        "n_qmarks": 56,
+        "density_per_100w": 0.1344
+      },
+      "chapter-close": {
+        "n_beats": 188,
+        "n_words": 19779,
+        "n_qmarks": 25,
+        "density_per_100w": 0.1264
+      },
+      "chapter-open": {
+        "n_beats": 194,
+        "n_words": 20758,
+        "n_qmarks": 37,
+        "density_per_100w": 0.1782
+      },
+      "unbounded": {
+        "n_beats": 102,
+        "n_words": 11270,
+        "n_qmarks": 19,
+        "density_per_100w": 0.1686
+      }
+    },
+    "dialogue": {
+      "chapter-close": {
+        "n_beats": 152,
+        "n_words": 16008,
+        "n_qmarks": 148,
+        "density_per_100w": 0.9245
+      },
+      "bounded": {
+        "n_beats": 312,
+        "n_words": 32537,
+        "n_qmarks": 275,
+        "density_per_100w": 0.8452
+      },
+      "chapter-open": {
+        "n_beats": 207,
+        "n_words": 22274,
+        "n_qmarks": 224,
+        "density_per_100w": 1.0057
+      },
+      "unbounded": {
+        "n_beats": 106,
+        "n_words": 12000,
+        "n_qmarks": 109,
+        "density_per_100w": 0.9083
+      }
+    }
+  },
+  "chapter_position_density": {
+    "description": {
+      "chapter-open": {
+        "n_beats": 100,
+        "n_words": 10525,
+        "n_qmarks": 8,
+        "density_per_100w": 0.076
+      },
+      "internal": {
+        "n_beats": 147,
+        "n_words": 16138,
+        "n_qmarks": 17,
+        "density_per_100w": 0.1053
+      },
+      "chapter-close": {
+        "n_beats": 56,
+        "n_words": 5899,
+        "n_qmarks": 4,
+        "density_per_100w": 0.0678
+      }
+    },
+    "interiority": {
+      "internal": {
+        "n_beats": 276,
+        "n_words": 29798,
+        "n_qmarks": 94,
+        "density_per_100w": 0.3155
+      },
+      "chapter-close": {
+        "n_beats": 100,
+        "n_words": 10705,
+        "n_qmarks": 34,
+        "density_per_100w": 0.3176
+      },
+      "chapter-open": {
+        "n_beats": 122,
+        "n_words": 13301,
+        "n_qmarks": 41,
+        "density_per_100w": 0.3082
+      }
+    },
+    "action": {
+      "internal": {
+        "n_beats": 509,
+        "n_words": 52940,
+        "n_qmarks": 75,
+        "density_per_100w": 0.1417
+      },
+      "chapter-close": {
+        "n_beats": 188,
+        "n_words": 19779,
+        "n_qmarks": 25,
+        "density_per_100w": 0.1264
+      },
+      "chapter-open": {
+        "n_beats": 194,
+        "n_words": 20758,
+        "n_qmarks": 37,
+        "density_per_100w": 0.1782
+      }
+    },
+    "dialogue": {
+      "chapter-close": {
+        "n_beats": 152,
+        "n_words": 16008,
+        "n_qmarks": 148,
+        "density_per_100w": 0.9245
+      },
+      "internal": {
+        "n_beats": 418,
+        "n_words": 44537,
+        "n_qmarks": 384,
+        "density_per_100w": 0.8622
+      },
+      "chapter-open": {
+        "n_beats": 207,
+        "n_words": 22274,
+        "n_qmarks": 224,
+        "density_per_100w": 1.0057
+      }
+    }
+  },
+  "chapter_position_density_per_book": {
+    "crystal_shard": {
+      "description": {
+        "chapter-open": {
+          "n_qmarks": 3,
+          "n_words": 4082,
+          "density_per_100w": 0.0735
+        },
+        "internal": {
+          "n_qmarks": 8,
+          "n_words": 6998,
+          "density_per_100w": 0.1143
+        },
+        "chapter-close": {
+          "n_qmarks": 1,
+          "n_words": 2363,
+          "density_per_100w": 0.0423
+        }
+      },
+      "interiority": {
+        "internal": {
+          "n_qmarks": 10,
+          "n_words": 9286,
+          "density_per_100w": 0.1077
+        },
+        "chapter-close": {
+          "n_qmarks": 12,
+          "n_words": 4811,
+          "density_per_100w": 0.2494
+        },
+        "chapter-open": {
+          "n_qmarks": 13,
+          "n_words": 4685,
+          "density_per_100w": 0.2775
+        }
+      },
+      "action": {
+        "internal": {
+          "n_qmarks": 17,
+          "n_words": 16102,
+          "density_per_100w": 0.1056
+        },
+        "chapter-close": {
+          "n_qmarks": 9,
+          "n_words": 8860,
+          "density_per_100w": 0.1016
+        },
+        "chapter-open": {
+          "n_qmarks": 10,
+          "n_words": 7356,
+          "density_per_100w": 0.1359
+        }
+      },
+      "dialogue": {
+        "chapter-close": {
+          "n_qmarks": 54,
+          "n_words": 6280,
+          "density_per_100w": 0.8599
+        },
+        "internal": {
+          "n_qmarks": 107,
+          "n_words": 13690,
+          "density_per_100w": 0.7816
+        },
+        "chapter-open": {
+          "n_qmarks": 41,
+          "n_words": 5388,
+          "density_per_100w": 0.761
+        }
+      }
+    },
+    "halflings_gem": {
+      "description": {
+        "chapter-open": {
+          "n_qmarks": 4,
+          "n_words": 2363,
+          "density_per_100w": 0.1693
+        },
+        "internal": {
+          "n_qmarks": 5,
+          "n_words": 4563,
+          "density_per_100w": 0.1096
+        },
+        "chapter-close": {
+          "n_qmarks": 2,
+          "n_words": 1601,
+          "density_per_100w": 0.1249
+        }
+      },
+      "interiority": {
+        "internal": {
+          "n_qmarks": 41,
+          "n_words": 10076,
+          "density_per_100w": 0.4069
+        },
+        "chapter-open": {
+          "n_qmarks": 20,
+          "n_words": 3831,
+          "density_per_100w": 0.5221
+        },
+        "chapter-close": {
+          "n_qmarks": 13,
+          "n_words": 3057,
+          "density_per_100w": 0.4253
+        }
+      },
+      "dialogue": {
+        "internal": {
+          "n_qmarks": 134,
+          "n_words": 16146,
+          "density_per_100w": 0.8299
+        },
+        "chapter-close": {
+          "n_qmarks": 65,
+          "n_words": 5605,
+          "density_per_100w": 1.1597
+        },
+        "chapter-open": {
+          "n_qmarks": 91,
+          "n_words": 7875,
+          "density_per_100w": 1.1556
+        }
+      },
+      "action": {
+        "internal": {
+          "n_qmarks": 33,
+          "n_words": 22108,
+          "density_per_100w": 0.1493
+        },
+        "chapter-close": {
+          "n_qmarks": 9,
+          "n_words": 4368,
+          "density_per_100w": 0.206
+        },
+        "chapter-open": {
+          "n_qmarks": 9,
+          "n_words": 5298,
+          "density_per_100w": 0.1699
+        }
+      }
+    },
+    "streams_of_silver": {
+      "description": {
+        "chapter-open": {
+          "n_qmarks": 1,
+          "n_words": 4080,
+          "density_per_100w": 0.0245
+        },
+        "internal": {
+          "n_qmarks": 4,
+          "n_words": 4577,
+          "density_per_100w": 0.0874
+        },
+        "chapter-close": {
+          "n_qmarks": 1,
+          "n_words": 1935,
+          "density_per_100w": 0.0517
+        }
+      },
+      "interiority": {
+        "chapter-open": {
+          "n_qmarks": 8,
+          "n_words": 4785,
+          "density_per_100w": 0.1672
+        },
+        "internal": {
+          "n_qmarks": 43,
+          "n_words": 10436,
+          "density_per_100w": 0.412
+        },
+        "chapter-close": {
+          "n_qmarks": 9,
+          "n_words": 2837,
+          "density_per_100w": 0.3172
+        }
+      },
+      "dialogue": {
+        "chapter-open": {
+          "n_qmarks": 92,
+          "n_words": 9011,
+          "density_per_100w": 1.021
+        },
+        "internal": {
+          "n_qmarks": 143,
+          "n_words": 14701,
+          "density_per_100w": 0.9727
+        },
+        "chapter-close": {
+          "n_qmarks": 29,
+          "n_words": 4123,
+          "density_per_100w": 0.7034
+        }
+      },
+      "action": {
+        "chapter-open": {
+          "n_qmarks": 18,
+          "n_words": 8104,
+          "density_per_100w": 0.2221
+        },
+        "internal": {
+          "n_qmarks": 25,
+          "n_words": 14730,
+          "density_per_100w": 0.1697
+        },
+        "chapter-close": {
+          "n_qmarks": 7,
+          "n_words": 6551,
+          "density_per_100w": 0.1069
+        }
+      }
+    }
+  },
+  "overall_chapter_position_density": {
+    "chapter-open": {
+      "n_qmarks": 310,
+      "n_words": 66858,
+      "density_per_100w": 0.4637
+    },
+    "chapter-close": {
+      "n_qmarks": 211,
+      "n_words": 52391,
+      "density_per_100w": 0.4027
+    },
+    "internal": {
+      "n_qmarks": 570,
+      "n_words": 143413,
+      "density_per_100w": 0.3975
+    }
+  },
+  "sample_questions_per_book_per_kind": {
+    "crystal_shard": {
+      "dialogue": [
+        {
+          "text": "\" \"Serve you?",
+          "type": "other"
+        },
+        {
+          "text": "Who, then, shall take the crystal shard when Akar Kessell is no more?",
+          "type": "wh"
+        },
+        {
+          "text": "\"How could I refuse such a generous offer?",
+          "type": "wh"
+        },
+        {
+          "text": "Luck to you on your adventure, but if you're taking it for no better reason than you have named, you're wasting your life:\" \"What could a woman know of honor?",
+          "type": "other"
+        },
+        {
+          "text": "\"What indeed?",
+          "type": "wh"
+        },
+        {
+          "text": "\"Do you think that you hold it all in your oversized hands for no better reason than what you hold in your pants?",
+          "type": "yesno"
+        },
+        {
+          "text": "\"Join me?",
+          "type": "other"
+        },
+        {
+          "text": "\"How long have ye been in?",
+          "type": "wh"
+        },
+        {
+          "text": "\"For who then?",
+          "type": "other"
+        },
+        {
+          "text": "\"The boy, Wulfgar?",
+          "type": "tag"
+        },
+        {
+          "text": "Did you craft it yourself?",
+          "type": "yesno"
+        },
+        {
+          "text": "\" \"And its name?",
+          "type": "other"
+        }
+      ],
+      "interiority": [
+        {
+          "text": "\"The lesson?",
+          "type": "other"
+        },
+        {
+          "text": "\"Why are you here?",
+          "type": "wh"
+        },
+        {
+          "text": "\"What have I to judge?",
+          "type": "wh"
+        },
+        {
+          "text": "What terrible fate would his mighty mentor impose upon him for his betrayal?",
+          "type": "wh"
+        },
+        {
+          "text": "What magical torments could a true and powerful wizard such as Morkai conjure that would outdo the most agonizing of the tortures common throughout the land?",
+          "type": "wh"
+        },
+        {
+          "text": "Kessell?",
+          "type": "other"
+        },
+        {
+          "text": "How could Kessell, the bumbling apprentice whose stuttering lips could barely call out the simplest of cantrips, possibly hope to profit from the death of the only man who had ever shown him more than basic, polite consideration?",
+          "type": "tag"
+        },
+        {
+          "text": "It would seem a bit suspicious, would it not, if you showed up at the archmage's doorstep claiming the vacated seat of Morkai the Red and holding the very garment that the murdered wizard was wearing when he was slain?",
+          "type": "other"
+        },
+        {
+          "text": "\"And what's yer decision?",
+          "type": "other"
+        },
+        {
+          "text": "Why should he have to trick the people into defending themselves?",
+          "type": "wh"
+        },
+        {
+          "text": "If they were stupid enough to let their own pride bring about their destruction, then what responsibility, or even what right, did he have to rescue them?",
+          "type": "other"
+        },
+        {
+          "text": "\"Where is Biggrin?",
+          "type": "wh"
+        }
+      ],
+      "action": [
+        {
+          "text": "\"How many years?",
+          "type": "wh"
+        },
+        {
+          "text": "\"What's the news, then?",
+          "type": "tag"
+        },
+        {
+          "text": "\"What's the news?",
+          "type": "wh"
+        },
+        {
+          "text": "\"What are ye fer, then?",
+          "type": "tag"
+        },
+        {
+          "text": "\"Are you watching, boy?",
+          "type": "tag"
+        },
+        {
+          "text": "\"The giants?",
+          "type": "other"
+        },
+        {
+          "text": "\"Biggrin?",
+          "type": "other"
+        },
+        {
+          "text": "\"Think you can fit through the chimney?",
+          "type": "other"
+        },
+        {
+          "text": "\"Where can ye hide?",
+          "type": "wh"
+        },
+        {
+          "text": "\"Can you take it again?",
+          "type": "yesno"
+        },
+        {
+          "text": "\"By what right do you order us in from the lakes, Cassius?",
+          "type": "tag"
+        },
+        {
+          "text": "\"Why not?",
+          "type": "wh"
+        }
+      ],
+      "description": [
+        {
+          "text": "\"You long for your home?",
+          "type": "other"
+        },
+        {
+          "text": "\"A lair, is it?",
+          "type": "tag"
+        },
+        {
+          "text": "Why, then, was the wizard further extending his line of power?",
+          "type": "wh"
+        },
+        {
+          "text": "Had the men of Bryn Shander come out and attacked?",
+          "type": "yesno"
+        },
+        {
+          "text": "Or was Akar Kessell's force destroying itself around him?",
+          "type": "other"
+        },
+        {
+          "text": "\"The tower destroyed?",
+          "type": "other"
+        },
+        {
+          "text": "A sack of flour?",
+          "type": "other"
+        },
+        {
+          "text": "To defeat the most powerful relic in the world?",
+          "type": "other"
+        },
+        {
+          "text": "Even then, which of the surviving tribes would claim victory?",
+          "type": "other"
+        },
+        {
+          "text": "Victory?",
+          "type": "other"
+        },
+        {
+          "text": "\"How many more nights do we have to wait?",
+          "type": "wh"
+        },
+        {
+          "text": "\"Where are you, Telshazz?",
+          "type": "tag"
+        }
+      ]
+    },
+    "halflings_gem": {
+      "dialogue": [
+        {
+          "text": "\"About Regis again?",
+          "type": "other"
+        },
+        {
+          "text": "\"Which?",
+          "type": "wh"
+        },
+        {
+          "text": "\"Can ye make me a chariot?",
+          "type": "yesno"
+        },
+        {
+          "text": "\"A what?",
+          "type": "other"
+        },
+        {
+          "text": "\"A chariot?",
+          "type": "other"
+        },
+        {
+          "text": "\"I have never-\" \"Can ye do it?",
+          "type": "other"
+        },
+        {
+          "text": "\"I am certain-\" \"Alustriel's still here?",
+          "type": "other"
+        },
+        {
+          "text": "\"She stayed on a few extra-\" \"Where is she?",
+          "type": "other"
+        },
+        {
+          "text": "\" \"Which room?",
+          "type": "wh"
+        },
+        {
+          "text": "\"Which room?",
+          "type": "wh"
+        },
+        {
+          "text": "\"What might have brought you to my door at this hour?",
+          "type": "wh"
+        },
+        {
+          "text": "\"Then who will drive the team?",
+          "type": "other"
+        }
+      ],
+      "interiority": [
+        {
+          "text": "\"Another one?",
+          "type": "other"
+        },
+        {
+          "text": "\"Ye think they might be back in time for the fighting?",
+          "type": "other"
+        },
+        {
+          "text": "\"Why us?",
+          "type": "wh"
+        },
+        {
+          "text": "A signal?",
+          "type": "other"
+        },
+        {
+          "text": "Why would Entreri lead them all this way, only to have them killed by pirates?",
+          "type": "wh"
+        },
+        {
+          "text": "What could Pook ever do to him that would hurt as much as those losses?",
+          "type": "wh"
+        },
+        {
+          "text": "\"And ye're to trust that dog's word?",
+          "type": "other"
+        },
+        {
+          "text": "\"Where's me girl?",
+          "type": "wh"
+        },
+        {
+          "text": "Hadn't Drizzt taken the first watch.?",
+          "type": "yesno"
+        },
+        {
+          "text": "\"Trouble?",
+          "type": "other"
+        },
+        {
+          "text": "\"Might I spell ye, then?",
+          "type": "tag"
+        },
+        {
+          "text": "\" \"Might I join ye, then?",
+          "type": "tag"
+        }
+      ],
+      "action": [
+        {
+          "text": "\"Middle o' the night?",
+          "type": "other"
+        },
+        {
+          "text": "\"When the fighting starts,\" she said, \"and suren it will, would ye rather ye had Harkle and his spells beside ye, or me and me bow?",
+          "type": "wh"
+        },
+        {
+          "text": "\"How many?",
+          "type": "wh"
+        },
+        {
+          "text": "\" \"Port and starboard?",
+          "type": "other"
+        },
+        {
+          "text": "\" \"Pirates?",
+          "type": "other"
+        },
+        {
+          "text": "\"Do we fight?",
+          "type": "yesno"
+        },
+        {
+          "text": "\"Friend o' yers?",
+          "type": "other"
+        },
+        {
+          "text": "\"What'll ye do with him?",
+          "type": "wh"
+        },
+        {
+          "text": "\"Find a name for it, will ye?",
+          "type": "tag"
+        },
+        {
+          "text": "\"Where's the sport in one of ye tearin' the pirate apart?",
+          "type": "wh"
+        },
+        {
+          "text": "\"What am I to do with this one?",
+          "type": "wh"
+        },
+        {
+          "text": "\"Ye think they be wantin' to talk?",
+          "type": "other"
+        }
+      ],
+      "description": [
+        {
+          "text": "\"Well, well?",
+          "type": "tag"
+        },
+        {
+          "text": "\"You will run with us this night?",
+          "type": "other"
+        },
+        {
+          "text": "\"The fur will be thick, eh?",
+          "type": "tag"
+        },
+        {
+          "text": "\"What do I do?",
+          "type": "wh"
+        },
+        {
+          "text": "\"What are its limits?",
+          "type": "wh"
+        },
+        {
+          "text": "\"Ye ready, elf?",
+          "type": "tag"
+        },
+        {
+          "text": "\"What'd they call themselves?",
+          "type": "wh"
+        },
+        {
+          "text": "How many times had young Bruenor and his friends looked down upon the magnificence of this place and heard the chiming of the smithies' hammers and the heavy sighing of the huge bellows?",
+          "type": "wh"
+        },
+        {
+          "text": "\"What part could these two play in the return of Pasha Pook's gem?",
+          "type": "wh"
+        },
+        {
+          "text": "Had Entreri gone all the way to that distant strip of tundra in search of the halfling?",
+          "type": "yesno"
+        },
+        {
+          "text": "Were these two pursuing him south?",
+          "type": "yesno"
+        }
+      ]
+    },
+    "streams_of_silver": {
+      "dialogue": [
+        {
+          "text": "\"Could it be worse than the dale?",
+          "type": "yesno"
+        },
+        {
+          "text": "\"Might it be that the tales be coming from Nesm\u00e9, to paint them stronger than what they are?",
+          "type": "yesno"
+        },
+        {
+          "text": "\"How many miles do ye reckon we made?",
+          "type": "wh"
+        },
+        {
+          "text": "\"This is how ye welcome yer rescuers?",
+          "type": "other"
+        },
+        {
+          "text": "You ask us to welcome him?",
+          "type": "other"
+        },
+        {
+          "text": "\" \"Straight through?",
+          "type": "other"
+        },
+        {
+          "text": "\"The Evermoors?",
+          "type": "other"
+        },
+        {
+          "text": "\" \"Can it be worse than the dale?",
+          "type": "yesno"
+        },
+        {
+          "text": "\"What of her?",
+          "type": "wh"
+        },
+        {
+          "text": "\" \"You think that the soldier would take advantage of the girl?",
+          "type": "other"
+        },
+        {
+          "text": "\"Are you content?",
+          "type": "yesno"
+        },
+        {
+          "text": "\"Help?",
+          "type": "other"
+        }
+      ],
+      "interiority": [
+        {
+          "text": "\"What do ye know of this place, Nesm\u00e9?",
+          "type": "tag"
+        },
+        {
+          "text": "\"And what of Regis?",
+          "type": "other"
+        },
+        {
+          "text": "\"Have you discerned his motive for coming along?",
+          "type": "yesno"
+        },
+        {
+          "text": "Might it be his love of ankle-deep mud that sucks his little legs in to the knees?",
+          "type": "yesno"
+        },
+        {
+          "text": "How often would Dendybar be calling upon him?",
+          "type": "wh"
+        },
+        {
+          "text": "\"When am I to die?",
+          "type": "wh"
+        },
+        {
+          "text": "How many miles could they run?",
+          "type": "wh"
+        },
+        {
+          "text": "When would they turn down a path that ended in a bottomless bog, with a hundred trolls at their backs?",
+          "type": "wh"
+        },
+        {
+          "text": "How many trolls be layin' dead for the work of yer sword?",
+          "type": "wh"
+        },
+        {
+          "text": "How could he ever hope to find any normalcy in the daylight world of the fair-skinned elves?",
+          "type": "wh"
+        },
+        {
+          "text": "Why had Dendybar waited a tenday to send Morkai with the news?",
+          "type": "wh"
+        },
+        {
+          "text": "And why couldn't the wizard have forced the specter to reveal more recent activity of the drow's party?",
+          "type": "other"
+        }
+      ],
+      "action": [
+        {
+          "text": "\"What?",
+          "type": "wh"
+        },
+        {
+          "text": "\"How?",
+          "type": "wh"
+        },
+        {
+          "text": "\"How could you know?",
+          "type": "wh"
+        },
+        {
+          "text": "\"What were they?",
+          "type": "wh"
+        },
+        {
+          "text": "Was it possible that he might make a mistake?",
+          "type": "yesno"
+        },
+        {
+          "text": "\"The dwarf?",
+          "type": "other"
+        },
+        {
+          "text": "\" \"Do you mean to hold it here forever?",
+          "type": "yesno"
+        },
+        {
+          "text": "Know you the possessor of this magnificent creature?",
+          "type": "other"
+        },
+        {
+          "text": "\"What?",
+          "type": "wh"
+        },
+        {
+          "text": "\"What is it?",
+          "type": "wh"
+        },
+        {
+          "text": "\"You know the place?",
+          "type": "other"
+        },
+        {
+          "text": "\"Where are you going?",
+          "type": "wh"
+        }
+      ],
+      "description": [
+        {
+          "text": "And how many months shall it be before we want for water?",
+          "type": "other"
+        },
+        {
+          "text": "Had he gone against a divine plan, crossed the boundaries of some natural order?",
+          "type": "yesno"
+        },
+        {
+          "text": "\"A chamber?",
+          "type": "other"
+        },
+        {
+          "text": "\"Are you certain that this is the lane?",
+          "type": "yesno"
+        },
+        {
+          "text": "\"How many?",
+          "type": "wh"
+        },
+        {
+          "text": "\"Chief?",
+          "type": "other"
+        }
+      ]
+    }
+  },
+  "verdict": "PASS_PARTIAL",
+  "verdict_components": {
+    "expected_order_pass": true,
+    "books_matching_expected_order": 3,
+    "spread_pass": false,
+    "type_top2_pass": false,
+    "type_top1_pass": false,
+    "n_signals_passed": 1
+  }
+}

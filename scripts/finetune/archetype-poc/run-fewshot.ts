@@ -76,7 +76,7 @@ async function runRow(row: SftRow, idx: number, fewshot: Record<string, string[]
 
   const [A, B, D] = await Promise.all([
     call("https://api.inference.wandb.ai/v1/chat/completions", WANDB_KEY, LORA_MODEL, system, user).catch(e => `ERROR: ${e.message}`),
-    call("https://api.deepseek.com/v1/chat/completions", DEEPSEEK_KEY, "deepseek-chat", system, userFewShot).catch(e => `ERROR: ${e.message}`),
+    call("https://api.deepseek.com/v1/chat/completions", DEEPSEEK_KEY, "deepseek-v4-flash", system, userFewShot).catch(e => `ERROR: ${e.message}`),
     call("https://api.inference.wandb.ai/v1/chat/completions", WANDB_KEY, LORA_MODEL, system, userFewShot).catch(e => `ERROR: ${e.message}`),
   ])
 

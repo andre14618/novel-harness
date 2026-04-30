@@ -1,0 +1,1621 @@
+{
+  "pattern": "39",
+  "name": "Sentence-opener distribution",
+  "computedAt": "2026-04-30T12:47:30.228Z",
+  "corpus": "salvatore-icewind-dale",
+  "books": [
+    "crystal_shard",
+    "streams_of_silver",
+    "halflings_gem"
+  ],
+  "rationale": "Tests how Salvatore opens his sentences — subject-first (the default English narrative shape), adverbial-first, participial-first, conjunction-first, dialogue-first, interjection-first, or other. Per-book stability, per-kind breakdown (does action lean participial / does interiority lean conjunction-first 'And he wondered...'), and cross-book reproducibility. Output informs (a) writer-prompt voice priors (target opener-mix), (b) lint targets (e.g., flag prose with > X% participial-first if Salvatore stays under that), and (c) cross-corpus comparison with future authors.",
+  "methodology": {
+    "sentence_split": "regex (?<=[.!?])\\s+",
+    "opener_classifier": "rule-based first-word lookup against curated lexicons (pronouns, NP determiners, conjunctions, prepositions, adverbs, interjections, auxiliaries) + morphological suffix detection (-ly for adverbs, -ing/-ed + early-comma for participles) + capitalization (proper-noun subject) + sentence-initial quote-mark for dialogue-first",
+    "decision_order": [
+      "1. starts-with-quote-mark → dialogue-first",
+      "2. first token in CONJUNCTIONS lexicon → conjunction-first",
+      "3. first token in INTERJECTIONS lexicon → interjection-first",
+      "4. first token matches participle morphology (-ing/-ed) AND a comma appears in first 6 tokens → participial-first",
+      "5. first token ends in -ly OR is in ADVERBS_NON_LY OR is in PREPOSITIONS → adverbial-first",
+      "6. first token is pronoun/NP-determiner OR is capitalized (proper noun) → subject-first",
+      "7. first token is auxiliary verb → other",
+      "8. fall-through → other"
+    ],
+    "caveats": [
+      "Sentence-initial capitalization is always true at sentence start, so the proper-noun subject test relies on the negative space — the token wasn't a conjunction, interjection, participle, adverb, preposition, pronoun, NP-determiner, or auxiliary, AND it's a normal capitalized word.",
+      "Participle detection requires a comma within the first 6 tokens to avoid mis-tagging '-ing' subjects ('Running was hard.'). This means participial phrases without a setting-off comma will be mis-classified as subject-first. Salvatore's prose almost always uses the comma, so the loss is small.",
+      "'No', 'Yes', 'Well', 'Indeed' all appear in both the interjection list AND the adverb list — interjection wins by decision order (rule 3 before rule 5).",
+      "Sentence-initial 'And', 'But', 'Or' is widely flagged as conjunction-first — this is intentional; it's a stylistic opener (King, Cormac McCarthy) and we want to count it.",
+      "'In', 'On', 'At', 'By', 'With' opening a PP (e.g., 'In the gloom, he saw a shadow.') is bucketed as adverbial-first.",
+      "False-positives flow into 'other' — its share is the residual diagnostic."
+    ]
+  },
+  "total_sentences": 17959,
+  "per_book": {
+    "crystal_shard": {
+      "total_sentences": 5935,
+      "counts": {
+        "subject-first": 3267,
+        "adverbial-first": 611,
+        "participial-first": 61,
+        "conjunction-first": 537,
+        "dialogue-first": 1320,
+        "interjection-first": 26,
+        "other": 113
+      },
+      "shares": {
+        "subject-first": 0.5505,
+        "adverbial-first": 0.1029,
+        "participial-first": 0.0103,
+        "conjunction-first": 0.0905,
+        "dialogue-first": 0.2224,
+        "interjection-first": 0.0044,
+        "other": 0.019
+      },
+      "modal": {
+        "kind": "subject-first",
+        "share": 0.5505
+      }
+    },
+    "streams_of_silver": {
+      "total_sentences": 5939,
+      "counts": {
+        "subject-first": 3217,
+        "adverbial-first": 402,
+        "participial-first": 73,
+        "conjunction-first": 394,
+        "dialogue-first": 1765,
+        "interjection-first": 49,
+        "other": 39
+      },
+      "shares": {
+        "subject-first": 0.5417,
+        "adverbial-first": 0.0677,
+        "participial-first": 0.0123,
+        "conjunction-first": 0.0663,
+        "dialogue-first": 0.2972,
+        "interjection-first": 0.0083,
+        "other": 0.0066
+      },
+      "modal": {
+        "kind": "subject-first",
+        "share": 0.5417
+      }
+    },
+    "halflings_gem": {
+      "total_sentences": 6085,
+      "counts": {
+        "subject-first": 3075,
+        "adverbial-first": 458,
+        "participial-first": 53,
+        "conjunction-first": 390,
+        "dialogue-first": 1952,
+        "interjection-first": 48,
+        "other": 109
+      },
+      "shares": {
+        "subject-first": 0.5053,
+        "adverbial-first": 0.0753,
+        "participial-first": 0.0087,
+        "conjunction-first": 0.0641,
+        "dialogue-first": 0.3208,
+        "interjection-first": 0.0079,
+        "other": 0.0179
+      },
+      "modal": {
+        "kind": "subject-first",
+        "share": 0.5053
+      }
+    }
+  },
+  "per_book_kind": {
+    "crystal_shard": {
+      "action": {
+        "total_sentences": 2181,
+        "counts": {
+          "subject-first": 1399,
+          "adverbial-first": 270,
+          "participial-first": 37,
+          "conjunction-first": 201,
+          "dialogue-first": 251,
+          "interjection-first": 2,
+          "other": 21
+        },
+        "shares": {
+          "subject-first": 0.6414,
+          "adverbial-first": 0.1238,
+          "participial-first": 0.017,
+          "conjunction-first": 0.0922,
+          "dialogue-first": 0.1151,
+          "interjection-first": 0.0009,
+          "other": 0.0096
+        },
+        "modal": {
+          "kind": "subject-first",
+          "share": 0.6414
+        }
+      },
+      "dialogue": {
+        "total_sentences": 1870,
+        "counts": {
+          "subject-first": 634,
+          "adverbial-first": 98,
+          "participial-first": 8,
+          "conjunction-first": 102,
+          "dialogue-first": 947,
+          "interjection-first": 10,
+          "other": 71
+        },
+        "shares": {
+          "subject-first": 0.339,
+          "adverbial-first": 0.0524,
+          "participial-first": 0.0043,
+          "conjunction-first": 0.0545,
+          "dialogue-first": 0.5064,
+          "interjection-first": 0.0053,
+          "other": 0.038
+        },
+        "modal": {
+          "kind": "dialogue-first",
+          "share": 0.5064
+        }
+      },
+      "interiority": {
+        "total_sentences": 1148,
+        "counts": {
+          "subject-first": 726,
+          "adverbial-first": 134,
+          "participial-first": 7,
+          "conjunction-first": 162,
+          "dialogue-first": 90,
+          "interjection-first": 10,
+          "other": 19
+        },
+        "shares": {
+          "subject-first": 0.6324,
+          "adverbial-first": 0.1167,
+          "participial-first": 0.0061,
+          "conjunction-first": 0.1411,
+          "dialogue-first": 0.0784,
+          "interjection-first": 0.0087,
+          "other": 0.0166
+        },
+        "modal": {
+          "kind": "subject-first",
+          "share": 0.6324
+        }
+      },
+      "description": {
+        "total_sentences": 736,
+        "counts": {
+          "subject-first": 508,
+          "adverbial-first": 109,
+          "participial-first": 9,
+          "conjunction-first": 72,
+          "dialogue-first": 32,
+          "interjection-first": 4,
+          "other": 2
+        },
+        "shares": {
+          "subject-first": 0.6902,
+          "adverbial-first": 0.1481,
+          "participial-first": 0.0122,
+          "conjunction-first": 0.0978,
+          "dialogue-first": 0.0435,
+          "interjection-first": 0.0054,
+          "other": 0.0027
+        },
+        "modal": {
+          "kind": "subject-first",
+          "share": 0.6902
+        }
+      }
+    },
+    "streams_of_silver": {
+      "action": {
+        "total_sentences": 2052,
+        "counts": {
+          "subject-first": 1324,
+          "adverbial-first": 169,
+          "participial-first": 50,
+          "conjunction-first": 138,
+          "dialogue-first": 350,
+          "interjection-first": 13,
+          "other": 8
+        },
+        "shares": {
+          "subject-first": 0.6452,
+          "adverbial-first": 0.0824,
+          "participial-first": 0.0244,
+          "conjunction-first": 0.0673,
+          "dialogue-first": 0.1706,
+          "interjection-first": 0.0063,
+          "other": 0.0039
+        },
+        "modal": {
+          "kind": "subject-first",
+          "share": 0.6452
+        }
+      },
+      "dialogue": {
+        "total_sentences": 2293,
+        "counts": {
+          "subject-first": 823,
+          "adverbial-first": 75,
+          "participial-first": 11,
+          "conjunction-first": 94,
+          "dialogue-first": 1263,
+          "interjection-first": 10,
+          "other": 17
+        },
+        "shares": {
+          "subject-first": 0.3589,
+          "adverbial-first": 0.0327,
+          "participial-first": 0.0048,
+          "conjunction-first": 0.041,
+          "dialogue-first": 0.5508,
+          "interjection-first": 0.0044,
+          "other": 0.0074
+        },
+        "modal": {
+          "kind": "dialogue-first",
+          "share": 0.5508
+        }
+      },
+      "interiority": {
+        "total_sentences": 1067,
+        "counts": {
+          "subject-first": 695,
+          "adverbial-first": 108,
+          "participial-first": 7,
+          "conjunction-first": 117,
+          "dialogue-first": 106,
+          "interjection-first": 21,
+          "other": 13
+        },
+        "shares": {
+          "subject-first": 0.6514,
+          "adverbial-first": 0.1012,
+          "participial-first": 0.0066,
+          "conjunction-first": 0.1097,
+          "dialogue-first": 0.0993,
+          "interjection-first": 0.0197,
+          "other": 0.0122
+        },
+        "modal": {
+          "kind": "subject-first",
+          "share": 0.6514
+        }
+      },
+      "description": {
+        "total_sentences": 527,
+        "counts": {
+          "subject-first": 375,
+          "adverbial-first": 50,
+          "participial-first": 5,
+          "conjunction-first": 45,
+          "dialogue-first": 46,
+          "interjection-first": 5,
+          "other": 1
+        },
+        "shares": {
+          "subject-first": 0.7116,
+          "adverbial-first": 0.0949,
+          "participial-first": 0.0095,
+          "conjunction-first": 0.0854,
+          "dialogue-first": 0.0873,
+          "interjection-first": 0.0095,
+          "other": 0.0019
+        },
+        "modal": {
+          "kind": "subject-first",
+          "share": 0.7116
+        }
+      }
+    },
+    "halflings_gem": {
+      "action": {
+        "total_sentences": 2086,
+        "counts": {
+          "subject-first": 1332,
+          "adverbial-first": 194,
+          "participial-first": 30,
+          "conjunction-first": 121,
+          "dialogue-first": 388,
+          "interjection-first": 5,
+          "other": 16
+        },
+        "shares": {
+          "subject-first": 0.6385,
+          "adverbial-first": 0.093,
+          "participial-first": 0.0144,
+          "conjunction-first": 0.058,
+          "dialogue-first": 0.186,
+          "interjection-first": 0.0024,
+          "other": 0.0077
+        },
+        "modal": {
+          "kind": "subject-first",
+          "share": 0.6385
+        }
+      },
+      "dialogue": {
+        "total_sentences": 2426,
+        "counts": {
+          "subject-first": 755,
+          "adverbial-first": 93,
+          "participial-first": 10,
+          "conjunction-first": 94,
+          "dialogue-first": 1368,
+          "interjection-first": 23,
+          "other": 83
+        },
+        "shares": {
+          "subject-first": 0.3112,
+          "adverbial-first": 0.0383,
+          "participial-first": 0.0041,
+          "conjunction-first": 0.0387,
+          "dialogue-first": 0.5639,
+          "interjection-first": 0.0095,
+          "other": 0.0342
+        },
+        "modal": {
+          "kind": "dialogue-first",
+          "share": 0.5639
+        }
+      },
+      "interiority": {
+        "total_sentences": 1100,
+        "counts": {
+          "subject-first": 666,
+          "adverbial-first": 122,
+          "participial-first": 10,
+          "conjunction-first": 130,
+          "dialogue-first": 151,
+          "interjection-first": 14,
+          "other": 7
+        },
+        "shares": {
+          "subject-first": 0.6055,
+          "adverbial-first": 0.1109,
+          "participial-first": 0.0091,
+          "conjunction-first": 0.1182,
+          "dialogue-first": 0.1373,
+          "interjection-first": 0.0127,
+          "other": 0.0064
+        },
+        "modal": {
+          "kind": "subject-first",
+          "share": 0.6055
+        }
+      },
+      "description": {
+        "total_sentences": 473,
+        "counts": {
+          "subject-first": 322,
+          "adverbial-first": 49,
+          "participial-first": 3,
+          "conjunction-first": 45,
+          "dialogue-first": 45,
+          "interjection-first": 6,
+          "other": 3
+        },
+        "shares": {
+          "subject-first": 0.6808,
+          "adverbial-first": 0.1036,
+          "participial-first": 0.0063,
+          "conjunction-first": 0.0951,
+          "dialogue-first": 0.0951,
+          "interjection-first": 0.0127,
+          "other": 0.0063
+        },
+        "modal": {
+          "kind": "subject-first",
+          "share": 0.6808
+        }
+      }
+    }
+  },
+  "per_kind_aggregate": {
+    "action": {
+      "total_sentences": 6319,
+      "counts": {
+        "subject-first": 4055,
+        "adverbial-first": 633,
+        "participial-first": 117,
+        "conjunction-first": 460,
+        "dialogue-first": 989,
+        "interjection-first": 20,
+        "other": 45
+      },
+      "shares": {
+        "subject-first": 0.6417,
+        "adverbial-first": 0.1002,
+        "participial-first": 0.0185,
+        "conjunction-first": 0.0728,
+        "dialogue-first": 0.1565,
+        "interjection-first": 0.0032,
+        "other": 0.0071
+      },
+      "modal": {
+        "kind": "subject-first",
+        "share": 0.6417
+      }
+    },
+    "dialogue": {
+      "total_sentences": 6589,
+      "counts": {
+        "subject-first": 2212,
+        "adverbial-first": 266,
+        "participial-first": 29,
+        "conjunction-first": 290,
+        "dialogue-first": 3578,
+        "interjection-first": 43,
+        "other": 171
+      },
+      "shares": {
+        "subject-first": 0.3357,
+        "adverbial-first": 0.0404,
+        "participial-first": 0.0044,
+        "conjunction-first": 0.044,
+        "dialogue-first": 0.543,
+        "interjection-first": 0.0065,
+        "other": 0.026
+      },
+      "modal": {
+        "kind": "dialogue-first",
+        "share": 0.543
+      }
+    },
+    "interiority": {
+      "total_sentences": 3315,
+      "counts": {
+        "subject-first": 2087,
+        "adverbial-first": 364,
+        "participial-first": 24,
+        "conjunction-first": 409,
+        "dialogue-first": 347,
+        "interjection-first": 45,
+        "other": 39
+      },
+      "shares": {
+        "subject-first": 0.6296,
+        "adverbial-first": 0.1098,
+        "participial-first": 0.0072,
+        "conjunction-first": 0.1234,
+        "dialogue-first": 0.1047,
+        "interjection-first": 0.0136,
+        "other": 0.0118
+      },
+      "modal": {
+        "kind": "subject-first",
+        "share": 0.6296
+      }
+    },
+    "description": {
+      "total_sentences": 1736,
+      "counts": {
+        "subject-first": 1205,
+        "adverbial-first": 208,
+        "participial-first": 17,
+        "conjunction-first": 162,
+        "dialogue-first": 123,
+        "interjection-first": 15,
+        "other": 6
+      },
+      "shares": {
+        "subject-first": 0.6941,
+        "adverbial-first": 0.1198,
+        "participial-first": 0.0098,
+        "conjunction-first": 0.0933,
+        "dialogue-first": 0.0709,
+        "interjection-first": 0.0086,
+        "other": 0.0035
+      },
+      "modal": {
+        "kind": "subject-first",
+        "share": 0.6941
+      }
+    }
+  },
+  "cross_book_directional": {
+    "opener_share_spread": {
+      "subject-first": {
+        "shares_per_book": {
+          "crystal_shard": 0.5505,
+          "streams_of_silver": 0.5417,
+          "halflings_gem": 0.5053
+        },
+        "min": 0.5053,
+        "max": 0.5505,
+        "spread": 0.0452,
+        "verdict": "stable"
+      },
+      "adverbial-first": {
+        "shares_per_book": {
+          "crystal_shard": 0.1029,
+          "streams_of_silver": 0.0677,
+          "halflings_gem": 0.0753
+        },
+        "min": 0.0677,
+        "max": 0.1029,
+        "spread": 0.0352,
+        "verdict": "stable"
+      },
+      "participial-first": {
+        "shares_per_book": {
+          "crystal_shard": 0.0103,
+          "streams_of_silver": 0.0123,
+          "halflings_gem": 0.0087
+        },
+        "min": 0.0087,
+        "max": 0.0123,
+        "spread": 0.0036,
+        "verdict": "stable"
+      },
+      "conjunction-first": {
+        "shares_per_book": {
+          "crystal_shard": 0.0905,
+          "streams_of_silver": 0.0663,
+          "halflings_gem": 0.0641
+        },
+        "min": 0.0641,
+        "max": 0.0905,
+        "spread": 0.0264,
+        "verdict": "stable"
+      },
+      "dialogue-first": {
+        "shares_per_book": {
+          "crystal_shard": 0.2224,
+          "streams_of_silver": 0.2972,
+          "halflings_gem": 0.3208
+        },
+        "min": 0.2224,
+        "max": 0.3208,
+        "spread": 0.0984,
+        "verdict": "mild-drift"
+      },
+      "interjection-first": {
+        "shares_per_book": {
+          "crystal_shard": 0.0044,
+          "streams_of_silver": 0.0083,
+          "halflings_gem": 0.0079
+        },
+        "min": 0.0044,
+        "max": 0.0083,
+        "spread": 0.0039,
+        "verdict": "stable"
+      },
+      "other": {
+        "shares_per_book": {
+          "crystal_shard": 0.019,
+          "streams_of_silver": 0.0066,
+          "halflings_gem": 0.0179
+        },
+        "min": 0.0066,
+        "max": 0.019,
+        "spread": 0.0124,
+        "verdict": "stable"
+      }
+    },
+    "modal_per_book": {
+      "crystal_shard": "subject-first",
+      "streams_of_silver": "subject-first",
+      "halflings_gem": "subject-first"
+    },
+    "modal_stable_across_books": true,
+    "per_kind_modal_stability": {
+      "action": {
+        "modal_per_book": {
+          "crystal_shard": "subject-first",
+          "streams_of_silver": "subject-first",
+          "halflings_gem": "subject-first"
+        },
+        "stable": true
+      },
+      "dialogue": {
+        "modal_per_book": {
+          "crystal_shard": "dialogue-first",
+          "streams_of_silver": "dialogue-first",
+          "halflings_gem": "dialogue-first"
+        },
+        "stable": true
+      },
+      "interiority": {
+        "modal_per_book": {
+          "crystal_shard": "subject-first",
+          "streams_of_silver": "subject-first",
+          "halflings_gem": "subject-first"
+        },
+        "stable": true
+      },
+      "description": {
+        "modal_per_book": {
+          "crystal_shard": "subject-first",
+          "streams_of_silver": "subject-first",
+          "halflings_gem": "subject-first"
+        },
+        "stable": true
+      }
+    },
+    "action_most_participial_in_every_book": true,
+    "participial_first_share_by_kind": {
+      "action": {
+        "crystal_shard": 0.017,
+        "streams_of_silver": 0.0244,
+        "halflings_gem": 0.0144
+      },
+      "dialogue": {
+        "crystal_shard": 0.0043,
+        "streams_of_silver": 0.0048,
+        "halflings_gem": 0.0041
+      },
+      "interiority": {
+        "crystal_shard": 0.0061,
+        "streams_of_silver": 0.0066,
+        "halflings_gem": 0.0091
+      },
+      "description": {
+        "crystal_shard": 0.0122,
+        "streams_of_silver": 0.0095,
+        "halflings_gem": 0.0063
+      }
+    }
+  },
+  "top_tokens_per_book_per_kind": {
+    "crystal_shard": {
+      "subject-first": [
+        {
+          "token": "the",
+          "count": 770
+        },
+        {
+          "token": "he",
+          "count": 524
+        },
+        {
+          "token": "drizzt",
+          "count": 188
+        },
+        {
+          "token": "it",
+          "count": 135
+        },
+        {
+          "token": "they",
+          "count": 114
+        },
+        {
+          "token": "wulfgar",
+          "count": 104
+        },
+        {
+          "token": "a",
+          "count": 98
+        },
+        {
+          "token": "regis",
+          "count": 76
+        },
+        {
+          "token": "his",
+          "count": 75
+        },
+        {
+          "token": "bruenor",
+          "count": 58
+        }
+      ],
+      "adverbial-first": [
+        {
+          "token": "then",
+          "count": 72
+        },
+        {
+          "token": "in",
+          "count": 60
+        },
+        {
+          "token": "yet",
+          "count": 47
+        },
+        {
+          "token": "with",
+          "count": 41
+        },
+        {
+          "token": "now",
+          "count": 30
+        },
+        {
+          "token": "there",
+          "count": 25
+        },
+        {
+          "token": "at",
+          "count": 19
+        },
+        {
+          "token": "back",
+          "count": 15
+        },
+        {
+          "token": "on",
+          "count": 14
+        },
+        {
+          "token": "to",
+          "count": 13
+        }
+      ],
+      "participial-first": [
+        {
+          "token": "nothing",
+          "count": 3
+        },
+        {
+          "token": "everything",
+          "count": 2
+        },
+        {
+          "token": "satisfied",
+          "count": 2
+        },
+        {
+          "token": "hearing",
+          "count": 2
+        },
+        {
+          "token": "flanked",
+          "count": 1
+        },
+        {
+          "token": "brimming",
+          "count": 1
+        },
+        {
+          "token": "finding",
+          "count": 1
+        },
+        {
+          "token": "something",
+          "count": 1
+        },
+        {
+          "token": "moving",
+          "count": 1
+        },
+        {
+          "token": "terrified",
+          "count": 1
+        }
+      ],
+      "conjunction-first": [
+        {
+          "token": "but",
+          "count": 189
+        },
+        {
+          "token": "and",
+          "count": 140
+        },
+        {
+          "token": "when",
+          "count": 50
+        },
+        {
+          "token": "as",
+          "count": 41
+        },
+        {
+          "token": "though",
+          "count": 35
+        },
+        {
+          "token": "if",
+          "count": 33
+        },
+        {
+          "token": "for",
+          "count": 18
+        },
+        {
+          "token": "so",
+          "count": 14
+        },
+        {
+          "token": "or",
+          "count": 6
+        },
+        {
+          "token": "although",
+          "count": 4
+        }
+      ],
+      "dialogue-first": [
+        {
+          "token": "i",
+          "count": 107
+        },
+        {
+          "token": "you",
+          "count": 67
+        },
+        {
+          "token": "the",
+          "count": 60
+        },
+        {
+          "token": "and",
+          "count": 46
+        },
+        {
+          "token": "a",
+          "count": 43
+        },
+        {
+          "token": "we",
+          "count": 35
+        },
+        {
+          "token": "what",
+          "count": 31
+        },
+        {
+          "token": "he",
+          "count": 22
+        },
+        {
+          "token": "but",
+          "count": 20
+        },
+        {
+          "token": "it",
+          "count": 18
+        }
+      ],
+      "interjection-first": [
+        {
+          "token": "no",
+          "count": 13
+        },
+        {
+          "token": "what",
+          "count": 10
+        },
+        {
+          "token": "bah",
+          "count": 1
+        },
+        {
+          "token": "yes",
+          "count": 1
+        },
+        {
+          "token": "indeed",
+          "count": 1
+        }
+      ],
+      "other": [
+        {
+          "token": "let",
+          "count": 17
+        },
+        {
+          "token": "debernezan",
+          "count": 8
+        },
+        {
+          "token": "do",
+          "count": 4
+        },
+        {
+          "token": "did",
+          "count": 2
+        },
+        {
+          "token": "were",
+          "count": 2
+        },
+        {
+          "token": "are",
+          "count": 2
+        },
+        {
+          "token": "had",
+          "count": 2
+        },
+        {
+          "token": "uh",
+          "count": 2
+        },
+        {
+          "token": "be",
+          "count": 1
+        },
+        {
+          "token": "have",
+          "count": 1
+        }
+      ]
+    },
+    "streams_of_silver": {
+      "subject-first": [
+        {
+          "token": "the",
+          "count": 549
+        },
+        {
+          "token": "he",
+          "count": 402
+        },
+        {
+          "token": "drizzt",
+          "count": 165
+        },
+        {
+          "token": "they",
+          "count": 134
+        },
+        {
+          "token": "bruenor",
+          "count": 133
+        },
+        {
+          "token": "wulfgar",
+          "count": 124
+        },
+        {
+          "token": "a",
+          "count": 123
+        },
+        {
+          "token": "she",
+          "count": 113
+        },
+        {
+          "token": "entreri",
+          "count": 95
+        },
+        {
+          "token": "it",
+          "count": 81
+        }
+      ],
+      "adverbial-first": [
+        {
+          "token": "then",
+          "count": 56
+        },
+        {
+          "token": "in",
+          "count": 40
+        },
+        {
+          "token": "there",
+          "count": 27
+        },
+        {
+          "token": "perhaps",
+          "count": 23
+        },
+        {
+          "token": "with",
+          "count": 21
+        },
+        {
+          "token": "to",
+          "count": 17
+        },
+        {
+          "token": "by",
+          "count": 13
+        },
+        {
+          "token": "now",
+          "count": 12
+        },
+        {
+          "token": "at",
+          "count": 10
+        },
+        {
+          "token": "after",
+          "count": 10
+        }
+      ],
+      "participial-first": [
+        {
+          "token": "something",
+          "count": 3
+        },
+        {
+          "token": "thinking",
+          "count": 2
+        },
+        {
+          "token": "recognizing",
+          "count": 2
+        },
+        {
+          "token": "angered",
+          "count": 2
+        },
+        {
+          "token": "cursing",
+          "count": 2
+        },
+        {
+          "token": "sensing",
+          "count": 2
+        },
+        {
+          "token": "satisfied",
+          "count": 2
+        },
+        {
+          "token": "following",
+          "count": 1
+        },
+        {
+          "token": "long-haired",
+          "count": 1
+        },
+        {
+          "token": "watching",
+          "count": 1
+        }
+      ],
+      "conjunction-first": [
+        {
+          "token": "but",
+          "count": 153
+        },
+        {
+          "token": "and",
+          "count": 87
+        },
+        {
+          "token": "when",
+          "count": 31
+        },
+        {
+          "token": "as",
+          "count": 29
+        },
+        {
+          "token": "if",
+          "count": 27
+        },
+        {
+          "token": "for",
+          "count": 24
+        },
+        {
+          "token": "so",
+          "count": 14
+        },
+        {
+          "token": "though",
+          "count": 11
+        },
+        {
+          "token": "or",
+          "count": 5
+        },
+        {
+          "token": "where",
+          "count": 4
+        }
+      ],
+      "dialogue-first": [
+        {
+          "token": "i",
+          "count": 123
+        },
+        {
+          "token": "the",
+          "count": 113
+        },
+        {
+          "token": "and",
+          "count": 79
+        },
+        {
+          "token": "you",
+          "count": 79
+        },
+        {
+          "token": "we",
+          "count": 73
+        },
+        {
+          "token": "a",
+          "count": 59
+        },
+        {
+          "token": "but",
+          "count": 51
+        },
+        {
+          "token": "what",
+          "count": 43
+        },
+        {
+          "token": "not",
+          "count": 32
+        },
+        {
+          "token": "it",
+          "count": 28
+        }
+      ],
+      "interjection-first": [
+        {
+          "token": "no",
+          "count": 29
+        },
+        {
+          "token": "what",
+          "count": 16
+        },
+        {
+          "token": "damn",
+          "count": 1
+        },
+        {
+          "token": "oh",
+          "count": 1
+        },
+        {
+          "token": "well",
+          "count": 1
+        },
+        {
+          "token": "indeed",
+          "count": 1
+        }
+      ],
+      "other": [
+        {
+          "token": "let",
+          "count": 7
+        },
+        {
+          "token": "had",
+          "count": 6
+        },
+        {
+          "token": "are",
+          "count": 5
+        },
+        {
+          "token": "was",
+          "count": 4
+        },
+        {
+          "token": "be",
+          "count": 3
+        },
+        {
+          "token": "have",
+          "count": 2
+        },
+        {
+          "token": "will",
+          "count": 2
+        },
+        {
+          "token": "do",
+          "count": 2
+        },
+        {
+          "token": "might",
+          "count": 1
+        },
+        {
+          "token": "may",
+          "count": 1
+        }
+      ]
+    },
+    "halflings_gem": {
+      "subject-first": [
+        {
+          "token": "he",
+          "count": 576
+        },
+        {
+          "token": "the",
+          "count": 519
+        },
+        {
+          "token": "drizzt",
+          "count": 206
+        },
+        {
+          "token": "bruenor",
+          "count": 130
+        },
+        {
+          "token": "wulfgar",
+          "count": 124
+        },
+        {
+          "token": "a",
+          "count": 113
+        },
+        {
+          "token": "they",
+          "count": 82
+        },
+        {
+          "token": "regis",
+          "count": 77
+        },
+        {
+          "token": "entreri",
+          "count": 75
+        },
+        {
+          "token": "his",
+          "count": 63
+        }
+      ],
+      "adverbial-first": [
+        {
+          "token": "then",
+          "count": 68
+        },
+        {
+          "token": "with",
+          "count": 41
+        },
+        {
+          "token": "in",
+          "count": 34
+        },
+        {
+          "token": "at",
+          "count": 18
+        },
+        {
+          "token": "there",
+          "count": 16
+        },
+        {
+          "token": "again",
+          "count": 16
+        },
+        {
+          "token": "now",
+          "count": 15
+        },
+        {
+          "token": "perhaps",
+          "count": 14
+        },
+        {
+          "token": "by",
+          "count": 14
+        },
+        {
+          "token": "to",
+          "count": 13
+        }
+      ],
+      "participial-first": [
+        {
+          "token": "looking",
+          "count": 3
+        },
+        {
+          "token": "seeing",
+          "count": 3
+        },
+        {
+          "token": "recognizing",
+          "count": 2
+        },
+        {
+          "token": "dazed",
+          "count": 2
+        },
+        {
+          "token": "satisfied",
+          "count": 2
+        },
+        {
+          "token": "embarrassed",
+          "count": 2
+        },
+        {
+          "token": "struggling",
+          "count": 1
+        },
+        {
+          "token": "using",
+          "count": 1
+        },
+        {
+          "token": "meaning",
+          "count": 1
+        },
+        {
+          "token": "overwhelmed",
+          "count": 1
+        }
+      ],
+      "conjunction-first": [
+        {
+          "token": "but",
+          "count": 174
+        },
+        {
+          "token": "and",
+          "count": 96
+        },
+        {
+          "token": "as",
+          "count": 31
+        },
+        {
+          "token": "if",
+          "count": 24
+        },
+        {
+          "token": "for",
+          "count": 23
+        },
+        {
+          "token": "when",
+          "count": 17
+        },
+        {
+          "token": "so",
+          "count": 9
+        },
+        {
+          "token": "where",
+          "count": 6
+        },
+        {
+          "token": "or",
+          "count": 4
+        },
+        {
+          "token": "though",
+          "count": 3
+        }
+      ],
+      "dialogue-first": [
+        {
+          "token": "i",
+          "count": 149
+        },
+        {
+          "token": "the",
+          "count": 91
+        },
+        {
+          "token": "and",
+          "count": 80
+        },
+        {
+          "token": "you",
+          "count": 68
+        },
+        {
+          "token": "a",
+          "count": 61
+        },
+        {
+          "token": "it",
+          "count": 47
+        },
+        {
+          "token": "we",
+          "count": 45
+        },
+        {
+          "token": "but",
+          "count": 43
+        },
+        {
+          "token": "he",
+          "count": 34
+        },
+        {
+          "token": "they",
+          "count": 33
+        }
+      ],
+      "interjection-first": [
+        {
+          "token": "no",
+          "count": 22
+        },
+        {
+          "token": "what",
+          "count": 14
+        },
+        {
+          "token": "yes",
+          "count": 3
+        },
+        {
+          "token": "ha",
+          "count": 3
+        },
+        {
+          "token": "oh",
+          "count": 3
+        },
+        {
+          "token": "alas",
+          "count": 2
+        },
+        {
+          "token": "nay",
+          "count": 1
+        }
+      ],
+      "other": [
+        {
+          "token": "let",
+          "count": 5
+        },
+        {
+          "token": "uh",
+          "count": 3
+        },
+        {
+          "token": "will",
+          "count": 3
+        },
+        {
+          "token": "have",
+          "count": 3
+        },
+        {
+          "token": "could",
+          "count": 2
+        },
+        {
+          "token": "would",
+          "count": 2
+        },
+        {
+          "token": "had",
+          "count": 2
+        },
+        {
+          "token": "desert",
+          "count": 1
+        },
+        {
+          "token": "only",
+          "count": 1
+        },
+        {
+          "token": "um",
+          "count": 1
+        }
+      ]
+    }
+  },
+  "examples": {
+    "crystal_shard": {
+      "subject-first": [
+        "Torga the orc faced Grock the goblin with open contempt.",
+        "Their respective tribes had been warring for \nmany years, as long as any living member of either group could remember.",
+        "They shared a valley in the \nSpine of the World and competed for ground and food with the brutality indicative of their warlike races."
+      ],
+      "adverbial-first": [
+        "In any other place, at any other time, the tribes could never have \nbeen this close without joining in fierce battle.",
+        "Thus Crenshinibon exerted its will through manipulation, insinuating illusions of conquest into the wizard's dreams, allowing Kessell to view the possibilities of power.",
+        "With the relic close to his heart, he could become the conqueror; he could make people, even the wizards in the Hosttower, tremble at the mere mention of his name."
+      ],
+      "participial-first": [
+        "Flanked by his trolls, the wizard was waiting for Errtu in Cryshal-Tirith's main chamber, the tower's first \nlevel.",
+        "Brimming with confidence, he addressed the demon again, \nthis time a stern edge in his voice.",
+        "Finding an appropriate clearing, he hastily set up a \nsmall campsite."
+      ],
+      "conjunction-first": [
+        "And now they stood on common ground with no weapons drawn, compelled to this spot by a force even \ngreater than their hatred for each other.",
+        "But now, they had to be content with idle threats and \ndangerous glares, for they had been commanded to put aside their differences.",
+        "But his crowning achievement was a group of frost giants that had simply wandered in, desiring only to please the wielder of Crenshinibon."
+      ],
+      "dialogue-first": [
+        "\"Akar Kessell!\" he shouted to the harem girl that manicured his long fingernails as he sat in contemplation, though the girl's mind had long ago been destroyed by Crenshinibon.",
+        "\"All glory to the Tyrant of Icewind Dale!\"",
+        "\"Errtu!\" the young man called, the words forced from him by the demands of the spell."
+      ],
+      "interjection-first": [
+        "What was it you said?\" \nWulfgar laughed heartily.",
+        "Bah!",
+        "What terrible fate would his mighty mentor impose upon him for his betrayal?"
+      ],
+      "other": [
+        "Be wary of that day, son, for ye'll put a great deal of \nyerself into that weapon.",
+        ".",
+        ".\" He let his voice trail away, and he looked back longingly to the emptiness of the open \ntundra beyond Kelvin's Cairn."
+      ]
+    },
+    "streams_of_silver": {
+      "subject-first": [
+        "The sun beamed brightly on the morning of the first day out from Longsaddle.",
+        "The companions, refreshed by their visit with the Harpells, rode at a strong pace, but still managed to enjoy the clear weather and the clear road.",
+        "The land was flat and unmarked, not a tree or hill anywhere near."
+      ],
+      "adverbial-first": [
+        "However pleasant the morning might seem to them, he knew they were still in the wilds.",
+        "By the time they broke for lunch, a high haze veiled the sunshine.",
+        "In the wild, even the weather proved an enemy."
+      ],
+      "participial-first": [
+        "Following the beacon of his whistles, Drizzt and Bruenor soon found him.",
+        "Thinking the dwarf about to expire, Drizzt could not refuse.",
+        "Thinking quickly, the drow went to an alternate attack, using his ineffective blades to parry the clubbing limbs."
+      ],
+      "conjunction-first": [
+        "But a careful place.",
+        "But they plodded on through the deepening mud.",
+        "As if in prideful reply, a lightning bolt exploded just a few yards to the side of the riders."
+      ],
+      "dialogue-first": [
+        "\"Three days to Nesmé, maybe four,\" Regis told them.",
+        "\"More to three if the weather holds,\" said Wulfgar.",
+        "\"What do ye know of this place, Nesmé?\" Bruenor asked Regis."
+      ],
+      "interjection-first": [
+        "Damn their town.",
+        "No single architectural style dominated Silverymoon, unless it was the freedom of a builder to exercise his or her personal creativity without fear of judgement or scorn.",
+        "No longer seeking only to flee, he began looking for a defensible piece of ground."
+      ],
+      "other": [
+        "Might it be his love of ankle-deep mud that sucks his little legs in to the knees?\"\n\nBruenor stopped laughing and studied the halfling's reaction to the drow's questions.",
+        "Be gone and never return to our lands.\"\n\n\"We go where we choose,\" snarled Bruenor.",
+        "May the river wash it away!\" He turned to his friends."
+      ]
+    },
+    "halflings_gem": {
+      "subject-first": [
+        "The halfling hung by his ankles, suspended upside down with chains above a cauldron of\nboiling liquid.",
+        "Not water, though, but something darker.",
+        "A red hue, perhaps."
+      ],
+      "adverbial-first": [
+        "There was a pause in the descent.",
+        "Then the evil voice laughed one final time.",
+        "Over the course of the\nlast decade, four very special companions had come into his life, not one of them a dwarf."
+      ],
+      "participial-first": [
+        "Struggling with all his might, he managed to bring the chariot up a few more feet and level it off.",
+        "Using a common merchant's trick, Deudermont closed in on a vessel and shadowed its course, keeping the Sea Sprite in its wake.",
+        "Meaning to join his friend, he rushed the five remaining pirates on the plank."
+      ],
+      "conjunction-first": [
+        "But no screams could be heard.",
+        "But to Bruenor's eyes, all was not as it should be.",
+        "But Bruenor had wandered through the last few days absently, playing a role thrust upon\nhim before he could truly appreciate it."
+      ],
+      "dialogue-first": [
+        "\"Another one?\" came a soft call from the door.",
+        "\"About Regis again?\" asked Catti-brie, moving closer.",
+        "\"Rumblebelly,\" Bruenor softly corrected, using the nickname he had tagged on the\nhalfling who had been his closest friend for nearly a decade."
+      ],
+      "interjection-first": [
+        "Alas, all he could see was the reflection of the candlelit room,\nthe crown and armor of the king of Mithril Hall.",
+        "No one here has ever.",
+        "No stinkin' assassin's going to put an end to\nRumblebelly!\" He clenched the drow's arm tightly one final time and turned to Wulfgar, the\nlad he had ushered into manhood."
+      ],
+      "other": [
+        ".",
+        "uh, maybe,\" Harkle proclaimed as confidently as he could.",
+        "."
+      ]
+    }
+  }
+}

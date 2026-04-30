@@ -1,0 +1,36 @@
+=== SPLIT-SAMPLE STABILITY: first-30 (anchor) vs new-20 (fresh) ===
+
+--- mice-M ---
+  is_present     all-50 J=0.786  first-30 J=0.765  new-20 J=0.818  Δ=+0.053
+  is_dominant    all-50 J=0.786  first-30 J=0.714  new-20 J=0.905  Δ=+0.190
+  opens          all-50 J=0.961  first-30 J=1.000  new-20 J=0.905  Δ=-0.095
+  closes         all-50 J=0.961  first-30 J=0.935  new-20 J=1.000  Δ=+0.065
+
+--- mice-I-v2 ---
+  is_present     all-50 J=0.961  first-30 J=1.000  new-20 J=0.905  Δ=-0.095
+  is_dominant    all-50 J=1.000  first-30 J=1.000  new-20 J=1.000  Δ=+0.000
+  opens          all-50 J=1.000  first-30 J=1.000  new-20 J=1.000  Δ=+0.000
+  closes         all-50 J=0.961  first-30 J=1.000  new-20 J=0.905  Δ=-0.095
+
+--- mice-C ---
+  is_present     all-50 J=0.961  first-30 J=1.000  new-20 J=0.905  Δ=-0.095
+  is_dominant    all-50 J=0.754  first-30 J=0.818  new-20 J=0.667  Δ=-0.152
+  opens          all-50 J=0.818  first-30 J=0.935  new-20 J=0.667  Δ=-0.269 ← REGION-EFFECT
+  closes         all-50 J=0.923  first-30 J=0.935  new-20 J=0.905  Δ=-0.031
+
+--- mice-E ---
+  is_present     all-50 J=0.923  first-30 J=0.875  new-20 J=1.000  Δ=+0.125
+  is_dominant    all-50 J=0.695  first-30 J=0.714  new-20 J=0.667  Δ=-0.048
+  opens          all-50 J=0.852  first-30 J=0.875  new-20 J=0.818  Δ=-0.057
+  closes         all-50 J=1.000  first-30 J=1.000  new-20 J=1.000  Δ=+0.000
+
+--- value-charge-v2 ---
+  polarity       all-50 J=0.639  first-30 J=0.714  new-20 J=0.538  Δ=-0.176
+  lifeValue      all-50 J=0.639  first-30 J=0.538  new-20 J=0.818  Δ=+0.280
+  valueIn        all-50 J=0.563  first-30 J=0.622  new-20 J=0.481  Δ=-0.140
+  valueOut       all-50 J=0.695  first-30 J=0.765  new-20 J=0.600  Δ=-0.165
+
+--- mckee-gap-v2 ---
+  gap_size       all-50 J=0.471  first-30 J=0.463  new-20 J=0.481  Δ=+0.018
+  gap_type       all-50 J=0.538  first-30 J=0.429  new-20 J=0.739  Δ=+0.311
+

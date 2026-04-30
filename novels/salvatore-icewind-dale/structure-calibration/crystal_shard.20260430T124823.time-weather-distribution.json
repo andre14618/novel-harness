@@ -1,0 +1,1707 @@
+{
+  "pattern": 38,
+  "name": "Time-of-day and weather distribution per beat",
+  "corpus": "salvatore-icewind-dale (3 books)",
+  "method": {
+    "labeler": "regex first-match per beat over (summary + text)",
+    "time_buckets": [
+      "midnight",
+      "dawn",
+      "dusk",
+      "morning",
+      "midday",
+      "afternoon",
+      "evening",
+      "night",
+      "unspecified"
+    ],
+    "weather_buckets": [
+      "storm",
+      "snow",
+      "rain",
+      "wind",
+      "fog",
+      "cloudy",
+      "clear",
+      "unspecified"
+    ],
+    "ordering_note": "First-match-wins. Specific labels come before generic ones \u2014 midnight before night, dawn before morning, dusk/twilight before evening. Storm before snow/rain (so 'snowstorm' lands as 'storm', 'thunderstorm' lands as 'storm'). Multi-label counts are also reported (multi_label_overlap) so the regression to single label is auditable.",
+    "scope": "summary field + text field concatenated; whole-beat regex search",
+    "stability_threshold_pt": 15
+  },
+  "n_beats_total": 2470,
+  "n_beats_per_book": {
+    "crystal_shard": 858,
+    "streams_of_silver": 786,
+    "halflings_gem": 826
+  },
+  "coverage": {
+    "crystal_shard": {
+      "n_beats": 858,
+      "time_specified_pct": 15.97,
+      "weather_specified_pct": 11.89
+    },
+    "streams_of_silver": {
+      "n_beats": 786,
+      "time_specified_pct": 19.59,
+      "weather_specified_pct": 10.43
+    },
+    "halflings_gem": {
+      "n_beats": 826,
+      "time_specified_pct": 15.25,
+      "weather_specified_pct": 9.93
+    }
+  },
+  "per_book_time": {
+    "crystal_shard": {
+      "n_beats": 858,
+      "counts": {
+        "midnight": 1,
+        "dawn": 28,
+        "dusk": 13,
+        "morning": 23,
+        "midday": 3,
+        "afternoon": 4,
+        "evening": 6,
+        "night": 59,
+        "unspecified": 721
+      },
+      "pct": {
+        "midnight": 0.12,
+        "dawn": 3.26,
+        "dusk": 1.52,
+        "morning": 2.68,
+        "midday": 0.35,
+        "afternoon": 0.47,
+        "evening": 0.7,
+        "night": 6.88,
+        "unspecified": 84.03
+      },
+      "modal": "unspecified",
+      "modal_excl_unspecified": [
+        "night",
+        59
+      ]
+    },
+    "streams_of_silver": {
+      "n_beats": 786,
+      "counts": {
+        "midnight": 1,
+        "dawn": 24,
+        "dusk": 10,
+        "morning": 25,
+        "midday": 6,
+        "afternoon": 4,
+        "evening": 13,
+        "night": 71,
+        "unspecified": 632
+      },
+      "pct": {
+        "midnight": 0.13,
+        "dawn": 3.05,
+        "dusk": 1.27,
+        "morning": 3.18,
+        "midday": 0.76,
+        "afternoon": 0.51,
+        "evening": 1.65,
+        "night": 9.03,
+        "unspecified": 80.41
+      },
+      "modal": "unspecified",
+      "modal_excl_unspecified": [
+        "night",
+        71
+      ]
+    },
+    "halflings_gem": {
+      "n_beats": 826,
+      "counts": {
+        "midnight": 1,
+        "dawn": 20,
+        "dusk": 10,
+        "morning": 22,
+        "midday": 1,
+        "afternoon": 1,
+        "evening": 7,
+        "night": 64,
+        "unspecified": 700
+      },
+      "pct": {
+        "midnight": 0.12,
+        "dawn": 2.42,
+        "dusk": 1.21,
+        "morning": 2.66,
+        "midday": 0.12,
+        "afternoon": 0.12,
+        "evening": 0.85,
+        "night": 7.75,
+        "unspecified": 84.75
+      },
+      "modal": "unspecified",
+      "modal_excl_unspecified": [
+        "night",
+        64
+      ]
+    }
+  },
+  "per_book_weather": {
+    "crystal_shard": {
+      "n_beats": 858,
+      "counts": {
+        "storm": 14,
+        "snow": 25,
+        "rain": 3,
+        "wind": 30,
+        "fog": 17,
+        "cloudy": 12,
+        "clear": 1,
+        "unspecified": 756
+      },
+      "pct": {
+        "storm": 1.63,
+        "snow": 2.91,
+        "rain": 0.35,
+        "wind": 3.5,
+        "fog": 1.98,
+        "cloudy": 1.4,
+        "clear": 0.12,
+        "unspecified": 88.11
+      },
+      "modal": "unspecified",
+      "modal_excl_unspecified": [
+        "wind",
+        30
+      ]
+    },
+    "streams_of_silver": {
+      "n_beats": 786,
+      "counts": {
+        "storm": 21,
+        "snow": 0,
+        "rain": 1,
+        "wind": 26,
+        "fog": 14,
+        "cloudy": 20,
+        "clear": 0,
+        "unspecified": 704
+      },
+      "pct": {
+        "storm": 2.67,
+        "snow": 0.0,
+        "rain": 0.13,
+        "wind": 3.31,
+        "fog": 1.78,
+        "cloudy": 2.54,
+        "clear": 0.0,
+        "unspecified": 89.57
+      },
+      "modal": "unspecified",
+      "modal_excl_unspecified": [
+        "wind",
+        26
+      ]
+    },
+    "halflings_gem": {
+      "n_beats": 826,
+      "counts": {
+        "storm": 20,
+        "snow": 5,
+        "rain": 2,
+        "wind": 28,
+        "fog": 8,
+        "cloudy": 18,
+        "clear": 1,
+        "unspecified": 744
+      },
+      "pct": {
+        "storm": 2.42,
+        "snow": 0.61,
+        "rain": 0.24,
+        "wind": 3.39,
+        "fog": 0.97,
+        "cloudy": 2.18,
+        "clear": 0.12,
+        "unspecified": 90.07
+      },
+      "modal": "unspecified",
+      "modal_excl_unspecified": [
+        "wind",
+        28
+      ]
+    }
+  },
+  "aggregate_time": {
+    "n_beats": 2470,
+    "pct": {
+      "midnight": 0.12,
+      "dawn": 2.91,
+      "dusk": 1.34,
+      "morning": 2.83,
+      "midday": 0.4,
+      "afternoon": 0.36,
+      "evening": 1.05,
+      "night": 7.85,
+      "unspecified": 83.12
+    },
+    "counts": {
+      "midnight": 3,
+      "dawn": 72,
+      "dusk": 33,
+      "morning": 70,
+      "midday": 10,
+      "afternoon": 9,
+      "evening": 26,
+      "night": 194,
+      "unspecified": 2053
+    }
+  },
+  "aggregate_weather": {
+    "n_beats": 2470,
+    "pct": {
+      "storm": 2.23,
+      "snow": 1.21,
+      "rain": 0.24,
+      "wind": 3.4,
+      "fog": 1.58,
+      "cloudy": 2.02,
+      "clear": 0.08,
+      "unspecified": 89.23
+    },
+    "counts": {
+      "storm": 55,
+      "snow": 30,
+      "rain": 6,
+      "wind": 84,
+      "fog": 39,
+      "cloudy": 50,
+      "clear": 2,
+      "unspecified": 2204
+    }
+  },
+  "top_modes_time_excl_unspecified": {
+    "crystal_shard": [
+      [
+        "night",
+        6.88
+      ],
+      [
+        "dawn",
+        3.26
+      ],
+      [
+        "morning",
+        2.68
+      ]
+    ],
+    "streams_of_silver": [
+      [
+        "night",
+        9.03
+      ],
+      [
+        "morning",
+        3.18
+      ],
+      [
+        "dawn",
+        3.05
+      ]
+    ],
+    "halflings_gem": [
+      [
+        "night",
+        7.75
+      ],
+      [
+        "morning",
+        2.66
+      ],
+      [
+        "dawn",
+        2.42
+      ]
+    ]
+  },
+  "top_modes_weather_excl_unspecified": {
+    "crystal_shard": [
+      [
+        "wind",
+        3.5
+      ],
+      [
+        "snow",
+        2.91
+      ],
+      [
+        "fog",
+        1.98
+      ]
+    ],
+    "streams_of_silver": [
+      [
+        "wind",
+        3.31
+      ],
+      [
+        "storm",
+        2.67
+      ],
+      [
+        "cloudy",
+        2.54
+      ]
+    ],
+    "halflings_gem": [
+      [
+        "wind",
+        3.39
+      ],
+      [
+        "storm",
+        2.42
+      ],
+      [
+        "cloudy",
+        2.18
+      ]
+    ]
+  },
+  "arc_position_time_book_thirds": {
+    "crystal_shard": {
+      "early": {
+        "n_beats": 226,
+        "pct": {
+          "midnight": 0.0,
+          "dawn": 2.65,
+          "dusk": 1.33,
+          "morning": 2.65,
+          "midday": 0.88,
+          "afternoon": 0.0,
+          "evening": 0.0,
+          "night": 6.64,
+          "unspecified": 85.84
+        },
+        "counts": {
+          "midnight": 0,
+          "dawn": 6,
+          "dusk": 3,
+          "morning": 6,
+          "midday": 2,
+          "afternoon": 0,
+          "evening": 0,
+          "night": 15,
+          "unspecified": 194
+        }
+      },
+      "mid": {
+        "n_beats": 297,
+        "pct": {
+          "midnight": 0.34,
+          "dawn": 2.36,
+          "dusk": 2.02,
+          "morning": 3.37,
+          "midday": 0.34,
+          "afternoon": 0.67,
+          "evening": 1.35,
+          "night": 8.75,
+          "unspecified": 80.81
+        },
+        "counts": {
+          "midnight": 1,
+          "dawn": 7,
+          "dusk": 6,
+          "morning": 10,
+          "midday": 1,
+          "afternoon": 2,
+          "evening": 4,
+          "night": 26,
+          "unspecified": 240
+        }
+      },
+      "late": {
+        "n_beats": 335,
+        "pct": {
+          "midnight": 0.0,
+          "dawn": 4.48,
+          "dusk": 1.19,
+          "morning": 2.09,
+          "midday": 0.0,
+          "afternoon": 0.6,
+          "evening": 0.6,
+          "night": 5.37,
+          "unspecified": 85.67
+        },
+        "counts": {
+          "midnight": 0,
+          "dawn": 15,
+          "dusk": 4,
+          "morning": 7,
+          "midday": 0,
+          "afternoon": 2,
+          "evening": 2,
+          "night": 18,
+          "unspecified": 287
+        }
+      }
+    },
+    "streams_of_silver": {
+      "early": {
+        "n_beats": 259,
+        "pct": {
+          "midnight": 0.39,
+          "dawn": 3.47,
+          "dusk": 2.32,
+          "morning": 1.16,
+          "midday": 0.77,
+          "afternoon": 0.77,
+          "evening": 4.25,
+          "night": 10.04,
+          "unspecified": 76.83
+        },
+        "counts": {
+          "midnight": 1,
+          "dawn": 9,
+          "dusk": 6,
+          "morning": 3,
+          "midday": 2,
+          "afternoon": 2,
+          "evening": 11,
+          "night": 26,
+          "unspecified": 199
+        }
+      },
+      "mid": {
+        "n_beats": 288,
+        "pct": {
+          "midnight": 0.0,
+          "dawn": 5.21,
+          "dusk": 1.39,
+          "morning": 6.94,
+          "midday": 1.04,
+          "afternoon": 0.69,
+          "evening": 0.69,
+          "night": 15.28,
+          "unspecified": 68.75
+        },
+        "counts": {
+          "midnight": 0,
+          "dawn": 15,
+          "dusk": 4,
+          "morning": 20,
+          "midday": 3,
+          "afternoon": 2,
+          "evening": 2,
+          "night": 44,
+          "unspecified": 198
+        }
+      },
+      "late": {
+        "n_beats": 239,
+        "pct": {
+          "midnight": 0.0,
+          "dawn": 0.0,
+          "dusk": 0.0,
+          "morning": 0.84,
+          "midday": 0.42,
+          "afternoon": 0.0,
+          "evening": 0.0,
+          "night": 0.42,
+          "unspecified": 98.33
+        },
+        "counts": {
+          "midnight": 0,
+          "dawn": 0,
+          "dusk": 0,
+          "morning": 2,
+          "midday": 1,
+          "afternoon": 0,
+          "evening": 0,
+          "night": 1,
+          "unspecified": 235
+        }
+      }
+    },
+    "halflings_gem": {
+      "early": {
+        "n_beats": 273,
+        "pct": {
+          "midnight": 0.0,
+          "dawn": 4.03,
+          "dusk": 2.93,
+          "morning": 2.2,
+          "midday": 0.0,
+          "afternoon": 0.0,
+          "evening": 1.1,
+          "night": 10.99,
+          "unspecified": 78.75
+        },
+        "counts": {
+          "midnight": 0,
+          "dawn": 11,
+          "dusk": 8,
+          "morning": 6,
+          "midday": 0,
+          "afternoon": 0,
+          "evening": 3,
+          "night": 30,
+          "unspecified": 215
+        }
+      },
+      "mid": {
+        "n_beats": 315,
+        "pct": {
+          "midnight": 0.32,
+          "dawn": 1.27,
+          "dusk": 0.63,
+          "morning": 3.17,
+          "midday": 0.32,
+          "afternoon": 0.32,
+          "evening": 1.27,
+          "night": 7.62,
+          "unspecified": 85.08
+        },
+        "counts": {
+          "midnight": 1,
+          "dawn": 4,
+          "dusk": 2,
+          "morning": 10,
+          "midday": 1,
+          "afternoon": 1,
+          "evening": 4,
+          "night": 24,
+          "unspecified": 268
+        }
+      },
+      "late": {
+        "n_beats": 238,
+        "pct": {
+          "midnight": 0.0,
+          "dawn": 2.1,
+          "dusk": 0.0,
+          "morning": 2.52,
+          "midday": 0.0,
+          "afternoon": 0.0,
+          "evening": 0.0,
+          "night": 4.2,
+          "unspecified": 91.18
+        },
+        "counts": {
+          "midnight": 0,
+          "dawn": 5,
+          "dusk": 0,
+          "morning": 6,
+          "midday": 0,
+          "afternoon": 0,
+          "evening": 0,
+          "night": 10,
+          "unspecified": 217
+        }
+      }
+    }
+  },
+  "arc_position_weather_book_thirds": {
+    "crystal_shard": {
+      "early": {
+        "n_beats": 226,
+        "pct": {
+          "storm": 1.77,
+          "snow": 4.87,
+          "rain": 0.0,
+          "wind": 5.75,
+          "fog": 0.88,
+          "cloudy": 1.77,
+          "clear": 0.44,
+          "unspecified": 84.51
+        },
+        "counts": {
+          "storm": 4,
+          "snow": 11,
+          "rain": 0,
+          "wind": 13,
+          "fog": 2,
+          "cloudy": 4,
+          "clear": 1,
+          "unspecified": 191
+        }
+      },
+      "mid": {
+        "n_beats": 297,
+        "pct": {
+          "storm": 1.35,
+          "snow": 0.67,
+          "rain": 0.67,
+          "wind": 1.35,
+          "fog": 2.02,
+          "cloudy": 1.01,
+          "clear": 0.0,
+          "unspecified": 92.93
+        },
+        "counts": {
+          "storm": 4,
+          "snow": 2,
+          "rain": 2,
+          "wind": 4,
+          "fog": 6,
+          "cloudy": 3,
+          "clear": 0,
+          "unspecified": 276
+        }
+      },
+      "late": {
+        "n_beats": 335,
+        "pct": {
+          "storm": 1.79,
+          "snow": 3.58,
+          "rain": 0.3,
+          "wind": 3.88,
+          "fog": 2.69,
+          "cloudy": 1.49,
+          "clear": 0.0,
+          "unspecified": 86.27
+        },
+        "counts": {
+          "storm": 6,
+          "snow": 12,
+          "rain": 1,
+          "wind": 13,
+          "fog": 9,
+          "cloudy": 5,
+          "clear": 0,
+          "unspecified": 289
+        }
+      }
+    },
+    "streams_of_silver": {
+      "early": {
+        "n_beats": 259,
+        "pct": {
+          "storm": 0.77,
+          "snow": 0.0,
+          "rain": 0.0,
+          "wind": 4.25,
+          "fog": 2.32,
+          "cloudy": 2.32,
+          "clear": 0.0,
+          "unspecified": 90.35
+        },
+        "counts": {
+          "storm": 2,
+          "snow": 0,
+          "rain": 0,
+          "wind": 11,
+          "fog": 6,
+          "cloudy": 6,
+          "clear": 0,
+          "unspecified": 234
+        }
+      },
+      "mid": {
+        "n_beats": 288,
+        "pct": {
+          "storm": 5.9,
+          "snow": 0.0,
+          "rain": 0.0,
+          "wind": 4.51,
+          "fog": 2.43,
+          "cloudy": 1.04,
+          "clear": 0.0,
+          "unspecified": 86.11
+        },
+        "counts": {
+          "storm": 17,
+          "snow": 0,
+          "rain": 0,
+          "wind": 13,
+          "fog": 7,
+          "cloudy": 3,
+          "clear": 0,
+          "unspecified": 248
+        }
+      },
+      "late": {
+        "n_beats": 239,
+        "pct": {
+          "storm": 0.84,
+          "snow": 0.0,
+          "rain": 0.42,
+          "wind": 0.84,
+          "fog": 0.42,
+          "cloudy": 4.6,
+          "clear": 0.0,
+          "unspecified": 92.89
+        },
+        "counts": {
+          "storm": 2,
+          "snow": 0,
+          "rain": 1,
+          "wind": 2,
+          "fog": 1,
+          "cloudy": 11,
+          "clear": 0,
+          "unspecified": 222
+        }
+      }
+    },
+    "halflings_gem": {
+      "early": {
+        "n_beats": 273,
+        "pct": {
+          "storm": 3.3,
+          "snow": 0.73,
+          "rain": 0.37,
+          "wind": 2.93,
+          "fog": 0.0,
+          "cloudy": 2.93,
+          "clear": 0.37,
+          "unspecified": 89.38
+        },
+        "counts": {
+          "storm": 9,
+          "snow": 2,
+          "rain": 1,
+          "wind": 8,
+          "fog": 0,
+          "cloudy": 8,
+          "clear": 1,
+          "unspecified": 244
+        }
+      },
+      "mid": {
+        "n_beats": 315,
+        "pct": {
+          "storm": 1.59,
+          "snow": 0.32,
+          "rain": 0.32,
+          "wind": 4.13,
+          "fog": 2.54,
+          "cloudy": 1.27,
+          "clear": 0.0,
+          "unspecified": 89.84
+        },
+        "counts": {
+          "storm": 5,
+          "snow": 1,
+          "rain": 1,
+          "wind": 13,
+          "fog": 8,
+          "cloudy": 4,
+          "clear": 0,
+          "unspecified": 283
+        }
+      },
+      "late": {
+        "n_beats": 238,
+        "pct": {
+          "storm": 2.52,
+          "snow": 0.84,
+          "rain": 0.0,
+          "wind": 2.94,
+          "fog": 0.0,
+          "cloudy": 2.52,
+          "clear": 0.0,
+          "unspecified": 91.18
+        },
+        "counts": {
+          "storm": 6,
+          "snow": 2,
+          "rain": 0,
+          "wind": 7,
+          "fog": 0,
+          "cloudy": 6,
+          "clear": 0,
+          "unspecified": 217
+        }
+      }
+    }
+  },
+  "within_chapter_time_thirds": {
+    "crystal_shard": {
+      "early": {
+        "n_beats": 272,
+        "pct": {
+          "midnight": 0.37,
+          "dawn": 2.94,
+          "dusk": 2.57,
+          "morning": 3.31,
+          "midday": 0.74,
+          "afternoon": 1.1,
+          "evening": 0.74,
+          "night": 8.09,
+          "unspecified": 80.15
+        },
+        "counts": {
+          "midnight": 1,
+          "dawn": 8,
+          "dusk": 7,
+          "morning": 9,
+          "midday": 2,
+          "afternoon": 3,
+          "evening": 2,
+          "night": 22,
+          "unspecified": 218
+        }
+      },
+      "mid": {
+        "n_beats": 286,
+        "pct": {
+          "midnight": 0.0,
+          "dawn": 2.1,
+          "dusk": 1.75,
+          "morning": 2.45,
+          "midday": 0.35,
+          "afternoon": 0.35,
+          "evening": 1.05,
+          "night": 8.39,
+          "unspecified": 83.57
+        },
+        "counts": {
+          "midnight": 0,
+          "dawn": 6,
+          "dusk": 5,
+          "morning": 7,
+          "midday": 1,
+          "afternoon": 1,
+          "evening": 3,
+          "night": 24,
+          "unspecified": 239
+        }
+      },
+      "late": {
+        "n_beats": 300,
+        "pct": {
+          "midnight": 0.0,
+          "dawn": 4.67,
+          "dusk": 0.33,
+          "morning": 2.33,
+          "midday": 0.0,
+          "afternoon": 0.0,
+          "evening": 0.33,
+          "night": 4.33,
+          "unspecified": 88.0
+        },
+        "counts": {
+          "midnight": 0,
+          "dawn": 14,
+          "dusk": 1,
+          "morning": 7,
+          "midday": 0,
+          "afternoon": 0,
+          "evening": 1,
+          "night": 13,
+          "unspecified": 264
+        }
+      }
+    },
+    "streams_of_silver": {
+      "early": {
+        "n_beats": 252,
+        "pct": {
+          "midnight": 0.4,
+          "dawn": 3.57,
+          "dusk": 1.98,
+          "morning": 4.37,
+          "midday": 1.19,
+          "afternoon": 0.79,
+          "evening": 1.19,
+          "night": 9.52,
+          "unspecified": 76.98
+        },
+        "counts": {
+          "midnight": 1,
+          "dawn": 9,
+          "dusk": 5,
+          "morning": 11,
+          "midday": 3,
+          "afternoon": 2,
+          "evening": 3,
+          "night": 24,
+          "unspecified": 194
+        }
+      },
+      "mid": {
+        "n_beats": 260,
+        "pct": {
+          "midnight": 0.0,
+          "dawn": 2.69,
+          "dusk": 0.77,
+          "morning": 2.69,
+          "midday": 0.38,
+          "afternoon": 0.77,
+          "evening": 1.54,
+          "night": 10.77,
+          "unspecified": 80.38
+        },
+        "counts": {
+          "midnight": 0,
+          "dawn": 7,
+          "dusk": 2,
+          "morning": 7,
+          "midday": 1,
+          "afternoon": 2,
+          "evening": 4,
+          "night": 28,
+          "unspecified": 209
+        }
+      },
+      "late": {
+        "n_beats": 274,
+        "pct": {
+          "midnight": 0.0,
+          "dawn": 2.92,
+          "dusk": 1.09,
+          "morning": 2.55,
+          "midday": 0.73,
+          "afternoon": 0.0,
+          "evening": 2.19,
+          "night": 6.93,
+          "unspecified": 83.58
+        },
+        "counts": {
+          "midnight": 0,
+          "dawn": 8,
+          "dusk": 3,
+          "morning": 7,
+          "midday": 2,
+          "afternoon": 0,
+          "evening": 6,
+          "night": 19,
+          "unspecified": 229
+        }
+      }
+    },
+    "halflings_gem": {
+      "early": {
+        "n_beats": 267,
+        "pct": {
+          "midnight": 0.0,
+          "dawn": 1.87,
+          "dusk": 1.87,
+          "morning": 2.62,
+          "midday": 0.0,
+          "afternoon": 0.37,
+          "evening": 0.37,
+          "night": 7.12,
+          "unspecified": 85.77
+        },
+        "counts": {
+          "midnight": 0,
+          "dawn": 5,
+          "dusk": 5,
+          "morning": 7,
+          "midday": 0,
+          "afternoon": 1,
+          "evening": 1,
+          "night": 19,
+          "unspecified": 229
+        }
+      },
+      "mid": {
+        "n_beats": 275,
+        "pct": {
+          "midnight": 0.0,
+          "dawn": 3.27,
+          "dusk": 0.0,
+          "morning": 3.27,
+          "midday": 0.36,
+          "afternoon": 0.0,
+          "evening": 0.73,
+          "night": 8.36,
+          "unspecified": 84.0
+        },
+        "counts": {
+          "midnight": 0,
+          "dawn": 9,
+          "dusk": 0,
+          "morning": 9,
+          "midday": 1,
+          "afternoon": 0,
+          "evening": 2,
+          "night": 23,
+          "unspecified": 231
+        }
+      },
+      "late": {
+        "n_beats": 284,
+        "pct": {
+          "midnight": 0.35,
+          "dawn": 2.11,
+          "dusk": 1.76,
+          "morning": 2.11,
+          "midday": 0.0,
+          "afternoon": 0.0,
+          "evening": 1.41,
+          "night": 7.75,
+          "unspecified": 84.51
+        },
+        "counts": {
+          "midnight": 1,
+          "dawn": 6,
+          "dusk": 5,
+          "morning": 6,
+          "midday": 0,
+          "afternoon": 0,
+          "evening": 4,
+          "night": 22,
+          "unspecified": 240
+        }
+      }
+    }
+  },
+  "within_chapter_weather_thirds": {
+    "crystal_shard": {
+      "early": {
+        "n_beats": 272,
+        "pct": {
+          "storm": 0.74,
+          "snow": 4.78,
+          "rain": 0.0,
+          "wind": 7.35,
+          "fog": 2.94,
+          "cloudy": 1.47,
+          "clear": 0.37,
+          "unspecified": 82.35
+        },
+        "counts": {
+          "storm": 2,
+          "snow": 13,
+          "rain": 0,
+          "wind": 20,
+          "fog": 8,
+          "cloudy": 4,
+          "clear": 1,
+          "unspecified": 224
+        }
+      },
+      "mid": {
+        "n_beats": 286,
+        "pct": {
+          "storm": 2.45,
+          "snow": 3.15,
+          "rain": 0.0,
+          "wind": 2.1,
+          "fog": 1.4,
+          "cloudy": 1.4,
+          "clear": 0.0,
+          "unspecified": 89.51
+        },
+        "counts": {
+          "storm": 7,
+          "snow": 9,
+          "rain": 0,
+          "wind": 6,
+          "fog": 4,
+          "cloudy": 4,
+          "clear": 0,
+          "unspecified": 256
+        }
+      },
+      "late": {
+        "n_beats": 300,
+        "pct": {
+          "storm": 1.67,
+          "snow": 1.0,
+          "rain": 1.0,
+          "wind": 1.33,
+          "fog": 1.67,
+          "cloudy": 1.33,
+          "clear": 0.0,
+          "unspecified": 92.0
+        },
+        "counts": {
+          "storm": 5,
+          "snow": 3,
+          "rain": 3,
+          "wind": 4,
+          "fog": 5,
+          "cloudy": 4,
+          "clear": 0,
+          "unspecified": 276
+        }
+      }
+    },
+    "streams_of_silver": {
+      "early": {
+        "n_beats": 252,
+        "pct": {
+          "storm": 5.56,
+          "snow": 0.0,
+          "rain": 0.0,
+          "wind": 4.37,
+          "fog": 1.59,
+          "cloudy": 2.38,
+          "clear": 0.0,
+          "unspecified": 86.11
+        },
+        "counts": {
+          "storm": 14,
+          "snow": 0,
+          "rain": 0,
+          "wind": 11,
+          "fog": 4,
+          "cloudy": 6,
+          "clear": 0,
+          "unspecified": 217
+        }
+      },
+      "mid": {
+        "n_beats": 260,
+        "pct": {
+          "storm": 1.54,
+          "snow": 0.0,
+          "rain": 0.38,
+          "wind": 2.31,
+          "fog": 1.15,
+          "cloudy": 2.31,
+          "clear": 0.0,
+          "unspecified": 92.31
+        },
+        "counts": {
+          "storm": 4,
+          "snow": 0,
+          "rain": 1,
+          "wind": 6,
+          "fog": 3,
+          "cloudy": 6,
+          "clear": 0,
+          "unspecified": 240
+        }
+      },
+      "late": {
+        "n_beats": 274,
+        "pct": {
+          "storm": 1.09,
+          "snow": 0.0,
+          "rain": 0.0,
+          "wind": 3.28,
+          "fog": 2.55,
+          "cloudy": 2.92,
+          "clear": 0.0,
+          "unspecified": 90.15
+        },
+        "counts": {
+          "storm": 3,
+          "snow": 0,
+          "rain": 0,
+          "wind": 9,
+          "fog": 7,
+          "cloudy": 8,
+          "clear": 0,
+          "unspecified": 247
+        }
+      }
+    },
+    "halflings_gem": {
+      "early": {
+        "n_beats": 267,
+        "pct": {
+          "storm": 4.49,
+          "snow": 0.75,
+          "rain": 0.0,
+          "wind": 3.0,
+          "fog": 0.37,
+          "cloudy": 3.37,
+          "clear": 0.0,
+          "unspecified": 88.01
+        },
+        "counts": {
+          "storm": 12,
+          "snow": 2,
+          "rain": 0,
+          "wind": 8,
+          "fog": 1,
+          "cloudy": 9,
+          "clear": 0,
+          "unspecified": 235
+        }
+      },
+      "mid": {
+        "n_beats": 275,
+        "pct": {
+          "storm": 1.09,
+          "snow": 0.36,
+          "rain": 0.36,
+          "wind": 3.64,
+          "fog": 0.73,
+          "cloudy": 1.09,
+          "clear": 0.0,
+          "unspecified": 92.73
+        },
+        "counts": {
+          "storm": 3,
+          "snow": 1,
+          "rain": 1,
+          "wind": 10,
+          "fog": 2,
+          "cloudy": 3,
+          "clear": 0,
+          "unspecified": 255
+        }
+      },
+      "late": {
+        "n_beats": 284,
+        "pct": {
+          "storm": 1.76,
+          "snow": 0.7,
+          "rain": 0.35,
+          "wind": 3.52,
+          "fog": 1.76,
+          "cloudy": 2.11,
+          "clear": 0.35,
+          "unspecified": 89.44
+        },
+        "counts": {
+          "storm": 5,
+          "snow": 2,
+          "rain": 1,
+          "wind": 10,
+          "fog": 5,
+          "cloudy": 6,
+          "clear": 1,
+          "unspecified": 254
+        }
+      }
+    }
+  },
+  "darkness_concentration_per_book_third": {
+    "crystal_shard": {
+      "early": {
+        "n_beats": 226,
+        "dark_time_pct": 7.96,
+        "dark_weather_pct": 7.52,
+        "either_pct": 14.6
+      },
+      "mid": {
+        "n_beats": 297,
+        "dark_time_pct": 11.11,
+        "dark_weather_pct": 4.71,
+        "either_pct": 15.15
+      },
+      "late": {
+        "n_beats": 335,
+        "dark_time_pct": 6.57,
+        "dark_weather_pct": 8.36,
+        "either_pct": 14.63
+      }
+    },
+    "streams_of_silver": {
+      "early": {
+        "n_beats": 259,
+        "dark_time_pct": 12.74,
+        "dark_weather_pct": 3.09,
+        "either_pct": 15.44
+      },
+      "mid": {
+        "n_beats": 288,
+        "dark_time_pct": 16.67,
+        "dark_weather_pct": 8.33,
+        "either_pct": 23.61
+      },
+      "late": {
+        "n_beats": 239,
+        "dark_time_pct": 0.42,
+        "dark_weather_pct": 1.67,
+        "either_pct": 2.09
+      }
+    },
+    "halflings_gem": {
+      "early": {
+        "n_beats": 273,
+        "dark_time_pct": 13.92,
+        "dark_weather_pct": 4.4,
+        "either_pct": 17.95
+      },
+      "mid": {
+        "n_beats": 315,
+        "dark_time_pct": 8.57,
+        "dark_weather_pct": 4.76,
+        "either_pct": 13.33
+      },
+      "late": {
+        "n_beats": 238,
+        "dark_time_pct": 4.2,
+        "dark_weather_pct": 3.36,
+        "either_pct": 7.56
+      }
+    }
+  },
+  "within_chapter_drift": {
+    "crystal_shard": {
+      "early": {
+        "n_beats": 272,
+        "bright_time_pct": 8.09,
+        "dark_time_pct": 11.76,
+        "dark_weather_pct": 8.46
+      },
+      "mid": {
+        "n_beats": 286,
+        "bright_time_pct": 5.24,
+        "dark_time_pct": 11.19,
+        "dark_weather_pct": 6.99
+      },
+      "late": {
+        "n_beats": 300,
+        "bright_time_pct": 7.0,
+        "dark_time_pct": 5.0,
+        "dark_weather_pct": 5.33
+      }
+    },
+    "streams_of_silver": {
+      "early": {
+        "n_beats": 252,
+        "bright_time_pct": 9.92,
+        "dark_time_pct": 13.1,
+        "dark_weather_pct": 7.14
+      },
+      "mid": {
+        "n_beats": 260,
+        "bright_time_pct": 6.54,
+        "dark_time_pct": 13.08,
+        "dark_weather_pct": 3.08
+      },
+      "late": {
+        "n_beats": 274,
+        "bright_time_pct": 6.2,
+        "dark_time_pct": 10.22,
+        "dark_weather_pct": 3.65
+      }
+    },
+    "halflings_gem": {
+      "early": {
+        "n_beats": 267,
+        "bright_time_pct": 4.87,
+        "dark_time_pct": 9.36,
+        "dark_weather_pct": 5.62
+      },
+      "mid": {
+        "n_beats": 275,
+        "bright_time_pct": 6.91,
+        "dark_time_pct": 9.09,
+        "dark_weather_pct": 2.55
+      },
+      "late": {
+        "n_beats": 284,
+        "bright_time_pct": 4.23,
+        "dark_time_pct": 11.27,
+        "dark_weather_pct": 4.58
+      }
+    }
+  },
+  "cross_book_directional_time": [
+    {
+      "label": "midnight",
+      "crystal_shard_pct": 0.12,
+      "streams_of_silver_pct": 0.13,
+      "halflings_gem_pct": 0.12,
+      "range_pt": 0.01,
+      "verdict_15pt": "STABLE"
+    },
+    {
+      "label": "dawn",
+      "crystal_shard_pct": 3.26,
+      "streams_of_silver_pct": 3.05,
+      "halflings_gem_pct": 2.42,
+      "range_pt": 0.84,
+      "verdict_15pt": "STABLE"
+    },
+    {
+      "label": "dusk",
+      "crystal_shard_pct": 1.52,
+      "streams_of_silver_pct": 1.27,
+      "halflings_gem_pct": 1.21,
+      "range_pt": 0.31,
+      "verdict_15pt": "STABLE"
+    },
+    {
+      "label": "morning",
+      "crystal_shard_pct": 2.68,
+      "streams_of_silver_pct": 3.18,
+      "halflings_gem_pct": 2.66,
+      "range_pt": 0.52,
+      "verdict_15pt": "STABLE"
+    },
+    {
+      "label": "midday",
+      "crystal_shard_pct": 0.35,
+      "streams_of_silver_pct": 0.76,
+      "halflings_gem_pct": 0.12,
+      "range_pt": 0.64,
+      "verdict_15pt": "STABLE"
+    },
+    {
+      "label": "afternoon",
+      "crystal_shard_pct": 0.47,
+      "streams_of_silver_pct": 0.51,
+      "halflings_gem_pct": 0.12,
+      "range_pt": 0.39,
+      "verdict_15pt": "STABLE"
+    },
+    {
+      "label": "evening",
+      "crystal_shard_pct": 0.7,
+      "streams_of_silver_pct": 1.65,
+      "halflings_gem_pct": 0.85,
+      "range_pt": 0.95,
+      "verdict_15pt": "STABLE"
+    },
+    {
+      "label": "night",
+      "crystal_shard_pct": 6.88,
+      "streams_of_silver_pct": 9.03,
+      "halflings_gem_pct": 7.75,
+      "range_pt": 2.15,
+      "verdict_15pt": "STABLE"
+    },
+    {
+      "label": "unspecified",
+      "crystal_shard_pct": 84.03,
+      "streams_of_silver_pct": 80.41,
+      "halflings_gem_pct": 84.75,
+      "range_pt": 4.34,
+      "verdict_15pt": "STABLE"
+    }
+  ],
+  "cross_book_directional_weather": [
+    {
+      "label": "storm",
+      "crystal_shard_pct": 1.63,
+      "streams_of_silver_pct": 2.67,
+      "halflings_gem_pct": 2.42,
+      "range_pt": 1.04,
+      "verdict_15pt": "STABLE"
+    },
+    {
+      "label": "snow",
+      "crystal_shard_pct": 2.91,
+      "streams_of_silver_pct": 0.0,
+      "halflings_gem_pct": 0.61,
+      "range_pt": 2.91,
+      "verdict_15pt": "STABLE"
+    },
+    {
+      "label": "rain",
+      "crystal_shard_pct": 0.35,
+      "streams_of_silver_pct": 0.13,
+      "halflings_gem_pct": 0.24,
+      "range_pt": 0.22,
+      "verdict_15pt": "STABLE"
+    },
+    {
+      "label": "wind",
+      "crystal_shard_pct": 3.5,
+      "streams_of_silver_pct": 3.31,
+      "halflings_gem_pct": 3.39,
+      "range_pt": 0.19,
+      "verdict_15pt": "STABLE"
+    },
+    {
+      "label": "fog",
+      "crystal_shard_pct": 1.98,
+      "streams_of_silver_pct": 1.78,
+      "halflings_gem_pct": 0.97,
+      "range_pt": 1.01,
+      "verdict_15pt": "STABLE"
+    },
+    {
+      "label": "cloudy",
+      "crystal_shard_pct": 1.4,
+      "streams_of_silver_pct": 2.54,
+      "halflings_gem_pct": 2.18,
+      "range_pt": 1.14,
+      "verdict_15pt": "STABLE"
+    },
+    {
+      "label": "clear",
+      "crystal_shard_pct": 0.12,
+      "streams_of_silver_pct": 0.0,
+      "halflings_gem_pct": 0.12,
+      "range_pt": 0.12,
+      "verdict_15pt": "STABLE"
+    },
+    {
+      "label": "unspecified",
+      "crystal_shard_pct": 88.11,
+      "streams_of_silver_pct": 89.57,
+      "halflings_gem_pct": 90.07,
+      "range_pt": 1.96,
+      "verdict_15pt": "STABLE"
+    }
+  ],
+  "multi_label_overlap_time": {
+    "crystal_shard": {
+      "n_beats": 858,
+      "zero_match_pct": 84.03,
+      "one_match_pct": 12.35,
+      "two_match_pct": 3.26,
+      "three_plus_match_pct": 0.35
+    },
+    "streams_of_silver": {
+      "n_beats": 786,
+      "zero_match_pct": 80.41,
+      "one_match_pct": 15.65,
+      "two_match_pct": 2.67,
+      "three_plus_match_pct": 1.27
+    },
+    "halflings_gem": {
+      "n_beats": 826,
+      "zero_match_pct": 84.75,
+      "one_match_pct": 11.99,
+      "two_match_pct": 2.66,
+      "three_plus_match_pct": 0.61
+    }
+  },
+  "multi_label_overlap_weather": {
+    "crystal_shard": {
+      "n_beats": 858,
+      "zero_match_pct": 88.11,
+      "one_match_pct": 9.32,
+      "two_match_pct": 2.33,
+      "three_plus_match_pct": 0.23
+    },
+    "streams_of_silver": {
+      "n_beats": 786,
+      "zero_match_pct": 89.57,
+      "one_match_pct": 8.4,
+      "two_match_pct": 1.27,
+      "three_plus_match_pct": 0.76
+    },
+    "halflings_gem": {
+      "n_beats": 826,
+      "zero_match_pct": 90.07,
+      "one_match_pct": 8.23,
+      "two_match_pct": 1.57,
+      "three_plus_match_pct": 0.12
+    }
+  },
+  "scene_start_anchoring_time": {
+    "crystal_shard": {
+      "scene_start_n": 139,
+      "scene_start_specified_pct": 29.5,
+      "interior_n": 719,
+      "interior_specified_pct": 13.35,
+      "lift_pt": 16.15
+    },
+    "streams_of_silver": {
+      "scene_start_n": 76,
+      "scene_start_specified_pct": 25.0,
+      "interior_n": 710,
+      "interior_specified_pct": 19.01,
+      "lift_pt": 5.99
+    },
+    "halflings_gem": {
+      "scene_start_n": 137,
+      "scene_start_specified_pct": 25.55,
+      "interior_n": 689,
+      "interior_specified_pct": 13.21,
+      "lift_pt": 12.34
+    }
+  },
+  "scene_start_anchoring_weather": {
+    "crystal_shard": {
+      "scene_start_n": 139,
+      "scene_start_specified_pct": 20.14,
+      "interior_n": 719,
+      "interior_specified_pct": 10.29,
+      "lift_pt": 9.85
+    },
+    "streams_of_silver": {
+      "scene_start_n": 76,
+      "scene_start_specified_pct": 13.16,
+      "interior_n": 710,
+      "interior_specified_pct": 10.14,
+      "lift_pt": 3.02
+    },
+    "halflings_gem": {
+      "scene_start_n": 137,
+      "scene_start_specified_pct": 20.44,
+      "interior_n": 689,
+      "interior_specified_pct": 7.84,
+      "lift_pt": 12.6
+    }
+  },
+  "examples": {
+    "time_storm_examples": [
+      {
+        "scene_id": "crystal_shard_ch15_s0",
+        "book": "crystal_shard",
+        "chapter": 15,
+        "kind": "description"
+      },
+      {
+        "scene_id": "crystal_shard_ch18_s0",
+        "book": "crystal_shard",
+        "chapter": 18,
+        "kind": "action"
+      },
+      {
+        "scene_id": "crystal_shard_ch18_s2",
+        "book": "crystal_shard",
+        "chapter": 18,
+        "kind": "dialogue"
+      },
+      {
+        "scene_id": "crystal_shard_ch19_s3",
+        "book": "crystal_shard",
+        "chapter": 19,
+        "kind": "dialogue"
+      },
+      {
+        "scene_id": "crystal_shard_ch22_s3",
+        "book": "crystal_shard",
+        "chapter": 22,
+        "kind": "action"
+      }
+    ],
+    "time_dawn_examples": [
+      {
+        "scene_id": "crystal_shard_ch10_s4",
+        "book": "crystal_shard",
+        "chapter": 10,
+        "kind": "interiority"
+      },
+      {
+        "scene_id": "crystal_shard_ch11_s2",
+        "book": "crystal_shard",
+        "chapter": 11,
+        "kind": "action"
+      },
+      {
+        "scene_id": "crystal_shard_ch13_s0",
+        "book": "crystal_shard",
+        "chapter": 13,
+        "kind": "interiority"
+      },
+      {
+        "scene_id": "crystal_shard_ch14_s0",
+        "book": "crystal_shard",
+        "chapter": 14,
+        "kind": "description"
+      },
+      {
+        "scene_id": "crystal_shard_ch16_s1",
+        "book": "crystal_shard",
+        "chapter": 16,
+        "kind": "dialogue"
+      }
+    ],
+    "time_midnight_examples": [
+      {
+        "scene_id": "crystal_shard_ch15_s0",
+        "book": "crystal_shard",
+        "chapter": 15,
+        "kind": "description"
+      },
+      {
+        "scene_id": "halflings_gem_ch15_s1",
+        "book": "halflings_gem",
+        "chapter": 15,
+        "kind": "interiority"
+      },
+      {
+        "scene_id": "streams_of_silver_ch7_s0",
+        "book": "streams_of_silver",
+        "chapter": 7,
+        "kind": "action"
+      }
+    ]
+  }
+}

@@ -1,0 +1,895 @@
+{
+  "pattern": "33",
+  "name": "Conflict resolution latency (P18 follow-up)",
+  "timestamp": "2026-04-30T12:42:21.545Z",
+  "stage": "3way_calibration_passed",
+  "mode": "3way",
+  "calibration_3way": {
+    "sampleSize": 10,
+    "sampleKeys": [
+      "crystal_shard|prelude->1",
+      "crystal_shard|4->5",
+      "crystal_shard|11->12",
+      "crystal_shard|25->26",
+      "streams_of_silver|prelude->1",
+      "streams_of_silver|8->9",
+      "streams_of_silver|19->20",
+      "halflings_gem|prelude->1",
+      "halflings_gem|7->8",
+      "halflings_gem|15->16"
+    ],
+    "jaccardMacro": 1,
+    "perLabelJaccard": {
+      "resolved": {
+        "intersect": 4,
+        "union": 4,
+        "jaccard": 1
+      },
+      "transitioned": {
+        "intersect": 0,
+        "union": 0,
+        "jaccard": 1
+      },
+      "paused": {
+        "intersect": 6,
+        "union": 6,
+        "jaccard": 1
+      }
+    },
+    "agreeRate": 1,
+    "classes": {
+      "resolved": {
+        "run1": 4,
+        "run2": 4
+      },
+      "transitioned": {
+        "run1": 0,
+        "run2": 0
+      },
+      "paused": {
+        "run1": 6,
+        "run2": 6
+      }
+    },
+    "threshold": 0.7,
+    "verdict3way": "PASS",
+    "run1": {
+      "streams_of_silver|8->9": {
+        "label": "paused",
+        "confidence": "high",
+        "reason": "Chapter 8's interpersonal conflict among companions is absent from Chapter 9's new POV and external threat."
+      },
+      "streams_of_silver|prelude->1": {
+        "label": "paused",
+        "confidence": "high",
+        "reason": "Regis's internal conflict is unresolved and off-stage; chapter 1 cuts to Entreri's POV."
+      },
+      "crystal_shard|25->26": {
+        "label": "resolved",
+        "confidence": "high",
+        "reason": "Errtu is banished, the demonic threat is defeated, and the physical conflict closes."
+      },
+      "crystal_shard|11->12": {
+        "label": "resolved",
+        "confidence": "high",
+        "reason": "Bruenor's internal struggle to enchant the hammer is completed successfully; the conflict is closed."
+      },
+      "crystal_shard|4->5": {
+        "label": "paused",
+        "confidence": "high",
+        "reason": "Chapter 4 ends with Kessell's cosmic conflict resolved (goblin subjugated), but Chapter 5 cuts to Bruenor's unrelated POV, leaving the thread off-stage."
+      },
+      "crystal_shard|prelude->1": {
+        "label": "resolved",
+        "confidence": "high",
+        "reason": "The cosmic conflict of Errtu seeking the shard ends with the shard landing in the Realms and Errtu's defeat; chapter 1 shifts to a new interpersonal thread."
+      },
+      "halflings_gem|7->8": {
+        "label": "paused",
+        "confidence": "high",
+        "reason": "Bruenor's internal conflict is unresolved and off-stage; chapter 8 cuts to Pasha Pook in Calimport."
+      },
+      "halflings_gem|15->16": {
+        "label": "paused",
+        "confidence": "high",
+        "reason": "Chapter 15 ends with the group's desert journey unresolved; Chapter 16 cuts to Entreri's POV, leaving the conflict off-stage."
+      },
+      "streams_of_silver|19->20": {
+        "label": "resolved",
+        "confidence": "high",
+        "reason": "The physical trap conflict ends with Drizzt and Entreri swallowed by the cave-in, closing the external threat."
+      },
+      "halflings_gem|prelude->1": {
+        "label": "paused",
+        "confidence": "high",
+        "reason": "The internal conflict of Guenhwyvar's anxiety is off-stage in chapter 1, which shifts to Drizzt and Wulfgar's interpersonal debate."
+      }
+    },
+    "run2": {
+      "crystal_shard|25->26": {
+        "label": "resolved",
+        "confidence": "high",
+        "reason": "Errtu is banished, the demonic threat is defeated, and the physical conflict closes."
+      },
+      "streams_of_silver|prelude->1": {
+        "label": "paused",
+        "confidence": "high",
+        "reason": "Regis's internal conflict is unresolved and off-stage; chapter 1 cuts to Entreri's POV."
+      },
+      "streams_of_silver|8->9": {
+        "label": "paused",
+        "confidence": "high",
+        "reason": "Chapter 8's interpersonal conflict among companions is absent from Chapter 9's new POV and external threat."
+      },
+      "crystal_shard|4->5": {
+        "label": "paused",
+        "confidence": "high",
+        "reason": "Chapter 4 ends with Kessell's cosmic conflict resolved (goblin subjugated), but Chapter 5 cuts to Bruenor's unrelated POV, leaving the thread off-stage."
+      },
+      "crystal_shard|prelude->1": {
+        "label": "resolved",
+        "confidence": "high",
+        "reason": "The cosmic conflict of Errtu seeking the shard ends with the shard landing in the Realms and Errtu's defeat; chapter 1 shifts to a new interpersonal thread."
+      },
+      "crystal_shard|11->12": {
+        "label": "resolved",
+        "confidence": "high",
+        "reason": "Bruenor's internal struggle to enchant the hammer is completed successfully; the conflict is closed."
+      },
+      "streams_of_silver|19->20": {
+        "label": "resolved",
+        "confidence": "high",
+        "reason": "The physical trap conflict ends with Drizzt and Entreri swallowed by the cave-in, closing the external threat."
+      },
+      "halflings_gem|7->8": {
+        "label": "paused",
+        "confidence": "high",
+        "reason": "Bruenor's internal conflict is unresolved and off-stage; chapter 8 cuts to Pasha Pook in Calimport."
+      },
+      "halflings_gem|15->16": {
+        "label": "paused",
+        "confidence": "high",
+        "reason": "Chapter 15 ends with the group's desert journey unresolved; Chapter 16 cuts to Entreri's POV, leaving the conflict off-stage."
+      },
+      "halflings_gem|prelude->1": {
+        "label": "paused",
+        "confidence": "high",
+        "reason": "The internal conflict of Guenhwyvar's anxiety is off-stage in chapter 1, which shifts to Drizzt and Wulfgar's interpersonal debate."
+      }
+    },
+    "tokens": {
+      "prompt": 19898,
+      "completion": 988,
+      "calls": 20
+    },
+    "estCostUSD": 0.0031
+  },
+  "calibration_binary": null,
+  "method": {
+    "provider": "deepseek",
+    "model": "deepseek-v4-flash",
+    "thinking": "disabled",
+    "temperature": 0,
+    "responseFormat": "json_object",
+    "label_taxonomy": [
+      "resolved",
+      "transitioned",
+      "paused"
+    ],
+    "input_shape": "chapter-N last 3 beats (summary + last_sentence) + chapter-N+1 first 2 beats (summary + first_sentence)",
+    "pair_filter": "primary_conflict_N != primary_conflict_{N+1} (rotation pairs only)",
+    "calibrationSample": "n=10 evenly-distributed rotation pairs across 3 books",
+    "shipGate": "macro-Jaccard >= 0.7 (3-way) or Jaccard >= 0.7 (binary fallback)"
+  },
+  "counts": {
+    "total_chapter_pairs": 89,
+    "same_conflict_pairs_skipped": 40,
+    "rotation_pairs_labeled": 49
+  },
+  "aggregate": {
+    "n": 49,
+    "distribution_3way": {
+      "resolved": 0.4082,
+      "transitioned": 0.0408,
+      "paused": 0.551
+    },
+    "distribution_binary": {
+      "resolved_pct": 40.82,
+      "not_resolved_pct": 59.18
+    }
+  },
+  "per_book": {
+    "crystal_shard": {
+      "n": 18,
+      "distribution_3way": {
+        "resolved": 0.5556,
+        "transitioned": 0.0556,
+        "paused": 0.3889
+      },
+      "distribution_binary": {
+        "resolved_pct": 55.56,
+        "not_resolved_pct": 44.44
+      }
+    },
+    "streams_of_silver": {
+      "n": 14,
+      "distribution_3way": {
+        "resolved": 0.3571,
+        "transitioned": 0,
+        "paused": 0.6429
+      },
+      "distribution_binary": {
+        "resolved_pct": 35.71,
+        "not_resolved_pct": 64.29
+      }
+    },
+    "halflings_gem": {
+      "n": 17,
+      "distribution_3way": {
+        "resolved": 0.2941,
+        "transitioned": 0.0588,
+        "paused": 0.6471
+      },
+      "distribution_binary": {
+        "resolved_pct": 29.41,
+        "not_resolved_pct": 70.59
+      }
+    }
+  },
+  "by_primary_conflict_chN": {
+    "external-physical": {
+      "n": 17,
+      "distribution_3way": {
+        "resolved": 0.5294,
+        "transitioned": 0,
+        "paused": 0.4706
+      },
+      "distribution_binary": {
+        "resolved_pct": 52.94,
+        "not_resolved_pct": 47.06
+      }
+    },
+    "external-cosmic": {
+      "n": 6,
+      "distribution_3way": {
+        "resolved": 0.3333,
+        "transitioned": 0.1667,
+        "paused": 0.5
+      },
+      "distribution_binary": {
+        "resolved_pct": 33.33,
+        "not_resolved_pct": 66.67
+      }
+    },
+    "interpersonal": {
+      "n": 16,
+      "distribution_3way": {
+        "resolved": 0.3125,
+        "transitioned": 0.0625,
+        "paused": 0.625
+      },
+      "distribution_binary": {
+        "resolved_pct": 31.25,
+        "not_resolved_pct": 68.75
+      }
+    },
+    "internal": {
+      "n": 10,
+      "distribution_3way": {
+        "resolved": 0.4,
+        "transitioned": 0,
+        "paused": 0.6
+      },
+      "distribution_binary": {
+        "resolved_pct": 40,
+        "not_resolved_pct": 60
+      }
+    }
+  },
+  "cross_book_directional": {
+    "resolvedRates": {
+      "crystal_shard": 55.56,
+      "streams_of_silver": 35.71,
+      "halflings_gem": 29.41
+    },
+    "resolvedRateRange": 26.150000000000002,
+    "resolvedRateStable": false,
+    "verdict": "3-way modal across all 3 books: paused (55.1%). Per-book resolved-rate cs=55.56%, ss=35.71%, hg=29.41% (range 26.2pt; diverges). Per-book transitioned-rate cs=5.6%, ss=0.0%, hg=5.9%. Per-book paused-rate cs=38.9%, ss=64.3%, hg=64.7%."
+  },
+  "pair_records": [
+    {
+      "key": "crystal_shard|prelude->1",
+      "book": "crystal_shard",
+      "chN": "prelude",
+      "chN1": "1",
+      "primary_conflict_N": "external-cosmic",
+      "primary_conflict_N1": "interpersonal",
+      "label_3way": "resolved",
+      "resolved_binary": true,
+      "confidence": "high",
+      "reason": "The cosmic conflict of Errtu seeking the shard ends with the shard landing in the Realms and Errtu's defeat; chapter 1 shifts to a new interpersonal thread."
+    },
+    {
+      "key": "crystal_shard|1->2",
+      "book": "crystal_shard",
+      "chN": "1",
+      "chN1": "2",
+      "primary_conflict_N": "interpersonal",
+      "primary_conflict_N1": "external-physical",
+      "label_3way": "paused",
+      "resolved_binary": false,
+      "confidence": "high",
+      "reason": "Chapter 1's interpersonal conflict among wizards is absent in Chapter 2, which introduces a new character and setting."
+    },
+    {
+      "key": "crystal_shard|2->3",
+      "book": "crystal_shard",
+      "chN": "2",
+      "chN1": "3",
+      "primary_conflict_N": "external-physical",
+      "primary_conflict_N1": "interpersonal",
+      "label_3way": "paused",
+      "resolved_binary": false,
+      "confidence": "high",
+      "reason": "Chapter 2's physical conflict with yeti is resolved; chapter 3 cuts to a new setting and characters, pausing the thread."
+    },
+    {
+      "key": "crystal_shard|3->4",
+      "book": "crystal_shard",
+      "chN": "3",
+      "chN1": "4",
+      "primary_conflict_N": "interpersonal",
+      "primary_conflict_N1": "external-cosmic",
+      "label_3way": "resolved",
+      "resolved_binary": true,
+      "confidence": "high",
+      "reason": "The interpersonal conflict over leadership is closed with Beorg's declaration and blood-oath ritual."
+    },
+    {
+      "key": "crystal_shard|4->5",
+      "book": "crystal_shard",
+      "chN": "4",
+      "chN1": "5",
+      "primary_conflict_N": "external-cosmic",
+      "primary_conflict_N1": "interpersonal",
+      "label_3way": "paused",
+      "resolved_binary": false,
+      "confidence": "high",
+      "reason": "Chapter 4 ends with Kessell's cosmic conflict resolved (goblin subjugated), but Chapter 5 cuts to Bruenor's unrelated POV, leaving the thread off-stage."
+    },
+    {
+      "key": "crystal_shard|6->7",
+      "book": "crystal_shard",
+      "chN": "6",
+      "chN1": "7",
+      "primary_conflict_N": "interpersonal",
+      "primary_conflict_N1": "external-physical",
+      "label_3way": "resolved",
+      "resolved_binary": true,
+      "confidence": "high",
+      "reason": "The interpersonal conflict of swaying the council is resolved with Kemp's declaration and the alliance formed."
+    },
+    {
+      "key": "crystal_shard|8->9",
+      "book": "crystal_shard",
+      "chN": "8",
+      "chN1": "9",
+      "primary_conflict_N": "external-physical",
+      "primary_conflict_N1": "internal",
+      "label_3way": "resolved",
+      "resolved_binary": true,
+      "confidence": "high",
+      "reason": "The external physical conflict of the alliance against a common enemy ends with the alliance dissolving and Drizzt rescued, closing the chapter's conflict."
+    },
+    {
+      "key": "crystal_shard|9->10",
+      "book": "crystal_shard",
+      "chN": "9",
+      "chN1": "10",
+      "primary_conflict_N": "internal",
+      "primary_conflict_N1": "external-cosmic",
+      "label_3way": "resolved",
+      "resolved_binary": true,
+      "confidence": "high",
+      "reason": "Wulfgar's internal conflict over his hatred for Bruenor resolves into acceptance and gratitude, closing the chapter's arc."
+    },
+    {
+      "key": "crystal_shard|10->11",
+      "book": "crystal_shard",
+      "chN": "10",
+      "chN1": "11",
+      "primary_conflict_N": "external-cosmic",
+      "primary_conflict_N1": "internal",
+      "label_3way": "resolved",
+      "resolved_binary": true,
+      "confidence": "high",
+      "reason": "Kessell and Errtu reach a binding agreement, closing the cosmic conflict over the shard's control."
+    },
+    {
+      "key": "crystal_shard|11->12",
+      "book": "crystal_shard",
+      "chN": "11",
+      "chN1": "12",
+      "primary_conflict_N": "internal",
+      "primary_conflict_N1": "interpersonal",
+      "label_3way": "resolved",
+      "resolved_binary": true,
+      "confidence": "high",
+      "reason": "Bruenor's internal struggle to enchant the hammer is completed successfully; the conflict is closed."
+    },
+    {
+      "key": "crystal_shard|12->13",
+      "book": "crystal_shard",
+      "chN": "12",
+      "chN1": "13",
+      "primary_conflict_N": "interpersonal",
+      "primary_conflict_N1": "external-cosmic",
+      "label_3way": "resolved",
+      "resolved_binary": true,
+      "confidence": "high",
+      "reason": "The interpersonal conflict between Bruenor and Wulfgar over the warhammer is closed with the oath and gift, ending the chapter's central tension."
+    },
+    {
+      "key": "crystal_shard|13->14",
+      "book": "crystal_shard",
+      "chN": "13",
+      "chN1": "14",
+      "primary_conflict_N": "external-cosmic",
+      "primary_conflict_N1": "interpersonal",
+      "label_3way": "paused",
+      "resolved_binary": false,
+      "confidence": "high",
+      "reason": "Chapter 13's cosmic conflict (Kessell's rise) is off-stage; chapter 14 cuts to Bruenor/Wulfgar's interpersonal thread."
+    },
+    {
+      "key": "crystal_shard|14->15",
+      "book": "crystal_shard",
+      "chN": "14",
+      "chN1": "15",
+      "primary_conflict_N": "interpersonal",
+      "primary_conflict_N1": "external-physical",
+      "label_3way": "paused",
+      "resolved_binary": false,
+      "confidence": "high",
+      "reason": "Chapter 14's interpersonal conflict between Wulfgar and Drizzt is unresolved and off-stage in chapter 15, which shifts to a new external threat."
+    },
+    {
+      "key": "crystal_shard|25->26",
+      "book": "crystal_shard",
+      "chN": "25",
+      "chN1": "26",
+      "primary_conflict_N": "external-physical",
+      "primary_conflict_N1": "interpersonal",
+      "label_3way": "resolved",
+      "resolved_binary": true,
+      "confidence": "high",
+      "reason": "Errtu is banished, the demonic threat is defeated, and the physical conflict closes."
+    },
+    {
+      "key": "crystal_shard|27->28",
+      "book": "crystal_shard",
+      "chN": "27",
+      "chN1": "28",
+      "primary_conflict_N": "interpersonal",
+      "primary_conflict_N1": "external-physical",
+      "label_3way": "paused",
+      "resolved_binary": false,
+      "confidence": "high",
+      "reason": "Chapter 27's interpersonal conflict (Drizzt & Guenhwyvar) is unresolved and off-stage; Chapter 28 cuts to Regis vs. Kessell."
+    },
+    {
+      "key": "crystal_shard|30->epilogue",
+      "book": "crystal_shard",
+      "chN": "30",
+      "chN1": "epilogue",
+      "primary_conflict_N": "external-physical",
+      "primary_conflict_N1": "external-cosmic",
+      "label_3way": "resolved",
+      "resolved_binary": true,
+      "confidence": "high",
+      "reason": "The battle conflict ends with the allied charge, and the epilogue shifts to post-battle looting, indicating closure."
+    },
+    {
+      "key": "crystal_shard|epilogue->epilogue2",
+      "book": "crystal_shard",
+      "chN": "epilogue",
+      "chN1": "epilogue2",
+      "primary_conflict_N": "external-cosmic",
+      "primary_conflict_N1": "internal",
+      "label_3way": "transitioned",
+      "resolved_binary": false,
+      "confidence": "high",
+      "reason": "Kessell's cosmic conflict with Crenshinibon morphs from internal temptation to external army-building in the next chapter."
+    },
+    {
+      "key": "crystal_shard|epilogue2->epilogue3",
+      "book": "crystal_shard",
+      "chN": "epilogue2",
+      "chN1": "epilogue3",
+      "primary_conflict_N": "internal",
+      "primary_conflict_N1": "interpersonal",
+      "label_3way": "paused",
+      "resolved_binary": false,
+      "confidence": "high",
+      "reason": "Wulfgar's internal struggle is unresolved and off-stage; epilogue3 cuts to a different thread."
+    },
+    {
+      "key": "streams_of_silver|prelude->1",
+      "book": "streams_of_silver",
+      "chN": "prelude",
+      "chN1": "1",
+      "primary_conflict_N": "internal",
+      "primary_conflict_N1": "external-physical",
+      "label_3way": "paused",
+      "resolved_binary": false,
+      "confidence": "high",
+      "reason": "Regis's internal conflict is unresolved and off-stage; chapter 1 cuts to Entreri's POV."
+    },
+    {
+      "key": "streams_of_silver|3->4",
+      "book": "streams_of_silver",
+      "chN": "3",
+      "chN1": "4",
+      "primary_conflict_N": "external-physical",
+      "primary_conflict_N1": "external-cosmic",
+      "label_3way": "paused",
+      "resolved_binary": false,
+      "confidence": "high",
+      "reason": "Chapter 3 ends with the group escaping Luskan; Chapter 4 shifts to describing the Hosttower, leaving the physical conflict off-stage."
+    },
+    {
+      "key": "streams_of_silver|4->5",
+      "book": "streams_of_silver",
+      "chN": "4",
+      "chN1": "5",
+      "primary_conflict_N": "external-cosmic",
+      "primary_conflict_N1": "external-physical",
+      "label_3way": "paused",
+      "resolved_binary": false,
+      "confidence": "high",
+      "reason": "Chapter 4 ends with Catti-brie's journey to warn friends; Chapter 5 cuts to the other companions, leaving her conflict off-stage."
+    },
+    {
+      "key": "streams_of_silver|7->8",
+      "book": "streams_of_silver",
+      "chN": "7",
+      "chN1": "8",
+      "primary_conflict_N": "external-physical",
+      "primary_conflict_N1": "interpersonal",
+      "label_3way": "paused",
+      "resolved_binary": false,
+      "confidence": "high",
+      "reason": "Chapter 7 ends with reflection on the Hosttower meeting; Chapter 8 cuts to the companions escaping crags, leaving the external physical conflict off-stage."
+    },
+    {
+      "key": "streams_of_silver|8->9",
+      "book": "streams_of_silver",
+      "chN": "8",
+      "chN1": "9",
+      "primary_conflict_N": "interpersonal",
+      "primary_conflict_N1": "external-physical",
+      "label_3way": "paused",
+      "resolved_binary": false,
+      "confidence": "high",
+      "reason": "Chapter 8's interpersonal conflict among companions is absent from Chapter 9's new POV and external threat."
+    },
+    {
+      "key": "streams_of_silver|10->11",
+      "book": "streams_of_silver",
+      "chN": "10",
+      "chN1": "11",
+      "primary_conflict_N": "external-physical",
+      "primary_conflict_N1": "interpersonal",
+      "label_3way": "paused",
+      "resolved_binary": false,
+      "confidence": "high",
+      "reason": "Chapter 10's external physical conflict (Trollmoors danger, Dendybar's scheming) is absent from chapter 11's opening, which cuts to Entreri's party."
+    },
+    {
+      "key": "streams_of_silver|11->12",
+      "book": "streams_of_silver",
+      "chN": "11",
+      "chN1": "12",
+      "primary_conflict_N": "interpersonal",
+      "primary_conflict_N1": "external-physical",
+      "label_3way": "paused",
+      "resolved_binary": false,
+      "confidence": "high",
+      "reason": "Chapter 11 ends with the party in Silverymoon discussing plans; Chapter 12 cuts to Bruenor's group in the Trollmoors, leaving the interpersonal conflict off-stage."
+    },
+    {
+      "key": "streams_of_silver|13->14",
+      "book": "streams_of_silver",
+      "chN": "13",
+      "chN1": "14",
+      "primary_conflict_N": "external-physical",
+      "primary_conflict_N1": "internal",
+      "label_3way": "resolved",
+      "resolved_binary": true,
+      "confidence": "high",
+      "reason": "The external physical conflict with trolls ends as companions burst through to safety; chapter 14 shifts to internal aftermath."
+    },
+    {
+      "key": "streams_of_silver|14->15",
+      "book": "streams_of_silver",
+      "chN": "14",
+      "chN1": "15",
+      "primary_conflict_N": "internal",
+      "primary_conflict_N1": "external-physical",
+      "label_3way": "resolved",
+      "resolved_binary": true,
+      "confidence": "high",
+      "reason": "Drizzt's internal depression is resolved through Alustriel's intervention, restoring his hope and faith."
+    },
+    {
+      "key": "streams_of_silver|19->20",
+      "book": "streams_of_silver",
+      "chN": "19",
+      "chN1": "20",
+      "primary_conflict_N": "external-physical",
+      "primary_conflict_N1": "internal",
+      "label_3way": "resolved",
+      "resolved_binary": true,
+      "confidence": "high",
+      "reason": "The physical trap conflict ends with Drizzt and Entreri swallowed by the cave-in, closing the external threat."
+    },
+    {
+      "key": "streams_of_silver|20->21",
+      "book": "streams_of_silver",
+      "chN": "20",
+      "chN1": "21",
+      "primary_conflict_N": "internal",
+      "primary_conflict_N1": "external-physical",
+      "label_3way": "paused",
+      "resolved_binary": false,
+      "confidence": "high",
+      "reason": "Chapter 20's internal conflict (group tension over greed vs. mission) is off-stage; Chapter 21 cuts to Drizzt's separate physical struggle."
+    },
+    {
+      "key": "streams_of_silver|23->24",
+      "book": "streams_of_silver",
+      "chN": "23",
+      "chN1": "24",
+      "primary_conflict_N": "external-physical",
+      "primary_conflict_N1": "interpersonal",
+      "label_3way": "resolved",
+      "resolved_binary": true,
+      "confidence": "high",
+      "reason": "The dragon is defeated and killed, ending the physical combat conflict."
+    },
+    {
+      "key": "streams_of_silver|24->part1",
+      "book": "streams_of_silver",
+      "chN": "24",
+      "chN1": "part1",
+      "primary_conflict_N": "interpersonal",
+      "primary_conflict_N1": "internal",
+      "label_3way": "paused",
+      "resolved_binary": false,
+      "confidence": "high",
+      "reason": "Chapter 24's interpersonal conflict (grieving Bruenor, escaping Duergar) is absent from chapter part1's internal journal entry."
+    },
+    {
+      "key": "streams_of_silver|part3->epilogue",
+      "book": "streams_of_silver",
+      "chN": "part3",
+      "chN1": "epilogue",
+      "primary_conflict_N": "internal",
+      "primary_conflict_N1": "external-cosmic",
+      "label_3way": "resolved",
+      "resolved_binary": true,
+      "confidence": "high",
+      "reason": "Drizzt's internal conflict over the Gondsman's philosophy concludes with a definitive stance, closing the chapter's driving question."
+    },
+    {
+      "key": "halflings_gem|prelude->1",
+      "book": "halflings_gem",
+      "chN": "prelude",
+      "chN1": "1",
+      "primary_conflict_N": "internal",
+      "primary_conflict_N1": "interpersonal",
+      "label_3way": "paused",
+      "resolved_binary": false,
+      "confidence": "high",
+      "reason": "The internal conflict of Guenhwyvar's anxiety is off-stage in chapter 1, which shifts to Drizzt and Wulfgar's interpersonal debate."
+    },
+    {
+      "key": "halflings_gem|2->3",
+      "book": "halflings_gem",
+      "chN": "2",
+      "chN1": "3",
+      "primary_conflict_N": "interpersonal",
+      "primary_conflict_N1": "external-physical",
+      "label_3way": "resolved",
+      "resolved_binary": true,
+      "confidence": "high",
+      "reason": "Regis's deception succeeds, the sailor is terrified and flees; the specific interpersonal conflict is closed."
+    },
+    {
+      "key": "halflings_gem|3->4",
+      "book": "halflings_gem",
+      "chN": "3",
+      "chN1": "4",
+      "primary_conflict_N": "external-physical",
+      "primary_conflict_N1": "interpersonal",
+      "label_3way": "resolved",
+      "resolved_binary": true,
+      "confidence": "high",
+      "reason": "The physical confrontation with Agatha the banshee ends decisively: Drizzt and Wulfgar flee, honoring their promise, and villagers confirm the victory."
+    },
+    {
+      "key": "halflings_gem|4->5",
+      "book": "halflings_gem",
+      "chN": "4",
+      "chN1": "5",
+      "primary_conflict_N": "interpersonal",
+      "primary_conflict_N1": "external-physical",
+      "label_3way": "paused",
+      "resolved_binary": false,
+      "confidence": "high",
+      "reason": "Chapter 4 ends with an interpersonal revelation about Bruenor; Chapter 5 cuts to a different POV and setting, leaving that conflict off-stage."
+    },
+    {
+      "key": "halflings_gem|6->7",
+      "book": "halflings_gem",
+      "chN": "6",
+      "chN1": "7",
+      "primary_conflict_N": "external-physical",
+      "primary_conflict_N1": "internal",
+      "label_3way": "paused",
+      "resolved_binary": false,
+      "confidence": "high",
+      "reason": "Chapter 6 ends with Entreri's external physical conflict resolved (ship secured), but Chapter 7 cuts to Bruenor's internal scene, leaving Entreri's thread off-stage."
+    },
+    {
+      "key": "halflings_gem|7->8",
+      "book": "halflings_gem",
+      "chN": "7",
+      "chN1": "8",
+      "primary_conflict_N": "internal",
+      "primary_conflict_N1": "interpersonal",
+      "label_3way": "paused",
+      "resolved_binary": false,
+      "confidence": "high",
+      "reason": "Bruenor's internal conflict is unresolved and off-stage; chapter 8 cuts to Pasha Pook in Calimport."
+    },
+    {
+      "key": "halflings_gem|8->9",
+      "book": "halflings_gem",
+      "chN": "8",
+      "chN1": "9",
+      "primary_conflict_N": "interpersonal",
+      "primary_conflict_N1": "external-physical",
+      "label_3way": "paused",
+      "resolved_binary": false,
+      "confidence": "high",
+      "reason": "Chapter 8 ends with LaValle's interior resolve to find Entreri; Chapter 9 cuts to a different POV (Sea Sprite crew) with no mention of that conflict."
+    },
+    {
+      "key": "halflings_gem|9->10",
+      "book": "halflings_gem",
+      "chN": "9",
+      "chN1": "10",
+      "primary_conflict_N": "external-physical",
+      "primary_conflict_N1": "interpersonal",
+      "label_3way": "paused",
+      "resolved_binary": false,
+      "confidence": "high",
+      "reason": "Chapter 9 ends with Pook ordering ships to intercept pursuers; Chapter 10 cuts to Bruenor's nightmare and waking, leaving the external physical conflict off-stage."
+    },
+    {
+      "key": "halflings_gem|10->11",
+      "book": "halflings_gem",
+      "chN": "10",
+      "chN1": "11",
+      "primary_conflict_N": "interpersonal",
+      "primary_conflict_N1": "external-physical",
+      "label_3way": "paused",
+      "resolved_binary": false,
+      "confidence": "high",
+      "reason": "Chapter 10 ends with the chariot conflict unresolved; Chapter 11 cuts to a different POV and setting, leaving the prior conflict off-stage."
+    },
+    {
+      "key": "halflings_gem|11->12",
+      "book": "halflings_gem",
+      "chN": "11",
+      "chN1": "12",
+      "primary_conflict_N": "external-physical",
+      "primary_conflict_N1": "interpersonal",
+      "label_3way": "resolved",
+      "resolved_binary": true,
+      "confidence": "high",
+      "reason": "The pirate ship battle ends with Bruenor's boarding and the enemy ship fleeing; the physical conflict is closed."
+    },
+    {
+      "key": "halflings_gem|12->13",
+      "book": "halflings_gem",
+      "chN": "12",
+      "chN1": "13",
+      "primary_conflict_N": "interpersonal",
+      "primary_conflict_N1": "external-physical",
+      "label_3way": "paused",
+      "resolved_binary": false,
+      "confidence": "high",
+      "reason": "Chapter 12's interpersonal conflict (Drizzt's suspicion of Pook) is not resolved or reshaped; chapter 13 cuts to a new setting and external physical conflict."
+    },
+    {
+      "key": "halflings_gem|15->16",
+      "book": "halflings_gem",
+      "chN": "15",
+      "chN1": "16",
+      "primary_conflict_N": "external-physical",
+      "primary_conflict_N1": "internal",
+      "label_3way": "paused",
+      "resolved_binary": false,
+      "confidence": "high",
+      "reason": "Chapter 15 ends with the group's desert journey unresolved; Chapter 16 cuts to Entreri's POV, leaving the conflict off-stage."
+    },
+    {
+      "key": "halflings_gem|16->17",
+      "book": "halflings_gem",
+      "chN": "16",
+      "chN1": "17",
+      "primary_conflict_N": "internal",
+      "primary_conflict_N1": "interpersonal",
+      "label_3way": "paused",
+      "resolved_binary": false,
+      "confidence": "high",
+      "reason": "Chapter 16 ends with Drizzt's internal conflict unresolved; Chapter 17 cuts to a different POV and thread."
+    },
+    {
+      "key": "halflings_gem|17->18",
+      "book": "halflings_gem",
+      "chN": "17",
+      "chN1": "18",
+      "primary_conflict_N": "interpersonal",
+      "primary_conflict_N1": "external-physical",
+      "label_3way": "transitioned",
+      "resolved_binary": false,
+      "confidence": "high",
+      "reason": "Pook's interpersonal conflict with Rassiter morphs into the external hunt for the Northerners in chapter 18."
+    },
+    {
+      "key": "halflings_gem|24->25",
+      "book": "halflings_gem",
+      "chN": "24",
+      "chN1": "25",
+      "primary_conflict_N": "external-physical",
+      "primary_conflict_N1": "interpersonal",
+      "label_3way": "resolved",
+      "resolved_binary": true,
+      "confidence": "high",
+      "reason": "Entreri kills Rassiter, ending the physical confrontation; the specific conflict is closed."
+    },
+    {
+      "key": "halflings_gem|25->epilogue",
+      "book": "halflings_gem",
+      "chN": "25",
+      "chN1": "epilogue",
+      "primary_conflict_N": "interpersonal",
+      "primary_conflict_N1": "external-physical",
+      "label_3way": "resolved",
+      "resolved_binary": true,
+      "confidence": "high",
+      "reason": "The interpersonal conflict among the companions ends with shared laughter and Drizzt's open declaration, closing the chapter's tension."
+    },
+    {
+      "key": "halflings_gem|epilogue->epilogue2",
+      "book": "halflings_gem",
+      "chN": "epilogue",
+      "chN1": "epilogue2",
+      "primary_conflict_N": "external-physical",
+      "primary_conflict_N1": "interpersonal",
+      "label_3way": "paused",
+      "resolved_binary": false,
+      "confidence": "high",
+      "reason": "The external physical conflict (Drizzt/Wulfgar vs. Entreri's trap) is unresolved and off-stage; epilogue2 cuts to Entreri's POV."
+    }
+  ],
+  "cost_telemetry": {
+    "total_calls": 59,
+    "prompt_tokens": 58052,
+    "completion_tokens": 2940,
+    "total_cost_usd": 0.009
+  }
+}

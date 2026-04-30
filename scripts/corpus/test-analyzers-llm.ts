@@ -63,7 +63,7 @@ async function callDeepSeek(system: string, user: string, maxTokens = 256): Prom
     method: "POST",
     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${API_KEY}` },
     body: JSON.stringify({
-      model: "deepseek-chat",
+      model: "deepseek-v4-flash",
       messages: [{ role: "system", content: system }, { role: "user", content: user }],
       temperature: 0.1,
       max_tokens: maxTokens,

@@ -1,0 +1,231 @@
+{
+  "pattern": "29",
+  "name": "Sentence and paragraph length distribution",
+  "corpus": "salvatore-icewind-dale",
+  "books": [
+    "crystal_shard",
+    "streams_of_silver",
+    "halflings_gem"
+  ],
+  "method": {
+    "sentence_split": "regex [.!?]+\\s+",
+    "paragraph_split_strict": "regex \\n\\s*\\n (per task spec)",
+    "paragraph_split_heuristic": "fall back to '\\n preceded by sentence terminator' when text has no \\n\\s*\\n (handles soft-wrapped PDF ingest)",
+    "word_count": "whitespace-split tokens",
+    "intra_beat_variation": "std-dev of sentence-word-counts within each beat (only beats with >=2 sentences)"
+  },
+  "ingestion_artifact_warning": "crystal_shard and halflings_gem were ingested with line-wrapped text (single \\n soft-wraps, no \\n\\s*\\n). streams_of_silver has true paragraph splits. Strict paragraph stats for crystal_shard and halflings_gem are therefore beat-sized blobs, not real paragraphs. Use the *_heuristic figures for cross-book comparison.",
+  "per_book": {
+    "crystal_shard": {
+      "sentence_words": {
+        "n": 5897,
+        "mean": 17.78,
+        "median": 16,
+        "p25": 10.0,
+        "p75": 24.0,
+        "min": 1,
+        "max": 102,
+        "std": 10.21
+      },
+      "paragraph_words_strict": {
+        "n": 860,
+        "mean": 122.01,
+        "median": 112.0,
+        "p25": 85.0,
+        "p75": 148.75,
+        "min": 16,
+        "max": 482,
+        "std": 52.89
+      },
+      "paragraph_words_heuristic": {
+        "n": 1596,
+        "mean": 65.75,
+        "median": 52.0,
+        "p25": 24.0,
+        "p75": 95.0,
+        "min": 1,
+        "max": 442,
+        "std": 53.71
+      },
+      "intra_beat_sentence_std": {
+        "n": 856,
+        "mean": 9.33,
+        "median": 8.76,
+        "p25": 6.68,
+        "p75": 11.03,
+        "min": 0.0,
+        "max": 50.204581464244875,
+        "std": 4.14
+      },
+      "beats_total": 858,
+      "beats_with_double_newline": 2,
+      "double_newline_fraction": 0.0023
+    },
+    "halflings_gem": {
+      "sentence_words": {
+        "n": 6025,
+        "mean": 15.94,
+        "median": 14,
+        "p25": 9.0,
+        "p75": 21.0,
+        "min": 1,
+        "max": 68,
+        "std": 9.52
+      },
+      "paragraph_words_strict": {
+        "n": 826,
+        "mean": 116.37,
+        "median": 111.0,
+        "p25": 83.0,
+        "p75": 142.0,
+        "min": 31,
+        "max": 407,
+        "std": 45.76
+      },
+      "paragraph_words_heuristic": {
+        "n": 3135,
+        "mean": 30.66,
+        "median": 24,
+        "p25": 13.0,
+        "p75": 43.0,
+        "min": 1,
+        "max": 180,
+        "std": 23.51
+      },
+      "intra_beat_sentence_std": {
+        "n": 824,
+        "mean": 8.78,
+        "median": 8.27,
+        "p25": 6.43,
+        "p75": 10.47,
+        "min": 0.0,
+        "max": 26.512575632455377,
+        "std": 3.53
+      },
+      "beats_total": 826,
+      "beats_with_double_newline": 0,
+      "double_newline_fraction": 0.0
+    },
+    "streams_of_silver": {
+      "sentence_words": {
+        "n": 5939,
+        "mean": 17.48,
+        "median": 16,
+        "p25": 10.0,
+        "p75": 23.0,
+        "min": 1,
+        "max": 115,
+        "std": 10.31
+      },
+      "paragraph_words_strict": {
+        "n": 2894,
+        "mean": 35.86,
+        "median": 30.0,
+        "p25": 16.0,
+        "p75": 49.0,
+        "min": 1,
+        "max": 214,
+        "std": 26.56
+      },
+      "paragraph_words_heuristic": {
+        "n": 2894,
+        "mean": 35.86,
+        "median": 30.0,
+        "p25": 16.0,
+        "p75": 49.0,
+        "min": 1,
+        "max": 214,
+        "std": 26.56
+      },
+      "intra_beat_sentence_std": {
+        "n": 786,
+        "mean": 9.35,
+        "median": 8.91,
+        "p25": 6.75,
+        "p75": 11.29,
+        "min": 0.0,
+        "max": 33.47428532138928,
+        "std": 3.84
+      },
+      "beats_total": 786,
+      "beats_with_double_newline": 724,
+      "double_newline_fraction": 0.9211
+    }
+  },
+  "corpus_overall": {
+    "sentence_words": {
+      "n": 17861,
+      "mean": 17.06,
+      "median": 15,
+      "p25": 9.0,
+      "p75": 23.0,
+      "min": 1,
+      "max": 115,
+      "std": 10.05
+    },
+    "paragraph_words_strict": {
+      "n": 4580,
+      "mean": 66.56,
+      "median": 52.0,
+      "p25": 23.0,
+      "p75": 98.0,
+      "min": 1,
+      "max": 482,
+      "std": 54.48
+    },
+    "paragraph_words_heuristic": {
+      "n": 7625,
+      "mean": 39.98,
+      "median": 30,
+      "p25": 16.0,
+      "p75": 53.0,
+      "min": 1,
+      "max": 442,
+      "std": 35.77
+    },
+    "intra_beat_sentence_std": {
+      "n": 2466,
+      "mean": 9.15,
+      "median": 8.64,
+      "p25": 6.6,
+      "p75": 10.83,
+      "min": 0.0,
+      "max": 50.204581464244875,
+      "std": 3.85
+    }
+  },
+  "cross_book_directional": {
+    "sentence_median_words_by_book": {
+      "crystal_shard": 16,
+      "halflings_gem": 14,
+      "streams_of_silver": 16
+    },
+    "paragraph_median_words_by_book_strict": {
+      "crystal_shard": 112.0,
+      "halflings_gem": 111.0,
+      "streams_of_silver": 30.0
+    },
+    "paragraph_median_words_by_book_heuristic": {
+      "crystal_shard": 52.0,
+      "halflings_gem": 24,
+      "streams_of_silver": 30.0
+    },
+    "intra_beat_sent_std_median_by_book": {
+      "crystal_shard": 8.76,
+      "halflings_gem": 8.27,
+      "streams_of_silver": 8.91
+    },
+    "sentence_median_range": [
+      14,
+      16
+    ],
+    "paragraph_median_range_heuristic": [
+      24,
+      52.0
+    ],
+    "intra_beat_std_median_range": [
+      8.27,
+      8.91
+    ]
+  }
+}

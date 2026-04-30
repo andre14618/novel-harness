@@ -53,8 +53,8 @@ function inferAdapterUri(cellLabel: string): string | null {
     const version = m[1] ?? "1"
     return `wandb-artifact:///andre14618-/novel-harness/salvatore-1988-v${version}`
   }
-  if (cellLabel.startsWith("A-deepseek")) return "deepseek-chat"
-  if (cellLabel.startsWith("B-deepseek")) return "deepseek-chat"
+  if (cellLabel.startsWith("A-deepseek")) return "deepseek-v4-flash"
+  if (cellLabel.startsWith("B-deepseek")) return "deepseek-v4-flash"
   return null
 }
 

@@ -1,0 +1,373 @@
+{
+  "computedAt": "2026-04-30T16:22:33Z",
+  "pattern_id": 58,
+  "pattern_name": "Italics / emphasis pattern usage",
+  "description": "Pattern 58 \u2014 measures italic / emphasis usage across the Salvatore Icewind Dale 3-book corpus. Italics in fiction normally encode direct internal thought, single-word emphasis, foreign / proper-noun terms, and (rarely) sound effects. The first task is detecting whether italics were preserved during corpus ingestion.",
+  "methodology": "Step 1: scan source/*.txt and beats.jsonl + scenes.jsonl + pairs.jsonl + analysis/dialogue-extract.jsonl for the canonical italic encodings (*word*, _word_, <i>...</i>, <em>...</em>, Unicode mathematical-italic blocks). Step 2: if italics are present, measure per-100w density per (book, kind), classify spans (single-word / phrase / full-sentence internal thought / emphasis / foreign / proper-noun), and compute cross-book stability. Step 3 (fallback): on KILL, also report ALL-CAPS density as a conservative emphasis proxy.",
+  "encoding_survey": {
+    "source/crystal_shard": {
+      "path": "/Users/andre/Desktop/personal_projects/novel-harness/novels/salvatore-icewind-dale/source/salvatore-crystal-shard.txt",
+      "size_chars": 612718,
+      "encoding_hits": {
+        "markdown_asterisk": {
+          "count": 0,
+          "samples": []
+        },
+        "underscore_pair": {
+          "count": 0,
+          "samples": []
+        },
+        "html_i_tag": {
+          "count": 0,
+          "samples": []
+        },
+        "html_em_tag": {
+          "count": 0,
+          "samples": []
+        },
+        "unicode_italic_chars": {
+          "count": 0,
+          "samples": []
+        }
+      },
+      "all_caps_emphasis": {
+        "raw_count": 36,
+        "filtered_count": 0,
+        "structural_count": 36,
+        "top": []
+      }
+    },
+    "source/streams_of_silver": {
+      "path": "/Users/andre/Desktop/personal_projects/novel-harness/novels/salvatore-icewind-dale/source/salvatore-streams-of-silver.txt",
+      "size_chars": 601899,
+      "encoding_hits": {
+        "markdown_asterisk": {
+          "count": 0,
+          "samples": []
+        },
+        "underscore_pair": {
+          "count": 0,
+          "samples": []
+        },
+        "html_i_tag": {
+          "count": 0,
+          "samples": []
+        },
+        "html_em_tag": {
+          "count": 0,
+          "samples": []
+        },
+        "unicode_italic_chars": {
+          "count": 0,
+          "samples": []
+        }
+      },
+      "all_caps_emphasis": {
+        "raw_count": 29,
+        "filtered_count": 1,
+        "structural_count": 28,
+        "top": [
+          [
+            "UP",
+            1
+          ]
+        ]
+      }
+    },
+    "source/halflings_gem": {
+      "path": "/Users/andre/Desktop/personal_projects/novel-harness/novels/salvatore-icewind-dale/source/salvatore-halflings-gem.txt",
+      "size_chars": 551862,
+      "encoding_hits": {
+        "markdown_asterisk": {
+          "count": 0,
+          "samples": []
+        },
+        "underscore_pair": {
+          "count": 0,
+          "samples": []
+        },
+        "html_i_tag": {
+          "count": 0,
+          "samples": []
+        },
+        "html_em_tag": {
+          "count": 0,
+          "samples": []
+        },
+        "unicode_italic_chars": {
+          "count": 0,
+          "samples": []
+        }
+      },
+      "all_caps_emphasis": {
+        "raw_count": 28,
+        "filtered_count": 0,
+        "structural_count": 28,
+        "top": []
+      }
+    },
+    "beats.jsonl": {
+      "path": "/Users/andre/Desktop/personal_projects/novel-harness/novels/salvatore-icewind-dale/beats.jsonl",
+      "n_beats": 2470,
+      "per_book": {
+        "crystal_shard": {
+          "n_beats": 858,
+          "size_chars": 606302,
+          "encoding_hits": {
+            "markdown_asterisk": {
+              "count": 0,
+              "samples": []
+            },
+            "underscore_pair": {
+              "count": 0,
+              "samples": []
+            },
+            "html_i_tag": {
+              "count": 0,
+              "samples": []
+            },
+            "html_em_tag": {
+              "count": 0,
+              "samples": []
+            },
+            "unicode_italic_chars": {
+              "count": 0,
+              "samples": []
+            }
+          },
+          "all_caps_emphasis": {
+            "raw_count": 0,
+            "filtered_count": 0,
+            "structural_count": 0,
+            "top": []
+          }
+        },
+        "halflings_gem": {
+          "n_beats": 826,
+          "size_chars": 548060,
+          "encoding_hits": {
+            "markdown_asterisk": {
+              "count": 0,
+              "samples": []
+            },
+            "underscore_pair": {
+              "count": 0,
+              "samples": []
+            },
+            "html_i_tag": {
+              "count": 0,
+              "samples": []
+            },
+            "html_em_tag": {
+              "count": 0,
+              "samples": []
+            },
+            "unicode_italic_chars": {
+              "count": 0,
+              "samples": []
+            }
+          },
+          "all_caps_emphasis": {
+            "raw_count": 0,
+            "filtered_count": 0,
+            "structural_count": 0,
+            "top": []
+          }
+        },
+        "streams_of_silver": {
+          "n_beats": 786,
+          "size_chars": 597875,
+          "encoding_hits": {
+            "markdown_asterisk": {
+              "count": 0,
+              "samples": []
+            },
+            "underscore_pair": {
+              "count": 0,
+              "samples": []
+            },
+            "html_i_tag": {
+              "count": 0,
+              "samples": []
+            },
+            "html_em_tag": {
+              "count": 0,
+              "samples": []
+            },
+            "unicode_italic_chars": {
+              "count": 0,
+              "samples": []
+            }
+          },
+          "all_caps_emphasis": {
+            "raw_count": 4,
+            "filtered_count": 1,
+            "structural_count": 3,
+            "top": [
+              [
+                "UP",
+                1
+              ]
+            ]
+          }
+        }
+      }
+    },
+    "scenes.jsonl": {
+      "path": "/Users/andre/Desktop/personal_projects/novel-harness/novels/salvatore-icewind-dale/scenes.jsonl",
+      "n_records": 352,
+      "n_text_chunks": 352,
+      "size_chars": 1760270,
+      "encoding_hits": {
+        "markdown_asterisk": {
+          "count": 0,
+          "samples": []
+        },
+        "underscore_pair": {
+          "count": 0,
+          "samples": []
+        },
+        "html_i_tag": {
+          "count": 0,
+          "samples": []
+        },
+        "html_em_tag": {
+          "count": 0,
+          "samples": []
+        },
+        "unicode_italic_chars": {
+          "count": 0,
+          "samples": []
+        }
+      }
+    },
+    "pairs.jsonl": {
+      "path": "/Users/andre/Desktop/personal_projects/novel-harness/novels/salvatore-icewind-dale/pairs.jsonl",
+      "n_records": 2470,
+      "n_text_chunks": 2470,
+      "size_chars": 1752239,
+      "encoding_hits": {
+        "markdown_asterisk": {
+          "count": 0,
+          "samples": []
+        },
+        "underscore_pair": {
+          "count": 0,
+          "samples": []
+        },
+        "html_i_tag": {
+          "count": 0,
+          "samples": []
+        },
+        "html_em_tag": {
+          "count": 0,
+          "samples": []
+        },
+        "unicode_italic_chars": {
+          "count": 0,
+          "samples": []
+        }
+      }
+    },
+    "analysis/dialogue-extract.jsonl": {
+      "path": "/Users/andre/Desktop/personal_projects/novel-harness/novels/salvatore-icewind-dale/analysis/dialogue-extract.jsonl",
+      "n_records": 2447,
+      "n_text_chunks": 0,
+      "size_chars": 0,
+      "encoding_hits": {
+        "markdown_asterisk": {
+          "count": 0,
+          "samples": []
+        },
+        "underscore_pair": {
+          "count": 0,
+          "samples": []
+        },
+        "html_i_tag": {
+          "count": 0,
+          "samples": []
+        },
+        "html_em_tag": {
+          "count": 0,
+          "samples": []
+        },
+        "unicode_italic_chars": {
+          "count": 0,
+          "samples": []
+        }
+      }
+    }
+  },
+  "classification": {
+    "totals_all_artifacts": {
+      "markdown_asterisk": 0,
+      "underscore_pair": 0,
+      "html_i_tag": 0,
+      "html_em_tag": 0,
+      "unicode_italic_chars": 0
+    },
+    "source_only_totals": {
+      "markdown_asterisk": 0,
+      "underscore_pair": 0,
+      "html_i_tag": 0,
+      "html_em_tag": 0,
+      "unicode_italic_chars": 0
+    },
+    "beats_only_totals": {
+      "markdown_asterisk": 0,
+      "underscore_pair": 0,
+      "html_i_tag": 0,
+      "html_em_tag": 0,
+      "unicode_italic_chars": 0
+    },
+    "italic_present": false
+  },
+  "all_caps_fallback": {
+    "beat_text_total_filtered_caps": 1,
+    "beat_text_total_words": 262748,
+    "beat_text_per_100w": 0.000380592811362979,
+    "per_book": {
+      "crystal_shard": {
+        "caps_filtered": 0,
+        "words": 89987,
+        "per_100w": 0.0
+      },
+      "streams_of_silver": {
+        "caps_filtered": 1,
+        "words": 85870,
+        "per_100w": 0.001164551065564225
+      },
+      "halflings_gem": {
+        "caps_filtered": 0,
+        "words": 86891,
+        "per_100w": 0.0
+      }
+    },
+    "interpretation": "ALL-CAPS density is effectively zero in beat text. The handful of hits in streams_of_silver beat texts (4) are ingestion fragments (RELUDE, EARCHES, LLIES, UP) \u2014 not in-prose emphasis. Salvatore does not use ALL-CAPS as an emphasis convention; the source files only contain ALL-CAPS in the structural section headers (CHAPTER N) which were stripped before the beat text fields. ALL-CAPS therefore cannot serve as a usable proxy for the lost italics signal."
+  },
+  "directional_verdict": "KILL",
+  "directional_summary": "No italic encoding is preserved anywhere in the bundle (zero markdown_asterisk, underscore-pair, <i>, <em>, or Unicode-italic hits across source/*.txt, beats.jsonl, scenes.jsonl, pairs.jsonl, dialogue-extract.jsonl). Italics were stripped during ingestion. ALL-CAPS as a fallback emphasis signal is also effectively zero in beat text (1 hits / 262748 words = 0.00038 per 100w; the residual hits are ingestion-leftover section-header fragments like RELUDE/EARCHES/LLIES, not in-prose emphasis). The signal is recoverable only via re-ingestion that preserves italic markers from the original PDFs/EPUBs (italics live in the underlying styled-text layer, not the plain-text projection used here).",
+  "proposed_lever": "Re-ingest the source PDFs/EPUBs preserving italic markers (HTML <em> tags or markdown asterisks) so the writer-prompt signal can be extracted on a second pass. Italics are a high-value voice cue: in Salvatore, full-sentence italics are direct internal-thought beats (a Drizzt voice signature) and single-word italics carry emphasis-tone in dialogue. Recovering them would unlock: (a) per-kind italic-density priors for the writer prompt (interiority > dialogue > action > description likely), (b) a stable internal-thought lexicon for fewshot voice imprint, (c) a foreign-term inventory that doubles as a lint allowlist (Crenshinibon, Cryshal-Tirith, Underdark place-names). Recommended re-ingestion pipeline: pdfminer or ebook-convert with `--preserve-italic` flag \u2192 markdown round-trip \u2192 emit `*word*` markers for downstream regex extraction. Until re-ingestion ships, do NOT introduce italics-density linting or italics-aware writer priors \u2014 the corpus cannot ground them.",
+  "measurement_payload": null,
+  "ship_recommendation": "No italic encoding is preserved anywhere in the bundle (zero markdown_asterisk, underscore-pair, <i>, <em>, or Unicode-italic hits across source/*.txt, beats.jsonl, scenes.jsonl, pairs.jsonl, dialogue-extract.jsonl). Italics were stripped during ingestion. ALL-CAPS as a fallback emphasis signal is also effectively zero in beat text (1 hits / 262748 words = 0.00038 per 100w; the residual hits are ingestion-leftover section-header fragments like RELUDE/EARCHES/LLIES, not in-prose emphasis). The signal is recoverable only via re-ingestion that preserves italic markers from the original PDFs/EPUBs (italics live in the underlying styled-text layer, not the plain-text projection used here).",
+  "expected_methodology_if_signal_present": {
+    "per_beat_metrics": [
+      "italic_passages_count",
+      "italic_words_count",
+      "italic_words_per_100w"
+    ],
+    "classification_buckets": [
+      "single_word_emphasis",
+      "phrase_emphasis (2-5 words, mid-sentence)",
+      "full_sentence_internal_thought (often present-tense, often after 'X thought' or no attribution)",
+      "foreign_or_proper_noun (capitalized non-Common term)",
+      "title_or_song (rare)",
+      "sound_effect (rare)"
+    ],
+    "cross_book_gates": {
+      "PASS": "per-kind ordering 3/3 books AND internal-thought share stable",
+      "PASS_PARTIAL": "2/3 reproduce",
+      "KILL": "italics not preserved in corpus"
+    }
+  }
+}

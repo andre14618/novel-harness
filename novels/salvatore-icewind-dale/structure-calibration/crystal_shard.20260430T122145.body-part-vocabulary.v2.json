@@ -1,0 +1,1527 @@
+{
+  "pattern_number": 56,
+  "pattern_name": "Body-part vocabulary distribution (implicit camera anchor)",
+  "variant": "v2",
+  "timestamp": "20260430T122145",
+  "commit": "a3da6d1",
+  "lexicons": {
+    "head_face": [
+      "head",
+      "face",
+      "brow",
+      "brows",
+      "eye",
+      "eyes",
+      "mouth",
+      "lips",
+      "tongue",
+      "teeth",
+      "nose",
+      "chin",
+      "jaw",
+      "ear",
+      "ears",
+      "cheek",
+      "cheeks",
+      "forehead",
+      "eyebrow",
+      "eyebrows"
+    ],
+    "hands_arms": [
+      "hand",
+      "hands",
+      "finger",
+      "fingers",
+      "fist",
+      "fists",
+      "palm",
+      "palms",
+      "wrist",
+      "wrists",
+      "arm",
+      "arms",
+      "elbow",
+      "elbows",
+      "shoulder",
+      "shoulders"
+    ],
+    "torso": [
+      "chest",
+      "breast",
+      "hip",
+      "hips",
+      "waist",
+      "stomach",
+      "belly",
+      "ribs",
+      "neck",
+      "throat"
+    ],
+    "legs_feet": [
+      "leg",
+      "legs",
+      "foot",
+      "feet",
+      "knee",
+      "knees",
+      "thigh",
+      "thighs",
+      "ankle",
+      "ankles",
+      "calf",
+      "calves",
+      "toe",
+      "toes"
+    ],
+    "internal_visceral": [
+      "heart",
+      "gut",
+      "blood",
+      "bones",
+      "mind",
+      "soul",
+      "spirit"
+    ],
+    "hair_skin": [
+      "hair",
+      "beard",
+      "skin",
+      "flesh"
+    ]
+  },
+  "lexicon_additions": {},
+  "lexicon_removals_from_v1": {
+    "torso": [
+      "back",
+      "side"
+    ]
+  },
+  "regions": [
+    "head_face",
+    "hands_arms",
+    "torso",
+    "legs_feet",
+    "internal_visceral",
+    "hair_skin"
+  ],
+  "beats_path": "novels/salvatore-icewind-dale/beats.jsonl",
+  "books": [
+    "crystal_shard",
+    "halflings_gem",
+    "streams_of_silver"
+  ],
+  "active_kinds": [
+    "action",
+    "dialogue",
+    "interiority",
+    "description"
+  ],
+  "skipped_beats_or_outliers": 1,
+  "total_beats_used": 2469,
+  "per_book_per_kind_count": {
+    "crystal_shard/description": 130,
+    "crystal_shard/interiority": 177,
+    "crystal_shard/action": 308,
+    "crystal_shard/dialogue": 242,
+    "halflings_gem/description": 79,
+    "halflings_gem/interiority": 159,
+    "halflings_gem/dialogue": 279,
+    "halflings_gem/action": 309,
+    "streams_of_silver/description": 94,
+    "streams_of_silver/interiority": 162,
+    "streams_of_silver/dialogue": 256,
+    "streams_of_silver/action": 274
+  },
+  "per_book_per_kind_words": {
+    "crystal_shard/description": 13443,
+    "crystal_shard/interiority": 18782,
+    "crystal_shard/action": 32318,
+    "crystal_shard/dialogue": 25358,
+    "halflings_gem/description": 8527,
+    "halflings_gem/interiority": 16964,
+    "halflings_gem/dialogue": 29626,
+    "halflings_gem/action": 31774,
+    "streams_of_silver/description": 10592,
+    "streams_of_silver/interiority": 18058,
+    "streams_of_silver/dialogue": 27835,
+    "streams_of_silver/action": 29385
+  },
+  "mean_density_per_100w": {
+    "crystal_shard": {
+      "description": {
+        "head_face": 0.2942758710977456,
+        "hands_arms": 0.19595345581502352,
+        "torso": 0.08348913501930794,
+        "legs_feet": 0.08816209466207005,
+        "internal_visceral": 0.11661731911745113,
+        "hair_skin": 0.025143577258610734
+      },
+      "interiority": {
+        "head_face": 0.35790111305304706,
+        "hands_arms": 0.1199888214385584,
+        "torso": 0.030163856382964312,
+        "legs_feet": 0.053438225748615155,
+        "internal_visceral": 0.15136030887372265,
+        "hair_skin": 0.036665344063054425
+      },
+      "action": {
+        "head_face": 0.6412094116581126,
+        "hands_arms": 0.48682264647646145,
+        "torso": 0.23163213940712163,
+        "legs_feet": 0.22954440596329867,
+        "internal_visceral": 0.16133572613081515,
+        "hair_skin": 0.059057324670634334
+      },
+      "dialogue": {
+        "head_face": 0.5266036150608758,
+        "hands_arms": 0.29488056986924227,
+        "torso": 0.08249706814466863,
+        "legs_feet": 0.055797333669117655,
+        "internal_visceral": 0.133553060509097,
+        "hair_skin": 0.02867060042785092
+      }
+    },
+    "halflings_gem": {
+      "description": {
+        "head_face": 0.6563843315334051,
+        "hands_arms": 0.286977631760791,
+        "torso": 0.05020037264876375,
+        "legs_feet": 0.18908748835196681,
+        "internal_visceral": 0.04435842706750524,
+        "hair_skin": 0.04502927948389783
+      },
+      "interiority": {
+        "head_face": 0.5630747445635788,
+        "hands_arms": 0.3810525468246898,
+        "torso": 0.05914114787078278,
+        "legs_feet": 0.09205724852033932,
+        "internal_visceral": 0.19116407214560613,
+        "hair_skin": 0.0743659137841041
+      },
+      "dialogue": {
+        "head_face": 0.6877261048602247,
+        "hands_arms": 0.42852491659739717,
+        "torso": 0.08872222512101406,
+        "legs_feet": 0.073086172920152,
+        "internal_visceral": 0.11739690898675652,
+        "hair_skin": 0.04595270609596615
+      },
+      "action": {
+        "head_face": 0.7944091539014021,
+        "hands_arms": 0.7757917193751045,
+        "torso": 0.14938802323782235,
+        "legs_feet": 0.35938844637034506,
+        "internal_visceral": 0.12623245500064323,
+        "hair_skin": 0.08383687928496336
+      }
+    },
+    "streams_of_silver": {
+      "description": {
+        "head_face": 0.4077879598238995,
+        "hands_arms": 0.14818608792265844,
+        "torso": 0.042344104546096724,
+        "legs_feet": 0.16395754239431423,
+        "internal_visceral": 0.08981589533903307,
+        "hair_skin": 0.10126721952712152
+      },
+      "interiority": {
+        "head_face": 0.36756215714675755,
+        "hands_arms": 0.14371960706017708,
+        "torso": 0.017168165316313464,
+        "legs_feet": 0.09196932431855623,
+        "internal_visceral": 0.1580294746985508,
+        "hair_skin": 0.042665641925183385
+      },
+      "dialogue": {
+        "head_face": 0.5073350171587057,
+        "hands_arms": 0.30731009831185435,
+        "torso": 0.06165057770504798,
+        "legs_feet": 0.06504684351465997,
+        "internal_visceral": 0.15069668572860784,
+        "hair_skin": 0.04715826439611485
+      },
+      "action": {
+        "head_face": 0.6730031500398047,
+        "hands_arms": 0.52192281557396,
+        "torso": 0.1345374034109582,
+        "legs_feet": 0.27872823777983957,
+        "internal_visceral": 0.18591143352483316,
+        "hair_skin": 0.061886972238302106
+      }
+    }
+  },
+  "pooled_density_per_100w": {
+    "crystal_shard": {
+      "description": {
+        "head_face": 0.28267499814029606,
+        "hands_arms": 0.19340920925388677,
+        "torso": 0.08182697314587517,
+        "legs_feet": 0.08182697314587517,
+        "internal_visceral": 0.1115822361080116,
+        "hair_skin": 0.02231644722160232
+      },
+      "interiority": {
+        "head_face": 0.3514002768608242,
+        "hands_arms": 0.12245767223937813,
+        "torso": 0.03726972633372378,
+        "legs_feet": 0.05324246619103397,
+        "internal_visceral": 0.14907890533489512,
+        "hair_skin": 0.03726972633372378
+      },
+      "action": {
+        "head_face": 0.6405099325453307,
+        "hands_arms": 0.5012686428615633,
+        "torso": 0.2413515687851971,
+        "legs_feet": 0.2351630670214741,
+        "internal_visceral": 0.16090104585679807,
+        "hair_skin": 0.058790766755368526
+      },
+      "dialogue": {
+        "head_face": 0.5402634277151195,
+        "hands_arms": 0.295764650209007,
+        "torso": 0.08675763072797539,
+        "legs_feet": 0.0591529300418014,
+        "internal_visceral": 0.14196703210032338,
+        "hair_skin": 0.02760470068617399
+      }
+    },
+    "halflings_gem": {
+      "description": {
+        "head_face": 0.6684648762753607,
+        "hands_arms": 0.3049138032133224,
+        "torso": 0.04690981587897267,
+        "legs_feet": 0.19936671748563387,
+        "internal_visceral": 0.04690981587897267,
+        "hair_skin": 0.04690981587897267
+      },
+      "interiority": {
+        "head_face": 0.5541145956142419,
+        "hands_arms": 0.400848856401792,
+        "torso": 0.058948361235557654,
+        "legs_feet": 0.08842254185333648,
+        "internal_visceral": 0.18863475595378448,
+        "hair_skin": 0.07073803348266919
+      },
+      "dialogue": {
+        "head_face": 0.6953351785593735,
+        "hands_arms": 0.41855127253088503,
+        "torso": 0.09113616418011207,
+        "legs_feet": 0.07088368325119827,
+        "internal_visceral": 0.11476405859717816,
+        "hair_skin": 0.04388037534597988
+      },
+      "action": {
+        "head_face": 0.8119846415308114,
+        "hands_arms": 0.7899540504815258,
+        "torso": 0.15736136463775413,
+        "legs_feet": 0.3713728205450998,
+        "internal_visceral": 0.12274186441744823,
+        "hair_skin": 0.08812236419714231
+      }
+    },
+    "streams_of_silver": {
+      "description": {
+        "head_face": 0.4342900302114804,
+        "hands_arms": 0.16049848942598188,
+        "torso": 0.04720543806646526,
+        "legs_feet": 0.17938066465256797,
+        "internal_visceral": 0.09441087613293052,
+        "hair_skin": 0.11329305135951662
+      },
+      "interiority": {
+        "head_face": 0.36548897995348323,
+        "hands_arms": 0.13290508361944844,
+        "torso": 0.016613135452431056,
+        "legs_feet": 0.09414110089710931,
+        "internal_visceral": 0.16059364270683354,
+        "hair_skin": 0.044301694539816146
+      },
+      "dialogue": {
+        "head_face": 0.5065564936231364,
+        "hands_arms": 0.31614873360876594,
+        "torso": 0.061074187174420695,
+        "legs_feet": 0.061074187174420695,
+        "internal_visceral": 0.1544817675588288,
+        "hair_skin": 0.050296389437758215
+      },
+      "action": {
+        "head_face": 0.6840224604389995,
+        "hands_arms": 0.5410923940786115,
+        "torso": 0.13272077590607453,
+        "legs_feet": 0.29606942317508933,
+        "internal_visceral": 0.1905734218138506,
+        "hair_skin": 0.06465883954398503
+      }
+    }
+  },
+  "rankings": {
+    "crystal_shard": {
+      "description": [
+        {
+          "region": "head_face",
+          "mean_density_per_100w": 0.2943
+        },
+        {
+          "region": "hands_arms",
+          "mean_density_per_100w": 0.196
+        },
+        {
+          "region": "internal_visceral",
+          "mean_density_per_100w": 0.1166
+        },
+        {
+          "region": "legs_feet",
+          "mean_density_per_100w": 0.0882
+        },
+        {
+          "region": "torso",
+          "mean_density_per_100w": 0.0835
+        },
+        {
+          "region": "hair_skin",
+          "mean_density_per_100w": 0.0251
+        }
+      ],
+      "interiority": [
+        {
+          "region": "head_face",
+          "mean_density_per_100w": 0.3579
+        },
+        {
+          "region": "internal_visceral",
+          "mean_density_per_100w": 0.1514
+        },
+        {
+          "region": "hands_arms",
+          "mean_density_per_100w": 0.12
+        },
+        {
+          "region": "legs_feet",
+          "mean_density_per_100w": 0.0534
+        },
+        {
+          "region": "hair_skin",
+          "mean_density_per_100w": 0.0367
+        },
+        {
+          "region": "torso",
+          "mean_density_per_100w": 0.0302
+        }
+      ],
+      "action": [
+        {
+          "region": "head_face",
+          "mean_density_per_100w": 0.6412
+        },
+        {
+          "region": "hands_arms",
+          "mean_density_per_100w": 0.4868
+        },
+        {
+          "region": "torso",
+          "mean_density_per_100w": 0.2316
+        },
+        {
+          "region": "legs_feet",
+          "mean_density_per_100w": 0.2295
+        },
+        {
+          "region": "internal_visceral",
+          "mean_density_per_100w": 0.1613
+        },
+        {
+          "region": "hair_skin",
+          "mean_density_per_100w": 0.0591
+        }
+      ],
+      "dialogue": [
+        {
+          "region": "head_face",
+          "mean_density_per_100w": 0.5266
+        },
+        {
+          "region": "hands_arms",
+          "mean_density_per_100w": 0.2949
+        },
+        {
+          "region": "internal_visceral",
+          "mean_density_per_100w": 0.1336
+        },
+        {
+          "region": "torso",
+          "mean_density_per_100w": 0.0825
+        },
+        {
+          "region": "legs_feet",
+          "mean_density_per_100w": 0.0558
+        },
+        {
+          "region": "hair_skin",
+          "mean_density_per_100w": 0.0287
+        }
+      ]
+    },
+    "halflings_gem": {
+      "description": [
+        {
+          "region": "head_face",
+          "mean_density_per_100w": 0.6564
+        },
+        {
+          "region": "hands_arms",
+          "mean_density_per_100w": 0.287
+        },
+        {
+          "region": "legs_feet",
+          "mean_density_per_100w": 0.1891
+        },
+        {
+          "region": "torso",
+          "mean_density_per_100w": 0.0502
+        },
+        {
+          "region": "hair_skin",
+          "mean_density_per_100w": 0.045
+        },
+        {
+          "region": "internal_visceral",
+          "mean_density_per_100w": 0.0444
+        }
+      ],
+      "interiority": [
+        {
+          "region": "head_face",
+          "mean_density_per_100w": 0.5631
+        },
+        {
+          "region": "hands_arms",
+          "mean_density_per_100w": 0.3811
+        },
+        {
+          "region": "internal_visceral",
+          "mean_density_per_100w": 0.1912
+        },
+        {
+          "region": "legs_feet",
+          "mean_density_per_100w": 0.0921
+        },
+        {
+          "region": "hair_skin",
+          "mean_density_per_100w": 0.0744
+        },
+        {
+          "region": "torso",
+          "mean_density_per_100w": 0.0591
+        }
+      ],
+      "dialogue": [
+        {
+          "region": "head_face",
+          "mean_density_per_100w": 0.6877
+        },
+        {
+          "region": "hands_arms",
+          "mean_density_per_100w": 0.4285
+        },
+        {
+          "region": "internal_visceral",
+          "mean_density_per_100w": 0.1174
+        },
+        {
+          "region": "torso",
+          "mean_density_per_100w": 0.0887
+        },
+        {
+          "region": "legs_feet",
+          "mean_density_per_100w": 0.0731
+        },
+        {
+          "region": "hair_skin",
+          "mean_density_per_100w": 0.046
+        }
+      ],
+      "action": [
+        {
+          "region": "head_face",
+          "mean_density_per_100w": 0.7944
+        },
+        {
+          "region": "hands_arms",
+          "mean_density_per_100w": 0.7758
+        },
+        {
+          "region": "legs_feet",
+          "mean_density_per_100w": 0.3594
+        },
+        {
+          "region": "torso",
+          "mean_density_per_100w": 0.1494
+        },
+        {
+          "region": "internal_visceral",
+          "mean_density_per_100w": 0.1262
+        },
+        {
+          "region": "hair_skin",
+          "mean_density_per_100w": 0.0838
+        }
+      ]
+    },
+    "streams_of_silver": {
+      "description": [
+        {
+          "region": "head_face",
+          "mean_density_per_100w": 0.4078
+        },
+        {
+          "region": "legs_feet",
+          "mean_density_per_100w": 0.164
+        },
+        {
+          "region": "hands_arms",
+          "mean_density_per_100w": 0.1482
+        },
+        {
+          "region": "hair_skin",
+          "mean_density_per_100w": 0.1013
+        },
+        {
+          "region": "internal_visceral",
+          "mean_density_per_100w": 0.0898
+        },
+        {
+          "region": "torso",
+          "mean_density_per_100w": 0.0423
+        }
+      ],
+      "interiority": [
+        {
+          "region": "head_face",
+          "mean_density_per_100w": 0.3676
+        },
+        {
+          "region": "internal_visceral",
+          "mean_density_per_100w": 0.158
+        },
+        {
+          "region": "hands_arms",
+          "mean_density_per_100w": 0.1437
+        },
+        {
+          "region": "legs_feet",
+          "mean_density_per_100w": 0.092
+        },
+        {
+          "region": "hair_skin",
+          "mean_density_per_100w": 0.0427
+        },
+        {
+          "region": "torso",
+          "mean_density_per_100w": 0.0172
+        }
+      ],
+      "dialogue": [
+        {
+          "region": "head_face",
+          "mean_density_per_100w": 0.5073
+        },
+        {
+          "region": "hands_arms",
+          "mean_density_per_100w": 0.3073
+        },
+        {
+          "region": "internal_visceral",
+          "mean_density_per_100w": 0.1507
+        },
+        {
+          "region": "legs_feet",
+          "mean_density_per_100w": 0.065
+        },
+        {
+          "region": "torso",
+          "mean_density_per_100w": 0.0617
+        },
+        {
+          "region": "hair_skin",
+          "mean_density_per_100w": 0.0472
+        }
+      ],
+      "action": [
+        {
+          "region": "head_face",
+          "mean_density_per_100w": 0.673
+        },
+        {
+          "region": "hands_arms",
+          "mean_density_per_100w": 0.5219
+        },
+        {
+          "region": "legs_feet",
+          "mean_density_per_100w": 0.2787
+        },
+        {
+          "region": "internal_visceral",
+          "mean_density_per_100w": 0.1859
+        },
+        {
+          "region": "torso",
+          "mean_density_per_100w": 0.1345
+        },
+        {
+          "region": "hair_skin",
+          "mean_density_per_100w": 0.0619
+        }
+      ]
+    }
+  },
+  "per_kind_verdict": {
+    "action": {
+      "per_book_top2": {
+        "crystal_shard": [
+          "head_face",
+          "hands_arms"
+        ],
+        "halflings_gem": [
+          "head_face",
+          "hands_arms"
+        ],
+        "streams_of_silver": [
+          "head_face",
+          "hands_arms"
+        ]
+      },
+      "per_book_top3": {
+        "crystal_shard": [
+          "head_face",
+          "hands_arms",
+          "torso"
+        ],
+        "halflings_gem": [
+          "head_face",
+          "hands_arms",
+          "legs_feet"
+        ],
+        "streams_of_silver": [
+          "head_face",
+          "hands_arms",
+          "legs_feet"
+        ]
+      },
+      "books_with_matching_top2": 3,
+      "books_with_matching_top1": 3,
+      "verdict": "PASS",
+      "per_book_top1_density_per_100w": {
+        "crystal_shard": 0.6412,
+        "halflings_gem": 0.7944,
+        "streams_of_silver": 0.673
+      },
+      "top1_density_spread_pct": 21.8,
+      "top1_density_spread_within_25pct": true
+    },
+    "dialogue": {
+      "per_book_top2": {
+        "crystal_shard": [
+          "head_face",
+          "hands_arms"
+        ],
+        "halflings_gem": [
+          "head_face",
+          "hands_arms"
+        ],
+        "streams_of_silver": [
+          "head_face",
+          "hands_arms"
+        ]
+      },
+      "per_book_top3": {
+        "crystal_shard": [
+          "head_face",
+          "hands_arms",
+          "internal_visceral"
+        ],
+        "halflings_gem": [
+          "head_face",
+          "hands_arms",
+          "internal_visceral"
+        ],
+        "streams_of_silver": [
+          "head_face",
+          "hands_arms",
+          "internal_visceral"
+        ]
+      },
+      "books_with_matching_top2": 3,
+      "books_with_matching_top1": 3,
+      "verdict": "PASS",
+      "per_book_top1_density_per_100w": {
+        "crystal_shard": 0.5266,
+        "halflings_gem": 0.6877,
+        "streams_of_silver": 0.5073
+      },
+      "top1_density_spread_pct": 31.4,
+      "top1_density_spread_within_25pct": false
+    },
+    "interiority": {
+      "per_book_top2": {
+        "crystal_shard": [
+          "head_face",
+          "internal_visceral"
+        ],
+        "halflings_gem": [
+          "head_face",
+          "hands_arms"
+        ],
+        "streams_of_silver": [
+          "head_face",
+          "internal_visceral"
+        ]
+      },
+      "per_book_top3": {
+        "crystal_shard": [
+          "head_face",
+          "internal_visceral",
+          "hands_arms"
+        ],
+        "halflings_gem": [
+          "head_face",
+          "hands_arms",
+          "internal_visceral"
+        ],
+        "streams_of_silver": [
+          "head_face",
+          "internal_visceral",
+          "hands_arms"
+        ]
+      },
+      "books_with_matching_top2": 2,
+      "books_with_matching_top1": 3,
+      "verdict": "PASS_PARTIAL",
+      "per_book_top1_density_per_100w": {
+        "crystal_shard": 0.3579,
+        "halflings_gem": 0.5631,
+        "streams_of_silver": 0.3676
+      },
+      "top1_density_spread_pct": 47.8,
+      "top1_density_spread_within_25pct": false
+    },
+    "description": {
+      "per_book_top2": {
+        "crystal_shard": [
+          "head_face",
+          "hands_arms"
+        ],
+        "halflings_gem": [
+          "head_face",
+          "hands_arms"
+        ],
+        "streams_of_silver": [
+          "head_face",
+          "legs_feet"
+        ]
+      },
+      "per_book_top3": {
+        "crystal_shard": [
+          "head_face",
+          "hands_arms",
+          "internal_visceral"
+        ],
+        "halflings_gem": [
+          "head_face",
+          "hands_arms",
+          "legs_feet"
+        ],
+        "streams_of_silver": [
+          "head_face",
+          "legs_feet",
+          "hands_arms"
+        ]
+      },
+      "books_with_matching_top2": 2,
+      "books_with_matching_top1": 3,
+      "verdict": "PASS_PARTIAL",
+      "per_book_top1_density_per_100w": {
+        "crystal_shard": 0.2943,
+        "halflings_gem": 0.6564,
+        "streams_of_silver": 0.4078
+      },
+      "top1_density_spread_pct": 80.0,
+      "top1_density_spread_within_25pct": false
+    }
+  },
+  "top10_per_kind_aggregate": {
+    "action": [
+      {
+        "term": "head",
+        "region": "head_face",
+        "hits_total": 176,
+        "hits_per_book": {
+          "crystal_shard": 62,
+          "halflings_gem": 66,
+          "streams_of_silver": 48
+        }
+      },
+      {
+        "term": "face",
+        "region": "head_face",
+        "hits_total": 171,
+        "hits_per_book": {
+          "crystal_shard": 46,
+          "halflings_gem": 69,
+          "streams_of_silver": 56
+        }
+      },
+      {
+        "term": "eyes",
+        "region": "head_face",
+        "hits_total": 158,
+        "hits_per_book": {
+          "crystal_shard": 46,
+          "halflings_gem": 64,
+          "streams_of_silver": 48
+        }
+      },
+      {
+        "term": "hand",
+        "region": "hands_arms",
+        "hits_total": 133,
+        "hits_per_book": {
+          "crystal_shard": 37,
+          "halflings_gem": 56,
+          "streams_of_silver": 40
+        }
+      },
+      {
+        "term": "feet",
+        "region": "legs_feet",
+        "hits_total": 115,
+        "hits_per_book": {
+          "crystal_shard": 26,
+          "halflings_gem": 48,
+          "streams_of_silver": 41
+        }
+      },
+      {
+        "term": "hands",
+        "region": "hands_arms",
+        "hits_total": 105,
+        "hits_per_book": {
+          "crystal_shard": 32,
+          "halflings_gem": 39,
+          "streams_of_silver": 34
+        }
+      },
+      {
+        "term": "arm",
+        "region": "hands_arms",
+        "hits_total": 80,
+        "hits_per_book": {
+          "crystal_shard": 18,
+          "halflings_gem": 48,
+          "streams_of_silver": 14
+        }
+      },
+      {
+        "term": "blood",
+        "region": "internal_visceral",
+        "hits_total": 70,
+        "hits_per_book": {
+          "crystal_shard": 31,
+          "halflings_gem": 15,
+          "streams_of_silver": 24
+        }
+      },
+      {
+        "term": "shoulder",
+        "region": "hands_arms",
+        "hits_total": 69,
+        "hits_per_book": {
+          "crystal_shard": 20,
+          "halflings_gem": 35,
+          "streams_of_silver": 14
+        }
+      },
+      {
+        "term": "arms",
+        "region": "hands_arms",
+        "hits_total": 63,
+        "hits_per_book": {
+          "crystal_shard": 16,
+          "halflings_gem": 22,
+          "streams_of_silver": 25
+        }
+      }
+    ],
+    "dialogue": [
+      {
+        "term": "face",
+        "region": "head_face",
+        "hits_total": 123,
+        "hits_per_book": {
+          "crystal_shard": 35,
+          "halflings_gem": 55,
+          "streams_of_silver": 33
+        }
+      },
+      {
+        "term": "eyes",
+        "region": "head_face",
+        "hits_total": 121,
+        "hits_per_book": {
+          "crystal_shard": 37,
+          "halflings_gem": 55,
+          "streams_of_silver": 29
+        }
+      },
+      {
+        "term": "head",
+        "region": "head_face",
+        "hits_total": 107,
+        "hits_per_book": {
+          "crystal_shard": 26,
+          "halflings_gem": 48,
+          "streams_of_silver": 33
+        }
+      },
+      {
+        "term": "hand",
+        "region": "hands_arms",
+        "hits_total": 83,
+        "hits_per_book": {
+          "crystal_shard": 17,
+          "halflings_gem": 35,
+          "streams_of_silver": 31
+        }
+      },
+      {
+        "term": "hands",
+        "region": "hands_arms",
+        "hits_total": 47,
+        "hits_per_book": {
+          "crystal_shard": 12,
+          "halflings_gem": 17,
+          "streams_of_silver": 18
+        }
+      },
+      {
+        "term": "shoulder",
+        "region": "hands_arms",
+        "hits_total": 46,
+        "hits_per_book": {
+          "crystal_shard": 12,
+          "halflings_gem": 24,
+          "streams_of_silver": 10
+        }
+      },
+      {
+        "term": "mind",
+        "region": "internal_visceral",
+        "hits_total": 38,
+        "hits_per_book": {
+          "crystal_shard": 13,
+          "halflings_gem": 7,
+          "streams_of_silver": 18
+        }
+      },
+      {
+        "term": "heart",
+        "region": "internal_visceral",
+        "hits_total": 30,
+        "hits_per_book": {
+          "crystal_shard": 7,
+          "halflings_gem": 15,
+          "streams_of_silver": 8
+        }
+      },
+      {
+        "term": "eye",
+        "region": "head_face",
+        "hits_total": 28,
+        "hits_per_book": {
+          "crystal_shard": 12,
+          "halflings_gem": 6,
+          "streams_of_silver": 10
+        }
+      },
+      {
+        "term": "arms",
+        "region": "hands_arms",
+        "hits_total": 24,
+        "hits_per_book": {
+          "crystal_shard": 7,
+          "halflings_gem": 11,
+          "streams_of_silver": 6
+        }
+      }
+    ],
+    "interiority": [
+      {
+        "term": "eyes",
+        "region": "head_face",
+        "hits_total": 87,
+        "hits_per_book": {
+          "crystal_shard": 24,
+          "halflings_gem": 33,
+          "streams_of_silver": 30
+        }
+      },
+      {
+        "term": "face",
+        "region": "head_face",
+        "hits_total": 50,
+        "hits_per_book": {
+          "crystal_shard": 17,
+          "halflings_gem": 17,
+          "streams_of_silver": 16
+        }
+      },
+      {
+        "term": "head",
+        "region": "head_face",
+        "hits_total": 38,
+        "hits_per_book": {
+          "crystal_shard": 11,
+          "halflings_gem": 20,
+          "streams_of_silver": 7
+        }
+      },
+      {
+        "term": "mind",
+        "region": "internal_visceral",
+        "hits_total": 33,
+        "hits_per_book": {
+          "crystal_shard": 14,
+          "halflings_gem": 13,
+          "streams_of_silver": 6
+        }
+      },
+      {
+        "term": "hands",
+        "region": "hands_arms",
+        "hits_total": 29,
+        "hits_per_book": {
+          "crystal_shard": 5,
+          "halflings_gem": 18,
+          "streams_of_silver": 6
+        }
+      },
+      {
+        "term": "hand",
+        "region": "hands_arms",
+        "hits_total": 23,
+        "hits_per_book": {
+          "crystal_shard": 3,
+          "halflings_gem": 13,
+          "streams_of_silver": 7
+        }
+      },
+      {
+        "term": "heart",
+        "region": "internal_visceral",
+        "hits_total": 23,
+        "hits_per_book": {
+          "crystal_shard": 6,
+          "halflings_gem": 11,
+          "streams_of_silver": 6
+        }
+      },
+      {
+        "term": "shoulder",
+        "region": "hands_arms",
+        "hits_total": 15,
+        "hits_per_book": {
+          "crystal_shard": 4,
+          "halflings_gem": 8,
+          "streams_of_silver": 3
+        }
+      },
+      {
+        "term": "blood",
+        "region": "internal_visceral",
+        "hits_total": 14,
+        "hits_per_book": {
+          "crystal_shard": 7,
+          "halflings_gem": 3,
+          "streams_of_silver": 4
+        }
+      },
+      {
+        "term": "eye",
+        "region": "head_face",
+        "hits_total": 14,
+        "hits_per_book": {
+          "crystal_shard": 4,
+          "halflings_gem": 5,
+          "streams_of_silver": 5
+        }
+      }
+    ],
+    "description": [
+      {
+        "term": "eyes",
+        "region": "head_face",
+        "hits_total": 45,
+        "hits_per_book": {
+          "crystal_shard": 12,
+          "halflings_gem": 19,
+          "streams_of_silver": 14
+        }
+      },
+      {
+        "term": "face",
+        "region": "head_face",
+        "hits_total": 32,
+        "hits_per_book": {
+          "crystal_shard": 8,
+          "halflings_gem": 9,
+          "streams_of_silver": 15
+        }
+      },
+      {
+        "term": "head",
+        "region": "head_face",
+        "hits_total": 25,
+        "hits_per_book": {
+          "crystal_shard": 9,
+          "halflings_gem": 8,
+          "streams_of_silver": 8
+        }
+      },
+      {
+        "term": "feet",
+        "region": "legs_feet",
+        "hits_total": 22,
+        "hits_per_book": {
+          "crystal_shard": 4,
+          "halflings_gem": 9,
+          "streams_of_silver": 9
+        }
+      },
+      {
+        "term": "hand",
+        "region": "hands_arms",
+        "hits_total": 13,
+        "hits_per_book": {
+          "crystal_shard": 2,
+          "halflings_gem": 7,
+          "streams_of_silver": 4
+        }
+      },
+      {
+        "term": "hands",
+        "region": "hands_arms",
+        "hits_total": 11,
+        "hits_per_book": {
+          "crystal_shard": 5,
+          "halflings_gem": 3,
+          "streams_of_silver": 3
+        }
+      },
+      {
+        "term": "eye",
+        "region": "head_face",
+        "hits_total": 11,
+        "hits_per_book": {
+          "crystal_shard": 5,
+          "halflings_gem": 3,
+          "streams_of_silver": 3
+        }
+      },
+      {
+        "term": "shoulders",
+        "region": "hands_arms",
+        "hits_total": 11,
+        "hits_per_book": {
+          "crystal_shard": 4,
+          "halflings_gem": 5,
+          "streams_of_silver": 2
+        }
+      },
+      {
+        "term": "arm",
+        "region": "hands_arms",
+        "hits_total": 10,
+        "hits_per_book": {
+          "crystal_shard": 5,
+          "halflings_gem": 2,
+          "streams_of_silver": 3
+        }
+      },
+      {
+        "term": "arms",
+        "region": "hands_arms",
+        "hits_total": 10,
+        "hits_per_book": {
+          "crystal_shard": 2,
+          "halflings_gem": 5,
+          "streams_of_silver": 3
+        }
+      }
+    ]
+  },
+  "top10_overlap": {
+    "action": {
+      "per_book_top10": {
+        "crystal_shard": [
+          "head",
+          "eyes",
+          "face",
+          "hand",
+          "hands",
+          "blood",
+          "chest",
+          "feet",
+          "neck",
+          "shoulder"
+        ],
+        "halflings_gem": [
+          "face",
+          "head",
+          "eyes",
+          "hand",
+          "feet",
+          "arm",
+          "hands",
+          "shoulder",
+          "arms",
+          "foot"
+        ],
+        "streams_of_silver": [
+          "face",
+          "head",
+          "eyes",
+          "feet",
+          "hand",
+          "hands",
+          "arms",
+          "blood",
+          "eye",
+          "shoulder"
+        ]
+      },
+      "triple_intersection": [
+        "eyes",
+        "face",
+        "feet",
+        "hand",
+        "hands",
+        "head",
+        "shoulder"
+      ],
+      "triple_intersection_size": 7,
+      "pair_overlap_sizes": {
+        "crystal_shard^halflings_gem": 7,
+        "crystal_shard^streams_of_silver": 8,
+        "halflings_gem^streams_of_silver": 8
+      }
+    },
+    "dialogue": {
+      "per_book_top10": {
+        "crystal_shard": [
+          "eyes",
+          "face",
+          "head",
+          "hand",
+          "mind",
+          "hands",
+          "eye",
+          "shoulder",
+          "blood",
+          "tongue"
+        ],
+        "halflings_gem": [
+          "face",
+          "eyes",
+          "head",
+          "hand",
+          "shoulder",
+          "hands",
+          "heart",
+          "chest",
+          "arms",
+          "fingers"
+        ],
+        "streams_of_silver": [
+          "head",
+          "face",
+          "hand",
+          "eyes",
+          "hands",
+          "mind",
+          "feet",
+          "shoulder",
+          "eye",
+          "heart"
+        ]
+      },
+      "triple_intersection": [
+        "eyes",
+        "face",
+        "hand",
+        "hands",
+        "head",
+        "shoulder"
+      ],
+      "triple_intersection_size": 6,
+      "pair_overlap_sizes": {
+        "crystal_shard^halflings_gem": 6,
+        "crystal_shard^streams_of_silver": 8,
+        "halflings_gem^streams_of_silver": 7
+      }
+    },
+    "interiority": {
+      "per_book_top10": {
+        "crystal_shard": [
+          "eyes",
+          "face",
+          "mind",
+          "head",
+          "blood",
+          "heart",
+          "hands",
+          "legs",
+          "shoulder",
+          "eye"
+        ],
+        "halflings_gem": [
+          "eyes",
+          "head",
+          "hands",
+          "face",
+          "hand",
+          "mind",
+          "heart",
+          "arm",
+          "shoulder",
+          "arms"
+        ],
+        "streams_of_silver": [
+          "eyes",
+          "face",
+          "spirit",
+          "head",
+          "hand",
+          "feet",
+          "hands",
+          "mind",
+          "heart",
+          "eye"
+        ]
+      },
+      "triple_intersection": [
+        "eyes",
+        "face",
+        "hands",
+        "head",
+        "heart",
+        "mind"
+      ],
+      "triple_intersection_size": 6,
+      "pair_overlap_sizes": {
+        "crystal_shard^halflings_gem": 7,
+        "crystal_shard^streams_of_silver": 7,
+        "halflings_gem^streams_of_silver": 7
+      }
+    },
+    "description": {
+      "per_book_top10": {
+        "crystal_shard": [
+          "eyes",
+          "head",
+          "face",
+          "mind",
+          "hands",
+          "eye",
+          "fingers",
+          "arm",
+          "chest",
+          "feet"
+        ],
+        "halflings_gem": [
+          "eyes",
+          "face",
+          "feet",
+          "head",
+          "hand",
+          "shoulders",
+          "arms",
+          "chin",
+          "teeth",
+          "ears"
+        ],
+        "streams_of_silver": [
+          "face",
+          "eyes",
+          "feet",
+          "head",
+          "skin",
+          "hair",
+          "hand",
+          "beard",
+          "spirit",
+          "legs"
+        ]
+      },
+      "triple_intersection": [
+        "eyes",
+        "face",
+        "feet",
+        "head"
+      ],
+      "triple_intersection_size": 4,
+      "pair_overlap_sizes": {
+        "crystal_shard^halflings_gem": 4,
+        "crystal_shard^streams_of_silver": 4,
+        "halflings_gem^streams_of_silver": 5
+      }
+    }
+  },
+  "per_book_overall_density_stats": {
+    "crystal_shard": {
+      "n_beats": 857,
+      "mean_density_per_100w": 1.244,
+      "median_density_per_100w": 0.926,
+      "p10": 0.0,
+      "p90": 3.419,
+      "max": 10.588
+    },
+    "halflings_gem": {
+      "n_beats": 826,
+      "mean_density_per_100w": 1.727,
+      "median_density_per_100w": 1.25,
+      "p10": 0.0,
+      "p90": 4.098,
+      "max": 10.638
+    },
+    "streams_of_silver": {
+      "n_beats": 786,
+      "mean_density_per_100w": 1.301,
+      "median_density_per_100w": 0.926,
+      "p10": 0.0,
+      "p90": 3.371,
+      "max": 9.259
+    }
+  },
+  "overall_density_spread_pct": 33.9,
+  "overall_density_spread_within_25pct": false,
+  "per_book_per_kind_overall_density_per_100w": {
+    "crystal_shard": {
+      "description": 0.804,
+      "interiority": 0.75,
+      "action": 1.81,
+      "dialogue": 1.122
+    },
+    "halflings_gem": {
+      "description": 1.272,
+      "interiority": 1.361,
+      "dialogue": 1.441,
+      "action": 2.289
+    },
+    "streams_of_silver": {
+      "description": 0.953,
+      "interiority": 0.821,
+      "dialogue": 1.139,
+      "action": 1.856
+    }
+  },
+  "gate_verdict": "PASS_PARTIAL_TOP1"
+}

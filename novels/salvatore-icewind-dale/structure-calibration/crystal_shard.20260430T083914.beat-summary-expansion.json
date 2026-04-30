@@ -1,0 +1,868 @@
+{
+  "computedAt": "2026-04-30T12:39:14.457548Z",
+  "pattern": "P37",
+  "name": "Beat-to-summary expansion ratio",
+  "description": "For each beat in the IWD corpus, compute expansion = text_words / summary_words. Calibrates how much the writer's job is 'expansion of brief' \u2014 directly relevant to the harness's writer-prompt expectations and the planner's per-beat targetWords floor.",
+  "rationale": "The harness sends the writer a beat brief (~the 'summary' field shape) and expects ~100w of prose back per beat. If Salvatore's actual brief\u2192prose expansion is e.g. 4\u00d7, but our planner emits briefs at ~30w expecting 100w (3.3\u00d7), we may be under-briefing \u2014 or over-briefing if the corpus expansion is closer to 6\u00d7. This pattern grounds those expectations in real published prose.",
+  "methodology": "Pure compute on novels/salvatore-icewind-dale/beats.jsonl (n=2470 beats across 3 books, produced by the corpus pipeline scenes\u2192beats\u2192briefs stages). Word counts are non-whitespace tokens (uniform definition for numerator and denominator). The single 'stakes_recalibration' kind beat is excluded from per-kind aggregates (n=1, not a category) but kept in overall and per-book aggregates. Distribution shape inspected via 14-bin global histogram + a 0.5-step fine histogram in the dense [1.5, 10.0] region with local-maxima detection.",
+  "n_total": 2470,
+  "n_per_book": {
+    "crystal_shard": 858,
+    "halflings_gem": 826,
+    "streams_of_silver": 786
+  },
+  "overall": {
+    "n": 2470,
+    "mean": 5.653,
+    "median": 5.193,
+    "p25": 3.864,
+    "p75": 6.86,
+    "p90": 8.792,
+    "min": 1.2,
+    "max": 27.375,
+    "stdev": 2.585
+  },
+  "per_book": {
+    "crystal_shard": {
+      "n": 858,
+      "mean": 5.409,
+      "median": 4.952,
+      "p25": 3.812,
+      "p75": 6.464,
+      "p90": 8.151,
+      "min": 1.2,
+      "max": 18.263,
+      "stdev": 2.309
+    },
+    "halflings_gem": {
+      "n": 826,
+      "mean": 5.286,
+      "median": 5.0,
+      "p25": 3.686,
+      "p75": 6.352,
+      "p90": 8.07,
+      "min": 1.458,
+      "max": 20.35,
+      "stdev": 2.219
+    },
+    "streams_of_silver": {
+      "n": 786,
+      "mean": 6.306,
+      "median": 5.69,
+      "p25": 4.223,
+      "p75": 7.625,
+      "p90": 9.849,
+      "min": 1.292,
+      "max": 27.375,
+      "stdev": 3.062
+    }
+  },
+  "per_kind_overall": {
+    "description": {
+      "n": 303,
+      "mean": 5.638,
+      "median": 5.316,
+      "p25": 4.073,
+      "p75": 6.841,
+      "p90": 8.208,
+      "min": 1.2,
+      "max": 13.368,
+      "stdev": 2.059
+    },
+    "interiority": {
+      "n": 498,
+      "mean": 5.432,
+      "median": 4.976,
+      "p25": 3.828,
+      "p75": 6.648,
+      "p90": 8.418,
+      "min": 1.292,
+      "max": 16.789,
+      "stdev": 2.239
+    },
+    "action": {
+      "n": 891,
+      "mean": 5.667,
+      "median": 5.273,
+      "p25": 3.895,
+      "p75": 6.756,
+      "p90": 8.909,
+      "min": 1.458,
+      "max": 22.895,
+      "stdev": 2.541
+    },
+    "dialogue": {
+      "n": 777,
+      "mean": 5.79,
+      "median": 5.167,
+      "p25": 3.778,
+      "p75": 7.067,
+      "p90": 9.51,
+      "min": 1.375,
+      "max": 27.375,
+      "stdev": 2.985
+    }
+  },
+  "per_book_per_kind": {
+    "crystal_shard": {
+      "dialogue": {
+        "n": 242,
+        "mean": 5.387,
+        "median": 4.778,
+        "p25": 3.582,
+        "p75": 6.528,
+        "p90": 8.823,
+        "min": 1.375,
+        "max": 18.263,
+        "stdev": 2.651
+      },
+      "description": {
+        "n": 130,
+        "mean": 5.476,
+        "median": 5.131,
+        "p25": 4.091,
+        "p75": 6.332,
+        "p90": 7.973,
+        "min": 1.2,
+        "max": 13.368,
+        "stdev": 2.062
+      },
+      "interiority": {
+        "n": 177,
+        "mean": 5.368,
+        "median": 4.821,
+        "p25": 3.667,
+        "p75": 6.48,
+        "p90": 7.795,
+        "min": 1.704,
+        "max": 16.789,
+        "stdev": 2.332
+      },
+      "action": {
+        "n": 308,
+        "mean": 5.431,
+        "median": 5.073,
+        "p25": 3.986,
+        "p75": 6.491,
+        "p90": 8.033,
+        "min": 1.789,
+        "max": 14.545,
+        "stdev": 2.093
+      }
+    },
+    "halflings_gem": {
+      "dialogue": {
+        "n": 279,
+        "mean": 5.406,
+        "median": 5.0,
+        "p25": 3.62,
+        "p75": 6.595,
+        "p90": 8.527,
+        "min": 1.52,
+        "max": 20.35,
+        "stdev": 2.513
+      },
+      "description": {
+        "n": 79,
+        "mean": 5.513,
+        "median": 5.2,
+        "p25": 3.766,
+        "p75": 6.864,
+        "p90": 9.207,
+        "min": 2.259,
+        "max": 11.2,
+        "stdev": 2.183
+      },
+      "interiority": {
+        "n": 159,
+        "mean": 5.063,
+        "median": 4.829,
+        "p25": 3.75,
+        "p75": 6.021,
+        "p90": 7.554,
+        "min": 1.591,
+        "max": 11.615,
+        "stdev": 1.819
+      },
+      "action": {
+        "n": 309,
+        "mean": 5.235,
+        "median": 5.043,
+        "p25": 3.696,
+        "p75": 6.19,
+        "p90": 7.708,
+        "min": 1.458,
+        "max": 14.812,
+        "stdev": 2.118
+      }
+    },
+    "streams_of_silver": {
+      "dialogue": {
+        "n": 256,
+        "mean": 6.589,
+        "median": 5.615,
+        "p25": 4.242,
+        "p75": 7.909,
+        "p90": 10.527,
+        "min": 1.522,
+        "max": 27.375,
+        "stdev": 3.546
+      },
+      "description": {
+        "n": 94,
+        "mean": 5.967,
+        "median": 5.71,
+        "p25": 4.635,
+        "p75": 7.436,
+        "p90": 8.267,
+        "min": 2.375,
+        "max": 10.818,
+        "stdev": 1.904
+      },
+      "interiority": {
+        "n": 162,
+        "mean": 5.863,
+        "median": 5.454,
+        "p25": 4.009,
+        "p75": 7.604,
+        "p90": 8.957,
+        "min": 1.292,
+        "max": 13.0,
+        "stdev": 2.429
+      },
+      "action": {
+        "n": 274,
+        "mean": 6.419,
+        "median": 5.871,
+        "p25": 4.178,
+        "p75": 7.648,
+        "p90": 10.002,
+        "min": 1.9,
+        "max": 22.895,
+        "stdev": 3.19
+      }
+    }
+  },
+  "cross_book_kind_means": {
+    "crystal_shard": {
+      "dialogue": 5.387,
+      "description": 5.476,
+      "interiority": 5.368,
+      "action": 5.431
+    },
+    "halflings_gem": {
+      "dialogue": 5.406,
+      "description": 5.513,
+      "interiority": 5.063,
+      "action": 5.235
+    },
+    "streams_of_silver": {
+      "dialogue": 6.589,
+      "description": 5.967,
+      "interiority": 5.863,
+      "action": 6.419
+    }
+  },
+  "kind_rank_per_book": {
+    "crystal_shard": [
+      "description",
+      "action",
+      "dialogue",
+      "interiority"
+    ],
+    "halflings_gem": [
+      "description",
+      "dialogue",
+      "action",
+      "interiority"
+    ],
+    "streams_of_silver": [
+      "dialogue",
+      "action",
+      "description",
+      "interiority"
+    ]
+  },
+  "kind_rank_reproducible_all_books": false,
+  "kind_rank_reproducible_top_kind": false,
+  "kind_rank_reproducible_bottom_kind": true,
+  "distribution_shape": {
+    "global_histogram_bins": [
+      "\u22641.0",
+      "1.0\u20131.5",
+      "1.5\u20132.0",
+      "2.0\u20132.5",
+      "2.5\u20133.0",
+      "3.0\u20134.0",
+      "4.0\u20135.0",
+      "5.0\u20137.5",
+      "7.5\u201310.0",
+      "10.0\u201315.0",
+      "15.0\u201320.0",
+      "20.0\u201330.0",
+      "30.0\u201350.0",
+      ">50.0"
+    ],
+    "global_histogram_counts": [
+      0,
+      4,
+      22,
+      74,
+      150,
+      446,
+      465,
+      860,
+      302,
+      127,
+      14,
+      6,
+      0,
+      0
+    ],
+    "global_histogram_pct": [
+      0.0,
+      0.16,
+      0.89,
+      3.0,
+      6.07,
+      18.06,
+      18.83,
+      34.82,
+      12.23,
+      5.14,
+      0.57,
+      0.24,
+      0.0,
+      0.0
+    ],
+    "per_book_histogram_counts": {
+      "crystal_shard": [
+        0,
+        2,
+        4,
+        25,
+        56,
+        172,
+        177,
+        299,
+        80,
+        39,
+        4,
+        0,
+        0,
+        0
+      ],
+      "halflings_gem": [
+        0,
+        1,
+        15,
+        26,
+        54,
+        167,
+        156,
+        290,
+        88,
+        28,
+        0,
+        1,
+        0,
+        0
+      ],
+      "streams_of_silver": [
+        0,
+        1,
+        3,
+        23,
+        40,
+        107,
+        132,
+        271,
+        134,
+        60,
+        10,
+        5,
+        0,
+        0
+      ]
+    },
+    "fine_histogram_bins": [
+      "\u22641.5",
+      "1.5\u20132.0",
+      "2.0\u20132.5",
+      "2.5\u20133.0",
+      "3.0\u20133.5",
+      "3.5\u20134.0",
+      "4.0\u20134.5",
+      "4.5\u20135.0",
+      "5.0\u20135.5",
+      "5.5\u20136.0",
+      "6.0\u20136.5",
+      "6.5\u20137.0",
+      "7.0\u20138.0",
+      "8.0\u201310.0",
+      ">10.0"
+    ],
+    "fine_histogram_counts": [
+      4,
+      22,
+      74,
+      150,
+      186,
+      260,
+      224,
+      241,
+      231,
+      218,
+      151,
+      136,
+      224,
+      202,
+      147
+    ],
+    "fine_histogram_pct": [
+      0.16,
+      0.89,
+      3.0,
+      6.07,
+      7.53,
+      10.53,
+      9.07,
+      9.76,
+      9.35,
+      8.83,
+      6.11,
+      5.51,
+      9.07,
+      8.18,
+      5.95
+    ],
+    "local_maxima_in_dense_region": [
+      {
+        "range": "3.5\u20134.0",
+        "count": 246,
+        "left": 189,
+        "right": 241
+      },
+      {
+        "range": "7.0\u20137.5",
+        "count": 129,
+        "left": 125,
+        "right": 102
+      }
+    ],
+    "buckets_dense_region": [
+      {
+        "range": "1.5\u20132.0",
+        "count": 20,
+        "pct": 0.81
+      },
+      {
+        "range": "2.0\u20132.5",
+        "count": 70,
+        "pct": 2.83
+      },
+      {
+        "range": "2.5\u20133.0",
+        "count": 145,
+        "pct": 5.87
+      },
+      {
+        "range": "3.0\u20133.5",
+        "count": 189,
+        "pct": 7.65
+      },
+      {
+        "range": "3.5\u20134.0",
+        "count": 246,
+        "pct": 9.96
+      },
+      {
+        "range": "4.0\u20134.5",
+        "count": 241,
+        "pct": 9.76
+      },
+      {
+        "range": "4.5\u20135.0",
+        "count": 232,
+        "pct": 9.39
+      },
+      {
+        "range": "5.0\u20135.5",
+        "count": 232,
+        "pct": 9.39
+      },
+      {
+        "range": "5.5\u20136.0",
+        "count": 213,
+        "pct": 8.62
+      },
+      {
+        "range": "6.0\u20136.5",
+        "count": 167,
+        "pct": 6.76
+      },
+      {
+        "range": "6.5\u20137.0",
+        "count": 125,
+        "pct": 5.06
+      },
+      {
+        "range": "7.0\u20137.5",
+        "count": 129,
+        "pct": 5.22
+      },
+      {
+        "range": "7.5\u20138.0",
+        "count": 102,
+        "pct": 4.13
+      },
+      {
+        "range": "8.0\u20138.5",
+        "count": 77,
+        "pct": 3.12
+      },
+      {
+        "range": "8.5\u20139.0",
+        "count": 45,
+        "pct": 1.82
+      },
+      {
+        "range": "9.0\u20139.5",
+        "count": 41,
+        "pct": 1.66
+      },
+      {
+        "range": "9.5\u201310.0",
+        "count": 41,
+        "pct": 1.66
+      }
+    ]
+  },
+  "outliers": {
+    "bottom_5_by_ratio": [
+      {
+        "book": "crystal_shard",
+        "chapter": 29,
+        "beat_idx": 7,
+        "kind": "description",
+        "summary_words": 25,
+        "text_words": 30,
+        "ratio": 1.2
+      },
+      {
+        "book": "streams_of_silver",
+        "chapter": 17,
+        "beat_idx": 7,
+        "kind": "interiority",
+        "summary_words": 24,
+        "text_words": 31,
+        "ratio": 1.292
+      },
+      {
+        "book": "crystal_shard",
+        "chapter": 18,
+        "beat_idx": 3,
+        "kind": "dialogue",
+        "summary_words": 24,
+        "text_words": 33,
+        "ratio": 1.375
+      },
+      {
+        "book": "halflings_gem",
+        "chapter": 6,
+        "beat_idx": 0,
+        "kind": "action",
+        "summary_words": 24,
+        "text_words": 35,
+        "ratio": 1.458
+      },
+      {
+        "book": "halflings_gem",
+        "chapter": 10,
+        "beat_idx": 4,
+        "kind": "dialogue",
+        "summary_words": 25,
+        "text_words": 38,
+        "ratio": 1.52
+      }
+    ],
+    "top_20_by_ratio": [
+      {
+        "book": "streams_of_silver",
+        "chapter": 14,
+        "beat_idx": 17,
+        "kind": "dialogue",
+        "summary_words": 16,
+        "text_words": 438,
+        "ratio": 27.375
+      },
+      {
+        "book": "streams_of_silver",
+        "chapter": 14,
+        "beat_idx": 19,
+        "kind": "dialogue",
+        "summary_words": 19,
+        "text_words": 458,
+        "ratio": 24.105
+      },
+      {
+        "book": "streams_of_silver",
+        "chapter": 5,
+        "beat_idx": 29,
+        "kind": "action",
+        "summary_words": 19,
+        "text_words": 435,
+        "ratio": 22.895
+      },
+      {
+        "book": "streams_of_silver",
+        "chapter": 13,
+        "beat_idx": 14,
+        "kind": "action",
+        "summary_words": 17,
+        "text_words": 371,
+        "ratio": 21.824
+      },
+      {
+        "book": "streams_of_silver",
+        "chapter": 5,
+        "beat_idx": 13,
+        "kind": "action",
+        "summary_words": 22,
+        "text_words": 451,
+        "ratio": 20.5
+      },
+      {
+        "book": "halflings_gem",
+        "chapter": 18,
+        "beat_idx": 8,
+        "kind": "dialogue",
+        "summary_words": 20,
+        "text_words": 407,
+        "ratio": 20.35
+      },
+      {
+        "book": "streams_of_silver",
+        "chapter": 10,
+        "beat_idx": 20,
+        "kind": "dialogue",
+        "summary_words": 18,
+        "text_words": 357,
+        "ratio": 19.833
+      },
+      {
+        "book": "streams_of_silver",
+        "chapter": 14,
+        "beat_idx": 20,
+        "kind": "dialogue",
+        "summary_words": 18,
+        "text_words": 333,
+        "ratio": 18.5
+      },
+      {
+        "book": "streams_of_silver",
+        "chapter": 8,
+        "beat_idx": 15,
+        "kind": "dialogue",
+        "summary_words": 17,
+        "text_words": 313,
+        "ratio": 18.412
+      },
+      {
+        "book": "crystal_shard",
+        "chapter": 25,
+        "beat_idx": 7,
+        "kind": "dialogue",
+        "summary_words": 19,
+        "text_words": 347,
+        "ratio": 18.263
+      },
+      {
+        "book": "crystal_shard",
+        "chapter": 27,
+        "beat_idx": 7,
+        "kind": "dialogue",
+        "summary_words": 28,
+        "text_words": 482,
+        "ratio": 17.214
+      },
+      {
+        "book": "crystal_shard",
+        "chapter": 25,
+        "beat_idx": 9,
+        "kind": "interiority",
+        "summary_words": 19,
+        "text_words": 319,
+        "ratio": 16.789
+      },
+      {
+        "book": "streams_of_silver",
+        "chapter": 2,
+        "beat_idx": 11,
+        "kind": "dialogue",
+        "summary_words": 19,
+        "text_words": 315,
+        "ratio": 16.579
+      },
+      {
+        "book": "streams_of_silver",
+        "chapter": 15,
+        "beat_idx": 4,
+        "kind": "action",
+        "summary_words": 19,
+        "text_words": 306,
+        "ratio": 16.105
+      },
+      {
+        "book": "crystal_shard",
+        "chapter": 6,
+        "beat_idx": 3,
+        "kind": "interiority",
+        "summary_words": 28,
+        "text_words": 442,
+        "ratio": 15.786
+      },
+      {
+        "book": "streams_of_silver",
+        "chapter": 15,
+        "beat_idx": 9,
+        "kind": "dialogue",
+        "summary_words": 21,
+        "text_words": 331,
+        "ratio": 15.762
+      },
+      {
+        "book": "streams_of_silver",
+        "chapter": 8,
+        "beat_idx": 31,
+        "kind": "dialogue",
+        "summary_words": 19,
+        "text_words": 295,
+        "ratio": 15.526
+      },
+      {
+        "book": "streams_of_silver",
+        "chapter": 10,
+        "beat_idx": 5,
+        "kind": "action",
+        "summary_words": 15,
+        "text_words": 232,
+        "ratio": 15.467
+      },
+      {
+        "book": "streams_of_silver",
+        "chapter": 13,
+        "beat_idx": 24,
+        "kind": "action",
+        "summary_words": 18,
+        "text_words": 276,
+        "ratio": 15.333
+      },
+      {
+        "book": "streams_of_silver",
+        "chapter": 12,
+        "beat_idx": 20,
+        "kind": "action",
+        "summary_words": 20,
+        "text_words": 305,
+        "ratio": 15.25
+      }
+    ]
+  },
+  "summary_word_distribution": {
+    "overall": {
+      "n": 2470,
+      "mean": 22.511,
+      "median": 22.0,
+      "p25": 19.0,
+      "p75": 25.0,
+      "p90": 29.0,
+      "min": 9,
+      "max": 58,
+      "stdev": 5.049
+    },
+    "per_book": {
+      "crystal_shard": {
+        "n": 858,
+        "mean": 23.114,
+        "median": 23.0,
+        "p25": 19.0,
+        "p75": 26.0,
+        "p90": 29.0,
+        "min": 12,
+        "max": 54,
+        "stdev": 5.133
+      },
+      "halflings_gem": {
+        "n": 826,
+        "mean": 22.758,
+        "median": 22.0,
+        "p25": 19.0,
+        "p75": 25.0,
+        "p90": 29.0,
+        "min": 9,
+        "max": 58,
+        "stdev": 5.323
+      },
+      "streams_of_silver": {
+        "n": 786,
+        "mean": 21.594,
+        "median": 21.0,
+        "p25": 18.0,
+        "p75": 24.0,
+        "p90": 27.0,
+        "min": 11,
+        "max": 42,
+        "stdev": 4.502
+      }
+    }
+  },
+  "text_word_distribution": {
+    "overall": {
+      "n": 2470,
+      "mean": 123.415,
+      "median": 114.0,
+      "p25": 86.0,
+      "p75": 150.0,
+      "p90": 187.0,
+      "min": 30,
+      "max": 482,
+      "stdev": 53.297
+    },
+    "per_book": {
+      "crystal_shard": {
+        "n": 858,
+        "mean": 122.296,
+        "median": 112.0,
+        "p25": 85.25,
+        "p75": 148.75,
+        "p90": 186.3,
+        "min": 30,
+        "max": 482,
+        "stdev": 52.623
+      },
+      "halflings_gem": {
+        "n": 826,
+        "mean": 116.367,
+        "median": 111.0,
+        "p25": 83.25,
+        "p75": 142.0,
+        "p90": 169.5,
+        "min": 31,
+        "max": 407,
+        "stdev": 45.732
+      },
+      "streams_of_silver": {
+        "n": 786,
+        "mean": 132.045,
+        "median": 120.5,
+        "p25": 90.0,
+        "p75": 161.75,
+        "p90": 202.5,
+        "min": 30,
+        "max": 458,
+        "stdev": 59.815
+      }
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "novel": "salvatore-icewind-dale",
+  "book": "crystal_shard",
+  "extractedAt": "2026-04-29T22:59:27.714Z",
+  "beatsTotal": 858,
+  "beatsTagged": 824,
+  "beatsSkippedChapterOpeners": 34,
+  "ok": 821,
+  "fail": 3,
+  "abstain": 71,
+  "gapSizeCounts": {
+    "none": 158,
+    "small": 152,
+    "medium": 263,
+    "large": 248
+  },
+  "gapTypeCounts": {
+    "none": 159,
+    "reversal": 244,
+    "escalation": 83,
+    "revelation": 183,
+    "undermining": 147,
+    "other": 5
+  }
+}

@@ -19,7 +19,7 @@ const BASELINE_SECTIONS = [
 ]
 
 const baseEnvelope: EnvelopeFields = {
-  model: "deepseek-chat",
+  model: "deepseek-v4-flash",
   provider: "deepseek",
   temperature: 0.8,
   maxTokens: 4000,
@@ -450,7 +450,7 @@ describe("envelopeEqual", () => {
   })
 
   test("returns ok=false and one diff entry on single field divergence", () => {
-    const a: EnvelopeFields = { ...baseEnvelope, model: "deepseek-chat" }
+    const a: EnvelopeFields = { ...baseEnvelope, model: "deepseek-v4-flash" }
     const b: EnvelopeFields = { ...baseEnvelope, model: "gpt-4o" }
     const result = envelopeEqual(a, b)
     expect(result.ok).toBe(false)
@@ -459,15 +459,15 @@ describe("envelopeEqual", () => {
   })
 
   test("diff entry format includes A= and B= values", () => {
-    const a: EnvelopeFields = { ...baseEnvelope, model: "deepseek-chat" }
+    const a: EnvelopeFields = { ...baseEnvelope, model: "deepseek-v4-flash" }
     const b: EnvelopeFields = { ...baseEnvelope, model: "gpt-4o" }
     const result = envelopeEqual(a, b)
-    expect(result.diffs[0]).toContain('A="deepseek-chat"')
+    expect(result.diffs[0]).toContain('A="deepseek-v4-flash"')
     expect(result.diffs[0]).toContain('B="gpt-4o"')
   })
 
   test("returns multiple diff entries when multiple fields diverge", () => {
-    const a: EnvelopeFields = { ...baseEnvelope, model: "deepseek-chat", provider: "deepseek" }
+    const a: EnvelopeFields = { ...baseEnvelope, model: "deepseek-v4-flash", provider: "deepseek" }
     const b: EnvelopeFields = { ...baseEnvelope, model: "gpt-4o", provider: "openai" }
     const result = envelopeEqual(a, b)
     expect(result.ok).toBe(false)

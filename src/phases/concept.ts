@@ -6,8 +6,20 @@ import {
   saveWorldSystem, saveCulture, saveCharacterCulture, saveCharacterSystemAwareness,
   getWorldSystems, getCultures,
 } from "../db"
+import type { Phase, PhaseResult, ConceptOutput } from "./contract"
 import { callAgent } from "../llm"
-import { WORLD_BUILDER_PROMPT, CHARACTER_AGENT_PROMPT, PLOTTER_AGENT_PROMPT } from "../prompts"
+// Import each prompt directly from its agent module instead of the broad
+// `../prompts` barrel. The barrel re-exports planning-beats / writer /
+// chapter-plan-checker prompts via top-level await; pulling the barrel
+// into concept.ts loaded those prompts as a side effect into any process
+// that imported runConceptPhase. The phase-eval probe parent imports
+// runConceptPhase directly and would otherwise cache planning-beats's
+// default prompt before child processes get a chance to set their
+// PLANNING_BEATS_PROMPT_OVERRIDE env var. Direct imports keep concept.ts's
+// surface to the three prompts it actually uses.
+import { prompt as WORLD_BUILDER_PROMPT } from "../agents/world-builder"
+import { prompt as CHARACTER_AGENT_PROMPT } from "../agents/character-agent"
+import { prompt as PLOTTER_AGENT_PROMPT } from "../agents/plotter"
 import { buildContext as buildWorldContext } from "../agents/world-builder/context"
 import { buildContext as buildPlotterContext } from "../agents/plotter/context"
 import { buildContext as buildCharContext } from "../agents/character-agent/context"
@@ -98,7 +110,12 @@ async function runConceptAgent<T>(
   throw new Error(`${agentName} failed after ${pipeline.maxDraftAttempts} attempts`)
 }
 
-export async function runConceptPhase(novelId: string, seed: SeedInput): Promise<void> {
+/** Concept phase implementation. Kept exported for scripts that compose
+ *  phases outside the runNovel driver (3 callers:
+ *  scripts/fork-writer-test.ts, fork-writer-v4-llama.ts,
+ *  test-planner-isolated.ts). Driver consumers should use `conceptPhase`
+ *  (the Phase<I,O> wrapper) instead. */
+export async function runConceptPhase(novelId: string, seed: SeedInput): Promise<PhaseResult<ConceptOutput>> {
   displayPhaseHeader("Concept — Building your world, characters, and story")
   log(novelId, "info", `Concept phase started. Premise: ${seed.premise.slice(0, 100)}`)
   emit(novelId, { type: "phase:changed", data: { phase: "concept" } })
@@ -175,10 +192,55 @@ export async function runConceptPhase(novelId: string, seed: SeedInput): Promise
 
   await Promise.all(pending)
 
-  await updatePhase(novelId, "planning")
-  emit(novelId, { type: "phase:changed", data: { phase: "planning" } })
+  // P6b1: phase transition (updatePhase + matching emit) is now driver-owned.
+  // The phase-complete log + console message stays here; the driver writes the
+  // novels.phase row and emits phase:changed for the next phase on its own
+  // entry.
   log(novelId, "checkpoint", "Concept phase complete → planning")
   console.log("\n  Concept phase complete. Advancing to Planning.\n")
+
+  const output = await loadConceptOutput(novelId)
+  return { kind: "complete", output }
+}
+
+/** Reconstruct ConceptOutput from DB. Called on resume by the typed driver
+ *  (P6b1+). Only called when novel.phase has advanced past concept — at that
+ *  point all artifacts MUST exist; throws otherwise (treated as schema
+ *  invariant violation, not a control-flow path). */
+export async function loadConceptOutput(novelId: string): Promise<ConceptOutput> {
+  const world = await tryGet(() => getWorldBible(novelId))
+  if (!world) {
+    throw new Error(`loadConceptOutput(${novelId}): world_bibles row missing — concept phase did not complete`)
+  }
+  const spine = await tryGet(() => getStorySpine(novelId))
+  if (!spine) {
+    throw new Error(`loadConceptOutput(${novelId}): story_spines row missing — concept phase did not complete`)
+  }
+  const chars = await getCharacters(novelId)
+  const systems = await getWorldSystems(novelId)
+  const cultures = await getCultures(novelId)
+  return {
+    hasWorldBible: true,
+    characterCount: chars.length,
+    hasStorySpine: true,
+    worldSystemsCount: systems.length,
+    culturesCount: cultures.length,
+  }
+}
+
+/** P2 — Phase<SeedInput, ConceptOutput> wrapper. Not yet consumed by the
+ *  state-machine; P6b1 flips the driver to use it. */
+export const conceptPhase: Phase<SeedInput, ConceptOutput> = {
+  name: "concept",
+  async run(_input, ctx) {
+    // The typed pipe gives us SeedInput as the first phase's input, but
+    // PhaseCtx.seed is the immutable snapshot the driver constructed once.
+    // They're identical for Concept; we use ctx.seed for clarity.
+    return runConceptPhase(ctx.novelId, ctx.seed)
+  },
+  async loadOutput(novelId) {
+    return loadConceptOutput(novelId)
+  },
 }
 
 /** Save world bible systems and cultures to dedicated knowledge graph tables */

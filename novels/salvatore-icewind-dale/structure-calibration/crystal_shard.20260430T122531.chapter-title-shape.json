@@ -1,0 +1,1490 @@
+{
+  "timestamp": "2026-04-30T12:25:31.229Z",
+  "n_chapters": 92,
+  "n_body_chapters": 79,
+  "buckets": [
+    "character-name",
+    "place-name",
+    "action-verb",
+    "concept-or-theme",
+    "object-or-artifact",
+    "quote-or-dialogue",
+    "metaphorical-image",
+    "other"
+  ],
+  "method": {
+    "regex_pre_pass": {
+      "structural_markers": "=== Prelude ===, === Epilogue ===, and === Part N - <name> === routed to bucket=other (is_structural_marker=true)",
+      "title_strip": "CHAPTER N — / CHAPTER N - prefix stripped before LLM classification"
+    },
+    "llm_residual": {
+      "provider": "deepseek",
+      "model": "deepseek-v4-flash",
+      "temperature": 0,
+      "response_format": "json_object",
+      "max_tokens": 300,
+      "thinking": "disabled"
+    }
+  },
+  "aggregate_all": {
+    "n": 92,
+    "distribution": {
+      "character-name": {
+        "count": 5,
+        "pct": 5.4
+      },
+      "place-name": {
+        "count": 16,
+        "pct": 17.4
+      },
+      "action-verb": {
+        "count": 7,
+        "pct": 7.6
+      },
+      "concept-or-theme": {
+        "count": 8,
+        "pct": 8.7
+      },
+      "object-or-artifact": {
+        "count": 8,
+        "pct": 8.7
+      },
+      "quote-or-dialogue": {
+        "count": 9,
+        "pct": 9.8
+      },
+      "metaphorical-image": {
+        "count": 26,
+        "pct": 28.3
+      },
+      "other": {
+        "count": 13,
+        "pct": 14.1
+      }
+    }
+  },
+  "aggregate_body": {
+    "n": 79,
+    "distribution": {
+      "character-name": {
+        "count": 5,
+        "pct": 6.3
+      },
+      "place-name": {
+        "count": 16,
+        "pct": 20.3
+      },
+      "action-verb": {
+        "count": 7,
+        "pct": 8.9
+      },
+      "concept-or-theme": {
+        "count": 8,
+        "pct": 10.1
+      },
+      "object-or-artifact": {
+        "count": 8,
+        "pct": 10.1
+      },
+      "quote-or-dialogue": {
+        "count": 9,
+        "pct": 11.4
+      },
+      "metaphorical-image": {
+        "count": 26,
+        "pct": 32.9
+      },
+      "other": {
+        "count": 0,
+        "pct": 0
+      }
+    }
+  },
+  "perBook_all": {
+    "crystal_shard": {
+      "n": 34,
+      "distribution": {
+        "character-name": {
+          "count": 2,
+          "pct": 5.9
+        },
+        "place-name": {
+          "count": 6,
+          "pct": 17.6
+        },
+        "action-verb": {
+          "count": 2,
+          "pct": 5.9
+        },
+        "concept-or-theme": {
+          "count": 4,
+          "pct": 11.8
+        },
+        "object-or-artifact": {
+          "count": 4,
+          "pct": 11.8
+        },
+        "quote-or-dialogue": {
+          "count": 6,
+          "pct": 17.6
+        },
+        "metaphorical-image": {
+          "count": 6,
+          "pct": 17.6
+        },
+        "other": {
+          "count": 4,
+          "pct": 11.8
+        }
+      }
+    },
+    "streams_of_silver": {
+      "n": 29,
+      "distribution": {
+        "character-name": {
+          "count": 0,
+          "pct": 0
+        },
+        "place-name": {
+          "count": 5,
+          "pct": 17.2
+        },
+        "action-verb": {
+          "count": 3,
+          "pct": 10.3
+        },
+        "concept-or-theme": {
+          "count": 3,
+          "pct": 10.3
+        },
+        "object-or-artifact": {
+          "count": 3,
+          "pct": 10.3
+        },
+        "quote-or-dialogue": {
+          "count": 1,
+          "pct": 3.4
+        },
+        "metaphorical-image": {
+          "count": 9,
+          "pct": 31
+        },
+        "other": {
+          "count": 5,
+          "pct": 17.2
+        }
+      }
+    },
+    "halflings_gem": {
+      "n": 29,
+      "distribution": {
+        "character-name": {
+          "count": 3,
+          "pct": 10.3
+        },
+        "place-name": {
+          "count": 5,
+          "pct": 17.2
+        },
+        "action-verb": {
+          "count": 2,
+          "pct": 6.9
+        },
+        "concept-or-theme": {
+          "count": 1,
+          "pct": 3.4
+        },
+        "object-or-artifact": {
+          "count": 1,
+          "pct": 3.4
+        },
+        "quote-or-dialogue": {
+          "count": 2,
+          "pct": 6.9
+        },
+        "metaphorical-image": {
+          "count": 11,
+          "pct": 37.9
+        },
+        "other": {
+          "count": 4,
+          "pct": 13.8
+        }
+      }
+    }
+  },
+  "perBook_body": {
+    "crystal_shard": {
+      "n": 30,
+      "distribution": {
+        "character-name": {
+          "count": 2,
+          "pct": 6.7
+        },
+        "place-name": {
+          "count": 6,
+          "pct": 20
+        },
+        "action-verb": {
+          "count": 2,
+          "pct": 6.7
+        },
+        "concept-or-theme": {
+          "count": 4,
+          "pct": 13.3
+        },
+        "object-or-artifact": {
+          "count": 4,
+          "pct": 13.3
+        },
+        "quote-or-dialogue": {
+          "count": 6,
+          "pct": 20
+        },
+        "metaphorical-image": {
+          "count": 6,
+          "pct": 20
+        },
+        "other": {
+          "count": 0,
+          "pct": 0
+        }
+      }
+    },
+    "streams_of_silver": {
+      "n": 24,
+      "distribution": {
+        "character-name": {
+          "count": 0,
+          "pct": 0
+        },
+        "place-name": {
+          "count": 5,
+          "pct": 20.8
+        },
+        "action-verb": {
+          "count": 3,
+          "pct": 12.5
+        },
+        "concept-or-theme": {
+          "count": 3,
+          "pct": 12.5
+        },
+        "object-or-artifact": {
+          "count": 3,
+          "pct": 12.5
+        },
+        "quote-or-dialogue": {
+          "count": 1,
+          "pct": 4.2
+        },
+        "metaphorical-image": {
+          "count": 9,
+          "pct": 37.5
+        },
+        "other": {
+          "count": 0,
+          "pct": 0
+        }
+      }
+    },
+    "halflings_gem": {
+      "n": 25,
+      "distribution": {
+        "character-name": {
+          "count": 3,
+          "pct": 12
+        },
+        "place-name": {
+          "count": 5,
+          "pct": 20
+        },
+        "action-verb": {
+          "count": 2,
+          "pct": 8
+        },
+        "concept-or-theme": {
+          "count": 1,
+          "pct": 4
+        },
+        "object-or-artifact": {
+          "count": 1,
+          "pct": 4
+        },
+        "quote-or-dialogue": {
+          "count": 2,
+          "pct": 8
+        },
+        "metaphorical-image": {
+          "count": 11,
+          "pct": 44
+        },
+        "other": {
+          "count": 0,
+          "pct": 0
+        }
+      }
+    }
+  },
+  "modal_per_book_body": {
+    "crystal_shard": "place-name",
+    "streams_of_silver": "metaphorical-image",
+    "halflings_gem": "metaphorical-image"
+  },
+  "top3_per_book_body": {
+    "crystal_shard": [
+      "place-name",
+      "quote-or-dialogue",
+      "metaphorical-image"
+    ],
+    "streams_of_silver": [
+      "metaphorical-image",
+      "place-name",
+      "action-verb"
+    ],
+    "halflings_gem": [
+      "metaphorical-image",
+      "place-name",
+      "character-name"
+    ]
+  },
+  "directional_assessment": "Modal class diverges by book (body-chapter scope): {\"crystal_shard\":\"place-name\",\"streams_of_silver\":\"metaphorical-image\",\"halflings_gem\":\"metaphorical-image\"}. Top-3 sets (body): cs=place-name/quote-or-dialogue/metaphorical-image, ss=metaphorical-image/place-name/action-verb, hg=metaphorical-image/place-name/character-name. Intersection of all three top-3 sets has 2 buckets: place-name, metaphorical-image.",
+  "compositional_titles": [
+    {
+      "book": "crystal_shard",
+      "chapter": 30,
+      "cleaned_title": "The Battle of Icewind Dale",
+      "primary": "action-verb",
+      "secondary": "place-name"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 18,
+      "cleaned_title": "The Secret of Keeper’s Dale",
+      "primary": "place-name",
+      "secondary": "concept-or-theme"
+    }
+  ],
+  "compositional_pair_top": [
+    {
+      "pair": "action-verb+place-name",
+      "count": 1
+    },
+    {
+      "pair": "place-name+concept-or-theme",
+      "count": 1
+    }
+  ],
+  "chapters": [
+    {
+      "book": "crystal_shard",
+      "chapter": 1,
+      "raw_title": "CHAPTER 1 — The Stooge",
+      "cleaned_title": "The Stooge",
+      "classification": "character-name",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Definite descriptor pointing to a single character"
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 2,
+      "raw_title": "CHAPTER 2 — On the Banks of Maer Dualdon",
+      "cleaned_title": "On the Banks of Maer Dualdon",
+      "classification": "place-name",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Locative phrase naming a specific location."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 3,
+      "raw_title": "CHAPTER 3 — The Mead Hall",
+      "cleaned_title": "The Mead Hall",
+      "classification": "place-name",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Names a specific location type."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 4,
+      "raw_title": "CHAPTER 4 — The Crystal Shard",
+      "cleaned_title": "The Crystal Shard",
+      "classification": "object-or-artifact",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Names a specific physical item."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 5,
+      "raw_title": "CHAPTER 5 — Someday",
+      "cleaned_title": "Someday",
+      "classification": "quote-or-dialogue",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Title reads as a line a character would speak."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 6,
+      "raw_title": "CHAPTER 6 — Bryn Shander",
+      "cleaned_title": "Bryn Shander",
+      "classification": "place-name",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Title names a specific location."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 7,
+      "raw_title": "CHAPTER 7 — The Coming Storm",
+      "cleaned_title": "The Coming Storm",
+      "classification": "metaphorical-image",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Vivid atmospheric image of an approaching storm, not literal weather."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 8,
+      "raw_title": "CHAPTER 8 — Bloody Fields",
+      "cleaned_title": "Bloody Fields",
+      "classification": "metaphorical-image",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Vivid sensory image of fields covered in blood, not literal place or action."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 9,
+      "raw_title": "CHAPTER 9 — No More a Boy",
+      "cleaned_title": "No More a Boy",
+      "classification": "quote-or-dialogue",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Phrase sounds like a character's declaration or realization."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 10,
+      "raw_title": "CHAPTER 10 — The Gathering Gloom",
+      "cleaned_title": "The Gathering Gloom",
+      "classification": "metaphorical-image",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Vivid sensory image of darkness gathering."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 11,
+      "raw_title": "CHAPTER 11 — Aegis-fang",
+      "cleaned_title": "Aegis-fang",
+      "classification": "object-or-artifact",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Aegis-fang is a named magical warhammer, a specific artifact."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 12,
+      "raw_title": "CHAPTER 12 — The Gift",
+      "cleaned_title": "The Gift",
+      "classification": "object-or-artifact",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "medium",
+      "compositional": null,
+      "note": "Could be a physical gift or abstract concept; context needed."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 13,
+      "raw_title": "CHAPTER 13 — As the Wielder Bids",
+      "cleaned_title": "As the Wielder Bids",
+      "classification": "quote-or-dialogue",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Phrase a character would speak, imperative/subjunctive tone."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 14,
+      "raw_title": "CHAPTER 14 — Lavender Eyes",
+      "cleaned_title": "Lavender Eyes",
+      "classification": "metaphorical-image",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Vivid sensory image not literal to a place, object, or character."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 15,
+      "raw_title": "CHAPTER 15 — On the Wings of Doom",
+      "cleaned_title": "On the Wings of Doom",
+      "classification": "metaphorical-image",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Vivid figurative image of doom flying on wings."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 16,
+      "raw_title": "CHAPTER 16 — Shallow Graves",
+      "cleaned_title": "Shallow Graves",
+      "classification": "metaphorical-image",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Vivid sensory image not literal to a specific place or object."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 17,
+      "raw_title": "CHAPTER 17 — Vengeance",
+      "cleaned_title": "Vengeance",
+      "classification": "concept-or-theme",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Abstract noun representing a thematic motif."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 18,
+      "raw_title": "CHAPTER 18 — Biggrin's House",
+      "cleaned_title": "Biggrin's House",
+      "classification": "place-name",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Title names a specific location (Biggrin's House)."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 19,
+      "raw_title": "CHAPTER 19 — Grim Tidings",
+      "cleaned_title": "Grim Tidings",
+      "classification": "concept-or-theme",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Abstract phrase suggesting bad news or ominous events."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 20,
+      "raw_title": "CHAPTER 20 — A Slave to No Man",
+      "cleaned_title": "A Slave to No Man",
+      "classification": "quote-or-dialogue",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Reads as a character's declaration of independence."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 21,
+      "raw_title": "CHAPTER 21 — The Icy Tomb",
+      "cleaned_title": "The Icy Tomb",
+      "classification": "place-name",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Names a specific location, a tomb made of ice."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 22,
+      "raw_title": "CHAPTER 22 — By Blood or by Deed",
+      "cleaned_title": "By Blood or by Deed",
+      "classification": "quote-or-dialogue",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Phrasing suggests a character's statement or choice."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 23,
+      "raw_title": "CHAPTER 23 — Besieged",
+      "cleaned_title": "Besieged",
+      "classification": "action-verb",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Past participle indicating a state of being under siege, derived from action."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 24,
+      "raw_title": "CHAPTER 24 — Cryshal-Tirith",
+      "cleaned_title": "Cryshal-Tirith",
+      "classification": "place-name",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Cryshal-Tirith is a named location (a tower) in the setting."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 25,
+      "raw_title": "CHAPTER 25 — Errtu",
+      "cleaned_title": "Errtu",
+      "classification": "character-name",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Proper name of a specific character."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 26,
+      "raw_title": "CHAPTER 26 — Rights of Victory",
+      "cleaned_title": "Rights of Victory",
+      "classification": "concept-or-theme",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Abstract noun phrase referring to a concept."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 27,
+      "raw_title": "CHAPTER 27 — The Clock of Doom",
+      "cleaned_title": "The Clock of Doom",
+      "classification": "object-or-artifact",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Title names a specific physical item: a clock."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 28,
+      "raw_title": "CHAPTER 28 — A Lie Within a Lie",
+      "cleaned_title": "A Lie Within a Lie",
+      "classification": "quote-or-dialogue",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Sounds like a line a character might say."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 29,
+      "raw_title": "CHAPTER 29 — Other Options",
+      "cleaned_title": "Other Options",
+      "classification": "concept-or-theme",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Abstract noun phrase suggesting alternatives or choices."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 30,
+      "raw_title": "CHAPTER 30 — The Battle of Icewind Dale",
+      "cleaned_title": "The Battle of Icewind Dale",
+      "classification": "action-verb",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": {
+        "primary": "action-verb",
+        "secondary": "place-name"
+      },
+      "note": "Action noun 'Battle' is head, modified by place 'Icewind Dale'."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "epilogue",
+      "raw_title": "=== Epilogue ===",
+      "cleaned_title": "Epilogue",
+      "classification": "other",
+      "is_structural_marker": true,
+      "source": "regex",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Structural division marker (prelude / epilogue / part header), not a chapter title."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "epilogue2",
+      "raw_title": "=== Epilogue ===",
+      "cleaned_title": "Epilogue",
+      "classification": "other",
+      "is_structural_marker": true,
+      "source": "regex",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Structural division marker (prelude / epilogue / part header), not a chapter title."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "epilogue3",
+      "raw_title": "=== Epilogue ===",
+      "cleaned_title": "Epilogue",
+      "classification": "other",
+      "is_structural_marker": true,
+      "source": "regex",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Structural division marker (prelude / epilogue / part header), not a chapter title."
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "prelude",
+      "raw_title": "=== Prelude ===",
+      "cleaned_title": "Prelude",
+      "classification": "other",
+      "is_structural_marker": true,
+      "source": "regex",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Structural division marker (prelude / epilogue / part header), not a chapter title."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 1,
+      "raw_title": "CHAPTER 1 — A Dagger at Their Backs",
+      "cleaned_title": "A Dagger at Their Backs",
+      "classification": "metaphorical-image",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Vivid sensory image of threat, not literal object or action."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 2,
+      "raw_title": "CHAPTER 2 — City of Sails",
+      "cleaned_title": "City of Sails",
+      "classification": "place-name",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Names a city, likely a location."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 3,
+      "raw_title": "CHAPTER 3 — Night Life",
+      "cleaned_title": "Night Life",
+      "classification": "metaphorical-image",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Atmospheric phrase suggesting nocturnal activity or ambiance."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 4,
+      "raw_title": "CHAPTER 4 — The Conjuring",
+      "cleaned_title": "The Conjuring",
+      "classification": "action-verb",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Gerund noun derived from verb 'conjure', indicating an action."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 5,
+      "raw_title": "CHAPTER 5 — The Crags",
+      "cleaned_title": "The Crags",
+      "classification": "place-name",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Refers to a specific geographic feature."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 6,
+      "raw_title": "CHAPTER 6 — Sky Ponies",
+      "cleaned_title": "Sky Ponies",
+      "classification": "metaphorical-image",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Vivid sensory image of sky ponies, not literal place/character/action."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 7,
+      "raw_title": "CHAPTER 7 — Dagger and Staff",
+      "cleaned_title": "Dagger and Staff",
+      "classification": "object-or-artifact",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Both 'Dagger' and 'Staff' are physical objects."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 8,
+      "raw_title": "CHAPTER 8 — To the Peril Of Low-Flying Birds",
+      "cleaned_title": "To the Peril Of Low-Flying Birds",
+      "classification": "metaphorical-image",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Vivid, whimsical image not literal to a place or object."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 9,
+      "raw_title": "CHAPTER 9 — There Is No Honor",
+      "cleaned_title": "There Is No Honor",
+      "classification": "quote-or-dialogue",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Reads as a line a character would speak."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 10,
+      "raw_title": "CHAPTER 10 — Bonds of Reputation",
+      "cleaned_title": "Bonds of Reputation",
+      "classification": "concept-or-theme",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Abstract noun phrase about social standing"
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 11,
+      "raw_title": "CHAPTER 11 — Silverymoon",
+      "cleaned_title": "Silverymoon",
+      "classification": "place-name",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Title names a city."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 12,
+      "raw_title": "CHAPTER 12 — The Trollmoors",
+      "cleaned_title": "The Trollmoors",
+      "classification": "place-name",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Title names a specific location."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 13,
+      "raw_title": "CHAPTER 13 — The Last Run",
+      "cleaned_title": "The Last Run",
+      "classification": "action-verb",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Run is a verb-derived noun indicating action."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 14,
+      "raw_title": "CHAPTER 14 — Star Light, Star Bright",
+      "cleaned_title": "Star Light, Star Bright",
+      "classification": "metaphorical-image",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Poetic, sensory image from a nursery rhyme."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 15,
+      "raw_title": "CHAPTER 15 — The Golem’s Eyes",
+      "cleaned_title": "The Golem’s Eyes",
+      "classification": "object-or-artifact",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "The title refers to a specific physical object, the golem's eyes."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 16,
+      "raw_title": "CHAPTER 16 — Days of Old",
+      "cleaned_title": "Days of Old",
+      "classification": "metaphorical-image",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Evocative phrase suggesting a nostalgic or legendary past, not a specific place, character, or action."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 17,
+      "raw_title": "CHAPTER 17 — The Challenge",
+      "cleaned_title": "The Challenge",
+      "classification": "action-verb",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "The Challenge is a noun derived from the verb 'to challenge', indicating an action or event."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 18,
+      "raw_title": "CHAPTER 18 — The Secret of Keeper’s Dale",
+      "cleaned_title": "The Secret of Keeper’s Dale",
+      "classification": "place-name",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": {
+        "primary": "place-name",
+        "secondary": "concept-or-theme"
+      },
+      "note": "Keeper's Dale is a location, but 'secret' adds a thematic element."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 19,
+      "raw_title": "CHAPTER 19 — Shadows",
+      "cleaned_title": "Shadows",
+      "classification": "concept-or-theme",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Abstract noun representing a thematic motif."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 20,
+      "raw_title": "CHAPTER 20 — End of a Dream",
+      "cleaned_title": "End of a Dream",
+      "classification": "metaphorical-image",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Poetic phrase evoking the end of an aspiration."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 21,
+      "raw_title": "CHAPTER 21 — Silver in the Shadows",
+      "cleaned_title": "Silver in the Shadows",
+      "classification": "metaphorical-image",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Vivid sensory image combining color and darkness."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 22,
+      "raw_title": "CHAPTER 22 — The Dragon of Darkness",
+      "cleaned_title": "The Dragon of Darkness",
+      "classification": "metaphorical-image",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Vivid figurative image combining a dragon with darkness."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 23,
+      "raw_title": "CHAPTER 23 — The Broken Helm",
+      "cleaned_title": "The Broken Helm",
+      "classification": "object-or-artifact",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Title refers to a specific physical item."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 24,
+      "raw_title": "CHAPTER 24 — Eulogy for Mithral Hall",
+      "cleaned_title": "Eulogy for Mithral Hall",
+      "classification": "concept-or-theme",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Eulogy is an abstract concept of tribute or mourning."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "epilogue",
+      "raw_title": "=== Epilogue ===",
+      "cleaned_title": "Epilogue",
+      "classification": "other",
+      "is_structural_marker": true,
+      "source": "regex",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Structural division marker (prelude / epilogue / part header), not a chapter title."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "part1",
+      "raw_title": "=== Part 1 - Searches ===",
+      "cleaned_title": "Searches",
+      "classification": "other",
+      "is_structural_marker": true,
+      "source": "regex",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Structural division marker (prelude / epilogue / part header), not a chapter title."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "part2",
+      "raw_title": "=== Part 2 - Allies ===",
+      "cleaned_title": "Allies",
+      "classification": "other",
+      "is_structural_marker": true,
+      "source": "regex",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Structural division marker (prelude / epilogue / part header), not a chapter title."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "part3",
+      "raw_title": "=== Part 3 - Trails Anew ===",
+      "cleaned_title": "Trails Anew",
+      "classification": "other",
+      "is_structural_marker": true,
+      "source": "regex",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Structural division marker (prelude / epilogue / part header), not a chapter title."
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "prelude",
+      "raw_title": "=== Prelude ===",
+      "cleaned_title": "Prelude",
+      "classification": "other",
+      "is_structural_marker": true,
+      "source": "regex",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Structural division marker (prelude / epilogue / part header), not a chapter title."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 1,
+      "raw_title": "CHAPTER 1 — Tower of Twilight",
+      "cleaned_title": "Tower of Twilight",
+      "classification": "place-name",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Names a specific tower, a location."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 2,
+      "raw_title": "CHAPTER 2 — A Thousand Thousand Little Candles",
+      "cleaned_title": "A Thousand Thousand Little Candles",
+      "classification": "metaphorical-image",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Vivid sensory image of many candles, not literal object or place."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 3,
+      "raw_title": "CHAPTER 3 — Conyberry's Pride",
+      "cleaned_title": "Conyberry's Pride",
+      "classification": "place-name",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Conyberry is a location, and the title refers to a place's attribute."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 4,
+      "raw_title": "CHAPTER 4 — The City of Splendors",
+      "cleaned_title": "The City of Splendors",
+      "classification": "place-name",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Title names a city (Waterdeep's epithet)."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 5,
+      "raw_title": "CHAPTER 5 — Ashes",
+      "cleaned_title": "Ashes",
+      "classification": "metaphorical-image",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Evocative single word suggesting destruction or aftermath"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 6,
+      "raw_title": "CHAPTER 6 — Baldur's Gate",
+      "cleaned_title": "Baldur's Gate",
+      "classification": "place-name",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Names a specific city."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 7,
+      "raw_title": "CHAPTER 7 — Stirrings",
+      "cleaned_title": "Stirrings",
+      "classification": "action-verb",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Gerund-derived noun of action."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 8,
+      "raw_title": "CHAPTER 8 — A Plain Brown Wrapper",
+      "cleaned_title": "A Plain Brown Wrapper",
+      "classification": "object-or-artifact",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Refers to a specific physical item."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 9,
+      "raw_title": "CHAPTER 9 — Fiery Riddles",
+      "cleaned_title": "Fiery Riddles",
+      "classification": "metaphorical-image",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Vivid sensory image combining fire and riddles."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 10,
+      "raw_title": "CHAPTER 10 — The Weight of a Kings Mantle",
+      "cleaned_title": "The Weight of a Kings Mantle",
+      "classification": "metaphorical-image",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Figurative phrase evoking burden and royalty"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 11,
+      "raw_title": "CHAPTER 11 — Hot Winds",
+      "cleaned_title": "Hot Winds",
+      "classification": "metaphorical-image",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Vivid sensory image of hot winds, not literal place or object."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 12,
+      "raw_title": "CHAPTER 12 — Comrades",
+      "cleaned_title": "Comrades",
+      "classification": "character-name",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "medium",
+      "compositional": null,
+      "note": "Could be group epithet for known cast role or abstract theme; context needed."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 13,
+      "raw_title": "CHAPTER 13 — Paying the Piper",
+      "cleaned_title": "Paying the Piper",
+      "classification": "action-verb",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Gerund phrase indicating an action."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 14,
+      "raw_title": "CHAPTER 14 — Dancing Snakes",
+      "cleaned_title": "Dancing Snakes",
+      "classification": "metaphorical-image",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Vivid sensory image of snakes dancing, not literal action or object."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 15,
+      "raw_title": "CHAPTER 15 — The Guide",
+      "cleaned_title": "The Guide",
+      "classification": "character-name",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Definite descriptor pointing to a single character"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 16,
+      "raw_title": "CHAPTER 16 — Never a Fouler Place",
+      "cleaned_title": "Never a Fouler Place",
+      "classification": "quote-or-dialogue",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Phrase reads as a character's exclamation or thought."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 17,
+      "raw_title": "CHAPTER 17 — Impossible Loyalties",
+      "cleaned_title": "Impossible Loyalties",
+      "classification": "concept-or-theme",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Abstract noun phrase expressing a thematic concept."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 18,
+      "raw_title": "CHAPTER 18 — Double Talker",
+      "cleaned_title": "Double Talker",
+      "classification": "character-name",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Refers to a specific character known as Double Talker."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 19,
+      "raw_title": "CHAPTER 19 — Tricks and Traps",
+      "cleaned_title": "Tricks and Traps",
+      "classification": "metaphorical-image",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Vivid sensory image of deceptive devices."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 20,
+      "raw_title": "CHAPTER 20 — Black and White",
+      "cleaned_title": "Black and White",
+      "classification": "metaphorical-image",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Vivid sensory image of colors, not literal object or place."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 21,
+      "raw_title": "CHAPTER 21 — Where No Sun Shines",
+      "cleaned_title": "Where No Sun Shines",
+      "classification": "metaphorical-image",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Vivid sensory image of a sunless place."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 22,
+      "raw_title": "CHAPTER 22 — The Rift",
+      "cleaned_title": "The Rift",
+      "classification": "place-name",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "A rift is a geographic feature, likely a location."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 23,
+      "raw_title": "CHAPTER 23 — If Ever You Loved Catti-brie",
+      "cleaned_title": "If Ever You Loved Catti-brie",
+      "classification": "quote-or-dialogue",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Direct address to a character, reads as a spoken line."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 24,
+      "raw_title": "CHAPTER 24 — Interplanar Goo",
+      "cleaned_title": "Interplanar Goo",
+      "classification": "metaphorical-image",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Vivid sensory image of goo across planes"
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 25,
+      "raw_title": "CHAPTER 25 — A Walk in the Sun",
+      "cleaned_title": "A Walk in the Sun",
+      "classification": "metaphorical-image",
+      "is_structural_marker": false,
+      "source": "llm",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Vivid sensory image of walking in sunlight, not literal action or place."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "epilogue",
+      "raw_title": "=== Epilogue ===",
+      "cleaned_title": "Epilogue",
+      "classification": "other",
+      "is_structural_marker": true,
+      "source": "regex",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Structural division marker (prelude / epilogue / part header), not a chapter title."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "epilogue2",
+      "raw_title": "=== Epilogue ===",
+      "cleaned_title": "Epilogue",
+      "classification": "other",
+      "is_structural_marker": true,
+      "source": "regex",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Structural division marker (prelude / epilogue / part header), not a chapter title."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "epilogue3",
+      "raw_title": "=== Epilogue ===",
+      "cleaned_title": "Epilogue",
+      "classification": "other",
+      "is_structural_marker": true,
+      "source": "regex",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Structural division marker (prelude / epilogue / part header), not a chapter title."
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "prelude",
+      "raw_title": "=== Prelude ===",
+      "cleaned_title": "Prelude",
+      "classification": "other",
+      "is_structural_marker": true,
+      "source": "regex",
+      "confidence": "high",
+      "compositional": null,
+      "note": "Structural division marker (prelude / epilogue / part header), not a chapter title."
+    }
+  ]
+}

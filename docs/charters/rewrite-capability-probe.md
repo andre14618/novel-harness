@@ -1,11 +1,12 @@
 ---
-status: needs-revision
+status: answered
 kind: experiment-charter
 experiment-family: rewrite-capability-probe
 proposed-by: Claude + user + Codex strategic consult (2026-04-21)
 proposed-date: 2026-04-21
 adversary-verdict: RED (round 1)
 adversary-review-date: 2026-04-21
+verdict-date: 2026-04-23
 supersedes: none
 depends_on: docs/decisions.md (conditioning-floor KILL entry, 2026-04-21)
 ---
@@ -156,3 +157,13 @@ Must close before §7 runs:
 - **ABSENT:** Collapse the "editor" recommendation in the strategic direction memory to "detector + no-critique redraft." Rewrite-training charter reopens only if the user wants to pursue the v5-or-rewrite-specialist path.
 
 Cross-model question (DeepSeek V3.2 as rewriter, or other base model) deferred to its own charter regardless of outcome here; independent of the 14B adapter's own capability.
+
+## Verdict: Answered (2026-04-23)
+
+The charter's research question — does Salvatore v4 have meaningful rewrite capability when given targeted critique? — was answered decisively by evidence gathered in commit `eb3e7c8`. Two probes were run: an exploratory hand-built retry shape and a rigorous production-path probe that used the actual `buildRetryPrompt()` output (extracted to `src/agents/writer/retry-context.ts`, commit `3c5313d`). The rigorous probe processed 20 pre-registered beats and found that 8/20 outputs were byte-verbatim copies of the V1 prose, 11/20 were near-matches, and only 1/20 was genuinely different. Critically, the production retry shape — which includes V1 prose as context — performed *worse* than the hand-built shape, because feeding V1 prose to the adapter anchors it to that text regardless of what the critique says.
+
+The answer is that the Salvatore v4 LoRA cannot rewrite with critique. It can produce fresh prose from blank context (beat-0 generation is clean) but it cannot escape a V1 prose anchor once that anchor is in context. The design implication has already shipped: the quality-redraft gate (`pipeline.qualityRedraftEnabled`, `src/lint/quality-detectors.ts`, wired in `src/phases/drafting.ts`) implements detect-then-redraft-from-blank-context rather than detect-then-critique-and-rewrite, making the charter's originally-proposed editor infrastructure unnecessary.
+
+Round-2 Codex review is **not scheduled**. The charter's round-1 RED verdict identified structural protocol issues (bundled lever, small N, unwritten infrastructure, Sonnet circularity), but those issues are moot because the probe evidence supersedes the planned protocol: the directional signal is unambiguous without needing the formal round-2 redesign. The implementation implication is already shipping.
+
+For further context see `docs/decisions.md` (entry "Salvatore v4 LoRA cannot rewrite with critique — quality-redraft gate ships instead", 2026-04-21) and the session retrospective at `docs/sessions/2026-04-21-tier-ordering-probe.md`.

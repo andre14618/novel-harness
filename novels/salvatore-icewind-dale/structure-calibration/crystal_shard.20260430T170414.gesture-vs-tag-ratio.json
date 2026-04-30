@@ -1,0 +1,479 @@
+{
+  "pattern_number": 73,
+  "pattern_name": "Body-language-vs-verbal-attribution ratio in dialogue",
+  "slug": "gesture-vs-tag-ratio",
+  "commit": "cd28810",
+  "timestamp_utc": "2026-04-30T17:04:14.483607+00:00",
+  "beats_path": "novels/salvatore-icewind-dale/beats.jsonl",
+  "dialogue_extract_path": "novels/salvatore-icewind-dale/analysis/dialogue-extract.jsonl",
+  "windows": {
+    "tag_window_words": 5,
+    "gesture_window_words": 10
+  },
+  "lexicons": {
+    "tag_verb_lemmas_count": 185,
+    "gesture_verb_lemmas_count": 422,
+    "tag_verb_lemmas_sample": [
+      "add",
+      "added",
+      "adding",
+      "adds",
+      "agree",
+      "agreed",
+      "agreeing",
+      "agrees",
+      "answer",
+      "answered",
+      "answering",
+      "answers",
+      "ask",
+      "asked",
+      "asking",
+      "asks",
+      "bark",
+      "barked",
+      "barking",
+      "barks",
+      "boom",
+      "boomed",
+      "booming",
+      "booms",
+      "call",
+      "called",
+      "called",
+      "calling",
+      "calls",
+      "chuckle"
+    ],
+    "gesture_verb_lemmas_sample": [
+      "advance",
+      "advanced",
+      "advances",
+      "advancing",
+      "approach",
+      "approached",
+      "approaches",
+      "approaching",
+      "back",
+      "backed",
+      "backing",
+      "backs",
+      "bend",
+      "bending",
+      "bends",
+      "bent",
+      "blink",
+      "blinked",
+      "blinking",
+      "blinks",
+      "bow",
+      "bowed",
+      "bowing",
+      "bows",
+      "brush",
+      "brushed",
+      "brushes",
+      "brushing",
+      "clap",
+      "clapped"
+    ]
+  },
+  "per_book_kind_ratios": {
+    "crystal_shard": {
+      "action": {
+        "verbal_tag": 80,
+        "gesture_beat": 45,
+        "mixed": 71,
+        "bare": 67,
+        "n_lines": 263,
+        "gesture_ratio": 0.4107,
+        "bare_rate": 0.2548
+      },
+      "dialogue": {
+        "verbal_tag": 379,
+        "gesture_beat": 177,
+        "mixed": 275,
+        "bare": 245,
+        "n_lines": 1076,
+        "gesture_ratio": 0.3785,
+        "bare_rate": 0.2277
+      },
+      "interiority": {
+        "verbal_tag": 29,
+        "gesture_beat": 22,
+        "mixed": 25,
+        "bare": 32,
+        "n_lines": 108,
+        "gesture_ratio": 0.4539,
+        "bare_rate": 0.2963
+      },
+      "description": {
+        "verbal_tag": 12,
+        "gesture_beat": 4,
+        "mixed": 11,
+        "bare": 5,
+        "n_lines": 32,
+        "gesture_ratio": 0.3519,
+        "bare_rate": 0.1562
+      }
+    },
+    "streams_of_silver": {
+      "action": {
+        "verbal_tag": 100,
+        "gesture_beat": 79,
+        "mixed": 159,
+        "bare": 72,
+        "n_lines": 410,
+        "gesture_ratio": 0.4689,
+        "bare_rate": 0.1756
+      },
+      "dialogue": {
+        "verbal_tag": 594,
+        "gesture_beat": 272,
+        "mixed": 493,
+        "bare": 243,
+        "n_lines": 1602,
+        "gesture_ratio": 0.3815,
+        "bare_rate": 0.1517
+      },
+      "interiority": {
+        "verbal_tag": 44,
+        "gesture_beat": 19,
+        "mixed": 44,
+        "bare": 26,
+        "n_lines": 133,
+        "gesture_ratio": 0.3832,
+        "bare_rate": 0.1955
+      },
+      "description": {
+        "verbal_tag": 13,
+        "gesture_beat": 11,
+        "mixed": 15,
+        "bare": 10,
+        "n_lines": 49,
+        "gesture_ratio": 0.4744,
+        "bare_rate": 0.2041
+      }
+    },
+    "halflings_gem": {
+      "action": {
+        "verbal_tag": 88,
+        "gesture_beat": 77,
+        "mixed": 168,
+        "bare": 56,
+        "n_lines": 389,
+        "gesture_ratio": 0.4835,
+        "bare_rate": 0.144
+      },
+      "dialogue": {
+        "verbal_tag": 498,
+        "gesture_beat": 283,
+        "mixed": 514,
+        "bare": 244,
+        "n_lines": 1539,
+        "gesture_ratio": 0.417,
+        "bare_rate": 0.1585
+      },
+      "interiority": {
+        "verbal_tag": 55,
+        "gesture_beat": 22,
+        "mixed": 59,
+        "bare": 18,
+        "n_lines": 154,
+        "gesture_ratio": 0.3787,
+        "bare_rate": 0.1169
+      },
+      "description": {
+        "verbal_tag": 13,
+        "gesture_beat": 6,
+        "mixed": 14,
+        "bare": 9,
+        "n_lines": 42,
+        "gesture_ratio": 0.3939,
+        "bare_rate": 0.2143
+      }
+    }
+  },
+  "per_book_aggregate": {
+    "crystal_shard": {
+      "verbal_tag": 500,
+      "gesture_beat": 251,
+      "mixed": 383,
+      "bare": 349,
+      "n_lines": 1483,
+      "gesture_ratio": 0.3902,
+      "bare_rate": 0.2353
+    },
+    "streams_of_silver": {
+      "verbal_tag": 751,
+      "gesture_beat": 381,
+      "mixed": 711,
+      "bare": 351,
+      "n_lines": 2194,
+      "gesture_ratio": 0.3996,
+      "bare_rate": 0.16
+    },
+    "halflings_gem": {
+      "verbal_tag": 654,
+      "gesture_beat": 388,
+      "mixed": 755,
+      "bare": 327,
+      "n_lines": 2124,
+      "gesture_ratio": 0.426,
+      "bare_rate": 0.154
+    }
+  },
+  "per_book_char_ratios": {
+    "crystal_shard": {
+      "Drizzt": {
+        "verbal_tag": 68,
+        "gesture_beat": 29,
+        "mixed": 53,
+        "bare": 48,
+        "n_lines": 198,
+        "gesture_ratio": 0.37,
+        "bare_rate": 0.2424
+      },
+      "Bruenor": {
+        "verbal_tag": 50,
+        "gesture_beat": 24,
+        "mixed": 39,
+        "bare": 36,
+        "n_lines": 149,
+        "gesture_ratio": 0.385,
+        "bare_rate": 0.2416
+      },
+      "Wulfgar": {
+        "verbal_tag": 40,
+        "gesture_beat": 31,
+        "mixed": 49,
+        "bare": 24,
+        "n_lines": 144,
+        "gesture_ratio": 0.4625,
+        "bare_rate": 0.1667
+      },
+      "Catti-brie": {
+        "verbal_tag": 8,
+        "gesture_beat": 5,
+        "mixed": 9,
+        "bare": 7,
+        "n_lines": 29,
+        "gesture_ratio": 0.4318,
+        "bare_rate": 0.2414
+      },
+      "Regis": {
+        "verbal_tag": 25,
+        "gesture_beat": 12,
+        "mixed": 16,
+        "bare": 24,
+        "n_lines": 77,
+        "gesture_ratio": 0.3774,
+        "bare_rate": 0.3117
+      }
+    },
+    "streams_of_silver": {
+      "Drizzt": {
+        "verbal_tag": 73,
+        "gesture_beat": 32,
+        "mixed": 73,
+        "bare": 37,
+        "n_lines": 215,
+        "gesture_ratio": 0.3848,
+        "bare_rate": 0.1721
+      },
+      "Bruenor": {
+        "verbal_tag": 114,
+        "gesture_beat": 73,
+        "mixed": 107,
+        "bare": 62,
+        "n_lines": 356,
+        "gesture_ratio": 0.4303,
+        "bare_rate": 0.1742
+      },
+      "Wulfgar": {
+        "verbal_tag": 38,
+        "gesture_beat": 27,
+        "mixed": 42,
+        "bare": 9,
+        "n_lines": 116,
+        "gesture_ratio": 0.4486,
+        "bare_rate": 0.0776
+      },
+      "Catti-brie": {
+        "verbal_tag": 22,
+        "gesture_beat": 13,
+        "mixed": 23,
+        "bare": 5,
+        "n_lines": 63,
+        "gesture_ratio": 0.4224,
+        "bare_rate": 0.0794
+      },
+      "Regis": {
+        "verbal_tag": 31,
+        "gesture_beat": 30,
+        "mixed": 39,
+        "bare": 14,
+        "n_lines": 114,
+        "gesture_ratio": 0.495,
+        "bare_rate": 0.1228
+      }
+    },
+    "halflings_gem": {
+      "Drizzt": {
+        "verbal_tag": 57,
+        "gesture_beat": 38,
+        "mixed": 81,
+        "bare": 22,
+        "n_lines": 198,
+        "gesture_ratio": 0.446,
+        "bare_rate": 0.1111
+      },
+      "Bruenor": {
+        "verbal_tag": 63,
+        "gesture_beat": 53,
+        "mixed": 94,
+        "bare": 41,
+        "n_lines": 251,
+        "gesture_ratio": 0.4762,
+        "bare_rate": 0.1633
+      },
+      "Wulfgar": {
+        "verbal_tag": 49,
+        "gesture_beat": 16,
+        "mixed": 41,
+        "bare": 9,
+        "n_lines": 115,
+        "gesture_ratio": 0.3443,
+        "bare_rate": 0.0783
+      },
+      "Catti-brie": {
+        "verbal_tag": 29,
+        "gesture_beat": 19,
+        "mixed": 49,
+        "bare": 14,
+        "n_lines": 111,
+        "gesture_ratio": 0.4485,
+        "bare_rate": 0.1261
+      },
+      "Regis": {
+        "verbal_tag": 16,
+        "gesture_beat": 11,
+        "mixed": 28,
+        "bare": 8,
+        "n_lines": 63,
+        "gesture_ratio": 0.4545,
+        "bare_rate": 0.127
+      }
+    }
+  },
+  "pooled_char_ratios": {
+    "Drizzt": {
+      "verbal_tag": 198,
+      "gesture_beat": 99,
+      "mixed": 207,
+      "bare": 107,
+      "n_lines": 611,
+      "gesture_ratio": 0.4018,
+      "bare_rate": 0.1751
+    },
+    "Bruenor": {
+      "verbal_tag": 227,
+      "gesture_beat": 150,
+      "mixed": 240,
+      "bare": 139,
+      "n_lines": 756,
+      "gesture_ratio": 0.4376,
+      "bare_rate": 0.1839
+    },
+    "Wulfgar": {
+      "verbal_tag": 127,
+      "gesture_beat": 74,
+      "mixed": 132,
+      "bare": 42,
+      "n_lines": 375,
+      "gesture_ratio": 0.4204,
+      "bare_rate": 0.112
+    },
+    "Catti-brie": {
+      "verbal_tag": 59,
+      "gesture_beat": 37,
+      "mixed": 81,
+      "bare": 26,
+      "n_lines": 203,
+      "gesture_ratio": 0.4379,
+      "bare_rate": 0.1281
+    },
+    "Regis": {
+      "verbal_tag": 72,
+      "gesture_beat": 53,
+      "mixed": 83,
+      "bare": 46,
+      "n_lines": 254,
+      "gesture_ratio": 0.4543,
+      "bare_rate": 0.1811
+    }
+  },
+  "per_book_top_kind_by_gesture_ratio": {
+    "crystal_shard": "interiority",
+    "streams_of_silver": "description",
+    "halflings_gem": "action"
+  },
+  "per_book_kind_ranking_by_gesture_ratio": {
+    "crystal_shard": [
+      "interiority",
+      "action",
+      "dialogue",
+      "description"
+    ],
+    "streams_of_silver": [
+      "description",
+      "action",
+      "interiority",
+      "dialogue"
+    ],
+    "halflings_gem": [
+      "action",
+      "dialogue",
+      "description",
+      "interiority"
+    ]
+  },
+  "per_book_bare_rates": {
+    "crystal_shard": 0.2353,
+    "streams_of_silver": 0.16,
+    "halflings_gem": 0.154
+  },
+  "per_book_char_top2_by_gesture_ratio": {
+    "crystal_shard": [
+      "Catti-brie",
+      "Wulfgar"
+    ],
+    "streams_of_silver": [
+      "Regis",
+      "Wulfgar"
+    ],
+    "halflings_gem": [
+      "Bruenor",
+      "Regis"
+    ]
+  },
+  "gate_a_per_kind_top": "DIVERGE",
+  "gate_b_bare_rate_spread": "PASS_PARTIAL",
+  "gate_c_char_top2_overlap_verdict": "DIVERGE",
+  "gate_c_char_top2_overlap_size": 0,
+  "verdict": "DIVERGE",
+  "gates_used": [
+    "modal_class[per-kind top by gesture_ratio]",
+    "density_spread[BARE rate \u226425%]",
+    "top_k_overlap[per-character top-2]"
+  ],
+  "n_quotes_total": 5801,
+  "n_quotes_attributed_to_speaker": 2199,
+  "speaker_attribution_coverage": 0.3791,
+  "n_quote_lines_per_book": {
+    "crystal_shard": 1483,
+    "halflings_gem": 2124,
+    "streams_of_silver": 2194
+  },
+  "findings_short": "per-book top-kind by gesture_ratio: crystal_shard=interiority(0.4539) streams_of_silver=description(0.4744) halflings_gem=action(0.4835); BARE rates: crystal_shard=0.2353, streams_of_silver=0.16, halflings_gem=0.154; per-char top-2 stable across books: 0/2 (Gate C=DIVERGE)"
+}

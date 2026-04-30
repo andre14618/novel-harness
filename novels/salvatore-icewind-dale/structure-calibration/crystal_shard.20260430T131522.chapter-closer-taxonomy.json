@@ -1,0 +1,1529 @@
+{
+  "pattern": 50,
+  "timestamp": "2026-04-30T13:15:22.401Z",
+  "n_chapters": 92,
+  "buckets": [
+    "physical_cliffhanger",
+    "info_reveal",
+    "arrival",
+    "departure",
+    "decision_point",
+    "unanswered_question",
+    "reflection_pause",
+    "time_leap_tease",
+    "tableau_close"
+  ],
+  "method": {
+    "regex_pre_pass": {
+      "unanswered_question": "trailing '?' (after stripping closing-quote / whitespace)",
+      "time_leap_tease": "tail-of-text match against canonical time-leap markers (would be long, would bring, before dawn, ere long, etc.)"
+    },
+    "llm_residual": {
+      "provider": "deepseek",
+      "model": "deepseek-v4-flash",
+      "temperature": 0,
+      "response_format": "json_object",
+      "max_tokens": 350,
+      "thinking_disabled": true
+    },
+    "excerpt_max_chars": 1500,
+    "excerpt_strategy": "tail-truncate (preserve closing prose)"
+  },
+  "aggregate": {
+    "n": 92,
+    "distribution": {
+      "physical_cliffhanger": {
+        "count": 17,
+        "pct": 18.5
+      },
+      "info_reveal": {
+        "count": 15,
+        "pct": 16.3
+      },
+      "arrival": {
+        "count": 7,
+        "pct": 7.6
+      },
+      "departure": {
+        "count": 17,
+        "pct": 18.5
+      },
+      "decision_point": {
+        "count": 7,
+        "pct": 7.6
+      },
+      "unanswered_question": {
+        "count": 5,
+        "pct": 5.4
+      },
+      "reflection_pause": {
+        "count": 17,
+        "pct": 18.5
+      },
+      "time_leap_tease": {
+        "count": 3,
+        "pct": 3.3
+      },
+      "tableau_close": {
+        "count": 4,
+        "pct": 4.3
+      }
+    }
+  },
+  "perBook": {
+    "crystal_shard": {
+      "n": 34,
+      "distribution": {
+        "physical_cliffhanger": {
+          "count": 8,
+          "pct": 23.5
+        },
+        "info_reveal": {
+          "count": 6,
+          "pct": 17.6
+        },
+        "arrival": {
+          "count": 2,
+          "pct": 5.9
+        },
+        "departure": {
+          "count": 5,
+          "pct": 14.7
+        },
+        "decision_point": {
+          "count": 1,
+          "pct": 2.9
+        },
+        "unanswered_question": {
+          "count": 3,
+          "pct": 8.8
+        },
+        "reflection_pause": {
+          "count": 6,
+          "pct": 17.6
+        },
+        "time_leap_tease": {
+          "count": 1,
+          "pct": 2.9
+        },
+        "tableau_close": {
+          "count": 2,
+          "pct": 5.9
+        }
+      }
+    },
+    "streams_of_silver": {
+      "n": 29,
+      "distribution": {
+        "physical_cliffhanger": {
+          "count": 4,
+          "pct": 13.8
+        },
+        "info_reveal": {
+          "count": 4,
+          "pct": 13.8
+        },
+        "arrival": {
+          "count": 4,
+          "pct": 13.8
+        },
+        "departure": {
+          "count": 5,
+          "pct": 17.2
+        },
+        "decision_point": {
+          "count": 3,
+          "pct": 10.3
+        },
+        "unanswered_question": {
+          "count": 2,
+          "pct": 6.9
+        },
+        "reflection_pause": {
+          "count": 5,
+          "pct": 17.2
+        },
+        "time_leap_tease": {
+          "count": 1,
+          "pct": 3.4
+        },
+        "tableau_close": {
+          "count": 1,
+          "pct": 3.4
+        }
+      }
+    },
+    "halflings_gem": {
+      "n": 29,
+      "distribution": {
+        "physical_cliffhanger": {
+          "count": 5,
+          "pct": 17.2
+        },
+        "info_reveal": {
+          "count": 5,
+          "pct": 17.2
+        },
+        "arrival": {
+          "count": 1,
+          "pct": 3.4
+        },
+        "departure": {
+          "count": 7,
+          "pct": 24.1
+        },
+        "decision_point": {
+          "count": 3,
+          "pct": 10.3
+        },
+        "unanswered_question": {
+          "count": 0,
+          "pct": 0
+        },
+        "reflection_pause": {
+          "count": 6,
+          "pct": 20.7
+        },
+        "time_leap_tease": {
+          "count": 1,
+          "pct": 3.4
+        },
+        "tableau_close": {
+          "count": 1,
+          "pct": 3.4
+        }
+      }
+    }
+  },
+  "cross_book_stability": {
+    "modal_class_per_book": {
+      "crystal_shard": "physical_cliffhanger",
+      "streams_of_silver": "departure",
+      "halflings_gem": "departure"
+    },
+    "modal_class_agree": false,
+    "top3_per_book": {
+      "crystal_shard": [
+        "physical_cliffhanger",
+        "info_reveal",
+        "reflection_pause"
+      ],
+      "streams_of_silver": [
+        "departure",
+        "reflection_pause",
+        "physical_cliffhanger"
+      ],
+      "halflings_gem": [
+        "departure",
+        "reflection_pause",
+        "physical_cliffhanger"
+      ]
+    },
+    "top3_intersection": [
+      "physical_cliffhanger",
+      "reflection_pause"
+    ],
+    "always_present_classes": [
+      "physical_cliffhanger",
+      "info_reveal",
+      "arrival",
+      "departure",
+      "decision_point",
+      "reflection_pause",
+      "time_leap_tease",
+      "tableau_close"
+    ]
+  },
+  "directional_verdict": "PASS_PARTIAL",
+  "directional_note": "Modal class diverges across books ({\"crystal_shard\":\"physical_cliffhanger\",\"streams_of_silver\":\"departure\",\"halflings_gem\":\"departure\"}) but top-3 set has 2 cross-book reproducible buckets: physical_cliffhanger, reflection_pause.",
+  "chapters": [
+    {
+      "book": "crystal_shard",
+      "chapter": 1,
+      "closer_text_excerpt": "\"How fortunate to find so convenient a tool,\" Dendybar noted. \"The wizard's stupid apprentice saved us \nmuch trouble. I doubt that we would have found a way to get at that crafty old one. Though the gods \nalone know why, ever did Morkai have a soft spot for his wretched little apprentice!\" \n\"Soft enough for a dagger's point!\" laughed a second voice. \n\"And so convenient a setting,\" remarked yet another. \"Unexplained bodies are considered no more than \nan inconvenience to the cleaning wenches in this uncivilized outpost!\" \nThe burly Eldeluc laughed aloud. The gruesome task was at last completed; they could finally leave this \nbarren stretch of frozen desert and return home.",
+      "last_sentence": "The burly Eldeluc laughed aloud. The gruesome task was at last completed; they could finally leave this barren stretch of frozen desert and return home.",
+      "classification": "departure",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The final paragraph states the task is completed and they can leave, emphasizing departure from the setting.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 2,
+      "closer_text_excerpt": "\"Alas for the greed of humans,\" Regis would say whenever the Pasha's men showed up in another town that the halfling had made his home, forcing him to extend his exile to an even more remote land. But he hadn't needed that phrase for a year-and-a-half now, not since he had arrived in Ten-Towns. Pook's arms were long, but this frontier settlement, in the middle of the most inhospitable and untamed land imaginable, was a longer way still, and Regis was quite content in the security of his new sanctuary. There was wealth here, and for those nimble and talented enough to be a scrimshander, someone who could transform the ivorylike bone of a knucklehead trout into an artistic carving, a comfortable living could be made with a minimum amount of work. And with Ten-Towns' scrimshaw fast becoming the rave of the south, the halfling meant to shake off his customary lethargy and turn his new-found trade into a booming business. Someday.",
+      "last_sentence": "Someday.",
+      "classification": "reflection_pause",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The closer is an interior reflection on Regis's contentment and future plans, with no external action or cliffhanger.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 3,
+      "closer_text_excerpt": "Heafstaag threw his arms above his head and raised his gaze and axe to the ceiling. Beorg grabbed his axe \nfrom his belt and quickly mimicked the movement. \"Tempos!\" they shouted in unison. Then, eyeing each \nother once more, they gashed their shield arms with their axes, wetting the blades with their own blood. \nIn a synchronous movement, they spun and heaved the weapons across the hall, each axe finding its mark \nin the same keg of mead. Immediately, the closest men grabbed flagons and scrambled to catch the first \ndrops of spilling mead that had been blessed with the blood of their kings. \n\"I have drawn a plan for your approval,\" Beorg told Heafstaag. \n\"Later, noble friend,\" the one-eyed king replied. \"Let tonight be a time of song and drink to celebrate our \ncoming victory.\" He clapped Beorg on the shoulder and winked with his one eye. \"Be glad of my arrival, \nfor you were sorely unprepared for such a gathering,\" he said with a hearty laugh. Beorg eyed him \ncuriously, but Heafstaag gave him a second grotesque wink to quench his suspicions. \nAbruptly, the lusty giant snapped his fingers at one of his field lieutenants, nudging his rival with his \nelbow as if to let him in on the joke. \n\"Fetch the wenches!\" he commanded.",
+      "last_sentence": "\"Fetch the wenches!\" he commanded.",
+      "classification": "arrival",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The chapter ends with Heafstaag commanding to fetch wenches, signaling the start of a celebration and the arrival of a new phase (the party), setting up the next chapter's scene.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 4,
+      "closer_text_excerpt": "Akar Kessell slept comfortably, unaware of what had befallen him. He knew only - and cared only - that \nhis life was not yet at an end. He would learn the implications soon enough. He would come to \nunderstand that he would never again play the role of stooge to pretentious dogs like Eldulac, Dendybar \nthe Mottled, and the others. \nHe would become the Akar Kessell of his own fantasies, and all would bow before him.\n\"Respect,\" he mumbled from within the depths of his dream, a dream that Crenshinibon was imposing \nupon him. \nAkar Kessell, the Tyrant of Icewind Dale.",
+      "last_sentence": "Akar Kessell, the Tyrant of Icewind Dale.",
+      "classification": "info_reveal",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Reveals that Kessell will become the Tyrant of Icewind Dale, a major plot twist.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 5,
+      "closer_text_excerpt": "\"Again ye speak of the power o' the stone,\" grumbled Bruenor. \"But Rumblebelly claims that his master o` old had twelve o' the things,\" he reasoned. \"Mighty magics don't come in dozens!\" \"Regis said that his master had twelve similar stones,\" Drizzt corrected. \"In truth, the halfling had no way of knowing if all twelve, or any of the others, were magical.\" \"Then why would the man have given the only one o' power to Rumblebelly?\" Drizzt left the question unanswered, but his silence soon led Bruenor to the same inescapable conclusion. Regis had a way of collecting things that didn't belong to him, and though the halfling had explained the stone as a gift . . .",
+      "last_sentence": "Regis had a way of collecting things that didn't belong to him, and though the halfling had explained the stone as a gift . . .",
+      "classification": "unanswered_question",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The chapter ends with an explicit question posed by Bruenor, left unanswered, framing forward expectation.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 6,
+      "closer_text_excerpt": "Regis had much to be proud of when he left the council hall later that day, and his hopes for the survival of Ten-Towns had returned. Yet the halfling found his thoughts consumed by the implications of the power he had discovered in his ruby. He worked to figure the most failsafe way in which he could turn this new-found power of inducing cooperation into profit and comfort. \"So nice of the Pasha Pook to give me this one!\" he told himself as he walked through the front gate of Bryn Shander and headed for the appointed spot where he would meet with Drizzt and Bruenor.",
+      "last_sentence": "\"So nice of the Pasha Pook to give me this one!\" he told himself as he walked through the front gate of Bryn Shander and headed for the appointed spot where he would meet with Drizzt and Bruenor.",
+      "classification": "departure",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Character leaves council hall and walks through gate, moving away from the scene.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 7,
+      "closer_text_excerpt": "One day the very next week, Drizzt managed to catch Masoj alone outside the cluttered grounds of \nMenzoberranzan. He knew that there could be no turning back once the fatal blow had been struck, but he \ndidn't even hesitate, slipping his scimitar through the ribs of his unsuspecting victim. That was the only \ntime in his life that he had ever killed one of his own race, an act that thoroughly revolted him despite his \nfeelings toward his people. \nThen he took the figurine and fled, meaning only to find another of the countless dark holes in the vast \nunderworld to make his home, but eventually winding up on the surface. And then, unaccepted and \npersecuted for his heritage in city after city in the populated south, he had made his way to the wilderness \nfrontier of Ten-Towns, a melting pot of outcasts, the last outpost of humanity, where he was at least \ntolerated. \nHe didn't care much about the shunning he usually received even here. He had found friendship with the \nhalfling, and the dwarves, and Bruenor's adopted daughter, Cattibrie. \nAnd he had Guenhwyvar by his side. He patted the great cat's muscled neck once again and left Bremen's \nRun to find a dark hole where he could rest before the battle.",
+      "last_sentence": "He patted the great cat's muscled neck once again and left Bremen's Run to find a dark hole where he could rest before the battle.",
+      "classification": "departure",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The final paragraph shows Drizzt leaving Bremen's Run to find a place to rest, closing the scene with movement away.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 8,
+      "closer_text_excerpt": "Regis eyed the result of his dirty work and shrugged absently. He had only done what was necessary. The sounds of the battle in the street rang closer to his alley sanctuary and dispelled his contemplation. Again the halfling acted on instinct. He crawled under the body of his felled enemy, then twisted around underneath to make it look as if he had gone down under the weight of the larger man. When he inspected the damage of deBernezan's initial thrust, he was glad that he hadn't lost his ear. He hoped that his wound was serious enough to give credence to this image of a death struggle.",
+      "last_sentence": "He hoped that his wound was serious enough to give credence to this image of a death struggle.",
+      "classification": "physical_cliffhanger",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The chapter ends with Regis in immediate physical danger, hiding under a corpse as battle sounds approach, with an unresolved threat.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 9,
+      "closer_text_excerpt": "[…] after the battle, a choice mutually arrived at by himself and the townsfolk. With Lonelywood growing into greater prominence and shaking off its reputation as a melting pot of rogues, the town needed a more aggressive person to sit on the council. And Regis simply didn't want to be bothered with the responsibility anymore. Of course, Regis had found a way to turn his fame into profit. Every new settler in the town had to pay out a share of his first catches in return for the right to fly Lonelywood's flag, and Regis had persuaded the new spokesman and the other leaders of the town that since his name had been used to help bring in the new settlers, he should be cut in for a portion of these fees. The halfling wore a broad smile whenever he considered his good fortune. He spent his days in peace, coming and going at his leisure, mostly just lying against the moss of his favorite tree, putting a line in the water once and letting the day pass him by. His life had taken a comfortable turn, though the only work he ever did now was carving scrimshaw. His crafted pieces carried ten times their old value, the price partially inflated by the halfling's small degree of fame, but moreso because he had persuaded some connoisseurs who were visiting Bryn Shander that his unique style and cut gave his scrimshaw a special artistic and aesthetic worth. Regis patted the ruby pendant that rested on his bare chest.\nIt seemed that he could \"persuade\" almost anyone of almost anything these days.",
+      "last_sentence": "It seemed that he could \"persuade\" almost anyone of almost anything these days.",
+      "classification": "info_reveal",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The final line reveals that Regis's persuasive ability is magically enhanced by the ruby pendant, changing the reader's understanding of his success.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 10,
+      "closer_text_excerpt": "\"I have a proposal to offer, a bargain that might interest you,\" Kessell said temptingly, avoiding the \ndeath-promising glare that the demon was throwing him. \"Stay by my side and serve as commander of \nmy forces! With you leading them and the power of Crenshinibon and Akar Kessell behind them, they \nshall sweep through the northland!\" \n\"Serve you?\" Errtu laughed. \"You have no hold over me, human.\" \n\"You view the situation incorrectly,\" retorted Kessell. \"Think of it not as servitude but as an opportunity \nto join in a campaign that promises destruction and conquest! You have my utmost respect, mighty \ndemon. I would not presume to call myself your master.\" \nCrenshinibon, with its subconscious intrusions, had coached Kessell well. Errtu's less-threatening stance \nshowed that it was intrigued by the wizard's proposition. \n\"And consider the gains that you shall someday make,\" \nKessell continued. \"Humans do not live a very long tine by your ageless estimations. Who, then, shall \ntake the crystal shard when Akar Kessell is no more?\"\nErrtu smiled wickedly and bowed before the wizard. \"How could I refuse such a generous offer?\" the \ndemon rasped in its horrible, unearthly voice. \"Show me, wizard, what glorious conquests lie in our \npath.\" \nKessell nearly danced with joy. His army was, in effect, complete. \nHe had his general.",
+      "last_sentence": "He had his general.",
+      "classification": "info_reveal",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The final line reveals that Kessell has secured Errtu as his general, completing his army.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 11,
+      "closer_text_excerpt": "Then, mercifully, he was falling, though the void of unconsciousness took him long before \nhis head hit the ground. \nDrizzt turned away and slumped back against the rocky ridge; he, too, was exhausted from the spectacle. \nHe didn't know if his friend would survive this night's ordeal, yet he was thrilled for Bruenor. For he had \nwitnessed the dwarf's most triumphant moment, even if Bruenor had not, as the hammer's mithril head \nflared with the life of magic and pulled in the shower of diamond. \nAnd not a single speck of the glittering dust had escaped Bruenor's beckon.",
+      "last_sentence": "And not a single speck of the glittering dust had escaped Bruenor's beckon.",
+      "classification": "reflection_pause",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The chapter ends with Drizzt's interior reflection on Bruenor's triumph, not with action or new information.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 12,
+      "closer_text_excerpt": "As did Bruenor. \n\"You have my word,\" Wulfgar stammered, so overcome by the magnificent gift that he could hardly \nspeak. He steadied himself so that he could say more, but by the time he was able to pull his gaze from \nthe magnificent hammer, Bruenor was gone. \nThe dwarf stomped through the long corridors toward his private chambers, mumbling curses at his \nweakness, and hoping that none of his kin came upon him. With a cautious look around, he wiped the \nmoisture from his gray eyes.",
+      "last_sentence": "With a cautious look around, he wiped the \nmoisture from his gray eyes.",
+      "classification": "departure",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Bruenor leaves Wulfgar and walks away to his private chambers, closing the scene with a departure.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 13,
+      "closer_text_excerpt": "It understood that Kessell was foolishly demonstrating his control over the shard at the expense of \nproper restraint and wise military tactics. The wizard did not have the capacity or the experience to \norchestrate this campaign, yet the shard continued to back him. \nErrtu had made a secret offer to it to dispose of Kessell and take over as wielder. But Crenshinibon had \nrefused the demon. It preferred the demonstrations that Kessell demanded of it to appease his own \ninsecurities over the constant struggle of control it would face against the powerful demon.",
+      "last_sentence": "It preferred the demonstrations that Kessell demanded of it to appease his own \ninsecurities over the constant struggle of control it would face against the powerful demon.",
+      "classification": "info_reveal",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Reveals Crenshinibon's internal reasoning and preference for Kessell over Errtu, changing reader understanding of the artifact's motives.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 14,
+      "closer_text_excerpt": "In an eyeblink, the two scimitars leaped from their sheaths and challenged the barbarian. Instinctively, Wulfgar raised his warhammer to strike. But Drizzt was the quicker. The flat sides of his weapons slapped in rapid succession against Wulfgar's cheeks, drawing thin streaks of blood. Even as the barbarian moved to counter, Drizzt spun one of the deadly blades in a declining arc, its razor edge diving at the back of Wulfgar's knee. Wulfgar managed to slip his leg out of the way, but the action, as Drizzt had anticipated, put him off-balance. The drow casually slipped the scimitars back into their leather scabbards as his foot slammed into the barbarian's stomach, sending him sprawling into the dust, the magical hammer flying from his hands. \"Now that ye understand each other,\" declared Bruenor, trying to hide his amusement for the sake of Wulfgar's fragile ego, \"I'll be leavin' ye.\" He looked questioningly at Drizzt to make sure that the drow was comfortable with the situation. \"Give me a few weeks,\" Drizzt answered with a wink, returning the dwarf's smile. Bruenor turned back to Wulfgar, who had retrieved Aegis-fang and was resting on one knee, eyeing the elf with blank amazement. \"Heed his words, boy,\" the dwarf instructed one last time. \"Or he'll cut ye into pieces small enough for a vulture's gullet!\"",
+      "last_sentence": "\"Heed his words, boy,\" the dwarf instructed one last time. \"Or he'll cut ye into pieces small enough for a vulture's gullet!\"",
+      "classification": "tableau_close",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Final paragraph ends with Bruenor's dialogue and a descriptive image of Wulfgar on one knee, no immediate action or interiority.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 15,
+      "closer_text_excerpt": "Wulfgar sat a moment longer in contemplation. The drow lived a hard and materially empty existence, yet he was richer than any man Wulfgar had ever known. Drizzt had clung to his principles against overwhelming circumstances, leaving the familiar world of his own people by choice to remain in a world where he would never be accepted or appreciated. He looked at the departing elf, now a mere shadow in the gloom. \"Perhaps we two are not so different,\" he mumbled under his breath.",
+      "last_sentence": "\"Perhaps we two are not so different,\" he mumbled under his breath.",
+      "classification": "reflection_pause",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "POV character sits in contemplation, reflecting on another character's life and drawing a quiet personal conclusion.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 16,
+      "closer_text_excerpt": "Wulfgar hadn't yet struck a solid blow on his opponent, biding his time, as Drizzt had taught him, until the enraged verbeeg wore itself out. Already the barbarian could see that the giant's blows were coming with less frequency and vigor. Finally, lathered in sweat and breathing heavily, the verbeeg slipped up and dropped its guard. Aegis-fang pounded home once, and then again, and the giant toppled in a lump. The verbeeg fighting Drizzt was down on one knee now, the drow having deftly sliced out one of its hamstrings. When Drizzt saw the second giant fall before Wulfgar, he decided to end the game. The giant took one more futile swing, and Drizzt waded in behind the flow of the weapon, jabbing with one scimitar and this time following the cruel point with his full weight. The blade slipped through the giant's neck and upward into its brain.",
+      "last_sentence": "The blade slipped through the giant's neck and upward into its brain.",
+      "classification": "physical_cliffhanger",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Chapter ends mid-action with Drizzt's blade penetrating the giant's neck and brain, unresolved combat.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 17,
+      "closer_text_excerpt": "When the last giant lay dead, Drizzt moved down the path to join his friend. \"You have not yet come to \nunderstand your own prowess in battle!\" he laughed, slapping the big man on the back. \"Six giants are \nnot beyond our ability!\" \n\"Now do we go to find Bruenor?\" Wulfgar asked, though he saw the fire still flickering dangerously in \nthe drow's lavender eyes. He realized that they weren't leaving yet. \n\"No need,\" Drizzt replied. \"I am confident that the dwarves have their situation well in hand. \n\"But we do have a problem,\" he continued. \"We were able to kill the first group of giants and still retain \nthe element of surprise. Very soon, though, with six more missing, the lair will become alert to any hint \nof danger.\" \n\"The dwarves should return in the morning,\" said Wulfgar. \" We can attack the lair before midday.\" \n\"Too late,\" Drizzt said, pretending disappointment. \"I fear that you and I may have to strike at them \ntonight, without delay.\" \nWulfgar wasn't surprised; he didn't even argue. He feared that he and the drow were taking on too much, \nthat the drow's plan was too outrageous, but he was starting to accept one indisputable fact: He would \nfollow Drizzt into any adventure, no matter how improbable their chances of surviving. \nAnd he was beginning to admit to himself that he enjoyed gambling alongside the dark elf.",
+      "last_sentence": "And he was beginning to admit to himself that he enjoyed gambling alongside the dark elf.",
+      "classification": "decision_point",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Drizzt makes a clear decision to attack the lair that night, and Wulfgar accepts, framing the next chapter's action.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 18,
+      "closer_text_excerpt": "The verbeeg lurched away. The blade hadn't found its heart, but it knew that the wound would soon \nprove fatal if untended. Blood poured freely down the monster's leather tunic, and it labored visibly as it \ntried to breath. Drizzt alternated his attacks with Guenhwyvar, striking and ducking away from the \nlumbering counter while his partner rushed in on the monster's other side. They knew, and the giant did, \ntoo, that this fight would soon be over.\nThe giant fighting Wulfgar could no longer sustain a defensive posture with its heavy club. Wulfgar was",
+      "last_sentence": "Wulfgar was",
+      "classification": "physical_cliffhanger",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Chapter ends mid-combat with unresolved physical danger",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 19,
+      "closer_text_excerpt": "[…] t the threat was simply too grave to be passed off as the deception of a desperate captive, or even as a more insidious plan by Cassius and some conspirators. Yet Kemp, proud and arrogant, and certain that Agorwal and his non-human friends, the halfling and the dwarf, were using the facade of an invasion to gain some advantage over the superior city of Targos, would not budge. Second only to Cassius in all of Ten-Towns, Kemp's opinion carried great weight, especially to the people of Caer-Konig and Caer-Dineval, who, in light of Bryn Shander's unshakable neutrality in their struggle, sought the favor of Targos. \nEnough spokesmen remained suspicious of their rivals and were willing to accept Kemp's explanation to prevent Cassius from bringing the council to decisive action. The lines were soon clearly drawn. \nRegis watched the spectacle as the opposing sides volleyed back and forth, but the halfling's own credibility had been destroyed, and he had no impact on the rest of the meeting. In the end, little was decided. The most that Agorwal, Glensather, and Muldoon could squeeze out of public declaration that, \"A general warning should go out to every household in Ten-Towns. Let the people know of our grim tidings, and let them be assured that I shall make room within the walls of Bryn Shander for every person who so desires our protection.\" \nRegis eyed the divided spokesmen. Without unity, the halfling wondered how much protection even the high walls of Bryn Shander could offer.",
+      "last_sentence": "Without unity, the halfling wondered how much protection even the high walls of Bryn Shander could offer.",
+      "classification": "unanswered_question",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Closer ends with an implicit question about the protection of Bryn Shander's walls without unity.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 20,
+      "closer_text_excerpt": "\"Home is a place for him to choose,\" Drizzt replied, guessing that the news about Heafstaag joining Kessell had played a part in Wulfgar's decision. He watched the departing barbarian with respect. \"He has some private matters to attend to.\" \n\"More than you know,\" Catti-brie said. Drizzt looked at her curiously. \"Wulfgar has an adventure in mind,\" she explained. She hadn't meant to break her trust with Wulfgar, but figured that Drizzt Do'Urden, above anyone else, might be able to find a way to help. \"One that I believe has been put upon him before he is ready.\" \n\"Matters of the tribe are his own business,\" Drizzt said, guessing what the girl was suggesting. \"The barbarians have their own ways and do not welcome outsiders.\" \n\"Of the tribes, I agree,\" said Catti-brie. \"Yet Wulfgar's path, unless I am mistaken, does not lead directly home. He has something else ahead of him, an adventure that he has often hinted at but never fully explained. I only know that it involves great danger and a vow that even he fears is above his ability to fulfil alone.\" \nDrizzt looked over the starry plain and considered the girl's words. He knew Catti-brie to be shrewd and observant beyond her years. He did not doubt her guesses. \nThe stars twinkled above the cool night, the celestial dome engulfing the flat rim of the horizon. A horizon as yet unmarked by the fires of an advancing army, Drizzt noted. \nPerhaps he had time.",
+      "last_sentence": "Perhaps he had time.",
+      "classification": "reflection_pause",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Closer is interior — Drizzt considers the horizon and his own sense of time, a quiet emotional landing with no external action.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 21,
+      "closer_text_excerpt": "Drizzt bore witness to their victory. Mesmerized, the drow watched the silent descent of the huge icicle. Icingdeath, blinded to the danger by the globe of darkness and thinking that the hammer had flown wildly, waved its wings. The clawed forelegs had just begun to lift up when the ice spear smashed into the dragon's back, driving it back to the floor. With the ball of darkness planted on its head, Drizzt couldn't see the dragon's dying expression. But he heard the killing \"crack\" as the whiplike neck, launched by the sudden reversal of momentum, rolled upward and snapped.",
+      "last_sentence": "But he heard the killing \"crack\" as the whiplike neck, launched by the sudden reversal of momentum, rolled upward and snapped.",
+      "classification": "physical_cliffhanger",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Chapter ends mid-action with the dragon's neck snapping, unresolved physical danger.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 22,
+      "closer_text_excerpt": "Horrified at the power of the grip, Heafstaag pulled at the younger man's iron-hard forearms, trying vainly to relieve the growing pressure.\nWulfgar realized that he was about to kill one of his own tribe. \"Yield!\" he shouted at Heafstaag, seeking some more acceptable alternative.\nThe proud king answered with a final punch.\nWulfgar turned his eyes to the sky. \"I am not like him!\" he yelled helplessly, vindicating himself to any who would listen. But there was only one path left open to him.\nThe young barbarian's huge shoulders reddened as the blood surged through them. He saw the terror in Heafstaag's eye transcend into incomprehension. He heard the crack of bone, he felt the skull squash beneath his mighty hands.\nRevjak should have then stepped into the circle and heralded the new King of the Tribe of the Elk.\nBut, like the other witnesses around him, he stood unblinking, his jaw hanging open.",
+      "last_sentence": "But, like the other witnesses around him, he stood unblinking, his jaw hanging open.",
+      "classification": "tableau_close",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Final paragraph is a descriptive image of stunned onlookers, no action or interiority.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 23,
+      "closer_text_excerpt": "And disoriented, battered by the force of the drop and dizzied by the blast of dust, they were immediately cut down by the waiting dwarves.\nEven the people as far away as Bryn Shander were shaken by the tremendous avalanche. They flocked to the north wall to watch the rising cloud of dust, dismayed for they beieved that the dwarves had been destroyed.\nRegis knew better. The halfling envied the dwarves, safely entombed in their long tunnels. He had realized the moment he saw the fires rising from Caer-Konig that his delay in the city, waiting for his friend from Lonelywood, had cost him his chance to escape.\nNow he watched helplessly and hopelessly as the black mass advanced toward Bryn Shander.",
+      "last_sentence": "Now he watched helplessly and hopelessly as the black mass advanced toward Bryn Shander.",
+      "classification": "physical_cliffhanger",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Regis is in immediate danger as the black mass advances toward Bryn Shander, with no resolution at chapter break.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 24,
+      "closer_text_excerpt": "Kessell heard the conversation and growled in disdain. \"And where shall they run?\" he asked Cassius.\nThe spokesman, intent on studying this unpredictable and unbalanced adversary, did not reply, but Kessell answered the question for him.\n\"To Bremen? But they cannot!\" He snapped his fingers, beginning the chain of a prearranged message to his westernmost forces. At once, a large group of goblins broke rank and started out to the west.\nToward Bremen.\n\"You see? Bremen falls before the night is through, and yet another fleet will scurry out onto their precious lake. The scene shall be repeated in the town in the wood with predictable results. But what protection will the lakes offer these people when the merciless winter begins to fall?\" he shouted. \"How fast shall their ships sail away from me when the waters are frozen around them?\"\nHe laughed again, but this time more seriously, more dangerously. \"What protection do any of you have against Akar Kessell?\"\nCassius and the wizard held each other in unyielding glares. The wizard barely mouthed the words, but Cassius heard him clearly.\n\"What protection?\"",
+      "last_sentence": "\"What protection?\"",
+      "classification": "unanswered_question",
+      "source": "regex",
+      "confidence": "high",
+      "rationale": "Last sentence ends with explicit question mark.",
+      "regex_flags": {
+        "trailingQuestion": true,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 25,
+      "closer_text_excerpt": "Steam poured from Errtu's exposed entrails and enveloped the combatants. \"And so you have banished me, treacherous drow!\" it spat.\nDazed, Drizzt watched in amazement as the white glow intensified and the black shadow diminished.\n\"A hundred years, drow!\" Errtu howled. \"Not such a long time for the likes of you or me!\" The vapor thickened as the shadow seemed to melt away.\n\"A century, Drizzt Do'Urden!\" came Errtu's fading cry from somewhere far away. \"Look over your shoulder then! Errtu shall not be far behind!\"\nThe vapor wafted up into the air and was gone.\nThe last sound Drizzt heard was the clang of the metal scimitar falling to the stone ledge.",
+      "last_sentence": "The last sound Drizzt heard was the clang of the metal scimitar falling to the stone ledge.",
+      "classification": "physical_cliffhanger",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Chapter ends with unresolved physical danger as Errtu's banishment is temporary and he threatens to return, leaving Drizzt in a precarious state.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 26,
+      "closer_text_excerpt": "[…] t dare interrupt the new king.\n\"I leave with the dawn for Ten-Towns,\" Wulfgar stated. \"I shall battle against the wizard Kessell and the foul horde he has pulled from the holes of The Spine of the World!\"\nThe crowd did not respond. They accepted the notion of battle against Kessell eagerly, but the thought of returning to Ten-Towns to help the people who had nearly destroyed them five years before had never occurred to them.\nBut the guard now intervened. \"I fear that your quest shall be in vain, young king,\" he said. Wulfgar turned a distressed eye upon the man, guessing the news he bore. \"The smoke clouds from great fires are even now rising above the southern plain.\"\nWulfgar considered the distressing news. He had thought that he would have more time. \"Then I shall leave tonight!\" he roared at the stunned assembly. \"Come with me, my friends, my fellow warriors of the north! I shall show you the path to the lost glories of our past!\"\nThe crowd seemed torn and uncertain. Wulfgar played his final card.\n\"To any man who will go with me, or to his surviving kin if he should fall, I offer an equal share of the dragon's treasure!\"\nHe had swept in like a mighty squall off the Sea of Moving Ice. He had captured the imagination and heart of every barbarian warrior and had promised them a return to the wealth and glory of their brightest days.\nThat very night, Wulfgar's mercenary army charged out of their encampment and thundered across the open plain.\nNot a single man remained behind.",
+      "last_sentence": "Not a single man remained behind.",
+      "classification": "departure",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The chapter ends with the entire army charging out of the encampment, leaving the place behind.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 27,
+      "closer_text_excerpt": "The spokesman breathed a bit easier, comforted by the last look Regis had thrown him and by the fact that the sun was setting and Bryn Shander still stood. If his guess, based on the timing of the wizard's actions, was correct, Cryshal-Tirith drew most of its energy from the light of the sun.\nIt appeared that his plan had bought them at least one more night.",
+      "last_sentence": "It appeared that his plan had bought them at least one more night.",
+      "classification": "time_leap_tease",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Closer explicitly frames a temporal bridge ('at least one more night') that sets up the next chapter.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 28,
+      "closer_text_excerpt": "Many weak points were apparent in the plan, but it seemed a reasonable gamble for people in such a \ndesperate situation to attempt. Kessell slammed his fist down on the arm of the throne. \"The fools!\" he \ngrowled.\nRegis breathed a bit easier. Kessell was convinced.\n\"Errtu!\" he screamed suddenly, unaware that the demon had been banished from the world.\nThere was no reply. \"Oh, damn you, demon!\" Kessell cursed. \"You are never about when I most need \nyou!\" He spun on Regis. \"You wait here. I shall have many more questions for you later!\" The roaring \nfires of his anger simmered wickedly. \"But first I must speak with some of my generals. I shall teach the \nOrcs of the Severed Tongue to oppose me!\"\nIn truth, the observations Cassius had made had labeled the Orcs of the Severed Tongue as Kessell's \nstrongest and most fanatical supporters.\nA lie within a lie.",
+      "last_sentence": "A lie within a lie.",
+      "classification": "info_reveal",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The final line reveals that the plan was a lie within a lie, changing the reader's understanding of the preceding events.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 29,
+      "closer_text_excerpt": "The tower shook again, and this time the trembling did not relent. Drizzt started for the trap door but could barely keep his footing. Cracks appeared along the walls.\n\"Regis!\" he yelled, but there was no answer. Part of the wall in the room below had already collapsed; Drizzt could see the rubble at the base of the ladder. Praying that his friends had already escaped, he took the only route left open to him. \nHe dove through the magic mirror after Kessell.",
+      "last_sentence": "He dove through the magic mirror after Kessell.",
+      "classification": "physical_cliffhanger",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Character dives through a magic mirror into unknown danger, with immediate physical peril unresolved at chapter break.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 30,
+      "closer_text_excerpt": "A short distance away, Wulfgar and Revjak were meeting with Fender Mallot, the appointed leader of the \ndwarven forces in light of Bruenor's disturbing absence.\n\"Glad we are o' yer return, mighty Wulfgar,\" Fender said. \"Bruenor knew ye'd be back.\"\nWulfgar looked out over the field, searching for some sign that Bruenor was still out there swinging. \n\"Have you any news of Bruenor at all?\"\n\"Ye, yerself, were the last to see 'im,\" Fender replied grimly.\nAnd then they were silent, scanning the field.\n\"Let me hear again the ring of your axe,\" Wulfgar whispered.\nBut Bruenor could not hear him.",
+      "last_sentence": "But Bruenor could not hear him.",
+      "classification": "reflection_pause",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The chapter ends with Wulfgar's quiet, interior wish and the somber realization that Bruenor cannot hear him, creating a reflective, emotional pause.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "epilogue",
+      "closer_text_excerpt": "He lay back on a soft pillow and called for the new harem girl. He had another game in mind, one that had also come to him in a strange dream; it called for her to beg and whimper, and finally, to die. The wizard decided, though, that he would certainly consider the possibilities of lordship over Ten-Towns that had opened wide before him. But there was no need to hurry; he had time. The goblins could always find him another plaything. Crenshinibon, too, seemed to be at peace. It had placed the seed within Kessell's mind, a seed that it knew would germinate into a plan of conquest. But, like Kessell, the relic had no need for haste. The crystal shard had waited ten thousand years -to return to life and see this opportunity of power flicker again. It could wait a few more.",
+      "last_sentence": "The crystal shard had waited ten thousand years -to return to life and see this opportunity of power flicker again.",
+      "classification": "reflection_pause",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The closer is interior, with Kessell reflecting on his plans and the crystal shard's patience, ending in a quiet, contemplative tone without external action.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "epilogue2",
+      "closer_text_excerpt": "Yet this was his only chance. He was not of noble blood, and he had no Rights of Challenge against Heafstaag. Even if he defeated the chosen king, none of his people would recognize him as their leader. The only way that one such as he could legitimitize a claim to tribal kingship was through an act of heroic proportions. He bounded on, toward the same goal that had lured many would-be kings before him to their deaths. And in the shadows behind him, cruising with the graceful ease that marked his race, came Drizzt Do'Urden.\nEver eastward, toward the Reghed Glacier and a place called Evermelt. Toward the lair of Ingeloakastimizilian, the white dragon the barbarians simply called \"Icingdeath.\"",
+      "last_sentence": "Toward the lair of Ingeloakastimizilian, the white dragon the barbarians simply called \"Icingdeath.\"",
+      "classification": "arrival",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The chapter ends with the character bounding toward the lair of the dragon, arriving at a new threshold.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "epilogue3",
+      "closer_text_excerpt": "Once again, sheer luck saved the halfling's life, for he saw the stranger before the stranger saw him. He recognized the man at once, though he hadn't seen him in years, by the emerald-encrusted dagger hilt protruding from the sheath on his hip. Regis had often contemplated stealing that beautiful weapon, but even he had a limit to his foolhardiness. The dagger belonged to Artemis Entreri.\nPasha Pook's prime assassin.",
+      "last_sentence": "Pasha Pook's prime assassin.",
+      "classification": "info_reveal",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The final line reveals the stranger's identity as Pasha Pook's prime assassin, a major plot twist.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "prelude",
+      "closer_text_excerpt": "Errtu's evil red eyes narrowed.\n\"He could not destroy it,\" the little demon was quick to explain. \"Crenshinibon burned his hands!\"\n\"Hah!\" Errtu snorted. \"Beyond even the power of Al Dimeneira! Where is it, then? Did you bring it, or \ndoes it remain in the second crystal tower?\"\nTelshazz whimpered again. It didn't want to tell its cruel master the truth, but it would not dare to \ndisobey. \"No, master, not in the tower,\" the little demon whispered.\n\"No!\" Errtu roared. \"Where is it?\"\n\"Al Dimeneira threw it.\"\n\"Threw it?\"\n\"Across the planes, merciful master!\" Telshazz cried. \"With all of his strength!\"\n\"Across the very planes of existence!\" Errtu growled. \n\"I tried to stop him, but . . .\" \nThe horned head shot forward. Telshazz's words gurgled indecipherably as Errtu's canine maw tore its \nthroat out.",
+      "last_sentence": "The horned head shot forward. Telshazz's words gurgled indecipherably as Errtu's canine maw tore its throat out.",
+      "classification": "physical_cliffhanger",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Chapter ends with Errtu violently killing Telshazz mid-action, leaving unresolved physical danger.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 1,
+      "closer_text_excerpt": "\"Perhaps, then, three of your friends on the road to Luskan shall escape the blade. I want only the halfling.\"\n\nCatti-brie refused to yield to the terror he evoked. She held her voice steady and promised coldly, \"You underestimate them. They will fight you.\"\n\nWith calm confidence, Entreri replied, \"Then they, too, shall die.\"\n\nCatti-brie couldn't win in a contest of nerves with the dispassionate killer. Her only answer to him was her defiance. She spat at him, unafraid of the consequences.\n\nHe retorted with a single stinging backhand, Her eyes blurred in pain and welling tears, and Catti-brie slumped into blackness. But as she fell unconscious, she heard a few seconds longer, the cruel, passionless laughter fading away as the assassin moved from the house.\n\nTantalizing. The promise of death.",
+      "last_sentence": "Tantalizing. The promise of death.",
+      "classification": "info_reveal",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The closer reveals that Entreri intends to kill the halfling and that Catti-brie is now unconscious, setting up a new understanding of the stakes.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 2,
+      "closer_text_excerpt": "Regis swallowed hard, a frightening mixture of emotions welling within him. In his early days as a thief in Calimport, he had frequented many places like this, but his familiarity with the environment only added to his apprehension. The forbidden allure of business done in the shadows of a dangerous tavern, he knew, could be as deadly as the hidden knives of the rogues at every table. \"You truly want to go in there?\" he asked his friends squeamishly.\n\n\"No arguing from ye!\" Bruenor snapped back. \"Ye knew the road ahead when ye joined us in the dale. Don't ye be whining now!\"\n\n\"You are well guarded,\" Drizzt put in to comfort Regis.\n\nOverly proud in his inexperience, Wulfgar pressed the statement even further. \"What cause would they have to do us harm? Surely we have done no wrong,\" he demanded. Then he proclaimed loudly to challenge the shadows, \"Fear not, little friend. My hammer shall sweep aside any who stand against us!\"\n\n\"The pride o' youth,\" Bruenor grumbled as he, Regis, and Drizzt exchanged incredulous looks.",
+      "last_sentence": "\"The pride o' youth,\" Bruenor grumbled as he, Regis, and Drizzt exchanged incredulous looks.",
+      "classification": "arrival",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The group is about to enter a dangerous tavern, arriving at a new threshold.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 3,
+      "closer_text_excerpt": "Regis summed up their thoughts, saying, \"Our first night in our first city, and we've betrayed killers, fought down a host of ruffians, and caught the attention of the city guard. An auspicious beginning to our journey!\"\n\n\"Aye, but we've got this!\" cried Bruenor, fairly bursting with anticipation of finding his homeland now that the first obstacle, the map, had been overcome.\n\nLittle did he or his friends know, however, that the map he clutched so clearly detailed several deadly regions, one in particular that would test the four friends to their limits—and beyond.",
+      "last_sentence": "Little did he or his friends know, however, that the map he clutched so clearly detailed several deadly regions, one in particular that would test the four friends to their limits—and beyond.",
+      "classification": "time_leap_tease",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Final paragraph foreshadows future deadly regions and tests, creating a temporal bridge to coming events.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 4,
+      "closer_text_excerpt": "As Dendybar's recitations twanged discordantly on the harmony of his soul, Morkai removed the focal point of his concentration across hundreds of miles, back to the image of the merchant caravan now one day out from Bremen, the closest of the Ten-Towns, and to the image of the brave young woman who had joined up with the traders. The specter took comfort in the knowledge that she had, for a while at least, escaped the probings of the mottled wizard.\n\nNot that Morkai was altruistic; he had never been accused of an abundance of that trait. He simply took great satisfaction in hindering in any way he could the knave who had arranged his murder.",
+      "last_sentence": "He simply took great satisfaction in hindering in any way he could the knave who had arranged his murder.",
+      "classification": "reflection_pause",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The closer is interior, focusing on Morkai's thoughts and satisfaction, with no external action or forward question.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 5,
+      "closer_text_excerpt": "[…] the halfling. And there were still reinforcements on the field.\n\nRegis rolled onto his back to lay right beside Bruenor, and the dwarf's groaning told him that the fight was over for both of them. Then the orc was above him, its club raised above its head, and an evil smile spread wide upon its ugly face. Regis closed his eyes, having no desire to watch the descent of the blow that would kill him.\n\nThen he heard the sound of impact … above him.\n\nStartled, he opened his eyes. A hatchet was embedded into his attacker's chest. The orc looked down at it, stunned. The club dropped harmlessly behind the orc, and it, too, fell backward, quite dead.\n\nRegis didn't understand. \"Wulfgar?\" he asked into the air.\n\nA huge form, nearly as large as Wulfgar's, sprang over him and pounced upon the orc, savagely tearing the hatchet free. He was human, and wearing the furs of a barbarian, but unlike the tribes of Icewind Dale, this man's hair was black.\n\n\"Oh, no,\" Regis groaned, remembering his own warnings to Bruenor about the Uthgardt barbarians. The man had saved his life, but knowing the savage reputation, Regis doubted that a friendship would grow out of the encounter. He started to sit up, wanting to express his sincere thanks and dispel any unfriendly notions the barbarian might have about him. He even considered using the ruby pendant to evoke some friendly feelings.\n\nBut the big man, noting the movement, spun suddenly and kicked him in the face.\n\nAnd Regis fell backward into blackness.",
+      "last_sentence": "And Regis fell backward into blackness.",
+      "classification": "physical_cliffhanger",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Chapter ends with Regis kicked in the face and falling into blackness, unresolved physical danger.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 6,
+      "closer_text_excerpt": "Drizzt understood the cat's intentions. \"No!\" he commanded. \"Not here.\" The drow had recalled something that Guenhwyvar had done several months earlier. To save Regis from the falling stone of a crumbling tower, Guenhwyvar had taken the halfling on a journey through the planes of existence. Drizzt grabbed onto the panther's thick coat.\n\n\"Take me to the land of the ghost,\" he instructed. \"To its own plane, where my weapons will bite deeply into its substantial being.\"\n\nThe ghost appeared again as Drizzt and the cat faded into their own cloud.\n\n\"Keep swinging!\" Bruenor told his companion. \"Keep it as smoke so's it can't get at ye !\"\n\n\"Drizzt and the cat have gone!\" Wulfgar cried.\n\n\"To the land of the ghost,\" Bruenor explained.",
+      "last_sentence": "\"To the land of the ghost,\" Bruenor explained.",
+      "classification": "departure",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Drizzt and Guenhwyvar fade into a cloud, leaving the physical plane, which constitutes a departure from the current scene.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 7,
+      "closer_text_excerpt": "Outside, Entreri led Catti-brie away from the Hosttower without a word, silently replaying and reviewing the meeting, for he knew that he had not seen the last of Dendybar and his cohorts.\n\nCatti-brie was glad of the silence, too, engulfed in her own contemplations. Why would a wizard of the Hosttower be looking for Bruenor and the others? Revenge for Akar Kessell, the mad wizard that her friends had helped defeat before the last winter? She looked back to the treelike structure, and to the killer at her side, amazed and horrified at the attention her friends had brought upon themselves.\n\nThen she looked into her own heart, reviving her spirit and her courage. Drizzt, Bruenor, Wulfgar, and Regis were going to need her help before this was all over. She must not fail them.",
+      "last_sentence": "She must not fail them.",
+      "classification": "decision_point",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Catti-brie resolves to help her friends, a clear-cut decision framing the next chapter.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 8,
+      "closer_text_excerpt": "\"Now we have come to the end of our meeting, though many years shall pass before you are forgotten in the Ivy Mansion! The road takes you right through the village of Longsaddle. You can restock your supplies there—it has all been arranged.\"\n\n\"Me deepest regards to yerself and yer kin,\" said Bruenor, bowing low. \"Suren Longsaddle has been a bright spot on a bleary road !\" The others were quick to agree.\n\n\"Farewell then, Companions of the Hall,\" sighed Harkle. \"The Harpells expect to see a small token when you at last find Mithral Hall and start the ancient forges burning again!\"\n\n\"A king's treasure!\" Bruenor assured him as they moved away.",
+      "last_sentence": "\"A king's treasure!\" Bruenor assured him as they moved away.",
+      "classification": "departure",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The characters say farewell and move away, closing the scene by leaving.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 9,
+      "closer_text_excerpt": "But Catti-brie had begun to view things a bit differently. Dendybar had obviously sent Bok along more to gain an advantage over Entreri than to ensure victory over her friends. Entreri must have known it, too.\n\nWithout realizing it, the wizard had set up just the type of nervous environment that Catti-brie hoped for, a tense situation that she might find a way to exploit.",
+      "last_sentence": "Without realizing it, the wizard had set up just the type of nervous environment that Catti-brie hoped for, a tense situation that she might find a way to exploit.",
+      "classification": "reflection_pause",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The closer is interior — Catti-brie reflects on the situation and her hopes, with no external action or decisive forward move.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 10,
+      "closer_text_excerpt": "Wulfgar considered the rider's warning of their path. \"Trollmoors,\" he echoed somberly, looking up the slope across the way to the blasted land before them. Harkle had told them of the place. The burned-out land and bottomless bogs. The trolls and even worse horrors that had no names.\n\n\"Save us a day and more!\" Bruenor repeated stubbornly.\n\nWulfgar wasn't convinced.",
+      "last_sentence": "Wulfgar wasn't convinced.",
+      "classification": "arrival",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The chapter ends with the characters looking at the Trollmoors, a new and dangerous location they are about to enter, setting up the next chapter at this threshold.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 11,
+      "closer_text_excerpt": "Perhaps she should send Bok away. The act would satisfy Entreri's doubts about her, though it certainly would give him the upper hand against her if any trouble did come to pass. But dismissing the golem might also answer some of the even more disturbing questions that weighed upon her, the questions about Dendybar.",
+      "last_sentence": "But dismissing the golem might also answer some of the even more disturbing questions that weighed upon her, the questions about Dendybar.",
+      "classification": "decision_point",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The closer presents a clear-cut decision (sending Bok away) that frames the next chapter.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 12,
+      "closer_text_excerpt": "Regis bobbed back to the surface then and slung an arm over the log. One side of his face was bright with a welt and a painful-looking scrape.\n\n\"What were they?\" Wulfgar asked the drow.\n\n\"Some manner of troll,\" Drizzt reasoned, still stabbing at the unmoving form lying under the water before him.\n\nWulfgar and Bruenor understood the reason for his continued attacks. In sudden fright, they took up whacking at the forms lying beside them, hoping to mutilate the corpses enough so that they might be miles gone before the things rose to life once again.",
+      "last_sentence": "Wulfgar and Bruenor understood the reason for his continued attacks. In sudden fright, they took up whacking at the forms lying beside them, hoping to mutilate the corpses enough so that they might be miles gone before the things rose to li",
+      "classification": "physical_cliffhanger",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Characters are in immediate danger from trolls that can regenerate, and they must mutilate corpses before they rise again, with unresolved threat at chapter break.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 13,
+      "closer_text_excerpt": "[…] that the moors might be listening. \"I have one more trick left to play.\"\n\nWulfgar saw the line before him, but even in his present state, his trust in Drizzt overruled any objections of his common sense. Heaving Bruenor and Regis into a more comfortable hold, he put his head low and roared at the beasts, crying out in frenzied rage.\n\nWhen he had almost reached them, with Drizzt a few steps behind, and the trolls drooling and huddled to stop his momentum, the drow played his final card.\n\nMagical flames sprouted from the barbarian. They had no power to burn, either Wulfgar or the trolls, but to the monsters, the specter of the huge, flame-enshrouded wild man bearing down upon them shot terror into their normally fearless hearts.\n\nDrizzt timed the spell perfectly, allowing the trolls only a split second to react to their imposing foe. Like water before the prow of a high-riding ship they parted, and Wulfgar, nearly overbalancing for his expectations of impact, lumbered through, Drizzt dancing at his heels.\n\nBy the time the trolls regrouped to pursue, their prey was already climbing the last rise out of the Evermoors and into the forest—a wood under the protective eye of Lady Alustriel and the gallant Knights of Silver.\n\nDrizzt turned under the boughs of the first tree to watch for signs of pursuit. Heavy fog swirled back down at the moors, as though the foul land had slammed its door behind them. No trolls came through.\n\nThe drow sank back against the tree, too drained to smile.",
+      "last_sentence": "The drow sank back against the tree, too drained to smile.",
+      "classification": "arrival",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The chapter ends with the characters climbing into the forest, a new location under protection, marking an arrival at a threshold.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 14,
+      "closer_text_excerpt": "[…] heir giver was no small gift,\" Drizzt replied. He looked straight into her eyes, holding her with his intensity. \"You have renewed my hope, Lady of Silverymoon. You have reminded me that there is indeed reward for those who follow the path of conscience, a treasure far greater than the material baubles that too often come to unjust men.\"\n\n\"There is, indeed,\" she agreed. \"And your future will show you many more, proud ranger. But now the night is half gone and you must rest. Fear not, for you are watched this night. Farewell, Drizzt Do'Urden, and may the road before you be swift and clear.\"\n\nWith a wave of her hand, she faded into the starlight, leaving Drizzt to wonder if he had dreamed the whole encounter. But then her final words drifted down to him on the gentle breeze. \"Farewell, and keep heart, Drizzt Do'Urden. Your honor and courage do not go unnoticed!\"\n\nDrizzt stood silently for a long while. He bent low and picked a wildflower from the riverbank, rolling it over between his fingers and wondering if he and the Lady of Silverymoon might indeed meet again on more accommodating terms. And where such a meeting might lead.\n\nThen he tossed the flower into the Rauvin.\n\n\"Let events take their own course,\" he said resolutely, looking back to the camp and his closest friends. \"I need no fantasies to belittle the great treasures that I already possess.\" He took a deep breath to blow away the remnants of his self-pity.\n\nAnd with his faith restored, the stoic ranger went to sleep.",
+      "last_sentence": "And with his faith restored, the stoic ranger went to sleep.",
+      "classification": "reflection_pause",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Chapter ends with Drizzt's interior reflection and emotional resolution, not external action or new information.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 15,
+      "closer_text_excerpt": "\"If that monster—\" Gavin began angrily.\n\n\"Oh, where is your sense of adventure, Gavin?\" Mizzen shot back before the knight could even finish his warning. \"Remember the precepts of our town, man. We are here to learn. If you only understood the potential of such a creation!\"\n\nThey started away from Sydney, paying her no more mind, the wizard still rambling into Gavin's ear. Entreri slipped from the shadows of a nearby building to Sydney's side.\n\n\"Why did the thing come?\" he asked her.\n\nShe shook her head. \"There can be only one answer.\"\n\n'The drow?\"\n\n\"Yes,\" she said. \"Bok must have followed them into the city.\"\n\n\"Unlikely,\" reasoned Entreri, \"though the golem might have seen them. If Bok came crashing through behind the drow and his valiant friends, they would have been down here at the battle, helping to fend it off.\"\n\n\"Then they might be out there still.\"\n\n\"Or perhaps they were leaving the city when Bok saw them,\" said Entreri. \"I will make inquiries with the guards at the gate. Fear not, our prey is close at hand!\"",
+      "last_sentence": "\"Or perhaps they were leaving the city when Bok saw them,\" said Entreri. \"I will make inquiries with the guards at the gate. Fear not, our prey is close at hand!\"",
+      "classification": "decision_point",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Entreri declares a clear intention to make inquiries and asserts that their prey is close, framing the next chapter's action.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 16,
+      "closer_text_excerpt": "Drizzt studied the map and the spot that Old Night had marked as the location of Settlestone. \"Back to the west,\" he muttered, echoing Alustriel's suspicions. \"Barely two days march from here.\"\n\nWulfgar moved in close to view the parchment and added, in a voice that held both anticipation and a measure of sadness, \"Our road nears its end.\"",
+      "last_sentence": "Wulfgar moved in close to view the parchment and added, in a voice that held both anticipation and a measure of sadness, \"Our road nears its end.\"",
+      "classification": "arrival",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The characters are studying a map and noting the proximity of their destination, Settlestone, framing the next chapter as an arrival.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 17,
+      "closer_text_excerpt": "Bok came over the crest and bore down on her, rocks bouncing away from the heavy plodding of its booted feet. It was right behind her, reaching out with horrid arms.\n\nAnd Catti-brie leaped.\n\nShe hooked the rope that bound her hands over the stump as she flew past, throwing all of her weight against the hold of its roots.\n\nBok lumbered after her, oblivious to her intentions. Even as the stump toppled, and the network of dead roots pulled up from the ground, the golem couldn't understand the danger. As the loose stones shifted and began their descent, Bok kept its focus straight ahead on its prey.\n\nCatti-brie bounced down ahead and to the side of the rock-slide. She didn't try to rise, just kept rolling and scrambling in spite of the pain to gain every inch between herself and the crumbling slope. Her determination got her to the thick trunk of an oak, and she rolled around behind it and turned back to look at the slope.\n\nJust in time to see the golem go down under a ton of bouncing stone.",
+      "last_sentence": "Just in time to see the golem go down under a ton of bouncing stone.",
+      "classification": "physical_cliffhanger",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Chapter ends with golem under a ton of stone, but Catti-brie's safety is unresolved.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 18,
+      "closer_text_excerpt": "\"You will remember,\" Drizzt assured him. And they set back to inspecting the wall.\n\nEven the stubborn determination of a dwarf does not always pay off, and the night fell and found the friends sitting outside the entrance in the darkness, not daring to light a fire for fear of alerting their pursuers. Of all their trials on the road, the waiting so very close to their goal was possibly the most trying. Bruenor began to second-guess himself, wondering if this was even the correct place for the door. He recited the song he had learned as a child in Mithral Hall over and over, searching for some clues he might have missed.\n\nThe others slept uneasily, especially Catti-brie, who knew that the silent death of an assassin's blade stalked them. They would not have slept at all, except that they knew that the keen, ever vigilant eyes of a drow elf watched over them.",
+      "last_sentence": "They would not have slept at all, except that they knew that the keen, ever vigilant eyes of a drow elf watched over them.",
+      "classification": "reflection_pause",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The chapter ends with a quiet, interior moment focusing on the characters' unease and trust in Drizzt's vigilance, not on external action or new information.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 19,
+      "closer_text_excerpt": "The perceptive young barbarian was correct. The drow's memories of his life in the underworld had indeed fostered his hopes that they might soon leave Mithral Hall, but not because of any emotional upheaval he was experiencing upon his return to his childhood realm. What Drizzt now remembered keenly about Menzoberranzan were the dark things that lived in dark holes under the earth. He felt their presence here in the ancient dwarven halls, horrors beyond the surface dwellers' imagination. He didn't worry for himself. With his drow heritage, he could face these monsters on their own terms. But his friends, except perhaps the experienced dwarf, would be at a sorry disadvantage in such fighting, ill-equipped to battle the monsters they would surely face if they remained in the mines.\n\nAnd Drizzt knew that eyes were upon them.",
+      "last_sentence": "And Drizzt knew that eyes were upon them.",
+      "classification": "info_reveal",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Reveals Drizzt's true reason for wanting to leave and the presence of unseen watchers.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 20,
+      "closer_text_excerpt": "\"No more,\" Bruenor answered gruffly. \"We're for leaving, and not a word of arguin' from ye!\"\n\nRegis knew with a look at the other two that he had no support against the dwarf, so he shrugged helplessly and followed them back through the curtain and into the corridor.\n\n\"The gorge!\" Bruenor declared, starting them off again.",
+      "last_sentence": "\"The gorge!\" Bruenor declared, starting them off again.",
+      "classification": "departure",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The chapter ends with the group leaving the current location, moving toward the gorge.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 21,
+      "closer_text_excerpt": "[…] eds. Killing Entreri would mean killing the darker side of himself, Drizzt believed, for he could have been as this man. This was the test of his worth, a confrontation against what he might have become. If he had remained among his kin, and often were the times that he considered his decision to leave their ways and their dark city a feeble attempt to distort the very order of nature, his own dagger would have found Mucknuggle's eye.\n\nEntreri looked upon Drizzt with equal disdain. What potential he saw in the drow! But tempered by an intolerable weakness. Perhaps in his heart the assassin was actually envious for the capacity for love and compassion that he recognized in Drizzt. So much akin to him, Drizzt only accentuated the reality of his own emotional void.\n\nEven if those feelings were truly within, they would never gain a perch high enough to influence Artemis Entreri. He had spent his life building himself into an instrument for killing, and no shred of light could ever cut through that callous barrier of darkness. He meant to prove, to himself and to the drow, that the true fighter has no place for weakness.\n\nThey were closer now, though neither of them knew which one had moved, as if unseen forces were acting upon them. Weapons twitched in anticipation, each waiting for the other to show his hand.\n\nEach wanting the other to be the first to yield to their common desire, the ultimate challenge of the tenets of their existence.\n\nThe stamp of booted feet broke the spell.",
+      "last_sentence": "The stamp of booted feet broke the spell.",
+      "classification": "physical_cliffhanger",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Chapter ends with an interruption (stamp of booted feet) breaking a tense standoff, leaving the physical confrontation unresolved.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 22,
+      "closer_text_excerpt": "Distant howls echoed from beyond the open door behind them. Catti-brie slid the sword into its sheath, not even thinking to wipe the blood from it, and steadied herself. \"The pursuit is not ended,\" she stated flatly. \"It is past time we leave.\"\n\nShe led them from the room then, but left a part of herself, the pedestal of her innocence, behind.",
+      "last_sentence": "She led them from the room then, but left a part of herself, the pedestal of her innocence, behind.",
+      "classification": "departure",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The chapter ends with the characters leaving the room, physically moving away from the location, and the final line emphasizes leaving a part of herself behind.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 23,
+      "closer_text_excerpt": "Little joy came to Regis when the dragon fell. He managed to drag Bruenor back into the anteroom, but had no idea of what to do next. Behind him, the relentless pursuit of the shadow hounds drew closer; he was separated from Wulfgar and Catti-brie, and he didn't dare cross the cavern without knowing if the dragon was truly gone. He looked down at the battered and blood-covered form of his oldest friend, having not the slightest notion of how he might begin to help him, or even if Bruenor was still alive.\n\nOnly surprise delayed Regis's immediate squeals of joy when Bruenor opened his gray eyes and winked.",
+      "last_sentence": "Only surprise delayed Regis's immediate squeals of joy when Bruenor opened his gray eyes and winked.",
+      "classification": "info_reveal",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Bruenor opening his eyes and winking reveals he is alive, changing the reader's understanding of the situation.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 24,
+      "closer_text_excerpt": "Catti-brie blinked away more tears, and Wulfgar's sigh belied his stoicism when they moved out across the gorge that had become Bruenor's grave. To Catti-brie, Bruenor was father and friend, who taught her toughness and touched her with tenderness. All of the constants of her world, her family and home, lay burning far below, on the back of a hell-spawned dragon.\n\nA numbness descended over Wulfgar, the cold chill of mortality and the realization of how fragile life could be. Drizzt had returned to him, but now Bruenor was gone. Above any emotions of joy or grief came a wave of instability, a tragic rewriting of heroic images and bard-sung legends that he had not expected. Bruenor had died with courage and strength, and the story of his fiery leap would be told and retold a thousand times. But it would never fill the void that Wulfgar felt at that moment.",
+      "last_sentence": "But it would never fill the void that Wulfgar felt at that moment.",
+      "classification": "departure",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The characters move out across the gorge, leaving Bruenor's grave behind, closing the scene with a departure.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "epilogue",
+      "closer_text_excerpt": "\"Come, Dendybar,\" Morkai grinned, his dominating will twisting the golem's arm. \"Join me in the realm of death where we might discuss your treachery!\"\n\nA snap of bone echoed across the stones, the ball of fire puffed away, and wizard and golem tumbled down, lifeless.\n\nFarther down the gorge, half buried in a pile of debris, the fires of the burning dragon had died to a smoky smolder.\n\nAnother rock shifted and rolled away.",
+      "last_sentence": "Another rock shifted and rolled away.",
+      "classification": "tableau_close",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Final paragraph is a descriptive image of the aftermath, with no character interiority or action.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "part1",
+      "closer_text_excerpt": "What is it within us, then, that so desperately wants to deny magic and to unravel mystery? Fear, I presume, based on the many uncertainties of life and the greatest uncertainty of death. Put those fears aside, I say, and live free of them, for if we just step back and watch the truth of the world, we will find that there is indeed magic all about us, unexplainable by numbers and formulas. What is the passion evoked by the stirring speech of the commander before the desperate battle, if not magic? What is the peace that an infant might know in its mother's arms, if not magic? What is love, if not magic?\n\nNo, I would not want to live in a world without dragons, as I would not want to live in a world without magic, for that is a world without mystery, and that is a world without faith.\n\nAnd that, I fear, for any reasoning, conscious being, would be the cruelest trick of all.\n\n—Drizzt Do'Urden",
+      "last_sentence": "And that, I fear, for any reasoning, conscious being, would be the cruelest trick of all.",
+      "classification": "unanswered_question",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Closer ends with a series of rhetorical questions that frame forward reflection.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "part2",
+      "closer_text_excerpt": "At the same time that so many people tout the virtues of their children, is there some deep fear within them that those children will see the errors of their parents?\n\nI have no answers to this seeming paradox, but for Bruenor's sake, I pray that he seeks Mithral Hall for the right reasons, for the adventure and the challenge, for the sake of his heritage and the restoration of his family name, and not for any desire he might have to make the world as it once was.\n\nNostalgia is a necessary thing, I believe, and a way for all of us to find peace in that which we have accomplished, or even failed to accomplish. At the same time, if nostalgia precipitates actions to return to that fabled, rosy-painted time, particularly in one who believes his life to be a failure, then it is an empty thing, doomed to produce nothing but frustration and an even greater sense of failure.\n\nEven worse, if nostalgia throws barriers in the path toward evolution, then it is a limiting thing indeed.\n\n—Drizzt Do'Urden",
+      "last_sentence": "—Drizzt Do'Urden",
+      "classification": "reflection_pause",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The closer is an interior reflection by Drizzt, pondering nostalgia and motivations, with no external action or forward question.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "part3",
+      "closer_text_excerpt": "There is one other error in the Gondsman's line of reasoning, I believe, on a purely emotional level. If machines replace achievement, then to what will people aspire? And who are we, truly, without such goals?\n\nBeware the engineers of society, I say, who would make everyone in all the world equal. Opportunity should be equal, must be equal, but achievement must remain individual.\n\n—Drizzt Do'Urden",
+      "last_sentence": "Opportunity should be equal, must be equal, but achievement must remain individual.",
+      "classification": "unanswered_question",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Closer ends with explicit question marks framing forward expectation.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "prelude",
+      "closer_text_excerpt": "Certainly Regis pushed himself to his physical limits, and without his customary complaining. Unlike his companions, though, whose eyes looked to the road up ahead, he kept glancing back over his shoulder, back toward Ten-Towns and the home he had so mysteriously abandoned to join in the journey.\n\nDrizzt noted this with some concern.\n\nRegis was running away from something.",
+      "last_sentence": "Regis was running away from something.",
+      "classification": "info_reveal",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The final line reveals that Regis is running away from something, changing the reader's understanding of his motivation.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 1,
+      "closer_text_excerpt": "[…] cles still knotted in rage. \"I assure\nyou, the boy is treated well.\"\n\"Not by my eyes,\" retorted Wulfgar.\n\"He aspires to be a wizard,\" Malchor explained, not ruffled by the barbarian's scowl. \"His\nfather is a powerful landowner and has employed me to guide the lad. The boy shows\npotential, a sharp mind, and a love for the arts. But understand, Wulfgar, that wizardry is not\nso very different from your own trade.\"\nWulfgar's smirk showed a difference of opinion.\n\"Discipline,\" Malchor continued, undaunted. \"For whatever we do in our lives, discipline\nand control over our own actions ultimately measure the level of our success. The boy has\nhigh aspirations and hints of power he cannot yet begin to understand. But if he cannot keep\nhis thoughts silent for a single month, then I shan't waste years of my time on him. Your\ncompanion understands.\"\nWulfgar looked to Drizzt, standing relaxed by his side.\n\"I do understand,\" Drizzt said to Wulfgar. \"Malchor has put the youth on trial, a test of his\nabilities to follow commands and a revelation to the depth of his desires.\"\n\"I am forgiven?\" the wizard asked them.\n\"It is not important,\" Wulfgar grunted. \"We have not come to fight the battles of a boy.\"\n\"Of course,\" said Malchor. \"Your business presses; Harkle has told me. Go back down to\nthe stables and wash. The boy is setting supper. He shall come for you when it is time to\neat.\"\n\"Does he have a name?\" Wulfgar said with obvious sarcasm.\n\"None that he has yet earned,\" Malchor replied curtly.",
+      "last_sentence": "\"None that he has yet earned,\" Malchor replied curtly.",
+      "classification": "departure",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The chapter ends with the characters being told to go wash and that the boy will call them for supper, signaling a movement away from the current scene.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 2,
+      "closer_text_excerpt": "\"Do not touch it!\" Regis cried in a harsh whisper. \"That is how it spreads - I think.\"\nThe sailor pulled his hand away in terror, noticing several other scars. \"I seen no fire! How'd ye git a burn?\"\nRegis shrugged helplessly. \"They just happen. From the inside.\" Now it was the sailor's turn to pale. \"But I will make it to Calimport,\" he stated unconvincingly. \"It takes a few months to eat you away. And most of my wounds are recent.\" Regis looked down, then presented his scarred arm. \"See?\"\nBut when he looked back, the sailor was gone, rushing off toward the captain's quarters.\n\"Take that, Artemis Entreri,\" Regis whispered.",
+      "last_sentence": "\"Take that, Artemis Entreri,\" Regis whispered.",
+      "classification": "departure",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The sailor departs abruptly, and Regis's final line closes the scene with a sense of leaving the encounter behind.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 3,
+      "closer_text_excerpt": "Wulfgar turned back to see Agatha, her teeth bared and hands clenched, rise up on her feet.\n\"Pardon our intrusion,\" he said politely, bowing low - low enough to follow his friend outside to safety. He sprinted along the dark path to catch up to Twinkle's blue glow.\nThen came the banshee's third keen, chasing them down the path. Drizzt was beyond its painful range, but its sting caught up to Wulfgar and knocked him off balance. Blindly, with the smug smile suddenly wiped from his face, he stumbled forward.\nDrizzt turned and tried to catch him, but the huge man bowled the drow over and continued on.\nFace first into a tree.\nBefore Drizzt could get over to help, Wulfgar was up again and running, too scared and embarrassed, to even groan.\nBehind them, Agatha wailed helplessly.",
+      "last_sentence": "Behind them, Agatha wailed helplessly.",
+      "classification": "departure",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The characters are fleeing from Agatha, moving away from the encounter.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 4,
+      "closer_text_excerpt": "\"He had the man cowed,\" Wulfgar remarked when he and Drizzt were out of Khelben's\nearshot. \"A simple painter?\"\n\"More likely a wizard - a powerful wizard,\" Drizzt replied. \"And our thanks again are\nowed to Malchor, whose influence has eased our way. Mark my words, 'twas no simple\npainter that tamed the likes of Orlpar.\"\nWulfgar looked back to the knoll, but Khelben and the horses were nowhere to be seen.\nEven with his limited understanding of the black arts, Wulfgar realized that only magic could\nhave moved Khelben and the three horses from the area so quickly. He smiled and shook his\nhead, and marveled again at the eccentric characters the wide world kept showing him.",
+      "last_sentence": "He smiled and shook his head, and marveled again at the eccentric characters the wide world kept showing him.",
+      "classification": "reflection_pause",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The chapter ends with Wulfgar's interior reflection and marveling, no forward action or question.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 5,
+      "closer_text_excerpt": "Hanging by one hand, Bruenor dropped the bar into the emptiness below him. With a\nwicked smile he hoped that some duergar scum might, at that instant, be at the bottom of the\nchimney, inspecting the dead spider and looking upward to find the cause.\nBruenor pulled himself halfway through the small hole he had opened, but had not the\nstrength to squeeze his hips and belt through. Thoroughly drained, he accepted the perch,\nthough his legs were dangling freely over a thousand-foot drop.\nHe put his head on the iron bars and knew no more.",
+      "last_sentence": "He put his head on the iron bars and knew no more.",
+      "classification": "physical_cliffhanger",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Character is unconscious and dangling over a thousand-foot drop, unresolved physical danger at chapter break.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 6,
+      "closer_text_excerpt": "Sounds rolled eerily across the open expanse of water, especially in the empty dark of\nnight. One sound filled the ears of Entreri and Regis as the assassin pulled the little rowboat\nagainst the currents of the Chionthar. It even cut through the din of the taverns lining the\ndocks of Baldur's Gate, a half-mile away.\nAs if enhanced by the unspoken cries of protest of the dead crew and by the dying ship\nitself - a singular, agonized voice screamed for all of them.\nThen there was only the crackle of fire.",
+      "last_sentence": "Then there was only the crackle of fire.",
+      "classification": "tableau_close",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Final paragraph is a descriptive image of fire crackling after a scream, with no character interiority or action.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 7,
+      "closer_text_excerpt": "\"Not enough,\" Bruenor replied. \"An army of duergar scum holds the halls.\"\n\"And eight-thousand more from Citadel Adbar to the north and east,\" Catti-brie continued grimly, not slowing a beat. \"King Harbromme of the dwarves of Adbar says he'll see the halls free again! Even the Harpells have promised their aid.\"\nBruenor drew a mental image of the approaching armies - wizards, barbarians, and a rolling wall of dwarves - and with Catti-brie at their lead. A thin smile cut the frown from his face. He looked upon his daughter with even more than the considerable respect he had always shown her, his eyes wet with tears once more.\n\"They wouldn't beat me,\" Catti-brie growled. \"I meant to see yer face carved in the Hall of Kings, and meant to put yer name in its proper place o' glory!\"\nBruenor grabbed her close and squeezed with all his strength. Of all the mantles and laurels he had found in the years gone by, or might find in the years ahead, none fit as well or blessed him as much as \"Father.\"",
+      "last_sentence": "Bruenor grabbed her close and squeezed with all his strength. Of all the mantles and laurels he had found in the years gone by, or might find in the years ahead, none fit as well or blessed him as much as \"Father.\"",
+      "classification": "reflection_pause",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Closer focuses on Bruenor's emotional interiority and the weight of being called 'Father'",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 8,
+      "closer_text_excerpt": "The wizard wiped the moisture from his eyes. Pook always surprised him, but never disappointed him. \"You are a generous master, my Pasha Pook,\" he whispered to the empty room.\nAnd truly Pasha Pook was a masterful leader as well, for LaValle turned back to his crystal ball, his teeth gritted in determination. He would find Entreri and the halfling. He wouldn't disappoint his generous master.",
+      "last_sentence": "He would find Entreri and the halfling. He wouldn't disappoint his generous master.",
+      "classification": "decision_point",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "LaValle makes a clear decision to find Entreri and the halfling, framing the next chapter.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 9,
+      "closer_text_excerpt": "\"Good,\" muttered Pook.\n\"Should I arrange a welcome for Entreri's pursuers?\" Oberon asked eagerly, enjoying the\nintrigue and the opportunity to serve the guildmaster.\n\"Three ships - no chances,\" said Pook. \"Nothing shall interfere with the halfling's return.\nHe and I have so very much to discuss!\"\nOberon considered the task for a moment. \"A pity,\" he remarked. \"The Sea Sprite was a\nfine vessel.\"\nPook echoed a single word for emphasis, making it absolutely clear that he would tolerate\nno mistakes.\n\"Was.\"",
+      "last_sentence": "\"Was.\"",
+      "classification": "info_reveal",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The final word 'Was' reveals that the Sea Sprite has been destroyed, changing the reader's understanding of its fate.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 10,
+      "closer_text_excerpt": "Alustriel opened the door. \"Very well,\" she said, \"and my respect on your decision. You\nwill prove a noble king, Bruenor Battlehammer.\"\nThe dwarf, for one of the few times in his life, blushed.\n\"Now go and rest,\" said Alustriel. \"I will see what I might learn this night. Meet me on the\nsouth slope of Harpell Hill before the break of dawn.\"\nBruenor nodded eagerly and found his way back to his room. For the first time since he\nhad come to Longsaddle, he slept peacefully.",
+      "last_sentence": "For the first time since he had come to Longsaddle, he slept peacefully.",
+      "classification": "reflection_pause",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The chapter ends with Bruenor sleeping peacefully, an interior emotional landing with no external action or cliffhanger.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 11,
+      "closer_text_excerpt": "\"They were lying for us,\" he said to Drizzt. He turned to the elf helplessly. \"They were lying for us.\n\"But we've no cargo of particular value,\" the captain continued, trying to reason through the unusual turn of events. \"Why would pirates run three vessels in a strike against a single ship?\"\nDrizzt knew the answer.",
+      "last_sentence": "Drizzt knew the answer.",
+      "classification": "info_reveal",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Drizzt knows the answer, revealing new understanding about the pirates' motive.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 12,
+      "closer_text_excerpt": "\"Very well, Captain Pinochet,\" Deudermont began, barely hiding a chuckle. \"I would not\ninvoke the rage of the pirates. You are a free man and may go when you choose.\"\nPinochet snapped around, face to face with Deudermont.\n\"Or,\" continued the captain of the Sea Sprite, \"you and your crew can remain in my hold,\nunder my personal protection, until we reach port.\"\n\"You cannot control your crew?\" the pirate spat.\n\"They are not my crew,\" Deudermont replied. \"And if these four chose to kill you, I\ndaresay that I could do little to deter them.\"\n\"It is not the way of my people to let our enemies live!\" Drizzt interjected in a tone so\ncallous that it sent shivers through the spines of even his closest friends. \"Yet I need you,\nCaptain Deudermont, and your ship.\" He sheathed his blades in a lightning-quick movement.\n\"I will let the pirate live in exchange for the completion of our arrangements.\"\n\"The hold, Captain Pinochet?\" Deudermont asked, waving two of his crewmen in to escort\nthe pirate leader.\nPinochet's eyes were back on Drizzt. \"If you ever sail this way again, . . .\" the stubborn\npirate began ominously.\nBruenor kicked him in the behind. \"Wag yer tongue again dog,\" the dwarf roared, \"and\nsuren I'll cut it out!\"\nPinochet left quietly with Deudermont's crewmen.",
+      "last_sentence": "Pinochet left quietly with Deudermont's crewmen.",
+      "classification": "departure",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The chapter ends with Pinochet leaving the scene, escorted by crewmen, closing the encounter.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 13,
+      "closer_text_excerpt": "[…] rable than I ever imagined!\"\n\"Entreri will kill him if he is not careful,\" LaValle observed grimly.\nPook seemed amused by the thought. \"Then we should learn who is likely to succeed Rassiter.\" He looked up at LaValle. \"Fear not, my friend. Rassiter is a survivor. He has called the street his home for his entire life and knows when to scurry into the safety of shadows. He will learn his place around Entreri, and he will show the assassin proper respect.\"\nBut LaValle wasn't thinking of Rassiter's safety - he had often entertained thoughts of disposing of the wretched wererat himself. What concerned the wizard was the possibility of a deeper rift in the guild. \"What if Rassiter turns the power of his allies against Entreri?\" he asked in a tone even more grim. \"The street war that would ensue would split the guild in half.\"\nPook dismissed the possibility with a wave of his hand. \"Even Rassiter is not that stupid,\" he answered, fingering the ruby pendant, an insurance policy he might just need.\nLaValle relaxed, satisfied with his master's assurances and with Pook's ability to handle the delicate situation. As usual, Pook was right, LaValle realized. Entreri had unnerved the wererat with a simple stare, to the possible benefit of all involved. Perhaps now, Rassiter would act more appropriately for his rank in the guild. And with Entreri soon to be quartered on this very level, perhaps the intrusions of the filthy wererat would come less often.\nYes, it was good to have Entreri back.",
+      "last_sentence": "Yes, it was good to have Entreri back.",
+      "classification": "time_leap_tease",
+      "source": "regex",
+      "confidence": "high",
+      "rationale": "Closer-tail time-leap marker (soon_enough).",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": true
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 14,
+      "closer_text_excerpt": "He looked for another victim, but the battle was over. No more bandits remained in the bowl, and Wulfgar, Aegis-fang back in his hands, and Drizzt were standing easily.\n\"Where's me girl?\" Bruenor cried.\nDrizzt calmed him with a look and a pointing finer.\nOn the top of a dune to the side, Catti-brie sat atop the horse she had commandeered, Taulmaril taut in her hands as she looked out over the desert.\nSeveral riders galloped across the sand in full flight and another lay dead on the other side of the dune. Catti-brie put one of them in her sights, then realized that the fighting had ended behind her.\n\"Enough,\" she whispered, moving the bow an inch to the side and sending the arrow over the fleeing bandit's shoulder.\nThere has been enough killing this day, she thought.\nCatti-brie looked at the carnage of the battle scene and at the hungry buzzards circling patiently overhead. She dropped Taulmaril to her side. The firm set of her grim visage melted away.",
+      "last_sentence": "The firm set of her grim visage melted away.",
+      "classification": "reflection_pause",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The final paragraph focuses on Catti-brie's interior shift from grim determination to a softened expression, a quiet emotional landing with no external action.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 15,
+      "closer_text_excerpt": "Catti-brie awoke sometime after midnight. She sat and stretched, figuring it to be her turn on watch.. She saw Drizzt, standing on the edge of the firelight, staring into the starry heavens.\nHadn't Drizzt taken the first watch.? she wondered.\nCatti-brie studied the moon's position to make certain of the hour. There could be no doubt; the night grew long.\n\"Trouble?\" she asked softly, going to Drizzt's side. A loud snore from Bruenor answered the question for Drizzt.\n\"Might I spell ye, then?\" she asked. \"Even a drow elf needs to sleep.\"\n\"I can find my rest under the cowl of my cloak,\" Drizzt replied, turning to meet her concerned gaze with his lavender eyes, \"when the sun is high.\"\n\"Might I join ye, then?\" Catti-brie asked. \"Suren a wondrous night.\"\nDrizzt smiled and turned his gaze back to the heavens, to the allure of the evening sky with a mystical longing in his heart as profound as any surface elf had ever experienced.\nCatti-brie slipped her slender fingers around his and stood quietly by his side, not wanting to disturb his enchantment further, sharing more than mere words with her dearest of friends.",
+      "last_sentence": "Catti-brie slipped her slender fingers around his and stood quietly by his side, not wanting to disturb his enchantment further, sharing more than mere words with her dearest of friends.",
+      "classification": "reflection_pause",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The chapter ends with a quiet, interior moment of shared companionship and emotional stillness, with no external action or forward plot movement.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 16,
+      "closer_text_excerpt": "\"Join me?\" he asked the halfling.\nHiding his revulsion, Dondon quickly declined. Looking at the ratman, the halfling\nwondered how he had ever allowed Rassiter to bite him, infecting him with his lycanthropic\nnightmare. \"It will bring you power!\" Rassiter had promised.\nBut at what cost? Dondon thought. To look and smell like a rat? No blessing this, but a\ndisease.\nRassiter guessed at the halfling's distaste, and he curled his rat snout back in a threatening\nhiss, then turned for the door.\nHe spun back on Dondon before exiting the room. \"Keep away from this!\" he warned the\nhalfling. \"Do as you were bid and hide away!\"\n\"No doubt to that,\" Dondon whispered as the door slammed shut.",
+      "last_sentence": "\"No doubt to that,\" Dondon whispered as the door slammed shut.",
+      "classification": "departure",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Rassiter leaves the room and the door slams shut, ending the scene with a clear departure.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 17,
+      "closer_text_excerpt": "Pook shoved LaValle back and headed for the door to the lower levels. He would have to\nopen some eyes in the streets, to learn what Artemis Entreri was up to and to learn more\nabout those friends of the halfling, whether they still lived or had died in Asavir's Channel.\nIf it had been anyone other than Entreri, Pook would have put his ruby pendant to use, but\nthat option was not feasible with the dangerous assassin.\nPook growled to himself as he exited the chamber. He had hoped, on Entreri's return, that\nhe would never have to take this route again, but with LaValle so obviously tied into the\nassassin's games, Pook's only option was Rassiter.",
+      "last_sentence": "Pook growled to himself as he exited the chamber. He had hoped, on Entreri's return, that\nhe would never have to take this route again, but with LaValle so obviously tied into the\nassassin's games, Pook's only option was Rassiter.",
+      "classification": "decision_point",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Pook makes a clear decision to go to Rassiter, framing the next chapter.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 18,
+      "closer_text_excerpt": "Wulfgar dusted himself off. \"From the inside,\" he added.\n\"It seems that something down there wants to keep the city out.\"\n\"We shall know soon enough,\" Drizzt remarked. He dropped down beside the open hole,\nslipping his legs in. \"Prepare a torch,\" he said. \"I will summon you if all is clear.\"\nCatti-brie caught the eager gleam in the drow's eyes and looked at him with concern.\n\"For Regis,\" Drizzt assured her, \"and only for Regis.\" Then he was gone, into the\nblackness. Black like the lightless tunnels of his homeland.\nThe other three heard a slight splash as he touched down, then all was quiet.\nMany anxious moments passed. \"Put a light to the torch,\" Bruenor whispered to Wulfgar.\nCatti-brie caught Wulfgar's arm to stop him. \"Faith,\" she said to Bruenor.\n\"Too long,\" the dwarf muttered. \"Too quiet.\"\nCatti-brie held on to Wulfgar's arm for another second, until Drizzt's soft voice drifted up\nto them. \"Clear,\" the drow said. \"Come down quickly.\"\nBruenor took the torch from Wulfgar. \"Come last,\" he said, \"and slide the grate back\nbehind ye. No need in tellin' the world where we went!\"",
+      "last_sentence": "Bruenor took the torch from Wulfgar. \"Come last,\" he said, \"and slide the grate back\nbehind ye. No need in tellin' the world where we went!\"",
+      "classification": "departure",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The chapter ends with the characters descending into the hole, leaving the surface behind, and Bruenor instructs to slide the grate back, emphasizing departure.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 19,
+      "closer_text_excerpt": "\"A lie?\" Entreri shot back. \"You are the one who wears the mask, drow. You are the one who must hide.\" Drizzt accepted the words with a smile. Only a few days before, they might have stung him, but now, after the insight Catti-brie had given him, they rang hollowly in Drizzt's ears. \"You are the lie, Entreri,\" he replied calmly. \"You are no more than a loaded crossbow, an unfeeling weapon, that will never know life.\" He started walking toward the assassin, jaw firm in the knowledge of what he must do. Entreri strode in with equal confidence. \"Come and die, drow,\" he spat.",
+      "last_sentence": "\"Come and die, drow,\" he spat.",
+      "classification": "physical_cliffhanger",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Chapter ends with both characters advancing toward combat, unresolved physical danger at the break.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 20,
+      "closer_text_excerpt": "Then a commotion down the lane turned all heads. Two of the guards posing as bums outside the thieves' guild pulled open the door - to the sound of fighting - and charged inside, slamming the door behind them.\n\"Wulfgar!\" shouted Bruenor, roaring down the road. Catti-brie started to follow but turned back to consider Drizzt.\nThe drow stood as if torn, looking one way, to the guild, and the other, to where the assassin had run. He had Entreri beaten; the injured man could not possibly stand up against him.\nHow could he just let Entreri go?\n\"Yer friends need ye,\" Catti-brie reminded him. \"If not for Regis, then for Wulfgar.\"\nDrizzt shook his head in self-reproach. How could he even have considered abandoning his friends at that critical moment? He rushed past Catti-brie, chasing Bruenor down the road.",
+      "last_sentence": "He rushed past Catti-brie, chasing Bruenor down the road.",
+      "classification": "decision_point",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Drizzt makes a clear decision to abandon pursuit of Entreri and rejoin his friends, framing the next chapter's action.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 21,
+      "closer_text_excerpt": "He glanced around at the room a final time, wondering if he might find an easier way.\nPook dominated the vision. His face blood red and locked into a grimace, the guildmaster had recovered from the attack and now twirled his walking stick as a weapon, which Regis knew from experience to be deadly.\n\"Please give me this one,\" Regis whispered to whatever god might be listening. He gritted his teeth and ducked his head, lurching forward and letting the scepter lead him into the Taros Hoop.",
+      "last_sentence": "He gritted his teeth and ducked his head, lurching forward and letting the scepter lead him into the Taros Hoop.",
+      "classification": "physical_cliffhanger",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Chapter ends with character charging into combat, unresolved physical danger at the break.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 22,
+      "closer_text_excerpt": "Another demodand rose up, this one across the way, on the same bridge as Regis. The\nhalfling showed his friends the scepter again. \"Catch it,\" he begged, winding up to throw.\n\"This is your only chance to get out of here!\" He mustered up his nerve - there would only be\none chance - and heaved the scepter as powerfully as he could. It spun end over end,\ntantalizingly slow in its journey toward the three sets of outstretched hands.\nIt could not cut a swift enough path through the heavy air, though, and it lost its speed\nshort of the bridge.\n\"No!\" Bruenor cried, seeing their hopes falling away.\nCatti-brie growled in denial, unhitching her laden belt and dropping Taulmaril in a single\nmovement.\nShe dove for the scepter.\nBruenor dropped flat to his chest desperately to grab her ankles, but she was too far out. A\ncontented look came over her as she caught the scepter. She twisted about in midair and\nthrew it back to Bruenor's waiting hands, then she plummeted from sight without a word of\ncomplaint.",
+      "last_sentence": "She dove for the scepter.",
+      "classification": "physical_cliffhanger",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Catti-brie is falling from a bridge at chapter's end, in immediate physical danger.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 23,
+      "closer_text_excerpt": "Wulfgar caught the action out of the corner of his eye, and would have loved to join in - especially with Pook busy reloading his heavy crossbow - but the barbarian had troubles of his own. A winged demodand swooped through the gate in a sudden rush and flashed by Wulfgar.\nFine-tuned reflexes saved the barbarian, for he snapped a hand out and caught the demodand by a leg. The monster's momentum staggered Wulfgar backward, but he managed to hold on. He slammed the demodand down beside him and drove it into the floor with a single chop of his war hammer.\nSeveral arms reached through the Taros Hoop, shoulders and heads poked through, and Wulfgar, swinging Aegis-fang furiously, had all he could handle simply keeping the wretched things at bay.",
+      "last_sentence": "Wulfgar, swinging Aegis-fang furiously, had all he could handle simply keeping the wretched things at bay.",
+      "classification": "physical_cliffhanger",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Chapter ends with Wulfgar actively fighting multiple enemies emerging from the portal, in unresolved physical danger.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 24,
+      "closer_text_excerpt": "Guenhwyvar was not a vigilante.\n\"We all came through the statue,\" Regis continued. \"I kept it with me when I went out of\nTarterus with Guenhwyvar. The cats can go back through it to their own plane when their\nwork is done.\" He tossed the figurine back to its rightful owner.\nA curious look came over the halfling's face. He snapped his fingers and hopped down\nfrom the banister, as if his last action had given him an idea. He ran to Pook, rolled the\nformer guildmaster's head to the side-trying to ignore the very conspicuous wound in Pook's\nneck - and lifted off the ruby pendant that had started the whole adventure. Satisfied, Regis\nturned to the very curious stares of his two friends.\n\"Time to make some allies,\" the halfling explained, and he darted off down the stairs.\nBruenor and Drizzt looked at each other in disbelief.\n\"He'll own the guild,\" Bruenor assured the drow.\nDrizzt didn't argue the point.",
+      "last_sentence": "Drizzt didn't argue the point.",
+      "classification": "departure",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Regis darts off down the stairs, leaving Bruenor and Drizzt behind, marking a clear departure from the current scene.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 25,
+      "closer_text_excerpt": "Regis relaxed back in his chair and shrugged. He had expected as much. \"If you are all so\ndetermined to go back to a war, then I would be a sorry friend if I did not aid your quest.\"\nThe others eyed him curiously, never amazed at the surprises the little one could pull.\n\"To that end,\" Regis continued, \"one of my agents reported the arrival of an important\nperson - from the tales Bruenor has told me of your journey south - in Calimport this\nmorning.\" He snapped his fingers, and a young attendant entered from a side curtain, leading\nCaptain Deudermont.\nThe captain bowed low to Regis, and lower still to the dear friends he had made on the\nperilous journey from Waterdeep. \"The wind was at our backs,\" he explained, \"and the Sea\nSprite runs swifter than ever. We can depart on the morrow's dawn; surely the gentle rock of\na boat is a fine place to mend weary bones!\"\n\"But the trade,\" said Drizzt. \"The market is here in Calimport. And the season. You did\nnot plan to leave before spring!\"\n\"I may not be able to get you all the way to Waterdeep,\" said Deudermont. \"The winds\nand ice will tell. But you surely will find yourself closer to your goal when you take to land\nonce again.\" He looked over at Regis, then back to Drizzt. \"For my losses in trade,\naccommodations have been made.\"\nRegis tucked his thumbs into his jeweled belt. \"I owed you that, at the least!\"\n\"Bah!\" snorted Bruenor, an adventurous gleam in his eye. \"Ten times more, Rumblebelly,\nten times more!\"",
+      "last_sentence": "\"Ten times more, Rumblebelly, ten times more!\"",
+      "classification": "arrival",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The chapter ends with the arrival of Captain Deudermont, introducing a new character and setting up the next chapter's departure.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "epilogue",
+      "closer_text_excerpt": "Drizzt led Wulfgar off to the side, out of plain view. Seeing the barbarian's paling look, he took the tiny pouch and gingerly loosened the draw string, holding it as far away as possible.\nWith a shrug to Wulfgar, who had moved a cautious step away, Drizzt brought the pouch down to his belt level and peeked in.\nWulfgar moved closer, curious and concerned when he saw Drizzt's shoulders droop. The drow looked to him in helpless resignation and inverted the pouch, revealing its contents.\nA halfling's finger.",
+      "last_sentence": "A halfling's finger.",
+      "classification": "info_reveal",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The final line reveals a shocking piece of information (a halfling's finger) that changes the reader's understanding of the situation.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "epilogue2",
+      "closer_text_excerpt": "LaValle felt the assassin's callous eyes looking through him, as though he had suddenly become just another barrier to be overcome.\nBut Entreri softened his glare and grinned. \"You know of Pasha Pook's weakness for hunting cats,\" he said, reaching into his pouch. \"Give him this. Tell him you made it for him.\"\nHe tossed a small black object across the table to the wizard. LaValle caught it, his eyes widening as soon as he realized what it was.\nGuenhwyvar.",
+      "last_sentence": "Guenhwyvar.",
+      "classification": "info_reveal",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The chapter ends with the revelation that Entreri gives LaValle the figurine of Guenhwyvar, a major plot twist.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "epilogue3",
+      "closer_text_excerpt": "\"Might I have a room,\" Regis asked, \"to put my things and to rest away the weariness of a\nlong road?\"\n\"We'll see to it,\" Catti-brie offered.\n\"And for your attendants?\" Bruenor asked.\n\"Oh,\" stammered Regis, searching for a reply. \"I . . . came alone. The southerners do not\ntake well to the chill of a northern spring, you know.\"\n\"Well, off with ye, then,\" said Bruenor. \"Suren it be me turn to set out a feast for the\npleasure of yer belly.\"\nRegis rubbed his hands together eagerly and left with Wulfgar and Catti-brie, the three of\nthem breaking into tales of their latest adventures before they had even left the room.\n\"Suren few folk in Calimport have ever heared o' me name, elf,\" Bruenor said to Drizzt\nafter the others had gone. \"And who south o' Longsaddle would be knowing of the\nwedding?\" He turned a sly eye on his dark friend. \"Suren the little one brings a bit of his\ntreasure along with him, eh?\"\nDrizzt had come to the same conclusion the moment Regis had entered the room. \"He is\nrunning.\"",
+      "last_sentence": "\"He is running.\"",
+      "classification": "info_reveal",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "Drizzt's realization that Regis is running reveals new plot information at chapter's end.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "prelude",
+      "closer_text_excerpt": "But for Harkle, there had been no other choice. The Sydney that he had loved was a\nfacade, a sugar coating to a power-crazed, unfeeling monster. And he himself had played a\npart in the disaster, unwittingly revealing to Sydney the whereabouts of Bruenor's party.\nHarkle watched Catti-brie go, the weight of troubles slowing her stride. He could harbor\nno resentment toward her - Sydney had brought about the circumstances of her own death,\nand Catti-brie had no choice but to play them out. The wizard turned his gaze southward. He,\ntoo, wondered and worried for the drow elf and the huge barbarian lad. They had slumped\nback into Longsaddle just three days before, a sorrow-filled and weary band in desperate\nneed of rest.\nThere could be no rest, though, not now, for the wicked assassin had escaped with the last\nof their group, Regis the halfling, in tow.\nSo much had happened in those few weeks; Harkle's entire world had been turned upside\ndown by an odd mixture of heroes from a distant, forlorn land called Icewind Dale, and by a\nbeautiful young woman who could not be blamed.\nAnd by the lie that was his deepest love.\nHarkle fell back on the grass and watched the puffy clouds of late summer meander across\nthe sky.",
+      "last_sentence": "Harkle fell back on the grass and watched the puffy clouds of late summer meander across\nthe sky.",
+      "classification": "reflection_pause",
+      "source": "llm",
+      "confidence": "high",
+      "rationale": "The chapter ends with Harkle lying on the grass, watching clouds, in a quiet interior moment of reflection and emotional weight.",
+      "regex_flags": {
+        "trailingQuestion": false,
+        "timeLeapMarker": false
+      }
+    }
+  ]
+}

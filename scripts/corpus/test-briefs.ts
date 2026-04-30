@@ -51,7 +51,7 @@ const MODELS: Record<string, { url: string; key: string; model: string; maxToken
   deepseek: {
     url: "https://api.deepseek.com/v1/chat/completions",
     key: process.env.DEEPSEEK_API_KEY!,
-    model: "deepseek-chat",
+    model: "deepseek-v4-flash",
     maxTokens: 2048,
   },
   cerebras: {

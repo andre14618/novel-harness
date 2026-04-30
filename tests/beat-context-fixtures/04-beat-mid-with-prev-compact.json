@@ -1,0 +1,79 @@
+{
+  "description": "middle beat (beat 1), with previous prose, compact mode, no location change so setting suppressed",
+  "input": {
+    "novelId": "test-novel-04",
+    "chapterNumber": 2,
+    "beatIndex": 1,
+    "previousBeatProse": "He set his hand against the door. The wood was warm. The latch sprang open beneath his fingers.",
+    "outline": {
+      "chapterNumber": 2,
+      "title": "The Tavern",
+      "povCharacter": "Drizzt",
+      "setting": "Bryn Shander",
+      "purpose": "develop merchant subplot",
+      "scenes": [
+        {
+          "description": "Drizzt enters the tavern through the side door.",
+          "characters": ["Drizzt"],
+          "kind": "action",
+          "requiredPayoffs": []
+        },
+        {
+          "description": "He orders a drink and listens to the room.",
+          "characters": ["Drizzt"],
+          "kind": "action",
+          "requiredPayoffs": []
+        },
+        {
+          "description": "Catti-brie joins him and they speak of the road ahead.",
+          "characters": ["Drizzt", "Catti-brie"],
+          "kind": "dialogue",
+          "requiredPayoffs": []
+        }
+      ],
+      "targetWords": 1500,
+      "charactersPresent": ["Drizzt", "Catti-brie"],
+      "establishedFacts": [],
+      "characterStateChanges": [],
+      "knowledgeChanges": []
+    },
+    "characters": [
+      {
+        "id": "drizzt-001",
+        "name": "Drizzt",
+        "role": "drow ranger",
+        "backstory": "",
+        "traits": [],
+        "speechPattern": "formal and measured",
+        "internalConflict": "",
+        "goals": "find belonging on the surface",
+        "fears": "",
+        "relationships": [],
+        "culturalBackground": [],
+        "systemAwareness": [],
+        "exampleLines": [
+          "By the stars.",
+          "I have walked alone for many years.",
+          "Trust is earned.",
+          "Honor still has weight."
+        ]
+      }
+    ],
+    "characterStates": [],
+    "worldBible": {
+      "locations": [
+        {
+          "name": "Bryn Shander",
+          "description": "Largest of the Ten Towns.",
+          "sensoryDetails": "tallow smoke, ale-and-fish stink"
+        }
+      ]
+    },
+    "preResolvedRefs": {
+      "context": "",
+      "lookupCount": 0,
+      "llmUsed": false
+    },
+    "compactMode": true
+  }
+}

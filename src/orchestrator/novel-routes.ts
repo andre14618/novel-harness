@@ -148,7 +148,7 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
         beatSupport: { label: "Beat Support", description: "Cheap/fast structural tasks for beat-level writing", agents: ["reference-resolver", "adherence-events"] },
         validators: { label: "Validators", description: "Plan adherence, hallucination, and continuity checks", agents: ["chapter-plan-checker", "halluc-ungrounded", "halluc-leak-salvatore", "continuity-facts", "continuity-state"] },
         lintTonal: { label: "Lint & Tonal", description: "AI-tell detection and style transfer", agents: ["lint-fixer", "tonal-pass"] },
-        improvement: { label: "Improvement", description: "Autonomous prompt tuning daemon", agents: ["improver"] },
+        lintResearch: { label: "Lint Research", description: "Offline lint-pattern tooling (scripts/lint/*). Not in the pipeline; kept for lint-discoverer/lint-improver scripts.", agents: ["improver"] },
       }
 
       // Effective assignments (static + overrides merged)
@@ -452,9 +452,13 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
 
       // Start pipeline as floating promise (fire-and-forget)
       runNovel(novelId)
-        .then(() => {
+        .then(result => {
           activeRuns.delete(novelId)
-          console.log(`[novel-api] Novel ${novelId} completed`)
+          if (result.outcome === "paused") {
+            console.log(`[novel-api] Novel ${novelId} paused at ${result.phase}: ${result.reason}`)
+          } else {
+            console.log(`[novel-api] Novel ${novelId} completed`)
+          }
         })
         .catch(err => {
           activeRuns.delete(novelId)
@@ -503,7 +507,12 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
     activeRuns.set(novelId, { startedAt: new Date().toISOString() })
 
     runNovel(novelId)
-      .then(() => { activeRuns.delete(novelId) })
+      .then(result => {
+        activeRuns.delete(novelId)
+        if (result.outcome === "paused") {
+          console.log(`[novel-api] Novel ${novelId} paused at ${result.phase}: ${result.reason}`)
+        }
+      })
       .catch(err => {
         activeRuns.delete(novelId)
         captureRunError(novelId, err)
@@ -539,7 +548,12 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
     lastRunErrors.delete(novelId)
     activeRuns.set(novelId, { startedAt: new Date().toISOString() })
     runNovel(novelId)
-      .then(() => { activeRuns.delete(novelId) })
+      .then(result => {
+        activeRuns.delete(novelId)
+        if (result.outcome === "paused") {
+          console.log(`[novel-api] Novel ${novelId} redraft paused at ${result.phase}: ${result.reason}`)
+        }
+      })
       .catch(err => {
         activeRuns.delete(novelId)
         captureRunError(novelId, err)

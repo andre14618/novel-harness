@@ -1,0 +1,1270 @@
+{
+  "pattern": 54,
+  "name": "Time-skip / temporal-leap marker distribution",
+  "corpus": "salvatore-icewind-dale (3 books)",
+  "method": {
+    "labeler": "regex word-boundary case-insensitive over (summary + text)",
+    "categories": {
+      "EXPLICIT_DURATION": [
+        "hours later",
+        "days later",
+        "weeks later",
+        "months later",
+        "years later",
+        "a few hours later",
+        "a few days",
+        "a few minutes later",
+        "many hours",
+        "many days",
+        "many years",
+        "some hours later",
+        "some days",
+        "some time later",
+        "half an hour later",
+        "half a day",
+        "an hour later",
+        "a moment later"
+      ],
+      "ABSOLUTE_TIME": [
+        "the next morning",
+        "the next day",
+        "the next night",
+        "the next afternoon",
+        "the following morning",
+        "the following day",
+        "by dawn",
+        "by morning",
+        "by noon",
+        "by sunset",
+        "by nightfall",
+        "by midnight",
+        "at dawn",
+        "at dusk",
+        "at sunset",
+        "at midnight",
+        "at sunrise",
+        "early the next",
+        "late that night",
+        "that evening",
+        "that night",
+        "in the morning",
+        "in the evening"
+      ],
+      "ELAPSED_NARRATIVE": [
+        "for hours",
+        "for days",
+        "for weeks",
+        "for months",
+        "for years",
+        "throughout the night",
+        "all night",
+        "all day",
+        "all morning",
+        "long after",
+        "long before"
+      ]
+    },
+    "lexicon_additions": [],
+    "all_marker_count": 52,
+    "scope": "summary + text concatenated; per-marker findall (each occurrence counts independently, all markers can fire on the same beat)",
+    "stability_gates": {
+      "top3_overlap": ">=2 shared in all pairwise top-3 sets",
+      "density_spread": "<=30% (max-vs-min over per-1k-words rate)",
+      "structural": "boundary marker rate > internal marker rate, in 3/3 books"
+    }
+  },
+  "n_beats_total": 2470,
+  "n_beats_per_book": {
+    "crystal_shard": 858,
+    "streams_of_silver": 786,
+    "halflings_gem": 826
+  },
+  "aggregate_total_hits": 221,
+  "aggregate_marker_totals_top20": [
+    [
+      "many years",
+      28
+    ],
+    [
+      "that night",
+      24
+    ],
+    [
+      "at dawn",
+      19
+    ],
+    [
+      "long before",
+      16
+    ],
+    [
+      "the next day",
+      15
+    ],
+    [
+      "in the morning",
+      10
+    ],
+    [
+      "a few minutes later",
+      10
+    ],
+    [
+      "the next morning",
+      9
+    ],
+    [
+      "many hours",
+      8
+    ],
+    [
+      "a few days",
+      8
+    ],
+    [
+      "many days",
+      6
+    ],
+    [
+      "an hour later",
+      6
+    ],
+    [
+      "a moment later",
+      6
+    ],
+    [
+      "hours later",
+      5
+    ],
+    [
+      "at dusk",
+      4
+    ],
+    [
+      "a few hours later",
+      4
+    ],
+    [
+      "half a day",
+      4
+    ],
+    [
+      "by nightfall",
+      3
+    ],
+    [
+      "for weeks",
+      3
+    ],
+    [
+      "that evening",
+      3
+    ]
+  ],
+  "per_book": {
+    "crystal_shard": {
+      "n_beats": 858,
+      "total_words": 89987,
+      "total_marker_hits": 70,
+      "beats_with_any_marker": 62,
+      "beats_with_any_pct": 7.23,
+      "markers_per_1k_words": 0.778,
+      "markers_per_beat": 0.0816,
+      "by_category": {
+        "EXPLICIT_DURATION": 25,
+        "ABSOLUTE_TIME": 30,
+        "ELAPSED_NARRATIVE": 15
+      },
+      "by_category_per_1k": {
+        "EXPLICIT_DURATION": 0.278,
+        "ABSOLUTE_TIME": 0.333,
+        "ELAPSED_NARRATIVE": 0.167
+      },
+      "marker_counts": {
+        "many years": 12,
+        "that night": 4,
+        "for years": 2,
+        "long before": 8,
+        "the next day": 4,
+        "in the morning": 5,
+        "the following morning": 1,
+        "at dawn": 9,
+        "at dusk": 2,
+        "many days": 1,
+        "hours later": 2,
+        "a few hours later": 2,
+        "by nightfall": 1,
+        "many hours": 5,
+        "a few minutes later": 2,
+        "for weeks": 1,
+        "a few days": 1,
+        "that evening": 1,
+        "throughout the night": 1,
+        "all morning": 1,
+        "the next morning": 2,
+        "by sunset": 1,
+        "for days": 2
+      },
+      "top_markers": [
+        [
+          "many years",
+          12
+        ],
+        [
+          "at dawn",
+          9
+        ],
+        [
+          "long before",
+          8
+        ],
+        [
+          "in the morning",
+          5
+        ],
+        [
+          "many hours",
+          5
+        ],
+        [
+          "that night",
+          4
+        ],
+        [
+          "the next day",
+          4
+        ],
+        [
+          "for years",
+          2
+        ],
+        [
+          "at dusk",
+          2
+        ],
+        [
+          "hours later",
+          2
+        ]
+      ]
+    },
+    "streams_of_silver": {
+      "n_beats": 786,
+      "total_words": 85870,
+      "total_marker_hits": 90,
+      "beats_with_any_marker": 67,
+      "beats_with_any_pct": 8.52,
+      "markers_per_1k_words": 1.048,
+      "markers_per_beat": 0.1145,
+      "by_category": {
+        "ABSOLUTE_TIME": 44,
+        "ELAPSED_NARRATIVE": 11,
+        "EXPLICIT_DURATION": 35
+      },
+      "by_category_per_1k": {
+        "ABSOLUTE_TIME": 0.512,
+        "ELAPSED_NARRATIVE": 0.128,
+        "EXPLICIT_DURATION": 0.408
+      },
+      "marker_counts": {
+        "the next day": 10,
+        "by morning": 1,
+        "by noon": 2,
+        "that night": 12,
+        "long before": 7,
+        "the following day": 1,
+        "for hours": 1,
+        "many hours": 2,
+        "at dawn": 4,
+        "in the morning": 2,
+        "a few minutes later": 3,
+        "the next morning": 6,
+        "at sunset": 3,
+        "many years": 10,
+        "hours later": 1,
+        "a few days": 4,
+        "that evening": 1,
+        "an hour later": 4,
+        "half a day": 4,
+        "all night": 1,
+        "long after": 1,
+        "a moment later": 3,
+        "in the evening": 1,
+        "many days": 1,
+        "days later": 2,
+        "some time later": 1,
+        "the following morning": 1,
+        "for days": 1
+      },
+      "top_markers": [
+        [
+          "that night",
+          12
+        ],
+        [
+          "the next day",
+          10
+        ],
+        [
+          "many years",
+          10
+        ],
+        [
+          "long before",
+          7
+        ],
+        [
+          "the next morning",
+          6
+        ],
+        [
+          "at dawn",
+          4
+        ],
+        [
+          "a few days",
+          4
+        ],
+        [
+          "an hour later",
+          4
+        ],
+        [
+          "half a day",
+          4
+        ],
+        [
+          "a few minutes later",
+          3
+        ]
+      ]
+    },
+    "halflings_gem": {
+      "n_beats": 826,
+      "total_words": 86891,
+      "total_marker_hits": 61,
+      "beats_with_any_marker": 51,
+      "beats_with_any_pct": 6.17,
+      "markers_per_1k_words": 0.702,
+      "markers_per_beat": 0.0738,
+      "by_category": {
+        "ABSOLUTE_TIME": 26,
+        "EXPLICIT_DURATION": 30,
+        "ELAPSED_NARRATIVE": 5
+      },
+      "by_category_per_1k": {
+        "ABSOLUTE_TIME": 0.299,
+        "EXPLICIT_DURATION": 0.345,
+        "ELAPSED_NARRATIVE": 0.058
+      },
+      "marker_counts": {
+        "in the morning": 3,
+        "at dawn": 6,
+        "that night": 8,
+        "a few minutes later": 5,
+        "many years": 6,
+        "for weeks": 2,
+        "in the evening": 1,
+        "a few days": 3,
+        "many days": 4,
+        "an hour later": 2,
+        "the next day": 1,
+        "at dusk": 2,
+        "a moment later": 3,
+        "hours later": 2,
+        "a few hours later": 2,
+        "long before": 1,
+        "the next morning": 1,
+        "weeks later": 2,
+        "for hours": 2,
+        "many hours": 1,
+        "the next afternoon": 1,
+        "by nightfall": 2,
+        "that evening": 1
+      },
+      "top_markers": [
+        [
+          "that night",
+          8
+        ],
+        [
+          "at dawn",
+          6
+        ],
+        [
+          "many years",
+          6
+        ],
+        [
+          "a few minutes later",
+          5
+        ],
+        [
+          "many days",
+          4
+        ],
+        [
+          "in the morning",
+          3
+        ],
+        [
+          "a few days",
+          3
+        ],
+        [
+          "a moment later",
+          3
+        ],
+        [
+          "for weeks",
+          2
+        ],
+        [
+          "an hour later",
+          2
+        ]
+      ]
+    }
+  },
+  "top_markers_per_book": {
+    "crystal_shard": [
+      [
+        "many years",
+        12
+      ],
+      [
+        "at dawn",
+        9
+      ],
+      [
+        "long before",
+        8
+      ],
+      [
+        "in the morning",
+        5
+      ],
+      [
+        "many hours",
+        5
+      ],
+      [
+        "that night",
+        4
+      ],
+      [
+        "the next day",
+        4
+      ],
+      [
+        "for years",
+        2
+      ],
+      [
+        "at dusk",
+        2
+      ],
+      [
+        "hours later",
+        2
+      ]
+    ],
+    "streams_of_silver": [
+      [
+        "that night",
+        12
+      ],
+      [
+        "the next day",
+        10
+      ],
+      [
+        "many years",
+        10
+      ],
+      [
+        "long before",
+        7
+      ],
+      [
+        "the next morning",
+        6
+      ],
+      [
+        "at dawn",
+        4
+      ],
+      [
+        "a few days",
+        4
+      ],
+      [
+        "an hour later",
+        4
+      ],
+      [
+        "half a day",
+        4
+      ],
+      [
+        "a few minutes later",
+        3
+      ]
+    ],
+    "halflings_gem": [
+      [
+        "that night",
+        8
+      ],
+      [
+        "at dawn",
+        6
+      ],
+      [
+        "many years",
+        6
+      ],
+      [
+        "a few minutes later",
+        5
+      ],
+      [
+        "many days",
+        4
+      ],
+      [
+        "in the morning",
+        3
+      ],
+      [
+        "a few days",
+        3
+      ],
+      [
+        "a moment later",
+        3
+      ],
+      [
+        "for weeks",
+        2
+      ],
+      [
+        "an hour later",
+        2
+      ]
+    ]
+  },
+  "structural_position_analysis": {
+    "aggregate": {
+      "chapter-open": {
+        "n_beats": 75,
+        "total_words": 7612,
+        "total_marker_hits": 10,
+        "beats_with_any_marker": 8,
+        "beats_with_any_pct": 10.67,
+        "markers_per_1k_words": 1.314,
+        "markers_per_beat": 0.1333
+      },
+      "scene-bounded": {
+        "n_beats": 185,
+        "total_words": 18471,
+        "total_marker_hits": 29,
+        "beats_with_any_marker": 20,
+        "beats_with_any_pct": 10.81,
+        "markers_per_1k_words": 1.57,
+        "markers_per_beat": 0.1568
+      },
+      "scene-unbounded": {
+        "n_beats": 17,
+        "total_words": 1972,
+        "total_marker_hits": 5,
+        "beats_with_any_marker": 3,
+        "beats_with_any_pct": 17.65,
+        "markers_per_1k_words": 2.535,
+        "markers_per_beat": 0.2941
+      },
+      "chapter-close": {
+        "n_beats": 75,
+        "total_words": 7613,
+        "total_marker_hits": 19,
+        "beats_with_any_marker": 17,
+        "beats_with_any_pct": 22.67,
+        "markers_per_1k_words": 2.496,
+        "markers_per_beat": 0.2533
+      },
+      "chapter-internal": {
+        "n_beats": 2118,
+        "total_words": 227080,
+        "total_marker_hits": 158,
+        "beats_with_any_marker": 132,
+        "beats_with_any_pct": 6.23,
+        "markers_per_1k_words": 0.696,
+        "markers_per_beat": 0.0746
+      },
+      "__boundary_vs_internal__": {
+        "boundary": {
+          "n_beats": 352,
+          "total_words": 35668,
+          "total_marker_hits": 63,
+          "markers_per_1k_words": 1.766,
+          "markers_per_beat": 0.179
+        },
+        "internal": {
+          "n_beats": 2118,
+          "total_words": 227080,
+          "total_marker_hits": 158,
+          "markers_per_1k_words": 0.696,
+          "markers_per_beat": 0.0746
+        },
+        "ratio_boundary_over_internal_per_1k": 2.537,
+        "ratio_boundary_over_internal_per_beat": 2.399
+      }
+    },
+    "per_book": {
+      "crystal_shard": {
+        "chapter-open": {
+          "n_beats": 30,
+          "total_words": 3035,
+          "total_marker_hits": 8,
+          "beats_with_any_marker": 7,
+          "beats_with_any_pct": 23.33,
+          "markers_per_1k_words": 2.636,
+          "markers_per_beat": 0.2667
+        },
+        "scene-bounded": {
+          "n_beats": 75,
+          "total_words": 7751,
+          "total_marker_hits": 4,
+          "beats_with_any_marker": 4,
+          "beats_with_any_pct": 5.33,
+          "markers_per_1k_words": 0.516,
+          "markers_per_beat": 0.0533
+        },
+        "scene-unbounded": {
+          "n_beats": 4,
+          "total_words": 506,
+          "total_marker_hits": 2,
+          "beats_with_any_marker": 1,
+          "beats_with_any_pct": 25.0,
+          "markers_per_1k_words": 3.953,
+          "markers_per_beat": 0.5
+        },
+        "chapter-close": {
+          "n_beats": 30,
+          "total_words": 3032,
+          "total_marker_hits": 4,
+          "beats_with_any_marker": 4,
+          "beats_with_any_pct": 13.33,
+          "markers_per_1k_words": 1.319,
+          "markers_per_beat": 0.1333
+        },
+        "chapter-internal": {
+          "n_beats": 719,
+          "total_words": 75663,
+          "total_marker_hits": 52,
+          "beats_with_any_marker": 46,
+          "beats_with_any_pct": 6.4,
+          "markers_per_1k_words": 0.687,
+          "markers_per_beat": 0.0723
+        },
+        "__boundary_vs_internal__": {
+          "boundary": {
+            "n_beats": 139,
+            "total_words": 14324,
+            "total_marker_hits": 18,
+            "markers_per_1k_words": 1.257,
+            "markers_per_beat": 0.1295
+          },
+          "internal": {
+            "n_beats": 719,
+            "total_words": 75663,
+            "total_marker_hits": 52,
+            "markers_per_1k_words": 0.687,
+            "markers_per_beat": 0.0723
+          },
+          "ratio_boundary_over_internal_per_1k": 1.83,
+          "ratio_boundary_over_internal_per_beat": 1.791
+        }
+      },
+      "streams_of_silver": {
+        "chapter-open": {
+          "n_beats": 19,
+          "total_words": 1975,
+          "total_marker_hits": 2,
+          "beats_with_any_marker": 1,
+          "beats_with_any_pct": 5.26,
+          "markers_per_1k_words": 1.013,
+          "markers_per_beat": 0.1053
+        },
+        "scene-bounded": {
+          "n_beats": 28,
+          "total_words": 2587,
+          "total_marker_hits": 10,
+          "beats_with_any_marker": 5,
+          "beats_with_any_pct": 17.86,
+          "markers_per_1k_words": 3.865,
+          "markers_per_beat": 0.3571
+        },
+        "scene-unbounded": {
+          "n_beats": 10,
+          "total_words": 1153,
+          "total_marker_hits": 3,
+          "beats_with_any_marker": 2,
+          "beats_with_any_pct": 20.0,
+          "markers_per_1k_words": 2.602,
+          "markers_per_beat": 0.3
+        },
+        "chapter-close": {
+          "n_beats": 19,
+          "total_words": 1941,
+          "total_marker_hits": 4,
+          "beats_with_any_marker": 4,
+          "beats_with_any_pct": 21.05,
+          "markers_per_1k_words": 2.061,
+          "markers_per_beat": 0.2105
+        },
+        "chapter-internal": {
+          "n_beats": 710,
+          "total_words": 78214,
+          "total_marker_hits": 71,
+          "beats_with_any_marker": 55,
+          "beats_with_any_pct": 7.75,
+          "markers_per_1k_words": 0.908,
+          "markers_per_beat": 0.1
+        },
+        "__boundary_vs_internal__": {
+          "boundary": {
+            "n_beats": 76,
+            "total_words": 7656,
+            "total_marker_hits": 19,
+            "markers_per_1k_words": 2.482,
+            "markers_per_beat": 0.25
+          },
+          "internal": {
+            "n_beats": 710,
+            "total_words": 78214,
+            "total_marker_hits": 71,
+            "markers_per_1k_words": 0.908,
+            "markers_per_beat": 0.1
+          },
+          "ratio_boundary_over_internal_per_1k": 2.733,
+          "ratio_boundary_over_internal_per_beat": 2.5
+        }
+      },
+      "halflings_gem": {
+        "chapter-open": {
+          "n_beats": 26,
+          "total_words": 2602,
+          "total_marker_hits": 0,
+          "beats_with_any_marker": 0,
+          "beats_with_any_pct": 0.0,
+          "markers_per_1k_words": 0.0,
+          "markers_per_beat": 0.0
+        },
+        "scene-bounded": {
+          "n_beats": 82,
+          "total_words": 8133,
+          "total_marker_hits": 15,
+          "beats_with_any_marker": 11,
+          "beats_with_any_pct": 13.41,
+          "markers_per_1k_words": 1.844,
+          "markers_per_beat": 0.1829
+        },
+        "scene-unbounded": {
+          "n_beats": 3,
+          "total_words": 313,
+          "total_marker_hits": 0,
+          "beats_with_any_marker": 0,
+          "beats_with_any_pct": 0.0,
+          "markers_per_1k_words": 0.0,
+          "markers_per_beat": 0.0
+        },
+        "chapter-close": {
+          "n_beats": 26,
+          "total_words": 2640,
+          "total_marker_hits": 11,
+          "beats_with_any_marker": 9,
+          "beats_with_any_pct": 34.62,
+          "markers_per_1k_words": 4.167,
+          "markers_per_beat": 0.4231
+        },
+        "chapter-internal": {
+          "n_beats": 689,
+          "total_words": 73203,
+          "total_marker_hits": 35,
+          "beats_with_any_marker": 31,
+          "beats_with_any_pct": 4.5,
+          "markers_per_1k_words": 0.478,
+          "markers_per_beat": 0.0508
+        },
+        "__boundary_vs_internal__": {
+          "boundary": {
+            "n_beats": 137,
+            "total_words": 13688,
+            "total_marker_hits": 26,
+            "markers_per_1k_words": 1.899,
+            "markers_per_beat": 0.1898
+          },
+          "internal": {
+            "n_beats": 689,
+            "total_words": 73203,
+            "total_marker_hits": 35,
+            "markers_per_1k_words": 0.478,
+            "markers_per_beat": 0.0508
+          },
+          "ratio_boundary_over_internal_per_1k": 3.973,
+          "ratio_boundary_over_internal_per_beat": 3.736
+        }
+      }
+    }
+  },
+  "boundary_vs_internal_per_book": [
+    {
+      "book": "crystal_shard",
+      "boundary_per_1k": 1.257,
+      "internal_per_1k": 0.687,
+      "ratio": 1.83,
+      "boundary_gt_internal": true
+    },
+    {
+      "book": "streams_of_silver",
+      "boundary_per_1k": 2.482,
+      "internal_per_1k": 0.908,
+      "ratio": 2.733,
+      "boundary_gt_internal": true
+    },
+    {
+      "book": "halflings_gem",
+      "boundary_per_1k": 1.899,
+      "internal_per_1k": 0.478,
+      "ratio": 3.973,
+      "boundary_gt_internal": true
+    }
+  ],
+  "boundary_holds_count": 3,
+  "per_kind_analysis": {
+    "action": {
+      "n_beats": 891,
+      "total_words": 93477,
+      "total_marker_hits": 64,
+      "beats_with_any_marker": 47,
+      "beats_with_any_pct": 5.27,
+      "markers_per_1k_words": 0.685,
+      "markers_per_beat": 0.0718
+    },
+    "description": {
+      "n_beats": 303,
+      "total_words": 32562,
+      "total_marker_hits": 51,
+      "beats_with_any_marker": 41,
+      "beats_with_any_pct": 13.53,
+      "markers_per_1k_words": 1.566,
+      "markers_per_beat": 0.1683
+    },
+    "dialogue": {
+      "n_beats": 777,
+      "total_words": 82819,
+      "total_marker_hits": 59,
+      "beats_with_any_marker": 51,
+      "beats_with_any_pct": 6.56,
+      "markers_per_1k_words": 0.712,
+      "markers_per_beat": 0.0759
+    },
+    "interiority": {
+      "n_beats": 498,
+      "total_words": 53804,
+      "total_marker_hits": 47,
+      "beats_with_any_marker": 41,
+      "beats_with_any_pct": 8.23,
+      "markers_per_1k_words": 0.874,
+      "markers_per_beat": 0.0944
+    },
+    "stakes_recalibration": {
+      "n_beats": 1,
+      "total_words": 86,
+      "total_marker_hits": 0,
+      "beats_with_any_marker": 0,
+      "beats_with_any_pct": 0.0,
+      "markers_per_1k_words": 0.0,
+      "markers_per_beat": 0.0
+    }
+  },
+  "per_kind_per_book_analysis": {
+    "crystal_shard": {
+      "action": {
+        "n_beats": 308,
+        "total_words": 32318,
+        "total_marker_hits": 15,
+        "markers_per_1k_words": 0.464,
+        "markers_per_beat": 0.0487
+      },
+      "description": {
+        "n_beats": 130,
+        "total_words": 13443,
+        "total_marker_hits": 18,
+        "markers_per_1k_words": 1.339,
+        "markers_per_beat": 0.1385
+      },
+      "dialogue": {
+        "n_beats": 242,
+        "total_words": 25358,
+        "total_marker_hits": 17,
+        "markers_per_1k_words": 0.67,
+        "markers_per_beat": 0.0702
+      },
+      "interiority": {
+        "n_beats": 177,
+        "total_words": 18782,
+        "total_marker_hits": 20,
+        "markers_per_1k_words": 1.065,
+        "markers_per_beat": 0.113
+      },
+      "stakes_recalibration": {
+        "n_beats": 1,
+        "total_words": 86,
+        "total_marker_hits": 0,
+        "markers_per_1k_words": 0.0,
+        "markers_per_beat": 0.0
+      }
+    },
+    "streams_of_silver": {
+      "action": {
+        "n_beats": 274,
+        "total_words": 29385,
+        "total_marker_hits": 32,
+        "markers_per_1k_words": 1.089,
+        "markers_per_beat": 0.1168
+      },
+      "description": {
+        "n_beats": 94,
+        "total_words": 10592,
+        "total_marker_hits": 17,
+        "markers_per_1k_words": 1.605,
+        "markers_per_beat": 0.1809
+      },
+      "dialogue": {
+        "n_beats": 256,
+        "total_words": 27835,
+        "total_marker_hits": 27,
+        "markers_per_1k_words": 0.97,
+        "markers_per_beat": 0.1055
+      },
+      "interiority": {
+        "n_beats": 162,
+        "total_words": 18058,
+        "total_marker_hits": 14,
+        "markers_per_1k_words": 0.775,
+        "markers_per_beat": 0.0864
+      },
+      "stakes_recalibration": {
+        "n_beats": 0,
+        "total_words": 0,
+        "total_marker_hits": 0,
+        "markers_per_1k_words": 0.0,
+        "markers_per_beat": 0.0
+      }
+    },
+    "halflings_gem": {
+      "action": {
+        "n_beats": 309,
+        "total_words": 31774,
+        "total_marker_hits": 17,
+        "markers_per_1k_words": 0.535,
+        "markers_per_beat": 0.055
+      },
+      "description": {
+        "n_beats": 79,
+        "total_words": 8527,
+        "total_marker_hits": 16,
+        "markers_per_1k_words": 1.876,
+        "markers_per_beat": 0.2025
+      },
+      "dialogue": {
+        "n_beats": 279,
+        "total_words": 29626,
+        "total_marker_hits": 15,
+        "markers_per_1k_words": 0.506,
+        "markers_per_beat": 0.0538
+      },
+      "interiority": {
+        "n_beats": 159,
+        "total_words": 16964,
+        "total_marker_hits": 13,
+        "markers_per_1k_words": 0.766,
+        "markers_per_beat": 0.0818
+      },
+      "stakes_recalibration": {
+        "n_beats": 0,
+        "total_words": 0,
+        "total_marker_hits": 0,
+        "markers_per_1k_words": 0.0,
+        "markers_per_beat": 0.0
+      }
+    }
+  },
+  "cross_book_stability": {
+    "top3_per_book": {
+      "crystal_shard": [
+        "at dawn",
+        "long before",
+        "many years"
+      ],
+      "streams_of_silver": [
+        "the next day",
+        "that night",
+        "many years"
+      ],
+      "halflings_gem": [
+        "at dawn",
+        "that night",
+        "many years"
+      ]
+    },
+    "pairwise_top3_overlap": {
+      "crystal_shard vs streams_of_silver": {
+        "overlap_count": 1,
+        "shared": [
+          "many years"
+        ],
+        "only_in_first": [
+          "at dawn",
+          "long before"
+        ],
+        "only_in_second": [
+          "that night",
+          "the next day"
+        ]
+      },
+      "crystal_shard vs halflings_gem": {
+        "overlap_count": 2,
+        "shared": [
+          "at dawn",
+          "many years"
+        ],
+        "only_in_first": [
+          "long before"
+        ],
+        "only_in_second": [
+          "that night"
+        ]
+      },
+      "streams_of_silver vs halflings_gem": {
+        "overlap_count": 2,
+        "shared": [
+          "many years",
+          "that night"
+        ],
+        "only_in_first": [
+          "the next day"
+        ],
+        "only_in_second": [
+          "at dawn"
+        ]
+      }
+    },
+    "three_way_top3_intersection": [
+      "many years"
+    ],
+    "pairs_with_2plus_overlap": 2,
+    "densities_per_1k": {
+      "crystal_shard": 0.778,
+      "streams_of_silver": 1.048,
+      "halflings_gem": 0.702
+    },
+    "density_min": 0.702,
+    "density_max": 1.048,
+    "density_spread_fraction_max_over_min": 0.493,
+    "density_stable_le_30pct": false
+  },
+  "verdict": "PASS_PARTIAL",
+  "verdict_note": "1/3 strict gates pass, 2/3 partial gates pass \u2014 stable on the majority of axes but at least one cross-book divergence.",
+  "examples": {
+    "chapter_open_examples": [
+      {
+        "scene_id": "crystal_shard_ch10_s0",
+        "book": "crystal_shard",
+        "chapter": 10,
+        "kind": "description",
+        "hits": [
+          [
+            "many years",
+            1
+          ]
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_ch11_s0",
+        "book": "crystal_shard",
+        "chapter": 11,
+        "kind": "action",
+        "hits": [
+          [
+            "many years",
+            1
+          ]
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_ch14_s0",
+        "book": "crystal_shard",
+        "chapter": 14,
+        "kind": "interiority",
+        "hits": [
+          [
+            "the following morning",
+            1
+          ]
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_ch25_s0",
+        "book": "crystal_shard",
+        "chapter": 25,
+        "kind": "interiority",
+        "hits": [
+          [
+            "at dusk",
+            1
+          ]
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_ch27_s0",
+        "book": "crystal_shard",
+        "chapter": 27,
+        "kind": "description",
+        "hits": [
+          [
+            "at dawn",
+            1
+          ]
+        ]
+      }
+    ],
+    "scene_bounded_examples": [
+      {
+        "scene_id": "crystal_shard_ch28_s1",
+        "book": "crystal_shard",
+        "chapter": 28,
+        "kind": "description",
+        "hits": [
+          [
+            "that evening",
+            1
+          ]
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_ch30_s8",
+        "book": "crystal_shard",
+        "chapter": 30,
+        "kind": "description",
+        "hits": [
+          [
+            "all morning",
+            1
+          ]
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_ch4_s2",
+        "book": "crystal_shard",
+        "chapter": 4,
+        "kind": "interiority",
+        "hits": [
+          [
+            "at dawn",
+            1
+          ]
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_chepilogue3_s4",
+        "book": "crystal_shard",
+        "chapter": "epilogue3",
+        "kind": "dialogue",
+        "hits": [
+          [
+            "many hours",
+            1
+          ]
+        ]
+      },
+      {
+        "scene_id": "halflings_gem_ch10_s2",
+        "book": "halflings_gem",
+        "chapter": 10,
+        "kind": "description",
+        "hits": [
+          [
+            "that night",
+            1
+          ]
+        ]
+      }
+    ],
+    "internal_examples": [
+      {
+        "scene_id": "crystal_shard_ch10_s2",
+        "book": "crystal_shard",
+        "chapter": 10,
+        "kind": "description",
+        "hits": [
+          [
+            "that night",
+            1
+          ]
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_ch10_s2",
+        "book": "crystal_shard",
+        "chapter": 10,
+        "kind": "description",
+        "hits": [
+          [
+            "for years",
+            1
+          ]
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_ch11_s2",
+        "book": "crystal_shard",
+        "chapter": 11,
+        "kind": "action",
+        "hits": [
+          [
+            "the next day",
+            1
+          ]
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_ch11_s3",
+        "book": "crystal_shard",
+        "chapter": 11,
+        "kind": "interiority",
+        "hits": [
+          [
+            "long before",
+            1
+          ]
+        ]
+      },
+      {
+        "scene_id": "crystal_shard_ch12_s2",
+        "book": "crystal_shard",
+        "chapter": 12,
+        "kind": "dialogue",
+        "hits": [
+          [
+            "in the morning",
+            1
+          ]
+        ]
+      }
+    ]
+  }
+}

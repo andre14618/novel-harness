@@ -1,0 +1,186 @@
+{
+  "computedAt": "2026-04-30T00:48:19.685Z",
+  "test": "tier-2-counterfactuals",
+  "gates": {
+    "stabilityFloor": 0.7,
+    "stabilityPass": 0.85
+  },
+  "valueCharge": {
+    "n": 30,
+    "fields": [
+      {
+        "field": "polarity",
+        "fieldType": "enum",
+        "n": 30,
+        "agree": 29,
+        "rate": 0.9666666666666667,
+        "jaccard": 0.9354838709677419,
+        "classes": {
+          "0": {
+            "run1": 0,
+            "run2": 1
+          },
+          "+": {
+            "run1": 20,
+            "run2": 20
+          },
+          "-": {
+            "run1": 10,
+            "run2": 9
+          }
+        }
+      },
+      {
+        "field": "valueIn",
+        "fieldType": "enum",
+        "n": 30,
+        "agree": 22,
+        "rate": 0.7333333333333333,
+        "jaccard": 0.5789473684210527,
+        "classes": {
+          "0": {
+            "run1": 8,
+            "run2": 4
+          },
+          "-": {
+            "run1": 16,
+            "run2": 17
+          },
+          "+": {
+            "run1": 6,
+            "run2": 9
+          }
+        }
+      },
+      {
+        "field": "valueOut",
+        "fieldType": "enum",
+        "n": 30,
+        "agree": 29,
+        "rate": 0.9666666666666667,
+        "jaccard": 0.9354838709677419,
+        "classes": {
+          "0": {
+            "run1": 0,
+            "run2": 1
+          },
+          "+": {
+            "run1": 20,
+            "run2": 20
+          },
+          "-": {
+            "run1": 10,
+            "run2": 9
+          }
+        }
+      },
+      {
+        "field": "lifeValue",
+        "fieldType": "enum",
+        "n": 30,
+        "agree": 23,
+        "rate": 0.7666666666666667,
+        "jaccard": 0.6216216216216216,
+        "classes": {
+          "success-failure": {
+            "run1": 3,
+            "run2": 5
+          },
+          "belief-doubt": {
+            "run1": 1,
+            "run2": 0
+          },
+          "truth-lie": {
+            "run1": 3,
+            "run2": 5
+          },
+          "freedom-slavery": {
+            "run1": 2,
+            "run2": 1
+          },
+          "love-hate": {
+            "run1": 0,
+            "run2": 1
+          },
+          "life-death": {
+            "run1": 7,
+            "run2": 6
+          },
+          "justice-injustice": {
+            "run1": 2,
+            "run2": 1
+          },
+          "hope-despair": {
+            "run1": 8,
+            "run2": 6
+          },
+          "power-weakness": {
+            "run1": 4,
+            "run2": 5
+          }
+        }
+      }
+    ]
+  },
+  "mckeeGap": {
+    "n": 30,
+    "fields": [
+      {
+        "field": "gap_size",
+        "fieldType": "enum",
+        "n": 30,
+        "agree": 25,
+        "rate": 0.8333333333333334,
+        "jaccard": 0.7142857142857143,
+        "classes": {
+          "large": {
+            "run1": 12,
+            "run2": 9
+          },
+          "small": {
+            "run1": 8,
+            "run2": 7
+          },
+          "none": {
+            "run1": 6,
+            "run2": 9
+          },
+          "medium": {
+            "run1": 4,
+            "run2": 5
+          }
+        }
+      },
+      {
+        "field": "gap_type",
+        "fieldType": "enum",
+        "n": 30,
+        "agree": 22,
+        "rate": 0.7333333333333333,
+        "jaccard": 0.5789473684210527,
+        "classes": {
+          "revelation": {
+            "run1": 6,
+            "run2": 2
+          },
+          "undermining": {
+            "run1": 3,
+            "run2": 6
+          },
+          "none": {
+            "run1": 6,
+            "run2": 9
+          },
+          "reversal": {
+            "run1": 11,
+            "run2": 10
+          },
+          "escalation": {
+            "run1": 4,
+            "run2": 3
+          }
+        }
+      }
+    ]
+  }
+}

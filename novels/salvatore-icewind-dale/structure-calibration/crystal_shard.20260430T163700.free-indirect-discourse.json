@@ -1,0 +1,1487 @@
+{
+  "pattern_number": 68,
+  "pattern_name": "Free indirect discourse signatures per beat-kind",
+  "commit": "a3da6d1",
+  "beats_path": "novels/salvatore-icewind-dale/beats.jsonl",
+  "marker_definitions": {
+    "interrogative_fragments": "?-terminated sentences with <8 words, OUTSIDE quoted spans",
+    "exclamatory_fragments": "!-terminated sentences with <8 words, OUTSIDE quoted spans",
+    "modal_hedges": "regex hits on (surely|perhaps|maybe|indeed|of course|undoubtedly|no doubt|how could|how would|why would|why should|how should|certainly), OUTSIDE quoted spans",
+    "bare_adversative_openers": "sentences whose first word is one of (But, And, Yet, Still, So) \u2014 case-sensitive, OUTSIDE quoted spans",
+    "self_addressed_modals": "modal verbs (must|should|cannot|could not|dare not|will not|shall not|cannot have|might have|may have) NOT preceded by an explicit pronoun subject and NOT preceded by a proper-noun token; OUTSIDE quoted spans"
+  },
+  "stage2_llm_classification": {
+    "performed": false,
+    "reason": "Stage-1 markers reproduced known directional findings (P39 conjunction-first 1.6x interiority>action, P59 interiority question-mid-rank, P61 modal-past interiority>action 2x). Methodology guidance permits skipping Stage 2."
+  },
+  "books": [
+    "crystal_shard",
+    "halflings_gem",
+    "streams_of_silver"
+  ],
+  "active_kinds": [
+    "interiority",
+    "action",
+    "description",
+    "dialogue"
+  ],
+  "expected_lead_kind": "interiority",
+  "marker_names": [
+    "interrogative_fragments",
+    "exclamatory_fragments",
+    "modal_hedges",
+    "bare_adversative_openers",
+    "self_addressed_modals"
+  ],
+  "skipped_beats": 1,
+  "cell_meta": {
+    "crystal_shard": {
+      "description": {
+        "n_beats": 130,
+        "n_words_total": 13443,
+        "n_words_outside_quotes": 15517,
+        "n_quote_spans": 32,
+        "n_interrogative_fragments": 1,
+        "n_exclamatory_fragments": 0,
+        "n_modal_hedges": 12,
+        "n_bare_adversative_openers": 52,
+        "n_self_addressed_modals": 9
+      },
+      "interiority": {
+        "n_beats": 177,
+        "n_words_total": 18782,
+        "n_words_outside_quotes": 21526,
+        "n_quote_spans": 108,
+        "n_interrogative_fragments": 6,
+        "n_exclamatory_fragments": 5,
+        "n_modal_hedges": 29,
+        "n_bare_adversative_openers": 129,
+        "n_self_addressed_modals": 10
+      },
+      "action": {
+        "n_beats": 308,
+        "n_words_total": 32318,
+        "n_words_outside_quotes": 36536,
+        "n_quote_spans": 264,
+        "n_interrogative_fragments": 3,
+        "n_exclamatory_fragments": 8,
+        "n_modal_hedges": 17,
+        "n_bare_adversative_openers": 147,
+        "n_self_addressed_modals": 14
+      },
+      "dialogue": {
+        "n_beats": 242,
+        "n_words_total": 25358,
+        "n_words_outside_quotes": 18130,
+        "n_quote_spans": 1078,
+        "n_interrogative_fragments": 8,
+        "n_exclamatory_fragments": 17,
+        "n_modal_hedges": 26,
+        "n_bare_adversative_openers": 52,
+        "n_self_addressed_modals": 12
+      }
+    },
+    "halflings_gem": {
+      "description": {
+        "n_beats": 79,
+        "n_words_total": 8527,
+        "n_words_outside_quotes": 9296,
+        "n_quote_spans": 42,
+        "n_interrogative_fragments": 2,
+        "n_exclamatory_fragments": 2,
+        "n_modal_hedges": 5,
+        "n_bare_adversative_openers": 38,
+        "n_self_addressed_modals": 2
+      },
+      "interiority": {
+        "n_beats": 159,
+        "n_words_total": 16964,
+        "n_words_outside_quotes": 17592,
+        "n_quote_spans": 154,
+        "n_interrogative_fragments": 14,
+        "n_exclamatory_fragments": 5,
+        "n_modal_hedges": 50,
+        "n_bare_adversative_openers": 111,
+        "n_self_addressed_modals": 12
+      },
+      "dialogue": {
+        "n_beats": 279,
+        "n_words_total": 29626,
+        "n_words_outside_quotes": 22252,
+        "n_quote_spans": 1539,
+        "n_interrogative_fragments": 22,
+        "n_exclamatory_fragments": 21,
+        "n_modal_hedges": 40,
+        "n_bare_adversative_openers": 66,
+        "n_self_addressed_modals": 21
+      },
+      "action": {
+        "n_beats": 309,
+        "n_words_total": 31774,
+        "n_words_outside_quotes": 33651,
+        "n_quote_spans": 389,
+        "n_interrogative_fragments": 5,
+        "n_exclamatory_fragments": 16,
+        "n_modal_hedges": 27,
+        "n_bare_adversative_openers": 80,
+        "n_self_addressed_modals": 12
+      }
+    },
+    "streams_of_silver": {
+      "description": {
+        "n_beats": 94,
+        "n_words_total": 10592,
+        "n_words_outside_quotes": 11294,
+        "n_quote_spans": 49,
+        "n_interrogative_fragments": 0,
+        "n_exclamatory_fragments": 0,
+        "n_modal_hedges": 10,
+        "n_bare_adversative_openers": 27,
+        "n_self_addressed_modals": 3
+      },
+      "interiority": {
+        "n_beats": 162,
+        "n_words_total": 18058,
+        "n_words_outside_quotes": 19483,
+        "n_quote_spans": 133,
+        "n_interrogative_fragments": 9,
+        "n_exclamatory_fragments": 2,
+        "n_modal_hedges": 57,
+        "n_bare_adversative_openers": 74,
+        "n_self_addressed_modals": 23
+      },
+      "dialogue": {
+        "n_beats": 256,
+        "n_words_total": 27835,
+        "n_words_outside_quotes": 19442,
+        "n_quote_spans": 1600,
+        "n_interrogative_fragments": 2,
+        "n_exclamatory_fragments": 4,
+        "n_modal_hedges": 19,
+        "n_bare_adversative_openers": 31,
+        "n_self_addressed_modals": 13
+      },
+      "action": {
+        "n_beats": 274,
+        "n_words_total": 29385,
+        "n_words_outside_quotes": 34291,
+        "n_quote_spans": 410,
+        "n_interrogative_fragments": 2,
+        "n_exclamatory_fragments": 3,
+        "n_modal_hedges": 14,
+        "n_bare_adversative_openers": 88,
+        "n_self_addressed_modals": 18
+      }
+    }
+  },
+  "pooled_density_per_100w_outside_quotes": {
+    "crystal_shard": {
+      "description": {
+        "interrogative_fragments": 0.0064,
+        "exclamatory_fragments": 0.0,
+        "modal_hedges": 0.0773,
+        "bare_adversative_openers": 0.3351,
+        "self_addressed_modals": 0.058
+      },
+      "interiority": {
+        "interrogative_fragments": 0.0279,
+        "exclamatory_fragments": 0.0232,
+        "modal_hedges": 0.1347,
+        "bare_adversative_openers": 0.5993,
+        "self_addressed_modals": 0.0465
+      },
+      "action": {
+        "interrogative_fragments": 0.0082,
+        "exclamatory_fragments": 0.0219,
+        "modal_hedges": 0.0465,
+        "bare_adversative_openers": 0.4023,
+        "self_addressed_modals": 0.0383
+      },
+      "dialogue": {
+        "interrogative_fragments": 0.0441,
+        "exclamatory_fragments": 0.0938,
+        "modal_hedges": 0.1434,
+        "bare_adversative_openers": 0.2868,
+        "self_addressed_modals": 0.0662
+      }
+    },
+    "halflings_gem": {
+      "description": {
+        "interrogative_fragments": 0.0215,
+        "exclamatory_fragments": 0.0215,
+        "modal_hedges": 0.0538,
+        "bare_adversative_openers": 0.4088,
+        "self_addressed_modals": 0.0215
+      },
+      "interiority": {
+        "interrogative_fragments": 0.0796,
+        "exclamatory_fragments": 0.0284,
+        "modal_hedges": 0.2842,
+        "bare_adversative_openers": 0.631,
+        "self_addressed_modals": 0.0682
+      },
+      "dialogue": {
+        "interrogative_fragments": 0.0989,
+        "exclamatory_fragments": 0.0944,
+        "modal_hedges": 0.1798,
+        "bare_adversative_openers": 0.2966,
+        "self_addressed_modals": 0.0944
+      },
+      "action": {
+        "interrogative_fragments": 0.0149,
+        "exclamatory_fragments": 0.0475,
+        "modal_hedges": 0.0802,
+        "bare_adversative_openers": 0.2377,
+        "self_addressed_modals": 0.0357
+      }
+    },
+    "streams_of_silver": {
+      "description": {
+        "interrogative_fragments": 0.0,
+        "exclamatory_fragments": 0.0,
+        "modal_hedges": 0.0885,
+        "bare_adversative_openers": 0.2391,
+        "self_addressed_modals": 0.0266
+      },
+      "interiority": {
+        "interrogative_fragments": 0.0462,
+        "exclamatory_fragments": 0.0103,
+        "modal_hedges": 0.2926,
+        "bare_adversative_openers": 0.3798,
+        "self_addressed_modals": 0.1181
+      },
+      "dialogue": {
+        "interrogative_fragments": 0.0103,
+        "exclamatory_fragments": 0.0206,
+        "modal_hedges": 0.0977,
+        "bare_adversative_openers": 0.1594,
+        "self_addressed_modals": 0.0669
+      },
+      "action": {
+        "interrogative_fragments": 0.0058,
+        "exclamatory_fragments": 0.0087,
+        "modal_hedges": 0.0408,
+        "bare_adversative_openers": 0.2566,
+        "self_addressed_modals": 0.0525
+      }
+    }
+  },
+  "combined_fid_density": {
+    "crystal_shard": {
+      "description": 0.4769,
+      "interiority": 0.8316,
+      "action": 0.5173,
+      "dialogue": 0.6343
+    },
+    "halflings_gem": {
+      "description": 0.5271,
+      "interiority": 1.0914,
+      "dialogue": 0.764,
+      "action": 0.416
+    },
+    "streams_of_silver": {
+      "description": 0.3542,
+      "interiority": 0.8469,
+      "dialogue": 0.3549,
+      "action": 0.3645
+    }
+  },
+  "rankings_combined_fid": {
+    "crystal_shard": [
+      {
+        "kind": "interiority",
+        "combined_density_per_100w": 0.8316
+      },
+      {
+        "kind": "dialogue",
+        "combined_density_per_100w": 0.6343
+      },
+      {
+        "kind": "action",
+        "combined_density_per_100w": 0.5173
+      },
+      {
+        "kind": "description",
+        "combined_density_per_100w": 0.4769
+      }
+    ],
+    "halflings_gem": [
+      {
+        "kind": "interiority",
+        "combined_density_per_100w": 1.0914
+      },
+      {
+        "kind": "dialogue",
+        "combined_density_per_100w": 0.764
+      },
+      {
+        "kind": "description",
+        "combined_density_per_100w": 0.5271
+      },
+      {
+        "kind": "action",
+        "combined_density_per_100w": 0.416
+      }
+    ],
+    "streams_of_silver": [
+      {
+        "kind": "interiority",
+        "combined_density_per_100w": 0.8469
+      },
+      {
+        "kind": "action",
+        "combined_density_per_100w": 0.3645
+      },
+      {
+        "kind": "dialogue",
+        "combined_density_per_100w": 0.3549
+      },
+      {
+        "kind": "description",
+        "combined_density_per_100w": 0.3542
+      }
+    ]
+  },
+  "interiority_leads_combined_in_n_books": 3,
+  "interiority_leads_combined_pass": true,
+  "per_marker_per_book_top_kind": {
+    "interrogative_fragments": {
+      "crystal_shard": "dialogue",
+      "halflings_gem": "dialogue",
+      "streams_of_silver": "interiority"
+    },
+    "exclamatory_fragments": {
+      "crystal_shard": "dialogue",
+      "halflings_gem": "dialogue",
+      "streams_of_silver": "dialogue"
+    },
+    "modal_hedges": {
+      "crystal_shard": "dialogue",
+      "halflings_gem": "interiority",
+      "streams_of_silver": "interiority"
+    },
+    "bare_adversative_openers": {
+      "crystal_shard": "interiority",
+      "halflings_gem": "interiority",
+      "streams_of_silver": "interiority"
+    },
+    "self_addressed_modals": {
+      "crystal_shard": "dialogue",
+      "halflings_gem": "dialogue",
+      "streams_of_silver": "interiority"
+    }
+  },
+  "per_marker_books_with_interiority_top": {
+    "interrogative_fragments": 1,
+    "exclamatory_fragments": 0,
+    "modal_hedges": 2,
+    "bare_adversative_openers": 3,
+    "self_addressed_modals": 1
+  },
+  "modal_hedge_ratio_per_book": {
+    "crystal_shard": {
+      "interiority_density": 0.1347,
+      "action_density": 0.0465,
+      "ratio_interiority_over_action": 2.897,
+      "ratio_ge_1_5": true,
+      "ratio_ge_2_0": true
+    },
+    "halflings_gem": {
+      "interiority_density": 0.2842,
+      "action_density": 0.0802,
+      "ratio_interiority_over_action": 3.544,
+      "ratio_ge_1_5": true,
+      "ratio_ge_2_0": true
+    },
+    "streams_of_silver": {
+      "interiority_density": 0.2926,
+      "action_density": 0.0408,
+      "ratio_interiority_over_action": 7.172,
+      "ratio_ge_1_5": true,
+      "ratio_ge_2_0": true
+    }
+  },
+  "modal_hedge_ratio_ge_1_5_in_n_books": 3,
+  "modal_hedge_ratio_ge_2_0_in_n_books": 3,
+  "modal_hedge_pass": true,
+  "bare_adv_ratio_per_book": {
+    "crystal_shard": {
+      "interiority_density": 0.5993,
+      "action_density": 0.4023,
+      "ratio_interiority_over_action": 1.49,
+      "ratio_ge_1_3": true,
+      "ratio_ge_1_6": false
+    },
+    "halflings_gem": {
+      "interiority_density": 0.631,
+      "action_density": 0.2377,
+      "ratio_interiority_over_action": 2.655,
+      "ratio_ge_1_3": true,
+      "ratio_ge_1_6": true
+    },
+    "streams_of_silver": {
+      "interiority_density": 0.3798,
+      "action_density": 0.2566,
+      "ratio_interiority_over_action": 1.48,
+      "ratio_ge_1_3": true,
+      "ratio_ge_1_6": false
+    }
+  },
+  "bare_adv_ratio_ge_1_3_in_n_books": 3,
+  "bare_adv_ratio_ge_1_6_in_n_books": 1,
+  "bare_adv_pass": true,
+  "per_marker_density_spread_across_books": {
+    "interrogative_fragments": {
+      "interiority": {
+        "values": {
+          "crystal_shard": 0.0279,
+          "halflings_gem": 0.0796,
+          "streams_of_silver": 0.0462
+        },
+        "min": 0.0279,
+        "max": 0.0796,
+        "spread_pct_of_mean": 100.91
+      },
+      "action": {
+        "values": {
+          "crystal_shard": 0.0082,
+          "halflings_gem": 0.0149,
+          "streams_of_silver": 0.0058
+        },
+        "min": 0.0058,
+        "max": 0.0149,
+        "spread_pct_of_mean": 94.46
+      },
+      "description": {
+        "values": {
+          "crystal_shard": 0.0064,
+          "halflings_gem": 0.0215,
+          "streams_of_silver": 0.0
+        },
+        "min": 0.0,
+        "max": 0.0215,
+        "spread_pct_of_mean": 231.18
+      },
+      "dialogue": {
+        "values": {
+          "crystal_shard": 0.0441,
+          "halflings_gem": 0.0989,
+          "streams_of_silver": 0.0103
+        },
+        "min": 0.0103,
+        "max": 0.0989,
+        "spread_pct_of_mean": 173.39
+      }
+    },
+    "exclamatory_fragments": {
+      "interiority": {
+        "values": {
+          "crystal_shard": 0.0232,
+          "halflings_gem": 0.0284,
+          "streams_of_silver": 0.0103
+        },
+        "min": 0.0103,
+        "max": 0.0284,
+        "spread_pct_of_mean": 87.72
+      },
+      "action": {
+        "values": {
+          "crystal_shard": 0.0219,
+          "halflings_gem": 0.0475,
+          "streams_of_silver": 0.0087
+        },
+        "min": 0.0087,
+        "max": 0.0475,
+        "spread_pct_of_mean": 149.04
+      },
+      "description": {
+        "values": {
+          "crystal_shard": 0.0,
+          "halflings_gem": 0.0215,
+          "streams_of_silver": 0.0
+        },
+        "min": 0.0,
+        "max": 0.0215,
+        "spread_pct_of_mean": 300.0
+      },
+      "dialogue": {
+        "values": {
+          "crystal_shard": 0.0938,
+          "halflings_gem": 0.0944,
+          "streams_of_silver": 0.0206
+        },
+        "min": 0.0206,
+        "max": 0.0944,
+        "spread_pct_of_mean": 106.03
+      }
+    },
+    "modal_hedges": {
+      "interiority": {
+        "values": {
+          "crystal_shard": 0.1347,
+          "halflings_gem": 0.2842,
+          "streams_of_silver": 0.2926
+        },
+        "min": 0.1347,
+        "max": 0.2926,
+        "spread_pct_of_mean": 66.58
+      },
+      "action": {
+        "values": {
+          "crystal_shard": 0.0465,
+          "halflings_gem": 0.0802,
+          "streams_of_silver": 0.0408
+        },
+        "min": 0.0408,
+        "max": 0.0802,
+        "spread_pct_of_mean": 70.57
+      },
+      "description": {
+        "values": {
+          "crystal_shard": 0.0773,
+          "halflings_gem": 0.0538,
+          "streams_of_silver": 0.0885
+        },
+        "min": 0.0538,
+        "max": 0.0885,
+        "spread_pct_of_mean": 47.4
+      },
+      "dialogue": {
+        "values": {
+          "crystal_shard": 0.1434,
+          "halflings_gem": 0.1798,
+          "streams_of_silver": 0.0977
+        },
+        "min": 0.0977,
+        "max": 0.1798,
+        "spread_pct_of_mean": 58.52
+      }
+    },
+    "bare_adversative_openers": {
+      "interiority": {
+        "values": {
+          "crystal_shard": 0.5993,
+          "halflings_gem": 0.631,
+          "streams_of_silver": 0.3798
+        },
+        "min": 0.3798,
+        "max": 0.631,
+        "spread_pct_of_mean": 46.8
+      },
+      "action": {
+        "values": {
+          "crystal_shard": 0.4023,
+          "halflings_gem": 0.2377,
+          "streams_of_silver": 0.2566
+        },
+        "min": 0.2377,
+        "max": 0.4023,
+        "spread_pct_of_mean": 55.07
+      },
+      "description": {
+        "values": {
+          "crystal_shard": 0.3351,
+          "halflings_gem": 0.4088,
+          "streams_of_silver": 0.2391
+        },
+        "min": 0.2391,
+        "max": 0.4088,
+        "spread_pct_of_mean": 51.79
+      },
+      "dialogue": {
+        "values": {
+          "crystal_shard": 0.2868,
+          "halflings_gem": 0.2966,
+          "streams_of_silver": 0.1594
+        },
+        "min": 0.1594,
+        "max": 0.2966,
+        "spread_pct_of_mean": 55.41
+      }
+    },
+    "self_addressed_modals": {
+      "interiority": {
+        "values": {
+          "crystal_shard": 0.0465,
+          "halflings_gem": 0.0682,
+          "streams_of_silver": 0.1181
+        },
+        "min": 0.0465,
+        "max": 0.1181,
+        "spread_pct_of_mean": 92.27
+      },
+      "action": {
+        "values": {
+          "crystal_shard": 0.0383,
+          "halflings_gem": 0.0357,
+          "streams_of_silver": 0.0525
+        },
+        "min": 0.0357,
+        "max": 0.0525,
+        "spread_pct_of_mean": 39.84
+      },
+      "description": {
+        "values": {
+          "crystal_shard": 0.058,
+          "halflings_gem": 0.0215,
+          "streams_of_silver": 0.0266
+        },
+        "min": 0.0215,
+        "max": 0.058,
+        "spread_pct_of_mean": 103.2
+      },
+      "dialogue": {
+        "values": {
+          "crystal_shard": 0.0662,
+          "halflings_gem": 0.0944,
+          "streams_of_silver": 0.0669
+        },
+        "min": 0.0662,
+        "max": 0.0944,
+        "spread_pct_of_mean": 37.19
+      }
+    }
+  },
+  "top_modal_hedge_tokens_per_kind": {
+    "interiority": [
+      [
+        "perhaps",
+        47
+      ],
+      [
+        "indeed",
+        22
+      ],
+      [
+        "certainly",
+        18
+      ],
+      [
+        "surely",
+        12
+      ],
+      [
+        "no doubt",
+        11
+      ],
+      [
+        "how could",
+        8
+      ],
+      [
+        "maybe",
+        7
+      ],
+      [
+        "of course",
+        4
+      ]
+    ],
+    "action": [
+      [
+        "perhaps",
+        17
+      ],
+      [
+        "indeed",
+        15
+      ],
+      [
+        "certainly",
+        9
+      ],
+      [
+        "surely",
+        9
+      ],
+      [
+        "no doubt",
+        6
+      ],
+      [
+        "of course",
+        1
+      ],
+      [
+        "how could",
+        1
+      ]
+    ],
+    "description": [
+      [
+        "indeed",
+        12
+      ],
+      [
+        "perhaps",
+        6
+      ],
+      [
+        "certainly",
+        4
+      ],
+      [
+        "of course",
+        3
+      ],
+      [
+        "maybe",
+        2
+      ]
+    ],
+    "dialogue": [
+      [
+        "perhaps",
+        27
+      ],
+      [
+        "indeed",
+        15
+      ],
+      [
+        "surely",
+        13
+      ],
+      [
+        "certainly",
+        12
+      ],
+      [
+        "of course",
+        7
+      ],
+      [
+        "no doubt",
+        6
+      ],
+      [
+        "how could",
+        2
+      ],
+      [
+        "maybe",
+        2
+      ]
+    ]
+  },
+  "top_bare_adv_tokens_per_kind": {
+    "interiority": [
+      [
+        "But",
+        157
+      ],
+      [
+        "And",
+        112
+      ],
+      [
+        "Yet",
+        26
+      ],
+      [
+        "So",
+        11
+      ],
+      [
+        "Still",
+        8
+      ]
+    ],
+    "action": [
+      [
+        "But",
+        194
+      ],
+      [
+        "And",
+        87
+      ],
+      [
+        "Still",
+        14
+      ],
+      [
+        "Yet",
+        11
+      ],
+      [
+        "So",
+        9
+      ]
+    ],
+    "description": [
+      [
+        "But",
+        56
+      ],
+      [
+        "And",
+        40
+      ],
+      [
+        "Yet",
+        11
+      ],
+      [
+        "Still",
+        6
+      ],
+      [
+        "So",
+        4
+      ]
+    ],
+    "dialogue": [
+      [
+        "But",
+        82
+      ],
+      [
+        "And",
+        52
+      ],
+      [
+        "Yet",
+        6
+      ],
+      [
+        "So",
+        5
+      ],
+      [
+        "Still",
+        4
+      ]
+    ]
+  },
+  "top_self_addressed_modal_tokens_per_kind": {
+    "interiority": [
+      [
+        "could not",
+        19
+      ],
+      [
+        "should",
+        9
+      ],
+      [
+        "must",
+        9
+      ],
+      [
+        "might have",
+        6
+      ],
+      [
+        "cannot",
+        2
+      ]
+    ],
+    "action": [
+      [
+        "could not",
+        30
+      ],
+      [
+        "might have",
+        6
+      ],
+      [
+        "must",
+        4
+      ],
+      [
+        "should",
+        4
+      ]
+    ],
+    "description": [
+      [
+        "could not",
+        9
+      ],
+      [
+        "should",
+        2
+      ],
+      [
+        "must",
+        1
+      ],
+      [
+        "cannot",
+        1
+      ],
+      [
+        "might have",
+        1
+      ]
+    ],
+    "dialogue": [
+      [
+        "could not",
+        20
+      ],
+      [
+        "should",
+        7
+      ],
+      [
+        "must",
+        7
+      ],
+      [
+        "will not",
+        5
+      ],
+      [
+        "might have",
+        3
+      ],
+      [
+        "cannot",
+        3
+      ],
+      [
+        "may have",
+        1
+      ]
+    ]
+  },
+  "sample_per_book_per_kind_per_marker": {
+    "crystal_shard": {
+      "interiority": {
+        "interrogative_fragments": [
+          "Kessell?",
+          "How much had they guessed?",
+          "And where was Errtu?",
+          "Could the demon be behind this?",
+          "What price would she pay for survival?",
+          "Something Kessell had added?"
+        ],
+        "exclamatory_fragments": [
+          "\"Speak now, the whole of it!",
+          "No, none would dare oppose Akar Kessell!",
+          "\"Sing, my proud warriors!",
+          "Sing hearty and strong!",
+          "How he would make men tremble!"
+        ],
+        "modal_hedges": [
+          "...is good fortune. His army was indeed taking shape. He had frost gi...",
+          "...d expected to find an orc, or perhaps a giant,  holding the shard....",
+          "...would capture a mighty spell indeed when he uttered the dweomer o...",
+          "...livering this prize unto him. Certainly they deserved his thanks....",
+          "...e you are about to undertake. Perhaps  you would be wise to give mo...",
+          "...ched nervously. The shard had indeed counseled him to use the huma...",
+          "...of sifting through them and, perhaps, discovering some incredible...",
+          "...to knowledge in ages past, or maybe the spellbook of an ancient a..."
+        ],
+        "bare_adversative_openers": [
+          "But Crenshinibon was not contented.",
+          "And now he had the opportunity to turn his fantasies into reality, Crenshinibon often assured him.",
+          "Yet the task of bringing together dozens of tribes and bending their natural enmity into a common cause of servitude to him was far more challenging.",
+          "But it was working, and now he had brought in two rival tribes simultaneously with positive results.",
+          "And by his count thus far, ten thousand fanatically loyal goblin troops to carry out his swath of destruction.",
+          "And he had a distinct advantage over the demon.",
+          "Yet leaving without the relic, putting off the quest that had been its primary motivation for centuries, was not an acceptable option.",
+          "But the dwarf saw no disrespect in his taking the treasures as his own, for he knew that he would craft a weapon to make the spirit of his father proud."
+        ],
+        "self_addressed_modals": [
+          "...f the men, women, and children who might have been victims of his own heavy pole if t...",
+          "...uscles, atrophied from inactivity, could not resist the weight and grip of the ice pri...",
+          "...and a scarring on the ground that could not have been caused by any mortal being. D...",
+          "...homeland, for their strange magic could not withstand the light of day, though he had be...",
+          "...hey did, demons of Errtu's stature could not be truly destroyed away from their na...",
+          "...tradition. He felt that his people should already be on the move, but it was the res...",
+          "...armth from the shard. Yet a wizard should have a castle, he reasoned. A place whe...",
+          "...e again that he had no options and could not back away from this urgent mission; his..."
+        ]
+      },
+      "action": {
+        "interrogative_fragments": [
+          "\"How many years?",
+          "And where, he wondered, was the drow?",
+          "Why had Drizzt run off so abruptly?"
+        ],
+        "exclamatory_fragments": [
+          "And the size of the beast!",
+          "He had summoned a major demon!",
+          "\"Yer about, ye miserable dog!",
+          "Ye've no place to run!",
+          "Never had it felt such a sting!",
+          "\"Today is a day of victory!",
+          "\"Harken, men of the north!",
+          "Behold the challenge of the song!"
+        ],
+        "modal_hedges": [
+          "...d that Wulfgar and Drizzt, or perhaps some fishermen from Caer-Koni...",
+          "...in as a piece of beard, which of course led them to think of the dwar...",
+          "...- he would be in a tight spot indeed if it carne up behind him the...",
+          "...would have to go back in;  he certainly couldn't leave Wulfgar to die...",
+          "...imly.  Biggrin looked hideous indeed. The side of its head where t...",
+          "...rther sensed that Revjak, and perhaps many others, hoped the challe...",
+          "...is belt. It was a risky ploy, perhaps the most dangerous the dwarf...",
+          "...demon. Kessell must be mighty indeed if he held this formidable mo..."
+        ],
+        "bare_adversative_openers": [
+          "So confident was he in his work that.",
+          "And now he sat within it, his eyes focused on the fire of the brazier that would serve as the gate to the Abyss.",
+          "And the size of the beast!",
+          "But Errtu had found an error in the tracing of a rune, a fatal imperfection in a magic circle that could not afford to be almost perfect.",
+          "Yet these items were merely a foil.",
+          "But Bruenor had cunningly cut the floor lower under the chest, fitting the box into the hole so perfectly that even a scrutinizing thief would swear that it sat on the floor.",
+          "But the consuming power of the words had gone beyond him.",
+          "But he caught the show of weakness quickly and repainted a stern mask."
+        ],
+        "self_addressed_modals": [
+          "...mperfection in a magic circle that could not afford to be almost perfect.  The apprent...",
+          "...lized  that the last of the giants must have slipped away. Quickly the drow set...",
+          "...ard violently, sending Drizzt, who could not  gain a firm hold with his weakened arm,...",
+          "...the meager barrier. The barbarian could not survive a second breath....",
+          "...his senses groggily and, at first, could not comprehend his surroundings as he wriggled ou...",
+          "...errible bite, dragging Drizzt, who could not let go of the hilt. Guenhwyvar was thr...",
+          "...t continued its assault. The demon could not bear to grasp it and tear it free, thou...",
+          "...cessation of its thundering snores might have drawn attention, but he couldn't  afford..."
+        ]
+      },
+      "description": {
+        "interrogative_fragments": [
+          "Victory?"
+        ],
+        "exclamatory_fragments": [],
+        "modal_hedges": [
+          "...ave ignored such a weak call; certainly the summoner hadn't demonstra...",
+          "...off as a misunderstanding, or perhaps even a calculated hoax. The g...",
+          "...h less time than Heafstaag's, of course. But the final deed that Revj...",
+          "...th Kemp's people seemed petty indeed against the weight of the dis...",
+          "...opulace was  out on the lake. Certainly the first group of orcs, afte...",
+          "...A rare day indeed for the land that had come to...",
+          "...the goblins in Termalaine had indeed rushed out with every intenti...",
+          "...urvivors of the battle would  certainly be hard-pressed to fairly div..."
+        ],
+        "bare_adversative_openers": [
+          "And now they stood on common ground with no weapons drawn, compelled to this spot by a force even greater than their hatred for each other.",
+          "But now, they had to be content with idle threats and dangerous glares, for they had been commanded to put aside their differences.",
+          "But his crowning achievement was a group of frost giants that had simply wandered in, desiring only to please the wielder of Crenshinibon.",
+          "Yet Errtu was glad of the fateful call.",
+          "Yet the owl was strangely agitated, and its hunter's concentration wavered at the last moment.",
+          "But absorbed in the culmination of his life's labors, he had attained a level of calm concentration.",
+          "But it served the unpretentious drow ranger well, allowing him the privacy and seclusion that he preferred above the taunts and threats of the humans.",
+          "But Kessell held Biggrin in high regard and was impressed with the enormous amount of supplies the small band of verbeeg could carry."
+        ],
+        "self_addressed_modals": [
+          "...poorest in terms of knuckleheads, could not afford any time away from the boats. They...",
+          "...tranded inland by early snows, who could not find their way to the sea with the rein...",
+          "...l To the orgy within, But first ye must find the latch! Seen and not seen, Been...",
+          "...t not been And a handle that flesh cannot catch....",
+          "...effortless grace that an onlooker might have thought him to be no more than an illusion...",
+          "...to the villagers, stalking any who could not face the harsh realities of Icewind Dal...",
+          "...dark-haired man that Drizzt knew  could not have been from northern stock. The chie...",
+          "...ed the most from the united effort should be made to pay. The northern cities,..."
+        ]
+      },
+      "dialogue": {
+        "interrogative_fragments": [
+          "\"To whom do you owe your fealty?",
+          "What was it you said?",
+          "What was Eldeluc saying?",
+          "\" Why not?",
+          "Are they safe?",
+          "Why, then, have you come?",
+          "\"What value is he to us now?",
+          "Where is it, then?"
+        ],
+        "exclamatory_fragments": [
+          "there's a different tale!",
+          "Do not fail me!",
+          "\"Crenshinibon advises, but I decide!",
+          "\"Go and perform the ceremony!",
+          "Let the shard remain my concern!",
+          "\"A great huge cat, it is!",
+          "An' black as me cook's kettles!",
+          "Six giants are not beyond our ability!"
+        ],
+        "modal_hedges": [
+          "...o the  wizard was addressing. Certainly the trolls had paid him no he...",
+          "...Wulfgar said mysteriously, perhaps to impress the young girl,  b...",
+          "...mmer.   he said, bowing low. \"Surely you had enough people  lookin...",
+          "...u more  than that, my friend. Of course I'll train him.\"  Bruenor gru...",
+          "...e felt toward Wulfgar, though of course he wasn't about to tell the b...",
+          "...question. \"I only meant that perhaps a different color  would bett...",
+          "...dvancing army, Drizzt noted.  Perhaps he had time....",
+          "...ky and dangerous proposition. Perhaps it would be better if they ma..."
+        ],
+        "bare_adversative_openers": [
+          "But Catti-brie was not intimidated and did not back down.",
+          "And how deeply the dwarf must care for the boy to have given him such a gift!",
+          "And he was beginning to admit to himself that he enjoyed gambling alongside the dark elf.",
+          "And once again the barbarian was smiling.",
+          "And then to the giant, answered the giant.",
+          "And so, with suspicions running high, the timing of this urgent council could not have been worse.",
+          "But Kemp was outraged.",
+          "And she wasn't pleased with his choice."
+        ],
+        "self_addressed_modals": [
+          "...his own opinion about what a woman should and should not care about.    Catti-br...",
+          "...nion about what a woman should and should not care about.    Catti-brie reasoned...",
+          "...Tempos. The young barbarian simply could not understand such emotionless cruelty. A subtle...",
+          "...ell as the second that the dwarves could not as yet know who they were, grasped th...",
+          "...thought. And how deeply the dwarf must care for the boy to have given him such...",
+          "...his well-being.  Any response that might have been coming from Wulfgar was cut short,...",
+          "..., all of Ten-Towns joined together could not withstand the assault. The halfling dropped...",
+          "...the timing of this urgent council could not have been worse.    Kemp roared. He loo..."
+        ]
+      }
+    },
+    "halflings_gem": {
+      "interiority": {
+        "interrogative_fragments": [
+          "A signal?",
+          "Hadn't Drizzt taken the first watch.?",
+          "But at what cost?",
+          "To look and smell like a rat?",
+          "Where had Bruenor's little girl gone?",
+          "And why had she taken the time?",
+          "Instinctively?",
+          "How many had the master swordsman killed?"
+        ],
+        "exclamatory_fragments": [
+          "Time for the hunt!",
+          "But to the same ends!",
+          "And his strength was not enough!",
+          "It had given him such power!",
+          "And Drizzt was alive!"
+        ],
+        "modal_hedges": [
+          "...ntrance. The Sea Sprite could indeed sail past that ship, but Deud...",
+          "...ult would get two more shots, maybe three, before their target ra...",
+          "...e, Pasha Pook's payment would surely outweigh it!...",
+          "...g horses on faster. Somehow - perhaps it was another property of th...",
+          "...re than vaguely familiar. But perhaps it was just a trick of the li...",
+          "...uiet of the evening together. Of course, a fifth member had been with...",
+          "...Why would Entreri lead them all this wa...",
+          "...Pook's threats seemed hollow indeed. What could Pook ever do to h..."
+        ],
+        "bare_adversative_openers": [
+          "But Bruenor had wandered through the last few days absently, playing a role thrust upon him before he could truly appreciate it.",
+          "But it was in the very chambers of the ancient dwarven homeland that Bruenor Battlehammer had realized the truth of what was important to him.",
+          "But Deudermont, with so many years of experience on the sea, soon realized that something was strange this time.",
+          "But this was the price of his choice to forsake his own people and come to the surface world.",
+          "And by then, they would be well within the catapult's range.",
+          "But Pinochet quickly put thoughts of the cost of this mission out of his mind.",
+          "But perhaps it was just a trick of the light and Drizzt's own undying hopes.",
+          "But Regis had an advantage over the other vagabonds of Calimport."
+        ],
+        "self_addressed_modals": [
+          "...icing a glistening reflection that might have been a single horn of a broken helmet p...",
+          "...rinciples, this chapter of the war could not end until one claimed victory....",
+          "...ad Entreri beaten; the injured man could not possibly stand up against him. How could he...",
+          "...that was Bruenor Battlehammer, and could not anticipate the brutality of the dwarf's rage....",
+          "...gging him to hold the portal open, could not be ignored. However the barbarian fel...",
+          "...t needed the mask. Still, the drow could not belay his sigh when he lifted it from th...",
+          "...dly beneficial, magical items that could not be removed once worn.   Wulfgar offer...",
+          "...chest out proudly, as if his name should mean something to Wulfgar. Again Wulfga..."
+        ]
+      },
+      "action": {
+        "interrogative_fragments": [
+          "\"Find a name for it, will ye?",
+          "Don't they know?",
+          "See?",
+          "Where could he go now?",
+          "A side tunnel?"
+        ],
+        "exclamatory_fragments": [
+          "And the masts still towered above them!",
+          "\"If he don't keep up, kill 'im!",
+          "\"We'll get him back, elf!",
+          "\"The pirate and me!",
+          "What power he would wield now!",
+          "Now, most of them were already dead!",
+          "It is Rassiter they should fear!",
+          "One could almost pet the thing!"
+        ],
+        "modal_hedges": [
+          "...across his unbelieving eyes. Perhaps they did have a chance....",
+          "...There can be no doubt.\" Entreri hid his smile. He k...",
+          "...his ears. That stomping would surely hurt when the adrenaline of b...",
+          "...s no less intense this time - perhaps the thousandth time - than it...",
+          "...them to make certain they do indeed leave the city.\"   Bruenor ca...",
+          "...ed to the door, though he had no doubt that it was locked, and Guenh...",
+          "...n their other form, they were indeed humans and not always vile, b...",
+          "...brows. The wererats, though, certainly did not expect what they foun..."
+        ],
+        "bare_adversative_openers": [
+          "And then Bruenor, his face glistening with wetness, found the measure of the reins.",
+          "But then they did see a ship.",
+          "And the masts still towered above them!",
+          "But even as the drow and the captain began to comfort themselves with thoughts of escape, the masts of a third vessel loomed before them in the west, slipping out of the very channel that Deudermon...",
+          "But no one cared to challenge him at that moment.",
+          "And then, to the amazement of those few who saw him, the crazy dwarf walked straight into the flames, heading forward to see if any of the pirates up front wanted to play.",
+          "But in this disaster, it was every man for himself, and Pinochet stabbed one of them in the back and chased the other away.",
+          "And as the pirate hoisted one leg over the rail, Bruenor helped him along, putting a booted foot into his rear and launching him clear of the rail, and of the little rowboat."
+        ],
+        "self_addressed_modals": [
+          "...ll.   Harkle protested. Catti-brie could not help but laugh.   arkle listened to the...",
+          "...y lights of the ensuing explosions could not be seen within the globe of Drizzt's...",
+          "...right over him. The shocked bandit could not react, though he did manage to scream as...",
+          "...t, they thought that their torches must have gone out, but so deep was the gloo...",
+          "...Even Drizzt, with his night eyes, could not see into the pitch blackness of his sp...",
+          "...the side of the head, a blow that should have felled him, but Drizzt spun back a...",
+          "...Wulfgar, for all of his strength, could not hope to bend the thing far enough to co...",
+          "...g at him. Across the room, in what must have been a real mirror, Drizzt caught..."
+        ]
+      },
+      "description": {
+        "interrogative_fragments": [
+          "\"What are its limits?",
+          "Were these two pursuing him south?"
+        ],
+        "exclamatory_fragments": [
+          "\"First for the catapult!",
+          "His equipment!"
+        ],
+        "modal_hedges": [
+          "...something darker. A red hue, perhaps. Blood, perhaps. The crank cr...",
+          "...r. A red hue, perhaps. Blood, perhaps. The crank creaked, and the h...",
+          "...any people roamed the place - certainly more than Waterdeep and Memno...",
+          "...ed victim was a serious crime indeed! The halfling leaned back aga...",
+          "...ight sky beyond. Her hair was indeed silver. Bruenor could see tha..."
+        ],
+        "bare_adversative_openers": [
+          "But no screams could be heard.",
+          "But to Bruenor's eyes, all was not as it should be.",
+          "And what she had learned disturbed her more than a little.",
+          "But the dragon's marvelous orbs popped open wide when it saw the fiery streak rushing at it from the east.",
+          "But the fury left the dragon's eyes when it recognized the strange craft, a fiery chariot, with just the helm of the driver, a one-horned contraption, sticking above the front of the carriage and a...",
+          "But a wizard's call traveled faster still.",
+          "But none of the beasts rested now, and all seemed equally hungry.",
+          "And this torture chamber was circular, providing easy and equal access from all eight of the other cells."
+        ],
+        "self_addressed_modals": [
+          "...urban or a veiled hat. The friends could not guess at the population of the city, whi...",
+          "...the marvelous secrets of this gem could not easily be dismissed. Suggestions of seren..."
+        ]
+      },
+      "dialogue": {
+        "interrogative_fragments": [
+          "\"Which room?",
+          "\"Ye weren't meaning to leave me so?",
+          "\"You have perhaps heard of Pinochet?",
+          "Could the halfling afford the delay?",
+          "\"Do ye mean to strike me, then?",
+          "Will killing Entreri cure the wrong?",
+          "\"Is that how the thing kills?",
+          "\"You want them captured?"
+        ],
+        "exclamatory_fragments": [
+          "A chariot of fire!",
+          "I owe them at least that!",
+          "Move aside, Bruenor Battlehammer, and make room!",
+          "We've half a world to cross!",
+          "\"Ye've got the drow's blade!",
+          "\"Suren that's yer salvation!",
+          "\"As you delay!",
+          "\"Now we deal for yer stinkin' tongue!"
+        ],
+        "modal_hedges": [
+          "...t look her in the eye. He had indeed meant to leave without so muc...",
+          "...fully realized that they were indeed too close to the water. Strug...",
+          "...ering if the Sea Sprite would indeed go to the other ship's aid. D...",
+          "...tunned by their sudden gleam. How could the captain hope to make this...",
+          "...not dared to hope that it was indeed Bruenor Battlehammer rushing...",
+          "...ailors on every voyage south. Surely then the pirates would flee w...",
+          "...e crossed his face. \"You have perhaps heard of Pinochet?\" Deudermon...",
+          "...captain of the Sea Sprite had indeed heard of Pinochet - every mer..."
+        ],
+        "bare_adversative_openers": [
+          "But she turned to Bruenor before she commented, and the stern look stamped upon the dwarf's face as he studied the old helmet told her that Bruenor had not asked in jest.",
+          "But me place's with me friends.",
+          "But ye'd do righter if ye'd move over and make room for me!",
+          "And he knew she was right in coming, for she had as much at stake in the chase across the southland as he.",
+          "\"And I would gladly show the armies to the halls.",
+          "But the chariot will carry only two riders.",
+          "And realizing the value of the elf's opinions, Deudermont gladly shared his knowledge of his station, and of the sea, with Drizzt.",
+          "But Deudermont's responsibilities as the captain of a vessel were too involved for such a hypothetical situation."
+        ],
+        "self_addressed_modals": [
+          "...the return could take many months. Will not the true king of Mithril Hall lead the...",
+          "...owing the myriad of questions that must have been going through the dwarf's min...",
+          "...He could not hold that icy stare - could not match the sheer intensity of the assassi...",
+          "...s trembling.   He gasped. \"The cat must obey its master, the possessor.\"   Pook...",
+          "...e have dealt with him.\" Catti-brie could not deny the drow's logic. When Entreri had...",
+          "...h his boyish looks, Wulfgar simply could not be as imposing as the pointy-nosed, r...",
+          "...e noise of the dropping portcullis must have attracted some attention - attenti...",
+          "...ts had to be measured and defenses could not be let down...."
+        ]
+      }
+    },
+    "streams_of_silver": {
+      "interiority": {
+        "interrogative_fragments": [
+          "How many miles could they run?",
+          "Had it been two hours already?",
+          "Why can't I call out?",
+          "Sorrow?",
+          "Entreri?",
+          "The drow and his friends?",
+          "Was there anything at all?",
+          "What is love, if not magic?"
+        ],
+        "exclamatory_fragments": [
+          "What a sight that must have been!",
+          "What potential he saw in the drow!"
+        ],
+        "modal_hedges": [
+          "...could prove to be a long ride indeed.    Bruenor asked Regis.    R...",
+          "...The stunned riders certainly had no intention of hindering...",
+          "...dwarf's party must be urgent indeed! That assumption only made Mo...",
+          "...attle that first day. She had no doubt that Entreri and the new alli...",
+          "...ove to be her most promising\u2014 perhaps her only\u2014hope of escaping, Ca...",
+          "...n alliance between those two, perhaps even a pact excluding Dendyba...",
+          "...Perhaps she should send Bok away. The...",
+          "...s doubts about her, though it certainly would give him the upper hand..."
+        ],
+        "bare_adversative_openers": [
+          "But watching Wulfgar handling the hammer, swinging it as easily as he would swing his own arm, Bruenor had no regrets.",
+          "And he had no intention of dwelling on a danger that had been avoided.",
+          "And when Catti-brie pestered her further, Sydney instructed Entreri to Even in the failed attempt, though, the aloof mage had aided Catti-brie in a way that neither of them could foresee.",
+          "But Entreri would not let the conversation die so easily.",
+          "But dismissing the golem might also answer some of the even more disturbing questions that weighed upon her, the questions about Dendybar.",
+          "But Drizzt pulled them onward, searching for another defensible spot, though he doubted that he could find one as well-designed as the last.",
+          "Still, they had enough oil remaining to get them through another night if they could hold a small line long enough to put the flames to their best advantage.",
+          "But the huge worm, not really hungry and mesmerized by the dance of the light, allowed Regis to play through his game."
+        ],
+        "self_addressed_modals": [
+          "...rafted the year before. Aegis-fang might have hung in the Hall of Dumathoin if Brueno...",
+          "...'s business with the dwarf's party must be urgent indeed! That assumption onl...",
+          "...d evaluation of what she could and could not accomplish. Any trouble that she had finding...",
+          "...he effect that uprooting the thing might have on the stones.  She backed a few feet...",
+          "...s character that his other friends could not see beneath his stoic features. It was...",
+          "...ered at the snubbings of those who could not see that spirit for the color of his s...",
+          "...to their gods.  What a sight that must have been! Dwarves scrambling from leve...",
+          "...d been slaughtered\u2014but his friends should not perish this way. Not the halfling,..."
+        ]
+      },
+      "action": {
+        "interrogative_fragments": [
+          "Why not?",
+          "Had his friend survived?"
+        ],
+        "exclamatory_fragments": [
+          "The thud of the warhammer!",
+          "And the dwarf!",
+          "He fell up!"
+        ],
+        "modal_hedges": [
+          "...small ridge, an old wolf den perhaps, empty now.  Following the be...",
+          "...a small mound, ten feet high perhaps, with a steep, almost sheer,...",
+          "...he return to reality was rude indeed....",
+          "...saw through a line of trees, perhaps a hundred feet to the west....",
+          "...gain, and this time there was indeed a stir. A rumble grew beneath...",
+          "...ible stealth, the hounds were indeed a deadly force, but their mis...",
+          "...nor's ancestral line was long indeed. The gray dwarves never had a...",
+          "...he figure addressing them was indeed a woman, a dark and mysteriou..."
+        ],
+        "bare_adversative_openers": [
+          "And another.",
+          "So far away the whistle seemed, but Drizzt understood how storms could distort one's perceptions.",
+          "But he had to act.",
+          "But Drizzt had one more message to send before he would turn his back on the riders.",
+          "Still, Bok did not move.",
+          "But before he could even catch his breath, another had taken its place.",
+          "But though the head flew from the mound, the body kept coming.",
+          "And behind them, where Bruenor had been, a third was up and straddling the helpless halfling."
+        ],
+        "self_addressed_modals": [
+          "...r, but any emergency plans the two might have had were immediately deterred, for the...",
+          "...me places inverted, and the trolls could not effectively get at them from behind.  Wulfgar...",
+          "...they refused to yield where others might have faltered. They encountered nothing immediat...",
+          "...nsiderable strength of the monster could not move him backward. The one that rose be...",
+          "...nce led it to believe that its foe should not have remained standing and ready t...",
+          "...Crowded in so tightly, the trolls could not easily turn and flee, and the fire, as if...",
+          "...en after the fire, and the friends could not hope to hold their ground with the fuel...",
+          "...kness, but even his great strength could not deny the magical force that moved it. I..."
+        ]
+      },
+      "description": {
+        "interrogative_fragments": [],
+        "exclamatory_fragments": [],
+        "modal_hedges": [
+          "...he ride from Luskan was swift indeed. Entreri and his cohorts appe...",
+          "...daries of some natural order? Perhaps he should have accepted his l...",
+          "...elonging to a different time, perhaps, and it was not without a deg...",
+          "...There was a way down, of course, and Bruenor, walking still w...",
+          "...ing, and this young woman was indeed the exception. Shiny auburn l...",
+          "...ned, for its source was great indeed. The air grew warmer around t...",
+          "...ortified seaport seemed grand indeed. A wall encompassed Luskan, w...",
+          "...casional tower, a guard post, perhaps, or a prominent citizen's or..."
+        ],
+        "bare_adversative_openers": [
+          "But they plodded on through the deepening mud.",
+          "And always, Wulfgar was indomitable.",
+          "So smooth and easy were the seats atop Dendybar's conjured steeds that the party was able to keep up its run past the dawn and throughout the entire next day with only short rests for food.",
+          "And in the effortless ride, the absolute ease in guiding their mounts, they were hardly worn when they arrived in the foothills of the mountains just west of the enchanted city.",
+          "But soon enough they found themselves strolling down the meandering roadways of the magical city.",
+          "But after only the first day's travel, even he began to doubt the decision.",
+          "Still, they encountered no trolls, nor any other kind of fiend, and they set their camp that night under a guise of quiet optimism.",
+          "But even trolls were not completely without fear."
+        ],
+        "self_addressed_modals": [
+          "...in every place that a lady's gown should not be, hid all her physical flaws beh...",
+          "...s.  Normally cautious, the friends could not help but let their guard down. They fel...",
+          "...knees before it, even Valric, who could not face the image of the Spiritual Beast...."
+        ]
+      },
+      "dialogue": {
+        "interrogative_fragments": [
+          "'The drow?",
+          "And what is the danger?"
+        ],
+        "exclamatory_fragments": [
+          "You cannot imagine its size!",
+          "But beware, its powers are strong!",
+          "Leave those two, and live!",
+          "Sixth post to your left!"
+        ],
+        "modal_hedges": [
+          "...pons, and his steady calm was perhaps the most unnerving action of...",
+          "...ions slapped her in the face. How could she think herself above Dendy...",
+          "...see in every direction, miles perhaps.   Drizzt suggested to Brueno...",
+          "...the Lady of Silverymoon might indeed meet again on more accommodat...",
+          ".... He and Elmor of Settlestone no doubt worked out an arrangement tha...",
+          "...rs. These must be mighty foes indeed, to have one along    Catti-b...",
+          "...e said evenly, and Sydney had no doubt that he spoke the truth.    S...",
+          "...omary sparkle for excitement. Perhaps Drizzt's heart for the advent..."
+        ],
+        "bare_adversative_openers": [
+          "But in the images triggered by Bruenor's allusions to Catti-brie, memories of a sunset view on the face of Kelvin's Cairn, or of hours spent talking on the rise of rocks called Bruenor's Climb, the...",
+          "But the five remaining astride did not go to their wounded.",
+          "But the determined stomps of Bruenor's stocky legs were already carrying him down the road back out from the city.",
+          "But now that he saw the high lady, wearing her honest compassion openly, he could not disbelieve the tales.",
+          "\"But I did not want my actions to interfere with your most noble quest.",
+          "But I know the vault as well as anyone alive.",
+          "But truthfully, very little has been written about Mithral Hall, and nothing at all that gives more than a passing hint about the general area where it lies.",
+          "But beware, its powers are strong!"
+        ],
+        "self_addressed_modals": [
+          "...mfortably.    Sydney stammered but could not find the words to reply. She hadn't con...",
+          "...wonder how exaggerated the stories must be after his encounter at the guard p...",
+          "...curious intensity.    The friends could not reply to the honor that the ancient man...",
+          "...apping at Regis, whose little legs could not match the dwarfs frantic pace.   The dwa...",
+          "...g loyalty to their creators. These must be mighty foes indeed, to have one al...",
+          "...was disoriented and off guard and could not respond immediately to the man's question....",
+          "...ssin understood that the black elf might have some luck in dealing with this other de...",
+          "...How devious and merciless the drow must be to command so powerful a reaction..."
+        ]
+      }
+    }
+  },
+  "verdict": "PASS",
+  "verdict_components": {
+    "interiority_leads_combined_pass": true,
+    "modal_hedge_pass": true,
+    "bare_adv_pass": true,
+    "n_signals_passed": 3
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "computedAt": "2026-04-30T01:47:07.387Z",
+  "results": [
+    {
+      "label": "beat-level binary-only `shifted`",
+      "n": 50,
+      "agree": 46,
+      "agreeRate": 0.92,
+      "jaccard": 0.8518518518518519,
+      "classes": {
+        "true": {
+          "run1": 40,
+          "run2": 36
+        },
+        "false": {
+          "run1": 10,
+          "run2": 14
+        }
+      },
+      "verdict": "PASS"
+    },
+    {
+      "label": "scene-level binary-only `shifted`",
+      "n": 50,
+      "agree": 47,
+      "agreeRate": 0.94,
+      "jaccard": 0.8867924528301887,
+      "classes": {
+        "true": {
+          "run1": 46,
+          "run2": 43
+        },
+        "false": {
+          "run1": 4,
+          "run2": 7
+        }
+      },
+      "verdict": "PASS"
+    },
+    {
+      "label": "run-1 stripped vs run-1 coupled-collapsed",
+      "n": 50,
+      "agree": 46,
+      "agreeRate": 0.92,
+      "jaccard": 0.8518518518518519,
+      "classes": {
+        "true": {
+          "run1": 46,
+          "run2": 44
+        },
+        "false": {
+          "run1": 4,
+          "run2": 6
+        }
+      },
+      "verdict": "PASS"
+    },
+    {
+      "label": "run-2 stripped vs run-2 coupled-collapsed",
+      "n": 50,
+      "agree": 45,
+      "agreeRate": 0.9,
+      "jaccard": 0.8181818181818182,
+      "classes": {
+        "true": {
+          "run1": 43,
+          "run2": 46
+        },
+        "false": {
+          "run1": 7,
+          "run2": 4
+        }
+      },
+      "verdict": "BORDERLINE"
+    }
+  ]
+}

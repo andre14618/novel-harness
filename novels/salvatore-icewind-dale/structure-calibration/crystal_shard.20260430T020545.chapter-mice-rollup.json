@@ -1,0 +1,597 @@
+{
+  "computedAt": "2026-04-30T02:05:45.099Z",
+  "source": "Flash mice extractor (monolithic rubric, ~0.667 anchor — aggregate patterns only)",
+  "per_chapter": [
+    {
+      "chapter": "1",
+      "n_scenes": 4,
+      "sequence": "M C C C",
+      "opens": {
+        "M": 1,
+        "C": 3
+      },
+      "closes": {},
+      "allPrimary": {
+        "M": 1,
+        "C": 3
+      },
+      "dominant": "C"
+    },
+    {
+      "chapter": "2",
+      "n_scenes": 4,
+      "sequence": "C E C C",
+      "opens": {
+        "E": 1
+      },
+      "closes": {},
+      "allPrimary": {
+        "C": 3,
+        "E": 1
+      },
+      "dominant": "C"
+    },
+    {
+      "chapter": "3",
+      "n_scenes": 3,
+      "sequence": "E M ?",
+      "opens": {
+        "E": 1,
+        "M": 1
+      },
+      "closes": {},
+      "allPrimary": {
+        "E": 1,
+        "M": 1
+      },
+      "dominant": "E"
+    },
+    {
+      "chapter": "4",
+      "n_scenes": 5,
+      "sequence": "M C C C C",
+      "opens": {
+        "M": 1,
+        "C": 4
+      },
+      "closes": {},
+      "allPrimary": {
+        "M": 1,
+        "C": 4
+      },
+      "dominant": "C"
+    },
+    {
+      "chapter": "5",
+      "n_scenes": 1,
+      "sequence": "C",
+      "opens": {},
+      "closes": {},
+      "allPrimary": {
+        "C": 1
+      },
+      "dominant": "C"
+    },
+    {
+      "chapter": "6",
+      "n_scenes": 1,
+      "sequence": "E",
+      "opens": {
+        "E": 1
+      },
+      "closes": {
+        "E": 1
+      },
+      "allPrimary": {
+        "E": 1
+      },
+      "dominant": "E"
+    },
+    {
+      "chapter": "7",
+      "n_scenes": 5,
+      "sequence": "E E I M C",
+      "opens": {
+        "E": 2,
+        "M": 1
+      },
+      "closes": {
+        "M": 1
+      },
+      "allPrimary": {
+        "E": 2,
+        "I": 1,
+        "M": 1,
+        "C": 1
+      },
+      "dominant": "E"
+    },
+    {
+      "chapter": "8",
+      "n_scenes": 7,
+      "sequence": "E E C E E C E",
+      "opens": {
+        "E": 1
+      },
+      "closes": {
+        "E": 3,
+        "C": 1
+      },
+      "allPrimary": {
+        "E": 5,
+        "C": 2
+      },
+      "dominant": "E"
+    },
+    {
+      "chapter": "9",
+      "n_scenes": 2,
+      "sequence": "C C",
+      "opens": {},
+      "closes": {
+        "C": 1
+      },
+      "allPrimary": {
+        "C": 2
+      },
+      "dominant": "C"
+    },
+    {
+      "chapter": "10",
+      "n_scenes": 5,
+      "sequence": "M C E M E",
+      "opens": {
+        "M": 2,
+        "E": 2
+      },
+      "closes": {
+        "E": 1
+      },
+      "allPrimary": {
+        "M": 2,
+        "C": 1,
+        "E": 2
+      },
+      "dominant": "M"
+    },
+    {
+      "chapter": "11",
+      "n_scenes": 4,
+      "sequence": "M C C C",
+      "opens": {
+        "M": 1,
+        "C": 2
+      },
+      "closes": {
+        "C": 1
+      },
+      "allPrimary": {
+        "M": 1,
+        "C": 3
+      },
+      "dominant": "C"
+    },
+    {
+      "chapter": "12",
+      "n_scenes": 3,
+      "sequence": "C C C",
+      "opens": {
+        "C": 1
+      },
+      "closes": {
+        "C": 1
+      },
+      "allPrimary": {
+        "C": 3
+      },
+      "dominant": "C"
+    },
+    {
+      "chapter": "13",
+      "n_scenes": 2,
+      "sequence": "E E",
+      "opens": {
+        "E": 2
+      },
+      "closes": {},
+      "allPrimary": {
+        "E": 2
+      },
+      "dominant": "E"
+    },
+    {
+      "chapter": "14",
+      "n_scenes": 4,
+      "sequence": "C M C C",
+      "opens": {
+        "M": 1
+      },
+      "closes": {},
+      "allPrimary": {
+        "C": 3,
+        "M": 1
+      },
+      "dominant": "C"
+    },
+    {
+      "chapter": "15",
+      "n_scenes": 5,
+      "sequence": "C E C E E",
+      "opens": {
+        "E": 2
+      },
+      "closes": {},
+      "allPrimary": {
+        "C": 2,
+        "E": 3
+      },
+      "dominant": "E"
+    },
+    {
+      "chapter": "16",
+      "n_scenes": 3,
+      "sequence": "C M E",
+      "opens": {
+        "C": 1,
+        "M": 1
+      },
+      "closes": {
+        "M": 1
+      },
+      "allPrimary": {
+        "C": 1,
+        "M": 1,
+        "E": 1
+      },
+      "dominant": "C"
+    },
+    {
+      "chapter": "17",
+      "n_scenes": 5,
+      "sequence": "M E C E C",
+      "opens": {
+        "M": 1,
+        "E": 2,
+        "C": 1
+      },
+      "closes": {
+        "E": 1,
+        "C": 1
+      },
+      "allPrimary": {
+        "M": 1,
+        "E": 2,
+        "C": 2
+      },
+      "dominant": "E"
+    },
+    {
+      "chapter": "18",
+      "n_scenes": 8,
+      "sequence": "E ? E I C E M E",
+      "opens": {
+        "E": 1,
+        "I": 1,
+        "C": 1,
+        "M": 1
+      },
+      "closes": {
+        "E": 2
+      },
+      "allPrimary": {
+        "E": 4,
+        "I": 1,
+        "C": 1,
+        "M": 1
+      },
+      "dominant": "E"
+    },
+    {
+      "chapter": "19",
+      "n_scenes": 4,
+      "sequence": "I I E C",
+      "opens": {
+        "I": 2,
+        "E": 1
+      },
+      "closes": {
+        "C": 1
+      },
+      "allPrimary": {
+        "I": 2,
+        "E": 1,
+        "C": 1
+      },
+      "dominant": "I"
+    },
+    {
+      "chapter": "20",
+      "n_scenes": 4,
+      "sequence": "C E C E",
+      "opens": {
+        "E": 1
+      },
+      "closes": {
+        "C": 1
+      },
+      "allPrimary": {
+        "C": 2,
+        "E": 2
+      },
+      "dominant": "C"
+    },
+    {
+      "chapter": "21",
+      "n_scenes": 3,
+      "sequence": "M M E",
+      "opens": {
+        "M": 2
+      },
+      "closes": {
+        "E": 1
+      },
+      "allPrimary": {
+        "M": 2,
+        "E": 1
+      },
+      "dominant": "M"
+    },
+    {
+      "chapter": "22",
+      "n_scenes": 6,
+      "sequence": "C M C C C E",
+      "opens": {
+        "C": 3,
+        "E": 1
+      },
+      "closes": {
+        "M": 1,
+        "C": 1
+      },
+      "allPrimary": {
+        "C": 4,
+        "M": 1,
+        "E": 1
+      },
+      "dominant": "C"
+    },
+    {
+      "chapter": "23",
+      "n_scenes": 5,
+      "sequence": "E C E E E",
+      "opens": {
+        "E": 3,
+        "C": 1
+      },
+      "closes": {
+        "C": 1
+      },
+      "allPrimary": {
+        "E": 4,
+        "C": 1
+      },
+      "dominant": "E"
+    },
+    {
+      "chapter": "24",
+      "n_scenes": 5,
+      "sequence": "E C E E E",
+      "opens": {
+        "E": 3,
+        "C": 1
+      },
+      "closes": {},
+      "allPrimary": {
+        "E": 4,
+        "C": 1
+      },
+      "dominant": "E"
+    },
+    {
+      "chapter": "25",
+      "n_scenes": 3,
+      "sequence": "I C C",
+      "opens": {
+        "I": 1,
+        "C": 2
+      },
+      "closes": {
+        "I": 1,
+        "C": 1
+      },
+      "allPrimary": {
+        "I": 1,
+        "C": 2
+      },
+      "dominant": "C"
+    },
+    {
+      "chapter": "26",
+      "n_scenes": 1,
+      "sequence": "C",
+      "opens": {
+        "C": 1
+      },
+      "closes": {},
+      "allPrimary": {
+        "C": 1
+      },
+      "dominant": "C"
+    },
+    {
+      "chapter": "27",
+      "n_scenes": 4,
+      "sequence": "E M I C",
+      "opens": {
+        "M": 1,
+        "I": 1
+      },
+      "closes": {},
+      "allPrimary": {
+        "E": 1,
+        "M": 1,
+        "I": 1,
+        "C": 1
+      },
+      "dominant": "E"
+    },
+    {
+      "chapter": "28",
+      "n_scenes": 4,
+      "sequence": "I E M M",
+      "opens": {
+        "I": 1,
+        "M": 2
+      },
+      "closes": {
+        "I": 1
+      },
+      "allPrimary": {
+        "I": 1,
+        "E": 1,
+        "M": 2
+      },
+      "dominant": "M"
+    },
+    {
+      "chapter": "29",
+      "n_scenes": 2,
+      "sequence": "E E",
+      "opens": {},
+      "closes": {
+        "E": 1
+      },
+      "allPrimary": {
+        "E": 2
+      },
+      "dominant": "E"
+    },
+    {
+      "chapter": "30",
+      "n_scenes": 16,
+      "sequence": "E E M E C E M E E E M E M E I C",
+      "opens": {
+        "E": 4,
+        "M": 2,
+        "I": 1,
+        "C": 1
+      },
+      "closes": {
+        "E": 4,
+        "C": 1,
+        "I": 1
+      },
+      "allPrimary": {
+        "E": 9,
+        "M": 4,
+        "C": 2,
+        "I": 1
+      },
+      "dominant": "E"
+    },
+    {
+      "chapter": "epilogue",
+      "n_scenes": 2,
+      "sequence": "C C",
+      "opens": {
+        "C": 2
+      },
+      "closes": {},
+      "allPrimary": {
+        "C": 2
+      },
+      "dominant": "C"
+    },
+    {
+      "chapter": "epilogue2",
+      "n_scenes": 1,
+      "sequence": "M",
+      "opens": {
+        "M": 1
+      },
+      "closes": {},
+      "allPrimary": {
+        "M": 1
+      },
+      "dominant": "M"
+    },
+    {
+      "chapter": "epilogue3",
+      "n_scenes": 6,
+      "sequence": "E C C M I M",
+      "opens": {
+        "M": 2,
+        "I": 1
+      },
+      "closes": {
+        "E": 1,
+        "I": 1
+      },
+      "allPrimary": {
+        "E": 1,
+        "C": 2,
+        "M": 2,
+        "I": 1
+      },
+      "dominant": "C"
+    },
+    {
+      "chapter": "prelude",
+      "n_scenes": 2,
+      "sequence": "I M",
+      "opens": {
+        "I": 1,
+        "M": 1
+      },
+      "closes": {
+        "I": 1
+      },
+      "allPrimary": {
+        "I": 1,
+        "M": 1
+      },
+      "dominant": "I"
+    }
+  ],
+  "chapter_opener_thread": {
+    "M": 7,
+    "C": 11,
+    "E": 12,
+    "I": 4
+  },
+  "chapter_closer_thread": {
+    "C": 16,
+    "M": 5,
+    "E": 13
+  },
+  "chapter_dominant_thread": {
+    "C": 15,
+    "E": 13,
+    "M": 4,
+    "I": 2
+  },
+  "chapter_open_close_transitions": {
+    "M→C": 4,
+    "C→C": 7,
+    "E→M": 2,
+    "E→E": 7,
+    "E→C": 3,
+    "M→E": 2,
+    "C→E": 4,
+    "I→C": 2,
+    "I→M": 2,
+    "M→M": 1
+  },
+  "opens_per_chapter_stats": {
+    "mean": 2.4411764705882355,
+    "max": 8
+  },
+  "closes_per_chapter_stats": {
+    "mean": 1,
+    "max": 6
+  },
+  "chapters_with_both_open_close": 19,
+  "chapters_only_opens": 12,
+  "chapters_only_closes": 2,
+  "chapters_neither": 1
+}

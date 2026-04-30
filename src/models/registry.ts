@@ -354,26 +354,29 @@ export const MODELS: ModelDef[] = [
   // ── DeepSeek ───────────────────────────────────────────────────────────
 
   {
-    id: "deepseek-chat",
-    label: "DeepSeek V3.2",
+    id: "deepseek-v4-flash",
+    label: "DeepSeek V4 Flash",
     provider: "deepseek",
-    params: "685B MoE",
-    pricing: { input: 0.28, output: 0.42 },
-    thinking: "disabled",
+    params: "unknown",
+    pricing: { input: 0.14, output: 0.28 },
+    thinking: "optional",
     maxContext: 128_000,
-    maxOutput: 8_000,
-    notes: "V3.2 non-thinking. Cache hits drop input to $0.028/M. Default 4k output (max 8k). Supports JSON output + tool calls. Untested.",
+    maxOutput: 64_000,
+    notes: "V4 Flash. Thinking mode toggled via `thinking: {type:'enabled'}` request param (plumbed via roles.ts:thinking flag). Same pricing in both modes. Cache hit input drops to $0.0028/M (98% off). Default for production roles; thinking enabled for chapter-plan-checker, chapter-plan-reviser, and planning-beats only.",
   },
   {
-    id: "deepseek-reasoner",
-    label: "DeepSeek V3.2 Reasoner",
+    id: "deepseek-v4-pro",
+    label: "DeepSeek V4 Pro",
     provider: "deepseek",
-    params: "685B MoE",
-    pricing: { input: 0.28, output: 0.42 },
+    params: "unknown",
+    // Base pricing per https://api-docs.deepseek.com/quick_start/pricing.
+    // Currently 75% discounted until 2026-05-31 15:59 UTC: input $0.435 / output $0.87.
+    // Cache hit drops input to $0.0145/M (75%-off: $0.003625/M).
+    pricing: { input: 1.74, output: 3.48 },
     thinking: "enabled",
     maxContext: 128_000,
     maxOutput: 64_000,
-    notes: "V3.2 thinking mode. Same pricing as chat. Default 32k output (max 64k). Supports JSON output + tool calls. Untested.",
+    notes: "V4 Pro. Reasoning-tier; thinking default-on. ~12x output cost of Flash at base rate ($3.48 vs $0.28/M); ~3x at the current 75%-off promo. NOT routed in roles.ts — Flash with thinking flag covers reasoning agents at lower cost. Reserved as a manual escalation for tasks where Flash thinking proves insufficient.",
   },
 
   // ── MiniMax ────────────────────────────────────────────────────────

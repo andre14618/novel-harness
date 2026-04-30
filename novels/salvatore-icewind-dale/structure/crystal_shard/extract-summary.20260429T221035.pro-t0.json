@@ -1,0 +1,18 @@
+{
+  "novel": "salvatore-icewind-dale",
+  "book": "crystal_shard",
+  "run_id": "20260429T221035",
+  "extractorModel": "pro-t0",
+  "extractedAt": "2026-04-29T22:24:25.111Z",
+  "scenesProcessed": 0,
+  "valueChargeOk": 0,
+  "valueChargeFail": 0,
+  "promiseOpenCount": 22,
+  "promiseClosureCount": 22,
+  "promiseMerged": 22,
+  "promiseError": null,
+  "outputs": {
+    "valueCharge": null,
+    "promises": "/Users/andre/Desktop/personal_projects/novel-harness/novels/salvatore-icewind-dale/structure/crystal_shard/promises.20260429T221035.pro-t0.json"
+  }
+}

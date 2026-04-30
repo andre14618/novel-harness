@@ -18,3 +18,21 @@ __pycache__/
 
 # Ephemeral in-flight run registry — per-machine runtime state only
 .claude/in-flight/
+
+# Subagent worktrees — isolated per-session, never committed
+.claude/worktrees/
+
+# Scheduled-task state — per-machine runtime state only
+.claude/scheduled_tasks.lock
+
+# Corpus structural decomposition — regenerable bulk output / intermediate.
+# Track only the per-book audit reports + calibration verdicts (small JSON
+# summaries), not the bulk extractor/judge JSONL output which can be
+# rebuilt by re-running scripts/corpus/extract-*.ts.
+novels/*/structure/*/value-charge.jsonl
+novels/*/structure/*/mice.jsonl
+novels/*/structure/*/mckee-gap.jsonl
+novels/*/structure/*/promises.json
+novels/*/structure/*/character-arcs.json
+novels/*/structure-tmp/
+novels/*/structure-gold/

@@ -56,6 +56,14 @@ export const characterProfileSchema = z.object({
   // condition dialogue on character voice. Populated at concept phase by
   // the character-agent or accumulated from prior chapters.
   exampleLines: z.array(z.string()).default([]),
+  // Character arc structure (LTWN) — corpus-derived from Crystal Shard
+  // calibration (CELL PASS, F1=1.00, 2026-04-29). Optional so legacy
+  // novels round-trip. New novels should populate all five fields.
+  lie: z.string().optional(),
+  truth: z.string().optional(),
+  want: z.string().optional(),
+  need: z.string().optional(),
+  arc_resolution: z.enum(["fulfilled", "partial", "tragic_inversion", "static"]).optional(),
 })
 export type CharacterProfile = z.infer<typeof characterProfileSchema>
 

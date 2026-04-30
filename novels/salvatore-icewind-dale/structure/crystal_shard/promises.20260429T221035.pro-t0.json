@@ -1,0 +1,409 @@
+{
+  "novel": "salvatore-icewind-dale",
+  "book": "crystal_shard",
+  "run_id": "20260429T221035",
+  "extractor_model": "pro-t0",
+  "promises": [
+    {
+      "promise_id": "p001",
+      "promise_text": "Errtu will continue to seek the crystal shard Crenshinibon and try to possess it.",
+      "opened_chapter_label": "prelude",
+      "opened_chapter_index": -1,
+      "closed_chapter_label": null,
+      "closed_chapter_index": null,
+      "hint_chapter_labels": [
+        "10",
+        "13"
+      ],
+      "hint_chapter_indices": [
+        10,
+        13
+      ],
+      "payoff_quality": "unsatisfied",
+      "evidence_quote_open": "And Errtu had come so close to possessing it!",
+      "evidence_quote_close": null,
+      "confidence": 1
+    },
+    {
+      "promise_id": "p002",
+      "promise_text": "The wizards Eldeluc and Dendybar will discard or eliminate Akar Kessell after using him to kill Morkai.",
+      "opened_chapter_label": "1",
+      "opened_chapter_index": 1,
+      "closed_chapter_label": "4",
+      "closed_chapter_index": 4,
+      "hint_chapter_labels": [],
+      "hint_chapter_indices": [],
+      "payoff_quality": "satisfied",
+      "evidence_quote_open": "Eldeluc smiled evilly.",
+      "evidence_quote_close": "He understood now that he had been no more than a pawn in their devious designs to rid themselves of Morkai the Red.",
+      "confidence": 1
+    },
+    {
+      "promise_id": "p003",
+      "promise_text": "The barbarian tribes will unite and attack Ten-Towns.",
+      "opened_chapter_label": "2",
+      "opened_chapter_index": 2,
+      "closed_chapter_label": "8",
+      "closed_chapter_index": 8,
+      "hint_chapter_labels": [
+        "3",
+        "5",
+        "7"
+      ],
+      "hint_chapter_indices": [
+        3,
+        5,
+        7
+      ],
+      "payoff_quality": "satisfied",
+      "evidence_quote_open": "ominous signs — empty barbarian caves, abandoned migration trails, and war drums — warn of imminent attack on Ten-Towns.",
+      "evidence_quote_close": "The horde entered the mouth of Bremen's Run just before midday.",
+      "confidence": 1
+    },
+    {
+      "promise_id": "p004",
+      "promise_text": "Regis's ruby pendant has persuasive magical power.",
+      "opened_chapter_label": "5",
+      "opened_chapter_index": 5,
+      "closed_chapter_label": "6",
+      "closed_chapter_index": 6,
+      "hint_chapter_labels": [
+        "6"
+      ],
+      "hint_chapter_indices": [
+        6
+      ],
+      "payoff_quality": "satisfied",
+      "evidence_quote_open": "But it is there - I see it clearly and know the legend of such a stone.",
+      "evidence_quote_close": "Ten-seconds passed and Kemp had not blinked.",
+      "confidence": 1
+    },
+    {
+      "promise_id": "p005",
+      "promise_text": "Drizzt can summon a powerful panther ally named Guenhwyvar from the onyx figurine.",
+      "opened_chapter_label": "2",
+      "opened_chapter_index": 2,
+      "closed_chapter_label": "7",
+      "closed_chapter_index": 7,
+      "hint_chapter_labels": [],
+      "hint_chapter_indices": [],
+      "payoff_quality": "satisfied",
+      "evidence_quote_open": "Bruenor asks after Guenhwyvar and Drizzt produces the onyx figurine, explaining the panther needs rest.",
+      "evidence_quote_close": "the great panther was beside him.",
+      "confidence": 1
+    },
+    {
+      "promise_id": "p006",
+      "promise_text": "Bruenor dreams of reclaiming the lost dwarven kingdom of Mithril Hall.",
+      "opened_chapter_label": "5",
+      "opened_chapter_index": 5,
+      "closed_chapter_label": null,
+      "closed_chapter_index": null,
+      "hint_chapter_labels": [
+        "11"
+      ],
+      "hint_chapter_indices": [
+        11
+      ],
+      "payoff_quality": "unsatisfied",
+      "evidence_quote_open": "In this place he found his dreams, and ever they took him back to his ancient home.",
+      "evidence_quote_close": null,
+      "confidence": 1
+    },
+    {
+      "promise_id": "p007",
+      "promise_text": "The sentient crystal shard Crenshinibon will manipulate Akar Kessell for its own evil purposes.",
+      "opened_chapter_label": "4",
+      "opened_chapter_index": 4,
+      "closed_chapter_label": "4",
+      "closed_chapter_index": 4,
+      "hint_chapter_labels": [
+        "4",
+        "10",
+        "13"
+      ],
+      "hint_chapter_indices": [
+        4,
+        10,
+        13
+      ],
+      "payoff_quality": "satisfied",
+      "evidence_quote_open": "His bedfellow was the crystal shard, Crenshinibon, an ancient, sentient relic that had waited throughout ages uncounted for one such as he to appear in the bowl.",
+      "evidence_quote_close": "an ancient, sentient relic that had waited throughout ages uncounted for one such as he to appear in the bowl.",
+      "confidence": 1
+    },
+    {
+      "promise_id": "p008",
+      "promise_text": "Kessell vows never to be a pawn again and will seek power and respect.",
+      "opened_chapter_label": "4",
+      "opened_chapter_index": 4,
+      "closed_chapter_label": "24",
+      "closed_chapter_index": 24,
+      "hint_chapter_labels": [
+        "10"
+      ],
+      "hint_chapter_indices": [
+        10
+      ],
+      "payoff_quality": "partially_satisfied",
+      "evidence_quote_open": "vowing he will never again be a stooge",
+      "evidence_quote_close": "I am Akar Kessell, Tyrant of Icewind Dale!",
+      "confidence": 0.8
+    },
+    {
+      "promise_id": "p009",
+      "promise_text": "Akar Kessell will gather an army and become a tyrant threatening Icewind Dale.",
+      "opened_chapter_label": "4",
+      "opened_chapter_index": 4,
+      "closed_chapter_label": "23",
+      "closed_chapter_index": 23,
+      "hint_chapter_labels": [
+        "10",
+        "13",
+        "15"
+      ],
+      "hint_chapter_indices": [
+        10,
+        13,
+        15
+      ],
+      "payoff_quality": "satisfied",
+      "evidence_quote_open": "Kessell decides he needs a castle and, guided unknowingly by Crenshinibon, discovers a duplicate crystal and intuitively understands his role in using it.",
+      "evidence_quote_close": "Kessell's army swept around Lac Dinneshere and crashed into Caer-Konig.",
+      "confidence": 1
+    },
+    {
+      "promise_id": "p010",
+      "promise_text": "Bruenor will create an enchanted warhammer of great power.",
+      "opened_chapter_label": "11",
+      "opened_chapter_index": 11,
+      "closed_chapter_label": "11",
+      "closed_chapter_index": 11,
+      "hint_chapter_labels": [],
+      "hint_chapter_indices": [],
+      "payoff_quality": "satisfied",
+      "evidence_quote_open": "The image of a two-headed hammer hidden within the block of mithril had come to Bruenor in a dream earlier that week.",
+      "evidence_quote_close": "the warhammer flared with magic and captured every speck of diamond dust.",
+      "confidence": 1
+    },
+    {
+      "promise_id": "p011",
+      "promise_text": "Drizzt will train Wulfgar in combat.",
+      "opened_chapter_label": "12",
+      "opened_chapter_index": 12,
+      "closed_chapter_label": "14",
+      "closed_chapter_index": 14,
+      "hint_chapter_labels": [],
+      "hint_chapter_indices": [],
+      "payoff_quality": "satisfied",
+      "evidence_quote_open": "Bruenor admits he needs Drizzt to train Wulfgar before winter.",
+      "evidence_quote_close": "As soon as the sun dropped below the horizon, they took to their work.",
+      "confidence": 1
+    },
+    {
+      "promise_id": "p012",
+      "promise_text": "Wulfgar intends to undertake a dangerous personal mission related to his tribal heritage.",
+      "opened_chapter_label": "12",
+      "opened_chapter_index": 12,
+      "closed_chapter_label": "22",
+      "closed_chapter_index": 22,
+      "hint_chapter_labels": [
+        "20"
+      ],
+      "hint_chapter_indices": [
+        20
+      ],
+      "payoff_quality": "satisfied",
+      "evidence_quote_open": "\"Of adventures and an unfulfilled vow,\" Wulfgar said mysteriously.",
+      "evidence_quote_close": "slayer of the frost giant chieftain, Biggrin; and dragon's bane!",
+      "confidence": 1
+    },
+    {
+      "promise_id": "p013",
+      "promise_text": "King Heafstaag will recover from his wounds and return to threaten the heroes.",
+      "opened_chapter_label": "8",
+      "opened_chapter_index": 8,
+      "closed_chapter_label": "13",
+      "closed_chapter_index": 13,
+      "hint_chapter_labels": [
+        "13"
+      ],
+      "hint_chapter_indices": [
+        13
+      ],
+      "payoff_quality": "satisfied",
+      "evidence_quote_open": "Mortally wounded, Heafstaag is caught by loyal tribesmen who sacrifice themselves to carry their king to safety.",
+      "evidence_quote_close": "Though he walked among giants and trolls, the proud barbarian king's stature was not diminished.",
+      "confidence": 1
+    },
+    {
+      "promise_id": "p014",
+      "promise_text": "Errtu will betray Kessell and attempt to take the crystal shard for himself.",
+      "opened_chapter_label": "10",
+      "opened_chapter_index": 10,
+      "closed_chapter_label": null,
+      "closed_chapter_index": null,
+      "hint_chapter_labels": [
+        "13"
+      ],
+      "hint_chapter_indices": [
+        13
+      ],
+      "payoff_quality": "unsatisfied",
+      "evidence_quote_open": "Errtu accepts with a wicked bow.",
+      "evidence_quote_close": null,
+      "confidence": 1
+    },
+    {
+      "promise_id": "p015",
+      "promise_text": "A band of verbeeg giants hidden in a lair near Ten-Towns will be discovered and confronted by the heroes.",
+      "opened_chapter_label": "15",
+      "opened_chapter_index": 15,
+      "closed_chapter_label": "18",
+      "closed_chapter_index": 18,
+      "hint_chapter_labels": [
+        "16"
+      ],
+      "hint_chapter_indices": [
+        16
+      ],
+      "payoff_quality": "satisfied",
+      "evidence_quote_open": "A band of verbeeg led by a frost giant slips into a secret lair near Ten-Towns under cover of a violent storm, carrying weapons and supplies for Akar Kessell's army.",
+      "evidence_quote_close": "the monster suddenly staggered and fell dead.",
+      "confidence": 1
+    },
+    {
+      "promise_id": "p016",
+      "promise_text": "Regis will enter Cryshal-Tirith as an emissary to deceive Kessell with the ruby pendant.",
+      "opened_chapter_label": "27",
+      "opened_chapter_index": 27,
+      "closed_chapter_label": "27",
+      "closed_chapter_index": 27,
+      "hint_chapter_labels": [
+        "27",
+        "28"
+      ],
+      "hint_chapter_indices": [
+        27,
+        28
+      ],
+      "payoff_quality": "partially_satisfied",
+      "evidence_quote_open": "Cassius reveals his plan: send Regis as emissary to charm Kessell.",
+      "evidence_quote_close": "the eyes of the wizard no longer blinked.",
+      "confidence": 0.8
+    },
+    {
+      "promise_id": "p017",
+      "promise_text": "Drizzt will attempt to assassinate Akar Kessell.",
+      "opened_chapter_label": "24",
+      "opened_chapter_index": 24,
+      "closed_chapter_label": "29",
+      "closed_chapter_index": 29,
+      "hint_chapter_labels": [
+        "25",
+        "28"
+      ],
+      "hint_chapter_indices": [
+        25,
+        28
+      ],
+      "payoff_quality": "satisfied",
+      "evidence_quote_open": "unnerved by the wizard's power over normally independent tribes, resolves to attempt to kill him before retreating to rest.",
+      "evidence_quote_close": "I am Drizzt Do'Urden, and I have come to kill you.",
+      "confidence": 1
+    },
+    {
+      "promise_id": "p018",
+      "promise_text": "Drizzt and Bruenor will journey to find the lost Mithril Hall.",
+      "opened_chapter_label": "30",
+      "opened_chapter_index": 30,
+      "closed_chapter_label": null,
+      "closed_chapter_index": null,
+      "hint_chapter_labels": [
+        "epilogue3"
+      ],
+      "hint_chapter_indices": [
+        1002
+      ],
+      "payoff_quality": "unsatisfied",
+      "evidence_quote_open": "Drizzt promises to accompany Bruenor to Mithril Hall in the spring.",
+      "evidence_quote_close": null,
+      "confidence": 1
+    },
+    {
+      "promise_id": "p019",
+      "promise_text": "The Pasha Pook's agents will eventually find Regis and attempt to reclaim the stolen ruby.",
+      "opened_chapter_label": "2",
+      "opened_chapter_index": 2,
+      "closed_chapter_label": "epilogue3",
+      "closed_chapter_index": 1002,
+      "hint_chapter_labels": [
+        "epilogue3"
+      ],
+      "hint_chapter_indices": [
+        1002
+      ],
+      "payoff_quality": "partially_satisfied",
+      "evidence_quote_open": "Regis recalls his Calimport career cut short when he stole one ruby from the Pasha Pook's collection.",
+      "evidence_quote_close": "But it was the weapon sheathed on his hip that Regis's gaze locked on: an emerald-hilted dagger. Artemis Entreri.",
+      "confidence": 0.8
+    },
+    {
+      "promise_id": "p020",
+      "promise_text": "The political discord in Ten-Towns will prevent a unified defense against the invasion.",
+      "opened_chapter_label": "19",
+      "opened_chapter_index": 19,
+      "closed_chapter_label": "19",
+      "closed_chapter_index": 19,
+      "hint_chapter_labels": [
+        "20"
+      ],
+      "hint_chapter_indices": [
+        20
+      ],
+      "payoff_quality": "satisfied",
+      "evidence_quote_open": "Bruenor's exit shakes some spokesmen but Kemp's influence prevails; the council ends without decisive action, Regis discredited, and only a toothless public warning is issued.",
+      "evidence_quote_close": "The majority voted against the alliance, and the council adjourned without taking any decisive action.",
+      "confidence": 1
+    },
+    {
+      "promise_id": "p021",
+      "promise_text": "Kessell can communicate and observe through magic mirrors, posing a surveillance threat.",
+      "opened_chapter_label": "19",
+      "opened_chapter_index": 19,
+      "closed_chapter_label": "4",
+      "closed_chapter_index": 4,
+      "hint_chapter_labels": [
+        "20"
+      ],
+      "hint_chapter_indices": [
+        20
+      ],
+      "payoff_quality": "satisfied",
+      "evidence_quote_open": "A gaunt mage's face appears in the mirror demanding Biggrin's presence.",
+      "evidence_quote_close": "\"Come to me,\" he commanded.",
+      "confidence": 1
+    },
+    {
+      "promise_id": "p022",
+      "promise_text": "The gem-encrusted scimitar from the dragon's hoard has magical properties.",
+      "opened_chapter_label": "22",
+      "opened_chapter_index": 22,
+      "closed_chapter_label": "25",
+      "closed_chapter_index": 25,
+      "hint_chapter_labels": [
+        "25"
+      ],
+      "hint_chapter_indices": [
+        25
+      ],
+      "payoff_quality": "satisfied",
+      "evidence_quote_open": "Drizzt uncovers a gem-encrusted scimitar of extraordinary craftsmanship and claims it.",
+      "evidence_quote_close": "The enchanted blade of Drizzt's scimitar bit into Errtu's knee, and an icy chill spread through the demon's body, extinguishing the flames.",
+      "confidence": 1
+    }
+  ],
+  "openOnlyCount": 22,
+  "closuresCount": 22,
+  "error": null
+}

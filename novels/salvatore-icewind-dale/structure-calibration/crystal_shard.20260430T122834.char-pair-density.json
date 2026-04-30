@@ -1,0 +1,529 @@
+{
+  "computedAt": "2026-04-30T12:24:53Z",
+  "pattern_id": "P22",
+  "pattern_name": "Character-pair scene density",
+  "description": "Per-book ensemble-size distribution across scenes and beats; per-chapter dominant ensemble; top character-pair frequencies. Pure compute on beats.jsonl + scenes.jsonl; no LLM.",
+  "rationale": "Feeds the planner's charactersPresent per-chapter prior. Currently the planner emits a charactersPresent list with no soft prior on ensemble size (solo / duo / trio+). If the corpus has a stable modal ensemble at chapter or beat granularity, that's a directional planner constraint.",
+  "methodology": {
+    "character_discovery": "Frequency-mined Title-Case tokens per book (>=10 mentions threshold), filtered against an excluded-set of place names, races, factions, weapons, and titles; cross-referenced with the project's known canon (Drizzt, Wulfgar, Bruenor, Catti-brie, Regis, Akar Kessell book 1, Artemis Entreri books 2-3, Pasha Pook book 3). Final per-book rosters: crystal_shard 21 chars, streams_of_silver 21, halflings_gem 22. Aliases (e.g., Drizzt <-> Do'Urden, Bruenor <-> Battlehammer, Regis <-> Rumblebelly) collapsed to canonical name.",
+    "presence_threshold": "A character is 'present' in a scene/beat if their regex matches >=2 times in that segment. Threshold filters single-mention name-drops while preserving meaningfully on-page characters.",
+    "ensemble_buckets": "empty (0 chars detected) / solo (1) / duo (2) / trio (3) / quad_plus (4+).",
+    "granularity_caveat": "Streams of Silver has dramatically larger scene segmentation (median 952w/scene vs ~488-565w in the other two books); scene-level ensemble counts there mechanically include more characters per scene. Beat-level granularity is more uniform across books (median 107w/beat in all three) and is the more comparable signal."
+  },
+  "per_book": {
+    "crystal_shard": {
+      "scene_total": 139,
+      "beat_total": 858,
+      "chapter_total": 34,
+      "scene_ensemble_distribution_pct": {
+        "empty": 8.6,
+        "solo": 23.0,
+        "duo": 25.9,
+        "trio": 15.8,
+        "quad_plus": 26.6
+      },
+      "scene_ensemble_distribution_n": {
+        "empty": 12,
+        "solo": 32,
+        "duo": 36,
+        "trio": 22,
+        "quad_plus": 37
+      },
+      "beat_ensemble_distribution_pct": {
+        "empty": 33.6,
+        "solo": 37.9,
+        "duo": 21.7,
+        "trio": 6.3,
+        "quad_plus": 0.6
+      },
+      "beat_ensemble_distribution_n": {
+        "empty": 288,
+        "solo": 325,
+        "duo": 186,
+        "trio": 54,
+        "quad_plus": 5
+      },
+      "chapter_dominant_ensemble_scene_level_pct": {
+        "empty": 0.0,
+        "solo": 17.6,
+        "duo": 17.6,
+        "trio": 14.7,
+        "quad_plus": 50.0
+      },
+      "chapter_dominant_ensemble_beat_level_pct": {
+        "empty": 38.2,
+        "solo": 41.2,
+        "duo": 14.7,
+        "trio": 5.9,
+        "quad_plus": 0.0
+      },
+      "top_character_pairs": [
+        {
+          "pair": [
+            "Drizzt",
+            "Wulfgar"
+          ],
+          "scenes_co_present": 31
+        },
+        {
+          "pair": [
+            "Bruenor",
+            "Drizzt"
+          ],
+          "scenes_co_present": 21
+        },
+        {
+          "pair": [
+            "Bruenor",
+            "Wulfgar"
+          ],
+          "scenes_co_present": 20
+        },
+        {
+          "pair": [
+            "Drizzt",
+            "Guenhwyvar"
+          ],
+          "scenes_co_present": 15
+        },
+        {
+          "pair": [
+            "Drizzt",
+            "Regis"
+          ],
+          "scenes_co_present": 12
+        },
+        {
+          "pair": [
+            "Cassius",
+            "Regis"
+          ],
+          "scenes_co_present": 11
+        },
+        {
+          "pair": [
+            "Cassius",
+            "Kemp"
+          ],
+          "scenes_co_present": 11
+        },
+        {
+          "pair": [
+            "Akar Kessell",
+            "Drizzt"
+          ],
+          "scenes_co_present": 11
+        },
+        {
+          "pair": [
+            "Bruenor",
+            "Regis"
+          ],
+          "scenes_co_present": 10
+        },
+        {
+          "pair": [
+            "Akar Kessell",
+            "Regis"
+          ],
+          "scenes_co_present": 10
+        },
+        {
+          "pair": [
+            "Akar Kessell",
+            "Cassius"
+          ],
+          "scenes_co_present": 10
+        },
+        {
+          "pair": [
+            "Akar Kessell",
+            "Bruenor"
+          ],
+          "scenes_co_present": 8
+        },
+        {
+          "pair": [
+            "Catti-brie",
+            "Wulfgar"
+          ],
+          "scenes_co_present": 7
+        },
+        {
+          "pair": [
+            "Bruenor",
+            "Catti-brie"
+          ],
+          "scenes_co_present": 7
+        },
+        {
+          "pair": [
+            "Akar Kessell",
+            "Wulfgar"
+          ],
+          "scenes_co_present": 7
+        }
+      ]
+    },
+    "streams_of_silver": {
+      "scene_total": 76,
+      "beat_total": 786,
+      "chapter_total": 29,
+      "scene_ensemble_distribution_pct": {
+        "empty": 7.9,
+        "solo": 6.6,
+        "duo": 11.8,
+        "trio": 7.9,
+        "quad_plus": 65.8
+      },
+      "scene_ensemble_distribution_n": {
+        "empty": 6,
+        "solo": 5,
+        "duo": 9,
+        "trio": 6,
+        "quad_plus": 50
+      },
+      "beat_ensemble_distribution_pct": {
+        "empty": 24.6,
+        "solo": 31.9,
+        "duo": 29.1,
+        "trio": 10.6,
+        "quad_plus": 3.8
+      },
+      "beat_ensemble_distribution_n": {
+        "empty": 193,
+        "solo": 251,
+        "duo": 229,
+        "trio": 83,
+        "quad_plus": 30
+      },
+      "chapter_dominant_ensemble_scene_level_pct": {
+        "empty": 3.4,
+        "solo": 6.9,
+        "duo": 0.0,
+        "trio": 0.0,
+        "quad_plus": 89.7
+      },
+      "chapter_dominant_ensemble_beat_level_pct": {
+        "empty": 17.2,
+        "solo": 41.4,
+        "duo": 41.4,
+        "trio": 0.0,
+        "quad_plus": 0.0
+      },
+      "top_character_pairs": [
+        {
+          "pair": [
+            "Bruenor",
+            "Drizzt"
+          ],
+          "scenes_co_present": 35
+        },
+        {
+          "pair": [
+            "Bruenor",
+            "Regis"
+          ],
+          "scenes_co_present": 34
+        },
+        {
+          "pair": [
+            "Regis",
+            "Wulfgar"
+          ],
+          "scenes_co_present": 33
+        },
+        {
+          "pair": [
+            "Bruenor",
+            "Wulfgar"
+          ],
+          "scenes_co_present": 32
+        },
+        {
+          "pair": [
+            "Drizzt",
+            "Regis"
+          ],
+          "scenes_co_present": 31
+        },
+        {
+          "pair": [
+            "Drizzt",
+            "Wulfgar"
+          ],
+          "scenes_co_present": 30
+        },
+        {
+          "pair": [
+            "Bruenor",
+            "Catti-brie"
+          ],
+          "scenes_co_present": 23
+        },
+        {
+          "pair": [
+            "Catti-brie",
+            "Regis"
+          ],
+          "scenes_co_present": 19
+        },
+        {
+          "pair": [
+            "Artemis Entreri",
+            "Catti-brie"
+          ],
+          "scenes_co_present": 19
+        },
+        {
+          "pair": [
+            "Catti-brie",
+            "Wulfgar"
+          ],
+          "scenes_co_present": 17
+        },
+        {
+          "pair": [
+            "Artemis Entreri",
+            "Bruenor"
+          ],
+          "scenes_co_present": 16
+        },
+        {
+          "pair": [
+            "Catti-brie",
+            "Drizzt"
+          ],
+          "scenes_co_present": 15
+        },
+        {
+          "pair": [
+            "Artemis Entreri",
+            "Drizzt"
+          ],
+          "scenes_co_present": 13
+        },
+        {
+          "pair": [
+            "Dendybar",
+            "Sydney"
+          ],
+          "scenes_co_present": 12
+        },
+        {
+          "pair": [
+            "Artemis Entreri",
+            "Sydney"
+          ],
+          "scenes_co_present": 12
+        }
+      ]
+    },
+    "halflings_gem": {
+      "scene_total": 137,
+      "beat_total": 826,
+      "chapter_total": 29,
+      "scene_ensemble_distribution_pct": {
+        "empty": 4.4,
+        "solo": 8.8,
+        "duo": 18.2,
+        "trio": 22.6,
+        "quad_plus": 46.0
+      },
+      "scene_ensemble_distribution_n": {
+        "empty": 6,
+        "solo": 12,
+        "duo": 25,
+        "trio": 31,
+        "quad_plus": 63
+      },
+      "beat_ensemble_distribution_pct": {
+        "empty": 15.5,
+        "solo": 34.6,
+        "duo": 34.5,
+        "trio": 11.6,
+        "quad_plus": 3.8
+      },
+      "beat_ensemble_distribution_n": {
+        "empty": 128,
+        "solo": 286,
+        "duo": 285,
+        "trio": 96,
+        "quad_plus": 31
+      },
+      "chapter_dominant_ensemble_scene_level_pct": {
+        "empty": 0.0,
+        "solo": 3.4,
+        "duo": 6.9,
+        "trio": 17.2,
+        "quad_plus": 72.4
+      },
+      "chapter_dominant_ensemble_beat_level_pct": {
+        "empty": 0.0,
+        "solo": 41.4,
+        "duo": 55.2,
+        "trio": 3.4,
+        "quad_plus": 0.0
+      },
+      "top_character_pairs": [
+        {
+          "pair": [
+            "Drizzt",
+            "Wulfgar"
+          ],
+          "scenes_co_present": 50
+        },
+        {
+          "pair": [
+            "Bruenor",
+            "Catti-brie"
+          ],
+          "scenes_co_present": 39
+        },
+        {
+          "pair": [
+            "Bruenor",
+            "Drizzt"
+          ],
+          "scenes_co_present": 36
+        },
+        {
+          "pair": [
+            "Catti-brie",
+            "Drizzt"
+          ],
+          "scenes_co_present": 32
+        },
+        {
+          "pair": [
+            "Bruenor",
+            "Wulfgar"
+          ],
+          "scenes_co_present": 31
+        },
+        {
+          "pair": [
+            "Catti-brie",
+            "Wulfgar"
+          ],
+          "scenes_co_present": 28
+        },
+        {
+          "pair": [
+            "Artemis Entreri",
+            "Drizzt"
+          ],
+          "scenes_co_present": 27
+        },
+        {
+          "pair": [
+            "Drizzt",
+            "Regis"
+          ],
+          "scenes_co_present": 26
+        },
+        {
+          "pair": [
+            "Artemis Entreri",
+            "Regis"
+          ],
+          "scenes_co_present": 22
+        },
+        {
+          "pair": [
+            "Artemis Entreri",
+            "Pasha Pook"
+          ],
+          "scenes_co_present": 20
+        },
+        {
+          "pair": [
+            "Regis",
+            "Wulfgar"
+          ],
+          "scenes_co_present": 17
+        },
+        {
+          "pair": [
+            "Drizzt",
+            "Pasha Pook"
+          ],
+          "scenes_co_present": 17
+        },
+        {
+          "pair": [
+            "Pasha Pook",
+            "Regis"
+          ],
+          "scenes_co_present": 17
+        },
+        {
+          "pair": [
+            "Bruenor",
+            "Regis"
+          ],
+          "scenes_co_present": 16
+        },
+        {
+          "pair": [
+            "Deudermont",
+            "Wulfgar"
+          ],
+          "scenes_co_present": 15
+        }
+      ]
+    }
+  },
+  "cross_book_aggregate": {
+    "scene_modal_ensemble_per_book_excluding_empty": {
+      "crystal_shard": "quad_plus",
+      "streams_of_silver": "quad_plus",
+      "halflings_gem": "quad_plus"
+    },
+    "beat_modal_ensemble_per_book_excluding_empty": {
+      "crystal_shard": "solo",
+      "streams_of_silver": "solo",
+      "halflings_gem": "solo"
+    },
+    "beat_solo_or_duo_pct_per_book": {
+      "crystal_shard": 59.599999999999994,
+      "streams_of_silver": 61.0,
+      "halflings_gem": 69.1
+    },
+    "top10_pair_overlap": {
+      "crystal_shard_AND_streams": 5,
+      "crystal_shard_AND_halflings": 4,
+      "streams_AND_halflings": 6,
+      "all_three": 4
+    },
+    "pairs_in_all_three_books_top10": [
+      [
+        "Bruenor",
+        "Drizzt"
+      ],
+      [
+        "Bruenor",
+        "Wulfgar"
+      ],
+      [
+        "Drizzt",
+        "Regis"
+      ],
+      [
+        "Drizzt",
+        "Wulfgar"
+      ]
+    ]
+  },
+  "directional_assessment": {
+    "scene_level_modal": "NOT directionally stable -- modal scene ensemble is duo (25.9%) in crystal_shard, quad_plus (65.8%) in streams_of_silver, quad_plus (46.0%) in halflings_gem. Streams_of_silver's quad_plus dominance is a scene-segmentation artifact (median 952w/scene). Use beat-level signal instead.",
+    "beat_level_modal": "Directionally stable: solo is the single modal beat-ensemble in all 3 books (37.9% / 31.9% / 34.6%). Solo + duo together comprise 60-66% of beats in every book.",
+    "top_pair_stability": "4 pairs appear in all three books' top-10 (Bruenor + Drizzt, Bruenor + Wulfgar, Drizzt + Regis, Drizzt + Wulfgar). The Companions-of-the-Hall core (Drizzt, Bruenor, Wulfgar, Regis, Catti-brie) dominates books 2 and 3; book 1 top-10 includes Akar Kessell pairings (Drizzt + Akar Kessell appears in book 1 top-10 only).",
+    "headline": "Beat-level ensemble shape is directionally stable across the trilogy: the modal beat is solo-character (~34%), with duo close behind (~22-34%), and trio+ rare (~7-15%). At the chapter granularity, however, chapters mostly mix multiple ensemble sizes -- most chapters have at least one quad+ scene as the planner-relevant 'big-cast moment'."
+  },
+  "harness_target": {
+    "planner_section": "src/agents/planning-plotter/chapter-outline-system.md and src/agents/planning-beats/beat-expansion-system.md",
+    "recommended_prior": "Beat-level (beat-expansion-system.md): biased toward solo and duo beats -- modal beat should have 1 character on-page, secondary mode 2. Trio+ beats should be ~10-15% of any chapter, reserved for council/confrontation moments. Chapter-level (chapter-outline-system.md): each chapter typically contains a mix of solo + duo beats with >=1 trio+ scene; pure-solo chapters (no duo or larger) are rare (<10% of corpus). The charactersPresent field at the chapter level should NOT be the on-page ensemble for every beat -- it's a 'character pool' from which beats draw subsets.",
+    "ship_status": "Candidate ship -- directional signal is clean at beat granularity. Scene-level signal is contaminated by streams_of_silver scene-segmentation differences and should not be used as a planner prior."
+  }
+}

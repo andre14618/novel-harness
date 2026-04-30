@@ -1,0 +1,200 @@
+{
+  "computedAt": "2026-04-30T12:07:40.890Z",
+  "description": "Beat-length distribution per beat-kind across 3 IWD books. Pure compute on beats.jsonl.",
+  "rationale": "Feeds beat-expander targetWords-per-beat soft prior. Currently the planner has a single targetWords/100 beat-count floor with no per-kind size differentiation. If different beat kinds have stably different lengths across books, that's a directional planner prior.",
+  "methodology": "Per-book per-kind word-count stats (mean/median/p25/p75/min/max). Directional gate: does the per-kind ordering of mean lengths reproduce across all 3 books?",
+  "per_book": {
+    "crystal_shard": {
+      "total_beats": 857,
+      "by_kind": {
+        "action": {
+          "n": 308,
+          "mean": 104.9,
+          "median": 105,
+          "p25": 95,
+          "p75": 115,
+          "min": 60,
+          "max": 160
+        },
+        "dialogue": {
+          "n": 242,
+          "mean": 104.8,
+          "median": 101,
+          "p25": 89,
+          "p75": 116,
+          "min": 60,
+          "max": 282
+        },
+        "interiority": {
+          "n": 177,
+          "mean": 106.1,
+          "median": 107,
+          "p25": 92,
+          "p75": 118,
+          "min": 61,
+          "max": 278
+        },
+        "description": {
+          "n": 130,
+          "mean": 103.4,
+          "median": 103,
+          "p25": 90,
+          "p75": 113,
+          "min": 41,
+          "max": 153
+        }
+      }
+    },
+    "streams_of_silver": {
+      "total_beats": 786,
+      "by_kind": {
+        "action": {
+          "n": 274,
+          "mean": 107.2,
+          "median": 108,
+          "p25": 97,
+          "p75": 118,
+          "min": 50,
+          "max": 159
+        },
+        "dialogue": {
+          "n": 256,
+          "mean": 108.7,
+          "median": 109,
+          "p25": 100,
+          "p75": 118,
+          "min": 35,
+          "max": 176
+        },
+        "interiority": {
+          "n": 162,
+          "mean": 111.5,
+          "median": 112,
+          "p25": 99,
+          "p75": 130,
+          "min": 62,
+          "max": 157
+        },
+        "description": {
+          "n": 94,
+          "mean": 112.7,
+          "median": 112,
+          "p25": 100,
+          "p75": 130,
+          "min": 51,
+          "max": 169
+        }
+      }
+    },
+    "halflings_gem": {
+      "total_beats": 826,
+      "by_kind": {
+        "action": {
+          "n": 309,
+          "mean": 102.8,
+          "median": 103,
+          "p25": 92,
+          "p75": 112,
+          "min": 32,
+          "max": 168
+        },
+        "dialogue": {
+          "n": 279,
+          "mean": 106.2,
+          "median": 107,
+          "p25": 95,
+          "p75": 117,
+          "min": 67,
+          "max": 192
+        },
+        "interiority": {
+          "n": 159,
+          "mean": 106.7,
+          "median": 107,
+          "p25": 95,
+          "p75": 117,
+          "min": 50,
+          "max": 217
+        },
+        "description": {
+          "n": 79,
+          "mean": 107.9,
+          "median": 109,
+          "p25": 99,
+          "p75": 118,
+          "min": 49,
+          "max": 151
+        }
+      }
+    }
+  },
+  "per_kind_aggregate": {
+    "action": {
+      "n": 891,
+      "mean": 104.9,
+      "median": 105,
+      "p25": 95,
+      "p75": 115,
+      "min": 32,
+      "max": 168
+    },
+    "dialogue": {
+      "n": 777,
+      "mean": 106.6,
+      "median": 106,
+      "p25": 95,
+      "p75": 117,
+      "min": 35,
+      "max": 282
+    },
+    "interiority": {
+      "n": 498,
+      "mean": 108,
+      "median": 107,
+      "p25": 94,
+      "p75": 120,
+      "min": 50,
+      "max": 278
+    },
+    "description": {
+      "n": 303,
+      "mean": 107.5,
+      "median": 107,
+      "p25": 96,
+      "p75": 118,
+      "min": 41,
+      "max": 169
+    }
+  },
+  "overall": {
+    "n": 2470,
+    "mean": 106.4,
+    "median": 107,
+    "p25": 95,
+    "p75": 117,
+    "min": 32,
+    "max": 282
+  },
+  "per_book_kind_ordering_by_mean_length": {
+    "crystal_shard": [
+      "interiority",
+      "action",
+      "dialogue",
+      "description"
+    ],
+    "streams_of_silver": [
+      "description",
+      "interiority",
+      "dialogue",
+      "action"
+    ],
+    "halflings_gem": [
+      "description",
+      "interiority",
+      "dialogue",
+      "action"
+    ]
+  },
+  "directional_stable": false,
+  "directional_assessment": "Mixed — orderings differ across books: crystal_shard: interiority > action > dialogue > description; streams_of_silver: description > interiority > dialogue > action; halflings_gem: description > interiority > dialogue > action."
+}

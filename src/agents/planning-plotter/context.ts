@@ -54,6 +54,15 @@ ${characters.map(c => {
   ${c.internalConflict ? `Internal conflict: ${c.internalConflict}\n  ` : ""}${c.avoids ? `Avoids: ${c.avoids}\n  ` : ""}Goals: ${c.goals}
   Fears: ${c.fears}
   Relationships: ${c.relationships.map(r => `${r.characterName} — ${r.nature}`).join("; ")}`
+  if (c.lie || c.truth || c.want || c.need || c.arc_resolution) {
+    const arcParts: string[] = []
+    if (c.lie) arcParts.push(`lie="${c.lie}"`)
+    if (c.truth) arcParts.push(`truth="${c.truth}"`)
+    if (c.want) arcParts.push(`want="${c.want}"`)
+    if (c.need) arcParts.push(`need="${c.need}"`)
+    if (c.arc_resolution) arcParts.push(`arc=${c.arc_resolution}`)
+    profile += `\n  Arc: ${arcParts.join("; ")}`
+  }
   if (c.culturalBackground?.length > 0) {
     profile += `\n  Cultural background: ${c.culturalBackground.map(cb => `${cb.cultureName} (${cb.relationship})`).join(", ")}`
   }

@@ -17,7 +17,7 @@ The corpus deconstruction is also a paired training dataset, which makes any fut
 
 ## Why this changes the architecture
 
-The original beat-first architecture was tuned for Cerebras Qwen 235B's strengths — fast (~2s/call), structured, tight output. DeepSeek V3.2 inverts those constraints (~30s/call, large output capacity, 90% prefix cache discount). Constraints inverting means the cost-optimal generation unit may have moved from beats to scenes or chapters. The benchmark is the only honest way to find out.
+The original beat-first architecture was tuned for Cerebras Qwen 235B's strengths — fast (~2s/call), structured, tight output. DeepSeek V4 Flash inverts those constraints (~30s/call, large output capacity, 90% prefix cache discount). Constraints inverting means the cost-optimal generation unit may have moved from beats to scenes or chapters. The benchmark is the only honest way to find out.
 
 Likewise: static voice primer (current Howard exemplars) is one strategy. Dynamic per-scene primer retrieved by similarity from the deconstructed Salvatore corpus is another. The benchmark settles which wins.
 

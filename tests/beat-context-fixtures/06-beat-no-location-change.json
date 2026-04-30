@@ -1,0 +1,74 @@
+{
+  "description": "non-zero beat with no trigger word — beatHasLocationChange returns false, so setting suppressed; full mode",
+  "input": {
+    "novelId": "test-novel-06",
+    "chapterNumber": 3,
+    "beatIndex": 2,
+    "previousBeatProse": "The rumor spread through the room in fits. A cup overturned on the table. Smoke curled from a snuffed candle.",
+    "outline": {
+      "chapterNumber": 3,
+      "title": "Council",
+      "povCharacter": "Bruenor",
+      "setting": "Mithril Hall",
+      "purpose": "deliberation under pressure",
+      "scenes": [
+        {
+          "description": "Bruenor calls the elders to the long table.",
+          "characters": ["Bruenor"],
+          "kind": "action",
+          "requiredPayoffs": []
+        },
+        {
+          "description": "He lays out the threat in plain terms.",
+          "characters": ["Bruenor"],
+          "kind": "dialogue",
+          "requiredPayoffs": []
+        },
+        {
+          "description": "He listens to the dwarves argue back and forth without yielding ground.",
+          "characters": ["Bruenor"],
+          "kind": "interiority",
+          "requiredPayoffs": []
+        }
+      ],
+      "targetWords": 1500,
+      "charactersPresent": ["Bruenor"],
+      "establishedFacts": [],
+      "characterStateChanges": [],
+      "knowledgeChanges": []
+    },
+    "characters": [
+      {
+        "id": "bruenor-001",
+        "name": "Bruenor",
+        "role": "dwarf king",
+        "backstory": "",
+        "traits": [],
+        "speechPattern": "blunt, gruff, peppered with dwarven oaths",
+        "internalConflict": "duty versus desire",
+        "goals": "protect his clan",
+        "fears": "",
+        "relationships": [],
+        "culturalBackground": [],
+        "systemAwareness": [],
+        "exampleLines": []
+      }
+    ],
+    "characterStates": [],
+    "worldBible": {
+      "locations": [
+        {
+          "name": "Mithril Hall",
+          "description": "Ancestral dwarven stronghold beneath the mountain.",
+          "sensoryDetails": "forge-warm air, the deep hum of stone, the tang of iron"
+        }
+      ]
+    },
+    "preResolvedRefs": {
+      "context": "",
+      "lookupCount": 0,
+      "llmUsed": false
+    },
+    "compactMode": false
+  }
+}

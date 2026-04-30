@@ -1,0 +1,83 @@
+{
+  "description": "beat with non-empty preResolvedRefs.context — resolved-references section emits a non-empty block; full mode",
+  "input": {
+    "novelId": "test-novel-09",
+    "chapterNumber": 5,
+    "beatIndex": 1,
+    "previousBeatProse": "He set down the lantern. The room was still. A draft moved across the table.",
+    "outline": {
+      "chapterNumber": 5,
+      "title": "The Argument",
+      "povCharacter": "Drizzt",
+      "setting": "Mithril Hall",
+      "purpose": "rekindle a buried tension",
+      "scenes": [
+        {
+          "description": "Drizzt finds Bruenor in the war chamber.",
+          "characters": ["Drizzt", "Bruenor"],
+          "kind": "action",
+          "requiredPayoffs": []
+        },
+        {
+          "description": "They argue about the consequences of the recent raid.",
+          "characters": ["Drizzt", "Bruenor"],
+          "kind": "dialogue",
+          "requiredPayoffs": []
+        }
+      ],
+      "targetWords": 1600,
+      "charactersPresent": ["Drizzt", "Bruenor"],
+      "establishedFacts": [],
+      "characterStateChanges": [],
+      "knowledgeChanges": []
+    },
+    "characters": [
+      {
+        "id": "drizzt-001",
+        "name": "Drizzt",
+        "role": "drow ranger",
+        "backstory": "",
+        "traits": [],
+        "speechPattern": "formal and measured",
+        "internalConflict": "",
+        "goals": "find belonging",
+        "fears": "",
+        "relationships": [],
+        "culturalBackground": [],
+        "systemAwareness": [],
+        "exampleLines": []
+      },
+      {
+        "id": "bruenor-001",
+        "name": "Bruenor",
+        "role": "dwarf king",
+        "backstory": "",
+        "traits": [],
+        "speechPattern": "blunt, gruff",
+        "internalConflict": "",
+        "goals": "protect his clan",
+        "fears": "",
+        "relationships": [],
+        "culturalBackground": [],
+        "systemAwareness": [],
+        "exampleLines": []
+      }
+    ],
+    "characterStates": [],
+    "worldBible": {
+      "locations": [
+        {
+          "name": "Mithril Hall",
+          "description": "Ancestral dwarven stronghold.",
+          "sensoryDetails": "forge-warm air"
+        }
+      ]
+    },
+    "preResolvedRefs": {
+      "context": "RESOLVED REFERENCES:\n- recent raid: at sunset two days ago, raiders struck the south gate and were repelled with three losses on the dwarven side.\n- prior argument: in chapter 3, Drizzt counseled mercy and Bruenor refused.",
+      "lookupCount": 2,
+      "llmUsed": false
+    },
+    "compactMode": false
+  }
+}

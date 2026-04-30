@@ -1,0 +1,336 @@
+{
+  "pattern": "34d",
+  "name": "Interiority marker density per book and per beat-kind",
+  "computedAt": "2026-04-30T12:43:47.708Z",
+  "corpus": "salvatore-icewind-dale",
+  "books": [
+    "crystal_shard",
+    "streams_of_silver",
+    "halflings_gem"
+  ],
+  "rationale": "Tests whether interiority-tagged beats are actually densest in reflective markers (thought/felt/wondered/knew/realized/considered/etc.) or whether interiority is structurally diffused across all beat kinds. Informs (a) whether the 'interiority' beat-kind label maps to a real prose signal, (b) whether the writer should be prompted to insert these markers into action/description beats too.",
+  "methodology": {
+    "marker_set": "89-word curated marker lexicon: thought, thoughts, thinking, felt, feels, feeling, feelings, wondered, wonders, wondering, ...",
+    "detection": "Exact lowercased whitespace-token match (no stemming).",
+    "density": "markers / words × 100 → markers per 100 words.",
+    "caveats": "Excludes free indirect interiority that doesn't surface a marker word ('It was hopeless,' 'The orcs would come,' etc. — implicit thought without verb of cognition). Real interiority density is higher than the marker rate; this measures the explicit-marker layer only."
+  },
+  "per_book_overall": {
+    "crystal_shard": {
+      "words": 104755,
+      "markers": 895,
+      "per_100_words": 0.85
+    },
+    "streams_of_silver": {
+      "words": 103755,
+      "markers": 997,
+      "per_100_words": 0.96
+    },
+    "halflings_gem": {
+      "words": 95698,
+      "markers": 897,
+      "per_100_words": 0.94
+    }
+  },
+  "per_book_per_kind": {
+    "crystal_shard": {
+      "action": {
+        "words": 38286,
+        "markers": 300,
+        "per_100_words": 0.78
+      },
+      "dialogue": {
+        "words": 28545,
+        "markers": 244,
+        "per_100_words": 0.85
+      },
+      "interiority": {
+        "words": 22263,
+        "markers": 254,
+        "per_100_words": 1.14
+      },
+      "description": {
+        "words": 15579,
+        "markers": 97,
+        "per_100_words": 0.62
+      }
+    },
+    "streams_of_silver": {
+      "action": {
+        "words": 36644,
+        "markers": 311,
+        "per_100_words": 0.85
+      },
+      "dialogue": {
+        "words": 34986,
+        "markers": 280,
+        "per_100_words": 0.8
+      },
+      "interiority": {
+        "words": 20528,
+        "markers": 310,
+        "per_100_words": 1.51
+      },
+      "description": {
+        "words": 11597,
+        "markers": 96,
+        "per_100_words": 0.83
+      }
+    },
+    "halflings_gem": {
+      "action": {
+        "words": 35125,
+        "markers": 266,
+        "per_100_words": 0.76
+      },
+      "dialogue": {
+        "words": 32796,
+        "markers": 317,
+        "per_100_words": 0.97
+      },
+      "interiority": {
+        "words": 18281,
+        "markers": 262,
+        "per_100_words": 1.43
+      },
+      "description": {
+        "words": 9496,
+        "markers": 52,
+        "per_100_words": 0.55
+      }
+    }
+  },
+  "per_kind_aggregate_across_books": {
+    "action": {
+      "words": 110055,
+      "markers": 877,
+      "per_100_words": 0.8
+    },
+    "dialogue": {
+      "words": 96327,
+      "markers": 841,
+      "per_100_words": 0.87
+    },
+    "interiority": {
+      "words": 61072,
+      "markers": 826,
+      "per_100_words": 1.35
+    },
+    "description": {
+      "words": 36672,
+      "markers": 245,
+      "per_100_words": 0.67
+    }
+  },
+  "per_book_kind_ranking_by_marker_density": {
+    "crystal_shard": [
+      "interiority",
+      "dialogue",
+      "action",
+      "description"
+    ],
+    "streams_of_silver": [
+      "interiority",
+      "action",
+      "description",
+      "dialogue"
+    ],
+    "halflings_gem": [
+      "interiority",
+      "dialogue",
+      "action",
+      "description"
+    ]
+  },
+  "directional_stable_ranking": false,
+  "interiority_kind_densest_in_every_book": true,
+  "directional_assessment": "Mixed — orderings differ across books: crystal_shard: interiority > dialogue > action > description; streams_of_silver: interiority > action > description > dialogue; halflings_gem: interiority > dialogue > action > description.",
+  "top_15_markers_per_book": {
+    "crystal_shard": [
+      {
+        "marker": "knew",
+        "count": 145
+      },
+      {
+        "marker": "felt",
+        "count": 87
+      },
+      {
+        "marker": "understood",
+        "count": 57
+      },
+      {
+        "marker": "thought",
+        "count": 53
+      },
+      {
+        "marker": "hope",
+        "count": 42
+      },
+      {
+        "marker": "considered",
+        "count": 42
+      },
+      {
+        "marker": "realized",
+        "count": 39
+      },
+      {
+        "marker": "fear",
+        "count": 28
+      },
+      {
+        "marker": "noticed",
+        "count": 19
+      },
+      {
+        "marker": "knowing",
+        "count": 19
+      },
+      {
+        "marker": "wondered",
+        "count": 19
+      },
+      {
+        "marker": "hoping",
+        "count": 17
+      },
+      {
+        "marker": "believed",
+        "count": 17
+      },
+      {
+        "marker": "sensed",
+        "count": 17
+      },
+      {
+        "marker": "decided",
+        "count": 16
+      }
+    ],
+    "streams_of_silver": [
+      {
+        "marker": "knew",
+        "count": 138
+      },
+      {
+        "marker": "fear",
+        "count": 64
+      },
+      {
+        "marker": "felt",
+        "count": 62
+      },
+      {
+        "marker": "understood",
+        "count": 60
+      },
+      {
+        "marker": "thought",
+        "count": 52
+      },
+      {
+        "marker": "hope",
+        "count": 35
+      },
+      {
+        "marker": "knowing",
+        "count": 32
+      },
+      {
+        "marker": "understanding",
+        "count": 28
+      },
+      {
+        "marker": "doubt",
+        "count": 27
+      },
+      {
+        "marker": "considered",
+        "count": 25
+      },
+      {
+        "marker": "thoughts",
+        "count": 23
+      },
+      {
+        "marker": "reasoned",
+        "count": 19
+      },
+      {
+        "marker": "decision",
+        "count": 19
+      },
+      {
+        "marker": "noticed",
+        "count": 19
+      },
+      {
+        "marker": "suspected",
+        "count": 19
+      }
+    ],
+    "halflings_gem": [
+      {
+        "marker": "knew",
+        "count": 137
+      },
+      {
+        "marker": "thought",
+        "count": 87
+      },
+      {
+        "marker": "felt",
+        "count": 51
+      },
+      {
+        "marker": "realized",
+        "count": 42
+      },
+      {
+        "marker": "thoughts",
+        "count": 35
+      },
+      {
+        "marker": "understood",
+        "count": 31
+      },
+      {
+        "marker": "knowing",
+        "count": 30
+      },
+      {
+        "marker": "doubt",
+        "count": 28
+      },
+      {
+        "marker": "thinking",
+        "count": 26
+      },
+      {
+        "marker": "considered",
+        "count": 25
+      },
+      {
+        "marker": "wondered",
+        "count": 24
+      },
+      {
+        "marker": "hoping",
+        "count": 23
+      },
+      {
+        "marker": "hope",
+        "count": 23
+      },
+      {
+        "marker": "noticed",
+        "count": 22
+      },
+      {
+        "marker": "understanding",
+        "count": 21
+      }
+    ]
+  }
+}

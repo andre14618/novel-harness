@@ -1,0 +1,497 @@
+{
+  "computedAt": "2026-04-30T01:54:27.391Z",
+  "results": [
+    {
+      "label": "mice-M is_present",
+      "n": 50,
+      "agree": 42,
+      "agreeRate": 0.84,
+      "jaccard": 0.7241379310344828,
+      "classes": {
+        "false": {
+          "run1": 37,
+          "run2": 45
+        },
+        "true": {
+          "run1": 13,
+          "run2": 5
+        }
+      },
+      "verdict": "BORDERLINE",
+      "dim": "mice-M",
+      "field": "is_present"
+    },
+    {
+      "label": "mice-M is_dominant",
+      "n": 50,
+      "agree": 49,
+      "agreeRate": 0.98,
+      "jaccard": 0.9607843137254902,
+      "classes": {
+        "false": {
+          "run1": 45,
+          "run2": 46
+        },
+        "true": {
+          "run1": 5,
+          "run2": 4
+        }
+      },
+      "verdict": "PASS",
+      "dim": "mice-M",
+      "field": "is_dominant"
+    },
+    {
+      "label": "mice-M opens",
+      "n": 50,
+      "agree": 49,
+      "agreeRate": 0.98,
+      "jaccard": 0.9607843137254902,
+      "classes": {
+        "false": {
+          "run1": 46,
+          "run2": 47
+        },
+        "true": {
+          "run1": 4,
+          "run2": 3
+        }
+      },
+      "verdict": "PASS",
+      "dim": "mice-M",
+      "field": "opens"
+    },
+    {
+      "label": "mice-M closes",
+      "n": 50,
+      "agree": 47,
+      "agreeRate": 0.94,
+      "jaccard": 0.8867924528301887,
+      "classes": {
+        "false": {
+          "run1": 47,
+          "run2": 50
+        },
+        "true": {
+          "run1": 3,
+          "run2": 0
+        }
+      },
+      "verdict": "PASS",
+      "dim": "mice-M",
+      "field": "closes"
+    },
+    {
+      "label": "mice-I-v2 is_present",
+      "n": 50,
+      "agree": 47,
+      "agreeRate": 0.94,
+      "jaccard": 0.8867924528301887,
+      "classes": {
+        "false": {
+          "run1": 47,
+          "run2": 48
+        },
+        "true": {
+          "run1": 3,
+          "run2": 2
+        }
+      },
+      "verdict": "PASS",
+      "dim": "mice-I-v2",
+      "field": "is_present"
+    },
+    {
+      "label": "mice-I-v2 is_dominant",
+      "n": 50,
+      "agree": 48,
+      "agreeRate": 0.96,
+      "jaccard": 0.9230769230769231,
+      "classes": {
+        "false": {
+          "run1": 49,
+          "run2": 49
+        },
+        "true": {
+          "run1": 1,
+          "run2": 1
+        }
+      },
+      "verdict": "PASS",
+      "dim": "mice-I-v2",
+      "field": "is_dominant"
+    },
+    {
+      "label": "mice-I-v2 opens",
+      "n": 50,
+      "agree": 47,
+      "agreeRate": 0.94,
+      "jaccard": 0.8867924528301887,
+      "classes": {
+        "false": {
+          "run1": 47,
+          "run2": 48
+        },
+        "true": {
+          "run1": 3,
+          "run2": 2
+        }
+      },
+      "verdict": "PASS",
+      "dim": "mice-I-v2",
+      "field": "opens"
+    },
+    {
+      "label": "mice-I-v2 closes",
+      "n": 50,
+      "agree": 50,
+      "agreeRate": 1,
+      "jaccard": 1,
+      "classes": {
+        "false": {
+          "run1": 50,
+          "run2": 50
+        }
+      },
+      "verdict": "PASS",
+      "dim": "mice-I-v2",
+      "field": "closes"
+    },
+    {
+      "label": "mice-C is_present",
+      "n": 50,
+      "agree": 43,
+      "agreeRate": 0.86,
+      "jaccard": 0.7543859649122807,
+      "classes": {
+        "false": {
+          "run1": 26,
+          "run2": 29
+        },
+        "true": {
+          "run1": 24,
+          "run2": 21
+        }
+      },
+      "verdict": "BORDERLINE",
+      "dim": "mice-C",
+      "field": "is_present"
+    },
+    {
+      "label": "mice-C is_dominant",
+      "n": 50,
+      "agree": 44,
+      "agreeRate": 0.88,
+      "jaccard": 0.7857142857142857,
+      "classes": {
+        "false": {
+          "run1": 39,
+          "run2": 43
+        },
+        "true": {
+          "run1": 11,
+          "run2": 7
+        }
+      },
+      "verdict": "BORDERLINE",
+      "dim": "mice-C",
+      "field": "is_dominant"
+    },
+    {
+      "label": "mice-C opens",
+      "n": 50,
+      "agree": 43,
+      "agreeRate": 0.86,
+      "jaccard": 0.7543859649122807,
+      "classes": {
+        "false": {
+          "run1": 42,
+          "run2": 49
+        },
+        "true": {
+          "run1": 8,
+          "run2": 1
+        }
+      },
+      "verdict": "BORDERLINE",
+      "dim": "mice-C",
+      "field": "opens"
+    },
+    {
+      "label": "mice-C closes",
+      "n": 50,
+      "agree": 47,
+      "agreeRate": 0.94,
+      "jaccard": 0.8867924528301887,
+      "classes": {
+        "false": {
+          "run1": 48,
+          "run2": 49
+        },
+        "true": {
+          "run1": 2,
+          "run2": 1
+        }
+      },
+      "verdict": "PASS",
+      "dim": "mice-C",
+      "field": "closes"
+    },
+    {
+      "label": "mice-E is_present",
+      "n": 50,
+      "agree": 45,
+      "agreeRate": 0.9,
+      "jaccard": 0.8181818181818182,
+      "classes": {
+        "true": {
+          "run1": 22,
+          "run2": 23
+        },
+        "false": {
+          "run1": 28,
+          "run2": 27
+        }
+      },
+      "verdict": "BORDERLINE",
+      "dim": "mice-E",
+      "field": "is_present"
+    },
+    {
+      "label": "mice-E is_dominant",
+      "n": 50,
+      "agree": 43,
+      "agreeRate": 0.86,
+      "jaccard": 0.7543859649122807,
+      "classes": {
+        "true": {
+          "run1": 15,
+          "run2": 16
+        },
+        "false": {
+          "run1": 35,
+          "run2": 34
+        }
+      },
+      "verdict": "BORDERLINE",
+      "dim": "mice-E",
+      "field": "is_dominant"
+    },
+    {
+      "label": "mice-E opens",
+      "n": 50,
+      "agree": 45,
+      "agreeRate": 0.9,
+      "jaccard": 0.8181818181818182,
+      "classes": {
+        "false": {
+          "run1": 48,
+          "run2": 43
+        },
+        "true": {
+          "run1": 2,
+          "run2": 7
+        }
+      },
+      "verdict": "BORDERLINE",
+      "dim": "mice-E",
+      "field": "opens"
+    },
+    {
+      "label": "mice-E closes",
+      "n": 50,
+      "agree": 48,
+      "agreeRate": 0.96,
+      "jaccard": 0.9230769230769231,
+      "classes": {
+        "false": {
+          "run1": 49,
+          "run2": 47
+        },
+        "true": {
+          "run1": 1,
+          "run2": 3
+        }
+      },
+      "verdict": "PASS",
+      "dim": "mice-E",
+      "field": "closes"
+    },
+    {
+      "label": "lifeValue-5class (orig)",
+      "n": 50,
+      "agree": 44,
+      "agreeRate": 0.88,
+      "jaccard": 0.7857142857142857,
+      "classes": {
+        "agency": {
+          "run1": 14,
+          "run2": 14
+        },
+        "relational": {
+          "run1": 8,
+          "run2": 9
+        },
+        "life-death": {
+          "run1": 18,
+          "run2": 18
+        },
+        "ethics": {
+          "run1": 3,
+          "run2": 2
+        },
+        "aspiration": {
+          "run1": 7,
+          "run2": 7
+        }
+      },
+      "verdict": "BORDERLINE",
+      "dim": "value-charge-v2",
+      "field": "lifeValue-5class"
+    },
+    {
+      "label": "lifeValue-binary-life-death",
+      "n": 50,
+      "agree": 48,
+      "agreeRate": 0.96,
+      "jaccard": 0.9230769230769231,
+      "classes": {
+        "not-life-death": {
+          "run1": 32,
+          "run2": 32
+        },
+        "life-death": {
+          "run1": 18,
+          "run2": 18
+        }
+      },
+      "verdict": "PASS",
+      "dim": "value-charge-v2",
+      "field": "lifeValue-binary-life-death"
+    },
+    {
+      "label": "lifeValue-binary-ethics",
+      "n": 50,
+      "agree": 49,
+      "agreeRate": 0.98,
+      "jaccard": 0.9607843137254902,
+      "classes": {
+        "not-ethics": {
+          "run1": 47,
+          "run2": 48
+        },
+        "ethics": {
+          "run1": 3,
+          "run2": 2
+        }
+      },
+      "verdict": "PASS",
+      "dim": "value-charge-v2",
+      "field": "lifeValue-binary-ethics"
+    },
+    {
+      "label": "lifeValue-binary-relational",
+      "n": 50,
+      "agree": 49,
+      "agreeRate": 0.98,
+      "jaccard": 0.9607843137254902,
+      "classes": {
+        "not-relational": {
+          "run1": 42,
+          "run2": 41
+        },
+        "relational": {
+          "run1": 8,
+          "run2": 9
+        }
+      },
+      "verdict": "PASS",
+      "dim": "value-charge-v2",
+      "field": "lifeValue-binary-relational"
+    },
+    {
+      "label": "lifeValue-binary-agency (borderline)",
+      "n": 50,
+      "agree": 46,
+      "agreeRate": 0.92,
+      "jaccard": 0.8518518518518519,
+      "classes": {
+        "agency": {
+          "run1": 14,
+          "run2": 14
+        },
+        "not-agency": {
+          "run1": 36,
+          "run2": 36
+        }
+      },
+      "verdict": "PASS",
+      "dim": "value-charge-v2",
+      "field": "lifeValue-binary-agency"
+    },
+    {
+      "label": "lifeValue-binary-aspiration (borderline)",
+      "n": 50,
+      "agree": 46,
+      "agreeRate": 0.92,
+      "jaccard": 0.8518518518518519,
+      "classes": {
+        "not-aspiration": {
+          "run1": 43,
+          "run2": 43
+        },
+        "aspiration": {
+          "run1": 7,
+          "run2": 7
+        }
+      },
+      "verdict": "PASS",
+      "dim": "value-charge-v2",
+      "field": "lifeValue-binary-aspiration"
+    },
+    {
+      "label": "polarity-3class (control)",
+      "n": 50,
+      "agree": 44,
+      "agreeRate": 0.88,
+      "jaccard": 0.7857142857142857,
+      "classes": {
+        "0": {
+          "run1": 10,
+          "run2": 13
+        },
+        "-": {
+          "run1": 22,
+          "run2": 20
+        },
+        "+": {
+          "run1": 18,
+          "run2": 17
+        }
+      },
+      "verdict": "BORDERLINE",
+      "dim": "value-charge-v2",
+      "field": "polarity-3class"
+    },
+    {
+      "label": "polarity-binary-shifted (control)",
+      "n": 50,
+      "agree": 45,
+      "agreeRate": 0.9,
+      "jaccard": 0.8181818181818182,
+      "classes": {
+        "static": {
+          "run1": 10,
+          "run2": 13
+        },
+        "shifted": {
+          "run1": 40,
+          "run2": 37
+        }
+      },
+      "verdict": "BORDERLINE",
+      "dim": "value-charge-v2",
+      "field": "polarity-binary-shifted"
+    }
+  ]
+}

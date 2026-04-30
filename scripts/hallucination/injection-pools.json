@@ -1,0 +1,38 @@
+{
+  "__notes": "Pools for deterministic variant injection. Scenario hash + variant type picks the index. Extend freely — changes to pool ORDER shift all pair hashes.",
+  "characterNames": [
+    "Cassius", "Morven", "Helix", "Kaelen", "Varis", "Thalen", "Ellira", "Branduin", "Selena", "Orrin",
+    "Tavian", "Esme", "Rulf", "Mirela", "Draven", "Yvette", "Hallen", "Neyla", "Pietro", "Sorcha",
+    "Emeric", "Brianna", "Caldric", "Yuren", "Isolde", "Talros", "Vespera", "Osric", "Linna", "Cador",
+    "Petrus", "Saeryl", "Wendel", "Alenor", "Gorm", "Nira", "Bram", "Lucia", "Finnegan", "Sela",
+    "Archon", "Vyra", "Estis", "Nyx", "Tamsin", "Rue", "Corin", "Odessa", "Malric", "Sylvan",
+    "Vas'thar", "Demos", "Pellan", "Halvern", "Veln", "Halen", "Finn", "Alory"
+  ],
+  "placeNames": [
+    "Greyhollow", "Northland", "Ashvale", "Brighthollow", "Drakefen", "Thornspire", "Orinholt", "Westmarch", "Ironreach", "Silverglen",
+    "Stonemarsh", "Hazelford", "Blackbrook", "Windvale", "Gullstown", "Raven's Run", "Mossgate", "Redpass", "Thornfield", "Kirkbridge",
+    "the Great Chasm", "the Azure Expanse", "Shardshore", "Hollowdale", "Frostwick", "Amberglen", "Obsidian Reach", "the Black Meridian", "Thieves' Kitchen", "Ember Ridge",
+    "Longbarrow", "the Whispering Fens", "Saltreach", "Pyrelight", "Ironhold Deep", "the Ninth Ring", "Cinderholt", "Brightwater Crossing", "Duskfall Temple", "the Sable Causeway"
+  ],
+  "systemNames": [
+    "the Null Weaving", "Protocol Theta", "the Ninth Art", "the Ember Canon", "Gravewright Binding", "the Bright Discipline", "the Hollow Code", "Ironwort Healing", "the Voidbreath Rite", "the Ash Tongue",
+    "the Ember Calculus", "Shadow Cartography", "Oathkeeping", "the Starspun Arc", "the Last Concord", "Saltworking", "the Pyre Doctrine", "Threadwalking", "the Crimson Loom", "the Gentle Seeing",
+    "the Hollow Lexicon", "Mask-Binding", "the Cold Suffix", "Glassvein Alchemy", "the Tenth Lattice", "Sealbreaker Lore", "the Wane Pact", "Stormreading", "the Ember Ledger", "the Violet Inheritance"
+  ],
+  "factionNames": [
+    "the Obsidian Brotherhood", "the Ashen Company", "the Silent Thirteen", "the Brass Order", "the Midnight Concord", "the Shrouded Hands", "the Oxblood Guild", "the Echo Fellowship", "the Iron Reliquary", "the Pale Guild",
+    "the Wanderer's Kin", "the Thorn Pact", "the Salt Circle", "the Covenant of Ash", "the Longshadow Cadre", "the Ninth Veil", "the Verdant Accord", "the Bell Rangers", "the Duskborn Legion", "the Grey Mantle",
+    "the Hollow Choir", "the Cinder Guard", "the Unbound Seven", "the Brass Tongues", "the Thousand Quills", "the Wanethroat", "the Claret Order", "the Silverdusk Rangers", "the Ember Courts", "the Riverborn"
+  ],
+  "leakTokens": [
+    "Drizzt", "Bruenor", "Wulfgar", "Regis", "Catti-brie", "Rumblebelly", "Akar Kessell", "Entreri", "Jarlaxle", "Zaknafein",
+    "Guenhwyvar", "Dendybar", "Pasha Pook", "Deudermont", "Heafstaag", "Biggrin",
+    "Mithril Hall", "Mithral Hall", "Icewind Dale", "Ten-Towns", "Bryn Shander", "Termalaine", "Easthaven", "Luskan", "Silverymoon", "Calimport", "Maer Dualdon", "Kelvin's Cairn", "Spine of the World", "Cryshal-Tirith", "Faerûn", "Sword Coast", "Forgotten Realms",
+    "Crystal Shard", "Crenshinibon", "Aegis-fang", "Twinkle", "Icingdeath", "Taulmaril",
+    "drow", "verbeeg", "duergar", "svirfneblin",
+    "Do'Urden", "Battlehammer"
+  ],
+  "realWorldRefs": [
+    "Tuesday", "March", "October", "the Rhine", "the Sahara", "the Pacific", "the Kuiper Belt", "Mars", "Jupiter", "the Thames", "the Andes"
+  ]
+}

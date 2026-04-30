@@ -1,0 +1,106 @@
+{
+  "computedAt": "2026-04-30T12:07:51.066Z",
+  "description": "Stake-escalation directional check across 3 IWD books. Counts boundary_signal='stakes_recalibration' events per chapter quintile (within-chapter) and per book-arc third (across-book).",
+  "rationale": "Tests whether stakes escalate (a) within chapters (q4 > q0) and (b) across the book arc (late > early). Feeds chapter-outline `purpose` guidance — if stakes rise within chapters as a stable pattern, the planner should encode that.",
+  "per_book": {
+    "crystal_shard": {
+      "n_chapters": 34,
+      "chaptersStakesRising": 17,
+      "chaptersStakesFalling": 5,
+      "chaptersStakesFlat": 12,
+      "chaptersStakesRisingPct": 50,
+      "aggregate_quintile_counts": [
+        11,
+        31,
+        34,
+        37,
+        31
+      ],
+      "aggregate_quintile_pct_of_total": [
+        7.6,
+        21.5,
+        23.6,
+        25.7,
+        21.5
+      ],
+      "within_chapter_trend": "rising",
+      "across_book_arc": {
+        "early_third_stakes_per_chapter": 3.8,
+        "mid_third_stakes_per_chapter": 3.7,
+        "late_third_stakes_per_chapter": 5.8,
+        "arc_direction": "rising"
+      }
+    },
+    "streams_of_silver": {
+      "n_chapters": 29,
+      "chaptersStakesRising": 11,
+      "chaptersStakesFalling": 3,
+      "chaptersStakesFlat": 15,
+      "chaptersStakesRisingPct": 37.9,
+      "aggregate_quintile_counts": [
+        12,
+        16,
+        27,
+        32,
+        25
+      ],
+      "aggregate_quintile_pct_of_total": [
+        10.7,
+        14.3,
+        24.1,
+        28.6,
+        22.3
+      ],
+      "within_chapter_trend": "rising",
+      "across_book_arc": {
+        "early_third_stakes_per_chapter": 3.5,
+        "mid_third_stakes_per_chapter": 4,
+        "late_third_stakes_per_chapter": 4.88,
+        "arc_direction": "rising"
+      }
+    },
+    "halflings_gem": {
+      "n_chapters": 29,
+      "chaptersStakesRising": 15,
+      "chaptersStakesFalling": 2,
+      "chaptersStakesFlat": 12,
+      "chaptersStakesRisingPct": 51.7,
+      "aggregate_quintile_counts": [
+        6,
+        28,
+        35,
+        27,
+        29
+      ],
+      "aggregate_quintile_pct_of_total": [
+        4.8,
+        22.4,
+        28,
+        21.6,
+        23.2
+      ],
+      "within_chapter_trend": "rising",
+      "across_book_arc": {
+        "early_third_stakes_per_chapter": 4.63,
+        "mid_third_stakes_per_chapter": 4.11,
+        "late_third_stakes_per_chapter": 5.75,
+        "arc_direction": "rising"
+      }
+    }
+  },
+  "cross_book": {
+    "within_chapter_trends": [
+      "rising",
+      "rising",
+      "rising"
+    ],
+    "within_chapter_directional_stable": true,
+    "arc_directions": [
+      "rising",
+      "rising",
+      "rising"
+    ],
+    "arc_directional_stable": true
+  },
+  "directional_assessment": "Within-chapter: rising / rising / rising (STABLE). Across-book arc: rising / rising / rising (STABLE)."
+}

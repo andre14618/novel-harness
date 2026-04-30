@@ -1,0 +1,1336 @@
+{
+  "pattern_number": 60,
+  "pattern_name": "Comma density + clause-count per sentence",
+  "timestamp": "20260430T122056",
+  "commit": "a3da6d1",
+  "beats_path": "novels/salvatore-icewind-dale/beats.jsonl",
+  "sentence_segmenter": "regex (?<=[.!?])\\s+(?=[A-Z\"openquote]) \u2014 sentences with <3 words dropped",
+  "clause_count_methodology": "punct_break_proxy = max(1, commas + ';' + ':' + 1); conj_augmented_proxy adds mid-sentence coordinating conjunctions",
+  "coordinating_conjunctions": [
+    "and",
+    "but",
+    "or",
+    "yet",
+    "so",
+    "nor",
+    "for"
+  ],
+  "books": [
+    "crystal_shard",
+    "streams_of_silver",
+    "halflings_gem"
+  ],
+  "active_kinds": [
+    "action",
+    "dialogue",
+    "interiority",
+    "description"
+  ],
+  "skipped_beats_or_outliers": 1,
+  "sentences_filtered_under_3_words": 160,
+  "per_book_per_kind": {
+    "crystal_shard": {
+      "description": {
+        "n_sentences": 729,
+        "n_beats": 130,
+        "n_words": 13443,
+        "comma_density_per_100w": {
+          "n": 729,
+          "mean": 5.518,
+          "median": 5.0,
+          "p25": 0.0,
+          "p75": 8.333,
+          "stdev": 5.202,
+          "min": 0.0,
+          "max": 40.0
+        },
+        "commas_per_sentence": {
+          "n": 729,
+          "mean": 1.255,
+          "median": 1.0,
+          "p25": 0.0,
+          "p75": 2.0,
+          "stdev": 1.197,
+          "min": 0.0,
+          "max": 8.0
+        },
+        "clauses_per_sentence_punct": {
+          "n": 729,
+          "mean": 2.28,
+          "median": 2.0,
+          "p25": 1.0,
+          "p75": 3.0,
+          "stdev": 1.218,
+          "min": 1.0,
+          "max": 9.0
+        },
+        "clauses_per_sentence_conj": {
+          "n": 729,
+          "mean": 3.152,
+          "median": 3.0,
+          "p25": 2.0,
+          "p75": 4.0,
+          "stdev": 1.816,
+          "min": 1.0,
+          "max": 12.0
+        },
+        "sentence_words": {
+          "n": 729,
+          "mean": 21.38,
+          "median": 20.0,
+          "p25": 14.0,
+          "p75": 27.0,
+          "stdev": 10.41,
+          "min": 3.0,
+          "max": 60.0
+        },
+        "comma_histogram": {
+          "counts": {
+            "0": 215,
+            "1": 262,
+            "2": 157,
+            "3+": 95
+          },
+          "pct": {
+            "0": 29.49,
+            "1": 35.94,
+            "2": 21.54,
+            "3+": 13.03
+          }
+        },
+        "mid_sentence_conjunctions_per_100w": 4.081,
+        "within_beat_comma_density_stdev_mean": 3.994
+      },
+      "interiority": {
+        "n_sentences": 1129,
+        "n_beats": 177,
+        "n_words": 18782,
+        "comma_density_per_100w": {
+          "n": 1129,
+          "mean": 5.243,
+          "median": 4.167,
+          "p25": 0.0,
+          "p75": 7.692,
+          "stdev": 5.965,
+          "min": 0.0,
+          "max": 40.0
+        },
+        "commas_per_sentence": {
+          "n": 1129,
+          "mean": 1.068,
+          "median": 1.0,
+          "p25": 0.0,
+          "p75": 2.0,
+          "stdev": 1.114,
+          "min": 0.0,
+          "max": 6.0
+        },
+        "clauses_per_sentence_punct": {
+          "n": 1129,
+          "mean": 2.099,
+          "median": 2.0,
+          "p25": 1.0,
+          "p75": 3.0,
+          "stdev": 1.129,
+          "min": 1.0,
+          "max": 7.0
+        },
+        "clauses_per_sentence_conj": {
+          "n": 1129,
+          "mean": 2.85,
+          "median": 2.0,
+          "p25": 2.0,
+          "p75": 4.0,
+          "stdev": 1.699,
+          "min": 1.0,
+          "max": 10.0
+        },
+        "sentence_words": {
+          "n": 1129,
+          "mean": 19.75,
+          "median": 19.0,
+          "p25": 11.0,
+          "p75": 26.0,
+          "stdev": 10.69,
+          "min": 3.0,
+          "max": 74.0
+        },
+        "comma_histogram": {
+          "counts": {
+            "0": 422,
+            "1": 384,
+            "2": 197,
+            "3+": 126
+          },
+          "pct": {
+            "0": 37.38,
+            "1": 34.01,
+            "2": 17.45,
+            "3+": 11.16
+          }
+        },
+        "mid_sentence_conjunctions_per_100w": 3.803,
+        "within_beat_comma_density_stdev_mean": 4.679
+      },
+      "action": {
+        "n_sentences": 2148,
+        "n_beats": 308,
+        "n_words": 32318,
+        "comma_density_per_100w": {
+          "n": 2148,
+          "mean": 5.3,
+          "median": 4.762,
+          "p25": 0.0,
+          "p75": 8.0,
+          "stdev": 5.763,
+          "min": 0.0,
+          "max": 40.0
+        },
+        "commas_per_sentence": {
+          "n": 2148,
+          "mean": 0.973,
+          "median": 1.0,
+          "p25": 0.0,
+          "p75": 1.0,
+          "stdev": 0.987,
+          "min": 0.0,
+          "max": 6.0
+        },
+        "clauses_per_sentence_punct": {
+          "n": 2148,
+          "mean": 1.993,
+          "median": 2.0,
+          "p25": 1.0,
+          "p75": 3.0,
+          "stdev": 1.002,
+          "min": 1.0,
+          "max": 8.0
+        },
+        "clauses_per_sentence_conj": {
+          "n": 2148,
+          "mean": 2.711,
+          "median": 2.0,
+          "p25": 2.0,
+          "p75": 4.0,
+          "stdev": 1.522,
+          "min": 1.0,
+          "max": 11.0
+        },
+        "sentence_words": {
+          "n": 2148,
+          "mean": 17.83,
+          "median": 17.0,
+          "p25": 11.0,
+          "p75": 23.0,
+          "stdev": 9.29,
+          "min": 3.0,
+          "max": 61.0
+        },
+        "comma_histogram": {
+          "counts": {
+            "0": 798,
+            "1": 817,
+            "2": 378,
+            "3+": 155
+          },
+          "pct": {
+            "0": 37.15,
+            "1": 38.04,
+            "2": 17.6,
+            "3+": 7.22
+          }
+        },
+        "mid_sentence_conjunctions_per_100w": 4.028,
+        "within_beat_comma_density_stdev_mean": 4.651
+      },
+      "dialogue": {
+        "n_sentences": 1794,
+        "n_beats": 242,
+        "n_words": 25358,
+        "comma_density_per_100w": {
+          "n": 1794,
+          "mean": 6.76,
+          "median": 5.263,
+          "p25": 0.0,
+          "p75": 10.526,
+          "stdev": 7.69,
+          "min": 0.0,
+          "max": 50.0
+        },
+        "commas_per_sentence": {
+          "n": 1794,
+          "mean": 0.987,
+          "median": 1.0,
+          "p25": 0.0,
+          "p75": 2.0,
+          "stdev": 1.079,
+          "min": 0.0,
+          "max": 11.0
+        },
+        "clauses_per_sentence_punct": {
+          "n": 1794,
+          "mean": 2.011,
+          "median": 2.0,
+          "p25": 1.0,
+          "p75": 3.0,
+          "stdev": 1.129,
+          "min": 1.0,
+          "max": 16.0
+        },
+        "clauses_per_sentence_conj": {
+          "n": 1794,
+          "mean": 2.563,
+          "median": 2.0,
+          "p25": 1.0,
+          "p75": 3.0,
+          "stdev": 1.591,
+          "min": 1.0,
+          "max": 19.0
+        },
+        "sentence_words": {
+          "n": 1794,
+          "mean": 15.93,
+          "median": 14.0,
+          "p25": 8.0,
+          "p75": 21.0,
+          "stdev": 10.18,
+          "min": 3.0,
+          "max": 102.0
+        },
+        "comma_histogram": {
+          "counts": {
+            "0": 686,
+            "1": 646,
+            "2": 333,
+            "3+": 129
+          },
+          "pct": {
+            "0": 38.24,
+            "1": 36.01,
+            "2": 18.56,
+            "3+": 7.19
+          }
+        },
+        "mid_sentence_conjunctions_per_100w": 3.464,
+        "within_beat_comma_density_stdev_mean": 6.452
+      }
+    },
+    "halflings_gem": {
+      "description": {
+        "n_sentences": 468,
+        "n_beats": 79,
+        "n_words": 8527,
+        "comma_density_per_100w": {
+          "n": 468,
+          "mean": 6.409,
+          "median": 5.608,
+          "p25": 0.0,
+          "p75": 9.199,
+          "stdev": 6.145,
+          "min": 0.0,
+          "max": 40.0
+        },
+        "commas_per_sentence": {
+          "n": 468,
+          "mean": 1.331,
+          "median": 1.0,
+          "p25": 0.0,
+          "p75": 2.0,
+          "stdev": 1.233,
+          "min": 0.0,
+          "max": 6.0
+        },
+        "clauses_per_sentence_punct": {
+          "n": 468,
+          "mean": 2.393,
+          "median": 2.0,
+          "p25": 1.0,
+          "p75": 3.0,
+          "stdev": 1.264,
+          "min": 1.0,
+          "max": 7.0
+        },
+        "clauses_per_sentence_conj": {
+          "n": 468,
+          "mean": 3.239,
+          "median": 3.0,
+          "p25": 2.0,
+          "p75": 4.0,
+          "stdev": 1.896,
+          "min": 1.0,
+          "max": 10.0
+        },
+        "sentence_words": {
+          "n": 468,
+          "mean": 20.39,
+          "median": 18.0,
+          "p25": 12.75,
+          "p75": 27.0,
+          "stdev": 10.89,
+          "min": 3.0,
+          "max": 62.0
+        },
+        "comma_histogram": {
+          "counts": {
+            "0": 137,
+            "1": 154,
+            "2": 103,
+            "3+": 74
+          },
+          "pct": {
+            "0": 29.27,
+            "1": 32.91,
+            "2": 22.01,
+            "3+": 15.81
+          }
+        },
+        "mid_sentence_conjunctions_per_100w": 4.15,
+        "within_beat_comma_density_stdev_mean": 4.457
+      },
+      "interiority": {
+        "n_sentences": 1082,
+        "n_beats": 159,
+        "n_words": 16964,
+        "comma_density_per_100w": {
+          "n": 1082,
+          "mean": 6.056,
+          "median": 5.0,
+          "p25": 0.0,
+          "p75": 9.524,
+          "stdev": 6.726,
+          "min": 0.0,
+          "max": 42.857
+        },
+        "commas_per_sentence": {
+          "n": 1082,
+          "mean": 1.045,
+          "median": 1.0,
+          "p25": 0.0,
+          "p75": 2.0,
+          "stdev": 1.085,
+          "min": 0.0,
+          "max": 5.0
+        },
+        "clauses_per_sentence_punct": {
+          "n": 1082,
+          "mean": 2.073,
+          "median": 2.0,
+          "p25": 1.0,
+          "p75": 3.0,
+          "stdev": 1.088,
+          "min": 1.0,
+          "max": 6.0
+        },
+        "clauses_per_sentence_conj": {
+          "n": 1082,
+          "mean": 2.748,
+          "median": 2.0,
+          "p25": 2.0,
+          "p75": 4.0,
+          "stdev": 1.599,
+          "min": 1.0,
+          "max": 11.0
+        },
+        "sentence_words": {
+          "n": 1082,
+          "mean": 16.95,
+          "median": 15.0,
+          "p25": 9.0,
+          "p75": 22.75,
+          "stdev": 9.59,
+          "min": 3.0,
+          "max": 62.0
+        },
+        "comma_histogram": {
+          "counts": {
+            "0": 408,
+            "1": 374,
+            "2": 184,
+            "3+": 116
+          },
+          "pct": {
+            "0": 37.71,
+            "1": 34.57,
+            "2": 17.01,
+            "3+": 10.72
+          }
+        },
+        "mid_sentence_conjunctions_per_100w": 3.98,
+        "within_beat_comma_density_stdev_mean": 5.385
+      },
+      "dialogue": {
+        "n_sentences": 2297,
+        "n_beats": 279,
+        "n_words": 29626,
+        "comma_density_per_100w": {
+          "n": 2297,
+          "mean": 7.751,
+          "median": 6.25,
+          "p25": 0.0,
+          "p75": 12.5,
+          "stdev": 8.191,
+          "min": 0.0,
+          "max": 50.0
+        },
+        "commas_per_sentence": {
+          "n": 2297,
+          "mean": 1.051,
+          "median": 1.0,
+          "p25": 0.0,
+          "p75": 2.0,
+          "stdev": 1.069,
+          "min": 0.0,
+          "max": 8.0
+        },
+        "clauses_per_sentence_punct": {
+          "n": 2297,
+          "mean": 2.064,
+          "median": 2.0,
+          "p25": 1.0,
+          "p75": 3.0,
+          "stdev": 1.072,
+          "min": 1.0,
+          "max": 9.0
+        },
+        "clauses_per_sentence_conj": {
+          "n": 2297,
+          "mean": 2.571,
+          "median": 2.0,
+          "p25": 1.0,
+          "p75": 3.0,
+          "stdev": 1.521,
+          "min": 1.0,
+          "max": 11.0
+        },
+        "sentence_words": {
+          "n": 2297,
+          "mean": 14.32,
+          "median": 12.0,
+          "p25": 7.0,
+          "p75": 19.0,
+          "stdev": 9.08,
+          "min": 3.0,
+          "max": 68.0
+        },
+        "comma_histogram": {
+          "counts": {
+            "0": 819,
+            "1": 846,
+            "2": 428,
+            "3+": 204
+          },
+          "pct": {
+            "0": 35.66,
+            "1": 36.83,
+            "2": 18.63,
+            "3+": 8.88
+          }
+        },
+        "mid_sentence_conjunctions_per_100w": 3.539,
+        "within_beat_comma_density_stdev_mean": 7.117
+      },
+      "action": {
+        "n_sentences": 2059,
+        "n_beats": 309,
+        "n_words": 31774,
+        "comma_density_per_100w": {
+          "n": 2059,
+          "mean": 6.715,
+          "median": 5.882,
+          "p25": 0.0,
+          "p75": 10.0,
+          "stdev": 6.497,
+          "min": 0.0,
+          "max": 50.0
+        },
+        "commas_per_sentence": {
+          "n": 2059,
+          "mean": 1.148,
+          "median": 1.0,
+          "p25": 0.0,
+          "p75": 2.0,
+          "stdev": 1.06,
+          "min": 0.0,
+          "max": 7.0
+        },
+        "clauses_per_sentence_punct": {
+          "n": 2059,
+          "mean": 2.166,
+          "median": 2.0,
+          "p25": 1.0,
+          "p75": 3.0,
+          "stdev": 1.062,
+          "min": 1.0,
+          "max": 8.0
+        },
+        "clauses_per_sentence_conj": {
+          "n": 2059,
+          "mean": 2.929,
+          "median": 3.0,
+          "p25": 2.0,
+          "p75": 4.0,
+          "stdev": 1.586,
+          "min": 1.0,
+          "max": 12.0
+        },
+        "sentence_words": {
+          "n": 2059,
+          "mean": 17.11,
+          "median": 16.0,
+          "p25": 11.0,
+          "p75": 22.0,
+          "stdev": 8.89,
+          "min": 3.0,
+          "max": 64.0
+        },
+        "comma_histogram": {
+          "counts": {
+            "0": 623,
+            "1": 802,
+            "2": 418,
+            "3+": 216
+          },
+          "pct": {
+            "0": 30.26,
+            "1": 38.95,
+            "2": 20.3,
+            "3+": 10.49
+          }
+        },
+        "mid_sentence_conjunctions_per_100w": 4.46,
+        "within_beat_comma_density_stdev_mean": 5.155
+      }
+    },
+    "streams_of_silver": {
+      "description": {
+        "n_sentences": 526,
+        "n_beats": 94,
+        "n_words": 10592,
+        "comma_density_per_100w": {
+          "n": 526,
+          "mean": 7.134,
+          "median": 6.667,
+          "p25": 3.393,
+          "p75": 10.0,
+          "stdev": 5.691,
+          "min": 0.0,
+          "max": 37.5
+        },
+        "commas_per_sentence": {
+          "n": 526,
+          "mean": 1.586,
+          "median": 1.0,
+          "p25": 1.0,
+          "p75": 2.0,
+          "stdev": 1.292,
+          "min": 0.0,
+          "max": 8.0
+        },
+        "clauses_per_sentence_punct": {
+          "n": 526,
+          "mean": 2.605,
+          "median": 2.0,
+          "p25": 2.0,
+          "p75": 3.0,
+          "stdev": 1.322,
+          "min": 1.0,
+          "max": 9.0
+        },
+        "clauses_per_sentence_conj": {
+          "n": 526,
+          "mean": 3.618,
+          "median": 3.0,
+          "p25": 2.0,
+          "p75": 5.0,
+          "stdev": 2.009,
+          "min": 1.0,
+          "max": 14.0
+        },
+        "sentence_words": {
+          "n": 526,
+          "mean": 22.04,
+          "median": 20.0,
+          "p25": 14.0,
+          "p75": 28.0,
+          "stdev": 11.04,
+          "min": 3.0,
+          "max": 83.0
+        },
+        "comma_histogram": {
+          "counts": {
+            "0": 117,
+            "1": 155,
+            "2": 140,
+            "3+": 114
+          },
+          "pct": {
+            "0": 22.24,
+            "1": 29.47,
+            "2": 26.62,
+            "3+": 21.67
+          }
+        },
+        "mid_sentence_conjunctions_per_100w": 4.597,
+        "within_beat_comma_density_stdev_mean": 4.614
+      },
+      "interiority": {
+        "n_sentences": 1052,
+        "n_beats": 162,
+        "n_words": 18058,
+        "comma_density_per_100w": {
+          "n": 1052,
+          "mean": 5.908,
+          "median": 5.0,
+          "p25": 0.0,
+          "p75": 9.091,
+          "stdev": 6.188,
+          "min": 0.0,
+          "max": 50.0
+        },
+        "commas_per_sentence": {
+          "n": 1052,
+          "mean": 1.225,
+          "median": 1.0,
+          "p25": 0.0,
+          "p75": 2.0,
+          "stdev": 1.27,
+          "min": 0.0,
+          "max": 8.0
+        },
+        "clauses_per_sentence_punct": {
+          "n": 1052,
+          "mean": 2.242,
+          "median": 2.0,
+          "p25": 1.0,
+          "p75": 3.0,
+          "stdev": 1.289,
+          "min": 1.0,
+          "max": 12.0
+        },
+        "clauses_per_sentence_conj": {
+          "n": 1052,
+          "mean": 3.128,
+          "median": 3.0,
+          "p25": 2.0,
+          "p75": 4.0,
+          "stdev": 2.018,
+          "min": 1.0,
+          "max": 15.0
+        },
+        "sentence_words": {
+          "n": 1052,
+          "mean": 19.5,
+          "median": 18.0,
+          "p25": 11.0,
+          "p75": 26.0,
+          "stdev": 11.32,
+          "min": 3.0,
+          "max": 115.0
+        },
+        "comma_histogram": {
+          "counts": {
+            "0": 358,
+            "1": 351,
+            "2": 185,
+            "3+": 158
+          },
+          "pct": {
+            "0": 34.03,
+            "1": 33.37,
+            "2": 17.59,
+            "3+": 15.02
+          }
+        },
+        "mid_sentence_conjunctions_per_100w": 4.543,
+        "within_beat_comma_density_stdev_mean": 5.004
+      },
+      "dialogue": {
+        "n_sentences": 2272,
+        "n_beats": 256,
+        "n_words": 27835,
+        "comma_density_per_100w": {
+          "n": 2272,
+          "mean": 7.805,
+          "median": 6.667,
+          "p25": 0.0,
+          "p75": 11.765,
+          "stdev": 7.708,
+          "min": 0.0,
+          "max": 60.0
+        },
+        "commas_per_sentence": {
+          "n": 2272,
+          "mean": 1.129,
+          "median": 1.0,
+          "p25": 0.0,
+          "p75": 2.0,
+          "stdev": 1.088,
+          "min": 0.0,
+          "max": 7.0
+        },
+        "clauses_per_sentence_punct": {
+          "n": 2272,
+          "mean": 2.141,
+          "median": 2.0,
+          "p25": 1.0,
+          "p75": 3.0,
+          "stdev": 1.089,
+          "min": 1.0,
+          "max": 8.0
+        },
+        "clauses_per_sentence_conj": {
+          "n": 2272,
+          "mean": 2.71,
+          "median": 2.0,
+          "p25": 2.0,
+          "p75": 3.0,
+          "stdev": 1.589,
+          "min": 1.0,
+          "max": 11.0
+        },
+        "sentence_words": {
+          "n": 2272,
+          "mean": 15.39,
+          "median": 13.0,
+          "p25": 8.0,
+          "p75": 20.0,
+          "stdev": 9.58,
+          "min": 3.0,
+          "max": 69.0
+        },
+        "comma_histogram": {
+          "counts": {
+            "0": 718,
+            "1": 886,
+            "2": 436,
+            "3+": 232
+          },
+          "pct": {
+            "0": 31.6,
+            "1": 39.0,
+            "2": 19.19,
+            "3+": 10.21
+          }
+        },
+        "mid_sentence_conjunctions_per_100w": 3.697,
+        "within_beat_comma_density_stdev_mean": 6.749
+      },
+      "action": {
+        "n_sentences": 2042,
+        "n_beats": 274,
+        "n_words": 29385,
+        "comma_density_per_100w": {
+          "n": 2042,
+          "mean": 6.735,
+          "median": 5.882,
+          "p25": 0.0,
+          "p75": 10.0,
+          "stdev": 6.339,
+          "min": 0.0,
+          "max": 40.0
+        },
+        "commas_per_sentence": {
+          "n": 2042,
+          "mean": 1.223,
+          "median": 1.0,
+          "p25": 0.0,
+          "p75": 2.0,
+          "stdev": 1.114,
+          "min": 0.0,
+          "max": 7.0
+        },
+        "clauses_per_sentence_punct": {
+          "n": 2042,
+          "mean": 2.235,
+          "median": 2.0,
+          "p25": 1.0,
+          "p75": 3.0,
+          "stdev": 1.118,
+          "min": 1.0,
+          "max": 8.0
+        },
+        "clauses_per_sentence_conj": {
+          "n": 2042,
+          "mean": 3.037,
+          "median": 3.0,
+          "p25": 2.0,
+          "p75": 4.0,
+          "stdev": 1.668,
+          "min": 1.0,
+          "max": 11.0
+        },
+        "sentence_words": {
+          "n": 2042,
+          "mean": 17.94,
+          "median": 17.0,
+          "p25": 11.0,
+          "p75": 24.0,
+          "stdev": 9.57,
+          "min": 3.0,
+          "max": 63.0
+        },
+        "comma_histogram": {
+          "counts": {
+            "0": 574,
+            "1": 794,
+            "2": 433,
+            "3+": 241
+          },
+          "pct": {
+            "0": 28.11,
+            "1": 38.88,
+            "2": 21.2,
+            "3+": 11.8
+          }
+        },
+        "mid_sentence_conjunctions_per_100w": 4.471,
+        "within_beat_comma_density_stdev_mean": 5.117
+      }
+    }
+  },
+  "rankings_by_metric": {
+    "comma_density_mean": {
+      "crystal_shard": [
+        {
+          "kind": "dialogue",
+          "value": 6.76
+        },
+        {
+          "kind": "description",
+          "value": 5.518
+        },
+        {
+          "kind": "action",
+          "value": 5.3
+        },
+        {
+          "kind": "interiority",
+          "value": 5.243
+        }
+      ],
+      "streams_of_silver": [
+        {
+          "kind": "dialogue",
+          "value": 7.805
+        },
+        {
+          "kind": "description",
+          "value": 7.134
+        },
+        {
+          "kind": "action",
+          "value": 6.735
+        },
+        {
+          "kind": "interiority",
+          "value": 5.908
+        }
+      ],
+      "halflings_gem": [
+        {
+          "kind": "dialogue",
+          "value": 7.751
+        },
+        {
+          "kind": "action",
+          "value": 6.715
+        },
+        {
+          "kind": "description",
+          "value": 6.409
+        },
+        {
+          "kind": "interiority",
+          "value": 6.056
+        }
+      ]
+    },
+    "clauses_punct_mean": {
+      "crystal_shard": [
+        {
+          "kind": "description",
+          "value": 2.28
+        },
+        {
+          "kind": "interiority",
+          "value": 2.099
+        },
+        {
+          "kind": "dialogue",
+          "value": 2.011
+        },
+        {
+          "kind": "action",
+          "value": 1.993
+        }
+      ],
+      "streams_of_silver": [
+        {
+          "kind": "description",
+          "value": 2.605
+        },
+        {
+          "kind": "interiority",
+          "value": 2.242
+        },
+        {
+          "kind": "action",
+          "value": 2.235
+        },
+        {
+          "kind": "dialogue",
+          "value": 2.141
+        }
+      ],
+      "halflings_gem": [
+        {
+          "kind": "description",
+          "value": 2.393
+        },
+        {
+          "kind": "action",
+          "value": 2.166
+        },
+        {
+          "kind": "interiority",
+          "value": 2.073
+        },
+        {
+          "kind": "dialogue",
+          "value": 2.064
+        }
+      ]
+    }
+  },
+  "metric_verdicts": {
+    "comma_density": {
+      "per_book_top2": {
+        "crystal_shard": [
+          "dialogue",
+          "description"
+        ],
+        "streams_of_silver": [
+          "dialogue",
+          "description"
+        ],
+        "halflings_gem": [
+          "dialogue",
+          "action"
+        ]
+      },
+      "per_book_top1": {
+        "crystal_shard": "dialogue",
+        "streams_of_silver": "dialogue",
+        "halflings_gem": "dialogue"
+      },
+      "books_with_matching_top2": 2,
+      "verdict": "PASS_PARTIAL"
+    },
+    "clauses_per_sentence_punct": {
+      "per_book_top2": {
+        "crystal_shard": [
+          "description",
+          "interiority"
+        ],
+        "streams_of_silver": [
+          "description",
+          "interiority"
+        ],
+        "halflings_gem": [
+          "description",
+          "action"
+        ]
+      },
+      "per_book_top1": {
+        "crystal_shard": "description",
+        "streams_of_silver": "description",
+        "halflings_gem": "description"
+      },
+      "books_with_matching_top2": 2,
+      "verdict": "PASS_PARTIAL"
+    }
+  },
+  "mean_stability": {
+    "comma_density_per_100w": {
+      "action": {
+        "values_by_book": {
+          "crystal_shard": 5.3,
+          "streams_of_silver": 6.735,
+          "halflings_gem": 6.715
+        },
+        "spread_over_mean": 0.23,
+        "stable_le_25pct": true
+      },
+      "dialogue": {
+        "values_by_book": {
+          "crystal_shard": 6.76,
+          "streams_of_silver": 7.805,
+          "halflings_gem": 7.751
+        },
+        "spread_over_mean": 0.14,
+        "stable_le_25pct": true
+      },
+      "interiority": {
+        "values_by_book": {
+          "crystal_shard": 5.243,
+          "streams_of_silver": 5.908,
+          "halflings_gem": 6.056
+        },
+        "spread_over_mean": 0.142,
+        "stable_le_25pct": true
+      },
+      "description": {
+        "values_by_book": {
+          "crystal_shard": 5.518,
+          "streams_of_silver": 7.134,
+          "halflings_gem": 6.409
+        },
+        "spread_over_mean": 0.254,
+        "stable_le_25pct": false
+      }
+    },
+    "clauses_per_sentence_punct": {
+      "action": {
+        "values_by_book": {
+          "crystal_shard": 1.993,
+          "streams_of_silver": 2.235,
+          "halflings_gem": 2.166
+        },
+        "spread_over_mean": 0.114,
+        "stable_le_25pct": true
+      },
+      "dialogue": {
+        "values_by_book": {
+          "crystal_shard": 2.011,
+          "streams_of_silver": 2.141,
+          "halflings_gem": 2.064
+        },
+        "spread_over_mean": 0.063,
+        "stable_le_25pct": true
+      },
+      "interiority": {
+        "values_by_book": {
+          "crystal_shard": 2.099,
+          "streams_of_silver": 2.242,
+          "halflings_gem": 2.073
+        },
+        "spread_over_mean": 0.079,
+        "stable_le_25pct": true
+      },
+      "description": {
+        "values_by_book": {
+          "crystal_shard": 2.28,
+          "streams_of_silver": 2.605,
+          "halflings_gem": 2.393
+        },
+        "spread_over_mean": 0.134,
+        "stable_le_25pct": true
+      }
+    }
+  },
+  "mid_sentence_conjunctions": {
+    "per_kind": {
+      "action": {
+        "per_book": {
+          "crystal_shard": 4.028,
+          "streams_of_silver": 4.471,
+          "halflings_gem": 4.46
+        },
+        "mean_across_books": 4.32,
+        "spread_over_mean": 0.103
+      },
+      "dialogue": {
+        "per_book": {
+          "crystal_shard": 3.464,
+          "streams_of_silver": 3.697,
+          "halflings_gem": 3.539
+        },
+        "mean_across_books": 3.567,
+        "spread_over_mean": 0.065
+      },
+      "interiority": {
+        "per_book": {
+          "crystal_shard": 3.803,
+          "streams_of_silver": 4.543,
+          "halflings_gem": 3.98
+        },
+        "mean_across_books": 4.109,
+        "spread_over_mean": 0.18
+      },
+      "description": {
+        "per_book": {
+          "crystal_shard": 4.081,
+          "streams_of_silver": 4.597,
+          "halflings_gem": 4.15
+        },
+        "mean_across_books": 4.276,
+        "spread_over_mean": 0.121
+      }
+    },
+    "per_book_ranking": {
+      "crystal_shard": [
+        {
+          "kind": "description",
+          "value": 4.081
+        },
+        {
+          "kind": "action",
+          "value": 4.028
+        },
+        {
+          "kind": "interiority",
+          "value": 3.803
+        },
+        {
+          "kind": "dialogue",
+          "value": 3.464
+        }
+      ],
+      "streams_of_silver": [
+        {
+          "kind": "description",
+          "value": 4.597
+        },
+        {
+          "kind": "interiority",
+          "value": 4.543
+        },
+        {
+          "kind": "action",
+          "value": 4.471
+        },
+        {
+          "kind": "dialogue",
+          "value": 3.697
+        }
+      ],
+      "halflings_gem": [
+        {
+          "kind": "action",
+          "value": 4.46
+        },
+        {
+          "kind": "description",
+          "value": 4.15
+        },
+        {
+          "kind": "interiority",
+          "value": 3.98
+        },
+        {
+          "kind": "dialogue",
+          "value": 3.539
+        }
+      ]
+    },
+    "per_book_top1": {
+      "crystal_shard": "description",
+      "streams_of_silver": "description",
+      "halflings_gem": "action"
+    },
+    "top1_stable": false
+  },
+  "rhythm_variability": {
+    "per_kind": {
+      "action": {
+        "per_book_mean_within_beat_stdev": {
+          "crystal_shard": 4.651,
+          "streams_of_silver": 5.117,
+          "halflings_gem": 5.155
+        },
+        "mean_across_books": 4.974,
+        "spread_over_mean": 0.101
+      },
+      "dialogue": {
+        "per_book_mean_within_beat_stdev": {
+          "crystal_shard": 6.452,
+          "streams_of_silver": 6.749,
+          "halflings_gem": 7.117
+        },
+        "mean_across_books": 6.773,
+        "spread_over_mean": 0.098
+      },
+      "interiority": {
+        "per_book_mean_within_beat_stdev": {
+          "crystal_shard": 4.679,
+          "streams_of_silver": 5.004,
+          "halflings_gem": 5.385
+        },
+        "mean_across_books": 5.023,
+        "spread_over_mean": 0.141
+      },
+      "description": {
+        "per_book_mean_within_beat_stdev": {
+          "crystal_shard": 3.994,
+          "streams_of_silver": 4.614,
+          "halflings_gem": 4.457
+        },
+        "mean_across_books": 4.355,
+        "spread_over_mean": 0.142
+      }
+    },
+    "per_book_ranking": {
+      "crystal_shard": [
+        {
+          "kind": "dialogue",
+          "value": 6.452
+        },
+        {
+          "kind": "interiority",
+          "value": 4.679
+        },
+        {
+          "kind": "action",
+          "value": 4.651
+        },
+        {
+          "kind": "description",
+          "value": 3.994
+        }
+      ],
+      "streams_of_silver": [
+        {
+          "kind": "dialogue",
+          "value": 6.749
+        },
+        {
+          "kind": "action",
+          "value": 5.117
+        },
+        {
+          "kind": "interiority",
+          "value": 5.004
+        },
+        {
+          "kind": "description",
+          "value": 4.614
+        }
+      ],
+      "halflings_gem": [
+        {
+          "kind": "dialogue",
+          "value": 7.117
+        },
+        {
+          "kind": "interiority",
+          "value": 5.385
+        },
+        {
+          "kind": "action",
+          "value": 5.155
+        },
+        {
+          "kind": "description",
+          "value": 4.457
+        }
+      ]
+    },
+    "per_book_top1": {
+      "crystal_shard": "dialogue",
+      "streams_of_silver": "dialogue",
+      "halflings_gem": "dialogue"
+    },
+    "top1_stable": true
+  },
+  "overall_verdict": "PASS_PARTIAL"
+}

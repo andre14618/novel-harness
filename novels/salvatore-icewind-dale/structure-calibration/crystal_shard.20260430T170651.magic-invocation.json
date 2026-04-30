@@ -1,0 +1,2916 @@
+{
+  "pattern_number": 75,
+  "pattern_name": "Magic / supernatural invocation patterns",
+  "commit": "cd28810",
+  "lexicons": {
+    "MAGIC_GENERAL": [
+      "magic",
+      "magical",
+      "magics",
+      "sorcery",
+      "sorcerous",
+      "sorcerer",
+      "sorceress",
+      "sorcerers",
+      "wizard",
+      "wizardry",
+      "wizards",
+      "witch",
+      "witchcraft",
+      "witches",
+      "enchant",
+      "enchanted",
+      "enchantment",
+      "enchantments",
+      "spell",
+      "spells",
+      "spellbook",
+      "spellbooks",
+      "ritual",
+      "rituals",
+      "conjure",
+      "conjured",
+      "conjuring",
+      "conjurer",
+      "summon",
+      "summoned",
+      "summoning",
+      "summons",
+      "banish",
+      "banished",
+      "banishment",
+      "scry",
+      "scryed",
+      "scrying",
+      "scryer",
+      "divine",
+      "divination",
+      "divinations",
+      "prophet",
+      "prophecy",
+      "prophetic",
+      "prophesy",
+      "prophesied",
+      "mystic",
+      "mystical",
+      "mystics",
+      "occult",
+      "arcane",
+      "dweomer",
+      "dweomers",
+      "charm",
+      "charmed",
+      "charms",
+      "hex",
+      "hexes",
+      "hexed",
+      "curse",
+      "cursed",
+      "curses",
+      "cursing",
+      "blessing",
+      "blessed",
+      "blessings",
+      "invoke",
+      "invoked",
+      "invoking",
+      "invocation",
+      "incant",
+      "incanted",
+      "incantation",
+      "incantations"
+    ],
+    "DEMONIC": [
+      "demon",
+      "demonic",
+      "demons",
+      "devil",
+      "devilish",
+      "devils",
+      "fiend",
+      "fiendish",
+      "fiends",
+      "hell",
+      "hellish",
+      "abyss",
+      "abyssal",
+      "infernal",
+      "balor",
+      "balors",
+      "succubus",
+      "succubi",
+      "manes",
+      "glabrezu"
+    ],
+    "DRAGON_MONSTER": [
+      "dragon",
+      "dragons",
+      "drake",
+      "drakes",
+      "wyrm",
+      "wyrms",
+      "lich",
+      "lichs",
+      "liches",
+      "undead",
+      "vampire",
+      "vampires",
+      "ghost",
+      "ghosts",
+      "ghostly",
+      "spectre",
+      "specter",
+      "spectral",
+      "wraith",
+      "wraiths",
+      "phantom",
+      "phantoms",
+      "ghoul",
+      "ghouls",
+      "shade",
+      "shades"
+    ],
+    "ARTIFACT": [
+      "crenshinibon",
+      "taros",
+      "malchor",
+      "glaesken",
+      "talisman",
+      "talismans",
+      "amulet",
+      "amulets",
+      "staff",
+      "staves",
+      "rod",
+      "rods",
+      "orb",
+      "orbs",
+      "gemstone"
+    ],
+    "ELEMENTAL": [
+      "ice",
+      "frost",
+      "fire",
+      "fires",
+      "flame",
+      "flames",
+      "flaming",
+      "fiery",
+      "lightning",
+      "thunder",
+      "storm",
+      "stormy",
+      "storms",
+      "wind",
+      "winds"
+    ],
+    "ESOTERIC_MENTAL": [
+      "telepathic",
+      "telepathy",
+      "premonition",
+      "premonitions",
+      "vision",
+      "visions",
+      "dream-walking",
+      "dreamwalk",
+      "dreamwalking",
+      "far-sight",
+      "farsight"
+    ]
+  },
+  "lexicon_additions": {
+    "MAGIC_GENERAL": [
+      "magics",
+      "wizards",
+      "sorcerer",
+      "sorceress",
+      "sorcerers",
+      "spellbooks",
+      "rituals",
+      "conjured",
+      "conjuring",
+      "conjurer",
+      "summoned",
+      "summons",
+      "banished",
+      "scryed",
+      "scryer",
+      "divinations",
+      "prophesy",
+      "prophesied",
+      "mystics",
+      "dweomers",
+      "charmed",
+      "charms",
+      "hexes",
+      "hexed",
+      "cursed",
+      "curses",
+      "cursing",
+      "blessed",
+      "blessings",
+      "invoked",
+      "invoking",
+      "incanted",
+      "incantations",
+      "witches"
+    ],
+    "DEMONIC": [
+      "demons",
+      "fiends",
+      "balors",
+      "succubi",
+      "devils"
+    ],
+    "DRAGON_MONSTER": [
+      "dragons",
+      "drakes",
+      "wyrms",
+      "lichs",
+      "vampires",
+      "ghosts",
+      "specter",
+      "wraiths",
+      "phantoms",
+      "ghouls",
+      "shades"
+    ],
+    "ARTIFACT": [
+      "talismans",
+      "amulets",
+      "rods",
+      "orbs",
+      "gemstone"
+    ],
+    "ELEMENTAL": [
+      "fires",
+      "flames",
+      "storms",
+      "winds"
+    ],
+    "ESOTERIC_MENTAL": [
+      "premonitions",
+      "visions",
+      "dreamwalk",
+      "dreamwalking",
+      "farsight"
+    ]
+  },
+  "artifact_multiword": [
+    {
+      "pattern": "crystal\\s+shard",
+      "label": "crystal shard"
+    },
+    {
+      "pattern": "gem-?stone",
+      "label": "gem-stone"
+    }
+  ],
+  "esoteric_mental_multiword": [
+    {
+      "pattern": "mind[-\\s]+link",
+      "label": "mind-link"
+    },
+    {
+      "pattern": "scrying[-\\s]+pool",
+      "label": "scrying-pool"
+    }
+  ],
+  "magic_characters": [
+    {
+      "label": "Akar Kessell",
+      "aliases": [
+        "\\bAkar\\s+Kessell\\b",
+        "\\bKessell\\b"
+      ]
+    },
+    {
+      "label": "Errtu",
+      "aliases": [
+        "\\bErrtu\\b"
+      ]
+    },
+    {
+      "label": "Crenshinibon",
+      "aliases": [
+        "\\bCrenshinibon\\b",
+        "\\bcrystal\\s+shard\\b"
+      ]
+    },
+    {
+      "label": "Pasha Pook",
+      "aliases": [
+        "\\bPasha\\s+Pook\\b",
+        "\\bPook\\b"
+      ]
+    },
+    {
+      "label": "Taros",
+      "aliases": [
+        "\\bTaros\\b"
+      ]
+    },
+    {
+      "label": "Malchor",
+      "aliases": [
+        "\\bMalchor\\b"
+      ]
+    },
+    {
+      "label": "Cryshal-Tirith",
+      "aliases": [
+        "\\bCryshal-?Tirith\\b"
+      ]
+    },
+    {
+      "label": "Telshazz",
+      "aliases": [
+        "\\bTelshazz\\b"
+      ]
+    },
+    {
+      "label": "Al Dimeneira",
+      "aliases": [
+        "\\bAl\\s+Dimeneira\\b"
+      ]
+    },
+    {
+      "label": "Harpell",
+      "aliases": [
+        "\\bHarpell(?:s)?\\b"
+      ]
+    },
+    {
+      "label": "Drizzt",
+      "aliases": [
+        "\\bDrizzt\\b"
+      ]
+    },
+    {
+      "label": "Bruenor",
+      "aliases": [
+        "\\bBruenor\\b"
+      ]
+    },
+    {
+      "label": "Wulfgar",
+      "aliases": [
+        "\\bWulfgar\\b"
+      ]
+    },
+    {
+      "label": "Regis",
+      "aliases": [
+        "\\bRegis\\b"
+      ]
+    },
+    {
+      "label": "Catti-brie",
+      "aliases": [
+        "\\bCatti-brie\\b"
+      ]
+    },
+    {
+      "label": "Entreri",
+      "aliases": [
+        "\\bArtemis\\s+Entreri\\b",
+        "\\bEntreri\\b"
+      ]
+    }
+  ],
+  "beats_path": "novels/salvatore-icewind-dale/beats.jsonl",
+  "books": [
+    "crystal_shard",
+    "streams_of_silver",
+    "halflings_gem"
+  ],
+  "active_kinds": [
+    "action",
+    "dialogue",
+    "interiority",
+    "description"
+  ],
+  "categories": [
+    "MAGIC_GENERAL",
+    "DEMONIC",
+    "DRAGON_MONSTER",
+    "ARTIFACT",
+    "ELEMENTAL",
+    "ESOTERIC_MENTAL"
+  ],
+  "skipped_non_active_beats": 1,
+  "skipped_zero_word_beats": 0,
+  "non_integer_chapters_excluded_from_trajectory": {
+    "crystal_shard": [
+      "epilogue",
+      "epilogue2",
+      "epilogue3",
+      "prelude"
+    ],
+    "halflings_gem": [
+      "epilogue",
+      "epilogue2",
+      "epilogue3",
+      "prelude"
+    ],
+    "streams_of_silver": [
+      "epilogue",
+      "part1",
+      "part2",
+      "part3",
+      "prelude"
+    ]
+  },
+  "per_book_per_kind": {
+    "crystal_shard": {
+      "action": {
+        "n_beats": 308,
+        "n_words": 32318,
+        "magic_tokens_total": 286,
+        "magic_density_per_100w": 0.885,
+        "per_category_density_per_100w": {
+          "MAGIC_GENERAL": 0.2878,
+          "DEMONIC": 0.1826,
+          "DRAGON_MONSTER": 0.0743,
+          "ARTIFACT": 0.0774,
+          "ELEMENTAL": 0.2506,
+          "ESOTERIC_MENTAL": 0.0124
+        }
+      },
+      "dialogue": {
+        "n_beats": 242,
+        "n_words": 25358,
+        "magic_tokens_total": 208,
+        "magic_density_per_100w": 0.8203,
+        "per_category_density_per_100w": {
+          "MAGIC_GENERAL": 0.3944,
+          "DEMONIC": 0.1696,
+          "DRAGON_MONSTER": 0.0394,
+          "ARTIFACT": 0.0986,
+          "ELEMENTAL": 0.1144,
+          "ESOTERIC_MENTAL": 0.0039
+        }
+      },
+      "interiority": {
+        "n_beats": 177,
+        "n_words": 18782,
+        "magic_tokens_total": 214,
+        "magic_density_per_100w": 1.1394,
+        "per_category_density_per_100w": {
+          "MAGIC_GENERAL": 0.5697,
+          "DEMONIC": 0.2076,
+          "DRAGON_MONSTER": 0.0905,
+          "ARTIFACT": 0.1757,
+          "ELEMENTAL": 0.0692,
+          "ESOTERIC_MENTAL": 0.0266
+        }
+      },
+      "description": {
+        "n_beats": 130,
+        "n_words": 13443,
+        "magic_tokens_total": 164,
+        "magic_density_per_100w": 1.22,
+        "per_category_density_per_100w": {
+          "MAGIC_GENERAL": 0.4612,
+          "DEMONIC": 0.1116,
+          "DRAGON_MONSTER": 0.1116,
+          "ARTIFACT": 0.1339,
+          "ELEMENTAL": 0.3868,
+          "ESOTERIC_MENTAL": 0.0149
+        }
+      }
+    },
+    "streams_of_silver": {
+      "action": {
+        "n_beats": 274,
+        "n_words": 29385,
+        "magic_tokens_total": 226,
+        "magic_density_per_100w": 0.7691,
+        "per_category_density_per_100w": {
+          "MAGIC_GENERAL": 0.3097,
+          "DEMONIC": 0.0068,
+          "DRAGON_MONSTER": 0.1872,
+          "ARTIFACT": 0.0102,
+          "ELEMENTAL": 0.2348,
+          "ESOTERIC_MENTAL": 0.0204
+        }
+      },
+      "dialogue": {
+        "n_beats": 256,
+        "n_words": 27835,
+        "magic_tokens_total": 154,
+        "magic_density_per_100w": 0.5533,
+        "per_category_density_per_100w": {
+          "MAGIC_GENERAL": 0.3054,
+          "DEMONIC": 0.018,
+          "DRAGON_MONSTER": 0.1114,
+          "ARTIFACT": 0.0216,
+          "ELEMENTAL": 0.0754,
+          "ESOTERIC_MENTAL": 0.0216
+        }
+      },
+      "interiority": {
+        "n_beats": 162,
+        "n_words": 18058,
+        "magic_tokens_total": 143,
+        "magic_density_per_100w": 0.7919,
+        "per_category_density_per_100w": {
+          "MAGIC_GENERAL": 0.4153,
+          "DEMONIC": 0.0222,
+          "DRAGON_MONSTER": 0.1717,
+          "ARTIFACT": 0.0388,
+          "ELEMENTAL": 0.1274,
+          "ESOTERIC_MENTAL": 0.0166
+        }
+      },
+      "description": {
+        "n_beats": 94,
+        "n_words": 10592,
+        "magic_tokens_total": 79,
+        "magic_density_per_100w": 0.7458,
+        "per_category_density_per_100w": {
+          "MAGIC_GENERAL": 0.3588,
+          "DEMONIC": 0.0094,
+          "DRAGON_MONSTER": 0.085,
+          "ARTIFACT": 0.0094,
+          "ELEMENTAL": 0.2832,
+          "ESOTERIC_MENTAL": 0.0
+        }
+      }
+    },
+    "halflings_gem": {
+      "action": {
+        "n_beats": 309,
+        "n_words": 31774,
+        "magic_tokens_total": 196,
+        "magic_density_per_100w": 0.6169,
+        "per_category_density_per_100w": {
+          "MAGIC_GENERAL": 0.3116,
+          "DEMONIC": 0.0031,
+          "DRAGON_MONSTER": 0.0283,
+          "ARTIFACT": 0.085,
+          "ELEMENTAL": 0.1762,
+          "ESOTERIC_MENTAL": 0.0126
+        }
+      },
+      "dialogue": {
+        "n_beats": 279,
+        "n_words": 29626,
+        "magic_tokens_total": 229,
+        "magic_density_per_100w": 0.773,
+        "per_category_density_per_100w": {
+          "MAGIC_GENERAL": 0.3814,
+          "DEMONIC": 0.027,
+          "DRAGON_MONSTER": 0.054,
+          "ARTIFACT": 0.189,
+          "ELEMENTAL": 0.1215,
+          "ESOTERIC_MENTAL": 0.0
+        }
+      },
+      "interiority": {
+        "n_beats": 159,
+        "n_words": 16964,
+        "magic_tokens_total": 147,
+        "magic_density_per_100w": 0.8665,
+        "per_category_density_per_100w": {
+          "MAGIC_GENERAL": 0.507,
+          "DEMONIC": 0.0177,
+          "DRAGON_MONSTER": 0.0707,
+          "ARTIFACT": 0.1474,
+          "ELEMENTAL": 0.112,
+          "ESOTERIC_MENTAL": 0.0118
+        }
+      },
+      "description": {
+        "n_beats": 79,
+        "n_words": 8527,
+        "magic_tokens_total": 76,
+        "magic_density_per_100w": 0.8913,
+        "per_category_density_per_100w": {
+          "MAGIC_GENERAL": 0.3049,
+          "DEMONIC": 0.0235,
+          "DRAGON_MONSTER": 0.0704,
+          "ARTIFACT": 0.1055,
+          "ELEMENTAL": 0.3753,
+          "ESOTERIC_MENTAL": 0.0117
+        }
+      }
+    }
+  },
+  "per_book_overall_density_per_100w": {
+    "crystal_shard": 0.97,
+    "streams_of_silver": 0.7011,
+    "halflings_gem": 0.7458
+  },
+  "chapter_density_curve": {
+    "crystal_shard": [
+      {
+        "chapter": 1,
+        "words": 1837,
+        "magic_tokens": 30,
+        "density_per_100w": 1.6331,
+        "quartile": "q0",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 29,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 1,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 2,
+        "words": 3142,
+        "magic_tokens": 15,
+        "density_per_100w": 0.4774,
+        "quartile": "q0",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 5,
+          "DEMONIC": 1,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 1,
+          "ELEMENTAL": 8,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 3,
+        "words": 2677,
+        "magic_tokens": 6,
+        "density_per_100w": 0.2241,
+        "quartile": "q0",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 1,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 5,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 4,
+        "words": 2172,
+        "magic_tokens": 34,
+        "density_per_100w": 1.5654,
+        "quartile": "q0",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 17,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 15,
+          "ELEMENTAL": 2,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 5,
+        "words": 1335,
+        "magic_tokens": 4,
+        "density_per_100w": 0.2996,
+        "quartile": "q0",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 4,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 0,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 6,
+        "words": 1830,
+        "magic_tokens": 3,
+        "density_per_100w": 0.1639,
+        "quartile": "q0",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 1,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 1,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 1,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 7,
+        "words": 2919,
+        "magic_tokens": 17,
+        "density_per_100w": 0.5824,
+        "quartile": "q0",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 7,
+          "DEMONIC": 1,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 8,
+          "ESOTERIC_MENTAL": 1
+        }
+      },
+      {
+        "chapter": 8,
+        "words": 3415,
+        "magic_tokens": 9,
+        "density_per_100w": 0.2635,
+        "quartile": "q0",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 4,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 1,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 4,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 9,
+        "words": 1540,
+        "magic_tokens": 6,
+        "density_per_100w": 0.3896,
+        "quartile": "q1",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 2,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 1,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 2,
+          "ESOTERIC_MENTAL": 1
+        }
+      },
+      {
+        "chapter": 10,
+        "words": 2540,
+        "magic_tokens": 108,
+        "density_per_100w": 4.252,
+        "quartile": "q1",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 45,
+          "DEMONIC": 35,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 16,
+          "ELEMENTAL": 12,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 11,
+        "words": 2194,
+        "magic_tokens": 17,
+        "density_per_100w": 0.7748,
+        "quartile": "q1",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 13,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 2,
+          "ELEMENTAL": 1,
+          "ESOTERIC_MENTAL": 1
+        }
+      },
+      {
+        "chapter": 12,
+        "words": 2513,
+        "magic_tokens": 7,
+        "density_per_100w": 0.2786,
+        "quartile": "q1",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 6,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 0,
+          "ESOTERIC_MENTAL": 1
+        }
+      },
+      {
+        "chapter": 13,
+        "words": 1283,
+        "magic_tokens": 32,
+        "density_per_100w": 2.4942,
+        "quartile": "q1",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 11,
+          "DEMONIC": 10,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 8,
+          "ELEMENTAL": 3,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 14,
+        "words": 2267,
+        "magic_tokens": 7,
+        "density_per_100w": 0.3088,
+        "quartile": "q1",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 4,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 3,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 15,
+        "words": 2534,
+        "magic_tokens": 14,
+        "density_per_100w": 0.5525,
+        "quartile": "q1",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 5,
+          "DEMONIC": 1,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 8,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 16,
+        "words": 3509,
+        "magic_tokens": 5,
+        "density_per_100w": 0.1425,
+        "quartile": "q2",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 1,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 1,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 3,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 17,
+        "words": 3053,
+        "magic_tokens": 8,
+        "density_per_100w": 0.262,
+        "quartile": "q2",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 3,
+          "DEMONIC": 3,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 2,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 18,
+        "words": 5634,
+        "magic_tokens": 10,
+        "density_per_100w": 0.1775,
+        "quartile": "q2",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 5,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 1,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 3,
+          "ESOTERIC_MENTAL": 1
+        }
+      },
+      {
+        "chapter": 19,
+        "words": 2980,
+        "magic_tokens": 16,
+        "density_per_100w": 0.5369,
+        "quartile": "q2",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 14,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 2,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 20,
+        "words": 2386,
+        "magic_tokens": 15,
+        "density_per_100w": 0.6287,
+        "quartile": "q2",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 11,
+          "DEMONIC": 2,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 1,
+          "ESOTERIC_MENTAL": 1
+        }
+      },
+      {
+        "chapter": 21,
+        "words": 2623,
+        "magic_tokens": 75,
+        "density_per_100w": 2.8593,
+        "quartile": "q2",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 3,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 38,
+          "ARTIFACT": 1,
+          "ELEMENTAL": 33,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 22,
+        "words": 3363,
+        "magic_tokens": 20,
+        "density_per_100w": 0.5947,
+        "quartile": "q2",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 1,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 10,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 8,
+          "ESOTERIC_MENTAL": 1
+        }
+      },
+      {
+        "chapter": 23,
+        "words": 2390,
+        "magic_tokens": 7,
+        "density_per_100w": 0.2929,
+        "quartile": "q3",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 2,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 5,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 24,
+        "words": 3958,
+        "magic_tokens": 56,
+        "density_per_100w": 1.4149,
+        "quartile": "q3",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 26,
+          "DEMONIC": 14,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 5,
+          "ELEMENTAL": 10,
+          "ESOTERIC_MENTAL": 1
+        }
+      },
+      {
+        "chapter": 25,
+        "words": 2753,
+        "magic_tokens": 118,
+        "density_per_100w": 4.2862,
+        "quartile": "q3",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 28,
+          "DEMONIC": 60,
+          "DRAGON_MONSTER": 1,
+          "ARTIFACT": 12,
+          "ELEMENTAL": 17,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 26,
+        "words": 1006,
+        "magic_tokens": 8,
+        "density_per_100w": 0.7952,
+        "quartile": "q3",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 3,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 2,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 3,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 27,
+        "words": 2477,
+        "magic_tokens": 29,
+        "density_per_100w": 1.1708,
+        "quartile": "q3",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 24,
+          "DEMONIC": 2,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 2,
+          "ESOTERIC_MENTAL": 1
+        }
+      },
+      {
+        "chapter": 28,
+        "words": 2655,
+        "magic_tokens": 31,
+        "density_per_100w": 1.1676,
+        "quartile": "q3",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 21,
+          "DEMONIC": 3,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 2,
+          "ELEMENTAL": 4,
+          "ESOTERIC_MENTAL": 1
+        }
+      },
+      {
+        "chapter": 29,
+        "words": 4441,
+        "magic_tokens": 66,
+        "density_per_100w": 1.4862,
+        "quartile": "q3",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 35,
+          "DEMONIC": 10,
+          "DRAGON_MONSTER": 2,
+          "ARTIFACT": 10,
+          "ELEMENTAL": 9,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 30,
+        "words": 8113,
+        "magic_tokens": 44,
+        "density_per_100w": 0.5423,
+        "quartile": "q3",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 18,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 1,
+          "ARTIFACT": 11,
+          "ELEMENTAL": 13,
+          "ESOTERIC_MENTAL": 1
+        }
+      }
+    ],
+    "streams_of_silver": [
+      {
+        "chapter": 1,
+        "words": 2739,
+        "magic_tokens": 9,
+        "density_per_100w": 0.3286,
+        "quartile": "q0",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 7,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 1,
+          "ELEMENTAL": 0,
+          "ESOTERIC_MENTAL": 1
+        }
+      },
+      {
+        "chapter": 2,
+        "words": 3110,
+        "magic_tokens": 6,
+        "density_per_100w": 0.1929,
+        "quartile": "q0",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 4,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 1,
+          "ESOTERIC_MENTAL": 1
+        }
+      },
+      {
+        "chapter": 3,
+        "words": 3070,
+        "magic_tokens": 11,
+        "density_per_100w": 0.3583,
+        "quartile": "q0",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 6,
+          "DEMONIC": 1,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 1,
+          "ELEMENTAL": 3,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 4,
+        "words": 3786,
+        "magic_tokens": 79,
+        "density_per_100w": 2.0866,
+        "quartile": "q0",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 45,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 18,
+          "ARTIFACT": 5,
+          "ELEMENTAL": 10,
+          "ESOTERIC_MENTAL": 1
+        }
+      },
+      {
+        "chapter": 5,
+        "words": 3388,
+        "magic_tokens": 16,
+        "density_per_100w": 0.4723,
+        "quartile": "q0",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 8,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 2,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 4,
+          "ESOTERIC_MENTAL": 2
+        }
+      },
+      {
+        "chapter": 6,
+        "words": 4368,
+        "magic_tokens": 32,
+        "density_per_100w": 0.7326,
+        "quartile": "q0",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 8,
+          "DEMONIC": 1,
+          "DRAGON_MONSTER": 18,
+          "ARTIFACT": 1,
+          "ELEMENTAL": 3,
+          "ESOTERIC_MENTAL": 1
+        }
+      },
+      {
+        "chapter": 7,
+        "words": 2430,
+        "magic_tokens": 14,
+        "density_per_100w": 0.5761,
+        "quartile": "q1",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 11,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 3,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 8,
+        "words": 4383,
+        "magic_tokens": 34,
+        "density_per_100w": 0.7757,
+        "quartile": "q1",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 28,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 1,
+          "ARTIFACT": 3,
+          "ELEMENTAL": 1,
+          "ESOTERIC_MENTAL": 1
+        }
+      },
+      {
+        "chapter": 9,
+        "words": 3617,
+        "magic_tokens": 33,
+        "density_per_100w": 0.9124,
+        "quartile": "q1",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 29,
+          "DEMONIC": 1,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 1,
+          "ESOTERIC_MENTAL": 2
+        }
+      },
+      {
+        "chapter": 10,
+        "words": 3730,
+        "magic_tokens": 41,
+        "density_per_100w": 1.0992,
+        "quartile": "q1",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 6,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 1,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 34,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 11,
+        "words": 2792,
+        "magic_tokens": 11,
+        "density_per_100w": 0.394,
+        "quartile": "q1",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 10,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 1,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 12,
+        "words": 4271,
+        "magic_tokens": 23,
+        "density_per_100w": 0.5385,
+        "quartile": "q1",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 5,
+          "DEMONIC": 1,
+          "DRAGON_MONSTER": 2,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 15,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 13,
+        "words": 2999,
+        "magic_tokens": 25,
+        "density_per_100w": 0.8336,
+        "quartile": "q2",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 3,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 1,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 19,
+          "ESOTERIC_MENTAL": 2
+        }
+      },
+      {
+        "chapter": 14,
+        "words": 2682,
+        "magic_tokens": 8,
+        "density_per_100w": 0.2983,
+        "quartile": "q2",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 5,
+          "DEMONIC": 1,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 2,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 15,
+        "words": 2182,
+        "magic_tokens": 36,
+        "density_per_100w": 1.6499,
+        "quartile": "q2",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 21,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 6,
+          "ARTIFACT": 1,
+          "ELEMENTAL": 8,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 16,
+        "words": 2893,
+        "magic_tokens": 3,
+        "density_per_100w": 0.1037,
+        "quartile": "q2",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 3,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 0,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 17,
+        "words": 3461,
+        "magic_tokens": 2,
+        "density_per_100w": 0.0578,
+        "quartile": "q2",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 1,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 1,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 18,
+        "words": 3204,
+        "magic_tokens": 16,
+        "density_per_100w": 0.4994,
+        "quartile": "q2",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 11,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 1,
+          "ARTIFACT": 1,
+          "ELEMENTAL": 3,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 19,
+        "words": 4561,
+        "magic_tokens": 26,
+        "density_per_100w": 0.5701,
+        "quartile": "q3",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 15,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 4,
+          "ARTIFACT": 1,
+          "ELEMENTAL": 5,
+          "ESOTERIC_MENTAL": 1
+        }
+      },
+      {
+        "chapter": 20,
+        "words": 4024,
+        "magic_tokens": 15,
+        "density_per_100w": 0.3728,
+        "quartile": "q3",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 5,
+          "DEMONIC": 2,
+          "DRAGON_MONSTER": 5,
+          "ARTIFACT": 1,
+          "ELEMENTAL": 1,
+          "ESOTERIC_MENTAL": 1
+        }
+      },
+      {
+        "chapter": 21,
+        "words": 3711,
+        "magic_tokens": 12,
+        "density_per_100w": 0.3234,
+        "quartile": "q3",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 5,
+          "DEMONIC": 1,
+          "DRAGON_MONSTER": 2,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 3,
+          "ESOTERIC_MENTAL": 1
+        }
+      },
+      {
+        "chapter": 22,
+        "words": 4114,
+        "magic_tokens": 23,
+        "density_per_100w": 0.5591,
+        "quartile": "q3",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 13,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 6,
+          "ARTIFACT": 1,
+          "ELEMENTAL": 3,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 23,
+        "words": 3941,
+        "magic_tokens": 48,
+        "density_per_100w": 1.218,
+        "quartile": "q3",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 4,
+          "DEMONIC": 1,
+          "DRAGON_MONSTER": 34,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 9,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 24,
+        "words": 1354,
+        "magic_tokens": 8,
+        "density_per_100w": 0.5908,
+        "quartile": "q3",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 2,
+          "DEMONIC": 1,
+          "DRAGON_MONSTER": 2,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 3,
+          "ESOTERIC_MENTAL": 0
+        }
+      }
+    ],
+    "halflings_gem": [
+      {
+        "chapter": 1,
+        "words": 3897,
+        "magic_tokens": 105,
+        "density_per_100w": 2.6944,
+        "quartile": "q0",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 36,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 2,
+          "ARTIFACT": 65,
+          "ELEMENTAL": 2,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 2,
+        "words": 2398,
+        "magic_tokens": 20,
+        "density_per_100w": 0.834,
+        "quartile": "q0",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 8,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 2,
+          "ARTIFACT": 1,
+          "ELEMENTAL": 8,
+          "ESOTERIC_MENTAL": 1
+        }
+      },
+      {
+        "chapter": 3,
+        "words": 3336,
+        "magic_tokens": 29,
+        "density_per_100w": 0.8693,
+        "quartile": "q0",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 8,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 7,
+          "ARTIFACT": 5,
+          "ELEMENTAL": 9,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 4,
+        "words": 4884,
+        "magic_tokens": 41,
+        "density_per_100w": 0.8395,
+        "quartile": "q0",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 17,
+          "DEMONIC": 1,
+          "DRAGON_MONSTER": 8,
+          "ARTIFACT": 7,
+          "ELEMENTAL": 7,
+          "ESOTERIC_MENTAL": 1
+        }
+      },
+      {
+        "chapter": 5,
+        "words": 4230,
+        "magic_tokens": 20,
+        "density_per_100w": 0.4728,
+        "quartile": "q0",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 2,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 6,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 12,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 6,
+        "words": 4104,
+        "magic_tokens": 12,
+        "density_per_100w": 0.2924,
+        "quartile": "q0",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 4,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 1,
+          "ELEMENTAL": 7,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 7,
+        "words": 3011,
+        "magic_tokens": 29,
+        "density_per_100w": 0.9631,
+        "quartile": "q1",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 15,
+          "DEMONIC": 1,
+          "DRAGON_MONSTER": 1,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 11,
+          "ESOTERIC_MENTAL": 1
+        }
+      },
+      {
+        "chapter": 8,
+        "words": 2370,
+        "magic_tokens": 30,
+        "density_per_100w": 1.2658,
+        "quartile": "q1",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 25,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 4,
+          "ELEMENTAL": 1,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 9,
+        "words": 1928,
+        "magic_tokens": 25,
+        "density_per_100w": 1.2967,
+        "quartile": "q1",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 17,
+          "DEMONIC": 3,
+          "DRAGON_MONSTER": 1,
+          "ARTIFACT": 1,
+          "ELEMENTAL": 3,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 10,
+        "words": 3771,
+        "magic_tokens": 35,
+        "density_per_100w": 0.9281,
+        "quartile": "q1",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 10,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 9,
+          "ARTIFACT": 1,
+          "ELEMENTAL": 14,
+          "ESOTERIC_MENTAL": 1
+        }
+      },
+      {
+        "chapter": 11,
+        "words": 5225,
+        "magic_tokens": 44,
+        "density_per_100w": 0.8421,
+        "quartile": "q1",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 20,
+          "DEMONIC": 1,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 23,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 12,
+        "words": 2792,
+        "magic_tokens": 19,
+        "density_per_100w": 0.6805,
+        "quartile": "q1",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 4,
+          "DEMONIC": 1,
+          "DRAGON_MONSTER": 3,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 11,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 13,
+        "words": 3307,
+        "magic_tokens": 8,
+        "density_per_100w": 0.2419,
+        "quartile": "q2",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 7,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 1,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 14,
+        "words": 3779,
+        "magic_tokens": 16,
+        "density_per_100w": 0.4234,
+        "quartile": "q2",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 12,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 4,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 15,
+        "words": 2714,
+        "magic_tokens": 18,
+        "density_per_100w": 0.6632,
+        "quartile": "q2",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 12,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 1,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 5,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 16,
+        "words": 3760,
+        "magic_tokens": 8,
+        "density_per_100w": 0.2128,
+        "quartile": "q2",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 7,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 1,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 17,
+        "words": 2078,
+        "magic_tokens": 19,
+        "density_per_100w": 0.9143,
+        "quartile": "q2",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 19,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 0,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 18,
+        "words": 4290,
+        "magic_tokens": 13,
+        "density_per_100w": 0.303,
+        "quartile": "q2",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 6,
+          "DEMONIC": 1,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 5,
+          "ESOTERIC_MENTAL": 1
+        }
+      },
+      {
+        "chapter": 19,
+        "words": 3381,
+        "magic_tokens": 1,
+        "density_per_100w": 0.0296,
+        "quartile": "q3",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 0,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 1,
+          "ARTIFACT": 0,
+          "ELEMENTAL": 0,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 20,
+        "words": 2890,
+        "magic_tokens": 14,
+        "density_per_100w": 0.4844,
+        "quartile": "q3",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 6,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 6,
+          "ELEMENTAL": 2,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 21,
+        "words": 2617,
+        "magic_tokens": 27,
+        "density_per_100w": 1.0317,
+        "quartile": "q3",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 14,
+          "DEMONIC": 1,
+          "DRAGON_MONSTER": 2,
+          "ARTIFACT": 7,
+          "ELEMENTAL": 2,
+          "ESOTERIC_MENTAL": 1
+        }
+      },
+      {
+        "chapter": 22,
+        "words": 3779,
+        "magic_tokens": 26,
+        "density_per_100w": 0.688,
+        "quartile": "q3",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 14,
+          "DEMONIC": 5,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 2,
+          "ELEMENTAL": 4,
+          "ESOTERIC_MENTAL": 1
+        }
+      },
+      {
+        "chapter": 23,
+        "words": 2168,
+        "magic_tokens": 21,
+        "density_per_100w": 0.9686,
+        "quartile": "q3",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 13,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 7,
+          "ELEMENTAL": 1,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 24,
+        "words": 2672,
+        "magic_tokens": 16,
+        "density_per_100w": 0.5988,
+        "quartile": "q3",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 6,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 9,
+          "ELEMENTAL": 1,
+          "ESOTERIC_MENTAL": 0
+        }
+      },
+      {
+        "chapter": 25,
+        "words": 2478,
+        "magic_tokens": 22,
+        "density_per_100w": 0.8878,
+        "quartile": "q3",
+        "per_category_tokens": {
+          "MAGIC_GENERAL": 18,
+          "DEMONIC": 0,
+          "DRAGON_MONSTER": 0,
+          "ARTIFACT": 1,
+          "ELEMENTAL": 3,
+          "ESOTERIC_MENTAL": 0
+        }
+      }
+    ]
+  },
+  "quartile_density_per_100w": {
+    "crystal_shard": {
+      "q0": 0.6105,
+      "q1": 1.2844,
+      "q2": 0.6328,
+      "q3": 1.2917
+    },
+    "streams_of_silver": {
+      "q0": 0.7478,
+      "q1": 0.7351,
+      "q2": 0.5166,
+      "q3": 0.6082
+    },
+    "halflings_gem": {
+      "q0": 0.9935,
+      "q1": 0.953,
+      "q2": 0.4115,
+      "q3": 0.6355
+    }
+  },
+  "peak_quartile_per_book": {
+    "crystal_shard": "q3",
+    "streams_of_silver": "q0",
+    "halflings_gem": "q0"
+  },
+  "per_book_top_lexicon": {
+    "crystal_shard": [
+      {
+        "token": "wizard",
+        "count": 162
+      },
+      {
+        "token": "demon",
+        "count": 138
+      },
+      {
+        "token": "crenshinibon",
+        "count": 64
+      },
+      {
+        "token": "dragon",
+        "count": 49
+      },
+      {
+        "token": "magical",
+        "count": 36
+      },
+      {
+        "token": "wind",
+        "count": 36
+      },
+      {
+        "token": "ice",
+        "count": 36
+      },
+      {
+        "token": "fire",
+        "count": 32
+      },
+      {
+        "token": "magic",
+        "count": 29
+      },
+      {
+        "token": "crystal shard",
+        "count": 23
+      },
+      {
+        "token": "wizards",
+        "count": 23
+      },
+      {
+        "token": "frost",
+        "count": 18
+      },
+      {
+        "token": "flames",
+        "count": 16
+      },
+      {
+        "token": "fires",
+        "count": 14
+      },
+      {
+        "token": "spell",
+        "count": 13
+      },
+      {
+        "token": "flame",
+        "count": 11
+      },
+      {
+        "token": "abyss",
+        "count": 10
+      },
+      {
+        "token": "arcane",
+        "count": 9
+      },
+      {
+        "token": "vision",
+        "count": 9
+      },
+      {
+        "token": "scrying",
+        "count": 8
+      },
+      {
+        "token": "summons",
+        "count": 7
+      },
+      {
+        "token": "summoned",
+        "count": 6
+      },
+      {
+        "token": "demons",
+        "count": 6
+      },
+      {
+        "token": "rod",
+        "count": 5
+      },
+      {
+        "token": "dragons",
+        "count": 5
+      },
+      {
+        "token": "blessing",
+        "count": 5
+      },
+      {
+        "token": "gemstone",
+        "count": 5
+      },
+      {
+        "token": "enchantment",
+        "count": 4
+      },
+      {
+        "token": "fiery",
+        "count": 4
+      },
+      {
+        "token": "magics",
+        "count": 4
+      }
+    ],
+    "streams_of_silver": [
+      {
+        "token": "wizard",
+        "count": 91
+      },
+      {
+        "token": "dragon",
+        "count": 54
+      },
+      {
+        "token": "magical",
+        "count": 43
+      },
+      {
+        "token": "spectre",
+        "count": 35
+      },
+      {
+        "token": "magic",
+        "count": 33
+      },
+      {
+        "token": "fire",
+        "count": 30
+      },
+      {
+        "token": "flames",
+        "count": 28
+      },
+      {
+        "token": "wind",
+        "count": 24
+      },
+      {
+        "token": "spell",
+        "count": 21
+      },
+      {
+        "token": "wizards",
+        "count": 20
+      },
+      {
+        "token": "fires",
+        "count": 17
+      },
+      {
+        "token": "ghost",
+        "count": 17
+      },
+      {
+        "token": "vision",
+        "count": 15
+      },
+      {
+        "token": "lightning",
+        "count": 11
+      },
+      {
+        "token": "storm",
+        "count": 11
+      },
+      {
+        "token": "arcane",
+        "count": 11
+      },
+      {
+        "token": "summoned",
+        "count": 10
+      },
+      {
+        "token": "crystal shard",
+        "count": 9
+      },
+      {
+        "token": "dragons",
+        "count": 8
+      },
+      {
+        "token": "flame",
+        "count": 7
+      },
+      {
+        "token": "cursed",
+        "count": 7
+      },
+      {
+        "token": "thunder",
+        "count": 6
+      },
+      {
+        "token": "summoning",
+        "count": 6
+      },
+      {
+        "token": "gemstone",
+        "count": 6
+      },
+      {
+        "token": "ritual",
+        "count": 5
+      },
+      {
+        "token": "cursing",
+        "count": 4
+      },
+      {
+        "token": "conjured",
+        "count": 4
+      },
+      {
+        "token": "enchanted",
+        "count": 4
+      },
+      {
+        "token": "fiery",
+        "count": 4
+      },
+      {
+        "token": "conjuring",
+        "count": 4
+      }
+    ],
+    "halflings_gem": [
+      {
+        "token": "wizard",
+        "count": 130
+      },
+      {
+        "token": "malchor",
+        "count": 76
+      },
+      {
+        "token": "magical",
+        "count": 53
+      },
+      {
+        "token": "fire",
+        "count": 37
+      },
+      {
+        "token": "taros",
+        "count": 35
+      },
+      {
+        "token": "magic",
+        "count": 33
+      },
+      {
+        "token": "wind",
+        "count": 28
+      },
+      {
+        "token": "dragon",
+        "count": 26
+      },
+      {
+        "token": "spell",
+        "count": 20
+      },
+      {
+        "token": "flames",
+        "count": 17
+      },
+      {
+        "token": "fiery",
+        "count": 16
+      },
+      {
+        "token": "enchantment",
+        "count": 11
+      },
+      {
+        "token": "enchanted",
+        "count": 9
+      },
+      {
+        "token": "lightning",
+        "count": 9
+      },
+      {
+        "token": "flaming",
+        "count": 8
+      },
+      {
+        "token": "wizards",
+        "count": 8
+      },
+      {
+        "token": "vision",
+        "count": 7
+      },
+      {
+        "token": "fires",
+        "count": 7
+      },
+      {
+        "token": "flame",
+        "count": 7
+      },
+      {
+        "token": "summon",
+        "count": 7
+      },
+      {
+        "token": "winds",
+        "count": 6
+      },
+      {
+        "token": "ice",
+        "count": 6
+      },
+      {
+        "token": "spells",
+        "count": 5
+      },
+      {
+        "token": "demon",
+        "count": 5
+      },
+      {
+        "token": "summoned",
+        "count": 5
+      },
+      {
+        "token": "spectre",
+        "count": 5
+      },
+      {
+        "token": "ghost",
+        "count": 5
+      },
+      {
+        "token": "orbs",
+        "count": 4
+      },
+      {
+        "token": "dragons",
+        "count": 4
+      },
+      {
+        "token": "charm",
+        "count": 4
+      }
+    ]
+  },
+  "cross_book_top15_intersection": [
+    "dragon",
+    "fire",
+    "flames",
+    "magic",
+    "magical",
+    "spell",
+    "wind",
+    "wizard"
+  ],
+  "per_book_kind_ordering_by_magic_density": {
+    "crystal_shard": [
+      {
+        "kind": "description",
+        "density_per_100w": 1.22
+      },
+      {
+        "kind": "interiority",
+        "density_per_100w": 1.1394
+      },
+      {
+        "kind": "action",
+        "density_per_100w": 0.885
+      },
+      {
+        "kind": "dialogue",
+        "density_per_100w": 0.8203
+      }
+    ],
+    "streams_of_silver": [
+      {
+        "kind": "interiority",
+        "density_per_100w": 0.7919
+      },
+      {
+        "kind": "action",
+        "density_per_100w": 0.7691
+      },
+      {
+        "kind": "description",
+        "density_per_100w": 0.7458
+      },
+      {
+        "kind": "dialogue",
+        "density_per_100w": 0.5533
+      }
+    ],
+    "halflings_gem": [
+      {
+        "kind": "description",
+        "density_per_100w": 0.8913
+      },
+      {
+        "kind": "interiority",
+        "density_per_100w": 0.8665
+      },
+      {
+        "kind": "dialogue",
+        "density_per_100w": 0.773
+      },
+      {
+        "kind": "action",
+        "density_per_100w": 0.6169
+      }
+    ]
+  },
+  "per_character_cooccurrence": {
+    "Akar Kessell": {
+      "per_book": {
+        "crystal_shard": {
+          "n_beats": 204,
+          "n_beats_with_magic": 154,
+          "fraction_with_magic": 0.7549,
+          "magic_density_per_100w": 1.9003,
+          "n_magic_tokens_in_co_beats": 416,
+          "co_beat_words": 21891
+        },
+        "streams_of_silver": {
+          "n_beats": 8,
+          "n_beats_with_magic": 5,
+          "fraction_with_magic": 0.625,
+          "magic_density_per_100w": 1.3172,
+          "n_magic_tokens_in_co_beats": 12,
+          "co_beat_words": 911
+        },
+        "halflings_gem": {
+          "n_beats": 0,
+          "n_beats_with_magic": 0,
+          "fraction_with_magic": null,
+          "magic_density_per_100w": 0.0,
+          "n_magic_tokens_in_co_beats": 0,
+          "co_beat_words": 0
+        }
+      },
+      "books_present": 2
+    },
+    "Errtu": {
+      "per_book": {
+        "crystal_shard": {
+          "n_beats": 55,
+          "n_beats_with_magic": 53,
+          "fraction_with_magic": 0.9636,
+          "magic_density_per_100w": 4.0556,
+          "n_magic_tokens_in_co_beats": 248,
+          "co_beat_words": 6115
+        },
+        "streams_of_silver": {
+          "n_beats": 0,
+          "n_beats_with_magic": 0,
+          "fraction_with_magic": null,
+          "magic_density_per_100w": 0.0,
+          "n_magic_tokens_in_co_beats": 0,
+          "co_beat_words": 0
+        },
+        "halflings_gem": {
+          "n_beats": 0,
+          "n_beats_with_magic": 0,
+          "fraction_with_magic": null,
+          "magic_density_per_100w": 0.0,
+          "n_magic_tokens_in_co_beats": 0,
+          "co_beat_words": 0
+        }
+      },
+      "books_present": 1
+    },
+    "Crenshinibon": {
+      "per_book": {
+        "crystal_shard": {
+          "n_beats": 54,
+          "n_beats_with_magic": 54,
+          "fraction_with_magic": 1.0,
+          "magic_density_per_100w": 3.9153,
+          "n_magic_tokens_in_co_beats": 231,
+          "co_beat_words": 5900
+        },
+        "streams_of_silver": {
+          "n_beats": 8,
+          "n_beats_with_magic": 8,
+          "fraction_with_magic": 1.0,
+          "magic_density_per_100w": 2.6288,
+          "n_magic_tokens_in_co_beats": 25,
+          "co_beat_words": 951
+        },
+        "halflings_gem": {
+          "n_beats": 0,
+          "n_beats_with_magic": 0,
+          "fraction_with_magic": null,
+          "magic_density_per_100w": 0.0,
+          "n_magic_tokens_in_co_beats": 0,
+          "co_beat_words": 0
+        }
+      },
+      "books_present": 2
+    },
+    "Pasha Pook": {
+      "per_book": {
+        "crystal_shard": {
+          "n_beats": 5,
+          "n_beats_with_magic": 2,
+          "fraction_with_magic": 0.4,
+          "magic_density_per_100w": 0.3252,
+          "n_magic_tokens_in_co_beats": 2,
+          "co_beat_words": 615
+        },
+        "streams_of_silver": {
+          "n_beats": 4,
+          "n_beats_with_magic": 2,
+          "fraction_with_magic": 0.5,
+          "magic_density_per_100w": 1.0989,
+          "n_magic_tokens_in_co_beats": 5,
+          "co_beat_words": 455
+        },
+        "halflings_gem": {
+          "n_beats": 148,
+          "n_beats_with_magic": 77,
+          "fraction_with_magic": 0.5203,
+          "magic_density_per_100w": 0.9748,
+          "n_magic_tokens_in_co_beats": 154,
+          "co_beat_words": 15798
+        }
+      },
+      "books_present": 3
+    },
+    "Taros": {
+      "per_book": {
+        "crystal_shard": {
+          "n_beats": 0,
+          "n_beats_with_magic": 0,
+          "fraction_with_magic": null,
+          "magic_density_per_100w": 0.0,
+          "n_magic_tokens_in_co_beats": 0,
+          "co_beat_words": 0
+        },
+        "streams_of_silver": {
+          "n_beats": 0,
+          "n_beats_with_magic": 0,
+          "fraction_with_magic": null,
+          "magic_density_per_100w": 0.0,
+          "n_magic_tokens_in_co_beats": 0,
+          "co_beat_words": 0
+        },
+        "halflings_gem": {
+          "n_beats": 24,
+          "n_beats_with_magic": 24,
+          "fraction_with_magic": 1.0,
+          "magic_density_per_100w": 2.3256,
+          "n_magic_tokens_in_co_beats": 58,
+          "co_beat_words": 2494
+        }
+      },
+      "books_present": 1
+    },
+    "Malchor": {
+      "per_book": {
+        "crystal_shard": {
+          "n_beats": 0,
+          "n_beats_with_magic": 0,
+          "fraction_with_magic": null,
+          "magic_density_per_100w": 0.0,
+          "n_magic_tokens_in_co_beats": 0,
+          "co_beat_words": 0
+        },
+        "streams_of_silver": {
+          "n_beats": 0,
+          "n_beats_with_magic": 0,
+          "fraction_with_magic": null,
+          "magic_density_per_100w": 0.0,
+          "n_magic_tokens_in_co_beats": 0,
+          "co_beat_words": 0
+        },
+        "halflings_gem": {
+          "n_beats": 35,
+          "n_beats_with_magic": 35,
+          "fraction_with_magic": 1.0,
+          "magic_density_per_100w": 2.9729,
+          "n_magic_tokens_in_co_beats": 113,
+          "co_beat_words": 3801
+        }
+      },
+      "books_present": 1
+    },
+    "Cryshal-Tirith": {
+      "per_book": {
+        "crystal_shard": {
+          "n_beats": 52,
+          "n_beats_with_magic": 40,
+          "fraction_with_magic": 0.7692,
+          "magic_density_per_100w": 2.2523,
+          "n_magic_tokens_in_co_beats": 130,
+          "co_beat_words": 5772
+        },
+        "streams_of_silver": {
+          "n_beats": 0,
+          "n_beats_with_magic": 0,
+          "fraction_with_magic": null,
+          "magic_density_per_100w": 0.0,
+          "n_magic_tokens_in_co_beats": 0,
+          "co_beat_words": 0
+        },
+        "halflings_gem": {
+          "n_beats": 0,
+          "n_beats_with_magic": 0,
+          "fraction_with_magic": null,
+          "magic_density_per_100w": 0.0,
+          "n_magic_tokens_in_co_beats": 0,
+          "co_beat_words": 0
+        }
+      },
+      "books_present": 1
+    },
+    "Telshazz": {
+      "per_book": {
+        "crystal_shard": {
+          "n_beats": 3,
+          "n_beats_with_magic": 3,
+          "fraction_with_magic": 1.0,
+          "magic_density_per_100w": 4.7872,
+          "n_magic_tokens_in_co_beats": 18,
+          "co_beat_words": 376
+        },
+        "streams_of_silver": {
+          "n_beats": 0,
+          "n_beats_with_magic": 0,
+          "fraction_with_magic": null,
+          "magic_density_per_100w": 0.0,
+          "n_magic_tokens_in_co_beats": 0,
+          "co_beat_words": 0
+        },
+        "halflings_gem": {
+          "n_beats": 0,
+          "n_beats_with_magic": 0,
+          "fraction_with_magic": null,
+          "magic_density_per_100w": 0.0,
+          "n_magic_tokens_in_co_beats": 0,
+          "co_beat_words": 0
+        }
+      },
+      "books_present": 1
+    },
+    "Al Dimeneira": {
+      "per_book": {
+        "crystal_shard": {
+          "n_beats": 2,
+          "n_beats_with_magic": 2,
+          "fraction_with_magic": 1.0,
+          "magic_density_per_100w": 4.5296,
+          "n_magic_tokens_in_co_beats": 13,
+          "co_beat_words": 287
+        },
+        "streams_of_silver": {
+          "n_beats": 0,
+          "n_beats_with_magic": 0,
+          "fraction_with_magic": null,
+          "magic_density_per_100w": 0.0,
+          "n_magic_tokens_in_co_beats": 0,
+          "co_beat_words": 0
+        },
+        "halflings_gem": {
+          "n_beats": 0,
+          "n_beats_with_magic": 0,
+          "fraction_with_magic": null,
+          "magic_density_per_100w": 0.0,
+          "n_magic_tokens_in_co_beats": 0,
+          "co_beat_words": 0
+        }
+      },
+      "books_present": 1
+    },
+    "Harpell": {
+      "per_book": {
+        "crystal_shard": {
+          "n_beats": 0,
+          "n_beats_with_magic": 0,
+          "fraction_with_magic": null,
+          "magic_density_per_100w": 0.0,
+          "n_magic_tokens_in_co_beats": 0,
+          "co_beat_words": 0
+        },
+        "streams_of_silver": {
+          "n_beats": 25,
+          "n_beats_with_magic": 14,
+          "fraction_with_magic": 0.56,
+          "magic_density_per_100w": 0.7356,
+          "n_magic_tokens_in_co_beats": 20,
+          "co_beat_words": 2719
+        },
+        "halflings_gem": {
+          "n_beats": 27,
+          "n_beats_with_magic": 16,
+          "fraction_with_magic": 0.5926,
+          "magic_density_per_100w": 1.5121,
+          "n_magic_tokens_in_co_beats": 45,
+          "co_beat_words": 2976
+        }
+      },
+      "books_present": 2
+    },
+    "Drizzt": {
+      "per_book": {
+        "crystal_shard": {
+          "n_beats": 331,
+          "n_beats_with_magic": 127,
+          "fraction_with_magic": 0.3837,
+          "magic_density_per_100w": 0.9087,
+          "n_magic_tokens_in_co_beats": 316,
+          "co_beat_words": 34774
+        },
+        "streams_of_silver": {
+          "n_beats": 335,
+          "n_beats_with_magic": 126,
+          "fraction_with_magic": 0.3761,
+          "magic_density_per_100w": 0.592,
+          "n_magic_tokens_in_co_beats": 220,
+          "co_beat_words": 37161
+        },
+        "halflings_gem": {
+          "n_beats": 403,
+          "n_beats_with_magic": 161,
+          "fraction_with_magic": 0.3995,
+          "magic_density_per_100w": 0.7893,
+          "n_magic_tokens_in_co_beats": 334,
+          "co_beat_words": 42316
+        }
+      },
+      "books_present": 3
+    },
+    "Bruenor": {
+      "per_book": {
+        "crystal_shard": {
+          "n_beats": 190,
+          "n_beats_with_magic": 43,
+          "fraction_with_magic": 0.2263,
+          "magic_density_per_100w": 0.3122,
+          "n_magic_tokens_in_co_beats": 63,
+          "co_beat_words": 20178
+        },
+        "streams_of_silver": {
+          "n_beats": 374,
+          "n_beats_with_magic": 127,
+          "fraction_with_magic": 0.3396,
+          "magic_density_per_100w": 0.5086,
+          "n_magic_tokens_in_co_beats": 210,
+          "co_beat_words": 41292
+        },
+        "halflings_gem": {
+          "n_beats": 284,
+          "n_beats_with_magic": 106,
+          "fraction_with_magic": 0.3732,
+          "magic_density_per_100w": 0.6074,
+          "n_magic_tokens_in_co_beats": 186,
+          "co_beat_words": 30623
+        }
+      },
+      "books_present": 3
+    },
+    "Wulfgar": {
+      "per_book": {
+        "crystal_shard": {
+          "n_beats": 244,
+          "n_beats_with_magic": 66,
+          "fraction_with_magic": 0.2705,
+          "magic_density_per_100w": 0.4647,
+          "n_magic_tokens_in_co_beats": 120,
+          "co_beat_words": 25824
+        },
+        "streams_of_silver": {
+          "n_beats": 274,
+          "n_beats_with_magic": 97,
+          "fraction_with_magic": 0.354,
+          "magic_density_per_100w": 0.5743,
+          "n_magic_tokens_in_co_beats": 173,
+          "co_beat_words": 30125
+        },
+        "halflings_gem": {
+          "n_beats": 293,
+          "n_beats_with_magic": 115,
+          "fraction_with_magic": 0.3925,
+          "magic_density_per_100w": 0.7954,
+          "n_magic_tokens_in_co_beats": 245,
+          "co_beat_words": 30802
+        }
+      },
+      "books_present": 3
+    },
+    "Regis": {
+      "per_book": {
+        "crystal_shard": {
+          "n_beats": 134,
+          "n_beats_with_magic": 53,
+          "fraction_with_magic": 0.3955,
+          "magic_density_per_100w": 0.7436,
+          "n_magic_tokens_in_co_beats": 105,
+          "co_beat_words": 14120
+        },
+        "streams_of_silver": {
+          "n_beats": 230,
+          "n_beats_with_magic": 85,
+          "fraction_with_magic": 0.3696,
+          "magic_density_per_100w": 0.5958,
+          "n_magic_tokens_in_co_beats": 149,
+          "co_beat_words": 25008
+        },
+        "halflings_gem": {
+          "n_beats": 160,
+          "n_beats_with_magic": 61,
+          "fraction_with_magic": 0.3812,
+          "magic_density_per_100w": 0.6185,
+          "n_magic_tokens_in_co_beats": 106,
+          "co_beat_words": 17138
+        }
+      },
+      "books_present": 3
+    },
+    "Catti-brie": {
+      "per_book": {
+        "crystal_shard": {
+          "n_beats": 31,
+          "n_beats_with_magic": 3,
+          "fraction_with_magic": 0.0968,
+          "magic_density_per_100w": 0.0954,
+          "n_magic_tokens_in_co_beats": 3,
+          "co_beat_words": 3145
+        },
+        "streams_of_silver": {
+          "n_beats": 157,
+          "n_beats_with_magic": 58,
+          "fraction_with_magic": 0.3694,
+          "magic_density_per_100w": 0.5997,
+          "n_magic_tokens_in_co_beats": 100,
+          "co_beat_words": 16674
+        },
+        "halflings_gem": {
+          "n_beats": 187,
+          "n_beats_with_magic": 71,
+          "fraction_with_magic": 0.3797,
+          "magic_density_per_100w": 0.5277,
+          "n_magic_tokens_in_co_beats": 106,
+          "co_beat_words": 20089
+        }
+      },
+      "books_present": 3
+    },
+    "Entreri": {
+      "per_book": {
+        "crystal_shard": {
+          "n_beats": 1,
+          "n_beats_with_magic": 0,
+          "fraction_with_magic": 0.0,
+          "magic_density_per_100w": 0.0,
+          "n_magic_tokens_in_co_beats": 0,
+          "co_beat_words": 100
+        },
+        "streams_of_silver": {
+          "n_beats": 186,
+          "n_beats_with_magic": 73,
+          "fraction_with_magic": 0.3925,
+          "magic_density_per_100w": 0.6276,
+          "n_magic_tokens_in_co_beats": 127,
+          "co_beat_words": 20235
+        },
+        "halflings_gem": {
+          "n_beats": 184,
+          "n_beats_with_magic": 57,
+          "fraction_with_magic": 0.3098,
+          "magic_density_per_100w": 0.5273,
+          "n_magic_tokens_in_co_beats": 103,
+          "co_beat_words": 19535
+        }
+      },
+      "books_present": 3
+    }
+  },
+  "gates": {
+    "G1_chapter_position_trajectory": {
+      "verdict": "DIVERGE",
+      "peak_quartile_per_book": {
+        "crystal_shard": "q3",
+        "streams_of_silver": "q0",
+        "halflings_gem": "q0"
+      },
+      "books_with_climax_peak": {
+        "crystal_shard": "q3"
+      },
+      "books_with_dissenting_peak": {
+        "streams_of_silver": "q0",
+        "halflings_gem": "q0"
+      },
+      "rule": "PASS if 3/3 books peak at q2 (penultimate) or q3 (final); PASS_PARTIAL at 2/3."
+    },
+    "G2_top15_lexicon_jaccard": {
+      "verdict": "DIVERGE",
+      "mean_pairwise_jaccard": 0.4307,
+      "rule": "PASS at >= 0.85, PASS_PARTIAL at >= 0.50."
+    },
+    "G3_per_kind_ordering_top2": {
+      "verdict": "PASS_PARTIAL",
+      "per_book_top2": {
+        "crystal_shard": [
+          "description",
+          "interiority"
+        ],
+        "streams_of_silver": [
+          "interiority",
+          "action"
+        ],
+        "halflings_gem": [
+          "description",
+          "interiority"
+        ]
+      },
+      "books_with_matching_top2": 2,
+      "books_with_matching_top1": 2,
+      "rule": "PASS if top-2 ordered tuple agrees in 3/3 books."
+    },
+    "G4_top15_set_intersection_size": {
+      "verdict": "PASS_PARTIAL",
+      "intersection_size": 8,
+      "intersection_set": [
+        "dragon",
+        "fire",
+        "flames",
+        "magic",
+        "magical",
+        "spell",
+        "wind",
+        "wizard"
+      ],
+      "rule": "PASS if >= 10 shared tokens across all 3 books."
+    },
+    "G5_per_character_co_occurrence": {
+      "verdict": "KILL",
+      "characters_in_all_3_books": [
+        "Pasha Pook",
+        "Entreri"
+      ],
+      "elevation_per_character": {
+        "Pasha Pook": {
+          "magic_density_per_100w_per_book": {
+            "crystal_shard": 0.3252,
+            "streams_of_silver": 1.0989,
+            "halflings_gem": 0.9748
+          },
+          "ratio_to_book_baseline": {
+            "crystal_shard": 0.335,
+            "streams_of_silver": 1.567,
+            "halflings_gem": 1.307
+          },
+          "elevated_in_books": 0
+        },
+        "Entreri": {
+          "magic_density_per_100w_per_book": {
+            "crystal_shard": 0.0,
+            "streams_of_silver": 0.6276,
+            "halflings_gem": 0.5273
+          },
+          "ratio_to_book_baseline": {
+            "crystal_shard": 0.0,
+            "streams_of_silver": 0.895,
+            "halflings_gem": 0.707
+          },
+          "elevated_in_books": 0
+        }
+      },
+      "rule": "Per character, ratio = char-magic-density / book-overall-density. PASS if 3/3 chars elevated >=2x in >= 2/3 books."
+    }
+  },
+  "overall_verdict": "KILL",
+  "sample_top_magic_beats_per_book": {
+    "crystal_shard": [
+      {
+        "book": "crystal_shard",
+        "chapter": "10",
+        "beat_idx": 1,
+        "kind": "description",
+        "words": 107,
+        "density_per_100w": 11.215,
+        "magic_tokens": 12,
+        "first_sentence": "Such was the case that night in a land a thousand miles from Akar Kessell and Crenshinibon."
+      },
+      {
+        "book": "crystal_shard",
+        "chapter": "prelude",
+        "beat_idx": 1,
+        "kind": "interiority",
+        "words": 121,
+        "density_per_100w": 10.7438,
+        "magic_tokens": 13,
+        "first_sentence": "And Errtu had come so close to possessing it!"
+      },
+      {
+        "book": "crystal_shard",
+        "chapter": "25",
+        "beat_idx": 7,
+        "kind": "dialogue",
+        "words": 122,
+        "density_per_100w": 10.6557,
+        "magic_tokens": 13,
+        "first_sentence": "\"None at all,\" Errtu said."
+      }
+    ],
+    "halflings_gem": [
+      {
+        "book": "halflings_gem",
+        "chapter": "10",
+        "beat_idx": 0,
+        "kind": "description",
+        "words": 119,
+        "density_per_100w": 9.2437,
+        "magic_tokens": 11,
+        "first_sentence": "The silver dragon rolled over onto its back lazily, riding the morning winds with its legs - all four - crossed over it and its sleepy eyes half closed."
+      },
+      {
+        "book": "halflings_gem",
+        "chapter": "1",
+        "beat_idx": 14,
+        "kind": "dialogue",
+        "words": 134,
+        "density_per_100w": 7.4627,
+        "magic_tokens": 10,
+        "first_sentence": "\"The boy did nothing wrong,\" Wulfgar snarled at him."
+      },
+      {
+        "book": "halflings_gem",
+        "chapter": "12",
+        "beat_idx": 1,
+        "kind": "dialogue",
+        "words": 82,
+        "density_per_100w": 7.3171,
+        "magic_tokens": 6,
+        "first_sentence": "\"I thought ye had forgot me,\" Catti-brie said as the rowboat approached."
+      }
+    ],
+    "streams_of_silver": [
+      {
+        "book": "streams_of_silver",
+        "chapter": "19",
+        "beat_idx": 0,
+        "kind": "dialogue",
+        "words": 55,
+        "density_per_100w": 9.0909,
+        "magic_tokens": 5,
+        "first_sentence": "\"Go to them. Show them the stair,\" Dendybar commanded."
+      },
+      {
+        "book": "streams_of_silver",
+        "chapter": "23",
+        "beat_idx": 1,
+        "kind": "action",
+        "words": 80,
+        "density_per_100w": 7.5,
+        "magic_tokens": 6,
+        "first_sentence": "Oil found its way in through the seams in Shimmergloom's scales, carrying the fire to the dragon flesh."
+      },
+      {
+        "book": "streams_of_silver",
+        "chapter": "part1",
+        "beat_idx": 1,
+        "kind": "interiority",
+        "words": 82,
+        "density_per_100w": 7.3171,
+        "magic_tokens": 6,
+        "first_sentence": "The great dragons are the preternatural beast, the basic element of the beast, that darkest part of our imagination."
+      }
+    ]
+  }
+}

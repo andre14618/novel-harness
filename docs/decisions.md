@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-04-18
+updated: 2026-04-30
 ---
 
 # Decisions
@@ -2195,3 +2195,282 @@ The pivot is a **freeze**, not a retirement. The LoRA infrastructure (W&B Infere
 - **Retrospective `docs/retrospectives/2026-04-21-lora-track-evidence.md`** is now the canonical narrative of the pivot. This decision entry is the decision; the retrospective is the evidence/context.
 - **Product-identity implication (per Codex consult §4):** if voice-shaping fails to match the LoRA's voice quality, the harness's commercial differentiator shifts from "offline-capable Salvatore-voice imitation" to "planner/context/checker harness around an API writer." That re-framing is deferred to post-voice-shaping-ablation synthesis. Not decided yet.
 - **Howard primer V4 adapter on W&B** (retired for automatic routing 2026-04-16) remains available for the on-demand `POST /api/novel/:id/tonal-pass` endpoint. Unchanged by this pivot.
+
+---
+
+### voice-shaping-ablation-v1 concluded — FLAT vs D0; prompt-only shaping program closed; adopt bare DeepSeek as fantasy route
+*2026-04-21 run / 2026-04-29 synthesis · exp #263 · charter `docs/charters/voice-shaping-ablation-v1.md` · results `docs/charters/voice-shaping-ablation-v1-results.md`*
+
+**Decision:** The voice-shaping-ablation-v1 program is concluded with a FLAT-vs-D0 verdict. No prompt-level intervention (D1 style guide, D2 few-shot reference passages, D3 per-character voice directives) produced voice-shape prose measurably closer to the Salvatore reference distribution than bare DeepSeek V3.2 (D0) on the charter's conjunctive ≥3-of-5-features rule. Prompt-only voice shaping at DeepSeek scale is closed as a primary investment direction. Operational recommendation: adopt bare DeepSeek (now V4 Flash per 2026-04-29 swap) as the production writer for the fantasy route; redirect effort to character-distinctness.
+
+**Why the null is informative, not disappointing:** D0 (bare DeepSeek V3.2) is already very close to the Salvatore reference distribution on 3 of 5 features — mean sentence length 0.89σ, sentence-length std 0.39σ, clause complexity 0.37σ. There is little room for prompt shaping to improve on a baseline that's already ceiling-near. The null result means "the starting point is already close," not "prompt shaping is weak." The 25%-improvement bar (0.75× D0 distance) cannot be cleared when D0 is already under 1σ from reference.
+
+**Key findings from the decomposed audit (N=20 beats × 4 arms, $0.0221):**
+
+| Feature | Salvatore v4 | D0-bare | D1-style-guide | D2-few-shot | D3-char-directives |
+|---|---:|---:|---:|---:|---:|
+| meanSentenceLength | 3.74σ | **0.89σ** | 0.97σ | 0.97σ | 0.88σ |
+| sentenceLengthStd | 11.37σ | **0.39σ** | 0.49σ | 0.42σ | 0.49σ |
+| dialogueRatio | **0.01σ** | 0.79σ | 0.74σ | 0.54σ | 0.83σ |
+| clauseComplexity | 0.36σ | 0.37σ | 0.49σ | 0.41σ | **0.39σ** |
+| sensoryDensity | 0.67σ | 2.80σ | 2.72σ | 2.72σ | 3.30σ |
+
+D1: 0/5 features improved. D2: 1/5 (dialogueRatio, 0.79→0.54σ). D3: 0/5. Program-level kill.
+
+**Halluc-leak gate (D2):** D2 exposed DeepSeek to actual Salvatore corpus excerpts and produced **zero leak fires** (0/20 beats). Salvatore v4 LoRA itself leaks at 15% (Waterdeep, Maer Dualdon). This falsifies the "few-shot corpus exposure = structural leak risk" concern and inverts the risk framing: the weight-trained LoRA is riskier than prompt-exposed DeepSeek.
+
+**Salvatore v4 outlier finding:** Salvatore v4's sentenceLengthStd is 11.37σ vs reference — driven by a 2863w loop-outlier beat. DeepSeek arms are all 0.39–0.49σ. Distribution-level, the LoRA is FURTHER from reference than bare DeepSeek on this feature. The one axis where the LoRA genuinely wins is dialogueRatio (0.01σ vs D0's 0.79σ).
+
+**Why not retire voice-LoRA fine-tuning entirely:** this program tested prompt-level interventions on a 685B-MoE base. The hypothesis that 14B-LoRA failure is scale-specific is unrefuted. Larger-base weight-level fine-tuning (70B+) remains on the table if voice-shape ceiling becomes a production limit. The LoRA infrastructure is frozen, not deleted.
+
+**Alternatives not taken:**
+- **D2 as a partial win on dialogueRatio** — one feature at 0.75× threshold doesn't clear the conjunctive ≥3-of-5 rule. Even if relaxed to 1-of-5, D2's dialogue improvement is modest and didn't transfer to other features.
+- **Rescale N to 40+ beats** — program-level-kill threshold doesn't require tighter CIs; the directional signal across all three arms is consistent and unambiguous.
+- **Build v2 charter with D4/D5 (two-stage rewrite, metric-retry)** — these levers deferred per charter §1; the FLAT-vs-D0 result says baseline is already close to ceiling, making pipeline-level voice-shaping unlikely to show large gains. Not worth chartering as a primary track.
+
+**Operational implications:**
+- **`WRITER_GENRE_PACKS` fantasy route** — replace Salvatore v4 with bare DeepSeek V4 Flash (now the pipeline default per 2026-04-29 V4 swap). Pending full-novel validation run to confirm reader-perceivable quality holds.
+- **Character-distinctness** is now the primary voice-quality target. D3 (richer per-character directives) didn't move voice-shape metrics but hasn't been tested on within-beat character distinctness — that's the correct next experiment. Use the same Sonnet quote-required audit rubric from charter §3.
+- **`docs/charters/salvatore-v5-corpus-expansion.md`** — remains decapitalized. Do not start corpus expansion until character-distinctness experiments justify it.
+- **Product-identity implication (from the LoRA-track-frozen entry):** the harness's differentiator is now "planner/context/checker harness around an API writer" rather than "offline-capable voice imitation." This is resolved, not deferred.
+
+---
+
+### tier-ordering-validation-v1 killed; 3-tier sequential ordering stays as working hypothesis
+*2026-04-21 · exp #264 · charter `docs/charters/tier-ordering-validation-v1.md` · results `docs/charters/tier-ordering-validation-v1-results.md` · retrospective `docs/sessions/2026-04-21-tier-ordering-probe.md`*
+
+**Decision:** The `tier-ordering-validation-v1` charter — commissioned to empirically test whether the autonomous-loop roadmap's Tier 1 (structural planning) and Tier 2 (writer quality) can be sequentially optimized or require parallel-coupled optimization — is fully killed across both lever versions. The 3-tier sequential ordering assumption is promoted from "to be validated" to "working hypothesis, revisit if Tier 1 winners collapse under Tier 2 writer swaps." The cheapest-untried-counterfactual probe space at chapter-scale is exhausted for this specific question.
+
+**Why:** The roadmap revision 2 (commit `db9d8f6`) landed an explicit 2×2 design to validate the tier ordering — {baseline planner, loud planner variant} × {DeepSeek V3.2, Salvatore v4 LoRA}. The Opus `experiment-adversary` fallback (Codex SlashCommand tool unavailable in session) returned RED with 7 blockers + 4 warnings + a $0.60 synthetic-loud-planner probe as cheapest-untried-counterfactual. Two lever versions were then falsified in sequence:
+
+1. **v1 lever (establishedFacts + characterStateChanges density) — killed by terrain survey (commit `9956f62`).** The intended lever doesn't reach the writer prompt under the current `src/agents/writer/beat-context.ts`. Orphan `establishedFacts` are only read to build a factById lookup map; the writer sees them only when explicitly linked via `beat.requiredPayoffs` (SEEDS / PAYOFFS DUE blocks at lines 255-281). `characterStateChanges` from the outline is never rendered to the writer at all. The $0.60 probe would have measured byte-equal writer outputs — a $0 code-level audit rescued the budget.
+
+2. **v2 lever (requiredPayoffs density) — killed by probe (exp #264, commit `b4426fb`).** After pivoting to a writer-visible lever, the probe ran on 52 beat-writer calls (2 chapters × 2 variants × 13 beats) for $0.028 actual (21× under budget). Marginal adherence-pass delta was −7.7pt (baseline 23/26 = 88.5% → loud 21/26 = 80.8%), which tripped the driver's NEGATIVE threshold but failed the correct matched-pairs McNemar test at p ≈ 0.68 (4 P→F regressions / 2 F→P recoveries / 6 discordant pairs). The writer IS visibly responding to the lever — extra SEEDS blocks compete with core-beat attention, producing occasional action inversions and truncations — but the net effect sits within sampling noise at n=26/cell.
+
+**What this establishes:**
+- Density-manipulation as a planner-side lever at chapter-probe scale does not produce a signal on adherence-pass-rate with a cheap instrument. The ordering question at this resolution is unanswerable for the budget tier the roadmap allocated.
+- Two distinct structural-state surfaces that the roadmap conflated — the *outline schema* (planner output) and the *writer render set* (`beat-context.ts` concatenation) — are now named as separate concepts. See lessons-learned §"Writer-visible state surface is narrower than outline schema."
+- Chapter-probe instruments with binary pass/fail at n=26/cell have a noise floor around ±6pt. Future probes at this scale need finer-grained metrics or more sampling units. See lessons-learned §"Adherence-pass-rate has a noise floor at n=26/cell."
+
+**Alternatives rejected:**
+- **Commission the full 2×2 as revised** — the single-writer stage-1 probe came in FLAT. Multiplying that by a second writer and a ceiling anchor would compound noise, not resolve it.
+- **Expand to a 2×3 with Llama 8B ceiling anchor (adversary's blocker #7)** — same objection; the per-cell signal is too weak to survive additional-writer comparison.
+- **Accept the script's marginal NEGATIVE verdict at face value** — rejected after McNemar analysis; the driver's ±5pt threshold was too tight for the realized sample size.
+- **Treat the ordering as falsified by the FLAT result** — rejected. The probe doesn't discriminate; absence of evidence is not evidence of absence. The ordering assumption is unvalidated, not disproven.
+
+**Ongoing implications:**
+- **Roadmap revision 2 (`docs/autonomous-loop-roadmap-2026-04-21.md`) stays authoritative** with one semantic update applied via this decision entry: the "Validating the ordering" §2×2 design is no longer executable as specified; the ordering is a working hypothesis to revisit under the "Tier 1 winners collapse under Tier 2 writer swaps" trigger documented in charter §11 Fork 3.
+- **Next Tier 1 work: ship the writer-visible threading** (`todo.md` item). Bulk `establishedFacts` injection into `beat-context.ts`, `worldExpansionBudget` wiring, `priorBeatEstablishedFacts` via `getFactsUpToChapter`. These are the un-shipped glue the terrain survey identified, and the three Tier 1B items the roadmap explicitly names as "most-unshipped." Measurement must be at full-novel scale via decomposed audit, not chapter-probe — the latter's noise floor is now demonstrated.
+- **Adversary-review process caveat:** the Codex SlashCommand invocation path was unavailable mid-session; the Opus `experiment-adversary` fallback substituted per the skill's documented fallback rule. The fallback's RED verdict + cheapest-untried-counterfactual still steered the session to the correct kill. Worth making the primary Codex path more resilient, but the fallback mechanism worked as designed.
+- **Pattern for future charters — "terrain-survey preflight":** before any experiment that assumes "planner output X reaches writer Y," add a $0 render-surface audit as an explicit preflight item alongside the adversary-review gate. This session shows the audit is cheap, high-signal, and can kill entire experiment branches before LLM spend. Documented as a rule in lessons-learned §"Terrain-survey before probe implementation."
+- **Cost-estimate discipline reinforced:** the adversary's $0.60 budget was 21× over the actual $0.028 because per-token estimates don't account for DeepSeek prefix caching (280-320 cached tokens per call on the primer surface). Future charter §7 budgets should anchor on `SELECT sum(total_cost_usd) FROM llm_calls WHERE agent='beat-writer' ...` for any recent beat-scale run, not per-token ceilings. Reinforces memory `feedback_query_llm_calls_for_costs`.
+
+## Session 2026-04-29 — DeepSeek V4 Flash swap + per-agent thinking-mode toggle
+
+### DeepSeek V3.2 → V4 Flash pipeline-wide; thinking mode is per-agent
+*2026-04-29 · commit `eb2993d`*
+
+**Decision:** All DeepSeek-using slots route to **DeepSeek V4 Flash** (replacing V3.2). Thinking mode is OFF by default; ON only on three slots that reason over multi-element structure with cross-element dependencies — `planning-beats`, `chapter-plan-checker`, `chapter-plan-reviser`. Decision rule documented as a comment block above `deepseekV4Flash` in `src/models/roles.ts` so future model swaps inherit the rule.
+
+**Why:** V4 Flash is DeepSeek's current production tier with optional thinking mode. The instinct to flip `thinking: true` for all 10 DeepSeek-using slots was caught by the user ("are they literally all being used for thinking?") — thinking tokens cost latency and money in exchange for *multi-step structural reasoning*, not for creative output or one-shot transforms. The three thinking-on slots all run cross-beat / multi-element analyses (14-beat per-chapter expansion + state flow; cross-beat coherence judgment over 14 beats; smallest-edit diff over a multi-issue cluster); the other seven (writer, world-builder, character-agent, plotter, planning-plotter, planning-extractor, artifact-adjuster) are creative or one-shot and stay non-thinking.
+
+**Implementation surface:**
+- `src/models/registry.ts` — added `deepseek-v4-flash` ($0.14 / $0.28 / $0.0028 cache hit; thinking optional; maxOutput 64K) and `deepseek-v4-pro` ($1.74 / $3.48 base, currently 75% off until 2026-05-31; thinking always-on; reserved as escalation, NOT routed in `roles.ts`). Removed legacy `deepseek-chat` and `deepseek-reasoner` entries entirely (no aliases).
+- `src/models/roles.ts` — renamed `deepseekV3` → `deepseekV4Flash` constant; thinking-true set is exactly `{planning-beats, chapter-plan-checker, chapter-plan-reviser}`.
+- `src/llm.ts` — `thinking: boolean` plumbed through `makeRequest()` into the request body as `{ thinking: { type: "enabled" } }` for the deepseek provider only. Other providers ignore the flag.
+- 22+ scripts string-replaced from `deepseek-chat` → `deepseek-v4-flash`.
+
+**Alternatives rejected:**
+- **Set `thinking: true` everywhere DeepSeek runs.** Was the initial implementation; user pushback corrected it. Latency cost not justified for one-shot creative slots.
+- **Keep V3.2 as the live default and add V4 Flash as opt-in.** No reason to maintain two API tiers when V4 Flash is the current production family — clutter for no benefit. V4 Pro stays in the registry as the escalation tier.
+- **Use V4 Pro by default for the thinking slots.** ~12× output cost vs Flash at base rate; reserved for cases where Flash thinking proves insufficient. Pricing source: `https://api-docs.deepseek.com/quick_start/pricing` (V4 Pro base $1.74/$3.48; V4 Flash $0.14/$0.28).
+
+**Ongoing implications:**
+- Any new DeepSeek-using slot defaults to non-thinking; the comment block above `deepseekV4Flash` is the source-of-truth decision rule. Adding `thinking: true` requires the slot to justify it against the multi-element-structural-reasoning criterion.
+- Latency baselines (CLAUDE.md says ~30s/beat on V3.2) need re-measuring after the first end-to-end novel run on V4 Flash. Flagged in current-state.md.
+- V4 Pro is registered but unrouted — escalation lever for any slot whose Flash-thinking output proves insufficient. The 75% promo discount expires 2026-05-31, after which the base $1.74/$3.48 rate returns.
+
+### Phase-eval probe scaffold (variant runner via env-var seam)
+*2026-04-29 · commits `a031980` (Slice 0a) + `c6ef9a5` (Slice 1) + `9de6a78` + `d024ce8`*
+
+**Decision:** Ship a cheap-probe instrument for testing planner-prompt variants side-by-side without building a full harness. Implementation lives in `scripts/phase-eval/` + the `PLANNING_BEATS_PROMPT_OVERRIDE` env-var seam in `src/agents/planning-beats/index.ts`. The probe is offline tooling, NOT part of the runtime pipeline — production novels are unaffected.
+
+**Why:** The phase-variant-comparison charter (`docs/designs/phase-variant-comparison.md`) went through 4 rounds of Codex `gpt-5.5 effort=high` adversarial review (R1 RED through R4 RED, R5 GREEN). Each round named a cheaper counterfactual; following that pattern collapsed scope from a 14h harness build (R1) to a $0.30 5-chapter planner-only A/B (R5) — final scope ≈ 5% of original. The instrument's purpose is to let prompt-shape changes get a directional signal in minutes for cents, before committing to harness changes.
+
+**Implementation:**
+- `scripts/variant/clone-for-variant.ts` extended with `--target-phase=concept-done` flag (Slice 0a) — produces a frozen concept-snapshot novel that variants can clone from, ensuring all variants plan against identical concept state.
+- `src/agents/planning-beats/index.ts` reads `PLANNING_BEATS_PROMPT_OVERRIDE` (absolute path) at module load via top-level await.
+- `scripts/phase-eval/probe-planning-beats.ts` (parent): runs concept once → clones per variant → spawns child process per variant with the env var pre-set → aggregates per-variant `outlines.json` into `summary.json`. Each variant runs in its own bun subprocess to get a fresh module graph (top-level await caches forever in-process).
+- `scripts/phase-eval/run-variant.ts` (child): runs planning phase only, dumps `chapter_outlines.outline_json` to disk.
+- `scripts/phase-eval/print-screen-verdict.ts`: pure deps-free metric computer — reports G1-G4 (median facts/chapter, mean knowledge/chapter, mean beats/chapter, mean state-changes/chapter) with test-minus-control deltas. Charter R5 framing — directional, not compliance.
+
+**First-run result (default vs loud, `fantasy-system-heretic` seed, 3 chapters):** ΔG1=+5 facts/chapter (median 3 → 8), ΔG3=+4.3 beats/chapter (mean 10 → 14.3), ΔG2=+1.3 knowledge transfers/chapter, ΔG4=+0.3 state changes/chapter. Strong directional signal that prompt-shape is a load-bearing planner lever even on V4 Flash thinking-mode. Sample size below charter spec (3 chapters vs 5 — used the smallest current-target-genre seed); next probe should add temperature-noise band or use a 5-chapter litrpg seed.
+
+**Alternatives rejected:**
+- **In-process variant cycling.** Top-level `await Bun.file(prompt).text()` in `planning-beats/index.ts` caches the prompt for the life of the process; in-process cycling silently applies the FIRST variant's prompt to ALL subsequent variants. Per-variant child processes are mandatory.
+- **Charter R1's full harness build.** 14h scope; deferred until probe results justify the investment. R5 probe covers the immediate need at 5% of the cost.
+- **Including chapter-plan-checker in the probe (R3 charter).** Required prose input; incompatible with planner-only scope. Codex R3 flagged via direct `src/agents/chapter-plan-checker/context.ts:13` cite. Dropped in R4.
+
+**Ongoing implications:**
+- The probe is the canonical first instrument for ANY planner-prompt change going forward. Spawn → measure → decide before committing to harness work.
+- If probe results across multiple seeds + variants justify it, fold the env-var seam into the harness as a permanent prompt-pinning surface (e.g., `pipelineOverrides.promptOverrides[agent]`). Until then, it stays offline tooling.
+- The same child-process variant runner pattern generalizes to ANY agent whose prompt is loaded via top-level await (i.e., all of them). Future probe scripts can clone the `run-variant.ts` shape per-agent.
+
+### Schema-of-record drift caught at runtime — `thematic_tags` was dropped in sql/013
+*2026-04-29 · commit `9de6a78`*
+
+**Decision:** Slice 0a's `CONCEPT_DONE_MUST_BE_ABSENT` audit list (in `scripts/variant/clone-for-variant.ts`) included `thematic_tags`, which was created in sql/011 but DROPPED in sql/013 (`drop_themes_unify_defaults`). The first phase-eval probe run failed at the audit step with `relation "thematic_tags" does not exist`. Fix: removed `thematic_tags` from the list, added a comment citing the sql/011 CREATE + sql/013 DROP.
+
+**Why this is recorded:** memory `feedback_schema_of_record_check` says: "Before landing code that assumes array size / enum / structural shape, grep the production schema-of-record and confirm." This session is the concrete cite — `grep -rn thematic_tags sql/` would have caught the drift in <5 seconds before commit. The rule applies to ALL constants that mirror schema state (table lists, column lists, enum values).
+
+### Corpus structural-decomposition v2 — decomposed extractor + Sonnet anchor
+*2026-04-29 · design doc: `docs/designs/decomposed-extractor-sonnet-anchor-v1.md`*
+
+**Decision:** The corpus structural-decomposition pipeline (R7 charter) pivots from monolithic Flash extractor + Pro judge calibration to a two-change architecture:
+
+1. **Decomposed extractor.** Mice splits from one 4-way classification + 6 fields per scene into 4 parallel binary calls per scene (one per M/I/C/E thread type). Promise splits into two sub-dims with disjoint close-distance windows: `arc-promise` (close ≥ 5 chapters from open) and `setup-payoff-bridge` (close ≤ 3 chapters from open). Value-charge and mckee-gap stay as single calls (already enum-shaped on every load-bearing field).
+
+2. **Sonnet anchor replaces Pro judge.** Anthropic Sonnet runs once per dim per book on a 50-scene sample, producing the calibration ground truth. Flash runs on the full corpus and is scored against the Sonnet anchor on the 50-scene overlap. Pro judge is retired from this pipeline.
+
+Character-arcs is not part of this pivot — already shipped at F1=1.00 (commit `4ec5d8b`).
+
+**Why:** Phase C (Crystal Shard, 2026-04-29) revealed two compounding failure modes in the v1 architecture:
+
+- *Cognitive load.* Mice asks Flash to handle 4 thread definitions + open/close criteria + secondary thread + descriptor + quote in one call. Result: F1=0.776 / P=0.731 (CELL MARGINAL). Same failure pattern as adherence-checker pre-decomposition; same fix: split per-dimension. Memory `feedback_decompose_checker_calls.md`.
+- *Gold stochasticity.* Two consecutive Pro judge runs on identical promise prompts at T=0.3 produced 30 vs 27 promises with only 14 shared (Jaccard 0.326). The judge wasn't picking different promises — it was picking different *definitions* of "promise" each run (gold v1 mean payoff span 104 chapters; gold v2 mean span 4). Same model + same prompt + multiple defensible rubric interpretations. Sonnet pair-matcher confirmed the instability (15 shared, Δ=1). Memory `feedback_gold_stability_first.md`.
+
+Both failure modes are rubric-latitude problems at different layers. Decomposition tightens cognitive latitude (mice); sub-dim splitting tightens semantic latitude (promise → arc-promise + bridge). Sonnet anchor replaces a same-family judge (Pro shares biases with Flash) with an independent-family ground truth that was already validated as a higher-recall oracle (Phase C.1, Sonnet found 38 promises vs Pro's 27–30; nearly all of Pro's plus the series-hook setups Pro missed).
+
+**Alternatives rejected:**
+- *Ensemble gold (intersection/union of N Pro runs).* Doesn't fix rubric latitude — the two structurally different categorizations don't intersect well.
+- *T=0 deterministic.* Tested in Phase C.3. Same 22 promises but different alignment to which gold sample fixed each side; F1 against gold v1 went up while F1 against gold v2 went down. Variance is in the judge, not the temperature.
+- *More prompt examples.* Tested via `mice-system-v2-draft.md` and `value-charge-system-v2-draft.md`. Sharper-but-still-monolithic prompts don't bypass the cognitive-load ceiling.
+- *Sonnet for the FULL corpus extraction.* 5–10× cost increase over the anchor pattern; the 50-scene anchor + Flash full-corpus shape captures the directional answer at $14–27/book vs $50–100/book.
+- *Codex GPT-5.5 instead of Sonnet as anchor.* Both are independent of DeepSeek family; either would work. Sonnet is the existing subagent path (Phase C.1 used it). Memory `feedback_codex_gpt54_subagents.md` reserves Codex for adversarial review and parallel analysis.
+
+**How to apply:**
+- New corpus-decomposition runs use the v2 architecture from the start.
+- Existing Crystal Shard verdicts: character-arcs (CELL PASS) stays shipped; mice / promise / value-charge / mckee-gap re-calibrate under v2 before any harness integration.
+- Cross-book validation (Streams of Silver, Storm Front per `docs/cross-book-cross-author-brief.md`) starts under v2.
+- Cost projection: ~$14–27/book at promo pricing (5–10× the v1 cost). Acceptable per `feedback_query_llm_calls_for_costs.md` — corpus-wide research is trivial absolute spend, the savings come from getting the right answer once instead of running unstable calibration cycles. Crystal Shard alone burned ~$3.85 on v1 with the promise dim parked.
+
+**Ongoing implications:**
+- Mice prompt v2 draft (`src/agents/structure-mice/mice-system-v2-draft.md`) is NOT promoted to canonical. Its close-criteria absorb into the 4 per-thread sub-prompts as source material.
+- Value-charge prompt v2 draft (`src/agents/structure-value-charge/value-charge-system-v2-draft.md`) is NOT promoted as-is either. Its 3-step lattice + commit-to-sign rules absorb into the still-monolithic value-charge prompt for the Sonnet-anchored re-calibration.
+- Sonnet self-consistency check is a hard gate per dim before any extractor calibration: ≥ 0.85 Jaccard required to anchor; < 0.70 means re-scope the sub-dim. This generalizes the existing memory `feedback_gold_stability_first.md` from "lessons learned" to "standing pre-flight check."
+- Implementation order: (1) Sonnet self-consistency on the 4 modified dims (~$8–15, half-day wall-clock); (2) sub-prompt drafting for dims that pass Gate 1; (3) Flash extraction + calibration; (4) per-dim ship/hold verdict.
+- Adversary review (Codex `codex-rescue gpt-5.5 effort=high`) scheduled after the Phase C close-out commits to the conclusions doc — gives a complete v1 baseline to evaluate against.
+
+### Sonnet-anchor v2 Gate 1 outcomes — Crystal Shard sceneBeatSchema soft priors landed
+*2026-04-30 · commits `42745ce` → `c5b3f3d` → `c48a232` → `81d228a` → `cd4347a` (`novels/salvatore-icewind-dale/structure-calibration/crystal_shard-conclusions.md` sessions 00:01 / 00:48 / 01:22 / 01:35 / 01:47 / 01:54 UTC)*
+
+**Decision:** With Sonnet self-consistency at n=50 + binary-collapse re-aggregation + beat-level extension, four corpus-derived structural priors land on `sceneBeatSchema` and are documented as planning-beats soft-prior text. Each shipped enum is the **intersection** of scene-level AND beat-level Jaccard ≥ 0.85 — the granularity-aware ship gate (see SOP below). The promise dim stays parked behind the v2 sub-dim split (open question, not regression). McKee-gap binary stays NEAR at the scene-level boundary; queued for rubric sharpen.
+
+| Field | Pre-session shape | Post-session shape | Anchor Jaccard (scene / beat) |
+|---|---|---|---|
+| `valueShift` (3-class +/-/0) | shipped | RETIRED — anchor unstable | 0.639 / 0.786 |
+| `valueShifted` (binary) | — | ADDED, replaces above | **0.887–0.923 / 0.852** |
+| `gapPresent` (binary) | drafted | shipped with low-confidence caveat | **0.818 NEAR / pending** |
+| `lifeValueAxes` (5 binary axes) | 3 shipped (life-death, ethics, relational) | EXPANDED to 5; agency + aspiration added | life-death 0.887/0.923, agency 0.724 NEAR / **0.852 PASS**, ethics 0.923/0.961, relational 0.923/0.961, aspiration 0.754 NEAR / **0.852 PASS** |
+| `miceActive` (4 threads → enum subset) | drafted (M/I/C/E) | NARROWED to `["I"]` only | I 0.961/**0.887**, C 0.961/0.754 NEAR, E 0.923/0.818 NEAR |
+| `miceOpens` | drafted (M/I/C/E) | NARROWED to `["M","I"]` | M PASS/**0.961**, I PASS/**0.887**, E 0.852/0.818 NEAR |
+| `miceCloses` | drafted (M/I/C/E) | UNCHANGED — all four pass at both granularities | all four 0.887–1.000 |
+
+All fields are **soft priors** with `optional()` or `default([])` semantics. Empty / omitted is valid; checkers MUST NOT block on these fields. Round-trips unchanged with legacy plans.
+
+**Why:**
+- *valueShift binary collapse.* The 3-class `+/-/0` polarity tag was at J=0.639 on a 50-scene Sonnet self-consistency wave (UNSTABLE per `feedback_gold_stability_first`). The cheapest-untried-counterfactual was data-only re-aggregation on the existing waves: collapse `+|-` → `shifted=true` and `0` → `shifted=false`. Result: J=0.887–0.923 at scene level on the same Sonnet runs that scored 0.639 on 3-class. Beat-level Sonnet self-consistency (waves stripped to binary-only rubric) confirmed J=0.852 — at the ship bar — without any new labeling. Net: zero new LLM calls, anchor instability resolved.
+- *gapPresent.* Cross-model F1 (Flash × Pro) on the original mckee-gap field was 0.892 (looked PASS); but Sonnet self-consistency on "any gap vs none" is 0.818, NEAR. Binary-collapse from `gap_size` × `gap_type` partitions doesn't recover it — the borderline cases shift between "small" and "no gap" between runs. Field shipped with explicit "low-confidence soft prior; checkers MUST NOT block" caveat; rubric sharpen queued.
+- *lifeValueAxes.* The 5-class single-pick enum was J=0.639 (scene) / 0.786 (beat) — UNSTABLE. Binary multi-tag collapse (each axis independently y/n) PASSES all 5 at beat level. Schema operates at beat level (`sceneBeatSchema`), so beat-stable wins. agency (0.724→0.852) and aspiration (0.754→0.852) IMPROVE from scene to beat granularity — granularity rotation finding (see new SOP).
+- *Mice granularity rotation.* All 4 mice threads scored ≥ 0.85 at scene-level on the original wave. Re-running at beat-level showed THREE subfields degrade to NEAR (`miceActive` C/E, `miceOpens` E) while the rest improve or hold. Schema operates at beat level, so the per-field enum is the **intersection** of scene-level AND beat-level PASS sets. Closing events stable across both granularities; opening + active events more granularity-sensitive.
+
+**Alternatives rejected:**
+- *Pick the larger 3-class enum and ship it anyway.* User's standing rule: rubric latitude with Sonnet J<0.85 means the gold is unstable, so any extractor F1 measured against it is dominated by judge variance. Shipping it would propagate hidden noise into the planner's structural priors.
+- *Re-label at higher temperature / with more examples to recover the 3-class polarity.* The same-model + same-prompt instability is structural rubric latitude, not temperature noise (per `feedback_gold_stability_first`). Tested via mckee-gap binary collapse: borderline cases stay borderline.
+- *Ship scene-stable mice subfields without re-checking at beat granularity.* This is exactly what the granularity rotation finding rules out — `sceneBeatSchema` operates at beat level, so anchor stability MUST be measured at beat level for any beat-emitted field. Caught by Codex review on the n=50 expansion.
+- *Wait for v2 Flash extractor calibration before adding any priors to the schema.* The Sonnet anchor IS the gold; Flash calibration measures whether the cheap extractor matches it. Schema fields (planner soft priors) need only the gold to be stable, not the cheap extractor. Decoupling unblocked the schema work.
+
+**How to apply:**
+- New planner outputs use the post-session schema. Beat-level reference distributions documented in `src/schemas/shared.ts` comments + `src/agents/planning-beats/beat-expansion-system.md` "Corpus-derived soft priors" block.
+- Chapter-skeleton priors (`chapter-outline-system.md`) are **NOT** updated yet — the chapter-level mice rollup uses the older Flash monolithic extractor (anchor ~0.667). Reverted the speculative edit; new v2 mice re-extraction in flight at session end (4 dims × 2 runs = 8 subagents on 139 scenes). After v2 high-stability data lands, re-aggregate chapter-level rhythm and re-cut the plotter prompt.
+- Existing tests round-trip unchanged: legacy plans without these fields validate fine; the four `SceneBeat` literals in `src/agents/writer/enriched-context.test.ts` were updated with empty defaults.
+- Cross-book validation (Streams of Silver, Storm Front per `docs/cross-book-cross-author-brief.md`) starts under v2 once Crystal Shard chapter-level rollup lands cleanly.
+
+**Ongoing implications:**
+- The schema commits closing this gate are: `42745ce` (initial valueShift + gapPresent), `c5b3f3d` (mice* drafts + valueShift caveat), `c48a232` (valueShift→valueShifted + lifeValueAxes 5 binary), `81d228a` (beat-level binary-only validation), `cd4347a` (mice granularity rotation narrowing).
+- The chapter-outline-system.md prompt edit was REVERTED in this session because its chapter mice priors came from the older monolithic-rubric extractor. Do not promote the chapter-level mice priors into the plotter prompt until v2 high-stability data lands. (Provenance check: a chapter-level rollup is only safe to use as planner prior if the underlying scene-level labels come from a Sonnet J ≥ 0.85 anchor or a Flash extractor calibrated against one.)
+- Schema field reference distributions live in `src/schemas/shared.ts` block comments — re-running the same n=50 stability check on a different book SHOULD reproduce these distributions to within ±5%; if not, that's evidence the priors are author-specific rather than corpus-general.
+
+### Binary-collapse-before-relabel SOP — try every binary collapse on existing data before authorizing new labeling waves
+*2026-04-30 · `novels/salvatore-icewind-dale/structure-calibration/crystal_shard-conclusions.md` session ~01:35 UTC, commits `b061779` + `c48a232`*
+
+**Decision:** When a stochastic-schema dim's anchor Jaccard falls below 0.85, **before** authorizing a new labeling wave (Sonnet anchor at $5–10/dim, several hours wall clock), exhaustively try data-only binary-collapse re-aggregations on the existing waves. The 3-class polarity → binary "did it move" collapse on existing valueShift waves recovered J from 0.639 to 0.887–0.923 with zero new LLM calls. Same pattern recovered lifeValueAxes (5-class single-pick → 5 independent binary tags).
+
+**Why:** The cost asymmetry is large — binary-collapse analysis is a 50-line script; new labeling wave is real money + wall-clock + risk of cascading other re-aggregations downstream. Binary collapses also produce *cleaner* schema fields than 3+-class enums for the same use case (planner soft prior, downstream checker doesn't gate on them, planner just reasons over them) — fewer choices to be inconsistent on. The right shape was hidden in the existing data; the labeling wave would have only confirmed that the unstable rubric stays unstable.
+
+**Alternatives rejected:**
+- *Tighten the rubric and re-label.* Tested with mckee-gap binary collapse on existing waves: borderline gap-vs-no-gap cases stay borderline regardless of rubric polish, because the source instability is *interpretation latitude*, not rubric ambiguity within a fixed interpretation. Re-labeling at a sharper rubric is still useful (queued for mckee-gap), but it's the second move, not the first.
+- *Ship the unstable enum and let downstream checkers absorb the noise.* User standing rule + memory `feedback_gold_stability_first`: anchor instability dominates extractor F1 and propagates into harness behavior silently. The schema is upstream of extractor calibration; instability there compounds.
+
+**How to apply:**
+- Step 0 (gold-stability check): two-run Sonnet self-consistency, J ≥ 0.85 to ship.
+- Step 1 (cheapest counterfactual on FAIL): enumerate binary collapses of the failing enum. Score each binary partition's J on the existing run pair. Ship the binary that passes; use the existing data to estimate beat-level reference distributions.
+- Step 2 (only if all binary collapses fail): rubric sharpen + re-label.
+- Step 3 (only if rubric sharpen fails): split into sub-dims with disjoint criteria.
+
+**Ongoing implications:**
+- This SOP is upstream of `feedback_gold_stability_first`: that memory says "measure first." This SOP says "if you fail the measurement, the cheapest fix is data-only collapse, not relabeling." Add to corpus-decomposition runbook + memory.
+- Generalizes to ANY stochastic-schema dim, not just structural priors. Adherence/continuity/hallucination rubric drift can be debugged the same way: collapse the failing class boundary, re-score, decide.
+
+### Granularity-aware ship gates — fields emitted at beat level must clear anchor Jaccard at BOTH scene AND beat level
+*2026-04-30 · `novels/salvatore-icewind-dale/structure-calibration/crystal_shard-conclusions.md` session ~01:54 UTC, commit `cd4347a`*
+
+**Decision:** When a calibration anchor wave is run at scene level but the schema field operates at beat level (or vice versa), the ship gate is the **intersection** of the two granularities, not just the higher number. Specifically: any field on `sceneBeatSchema` (which planner emits at beat level) ships only if Sonnet self-consistency Jaccard ≥ 0.85 at BOTH the scene-level reference wave AND a beat-level confirmation wave on the same rubric (or vice versa). The granularity at which the field is emitted in production is the load-bearing one.
+
+**Why:** The n=50 beat-level extension wave (~01:54 UTC) revealed asymmetric granularity behavior on the mice and lifeValue enums: some scene-PASS subfields degrade at beat level (mice C/E activity 0.961→0.754; mice E opens 0.852→0.818), while some scene-NEAR subfields IMPROVE at beat level (lifeValueAxes agency 0.724→0.852, aspiration 0.754→0.852). The mechanism: smaller text spans (beats) reduce ambiguity for some rubric questions ("which mice thread is *active* in this 200-word beat?") and increase it for others ("does this beat *open* a thread that the next scene picks up?"). The field's emission granularity dictates where the anchor MUST be stable.
+
+**Alternatives rejected:**
+- *Use scene-level anchor for everything (anchor sample is cheaper at scene granularity — fewer items per book).* Caught by Codex review pass on the n=50 expansion: emits-at-beat fields validated only at scene level can degrade silently in production. The lifeValueAxes 5-class case was the original prompt to add agency/aspiration on the back of scene-NEAR scores; the beat-level wave then justified shipping them at beat-level granularity.
+- *Use beat-level anchor for everything (since the schema is at beat level).* Loses the granularity-rotation signal — fields that are stable at scene but degrade at beat are exactly the ones the rotation check needs to catch. Need both directions.
+- *Pick the granularity per-field based on the rubric's nature.* Too easy to get wrong (false confidence). Cheaper to run the n=50 cross-granularity check once.
+
+**How to apply:**
+- Run the anchor wave at the granularity that's cheapest to label (usually scene, since fewer items per book).
+- For any field that fails or is borderline at that granularity, OR that emits at a different granularity than the anchor, run a confirmation wave at the OTHER granularity on the same rubric.
+- Ship a field only if BOTH passes are ≥ 0.85.
+- Document the granularity-rotation result in the schema field comment so future readers see which granularity is load-bearing.
+
+**Ongoing implications:**
+- Adds a second dimension to gold-stability checks: "stable across same-config runs" AND "stable across granularity rotations." Generalizes to ANY rubric where the input span size differs across pipeline stages (chapter→scene→beat).
+- Promotes the existing memory `feedback_gold_stability_first` from "single-granularity check" to "granularity-aware check." Memory entry will be updated.
+- Cost: adds ~$5–10 per dim per book to the gold-stability budget. Acceptable per `feedback_query_llm_calls_for_costs` — the savings come from catching silent degradations before they hit harness production.
+
+### Chapter-level structural patterns — 7 priors extractable from existing corpus pipeline (no new LLM calls)
+*2026-04-30 · `novels/salvatore-icewind-dale/structure-calibration/crystal_shard-conclusions.md` session ~02:05 UTC*
+
+**Decision:** The 5-stage corpus pipeline (`docs/corpus-pipeline.md`) already produces a queryable hierarchy: chapter (37) → scene (139) → beat (858) → pair (858) for Crystal Shard. This makes 7 chapter-level structural patterns extractable as planner soft priors via pure data aggregation. **Pattern 5 (chapter-level mice rhythm) is parked** until v2 high-stability mice data lands; the other 6 patterns ship as candidate plotter-prompt priors pending cross-book validation (Streams of Silver, Halfling's Gem) to confirm they generalize.
+
+**The 7 patterns** (Crystal Shard reference):
+1. **Chapter length distribution** — median 2,534w / 24 beats; range 394–8,113w. Action-fantasy default `targetWords ≈ 2500` (top of current "longer novels" band). Beat-count expectation `targetWords / 100`, not `/ 150` (current floor).
+2. **Beat kind distribution** — action 35.9%, dialogue 28.2%, interiority 20.6%, description 15.2%.
+3. **Chapter opener / closer kinds** — 50% of chapters open with description; 0% close with description; 41% close with action; 35% close with interiority. Current planner rule "open with action or description; close with action or interiority; never close with pure description" empirically validated.
+4. **Within-chapter position effects** — description front-loads (q0=25% → q4=9%); dialogue mid-peaks (q0=18% → q2=38% → q4=30%); action steady (~35–40%); interiority flat (~21%). Implies a chapter shape: descriptive setup → dialogue-driven development → action/interiority climax.
+5. **Chapter-level mice rhythm** *(PARKED)* — comes from monolithic Flash extractor with anchor ≈ 0.667; rolled up across 34 chapters but provenance-flagged. Re-aggregation pending v2 mice re-extraction.
+6. **Opens/closes per chapter** — mean 2.44 opens, 1.00 closes per chapter; 56% of chapters have both; 35% only opens (setup); 6% only closes; 3% neither. Threads accumulate across chapters; closes happen at book end. (Requires v2 mice for production-quality pattern.)
+7. **Beat boundary signals** — segmenter vocabulary distribution: pov_attention_shift 22%, stakes_recalibration 17%, scene_start 16%, action_shift 15%, speaker_change 13%, narration_to_dialogue 11%, dialogue_to_narration 5%, sensory_channel_change 2%, interiority 0.1%. Useful as beat-segmenter priors.
+
+**Why:** The corpus pipeline's existing output (`scenes.jsonl` + `beats.jsonl` + `structure/<book>/mice.jsonl`) already encodes the chapter→scene→beat hierarchy. Chapter-level patterns are aggregate statistics over many beats, so per-instance label noise washes out — the dominant thread of a 5-scene chapter is robust to one mis-tagged scene. Repeatable across books because the pipeline normalizes input shape.
+
+**Alternatives rejected:**
+- *Compute chapter-level patterns from scene labels emitted by the unstable monolithic Flash extractor and ship them.* Aggregate-over-noise reasoning lets us *describe* what the existing data says, but chapter mice rhythm being the **central** pattern (Pattern 5) means we want it to come from a Sonnet J ≥ 0.85 anchor, not a J=0.667 extractor, before promoting it to a planner prior. Patterns 1–4, 7 don't depend on mice labels at all; they ship.
+- *Ship chapter-level rhythm priors based on Crystal Shard alone.* The whole point of corpus structural decomposition is to find patterns that generalize. Cross-book validation (Streams of Silver, Halfling's Gem, Storm Front) is the gate for promoting any pattern from "Crystal Shard quirk" to "action-fantasy-genre prior."
+
+**How to apply:**
+- Patterns 1–4 + 7: candidate plotter-prompt edits — adjust `targetWords` band guidance, opener/closer kind defaults, within-chapter rhythm. Land only AFTER cross-book validation reproduces them within ±5–10% on Streams of Silver.
+- Pattern 5 + 6: REQUIRE v2 high-stability mice data first. The 8 subagents in flight at session end (M / I-v2 / C / E × 2 runs each on 139 scenes) produce that data.
+- Build a `genre-priors.json` per genre (action-fantasy / urban-fantasy-mystery / litrpg) that the planner reads at chapter-skeleton time. Each genre gets its own corpus-derived rhythm; cross-genre patterns are explicit (don't assume mystery and action-fantasy share opener distributions).
+
+**Ongoing implications:**
+- Cross-book validation work (Streams of Silver Stage 6 + Storm Front cross-author) gains a concrete deliverable: re-run `chapter-level-structural.ts` and `chapter-mice-rollup.ts` on those books, compare distributions. Brief at `docs/cross-book-cross-author-brief.md`.
+- The repeatable shape — `chapter` / `scene_id` / `beat_idx` fields on every record — is documented in `docs/corpus-pipeline.md`; this decision validates that the Stage 6 design pays off for downstream planner-prior extraction with zero additional LLM calls.
+- Stale-data risk: Pattern 5 chapter mice rollup is currently pulled from monolithic-rubric Flash output. After v2 mice re-extraction, regenerate `crystal_shard.<stamp>.chapter-mice-rollup.json` from the high-stability binary sub-decisions. Old artifact is preserved (timestamped per `feedback_no_overwrite_runs`); new artifact cites the v2 data and supersedes it for plotter-prior purposes.

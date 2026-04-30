@@ -1,0 +1,83 @@
+{
+  "description": "character with 6 exampleLines and no fantasy genre (conditioning undefined) — slice(0,5) renders 5 lines numbered 1-5; compact mode",
+  "input": {
+    "novelId": "test-novel-14",
+    "chapterNumber": 1,
+    "beatIndex": 0,
+    "outline": {
+      "chapterNumber": 1,
+      "title": "Voicing",
+      "povCharacter": "Drizzt",
+      "setting": "the river",
+      "purpose": "exercise voiced-line subset",
+      "scenes": [
+        {
+          "description": "Drizzt and Catti-brie spar by the river bank.",
+          "characters": ["Drizzt", "Catti-brie"],
+          "kind": "dialogue",
+          "requiredPayoffs": []
+        }
+      ],
+      "targetWords": 1100,
+      "charactersPresent": ["Drizzt", "Catti-brie"],
+      "establishedFacts": [],
+      "characterStateChanges": [],
+      "knowledgeChanges": []
+    },
+    "characters": [
+      {
+        "id": "drizzt-001",
+        "name": "Drizzt",
+        "role": "drow ranger",
+        "backstory": "",
+        "traits": [],
+        "speechPattern": "formal and measured",
+        "internalConflict": "torn between heritage and path",
+        "goals": "find belonging",
+        "fears": "",
+        "relationships": [],
+        "culturalBackground": [],
+        "systemAwareness": [],
+        "exampleLines": [
+          "By the stars.",
+          "I have walked alone for many years.",
+          "Trust is earned, not asked for.",
+          "Honor still has weight.",
+          "There is no shame in caution.",
+          "We are what we choose to be."
+        ]
+      },
+      {
+        "id": "catti-001",
+        "name": "Catti-brie",
+        "role": "warrior",
+        "backstory": "",
+        "traits": [],
+        "speechPattern": "warm with a Northland lilt",
+        "internalConflict": "loyal but restless",
+        "goals": "find her own road",
+        "fears": "",
+        "relationships": [],
+        "culturalBackground": [],
+        "systemAwareness": [],
+        "exampleLines": [
+          "Aye, ye look like ye need a drink.",
+          "The road bends, friend.",
+          "Don't ye dare leave me behind.",
+          "Bah, ye're slower than a winter mule.",
+          "I'll ride beside ye, no question."
+        ]
+      }
+    ],
+    "characterStates": [],
+    "worldBible": {
+      "locations": []
+    },
+    "preResolvedRefs": {
+      "context": "",
+      "lookupCount": 0,
+      "llmUsed": false
+    },
+    "compactMode": true
+  }
+}

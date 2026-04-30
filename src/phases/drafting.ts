@@ -1,6 +1,6 @@
 import { chapterDraftSchema } from "../types"
 import {
-  getNovel, getChapterOutline, saveChapterOutline, getCharacters, getFactsUpToChapter,
+  getNovel, getChapterOutline, getChapterOutlines, saveChapterOutline, getCharacters, getFactsUpToChapter,
   getCharacterStatesAtChapter, getAllCharacterStatesBeforeChapter, getWorldBible,
   saveChapterDraft, approveChapterDraft, getApprovedDraft,
   saveIssue, updateCurrentChapter, updatePhase,
@@ -8,6 +8,8 @@ import {
   isPlanCheckOverridden, setPlanCheckOverridden,
   isRevisionUsed, setRevisionUsed,
 } from "../db"
+import db from "../db/connection"
+import type { Phase, PhaseResult, DraftingOutput, PlanningOutput, RevisionOutcome, ExhaustionKind } from "./contract"
 import type { SceneBeat } from "../schemas/shared"
 import { callAgent, executeAndLog } from "../llm"
 import { getTransport } from "../transport"
@@ -38,6 +40,13 @@ import type { SeedInput } from "../types"
 import { loadInjection, hasAnyInjection, injectionSummary } from "../config/debug-injection"
 import * as gates from "../gates"
 import { PipelineBailError, type PlanAssistGatePayload } from "../gates"
+import {
+  attemptRevision,
+  type ReviserStrategy,
+  type ReviserIssue,
+  type ReviserResponse,
+} from "./reviser-policy"
+import { runSettleLoop } from "./settle-loop"
 import { lintProse } from "../lint"
 import { fixLintIssues } from "../lint/fix"
 import { getModelForAgent, resolveWriterPack, type WriterGenrePack } from "../models/roles"
@@ -50,7 +59,7 @@ import type { ChapterOutline } from "../types"
  * (e.g. qualityRedraftEnabled). Read once at the top of `runDraftingPhase`
  * so every beat/chapter in the run sees the same effective config.
  */
-function effectivePipeline(seed: SeedInput): typeof pipeline {
+export function effectivePipeline(seed: SeedInput): typeof pipeline {
   const o = seed.pipelineOverrides
   if (!o) return pipeline
   return {
@@ -110,7 +119,12 @@ function routeValidationBlockers(
   return perBeat
 }
 
-export async function runDraftingPhase(novelId: string): Promise<void> {
+/** Drafting phase implementation. Kept exported for tests
+ *  (drafting-revision-used-persistence.test.ts,
+ *  drafting-reviser-escalation.test.ts) that exercise the phase body
+ *  directly. Driver consumers should use `draftingPhase` (the Phase<I,O>
+ *  wrapper) instead. */
+export async function runDraftingPhase(novelId: string): Promise<PhaseResult<DraftingOutput>> {
   displayPhaseHeader("Drafting — Writing chapters")
   emit(novelId, { type: "phase:changed", data: { phase: "drafting" } })
 
@@ -149,7 +163,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
       log(novelId, "error", `Failed to load outline for chapter ${ch}: ${err}`)
       console.error(`  Error loading outline for chapter ${ch}. Stopping.`)
       emit(novelId, { type: "error", data: { step: "drafting", chapter: ch, error: "Failed to load outline" } })
-      return
+      return { kind: "paused", reason: `outline-load-failed:ch${ch}` }
     }
 
     // Pre-write plan-vs-state diff (non-blocking — logs conflicts as warnings).
@@ -477,7 +491,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
 
       const [planCheckSettled, continuitySettled] = await Promise.allSettled([
         (pipeline.chapterPlanCheck && !planCheckOverridden)
-          ? callAgent({
+          ? callAgent({  // @noninjectable — V1 inject.forcePlanCheck removed in D4a; V2 transport-interceptor + v1-bridge handles forced failures.
               novelId, agentName: "chapter-plan-checker",
               chapter: ch, attempt: attempts,
               systemPrompt: CHAPTER_PLAN_CHECKER_PROMPT,
@@ -519,86 +533,96 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
       //   emotional_arc_correct=false → last 2 beats (arc lands at closer)
       if (pipeline.chapterPlanCheck && !planCheckOverridden) {
         if (planCheckSettled.status === "fulfilled" && planCheckSettled.value !== null) {
-          // Seam A — DEBUG_FORCE_PLAN_CHECK=fail: replace the checker output
-          // with a synthesized failure so the exhaustion handler fires without
-          // needing the LLM to actually return pass=false.
-          let out = (inject.forcePlanCheck === "fail")
-            ? {
-                pass: false as const,
-                deviations: [{ description: "forced plan-check failure via DEBUG_FORCE_PLAN_CHECK=fail", beat_index: 0 as number | null }],
-                setting_match: undefined,
-                emotional_arc_correct: undefined,
-              }
-            : planCheckSettled.value.output
+          // V1 inline short-circuit for `DEBUG_FORCE_PLAN_CHECK=fail` was
+          // removed in D4a — interception now lives in the V2 transport
+          // layer (`src/debug/transport-interceptor.ts`). The
+          // `src/debug/v1-bridge.ts` module translates the legacy env var
+          // into a `force-result` rule on `chapter-plan-checker` at
+          // orchestrator startup, so the chapter-plan-checker callAgent
+          // already returns `{ pass: false, ... }` here. The
+          // `inject.forcePlanCheck === "fail"` read below stays for
+          // telemetry payload parity (campaign R1/R6/R7 SSE matchers
+          // assert the `forcedPlanCheck` + `source` fields).
+          const initialPlanCheckResult = planCheckSettled.value.output
           await trace(novelId, {
             eventType: "plan-check-outcome", chapter: ch,
             payload: {
-              pass: out.pass,
+              pass: initialPlanCheckResult.pass,
               rewritePass: 0,
               forcedPlanCheck: inject.forcePlanCheck === "fail",
-              deviationCount: out.deviations?.length ?? 0,
+              deviationCount: initialPlanCheckResult.deviations?.length ?? 0,
               source: inject.forcePlanCheck === "fail" ? "forced-synth" : "initial",
             },
           })
-          let rewritePass = 0
           const canSettle = beatProses.length === outline.scenes.length
 
-          while (!out.pass && rewritePass < pipeline.maxChapterPlanRewritePasses && canSettle) {
-            const devs = out.deviations ?? []
-            devs.forEach(d => console.log(`    DEVIATION (beat ${d.beat_index ?? "chapter-level"}): ${d.description}`))
-
-            // Map deviations → Map<beatIdx, string[]>
-            const perBeat = new Map<number, string[]>()
-            const addTo = (idx: number, desc: string) => {
-              if (idx < 0 || idx >= outline.scenes.length) return
-              const list = perBeat.get(idx) ?? []
-              list.push(desc)
-              perBeat.set(idx, list)
-            }
-            for (const d of devs) {
-              if (d.beat_index != null) {
-                addTo(d.beat_index, d.description)
+          // D3 settle loop. Caller closures own:
+          //   - per-deviation routing (chapter-level fallbacks for
+          //     setting_match / emotional_arc_correct, last-resort
+          //     append-to-beat-0)
+          //   - mutating beatProses[bi] on accepted rewrites and refreshing
+          //     prose/wordCount before the next recheck
+          // Loop owns: while-loop, budget, single recheck dispatch site,
+          // ascending sequential rewriteBeat dispatch, telemetry hooks.
+          // V1 inline `forcePlanCheck === "fail"` short-circuit was removed
+          // in D4a — see initial-check comment above; the V2
+          // transport-interceptor now handles the synthesis at the
+          // chapter-plan-checker callAgent boundary.
+          let currentRewritePass = 0
+          const planSettleOutcome = await runSettleLoop<typeof initialPlanCheckResult>({
+            initialResult: initialPlanCheckResult,
+            check: async () => {
+              prose = beatProses.join("\n\n")
+              wordCount = prose.split(/\s+/).filter(Boolean).length
+              console.log(`  Rewrite complete — re-running plan check on ${wordCount}w prose`)
+              const recheck = await callAgent({
+                novelId, agentName: "chapter-plan-checker",
+                chapter: ch, attempt: attempts + currentRewritePass * 10,
+                systemPrompt: CHAPTER_PLAN_CHECKER_PROMPT,
+                userPrompt: buildChapterPlanCheckContext(prose, outline),
+                schema: chapterPlanCheckSchema,
+              })
+              return recheck.output as typeof initialPlanCheckResult
+            },
+            isPass: r => r.pass,
+            route: r => {
+              const devs = r.deviations ?? []
+              devs.forEach(d => console.log(`    DEVIATION (beat ${d.beat_index ?? "chapter-level"}): ${d.description}`))
+              const perBeat = new Map<number, string[]>()
+              const addTo = (idx: number, desc: string) => {
+                if (idx < 0 || idx >= outline.scenes.length) return
+                const list = perBeat.get(idx) ?? []
+                list.push(desc)
+                perBeat.set(idx, list)
               }
-            }
-            // Heuristic routing for chapter-level issues (no beat_index)
-            const hasChapterLevel = devs.some(d => d.beat_index == null)
-            if (hasChapterLevel || (out.setting_match && !out.setting_match.matches)) {
-              if (out.setting_match && !out.setting_match.matches) {
-                addTo(0, `Chapter setting mismatch — planned "${out.setting_match.planned}" but prose observed "${out.setting_match.observed}"`)
+              for (const d of devs) {
+                if (d.beat_index != null) addTo(d.beat_index, d.description)
               }
-            }
-            if (out.emotional_arc_correct === false) {
-              const lastN = outline.scenes.length >= 12 ? 3 : 2
-              for (let i = outline.scenes.length - lastN; i < outline.scenes.length; i++) {
-                addTo(i, "Emotional arc reversed from plan — the closing beats should land the planned emotion direction, not invert it")
+              const hasChapterLevel = devs.some(d => d.beat_index == null)
+              if (hasChapterLevel || (r.setting_match && !r.setting_match.matches)) {
+                if (r.setting_match && !r.setting_match.matches) {
+                  addTo(0, `Chapter setting mismatch — planned "${r.setting_match.planned}" but prose observed "${r.setting_match.observed}"`)
+                }
               }
-            }
-            // Any remaining chapter-level deviation strings get appended to beat 0 as a last resort
-            for (const d of devs) {
-              if (d.beat_index == null && out.setting_match?.matches !== false && out.emotional_arc_correct !== false) {
-                addTo(0, d.description)
+              if (r.emotional_arc_correct === false) {
+                const lastN = outline.scenes.length >= 12 ? 3 : 2
+                for (let i = outline.scenes.length - lastN; i < outline.scenes.length; i++) {
+                  addTo(i, "Emotional arc reversed from plan — the closing beats should land the planned emotion direction, not invert it")
+                }
               }
-            }
-
-            if (perBeat.size === 0) {
-              log(novelId, "warn", "Plan check failed but no beat mapping — escalating to full restart")
-              bail = true
-              break
-            }
-
-            rewritePass++
-            console.log(`  Plan check pass ${rewritePass}/${pipeline.maxChapterPlanRewritePasses}: rewriting ${perBeat.size} beats (${[...perBeat.keys()].sort((a, b) => a - b).join(",")})`)
-            log(novelId, "info", `Plan-check settle pass ${rewritePass}: targeted rewrite of beats [${[...perBeat.keys()].sort((a, b) => a - b).join(",")}]`)
-
-            // Rewrite each affected beat — reuses the beat-writer TARGETED REWRITE
-            // prompt shape from the per-beat retry loop above.
-            const beatWriterModel = writerPack?.model ?? getModelForAgent("beat-writer")
-            const beatSystemPrompt = packPrompt ?? BEAT_WRITER_PROMPT
-            const characters = await getCharacters(novelId)
-            const charStates = await getCharacterStatesAtChapter(novelId, ch)
-            const worldBible = await getWorldBible(novelId)
-
-            for (const [bi, issueDescriptions] of [...perBeat.entries()].sort(([a], [b]) => a - b)) {
+              for (const d of devs) {
+                if (d.beat_index == null && r.setting_match?.matches !== false && r.emotional_arc_correct !== false) {
+                  addTo(0, d.description)
+                }
+              }
+              return perBeat
+            },
+            rewriteBeat: async (bi, issueDescriptions) => {
+              const beatWriterModel = writerPack?.model ?? getModelForAgent("beat-writer")
+              const beatSystemPrompt = packPrompt ?? BEAT_WRITER_PROMPT
+              const characters = await getCharacters(novelId)
+              const charStates = await getCharacterStatesAtChapter(novelId, ch)
+              const worldBible = await getWorldBible(novelId)
               const beatSpec = outline.scenes[bi]
               const preResolved = await resolveReferences(beatSpec, outline, novelId, ch, characters)
                 .catch(() => ({ context: "", lookupCount: 0, llmUsed: false }))
@@ -625,7 +649,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                   },
                   novelId,
                   "beat-writer",
-                  { chapter: ch, beatIndex: bi, attempt: attempts + rewritePass * 10 },
+                  { chapter: ch, beatIndex: bi, attempt: attempts + currentRewritePass * 10 },
                   {
                     stream: true,
                     meta: {
@@ -640,51 +664,47 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                 const rewritten = response.content?.trim()
                 if (rewritten && rewritten.length >= 50) {
                   beatProses[bi] = rewritten
+                  return rewritten
                 }
+                return null
               } catch (err) {
                 log(novelId, "warn", `Beat ${bi + 1} plan-check rewrite failed: ${err instanceof Error ? err.message : err}`)
+                return null
               }
-            }
-
-            // Rebuild prose from the updated beat list and re-run plan check
-            prose = beatProses.join("\n\n")
-            wordCount = prose.split(/\s+/).filter(Boolean).length
-            console.log(`  Rewrite complete — re-running plan check on ${wordCount}w prose`)
-            // Seam A (settle-loop recheck) — same force as the initial
-            // plan-check call above. Without this the forced-fail path
-            // would settle on the first real LLM response (typically
-            // pass=true), skipping the exhaustion handler entirely.
-            let recheckSource: "recheck" | "forced-recheck-synth"
-            if (inject.forcePlanCheck === "fail") {
-              out = {
-                pass: false as const,
-                deviations: [{ description: "forced plan-check failure via DEBUG_FORCE_PLAN_CHECK=fail (recheck)", beat_index: 0 as number | null }],
-                setting_match: undefined,
-                emotional_arc_correct: undefined,
-              }
-              recheckSource = "forced-recheck-synth"
-            } else {
-              const recheck = await callAgent({
-                novelId, agentName: "chapter-plan-checker",
-                chapter: ch, attempt: attempts + rewritePass * 10,
-                systemPrompt: CHAPTER_PLAN_CHECKER_PROMPT,
-                userPrompt: buildChapterPlanCheckContext(prose, outline),
-                schema: chapterPlanCheckSchema,
+            },
+            budget: pipeline.maxChapterPlanRewritePasses,
+            canSettle: () => canSettle,
+            onPassStart: async (passNumber, perBeat) => {
+              currentRewritePass = passNumber
+              console.log(`  Plan check pass ${passNumber}/${pipeline.maxChapterPlanRewritePasses}: rewriting ${perBeat.size} beats (${[...perBeat.keys()].sort((a, b) => a - b).join(",")})`)
+              log(novelId, "info", `Plan-check settle pass ${passNumber}: targeted rewrite of beats [${[...perBeat.keys()].sort((a, b) => a - b).join(",")}]`)
+            },
+            onIteration: async (passNumber, result) => {
+              await trace(novelId, {
+                eventType: "plan-check-outcome", chapter: ch,
+                payload: {
+                  pass: result.pass,
+                  rewritePass: passNumber,
+                  forcedPlanCheck: inject.forcePlanCheck === "fail",
+                  deviationCount: result.deviations?.length ?? 0,
+                  source: inject.forcePlanCheck === "fail" ? "forced-recheck-synth" : "recheck",
+                },
               })
-              out = recheck.output
-              recheckSource = "recheck"
-            }
-            await trace(novelId, {
-              eventType: "plan-check-outcome", chapter: ch,
-              payload: {
-                pass: out.pass,
-                rewritePass,
-                forcedPlanCheck: inject.forcePlanCheck === "fail",
-                deviationCount: out.deviations?.length ?? 0,
-                source: recheckSource,
-              },
-            })
+            },
+          })
+
+          // Resolve the post-loop `out` from the settle outcome. Mirror the
+          // pre-D3 control flow: `no-routing` was a `bail = true; break`
+          // followed by the unchanged-out path; `ineligible` corresponds
+          // to canSettle=false, where the original loop never ran and the
+          // initial result drove escalation; `exhausted` and `accepted`
+          // both have a finalResult.
+          if (planSettleOutcome.kind === "no-routing") {
+            log(novelId, "warn", "Plan check failed but no beat mapping — escalating to full restart")
           }
+          const out = planSettleOutcome.kind === "ineligible"
+            ? initialPlanCheckResult
+            : planSettleOutcome.finalResult
 
           if (!out.pass) {
             out.deviations?.forEach(d => console.log(`    UNRESOLVED DEVIATION (beat ${d.beat_index ?? "chapter-level"}): ${d.description}`))
@@ -700,175 +720,97 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
             const issueSig = canonicalizeDeviations(out.deviations ?? [])
             const canRevise = !revisionUsed && issueSig !== lastUnresolvedSig && canSettle
 
+            const planCheckIssues: ReviserIssue[] = (out.deviations ?? []).map(d => ({
+              description: `[beat ${d.beat_index ?? "chapter-level"}] ${d.description}`,
+              beat_index: d.beat_index,
+            }))
+            const planCheckStrategy: ReviserStrategy = {
+              buildReviserContext: (o, p, issues) =>
+                buildChapterPlanReviseContext(o, p, issues.map(i => i.description)),
+              telemetryLabel: "plan-check",
+            }
+
             if (canRevise) {
               console.log(`  Escalating to chapter-plan-reviser (persistent issues)`)
               log(novelId, "info", `Invoking chapter-plan-reviser for chapter ${ch}: ${(out.deviations ?? []).length} unresolved issues`)
-              // Mark revision as used BEFORE the call so a schema/transport
-              // failure can't trigger a second revision on the next attempt.
-              //
-              // AWAIT the DB write first — if we can't persist the guard,
-              // we must NOT fire the reviser. Fire-and-forget (prior shape)
-              // had a durable-inconsistency bug: on DB write rejection, the
-              // reviser would still run, saveChapterOutline would write the
-              // revised outline, but revision_used would stay FALSE; a later
-              // restart would then allow a second reviser call. A single-row
-              // UPDATE on local Postgres is sub-millisecond, so this trades
-              // nothing for correctness. Codex review 5c9e... (Round A).
-              await setRevisionUsed(novelId, ch, true)
-              revisionUsed = true
-              lastUnresolvedSig = issueSig
-              const deviationsForLog = out.deviations ?? []
-              const originalBeatsSnapshot = [...outline.scenes]
-              try {
-                const reviseCtx = buildChapterPlanReviseContext(
-                  outline,
-                  prose,
-                  (out.deviations ?? []).map(d => `[beat ${d.beat_index ?? "chapter-level"}] ${d.description}`),
-                )
-                // Seam C — DEBUG_FORCE_REVISER: intercept the reviser call
-                // before it reaches the LLM so the rejection / throw paths
-                // fire deterministically in tests.
-                if (inject.forceReviser === "throw") {
-                  throw new Error("forced reviser throw via DEBUG_FORCE_REVISER=throw")
-                }
-                const revised = inject.forceReviser === "reject"
-                  ? { output: { scenes: [{ description: "forced single-beat plan", characters: [outline.povCharacter], kind: "description" as const, setting: outline.setting, pov: outline.povCharacter }], establishedFacts: [], characterStateChanges: [], knowledgeChanges: [] } }
-                  : await callAgent({
-                      novelId, agentName: "chapter-plan-reviser",
-                      chapter: ch, attempt: attempts,
-                      systemPrompt: CHAPTER_PLAN_REVISER_PROMPT,
-                      userPrompt: reviseCtx,
-                      schema: chapterPlanReviseSchema,
-                    })
-
-                // Post-revision sanity checks — reject obviously bad plans.
-                // If any check fails we keep the original outline; the outer
-                // attempt will re-run with unchanged plan (a known no-op
-                // retry, but safer than drafting against a garbage plan).
-                const revisedScenes: SceneBeat[] = (revised.output.scenes ?? []) as SceneBeat[]
-                const minBeats = Math.max(3, Math.ceil(outline.targetWords / 300))
-                const originalCharacters = new Set([
-                  outline.povCharacter,
-                  ...(outline.charactersPresent ?? []),
-                  ...outline.scenes.flatMap(s => s.characters ?? []),
-                ].filter(Boolean))
-                const revisedCharacters = new Set(revisedScenes.flatMap(s => s.characters ?? []))
-                const newCharacters = [...revisedCharacters].filter(c => !originalCharacters.has(c))
-
-                if (revisedScenes.length < minBeats) {
-                  log(novelId, "warn", `Reviser returned too few beats (${revisedScenes.length} < ${minBeats}) — rejecting revision`)
-                  console.log(`  Reviser output rejected: ${revisedScenes.length} beats below floor of ${minBeats}`)
-                  await logRevision({
-                    novelId, chapter: ch, attempt: attempts,
-                    deviations: deviationsForLog,
-                    originalBeats: originalBeatsSnapshot,
-                    revisedBeats: revisedScenes,
-                    outcome: "rejected_beat_floor",
-                    rejectionReason: `revised beat count ${revisedScenes.length} < floor ${minBeats}`,
-                  }).catch(err => log(novelId, "warn", `logRevision failed: ${err instanceof Error ? err.message : err}`))
-                  pendingExhaustion = {
-                    kind: "reviser-rejected",
-                    novelId, chapter: ch, attempt: attempts, outline, prose,
-                    unresolvedDeviations: deviationsForLog,
-                    reviserHistory: { attemptedScenes: revisedScenes, rejectionReason: `revised beat count ${revisedScenes.length} < floor ${minBeats}` },
-                  }
-                } else if (newCharacters.length > 0) {
-                  log(novelId, "warn", `Reviser introduced new characters [${newCharacters.join(", ")}] — rejecting revision`)
-                  console.log(`  Reviser output rejected: new characters not in original plan`)
-                  await logRevision({
-                    novelId, chapter: ch, attempt: attempts,
-                    deviations: deviationsForLog,
-                    originalBeats: originalBeatsSnapshot,
-                    revisedBeats: revisedScenes,
-                    outcome: "rejected_new_characters",
-                    rejectionReason: `new characters: ${newCharacters.join(", ")}`,
-                  }).catch(err => log(novelId, "warn", `logRevision failed: ${err instanceof Error ? err.message : err}`))
-                  pendingExhaustion = {
-                    kind: "reviser-rejected",
-                    novelId, chapter: ch, attempt: attempts, outline, prose,
-                    unresolvedDeviations: deviationsForLog,
-                    reviserHistory: { attemptedScenes: revisedScenes, rejectionReason: `new characters: ${newCharacters.join(", ")}` },
-                  }
-                } else {
-                  // Accept the revision. Cast through unknown because
-                  // chapterBeatsSchema's z.infer resolves some defaulted fields
-                  // as optional while chapterOutlineSchema resolves them as
-                  // required; both produce the same runtime shape after parse.
-                  outline = {
-                    ...outline,
-                    scenes: revisedScenes,
-                    establishedFacts: revised.output.establishedFacts ?? outline.establishedFacts,
-                    characterStateChanges: revised.output.characterStateChanges ?? outline.characterStateChanges,
-                    knowledgeChanges: revised.output.knowledgeChanges ?? outline.knowledgeChanges,
-                  } as ChapterOutline
-                  // Persist the revised outline so a later outer-attempt
-                  // restart picks up the revision instead of falling back to
-                  // the original plan (getChapterOutline re-reads from DB).
-                  await saveChapterOutline(novelId, outline)
-                  log(novelId, "info", `Chapter plan revised: ${outline.scenes.length} beats (was ${beatProses.length}); persisted to chapter_outlines`)
-                  console.log(`  Revised plan: ${outline.scenes.length} beats. Persisted. Restarting chapter draft with revised plan.`)
-                  await logRevision({
-                    novelId, chapter: ch, attempt: attempts,
-                    deviations: deviationsForLog,
-                    originalBeats: originalBeatsSnapshot,
-                    revisedBeats: outline.scenes,
-                    outcome: "accepted",
-                  }).catch(err => log(novelId, "warn", `logRevision failed: ${err instanceof Error ? err.message : err}`))
-                }
-                bail = true
-              } catch (err) {
-                log(novelId, "error", `Chapter-plan-reviser failed for chapter ${ch}: ${err instanceof Error ? err.message : err}`)
-                console.error(`  Reviser error: ${err instanceof Error ? err.message : err}`)
-                const errMsg = err instanceof Error ? err.message : String(err)
-                await logRevision({
-                  novelId, chapter: ch, attempt: attempts,
-                  deviations: deviationsForLog,
-                  originalBeats: originalBeatsSnapshot,
-                  revisedBeats: null,
-                  outcome: "error",
-                  rejectionReason: errMsg.slice(0, 200),
-                }).catch(logErr => log(novelId, "warn", `logRevision failed: ${logErr instanceof Error ? logErr.message : logErr}`))
-                pendingExhaustion = {
-                  kind: "reviser-rejected",
-                  novelId, chapter: ch, attempt: attempts, outline, prose,
-                  unresolvedDeviations: deviationsForLog,
-                  reviserHistory: { attemptedScenes: [], rejectionReason: `reviser threw: ${errMsg.slice(0, 200)}` },
-                }
-                bail = true
-              }
             } else {
-              const skipOutcome = revisionUsed
-                ? "skip_already_revised" as const
-                : issueSig === lastUnresolvedSig
-                  ? "skip_duplicate_sig" as const
-                  : "skip_no_beat_state" as const
-              const reasonText = skipOutcome === "skip_already_revised"
+              const reasonText = revisionUsed
                 ? "already revised this chapter"
-                : skipOutcome === "skip_duplicate_sig"
+                : issueSig === lastUnresolvedSig
                   ? "identical issue signature as last revision"
                   : "beat-level state not available"
               log(novelId, "warn", `Plan check still failing — not escalating to reviser (${reasonText}); falling through to plan-assist gate`)
-              await logRevision({
-                novelId, chapter: ch, attempt: attempts,
-                deviations: out.deviations ?? [],
-                originalBeats: outline.scenes,
-                revisedBeats: null,
-                outcome: skipOutcome,
-                rejectionReason: reasonText,
-              }).catch(err => log(novelId, "warn", `logRevision failed: ${err instanceof Error ? err.message : err}`))
-              pendingExhaustion = {
-                kind: "plan-check-exhausted",
-                novelId, chapter: ch, attempt: attempts, outline, prose,
-                unresolvedDeviations: out.deviations ?? [],
-              }
+            }
+
+            const outcome = await attemptRevision({
+              novelId, chapter: ch, attempt: attempts,
+              outline, prose,
+              issues: planCheckIssues,
+              rawDeviations: out.deviations ?? [],
+              strategy: planCheckStrategy,
+              eligibility: { revisionUsed, lastUnresolvedSig, canSettle, canRevise, issueSig },
+              persistAcceptedOutline: (o) => saveChapterOutline(novelId, o),
+              logRevision: async (entry) => {
+                try {
+                  await logRevision(entry as Parameters<typeof logRevision>[0])
+                } catch (err) {
+                  log(novelId, "warn", `logRevision failed: ${err instanceof Error ? err.message : err}`)
+                  throw err
+                }
+              },
+              markRevisionUsed: async () => {
+                // Mark revision as used BEFORE the LLM call so a schema/transport
+                // failure can't trigger a second revision on the next attempt.
+                // AWAIT the DB write — if we can't persist the guard, the reviser
+                // must NOT fire. See module docstring + Codex review 5c9e... (Round A).
+                await setRevisionUsed(novelId, ch, true)
+                revisionUsed = true
+                lastUnresolvedSig = issueSig
+              },
+              callReviser: async (userPrompt) => {
+                // V1 DEBUG_FORCE_REVISER short-circuits removed in D4a — V2 transport-interceptor + v1-bridge intercepts at agent boundary.
+                return await callAgent({  // @noninjectable
+                  novelId, agentName: "chapter-plan-reviser",
+                  chapter: ch, attempt: attempts,
+                  systemPrompt: CHAPTER_PLAN_REVISER_PROMPT,
+                  userPrompt,
+                  schema: chapterPlanReviseSchema,
+                }) as ReviserResponse
+              },
+            })
+
+            if (outcome.kind === "accepted") {
+              outline = outcome.revisedOutline
+              log(novelId, "info", `Chapter plan revised: ${outline.scenes.length} beats (was ${beatProses.length}); persisted to chapter_outlines`)
+              console.log(`  Revised plan: ${outline.scenes.length} beats. Persisted. Restarting chapter draft with revised plan.`)
+              bail = true
+            } else if (outcome.kind === "rejected" && outcome.reason === "beat_floor") {
+              log(novelId, "warn", `Reviser returned too few beats (${outcome.info.revisedBeatCount} < ${outcome.info.minBeats}) — rejecting revision`)
+              console.log(`  Reviser output rejected: ${outcome.info.revisedBeatCount} beats below floor of ${outcome.info.minBeats}`)
+              pendingExhaustion = outcome.pendingExhaustion
+              bail = true
+            } else if (outcome.kind === "rejected" && outcome.reason === "new_characters") {
+              log(novelId, "warn", `Reviser introduced new characters [${outcome.info.newCharacters.join(", ")}] — rejecting revision`)
+              console.log(`  Reviser output rejected: new characters not in original plan`)
+              pendingExhaustion = outcome.pendingExhaustion
+              bail = true
+            } else if (outcome.kind === "error") {
+              log(novelId, "error", `Chapter-plan-reviser failed for chapter ${ch}: ${outcome.error.message}`)
+              console.error(`  Reviser error: ${outcome.error.message}`)
+              pendingExhaustion = outcome.pendingExhaustion
+              bail = true
+            } else {
+              // ineligible — skip path; pendingExhaustion already constructed by policy
+              pendingExhaustion = outcome.pendingExhaustion
               bail = true
             }
 
             emit(novelId, { type: "progress", data: { step: "plan-check", chapter: ch, status: "failed" } })
           } else {
-            if (rewritePass > 0) {
-              console.log(`  Plan check: passed after ${rewritePass} targeted rewrite pass(es)`)
-              log(novelId, "info", `Plan check passed after ${rewritePass} targeted rewrite pass(es)`)
+            const passes = planSettleOutcome.kind === "accepted" ? planSettleOutcome.passes : 0
+            if (passes > 0) {
+              console.log(`  Plan check: passed after ${passes} targeted rewrite pass(es)`)
+              log(novelId, "info", `Plan check passed after ${passes} targeted rewrite pass(es)`)
             } else {
               console.log("  Plan check: passed")
             }
@@ -891,26 +833,59 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
         validation.warnings.forEach(w => console.log(`    WARNING: ${w}`))
         log(novelId, "warn", `Validation failed: ${validation.blockers.join("; ")}`)
 
-        let validationPass = 0
         const canSettle = beatProses.length === outline.scenes.length
         let currentBlockers = validation.blockers
         let currentWarnings = validation.warnings
+        let currentValidationPass = 0
+        type ValidationCheckResult = ReturnType<typeof validateChapterDraft>
 
-        while (currentBlockers.length > 0 && validationPass < pipeline.maxChapterPlanRewritePasses && canSettle) {
-          const perBeat = routeValidationBlockers(currentBlockers, outline, beatProses)
-          if (perBeat.size === 0) break
-
-          validationPass++
-          console.log(`  Validation pass ${validationPass}/${pipeline.maxChapterPlanRewritePasses}: rewriting ${perBeat.size} beats (${[...perBeat.keys()].sort((a, b) => a - b).join(",")})`)
-          log(novelId, "info", `Validation settle pass ${validationPass}: targeted rewrite of beats [${[...perBeat.keys()].sort((a, b) => a - b).join(",")}]`)
-
-          const beatWriterModel = writerPack?.model ?? getModelForAgent("beat-writer")
-          const beatSystemPrompt = packPrompt ?? BEAT_WRITER_PROMPT
-          const characters = await getCharacters(novelId)
-          const charStates = await getCharacterStatesAtChapter(novelId, ch)
-          const worldBible = await getWorldBible(novelId)
-
-          for (const [bi, issueDescriptions] of [...perBeat.entries()].sort(([a], [b]) => a - b)) {
+        // D3 settle loop. Caller closures own:
+        //   - V1 forceValidation synthesis on the recheck path (Seam B
+        //     stays at the caller through D4a)
+        //   - per-pass success/failure log lines (was inline at the
+        //     pre-D3 site between line 943-948), kept inside `check` so
+        //     they fire after every recheck
+        // Loop owns: while-loop, budget, single recheck dispatch site,
+        // ascending sequential rewriteBeat dispatch, telemetry hooks.
+        await runSettleLoop<ValidationCheckResult>({
+          initialResult: validation,
+          check: async () => {
+            prose = beatProses.join("\n\n")
+            wordCount = prose.split(/\s+/).filter(Boolean).length
+            let recheck: ValidationCheckResult
+            if (inject.forceValidation === "pov") {
+              recheck = {
+                passed: false,
+                blockers: [`POV character "${outline.povCharacter}" never mentioned in draft`],
+                warnings: [],
+              }
+            } else if (inject.forceValidation === "word-count") {
+              recheck = {
+                passed: false,
+                blockers: [`Chapter too short: 100 words (minimum 500)`],
+                warnings: [],
+              }
+            } else {
+              recheck = validateChapterDraft(prose, outline)
+            }
+            currentBlockers = recheck.blockers
+            currentWarnings = recheck.warnings
+            if (currentBlockers.length === 0) {
+              console.log(`  Validation: passed after ${currentValidationPass} targeted rewrite pass(es)`)
+              log(novelId, "info", `Validation passed after ${currentValidationPass} targeted rewrite pass(es)`)
+            } else {
+              console.log(`  Validation still failing (${currentBlockers.length} blockers remain)`)
+            }
+            return recheck
+          },
+          isPass: r => r.passed,
+          route: r => routeValidationBlockers(r.blockers, outline, beatProses),
+          rewriteBeat: async (bi, issueDescriptions) => {
+            const beatWriterModel = writerPack?.model ?? getModelForAgent("beat-writer")
+            const beatSystemPrompt = packPrompt ?? BEAT_WRITER_PROMPT
+            const characters = await getCharacters(novelId)
+            const charStates = await getCharacterStatesAtChapter(novelId, ch)
+            const worldBible = await getWorldBible(novelId)
             const beatSpec = outline.scenes[bi]
             const preResolved = await resolveReferences(beatSpec, outline, novelId, ch, characters)
               .catch(() => ({ context: "", lookupCount: 0, llmUsed: false }))
@@ -937,7 +912,7 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
                 },
                 novelId,
                 "beat-writer",
-                { chapter: ch, beatIndex: bi, attempt: attempts + validationPass * 20 },
+                { chapter: ch, beatIndex: bi, attempt: attempts + currentValidationPass * 20 },
                 {
                   stream: true,
                   meta: {
@@ -952,74 +927,51 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
               const rewritten = response.content?.trim()
               if (rewritten && rewritten.length >= 50) {
                 beatProses[bi] = rewritten
+                return rewritten
               }
+              return null
             } catch (err) {
               log(novelId, "warn", `Beat ${bi + 1} validation rewrite failed: ${err instanceof Error ? err.message : err}`)
+              return null
             }
-          }
-
-          // Re-validate after rewrites. Mirror the same DEBUG_FORCE_VALIDATION
-          // synthesis used on the initial call (drafting.ts ~436-448); without
-          // this, forced-validation tests settle the loop on the first real
-          // recheck that passes and the exhaustion handler is bypassed — the
-          // same class of gap as the plan-check recheck fixed in fed9e4a.
-          // Codex seam-gap audit a1e06c61f62e901e7 flagged this site.
-          prose = beatProses.join("\n\n")
-          wordCount = prose.split(/\s+/).filter(Boolean).length
-          let recheck: ReturnType<typeof validateChapterDraft>
-          if (inject.forceValidation === "pov") {
-            recheck = {
-              passed: false,
-              blockers: [`POV character "${outline.povCharacter}" never mentioned in draft`],
-              warnings: [],
-            }
-          } else if (inject.forceValidation === "word-count") {
-            recheck = {
-              passed: false,
-              blockers: [`Chapter too short: 100 words (minimum 500)`],
-              warnings: [],
-            }
-          } else {
-            recheck = validateChapterDraft(prose, outline)
-          }
-          currentBlockers = recheck.blockers
-          currentWarnings = recheck.warnings
-          if (currentBlockers.length === 0) {
-            console.log(`  Validation: passed after ${validationPass} targeted rewrite pass(es)`)
-            log(novelId, "info", `Validation passed after ${validationPass} targeted rewrite pass(es)`)
-          } else {
-            console.log(`  Validation still failing (${currentBlockers.length} blockers remain)`)
-          }
-        }
-
-        // Post-settle trace — emit the final validation-settle outcome so test
-        // campaigns (organic-run-verify + R5/R6-style exhaustion campaigns)
-        // can assert the post-settle state the same way plan-check has
-        // `plan-check-outcome` events. Mirrors the initial validation-check
-        // trace at ~line 449 but with source="post-settle" and the final
-        // rewritePassCount + settled flag. Emitted before the reviser
-        // escalation block so the sequence is unambiguous:
-        //   1. validation-check source=initial (blockers=N)
-        //   2. validation-check source=post-settle (settled=true/false, rewritePassCount=K)
-        //   3. [iff !settled] reviser escalation → chapter_revisions row
-        await trace(novelId, {
-          eventType: "validation-check", chapter: ch,
-          payload: {
-            source: "post-settle",
-            passed: currentBlockers.length === 0,
-            blockerCount: currentBlockers.length,
-            warningCount: currentWarnings.length,
-            blockers: currentBlockers,
-            warnings: currentWarnings,
-            rewritePassCount: validationPass,
-            settled: currentBlockers.length === 0,
-            forcedValidation: inject.forceValidation ?? null,
+          },
+          budget: pipeline.maxChapterPlanRewritePasses,
+          canSettle: () => canSettle,
+          onPassStart: async (passNumber, perBeat) => {
+            currentValidationPass = passNumber
+            console.log(`  Validation pass ${passNumber}/${pipeline.maxChapterPlanRewritePasses}: rewriting ${perBeat.size} beats (${[...perBeat.keys()].sort((a, b) => a - b).join(",")})`)
+            log(novelId, "info", `Validation settle pass ${passNumber}: targeted rewrite of beats [${[...perBeat.keys()].sort((a, b) => a - b).join(",")}]`)
+          },
+          onSettleComplete: async () => {
+            // Post-settle trace — emit the final validation-settle outcome so
+            // test campaigns (organic-run-verify + R5/R6-style exhaustion
+            // campaigns) can assert the post-settle state the same way
+            // plan-check has `plan-check-outcome` events. Emitted before the
+            // reviser escalation block so the sequence is unambiguous:
+            //   1. validation-check source=initial (blockers=N)
+            //   2. validation-check source=post-settle (settled=true/false,
+            //      rewritePassCount=K)
+            //   3. [iff !settled] reviser escalation → chapter_revisions row
+            await trace(novelId, {
+              eventType: "validation-check", chapter: ch,
+              payload: {
+                source: "post-settle",
+                passed: currentBlockers.length === 0,
+                blockerCount: currentBlockers.length,
+                warningCount: currentWarnings.length,
+                blockers: currentBlockers,
+                warnings: currentWarnings,
+                rewritePassCount: currentValidationPass,
+                settled: currentBlockers.length === 0,
+                forcedValidation: inject.forceValidation ?? null,
+              },
+            })
           },
         })
 
         if (currentBlockers.length > 0) {
           currentBlockers.forEach(b => console.log(`    UNRESOLVED BLOCKER: ${b}`))
-          log(novelId, "warn", `Validation still failing after ${validationPass} targeted rewrite pass(es)`)
+          log(novelId, "warn", `Validation still failing after ${currentValidationPass} targeted rewrite pass(es)`)
 
           // Path (C) — validation-driven reviser escalation.
           // See docs/exhaustion-handler-design.md §"Path (C)".
@@ -1032,129 +984,98 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
           // of the design memo), reviser-rejected / reviser-threw branches
           // below should fall through to the gate instead of blind bail.
           const canSettleForRevision = beatProses.length === outline.scenes.length
-          if (!revisionUsed && canSettleForRevision) {
+          // Validation path doesn't dedupe by issue signature (only by
+          // revisionUsed + canSettle). Pass dummy non-matching sigs so the
+          // policy's skip-reason logic can't land on `skip_duplicate_sig` —
+          // validation's only skip reasons are `already_revised` and
+          // `no_beat_state`, matching the pre-refactor behavior.
+          const validationCanRevise = !revisionUsed && canSettleForRevision
+          // Prefix descriptions with "[validation] " so the issue_sig hash
+          // namespace can't collide with a future plan-check deviation that
+          // happens to land on beat_index=null with matching text. The
+          // prompt-side uses the raw currentBlockers (no prefix); only the
+          // telemetry rows carry the source tag.
+          const blockersAsDeviations = currentBlockers.map(b => ({ description: `[validation] ${b}`, beat_index: null as number | null }))
+          const validationIssues: ReviserIssue[] = blockersAsDeviations.map(d => ({ description: d.description, beat_index: d.beat_index }))
+          const validationStrategy: ReviserStrategy = {
+            // Reviser context uses the unprefixed currentBlockers (per pre-
+            // refactor behavior at drafting.ts:985). Strategy ignores the
+            // policy's `issues` parameter — they carry the prefixed shape
+            // intended for telemetry/payload, not for the prompt.
+            buildReviserContext: (o, p) =>
+              buildChapterPlanReviseContextForValidation(o, p, currentBlockers),
+            telemetryLabel: "validation",
+          }
+
+          if (validationCanRevise) {
             console.log(`  Escalating to chapter-plan-reviser (persistent validation blockers)`)
             log(novelId, "info", `Invoking chapter-plan-reviser for chapter ${ch} (validation path): ${currentBlockers.length} unresolved blockers`)
-            // See plan-check site above for rationale. AWAIT the DB write —
-            // if we can't persist the guard, the reviser must NOT fire.
-            await setRevisionUsed(novelId, ch, true)
-            revisionUsed = true
-            // Prefix descriptions with "[validation] " so the issue_sig hash
-            // namespace can't collide with a future plan-check deviation that
-            // happens to land on beat_index=null with matching text. The
-            // prompt-side uses the raw currentBlockers (no prefix); only the
-            // telemetry rows carry the source tag.
-            const blockersAsDeviations = currentBlockers.map(b => ({ description: `[validation] ${b}`, beat_index: null as number | null }))
-            const originalBeatsSnapshotV = [...outline.scenes]
-            try {
-              const reviseCtx = buildChapterPlanReviseContextForValidation(outline, prose, currentBlockers)
-              // Seam C (validation path) — DEBUG_FORCE_REVISER: same intercept
-              // as the plan-check reviser path above.
-              if (inject.forceReviser === "throw") {
-                throw new Error("forced reviser throw via DEBUG_FORCE_REVISER=throw")
-              }
-              const revised = inject.forceReviser === "reject"
-                ? { output: { scenes: [{ description: "forced single-beat plan", characters: [outline.povCharacter], kind: "description" as const, setting: outline.setting, pov: outline.povCharacter }], establishedFacts: [], characterStateChanges: [], knowledgeChanges: [] } }
-                : await callAgent({
-                    novelId, agentName: "chapter-plan-reviser",
-                    chapter: ch, attempt: attempts,
-                    systemPrompt: CHAPTER_PLAN_REVISER_PROMPT,
-                    userPrompt: reviseCtx,
-                    schema: chapterPlanReviseSchema,
-                  })
-
-              const revisedScenes: SceneBeat[] = (revised.output.scenes ?? []) as SceneBeat[]
-              const minBeats = Math.max(3, Math.ceil(outline.targetWords / 300))
-              const originalCharacters = new Set([
-                outline.povCharacter,
-                ...(outline.charactersPresent ?? []),
-                ...outline.scenes.flatMap(s => s.characters ?? []),
-              ].filter(Boolean))
-              const revisedCharacters = new Set(revisedScenes.flatMap(s => s.characters ?? []))
-              const newCharacters = [...revisedCharacters].filter(c => !originalCharacters.has(c))
-
-              if (revisedScenes.length < minBeats) {
-                log(novelId, "warn", `Reviser returned too few beats (${revisedScenes.length} < ${minBeats}) — rejecting revision (validation path)`)
-                console.log(`  Reviser output rejected: ${revisedScenes.length} beats below floor of ${minBeats}`)
-                await logRevision({
-                  novelId, chapter: ch, attempt: attempts,
-                  deviations: blockersAsDeviations,
-                  originalBeats: originalBeatsSnapshotV,
-                  revisedBeats: revisedScenes,
-                  outcome: "rejected_beat_floor",
-                  rejectionReason: `[validation] revised beat count ${revisedScenes.length} < floor ${minBeats}`,
-                }).catch(err => log(novelId, "warn", `logRevision failed: ${err instanceof Error ? err.message : err}`))
-                pendingExhaustion = {
-                  kind: "reviser-rejected",
-                  novelId, chapter: ch, attempt: attempts, outline, prose,
-                  unresolvedDeviations: blockersAsDeviations,
-                  reviserHistory: { attemptedScenes: revisedScenes, rejectionReason: `[validation] revised beat count ${revisedScenes.length} < floor ${minBeats}` },
-                }
-              } else if (newCharacters.length > 0) {
-                log(novelId, "warn", `Reviser introduced new characters [${newCharacters.join(", ")}] — rejecting revision (validation path)`)
-                console.log(`  Reviser output rejected: new characters not in original plan`)
-                await logRevision({
-                  novelId, chapter: ch, attempt: attempts,
-                  deviations: blockersAsDeviations,
-                  originalBeats: originalBeatsSnapshotV,
-                  revisedBeats: revisedScenes,
-                  outcome: "rejected_new_characters",
-                  rejectionReason: `[validation] new characters: ${newCharacters.join(", ")}`,
-                }).catch(err => log(novelId, "warn", `logRevision failed: ${err instanceof Error ? err.message : err}`))
-                pendingExhaustion = {
-                  kind: "reviser-rejected",
-                  novelId, chapter: ch, attempt: attempts, outline, prose,
-                  unresolvedDeviations: blockersAsDeviations,
-                  reviserHistory: { attemptedScenes: revisedScenes, rejectionReason: `[validation] new characters: ${newCharacters.join(", ")}` },
-                }
-              } else {
-                outline = {
-                  ...outline,
-                  scenes: revisedScenes,
-                  establishedFacts: revised.output.establishedFacts ?? outline.establishedFacts,
-                  characterStateChanges: revised.output.characterStateChanges ?? outline.characterStateChanges,
-                  knowledgeChanges: revised.output.knowledgeChanges ?? outline.knowledgeChanges,
-                } as ChapterOutline
-                await saveChapterOutline(novelId, outline)
-                log(novelId, "info", `Chapter plan revised (validation path): ${outline.scenes.length} beats (was ${beatProses.length}); persisted to chapter_outlines`)
-                console.log(`  Revised plan: ${outline.scenes.length} beats. Persisted. Restarting chapter draft with revised plan.`)
-                await logRevision({
-                  novelId, chapter: ch, attempt: attempts,
-                  deviations: blockersAsDeviations,
-                  originalBeats: originalBeatsSnapshotV,
-                  revisedBeats: outline.scenes,
-                  outcome: "accepted",
-                }).catch(err => log(novelId, "warn", `logRevision failed: ${err instanceof Error ? err.message : err}`))
-              }
-            } catch (err) {
-              log(novelId, "error", `Chapter-plan-reviser failed for chapter ${ch} (validation path): ${err instanceof Error ? err.message : err}`)
-              console.error(`  Reviser error: ${err instanceof Error ? err.message : err}`)
-              const errMsg = err instanceof Error ? err.message : String(err)
-              await logRevision({
-                novelId, chapter: ch, attempt: attempts,
-                deviations: blockersAsDeviations,
-                originalBeats: originalBeatsSnapshotV,
-                revisedBeats: null,
-                outcome: "error",
-                rejectionReason: `[validation] ${errMsg.slice(0, 200)}`,
-              }).catch(logErr => log(novelId, "warn", `logRevision failed: ${logErr instanceof Error ? logErr.message : logErr}`))
-              pendingExhaustion = {
-                kind: "reviser-rejected",
-                novelId, chapter: ch, attempt: attempts, outline, prose,
-                unresolvedDeviations: blockersAsDeviations,
-                reviserHistory: { attemptedScenes: [], rejectionReason: `[validation] reviser threw: ${errMsg.slice(0, 200)}` },
-              }
-            }
           } else {
             const reason = revisionUsed
               ? "already revised this chapter"
               : "beat-level state not available"
             log(novelId, "warn", `Validation still failing — not escalating to reviser (${reason}); falling through to plan-assist gate`)
-            pendingExhaustion = {
-              kind: "plan-check-exhausted",
-              novelId, chapter: ch, attempt: attempts, outline, prose,
-              unresolvedDeviations: currentBlockers.map(b => ({ description: `[validation] ${b}`, beat_index: null as number | null })),
-            }
+          }
+
+          const outcome = await attemptRevision({
+            novelId, chapter: ch, attempt: attempts,
+            outline, prose,
+            issues: validationIssues,
+            rawDeviations: blockersAsDeviations,
+            strategy: validationStrategy,
+            eligibility: {
+              revisionUsed,
+              // Validation path: pass non-matching sigs so the skip-reason
+              // can never land on `skip_duplicate_sig`.
+              lastUnresolvedSig: "",
+              canSettle: canSettleForRevision,
+              canRevise: validationCanRevise,
+              issueSig: "validation-path",
+            },
+            persistAcceptedOutline: (o) => saveChapterOutline(novelId, o),
+            logRevision: async (entry) => {
+              try {
+                await logRevision(entry as Parameters<typeof logRevision>[0])
+              } catch (err) {
+                log(novelId, "warn", `logRevision failed: ${err instanceof Error ? err.message : err}`)
+                throw err
+              }
+            },
+            markRevisionUsed: async () => {
+              await setRevisionUsed(novelId, ch, true)
+              revisionUsed = true
+            },
+            callReviser: async (userPrompt) => {
+              // V1 DEBUG_FORCE_REVISER short-circuits removed in D4a (see plan-check site above) — V2 transport-interceptor handles throw/reject.
+              return await callAgent({  // @noninjectable
+                novelId, agentName: "chapter-plan-reviser",
+                chapter: ch, attempt: attempts,
+                systemPrompt: CHAPTER_PLAN_REVISER_PROMPT,
+                userPrompt,
+                schema: chapterPlanReviseSchema,
+              }) as ReviserResponse
+            },
+          })
+
+          if (outcome.kind === "accepted") {
+            outline = outcome.revisedOutline
+            log(novelId, "info", `Chapter plan revised (validation path): ${outline.scenes.length} beats (was ${beatProses.length}); persisted to chapter_outlines`)
+            console.log(`  Revised plan: ${outline.scenes.length} beats. Persisted. Restarting chapter draft with revised plan.`)
+          } else if (outcome.kind === "rejected" && outcome.reason === "beat_floor") {
+            log(novelId, "warn", `Reviser returned too few beats (${outcome.info.revisedBeatCount} < ${outcome.info.minBeats}) — rejecting revision (validation path)`)
+            console.log(`  Reviser output rejected: ${outcome.info.revisedBeatCount} beats below floor of ${outcome.info.minBeats}`)
+            pendingExhaustion = outcome.pendingExhaustion
+          } else if (outcome.kind === "rejected" && outcome.reason === "new_characters") {
+            log(novelId, "warn", `Reviser introduced new characters [${outcome.info.newCharacters.join(", ")}] — rejecting revision (validation path)`)
+            console.log(`  Reviser output rejected: new characters not in original plan`)
+            pendingExhaustion = outcome.pendingExhaustion
+          } else if (outcome.kind === "error") {
+            log(novelId, "error", `Chapter-plan-reviser failed for chapter ${ch} (validation path): ${outcome.error.message}`)
+            console.error(`  Reviser error: ${outcome.error.message}`)
+            pendingExhaustion = outcome.pendingExhaustion
+          } else {
+            // ineligible — skip path
+            pendingExhaustion = outcome.pendingExhaustion
           }
           bail = true
         }
@@ -1348,19 +1269,97 @@ export async function runDraftingPhase(novelId: string): Promise<void> {
       log(novelId, "warn", `Chapter ${ch} aborted via plan-assist gate — stopping drafting phase. Resume after manual intervention.`)
       console.log(`\n  Chapter ${ch} aborted by user at plan-assist gate.`)
       console.log("  Stopping drafting. Resume later after manual outline edit or clearing the override.")
-      return
+      return { kind: "paused", reason: `plan-assist-gate-aborted:ch${ch}` }
     }
 
     if (!approved) {
       log(novelId, "error", `Chapter ${ch} failed after ${maxAttempts} attempts`)
       console.log(`\n  Chapter ${ch} failed after ${maxAttempts} attempts.`)
       console.log("  Stopping drafting. Resume later with --resume flag.")
-      return
+      return { kind: "paused", reason: `chapter-attempts-exhausted:ch${ch}` }
     }
   }
 
-  await updatePhase(novelId, "validation")
-  emit(novelId, { type: "phase:changed", data: { phase: "validation" } })
+  // P6b1: phase transition is driver-owned.
   log(novelId, "info", "All chapters drafted. Advancing to validation.")
   console.log("\n  All chapters drafted. Advancing to Validation.\n")
+
+  const output = await loadDraftingOutput(novelId)
+  return { kind: "complete", output }
+}
+
+/** Reconstruct DraftingOutput from DB. Called on resume by the typed
+ *  driver (P6b1+). Only invoked when novel.phase has advanced past
+ *  drafting — at that point all approved chapters have status='approved'
+ *  rows in chapter_drafts. Reads from chapter_drafts, chapter_exhaustions,
+ *  chapter_revisions, chapter_outlines, facts, character_states,
+ *  character_knowledge. */
+export async function loadDraftingOutput(novelId: string): Promise<DraftingOutput> {
+  const approvedRows = (await db.unsafe(
+    `SELECT DISTINCT chapter_number FROM chapter_drafts WHERE novel_id = $1 AND status = 'approved' ORDER BY chapter_number`,
+    [novelId],
+  )) as Array<{ chapter_number: number }>
+
+  const exhaustionRows = (await db.unsafe(
+    `SELECT chapter, kind FROM chapter_exhaustions WHERE novel_id = $1 ORDER BY chapter, attempt`,
+    [novelId],
+  )) as Array<{ chapter: number; kind: string }>
+
+  // ORDER BY (chapter, invoked_at, id) matches the existing helper at
+  // db/chapter-revisions.ts:92-100. Two revisions can share (chapter,
+  // attempt) — one from the plan-check path (drafting.ts:740-775) and one
+  // from the validation path (drafting.ts:1015-1053). Sorting by attempt
+  // alone is non-deterministic across runs; invoked_at preserves the
+  // emission order, with id as the in-millisecond tie-breaker.
+  const revisionRows = (await db.unsafe(
+    `SELECT chapter, outcome FROM chapter_revisions WHERE novel_id = $1 ORDER BY chapter, invoked_at, id`,
+    [novelId],
+  )) as Array<{ chapter: number; outcome: string }>
+
+  const outlines = await getChapterOutlines(novelId)
+  const planCheckOverridden = await Promise.all(
+    outlines.map(async o => ({
+      ch: o.chapterNumber,
+      overridden: await isPlanCheckOverridden(novelId, o.chapterNumber),
+    })),
+  )
+
+  const factsCount = ((await db.unsafe(
+    `SELECT COUNT(*)::int AS n FROM facts WHERE novel_id = $1`,
+    [novelId],
+  )) as Array<{ n: number }>)[0]?.n ?? 0
+  const characterStatesCount = ((await db.unsafe(
+    `SELECT COUNT(*)::int AS n FROM character_states WHERE novel_id = $1`,
+    [novelId],
+  )) as Array<{ n: number }>)[0]?.n ?? 0
+  const knowledgeChangesCount = ((await db.unsafe(
+    `SELECT COUNT(*)::int AS n FROM character_knowledge WHERE novel_id = $1`,
+    [novelId],
+  )) as Array<{ n: number }>)[0]?.n ?? 0
+
+  return {
+    approvedChapters: approvedRows.map(r => r.chapter_number),
+    exhaustions: exhaustionRows.map(r => ({
+      chapter: r.chapter,
+      kind: r.kind as ExhaustionKind,
+    })),
+    revisions: revisionRows.map(r => ({
+      chapter: r.chapter,
+      outcome: r.outcome as RevisionOutcome,
+    })),
+    planCheckOverridden: planCheckOverridden.filter(p => p.overridden).map(p => p.ch),
+    plannedStateWritten: { factsCount, characterStatesCount, knowledgeChangesCount },
+  }
+}
+
+/** P4 — Phase<PlanningOutput, DraftingOutput> wrapper. Not yet consumed by
+ *  the state-machine; P6b1 flips the driver to use it. */
+export const draftingPhase: Phase<PlanningOutput, DraftingOutput> = {
+  name: "drafting",
+  async run(_input, ctx) {
+    return runDraftingPhase(ctx.novelId)
+  },
+  async loadOutput(novelId) {
+    return loadDraftingOutput(novelId)
+  },
 }

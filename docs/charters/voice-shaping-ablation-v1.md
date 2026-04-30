@@ -1,10 +1,12 @@
 ---
-status: proposed
+status: complete
 kind: experiment-charter
 name: voice-shaping-ablation-v1
 owner: andre
 date: 2026-04-21
 revision: 2 (post-Codex-YELLOW round 1 — 2026-04-21)
+completed: 2026-04-21
+synthesized: 2026-04-29 (decisions.md entry written; synthesis landed)
 parent-context: docs/retrospectives/2026-04-21-lora-track-evidence.md
 ---
 

@@ -114,7 +114,7 @@ Rewrite the line in ${char.name}'s voice, preserving the semantic content. Outpu
   const r = await fetch("https://api.deepseek.com/v1/chat/completions", {
     method: "POST",
     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${key}` },
-    body: JSON.stringify({ model: "deepseek-chat", messages: [{ role: "system", content: system }, { role: "user", content: user }], temperature: 0.7, max_tokens: 120 }),
+    body: JSON.stringify({ model: "deepseek-v4-flash", messages: [{ role: "system", content: system }, { role: "user", content: user }], temperature: 0.7, max_tokens: 120 }),
   })
   if (!r.ok) return `ERR ${r.status}`
   const j = await r.json() as any

@@ -1,0 +1,282 @@
+{
+  "pattern": "30",
+  "name": "Dialogue-vs-narration word ratio within beats (sub-beat)",
+  "corpus": "salvatore-icewind-dale",
+  "books": [
+    "crystal_shard",
+    "streams_of_silver",
+    "halflings_gem"
+  ],
+  "method": {
+    "dialogue_detection": "regex \"([^\"]*)\"|\"([^\"]*)\" \u2014 straight or curly double-quoted chunks",
+    "fraction_per_beat": "sum(words in dialogue chunks) / sum(all words in beat text)",
+    "kind_filter": "stratified by labeled beat-kind (action/dialogue/interiority/description/stakes_recalibration)"
+  },
+  "per_book": {
+    "crystal_shard": {
+      "fraction_per_beat": {
+        "n": 858,
+        "mean": 0.17,
+        "median": 0.01,
+        "p25": 0.0,
+        "p75": 0.3,
+        "min": 0.0,
+        "max": 0.9814814814814815,
+        "std": 0.24
+      },
+      "fraction_by_kind": {
+        "description": {
+          "n": 130,
+          "mean": 0.02,
+          "median": 0.0,
+          "p25": 0.0,
+          "p75": 0.0,
+          "min": 0.0,
+          "max": 0.5217391304347826,
+          "std": 0.07
+        },
+        "interiority": {
+          "n": 177,
+          "mean": 0.04,
+          "median": 0.0,
+          "p25": 0.0,
+          "p75": 0.04,
+          "min": 0.0,
+          "max": 0.6162790697674418,
+          "std": 0.1
+        },
+        "action": {
+          "n": 308,
+          "mean": 0.05,
+          "median": 0.0,
+          "p25": 0.0,
+          "p75": 0.06,
+          "min": 0.0,
+          "max": 0.4578313253012048,
+          "std": 0.09
+        },
+        "dialogue": {
+          "n": 242,
+          "mean": 0.48,
+          "median": 0.47,
+          "p25": 0.34,
+          "p75": 0.62,
+          "min": 0.03968253968253968,
+          "max": 0.9814814814814815,
+          "std": 0.2
+        },
+        "stakes_recalibration": {
+          "n": 1,
+          "mean": 0.52,
+          "median": 0.52,
+          "p25": 0.524390243902439,
+          "p75": 0.524390243902439,
+          "min": 0.524390243902439,
+          "max": 0.524390243902439,
+          "std": 0.0
+        }
+      }
+    },
+    "halflings_gem": {
+      "fraction_per_beat": {
+        "n": 826,
+        "mean": 0.19,
+        "median": 0.07,
+        "p25": 0.0,
+        "p75": 0.34,
+        "min": 0.0,
+        "max": 0.9444444444444444,
+        "std": 0.23
+      },
+      "fraction_by_kind": {
+        "description": {
+          "n": 79,
+          "mean": 0.03,
+          "median": 0.0,
+          "p25": 0.0,
+          "p75": 0.01,
+          "min": 0.0,
+          "max": 0.2391304347826087,
+          "std": 0.06
+        },
+        "interiority": {
+          "n": 159,
+          "mean": 0.06,
+          "median": 0.0,
+          "p25": 0.0,
+          "p75": 0.08,
+          "min": 0.0,
+          "max": 0.5945945945945946,
+          "std": 0.1
+        },
+        "dialogue": {
+          "n": 279,
+          "mean": 0.44,
+          "median": 0.43,
+          "p25": 0.31,
+          "p75": 0.6,
+          "min": 0.023529411764705882,
+          "max": 0.9444444444444444,
+          "std": 0.2
+        },
+        "action": {
+          "n": 309,
+          "mean": 0.06,
+          "median": 0.01,
+          "p25": 0.0,
+          "p75": 0.08,
+          "min": 0.0,
+          "max": 0.5730337078651685,
+          "std": 0.1
+        }
+      }
+    },
+    "streams_of_silver": {
+      "fraction_per_beat": {
+        "n": 786,
+        "mean": 0.18,
+        "median": 0.06,
+        "p25": 0.0,
+        "p75": 0.34,
+        "min": 0.0,
+        "max": 1.0,
+        "std": 0.24
+      },
+      "fraction_by_kind": {
+        "description": {
+          "n": 94,
+          "mean": 0.03,
+          "median": 0.0,
+          "p25": 0.0,
+          "p75": 0.02,
+          "min": 0.0,
+          "max": 0.5172413793103449,
+          "std": 0.09
+        },
+        "interiority": {
+          "n": 162,
+          "mean": 0.06,
+          "median": 0.0,
+          "p25": 0.0,
+          "p75": 0.04,
+          "min": 0.0,
+          "max": 0.6942148760330579,
+          "std": 0.14
+        },
+        "dialogue": {
+          "n": 256,
+          "mean": 0.44,
+          "median": 0.41,
+          "p25": 0.28,
+          "p75": 0.59,
+          "min": 0.024193548387096774,
+          "max": 1.0,
+          "std": 0.21
+        },
+        "action": {
+          "n": 274,
+          "mean": 0.07,
+          "median": 0.01,
+          "p25": 0.0,
+          "p75": 0.1,
+          "min": 0.0,
+          "max": 0.5660377358490566,
+          "std": 0.11
+        }
+      }
+    }
+  },
+  "corpus_overall": {
+    "fraction_per_beat": {
+      "n": 2470,
+      "mean": 0.18,
+      "median": 0.05,
+      "p25": 0.0,
+      "p75": 0.33,
+      "min": 0.0,
+      "max": 1.0,
+      "std": 0.23
+    },
+    "fraction_by_kind": {
+      "description": {
+        "n": 303,
+        "mean": 0.03,
+        "median": 0.0,
+        "p25": 0.0,
+        "p75": 0.0,
+        "min": 0.0,
+        "max": 0.5217391304347826,
+        "std": 0.08
+      },
+      "interiority": {
+        "n": 498,
+        "mean": 0.05,
+        "median": 0.0,
+        "p25": 0.0,
+        "p75": 0.04,
+        "min": 0.0,
+        "max": 0.6942148760330579,
+        "std": 0.11
+      },
+      "action": {
+        "n": 891,
+        "mean": 0.06,
+        "median": 0.0,
+        "p25": 0.0,
+        "p75": 0.08,
+        "min": 0.0,
+        "max": 0.5730337078651685,
+        "std": 0.1
+      },
+      "dialogue": {
+        "n": 777,
+        "mean": 0.45,
+        "median": 0.44,
+        "p25": 0.31,
+        "p75": 0.6,
+        "min": 0.023529411764705882,
+        "max": 1.0,
+        "std": 0.2
+      },
+      "stakes_recalibration": {
+        "n": 1,
+        "mean": 0.52,
+        "median": 0.52,
+        "p25": 0.524390243902439,
+        "p75": 0.524390243902439,
+        "min": 0.524390243902439,
+        "max": 0.524390243902439,
+        "std": 0.0
+      }
+    }
+  },
+  "cross_book_directional": {
+    "median_fraction_per_book": {
+      "crystal_shard": 0.01,
+      "halflings_gem": 0.07,
+      "streams_of_silver": 0.06
+    },
+    "median_fraction_by_kind_per_book": {
+      "action": {
+        "crystal_shard": 0.0,
+        "halflings_gem": 0.01,
+        "streams_of_silver": 0.01
+      },
+      "dialogue": {
+        "crystal_shard": 0.47,
+        "halflings_gem": 0.43,
+        "streams_of_silver": 0.41
+      },
+      "interiority": {
+        "crystal_shard": 0.0,
+        "halflings_gem": 0.0,
+        "streams_of_silver": 0.0
+      },
+      "description": {
+        "crystal_shard": 0.0,
+        "halflings_gem": 0.0,
+        "streams_of_silver": 0.0
+      }
+    }
+  }
+}

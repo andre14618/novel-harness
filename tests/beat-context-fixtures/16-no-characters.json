@@ -1,0 +1,67 @@
+{
+  "description": "beat with empty characters array — CHARACTERS section suppressed entirely; full mode",
+  "input": {
+    "novelId": "test-novel-16",
+    "chapterNumber": 7,
+    "beatIndex": 0,
+    "outline": {
+      "chapterNumber": 7,
+      "title": "Empty Stage",
+      "povCharacter": "Drizzt",
+      "setting": "the cliff",
+      "purpose": "scene-setting beat with no characters present",
+      "scenes": [
+        {
+          "description": "The wind rises across the cliff face and the gulls turn together over the surf.",
+          "characters": [],
+          "kind": "description",
+          "requiredPayoffs": []
+        },
+        {
+          "description": "Footsteps approach from the path below.",
+          "characters": [],
+          "kind": "description",
+          "requiredPayoffs": []
+        }
+      ],
+      "targetWords": 600,
+      "charactersPresent": [],
+      "establishedFacts": [],
+      "characterStateChanges": [],
+      "knowledgeChanges": []
+    },
+    "characters": [
+      {
+        "id": "drizzt-001",
+        "name": "Drizzt",
+        "role": "drow ranger",
+        "backstory": "",
+        "traits": [],
+        "speechPattern": "formal and measured",
+        "internalConflict": "",
+        "goals": "find belonging",
+        "fears": "",
+        "relationships": [],
+        "culturalBackground": [],
+        "systemAwareness": [],
+        "exampleLines": []
+      }
+    ],
+    "characterStates": [],
+    "worldBible": {
+      "locations": [
+        {
+          "name": "the cliff",
+          "description": "A sea-cliff where the gulls keep their nests.",
+          "sensoryDetails": "salt spray, wheeling wings, the boom of breakers"
+        }
+      ]
+    },
+    "preResolvedRefs": {
+      "context": "",
+      "lookupCount": 0,
+      "llmUsed": false
+    },
+    "compactMode": false
+  }
+}

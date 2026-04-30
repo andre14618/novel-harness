@@ -1,0 +1,419 @@
+{
+  "pattern": "34c",
+  "name": "Adverb density (-ly suffix) per 100 words",
+  "computedAt": "2026-04-30T12:42:40.448Z",
+  "corpus": "salvatore-icewind-dale",
+  "books": [
+    "crystal_shard",
+    "streams_of_silver",
+    "halflings_gem"
+  ],
+  "rationale": "Howard's craft principle says to minimize adverbs in prose; modern style guides (King, Leonard) echo. Tests Salvatore's actual rate and whether action vs description differ — informs the lint layer (deterministic adverb-density warning) and writer-prompt voice priors.",
+  "methodology": {
+    "detection": "regex /[a-z]{2,}ly$/ on lowercased whitespace tokens",
+    "false_positive_filter": "42-word blocklist of common -ly words that are NOT manner adverbs (place names, proper nouns, family/lily/lovely/etc.). Note this is conservative — most surfaced tokens ending in -ly in narrative prose are genuine adverbs.",
+    "caveats": "Does not catch non-ly adverbs (very, quite, often, never). Reports manner-adverb rate as a lower bound on total adverb density. Reference baseline: Hemingway ~1.5/100w, Howard ~2.0–2.5/100w."
+  },
+  "per_book": {
+    "crystal_shard": {
+      "total_words": 104755,
+      "ly_count": 1943,
+      "per_100_words": 1.85,
+      "per_1000_words": 185.48,
+      "top_adverbs": [
+        {
+          "adverb": "only",
+          "count": 196
+        },
+        {
+          "adverb": "suddenly",
+          "count": 64
+        },
+        {
+          "adverb": "quickly",
+          "count": 61
+        },
+        {
+          "adverb": "nearly",
+          "count": 43
+        },
+        {
+          "adverb": "truly",
+          "count": 34
+        },
+        {
+          "adverb": "finally",
+          "count": 32
+        },
+        {
+          "adverb": "simply",
+          "count": 30
+        },
+        {
+          "adverb": "easily",
+          "count": 27
+        },
+        {
+          "adverb": "deadly",
+          "count": 26
+        },
+        {
+          "adverb": "actually",
+          "count": 23
+        },
+        {
+          "adverb": "certainly",
+          "count": 23
+        },
+        {
+          "adverb": "clearly",
+          "count": 23
+        },
+        {
+          "adverb": "immediately",
+          "count": 22
+        },
+        {
+          "adverb": "wildly",
+          "count": 21
+        },
+        {
+          "adverb": "fully",
+          "count": 20
+        },
+        {
+          "adverb": "surely",
+          "count": 20
+        },
+        {
+          "adverb": "especially",
+          "count": 20
+        },
+        {
+          "adverb": "firmly",
+          "count": 17
+        },
+        {
+          "adverb": "merely",
+          "count": 17
+        },
+        {
+          "adverb": "silently",
+          "count": 17
+        },
+        {
+          "adverb": "barely",
+          "count": 17
+        },
+        {
+          "adverb": "slowly",
+          "count": 16
+        },
+        {
+          "adverb": "completely",
+          "count": 15
+        },
+        {
+          "adverb": "usually",
+          "count": 15
+        },
+        {
+          "adverb": "nervously",
+          "count": 15
+        }
+      ]
+    },
+    "streams_of_silver": {
+      "total_words": 103755,
+      "ly_count": 1621,
+      "per_100_words": 1.56,
+      "per_1000_words": 156.23,
+      "top_adverbs": [
+        {
+          "adverb": "only",
+          "count": 152
+        },
+        {
+          "adverb": "easily",
+          "count": 49
+        },
+        {
+          "adverb": "suddenly",
+          "count": 47
+        },
+        {
+          "adverb": "nearly",
+          "count": 46
+        },
+        {
+          "adverb": "quickly",
+          "count": 41
+        },
+        {
+          "adverb": "fully",
+          "count": 40
+        },
+        {
+          "adverb": "truly",
+          "count": 31
+        },
+        {
+          "adverb": "clearly",
+          "count": 28
+        },
+        {
+          "adverb": "simply",
+          "count": 28
+        },
+        {
+          "adverb": "immediately",
+          "count": 24
+        },
+        {
+          "adverb": "reply",
+          "count": 22
+        },
+        {
+          "adverb": "barely",
+          "count": 19
+        },
+        {
+          "adverb": "finally",
+          "count": 19
+        },
+        {
+          "adverb": "probably",
+          "count": 19
+        },
+        {
+          "adverb": "slowly",
+          "count": 18
+        },
+        {
+          "adverb": "actually",
+          "count": 18
+        },
+        {
+          "adverb": "obviously",
+          "count": 17
+        },
+        {
+          "adverb": "completely",
+          "count": 17
+        },
+        {
+          "adverb": "deadly",
+          "count": 17
+        },
+        {
+          "adverb": "silently",
+          "count": 15
+        },
+        {
+          "adverb": "merely",
+          "count": 15
+        },
+        {
+          "adverb": "softly",
+          "count": 14
+        },
+        {
+          "adverb": "apparently",
+          "count": 14
+        },
+        {
+          "adverb": "possibly",
+          "count": 14
+        },
+        {
+          "adverb": "surely",
+          "count": 14
+        }
+      ]
+    },
+    "halflings_gem": {
+      "total_words": 95698,
+      "ly_count": 1580,
+      "per_100_words": 1.65,
+      "per_1000_words": 165.1,
+      "top_adverbs": [
+        {
+          "adverb": "only",
+          "count": 189
+        },
+        {
+          "adverb": "suddenly",
+          "count": 57
+        },
+        {
+          "adverb": "quickly",
+          "count": 55
+        },
+        {
+          "adverb": "nearly",
+          "count": 38
+        },
+        {
+          "adverb": "truly",
+          "count": 32
+        },
+        {
+          "adverb": "surely",
+          "count": 29
+        },
+        {
+          "adverb": "fully",
+          "count": 28
+        },
+        {
+          "adverb": "easily",
+          "count": 26
+        },
+        {
+          "adverb": "barely",
+          "count": 25
+        },
+        {
+          "adverb": "quietly",
+          "count": 22
+        },
+        {
+          "adverb": "slowly",
+          "count": 21
+        },
+        {
+          "adverb": "calmly",
+          "count": 21
+        },
+        {
+          "adverb": "deadly",
+          "count": 21
+        },
+        {
+          "adverb": "grimly",
+          "count": 20
+        },
+        {
+          "adverb": "finally",
+          "count": 19
+        },
+        {
+          "adverb": "softly",
+          "count": 18
+        },
+        {
+          "adverb": "tightly",
+          "count": 18
+        },
+        {
+          "adverb": "likely",
+          "count": 18
+        },
+        {
+          "adverb": "probably",
+          "count": 18
+        },
+        {
+          "adverb": "hardly",
+          "count": 17
+        },
+        {
+          "adverb": "apparently",
+          "count": 17
+        },
+        {
+          "adverb": "rumblebelly",
+          "count": 16
+        },
+        {
+          "adverb": "curiously",
+          "count": 16
+        },
+        {
+          "adverb": "certainly",
+          "count": 16
+        },
+        {
+          "adverb": "helplessly",
+          "count": 15
+        }
+      ]
+    }
+  },
+  "per_book_per_kind": {
+    "crystal_shard": {
+      "action": {
+        "words": 38286,
+        "ly_count": 739,
+        "per_100_words": 1.93
+      },
+      "dialogue": {
+        "words": 28545,
+        "ly_count": 522,
+        "per_100_words": 1.83
+      },
+      "interiority": {
+        "words": 22263,
+        "ly_count": 404,
+        "per_100_words": 1.81
+      },
+      "description": {
+        "words": 15579,
+        "ly_count": 277,
+        "per_100_words": 1.78
+      }
+    },
+    "streams_of_silver": {
+      "action": {
+        "words": 36644,
+        "ly_count": 589,
+        "per_100_words": 1.61
+      },
+      "dialogue": {
+        "words": 34986,
+        "ly_count": 530,
+        "per_100_words": 1.51
+      },
+      "interiority": {
+        "words": 20528,
+        "ly_count": 291,
+        "per_100_words": 1.42
+      },
+      "description": {
+        "words": 11597,
+        "ly_count": 211,
+        "per_100_words": 1.82
+      }
+    },
+    "halflings_gem": {
+      "action": {
+        "words": 35125,
+        "ly_count": 595,
+        "per_100_words": 1.69
+      },
+      "dialogue": {
+        "words": 32796,
+        "ly_count": 494,
+        "per_100_words": 1.51
+      },
+      "interiority": {
+        "words": 18281,
+        "ly_count": 314,
+        "per_100_words": 1.72
+      },
+      "description": {
+        "words": 9496,
+        "ly_count": 177,
+        "per_100_words": 1.86
+      }
+    }
+  },
+  "cross_book_summary": {
+    "mean_per_100_words": 1.69,
+    "range": [
+      1.56,
+      1.85
+    ],
+    "directional": "All three books fall in 1.0–4.0/100w range — typical commercial-fantasy adverb rate. Salvatore is not aggressively pruning adverbs the Howard way."
+  }
+}

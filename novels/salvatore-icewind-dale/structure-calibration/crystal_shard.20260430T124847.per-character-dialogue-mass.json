@@ -1,0 +1,883 @@
+{
+  "pattern": "Pattern 40 — per-character dialogue mass",
+  "computed_at": "2026-04-30T12:48:47.471Z",
+  "rationale": "Words spoken per character per book + share of total dialogue mass + cross-book stability of leading speakers. Feeds the planning-plotter prior on how `charactersPresent` per chapter should imply dialogue distribution; checks whether Drizzt, Bruenor, Wulfgar dominate equally across all 3 books or whether the books rotate POV emphasis.",
+  "methodology": {
+    "primary_source": "analysis/dialogue-extract.jsonl (LLM-attributed, 5 Companions only, 2,447 lines)",
+    "fallback_source": "regex on beats.jsonl text — 3 patterns: post-verb-name, post-name-verb, pre-name-verb. ~100 reporting verbs. Names cross-checked against config.yml character registry; unregistered proper nouns kept as `(other) NAME` so non-Companion antagonists can crack top-10.",
+    "deduplication": "regex matches that overlap with LLM-extract Companion attribution are skipped to avoid double-counting Companion speech.",
+    "word_definition": "whitespace-split on the quote text only (excludes attribution tags and speaker names).",
+    "unattributed_handling": "quotes with no matched speaker tag in their beat go into an `(unattributed)` bucket, NOT counted toward attributed-mass shares."
+  },
+  "summary": {
+    "total_beats": 2470,
+    "llm_extract_quotes": 2447,
+    "regex_added_quotes_registered": 593,
+    "regex_added_quotes_unregistered": 779,
+    "regex_unattributed_quotes": 2425,
+    "coverage_by_book": {
+      "crystal_shard": {
+        "attributed": 998,
+        "unattributed": 621,
+        "coverage_pct": 61.6
+      },
+      "streams_of_silver": {
+        "attributed": 1360,
+        "unattributed": 846,
+        "coverage_pct": 61.7
+      },
+      "halflings_gem": {
+        "attributed": 1461,
+        "unattributed": 958,
+        "coverage_pct": 60.4
+      }
+    }
+  },
+  "per_book_top_10": {
+    "crystal_shard": [
+      {
+        "name": "(unattributed)",
+        "quotes": 621,
+        "words": 8899,
+        "share": 81.8
+      },
+      {
+        "name": "Drizzt",
+        "quotes": 250,
+        "words": 3053,
+        "share": 28.1
+      },
+      {
+        "name": "Wulfgar",
+        "quotes": 168,
+        "words": 1915,
+        "share": 17.6
+      },
+      {
+        "name": "Bruenor",
+        "quotes": 155,
+        "words": 1815,
+        "share": 16.7
+      },
+      {
+        "name": "Regis",
+        "quotes": 82,
+        "words": 1270,
+        "share": 11.7
+      },
+      {
+        "name": "Catti-brie",
+        "quotes": 37,
+        "words": 673,
+        "share": 6.2
+      },
+      {
+        "name": "(other) he",
+        "quotes": 80,
+        "words": 562,
+        "share": 5.2
+      },
+      {
+        "name": "Cassius",
+        "quotes": 33,
+        "words": 236,
+        "share": 2.2
+      },
+      {
+        "name": "Kessell",
+        "quotes": 40,
+        "words": 230,
+        "share": 2.1
+      },
+      {
+        "name": "(other) had",
+        "quotes": 2,
+        "words": 193,
+        "share": 1.8
+      }
+    ],
+    "streams_of_silver": [
+      {
+        "name": "(unattributed)",
+        "quotes": 846,
+        "words": 11395,
+        "share": 87.5
+      },
+      {
+        "name": "Bruenor",
+        "quotes": 344,
+        "words": 4253,
+        "share": 32.7
+      },
+      {
+        "name": "Drizzt",
+        "quotes": 251,
+        "words": 2827,
+        "share": 21.7
+      },
+      {
+        "name": "Regis",
+        "quotes": 116,
+        "words": 1295,
+        "share": 9.9
+      },
+      {
+        "name": "Wulfgar",
+        "quotes": 118,
+        "words": 1148,
+        "share": 8.8
+      },
+      {
+        "name": "Catti-brie",
+        "quotes": 73,
+        "words": 993,
+        "share": 7.6
+      },
+      {
+        "name": "(other) he",
+        "quotes": 117,
+        "words": 703,
+        "share": 5.4
+      },
+      {
+        "name": "Entreri",
+        "quotes": 66,
+        "words": 330,
+        "share": 2.5
+      },
+      {
+        "name": "(other) she",
+        "quotes": 62,
+        "words": 280,
+        "share": 2.1
+      },
+      {
+        "name": "Sydney",
+        "quotes": 46,
+        "words": 265,
+        "share": 2
+      }
+    ],
+    "halflings_gem": [
+      {
+        "name": "(unattributed)",
+        "quotes": 958,
+        "words": 10244,
+        "share": 92.9
+      },
+      {
+        "name": "Drizzt",
+        "quotes": 268,
+        "words": 2425,
+        "share": 22
+      },
+      {
+        "name": "Bruenor",
+        "quotes": 282,
+        "words": 2330,
+        "share": 21.1
+      },
+      {
+        "name": "Wulfgar",
+        "quotes": 155,
+        "words": 1317,
+        "share": 11.9
+      },
+      {
+        "name": "Catti-brie",
+        "quotes": 140,
+        "words": 1301,
+        "share": 11.8
+      },
+      {
+        "name": "(other) he",
+        "quotes": 152,
+        "words": 866,
+        "share": 7.9
+      },
+      {
+        "name": "Regis",
+        "quotes": 82,
+        "words": 751,
+        "share": 6.8
+      },
+      {
+        "name": "Pook",
+        "quotes": 69,
+        "words": 330,
+        "share": 3
+      },
+      {
+        "name": "Deudermont",
+        "quotes": 54,
+        "words": 288,
+        "share": 2.6
+      },
+      {
+        "name": "Entreri",
+        "quotes": 53,
+        "words": 279,
+        "share": 2.5
+      }
+    ]
+  },
+  "per_book_top_20": {
+    "crystal_shard": [
+      {
+        "name": "(unattributed)",
+        "quotes": 621,
+        "words": 8899,
+        "share": 81.8
+      },
+      {
+        "name": "Drizzt",
+        "quotes": 250,
+        "words": 3053,
+        "share": 28.1
+      },
+      {
+        "name": "Wulfgar",
+        "quotes": 168,
+        "words": 1915,
+        "share": 17.6
+      },
+      {
+        "name": "Bruenor",
+        "quotes": 155,
+        "words": 1815,
+        "share": 16.7
+      },
+      {
+        "name": "Regis",
+        "quotes": 82,
+        "words": 1270,
+        "share": 11.7
+      },
+      {
+        "name": "Catti-brie",
+        "quotes": 37,
+        "words": 673,
+        "share": 6.2
+      },
+      {
+        "name": "(other) he",
+        "quotes": 80,
+        "words": 562,
+        "share": 5.2
+      },
+      {
+        "name": "Cassius",
+        "quotes": 33,
+        "words": 236,
+        "share": 2.2
+      },
+      {
+        "name": "Kessell",
+        "quotes": 40,
+        "words": 230,
+        "share": 2.1
+      },
+      {
+        "name": "(other) had",
+        "quotes": 2,
+        "words": 193,
+        "share": 1.8
+      },
+      {
+        "name": "(other) Errtu",
+        "quotes": 16,
+        "words": 109,
+        "share": 1
+      },
+      {
+        "name": "Kemp",
+        "quotes": 19,
+        "words": 99,
+        "share": 0.9
+      },
+      {
+        "name": "(other) the",
+        "quotes": 19,
+        "words": 91,
+        "share": 0.8
+      },
+      {
+        "name": "Heafstaag",
+        "quotes": 13,
+        "words": 71,
+        "share": 0.7
+      },
+      {
+        "name": "(other) it",
+        "quotes": 13,
+        "words": 68,
+        "share": 0.6
+      },
+      {
+        "name": "(other) merely",
+        "quotes": 1,
+        "words": 53,
+        "share": 0.5
+      },
+      {
+        "name": "(other) one",
+        "quotes": 9,
+        "words": 45,
+        "share": 0.4
+      },
+      {
+        "name": "(other) halfling",
+        "quotes": 1,
+        "words": 42,
+        "share": 0.4
+      },
+      {
+        "name": "(other) barbarian",
+        "quotes": 1,
+        "words": 39,
+        "share": 0.4
+      },
+      {
+        "name": "(other) another",
+        "quotes": 5,
+        "words": 31,
+        "share": 0.3
+      }
+    ],
+    "streams_of_silver": [
+      {
+        "name": "(unattributed)",
+        "quotes": 846,
+        "words": 11395,
+        "share": 87.5
+      },
+      {
+        "name": "Bruenor",
+        "quotes": 344,
+        "words": 4253,
+        "share": 32.7
+      },
+      {
+        "name": "Drizzt",
+        "quotes": 251,
+        "words": 2827,
+        "share": 21.7
+      },
+      {
+        "name": "Regis",
+        "quotes": 116,
+        "words": 1295,
+        "share": 9.9
+      },
+      {
+        "name": "Wulfgar",
+        "quotes": 118,
+        "words": 1148,
+        "share": 8.8
+      },
+      {
+        "name": "Catti-brie",
+        "quotes": 73,
+        "words": 993,
+        "share": 7.6
+      },
+      {
+        "name": "(other) he",
+        "quotes": 117,
+        "words": 703,
+        "share": 5.4
+      },
+      {
+        "name": "Entreri",
+        "quotes": 66,
+        "words": 330,
+        "share": 2.5
+      },
+      {
+        "name": "(other) she",
+        "quotes": 62,
+        "words": 280,
+        "share": 2.1
+      },
+      {
+        "name": "Sydney",
+        "quotes": 46,
+        "words": 265,
+        "share": 2
+      },
+      {
+        "name": "(other) Jierdan",
+        "quotes": 24,
+        "words": 156,
+        "share": 1.2
+      },
+      {
+        "name": "(other) the",
+        "quotes": 34,
+        "words": 144,
+        "share": 1.1
+      },
+      {
+        "name": "Dendybar",
+        "quotes": 26,
+        "words": 128,
+        "share": 1
+      },
+      {
+        "name": "(other) Fender",
+        "quotes": 7,
+        "words": 87,
+        "share": 0.7
+      },
+      {
+        "name": "(other) Harkle",
+        "quotes": 15,
+        "words": 72,
+        "share": 0.6
+      },
+      {
+        "name": "Alustriel",
+        "quotes": 11,
+        "words": 62,
+        "share": 0.5
+      },
+      {
+        "name": "(other) DelRoy",
+        "quotes": 5,
+        "words": 44,
+        "share": 0.3
+      },
+      {
+        "name": "(other) and",
+        "quotes": 3,
+        "words": 24,
+        "share": 0.2
+      },
+      {
+        "name": "(other) Morkai",
+        "quotes": 5,
+        "words": 23,
+        "share": 0.2
+      },
+      {
+        "name": "(other) rider",
+        "quotes": 1,
+        "words": 22,
+        "share": 0.2
+      }
+    ],
+    "halflings_gem": [
+      {
+        "name": "(unattributed)",
+        "quotes": 958,
+        "words": 10244,
+        "share": 92.9
+      },
+      {
+        "name": "Drizzt",
+        "quotes": 268,
+        "words": 2425,
+        "share": 22
+      },
+      {
+        "name": "Bruenor",
+        "quotes": 282,
+        "words": 2330,
+        "share": 21.1
+      },
+      {
+        "name": "Wulfgar",
+        "quotes": 155,
+        "words": 1317,
+        "share": 11.9
+      },
+      {
+        "name": "Catti-brie",
+        "quotes": 140,
+        "words": 1301,
+        "share": 11.8
+      },
+      {
+        "name": "(other) he",
+        "quotes": 152,
+        "words": 866,
+        "share": 7.9
+      },
+      {
+        "name": "Regis",
+        "quotes": 82,
+        "words": 751,
+        "share": 6.8
+      },
+      {
+        "name": "Pook",
+        "quotes": 69,
+        "words": 330,
+        "share": 3
+      },
+      {
+        "name": "Deudermont",
+        "quotes": 54,
+        "words": 288,
+        "share": 2.6
+      },
+      {
+        "name": "Entreri",
+        "quotes": 53,
+        "words": 279,
+        "share": 2.5
+      },
+      {
+        "name": "Malchor",
+        "quotes": 27,
+        "words": 172,
+        "share": 1.6
+      },
+      {
+        "name": "LaValle",
+        "quotes": 30,
+        "words": 154,
+        "share": 1.4
+      },
+      {
+        "name": "(other) the",
+        "quotes": 26,
+        "words": 94,
+        "share": 0.9
+      },
+      {
+        "name": "(other) she",
+        "quotes": 14,
+        "words": 85,
+        "share": 0.8
+      },
+      {
+        "name": "Alustriel",
+        "quotes": 12,
+        "words": 70,
+        "share": 0.6
+      },
+      {
+        "name": "(other) Pinochet",
+        "quotes": 7,
+        "words": 64,
+        "share": 0.6
+      },
+      {
+        "name": "(other) Dondon",
+        "quotes": 13,
+        "words": 61,
+        "share": 0.6
+      },
+      {
+        "name": "(other) Harkle",
+        "quotes": 9,
+        "words": 60,
+        "share": 0.5
+      },
+      {
+        "name": "(other) Rassiter",
+        "quotes": 11,
+        "words": 58,
+        "share": 0.5
+      },
+      {
+        "name": "(other) Khelben",
+        "quotes": 12,
+        "words": 55,
+        "share": 0.5
+      }
+    ]
+  },
+  "per_book_non_companion_top_10": {
+    "crystal_shard": [
+      {
+        "name": "Cassius",
+        "quotes": 33,
+        "words": 236,
+        "share": 2.2
+      },
+      {
+        "name": "Kessell",
+        "quotes": 40,
+        "words": 230,
+        "share": 2.1
+      }
+    ],
+    "streams_of_silver": [
+      {
+        "name": "Entreri",
+        "quotes": 66,
+        "words": 330,
+        "share": 2.5
+      },
+      {
+        "name": "Sydney",
+        "quotes": 46,
+        "words": 265,
+        "share": 2
+      }
+    ],
+    "halflings_gem": [
+      {
+        "name": "Pook",
+        "quotes": 69,
+        "words": 330,
+        "share": 3
+      },
+      {
+        "name": "Deudermont",
+        "quotes": 54,
+        "words": 288,
+        "share": 2.6
+      },
+      {
+        "name": "Entreri",
+        "quotes": 53,
+        "words": 279,
+        "share": 2.5
+      }
+    ]
+  },
+  "per_book_companions_in_top_10": {
+    "crystal_shard": [
+      "Drizzt",
+      "Wulfgar",
+      "Bruenor",
+      "Regis",
+      "Catti-brie"
+    ],
+    "streams_of_silver": [
+      "Bruenor",
+      "Drizzt",
+      "Regis",
+      "Wulfgar",
+      "Catti-brie"
+    ],
+    "halflings_gem": [
+      "Drizzt",
+      "Bruenor",
+      "Wulfgar",
+      "Catti-brie",
+      "Regis"
+    ]
+  },
+  "cross_book": {
+    "leading_speaker_by_book": {
+      "crystal_shard": "(unattributed)",
+      "streams_of_silver": "(unattributed)",
+      "halflings_gem": "(unattributed)"
+    },
+    "companion_share_pct_by_book": {
+      "Drizzt": {
+        "crystal_shard": 28.1,
+        "streams_of_silver": 21.7,
+        "halflings_gem": 22
+      },
+      "Bruenor": {
+        "crystal_shard": 16.7,
+        "streams_of_silver": 32.7,
+        "halflings_gem": 21.1
+      },
+      "Wulfgar": {
+        "crystal_shard": 17.6,
+        "streams_of_silver": 8.8,
+        "halflings_gem": 11.9
+      },
+      "Catti-brie": {
+        "crystal_shard": 6.2,
+        "streams_of_silver": 7.6,
+        "halflings_gem": 11.8
+      },
+      "Regis": {
+        "crystal_shard": 11.7,
+        "streams_of_silver": 9.9,
+        "halflings_gem": 6.8
+      }
+    },
+    "companion_words_by_book": {
+      "Drizzt": {
+        "crystal_shard": 3053,
+        "streams_of_silver": 2827,
+        "halflings_gem": 2425
+      },
+      "Bruenor": {
+        "crystal_shard": 1815,
+        "streams_of_silver": 4253,
+        "halflings_gem": 2330
+      },
+      "Wulfgar": {
+        "crystal_shard": 1915,
+        "streams_of_silver": 1148,
+        "halflings_gem": 1317
+      },
+      "Catti-brie": {
+        "crystal_shard": 673,
+        "streams_of_silver": 993,
+        "halflings_gem": 1301
+      },
+      "Regis": {
+        "crystal_shard": 1270,
+        "streams_of_silver": 1295,
+        "halflings_gem": 751
+      }
+    },
+    "companion_quote_count_by_book": {
+      "Drizzt": {
+        "crystal_shard": 250,
+        "streams_of_silver": 251,
+        "halflings_gem": 268
+      },
+      "Bruenor": {
+        "crystal_shard": 155,
+        "streams_of_silver": 344,
+        "halflings_gem": 282
+      },
+      "Wulfgar": {
+        "crystal_shard": 168,
+        "streams_of_silver": 118,
+        "halflings_gem": 155
+      },
+      "Catti-brie": {
+        "crystal_shard": 37,
+        "streams_of_silver": 73,
+        "halflings_gem": 140
+      },
+      "Regis": {
+        "crystal_shard": 82,
+        "streams_of_silver": 116,
+        "halflings_gem": 82
+      }
+    },
+    "companion_stability": {
+      "Drizzt": {
+        "mean_share": 23.9,
+        "stdev_share": 2.9,
+        "cv": 0.123,
+        "range": [
+          21.7,
+          28.1
+        ]
+      },
+      "Bruenor": {
+        "mean_share": 23.5,
+        "stdev_share": 6.7,
+        "cv": 0.287,
+        "range": [
+          16.7,
+          32.7
+        ]
+      },
+      "Wulfgar": {
+        "mean_share": 12.8,
+        "stdev_share": 3.6,
+        "cv": 0.285,
+        "range": [
+          8.8,
+          17.6
+        ]
+      },
+      "Catti-brie": {
+        "mean_share": 8.5,
+        "stdev_share": 2.4,
+        "cv": 0.279,
+        "range": [
+          6.2,
+          11.8
+        ]
+      },
+      "Regis": {
+        "mean_share": 9.5,
+        "stdev_share": 2,
+        "cv": 0.214,
+        "range": [
+          6.8,
+          11.7
+        ]
+      }
+    },
+    "notes": {
+      "catti_brie_book_1_absence": "Catti-brie has 0 quotes in crystal_shard if the corpus extract reflects her late introduction; verify in companion_words_by_book[Catti-brie][crystal_shard].",
+      "entreri_only_book_3": "Entreri appears as antagonist in halflings_gem only — should NOT appear in book 1/2 top-10s.",
+      "kessell_only_book_1": "Kessell is the book-1 antagonist only.",
+      "pook_only_book_3": "Pasha Pook is the book-3 antagonist only.",
+      "dendybar_sydney_only_book_2": "Dendybar + Sydney appear in streams_of_silver only."
+    }
+  },
+  "unregistered_top_proper_nouns": [
+    {
+      "name": "he",
+      "quotes": 349
+    },
+    {
+      "name": "the",
+      "quotes": 79
+    },
+    {
+      "name": "she",
+      "quotes": 76
+    },
+    {
+      "name": "Harkle",
+      "quotes": 24
+    },
+    {
+      "name": "Jierdan",
+      "quotes": 24
+    },
+    {
+      "name": "one",
+      "quotes": 17
+    },
+    {
+      "name": "Errtu",
+      "quotes": 16
+    },
+    {
+      "name": "it",
+      "quotes": 15
+    },
+    {
+      "name": "Dondon",
+      "quotes": 13
+    },
+    {
+      "name": "Khelben",
+      "quotes": 12
+    },
+    {
+      "name": "Rassiter",
+      "quotes": 11
+    },
+    {
+      "name": "another",
+      "quotes": 10
+    },
+    {
+      "name": "Fender",
+      "quotes": 9
+    },
+    {
+      "name": "Pinochet",
+      "quotes": 7
+    },
+    {
+      "name": "Oberon",
+      "quotes": 6
+    }
+  ],
+  "totals_per_book": {
+    "crystal_shard": {
+      "total_quotes": 1619,
+      "total_dialogue_words": 19772
+    },
+    "streams_of_silver": {
+      "total_quotes": 2206,
+      "total_dialogue_words": 24419
+    },
+    "halflings_gem": {
+      "total_quotes": 2419,
+      "total_dialogue_words": 21268
+    }
+  }
+}

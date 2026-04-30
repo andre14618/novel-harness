@@ -1,0 +1,68 @@
+{
+  "description": "non-zero beat with 'arrives at' trigger word — beatHasLocationChange fires, so setting renders despite beatIndex > 0; full mode",
+  "input": {
+    "novelId": "test-novel-05",
+    "chapterNumber": 3,
+    "beatIndex": 1,
+    "previousBeatProse": "She walked away from the gate without looking back. The wind drove dust across her boots. The path bent toward the high field.",
+    "outline": {
+      "chapterNumber": 3,
+      "title": "Departure",
+      "povCharacter": "Catti-brie",
+      "setting": "Lonelywood",
+      "purpose": "exit the town",
+      "scenes": [
+        {
+          "description": "Catti-brie says her farewells at the smithy.",
+          "characters": ["Catti-brie", "Bruenor"],
+          "kind": "dialogue",
+          "requiredPayoffs": []
+        },
+        {
+          "description": "She arrives at the high meadow above the lake and looks back at the smoke of home.",
+          "characters": ["Catti-brie"],
+          "kind": "interiority",
+          "requiredPayoffs": []
+        }
+      ],
+      "targetWords": 1200,
+      "charactersPresent": ["Catti-brie", "Bruenor"],
+      "establishedFacts": [],
+      "characterStateChanges": [],
+      "knowledgeChanges": []
+    },
+    "characters": [
+      {
+        "id": "catti-001",
+        "name": "Catti-brie",
+        "role": "warrior",
+        "backstory": "",
+        "traits": [],
+        "speechPattern": "warm with a Northland lilt",
+        "internalConflict": "loyal but restless",
+        "goals": "find her own road",
+        "fears": "",
+        "relationships": [],
+        "culturalBackground": [],
+        "systemAwareness": [],
+        "exampleLines": []
+      }
+    ],
+    "characterStates": [],
+    "worldBible": {
+      "locations": [
+        {
+          "name": "Lonelywood",
+          "description": "Smallest of the Ten Towns, ringed by the great Lonelywood pine forest.",
+          "sensoryDetails": "resin, distant lake-cold, the cry of crows"
+        }
+      ]
+    },
+    "preResolvedRefs": {
+      "context": "",
+      "lookupCount": 0,
+      "llmUsed": false
+    },
+    "compactMode": false
+  }
+}

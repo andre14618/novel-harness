@@ -89,7 +89,7 @@ def load_api_key() -> str:
 
 def call_deepseek_sync(api_key: str, system: str, user: str) -> str:
     body = json.dumps({
-        "model": "deepseek-chat",
+        "model": "deepseek-v4-flash",
         "messages": [
             {"role": "system", "content": system},
             {"role": "user", "content": user},

@@ -28,35 +28,60 @@ const DEFAULTS = { temperature: 0.7, maxTokens: 4096, thinking: false } as const
 const groqQwen32B: ModelAssignment = { provider: "groq", model: "qwen/qwen3-32b" }
 const cerebrasQwen235B: ModelAssignment = { provider: "cerebras", model: "qwen-3-235b-a22b-instruct-2507" }
 const groqKimiK2: ModelAssignment = { provider: "groq", model: "moonshotai/kimi-k2-instruct-0905" }
-const deepseekV3: ModelAssignment = { provider: "deepseek", model: "deepseek-chat" }
+// DeepSeek V4 Flash — single API model. Thinking mode is a per-agent toggle
+// via the `thinking` flag. When true, llm.ts injects `thinking: {type:
+// "enabled"}` into the request body. Same pricing in both modes
+// ($0.14/$0.28 per 1M; cache hit $0.0028/M).
+//
+// Decision rule for setting `thinking: true` on an agent:
+//   - YES if the agent does multi-step reasoning under structural constraints
+//     (cross-beat coherence judgment, minimal-edit planning, structural
+//     sequencing). Reasoning tokens are billed but pay back in output quality.
+//   - NO for creative/prose generation (writer, beat-writer) — reasoning
+//     adds latency without quality gain on creative output.
+//   - NO for one-shot extraction/revision (planning-extractor,
+//     artifact-adjuster) — single-step transforms don't need think tokens.
+//   - NO for design-with-creative-output (world-builder, character-agent,
+//     plotter, planning-plotter) — these emit creative artifacts; thinking
+//     mode adds cost without proportional quality lift.
+//
+// Toggle individual agents by adding/removing `thinking: true` in the
+// AGENT_MODELS entry below — no other plumbing required. v4-pro exists in
+// the registry as a reasoning-tier escalation but is NOT routed by default
+// (~12× output cost vs Flash at base rate; reserved for cases where Flash
+// thinking proves insufficient).
+const deepseekV4Flash: ModelAssignment = { provider: "deepseek", model: "deepseek-v4-flash" }
 const mimoFlash: ModelAssignment = { provider: "mimo", model: "mimo-v2-flash" }
 const togetherQwen9B: ModelAssignment = { provider: "together", model: "Qwen/Qwen3.5-9B" }
 
 export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // ── Writers (creative prose, high output) ─────────────────────────────
-  // DeepSeek V3.2 is the default writer (exp #189/#190). Howard primer/
+  // DeepSeek V4 Flash non-thinking. Prose generation doesn't benefit from
+  // reasoning tokens (creative output, not multi-step inference); thinking
+  // mode would slow per-beat latency without quality lift. Howard primer/
   // methodology retired 2026-04-16 — voice now lands through per-genre
-  // voice LoRAs (see WRITER_GENRE_PACKS below) instead of a universal
-  // style primer. STYLE_PRIMER env var still works per-run for
-  // experimentation but defaults to "none".
-  "writer":                    { ...deepseekV3, temperature: 0.8, maxTokens: 8000 },
-  "beat-writer":               { ...deepseekV3, temperature: 0.8, maxTokens: 4000 },
+  // voice LoRAs (see WRITER_GENRE_PACKS below).
+  "writer":                    { ...deepseekV4Flash, temperature: 0.8, maxTokens: 8000 },
+  "beat-writer":               { ...deepseekV4Flash, temperature: 0.8, maxTokens: 4000 },
   // rewriter removed 2026-04-17 — validation is diagnostic-only now
 
   // ── Planners (structured creative output) ─────────────────────────────
-  "world-builder":             { ...deepseekV3, maxTokens: 8192 },
-  "character-agent":           { ...deepseekV3, maxTokens: 8192 },
-  "plotter":                   { ...deepseekV3, maxTokens: 8192 },
-  "planning-plotter":          { ...deepseekV3, temperature: 0.6, maxTokens: 8192 },
-  "planning-beats":            { ...deepseekV3, temperature: 0.6, maxTokens: 8192 },
+  // Most planners emit creative artifacts and don't benefit from think tokens.
+  // planning-beats is the exception: per-chapter beat sequencing + state-flow
+  // tracking is real multi-step reasoning, so it gets thinking: true.
+  "world-builder":             { ...deepseekV4Flash, maxTokens: 8192 },
+  "character-agent":           { ...deepseekV4Flash, maxTokens: 8192 },
+  "plotter":                   { ...deepseekV4Flash, maxTokens: 8192 },
+  "planning-plotter":          { ...deepseekV4Flash, temperature: 0.6, maxTokens: 8192 },
+  "planning-beats":            { ...deepseekV4Flash, thinking: true, temperature: 0.6, maxTokens: 8192 },
 
   // ── Studio: pre-planning chat + extraction ───────────────────────────
-  // Chat is high-volume, forgiving — Groq Qwen3-32B is cheap and fast enough.
-  // Extractor is load-bearing (one-shot compile of transcript → PlanningDirectives
-  // that drives the planner) — DeepSeek for fidelity.
+  // Chat: Groq Qwen3-32B (high-volume, cheap).
+  // Extractor: one-shot transcript → PlanningDirectives. Single-step, no
+  // thinking. Adjuster: light revision under feedback. Single-step, no thinking.
   "planning-conversationalist": { ...groqQwen32B, temperature: 0.65, maxTokens: 2048 },
-  "planning-extractor":         { ...deepseekV3, temperature: 0.2, maxTokens: 2048 },
-  "artifact-adjuster":          { ...deepseekV3, temperature: 0.3, maxTokens: 2048 },
+  "planning-extractor":         { ...deepseekV4Flash, temperature: 0.2, maxTokens: 2048 },
+  "artifact-adjuster":          { ...deepseekV4Flash, temperature: 0.3, maxTokens: 2048 },
 
   // ── Beat support ──────────────────────────────────────────────────────
   // reference-resolver stays on Llama 3.1 8B Groq — set-union over implicit
@@ -81,7 +106,7 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   "summary-extractor":         { ...mimoFlash, temperature: 0.2, maxTokens: 8192 },
   "fact-extractor":            { ...mimoFlash, temperature: 0.1, maxTokens: 8192 },
   "character-state":           { ...mimoFlash, temperature: 0.1, maxTokens: 8192 },
-  "relationship-timeline":     { ...deepseekV3, temperature: 0.2, maxTokens: 8192 },
+  "relationship-timeline":     { ...deepseekV4Flash, temperature: 0.2, maxTokens: 8192 },
   "graph-linker":              { ...mimoFlash, temperature: 0.2, maxTokens: 4096 },
 
   // ── Validators (analytical checks) ────────────────────────────────────
@@ -105,7 +130,7 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // vs validated 96% accuracy on Phase C.3 evals (exp #178) — distribution
   // drift on real fantasy plans. SFT recalibration on TODO as low-priority;
   // context engineering takes precedence over local-model SFT for now.
-  "chapter-plan-checker":      { ...deepseekV3, temperature: 0.2, maxTokens: 4096 },
+  "chapter-plan-checker":      { ...deepseekV4Flash, thinking: true, temperature: 0.2, maxTokens: 4096 },
 
   // ── Chapter plan reviser ─────────────────────────────────────────────
   // Invoked ONCE per chapter (across all drafting attempts) when the
@@ -116,7 +141,7 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // invoke the reviser — those are routed to targeted beat rewrites only.
   // Same DeepSeek model as the checker; higher maxTokens since output is a
   // full beats+state JSON (matches planning-beats shape).
-  "chapter-plan-reviser":      { ...deepseekV3, temperature: 0.3, maxTokens: 6144 },
+  "chapter-plan-reviser":      { ...deepseekV4Flash, thinking: true, temperature: 0.3, maxTokens: 6144 },
 
   // ── Tonal pass (per-paragraph voice rewrite, LoRA fine-tuned) ────────
   // Howard methodology RETIRED 2026-04-16 — voice now handled by per-genre
@@ -125,8 +150,127 @@ export const AGENT_MODELS: Record<string, ModelAssignment> = {
   // existing novels can still be re-voiced. Not invoked automatically.
   "tonal-pass":                { provider: "wandb", model: "wandb-artifact:///andre14618-/novel-harness/howard-tonal-v4-sft-resume:v8", temperature: 0.6, maxTokens: 2048 },
 
-  // ── Improvement daemon ──────────────────────────────────────────────
-  "improver":                  { ...deepseekV3, maxTokens: 8192 },
+  // ── Lint research (offline scripts only — NOT in the pipeline) ─────
+  // Used by scripts/lint/lint-discover.ts + scripts/lint/lint-discover-lib.ts
+  // for lint-pattern research. Retained from the (deleted) Improvement
+  // Daemon role; kept alive because the lint tooling imports it. When the
+  // autoresearch loop on the autonomous-harness-loop branch lands, this
+  // role may be repurposed or dropped.
+  "improver":                  { ...deepseekV4Flash, maxTokens: 8192 },
+
+  // ── Corpus structural extractors (Stage 6 — offline scripts ONLY) ───
+  // Per docs/charters/corpus-structural-decomposition-v1.md (R6) §3.
+  // Invoked from scripts/corpus/extract-structure.ts to tag a corpus
+  // bundle with per-scene value-charge + per-novel PromiseRegistry
+  // structural metadata. NOT in the runtime drafting pipeline; produces
+  // calibration evidence for downstream Bucket 3 charters.
+  //
+  // value-charge: non-thinking + low-temp because the schema is small
+  // (5 enum fields + an evidence quote), per-scene scope is narrow,
+  // and we want repeatable outputs for the calibration smoke.
+  // promise: thinking-ON because cross-chapter promise-payoff reasoning
+  // needs extended deliberation across the full novel context (~50K in).
+  // maxTokens policy across all structural extractors — be GENEROUS.
+  // Output cost is metered on tokens emitted, not the cap; bumping
+  // maxTokens just removes silent truncation risk on long evidence
+  // quotes / multi-element schemas. Caps below give 4-8× headroom over
+  // observed worst-case outputs from the crystal_shard run.
+  "structure-value-charge":    { ...deepseekV4Flash, temperature: 0.1, maxTokens: 4096 },
+  "structure-promise":         { ...deepseekV4Flash, thinking: true, temperature: 0.3, maxTokens: 32_768 },
+  "structure-character-arcs":  { ...deepseekV4Flash, thinking: true, temperature: 0.3, maxTokens: 16_384 },
+  "structure-mice":            { ...deepseekV4Flash, temperature: 0.1, maxTokens: 4096 },
+  "structure-mckee-gap":       { ...deepseekV4Flash, temperature: 0.1, maxTokens: 8192 },
+
+  // ── Stage 6 LLM-judge slots (cross-tier, NOT in the runtime pipeline) ─
+  // Per docs/charters/corpus-structural-decomposition-v1.md (R7 pivot).
+  // Replaces the R6 single-human-rater gold protocol with an automated
+  // LLM judge that re-runs the same prompts/schemas as the extractor
+  // through a stronger model. The capability gradient (V4 Pro reasoning
+  // > V4 Flash non-thinking/thinking-on) gives independence-by-strength;
+  // for premium semantic validation, route a sample subset through the
+  // Sonnet / Codex subagent paths documented in the charter.
+  //
+  // V4 Pro pricing: $1.74/$3.48 per 1M tokens (75%-off promo until
+  // 2026-05-31: $0.435/$0.87). For a 50-row judge pass: ~$0.17 base /
+  // ~$0.04 promo; cheap enough that running twice for self-consistency
+  // is also affordable.
+  // V4 Pro thinking-mode chews tokens before emitting JSON. Be generous
+  // — the 75%-off promo (until 2026-05-31) makes 16-32K caps trivial in
+  // cost. A truncated judge call wastes the entire row plus needs a
+  // retry, which costs more than just provisioning headroom upfront.
+  "structure-value-charge-judge": {
+    provider: "deepseek", model: "deepseek-v4-pro",
+    thinking: true, temperature: 0.1, maxTokens: 16_384,
+  },
+  "structure-promise-judge": {
+    provider: "deepseek", model: "deepseek-v4-pro",
+    thinking: true, temperature: 0.3, maxTokens: 32_768,
+  },
+  // T=0 variant for Phase C.3 — tests whether the run-to-run stochasticity
+  // observed in Phase B (Pro extractor F1=0.54 / Pro judge gold F1=1.00,
+  // ~30% variance on identical input) is just temperature noise. Same
+  // role config except temperature=0. Cost identical.
+  "structure-promise-judge-t0": {
+    provider: "deepseek", model: "deepseek-v4-pro",
+    thinking: true, temperature: 0, maxTokens: 32_768,
+  },
+  "structure-character-arcs-judge": {
+    provider: "deepseek", model: "deepseek-v4-pro",
+    thinking: true, temperature: 0.3, maxTokens: 32_768,
+  },
+  "structure-mice-judge": {
+    provider: "deepseek", model: "deepseek-v4-pro",
+    thinking: true, temperature: 0.1, maxTokens: 16_384,
+  },
+  "structure-mckee-gap-judge": {
+    provider: "deepseek", model: "deepseek-v4-pro",
+    thinking: true, temperature: 0.1, maxTokens: 16_384,
+  },
+  // ── Flash variants of judge roles for 2×2 calibration matrix ──────────
+  // Tests whether Flash can play the judge role as well as Pro on the same
+  // prompts. Same temp/maxTokens/thinking as Pro judge so the model is the
+  // only varying factor.
+  "structure-value-charge-judge-flash": {
+    provider: "deepseek", model: "deepseek-v4-flash",
+    thinking: true, temperature: 0.1, maxTokens: 16_384,
+  },
+  "structure-promise-judge-flash": {
+    provider: "deepseek", model: "deepseek-v4-flash",
+    thinking: true, temperature: 0.3, maxTokens: 32_768,
+  },
+  "structure-character-arcs-judge-flash": {
+    provider: "deepseek", model: "deepseek-v4-flash",
+    thinking: true, temperature: 0.3, maxTokens: 32_768,
+  },
+  "structure-mice-judge-flash": {
+    provider: "deepseek", model: "deepseek-v4-flash",
+    thinking: true, temperature: 0.1, maxTokens: 16_384,
+  },
+  "structure-mckee-gap-judge-flash": {
+    provider: "deepseek", model: "deepseek-v4-flash",
+    thinking: true, temperature: 0.1, maxTokens: 16_384,
+  },
+
+  // Promise pair-matcher — used by compute-calibration.ts to bridge
+  // paraphrased predicted-vs-gold promise text. Replaces the old
+  // Jaccard/Levenshtein gate which silently rejected semantically-equal
+  // promises that happened to share few tokens (e.g. "Errtu will pursue
+  // the crystal shard" vs "Errtu, a powerful demon, seeks Crenshinibon"
+  // share 2 tokens / Jaccard ~0.17, but they are the same narrative
+  // promise). V4 Pro emits a single batched mapping per book.
+  "structure-promise-match": {
+    provider: "deepseek", model: "deepseek-v4-pro",
+    thinking: true, temperature: 0.0, maxTokens: 16_384,
+  },
+  // V4 Pro semantic character-name matcher for character-arcs calibration.
+  // Matches characters across pred/gold lists by fictional identity
+  // ("Drizzt" = "Drizzt Do'Urden" = "the dark elf hero"). Single batched
+  // call per book; larger maxTokens than promise-match because arc fields
+  // (lie/truth/want/need) are longer than promise_text snippets.
+  "structure-character-match": {
+    provider: "deepseek", model: "deepseek-v4-pro",
+    thinking: true, temperature: 0.0, maxTokens: 8_192,
+  },
 }
 
 // ── Runtime overrides (set via web UI, cleared on restart) ──────────────

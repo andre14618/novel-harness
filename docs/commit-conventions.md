@@ -15,7 +15,7 @@ Every change gets its own commit with explicit context. The prefix indicates wha
 | `[agent:name] revert:` | Reverted attempt (automated loop) | `[agent:writer] revert: telling 4.0 → 4.2 (+0.2)` |
 | `[infra]` | Scripts, DB schema, tooling | `[infra] Add filtering to all benchmarks` |
 | `[baseline]` | Benchmark baseline runs | `[baseline] Establish planning baselines` |
-| `[roles]` | Model assignment changes | `[roles] Set DeepSeek V3.2 as pairwise judge` |
+| `[roles]` | Model assignment changes | `[roles] Set DeepSeek V4 Flash thinking-on for planning-beats` |
 
 ## Body format
 

@@ -1,0 +1,128 @@
+{
+  "v1": {
+    "path": "promise-gold.20260429T214936.v1.jsonl",
+    "n": 30
+  },
+  "v2": {
+    "path": "promise-gold.20260429T220650.v2.jsonl",
+    "n": 27
+  },
+  "shared": 14,
+  "jaccard": 0.32558139534883723,
+  "v1OnlyN": 16,
+  "v2OnlyN": 13,
+  "matches": [
+    {
+      "a_id": "p001",
+      "a_text": "Errtu, a powerful demon, seeks the relic Crenshinibon and will stop at nothing t",
+      "b_id": "p001",
+      "b_text": "Crenshinibon is a sought-after relic of great power, coveted by the demon Errtu.",
+      "confidence": 0.9,
+      "reason": "Both describe Errtu seeking Crenshinibon in the prelude."
+    },
+    {
+      "a_id": "p005",
+      "a_text": "Regis's ruby pendant is a stolen magical charm that can influence others.",
+      "b_id": "p002",
+      "b_text": "Regis is a fugitive from the thieves' guild of Calimport, and his stolen ruby pe",
+      "confidence": 0.9,
+      "reason": "Both describe Regis's stolen ruby pendant having magical charm powers."
+    },
+    {
+      "a_id": "p006",
+      "a_text": "A massive united barbarian army is preparing to attack Ten-Towns.",
+      "b_id": "p003",
+      "b_text": "A united barbarian horde is gathering to launch a massive attack on Ten-Towns.",
+      "confidence": 0.9,
+      "reason": "Both describe a united barbarian horde attacking Ten-Towns."
+    },
+    {
+      "a_id": "p011",
+      "a_text": "Crenshinibon is a sentient artifact of evil that will manipulate its wielder tow",
+      "b_id": "p005",
+      "b_text": "Crenshinibon is an ancient sentient artifact of evil that manipulates its wielde",
+      "confidence": 0.9,
+      "reason": "Both describe Crenshinibon as a sentient evil artifact."
+    },
+    {
+      "a_id": "p014",
+      "a_text": "Bruenor yearns to reclaim his ancestral home, Mithril Hall.",
+      "b_id": "p006",
+      "b_text": "Bruenor yearns to reclaim Mithril Hall, his lost ancestral dwarven kingdom.",
+      "confidence": 0.9,
+      "reason": "Both describe Bruenor yearning to reclaim Mithril Hall."
+    },
+    {
+      "a_id": "p016",
+      "a_text": "Heafstaag will survive the Battle of Bryn Shander and return as an antagonist.",
+      "b_id": "p007",
+      "b_text": "The barbarian king Heafstaag survives the Battle of Bryn Shander, carried away b",
+      "confidence": 0.9,
+      "reason": "Both describe Heafstaag surviving the Battle of Bryn Shander."
+    },
+    {
+      "a_id": "p017",
+      "a_text": "Wulfgar, a barbarian indentured to Bruenor, has a vow to repay him and a complic",
+      "b_id": "p008",
+      "b_text": "Wulfgar, a barbarian indentured to Bruenor, nears the end of his service, harbor",
+      "confidence": 0.9,
+      "reason": "Both describe Wulfgar as a barbarian indentured to Bruenor with great potential."
+    },
+    {
+      "a_id": "p018",
+      "a_text": "Drizzt will train Wulfgar in combat, preparing him for a greater role.",
+      "b_id": "p012",
+      "b_text": "Bruenor asks Drizzt to train Wulfgar, setting up a mentor-student relationship.",
+      "confidence": 0.9,
+      "reason": "Both describe Drizzt training Wulfgar as a mentor."
+    },
+    {
+      "a_id": "p019",
+      "a_text": "Bruenor is forging a magical warhammer, Aegis-fang, intended for Wulfgar.",
+      "b_id": "p011",
+      "b_text": "Bruenor is guided by a prophetic dream to forge a legendary warhammer.",
+      "confidence": 0.9,
+      "reason": "Both describe Bruenor forging a magical warhammer."
+    },
+    {
+      "a_id": "p024",
+      "a_text": "Drizzt acquires a magical scimitar from the dragon's hoard that will be effectiv",
+      "b_id": "p018",
+      "b_text": "Drizzt obtains an extraordinary magical ice scimitar from the dragon Icingdeath'",
+      "confidence": 0.9,
+      "reason": "Both describe Drizzt obtaining a magical ice scimitar from Icingdeath's hoard."
+    },
+    {
+      "a_id": "p027",
+      "a_text": "Regis will act as emissary to Kessell in an attempt to delay the attack on Bryn ",
+      "b_id": "p024",
+      "b_text": "Cassius sends Regis as an emissary to use the ruby pendant on Kessell.",
+      "confidence": 0.9,
+      "reason": "Both describe Regis being sent as an emissary to use the ruby pendant on Kessell."
+    },
+    {
+      "a_id": "p028",
+      "a_text": "Regis will trick Kessell into believing there are traitor orcs in his army, caus",
+      "b_id": "p025",
+      "b_text": "Regis tricks Kessell into believing there are traitors in his ranks, aiming to s",
+      "confidence": 0.9,
+      "reason": "Both describe Regis tricking Kessell into believing there are traitors in his army."
+    },
+    {
+      "a_id": "p030",
+      "a_text": "Drizzt promises to accompany Bruenor on a quest to find Mithril Hall.",
+      "b_id": "p026",
+      "b_text": "The companions vow to undertake a quest to find the lost dwarven kingdom of Mith",
+      "confidence": 0.9,
+      "reason": "Both describe a vow or promise to undertake a quest to find Mithril Hall."
+    },
+    {
+      "a_id": "p031",
+      "a_text": "The assassin Artemis Entreri has arrived in Ten-Towns seeking Regis, setting up ",
+      "b_id": "p027",
+      "b_text": "The assassin Artemis Entreri, sent by Pasha Pook, is hunting Regis.",
+      "confidence": 0.9,
+      "reason": "Both describe Artemis Entreri arriving to hunt Regis."
+    }
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "novel": "salvatore-icewind-dale",
+  "book": "crystal_shard",
+  "run_id": "20260429T234411",
+  "keySuffix": null,
+  "goldSuffix": null,
+  "matcher": "llm",
+  "computedAt": "2026-04-29T23:44:11.028Z",
+  "cells": {
+    "mckee-gap": {
+      "metrics": {
+        "n": 52,
+        "judgeFailures": 3,
+        "precision": 0.925,
+        "recall": 0.8604651162790697,
+        "f1": 0.891566265060241,
+        "gapSizeAgreement": 0.5769230769230769,
+        "perField": {
+          "gap_size": {
+            "agree": 30,
+            "n": 52,
+            "rate": 0.5769230769230769
+          },
+          "gap_type": {
+            "agree": 29,
+            "n": 52,
+            "rate": 0.5576923076923077
+          }
+        },
+        "retestSelfDisagreement": {
+          "n": 5,
+          "disagree": 2,
+          "rate": 0.4
+        }
+      },
+      "verdict": {
+        "verdict": "CELL PASS",
+        "reason": "P=0.925 R=0.860 F1=0.892 ≥ thresholds"
+      }
+    }
+  },
+  "sources": {
+    "mckee-gap": {
+      "goldPath": "/Users/andre/Desktop/personal_projects/novel-harness/novels/salvatore-icewind-dale/structure-gold/crystal_shard/mckee-gap-gold.20260429T230529.jsonl",
+      "goldRunId": "20260429T230529",
+      "keyPath": "/Users/andre/Desktop/personal_projects/novel-harness/novels/salvatore-icewind-dale/structure-gold/crystal_shard/mckee-gap-key.20260429T230407.jsonl",
+      "keyRunId": "20260429T230407"
+    }
+  },
+  "aggregatedVerdict": "SCOPED PASS",
+  "cellVerdicts": [
+    {
+      "dim": "mckee-gap",
+      "verdict": {
+        "verdict": "CELL PASS",
+        "reason": "P=0.925 R=0.860 F1=0.892 ≥ thresholds"
+      }
+    }
+  ]
+}

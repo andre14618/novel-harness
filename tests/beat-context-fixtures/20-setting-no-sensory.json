@@ -1,0 +1,60 @@
+{
+  "description": "beat 0, compact mode, world-bible setting found but has no sensoryDetails — compact mode suppresses the section since there is no Sensory: line to keep",
+  "input": {
+    "novelId": "test-novel-20",
+    "chapterNumber": 1,
+    "beatIndex": 0,
+    "outline": {
+      "chapterNumber": 1,
+      "title": "Sparse Setting",
+      "povCharacter": "Drizzt",
+      "setting": "the watchroom",
+      "purpose": "exercise compact-no-sensory fallthrough",
+      "scenes": [
+        {
+          "description": "Drizzt waits in the watchroom for word from the gate.",
+          "characters": ["Drizzt"],
+          "kind": "interiority",
+          "requiredPayoffs": []
+        }
+      ],
+      "targetWords": 500,
+      "charactersPresent": ["Drizzt"],
+      "establishedFacts": [],
+      "characterStateChanges": [],
+      "knowledgeChanges": []
+    },
+    "characters": [
+      {
+        "id": "drizzt-001",
+        "name": "Drizzt",
+        "role": "drow ranger",
+        "backstory": "",
+        "traits": [],
+        "speechPattern": "formal and measured",
+        "internalConflict": "torn between heritage and path",
+        "goals": "find belonging",
+        "fears": "",
+        "relationships": [],
+        "culturalBackground": [],
+        "systemAwareness": [],
+        "exampleLines": []
+      }
+    ],
+    "characterStates": [],
+    "worldBible": {
+      "locations": [
+        {
+          "name": "the watchroom",
+          "description": "A small chamber overlooking the bridge."
+        }
+      ]
+    },
+    "preResolvedRefs": {
+      "context": "",
+      "lookupCount": 0,
+      "llmUsed": false
+    },
+    "compactMode": true
+  }
+}

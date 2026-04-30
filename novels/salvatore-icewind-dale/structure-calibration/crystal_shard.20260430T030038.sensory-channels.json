@@ -1,0 +1,931 @@
+{
+  "computed_at": "20260430T030038",
+  "source": "pairs.jsonl \u2014 brief.summary text, regex match counts (proxy only)",
+  "dim": "sensory_channel_distribution",
+  "caveat": "Regex on summary text is a rough proxy. Kinesthetic regex includes movement verbs (run/walk/push) which inflates its share. Olfactory has very low hit counts \u2014 likely under-detectable via brief summaries. LLM tagging on full prose would be more reliable.",
+  "by_book": {
+    "crystal_shard": {
+      "book": "crystal_shard",
+      "note_proxy": "Regex hit-count on brief.summary text. Not a validated scorer \u2014 token overlap; false-positive rate is non-trivial. Use as directional only.",
+      "global_channel_counts": {
+        "visual": 81,
+        "auditory": 38,
+        "kinesthetic": 79,
+        "olfactory": 4
+      },
+      "global_channel_fractions": {
+        "visual": 0.401,
+        "auditory": 0.1881,
+        "kinesthetic": 0.3911,
+        "olfactory": 0.0198
+      },
+      "per_chapter": [
+        {
+          "chapter": "1",
+          "visual": 3,
+          "auditory": 0,
+          "kinesthetic": 0,
+          "olfactory": 0,
+          "visual_frac": 1.0,
+          "auditory_frac": 0.0,
+          "kinesthetic_frac": 0.0,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "2",
+          "visual": 2,
+          "auditory": 3,
+          "kinesthetic": 2,
+          "olfactory": 0,
+          "visual_frac": 0.286,
+          "auditory_frac": 0.429,
+          "kinesthetic_frac": 0.286,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "3",
+          "visual": 2,
+          "auditory": 1,
+          "kinesthetic": 2,
+          "olfactory": 0,
+          "visual_frac": 0.4,
+          "auditory_frac": 0.2,
+          "kinesthetic_frac": 0.4,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "4",
+          "visual": 2,
+          "auditory": 1,
+          "kinesthetic": 3,
+          "olfactory": 0,
+          "visual_frac": 0.333,
+          "auditory_frac": 0.167,
+          "kinesthetic_frac": 0.5,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "5",
+          "visual": 3,
+          "auditory": 2,
+          "kinesthetic": 1,
+          "olfactory": 0,
+          "visual_frac": 0.5,
+          "auditory_frac": 0.333,
+          "kinesthetic_frac": 0.167,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "6",
+          "visual": 0,
+          "auditory": 0,
+          "kinesthetic": 0,
+          "olfactory": 0,
+          "visual_frac": 0.0,
+          "auditory_frac": 0.0,
+          "kinesthetic_frac": 0.0,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "7",
+          "visual": 5,
+          "auditory": 0,
+          "kinesthetic": 6,
+          "olfactory": 0,
+          "visual_frac": 0.455,
+          "auditory_frac": 0.0,
+          "kinesthetic_frac": 0.545,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "8",
+          "visual": 3,
+          "auditory": 3,
+          "kinesthetic": 4,
+          "olfactory": 0,
+          "visual_frac": 0.3,
+          "auditory_frac": 0.3,
+          "kinesthetic_frac": 0.4,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "9",
+          "visual": 0,
+          "auditory": 1,
+          "kinesthetic": 1,
+          "olfactory": 0,
+          "visual_frac": 0.0,
+          "auditory_frac": 0.5,
+          "kinesthetic_frac": 0.5,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "10",
+          "visual": 4,
+          "auditory": 1,
+          "kinesthetic": 2,
+          "olfactory": 0,
+          "visual_frac": 0.571,
+          "auditory_frac": 0.143,
+          "kinesthetic_frac": 0.286,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "11",
+          "visual": 1,
+          "auditory": 2,
+          "kinesthetic": 0,
+          "olfactory": 0,
+          "visual_frac": 0.333,
+          "auditory_frac": 0.667,
+          "kinesthetic_frac": 0.0,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "12",
+          "visual": 0,
+          "auditory": 1,
+          "kinesthetic": 2,
+          "olfactory": 1,
+          "visual_frac": 0.0,
+          "auditory_frac": 0.25,
+          "kinesthetic_frac": 0.5,
+          "olfactory_frac": 0.25
+        },
+        {
+          "chapter": "13",
+          "visual": 0,
+          "auditory": 0,
+          "kinesthetic": 0,
+          "olfactory": 0,
+          "visual_frac": 0.0,
+          "auditory_frac": 0.0,
+          "kinesthetic_frac": 0.0,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "14",
+          "visual": 2,
+          "auditory": 0,
+          "kinesthetic": 0,
+          "olfactory": 0,
+          "visual_frac": 1.0,
+          "auditory_frac": 0.0,
+          "kinesthetic_frac": 0.0,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "15",
+          "visual": 4,
+          "auditory": 0,
+          "kinesthetic": 4,
+          "olfactory": 0,
+          "visual_frac": 0.5,
+          "auditory_frac": 0.0,
+          "kinesthetic_frac": 0.5,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "16",
+          "visual": 5,
+          "auditory": 1,
+          "kinesthetic": 4,
+          "olfactory": 0,
+          "visual_frac": 0.5,
+          "auditory_frac": 0.1,
+          "kinesthetic_frac": 0.4,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "17",
+          "visual": 6,
+          "auditory": 0,
+          "kinesthetic": 3,
+          "olfactory": 0,
+          "visual_frac": 0.667,
+          "auditory_frac": 0.0,
+          "kinesthetic_frac": 0.333,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "18",
+          "visual": 3,
+          "auditory": 5,
+          "kinesthetic": 4,
+          "olfactory": 0,
+          "visual_frac": 0.25,
+          "auditory_frac": 0.417,
+          "kinesthetic_frac": 0.333,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "19",
+          "visual": 2,
+          "auditory": 3,
+          "kinesthetic": 0,
+          "olfactory": 1,
+          "visual_frac": 0.333,
+          "auditory_frac": 0.5,
+          "kinesthetic_frac": 0.0,
+          "olfactory_frac": 0.167
+        },
+        {
+          "chapter": "20",
+          "visual": 0,
+          "auditory": 1,
+          "kinesthetic": 3,
+          "olfactory": 0,
+          "visual_frac": 0.0,
+          "auditory_frac": 0.25,
+          "kinesthetic_frac": 0.75,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "21",
+          "visual": 3,
+          "auditory": 2,
+          "kinesthetic": 3,
+          "olfactory": 0,
+          "visual_frac": 0.375,
+          "auditory_frac": 0.25,
+          "kinesthetic_frac": 0.375,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "22",
+          "visual": 3,
+          "auditory": 2,
+          "kinesthetic": 8,
+          "olfactory": 1,
+          "visual_frac": 0.214,
+          "auditory_frac": 0.143,
+          "kinesthetic_frac": 0.571,
+          "olfactory_frac": 0.071
+        },
+        {
+          "chapter": "23",
+          "visual": 2,
+          "auditory": 1,
+          "kinesthetic": 0,
+          "olfactory": 1,
+          "visual_frac": 0.5,
+          "auditory_frac": 0.25,
+          "kinesthetic_frac": 0.0,
+          "olfactory_frac": 0.25
+        },
+        {
+          "chapter": "24",
+          "visual": 4,
+          "auditory": 0,
+          "kinesthetic": 3,
+          "olfactory": 0,
+          "visual_frac": 0.571,
+          "auditory_frac": 0.0,
+          "kinesthetic_frac": 0.429,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "25",
+          "visual": 1,
+          "auditory": 0,
+          "kinesthetic": 2,
+          "olfactory": 0,
+          "visual_frac": 0.333,
+          "auditory_frac": 0.0,
+          "kinesthetic_frac": 0.667,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "26",
+          "visual": 0,
+          "auditory": 0,
+          "kinesthetic": 1,
+          "olfactory": 0,
+          "visual_frac": 0.0,
+          "auditory_frac": 0.0,
+          "kinesthetic_frac": 1.0,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "27",
+          "visual": 2,
+          "auditory": 1,
+          "kinesthetic": 0,
+          "olfactory": 0,
+          "visual_frac": 0.667,
+          "auditory_frac": 0.333,
+          "kinesthetic_frac": 0.0,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "28",
+          "visual": 1,
+          "auditory": 1,
+          "kinesthetic": 4,
+          "olfactory": 0,
+          "visual_frac": 0.167,
+          "auditory_frac": 0.167,
+          "kinesthetic_frac": 0.667,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "29",
+          "visual": 9,
+          "auditory": 2,
+          "kinesthetic": 8,
+          "olfactory": 0,
+          "visual_frac": 0.474,
+          "auditory_frac": 0.105,
+          "kinesthetic_frac": 0.421,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "30",
+          "visual": 9,
+          "auditory": 4,
+          "kinesthetic": 9,
+          "olfactory": 0,
+          "visual_frac": 0.409,
+          "auditory_frac": 0.182,
+          "kinesthetic_frac": 0.409,
+          "olfactory_frac": 0.0
+        }
+      ]
+    },
+    "streams_of_silver": {
+      "book": "streams_of_silver",
+      "note_proxy": "Regex hit-count on brief.summary text. Not a validated scorer \u2014 token overlap; false-positive rate is non-trivial. Use as directional only.",
+      "global_channel_counts": {
+        "visual": 81,
+        "auditory": 65,
+        "kinesthetic": 88,
+        "olfactory": 7
+      },
+      "global_channel_fractions": {
+        "visual": 0.3361,
+        "auditory": 0.2697,
+        "kinesthetic": 0.3651,
+        "olfactory": 0.029
+      },
+      "per_chapter": [
+        {
+          "chapter": "1",
+          "visual": 2,
+          "auditory": 5,
+          "kinesthetic": 2,
+          "olfactory": 0,
+          "visual_frac": 0.222,
+          "auditory_frac": 0.556,
+          "kinesthetic_frac": 0.222,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "2",
+          "visual": 6,
+          "auditory": 1,
+          "kinesthetic": 5,
+          "olfactory": 0,
+          "visual_frac": 0.5,
+          "auditory_frac": 0.083,
+          "kinesthetic_frac": 0.417,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "3",
+          "visual": 5,
+          "auditory": 5,
+          "kinesthetic": 1,
+          "olfactory": 2,
+          "visual_frac": 0.385,
+          "auditory_frac": 0.385,
+          "kinesthetic_frac": 0.077,
+          "olfactory_frac": 0.154
+        },
+        {
+          "chapter": "4",
+          "visual": 1,
+          "auditory": 0,
+          "kinesthetic": 1,
+          "olfactory": 0,
+          "visual_frac": 0.5,
+          "auditory_frac": 0.0,
+          "kinesthetic_frac": 0.5,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "5",
+          "visual": 1,
+          "auditory": 2,
+          "kinesthetic": 4,
+          "olfactory": 1,
+          "visual_frac": 0.125,
+          "auditory_frac": 0.25,
+          "kinesthetic_frac": 0.5,
+          "olfactory_frac": 0.125
+        },
+        {
+          "chapter": "6",
+          "visual": 6,
+          "auditory": 7,
+          "kinesthetic": 7,
+          "olfactory": 0,
+          "visual_frac": 0.3,
+          "auditory_frac": 0.35,
+          "kinesthetic_frac": 0.35,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "7",
+          "visual": 3,
+          "auditory": 3,
+          "kinesthetic": 1,
+          "olfactory": 0,
+          "visual_frac": 0.429,
+          "auditory_frac": 0.429,
+          "kinesthetic_frac": 0.143,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "8",
+          "visual": 1,
+          "auditory": 6,
+          "kinesthetic": 3,
+          "olfactory": 0,
+          "visual_frac": 0.1,
+          "auditory_frac": 0.6,
+          "kinesthetic_frac": 0.3,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "9",
+          "visual": 3,
+          "auditory": 12,
+          "kinesthetic": 5,
+          "olfactory": 0,
+          "visual_frac": 0.15,
+          "auditory_frac": 0.6,
+          "kinesthetic_frac": 0.25,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "10",
+          "visual": 1,
+          "auditory": 3,
+          "kinesthetic": 4,
+          "olfactory": 0,
+          "visual_frac": 0.125,
+          "auditory_frac": 0.375,
+          "kinesthetic_frac": 0.5,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "11",
+          "visual": 1,
+          "auditory": 0,
+          "kinesthetic": 1,
+          "olfactory": 0,
+          "visual_frac": 0.5,
+          "auditory_frac": 0.0,
+          "kinesthetic_frac": 0.5,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "12",
+          "visual": 1,
+          "auditory": 2,
+          "kinesthetic": 8,
+          "olfactory": 0,
+          "visual_frac": 0.091,
+          "auditory_frac": 0.182,
+          "kinesthetic_frac": 0.727,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "13",
+          "visual": 4,
+          "auditory": 1,
+          "kinesthetic": 2,
+          "olfactory": 1,
+          "visual_frac": 0.5,
+          "auditory_frac": 0.125,
+          "kinesthetic_frac": 0.25,
+          "olfactory_frac": 0.125
+        },
+        {
+          "chapter": "14",
+          "visual": 3,
+          "auditory": 1,
+          "kinesthetic": 3,
+          "olfactory": 0,
+          "visual_frac": 0.429,
+          "auditory_frac": 0.143,
+          "kinesthetic_frac": 0.429,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "15",
+          "visual": 2,
+          "auditory": 0,
+          "kinesthetic": 1,
+          "olfactory": 0,
+          "visual_frac": 0.667,
+          "auditory_frac": 0.0,
+          "kinesthetic_frac": 0.333,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "16",
+          "visual": 6,
+          "auditory": 2,
+          "kinesthetic": 5,
+          "olfactory": 0,
+          "visual_frac": 0.462,
+          "auditory_frac": 0.154,
+          "kinesthetic_frac": 0.385,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "17",
+          "visual": 2,
+          "auditory": 1,
+          "kinesthetic": 1,
+          "olfactory": 1,
+          "visual_frac": 0.4,
+          "auditory_frac": 0.2,
+          "kinesthetic_frac": 0.2,
+          "olfactory_frac": 0.2
+        },
+        {
+          "chapter": "18",
+          "visual": 5,
+          "auditory": 1,
+          "kinesthetic": 4,
+          "olfactory": 2,
+          "visual_frac": 0.417,
+          "auditory_frac": 0.083,
+          "kinesthetic_frac": 0.333,
+          "olfactory_frac": 0.167
+        },
+        {
+          "chapter": "19",
+          "visual": 5,
+          "auditory": 2,
+          "kinesthetic": 6,
+          "olfactory": 0,
+          "visual_frac": 0.385,
+          "auditory_frac": 0.154,
+          "kinesthetic_frac": 0.462,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "20",
+          "visual": 3,
+          "auditory": 3,
+          "kinesthetic": 8,
+          "olfactory": 0,
+          "visual_frac": 0.214,
+          "auditory_frac": 0.214,
+          "kinesthetic_frac": 0.571,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "21",
+          "visual": 5,
+          "auditory": 2,
+          "kinesthetic": 5,
+          "olfactory": 0,
+          "visual_frac": 0.417,
+          "auditory_frac": 0.167,
+          "kinesthetic_frac": 0.417,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "22",
+          "visual": 11,
+          "auditory": 4,
+          "kinesthetic": 6,
+          "olfactory": 0,
+          "visual_frac": 0.524,
+          "auditory_frac": 0.19,
+          "kinesthetic_frac": 0.286,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "23",
+          "visual": 3,
+          "auditory": 1,
+          "kinesthetic": 3,
+          "olfactory": 0,
+          "visual_frac": 0.429,
+          "auditory_frac": 0.143,
+          "kinesthetic_frac": 0.429,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "24",
+          "visual": 1,
+          "auditory": 1,
+          "kinesthetic": 2,
+          "olfactory": 0,
+          "visual_frac": 0.25,
+          "auditory_frac": 0.25,
+          "kinesthetic_frac": 0.5,
+          "olfactory_frac": 0.0
+        }
+      ]
+    },
+    "halflings_gem": {
+      "book": "halflings_gem",
+      "note_proxy": "Regex hit-count on brief.summary text. Not a validated scorer \u2014 token overlap; false-positive rate is non-trivial. Use as directional only.",
+      "global_channel_counts": {
+        "visual": 74,
+        "auditory": 37,
+        "kinesthetic": 79,
+        "olfactory": 5
+      },
+      "global_channel_fractions": {
+        "visual": 0.3795,
+        "auditory": 0.1897,
+        "kinesthetic": 0.4051,
+        "olfactory": 0.0256
+      },
+      "per_chapter": [
+        {
+          "chapter": "1",
+          "visual": 1,
+          "auditory": 1,
+          "kinesthetic": 5,
+          "olfactory": 1,
+          "visual_frac": 0.125,
+          "auditory_frac": 0.125,
+          "kinesthetic_frac": 0.625,
+          "olfactory_frac": 0.125
+        },
+        {
+          "chapter": "2",
+          "visual": 1,
+          "auditory": 0,
+          "kinesthetic": 2,
+          "olfactory": 0,
+          "visual_frac": 0.333,
+          "auditory_frac": 0.0,
+          "kinesthetic_frac": 0.667,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "3",
+          "visual": 2,
+          "auditory": 2,
+          "kinesthetic": 6,
+          "olfactory": 0,
+          "visual_frac": 0.2,
+          "auditory_frac": 0.2,
+          "kinesthetic_frac": 0.6,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "4",
+          "visual": 7,
+          "auditory": 3,
+          "kinesthetic": 4,
+          "olfactory": 1,
+          "visual_frac": 0.467,
+          "auditory_frac": 0.2,
+          "kinesthetic_frac": 0.267,
+          "olfactory_frac": 0.067
+        },
+        {
+          "chapter": "5",
+          "visual": 6,
+          "auditory": 2,
+          "kinesthetic": 6,
+          "olfactory": 0,
+          "visual_frac": 0.429,
+          "auditory_frac": 0.143,
+          "kinesthetic_frac": 0.429,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "6",
+          "visual": 4,
+          "auditory": 4,
+          "kinesthetic": 2,
+          "olfactory": 0,
+          "visual_frac": 0.4,
+          "auditory_frac": 0.4,
+          "kinesthetic_frac": 0.2,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "7",
+          "visual": 3,
+          "auditory": 2,
+          "kinesthetic": 3,
+          "olfactory": 0,
+          "visual_frac": 0.375,
+          "auditory_frac": 0.25,
+          "kinesthetic_frac": 0.375,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "8",
+          "visual": 2,
+          "auditory": 1,
+          "kinesthetic": 2,
+          "olfactory": 0,
+          "visual_frac": 0.4,
+          "auditory_frac": 0.2,
+          "kinesthetic_frac": 0.4,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "9",
+          "visual": 1,
+          "auditory": 1,
+          "kinesthetic": 1,
+          "olfactory": 0,
+          "visual_frac": 0.333,
+          "auditory_frac": 0.333,
+          "kinesthetic_frac": 0.333,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "10",
+          "visual": 5,
+          "auditory": 4,
+          "kinesthetic": 4,
+          "olfactory": 0,
+          "visual_frac": 0.385,
+          "auditory_frac": 0.308,
+          "kinesthetic_frac": 0.308,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "11",
+          "visual": 7,
+          "auditory": 2,
+          "kinesthetic": 6,
+          "olfactory": 0,
+          "visual_frac": 0.467,
+          "auditory_frac": 0.133,
+          "kinesthetic_frac": 0.4,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "12",
+          "visual": 0,
+          "auditory": 1,
+          "kinesthetic": 2,
+          "olfactory": 0,
+          "visual_frac": 0.0,
+          "auditory_frac": 0.333,
+          "kinesthetic_frac": 0.667,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "13",
+          "visual": 4,
+          "auditory": 1,
+          "kinesthetic": 3,
+          "olfactory": 0,
+          "visual_frac": 0.5,
+          "auditory_frac": 0.125,
+          "kinesthetic_frac": 0.375,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "14",
+          "visual": 1,
+          "auditory": 1,
+          "kinesthetic": 1,
+          "olfactory": 0,
+          "visual_frac": 0.333,
+          "auditory_frac": 0.333,
+          "kinesthetic_frac": 0.333,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "15",
+          "visual": 2,
+          "auditory": 2,
+          "kinesthetic": 0,
+          "olfactory": 0,
+          "visual_frac": 0.5,
+          "auditory_frac": 0.5,
+          "kinesthetic_frac": 0.0,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "16",
+          "visual": 5,
+          "auditory": 0,
+          "kinesthetic": 7,
+          "olfactory": 1,
+          "visual_frac": 0.385,
+          "auditory_frac": 0.0,
+          "kinesthetic_frac": 0.538,
+          "olfactory_frac": 0.077
+        },
+        {
+          "chapter": "17",
+          "visual": 1,
+          "auditory": 1,
+          "kinesthetic": 0,
+          "olfactory": 0,
+          "visual_frac": 0.5,
+          "auditory_frac": 0.5,
+          "kinesthetic_frac": 0.0,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "18",
+          "visual": 4,
+          "auditory": 2,
+          "kinesthetic": 5,
+          "olfactory": 2,
+          "visual_frac": 0.308,
+          "auditory_frac": 0.154,
+          "kinesthetic_frac": 0.385,
+          "olfactory_frac": 0.154
+        },
+        {
+          "chapter": "19",
+          "visual": 3,
+          "auditory": 2,
+          "kinesthetic": 4,
+          "olfactory": 0,
+          "visual_frac": 0.333,
+          "auditory_frac": 0.222,
+          "kinesthetic_frac": 0.444,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "20",
+          "visual": 2,
+          "auditory": 0,
+          "kinesthetic": 1,
+          "olfactory": 0,
+          "visual_frac": 0.667,
+          "auditory_frac": 0.0,
+          "kinesthetic_frac": 0.333,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "21",
+          "visual": 3,
+          "auditory": 0,
+          "kinesthetic": 1,
+          "olfactory": 0,
+          "visual_frac": 0.75,
+          "auditory_frac": 0.0,
+          "kinesthetic_frac": 0.25,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "22",
+          "visual": 2,
+          "auditory": 1,
+          "kinesthetic": 5,
+          "olfactory": 0,
+          "visual_frac": 0.25,
+          "auditory_frac": 0.125,
+          "kinesthetic_frac": 0.625,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "23",
+          "visual": 0,
+          "auditory": 0,
+          "kinesthetic": 5,
+          "olfactory": 0,
+          "visual_frac": 0.0,
+          "auditory_frac": 0.0,
+          "kinesthetic_frac": 1.0,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "24",
+          "visual": 7,
+          "auditory": 0,
+          "kinesthetic": 1,
+          "olfactory": 0,
+          "visual_frac": 0.875,
+          "auditory_frac": 0.0,
+          "kinesthetic_frac": 0.125,
+          "olfactory_frac": 0.0
+        },
+        {
+          "chapter": "25",
+          "visual": 1,
+          "auditory": 4,
+          "kinesthetic": 3,
+          "olfactory": 0,
+          "visual_frac": 0.125,
+          "auditory_frac": 0.5,
+          "kinesthetic_frac": 0.375,
+          "olfactory_frac": 0.0
+        }
+      ]
+    }
+  }
+}
