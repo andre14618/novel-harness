@@ -1,0 +1,1888 @@
+{
+  "meta": {
+    "dimension": "dramatic-question-shape",
+    "source": "novels/salvatore-icewind-dale/beats.jsonl",
+    "books": [
+      "crystal_shard",
+      "streams_of_silver",
+      "halflings_gem"
+    ],
+    "model": "deepseek-chat",
+    "totalChapters": 92,
+    "buckets": [
+      "closed",
+      "partial",
+      "deferred",
+      "replaced",
+      "compound"
+    ],
+    "perChapterInput": "first 3 beats + last 3 beats (text+summary), beats sorted by beat_idx",
+    "labelerTemperature": 0.0,
+    "generatedAt": "2026-04-30T11:55:16.754500Z",
+    "tokens": {
+      "prompt": 91000,
+      "completion": 4272,
+      "estCostUSD": 0.0139
+    },
+    "failures": []
+  },
+  "aggregate": {
+    "n": 92,
+    "distribution": {
+      "closed": {
+        "count": 17,
+        "pct": 18.5
+      },
+      "partial": {
+        "count": 50,
+        "pct": 54.3
+      },
+      "deferred": {
+        "count": 8,
+        "pct": 8.7
+      },
+      "replaced": {
+        "count": 10,
+        "pct": 10.9
+      },
+      "compound": {
+        "count": 7,
+        "pct": 7.6
+      }
+    },
+    "modal_shape": "partial",
+    "perBook_modal": {
+      "crystal_shard": "partial",
+      "streams_of_silver": "partial",
+      "halflings_gem": "partial"
+    }
+  },
+  "perBook": {
+    "crystal_shard": {
+      "n": 34,
+      "distribution": {
+        "closed": {
+          "count": 8,
+          "pct": 23.5
+        },
+        "partial": {
+          "count": 15,
+          "pct": 44.1
+        },
+        "deferred": {
+          "count": 2,
+          "pct": 5.9
+        },
+        "replaced": {
+          "count": 4,
+          "pct": 11.8
+        },
+        "compound": {
+          "count": 5,
+          "pct": 14.7
+        }
+      }
+    },
+    "streams_of_silver": {
+      "n": 29,
+      "distribution": {
+        "closed": {
+          "count": 5,
+          "pct": 17.2
+        },
+        "partial": {
+          "count": 18,
+          "pct": 62.1
+        },
+        "deferred": {
+          "count": 2,
+          "pct": 6.9
+        },
+        "replaced": {
+          "count": 3,
+          "pct": 10.3
+        },
+        "compound": {
+          "count": 1,
+          "pct": 3.4
+        }
+      }
+    },
+    "halflings_gem": {
+      "n": 29,
+      "distribution": {
+        "closed": {
+          "count": 4,
+          "pct": 13.8
+        },
+        "partial": {
+          "count": 17,
+          "pct": 58.6
+        },
+        "deferred": {
+          "count": 4,
+          "pct": 13.8
+        },
+        "replaced": {
+          "count": 3,
+          "pct": 10.3
+        },
+        "compound": {
+          "count": 1,
+          "pct": 3.4
+        }
+      }
+    }
+  },
+  "chapters": [
+    {
+      "book": "crystal_shard",
+      "chapter": 1,
+      "n_beats": 19,
+      "opening_question": "Will Akar Kessell succeed in his murder plot and escape consequences?",
+      "resolution_shape": "closed",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 992,
+        "completion_tokens": 43,
+        "total_tokens": 1035,
+        "prompt_tokens_details": {
+          "cached_tokens": 896
+        },
+        "prompt_cache_hit_tokens": 896,
+        "prompt_cache_miss_tokens": 96
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 2,
+      "n_beats": 29,
+      "opening_question": "Who are these two characters and what is the conflict on the lake?",
+      "resolution_shape": "replaced",
+      "confidence": 0.8,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1065,
+        "completion_tokens": 43,
+        "total_tokens": 1108,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 937
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 3,
+      "n_beats": 25,
+      "opening_question": "What will happen when Heafstaag's column arrives at Beorg's encampment?",
+      "resolution_shape": "closed",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 998,
+        "completion_tokens": 47,
+        "total_tokens": 1045,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 870
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 4,
+      "n_beats": 21,
+      "opening_question": "Will Kessell survive the abandonment and find a way out of the snowy bowl?",
+      "resolution_shape": "closed",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 894,
+        "completion_tokens": 45,
+        "total_tokens": 939,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 766
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 5,
+      "n_beats": 11,
+      "opening_question": "Will Bruenor ever recover Mithril Hall and restore dwarven glory?",
+      "resolution_shape": "replaced",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1064,
+        "completion_tokens": 45,
+        "total_tokens": 1109,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 936
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 6,
+      "n_beats": 16,
+      "opening_question": "Will Regis successfully deliver the drow's grim news and convince the council to form an alliance?",
+      "resolution_shape": "closed",
+      "confidence": 0.95,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1055,
+        "completion_tokens": 48,
+        "total_tokens": 1103,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 927
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 7,
+      "n_beats": 28,
+      "opening_question": "Will Drizzt successfully infiltrate the barbarian camp and gather intelligence?",
+      "resolution_shape": "partial",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1025,
+        "completion_tokens": 43,
+        "total_tokens": 1068,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 897
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 8,
+      "n_beats": 35,
+      "opening_question": "Will the barbarian surprise attack succeed, and will Bruenor overcome his hesitation to kill the young standard-bearer?",
+      "resolution_shape": "compound",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 970,
+        "completion_tokens": 53,
+        "total_tokens": 1023,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 842
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 9,
+      "n_beats": 13,
+      "opening_question": "Will Regis continue his lazy, carefree life, and what is Wulfgar's purpose in the forge?",
+      "resolution_shape": "compound",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1000,
+        "completion_tokens": 51,
+        "total_tokens": 1051,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 872
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 10,
+      "n_beats": 24,
+      "opening_question": "Will Kessell's growing army and his reckless use of Crenshinibon lead to disaster?",
+      "resolution_shape": "partial",
+      "confidence": 0.8,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 978,
+        "completion_tokens": 49,
+        "total_tokens": 1027,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 850
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 11,
+      "n_beats": 20,
+      "opening_question": "Will Bruenor successfully enchant the warhammer before the solstice full moon?",
+      "resolution_shape": "partial",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 993,
+        "completion_tokens": 44,
+        "total_tokens": 1037,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 865
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 12,
+      "n_beats": 23,
+      "opening_question": "Will Wulfgar overcome his anger and accept his place among the dwarves?",
+      "resolution_shape": "partial",
+      "confidence": 0.8,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 937,
+        "completion_tokens": 44,
+        "total_tokens": 981,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 809
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 13,
+      "n_beats": 11,
+      "opening_question": "Will Kessell's plan to send the frost giants succeed despite Errtu's warnings?",
+      "resolution_shape": "replaced",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1048,
+        "completion_tokens": 48,
+        "total_tokens": 1096,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 920
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 14,
+      "n_beats": 22,
+      "opening_question": "Will Wulfgar overcome his pride and learn from Drizzt despite his prejudice?",
+      "resolution_shape": "partial",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1071,
+        "completion_tokens": 45,
+        "total_tokens": 1116,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 943
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 15,
+      "n_beats": 25,
+      "opening_question": "Will the verbeeg's secret mission succeed, and what is Drizzt's relationship with Wulfgar?",
+      "resolution_shape": "compound",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 901,
+        "completion_tokens": 50,
+        "total_tokens": 951,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 773
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 16,
+      "n_beats": 34,
+      "opening_question": "Will Wulfgar and Drizzt successfully deliver the message to Bruenor and face the coming threat?",
+      "resolution_shape": "closed",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 986,
+        "completion_tokens": 50,
+        "total_tokens": 1036,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 858
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 17,
+      "n_beats": 29,
+      "opening_question": "Will the companions stop the giant patrol before it alerts the lair and spoils Bruenor's ambush?",
+      "resolution_shape": "closed",
+      "confidence": 0.95,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 979,
+        "completion_tokens": 51,
+        "total_tokens": 1030,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 851
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 18,
+      "n_beats": 54,
+      "opening_question": "Will Drizzt and Wulfgar succeed in their assault on the verbeeg lair?",
+      "resolution_shape": "partial",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 994,
+        "completion_tokens": 47,
+        "total_tokens": 1041,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 866
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 19,
+      "n_beats": 29,
+      "opening_question": "Will Drizzt and his companions survive the attack on the giants' lair and convince the council of the threat?",
+      "resolution_shape": "partial",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1024,
+        "completion_tokens": 52,
+        "total_tokens": 1076,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 896
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 20,
+      "n_beats": 24,
+      "opening_question": "Will the companions stay together or go their separate ways as Kessell's army approaches?",
+      "resolution_shape": "partial",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1008,
+        "completion_tokens": 46,
+        "total_tokens": 1054,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 880
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 21,
+      "n_beats": 26,
+      "opening_question": "Will Wulfgar survive and defeat the dragon Icingdeath?",
+      "resolution_shape": "partial",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1017,
+        "completion_tokens": 41,
+        "total_tokens": 1058,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 889
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 22,
+      "n_beats": 32,
+      "opening_question": "Will Wulfgar find Drizzt and escape the cavern?",
+      "resolution_shape": "replaced",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 958,
+        "completion_tokens": 42,
+        "total_tokens": 1000,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 830
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 23,
+      "n_beats": 24,
+      "opening_question": "Will the defenders of Ten-Towns survive Kessell's overwhelming army?",
+      "resolution_shape": "partial",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1031,
+        "completion_tokens": 43,
+        "total_tokens": 1074,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 903
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 24,
+      "n_beats": 37,
+      "opening_question": "Will Drizzt succeed in killing Kessell and stopping the army?",
+      "resolution_shape": "deferred",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1004,
+        "completion_tokens": 44,
+        "total_tokens": 1048,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 876
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 25,
+      "n_beats": 24,
+      "opening_question": "Will Drizzt succeed in confronting and banishing the demon Errtu?",
+      "resolution_shape": "closed",
+      "confidence": 0.95,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1082,
+        "completion_tokens": 44,
+        "total_tokens": 1126,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 954
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 26,
+      "n_beats": 7,
+      "opening_question": "Will Wulfgar successfully unite the barbarian tribes and lead them against Kessell?",
+      "resolution_shape": "closed",
+      "confidence": 0.95,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 991,
+        "completion_tokens": 46,
+        "total_tokens": 1037,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 863
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 27,
+      "n_beats": 22,
+      "opening_question": "Will the heroes find a way to counter Kessell's overwhelming force and the threat of Cryshal-Tirith?",
+      "resolution_shape": "partial",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 983,
+        "completion_tokens": 53,
+        "total_tokens": 1036,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 855
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 28,
+      "n_beats": 26,
+      "opening_question": "Will Regis survive Kessell's wrath and will the towns withstand the monster army?",
+      "resolution_shape": "partial",
+      "confidence": 0.8,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 996,
+        "completion_tokens": 46,
+        "total_tokens": 1042,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 868
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 29,
+      "n_beats": 44,
+      "opening_question": "Will the dwarves and Drizzt succeed in their battle against the monsters and Kessell?",
+      "resolution_shape": "partial",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 971,
+        "completion_tokens": 48,
+        "total_tokens": 1019,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 843
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": 30,
+      "n_beats": 79,
+      "opening_question": "Will the allied forces of Bryn Shander, the dwarves, and Drizzt survive and defeat Kessell's army?",
+      "resolution_shape": "partial",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1052,
+        "completion_tokens": 55,
+        "total_tokens": 1107,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 924
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "epilogue",
+      "n_beats": 11,
+      "opening_question": "Will Bruenor spare the young barbarian, and what is Kessell's reaction to the smoke from Ten-Towns?",
+      "resolution_shape": "compound",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 992,
+        "completion_tokens": 54,
+        "total_tokens": 1046,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 864
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "epilogue2",
+      "n_beats": 4,
+      "opening_question": "Will Wulfgar reach the barbarian tribes in time to unite them against the crystal shard's threat?",
+      "resolution_shape": "partial",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 982,
+        "completion_tokens": 50,
+        "total_tokens": 1032,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 854
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "epilogue3",
+      "n_beats": 25,
+      "opening_question": "Will the fragile alliance between Ten-Towns and the barbarians hold, and will Drizzt and Bruenor's quest for Mithril Hall proceed?",
+      "resolution_shape": "compound",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 964,
+        "completion_tokens": 60,
+        "total_tokens": 1024,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 836
+      }
+    },
+    {
+      "book": "crystal_shard",
+      "chapter": "prelude",
+      "n_beats": 5,
+      "opening_question": "Will Errtu obtain the relic Crenshinibon?",
+      "resolution_shape": "deferred",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 953,
+        "completion_tokens": 42,
+        "total_tokens": 995,
+        "prompt_tokens_details": {
+          "cached_tokens": 896
+        },
+        "prompt_cache_hit_tokens": 896,
+        "prompt_cache_miss_tokens": 57
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 1,
+      "n_beats": 25,
+      "opening_question": "Will Entreri successfully track and confront his halfling prey?",
+      "resolution_shape": "replaced",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1018,
+        "completion_tokens": 43,
+        "total_tokens": 1061,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 890
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 2,
+      "n_beats": 28,
+      "opening_question": "Will Bruenor and his companions gain entry to Luskan despite its hostility to outsiders?",
+      "resolution_shape": "deferred",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1037,
+        "completion_tokens": 47,
+        "total_tokens": 1084,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 909
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 3,
+      "n_beats": 28,
+      "opening_question": "Will the group's night at the Cutlass lead to a dangerous confrontation?",
+      "resolution_shape": "closed",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1025,
+        "completion_tokens": 43,
+        "total_tokens": 1068,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 897
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 4,
+      "n_beats": 34,
+      "opening_question": "What is the Hosttower of the Arcane and why is Catti-brie second-guessing her decision to leave Clan Battlehammer?",
+      "resolution_shape": "partial",
+      "confidence": 0.85,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1041,
+        "completion_tokens": 56,
+        "total_tokens": 1097,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 913
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 5,
+      "n_beats": 30,
+      "opening_question": "Will the companions' peaceful journey be disrupted?",
+      "resolution_shape": "deferred",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1076,
+        "completion_tokens": 38,
+        "total_tokens": 1114,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 948
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 6,
+      "n_beats": 40,
+      "opening_question": "Will Drizzt and his companions survive the barbarian attack and the ghostly threat?",
+      "resolution_shape": "partial",
+      "confidence": 0.8,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 933,
+        "completion_tokens": 46,
+        "total_tokens": 979,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 805
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 7,
+      "n_beats": 23,
+      "opening_question": "Will Entreri confront his pursuers and discover their purpose?",
+      "resolution_shape": "partial",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 921,
+        "completion_tokens": 42,
+        "total_tokens": 963,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 793
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 8,
+      "n_beats": 40,
+      "opening_question": "Will the companions successfully recover from their escape and continue their journey?",
+      "resolution_shape": "closed",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1027,
+        "completion_tokens": 41,
+        "total_tokens": 1068,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 899
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 9,
+      "n_beats": 33,
+      "opening_question": "Will the wizard's party find and defeat the companions, and what is the fate of the girl?",
+      "resolution_shape": "partial",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1029,
+        "completion_tokens": 48,
+        "total_tokens": 1077,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 901
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 10,
+      "n_beats": 36,
+      "opening_question": "Will the companions reach Nesm\u00e9 safely despite the dangers ahead?",
+      "resolution_shape": "partial",
+      "confidence": 0.85,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 841,
+        "completion_tokens": 40,
+        "total_tokens": 881,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 713
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 11,
+      "n_beats": 25,
+      "opening_question": "Will the party successfully track Bruenor's group while managing their internal deceptions?",
+      "resolution_shape": "partial",
+      "confidence": 0.85,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 913,
+        "completion_tokens": 45,
+        "total_tokens": 958,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 785
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 12,
+      "n_beats": 39,
+      "opening_question": "Will the companions survive the perilous Trollmoors and the ancient threat stirring beneath?",
+      "resolution_shape": "partial",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1041,
+        "completion_tokens": 45,
+        "total_tokens": 1086,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 913
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 13,
+      "n_beats": 25,
+      "opening_question": "Will the companions survive the Evermoors and escape the trolls?",
+      "resolution_shape": "closed",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 878,
+        "completion_tokens": 42,
+        "total_tokens": 920,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 750
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 14,
+      "n_beats": 22,
+      "opening_question": "Will the companions recover from their injuries and find the information they need about Mithral Hall?",
+      "resolution_shape": "partial",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 931,
+        "completion_tokens": 47,
+        "total_tokens": 978,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 803
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 15,
+      "n_beats": 20,
+      "opening_question": "Will the companions escape Silverymoon and avoid capture by Entreri and Sydney?",
+      "resolution_shape": "partial",
+      "confidence": 0.85,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1017,
+        "completion_tokens": 46,
+        "total_tokens": 1063,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 889
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 16,
+      "n_beats": 27,
+      "opening_question": "Will the Companions of the Hall find what they seek at the Herald's Holdfast?",
+      "resolution_shape": "closed",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 993,
+        "completion_tokens": 46,
+        "total_tokens": 1039,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 865
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 17,
+      "n_beats": 32,
+      "opening_question": "Will Bruenor's obsessive march to Mithral Hall lead the companions into danger?",
+      "resolution_shape": "partial",
+      "confidence": 0.85,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 961,
+        "completion_tokens": 46,
+        "total_tokens": 1007,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 833
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 18,
+      "n_beats": 29,
+      "opening_question": "How will the companions descend into Keeper's Dale and find a way into Mithral Hall?",
+      "resolution_shape": "partial",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1017,
+        "completion_tokens": 48,
+        "total_tokens": 1065,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 889
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 19,
+      "n_beats": 43,
+      "opening_question": "Will the party successfully navigate the dangers of Mithral Hall and find a way out?",
+      "resolution_shape": "partial",
+      "confidence": 0.85,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 946,
+        "completion_tokens": 46,
+        "total_tokens": 992,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 818
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 20,
+      "n_beats": 37,
+      "opening_question": "Will the survivors find any sign of Drizzt or escape the dangers of the caverns?",
+      "resolution_shape": "replaced",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 969,
+        "completion_tokens": 48,
+        "total_tokens": 1017,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 841
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 21,
+      "n_beats": 31,
+      "opening_question": "Will Drizzt and Entreri survive their fall and find a way out of the mine?",
+      "resolution_shape": "partial",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1026,
+        "completion_tokens": 48,
+        "total_tokens": 1074,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 898
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 22,
+      "n_beats": 41,
+      "opening_question": "Will the companions survive their assault on the shadow dragon's lair and reclaim Mithral Hall?",
+      "resolution_shape": "partial",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1160,
+        "completion_tokens": 48,
+        "total_tokens": 1208,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 1032
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 23,
+      "n_beats": 39,
+      "opening_question": "Will Drizzt and Entreri survive the dragon Shimmergloom's attack?",
+      "resolution_shape": "partial",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 999,
+        "completion_tokens": 47,
+        "total_tokens": 1046,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 871
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": 24,
+      "n_beats": 13,
+      "opening_question": "Will Drizzt and his companions escape Mithral Hall and rescue Regis from Entreri?",
+      "resolution_shape": "partial",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1028,
+        "completion_tokens": 49,
+        "total_tokens": 1077,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 900
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "epilogue",
+      "n_beats": 14,
+      "opening_question": "Will the companions find peace and rest after their trials, or will other roads pull them apart?",
+      "resolution_shape": "replaced",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 936,
+        "completion_tokens": 48,
+        "total_tokens": 984,
+        "prompt_tokens_details": {
+          "cached_tokens": 896
+        },
+        "prompt_cache_hit_tokens": 896,
+        "prompt_cache_miss_tokens": 40
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "part1",
+      "n_beats": 6,
+      "opening_question": "Why are dragons necessary and what do they represent?",
+      "resolution_shape": "partial",
+      "confidence": 0.8,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1069,
+        "completion_tokens": 38,
+        "total_tokens": 1107,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 941
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "part2",
+      "n_beats": 7,
+      "opening_question": "Is Bruenor's desire to reclaim Mithral Hall driven by noble purpose or dangerous nostalgia?",
+      "resolution_shape": "partial",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 974,
+        "completion_tokens": 48,
+        "total_tokens": 1022,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 846
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "part3",
+      "n_beats": 8,
+      "opening_question": "Can the Gondsman's scientific approach truly bridge the deep differences between drow and surface elves?",
+      "resolution_shape": "closed",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1037,
+        "completion_tokens": 48,
+        "total_tokens": 1085,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 909
+      }
+    },
+    {
+      "book": "streams_of_silver",
+      "chapter": "prelude",
+      "n_beats": 11,
+      "opening_question": "What is the nature of the threat posed by Shimmergloom, and what drives the companions on their silent journey?",
+      "resolution_shape": "compound",
+      "confidence": 0.8,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 983,
+        "completion_tokens": 53,
+        "total_tokens": 1036,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 855
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 1,
+      "n_beats": 35,
+      "opening_question": "Will the companions trust Harkle's directions and find Malchor's tower before the assassin catches up?",
+      "resolution_shape": "partial",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 974,
+        "completion_tokens": 49,
+        "total_tokens": 1023,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 846
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 2,
+      "n_beats": 22,
+      "opening_question": "Will Entreri master the ruby pendant's magic, and what is Regis feeling about his past?",
+      "resolution_shape": "replaced",
+      "confidence": 0.8,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 888,
+        "completion_tokens": 50,
+        "total_tokens": 938,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 760
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 3,
+      "n_beats": 31,
+      "opening_question": "Will Drizzt and Wulfgar successfully navigate the superstitious villagers and reach their destination without incident?",
+      "resolution_shape": "partial",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1003,
+        "completion_tokens": 50,
+        "total_tokens": 1053,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 875
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 4,
+      "n_beats": 47,
+      "opening_question": "Will Drizzt and Wulfgar successfully rescue Regis from Waterdeep?",
+      "resolution_shape": "partial",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1003,
+        "completion_tokens": 44,
+        "total_tokens": 1047,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 875
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 5,
+      "n_beats": 39,
+      "opening_question": "Will the disguised dwarf (Bruenor) escape the duergar stronghold?",
+      "resolution_shape": "partial",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 894,
+        "completion_tokens": 46,
+        "total_tokens": 940,
+        "prompt_tokens_details": {
+          "cached_tokens": 768
+        },
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 126
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 6,
+      "n_beats": 40,
+      "opening_question": "Will Entreri and Regis escape the angry mob of sailors?",
+      "resolution_shape": "closed",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 917,
+        "completion_tokens": 42,
+        "total_tokens": 959,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 789
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 7,
+      "n_beats": 28,
+      "opening_question": "What will happen to Bruenor and his companions now that the wind has stopped and they are in a magical shelter with a mysterious silver-haired woman?",
+      "resolution_shape": "replaced",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 925,
+        "completion_tokens": 59,
+        "total_tokens": 984,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 797
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 8,
+      "n_beats": 22,
+      "opening_question": "What is Pasha Pook so anxious about?",
+      "resolution_shape": "partial",
+      "confidence": 0.85,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1007,
+        "completion_tokens": 38,
+        "total_tokens": 1045,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 879
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 9,
+      "n_beats": 20,
+      "opening_question": "Will Drizzt and Wulfgar escape Baldur's Gate and avoid the threats pursuing them?",
+      "resolution_shape": "deferred",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 903,
+        "completion_tokens": 49,
+        "total_tokens": 952,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 775
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 10,
+      "n_beats": 34,
+      "opening_question": "Will Bruenor find and save his friends?",
+      "resolution_shape": "partial",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1000,
+        "completion_tokens": 38,
+        "total_tokens": 1038,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 872
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 11,
+      "n_beats": 53,
+      "opening_question": "Will the Sea Sprite successfully navigate the pirate-infested waters and reach its destination safely?",
+      "resolution_shape": "deferred",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 981,
+        "completion_tokens": 47,
+        "total_tokens": 1028,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 853
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 12,
+      "n_beats": 27,
+      "opening_question": "Will the companions be safe and reunited after the battle?",
+      "resolution_shape": "closed",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 980,
+        "completion_tokens": 39,
+        "total_tokens": 1019,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 852
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 13,
+      "n_beats": 30,
+      "opening_question": "What is the situation in Calimport and what awaits Entreri upon his return to Pook's guild?",
+      "resolution_shape": "partial",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 892,
+        "completion_tokens": 50,
+        "total_tokens": 942,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 764
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 14,
+      "n_beats": 32,
+      "opening_question": "Will the companions safely navigate the dangers of Calimshan and reach their destination?",
+      "resolution_shape": "partial",
+      "confidence": 0.8,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 959,
+        "completion_tokens": 44,
+        "total_tokens": 1003,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 831
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 15,
+      "n_beats": 24,
+      "opening_question": "Will Regis succumb to Pook's coercion, and will the companions survive the desert to rescue him?",
+      "resolution_shape": "partial",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1048,
+        "completion_tokens": 49,
+        "total_tokens": 1097,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 920
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 16,
+      "n_beats": 34,
+      "opening_question": "Will the companions find Pasha Pook's guildhouse and confront him?",
+      "resolution_shape": "deferred",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1010,
+        "completion_tokens": 44,
+        "total_tokens": 1054,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 882
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 17,
+      "n_beats": 19,
+      "opening_question": "Will Pook discover LaValle's betrayal and regain control over the halfling and the panther?",
+      "resolution_shape": "partial",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 969,
+        "completion_tokens": 50,
+        "total_tokens": 1019,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 841
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 18,
+      "n_beats": 42,
+      "opening_question": "Will the companions successfully infiltrate the wererat lair without being detected?",
+      "resolution_shape": "partial",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 931,
+        "completion_tokens": 43,
+        "total_tokens": 974,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 803
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 19,
+      "n_beats": 35,
+      "opening_question": "Will Wulfgar and his companions survive the traps and assassins in the guild's lair?",
+      "resolution_shape": "deferred",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 894,
+        "completion_tokens": 49,
+        "total_tokens": 943,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 766
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 20,
+      "n_beats": 27,
+      "opening_question": "Will Drizzt and his friends survive their confrontation with Entreri and the thieves' guild?",
+      "resolution_shape": "partial",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 989,
+        "completion_tokens": 48,
+        "total_tokens": 1037,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 861
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 21,
+      "n_beats": 27,
+      "opening_question": "Will the companions survive the wererat ambush and reach their goal?",
+      "resolution_shape": "compound",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1060,
+        "completion_tokens": 42,
+        "total_tokens": 1102,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 932
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 22,
+      "n_beats": 36,
+      "opening_question": "Will the friends survive the evil plane and find a way back?",
+      "resolution_shape": "partial",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 912,
+        "completion_tokens": 41,
+        "total_tokens": 953,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 784
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 23,
+      "n_beats": 24,
+      "opening_question": "Will the companions rescue Catti-brie and escape the demonic plane?",
+      "resolution_shape": "partial",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1048,
+        "completion_tokens": 43,
+        "total_tokens": 1091,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 920
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 24,
+      "n_beats": 27,
+      "opening_question": "Will the companions survive the assault on Pook's lair and rescue Catti-brie?",
+      "resolution_shape": "closed",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1046,
+        "completion_tokens": 47,
+        "total_tokens": 1093,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 918
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": 25,
+      "n_beats": 24,
+      "opening_question": "Will the companions be able to leave Calimport safely and resolve the tensions among them?",
+      "resolution_shape": "closed",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1040,
+        "completion_tokens": 45,
+        "total_tokens": 1085,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 912
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "epilogue",
+      "n_beats": 11,
+      "opening_question": "Will Wulfgar and Drizzt find peace and purpose on the sea after their adventures?",
+      "resolution_shape": "replaced",
+      "confidence": 0.9,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 971,
+        "completion_tokens": 48,
+        "total_tokens": 1019,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 843
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "epilogue2",
+      "n_beats": 10,
+      "opening_question": "What is Entreri planning to do with the ruby pendant and the wizard LaValle?",
+      "resolution_shape": "partial",
+      "confidence": 0.8,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 966,
+        "completion_tokens": 47,
+        "total_tokens": 1013,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 838
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "epilogue3",
+      "n_beats": 17,
+      "opening_question": "Will the companions find peace and acceptance after their journey?",
+      "resolution_shape": "partial",
+      "confidence": 0.8,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 1013,
+        "completion_tokens": 39,
+        "total_tokens": 1052,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 885
+      }
+    },
+    {
+      "book": "halflings_gem",
+      "chapter": "prelude",
+      "n_beats": 9,
+      "opening_question": "Will Harkle and Catti-brie reach Mithril Hall and reclaim it for Clan Battlehammer?",
+      "resolution_shape": "partial",
+      "confidence": 0.8,
+      "raw": null,
+      "usage": {
+        "prompt_tokens": 993,
+        "completion_tokens": 50,
+        "total_tokens": 1043,
+        "prompt_tokens_details": {
+          "cached_tokens": 128
+        },
+        "prompt_cache_hit_tokens": 128,
+        "prompt_cache_miss_tokens": 865
+      }
+    }
+  ],
+  "directional_assessment": "Across all 3 IWD books, partial-resolution is the dominant chapter dramatic-question shape (54.3% aggregate; 44.1% / 62.1% / 58.6% per book \u2014 modal in all three). Closed (full chapter resolution) is a strong but minority second at 18.5% aggregate. Deferred (cliffhanger on the SAME opening question) is rare (8.7%); replaced (opening question was a feint) and compound (multiple co-equal questions) sit near 10% and 7.6%. Cross-book ordering is stable: partial is modal in every book; closed is #2 in two of three books (halflings_gem swaps deferred for compound at #2-tier). Confidence floor 0.80 (median 0.90), n=92 (34 / 29 / 29). Directional verdict: the published Salvatore corpus is dominated by chapters that pose a focused dramatic question and resolve PART of it within the chapter while explicitly carrying a thread forward \u2014 a planner prior of \"end most chapters with a partial resolution\" matches the corpus, with closed and replaced as legitimate but minority shapes. The harness chapter-outline prompt (currently \"end each non-final chapter purpose with a forward hook\") under-specifies SHAPE: ~55% of the corpus partial-resolves, only ~9% truly defers (cliffhanger). Recommended target prompt addition: instruct the planner that ~55% of non-final chapters should be \"partial-resolution\" (the chapter answers part of the dramatic question and carries a thread forward), ~20% \"closed\" (full resolution within chapter), and the remaining ~25% spread across deferred/replaced/compound \u2014 with explicit guidance that compound and replaced are deliberate structural choices, not accidents."
+}
