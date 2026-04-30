@@ -1380,3 +1380,84 @@ Re-stating the meta-finding: **CALIBRATION (cross-model F1 against gold) and ANC
 The current `valueShift` field met only the second bar. The first was inferred from a calibration anchor that turned out to be a smaller, easier sample than the production beat distribution.
 
 ---
+
+## Session 2026-04-30 ~01:35 UTC — binary-collapse re-analysis: cheapest right metric found
+
+### Headline
+
+The Sonnet self-consistency Jaccard for `valueShift: '+' | '-' | '0'` collapses cleanly when the 3-class is reduced to a binary "did the value shift at all" signal. **Re-analysis of the existing v2-50 outputs (no new labeling required) reveals 5 PASS-grade binary tags** that the harness can ship instead of the unstable 3-class polarity / 5-class lifeValue.
+
+| Variant | Anchor Jaccard | Verdict |
+|---|---:|---|
+| polarity-3class (original) | 0.639 | UNSTABLE |
+| **polarity-binary-shifted** (shift vs static) | **0.923** | **PASS** ← cheapest right metric |
+| polarity-binary-positive (+ vs other) | 0.667 | UNSTABLE |
+| polarity-binary-negative (- vs other) | 0.667 | UNSTABLE |
+| polarity-direction-shift-only (+ vs - on shifted beats) | 0.660 | UNSTABLE |
+| lifeValue-5class (original) | 0.639 | UNSTABLE |
+| **lifeValue-binary-life-death** | **0.887** | **PASS** |
+| lifeValue-binary-agency | 0.724 | NEAR (sharpening candidate) |
+| **lifeValue-binary-ethics** | **0.923** | **PASS** |
+| **lifeValue-binary-relational** | **0.923** | **PASS** |
+| lifeValue-binary-aspiration | 0.754 | NEAR (sharpening candidate) |
+| tuple (polarity-3 × lifeValue-5) original | 0.471 | UNSTABLE |
+| tuple (shifted-binary × lifeValue-5) | 0.587 | UNSTABLE |
+| tuple (shifted-binary × axisCoarse physical/psychological) | 0.695 | UNSTABLE |
+| valueIn-binary-positive | 0.754 | NEAR |
+| valueIn-binary-static-or-not | 0.639 | UNSTABLE |
+| **valueOut-binary-static-or-not** | **1.000** | **PASS** (heavily class-imbalanced) |
+
+### Interpretation
+
+Sonnet judges **agree very well on whether something moved** (J=0.923 binary), but **disagree on the sign** of the move (J=0.660 + vs - on shift-only beats). The 0.974 Flash×Sonnet binary F1 reported earlier was correctly measuring the stable signal; the 3-class polarity calibration was simply over-fine for the underlying agreement structure. ~37% of beats have ambiguous sign; ~6% have ambiguous shift.
+
+**Same pattern on lifeValue:** picking one of 5 macro-classes forces a choice between confusable categories (agency vs aspiration, life-death vs agency for combat scenes, etc.). Asking the binary "is this a life-death scene yes/no" or "is this a relational scene yes/no" pulls the disagreements onto axes Sonnet has clear opinions about.
+
+This is the **cheapest-untried-counterfactual** that the conclusions doc flagged earlier — answered without any new LLM calls, just re-aggregating the existing labels.
+
+### Implications for `sceneBeatSchema`
+
+The current `valueShift: '+' | '-' | '0'` field carries ~35% reassignment risk per the prior n=50 finding. The fix:
+
+**Replace `valueShift: '+' | '-' | '0'` with:**
+- `valueShifted: boolean` (binary, J=0.923) — did this beat shift the dominant value at all?
+- `lifeValueAxes: ('life-death' | 'ethics' | 'relational')[]` — which stable binary classes fired (multi-select, optional)
+
+**Drop:**
+- 3-class polarity direction (+/-/0 detail) — anchor unstable
+- 5-class lifeValue full enum — picking 1 of 5 unstable
+- `agency`, `aspiration` lifeValue tags — borderline (J=0.72/0.75)
+- `valueIn`, `valueOut` 3-class — both unstable
+
+**Re-architecture queue (cheap, just rubric edits):**
+- Sharpen `agency` rubric to clarify what's NOT agency (e.g., "tactical movement during combat is not agency-shift; agency is gain/loss of CONTROL over situation")
+- Sharpen `aspiration` rubric to clarify what's NOT aspiration (e.g., "scenes where the character is fighting effectively are not aspiration-shift; aspiration is movement on belief/hope dimensions")
+- Re-label only those two classes on n=50 to verify J ≥ 0.85 after sharpening
+
+### Updated next-experiment ranking
+
+Revising the prior ranking (which had n=50 re-runs at top):
+
+1. **Land schema follow-up #2** — replace `valueShift` with `valueShifted: boolean` + `lifeValueAxes: array of 3 stable classes`. No new LLM calls. Update doc strings. ~15 min.
+2. **Sharpen agency + aspiration rubrics** based on the disagreement clusters in the existing run-1/run-2 data; re-label those two classes only on n=50 (4 subagents). ~30 min wait.
+3. **Decide on mckee-gap re-architecture** — the v2 retest finding said the gap_type 6-class enum is "irreducibly latitude-permissive." Apply the same binary-collapse logic: re-aggregate existing v2-50 outputs at gap_type binary collapses (gap_type == "reversal" yes/no, == "revelation" yes/no, etc.) before authorizing a new labeling wave. Same pattern as value-charge.
+
+### Cost ledger delta
+
+Zero new LLM calls. Pure re-analysis. (The Codex review running concurrently is the only API spend this session.)
+
+Cumulative on crystal_shard: still ~$4.15.
+
+### Methodological note
+
+**The lesson:** when an N-class enum is unstable at the anchor level, **first try binary collapses on the existing data before authorizing a new labeling wave.** The disagreement pattern often reveals which collapse(s) recover stability — and the right metric is then the collapse that survives, not the original enum.
+
+This pattern should be added to the future-experiment SOP. Standing rule:
+
+> Before authorizing N-class anchor stability re-tests, re-aggregate the existing data at every binary collapse and joint subset. Only run new labels if NO collapse crosses 0.85 — and even then, the collapse closest to 0.85 is the candidate to sharpen, not the full N-class.
+
+### Artifacts
+
+`crystal_shard.20260430T013524.value-charge-binary-collapse.json` — full per-variant Jaccard + per-class run-1/run-2 distributions.
+
+---

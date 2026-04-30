@@ -1,0 +1,448 @@
+{
+  "computedAt": "2026-04-30T01:35:24.247Z",
+  "n_shared": 50,
+  "results": [
+    {
+      "label": "polarity-3class (original)",
+      "n": 50,
+      "agree": 39,
+      "agreeRate": 0.78,
+      "jaccard": 0.639344262295082,
+      "classes": {
+        "0": {
+          "run1": 6,
+          "run2": 4
+        },
+        "+": {
+          "run1": 29,
+          "run2": 27
+        },
+        "-": {
+          "run1": 15,
+          "run2": 19
+        }
+      },
+      "verdict": "UNSTABLE"
+    },
+    {
+      "label": "polarity-binary-shifted",
+      "n": 50,
+      "agree": 48,
+      "agreeRate": 0.96,
+      "jaccard": 0.9230769230769231,
+      "classes": {
+        "shifted": {
+          "run1": 44,
+          "run2": 46
+        },
+        "static": {
+          "run1": 6,
+          "run2": 4
+        }
+      },
+      "verdict": "PASS"
+    },
+    {
+      "label": "polarity-binary-positive",
+      "n": 50,
+      "agree": 40,
+      "agreeRate": 0.8,
+      "jaccard": 0.6666666666666666,
+      "classes": {
+        "positive": {
+          "run1": 29,
+          "run2": 27
+        },
+        "non-positive": {
+          "run1": 21,
+          "run2": 23
+        }
+      },
+      "verdict": "UNSTABLE"
+    },
+    {
+      "label": "polarity-binary-negative",
+      "n": 50,
+      "agree": 40,
+      "agreeRate": 0.8,
+      "jaccard": 0.6666666666666666,
+      "classes": {
+        "non-negative": {
+          "run1": 35,
+          "run2": 31
+        },
+        "negative": {
+          "run1": 15,
+          "run2": 19
+        }
+      },
+      "verdict": "UNSTABLE"
+    },
+    {
+      "label": "polarity-direction-shift-only",
+      "n": 44,
+      "agree": 35,
+      "agreeRate": 0.7954545454545454,
+      "jaccard": 0.660377358490566,
+      "classes": {
+        "+": {
+          "run1": 29,
+          "run2": 26
+        },
+        "-": {
+          "run1": 15,
+          "run2": 18
+        }
+      },
+      "verdict": "UNSTABLE"
+    },
+    {
+      "label": "lifeValue-5class (original)",
+      "n": 50,
+      "agree": 39,
+      "agreeRate": 0.78,
+      "jaccard": 0.639344262295082,
+      "classes": {
+        "aspiration": {
+          "run1": 12,
+          "run2": 17
+        },
+        "relational": {
+          "run1": 8,
+          "run2": 8
+        },
+        "life-death": {
+          "run1": 14,
+          "run2": 17
+        },
+        "agency": {
+          "run1": 13,
+          "run2": 7
+        },
+        "ethics": {
+          "run1": 3,
+          "run2": 1
+        }
+      },
+      "verdict": "UNSTABLE"
+    },
+    {
+      "label": "lifeValue-binary-life-death",
+      "n": 50,
+      "agree": 47,
+      "agreeRate": 0.94,
+      "jaccard": 0.8867924528301887,
+      "classes": {
+        "not-life-death": {
+          "run1": 36,
+          "run2": 33
+        },
+        "life-death": {
+          "run1": 14,
+          "run2": 17
+        }
+      },
+      "verdict": "PASS"
+    },
+    {
+      "label": "lifeValue-binary-agency",
+      "n": 50,
+      "agree": 42,
+      "agreeRate": 0.84,
+      "jaccard": 0.7241379310344828,
+      "classes": {
+        "not-agency": {
+          "run1": 37,
+          "run2": 43
+        },
+        "agency": {
+          "run1": 13,
+          "run2": 7
+        }
+      },
+      "verdict": "BORDERLINE"
+    },
+    {
+      "label": "lifeValue-binary-ethics",
+      "n": 50,
+      "agree": 48,
+      "agreeRate": 0.96,
+      "jaccard": 0.9230769230769231,
+      "classes": {
+        "not-ethics": {
+          "run1": 47,
+          "run2": 49
+        },
+        "ethics": {
+          "run1": 3,
+          "run2": 1
+        }
+      },
+      "verdict": "PASS"
+    },
+    {
+      "label": "lifeValue-binary-relational",
+      "n": 50,
+      "agree": 48,
+      "agreeRate": 0.96,
+      "jaccard": 0.9230769230769231,
+      "classes": {
+        "not-relational": {
+          "run1": 42,
+          "run2": 42
+        },
+        "relational": {
+          "run1": 8,
+          "run2": 8
+        }
+      },
+      "verdict": "PASS"
+    },
+    {
+      "label": "lifeValue-binary-aspiration",
+      "n": 50,
+      "agree": 43,
+      "agreeRate": 0.86,
+      "jaccard": 0.7543859649122807,
+      "classes": {
+        "aspiration": {
+          "run1": 12,
+          "run2": 17
+        },
+        "not-aspiration": {
+          "run1": 38,
+          "run2": 33
+        }
+      },
+      "verdict": "BORDERLINE"
+    },
+    {
+      "label": "tuple-polarity3-lifeValue5 (orig)",
+      "n": 50,
+      "agree": 32,
+      "agreeRate": 0.64,
+      "jaccard": 0.47058823529411764,
+      "classes": {
+        "+|aspiration": {
+          "run1": 7,
+          "run2": 11
+        },
+        "+|relational": {
+          "run1": 5,
+          "run2": 6
+        },
+        "-|life-death": {
+          "run1": 7,
+          "run2": 14
+        },
+        "+|agency": {
+          "run1": 10,
+          "run2": 7
+        },
+        "+|life-death": {
+          "run1": 6,
+          "run2": 3
+        },
+        "-|aspiration": {
+          "run1": 4,
+          "run2": 4
+        },
+        "0|agency": {
+          "run1": 2,
+          "run2": 0
+        },
+        "0|aspiration": {
+          "run1": 1,
+          "run2": 2
+        },
+        "0|relational": {
+          "run1": 2,
+          "run2": 2
+        },
+        "-|ethics": {
+          "run1": 2,
+          "run2": 1
+        },
+        "0|life-death": {
+          "run1": 1,
+          "run2": 0
+        },
+        "-|relational": {
+          "run1": 1,
+          "run2": 0
+        },
+        "-|agency": {
+          "run1": 1,
+          "run2": 0
+        },
+        "+|ethics": {
+          "run1": 1,
+          "run2": 0
+        }
+      },
+      "verdict": "UNSTABLE"
+    },
+    {
+      "label": "tuple-shifted-lifeValue5",
+      "n": 50,
+      "agree": 37,
+      "agreeRate": 0.74,
+      "jaccard": 0.5873015873015873,
+      "classes": {
+        "shifted|aspiration": {
+          "run1": 11,
+          "run2": 15
+        },
+        "shifted|relational": {
+          "run1": 6,
+          "run2": 6
+        },
+        "shifted|life-death": {
+          "run1": 13,
+          "run2": 17
+        },
+        "shifted|agency": {
+          "run1": 11,
+          "run2": 7
+        },
+        "static|agency": {
+          "run1": 2,
+          "run2": 0
+        },
+        "static|aspiration": {
+          "run1": 1,
+          "run2": 2
+        },
+        "static|relational": {
+          "run1": 2,
+          "run2": 2
+        },
+        "shifted|ethics": {
+          "run1": 3,
+          "run2": 1
+        },
+        "static|life-death": {
+          "run1": 1,
+          "run2": 0
+        }
+      },
+      "verdict": "UNSTABLE"
+    },
+    {
+      "label": "tuple-shifted-axisCoarse",
+      "n": 50,
+      "agree": 41,
+      "agreeRate": 0.82,
+      "jaccard": 0.6949152542372882,
+      "classes": {
+        "shifted|psychological": {
+          "run1": 20,
+          "run2": 22
+        },
+        "shifted|physical": {
+          "run1": 24,
+          "run2": 24
+        },
+        "static|physical": {
+          "run1": 3,
+          "run2": 0
+        },
+        "static|psychological": {
+          "run1": 3,
+          "run2": 4
+        }
+      },
+      "verdict": "UNSTABLE"
+    },
+    {
+      "label": "valueIn-binary-positive",
+      "n": 50,
+      "agree": 43,
+      "agreeRate": 0.86,
+      "jaccard": 0.7543859649122807,
+      "classes": {
+        "non-positive": {
+          "run1": 40,
+          "run2": 35
+        },
+        "positive": {
+          "run1": 10,
+          "run2": 15
+        }
+      },
+      "verdict": "BORDERLINE"
+    },
+    {
+      "label": "valueIn-binary-negative",
+      "n": 50,
+      "agree": 40,
+      "agreeRate": 0.8,
+      "jaccard": 0.6666666666666666,
+      "classes": {
+        "non-negative": {
+          "run1": 31,
+          "run2": 39
+        },
+        "negative": {
+          "run1": 19,
+          "run2": 11
+        }
+      },
+      "verdict": "UNSTABLE"
+    },
+    {
+      "label": "valueIn-binary-static-or-not",
+      "n": 50,
+      "agree": 39,
+      "agreeRate": 0.78,
+      "jaccard": 0.639344262295082,
+      "classes": {
+        "static": {
+          "run1": 21,
+          "run2": 24
+        },
+        "valenced": {
+          "run1": 29,
+          "run2": 26
+        }
+      },
+      "verdict": "UNSTABLE"
+    },
+    {
+      "label": "valueOut-binary-positive",
+      "n": 50,
+      "agree": 41,
+      "agreeRate": 0.82,
+      "jaccard": 0.6949152542372882,
+      "classes": {
+        "positive": {
+          "run1": 32,
+          "run2": 29
+        },
+        "non-positive": {
+          "run1": 18,
+          "run2": 21
+        }
+      },
+      "verdict": "UNSTABLE"
+    },
+    {
+      "label": "valueOut-binary-static-or-not",
+      "n": 50,
+      "agree": 50,
+      "agreeRate": 1,
+      "jaccard": 1,
+      "classes": {
+        "valenced": {
+          "run1": 48,
+          "run2": 48
+        },
+        "static": {
+          "run1": 2,
+          "run2": 2
+        }
+      },
+      "verdict": "PASS"
+    }
+  ]
+}
