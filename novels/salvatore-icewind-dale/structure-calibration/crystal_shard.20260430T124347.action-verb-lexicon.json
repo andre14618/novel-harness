@@ -1,0 +1,1018 @@
+{
+  "pattern": "34b",
+  "name": "Top-50 action verbs per book — Salvatore action verb signature",
+  "computedAt": "2026-04-30T12:43:47.658Z",
+  "corpus": "salvatore-icewind-dale",
+  "books": [
+    "crystal_shard",
+    "streams_of_silver",
+    "halflings_gem"
+  ],
+  "rationale": "Identifies the recurring action-verb lexicon Salvatore uses inside action beats. Verbs appearing in all 3 books' top-50 form the 'Salvatore action signature' — a candidate writer-prompt few-shot lexicon for fantasy combat scenes. Pure compute; complements the LoRA voice fine-tune by giving the prompt-level layer a directional verb prior.",
+  "methodology": {
+    "scope": "Beats with kind='action' only.",
+    "tokenize": "Lowercase whitespace-split, surrounding punctuation stripped.",
+    "lemmatize": "Curated irregular-verb table covers ~120 high-frequency motion/combat verbs; -ing/-ed morphology rules with double-consonant + -ied→-y handling; stoplist removes copulas/auxiliaries/extremely-high-frequency reporting verbs (say/think/know/feel/etc.). Bare forms and -s 3rd-person are not counted (too ambiguous noun/verb without POS-tagger).",
+    "caveats": "Conservative recall — bare-form verbs are skipped to avoid noun contamination. Counts therefore underestimate; rank-order across the recovered subset is the trustworthy signal."
+  },
+  "per_book_action_word_total": {
+    "crystal_shard": 38286,
+    "streams_of_silver": 36644,
+    "halflings_gem": 35125
+  },
+  "top_50_per_book": {
+    "crystal_shard": [
+      {
+        "verb": "begin",
+        "count": 50,
+        "per_1000_action_words": 1.31
+      },
+      {
+        "verb": "move",
+        "count": 48,
+        "per_1000_action_words": 1.25
+      },
+      {
+        "verb": "fall",
+        "count": 42,
+        "per_1000_action_words": 1.1
+      },
+      {
+        "verb": "turn",
+        "count": 39,
+        "per_1000_action_words": 1.02
+      },
+      {
+        "verb": "fight",
+        "count": 39,
+        "per_1000_action_words": 1.02
+      },
+      {
+        "verb": "look",
+        "count": 37,
+        "per_1000_action_words": 0.97
+      },
+      {
+        "verb": "grind",
+        "count": 35,
+        "per_1000_action_words": 0.91
+      },
+      {
+        "verb": "hold",
+        "count": 32,
+        "per_1000_action_words": 0.84
+      },
+      {
+        "verb": "remain",
+        "count": 32,
+        "per_1000_action_words": 0.84
+      },
+      {
+        "verb": "charge",
+        "count": 31,
+        "per_1000_action_words": 0.81
+      },
+      {
+        "verb": "pull",
+        "count": 30,
+        "per_1000_action_words": 0.78
+      },
+      {
+        "verb": "start",
+        "count": 29,
+        "per_1000_action_words": 0.76
+      },
+      {
+        "verb": "cut",
+        "count": 29,
+        "per_1000_action_words": 0.76
+      },
+      {
+        "verb": "manage",
+        "count": 28,
+        "per_1000_action_words": 0.73
+      },
+      {
+        "verb": "drop",
+        "count": 28,
+        "per_1000_action_words": 0.73
+      },
+      {
+        "verb": "run",
+        "count": 28,
+        "per_1000_action_words": 0.73
+      },
+      {
+        "verb": "wait",
+        "count": 27,
+        "per_1000_action_words": 0.71
+      },
+      {
+        "verb": "put",
+        "count": 27,
+        "per_1000_action_words": 0.71
+      },
+      {
+        "verb": "set",
+        "count": 26,
+        "per_1000_action_words": 0.68
+      },
+      {
+        "verb": "stand",
+        "count": 25,
+        "per_1000_action_words": 0.65
+      },
+      {
+        "verb": "break",
+        "count": 25,
+        "per_1000_action_words": 0.65
+      },
+      {
+        "verb": "return",
+        "count": 24,
+        "per_1000_action_words": 0.63
+      },
+      {
+        "verb": "continue",
+        "count": 23,
+        "per_1000_action_words": 0.6
+      },
+      {
+        "verb": "pass",
+        "count": 23,
+        "per_1000_action_words": 0.6
+      },
+      {
+        "verb": "spin",
+        "count": 23,
+        "per_1000_action_words": 0.6
+      },
+      {
+        "verb": "slip",
+        "count": 22,
+        "per_1000_action_words": 0.57
+      },
+      {
+        "verb": "catch",
+        "count": 22,
+        "per_1000_action_words": 0.57
+      },
+      {
+        "verb": "watch",
+        "count": 21,
+        "per_1000_action_words": 0.55
+      },
+      {
+        "verb": "rush",
+        "count": 21,
+        "per_1000_action_words": 0.55
+      },
+      {
+        "verb": "throw",
+        "count": 20,
+        "per_1000_action_words": 0.52
+      },
+      {
+        "verb": "reach",
+        "count": 20,
+        "per_1000_action_words": 0.52
+      },
+      {
+        "verb": "hope",
+        "count": 20,
+        "per_1000_action_words": 0.52
+      },
+      {
+        "verb": "kill",
+        "count": 20,
+        "per_1000_action_words": 0.52
+      },
+      {
+        "verb": "follow",
+        "count": 19,
+        "per_1000_action_words": 0.5
+      },
+      {
+        "verb": "send",
+        "count": 19,
+        "per_1000_action_words": 0.5
+      },
+      {
+        "verb": "realize",
+        "count": 19,
+        "per_1000_action_words": 0.5
+      },
+      {
+        "verb": "lift",
+        "count": 19,
+        "per_1000_action_words": 0.5
+      },
+      {
+        "verb": "land",
+        "count": 19,
+        "per_1000_action_words": 0.5
+      },
+      {
+        "verb": "drive",
+        "count": 19,
+        "per_1000_action_words": 0.5
+      },
+      {
+        "verb": "keep",
+        "count": 18,
+        "per_1000_action_words": 0.47
+      },
+      {
+        "verb": "appear",
+        "count": 18,
+        "per_1000_action_words": 0.47
+      },
+      {
+        "verb": "cry",
+        "count": 18,
+        "per_1000_action_words": 0.47
+      },
+      {
+        "verb": "strike",
+        "count": 18,
+        "per_1000_action_words": 0.47
+      },
+      {
+        "verb": "lead",
+        "count": 18,
+        "per_1000_action_words": 0.47
+      },
+      {
+        "verb": "sit",
+        "count": 17,
+        "per_1000_action_words": 0.44
+      },
+      {
+        "verb": "leap",
+        "count": 17,
+        "per_1000_action_words": 0.44
+      },
+      {
+        "verb": "approach",
+        "count": 16,
+        "per_1000_action_words": 0.42
+      },
+      {
+        "verb": "draw",
+        "count": 16,
+        "per_1000_action_words": 0.42
+      },
+      {
+        "verb": "walk",
+        "count": 16,
+        "per_1000_action_words": 0.42
+      },
+      {
+        "verb": "slam",
+        "count": 16,
+        "per_1000_action_words": 0.42
+      }
+    ],
+    "streams_of_silver": [
+      {
+        "verb": "move",
+        "count": 71,
+        "per_1000_action_words": 1.94
+      },
+      {
+        "verb": "look",
+        "count": 51,
+        "per_1000_action_words": 1.39
+      },
+      {
+        "verb": "turn",
+        "count": 49,
+        "per_1000_action_words": 1.34
+      },
+      {
+        "verb": "fall",
+        "count": 43,
+        "per_1000_action_words": 1.17
+      },
+      {
+        "verb": "start",
+        "count": 40,
+        "per_1000_action_words": 1.09
+      },
+      {
+        "verb": "stand",
+        "count": 39,
+        "per_1000_action_words": 1.06
+      },
+      {
+        "verb": "break",
+        "count": 38,
+        "per_1000_action_words": 1.04
+      },
+      {
+        "verb": "hold",
+        "count": 37,
+        "per_1000_action_words": 1.01
+      },
+      {
+        "verb": "begin",
+        "count": 36,
+        "per_1000_action_words": 0.98
+      },
+      {
+        "verb": "rush",
+        "count": 36,
+        "per_1000_action_words": 0.98
+      },
+      {
+        "verb": "pull",
+        "count": 35,
+        "per_1000_action_words": 0.96
+      },
+      {
+        "verb": "grind",
+        "count": 33,
+        "per_1000_action_words": 0.9
+      },
+      {
+        "verb": "drop",
+        "count": 32,
+        "per_1000_action_words": 0.87
+      },
+      {
+        "verb": "roll",
+        "count": 31,
+        "per_1000_action_words": 0.85
+      },
+      {
+        "verb": "cry",
+        "count": 31,
+        "per_1000_action_words": 0.85
+      },
+      {
+        "verb": "run",
+        "count": 30,
+        "per_1000_action_words": 0.82
+      },
+      {
+        "verb": "pass",
+        "count": 27,
+        "per_1000_action_words": 0.74
+      },
+      {
+        "verb": "slip",
+        "count": 26,
+        "per_1000_action_words": 0.71
+      },
+      {
+        "verb": "follow",
+        "count": 24,
+        "per_1000_action_words": 0.65
+      },
+      {
+        "verb": "keep",
+        "count": 23,
+        "per_1000_action_words": 0.63
+      },
+      {
+        "verb": "put",
+        "count": 23,
+        "per_1000_action_words": 0.63
+      },
+      {
+        "verb": "cut",
+        "count": 22,
+        "per_1000_action_words": 0.6
+      },
+      {
+        "verb": "catch",
+        "count": 22,
+        "per_1000_action_words": 0.6
+      },
+      {
+        "verb": "send",
+        "count": 22,
+        "per_1000_action_words": 0.6
+      },
+      {
+        "verb": "set",
+        "count": 22,
+        "per_1000_action_words": 0.6
+      },
+      {
+        "verb": "drive",
+        "count": 21,
+        "per_1000_action_words": 0.57
+      },
+      {
+        "verb": "remain",
+        "count": 21,
+        "per_1000_action_words": 0.57
+      },
+      {
+        "verb": "bring",
+        "count": 21,
+        "per_1000_action_words": 0.57
+      },
+      {
+        "verb": "reach",
+        "count": 21,
+        "per_1000_action_words": 0.57
+      },
+      {
+        "verb": "stop",
+        "count": 20,
+        "per_1000_action_words": 0.55
+      },
+      {
+        "verb": "lie",
+        "count": 20,
+        "per_1000_action_words": 0.55
+      },
+      {
+        "verb": "wait",
+        "count": 20,
+        "per_1000_action_words": 0.55
+      },
+      {
+        "verb": "charge",
+        "count": 19,
+        "per_1000_action_words": 0.52
+      },
+      {
+        "verb": "explain",
+        "count": 19,
+        "per_1000_action_words": 0.52
+      },
+      {
+        "verb": "return",
+        "count": 19,
+        "per_1000_action_words": 0.52
+      },
+      {
+        "verb": "watch",
+        "count": 18,
+        "per_1000_action_words": 0.49
+      },
+      {
+        "verb": "throw",
+        "count": 18,
+        "per_1000_action_words": 0.49
+      },
+      {
+        "verb": "hope",
+        "count": 18,
+        "per_1000_action_words": 0.49
+      },
+      {
+        "verb": "stumbl",
+        "count": 17,
+        "per_1000_action_words": 0.46
+      },
+      {
+        "verb": "spin",
+        "count": 17,
+        "per_1000_action_words": 0.46
+      },
+      {
+        "verb": "slam",
+        "count": 17,
+        "per_1000_action_words": 0.46
+      },
+      {
+        "verb": "open",
+        "count": 17,
+        "per_1000_action_words": 0.46
+      },
+      {
+        "verb": "spring",
+        "count": 16,
+        "per_1000_action_words": 0.44
+      },
+      {
+        "verb": "hit",
+        "count": 16,
+        "per_1000_action_words": 0.44
+      },
+      {
+        "verb": "grab",
+        "count": 16,
+        "per_1000_action_words": 0.44
+      },
+      {
+        "verb": "lead",
+        "count": 16,
+        "per_1000_action_words": 0.44
+      },
+      {
+        "verb": "strike",
+        "count": 15,
+        "per_1000_action_words": 0.41
+      },
+      {
+        "verb": "scream",
+        "count": 15,
+        "per_1000_action_words": 0.41
+      },
+      {
+        "verb": "continue",
+        "count": 15,
+        "per_1000_action_words": 0.41
+      },
+      {
+        "verb": "fight",
+        "count": 14,
+        "per_1000_action_words": 0.38
+      }
+    ],
+    "halflings_gem": [
+      {
+        "verb": "drop",
+        "count": 62,
+        "per_1000_action_words": 1.77
+      },
+      {
+        "verb": "turn",
+        "count": 61,
+        "per_1000_action_words": 1.74
+      },
+      {
+        "verb": "look",
+        "count": 58,
+        "per_1000_action_words": 1.65
+      },
+      {
+        "verb": "hold",
+        "count": 48,
+        "per_1000_action_words": 1.37
+      },
+      {
+        "verb": "catch",
+        "count": 48,
+        "per_1000_action_words": 1.37
+      },
+      {
+        "verb": "pull",
+        "count": 48,
+        "per_1000_action_words": 1.37
+      },
+      {
+        "verb": "move",
+        "count": 47,
+        "per_1000_action_words": 1.34
+      },
+      {
+        "verb": "rush",
+        "count": 43,
+        "per_1000_action_words": 1.22
+      },
+      {
+        "verb": "cut",
+        "count": 43,
+        "per_1000_action_words": 1.22
+      },
+      {
+        "verb": "start",
+        "count": 37,
+        "per_1000_action_words": 1.05
+      },
+      {
+        "verb": "put",
+        "count": 34,
+        "per_1000_action_words": 0.97
+      },
+      {
+        "verb": "slip",
+        "count": 34,
+        "per_1000_action_words": 0.97
+      },
+      {
+        "verb": "fall",
+        "count": 32,
+        "per_1000_action_words": 0.91
+      },
+      {
+        "verb": "stand",
+        "count": 30,
+        "per_1000_action_words": 0.85
+      },
+      {
+        "verb": "bring",
+        "count": 28,
+        "per_1000_action_words": 0.8
+      },
+      {
+        "verb": "roar",
+        "count": 26,
+        "per_1000_action_words": 0.74
+      },
+      {
+        "verb": "reach",
+        "count": 26,
+        "per_1000_action_words": 0.74
+      },
+      {
+        "verb": "send",
+        "count": 25,
+        "per_1000_action_words": 0.71
+      },
+      {
+        "verb": "begin",
+        "count": 24,
+        "per_1000_action_words": 0.68
+      },
+      {
+        "verb": "grab",
+        "count": 24,
+        "per_1000_action_words": 0.68
+      },
+      {
+        "verb": "slam",
+        "count": 24,
+        "per_1000_action_words": 0.68
+      },
+      {
+        "verb": "realize",
+        "count": 24,
+        "per_1000_action_words": 0.68
+      },
+      {
+        "verb": "grind",
+        "count": 23,
+        "per_1000_action_words": 0.65
+      },
+      {
+        "verb": "spin",
+        "count": 23,
+        "per_1000_action_words": 0.65
+      },
+      {
+        "verb": "roll",
+        "count": 23,
+        "per_1000_action_words": 0.65
+      },
+      {
+        "verb": "drive",
+        "count": 22,
+        "per_1000_action_words": 0.63
+      },
+      {
+        "verb": "leap",
+        "count": 22,
+        "per_1000_action_words": 0.63
+      },
+      {
+        "verb": "break",
+        "count": 21,
+        "per_1000_action_words": 0.6
+      },
+      {
+        "verb": "follow",
+        "count": 20,
+        "per_1000_action_words": 0.57
+      },
+      {
+        "verb": "rise",
+        "count": 19,
+        "per_1000_action_words": 0.54
+      },
+      {
+        "verb": "swing",
+        "count": 19,
+        "per_1000_action_words": 0.54
+      },
+      {
+        "verb": "remain",
+        "count": 19,
+        "per_1000_action_words": 0.54
+      },
+      {
+        "verb": "lead",
+        "count": 19,
+        "per_1000_action_words": 0.54
+      },
+      {
+        "verb": "cross",
+        "count": 19,
+        "per_1000_action_words": 0.54
+      },
+      {
+        "verb": "hope",
+        "count": 18,
+        "per_1000_action_words": 0.51
+      },
+      {
+        "verb": "watch",
+        "count": 18,
+        "per_1000_action_words": 0.51
+      },
+      {
+        "verb": "pass",
+        "count": 18,
+        "per_1000_action_words": 0.51
+      },
+      {
+        "verb": "cry",
+        "count": 18,
+        "per_1000_action_words": 0.51
+      },
+      {
+        "verb": "dive",
+        "count": 18,
+        "per_1000_action_words": 0.51
+      },
+      {
+        "verb": "twist",
+        "count": 18,
+        "per_1000_action_words": 0.51
+      },
+      {
+        "verb": "close",
+        "count": 17,
+        "per_1000_action_words": 0.48
+      },
+      {
+        "verb": "snap",
+        "count": 17,
+        "per_1000_action_words": 0.48
+      },
+      {
+        "verb": "fight",
+        "count": 16,
+        "per_1000_action_words": 0.46
+      },
+      {
+        "verb": "lose",
+        "count": 16,
+        "per_1000_action_words": 0.46
+      },
+      {
+        "verb": "growl",
+        "count": 16,
+        "per_1000_action_words": 0.46
+      },
+      {
+        "verb": "stumbl",
+        "count": 16,
+        "per_1000_action_words": 0.46
+      },
+      {
+        "verb": "push",
+        "count": 16,
+        "per_1000_action_words": 0.46
+      },
+      {
+        "verb": "keep",
+        "count": 15,
+        "per_1000_action_words": 0.43
+      },
+      {
+        "verb": "lock",
+        "count": 15,
+        "per_1000_action_words": 0.43
+      },
+      {
+        "verb": "open",
+        "count": 15,
+        "per_1000_action_words": 0.43
+      }
+    ]
+  },
+  "cross_book_signature_in_all_three_top_50": [
+    {
+      "verb": "turn",
+      "mean_rank": 3,
+      "cs_count": 39,
+      "sos_count": 49,
+      "hg_count": 61
+    },
+    {
+      "verb": "move",
+      "mean_rank": 3.33,
+      "cs_count": 48,
+      "sos_count": 71,
+      "hg_count": 47
+    },
+    {
+      "verb": "look",
+      "mean_rank": 3.67,
+      "cs_count": 37,
+      "sos_count": 51,
+      "hg_count": 58
+    },
+    {
+      "verb": "fall",
+      "mean_rank": 6.67,
+      "cs_count": 42,
+      "sos_count": 43,
+      "hg_count": 32
+    },
+    {
+      "verb": "hold",
+      "mean_rank": 6.67,
+      "cs_count": 32,
+      "sos_count": 37,
+      "hg_count": 48
+    },
+    {
+      "verb": "start",
+      "mean_rank": 9,
+      "cs_count": 29,
+      "sos_count": 40,
+      "hg_count": 37
+    },
+    {
+      "verb": "pull",
+      "mean_rank": 9.33,
+      "cs_count": 30,
+      "sos_count": 35,
+      "hg_count": 48
+    },
+    {
+      "verb": "begin",
+      "mean_rank": 9.67,
+      "cs_count": 50,
+      "sos_count": 36,
+      "hg_count": 24
+    },
+    {
+      "verb": "drop",
+      "mean_rank": 9.67,
+      "cs_count": 28,
+      "sos_count": 32,
+      "hg_count": 62
+    },
+    {
+      "verb": "stand",
+      "mean_rank": 13.33,
+      "cs_count": 25,
+      "sos_count": 39,
+      "hg_count": 30
+    },
+    {
+      "verb": "grind",
+      "mean_rank": 14,
+      "cs_count": 35,
+      "sos_count": 33,
+      "hg_count": 23
+    },
+    {
+      "verb": "cut",
+      "mean_rank": 14.67,
+      "cs_count": 29,
+      "sos_count": 22,
+      "hg_count": 43
+    },
+    {
+      "verb": "rush",
+      "mean_rank": 15.67,
+      "cs_count": 21,
+      "sos_count": 36,
+      "hg_count": 43
+    },
+    {
+      "verb": "put",
+      "mean_rank": 16.67,
+      "cs_count": 27,
+      "sos_count": 23,
+      "hg_count": 34
+    },
+    {
+      "verb": "catch",
+      "mean_rank": 18.33,
+      "cs_count": 22,
+      "sos_count": 22,
+      "hg_count": 48
+    },
+    {
+      "verb": "break",
+      "mean_rank": 18.67,
+      "cs_count": 25,
+      "sos_count": 38,
+      "hg_count": 21
+    },
+    {
+      "verb": "slip",
+      "mean_rank": 18.67,
+      "cs_count": 22,
+      "sos_count": 26,
+      "hg_count": 34
+    },
+    {
+      "verb": "remain",
+      "mean_rank": 22.67,
+      "cs_count": 32,
+      "sos_count": 21,
+      "hg_count": 19
+    },
+    {
+      "verb": "reach",
+      "mean_rank": 25.67,
+      "cs_count": 20,
+      "sos_count": 21,
+      "hg_count": 26
+    },
+    {
+      "verb": "send",
+      "mean_rank": 25.67,
+      "cs_count": 19,
+      "sos_count": 22,
+      "hg_count": 25
+    },
+    {
+      "verb": "pass",
+      "mean_rank": 26,
+      "cs_count": 23,
+      "sos_count": 27,
+      "hg_count": 18
+    },
+    {
+      "verb": "follow",
+      "mean_rank": 27.33,
+      "cs_count": 19,
+      "sos_count": 24,
+      "hg_count": 20
+    },
+    {
+      "verb": "spin",
+      "mean_rank": 29.67,
+      "cs_count": 23,
+      "sos_count": 17,
+      "hg_count": 23
+    },
+    {
+      "verb": "drive",
+      "mean_rank": 30.33,
+      "cs_count": 19,
+      "sos_count": 21,
+      "hg_count": 22
+    },
+    {
+      "verb": "cry",
+      "mean_rank": 31.67,
+      "cs_count": 18,
+      "sos_count": 31,
+      "hg_count": 18
+    },
+    {
+      "verb": "fight",
+      "mean_rank": 32.67,
+      "cs_count": 39,
+      "sos_count": 14,
+      "hg_count": 16
+    },
+    {
+      "verb": "watch",
+      "mean_rank": 33.33,
+      "cs_count": 21,
+      "sos_count": 18,
+      "hg_count": 18
+    },
+    {
+      "verb": "hope",
+      "mean_rank": 35,
+      "cs_count": 20,
+      "sos_count": 18,
+      "hg_count": 18
+    },
+    {
+      "verb": "keep",
+      "mean_rank": 36,
+      "cs_count": 18,
+      "sos_count": 23,
+      "hg_count": 15
+    },
+    {
+      "verb": "slam",
+      "mean_rank": 37.33,
+      "cs_count": 16,
+      "sos_count": 17,
+      "hg_count": 24
+    },
+    {
+      "verb": "lead",
+      "mean_rank": 41,
+      "cs_count": 18,
+      "sos_count": 16,
+      "hg_count": 19
+    }
+  ],
+  "cross_book_signature_count": 31,
+  "in_exactly_two_top_50": [
+    "charge",
+    "run",
+    "wait",
+    "set",
+    "return",
+    "continue",
+    "throw",
+    "realize",
+    "strike",
+    "leap",
+    "roll",
+    "bring",
+    "stumbl",
+    "open",
+    "grab"
+  ]
+}

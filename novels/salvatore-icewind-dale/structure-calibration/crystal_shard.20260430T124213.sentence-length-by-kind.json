@@ -1,0 +1,244 @@
+{
+  "pattern": "34a",
+  "name": "Sentence length by beat-kind",
+  "computedAt": "2026-04-30T12:42:13.995Z",
+  "corpus": "salvatore-icewind-dale",
+  "books": [
+    "crystal_shard",
+    "streams_of_silver",
+    "halflings_gem"
+  ],
+  "rationale": "Extends P29 (whole-corpus sentence-length distribution) with the beat-kind axis. Tests whether action beats actually have shorter sentences than description beats — a craft-canon assumption (Howard, Leonard) that should be empirically verified before encoding it as a writer-prompt prior.",
+  "methodology": {
+    "sentence_split": "regex (?<=[.!?])\\s+",
+    "word_count": "lowercased whitespace-split tokens, surrounding punctuation stripped",
+    "stats": "n / mean / median / std / p25 / p75 / min / max per-book per-kind",
+    "directional_gate": "(1) does kind-ordering by mean sentence length reproduce across all 3 books, (2) is action mean strictly shorter than description mean in every book?"
+  },
+  "per_book": {
+    "crystal_shard": {
+      "action": {
+        "n": 2170,
+        "mean": 17.64,
+        "median": 16,
+        "std": 9.31,
+        "p25": 11,
+        "p75": 23,
+        "min": 1,
+        "max": 61
+      },
+      "dialogue": {
+        "n": 1841,
+        "mean": 15.51,
+        "median": 13,
+        "std": 10.15,
+        "p25": 8,
+        "p75": 20,
+        "min": 1,
+        "max": 101
+      },
+      "interiority": {
+        "n": 1139,
+        "mean": 19.55,
+        "median": 18,
+        "std": 10.75,
+        "p25": 11,
+        "p75": 26,
+        "min": 1,
+        "max": 74
+      },
+      "description": {
+        "n": 736,
+        "mean": 21.17,
+        "median": 20,
+        "std": 10.46,
+        "p25": 14,
+        "p75": 27,
+        "min": 1,
+        "max": 60
+      }
+    },
+    "streams_of_silver": {
+      "action": {
+        "n": 2052,
+        "mean": 17.86,
+        "median": 17,
+        "std": 9.61,
+        "p25": 11,
+        "p75": 24,
+        "min": 1,
+        "max": 63
+      },
+      "dialogue": {
+        "n": 2293,
+        "mean": 15.26,
+        "median": 13,
+        "std": 9.62,
+        "p25": 8,
+        "p75": 20,
+        "min": 1,
+        "max": 69
+      },
+      "interiority": {
+        "n": 1067,
+        "mean": 19.24,
+        "median": 17,
+        "std": 11.42,
+        "p25": 11,
+        "p75": 25,
+        "min": 1,
+        "max": 115
+      },
+      "description": {
+        "n": 527,
+        "mean": 22.01,
+        "median": 20,
+        "std": 11.07,
+        "p25": 13,
+        "p75": 28,
+        "min": 2,
+        "max": 83
+      }
+    },
+    "halflings_gem": {
+      "action": {
+        "n": 2078,
+        "mean": 16.9,
+        "median": 16,
+        "std": 8.91,
+        "p25": 10,
+        "p75": 22,
+        "min": 1,
+        "max": 64
+      },
+      "dialogue": {
+        "n": 2375,
+        "mean": 13.81,
+        "median": 12,
+        "std": 9.1,
+        "p25": 7,
+        "p75": 18,
+        "min": 1,
+        "max": 68
+      },
+      "interiority": {
+        "n": 1097,
+        "mean": 16.66,
+        "median": 15,
+        "std": 9.57,
+        "p25": 9,
+        "p75": 22,
+        "min": 1,
+        "max": 62
+      },
+      "description": {
+        "n": 473,
+        "mean": 20.08,
+        "median": 18,
+        "std": 10.82,
+        "p25": 12,
+        "p75": 27,
+        "min": 2,
+        "max": 62
+      }
+    }
+  },
+  "per_book_overall": {
+    "crystal_shard": {
+      "n": 5886,
+      "mean": 17.78,
+      "median": 16,
+      "std": 10.19,
+      "p25": 10,
+      "p75": 24,
+      "min": 1,
+      "max": 101
+    },
+    "streams_of_silver": {
+      "n": 5939,
+      "mean": 17.47,
+      "median": 16,
+      "std": 10.31,
+      "p25": 10,
+      "p75": 23,
+      "min": 1,
+      "max": 115
+    },
+    "halflings_gem": {
+      "n": 6023,
+      "mean": 15.89,
+      "median": 14,
+      "std": 9.46,
+      "p25": 9,
+      "p75": 21,
+      "min": 1,
+      "max": 68
+    }
+  },
+  "per_kind_aggregate": {
+    "action": {
+      "n": 6300,
+      "mean": 17.47,
+      "median": 16,
+      "std": 9.29,
+      "p25": 11,
+      "p75": 23,
+      "min": 1,
+      "max": 64
+    },
+    "dialogue": {
+      "n": 6509,
+      "mean": 14.8,
+      "median": 13,
+      "std": 9.62,
+      "p25": 8,
+      "p75": 20,
+      "min": 1,
+      "max": 101
+    },
+    "interiority": {
+      "n": 3303,
+      "mean": 18.49,
+      "median": 17,
+      "std": 10.68,
+      "p25": 10,
+      "p75": 25,
+      "min": 1,
+      "max": 115
+    },
+    "description": {
+      "n": 1736,
+      "mean": 21.12,
+      "median": 20,
+      "std": 10.77,
+      "p25": 13,
+      "p75": 27,
+      "min": 1,
+      "max": 83
+    }
+  },
+  "per_book_kind_ordering_by_mean_sentence_length": {
+    "crystal_shard": [
+      "description",
+      "interiority",
+      "action",
+      "dialogue"
+    ],
+    "streams_of_silver": [
+      "description",
+      "interiority",
+      "action",
+      "dialogue"
+    ],
+    "halflings_gem": [
+      "description",
+      "action",
+      "interiority",
+      "dialogue"
+    ]
+  },
+  "directional_stable_ordering": false,
+  "action_shorter_than_description_in_every_book": true,
+  "action_vs_description_mean_gap_words": 3.62,
+  "directional_assessment": "Mixed — orderings differ across books: crystal_shard: description > interiority > action > dialogue; streams_of_silver: description > interiority > action > dialogue; halflings_gem: description > action > interiority > dialogue."
+}
