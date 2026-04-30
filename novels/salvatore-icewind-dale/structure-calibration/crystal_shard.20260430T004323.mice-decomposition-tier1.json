@@ -1,0 +1,172 @@
+{
+  "computedAt": "2026-04-30T00:43:23.902Z",
+  "test": "mice-decomposition-tier-1",
+  "n": 30,
+  "v1MonolithicBaseline": {
+    "primaryThreadJaccard": 0.667,
+    "verdict": "UNUSABLE (< 0.70 floor)"
+  },
+  "gates": {
+    "stabilityFloor": 0.7,
+    "stabilityPass": 0.85
+  },
+  "perSubCall": [
+    {
+      "thread": "M",
+      "n": 30,
+      "perField": {
+        "is_present": {
+          "agree": 27,
+          "rate": 0.9
+        },
+        "is_dominant": {
+          "agree": 28,
+          "rate": 0.9333333333333333
+        },
+        "opens": {
+          "agree": 29,
+          "rate": 0.9666666666666667
+        },
+        "closes": {
+          "agree": 29,
+          "rate": 0.9666666666666667
+        }
+      },
+      "isPresentJaccard": 0.8181818181818182,
+      "isPresentPositiveRate": {
+        "run1": 0.4666666666666667,
+        "run2": 0.36666666666666664
+      },
+      "verdict": "BORDERLINE (0.7-0.85)"
+    },
+    {
+      "thread": "I",
+      "n": 30,
+      "perField": {
+        "is_present": {
+          "agree": 24,
+          "rate": 0.8
+        },
+        "is_dominant": {
+          "agree": 27,
+          "rate": 0.9
+        },
+        "opens": {
+          "agree": 28,
+          "rate": 0.9333333333333333
+        },
+        "closes": {
+          "agree": 27,
+          "rate": 0.9
+        }
+      },
+      "isPresentJaccard": 0.6666666666666666,
+      "isPresentPositiveRate": {
+        "run1": 0.13333333333333333,
+        "run2": 0.3333333333333333
+      },
+      "verdict": "UNSTABLE (< 0.7)"
+    },
+    {
+      "thread": "C",
+      "n": 30,
+      "perField": {
+        "is_present": {
+          "agree": 27,
+          "rate": 0.9
+        },
+        "is_dominant": {
+          "agree": 30,
+          "rate": 1
+        },
+        "opens": {
+          "agree": 28,
+          "rate": 0.9333333333333333
+        },
+        "closes": {
+          "agree": 29,
+          "rate": 0.9666666666666667
+        }
+      },
+      "isPresentJaccard": 0.8181818181818182,
+      "isPresentPositiveRate": {
+        "run1": 0.4,
+        "run2": 0.36666666666666664
+      },
+      "verdict": "BORDERLINE (0.7-0.85)"
+    },
+    {
+      "thread": "E",
+      "n": 30,
+      "perField": {
+        "is_present": {
+          "agree": 27,
+          "rate": 0.9
+        },
+        "is_dominant": {
+          "agree": 28,
+          "rate": 0.9333333333333333
+        },
+        "opens": {
+          "agree": 30,
+          "rate": 1
+        },
+        "closes": {
+          "agree": 30,
+          "rate": 1
+        }
+      },
+      "isPresentJaccard": 0.8181818181818182,
+      "isPresentPositiveRate": {
+        "run1": 0.6333333333333333,
+        "run2": 0.6
+      },
+      "verdict": "BORDERLINE (0.7-0.85)"
+    }
+  ],
+  "coverage": {
+    "run1": {
+      "zero": 1,
+      "one": 14,
+      "two": 11,
+      "threePlus": 4,
+      "cAndEBoth": 8,
+      "presenceRate": {
+        "M": 0.4666666666666667,
+        "I": 0.13333333333333333,
+        "C": 0.4,
+        "E": 0.6333333333333333
+      }
+    },
+    "run2": {
+      "zero": 3,
+      "one": 10,
+      "two": 13,
+      "threePlus": 4,
+      "cAndEBoth": 7,
+      "presenceRate": {
+        "M": 0.36666666666666664,
+        "I": 0.3333333333333333,
+        "C": 0.36666666666666664,
+        "E": 0.6
+      }
+    }
+  },
+  "summary": {
+    "minJaccard": 0.6666666666666666,
+    "maxJaccard": 0.8181818181818182,
+    "meanJaccard": 0.7803030303030304,
+    "allPass": false,
+    "allFloor": false,
+    "passList": [],
+    "borderlineList": [
+      "M",
+      "C",
+      "E"
+    ],
+    "failList": [
+      "I"
+    ],
+    "architectureVerdict": "FAIL — at least one sub-call below 0.70 floor. Re-scope the failing sub-call's rubric; do NOT ship as-is."
+  }
+}

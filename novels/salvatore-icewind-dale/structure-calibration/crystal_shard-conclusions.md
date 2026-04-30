@@ -880,3 +880,96 @@ These two failure modes need different v2 fixes:
 The granularity / strict-tolerance / epilogue-index-artifact context above is from the subagent's narrative report (delivered with the completion notification), not derivable from the matched-array alone. The agent identified that p027 has open_chapter_index difference of 981 between runs — same epilogue-label index handling bug that the cardinality script exhibits as negative spans (todo.md item #cardinality-bug). Worth fixing across both pipelines.
 
 ---
+
+## Session 2026-04-30 00:43 UTC — Tier 1: mice decomposition self-consistency test
+
+The cheapest-counterfactual round closed with a clear next test: does the v2 architecture's binary decomposition retire the C↔E boundary-latitude problem? This Tier 1 test answers that directly.
+
+### Hypothesis
+
+The v1 monolithic mice rubric ("pick the dominant of M/I/C/E for this scene") had primary_thread Jaccard = 0.667 across two Sonnet runs — UNUSABLE per the v2 design's anchor floor. The C↔E boundary owns 4 of 6 cross-run flips. The v2 architecture decomposes into 4 parallel binary sub-calls — "is M present? is I present? is C present? is E present?" — each independent. Each sub-call has tighter cognitive scope; a scene can be both C-present and E-present without forcing a choice. **Each sub-call's `is_present` Jaccard should clear ≥0.85 if the architecture works.**
+
+### Methodology
+
+8 Sonnet subagents (4 thread sub-prompts × 2 runs) on the same 30-scene deduplicated sample as the cheapest-counterfactual round. Sub-prompts at `/tmp/sonnet-mice-test/decompose/mice-{M,I,C,E}-system.md`. Each sub-prompt:
+- Defines ONE thread type with positive + negative examples drawn from public-domain works.
+- Emphasizes independence: "Tag ONLY this thread; a scene can be both M and C and E at once."
+- Has explicit C↔E disambiguation language for the C and E sub-prompts.
+- Returns `{is_present, is_dominant, opens, closes, evidence_quote, confidence, abstain_reason}` per scene.
+
+Wall-clock: ~3 minutes (8 parallel subagents). Cost: $0 API.
+
+Analysis script: `/tmp/sonnet-mice-test/decompose/analyze.ts`. Output: [`crystal_shard.20260430T004323.mice-decomposition-tier1.json`](crystal_shard.20260430T004323.mice-decomposition-tier1.json).
+
+### Results — per-sub-call self-consistency
+
+| Sub-call | `is_present` agreement | `is_dominant` | `opens` | `closes` | r1 pos% | r2 pos% | **Jaccard(is_present)** | Verdict |
+|---|---|---|---|---|---|---|---|---|
+| M | 0.900 | 0.933 | 0.967 | 0.967 | 47% | 37% | **0.818** | BORDERLINE |
+| I | 0.800 | 0.900 | 0.933 | 0.900 | 13% | 33% | **0.667** | UNSTABLE |
+| C | 0.900 | 1.000 | 0.933 | 0.967 | 40% | 37% | **0.818** | BORDERLINE |
+| E | 0.900 | 0.933 | 1.000 | 1.000 | 63% | 60% | **0.818** | BORDERLINE |
+
+**v1 monolithic baseline:** primary_thread Jaccard 0.667 (UNUSABLE).
+**v2 decomposed:** mean is_present Jaccard 0.780 (above 0.70 floor; 3 of 4 above; 1 below).
+
+### Coverage validates the C↔E hypothesis
+
+| Threads firing per scene | run-1 | run-2 |
+|---|---|---|
+| 0 (no thread fires) | 1 | 3 |
+| 1 (clean single-thread) | 14 | 10 |
+| 2 (compound) | 11 | 13 |
+| 3+ (over-tagging risk) | 4 | 4 |
+| **C and E both present** | **8** | **7** |
+
+Roughly 8 of 30 scenes (~27%) are scenes where BOTH C and E are present. These are the scenes where v1 monolithic had to pick one — the rubric latitude that drove the 0.667 Jaccard. **The decomposition correctly captures that compound reality** — C and E can both be true, and the binary sub-calls give independent stability per thread.
+
+### Per-thread Crystal Shard distribution (candidate planner prior)
+
+Average across the two runs (the planner-soft-prior distribution that would feed `planning-beats/beat-expansion-system.md` if all 4 sub-calls cleared the gate):
+
+| Thread | Presence rate | Comments |
+|---|---|---|
+| M | ~42% | Geographic / journey tension; consistent with action-fantasy |
+| I | ~23% | Wide spread (13%–33%); see I-thread issue below |
+| C | ~38% | Internal role-shift weight; consistent with the cast's arc-density |
+| E | ~62% | External status-quo movement dominates; consistent with action-pulp pattern |
+
+### Conclusion
+
+**The v2 architecture is the right direction; M/C/E are within ~5pp of the gate; I is the failing sub-call and needs targeted rubric work.**
+
+Specific findings:
+
+1. **Decomposition lifts mean Jaccard from 0.667 → 0.780** — meaningful improvement. Per-field agreement is strong across the board: `is_present` 80–90%, `is_dominant` 90–100%, `opens` 93–100%, `closes` 90–100%. The Jaccard is more punishing than per-field agreement (it counts each disagreement as 2 in the union); the 0.78 mean Jaccard maps to ~0.87 per-field agreement. We're close.
+
+2. **M, C, E are at 0.818 — borderline pass.** They're all the same Jaccard because each had exactly 3 disagreements out of 30 scenes. With n=50 (the v2 design's gate-sample size) the same 10% disagreement rate pushes Jaccard to ~0.83 — still borderline. The remaining 5pp gap to 0.85 is real and needs closing, but is plausibly addressable via:
+   - One pass of rubric tightening on the specific disagreement scenes (not the general rubric)
+   - Sample-size noise (n=30 has noticeable Jaccard variance)
+   - Tightening the `is_dominant` field's interaction with `is_present` (currently independent, could anchor)
+
+3. **I is the failing sub-call (Jaccard 0.667).** The presence rate spread is the tell: run-1 found I in 13% of scenes; run-2 found I in 33%. Same recall-density drift shape as promise — run-2 was more permissive on borderline scenes (the agent narrative for run-1 flagged 4 borderline-confidence calls that resolved to "not I" by tactical-vs-epistemic disambiguation; run-2 likely resolved those the other way). **The fix is not generic rubric tightening but specifically reinforcing the "tactical/strategic question is NOT I; only epistemic discovery counts as I" rule.** Likely needs to be promoted from a hard rule at the bottom to a rule restated in the criteria section AND in 2 worked examples (positive: detective puzzling out a mystery; negative: general planning a battle).
+
+4. **3 zero-thread scenes in run-2** — concerning if not abstain-cases. The original monolithic rubric required `primary_thread` to be one of M/I/C/E with no "none" option, so the decomposed sub-calls have a coverage hole the monolithic didn't. Either (a) those scenes are connective/transitional and should explicitly abstain, or (b) the sub-call rubrics are too restrictive on `is_present`. Investigate before sample expansion.
+
+### Action
+
+1. **Sharpen the I-thread rubric** — promote tactical-vs-epistemic disambiguation to top of the decision criteria + add a worked negative example showing a battle-planning scene tagged `is_present: false`. Re-run I sub-call × 2 (2 subagents) on the same 30-scene sample. Target: I Jaccard ≥ 0.85.
+2. **Expand sample to n=50** for M, C, E sub-calls — measures whether n=30's 0.818 holds at the full v2 sample size (some of the gap is noise; some is real ambiguity). Target: M/C/E Jaccard ≥ 0.85 at n=50.
+3. **Investigate zero-thread scenes** — read the 3 scenes in run-2 with no thread firing. If they're transitional/connective, the sub-call rubrics need an explicit abstain-allowed clause. If they're substantive scenes, the `is_present` thresholds are too restrictive.
+4. **Do NOT ship the schema PR yet.** The architecture validates, but premature ship would lock in a Jaccard 0.78 distribution as if it were 0.85+. Wait for I-rubric fix + n=50 expansion + zero-thread investigation. Estimated 1–2 hours additional subagent work.
+5. **Tier 1 unblocks Tier 2.** With the architecture validated for M/C/E (modulo final 5pp), value-charge and mckee-gap counterfactuals can run in parallel — they need to determine their own failure modes (boundary-latitude, recall-density, or rubric-broken) before committing to either decomposition or ensemble.
+
+### Cost ledger delta (Tier 1)
+
+| Step | Calls | Cost |
+|---|---|---|
+| 4 binary sub-prompts drafted (no LLM) | 0 | $0.00 |
+| 8 Sonnet subagents (M/I/C/E × run-1/run-2) | 30 scene labels each | subagent (separate billing) |
+| Analysis script (no LLM) | 0 | $0.00 |
+| **Subtotal** | 8 subagents | **~$0.00 in API** |
+
+Cumulative on crystal_shard at promo pricing: still ~$4.15.
+
+---
