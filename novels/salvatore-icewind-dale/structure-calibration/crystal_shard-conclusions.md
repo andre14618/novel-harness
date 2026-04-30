@@ -3611,3 +3611,139 @@ Zero LLM cost. Pure compute on existing JSONL (~3 seconds wall time for the anal
 - `scripts/structure-calibration/per-character-dialogue-mass.ts` — analyzer script (committed; reproducible on `bun scripts/structure-calibration/per-character-dialogue-mass.ts`).
 
 ---
+
+## Session 2026-04-30 ~12:48 UTC — Pattern 38: Time-of-day + weather distribution per beat
+
+### Methodology
+
+Pure-compute regex pass over `novels/salvatore-icewind-dale/beats.jsonl` (n=2,470 beats). Two parallel axes:
+
+- **Time-of-day** (9 buckets): `midnight / dawn / dusk / morning / midday / afternoon / evening / night / unspecified`.
+- **Weather** (8 buckets): `storm / snow / rain / wind / fog / cloudy / clear / unspecified`.
+
+First-match-wins per beat, with ordering chosen so specific labels beat generic ones (`midnight` before `night`, `dawn` before `morning`, `dusk/twilight` before `evening`, `storm` before `snow/rain` so `snowstorm` and `thunderstorm` land on `storm`). Each axis was matched against `summary + text` per beat. Multi-label counts are also tracked (`multi_label_overlap_*` in the JSON) so the regression to a single label is auditable. Stability threshold for cross-book directional verdict: 15pt range (consistent with prior P32/P33 conventions in this doc).
+
+### Per-book modal time-of-day (excluding unspecified)
+
+| Book | n | Modal | Top-3 (excl. unspecified) | Unspecified % |
+|---|---:|---|---|---:|
+| crystal_shard | 858 | night | night 6.88%, dawn 3.26%, morning 2.68% | 84.03% |
+| streams_of_silver | 786 | night | night 9.03%, morning 3.18%, dawn 3.05% | 80.41% |
+| halflings_gem | 826 | night | night 7.75%, morning 2.66%, dawn 2.42% | 84.75% |
+| **aggregate** | 2470 | night | night 7.85%, dawn 2.91%, morning 2.83% | 83.12% |
+
+`night` is the modal time-of-day in **every book**, ~2x the next-most-common label. The diurnal pair `dawn / morning` collectively totals 5-6% per book, far below `night` alone.
+
+### Per-book modal weather (excluding unspecified)
+
+| Book | n | Modal | Top-3 (excl. unspecified) | Unspecified % |
+|---|---:|---|---|---:|
+| crystal_shard | 858 | wind | wind 3.50%, snow 2.91%, fog 1.98% | 88.11% |
+| streams_of_silver | 786 | wind | wind 3.31%, storm 2.67%, cloudy 2.54% | 89.57% |
+| halflings_gem | 826 | wind | wind 3.39%, storm 2.42%, cloudy 2.18% | 90.07% |
+| **aggregate** | 2470 | wind | wind 3.40%, storm 2.23%, cloudy 2.02% | 89.23% |
+
+`wind` is the modal weather in **every book**, also remarkably consistent (3.31-3.50% range). `clear` / `sunny` is essentially absent (0.08% aggregate) — Salvatore's corpus does not narrate fair weather.
+
+### Setting-of-the-book signal: snow vs storm
+
+`snow` is sharply book-specific: cs=2.91% / sos=0.00% / hg=0.61%. `storm` rises across books: cs=1.63% / sos=2.67% / hg=2.42%. This tracks the trilogy's geography — Crystal Shard is set in frozen Icewind Dale (snow as default weather noun), Streams of Silver is the southbound journey + Mithril Hall caverns (no snow), Halfling's Gem is further south (Calimport, Memnon — no snow). The `storm` label is corpus-wide and rotates with action-set-piece intensity rather than climate, so it ships as a stable cross-book signal; `snow` does not.
+
+### Coverage rates (a finding in itself)
+
+| Book | Time specified % | Weather specified % |
+|---|---:|---:|
+| crystal_shard | 15.97% | 11.89% |
+| streams_of_silver | 19.59% | 10.43% |
+| halflings_gem | 15.25% | 9.93% |
+
+Only ~16-20% of beats carry an explicit time-of-day cue and only ~10-12% carry a weather cue. **The remaining 80-90% inherit setting from earlier beats in the same scene.** This is not an annotation gap — it's how Salvatore writes. He sets time/weather at scene boundaries and lets it ride.
+
+### Scene-start anchoring (the per-scene tagging hypothesis)
+
+Time-of-day axis:
+
+| Book | Scene-start specified % | Interior specified % | Lift |
+|---|---:|---:|---:|
+| crystal_shard | 29.50% (n=139) | 13.35% (n=719) | +16.15pt |
+| streams_of_silver | 25.00% (n=76) | 19.01% (n=710) | +5.99pt |
+| halflings_gem | 25.55% (n=137) | 13.21% (n=689) | +12.34pt |
+
+Weather axis (same direction): cs +9.85pt, hg +12.60pt; sos +3.02pt. Scene-start beats carry a setting cue ~2x as often as interior beats in cs/hg. The lift is smaller in sos because sos has many ambient-time beats inside long indoor sequences (Mithril Hall caverns) that re-tag time when characters re-emerge. **Action: setting cues belong on the scene-opening beat, not on every beat.**
+
+### Cross-book directional stability
+
+Both axes pass the 15pt-range stability threshold on every label.
+
+| Time label | cs % | sos % | hg % | Range | Verdict |
+|---|---:|---:|---:|---:|---|
+| midnight | 0.12 | 0.13 | 0.12 | 0.01 | STABLE |
+| dawn | 3.26 | 3.05 | 2.42 | 0.84 | STABLE |
+| dusk | 1.52 | 1.27 | 1.21 | 0.31 | STABLE |
+| morning | 2.68 | 3.18 | 2.66 | 0.52 | STABLE |
+| midday | 0.35 | 0.76 | 0.12 | 0.64 | STABLE |
+| afternoon | 0.47 | 0.51 | 0.12 | 0.39 | STABLE |
+| evening | 0.70 | 1.65 | 0.85 | 0.95 | STABLE |
+| night | 6.88 | 9.03 | 7.75 | 2.15 | STABLE |
+
+| Weather label | cs % | sos % | hg % | Range | Verdict |
+|---|---:|---:|---:|---:|---|
+| storm | 1.63 | 2.67 | 2.42 | 1.04 | STABLE |
+| snow | 2.91 | 0.00 | 0.61 | 2.91 | STABLE |
+| rain | 0.35 | 0.13 | 0.24 | 0.22 | STABLE |
+| wind | 3.50 | 3.31 | 3.39 | 0.19 | STABLE |
+| fog | 1.98 | 1.78 | 0.97 | 1.01 | STABLE |
+| cloudy | 1.40 | 2.54 | 2.18 | 1.14 | STABLE |
+| clear | 0.12 | 0.00 | 0.12 | 0.12 | STABLE |
+
+(Stability is helped by the high unspecified baseline — the absolute rates are small, so 15pt is rarely at risk.) The directional shape is what matters: night/wind dominate everywhere; storm rises slightly across books; snow is geographic.
+
+### Arc-position (book thirds): does dark/stormy concentrate late?
+
+Per-book book-thirds with `either dark_time or dark_weather` rate (dark_time = `night|midnight|dusk`; dark_weather = `storm|rain|snow|fog`):
+
+| Book | early | mid | late |
+|---|---:|---:|---:|
+| crystal_shard | 14.60% | 15.15% | 14.63% |
+| streams_of_silver | 15.44% | 23.61% | 2.09% |
+| halflings_gem | 17.95% | 13.33% | 7.56% |
+
+**No corpus-wide late-act darkness concentration.** Crystal Shard is flat — every third averages ~15%, with no climactic darkening. Streams of Silver and Halfling's Gem actually trend the **opposite** way: dark/stormy peaks in the middle third, then drops sharply in the late third. That's not Salvatore restraining the climax — it's the late-act geographic shift to **interior settings** (Mithril Hall mines and Calimport interiors) where time/weather are simply not narrated. The "concentrate dark/stormy in the climax act" hypothesis is **rejected** for this corpus; the late-third pattern is "interior/underground/no-sky", which the regex correctly registers as `unspecified` rather than as `dark`.
+
+### Within-chapter drift (early/mid/late beats inside each chapter)
+
+| Book | early bright % / dark_time % / dark_weather % | mid | late |
+|---|---|---|---|
+| crystal_shard | 8.09 / 11.76 / 8.46 | 5.24 / 11.19 / 6.99 | 7.00 / 5.00 / 5.33 |
+| streams_of_silver | 9.92 / 13.10 / 7.14 | 6.54 / 13.08 / 3.08 | 6.20 / 10.22 / 3.65 |
+| halflings_gem | 4.87 / 9.36 / 5.62 | 6.91 / 9.09 / 2.55 | 4.23 / 11.27 / 4.58 |
+
+The "early-chapter beats lean morning/light, late-chapter beats lean night/storm" hypothesis is **NOT supported**. There's no clean diurnal arc within chapters in any book — bright-time and dark-time both decay together into the late chapter (where coverage drops because beats inherit). What evidence exists is in the wrong direction for crystal_shard (dark_time goes down 11.76 -> 5.00 across the chapter). Salvatore does not pace chapters as "morning to night."
+
+### Conclusion + Action
+
+**Modal answer for `setting` field guidance.** The most defensible single sentence the planner can encode is: "**when a setting cue is present, default to `night` for time-of-day and `wind` for weather.**" Both labels are the modal across every book and stable cross-book; together they anchor Salvatore's iconic Icewind Dale atmosphere. Every other time-of-day label is rare (<=3% per book), and every other weather label except `wind` is either book-specific (snow) or low-rate (rain <=0.35%, clear <=0.12%).
+
+**Coverage finding.** Set time/weather **on scene-opening beats only**, not on every beat. ~80% of beats run without a re-tag, so the planner should not insist on a time/weather phrase per beat — that would over-narrate setting relative to corpus. The harness `chapter-outline-system.md` `setting` field should be encoded once per chapter (or once per scene), not once per beat.
+
+**No climactic-darkness rule.** Salvatore does not concentrate dark/stormy beats in the late book third. The late-third drop in setting cues is an artifact of climactic-act geography (caverns, interiors) where time/weather become irrelevant, not an authored restraint pattern. **Do not ship a "dark/stormy in act 3" planner constraint** — it would both miscalibrate Crystal Shard (which doesn't darken) and push the late-act of sos/hg toward rooftop scenes that don't exist in the corpus.
+
+**No within-chapter diurnal arc.** Don't encode a "chapters open in morning, end at night" prior. There's no signal in this corpus.
+
+**Recommended planner-prompt edit (`src/agents/planning-plotter/chapter-outline-system.md`).** The current `setting` field is a bare "primary location" string. Suggested replacement:
+
+```
+"setting": "<primary location>; default time-of-day = night, default weather = wind unless the chapter requires otherwise (storm for action set-pieces; dawn/morning for travel openings; underground/interior for late-act climaxes where weather is not narrated)"
+```
+
+This encodes (a) the modal time-of-day anchor (`night`), (b) the modal weather anchor (`wind`), (c) the corpus's explicit `storm` set-piece convention, (d) the dawn/morning opener convention, and (e) the "interior climax = no weather narrated" pattern that explains why coverage drops in late thirds.
+
+**Complementary to P32** (chapter-seam transitions): P32 says "70% of chapters open with `time-cut-announcement`-shaped openers"; this pattern (P38) says "when those time-cuts land on a time-of-day, the modal answer is night and the modal weather is wind." Both ship as planner priors.
+
+### Files
+
+- `crystal_shard.20260430T124717.time-weather-distribution.json` — initial pass (per-book + per-third + cross-book stability + multi-label overlap).
+- `crystal_shard.20260430T124823.time-weather-distribution.json` — final deliverable (adds `scene_start_anchoring_time` + `scene_start_anchoring_weather` for the per-scene tagging hypothesis). Both files preserved per append-only rule; `T124823` is canonical.
+- `scripts/structure-calibration/time-weather-distribution.py` — pure-compute regex script (no LLM calls; $0).
+
+---
