@@ -1,0 +1,675 @@
+{
+  "computedAt": "2026-04-30T02:24:32.684Z",
+  "source": "Sonnet anchor n=2 runs each, 4 threads, full Crystal Shard 139 scenes",
+  "threads": {
+    "M": {
+      "n": 139,
+      "fields": {
+        "is_present": {
+          "jaccard": 0.702,
+          "ship_gate_0_85": false,
+          "run1_positive_pct": 30.2,
+          "run2_positive_pct": 27.3,
+          "both_true": 33,
+          "r1_only": 9,
+          "r2_only": 5,
+          "both_false": 92
+        },
+        "is_dominant": {
+          "jaccard": 0.68,
+          "ship_gate_0_85": false,
+          "run1_positive_pct": 12.9,
+          "run2_positive_pct": 17.3,
+          "both_true": 17,
+          "r1_only": 1,
+          "r2_only": 7,
+          "both_false": 114
+        },
+        "opens": {
+          "jaccard": 0.36,
+          "ship_gate_0_85": false,
+          "run1_positive_pct": 16.5,
+          "run2_positive_pct": 7.9,
+          "both_true": 9,
+          "r1_only": 14,
+          "r2_only": 2,
+          "both_false": 114
+        },
+        "closes": {
+          "jaccard": 0.615,
+          "ship_gate_0_85": false,
+          "run1_positive_pct": 9.4,
+          "run2_positive_pct": 5.8,
+          "both_true": 8,
+          "r1_only": 5,
+          "r2_only": 0,
+          "both_false": 126
+        }
+      },
+      "agreement_table": {}
+    },
+    "I-v2": {
+      "n": 139,
+      "fields": {
+        "is_present": {
+          "jaccard": 0.313,
+          "ship_gate_0_85": false,
+          "run1_positive_pct": 10.1,
+          "run2_positive_pct": 5,
+          "both_true": 5,
+          "r1_only": 9,
+          "r2_only": 2,
+          "both_false": 123
+        },
+        "is_dominant": {
+          "jaccard": 0.167,
+          "ship_gate_0_85": false,
+          "run1_positive_pct": 2.9,
+          "run2_positive_pct": 2.2,
+          "both_true": 1,
+          "r1_only": 3,
+          "r2_only": 2,
+          "both_false": 133
+        },
+        "opens": {
+          "jaccard": 0.1,
+          "ship_gate_0_85": false,
+          "run1_positive_pct": 6.5,
+          "run2_positive_pct": 1.4,
+          "both_true": 1,
+          "r1_only": 8,
+          "r2_only": 1,
+          "both_false": 129
+        },
+        "closes": {
+          "jaccard": 0.143,
+          "ship_gate_0_85": false,
+          "run1_positive_pct": 3.6,
+          "run2_positive_pct": 2.2,
+          "both_true": 1,
+          "r1_only": 4,
+          "r2_only": 2,
+          "both_false": 132
+        }
+      },
+      "agreement_table": {}
+    },
+    "C": {
+      "n": 139,
+      "fields": {
+        "is_present": {
+          "jaccard": 0.683,
+          "ship_gate_0_85": false,
+          "run1_positive_pct": 41,
+          "run2_positive_pct": 31.7,
+          "both_true": 41,
+          "r1_only": 16,
+          "r2_only": 3,
+          "both_false": 79
+        },
+        "is_dominant": {
+          "jaccard": 0.632,
+          "ship_gate_0_85": false,
+          "run1_positive_pct": 12.2,
+          "run2_positive_pct": 10.1,
+          "both_true": 12,
+          "r1_only": 5,
+          "r2_only": 2,
+          "both_false": 120
+        },
+        "opens": {
+          "jaccard": 0.357,
+          "ship_gate_0_85": false,
+          "run1_positive_pct": 5.8,
+          "run2_positive_pct": 7.9,
+          "both_true": 5,
+          "r1_only": 3,
+          "r2_only": 6,
+          "both_false": 125
+        },
+        "closes": {
+          "jaccard": 0.417,
+          "ship_gate_0_85": false,
+          "run1_positive_pct": 7.9,
+          "run2_positive_pct": 4.3,
+          "both_true": 5,
+          "r1_only": 6,
+          "r2_only": 1,
+          "both_false": 127
+        }
+      },
+      "agreement_table": {}
+    },
+    "E": {
+      "n": 139,
+      "fields": {
+        "is_present": {
+          "jaccard": 0.92,
+          "ship_gate_0_85": true,
+          "run1_positive_pct": 66.2,
+          "run2_positive_pct": 71.9,
+          "both_true": 92,
+          "r1_only": 0,
+          "r2_only": 8,
+          "both_false": 39
+        },
+        "is_dominant": {
+          "jaccard": 0.618,
+          "ship_gate_0_85": false,
+          "run1_positive_pct": 37.4,
+          "run2_positive_pct": 51.1,
+          "both_true": 47,
+          "r1_only": 5,
+          "r2_only": 24,
+          "both_false": 63
+        },
+        "opens": {
+          "jaccard": 0.455,
+          "ship_gate_0_85": false,
+          "run1_positive_pct": 4.3,
+          "run2_positive_pct": 7.2,
+          "both_true": 5,
+          "r1_only": 1,
+          "r2_only": 5,
+          "both_false": 128
+        },
+        "closes": {
+          "jaccard": 0.75,
+          "ship_gate_0_85": false,
+          "run1_positive_pct": 6.5,
+          "run2_positive_pct": 8.6,
+          "both_true": 9,
+          "r1_only": 0,
+          "r2_only": 3,
+          "both_false": 127
+        }
+      },
+      "agreement_table": {}
+    }
+  },
+  "chapter_rollup": [
+    {
+      "chapter": "1",
+      "n_scenes": 4,
+      "sequence": "M C ? C",
+      "opens": {
+        "M": 1,
+        "C": 1
+      },
+      "closes": {
+        "M": 1
+      },
+      "allDominant": {
+        "M": 1,
+        "C": 2
+      },
+      "dominantTop": "C"
+    },
+    {
+      "chapter": "2",
+      "n_scenes": 4,
+      "sequence": "? ? ? ?",
+      "opens": {
+        "E": 1
+      },
+      "closes": {},
+      "allDominant": {},
+      "dominantTop": "?"
+    },
+    {
+      "chapter": "3",
+      "n_scenes": 3,
+      "sequence": "E M ?",
+      "opens": {
+        "E": 1
+      },
+      "closes": {
+        "M": 1
+      },
+      "allDominant": {
+        "E": 1,
+        "M": 1
+      },
+      "dominantTop": "E"
+    },
+    {
+      "chapter": "4",
+      "n_scenes": 5,
+      "sequence": "C M ? ? E",
+      "opens": {
+        "M": 2,
+        "C": 1,
+        "E": 1
+      },
+      "closes": {},
+      "allDominant": {
+        "C": 1,
+        "M": 1,
+        "E": 1
+      },
+      "dominantTop": "C"
+    },
+    {
+      "chapter": "5",
+      "n_scenes": 1,
+      "sequence": "?",
+      "opens": {},
+      "closes": {},
+      "allDominant": {},
+      "dominantTop": "?"
+    },
+    {
+      "chapter": "6",
+      "n_scenes": 1,
+      "sequence": "E",
+      "opens": {},
+      "closes": {},
+      "allDominant": {
+        "E": 1
+      },
+      "dominantTop": "E"
+    },
+    {
+      "chapter": "7",
+      "n_scenes": 5,
+      "sequence": "E ? ? ? ?",
+      "opens": {},
+      "closes": {},
+      "allDominant": {
+        "E": 1
+      },
+      "dominantTop": "E"
+    },
+    {
+      "chapter": "8",
+      "n_scenes": 7,
+      "sequence": "E E ? ? E ? ?",
+      "opens": {},
+      "closes": {
+        "E": 2
+      },
+      "allDominant": {
+        "E": 3
+      },
+      "dominantTop": "E"
+    },
+    {
+      "chapter": "9",
+      "n_scenes": 2,
+      "sequence": "? C",
+      "opens": {},
+      "closes": {
+        "C": 1
+      },
+      "allDominant": {
+        "C": 1
+      },
+      "dominantTop": "C"
+    },
+    {
+      "chapter": "10",
+      "n_scenes": 5,
+      "sequence": "E E ? M E",
+      "opens": {},
+      "closes": {
+        "M": 1
+      },
+      "allDominant": {
+        "E": 3,
+        "M": 1
+      },
+      "dominantTop": "E"
+    },
+    {
+      "chapter": "11",
+      "n_scenes": 4,
+      "sequence": "? ? ? ?",
+      "opens": {},
+      "closes": {},
+      "allDominant": {},
+      "dominantTop": "?"
+    },
+    {
+      "chapter": "12",
+      "n_scenes": 3,
+      "sequence": "C ? ?",
+      "opens": {
+        "C": 1
+      },
+      "closes": {},
+      "allDominant": {
+        "C": 1
+      },
+      "dominantTop": "C"
+    },
+    {
+      "chapter": "13",
+      "n_scenes": 2,
+      "sequence": "E E",
+      "opens": {},
+      "closes": {},
+      "allDominant": {
+        "E": 2
+      },
+      "dominantTop": "E"
+    },
+    {
+      "chapter": "14",
+      "n_scenes": 4,
+      "sequence": "? ? ? C",
+      "opens": {
+        "M": 1,
+        "C": 1
+      },
+      "closes": {},
+      "allDominant": {
+        "C": 1
+      },
+      "dominantTop": "C"
+    },
+    {
+      "chapter": "15",
+      "n_scenes": 5,
+      "sequence": "E ? C E E",
+      "opens": {
+        "M": 1
+      },
+      "closes": {
+        "M": 1
+      },
+      "allDominant": {
+        "E": 3,
+        "C": 1
+      },
+      "dominantTop": "E"
+    },
+    {
+      "chapter": "16",
+      "n_scenes": 3,
+      "sequence": "? ? ?",
+      "opens": {},
+      "closes": {},
+      "allDominant": {},
+      "dominantTop": "?"
+    },
+    {
+      "chapter": "17",
+      "n_scenes": 5,
+      "sequence": "E ? ? E ?",
+      "opens": {},
+      "closes": {
+        "E": 1
+      },
+      "allDominant": {
+        "E": 2
+      },
+      "dominantTop": "E"
+    },
+    {
+      "chapter": "18",
+      "n_scenes": 8,
+      "sequence": "E E ? ? ? E ? E",
+      "opens": {
+        "I": 1
+      },
+      "closes": {
+        "E": 2,
+        "M": 1
+      },
+      "allDominant": {
+        "E": 4
+      },
+      "dominantTop": "E"
+    },
+    {
+      "chapter": "19",
+      "n_scenes": 4,
+      "sequence": "? ? E ?",
+      "opens": {},
+      "closes": {},
+      "allDominant": {
+        "E": 1
+      },
+      "dominantTop": "E"
+    },
+    {
+      "chapter": "20",
+      "n_scenes": 4,
+      "sequence": "C E ? E",
+      "opens": {},
+      "closes": {},
+      "allDominant": {
+        "C": 1,
+        "E": 2
+      },
+      "dominantTop": "E"
+    },
+    {
+      "chapter": "21",
+      "n_scenes": 3,
+      "sequence": "M M ?",
+      "opens": {
+        "M": 2
+      },
+      "closes": {
+        "E": 1
+      },
+      "allDominant": {
+        "M": 2
+      },
+      "dominantTop": "M"
+    },
+    {
+      "chapter": "22",
+      "n_scenes": 6,
+      "sequence": "? M C ? ? E",
+      "opens": {},
+      "closes": {
+        "M": 2,
+        "C": 1
+      },
+      "allDominant": {
+        "M": 1,
+        "C": 1,
+        "E": 1
+      },
+      "dominantTop": "M"
+    },
+    {
+      "chapter": "23",
+      "n_scenes": 5,
+      "sequence": "E E E E E",
+      "opens": {},
+      "closes": {
+        "C": 1
+      },
+      "allDominant": {
+        "E": 5
+      },
+      "dominantTop": "E"
+    },
+    {
+      "chapter": "24",
+      "n_scenes": 5,
+      "sequence": "E ? ? E ?",
+      "opens": {},
+      "closes": {},
+      "allDominant": {
+        "E": 2
+      },
+      "dominantTop": "E"
+    },
+    {
+      "chapter": "25",
+      "n_scenes": 3,
+      "sequence": "I ? ?",
+      "opens": {},
+      "closes": {
+        "I": 1
+      },
+      "allDominant": {
+        "I": 1
+      },
+      "dominantTop": "I"
+    },
+    {
+      "chapter": "26",
+      "n_scenes": 1,
+      "sequence": "E",
+      "opens": {},
+      "closes": {},
+      "allDominant": {
+        "E": 1
+      },
+      "dominantTop": "E"
+    },
+    {
+      "chapter": "27",
+      "n_scenes": 4,
+      "sequence": "E ? ? ?",
+      "opens": {},
+      "closes": {},
+      "allDominant": {
+        "E": 1
+      },
+      "dominantTop": "E"
+    },
+    {
+      "chapter": "28",
+      "n_scenes": 4,
+      "sequence": "? ? M ?",
+      "opens": {},
+      "closes": {},
+      "allDominant": {
+        "M": 1
+      },
+      "dominantTop": "M"
+    },
+    {
+      "chapter": "29",
+      "n_scenes": 2,
+      "sequence": "E E",
+      "opens": {},
+      "closes": {},
+      "allDominant": {
+        "E": 2
+      },
+      "dominantTop": "E"
+    },
+    {
+      "chapter": "30",
+      "n_scenes": 16,
+      "sequence": "E ? M E E E E E E ? M E M ? ? ?",
+      "opens": {},
+      "closes": {
+        "C": 1,
+        "E": 2,
+        "M": 1
+      },
+      "allDominant": {
+        "E": 8,
+        "M": 3
+      },
+      "dominantTop": "E"
+    },
+    {
+      "chapter": "epilogue",
+      "n_scenes": 2,
+      "sequence": "? E",
+      "opens": {
+        "C": 1,
+        "E": 1
+      },
+      "closes": {},
+      "allDominant": {
+        "E": 1
+      },
+      "dominantTop": "E"
+    },
+    {
+      "chapter": "epilogue2",
+      "n_scenes": 1,
+      "sequence": "M",
+      "opens": {},
+      "closes": {},
+      "allDominant": {
+        "M": 1
+      },
+      "dominantTop": "M"
+    },
+    {
+      "chapter": "epilogue3",
+      "n_scenes": 6,
+      "sequence": "E ? C C ? ?",
+      "opens": {
+        "M": 1
+      },
+      "closes": {
+        "E": 1,
+        "C": 1
+      },
+      "allDominant": {
+        "E": 1,
+        "C": 2
+      },
+      "dominantTop": "C"
+    },
+    {
+      "chapter": "prelude",
+      "n_scenes": 2,
+      "sequence": "? E",
+      "opens": {
+        "M": 1,
+        "E": 1
+      },
+      "closes": {},
+      "allDominant": {
+        "E": 1
+      },
+      "dominantTop": "E"
+    }
+  ],
+  "aggregate_patterns": {
+    "chapter_opener_thread": {
+      "M": 5,
+      "E": 19,
+      "C": 5,
+      "I": 1
+    },
+    "chapter_closer_thread": {
+      "C": 5,
+      "M": 5,
+      "E": 19,
+      "I": 1
+    },
+    "chapter_dominant_thread": {
+      "C": 6,
+      "E": 19,
+      "M": 4,
+      "I": 1
+    },
+    "chapter_open_close_transitions": {
+      "M→C": 1,
+      "E→M": 2,
+      "C→E": 2,
+      "E→E": 16,
+      "C→C": 3,
+      "M→M": 3,
+      "M→E": 1,
+      "I→I": 1,
+      "E→C": 1
+    },
+    "opens_per_chapter": {
+      "mean": 0.5882352941176471,
+      "max": 4
+    },
+    "closes_per_chapter": {
+      "mean": 0.6764705882352942,
+      "max": 4
+    },
+    "chapters_with_both_open_close": 6,
+    "chapters_only_opens": 6,
+    "chapters_only_closes": 8,
+    "chapters_neither": 14
+  }
+}

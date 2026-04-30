@@ -1838,3 +1838,84 @@ Zero new LLM calls. Pure aggregate analysis on existing data.
 - `crystal_shard.20260430T020545.chapter-mice-rollup.json` — chapter mice rhythm
 
 ---
+
+## Session 2026-04-30 ~02:24 UTC — v2 mice full-corpus anchor stability (FAILS at scale)
+
+### Headline
+
+Re-extracted all 4 mice threads (M / I-v2 / C / E) on the **full Crystal Shard corpus (139 scenes)** with 8 Sonnet subagents (4 threads × 2 runs). Computed pairwise anchor self-consistency Jaccard on each thread × each binary sub-decision. **Result: only ONE subfield (E `is_present`, J=0.920) passes the J ≥ 0.85 ship gate at scene-level full-corpus scale.** Most opens / closes / dominant subfields FAIL outright (J=0.10–0.75). The earlier n=50 scene-level + n=50 beat-level binary-only waves (commits `81d228a` + `cd4347a`) were sample-underpowered — the small samples didn't surface the full-corpus instability.
+
+### Anchor stability table (full Crystal Shard, n=139 scenes, 2 Sonnet runs each)
+
+| Thread | is_present | is_dominant | opens | closes |
+|---|---:|---:|---:|---:|
+| M | 0.702 NEAR | 0.680 FAIL | **0.360 FAIL** | 0.615 FAIL |
+| I-v2 | **0.313 FAIL** | 0.167 FAIL | **0.100 FAIL** | 0.143 FAIL |
+| C | 0.683 FAIL | 0.632 FAIL | **0.357 FAIL** | 0.417 FAIL |
+| E | **0.920 PASS** | 0.618 FAIL | 0.455 FAIL | 0.750 NEAR |
+
+Schema-relevant ship verdicts at scene-level full corpus:
+- `miceActive` (is_present): only E passes — sole survivor of the granularity sweep.
+- `miceOpens`: NONE pass at this granularity.
+- `miceCloses`: NONE pass at this granularity.
+- `is_dominant`: NONE pass.
+
+### Why this conflicts with the prior shipped enums
+
+The schema state shipped at commit `cd4347a` (miceActive=`["I"]`, miceOpens=`["M","I"]`, miceCloses=`["M","I","C","E"]`) was based on:
+- n=50 scene-level Sonnet self-consistency (passed for all four closes).
+- n=50 beat-level binary-only validation (passed for all four closes, M+I opens, I active).
+
+This new wave is different on three axes that compound:
+1. **Sample size** — 139 scenes vs 50. Rare-event Jaccard is highly sensitive to sample size; one or two flips at small n inflate J.
+2. **Granularity** — full corpus at scene granularity. The earlier waves split between scene n=50 (different sample) and beat n=50 (totally different unit-of-analysis).
+3. **Subagent context-length** — each Sonnet run had to label 139 scenes in one chat, vs 50 previously. Longer sequences may invite drift that small batches don't.
+
+The most likely cause is (1) sample-size effect compounded by (2) different sample composition: the n=50 sample was hash-selected with a per-scene cap; the n=139 covers everything including borderline cases the small sample skipped over.
+
+### What this means for the schema
+
+The schema fields are **soft priors with `optional()` / `default([])` semantics**. Checkers MUST NOT block on them (already documented). The granularity-aware ship gate per the SOP from session ~01:54 UTC is BOTH scene AND beat ≥ 0.85. With scene-level full-corpus FAILing on most subfields, the load-bearing question is: **does beat-level full-corpus validation also fail?** That wave is not yet run.
+
+**Concrete state:**
+- Schema fields stay shipped as-is (no unship). The fields' comments in `src/schemas/shared.ts` cite the n=50 beat-level numbers, which haven't been invalidated — only the scene-level small-n claim is now suspect at full-corpus scale.
+- The schema field reference distributions documented in the comments (e.g., "miceCloses: M ~3%, I ~3%, C ~10%, E ~6%") were computed from the n=50 sample. Full-corpus distributions per the v2 wave are similar but with caveat; documented in the artifact JSON.
+- The beat-level n=50 binary-only wave from `81d228a` (J=0.852+ on lifeValueAxes; closes ALL FOUR PASS) is still the load-bearing validation for the schema fields' production granularity. **Re-running at beat-level on full corpus is the next investigation step.** Cost ~$8 + half-day wall-clock.
+
+### What this means for the chapter-level mice rhythm pattern
+
+**Stays PARKED.** Cannot be promoted to a planner prior. Per the new lessons-learned entry "aggregate corpus patterns are robust to per-instance label noise — chapter-level rollup beats per-scene calibration for SOME uses," the chapter rollup using AGREEMENT subset (both runs concur) is a directional/exploratory finding, NOT eligible to land in `chapter-outline-system.md`.
+
+The agreement-subset chapter rollup nonetheless tells a clean directional story:
+- **56% of Crystal Shard chapters open dominantly on E (event)**; 15% on M (milieu); 15% on C (character); 3% on I (inquiry).
+- **56% close dominantly on E**, 15% C, 15% M, 3% I.
+- **Top transition: E→E (16/34 chapters).** Action-fantasy is event-thread-dominant by construction; this is the genre fingerprint, not a Salvatore quirk.
+- 0.59 mean opens/chapter, 0.68 mean closes/chapter (lower than prior monolithic-rubric numbers because the agreement subset filters out borderline cases).
+
+Treat as exploratory until cross-book validation under a stable rubric.
+
+### Why these full-corpus J numbers are HIGHER VALUE than the prior small-n numbers
+
+Counter-intuitively, the FAIL verdicts here are MORE useful than the n=50 PASS verdicts because they reveal the rubric's real instability profile. Shipping a planner prior on a J=0.92 small-n estimate that's actually J=0.61 at full corpus would propagate hidden noise into the harness. The n=50 wave gave us the wrong confidence; the n=139 wave is the corrective.
+
+This pattern reinforces a meta-rule: **for stochastic-schema dims, anchor stability MUST be measured on the full population (or a sample large enough to be statistically powered) before shipping ANY planner-prior consumer.** Small-sample J estimates are a screening tool, not a ship gate.
+
+### Next investigation
+
+**Rubric sharpen** is the natural next step under the binary-collapse-before-relabel SOP — binary collapse is already done (each subfield IS a binary). Rubric polish targeting the disagreement clusters:
+- "Opens" disagreement appears largest on M (run1=23 / run2=11; 14 r1-only + 2 r2-only). The disagreement is between "this scene is the *first* scene of a milieu-arc" (loose) vs "this scene introduces a *new* milieu commitment that wasn't already active" (strict). Sharpen the rubric to one or the other.
+- "Is_dominant" disagreement on E (47 both, 24 r2-only) — run2 was much more liberal in marking E-dominance than run1. Likely the same loose-vs-strict ambiguity.
+
+**Beat-level full-corpus run** is the parallel investigation — does beat-level pass at full corpus? If yes, the schema fields stay grounded; if no, the rubric is fundamentally unstable and needs a sub-dim split.
+
+### Cost ledger delta
+
+8 Sonnet subagents × ~5–10 min each = ~50–80 min wall clock. Subagent cost amortized as Claude API. No transport cost.
+
+### Artifacts
+
+- `crystal_shard.20260430T022320.v2-mice-{M,I-v2,C,E}-run{1,2}.jsonl` — 8 raw label files (139 scenes each, copied from /tmp into durable storage at session end).
+- `crystal_shard.20260430T022320.v2-mice-anchor-stability.json` — first analysis run (Jaccard table + agreement-subset chapter rollup + aggregate patterns).
+- `crystal_shard.20260430T022432.v2-mice-anchor-stability.json` — second analysis run (idempotent re-aggregation; preserved per `feedback_no_overwrite_runs`).
+
+---
