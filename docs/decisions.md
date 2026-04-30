@@ -279,6 +279,22 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### Checker framework rebuild uses evidence surfaces, severity policy, and staged eval gates
+*2026-04-30 · exp #270 · audit doc `docs/checker-framework-audit-2026-04-30.md`*
+
+**Decision:** Rebuild the checker framework around four explicit layers: deterministic integrity, local beat checks, chapter coherence checks, and a central policy layer. Do not add a broad prose-quality judge as the next move.
+
+**Why:** The base-DeepSeek route and richer beat context changed the checker problem. Some existing checkers were trained or calibrated against older prompt/context surfaces, and exp #268 proved that final pipeline pass state was not an oracle. The most important contract is now: each checker must declare the evidence surface it sees, severity must map deterministically to runtime action, and blocking checks must be validated on current-route samples before they can gate production.
+
+**Alternatives rejected:**
+- Keep adding runtime blockers ad hoc — rejected because severity/action drift already let blockers reach approval.
+- Add one broad chapter-quality LLM judge immediately — rejected because prior lessons show broad judges are noisy and hard to improve; chapter oracle should be quote-required and limited to stitched-beat coherence axes.
+- Trust historical SFT/checker metrics — rejected because chapter-plan-checker-v2 and hallucination production reports showed distribution shift and context-surface mismatch.
+
+**Ongoing:** Immediate P0 follow-ups are source-scoped overrides, visible validation blockers under override, source-aware plan-assist payloads, deterministic fixture belt, and evidence-surface unification for writer context vs hallucination checks.
+
+---
+
 ### Voice-pass LoRA: beats-compatible, character-conditioned, same pattern as tonal pass
 *2026-04-11 (architectural decision — no experiment yet)*
 
