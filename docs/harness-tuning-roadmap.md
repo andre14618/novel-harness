@@ -34,14 +34,27 @@ Translation: cross-book validation is HIGH-VALUE for the binary "does the patter
 
 Anchor stability gates for stochastic-schema dims (separate from pattern-shipping): J ≥ 0.85 Sonnet self-consistency at BOTH calibration-anchor AND production-emit granularities, validated at full population (n=50 is screening only). See `docs/decisions.md` 2026-04-30 SOPs.
 
-## Currently in flight (2026-04-30)
+## Currently in flight (2026-04-30 ~07:55 UTC)
 
-(none — all subagents from this session landed)
+| Work | Status |
+|---|---|
+| LXC phase-eval probe on beat-expansion variant `abcd78f` | Running on LXC; probe started by background task `b292jtsbs` 07:38 UTC. Results read after directional re-score notes (variant encodes Patterns 4 + 7 — directionally PARTIAL, not full DIVERGE; probe is still informative as the first beats-side variant). |
+| Subagent: chapter-opener taxonomy (3-book) | Running. Mirrors forward-hook taxonomy. |
+| Subagent: per-chapter dramatic-question shape (3-book) | Running. Plotter-side property test. |
+| Subagent: per-chapter conflict-type taxonomy (3-book) | Running. Lighter-weight surrogate for parked mice. |
 
 ## Recently landed (2026-04-30)
 
 | Work | Outcome | Commit |
 |---|---|---|
+| Directional re-score of original 7 cross-book patterns | **APPENDED** (does not replace) the point-estimate verdicts. Under directional gate (ranking / modal class / sign-of-effect): Pattern 2 PASSes (full ranking matches all 3 books), Pattern 3 opener+closer modal classes both stable, Pattern 4 is PARTIAL (action+description sign-of-effect reproduces; dialogue+interiority do NOT), Pattern 7 modal varies but top-4 set stable. Methodological lesson: the ship gate must match the granularity at which the prior is encoded. | `558c344` |
+| Forward-hook taxonomy (chapter-close) across 3 IWD books | 83 chapter endings classified. Partial-resolution modal in all 3 books (43.8% / 33.3% / 37.0%); cliffhanger + foreshadow rotate at #2/#3. **3-book directionally stable.** Strong NEW ship candidate. | `dd9c076` |
+| Established-facts density across 3 IWD books | Cross-book mean 5.58 / median 5; harness floor (≥6) is AT corpus median. Words-vs-claims correlation 0.348. | `0b640da` |
+| Time-cut markers across 3 IWD books | CS 1.13/ch, SoS 2.54/ch, HG 1.28/ch — SoS is genuinely denser (road-trip book). Within-chapter cuts dominate (~70%). Concentrated in middle chapters (q1–q2). | `adce05f` |
+| Original 7 chapter-level patterns cross-book validation (point-estimate ±20% gate) | Point-estimate gate: Pattern 1 PASS, Patterns 2/3/4/7 DIVERGE, Patterns 5/6 SKIP (no SoS/HG mice data). See directional re-score above for the planner-relevant view. | `5124750` |
+| Beat-expansion variant `corpus-v1.md` | Encodes Patterns 4 + 7 + 8-beat-side. Created BEFORE the directional re-score landed; under the directional gate, the variant is partial-evidence-based (action+description position rhythm holds; dialogue+interiority don't). LXC probe in flight will measure regardless. | `abcd78f` |
+| Plotter variant `corpus-v1.md` | Encodes Patterns 1, 9, 10, 8-chapter-side. All are 3-book directionally stable. Solid evidence base. | `15c4145` |
+| Probe runner generalized for both planning-beats AND planning-plotter | `--prompt-env=<envvar>` flag; run-variant.ts auto-detects which env var was set. | `a036a15` |
 | Crystal Shard new-dim mining (6 dims) | Subagent over-delivered: ran on **all 3 Icewind Dale books** (Crystal Shard / Streams of Silver / Halfling's Gem), so cross-book validation is **already done** for these new patterns. Highest-leverage findings: tension curve (action density 1.56× first→second half across all 3 books; penultimate act is action peak, final 20% dips back), character-introduction pacing (57% of named entities in first 30% of chapters; 3.5 new/chapter early, 0–1 late), POV rotation (77% rotation rate at chapter boundaries). Sensory dim flagged as low-signal (no planner implication at regex resolution). | `192026b` |
 | Voice-shaping ablation v1 synthesis | **KILL on all 3 prompt-shaping arms (D1/D2/D3 all FLAT vs D0 bare DeepSeek baseline).** D0 was already 0.39–0.89σ from Salvatore reference on 3/5 features — no room for prompt shaping to add value. Notable: D2 (few-shot with Salvatore excerpts in the prompt) had 0/20 halluc-leak fires vs the v4 Salvatore LoRA's ~15% — Salvatore in the prompt doesn't leak; Salvatore in the weights does. Corroborates the LoRA-track pivot framing. Next experiment named: character-distinctness audit on D3-style directive prompts. | `3c4f40b` |
 | `PLANNING_PLOTTER_PROMPT_OVERRIDE` env-var seam | Mirrors the planning-beats seam. Unblocks Patterns 1 + 3 for variant probing. | `e4343f7` |
@@ -50,30 +63,42 @@ Anchor stability gates for stochastic-schema dims (separate from pattern-shippin
 
 Identified in the Crystal Shard chapter-level structural session (2026-04-30 ~02:05 UTC). Each maps to a specific prompt edit. None depends on the stuck mice rubric.
 
-| # | Pattern | Harness target | Variant drafted? | Probe run? | Cross-book? | Verdict |
-|---|---|---|---|---|---|---|
-| 1 | Length: median 2,534w / 24 beats; default action-fantasy `targetWords ≈ 2500`. Beat-count expectation `targetWords / 100` (current floor `/ 150` is too low). | `chapter-outline-system.md` `targetWords` band guidance | UNBLOCKED — plotter seam shipped `e4343f7` | — | — | DRAFT |
-| 2 | Beat kind distribution: action 36% / dialogue 28% / interiority 21% / description 15%. | `beat-expansion-system.md` kind-balance soft prior | — | — | — | DRAFT (lower priority) |
-| 3 | Opener kind: 50% description, 26% action, 15% interiority, 9% dialogue. Closer kind: 41% action, 35% interiority, 21% dialogue, 3% description. | `chapter-outline-system.md` opener/closer guidance | UNBLOCKED — plotter seam shipped `e4343f7` | — | — | DRAFT |
-| 4 | Within-chapter rhythm: descriptive setup → dialogue mid-peak → action/interiority climax. Description front-loads (q0=25% → q4=9%); dialogue mid-peaks (q0=18% → q2=38% → q4=30%). | `beat-expansion-system.md` position-specific guidance | — | — | — | DRAFT |
-| 7 | Beat boundary signals: pov_attention_shift 22% / stakes_recalibration 17% / scene_start 16% / action_shift 15% / speaker_change 13% / narration_to_dialogue 11%. | `beat-expansion-system.md` transition vocabulary as soft prior | — | — | — | DRAFT |
-| 8 | **Tension curve / pacing rhythm** (highest-leverage): action density 1.56× first→second half across all 3 IWD books. Penultimate act is the action peak, NOT the final chapters — Crystal Shard final 20% dips back to 34% action vs second-half mean of 38%. Concrete pacing-curve shape. | `beat-expansion-system.md` + `chapter-outline-system.md` chapter-position pacing guidance | — | — | **DONE (3 books)** | DRAFT |
-| 9 | **Character introduction pacing**: 57% of 105 named entities in first 30% of chapters. Mean 3.5 new/chapter early, taper to 0–1 late. 12 characters first appear in last 20% of beats. | `chapter-outline-system.md` per-chapter new-character budget | UNBLOCKED — plotter seam shipped `e4343f7` | — | **DONE (3 books)** | DRAFT |
-| 10 | **POV rotation**: chapter-primary POV rotates at 77% of chapter boundaries (omniscient 30% + Drizzt 26% own 56% of beats together). HIGH-frequency rotation, not occasional. | `chapter-outline-system.md` POV-character guidance — current planner says "Protagonist should hold POV for most chapters; rotate only when a different perspective is load-bearing." Salvatore data argues for more permissive rotation. | UNBLOCKED — plotter seam shipped `e4343f7` | — | **DONE (3 books)** | DRAFT |
-| 11 | **Setting-change frequency**: 3.1 scene-level setting changes per chapter (CS); only 10% monolocation. Streams of Silver diverges (29% monolocation — its dungeon-crawl structure). Author-level pattern with intra-author variance. | `chapter-outline-system.md` permissive multi-location guidance | UNBLOCKED — plotter seam shipped `e4343f7` | — | **DONE (3 books, with variance)** | DRAFT (lower priority due to intra-author variance) |
-| 12 | **Dialogue density variance**: 29.5% mean per chapter (CS), high variance std=0.176; 2/3 chapters ≥25% dialogue. Likely overlaps Pattern 2 in implementation. | (subsumed by Pattern 2 — kind balance) | — | — | DONE | NOTE — fold into Pattern 2 |
-| 13 | Sensory channel distribution: visual + kinesthetic ~79% combined; olfactory near-zero (regex proxy). | (no planner implication at this resolution) | — | — | — | DROP — descriptive only |
+**Verdict columns are dual-tracked** per the 2026-04-30 methodology shift:
+- **Point-estimate verdict** (±20% rate-reproduction gate) — relevant for *checker-side distributional priors*
+- **Directional verdict** (ranking / modal class / sign-of-effect across books) — relevant for *planner-prompt scaffolding*
 
-**Sequencing (revised 2026-04-30, post-subagents):**
+A pattern can directionally PASS while point-estimate-DIVERGE. The directional verdict is what governs planner-prompt ship decisions; the point-estimate verdict is preserved as evidence trail and as input to any future checker-side priors.
 
-1. ✅ Subagents landed (voice-shaping verdict + new-dim catalog with cross-book on 3 IWD books).
-2. ✅ Plotter seam shipped (`e4343f7`).
-3. **Now: draft variants for the highest-leverage patterns.** Top 3 by lift × cross-book confidence:
-   - **Pattern 8 (tension curve)** — concrete pacing shape, validated on 3 books, both planner-side and beat-expansion-side levers
-   - **Pattern 9 (character intro pacing)** — concrete per-chapter budget, validated on 3 books
-   - **Pattern 1 (chapter length / beat-count expectation)** — touches the same plotter prompt as Pattern 9 so they can A/B together
-4. Phase-eval probe each variant. Cross-book is ALREADY satisfied for new dims (Patterns 8 / 9 / 10 / 11) — for the older Patterns 1–7, current 1-book evidence is fine for binary qualitative ship per the 90%+ rule.
-5. Land winners as defaults; document per-pattern verdict in `docs/decisions.md`.
+| # | Pattern | Harness target | Variant drafted? | Probe run? | Cross-book? | Point-estimate verdict | Directional verdict (planner-relevant) |
+|---|---|---|---|---|---|---|---|
+| 1 | Length: median 2,534w / 24 beats; default action-fantasy `targetWords ≈ 2500`. Beat-count expectation `targetWords / 100` (current floor `/ 150` is too low). | `chapter-outline-system.md` `targetWords` band guidance | shipped in plotter `corpus-v1.md` `15c4145` | LXC pending | **DONE (3 books)** | PASS (max diff 18.5%) | **PASS** — ship as planner prior |
+| 2 | Beat kind distribution: action 36% / dialogue 28% / interiority 21% / description 15%. | `beat-expansion-system.md` kind-balance soft prior | — | — | **DONE (3 books)** | DIVERGE (max diff 36.8%) | **PASS** — full ranking matches all 3 books (action > dialogue > interiority > description). Ship as directional ranking prior. |
+| 3a | Opener kind modal: description (50%/38%/45%). | `chapter-outline-system.md` opener guidance | shipped in plotter `corpus-v1.md` `15c4145` | LXC pending | **DONE (3 books)** | DIVERGE | **PASS_MODAL_ONLY** — description-as-modal-opener stable; secondary ordering varies. Ship as modal-class prior. |
+| 3b | Closer kind modal: action (41%/31%/38%). | `chapter-outline-system.md` closer guidance | shipped in plotter `corpus-v1.md` `15c4145` | LXC pending | **DONE (3 books)** | DIVERGE | **PASS_MODAL_ONLY** — action-as-modal-closer stable across all 3 books (script flagged DIVERGE due to comparison logic; raw inspection confirms agreement). Ship as modal-class prior. |
+| 4-action | Action density rises q0→q4 within chapter (35→39.7 / 27→44.6 / 32.4→36.9 across books). | `beat-expansion-system.md` position-aware action density | encoded in beats `corpus-v1.md` `abcd78f` | LXC running | **DONE (3 books)** | DIVERGE | **PASS** — sign-of-effect (rising) reproduces in all 3 books |
+| 4-description | Description density falls q0→q4 within chapter (24.9→8.7 / 21.5→7.1 / 15→6.3 across books). | `beat-expansion-system.md` position-aware description density | encoded in beats `corpus-v1.md` `abcd78f` | LXC running | **DONE (3 books)** | DIVERGE | **PASS** — sign-of-effect (falling) reproduces in all 3 books |
+| 4-dialogue | (Originally claimed: dialogue mid-peak.) | (do not encode) | encoded in beats `corpus-v1.md` `abcd78f` | LXC running | **DONE (3 books)** | DIVERGE | **DIVERGE** — only CS shows mid-peak; SoS+HG flat. Drop from beat-expansion guidance. |
+| 4-interiority | (Originally claimed: interiority builds.) | (do not encode) | — | — | **DONE (3 books)** | DIVERGE | **DIVERGE** — flat in CS+SoS, rises in HG. Drop. |
+| 7 | Beat boundary signals: top-4 set is stable (pov_attention_shift / stakes_recalibration / action_shift / scene_start are top-4 across all 3 books) but rank-1 differs (CS+SoS: pov_attention_shift; HG: action_shift). | `beat-expansion-system.md` transition vocabulary as soft prior — encode the top-4 set, not a single dominant signal | encoded in beats `corpus-v1.md` `abcd78f` (currently encodes specific ordering) | LXC running | **DONE (3 books)** | DIVERGE | **PASS_PARTIAL** — top-4 vocabulary stable; specific rank order is not. Soften variant from rank-ordered to set-based. |
+| 8 | **Tension curve / pacing rhythm** (highest-leverage): action density 1.56× first→second half across all 3 IWD books. Penultimate act is the action peak, NOT the final chapters — Crystal Shard final 20% dips back to 34% action vs second-half mean of 38%. Concrete pacing-curve shape. | `beat-expansion-system.md` + `chapter-outline-system.md` chapter-position pacing guidance | partial in plotter+beats variants | LXC pending+running | **DONE (3 books)** | n/a | **PASS** — book-level position-aware action density. Ship. |
+| 9 | **Character introduction pacing**: 57% of 105 named entities in first 30% of chapters. Mean 3.5 new/chapter early, taper to 0–1 late. 12 characters first appear in last 20% of beats. | `chapter-outline-system.md` per-chapter new-character budget | shipped in plotter `corpus-v1.md` `15c4145` | LXC pending | **DONE (3 books)** | n/a | **PASS** — directional curve matches all 3 books. |
+| 10 | **POV rotation**: chapter-primary POV rotates at 77% of chapter boundaries (omniscient 30% + Drizzt 26% own 56% of beats together). HIGH-frequency rotation, not occasional. | `chapter-outline-system.md` POV-character guidance — current planner says "Protagonist should hold POV for most chapters; rotate only when a different perspective is load-bearing." Salvatore data argues for more permissive rotation. | shipped in plotter `corpus-v1.md` `15c4145` | LXC pending | **DONE (3 books)** | n/a | **PASS** — high-frequency rotation reproduces. |
+| 11 | **Setting-change frequency**: 3.1 scene-level setting changes per chapter (CS); only 10% monolocation. Streams of Silver diverges (29% monolocation — its dungeon-crawl structure). Author-level pattern with intra-author variance. | `chapter-outline-system.md` permissive multi-location guidance | shipped in plotter `corpus-v1.md` `15c4145` | LXC pending | **DONE (3 books, with variance)** | n/a | **PASS_WITH_CONTENT_CONDITIONALS** — ship the permissive prior; note the dungeon-crawl exception class. |
+| 12 | **Dialogue density variance**: 29.5% mean per chapter (CS), high variance std=0.176; 2/3 chapters ≥25% dialogue. Likely overlaps Pattern 2 in implementation. | (subsumed by Pattern 2 — kind balance) | — | — | DONE | n/a | NOTE — fold into Pattern 2 |
+| 13 | Sensory channel distribution: visual + kinesthetic ~79% combined; olfactory near-zero (regex proxy). | (no planner implication at this resolution) | — | — | — | n/a | DROP — descriptive only |
+| 14 | **Forward-hook taxonomy** (chapter-close): partial-resolution 38.6% modal across all 3 books (43.8% / 33.3% / 37.0%); cliffhanger ~18%, foreshadow ~17% as reliable #2/#3. **3-book directionally stable.** | `chapter-outline-system.md` `purpose` guidance — describe the hook *kind* per chapter, default to partial-resolution | NEW — DRAFT pending | — | **DONE (3 books)** | n/a | **PASS** — strong NEW ship candidate |
+| 15 | **Time-cut markers**: CS 1.13 / SoS 2.54 / HG 1.28 per chapter. SoS is genuinely denser (road-trip book). Within-chapter cuts dominate (~70%). Concentrated in middle chapters (q1–q2). | `chapter-outline-system.md` purpose guidance — content-type-conditional time-cut budget; or beat-expansion guidance to use within-chapter time-cuts as a structural device | NEW — DRAFT pending | — | **DONE (3 books with content-type variance)** | n/a | **PASS_CONTENT_CONDITIONAL** — within-chapter cuts are the consistent shape; cross-chapter rate is content-type dependent |
+| 16 | **Established-facts density**: cross-book mean 5.58 / median 5; harness floor (≥6) is AT corpus distribution. Words-vs-claims correlation 0.348. | Either RELAX existing planner floor `establishedFacts.length ≥ 6` to ≥4-5, or KEEP as aspirational | NEW — analysis-only | — | **DONE (3 books)** | n/a | **DECISION_PENDING** — measurement is clean; the call is policy not data |
+
+**Sequencing (revised 2026-04-30 ~07:55 UTC, post directional re-score):**
+
+1. ✅ Cross-book validation done for original 7 patterns + 6 new dims + forward-hook + time-cuts + facts density.
+2. ✅ Directional re-score appended — Patterns 2, 3a, 3b, 4-action, 4-description, 7 (top-4) all pass directionally.
+3. ✅ Plotter variant `15c4145` shipped (Patterns 1, 9, 10, 8-chapter-side, 3a, 3b — all directionally pass).
+4. ⚠️ Beats variant `abcd78f` shipped (Patterns 4, 7, 8-beat-side) — Patterns 4-action + 4-description directionally pass but 4-dialogue + 4-interiority do NOT, and Pattern 7 needs softening from rank-ordered to set-based. Probe is still informative; reading should account for this.
+5. **Now: read LXC probe results when they land**; revise beats variant if needed; draft variant for Pattern 14 (forward-hook taxonomy) since it's strong-3-book-stable and not yet encoded.
+6. **Parallel:** wait for 3 in-flight subagents (chapter-opener taxonomy / dramatic-question shape / conflict-type taxonomy) — each adds another planner-prompt-relevant pattern if directionally stable.
+7. Land winners as defaults; document per-pattern verdict in `docs/decisions.md`.
 
 ## Schema-shipped soft priors (live, on `sceneBeatSchema`)
 
