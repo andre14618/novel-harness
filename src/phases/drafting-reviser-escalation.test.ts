@@ -115,6 +115,15 @@ mock.module("../db", () => ({
     ],
     establishedFacts: [], characterStateChanges: [], knowledgeChanges: [],
   }),
+  getChapterOutlines: async () => [{
+    chapter: 1, title: "Test Chapter", povCharacter: "Alice",
+    setting: "Lab", targetWords: 500, charactersPresent: ["Alice"],
+    scenes: [
+      { description: "Alice begins.", characters: ["Alice"], pov: "Alice", kind: "description", setting: "Lab" },
+      { description: "Alice reflects.", characters: ["Alice"], pov: "Alice", kind: "interiority", setting: "Lab" },
+    ],
+    establishedFacts: [], characterStateChanges: [], knowledgeChanges: [],
+  }],
   saveChapterOutline: async () => { saveChapterOutlineCallCount++ },
   getCharacters: async () => [{ id: "alice", name: "Alice", role: "protagonist" }],
   getFactsUpToChapter: async () => [],
