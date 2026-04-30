@@ -2,7 +2,7 @@
 status: in-progress
 novel: salvatore-icewind-dale
 book: crystal_shard
-last-updated: 2026-04-29
+last-updated: 2026-04-30
 audience: someone reading per-corpus calibration outcomes to make a downstream decision (ship a planner constraint, expand to next corpus, fix a dim)
 ---
 
@@ -2745,6 +2745,79 @@ Zero LLM cost. Pure regex compute on existing JSONL.
 
 - `crystal_shard.20260430T122834.char-pair-density.json` — Pattern 22 (per-book ensemble distributions at scene + beat granularity, per-chapter dominant ensemble, top-15 character pairs per book + cross-book overlap)
 - `crystal_shard.20260430T122834.pov-duration.json` — Pattern 23 (per-book POV-run stats in scenes + beats, per-character POV totals, distribution buckets, cross-book directional summary)
+
+---
+
+## Session 2026-04-30 ~12:31 UTC — Pattern 26 follow-up: compositional-pair Sonnet anchor pass
+
+**Trigger.** Inspecting the original DeepSeek V4 Flash pass on Pattern 26, the compositional-pair count came back as 2/79 (2.5%) — visibly low. Hand-spotting candidates like "Eulogy for Mithral Hall," "Conyberry's Pride," "The Dragon of Darkness," and "If Ever You Loved Catti-brie" were all classified as single-shape, suggesting the LLM was systematically under-firing on the cross-category compositional dimension. This re-pass anchors compositional labeling with Claude Sonnet 4.6 in-context judgment (no API call, $0 cost) on the same 79 body chapters.
+
+**Method.** Sonnet relabeled all 79 body chapter titles using strict cross-category compositional rules:
+- TRUE compositional: title genuinely combines two distinct shape categories where BOTH contribute load-bearing meaning (e.g., "Eulogy for Mithral Hall" = concept + place; "If Ever You Loved Catti-brie" = quote + character).
+- NOT compositional: single image fusing abstract+concrete elements ("Lavender Eyes," "Bloody Fields," "Hot Winds"); place-with-modifier where modifier names the place ("The Icy Tomb," "Tower of Twilight"); within-category combination ("Bonds of Reputation" = concept+concept; "Dagger and Staff" = object+object).
+- Borderline rejected: named-artifact phrases that function as proper nouns ("The Clock of Doom," "Aegis-fang") were kept single, applying the same logic as place epithets.
+
+**Headline finding — true compositional rate is 4× DeepSeek's:** **8/79 = 10.1%** body titles are genuinely compositional, vs DeepSeek's 2/79 = 2.5%. DeepSeek's false-negative rate on the compositional dimension was 75% (it caught 2 of the 8 true compositional titles). The DeepSeek pass primarily over-classified named-character + concept and named-place + concept combinations as single "metaphorical-image" labels.
+
+**Sonnet-confirmed compositional list (8 titles):**
+
+| Book | Ch | Title | Pair |
+|---|---:|---|---|
+| crystal_shard | 18 | Biggrin's House | place-name + character-name |
+| crystal_shard | 30 | The Battle of Icewind Dale | action-verb + place-name (DeepSeek caught) |
+| streams_of_silver | 15 | The Golem's Eyes | object-or-artifact + character-name |
+| streams_of_silver | 18 | The Secret of Keeper's Dale | place-name + concept-or-theme (DeepSeek caught) |
+| streams_of_silver | 22 | The Dragon of Darkness | character-name + concept-or-theme |
+| streams_of_silver | 24 | Eulogy for Mithral Hall | concept-or-theme + place-name |
+| halflings_gem | 3 | Conyberry's Pride | place-name + concept-or-theme |
+| halflings_gem | 23 | If Ever You Loved Catti-brie | quote-or-dialogue + character-name |
+
+**Per-book compositional rates (body):** crystal_shard 6.7% (2/30), streams_of_silver 16.7% (4/24), halflings_gem 8.0% (2/25). Streams of Silver has the highest compositional rate; this is the book where Mithral Hall, Keeper's Dale, and Shimmergloom drive title structure with named places/creatures.
+
+**Top compositional pair (3 of 8 instances): place-name + concept-or-theme** ("The Secret of Keeper's Dale," "Conyberry's Pride," "Eulogy for Mithral Hall"). Named-place anchored to a thematic abstract is the most reproducible compositional shape across the corpus — it appears in 2 of 3 books.
+
+**Secondary stable pattern (3 of 8 instances): character-name as a secondary shape** appears with object ("The Golem's Eyes"), concept ("The Dragon of Darkness"), and quote ("If Ever You Loved Catti-brie"). Named-creature/character pairings with abstracts or quotes are a recurring move, especially in halflings_gem and streams_of_silver.
+
+**Primary-shape agreement with DeepSeek: 92.4% (73/79).** Sonnet shifted 6 primary labels:
+- Sky Ponies (SS Ch 6): metaphorical-image → character-name (named tribe in Salvatore's setting)
+- To the Peril Of Low-Flying Birds (SS Ch 8): metaphorical-image → quote-or-dialogue (humorous toast)
+- Star Light, Star Bright (SS Ch 14): metaphorical-image → quote-or-dialogue (nursery rhyme borrow)
+- Days of Old (SS Ch 16): metaphorical-image → concept-or-theme (abstract reference, not sensory image)
+- End of a Dream (SS Ch 20): metaphorical-image → concept-or-theme (thematic statement, not image)
+- The Dragon of Darkness (SS Ch 22): metaphorical-image → character-name (Shimmergloom is named, also gained compositional flag)
+
+DeepSeek over-fired on `metaphorical-image` and under-fired on `quote-or-dialogue` and `character-name`. The single-shape distribution in the original DeepSeek pass remains directionally trustworthy (92.4% primary agreement) — the headline issue was specifically on the compositional dimension and on metaphorical-image over-classification of nursery-rhymes/toasts and named entities.
+
+**Updated Sonnet-anchored body distribution:**
+
+| Bucket | Count | Pct |
+|---|---:|---:|
+| character-name | 7 | 8.9% |
+| place-name | 16 | 20.3% |
+| action-verb | 7 | 8.9% |
+| concept-or-theme | 10 | 12.7% |
+| object-or-artifact | 8 | 10.1% |
+| quote-or-dialogue | 11 | 13.9% |
+| metaphorical-image | 20 | 25.3% |
+| other | 0 | 0% |
+
+Modal class remains `metaphorical-image` overall, but its share drops from 32.9% (DeepSeek) to 25.3% (Sonnet). Place-name remains the second-strongest at 20.3%. The intersection of all three books' top-3 shape sets is still `place-name + metaphorical-image`.
+
+**Directional verdict — revised.** DeepSeek's 2.5% rate suggested DIVERGE on the compositional-planning dimension (too rare to ship). Sonnet's 10.1% rate revises this to **PASS_PARTIAL**. Compositional pairing is a real but minority pattern in Salvatore's title shape — about 1 in 10 chapters genuinely combines two shape categories.
+
+**Updated harness target.** Pattern 26's planner-target recommendation is now:
+1. Keep the single-shape distribution (place-name and metaphorical-image as the dominant body classes) as the primary `titleShape` field on `chapter-outline` schema.
+2. Add an OPTIONAL `secondary_shape` field — not required, but available when the planner wants a compositional pair. Default the planner to single-shape; encourage compositional pairs in ~10% of chapters via fewshot examples.
+3. Lead the compositional fewshots with **`place-name + concept-or-theme`** (most reproducible cross-book pattern; "The Secret of Keeper's Dale," "Eulogy for Mithral Hall," "Conyberry's Pride"). Secondary fewshot family: **`character-name` paired with `concept-or-theme | quote-or-dialogue | object-or-artifact`** (3 instances across 2 books).
+4. Avoid encoding compositional as a hard requirement — 90% of titles remain single-shape. Compositional support is permission, not obligation.
+
+**Process note.** This pass illustrates a generalizable pattern: when an LLM probe returns a directional KILL based on a low-prevalence dimension being even lower than expected (like the 2.5% finding here), spot-check 5-10 candidates by hand before treating the verdict as final. DeepSeek V4 Flash with thinking disabled was systematically conservative on the compositional dimension because the rubric required cross-category recognition — a more difficult judgment than single-shape selection. Sonnet with full reasoning catches the 6 false-negatives that flip the headline from DIVERGE to PASS_PARTIAL.
+
+**Cost ledger.** Zero — pure in-context Sonnet labeling. The previous DeepSeek pass cost was already minimal (~$0.001); this pass cost $0 in API.
+
+### Artifacts
+
+- `crystal_shard.20260430T123112.chapter-title-shape-sonnet-anchor.json` — Pattern 26 follow-up (per-title Sonnet labels with `primary_shape`, `secondary_shape`, `is_compositional`, `sonnet_changed_from_deepseek` flag, notes; aggregate + per-book breakdown; explicit comparison to DeepSeek pass with primary-changes list and compositional-flag-additions list).
 
 ---
 
