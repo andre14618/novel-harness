@@ -32,7 +32,7 @@
  */
 
 import { writeFileSync, mkdirSync } from "node:fs"
-import { join, isAbsolute } from "node:path"
+import { basename, join, isAbsolute } from "node:path"
 
 function parseArgs(): { novelId: string; outputDir: string } {
   const novelIdArg = process.argv.find(a => a.startsWith("--novel-id="))
@@ -79,6 +79,19 @@ async function main() {
   setAutoMode(true)
   setResolverMode("auto")
 
+  const experimentIdRaw = process.env.EXPERIMENT_ID?.trim()
+  const experimentId = experimentIdRaw ? Number(experimentIdRaw) : null
+  if (experimentIdRaw && !Number.isInteger(experimentId)) {
+    console.error(`EXPERIMENT_ID must be an integer when set: ${experimentIdRaw}`)
+    process.exit(2)
+  }
+
+  const { initExperimentRun, initNovelRun } = await import("../../src/logger")
+  const runId = experimentId
+    ? await initExperimentRun(experimentId, "phase-eval", novelId, `${promptEnvVar}:${basename(promptOverride)}`)
+    : await initNovelRun(novelId)
+  console.error(`[run-variant] runId=${runId}${experimentId ? ` experimentId=${experimentId}` : ""}`)
+
   // Run planning ONLY. Concept must already be applied (clone-for-variant
   // --target-phase=concept-done).
   const { runPlanningPhase } = await import("../../src/phases/planning")
@@ -97,7 +110,7 @@ async function main() {
 
   mkdirSync(outputDir, { recursive: true })
   const outPath = join(outputDir, "outlines.json")
-  writeFileSync(outPath, JSON.stringify({ novelId, promptOverride, promptEnvVar, outlines }, null, 2))
+  writeFileSync(outPath, JSON.stringify({ novelId, runId, experimentId, promptOverride, promptEnvVar, outlines }, null, 2))
   console.error(`[run-variant] wrote ${outlines.length} outlines to ${outPath}`)
 }
 
