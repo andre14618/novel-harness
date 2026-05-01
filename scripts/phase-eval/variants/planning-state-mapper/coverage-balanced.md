@@ -4,14 +4,18 @@ Primary goal: preserve all continuity-relevant chapter state and make it writer-
 
 This stage requires story judgment. You may decide which existing beat should carry a fact, knowledge transfer, or state change, but you must not rewrite the beat list. If the existing beats do not support a state item, either assign a clear beat obligation that makes it writer-visible or omit the chapter-level state item.
 
+Identity is by ID. Names and prose text are display fields. Every chapter-level state item gets a stable kebab-case `id`, every beat already has a stable `beatId` shown in the input, and every beat obligation MUST set `sourceId` and `sourceKind` referencing the upstream item it makes writer-visible.
+
 Respond with ONLY valid JSON in this exact structure:
 
 {
   "establishedFacts": [
-    { "id": "temple-archive-pre-war-records", "fact": "The archive beneath the temple contains pre-war records", "category": "physical" }
+    { "id": "fact-temple-archive-pre-war-records", "fact": "The archive beneath the temple contains pre-war records", "category": "physical" }
   ],
   "characterStateChanges": [
     {
+      "id": "state-character-a-shaken-resolute",
+      "characterId": "char-character-a",
       "name": "Character A",
       "location": "the temple archive",
       "emotionalState": "shaken but resolute after reading the letter",
@@ -20,21 +24,47 @@ Respond with ONLY valid JSON in this exact structure:
     }
   ],
   "knowledgeChanges": [
-    { "characterName": "Character A", "knowledge": "Davan betrayed the order", "source": "read" }
+    {
+      "id": "know-character-a-davan-betrayed",
+      "characterId": "char-character-a",
+      "characterName": "Character A",
+      "knowledge": "Davan betrayed the order",
+      "source": "read"
+    }
   ],
   "beatMappings": [
     {
       "beatIndex": 3,
+      "beatId": "ch-001-the-trial-beat-004-archive-discovery",
       "obligations": {
         "mustEstablish": [
-          { "id": "temple-archive-pre-war-records", "text": "The archive beneath the temple contains pre-war records" }
+          {
+            "obligationId": "obl-001-the-trial-beat-004-fact-001-temple-archive-pre-war-records",
+            "sourceId": "fact-temple-archive-pre-war-records",
+            "sourceKind": "fact",
+            "text": "The archive beneath the temple contains pre-war records"
+          }
         ],
         "mustPayOff": [],
         "mustTransferKnowledge": [
-          { "characterName": "Character A", "text": "Character A learns Davan betrayed the order" }
+          {
+            "obligationId": "obl-001-the-trial-beat-004-know-001-character-a-davan-betrayed",
+            "sourceId": "know-character-a-davan-betrayed",
+            "sourceKind": "knowledge",
+            "characterId": "char-character-a",
+            "characterName": "Character A",
+            "text": "Character A learns Davan betrayed the order"
+          }
         ],
         "mustShowStateChange": [
-          { "characterName": "Character A", "text": "Character A moves from trusting the order to doubting it" }
+          {
+            "obligationId": "obl-001-the-trial-beat-004-state-001-character-a-shaken-resolute",
+            "sourceId": "state-character-a-shaken-resolute",
+            "sourceKind": "state",
+            "characterId": "char-character-a",
+            "characterName": "Character A",
+            "text": "Character A moves from trusting the order to doubting it"
+          }
         ],
         "mustNotReveal": [
           { "text": "Do not reveal that Character B witnessed the letter until the later confrontation", "untilBeat": 6 }
@@ -42,7 +72,7 @@ Respond with ONLY valid JSON in this exact structure:
         "allowedNewEntities": ["temple archive"]
       },
       "requiredPayoffs": [
-        { "fact_id": "temple-archive-pre-war-records", "payoff_beat": 7 }
+        { "fact_id": "fact-temple-archive-pre-war-records", "payoff_beat": 7 }
       ]
     }
   ]
@@ -50,33 +80,40 @@ Respond with ONLY valid JSON in this exact structure:
 
 ## Mapping Contract
 
-- Use only existing beat indexes from the provided beat list. Indexes are zero-based numbers.
+- Use only existing beat indexes from the provided beat list. Indexes are zero-based numbers; the matching `beatId` is shown in brackets next to each beat.
 - Do not rewrite, renumber, add, remove, or summarize beats.
+- When emitting a `beatMappings[]` entry, include both `beatIndex` and `beatId` from the input.
 - Keep obligations compact. Prefer 1-3 hard obligations per beat. Hard cap: no beat may carry more than 5 hard obligations, including climax beats.
 - Do not reduce chapter-level state to avoid overload. Solve overload by distributing obligations across plausible beats, shortening obligation text, or merging duplicate obligations.
 - Only include `beatMappings` for beats that need obligations, payoff links, or allowed entities. Omit empty mappings.
 - Every obligation item must include a concrete `text` string. Never emit id-only obligation objects.
+- Every obligation item must include `sourceId` referencing the upstream chapter-level item it makes writer-visible (`establishedFacts[].id`, `knowledgeChanges[].id`, or `characterStateChanges[].id`).
+- Every obligation item must include `sourceKind` ∈ {"fact", "knowledge", "state", "payoff"}.
+- For `mustTransferKnowledge` and `mustShowStateChange`, also include `characterId` matching the upstream item's `characterId`.
 - Beat indexes are numbers, never labels like `later`, `final`, or `climax`.
 
 ## Chapter-Level State
 
-- `establishedFacts`: continuity-relevant facts only. Include world rules, spatial relationships, character decisions, object states, identities, deadlines, and relationship facts. Do not include generic plot summary. Every fact needs a stable kebab-case `id` unique within this chapter.
-- `characterStateChanges`: end-of-chapter state only. Include characters whose location, emotional state, knowledge, relationship stance, decision, or physical condition meaningfully changed.
-- `knowledgeChanges`: information transfer only. Include who learns what and how. Source must be one of: witnessed, told, overheard, deduced, read, discovered.
+- `establishedFacts`: continuity-relevant facts only. Include world rules, spatial relationships, character decisions, object states, identities, deadlines, and relationship facts. Do not include generic plot summary. Every fact needs a stable kebab-case `id` (prefix `fact-`) unique within this chapter.
+- `characterStateChanges`: end-of-chapter state only. Include characters whose location, emotional state, knowledge, relationship stance, decision, or physical condition meaningfully changed. Each item needs `id` (prefix `state-`) and `characterId` (prefix `char-`).
+- `knowledgeChanges`: information transfer only. Include who learns what and how. Source must be one of: witnessed, told, overheard, deduced, read, discovered. Each item needs `id` (prefix `know-`) and `characterId` (prefix `char-`).
 
 For a 1200-1800 word chapter, expect roughly 4-8 established facts, 3-6 knowledge changes, and 2-4 character state changes unless the beat list is unusually sparse. These are not quotas, but output with fewer items should mean the chapter genuinely has little continuity-relevant movement.
 
-If an item does not matter after the chapter, do not put it in chapter-level state. If it does matter, keep it and make it writer-visible through a beat obligation. Never omit a valid continuity fact, knowledge transfer, or state change merely because assigning it would require another beat mapping.
+If an item does not matter after the chapter, do not put it in chapter-level state. If it does matter, keep it and make it writer-visible through a beat obligation referencing its `id`. Never omit a valid continuity fact, knowledge transfer, or state change merely because assigning it would require another beat mapping.
 
-On retry, you may receive an existing state mapping. Preserve existing established facts, knowledge changes, and character state changes unless they are clearly invalid or contradicted by the beat list. Do not pass coverage validation by deleting valid state. Fix missing coverage by adding or moving beat obligations first.
+On retry, you may receive an existing state mapping with assigned IDs. PRESERVE all valid IDs verbatim — do not rename `establishedFacts[].id`, `knowledgeChanges[].id`, `characterStateChanges[].id`, beat obligation `obligationId`/`sourceId`, or any `beatId`. Do not pass coverage validation by deleting valid state. Fix missing coverage by adding or moving beat obligations whose `sourceId` references the missing source ID.
 
 ## Coverage Rules
 
-These are hard rules. The deterministic validator will reject output that misses them.
+These are hard rules. The deterministic validator will reject output that misses them — and validation is by exact `sourceId` reference, not by text overlap.
 
-- Every `establishedFacts[]` item must be writer-visible through a matching beat description, `mustEstablish`, `mustPayOff`, or valid `requiredPayoffs` link.
-- Every `knowledgeChanges[]` item must be mirrored in exactly one beat's `obligations.mustTransferKnowledge`, using the same `characterName` and a key knowledge phrase.
-- Every `characterStateChanges[]` item must be mirrored in at least one beat's `obligations.mustShowStateChange`, using the same `name` as `characterName` and the key final-state phrase.
+- Every `establishedFacts[]` item's `id` must appear as the `sourceId` of at least one `mustEstablish` or `mustPayOff` obligation, OR be the `fact_id` of a `requiredPayoffs` link.
+- Every `knowledgeChanges[]` item's `id` must appear as the `sourceId` of exactly one `mustTransferKnowledge` obligation.
+- Every `characterStateChanges[]` item's `id` must appear as the `sourceId` of at least one `mustShowStateChange` obligation.
+- An obligation's `sourceId` must match a real chapter-level item; unknown source IDs are rejected.
+- An obligation's `sourceKind` must match the source registry it points into.
+- For knowledge/state obligations, `characterId` must equal the upstream item's `characterId`.
 - If a beat seeds a fact that must pay off later in the same chapter, put `requiredPayoffs` on the seeding beat and `mustPayOff` on the payoff beat.
 - `requiredPayoffs[].fact_id` must match an `establishedFacts[].id` in this chapter.
 - `requiredPayoffs[].payoff_beat` must be a valid beat index strictly greater than the seeding beat index.
@@ -98,12 +135,13 @@ These are hard rules. The deterministic validator will reject output that misses
 
 ## Self-Check Before Returning JSON
 
-- First, inventory continuity-relevant state from the whole chapter: durable facts, who learned what, and where each important character ends emotionally/physically/epistemically.
+- First, inventory continuity-relevant state from the whole chapter: durable facts, who learned what, and where each important character ends emotionally/physically/epistemically. Assign each item a stable kebab-case `id` (`fact-…` / `know-…` / `state-…`).
 - Compare that inventory to your JSON arrays. If a valid item is missing only because coverage felt crowded, add it back and distribute its obligation.
-- For each `establishedFacts[]` item, point to one beat description, `mustEstablish`, `mustPayOff`, or `requiredPayoffs` link that makes it writer-visible.
-- For each `knowledgeChanges[]` item, ensure one matching `mustTransferKnowledge` obligation names the same character and repeats the key knowledge phrase.
-- For each `characterStateChanges[]` item, ensure one matching `mustShowStateChange` obligation names the same character and repeats the key final emotional/knowledge/location change.
+- For each `establishedFacts[]` item, point to one `mustEstablish` / `mustPayOff` obligation whose `sourceId` matches its `id`, or a `requiredPayoffs[].fact_id` that matches.
+- For each `knowledgeChanges[]` item, ensure exactly one `mustTransferKnowledge` obligation has `sourceId` equal to its `id` and `characterId` equal to its `characterId`.
+- For each `characterStateChanges[]` item, ensure at least one `mustShowStateChange` obligation has `sourceId` equal to its `id` and `characterId` equal to its `characterId`.
+- Confirm every obligation has `sourceKind` matching its list (`fact` for `mustEstablish`, `knowledge` for `mustTransferKnowledge`, `state` for `mustShowStateChange`, `payoff` for `mustPayOff`).
 - Count hard obligations per beat. If any beat exceeds 5, move the least immediate knowledge/state reaction to an adjacent plausible beat. A no-orphan result with an overloaded beat is a failure.
 - Keep enough chapter-level state to preserve continuity; do not win by deleting valid facts, knowledge, or state changes. A no-orphan result with thin state is a failure.
 
-The output should make hidden planner metadata impossible: anything declared in chapter-level state must be available to the beat writer in the relevant beat contract.
+The output should make hidden planner metadata impossible: anything declared in chapter-level state must be reachable from a beat obligation by exact `sourceId` reference.
