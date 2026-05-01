@@ -150,20 +150,36 @@ function sha256(path: string): string {
   return createHash("sha256").update(data).digest("hex")
 }
 
+function hashText(value: string): string {
+  return createHash("sha256").update(value).digest("hex")
+}
+
 async function main() {
   const { out } = parseArgs()
   const root = resolve(import.meta.dir, "../..")
   const gitCommit = await git(["rev-parse", "HEAD"])
   const gitStatus = await git(["status", "--short"])
   const deployedMarkerPath = resolve(root, ".deployed_commit")
+  const deployedCommitMarker = existsSync(deployedMarkerPath)
+    ? readFileSync(deployedMarkerPath, "utf8").trim()
+    : null
+  const surfaceFiles = SURFACE_FILES.map(path => ({
+    path,
+    sha256: sha256(resolve(root, path)),
+  }))
+  const surfaceFingerprint = hashText(JSON.stringify(surfaceFiles))
 
   const manifest = {
     manifest_version: "current-surface-v1",
     created_at: new Date().toISOString(),
+    // On LXC, deploy is rsync-based and the checked-out git HEAD can be stale.
+    // `deployed_commit_marker` is the canonical deployed commit when present;
+    // `surface_fingerprint` is the prompt/context hash that score-bearing evals
+    // should use for exact surface equality.
+    canonical_commit: deployedCommitMarker ?? gitCommit,
     git_commit: gitCommit,
-    deployed_commit_marker: existsSync(deployedMarkerPath)
-      ? readFileSync(deployedMarkerPath, "utf8").trim()
-      : null,
+    deployed_commit_marker: deployedCommitMarker,
+    surface_fingerprint: surfaceFingerprint,
     dirty_worktree: Boolean(gitStatus),
     beat_entity_list_variant: process.env.BEAT_ENTITY_LIST_VARIANT ?? "v1",
     writer_conditioning: process.env.WRITER_CONDITIONING ?? null,
@@ -177,10 +193,7 @@ async function main() {
         "halluc-ungrounded",
       ].map(agent => [agent, AGENT_MODELS[agent]]),
     ),
-    surface_files: SURFACE_FILES.map(path => ({
-      path,
-      sha256: sha256(resolve(root, path)),
-    })),
+    surface_files: surfaceFiles,
     surfaced_fields: SURFACED_FIELDS,
   }
 

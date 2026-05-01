@@ -62,9 +62,12 @@ bun scripts/hallucination/build-current-surface-panel.ts \
   --synthetic-per-kind 10
 ```
 
-Run these on LXC after the target surface is deployed. Local manifests may show
-`dirty_worktree: true` or a missing `.deployed_commit` marker; those are useful
-for development but not score-bearing dataset metadata.
+Run these on LXC after the target surface is deployed. Because LXC deploys are
+rsync-based, `git rev-parse HEAD` can be stale there; use
+`deployed_commit_marker` plus `surface_fingerprint` as the canonical dataset
+surface identity. Local manifests may show `dirty_worktree: true` or a missing
+`.deployed_commit` marker; those are useful for development but not
+score-bearing dataset metadata.
 
 ## Deterministic vs Semantic
 

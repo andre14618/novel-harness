@@ -180,8 +180,10 @@ function baseFixture(attempt: BeatAttempt, checker: "halluc-ungrounded" | "adher
     source_kind: "natural_current_surface",
     runtime_surface: surface ? {
       manifest_version: surface.manifest_version,
+      canonical_commit: surface.canonical_commit,
       git_commit: surface.git_commit,
       deployed_commit_marker: surface.deployed_commit_marker,
+      surface_fingerprint: surface.surface_fingerprint,
       beat_entity_list_variant: surface.beat_entity_list_variant,
       dirty_worktree: surface.dirty_worktree,
     } : null,

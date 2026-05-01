@@ -1285,7 +1285,7 @@ During exp #282 monitoring, an ad-hoc status query guessed `novels.last_error` a
 
 During exp #283 planning, the current surface audit found that `planning-beats` can emit soft structural fields (`valueShifted`, `gapPresent`, `lifeValueAxes`, `mice*`) that the runtime beat writer and beat checkers do not currently see. Mixing older runs, historical seeds, synthetic fixtures, and current-surface rows under one precision number would therefore measure a moving target: the label might be right for one evidence surface and wrong for another.
 
-**The rule:** every score-bearing checker eval row records the runtime surface it scores — deployed commit or manifest, writer/checker prompt family, model route, context-builder hashes, and evidence-surface variant. Historical rows can seed taxonomy and regression fixtures, but precision/recall for blocker policy only counts rows generated under the same prompt/context surface. (exp #283, 2026-04-30)
+**The rule:** every score-bearing checker eval row records the runtime surface it scores — deployed commit or manifest, writer/checker prompt family, model route, context-builder hashes, and evidence-surface variant. On the LXC, trust `.deployed_commit` plus a file-hash surface fingerprint over `git rev-parse HEAD`, because deploy is rsync-based and git HEAD can be stale. Historical rows can seed taxonomy and regression fixtures, but precision/recall for blocker policy only counts rows generated under the same prompt/context surface. (exp #283, 2026-04-30)
 
 ### Fast-fail SSE watchers must distinguish expected errors from unexpected errors
 
