@@ -196,6 +196,13 @@ export const COMPONENTS: Component[] = [
     measuredBy: ["obligation-coverage", "state-grounding", "beat-specificity"],
     category: "agent-prompt",
   },
+  {
+    id: "prompt.planning-state-repair", name: "Planning State Repair Prompt",
+    description: "System prompt for incremental stable-ID obligation repair patches",
+    type: "prompt", storage: "file", path: "src/agents/planning-state-repair/state-repair-system.md",
+    measuredBy: ["obligation-coverage", "state-grounding"],
+    category: "agent-prompt",
+  },
   // rewriter prompt removed 2026-04-17 — validation is diagnostic-only
 
   // ── Concept agent prompts ──────────────────────────────────────────────

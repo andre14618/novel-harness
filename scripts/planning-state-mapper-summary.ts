@@ -77,14 +77,12 @@ function unique<T>(values: T[]): T[] {
   return Array.from(new Set(values))
 }
 
-function parseAttemptLogs(novelId: string): { path: string; attempts: MapperAttemptLog[]; autoRepair: { chapters: number; repairs: number } | null } {
+function parseAttemptLogs(novelId: string): { path: string; attempts: MapperAttemptLog[] } {
   const path = join(process.cwd(), "output", novelId, "harness.log")
-  if (!existsSync(path)) return { path, attempts: [], autoRepair: null }
+  if (!existsSync(path)) return { path, attempts: [] }
 
   const attempts: MapperAttemptLog[] = []
-  let autoRepair: { chapters: number; repairs: number } | null = null
   const attemptRe = /Planning state mapper ch(\d+) attempt=(\d+): mappedBeats=(\d+)\/(\d+) ignoredMappings=(\d+) facts=(\d+) orphanFacts=(\d+) knowledge=(\d+) orphanKnowledge=(\d+) state=(\d+) orphanState=(\d+) overloadedBeats=(\d+)/
-  const repairRe = /Planning obligation auto-repair summary: chapters=(\d+) repairs=(\d+)/
 
   for (const line of readFileSync(path, "utf-8").split("\n")) {
     const attemptMatch = line.match(attemptRe)
@@ -103,16 +101,10 @@ function parseAttemptLogs(novelId: string): { path: string; attempts: MapperAtte
         orphanState: Number(attemptMatch[11]),
         overloadedBeats: Number(attemptMatch[12]),
       })
-      continue
-    }
-
-    const repairMatch = line.match(repairRe)
-    if (repairMatch) {
-      autoRepair = { chapters: Number(repairMatch[1]), repairs: Number(repairMatch[2]) }
     }
   }
 
-  return { path, attempts, autoRepair }
+  return { path, attempts }
 }
 
 function aggregateAttempts(attempts: MapperAttemptLog[]) {
@@ -207,7 +199,6 @@ function printHuman(summary: any): void {
   console.log(`Latest logged orphans: facts=${summary.attempts.latest_logged_orphans.facts} knowledge=${summary.attempts.latest_logged_orphans.knowledge} state=${summary.attempts.latest_logged_orphans.state} total=${summary.attempts.latest_logged_orphans.total} overloaded=${summary.attempts.latest_logged_overloaded_beats}`)
   console.log(`Final outline orphans: facts=${summary.final.final_orphans.facts} knowledge=${summary.final.final_orphans.knowledge} state=${summary.final.final_orphans.state} total=${summary.final.final_orphans.total}`)
   console.log(`Final outline counts: facts=${summary.final.final_counts.facts} knowledge=${summary.final.final_counts.knowledge} state=${summary.final.final_counts.state} overloaded=${summary.final.final_counts.overloaded_beats} parse_failures=${summary.final.parse_failures}`)
-  console.log(`Auto-repair: chapters=${summary.auto_repair?.chapters ?? "unknown"} repairs=${summary.auto_repair?.repairs ?? "unknown"}`)
 }
 
 async function main(): Promise<void> {
@@ -235,7 +226,6 @@ async function main(): Promise<void> {
     attempt_log: { path: attemptLog.path, log_available: attemptLog.attempts.length > 0 },
     attempts: aggregateAttempts(attemptLog.attempts),
     final: aggregateFinalOutlines(outlineRows),
-    auto_repair: attemptLog.autoRepair,
   }
 
   if (args.json) console.log(JSON.stringify(summary, null, 2))

@@ -1,13 +1,14 @@
 import { expect, test } from "bun:test"
 
 import {
+  applyBeatObligationRepairPatch,
   deriveBeatObligations,
   formatObligationCoverageRetryFeedback,
-  repairBeatObligationCoverage,
   renderBeatObligations,
   validateBeatObligationCoverage,
 } from "./beat-obligations"
 import { enrichOutlineIds } from "./ids"
+import { planningStateRepairSchema } from "../agents/planning-state-repair/schema"
 import type { ChapterOutline, SceneBeat } from "../types"
 
 test("deriveBeatObligations maps payoff links to seed and payoff beat obligations", () => {
@@ -33,16 +34,16 @@ test("deriveBeatObligations maps payoff links to seed and payoff beat obligation
   ])
 })
 
-test("deriveBeatObligations treats planner-authored obligations as explicit assignments and resolves sourceId by text", () => {
+test("deriveBeatObligations treats planner-authored obligations with source IDs as explicit assignments", () => {
   const result = deriveBeatObligations(chapter({
     scenes: [
       beat({
         description: "Calla studies Davan's skin.",
         obligations: {
-          mustEstablish: [{ id: "old-script", text: "Davan bears the Old Tongue on his skin" }],
+          mustEstablish: [{ sourceId: "old-script", sourceKind: "fact", text: "Davan bears the Old Tongue on his skin" } as any],
           mustPayOff: [],
-          mustTransferKnowledge: [{ characterName: "Calla", text: "Calla learns Davan bears the Old Tongue" }],
-          mustShowStateChange: [{ characterName: "Calla", text: "Calla changes from detached executioner to protective witness" }],
+          mustTransferKnowledge: [{ sourceId: "know-calla-davan-bears-old-tongue", sourceKind: "knowledge", characterId: "char-calla", characterName: "Calla", text: "Calla learns Davan bears the Old Tongue" } as any],
+          mustShowStateChange: [{ sourceId: "state-calla-iron-hall-protective-witness", sourceKind: "state", characterId: "char-calla", characterName: "Calla", text: "Calla changes from detached executioner to protective witness" } as any],
           mustNotReveal: [{ text: "Do not reveal Orvath's full plan" }],
           allowedNewEntities: ["Old Tongue"],
         },
@@ -52,10 +53,10 @@ test("deriveBeatObligations treats planner-authored obligations as explicit assi
       { id: "old-script", fact: "Davan bears the Old Tongue on his skin", category: "identity" },
     ],
     knowledgeChanges: [
-      { characterName: "Calla", knowledge: "Davan bears the Old Tongue", source: "discovered" },
+      { id: "know-calla-davan-bears-old-tongue", characterId: "char-calla", characterName: "Calla", knowledge: "Davan bears the Old Tongue", source: "discovered" } as any,
     ],
     characterStateChanges: [
-      { name: "Calla", location: "Iron Hall", emotionalState: "protective witness", knows: [], doesNotKnow: [] },
+      { id: "state-calla-iron-hall-protective-witness", characterId: "char-calla", name: "Calla", location: "Iron Hall", emotionalState: "protective witness", knows: [], doesNotKnow: [] } as any,
     ],
   }))
 
@@ -65,6 +66,30 @@ test("deriveBeatObligations treats planner-authored obligations as explicit assi
   expect(result.beats[0].mustEstablish[0]).toEqual(expect.objectContaining({ confidence: "explicit", source: "scene.obligations.mustEstablish", sourceId: "old-script", sourceKind: "fact" }))
   expect(result.beats[0].mustNotReveal[0]).toEqual(expect.objectContaining({ kind: "avoid", text: "Do not reveal Orvath's full plan" }))
   expect(result.beats[0].allowedNewEntities).toContain("Old Tongue")
+})
+
+test("validateBeatObligationCoverage does not derive sourceId from matching obligation text", () => {
+  const outline = chapter({
+    scenes: [
+      beat({
+        description: "Calla studies Davan's skin.",
+        obligations: {
+          mustEstablish: [{ text: "Davan bears the Old Tongue on his skin" }],
+          mustPayOff: [], mustTransferKnowledge: [], mustShowStateChange: [], mustNotReveal: [], allowedNewEntities: [],
+        },
+      }),
+    ],
+    establishedFacts: [
+      { id: "old-script", fact: "Davan bears the Old Tongue on his skin", category: "identity" },
+    ],
+  })
+
+  const validation = validateBeatObligationCoverage(outline)
+
+  expect(validation.valid).toBe(false)
+  expect(validation.summary.missingSourceIds).toBe(1)
+  expect(validation.missingSourceIds).toContain("old-script")
+  expect((outline.scenes[0].obligations.mustEstablish[0] as any).sourceId).toBeUndefined()
 })
 
 test("deriveBeatObligations ignores blank planner-authored obligation items", () => {
@@ -91,11 +116,10 @@ test("deriveBeatObligations ignores blank planner-authored obligation items", ()
   expect(result.summary.orphanFacts).toBe(1)
 })
 
-test("deriveBeatObligations does NOT cover state items via beat-text overlap (exact-ID only)", () => {
+test("deriveBeatObligations does NOT cover state items via beat text (exact-ID only)", () => {
   // Even though the beat description contains all the keywords from the
   // fact + knowledge change, no obligation was authored — so under the
-  // exact-ID contract, both items are orphans. Beat-text matches are
-  // diagnostic-only via summary.implicitTextMatches.
+  // exact-ID contract, both items are orphans.
   const outline = chapter({
     scenes: [
       beat({ description: "Istra examines Wren's green-lit memory and realizes the cure damages language." }),
@@ -113,7 +137,6 @@ test("deriveBeatObligations does NOT cover state items via beat-text overlap (ex
 
   expect(result.summary.orphanFacts).toBe(1)
   expect(result.summary.orphanKnowledgeChanges).toBe(1)
-  expect(result.summary.implicitTextMatches).toBeGreaterThan(0)
   expect(result.beats[0].mustEstablish).toEqual([])
 })
 
@@ -180,6 +203,47 @@ test("validateBeatObligationCoverage flags unknown obligation source IDs", () =>
   ])
 })
 
+test("validateBeatObligationCoverage rejects duplicate source IDs instead of rewriting them", () => {
+  const outline = chapter({
+    scenes: [beat({ description: "Istra learns two things.", obligations: {
+      mustEstablish: [], mustPayOff: [],
+      mustTransferKnowledge: [
+        { sourceId: "know-shared", sourceKind: "knowledge", characterId: "char-istra", characterName: "Istra", text: "first" } as any,
+      ],
+      mustShowStateChange: [], mustNotReveal: [], allowedNewEntities: [],
+    } })],
+    knowledgeChanges: [
+      { id: "know-shared", characterId: "char-istra", characterName: "Istra", knowledge: "first", source: "deduced" } as any,
+      { id: "know-shared", characterId: "char-istra", characterName: "Istra", knowledge: "second", source: "deduced" } as any,
+    ],
+  })
+
+  const validation = validateBeatObligationCoverage(outline)
+
+  expect(validation.valid).toBe(false)
+  expect(validation.summary.duplicateSourceIds).toBe(1)
+  expect((outline.knowledgeChanges[1] as any).id).toBe("know-shared")
+})
+
+test("validateBeatObligationCoverage rejects missing or mismatched sourceKind", () => {
+  const outline = chapter({
+    scenes: [beat({ description: "Istra records the ledger.", obligations: {
+      mustEstablish: [
+        { sourceId: "ledger-forgery", sourceKind: "knowledge", text: "Aldric falsified the plague ledgers" } as any,
+      ],
+      mustPayOff: [], mustTransferKnowledge: [], mustShowStateChange: [], mustNotReveal: [], allowedNewEntities: [],
+    } })],
+    establishedFacts: [
+      { id: "ledger-forgery", fact: "Aldric falsified the plague ledgers", category: "knowledge" },
+    ],
+  })
+
+  const validation = validateBeatObligationCoverage(outline)
+
+  expect(validation.valid).toBe(false)
+  expect(validation.summary.sourceKindMismatches).toBe(1)
+})
+
 test("formatObligationCoverageRetryFeedback names missing source IDs and preserves chapter ids", () => {
   const outline = chapter({
     scenes: [beat({ description: "Istra prepares another dose." })],
@@ -205,46 +269,100 @@ test("formatObligationCoverageRetryFeedback names missing source IDs and preserv
   expect(feedback).toContain("characterId=char-istra")
 })
 
-test("repairBeatObligationCoverage inserts obligations referencing the missing source IDs", () => {
+test("applyBeatObligationRepairPatch mechanically applies valid add operations", () => {
   const outline = chapter({
-    scenes: [
-      beat({ description: "Istra prepares another dose.", characters: ["Istra"] }),
-      beat({ description: "Aldric waits outside.", characters: ["Aldric"] }),
-    ],
+    chapterId: "ch-001-treatment",
+    scenes: [beat({ beatId: "ch-001-treatment-beat-001-dose", description: "Istra prepares another dose.", characters: ["Istra"] })],
     knowledgeChanges: [
-      { characterName: "Istra", knowledge: "Aldric falsified the plague ledgers", source: "deduced" },
-    ],
-    characterStateChanges: [
-      { name: "Istra", location: "The sealed archive", emotionalState: "furious clarity", knows: ["Aldric falsified the plague ledgers"], doesNotKnow: [] },
+      { id: "know-istra-ledger-forgery", characterId: "char-istra", characterName: "Istra", knowledge: "Aldric falsified the plague ledgers", source: "deduced" } as any,
     ],
   })
 
-  const repaired = repairBeatObligationCoverage(outline)
+  const result = applyBeatObligationRepairPatch(outline, {
+    operations: [{
+      op: "addObligation",
+      beatId: "ch-001-treatment-beat-001-dose",
+      list: "mustTransferKnowledge",
+      sourceId: "know-istra-ledger-forgery",
+      sourceKind: "knowledge",
+      characterId: "char-istra",
+      text: "Istra learns Aldric falsified the plague ledgers.",
+    }],
+  })
 
-  expect(repaired.validation.valid).toBe(true)
-  expect(repaired.repairs.some(r => r.includes("mustTransferKnowledge") && r.includes("char-istra"))).toBe(true)
-  expect(repaired.repairs.some(r => r.includes("mustShowStateChange") && r.includes("char-istra"))).toBe(true)
-
-  const beat0 = repaired.outline.scenes[0]
-  const knowObl = beat0.obligations.mustTransferKnowledge[0] as any
-  expect(knowObl.sourceId).toMatch(/^know-/)
-  expect(knowObl.sourceKind).toBe("knowledge")
-  expect(knowObl.characterId).toBe("char-istra")
-  expect(knowObl.obligationId).toMatch(/^obl-/)
+  expect(result.rejected).toEqual([])
+  expect(result.applied).toHaveLength(1)
+  expect(result.validation.valid).toBe(true)
+  const item = result.outline.scenes[0].obligations.mustTransferKnowledge[0] as any
+  expect(item.sourceId).toBe("know-istra-ledger-forgery")
+  expect(item.sourceKind).toBe("knowledge")
+  expect(item.characterId).toBe("char-istra")
+  expect(item.obligationId).toMatch(/^obl-/)
+  expect((outline.scenes[0].obligations as any)?.mustTransferKnowledge ?? []).toEqual([])
 })
 
-test("repairBeatObligationCoverage covers short knowledge items by ID reference", () => {
+test("planningStateRepairSchema accepts null characterId as omitted for fact ops", () => {
+  const parsed = planningStateRepairSchema.parse({
+    operations: [{
+      op: "addObligation",
+      beatId: "ch-001-treatment-beat-001-dose",
+      list: "mustEstablish",
+      sourceId: "fact-ledger-forgery",
+      sourceKind: "fact",
+      characterId: null,
+      text: "Aldric falsified the plague ledgers.",
+    }],
+  })
+
+  expect((parsed.operations[0] as any).characterId).toBeUndefined()
+})
+
+test("applyBeatObligationRepairPatch rejects invalid source and character references", () => {
   const outline = chapter({
-    scenes: [beat({ description: "Istra watches the seal break.", characters: ["Istra"] })],
+    chapterId: "ch-001-treatment",
+    scenes: [beat({ beatId: "ch-001-treatment-beat-001-dose", characters: ["Istra"] })],
     knowledgeChanges: [
-      { characterName: "Istra", knowledge: "truth", source: "deduced" },
+      { id: "know-istra-truth", characterId: "char-istra", characterName: "Istra", knowledge: "truth", source: "deduced" } as any,
     ],
   })
 
-  const repaired = repairBeatObligationCoverage(outline)
+  const result = applyBeatObligationRepairPatch(outline, {
+    operations: [
+      { op: "addObligation", beatId: "missing-beat", list: "mustTransferKnowledge", sourceId: "know-istra-truth", sourceKind: "knowledge", characterId: "char-istra", text: "Istra learns the truth." },
+      { op: "addObligation", beatId: "ch-001-treatment-beat-001-dose", list: "mustTransferKnowledge", sourceId: "know-istra-truth", sourceKind: "knowledge", characterId: "char-alric", text: "Istra learns the truth." },
+    ],
+  })
 
-  expect(repaired.validation.valid).toBe(true)
-  expect(repaired.repairs.some(r => r.includes("mustTransferKnowledge"))).toBe(true)
+  expect(result.applied).toEqual([])
+  expect(result.rejected).toHaveLength(2)
+  expect(result.validation.valid).toBe(false)
+})
+
+test("applyBeatObligationRepairPatch can remove bad obligations before adding corrected ones", () => {
+  const outline = chapter({
+    chapterId: "ch-001-treatment",
+    scenes: [beat({ beatId: "ch-001-treatment-beat-001-dose", obligations: {
+      mustEstablish: [
+        { obligationId: "obl-bad", sourceId: "unknown-source", sourceKind: "fact", text: "Bad link" } as any,
+      ],
+      mustPayOff: [], mustTransferKnowledge: [], mustShowStateChange: [], mustNotReveal: [], allowedNewEntities: [],
+    } })],
+    establishedFacts: [
+      { id: "fact-ledger-forgery", fact: "Aldric falsified the plague ledgers", category: "knowledge" },
+    ],
+  })
+
+  const result = applyBeatObligationRepairPatch(outline, {
+    operations: [
+      { op: "removeObligation", beatId: "ch-001-treatment-beat-001-dose", list: "mustEstablish", obligationId: "obl-bad" },
+      { op: "addObligation", beatId: "ch-001-treatment-beat-001-dose", list: "mustEstablish", sourceId: "fact-ledger-forgery", sourceKind: "fact", text: "Aldric falsified the plague ledgers." },
+    ],
+  })
+
+  expect(result.rejected).toEqual([])
+  expect(result.validation.valid).toBe(true)
+  expect(result.outline.scenes[0].obligations.mustEstablish).toHaveLength(1)
+  expect((result.outline.scenes[0].obligations.mustEstablish[0] as any).sourceId).toBe("fact-ledger-forgery")
 })
 
 test("deriveBeatObligations counts id-less established facts as orphan telemetry", () => {

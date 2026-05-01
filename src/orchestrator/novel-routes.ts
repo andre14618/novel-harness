@@ -144,7 +144,7 @@ export async function handleNovelRoute(req: Request, url: URL): Promise<Response
       // Group agents by role for the UI
       const agentGroups: Record<string, { label: string; description: string; agents: string[] }> = {
         writers: { label: "Writers", description: "Creative prose generation", agents: ["writer", "beat-writer"] },
-        planners: { label: "Planners", description: "World, characters, plot, chapter outlines", agents: ["world-builder", "character-agent", "plotter", "planning-plotter", "planning-beats", "planning-state-mapper"] },
+        planners: { label: "Planners", description: "World, characters, plot, chapter outlines", agents: ["world-builder", "character-agent", "plotter", "planning-plotter", "planning-beats", "planning-state-mapper", "planning-state-repair"] },
         beatSupport: { label: "Beat Support", description: "Cheap/fast structural tasks for beat-level writing", agents: ["reference-resolver", "adherence-events"] },
         validators: { label: "Validators", description: "Plan adherence, entity grounding, functional state, and continuity checks", agents: ["chapter-plan-checker", "halluc-ungrounded", "functional-state-checker", "continuity-facts", "continuity-state"] },
         lintTonal: { label: "Lint", description: "AI-tell detection and guarded prose cleanup", agents: ["lint-fixer"] },

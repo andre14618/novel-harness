@@ -126,7 +126,7 @@ complete knob list.
 | State-density target | prompt-rider | file | implicit | Y |
 | Knowledge-transfer explicitness | prompt-rider | file | mapper-authored obligations | Y |
 | Payoff-link placement | prompt-rider | file | mapper-authored links | Y |
-| Coverage retry policy | code/config | `src/phases/planning.ts` | up to 2 mapper retries, then auto-repair fallback | Y |
+| Coverage repair policy | agent+code | `src/agents/planning-state-repair/` + `src/phases/planning.ts` | incremental LLM patch, then chapter mapper retry, then hard failure | Y |
 
 ### 1.4 Planning-level state schema (what planner MAY output)
 

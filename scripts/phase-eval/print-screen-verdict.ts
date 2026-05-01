@@ -116,11 +116,8 @@ interface VariantMetrics {
   missing_source_ids: number
   unknown_source_ids: number
   duplicate_source_ids: number
+  source_kind_mismatches: number
   character_id_mismatches: number
-  // Diagnostic only — fuzzy beat-text matches that COULD have covered an
-  // orphan but did not because no obligation was authored. Never affects
-  // the screen verdict.
-  implicit_text_matches: number
 }
 
 interface MapperHealthMetrics {
@@ -134,8 +131,6 @@ interface MapperHealthMetrics {
   max_completion_tokens: number
   max_tokens_cap: number
   hit_completion_cap: boolean
-  auto_repair_chapters: number | null
-  auto_repair_repairs: number | null
 }
 
 function valueAfter(arg: string, prefix: string): string | undefined {
@@ -206,7 +201,8 @@ function inferMetricSet(summary: Summary): MetricSet {
 
 function countSceneObligations(outlines: ParsedOutline[]): Omit<VariantMetrics,
   "facts_median" | "knowledge_median" | "state_median" | "total_beats" | "total_payoff_links" |
-  "total_state_items" | "orphan_facts" | "orphan_knowledge" | "orphan_state" | "total_orphans" | "overloaded_beats"
+  "total_state_items" | "orphan_facts" | "orphan_knowledge" | "orphan_state" | "total_orphans" | "overloaded_beats" |
+  "missing_source_ids" | "unknown_source_ids" | "duplicate_source_ids" | "source_kind_mismatches" | "character_id_mismatches"
 > {
   const counts = {
     total_obligations: 0,
@@ -256,8 +252,8 @@ function computeVariantMetrics(data: VariantData): VariantMetrics {
       missing_source_ids: 0,
       unknown_source_ids: 0,
       duplicate_source_ids: 0,
+      source_kind_mismatches: 0,
       character_id_mismatches: 0,
-      implicit_text_matches: 0,
     }
   }
 
@@ -289,8 +285,8 @@ function computeVariantMetrics(data: VariantData): VariantMetrics {
     missing_source_ids: sum(coverage.map(c => c.summary.missingSourceIds)),
     unknown_source_ids: sum(coverage.map(c => c.summary.unknownObligationSourceIds)),
     duplicate_source_ids: sum(coverage.map(c => c.summary.duplicateSourceIds)),
+    source_kind_mismatches: sum(coverage.map(c => c.summary.sourceKindMismatches)),
     character_id_mismatches: sum(coverage.map(c => c.summary.characterIdMismatches)),
-    implicit_text_matches: sum(coverage.map(c => c.summary.implicitTextMatches)),
   }
 }
 
@@ -306,22 +302,7 @@ function emptyMapperHealth(reason: string): MapperHealthMetrics {
     max_completion_tokens: 0,
     max_tokens_cap: 0,
     hit_completion_cap: false,
-    auto_repair_chapters: null,
-    auto_repair_repairs: null,
   }
-}
-
-function parseAutoRepairFromLog(novelId: string | undefined): { chapters: number | null; repairs: number | null } {
-  if (!novelId) return { chapters: null, repairs: null }
-  const path = join(process.cwd(), "output", novelId, "harness.log")
-  if (!existsSync(path)) return { chapters: null, repairs: null }
-  let latest: { chapters: number; repairs: number } | null = null
-  const re = /Planning obligation auto-repair summary: chapters=(\d+) repairs=(\d+)/
-  for (const line of readFileSync(path, "utf-8").split("\n")) {
-    const match = line.match(re)
-    if (match) latest = { chapters: Number(match[1]), repairs: Number(match[2]) }
-  }
-  return { chapters: latest?.chapters ?? null, repairs: latest?.repairs ?? null }
 }
 
 async function loadMapperHealth(v: VariantBlock): Promise<MapperHealthMetrics> {
@@ -344,7 +325,6 @@ async function loadMapperHealth(v: VariantBlock): Promise<MapperHealthMetrics> {
       ORDER BY timestamp, id
     `
     if (rows.length === 0) return emptyMapperHealth(`no planning-state-mapper llm_calls for ${v.novelId}`)
-    const autoRepair = parseAutoRepairFromLog(v.novelId)
     const maxCompletion = Math.max(0, ...rows.map(row => Number(row.completion_tokens ?? 0)))
     const maxCap = Math.max(0, ...rows.map(row => Number(row.max_tokens ?? 0)))
     return {
@@ -357,8 +337,6 @@ async function loadMapperHealth(v: VariantBlock): Promise<MapperHealthMetrics> {
       max_completion_tokens: maxCompletion,
       max_tokens_cap: maxCap,
       hit_completion_cap: maxCap > 0 && maxCompletion >= maxCap,
-      auto_repair_chapters: autoRepair.chapters,
-      auto_repair_repairs: autoRepair.repairs,
     }
   } catch (err: any) {
     return emptyMapperHealth(err?.message ?? String(err))
@@ -372,7 +350,6 @@ function mapperHealthPass(health: MapperHealthMetrics): boolean {
     && health.zod_failed_calls === 0
     && health.failed_calls === 0
     && !health.hit_completion_cap
-    && (health.auto_repair_repairs ?? 0) === 0
 }
 
 /** Resolve the per-variant outlines.json path. Path-portable across
@@ -506,14 +483,14 @@ async function main(): Promise<void> {
   // Planning-beats keeps the historical R5 directional gates. State-mapper
   // screens focus on writer-visible coverage and avoiding empty-state wins.
   // G1 for state-mapper is now exact-ID coverage: missing/unknown/duplicate
-  // source IDs and character-ID mismatches must all be zero. Fuzzy
-  // beat-text overlap (implicit_text_matches) is diagnostic only and never
-  // contributes to the verdict.
+  // source IDs, sourceKind mismatches, and character-ID mismatches must all
+  // be zero. Text/fuzzy overlap is not part of this verdict path.
   const G1 = metricSet === "planning-beats"
     ? m.test_facts_median >= 1.5 * m.control_facts_median && m.test_facts_median >= 8
     : (testMetrics.missing_source_ids === 0
         && testMetrics.unknown_source_ids === 0
         && testMetrics.duplicate_source_ids === 0
+        && testMetrics.source_kind_mismatches === 0
         && testMetrics.character_id_mismatches === 0)
   const G2 = metricSet === "planning-beats"
     ? m.test_know_median >= 1.5 * m.control_know_median && m.test_know_median >= 3
@@ -527,7 +504,7 @@ async function main(): Promise<void> {
   console.log("Metrics (deterministic counts from parsed LLM-produced outlines):")
   for (const [id, data, metrics] of [[args.controlId, control, controlMetrics], [args.testId, test, testMetrics]] as const) {
     const idCoverage = metricSet === "state-mapper"
-      ? `  missing_source_ids=${metrics.missing_source_ids}  unknown_source_ids=${metrics.unknown_source_ids}  duplicate_source_ids=${metrics.duplicate_source_ids}  characterId_mismatches=${metrics.character_id_mismatches}  implicit_text_matches=${metrics.implicit_text_matches}`
+      ? `  missing_source_ids=${metrics.missing_source_ids}  unknown_source_ids=${metrics.unknown_source_ids}  duplicate_source_ids=${metrics.duplicate_source_ids}  source_kind_mismatches=${metrics.source_kind_mismatches}  characterId_mismatches=${metrics.character_id_mismatches}`
       : ""
     console.log(`  ${id}: facts_median=${fmt(metrics.facts_median)}  know_median=${fmt(metrics.knowledge_median)}  state_median=${fmt(metrics.state_median)}  total_beats=${metrics.total_beats}  payoffs=${metrics.total_payoff_links}  obligations=${metrics.total_obligations}  orphans=${metrics.total_orphans}  overloaded=${metrics.overloaded_beats}${idCoverage}  status=${data.ok ? "ok" : `BROKEN (${data.reason})`}`)
   }
@@ -538,7 +515,7 @@ async function main(): Promise<void> {
       if (!health.available) {
         console.log(`  ${id}: unavailable (${health.reason})`)
       } else {
-        console.log(`  ${id}: calls=${health.calls} json_retried=${health.json_retried_calls} json_failed=${health.json_failed_calls} zod_failed=${health.zod_failed_calls} failed=${health.failed_calls} max_completion=${health.max_completion_tokens}/${health.max_tokens_cap} auto_repair=${health.auto_repair_repairs ?? "unknown"}`)
+        console.log(`  ${id}: calls=${health.calls} json_retried=${health.json_retried_calls} json_failed=${health.json_failed_calls} zod_failed=${health.zod_failed_calls} failed=${health.failed_calls} max_completion=${health.max_completion_tokens}/${health.max_tokens_cap}`)
       }
     }
   }
@@ -549,14 +526,14 @@ async function main(): Promise<void> {
     console.log(`  G2 knowledge-changes [code]: ${args.testId}_know_median (${fmt(m.test_know_median)}) ≥ 1.5 × ${args.controlId}_know_median (${fmt(1.5 * m.control_know_median)}) AND ≥ 3        → ${G2 ? "PASS" : "FAIL"}`)
     console.log(`  G3 beat-floor [code]:        ${args.testId}_total_beats (${m.test_total_beats}) ≥ 1.10 × ${args.controlId}_total_beats (${fmt(1.10 * m.control_total_beats)})                                  → ${G3 ? "PASS" : "FAIL"}`)
   } else {
-    console.log(`  G1 exact-id coverage [code]: ${args.testId} missing_source_ids=${testMetrics.missing_source_ids}, unknown_source_ids=${testMetrics.unknown_source_ids}, duplicate_source_ids=${testMetrics.duplicate_source_ids}, characterId_mismatches=${testMetrics.character_id_mismatches} (all = 0 required; implicit_text_matches=${testMetrics.implicit_text_matches} is diagnostic) → ${G1 ? "PASS" : "FAIL"}`)
+    console.log(`  G1 exact-id coverage [code]: ${args.testId} missing_source_ids=${testMetrics.missing_source_ids}, unknown_source_ids=${testMetrics.unknown_source_ids}, duplicate_source_ids=${testMetrics.duplicate_source_ids}, source_kind_mismatches=${testMetrics.source_kind_mismatches}, characterId_mismatches=${testMetrics.character_id_mismatches} (all = 0 required; text/fuzzy overlap is not evaluated) → ${G1 ? "PASS" : "FAIL"}`)
     console.log(`  G2 no-overload [code]:       ${args.testId}_overloaded_beats (${testMetrics.overloaded_beats}) = 0                                                            → ${G2 ? "PASS" : "FAIL"}`)
     console.log(`  G3 state-retention [code]:   ${args.testId}_state_items (${testMetrics.total_state_items}) ≥ max(${expectedChapters}, 0.75 × ${args.controlId}_state_items=${fmt(0.75 * controlMetrics.total_state_items)}) → ${G3 ? "PASS" : "FAIL"}`)
   }
   console.log(`  G4 structural [code]:        ${args.testId} planning complete + ${expectedChapters} outlines parse                                                                  → ${G4 ? "PASS" : "FAIL"}`)
   if (metricSet === "state-mapper") {
     const h = testHealth!
-    console.log(`  G5 mapper-health [SQL+code]: telemetry available + no retries/failures/cap-hit/auto-repair (${h.available ? `json_retried=${h.json_retried_calls}, failed=${h.failed_calls}, cap=${h.hit_completion_cap}, auto_repair=${h.auto_repair_repairs ?? "unknown"}` : h.reason}) → ${G5 ? "PASS" : "FAIL"}`)
+    console.log(`  G5 mapper-health [SQL+code]: telemetry available + no retries/failures/cap-hit (${h.available ? `json_retried=${h.json_retried_calls}, failed=${h.failed_calls}, cap=${h.hit_completion_cap}` : h.reason}) → ${G5 ? "PASS" : "FAIL"}`)
   }
   console.log()
 

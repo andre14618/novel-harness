@@ -153,6 +153,7 @@ function getPhaseForAgent(agent: string): string {
     "planning-plotter": "planning",
     "planning-beats": "planning",
     "planning-state-mapper": "planning",
+    "planning-state-repair": "planning",
     "writer": "drafting",
     "beat-writer": "drafting",
     "reference-resolver": "drafting",
