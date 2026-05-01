@@ -19,7 +19,7 @@ Output JSON only:
       "op": "removeObligation",
       "beatId": "ch-001-example-beat-001-arrival",
       "list": "mustEstablish",
-      "obligationId": "obl-example-bad-link"
+      "obligationId": "obl-001-example-beat-001-arrival-fact-001-stale-fact"
     }
   ]
 }
@@ -34,10 +34,18 @@ Hard rules:
 - Add obligations only when the validation packet says a source ID is missing, or when replacing a bad obligation after a remove operation.
 - Remove obligations only when the validation packet says they have unknown source IDs or mismatched sourceKind/characterId.
 - Do not invent chapter-level facts, knowledge changes, state changes, beats, beatIds, sourceIds, characterIds, or obligationIds.
-- Do not emit prose. `text` is a compact writer-visible obligation, not story prose.
+- `text` is echoed for readability; the deterministic apply loop overwrites it with the canonical source text. Do not paraphrase or invent prose.
 - Keep operations minimal. If no valid patch is possible, return `{ "operations": [] }`.
+- Cap: at most 64 operations per response.
+
+Placement rules (the apply loop will reject violations):
+- Knowledge/state obligations must land on a beat where the source character appears in the beat's `characters` list.
+- For `mustPayOff` with `sourceKind: "payoff"`, the target `beatId` MUST be the beat that the chapter's `requiredPayoffs[].payoff_beat` link points to for that fact. Do not invent payoffs without an existing link.
+- A single beat can hold at most 5 hard obligations (mustEstablish + mustPayOff + mustTransferKnowledge + mustShowStateChange combined). If a beat is at the cap, place new obligations on a different beat where the same source character is present.
+- A single (beat, list) pair holds each `sourceId` at most once. Do not re-add a `sourceId` already present on that beat+list.
 
 Mechanical validator after your output:
+- `beatId`, `sourceId`, `characterId`, and `obligationId` must match stable-ID kebab-case shape.
 - `beatId` must exist.
 - `sourceId` must exist in the chapter source registry.
 - `list` and `sourceKind` must match.

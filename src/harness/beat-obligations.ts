@@ -511,8 +511,6 @@ function addRepairObligation(
   beat: SceneBeat,
   operation: Extract<PlanningStateRepairOperation, { op: "addObligation" }>,
 ): { ok: boolean; message: string } {
-  const text = operation.text.trim()
-  if (!text) return { ok: false, message: `addObligation: empty text for sourceId ${operation.sourceId}` }
   const source = sourceInfoFor(outline, operation.sourceId)
   if (!source) return { ok: false, message: `addObligation: unknown sourceId ${operation.sourceId}` }
   if (!listAcceptsSource(operation.list, operation.sourceKind, source.kind)) {
@@ -522,21 +520,97 @@ function addRepairObligation(
     return { ok: false, message: `addObligation: characterId ${operation.characterId ?? "(missing)"} does not match ${source.characterId} for ${operation.sourceId}` }
   }
 
+  // Phase-12 guard: knowledge/state obligations must land on a beat where
+  // the source character is on stage. Otherwise the writer is told
+  // "X learns Y" in a beat where X is absent — either the writer
+  // fabricates X's appearance (hallucination) or silently drops the
+  // obligation. Names use the same alias-tolerant comparator the writer
+  // already uses for character matching.
+  if ((source.kind === "knowledge" || source.kind === "state") && !beatIncludesCharacter(beat, source.characterName)) {
+    return { ok: false, message: `addObligation: ${source.characterName} (${source.characterId}) is not in beat ${beat.beatId} characters [${beat.characters.join(", ")}] for sourceId ${operation.sourceId}` }
+  }
+
+  // Phase-12 guard: when sourceKind=payoff, the chapter must have a real
+  // requiredPayoffs link for this fact, AND the target beat must equal
+  // the linked payoff beat. Without this guard the agent could "pay off"
+  // a fact that was never planted, or land the payoff at the wrong beat
+  // index. sourceKind=fact on mustPayOff still passes through (covers
+  // the legitimate "this beat establishes-and-pays-off in one shot" case).
+  if (operation.sourceKind === "payoff") {
+    const payoffPlacement = findPayoffPlacement(outline, operation.sourceId)
+    if (!payoffPlacement) {
+      return { ok: false, message: `addObligation: sourceKind=payoff requires a requiredPayoffs link for ${operation.sourceId}; none found in chapter` }
+    }
+    if (payoffPlacement.beatId && payoffPlacement.beatId !== beat.beatId) {
+      return { ok: false, message: `addObligation: sourceKind=payoff for ${operation.sourceId} must land on ${payoffPlacement.beatId} per requiredPayoffs link, not ${beat.beatId}` }
+    }
+  }
+
+  // Phase-11 guard: per-beat overload cap. Reject any add that would push
+  // the beat above OVERLOADED_BEAT_OBLIGATION_LIMIT hard obligations. The
+  // exact-ID validator does not error on overload (it warns), so without
+  // this guard the agent could pile every uncovered source onto one beat
+  // and pass coverage with prose-quality damage. Cap is intentionally
+  // tight (= existing warning floor) so repair-augmented beats stay
+  // within the same envelope mapper-authored beats target.
+  const currentHard = countHardObligationsContract(beat.obligations)
+  if (currentHard >= OVERLOADED_BEAT_OBLIGATION_LIMIT) {
+    return { ok: false, message: `addObligation: beat ${beat.beatId} already has ${currentHard} hard obligations (cap ${OVERLOADED_BEAT_OBLIGATION_LIMIT}); place ${operation.sourceId} elsewhere` }
+  }
+
   const obligations = normalizeAuthoredObligations(beat.obligations)
   beat.obligations = obligations
   const items = obligations[operation.list] as any[]
+
+  // Phase-11 guard: per-(beat, list) sourceId dedupe. If the obligation
+  // is already present under this beat+list+sourceId, treat the patch op
+  // as a no-op. Without this, an LLM that re-emits the same op on retry
+  // (or two ops to "fix" what was already in place) produces doubled
+  // writer-visible obligations that pass coverage but show up twice in
+  // the BEAT OBLIGATIONS prompt section.
+  if (items.some(item => item.sourceId === operation.sourceId)) {
+    return { ok: false, message: `addObligation: ${beat.beatId} ${operation.list} already references sourceId ${operation.sourceId}` }
+  }
+
   const ordinal = items.length
   const kindTail = operation.sourceKind === "knowledge" ? "know" : operation.sourceKind
+  // Phase-10 guard: always overwrite the agent-emitted text with the
+  // canonical source text. The agent cannot paraphrase the obligation
+  // into something that contradicts the source registry; everything the
+  // writer sees was authored by the upstream mapper as the source's
+  // own text.
   const item: any = {
     obligationId: obligationIdGen(beat.beatId ?? "unknown-beat", kindTail, operation.sourceId, ordinal),
     sourceId: operation.sourceId,
     sourceKind: operation.sourceKind,
-    text,
+    text: source.text,
   }
   if (source.characterId) item.characterId = source.characterId
   if (source.characterName) item.characterName = source.characterName
   items.push(item)
   return { ok: true, message: `addObligation: ${beat.beatId} ${operation.list} ${operation.sourceId}` }
+}
+
+function findPayoffPlacement(outline: ChapterOutline, factId: string): { beatId: string | null } | null {
+  const scenes = outline.scenes ?? []
+  for (const beat of scenes) {
+    for (const link of beat.requiredPayoffs ?? []) {
+      if (link.fact_id?.trim() !== factId) continue
+      if (!Number.isInteger(link.payoff_beat) || link.payoff_beat < 0 || link.payoff_beat >= scenes.length) {
+        return { beatId: null }
+      }
+      return { beatId: scenes[link.payoff_beat].beatId ?? null }
+    }
+  }
+  return null
+}
+
+function countHardObligationsContract(obligations: BeatObligationsContract | undefined): number {
+  if (!obligations) return 0
+  return (obligations.mustEstablish?.length ?? 0)
+    + (obligations.mustPayOff?.length ?? 0)
+    + (obligations.mustTransferKnowledge?.length ?? 0)
+    + (obligations.mustShowStateChange?.length ?? 0)
 }
 
 function sourceInfoFor(

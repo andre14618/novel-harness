@@ -433,6 +433,216 @@ test("enrichOutlineIds is idempotent across repeated calls", () => {
   expect(outline.scenes[0].beatId).toBe(r1.beatIds[0])
 })
 
+// ── Phase-10/11/12 guard tests (post-Opus adversarial review ff9bdda) ────
+
+test("repair schema rejects malformed stable IDs at parse time", () => {
+  const result = planningStateRepairSchema.safeParse({
+    operations: [{
+      op: "addObligation",
+      beatId: "Not A Valid Beat ID",
+      list: "mustEstablish",
+      sourceId: "fact-ok",
+      sourceKind: "fact",
+      text: "anything",
+    }],
+  })
+  expect(result.success).toBe(false)
+})
+
+test("repair schema caps operations at 64 per call", () => {
+  const op = (i: number) => ({
+    op: "addObligation" as const,
+    beatId: `ch-001-x-beat-001-y-${i}`,
+    list: "mustEstablish" as const,
+    sourceId: `fact-${i}`,
+    sourceKind: "fact" as const,
+    text: "x",
+  })
+  const ok = planningStateRepairSchema.safeParse({ operations: Array.from({ length: 64 }, (_, i) => op(i)) })
+  const tooMany = planningStateRepairSchema.safeParse({ operations: Array.from({ length: 65 }, (_, i) => op(i)) })
+  expect(ok.success).toBe(true)
+  expect(tooMany.success).toBe(false)
+})
+
+test("apply overwrites agent-emitted text with canonical source text", () => {
+  const outline = chapter({
+    chapterId: "ch-001-treatment",
+    scenes: [beat({ beatId: "ch-001-treatment-beat-001-dose", characters: ["Istra"] })],
+    knowledgeChanges: [
+      { id: "know-istra-truth", characterId: "char-istra", characterName: "Istra", knowledge: "Aldric falsified the plague ledgers", source: "deduced" } as any,
+    ],
+  })
+
+  const result = applyBeatObligationRepairPatch(outline, {
+    operations: [{
+      op: "addObligation",
+      beatId: "ch-001-treatment-beat-001-dose",
+      list: "mustTransferKnowledge",
+      sourceId: "know-istra-truth",
+      sourceKind: "knowledge",
+      characterId: "char-istra",
+      text: "Istra learns the ledger was DESTROYED.", // hallucinated paraphrase
+    }],
+  })
+
+  expect(result.applied).toHaveLength(1)
+  const item = result.outline.scenes[0].obligations.mustTransferKnowledge[0] as any
+  // Apply loop overwrites with canonical source.knowledge text.
+  expect(item.text).toBe("Aldric falsified the plague ledgers")
+})
+
+test("apply rejects duplicate (beat, list, sourceId) on add", () => {
+  const outline = chapter({
+    chapterId: "ch-001-treatment",
+    scenes: [beat({ beatId: "ch-001-treatment-beat-001-dose", characters: ["Istra"] })],
+    knowledgeChanges: [
+      { id: "know-istra-truth", characterId: "char-istra", characterName: "Istra", knowledge: "X", source: "deduced" } as any,
+    ],
+  })
+  const op = {
+    op: "addObligation" as const,
+    beatId: "ch-001-treatment-beat-001-dose",
+    list: "mustTransferKnowledge" as const,
+    sourceId: "know-istra-truth",
+    sourceKind: "knowledge" as const,
+    characterId: "char-istra",
+    text: "Istra learns X.",
+  }
+  const result = applyBeatObligationRepairPatch(outline, { operations: [op, op] })
+  expect(result.applied).toHaveLength(1)
+  expect(result.rejected).toHaveLength(1)
+  expect(result.rejected[0]).toContain("already references sourceId")
+  expect(result.outline.scenes[0].obligations.mustTransferKnowledge).toHaveLength(1)
+})
+
+test("apply rejects knowledge/state ops on beats where the source character is absent", () => {
+  const outline = chapter({
+    chapterId: "ch-001-treatment",
+    scenes: [
+      beat({ beatId: "ch-001-treatment-beat-001-istra", characters: ["Istra"] }),
+      beat({ beatId: "ch-001-treatment-beat-002-aldric-only", characters: ["Aldric"] }),
+    ],
+    knowledgeChanges: [
+      { id: "know-istra-truth", characterId: "char-istra", characterName: "Istra", knowledge: "X", source: "deduced" } as any,
+    ],
+  })
+  const result = applyBeatObligationRepairPatch(outline, {
+    operations: [{
+      op: "addObligation",
+      beatId: "ch-001-treatment-beat-002-aldric-only",
+      list: "mustTransferKnowledge",
+      sourceId: "know-istra-truth",
+      sourceKind: "knowledge",
+      characterId: "char-istra",
+      text: "Istra learns X.",
+    }],
+  })
+  expect(result.applied).toEqual([])
+  expect(result.rejected[0]).toContain("not in beat ch-001-treatment-beat-002-aldric-only")
+})
+
+test("apply enforces per-beat hard-obligation cap of 5", () => {
+  // Pre-populate the beat with 5 fact obligations, then attempt to add a
+  // 6th. Cap rejection fires before any sourceId validation.
+  const facts = Array.from({ length: 6 }, (_, i) => ({ id: `fact-${i}`, fact: `f${i}`, category: "knowledge" }))
+  const obligations = {
+    mustEstablish: facts.slice(0, 5).map((f, i) => ({
+      obligationId: `obl-001-treatment-beat-001-dose-fact-${pad(i)}-${f.id}`,
+      sourceId: f.id,
+      sourceKind: "fact",
+      text: f.fact,
+    } as any)),
+    mustPayOff: [], mustTransferKnowledge: [], mustShowStateChange: [], mustNotReveal: [], allowedNewEntities: [],
+  }
+  const outline = chapter({
+    chapterId: "ch-001-treatment",
+    scenes: [beat({ beatId: "ch-001-treatment-beat-001-dose", characters: ["Istra"], obligations })],
+    establishedFacts: facts,
+  })
+  const result = applyBeatObligationRepairPatch(outline, {
+    operations: [{
+      op: "addObligation",
+      beatId: "ch-001-treatment-beat-001-dose",
+      list: "mustEstablish",
+      sourceId: "fact-5",
+      sourceKind: "fact",
+      text: "f5",
+    }],
+  })
+  expect(result.applied).toEqual([])
+  expect(result.rejected[0]).toContain("already has 5 hard obligations")
+})
+
+test("apply rejects sourceKind=payoff without a requiredPayoffs link", () => {
+  const outline = chapter({
+    chapterId: "ch-001-treatment",
+    scenes: [beat({ beatId: "ch-001-treatment-beat-001-dose", characters: ["Istra"] })],
+    establishedFacts: [{ id: "fact-no-link", fact: "Some fact", category: "knowledge" }],
+  })
+  const result = applyBeatObligationRepairPatch(outline, {
+    operations: [{
+      op: "addObligation",
+      beatId: "ch-001-treatment-beat-001-dose",
+      list: "mustPayOff",
+      sourceId: "fact-no-link",
+      sourceKind: "payoff",
+      text: "anything",
+    }],
+  })
+  expect(result.applied).toEqual([])
+  expect(result.rejected[0]).toContain("requires a requiredPayoffs link")
+})
+
+test("apply rejects sourceKind=payoff landing on the wrong beat per requiredPayoffs link", () => {
+  const outline = chapter({
+    chapterId: "ch-001-treatment",
+    scenes: [
+      beat({ beatId: "ch-001-treatment-beat-001-seed", characters: ["Istra"], requiredPayoffs: [{ fact_id: "fact-clue", payoff_beat: 2 }] }),
+      beat({ beatId: "ch-001-treatment-beat-002-mid", characters: ["Istra"] }),
+      beat({ beatId: "ch-001-treatment-beat-003-payoff", characters: ["Istra"] }),
+    ],
+    establishedFacts: [{ id: "fact-clue", fact: "Cure clue points to the archive", category: "knowledge" }],
+  })
+  // Try landing the payoff on beat 1 (the seed beat) instead of beat 2.
+  const result = applyBeatObligationRepairPatch(outline, {
+    operations: [{
+      op: "addObligation",
+      beatId: "ch-001-treatment-beat-001-seed",
+      list: "mustPayOff",
+      sourceId: "fact-clue",
+      sourceKind: "payoff",
+      text: "anything",
+    }],
+  })
+  expect(result.applied).toEqual([])
+  expect(result.rejected[0]).toContain("must land on ch-001-treatment-beat-003-payoff")
+})
+
+test("apply accepts sourceKind=payoff on the correct linked beat", () => {
+  const outline = chapter({
+    chapterId: "ch-001-treatment",
+    scenes: [
+      beat({ beatId: "ch-001-treatment-beat-001-seed", characters: ["Istra"], requiredPayoffs: [{ fact_id: "fact-clue", payoff_beat: 1 }] }),
+      beat({ beatId: "ch-001-treatment-beat-002-payoff", characters: ["Istra"] }),
+    ],
+    establishedFacts: [{ id: "fact-clue", fact: "Cure clue points to the archive", category: "knowledge" }],
+  })
+  const result = applyBeatObligationRepairPatch(outline, {
+    operations: [{
+      op: "addObligation",
+      beatId: "ch-001-treatment-beat-002-payoff",
+      list: "mustPayOff",
+      sourceId: "fact-clue",
+      sourceKind: "payoff",
+      text: "anything",
+    }],
+  })
+  expect(result.rejected).toEqual([])
+  expect(result.applied).toHaveLength(1)
+})
+
+function pad(n: number): string { return String(n).padStart(3, "0") }
+
 function chapter(overrides: Partial<ChapterOutline> = {}): ChapterOutline {
   return {
     chapterNumber: 1,

@@ -51,11 +51,14 @@ export const beatObligationItemSchema = z.preprocess(
     seededAtBeat: optionalBeatIndexSchema,
     untilBeat: optionalBeatIndexSchema,
     // ── Stable-ID contract (assigned by harness/ids.ts post-mapper):
-    // obligationId — unique within the beat; sourceId — references the
-    // upstream fact/knowledge/state/payoff item; sourceKind — disambiguates
-    // the registry to look up; characterId — present for knowledge/state
-    // obligations. The LLM may emit these directly or `enrichOutlineIds`
-    // populates them from text-match against the chapter-level registries.
+    // obligationId — unique within the beat (`enrichOutlineIds` assigns
+    //   when missing); sourceId — references the upstream
+    //   fact/knowledge/state/payoff item by exact stable ID and MUST be
+    //   emitted by the upstream (mapper or planning-state-repair agent);
+    //   sourceKind — disambiguates the registry to look up; characterId —
+    //   present for knowledge/state obligations. The harness path no
+    //   longer infers sourceId from text; an obligation without a
+    //   well-formed sourceId is an unknown obligation in the validator.
     obligationId: z.coerce.string().optional(),
     sourceId: z.coerce.string().optional(),
     sourceKind: z.enum(["fact", "knowledge", "state", "payoff", "avoid"]).optional(),

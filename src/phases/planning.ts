@@ -312,6 +312,14 @@ async function expandChapter(
   return mapChapterState(novelId, skeleton, allSkeletons, worldBible, characters, spine, seed, scenes, attempt)
 }
 
+// Per-chapter ceiling on planning-state-repair LLM calls within a single
+// coverage attempt. The first call is the primary patch; the second exists
+// to let a partial-but-progressing patch try once more on the
+// already-improved outline before we give up and fall back to a full
+// mapper retry. Higher values just burn tokens — by attempt 3 the agent
+// is either looping or the contract is unsatisfiable from prompts alone.
+const MAX_REPAIR_AGENT_CALLS_PER_COVERAGE_ATTEMPT = 2
+
 async function repairOrRemapChapterState(
   novelId: string,
   outline: ChapterOutline,
@@ -323,46 +331,79 @@ async function repairOrRemapChapterState(
   seed: any,
   coverageAttempt: number,
 ): Promise<ChapterOutline> {
-  emit(novelId, { type: "progress", data: { step: "planning-state-repair", status: "running", chapter: outline.chapterNumber, attempt: coverageAttempt } })
-  try {
-    const result = await callAgent({
-      novelId,
-      agentName: "planning-state-repair",
-      attempt: coverageAttempt,
-      chapter: outline.chapterNumber,
-      systemPrompt: PLANNING_STATE_REPAIR_PROMPT,
-      userPrompt: buildStateRepairContext({ outline, validation }),
-      schema: stateRepairSchema,
-      logMetadata: {
-        chapterId: outline.chapterId,
-        missingSourceIds: validation.missingSourceIds,
-        unknownSourceIds: validation.unknownObligations.map(item => item.sourceId),
-      },
-    })
-    const patch = result.output as PlanningStateRepairOutput
-    const repaired = harness.beatObligations.applyBeatObligationRepairPatch(outline, patch)
-    for (const applied of repaired.applied) log(novelId, "info", `Planning state repair applied: ${applied}`)
-    for (const rejected of repaired.rejected) log(novelId, "warn", `Planning state repair rejected: ${rejected}`)
-    if (repaired.validation.valid) {
-      emit(novelId, { type: "progress", data: { step: "planning-state-repair", status: "complete", chapter: outline.chapterNumber, attempt: coverageAttempt, applied: repaired.applied.length, rejected: repaired.rejected.length } })
-      return repaired.outline
-    }
-    log(novelId, "warn", `Planning state repair ch${outline.chapterNumber} did not satisfy coverage; falling back to full mapper retry: ${repaired.validation.errors.join("; ")}`)
-  } catch (err) {
-    log(novelId, "warn", `Planning state repair ch${outline.chapterNumber} failed: ${err instanceof Error ? err.message : err}`)
-  }
-  emit(novelId, { type: "progress", data: { step: "planning-state-repair", status: "failed", chapter: outline.chapterNumber, attempt: coverageAttempt } })
+  // Track the best (most-repaired) outline + its validation across repair
+  // calls. If the agent makes partial progress (errors strictly decrease)
+  // we keep that progress and either recurse once more or hand it to the
+  // mapper retry. The pre-fix behavior discarded partial progress on
+  // every non-passing patch, wasting both the repair tokens and forcing
+  // mapper retry to redo the entire chapter from scratch.
+  let workingOutline = outline
+  let workingValidation = validation
 
-  const feedback = harness.beatObligations.formatObligationCoverageRetryFeedback(outline, validation)
+  for (let repairCall = 1; repairCall <= MAX_REPAIR_AGENT_CALLS_PER_COVERAGE_ATTEMPT; repairCall++) {
+    emit(novelId, { type: "progress", data: { step: "planning-state-repair", status: "running", chapter: workingOutline.chapterNumber, attempt: coverageAttempt, repairCall } })
+    let repairResult: ReturnType<typeof harness.beatObligations.applyBeatObligationRepairPatch> | null = null
+    try {
+      const result = await callAgent({
+        novelId,
+        agentName: "planning-state-repair",
+        attempt: coverageAttempt,
+        chapter: workingOutline.chapterNumber,
+        systemPrompt: PLANNING_STATE_REPAIR_PROMPT,
+        userPrompt: buildStateRepairContext({ outline: workingOutline, validation: workingValidation }),
+        schema: stateRepairSchema,
+        logMetadata: {
+          chapterId: workingOutline.chapterId,
+          repairCall,
+          missingSourceIds: workingValidation.missingSourceIds,
+          unknownSourceIds: workingValidation.unknownObligations.map(item => item.sourceId),
+        },
+      })
+      const patch = result.output as PlanningStateRepairOutput
+      repairResult = harness.beatObligations.applyBeatObligationRepairPatch(workingOutline, patch)
+      for (const applied of repairResult.applied) log(novelId, "info", `Planning state repair applied (call ${repairCall}): ${applied}`)
+      for (const rejected of repairResult.rejected) log(novelId, "warn", `Planning state repair rejected (call ${repairCall}): ${rejected}`)
+      log(novelId, "info", `Planning state repair ch${workingOutline.chapterNumber} call ${repairCall}: applied=${repairResult.applied.length} rejected=${repairResult.rejected.length} ops=${(patch.operations ?? []).length} priorErrors=${workingValidation.errors.length} postErrors=${repairResult.validation.errors.length}`)
+    } catch (err) {
+      log(novelId, "warn", `Planning state repair ch${workingOutline.chapterNumber} call ${repairCall} failed: ${err instanceof Error ? err.message : err}`)
+      break
+    }
+
+    if (repairResult.validation.valid) {
+      emit(novelId, { type: "progress", data: { step: "planning-state-repair", status: "complete", chapter: workingOutline.chapterNumber, attempt: coverageAttempt, repairCall, applied: repairResult.applied.length, rejected: repairResult.rejected.length } })
+      return repairResult.outline
+    }
+
+    // Partial progress: keep the improved outline + validation as the new
+    // baseline so the next loop iteration (or the mapper fallback below)
+    // sees the smaller error set. Threshold is strict decrease — equal or
+    // worse means the agent is spinning, so stop calling it.
+    if (repairResult.validation.errors.length < workingValidation.errors.length) {
+      workingOutline = repairResult.outline
+      workingValidation = repairResult.validation
+      log(novelId, "info", `Planning state repair ch${workingOutline.chapterNumber} call ${repairCall} made partial progress; continuing with reduced error set`)
+      continue
+    }
+
+    log(novelId, "warn", `Planning state repair ch${workingOutline.chapterNumber} call ${repairCall} did not strictly reduce errors; stopping repair loop`)
+    break
+  }
+
+  emit(novelId, { type: "progress", data: { step: "planning-state-repair", status: "failed", chapter: workingOutline.chapterNumber, attempt: coverageAttempt } })
+
+  // Hand the partially-repaired outline (not the original) to the mapper
+  // fallback. Without this the mapper redoes the chapter from scratch
+  // and any obligations the agent successfully added are lost.
+  const feedback = harness.beatObligations.formatObligationCoverageRetryFeedback(workingOutline, workingValidation)
   return mapChapterState(
     novelId,
-    outline,
+    workingOutline,
     allSkeletons,
     worldBible,
     characters,
     spine,
     seed,
-    outline.scenes ?? [],
+    workingOutline.scenes ?? [],
     PLANNING_OBLIGATION_COVERAGE_RETRY_BASE_ATTEMPT + coverageAttempt - 1,
     feedback,
   )
@@ -456,8 +497,14 @@ function mergeStateMapping(
   for (const beatMapping of mapping.beatMappings ?? []) {
     if (!Number.isInteger(beatMapping.beatIndex) || beatMapping.beatIndex < 0 || beatMapping.beatIndex >= mappedScenes.length) continue
     const scene = mappedScenes[beatMapping.beatIndex]
+    // beatId mismatch: log+ignore the echoed beatId rather than crashing
+    // the entire planning phase. beatIndex is the authoritative selector;
+    // a stale beatId echo (e.g. mapper retry referencing an earlier
+    // chapter's IDs) shouldn't take down a valid mapping. The mismatch is
+    // surfaced as a planning-level warning so the operator can spot
+    // mapper drift.
     if (beatMapping.beatId && scene.beatId && beatMapping.beatId !== scene.beatId) {
-      throw new Error(`Planning state mapper beatId mismatch: beatIndex ${beatMapping.beatIndex} references ${beatMapping.beatId}, expected ${scene.beatId}`)
+      console.warn(`  Planning state mapper beatId echo mismatch: beatIndex ${beatMapping.beatIndex} echoed ${beatMapping.beatId}, expected ${scene.beatId} — using beatIndex, ignoring echoed beatId`)
     }
     scene.obligations = mergeBeatObligations(scene.obligations, beatMapping.obligations)
     scene.requiredPayoffs = mergeRequiredPayoffs(scene.requiredPayoffs, beatMapping.requiredPayoffs)
