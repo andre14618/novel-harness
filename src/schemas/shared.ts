@@ -176,10 +176,10 @@ export const sceneBeatSchema = z.object({
   // when the planner is uncertain. Round-trips unchanged with legacy plans.
   valueShifted: z.boolean().optional(),
   gapPresent: z.boolean().optional(),
-  lifeValueAxes: z.array(z.enum(LIFE_VALUE_AXES)).default([]),
-  miceActive: z.array(z.enum(MICE_ACTIVE_THREADS)).default([]),
-  miceOpens: z.array(z.enum(MICE_OPENS_THREADS)).default([]),
-  miceCloses: z.array(z.enum(MICE_CLOSES_THREADS)).default([]),
+  lifeValueAxes: z.array(z.enum(LIFE_VALUE_AXES)).default([]).catch([]),
+  miceActive: z.array(z.enum(MICE_ACTIVE_THREADS)).default([]).catch([]),
+  miceOpens: z.array(z.enum(MICE_OPENS_THREADS)).default([]).catch([]),
+  miceCloses: z.array(z.enum(MICE_CLOSES_THREADS)).default([]).catch([]),
   // emotionalShift removed 2026-04-17: the beat description already
   // carries the emotional signal; a separate "hopeful → devastated"
   // field was redundant and created checker penalties the writer was

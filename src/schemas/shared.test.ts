@@ -50,3 +50,19 @@ test("sceneBeatSchema tolerates malformed optional obligation metadata", () => {
   expect(beat.obligations.mustNotReveal[0].untilBeat).toBeUndefined()
   expect(beat.obligations.mustTransferKnowledge[0].text).toBe("Calla learns Davan is marked")
 })
+
+test("sceneBeatSchema drops invalid optional soft-prior arrays", () => {
+  const beat = sceneBeatSchema.parse({
+    description: "Calla deciphers Davan's inscription.",
+    characters: ["Calla", "Davan"],
+    lifeValueAxes: ["agency"],
+    miceActive: ["E"],
+    miceOpens: ["E"],
+    miceCloses: ["E"],
+  })
+
+  expect(beat.lifeValueAxes).toEqual(["agency"])
+  expect(beat.miceActive).toEqual([])
+  expect(beat.miceOpens).toEqual([])
+  expect(beat.miceCloses).toEqual(["E"])
+})
