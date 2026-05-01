@@ -1,5 +1,7 @@
 # Adapter Training Reference
 
+> **Runtime supersession 2026-05-01:** "Deployed" here means the adapter artifact existed in a historical production era. Before treating any prompt as adapter-frozen, verify current routing in `src/models/roles.ts`; retired extractor, tonal-pass, writer-LoRA, and Salvatore-leak paths do not constrain live runtime prompt edits.
+
 **Purpose:** Every LoRA adapter is trained on a frozen system prompt. Changing that prompt in production breaks the adapter — the model learned to respond to a specific instruction format. This document records what each adapter was trained on so prompt changes can be evaluated for compatibility.
 
 **Rule:** Before modifying any agent prompt file, check this document. If the prompt is frozen in an adapter, you must either (a) retrain the adapter or (b) leave the prompt unchanged.

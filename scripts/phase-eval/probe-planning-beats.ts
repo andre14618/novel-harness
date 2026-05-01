@@ -292,7 +292,8 @@ async function main() {
     const summaryPath = join(args.outputBase, "summary.json")
     writeFileSync(summaryPath, JSON.stringify(summary, null, 2))
     console.error(`[probe] wrote summary: ${summaryPath}`)
-    console.error(`[probe] next: bun scripts/phase-eval/print-screen-verdict.ts --summary=${summaryPath}`)
+    const [control = "default", test = "loud"] = args.variants
+    console.error(`[probe] next: bun scripts/phase-eval/print-screen-verdict.ts --summary=${summaryPath} --control=${control} --test=${test}`)
 
     // Step 5: cleanup on success. Default behavior — outlines.json on
     // disk is the load-bearing artifact; DB rows are throwaway.

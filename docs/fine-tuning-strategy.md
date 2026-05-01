@@ -5,6 +5,8 @@ updated: 2026-04-18
 
 # Fine-Tuning Strategy
 
+> **Superseded operationally 2026-05-01:** This document is a historical fine-tuning notebook, not the current runtime strategy. New writer/checker fine-tunes are not the default path; active writer/checker slots use DeepSeek V4 Flash plus deterministic guards unless a fresh decision explicitly authorizes SFT work. Verify live routing in `src/models/roles.ts` before treating any adapter here as deployed.
+
 ## The Core Premise
 
 Training is metered (no longer free) — **$3.76 observed spend April 1 → April 16 2026 against a $500/month cap**, working out to ~$0.10–0.60 per r=16 / 700-pair / 3-epoch run on Qwen3-14B. Inference is $0.05/$0.22 per 1M tokens with a $2/month free credit. One base model — `OpenPipe/Qwen3-14B-Instruct` on W&B Inference — with multiple task-specific LoRA adapters. W&B is the prototyping tier; production may require migration to a provider with broader model support (see `docs/wandb-alternatives-report.md`). The cost of a failed experiment is roughly the training run plus ~$0.02 in evaluation calls — still trivial.

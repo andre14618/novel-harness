@@ -71,6 +71,8 @@ one broad loop.
 
 ## Layer decomposition
 
+> **Stale surface note:** Sections below predate exp #289 and exp #272 in places. `planning-beats` is now beat-shape only; state/fact/knowledge/obligation placement belongs to `planning-state-mapper`. There is no live voice-LoRA compact route or Salvatore leak checker in runtime. Use this design as loop architecture, not as a current surface inventory; current surfaces live in `docs/harness-optimization-inventory.md` and `docs/current-state.md`.
+
 Four tiers, ordered upstream → downstream. Each tier's winner gates
 on downstream replay before ship. Phase 0 starts at Sub-loop 1
 (`planning-beats`); Sub-loop 0 (concept/world-building) is on the

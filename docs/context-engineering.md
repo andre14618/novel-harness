@@ -5,6 +5,8 @@ updated: 2026-04-18
 
 # Context Engineering
 
+> **Superseded runtime note 2026-05-01:** Writer-layer LoRA routing, Salvatore leak checking, Howard/tonal-pass runtime generation, and post-hoc voice-pass planning are retired from runtime. All genres now use the base DeepSeek V4 Flash beat-writer route; fantasy supplies planner structural priors only. Treat older route-specific rows in this doc as historical context unless they match `docs/current-state.md`.
+
 What goes into each beat-writer call and how it has evolved. Covers beat context assembly, character voice, extraction mode, structural diversity, and retrieval. Parallel to `docs/adapter-changelog.md` — this tracks context changes; that tracks trained adapters.
 
 **Architectural direction (2026-04-18):** harness commits to **context-engineering-forward**: planner expressiveness + beat-context delivery are the primary quality lever. Craft belongs to the writer model (v4 LoRA / frontier + few-shot), not prompt instructions. Checkers only cover what plans can't predict — adherence (plan-following) and hallucination (external-fact grounding). See `docs/decisions.md` "Context-engineering-forward architecture."

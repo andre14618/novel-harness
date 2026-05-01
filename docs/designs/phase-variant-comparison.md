@@ -21,6 +21,8 @@ related:
 
 # Phase Variant Comparison — Charter (Revision 5)
 
+> **Superseded by exp #289 split mapper:** This charter targeted the old all-in-one `planning-beats` surface. `planning-beats` now emits beat shape only; `planning-state-mapper` owns facts, knowledge, character state, payoff links, and writer-visible obligations. The implemented verdict script can compare arbitrary `--control` / `--test` pairs, but this R5 metric set is historical unless the probe explicitly targets mapper-owned state density or a composed beats+mapper surface.
+
 **Compliance + structural-integrity screen** for a "loud" planning-beats
 prompt variant. Asks one question only: did the prompt rider take effect
 without breaking the planner? No LLM calls beyond the planner itself; all

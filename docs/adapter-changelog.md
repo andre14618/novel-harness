@@ -5,6 +5,8 @@ updated: 2026-04-18
 
 # Adapter Changelog
 
+> **Runtime supersession 2026-05-01:** This table records adapter history, not live routing. Writer LoRA routes, tonal-pass generation, and Salvatore leak adapters are retired from runtime; current live assignments are in `src/models/roles.ts` and summarized in `docs/current-state.md`.
+
 Single source of truth for fine-tuning history across all pipeline agents. One entry per adapter version — what changed, what it showed, what it unlocked or blocked.
 
 **Status legend:** DEPLOYED · IN TRAINING · PLANNED · DISCONFIRMED · RETIRED

@@ -1,6 +1,7 @@
 /**
  * Phase-eval screen verdict — implements the G1-G4 screen from
- * `docs/designs/phase-variant-comparison.md` (R5).
+ * `docs/designs/phase-variant-comparison.md` (R5) for a selected
+ * control/test variant pair.
  *
  * Reads the summary.json produced by `probe-planning-beats.ts` + the
  * per-variant `outlines.json` files, validates each outline against
@@ -9,15 +10,15 @@
  *
  * Charter R5 gates (per docs/designs/phase-variant-comparison.md §G):
  *   G1 (rich-facts directional uptake):
- *       loud_facts_median ≥ 1.5 × default_facts_median  AND
- *       loud_facts_median ≥ 8
+ *       test_facts_median ≥ 1.5 × control_facts_median  AND
+ *       test_facts_median ≥ 8
  *   G2 (knowledge-changes directional uptake):
- *       loud_know_median ≥ 1.5 × default_know_median  AND
- *       loud_know_median ≥ 3
+ *       test_know_median ≥ 1.5 × control_know_median  AND
+ *       test_know_median ≥ 3
  *   G3 (beat-floor directional uptake):
- *       loud_total_beats ≥ 1.10 × default_total_beats
+ *       test_total_beats ≥ 1.10 × control_total_beats
  *   G4 (structural validity):
- *       loud variant's planning phase produced N chapter outlines, all
+ *       test variant's planning phase produced N chapter outlines, all
  *       parsing against chapterBeatsSchema. N defaults to the seed's
  *       chapterCount (charter spec is 5; flexible per seed).
  *
@@ -28,13 +29,16 @@
  *
  * Exit code: 0 for SCREEN-PASS, 1 for any SCREEN-FAIL.
  *
- * Default-variant metrics are reported for context (the charter records
- * both for re-thresholding) but the verdict is purely "did loud meet its
- * own riders?"
+ * Control-variant metrics are reported for context (the charter records
+ * both for re-thresholding) but the verdict is purely "did test meet its
+ * own riders?" Defaults remain control=default, test=loud for backward
+ * compatibility with the original R5 probe.
  *
  * Usage:
  *   bun scripts/phase-eval/print-screen-verdict.ts \
  *     --summary=<path-to-summary.json> \
+ *     [--control=<variant-id>]        default: default
+ *     [--test=<variant-id>]           default: loud
  *     [--persist]                    persist a row to phase_eval_runs
  *     [--exp-id=<n>]                 link the row to a tuning_experiments id
  *     [--note='...']                 free-text operator note
@@ -72,6 +76,54 @@ interface VariantData {
   ok: boolean
   reason?: string
   outlines: ParsedOutline[]
+}
+
+interface Args {
+  summaryPath: string
+  controlId: string
+  testId: string
+  persist: boolean
+  expId?: number
+  note?: string
+}
+
+function valueAfter(arg: string, prefix: string): string | undefined {
+  return arg.startsWith(prefix) ? arg.slice(prefix.length) : undefined
+}
+
+function usage(): string {
+  return "usage: bun print-screen-verdict.ts --summary=<path-to-summary.json> [--control=<variant-id>] [--test=<variant-id>] [--persist] [--exp-id=<n>] [--note='...']"
+}
+
+function parseArgs(argv: string[]): Args {
+  const summaryPath = argv.map(a => valueAfter(a, "--summary=")).find((v): v is string => v !== undefined)
+  if (!summaryPath) {
+    console.error(usage())
+    process.exit(2)
+  }
+
+  const controlId = argv.map(a => valueAfter(a, "--control=")).find((v): v is string => v !== undefined) ?? "default"
+  const testId = argv.map(a => valueAfter(a, "--test=")).find((v): v is string => v !== undefined) ?? "loud"
+  if (controlId === testId) {
+    console.error(`--control and --test must differ, got: ${controlId}`)
+    process.exit(2)
+  }
+
+  const expIdRaw = argv.map(a => valueAfter(a, "--exp-id=")).find((v): v is string => v !== undefined)
+  const expId = expIdRaw === undefined ? undefined : Number(expIdRaw)
+  if (expIdRaw !== undefined && !Number.isFinite(expId)) {
+    console.error(`--exp-id must be an integer, got: ${expIdRaw}`)
+    process.exit(2)
+  }
+
+  return {
+    summaryPath,
+    controlId,
+    testId,
+    persist: argv.includes("--persist"),
+    expId,
+    note: argv.map(a => valueAfter(a, "--note=")).find((v): v is string => v !== undefined),
+  }
 }
 
 function median(xs: number[]): number {
@@ -161,27 +213,12 @@ function readSeedChapterCount(seedName: string, charterDefault: number): number 
 }
 
 async function main(): Promise<void> {
-  const summaryArg = process.argv.find(a => a.startsWith("--summary="))
-  if (!summaryArg) {
-    console.error("usage: bun print-screen-verdict.ts --summary=<path-to-summary.json> [--persist] [--exp-id=<n>] [--note='...']")
-    process.exit(2)
-  }
-  const summaryPath = summaryArg.split("=", 2)[1]!
+  const args = parseArgs(process.argv.slice(2))
+  const summaryPath = args.summaryPath
   if (!existsSync(summaryPath)) {
     console.error(`summary not found: ${summaryPath}`)
     process.exit(2)
   }
-
-  // Optional persistence flags (R6 — see docs/designs/eval-testing-module-v1.md).
-  const persist = process.argv.includes("--persist")
-  const expIdArg = process.argv.find(a => a.startsWith("--exp-id="))
-  const noteArg = process.argv.find(a => a.startsWith("--note="))
-  const expId = expIdArg ? Number(expIdArg.split("=", 2)[1]) : undefined
-  if (expIdArg && !Number.isFinite(expId)) {
-    console.error(`--exp-id must be an integer, got: ${expIdArg}`)
-    process.exit(2)
-  }
-  const note = noteArg ? noteArg.split("=", 2)[1] : undefined
 
   const summary = JSON.parse(readFileSync(summaryPath, "utf-8")) as Summary
   const summaryDir = dirname(summaryPath)
@@ -191,70 +228,71 @@ async function main(): Promise<void> {
   console.log(`Concept snapshot: ${summary.conceptSnapshotId}`)
   console.log(`Expected chapters per variant: ${expectedChapters} (from src/seeds/${summary.seed}.json)`)
   console.log(`Variants: ${summary.variants.map(v => v.id).join(", ")}`)
+  console.log(`Comparison: control=${args.controlId} test=${args.testId}`)
   console.log()
 
-  // Charter assumes a "default" + "loud" pair. Locate them.
-  const defaultV = summary.variants.find(v => v.id === "default")
-  const loudV = summary.variants.find(v => v.id === "loud")
-  if (!defaultV || !loudV) {
-    console.error(`SCREEN-FAIL (broken): summary.json must contain variants id="default" and id="loud" (got ${summary.variants.map(v => v.id).join(", ")})`)
+  const controlV = summary.variants.find(v => v.id === args.controlId)
+  const testV = summary.variants.find(v => v.id === args.testId)
+  if (!controlV || !testV) {
+    const missing = [!controlV && args.controlId, !testV && args.testId].filter(Boolean).join(", ")
+    console.error(`SCREEN-FAIL (broken): summary.json missing selected variant(s): ${missing} (available: ${summary.variants.map(v => v.id).join(", ")})`)
     process.exit(1)
   }
 
-  const def = loadVariantData(summaryDir, defaultV, expectedChapters)
-  const loud = loadVariantData(summaryDir, loudV, expectedChapters)
+  const control = loadVariantData(summaryDir, controlV, expectedChapters)
+  const test = loadVariantData(summaryDir, testV, expectedChapters)
 
   // ── Compute metrics ─────────────────────────────────────────────────
-  const def_facts = def.ok ? def.outlines.map(o => o.establishedFacts.length) : []
-  const def_know = def.ok ? def.outlines.map(o => o.knowledgeChanges.length) : []
-  const def_beats = def.ok ? def.outlines.map(o => o.scenes.length) : []
-  const loud_facts = loud.ok ? loud.outlines.map(o => o.establishedFacts.length) : []
-  const loud_know = loud.ok ? loud.outlines.map(o => o.knowledgeChanges.length) : []
-  const loud_beats = loud.ok ? loud.outlines.map(o => o.scenes.length) : []
+  const controlFacts = control.ok ? control.outlines.map(o => o.establishedFacts.length) : []
+  const controlKnow = control.ok ? control.outlines.map(o => o.knowledgeChanges.length) : []
+  const controlBeats = control.ok ? control.outlines.map(o => o.scenes.length) : []
+  const testFacts = test.ok ? test.outlines.map(o => o.establishedFacts.length) : []
+  const testKnow = test.ok ? test.outlines.map(o => o.knowledgeChanges.length) : []
+  const testBeats = test.ok ? test.outlines.map(o => o.scenes.length) : []
 
   const m = {
-    default_facts_median: median(def_facts),
-    loud_facts_median: median(loud_facts),
-    default_know_median: median(def_know),
-    loud_know_median: median(loud_know),
-    default_total_beats: sum(def_beats),
-    loud_total_beats: sum(loud_beats),
+    control_facts_median: median(controlFacts),
+    test_facts_median: median(testFacts),
+    control_know_median: median(controlKnow),
+    test_know_median: median(testKnow),
+    control_total_beats: sum(controlBeats),
+    test_total_beats: sum(testBeats),
   }
 
   // ── Apply gates ─────────────────────────────────────────────────────
   // G4 first because it's the predicate-1 gate.
-  const G4 = loud.ok
-  // G1: loud_facts_median ≥ 1.5 × default AND loud_facts_median ≥ 8
-  const G1 = m.loud_facts_median >= 1.5 * m.default_facts_median && m.loud_facts_median >= 8
-  // G2: loud_know_median ≥ 1.5 × default AND loud_know_median ≥ 3
-  const G2 = m.loud_know_median >= 1.5 * m.default_know_median && m.loud_know_median >= 3
-  // G3: loud_total_beats ≥ 1.10 × default
-  const G3 = m.loud_total_beats >= 1.10 * m.default_total_beats
+  const G4 = test.ok
+  // G1: test_facts_median ≥ 1.5 × control AND test_facts_median ≥ 8
+  const G1 = m.test_facts_median >= 1.5 * m.control_facts_median && m.test_facts_median >= 8
+  // G2: test_know_median ≥ 1.5 × control AND test_know_median ≥ 3
+  const G2 = m.test_know_median >= 1.5 * m.control_know_median && m.test_know_median >= 3
+  // G3: test_total_beats ≥ 1.10 × control
+  const G3 = m.test_total_beats >= 1.10 * m.control_total_beats
 
   // ── Print metrics ───────────────────────────────────────────────────
   console.log("Metrics:")
-  console.log(`  default: facts_median=${fmt(m.default_facts_median)}  know_median=${fmt(m.default_know_median)}  total_beats=${m.default_total_beats}  status=${def.ok ? "ok" : `BROKEN (${def.reason})`}`)
-  console.log(`  loud:    facts_median=${fmt(m.loud_facts_median)}  know_median=${fmt(m.loud_know_median)}  total_beats=${m.loud_total_beats}  status=${loud.ok ? "ok" : `BROKEN (${loud.reason})`}`)
+  console.log(`  ${args.controlId}: facts_median=${fmt(m.control_facts_median)}  know_median=${fmt(m.control_know_median)}  total_beats=${m.control_total_beats}  status=${control.ok ? "ok" : `BROKEN (${control.reason})`}`)
+  console.log(`  ${args.testId}: facts_median=${fmt(m.test_facts_median)}  know_median=${fmt(m.test_know_median)}  total_beats=${m.test_total_beats}  status=${test.ok ? "ok" : `BROKEN (${test.reason})`}`)
   console.log()
   console.log("Gate evaluation:")
-  console.log(`  G1 rich-facts:        loud_facts_median (${fmt(m.loud_facts_median)}) ≥ 1.5 × default_facts_median (${fmt(1.5 * m.default_facts_median)}) AND ≥ 8       → ${G1 ? "PASS" : "FAIL"}`)
-  console.log(`  G2 knowledge-changes: loud_know_median (${fmt(m.loud_know_median)}) ≥ 1.5 × default_know_median (${fmt(1.5 * m.default_know_median)}) AND ≥ 3        → ${G2 ? "PASS" : "FAIL"}`)
-  console.log(`  G3 beat-floor:        loud_total_beats (${m.loud_total_beats}) ≥ 1.10 × default_total_beats (${fmt(1.10 * m.default_total_beats)})                                  → ${G3 ? "PASS" : "FAIL"}`)
-  console.log(`  G4 structural:        loud planning complete + ${expectedChapters} outlines parse                                                                  → ${G4 ? "PASS" : "FAIL"}`)
+  console.log(`  G1 rich-facts:        ${args.testId}_facts_median (${fmt(m.test_facts_median)}) ≥ 1.5 × ${args.controlId}_facts_median (${fmt(1.5 * m.control_facts_median)}) AND ≥ 8       → ${G1 ? "PASS" : "FAIL"}`)
+  console.log(`  G2 knowledge-changes: ${args.testId}_know_median (${fmt(m.test_know_median)}) ≥ 1.5 × ${args.controlId}_know_median (${fmt(1.5 * m.control_know_median)}) AND ≥ 3        → ${G2 ? "PASS" : "FAIL"}`)
+  console.log(`  G3 beat-floor:        ${args.testId}_total_beats (${m.test_total_beats}) ≥ 1.10 × ${args.controlId}_total_beats (${fmt(1.10 * m.control_total_beats)})                                  → ${G3 ? "PASS" : "FAIL"}`)
+  console.log(`  G4 structural:        ${args.testId} planning complete + ${expectedChapters} outlines parse                                                                  → ${G4 ? "PASS" : "FAIL"}`)
   console.log()
 
   // ── Apply ordered predicate table (charter §G) ──────────────────────
   let verdict: string
   let exitCode: number
   if (!G4) {
-    verdict = `SCREEN-FAIL (broken) — loud variant did not produce ${expectedChapters} parseable chapter outlines${loud.reason ? `: ${loud.reason}` : ""}`
+    verdict = `SCREEN-FAIL (broken) — ${args.testId} variant did not produce ${expectedChapters} parseable chapter outlines${test.reason ? `: ${test.reason}` : ""}`
     exitCode = 1
   } else if (!(G1 && G2 && G3)) {
     const failed = [!G1 && "G1", !G2 && "G2", !G3 && "G3"].filter(Boolean).join(", ")
-    verdict = `SCREEN-FAIL (non-compliant) — loud variant ran but failed: ${failed}`
+    verdict = `SCREEN-FAIL (non-compliant) — ${args.testId} variant ran but failed: ${failed}`
     exitCode = 1
   } else {
-    verdict = "SCREEN-PASS — loud variant cleared G1, G2, G3, G4"
+    verdict = `SCREEN-PASS — ${args.testId} variant cleared G1, G2, G3, G4`
     exitCode = 0
   }
 
@@ -265,10 +303,12 @@ async function main(): Promise<void> {
   // are computed and printed, INSERT a single row into phase_eval_runs
   // mirroring the augmented summary + verdict line. See
   // docs/designs/eval-testing-module-v1.md §5.
-  if (persist) {
+  if (args.persist) {
     const { persistPhaseEvalRun, currentGitCommit } = await import("./persist-run")
     const augmentedSummary = {
       ...summary,
+      control_variant: args.controlId,
+      test_variant: args.testId,
       g_metrics: m,
       gates: { G1, G2, G3, G4 },
       expected_chapters: expectedChapters,
@@ -277,12 +317,12 @@ async function main(): Promise<void> {
       const runId = await persistPhaseEvalRun({
         probeName: "phase-variant-comparison",
         gitCommit: currentGitCommit(),
-        experimentId: expId ?? null,
+        experimentId: args.expId ?? null,
         seedsUsed: [summary.seed],
         variantLabels: summary.variants.map(v => v.id),
         summaryJson: augmentedSummary,
         verdict,
-        notes: note ?? null,
+        notes: args.note ?? null,
       })
       console.log(`Persisted as phase_eval_runs.id=${runId}`)
     } catch (err) {

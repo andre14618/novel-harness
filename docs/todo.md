@@ -31,8 +31,7 @@ Checker promotion remains blocked until fresh labels are generated against the n
 
 The one-off planning variant probes were useful but too bespoke. The next prompt/composite-prior work needs reusable comparison plumbing.
 
-- [ ] **Generalize `scripts/phase-eval/print-screen-verdict.ts`.** It currently assumes the old planning-beats default-vs-loud pair. Add `--control` and `--test` flags and make verdict thresholds explicit so any phase-eval variant pair can reuse it.
-- [ ] **Refresh phase-eval variant assumptions for the split mapper.** The old `planning-beats` variants predate the state mapper and measured state/fact density inside a now beat-only agent. Decide whether future variants target `planning-beats`, `planning-state-mapper`, or both.
+- [ ] **Add a mapper variant seam and metric set.** `print-screen-verdict.ts` now supports arbitrary `--control`/`--test` pairs and planning-beats variants have been trimmed to beat-shape only. Next step is a `PLANNING_STATE_MAPPER_PROMPT_OVERRIDE`-style seam plus mapper-owned metrics for facts/knowledge/state/payoffs/obligations.
 - [ ] **MVP durable eval/testing module.** Design draft: `docs/designs/eval-testing-module-v1.md`. Replace bespoke scripts with `(variant config, seed set, metric set) -> results table + UI`, reusing `llm_calls`, `tuning_experiments`, `pipeline_events`, and `eval_results` where possible.
 
 ### 4. Pick the next corpus-informed synthesis probe after runtime stabilization
