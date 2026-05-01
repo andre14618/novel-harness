@@ -2723,3 +2723,33 @@ Pathway 3 made the gate score non-deterministic with respect to prompt edits (sm
 - `enrichOutlineIds` is the canonical assigner; never call `slugify` ad hoc downstream. New downstream consumers (checker findings, eval rows, future graph DB) read IDs from the outline directly.
 - Concept-layer artifact IDs (locations, organizations, world systems, story-spine threads) remain on the second-wave list. `enrichOutlineIds` does not touch them; they stay free-text until a downstream consumer needs them.
 - A guard test in `src/harness/stable-id-trace.test.ts` fails if text-overlap/fuzzy linking helpers reappear in the stable-ID harness path.
+
+### Current-surface checker calibration panel labeled — halluc-ungrounded under-fires badly, adherence-events is well-calibrated
+*2026-05-01 · exp #301 · panel `/tmp/halluc-current-panel-exp299-labeled.jsonl` (LXC) · surface fingerprint `bcc85ab1`*
+
+**Decision:** Oracle-labeled the 34 natural rows of the exp #299 current-surface panel (17 halluc-ungrounded + 17 adherence-events on chapter 1 of `novel-1777670460355`, seed `fantasy-system-heretic`) using 4 parallel Sonnet subagents with quote-required evidence. Calibration matrix:
+
+- **halluc-ungrounded:** TN=12, FN=4, MIXED=1 (1 TP + 1 FP). **Recall on hallucinations = 1/8 = 12.5%; precision on flags = 1/2 = 50%.** Seven distinct ungrounded named entities the live checker missed: `Master Orin`, `Guildmaster Aldric` (×2 in different beats), `Yarrow`, `Office of Structural Integrity`, `the Purge`, `Vault of Witnesses`. The one false positive flagged `Cassel` even though it appears in `groundedSources.derived_outline_fact`.
+- **adherence-events:** TN=13, TP=4, FP=0, FN=0. **100% precision and 100% recall on partial-event blockers.** All 4 TPs cluster on chapter 1 beat 12 attempts (the same plan-assist gate that failed exp #299) — Cassel never asks Maret to explain the discrepancy on-page; checker correctly fires.
+
+**Why this matters:** This is the first labeled current-surface calibration panel. The §2 todo task gated obligation-aware beat-check design on getting these labels. The labels say:
+1. The promotion path for **adherence-events to a stricter blocker class is supported**: clean precision and recall on a 17-row natural-prose panel from current production architecture.
+2. The promotion path for **halluc-ungrounded to anything stricter is blocked**: at 12.5% recall, the checker is structurally under-firing on a systematic class of secondary named entities. Tightening severity without first improving the prompt would be promoting a near-no-op.
+
+**Systematic FN pattern** the labels exposed: the checker recognizes top-of-grounded-sources entities (Maret, Cassel, Theo, Thornwall, the System) but loses recall on:
+- **Title + ungrounded surname** combinations (`Guildmaster Aldric`, `Master Orin`, `Yarrow` introduced cold).
+- **Named institutions** (`Office of Structural Integrity`, `Vault of Witnesses`).
+- **Named lore events** (`the Purge`).
+
+The current `halluc-ungrounded-system.md` prompt likely treats these as "alias of grounded character" or "generic descriptor" too readily. A prompt revision targeting these three classes is the next concrete improvement, but it is a CHECKER PROMPT change — not a writer change — so it must run against this same labeled panel for FP/FN regression measurement before promotion.
+
+**Alternatives rejected:**
+- *Promote halluc-ungrounded to blocker class on the existing 50% precision.* Net effect would be one true-positive blocker and one false-positive blocker per ~17 beats while still missing 7 of 8 real hallucinations — high friction with low protection.
+- *Skip labeling and use synthetic-only calibration.* The 10 synthetic candidate-score fixtures (entity insertion / event omission) need separate checker invocations to actually measure synthetic recall; they were never run through the live checkers and are not part of this calibration matrix.
+- *Hand-label without subagents.* 34 rows × ~30 min/row would have been a full day of manual work; 4 parallel Sonnet subagents finished in ~2 minutes wall-clock. Quote-required evidence preserves auditability.
+
+**Ongoing implications:**
+- §2 obligation-aware beat-check design proceeds for adherence-events (calibrated for a stricter contract) but does NOT proceed for halluc-ungrounded until the FN class is closed.
+- The §1 stable-ID work assumed the existing checker surface was the right calibration target; that holds for adherence-events but exposes a checker-prompt gap for halluc-ungrounded that's independent of the stable-ID rework.
+- The labeled panel becomes the regression bed for any halluc-ungrounded prompt change. Surface fingerprint `bcc85ab1` ties the labels to an exact prompt + context-assembly hash; new checker calls against the same prose must use the same fingerprint or recompute calibration.
+- 10 synthetic candidate-score rows (5 entity-insertion + 5 event-omission) still need checker invocation — separate task to measure synthetic fire rate against known-injected hallucinations/omissions.

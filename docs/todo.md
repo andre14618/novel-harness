@@ -3,6 +3,9 @@ status: active
 updated: 2026-05-01
 ---
 
+<!-- Latest: 2026-05-01 — labeled current-surface calibration panel (exp #301). halluc-ungrounded recall 12.5% (BLOCKER for severity promotion), adherence-events 100%/100% (READY for obligation-aware checks). Next: revise halluc prompt against the same labeled panel; obligation-aware checks for adherence; run synthetic candidate fire rate. See decisions.md. -->
+
+
 # To Do
 
 Pending action items only. Completed work and rationale live in `docs/decisions.md`, `docs/current-state.md`, session retrospectives, and per-charter result docs.
@@ -26,9 +29,11 @@ The planner now splits beat shape from state/obligation mapping. Exp #289 proved
 Checker promotion remains blocked until fresh labels are generated against the new writer-visible surface. Do not add obligation-aware beat blockers yet.
 
 - [x] ~~Run a fresh post-validator current-surface drafting sample.~~ **Partial 2026-05-01.** Exp #299 on `fantasy-system-heretic` at commit `f3295a3+`: novel `novel-1777670460355` completed full planning (3 outlines, $0.027) and drafted ch1 beat 12 of 13 before bailing at plan-assist gate on a single adherence blocker (`Beat events not enacted on-page: Cassel never asks Maret to explain the discrepancy`). Functional-state-checker fired multiple knowledge_change_missing / character_state_missing WARNINGS exactly matching the §2 calibration target. Updated `scripts/hallucination/current-surface-manifest.ts` to include the 6 stable-ID surface files and `scene.obligations` visibility entry — fingerprint `bcc85ab1`. Need a separate cleaner run that completes all 3 chapters before the panel build can use natural rows; consider running on a less-likely-to-blocker seed or with `setResolverMode("auto")` overriding the plan-assist gate.
-- [ ] **Build the current-surface hallucination panel.** Run `scripts/hallucination/current-surface-manifest.ts` and `scripts/hallucination/build-current-surface-panel.ts` from the fresh run. Start with the exp #282 `Spire` seed case as the known calibration anchor.
-- [ ] **Label the panel before changing checker severity.** Use quote-required oracle labels and record the checker-visible evidence surface for each row. Checker labels must be judged against the exact evidence the checker saw, not the wider writer context.
-- [ ] **Only then design obligation-aware beat checks.** Candidate checks must verify obligations the writer saw in `BEAT OBLIGATIONS`; chapter-level planned-state grounding remains warning-class until calibrated.
+- [x] ~~Build the current-surface hallucination panel.~~ **Done 2026-05-01.** 44-row panel at `/tmp/halluc-current-panel-exp299-labeled.jsonl` (LXC + local) — 17 halluc-ungrounded + 17 adherence-events natural rows from chapter 1 of `novel-1777670460355` (seed `fantasy-system-heretic`), 5+5 synthetic candidate rows. Surface fingerprint `bcc85ab1`.
+- [x] ~~Label the panel before changing checker severity.~~ **Done 2026-05-01 (exp #301).** 4 parallel Sonnet subagents oracle-labeled all 34 natural rows with quote-required evidence against checker-visible surfaces. **Calibration:** halluc-ungrounded TN=12, FN=4, MIXED=1 → recall 12.5%, precision 50%; adherence-events TN=13, TP=4, FP=0, FN=0 → 100%/100%. See `docs/decisions.md` "Current-surface checker calibration panel labeled".
+- [ ] **Run checker invocations on the 10 synthetic candidate-score fixtures.** They were staged with `actual: null` by `build-current-surface-panel.ts`; need a separate script to fire `halluc-ungrounded` on the entity-insertion prose and `adherence-events` on the event-omission prose, then compare to expected `issues`. Measures synthetic fire rate against known-injected hallucinations/omissions.
+- [ ] **Revise `halluc-ungrounded-system.md` to close the secondary-named-entity FN class.** The labeled panel exposed three systematic miss patterns: title + ungrounded surname (`Guildmaster Aldric`, `Master Orin`), named institutions (`Office of Structural Integrity`, `Vault of Witnesses`), named lore events (`the Purge`). Re-run on the same `bcc85ab1` panel and compare TP/FP/FN regression before promoting.
+- [ ] **Design obligation-aware beat checks for adherence-events first.** adherence-events is calibrated for stricter contract (100% precision, 100% recall on this panel). halluc-ungrounded blocked on the prompt revision above.
 
 ### 3. Build the evaluation/variant harness needed for next prompt work
 
