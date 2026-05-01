@@ -95,6 +95,17 @@ blocking checker promotion. Next slice should tighten the planner obligation
 prompt/contract so every `knowledgeChanges` and `characterStateChanges` item is
 either assigned to an obligation or explicitly marked non-prose.
 
+Exp #287 tightened the prompt to require every `knowledgeChanges[]` and
+`characterStateChanges[]` item to mirror into an obligation, and hardened optional
+soft-prior arrays so invalid tags like `miceOpens: "E"` do not reject chapters.
+The prompt improved one run (`novel-1777598129824`: all facts/knowledge assigned,
+state orphans 1/1/0) but did not eliminate variance on the final deployed surface
+(`novel-1777598438754`: all facts assigned, no schema retries, but chapter 3 still
+had 3 knowledge and 1 state orphan). Verdict: prompt-only tightening is helpful
+but insufficient. The next slice should add a deterministic coverage validator
+and targeted chapter re-expansion or explicit non-prose exemption field before
+checker promotion.
+
 ## Why Not Render Immediately
 
 The current audit found that several planner fields are not writer-visible:
@@ -115,10 +126,11 @@ schema changes or human review.
 2. Planner schema adds authored `beatObligations` if shadow derivation shows
    orphan rates are material. Done in exp #286.
 3. Writer prompt renders compact `BEAT OBLIGATIONS` per beat. Done in exp #286.
-4. Planning-readiness gate blocks only mechanical contract defects.
+4. Planning-readiness coverage validator detects missing obligation mirrors.
 5. Studio exposes obligations for human review before drafting.
-6. Beat checkers consume the same obligation packet after calibration.
-7. Fresh current-surface checker datasets are generated after the surface is
+6. Planning-readiness gate blocks only mechanical contract defects.
+7. Beat checkers consume the same obligation packet after calibration.
+8. Fresh current-surface checker datasets are generated after the surface is
    frozen.
 
 ## Success Criteria

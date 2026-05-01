@@ -182,6 +182,12 @@ run `novel-1777597799926` had no schema retries, assigned all facts, and showed
 remaining knowledge/state orphans in chapters 1-2. Checker promotion is still
 blocked on planner contract tightening and current-surface labels.
 
+Exp #287 tightened the prompt and hardened optional soft-prior arrays. It removed
+schema retries on the final deployed surface, but prompt-only obligation coverage
+was still variable (`novel-1777598438754` left chapter-3 knowledge/state orphans).
+Next readiness work should be deterministic coverage validation plus targeted
+re-expansion/exemption, not beat-checker promotion.
+
 ### Phase 2 - `halluc-ungrounded` Oracle Dataset
 
 Goal: calibrate the current beat-level entity-grounding blocker before changing
