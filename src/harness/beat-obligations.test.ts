@@ -203,6 +203,20 @@ test("repairBeatObligationCoverage injects remaining hidden state into beat obli
   expect(repaired.outline.scenes[0].obligations.mustShowStateChange[0].text).toContain("furious clarity")
 })
 
+test("repairBeatObligationCoverage covers short exact knowledge obligations", () => {
+  const outline = chapter({
+    scenes: [beat({ description: "Istra watches the seal break.", characters: ["Istra"] })],
+    knowledgeChanges: [
+      { characterName: "Istra", knowledge: "truth", source: "deduced" },
+    ],
+  })
+
+  const repaired = repairBeatObligationCoverage(outline)
+
+  expect(repaired.repairs).toEqual([expect.stringContaining("added mustTransferKnowledge for Istra")])
+  expect(repaired.validation.valid).toBe(true)
+})
+
 test("deriveBeatObligations counts id-less established facts as orphan telemetry", () => {
   const result = deriveBeatObligations(chapter({
     scenes: [beat({ description: "Istra records the cure result." })],

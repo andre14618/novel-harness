@@ -156,8 +156,9 @@ export function deriveBeatObligations(outline: ChapterOutline): BeatObligationSh
     }
   }
 
+  const knowledgeChanges = writerVisibleKnowledgeChanges(outline)
   let orphanKnowledgeChanges = 0
-  for (const change of outline.knowledgeChanges ?? []) {
+  for (const change of knowledgeChanges) {
     if (authoredKnowledgeCovers(outline.scenes, change)) continue
 
     const match = bestBeatMatch(outline.scenes, change.knowledge, {
@@ -175,7 +176,7 @@ export function deriveBeatObligations(outline: ChapterOutline): BeatObligationSh
       })
     } else {
       orphanKnowledgeChanges++
-      warnings.push(`Chapter ${outline.chapterNumber}: knowledgeChange for "${change.characterName}" is not assigned to any beat obligation`)
+      warnings.push(`Chapter ${outline.chapterNumber}: knowledgeChange for "${change.characterName}" (${change.knowledge}) is not assigned to any beat obligation`)
     }
   }
 
@@ -218,7 +219,7 @@ export function deriveBeatObligations(outline: ChapterOutline): BeatObligationSh
     warnings,
     summary: {
       factCount: outline.establishedFacts?.length ?? 0,
-      knowledgeCount: outline.knowledgeChanges?.length ?? 0,
+      knowledgeCount: knowledgeChanges.length,
       stateChangeCount: outline.characterStateChanges?.length ?? 0,
       orphanFacts,
       orphanKnowledgeChanges,
@@ -280,9 +281,10 @@ export function formatObligationCoverageRetryFeedback(
     }
   }
 
-  if ((outline.knowledgeChanges ?? []).length > 0) {
+  const knowledgeChanges = writerVisibleKnowledgeChanges(outline)
+  if (knowledgeChanges.length > 0) {
     lines.push("", "Knowledge changes that must be covered:")
-    for (const change of outline.knowledgeChanges ?? []) {
+    for (const change of knowledgeChanges) {
       lines.push(`- ${change.characterName}: ${change.knowledge}`)
     }
   }
@@ -310,7 +312,7 @@ export function repairBeatObligationCoverage(outline: ChapterOutline): BeatOblig
     repairs.push(`Chapter ${outline.chapterNumber} beat ${beatIndex + 1}: added mustEstablish for fact ${fact.id || fact.fact}`)
   }
 
-  for (const change of outline.knowledgeChanges ?? []) {
+  for (const change of writerVisibleKnowledgeChanges(outline)) {
     if (knowledgeIsWriterVisible(outline, change)) continue
     const beatIndex = chooseBeatForText(outline.scenes, change.knowledge, change.characterName)
     if (beatIndex === null) continue
@@ -403,6 +405,10 @@ function normalizeAuthoredObligations(obligations: BeatObligationsContract | und
   }
 }
 
+function writerVisibleKnowledgeChanges(outline: ChapterOutline): { characterName: string; knowledge: string }[] {
+  return (outline.knowledgeChanges ?? []).filter(change => change.knowledge?.trim().length > 0)
+}
+
 function cleanAuthoredItems<T extends { text: string }>(items: T[] | undefined): T[] {
   return (items ?? []).filter(item => item.text.trim().length > 0)
 }
@@ -482,8 +488,8 @@ function bestAuthoredObligationMatch(
     const items = normalizeAuthoredObligations(scenes[i].obligations)[key]
     for (const item of items) {
       if ((item.id && item.id === factId) || (item.factId && item.factId === factId)) return i
-      const score = overlapScore(targetText, item.text)
-      if (score.score < 2 || score.coverage < 0.25) continue
+      const score = textCoverageScore(targetText, item.text, { minScore: 2, minCoverage: 0.25 })
+      if (!score.covered) continue
       if (!best || score.score > best.score || (score.score === best.score && score.coverage > best.coverage)) {
         best = { beatIndex: i, ...score }
       }
@@ -499,8 +505,7 @@ function authoredKnowledgeCovers(
   for (const beat of scenes) {
     for (const item of normalizeAuthoredObligations(beat.obligations).mustTransferKnowledge) {
       if (item.characterName && !sameCharacterName(item.characterName, change.characterName)) continue
-      const score = overlapScore(change.knowledge, item.text)
-      if (score.score >= 2 && score.coverage >= 0.25) return true
+      if (textCoverageScore(change.knowledge, item.text, { minScore: 2, minCoverage: 0.25 }).covered) return true
     }
   }
   return false
@@ -514,11 +519,26 @@ function authoredStateCovers(
   for (const beat of scenes) {
     for (const item of normalizeAuthoredObligations(beat.obligations).mustShowStateChange) {
       if (item.characterName && !sameCharacterName(item.characterName, change.name)) continue
-      const score = overlapScore(stateText, item.text)
-      if (score.score >= 2 && score.coverage >= 0.2) return true
+      if (textCoverageScore(stateText, item.text, { minScore: 2, minCoverage: 0.2 }).covered) return true
     }
   }
   return false
+}
+
+function textCoverageScore(
+  targetText: string,
+  candidateText: string,
+  opts: { minScore: number; minCoverage: number },
+): { covered: boolean; score: number; coverage: number } {
+  if (normalizeCoverageText(targetText) === normalizeCoverageText(candidateText)) {
+    return { covered: true, score: Number.MAX_SAFE_INTEGER, coverage: 1 }
+  }
+  const score = overlapScore(targetText, candidateText)
+  return { covered: score.score >= opts.minScore && score.coverage >= opts.minCoverage, ...score }
+}
+
+function normalizeCoverageText(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()
 }
 
 function overlapScore(targetText: string, candidateText: string): { score: number; coverage: number } {
