@@ -150,6 +150,17 @@ export async function runPlanningPhase(novelId: string): Promise<PhaseResult<Pla
   }
 
   const chapters = finalEnforcement.chapters
+  for (const outline of chapters) {
+    const obligationPlan = harness.beatObligations.deriveBeatObligations(outline)
+    const s = obligationPlan.summary
+    log(novelId, "info", `Planning obligations ch${outline.chapterNumber}: facts=${s.factCount} orphanFacts=${s.orphanFacts} knowledge=${s.knowledgeCount} orphanKnowledge=${s.orphanKnowledgeChanges} state=${s.stateChangeCount} orphanState=${s.orphanStateChanges} overloadedBeats=${s.overloadedBeats}`)
+    for (const warning of obligationPlan.warnings.slice(0, 8)) {
+      log(novelId, "warn", `Planning obligations: ${warning}`)
+    }
+    if (obligationPlan.warnings.length > 8) {
+      log(novelId, "warn", `Planning obligations: ${obligationPlan.warnings.length - 8} additional warning(s) suppressed for chapter ${outline.chapterNumber}`)
+    }
+  }
   log(novelId, "info", `Planning complete: ${chapters.length} chapters, avg ${Math.round(chapters.reduce((s, c) => s + (c.scenes?.length ?? 0), 0) / chapters.length)} beats/chapter`)
   emit(novelId, { type: "progress", data: { step: "planning-beats", status: "complete", chapters: chapters.length } })
 

@@ -303,6 +303,22 @@ Architectural decisions with rationale, evidence, and alternatives rejected. App
 
 ---
 
+### Upstream beat obligations are measured before they become writer/checker contract
+*2026-05-01 · exp #284 · charter `docs/charters/upstream-beat-obligations-v1.md`*
+
+**Decision:** Add a non-blocking shadow derivation layer that maps existing planner state (`establishedFacts`, `knowledgeChanges`, `characterStateChanges`, and `requiredPayoffs`) onto per-beat obligations before changing the planner schema, writer prompt, checker prompts, or severity policy.
+
+**Why:** The current surface audit found that the beat writer sees beat descriptions, characters, kind, and resolved payoff links, but not full chapter-level state metadata or soft structural tags. Checkers must not block on state hidden from the writer. The right long-term architecture is upstream planning plus a compact beat contract, but we need orphan/overload measurements before deciding whether deterministic derivation is enough or planner-authored `beatObligations` are required.
+
+**Alternatives rejected:**
+- Dump full chapter state into every beat prompt — rejected because it overloads V4 Flash non-thinking and encourages premature reveals.
+- Switch the beat writer to thinking mode first — rejected because planning/mapping is the reasoning task; prose generation should remain a bounded local execution task until calibration proves otherwise.
+- Let chapter-level semantic checkers keep discovering missing planned state — rejected because that catches the failure after prose spend and can blame the writer for obligations it never saw.
+
+**Ongoing:** Shadow warnings are telemetry only. A later slice may add planner-authored obligations, Studio review, writer prompt rendering, and beat-checker consumption after the shadow layer measures assignment gaps on fresh plans.
+
+---
+
 ### Writer LoRA runtime route removed; fantasy now supplies structural priors only
 *2026-04-30 · exp #272*
 

@@ -16,6 +16,7 @@ const SURFACE_FILES = [
   "src/models/roles.ts",
   "src/config/pipeline.ts",
   "src/schemas/shared.ts",
+  "src/harness/beat-obligations.ts",
   "src/harness/enforce.ts",
   "src/phases/planning.ts",
   "src/phases/drafting.ts",
