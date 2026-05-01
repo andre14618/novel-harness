@@ -40,6 +40,7 @@ rows must therefore freeze which surface is being judged.
 | `scene.characters` | yes | yes | Drives character snapshots and deterministic presence checks. |
 | `scene.kind` | yes | yes | Rendered as a local hint, not a blocker by itself. |
 | `scene.requiredPayoffs` | yes, as resolved fact text in `SEEDS` / `PAYOFFS DUE` | yes in chapter/functional checks; entity checker sees only derived names | Safe to test as writer-visible when the fact resolves. |
+| `scene.obligations` | yes, as compact `BEAT OBLIGATIONS` | not yet consumed by active beat checkers | Candidate future checker contract; do not block until orphan coverage and labels are calibrated. |
 | `establishedFacts` | only if encoded in beat descriptions or payoff links | yes in chapter/functional checks; partial entity derivation in `halluc-ungrounded` | Do not expect prose to establish orphan facts the writer never saw. |
 | `characterStateChanges` | no direct current-chapter end-state surface | yes in chapter/functional checks | Missing state establishment should stay warning until writer-visible contract is explicit. |
 | `knowledgeChanges` | no direct surface | yes in chapter/functional checks | Must be written into beat descriptions before beat-level checkers can fairly block. |
@@ -173,11 +174,13 @@ Acceptance:
 - deterministic blockers are limited to mechanical corruption.
 - ambiguous story-quality judgments stay out of this layer.
 
-Status: exp #284 started this as shadow measurement. Exp #286 adds
+Status: exp #284/#285 started this as shadow measurement. Exp #286 adds
 planner-authored `scene.obligations` and renders them to the beat writer as
-`BEAT OBLIGATIONS`. The shadow layer remains active as telemetry and must prove
-orphan/overload rates improve before beat checkers are allowed to block on the
-new obligation surface.
+`BEAT OBLIGATIONS`. Hardened commit `1f62210` makes optional obligation metadata
+lenient so malformed id-only items do not reject whole chapters. Fresh hardened
+run `novel-1777597799926` had no schema retries, assigned all facts, and showed
+remaining knowledge/state orphans in chapters 1-2. Checker promotion is still
+blocked on planner contract tightening and current-surface labels.
 
 ### Phase 2 - `halluc-ungrounded` Oracle Dataset
 

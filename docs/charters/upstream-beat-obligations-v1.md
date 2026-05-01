@@ -72,6 +72,29 @@ keeping checker severity unchanged:
 This is not yet a checker promotion. Beat checkers must be updated and calibrated
 against the new current surface before they can block on obligations.
 
+## Fresh Surface Measurements
+
+Exp #285, `novel-1777596835809`, measured the shadow-only surface on the same
+3-chapter seed. Facts mapped cleanly, but state changes frequently remained
+orphaned: chapter summaries were `0/0/2`, `0/0/1`, and `0/2/2` for
+fact/knowledge/state orphans. Verdict: derived obligations alone are not enough;
+the planner must author the local beat contract.
+
+Exp #286 deployed planner-authored obligations. First run
+`novel-1777597478181` proved the model emits obligations for every beat, but also
+exposed that optional obligation metadata must be leniently parsed: malformed
+id-only payoff items should not reject an otherwise valid chapter. Hardened commit
+`1f62210` fixes that boundary.
+
+Post-hardening run `novel-1777597799926` produced planning without schema retries.
+All facts were assigned and no beats overloaded. Remaining orphans were semantic
+coverage gaps, not mechanical parse failures: chapter 1 had `0/2/2`, chapter 2 had
+`0/3/1`, chapter 3 had `0/0/0` for fact/knowledge/state orphans. Verdict:
+planner-authored obligations are viable as writer context, but not ready for
+blocking checker promotion. Next slice should tighten the planner obligation
+prompt/contract so every `knowledgeChanges` and `characterStateChanges` item is
+either assigned to an obligation or explicitly marked non-prose.
+
 ## Why Not Render Immediately
 
 The current audit found that several planner fields are not writer-visible:
@@ -88,13 +111,13 @@ schema changes or human review.
 
 ## Readiness Ladder
 
-1. Shadow derivation logs orphan/overload rates.
+1. Shadow derivation logs orphan/overload rates. Done in exp #284/#285.
 2. Planner schema adds authored `beatObligations` if shadow derivation shows
-   orphan rates are material.
-3. Planning-readiness gate blocks only mechanical contract defects.
-4. Studio exposes obligations for human review before drafting.
-5. Writer prompt renders compact `BEAT OBLIGATIONS` per beat.
-6. Beat checkers consume the same obligation packet.
+   orphan rates are material. Done in exp #286.
+3. Writer prompt renders compact `BEAT OBLIGATIONS` per beat. Done in exp #286.
+4. Planning-readiness gate blocks only mechanical contract defects.
+5. Studio exposes obligations for human review before drafting.
+6. Beat checkers consume the same obligation packet after calibration.
 7. Fresh current-surface checker datasets are generated after the surface is
    frozen.
 
