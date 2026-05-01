@@ -1,9 +1,12 @@
 ---
-status: active (in-flight design thread)
+status: superseded
+superseded-by: docs/decisions.md "Writer LoRA runtime route removed" (exp #272, 2026-04-30) and the post-2026-04-21 fine-tune-free direction
 updated: 2026-04-16
 ---
 
 # Beat-Writer Architecture — Constraint-Load Design
+
+> **Superseded 2026-05-01:** This design thread was anchored on a 14B writer-LoRA runtime that no longer exists. Salvatore writer-LoRA routing, tonal/voice LoRA generation, and the corpus-leak checker were retired from runtime in exp #272 (2026-04-30). The current beat writer is DeepSeek V4 Flash with the base beat-writer prompt and full runtime context; the "push complexity upstream" thesis is now expressed through planner stable-IDs and writer-visible beat obligations rather than writer-side fine-tuning. Treat the analysis below as historical background.
 
 Living design doc capturing the thread from the 2026-04-16 session. Thesis: the beat writer is being asked to juggle too many constraints for a 14B LoRA, and the fix is to strip, consolidate, and push complexity upstream (to the planner) rather than downstream (to the writer).
 

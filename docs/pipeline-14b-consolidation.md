@@ -1,9 +1,12 @@
 ---
-status: active
+status: superseded
+superseded-by: docs/decisions.md "Fine-tune-free direction" (2026-04-30) and `project_fine_tune_free_direction` memory
 updated: 2026-04-16
 ---
 
 # Pipeline 14B Consolidation — Slot-by-Slot Analysis
+
+> **Superseded 2026-05-01:** The 14B consolidation strategy was overtaken by the fine-tune-free direction (2026-04-30). New writer/checker fine-tunes are not the default path; the live runtime uses DeepSeek V4 Flash plus deterministic guards from corpus-mined patterns unless `docs/decisions.md` explicitly authorizes SFT work. Per-slot routing lives in `src/models/roles.ts` and is summarized in `docs/current-state.md`. Treat the slot-by-slot analysis below as historical background, not a roadmap.
 
 Living analysis of whether each LLM slot in the harness can run on a single base (`OpenPipe/Qwen3-14B-Instruct` + task-specific LoRAs on W&B Inference) instead of the current mix of DeepSeek V3.2 / Cerebras 235B / Groq Llama / multiple providers.
 

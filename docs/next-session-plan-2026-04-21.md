@@ -1,11 +1,14 @@
 ---
-status: in-progress
+status: superseded
+superseded-by: docs/todo.md (canonical pending action items as of 2026-05-01)
 from_session: docs/sessions/2026-04-20-halluc-v1-and-rung0-and-v1a-pilot.md
 created: 2026-04-20
 last_updated: 2026-04-20
 ---
 
 # Next-Session Plan (live queue, 2026-04-20 onward)
+
+> **Superseded 2026-05-01:** This was the live queue at 2026-04-20 session close. Items here that are still active have been migrated into `docs/todo.md`; items that were one-shot (halluc V1, conditioning-floor) have concluded experiments and decisions logged in `docs/decisions.md`. Do not pick work from this file — read `docs/todo.md` instead.
 
 Prioritized queue at 2026-04-20 session close. Start from the top.
 Supersedes stale queue in `docs/next-session-plan.md` (which is from

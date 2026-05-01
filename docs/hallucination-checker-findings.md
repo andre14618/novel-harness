@@ -1,7 +1,9 @@
 # Hallucination-checker findings — exp #223
 
 Date: 2026-04-18
-Status: **V1 trained + deployed**, pending held-out eval on 160-beat val set. Adapter: `wandb-artifact:///andre14618-/novel-harness/hallucination-checker-v1:v1`.
+Status: **Historical — adapter retired with the writer-LoRA route in exp #272 (2026-04-30).** The v1 adapter was trained against v4 LoRA writer corpus-leakage as failure class A; that failure class is no longer load-bearing because the Salvatore writer LoRA is no longer in the runtime. The findings here describe the v1 training methodology and held-out behavior; current hallucination policy lives in `docs/current-state.md` and runtime checker routing in `src/agents/`.
+
+Original adapter: `wandb-artifact:///andre14618-/novel-harness/hallucination-checker-v1:v1`.
 
 ## Setup
 

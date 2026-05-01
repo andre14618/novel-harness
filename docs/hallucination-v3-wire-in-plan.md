@@ -1,5 +1,6 @@
 ---
-status: active
+status: superseded
+superseded-by: docs/decisions.md "Writer LoRA runtime route removed; fantasy now supplies structural priors only" (exp #272, 2026-04-30)
 kind: implementation-plan
 produced-by: Codex (gpt-5.4, high-effort, session 019da28c-1602-7852-8b54-cfb986b25dbf)
 produced-for: Claude (implementation)
@@ -7,6 +8,8 @@ date: 2026-04-18
 ---
 
 # Hallucination V3 Wire-In Plan
+
+> **Superseded 2026-05-01:** This plan wired in `halluc-ungrounded-v2` and `halluc-leak-salvatore-v1` against the Salvatore writer-LoRA route. That route was retired in exp #272 (2026-04-30) along with Salvatore-leak detection and tonal/voice LoRA generation. The current runtime uses DeepSeek V4 Flash for all writer slots with deterministic guards and bounded checker calls; do not treat the wire-in described here as the live hallucination surface. Verify live agent routing in `src/agents/` and `src/models/roles.ts`.
 
 Produced by Codex at Claude's request after the 2026-04-18 directional review identified item #3 (hallucination v3 wire-in) as independent of the three RED charters. The adapters `halluc-ungrounded-v2:v1` and `halluc-leak-salvatore-v1:v1` have been evaluated and are W&B-live; they are not invoked at runtime yet. This document is the commit-by-commit plan Claude will execute.
 

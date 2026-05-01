@@ -1,5 +1,7 @@
 # LoRA Style Transfer for Prose Rewriting: Research Report
 
+> **Superseded 2026-05-01:** This report describes the Howard tonal-pass / per-paragraph rewriter route, which has been retired from runtime along with all writer-layer LoRA routing. Howard-primer style prompting is no longer a valid prompt option (`STYLE_PRIMER` is `{none, salvatore}` only — see `feedback_style_primer_salvatore_only` memory). The runtime writer is DeepSeek V4 Flash base for all genres. Treat the methodology and findings below as historical research, not active routing.
+
 **Date**: 2026-04-06
 **Goal**: Train a LoRA adapter on Qwen 3.5 9B to rewrite AI-generated prose into a target voice (Robert E. Howard's sword-and-sorcery style), operating as a per-paragraph tonal-pass agent in the novel-harness pipeline.
 
